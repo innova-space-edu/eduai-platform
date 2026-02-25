@@ -1,10 +1,10 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
-import Link from "next/link"
+import StudyClient from "./StudyClient"
 
 interface Props {
-  params: { topic: string }
-  searchParams: { topic?: string }
+  params: Promise<{ topic: string }>
+  searchParams: Promise<{ subtopic?: string }>
 }
 
 export default async function StudyPage({ params, searchParams }: Props) {
@@ -12,39 +12,39 @@ export default async function StudyPage({ params, searchParams }: Props) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect("/login")
 
-  const topic = decodeURIComponent(params.topic) || searchParams.topic || ""
+  const resolvedParams = await params
+  const resolvedSearch = await searchParams
+  const topic = decodeURIComponent(resolvedParams.topic)
+  const subtopic = resolvedSearch.subtopic ? decodeURIComponent(resolvedSearch.subtopic) : null
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("level, xp, name")
+    .eq("id", user.id)
+    .single()
 
   return (
     <main className="min-h-screen bg-gray-950 text-white">
-
-      {/* Navbar */}
-      <nav className="border-b border-gray-800 bg-gray-900/50 backdrop-blur px-6 py-4">
-        <div className="max-w-6xl mx-auto flex items-center gap-4">
-          <Link href="/dashboard" className="text-gray-500 hover:text-white transition-colors">
-            ← Dashboard
-          </Link>
-          <span className="text-gray-700">|</span>
-          <h1 className="text-white font-semibold">{topic}</h1>
+      <nav className="border-b border-gray-800 bg-gray-900/50 backdrop-blur px-6 py-4 sticky top-0 z-10">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <a href="/dashboard" className="text-gray-500 hover:text-white transition-colors text-sm">
+              ← Dashboard
+            </a>
+            <span className="text-gray-700">|</span>
+            <h1 className="text-white font-semibold truncate max-w-xs">
+              {subtopic || topic}
+            </h1>
+          </div>
+          <span className="text-xs text-gray-500">Nivel {profile?.level || 1}</span>
         </div>
       </nav>
 
-      <div className="max-w-4xl mx-auto px-6 py-16 text-center">
-        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-12">
-          <p className="text-5xl mb-6">🧠</p>
-          <h2 className="text-2xl font-bold text-white mb-3">
-            Preparando tu sesión sobre
-          </h2>
-          <h3 className="text-3xl font-bold text-blue-400 mb-6">
-            {topic}
-          </h3>
-          <p className="text-gray-500 text-sm">
-            Aquí aparecerá el contenido generado por la IA.
-            <br />
-            Próximo paso: conectar el backend con los agentes.
-          </p>
-        </div>
-      </div>
-
+      <StudyClient 
+        topic={topic} 
+        subtopic={subtopic}
+        level={profile?.level || 1} 
+      />
     </main>
   )
 }

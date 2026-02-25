@@ -11,9 +11,11 @@
   "dependencies": {
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.97.0",
+    "@tailwindcss/typography": "^0.5.19",
     "@tanstack/react-query": "^5.90.21",
     "clsx": "^2.1.1",
     "framer-motion": "^12.34.3",
+    "groq-sdk": "^0.37.0",
     "katex": "^0.16.33",
     "lucide-react": "^0.575.0",
     "mermaid": "^11.12.3",
@@ -21,6 +23,9 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-katex": "^3.1.0",
+    "react-markdown": "^10.1.0",
+    "rehype-katex": "^7.0.1",
+    "remark-math": "^6.0.0",
     "tailwind-merge": "^3.5.0",
     "zustand": "^5.0.11"
   },

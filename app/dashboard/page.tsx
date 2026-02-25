@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { signOut } from "@/app/(auth)/actions"
 import Link from "next/link"
+import TopicInput from "./TopicInput"
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -28,14 +29,11 @@ export default async function DashboardPage() {
   return (
     <main className="min-h-screen bg-gray-950 text-white">
 
-      {/* Navbar */}
       <nav className="border-b border-gray-800 bg-gray-900/50 backdrop-blur px-6 py-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <h1 className="text-xl font-bold text-blue-400">EduAI</h1>
           <div className="flex items-center gap-4">
-            <span className="text-gray-400 text-sm">
-              {profile?.name || user.email}
-            </span>
+            <span className="text-gray-400 text-sm">{profile?.name || user.email}</span>
             <span className={`text-sm font-medium ${levelColors[profile?.level || 1]}`}>
               {levelNames[profile?.level || 1]}
             </span>
@@ -50,7 +48,6 @@ export default async function DashboardPage() {
 
       <div className="max-w-6xl mx-auto px-6 py-10">
 
-        {/* Bienvenida */}
         <div className="mb-10">
           <h2 className="text-3xl font-bold text-white mb-1">
             Hola, {profile?.name?.split(" ")[0] || "estudiante"} 👋
@@ -58,7 +55,6 @@ export default async function DashboardPage() {
           <p className="text-gray-400">¿Qué quieres aprender hoy?</p>
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
           {[
             { label: "Nivel", value: levelNames[profile?.level || 1], color: levelColors[profile?.level || 1] },
@@ -73,20 +69,14 @@ export default async function DashboardPage() {
           ))}
         </div>
 
-        {/* Input de tema */}
         <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 mb-10">
-          <h3 className="text-lg font-semibold text-white mb-4">
-            🎓 Comenzar nueva sesión
-          </h3>
+          <h3 className="text-lg font-semibold text-white mb-4">🎓 Comenzar nueva sesión</h3>
           <TopicInput />
         </div>
 
-        {/* Sesiones recientes */}
         {recentSessions && recentSessions.length > 0 && (
           <div>
-            <h3 className="text-lg font-semibold text-white mb-4">
-              📚 Sesiones recientes
-            </h3>
+            <h3 className="text-lg font-semibold text-white mb-4">📚 Sesiones recientes</h3>
             <div className="grid gap-3">
               {recentSessions.map((session) => (
                 <Link
@@ -115,7 +105,6 @@ export default async function DashboardPage() {
           </div>
         )}
 
-        {/* Estado vacío */}
         {(!recentSessions || recentSessions.length === 0) && (
           <div className="text-center py-16 text-gray-600">
             <p className="text-5xl mb-4">📖</p>
@@ -126,25 +115,5 @@ export default async function DashboardPage() {
 
       </div>
     </main>
-  )
-}
-
-// Componente cliente para el input del tema
-function TopicInput() {
-  return (
-    <form action="/study" method="GET" className="flex gap-3">
-      <input
-        name="topic"
-        type="text"
-        placeholder="Ej: Leyes de Newton, Segunda Guerra Mundial, Integrales..."
-        className="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
-      />
-      <button
-        type="submit"
-        className="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-6 py-3 rounded-xl transition-colors whitespace-nowrap"
-      >
-        Estudiar →
-      </button>
-    </form>
   )
 }
