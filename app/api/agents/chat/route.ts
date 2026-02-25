@@ -26,6 +26,9 @@ export async function POST(req: Request) {
     6: "maestro",
   }
 
+  // Estrategia: solo los últimos 2 mensajes del historial
+  const recentHistory = history.slice(-2)
+
   const systemPrompt = `Eres AGT, un tutor educativo experto y conversacional.
 
 CONTEXTO:
@@ -39,23 +42,22 @@ REGLAS DE RESPUESTA:
 - Usa markdown para estructura: ## títulos, **negrita**, listas
 - Para fórmulas matemáticas usa LaTeX: $formula$ para inline, $$formula$$ para bloque
 - Para tablas usa markdown de tabla
-- Al final de tu respuesta incluye SIEMPRE una pregunta breve para verificar comprensión o invitar a profundizar
+- Al final incluye SIEMPRE una pregunta breve para continuar
 - Sé motivador y didáctico
-- Si el estudiante escribe algo confuso, pídele que aclare
 
-FORMATO DE RESPUESTA:
-[tu explicación en máximo 250 palabras con LaTeX si aplica]
+FORMATO EXACTO DE RESPUESTA:
+[explicación en máximo 250 palabras]
 
-[pregunta final para continuar]
+[pregunta final]
 
 ---FOLLOWUPS---
-["opción corta 1", "opción corta 2", "opción corta 3"]
+["opción 1", "opción 2", "opción 3"]
 
-Las opciones de followup deben ser frases cortas (máximo 6 palabras) que el estudiante podría querer explorar a continuación.`
+Las opciones deben ser frases cortas (máximo 6 palabras).`
 
   const messages = [
     { role: "system" as const, content: systemPrompt },
-    ...history.map((m: { role: string, content: string }) => ({
+    ...recentHistory.map((m: { role: string, content: string }) => ({
       role: m.role === "ai" ? "assistant" as const : "user" as const,
       content: m.content,
     })),
