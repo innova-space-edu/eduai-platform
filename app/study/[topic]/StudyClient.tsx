@@ -5,97 +5,66 @@ import { useRouter } from "next/navigation"
 import ReactMarkdown from "react-markdown"
 import remarkMath from "remark-math"
 import rehypeKatex from "rehype-katex"
+import QuizMode from "./QuizMode"
+import QuizResults from "./QuizResults"
 
-// ── Tipos ─────────────────────────────────────────────────
-interface Suggestion {
-  id: number
-  title: string
-  description: string
-  emoji: string
-}
+interface Suggestion { id: number; title: string; description: string; emoji: string }
+interface ChatMessage { role: "ai" | "user"; content: string }
+interface StudyType { id: string; label: string; description: string; emoji: string }
+interface QuizResult { question: string; userAnswer: string; correct: string; isCorrect: boolean; feedback: string }
 
-interface ChatMessage {
-  role: "ai" | "user"
-  content: string
-}
-
-interface StudyType {
-  id: string
-  label: string
-  description: string
-  emoji: string
-}
-
-interface Props {
-  topic: string
-  subtopic: string | null
-  level: number
-}
+interface Props { topic: string; subtopic: string | null; level: number }
 
 const STUDY_TYPES: StudyType[] = [
-  { id: "theory",    label: "Teoría",      description: "Explicación del concepto",         emoji: "📖" },
-  { id: "examples",  label: "Ejemplos",    description: "Casos resueltos paso a paso",      emoji: "🔢" },
-  { id: "exercises", label: "Ejercicios",  description: "Practica con problemas",           emoji: "✏️" },
-  { id: "summary",   label: "Resumen",     description: "Puntos clave en poco tiempo",      emoji: "⚡" },
+  { id: "theory",    label: "Teoría",     description: "Explicación del concepto",    emoji: "📖" },
+  { id: "examples",  label: "Ejemplos",   description: "Casos resueltos paso a paso", emoji: "🔢" },
+  { id: "exercises", label: "Ejercicios", description: "Practica con problemas",      emoji: "✏️" },
+  { id: "summary",   label: "Resumen",    description: "Puntos clave en poco tiempo", emoji: "⚡" },
 ]
 
-// ── Componente Markdown con LaTeX ─────────────────────────
 function MathContent({ content }: { content: string }) {
   return (
-    <div className="prose prose-invert prose-lg max-w-none text-justify
+    <div className="prose prose-invert prose-lg max-w-none
       prose-headings:text-white prose-headings:font-bold prose-headings:text-left
       prose-h2:text-xl prose-h2:mt-8 prose-h2:mb-3 prose-h2:border-b prose-h2:border-gray-800 prose-h2:pb-2
       prose-h3:text-lg prose-h3:text-blue-300
       prose-p:text-gray-300 prose-p:leading-relaxed prose-p:text-justify
-      prose-strong:text-white prose-strong:font-semibold
+      prose-strong:text-white
       prose-code:text-blue-300 prose-code:bg-gray-800 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded
       prose-pre:bg-gray-900 prose-pre:border prose-pre:border-gray-800
       prose-ul:text-gray-300 prose-li:my-1
-      prose-table:text-gray-300 prose-th:text-white prose-th:bg-gray-800
-      prose-blockquote:border-blue-500 prose-blockquote:text-gray-400">
-      <ReactMarkdown
-        remarkPlugins={[remarkMath]}
-        rehypePlugins={[rehypeKatex]}
-      >
+      prose-table:text-gray-300 prose-th:text-white prose-th:bg-gray-800">
+      <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
         {content}
       </ReactMarkdown>
     </div>
   )
 }
 
-// ── Componente principal ──────────────────────────────────
 export default function StudyClient({ topic, subtopic, level }: Props) {
   const router = useRouter()
 
-  // Paso actual: suggest | type | study
-  const [step, setStep] = useState<"suggest" | "type" | "study">(
+  const [step, setStep] = useState<"suggest" | "type" | "study" | "quiz" | "results">(
     subtopic ? "type" : "suggest"
   )
   const [selectedSubtopic, setSelectedSubtopic] = useState(subtopic || "")
-
-  // Sugerencias
+  const [selectedType, setSelectedType] = useState("")
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
   const [loadingSuggestions, setLoadingSuggestions] = useState(false)
-
-  // Tipo de estudio
-  const [selectedType, setSelectedType] = useState<string>("")
-
-  // Conversación
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [streaming, setStreaming] = useState(false)
   const [userInput, setUserInput] = useState("")
   const [suggestedFollowups, setSuggestedFollowups] = useState<string[]>([])
-
+  const [quizResults, setQuizResults] = useState<QuizResult[]>([])
+  const [quizXP, setQuizXP] = useState(0)
   const [error, setError] = useState("")
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // Cargar sugerencias al inicio
   useEffect(() => {
     if (step === "suggest") loadSuggestions()
   }, [])
 
-  // Scroll al fondo cuando llegan mensajes
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages, streaming])
@@ -108,7 +77,6 @@ export default function StudyClient({ topic, subtopic, level }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ topic }),
       })
-      if (!res.ok) throw new Error("Error cargando sugerencias")
       const data = await res.json()
       setSuggestions(data.suggestions || [])
     } catch (e: any) {
@@ -126,23 +94,12 @@ export default function StudyClient({ topic, subtopic, level }: Props) {
   function selectType(typeId: string) {
     setSelectedType(typeId)
     setStep("study")
-    startConversation(typeId)
-  }
-
-  async function startConversation(typeId: string) {
     const typeLabel = STUDY_TYPES.find(t => t.id === typeId)?.label || typeId
-    const firstMessage = `Quiero aprender sobre "${selectedSubtopic}" — modo: ${typeLabel}`
-    await sendMessage(firstMessage, [], true)
+    sendMessage(`Quiero aprender sobre "${selectedSubtopic}" — modo: ${typeLabel}`, [], true)
   }
 
-  async function sendMessage(
-    userText: string,
-    history: ChatMessage[],
-    isFirst = false
-  ) {
-    const newHistory: ChatMessage[] = isFirst
-      ? []
-      : [...history, { role: "user" as const, content: userText }]
+  async function sendMessage(userText: string, history: ChatMessage[], isFirst = false) {
+    const recentHistory = history.slice(-2)
 
     if (!isFirst) {
       setMessages(prev => [...prev, { role: "user", content: userText }])
@@ -150,10 +107,6 @@ export default function StudyClient({ topic, subtopic, level }: Props) {
 
     setStreaming(true)
     setSuggestedFollowups([])
-
-    let aiContent = ""
-    const aiMessageIndex = newHistory.length
-
     setMessages(prev => [...prev, { role: "ai", content: "" }])
 
     try {
@@ -164,7 +117,7 @@ export default function StudyClient({ topic, subtopic, level }: Props) {
           topic: selectedSubtopic || topic,
           studyType: selectedType,
           userMessage: userText,
-          history: newHistory,
+          history: recentHistory,
           level,
         }),
       })
@@ -181,18 +134,14 @@ export default function StudyClient({ topic, subtopic, level }: Props) {
         const { done, value } = await reader.read()
         if (done) break
         buffer += decoder.decode(value)
-        
-        // Separar el JSON de followups del contenido principal
+
         const splitMarker = "\n---FOLLOWUPS---\n"
+        let aiContent = buffer
+
         if (buffer.includes(splitMarker)) {
           const parts = buffer.split(splitMarker)
           aiContent = parts[0]
-          try {
-            const followups = JSON.parse(parts[1])
-            setSuggestedFollowups(followups)
-          } catch {}
-        } else {
-          aiContent = buffer
+          try { setSuggestedFollowups(JSON.parse(parts[1])) } catch {}
         }
 
         setMessages(prev => {
@@ -216,12 +165,13 @@ export default function StudyClient({ topic, subtopic, level }: Props) {
     sendMessage(text, messages)
   }
 
-  function handleFollowup(text: string) {
-    if (streaming) return
-    sendMessage(text, messages)
+  function handleQuizFinish(results: QuizResult[], xp: number) {
+    setQuizResults(results)
+    setQuizXP(xp)
+    setStep("results")
   }
 
-  // ── PASO 1: Sugerencias de subtema ────────────────────────
+  // ── PASO 1: Sugerencias ───────────────────────────────────
   if (step === "suggest") {
     return (
       <div className="max-w-4xl mx-auto px-6 py-12">
@@ -240,24 +190,17 @@ export default function StudyClient({ topic, subtopic, level }: Props) {
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {suggestions.map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => selectSubtopic(s.title)}
-                  className="bg-gray-900 border border-gray-800 hover:border-blue-500 hover:bg-gray-800/80 rounded-2xl p-6 text-left transition-all group"
-                >
+                <button key={s.id} onClick={() => selectSubtopic(s.title)}
+                  className="bg-gray-900 border border-gray-800 hover:border-blue-500 hover:bg-gray-800/80 rounded-2xl p-6 text-left transition-all group">
                   <div className="text-3xl mb-3">{s.emoji}</div>
-                  <h4 className="text-white font-semibold text-lg mb-1 group-hover:text-blue-400 transition-colors">
-                    {s.title}
-                  </h4>
+                  <h4 className="text-white font-semibold text-lg mb-1 group-hover:text-blue-400 transition-colors">{s.title}</h4>
                   <p className="text-gray-500 text-sm">{s.description}</p>
                 </button>
               ))}
             </div>
             <div className="text-center mt-8">
-              <button
-                onClick={() => selectSubtopic(topic)}
-                className="text-gray-500 hover:text-gray-300 text-sm underline transition-colors"
-              >
+              <button onClick={() => selectSubtopic(topic)}
+                className="text-gray-500 hover:text-gray-300 text-sm underline transition-colors">
                 Estudiar "{topic}" de forma general →
               </button>
             </div>
@@ -273,33 +216,22 @@ export default function StudyClient({ topic, subtopic, level }: Props) {
       <div className="max-w-4xl mx-auto px-6 py-12">
         <div className="text-center mb-10">
           <p className="text-gray-500 text-sm mb-1">{topic} →</p>
-          <h2 className="text-3xl font-bold text-white mb-2">
-            {selectedSubtopic}
-          </h2>
+          <h2 className="text-3xl font-bold text-white mb-2">{selectedSubtopic}</h2>
           <p className="text-gray-500 text-sm">¿Qué tipo de contenido quieres?</p>
         </div>
-
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {STUDY_TYPES.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => selectType(t.id)}
-              className="bg-gray-900 border border-gray-800 hover:border-blue-500 hover:bg-gray-800/80 rounded-2xl p-6 text-center transition-all group"
-            >
+            <button key={t.id} onClick={() => selectType(t.id)}
+              className="bg-gray-900 border border-gray-800 hover:border-blue-500 hover:bg-gray-800/80 rounded-2xl p-6 text-center transition-all group">
               <div className="text-4xl mb-3">{t.emoji}</div>
-              <h4 className="text-white font-semibold mb-1 group-hover:text-blue-400 transition-colors">
-                {t.label}
-              </h4>
+              <h4 className="text-white font-semibold mb-1 group-hover:text-blue-400 transition-colors">{t.label}</h4>
               <p className="text-gray-500 text-xs">{t.description}</p>
             </button>
           ))}
         </div>
-
         <div className="text-center mt-8">
-          <button
-            onClick={() => setStep("suggest")}
-            className="text-gray-600 hover:text-gray-400 text-sm underline transition-colors"
-          >
+          <button onClick={() => setStep("suggest")}
+            className="text-gray-600 hover:text-gray-400 text-sm underline transition-colors">
             ← Cambiar subtema
           </button>
         </div>
@@ -307,17 +239,54 @@ export default function StudyClient({ topic, subtopic, level }: Props) {
     )
   }
 
-  // ── PASO 3: Conversación ──────────────────────────────────
+  // ── PASO 3: Quiz ──────────────────────────────────────────
+  if (step === "quiz") {
+    return (
+      <QuizMode
+        topic={selectedSubtopic || topic}
+        initialLevel={level}
+        onFinish={handleQuizFinish}
+        onExit={() => setStep("study")}
+      />
+    )
+  }
+
+  // ── PASO 4: Resultados ────────────────────────────────────
+  if (step === "results") {
+    return (
+      <QuizResults
+        topic={selectedSubtopic || topic}
+        results={quizResults}
+        xpEarned={quizXP}
+        onStudyMore={() => setStep("study")}
+        onRetry={() => setStep("quiz")}
+      />
+    )
+  }
+
+  // ── PASO 5: Conversación ──────────────────────────────────
   return (
     <div className="max-w-4xl mx-auto px-6 py-6">
 
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 mb-6 text-xs text-gray-600">
-        <button onClick={() => setStep("suggest")} className="hover:text-gray-400 transition-colors">{topic}</button>
-        <span>→</span>
-        <button onClick={() => setStep("type")} className="hover:text-gray-400 transition-colors">{selectedSubtopic}</button>
-        <span>→</span>
-        <span className="text-blue-400">{STUDY_TYPES.find(t => t.id === selectedType)?.label}</span>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2 text-xs text-gray-600">
+          <button onClick={() => setStep("suggest")} className="hover:text-gray-400 transition-colors">{topic}</button>
+          <span>→</span>
+          <button onClick={() => setStep("type")} className="hover:text-gray-400 transition-colors">{selectedSubtopic}</button>
+          <span>→</span>
+          <span className="text-blue-400">{STUDY_TYPES.find(t => t.id === selectedType)?.label}</span>
+        </div>
+
+        {/* Botón Evalúame — aparece después de 3 mensajes */}
+        {messages.length >= 1 && !streaming && (
+          <button
+            onClick={() => setStep("quiz")}
+            className="bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold px-4 py-2 rounded-full transition-colors"
+          >
+            🎯 Evalúame
+          </button>
+        )}
       </div>
 
       {/* Mensajes */}
@@ -326,7 +295,6 @@ export default function StudyClient({ topic, subtopic, level }: Props) {
           <div key={i}>
             {msg.role === "ai" ? (
               <div>
-                {/* Badge agente */}
                 <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-full px-3 py-1 mb-3">
                   <div className={`w-1.5 h-1.5 bg-blue-400 rounded-full ${streaming && i === messages.length - 1 ? "animate-pulse" : ""}`} />
                   <span className="text-blue-400 text-xs font-medium">AGT</span>
@@ -347,17 +315,14 @@ export default function StudyClient({ topic, subtopic, level }: Props) {
         ))}
       </div>
 
-      {/* Sugerencias de followup */}
+      {/* Sugerencias followup */}
       {!streaming && suggestedFollowups.length > 0 && (
         <div className="mb-4">
           <p className="text-xs text-gray-600 mb-2">Sugerencias:</p>
           <div className="flex flex-wrap gap-2">
             {suggestedFollowups.map((f, i) => (
-              <button
-                key={i}
-                onClick={() => handleFollowup(f)}
-                className="bg-gray-800 hover:bg-gray-700 border border-gray-700 hover:border-blue-500 text-gray-300 hover:text-white text-sm px-4 py-2 rounded-full transition-all"
-              >
+              <button key={i} onClick={() => sendMessage(f, messages)}
+                className="bg-gray-800 hover:bg-gray-700 border border-gray-700 hover:border-blue-500 text-gray-300 hover:text-white text-sm px-4 py-2 rounded-full transition-all">
                 {f}
               </button>
             ))}
@@ -365,14 +330,13 @@ export default function StudyClient({ topic, subtopic, level }: Props) {
         </div>
       )}
 
-      {/* Error */}
       {error && (
         <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-4">
           <p className="text-red-400 text-sm">{error}</p>
         </div>
       )}
 
-      {/* Input del usuario */}
+      {/* Input */}
       {!streaming && messages.length > 0 && (
         <form onSubmit={handleUserSubmit} className="flex gap-3 sticky bottom-6">
           <input
@@ -383,11 +347,8 @@ export default function StudyClient({ topic, subtopic, level }: Props) {
             placeholder="Escribe tu pregunta o duda..."
             className="flex-1 bg-gray-900 border border-gray-700 focus:border-blue-500 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none transition-colors text-sm"
           />
-          <button
-            type="submit"
-            disabled={!userInput.trim()}
-            className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-800 disabled:text-gray-600 text-white px-5 py-3 rounded-xl transition-colors text-sm font-medium"
-          >
+          <button type="submit" disabled={!userInput.trim()}
+            className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-800 disabled:text-gray-600 text-white px-5 py-3 rounded-xl transition-colors text-sm font-medium">
             Enviar →
           </button>
         </form>
