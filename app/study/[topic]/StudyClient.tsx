@@ -23,6 +23,7 @@ const STUDY_TYPES: StudyType[] = [
   { id: "examples",  label: "Ejemplos",   description: "Casos resueltos paso a paso", emoji: "🔢" },
   { id: "exercises", label: "Ejercicios", description: "Practica con problemas",      emoji: "✏️" },
   { id: "summary",   label: "Resumen",    description: "Puntos clave en poco tiempo", emoji: "⚡" },
+  { id: "socratic",  label: "Sócrates",   description: "Descubre la respuesta tú mismo", emoji: "🏛️" },
 ]
 
 function MathContent({ content }: { content: string }) {
@@ -123,7 +124,8 @@ export default function StudyClient({ topic, subtopic, level }: Props) {
     setMessages(prev => [...prev, { role: "ai", content: "" }])
 
     try {
-      const res = await fetch("/api/agents/chat", {
+      const isSocratic = selectedType === "socratic"
+      const res = await fetch(isSocratic ? "/api/agents/socratic" : "/api/agents/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -329,7 +331,7 @@ export default function StudyClient({ topic, subtopic, level }: Props) {
                 <div>
                   <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-full px-3 py-1 mb-3">
                     <div className={`w-1.5 h-1.5 bg-blue-400 rounded-full ${streaming && i === messages.length - 1 ? "animate-pulse" : ""}`} />
-                    <span className="text-blue-400 text-xs font-medium">AGT</span>
+                    <span className="text-blue-400 text-xs font-medium">{selectedType === "socratic" ? "ASc — Modo Sócrates" : "AGT"}</span>
                   </div>
                   <MathContent content={msg.content} />
                   {streaming && i === messages.length - 1 && (
