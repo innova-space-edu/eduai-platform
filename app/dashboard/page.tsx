@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 import { signOut } from "@/app/(auth)/actions"
 import TopicInput from "./TopicInput"
 import SessionList from "./SessionList"
+import ReviewSection from "./ReviewSection"
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -90,6 +91,8 @@ export default async function DashboardPage() {
             />
           </div>
         </div>
+
+        <ReviewSection />
 
         {/* Input tema */}
         <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 mb-10">

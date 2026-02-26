@@ -192,6 +192,14 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
     const correct = results.filter(r => r.isCorrect).length
     await completeSession(correct, results.length, currentLevel, xp)
     if (xp > 0) gainXP(xp, "quiz completado")
+
+    // Registrar en repaso espaciado
+    const score = Math.round((results.filter(r => r.isCorrect).length / results.length) * 100)
+    fetch("/api/spaced-repetition", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ topic: selectedSubtopic || topic, score }),
+    }).catch(console.error)
   }
 
   // ── PASO 1: Sugerencias ───────────────────────────────────
