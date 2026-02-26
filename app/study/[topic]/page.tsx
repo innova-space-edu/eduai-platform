@@ -25,15 +25,14 @@ export default async function StudyPage({ params, searchParams }: Props) {
 
   return (
     <main className="min-h-screen bg-gray-950 text-white">
-      {/* Navbar */}
-      <nav className="border-b border-gray-800 bg-gray-900/50 backdrop-blur px-6 py-4 sticky top-0 z-20">
+      <nav className="border-b border-gray-800 bg-gray-900/50 backdrop-blur px-4 sm:px-6 py-3 sticky top-0 z-20">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <a href="/dashboard" className="text-gray-500 hover:text-white transition-colors text-sm">
-              ← Dashboard
+          <div className="flex items-center gap-3">
+            <a href="/dashboard" className="text-gray-500 hover:text-white transition-colors text-sm shrink-0">
+              ← Inicio
             </a>
             <span className="text-gray-700">|</span>
-            <h1 className="text-white font-semibold truncate max-w-xs">
+            <h1 className="text-white font-semibold truncate text-sm sm:text-base">
               {subtopic || topic}
             </h1>
           </div>

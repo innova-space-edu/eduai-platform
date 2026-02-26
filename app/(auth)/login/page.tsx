@@ -1,8 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
+import { createClient } from "@/lib/supabase/client"
 import Link from "next/link"
 
 export default function LoginPage() {
@@ -11,82 +11,75 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const router = useRouter()
-  const supabase = createClient()
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError("")
-
+    const supabase = createClient()
     const { error } = await supabase.auth.signInWithPassword({ email, password })
-
     if (error) {
       setError("Email o contraseña incorrectos")
       setLoading(false)
-      return
+    } else {
+      router.push("/dashboard")
     }
-
-    router.push("/dashboard")
-    router.refresh()
   }
 
   return (
-    <main className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-
-        {/* Logo */}
+    <main className="min-h-screen bg-gray-950 flex flex-col items-center justify-center px-4">
+      <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-blue-400">EduAI</h1>
-          <p className="text-gray-400 mt-2">Tu tutor personal con IA</p>
+          <p className="text-gray-500 text-sm mt-1">Tu tutor personal con IA</p>
         </div>
 
-        {/* Card */}
-        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8">
-          <h2 className="text-xl font-semibold text-white mb-6">Iniciar sesión</h2>
+        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
+          <h2 className="text-xl font-bold text-white mb-6">Iniciar sesión</h2>
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="text-sm text-gray-400 mb-1 block">Email</label>
+              <label className="text-gray-400 text-sm mb-1.5 block">Email</label>
               <input
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
+                onChange={e => setEmail(e.target.value)}
                 placeholder="tu@email.com"
+                required
+                className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-blue-500 transition-colors text-sm"
               />
             </div>
 
             <div>
-              <label className="text-sm text-gray-400 mb-1 block">Contraseña</label>
+              <label className="text-gray-400 text-sm mb-1.5 block">Contraseña</label>
               <input
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
+                onChange={e => setPassword(e.target.value)}
                 placeholder="••••••••"
+                required
+                className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-blue-500 transition-colors text-sm"
               />
             </div>
 
             {error && (
-              <div className="bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3 text-red-400 text-sm">
-                {error}
+              <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3">
+                <p className="text-red-400 text-sm">{error}</p>
               </div>
             )}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-blue-600/50 text-white font-semibold py-3 rounded-lg transition-colors"
+              className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-gray-800 disabled:text-gray-600 text-white font-semibold py-3 rounded-xl transition-colors"
             >
               {loading ? "Entrando..." : "Entrar"}
             </button>
           </form>
 
-          <p className="text-center text-gray-500 text-sm mt-6">
+          <p className="text-center text-gray-500 text-sm mt-4">
             ¿No tienes cuenta?{" "}
-            <Link href="/register" className="text-blue-400 hover:text-blue-300">
+            <Link href="/register" className="text-blue-400 hover:text-blue-300 transition-colors">
               Regístrate
             </Link>
           </p>
