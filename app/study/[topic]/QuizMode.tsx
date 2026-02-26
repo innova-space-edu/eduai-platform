@@ -24,6 +24,7 @@ interface QuizResult {
 }
 
 interface Props {
+  onXP?: (amount: number, reason: string) => void
   topic: string
   initialLevel: number
   onFinish: (results: QuizResult[], xpEarned: number) => void
@@ -32,7 +33,7 @@ interface Props {
 
 const TOTAL_QUESTIONS = 5
 
-export default function QuizMode({ topic, initialLevel, onFinish, onExit }: Props) {
+export default function QuizMode({ topic, initialLevel, onFinish, onExit, onXP }: Props) {
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null)
   const [loading, setLoading] = useState(true)
   const [selectedAnswer, setSelectedAnswer] = useState<string>("")
@@ -104,6 +105,7 @@ export default function QuizMode({ topic, initialLevel, onFinish, onExit }: Prop
       setFeedback(data.feedback)
       setLevelChange(data.levelChange || "")
       setTotalXP(prev => prev + (data.xpGained || 0))
+      if (data.xpGained > 0) onXP?.(data.xpGained, correct ? "respuesta correcta" : "")
 
       // Actualizar nivel y racha
       setCurrentLevel(data.newLevel)

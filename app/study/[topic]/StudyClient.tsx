@@ -8,6 +8,8 @@ import rehypeKatex from "rehype-katex"
 import QuizMode from "./QuizMode"
 import QuizResults from "./QuizResults"
 import { useStudySession } from "@/hooks/useStudySession"
+import { useXP } from "@/hooks/useXP"
+import XPToast from "@/components/ui/XPToast"
 
 interface Suggestion { id: number; title: string; description: string; emoji: string }
 interface ChatMessage { role: "ai" | "user"; content: string }
@@ -58,10 +60,17 @@ export default function StudyClient({ topic, subtopic, level }: Props) {
   const [suggestedFollowups, setSuggestedFollowups] = useState<string[]>([])
   const [quizResults, setQuizResults] = useState<QuizResult[]>([])
   const [quizXP, setQuizXP] = useState(0)
-  const { session, completeSession } = useStudySession(topic, selectedType || "normal")
+  const [currentXP, setCurrentXP] = useState<number | null>(null)
+  const [currentLevel, setCurrentLevel] = useState(level)
   const [error, setError] = useState("")
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  const { session, completeSession } = useStudySession(topic, selectedType || "normal")
+  const { events: xpEvents, gainXP } = useXP((newXP, newLevel) => {
+    setCurrentXP(newXP)
+    setCurrentLevel(newLevel)
+  })
 
   useEffect(() => {
     if (step === "suggest") loadSuggestions()
@@ -98,6 +107,8 @@ export default function StudyClient({ topic, subtopic, level }: Props) {
     setStep("study")
     const typeLabel = STUDY_TYPES.find(t => t.id === typeId)?.label || typeId
     sendMessage(`Quiero aprender sobre "${selectedSubtopic}" — modo: ${typeLabel}`, [], true)
+    // XP por iniciar sesión
+    gainXP(5, "sesión iniciada")
   }
 
   async function sendMessage(userText: string, history: ChatMessage[], isFirst = false) {
@@ -120,7 +131,7 @@ export default function StudyClient({ topic, subtopic, level }: Props) {
           studyType: selectedType,
           userMessage: userText,
           history: recentHistory,
-          level,
+          level: currentLevel,
         }),
       })
 
@@ -152,6 +163,10 @@ export default function StudyClient({ topic, subtopic, level }: Props) {
           return updated
         })
       }
+
+      // XP por cada intercambio
+      if (!isFirst) gainXP(5, "pregunta respondida")
+
     } catch (e: any) {
       setError(e.message)
     } finally {
@@ -167,12 +182,13 @@ export default function StudyClient({ topic, subtopic, level }: Props) {
     sendMessage(text, messages)
   }
 
-  function handleQuizFinish(results: QuizResult[], xp: number) {
-    const correct = results.filter(r => r.isCorrect).length
-    completeSession(correct, results.length, level, xp)
+  async function handleQuizFinish(results: QuizResult[], xp: number) {
     setQuizResults(results)
     setQuizXP(xp)
     setStep("results")
+    const correct = results.filter(r => r.isCorrect).length
+    await completeSession(correct, results.length, currentLevel, xp)
+    if (xp > 0) gainXP(xp, "quiz completado")
   }
 
   // ── PASO 1: Sugerencias ───────────────────────────────────
@@ -246,12 +262,16 @@ export default function StudyClient({ topic, subtopic, level }: Props) {
   // ── PASO 3: Quiz ──────────────────────────────────────────
   if (step === "quiz") {
     return (
-      <QuizMode
-        topic={selectedSubtopic || topic}
-        initialLevel={level}
-        onFinish={handleQuizFinish}
-        onExit={() => setStep("study")}
-      />
+      <>
+        <XPToast events={xpEvents} />
+        <QuizMode
+          topic={selectedSubtopic || topic}
+          initialLevel={currentLevel}
+          onFinish={handleQuizFinish}
+          onExit={() => setStep("study")}
+          onXP={gainXP}
+        />
+      </>
     )
   }
 
@@ -270,96 +290,104 @@ export default function StudyClient({ topic, subtopic, level }: Props) {
 
   // ── PASO 5: Conversación ──────────────────────────────────
   return (
-    <div className="max-w-4xl mx-auto px-6 py-6">
+    <>
+      <XPToast events={xpEvents} />
+      <div className="max-w-4xl mx-auto px-6 py-6">
 
-      {/* Breadcrumb */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-2 text-xs text-gray-600">
-          <button onClick={() => setStep("suggest")} className="hover:text-gray-400 transition-colors">{topic}</button>
-          <span>→</span>
-          <button onClick={() => setStep("type")} className="hover:text-gray-400 transition-colors">{selectedSubtopic}</button>
-          <span>→</span>
-          <span className="text-blue-400">{STUDY_TYPES.find(t => t.id === selectedType)?.label}</span>
-        </div>
+        {/* Breadcrumb + XP indicator */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2 text-xs text-gray-600">
+            <button onClick={() => setStep("suggest")} className="hover:text-gray-400 transition-colors">{topic}</button>
+            <span>→</span>
+            <button onClick={() => setStep("type")} className="hover:text-gray-400 transition-colors">{selectedSubtopic}</button>
+            <span>→</span>
+            <span className="text-blue-400">{STUDY_TYPES.find(t => t.id === selectedType)?.label}</span>
+          </div>
 
-        {/* Botón Evalúame — aparece después de 3 mensajes */}
-        {messages.length >= 1 && !streaming && (
-          <button
-            onClick={() => setStep("quiz")}
-            className="bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold px-4 py-2 rounded-full transition-colors"
-          >
-            🎯 Evalúame
-          </button>
-        )}
-      </div>
-
-      {/* Mensajes */}
-      <div className="space-y-6 mb-6">
-        {messages.map((msg, i) => (
-          <div key={i}>
-            {msg.role === "ai" ? (
-              <div>
-                <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-full px-3 py-1 mb-3">
-                  <div className={`w-1.5 h-1.5 bg-blue-400 rounded-full ${streaming && i === messages.length - 1 ? "animate-pulse" : ""}`} />
-                  <span className="text-blue-400 text-xs font-medium">AGT</span>
-                </div>
-                <MathContent content={msg.content} />
-                {streaming && i === messages.length - 1 && (
-                  <span className="inline-block w-0.5 h-5 bg-blue-400 animate-pulse ml-1 align-middle" />
-                )}
-              </div>
-            ) : (
-              <div className="flex justify-end">
-                <div className="bg-blue-600/20 border border-blue-600/30 rounded-2xl rounded-tr-sm px-4 py-3 max-w-lg">
-                  <p className="text-gray-200 text-sm text-left">{msg.content}</p>
-                </div>
-              </div>
+          <div className="flex items-center gap-3">
+            {/* XP actual */}
+            {currentXP !== null && (
+              <span className="text-amber-400 text-xs font-medium">⚡ {currentXP} XP</span>
+            )}
+            {/* Botón Evalúame */}
+            {messages.length >= 1 && !streaming && (
+              <button
+                onClick={() => setStep("quiz")}
+                className="bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold px-4 py-2 rounded-full transition-colors"
+              >
+                🎯 Evalúame
+              </button>
             )}
           </div>
-        ))}
-      </div>
+        </div>
 
-      {/* Sugerencias followup */}
-      {!streaming && suggestedFollowups.length > 0 && (
-        <div className="mb-4">
-          <p className="text-xs text-gray-600 mb-2">Sugerencias:</p>
-          <div className="flex flex-wrap gap-2">
-            {suggestedFollowups.map((f, i) => (
-              <button key={i} onClick={() => sendMessage(f, messages)}
-                className="bg-gray-800 hover:bg-gray-700 border border-gray-700 hover:border-blue-500 text-gray-300 hover:text-white text-sm px-4 py-2 rounded-full transition-all">
-                {f}
-              </button>
-            ))}
+        {/* Mensajes */}
+        <div className="space-y-6 mb-6">
+          {messages.map((msg, i) => (
+            <div key={i}>
+              {msg.role === "ai" ? (
+                <div>
+                  <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-full px-3 py-1 mb-3">
+                    <div className={`w-1.5 h-1.5 bg-blue-400 rounded-full ${streaming && i === messages.length - 1 ? "animate-pulse" : ""}`} />
+                    <span className="text-blue-400 text-xs font-medium">AGT</span>
+                  </div>
+                  <MathContent content={msg.content} />
+                  {streaming && i === messages.length - 1 && (
+                    <span className="inline-block w-0.5 h-5 bg-blue-400 animate-pulse ml-1 align-middle" />
+                  )}
+                </div>
+              ) : (
+                <div className="flex justify-end">
+                  <div className="bg-blue-600/20 border border-blue-600/30 rounded-2xl rounded-tr-sm px-4 py-3 max-w-lg">
+                    <p className="text-gray-200 text-sm text-left">{msg.content}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Sugerencias followup */}
+        {!streaming && suggestedFollowups.length > 0 && (
+          <div className="mb-4">
+            <p className="text-xs text-gray-600 mb-2">Sugerencias:</p>
+            <div className="flex flex-wrap gap-2">
+              {suggestedFollowups.map((f, i) => (
+                <button key={i} onClick={() => sendMessage(f, messages)}
+                  className="bg-gray-800 hover:bg-gray-700 border border-gray-700 hover:border-blue-500 text-gray-300 hover:text-white text-sm px-4 py-2 rounded-full transition-all">
+                  {f}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {error && (
-        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-4">
-          <p className="text-red-400 text-sm">{error}</p>
-        </div>
-      )}
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-4">
+            <p className="text-red-400 text-sm">{error}</p>
+          </div>
+        )}
 
-      {/* Input */}
-      {!streaming && messages.length > 0 && (
-        <form onSubmit={handleUserSubmit} className="flex gap-3 sticky bottom-6">
-          <input
-            ref={inputRef}
-            type="text"
-            value={userInput}
-            onChange={(e) => setUserInput(e.target.value)}
-            placeholder="Escribe tu pregunta o duda..."
-            className="flex-1 bg-gray-900 border border-gray-700 focus:border-blue-500 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none transition-colors text-sm"
-          />
-          <button type="submit" disabled={!userInput.trim()}
-            className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-800 disabled:text-gray-600 text-white px-5 py-3 rounded-xl transition-colors text-sm font-medium">
-            Enviar →
-          </button>
-        </form>
-      )}
+        {/* Input */}
+        {!streaming && messages.length > 0 && (
+          <form onSubmit={handleUserSubmit} className="flex gap-3 sticky bottom-6">
+            <input
+              ref={inputRef}
+              type="text"
+              value={userInput}
+              onChange={(e) => setUserInput(e.target.value)}
+              placeholder="Escribe tu pregunta o duda..."
+              className="flex-1 bg-gray-900 border border-gray-700 focus:border-blue-500 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none transition-colors text-sm"
+            />
+            <button type="submit" disabled={!userInput.trim()}
+              className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-800 disabled:text-gray-600 text-white px-5 py-3 rounded-xl transition-colors text-sm font-medium">
+              Enviar →
+            </button>
+          </form>
+        )}
 
-      <div ref={bottomRef} />
-    </div>
+        <div ref={bottomRef} />
+      </div>
+    </>
   )
 }
-// Este archivo fue modificado - ver implementación completa

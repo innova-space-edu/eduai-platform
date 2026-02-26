@@ -1,12 +1,11 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { signOut } from "@/app/(auth)/actions"
-import Link from "next/link"
 import TopicInput from "./TopicInput"
+import SessionList from "./SessionList"
 
 export default async function DashboardPage() {
   const supabase = await createClient()
-
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect("/login")
 
@@ -21,26 +20,33 @@ export default async function DashboardPage() {
     .select("*")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
-    .limit(5)
+    .limit(10)
 
   const levelNames = ["", "Explorador", "Aprendiz", "Practicante", "Analista", "Experto", "Maestro"]
   const levelColors = ["", "text-gray-400", "text-blue-400", "text-green-400", "text-purple-400", "text-amber-400", "text-red-400"]
+  const level = profile?.level || 1
+
+  // XP para siguiente nivel
+  const xpThresholds = [0, 100, 250, 500, 1000, 2000, 5000]
+  const currentXP = profile?.xp || 0
+  const nextLevelXP = xpThresholds[Math.min(level + 1, 6)]
+  const prevLevelXP = xpThresholds[level - 1] || 0
+  const xpProgress = nextLevelXP
+    ? Math.round(((currentXP - prevLevelXP) / (nextLevelXP - prevLevelXP)) * 100)
+    : 100
 
   return (
     <main className="min-h-screen bg-gray-950 text-white">
-
       <nav className="border-b border-gray-800 bg-gray-900/50 backdrop-blur px-6 py-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <h1 className="text-xl font-bold text-blue-400">EduAI</h1>
           <div className="flex items-center gap-4">
             <span className="text-gray-400 text-sm">{profile?.name || user.email}</span>
-            <span className={`text-sm font-medium ${levelColors[profile?.level || 1]}`}>
-              {levelNames[profile?.level || 1]}
+            <span className={`text-sm font-medium ${levelColors[level]}`}>
+              {levelNames[level]}
             </span>
             <form action={signOut}>
-              <button className="text-gray-500 hover:text-white text-sm transition-colors">
-                Salir
-              </button>
+              <button className="text-gray-500 hover:text-white text-sm transition-colors">Salir</button>
             </form>
           </div>
         </div>
@@ -55,11 +61,12 @@ export default async function DashboardPage() {
           <p className="text-gray-400">¿Qué quieres aprender hoy?</p>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+        {/* Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {[
-            { label: "Nivel", value: levelNames[profile?.level || 1], color: levelColors[profile?.level || 1] },
-            { label: "XP Total", value: `${profile?.xp || 0} XP`, color: "text-blue-400" },
-            { label: "Racha", value: `${profile?.streak_days || 0} días`, color: "text-amber-400" },
+            { label: "Nivel", value: levelNames[level], color: levelColors[level] },
+            { label: "XP Total", value: `${currentXP} XP`, color: "text-amber-400" },
+            { label: "Racha", value: `${profile?.streak_days || 0} días`, color: "text-orange-400" },
             { label: "Sesiones", value: recentSessions?.length || 0, color: "text-green-400" },
           ].map((stat) => (
             <div key={stat.label} className="bg-gray-900 border border-gray-800 rounded-xl p-4">
@@ -69,39 +76,31 @@ export default async function DashboardPage() {
           ))}
         </div>
 
+        {/* Barra de progreso XP */}
+        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 mb-8">
+          <div className="flex justify-between text-xs mb-2">
+            <span className="text-gray-500">Progreso hacia {levelNames[Math.min(level + 1, 6)]}</span>
+            <span className="text-amber-400">{currentXP} / {nextLevelXP} XP</span>
+          </div>
+          <div className="w-full bg-gray-800 rounded-full h-2">
+            <div
+              className="h-2 bg-amber-400 rounded-full transition-all duration-500"
+              style={{ width: `${Math.min(xpProgress, 100)}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Input tema */}
         <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 mb-10">
           <h3 className="text-lg font-semibold text-white mb-4">🎓 Comenzar nueva sesión</h3>
           <TopicInput />
         </div>
 
+        {/* Sesiones recientes */}
         {recentSessions && recentSessions.length > 0 && (
           <div>
             <h3 className="text-lg font-semibold text-white mb-4">📚 Sesiones recientes</h3>
-            <div className="grid gap-3">
-              {recentSessions.map((session) => (
-                <Link
-                  key={session.id}
-                  href={`/study/${encodeURIComponent(session.topic)}`}
-                  className="bg-gray-900 border border-gray-800 hover:border-blue-500/50 rounded-xl px-5 py-4 flex items-center justify-between transition-colors group"
-                >
-                  <div>
-                    <p className="text-white font-medium group-hover:text-blue-400 transition-colors">
-                      {session.topic}
-                    </p>
-                    <p className="text-gray-500 text-xs mt-1">
-                      Nivel {session.current_level} · {session.correct_answers}/{session.total_questions} correctas
-                    </p>
-                  </div>
-                  <span className={`text-xs px-2 py-1 rounded-full ${
-                    session.status === "completed"
-                      ? "bg-green-500/10 text-green-400"
-                      : "bg-blue-500/10 text-blue-400"
-                  }`}>
-                    {session.status === "completed" ? "Completada" : "En progreso"}
-                  </span>
-                </Link>
-              ))}
-            </div>
+            <SessionList sessions={recentSessions} />
           </div>
         )}
 
