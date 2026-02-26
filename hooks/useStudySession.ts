@@ -51,7 +51,8 @@ export function useStudySession(topic: string, studyMode = "normal") {
     }
   }
 
-  async function completeSession(correct: number, total: number, level: number) {
+  async function completeSession(correct: number, total: number, level: number, xpGained: number) {
+    // Guardar sesión
     await updateSession({
       status: "completed",
       correct_answers: correct,
@@ -59,6 +60,20 @@ export function useStudySession(topic: string, studyMode = "normal") {
       current_level: level,
       score: Math.round((correct / total) * 100),
     })
+
+    // Sumar XP al perfil
+    try {
+      const res = await fetch("/api/profile/xp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ xp_gained: xpGained }),
+      })
+      if (!res.ok) return null
+      return await res.json()
+    } catch (e) {
+      console.error("Error updating XP:", e)
+      return null
+    }
   }
 
   return { session, updateSession, completeSession }

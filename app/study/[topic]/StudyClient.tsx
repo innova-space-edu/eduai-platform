@@ -169,7 +169,7 @@ export default function StudyClient({ topic, subtopic, level }: Props) {
 
   function handleQuizFinish(results: QuizResult[], xp: number) {
     const correct = results.filter(r => r.isCorrect).length
-    completeSession(correct, results.length, level)
+    completeSession(correct, results.length, level, xp)
     setQuizResults(results)
     setQuizXP(xp)
     setStep("results")
