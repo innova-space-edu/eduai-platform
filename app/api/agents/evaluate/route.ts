@@ -19,6 +19,10 @@ export async function POST(req: Request) {
     6: "crear y sintetizar conocimiento",
   }
 
+  // Posición aleatoria para la respuesta correcta
+  const letters = ["A", "B", "C", "D"]
+  const correctPosition = letters[Math.floor(Math.random() * 4)]
+
   const systemPrompt = `Eres AEv, un agente evaluador educativo experto.
 Tu única tarea es generar UNA pregunta de evaluación en formato JSON válido.
 Responde ÚNICAMENTE con el JSON, sin texto adicional ni markdown.`
@@ -28,19 +32,22 @@ Responde ÚNICAMENTE con el JSON, sin texto adicional ni markdown.`
 Nivel de dificultad: ${level}/6 — enfocada en ${bloomLevels[level] || bloomLevels[1]}
 Número de pregunta en la sesión: ${questionNumber}
 
+IMPORTANTE: La respuesta correcta debe estar en la opción ${correctPosition}.
+
 Devuelve exactamente este JSON:
 {
   "question": "texto de la pregunta clara y concisa",
   "type": "multiple_choice",
-  "options": ["A) opción 1", "B) opción 2", "C) opción 3", "D) opción 4"],
-  "correct": "A",
+  "options": ["A) opción", "B) opción", "C) opción", "D) opción"],
+  "correct": "${correctPosition}",
   "explanation": "explicación breve de por qué es correcta (máximo 2 oraciones)",
   "bloom": "remember|understand|apply|analyze",
   "difficulty": ${level}
 }
 
-La pregunta debe ser específica sobre el tema, no genérica.
-Las opciones incorrectas deben ser plausibles, no obvias.`
+La respuesta correcta DEBE estar en la opción ${correctPosition}.
+Las opciones incorrectas deben ser plausibles y tentadoras.
+La pregunta debe ser específica sobre el tema, no genérica.`
 
   try {
     const completion = await groq.chat.completions.create({
@@ -49,13 +56,13 @@ Las opciones incorrectas deben ser plausibles, no obvias.`
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt }
       ],
-      temperature: 0.6,
+      temperature: 0.7,
       max_tokens: 400,
     })
 
     const text = completion.choices[0]?.message?.content || ""
     const jsonMatch = text.match(/\{[\s\S]*\}/)
-    if (!jsonMatch) throw new Error("No JSON en respuesta")
+    if (!jsonMatch) throw new Error("No JSON found")
 
     const question = JSON.parse(jsonMatch[0])
     return Response.json(question)

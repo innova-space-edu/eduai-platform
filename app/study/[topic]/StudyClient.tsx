@@ -10,13 +10,14 @@ import QuizResults from "./QuizResults"
 import { useStudySession } from "@/hooks/useStudySession"
 import { useXP } from "@/hooks/useXP"
 import XPToast from "@/components/ui/XPToast"
+import StudyBanner from "@/components/ui/StudyBanner"
 
 interface Suggestion { id: number; title: string; description: string; emoji: string }
 interface ChatMessage { role: "ai" | "user"; content: string }
 interface StudyType { id: string; label: string; description: string; emoji: string }
 interface QuizResult { question: string; userAnswer: string; correct: string; isCorrect: boolean; feedback: string }
 
-interface Props { topic: string; subtopic: string | null; level: number }
+interface Props { topic: string; subtopic: string | null; level: number; initialXP: number }
 
 const STUDY_TYPES: StudyType[] = [
   { id: "theory",    label: "Teoría",     description: "Explicación del concepto",    emoji: "📖" },
@@ -45,7 +46,7 @@ function MathContent({ content }: { content: string }) {
   )
 }
 
-export default function StudyClient({ topic, subtopic, level }: Props) {
+export default function StudyClient({ topic, subtopic, level, initialXP }: Props) {
   const router = useRouter()
 
   const [step, setStep] = useState<"suggest" | "type" | "study" | "quiz" | "results">(
@@ -61,7 +62,7 @@ export default function StudyClient({ topic, subtopic, level }: Props) {
   const [suggestedFollowups, setSuggestedFollowups] = useState<string[]>([])
   const [quizResults, setQuizResults] = useState<QuizResult[]>([])
   const [quizXP, setQuizXP] = useState(0)
-  const [currentXP, setCurrentXP] = useState<number | null>(null)
+  const [currentXP, setCurrentXP] = useState<number | null>(initialXP)
   const [currentLevel, setCurrentLevel] = useState(level)
   const [error, setError] = useState("")
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -220,7 +221,22 @@ export default function StudyClient({ topic, subtopic, level }: Props) {
                 </button>
               ))}
             </div>
-            <div className="text-center mt-8">
+            <div className="mt-6">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="O escribe tu propio subtema..."
+                  className="w-full bg-gray-900 border border-gray-800 focus:border-blue-500 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none transition-colors text-sm"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && e.currentTarget.value.trim()) {
+                      selectSubtopic(e.currentTarget.value.trim())
+                    }
+                  }}
+                />
+                <span className="absolute right-4 top-3 text-gray-600 text-xs">Enter ↵</span>
+              </div>
+            </div>
+            <div className="text-center mt-4">
               <button onClick={() => selectSubtopic(topic)}
                 className="text-gray-500 hover:text-gray-300 text-sm underline transition-colors">
                 Estudiar "{topic}" de forma general →
@@ -296,7 +312,14 @@ export default function StudyClient({ topic, subtopic, level }: Props) {
       <XPToast events={xpEvents} />
       <div className="max-w-4xl mx-auto px-6 py-6">
 
-        {/* Breadcrumb + XP indicator */}
+        <StudyBanner
+          topic={topic}
+          subtopic={selectedSubtopic}
+          level={currentLevel}
+          currentXP={currentXP}
+          showEvaluate={messages.length >= 1 && !streaming}
+          onEvaluate={() => setStep("quiz")}
+        />
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2 text-xs text-gray-600">
             <button onClick={() => setStep("suggest")} className="hover:text-gray-400 transition-colors">{topic}</button>

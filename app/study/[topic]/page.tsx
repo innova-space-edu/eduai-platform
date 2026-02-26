@@ -25,7 +25,8 @@ export default async function StudyPage({ params, searchParams }: Props) {
 
   return (
     <main className="min-h-screen bg-gray-950 text-white">
-      <nav className="border-b border-gray-800 bg-gray-900/50 backdrop-blur px-6 py-4 sticky top-0 z-10">
+      {/* Navbar */}
+      <nav className="border-b border-gray-800 bg-gray-900/50 backdrop-blur px-6 py-4 sticky top-0 z-20">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <a href="/dashboard" className="text-gray-500 hover:text-white transition-colors text-sm">
@@ -36,14 +37,14 @@ export default async function StudyPage({ params, searchParams }: Props) {
               {subtopic || topic}
             </h1>
           </div>
-          <span className="text-xs text-gray-500">Nivel {profile?.level || 1}</span>
         </div>
       </nav>
 
-      <StudyClient 
-        topic={topic} 
+      <StudyClient
+        topic={topic}
         subtopic={subtopic}
-        level={profile?.level || 1} 
+        level={profile?.level || 1}
+        initialXP={profile?.xp || 0}
       />
     </main>
   )
