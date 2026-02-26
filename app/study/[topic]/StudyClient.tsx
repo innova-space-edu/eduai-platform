@@ -7,6 +7,7 @@ import remarkMath from "remark-math"
 import rehypeKatex from "rehype-katex"
 import QuizMode from "./QuizMode"
 import QuizResults from "./QuizResults"
+import { useStudySession } from "@/hooks/useStudySession"
 
 interface Suggestion { id: number; title: string; description: string; emoji: string }
 interface ChatMessage { role: "ai" | "user"; content: string }
@@ -57,6 +58,7 @@ export default function StudyClient({ topic, subtopic, level }: Props) {
   const [suggestedFollowups, setSuggestedFollowups] = useState<string[]>([])
   const [quizResults, setQuizResults] = useState<QuizResult[]>([])
   const [quizXP, setQuizXP] = useState(0)
+  const { session, completeSession } = useStudySession(topic, selectedType || "normal")
   const [error, setError] = useState("")
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -166,6 +168,8 @@ export default function StudyClient({ topic, subtopic, level }: Props) {
   }
 
   function handleQuizFinish(results: QuizResult[], xp: number) {
+    const correct = results.filter(r => r.isCorrect).length
+    completeSession(correct, results.length, level)
     setQuizResults(results)
     setQuizXP(xp)
     setStep("results")
@@ -358,3 +362,4 @@ export default function StudyClient({ topic, subtopic, level }: Props) {
     </div>
   )
 }
+// Este archivo fue modificado - ver implementación completa
