@@ -197,6 +197,10 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
     if (xp > 0) gainXP(xp, "quiz completado")
     checkAchievements()
 
+    // Actualizar misiones
+    fetch("/api/missions", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ event: "quiz_completed" }) }).catch(console.error)
+    fetch("/api/missions", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ event: "session_completed" }) }).catch(console.error)
+
     // Registrar en repaso espaciado
     const score = Math.round((results.filter(r => r.isCorrect).length / results.length) * 100)
     fetch("/api/spaced-repetition", {

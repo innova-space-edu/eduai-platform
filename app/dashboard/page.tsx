@@ -5,6 +5,7 @@ import Link from "next/link"
 import TopicInput from "./TopicInput"
 import SessionList from "./SessionList"
 import ReviewSection from "./ReviewSection"
+import MissionsPanel from "./MissionsPanel"
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -98,6 +99,8 @@ export default async function DashboardPage() {
             />
           </div>
         </div>
+
+        <MissionsPanel />
 
         {/* Repasos pendientes */}
         <ReviewSection />
