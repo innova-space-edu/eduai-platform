@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { signOut } from "@/app/(auth)/actions"
@@ -41,7 +42,7 @@ export default async function DashboardPage() {
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <h1 className="text-xl font-bold text-blue-400">EduAI</h1>
           <div className="flex items-center gap-4">
-            <span className="text-gray-400 text-sm">{profile?.name || user.email}</span>
+            <Link href="/profile" className="text-gray-400 hover:text-white text-sm transition-colors">{profile?.name || user.email}</Link>
             <span className={`text-sm font-medium ${levelColors[level]}`}>
               {levelNames[level]}
             </span>
