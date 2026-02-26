@@ -11,6 +11,8 @@ import { useStudySession } from "@/hooks/useStudySession"
 import { useXP } from "@/hooks/useXP"
 import XPToast from "@/components/ui/XPToast"
 import StudyBanner from "@/components/ui/StudyBanner"
+import AchievementToast from "@/components/ui/AchievementToast"
+import { useAchievements } from "@/hooks/useAchievements"
 
 interface Suggestion { id: number; title: string; description: string; emoji: string }
 interface ChatMessage { role: "ai" | "user"; content: string }
@@ -69,6 +71,7 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
   const inputRef = useRef<HTMLInputElement>(null)
 
   const { session, completeSession } = useStudySession(topic, selectedType || "normal")
+  const { pending: achievementsPending, checkAchievements, dismiss: dismissAchievement } = useAchievements()
   const { events: xpEvents, gainXP } = useXP((newXP, newLevel) => {
     setCurrentXP(newXP)
     setCurrentLevel(newLevel)
@@ -168,7 +171,7 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
       }
 
       // XP por cada intercambio
-      if (!isFirst) gainXP(5, "pregunta respondida")
+      if (!isFirst) { gainXP(5, "pregunta respondida"); checkAchievements() }
 
     } catch (e: any) {
       setError(e.message)
@@ -192,6 +195,7 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
     const correct = results.filter(r => r.isCorrect).length
     await completeSession(correct, results.length, currentLevel, xp)
     if (xp > 0) gainXP(xp, "quiz completado")
+    checkAchievements()
 
     // Registrar en repaso espaciado
     const score = Math.round((results.filter(r => r.isCorrect).length / results.length) * 100)
@@ -290,6 +294,7 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
     return (
       <>
         <XPToast events={xpEvents} />
+        <AchievementToast achievements={achievementsPending} onDismiss={dismissAchievement} />
         <QuizMode
           topic={selectedSubtopic || topic}
           initialLevel={currentLevel}
@@ -318,6 +323,7 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
   return (
     <>
       <XPToast events={xpEvents} />
+      <AchievementToast achievements={achievementsPending} onDismiss={dismissAchievement} />
       <div className="max-w-4xl mx-auto px-6 py-6">
 
         <StudyBanner
