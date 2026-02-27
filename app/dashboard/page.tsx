@@ -45,6 +45,7 @@ export default async function DashboardPage() {
           <div className="flex items-center gap-4">
             <h1 className="text-lg font-bold text-blue-400">EduAI</h1>
             <Link href="/ranking" className="text-gray-500 hover:text-white text-xs transition-colors hidden sm:block">🏆 Ranking</Link>
+            <Link href="/collab" className="text-gray-500 hover:text-white text-xs transition-colors hidden sm:block">🤝 Colaborar</Link>
           </div>
           <div className="flex items-center gap-2 sm:gap-4">
             <Link href="/profile" className="text-gray-400 hover:text-white text-sm transition-colors truncate max-w-[80px] sm:max-w-none">
