@@ -100,9 +100,7 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        <MissionsPanel />
-
-        {/* Repasos pendientes */}
+        {/*misiones abajo*/}
         <ReviewSection />
 
         {/* Input tema */}
@@ -110,6 +108,8 @@ export default async function DashboardPage() {
           <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4">🎓 Nueva sesión</h3>
           <TopicInput />
         </div>
+
+        <MissionsPanel />
 
         {/* Sesiones recientes */}
         {recentSessions && recentSessions.length > 0 && (
