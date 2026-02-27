@@ -11,14 +11,13 @@ export async function POST(req: Request) {
   const { topic, context, type = "auto" } = await req.json()
 
   try {
-    // AIm decide qué tipo de visual generar y el prompt
     const completion = await groq.chat.completions.create({
       model: "llama-3.3-70b-versatile",
       messages: [
         {
           role: "system",
-          content: `Eres AIm, el Agente de Imágenes. Decides qué tipo de visual es más útil para explicar un concepto y generas los datos necesarios.
-Responde ÚNICAMENTE con JSON válido, sin texto adicional.`
+          content: `Eres AIm, el Agente de Imágenes. Generas visuales educativos.
+Responde ÚNICAMENTE con JSON válido, sin texto adicional ni bloques de código.`
         },
         {
           role: "user",
@@ -26,26 +25,40 @@ Responde ÚNICAMENTE con JSON válido, sin texto adicional.`
 Contexto: "${context?.slice(0, 300) || ""}"
 Tipo solicitado: ${type}
 
-Decide el mejor tipo de visual y genera los datos.
-Opciones de tipo: "image" | "mermaid" | "chart" | "table"
+Genera el visual más útil para aprender este concepto.
 
-Para "image": genera un prompt en inglés detallado para FLUX (ilustración educativa)
-Para "mermaid": genera el código mermaid del diagrama
-Para "chart": genera datos JSON para Chart.js
-Para "table": genera una tabla markdown
+REGLAS CRÍTICAS para cada tipo:
 
-Devuelve este JSON:
+Para "image": prompt en inglés simple, máximo 20 palabras, estilo educativo
+
+Para "mermaid": usa SOLO esta sintaxis válida:
+- flowchart TD (no graph, no LR con punto y coma)
+- nodos: A[texto] B(texto) C{texto}
+- flechas: A --> B o A -->|label| B
+- SIN caracteres especiales: paréntesis, llaves, puntos y coma en labels
+- máximo 8 nodos
+- ejemplo válido:
+flowchart TD
+    A[Concepto] --> B[Parte 1]
+    A --> C[Parte 2]
+    B --> D[Resultado]
+
+Para "chart": JSON con esta estructura exacta:
+{"type":"bar","data":{"labels":["A","B","C"],"datasets":[{"label":"Serie","data":[1,2,3],"backgroundColor":["#3b82f6","#8b5cf6","#06b6d4"]}]}}
+
+Para "table": tabla markdown con | col1 | col2 | col3 | y separador |---|---|---|
+
+Responde con este JSON:
 {
   "type": "image|mermaid|chart|table",
-  "title": "título descriptivo del visual",
-  "reasoning": "por qué este tipo de visual es el mejor para este tema",
-  "content": "el prompt, código mermaid, JSON de chart, o tabla markdown según el tipo",
-  "caption": "descripción breve para el estudiante"
+  "title": "título corto",
+  "content": "el prompt, código mermaid, JSON de chart, o tabla markdown",
+  "caption": "qué muestra este visual en una oración"
 }`
         }
       ],
-      temperature: 0.7,
-      max_tokens: 800,
+      temperature: 0.4,
+      max_tokens: 600,
     })
 
     const text = completion.choices[0]?.message?.content || ""
@@ -54,22 +67,32 @@ Devuelve este JSON:
 
     const visual = JSON.parse(jsonMatch[0])
 
-    // Si es imagen, generar URL de Pollinations
-    if (visual.type === "image") {
-      const encodedPrompt = encodeURIComponent(
-        `Educational illustration: ${visual.content}, clean, colorful, modern infographic style, white background, high quality`
-      )
-      visual.url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=800&height=500&model=flux&nologo=true&seed=${Math.floor(Math.random() * 9999)}`
+    // Limpiar mermaid de caracteres problemáticos
+    if (visual.type === "mermaid") {
+      visual.content = visual.content
+        .replace(/graph\s+(LR|TD|RL|BT);?/g, "flowchart $1")
+        .replace(/-->|>/g, "-->")
+        .replace(/\(/g, "[").replace(/\)/g, "]")
+        .replace(/;/g, "")
+        .trim()
     }
 
-    // Si es chart, parsear el contenido
+    // Generar URL de imagen con Pollinations
+    if (visual.type === "image") {
+      const prompt = `Educational diagram about ${visual.content}, clean infographic, colorful, white background, modern flat design, no text`
+      visual.url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}&width=800&height=450&model=flux&nologo=true&seed=${Date.now()}`
+    }
+
+    // Parsear chart
     if (visual.type === "chart") {
       try {
         visual.chartData = typeof visual.content === "string"
           ? JSON.parse(visual.content)
           : visual.content
       } catch {
+        // fallback a tabla si el JSON del chart falla
         visual.type = "table"
+        visual.content = "| Concepto | Descripción |\n|---|---|\n| " + topic + " | Ver explicación arriba |"
       }
     }
 
