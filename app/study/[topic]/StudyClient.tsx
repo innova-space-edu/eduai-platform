@@ -386,7 +386,7 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
                     <span className="text-blue-400 text-xs font-medium">{selectedType === "socratic" ? "ASc — Modo Sócrates" : "AGT"}</span>
                   </div>
                   <MathContent content={msg.content} />
-                  {!streaming && i === messages.length - 1 && msg.content && (
+                  {!streaming && i === messages.length - 1 && msg.role === "ai" && msg.content && (
                     <VisualBlock
                       topic={selectedSubtopic || topic}
                       context={msg.content}
