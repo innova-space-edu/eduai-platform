@@ -203,6 +203,14 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
 
     // Registrar en repaso espaciado
     const score = Math.round((results.filter(r => r.isCorrect).length / results.length) * 100)
+
+    // Guardar memoria larga
+    fetch("/api/memory", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ topic: selectedSubtopic || topic, messages, quizResults: results }),
+    }).catch(console.error)
+
     fetch("/api/spaced-repetition", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

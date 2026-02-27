@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import MemoryMap from "./MemoryMap"
 import { redirect } from "next/navigation"
 import { signOut } from "@/app/(auth)/actions"
 import Link from "next/link"
@@ -197,6 +198,8 @@ export default async function ProfilePage() {
             ))}
           </div>
         </div>
+
+        <MemoryMap />
 
         {/* Mapa de temas */}
         {uniqueTopics.length > 0 && (
