@@ -3,6 +3,74 @@ import { createClient } from "@/lib/supabase/server"
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
 
+const IMAGE_MODELS = [
+  "stabilityai/stable-diffusion-xl-base-1.0",
+  "runwayml/stable-diffusion-v1-5",
+  "CompVis/stable-diffusion-v1-4",
+]
+
+function getTokens(): string[] {
+  return [
+    process.env.HF_TOKEN_1,
+    process.env.HF_TOKEN_2,
+    process.env.HF_TOKEN_3,
+    process.env.HF_TOKEN,
+  ].filter(Boolean) as string[]
+}
+
+async function generateImageHF(prompt: string): Promise<string | null> {
+  const tokens = getTokens()
+  const negativePrompt = "blurry, low quality, text, watermark, signature, ugly, deformed"
+
+  for (const model of IMAGE_MODELS) {
+    for (const token of tokens) {
+      try {
+        const res = await fetch(
+          `https://api-inference.huggingface.co/models/${model}`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+              "X-Wait-For-Model": "true",
+            },
+            body: JSON.stringify({
+              inputs: prompt,
+              parameters: {
+                negative_prompt: negativePrompt,
+                num_inference_steps: 25,
+                guidance_scale: 7.5,
+                width: 768,
+                height: 512,
+              },
+            }),
+          }
+        )
+
+        if (res.status === 429 || res.status === 503) {
+          console.log(`Model ${model} unavailable, trying next...`)
+          continue
+        }
+
+        if (!res.ok) {
+          const err = await res.text()
+          console.error(`HF image error (${model}):`, err)
+          continue
+        }
+
+        const buffer = await res.arrayBuffer()
+        const base64 = Buffer.from(buffer).toString("base64")
+        return `data:image/jpeg;base64,${base64}`
+
+      } catch (e) {
+        console.error(`HF image exception (${model}):`, e)
+        continue
+      }
+    }
+  }
+  return null
+}
+
 export async function POST(req: Request) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -27,33 +95,27 @@ Tipo solicitado: ${type}
 
 Genera el visual más útil para aprender este concepto.
 
-REGLAS CRÍTICAS para cada tipo:
+REGLAS para cada tipo:
 
-Para "image": prompt en inglés simple, máximo 20 palabras, estilo educativo
+Para "image": prompt en inglés descriptivo, estilo "educational diagram of [concepto], clean illustration, colorful, infographic style, white background, detailed, high quality"
 
-Para "mermaid": usa SOLO esta sintaxis válida:
-- flowchart TD (no graph, no LR con punto y coma)
-- nodos: A[texto] B(texto) C{texto}
-- flechas: A --> B o A -->|label| B
-- SIN caracteres especiales: paréntesis, llaves, puntos y coma en labels
-- máximo 8 nodos
-- ejemplo válido:
+Para "mermaid": usa SOLO esta sintaxis:
 flowchart TD
-    A[Concepto] --> B[Parte 1]
-    A --> C[Parte 2]
-    B --> D[Resultado]
+    A[Nodo] --> B[Nodo2]
+    B --> C[Nodo3]
+SIN caracteres especiales ni punto y coma en labels. Máximo 8 nodos.
 
-Para "chart": JSON con esta estructura exacta:
+Para "chart": JSON exacto:
 {"type":"bar","data":{"labels":["A","B","C"],"datasets":[{"label":"Serie","data":[1,2,3],"backgroundColor":["#3b82f6","#8b5cf6","#06b6d4"]}]}}
 
-Para "table": tabla markdown con | col1 | col2 | col3 | y separador |---|---|---|
+Para "table": tabla markdown con encabezados y separador |---|
 
-Responde con este JSON:
+Responde:
 {
   "type": "image|mermaid|chart|table",
   "title": "título corto",
-  "content": "el prompt, código mermaid, JSON de chart, o tabla markdown",
-  "caption": "qué muestra este visual en una oración"
+  "content": "prompt, código mermaid, JSON chart, o tabla markdown",
+  "caption": "qué muestra este visual"
 }`
         }
       ],
@@ -67,20 +129,26 @@ Responde con este JSON:
 
     const visual = JSON.parse(jsonMatch[0])
 
-    // Limpiar mermaid de caracteres problemáticos
+    // Limpiar mermaid
     if (visual.type === "mermaid") {
       visual.content = visual.content
         .replace(/graph\s+(LR|TD|RL|BT);?/g, "flowchart $1")
-        .replace(/-->|>/g, "-->")
-        .replace(/\(/g, "[").replace(/\)/g, "]")
         .replace(/;/g, "")
         .trim()
     }
 
-    // Generar URL de imagen con Pollinations
+    // Generar imagen con HF SD
     if (visual.type === "image") {
-      const prompt = `Educational diagram about ${visual.content}, clean infographic, colorful, white background, modern flat design, no text`
-      visual.url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=800&height=450&model=flux&nologo=true&seed=${Date.now()}`
+      const imgPrompt = `Educational illustration: ${visual.content}, clean, colorful, modern infographic style, white background, high quality`
+      const imageData = await generateImageHF(imgPrompt)
+      if (imageData) {
+        visual.imageData = imageData
+      } else {
+        // Fallback a Pollinations si HF falla
+        const encoded = encodeURIComponent(imgPrompt)
+        visual.imageData = null
+        visual.url = `https://image.pollinations.ai/prompt/${encoded}?width=800&height=500&model=flux&nologo=true&seed=${Date.now()}`
+      }
     }
 
     // Parsear chart
@@ -90,9 +158,8 @@ Responde con este JSON:
           ? JSON.parse(visual.content)
           : visual.content
       } catch {
-        // fallback a tabla si el JSON del chart falla
         visual.type = "table"
-        visual.content = "| Concepto | Descripción |\n|---|---|\n| " + topic + " | Ver explicación arriba |"
+        visual.content = `| Concepto | Descripción |\n|---|---|\n| ${topic} | Ver explicación arriba |`
       }
     }
 

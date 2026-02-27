@@ -9,6 +9,7 @@ interface Visual {
   title: string
   caption: string
   url?: string
+  imageData?: string
   content: string
   chartData?: any
 }
@@ -196,7 +197,7 @@ export default function VisualBlock({ topic, context }: Props) {
 
           <div className="p-4">
             {/* Imagen FLUX */}
-            {visual.type === "image" && visual.url && !imgError && (
+            {visual.type === "image" && (visual.imageData || visual.url) && !imgError && (
               <div className="relative min-h-[180px] bg-gray-800 rounded-xl overflow-hidden">
                 {!imgLoaded && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
@@ -205,7 +206,7 @@ export default function VisualBlock({ topic, context }: Props) {
                   </div>
                 )}
                 <img
-                  src={visual.url}
+                  src={visual.imageData || visual.url || ""}
                   alt={visual.title}
                   onLoad={() => setImgLoaded(true)}
                   onError={() => setImgError(true)}
@@ -213,7 +214,7 @@ export default function VisualBlock({ topic, context }: Props) {
                 />
               </div>
             )}
-            {visual.type === "image" && imgError && (
+            {visual.type === "image" && !visual.imageData && !visual.url && (
               <div className="bg-gray-800 rounded-xl p-6 text-center">
                 <p className="text-gray-500 text-sm mb-3">Error cargando imagen de FLUX</p>
                 <button onClick={() => generateVisual("image")} className="text-xs text-blue-400 hover:text-blue-300">↺ Reintentar</button>
