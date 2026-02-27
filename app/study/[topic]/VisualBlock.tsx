@@ -8,8 +8,7 @@ interface Visual {
   type: "image" | "mermaid" | "chart" | "table"
   title: string
   caption: string
-  url?: string
-  imageData?: string
+  imagePrompt?: string
   content: string
   chartData?: any
 }
@@ -22,14 +21,19 @@ interface Props {
 export default function VisualBlock({ topic, context }: Props) {
   const [visual, setVisual] = useState<Visual | null>(null)
   const [loading, setLoading] = useState(false)
-  const [loadingHF, setLoadingHF] = useState(false)
   const [error, setError] = useState("")
   const [imgLoaded, setImgLoaded] = useState(false)
   const [imgError, setImgError] = useState(false)
+  const [seed, setSeed] = useState(() => Math.floor(Math.random() * 99999))
   const mermaidRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<any>(null)
 
-  async function generateVisual(type = "auto", useHF = false) {
+  function getImageUrl(prompt: string, s: number) {
+    const full = `Educational illustration: ${prompt}, clean, colorful, infographic style, white background, high quality, no text`
+    return `https://image.pollinations.ai/prompt/${encodeURIComponent(full)}?width=800&height=500&model=flux&nologo=true&seed=${s}`
+  }
+
+  async function generateVisual(type = "auto") {
     setLoading(true)
     setError("")
     setVisual(null)
@@ -45,7 +49,7 @@ export default function VisualBlock({ topic, context }: Props) {
       const res = await fetch("/api/agents/image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic, context, type, useHF }),
+        body: JSON.stringify({ topic, context, type }),
       })
       if (!res.ok) throw new Error("Error generando visual")
       const data = await res.json()
@@ -56,29 +60,8 @@ export default function VisualBlock({ topic, context }: Props) {
       if (data.type === "chart" && data.chartData) setTimeout(() => renderChart(data.chartData), 200)
 
     } catch (e: any) {
-      setError("No se pudo generar el visual. Intenta de nuevo.")
+      setError("No se pudo generar el visual.")
       setLoading(false)
-    }
-  }
-
-  async function upgradeToSD() {
-    if (!visual) return
-    setLoadingHF(true)
-    try {
-      const res = await fetch("/api/agents/image", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic, context, type: "image", useHF: true }),
-      })
-      if (!res.ok) throw new Error()
-      const data = await res.json()
-      setVisual(prev => prev ? { ...prev, imageData: data.imageData, url: data.url } : prev)
-      setImgLoaded(false)
-      setImgError(false)
-    } catch {
-      // silencioso
-    } finally {
-      setLoadingHF(false)
     }
   }
 
@@ -125,9 +108,7 @@ export default function VisualBlock({ topic, context }: Props) {
         },
         options: {
           responsive: true,
-          plugins: {
-            legend: { labels: { color: "#94a3b8", font: { size: 11 } } },
-          },
+          plugins: { legend: { labels: { color: "#94a3b8", font: { size: 11 } } } },
           scales: chartData.type !== "pie" && chartData.type !== "doughnut" ? {
             x: { ticks: { color: "#64748b" }, grid: { color: "#1e293b" } },
             y: { ticks: { color: "#64748b" }, grid: { color: "#1e293b" } },
@@ -137,7 +118,12 @@ export default function VisualBlock({ topic, context }: Props) {
     } catch (e) { console.error(e) }
   }
 
-  const imgSrc = visual?.imageData || visual?.url || ""
+  function regenerateImage() {
+    const newSeed = Math.floor(Math.random() * 99999)
+    setSeed(newSeed)
+    setImgLoaded(false)
+    setImgError(false)
+  }
 
   return (
     <div className="mt-4">
@@ -167,10 +153,7 @@ export default function VisualBlock({ topic, context }: Props) {
       {loading && (
         <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 flex items-center gap-3">
           <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin flex-shrink-0" />
-          <div>
-            <p className="text-gray-300 text-sm">AIm generando visual...</p>
-            <p className="text-gray-600 text-xs">Analizando el concepto</p>
-          </div>
+          <p className="text-gray-300 text-sm">AIm generando visual...</p>
         </div>
       )}
 
@@ -183,6 +166,7 @@ export default function VisualBlock({ topic, context }: Props) {
 
       {visual && !loading && (
         <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
+          {/* Header */}
           <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-800">
             <div className="flex items-center gap-2">
               <span className="text-xs text-blue-400 font-medium">🎨 AIm</span>
@@ -191,64 +175,62 @@ export default function VisualBlock({ topic, context }: Props) {
             </div>
             <div className="flex items-center gap-3">
               {[
-                { type: "image",   label: "🖼️" },
+                { type: "image", label: "🖼️" },
                 { type: "mermaid", label: "📊" },
-                { type: "chart",   label: "📈" },
-                { type: "table",   label: "📋" },
+                { type: "chart", label: "📈" },
+                { type: "table", label: "📋" },
               ].filter(b => b.type !== visual.type).map(btn => (
                 <button key={btn.type} onClick={() => generateVisual(btn.type)}
                   className="text-xs text-gray-600 hover:text-gray-300 transition-colors">{btn.label}
                 </button>
               ))}
-              <button onClick={() => generateVisual(visual.type)} className="text-xs text-gray-600 hover:text-gray-300">↺</button>
+              <button onClick={() => {
+                if (visual.type === "image") regenerateImage()
+                else generateVisual(visual.type)
+              }} className="text-xs text-gray-600 hover:text-gray-300">↺</button>
               <button onClick={() => setVisual(null)} className="text-xs text-gray-600 hover:text-gray-300">✕</button>
             </div>
           </div>
 
           <div className="p-4">
-            {/* Imagen */}
-            {visual.type === "image" && imgSrc && !imgError && (
+            {/* Imagen — generada client-side con Pollinations */}
+            {visual.type === "image" && visual.imagePrompt && !imgError && (
               <div className="relative">
                 {!imgLoaded && (
-                  <div className="w-full h-48 bg-gray-800 rounded-xl flex flex-col items-center justify-center gap-2">
-                    <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                    <p className="text-gray-500 text-xs">
-                      {visual.imageData ? "Cargando imagen SD..." : "Cargando imagen..."}
-                    </p>
+                  <div className="w-full h-52 bg-gray-800 rounded-xl flex flex-col items-center justify-center gap-3">
+                    <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                    <div className="text-center">
+                      <p className="text-gray-400 text-sm">Generando imagen con FLUX...</p>
+                      <p className="text-gray-600 text-xs mt-1">Puede tomar 10-20 segundos</p>
+                    </div>
                   </div>
                 )}
                 <img
-                  src={imgSrc}
+                  src={getImageUrl(visual.imagePrompt, seed)}
                   alt={visual.title}
                   onLoad={() => setImgLoaded(true)}
                   onError={() => setImgError(true)}
-                  className={`w-full rounded-xl transition-opacity duration-500 ${imgLoaded ? "opacity-100" : "opacity-0 h-0"}`}
+                  className={`w-full rounded-xl transition-opacity duration-700 ${imgLoaded ? "opacity-100" : "opacity-0 absolute"}`}
                 />
-                {/* Badge de modelo */}
                 {imgLoaded && (
-                  <div className="absolute top-2 right-2 flex items-center gap-2">
-                    {visual.imageData ? (
-                      <span className="bg-purple-500/80 text-white text-xs px-2 py-0.5 rounded-full">Stable Diffusion</span>
-                    ) : (
-                      <div className="flex items-center gap-1.5">
-                        <span className="bg-gray-900/80 text-gray-400 text-xs px-2 py-0.5 rounded-full">FLUX</span>
-                        <button
-                          onClick={upgradeToSD}
-                          disabled={loadingHF}
-                          className="bg-purple-600/80 hover:bg-purple-500 text-white text-xs px-2 py-0.5 rounded-full transition-colors disabled:opacity-50"
-                        >
-                          {loadingHF ? "⏳ SD..." : "⬆ Mejorar con SD"}
-                        </button>
-                      </div>
-                    )}
+                  <div className="absolute top-2 right-2">
+                    <span className="bg-black/60 text-gray-300 text-xs px-2 py-1 rounded-full">FLUX · Pollinations</span>
                   </div>
                 )}
               </div>
             )}
+
             {visual.type === "image" && imgError && (
-              <div className="bg-gray-800 rounded-xl p-6 text-center">
-                <p className="text-gray-500 text-sm mb-3">No se pudo cargar la imagen</p>
-                <button onClick={() => generateVisual("image")} className="text-xs text-blue-400 hover:text-blue-300">↺ Reintentar</button>
+              <div className="bg-gray-800 rounded-xl p-8 text-center">
+                <p className="text-4xl mb-3">🖼️</p>
+                <p className="text-gray-400 text-sm mb-1">Pollinations no respondió</p>
+                <p className="text-gray-600 text-xs mb-4">El servicio puede estar ocupado</p>
+                <button
+                  onClick={() => { setSeed(Math.floor(Math.random() * 99999)); setImgError(false); setImgLoaded(false) }}
+                  className="bg-blue-600 hover:bg-blue-500 text-white text-xs px-4 py-2 rounded-lg transition-colors"
+                >
+                  ↺ Reintentar
+                </button>
               </div>
             )}
 

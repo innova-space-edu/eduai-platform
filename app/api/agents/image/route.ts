@@ -3,74 +3,12 @@ import { createClient } from "@/lib/supabase/server"
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
 
-function getTokens(): string[] {
-  return [
-    process.env.HF_TOKEN_1,
-    process.env.HF_TOKEN_2,
-    process.env.HF_TOKEN_3,
-    process.env.HF_TOKEN,
-  ].filter(Boolean) as string[]
-}
-
-const IMAGE_MODELS = [
-  "stabilityai/stable-diffusion-xl-base-1.0",
-  "runwayml/stable-diffusion-v1-5",
-  "CompVis/stable-diffusion-v1-4",
-]
-
-async function generateImageHF(prompt: string): Promise<string | null> {
-  const tokens = getTokens()
-  for (const model of IMAGE_MODELS) {
-    for (const token of tokens) {
-      try {
-        const controller = new AbortController()
-        const timeout = setTimeout(() => controller.abort(), 25000)
-
-        const res = await fetch(
-          `https://api-inference.huggingface.co/models/${model}`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-              "X-Wait-For-Model": "true",
-            },
-            body: JSON.stringify({
-              inputs: prompt,
-              parameters: {
-                negative_prompt: "blurry, low quality, text, watermark, ugly",
-                num_inference_steps: 20,
-                guidance_scale: 7.5,
-                width: 768,
-                height: 512,
-              },
-            }),
-            signal: controller.signal,
-          }
-        )
-
-        clearTimeout(timeout)
-
-        if (!res.ok) continue
-
-        const buffer = await res.arrayBuffer()
-        const base64 = Buffer.from(buffer).toString("base64")
-        return `data:image/jpeg;base64,${base64}`
-
-      } catch (e) {
-        continue
-      }
-    }
-  }
-  return null
-}
-
 export async function POST(req: Request) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new Response("Unauthorized", { status: 401 })
 
-  const { topic, context, type = "auto", useHF = false } = await req.json()
+  const { topic, context, type = "auto" } = await req.json()
 
   try {
     const completion = await groq.chat.completions.create({
@@ -87,34 +25,33 @@ Responde ÚNICAMENTE con JSON válido, sin texto adicional ni bloques de código
 Contexto: "${context?.slice(0, 300) || ""}"
 Tipo solicitado: ${type}
 
-Genera el visual más útil para aprender este concepto.
+Para "image": genera un prompt en inglés para Stable Diffusion. Ejemplo:
+"physics concept diagram showing Newton third law action reaction forces, educational infographic, colorful arrows, labeled diagram, clean white background"
 
-REGLAS para cada tipo:
-
-Para "image": prompt en inglés descriptivo para Stable Diffusion. Ejemplo: "educational diagram showing Newton laws of motion, colorful infographic, white background, clean illustration, detailed labels"
-
-Para "mermaid": SOLO esta sintaxis:
+Para "mermaid": SOLO esta sintaxis válida:
 flowchart TD
-    A[Nodo] --> B[Nodo2]
-    B --> C[Nodo3]
-SIN punto y coma en labels. Máximo 8 nodos.
+    A[Concepto] --> B[Parte 1]
+    A --> C[Parte 2]
+    B --> D[Resultado]
+SIN punto y coma en labels. Máximo 8 nodos. Texto corto en nodos.
 
 Para "chart": JSON exacto:
-{"type":"bar","data":{"labels":["A","B","C"],"datasets":[{"label":"Serie","data":[1,2,3],"backgroundColor":["#3b82f6","#8b5cf6","#06b6d4"]}]}}
+{"type":"bar","data":{"labels":["A","B","C"],"datasets":[{"label":"Serie","data":[10,20,30],"backgroundColor":["#3b82f6","#8b5cf6","#06b6d4"]}]}}
 
-Para "table": tabla markdown con encabezados y separador |---|
+Para "table": tabla markdown con | col | col | y separador |---|---|
 
-Responde:
+Responde con JSON:
 {
   "type": "image|mermaid|chart|table",
   "title": "título corto",
-  "content": "prompt SD, código mermaid, JSON chart, o tabla markdown",
-  "caption": "qué muestra este visual"
+  "imagePrompt": "solo si type es image: prompt en inglés para SD",
+  "content": "código mermaid, JSON chart, o tabla markdown según tipo",
+  "caption": "descripción breve"
 }`
         }
       ],
       temperature: 0.4,
-      max_tokens: 600,
+      max_tokens: 500,
     })
 
     const text = completion.choices[0]?.message?.content || ""
@@ -128,23 +65,6 @@ Responde:
         .replace(/graph\s+(LR|TD|RL|BT);?/g, "flowchart $1")
         .replace(/;/g, "")
         .trim()
-    }
-
-    if (visual.type === "image") {
-      const imgPrompt = `Educational illustration: ${visual.content}`
-      const encodedPrompt = encodeURIComponent(imgPrompt)
-
-      if (useHF) {
-        // Modo HF: intenta SD con timeout
-        const imageData = await generateImageHF(imgPrompt)
-        visual.imageData = imageData
-        if (!imageData) {
-          visual.url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=800&height=500&model=flux&nologo=true&seed=${Date.now()}`
-        }
-      } else {
-        // Modo rápido: Pollinations directo
-        visual.url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=800&height=500&model=flux&nologo=true&seed=${Date.now()}`
-      }
     }
 
     if (visual.type === "chart") {
