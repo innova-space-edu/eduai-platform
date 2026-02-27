@@ -11,6 +11,7 @@ import { useStudySession } from "@/hooks/useStudySession"
 import { useXP } from "@/hooks/useXP"
 import XPToast from "@/components/ui/XPToast"
 import StudyBanner from "@/components/ui/StudyBanner"
+import SummaryDownload from "./SummaryDownload"
 import AchievementToast from "@/components/ui/AchievementToast"
 import { useAchievements } from "@/hooks/useAchievements"
 
@@ -412,6 +413,8 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
             </div>
           </div>
         )}
+
+        <SummaryDownload topic={selectedSubtopic || topic} messages={messages} quizResults={quizResults} />
 
         {error && (
           <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-4">
