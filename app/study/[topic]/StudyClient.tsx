@@ -11,6 +11,7 @@ import { useStudySession } from "@/hooks/useStudySession"
 import { useXP } from "@/hooks/useXP"
 import XPToast from "@/components/ui/XPToast"
 import StudyBanner from "@/components/ui/StudyBanner"
+import VoiceNarrator from "@/components/ui/VoiceNarrator"
 import SummaryDownload from "./SummaryDownload"
 import AchievementToast from "@/components/ui/AchievementToast"
 import { useAchievements } from "@/hooks/useAchievements"
@@ -384,6 +385,11 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
                     <span className="text-blue-400 text-xs font-medium">{selectedType === "socratic" ? "ASc — Modo Sócrates" : "AGT"}</span>
                   </div>
                   <MathContent content={msg.content} />
+                  <VoiceNarrator
+                    text={msg.content}
+                    autoPlay={i === messages.length - 1}
+                    addMotivation={i === messages.length - 1}
+                  />
                   {streaming && i === messages.length - 1 && (
                     <span className="inline-block w-0.5 h-5 bg-blue-400 animate-pulse ml-1 align-middle" />
                   )}

@@ -1,74 +1,57 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 interface Props {
   text: string
+  autoPlay?: boolean
+  addMotivation?: boolean
 }
 
-export default function VoiceNarrator({ text }: Props) {
+export default function VoiceNarrator({ text, autoPlay = false, addMotivation = false }: Props) {
   const [loading, setLoading] = useState(false)
   const [playing, setPlaying] = useState(false)
-  const [audio, setAudio] = useState<HTMLAudioElement | null>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const hasPlayedRef = useRef(false)
 
-  function cleanText(raw: string) {
-    return raw
-      .replace(/#{1,6}\s/g, "")
-      .replace(/\*\*/g, "")
-      .replace(/\*/g, "")
-      .replace(/`[^`]*`/g, "")
-      .replace(/\$\$[^$]*\$\$/g, "fórmula matemática")
-      .replace(/\$[^$]*\$/g, "fórmula")
-      .replace(/---FOLLOWUPS---[\s\S]*/g, "")
-      .replace(/\n+/g, " ")
-      .trim()
-      .slice(0, 500)
-  }
+  useEffect(() => {
+    if (autoPlay && text && !hasPlayedRef.current) {
+      hasPlayedRef.current = true
+      speak()
+    }
+  }, [text, autoPlay])
 
   async function speak() {
-    if (loading) return
-
-    // Si ya hay audio reproduciéndolo, pausar/reanudar
-    if (audio) {
-      if (playing) {
-        audio.pause()
-        setPlaying(false)
-      } else {
-        audio.play()
-        setPlaying(true)
-      }
-      return
-    }
-
+    if (loading || playing) return
+    stopAudio()
     setLoading(true)
+
     try {
       const res = await fetch("/api/agents/tts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: cleanText(text) }),
+        body: JSON.stringify({ text, addMotivation }),
       })
 
       if (!res.ok) {
-        // Fallback a Web Speech API si falla HF
         fallbackTTS()
         return
       }
 
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
-      const newAudio = new Audio(url)
+      const audio = new Audio(url)
+      audioRef.current = audio
 
-      newAudio.onplay = () => setPlaying(true)
-      newAudio.onpause = () => setPlaying(false)
-      newAudio.onended = () => {
+      audio.onplay = () => setPlaying(true)
+      audio.onpause = () => setPlaying(false)
+      audio.onended = () => {
         setPlaying(false)
-        setAudio(null)
+        audioRef.current = null
         URL.revokeObjectURL(url)
       }
 
-      setAudio(newAudio)
-      newAudio.play()
-
+      audio.play()
     } catch (e) {
       console.error("TTS error:", e)
       fallbackTTS()
@@ -79,44 +62,58 @@ export default function VoiceNarrator({ text }: Props) {
 
   function fallbackTTS() {
     if (!("speechSynthesis" in window)) return
-    const clean = cleanText(text)
+    const clean = text.replace(/[#*`$\[\]]/g, "").replace(/\n+/g, " ").trim()
     const utterance = new SpeechSynthesisUtterance(clean)
     utterance.lang = "es-ES"
-    utterance.rate = 1
     const voices = window.speechSynthesis.getVoices()
     const spanish = voices.find(v => v.lang.startsWith("es"))
     if (spanish) utterance.voice = spanish
     utterance.onstart = () => setPlaying(true)
     utterance.onend = () => setPlaying(false)
-    window.speechSynthesis.speak(utterance)
+    if (addMotivation) {
+      const motivations = ["Ánimo, lo estás haciendo genial.", "Sigue así, vas muy bien."]
+      const mot = new SpeechSynthesisUtterance(motivations[Math.floor(Math.random() * motivations.length)])
+      mot.lang = "es-ES"
+      if (spanish) mot.voice = spanish
+      window.speechSynthesis.speak(utterance)
+      window.speechSynthesis.speak(mot)
+    } else {
+      window.speechSynthesis.speak(utterance)
+    }
   }
 
-  function stop() {
-    if (audio) {
-      audio.pause()
-      audio.currentTime = 0
-      setAudio(null)
+  function stopAudio() {
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current = null
     }
     window.speechSynthesis?.cancel()
     setPlaying(false)
   }
 
+  function togglePlay() {
+    if (playing) {
+      stopAudio()
+    } else {
+      speak()
+    }
+  }
+
   return (
     <div className="flex items-center gap-2 mt-2">
       <button
-        onClick={speak}
+        onClick={togglePlay}
         disabled={loading}
-        className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full transition-all ${
+        className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full transition-all disabled:opacity-50 ${
           playing
             ? "bg-blue-600/20 border border-blue-500/40 text-blue-400"
             : "bg-gray-800 hover:bg-gray-700 border border-gray-700 hover:border-blue-500 text-gray-400 hover:text-white"
-        } disabled:opacity-50`}
-        title="AVN — Agente de Voz"
+        }`}
       >
         {loading ? (
           <>
             <div className="w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-            Cargando voz...
+            Generando audio...
           </>
         ) : playing ? (
           <>
@@ -132,16 +129,14 @@ export default function VoiceNarrator({ text }: Props) {
         )}
       </button>
 
-      {(playing || audio) && (
+      {playing && (
         <button
-          onClick={stop}
+          onClick={stopAudio}
           className="text-gray-600 hover:text-red-400 text-xs px-2 py-1.5 rounded-full transition-colors"
         >
           ⏹
         </button>
       )}
-
-      <span className="text-gray-700 text-xs">AVN</span>
     </div>
   )
 }
