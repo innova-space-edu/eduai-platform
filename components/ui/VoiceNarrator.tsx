@@ -8,131 +8,171 @@ interface Props {
   addMotivation?: boolean
 }
 
+const MOTIVATIONAL = [
+  "¡Ánimo, lo estás haciendo genial!",
+  "¡No te preocupes, cada paso cuenta!",
+  "¡Sigue así, vas muy bien!",
+  "¡Excelente, continúa aprendiendo!",
+  "¡Tú puedes, confía en ti!",
+]
+
 export default function VoiceNarrator({ text, autoPlay = false, addMotivation = false }: Props) {
   const [loading, setLoading] = useState(false)
   const [playing, setPlaying] = useState(false)
-  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const [supported, setSupported] = useState(false)
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
   const hasPlayedRef = useRef(false)
 
   useEffect(() => {
-    if (autoPlay && text && !hasPlayedRef.current) {
-      hasPlayedRef.current = true
-      speak()
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      setSupported(true)
     }
-  }, [text, autoPlay])
+  }, [])
 
-  async function speak() {
-    if (loading || playing) return
-    stopAudio()
+  useEffect(() => {
+    if (autoPlay && text && supported && !hasPlayedRef.current) {
+      hasPlayedRef.current = true
+      // Esperar que el streaming termine completamente
+      const timer = setTimeout(() => speak(), 800)
+      return () => clearTimeout(timer)
+    }
+  }, [text, autoPlay, supported])
+
+  function getBestFeminineVoice(): SpeechSynthesisVoice | null {
+    const voices = window.speechSynthesis.getVoices()
+
+    // Prioridad 1: voz femenina española explícita
+    const femaleSpanish = voices.find(v =>
+      v.lang.startsWith("es") && (
+        v.name.toLowerCase().includes("female") ||
+        v.name.toLowerCase().includes("mujer") ||
+        v.name.toLowerCase().includes("paulina") ||
+        v.name.toLowerCase().includes("mónica") ||
+        v.name.toLowerCase().includes("monica") ||
+        v.name.toLowerCase().includes("laura") ||
+        v.name.toLowerCase().includes("helena") ||
+        v.name.toLowerCase().includes("lucia") ||
+        v.name.toLowerCase().includes("lucía") ||
+        v.name.toLowerCase().includes("jorge") === false // evitar nombres masculinos
+      )
+    )
+    if (femaleSpanish) return femaleSpanish
+
+    // Prioridad 2: cualquier voz española
+    const anySpanish = voices.find(v => v.lang.startsWith("es"))
+    if (anySpanish) return anySpanish
+
+    // Prioridad 3: cualquier voz disponible
+    return voices[0] || null
+  }
+
+  function cleanText(raw: string) {
+    return raw
+      .replace(/#{1,6}\s/g, "")
+      .replace(/\*\*/g, "")
+      .replace(/\*/g, "")
+      .replace(/`[^`]*`/g, "")
+      .replace(/\$\$[^$]*\$\$/g, "fórmula matemática")
+      .replace(/\$[^$]*\$/g, "fórmula")
+      .replace(/---FOLLOWUPS---[\s\S]*/g, "")
+      .replace(/\[.*?\]/g, "")
+      .replace(/\n+/g, ". ")
+      .trim()
+  }
+
+  function speak() {
+    if (!supported || loading) return
+    window.speechSynthesis.cancel()
+
     setLoading(true)
 
-    try {
-      const res = await fetch("/api/agents/tts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, addMotivation }),
-      })
+    // Cargar voces (puede ser asíncrono en algunos browsers)
+    const trySpeak = () => {
+      const clean = cleanText(text)
+      const motivation = addMotivation
+        ? " " + MOTIVATIONAL[Math.floor(Math.random() * MOTIVATIONAL.length)]
+        : ""
 
-      if (!res.ok) {
-        fallbackTTS()
-        return
-      }
+      const utterance = new SpeechSynthesisUtterance(clean + motivation)
+      const voice = getBestFeminineVoice()
 
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      const audio = new Audio(url)
-      audioRef.current = audio
+      if (voice) utterance.voice = voice
+      utterance.lang = voice?.lang || "es-ES"
+      utterance.rate = 0.92      // ligeramente más lento — suave
+      utterance.pitch = 1.15     // tono más agudo — femenino
+      utterance.volume = 1
 
-      audio.onplay = () => setPlaying(true)
-      audio.onpause = () => setPlaying(false)
-      audio.onended = () => {
-        setPlaying(false)
-        audioRef.current = null
-        URL.revokeObjectURL(url)
-      }
+      utterance.onstart = () => { setPlaying(true); setLoading(false) }
+      utterance.onend = () => { setPlaying(false) }
+      utterance.onerror = () => { setPlaying(false); setLoading(false) }
 
-      audio.play()
-    } catch (e) {
-      console.error("TTS error:", e)
-      fallbackTTS()
-    } finally {
-      setLoading(false)
+      utteranceRef.current = utterance
+      window.speechSynthesis.speak(utterance)
     }
-  }
 
-  function fallbackTTS() {
-    if (!("speechSynthesis" in window)) return
-    const clean = text.replace(/[#*`$\[\]]/g, "").replace(/\n+/g, " ").trim()
-    const utterance = new SpeechSynthesisUtterance(clean)
-    utterance.lang = "es-ES"
     const voices = window.speechSynthesis.getVoices()
-    const spanish = voices.find(v => v.lang.startsWith("es"))
-    if (spanish) utterance.voice = spanish
-    utterance.onstart = () => setPlaying(true)
-    utterance.onend = () => setPlaying(false)
-    if (addMotivation) {
-      const motivations = ["Ánimo, lo estás haciendo genial.", "Sigue así, vas muy bien."]
-      const mot = new SpeechSynthesisUtterance(motivations[Math.floor(Math.random() * motivations.length)])
-      mot.lang = "es-ES"
-      if (spanish) mot.voice = spanish
-      window.speechSynthesis.speak(utterance)
-      window.speechSynthesis.speak(mot)
+    if (voices.length > 0) {
+      trySpeak()
     } else {
-      window.speechSynthesis.speak(utterance)
+      window.speechSynthesis.onvoiceschanged = () => {
+        trySpeak()
+        setLoading(false)
+      }
+      // timeout fallback
+      setTimeout(() => { trySpeak(); setLoading(false) }, 1000)
     }
   }
 
-  function stopAudio() {
-    if (audioRef.current) {
-      audioRef.current.pause()
-      audioRef.current = null
-    }
-    window.speechSynthesis?.cancel()
+  function stop() {
+    window.speechSynthesis.cancel()
     setPlaying(false)
+    setLoading(false)
   }
 
-  function togglePlay() {
+  function toggle() {
     if (playing) {
-      stopAudio()
+      stop()
     } else {
       speak()
     }
   }
+
+  if (!supported) return null
 
   return (
     <div className="flex items-center gap-2 mt-2">
       <button
-        onClick={togglePlay}
+        onClick={toggle}
         disabled={loading}
         className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full transition-all disabled:opacity-50 ${
           playing
-            ? "bg-blue-600/20 border border-blue-500/40 text-blue-400"
-            : "bg-gray-800 hover:bg-gray-700 border border-gray-700 hover:border-blue-500 text-gray-400 hover:text-white"
+            ? "bg-pink-600/20 border border-pink-500/40 text-pink-400"
+            : "bg-gray-800 hover:bg-gray-700 border border-gray-700 hover:border-pink-500/50 text-gray-400 hover:text-pink-300"
         }`}
       >
         {loading ? (
           <>
-            <div className="w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-            Generando audio...
+            <div className="w-3 h-3 border-2 border-pink-400 border-t-transparent rounded-full animate-spin" />
+            <span>Cargando voz...</span>
           </>
         ) : playing ? (
           <>
             <div className="flex gap-0.5 items-end h-3">
-              <div className="w-0.5 h-2 bg-blue-400 rounded-full animate-pulse" />
-              <div className="w-0.5 h-3 bg-blue-400 rounded-full animate-pulse delay-75" />
-              <div className="w-0.5 h-1.5 bg-blue-400 rounded-full animate-pulse delay-150" />
+              <div className="w-0.5 h-2 bg-pink-400 rounded-full animate-pulse" />
+              <div className="w-0.5 h-3 bg-pink-400 rounded-full animate-pulse delay-75" />
+              <div className="w-0.5 h-1.5 bg-pink-400 rounded-full animate-pulse delay-150" />
             </div>
-            ⏸ Pausar
+            <span>⏸ Pausar</span>
           </>
         ) : (
-          <>🔊 Escuchar</>
+          <span>🔊 Escuchar</span>
         )}
       </button>
 
       {playing && (
         <button
-          onClick={stopAudio}
-          className="text-gray-600 hover:text-red-400 text-xs px-2 py-1.5 rounded-full transition-colors"
+          onClick={stop}
+          className="text-gray-700 hover:text-red-400 text-xs px-2 py-1.5 rounded-full transition-colors"
         >
           ⏹
         </button>
