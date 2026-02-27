@@ -80,7 +80,7 @@ Responde con este JSON:
     // Generar URL de imagen con Pollinations
     if (visual.type === "image") {
       const prompt = `Educational diagram about ${visual.content}, clean infographic, colorful, white background, modern flat design, no text`
-      visual.url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}&width=800&height=450&model=flux&nologo=true&seed=${Date.now()}`
+      visual.url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=800&height=450&model=flux&nologo=true&seed=${Date.now()}`
     }
 
     // Parsear chart
