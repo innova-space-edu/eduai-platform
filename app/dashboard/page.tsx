@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import MissionsPanel from "./MissionsPanel"
+// import MissionsPanel from "./MissionsPanel"
 
 interface UserStats {
   xp: number; level: string; streak: number; sessions: number
@@ -156,6 +156,7 @@ export default function Dashboard() {
       <main className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ${mainML}`}
         style={{ marginLeft: expanded ? "224px" : "64px" }}>
         {/* ...existing code... */}
+        {/* <MissionsPanel /> */}
       </main>
     </div>
   )
