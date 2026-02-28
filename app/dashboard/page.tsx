@@ -23,6 +23,7 @@ const AGENTS = [
   { id: "traductor",    icon: "🌐",  name: "Traductor",    color: "from-cyan-500 to-sky-600",      href: "/traductor"    },
   { id: "paper",        icon: "📄",  name: "Chat Paper",   color: "from-indigo-500 to-blue-700",   href: "/paper"        },
   { id: "examen",       icon: "📝",  name: "Examen",       color: "from-red-500 to-rose-600",      href: "/examen"       },
+  { id: "imagenes",     icon: "🎨",  name: "Imágenes",     color: "from-pink-500 to-purple-600",   href: "/imagenes"     },
 ]
 
 const BOTTOM_LINKS = [
