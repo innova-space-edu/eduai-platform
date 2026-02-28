@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import MissionsPanel from "./MissionsPanel"
 
 const LEVELS = [
   { name: "Principiante", min: 0,    max: 100   },
@@ -225,6 +226,7 @@ export default function Dashboard() {
             </div>
           </div>
 
+          <MissionsPanel />
         </div>
       </main>
     </div>
