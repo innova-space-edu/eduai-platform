@@ -46,6 +46,7 @@
 ![ChatPaper](https://img.shields.io/badge/📄_Chat_Paper-PDF_Análisis-4338CA?style=flat-square)
 ![Examen](https://img.shields.io/badge/📝_Examen-Simulacro_IA-DC2626?style=flat-square)
 ![Imágenes](https://img.shields.io/badge/🎨_Imágenes-FLUX_/_SD-C026D3?style=flat-square)
+![VisualAuto](https://img.shields.io/badge/🖼️_Visual_Auto-Detección_IA-7C3AED?style=flat-square)
 
 ### ⚡ Modelos e IAs integradas
 
@@ -53,7 +54,7 @@
 ![OpenRouter](https://img.shields.io/badge/OpenRouter-29_modelos-6366F1?style=flat-square)
 ![Gemini](https://img.shields.io/badge/Google-Gemini_2.0_Flash-4285F4?style=flat-square&logo=google)
 ![HuggingFace](https://img.shields.io/badge/HuggingFace-Stable_Diffusion-FFD21E?style=flat-square&logo=huggingface&logoColor=black)
-![Together](https://img.shields.io/badge/Together_AI-FLUX_Schnell-0EA5E9?style=flat-square)
+![Together](https://img.shields.io/badge/Together_AI-FLUX_Schnell_Free-0EA5E9?style=flat-square)
 ![Pollinations](https://img.shields.io/badge/Pollinations-FLUX_Free-10B981?style=flat-square)
 ![KaTeX](https://img.shields.io/badge/KaTeX-LaTeX_Render-1D4ED8?style=flat-square)
 ![Mermaid](https://img.shields.io/badge/Mermaid-Diagramas-FF3670?style=flat-square)
@@ -96,7 +97,8 @@ Diseñada especialmente para el contexto educativo chileno, incluye cobertura cu
 - **Redactor** — genera ensayos, informes y cartas formales
 - **Matemático** — resolución paso a paso con notación LaTeX profesional
 - **Traductor** — traducción multiidioma con explicación lingüística y cultural
-- **Generador de Imágenes** — el usuario describe lo que quiere, el agente optimiza el prompt automáticamente y llama a APIs gratuitas (Hugging Face, Together AI, Pollinations) para generar la imagen
+- **Generador de Imágenes** — el usuario describe lo que quiere, el agente optimiza el prompt automáticamente con IA y genera la imagen vía Together AI (FLUX Schnell) o Hugging Face (Stable Diffusion XL). El usuario puede ver y editar el prompt antes de generar, y refinar resultados
+- **Visualización automática en estudio** — durante una sesión, el agente detecta si el contenido es visual (anatomía, física, geografía, astronomía, etc.) y genera una imagen de apoyo automáticamente debajo de cada respuesta del tutor, sin que el usuario tenga que pedirla
 
 ---
 
@@ -117,7 +119,7 @@ Diseñada especialmente para el contexto educativo chileno, incluye cobertura cu
 | 📄 **ARe** | Resumidor PDF | Genera resúmenes descargables en PDF de las sesiones de estudio |
 | 🔊 **AVN** | Voz y Narración | Text-to-Speech — lee el contenido en voz alta con reproducción automática |
 | 🤝 **ACo** | Colaborativo | Salas de estudio en tiempo real con otros usuarios (Supabase Realtime) |
-| 🖼️ **AIm** | Visual | Genera imágenes IA (FLUX), diagramas Mermaid y gráficos Chart.js automáticamente |
+| 🖼️ **AIm** | Visual | Detecta automáticamente si el contenido es visual y genera una imagen de apoyo debajo de cada respuesta del tutor |
 
 ### Agentes Especializados (Sidebar)
 
@@ -130,6 +132,7 @@ Diseñada especialmente para el contexto educativo chileno, incluye cobertura cu
 | 🌐 **Traductor** | Traductor Multiidioma | Traducción con explicación de matices lingüísticos y culturales |
 | 📄 **Chat Paper** | Analizador de Papers | Sube un PDF y conversa profundamente sobre su contenido |
 | 📝 **Examen** | Simulacro de Examen | Exámenes completos con timer, corrección IA y retroalimentación detallada |
+| 🎨 **Imágenes** | Generador de Imágenes | Genera imágenes desde prompts con optimización automática vía FLUX y Stable Diffusion |
 
 ---
 
@@ -179,8 +182,8 @@ Vercel (deployment)
 ### Servicios de Generación Visual e Imágenes
 ```
 Pollinations.ai   → Imágenes FLUX (gratuito, sin registro)
-Hugging Face      → Stable Diffusion con rotación de tokens
-Together AI       → Generación de imágenes optimizada
+Hugging Face      → Stable Diffusion XL con nueva API router.huggingface.co
+Together AI       → FLUX Schnell Free (generación rápida)
 Google Gemini     → Extracción de texto desde PDF
 ```
 
@@ -212,6 +215,9 @@ eduai-platform/
 │   ├── educador/           # APl MINEDUC
 │   ├── examen/             # Simulacro de examen
 │   ├── image/              # AIm visual generation
+│   ├── imagenes/           # Generador avanzado con FLUX/SD + editor de prompt
+│   │   └── preview/        # Preview del prompt optimizado sin generar
+│   ├── visual-detect/      # Detector automático de contenido visual en estudio
 │   ├── investigador/       # Investigación académica
 │   ├── matematico/         # Matemáticas + LaTeX
 │   ├── paper/              # Chat con PDF
@@ -268,6 +274,9 @@ GEMINI_API_KEY=AIzaXxx...
 HF_TOKEN_1=hf_xxx...
 HF_TOKEN_2=hf_xxx...
 HF_TOKEN_3=hf_xxx...
+
+# Together AI (api.together.xyz → gratis con crédito inicial)
+TOGETHER_API_KEY=xxx...
 ```
 
 ### 3. Configurar base de datos Supabase
@@ -376,7 +385,7 @@ npm run dev
 - [ ] 📄 **Agente PDF** — analiza, resume y extrae información de PDFs subidos; genera fichas de estudio a partir de documentos académicos; va más allá del lector trabajando directamente con los archivos
 - [ ] 🃏 **Agente Flashcards** — genera tarjetas de estudio y quizzes desde cualquier tema o documento, con sistema de repetición espaciada integrado
 - [ ] 🗺️ **Agente Mapas Conceptuales** — genera mapas mentales en formato visual (Mermaid o SVG) desde cualquier tema, complementando al Tutor
-- [ ] 🎨 **Generador de Imágenes avanzado** — prompt optimizado automáticamente + Hugging Face + Together AI
+- [x] 🎨 **Generador de Imágenes avanzado** — prompt optimizado + Together AI (FLUX) + Hugging Face (SD XL) + editor de prompt + visualización automática en sesiones de estudio
 - [ ] 🧠 **AOp** — Orquestador central con arquitectura 14 agentes / 5 capas
 - [ ] 🗣️ **ADebate** — el estudiante defiende una postura frente a la IA
 - [ ] 👨‍🏫 **AProf** — modo profesor inverso: el estudiante explica, la IA evalúa
