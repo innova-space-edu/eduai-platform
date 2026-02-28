@@ -102,12 +102,12 @@ async function tryHuggingFace(prompt: string, width: number, height: number): Pr
           }),
           signal: AbortSignal.timeout(28000),
         })
-        const body = await res.text()
         if (!res.ok) continue
-        const blob = new Blob([Buffer.from(body)])
-        if (!blob.size) continue
-        const buffer = await blob.arrayBuffer()
-        return `data:image/jpeg;base64,${Buffer.from(buffer).toString("base64")}`
+        const arrayBuffer = await res.arrayBuffer()
+        if (!arrayBuffer.byteLength) continue
+        const base64 = Buffer.from(arrayBuffer).toString("base64")
+        const mime = res.headers.get("content-type") || "image/jpeg"
+        return `data:${mime};base64,${base64}`
       } catch (e: any) { continue }
     }
   }
