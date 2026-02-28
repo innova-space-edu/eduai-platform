@@ -29,6 +29,8 @@ const AGENTS = [
   { id: "redactor",     icon: "✍️",  name: "Redactor",      color: "from-violet-500 to-purple-600", href: "/redactor"     },
   { id: "matematico",   icon: "🧮",  name: "Matemático",    color: "from-orange-500 to-amber-600",  href: "/matematico"   },
   { id: "traductor",    icon: "🌐",  name: "Traductor",     color: "from-cyan-500 to-sky-600",      href: "/traductor"    },
+  { id: "paper",        icon: "📄",  name: "Chat Paper",    color: "from-indigo-500 to-blue-700",   href: "/paper"        },
+  { id: "examen",       icon: "📝",  name: "Examen",        color: "from-red-500 to-rose-600",      href: "/examen"       },
 ]
 
 const BOTTOM_LINKS = [
@@ -145,7 +147,7 @@ export default function Dashboard() {
         </div>
 
         {/* Bottom links */}
-        <div className="border-t border-gray-800 py-3">
+        <div className="border-t border-gray-800 py-3 flex flex-col flex-shrink-0">
           {BOTTOM_LINKS.map(item => (
             <Link
               key={item.href}
@@ -213,74 +215,7 @@ export default function Dashboard() {
       {/* ── Main ── */}
       <main className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ${mainML} ${showSessions ? "ml-[calc(var(--sidebar-w)+256px)]" : ""}`}
         style={{ marginLeft: showSessions ? `${expanded ? 224+256 : 64+256}px` : expanded ? "224px" : "64px" }}>
-
-        {/* Topbar */}
-        <div className="border-b border-gray-800 bg-gray-900/60 backdrop-blur-sm sticky top-0 z-10">
-          <div className="max-w-2xl mx-auto px-6 py-3 flex items-center justify-between">
-            <p className="text-gray-500 text-sm">Panel de estudio</p>
-            <div className="flex items-center gap-3">
-              <span className="text-gray-400 text-sm">{user?.user_metadata?.name || user?.email?.split("@")[0]}</span>
-              <span className="text-blue-400 text-sm font-medium">{stats.level}</span>
-              <span className="text-yellow-400 text-sm font-bold">⚡ {stats.xp}</span>
-              <button onClick={async () => { await supabase.auth.signOut(); router.push("/") }}
-                className="text-gray-600 hover:text-gray-300 text-sm transition-colors">Salir</button>
-            </div>
-          </div>
-        </div>
-
-        <div className="max-w-2xl mx-auto w-full px-6 py-8 flex flex-col gap-6">
-          {/* Saludo */}
-          <div>
-            <h1 className="text-3xl font-bold text-white mb-1">
-              Hola, {user?.user_metadata?.name || user?.email?.split("@")[0]} 👋
-            </h1>
-            <p className="text-gray-500 text-sm">¿Qué quieres aprender hoy?</p>
-          </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-4 gap-3">
-            {[
-              { label: "Nivel",    value: stats.level,           color: "text-blue-400"   },
-              { label: "XP Total", value: `${stats.xp} XP`,      color: "text-yellow-400" },
-              { label: "Racha",    value: `${stats.streak} días`, color: "text-orange-400" },
-              { label: "Sesiones", value: String(stats.sessions), color: "text-green-400"  },
-            ].map(s => (
-              <div key={s.label} className="bg-gray-900 border border-gray-800 rounded-2xl p-4">
-                <p className="text-gray-600 text-xs mb-1">{s.label}</p>
-                <p className={`font-bold text-lg leading-tight ${s.color}`}>{s.value}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Progress */}
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl px-5 py-3">
-            <div className="flex justify-between text-xs text-gray-600 mb-2">
-              <span>Hacia {LEVELS[LEVELS.findIndex(l => l.name === stats.level)+1]?.name || "Maestro"}</span>
-              <span>{stats.xp} / {stats.nextLevelXP} XP</span>
-            </div>
-            <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full transition-all duration-1000"
-                style={{ width: `${progress}%` }} />
-            </div>
-          </div>
-
-          {/* Nueva sesión */}
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
-            <h2 className="text-white font-semibold mb-4">📖 Nueva sesión de estudio</h2>
-            <div className="flex gap-3">
-              <input value={topic} onChange={e => setTopic(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && handleStudy()}
-                placeholder="Ej: Leyes de Newton, Segunda Guerra Mundial, Integrales..."
-                className="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-gray-200 placeholder-gray-600 focus:outline-none focus:border-blue-500/50 text-sm" />
-              <button onClick={handleStudy} disabled={!topic.trim()}
-                className="bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white px-5 py-3 rounded-xl font-medium transition-colors">
-                Estudiar →
-              </button>
-            </div>
-          </div>
-
-          <MissionsPanel />
-        </div>
+        {/* ...existing code... */}
       </main>
     </div>
   )
