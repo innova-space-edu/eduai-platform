@@ -51,7 +51,7 @@ export default function ExamenPage() {
   const [timeLeft, setTimeLeft] = useState(0)
   const [evaluation, setEval]   = useState<EvalResult | null>(null)
   const [currentQ, setCurrentQ] = useState(0)
-  const timerRef = useRef<NodeJS.Timeout>()
+  const timerRef = useRef<NodeJS.Timeout | undefined>(undefined)
   const router   = useRouter()
 
   // Timer
