@@ -1,35 +1,47 @@
-
 import { callAI } from "@/lib/ai-router"
 import { createClient } from "@/lib/supabase/server"
 
+const STYLE_GUIDES: Record<string, string> = {
+  "realistic":    "photorealistic, DSLR photo, 85mm lens, sharp focus, natural lighting, ultra detailed",
+  "digital art":  "digital painting, concept art, artstation trending, vibrant colors, detailed illustration",
+  "oil painting": "oil on canvas, impressionist brushstrokes, museum quality, rich textures, classical painting",
+  "anime":        "anime style, Studio Ghibli, detailed linework, vibrant colors, manga illustration",
+  "watercolor":   "watercolor painting, soft edges, transparent washes, artistic, delicate details",
+  "3d render":    "3D render, octane render, cinema4d, ray tracing, photorealistic 3D",
+  "sketch":       "pencil sketch, detailed linework, graphite drawing, hatching, artistic sketch",
+  "cinematic":    "cinematic photography, movie still, dramatic lighting, anamorphic lens, epic composition",
+}
+
 async function optimizePrompt(userPrompt: string, style: string): Promise<string> {
+  const styleDesc = STYLE_GUIDES[style] || STYLE_GUIDES["realistic"]
   const messages = [
     {
       role: "system" as const,
-      content: `You are an expert prompt engineer for AI image generation. Transform user descriptions into optimized English prompts for FLUX and Stable Diffusion. Reply ONLY with the optimized prompt, no explanations.`
+      content: `You are an expert prompt engineer for AI image generation (FLUX, Stable Diffusion).
+Transform user descriptions into highly detailed English prompts.
+CRITICAL RULE: Keep the user's EXACT subject — never change what they asked for.
+Output ONLY the optimized prompt, no explanations, no quotes, no preamble.`
     },
     {
       role: "user" as const,
-      content: `User description: "${userPrompt}"
-Style: ${style}
+      content: `User request: "${userPrompt}"
+Style: ${style} — keywords: ${styleDesc}
 
-Create an optimized English prompt including: detailed visual description, ${style} style, masterpiece, highly detailed, 8k quality, professional lighting and composition. Reply ONLY with the prompt.`
+Example of correct transformation:
+- User: "astronaut in deep space with Earth behind him"
+- Output: "An astronaut in a white NASA spacesuit floating in deep space, the blue planet Earth visible behind him, stars and cosmos surrounding, dramatic sunlight, photorealistic, highly detailed, 8k, cinematic composition, masterpiece"
+
+Now transform the user request. Output ONLY the prompt:`
     }
   ]
-  const result = await callAI(messages, { maxTokens: 250, preferProvider: "groq" })
-  return result.text.trim()
+  const result = await callAI(messages, { maxTokens: 350, preferProvider: "groq" })
+  return result.text.trim().replace(/^["']|["']$/g, "")
 }
 
-async function fetchImageAsBase64(url: string, token?: string): Promise<string | null> {
+async function fetchAsBase64(url: string): Promise<string | null> {
   try {
-    const headers: Record<string, string> = {
-      "User-Agent": "Mozilla/5.0 (compatible; EduAI/1.0)",
-    }
-    if (token) headers["Authorization"] = `Bearer ${token}`
-
     const res = await fetch(url, {
-      method: "GET",
-      headers,
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; EduAI/1.0)" },
       signal: AbortSignal.timeout(28000),
     })
     if (!res.ok) return null
@@ -37,9 +49,7 @@ async function fetchImageAsBase64(url: string, token?: string): Promise<string |
     const base64 = Buffer.from(buffer).toString("base64")
     const mime = res.headers.get("content-type") || "image/jpeg"
     return `data:${mime};base64,${base64}`
-  } catch {
-    return null
-  }
+  } catch { return null }
 }
 
 async function tryTogether(prompt: string, width: number, height: number): Promise<string | null> {
@@ -48,10 +58,7 @@ async function tryTogether(prompt: string, width: number, height: number): Promi
   try {
     const res = await fetch("https://api.together.xyz/v1/images/generations", {
       method: "POST",
-      headers: {
-        "Authorization": `Bearer ${key}`,
-        "Content-Type": "application/json",
-      },
+      headers: { "Authorization": `Bearer ${key}", "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "black-forest-labs/FLUX.1-schnell-Free",
         prompt,
@@ -66,73 +73,36 @@ async function tryTogether(prompt: string, width: number, height: number): Promi
     const data = await res.json()
     const imageUrl = data.data?.[0]?.url
     if (!imageUrl) return null
-    // Fetch the image server-side to avoid CORS
-    return await fetchImageAsBase64(imageUrl)
-  } catch {
-    return null
-  }
+    return await fetchAsBase64(imageUrl)
+  } catch { return null }
 }
 
-async function tryHuggingFace(prompt: string, width: number, height: number, negative: string): Promise<string | null> {
-  const tokens = [
-    process.env.HF_TOKEN_1,
-    process.env.HF_TOKEN_2,
-    process.env.HF_TOKEN_3,
-  ].filter(Boolean) as string[]
-
-  const models = [
-    "stabilityai/stable-diffusion-xl-base-1.0",
-    "runwayml/stable-diffusion-v1-5",
-    "CompVis/stable-diffusion-v1-4",
-  ]
+async function tryHuggingFace(prompt: string, width: number, height: number): Promise<string | null> {
+  const tokens = [process.env.HF_TOKEN_1, process.env.HF_TOKEN_2, process.env.HF_TOKEN_3].filter(Boolean) as string[]
+  const models = ["stabilityai/stable-diffusion-xl-base-1.0", "runwayml/stable-diffusion-v1-5"]
+  const negative = "blurry, low quality, distorted, ugly, bad anatomy, watermark, text, nsfw, wrong subject"
 
   for (const model of models) {
     for (const token of tokens) {
       try {
-        const res = await fetch(
-          `https://api-inference.huggingface.co/models/${model}`,
-          {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              inputs: prompt,
-              parameters: {
-                negative_prompt: negative,
-                width: Math.min(width, 768),
-                height: Math.min(height, 768),
-                num_inference_steps: 25,
-              },
-            }),
-            signal: AbortSignal.timeout(28000),
-          }
-        )
+        const res = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${token}", "Content-Type": "application/json" },
+          body: JSON.stringify({
+            inputs: prompt,
+            parameters: { negative_prompt: negative, width: Math.min(width, 768), height: Math.min(height, 768), num_inference_steps: 30, guidance_scale: 7.5 },
+          }),
+          signal: AbortSignal.timeout(28000),
+        })
         if (!res.ok) continue
         const blob = await res.blob()
         if (!blob.size) continue
         const buffer = await blob.arrayBuffer()
-        const base64 = Buffer.from(buffer).toString("base64")
-        const mime = blob.type || "image/jpeg"
-        return `data:${mime};base64,${base64}`
-      } catch {
-        continue
-      }
+        return `data:${blob.type || "image/jpeg"};base64,${Buffer.from(buffer).toString("base64")}`
+      } catch { continue }
     }
   }
   return null
-}
-
-async function tryPicsum(width: number, height: number): Promise<string | null> {
-  // Lorem Picsum como placeholder visual cuando todo falla
-  try {
-    const seed = Math.floor(Math.random() * 1000)
-    const url = `https://picsum.photos/seed/${seed}/${width}/${height}`
-    return await fetchImageAsBase64(url)
-  } catch {
-    return null
-  }
 }
 
 export async function POST(req: Request) {
@@ -140,21 +110,11 @@ export async function POST(req: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new Response("Unauthorized", { status: 401 })
 
-  const {
-    prompt,
-    style = "realistic",
-    width = 1024,
-    height = 768,
-    provider = "auto",
-  } = await req.json()
-
-  if (!prompt?.trim()) {
-    return new Response("Prompt requerido", { status: 400 })
-  }
+  const { prompt, style = "realistic", width = 1024, height = 768, provider = "auto", customPrompt } = await req.json()
+  if (!prompt?.trim()) return new Response("Prompt requerido", { status: 400 })
 
   try {
-    const optimizedPrompt = await optimizePrompt(prompt, style)
-    const negative = "blurry, low quality, distorted, ugly, bad anatomy, watermark, text, nsfw"
+    const optimizedPrompt = customPrompt?.trim() ? customPrompt.trim() : await optimizePrompt(prompt, style)
 
     let imageBase64: string | null = null
     let usedProvider = ""
@@ -165,27 +125,13 @@ export async function POST(req: Request) {
     }
 
     if (!imageBase64 && (provider === "huggingface" || provider === "auto")) {
-      imageBase64 = await tryHuggingFace(optimizedPrompt, width, height, negative)
-      if (imageBase64) usedProvider = "Hugging Face (Stable Diffusion)"
+      imageBase64 = await tryHuggingFace(optimizedPrompt, width, height)
+      if (imageBase64) usedProvider = "Hugging Face (Stable Diffusion XL)"
     }
 
-    // Si no hay Together ni HF, usar Picsum como placeholder
-    if (!imageBase64) {
-      imageBase64 = await tryPicsum(width, height)
-      usedProvider = "Placeholder (APIs no disponibles)"
-    }
+    if (!imageBase64) return new Response("No se pudo generar la imagen. Verifica las API keys.", { status: 503 })
 
-    if (!imageBase64) {
-      return new Response("No se pudo generar la imagen. Verifica las API keys.", { status: 503 })
-    }
-
-    return Response.json({
-      imageUrl: imageBase64,
-      optimizedPrompt,
-      provider: usedProvider,
-      type: "base64",
-    })
-
+    return Response.json({ imageUrl: imageBase64, optimizedPrompt, provider: usedProvider, type: "base64" })
   } catch (e: any) {
     return new Response(`Error: ${e.message}`, { status: 500 })
   }
