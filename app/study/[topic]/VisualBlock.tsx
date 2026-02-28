@@ -1,218 +1,124 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
-import ReactMarkdown from "react-markdown"
-import remarkGfm from "remark-gfm"
-
-interface Visual {
-  type: "image" | "mermaid" | "chart" | "table" | "none"
-  title: string
-  caption: string
-  imagePrompt?: string
-  content: string
-  chartData?: any
-}
+import { useEffect, useState } from "react"
 
 interface Props {
   topic: string
   context: string
 }
 
+type State = "idle" | "detecting" | "generating" | "done" | "skip"
+
 export default function VisualBlock({ topic, context }: Props) {
-  const [visual, setVisual] = useState<Visual | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [imgLoaded, setImgLoaded] = useState(false)
-  const [imgError, setImgError] = useState(false)
-  const [seed] = useState(() => Math.floor(Math.random() * 99999))
-  const mermaidRef = useRef<HTMLDivElement>(null)
-  const chartRef = useRef<any>(null)
+  const [state, setState] = useState<State>("idle")
+  const [imageUrl, setImageUrl]     = useState("")
+  const [imagePrompt, setImagePrompt] = useState("")
+  const [provider, setProvider]     = useState("")
+  const [expanded, setExpanded]     = useState(true)
 
   useEffect(() => {
-    if (context) generateVisual()
+    if (!context || context.length < 100) return
+    detect()
   }, [context])
 
-  function getImageUrl(prompt: string) {
-    const full = `${prompt}, educational diagram, clean, colorful, white background, high quality, detailed`
-    return `https://image.pollinations.ai/prompt/${encodeURIComponent(full)}?width=800&height=480&model=flux&nologo=true&seed=${seed}`
-  }
-
-  async function generateVisual() {
-    setLoading(true)
-    setVisual(null)
-    setImgLoaded(false)
-    setImgError(false)
-
-    if (chartRef.current) {
-      chartRef.current.destroy()
-      chartRef.current = null
-    }
-
+  async function detect() {
+    setState("detecting")
     try {
-      const res = await fetch("/api/agents/image", {
+      const res = await fetch("/api/agents/visual-detect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ topic, context }),
       })
-      if (!res.ok) return
-
       const data = await res.json()
-      if (data.type === "none") { setLoading(false); return }
-
-      setVisual(data)
-      setLoading(false)
-
-      if (data.type === "mermaid") setTimeout(() => renderMermaid(data.content), 200)
-      if (data.type === "chart" && data.chartData) setTimeout(() => renderChart(data.chartData), 200)
-
+      if (!data.shouldGenerate) { setState("skip"); return }
+      await generateImage(data.imagePrompt || topic)
     } catch {
-      setLoading(false)
+      setState("skip")
     }
   }
 
-  async function renderMermaid(code: string) {
+  async function generateImage(prompt: string) {
+    setState("generating")
+    setImagePrompt(prompt)
     try {
-      const mermaid = (await import("mermaid")).default
-      mermaid.initialize({
-        startOnLoad: false,
-        theme: "dark",
-        themeVariables: {
-          primaryColor: "#1e40af",
-          primaryTextColor: "#e2e8f0",
-          primaryBorderColor: "#3b82f6",
-          lineColor: "#64748b",
-          secondaryColor: "#1e293b",
-          background: "#0f172a",
-        },
+      const res = await fetch("/api/agents/imagenes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt,
+          style: "digital art",
+          width: 768,
+          height: 432,
+          provider: "auto",
+          customPrompt: prompt + ", educational illustration, clear, detailed, professional"
+        }),
       })
-      const id = "mermaid-" + Date.now()
-      const { svg } = await mermaid.render(id, code)
-      if (mermaidRef.current) mermaidRef.current.innerHTML = svg
-    } catch (e: any) {
-      console.error("Mermaid:", e.message)
-      setVisual(null)
+      if (!res.ok) { setState("skip"); return }
+      const data = await res.json()
+      setImageUrl(data.imageUrl)
+      setProvider(data.provider)
+      setState("done")
+    } catch {
+      setState("skip")
     }
   }
 
-  async function renderChart(chartData: any) {
-    const canvas = document.getElementById(`chart-${seed}`) as HTMLCanvasElement
-    if (!canvas) return
-    try {
-      const { Chart, registerables } = await import("chart.js")
-      Chart.register(...registerables)
-      chartRef.current = new Chart(canvas, {
-        type: chartData.type || "bar",
-        data: {
-          ...chartData.data,
-          datasets: chartData.data.datasets.map((d: any) => ({
-            ...d,
-            backgroundColor: d.backgroundColor || ["#3b82f6","#8b5cf6","#06b6d4","#10b981","#f59e0b","#ef4444"],
-            borderRadius: chartData.type === "bar" ? 6 : 0,
-          }))
-        },
-        options: {
-          responsive: true,
-          plugins: {
-            legend: { labels: { color: "#94a3b8", font: { size: 11 } } },
-            tooltip: { backgroundColor: "#1e293b", titleColor: "#e2e8f0", bodyColor: "#94a3b8" },
-          },
-          scales: chartData.type !== "pie" && chartData.type !== "doughnut" ? {
-            x: { ticks: { color: "#64748b" }, grid: { color: "#1e293b" } },
-            y: { ticks: { color: "#64748b" }, grid: { color: "#1e293b" } },
-          } : undefined,
-        },
-      })
-    } catch (e) { console.error(e) }
+  async function regenerate() {
+    await generateImage(imagePrompt)
   }
 
-  if (loading) {
+  if (state === "idle" || state === "skip") return null
+
+  if (state === "detecting" || state === "generating") {
     return (
-      <div className="mt-4 flex items-center gap-2 text-gray-700 text-xs">
-        <div className="w-3 h-3 border border-gray-700 border-t-transparent rounded-full animate-spin" />
-        AIm analizando contexto...
+      <div className="mt-4 flex items-center gap-2 text-gray-600 text-xs">
+        <div className="w-3 h-3 border border-gray-600 border-t-transparent rounded-full animate-spin" />
+        {state === "detecting" ? "Analizando si se puede visualizar..." : "Generando imagen de apoyo..."}
       </div>
     )
   }
 
-  if (!visual || visual.type === "none") return null
-
-  return (
-    <div className="mt-4 bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-gray-800">
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-blue-400 font-medium">🎨 AIm</span>
-          <span className="text-gray-700 text-xs">·</span>
-          <span className="text-gray-500 text-xs">{visual.title}</span>
-        </div>
-        <button
-          onClick={generateVisual}
-          className="text-xs text-gray-700 hover:text-gray-400 transition-colors"
-          title="Regenerar"
-        >
-          ↺
-        </button>
-      </div>
-
-      <div className="p-4">
-        {/* Imagen FLUX */}
-        {visual.type === "image" && visual.imagePrompt && (
-          <>
-            {!imgLoaded && !imgError && (
-              <div className="w-full h-52 bg-gray-800 rounded-xl flex flex-col items-center justify-center gap-2">
-                <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                <p className="text-gray-500 text-xs">Generando imagen con FLUX...</p>
-              </div>
-            )}
-            {imgError && (
-              <div className="w-full h-32 bg-gray-800 rounded-xl flex flex-col items-center justify-center gap-2">
-                <p className="text-gray-600 text-xs">No se pudo generar la imagen</p>
-                <button
-                  onClick={() => { setImgError(false); setImgLoaded(false) }}
-                  className="text-xs text-blue-400 hover:text-blue-300"
-                >
-                  ↺ Reintentar
-                </button>
-              </div>
-            )}
-            <img
-              src={getImageUrl(visual.imagePrompt)}
-              alt={visual.title}
-              onLoad={() => setImgLoaded(true)}
-              onError={() => setImgError(true)}
-              className={`w-full rounded-xl transition-opacity duration-700 ${imgLoaded ? "opacity-100" : "opacity-0 h-0"}`}
-            />
-          </>
-        )}
-
-        {/* Mermaid */}
-        {visual.type === "mermaid" && (
-          <div ref={mermaidRef} className="overflow-x-auto flex justify-center min-h-[100px]" />
-        )}
-
-        {/* Chart */}
-        {visual.type === "chart" && (
-          <div className="h-60">
-            <canvas id={`chart-${seed}`} />
+  if (state === "done" && imageUrl) {
+    return (
+      <div className="mt-4 border border-gray-800 rounded-2xl overflow-hidden bg-gray-900/50">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-800">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500">🖼️ Visualización automática</span>
+            <span className="text-[10px] text-gray-700">via {provider}</span>
           </div>
-        )}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={regenerate}
+              className="text-[10px] text-gray-600 hover:text-gray-400 transition-colors px-2 py-1 rounded-lg hover:bg-gray-800"
+            >
+              🔄 Regenerar
+            </button>
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="text-[10px] text-gray-600 hover:text-gray-400 transition-colors px-2 py-1 rounded-lg hover:bg-gray-800"
+            >
+              {expanded ? "Ocultar ▲" : "Ver imagen ▼"}
+            </button>
+          </div>
+        </div>
 
-        {/* Tabla */}
-        {visual.type === "table" && (
-          <div className="overflow-x-auto">
-            <div className="prose prose-invert prose-sm max-w-none
-              [&_table]:w-full [&_table]:border-collapse
-              [&_th]:bg-gray-800 [&_th]:text-blue-300 [&_th]:font-semibold [&_th]:px-4 [&_th]:py-2.5 [&_th]:text-left [&_th]:text-sm [&_th]:border [&_th]:border-gray-700
-              [&_td]:px-4 [&_td]:py-2 [&_td]:text-gray-300 [&_td]:text-sm [&_td]:border [&_td]:border-gray-800
-              [&_tr:nth-child(even)_td]:bg-gray-800/30 [&_tr:hover_td]:bg-gray-800/50">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{visual.content}</ReactMarkdown>
+        {/* Imagen */}
+        {expanded && (
+          <div className="relative">
+            <img
+              src={imageUrl}
+              alt={imagePrompt}
+              className="w-full object-cover max-h-64"
+            />
+            <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent px-4 py-3">
+              <p className="text-white/70 text-[10px] italic line-clamp-1">{imagePrompt}</p>
             </div>
           </div>
         )}
-
-        {visual.caption && (
-          <p className="text-gray-600 text-xs mt-3 italic text-center">{visual.caption}</p>
-        )}
       </div>
-    </div>
-  )
+    )
+  }
+
+  return null
 }
