@@ -11,13 +11,13 @@
 
 ### 🎓 Plataforma de Aprendizaje Adaptativo con Inteligencia Artificial
 
-[![Netlify Status](https://api.netlify.com/api/v1/badges/eduai-platform/deploy-status)](https://eduai-pl.netlify.app)
+[![Vercel](https://img.shields.io/badge/Vercel-deployed-black?logo=vercel)](https://eduai-platform-virid.vercel.app)
 ![Next.js](https://img.shields.io/badge/Next.js-16.1-black?logo=next.js)
 ![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?logo=supabase)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?logo=typescript)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
-**[🌐 Ver demo en vivo](https://eduai-pl.netlify.app)** · **[📋 Reportar bug](https://github.com/innova-space-edu/eduai-platform/issues)** · **[✨ Solicitar feature](https://github.com/innova-space-edu/eduai-platform/issues)**
+**[🌐 Ver demo en vivo](https://eduai-platform-virid.vercel.app)** · **[📋 Reportar bug](https://github.com/innova-space-edu/eduai-platform/issues)** · **[✨ Solicitar feature](https://github.com/innova-space-edu/eduai-platform/issues)**
 
 </div>
 
@@ -25,7 +25,7 @@
 
 ## ¿Qué es EduAI Platform?
 
-EduAI Platform es una plataforma educativa de siguiente generación que combina **18 agentes de inteligencia artificial especializados** para ofrecer una experiencia de aprendizaje completamente personalizada, adaptativa y gamificada. Va más allá de un simple chatbot — es un ecosistema inteligente donde múltiples agentes colaboran para que el estudiante aprenda más rápido y de forma más profunda.
+EduAI Platform es una plataforma educativa de siguiente generación que combina **18+ agentes de inteligencia artificial especializados** para ofrecer una experiencia de aprendizaje completamente personalizada, adaptativa y gamificada. Va más allá de un simple chatbot — es un ecosistema inteligente donde múltiples agentes colaboran para que el estudiante aprenda más rápido y de forma más profunda.
 
 Diseñada especialmente para el contexto educativo chileno, incluye cobertura curricular completa del **MINEDUC** (Parvularia, Básica y Media).
 
@@ -38,11 +38,11 @@ Diseñada especialmente para el contexto educativo chileno, incluye cobertura cu
 - **4 modos de aprendizaje:** Normal, Socrático, Evaluación y Colaborativo
 - **Quiz adaptativo** que ajusta dificultad automáticamente según tu desempeño
 - **Modo Examen completo** con timer, corrección automática y retroalimentación detallada
-- **Chat con Papers PDF** — sube un paper académico y conéctate con él
+- **Chat con Papers PDF** — sube un paper académico y conversa profundamente sobre él
 - **Visualizaciones automáticas:** imágenes IA, diagramas Mermaid, gráficos Chart.js
 - **Matemáticas con LaTeX** — fórmulas renderizadas como en un libro de texto profesional
 - **Narración por voz (TTS)** — el contenido se puede escuchar
-- **Historial de sesiones** organizado como carpetas
+- **Historial de sesiones** organizado como carpetas con estadísticas
 - **Repaso espaciado inteligente** basado en el algoritmo SM-2 (Ebbinghaus)
 
 ### Para docentes
@@ -57,10 +57,11 @@ Diseñada especialmente para el contexto educativo chileno, incluye cobertura cu
 - **Redactor** — genera ensayos, informes y cartas formales
 - **Matemático** — resolución paso a paso con notación LaTeX profesional
 - **Traductor** — traducción multiidioma con explicación lingüística y cultural
+- **Generador de Imágenes** — el usuario describe lo que quiere, el agente optimiza el prompt automáticamente y llama a APIs gratuitas (Hugging Face, Together AI, Pollinations) para generar la imagen
 
 ---
 
-## Los 18 Agentes de IA
+## Los 18+ Agentes de IA
 
 ### Agentes de Estudio Activo
 
@@ -121,7 +122,7 @@ Chart.js        Mermaid.js    Web Speech API
 ```
 Supabase (PostgreSQL + Auth + Realtime)
 Next.js API Routes (serverless)
-Netlify (deployment)
+Vercel (deployment)
 ```
 
 ### Proveedores de IA — Router Multi-modelo
@@ -136,16 +137,17 @@ Netlify (deployment)
 └─────────────────────────────────────────────┘
 ```
 
-### Servicios de Generación Visual
+### Servicios de Generación Visual e Imágenes
 ```
-Pollinations.ai   → Imágenes FLUX (gratuito)
-HuggingFace       → Stable Diffusion (backup)
-Google Gemini     → Extracción de texto PDF
+Pollinations.ai   → Imágenes FLUX (gratuito, sin registro)
+Hugging Face      → Stable Diffusion con rotación de tokens
+Together AI       → Generación de imágenes optimizada
+Google Gemini     → Extracción de texto desde PDF
 ```
 
 ---
 
-## Arquitectura
+## Arquitectura del proyecto
 
 ```
 eduai-platform/
@@ -162,10 +164,11 @@ eduai-platform/
 │   ├── traductor/          # Agente traductor multiidioma
 │   ├── paper/              # Chat con Paper PDF
 │   ├── examen/             # Modo examen completo
+│   ├── sessions/           # Historial de sesiones
 │   ├── profile/            # Perfil + configuración
 │   ├── ranking/            # Ranking global
 │   └── collab/             # Salas colaborativas
-├── api/agents/
+├── app/api/agents/
 │   ├── chat/               # AGT tutor principal
 │   ├── educador/           # APl MINEDUC
 │   ├── examen/             # Simulacro de examen
@@ -176,8 +179,8 @@ eduai-platform/
 │   ├── redactor/           # Redacción documentos
 │   └── traductor/          # Traducción
 ├── lib/
-│   ├── ai-router.ts        # Router multi-modelo con fallback
-│   └── supabase/           # Cliente Supabase
+│   ├── ai-router.ts        # Router multi-modelo con fallback automático
+│   └── supabase/           # Cliente Supabase (client + server)
 └── components/
     ├── ui/
     │   ├── MathRenderer.tsx # Renderizado LaTeX con KaTeX
@@ -207,7 +210,7 @@ npm install
 cp .env.example .env.local
 ```
 
-Edita `.env.local` con tus claves:
+Edita `.env.local`:
 ```env
 # Supabase (supabase.com → gratis)
 NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
@@ -229,20 +232,21 @@ HF_TOKEN_3=hf_xxx...
 ```
 
 ### 3. Configurar base de datos Supabase
-Ejecuta el siguiente SQL en el editor de Supabase:
+
+Ejecuta en Supabase → SQL Editor:
+
 ```sql
--- Progreso del usuario
-create table user_progress (
+create table if not exists user_progress (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users not null unique,
   xp integer default 0,
   streak integer default 0,
   sessions integer default 0,
+  last_session date,
   created_at timestamp default now()
 );
 
--- Sesiones de estudio
-create table study_sessions (
+create table if not exists study_sessions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users not null,
   topic text not null,
@@ -251,40 +255,61 @@ create table study_sessions (
   created_at timestamp default now()
 );
 
--- Misiones
-create table missions (
+create table if not exists missions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users not null,
   mission_id text not null,
   completed boolean default false,
   progress integer default 0,
-  last_reset date
+  last_reset date,
+  unique(user_id, mission_id)
 );
 
--- RLS
+create table if not exists achievements (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users not null,
+  achievement_id text not null,
+  unlocked_at timestamp default now(),
+  unique(user_id, achievement_id)
+);
+
 alter table user_progress enable row level security;
 alter table study_sessions enable row level security;
 alter table missions enable row level security;
+alter table achievements enable row level security;
 
-create policy "users own data" on user_progress for all using (auth.uid() = user_id);
-create policy "users own data" on study_sessions for all using (auth.uid() = user_id);
-create policy "users own data" on missions for all using (auth.uid() = user_id);
+create policy "users own progress" on user_progress for all using (auth.uid() = user_id);
+create policy "users own sessions" on study_sessions for all using (auth.uid() = user_id);
+create policy "users own missions" on missions for all using (auth.uid() = user_id);
+create policy "users own achievements" on achievements for all using (auth.uid() = user_id);
+
+create or replace function handle_new_user()
+returns trigger as $$
+begin
+  insert into public.user_progress (user_id) values (new.id) on conflict do nothing;
+  return new;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute procedure handle_new_user();
 ```
 
 ### 4. Ejecutar en desarrollo
 ```bash
 npm run dev
 ```
-Abre [http://localhost:3000](http://localhost:3000)
 
 ---
 
-## Despliegue en Netlify
+## Despliegue en Vercel
 
-1. Conecta tu repositorio en [netlify.com](https://netlify.com)
-2. Build command: `npm run build`
-3. Publish directory: `.next`
-4. Agrega las variables de entorno en Netlify → Site settings → Environment variables
+1. Conecta tu repositorio en [vercel.com](https://vercel.com)
+2. Vercel detecta Next.js automáticamente — sin configuración adicional
+3. Agrega variables de entorno en Vercel → Settings → Environment Variables
+4. En Supabase → Authentication → URL Configuration agrega tu dominio Vercel en Redirect URLs
 
 ---
 
@@ -292,7 +317,7 @@ Abre [http://localhost:3000](http://localhost:3000)
 
 | Feature | EduAI Platform | Khan Academy | ChatGPT Edu | NotebookLM |
 |---------|---------------|--------------|-------------|------------|
-| Multi-agente especializado | ✅ 18 agentes | ❌ | ❌ | ❌ |
+| Multi-agente especializado | ✅ 18+ agentes | ❌ | ❌ | ❌ |
 | Adaptativo en tiempo real | ✅ | ✅ | ❌ | ❌ |
 | Currículo MINEDUC Chile | ✅ | ❌ | ❌ | ❌ |
 | Chat con Papers PDF | ✅ | ❌ | ✅ parcial | ✅ |
@@ -300,6 +325,7 @@ Abre [http://localhost:3000](http://localhost:3000)
 | Gamificación completa | ✅ | ✅ | ❌ | ❌ |
 | LaTeX matemático | ✅ | ✅ | ✅ | ❌ |
 | Colaborativo en tiempo real | ✅ | ❌ | ❌ | ❌ |
+| Generación de imágenes | ✅ | ❌ | ✅ | ❌ |
 | 100% gratuito | ✅ | ✅ | ❌ | ✅ |
 | Open source | ✅ | ❌ | ❌ | ❌ |
 
@@ -308,14 +334,15 @@ Abre [http://localhost:3000](http://localhost:3000)
 ## Roadmap
 
 ### Próximas funcionalidades
-- [ ] **AMt** — Mapas mentales interactivos generados por IA
-- [ ] **AFlash** — Flashcards automáticas con algoritmo Leitner
-- [ ] **AOp** — Orquestador central (arquitectura 14 agentes / 5 capas)
-- [ ] **ADebate** — Modo debate: el estudiante defiende una postura frente a la IA
-- [ ] **AProf** — Modo profesor inverso: el estudiante explica, la IA evalúa
-- [ ] **App móvil** — Conversión a Android/iOS con Capacitor
-- [ ] **Análisis de datos** — Dashboard analítico para docentes
-- [ ] **Integración Google Colab** — Modelos locales para mayor privacidad
+- [ ] 📄 **Agente PDF** — analiza, resume y extrae información de PDFs subidos; genera fichas de estudio a partir de documentos académicos; va más allá del lector trabajando directamente con los archivos
+- [ ] 🃏 **Agente Flashcards** — genera tarjetas de estudio y quizzes desde cualquier tema o documento, con sistema de repetición espaciada integrado
+- [ ] 🗺️ **Agente Mapas Conceptuales** — genera mapas mentales en formato visual (Mermaid o SVG) desde cualquier tema, complementando al Tutor
+- [ ] 🎨 **Generador de Imágenes avanzado** — prompt optimizado automáticamente + Hugging Face + Together AI
+- [ ] 🧠 **AOp** — Orquestador central con arquitectura 14 agentes / 5 capas
+- [ ] 🗣️ **ADebate** — el estudiante defiende una postura frente a la IA
+- [ ] 👨‍🏫 **AProf** — modo profesor inverso: el estudiante explica, la IA evalúa
+- [ ] 📱 **App móvil** — Android/iOS con Capacitor
+- [ ] 📊 **Analytics para docentes** — dashboard de seguimiento de estudiantes
 
 ### Arquitectura planificada (5 capas)
 ```
@@ -329,8 +356,6 @@ Capa 5 — Memoria:       AML (largo plazo) + ARE (Ebbinghaus)
 ---
 
 ## Contribuir
-
-Las contribuciones son bienvenidas. Por favor:
 
 1. Fork el repositorio
 2. Crea una rama: `git checkout -b feature/nueva-funcionalidad`
@@ -350,6 +375,6 @@ MIT License — ver [LICENSE](LICENSE) para más detalles.
 
 Desarrollado por **[Innova Space Education](https://innova-space-edu.cl/)**
 
-**[🌐 eduai-pl.netlify.app](https://eduai-pl.netlify.app)**
+**[🌐 eduai-platform-virid.vercel.app](https://eduai-platform-virid.vercel.app)**
 
 </div>
