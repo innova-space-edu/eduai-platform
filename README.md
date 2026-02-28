@@ -348,7 +348,7 @@ MIT License — ver [LICENSE](LICENSE) para más detalles.
 
 <div align="center">
 
-Desarrollado Innova Space Education
+Desarrollado **[Innova Space Education](https://innova-space-edu.cl/)**
 
 **[🌐 eduai-pl.netlify.app](https://eduai-pl.netlify.app)**
 
