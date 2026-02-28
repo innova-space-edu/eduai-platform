@@ -58,7 +58,10 @@ async function tryTogether(prompt: string, width: number, height: number): Promi
   try {
     const res = await fetch("https://api.together.xyz/v1/images/generations", {
       method: "POST",
-      headers: { "Authorization": `Bearer ${key}", "Content-Type": "application/json" },
+      headers: {
+        "Authorization": `Bearer ${key}`,
+        "Content-Type": "application/json"
+      },
       body: JSON.stringify({
         model: "black-forest-labs/FLUX.1-schnell-Free",
         prompt,
@@ -87,10 +90,19 @@ async function tryHuggingFace(prompt: string, width: number, height: number): Pr
       try {
         const res = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
           method: "POST",
-          headers: { "Authorization": `Bearer ${token}", "Content-Type": "application/json" },
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json"
+          },
           body: JSON.stringify({
             inputs: prompt,
-            parameters: { negative_prompt: negative, width: Math.min(width, 768), height: Math.min(height, 768), num_inference_steps: 30, guidance_scale: 7.5 },
+            parameters: {
+              negative_prompt: negative,
+              width: Math.min(width, 768),
+              height: Math.min(height, 768),
+              num_inference_steps: 30,
+              guidance_scale: 7.5
+            },
           }),
           signal: AbortSignal.timeout(28000),
         })
