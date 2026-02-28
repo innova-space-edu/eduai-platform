@@ -130,7 +130,12 @@ export default async function ProfilePage() {
               {profile?.name?.charAt(0)?.toUpperCase() || "U"}
             </div>
             <div className="flex-1">
-              <h2 className="text-2xl font-bold text-white">{profile?.name || "Estudiante"}</h2>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold text-white">{profile?.name || "Estudiante"}</h2>
+                  <Link href="/profile/settings" className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 hover:border-gray-600 text-gray-300 text-sm px-3 py-2 rounded-xl transition-all">
+                    ⚙️ <span>Configurar</span>
+                  </Link>
+                </div>
               <p className="text-gray-500 text-sm">{user.email}</p>
               <div className="flex items-center gap-3 mt-2">
                 <span className={`font-semibold ${levelColors[level]}`}>{levelNames[level]}</span>

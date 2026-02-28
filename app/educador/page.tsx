@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
-import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 const NIVELES = [
   { id: "parvularia", label: "🌸 Parvularia", sub: "Sala Cuna · Nivel Medio · NT1/NT2" },
@@ -60,6 +60,7 @@ export default function EducadorPage() {
   const [input, setInput] = useState("")
   const [loading, setLoading] = useState(false)
   const [configOpen, setConfigOpen] = useState(true)
+  const router = useRouter()
   const [showWelcome, setShowWelcome] = useState(true)
   const bottomRef = useRef<HTMLDivElement>(null)
 
@@ -114,7 +115,7 @@ export default function EducadorPage() {
       <div className="border-b border-gray-800 bg-gray-900/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link href="/dashboard" className="text-gray-600 hover:text-gray-300 text-sm transition-colors">←</Link>
+            <button onClick={() => router.back()} className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition-all text-sm">←</button>
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-lg">🏫</div>
             <div>
               <h1 className="text-white font-semibold text-sm">APl — Agente Planificador</h1>

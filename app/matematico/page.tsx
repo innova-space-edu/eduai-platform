@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from "react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 
 const QUICK = [
@@ -16,6 +17,7 @@ const QUICK = [
 interface Message { role: "user" | "assistant"; content: string }
 
 export default function MatematicoPage() {
+  const router = useRouter()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [loading, setLoading] = useState(false)
@@ -42,7 +44,7 @@ export default function MatematicoPage() {
     <div className="min-h-screen bg-gray-950 flex flex-col">
       <div className="border-b border-gray-800 bg-gray-900/80 sticky top-0 z-10">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
-          <Link href="/dashboard" className="text-gray-600 hover:text-gray-300 text-sm">←</Link>
+          <button onClick={() => router.back()} className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition-all text-sm">←</button>
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center text-lg">🧮</div>
           <div>
             <h1 className="text-white font-semibold text-sm">Matemático — Paso a paso</h1>
