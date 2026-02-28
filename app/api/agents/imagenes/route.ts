@@ -131,14 +131,22 @@ export async function POST(req: Request) {
     let imageBase64: string | null = null
     let usedProvider = ""
 
+    console.log("TOGETHER_API_KEY exists:", !!process.env.TOGETHER_API_KEY)
+    console.log("HF_TOKEN_1 exists:", !!process.env.HF_TOKEN_1)
+    console.log("Optimized prompt:", optimizedPrompt.substring(0, 80))
+
     if (provider === "together" || provider === "auto") {
+      console.log("Trying Together AI...")
       imageBase64 = await tryTogether(optimizedPrompt, width, height)
       if (imageBase64) usedProvider = "Together AI (FLUX Schnell)"
+      else console.log("Together AI failed")
     }
 
     if (!imageBase64 && (provider === "huggingface" || provider === "auto")) {
+      console.log("Trying HuggingFace...")
       imageBase64 = await tryHuggingFace(optimizedPrompt, width, height)
       if (imageBase64) usedProvider = "Hugging Face (Stable Diffusion XL)"
+      else console.log("HuggingFace failed")
     }
 
     if (!imageBase64) return new Response("No se pudo generar la imagen. Verifica las API keys.", { status: 503 })
