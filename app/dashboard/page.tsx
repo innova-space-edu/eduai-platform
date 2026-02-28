@@ -34,9 +34,10 @@ const AGENTS = [
 ]
 
 const BOTTOM_LINKS = [
-  { href: "/ranking", icon: "🏆", label: "Ranking"   },
-  { href: "/collab",  icon: "🤝", label: "Colaborar" },
-  { href: "/profile", icon: "👤", label: "Perfil"    },
+  { href: "/sessions", icon: "📚", label: "Sesiones"  },
+  { href: "/ranking",  icon: "🏆", label: "Ranking"   },
+  { href: "/collab",   icon: "🤝", label: "Colaborar" },
+  { href: "/profile",  icon: "👤", label: "Perfil"    },
 ]
 
 export default function Dashboard() {
@@ -45,7 +46,7 @@ export default function Dashboard() {
   const [sessions, setSessions] = useState<Session[]>([])
   const [topic, setTopic]       = useState("")
   const [expanded, setExpanded] = useState(false)
-  const [showSessions, setShowSessions] = useState(false)
+
   const router   = useRouter()
   const supabase = createClient()
 
@@ -126,24 +127,7 @@ export default function Dashboard() {
             </Link>
           ))}
 
-          {/* Sesiones */}
           <div className="mx-3 my-2 border-t border-gray-800" />
-          <button
-            onClick={() => setShowSessions(!showSessions)}
-            className={`flex items-center gap-3 mx-2 mb-1 px-2 py-2.5 rounded-xl border transition-all group w-[calc(100%-16px)]
-              ${showSessions ? "bg-gray-800 border-gray-700" : "border-transparent hover:bg-gray-800 hover:border-gray-700"}`}
-            title={!expanded ? "Sesiones" : undefined}
-          >
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0 shadow-md transition-all
-              ${showSessions ? "bg-blue-500/20 border border-blue-500/30" : "bg-gray-800 group-hover:scale-105"}`}>
-              📚
-            </div>
-            {expanded && (
-              <span className="text-gray-400 group-hover:text-white text-sm font-medium whitespace-nowrap">
-                Sesiones
-              </span>
-            )}
-          </button>
         </div>
 
         {/* Bottom links */}
@@ -166,55 +150,11 @@ export default function Dashboard() {
         </div>
       </aside>
 
-      {/* ── Panel de sesiones (slide desde sidebar) ── */}
-      {showSessions && (
-        <div className={`fixed top-0 h-full w-64 bg-gray-900 border-r border-gray-800 z-10 flex flex-col shadow-2xl transition-all duration-300 ${expanded ? "left-56" : "left-16"}`}>
-          <div className="flex items-center justify-between px-4 py-4 border-b border-gray-800">
-            <div>
-              <h2 className="text-white font-semibold text-sm">📚 Sesiones</h2>
-              <p className="text-gray-600 text-xs">{sessions.length} sesiones guardadas</p>
-            </div>
-            <button onClick={() => setShowSessions(false)} className="text-gray-600 hover:text-gray-300 text-lg w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-800">✕</button>
-          </div>
-          <div className="flex-1 overflow-y-auto py-2 px-2">
-            {sessions.length === 0 ? (
-              <div className="text-center py-10">
-                <p className="text-4xl mb-2">📖</p>
-                <p className="text-gray-600 text-sm">Sin sesiones aún</p>
-                <p className="text-gray-700 text-xs mt-1">¡Empieza a estudiar!</p>
-              </div>
-            ) : (
-              sessions.map(s => (
-                <Link key={s.id} href={`/study/${encodeURIComponent(s.topic)}`}
-                  className="flex items-start gap-3 p-3 rounded-xl hover:bg-gray-800 transition-colors group mb-1">
-                  <div className="w-9 h-9 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-base flex-shrink-0 group-hover:bg-blue-500/20 transition-colors">
-                    📁
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-gray-300 text-xs font-medium truncate group-hover:text-white">{s.topic}</p>
-                    <p className="text-gray-600 text-xs mt-0.5">{formatDate(s.created_at)}</p>
-                    {s.score != null && (
-                      <span className={`text-xs font-medium ${s.score >= 80 ? "text-green-400" : s.score >= 50 ? "text-yellow-400" : "text-red-400"}`}>
-                        {s.score}%
-                      </span>
-                    )}
-                  </div>
-                </Link>
-              ))
-            )}
-          </div>
-          <div className="border-t border-gray-800 p-3">
-            <button onClick={handleStudy}
-              className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm py-2.5 rounded-xl transition-colors font-medium">
-              + Nueva sesión
-            </button>
-          </div>
-        </div>
-      )}
+
 
       {/* ── Main ── */}
-      <main className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ${mainML} ${showSessions ? "ml-[calc(var(--sidebar-w)+256px)]" : ""}`}
-        style={{ marginLeft: showSessions ? `${expanded ? 224+256 : 64+256}px` : expanded ? "224px" : "64px" }}>
+      <main className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ${mainML}`}
+        style={{ marginLeft: expanded ? "224px" : "64px" }}>
         {/* ...existing code... */}
       </main>
     </div>
