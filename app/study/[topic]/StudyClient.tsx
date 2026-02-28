@@ -1,7 +1,5 @@
 
-function hasMath(text: string): boolean {
-  return /\$[^$]+\$|\$\$[^$]+\$\$|\\frac|\\int|\\sum|\\sqrt|\\lim/.test(text)
-}
+
 "use client"
 
 import { useEffect, useState, useRef } from "react"

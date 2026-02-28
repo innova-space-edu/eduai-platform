@@ -74,7 +74,7 @@ export default function MatematicoPage() {
               </p>
               <div className="mt-3 bg-gray-900 rounded-xl p-3 text-left">
                 <p className="text-gray-500 text-xs mb-1">Ejemplo de salida:</p>
-                <p className="text-gray-300 text-sm font-mono">La fórmula cuadrática: <span className="text-orange-300">$x = \frac{{-b \\pm \\sqrt{b^2-4ac}}}{{2a}}$</span></p>
+                <p className="text-gray-300 text-sm font-mono">Formula cuadratica: <span className="text-orange-300">x = (-b +/- sqrt(b^2-4ac)) / 2a</span></p>
               </div>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
