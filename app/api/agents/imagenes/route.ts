@@ -87,7 +87,7 @@ async function tryHuggingFace(prompt: string, width: number, height: number): Pr
   for (const model of models) {
     for (const token of tokens) {
       try {
-        const res = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
+        const res = await fetch(`https://router.huggingface.co/hf-inference/models/${model}`, {
           method: "POST",
           headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -103,13 +103,12 @@ async function tryHuggingFace(prompt: string, width: number, height: number): Pr
           signal: AbortSignal.timeout(28000),
         })
         const body = await res.text()
-        console.log(`HF model:${model.split("/")[1]} status:${res.status} body:${body.substring(0,150)}`)
         if (!res.ok) continue
         const blob = new Blob([Buffer.from(body)])
         if (!blob.size) continue
         const buffer = await blob.arrayBuffer()
         return `data:image/jpeg;base64,${Buffer.from(buffer).toString("base64")}`
-      } catch (e: any) { console.log("HF exception:", e.message); continue }
+      } catch (e: any) { continue }
     }
   }
   return null
