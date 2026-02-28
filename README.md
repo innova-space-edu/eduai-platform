@@ -19,6 +19,45 @@
 
 **[🌐 Ver demo en vivo](https://eduai-platform-virid.vercel.app)** · **[📋 Reportar bug](https://github.com/innova-space-edu/eduai-platform/issues)** · **[✨ Solicitar feature](https://github.com/innova-space-edu/eduai-platform/issues)**
 
+---
+
+### 🤖 Agentes de Estudio Activo
+
+![AGT](https://img.shields.io/badge/🧠_AGT-Tutor_General-4F46E5?style=flat-square)
+![ASc](https://img.shields.io/badge/🤔_ASc-Socrático-7C3AED?style=flat-square)
+![AEv](https://img.shields.io/badge/📊_AEv-Evaluador-0EA5E9?style=flat-square)
+![AAD](https://img.shields.io/badge/🎯_AAD-Adaptativo-06B6D4?style=flat-square)
+![ADL](https://img.shields.io/badge/🔍_ADL-Diagnóstico-0D9488?style=flat-square)
+![ARE](https://img.shields.io/badge/🔄_ARE-Repaso_SM2-10B981?style=flat-square)
+![AGm](https://img.shields.io/badge/🎮_AGm-Gamificación-F59E0B?style=flat-square)
+![AML](https://img.shields.io/badge/💾_AML-Memoria_Larga-EF4444?style=flat-square)
+![ARe](https://img.shields.io/badge/📄_ARe-Resumen_PDF-F97316?style=flat-square)
+![AVN](https://img.shields.io/badge/🔊_AVN-Voz_TTS-EC4899?style=flat-square)
+![ACo](https://img.shields.io/badge/🤝_ACo-Colaborativo-8B5CF6?style=flat-square)
+![AIm](https://img.shields.io/badge/🖼️_AIm-Visual_IA-DB2777?style=flat-square)
+
+### 🛠️ Agentes Especializados
+
+![APl](https://img.shields.io/badge/🏫_APl-Planificador_MINEDUC-059669?style=flat-square)
+![Investigador](https://img.shields.io/badge/🔬_Investigador-Web_Search-2563EB?style=flat-square)
+![Redactor](https://img.shields.io/badge/✍️_Redactor-Documentos-7C3AED?style=flat-square)
+![Matemático](https://img.shields.io/badge/🧮_Matemático-LaTeX_KaTeX-EA580C?style=flat-square)
+![Traductor](https://img.shields.io/badge/🌐_Traductor-Multiidioma-0891B2?style=flat-square)
+![ChatPaper](https://img.shields.io/badge/📄_Chat_Paper-PDF_Análisis-4338CA?style=flat-square)
+![Examen](https://img.shields.io/badge/📝_Examen-Simulacro_IA-DC2626?style=flat-square)
+![Imágenes](https://img.shields.io/badge/🎨_Imágenes-FLUX_/_SD-C026D3?style=flat-square)
+
+### ⚡ Modelos e IAs integradas
+
+![Groq](https://img.shields.io/badge/Groq-Llama_3.3_70B-F55036?style=flat-square&logo=groq)
+![OpenRouter](https://img.shields.io/badge/OpenRouter-29_modelos-6366F1?style=flat-square)
+![Gemini](https://img.shields.io/badge/Google-Gemini_2.0_Flash-4285F4?style=flat-square&logo=google)
+![HuggingFace](https://img.shields.io/badge/HuggingFace-Stable_Diffusion-FFD21E?style=flat-square&logo=huggingface&logoColor=black)
+![Together](https://img.shields.io/badge/Together_AI-FLUX_Schnell-0EA5E9?style=flat-square)
+![Pollinations](https://img.shields.io/badge/Pollinations-FLUX_Free-10B981?style=flat-square)
+![KaTeX](https://img.shields.io/badge/KaTeX-LaTeX_Render-1D4ED8?style=flat-square)
+![Mermaid](https://img.shields.io/badge/Mermaid-Diagramas-FF3670?style=flat-square)
+
 </div>
 
 ---

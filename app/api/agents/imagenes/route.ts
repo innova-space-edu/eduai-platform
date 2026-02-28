@@ -52,12 +52,23 @@ export async function POST(req: Request) {
         if (p === "pollinations") {
           const seed = Math.floor(Math.random() * 999999)
           const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&model=flux&nologo=true&seed=${seed}&negative=${encodeURIComponent(negativePrompt)}`
-          return Response.json({
-            imageUrl: url,
-            optimizedPrompt,
-            provider: "Pollinations (FLUX)",
-            type: "url"
-          })
+          try {
+            const imgRes = await fetch(url, {
+              headers: { "User-Agent": "Mozilla/5.0" },
+              signal: AbortSignal.timeout(30000)
+            })
+            if (imgRes.ok) {
+              const buffer = await imgRes.arrayBuffer()
+              const base64 = Buffer.from(buffer).toString("base64")
+              const mime = imgRes.headers.get("content-type") || "image/jpeg"
+              return Response.json({
+                imageUrl: `data:${mime};base64,${base64}`,
+                optimizedPrompt,
+                provider: "Pollinations (FLUX)",
+                type: "base64"
+              })
+            }
+          } catch { /* continuar al siguiente provider */ }
         }
 
         if (p === "together") {
@@ -141,14 +152,26 @@ export async function POST(req: Request) {
       } catch { continue }
     }
 
-    // Fallback final — Pollinations simple
-    const fallbackUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&nologo=true`
-    return Response.json({
-      imageUrl: fallbackUrl,
-      optimizedPrompt,
-      provider: "Pollinations (fallback)",
-      type: "url"
-    })
+    // Fallback: fetch server-side
+    try {
+      const fallbackUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&nologo=true&model=flux`
+      const imgRes = await fetch(fallbackUrl, {
+        headers: { "User-Agent": "Mozilla/5.0" },
+        signal: AbortSignal.timeout(30000)
+      })
+      if (imgRes.ok) {
+        const buffer = await imgRes.arrayBuffer()
+        const base64 = Buffer.from(buffer).toString("base64")
+        const mime = imgRes.headers.get("content-type") || "image/jpeg"
+        return Response.json({
+          imageUrl: `data:${mime};base64,${base64}`,
+          optimizedPrompt,
+          provider: "Pollinations (FLUX)",
+          type: "base64"
+        })
+      }
+    } catch {}
+    return new Response("No se pudo generar la imagen", { status: 503 })
 
   } catch (e: any) {
     return new Response(e.message, { status: 500 })
