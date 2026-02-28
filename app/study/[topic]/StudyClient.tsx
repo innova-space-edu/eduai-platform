@@ -1,10 +1,12 @@
+
+function hasMath(text: string): boolean {
+  return /\$[^$]+\$|\$\$[^$]+\$\$|\\frac|\\int|\\sum|\\sqrt|\\lim/.test(text)
+}
 "use client"
 
 import { useEffect, useState, useRef } from "react"
 import { useRouter } from "next/navigation"
-import ReactMarkdown from "react-markdown"
-import remarkMath from "remark-math"
-import rehypeKatex from "rehype-katex"
+import MathRenderer from "@/components/ui/MathRenderer"
 import QuizMode from "./QuizMode"
 import QuizResults from "./QuizResults"
 import { useStudySession } from "@/hooks/useStudySession"
@@ -32,24 +34,7 @@ const STUDY_TYPES: StudyType[] = [
   { id: "socratic",  label: "Sócrates",   description: "Descubre la respuesta tú mismo", emoji: "🏛️" },
 ]
 
-function MathContent({ content }: { content: string }) {
-  return (
-    <div className="prose prose-invert prose-lg max-w-none
-      prose-headings:text-white prose-headings:font-bold prose-headings:text-left
-      prose-h2:text-xl prose-h2:mt-8 prose-h2:mb-3 prose-h2:border-b prose-h2:border-gray-800 prose-h2:pb-2
-      prose-h3:text-lg prose-h3:text-blue-300
-      prose-p:text-gray-300 prose-p:leading-relaxed prose-p:text-justify
-      prose-strong:text-white
-      prose-code:text-blue-300 prose-code:bg-gray-800 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded
-      prose-pre:bg-gray-900 prose-pre:border prose-pre:border-gray-800
-      prose-ul:text-gray-300 prose-li:my-1
-      prose-table:text-gray-300 prose-th:text-white prose-th:bg-gray-800">
-      <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
-        {content}
-      </ReactMarkdown>
-    </div>
-  )
-}
+
 
 export default function StudyClient({ topic, subtopic, level, initialXP }: Props) {
   const router = useRouter()
@@ -385,7 +370,7 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
                     <div className={`w-1.5 h-1.5 bg-blue-400 rounded-full ${streaming && i === messages.length - 1 ? "animate-pulse" : ""}`} />
                     <span className="text-blue-400 text-xs font-medium">{selectedType === "socratic" ? "ASc — Modo Sócrates" : "AGT"}</span>
                   </div>
-                  <MathContent content={msg.content} />
+                  <MathRenderer content={msg.content} />
                   {!streaming && i === messages.length - 1 && msg.role === "ai" && msg.content && (
                     <VisualBlock
                       topic={selectedSubtopic || topic}

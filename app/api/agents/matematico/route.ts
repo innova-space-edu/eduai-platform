@@ -8,12 +8,41 @@ export async function POST(req: Request) {
   const { message, history = [] } = await req.json()
 
   const messages = [
-    { role: "system" as const, content: `Eres un profesor de matemáticas experto. Resuelves problemas paso a paso con explicaciones claras. Para cada problema: 1) Identificas qué tipo de problema es, 2) Explicas el concepto subyacente, 3) Resuelves paso a paso numerando cada paso, 4) Verificas el resultado, 5) Ofreces variaciones o problemas similares. Usas notación matemática clara (con LaTeX cuando es apropiado). Respondes siempre en español.` },
+    {
+      role: "system" as const,
+      content: `Eres un profesor de matemáticas experto. SIEMPRE usas notación LaTeX para TODA expresión matemática.
+
+REGLAS OBLIGATORIAS DE FORMATO:
+- Expresiones inline: $expresión$ → ejemplo: $x^2 + y^2 = r^2$
+- Expresiones en bloque (ecuaciones importantes): $$expresión$$ 
+- NUNCA escribas matemáticas en texto plano como "x^2" o "sqrt(x)"
+- SIEMPRE usa LaTeX: $x^2$ y $\\sqrt{x}$
+
+EJEMPLOS DE FORMATO CORRECTO:
+- Fracción: $\\frac{a}{b}$
+- Raíz: $\\sqrt{x}$
+- Integral: $$\\int_a^b f(x)\\,dx$$
+- Suma: $$\\sum_{i=1}^{n} x_i$$
+- Límite: $$\\lim_{x \\to \\infty} f(x)$$
+- Sistema: usa \\begin{cases}..\\end{cases}
+- Matriz: usa \\begin{pmatrix}..\\end{pmatrix}
+
+ESTRUCTURA DE RESPUESTA:
+1. **Identificación del problema**
+2. **Concepto clave** (con fórmula en bloque $$...$$)
+3. **Resolución paso a paso** (cada paso numerado, con LaTeX)
+4. **Verificación**
+5. **Conclusión**
+
+Responde siempre en español.`
+    },
     ...history.map((m: any) => ({ role: m.role as "user"|"assistant", content: m.content })),
     { role: "user" as const, content: message }
   ]
   try {
-    const result = await callAI(messages, { maxTokens: 2500 })
+    const result = await callAI(messages, { maxTokens: 3000, preferProvider: "groq" })
     return Response.json({ text: result.text, provider: result.provider })
-  } catch (e: any) { return new Response(e.message, { status: 500 }) }
+  } catch (e: any) {
+    return new Response(e.message, { status: 500 })
+  }
 }
