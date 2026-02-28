@@ -58,10 +58,7 @@ async function tryTogether(prompt: string, width: number, height: number): Promi
   try {
     const res = await fetch("https://api.together.xyz/v1/images/generations", {
       method: "POST",
-      headers: {
-        "Authorization": `Bearer ${key}`,
-        "Content-Type": "application/json"
-      },
+      headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "black-forest-labs/FLUX.1-schnell-Free",
         prompt,
@@ -72,12 +69,14 @@ async function tryTogether(prompt: string, width: number, height: number): Promi
       }),
       signal: AbortSignal.timeout(30000),
     })
+    const responseText = await res.text()
+    console.log("Together status:", res.status, "body:", responseText.substring(0, 200))
     if (!res.ok) return null
-    const data = await res.json()
+    const data = JSON.parse(responseText)
     const imageUrl = data.data?.[0]?.url
     if (!imageUrl) return null
     return await fetchAsBase64(imageUrl)
-  } catch { return null }
+  } catch (e: any) { console.log("Together exception:", e.message); return null }
 }
 
 async function tryHuggingFace(prompt: string, width: number, height: number): Promise<string | null> {
@@ -90,10 +89,7 @@ async function tryHuggingFace(prompt: string, width: number, height: number): Pr
       try {
         const res = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
           method: "POST",
-          headers: {
-            "Authorization": `Bearer ${token}`,
-            "Content-Type": "application/json"
-          },
+          headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
           body: JSON.stringify({
             inputs: prompt,
             parameters: {
@@ -101,17 +97,19 @@ async function tryHuggingFace(prompt: string, width: number, height: number): Pr
               width: Math.min(width, 768),
               height: Math.min(height, 768),
               num_inference_steps: 30,
-              guidance_scale: 7.5
+              guidance_scale: 7.5,
             },
           }),
           signal: AbortSignal.timeout(28000),
         })
+        const body = await res.text()
+        console.log(`HF model:${model.split("/")[1]} status:${res.status} body:${body.substring(0,150)}`)
         if (!res.ok) continue
-        const blob = await res.blob()
+        const blob = new Blob([Buffer.from(body)])
         if (!blob.size) continue
         const buffer = await blob.arrayBuffer()
-        return `data:${blob.type || "image/jpeg"};base64,${Buffer.from(buffer).toString("base64")}`
-      } catch { continue }
+        return `data:image/jpeg;base64,${Buffer.from(buffer).toString("base64")}`
+      } catch (e: any) { console.log("HF exception:", e.message); continue }
     }
   }
   return null
