@@ -90,7 +90,7 @@ export default function Dashboard() {
 
         {/* Toggle / Logo */}
         <button
-          onClick={() => { setExpanded(!expanded); setShowSessions(false) }}
+          onClick={() => setExpanded(!expanded)}
           className="h-14 flex items-center border-b border-gray-800 flex-shrink-0 hover:bg-gray-800 transition-colors px-3 gap-3 w-full"
         >
           <div className="w-10 flex items-center justify-center flex-shrink-0">
