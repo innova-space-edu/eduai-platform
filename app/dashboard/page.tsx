@@ -55,7 +55,7 @@ export default function Dashboard() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push("/auth/login"); return }
       setUser(user)
-      const { data } = await supabase.from("user_progress").select("*").eq("user_id", user.id).single()
+      const { data } = await supabase.from("user_progress").select("*").eq("user_id", user.id).maybeSingle()
       if (data) {
         const lvl = LEVELS.find(l => data.xp >= l.min && data.xp < l.max) || LEVELS[0]
         const nextLvl = LEVELS[LEVELS.indexOf(lvl) + 1]
