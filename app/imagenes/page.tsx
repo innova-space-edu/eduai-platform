@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 
 const STYLES = [
@@ -42,6 +42,72 @@ interface Result {
   originalPrompt: string
 }
 
+// Mensajes de carga tipo Meta AI
+const LOADING_MESSAGES = [
+  "Optimizando tu descripción con IA...",
+  "Componiendo la escena...",
+  "Añadiendo detalles de iluminación...",
+  "Refinando texturas y colores...",
+  "Aplicando estilo artístico...",
+  "Casi listo...",
+]
+
+function ImageSkeleton({ aspectRatio }: { aspectRatio: string }) {
+  const [msgIdx, setMsgIdx] = useState(0)
+  const [progress, setProgress] = useState(0)
+
+  useEffect(() => {
+    const msgInterval = setInterval(() => {
+      setMsgIdx(i => (i + 1) % LOADING_MESSAGES.length)
+    }, 2500)
+    const progressInterval = setInterval(() => {
+      setProgress(p => {
+        if (p >= 92) return p
+        return p + Math.random() * 3
+      })
+    }, 300)
+    return () => { clearInterval(msgInterval); clearInterval(progressInterval) }
+  }, [])
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl bg-gray-900 border border-gray-800" style={{ aspectRatio }}>
+      <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+        <div
+          className="absolute inset-0 opacity-30"
+          style={{
+            background: "linear-gradient(105deg, transparent 40%, rgba(99,102,241,0.4) 50%, transparent 60%)",
+            animation: "shimmer 2s infinite",
+          }}
+        />
+      </div>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="w-32 h-32 rounded-full bg-indigo-500/10 blur-3xl animate-pulse" />
+        <div className="absolute w-48 h-24 rounded-full bg-purple-500/10 blur-3xl animate-pulse delay-300" />
+        <div className="absolute w-24 h-48 rounded-full bg-blue-500/10 blur-3xl animate-pulse delay-700" />
+      </div>
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-6">
+        <div className="w-10 h-10 rounded-full border-2 border-indigo-500/50 border-t-indigo-400 animate-spin" />
+        <p className="text-gray-400 text-sm font-medium text-center transition-all duration-500">
+          {LOADING_MESSAGES[msgIdx]}
+        </p>
+        <div className="w-48 h-1 bg-gray-800 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-300"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+        <p className="text-gray-600 text-xs">{Math.round(progress)}%</p>
+      </div>
+      <style>{`
+        @keyframes shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(200%); }
+        }
+      `}</style>
+    </div>
+  )
+}
+
 export default function ImagenesPage() {
   const [prompt, setPrompt]           = useState("")
   const [style, setStyle]             = useState("realistic")
@@ -53,6 +119,7 @@ export default function ImagenesPage() {
   const [editingPrompt, setEditingPrompt] = useState("")
   const [showEditor, setShowEditor]   = useState(false)
   const router = useRouter()
+  const [fullscreen, setFullscreen] = useState<string | null>(null)
 
   async function getOptimizedPrompt() {
     if (!prompt.trim()) return
@@ -109,8 +176,31 @@ export default function ImagenesPage() {
     a.click()
   }
 
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") setFullscreen(null) }
+    window.addEventListener("keydown", handler)
+    return () => window.removeEventListener("keydown", handler)
+  }, [])
+
+  const aspectRatio = `${size.w}/${size.h}`
+
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col">
+      {/* Fullscreen modal */}
+      {fullscreen && (
+        <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4"
+          onClick={() => setFullscreen(null)}>
+          <div className="relative max-w-5xl w-full" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setFullscreen(null)}
+              className="absolute -top-12 right-0 flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-full text-sm transition-colors">
+              <span>✕</span><span>Cerrar</span>
+            </button>
+            <img src={fullscreen} alt="Imagen ampliada"
+              className="w-full rounded-2xl object-contain shadow-2xl"
+              style={{ maxHeight: "85vh" }} />
+          </div>
+        </div>
+      )}
       <div className="border-b border-gray-800 bg-gray-900/80 sticky top-0 z-10">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
           <button onClick={() => router.back()}
@@ -237,9 +327,15 @@ export default function ImagenesPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {results.map((r, i) => (
                 <div key={i} className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden group">
-                  <div className="relative bg-gray-800">
-                    <img src={r.imageUrl} alt={r.originalPrompt} className="w-full h-full object-cover" />
+                  <div className="relative" style={{ aspectRatio }}>
+                    <img src={r.imageUrl} alt={r.originalPrompt}
+                      onClick={() => setFullscreen(r.imageUrl)}
+                      className="w-full h-full object-cover cursor-zoom-in" />
                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                      <button onClick={() => setFullscreen(r.imageUrl)}
+                        className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-xl text-xs font-medium backdrop-blur-sm">
+                        🔍 Ampliar
+                      </button>
                       <button onClick={() => downloadImage(r.imageUrl, i)}
                         className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-xl text-xs font-medium backdrop-blur-sm">
                         ⬇ Descargar
@@ -251,8 +347,8 @@ export default function ImagenesPage() {
                     </div>
                   </div>
                   <div className="p-3">
-                    <p className="text-gray-500 text-xs mb-1">via {r.provider}</p>
-                    <p className="text-gray-600 text-xs italic leading-relaxed line-clamp-2">{r.optimizedPrompt}</p>
+                    <p className="text-gray-600 text-xs mb-1">via {r.provider}</p>
+                    <p className="text-gray-700 text-xs italic leading-relaxed line-clamp-2">{r.optimizedPrompt}</p>
                   </div>
                 </div>
               ))}
