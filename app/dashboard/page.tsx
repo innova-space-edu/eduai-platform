@@ -15,20 +15,10 @@ const LEVELS = [
   { name: "Maestro",      min: 5000, max: 99999 },
 ]
 
-const AGENTS = [
-  { id: "educador",     icon: "🏫", name: "Planificador", color: "from-emerald-500 to-teal-600",  href: "/educador"     },
-  { id: "investigador", icon: "🔬", name: "Investigador", color: "from-blue-500 to-indigo-600",   href: "/investigador" },
-  { id: "redactor",     icon: "✍️",  name: "Redactor",     color: "from-violet-500 to-purple-600", href: "/redactor"     },
-  { id: "matematico",   icon: "🧮",  name: "Matemático",   color: "from-orange-500 to-amber-600",  href: "/matematico"   },
-  { id: "traductor",    icon: "🌐",  name: "Traductor",    color: "from-cyan-500 to-sky-600",      href: "/traductor"    },
-  { id: "paper",        icon: "📄",  name: "Chat Paper",   color: "from-indigo-500 to-blue-700",   href: "/paper"        },
-  { id: "examen",       icon: "📝",  name: "Examen",       color: "from-red-500 to-rose-600",      href: "/examen"       },
-  { id: "imagenes",     icon: "🎨",  name: "Imágenes",     color: "from-pink-500 to-purple-600",   href: "/imagenes"     },
-  { id: "galeria",      icon: "🖼️",  name: "Galería",      color: "from-fuchsia-500 to-pink-600",  href: "/galeria"      },
-]
-
 const BOTTOM_LINKS = [
+  { href: "/agentes",  icon: "🤖", label: "Agentes"   },
   { href: "/sessions", icon: "📚", label: "Sesiones"  },
+  { href: "/galeria",  icon: "🖼️",  label: "Galería"   },
   { href: "/ranking",  icon: "🏆", label: "Ranking"   },
   { href: "/collab",   icon: "🤝", label: "Colaborar" },
   { href: "/profile",  icon: "👤", label: "Perfil"    },
@@ -42,7 +32,6 @@ export default function Dashboard() {
   const [sessions, setSessions] = useState(0)
   const [topic, setTopic]       = useState("")
   const [expanded, setExpanded] = useState(false)
-  const [ready, setReady]       = useState(false)
   const router   = useRouter()
   const supabase = createClient()
 
@@ -51,6 +40,7 @@ export default function Dashboard() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push("/login"); return }
       setUser(user)
+
       const { data } = await supabase
         .from("profiles")
         .select("xp, streak_days")
@@ -84,7 +74,7 @@ export default function Dashboard() {
     if (topic.trim()) router.push(`/study/${encodeURIComponent(topic.trim())}`)
   }
 
-  const sw = expanded ? "224px" : "64px"
+  const sw = expanded ? "200px" : "64px"
 
   return (
     <div className="min-h-screen bg-gray-950 flex">
@@ -94,6 +84,7 @@ export default function Dashboard() {
         style={{ width: sw }}
         className="fixed left-0 top-0 h-full bg-gray-900 border-r border-gray-800 flex flex-col z-20 transition-all duration-300 overflow-hidden"
       >
+        {/* Logo / toggle */}
         <button
           onClick={() => setExpanded(!expanded)}
           className="h-14 flex items-center border-b border-gray-800 flex-shrink-0 hover:bg-gray-800 transition-colors px-3 gap-3 w-full"
@@ -108,45 +99,39 @@ export default function Dashboard() {
           )}
         </button>
 
+        {/* Nav links */}
         <div className="flex-1 py-3 flex flex-col overflow-y-auto overflow-x-hidden">
-          {expanded && (
-            <p className="text-gray-600 text-[10px] uppercase tracking-widest px-4 mb-2">Agentes</p>
-          )}
-          {AGENTS.map(a => (
+          {BOTTOM_LINKS.map(item => (
             <Link
-              key={a.id}
-              href={a.href}
-              title={!expanded ? a.name : undefined}
+              key={item.href}
+              href={item.href}
+              title={!expanded ? item.label : undefined}
               className="flex items-center gap-3 mx-2 mb-1 px-2 py-2.5 rounded-xl border border-transparent hover:bg-gray-800 hover:border-gray-700 transition-all group"
             >
-              <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${a.color} flex items-center justify-center text-xl flex-shrink-0 shadow-md group-hover:scale-105 transition-transform`}>
-                {a.icon}
-              </div>
+              <span className="text-2xl w-10 text-center flex-shrink-0">{item.icon}</span>
               {expanded && (
                 <span className="text-gray-400 group-hover:text-white text-sm font-medium whitespace-nowrap">
-                  {a.name}
+                  {item.label}
                 </span>
               )}
             </Link>
           ))}
         </div>
 
-        <div className="border-t border-gray-800 py-3 flex flex-col flex-shrink-0">
-          {BOTTOM_LINKS.map(item => (
-            <Link
-              key={item.href}
-              href={item.href}
-              title={!expanded ? item.label : undefined}
-              className="flex items-center gap-3 mx-2 mb-1 px-2 py-2 rounded-xl border border-transparent hover:bg-gray-800 hover:border-gray-700 transition-all group"
-            >
-              <span className="text-xl w-10 text-center flex-shrink-0">{item.icon}</span>
-              {expanded && (
-                <span className="text-gray-500 group-hover:text-gray-200 text-sm whitespace-nowrap">
-                  {item.label}
-                </span>
-              )}
-            </Link>
-          ))}
+        {/* Logout */}
+        <div className="border-t border-gray-800 py-3 flex-shrink-0">
+          <button
+            onClick={async () => { await supabase.auth.signOut(); router.push("/login") }}
+            className="flex items-center gap-3 mx-2 px-2 py-2.5 rounded-xl border border-transparent hover:bg-gray-800 hover:border-gray-700 transition-all group w-[calc(100%-16px)]"
+            title={!expanded ? "Salir" : undefined}
+          >
+            <span className="text-2xl w-10 text-center flex-shrink-0">🚪</span>
+            {expanded && (
+              <span className="text-gray-500 group-hover:text-red-400 text-sm whitespace-nowrap transition-colors">
+                Cerrar sesión
+              </span>
+            )}
+          </button>
         </div>
       </aside>
 
@@ -165,12 +150,6 @@ export default function Dashboard() {
               </span>
               <span className="text-blue-400 text-sm font-medium">{level}</span>
               <span className="text-yellow-400 text-sm font-bold">⚡ {xp}</span>
-              <button
-                onClick={async () => { await supabase.auth.signOut(); router.push("/login") }}
-                className="text-gray-600 hover:text-gray-300 text-sm transition-colors"
-              >
-                Salir
-              </button>
             </div>
           </div>
         </div>
@@ -188,10 +167,10 @@ export default function Dashboard() {
           {/* Stats */}
           <div className="grid grid-cols-4 gap-3">
             {[
-              { label: "Nivel",    value: level,           color: "text-blue-400"   },
-              { label: "XP Total", value: `${xp} XP`,      color: "text-yellow-400" },
-              { label: "Racha",    value: `${streak} días`, color: "text-orange-400" },
-              { label: "Sesiones", value: String(sessions), color: "text-green-400"  },
+              { label: "Nivel",    value: level,            color: "text-blue-400"   },
+              { label: "XP Total", value: `${xp} XP`,       color: "text-yellow-400" },
+              { label: "Racha",    value: `${streak} días`,  color: "text-orange-400" },
+              { label: "Sesiones", value: String(sessions),  color: "text-green-400"  },
             ].map(s => (
               <div key={s.label} className="bg-gray-900 border border-gray-800 rounded-2xl p-4">
                 <p className="text-gray-600 text-xs mb-1">{s.label}</p>
