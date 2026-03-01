@@ -157,22 +157,22 @@ export async function POST(req: Request) {
 
     if (!imageBase64) return new Response("No se pudo generar la imagen. Verifica las API keys.", { status: 503 })
 
-    void supabase
-      .from("generated_images")
-      .insert({
-        user_id: user.id,
-        prompt,
-        optimized_prompt: optimizedPrompt,
-        image_url: imageBase64,
-        provider: usedProvider,
-        style,
-        width,
-        height,
-        source,
-        topic,
-      })
-      .then(() => {})
-      .catch(() => {})
+    void (async () => {
+      try {
+        await supabase.from("generated_images").insert({
+          user_id: user.id,
+          prompt,
+          optimized_prompt: optimizedPrompt,
+          image_url: imageBase64,
+          provider: usedProvider,
+          style,
+          width,
+          height,
+          source,
+          topic,
+        })
+      } catch {}
+    })()
 
     return Response.json({ imageUrl: imageBase64, optimizedPrompt, provider: usedProvider, type: "base64" })
   } catch (e: any) {
