@@ -119,7 +119,16 @@ export async function POST(req: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new Response("Unauthorized", { status: 401 })
 
-  const { prompt, style = "realistic", width = 1024, height = 768, provider = "auto", customPrompt } = await req.json()
+  const {
+    prompt,
+    style = "realistic",
+    width = 1024,
+    height = 768,
+    provider = "auto",
+    customPrompt,
+    source = "manual",
+    topic = null,
+  } = await req.json()
   if (!prompt?.trim()) return new Response("Prompt requerido", { status: 400 })
 
   try {
@@ -147,6 +156,23 @@ export async function POST(req: Request) {
     }
 
     if (!imageBase64) return new Response("No se pudo generar la imagen. Verifica las API keys.", { status: 503 })
+
+    void supabase
+      .from("generated_images")
+      .insert({
+        user_id: user.id,
+        prompt,
+        optimized_prompt: optimizedPrompt,
+        image_url: imageBase64,
+        provider: usedProvider,
+        style,
+        width,
+        height,
+        source,
+        topic,
+      })
+      .then(() => {})
+      .catch(() => {})
 
     return Response.json({ imageUrl: imageBase64, optimizedPrompt, provider: usedProvider, type: "base64" })
   } catch (e: any) {

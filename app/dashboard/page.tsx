@@ -24,6 +24,7 @@ const AGENTS = [
   { id: "paper",        icon: "📄",  name: "Chat Paper",   color: "from-indigo-500 to-blue-700",   href: "/paper"        },
   { id: "examen",       icon: "📝",  name: "Examen",       color: "from-red-500 to-rose-600",      href: "/examen"       },
   { id: "imagenes",     icon: "🎨",  name: "Imágenes",     color: "from-pink-500 to-purple-600",   href: "/imagenes"     },
+  { id: "galeria",      icon: "🖼️",  name: "Galería",      color: "from-fuchsia-500 to-pink-600",  href: "/galeria"      },
 ]
 
 const BOTTOM_LINKS = [
@@ -48,17 +49,24 @@ export default function Dashboard() {
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push("/auth/login"); return }
+      if (!user) { router.push("/login"); return }
       setUser(user)
       const { data } = await supabase
-        .from("user_progress")
-        .select("xp, streak, sessions")
-        .eq("user_id", user.id)
+        .from("profiles")
+        .select("xp, streak_days")
+        .eq("id", user.id)
         .maybeSingle()
+
+      const { count } = await supabase
+        .from("study_sessions")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+
+      setSessions(count || 0)
+
       if (data) {
         setXp(data.xp || 0)
-        setStreak(data.streak || 0)
-        setSessions(data.sessions || 0)
+        setStreak(data.streak_days || 0)
         const lvl = [...LEVELS].reverse().find(l => (data.xp || 0) >= l.min)
         setLevel(lvl?.name || "Principiante")
       }
@@ -158,7 +166,7 @@ export default function Dashboard() {
               <span className="text-blue-400 text-sm font-medium">{level}</span>
               <span className="text-yellow-400 text-sm font-bold">⚡ {xp}</span>
               <button
-                onClick={async () => { await supabase.auth.signOut(); router.push("/") }}
+                onClick={async () => { await supabase.auth.signOut(); router.push("/login") }}
                 className="text-gray-600 hover:text-gray-300 text-sm transition-colors"
               >
                 Salir

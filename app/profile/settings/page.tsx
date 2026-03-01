@@ -21,7 +21,7 @@ export default function ProfileSettings() {
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push("/auth/login"); return }
+      if (!user) { router.push("/login"); return }
       setUser(user)
       setName(user.user_metadata?.name || "")
       setEmail(user.email || "")
@@ -153,7 +153,7 @@ export default function ProfileSettings() {
           <h2 className="text-red-400 font-medium text-sm mb-2">⚠️ Zona peligrosa</h2>
           <p className="text-gray-600 text-xs mb-4">Estas acciones son irreversibles.</p>
           <button
-            onClick={async () => { await supabase.auth.signOut(); router.push("/") }}
+            onClick={async () => { await supabase.auth.signOut(); router.push("/login") }}
             className="w-full bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 py-2.5 rounded-xl text-sm font-medium transition-colors">
             Cerrar sesión en todos los dispositivos
           </button>

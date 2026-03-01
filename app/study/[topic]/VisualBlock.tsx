@@ -50,6 +50,8 @@ export default function VisualBlock({ topic, context }: Props) {
           width: 768,
           height: 432,
           provider: "auto",
+          source: "auto_study",
+          topic,
           customPrompt: prompt + ", educational illustration, clear, detailed, professional"
         }),
       })

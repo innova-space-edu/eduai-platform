@@ -23,7 +23,7 @@ export default function SessionsPage() {
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push("/auth/login"); return }
+      if (!user) { router.push("/login"); return }
       const { data } = await supabase
         .from("study_sessions")
         .select("id, topic, created_at, score, messages_count")
