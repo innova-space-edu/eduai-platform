@@ -82,12 +82,12 @@ export default function Dashboard() {
       {/* Sidebar */}
       <aside
         style={{ width: sw }}
-        className="fixed left-0 top-0 h-full bg-gray-900 border-r border-gray-800 flex flex-col z-20 transition-all duration-300 overflow-hidden"
+        className="fixed left-0 top-0 h-full bg-gray-900/95 backdrop-blur-xl border-r border-white/5 flex flex-col z-20 transition-all duration-300 overflow-hidden"
       >
         {/* Logo / toggle */}
         <button
           onClick={() => setExpanded(!expanded)}
-          className="h-14 flex items-center border-b border-gray-800 flex-shrink-0 hover:bg-gray-800 transition-colors px-3 gap-3 w-full"
+          className="h-14 flex items-center border-b border-white/5 flex-shrink-0 hover:bg-white/5 transition-colors px-3 gap-3 w-full"
         >
           <div className="w-10 flex items-center justify-center flex-shrink-0">
             <span className="text-blue-400 font-bold text-lg">{expanded ? "◀" : "▶"}</span>
@@ -106,7 +106,7 @@ export default function Dashboard() {
               key={item.href}
               href={item.href}
               title={!expanded ? item.label : undefined}
-              className="flex items-center gap-3 mx-2 mb-1 px-2 py-2.5 rounded-xl border border-transparent hover:bg-gray-800 hover:border-gray-700 transition-all group"
+              className="flex items-center gap-3 mx-2 mb-1 px-2 py-2.5 rounded-2xl border border-transparent hover:bg-white/6 hover:border-white/8 transition-all group"
             >
               <span className="text-2xl w-10 text-center flex-shrink-0">{item.icon}</span>
               {expanded && (
@@ -122,7 +122,7 @@ export default function Dashboard() {
         <div className="border-t border-gray-800 py-3 flex-shrink-0">
           <button
             onClick={async () => { await supabase.auth.signOut(); router.push("/login") }}
-            className="flex items-center gap-3 mx-2 px-2 py-2.5 rounded-xl border border-transparent hover:bg-gray-800 hover:border-gray-700 transition-all group w-[calc(100%-16px)]"
+            className="flex items-center gap-3 mx-2 px-2 py-2.5 rounded-2xl border border-transparent hover:bg-white/6 hover:border-white/8 transition-all group w-[calc(100%-16px)]"
             title={!expanded ? "Salir" : undefined}
           >
             <span className="text-2xl w-10 text-center flex-shrink-0">🚪</span>
@@ -141,7 +141,7 @@ export default function Dashboard() {
         className="flex-1 flex flex-col min-h-screen transition-all duration-300"
       >
         {/* Topbar */}
-        <div className="border-b border-gray-800 bg-gray-900/60 backdrop-blur-sm sticky top-0 z-10">
+        <div className="border-b border-white/5 bg-gray-950/80 backdrop-blur-xl sticky top-0 z-10">
           <div className="max-w-2xl mx-auto px-6 py-3 flex items-center justify-between">
             <p className="text-gray-500 text-sm">Panel de estudio</p>
             <div className="flex items-center gap-3">
@@ -172,7 +172,7 @@ export default function Dashboard() {
               { label: "Racha",    value: `${streak} días`,  color: "text-orange-400" },
               { label: "Sesiones", value: String(sessions),  color: "text-green-400"  },
             ].map(s => (
-              <div key={s.label} className="bg-gray-900 border border-gray-800 rounded-2xl p-4">
+              <div key={s.label} className="bg-gray-900/60 border border-white/5 rounded-3xl p-4 backdrop-blur-sm hover:border-white/10 transition-colors">
                 <p className="text-gray-600 text-xs mb-1">{s.label}</p>
                 <p className={`font-bold text-lg leading-tight ${s.color}`}>{s.value}</p>
               </div>
@@ -180,7 +180,7 @@ export default function Dashboard() {
           </div>
 
           {/* Progress */}
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl px-5 py-3">
+          <div className="bg-gray-900/60 border border-white/5 rounded-3xl px-5 py-4 backdrop-blur-sm">
             <div className="flex justify-between text-xs text-gray-600 mb-2">
               <span>Hacia {nextLevel?.name || "Maestro"}</span>
               <span>{xp} / {nextLevel?.min || curLevel.max} XP</span>
@@ -194,7 +194,7 @@ export default function Dashboard() {
           </div>
 
           {/* Nueva sesión */}
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+          <div className="bg-gray-900/60 border border-white/5 rounded-3xl p-5 backdrop-blur-sm">
             <h2 className="text-white font-semibold mb-4">📖 Nueva sesión de estudio</h2>
             <div className="flex gap-3">
               <input
@@ -202,12 +202,12 @@ export default function Dashboard() {
                 onChange={e => setTopic(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && handleStudy()}
                 placeholder="Ej: Leyes de Newton, Segunda Guerra Mundial, Integrales..."
-                className="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-gray-200 placeholder-gray-600 focus:outline-none focus:border-blue-500/50 text-sm"
+                className="flex-1 bg-white/5 border border-white/8 rounded-2xl px-4 py-3 text-gray-200 placeholder-gray-600 focus:outline-none focus:border-blue-500/30 focus:bg-white/8 text-sm transition-all"
               />
               <button
                 onClick={handleStudy}
                 disabled={!topic.trim()}
-                className="bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white px-5 py-3 rounded-xl font-medium transition-colors"
+                className="bg-blue-600/90 hover:bg-blue-500 disabled:opacity-40 text-white px-5 py-3 rounded-2xl font-medium transition-all hover:shadow-lg hover:shadow-blue-500/20"
               >
                 Estudiar →
               </button>

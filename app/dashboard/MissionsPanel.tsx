@@ -39,7 +39,7 @@ export default function MissionsPanel() {
       <div className="grid sm:grid-cols-2 gap-4">
 
         {/* Diarias */}
-        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4">
+        <div className="bg-gray-900/60 border border-white/5 rounded-3xl p-4">
           <p className="text-xs text-gray-500 uppercase tracking-wider mb-3">📅 Diarias</p>
           <div className="space-y-3">
             {daily.map(m => (
@@ -49,7 +49,7 @@ export default function MissionsPanel() {
         </div>
 
         {/* Semanales */}
-        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4">
+        <div className="bg-gray-900/60 border border-white/5 rounded-3xl p-4">
           <p className="text-xs text-gray-500 uppercase tracking-wider mb-3">📆 Semanales</p>
           <div className="space-y-3">
             {weekly.map(m => (
@@ -67,10 +67,10 @@ function MissionItem({ mission }: { mission: Mission }) {
   const percent = Math.round((mission.progress / mission.goal) * 100)
 
   return (
-    <div className={`rounded-xl p-3 transition-all ${
+    <div className={`rounded-2xl p-3 transition-all ${
       mission.completed
         ? "bg-green-500/5 border border-green-500/20"
-        : "bg-gray-800/50 border border-gray-700/50"
+        : "bg-white/5/50 border border-gray-700/50"
     }`}>
       <div className="flex items-start justify-between gap-2 mb-2">
         <div>
