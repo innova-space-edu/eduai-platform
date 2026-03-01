@@ -181,16 +181,39 @@ export default function GaleriaPage() {
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {filtered.map(img => (
-              <div key={img.id} onClick={() => setFullscreen(img)}
+              <div key={img.id}
                 className="group relative aspect-video bg-gray-900 rounded-2xl overflow-hidden border border-gray-800 hover:border-gray-600 cursor-pointer transition-all hover:scale-[1.02]">
-                <img src={img.image_url} alt={img.prompt}
+                <img
+                  src={img.image_url}
+                  alt={img.prompt}
+                  onClick={() => setFullscreen(img)}
                   className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                  <div className="absolute bottom-0 inset-x-0 p-3">
-                    <p className="text-white text-xs font-medium line-clamp-2">{img.prompt}</p>
-                    <p className="text-white/50 text-[10px] mt-1">{formatDate(img.created_at)}</p>
+
+                {/* Overlay con info y botones */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                  {/* Botón eliminar arriba izquierda */}
+                  <button
+                    onClick={e => { e.stopPropagation(); deleteImage(img.id) }}
+                    className="absolute top-2 left-2 bg-red-600/80 hover:bg-red-500 text-white text-[10px] px-2 py-1 rounded-lg backdrop-blur-sm transition-colors"
+                  >
+                    🗑 Eliminar
+                  </button>
+
+                  {/* Info abajo */}
+                  <div className="absolute bottom-0 inset-x-0 p-3 flex items-end justify-between">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-xs font-medium line-clamp-1">{img.prompt}</p>
+                      <p className="text-white/50 text-[10px] mt-0.5">{formatDate(img.created_at)}</p>
+                    </div>
+                    <button
+                      onClick={e => { e.stopPropagation(); downloadImage(img.image_url, img.prompt) }}
+                      className="ml-2 bg-white/10 hover:bg-white/20 text-white text-[10px] px-2 py-1 rounded-lg backdrop-blur-sm transition-colors flex-shrink-0"
+                    >
+                      ⬇
+                    </button>
                   </div>
                 </div>
+
                 {img.source === "auto_study" && (
                   <div className="absolute top-2 right-2 bg-blue-500/80 text-white text-[9px] px-2 py-0.5 rounded-full backdrop-blur-sm">
                     📚 Estudio
