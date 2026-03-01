@@ -72,9 +72,26 @@ export default function MatematicoPage() {
               <p className="text-gray-400 text-sm mt-1">
                 Resuelvo problemas con notación matemática profesional — igual que en un libro de texto
               </p>
-              <div className="mt-3 bg-gray-900 rounded-xl p-3 text-left">
-                <p className="text-gray-500 text-xs mb-1">Ejemplo de salida:</p>
-                <p className="text-gray-300 text-sm font-mono">Formula cuadratica: <span className="text-orange-300">x = (-b +/- sqrt(b^2-4ac)) / 2a</span></p>
+              <div className="mt-4 bg-gray-900/80 border border-orange-500/10 rounded-2xl p-5 text-left">
+                <p className="text-gray-500 text-xs mb-3 font-medium uppercase tracking-wider">Vista previa de LaTeX</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-gray-800/50 rounded-xl p-3">
+                    <p className="text-gray-600 text-[10px] mb-2">Fórmula cuadrática</p>
+                    <MathRenderer content={"$$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$"} />
+                  </div>
+                  <div className="bg-gray-800/50 rounded-xl p-3">
+                    <p className="text-gray-600 text-[10px] mb-2">Integral definida</p>
+                    <MathRenderer content={"$$\\int_a^b f(x)\\,dx = F(b) - F(a)$$"} />
+                  </div>
+                  <div className="bg-gray-800/50 rounded-xl p-3">
+                    <p className="text-gray-600 text-[10px] mb-2">Serie de Taylor</p>
+                    <MathRenderer content={"$$e^x = \\sum_{n=0}^{\\infty} \\frac{x^n}{n!}$$"} />
+                  </div>
+                  <div className="bg-gray-800/50 rounded-xl p-3">
+                    <p className="text-gray-600 text-[10px] mb-2">Identidad de Euler</p>
+                    <MathRenderer content={"$$e^{i\\pi} + 1 = 0$$"} />
+                  </div>
+                </div>
               </div>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
