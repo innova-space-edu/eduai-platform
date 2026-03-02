@@ -46,7 +46,7 @@ Responde en español a menos que el usuario pida otro idioma.`
   ]
 
   try {
-    const result = await callAI(messages, { maxTokens: 3000, preferProvider: "groq" })
+    const result = await callAI(messages, { maxTokens: 3000, preferProvider: "gemini" })
     return Response.json({ text: result.text, provider: result.provider })
   } catch (e: any) {
     return new Response(e.message, { status: 500 })

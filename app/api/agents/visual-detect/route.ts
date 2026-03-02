@@ -51,7 +51,7 @@ Would a visual image help understand this content? If yes, what specific image?`
   ]
 
   try {
-    const result = await callAI(messages, { maxTokens: 150, preferProvider: "groq" })
+    const result = await callAI(messages, { maxTokens: 150, preferProvider: "gemini" })
     const text = result.text.trim()
     const jsonMatch = text.match(/\{[^}]+\}/)
     if (!jsonMatch) return Response.json({ shouldGenerate: false })

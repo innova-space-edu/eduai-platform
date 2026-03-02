@@ -34,7 +34,7 @@ Example of correct transformation:
 Now transform the user request. Output ONLY the prompt:`
     }
   ]
-  const result = await callAI(messages, { maxTokens: 350, preferProvider: "groq" })
+  const result = await callAI(messages, { maxTokens: 350, preferProvider: "gemini" })
   return result.text.trim().replace(/^["']|["']$/g, "")
 }
 

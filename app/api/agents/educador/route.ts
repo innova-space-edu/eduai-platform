@@ -109,7 +109,7 @@ Al final de cada planificación, indica qué VISUAL generaría AIm para compleme
     // Para planificaciones largas usar más tokens, Gemini si disponible
     const result = await callAI(messages, {
       maxTokens: 3000,
-      preferProvider: "groq"
+      preferProvider: "gemini"
     })
 
     return Response.json({

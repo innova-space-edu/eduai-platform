@@ -31,6 +31,6 @@ export async function POST(req: Request) {
     }
   ]
 
-  const result = await callAI(messages, { maxTokens: 350, preferProvider: "groq" })
+  const result = await callAI(messages, { maxTokens: 350, preferProvider: "gemini" })
   return Response.json({ optimizedPrompt: result.text.trim().replace(/^[["']|["']]$/g, "") })
 }

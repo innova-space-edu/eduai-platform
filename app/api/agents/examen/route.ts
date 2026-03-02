@@ -57,7 +57,7 @@ JSON requerido:
       }
     ]
     try {
-      const result = await callAI(messages, { maxTokens: 4000, preferProvider: "groq" })
+      const result = await callAI(messages, { maxTokens: 4000, preferProvider: "gemini" })
       const clean = result.text.replace(/```json|```/g, "").trim()
       const exam = JSON.parse(clean)
       return Response.json(exam)
@@ -112,7 +112,7 @@ JSON requerido:
       }
     ]
     try {
-      const result = await callAI(messages, { maxTokens: 3000, preferProvider: "groq" })
+      const result = await callAI(messages, { maxTokens: 3000, preferProvider: "gemini" })
       const clean = result.text.replace(/```json|```/g, "").trim()
       const evaluation = JSON.parse(clean)
       return Response.json(evaluation)
