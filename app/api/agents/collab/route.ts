@@ -8,11 +8,18 @@ export async function POST(req: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new Response("Unauthorized", { status: 401 })
 
-  const { topic, messages } = await req.json()
+  const { topic, messages, isWelcome = false } = await req.json()
 
   const recentMessages = messages.slice(-6).map((m: any) =>
     `${m.user_name}: ${m.content}`
   ).join("\n")
+
+  const systemPrompt = isWelcome
+    ? `Eres ACo, asistente colaborativo de estudio. Dos estudiantes acaban de iniciar una sesión colaborativa sobre "${topic}".
+Da una bienvenida breve y entusiasta, presenta el tema y sugiere 2-3 preguntas clave para empezar a discutir. Máximo 3 líneas.`
+    : `Eres ACo, asistente colaborativo de estudio. Estás ayudando a dos estudiantes a estudiar "${topic}" juntos.
+Analiza su conversación e intervén de forma útil: aclara dudas, corrige errores, propone ejemplos o desafía su comprensión.
+Sé conciso (máximo 4 líneas), estimulante y usa LaTeX si hay matemáticas.`
 
   try {
     const completion = await groq.chat.completions.create({
@@ -20,19 +27,7 @@ export async function POST(req: Request) {
       messages: [
         {
           role: "system",
-          content: `Eres ACo, el Agente Colaborativo. Moderas sesiones de estudio entre dos estudiantes sobre el tema "${topic}".
-
-TU ROL:
-- Observas la conversación y participas cuando puedes aportar valor
-- Haces preguntas que involucren a AMBOS estudiantes
-- Propones desafíos o debates entre ellos
-- Corriges errores conceptuales con tacto
-- Celebras cuando llegan a respuestas correctas juntos
-- Sugiere que se hagan preguntas mutuamente
-
-TONO: Animado, como un tutor que guía sin protagonizar.
-Responde en español. Máximo 100 palabras.
-Firma siempre como "🤖 ACo"`
+          content: systemPrompt
         },
         {
           role: "user",
