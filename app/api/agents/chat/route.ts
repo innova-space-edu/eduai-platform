@@ -1,5 +1,6 @@
 import Groq from "groq-sdk"
 import { createClient } from "@/lib/supabase/server"
+import { orchestrate } from "@/app/api/agents/orchestrator/index"
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
 
@@ -47,6 +48,16 @@ HISTORIAL DEL ESTUDIANTE CON ESTE TEMA:
 
 Usa este contexto para personalizar tu explicación. Si tiene puntos débiles, enfócate en ellos. Si ya domina algo, no lo repitas.` : ""
 
+
+  // ── Orquestador: enriquecer contexto para preguntas complejas ──
+  let orchestratorContext = ""
+  try {
+    const orch = await orchestrate(topic, userMessage)
+    if (orch.shouldEnrich) {
+      orchestratorContext = `\n\nCONTEXTO ENRIQUECIDO POR AGENTES ESPECIALIZADOS:\n${orch.enrichedContext}\n\nUsa este contexto para dar una respuesta más profunda y memorable.`
+    }
+  } catch {}
+
   const systemPrompt = `Eres AGT, un tutor educativo experto y conversacional.
 
 CONTEXTO:
@@ -54,6 +65,7 @@ CONTEXTO:
 - Tipo de sesión: ${typeInstructions[studyType] || typeInstructions.theory}
 - Nivel del estudiante: ${levelDesc[level] || levelDesc[1]}
 ${memoryContext}
+${orchestratorContext}
 
 REGLAS DE RESPUESTA:
 - Responde SIEMPRE en español
