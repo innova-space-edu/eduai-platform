@@ -48,6 +48,10 @@ export default function CollabClient({ room, userId, userName }: Props) {
     loadMessages()
     const roomSub = subscribeToRoom()
     const msgSub = subscribeToMessages()
+    // Si la sala ya estaba activa y soy el host, ACo saluda igual
+    if (room.status === "active" && isHost) {
+      setTimeout(() => triggerACo(true), 1500)
+    }
 
     return () => {
       // cleanup (evita duplicados al navegar)
@@ -138,7 +142,7 @@ export default function CollabClient({ room, userId, userName }: Props) {
 
           if (newMsg.type === "chat") {
             msgCountRef.current += 1
-            if (msgCountRef.current % 3 === 0) triggerACo(false)
+            if (msgCountRef.current % 2 === 0) triggerACo(false)
           }
         }
       )
@@ -161,7 +165,6 @@ export default function CollabClient({ room, userId, userName }: Props) {
         content,
         type: "chat",
       })
-
       if (error) {
         console.error("Send error:", error)
         setInput(content)
