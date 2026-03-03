@@ -48,12 +48,24 @@ export async function POST(req: Request) {
   const { action, addresseeId, friendshipId } = await req.json()
 
   if (action === "send") {
-    const { error } = await supabase.from("friendships").insert({
+    // Verificar que no exista ya una solicitud
+    const { data: existing } = await supabase.from("friendships")
+      .select("id, status")
+      .or(`and(requester_id.eq.${user.id},addressee_id.eq.${addresseeId}),and(requester_id.eq.${addresseeId},addressee_id.eq.${user.id})`)
+      .maybeSingle()
+
+    if (existing) {
+      return Response.json({ ok: false, error: `Ya existe: ${existing.status}` })
+    }
+
+    const { data, error } = await supabase.from("friendships").insert({
       requester_id: user.id,
       addressee_id: addresseeId,
       status: "pending",
-    })
-    return Response.json({ ok: !error, error: error?.message })
+    }).select().single()
+
+    console.log("Friendship insert:", { data, error, userId: user.id, addresseeId })
+    return Response.json({ ok: !error, error: error?.message, data })
   }
 
   if (action === "accept") {
