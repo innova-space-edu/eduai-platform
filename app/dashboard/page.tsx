@@ -20,6 +20,7 @@ const BOTTOM_LINKS = [
   { href: "/sessions", icon: "📚", label: "Sesiones"  },
   { href: "/galeria",  icon: "🖼️",  label: "Galería"   },
   { href: "/ranking",  icon: "🏆", label: "Ranking"   },
+  { href: "/chat",     icon: "💬", label: "Chat"      },
   { href: "/collab",   icon: "🤝", label: "Colaborar" },
   { href: "/profile",  icon: "👤", label: "Perfil"    },
 ]
