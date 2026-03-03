@@ -22,19 +22,49 @@ export async function GET(req: Request) {
   // Listar amigos
   if (action === "list") {
     const { data: friendships } = await supabase.from("friendships")
-      .select("*, requester:requester_id(id,name,user_code,avatar_url,is_online,last_seen), addressee:addressee_id(id,name,user_code,avatar_url,is_online,last_seen)")
+      .select("id, requester_id, addressee_id, status")
       .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`)
       .eq("status", "accepted")
-    return Response.json(friendships || [])
+
+    if (!friendships || friendships.length === 0) return Response.json([])
+
+    const ids = friendships.map((f: any) => f.requester_id === user.id ? f.addressee_id : f.requester_id)
+    const { data: profiles } = await supabase.from("profiles")
+      .select("id, name, user_code, avatar_url, is_online, last_seen")
+      .in("id", ids)
+
+    const profileMap = Object.fromEntries((profiles || []).map((p: any) => [p.id, p]))
+    const result = friendships.map((f: any) => ({
+      ...f,
+      requester: profileMap[f.requester_id] || { id: f.requester_id, name: "Usuario" },
+      addressee: profileMap[f.addressee_id] || { id: f.addressee_id, name: "Usuario" },
+    }))
+
+    return Response.json(result)
   }
 
   // Listar solicitudes pendientes
   if (action === "requests") {
-    const { data } = await supabase.from("friendships")
-      .select("*, requester:requester_id(id,name,user_code,avatar_url)")
+    const { data: reqs, error } = await supabase.from("friendships")
+      .select("id, requester_id, status, created_at")
       .eq("addressee_id", user.id)
       .eq("status", "pending")
-    return Response.json(data || [])
+
+    if (!reqs || reqs.length === 0) return Response.json([])
+
+    // Obtener perfiles de los solicitantes
+    const ids = reqs.map((r: any) => r.requester_id)
+    const { data: profiles } = await supabase.from("profiles")
+      .select("id, name, user_code, avatar_url")
+      .in("id", ids)
+
+    const profileMap = Object.fromEntries((profiles || []).map((p: any) => [p.id, p]))
+    const result = reqs.map((r: any) => ({
+      ...r,
+      requester: profileMap[r.requester_id] || { id: r.requester_id, name: "Usuario", user_code: "?" }
+    }))
+
+    return Response.json(result)
   }
 
   return Response.json([])

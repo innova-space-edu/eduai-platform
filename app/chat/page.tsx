@@ -126,8 +126,16 @@ export default function ChatPage() {
   }
 
   async function sendFriendRequest(id: string) {
-    await fetch("/api/chat/friends", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ action:"send", addresseeId: id }) })
-    setSearchResult(undefined); setSearchCode("")
+    const res = await fetch("/api/chat/friends", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ action:"send", addresseeId: id }) })
+    const data = await res.json()
+    console.log("Friend request result:", data)
+    if (data.ok) {
+      setSearchResult(undefined)
+      setSearchCode("")
+      alert("✅ Solicitud enviada correctamente")
+    } else {
+      alert("❌ Error: " + (data.error || "desconocido"))
+    }
   }
 
   async function respondRequest(id: string, accept: boolean) {
