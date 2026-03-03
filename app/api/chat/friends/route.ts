@@ -15,7 +15,7 @@ export async function GET(req: Request) {
       .select("id, name, user_code, avatar_url, is_online, last_seen")
       .eq("user_code", code.toUpperCase())
       .neq("id", user.id)
-      .single()
+      .maybeSingle()
     return Response.json(data || null)
   }
 
