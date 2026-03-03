@@ -49,7 +49,7 @@ export default function RegisterPage() {
       return
     }
 
-    const { error } = await supabase.auth.signUp({
+    const { data: signUpData, error } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { name } },
@@ -59,6 +59,21 @@ export default function RegisterPage() {
       setError(error.message)
       setLoading(false)
       return
+    }
+
+    // Crear perfil explícitamente con user_code único
+    if (signUpData.user) {
+      const userCode = Math.random().toString(36).substring(2, 6).toUpperCase() +
+                       Math.random().toString(36).substring(2, 6).toUpperCase()
+      await supabase.from("profiles").upsert({
+        id: signUpData.user.id,
+        name,
+        email,
+        user_code: userCode.slice(0, 8),
+        is_online: false,
+        last_seen: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+      }, { onConflict: "id" })
     }
 
     router.push("/dashboard")
