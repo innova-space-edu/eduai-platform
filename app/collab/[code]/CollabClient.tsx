@@ -16,6 +16,7 @@ export default function CollabClient({ room, userId, userName }: Props) {
   const [acoThinking, setAcoThinking] = useState(false)
   const [sending, setSending]         = useState(false)
   const [realtimeOk, setRealtimeOk]   = useState(false)
+  const [memberCount, setMemberCount]  = useState(1)
 
   const bottomRef   = useRef<HTMLDivElement>(null)
   const supabase    = useRef(createClient()).current
@@ -61,6 +62,8 @@ export default function CollabClient({ room, userId, userName }: Props) {
       supabase.removeChannel(ch1)
       supabase.removeChannel(ch2)
     }
+    loadMembersCount()
+  }, [])
   }, [])
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }) }, [messages, acoThinking])
@@ -76,6 +79,25 @@ export default function CollabClient({ room, userId, userName }: Props) {
     } else if (room.status === "active") {
       setRoomStatus("active")
     }
+    await supabase.from("room_members").upsert({
+      room_id: room.id, user_id: userId, user_name: userName,
+      role: isHost ? "host" : "member", is_online: true,
+      last_seen: new Date().toISOString(),
+    }, { onConflict: "room_id,user_id" })
+    
+    const { count } = await supabase.from("room_members")
+      .select("id", { count: "exact", head: true }).eq("room_id", room.id)
+    
+    if ((count || 0) >= 2) {
+      await supabase.from("study_rooms").update({ status: "active" }).eq("id", room.id)
+      setRoomStatus("active")
+    }
+  }
+  async function loadMembersCount() {
+    const { count } = await supabase.from("room_members")
+      .select("id", { count: "exact", head: true })
+      .eq("room_id", room.id).eq("is_online", true)
+    setMemberCount(count || 1)
   }
 
   async function loadMessages() {
@@ -204,6 +226,13 @@ export default function CollabClient({ room, userId, userName }: Props) {
                     <p className="text-gray-200 text-sm leading-relaxed">{msg.content}</p>
                   </div>
                 </div>
+                function looksLikeQuestion(text: string) {
+                  const t = text.toLowerCase()
+                  return t.includes("?") || t.includes("¿") || t.includes("no entiendo") ||
+                    t.includes("explica") || t.includes("cómo") || t.includes("como ") ||
+                    t.includes("por qué") || t.includes("porque") || t.includes("ayuda") ||
+                    t.includes("ejemplo") || t.includes("duda")
+                }
               )
             })}
 
@@ -218,7 +247,7 @@ export default function CollabClient({ room, userId, userName }: Props) {
                     {[0,150,300].map(d => <div key={d} className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay:`${d}ms` }} />)}
                   </div>
                 </div>
-              </div>
+                            <span className="text-xs text-gray-400">{roomStatus === "active" ? `${memberCount} conectados` : "Esperando..."}</span>
             )}
             <div ref={bottomRef} />
           </div>
