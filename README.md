@@ -11,13 +11,13 @@
 
 ### 🎓 Plataforma de Aprendizaje Adaptativo con Inteligencia Artificial
 
-[![Vercel](https://img.shields.io/badge/Vercel-deployed-black?logo=vercel)](https://eduai-platform-virid.vercel.app)
-![Next.js](https://img.shields.io/badge/Next.js-16.1-black?logo=next.js)
+[![Vercel](https://img.shields.io/badge/Vercel-deployed-black?logo=vercel)](https://eduaiplatformclon.vercel.app)
+![Next.js](https://img.shields.io/badge/Next.js-14-black?logo=next.js)
 ![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?logo=supabase)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?logo=typescript)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
-**[🌐 Ver demo en vivo](https://eduai-platform-virid.vercel.app)** · **[📋 Reportar bug](https://github.com/innova-space-edu/eduai-platform/issues)** · **[✨ Solicitar feature](https://github.com/innova-space-edu/eduai-platform/issues)**
+**[🌐 Ver demo en vivo](https://eduaiplatformclon.vercel.app)** · **[📋 Reportar bug](https://github.com/innova-space-edu/eduai-platform/issues)** · **[✨ Solicitar feature](https://github.com/innova-space-edu/eduai-platform/issues)**
 
 ---
 
@@ -78,7 +78,7 @@ Diseñada especialmente para el contexto educativo chileno, incluye cobertura cu
 - **4 modos de aprendizaje:** Normal, Socrático, Evaluación y Colaborativo
 - **Quiz adaptativo** que ajusta dificultad automáticamente según tu desempeño
 - **Modo Examen completo** con timer, corrección automática y retroalimentación detallada
-- **Chat con Papers PDF** — sube un paper académico y conversa profundamente sobre él
+- **Chat con Papers PDF** — sube un paper académico y conversa profundamente sobre él (ES/EN y otros idiomas)
 - **Visualizaciones automáticas:** imágenes IA, diagramas Mermaid, gráficos Chart.js
 - **Matemáticas con LaTeX** — fórmulas renderizadas como en un libro de texto profesional
 - **Narración por voz (TTS)** — el contenido se puede escuchar
@@ -92,13 +92,62 @@ Diseñada especialmente para el contexto educativo chileno, incluye cobertura cu
 - Actividades lúdicas, rúbricas, proyectos interdisciplinarios
 - Contexto del calendario escolar chileno (Fiestas Patrias, vacaciones de invierno, etc.)
 
+### Colaboración en tiempo real ✨ NUEVO
+- **Salas multiusuario** con hasta 10 participantes simultáneos
+- **Código de sala único** para invitar compañeros
+- **Profesor ACo** — IA moderadora que detecta dudas automáticamente:
+  - Detecta preguntas explícitas (`¿`, `?`) e implícitas (`no entiendo`, `explica`, `cómo`, etc.)
+  - Corrige errores conceptuales con tacto
+  - Conecta aportes de diferentes estudiantes
+  - **Tutor lock** — evita respuestas duplicadas entre clientes
+- Contador real de conectados via Supabase Realtime
+- Indicador visual de conexión Realtime activa
+
+### Chat Social tipo Messenger ✨ NUEVO
+- **Código de usuario único** de 8 caracteres por persona
+- Búsqueda por nombre o código de usuario
+- Solicitudes de amistad con aceptar/rechazar
+- Mensajes en tiempo real via Supabase Realtime
+- **Reacciones** con 6 emojis (aparecen al hover)
+- Envío de archivos e imágenes a Supabase Storage
+- Estado online/offline con última vez conectado
+- Check de leído (✓ / ✓✓)
+- Notificaciones en tiempo real
+
 ### Herramientas generales
 - **Investigador** — busca y resume fuentes académicas y papers
 - **Redactor** — genera ensayos, informes y cartas formales
-- **Matemático** — resolución paso a paso con notación LaTeX profesional
+- **Matemático** — resolución paso a paso con notación LaTeX profesional, preview de fórmulas al cargar
 - **Traductor** — traducción multiidioma con explicación lingüística y cultural
-- **Generador de Imágenes** — el usuario describe lo que quiere, el agente optimiza el prompt automáticamente con IA y genera la imagen vía Together AI (FLUX Schnell) o Hugging Face (Stable Diffusion XL). El usuario puede ver y editar el prompt antes de generar, y refinar resultados
-- **Visualización automática en estudio** — durante una sesión, el agente detecta si el contenido es visual (anatomía, física, geografía, astronomía, etc.) y genera una imagen de apoyo automáticamente debajo de cada respuesta del tutor, sin que el usuario tenga que pedirla
+- **Generador de Imágenes** — el usuario describe lo que quiere, el agente optimiza el prompt automáticamente con IA y genera la imagen vía Together AI (FLUX Schnell) o Hugging Face (Stable Diffusion XL). Galería persistente con filtros, eliminar y descargar
+- **Visualización automática en estudio** — durante una sesión, el agente detecta si el contenido es visual y genera una imagen de apoyo automáticamente
+
+---
+
+## Sistema Orquestador de 4 Agentes ✨ NUEVO
+
+Para preguntas complejas, el tutor activa automáticamente un sistema invisible de 4 agentes:
+
+```
+Pregunta compleja detectada (>8 palabras o palabras clave)
+    ↓
+┌─────────────────────────────────────────┐
+│  Investigador (Gemini) ─┐               │
+│                          ├─ En paralelo │
+│  Lógico       (Gemini) ─┘               │
+└──────────────┬──────────────────────────┘
+               ↓
+    Creativo (Gemini) — usa output del investigador
+               ↓
+    Capitán  (Gemini) — sintetiza todo
+               ↓
+    Tutor (Groq stream) — responde enriquecido
+```
+
+- **Investigador**: hechos verificados, errores comunes del tema
+- **Lógico**: estructura de razonamiento, fórmulas relevantes
+- **Creativo**: analogías poderosas, ángulos originales, crítica
+- **Capitán**: sintetiza en contexto enriquecido para el tutor
 
 ---
 
@@ -118,8 +167,8 @@ Diseñada especialmente para el contexto educativo chileno, incluye cobertura cu
 | 💾 **AML** | Memoria Larga | Recuerda el historial completo de aprendizaje de cada usuario |
 | 📄 **ARe** | Resumidor PDF | Genera resúmenes descargables en PDF de las sesiones de estudio |
 | 🔊 **AVN** | Voz y Narración | Text-to-Speech — lee el contenido en voz alta con reproducción automática |
-| 🤝 **ACo** | Colaborativo | Salas de estudio en tiempo real con otros usuarios (Supabase Realtime) |
-| 🖼️ **AIm** | Visual | Detecta automáticamente si el contenido es visual y genera una imagen de apoyo debajo de cada respuesta del tutor |
+| 🤝 **ACo** | Colaborativo | Salas multiusuario en tiempo real con Profesor ACo moderador pedagógico |
+| 🖼️ **AIm** | Visual | Detecta automáticamente si el contenido es visual y genera imagen de apoyo |
 
 ### Agentes Especializados (Sidebar)
 
@@ -130,7 +179,7 @@ Diseñada especialmente para el contexto educativo chileno, incluye cobertura cu
 | ✍️ **Redactor** | Redactor Profesional | Ensayos, informes, cartas y documentos formales |
 | 🧮 **Matemático** | Experto Matemático | Resolución paso a paso con renderizado LaTeX profesional (KaTeX) |
 | 🌐 **Traductor** | Traductor Multiidioma | Traducción con explicación de matices lingüísticos y culturales |
-| 📄 **Chat Paper** | Analizador de Papers | Sube un PDF y conversa profundamente sobre su contenido |
+| 📄 **Chat Paper** | Analizador de Papers | Sube un PDF y conversa profundamente sobre su contenido (ES/EN) |
 | 📝 **Examen** | Simulacro de Examen | Exámenes completos con timer, corrección IA y retroalimentación detallada |
 | 🎨 **Imágenes** | Generador de Imágenes | Genera imágenes desde prompts con optimización automática vía FLUX y Stable Diffusion |
 
@@ -155,14 +204,14 @@ Principiante → Aprendiz → Practicante → Avanzado → Experto → Maestro
 
 ### Frontend
 ```
-Next.js 16.1    React 18      TypeScript 5
+Next.js 14      React 18      TypeScript 5
 Tailwind CSS    KaTeX         react-markdown
 Chart.js        Mermaid.js    Web Speech API
 ```
 
 ### Backend & Base de Datos
 ```
-Supabase (PostgreSQL + Auth + Realtime)
+Supabase (PostgreSQL + Auth + Realtime + Storage)
 Next.js API Routes (serverless)
 Vercel (deployment)
 ```
@@ -170,21 +219,41 @@ Vercel (deployment)
 ### Proveedores de IA — Router Multi-modelo
 
 ```
-┌─────────────────────────────────────────────┐
-│           ROUTER DE IA (lib/ai-router.ts)    │
-├─────────────────────────────────────────────┤
-│  1° Groq        → Llama 3.3 70B  (rápido)  │
-│  2° OpenRouter  → 29 modelos free (fallback)│
-│  3° Gemini      → 2.0 Flash      (volumen) │
-└─────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────┐
+│              ROUTER DE IA (lib/ai-router.ts)          │
+├──────────────────────────────────────────────────────┤
+│  Gemini  → Matemático, Investigador, Redactor,       │
+│            Traductor, Visual, Orquestador 4 agentes  │
+│  Groq    → Tutor AGT (streaming), Quiz, Sócrates     │
+│  Fallback automático: preferido → otros → OpenRouter │
+└──────────────────────────────────────────────────────┘
 ```
 
 ### Servicios de Generación Visual e Imágenes
 ```
 Pollinations.ai   → Imágenes FLUX (gratuito, sin registro)
-Hugging Face      → Stable Diffusion XL con nueva API router.huggingface.co
+Hugging Face      → Stable Diffusion XL
 Together AI       → FLUX Schnell Free (generación rápida)
-Google Gemini     → Extracción de texto desde PDF
+Google Gemini     → Extracción de texto desde PDF multilingüe
+```
+
+---
+
+## Base de Datos (Supabase)
+
+```
+profiles          — usuarios con user_code único, XP, nivel, presencia online
+study_sessions    — sesiones de estudio con historial
+long_memory       — memoria de aprendizaje por tema/usuario
+generated_images  — galería de imágenes generadas
+study_rooms       — salas de colaboración (con tutor_lock)
+room_members      — miembros por sala (multiusuario hasta 10)
+room_messages     — mensajes de colaboración
+friendships       — relaciones de amistad con estados
+conversations     — conversaciones del chat social
+chat_messages     — mensajes del chat con reacciones
+notifications     — notificaciones en tiempo real
+platform_config   — configuración global (max 200 usuarios, etc.)
 ```
 
 ---
@@ -194,44 +263,52 @@ Google Gemini     → Extracción de texto desde PDF
 ```
 eduai-platform/
 ├── app/
-│   ├── dashboard/          # Panel principal + sidebar agentes
+│   ├── (auth)/
+│   │   ├── login/          # Inicio de sesión
+│   │   └── register/       # Registro con user_code automático
+│   ├── dashboard/          # Panel principal + sidebar agentes (glassmorphism)
+│   ├── chat/               # Chat social tipo Messenger
 │   ├── study/[topic]/      # Sesión de estudio activo (12 agentes)
-│   │   ├── StudyClient.tsx
-│   │   ├── QuizMode.tsx
-│   │   └── VisualBlock.tsx
+│   ├── collab/[code]/      # Salas colaborativas multiusuario + Profesor ACo
+│   ├── galeria/            # Galería de imágenes con filtros y descarga
 │   ├── educador/           # APl — Planificador MINEDUC
 │   ├── investigador/       # Agente investigador académico
 │   ├── redactor/           # Agente redactor de documentos
-│   ├── matematico/         # Agente matemático con LaTeX
+│   ├── matematico/         # Agente matemático con LaTeX preview
 │   ├── traductor/          # Agente traductor multiidioma
-│   ├── paper/              # Chat con Paper PDF
-│   ├── examen/             # Modo examen completo
+│   ├── paper/              # Chat con Paper PDF multilingüe
+│   ├── examen/             # Modo examen completo con timer
 │   ├── sessions/           # Historial de sesiones
-│   ├── profile/            # Perfil + configuración
 │   ├── ranking/            # Ranking global
-│   └── collab/             # Salas colaborativas
-├── app/api/agents/
-│   ├── chat/               # AGT tutor principal
-│   ├── educador/           # APl MINEDUC
-│   ├── examen/             # Simulacro de examen
-│   ├── image/              # AIm visual generation
-│   ├── imagenes/           # Generador avanzado con FLUX/SD + editor de prompt
-│   │   └── preview/        # Preview del prompt optimizado sin generar
-│   ├── visual-detect/      # Detector automático de contenido visual en estudio
-│   ├── investigador/       # Investigación académica
-│   ├── matematico/         # Matemáticas + LaTeX
-│   ├── paper/              # Chat con PDF
-│   ├── redactor/           # Redacción documentos
-│   └── traductor/          # Traducción
+│   └── agentes/            # Directorio de todos los agentes
+├── app/api/
+│   ├── agents/
+│   │   ├── chat/           # AGT tutor principal (streaming Groq)
+│   │   ├── collab/         # Profesor ACo moderador pedagógico
+│   │   ├── orchestrator/   # Sistema 4 agentes (Capitán, Investigador, Lógico, Creativo)
+│   │   ├── imagenes/       # Generador FLUX/SD con persistencia + editor prompt
+│   │   ├── visual-detect/  # Detector automático contenido visual
+│   │   ├── matematico/     # Matemáticas + LaTeX (Gemini)
+│   │   ├── investigador/   # Investigación académica (Gemini)
+│   │   ├── redactor/       # Redacción documentos (Gemini)
+│   │   ├── traductor/      # Traducción (Gemini)
+│   │   └── paper/extract/  # PDF multilingüe (Gemini)
+│   ├── chat/
+│   │   ├── friends/        # Amigos, búsqueda por código/nombre, solicitudes
+│   │   ├── messages/       # Mensajes, conversaciones, reacciones
+│   │   ├── notifications/  # Notificaciones en tiempo real
+│   │   ├── presence/       # Estado online/offline
+│   │   └── upload/         # Archivos al Storage
+│   └── rooms/              # Salas colaborativas multiusuario
 ├── lib/
-│   ├── ai-router.ts        # Router multi-modelo con fallback automático
-│   └── supabase/           # Cliente Supabase (client + server)
+│   ├── ai-router.ts        # Router multi-modelo con preferencia por agente + fallback
+│   └── supabase/
+│       ├── client.ts
+│       └── server.ts
 └── components/
-    ├── ui/
-    │   ├── MathRenderer.tsx # Renderizado LaTeX con KaTeX
-    │   └── AgentHeader.tsx  # Header reutilizable con botón volver
-    └── dashboard/
-        └── MissionsPanel.tsx
+    └── ui/
+        ├── MathRenderer.tsx # KaTeX rendering
+        └── AgentHeader.tsx
 ```
 
 ---
@@ -255,7 +332,6 @@ npm install
 cp .env.example .env.local
 ```
 
-Edita `.env.local`:
 ```env
 # Supabase (supabase.com → gratis)
 NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
@@ -264,11 +340,11 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJxxx...
 # Groq (console.groq.com → gratis)
 GROQ_API_KEY=gsk_xxx...
 
-# OpenRouter (openrouter.ai → gratis, sin tarjeta)
-OPENROUTER_API_KEY=sk-or-xxx...
-
 # Google Gemini (aistudio.google.com → gratis)
 GEMINI_API_KEY=AIzaXxx...
+
+# OpenRouter (openrouter.ai → gratis, sin tarjeta)
+OPENROUTER_API_KEY=sk-or-xxx...
 
 # HuggingFace (huggingface.co → gratis)
 HF_TOKEN_1=hf_xxx...
@@ -281,69 +357,7 @@ TOGETHER_API_KEY=xxx...
 
 ### 3. Configurar base de datos Supabase
 
-Ejecuta en Supabase → SQL Editor:
-
-```sql
-create table if not exists user_progress (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid references auth.users not null unique,
-  xp integer default 0,
-  streak integer default 0,
-  sessions integer default 0,
-  last_session date,
-  created_at timestamp default now()
-);
-
-create table if not exists study_sessions (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid references auth.users not null,
-  topic text not null,
-  score integer,
-  messages_count integer default 0,
-  created_at timestamp default now()
-);
-
-create table if not exists missions (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid references auth.users not null,
-  mission_id text not null,
-  completed boolean default false,
-  progress integer default 0,
-  last_reset date,
-  unique(user_id, mission_id)
-);
-
-create table if not exists achievements (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid references auth.users not null,
-  achievement_id text not null,
-  unlocked_at timestamp default now(),
-  unique(user_id, achievement_id)
-);
-
-alter table user_progress enable row level security;
-alter table study_sessions enable row level security;
-alter table missions enable row level security;
-alter table achievements enable row level security;
-
-create policy "users own progress" on user_progress for all using (auth.uid() = user_id);
-create policy "users own sessions" on study_sessions for all using (auth.uid() = user_id);
-create policy "users own missions" on missions for all using (auth.uid() = user_id);
-create policy "users own achievements" on achievements for all using (auth.uid() = user_id);
-
-create or replace function handle_new_user()
-returns trigger as $$
-begin
-  insert into public.user_progress (user_id) values (new.id) on conflict do nothing;
-  return new;
-end;
-$$ language plpgsql security definer;
-
-drop trigger if exists on_auth_user_created on auth.users;
-create trigger on_auth_user_created
-  after insert on auth.users
-  for each row execute procedure handle_new_user();
-```
+Ejecuta en Supabase → SQL Editor el schema completo (ver `/supabase/schema.sql` en el repo).
 
 ### 4. Ejecutar en desarrollo
 ```bash
@@ -355,9 +369,8 @@ npm run dev
 ## Despliegue en Vercel
 
 1. Conecta tu repositorio en [vercel.com](https://vercel.com)
-2. Vercel detecta Next.js automáticamente — sin configuración adicional
-3. Agrega variables de entorno en Vercel → Settings → Environment Variables
-4. En Supabase → Authentication → URL Configuration agrega tu dominio Vercel en Redirect URLs
+2. Agrega variables de entorno en Vercel → Settings → Environment Variables
+3. En Supabase → Authentication → URL Configuration agrega tu dominio en Redirect URLs
 
 ---
 
@@ -366,13 +379,15 @@ npm run dev
 | Feature | EduAI Platform | Khan Academy | ChatGPT Edu | NotebookLM |
 |---------|---------------|--------------|-------------|------------|
 | Multi-agente especializado | ✅ 18+ agentes | ❌ | ❌ | ❌ |
+| Orquestador 4 agentes | ✅ | ❌ | ❌ | ❌ |
 | Adaptativo en tiempo real | ✅ | ✅ | ❌ | ❌ |
 | Currículo MINEDUC Chile | ✅ | ❌ | ❌ | ❌ |
-| Chat con Papers PDF | ✅ | ❌ | ✅ parcial | ✅ |
+| Chat con Papers PDF (ES/EN) | ✅ | ❌ | ✅ parcial | ✅ |
 | Modo Examen con IA | ✅ | ✅ | ❌ | ❌ |
 | Gamificación completa | ✅ | ✅ | ❌ | ❌ |
 | LaTeX matemático | ✅ | ✅ | ✅ | ❌ |
-| Colaborativo en tiempo real | ✅ | ❌ | ❌ | ❌ |
+| Colaborativo multiusuario | ✅ hasta 10 | ❌ | ❌ | ❌ |
+| Chat social con amigos | ✅ | ❌ | ❌ | ❌ |
 | Generación de imágenes | ✅ | ❌ | ✅ | ❌ |
 | 100% gratuito | ✅ | ✅ | ❌ | ✅ |
 | Open source | ✅ | ❌ | ❌ | ❌ |
@@ -382,15 +397,26 @@ npm run dev
 ## Roadmap
 
 ### Próximas funcionalidades
-- [ ] 📄 **Agente PDF** — analiza, resume y extrae información de PDFs subidos; genera fichas de estudio a partir de documentos académicos; va más allá del lector trabajando directamente con los archivos
-- [ ] 🃏 **Agente Flashcards** — genera tarjetas de estudio y quizzes desde cualquier tema o documento, con sistema de repetición espaciada integrado
-- [ ] 🗺️ **Agente Mapas Conceptuales** — genera mapas mentales en formato visual (Mermaid o SVG) desde cualquier tema, complementando al Tutor
-- [x] 🎨 **Generador de Imágenes avanzado** — prompt optimizado + Together AI (FLUX) + Hugging Face (SD XL) + editor de prompt + visualización automática en sesiones de estudio
+- [ ] 📄 **Agente PDF** — analiza, resume y extrae información de PDFs; genera fichas de estudio desde documentos académicos
+- [ ] 🃏 **Agente Flashcards** — tarjetas de estudio con repetición espaciada SM-2 integrada
+- [ ] 🗺️ **Agente Mapas Conceptuales** — mapas mentales en Mermaid/SVG desde cualquier tema
 - [ ] 🧠 **AOp** — Orquestador central con arquitectura 14 agentes / 5 capas
 - [ ] 🗣️ **ADebate** — el estudiante defiende una postura frente a la IA
 - [ ] 👨‍🏫 **AProf** — modo profesor inverso: el estudiante explica, la IA evalúa
 - [ ] 📱 **App móvil** — Android/iOS con Capacitor
 - [ ] 📊 **Analytics para docentes** — dashboard de seguimiento de estudiantes
+- [ ] 🔔 **Notificaciones push** — alertas de solicitudes y mensajes
+- [ ] 😀 **Emojis en chat** — selector de emojis y stickers
+
+### Completado recientemente ✅
+- [x] 🤖 Sistema orquestador de 4 agentes (Capitán, Investigador, Lógico, Creativo)
+- [x] 🤝 Colaboración multiusuario real con `room_members` (hasta 10)
+- [x] 🎓 Profesor ACo con detección de dudas y tutor lock anti-duplicados
+- [x] 💬 Chat social tipo Messenger con códigos únicos de 8 caracteres
+- [x] 🖼️ Galería persistente con filtros, eliminar y descargar
+- [x] 📄 PDF multilingüe con parser robusto (ES/EN)
+- [x] 🎨 Generador de imágenes con persistencia y editor de prompt
+- [x] 🔄 AI Router con asignación por agente (Gemini/Groq) y fallback automático
 
 ### Arquitectura planificada (5 capas)
 ```
@@ -423,6 +449,6 @@ MIT License — ver [LICENSE](LICENSE) para más detalles.
 
 Desarrollado por **[Innova Space Education](https://innova-space-edu.cl/)**
 
-**[🌐 eduai-platform-virid.vercel.app](https://eduai-platform-virid.vercel.app)**
+**[🌐 eduaiplatformclon.vercel.app](https://eduaiplatformclon.vercel.app)**
 
 </div>
