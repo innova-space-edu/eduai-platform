@@ -53,12 +53,38 @@ export default function ChatPage() {
   const [searching, setSearching] = useState(false)
   const [tab, setTab] = useState<"chats"|"friends"|"add">("chats")
   const [uploading, setUploading] = useState(false)
+  const [notifications, setNotifications] = useState<any[]>([])
+  const [unreadCount, setUnreadCount] = useState<number>(0)
+  const [searchResults, setSearchResults] = useState<any[]>([])
   const bottomRef = useRef<HTMLDivElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     init()
-    return () => { ping(false) }
+    loadNotifications()
+    loadUnreadCount()
+
+    const notifChannel = supabase.channel("rt-notifications")
+      .on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, () => {
+        loadNotifications(); loadUnreadCount()
+      }).subscribe()
+
+    const friendsChannel = supabase.channel("rt-friendships")
+      .on("postgres_changes", { event: "*", schema: "public", table: "friendships" }, () => {
+        loadFriends(); loadRequests()
+      }).subscribe()
+
+    const convChannel = supabase.channel("rt-conversations")
+      .on("postgres_changes", { event: "*", schema: "public", table: "conversations" }, () => {
+        loadConversations()
+      }).subscribe()
+
+    return () => {
+      ping(false)
+      supabase.removeChannel(notifChannel)
+      supabase.removeChannel(friendsChannel)
+      supabase.removeChannel(convChannel)
+    }
   }, [])
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior:"smooth" }) }, [messages])
@@ -111,17 +137,44 @@ export default function ChatPage() {
     if (res.ok) setConversations(await res.json())
   }
 
+  async function loadNotifications() {
+    try {
+      const res = await fetch("/api/chat/notifications", { cache: "no-store" })
+      const data = await res.json()
+      setNotifications(Array.isArray(data) ? data : [])
+    } catch {}
+  }
+
+  async function loadUnreadCount() {
+    try {
+      const res = await fetch("/api/chat/notifications?action=unreadCount", { cache: "no-store" })
+      const data = await res.json()
+      setUnreadCount(data?.count ?? 0)
+    } catch {}
+  }
+
+  async function markNotificationRead(id: string) {
+    await fetch("/api/chat/notifications", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "markRead", notificationId: id }),
+    })
+    loadNotifications()
+    loadUnreadCount()
+  }
+
   async function loadMessages(id: string) {
     const res = await fetch(`/api/chat/messages?conversationId=${id}`)
     if (res.ok) setMessages(await res.json())
   }
 
   async function searchUser() {
-    if (searchCode.length < 4) return
+    if (searchCode.length < 2) return
     setSearching(true); setSearchResult(undefined)
     try {
-      const res = await fetch(`/api/chat/friends?code=${searchCode.trim()}`)
-      setSearchResult(await res.json())
+      const res = await fetch(`/api/chat/friends?q=${encodeURIComponent(searchCode.trim())}`, { cache: "no-store" })
+      const data = await res.json()
+      setSearchResults(Array.isArray(data) ? data : (data ? [data] : []))
+      setSearchResult(Array.isArray(data) ? data[0] : data)
     } finally { setSearching(false) }
   }
 

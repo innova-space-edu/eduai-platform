@@ -6,17 +6,38 @@ export async function GET(req: Request) {
   if (!user) return new Response("Unauthorized", { status: 401 })
 
   const { searchParams } = new URL(req.url)
+
   const code = searchParams.get("code")
+  const q = searchParams.get("q")
+  const id = searchParams.get("id")
   const action = searchParams.get("action")
 
-  // Buscar usuario por código
-  if (code) {
-    const { data } = await supabase.from("profiles")
+  // Buscar usuario por id/código/nombre:
+  // - ?id=<uuid> (exacto)
+  // - ?code=<USER_CODE> (exacto)
+  // - ?q=<texto> (nombre o código parcial, devuelve lista)
+  if (id || code || q) {
+    const base = supabase
+      .from("profiles")
       .select("id, name, user_code, avatar_url, is_online, last_seen")
-      .eq("user_code", code.toUpperCase())
       .neq("id", user.id)
-      .maybeSingle()
-    return Response.json(data || null)
+
+    if (id) {
+      const { data } = await base.eq("id", id).maybeSingle()
+      return Response.json(data || null)
+    }
+
+    if (code) {
+      const { data } = await base.eq("user_code", code.toUpperCase()).maybeSingle()
+      return Response.json(data || null)
+    }
+
+    const term = (q || "").trim()
+    if (!term) return Response.json([])
+    const { data } = await base
+      .or(`name.ilike.%${term}%,user_code.ilike.%${term}%`)
+      .limit(20)
+    return Response.json(data || [])
   }
 
   // Listar amigos
