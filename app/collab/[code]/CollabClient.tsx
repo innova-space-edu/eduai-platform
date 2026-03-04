@@ -10,25 +10,24 @@ interface Message { id: string; room_id?: string; user_id: string; user_name: st
 interface Props { room: Room; userId: string; userName: string }
 
 export default function CollabClient({ room, userId, userName }: Props) {
-  const [messages, setMessages]       = useState<Message[]>([])
-  const [input, setInput]             = useState("")
-  const [roomStatus, setRoomStatus]   = useState(room.status)
-  const [acoThinking, setAcoThinking] = useState(false)
-  const [sending, setSending]         = useState(false)
-  const [realtimeOk, setRealtimeOk]   = useState(false)
-  const [memberCount, setMemberCount]  = useState(1)
+  const [messages, setMessages]      = useState<Message[]>([])
+  const [input, setInput]            = useState("")
+  const [roomStatus, setRoomStatus]  = useState(room.status)
+  const [acoThinking, setAcoThinking]= useState(false)
+  const [sending, setSending]        = useState(false)
+  const [realtimeOk, setRealtimeOk]  = useState(false)
+  const [memberCount, setMemberCount]= useState(1)
 
-  const bottomRef   = useRef<HTMLDivElement>(null)
-  const supabase    = useRef(createClient()).current
-  const msgCountRef = useRef(0)
-  const acoRef      = useRef(false)
-  const isHost      = room.host_id === userId
-  // ID único por pestaña para evitar colisión de canales
-  const tabId       = useRef(`${userId.slice(0,8)}-${Date.now()}`).current
+  const bottomRef = useRef<HTMLDivElement>(null)
+  const supabase  = useRef(createClient()).current
+  const acoRef    = useRef(false)
+  const isHost    = room.host_id === userId
+  const tabId     = useRef(`${userId.slice(0,8)}-${Date.now()}`).current
 
   useEffect(() => {
     joinRoom()
     loadMessages()
+    loadMembersCount()
 
     const ch1 = supabase.channel(`rs-${tabId}`)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "study_rooms", filter: `id=eq.${room.id}` },
@@ -44,14 +43,17 @@ export default function CollabClient({ room, userId, userName }: Props) {
         (payload) => {
           const msg = payload.new as Message
           setMessages(prev => prev.some(m => m.id === msg.id) ? prev : [...prev, msg])
-          if (msg.type === "chat" && msg.user_id !== userId) {
-            msgCountRef.current += 1
-            // Solo el host llama ACo para evitar que ambos lo hagan
-            if (isHost && msgCountRef.current % 2 === 0) {
-              setTimeout(() => triggerACo(false), 800)
+          if (msg.type === "chat" && msg.user_id !== "system" && msg.user_id !== "00000000-0000-0000-0000-000000000000") {
+            if (looksLikeQuestion(msg.content)) {
+              setTimeout(() => triggerACo(false), 600)
             }
           }
         })
+      .subscribe()
+
+    const ch3 = supabase.channel(`rmem-${tabId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "room_members", filter: `room_id=eq.${room.id}` },
+        () => { loadMembersCount() })
       .subscribe()
 
     if (room.status === "active" && isHost) {
@@ -61,38 +63,41 @@ export default function CollabClient({ room, userId, userName }: Props) {
     return () => {
       supabase.removeChannel(ch1)
       supabase.removeChannel(ch2)
+      supabase.removeChannel(ch3)
     }
-    loadMembersCount()
-  }, [])
   }, [])
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }) }, [messages, acoThinking])
 
+  function looksLikeQuestion(text: string) {
+    const t = text.toLowerCase()
+    return t.includes("?") || t.includes("¿") || t.includes("no entiendo") ||
+      t.includes("explica") || t.includes("cómo") || t.includes("como ") ||
+      t.includes("por qué") || t.includes("porque") || t.includes("ayuda") ||
+      t.includes("ejemplo") || t.includes("duda")
+  }
+
   async function joinRoom() {
-    if (!isHost) {
-      await supabase.from("study_rooms").update({ guest_id: userId, status: "active" }).eq("id", room.id)
-      setRoomStatus("active")
-      await supabase.from("room_messages").insert({
-        room_id: room.id, user_id: "system", user_name: "Sistema",
-        content: `${userName} se unió a la sesión`, type: "system",
-      })
-    } else if (room.status === "active") {
-      setRoomStatus("active")
-    }
     await supabase.from("room_members").upsert({
       room_id: room.id, user_id: userId, user_name: userName,
       role: isHost ? "host" : "member", is_online: true,
       last_seen: new Date().toISOString(),
     }, { onConflict: "room_id,user_id" })
-    
+
+    await supabase.from("room_messages").insert({
+      room_id: room.id, user_id: "system", user_name: "Sistema",
+      content: `${userName} se unió a la sesión`, type: "system",
+    })
+
     const { count } = await supabase.from("room_members")
       .select("id", { count: "exact", head: true }).eq("room_id", room.id)
-    
+
     if ((count || 0) >= 2) {
       await supabase.from("study_rooms").update({ status: "active" }).eq("id", room.id)
       setRoomStatus("active")
     }
   }
+
   async function loadMembersCount() {
     const { count } = await supabase.from("room_members")
       .select("id", { count: "exact", head: true })
@@ -104,7 +109,6 @@ export default function CollabClient({ room, userId, userName }: Props) {
     const { data } = await supabase.from("room_messages").select("*")
       .eq("room_id", room.id).order("created_at", { ascending: true })
     setMessages((data as Message[]) || [])
-    msgCountRef.current = data?.length || 0
   }
 
   async function sendMessage() {
@@ -117,10 +121,6 @@ export default function CollabClient({ room, userId, userName }: Props) {
         room_id: room.id, user_id: userId, user_name: userName, content, type: "chat",
       })
       if (error) { console.error(error); setInput(content) }
-      else if (isHost) {
-        msgCountRef.current += 1
-        if (msgCountRef.current % 2 === 0) setTimeout(() => triggerACo(false), 800)
-      }
     } finally { setSending(false) }
   }
 
@@ -129,6 +129,12 @@ export default function CollabClient({ room, userId, userName }: Props) {
     acoRef.current = true
     setAcoThinking(true)
     try {
+      if (!isWelcome) {
+        const { data: locked } = await supabase.rpc("claim_tutor_lock", {
+          p_room_id: room.id, p_owner: userId, p_seconds: 15,
+        })
+        if (!locked) { setAcoThinking(false); acoRef.current = false; return }
+      }
       const { data: recent } = await supabase.from("room_messages").select("*")
         .eq("room_id", room.id).order("created_at", { ascending: false }).limit(8)
       const res = await fetch("/api/agents/collab", {
@@ -145,7 +151,9 @@ export default function CollabClient({ room, userId, userName }: Props) {
     finally { setAcoThinking(false); setTimeout(() => { acoRef.current = false }, 3000) }
   }
 
-  function formatTime(d: string) { return new Date(d).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" }) }
+  function formatTime(d: string) {
+    return new Date(d).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })
+  }
 
   return (
     <main className="min-h-screen bg-gray-950 text-white flex flex-col">
@@ -160,7 +168,9 @@ export default function CollabClient({ room, userId, userName }: Props) {
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5">
               <div className={`w-2 h-2 rounded-full ${roomStatus === "active" ? "bg-green-400" : "bg-amber-400 animate-pulse"}`} />
-              <span className="text-xs text-gray-400">{roomStatus === "active" ? "2 conectados" : "Esperando..."}</span>
+              <span className="text-xs text-gray-400">
+                {roomStatus === "active" ? `${memberCount} conectados` : "Esperando..."}
+              </span>
             </div>
             <div className={`w-1.5 h-1.5 rounded-full ${realtimeOk ? "bg-blue-400" : "bg-gray-600"}`} title={realtimeOk ? "Realtime activo" : "Conectando..."} />
             <div className="bg-blue-500/20 border border-blue-500/30 rounded-full px-3 py-1">
@@ -195,15 +205,16 @@ export default function CollabClient({ room, userId, userName }: Props) {
             )}
 
             {messages.map((msg) => {
-              const isMe     = msg.user_id === userId
-              const isAgent  = msg.type === "agent"
-              const isSystem = msg.type === "system"
+              const isMe    = msg.user_id === userId
+              const isAgent = msg.type === "agent"
+              const isSystem= msg.type === "system"
 
               if (isSystem) return (
                 <div key={msg.id} className="flex justify-center">
                   <span className="text-gray-700 text-xs bg-gray-900 border border-gray-800 px-3 py-1 rounded-full">{msg.content}</span>
                 </div>
               )
+
               if (isAgent) return (
                 <div key={msg.id} className="flex justify-start">
                   <div className="bg-purple-500/10 border border-purple-500/20 rounded-2xl rounded-tl-sm px-4 py-3 max-w-lg">
@@ -216,6 +227,7 @@ export default function CollabClient({ room, userId, userName }: Props) {
                   </div>
                 </div>
               )
+
               return (
                 <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
                   <div className={`rounded-2xl px-4 py-3 max-w-sm ${isMe ? "bg-blue-600/20 border border-blue-500/30 rounded-tr-sm" : "bg-gray-900 border border-white/5 rounded-tl-sm"}`}>
@@ -226,13 +238,6 @@ export default function CollabClient({ room, userId, userName }: Props) {
                     <p className="text-gray-200 text-sm leading-relaxed">{msg.content}</p>
                   </div>
                 </div>
-                function looksLikeQuestion(text: string) {
-                  const t = text.toLowerCase()
-                  return t.includes("?") || t.includes("¿") || t.includes("no entiendo") ||
-                    t.includes("explica") || t.includes("cómo") || t.includes("como ") ||
-                    t.includes("por qué") || t.includes("porque") || t.includes("ayuda") ||
-                    t.includes("ejemplo") || t.includes("duda")
-                }
               )
             })}
 
@@ -244,10 +249,12 @@ export default function CollabClient({ room, userId, userName }: Props) {
                     <span className="text-purple-400 text-xs font-semibold">Profesor ACo está escribiendo...</span>
                   </div>
                   <div className="flex gap-1 mt-1">
-                    {[0,150,300].map(d => <div key={d} className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay:`${d}ms` }} />)}
+                    {[0,150,300].map(d => (
+                      <div key={d} className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay:`${d}ms` }} />
+                    ))}
                   </div>
                 </div>
-                            <span className="text-xs text-gray-400">{roomStatus === "active" ? `${memberCount} conectados` : "Esperando..."}</span>
+              </div>
             )}
             <div ref={bottomRef} />
           </div>
