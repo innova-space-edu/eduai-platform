@@ -1,7 +1,7 @@
 // src/components/ui/DownloadBar.tsx
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, type MutableRefObject } from "react"
 import {
   downloadRenderedAsImage,
   downloadAsPDF,
@@ -23,8 +23,8 @@ const FORMAT_DOWNLOADS: Record<string, { label: string; icon: string; action: st
   ],
   ppt: [
     { label: "PPTX", icon: "📑", action: "pptx" },
-    { label: "PDF",  icon: "📄", action: "pdf" },
-    { label: "PNG",  icon: "🖼️", action: "png" },
+    { label: "PDF", icon: "📄", action: "pdf" },
+    { label: "PNG", icon: "🖼️", action: "png" },
   ],
   poster: [
     { label: "PNG", icon: "🖼️", action: "png" },
@@ -32,10 +32,10 @@ const FORMAT_DOWNLOADS: Record<string, { label: string; icon: string; action: st
     { label: "PDF", icon: "📄", action: "pdf" },
   ],
   podcast: [
-    { label: "Audio WAV",  icon: "🎵", action: "wav" },
-    { label: "Escuchar",   icon: "🔊", action: "play" },
-    { label: "PDF Guión",  icon: "📄", action: "pdf" },
-    { label: "TXT Guión",  icon: "📝", action: "txt" },
+    { label: "Audio WAV", icon: "🎵", action: "wav" },
+    { label: "Escuchar", icon: "🔊", action: "play" },
+    { label: "PDF Guión", icon: "📄", action: "pdf" },
+    { label: "TXT Guión", icon: "📝", action: "txt" },
   ],
   mindmap: [
     { label: "PNG", icon: "🖼️", action: "png" },
@@ -45,9 +45,7 @@ const FORMAT_DOWNLOADS: Record<string, { label: string; icon: string; action: st
     { label: "PDF", icon: "📄", action: "pdf" },
     { label: "PNG", icon: "🖼️", action: "png" },
   ],
-  quiz: [
-    { label: "PDF", icon: "📄", action: "pdf" },
-  ],
+  quiz: [{ label: "PDF", icon: "📄", action: "pdf" }],
   timeline: [
     { label: "PNG", icon: "🖼️", action: "png" },
     { label: "PDF", icon: "📄", action: "pdf" },
@@ -73,6 +71,7 @@ export default function DownloadBar({ format, data, title, accentColor = "#3b82f
     setSuccess(null)
     setProgress("")
     cancelRef.current = false
+
     try {
       switch (action) {
         case "png":
@@ -97,13 +96,14 @@ export default function DownloadBar({ format, data, title, accentColor = "#3b82f
           downloadScript(data, baseName)
           break
       }
+
       if (!cancelRef.current) {
         setSuccess(action)
         setTimeout(() => setSuccess(null), 2000)
       }
     } catch (err: any) {
       console.error("Error:", err)
-      setProgress(`Error: ${err.message}`)
+      setProgress(`Error: ${err?.message || "Error desconocido"}`)
       setTimeout(() => setProgress(""), 4000)
     } finally {
       setDownloading(null)
@@ -129,7 +129,7 @@ export default function DownloadBar({ format, data, title, accentColor = "#3b82f
           return (
             <button
               key={d.action}
-              onClick={() => isStoppable ? handleStop() : handleDownload(d.action)}
+              onClick={() => (isStoppable ? handleStop() : handleDownload(d.action))}
               disabled={downloading !== null && downloading !== d.action && !isStoppable}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all ${
                 isStoppable
@@ -183,21 +183,25 @@ function splitText(text: string, maxLen = 200): string[] {
 }
 
 // Extraer PCM data de un WAV ArrayBuffer
-function extractWavPCM(wav: ArrayBuffer): { pcm: Uint8Array; sampleRate: number; numChannels: number; bitsPerSample: number } {
+function extractWavPCM(
+  wav: ArrayBuffer
+): { pcm: Uint8Array; sampleRate: number; numChannels: number; bitsPerSample: number } {
   const view = new DataView(wav)
 
-  // Verificar RIFF
   if (wav.byteLength < 44) throw new Error("WAV demasiado corto")
 
-  // Leer formato desde "fmt " chunk
   let sampleRate = 16000
   let numChannels = 1
   let bitsPerSample = 16
 
   // Buscar "fmt "
   for (let i = 0; i < wav.byteLength - 4; i++) {
-    if (view.getUint8(i) === 0x66 && view.getUint8(i+1) === 0x6D &&
-        view.getUint8(i+2) === 0x74 && view.getUint8(i+3) === 0x20) {
+    if (
+      view.getUint8(i) === 0x66 &&
+      view.getUint8(i + 1) === 0x6d &&
+      view.getUint8(i + 2) === 0x74 &&
+      view.getUint8(i + 3) === 0x20
+    ) {
       numChannels = view.getUint16(i + 10, true)
       sampleRate = view.getUint32(i + 12, true)
       bitsPerSample = view.getUint16(i + 22, true)
@@ -207,8 +211,12 @@ function extractWavPCM(wav: ArrayBuffer): { pcm: Uint8Array; sampleRate: number;
 
   // Buscar "data" chunk
   for (let i = 0; i < wav.byteLength - 8; i++) {
-    if (view.getUint8(i) === 0x64 && view.getUint8(i+1) === 0x61 &&
-        view.getUint8(i+2) === 0x74 && view.getUint8(i+3) === 0x61) {
+    if (
+      view.getUint8(i) === 0x64 &&
+      view.getUint8(i + 1) === 0x61 &&
+      view.getUint8(i + 2) === 0x74 &&
+      view.getUint8(i + 3) === 0x61
+    ) {
       const dataSize = view.getUint32(i + 4, true)
       const dataStart = i + 8
       const pcm = new Uint8Array(wav, dataStart, Math.min(dataSize, wav.byteLength - dataStart))
@@ -235,7 +243,7 @@ function buildWav(pcmParts: Uint8Array[], sampleRate: number, numChannels: numbe
   wav.set([0x57, 0x41, 0x56, 0x45], 8) // "WAVE"
 
   // fmt chunk
-  wav.set([0x66, 0x6D, 0x74, 0x20], 12) // "fmt "
+  wav.set([0x66, 0x6d, 0x74, 0x20], 12) // "fmt "
   view.setUint32(16, 16, true) // chunk size
   view.setUint16(20, 1, true) // PCM format
   view.setUint16(22, numChannels, true)
@@ -262,7 +270,7 @@ function buildWav(pcmParts: Uint8Array[], sampleRate: number, numChannels: numbe
 function makeSilence(ms: number, sampleRate: number, numChannels: number, bitsPerSample: number): Uint8Array {
   const bytesPerSample = (bitsPerSample / 8) * numChannels
   const numSamples = Math.floor((sampleRate * ms) / 1000)
-  return new Uint8Array(numSamples * bytesPerSample) // zeros = silencio
+  return new Uint8Array(numSamples * bytesPerSample)
 }
 
 // Llamar a NUESTRO proxy (no a HF directo)
@@ -275,7 +283,7 @@ async function fetchAudioChunk(text: string): Promise<ArrayBuffer> {
     })
 
     if (res.status === 503) {
-      await new Promise(r => setTimeout(r, 5000))
+      await new Promise((r) => setTimeout(r, 5000))
       continue
     }
 
@@ -293,21 +301,19 @@ async function generateAndDownloadWAV(
   data: any,
   fileName: string,
   setProgress: (s: string) => void,
-  cancelRef: React.MutableRefObject<boolean>
+  cancelRef: MutableRefObject<boolean>
 ) {
   const segments = data.segments || []
   if (segments.length === 0) throw new Error("No hay segmentos")
 
-  // Preparar chunks de texto
   const allChunks: string[] = []
-  const segmentBoundaries: number[] = [] // índices donde cambia el segmento
+  const segmentBoundaries: number[] = []
 
   for (let i = 0; i < segments.length; i++) {
     const text = (segments[i].text || "").trim()
     if (!text) continue
-    const start = allChunks.length
     allChunks.push(...splitText(text, 250))
-    segmentBoundaries.push(allChunks.length) // marca fin de este segmento
+    segmentBoundaries.push(allChunks.length)
   }
 
   if (allChunks.length === 0) throw new Error("No hay texto para convertir")
@@ -339,12 +345,10 @@ async function generateAndDownloadWAV(
         pcmParts.push(parsed.pcm)
       }
     } catch (err: any) {
-      console.warn(`Chunk ${i + 1} falló:`, err.message)
-      // Insertar silencio en lugar del chunk fallido
+      console.warn(`Chunk ${i + 1} falló:`, err?.message || err)
       pcmParts.push(makeSilence(300, sampleRate, numChannels, bitsPerSample))
     }
 
-    // Pausa entre segmentos (cambio de speaker) vs dentro del mismo segmento
     const isSegmentEnd = segmentBoundaries.includes(i + 1)
     if (i < allChunks.length - 1) {
       const silenceMs = isSegmentEnd ? 500 : 100
@@ -353,21 +357,24 @@ async function generateAndDownloadWAV(
   }
 
   if (cancelRef.current) return
-  if (pcmParts.length === 0) throw new Error("No se generó audio. Verifica HF_API_KEY en Vercel.")
+  if (pcmParts.length === 0) throw new Error("No se generó audio. Verifica HF_API_KEY/HF_TOKEN en Vercel.")
 
   setProgress("Construyendo archivo WAV...")
 
-  // Construir WAV válido
   const finalWav = buildWav(pcmParts, sampleRate, numChannels, bitsPerSample)
 
-  // Descargar
-  const blob = new Blob([finalWav.buffer], { type: "audio/wav" })
+  // ✅ Blob seguro (sin finalWav.buffer)
+  const blob = new Blob([finalWav], { type: "audio/wav" })
   const url = URL.createObjectURL(blob)
+
   const a = document.createElement("a")
   a.href = url
   a.download = `${fileName}.wav`
   a.click()
-  URL.revokeObjectURL(url)
+
+  // delay mínimo para evitar cortar descarga en algunos navegadores
+  setTimeout(() => URL.revokeObjectURL(url), 1500)
+
   setProgress("")
 }
 
@@ -379,25 +386,28 @@ async function playWithSpeechAPI(
   data: any,
   setPlaying: (v: boolean) => void,
   setProgress: (s: string) => void,
-  cancelRef: React.MutableRefObject<boolean>
+  cancelRef: MutableRefObject<boolean>
 ) {
   const segments = data.segments || []
   if (segments.length === 0) throw new Error("No hay segmentos")
   if (!window.speechSynthesis) throw new Error("Navegador no soporta síntesis de voz")
 
   speechSynthesis.cancel()
-  await new Promise(r => setTimeout(r, 200))
+  await new Promise((r) => setTimeout(r, 200))
 
   let voices = speechSynthesis.getVoices()
   if (voices.length === 0) {
     await new Promise<void>((resolve) => {
-      speechSynthesis.onvoiceschanged = () => { voices = speechSynthesis.getVoices(); resolve() }
+      speechSynthesis.onvoiceschanged = () => {
+        voices = speechSynthesis.getVoices()
+        resolve()
+      }
       setTimeout(resolve, 2000)
     })
     voices = speechSynthesis.getVoices()
   }
 
-  const esVoices = voices.filter(v => v.lang.startsWith("es"))
+  const esVoices = voices.filter((v) => v.lang.startsWith("es"))
   const pool = esVoices.length >= 2 ? esVoices : voices
   const voiceA = pool[0]
   const voiceB = pool.length > 1 ? pool[1] : pool[0]
@@ -424,19 +434,26 @@ async function playWithSpeechAPI(
         u.rate = seg.speaker === "A" ? 0.9 : 1.0
         u.pitch = seg.speaker === "A" ? 0.8 : 1.2
         u.volume = 1.0
+
         let done = false
-        const finish = () => { if (!done) { done = true; resolve() } }
+        const finish = () => {
+          if (!done) {
+            done = true
+            resolve()
+          }
+        }
         u.onend = finish
         u.onerror = finish
         setTimeout(finish, 30000)
+
         speechSynthesis.speak(u)
       })
 
-      if (!cancelRef.current) await new Promise(r => setTimeout(r, 80))
+      if (!cancelRef.current) await new Promise((r) => setTimeout(r, 80))
     }
 
     if (!cancelRef.current && i < segments.length - 1) {
-      await new Promise(r => setTimeout(r, 400))
+      await new Promise((r) => setTimeout(r, 400))
     }
   }
 
@@ -454,13 +471,16 @@ function downloadScript(data: any, fileName: string) {
     `══════════════════════════════════════`,
     `  ${data.title || "Podcast EduAI"}`,
     `  Duración: ${data.duration || "5 min"}`,
-    `══════════════════════════════════════`, ``,
+    `══════════════════════════════════════`,
+    ``,
   ]
+
   for (const seg of segments) {
     lines.push(`[${seg.speaker === "A" ? "HOST A (Profesor)" : "HOST B (Estudiante)"}]`)
     lines.push(seg.text)
     lines.push(``)
   }
+
   lines.push(`──────────────────────────────────────`)
   lines.push(`Generado por EduAI Creator Studio`)
 
