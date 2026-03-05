@@ -5,13 +5,8 @@ import { useEffect, useState, useRef, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-
-import DownloadBar from "@/components/ui/DownloadBar"
 import ColorPalette from "@/components/ui/ColorPalette"
-
-// ============================================================
-// SIDEBAR (mismo patrón que dashboard)
-// ============================================================
+import DownloadBar from "@/components/ui/DownloadBar"
 
 const NAV_LINKS = [
   { href: "/dashboard", icon: "🏠", label: "Inicio" },
@@ -24,10 +19,6 @@ const NAV_LINKS = [
   { href: "/creator",   icon: "✨", label: "Creator" },
   { href: "/profile",   icon: "👤", label: "Perfil" },
 ]
-
-// ============================================================
-// OUTPUT FORMAT CONFIG
-// ============================================================
 
 const OUTPUT_FORMATS = [
   { id: "infographic", icon: "📊", label: "Infografía",    desc: "Visual con datos clave" },
@@ -48,9 +39,7 @@ const SOURCE_TYPES = [
   { id: "docx",  icon: "📎", label: "DOCX" },
 ]
 
-// ============================================================
-// RENDERERS
-// ============================================================
+/* ─── RENDERERS ─── */
 
 function InfographicRenderer({ data }: { data: any }) {
   const schemes: Record<string, { accent: string; light: string }> = {
@@ -61,7 +50,6 @@ function InfographicRenderer({ data }: { data: any }) {
     red:    { accent: "#ef4444", light: "rgba(239,68,68,0.08)" },
   }
   const c = schemes[data.colorScheme] || schemes.blue
-
   return (
     <div className="space-y-4">
       <div className="text-center">
@@ -106,14 +94,14 @@ function PodcastRenderer({ data }: { data: any }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center text-2xl">🎙️</div>
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center text-2xl shrink-0">🎙️</div>
         <div>
           <h3 className="text-white font-bold text-sm">{data.title}</h3>
           <p className="text-gray-600 text-xs">EduAI Podcast • {data.duration || "5 min"}</p>
         </div>
       </div>
       <div className="flex items-center gap-2 bg-white/[0.03] rounded-2xl p-3">
-        <button className="w-9 h-9 rounded-full bg-red-500 flex items-center justify-center text-white text-sm flex-shrink-0">▶</button>
+        <button className="w-9 h-9 rounded-full bg-red-500 flex items-center justify-center text-white text-sm shrink-0">▶</button>
         <div className="flex-1 flex items-end gap-[2px] h-6 overflow-hidden">
           {Array.from({ length: 50 }, (_, i) => (
             <div key={i} className="w-[3px] rounded-sm transition-all" style={{
@@ -127,14 +115,13 @@ function PodcastRenderer({ data }: { data: any }) {
         {(data.segments || []).map((seg: any, i: number) => (
           <div key={i} onClick={() => setCurrent(Math.floor((i / data.segments.length) * 50))}
             className="flex gap-2 p-2 rounded-xl cursor-pointer hover:bg-white/[0.03] transition-colors">
-            <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+            <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
               seg.speaker === "A" ? "bg-blue-500/20 text-blue-400" : "bg-yellow-500/20 text-yellow-400"
             }`}>{seg.speaker}</div>
             <p className="text-gray-400 text-xs leading-relaxed">{seg.text}</p>
           </div>
         ))}
       </div>
-      <p className="text-center text-gray-700 text-[10px]">⚡ Audio TTS con Kokoro / ElevenLabs (próximamente)</p>
     </div>
   )
 }
@@ -145,26 +132,21 @@ function FlashcardsRenderer({ data }: { data: any }) {
   const cards = data.cards || []
   const card = cards[idx]
   if (!card) return null
-
   return (
     <div className="text-center space-y-4">
       <h3 className="text-blue-400 font-bold text-sm">{data.deckTitle}</h3>
       <p className="text-gray-600 text-xs">{idx + 1} / {cards.length}</p>
       <div onClick={() => setFlipped(!flipped)}
         className={`min-h-[200px] rounded-3xl p-7 cursor-pointer border transition-all flex flex-col items-center justify-center ${
-          flipped
-            ? "bg-green-500/[0.06] border-green-500/20"
-            : "bg-blue-500/[0.06] border-blue-500/20"
+          flipped ? "bg-green-500/[0.06] border-green-500/20" : "bg-blue-500/[0.06] border-blue-500/20"
         }`}>
         <span className="text-[10px] text-gray-600 font-semibold tracking-widest mb-2">
           {flipped ? "RESPUESTA" : "PREGUNTA"} — toca para voltear
         </span>
-        <p className="text-white font-semibold text-base leading-relaxed">
-          {flipped ? card.back : card.front}
-        </p>
+        <p className="text-white font-semibold text-base leading-relaxed">{flipped ? card.back : card.front}</p>
         {card.difficulty && (
           <div className="flex gap-1 mt-3">
-            {[1, 2, 3].map(d => (
+            {[1, 2, 3].map((d: number) => (
               <div key={d} className={`w-2 h-2 rounded-full ${d <= card.difficulty ? "bg-yellow-400" : "bg-white/10"}`} />
             ))}
           </div>
@@ -186,12 +168,10 @@ function QuizRenderer({ data }: { data: any }) {
   const [done, setDone] = useState(false)
   const questions = data.questions || []
   const q = questions[qIdx]
-
   const score = Object.keys(answers).reduce((acc, k) => {
     const i = Number(k)
     return acc + (answers[i] === questions[i]?.correctAnswer ? 1 : 0)
   }, 0)
-
   if (done) {
     const pct = score / questions.length
     return (
@@ -199,16 +179,14 @@ function QuizRenderer({ data }: { data: any }) {
         <div className="text-5xl">{pct >= 0.7 ? "🎉" : pct >= 0.4 ? "📚" : "💪"}</div>
         <h3 className="text-2xl font-extrabold text-white">{score} / {questions.length}</h3>
         <p className="text-gray-500 text-sm">
-          {pct >= 0.7 ? "¡Excelente dominio!" : pct >= 0.4 ? "Buen progreso, sigue practicando" : "Repasa el material y vuelve a intentar"}
+          {pct >= 0.7 ? "¡Excelente dominio!" : pct >= 0.4 ? "Buen progreso" : "Repasa y vuelve a intentar"}
         </p>
         <button onClick={() => { setAnswers({}); setQIdx(0); setDone(false) }}
           className="mt-2 px-5 py-2.5 rounded-2xl bg-blue-600 text-white text-sm font-semibold">Reintentar</button>
       </div>
     )
   }
-
   if (!q) return null
-
   return (
     <div className="space-y-3">
       <div className="flex justify-between text-xs">
@@ -226,7 +204,6 @@ function QuizRenderer({ data }: { data: any }) {
           let cls = "bg-white/[0.03] border-white/[0.06]"
           if (answered && correct) cls = "bg-green-500/10 border-green-500/30"
           else if (answered && selected) cls = "bg-red-500/10 border-red-500/30"
-
           return (
             <button key={i} onClick={() => !answered && setAnswers({ ...answers, [qIdx]: i })}
               className={`w-full text-left p-3 rounded-xl border text-sm transition-all ${cls} ${!answered ? "cursor-pointer hover:bg-white/[0.06]" : ""}`}>
@@ -263,28 +240,23 @@ function MindmapRenderer({ data }: { data: any }) {
   const [selected, setSelected] = useState<string | null>(null)
   const nodes = data.nodes || []
   const cx = 280, cy = 220
-
   return (
     <div className="space-y-3">
       <h3 className="text-center text-blue-400 font-bold text-sm">🧠 {data.centralTopic}</h3>
       <div className="relative h-[420px] bg-white/[0.02] rounded-3xl border border-white/[0.06] overflow-hidden">
-        {/* Center */}
         <div className="absolute z-10 px-4 py-2 rounded-2xl bg-blue-500/10 border border-blue-500/30 text-center"
           style={{ left: cx - 55, top: cy - 18 }}>
           <span className="text-blue-400 font-bold text-xs">{data.centralTopic}</span>
         </div>
-        {/* Nodes */}
         {nodes.map((n: any, i: number) => {
           const angle = (2 * Math.PI * i) / nodes.length - Math.PI / 2
           const r = n.category === "main" ? 140 : 195
           const x = cx + Math.cos(angle) * r - 48
           const y = cy + Math.sin(angle) * r - 14
-
           return (
             <div key={n.id}>
               <svg className="absolute inset-0 w-full h-full pointer-events-none">
-                <line x1={cx} y1={cy} x2={x + 48} y2={y + 14}
-                  stroke={n.color || "#6366f140"} strokeWidth={1.5}
+                <line x1={cx} y1={cy} x2={x + 48} y2={y + 14} stroke={n.color || "#6366f140"} strokeWidth={1.5}
                   strokeDasharray={n.category === "detail" ? "4,4" : "none"} />
               </svg>
               <div onClick={() => setSelected(selected === n.id ? null : n.id)}
@@ -315,7 +287,6 @@ function PPTRenderer({ data }: { data: any }) {
   const slides = data.slides || []
   const s = slides[idx]
   if (!s) return null
-
   return (
     <div className="space-y-3">
       <div className="flex justify-between items-center">
@@ -390,7 +361,7 @@ function PosterRenderer({ data }: { data: any }) {
       <div className="space-y-4 text-left mb-6">
         {(data.mainPoints || []).map((pt: any, i: number) => (
           <div key={i} className="flex gap-3">
-            <span className="text-2xl flex-shrink-0">{pt.icon}</span>
+            <span className="text-2xl shrink-0">{pt.icon}</span>
             <div>
               <h3 className={`font-bold text-sm ${dark ? "text-gray-200" : "text-gray-900"}`}>{pt.title}</h3>
               <p className={`text-xs ${dark ? "text-gray-500" : "text-gray-600"}`}>{pt.description}</p>
@@ -407,10 +378,6 @@ function PosterRenderer({ data }: { data: any }) {
   )
 }
 
-// ============================================================
-// RENDERER MAP
-// ============================================================
-
 const RENDERERS: Record<string, React.FC<{ data: any }>> = {
   infographic: InfographicRenderer,
   ppt: PPTRenderer,
@@ -422,21 +389,21 @@ const RENDERERS: Record<string, React.FC<{ data: any }>> = {
   timeline: TimelineRenderer,
 }
 
-// ============================================================
-// MAIN PAGE
-// ============================================================
+/* ─── MAIN PAGE ─── */
 
+export default function CreatorStudioPage() {
   const [user, setUser] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(false)
   const [sourceType, setSourceType] = useState("topic")
   const [content, setContent] = useState("")
   const [fileName, setFileName] = useState("")
   const [outputFormat, setOutputFormat] = useState("infographic")
+  const [accentColor, setAccentColor] = useState("#3b82f6")
   const [processing, setProcessing] = useState(false)
   const [result, setResult] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
   const [step, setStep] = useState<"input" | "processing" | "result">("input")
-  const [accentColor, setAccentColor] = useState("#3b82f6")
   const fileRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
   const supabase = createClient()
@@ -445,6 +412,7 @@ const RENDERERS: Record<string, React.FC<{ data: any }>> = {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) router.push("/login")
       else setUser(user)
+      setLoading(false)
     })
   }, [])
 
@@ -465,7 +433,6 @@ const RENDERERS: Record<string, React.FC<{ data: any }>> = {
     setProcessing(true)
     setError(null)
     setStep("processing")
-
     try {
       const res = await fetch("/api/process-content", {
         method: "POST",
@@ -484,18 +451,28 @@ const RENDERERS: Record<string, React.FC<{ data: any }>> = {
     }
   }
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-10 h-10 rounded-full border-2 border-white/10 border-t-blue-400 animate-spin mx-auto mb-3" />
+          <p className="text-gray-500 text-sm">Cargando Creator Studio...</p>
+        </div>
+      </div>
+    )
+  }
+
   const sw = expanded ? "200px" : "64px"
   const Renderer = result ? RENDERERS[outputFormat] : null
 
   return (
     <div className="min-h-screen bg-gray-950 flex">
-
-      {/* ── Sidebar ── */}
+      {/* Sidebar */}
       <aside style={{ width: sw }}
         className="fixed left-0 top-0 h-full bg-gray-900/95 backdrop-blur-xl border-r border-white/5 flex flex-col z-20 transition-all duration-300 overflow-hidden">
         <button onClick={() => setExpanded(!expanded)}
-          className="h-14 flex items-center border-b border-white/5 flex-shrink-0 hover:bg-white/5 transition-colors px-3 gap-3 w-full">
-          <div className="w-10 flex items-center justify-center flex-shrink-0">
+          className="h-14 flex items-center border-b border-white/5 shrink-0 hover:bg-white/5 transition-colors px-3 gap-3 w-full">
+          <div className="w-10 flex items-center justify-center shrink-0">
             <span className="text-blue-400 font-bold text-lg">{expanded ? "◀" : "▶"}</span>
           </div>
           {expanded && <span className="text-blue-400 font-bold text-sm whitespace-nowrap">Edu<span className="text-white">AI</span></span>}
@@ -506,27 +483,25 @@ const RENDERERS: Record<string, React.FC<{ data: any }>> = {
               className={`flex items-center gap-3 mx-2 mb-1 px-2 py-2.5 rounded-2xl border border-transparent transition-all group ${
                 item.href === "/creator" ? "bg-white/[0.06] border-white/[0.08]" : "hover:bg-white/[0.06] hover:border-white/[0.08]"
               }`}>
-              <span className="text-2xl w-10 text-center flex-shrink-0">{item.icon}</span>
+              <span className="text-2xl w-10 text-center shrink-0">{item.icon}</span>
               {expanded && <span className={`text-sm font-medium whitespace-nowrap ${
                 item.href === "/creator" ? "text-white" : "text-gray-400 group-hover:text-white"
               }`}>{item.label}</span>}
             </Link>
           ))}
         </div>
-        <div className="border-t border-gray-800 py-3 flex-shrink-0">
+        <div className="border-t border-gray-800 py-3 shrink-0">
           <button onClick={async () => { await supabase.auth.signOut(); router.push("/login") }}
             className="flex items-center gap-3 mx-2 px-2 py-2.5 rounded-2xl border border-transparent hover:bg-white/[0.06] hover:border-white/[0.08] transition-all group w-[calc(100%-16px)]"
             title={!expanded ? "Salir" : undefined}>
-            <span className="text-2xl w-10 text-center flex-shrink-0">🚪</span>
+            <span className="text-2xl w-10 text-center shrink-0">🚪</span>
             {expanded && <span className="text-gray-500 group-hover:text-red-400 text-sm whitespace-nowrap transition-colors">Cerrar sesión</span>}
           </button>
         </div>
       </aside>
 
-      {/* ── Main ── */}
+      {/* Main */}
       <main style={{ marginLeft: sw }} className="flex-1 flex flex-col min-h-screen transition-all duration-300">
-
-        {/* Topbar */}
         <div className="border-b border-white/5 bg-gray-950/80 backdrop-blur-xl sticky top-0 z-10">
           <div className="max-w-2xl mx-auto px-6 py-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -544,7 +519,7 @@ const RENDERERS: Record<string, React.FC<{ data: any }>> = {
 
         <div className="max-w-2xl mx-auto w-full px-6 py-8 flex flex-col gap-5">
 
-          {/* ── INPUT STEP ── */}
+          {/* INPUT */}
           {step === "input" && (
             <>
               <div>
@@ -552,7 +527,6 @@ const RENDERERS: Record<string, React.FC<{ data: any }>> = {
                 <p className="text-gray-500 text-sm">Transforma cualquier contenido en infografías, presentaciones, podcasts y más</p>
               </div>
 
-              {/* Source */}
               <div>
                 <label className="text-gray-600 text-[11px] font-semibold tracking-widest block mb-2">FUENTE</label>
                 <div className="flex gap-2 flex-wrap">
@@ -569,7 +543,6 @@ const RENDERERS: Record<string, React.FC<{ data: any }>> = {
                 </div>
               </div>
 
-              {/* Content input */}
               {(sourceType === "topic" || sourceType === "text" || sourceType === "url") ? (
                 <textarea value={content} onChange={e => setContent(e.target.value)}
                   placeholder={
@@ -593,8 +566,6 @@ const RENDERERS: Record<string, React.FC<{ data: any }>> = {
                 </div>
               )}
 
-
-              {/* Output format */}
               <div>
                 <label className="text-gray-600 text-[11px] font-semibold tracking-widest block mb-2">¿QUÉ QUIERES CREAR?</label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -613,10 +584,8 @@ const RENDERERS: Record<string, React.FC<{ data: any }>> = {
                 </div>
               </div>
 
-              {/* Color Palette */}
               <ColorPalette value={accentColor} onChange={setAccentColor} />
 
-              {/* Generate button */}
               <button onClick={handleGenerate} disabled={!content.trim() || processing}
                 className="w-full py-3.5 rounded-2xl font-bold text-sm transition-all disabled:opacity-30 bg-blue-600/90 hover:bg-blue-500 text-white hover:shadow-lg hover:shadow-blue-500/20">
                 ✨ Generar {OUTPUT_FORMATS.find(f => f.id === outputFormat)?.label}
@@ -630,7 +599,7 @@ const RENDERERS: Record<string, React.FC<{ data: any }>> = {
             </>
           )}
 
-          {/* ── PROCESSING ── */}
+          {/* PROCESSING */}
           {step === "processing" && (
             <div className="text-center py-16">
               <div className="relative w-16 h-16 mx-auto mb-5">
@@ -646,7 +615,7 @@ const RENDERERS: Record<string, React.FC<{ data: any }>> = {
             </div>
           )}
 
-          {/* ── RESULT ── */}
+          {/* RESULT */}
           {step === "result" && result && (
             <>
               <div className="flex items-center gap-2 bg-green-500/[0.06] border border-green-500/20 rounded-2xl p-3">
@@ -659,14 +628,12 @@ const RENDERERS: Record<string, React.FC<{ data: any }>> = {
                   📋 JSON
                 </button>
               </div>
-
               <div id="creator-result-container" className="bg-gray-900/60 border border-white/5 rounded-3xl p-5 backdrop-blur-sm">
                 {Renderer && <Renderer data={result} />}
               </div>
               <DownloadBar format={outputFormat} data={result} accentColor={accentColor} />
             </>
           )}
-
         </div>
       </main>
     </div>
