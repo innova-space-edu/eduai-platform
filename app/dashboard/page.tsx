@@ -22,6 +22,7 @@ const BOTTOM_LINKS = [
   { href: "/ranking",  icon: "🏆", label: "Ranking"   },
   { href: "/chat",     icon: "💬", label: "Chat"      },
   { href: "/collab",   icon: "🤝", label: "Colaborar" },
+  { href: "/creator",  icon: "✨", label: "Creator"   },
   { href: "/profile",  icon: "👤", label: "Perfil"    },
 ]
 

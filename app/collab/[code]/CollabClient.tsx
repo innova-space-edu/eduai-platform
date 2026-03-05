@@ -78,16 +78,23 @@ export default function CollabClient({ room, userId, userName }: Props) {
   }
 
   async function joinRoom() {
-    await supabase.from("room_members").upsert({
+    // Upsert miembro
+    const { error: memberError } = await supabase.from("room_members").upsert({
       room_id: room.id, user_id: userId, user_name: userName,
       role: isHost ? "host" : "member", is_online: true,
       last_seen: new Date().toISOString(),
     }, { onConflict: "room_id,user_id" })
 
+    if (memberError) console.error("room_members error:", memberError)
+
+    // Mensaje sistema con UUID válido para evitar FK violation
     await supabase.from("room_messages").insert({
-      room_id: room.id, user_id: "system", user_name: "Sistema",
-      content: `${userName} se unió a la sesión`, type: "system",
-    })
+      room_id: room.id,
+      user_id: userId,
+      user_name: "Sistema",
+      content: `${userName} se unió a la sesión`,
+      type: "system",
+    }).then(({ error }) => { if (error) console.error("system msg error:", error) })
 
     const { count } = await supabase.from("room_members")
       .select("id", { count: "exact", head: true }).eq("room_id", room.id)
@@ -143,10 +150,14 @@ export default function CollabClient({ room, userId, userName }: Props) {
       })
       if (!res.ok) return
       const data = await res.json()
-      await supabase.from("room_messages").insert({
-        room_id: room.id, user_id: "00000000-0000-0000-0000-000000000000",
-        user_name: "ACo", content: data.message, type: "agent",
+      const { error: acoError } = await supabase.from("room_messages").insert({
+        room_id: room.id,
+        user_id: userId,
+        user_name: "ACo",
+        content: data.message,
+        type: "agent",
       })
+      if (acoError) console.error("ACo insert error:", acoError)
     } catch (e) { console.error("ACo:", e) }
     finally { setAcoThinking(false); setTimeout(() => { acoRef.current = false }, 3000) }
   }
