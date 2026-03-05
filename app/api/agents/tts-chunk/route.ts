@@ -1,13 +1,13 @@
 // src/app/api/agents/tts-chunk/route.ts
-// Proxy TTS: convierte UN texto corto a audio WAV via Hugging Face (Server-side)
-// El cliente llama esto N veces y concatena (PCM) en frontend
+// Proxy TTS: convierte UN texto corto a audio WAV via Hugging Face (server-side)
+// El cliente llama esto N veces y concatena los resultados
 
 import { NextRequest, NextResponse } from "next/server"
 
 const HF_MODEL = "facebook/mms-tts-spa"
 
-// ✅ Nuevo endpoint recomendado por HF (api-inference fue deprecado / 410)
-const HF_URL = `https://router.huggingface.co/hf-inference/models/${HF_MODEL}`
+// ✅ Nuevo endpoint recomendado por Hugging Face (api-inference -> router)
+const HF_BASE = "https://router.huggingface.co/hf-inference"
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,61 +17,49 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Texto vacío" }, { status: 400 })
     }
 
-    // Limitar tamaño por request para evitar colas/timeouts
-    const cleanText = text.trim().substring(0, 350)
-
-    // Token (fine-grained) con "Make calls to Inference Providers"
+    const cleanText = text.trim().substring(0, 300)
     const hfToken = process.env.HF_API_KEY || process.env.HF_TOKEN || ""
 
-    // ✅ Si quieres obligar token en producción (recomendado), deja esto activo:
+    // Importante: en Vercel SI o SI debe estar seteado
     if (!hfToken) {
       return NextResponse.json(
-        { error: "Falta HF_API_KEY o HF_TOKEN en variables de entorno (Vercel)." },
+        { error: "Falta HF_TOKEN/HF_API_KEY en variables de entorno (Vercel)" },
         { status: 500 }
       )
     }
 
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${hfToken}`,
+      "Authorization": `Bearer ${hfToken}`,
+      // Pedimos audio WAV explícitamente
+      "Accept": "audio/wav",
+      // suele ayudar a que espere el modelo en vez de responder 503
+      "x-wait-for-model": "true",
     }
 
-    // Llamar a HF desde el SERVIDOR (sin CORS)
-    const res = await fetch(HF_URL, {
+    const url = `${HF_BASE}/models/${HF_MODEL}`
+
+    const res = await fetch(url, {
       method: "POST",
       headers,
       body: JSON.stringify({ inputs: cleanText }),
-      // timeout seguro para serverless
-      signal: AbortSignal.timeout(15000),
+      // TTS puede tardar más que 9s en serverless
+      signal: AbortSignal.timeout(30000),
     })
 
-    // Modelo cargando / cola
     if (res.status === 503) {
       return NextResponse.json(
-        { error: "Modelo cargando (HF 503). Reintenta en unos segundos." },
+        { error: "Modelo cargando (503). Reintenta en unos segundos." },
         { status: 503 }
       )
     }
 
-    // Rate limit
-    if (res.status === 429) {
-      return NextResponse.json(
-        { error: "Rate limit (HF 429). Reintenta en unos segundos." },
-        { status: 429 }
-      )
-    }
-
-    // Token inválido / permisos
-    if (res.status === 401 || res.status === 403) {
-      const errText = await res.text().catch(() => "")
-      return NextResponse.json(
-        { error: `HF auth error ${res.status}: ${errText || "Token inválido o sin permisos"}` },
-        { status: 401 }
-      )
-    }
-
     if (!res.ok) {
-      const errText = await res.text().catch(() => "")
+      const ct = res.headers.get("content-type") || ""
+      const errText = ct.includes("application/json")
+        ? JSON.stringify(await res.json().catch(() => ({})))
+        : await res.text()
+
       return NextResponse.json(
         { error: `HF error ${res.status}: ${errText}` },
         { status: 502 }
@@ -80,13 +68,24 @@ export async function POST(request: NextRequest) {
 
     const audioBuffer = await res.arrayBuffer()
 
-    // Validar WAV mínimo
+    // Validar WAV (RIFF). Si HF devolvió JSON, esto lo detecta.
     const buf = Buffer.from(audioBuffer)
     if (buf.length < 44 || buf.toString("ascii", 0, 4) !== "RIFF") {
-      // A veces HF devuelve JSON aunque res.ok (casos raros)
-      const asText = buf.toString("utf8").slice(0, 400)
+      const ct = res.headers.get("content-type") || ""
+      let tail = ""
+      try {
+        if (ct.includes("application/json")) {
+          const j = JSON.parse(buf.toString("utf-8"))
+          tail = JSON.stringify(j)
+        } else {
+          tail = buf.toString("utf-8").slice(0, 500)
+        }
+      } catch {
+        tail = buf.toString("utf-8").slice(0, 500)
+      }
+
       return NextResponse.json(
-        { error: `Respuesta no-WAV desde HF. Inicio: ${asText}` },
+        { error: `Respuesta de HF no es WAV válido. content-type=${ct}. body=${tail}` },
         { status: 502 }
       )
     }
@@ -99,17 +98,10 @@ export async function POST(request: NextRequest) {
       },
     })
   } catch (err: any) {
-    const msg = err?.message || "Error generando audio"
-    console.error("TTS chunk error:", msg)
-
-    // timeout estándar de AbortSignal.timeout
-    if (String(msg).toLowerCase().includes("timeout")) {
-      return NextResponse.json(
-        { error: "Timeout generando audio (serverless). Reintenta o reduce texto por chunk." },
-        { status: 504 }
-      )
-    }
-
-    return NextResponse.json({ error: msg }, { status: 500 })
+    console.error("TTS chunk error:", err)
+    return NextResponse.json(
+      { error: err?.message || "Error generando audio" },
+      { status: 500 }
+    )
   }
 }
