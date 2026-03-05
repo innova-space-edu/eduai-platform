@@ -77,10 +77,10 @@ export default function DownloadBar({ format, data, title, accentColor = "#3b82f
           await downloadRenderedAsImage("creator-result-container", baseName, "jpeg")
           break
         case "pdf":
-          await downloadAsPDF(data, format, baseName, accentColor)
+          await downloadAsPDF(data, format, baseName)
           break
         case "pptx":
-          await downloadAsPPTX(data, baseName, accentColor)
+          await downloadAsPPTX(data, baseName)
           break
         case "play":
           await playPodcastAudio(data, setPlaying)
