@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 
 import DownloadBar from "@/components/ui/DownloadBar"
+import ColorPalette from "@/components/ui/ColorPalette"
 
 // ============================================================
 // SIDEBAR (mismo patrón que dashboard)
@@ -425,7 +426,6 @@ const RENDERERS: Record<string, React.FC<{ data: any }>> = {
 // MAIN PAGE
 // ============================================================
 
-export default function CreatorStudioPage() {
   const [user, setUser] = useState<any>(null)
   const [expanded, setExpanded] = useState(false)
   const [sourceType, setSourceType] = useState("topic")
@@ -436,6 +436,7 @@ export default function CreatorStudioPage() {
   const [result, setResult] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
   const [step, setStep] = useState<"input" | "processing" | "result">("input")
+  const [accentColor, setAccentColor] = useState("#3b82f6")
   const fileRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
   const supabase = createClient()
@@ -592,6 +593,7 @@ export default function CreatorStudioPage() {
                 </div>
               )}
 
+
               {/* Output format */}
               <div>
                 <label className="text-gray-600 text-[11px] font-semibold tracking-widest block mb-2">¿QUÉ QUIERES CREAR?</label>
@@ -610,6 +612,9 @@ export default function CreatorStudioPage() {
                   ))}
                 </div>
               </div>
+
+              {/* Color Palette */}
+              <ColorPalette value={accentColor} onChange={setAccentColor} />
 
               {/* Generate button */}
               <button onClick={handleGenerate} disabled={!content.trim() || processing}
@@ -658,7 +663,7 @@ export default function CreatorStudioPage() {
               <div id="creator-result-container" className="bg-gray-900/60 border border-white/5 rounded-3xl p-5 backdrop-blur-sm">
                 {Renderer && <Renderer data={result} />}
               </div>
-              <DownloadBar format={outputFormat} data={result} />
+              <DownloadBar format={outputFormat} data={result} accentColor={accentColor} />
             </>
           )}
 
