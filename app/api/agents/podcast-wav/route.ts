@@ -3,10 +3,10 @@ import { NextRequest, NextResponse } from "next/server"
 export const runtime = "nodejs"
 export const maxDuration = 60
 
-import { EdgeTTS, OUTPUT_FORMAT } from "@andresaya/edge-tts"
+import { EdgeTTS, Constants } from "@andresaya/edge-tts"
 
 type Speaker = "A" | "B"
-type Segment = { speaker?: Speaker | string; text?: string }
+type NormalizedSegment = { speaker: Speaker; text: string }
 
 const VOICE_A_DEFAULT = "es-ES-AlvaroNeural"
 const VOICE_B_DEFAULT = "es-ES-ElviraNeural"
@@ -21,18 +21,22 @@ function cleanText(text: string): string {
     .trim()
 }
 
-function normalizeSegments(raw: any): { speaker: Speaker; text: string }[] {
+function normalizeSegments(raw: unknown): NormalizedSegment[] {
   const segs = Array.isArray(raw) ? raw : []
+
   return segs
-    .map((s) => ({
-      speaker: s?.speaker === "B" ? "B" : "A",
-      text: cleanText(s?.text || ""),
-    }))
+    .map((s): NormalizedSegment => {
+      const obj = (s ?? {}) as { speaker?: unknown; text?: unknown }
+      const speaker: Speaker = obj.speaker === "B" ? "B" : "A"
+      const text = cleanText(String(obj.text || ""))
+
+      return { speaker, text }
+    })
     .filter((s) => s.text.length > 0)
 }
 
-function groupBySpeaker(segments: { speaker: Speaker; text: string }[]): { speaker: Speaker; text: string }[] {
-  const out: { speaker: Speaker; text: string }[] = []
+function groupBySpeaker(segments: NormalizedSegment[]): NormalizedSegment[] {
+  const out: NormalizedSegment[] = []
 
   for (const seg of segments) {
     if (!out.length) {
@@ -186,7 +190,7 @@ function buildWav(
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}))
-    const segments = normalizeSegments(body?.segments)
+    const segments = normalizeSegments((body as { segments?: unknown })?.segments)
 
     if (segments.length === 0) {
       return NextResponse.json({ error: "No hay segmentos" }, { status: 400 })
@@ -196,9 +200,7 @@ export async function POST(req: NextRequest) {
     const voiceB = process.env.EDGE_TTS_VOICE_B || VOICE_B_DEFAULT
 
     const grouped = groupBySpeaker(segments)
-    const tts = new EdgeTTS({
-      outputFormat: OUTPUT_FORMAT.RIFF_24KHZ_16BIT_MONO_PCM,
-    })
+    const tts = new EdgeTTS()
 
     const pcmParts: Uint8Array[] = []
     let sampleRate = 24000
@@ -211,19 +213,19 @@ export async function POST(req: NextRequest) {
       const chunks = splitText(seg.text, 700)
 
       for (const chunk of chunks) {
-        const audio = await tts.synthesize(chunk, voice, {
-          rate: seg.speaker === "B" ? 4 : 0,
-          pitch: seg.speaker === "B" ? 1 : -1,
-          volume: 100,
+        await tts.synthesize(chunk, voice, {
+          outputFormat: Constants.OUTPUT_FORMAT.RIFF_24KHZ_16BIT_MONO_PCM,
+          rate: seg.speaker === "B" ? "+4%" : "0%",
+          pitch: seg.speaker === "B" ? "+1Hz" : "-1Hz",
+          volume: "100%",
         })
 
-        const audioArrayBuffer = toArrayBuffer(audio)
-        const buf = Buffer.from(audioArrayBuffer)
-
+        const buf = tts.toBuffer()
         if (buf.length < 44 || buf.toString("ascii", 0, 4) !== "RIFF") {
           throw new Error("Edge TTS no devolvió WAV válido")
         }
 
+        const audioArrayBuffer = toArrayBuffer(buf)
         const parsed = extractWavPCM(audioArrayBuffer)
 
         if (!formatDetected && parsed.pcm.byteLength > 0) {
