@@ -178,29 +178,42 @@ export async function extractFromDOCX(base64Data: string, fileName = "document.d
 // 2. PROMPTS POR FORMATO
 // ============================================================
 
+// ============================================================
+// PATCH: Reemplazar la función getFormatPrompt en
+// src/lib/content-processor.ts
+// ============================================================
+// Busca "function getFormatPrompt" y reemplaza toda la función con esta:
+
 function getFormatPrompt(format: OutputFormat): string {
   const prompts: Record<OutputFormat, string> = {
-    infographic: `Estructura este contenido para una INFOGRAFÍA educativa.
+    infographic: `Estructura este contenido para una INFOGRAFÍA educativa MUY COMPLETA Y DETALLADA.
 Responde SOLO con JSON válido (sin markdown, sin backticks):
 {
-  "title": "Título atractivo y conciso",
-  "subtitle": "Subtítulo descriptivo",
+  "title": "Título atractivo y conciso (max 8 palabras)",
+  "subtitle": "Subtítulo descriptivo que resuma el tema",
   "sections": [
     {
       "heading": "Título de sección",
       "icon": "emoji relevante",
-      "points": ["punto clave 1", "punto clave 2", "punto clave 3"],
-      "stat": { "value": "número o dato impactante", "label": "descripción" }
+      "points": ["punto detallado con datos concretos 1", "punto detallado 2", "punto detallado 3", "punto detallado 4"],
+      "stat": { "value": "número o porcentaje impactante", "label": "explicación del dato" }
     }
   ],
-  "keyFact": "Dato destacado principal",
-  "conclusion": "Mensaje de cierre",
+  "keyFact": "Dato destacado principal que sorprenda al lector",
+  "conclusion": "Mensaje de cierre reflexivo y motivador",
   "colorScheme": "blue|green|purple|orange|red",
   "style": "statistics|process|comparison|educational|timeline"
 }
-Máximo 5 secciones. Cada sección máximo 3 puntos. Datos concretos.`,
+IMPORTANTE:
+- Genera EXACTAMENTE 5-6 secciones con 3-4 puntos DETALLADOS cada una
+- Los puntos deben incluir datos específicos, cifras, porcentajes, fechas cuando sea posible
+- Cada sección debe tener un stat con dato numérico real
+- El keyFact debe ser un dato sorprendente y verificable
+- El contenido debe ser EXHAUSTIVO y PROFUNDO, no superficial
+- Usa lenguaje claro pero informativo
+- Todo en español`,
 
-    ppt: `Estructura este contenido para una PRESENTACIÓN de slides.
+    ppt: `Estructura este contenido para una PRESENTACIÓN PROFESIONAL de slides.
 Responde SOLO con JSON válido (sin markdown, sin backticks):
 {
   "title": "Título de la presentación",
@@ -209,129 +222,185 @@ Responde SOLO con JSON válido (sin markdown, sin backticks):
     {
       "type": "title|content|comparison|quote|summary",
       "title": "Título del slide",
-      "bullets": ["punto 1", "punto 2", "punto 3"],
-      "notes": "Notas del orador"
+      "bullets": ["punto detallado 1", "punto detallado 2", "punto detallado 3", "punto 4"],
+      "notes": "Notas detalladas del orador para este slide (2-3 oraciones)"
     }
   ],
   "theme": "academic|minimal|corporate|creative"
 }
-Máximo 10 slides. Slide 1 = portada, último = conclusión.`,
+IMPORTANTE:
+- Genera 8-12 slides completos
+- Slide 1 = portada con título impactante
+- Slide 2 = índice/agenda
+- Slides 3-10 = contenido detallado con 3-5 bullets cada uno
+- Penúltimo slide = resumen/conclusiones
+- Último slide = referencias o "Gracias"
+- Cada bullet debe ser una oración completa con información sustancial
+- Las notas del orador deben ser útiles (datos extra, cómo explicar)
+- Todo en español`,
 
-    poster: `Estructura este contenido para un AFICHE/POSTER educativo.
+    poster: `Estructura este contenido para un AFICHE/POSTER educativo IMPACTANTE.
 Responde SOLO con JSON válido (sin markdown, sin backticks):
 {
-  "headline": "Título grande e impactante",
-  "tagline": "Subtítulo breve",
+  "headline": "Título grande impactante (max 6 palabras)",
+  "tagline": "Subtítulo que complemente el título",
   "mainPoints": [
-    { "icon": "emoji", "title": "Punto", "description": "Descripción corta" }
+    { "icon": "emoji", "title": "Punto clave (3-4 palabras)", "description": "Explicación detallada de 2-3 oraciones con datos concretos" }
   ],
-  "callToAction": "Mensaje de cierre o llamada a la acción",
+  "callToAction": "Mensaje de cierre motivador y memorable",
   "colorScheme": "vibrant|pastel|dark|monochrome"
 }
-Máximo 4 puntos principales. Todo muy conciso y visual.`,
+IMPORTANTE:
+- Genera 4-5 puntos principales
+- Cada descripción debe ser sustancial (2-3 oraciones completas)
+- Incluir datos numéricos cuando sea posible
+- El headline debe ser memorable y llamativo
+- Todo en español`,
 
     podcast: `Estructura este contenido para un PODCAST educativo entre dos hosts.
 Responde SOLO con JSON válido (sin markdown, sin backticks):
 {
-  "title": "Título del episodio",
-  "duration": "5min",
+  "title": "Título del episodio atractivo",
+  "duration": "8min",
   "segments": [
     {
       "speaker": "A|B",
-      "text": "Lo que dice este host",
-      "emotion": "neutral|enthusiastic|curious|thoughtful"
+      "text": "Lo que dice este host (2-4 oraciones por segmento)",
+      "emotion": "neutral|enthusiastic|curious|thoughtful|surprised"
     }
   ]
 }
-Host A = explica con autoridad. Host B = hace preguntas, pide ejemplos, reacciona.
-Intro natural, desarrollo con ejemplos, cierre con resumen.
-Mínimo 15 segmentos. Tono conversacional natural. Todo en español.`,
+REGLAS DEL PODCAST:
+- Host A = "El Profesor" - Explica con autoridad, usa analogías, da datos
+- Host B = "El Estudiante Curioso" - Hace preguntas inteligentes, pide ejemplos, reacciona con sorpresa
+- MÍNIMO 25 segmentos para un podcast sustancial
+- Estructura: Saludo (2 seg) → Introducción al tema (3 seg) → Desarrollo profundo (12 seg) → Ejemplos prácticos (5 seg) → Resumen (3 seg)
+- Cada segmento debe tener 2-4 oraciones completas
+- Incluir datos curiosos, analogías, ejemplos de la vida real
+- Tono conversacional natural, como si fuera un podcast real de Spotify
+- Host B debe hacer preguntas que profundicen el tema
+- Incluir momentos de humor o sorpresa
+- Todo en español`,
 
-    mindmap: `Estructura este contenido para un MAPA CONCEPTUAL interactivo.
+    mindmap: `Estructura este contenido para un MAPA CONCEPTUAL interactivo COMPLETO.
 Responde SOLO con JSON válido (sin markdown, sin backticks):
 {
-  "centralTopic": "Tema central",
+  "centralTopic": "Tema central (2-4 palabras)",
   "nodes": [
     {
       "id": "n1",
-      "label": "Concepto",
-      "description": "Explicación breve",
+      "label": "Concepto (2-4 palabras)",
+      "description": "Explicación detallada del concepto en 2-3 oraciones con datos relevantes",
       "category": "main|sub|detail",
       "color": "#hex",
       "connections": ["n2", "n3"]
     }
   ]
 }
-Mínimo 8 nodos, máximo 20. Conexiones claras entre conceptos relacionados.`,
+IMPORTANTE:
+- Genera 15-20 nodos para un mapa completo
+- 4-5 nodos "main" (conceptos principales)
+- 5-7 nodos "sub" (subconceptos)
+- 4-6 nodos "detail" (detalles específicos)
+- Cada nodo debe tener una descripción informativa
+- Las conexiones deben ser lógicas y crear una red coherente
+- Usa colores distintos para cada rama principal
+- Todo en español`,
 
-    flashcards: `Genera FLASHCARDS de estudio desde este contenido.
+    flashcards: `Genera FLASHCARDS de estudio COMPLETAS desde este contenido.
 Responde SOLO con JSON válido (sin markdown, sin backticks):
 {
-  "deckTitle": "Título del deck",
+  "deckTitle": "Título descriptivo del deck",
   "topic": "Tema general",
   "cards": [
     {
-      "front": "Pregunta o concepto",
-      "back": "Respuesta o explicación",
+      "front": "Pregunta clara y específica",
+      "back": "Respuesta completa y detallada (2-3 oraciones)",
       "difficulty": 1,
-      "tags": ["tag1"]
+      "tags": ["categoría"]
     }
   ]
 }
-Genera 10-15 tarjetas. Mezcla: definiciones, datos, conceptos, aplicaciones.
-difficulty: 1=fácil, 2=medio, 3=difícil. Todo en español.`,
+IMPORTANTE:
+- Genera 15-20 tarjetas variadas
+- Mezcla tipos: definiciones, datos numéricos, procesos, comparaciones, aplicaciones prácticas
+- Las respuestas deben ser COMPLETAS, no solo una palabra
+- difficulty: 1=conceptos básicos, 2=relaciones y aplicaciones, 3=análisis y síntesis
+- Incluir al menos 3 tarjetas de cada nivel de dificultad
+- Los "front" deben ser preguntas bien formuladas, no solo "¿Qué es X?"
+- Incluir preguntas tipo "¿Por qué...", "¿Cómo...", "¿Cuál es la diferencia...", "Explica el proceso de..."
+- Todo en español`,
 
-    quiz: `Genera un QUIZ adaptativo desde este contenido.
+    quiz: `Genera un QUIZ COMPLETO Y VARIADO desde este contenido.
 Responde SOLO con JSON válido (sin markdown, sin backticks):
 {
   "title": "Título del quiz",
-  "topic": "Tema",
+  "topic": "Tema evaluado",
   "questions": [
     {
-      "type": "multiple_choice|true_false|fill_blank|sequence",
-      "question": "Pregunta",
-      "options": ["A", "B", "C", "D"],
+      "type": "multiple_choice|true_false|fill_blank",
+      "question": "Pregunta clara y bien formulada",
+      "options": ["A detallada", "B detallada", "C detallada", "D detallada"],
       "correctAnswer": 0,
-      "explanation": "Por qué esta es la respuesta correcta",
+      "explanation": "Explicación detallada de POR QUÉ esta es la respuesta correcta y por qué las otras no (2-3 oraciones)",
       "difficulty": 1
     }
   ]
 }
-10 preguntas. Mezcla tipos. difficulty: 1-3. Explicaciones claras. Todo en español.`,
+IMPORTANTE:
+- Genera 12-15 preguntas
+- Mezcla: 8 multiple_choice, 3 true_false, 2 fill_blank
+- Para true_false: options = ["Verdadero", "Falso"]
+- Para fill_blank: la pregunta contiene "___" y options son las posibles respuestas
+- Las opciones incorrectas deben ser PLAUSIBLES (no obviamente incorrectas)
+- difficulty: 1=recordar, 2=comprender y aplicar, 3=analizar y evaluar
+- Las explicaciones deben ser EDUCATIVAS, explicando el razonamiento
+- Todo en español`,
 
-    timeline: `Estructura este contenido como un TIMELINE interactivo.
+    timeline: `Estructura este contenido como un TIMELINE interactivo DETALLADO.
 Responde SOLO con JSON válido (sin markdown, sin backticks):
 {
   "title": "Título del timeline",
-  "period": "Período que cubre",
+  "period": "Período que cubre (ej: 1900-2024)",
   "events": [
     {
-      "date": "Fecha o período",
-      "title": "Evento",
-      "description": "Descripción breve",
+      "date": "Fecha específica o período",
+      "title": "Nombre del evento (conciso)",
+      "description": "Descripción detallada del evento y su importancia en 2-3 oraciones con datos específicos",
       "importance": "high|medium|low",
-      "icon": "emoji"
+      "icon": "emoji relevante"
     }
   ]
 }
-Orden cronológico. Mínimo 6 eventos.`,
+IMPORTANTE:
+- Genera 8-12 eventos
+- Orden cronológico estricto
+- Las descripciones deben explicar el IMPACTO y CONTEXTO del evento
+- Al menos 3 eventos "high" importance
+- Incluir fechas lo más específicas posible
+- Cada descripción debe tener 2-3 oraciones sustanciales
+- Todo en español`,
 
-    cornell: `Genera NOTAS CORNELL desde este contenido.
+    cornell: `Genera NOTAS CORNELL COMPLETAS desde este contenido.
 Responde SOLO con JSON válido (sin markdown, sin backticks):
 {
   "title": "Título del tema",
   "date": "${new Date().toLocaleDateString("es-CL")}",
   "cueColumn": [
-    { "cue": "Palabra/pregunta clave", "notes": "Notas detalladas correspondientes" }
+    { "cue": "Pregunta clave o concepto", "notes": "Notas detalladas con explicación completa, datos y ejemplos (3-5 oraciones)" }
   ],
-  "summary": "Resumen de 2-3 oraciones del contenido completo"
+  "summary": "Resumen ejecutivo del tema completo en 4-5 oraciones que capture las ideas principales y su importancia"
 }
-5-8 pares cue-notes. Cues son preguntas o palabras clave. Notes son explicaciones.`,
+IMPORTANTE:
+- Genera 8-10 pares cue-notes
+- Los cues deben ser PREGUNTAS que guíen el estudio
+- Las notes deben ser DETALLADAS con datos específicos
+- El summary debe ser un párrafo completo y útil para repasar
+- Todo en español`,
   }
 
   return prompts[format] || prompts.infographic
 }
-
 // ============================================================
 // 3. LLAMADAS A APIs DE IA
 // ============================================================
