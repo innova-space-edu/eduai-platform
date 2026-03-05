@@ -28,7 +28,7 @@ const FORMAT_DOWNLOADS: Record<string, { label: string; icon: string; action: st
     { label: "PDF", icon: "📄", action: "pdf" },
   ],
   podcast: [
-    { label: "Audio WAV", icon: "🎵", action: "wav" },
+    { label: "Audio MP3", icon: "🎵", action: "mp3" },
     { label: "Escuchar", icon: "🔊", action: "play" },
     { label: "PDF Guión", icon: "📄", action: "pdf" },
     { label: "TXT Guión", icon: "📝", action: "txt" },
@@ -82,8 +82,8 @@ export default function DownloadBar({ format, data, title, accentColor = "#3b82f
         case "pptx":
           await downloadAsPPTX(data, baseName, accentColor)
           break
-        case "wav":
-          await generateAndDownloadWAV(data, baseName, setProgress, cancelRef)
+        case "mp3":
+          await generateAndDownloadPodcastMP3(data, baseName, setProgress, cancelRef)
           break
         case "play":
           await playWithSpeechAPI(data, setPlaying, setProgress, cancelRef)
@@ -124,7 +124,7 @@ export default function DownloadBar({ format, data, title, accentColor = "#3b82f
         <span className="text-gray-600 text-xs font-semibold tracking-wide mr-1">DESCARGAR:</span>
 
         {downloads.map((d) => {
-          const isStoppable = (d.action === "play" && playing) || (d.action === "wav" && downloading === "wav")
+          const isStoppable = (d.action === "play" && playing) || (d.action === "mp3" && downloading === "mp3")
 
           return (
             <button
@@ -163,12 +163,12 @@ export default function DownloadBar({ format, data, title, accentColor = "#3b82f
 }
 
 // ============================================================
-// PODCAST WAV — 1 sola llamada a nuestro endpoint:
-// POST /api/agents/podcast-wav  -> devuelve WAV final
+// PODCAST MP3 — 1 sola llamada a nuestro endpoint:
+// POST /api/agents/podcast-wav  -> devuelve MP3 final (audio/mpeg)
 // (backend se encarga de 2 voces, calidad tipo podcast, etc.)
 // ============================================================
 
-async function generateAndDownloadWAV(
+async function generateAndDownloadPodcastMP3(
   data: any,
   fileName: string,
   setProgress: (s: string) => void,
@@ -177,7 +177,7 @@ async function generateAndDownloadWAV(
   const segments = data?.segments || []
   if (!Array.isArray(segments) || segments.length === 0) throw new Error("No hay segmentos")
 
-  setProgress("Generando audio (podcast)...")
+  setProgress("Generando audio (podcast MP3)...")
 
   const res = await fetch("/api/agents/podcast-wav", {
     method: "POST",
@@ -188,21 +188,22 @@ async function generateAndDownloadWAV(
   if (cancelRef.current) return
 
   if (!res.ok) {
+    // Puede venir JSON de error
     const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }))
     throw new Error(err.error || `Error ${res.status}`)
   }
 
-  const wavBuf = await res.arrayBuffer()
-  if (wavBuf.byteLength < 44) throw new Error("Audio devuelto demasiado corto")
+  const mp3Buf = await res.arrayBuffer()
+  if (mp3Buf.byteLength < 256) throw new Error("Audio devuelto demasiado corto")
 
   setProgress("Preparando descarga...")
 
-  const blob = new Blob([wavBuf], { type: "audio/wav" })
+  const blob = new Blob([mp3Buf], { type: "audio/mpeg" })
   const url = URL.createObjectURL(blob)
 
   const a = document.createElement("a")
   a.href = url
-  a.download = `${fileName}.wav`
+  a.download = `${fileName}.mp3`
   a.click()
 
   setTimeout(() => URL.revokeObjectURL(url), 1500)
@@ -236,8 +237,8 @@ async function playWithSpeechAPI(
   setProgress: (s: string) => void,
   cancelRef: MutableRefObject<boolean>
 ) {
-  const segments = data.segments || []
-  if (segments.length === 0) throw new Error("No hay segmentos")
+  const segments = data?.segments || []
+  if (!Array.isArray(segments) || segments.length === 0) throw new Error("No hay segmentos")
   if (!window.speechSynthesis) throw new Error("Navegador no soporta síntesis de voz")
 
   speechSynthesis.cancel()
@@ -266,7 +267,7 @@ async function playWithSpeechAPI(
     if (cancelRef.current) break
 
     const seg = segments[i]
-    const text = (seg.text || "").trim()
+    const text = (seg?.text || "").trim()
     if (!text) continue
 
     setProgress(`Reproduciendo ${i + 1} de ${segments.length}...`)
@@ -277,10 +278,10 @@ async function playWithSpeechAPI(
 
       await new Promise<void>((resolve) => {
         const u = new SpeechSynthesisUtterance(part)
-        u.voice = seg.speaker === "A" ? voiceA : voiceB
+        u.voice = seg?.speaker === "A" ? voiceA : voiceB
         u.lang = "es-ES"
-        u.rate = seg.speaker === "A" ? 0.95 : 1.0
-        u.pitch = seg.speaker === "A" ? 0.9 : 1.1
+        u.rate = seg?.speaker === "A" ? 0.95 : 1.0
+        u.pitch = seg?.speaker === "A" ? 0.9 : 1.1
         u.volume = 1.0
 
         let done = false
@@ -314,18 +315,18 @@ async function playWithSpeechAPI(
 // ============================================================
 
 function downloadScript(data: any, fileName: string) {
-  const segments = data.segments || []
+  const segments = data?.segments || []
   const lines = [
     `══════════════════════════════════════`,
-    `  ${data.title || "Podcast EduAI"}`,
-    `  Duración: ${data.duration || "5 min"}`,
+    `  ${data?.title || "Podcast EduAI"}`,
+    `  Duración: ${data?.duration || "5 min"}`,
     `══════════════════════════════════════`,
     ``,
   ]
 
   for (const seg of segments) {
-    lines.push(`[${seg.speaker === "A" ? "HOST A (Profesor)" : "HOST B (Estudiante)"}]`)
-    lines.push(seg.text)
+    lines.push(`[${seg?.speaker === "A" ? "HOST A (Profesor)" : "HOST B (Estudiante)"}]`)
+    lines.push(String(seg?.text || ""))
     lines.push(``)
   }
 
