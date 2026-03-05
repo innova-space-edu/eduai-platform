@@ -1,7 +1,7 @@
 // src/components/ui/DownloadBar.tsx
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import {
   downloadRenderedAsImage,
   downloadAsPDF,
@@ -59,6 +59,7 @@ export default function DownloadBar({ format, data, title, accentColor = "#3b82f
   const [success, setSuccess] = useState<string | null>(null)
   const [playing, setPlaying] = useState(false)
   const [progress, setProgress] = useState("")
+  const cancelRef = useRef(false)
 
   const downloads = FORMAT_DOWNLOADS[format] || []
   const baseName = (title || data?.title || data?.deckTitle || data?.headline || "eduai-export")
@@ -89,7 +90,8 @@ export default function DownloadBar({ format, data, title, accentColor = "#3b82f
           await downloadPodcastAudio(data, baseName, setProgress)
           break
         case "play":
-          await playPodcastLocally(data, setPlaying)
+          cancelRef.current = false
+          await playPodcastLocally(data, setPlaying, setProgress, cancelRef)
           break
         case "txt":
           downloadPodcastScript(data, baseName)
@@ -107,8 +109,10 @@ export default function DownloadBar({ format, data, title, accentColor = "#3b82f
   }
 
   const handleStop = () => {
+    cancelRef.current = true
     speechSynthesis.cancel()
     setPlaying(false)
+    setProgress("")
   }
 
   if (downloads.length === 0) return null
@@ -152,7 +156,7 @@ export default function DownloadBar({ format, data, title, accentColor = "#3b82f
           )
         })}
       </div>
-      {progress && downloading && (
+      {progress && (
         <p className="text-blue-400 text-[11px] animate-pulse">{progress}</p>
       )}
     </div>
@@ -171,7 +175,7 @@ async function downloadPodcastAudio(
   const segments = data.segments || []
   if (segments.length === 0) throw new Error("No hay segmentos")
 
-  setProgress(`Generando audio de ${segments.length} segmentos...`)
+  setProgress(`Generando audio de ${segments.length} segmentos... esto puede tomar 1-2 minutos`)
 
   const res = await fetch("/api/agents/tts-podcast", {
     method: "POST",
@@ -199,12 +203,14 @@ async function downloadPodcastAudio(
 }
 
 // ============================================================
-// PODCAST — Reproducir localmente con Web Speech API
+// PODCAST — Reproducir TODOS los segmentos con Web Speech API
 // ============================================================
 
 async function playPodcastLocally(
   data: any,
-  setPlaying: (v: boolean) => void
+  setPlaying: (v: boolean) => void,
+  setProgress: (s: string) => void,
+  cancelRef: React.MutableRefObject<boolean>
 ) {
   const segments = data.segments || []
   if (segments.length === 0) throw new Error("No hay segmentos")
@@ -213,8 +219,11 @@ async function playPodcastLocally(
     throw new Error("Tu navegador no soporta síntesis de voz")
   }
 
+  // Cancelar cualquier reproducción previa
   speechSynthesis.cancel()
+  await new Promise(r => setTimeout(r, 200))
 
+  // Cargar voces
   let voices = speechSynthesis.getVoices()
   if (voices.length === 0) {
     await new Promise<void>((resolve) => {
@@ -222,33 +231,122 @@ async function playPodcastLocally(
         voices = speechSynthesis.getVoices()
         resolve()
       }
-      setTimeout(resolve, 1500)
+      setTimeout(resolve, 2000)
     })
     voices = speechSynthesis.getVoices()
   }
 
+  // Buscar voces en español
   const esVoices = voices.filter(v => v.lang.startsWith("es"))
-  const voiceA = esVoices[0] || voices[0]
-  const voiceB = esVoices.find(v => v !== voiceA) || esVoices[1] || voices[1] || voiceA
+  const allVoices = esVoices.length >= 2 ? esVoices : voices
+
+  const voiceA = allVoices[0]
+  const voiceB = allVoices.length > 1 ? allVoices[1] : allVoices[0]
 
   setPlaying(true)
 
-  for (const seg of segments) {
-    if (!speechSynthesis.speaking && segments.indexOf(seg) > 0) break
+  // Reproducir cada segmento secuencialmente usando promesas
+  for (let i = 0; i < segments.length; i++) {
+    // Verificar cancelación
+    if (cancelRef.current) break
 
-    await new Promise<void>((resolve) => {
-      const utterance = new SpeechSynthesisUtterance(seg.text)
-      utterance.voice = seg.speaker === "A" ? voiceA : voiceB
-      utterance.lang = "es-ES"
-      utterance.rate = seg.speaker === "A" ? 0.92 : 1.0
-      utterance.pitch = seg.speaker === "A" ? 0.85 : 1.15
-      utterance.onend = () => setTimeout(resolve, 400)
-      utterance.onerror = () => setTimeout(resolve, 100)
-      speechSynthesis.speak(utterance)
-    })
+    const seg = segments[i]
+    const text = (seg.text || "").trim()
+    if (!text) continue
+
+    setProgress(`Reproduciendo ${i + 1} de ${segments.length}...`)
+
+    // Dividir texto largo en oraciones para evitar que se corte
+    const sentences = splitIntoChunks(text, 200)
+
+    for (const sentence of sentences) {
+      if (cancelRef.current) break
+
+      await new Promise<void>((resolve) => {
+        const utterance = new SpeechSynthesisUtterance(sentence)
+        utterance.voice = seg.speaker === "A" ? voiceA : voiceB
+        utterance.lang = "es-ES"
+        utterance.rate = seg.speaker === "A" ? 0.9 : 1.0
+        utterance.pitch = seg.speaker === "A" ? 0.8 : 1.2
+        utterance.volume = 1.0
+
+        let resolved = false
+        const done = () => {
+          if (!resolved) {
+            resolved = true
+            resolve()
+          }
+        }
+
+        utterance.onend = done
+        utterance.onerror = (e) => {
+          console.warn("TTS error:", e)
+          done()
+        }
+
+        // Timeout de seguridad: 30 segundos máximo por chunk
+        setTimeout(done, 30000)
+
+        speechSynthesis.speak(utterance)
+      })
+
+      // Pequeña pausa entre oraciones del mismo segmento
+      if (!cancelRef.current) {
+        await new Promise(r => setTimeout(r, 100))
+      }
+    }
+
+    // Pausa más larga entre segmentos (cambio de speaker)
+    if (!cancelRef.current && i < segments.length - 1) {
+      await new Promise(r => setTimeout(r, 500))
+    }
   }
 
   setPlaying(false)
+  setProgress("")
+}
+
+// Divide texto largo en chunks por oraciones para evitar que TTS se corte
+function splitIntoChunks(text: string, maxLength: number): string[] {
+  if (text.length <= maxLength) return [text]
+
+  const chunks: string[] = []
+  // Dividir por puntos, signos de exclamación/interrogación
+  const sentences = text.split(/(?<=[.!?])\s+/)
+  let current = ""
+
+  for (const sentence of sentences) {
+    if ((current + " " + sentence).length > maxLength && current.length > 0) {
+      chunks.push(current.trim())
+      current = sentence
+    } else {
+      current = current ? current + " " + sentence : sentence
+    }
+  }
+
+  if (current.trim()) chunks.push(current.trim())
+
+  // Si algún chunk sigue siendo muy largo, dividir por comas
+  const finalChunks: string[] = []
+  for (const chunk of chunks) {
+    if (chunk.length > maxLength) {
+      const parts = chunk.split(/,\s*/)
+      let sub = ""
+      for (const part of parts) {
+        if ((sub + ", " + part).length > maxLength && sub.length > 0) {
+          finalChunks.push(sub.trim())
+          sub = part
+        } else {
+          sub = sub ? sub + ", " + part : part
+        }
+      }
+      if (sub.trim()) finalChunks.push(sub.trim())
+    } else {
+      finalChunks.push(chunk)
+    }
+  }
+
+  return finalChunks.length > 0 ? finalChunks : [text]
 }
 
 // ============================================================
