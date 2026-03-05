@@ -1,3 +1,14 @@
+// app/api/agents/podcast-wav/route.ts
+// ✅ Genera audio tipo "podcast" con 2 narradores usando @andresaya/edge-tts
+// ✅ Formato: MP3 24kHz 96kbps mono (compatible, liviano, estilo Spotify/NotebookLM)
+// ✅ Reduce llamadas: agrupa segmentos consecutivos por speaker y corta en chunks grandes
+// ⚠️ IMPORTANTE: Ya NO es WAV. Se elimina TODO lo de RIFF/PCM/buildWav.
+//
+// Body esperado:
+// { segments: [{ speaker: "A"|"B", text: "..." }, ...] }
+//
+// Respuesta: audio/mpeg (podcast.mp3)
+
 import { NextRequest, NextResponse } from "next/server"
 
 export const runtime = "nodejs"
@@ -11,51 +22,51 @@ type NormalizedSegment = { speaker: Speaker; text: string }
 const VOICE_A_DEFAULT = "es-ES-AlvaroNeural"
 const VOICE_B_DEFAULT = "es-ES-ElviraNeural"
 
+// -------------------- helpers --------------------
+
 function cleanText(text: string): string {
   return String(text || "")
     .replace(/\r/g, " ")
     .replace(/\t/g, " ")
-    .replace(/\n{2,}/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
     .replace(/\s{2,}/g, " ")
+    // quitar markdown/ruido básico
     .replace(/[*_`#>-]+/g, "")
     .trim()
 }
 
 function normalizeSegments(raw: unknown): NormalizedSegment[] {
   const segs = Array.isArray(raw) ? raw : []
-
   return segs
     .map((s): NormalizedSegment => {
       const obj = (s ?? {}) as { speaker?: unknown; text?: unknown }
       const speaker: Speaker = obj.speaker === "B" ? "B" : "A"
       const text = cleanText(String(obj.text || ""))
-
       return { speaker, text }
     })
     .filter((s) => s.text.length > 0)
 }
 
 function groupBySpeaker(segments: NormalizedSegment[]): NormalizedSegment[] {
+  // Une segmentos consecutivos del mismo speaker para reducir llamadas
   const out: NormalizedSegment[] = []
-
   for (const seg of segments) {
     if (!out.length) {
       out.push({ ...seg })
       continue
     }
-
     const last = out[out.length - 1]
     if (last.speaker === seg.speaker) {
-      last.text = `${last.text} ${seg.text}`.replace(/\s{2,}/g, " ").trim()
+      last.text = `${last.text}\n\n${seg.text}`.replace(/\s{2,}/g, " ").trim()
     } else {
       out.push({ ...seg })
     }
   }
-
   return out
 }
 
-function splitText(text: string, maxLen = 700): string[] {
+function splitText(text: string, maxLen = 1100): string[] {
+  // chunks grandes para menos llamadas, con cortes suaves por frases
   const t = cleanText(text)
   if (!t) return []
   if (t.length <= maxLen) return [t]
@@ -87,105 +98,14 @@ function splitText(text: string, maxLen = 700): string[] {
   return chunks.filter(Boolean)
 }
 
-function toArrayBuffer(audio: unknown): ArrayBuffer {
-  if (audio instanceof ArrayBuffer) return audio
-
-  if (audio instanceof Uint8Array) {
-    const out = new ArrayBuffer(audio.byteLength)
-    new Uint8Array(out).set(audio)
-    return out
-  }
-
-  const buf = Buffer.from(audio as any)
-  return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer
+function asBuffer(audio: unknown): Buffer {
+  if (Buffer.isBuffer(audio)) return audio
+  if (audio instanceof Uint8Array) return Buffer.from(audio)
+  if (audio instanceof ArrayBuffer) return Buffer.from(new Uint8Array(audio))
+  return Buffer.from(audio as any)
 }
 
-function extractWavPCM(wav: ArrayBuffer): {
-  pcm: Uint8Array
-  sampleRate: number
-  numChannels: number
-  bitsPerSample: number
-} {
-  const view = new DataView(wav)
-  if (wav.byteLength < 44) throw new Error("WAV demasiado corto")
-
-  let sampleRate = 24000
-  let numChannels = 1
-  let bitsPerSample = 16
-
-  for (let i = 0; i < wav.byteLength - 24; i++) {
-    if (
-      view.getUint8(i) === 0x66 &&
-      view.getUint8(i + 1) === 0x6d &&
-      view.getUint8(i + 2) === 0x74 &&
-      view.getUint8(i + 3) === 0x20
-    ) {
-      numChannels = view.getUint16(i + 10, true)
-      sampleRate = view.getUint32(i + 12, true)
-      bitsPerSample = view.getUint16(i + 22, true)
-      break
-    }
-  }
-
-  for (let i = 0; i < wav.byteLength - 8; i++) {
-    if (
-      view.getUint8(i) === 0x64 &&
-      view.getUint8(i + 1) === 0x61 &&
-      view.getUint8(i + 2) === 0x74 &&
-      view.getUint8(i + 3) === 0x61
-    ) {
-      const dataSize = view.getUint32(i + 4, true)
-      const dataStart = i + 8
-      const pcm = new Uint8Array(wav, dataStart, Math.min(dataSize, wav.byteLength - dataStart))
-      return { pcm, sampleRate, numChannels, bitsPerSample }
-    }
-  }
-
-  return {
-    pcm: new Uint8Array(wav, 44),
-    sampleRate,
-    numChannels,
-    bitsPerSample,
-  }
-}
-
-function buildWav(
-  pcmParts: Uint8Array[],
-  sampleRate: number,
-  numChannels: number,
-  bitsPerSample: number
-): Uint8Array {
-  const totalPcmLength = pcmParts.reduce((acc, p) => acc + p.byteLength, 0)
-  const byteRate = (sampleRate * numChannels * bitsPerSample) / 8
-  const blockAlign = (numChannels * bitsPerSample) / 8
-
-  const wav = new Uint8Array(44 + totalPcmLength)
-  const view = new DataView(wav.buffer)
-
-  wav.set([0x52, 0x49, 0x46, 0x46], 0)
-  view.setUint32(4, 36 + totalPcmLength, true)
-  wav.set([0x57, 0x41, 0x56, 0x45], 8)
-
-  wav.set([0x66, 0x6d, 0x74, 0x20], 12)
-  view.setUint32(16, 16, true)
-  view.setUint16(20, 1, true)
-  view.setUint16(22, numChannels, true)
-  view.setUint32(24, sampleRate, true)
-  view.setUint32(28, byteRate, true)
-  view.setUint16(32, blockAlign, true)
-  view.setUint16(34, bitsPerSample, true)
-
-  wav.set([0x64, 0x61, 0x74, 0x61], 36)
-  view.setUint32(40, totalPcmLength, true)
-
-  let offset = 44
-  for (const part of pcmParts) {
-    wav.set(part, offset)
-    offset += part.byteLength
-  }
-
-  return wav
-}
+// -------------------- route --------------------
 
 export async function POST(req: NextRequest) {
   try {
@@ -196,71 +116,69 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No hay segmentos" }, { status: 400 })
     }
 
+    // Env vars opcionales en Vercel
     const voiceA = process.env.EDGE_TTS_VOICE_A || VOICE_A_DEFAULT
     const voiceB = process.env.EDGE_TTS_VOICE_B || VOICE_B_DEFAULT
 
+    // Menos llamadas: agrupar por speaker
     const grouped = groupBySpeaker(segments)
+
     const tts = new EdgeTTS()
 
-    const pcmParts: Uint8Array[] = []
-    let sampleRate = 24000
-    let numChannels = 1
-    let bitsPerSample = 16
-    let formatDetected = false
+    // ✅ MP3 final = concatenación de buffers MP3 por chunk
+    // Nota: este enfoque funciona bien para reproducción/descarga en la práctica (players tolerantes).
+    // Si quieres 100% "container-perfect", ahí ya toca remux (ffmpeg), que es más pesado.
+    const mp3Parts: Buffer[] = []
 
     for (const seg of grouped) {
       const voice = seg.speaker === "B" ? voiceB : voiceA
-      const chunks = splitText(seg.text, 700)
+      const chunks = splitText(seg.text, 1100)
 
       for (const chunk of chunks) {
+        // @andresaya/edge-tts: el outputFormat válido NO incluye RIFF/WAV
         await tts.synthesize(chunk, voice, {
-          outputFormat: Constants.OUTPUT_FORMAT.RIFF_24KHZ_16BIT_MONO_PCM,
+          outputFormat: Constants.OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3,
           rate: seg.speaker === "B" ? "+4%" : "0%",
           pitch: seg.speaker === "B" ? "+1Hz" : "-1Hz",
           volume: "100%",
         })
 
-        const buf = tts.toBuffer()
-        if (buf.length < 44 || buf.toString("ascii", 0, 4) !== "RIFF") {
-          throw new Error("Edge TTS no devolvió WAV válido")
+        // La lib acumula el output; tts.toBuffer() devuelve el audio del último synth (según esta lib)
+        const part = asBuffer(tts.toBuffer())
+
+        // Validación suave: MP3 suele empezar con "ID3" o frame sync 0xFF 0xFB/0xF3/0xF2
+        if (
+          part.length < 4 ||
+          !(
+            (part[0] === 0x49 && part[1] === 0x44 && part[2] === 0x33) || // "ID3"
+            part[0] === 0xff // frame sync
+          )
+        ) {
+          // No reventamos por header, pero dejamos una pista clara
+          throw new Error("Edge TTS no devolvió MP3 válido (buffer inesperado)")
         }
 
-        const audioArrayBuffer = toArrayBuffer(buf)
-        const parsed = extractWavPCM(audioArrayBuffer)
-
-        if (!formatDetected && parsed.pcm.byteLength > 0) {
-          sampleRate = parsed.sampleRate
-          numChannels = parsed.numChannels
-          bitsPerSample = parsed.bitsPerSample
-          formatDetected = true
-        }
-
-        if (parsed.pcm.byteLength > 0) {
-          pcmParts.push(parsed.pcm)
-        }
+        mp3Parts.push(part)
       }
     }
 
-    if (pcmParts.length === 0) {
+    if (mp3Parts.length === 0) {
       return NextResponse.json({ error: "No se generó audio" }, { status: 502 })
     }
 
-    const finalWav = buildWav(pcmParts, sampleRate, numChannels, bitsPerSample)
+    const finalMp3 = Buffer.concat(mp3Parts)
 
-    return new NextResponse(Buffer.from(finalWav), {
+    return new NextResponse(finalMp3, {
       status: 200,
       headers: {
-        "Content-Type": "audio/wav",
-        "Content-Disposition": 'inline; filename="podcast.wav"',
+        "Content-Type": "audio/mpeg",
+        "Content-Disposition": 'inline; filename="podcast.mp3"',
         "Cache-Control": "no-store, no-cache, must-revalidate",
         Pragma: "no-cache",
       },
     })
   } catch (err: any) {
-    console.error("podcast-wav error:", err?.message || err)
-    return NextResponse.json(
-      { error: err?.message || "Error generando audio" },
-      { status: 500 }
-    )
+    console.error("podcast-mp3 error:", err?.message || err)
+    return NextResponse.json({ error: err?.message || "Error generando audio" }, { status: 500 })
   }
 }
