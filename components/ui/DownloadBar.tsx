@@ -12,6 +12,7 @@ interface DownloadBarProps {
   format: string
   data: any
   title?: string
+  accentColor?: string
 }
 
 const FORMAT_DOWNLOADS: Record<string, { label: string; icon: string; action: string }[]> = {
@@ -31,6 +32,7 @@ const FORMAT_DOWNLOADS: Record<string, { label: string; icon: string; action: st
     { label: "PDF",  icon: "📄", action: "pdf" },
   ],
   podcast: [
+    { label: "MP3 Audio",  icon: "🔊", action: "mp3" },
     { label: "PDF Guión",  icon: "📄", action: "pdf" },
   ],
   mindmap: [
@@ -39,6 +41,7 @@ const FORMAT_DOWNLOADS: Record<string, { label: string; icon: string; action: st
   ],
   flashcards: [
     { label: "PDF",  icon: "📄", action: "pdf" },
+    { label: "PNG",  icon: "🖼️", action: "png" },
   ],
   quiz: [
     { label: "PDF",  icon: "📄", action: "pdf" },
@@ -49,7 +52,7 @@ const FORMAT_DOWNLOADS: Record<string, { label: string; icon: string; action: st
   ],
 }
 
-export default function DownloadBar({ format, data, title }: DownloadBarProps) {
+export default function DownloadBar({ format, data, title, accentColor = "#3b82f6" }: DownloadBarProps) {
   const [downloading, setDownloading] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
@@ -63,7 +66,6 @@ export default function DownloadBar({ format, data, title }: DownloadBarProps) {
   const handleDownload = async (action: string) => {
     setDownloading(action)
     setSuccess(null)
-
     try {
       switch (action) {
         case "png":
@@ -73,10 +75,13 @@ export default function DownloadBar({ format, data, title }: DownloadBarProps) {
           await downloadRenderedAsImage("creator-result-container", baseName, "jpeg")
           break
         case "pdf":
-          await downloadAsPDF(data, format, baseName)
+          await downloadAsPDF(data, format, baseName, accentColor)
           break
         case "pptx":
-          await downloadAsPPTX(data, baseName)
+          await downloadAsPPTX(data, baseName, accentColor)
+          break
+        case "mp3":
+          await generatePodcastAudio(data, baseName)
           break
       }
       setSuccess(action)
@@ -102,7 +107,7 @@ export default function DownloadBar({ format, data, title }: DownloadBarProps) {
             success === d.action
               ? "bg-green-500/10 border-green-500/30 text-green-400"
               : downloading === d.action
-              ? "bg-white/[0.03] border-white/[0.06] text-gray-600 animate-pulse"
+              ? "bg-white/[0.03] border-white/[0.06] text-gray-600"
               : "bg-white/[0.04] border-white/[0.08] text-gray-400 hover:bg-white/[0.08] hover:text-white hover:border-white/15"
           } disabled:opacity-40`}
         >
@@ -113,9 +118,104 @@ export default function DownloadBar({ format, data, title }: DownloadBarProps) {
           ) : (
             <span>{d.icon}</span>
           )}
-          {d.label}
+          {downloading === d.action && d.action === "mp3" ? "Generando audio..." : d.label}
         </button>
       ))}
     </div>
   )
+}
+
+// ============================================================
+// PODCAST TTS — Genera audio MP3 con Web Speech API
+// ============================================================
+
+async function generatePodcastAudio(data: any, fileName: string) {
+  const segments = data.segments || []
+  if (segments.length === 0) throw new Error("No hay segmentos")
+
+  // Verificar soporte
+  if (!window.speechSynthesis) {
+    throw new Error("Tu navegador no soporta síntesis de voz")
+  }
+
+  // Usar MediaRecorder + SpeechSynthesis para grabar audio
+  const audioCtx = new AudioContext({ sampleRate: 44100 })
+  const dest = audioCtx.createMediaStreamDestination()
+  const recorder = new MediaRecorder(dest.stream, { mimeType: "audio/webm" })
+  const chunks: Blob[] = []
+
+  recorder.ondataavailable = (e) => {
+    if (e.data.size > 0) chunks.push(e.data)
+  }
+
+  // Obtener voces disponibles
+  let voices = speechSynthesis.getVoices()
+  if (voices.length === 0) {
+    await new Promise<void>((resolve) => {
+      speechSynthesis.onvoiceschanged = () => {
+        voices = speechSynthesis.getVoices()
+        resolve()
+      }
+      setTimeout(resolve, 1000)
+    })
+    voices = speechSynthesis.getVoices()
+  }
+
+  // Buscar voces en español
+  const esVoices = voices.filter(v => v.lang.startsWith("es"))
+  const voiceA = esVoices.find(v => v.name.includes("male") || v.name.includes("Male")) || esVoices[0] || voices[0]
+  const voiceB = esVoices.find(v => v !== voiceA && (v.name.includes("female") || v.name.includes("Female"))) || esVoices[1] || voices[1] || voiceA
+
+  recorder.start()
+
+  // Hablar cada segmento secuencialmente
+  for (const seg of segments) {
+    await new Promise<void>((resolve) => {
+      const utterance = new SpeechSynthesisUtterance(seg.text)
+      utterance.voice = seg.speaker === "A" ? voiceA : voiceB
+      utterance.lang = "es-ES"
+      utterance.rate = seg.speaker === "A" ? 0.95 : 1.0
+      utterance.pitch = seg.speaker === "A" ? 0.9 : 1.1
+      utterance.onend = () => {
+        // Pausa breve entre segmentos
+        setTimeout(resolve, 300)
+      }
+      utterance.onerror = () => resolve()
+      speechSynthesis.speak(utterance)
+    })
+  }
+
+  // Detener grabación y descargar
+  recorder.stop()
+
+  await new Promise<void>((resolve) => {
+    recorder.onstop = () => resolve()
+    // Timeout de seguridad
+    setTimeout(resolve, 2000)
+  })
+
+  // Dar tiempo para chunks finales
+  await new Promise(r => setTimeout(r, 500))
+
+  if (chunks.length === 0) {
+    // Fallback: descargar como texto si no se pudo grabar audio
+    const text = segments.map((s: any) => `[${s.speaker === "A" ? "Host A" : "Host B"}]\n${s.text}\n`).join("\n")
+    const blob = new Blob([text], { type: "text/plain" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `${fileName}-guion.txt`
+    a.click()
+    URL.revokeObjectURL(url)
+    return
+  }
+
+  const blob = new Blob(chunks, { type: "audio/webm" })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url
+  a.download = `${fileName}.webm`
+  a.click()
+  URL.revokeObjectURL(url)
+  await audioCtx.close()
 }
