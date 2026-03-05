@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 
+import DownloadBar from "@/components/ui/DownloadBar"
+
 // ============================================================
 // SIDEBAR (mismo patrón que dashboard)
 // ============================================================
@@ -653,9 +655,10 @@ export default function CreatorStudioPage() {
                 </button>
               </div>
 
-              <div className="bg-gray-900/60 border border-white/5 rounded-3xl p-5 backdrop-blur-sm">
+              <div id="creator-result-container" className="bg-gray-900/60 border border-white/5 rounded-3xl p-5 backdrop-blur-sm">
                 {Renderer && <Renderer data={result} />}
               </div>
+              <DownloadBar format={outputFormat} data={result} />
             </>
           )}
 
