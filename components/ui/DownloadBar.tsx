@@ -17,9 +17,9 @@ interface DownloadBarProps {
 
 const FORMAT_DOWNLOADS: Record<string, { label: string; icon: string; action: string }[]> = {
   infographic: [
-    { label: "PNG",  icon: "🖼️", action: "png" },
-    { label: "JPG",  icon: "📷", action: "jpg" },
-    { label: "PDF",  icon: "📄", action: "pdf" },
+    { label: "PNG", icon: "🖼️", action: "png" },
+    { label: "JPG", icon: "📷", action: "jpg" },
+    { label: "PDF", icon: "📄", action: "pdf" },
   ],
   ppt: [
     { label: "PPTX", icon: "📑", action: "pptx" },
@@ -27,30 +27,30 @@ const FORMAT_DOWNLOADS: Record<string, { label: string; icon: string; action: st
     { label: "PNG",  icon: "🖼️", action: "png" },
   ],
   poster: [
-    { label: "PNG",  icon: "🖼️", action: "png" },
-    { label: "JPG",  icon: "📷", action: "jpg" },
-    { label: "PDF",  icon: "📄", action: "pdf" },
+    { label: "PNG", icon: "🖼️", action: "png" },
+    { label: "JPG", icon: "📷", action: "jpg" },
+    { label: "PDF", icon: "📄", action: "pdf" },
   ],
   podcast: [
-    { label: "Audio WAV",   icon: "🎵", action: "wav" },
-    { label: "Escuchar",    icon: "🔊", action: "play" },
-    { label: "PDF Guión",   icon: "📄", action: "pdf" },
-    { label: "TXT Guión",   icon: "📝", action: "txt" },
+    { label: "Audio WAV",  icon: "🎵", action: "wav" },
+    { label: "Escuchar",   icon: "🔊", action: "play" },
+    { label: "PDF Guión",  icon: "📄", action: "pdf" },
+    { label: "TXT Guión",  icon: "📝", action: "txt" },
   ],
   mindmap: [
-    { label: "PNG",  icon: "🖼️", action: "png" },
-    { label: "PDF",  icon: "📄", action: "pdf" },
+    { label: "PNG", icon: "🖼️", action: "png" },
+    { label: "PDF", icon: "📄", action: "pdf" },
   ],
   flashcards: [
-    { label: "PDF",  icon: "📄", action: "pdf" },
-    { label: "PNG",  icon: "🖼️", action: "png" },
+    { label: "PDF", icon: "📄", action: "pdf" },
+    { label: "PNG", icon: "🖼️", action: "png" },
   ],
   quiz: [
-    { label: "PDF",  icon: "📄", action: "pdf" },
+    { label: "PDF", icon: "📄", action: "pdf" },
   ],
   timeline: [
-    { label: "PNG",  icon: "🖼️", action: "png" },
-    { label: "PDF",  icon: "📄", action: "pdf" },
+    { label: "PNG", icon: "🖼️", action: "png" },
+    { label: "PDF", icon: "📄", action: "pdf" },
   ],
 }
 
@@ -72,6 +72,7 @@ export default function DownloadBar({ format, data, title, accentColor = "#3b82f
     setDownloading(action)
     setSuccess(null)
     setProgress("")
+    cancelRef.current = false
     try {
       switch (action) {
         case "png":
@@ -87,15 +88,13 @@ export default function DownloadBar({ format, data, title, accentColor = "#3b82f
           await downloadAsPPTX(data, baseName, accentColor)
           break
         case "wav":
-          cancelRef.current = false
-          await generateAudioClientSide(data, baseName, setProgress, cancelRef)
+          await generateAndDownloadWAV(data, baseName, setProgress, cancelRef)
           break
         case "play":
-          cancelRef.current = false
-          await playPodcastLocally(data, setPlaying, setProgress, cancelRef)
+          await playWithSpeechAPI(data, setPlaying, setProgress, cancelRef)
           break
         case "txt":
-          downloadPodcastScript(data, baseName)
+          downloadScript(data, baseName)
           break
       }
       if (!cancelRef.current) {
@@ -151,52 +150,20 @@ export default function DownloadBar({ format, data, title, accentColor = "#3b82f
               ) : (
                 <span>{d.icon}</span>
               )}
-              {isStoppable
-                ? "Detener"
-                : downloading === d.action
-                ? (progress || "Generando...")
-                : d.label}
+              {isStoppable ? "Detener" : downloading === d.action ? (progress || "Generando...") : d.label}
             </button>
           )
         })}
       </div>
-      {progress && (
-        <p className="text-blue-400 text-[11px] animate-pulse">{progress}</p>
-      )}
+      {progress && <p className="text-blue-400 text-[11px] animate-pulse">{progress}</p>}
     </div>
   )
 }
 
 // ============================================================
-// AUDIO WAV — Generado 100% en el cliente (sin servidor)
-// Usa Hugging Face Inference API directamente desde el browser
+// WAV AUDIO — Llama a /api/agents/tts-chunk (NUESTRO servidor)
+// NUNCA llama a HF directamente desde el navegador
 // ============================================================
-
-const HF_MODEL = "facebook/mms-tts-spa"
-
-async function callHfTTS(text: string): Promise<ArrayBuffer> {
-  for (let attempt = 0; attempt < 3; attempt++) {
-    const res = await fetch(
-      `https://api-inference.huggingface.co/models/${HF_MODEL}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ inputs: text }),
-      }
-    )
-
-    if (res.status === 503) {
-      // Modelo cargando
-      await new Promise(r => setTimeout(r, 5000))
-      continue
-    }
-
-    if (!res.ok) throw new Error(`HF error ${res.status}`)
-
-    return await res.arrayBuffer()
-  }
-  throw new Error("HF API no respondió después de 3 intentos")
-}
 
 function splitText(text: string, maxLen = 200): string[] {
   if (text.length <= maxLen) return [text]
@@ -212,44 +179,117 @@ function splitText(text: string, maxLen = 200): string[] {
     }
   }
   if (current.trim()) chunks.push(current.trim())
-  if (chunks.length === 0) chunks.push(text.substring(0, maxLen))
-  return chunks
+  return chunks.length > 0 ? chunks : [text.substring(0, maxLen)]
 }
 
-function extractPCM(buf: ArrayBuffer): { pcm: ArrayBuffer; rate: number } {
-  const v = new DataView(buf)
-  const magic = String.fromCharCode(v.getUint8(0), v.getUint8(1), v.getUint8(2), v.getUint8(3))
-  if (magic === "RIFF") {
-    const rate = v.getUint32(24, true)
-    let off = 12
-    while (off < buf.byteLength - 8) {
-      const id = String.fromCharCode(v.getUint8(off), v.getUint8(off+1), v.getUint8(off+2), v.getUint8(off+3))
-      const sz = v.getUint32(off + 4, true)
-      if (id === "data") return { pcm: buf.slice(off + 8, off + 8 + sz), rate }
-      off += 8 + sz
+// Extraer PCM data de un WAV ArrayBuffer
+function extractWavPCM(wav: ArrayBuffer): { pcm: Uint8Array; sampleRate: number; numChannels: number; bitsPerSample: number } {
+  const view = new DataView(wav)
+
+  // Verificar RIFF
+  if (wav.byteLength < 44) throw new Error("WAV demasiado corto")
+
+  // Leer formato desde "fmt " chunk
+  let sampleRate = 16000
+  let numChannels = 1
+  let bitsPerSample = 16
+
+  // Buscar "fmt "
+  for (let i = 0; i < wav.byteLength - 4; i++) {
+    if (view.getUint8(i) === 0x66 && view.getUint8(i+1) === 0x6D &&
+        view.getUint8(i+2) === 0x74 && view.getUint8(i+3) === 0x20) {
+      numChannels = view.getUint16(i + 10, true)
+      sampleRate = view.getUint32(i + 12, true)
+      bitsPerSample = view.getUint16(i + 22, true)
+      break
     }
-    return { pcm: buf.slice(44), rate }
   }
-  return { pcm: buf, rate: 16000 }
+
+  // Buscar "data" chunk
+  for (let i = 0; i < wav.byteLength - 8; i++) {
+    if (view.getUint8(i) === 0x64 && view.getUint8(i+1) === 0x61 &&
+        view.getUint8(i+2) === 0x74 && view.getUint8(i+3) === 0x61) {
+      const dataSize = view.getUint32(i + 4, true)
+      const dataStart = i + 8
+      const pcm = new Uint8Array(wav, dataStart, Math.min(dataSize, wav.byteLength - dataStart))
+      return { pcm, sampleRate, numChannels, bitsPerSample }
+    }
+  }
+
+  // Fallback: asumir header de 44 bytes
+  return { pcm: new Uint8Array(wav, 44), sampleRate, numChannels, bitsPerSample }
 }
 
-function makeSilence(ms: number, rate: number): ArrayBuffer {
-  return new ArrayBuffer(Math.floor((rate * ms) / 1000) * 2)
+// Construir un WAV válido desde PCM concatenado
+function buildWav(pcmParts: Uint8Array[], sampleRate: number, numChannels: number, bitsPerSample: number): Uint8Array {
+  const totalPcmLength = pcmParts.reduce((acc, p) => acc + p.byteLength, 0)
+  const byteRate = (sampleRate * numChannels * bitsPerSample) / 8
+  const blockAlign = (numChannels * bitsPerSample) / 8
+
+  const wav = new Uint8Array(44 + totalPcmLength)
+  const view = new DataView(wav.buffer)
+
+  // RIFF header
+  wav.set([0x52, 0x49, 0x46, 0x46], 0) // "RIFF"
+  view.setUint32(4, 36 + totalPcmLength, true)
+  wav.set([0x57, 0x41, 0x56, 0x45], 8) // "WAVE"
+
+  // fmt chunk
+  wav.set([0x66, 0x6D, 0x74, 0x20], 12) // "fmt "
+  view.setUint32(16, 16, true) // chunk size
+  view.setUint16(20, 1, true) // PCM format
+  view.setUint16(22, numChannels, true)
+  view.setUint32(24, sampleRate, true)
+  view.setUint32(28, byteRate, true)
+  view.setUint16(32, blockAlign, true)
+  view.setUint16(34, bitsPerSample, true)
+
+  // data chunk
+  wav.set([0x64, 0x61, 0x74, 0x61], 36) // "data"
+  view.setUint32(40, totalPcmLength, true)
+
+  // Copiar PCM
+  let offset = 44
+  for (const part of pcmParts) {
+    wav.set(part, offset)
+    offset += part.byteLength
+  }
+
+  return wav
 }
 
-function makeWavHeader(dataLen: number, rate: number): ArrayBuffer {
-  const h = new ArrayBuffer(44)
-  const v = new DataView(h)
-  const w = (o: number, s: string) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)) }
-  w(0, "RIFF"); v.setUint32(4, 36 + dataLen, true); w(8, "WAVE")
-  w(12, "fmt "); v.setUint32(16, 16, true); v.setUint16(20, 1, true)
-  v.setUint16(22, 1, true); v.setUint32(24, rate, true)
-  v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true)
-  w(36, "data"); v.setUint32(40, dataLen, true)
-  return h
+// Generar silencio PCM
+function makeSilence(ms: number, sampleRate: number, numChannels: number, bitsPerSample: number): Uint8Array {
+  const bytesPerSample = (bitsPerSample / 8) * numChannels
+  const numSamples = Math.floor((sampleRate * ms) / 1000)
+  return new Uint8Array(numSamples * bytesPerSample) // zeros = silencio
 }
 
-async function generateAudioClientSide(
+// Llamar a NUESTRO proxy (no a HF directo)
+async function fetchAudioChunk(text: string): Promise<ArrayBuffer> {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const res = await fetch("/api/agents/tts-chunk", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    })
+
+    if (res.status === 503) {
+      await new Promise(r => setTimeout(r, 5000))
+      continue
+    }
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }))
+      throw new Error(err.error || `Error ${res.status}`)
+    }
+
+    return await res.arrayBuffer()
+  }
+  throw new Error("API no respondió después de 3 intentos")
+}
+
+async function generateAndDownloadWAV(
   data: any,
   fileName: string,
   setProgress: (s: string) => void,
@@ -258,96 +298,84 @@ async function generateAudioClientSide(
   const segments = data.segments || []
   if (segments.length === 0) throw new Error("No hay segmentos")
 
-  const pcmParts: ArrayBuffer[] = []
-  let sampleRate = 16000
-  let totalChunks = 0
-
-  // Contar total de chunks para progreso
-  for (const seg of segments) {
-    const text = (seg.text || "").trim()
-    if (text) totalChunks += splitText(text).length
-  }
-
-  let processed = 0
+  // Preparar chunks de texto
+  const allChunks: string[] = []
+  const segmentBoundaries: number[] = [] // índices donde cambia el segmento
 
   for (let i = 0; i < segments.length; i++) {
+    const text = (segments[i].text || "").trim()
+    if (!text) continue
+    const start = allChunks.length
+    allChunks.push(...splitText(text, 250))
+    segmentBoundaries.push(allChunks.length) // marca fin de este segmento
+  }
+
+  if (allChunks.length === 0) throw new Error("No hay texto para convertir")
+
+  const pcmParts: Uint8Array[] = []
+  let sampleRate = 16000
+  let numChannels = 1
+  let bitsPerSample = 16
+  let formatDetected = false
+
+  for (let i = 0; i < allChunks.length; i++) {
     if (cancelRef.current) return
 
-    const seg = segments[i]
-    const text = (seg.text || "").trim()
-    if (!text) continue
+    const pct = Math.round(((i + 1) / allChunks.length) * 100)
+    setProgress(`Generando audio... ${i + 1}/${allChunks.length} (${pct}%)`)
 
-    const textChunks = splitText(text)
+    try {
+      const wavBuf = await fetchAudioChunk(allChunks[i])
+      const parsed = extractWavPCM(wavBuf)
 
-    for (let j = 0; j < textChunks.length; j++) {
-      if (cancelRef.current) return
-
-      processed++
-      setProgress(`Generando audio... ${processed}/${totalChunks} partes (${Math.round((processed/totalChunks)*100)}%)`)
-
-      try {
-        const audioBuf = await callHfTTS(textChunks[j])
-        const { pcm, rate } = extractPCM(audioBuf)
-        if (pcm.byteLength > 0) {
-          sampleRate = rate
-          pcmParts.push(pcm)
-        }
-      } catch (err: any) {
-        console.warn(`Chunk ${processed} falló:`, err.message)
-        pcmParts.push(makeSilence(500, sampleRate))
+      if (!formatDetected && parsed.pcm.byteLength > 0) {
+        sampleRate = parsed.sampleRate
+        numChannels = parsed.numChannels
+        bitsPerSample = parsed.bitsPerSample
+        formatDetected = true
       }
 
-      // Pausa entre chunks del mismo segmento
-      if (j < textChunks.length - 1) {
-        pcmParts.push(makeSilence(100, sampleRate))
+      if (parsed.pcm.byteLength > 0) {
+        pcmParts.push(parsed.pcm)
       }
-
-      // Rate limit
-      await new Promise(r => setTimeout(r, 200))
+    } catch (err: any) {
+      console.warn(`Chunk ${i + 1} falló:`, err.message)
+      // Insertar silencio en lugar del chunk fallido
+      pcmParts.push(makeSilence(300, sampleRate, numChannels, bitsPerSample))
     }
 
-    // Pausa entre segmentos
-    if (i < segments.length - 1) {
-      pcmParts.push(makeSilence(500, sampleRate))
+    // Pausa entre segmentos (cambio de speaker) vs dentro del mismo segmento
+    const isSegmentEnd = segmentBoundaries.includes(i + 1)
+    if (i < allChunks.length - 1) {
+      const silenceMs = isSegmentEnd ? 500 : 100
+      pcmParts.push(makeSilence(silenceMs, sampleRate, numChannels, bitsPerSample))
     }
   }
 
   if (cancelRef.current) return
-
-  if (pcmParts.length === 0) {
-    throw new Error("No se generó audio. Intenta de nuevo.")
-  }
+  if (pcmParts.length === 0) throw new Error("No se generó audio. Verifica HF_API_KEY en Vercel.")
 
   setProgress("Construyendo archivo WAV...")
 
-  // Concatenar
-  const totalLen = pcmParts.reduce((a, b) => a + b.byteLength, 0)
-  const header = makeWavHeader(totalLen, sampleRate)
-  const wav = new Uint8Array(44 + totalLen)
-  wav.set(new Uint8Array(header), 0)
-  let off = 44
-  for (const part of pcmParts) {
-    wav.set(new Uint8Array(part), off)
-    off += part.byteLength
-  }
+  // Construir WAV válido
+  const finalWav = buildWav(pcmParts, sampleRate, numChannels, bitsPerSample)
 
   // Descargar
-  const blob = new Blob([wav.buffer], { type: "audio/wav" })
+  const blob = new Blob([finalWav.buffer], { type: "audio/wav" })
   const url = URL.createObjectURL(blob)
   const a = document.createElement("a")
   a.href = url
   a.download = `${fileName}.wav`
   a.click()
   URL.revokeObjectURL(url)
-
   setProgress("")
 }
 
 // ============================================================
-// PODCAST — Reproducir con Web Speech API (todos los segmentos)
+// ESCUCHAR — Web Speech API local (sin servidor)
 // ============================================================
 
-async function playPodcastLocally(
+async function playWithSpeechAPI(
   data: any,
   setPlaying: (v: boolean) => void,
   setProgress: (s: string) => void,
@@ -355,7 +383,7 @@ async function playPodcastLocally(
 ) {
   const segments = data.segments || []
   if (segments.length === 0) throw new Error("No hay segmentos")
-  if (!window.speechSynthesis) throw new Error("Tu navegador no soporta síntesis de voz")
+  if (!window.speechSynthesis) throw new Error("Navegador no soporta síntesis de voz")
 
   speechSynthesis.cancel()
   await new Promise(r => setTimeout(r, 200))
@@ -384,8 +412,6 @@ async function playPodcastLocally(
     if (!text) continue
 
     setProgress(`Reproduciendo ${i + 1} de ${segments.length}...`)
-
-    // Dividir en oraciones cortas
     const parts = splitText(text, 180)
 
     for (const part of parts) {
@@ -398,20 +424,17 @@ async function playPodcastLocally(
         u.rate = seg.speaker === "A" ? 0.9 : 1.0
         u.pitch = seg.speaker === "A" ? 0.8 : 1.2
         u.volume = 1.0
-
         let done = false
         const finish = () => { if (!done) { done = true; resolve() } }
         u.onend = finish
         u.onerror = finish
         setTimeout(finish, 30000)
-
         speechSynthesis.speak(u)
       })
 
       if (!cancelRef.current) await new Promise(r => setTimeout(r, 80))
     }
 
-    // Pausa entre segmentos
     if (!cancelRef.current && i < segments.length - 1) {
       await new Promise(r => setTimeout(r, 400))
     }
@@ -422,17 +445,16 @@ async function playPodcastLocally(
 }
 
 // ============================================================
-// PODCAST — Descargar guión como TXT
+// TXT — Descargar guión
 // ============================================================
 
-function downloadPodcastScript(data: any, fileName: string) {
+function downloadScript(data: any, fileName: string) {
   const segments = data.segments || []
-  const lines: string[] = [
+  const lines = [
     `══════════════════════════════════════`,
     `  ${data.title || "Podcast EduAI"}`,
-    `  Duración estimada: ${data.duration || "5 min"}`,
-    `══════════════════════════════════════`,
-    ``,
+    `  Duración: ${data.duration || "5 min"}`,
+    `══════════════════════════════════════`, ``,
   ]
   for (const seg of segments) {
     lines.push(`[${seg.speaker === "A" ? "HOST A (Profesor)" : "HOST B (Estudiante)"}]`)
