@@ -363,8 +363,12 @@ async function generateAndDownloadWAV(
 
   const finalWav = buildWav(pcmParts, sampleRate, numChannels, bitsPerSample)
 
-  // ✅ Blob seguro (sin finalWav.buffer)
-  const blob = new Blob([finalWav], { type: "audio/wav" })
+  // ✅ Blob 100% compatible: forzar ArrayBuffer REAL (no SharedArrayBuffer)
+  const wavBytes = finalWav as Uint8Array
+  const arrayBuffer = new ArrayBuffer(wavBytes.byteLength)
+  new Uint8Array(arrayBuffer).set(wavBytes)
+
+  const blob = new Blob([arrayBuffer], { type: "audio/wav" })
   const url = URL.createObjectURL(blob)
 
   const a = document.createElement("a")
