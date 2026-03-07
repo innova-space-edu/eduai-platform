@@ -8,9 +8,11 @@ const MAX_PDF_SIZE_BYTES = MAX_PDF_SIZE_MB * 1024 * 1024
 const MAX_GEMINI_INLINE_PDF_MB = 10
 const MAX_GEMINI_INLINE_PDF_BYTES = MAX_GEMINI_INLINE_PDF_MB * 1024 * 1024
 const MAX_RETURN_TEXT_CHARS = 180_000
+const MAX_SUMMARY_SOURCE_CHARS = 12_000
 
 function cleanText(text: string) {
   return text
+    .replace(/\u0000/g, "")
     .replace(/\r/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .replace(/[ \t]{2,}/g, " ")
@@ -23,6 +25,10 @@ function truncateText(text: string, maxChars: number) {
     text.slice(0, maxChars) +
     "\n\n[Texto truncado por límite interno de procesamiento]"
   )
+}
+
+function getString(value: unknown) {
+  return typeof value === "string" ? value : ""
 }
 
 function parseGeminiJson(raw: string) {
@@ -54,14 +60,19 @@ function parseGeminiJson(raw: string) {
 }
 
 function deriveTitle(filename?: string, filePath?: string) {
-  if (filename?.trim()) {
-    return filename.replace(/\.pdf$/i, "") || "Documento"
+  const cleanFilename = getString(filename).trim()
+  if (cleanFilename) {
+    return cleanFilename.replace(/\.pdf$/i, "") || "Documento"
   }
 
-  if (filePath?.trim()) {
-    const parts = filePath.split("/")
-    const lastPart = parts[parts.length - 1] || "documento.pdf"
-    return decodeURIComponent(lastPart).replace(/\.pdf$/i, "") || "Documento"
+  const cleanPath = getString(filePath).trim()
+  if (cleanPath) {
+    const parts = cleanPath.split("/")
+    const lastPart = decodeURIComponent(parts[parts.length - 1] || "documento.pdf")
+      .replace(/^\d+-/, "")
+      .replace(/^[a-f0-9-]{20,}-/i, "")
+
+    return lastPart.replace(/\.pdf$/i, "") || "Documento"
   }
 
   return "Documento"
@@ -137,8 +148,8 @@ Rules:
     }
 
     return {
-      text: cleanText(data.text || ""),
-      summary: (data.summary || "").trim(),
+      text: cleanText(getString(data.text)),
+      summary: getString(data.summary).trim(),
       success: true,
     }
   } catch (error) {
@@ -169,7 +180,7 @@ TÍTULO:
 ${title}
 
 TEXTO:
-${extractedText.slice(0, 12000)}
+${extractedText.slice(0, MAX_SUMMARY_SOURCE_CHARS)}
     `.trim()
 
     const result = await model.generateContent(prompt)
@@ -194,9 +205,9 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json()
-    const bucket = typeof body?.bucket === "string" ? body.bucket : ""
-    const filePath = typeof body?.filePath === "string" ? body.filePath : ""
-    const filename = typeof body?.filename === "string" ? body.filename : ""
+    const bucket = getString(body?.bucket).trim()
+    const filePath = getString(body?.filePath).trim()
+    const filename = getString(body?.filename).trim()
 
     if (!bucket || !filePath) {
       return Response.json(
@@ -250,6 +261,7 @@ export async function POST(req: Request) {
     let extractedText = ""
     let summary = ""
     let pageCount = 0
+    let extractionMethod: "pdf-parse" | "gemini-inline" | "none" = "none"
 
     const pdfParseResult = await extractTextWithPdfParse(buffer)
 
@@ -257,6 +269,7 @@ export async function POST(req: Request) {
       extractedText = pdfParseResult.text
       pageCount = pdfParseResult.pageCount
       summary = await summarizeWithGemini(title, extractedText)
+      extractionMethod = "pdf-parse"
     } else if (buffer.byteLength <= MAX_GEMINI_INLINE_PDF_BYTES) {
       const base64 = buffer.toString("base64")
       const geminiResult = await extractTextWithGemini(base64, title)
@@ -264,7 +277,8 @@ export async function POST(req: Request) {
       if (geminiResult.success && geminiResult.text) {
         extractedText = geminiResult.text
         summary =
-          geminiResult.summary || "No se pudo generar un resumen automático."
+          geminiResult.summary || (await summarizeWithGemini(title, extractedText))
+        extractionMethod = "gemini-inline"
       }
     }
 
@@ -278,6 +292,7 @@ export async function POST(req: Request) {
           summary:
             "No se pudo extraer el texto automáticamente. Si el PDF es escaneado o muy pesado, el siguiente paso es agregar OCR o procesamiento por fragmentos.",
           pageCount,
+          extractionMethod,
           error: true,
         },
         { status: 200 }
@@ -292,6 +307,7 @@ export async function POST(req: Request) {
       summary: summary || "No se pudo generar un resumen automático.",
       pageCount,
       truncated: finalText.length < extractedText.length,
+      extractionMethod,
       bucket,
       filePath,
     })
