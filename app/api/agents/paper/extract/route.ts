@@ -2,9 +2,12 @@ import { createClient } from "@/lib/supabase/server"
 
 export const runtime = "nodejs"
 
-const MAX_PDF_SIZE_MB = 3.5
+const STORAGE_BUCKET = "papers"
+const MAX_PDF_SIZE_MB = 50
 const MAX_PDF_SIZE_BYTES = MAX_PDF_SIZE_MB * 1024 * 1024
-const MAX_RETURN_TEXT_CHARS = 150_000
+const MAX_GEMINI_INLINE_PDF_MB = 10
+const MAX_GEMINI_INLINE_PDF_BYTES = MAX_GEMINI_INLINE_PDF_MB * 1024 * 1024
+const MAX_RETURN_TEXT_CHARS = 180_000
 
 function cleanText(text: string) {
   return text
@@ -16,7 +19,10 @@ function cleanText(text: string) {
 
 function truncateText(text: string, maxChars: number) {
   if (text.length <= maxChars) return text
-  return text.slice(0, maxChars) + "\n\n[Texto truncado por límite interno de procesamiento]"
+  return (
+    text.slice(0, maxChars) +
+    "\n\n[Texto truncado por límite interno de procesamiento]"
+  )
 }
 
 function parseGeminiJson(raw: string) {
@@ -45,6 +51,20 @@ function parseGeminiJson(raw: string) {
   }
 
   return data
+}
+
+function deriveTitle(filename?: string, filePath?: string) {
+  if (filename?.trim()) {
+    return filename.replace(/\.pdf$/i, "") || "Documento"
+  }
+
+  if (filePath?.trim()) {
+    const parts = filePath.split("/")
+    const lastPart = parts[parts.length - 1] || "documento.pdf"
+    return decodeURIComponent(lastPart).replace(/\.pdf$/i, "") || "Documento"
+  }
+
+  return "Documento"
 }
 
 async function extractTextWithPdfParse(buffer: Buffer) {
@@ -173,41 +193,58 @@ export async function POST(req: Request) {
   }
 
   try {
-    const formData = await req.formData()
-    const fileValue = formData.get("file")
+    const body = await req.json()
+    const bucket = typeof body?.bucket === "string" ? body.bucket : ""
+    const filePath = typeof body?.filePath === "string" ? body.filePath : ""
+    const filename = typeof body?.filename === "string" ? body.filename : ""
 
-    if (!fileValue || typeof fileValue === "string") {
+    if (!bucket || !filePath) {
       return Response.json(
-        { error: "No se recibió ningún archivo PDF." },
+        { error: "Faltan bucket o filePath." },
         { status: 400 }
       )
     }
 
-    const file = fileValue as File
-    const filename = file.name || "documento.pdf"
-    const title = filename.replace(/\.pdf$/i, "") || "Documento"
-    const isPdf =
-      file.type === "application/pdf" || filename.toLowerCase().endsWith(".pdf")
-
-    if (!isPdf) {
+    if (bucket !== STORAGE_BUCKET) {
       return Response.json(
-        { error: "Solo se aceptan archivos PDF." },
+        { error: "Bucket no permitido." },
         { status: 400 }
       )
     }
 
-    if (file.size > MAX_PDF_SIZE_BYTES) {
+    if (!filePath.startsWith(`${user.id}/`)) {
+      return Response.json(
+        { error: "No tienes permisos para acceder a este archivo." },
+        { status: 403 }
+      )
+    }
+
+    const title = deriveTitle(filename, filePath)
+
+    const { data: fileBlob, error: downloadError } = await supabase.storage
+      .from(bucket)
+      .download(filePath)
+
+    if (downloadError || !fileBlob) {
+      console.error("Storage download error:", downloadError)
+      return Response.json(
+        { error: "No se pudo descargar el PDF desde Supabase Storage." },
+        { status: 500 }
+      )
+    }
+
+    if (fileBlob.size > MAX_PDF_SIZE_BYTES) {
       return Response.json(
         {
           error:
-            `El archivo pesa ${(file.size / 1024 / 1024).toFixed(2)} MB y excede ` +
+            `El archivo almacenado pesa ${(fileBlob.size / 1024 / 1024).toFixed(2)} MB y excede ` +
             `el límite permitido de ${MAX_PDF_SIZE_MB} MB.`,
         },
         { status: 413 }
       )
     }
 
-    const arrayBuffer = await file.arrayBuffer()
+    const arrayBuffer = await fileBlob.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
 
     let extractedText = ""
@@ -220,7 +257,7 @@ export async function POST(req: Request) {
       extractedText = pdfParseResult.text
       pageCount = pdfParseResult.pageCount
       summary = await summarizeWithGemini(title, extractedText)
-    } else {
+    } else if (buffer.byteLength <= MAX_GEMINI_INLINE_PDF_BYTES) {
       const base64 = buffer.toString("base64")
       const geminiResult = await extractTextWithGemini(base64, title)
 
@@ -238,7 +275,8 @@ export async function POST(req: Request) {
         {
           title,
           text: "",
-          summary: "No se pudo extraer el texto automáticamente.",
+          summary:
+            "No se pudo extraer el texto automáticamente. Si el PDF es escaneado o muy pesado, el siguiente paso es agregar OCR o procesamiento por fragmentos.",
           pageCount,
           error: true,
         },
@@ -254,6 +292,8 @@ export async function POST(req: Request) {
       summary: summary || "No se pudo generar un resumen automático.",
       pageCount,
       truncated: finalText.length < extractedText.length,
+      bucket,
+      filePath,
     })
   } catch (error: any) {
     console.error("PDF extraction error:", error)
