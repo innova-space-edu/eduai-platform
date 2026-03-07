@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, useRef, useEffect, useCallback } from "react"
+import { useState, useRef, useEffect, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
+import { createBrowserClient } from "@supabase/ssr"
 import MathRenderer from "@/components/ui/MathRenderer"
 
 interface Message {
@@ -21,7 +22,8 @@ const QUICK_QUESTIONS = [
   "¿Qué preguntas quedan abiertas para futuras investigaciones?",
 ]
 
-const MAX_PDF_SIZE_MB = 3.5
+const STORAGE_BUCKET = "papers"
+const MAX_PDF_SIZE_MB = 50
 const MAX_PDF_SIZE_BYTES = MAX_PDF_SIZE_MB * 1024 * 1024
 
 async function safeJson(res: Response) {
@@ -30,6 +32,16 @@ async function safeJson(res: Response) {
   } catch {
     return null
   }
+}
+
+function sanitizeFilename(name: string) {
+  const cleaned = name
+    .normalize("NFKD")
+    .replace(/[^\w.\-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "")
+
+  return cleaned || "documento.pdf"
 }
 
 export default function PaperPage() {
@@ -43,10 +55,19 @@ export default function PaperPage() {
   const [dragOver, setDragOver] = useState(false)
   const [uploadMessage, setUploadMessage] = useState("")
   const [uploadError, setUploadError] = useState("")
+  const [storagePath, setStoragePath] = useState("")
 
   const fileRef = useRef<HTMLInputElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
+
+  const supabase = useMemo(() => {
+    return createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+        process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
+    )
+  }, [])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -60,79 +81,118 @@ export default function PaperPage() {
     setInput("")
     setUploadMessage("")
     setUploadError("")
+    setStoragePath("")
     if (fileRef.current) fileRef.current.value = ""
   }, [])
 
-  const processPDF = useCallback(async (file: File) => {
-    if (!file || file.type !== "application/pdf") {
-      alert("Solo se aceptan archivos PDF")
-      return
-    }
+  const processPDF = useCallback(
+    async (file: File) => {
+      const isPdf =
+        file?.type === "application/pdf" ||
+        file?.name?.toLowerCase().endsWith(".pdf")
 
-    if (file.size > MAX_PDF_SIZE_BYTES) {
-      const sizeMb = (file.size / 1024 / 1024).toFixed(2)
-      const message =
-        `El PDF pesa ${sizeMb} MB.\n\n` +
-        `Por ahora el límite seguro es ${MAX_PDF_SIZE_MB} MB para evitar el error 413 en Vercel.`
-      setUploadError(message)
-      alert(message)
-      return
-    }
-
-    setUploading(true)
-    setUploadError("")
-    setUploadMessage("Subiendo PDF y preparando análisis...")
-
-    try {
-      const formData = new FormData()
-      formData.append("file", file)
-
-      const res = await fetch("/api/agents/paper/extract", {
-        method: "POST",
-        body: formData,
-      })
-
-      const data = await safeJson(res)
-
-      if (!res.ok) {
-        const errorMessage =
-          data?.error ||
-          (res.status === 413
-            ? "El archivo es demasiado grande para procesarlo."
-            : "Error al extraer el texto del PDF.")
-        throw new Error(errorMessage)
+      if (!file || !isPdf) {
+        alert("Solo se aceptan archivos PDF")
+        return
       }
 
-      const extractedText = data?.text || ""
-      const detectedTitle = data?.title || file.name.replace(/\.pdf$/i, "")
-      const summary =
-        data?.summary?.trim() || "No se pudo generar un resumen inicial automáticamente."
+      if (file.size > MAX_PDF_SIZE_BYTES) {
+        const sizeMb = (file.size / 1024 / 1024).toFixed(2)
+        const message =
+          `El PDF pesa ${sizeMb} MB.\n\n` +
+          `El límite actual configurado es ${MAX_PDF_SIZE_MB} MB.`
+        setUploadError(message)
+        alert(message)
+        return
+      }
 
-      setPaperContent(extractedText)
-      setPaperTitle(detectedTitle)
-      setPaperLoaded(true)
+      setUploading(true)
+      setUploadError("")
+      setUploadMessage("Validando sesión y preparando subida...")
 
-      setMessages([
-        {
-          role: "assistant",
-          content:
-            `📄 **Paper cargado: "${detectedTitle}"**\n\n` +
-            `**Resumen rápido:**\n${summary}\n\n` +
-            `---\n¿Qué quieres saber sobre este paper? ` +
-            `Puedo explicar la metodología, los resultados, las conclusiones, o debatir sus argumentos.`,
-        },
-      ])
+      try {
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser()
 
-      setUploadMessage("PDF procesado correctamente.")
-      if (fileRef.current) fileRef.current.value = ""
-    } catch (error: any) {
-      const message = error?.message || "Error al procesar el PDF. Intenta de nuevo."
-      setUploadError(message)
-      alert(message)
-    } finally {
-      setUploading(false)
-    }
-  }, [])
+        if (userError || !user) {
+          throw new Error("Debes iniciar sesión para subir y analizar PDFs.")
+        }
+
+        const safeName = sanitizeFilename(file.name)
+        const uniquePath = `${user.id}/${Date.now()}-${crypto.randomUUID()}-${safeName}`
+
+        setUploadMessage("Subiendo PDF a Supabase Storage...")
+
+        const { error: uploadError } = await supabase.storage
+          .from(STORAGE_BUCKET)
+          .upload(uniquePath, file, {
+            cacheControl: "3600",
+            upsert: false,
+            contentType: "application/pdf",
+          })
+
+        if (uploadError) {
+          throw new Error(uploadError.message || "No se pudo subir el archivo a Storage.")
+        }
+
+        setStoragePath(uniquePath)
+        setUploadMessage("PDF subido. Extrayendo texto desde Storage...")
+
+        const res = await fetch("/api/agents/paper/extract", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            bucket: STORAGE_BUCKET,
+            filePath: uniquePath,
+            filename: file.name,
+          }),
+        })
+
+        const data = await safeJson(res)
+
+        if (!res.ok) {
+          const errorMessage =
+            data?.error ||
+            "Error al extraer el texto del PDF almacenado en Supabase."
+          throw new Error(errorMessage)
+        }
+
+        const extractedText = data?.text || ""
+        const detectedTitle = data?.title || file.name.replace(/\.pdf$/i, "")
+        const summary =
+          data?.summary?.trim() ||
+          "No se pudo generar un resumen inicial automáticamente."
+
+        setPaperContent(extractedText)
+        setPaperTitle(detectedTitle)
+        setPaperLoaded(true)
+
+        setMessages([
+          {
+            role: "assistant",
+            content:
+              `📄 **Paper cargado: "${detectedTitle}"**\n\n` +
+              `**Resumen rápido:**\n${summary}\n\n` +
+              `---\n¿Qué quieres saber sobre este paper? ` +
+              `Puedo explicar la metodología, los resultados, las conclusiones, o debatir sus argumentos.`,
+          },
+        ])
+
+        setUploadMessage("PDF procesado correctamente.")
+        if (fileRef.current) fileRef.current.value = ""
+      } catch (error: any) {
+        const message =
+          error?.message || "Error al procesar el PDF. Intenta de nuevo."
+        setUploadError(message)
+        alert(message)
+      } finally {
+        setUploading(false)
+      }
+    },
+    [supabase]
+  )
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
@@ -169,6 +229,8 @@ export default function PaperPage() {
           history: messages.slice(-10),
           paperContent,
           paperTitle,
+          storagePath,
+          storageBucket: STORAGE_BUCKET,
         }),
       })
 
@@ -201,7 +263,6 @@ export default function PaperPage() {
 
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col">
-      {/* Header */}
       <div className="border-b border-gray-800 bg-gray-900/80 sticky top-0 z-10">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
@@ -236,7 +297,6 @@ export default function PaperPage() {
       </div>
 
       <div className="max-w-3xl mx-auto w-full flex-1 px-4 py-6 flex flex-col gap-4">
-        {/* Upload zone */}
         {!paperLoaded && !uploading && (
           <div
             onDrop={handleDrop}
@@ -258,7 +318,7 @@ export default function PaperPage() {
               Arrastra un PDF aquí o haz click para seleccionar
             </p>
             <p className="text-gray-600 text-xs mb-4">
-              Límite recomendado actual: {MAX_PDF_SIZE_MB} MB
+              Límite configurado actual: {MAX_PDF_SIZE_MB} MB
             </p>
 
             <div className="flex flex-wrap justify-center gap-2">
@@ -275,7 +335,9 @@ export default function PaperPage() {
             {uploadError && (
               <div className="mt-5 max-w-xl mx-auto rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-left">
                 <p className="text-red-300 text-sm font-medium">No se pudo cargar el PDF</p>
-                <p className="text-red-200/80 text-xs mt-1 whitespace-pre-line">{uploadError}</p>
+                <p className="text-red-200/80 text-xs mt-1 whitespace-pre-line">
+                  {uploadError}
+                </p>
               </div>
             )}
 
@@ -289,18 +351,16 @@ export default function PaperPage() {
           </div>
         )}
 
-        {/* Loading PDF */}
         {uploading && (
           <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 text-center">
             <div className="w-12 h-12 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
             <p className="text-white font-medium">Procesando PDF...</p>
             <p className="text-gray-500 text-sm mt-1">
-              {uploadMessage || "Extrayendo texto y generando resumen inicial"}
+              {uploadMessage || "Subiendo archivo y extrayendo texto"}
             </p>
           </div>
         )}
 
-        {/* Quick questions */}
         {paperLoaded && messages.length <= 1 && (
           <div>
             <p className="text-gray-600 text-xs mb-2">Preguntas sugeridas:</p>
@@ -318,7 +378,6 @@ export default function PaperPage() {
           </div>
         )}
 
-        {/* Messages */}
         <div className="flex flex-col gap-4">
           {messages.map((msg, i) => (
             <div
@@ -378,7 +437,6 @@ export default function PaperPage() {
         </div>
       </div>
 
-      {/* Input */}
       {paperLoaded && (
         <div className="sticky bottom-0 bg-gray-950/90 backdrop-blur-sm border-t border-gray-800 px-4 py-3">
           <div className="max-w-3xl mx-auto flex gap-2">
