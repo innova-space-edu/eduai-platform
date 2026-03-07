@@ -85,6 +85,24 @@ const AGENTS = [
     href: "/galeria",
     tag: "Creativo",
   },
+  {
+    id: "examen-docente",
+    icon: "📋",
+    name: "Exámenes Docente",
+    description: "Crea pruebas con IA, comparte el link y recibe notas automáticas",
+    color: "from-red-500 to-orange-600",
+    href: "/examen/docente",
+    tag: "Docentes",
+  },
+  {
+    id: "creator",
+    icon: "✨",
+    name: "Creator Studio",
+    description: "Infografías, PPT, podcast, flashcards, quiz y más desde cualquier tema",
+    color: "from-indigo-500 to-violet-600",
+    href: "/creator",
+    tag: "Creativo",
+  },
 ]
 
 const TAG_COLORS: Record<string, string> = {

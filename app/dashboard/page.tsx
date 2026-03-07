@@ -24,7 +24,6 @@ const BOTTOM_LINKS = [
   { href: "/collab",   icon: "🤝", label: "Colaborar" },
   { href: "/creator",  icon: "✨", label: "Creator"   },
   { href: "/profile",  icon: "👤", label: "Perfil"    },
-  { href: "/examen/docente", icon: "📝", label: "Exámenes" },
 ]
 
 export default function Dashboard() {
