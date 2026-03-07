@@ -2,6 +2,11 @@ import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
 export async function middleware(request: NextRequest) {
+  // No pasar requests API por middleware
+  if (request.nextUrl.pathname.startsWith("/api")) {
+    return NextResponse.next()
+  }
+
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -13,9 +18,7 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          )
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           supabaseResponse = NextResponse.next({ request })
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
@@ -25,23 +28,29 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
-  // Si no está logueado y quiere entrar a rutas protegidas → login
-  if (!user && (
-    request.nextUrl.pathname.startsWith("/dashboard") ||
-    request.nextUrl.pathname.startsWith("/study") ||
-    request.nextUrl.pathname.startsWith("/profile") ||
-    request.nextUrl.pathname.startsWith("/admin")
-  )) {
+  if (
+    !user &&
+    (
+      request.nextUrl.pathname.startsWith("/dashboard") ||
+      request.nextUrl.pathname.startsWith("/study") ||
+      request.nextUrl.pathname.startsWith("/profile") ||
+      request.nextUrl.pathname.startsWith("/admin")
+    )
+  ) {
     return NextResponse.redirect(new URL("/login", request.url))
   }
 
-  // Si ya está logueado y va a login/register → dashboard
-  if (user && (
-    request.nextUrl.pathname === "/login" ||
-    request.nextUrl.pathname === "/register"
-  )) {
+  if (
+    user &&
+    (
+      request.nextUrl.pathname === "/login" ||
+      request.nextUrl.pathname === "/register"
+    )
+  ) {
     return NextResponse.redirect(new URL("/dashboard", request.url))
   }
 
@@ -49,5 +58,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
+  matcher: [
+    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+  ],
 }
