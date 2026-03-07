@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
-import { createBrowserClient } from "@supabase/ssr"
+import { createClient as createSupabaseClient } from "@/lib/supabase/client"
 import MathRenderer from "@/components/ui/MathRenderer"
 
 interface Message {
@@ -60,13 +60,7 @@ export default function PaperPage() {
   const bottomRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
-  const supabase = useMemo(() => {
-    return createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-        process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
-    )
-  }, [])
+  const supabase = useMemo(() => createSupabaseClient(), [])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
