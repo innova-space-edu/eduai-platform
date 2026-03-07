@@ -1,5 +1,30 @@
-// src/app/examen/crear/page.tsx
+
 "use client"
+
+function MathText({ text }: { text: string }) {
+  if (!text) return null
+  const parts = text.split(/(\$\$[\s\S]*?\$\$|\$[^$]*?\$)/g)
+  return (
+    <span>
+      {parts.map((part, i) => {
+        const isBlock = part.startsWith("$$") && part.endsWith("$$")
+        const isInline = !isBlock && part.startsWith("$") && part.endsWith("$")
+        if (isBlock || isInline) {
+          const tex = isBlock ? part.slice(2, -2) : part.slice(1, -1)
+          const html = tex
+            .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, "(<sup>$1</sup>&frasl;<sub>$2</sub>)")
+            .replace(/\\sqrt\{([^}]+)\}/g, "√($1)")
+            .replace(/\\cdot/g, "·").replace(/\\times/g, "×").replace(/\\div/g, "÷")
+            .replace(/\\leq/g, "≤").replace(/\\geq/g, "≥").replace(/\\neq/g, "≠").replace(/\\pm/g, "±")
+            .replace(/\^(\{[^}]+\}|\w)/g, (_, p) => `<sup>${p.replace(/[{}]/g, "")}</sup>`)
+            .replace(/_(\{[^}]+\}|\w)/g, (_, p) => `<sub>${p.replace(/[{}]/g, "")}</sub>`)
+          return <span key={i} className={`text-blue-300 font-mono ${isBlock ? "block my-2 text-center text-base" : ""}`} dangerouslySetInnerHTML={{ __html: html }} />
+        }
+        return <span key={i}>{part}</span>
+      })}
+    </span>
+  )
+}
 
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
@@ -344,12 +369,13 @@ Todo en español.`
                     </span>
                   </div>
                   <p className="text-sm text-gray-200 mb-2">{i + 1}. {q.question}</p>
-                  {q.type === "development" ? (
+                  {q.type === "development" && q.modelAnswer && (
                     <div className="bg-orange-500/[0.05] rounded-lg p-2 border border-orange-500/10">
                       <p className="text-orange-400 text-[10px] font-semibold">Respuesta modelo:</p>
-                      <p className="text-gray-400 text-xs">{q.modelAnswer}</p>
+                      <p className="text-gray-400 text-xs"><MathText text={q.modelAnswer || ""} /></p>
                     </div>
-                  ) : (
+                  )}
+                  {q.type !== "development" && (
                     <div className="space-y-1">
                       {(q.options || []).map((opt: string, j: number) => (
                         <div key={j} className={`text-xs px-3 py-1.5 rounded-lg ${
