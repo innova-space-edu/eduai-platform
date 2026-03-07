@@ -48,7 +48,6 @@ export default function PaperPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [loading, setLoading] = useState(false)
-  const [paperContent, setPaperContent] = useState("")
   const [paperTitle, setPaperTitle] = useState("")
   const [uploading, setUploading] = useState(false)
   const [paperLoaded, setPaperLoaded] = useState(false)
@@ -75,7 +74,6 @@ export default function PaperPage() {
 
   const resetPaperState = useCallback(() => {
     setPaperLoaded(false)
-    setPaperContent("")
     setPaperTitle("")
     setMessages([])
     setInput("")
@@ -125,7 +123,7 @@ export default function PaperPage() {
 
         setUploadMessage("Subiendo PDF a Supabase Storage...")
 
-        const { error: uploadError } = await supabase.storage
+        const { error: storageUploadError } = await supabase.storage
           .from(STORAGE_BUCKET)
           .upload(uniquePath, file, {
             cacheControl: "3600",
@@ -133,8 +131,10 @@ export default function PaperPage() {
             contentType: "application/pdf",
           })
 
-        if (uploadError) {
-          throw new Error(uploadError.message || "No se pudo subir el archivo a Storage.")
+        if (storageUploadError) {
+          throw new Error(
+            storageUploadError.message || "No se pudo subir el archivo a Storage."
+          )
         }
 
         setStoragePath(uniquePath)
@@ -159,13 +159,11 @@ export default function PaperPage() {
           throw new Error(errorMessage)
         }
 
-        const extractedText = data?.text || ""
         const detectedTitle = data?.title || file.name.replace(/\.pdf$/i, "")
         const summary =
           data?.summary?.trim() ||
           "No se pudo generar un resumen inicial automáticamente."
 
-        setPaperContent(extractedText)
         setPaperTitle(detectedTitle)
         setPaperLoaded(true)
 
@@ -227,7 +225,6 @@ export default function PaperPage() {
         body: JSON.stringify({
           message: cleanText,
           history: messages.slice(-10),
-          paperContent,
           paperTitle,
           storagePath,
           storageBucket: STORAGE_BUCKET,
@@ -313,7 +310,9 @@ export default function PaperPage() {
             }`}
           >
             <div className="text-5xl mb-4">📄</div>
-            <h2 className="text-white font-semibold text-lg mb-2">Sube tu paper o documento</h2>
+            <h2 className="text-white font-semibold text-lg mb-2">
+              Sube tu paper o documento
+            </h2>
             <p className="text-gray-500 text-sm mb-2">
               Arrastra un PDF aquí o haz click para seleccionar
             </p>
