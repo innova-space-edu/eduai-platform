@@ -33,6 +33,16 @@ function MathText({ text }: { text: string }) {
 
 function calcGrade(s: number, e = 60) { const p = Math.max(0, Math.min(100, s)); return Math.round((p >= e ? 4 + (p - e) * 3 / (100 - e) : 1 + p * 3 / e) * 10) / 10 }
 function fmt(s: number) { return `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}` }
+function getQuestionMaxPoints(q: any) {
+  if (!q) return 1
+  if (typeof q.maxPoints === "number" && q.maxPoints > 0) return q.maxPoints
+  if (q.type === "true_false") return (typeof q.selectionPoints === "number" ? q.selectionPoints : 1) + (typeof q.justificationMaxPoints === "number" ? q.justificationMaxPoints : 2)
+  if (q.type === "development") {
+    if (Array.isArray(q.rubric) && q.rubric.length > 0) return q.rubric.reduce((acc: number, item: any) => acc + (Number(item?.points) || 0), 0)
+    return 5
+  }
+  return 1
+}
 
 type Phase = "loading" | "register" | "exam" | "submitting" | "review" | "error"
 
@@ -99,6 +109,7 @@ export default function ExamenPublicoPage() {
   const qs = exam?.questions || []
   const q = qs[curQ]
   const totalQ = qs.length
+  const examTotalPoints = qs.reduce((acc: number, item: any) => acc + getQuestionMaxPoints(item), 0)
   const answeredCount = qs.filter((_: any, i: number) => mcAnswers[i] !== undefined || (devAnswers[i] && devAnswers[i].length > 0)).length
   const showRes = exam?.settings?.showResultToStudent !== false
 
@@ -117,7 +128,7 @@ export default function ExamenPublicoPage() {
           <div className="flex justify-center gap-4 mt-3 text-xs text-gray-500">
             <span>📋 {totalQ} preguntas</span>
             <span>⏱ {exam?.settings?.timeLimit || 30} min</span>
-            <span>📊 Nota 1.0 - 7.0</span>
+            <span>📊 {examTotalPoints} pts</span>
           </div>
         </div>
         {exam?.instructions && (
@@ -153,7 +164,7 @@ export default function ExamenPublicoPage() {
               <h2 className="text-3xl font-extrabold text-white">Nota: {nota}</h2>
               <p className="text-gray-500 text-sm mt-1">{nota >= 5.5 ? "¡Excelente trabajo!" : nota >= 4.0 ? "Aprobado. Sigue practicando." : "Repasa el material."}</p>
               <div className="flex justify-center gap-6 mt-3">
-                <div><p className="text-gray-600 text-xs">Puntaje</p><p className="text-blue-400 font-bold text-lg">{submission.correct_count}/{totalQ > 0 ? "pts" : 0}</p></div>
+                <div><p className="text-gray-600 text-xs">Puntaje</p><p className="text-blue-400 font-bold text-lg">{submission.correct_count}/{examTotalPoints > 0 ? examTotalPoints : 0} pts</p></div>
                 <div><p className="text-gray-600 text-xs">Porcentaje</p><p className="text-blue-400 font-bold text-lg">{Math.round(pct)}%</p></div>
                 <div><p className="text-gray-600 text-xs">Tiempo</p><p className="text-gray-300 font-bold text-lg">{submission.time_spent ? `${Math.round(submission.time_spent / 60)}m` : "—"}</p></div>
               </div>
@@ -253,6 +264,7 @@ export default function ExamenPublicoPage() {
                 </span>
               </div>
               {q.difficulty && <span className={`text-[10px] px-2 py-0.5 rounded-full ${q.difficulty === 3 ? "bg-red-500/10 text-red-400" : q.difficulty === 2 ? "bg-yellow-500/10 text-yellow-400" : "bg-green-500/10 text-green-400"}`}>{q.difficulty === 3 ? "Difícil" : q.difficulty === 2 ? "Media" : "Fácil"}</span>}
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-300">{getQuestionMaxPoints(q)} pts</span>
             </div>
 
             <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-5">
