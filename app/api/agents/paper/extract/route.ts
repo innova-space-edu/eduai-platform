@@ -61,6 +61,15 @@ export async function POST(req: Request) {
 
     const finalText = truncateText(result.text || "", MAX_RETURN_TEXT_CHARS)
 
+    // Log de resultado de extracción
+    console.log("Extraction result:", {
+      title: result.title,
+      pageCount: result.pageCount,
+      extractionMethod: result.extractionMethod,
+      hasText: !!result.text,
+      textLength: result.text?.length,
+    })
+
     return Response.json({
       title: result.title,
       text: finalText,

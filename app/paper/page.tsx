@@ -219,6 +219,15 @@ export default function PaperPage() {
 
         const data = await safeJson(res)
 
+        // Log de resultado de extracción
+        console.log("Extraction result:", {
+          title: data?.title,
+          pageCount: data?.pageCount,
+          extractionMethod: data?.extractionMethod,
+          hasText: !!data?.text,
+          textLength: data?.text?.length,
+        })
+
         if (!res.ok) {
           const errorMessage =
             data?.error ||
