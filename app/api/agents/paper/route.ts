@@ -1,24 +1,16 @@
 import { callAI } from "@/lib/ai-router"
 import { createClient } from "@/lib/supabase/server"
+import {
+  STORAGE_BUCKET,
+  extractPaperFromStorage,
+  cleanText,
+} from "@/lib/papers/extraction"
 
 export const runtime = "nodejs"
 
-const STORAGE_BUCKET = "papers"
-const MAX_PDF_SIZE_MB = 50
-const MAX_PDF_SIZE_BYTES = MAX_PDF_SIZE_MB * 1024 * 1024
-const MAX_GEMINI_INLINE_PDF_MB = 10
-const MAX_GEMINI_INLINE_PDF_BYTES = MAX_GEMINI_INLINE_PDF_MB * 1024 * 1024
 const CHUNK_SIZE = 3500
 const CHUNK_OVERLAP = 400
 const MAX_SELECTED_CHUNKS = 4
-
-function cleanText(text: string) {
-  return text
-    .replace(/\r/g, "\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .replace(/[ \t]{2,}/g, " ")
-    .trim()
-}
 
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
@@ -126,154 +118,6 @@ function selectRelevantChunks(text: string, query: string, maxChunks = MAX_SELEC
   return chunks.slice(0, maxChunks)
 }
 
-function parseGeminiJson(raw: string) {
-  let data: any = null
-
-  try {
-    data = JSON.parse(raw)
-  } catch {}
-
-  if (!data) {
-    const match = raw.match(/\{[\s\S]*\}/)
-    if (match) {
-      try {
-        data = JSON.parse(match[0])
-      } catch {}
-    }
-  }
-
-  if (!data) {
-    const mdMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/)
-    if (mdMatch) {
-      try {
-        data = JSON.parse(mdMatch[1].trim())
-      } catch {}
-    }
-  }
-
-  return data
-}
-
-async function extractTextWithPdfParse(buffer: Buffer) {
-  try {
-    const pdfParseModule: any = await import("pdf-parse")
-    const pdfParse = pdfParseModule.default || pdfParseModule
-    const parsed = await pdfParse(buffer)
-
-    return {
-      text: cleanText(parsed?.text || ""),
-      pageCount: parsed?.numpages || 0,
-      success: true,
-    }
-  } catch (error) {
-    console.error("pdf-parse extraction failed:", error)
-    return {
-      text: "",
-      pageCount: 0,
-      success: false,
-    }
-  }
-}
-
-async function extractTextWithGemini(base64: string, title: string) {
-  if (!process.env.GEMINI_API_KEY) {
-    return {
-      text: "",
-      success: false,
-    }
-  }
-
-  try {
-    const { GoogleGenerativeAI } = await import("@google/generative-ai")
-    const genai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
-    const model = genai.getGenerativeModel({ model: "gemini-2.0-flash" })
-
-    const result = await model.generateContent([
-      {
-        inlineData: {
-          mimeType: "application/pdf",
-          data: base64,
-        },
-      },
-      {
-        text: `Extract ALL text from this document preserving structure, titles, sections and formulas.
-
-IMPORTANT: Respond ONLY with a valid JSON object:
-{"title":"document title","text":"full extracted text"}
-
-Rules:
-- Keep the original language of the document
-- Preserve mathematical formulas as LaTeX when possible
-- Include all sections when possible
-- If the title is unclear, use: "${title}"`,
-      },
-    ])
-
-    const raw = result.response.text().trim()
-    const data = parseGeminiJson(raw)
-
-    if (!data?.text) {
-      return {
-        text: "",
-        success: false,
-      }
-    }
-
-    return {
-      text: cleanText(data.text || ""),
-      success: true,
-    }
-  } catch (error) {
-    console.error("Gemini full extraction failed:", error)
-    return {
-      text: "",
-      success: false,
-    }
-  }
-}
-
-async function loadPaperTextFromStorage(params: {
-  supabase: Awaited<ReturnType<typeof createClient>>
-  bucket: string
-  filePath: string
-  title: string
-}) {
-  const { supabase, bucket, filePath, title } = params
-
-  const { data: fileBlob, error: downloadError } = await supabase.storage
-    .from(bucket)
-    .download(filePath)
-
-  if (downloadError || !fileBlob) {
-    throw new Error("No se pudo descargar el PDF desde Supabase Storage.")
-  }
-
-  if (fileBlob.size > MAX_PDF_SIZE_BYTES) {
-    throw new Error(
-      `El archivo almacenado pesa ${(fileBlob.size / 1024 / 1024).toFixed(2)} MB y excede el límite permitido de ${MAX_PDF_SIZE_MB} MB.`
-    )
-  }
-
-  const arrayBuffer = await fileBlob.arrayBuffer()
-  const buffer = Buffer.from(arrayBuffer)
-
-  const parsed = await extractTextWithPdfParse(buffer)
-  if (parsed.success && parsed.text) {
-    return parsed.text
-  }
-
-  if (buffer.byteLength <= MAX_GEMINI_INLINE_PDF_BYTES) {
-    const geminiResult = await extractTextWithGemini(buffer.toString("base64"), title)
-    if (geminiResult.success && geminiResult.text) {
-      return geminiResult.text
-    }
-  }
-
-  throw new Error(
-    "No se pudo extraer el texto automáticamente del PDF. Si el documento es escaneado, habría que agregar OCR."
-  )
-}
-
 export async function POST(req: Request) {
   const supabase = await createClient()
   const {
@@ -316,14 +160,23 @@ export async function POST(req: Request) {
       )
     }
 
-    const paperText = await loadPaperTextFromStorage({
+    const paper = await extractPaperFromStorage({
       supabase,
+      userId: user.id,
       bucket: storageBucket,
       filePath: storagePath,
-      title: paperTitle,
+      filename: paperTitle,
+      forceRefresh: false,
     })
 
-    const relevantChunks = selectRelevantChunks(paperText, message, MAX_SELECTED_CHUNKS)
+    if (!paper.text?.trim()) {
+      return Response.json(
+        { error: "No hay texto disponible para analizar en este documento." },
+        { status: 400 }
+      )
+    }
+
+    const relevantChunks = selectRelevantChunks(paper.text, message, MAX_SELECTED_CHUNKS)
     const excerptBlock = relevantChunks
       .map((chunk, index) => `### Fragmento ${index + 1}\n${chunk}`)
       .join("\n\n")
@@ -331,7 +184,7 @@ export async function POST(req: Request) {
     const systemPrompt = `Eres APaper, un agente especializado en análisis profundo de documentos académicos y papers científicos.
 
 DOCUMENTO CARGADO:
-Título: "${paperTitle}"
+Título: "${paper.title || paperTitle}"
 
 FRAGMENTOS RELEVANTES DEL DOCUMENTO:
 ---
@@ -377,6 +230,8 @@ Responde en español, salvo que el usuario pida otro idioma.`
       provider: result.provider,
       storageBucket,
       storagePath,
+      extractionMethod: paper.extractionMethod,
+      fromCache: paper.fromCache,
     })
   } catch (e: any) {
     console.error("Paper chat error:", e)
