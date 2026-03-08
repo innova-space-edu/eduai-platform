@@ -1,4 +1,3 @@
-// src/lib/papers/extraction.ts
 import { createHash } from "crypto"
 
 export const STORAGE_BUCKET = "papers"
@@ -27,6 +26,19 @@ export interface CachedPaperExtraction {
   error_message?: string | null
   created_at?: string
   updated_at?: string
+}
+
+export interface PaperExtractionResult {
+  title: string
+  text: string
+  summary: string
+  pageCount: number
+  extractionMethod: string
+  truncated: boolean
+  fromCache: boolean
+  bucket: string
+  filePath: string
+  error?: boolean
 }
 
 // ============================================================
@@ -76,15 +88,28 @@ export function deriveTitle(filename?: string, filePath?: string) {
 
 function parseGeminiJson(raw: string) {
   let data: any = null
-  try { data = JSON.parse(raw) } catch {}
+  try {
+    data = JSON.parse(raw)
+  } catch {}
+
   if (!data) {
     const match = raw.match(/\{[\s\S]*\}/)
-    if (match) { try { data = JSON.parse(match[0]) } catch {} }
+    if (match) {
+      try {
+        data = JSON.parse(match[0])
+      } catch {}
+    }
   }
+
   if (!data) {
     const mdMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/)
-    if (mdMatch) { try { data = JSON.parse(mdMatch[1].trim()) } catch {} }
+    if (mdMatch) {
+      try {
+        data = JSON.parse(mdMatch[1].trim())
+      } catch {}
+    }
   }
+
   return data
 }
 
@@ -106,10 +131,15 @@ export async function getCachedPaperExtraction(
       .eq("bucket", bucket)
       .eq("file_path", filePath)
       .maybeSingle()
-    if (error) { console.error("paper_extractions select error:", error); return null }
+
+    if (error) {
+      console.error("paper_extractions select error:", error)
+      return null
+    }
+
     return data ?? null
   } catch {
-    return null // tabla no existe, no pasa nada
+    return null
   }
 }
 
@@ -121,7 +151,10 @@ export async function upsertPaperExtraction(
     const { error } = await supabase
       .from("paper_extractions")
       .upsert(row, { onConflict: "user_id,bucket,file_path" })
-    if (error) console.error("paper_extractions upsert error:", error)
+
+    if (error) {
+      console.error("paper_extractions upsert error:", error)
+    }
   } catch {
     // tabla no existe, ignorar silenciosamente
   }
@@ -134,10 +167,14 @@ export async function upsertPaperExtraction(
 async function extractTextWithPdfParse(buffer: Buffer) {
   try {
     const pdfParseModule: any = await import("pdf-parse")
-    const pdfParse = pdfParseModule.default || pdfParseModule
+    const pdfParse =
+      pdfParseModule.default || pdfParseModule.pdf || pdfParseModule
+
     const parsed = await pdfParse(buffer)
     const text = cleanText(parsed?.text || "")
+
     console.log("pdf-parse extracted:", text.length, "chars,", parsed?.numpages, "pages")
+
     return {
       text,
       pageCount: parsed?.numpages || 0,
@@ -150,11 +187,15 @@ async function extractTextWithPdfParse(buffer: Buffer) {
 }
 
 async function extractTextWithGemini(base64: string, title: string) {
-  if (!process.env.GEMINI_API_KEY) return { text: "", summary: "", success: false }
+  if (!process.env.GEMINI_API_KEY) {
+    return { text: "", summary: "", success: false }
+  }
+
   try {
     const { GoogleGenerativeAI } = await import("@google/generative-ai")
     const genai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
     const model = genai.getGenerativeModel({ model: "gemini-2.0-flash" })
+
     const result = await model.generateContent([
       { inlineData: { mimeType: "application/pdf", data: base64 } },
       {
@@ -165,11 +206,17 @@ Respond ONLY with valid JSON, no markdown, no backticks:
 Keep original language. Preserve LaTeX formulas. If title unclear use: "${title}"`,
       },
     ])
+
     const raw = result.response.text().trim()
     const data = parseGeminiJson(raw)
-    if (!data) return { text: "", summary: "", success: false }
+
+    if (!data) {
+      return { text: "", summary: "", success: false }
+    }
+
     const text = cleanText(getString(data.text))
     console.log("Gemini extracted:", text.length, "chars")
+
     return {
       text,
       summary: getString(data.summary).trim(),
@@ -186,11 +233,14 @@ async function extractTextWithOCR(buffer: Buffer, filename: string) {
     console.warn("OCR_SPACE_API_KEY not set, skipping OCR")
     return { text: "", success: false }
   }
+
   try {
     const formData = new FormData()
+    const uint8 = new Uint8Array(buffer)
+
     formData.append(
       "file",
-      new Blob([buffer], { type: "application/pdf" }),
+      new Blob([uint8], { type: "application/pdf" }),
       filename || "documento.pdf"
     )
     formData.append("isOverlayRequired", "false")
@@ -203,16 +253,21 @@ async function extractTextWithOCR(buffer: Buffer, filename: string) {
       headers: { apikey: process.env.OCR_SPACE_API_KEY },
       body: formData,
     })
+
     const data: any = await res.json().catch(() => null)
+
     if (!res.ok || !data || data.IsErroredOnProcessing) {
       console.error("OCR error:", data?.ErrorMessage || data?.ErrorDetails)
       return { text: "", success: false }
     }
+
     const text = (data.ParsedResults || [])
       .map((r: any) => r?.ParsedText || "")
       .join("\n\n")
+
     const clean = cleanText(text)
     console.log("OCR extracted:", clean.length, "chars")
+
     return { text: clean, success: hasUsefulExtractedText(clean) }
   } catch (error) {
     console.error("OCR failed:", error)
@@ -226,10 +281,12 @@ async function extractTextWithOCR(buffer: Buffer, filename: string) {
 
 async function summarizeWithGemini(title: string, text: string) {
   if (!process.env.GEMINI_API_KEY || !text.trim()) return ""
+
   try {
     const { GoogleGenerativeAI } = await import("@google/generative-ai")
     const genai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
     const model = genai.getGenerativeModel({ model: "gemini-2.0-flash" })
+
     const result = await model.generateContent(
       `Resume este documento en 3-4 frases en el mismo idioma del documento.
 Menciona: tema central, método, hallazgo principal y conclusión.
@@ -238,6 +295,7 @@ TÍTULO: ${title}
 
 TEXTO: ${text.slice(0, MAX_SUMMARY_SOURCE_CHARS)}`
     )
+
     return result.response.text().trim() || ""
   } catch {
     return ""
@@ -255,7 +313,7 @@ export async function extractPaperFromStorage(params: {
   filePath: string
   filename?: string
   forceRefresh?: boolean
-}) {
+}): Promise<PaperExtractionResult> {
   const {
     supabase,
     userId,
@@ -267,7 +325,6 @@ export async function extractPaperFromStorage(params: {
 
   const title = deriveTitle(filename, filePath)
 
-  // Verificar cache
   if (!forceRefresh) {
     const cached = await getCachedPaperExtraction(supabase, userId, bucket, filePath)
     if (cached?.extracted_text?.trim()) {
@@ -286,7 +343,6 @@ export async function extractPaperFromStorage(params: {
     }
   }
 
-  // Descargar PDF desde Storage
   const { data: fileBlob, error: downloadError } = await supabase.storage
     .from(bucket)
     .download(filePath)
@@ -305,16 +361,18 @@ export async function extractPaperFromStorage(params: {
   const buffer = Buffer.from(arrayBuffer)
 
   let sha256 = ""
-  try { sha256 = createHash("sha256").update(buffer).digest("hex") } catch {}
+  try {
+    sha256 = createHash("sha256").update(buffer).digest("hex")
+  } catch {}
 
   let extractedText = ""
   let summary = ""
   let pageCount = 0
-  let extractionMethod: string = "none"
+  let extractionMethod = "none"
 
-  // Paso 1: pdf-parse
   console.log("Trying pdf-parse...")
   const pdfResult = await extractTextWithPdfParse(buffer)
+
   if (pdfResult.success && hasUsefulExtractedText(pdfResult.text)) {
     extractedText = pdfResult.text
     pageCount = pdfResult.pageCount
@@ -322,13 +380,13 @@ export async function extractPaperFromStorage(params: {
     console.log("pdf-parse succeeded")
   }
 
-  // Paso 2: OCR (si pdf-parse falló)
   if (!extractedText) {
     console.log("Trying OCR...")
     const ocrResult = await extractTextWithOCR(
       buffer,
       filename || filePath.split("/").pop() || "documento.pdf"
     )
+
     if (ocrResult.success && hasUsefulExtractedText(ocrResult.text)) {
       extractedText = ocrResult.text
       extractionMethod = "ocr-space"
@@ -336,10 +394,10 @@ export async function extractPaperFromStorage(params: {
     }
   }
 
-  // Paso 3: Gemini inline (si OCR también falló y archivo no muy grande)
   if (!extractedText && buffer.byteLength <= MAX_GEMINI_INLINE_PDF_BYTES) {
     console.log("Trying Gemini inline...")
     const geminiResult = await extractTextWithGemini(buffer.toString("base64"), title)
+
     if (geminiResult.success && hasUsefulExtractedText(geminiResult.text)) {
       extractedText = geminiResult.text
       summary = geminiResult.summary || ""
@@ -350,12 +408,12 @@ export async function extractPaperFromStorage(params: {
 
   extractedText = cleanText(extractedText)
 
-  // Sin texto extraído
   if (!extractedText) {
-    const errorResult = {
+    const errorResult: PaperExtractionResult = {
       title,
       text: "",
-      summary: "No se pudo extraer texto del documento. Si el PDF es escaneado, intenta con uno que tenga texto seleccionable.",
+      summary:
+        "No se pudo extraer texto del documento. Si el PDF es escaneado, intenta con uno que tenga texto seleccionable.",
       pageCount,
       extractionMethod,
       truncated: false,
@@ -366,31 +424,44 @@ export async function extractPaperFromStorage(params: {
     }
 
     await upsertPaperExtraction(supabase, {
-      user_id: userId, bucket, file_path: filePath, title,
-      extracted_text: "", summary: errorResult.summary,
-      page_count: pageCount, extraction_method: extractionMethod,
-      truncated: false, source_file_size_bytes: fileBlob.size,
-      source_file_sha256: sha256, error_message: "No text extracted",
+      user_id: userId,
+      bucket,
+      file_path: filePath,
+      title,
+      extracted_text: "",
+      summary: errorResult.summary,
+      page_count: pageCount,
+      extraction_method: extractionMethod,
+      truncated: false,
+      source_file_size_bytes: fileBlob.size,
+      source_file_sha256: sha256,
+      error_message: "No text extracted",
     })
 
     return errorResult
   }
 
-  // Generar resumen si no lo tenemos
   if (!summary) {
     summary = await summarizeWithGemini(title, extractedText)
   }
+
   if (!summary) {
     summary = "Documento procesado correctamente."
   }
 
-  // Guardar en cache
   await upsertPaperExtraction(supabase, {
-    user_id: userId, bucket, file_path: filePath, title,
-    extracted_text: extractedText, summary,
-    page_count: pageCount, extraction_method: extractionMethod,
-    truncated: false, source_file_size_bytes: fileBlob.size,
-    source_file_sha256: sha256, error_message: null,
+    user_id: userId,
+    bucket,
+    file_path: filePath,
+    title,
+    extracted_text: extractedText,
+    summary,
+    page_count: pageCount,
+    extraction_method: extractionMethod,
+    truncated: false,
+    source_file_size_bytes: fileBlob.size,
+    source_file_sha256: sha256,
+    error_message: null,
   })
 
   return {
