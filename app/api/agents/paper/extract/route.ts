@@ -61,13 +61,13 @@ export async function POST(req: Request) {
 
     const finalText = truncateText(result.text || "", MAX_RETURN_TEXT_CHARS)
 
-    // Log de resultado de extracción
     console.log("Extraction result:", {
       title: result.title,
       pageCount: result.pageCount,
       extractionMethod: result.extractionMethod,
-      hasText: !!result.text,
-      textLength: result.text?.length,
+      fromCache: result.fromCache,
+      hasText: !!result.text?.trim(),
+      textLength: result.text?.length || 0,
     })
 
     return Response.json({
@@ -80,7 +80,7 @@ export async function POST(req: Request) {
       fromCache: result.fromCache,
       bucket,
       filePath,
-      error: result.error ?? false,
+      error: "error" in result ? result.error : false,
     })
   } catch (error: any) {
     console.error("PDF extraction error:", error)
