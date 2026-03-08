@@ -25,6 +25,7 @@ const QUICK_QUESTIONS = [
 const STORAGE_BUCKET = "papers"
 const MAX_PDF_SIZE_MB = 50
 const MAX_PDF_SIZE_BYTES = MAX_PDF_SIZE_MB * 1024 * 1024
+const RESUMABLE_UPLOAD_THRESHOLD_BYTES = 6 * 1024 * 1024
 
 async function safeJson(res: Response) {
   try {
@@ -42,6 +43,18 @@ function sanitizeFilename(name: string) {
     .replace(/^-+|-+$/g, "")
 
   return cleaned || "documento.pdf"
+}
+
+function getProjectRefFromSupabaseUrl(url: string) {
+  const parsed = new URL(url)
+  return parsed.hostname.split(".")[0]
+}
+
+function getResumableEndpoint() {
+  const projectRef = getProjectRefFromSupabaseUrl(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!
+  )
+  return `https://${projectRef}.storage.supabase.co/storage/v1/upload/resumable`
 }
 
 export default function PaperPage() {
@@ -76,6 +89,74 @@ export default function PaperPage() {
     setStoragePath("")
     if (fileRef.current) fileRef.current.value = ""
   }, [])
+
+  const uploadWithStandard = useCallback(
+    async (file: File, uniquePath: string) => {
+      const { error } = await supabase.storage
+        .from(STORAGE_BUCKET)
+        .upload(uniquePath, file, {
+          cacheControl: "3600",
+          upsert: false,
+          contentType: "application/pdf",
+        })
+
+      if (error) {
+        throw new Error(error.message || "No se pudo subir el archivo a Storage.")
+      }
+    },
+    [supabase]
+  )
+
+  const uploadWithResumable = useCallback(
+    async (file: File, uniquePath: string) => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.access_token) {
+        throw new Error("No se pudo obtener la sesión para la subida reanudable.")
+      }
+
+      const tus = await import("tus-js-client")
+
+      await new Promise<void>((resolve, reject) => {
+        const upload = new tus.Upload(file, {
+          endpoint: getResumableEndpoint(),
+          retryDelays: [0, 3000, 5000, 10000, 20000],
+          headers: {
+            authorization: `Bearer ${session.access_token}`,
+          },
+          uploadDataDuringCreation: true,
+          removeFingerprintOnSuccess: true,
+          chunkSize: 6 * 1024 * 1024,
+          metadata: {
+            bucketName: STORAGE_BUCKET,
+            objectName: uniquePath,
+            contentType: "application/pdf",
+            cacheControl: "3600",
+          },
+          onError(error) {
+            reject(error)
+          },
+          onProgress(bytesUploaded, bytesTotal) {
+            const percentage = ((bytesUploaded / bytesTotal) * 100).toFixed(2)
+            setUploadMessage(`Subiendo PDF a Supabase Storage... ${percentage}%`)
+          },
+          onSuccess() {
+            resolve()
+          },
+        })
+
+        upload.findPreviousUploads().then(previousUploads => {
+          if (previousUploads.length > 0) {
+            upload.resumeFromPreviousUpload(previousUploads[0])
+          }
+          upload.start()
+        }).catch(reject)
+      })
+    },
+    [supabase]
+  )
 
   const processPDF = useCallback(
     async (file: File) => {
@@ -115,20 +196,12 @@ export default function PaperPage() {
         const safeName = sanitizeFilename(file.name)
         const uniquePath = `${user.id}/${Date.now()}-${crypto.randomUUID()}-${safeName}`
 
-        setUploadMessage("Subiendo PDF a Supabase Storage...")
-
-        const { error: storageUploadError } = await supabase.storage
-          .from(STORAGE_BUCKET)
-          .upload(uniquePath, file, {
-            cacheControl: "3600",
-            upsert: false,
-            contentType: "application/pdf",
-          })
-
-        if (storageUploadError) {
-          throw new Error(
-            storageUploadError.message || "No se pudo subir el archivo a Storage."
-          )
+        if (file.size >= RESUMABLE_UPLOAD_THRESHOLD_BYTES) {
+          setUploadMessage("Subiendo PDF con modo reanudable...")
+          await uploadWithResumable(file, uniquePath)
+        } else {
+          setUploadMessage("Subiendo PDF a Supabase Storage...")
+          await uploadWithStandard(file, uniquePath)
         }
 
         setStoragePath(uniquePath)
@@ -183,7 +256,7 @@ export default function PaperPage() {
         setUploading(false)
       }
     },
-    [supabase]
+    [supabase, uploadWithStandard, uploadWithResumable]
   )
 
   const handleDrop = useCallback(
@@ -310,8 +383,11 @@ export default function PaperPage() {
             <p className="text-gray-500 text-sm mb-2">
               Arrastra un PDF aquí o haz click para seleccionar
             </p>
-            <p className="text-gray-600 text-xs mb-4">
+            <p className="text-gray-600 text-xs mb-1">
               Límite configurado actual: {MAX_PDF_SIZE_MB} MB
+            </p>
+            <p className="text-gray-700 text-[11px] mb-4">
+              Desde 6 MB se usa subida reanudable automáticamente
             </p>
 
             <div className="flex flex-wrap justify-center gap-2">
