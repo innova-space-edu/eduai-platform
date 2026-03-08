@@ -234,9 +234,10 @@ async function extractTextWithOcrSpace(buffer: Buffer, filename: string) {
 
   try {
     const formData = new FormData()
+    const uint8 = new Uint8Array(buffer)
     formData.append(
       "file",
-      new Blob([buffer], { type: "application/pdf" }),
+      new Blob([uint8], { type: "application/pdf" }),
       filename || "documento.pdf"
     )
     formData.append("isOverlayRequired", "false")
