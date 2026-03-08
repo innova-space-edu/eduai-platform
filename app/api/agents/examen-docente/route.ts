@@ -17,29 +17,44 @@ function generateCode(): string {
 function calcGrade(score: number, exigencia = 60): number {
   const pct = Math.max(0, Math.min(100, score))
   let nota: number
+
   if (pct >= exigencia) {
     nota = 4.0 + ((pct - exigencia) * 3.0) / (100 - exigencia)
   } else {
     nota = 1.0 + (pct * 3.0) / exigencia
   }
+
   return Math.round(nota * 10) / 10
 }
 
 function getQuestionMaxPoints(question: any): number {
   if (!question) return 1
-  if (typeof question.maxPoints === "number" && question.maxPoints > 0) return question.maxPoints
+
+  if (typeof question.maxPoints === "number" && question.maxPoints > 0) {
+    return question.maxPoints
+  }
+
   if (question.type === "true_false") {
-    const selectionPoints = typeof question.selectionPoints === "number" ? question.selectionPoints : 1
-    const justificationMaxPoints = typeof question.justificationMaxPoints === "number" ? question.justificationMaxPoints : 2
+    const selectionPoints =
+      typeof question.selectionPoints === "number" ? question.selectionPoints : 1
+    const justificationMaxPoints =
+      typeof question.justificationMaxPoints === "number"
+        ? question.justificationMaxPoints
+        : 2
     return selectionPoints + justificationMaxPoints
   }
+
   if (question.type === "development") {
     if (Array.isArray(question.rubric) && question.rubric.length > 0) {
-      const sum = question.rubric.reduce((acc: number, item: any) => acc + (Number(item?.points) || 0), 0)
+      const sum = question.rubric.reduce(
+        (acc: number, item: any) => acc + (Number(item?.points) || 0),
+        0
+      )
       if (sum > 0) return sum
     }
     return 5
   }
+
   return 1
 }
 
@@ -47,7 +62,17 @@ async function evaluateWithAI(questions: any[], answers: any[]): Promise<any[]> 
   const geminiKey = process.env.GEMINI_API_KEY
   if (!geminiKey) return answers
 
-  const toEvaluate: { index: number; question: string; type: string; studentAnswer: string; modelAnswer?: string; rubric?: any[]; maxPoints?: number; correctAnswer?: number; selectedOption?: string }[] = []
+  const toEvaluate: {
+    index: number
+    question: string
+    type: string
+    studentAnswer: string
+    modelAnswer?: string
+    rubric?: any[]
+    maxPoints?: number
+    correctAnswer?: number
+    selectedOption?: string
+  }[] = []
 
   answers.forEach((a, i) => {
     const q = questions[i]
@@ -74,12 +99,36 @@ async function evaluateWithAI(questions: any[], answers: any[]): Promise<any[]> 
         correctAnswer: q.correctAnswer,
         selectedOption: q.options?.[a.selectedAnswer] || "",
         modelAnswer: q.explanation || "",
-        maxPoints: typeof q.justificationMaxPoints === "number" ? q.justificationMaxPoints : 2,
+        maxPoints:
+          typeof q.justificationMaxPoints === "number"
+            ? q.justificationMaxPoints
+            : 2,
       })
     }
   })
 
   if (toEvaluate.length === 0) return answers
+
+  const questionsBlock = toEvaluate
+    .map((e, idx) => {
+      const header = `[${idx}] Tipo: ${e.type}\nPregunta: ${e.question}`
+
+      if (e.type === "development") {
+        return `${header}
+Respuesta modelo: ${e.modelAnswer || ""}
+Rúbrica: ${JSON.stringify(e.rubric || [])}
+Puntaje máximo: ${e.maxPoints ?? 0}
+Respuesta del estudiante: ${e.studentAnswer}`
+      }
+
+      return `${header}
+Opción correcta: ${e.correctAnswer === 0 ? "Verdadero" : "Falso"}
+Estudiante eligió: ${e.selectedOption || ""}
+Explicación correcta: ${e.modelAnswer || ""}
+Puntaje máximo de justificación: ${e.maxPoints ?? 0}
+Respuesta del estudiante: ${e.studentAnswer}`
+    })
+    .join("\n\n")
 
   const prompt = `Eres un evaluador educativo estricto pero justo. Evalúa las siguientes respuestas de un estudiante.
 
@@ -90,28 +139,17 @@ REGLAS:
 - Responde SOLO con JSON válido, sin backticks ni markdown.
 
 PREGUNTAS A EVALUAR:
-${toEvaluate.map((e, idx) => `
-[${idx}] Tipo: ${e.type}
-Pregunta: ${e.question}
-${e.type === "development" ? `Respuesta modelo: ${e.modelAnswer}
-Rúbrica: ${JSON.stringify(e.rubric)}
-Puntaje máximo: ${e.maxPoints}` : `Opción correcta: ${e.correctAnswer === 0 ? "Verdadero" : "Falso"}
-Estudiante eligió: ${e.selectedOption}
-Explicación correcta: ${e.modelAnswer}
-Puntaje máximo de justificación: ${e.maxPoints}`}
-Respuesta del estudiante: ${e.studentAnswer}
-`).join("
-")}
+${questionsBlock}
 
 Responde con este JSON exacto:
 {
   "evaluations": [
     {
       "index": 0,
-      "score": <número>,
-      "maxScore": <número>,
+      "score": 0,
+      "maxScore": 0,
       "feedback": "retroalimentación breve y constructiva en español",
-      "isCorrect": true/false
+      "isCorrect": true
     }
   ]
 }`
@@ -123,19 +161,34 @@ Responde con este JSON exacto:
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          system_instruction: { parts: [{ text: "Eres un evaluador educativo. Responde SOLO con JSON válido." }] },
+          system_instruction: {
+            parts: [
+              {
+                text: "Eres un evaluador educativo. Responde SOLO con JSON válido.",
+              },
+            ],
+          },
           contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.3, maxOutputTokens: 2048, responseMimeType: "application/json" },
+          generationConfig: {
+            temperature: 0.3,
+            maxOutputTokens: 2048,
+            responseMimeType: "application/json",
+          },
         }),
         signal: AbortSignal.timeout(25000),
       }
     )
 
-    if (!res.ok) throw new Error(`Gemini ${res.status}`)
+    if (!res.ok) {
+      throw new Error(`Gemini ${res.status}`)
+    }
 
     const data = await res.json()
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text
-    if (!text) throw new Error("Empty response")
+
+    if (!text) {
+      throw new Error("Empty response")
+    }
 
     const parsed = JSON.parse(text)
     const evals = parsed.evaluations || []
@@ -144,22 +197,25 @@ Responde con este JSON exacto:
       const origIndex = toEvaluate[ev.index]?.index
       if (origIndex === undefined) continue
 
-      answers[origIndex].aiScore = ev.score
-      answers[origIndex].aiMaxScore = ev.maxScore
-      answers[origIndex].aiFeedback = ev.feedback
+      answers[origIndex].aiScore = Number(ev.score) || 0
+      answers[origIndex].aiMaxScore = Number(ev.maxScore) || 0
+      answers[origIndex].aiFeedback = ev.feedback || ""
       answers[origIndex].aiEvaluated = true
 
       if (questions[origIndex].type === "development") {
-        answers[origIndex].isCorrect = ev.score >= (ev.maxScore * 0.5)
+        answers[origIndex].isCorrect =
+          (Number(ev.score) || 0) >= (Number(ev.maxScore) || 0) * 0.5
       }
+
       if (questions[origIndex].type === "true_false") {
-        answers[origIndex].justificationScore = ev.score
-        answers[origIndex].justificationFeedback = ev.feedback
+        answers[origIndex].justificationScore = Number(ev.score) || 0
+        answers[origIndex].justificationFeedback = ev.feedback || ""
       }
     }
   } catch (err: any) {
-    console.error("AI evaluation error:", err.message)
-    toEvaluate.forEach(e => {
+    console.error("AI evaluation error:", err?.message || err)
+
+    toEvaluate.forEach((e) => {
       answers[e.index].aiEvaluated = false
       answers[e.index].aiFeedback = "Pendiente de revisión manual"
     })
@@ -175,13 +231,23 @@ export async function POST(request: NextRequest) {
 
     if (action === "create") {
       const { teacherId, title, topic, instructions, questions, settings } = body
+
       if (!teacherId || !title || !topic || !questions?.length) {
-        return NextResponse.json({ error: "Faltan campos requeridos" }, { status: 400 })
+        return NextResponse.json(
+          { error: "Faltan campos requeridos" },
+          { status: 400 }
+        )
       }
 
       let code = generateCode()
+
       for (let i = 0; i < 10; i++) {
-        const { data: existing } = await supabase.from("teacher_exams").select("code").eq("code", code).maybeSingle()
+        const { data: existing } = await supabase
+          .from("teacher_exams")
+          .select("code")
+          .eq("code", code)
+          .maybeSingle()
+
         if (!existing) break
         code = generateCode()
       }
@@ -198,14 +264,25 @@ export async function POST(request: NextRequest) {
           settings: { ...settings },
           status: "active",
         })
-        .select().single()
+        .select()
+        .single()
 
       if (error) throw error
+
       return NextResponse.json({ success: true, exam: data, code })
     }
 
     if (action === "submit") {
-      const { examId, studentName, studentCourse, studentRut, answers, questions, timeSpent, examPercentage } = body
+      const {
+        examId,
+        studentName,
+        studentCourse,
+        studentRut,
+        answers,
+        questions,
+        timeSpent,
+        examPercentage,
+      } = body
 
       if (!examId || !studentName || !studentCourse || !answers || !questions) {
         return NextResponse.json({ error: "Faltan datos" }, { status: 400 })
@@ -227,19 +304,27 @@ export async function POST(request: NextRequest) {
 
         if (q.type === "true_false") {
           const tfCorrect = a.selectedAnswer === q.correctAnswer
+          const selectionPoints =
+            typeof q.selectionPoints === "number" ? q.selectionPoints : 1
+          const justificationMaxPoints =
+            typeof q.justificationMaxPoints === "number"
+              ? q.justificationMaxPoints
+              : Math.max(0, getQuestionMaxPoints(q) - selectionPoints)
+
           return {
             questionIndex: i,
             type: "true_false",
             selectedAnswer: a.selectedAnswer,
             isCorrect: tfCorrect,
             justification: a.justification || "",
-            selectionPoints: typeof q.selectionPoints === "number" ? q.selectionPoints : 1,
-            justificationMaxPoints: typeof q.justificationMaxPoints === "number" ? q.justificationMaxPoints : Math.max(0, getQuestionMaxPoints(q) - (typeof q.selectionPoints === "number" ? q.selectionPoints : 1)),
+            selectionPoints,
+            justificationMaxPoints,
             maxPoints: getQuestionMaxPoints(q),
           }
         }
 
         const isCorrect = a.selectedAnswer === q.correctAnswer
+
         return {
           questionIndex: i,
           type: "multiple_choice",
@@ -265,17 +350,26 @@ export async function POST(request: NextRequest) {
         }
 
         if (q.type === "true_false") {
-          const selectionPoints = typeof q.selectionPoints === "number" ? q.selectionPoints : 1
-          const justificationMaxPoints = typeof q.justificationMaxPoints === "number" ? q.justificationMaxPoints : Math.max(0, getQuestionMaxPoints(q) - selectionPoints)
+          const selectionPoints =
+            typeof q.selectionPoints === "number" ? q.selectionPoints : 1
+          const justificationMaxPoints =
+            typeof q.justificationMaxPoints === "number"
+              ? q.justificationMaxPoints
+              : Math.max(0, getQuestionMaxPoints(q) - selectionPoints)
+
           totalPoints += selectionPoints + justificationMaxPoints
+
           if (a.isCorrect) earnedPoints += selectionPoints
-          earnedPoints += Math.min(justificationMaxPoints, a.justificationScore || 0)
+          earnedPoints += Math.min(
+            justificationMaxPoints,
+            Number(a.justificationScore) || 0
+          )
         }
 
         if (q.type === "development") {
           const maxP = getQuestionMaxPoints(q)
           totalPoints += maxP
-          earnedPoints += Math.min(maxP, a.aiScore || 0)
+          earnedPoints += Math.min(maxP, Number(a.aiScore) || 0)
         }
       })
 
@@ -296,28 +390,51 @@ export async function POST(request: NextRequest) {
           total_questions: questions.length,
           time_spent: timeSpent || null,
         })
-        .select().single()
+        .select()
+        .single()
 
       if (error) throw error
+
       return NextResponse.json({ success: true, submission: data })
     }
 
     if (action === "close") {
       const { examId, teacherId } = body
-      await supabase.from("teacher_exams").update({ status: "closed", closed_at: new Date().toISOString() }).eq("id", examId).eq("teacher_id", teacherId)
+
+      await supabase
+        .from("teacher_exams")
+        .update({
+          status: "closed",
+          closed_at: new Date().toISOString(),
+        })
+        .eq("id", examId)
+        .eq("teacher_id", teacherId)
+
       return NextResponse.json({ success: true })
     }
 
     if (action === "reopen") {
       const { examId, teacherId } = body
-      await supabase.from("teacher_exams").update({ status: "active", closed_at: null }).eq("id", examId).eq("teacher_id", teacherId)
+
+      await supabase
+        .from("teacher_exams")
+        .update({
+          status: "active",
+          closed_at: null,
+        })
+        .eq("id", examId)
+        .eq("teacher_id", teacherId)
+
       return NextResponse.json({ success: true })
     }
 
     return NextResponse.json({ error: "Acción inválida" }, { status: 400 })
   } catch (err: any) {
     console.error("Exam API error:", err)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json(
+      { error: err?.message || "Error interno del servidor" },
+      { status: 500 }
+    )
   }
 }
 
@@ -332,31 +449,71 @@ export async function GET(request: NextRequest) {
       const { data, error } = await supabase
         .from("teacher_exams")
         .select("id, code, title, topic, instructions, questions, settings, status")
-        .eq("code", code).maybeSingle()
-      if (error || !data) return NextResponse.json({ error: "Examen no encontrado" }, { status: 404 })
-      if (data.status !== "active") return NextResponse.json({ error: "Examen cerrado" }, { status: 403 })
+        .eq("code", code)
+        .maybeSingle()
+
+      if (error || !data) {
+        return NextResponse.json(
+          { error: "Examen no encontrado" },
+          { status: 404 }
+        )
+      }
+
+      if (data.status !== "active") {
+        return NextResponse.json({ error: "Examen cerrado" }, { status: 403 })
+      }
+
       return NextResponse.json({ exam: data })
     }
 
     if (examId) {
-      const { data: exam } = await supabase.from("teacher_exams").select("*").eq("id", examId).maybeSingle()
-      const { data: submissions } = await supabase.from("exam_submissions").select("*").eq("exam_id", examId).order("submitted_at", { ascending: true })
+      const { data: exam } = await supabase
+        .from("teacher_exams")
+        .select("*")
+        .eq("id", examId)
+        .maybeSingle()
+
+      const { data: submissions } = await supabase
+        .from("exam_submissions")
+        .select("*")
+        .eq("exam_id", examId)
+        .order("submitted_at", { ascending: true })
+
       return NextResponse.json({ exam, submissions: submissions || [] })
     }
 
     if (teacherId) {
-      const { data } = await supabase.from("teacher_exams").select("id, code, title, topic, status, created_at, settings").eq("teacher_id", teacherId).order("created_at", { ascending: false })
+      const { data } = await supabase
+        .from("teacher_exams")
+        .select("id, code, title, topic, status, created_at, settings")
+        .eq("teacher_id", teacherId)
+        .order("created_at", { ascending: false })
+
       const examsWithCount = await Promise.all(
         (data || []).map(async (exam) => {
-          const { count } = await supabase.from("exam_submissions").select("*", { count: "exact", head: true }).eq("exam_id", exam.id)
-          return { ...exam, submissionCount: count || 0 }
+          const { count } = await supabase
+            .from("exam_submissions")
+            .select("*", { count: "exact", head: true })
+            .eq("exam_id", exam.id)
+
+          return {
+            ...exam,
+            submissionCount: count || 0,
+          }
         })
       )
+
       return NextResponse.json({ exams: examsWithCount })
     }
 
-    return NextResponse.json({ error: "Parámetros faltantes" }, { status: 400 })
+    return NextResponse.json(
+      { error: "Parámetros faltantes" },
+      { status: 400 }
+    )
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json(
+      { error: err?.message || "Error interno del servidor" },
+      { status: 500 }
+    )
   }
 }
