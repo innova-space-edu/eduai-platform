@@ -25,12 +25,28 @@ function calcGrade(score: number, exigencia = 60): number {
   return Math.round(nota * 10) / 10
 }
 
-// ── Evaluar respuestas con IA (Gemini) ──
+function getQuestionMaxPoints(question: any): number {
+  if (!question) return 1
+  if (typeof question.maxPoints === "number" && question.maxPoints > 0) return question.maxPoints
+  if (question.type === "true_false") {
+    const selectionPoints = typeof question.selectionPoints === "number" ? question.selectionPoints : 1
+    const justificationMaxPoints = typeof question.justificationMaxPoints === "number" ? question.justificationMaxPoints : 2
+    return selectionPoints + justificationMaxPoints
+  }
+  if (question.type === "development") {
+    if (Array.isArray(question.rubric) && question.rubric.length > 0) {
+      const sum = question.rubric.reduce((acc: number, item: any) => acc + (Number(item?.points) || 0), 0)
+      if (sum > 0) return sum
+    }
+    return 5
+  }
+  return 1
+}
+
 async function evaluateWithAI(questions: any[], answers: any[]): Promise<any[]> {
   const geminiKey = process.env.GEMINI_API_KEY
-  if (!geminiKey) return answers // sin key, devolver sin evaluar
+  if (!geminiKey) return answers
 
-  // Construir prompt con las preguntas que necesitan evaluación IA
   const toEvaluate: { index: number; question: string; type: string; studentAnswer: string; modelAnswer?: string; rubric?: any[]; maxPoints?: number; correctAnswer?: number; selectedOption?: string }[] = []
 
   answers.forEach((a, i) => {
@@ -45,7 +61,7 @@ async function evaluateWithAI(questions: any[], answers: any[]): Promise<any[]> 
         studentAnswer: a.devText,
         modelAnswer: q.modelAnswer || "",
         rubric: q.rubric || [],
-        maxPoints: q.maxPoints || 5,
+        maxPoints: getQuestionMaxPoints(q),
       })
     }
 
@@ -58,6 +74,7 @@ async function evaluateWithAI(questions: any[], answers: any[]): Promise<any[]> 
         correctAnswer: q.correctAnswer,
         selectedOption: q.options?.[a.selectedAnswer] || "",
         modelAnswer: q.explanation || "",
+        maxPoints: typeof q.justificationMaxPoints === "number" ? q.justificationMaxPoints : 2,
       })
     }
   })
@@ -68,7 +85,7 @@ async function evaluateWithAI(questions: any[], answers: any[]): Promise<any[]> 
 
 REGLAS:
 - Para DESARROLLO: evalúa de 0 a maxPoints según la rúbrica y la respuesta modelo. Da puntaje parcial si hay aciertos parciales.
-- Para VERDADERO/FALSO con justificación: evalúa la justificación de 0 a 2 puntos (0=incorrecta/vacía, 1=parcialmente correcta, 2=correcta y bien justificada). La selección V/F ya se evaluó aparte.
+- Para VERDADERO/FALSO con justificación: evalúa la justificación de 0 a maxPoints según la calidad de la justificación. La selección V/F ya se evaluó aparte.
 - Sé justo: si el estudiante demuestra comprensión aunque use otras palabras, dale crédito.
 - Responde SOLO con JSON válido, sin backticks ni markdown.
 
@@ -80,9 +97,11 @@ ${e.type === "development" ? `Respuesta modelo: ${e.modelAnswer}
 Rúbrica: ${JSON.stringify(e.rubric)}
 Puntaje máximo: ${e.maxPoints}` : `Opción correcta: ${e.correctAnswer === 0 ? "Verdadero" : "Falso"}
 Estudiante eligió: ${e.selectedOption}
-Explicación correcta: ${e.modelAnswer}`}
+Explicación correcta: ${e.modelAnswer}
+Puntaje máximo de justificación: ${e.maxPoints}`}
 Respuesta del estudiante: ${e.studentAnswer}
-`).join("\n")}
+`).join("
+")}
 
 Responde con este JSON exacto:
 {
@@ -121,7 +140,6 @@ Responde con este JSON exacto:
     const parsed = JSON.parse(text)
     const evals = parsed.evaluations || []
 
-    // Aplicar evaluaciones
     for (const ev of evals) {
       const origIndex = toEvaluate[ev.index]?.index
       if (origIndex === undefined) continue
@@ -141,7 +159,6 @@ Responde con este JSON exacto:
     }
   } catch (err: any) {
     console.error("AI evaluation error:", err.message)
-    // Si falla la IA, marcar como pendiente de revisión
     toEvaluate.forEach(e => {
       answers[e.index].aiEvaluated = false
       answers[e.index].aiFeedback = "Pendiente de revisión manual"
@@ -172,9 +189,14 @@ export async function POST(request: NextRequest) {
       const { data, error } = await supabase
         .from("teacher_exams")
         .insert({
-          teacher_id: teacherId, code, title, topic,
+          teacher_id: teacherId,
+          code,
+          title,
+          topic,
           instructions: instructions || null,
-          questions, settings: { ...settings }, status: "active",
+          questions,
+          settings: { ...settings },
+          status: "active",
         })
         .select().single()
 
@@ -189,40 +211,46 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Faltan datos" }, { status: 400 })
       }
 
-      // Paso 1: Evaluar alternativas (automático)
       let gradedAnswers = answers.map((a: any, i: number) => {
         const q = questions[i]
         if (!q) return { questionIndex: i, selectedAnswer: -1, isCorrect: false }
 
         if (q.type === "development") {
           return {
-            questionIndex: i, type: "development",
-            devText: a.devText || "", isCorrect: false,
-            maxPoints: q.maxPoints || 5,
+            questionIndex: i,
+            type: "development",
+            devText: a.devText || "",
+            isCorrect: false,
+            maxPoints: getQuestionMaxPoints(q),
           }
         }
 
         if (q.type === "true_false") {
           const tfCorrect = a.selectedAnswer === q.correctAnswer
           return {
-            questionIndex: i, type: "true_false",
-            selectedAnswer: a.selectedAnswer, isCorrect: tfCorrect,
+            questionIndex: i,
+            type: "true_false",
+            selectedAnswer: a.selectedAnswer,
+            isCorrect: tfCorrect,
             justification: a.justification || "",
+            selectionPoints: typeof q.selectionPoints === "number" ? q.selectionPoints : 1,
+            justificationMaxPoints: typeof q.justificationMaxPoints === "number" ? q.justificationMaxPoints : Math.max(0, getQuestionMaxPoints(q) - (typeof q.selectionPoints === "number" ? q.selectionPoints : 1)),
+            maxPoints: getQuestionMaxPoints(q),
           }
         }
 
-        // multiple_choice
         const isCorrect = a.selectedAnswer === q.correctAnswer
         return {
-          questionIndex: i, type: "multiple_choice",
-          selectedAnswer: a.selectedAnswer, isCorrect,
+          questionIndex: i,
+          type: "multiple_choice",
+          selectedAnswer: a.selectedAnswer,
+          isCorrect,
+          maxPoints: getQuestionMaxPoints(q),
         }
       })
 
-      // Paso 2: Evaluar desarrollo y justificaciones con IA
       gradedAnswers = await evaluateWithAI(questions, gradedAnswers)
 
-      // Paso 3: Calcular puntaje total
       let totalPoints = 0
       let earnedPoints = 0
 
@@ -231,21 +259,23 @@ export async function POST(request: NextRequest) {
         if (!q) return
 
         if (q.type === "multiple_choice") {
-          totalPoints += 1
-          if (a.isCorrect) earnedPoints += 1
+          const maxP = getQuestionMaxPoints(q)
+          totalPoints += maxP
+          if (a.isCorrect) earnedPoints += maxP
         }
 
         if (q.type === "true_false") {
-          // V/F: 1 punto por selección + 2 puntos por justificación = 3 total
-          totalPoints += 3
-          if (a.isCorrect) earnedPoints += 1
-          earnedPoints += (a.justificationScore || 0) // 0-2
+          const selectionPoints = typeof q.selectionPoints === "number" ? q.selectionPoints : 1
+          const justificationMaxPoints = typeof q.justificationMaxPoints === "number" ? q.justificationMaxPoints : Math.max(0, getQuestionMaxPoints(q) - selectionPoints)
+          totalPoints += selectionPoints + justificationMaxPoints
+          if (a.isCorrect) earnedPoints += selectionPoints
+          earnedPoints += Math.min(justificationMaxPoints, a.justificationScore || 0)
         }
 
         if (q.type === "development") {
-          const maxP = q.maxPoints || 5
+          const maxP = getQuestionMaxPoints(q)
           totalPoints += maxP
-          earnedPoints += (a.aiScore || 0)
+          earnedPoints += Math.min(maxP, a.aiScore || 0)
         }
       })
 
