@@ -110,7 +110,11 @@ export default function ExamenPublicoPage() {
   const q = qs[curQ]
   const totalQ = qs.length
   const examTotalPoints = qs.reduce((acc: number, item: any) => acc + getQuestionMaxPoints(item), 0)
-  const answeredCount = qs.filter((_: any, i: number) => mcAnswers[i] !== undefined || (devAnswers[i] && devAnswers[i].length > 0)).length
+  const answeredCount = qs.filter((item: any, i: number) => {
+    if (item.type === "development") return Boolean(devAnswers[i] && devAnswers[i].trim().length > 0)
+    if (item.type === "true_false") return mcAnswers[i] !== undefined || Boolean(tfJustifications[i] && tfJustifications[i].trim().length > 0)
+    return mcAnswers[i] !== undefined
+  }).length
   const showRes = exam?.settings?.showResultToStudent !== false
 
   if (phase === "loading") return <div className="min-h-screen bg-gray-950 flex items-center justify-center"><div className="w-10 h-10 rounded-full border-2 border-white/10 border-t-blue-400 animate-spin" /></div>
@@ -179,19 +183,59 @@ export default function ExamenPublicoPage() {
                 const g = graded[i] || {}
                 const isDev = q.type === "development"
                 const isTF = q.type === "true_false"
-                const correct = g.isCorrect
+                const baseCorrect = g.isCorrect === true
+
+                const tfSelectionPoints = Number(g.selectionPoints ?? q.selectionPoints ?? 1) || 1
+                const tfJustificationScore = Math.max(0, Number(g.justificationScore) || 0)
+                const tfJustificationMax = Math.max(0, Number(g.justificationMaxPoints ?? q.justificationMaxPoints ?? 0) || 0)
+                const tfEarned = (baseCorrect ? tfSelectionPoints : 0) + tfJustificationScore
+                const tfTotal = tfSelectionPoints + tfJustificationMax
+                const tfFull = isTF && tfTotal > 0 && tfEarned >= tfTotal
+                const tfPartial = isTF && tfEarned > 0 && tfEarned < tfTotal
+
+                const reviewState = isDev
+                  ? "dev"
+                  : isTF
+                    ? tfFull
+                      ? "full"
+                      : tfPartial
+                        ? "partial"
+                        : "wrong"
+                    : baseCorrect
+                      ? "full"
+                      : "wrong"
 
                 return (
-                  <div key={i} className={`rounded-2xl p-4 border ${isDev ? "bg-orange-500/[0.03] border-orange-500/10" : correct ? "bg-green-500/[0.03] border-green-500/10" : "bg-red-500/[0.03] border-red-500/10"}`}>
+                  <div
+                    key={i}
+                    className={`rounded-2xl p-4 border ${
+                      reviewState === "dev"
+                        ? "bg-orange-500/[0.03] border-orange-500/10"
+                        : reviewState === "full"
+                          ? "bg-green-500/[0.03] border-green-500/10"
+                          : reviewState === "partial"
+                            ? "bg-yellow-500/[0.03] border-yellow-500/10"
+                            : "bg-red-500/[0.03] border-red-500/10"
+                    }`}
+                  >
                     <div className="flex items-center gap-2 mb-2">
-                      <span className={`text-sm ${isDev ? "text-orange-400" : correct ? "text-green-400" : "text-red-400"}`}>
-                        {isDev ? "✍️" : correct ? "✅" : "❌"}
+                      <span className={`text-sm ${
+                        reviewState === "dev"
+                          ? "text-orange-400"
+                          : reviewState === "full"
+                            ? "text-green-400"
+                            : reviewState === "partial"
+                              ? "text-yellow-400"
+                              : "text-red-400"
+                      }`}>
+                        {reviewState === "dev" ? "✍️" : reviewState === "full" ? "✅" : reviewState === "partial" ? "◑" : "❌"}
                       </span>
                       <span className="text-gray-400 text-xs font-semibold">P{i + 1}</span>
                       <span className={`text-[10px] px-1.5 py-0.5 rounded ${q.type === "multiple_choice" ? "bg-blue-500/10 text-blue-400" : isTF ? "bg-green-500/10 text-green-400" : "bg-orange-500/10 text-orange-400"}`}>
                         {q.type === "multiple_choice" ? "Alternativas" : isTF ? "V/F" : "Desarrollo"}
                       </span>
                       {g.aiScore !== undefined && <span className="text-[10px] text-blue-400 ml-auto">{g.aiScore}/{g.aiMaxScore} pts (IA)</span>}
+                      {isTF && <span className="text-[10px] text-blue-400 ml-auto">{tfEarned}/{tfTotal} pts</span>}
                     </div>
                     <p className="text-gray-200 text-sm mb-3"><MathText text={q.question} /></p>
 
@@ -220,7 +264,12 @@ export default function ExamenPublicoPage() {
                         ))}
                       </div>
                       {g.justification && (<div className="bg-white/[0.03] rounded-lg p-2.5 border border-white/[0.06]"><p className="text-gray-600 text-[10px] font-semibold">TU JUSTIFICACIÓN:</p><p className="text-gray-300 text-xs">{g.justification}</p></div>)}
-                      {g.justificationFeedback && (<div className="bg-blue-500/[0.05] rounded-lg p-2.5 border-l-2 border-blue-500/30"><p className="text-blue-400 text-[10px] font-semibold">EVALUACIÓN IA ({g.justificationScore}/2 pts):</p><p className="text-gray-400 text-xs">{g.justificationFeedback}</p></div>)}
+                      {g.justificationFeedback && (
+                        <div className="bg-blue-500/[0.05] rounded-lg p-2.5 border-l-2 border-blue-500/30">
+                          <p className="text-blue-400 text-[10px] font-semibold">EVALUACIÓN IA ({g.justificationScore}/{g.justificationMaxPoints ?? q.justificationMaxPoints ?? 2} pts):</p>
+                          <p className="text-gray-400 text-xs">{g.justificationFeedback}</p>
+                        </div>
+                      )}
                     </div>)}
 
                     {/* Dev review */}
@@ -299,7 +348,7 @@ export default function ExamenPublicoPage() {
                   <textarea value={tfJustifications[curQ] || ""} onChange={e => setTfJustifications({ ...tfJustifications, [curQ]: e.target.value })}
                     placeholder="Explica por qué elegiste esa opción..."
                     className="w-full min-h-[80px] bg-white/[0.04] border border-white/[0.08] rounded-2xl px-4 py-3 text-gray-200 text-sm focus:outline-none focus:border-blue-500/30 resize-vertical" />
-                  <p className="text-gray-600 text-[10px] mt-1">La justificación vale 2 puntos adicionales evaluados por IA</p>
+                  <p className="text-gray-600 text-[10px] mt-1">La justificación vale {q.justificationMaxPoints ?? 2} punto{(q.justificationMaxPoints ?? 2) === 1 ? "" : "s"} adicional{(q.justificationMaxPoints ?? 2) === 1 ? "" : "es"} evaluado{(q.justificationMaxPoints ?? 2) === 1 ? "" : "s"} por IA</p>
                 </div>
               </div>
             )}
@@ -327,8 +376,13 @@ export default function ExamenPublicoPage() {
 
             {/* Navigator */}
             <div className="flex flex-wrap gap-1.5 justify-center pt-3 border-t border-white/5">
-              {qs.map((_: any, i: number) => {
-                const answered = mcAnswers[i] !== undefined || (devAnswers[i] && devAnswers[i].length > 0)
+              {qs.map((item: any, i: number) => {
+                const answered = item.type === "development"
+                  ? Boolean(devAnswers[i] && devAnswers[i].trim().length > 0)
+                  : item.type === "true_false"
+                    ? mcAnswers[i] !== undefined || Boolean(tfJustifications[i] && tfJustifications[i].trim().length > 0)
+                    : mcAnswers[i] !== undefined
+
                 return <button key={i} onClick={() => setCurQ(i)} className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${i === curQ ? "bg-blue-500 text-white" : answered ? "bg-green-500/20 text-green-400 border border-green-500/30" : "bg-white/[0.04] text-gray-600 border border-white/[0.06]"}`}>{i + 1}</button>
               })}
             </div>
