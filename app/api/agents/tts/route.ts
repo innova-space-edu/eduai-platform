@@ -1,4 +1,15 @@
+import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { EdgeTTS, Constants } from "@andresaya/edge-tts"
+
+export const runtime = "nodejs"
+export const maxDuration = 60
+
+type Speaker = "A" | "B"
+
+const VOICE_A_DEFAULT = process.env.EDGE_TTS_VOICE_A || "es-ES-AlvaroNeural"
+const VOICE_B_DEFAULT = process.env.EDGE_TTS_VOICE_B || "es-ES-ElviraNeural"
+const MAX_CHUNK_LENGTH = 1050
 
 const MOTIVATIONAL = [
   "Muy bien, sigamos adelante.",
@@ -12,115 +23,148 @@ function getMotivational() {
   return MOTIVATIONAL[Math.floor(Math.random() * MOTIVATIONAL.length)]
 }
 
-function getTokens(): string[] {
-  const tokens = [
-    process.env.HF_TOKEN_1,
-    process.env.HF_TOKEN_2,
-    process.env.HF_TOKEN_3,
-    process.env.HF_TOKEN,
-  ].filter(Boolean) as string[]
-  return tokens
-}
+function sanitizeForSpeech(text: string): string {
+  return String(text || "")
+    .replace(/
+/g, " ")
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/`[^`]*`/g, " ")
+    .replace(/\$\$([\s\S]*?)\$\$/g, ". Pausa. Aquí hay una fórmula matemática importante. ")
+    .replace(/\$([^$]+)\$/g, ". Pausa. Aquí hay una expresión matemática. ")
+    .replace(/---FOLLOWUPS---[\s\S]*/g, " ")
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
+    .replace(/\[[^\]]+\]\([^)]*\)/g, "$1")
+    .replace(/[>#*_~]+/g, " ")
+    .replace(/
+{3,}/g, "
 
-async function synthesizeWithRotation(text: string): Promise<ArrayBuffer | null> {
-  const tokens = getTokens()
-  if (tokens.length === 0) return null
-
-  for (const token of tokens) {
-    try {
-      const res = await fetch(
-        "https://api-inference.huggingface.co/models/facebook/mms-tts-spa",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ inputs: text }),
-        }
-      )
-
-      if (res.status === 429 || res.status === 503) {
-        // Rate limit o modelo cargando — intenta siguiente token
-        console.log(`Token rate limited, trying next...`)
-        continue
-      }
-
-      if (!res.ok) {
-        const err = await res.text()
-        console.error("HF TTS error:", res.status, err)
-        continue
-      }
-
-      return await res.arrayBuffer()
-    } catch (e) {
-      console.error("HF TTS exception:", e)
-      continue
-    }
-  }
-
-  return null
-}
-
-export async function POST(req: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new Response("Unauthorized", { status: 401 })
-
-  const { text, addMotivation = false } = await req.json()
-
-  const clean = text
-    .replace(/#{1,6}\s/g, "")
-    .replace(/\*\*/g, "")
-    .replace(/\*/g, "")
-    .replace(/`[^`]*`/g, "")
-    .replace(/\$\$[^$]*\$\$/g, "fórmula matemática")
-    .replace(/\$[^$]*\$/g, "fórmula")
-    .replace(/---FOLLOWUPS---[\s\S]*/g, "")
-    .replace(/\[.*?\]/g, "")
-    .replace(/\n+/g, " ")
+")
+    .replace(/\s{2,}/g, " ")
     .trim()
+}
 
-  // Dividir en chunks de 400 chars
+function addPedagogicalPauses(text: string): string {
+  return text
+    .replace(/:\s+/g, ". Pausa. ")
+    .replace(/;\s+/g, ". Pausa. ")
+    .replace(/
+
++/g, ". Pausa larga. ")
+    .replace(/
+/g, ". ")
+    .replace(/([.!?])\s+/g, "$1 ")
+    .replace(/\s{2,}/g, " ")
+    .trim()
+}
+
+function splitText(text: string, maxLen = MAX_CHUNK_LENGTH): string[] {
+  const clean = addPedagogicalPauses(sanitizeForSpeech(text))
+  if (!clean) return []
+  if (clean.length <= maxLen) return [clean]
+
+  const pieces = clean.split(/(?<=[.!?])\s+/)
   const chunks: string[] = []
-  const words = clean.split(" ")
   let current = ""
 
-  for (const word of words) {
-    if ((current + " " + word).length > 400) {
+  for (const piece of pieces) {
+    const sentence = piece.trim()
+    if (!sentence) continue
+
+    if (sentence.length > maxLen) {
+      const words = sentence.split(/\s+/)
+      for (const word of words) {
+        const candidate = current ? `${current} ${word}` : word
+        if (candidate.length > maxLen) {
+          if (current) chunks.push(current.trim())
+          current = word
+        } else {
+          current = candidate
+        }
+      }
+      continue
+    }
+
+    const candidate = current ? `${current} ${sentence}` : sentence
+    if (candidate.length > maxLen) {
       if (current) chunks.push(current.trim())
-      current = word
+      current = sentence
     } else {
-      current += " " + word
+      current = candidate
     }
   }
+
   if (current.trim()) chunks.push(current.trim())
-  if (addMotivation) chunks.push(getMotivational())
+  return chunks
+}
 
-  // Sintetizar con rotación de tokens
-  const buffers: ArrayBuffer[] = []
-  for (const chunk of chunks) {
-    const buf = await synthesizeWithRotation(chunk)
-    if (buf) buffers.push(buf)
-  }
-
-  if (buffers.length === 0) {
-    return new Response("TTS failed", { status: 500 })
-  }
-
-  // Concatenar buffers
-  const totalLength = buffers.reduce((sum, b) => sum + b.byteLength, 0)
-  const combined = new Uint8Array(totalLength)
+function concatUint8Arrays(parts: Uint8Array[]): Uint8Array {
+  const total = parts.reduce((acc, p) => acc + p.byteLength, 0)
+  const out = new Uint8Array(total)
   let offset = 0
-  for (const buf of buffers) {
-    combined.set(new Uint8Array(buf), offset)
-    offset += buf.byteLength
+  for (const p of parts) {
+    out.set(p, offset)
+    offset += p.byteLength
+  }
+  return out
+}
+
+async function synthesizeChunks(texts: string[], speaker: Speaker) {
+  const voice = speaker === "B" ? VOICE_B_DEFAULT : VOICE_A_DEFAULT
+  const rate = speaker === "B" ? "+4%" : "-2%"
+  const pitch = speaker === "B" ? "+2Hz" : "-1Hz"
+  const tts = new EdgeTTS()
+  const audioParts: Uint8Array[] = []
+
+  for (const text of texts) {
+    await tts.synthesize(text, voice, {
+      outputFormat: Constants.OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3,
+      rate,
+      pitch,
+      volume: "100%",
+    })
+
+    const buffer = tts.toBuffer()
+    if (!buffer || buffer.length < 200) {
+      throw new Error("No se pudo generar audio válido con Edge TTS")
+    }
+
+    audioParts.push(new Uint8Array(buffer))
   }
 
-  return new Response(combined.buffer, {
-    headers: {
-      "Content-Type": "audio/wav",
-      "Cache-Control": "no-cache",
-    },
-  })
+  return audioParts
+}
+
+export async function POST(req: NextRequest) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return new NextResponse("Unauthorized", { status: 401 })
+
+  try {
+    const { text, addMotivation = false, speaker = "A" } = await req.json()
+    const chosenSpeaker: Speaker = speaker === "B" ? "B" : "A"
+
+    const parts = splitText(text)
+    if (addMotivation) {
+      parts.push(addPedagogicalPauses(getMotivational()))
+    }
+
+    if (!parts.length) {
+      return NextResponse.json({ error: "No hay texto para narrar" }, { status: 400 })
+    }
+
+    const mp3Parts = await synthesizeChunks(parts, chosenSpeaker)
+    const finalMp3 = concatUint8Arrays(mp3Parts)
+
+    return new NextResponse(Buffer.from(finalMp3), {
+      status: 200,
+      headers: {
+        "Content-Type": "audio/mpeg",
+        "Cache-Control": "no-store",
+        "X-TTS-Voice": chosenSpeaker === "B" ? VOICE_B_DEFAULT : VOICE_A_DEFAULT,
+      },
+    })
+  } catch (error: any) {
+    console.error("tts route error:", error?.message || error)
+    return NextResponse.json({ error: error?.message || "Error generando audio" }, { status: 500 })
+  }
 }
