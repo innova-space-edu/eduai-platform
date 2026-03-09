@@ -95,6 +95,53 @@ function basePointsForQuestion(q: Partial<ExamQuestion>) {
   return diff === 3 ? 7 : diff === 2 ? 5 : 3
 }
 
+function normalizeCorrectAnswer(
+  rawCorrectAnswer: any,
+  options: string[],
+  type: "multiple_choice" | "true_false" | "development"
+): number {
+  const maxIndex = Math.max(0, options.length - 1)
+
+  if (typeof rawCorrectAnswer === "number" && Number.isFinite(rawCorrectAnswer)) {
+    return Math.max(0, Math.min(maxIndex, Math.round(rawCorrectAnswer)))
+  }
+
+  if (typeof rawCorrectAnswer === "boolean" && type === "true_false") {
+    return rawCorrectAnswer ? 0 : 1
+  }
+
+  if (typeof rawCorrectAnswer === "string") {
+    const value = rawCorrectAnswer.trim().toLowerCase()
+
+    const numericValue = Number(value)
+    if (Number.isFinite(numericValue)) {
+      return Math.max(0, Math.min(maxIndex, Math.round(numericValue)))
+    }
+
+    const letters = ["a", "b", "c", "d", "e", "f"]
+    const letterIndex = letters.indexOf(value)
+    if (letterIndex >= 0 && letterIndex <= maxIndex) {
+      return letterIndex
+    }
+
+    if (type === "true_false") {
+      if (["verdadero", "v", "true"].includes(value)) {
+        const trueIndex = options.findIndex(opt => opt.trim().toLowerCase() === "verdadero")
+        return trueIndex >= 0 ? trueIndex : 0
+      }
+      if (["falso", "f", "false"].includes(value)) {
+        const falseIndex = options.findIndex(opt => opt.trim().toLowerCase() === "falso")
+        return falseIndex >= 0 ? falseIndex : Math.min(1, maxIndex)
+      }
+    }
+
+    const optionIndex = options.findIndex(opt => opt.trim().toLowerCase() === value)
+    if (optionIndex >= 0) return optionIndex
+  }
+
+  return 0
+}
+
 function normalizeQuestion(raw: any, scoreMode: ScoreMode): ExamQuestion {
   const type = raw?.type === "true_false" || raw?.type === "development" ? raw.type : "multiple_choice"
   const difficulty = normalizeDifficulty(raw?.difficulty)
@@ -114,7 +161,8 @@ function normalizeQuestion(raw: any, scoreMode: ScoreMode): ExamQuestion {
       : type === "true_false"
         ? ["Verdadero", "Falso"]
         : ["Opción A", "Opción B", "Opción C", "Opción D"]
-    question.correctAnswer = typeof raw?.correctAnswer === "number" ? raw.correctAnswer : 0
+
+    question.correctAnswer = normalizeCorrectAnswer(raw?.correctAnswer, question.options, type)
   }
 
   if (type === "development") {
@@ -130,9 +178,20 @@ function normalizeQuestion(raw: any, scoreMode: ScoreMode): ExamQuestion {
 
   if (type === "true_false") {
     const selectionPoints = clampPositive(Number(raw?.selectionPoints), 1) || 1
-    const justificationMaxPoints = Math.max(0, (question.maxPoints || suggested) - selectionPoints)
+    const providedJustification = clampPositive(Number(raw?.justificationMaxPoints), Math.max(0, (question.maxPoints || suggested) - selectionPoints))
+    const computedMax = selectionPoints + providedJustification
+
     question.selectionPoints = selectionPoints
-    question.justificationMaxPoints = justificationMaxPoints
+    question.justificationMaxPoints = providedJustification
+    question.maxPoints = scoreMode === "manual"
+      ? Math.max(selectionPoints, requested)
+      : computedMax > 0 ? computedMax : suggested
+
+    if ((question.maxPoints || 0) < selectionPoints) {
+      question.maxPoints = selectionPoints
+    }
+
+    question.justificationMaxPoints = Math.max(0, (question.maxPoints || selectionPoints) - selectionPoints)
   }
 
   if (type === "development" && question.rubric && question.rubric.length > 0) {
@@ -230,6 +289,7 @@ REQUISITOS CLAVE:
 - Usa categorías pedagógicas en el campo ability: recuerdo, comprension, aplicacion, analisis o argumentacion.
 - Para preguntas de desarrollo, entrega una rúbrica clara y coherente.
 - Para contenido matemático usa LaTeX entre $...$ o $$...$$ cuando ayude.
+- En correctAnswer puedes responder con índice numérico (0,1,2,3) o con el texto/etiqueta de la respuesta correcta.
 - Devuelve SOLO JSON válido.
 
 Formato exacto:
@@ -386,6 +446,7 @@ Reglas:
 - Si es multiple_choice, entrega 4 opciones y una correcta.
 - Si es true_false, entrega Verdadero/Falso, explicación, selectionPoints=1, justificationMaxPoints y maxPoints.
 - Si es development, entrega modelAnswer, rubric y maxPoints.
+- correctAnswer puede venir como índice, letra o texto correcto; el sistema lo normaliza.
 - Devuelve SOLO JSON.
 
 Formato exacto:
