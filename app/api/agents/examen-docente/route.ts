@@ -27,6 +27,142 @@ function calcGrade(score: number, exigencia = 60): number {
   return Math.round(nota * 10) / 10
 }
 
+function clampPositive(n: number, fallback = 1): number {
+  if (!Number.isFinite(n)) return fallback
+  return Math.max(0, Math.round(n * 10) / 10)
+}
+
+function normalizeCorrectAnswer(
+  rawCorrectAnswer: any,
+  options: string[],
+  type: "multiple_choice" | "true_false" | "development"
+): number {
+  const maxIndex = Math.max(0, options.length - 1)
+
+  if (typeof rawCorrectAnswer === "number" && Number.isFinite(rawCorrectAnswer)) {
+    return Math.max(0, Math.min(maxIndex, Math.round(rawCorrectAnswer)))
+  }
+
+  if (typeof rawCorrectAnswer === "boolean" && type === "true_false") {
+    return rawCorrectAnswer ? 0 : Math.min(1, maxIndex)
+  }
+
+  if (typeof rawCorrectAnswer === "string") {
+    const value = rawCorrectAnswer.trim().toLowerCase()
+
+    const numericValue = Number(value)
+    if (Number.isFinite(numericValue)) {
+      return Math.max(0, Math.min(maxIndex, Math.round(numericValue)))
+    }
+
+    const letters = ["a", "b", "c", "d", "e", "f"]
+    const letterIndex = letters.indexOf(value)
+    if (letterIndex >= 0 && letterIndex <= maxIndex) {
+      return letterIndex
+    }
+
+    if (type === "true_false") {
+      const trueIndex = options.findIndex(opt => opt.trim().toLowerCase() === "verdadero")
+      const falseIndex = options.findIndex(opt => opt.trim().toLowerCase() === "falso")
+
+      if (["verdadero", "v", "true"].includes(value)) {
+        return trueIndex >= 0 ? trueIndex : 0
+      }
+
+      if (["falso", "f", "false"].includes(value)) {
+        return falseIndex >= 0 ? falseIndex : Math.min(1, maxIndex)
+      }
+    }
+
+    const optionIndex = options.findIndex(
+      opt => String(opt).trim().toLowerCase() === value
+    )
+    if (optionIndex >= 0) return optionIndex
+  }
+
+  return 0
+}
+
+function sanitizeQuestion(question: any) {
+  const type: "multiple_choice" | "true_false" | "development" =
+    question?.type === "true_false" || question?.type === "development"
+      ? question.type
+      : "multiple_choice"
+
+  const sanitized: any = {
+    ...question,
+    type,
+    question: String(question?.question || "Pregunta generada por IA"),
+    explanation: String(question?.explanation || ""),
+  }
+
+  if (type !== "development") {
+    const options =
+      Array.isArray(question?.options) && question.options.length > 0
+        ? question.options.map((opt: any) => String(opt))
+        : type === "true_false"
+          ? ["Verdadero", "Falso"]
+          : ["Opción A", "Opción B", "Opción C", "Opción D"]
+
+    sanitized.options = options
+    sanitized.correctAnswer = normalizeCorrectAnswer(
+      question?.correctAnswer,
+      options,
+      type
+    )
+  }
+
+  if (type === "multiple_choice") {
+    sanitized.maxPoints = clampPositive(Number(question?.maxPoints), 1) || 1
+  }
+
+  if (type === "true_false") {
+    const selectionPoints = clampPositive(Number(question?.selectionPoints), 1) || 1
+    const requestedMaxPoints = clampPositive(Number(question?.maxPoints), selectionPoints)
+    const providedJustification = clampPositive(
+      Number(question?.justificationMaxPoints),
+      Math.max(0, requestedMaxPoints - selectionPoints)
+    )
+
+    const finalMaxPoints =
+      requestedMaxPoints > 0 ? requestedMaxPoints : selectionPoints + providedJustification
+
+    sanitized.selectionPoints = selectionPoints
+    sanitized.maxPoints = Math.max(selectionPoints, finalMaxPoints)
+    sanitized.justificationMaxPoints = Math.max(
+      0,
+      sanitized.maxPoints - selectionPoints
+    )
+  }
+
+  if (type === "development") {
+    sanitized.modelAnswer = String(question?.modelAnswer || "")
+    sanitized.rubric = Array.isArray(question?.rubric)
+      ? question.rubric.map((r: any) => ({
+          criteria: String(r?.criteria || "Criterio"),
+          points: clampPositive(Number(r?.points), 1),
+        }))
+      : []
+
+    const rubricSum = sanitized.rubric.reduce(
+      (acc: number, item: any) => acc + (Number(item?.points) || 0),
+      0
+    )
+
+    sanitized.maxPoints =
+      rubricSum > 0
+        ? rubricSum
+        : clampPositive(Number(question?.maxPoints), 5) || 5
+  }
+
+  return sanitized
+}
+
+function sanitizeQuestions(questions: any[]): any[] {
+  if (!Array.isArray(questions)) return []
+  return questions.map(sanitizeQuestion)
+}
+
 function getQuestionMaxPoints(question: any): number {
   if (!question) return 1
 
@@ -58,6 +194,20 @@ function getQuestionMaxPoints(question: any): number {
   return 1
 }
 
+function safeParseJson(text: string): any {
+  try {
+    return JSON.parse(text)
+  } catch {
+    const cleaned = text
+      .replace(/^```json\s*/i, "")
+      .replace(/^```\s*/i, "")
+      .replace(/\s*```$/i, "")
+      .trim()
+
+    return JSON.parse(cleaned)
+  }
+}
+
 async function evaluateWithAI(questions: any[], answers: any[]): Promise<any[]> {
   const geminiKey = process.env.GEMINI_API_KEY
   if (!geminiKey) return answers
@@ -65,12 +215,12 @@ async function evaluateWithAI(questions: any[], answers: any[]): Promise<any[]> 
   const toEvaluate: {
     index: number
     question: string
-    type: string
+    type: "development" | "true_false"
     studentAnswer: string
     modelAnswer?: string
     rubric?: any[]
     maxPoints?: number
-    correctAnswer?: number
+    correctAnswerLabel?: string
     selectedOption?: string
   }[] = []
 
@@ -78,25 +228,30 @@ async function evaluateWithAI(questions: any[], answers: any[]): Promise<any[]> 
     const q = questions[i]
     if (!q) return
 
-    if (q.type === "development" && a.devText) {
+    if (q.type === "development" && a.devText && String(a.devText).trim()) {
       toEvaluate.push({
         index: i,
         question: q.question,
         type: "development",
-        studentAnswer: a.devText,
+        studentAnswer: String(a.devText),
         modelAnswer: q.modelAnswer || "",
         rubric: q.rubric || [],
         maxPoints: getQuestionMaxPoints(q),
       })
     }
 
-    if (q.type === "true_false" && a.justification) {
+    if (q.type === "true_false" && a.justification && String(a.justification).trim()) {
+      const correctIndex =
+        typeof q.correctAnswer === "number"
+          ? q.correctAnswer
+          : normalizeCorrectAnswer(q.correctAnswer, q.options || ["Verdadero", "Falso"], "true_false")
+
       toEvaluate.push({
         index: i,
         question: q.question,
         type: "true_false",
-        studentAnswer: a.justification,
-        correctAnswer: q.correctAnswer,
+        studentAnswer: String(a.justification),
+        correctAnswerLabel: q.options?.[correctIndex] || (correctIndex === 0 ? "Verdadero" : "Falso"),
         selectedOption: q.options?.[a.selectedAnswer] || "",
         modelAnswer: q.explanation || "",
         maxPoints:
@@ -122,11 +277,11 @@ Respuesta del estudiante: ${e.studentAnswer}`
       }
 
       return `${header}
-Opción correcta: ${e.correctAnswer === 0 ? "Verdadero" : "Falso"}
+Opción correcta: ${e.correctAnswerLabel || ""}
 Estudiante eligió: ${e.selectedOption || ""}
 Explicación correcta: ${e.modelAnswer || ""}
 Puntaje máximo de justificación: ${e.maxPoints ?? 0}
-Respuesta del estudiante: ${e.studentAnswer}`
+Justificación del estudiante: ${e.studentAnswer}`
     })
     .join("\n\n")
 
@@ -134,8 +289,10 @@ Respuesta del estudiante: ${e.studentAnswer}`
 
 REGLAS:
 - Para DESARROLLO: evalúa de 0 a maxPoints según la rúbrica y la respuesta modelo. Da puntaje parcial si hay aciertos parciales.
-- Para VERDADERO/FALSO con justificación: evalúa la justificación de 0 a maxPoints según la calidad de la justificación. La selección V/F ya se evaluó aparte.
+- Para VERDADERO/FALSO con justificación: evalúa SOLO la calidad de la justificación de 0 a maxPoints. La selección V/F ya se evaluó aparte.
+- En V/F, sé consistente con la opción marcada por el estudiante. Si la justificación contradice su propia selección o muestra confusión, menciónalo y baja el puntaje.
 - Sé justo: si el estudiante demuestra comprensión aunque use otras palabras, dale crédito.
+- Nunca otorgues un score mayor que maxScore ni menor que 0.
 - Responde SOLO con JSON válido, sin backticks ni markdown.
 
 PREGUNTAS A EVALUAR:
@@ -170,7 +327,7 @@ Responde con este JSON exacto:
           },
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
-            temperature: 0.3,
+            temperature: 0.2,
             maxOutputTokens: 2048,
             responseMimeType: "application/json",
           },
@@ -190,26 +347,38 @@ Responde con este JSON exacto:
       throw new Error("Empty response")
     }
 
-    const parsed = JSON.parse(text)
-    const evals = parsed.evaluations || []
+    const parsed = safeParseJson(text)
+    const evals = Array.isArray(parsed?.evaluations) ? parsed.evaluations : []
 
     for (const ev of evals) {
-      const origIndex = toEvaluate[ev.index]?.index
-      if (origIndex === undefined) continue
+      const relativeIndex = Number(ev?.index)
+      if (!Number.isFinite(relativeIndex) || relativeIndex < 0 || relativeIndex >= toEvaluate.length) continue
 
-      answers[origIndex].aiScore = Number(ev.score) || 0
-      answers[origIndex].aiMaxScore = Number(ev.maxScore) || 0
-      answers[origIndex].aiFeedback = ev.feedback || ""
+      const target = toEvaluate[relativeIndex]
+      const origIndex = target.index
+      const maxAllowed = Math.max(0, Number(target.maxPoints) || 0)
+      const rawScore = Number(ev?.score) || 0
+      const rawMaxScore = Number(ev?.maxScore) || maxAllowed
+
+      const normalizedMaxScore = Math.min(maxAllowed, Math.max(0, rawMaxScore || maxAllowed))
+      const normalizedScore = Math.min(
+        normalizedMaxScore > 0 ? normalizedMaxScore : maxAllowed,
+        Math.max(0, rawScore)
+      )
+
+      answers[origIndex].aiScore = normalizedScore
+      answers[origIndex].aiMaxScore = normalizedMaxScore > 0 ? normalizedMaxScore : maxAllowed
+      answers[origIndex].aiFeedback = String(ev?.feedback || "")
       answers[origIndex].aiEvaluated = true
 
       if (questions[origIndex].type === "development") {
         answers[origIndex].isCorrect =
-          (Number(ev.score) || 0) >= (Number(ev.maxScore) || 0) * 0.5
+          normalizedScore >= ((normalizedMaxScore > 0 ? normalizedMaxScore : maxAllowed) * 0.5)
       }
 
       if (questions[origIndex].type === "true_false") {
-        answers[origIndex].justificationScore = Number(ev.score) || 0
-        answers[origIndex].justificationFeedback = ev.feedback || ""
+        answers[origIndex].justificationScore = normalizedScore
+        answers[origIndex].justificationFeedback = String(ev?.feedback || "")
       }
     }
   } catch (err: any) {
@@ -218,6 +387,12 @@ Responde con este JSON exacto:
     toEvaluate.forEach((e) => {
       answers[e.index].aiEvaluated = false
       answers[e.index].aiFeedback = "Pendiente de revisión manual"
+
+      if (questions[e.index]?.type === "true_false") {
+        answers[e.index].justificationScore = Number(answers[e.index].justificationScore) || 0
+        answers[e.index].justificationFeedback =
+          answers[e.index].justificationFeedback || "Pendiente de revisión manual"
+      }
     })
   }
 
@@ -238,6 +413,8 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         )
       }
+
+      const sanitizedQuestions = sanitizeQuestions(questions)
 
       let code = generateCode()
 
@@ -260,7 +437,7 @@ export async function POST(request: NextRequest) {
           title,
           topic,
           instructions: instructions || null,
-          questions,
+          questions: sanitizedQuestions,
           settings: { ...settings },
           status: "active",
         })
@@ -288,8 +465,10 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Faltan datos" }, { status: 400 })
       }
 
+      const sanitizedQuestions = sanitizeQuestions(questions)
+
       let gradedAnswers = answers.map((a: any, i: number) => {
-        const q = questions[i]
+        const q = sanitizedQuestions[i]
         if (!q) return { questionIndex: i, selectedAnswer: -1, isCorrect: false }
 
         if (q.type === "development") {
@@ -315,6 +494,7 @@ export async function POST(request: NextRequest) {
             questionIndex: i,
             type: "true_false",
             selectedAnswer: a.selectedAnswer,
+            selectionCorrect: tfCorrect,
             isCorrect: tfCorrect,
             justification: a.justification || "",
             selectionPoints,
@@ -334,13 +514,13 @@ export async function POST(request: NextRequest) {
         }
       })
 
-      gradedAnswers = await evaluateWithAI(questions, gradedAnswers)
+      gradedAnswers = await evaluateWithAI(sanitizedQuestions, gradedAnswers)
 
       let totalPoints = 0
       let earnedPoints = 0
 
       gradedAnswers.forEach((a: any, i: number) => {
-        const q = questions[i]
+        const q = sanitizedQuestions[i]
         if (!q) return
 
         if (q.type === "multiple_choice") {
@@ -359,17 +539,18 @@ export async function POST(request: NextRequest) {
 
           totalPoints += selectionPoints + justificationMaxPoints
 
-          if (a.isCorrect) earnedPoints += selectionPoints
+          if (a.selectionCorrect || a.isCorrect) earnedPoints += selectionPoints
+
           earnedPoints += Math.min(
             justificationMaxPoints,
-            Number(a.justificationScore) || 0
+            Math.max(0, Number(a.justificationScore) || 0)
           )
         }
 
         if (q.type === "development") {
           const maxP = getQuestionMaxPoints(q)
           totalPoints += maxP
-          earnedPoints += Math.min(maxP, Number(a.aiScore) || 0)
+          earnedPoints += Math.min(maxP, Math.max(0, Number(a.aiScore) || 0))
         }
       })
 
@@ -387,7 +568,7 @@ export async function POST(request: NextRequest) {
           score: Math.round(score * 10) / 10,
           grade,
           correct_count: Math.round(earnedPoints * 10) / 10,
-          total_questions: questions.length,
+          total_questions: sanitizedQuestions.length,
           time_spent: timeSpent || null,
         })
         .select()
