@@ -1,26 +1,42 @@
 // src/app/api/agents/tts-chunk/route.ts
 import { NextRequest, NextResponse } from "next/server"
+import { EdgeTTS, Constants } from "@andresaya/edge-tts"
 
 export const runtime = "nodejs"
 export const maxDuration = 60
-
-// NPM: @andresaya/edge-tts
-import { EdgeTTS, Constants } from "@andresaya/edge-tts"
 
 type Speaker = "A" | "B"
 type SegmentIn = { speaker?: Speaker | string; text?: string }
 type Segment = { speaker: Speaker; text: string }
 
-const VOICE_A_DEFAULT = "es-ES-AlvaroNeural" // narrador 1 (masculina)
-const VOICE_B_DEFAULT = "es-ES-ElviraNeural" // narrador 2 (femenina)
+const VOICE_A_DEFAULT = process.env.EDGE_TTS_VOICE_A || "es-ES-AlvaroNeural"
+const VOICE_B_DEFAULT = process.env.EDGE_TTS_VOICE_B || "es-ES-ElviraNeural"
+const MAX_CHUNK_LENGTH = 1050
 
-function cleanText(text: string): string {
+function sanitizeForSpeech(text: string): string {
   return String(text || "")
     .replace(/\r/g, " ")
-    .replace(/\t/g, " ")
-    .replace(/\n{2,}/g, "\n")
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/`[^`]*`/g, " ")
+    .replace(/\$\$([\s\S]*?)\$\$/g, ". Pausa. Aquí hay una fórmula matemática importante. ")
+    .replace(/\$([^$]+)\$/g, ". Pausa. Aquí hay una expresión matemática. ")
+    .replace(/---FOLLOWUPS---[\s\S]*/g, " ")
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
+    .replace(/\[[^\]]+\]\([^)]*\)/g, "$1")
+    .replace(/[>#*_~]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
     .replace(/\s{2,}/g, " ")
-    .replace(/[*_`#>-]+/g, "")
+    .trim()
+}
+
+function addPedagogicalPauses(text: string): string {
+  return text
+    .replace(/:\s+/g, ". Pausa. ")
+    .replace(/;\s+/g, ". Pausa. ")
+    .replace(/\n\n+/g, ". Pausa larga. ")
+    .replace(/\n/g, ". ")
+    .replace(/([.!?])\s+/g, "$1 ")
+    .replace(/\s{2,}/g, " ")
     .trim()
 }
 
@@ -29,28 +45,27 @@ function normalizeSegments(raw: unknown): Segment[] {
   return segs
     .map((s): Segment => {
       const speaker: Speaker = s?.speaker === "B" ? "B" : "A"
-      const text = cleanText(String(s?.text || ""))
+      const text = addPedagogicalPauses(sanitizeForSpeech(String(s?.text || "")))
       return { speaker, text }
     })
     .filter((s) => s.text.length > 0)
 }
 
 function groupBySpeaker(segments: Segment[]): Segment[] {
-  // Une segmentos consecutivos del mismo speaker para reducir llamadas
   const out: Segment[] = []
   for (const seg of segments) {
     if (!out.length) out.push({ ...seg })
     else {
       const last = out[out.length - 1]
-      if (last.speaker === seg.speaker) last.text = `${last.text}\n\n${seg.text}`.trim()
+      if (last.speaker === seg.speaker) last.text = `${last.text} Pausa larga. ${seg.text}`.trim()
       else out.push({ ...seg })
     }
   }
   return out
 }
 
-function splitText(text: string, maxLen = 900): string[] {
-  const t = cleanText(text)
+function splitText(text: string, maxLen = MAX_CHUNK_LENGTH): string[] {
+  const t = addPedagogicalPauses(sanitizeForSpeech(text))
   if (!t) return []
   if (t.length <= maxLen) return [t]
 
@@ -58,7 +73,24 @@ function splitText(text: string, maxLen = 900): string[] {
   const sentences = t.split(/(?<=[.!?])\s+/)
   let current = ""
 
-  for (const s of sentences) {
+  for (const sentence of sentences) {
+    const s = sentence.trim()
+    if (!s) continue
+
+    if (s.length > maxLen) {
+      const words = s.split(/\s+/)
+      for (const word of words) {
+        const candidate = current ? `${current} ${word}` : word
+        if (candidate.length > maxLen) {
+          if (current) chunks.push(current.trim())
+          current = word
+        } else {
+          current = candidate
+        }
+      }
+      continue
+    }
+
     const candidate = current ? `${current} ${s}` : s
     if (candidate.length > maxLen && current) {
       chunks.push(current.trim())
@@ -92,34 +124,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No hay segmentos" }, { status: 400 })
     }
 
-    const voiceA = process.env.EDGE_TTS_VOICE_A || VOICE_A_DEFAULT
-    const voiceB = process.env.EDGE_TTS_VOICE_B || VOICE_B_DEFAULT
+    const voiceA = VOICE_A_DEFAULT
+    const voiceB = VOICE_B_DEFAULT
 
     const tts = new EdgeTTS()
     const grouped = groupBySpeaker(segments)
-
-    // Vamos a devolver MP3 (96kbps) por chunk y lo concatenamos (simple y barato).
-    // Nota: concatenar MP3 "a pelo" suele funcionar bien en la práctica para reproducción/descarga.
-    // Si quieres un MP3 "perfecto" con headers rearmados, se hace con ffmpeg, pero Vercel no siempre lo permite.
     const mp3Parts: Uint8Array[] = []
 
     for (const seg of grouped) {
       const voice = seg.speaker === "B" ? voiceB : voiceA
-      const chunks = splitText(seg.text, 900)
+      const chunks = splitText(seg.text, MAX_CHUNK_LENGTH)
 
       for (const chunk of chunks) {
         await tts.synthesize(chunk, voice, {
           outputFormat: Constants.OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3,
-
-          // Ajustes tipo podcast (strings estilo Edge)
-          rate: seg.speaker === "B" ? "+5%" : "0%",
-          pitch: seg.speaker === "B" ? "+2Hz" : "-2Hz",
+          rate: seg.speaker === "B" ? "+4%" : "-2%",
+          pitch: seg.speaker === "B" ? "+2Hz" : "-1Hz",
           volume: "100%",
         })
 
-        const buf = tts.toBuffer() // Buffer con el MP3 de este chunk
-
-        // Validación mínima (MP3 no tiene RIFF)
+        const buf = tts.toBuffer()
         if (!buf || buf.length < 200) {
           throw new Error("Edge TTS no devolvió MP3 válido")
         }
@@ -139,6 +163,8 @@ export async function POST(req: NextRequest) {
       headers: {
         "Content-Type": "audio/mpeg",
         "Cache-Control": "no-store",
+        "X-TTS-Voice-A": voiceA,
+        "X-TTS-Voice-B": voiceB,
       },
     })
   } catch (err: any) {
