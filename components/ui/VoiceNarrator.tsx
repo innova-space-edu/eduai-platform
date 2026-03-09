@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 
 interface Props {
   text: string
@@ -8,175 +8,216 @@ interface Props {
   addMotivation?: boolean
 }
 
+type NarrationMode = "explicacion" | "refuerzo"
+
 const MOTIVATIONAL = [
-  "¡Ánimo, lo estás haciendo genial!",
-  "¡No te preocupes, cada paso cuenta!",
-  "¡Sigue así, vas muy bien!",
-  "¡Excelente, continúa aprendiendo!",
-  "¡Tú puedes, confía en ti!",
+  "Excelente, sigue así.",
+  "Muy bien, vamos paso a paso.",
+  "Tómate un segundo para pensar la idea principal.",
+  "Lo estás haciendo muy bien, continúa.",
+  "Perfecto, ahora conecta esta idea con lo que ya aprendiste.",
 ]
+
+function cleanForSegmentation(text: string) {
+  return String(text || "")
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/`[^`]*`/g, " ")
+    .replace(/\$\$([\s\S]*?)\$\$/g, " Fórmula matemática importante. ")
+    .replace(/\$([^$]+)\$/g, " Expresión matemática. ")
+    .replace(/---FOLLOWUPS---[\s\S]*/g, " ")
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
+    .replace(/\[[^\]]+\]\([^)]*\)/g, "$1")
+    .replace(/[>#*_~]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/\s{2,}/g, " ")
+    .trim()
+}
+
+function splitForNarration(text: string) {
+  const clean = cleanForSegmentation(text)
+  if (!clean) return { explanation: "", reinforcement: "" }
+
+  const normalized = clean
+    .replace(/\n\n+/g, " \n ")
+    .replace(/\n/g, " ")
+    .trim()
+
+  if (normalized.length <= 700) {
+    return { explanation: normalized, reinforcement: "" }
+  }
+
+  const sentences = normalized.split(/(?<=[.!?])\s+/).filter(Boolean)
+  const first: string[] = []
+  const second: string[] = []
+  let acc = 0
+  const target = Math.min(Math.max(Math.floor(normalized.length * 0.72), 650), 1050)
+
+  for (const sentence of sentences) {
+    if (acc < target || first.length === 0) {
+      first.push(sentence)
+      acc += sentence.length
+    } else {
+      second.push(sentence)
+    }
+  }
+
+  return {
+    explanation: first.join(" ").trim(),
+    reinforcement: second.join(" ").trim(),
+  }
+}
 
 export default function VoiceNarrator({ text, autoPlay = false, addMotivation = false }: Props) {
   const [loading, setLoading] = useState(false)
   const [playing, setPlaying] = useState(false)
-  const [supported, setSupported] = useState(false)
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
+  const [error, setError] = useState("")
   const hasPlayedRef = useRef(false)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const audioUrlRef = useRef<string | null>(null)
+  const abortRef = useRef<AbortController | null>(null)
+
+  const narration = useMemo(() => splitForNarration(text), [text])
 
   useEffect(() => {
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      setSupported(true)
+    return () => {
+      abortRef.current?.abort()
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current.src = ""
+      }
+      if (audioUrlRef.current) {
+        URL.revokeObjectURL(audioUrlRef.current)
+        audioUrlRef.current = null
+      }
     }
   }, [])
 
   useEffect(() => {
-    if (autoPlay && text && supported && !hasPlayedRef.current) {
+    hasPlayedRef.current = false
+  }, [text])
+
+  useEffect(() => {
+    if (autoPlay && text && !hasPlayedRef.current) {
       hasPlayedRef.current = true
-      // Esperar que el streaming termine completamente
-      const timer = setTimeout(() => speak(), 800)
+      const timer = setTimeout(() => {
+        void speak()
+      }, 700)
       return () => clearTimeout(timer)
     }
-  }, [text, autoPlay, supported])
+  }, [autoPlay, text, narration.explanation, narration.reinforcement])
 
-  function getBestFeminineVoice(): SpeechSynthesisVoice | null {
-    const voices = window.speechSynthesis.getVoices()
+  async function requestSegment(segmentText: string, mode: NarrationMode) {
+    const speaker = mode === "refuerzo" ? "B" : "A"
+    const res = await fetch("/api/agents/tts-chunk", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        segments: [{ speaker, text: segmentText }],
+      }),
+      signal: abortRef.current?.signal,
+    })
 
-    // Prioridad 1: voz femenina española explícita
-    const femaleSpanish = voices.find(v =>
-      v.lang.startsWith("es") && (
-        v.name.toLowerCase().includes("female") ||
-        v.name.toLowerCase().includes("mujer") ||
-        v.name.toLowerCase().includes("paulina") ||
-        v.name.toLowerCase().includes("mónica") ||
-        v.name.toLowerCase().includes("monica") ||
-        v.name.toLowerCase().includes("laura") ||
-        v.name.toLowerCase().includes("helena") ||
-        v.name.toLowerCase().includes("lucia") ||
-        v.name.toLowerCase().includes("lucía") ||
-        v.name.toLowerCase().includes("jorge") === false // evitar nombres masculinos
-      )
-    )
-    if (femaleSpanish) return femaleSpanish
-
-    // Prioridad 2: cualquier voz española
-    const anySpanish = voices.find(v => v.lang.startsWith("es"))
-    if (anySpanish) return anySpanish
-
-    // Prioridad 3: cualquier voz disponible
-    return voices[0] || null
-  }
-
-  function cleanText(raw: string) {
-    return raw
-      .replace(/#{1,6}\s/g, "")
-      .replace(/\*\*/g, "")
-      .replace(/\*/g, "")
-      .replace(/`[^`]*`/g, "")
-      .replace(/\$\$[^$]*\$\$/g, "fórmula matemática")
-      .replace(/\$[^$]*\$/g, "fórmula")
-      .replace(/---FOLLOWUPS---[\s\S]*/g, "")
-      .replace(/\[.*?\]/g, "")
-      .replace(/\n+/g, ". ")
-      .trim()
-  }
-
-  function speak() {
-    if (!supported || loading) return
-    window.speechSynthesis.cancel()
-
-    setLoading(true)
-
-    // Cargar voces (puede ser asíncrono en algunos browsers)
-    const trySpeak = () => {
-      const clean = cleanText(text)
-      const motivation = addMotivation
-        ? " " + MOTIVATIONAL[Math.floor(Math.random() * MOTIVATIONAL.length)]
-        : ""
-
-      const utterance = new SpeechSynthesisUtterance(clean + motivation)
-      const voice = getBestFeminineVoice()
-
-      if (voice) utterance.voice = voice
-      utterance.lang = voice?.lang || "es-ES"
-      utterance.rate = 0.92      // ligeramente más lento — suave
-      utterance.pitch = 1.15     // tono más agudo — femenino
-      utterance.volume = 1
-
-      utterance.onstart = () => { setPlaying(true); setLoading(false) }
-      utterance.onend = () => { setPlaying(false) }
-      utterance.onerror = () => { setPlaying(false); setLoading(false) }
-
-      utteranceRef.current = utterance
-      window.speechSynthesis.speak(utterance)
+    if (!res.ok) {
+      const detail = await res.text().catch(() => "")
+      throw new Error(detail || `Error TTS ${res.status}`)
     }
 
-    const voices = window.speechSynthesis.getVoices()
-    if (voices.length > 0) {
-      trySpeak()
-    } else {
-      window.speechSynthesis.onvoiceschanged = () => {
-        trySpeak()
-        setLoading(false)
+    return new Uint8Array(await res.arrayBuffer())
+  }
+
+  function concatArrays(parts: Uint8Array[]) {
+    const total = parts.reduce((sum, part) => sum + part.byteLength, 0)
+    const merged = new Uint8Array(total)
+    let offset = 0
+    for (const part of parts) {
+      merged.set(part, offset)
+      offset += part.byteLength
+    }
+    return merged
+  }
+
+  async function speak() {
+    if (!text?.trim()) return
+
+    setLoading(true)
+    setError("")
+    setPlaying(false)
+
+    abortRef.current?.abort()
+    abortRef.current = new AbortController()
+
+    try {
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current.src = ""
       }
-      // timeout fallback
-      setTimeout(() => { trySpeak(); setLoading(false) }, 1000)
+      if (audioUrlRef.current) {
+        URL.revokeObjectURL(audioUrlRef.current)
+        audioUrlRef.current = null
+      }
+
+      const parts: Uint8Array[] = []
+
+      if (narration.explanation) {
+        parts.push(await requestSegment(narration.explanation, "explicacion"))
+      }
+
+      const reinforcementPieces: string[] = []
+      if (narration.reinforcement) reinforcementPieces.push(narration.reinforcement)
+      if (addMotivation) {
+        reinforcementPieces.push(MOTIVATIONAL[Math.floor(Math.random() * MOTIVATIONAL.length)])
+      }
+
+      if (reinforcementPieces.length > 0) {
+        parts.push(await requestSegment(reinforcementPieces.join(" "), "refuerzo"))
+      }
+
+      const merged = concatArrays(parts)
+      const blob = new Blob([merged], { type: "audio/mpeg" })
+      const url = URL.createObjectURL(blob)
+      audioUrlRef.current = url
+
+      const audio = new Audio(url)
+      audioRef.current = audio
+      audio.onplay = () => setPlaying(true)
+      audio.onended = () => setPlaying(false)
+      audio.onpause = () => setPlaying(false)
+
+      await audio.play()
+    } catch (err: any) {
+      if (err?.name !== "AbortError") {
+        console.error("Voice narrator error:", err)
+        setError("No se pudo narrar este bloque.")
+      }
+    } finally {
+      setLoading(false)
     }
   }
 
   function stop() {
-    window.speechSynthesis.cancel()
-    setPlaying(false)
-    setLoading(false)
-  }
-
-  function toggle() {
-    if (playing) {
-      stop()
-    } else {
-      speak()
+    abortRef.current?.abort()
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current.currentTime = 0
+      setPlaying(false)
     }
   }
 
-  if (!supported) return null
-
   return (
-    <div className="flex items-center gap-2 mt-2">
+    <div className="flex items-center gap-2 mt-3 flex-wrap">
       <button
-        onClick={toggle}
+        onClick={playing ? stop : () => void speak()}
         disabled={loading}
-        className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full transition-all disabled:opacity-50 ${
-          playing
-            ? "bg-pink-600/20 border border-pink-500/40 text-pink-400"
-            : "bg-gray-800 hover:bg-gray-700 border border-gray-700 hover:border-pink-500/50 text-gray-400 hover:text-pink-300"
-        }`}
+        className="px-3 py-1.5 rounded-full text-xs font-medium transition-colors bg-blue-600/20 border border-blue-500/30 text-blue-300 hover:bg-blue-600/30 disabled:opacity-60"
       >
-        {loading ? (
-          <>
-            <div className="w-3 h-3 border-2 border-pink-400 border-t-transparent rounded-full animate-spin" />
-            <span>Cargando voz...</span>
-          </>
-        ) : playing ? (
-          <>
-            <div className="flex gap-0.5 items-end h-3">
-              <div className="w-0.5 h-2 bg-pink-400 rounded-full animate-pulse" />
-              <div className="w-0.5 h-3 bg-pink-400 rounded-full animate-pulse delay-75" />
-              <div className="w-0.5 h-1.5 bg-pink-400 rounded-full animate-pulse delay-150" />
-            </div>
-            <span>⏸ Pausar</span>
-          </>
-        ) : (
-          <span>🔊 Escuchar</span>
-        )}
+        {loading ? "Generando voz..." : playing ? "⏹ Detener narración" : "🔊 Escuchar narración"}
       </button>
 
-      {playing && (
-        <button
-          onClick={stop}
-          className="text-gray-700 hover:text-red-400 text-xs px-2 py-1.5 rounded-full transition-colors"
-        >
-          ⏹
-        </button>
-      )}
+      <span className="text-[11px] text-gray-500">
+        Voz A: Álvaro · Voz B: Elvira
+      </span>
+
+      {error && <span className="text-[11px] text-red-400">{error}</span>}
     </div>
   )
 }
