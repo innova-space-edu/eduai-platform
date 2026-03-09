@@ -22,7 +22,13 @@ function MathText({ text }: { text: string }) {
             .replace(/\\leq/g, "≤").replace(/\\geq/g, "≥").replace(/\\neq/g, "≠").replace(/\\pm/g, "±")
             .replace(/\^(\{[^}]+\}|\w)/g, (_, p) => `<sup>${p.replace(/[{}]/g, "")}</sup>`)
             .replace(/_(\{[^}]+\}|\w)/g, (_, p) => `<sub>${p.replace(/[{}]/g, "")}</sub>`)
-          return <span key={i} className={`text-blue-300 font-mono ${isBlock ? "block my-2 text-center text-base" : ""}`} dangerouslySetInnerHTML={{ __html: html }} />
+          return (
+            <span
+              key={i}
+              className={`text-blue-300 font-mono ${isBlock ? "block my-2 text-center text-base" : ""}`}
+              dangerouslySetInnerHTML={{ __html: html }}
+            />
+          )
         }
         return <span key={i}>{part}</span>
       })}
@@ -156,19 +162,24 @@ function normalizeQuestion(raw: any, scoreMode: ScoreMode): ExamQuestion {
   }
 
   if (type !== "development") {
-    question.options = Array.isArray(raw?.options) && raw.options.length > 0
-      ? raw.options
-      : type === "true_false"
-        ? ["Verdadero", "Falso"]
-        : ["Opción A", "Opción B", "Opción C", "Opción D"]
+    const options =
+      Array.isArray(raw?.options) && raw.options.length > 0
+        ? raw.options.map((opt: any) => String(opt))
+        : type === "true_false"
+          ? ["Verdadero", "Falso"]
+          : ["Opción A", "Opción B", "Opción C", "Opción D"]
 
-    question.correctAnswer = normalizeCorrectAnswer(raw?.correctAnswer, question.options, type)
+    question.options = options
+    question.correctAnswer = normalizeCorrectAnswer(raw?.correctAnswer, options, type)
   }
 
   if (type === "development") {
     question.modelAnswer = raw?.modelAnswer || ""
     question.rubric = Array.isArray(raw?.rubric)
-      ? raw.rubric.map((r: any) => ({ criteria: r?.criteria || "Criterio", points: clampPositive(Number(r?.points), 1) }))
+      ? raw.rubric.map((r: any) => ({
+          criteria: r?.criteria || "Criterio",
+          points: clampPositive(Number(r?.points), 1),
+        }))
       : []
   }
 
@@ -178,7 +189,10 @@ function normalizeQuestion(raw: any, scoreMode: ScoreMode): ExamQuestion {
 
   if (type === "true_false") {
     const selectionPoints = clampPositive(Number(raw?.selectionPoints), 1) || 1
-    const providedJustification = clampPositive(Number(raw?.justificationMaxPoints), Math.max(0, (question.maxPoints || suggested) - selectionPoints))
+    const providedJustification = clampPositive(
+      Number(raw?.justificationMaxPoints),
+      Math.max(0, (question.maxPoints || suggested) - selectionPoints)
+    )
     const computedMax = selectionPoints + providedJustification
 
     question.selectionPoints = selectionPoints
@@ -191,11 +205,17 @@ function normalizeQuestion(raw: any, scoreMode: ScoreMode): ExamQuestion {
       question.maxPoints = selectionPoints
     }
 
-    question.justificationMaxPoints = Math.max(0, (question.maxPoints || selectionPoints) - selectionPoints)
+    question.justificationMaxPoints = Math.max(
+      0,
+      (question.maxPoints || selectionPoints) - selectionPoints
+    )
   }
 
   if (type === "development" && question.rubric && question.rubric.length > 0) {
-    const rubricSum = question.rubric.reduce((acc, item) => acc + clampPositive(Number(item.points), 0), 0)
+    const rubricSum = question.rubric.reduce(
+      (acc, item) => acc + clampPositive(Number(item.points), 0),
+      0
+    )
     question.maxPoints = scoreMode === "manual"
       ? (requested || rubricSum || suggested)
       : (rubricSum || requested || suggested)
@@ -405,11 +425,18 @@ Total de preguntas: ${totalQuestions}. Todo en español.`
     setQuestions(prev => prev.map((q, i) => {
       if (i !== idx) return q
       const merged = { ...q, ...patch }
+
       if (merged.type === "true_false") {
         const selectionPoints = clampPositive(Number(merged.selectionPoints), 1) || 1
         const maxPoints = clampPositive(Number(merged.maxPoints), selectionPoints)
-        return { ...merged, selectionPoints, maxPoints, justificationMaxPoints: Math.max(0, maxPoints - selectionPoints) }
+        return {
+          ...merged,
+          selectionPoints,
+          maxPoints,
+          justificationMaxPoints: Math.max(0, maxPoints - selectionPoints),
+        }
       }
+
       if (merged.type === "development") {
         const rubric = Array.isArray(merged.rubric) ? merged.rubric : []
         if (scoreMode === "auto" && rubric.length > 0) {
@@ -417,6 +444,7 @@ Total de preguntas: ${totalQuestions}. Todo en español.`
           return { ...merged, rubric, maxPoints: rubricSum || clampPositive(Number(merged.maxPoints), 1) }
         }
       }
+
       return { ...merged, maxPoints: clampPositive(Number(merged.maxPoints), 1) }
     }))
   }
@@ -424,8 +452,10 @@ Total de preguntas: ${totalQuestions}. Todo en español.`
   const regenerateQuestion = async (idx: number, overrides?: { difficulty?: 1 | 2 | 3; ability?: Ability; type?: ExamQuestion["type"] }) => {
     const current = questions[idx]
     if (!current) return
+
     setBusyQuestion(idx)
     setError("")
+
     const nextDifficulty = overrides?.difficulty || current.difficulty || 2
     const nextAbility = overrides?.ability || current.ability || defaultAbilityByDifficulty(nextDifficulty)
     const nextType = overrides?.type || current.type
@@ -475,6 +505,7 @@ Formato exacto:
       })
       const data = await res.json()
       if (!data.success) throw new Error(data.error || "No se pudo regenerar la pregunta")
+
       const newQuestion = normalizeQuestion(data.output?.data?.question || data.output?.data || {}, scoreMode)
       updateQuestion(idx, { ...newQuestion, maxPoints: current.maxPoints })
     } catch (err: any) {
