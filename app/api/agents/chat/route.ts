@@ -13,7 +13,6 @@ export async function POST(req: Request) {
 
   const recentHistory = history.slice(-2)
 
-  // Obtener memoria larga del tema
   const { data: memory } = await supabase
     .from("long_memory")
     .select("*")
@@ -22,10 +21,17 @@ export async function POST(req: Request) {
     .single()
 
   const typeInstructions: Record<string, string> = {
-    theory:    "Explica la teoría del concepto de forma clara y estructurada.",
-    examples:  "Muestra ejemplos resueltos paso a paso, numerados y detallados.",
-    exercises: "Propón un ejercicio y guía al estudiante para resolverlo.",
-    summary:   "Da un resumen conciso con los puntos más importantes.",
+    theory: "Explica la teoría con estructura didáctica, conectando idea principal, desarrollo, ejemplo y cierre.",
+    examples: "Muestra ejemplos resueltos paso a paso, numerados y detallados, explicando por qué se hace cada paso.",
+    exercises: "Propón un ejercicio, orienta el razonamiento y entrega una guía gradual sin resolver todo de inmediato.",
+    summary: "Entrega un resumen útil, breve pero completo, con ideas clave y una mini conclusión.",
+  }
+
+  const responseLengthByType: Record<string, string> = {
+    theory: "Entre 320 y 420 palabras.",
+    examples: "Entre 300 y 420 palabras.",
+    exercises: "Entre 260 y 360 palabras.",
+    summary: "Entre 180 y 260 palabras.",
   }
 
   const levelDesc: Record<number, string> = {
@@ -37,7 +43,6 @@ export async function POST(req: Request) {
     6: "maestro",
   }
 
-  // Contexto de memoria larga
   const memoryContext = memory ? `
 HISTORIAL DEL ESTUDIANTE CON ESTE TEMA:
 - Ha estudiado este tema ${memory.study_count} veces
@@ -48,13 +53,16 @@ HISTORIAL DEL ESTUDIANTE CON ESTE TEMA:
 
 Usa este contexto para personalizar tu explicación. Si tiene puntos débiles, enfócate en ellos. Si ya domina algo, no lo repitas.` : ""
 
-
-  // ── Orquestador: enriquecer contexto para preguntas complejas ──
   let orchestratorContext = ""
   try {
     const orch = await orchestrate(topic, userMessage)
     if (orch.shouldEnrich) {
-      orchestratorContext = `\n\nCONTEXTO ENRIQUECIDO POR AGENTES ESPECIALIZADOS:\n${orch.enrichedContext}\n\nUsa este contexto para dar una respuesta más profunda y memorable.`
+      orchestratorContext = `
+
+CONTEXTO ENRIQUECIDO POR AGENTES ESPECIALIZADOS:
+${orch.enrichedContext}
+
+Usa este contexto para dar una respuesta más profunda, clara y memorable.`
     }
   } catch {}
 
@@ -68,16 +76,20 @@ ${memoryContext}
 ${orchestratorContext}
 
 REGLAS DE RESPUESTA:
-- Responde SIEMPRE en español
-- Máximo 250 palabras por respuesta
-- Usa markdown: ## títulos, **negrita**, listas
-- Para fórmulas usa LaTeX: $formula$ inline, $$formula$$ bloque
-- Al final incluye SIEMPRE una pregunta breve para continuar
-- Sé motivador y didáctico
-- Si el estudiante ya estudió este tema antes, reconócelo y construye sobre ese conocimiento
+- Responde SIEMPRE en español.
+- ${responseLengthByType[studyType] || responseLengthByType.theory}
+- Usa markdown: ## títulos, **negrita**, listas cuando ayuden.
+- Para fórmulas usa LaTeX: $formula$ inline, $$formula$$ bloque.
+- La respuesta debe sentirse un poco más desarrollada que antes, pero sin volverse extensa ni redundante.
+- Prioriza este orden: idea principal, desarrollo, ejemplo concreto, mini cierre.
+- Incluye al menos un ejemplo sencillo o analogía cuando el tema lo permita.
+- Evita párrafos excesivamente largos.
+- Al final incluye SIEMPRE una pregunta breve para continuar.
+- Sé motivador, claro y didáctico.
+- Si el estudiante ya estudió este tema antes, reconócelo y construye sobre ese conocimiento.
 
 FORMATO EXACTO:
-[explicación en máximo 250 palabras]
+[explicación]
 
 [pregunta final]
 
@@ -99,7 +111,7 @@ FORMATO EXACTO:
       messages,
       stream: true,
       temperature: 0.7,
-      max_tokens: 600,
+      max_tokens: studyType === "summary" ? 700 : 1000,
     })
 
     const encoder = new TextEncoder()
