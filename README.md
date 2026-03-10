@@ -284,11 +284,11 @@ groq-sdk (Groq SDK)
 
 ```
 ┌────────────────────────────────────────────────────────────┐
-│              ROUTER DE IA (lib/ai-router.ts)                │
+│              ROUTER DE IA (lib/ai-router.ts)               │
 ├────────────────────────────────────────────────────────────┤
 │  Gemini  → Matemático, Investigador, Redactor, Traductor,  │
-│            Visual, Orquestador, Creator Studio,             │
-│            Evaluación IA de exámenes docente                │
+│            Visual, Orquestador, Creator Studio,            │
+│            Evaluación IA de exámenes docente               │
 │  Groq    → Tutor AGT (streaming), Quiz, Sócrates           │
 │  Edge TTS→ Podcast MP3 (AlvaroNeural + ElviraNeural)       │
 │  Fallback→ preferido → otros → OpenRouter                  │
