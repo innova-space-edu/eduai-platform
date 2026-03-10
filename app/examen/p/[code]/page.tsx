@@ -599,7 +599,11 @@ export default function ExamenPublicoPage() {
             <span className="text-gray-400 text-xs">{name}</span>
             <span className="text-gray-700">|</span>
             <span className="text-gray-500 text-xs">
-              {answeredCount}/{totalQ}
+              {answeredCount}/{totalQ} preguntas
+            </span>
+            <span className="text-gray-700">|</span>
+            <span className="text-blue-400 text-xs font-semibold">
+              {examTotalPoints} pts total
             </span>
           </div>
 
@@ -668,9 +672,19 @@ export default function ExamenPublicoPage() {
                 )}
               </div>
 
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-300">
-                {getQuestionMaxPoints(q)} pts
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs px-2.5 py-1 rounded-full bg-blue-500/15 text-blue-300 font-bold border border-blue-500/20">
+                  {getQuestionMaxPoints(q)} pts
+                </span>
+                {q.type === "true_false" && (
+                  <span className="text-[10px] text-gray-500">
+                    ({q.selectionPoints ?? 1} selección + {q.justificationMaxPoints ?? 2} justif.)
+                  </span>
+                )}
+                {q.type === "development" && q.maxPoints && (
+                  <span className="text-[10px] text-gray-500">evaluado por IA</span>
+                )}
+              </div>
             </div>
 
             <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-5">
@@ -789,7 +803,15 @@ export default function ExamenPublicoPage() {
               )}
             </div>
 
-            <div className="flex flex-wrap gap-1.5 justify-center pt-3 border-t border-white/5">
+            {/* Resumen de puntajes */}
+            <div className="pt-2 border-t border-white/5">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-gray-600 text-[10px] font-semibold tracking-widest">NAVEGADOR DE PREGUNTAS</span>
+                <span className="text-gray-600 text-[10px]">
+                  Puntaje total: <span className="text-blue-400 font-bold">{examTotalPoints} pts</span>
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-1.5 justify-center">
               {qs.map((item: any, i: number) => {
                 const answered =
                   item.type === "development"
@@ -798,12 +820,14 @@ export default function ExamenPublicoPage() {
                       ? mcAnswers[i] !== undefined ||
                         Boolean(tfJustifications[i] && tfJustifications[i].trim().length > 0)
                       : mcAnswers[i] !== undefined
+                const pts = getQuestionMaxPoints(item)
 
                 return (
                   <button
                     key={i}
                     onClick={() => setCurQ(i)}
-                    className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
+                    title={`Pregunta ${i + 1} — ${pts} pt${pts !== 1 ? "s" : ""}`}
+                    className={`w-10 h-10 rounded-lg text-xs font-bold transition-all flex flex-col items-center justify-center gap-0 ${
                       i === curQ
                         ? "bg-blue-500 text-white"
                         : answered
@@ -811,10 +835,14 @@ export default function ExamenPublicoPage() {
                           : "bg-white/[0.04] text-gray-600 border border-white/[0.06]"
                     }`}
                   >
-                    {i + 1}
+                    <span className="text-xs leading-none">{i + 1}</span>
+                    <span className={`text-[9px] leading-none font-normal mt-0.5 ${i === curQ ? "text-blue-200" : answered ? "text-green-500/70" : "text-gray-700"}`}>
+                      {pts}pt
+                    </span>
                   </button>
                 )
               })}
+              </div>
             </div>
           </div>
         )}
