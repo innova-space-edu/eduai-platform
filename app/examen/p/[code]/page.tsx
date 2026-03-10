@@ -477,7 +477,7 @@ export default function ExamenPublicoPage() {
                               }`}
                             >
                               {String.fromCharCode(65 + j)}){" "}
-                              <ExamMathText text={opt} className="inline" />{" "}
+                              <ExamMathText text={opt.replace(/^[A-Da-d][).]\s*/u, "")} className="inline" />{" "}
                               {isRight && "✓"} {isStudent && !isRight && "← tu respuesta"}
                             </div>
                           )
@@ -706,7 +706,7 @@ export default function ExamenPublicoPage() {
                     }`}
                   >
                     <span className="font-bold mr-2">{String.fromCharCode(65 + i)}.</span>
-                    <ExamMathText text={opt} className="inline" />
+                    <ExamMathText text={opt.replace(/^[A-Da-d][).]\s*/u, "")} className="inline" />
                   </button>
                 ))}
               </div>
