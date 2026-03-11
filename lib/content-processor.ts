@@ -1,7 +1,5 @@
 // src/lib/content-processor.ts
-// Pipeline universal de procesamiento de contenido para EduAI Creator Studio
-
-import type { NextRequest } from "next/server"
+// v3 — Gemini 2.5 Flash + responseSchema + prompts potenciados + contexto extendido 12K
 
 // ============================================================
 // TYPES
@@ -82,7 +80,8 @@ export async function extractFromURL(url: string): Promise<ExtractedContent> {
     if (!mainContent) mainContent = $("body").text().trim()
 
     mainContent = mainContent.replace(/\s+/g, " ").replace(/\n\s*\n/g, "\n").trim()
-    if (mainContent.length > 8000) mainContent = mainContent.substring(0, 8000) + "..."
+    // Gemini 2.5 Flash soporta contexto largo — subimos el límite a 12K chars
+    if (mainContent.length > 12000) mainContent = mainContent.substring(0, 12000) + "..."
 
     const images: { src: string; alt: string }[] = []
     $("img").each((_, el) => {
@@ -135,7 +134,7 @@ export async function extractFromPDF(base64Data: string, fileName = "document.pd
 
     let text = result.text || ""
     text = text.replace(/\s+/g, " ").replace(/\n\s*\n/g, "\n").trim()
-    if (text.length > 8000) text = text.substring(0, 8000) + "..."
+    if (text.length > 12000) text = text.substring(0, 12000) + "..."
 
     return {
       success: true,
@@ -159,7 +158,7 @@ export async function extractFromDOCX(base64Data: string, fileName = "document.d
 
     let text = result.value || ""
     text = text.replace(/\s+/g, " ").replace(/\n\s*\n/g, "\n").trim()
-    if (text.length > 8000) text = text.substring(0, 8000) + "..."
+    if (text.length > 12000) text = text.substring(0, 12000) + "..."
 
     return {
       success: true,
@@ -175,237 +174,480 @@ export async function extractFromDOCX(base64Data: string, fileName = "document.d
 }
 
 // ============================================================
-// 2. PROMPTS POR FORMATO
+// 2. JSON SCHEMAS POR FORMATO (para responseSchema de Gemini 2.5)
 // ============================================================
 
-// ============================================================
-// PATCH: Reemplazar la función getFormatPrompt en
-// src/lib/content-processor.ts
-// ============================================================
-// Busca "function getFormatPrompt" y reemplaza toda la función con esta:
+const SCHEMAS: Record<OutputFormat, object> = {
+  infographic: {
+    type: "object",
+    properties: {
+      title:       { type: "string" },
+      subtitle:    { type: "string" },
+      keyFact:     { type: "string" },
+      conclusion:  { type: "string" },
+      colorScheme: { type: "string", enum: ["blue","green","purple","orange","red","teal","indigo"] },
+      visualType:  { type: "string", enum: ["statistics","process","comparison","educational","timeline"] },
+      sections: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            heading:    { type: "string" },
+            icon:       { type: "string" },
+            points:     { type: "array", items: { type: "string" } },
+            stat:       { type: "object", properties: { value: { type: "string" }, label: { type: "string" } } },
+          },
+          required: ["heading","points"],
+        },
+      },
+    },
+    required: ["title","sections","keyFact"],
+  },
 
-function getFormatPrompt(format: OutputFormat): string {
+  ppt: {
+    type: "object",
+    properties: {
+      title:  { type: "string" },
+      author: { type: "string" },
+      theme:  { type: "string", enum: ["academic","minimal","corporate","creative","dark"] },
+      slides: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            type:       { type: "string", enum: ["title","content","comparison","quote","summary","stats"] },
+            title:      { type: "string" },
+            subtitle:   { type: "string" },
+            bullets:    { type: "array", items: { type: "string" } },
+            notes:      { type: "string" },
+            timingHint: { type: "string" },
+            layout:     { type: "string", enum: ["default","two-column","image-left","quote-center","stats-grid"] },
+          },
+          required: ["type","title"],
+        },
+      },
+    },
+    required: ["title","slides"],
+  },
+
+  poster: {
+    type: "object",
+    properties: {
+      headline:     { type: "string" },
+      tagline:      { type: "string" },
+      callToAction: { type: "string" },
+      colorScheme:  { type: "string", enum: ["vibrant","pastel","dark","monochrome","neon"] },
+      mainPoints: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            icon:        { type: "string" },
+            title:       { type: "string" },
+            description: { type: "string" },
+            stat:        { type: "string" },
+          },
+          required: ["icon","title","description"],
+        },
+      },
+    },
+    required: ["headline","tagline","mainPoints","callToAction"],
+  },
+
+  podcast: {
+    type: "object",
+    properties: {
+      title:    { type: "string" },
+      duration: { type: "string" },
+      segments: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            speaker: { type: "string", enum: ["A","B"] },
+            text:    { type: "string" },
+            emotion: { type: "string", enum: ["neutral","enthusiastic","curious","thoughtful","surprised","humorous"] },
+          },
+          required: ["speaker","text"],
+        },
+      },
+    },
+    required: ["title","segments"],
+  },
+
+  mindmap: {
+    type: "object",
+    properties: {
+      centralTopic: { type: "string" },
+      nodes: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            id:          { type: "string" },
+            label:       { type: "string" },
+            description: { type: "string" },
+            category:    { type: "string", enum: ["main","sub","detail"] },
+            color:       { type: "string" },
+            importance:  { type: "number" },
+            connections: { type: "array", items: { type: "string" } },
+            edgeLabels:  { type: "array", items: { type: "string" } },
+          },
+          required: ["id","label","category","connections"],
+        },
+      },
+    },
+    required: ["centralTopic","nodes"],
+  },
+
+  flashcards: {
+    type: "object",
+    properties: {
+      deckTitle: { type: "string" },
+      topic:     { type: "string" },
+      cards: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            id:         { type: "string" },
+            front:      { type: "string" },
+            back:       { type: "string" },
+            hint:       { type: "string" },
+            mnemonic:   { type: "string" },
+            difficulty: { type: "number" },
+            tags:       { type: "array", items: { type: "string" } },
+          },
+          required: ["id","front","back","difficulty"],
+        },
+      },
+    },
+    required: ["deckTitle","topic","cards"],
+  },
+
+  quiz: {
+    type: "object",
+    properties: {
+      title: { type: "string" },
+      topic: { type: "string" },
+      questions: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            type:          { type: "string", enum: ["multiple_choice","true_false","fill_blank"] },
+            question:      { type: "string" },
+            options:       { type: "array", items: { type: "string" } },
+            correctAnswer: { type: "number" },
+            explanation:   { type: "string" },
+            difficulty:    { type: "number" },
+            distractorHints: { type: "array", items: { type: "string" } },
+          },
+          required: ["type","question","options","correctAnswer","explanation","difficulty"],
+        },
+      },
+    },
+    required: ["title","topic","questions"],
+  },
+
+  timeline: {
+    type: "object",
+    properties: {
+      title:  { type: "string" },
+      period: { type: "string" },
+      events: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            date:        { type: "string" },
+            title:       { type: "string" },
+            description: { type: "string" },
+            impact:      { type: "string" },
+            importance:  { type: "string", enum: ["high","medium","low"] },
+            icon:        { type: "string" },
+          },
+          required: ["date","title","description","importance"],
+        },
+      },
+      causalLinks: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            from:  { type: "string" },
+            to:    { type: "string" },
+            label: { type: "string" },
+          },
+        },
+      },
+    },
+    required: ["title","events"],
+  },
+
+  cornell: {
+    type: "object",
+    properties: {
+      title:   { type: "string" },
+      date:    { type: "string" },
+      summary: { type: "string" },
+      cueColumn: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            cue:   { type: "string" },
+            notes: { type: "string" },
+          },
+          required: ["cue","notes"],
+        },
+      },
+    },
+    required: ["title","cueColumn","summary"],
+  },
+}
+
+// ============================================================
+// 3. PROMPTS POTENCIADOS POR FORMATO
+// ============================================================
+
+function getFormatPrompt(format: OutputFormat, title: string, rawText: string): string {
+  const contentBlock = `
+CONTENIDO A PROCESAR:
+Título: ${title || "Sin título"}
+${rawText}
+`
+
   const prompts: Record<OutputFormat, string> = {
-    infographic: `Estructura este contenido para una INFOGRAFÍA educativa MUY COMPLETA Y DETALLADA.
-Responde SOLO con JSON válido (sin markdown, sin backticks):
-{
-  "title": "Título atractivo y conciso (max 8 palabras)",
-  "subtitle": "Subtítulo descriptivo que resuma el tema",
-  "sections": [
-    {
-      "heading": "Título de sección",
-      "icon": "emoji relevante",
-      "points": ["punto detallado con datos concretos 1", "punto detallado 2", "punto detallado 3", "punto detallado 4"],
-      "stat": { "value": "número o porcentaje impactante", "label": "explicación del dato" }
-    }
-  ],
-  "keyFact": "Dato destacado principal que sorprenda al lector",
-  "conclusion": "Mensaje de cierre reflexivo y motivador",
-  "colorScheme": "blue|green|purple|orange|red",
-  "style": "statistics|process|comparison|educational|timeline"
-}
-IMPORTANTE:
-- Genera EXACTAMENTE 5-6 secciones con 3-4 puntos DETALLADOS cada una
-- Los puntos deben incluir datos específicos, cifras, porcentajes, fechas cuando sea posible
-- Cada sección debe tener un stat con dato numérico real
-- El keyFact debe ser un dato sorprendente y verificable
-- El contenido debe ser EXHAUSTIVO y PROFUNDO, no superficial
-- Usa lenguaje claro pero informativo
-- Todo en español`,
 
-    ppt: `Estructura este contenido para una PRESENTACIÓN PROFESIONAL de slides.
-Responde SOLO con JSON válido (sin markdown, sin backticks):
-{
-  "title": "Título de la presentación",
-  "author": "EduAI",
-  "slides": [
-    {
-      "type": "title|content|comparison|quote|summary",
-      "title": "Título del slide",
-      "bullets": ["punto detallado 1", "punto detallado 2", "punto detallado 3", "punto 4"],
-      "notes": "Notas detalladas del orador para este slide (2-3 oraciones)"
-    }
-  ],
-  "theme": "academic|minimal|corporate|creative"
-}
-IMPORTANTE:
-- Genera 8-12 slides completos
-- Slide 1 = portada con título impactante
-- Slide 2 = índice/agenda
-- Slides 3-10 = contenido detallado con 3-5 bullets cada uno
-- Penúltimo slide = resumen/conclusiones
-- Último slide = referencias o "Gracias"
-- Cada bullet debe ser una oración completa con información sustancial
-- Las notas del orador deben ser útiles (datos extra, cómo explicar)
-- Todo en español`,
+    infographic: `Eres un diseñador instruccional experto y periodista de datos. 
+Crea una INFOGRAFÍA educativa PROFUNDA y VISUALMENTE RICA sobre el contenido dado.
 
-    poster: `Estructura este contenido para un AFICHE/POSTER educativo IMPACTANTE.
-Responde SOLO con JSON válido (sin markdown, sin backticks):
-{
-  "headline": "Título grande impactante (max 6 palabras)",
-  "tagline": "Subtítulo que complemente el título",
-  "mainPoints": [
-    { "icon": "emoji", "title": "Punto clave (3-4 palabras)", "description": "Explicación detallada de 2-3 oraciones con datos concretos" }
-  ],
-  "callToAction": "Mensaje de cierre motivador y memorable",
-  "colorScheme": "vibrant|pastel|dark|monochrome"
-}
-IMPORTANTE:
-- Genera 4-5 puntos principales
-- Cada descripción debe ser sustancial (2-3 oraciones completas)
-- Incluir datos numéricos cuando sea posible
-- El headline debe ser memorable y llamativo
-- Todo en español`,
+INSTRUCCIONES:
+- Razona internamente sobre los conceptos clave antes de estructurarlos
+- Genera EXACTAMENTE 6 secciones con 4 puntos detallados cada una
+- Cada punto debe incluir datos concretos, cifras, fechas o comparaciones cuando existan
+- Cada sección debe tener un stat con dato numérico real o estimado justificado
+- El keyFact debe ser un dato sorprendente, contraintuitivo o poco conocido
+- La conclusión debe conectar el tema con la vida real del estudiante
+- Elige visualType según la naturaleza del contenido:
+  * statistics → datos numéricos, comparaciones
+  * process → pasos, procedimientos, ciclos
+  * comparison → diferencias entre entidades
+  * educational → concepto amplio con categorías
+  * timeline → evolución histórica
+- Todo en español
 
-    podcast: `Estructura este contenido para un PODCAST educativo entre dos hosts.
-Responde SOLO con JSON válido (sin markdown, sin backticks):
-{
-  "title": "Título del episodio atractivo",
-  "duration": "8min",
-  "segments": [
-    {
-      "speaker": "A|B",
-      "text": "Lo que dice este host (2-4 oraciones por segmento)",
-      "emotion": "neutral|enthusiastic|curious|thoughtful|surprised"
-    }
-  ]
-}
-REGLAS DEL PODCAST:
-- Host A = "El Profesor" - Explica con autoridad, usa analogías, da datos
-- Host B = "El Estudiante Curioso" - Hace preguntas inteligentes, pide ejemplos, reacciona con sorpresa
-- MÍNIMO 25 segmentos para un podcast sustancial
-- Estructura: Saludo (2 seg) → Introducción al tema (3 seg) → Desarrollo profundo (12 seg) → Ejemplos prácticos (5 seg) → Resumen (3 seg)
-- Cada segmento debe tener 2-4 oraciones completas
-- Incluir datos curiosos, analogías, ejemplos de la vida real
-- Tono conversacional natural, como si fuera un podcast real de Spotify
-- Host B debe hacer preguntas que profundicen el tema
-- Incluir momentos de humor o sorpresa
-- Todo en español`,
+${contentBlock}`,
 
-    mindmap: `Estructura este contenido para un MAPA CONCEPTUAL interactivo COMPLETO.
-Responde SOLO con JSON válido (sin markdown, sin backticks):
-{
-  "centralTopic": "Tema central (2-4 palabras)",
-  "nodes": [
-    {
-      "id": "n1",
-      "label": "Concepto (2-4 palabras)",
-      "description": "Explicación detallada del concepto en 2-3 oraciones con datos relevantes",
-      "category": "main|sub|detail",
-      "color": "#hex",
-      "connections": ["n2", "n3"]
-    }
-  ]
-}
-IMPORTANTE:
-- Genera 15-20 nodos para un mapa completo
-- 4-5 nodos "main" (conceptos principales)
-- 5-7 nodos "sub" (subconceptos)
-- 4-6 nodos "detail" (detalles específicos)
-- Cada nodo debe tener una descripción informativa
-- Las conexiones deben ser lógicas y crear una red coherente
-- Usa colores distintos para cada rama principal
-- Todo en español`,
+    ppt: `Eres un experto en comunicación educativa y diseño de presentaciones académicas.
+Crea una PRESENTACIÓN PROFESIONAL completa y lista para usar en clase.
 
-    flashcards: `Genera FLASHCARDS de estudio COMPLETAS desde este contenido.
-Responde SOLO con JSON válido (sin markdown, sin backticks):
-{
-  "deckTitle": "Título descriptivo del deck",
-  "topic": "Tema general",
-  "cards": [
-    {
-      "front": "Pregunta clara y específica",
-      "back": "Respuesta completa y detallada (2-3 oraciones)",
-      "difficulty": 1,
-      "tags": ["categoría"]
-    }
-  ]
-}
-IMPORTANTE:
-- Genera 15-20 tarjetas variadas
-- Mezcla tipos: definiciones, datos numéricos, procesos, comparaciones, aplicaciones prácticas
-- Las respuestas deben ser COMPLETAS, no solo una palabra
-- difficulty: 1=conceptos básicos, 2=relaciones y aplicaciones, 3=análisis y síntesis
-- Incluir al menos 3 tarjetas de cada nivel de dificultad
-- Los "front" deben ser preguntas bien formuladas, no solo "¿Qué es X?"
-- Incluir preguntas tipo "¿Por qué...", "¿Cómo...", "¿Cuál es la diferencia...", "Explica el proceso de..."
-- Todo en español`,
+INSTRUCCIONES:
+- Genera 10-12 slides con estructura pedagógica clara
+- Slide 1: portada con título impactante y subtítulo descriptivo
+- Slide 2: agenda/índice con los grandes bloques del tema
+- Slides 3-9: contenido principal con 4-5 bullets sustanciales por slide
+- Slide 10: estadísticas o datos clave (layout: stats-grid)
+- Slide 11: resumen ejecutivo con los 3 aprendizajes clave
+- Slide 12: "Preguntas para reflexionar" o referencias
+- Cada bullet = una oración completa con información de valor, no palabras sueltas
+- Las notes del orador incluyen: cómo introducir el slide, dato extra, tiempo sugerido
+- timingHint = "X minutos" sugeridos para cada slide
+- Elige el layout que mejor visualice cada slide
+- Todo en español
 
-    quiz: `Genera un QUIZ COMPLETO Y VARIADO desde este contenido.
-Responde SOLO con JSON válido (sin markdown, sin backticks):
-{
-  "title": "Título del quiz",
-  "topic": "Tema evaluado",
-  "questions": [
-    {
-      "type": "multiple_choice|true_false|fill_blank",
-      "question": "Pregunta clara y bien formulada",
-      "options": ["A detallada", "B detallada", "C detallada", "D detallada"],
-      "correctAnswer": 0,
-      "explanation": "Explicación detallada de POR QUÉ esta es la respuesta correcta y por qué las otras no (2-3 oraciones)",
-      "difficulty": 1
-    }
-  ]
-}
-IMPORTANTE:
-- Genera 12-15 preguntas
-- Mezcla: 8 multiple_choice, 3 true_false, 2 fill_blank
-- Para true_false: options = ["Verdadero", "Falso"]
-- Para fill_blank: la pregunta contiene "___" y options son las posibles respuestas
-- Las opciones incorrectas deben ser PLAUSIBLES (no obviamente incorrectas)
-- difficulty: 1=recordar, 2=comprender y aplicar, 3=analizar y evaluar
-- Las explicaciones deben ser EDUCATIVAS, explicando el razonamiento
-- Todo en español`,
+${contentBlock}`,
 
-    timeline: `Estructura este contenido como un TIMELINE interactivo DETALLADO.
-Responde SOLO con JSON válido (sin markdown, sin backticks):
-{
-  "title": "Título del timeline",
-  "period": "Período que cubre (ej: 1900-2024)",
-  "events": [
-    {
-      "date": "Fecha específica o período",
-      "title": "Nombre del evento (conciso)",
-      "description": "Descripción detallada del evento y su importancia en 2-3 oraciones con datos específicos",
-      "importance": "high|medium|low",
-      "icon": "emoji relevante"
-    }
-  ]
-}
-IMPORTANTE:
-- Genera 8-12 eventos
-- Orden cronológico estricto
-- Las descripciones deben explicar el IMPACTO y CONTEXTO del evento
-- Al menos 3 eventos "high" importance
-- Incluir fechas lo más específicas posible
-- Cada descripción debe tener 2-3 oraciones sustanciales
-- Todo en español`,
+    poster: `Eres un diseñador gráfico especializado en comunicación educativa visual.
+Crea un AFICHE EDUCATIVO de alto impacto visual y pedagógico.
 
-    cornell: `Genera NOTAS CORNELL COMPLETAS desde este contenido.
-Responde SOLO con JSON válido (sin markdown, sin backticks):
-{
-  "title": "Título del tema",
-  "date": "${new Date().toLocaleDateString("es-CL")}",
-  "cueColumn": [
-    { "cue": "Pregunta clave o concepto", "notes": "Notas detalladas con explicación completa, datos y ejemplos (3-5 oraciones)" }
-  ],
-  "summary": "Resumen ejecutivo del tema completo en 4-5 oraciones que capture las ideas principales y su importancia"
-}
-IMPORTANTE:
-- Genera 8-10 pares cue-notes
-- Los cues deben ser PREGUNTAS que guíen el estudio
-- Las notes deben ser DETALLADAS con datos específicos
-- El summary debe ser un párrafo completo y útil para repasar
-- Todo en español`,
+INSTRUCCIONES:
+- El headline debe ser memorable, provocador, máximo 6 palabras
+- El tagline complementa y amplía el headline
+- Genera 5 puntos principales con ícono, título corto y descripción de 2-3 oraciones
+- Cada descripción debe incluir al menos un dato numérico o hecho concreto
+- Agrega un campo stat por punto: cifra o dato impactante (puede ser estimado si el contenido no lo da)
+- El callToAction debe motivar a la acción o reflexión
+- Elige colorScheme según el tono del tema:
+  * vibrant → ciencias, tecnología, innovación
+  * pastel → arte, humanidades, educación infantil
+  * dark → historia, filosofía, temas complejos
+  * monochrome → matemáticas, lógica, temas formales
+  * neon → tecnología, futuro, innovación digital
+- Todo en español
+
+${contentBlock}`,
+
+    podcast: `Eres un productor de contenido educativo especializado en podcasts.
+Crea el GUIÓN de un PODCAST educativo dinámico y entretenido.
+
+INSTRUCCIONES:
+- Host A = "El Profesor Marcos" — Explica con autoridad, usa analogías brillantes, da datos precisos, hace reflexionar
+- Host B = "Sofía, la estudiante curiosa" — Hace preguntas profundas, pide ejemplos, reacciona con emoción, conecta con la vida diaria
+- MÍNIMO 28 segmentos para un podcast de 8+ minutos
+- Estructura obligatoria:
+  * Segmentos 1-2: Intro atractiva con gancho (¿Sabías que...?)
+  * Segmentos 3-5: Presentación del tema con contexto histórico/científico
+  * Segmentos 6-16: Desarrollo profundo con datos, analogías, debate
+  * Segmentos 17-22: Ejemplos prácticos de la vida real, casos, aplicaciones
+  * Segmentos 23-26: Implicaciones, reflexión crítica, perspectivas
+  * Segmentos 27-28: Resumen y cierre con mensaje memorable
+- Cada segmento tiene 3-5 oraciones completas
+- Incluir momentos de humor, sorpresa, desacuerdo constructivo
+- Los datos deben ser reales y verificables del contenido
+- Todo en español
+
+${contentBlock}`,
+
+    mindmap: `Eres un experto en cartografía conceptual y ciencias cognitivas.
+Crea un MAPA MENTAL COMPLETO e interconectado sobre el contenido dado.
+
+INSTRUCCIONES:
+- Genera 18-22 nodos para un mapa rico y detallado
+- 5 nodos "main" (conceptos principales del tema — color distinto cada uno)
+- 7-8 nodos "sub" (subconceptos o aspectos relevantes de cada main)
+- 5-7 nodos "detail" (hechos concretos, datos, ejemplos, aplicaciones)
+- Cada nodo tiene descripción de 2-3 oraciones con datos reales
+- importance: 3=central, 2=importante, 1=complementario (afecta tamaño del nodo)
+- Las connections deben crear una RED coherente (no solo árbol lineal)
+- edgeLabels: etiquetas cortas (2-3 palabras) que describen la relación entre nodos
+  Ej: ["causa de", "parte de", "contrasta con", "ejemplifica"]
+- Usa colores distintos por rama principal:
+  main: #3b82f6, #8b5cf6, #06b6d4, #10b981, #f59e0b
+- Todo en español
+
+${contentBlock}`,
+
+    flashcards: `Eres un experto en memoria, aprendizaje espaciado y técnicas de estudio.
+Crea un DECK DE FLASHCARDS optimizado para máxima retención.
+
+INSTRUCCIONES:
+- Genera 20 tarjetas variadas y progresivas
+- Distribución por tipo:
+  * 5 tarjetas de definición/concepto (difficulty: 1)
+  * 6 tarjetas de relación/comparación/proceso (difficulty: 2)
+  * 5 tarjetas de aplicación/análisis/síntesis (difficulty: 3)
+  * 4 tarjetas de dato numérico/fecha/estadística clave (difficulty: 1-2)
+- id = "card-01", "card-02", etc.
+- front: pregunta bien formulada — usar "¿Por qué...", "¿Cómo...", "¿Cuál es la diferencia...", "Explica el proceso de...", "¿Qué pasaría si..."
+- back: respuesta completa en 2-3 oraciones con el razonamiento, no solo el dato
+- hint: pista que ayuda a recordar sin revelar la respuesta (ej: "Piensa en la relación con X")
+- mnemonic: truco o asociación para memorizar (acrónimo, imagen mental, analogía)
+- tags: categorías del contenido ["definición", "proceso", "dato", "aplicación", etc.]
+- Todo en español
+
+${contentBlock}`,
+
+    quiz: `Eres un experto en evaluación educativa y taxonomía de Bloom.
+Crea un QUIZ COMPLETO con preguntas que evalúen comprensión real, no solo memoria.
+
+INSTRUCCIONES:
+- Genera 15 preguntas con esta distribución:
+  * 9 multiple_choice (3 de difficulty 1, 3 de difficulty 2, 3 de difficulty 3)
+  * 3 true_false con justificación implícita (difficulty 1-2)
+  * 3 fill_blank con contexto suficiente (difficulty 2-3)
+- Las opciones incorrectas (distractores) deben ser PLAUSIBLES — errores comunes de comprensión
+- distractorHints: para cada opción incorrecta, una frase corta explicando por qué alguien podría elegirla
+- explanation: 3 oraciones que expliquen (1) la respuesta correcta, (2) por qué las otras son incorrectas, (3) el concepto subyacente
+- difficulty: 1=recordar/reconocer, 2=comprender/aplicar, 3=analizar/evaluar/crear
+- Para true_false: options siempre = ["Verdadero", "Falso"]
+- Para fill_blank: la pregunta contiene "___" y options son 4 posibles respuestas
+- Todo en español
+
+${contentBlock}`,
+
+    timeline: `Eres un historiador y visualizador de datos temporal experto.
+Crea un TIMELINE INTERACTIVO detallado con vínculos causales.
+
+INSTRUCCIONES:
+- Genera 10-14 eventos en orden cronológico estricto
+- Distribución: al menos 4 eventos "high", 4 "medium", 2-3 "low"
+- description: 3 oraciones — (1) qué pasó, (2) contexto/causas, (3) impacto o consecuencias
+- impact: frase corta (max 10 palabras) sobre el efecto duradero de este evento
+- Genera causalLinks: conexiones entre eventos que se relacionan causalmente
+  * from/to = títulos exactos de los eventos conectados
+  * label = "causó", "aceleró", "fue respuesta a", "permitió", "contradijo"
+- El ícono debe ser el emoji más representativo del evento
+- Si el tema no es histórico, adaptar: hitos de un proceso, fases de desarrollo, evolución de un concepto
+- Todo en español
+
+${contentBlock}`,
+
+    cornell: `Eres un experto en técnicas de estudio activo y aprendizaje profundo.
+Crea NOTAS CORNELL COMPLETAS que maximicen la retención y comprensión.
+
+INSTRUCCIONES:
+- Genera 10-12 pares cue-notes exhaustivos
+- Los cues deben ser PREGUNTAS de examen o conceptos clave — no frases declarativas
+  Usar: "¿Cómo funciona X?", "¿Por qué importa Y?", "Define Z y su relación con W"
+- Las notes deben ser DENSAS: 4-6 oraciones con datos concretos, ejemplos, fórmulas si aplica
+- Organizar de lo general a lo específico (primeros cues = conceptos macro, últimos = detalles)
+- El summary debe ser un párrafo ejecutivo de 5-6 oraciones que capture:
+  (1) la idea central, (2) los 2-3 conceptos más importantes, (3) las implicaciones o aplicaciones
+- date = fecha actual en formato DD/MM/AAAA
+- Todo en español
+
+${contentBlock}`,
   }
 
   return prompts[format] || prompts.infographic
 }
+
 // ============================================================
-// 3. LLAMADAS A APIs DE IA
+// 4. LLAMADAS A APIs — Gemini 2.5 Flash con responseSchema
 // ============================================================
 
-async function callGemini(systemPrompt: string, userPrompt: string, apiKey: string): Promise<any> {
+async function callGemini25(
+  systemPrompt: string,
+  userPrompt: string,
+  apiKey: string,
+  schema: object
+): Promise<any> {
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: systemPrompt }] },
+        contents: [{ parts: [{ text: userPrompt }] }],
+        generationConfig: {
+          temperature: 0.75,
+          maxOutputTokens: 8192,        // 2.5 Flash soporta output largo
+          responseMimeType: "application/json",
+          responseSchema: schema,        // Schema garantiza estructura — cero errores de parsing
+        },
+      }),
+      signal: AbortSignal.timeout(55000), // 2.5 Flash puede tardar más en razonar
+    }
+  )
+
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`Gemini 2.5 Flash ${res.status}: ${err}`)
+  }
+
+  const data = await res.json()
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text
+  if (!text) throw new Error("Respuesta vacía de Gemini 2.5 Flash")
+
+  // Con responseSchema el output YA es JSON válido, pero parseamos igual por seguridad
+  try {
+    return JSON.parse(text)
+  } catch {
+    // Si por alguna razón viene con backticks
+    const clean = text.replace(/```json|```/g, "").trim()
+    return JSON.parse(clean)
+  }
+}
+
+// Fallback a Gemini 2.0 Flash (sin schema, por si 2.5 no está disponible)
+async function callGemini20Fallback(
+  systemPrompt: string,
+  userPrompt: string,
+  apiKey: string
+): Promise<any> {
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
     {
@@ -426,17 +668,16 @@ async function callGemini(systemPrompt: string, userPrompt: string, apiKey: stri
 
   if (!res.ok) {
     const err = await res.text()
-    throw new Error(`Gemini ${res.status}: ${err}`)
+    throw new Error(`Gemini 2.0 Flash ${res.status}: ${err}`)
   }
 
   const data = await res.json()
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text
-  if (!text) throw new Error("Respuesta vacía de Gemini")
-
+  if (!text) throw new Error("Respuesta vacía de Gemini 2.0 Flash")
   return JSON.parse(text)
 }
 
-async function callGroq(systemPrompt: string, userPrompt: string): Promise<any> {
+async function callGroqFallback(systemPrompt: string, userPrompt: string): Promise<any> {
   const groqKey = process.env.GROQ_API_KEY
   if (!groqKey) throw new Error("GROQ_API_KEY no configurada")
 
@@ -467,12 +708,11 @@ async function callGroq(systemPrompt: string, userPrompt: string): Promise<any> 
   const data = await res.json()
   const text = data.choices?.[0]?.message?.content
   if (!text) throw new Error("Respuesta vacía de Groq")
-
   return JSON.parse(text)
 }
 
 // ============================================================
-// 4. STRUCTURAR CON IA
+// 5. STRUCTURAR CON IA — Cascada de 3 proveedores
 // ============================================================
 
 export async function structureWithAI(
@@ -480,37 +720,54 @@ export async function structureWithAI(
   outputFormat: OutputFormat,
   apiKey: string
 ) {
-  const systemPrompt = `Eres un experto en educación y diseño instruccional.
-Tu tarea es estructurar contenido educativo en formatos específicos.
-REGLA CRÍTICA: Responde ÚNICAMENTE con JSON válido. Sin texto adicional, sin backticks, sin markdown.
-Si el contenido es un tema (sin texto de referencia), genera contenido educativo de calidad sobre ese tema.
-Todo el contenido debe estar en español.`
+  const systemPrompt = `Eres un experto en educación, diseño instruccional y comunicación pedagógica.
+Tu tarea es estructurar contenido educativo en formatos visuales de alta calidad.
+REGLAS CRÍTICAS:
+1. Responde ÚNICAMENTE con JSON válido — sin texto extra, sin backticks, sin markdown
+2. Si el contenido es solo un tema (sin texto de referencia), genera contenido educativo exhaustivo y de calidad sobre ese tema
+3. El contenido debe ser RICO, PROFUNDO y ESPECÍFICO — no superficial ni genérico
+4. Usa datos concretos, ejemplos reales, cifras verificables siempre que sea posible
+5. Todo el contenido debe estar en español (excepto términos técnicos internacionales)
+6. Razona sobre el contenido antes de estructurarlo para maximizar su valor pedagógico`
 
-  const userPrompt = `${getFormatPrompt(outputFormat)}
+  const userPrompt = getFormatPrompt(
+    outputFormat,
+    extractedContent.title || "Sin título",
+    extractedContent.rawText || ""
+  )
 
-CONTENIDO A PROCESAR:
-Título: ${extractedContent.title || "Sin título"}
-${extractedContent.rawText}`
+  const schema = SCHEMAS[outputFormat]
 
+  // Cascada: Gemini 2.5 Flash → Gemini 2.0 Flash → Groq
   try {
-    const data = await callGemini(systemPrompt, userPrompt, apiKey)
-    return { success: true, data, format: outputFormat }
-  } catch (geminiErr: any) {
-    console.error("Gemini falló, intentando Groq:", geminiErr.message)
+    console.log(`[Creator] Llamando Gemini 2.5 Flash para formato: ${outputFormat}`)
+    const data = await callGemini25(systemPrompt, userPrompt, apiKey, schema)
+    console.log(`[Creator] Gemini 2.5 Flash OK para ${outputFormat}`)
+    return { success: true, data, format: outputFormat, provider: "gemini-2.5-flash" }
+  } catch (err25: any) {
+    console.warn(`[Creator] Gemini 2.5 Flash falló (${err25.message}), intentando 2.0...`)
     try {
-      const data = await callGroq(systemPrompt, userPrompt)
-      return { success: true, data, format: outputFormat }
-    } catch (groqErr: any) {
-      return {
-        success: false,
-        error: `Ambas APIs fallaron. Gemini: ${geminiErr.message}. Groq: ${groqErr.message}`,
+      const data = await callGemini20Fallback(systemPrompt, userPrompt, apiKey)
+      console.log(`[Creator] Gemini 2.0 Flash OK para ${outputFormat}`)
+      return { success: true, data, format: outputFormat, provider: "gemini-2.0-flash" }
+    } catch (err20: any) {
+      console.warn(`[Creator] Gemini 2.0 Flash falló (${err20.message}), intentando Groq...`)
+      try {
+        const data = await callGroqFallback(systemPrompt, userPrompt)
+        console.log(`[Creator] Groq OK para ${outputFormat}`)
+        return { success: true, data, format: outputFormat, provider: "groq" }
+      } catch (groqErr: any) {
+        return {
+          success: false,
+          error: `Todos los proveedores fallaron. Gemini 2.5: ${err25.message} | Gemini 2.0: ${err20.message} | Groq: ${groqErr.message}`,
+        }
       }
     }
   }
 }
 
 // ============================================================
-// 5. PIPELINE PRINCIPAL
+// 6. PIPELINE PRINCIPAL
 // ============================================================
 
 export async function processContent({
@@ -526,7 +783,7 @@ export async function processContent({
   outputFormat: OutputFormat
   geminiKey: string
 }): Promise<ProcessResult> {
-  // Paso 1: Extraer
+  // Paso 1: Extraer contenido de la fuente
   let extracted: ExtractedContent
 
   switch (sourceType) {
@@ -551,11 +808,11 @@ export async function processContent({
 
   if (!extracted.success) return { success: false, error: extracted.error }
 
-  // Paso 2: Estructurar con IA
+  // Paso 2: Estructurar con IA (Gemini 2.5 Flash + cascada de fallbacks)
   const structured = await structureWithAI(extracted, outputFormat, geminiKey)
   if (!structured.success) return { success: false, error: structured.error }
 
-  // Paso 3: Resultado
+  // Paso 3: Resultado enriquecido
   return {
     success: true,
     source: {
