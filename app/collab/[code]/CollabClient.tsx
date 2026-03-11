@@ -1,13 +1,47 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
 import Link from "next/link"
 import MathRenderer from "@/components/ui/MathRenderer"
 
-interface Room { id: string; code: string; topic: string; host_id: string; guest_id: string | null; status: string }
+interface Room    { id: string; code: string; topic: string; host_id: string; guest_id: string | null; status: string }
 interface Message { id: string; room_id?: string; user_id: string; user_name: string; content: string; type: string; created_at: string }
-interface Props { room: Room; userId: string; userName: string }
+interface Props   { room: Room; userId: string; userName: string }
+
+// Colores para avatares por nombre
+const AVATAR_COLORS = [
+  "from-blue-500 to-cyan-500",
+  "from-purple-500 to-pink-500",
+  "from-green-500 to-emerald-500",
+  "from-amber-500 to-orange-500",
+  "from-red-500 to-rose-500",
+  "from-indigo-500 to-violet-500",
+]
+
+function getAvatarColor(name: string): string {
+  let hash = 0
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
+}
+
+function Avatar({ name, size = "sm" }: { name: string; size?: "sm" | "md" }) {
+  const color = getAvatarColor(name)
+  const cls   = size === "md" ? "w-8 h-8 text-sm" : "w-6 h-6 text-xs"
+  return (
+    <div className={`${cls} rounded-full bg-gradient-to-br ${color} flex items-center justify-center text-white font-bold flex-shrink-0`}>
+      {name.charAt(0).toUpperCase()}
+    </div>
+  )
+}
+
+// ── Presencia en tiempo real ───────────────────────────────────────────────────
+interface PresenceUser {
+  userId: string
+  userName: string
+  isTyping: boolean
+  joinedAt: number
+}
 
 export default function CollabClient({ room, userId, userName }: Props) {
   const [messages, setMessages]      = useState<Message[]>([])
@@ -16,59 +50,182 @@ export default function CollabClient({ room, userId, userName }: Props) {
   const [acoThinking, setAcoThinking]= useState(false)
   const [sending, setSending]        = useState(false)
   const [realtimeOk, setRealtimeOk]  = useState(false)
-  const [memberCount, setMemberCount]= useState(1)
+
+  // ── Presencia
+  const [presentUsers, setPresentUsers] = useState<PresenceUser[]>([])
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const isTypingRef      = useRef(false)
 
   const bottomRef = useRef<HTMLDivElement>(null)
   const supabase  = useRef(createClient()).current
   const acoRef    = useRef(false)
   const isHost    = room.host_id === userId
-  const tabId     = useRef(`${userId.slice(0,8)}-${Date.now()}`).current
+  const tabId     = useRef(`${userId.slice(0, 8)}-${Date.now()}`).current
 
+  // Canal de presencia compartido por sala
+  const presenceChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
+
+  // ── Helpers de presencia ─────────────────────────────────────────────────────
+  function broadcastPresence(isTyping: boolean) {
+    presenceChannelRef.current?.track({
+      userId,
+      userName,
+      isTyping,
+      joinedAt: Date.now(),
+    })
+  }
+
+  function handleInputChange(val: string) {
+    setInput(val)
+
+    // Typing indicator
+    if (val.trim() && !isTypingRef.current) {
+      isTypingRef.current = true
+      broadcastPresence(true)
+    }
+
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
+    typingTimeoutRef.current = setTimeout(() => {
+      isTypingRef.current = false
+      broadcastPresence(false)
+    }, 2000)
+  }
+
+  // ── Inicialización ───────────────────────────────────────────────────────────
   useEffect(() => {
     joinRoom()
     loadMessages()
-    loadMembersCount()
-
-    const ch1 = supabase.channel(`rs-${tabId}`)
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "study_rooms", filter: `id=eq.${room.id}` },
-        (payload) => {
-          const s = (payload.new as any)?.status
-          setRoomStatus(s)
-          if (s === "active" && isHost) setTimeout(() => triggerACo(true), 1500)
-        })
-      .subscribe((status) => { if (status === "SUBSCRIBED") setRealtimeOk(true) })
-
-    const ch2 = supabase.channel(`rm-${tabId}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "room_messages", filter: `room_id=eq.${room.id}` },
-        (payload) => {
-          const msg = payload.new as Message
-          setMessages(prev => prev.some(m => m.id === msg.id) ? prev : [...prev, msg])
-          if (msg.type === "chat" && msg.user_id !== "system" && msg.user_id !== "00000000-0000-0000-0000-000000000000") {
-            if (looksLikeQuestion(msg.content)) {
-              setTimeout(() => triggerACo(false), 600)
-            }
-          }
-        })
-      .subscribe()
-
-    const ch3 = supabase.channel(`rmem-${tabId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "room_members", filter: `room_id=eq.${room.id}` },
-        () => { loadMembersCount() })
-      .subscribe()
+    setupPresenceChannel()
+    setupMessageChannel()
+    setupRoomChannel()
 
     if (room.status === "active" && isHost) {
       setTimeout(() => triggerACo(true), 2000)
     }
 
+    // Heartbeat cada 20s para mantener presencia activa
+    const heartbeat = setInterval(() => {
+      broadcastPresence(isTypingRef.current)
+    }, 20_000)
+
     return () => {
-      supabase.removeChannel(ch1)
-      supabase.removeChannel(ch2)
-      supabase.removeChannel(ch3)
+      clearInterval(heartbeat)
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
+      presenceChannelRef.current?.untrack()
+      supabase.removeAllChannels()
     }
   }, [])
 
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }) }, [messages, acoThinking])
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [messages, acoThinking])
 
+  // ── Canal de presencia (Supabase Realtime Presence) ──────────────────────────
+  function setupPresenceChannel() {
+    const ch = supabase.channel(`presence:${room.id}`, {
+      config: { presence: { key: userId } },
+    })
+
+    ch.on("presence", { event: "sync" }, () => {
+      const state = ch.presenceState<PresenceUser>()
+      const users = Object.values(state).flat().map(u => ({
+        userId:   u.userId,
+        userName: u.userName,
+        isTyping: u.isTyping,
+        joinedAt: u.joinedAt,
+      }))
+      setPresentUsers(users)
+    })
+
+    ch.on("presence", { event: "join" }, ({ newPresences }) => {
+      const joined = newPresences.map((p: any) => p.userName).filter((n: string) => n !== userName)
+      if (joined.length > 0) {
+        setMessages(prev => [
+          ...prev,
+          {
+            id: `presence-join-${Date.now()}`,
+            user_id: "system",
+            user_name: "Sistema",
+            content: `${joined.join(", ")} se conectó`,
+            type: "system",
+            created_at: new Date().toISOString(),
+          },
+        ])
+      }
+    })
+
+    ch.on("presence", { event: "leave" }, ({ leftPresences }) => {
+      const left = leftPresences.map((p: any) => p.userName).filter((n: string) => n !== userName)
+      if (left.length > 0) {
+        setMessages(prev => [
+          ...prev,
+          {
+            id: `presence-leave-${Date.now()}`,
+            user_id: "system",
+            user_name: "Sistema",
+            content: `${left.join(", ")} se desconectó`,
+            type: "system",
+            created_at: new Date().toISOString(),
+          },
+        ])
+      }
+    })
+
+    ch.subscribe(async (status) => {
+      if (status === "SUBSCRIBED") {
+        setRealtimeOk(true)
+        // Broadcast presencia inicial
+        await ch.track({ userId, userName, isTyping: false, joinedAt: Date.now() })
+      }
+    })
+
+    presenceChannelRef.current = ch
+  }
+
+  // ── Canal de mensajes ─────────────────────────────────────────────────────────
+  function setupMessageChannel() {
+    supabase
+      .channel(`rm-${tabId}`)
+      .on("postgres_changes", {
+        event: "INSERT",
+        schema: "public",
+        table: "room_messages",
+        filter: `room_id=eq.${room.id}`,
+      }, (payload) => {
+        const msg = payload.new as Message
+        setMessages(prev => prev.some(m => m.id === msg.id) ? prev : [...prev, msg])
+        if (
+          msg.type === "chat" &&
+          msg.user_id !== "system" &&
+          msg.user_id !== "00000000-0000-0000-0000-000000000000" &&
+          msg.user_id !== userId
+        ) {
+          if (looksLikeQuestion(msg.content)) {
+            setTimeout(() => triggerACo(false), 600)
+          }
+        }
+      })
+      .subscribe()
+  }
+
+  // ── Canal de sala ─────────────────────────────────────────────────────────────
+  function setupRoomChannel() {
+    supabase
+      .channel(`rs-${tabId}`)
+      .on("postgres_changes", {
+        event: "UPDATE",
+        schema: "public",
+        table: "study_rooms",
+        filter: `id=eq.${room.id}`,
+      }, (payload) => {
+        const s = (payload.new as any)?.status
+        setRoomStatus(s)
+        if (s === "active" && isHost) setTimeout(() => triggerACo(true), 1500)
+      })
+      .subscribe()
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────────
   function looksLikeQuestion(text: string) {
     const t = text.toLowerCase()
     return t.includes("?") || t.includes("¿") || t.includes("no entiendo") ||
@@ -78,23 +235,18 @@ export default function CollabClient({ room, userId, userName }: Props) {
   }
 
   async function joinRoom() {
-    // Upsert miembro
-    const { error: memberError } = await supabase.from("room_members").upsert({
+    await supabase.from("room_members").upsert({
       room_id: room.id, user_id: userId, user_name: userName,
       role: isHost ? "host" : "member", is_online: true,
       last_seen: new Date().toISOString(),
     }, { onConflict: "room_id,user_id" })
 
-    if (memberError) console.error("room_members error:", memberError)
-
-    // Mensaje sistema con UUID válido para evitar FK violation
     await supabase.from("room_messages").insert({
-      room_id: room.id,
-      user_id: userId,
+      room_id: room.id, user_id: userId,
       user_name: "Sistema",
       content: `${userName} se unió a la sesión`,
       type: "system",
-    }).then(({ error }) => { if (error) console.error("system msg error:", error) })
+    })
 
     const { count } = await supabase.from("room_members")
       .select("id", { count: "exact", head: true }).eq("room_id", room.id)
@@ -103,13 +255,6 @@ export default function CollabClient({ room, userId, userName }: Props) {
       await supabase.from("study_rooms").update({ status: "active" }).eq("id", room.id)
       setRoomStatus("active")
     }
-  }
-
-  async function loadMembersCount() {
-    const { count } = await supabase.from("room_members")
-      .select("id", { count: "exact", head: true })
-      .eq("room_id", room.id).eq("is_online", true)
-    setMemberCount(count || 1)
   }
 
   async function loadMessages() {
@@ -123,12 +268,20 @@ export default function CollabClient({ room, userId, userName }: Props) {
     const content = input.trim()
     setInput("")
     setSending(true)
+
+    // Limpiar typing
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
+    isTypingRef.current = false
+    broadcastPresence(false)
+
     try {
       const { error } = await supabase.from("room_messages").insert({
         room_id: room.id, user_id: userId, user_name: userName, content, type: "chat",
       })
       if (error) { console.error(error); setInput(content) }
-    } finally { setSending(false) }
+    } finally {
+      setSending(false)
+    }
   }
 
   async function triggerACo(isWelcome = false) {
@@ -150,14 +303,10 @@ export default function CollabClient({ room, userId, userName }: Props) {
       })
       if (!res.ok) return
       const data = await res.json()
-      const { error: acoError } = await supabase.from("room_messages").insert({
-        room_id: room.id,
-        user_id: userId,
-        user_name: "ACo",
-        content: data.message,
-        type: "agent",
+      await supabase.from("room_messages").insert({
+        room_id: room.id, user_id: userId,
+        user_name: "ACo", content: data.message, type: "agent",
       })
-      if (acoError) console.error("ACo insert error:", acoError)
     } catch (e) { console.error("ACo:", e) }
     finally { setAcoThinking(false); setTimeout(() => { acoRef.current = false }, 3000) }
   }
@@ -166,31 +315,68 @@ export default function CollabClient({ room, userId, userName }: Props) {
     return new Date(d).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })
   }
 
+  // ── Usuarios en línea (excluye al propio usuario de la lista visible) ─────────
+  const otherUsers    = presentUsers.filter(u => u.userId !== userId)
+  const typingUsers   = otherUsers.filter(u => u.isTyping)
+  const onlineCount   = presentUsers.length
+  const typingNames   = typingUsers.map(u => u.userName)
+
+  // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <main className="min-h-screen bg-gray-950 text-white flex flex-col">
+
+      {/* Nav */}
       <nav className="border-b border-white/5 bg-gray-900/80 backdrop-blur px-4 py-3 sticky top-0 z-20">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link href="/dashboard" className="text-gray-500 hover:text-white text-sm">← Salir</Link>
+            <Link href="/dashboard" className="text-gray-500 hover:text-white text-sm transition-colors">← Salir</Link>
             <span className="text-gray-700">|</span>
             <span className="text-white font-semibold text-sm">{room.topic}</span>
             <span className="text-gray-500 text-xs">#{room.code}</span>
           </div>
+
           <div className="flex items-center gap-3">
+            {/* Avatares de presencia en tiempo real */}
             <div className="flex items-center gap-1.5">
-              <div className={`w-2 h-2 rounded-full ${roomStatus === "active" ? "bg-green-400" : "bg-amber-400 animate-pulse"}`} />
-              <span className="text-xs text-gray-400">
-                {roomStatus === "active" ? `${memberCount} conectados` : "Esperando..."}
-              </span>
+              {/* Avatares de otros usuarios */}
+              <div className="flex -space-x-2">
+                {/* Propio avatar */}
+                <div className="relative" title={`${userName} (tú)`}>
+                  <Avatar name={userName} size="md" />
+                  {isHost && (
+                    <span className="absolute -top-1 -right-1 text-[8px]">👑</span>
+                  )}
+                  <span className="absolute bottom-0 right-0 w-2 h-2 bg-green-400 rounded-full border border-gray-900" />
+                </div>
+
+                {/* Avatares de otros */}
+                {otherUsers.map(u => (
+                  <div key={u.userId} className="relative" title={u.userName}>
+                    <Avatar name={u.userName} size="md" />
+                    <span className="absolute bottom-0 right-0 w-2 h-2 bg-green-400 rounded-full border border-gray-900" />
+                  </div>
+                ))}
+              </div>
+
+              {/* Contador y estado */}
+              <div className="flex items-center gap-1.5 ml-1">
+                <div className={`w-1.5 h-1.5 rounded-full ${roomStatus === "active" ? "bg-green-400 animate-pulse" : "bg-amber-400 animate-pulse"}`} />
+                <span className="text-xs text-gray-400">
+                  {roomStatus === "active" ? `${onlineCount} en línea` : "Esperando..."}
+                </span>
+              </div>
             </div>
-            <div className={`w-1.5 h-1.5 rounded-full ${realtimeOk ? "bg-blue-400" : "bg-gray-600"}`} title={realtimeOk ? "Realtime activo" : "Conectando..."} />
-            <div className="bg-blue-500/20 border border-blue-500/30 rounded-full px-3 py-1">
-              <span className="text-blue-300 text-xs font-medium">{isHost ? "👑 " : ""}{userName}</span>
-            </div>
+
+            {/* Indicador realtime */}
+            <div
+              className={`w-1.5 h-1.5 rounded-full ${realtimeOk ? "bg-blue-400" : "bg-gray-600"}`}
+              title={realtimeOk ? "Realtime activo" : "Conectando..."}
+            />
           </div>
         </div>
       </nav>
 
+      {/* Waiting */}
       {roomStatus === "waiting" && isHost && (
         <div className="flex-1 flex flex-col items-center justify-center gap-5 px-6">
           <div className="text-5xl animate-bounce">⏳</div>
@@ -200,11 +386,17 @@ export default function CollabClient({ room, userId, userName }: Props) {
             <p className="text-gray-500 text-xs mt-3">Tema: {room.topic}</p>
           </div>
           <p className="text-gray-500 text-xs">Esperando que se una alguien...</p>
+          <div className="flex items-center gap-2 text-gray-600 text-xs">
+            <div className={`w-2 h-2 rounded-full ${realtimeOk ? "bg-green-400 animate-pulse" : "bg-gray-700"}`} />
+            {realtimeOk ? "Presencia activa — te notificaremos al instante" : "Conectando..."}
+          </div>
         </div>
       )}
 
+      {/* Chat activo */}
       {(roomStatus === "active" || !isHost) && (
         <>
+          {/* Lista de mensajes */}
           <div className="flex-1 max-w-2xl w-full mx-auto px-4 py-4 space-y-3 overflow-y-auto">
             {messages.length === 0 && (
               <div className="text-center py-16">
@@ -216,21 +408,25 @@ export default function CollabClient({ room, userId, userName }: Props) {
             )}
 
             {messages.map((msg) => {
-              const isMe    = msg.user_id === userId
-              const isAgent = msg.type === "agent"
-              const isSystem= msg.type === "system"
+              const isMe     = msg.user_id === userId
+              const isAgent  = msg.type === "agent"
+              const isSystem = msg.type === "system"
 
               if (isSystem) return (
                 <div key={msg.id} className="flex justify-center">
-                  <span className="text-gray-700 text-xs bg-gray-900 border border-gray-800 px-3 py-1 rounded-full">{msg.content}</span>
+                  <span className="text-gray-700 text-xs bg-gray-900 border border-gray-800 px-3 py-1 rounded-full">
+                    {msg.content}
+                  </span>
                 </div>
               )
 
               if (isAgent) return (
-                <div key={msg.id} className="flex justify-start">
+                <div key={msg.id} className="flex justify-start gap-2">
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-sm flex-shrink-0 mt-1">
+                    🎓
+                  </div>
                   <div className="bg-purple-500/10 border border-purple-500/20 rounded-2xl rounded-tl-sm px-4 py-3 max-w-lg">
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-xs">🎓</div>
                       <span className="text-purple-400 text-xs font-semibold">Profesor ACo</span>
                       <span className="text-gray-700 text-[10px]">{formatTime(msg.created_at)}</span>
                     </div>
@@ -240,54 +436,102 @@ export default function CollabClient({ room, userId, userName }: Props) {
               )
 
               return (
-                <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+                <div key={msg.id} className={`flex gap-2 ${isMe ? "justify-end" : "justify-start"}`}>
+                  {!isMe && <Avatar name={msg.user_name} />}
                   <div className={`rounded-2xl px-4 py-3 max-w-sm ${isMe ? "bg-blue-600/20 border border-blue-500/30 rounded-tr-sm" : "bg-gray-900 border border-white/5 rounded-tl-sm"}`}>
                     <div className="flex items-center gap-2 mb-1">
-                      <span className={`text-xs font-semibold ${isMe ? "text-blue-300" : "text-amber-400"}`}>{isMe ? "Tú" : msg.user_name}</span>
+                      <span className={`text-xs font-semibold ${isMe ? "text-blue-300" : "text-amber-400"}`}>
+                        {isMe ? "Tú" : msg.user_name}
+                      </span>
                       <span className="text-gray-700 text-[10px]">{formatTime(msg.created_at)}</span>
                     </div>
                     <p className="text-gray-200 text-sm leading-relaxed">{msg.content}</p>
                   </div>
+                  {isMe && <Avatar name={userName} />}
                 </div>
               )
             })}
 
+            {/* ACo thinking */}
             {acoThinking && (
-              <div className="flex justify-start">
+              <div className="flex justify-start gap-2">
+                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-sm flex-shrink-0">
+                  🎓
+                </div>
                 <div className="bg-purple-500/10 border border-purple-500/20 rounded-2xl px-4 py-3">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-lg">🎓</span>
                     <span className="text-purple-400 text-xs font-semibold">Profesor ACo está escribiendo...</span>
                   </div>
                   <div className="flex gap-1 mt-1">
-                    {[0,150,300].map(d => (
-                      <div key={d} className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay:`${d}ms` }} />
+                    {[0, 150, 300].map(d => (
+                      <div key={d} className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: `${d}ms` }} />
                     ))}
                   </div>
                 </div>
               </div>
             )}
+
+            {/* Typing indicators de otros usuarios */}
+            {typingNames.length > 0 && (
+              <div className="flex justify-start gap-2 items-center">
+                <div className="flex -space-x-1">
+                  {typingUsers.map(u => <Avatar key={u.userId} name={u.userName} />)}
+                </div>
+                <div className="bg-gray-800 border border-gray-700 rounded-2xl px-3 py-2 flex items-center gap-2">
+                  <div className="flex gap-0.5">
+                    {[0, 150, 300].map(d => (
+                      <div key={d} className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: `${d}ms` }} />
+                    ))}
+                  </div>
+                  <span className="text-gray-500 text-xs">
+                    {typingNames.length === 1
+                      ? `${typingNames[0]} está escribiendo`
+                      : `${typingNames.join(", ")} están escribiendo`}
+                  </span>
+                </div>
+              </div>
+            )}
+
             <div ref={bottomRef} />
           </div>
 
+          {/* Barra inferior — acciones */}
           <div className="max-w-2xl mx-auto w-full px-4 pb-2 flex items-center gap-4">
-            <button onClick={() => triggerACo(false)} disabled={acoThinking}
-              className="text-xs text-purple-500 hover:text-purple-300 disabled:opacity-40 transition-colors">
-              🎓 Pedir explicación al Profesor
+            <button
+              onClick={() => triggerACo(false)}
+              disabled={acoThinking}
+              className="text-xs text-purple-500 hover:text-purple-300 disabled:opacity-40 transition-colors"
+            >
+              🎓 Pedir explicación
             </button>
-            <button onClick={loadMessages} className="text-xs text-gray-600 hover:text-gray-400 transition-colors ml-auto">
-              ↻ Actualizar
-            </button>
+
+            {/* Panel de presencia expandido */}
+            {otherUsers.length > 0 && (
+              <div className="flex items-center gap-1.5 ml-auto">
+                <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+                <span className="text-[10px] text-gray-600">
+                  {otherUsers.map(u => u.userName).join(", ")} en línea
+                </span>
+              </div>
+            )}
           </div>
 
+          {/* Input */}
           <div className="border-t border-white/5 bg-gray-900/60 backdrop-blur px-4 py-3">
             <div className="max-w-2xl mx-auto flex gap-3">
-              <input type="text" value={input} onChange={e => setInput(e.target.value)}
+              <input
+                type="text"
+                value={input}
+                onChange={e => handleInputChange(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && !sending && sendMessage()}
                 placeholder="Escribe tu respuesta o pregunta..."
-                className="flex-1 bg-white/5 border border-white/8 focus:border-blue-500/40 rounded-2xl px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none text-sm" />
-              <button onClick={sendMessage} disabled={!input.trim() || sending}
-                className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-800 disabled:text-gray-600 text-white px-5 py-2.5 rounded-2xl text-sm font-medium">
+                className="flex-1 bg-white/5 border border-white/8 focus:border-blue-500/40 rounded-2xl px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none text-sm"
+              />
+              <button
+                onClick={sendMessage}
+                disabled={!input.trim() || sending}
+                className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-800 disabled:text-gray-600 text-white px-5 py-2.5 rounded-2xl text-sm font-medium transition-colors"
+              >
                 {sending ? "..." : "Enviar"}
               </button>
             </div>
