@@ -1,17 +1,23 @@
-import { callAI } from "@/lib/ai-router"
+// src/app/api/agents/visual-detect/route.ts
+// AGT-AIm v2 — Gemini 2.5 Flash-Lite + análisis contextual más profundo
+
 import { createClient } from "@/lib/supabase/server"
 
+// Temas con alta probabilidad de beneficiarse de un visual
 const VISUAL_TOPICS = [
-  "anatomía", "biología", "célula", "órgano", "cuerpo humano",
-  "geografía", "mapa", "continente", "país", "ciudad", "río", "montaña",
-  "física", "fuerza", "movimiento", "óptica", "circuito", "onda",
-  "química", "molécula", "átomo", "reacción", "elemento", "tabla periódica",
-  "astronomía", "planeta", "estrella", "galaxia", "sistema solar", "universo",
-  "arquitectura", "construcción", "estructura", "edificio",
-  "historia", "batalla", "guerra", "civilización", "artefacto",
-  "matemáticas", "geometría", "función", "gráfico", "diagrama",
-  "animales", "especie", "ecosistema", "habitat",
-  "tecnología", "máquina", "motor", "dispositivo", "circuito",
+  "anatomía", "biología", "célula", "órgano", "cuerpo humano", "tejido",
+  "geografía", "mapa", "continente", "país", "ciudad", "río", "montaña", "relieve",
+  "física", "fuerza", "movimiento", "óptica", "circuito", "onda", "energía", "campo",
+  "química", "molécula", "átomo", "reacción", "elemento", "tabla periódica", "enlace",
+  "astronomía", "planeta", "estrella", "galaxia", "sistema solar", "universo", "órbita",
+  "arquitectura", "construcción", "estructura", "edificio", "plano",
+  "historia", "batalla", "guerra", "civilización", "artefacto", "mapa histórico",
+  "matemáticas", "geometría", "función", "gráfico", "diagrama", "derivada", "integral",
+  "animales", "especie", "ecosistema", "hábitat", "cadena alimentaria",
+  "tecnología", "máquina", "motor", "dispositivo", "circuito eléctrico", "red",
+  "estadística", "distribución", "porcentaje", "comparación", "datos", "tendencia",
+  "proceso", "ciclo", "etapas", "flujo", "diagrama de flujo", "algoritmo",
+  "evolución", "línea de tiempo", "cronología", "hitos",
 ]
 
 function quickCheck(topic: string, context: string): boolean {
@@ -26,41 +32,83 @@ export async function POST(req: Request) {
 
   const { topic, context } = await req.json()
 
-  // Quick check primero — evitar llamada a IA si no es necesario
+  // Quick check — evitar llamada a IA innecesaria
   if (!quickCheck(topic, context)) {
     return Response.json({ shouldGenerate: false })
   }
 
-  // Confirmación con IA para reducir falsos positivos
-  const messages = [
-    {
-      role: "system" as const,
-      content: `You analyze educational content and decide if a visual image would help understanding.
-Answer ONLY with a JSON object: {"shouldGenerate": true/false, "imagePrompt": "..."}
-- shouldGenerate: true only if an image would SIGNIFICANTLY help understand the concept
-- imagePrompt: a specific English image prompt if shouldGenerate is true, otherwise ""
-Keep imagePrompt under 50 words, focused on the core visual concept.`
-    },
-    {
-      role: "user" as const,
-      content: `Topic: "${topic}"
-Content summary (first 300 chars): "${context.substring(0, 300)}"
+  const apiKey = process.env.GEMINI_API_KEY
+  if (!apiKey) return Response.json({ shouldGenerate: false })
 
-Would a visual image help understand this content? If yes, what specific image?`
-    }
-  ]
+  const systemPrompt = `You are AGT-AIm, the visual intelligence agent for EduAI.
+Analyze educational content and decide what visual would most help understanding.
+
+DECISION RULES:
+- Generate image: physical concepts, organisms, historical events, places, objects
+- Generate chart: numerical data, statistics, comparisons, trends, percentages
+- Generate mermaid: processes, flows, cause-effect, algorithms, cycles
+- Generate table: comparisons, properties, specifications, structured data
+- Generate none: pure conversational, math without graphs, simple Q&A
+
+Respond ONLY with valid JSON (no markdown, no extra text):
+{
+  "shouldGenerate": true/false,
+  "type": "image|chart|mermaid|table|none",
+  "imagePrompt": "English prompt if type=image, else empty string",
+  "mermaidCode": "flowchart code if type=mermaid, else empty string",
+  "chartSpec": "JSON string of chart.js config if type=chart, else empty string",
+  "caption": "Brief Spanish description of what the visual shows",
+  "confidence": 0.0-1.0
+}`
+
+  const userPrompt = `Topic: "${topic}"
+Educational content (first 800 chars):
+"${context.substring(0, 800)}"
+
+Analyze and decide what visual (if any) would most help a student understand this content:`
 
   try {
-    const result = await callAI(messages, { maxTokens: 150, preferProvider: "gemini" })
-    const text = result.text.trim()
-    const jsonMatch = text.match(/\{[^}]+\}/)
-    if (!jsonMatch) return Response.json({ shouldGenerate: false })
-    const parsed = JSON.parse(jsonMatch[0])
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: systemPrompt }] },
+          contents: [{ parts: [{ text: userPrompt }] }],
+          generationConfig: {
+            temperature: 0.3,
+            maxOutputTokens: 600,
+            responseMimeType: "application/json",
+          },
+        }),
+        signal: AbortSignal.timeout(8000),
+      }
+    )
+
+    if (!res.ok) return Response.json({ shouldGenerate: false })
+
+    const data = await res.json()
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim()
+    if (!text) return Response.json({ shouldGenerate: false })
+
+    const parsed = JSON.parse(text.replace(/```json|```/g, "").trim())
+
+    // Solo generar si la confianza es alta
+    if (!parsed.shouldGenerate || (parsed.confidence && parsed.confidence < 0.65)) {
+      return Response.json({ shouldGenerate: false })
+    }
+
     return Response.json({
-      shouldGenerate: !!parsed.shouldGenerate,
-      imagePrompt: parsed.imagePrompt || ""
+      shouldGenerate: true,
+      type: parsed.type || "image",
+      imagePrompt: parsed.imagePrompt || "",
+      mermaidCode: parsed.mermaidCode || "",
+      chartSpec: parsed.chartSpec || "",
+      caption: parsed.caption || "",
     })
-  } catch {
+  } catch (e: any) {
+    console.warn("[AGT-AIm] Error:", e.message)
     return Response.json({ shouldGenerate: false })
   }
 }
