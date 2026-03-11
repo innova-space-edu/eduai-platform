@@ -5,13 +5,6 @@ import { useRouter } from "next/navigation"
 
 interface ReviewItem {
   id: string
-  topic: "use client"
-
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-
-interface ReviewItem {
-  id: string
   topic: string
   next_review: string
   last_score: number
