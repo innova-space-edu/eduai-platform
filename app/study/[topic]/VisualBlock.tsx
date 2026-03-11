@@ -1,20 +1,288 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 
 interface Props {
   topic: string
   context: string
 }
 
-type State = "idle" | "detecting" | "generating" | "done" | "skip"
+type VisualType = "image" | "chart" | "mermaid" | "table" | "none"
+type State = "idle" | "detecting" | "done" | "skip"
 
+interface Detection {
+  shouldGenerate: boolean
+  type: VisualType
+  imagePrompt: string
+  mermaidCode: string
+  chartSpec: string
+  caption: string
+}
+
+// ─── Mermaid renderer ──────────────────────────────────────────────────────────
+function MermaidDiagram({ code, caption }: { code: string; caption: string }) {
+  const ref   = useRef<HTMLDivElement>(null)
+  const [err, setErr]     = useState("")
+  const [ready, setReady] = useState(false)
+
+  useEffect(() => {
+    if (!code || !ref.current) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const mermaid = (await import("mermaid")).default
+        mermaid.initialize({
+          startOnLoad: false,
+          theme: "dark",
+          themeVariables: {
+            primaryColor: "#3b82f6",
+            primaryTextColor: "#f1f5f9",
+            primaryBorderColor: "#1e40af",
+            lineColor: "#64748b",
+            background: "#0f172a",
+            mainBkg: "#1e293b",
+            nodeBorder: "#3b82f6",
+            edgeLabelBackground: "#1e293b",
+            titleColor: "#f1f5f9",
+          },
+        })
+        const id = `mmd-${Math.random().toString(36).slice(2)}`
+        const { svg } = await mermaid.render(id, code)
+        if (!cancelled && ref.current) {
+          ref.current.innerHTML = svg
+          setReady(true)
+        }
+      } catch (e: any) {
+        if (!cancelled) setErr(e.message)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [code])
+
+  if (err) return (
+    <p className="text-red-400 text-xs bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+      Error diagrama: {err}
+    </p>
+  )
+
+  return (
+    <div>
+      {!ready && (
+        <div className="flex justify-center py-8">
+          <div className="w-5 h-5 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      )}
+      <div
+        ref={ref}
+        className={`w-full flex justify-center transition-opacity duration-500 ${ready ? "opacity-100" : "opacity-0"}`}
+      />
+      {caption && ready && (
+        <p className="text-gray-500 text-[11px] italic text-center mt-2">{caption}</p>
+      )}
+    </div>
+  )
+}
+
+// ─── Chart.js renderer ────────────────────────────────────────────────────────
+function ChartBlock({ specStr, caption }: { specStr: string; caption: string }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const chartRef  = useRef<any>(null)
+  const [err, setErr]     = useState("")
+  const [ready, setReady] = useState(false)
+
+  useEffect(() => {
+    if (!specStr || !canvasRef.current) return
+    let spec: any
+    try { spec = JSON.parse(specStr) } catch { setErr("JSON inválido"); return }
+
+    ;(async () => {
+      try {
+        const { Chart, registerables } = await import("chart.js")
+        Chart.register(...registerables)
+        if (chartRef.current) chartRef.current.destroy()
+
+        const palette = ["#3b82f6","#8b5cf6","#10b981","#f59e0b","#ef4444","#06b6d4","#ec4899"]
+        if (spec.data?.datasets) {
+          spec.data.datasets = spec.data.datasets.map((ds: any, i: number) => ({
+            backgroundColor: palette[i % palette.length] + "44",
+            borderColor:     palette[i % palette.length],
+            borderWidth: 2,
+            ...ds,
+          }))
+        }
+        const isFlat = spec.type === "pie" || spec.type === "doughnut"
+        spec.options = {
+          responsive: true,
+          maintainAspectRatio: true,
+          ...spec.options,
+          plugins: {
+            legend: { labels: { color: "#94a3b8", font: { size: 11 } } },
+            ...(spec.options?.plugins || {}),
+          },
+          ...(!isFlat && {
+            scales: {
+              x: { ticks: { color: "#64748b" }, grid: { color: "#1e293b" } },
+              y: { ticks: { color: "#64748b" }, grid: { color: "#1e293b" } },
+            },
+          }),
+        }
+
+        chartRef.current = new Chart(canvasRef.current!, spec)
+        setReady(true)
+      } catch (e: any) {
+        setErr(e.message)
+      }
+    })()
+
+    return () => { chartRef.current?.destroy() }
+  }, [specStr])
+
+  if (err) return (
+    <p className="text-red-400 text-xs bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+      Error gráfico: {err}
+    </p>
+  )
+
+  return (
+    <div>
+      {!ready && (
+        <div className="flex justify-center py-8">
+          <div className="w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      )}
+      <div className={`transition-opacity duration-500 ${ready ? "opacity-100" : "opacity-0"}`}>
+        <canvas ref={canvasRef} className="max-h-64" />
+      </div>
+      {caption && ready && (
+        <p className="text-gray-500 text-[11px] italic text-center mt-2">{caption}</p>
+      )}
+    </div>
+  )
+}
+
+// ─── Table renderer ───────────────────────────────────────────────────────────
+function TableBlock({ specStr, caption }: { specStr: string; caption: string }) {
+  let data: { headers?: string[]; rows?: string[][] } = {}
+  try { data = JSON.parse(specStr) } catch { return null }
+
+  const { headers = [], rows = [] } = data
+  if (!rows.length) return null
+
+  return (
+    <div>
+      <div className="overflow-x-auto rounded-xl border border-gray-700">
+        <table className="w-full text-sm">
+          {headers.length > 0 && (
+            <thead>
+              <tr className="border-b border-gray-700 bg-gray-800/60">
+                {headers.map((h, i) => (
+                  <th key={i} className="px-4 py-2.5 text-left text-gray-300 font-semibold text-xs uppercase tracking-wider">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+          )}
+          <tbody>
+            {rows.map((row, ri) => (
+              <tr
+                key={ri}
+                className={`border-b border-gray-800 ${ri % 2 === 0 ? "bg-gray-900/40" : ""} hover:bg-gray-800/40 transition-colors`}
+              >
+                {row.map((cell, ci) => (
+                  <td key={ci} className="px-4 py-2.5 text-gray-300 text-xs">{cell}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {caption && (
+        <p className="text-gray-500 text-[11px] italic text-center mt-2">{caption}</p>
+      )}
+    </div>
+  )
+}
+
+// ─── Image block interno ───────────────────────────────────────────────────────
+function ImageBlock({
+  imagePrompt, topic, caption, regenerateKey,
+}: {
+  imagePrompt: string; topic: string; caption: string; regenerateKey: number
+}) {
+  const [url, setUrl]         = useState("")
+  const [provider, setProv]   = useState("")
+  const [loading, setLoading] = useState(true)
+  const [expanded, setExp]    = useState(true)
+
+  useEffect(() => {
+    setLoading(true)
+    setUrl("")
+    fetch("/api/agents/imagenes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        prompt: imagePrompt,
+        style: "educational illustration",
+        width: 768, height: 432,
+        provider: "auto",
+        source: "auto_study",
+        topic,
+        customPrompt: imagePrompt + ", educational illustration, clear, detailed, professional",
+      }),
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.imageUrl) { setUrl(d.imageUrl); setProv(d.provider) } })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [imagePrompt, regenerateKey])
+
+  if (loading) return (
+    <div className="flex items-center gap-2 py-3 text-gray-600 text-xs">
+      <div className="w-4 h-4 border border-gray-600 border-t-transparent rounded-full animate-spin" />
+      Generando imagen...
+    </div>
+  )
+
+  if (!url) return null
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-2">
+        <span className="text-[10px] text-gray-700">via {provider}</span>
+        <button
+          onClick={() => setExp(e => !e)}
+          className="text-[10px] text-gray-600 hover:text-gray-400 px-2 py-1 rounded hover:bg-gray-800 transition-colors"
+        >
+          {expanded ? "Ocultar ▲" : "Ver ▼"}
+        </button>
+      </div>
+      {expanded && (
+        <div className="relative rounded-xl overflow-hidden">
+          <img src={url} alt={imagePrompt} className="w-full object-cover max-h-64" />
+          <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent px-4 py-3">
+            <p className="text-white/70 text-[10px] italic line-clamp-1">{caption || imagePrompt}</p>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Metadatos por tipo ───────────────────────────────────────────────────────
+const TYPE_META = {
+  image:   { icon: "🖼️",  label: "Imagen educativa",  borderCls: "border-blue-500/30",   bgCls: "bg-blue-500/5",   textCls: "text-blue-400"   },
+  mermaid: { icon: "🔀",  label: "Diagrama de flujo", borderCls: "border-green-500/30",  bgCls: "bg-green-500/5",  textCls: "text-green-400"  },
+  chart:   { icon: "📊",  label: "Gráfico de datos",  borderCls: "border-purple-500/30", bgCls: "bg-purple-500/5", textCls: "text-purple-400" },
+  table:   { icon: "📋",  label: "Tabla comparativa", borderCls: "border-amber-500/30",  bgCls: "bg-amber-500/5",  textCls: "text-amber-400"  },
+  none:    { icon: "",    label: "",                   borderCls: "",                     bgCls: "",                textCls: ""                },
+} as const
+
+// ─── Componente principal ─────────────────────────────────────────────────────
 export default function VisualBlock({ topic, context }: Props) {
-  const [state, setState] = useState<State>("idle")
-  const [imageUrl, setImageUrl]     = useState("")
-  const [imagePrompt, setImagePrompt] = useState("")
-  const [provider, setProvider]     = useState("")
-  const [expanded, setExpanded]     = useState(true)
+  const [state, setState]       = useState<State>("idle")
+  const [det, setDet]           = useState<Detection | null>(null)
+  const [regenKey, setRegenKey] = useState(0)
 
   useEffect(() => {
     if (!context || context.length < 100) return
@@ -24,103 +292,81 @@ export default function VisualBlock({ topic, context }: Props) {
   async function detect() {
     setState("detecting")
     try {
-      const res = await fetch("/api/agents/visual-detect", {
+      const res  = await fetch("/api/agents/visual-detect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ topic, context }),
       })
-      const data = await res.json()
-      if (!data.shouldGenerate) { setState("skip"); return }
-      await generateImage(data.imagePrompt || topic)
-    } catch {
-      setState("skip")
-    }
-  }
-
-  async function generateImage(prompt: string) {
-    setState("generating")
-    setImagePrompt(prompt)
-    try {
-      const res = await fetch("/api/agents/imagenes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt,
-          style: "digital art",
-          width: 768,
-          height: 432,
-          provider: "auto",
-          source: "auto_study",
-          topic,
-          customPrompt: prompt + ", educational illustration, clear, detailed, professional"
-        }),
-      })
-      if (!res.ok) { setState("skip"); return }
-      const data = await res.json()
-      setImageUrl(data.imageUrl)
-      setProvider(data.provider)
+      const data: Detection = await res.json()
+      if (!data.shouldGenerate || data.type === "none") { setState("skip"); return }
+      setDet(data)
       setState("done")
     } catch {
       setState("skip")
     }
   }
 
-  async function regenerate() {
-    await generateImage(imagePrompt)
-  }
-
+  // ── Estado vacío / skip
   if (state === "idle" || state === "skip") return null
 
-  if (state === "detecting" || state === "generating") {
+  // ── Detectando
+  if (state === "detecting") {
     return (
       <div className="mt-4 flex items-center gap-2 text-gray-600 text-xs">
         <div className="w-3 h-3 border border-gray-600 border-t-transparent rounded-full animate-spin" />
-        {state === "detecting" ? "Analizando si se puede visualizar..." : "Generando imagen de apoyo..."}
+        Analizando si hay algo para visualizar...
       </div>
     )
   }
 
-  if (state === "done" && imageUrl) {
-    return (
-      <div className="mt-4 border border-gray-800 rounded-2xl overflow-hidden bg-gray-900/50">
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-800">
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500">🖼️ Visualización automática</span>
-            <span className="text-[10px] text-gray-700">via {provider}</span>
-          </div>
-          <div className="flex items-center gap-2">
+  if (!det) return null
+
+  const meta = TYPE_META[det.type] ?? TYPE_META.image
+
+  return (
+    <div className={`mt-4 border ${meta.borderCls} rounded-2xl overflow-hidden ${meta.bgCls}`}>
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/5">
+        <div className="flex items-center gap-2">
+          <span className="text-sm">{meta.icon}</span>
+          <span className={`text-xs font-medium ${meta.textCls}`}>{meta.label}</span>
+        </div>
+        <div className="flex items-center gap-3">
+          {det.type === "image" && (
             <button
-              onClick={regenerate}
-              className="text-[10px] text-gray-600 hover:text-gray-400 transition-colors px-2 py-1 rounded-lg hover:bg-gray-800"
+              onClick={() => setRegenKey(k => k + 1)}
+              className="text-[10px] text-gray-600 hover:text-gray-400 px-2 py-1 rounded hover:bg-black/20 transition-colors"
             >
               🔄 Regenerar
             </button>
-            <button
-              onClick={() => setExpanded(!expanded)}
-              className="text-[10px] text-gray-600 hover:text-gray-400 transition-colors px-2 py-1 rounded-lg hover:bg-gray-800"
-            >
-              {expanded ? "Ocultar ▲" : "Ver imagen ▼"}
-            </button>
-          </div>
+          )}
+          <span className="text-[10px] text-gray-700">AGT-AIm v2</span>
         </div>
+      </div>
 
-        {/* Imagen */}
-        {expanded && (
-          <div className="relative">
-            <img
-              src={imageUrl}
-              alt={imagePrompt}
-              className="w-full object-cover max-h-64"
-            />
-            <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent px-4 py-3">
-              <p className="text-white/70 text-[10px] italic line-clamp-1">{imagePrompt}</p>
-            </div>
-          </div>
+      {/* Contenido */}
+      <div className="p-4">
+        {det.type === "image" && (
+          <ImageBlock
+            imagePrompt={det.imagePrompt}
+            topic={topic}
+            caption={det.caption}
+            regenerateKey={regenKey}
+          />
+        )}
+
+        {det.type === "mermaid" && det.mermaidCode && (
+          <MermaidDiagram code={det.mermaidCode} caption={det.caption} />
+        )}
+
+        {det.type === "chart" && det.chartSpec && (
+          <ChartBlock specStr={det.chartSpec} caption={det.caption} />
+        )}
+
+        {det.type === "table" && det.chartSpec && (
+          <TableBlock specStr={det.chartSpec} caption={det.caption} />
         )}
       </div>
-    )
-  }
-
-  return null
+    </div>
+  )
 }
