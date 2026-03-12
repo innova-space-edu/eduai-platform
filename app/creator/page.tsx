@@ -50,282 +50,218 @@ const BRANCH_COLORS = [
   { bg: "#ec4899", light: "#fce7f3", text: "#831843" },   // pink
 ]
 
-// ─── RENDERER: Mapa Mental — canvas orgánico ──────────────────────────────────
+// ─── RENDERER: Mapa Mental — SVG puro, sin canvas ────────────────────────────
 function MindmapRenderer({ data }: { data: any }) {
-  const canvasRef   = useRef<HTMLCanvasElement>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
   const [selected, setSelected] = useState<any>(null)
   const [hovered,  setHovered]  = useState<string | null>(null)
   const [scale,    setScale]    = useState(1)
-  const [offset,   setOffset]   = useState({ x: 0, y: 0 })
-  const dragging = useRef(false)
-  const dragStart = useRef({ x: 0, y: 0, ox: 0, oy: 0 })
-  const nodesLayout = useRef<any[]>([])
+  const [pan,      setPan]      = useState({ x: 0, y: 0 })
+  const dragging   = useRef(false)
+  const dragStart  = useRef({ x: 0, y: 0, px: 0, py: 0 })
 
   const nodes        = data.nodes || []
   const centralTopic = data.centralTopic || "Tema"
 
-  // Calcular posiciones de nodos
-  function computeLayout(W: number, H: number) {
-    const cx = W / 2, cy = H / 2
-    const mainNodes = nodes.filter((n: any) => n.category === "main")
-    const subNodes  = nodes.filter((n: any) => n.category === "sub")
-    const detNodes  = nodes.filter((n: any) => n.category === "detail")
+  // SVG viewport fijo — sin necesidad de medir el DOM
+  const VW = 700, VH = 460
+  const cx = VW / 2, cy = VH / 2
 
-    const layout: any[] = [{ ...{ id: "__center__", label: centralTopic }, x: cx, y: cy, r: 52, isCenter: true, color: BRANCH_COLORS[0] }]
+  // ── Calcular layout ────────────────────────────────────────────────────────
+  const mainNodes = nodes.filter((n: any) => n.category === "main")
+  const subNodes  = nodes.filter((n: any) => n.category === "sub")
+  const detNodes  = nodes.filter((n: any) => n.category === "detail")
 
-    // Nodos principales en círculo
-    mainNodes.forEach((n: any, i: number) => {
-      const angle = (2 * Math.PI * i) / mainNodes.length - Math.PI / 2
-      const r = 160
-      const color = BRANCH_COLORS[(i + 1) % BRANCH_COLORS.length]
-      layout.push({ ...n, x: cx + Math.cos(angle) * r, y: cy + Math.sin(angle) * r, r: 38, branchIdx: i, color, parent: "__center__" })
-    })
-
-    // Nodos secundarios alrededor de sus padres
-    let subIdx = 0
-    mainNodes.forEach((main: any, mi: number) => {
-      const mainNode  = layout.find(l => l.id === main.id)
-      if (!mainNode) return
-      const mySubs    = subNodes.filter((s: any) => s.connections?.includes(main.id) || subIdx < subNodes.length)
-      const batchSubs = mySubs.slice(0, Math.ceil(subNodes.length / mainNodes.length))
-      const color     = BRANCH_COLORS[(mi + 1) % BRANCH_COLORS.length]
-      batchSubs.forEach((sub: any, si: number) => {
-        if (!layout.find(l => l.id === sub.id)) {
-          const angle = (2 * Math.PI * si) / batchSubs.length + (2 * Math.PI * mi) / mainNodes.length - Math.PI / 2
-          layout.push({
-            ...sub,
-            x: mainNode.x + Math.cos(angle) * 90,
-            y: mainNode.y + Math.sin(angle) * 90,
-            r: 28, branchIdx: mi, color, parent: main.id,
-          })
-          subIdx++
-        }
-      })
-    })
-
-    // Nodos detalle
-    const placedSubs = layout.filter(l => l.category === "sub")
-    detNodes.forEach((det: any, di: number) => {
-      const parentSub = placedSubs[di % placedSubs.length]
-      if (!parentSub) return
-      if (!layout.find(l => l.id === det.id)) {
-        const angle = (2 * Math.PI * di) / detNodes.length
-        layout.push({
-          ...det,
-          x: parentSub.x + Math.cos(angle) * 60,
-          y: parentSub.y + Math.sin(angle) * 60,
-          r: 22, branchIdx: parentSub.branchIdx, color: parentSub.color, parent: parentSub.id,
-        })
-      }
-    })
-
-    return layout
+  type LayoutNode = {
+    id: string; label: string; x: number; y: number
+    category: string; color: typeof BRANCH_COLORS[0]
+    isCenter?: boolean; parent?: string; description?: string
   }
 
-  function drawCanvas() {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext("2d")
-    if (!ctx) return
-    const W = canvas.width, H = canvas.height
-    ctx.clearRect(0, 0, W, H)
-    ctx.save()
-    ctx.translate(offset.x, offset.y)
-    ctx.scale(scale, scale)
+  const layout: LayoutNode[] = [
+    { id: "__center__", label: centralTopic, x: cx, y: cy, category: "center", color: BRANCH_COLORS[0], isCenter: true }
+  ]
 
-    const layout = computeLayout(W, H)
-    nodesLayout.current = layout
-
-    // ── Dibujar conexiones (curvas Bezier)
-    layout.forEach(node => {
-      if (!node.parent) return
-      const parent = layout.find(l => l.id === node.parent)
-      if (!parent) return
-
-      const mx = (node.x + parent.x) / 2
-      const my = (node.y + parent.y) / 2 - 20
-
-      ctx.beginPath()
-      ctx.moveTo(parent.x, parent.y)
-      ctx.quadraticCurveTo(mx, my, node.x, node.y)
-      ctx.strokeStyle = node.color?.bg + "88" || "#6366f188"
-      ctx.lineWidth = node.isCenter ? 3 : node.category === "main" ? 2.5 : node.category === "sub" ? 1.8 : 1.2
-      ctx.setLineDash(node.category === "detail" ? [4, 3] : [])
-      ctx.stroke()
-      ctx.setLineDash([])
+  // Nodos principales — círculo externo r=170
+  mainNodes.forEach((n: any, i: number) => {
+    const angle = (2 * Math.PI * i) / mainNodes.length - Math.PI / 2
+    layout.push({
+      ...n, x: cx + Math.cos(angle) * 170, y: cy + Math.sin(angle) * 170,
+      color: BRANCH_COLORS[(i + 1) % BRANCH_COLORS.length], parent: "__center__",
     })
+  })
 
-    // ── Dibujar nodos
-    layout.forEach(node => {
-      const isHov = hovered === node.id
-      const isSel = selected?.id === node.id
-
-      ctx.save()
-      if (isHov || isSel) {
-        ctx.shadowBlur = 18
-        ctx.shadowColor = node.color?.bg || "#3b82f6"
-      }
-
-      if (node.isCenter) {
-        // Nodo central: octágono con gradiente
-        const grad = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, node.r)
-        grad.addColorStop(0, "#3b82f6")
-        grad.addColorStop(1, "#1d4ed8")
-        drawRoundedRect(ctx, node.x - node.r, node.y - 18, node.r * 2, 36, 18, grad, "white", 2.5)
-      } else if (node.category === "main") {
-        // Nodo principal: píldora con color sólido
-        const bg = node.color?.bg || "#3b82f6"
-        drawRoundedRect(ctx, node.x - node.r, node.y - 16, node.r * 2, 32, 16, bg, "rgba(255,255,255,0.2)", 1.5)
-      } else if (node.category === "sub") {
-        // Nodo secundario: rectángulo redondeado con color light
-        const bg = node.color?.light || "#dbeafe"
-        const border = node.color?.bg || "#3b82f6"
-        drawRoundedRect(ctx, node.x - node.r - 4, node.y - 12, node.r * 2 + 8, 24, 12, bg, border, 1.5)
-      } else {
-        // Detalle: pequeño con borde punteado
-        const bg = "rgba(255,255,255,0.04)"
-        const border = node.color?.bg + "60" || "#6366f160"
-        drawRoundedRect(ctx, node.x - node.r - 2, node.y - 10, node.r * 2 + 4, 20, 10, bg, border, 1)
-      }
-
-      ctx.restore()
-
-      // ── Texto del nodo
-      const label = node.label || ""
-      const maxW = node.r * 1.8
-      ctx.font = node.isCenter
-        ? "bold 13px system-ui"
-        : node.category === "main"
-          ? "bold 11px system-ui"
-          : node.category === "sub"
-            ? "600 10px system-ui"
-            : "500 9px system-ui"
-
-      ctx.fillStyle = node.isCenter
-        ? "white"
-        : node.category === "main"
-          ? "white"
-          : node.color?.text || "#1e40af"
-
-      ctx.textAlign = "center"
-      ctx.textBaseline = "middle"
-
-      // Truncar si es muy largo
-      const truncated = ctx.measureText(label).width > maxW
-        ? label.substring(0, Math.floor(label.length * (maxW / ctx.measureText(label).width))) + "…"
-        : label
-      ctx.fillText(truncated, node.x, node.y)
+  // Sub-nodos — distribuidos alrededor de su nodo principal
+  const subsPerMain = Math.ceil(subNodes.length / Math.max(mainNodes.length, 1))
+  subNodes.forEach((sub: any, si: number) => {
+    if (layout.find(l => l.id === sub.id)) return
+    const parentMainIdx = Math.floor(si / subsPerMain)
+    const parentMain = layout[1 + (parentMainIdx % mainNodes.length)]
+    if (!parentMain) return
+    const spread = subsPerMain > 1 ? (si % subsPerMain - (subsPerMain - 1) / 2) * 0.45 : 0
+    const baseAngle = Math.atan2(parentMain.y - cy, parentMain.x - cx)
+    const angle = baseAngle + spread
+    layout.push({
+      ...sub, x: parentMain.x + Math.cos(angle) * 100, y: parentMain.y + Math.sin(angle) * 100,
+      color: parentMain.color, parent: parentMain.id,
     })
+  })
+
+  // Detalles — alrededor de sub-nodos
+  const placedSubs = layout.filter(l => l.category === "sub")
+  detNodes.forEach((det: any, di: number) => {
+    if (layout.find(l => l.id === det.id)) return
+    const parentSub = placedSubs[di % Math.max(placedSubs.length, 1)]
+    if (!parentSub) return
+    const angle = (2 * Math.PI * di) / Math.max(detNodes.length, 1) + Math.atan2(parentSub.y - cy, parentSub.x - cx)
+    layout.push({
+      ...det, x: parentSub.x + Math.cos(angle) * 65, y: parentSub.y + Math.sin(angle) * 65,
+      color: parentSub.color, parent: parentSub.id,
+    })
+  })
+
+  // ── Helpers de path Bezier ─────────────────────────────────────────────────
+  function bezierPath(x1: number, y1: number, x2: number, y2: number) {
+    const mx = (x1 + x2) / 2, my = (y1 + y2) / 2 - 25
+    return `M ${x1} ${y1} Q ${mx} ${my} ${x2} ${y2}`
   }
 
-  function drawRoundedRect(
-    ctx: CanvasRenderingContext2D,
-    x: number, y: number, w: number, h: number, r: number,
-    fill: string | CanvasGradient, stroke: string, lw: number
-  ) {
-    ctx.beginPath()
-    ctx.moveTo(x + r, y)
-    ctx.lineTo(x + w - r, y)
-    ctx.quadraticCurveTo(x + w, y, x + w, y + r)
-    ctx.lineTo(x + w, y + h - r)
-    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h)
-    ctx.lineTo(x + r, y + h)
-    ctx.quadraticCurveTo(x, y + h, x, y + h - r)
-    ctx.lineTo(x, y + r)
-    ctx.quadraticCurveTo(x, y, x + r, y)
-    ctx.closePath()
-    ctx.fillStyle = fill as any
-    ctx.fill()
-    ctx.strokeStyle = stroke
-    ctx.lineWidth = lw
-    ctx.stroke()
+  // ── Node box sizes ─────────────────────────────────────────────────────────
+  function nodeSize(n: LayoutNode) {
+    const len = n.label.length
+    if (n.isCenter) return { w: Math.max(110, len * 8 + 20), h: 38 }
+    if (n.category === "main")   return { w: Math.max(80, len * 7 + 16), h: 30 }
+    if (n.category === "sub")    return { w: Math.max(65, len * 6 + 14), h: 24 }
+    return { w: Math.max(55, len * 5.5 + 12), h: 20 }
   }
-
-  function getHitNode(cx: number, cy: number) {
-    // Deshacer transformación
-    const rx = (cx - offset.x) / scale
-    const ry = (cy - offset.y) / scale
-    const canvas = canvasRef.current
-    if (!canvas) return null
-    const W = canvas.width, H = canvas.height
-    const layout = computeLayout(W, H)
-    for (let i = layout.length - 1; i >= 0; i--) {
-      const n = layout[i]
-      const dist = Math.sqrt((rx - n.x) ** 2 + (ry - n.y) ** 2)
-      if (dist < n.r + 12) return n
-    }
-    return null
-  }
-
-  useEffect(() => { drawCanvas() }, [nodes, selected, hovered, scale, offset])
-
-  useEffect(() => {
-    const canvas = canvasRef.current
-    const container = containerRef.current
-    if (!canvas || !container) return
-    canvas.width  = container.clientWidth
-    canvas.height = container.clientHeight
-    drawCanvas()
-  }, [])
 
   return (
     <div className="space-y-3">
+      {/* Controles */}
       <div className="flex items-center justify-between">
         <h3 className="text-blue-400 font-bold text-sm">🧠 {centralTopic}</h3>
         <div className="flex gap-2">
-          <button onClick={() => setScale(s => Math.min(s + 0.15, 2))} className="w-7 h-7 rounded-lg bg-gray-800 text-gray-400 hover:text-white text-sm flex items-center justify-center">+</button>
-          <button onClick={() => setScale(s => Math.max(s - 0.15, 0.4))} className="w-7 h-7 rounded-lg bg-gray-800 text-gray-400 hover:text-white text-sm flex items-center justify-center">−</button>
-          <button onClick={() => { setScale(1); setOffset({ x: 0, y: 0 }) }} className="px-2 h-7 rounded-lg bg-gray-800 text-gray-500 hover:text-white text-xs">Reset</button>
+          <button onClick={() => setScale(s => Math.min(s + 0.15, 2.2))}
+            className="w-7 h-7 rounded-lg bg-gray-800 text-gray-400 hover:text-white text-sm flex items-center justify-center">+</button>
+          <button onClick={() => setScale(s => Math.max(s - 0.15, 0.35))}
+            className="w-7 h-7 rounded-lg bg-gray-800 text-gray-400 hover:text-white text-sm flex items-center justify-center">−</button>
+          <button onClick={() => { setScale(1); setPan({ x: 0, y: 0 }) }}
+            className="px-2 h-7 rounded-lg bg-gray-800 text-gray-500 hover:text-white text-xs">Reset</button>
         </div>
       </div>
 
+      {/* SVG container */}
       <div
-        ref={containerRef}
-        className="relative bg-gray-950 rounded-3xl border border-gray-800 overflow-hidden"
+        className="relative bg-gray-950 rounded-3xl border border-gray-800 overflow-hidden cursor-grab active:cursor-grabbing"
         style={{ height: 460 }}
+        onMouseDown={e => {
+          dragging.current = true
+          dragStart.current = { x: e.clientX, y: e.clientY, px: pan.x, py: pan.y }
+        }}
+        onMouseMove={e => {
+          if (!dragging.current) return
+          setPan({ x: dragStart.current.px + e.clientX - dragStart.current.x, y: dragStart.current.py + e.clientY - dragStart.current.y })
+        }}
+        onMouseUp={() => { dragging.current = false }}
+        onMouseLeave={() => { dragging.current = false }}
+        onWheel={e => { e.preventDefault(); setScale(s => Math.max(0.3, Math.min(2.5, s - e.deltaY * 0.001))) }}
       >
-        {/* Fondo con patrón de puntos */}
-        <div className="absolute inset-0 opacity-20"
-          style={{ backgroundImage: "radial-gradient(circle, #374151 1px, transparent 1px)", backgroundSize: "24px 24px" }} />
+        {/* Fondo punteado */}
+        <div className="absolute inset-0 opacity-20 pointer-events-none"
+          style={{ backgroundImage: "radial-gradient(circle, #4b5563 1px, transparent 1px)", backgroundSize: "24px 24px" }} />
 
-        <canvas
-          ref={canvasRef}
-          className="absolute inset-0 w-full h-full cursor-grab active:cursor-grabbing"
-          style={{ width: "100%", height: "100%" }}
-          onMouseMove={e => {
-            const rect = canvasRef.current!.getBoundingClientRect()
-            const mx = e.clientX - rect.left, my = e.clientY - rect.top
-            if (dragging.current) {
-              setOffset({ x: dragStart.current.ox + (mx - dragStart.current.x), y: dragStart.current.oy + (my - dragStart.current.y) })
-            } else {
-              const hit = getHitNode(mx, my)
-              setHovered(hit?.id || null)
-            }
-          }}
-          onMouseDown={e => {
-            const rect = canvasRef.current!.getBoundingClientRect()
-            const mx = e.clientX - rect.left, my = e.clientY - rect.top
-            const hit = getHitNode(mx, my)
-            if (hit) { setSelected(hit); return }
-            dragging.current = true
-            dragStart.current = { x: mx, y: my, ox: offset.x, oy: offset.y }
-          }}
-          onMouseUp={() => { dragging.current = false }}
-          onMouseLeave={() => { dragging.current = false; setHovered(null) }}
-          onWheel={e => {
-            e.preventDefault()
-            setScale(s => Math.max(0.3, Math.min(2.5, s - e.deltaY * 0.001)))
-          }}
-        />
+        <svg
+          width="100%" height="100%"
+          viewBox={`0 0 ${VW} ${VH}`}
+          style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`, transformOrigin: "center", transition: dragging.current ? "none" : "transform 0.1s" }}
+        >
+          <defs>
+            {BRANCH_COLORS.map((c, i) => (
+              <linearGradient key={i} id={`grad${i}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor={c.bg} />
+                <stop offset="100%" stopColor={c.bg + "cc"} />
+              </linearGradient>
+            ))}
+          </defs>
+
+          {/* Conexiones */}
+          {layout.map(node => {
+            if (!node.parent) return null
+            const parent = layout.find(l => l.id === node.parent)
+            if (!parent) return null
+            return (
+              <path key={`line-${node.id}`}
+                d={bezierPath(parent.x, parent.y, node.x, node.y)}
+                fill="none"
+                stroke={node.color.bg + "77"}
+                strokeWidth={node.category === "main" ? 2.5 : node.category === "sub" ? 1.8 : 1.2}
+                strokeDasharray={node.category === "detail" ? "5,4" : undefined}
+              />
+            )
+          })}
+
+          {/* Nodos */}
+          {layout.map(node => {
+            const { w, h } = nodeSize(node)
+            const isHov = hovered === node.id
+            const isSel = selected?.id === node.id
+            const colorIdx = BRANCH_COLORS.indexOf(node.color)
+
+            return (
+              <g key={node.id}
+                style={{ cursor: "pointer" }}
+                onMouseEnter={() => setHovered(node.id)}
+                onMouseLeave={() => setHovered(null)}
+                onMouseDown={e => { e.stopPropagation(); setSelected(node.id === "__center__" ? null : node) }}
+              >
+                {(isHov || isSel) && (
+                  <rect
+                    x={node.x - w / 2 - 4} y={node.y - h / 2 - 4}
+                    width={w + 8} height={h + 8} rx={h / 2 + 4}
+                    fill={node.color.bg + "22"} stroke={node.color.bg + "55"} strokeWidth={1}
+                  />
+                )}
+
+                {node.isCenter ? (
+                  <rect x={node.x - w / 2} y={node.y - h / 2} width={w} height={h} rx={h / 2}
+                    fill={`url(#grad0)`} stroke="white" strokeWidth={1.5}
+                    filter={isSel ? `drop-shadow(0 0 8px ${node.color.bg})` : undefined}
+                  />
+                ) : node.category === "main" ? (
+                  <rect x={node.x - w / 2} y={node.y - h / 2} width={w} height={h} rx={h / 2}
+                    fill={node.color.bg} stroke={node.color.bg + "aa"} strokeWidth={1}
+                    filter={isHov ? `drop-shadow(0 0 6px ${node.color.bg}88)` : undefined}
+                  />
+                ) : node.category === "sub" ? (
+                  <rect x={node.x - w / 2} y={node.y - h / 2} width={w} height={h} rx={6}
+                    fill={node.color.light} stroke={node.color.bg} strokeWidth={1.2}
+                  />
+                ) : (
+                  <rect x={node.x - w / 2} y={node.y - h / 2} width={w} height={h} rx={5}
+                    fill="rgba(255,255,255,0.04)" stroke={node.color.bg + "55"} strokeWidth={1}
+                    strokeDasharray="3,2"
+                  />
+                )}
+
+                <text
+                  x={node.x} y={node.y}
+                  textAnchor="middle" dominantBaseline="middle"
+                  fontSize={node.isCenter ? 12 : node.category === "main" ? 10 : node.category === "sub" ? 9 : 8}
+                  fontWeight={node.isCenter ? "bold" : node.category === "main" ? "bold" : "600"}
+                  fontFamily="system-ui, sans-serif"
+                  fill={node.isCenter || node.category === "main" ? "white" : node.color.text}
+                >
+                  {node.label.length > 18 ? node.label.substring(0, 16) + "…" : node.label}
+                </text>
+              </g>
+            )
+          })}
+        </svg>
       </div>
 
-      {/* Panel de detalle del nodo seleccionado */}
-      {selected && selected.id !== "__center__" && (
-        <div
-          className="rounded-2xl p-4 border transition-all"
-          style={{ background: selected.color?.light + "22", borderColor: selected.color?.bg + "44" }}
-        >
+      {/* Panel de detalle */}
+      {selected && (
+        <div className="rounded-2xl p-4 border transition-all"
+          style={{ background: selected.color?.light + "18", borderColor: selected.color?.bg + "44" }}>
           <div className="flex items-start justify-between gap-2">
             <div>
               <h4 className="font-bold text-sm text-white mb-1">{selected.label}</h4>
@@ -335,16 +271,16 @@ function MindmapRenderer({ data }: { data: any }) {
                 {selected.category === "main" ? "Concepto principal" : selected.category === "sub" ? "Subtema" : "Detalle"}
               </span>
             </div>
-            <button onClick={() => setSelected(null)} className="text-gray-600 hover:text-gray-400 text-lg flex-shrink-0">×</button>
+            <button onClick={() => setSelected(null)} className="text-gray-600 hover:text-gray-400 text-xl leading-none flex-shrink-0">×</button>
           </div>
         </div>
       )}
 
       {/* Leyenda */}
       <div className="flex flex-wrap gap-3 text-[10px] text-gray-600">
-        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-blue-500 inline-block" /> Tema central</span>
-        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-green-500 inline-block" /> Conceptos principales</span>
-        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-amber-200 border border-amber-400 inline-block" /> Subtemas</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-blue-500 inline-block" />Tema central</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-green-500 inline-block" />Conceptos principales</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-amber-200 border border-amber-400 inline-block" />Subtemas</span>
         <span className="ml-auto">Arrastra · Rueda = zoom · Click = detalle</span>
       </div>
     </div>
@@ -589,7 +525,7 @@ function PodcastRenderer({ data }: { data: any }) {
       {/* Header */}
       <div className="flex items-center gap-4">
         <div className="w-16 h-16 rounded-2xl flex-shrink-0 overflow-hidden relative"
-          style={{ background: "linear-gradient(135deg, #dc2626, #ea580c)" }}>
+          style={{ background: "linear-gradient(135deg, #2563eb, #7c3aed)" }}>
           <div className="absolute inset-0 flex items-center justify-center text-3xl">🎙️</div>
           <div className="absolute bottom-1 right-1 w-3 h-3 bg-red-400 rounded-full animate-pulse" />
         </div>
@@ -597,8 +533,8 @@ function PodcastRenderer({ data }: { data: any }) {
           <h3 className="text-white font-bold text-sm">{data.title}</h3>
           <p className="text-gray-500 text-xs mt-0.5">EduAI Podcast · {data.duration || "5 min"}</p>
           <div className="flex gap-2 mt-1.5">
-            <span className="text-[10px] bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-0.5 rounded-full font-medium">HOST A</span>
-            <span className="text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full font-medium">HOST B</span>
+            <span className="text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded-full font-medium">🎙 Álvaro</span>
+            <span className="text-[10px] bg-pink-500/10 text-pink-400 border border-pink-500/20 px-2 py-0.5 rounded-full font-medium">🎙 Elvira</span>
           </div>
         </div>
       </div>
@@ -611,7 +547,7 @@ function PodcastRenderer({ data }: { data: any }) {
               style={{
                 height: `${h * 100}%`,
                 background: i / BARS <= progress
-                  ? `linear-gradient(to top, #ef4444, #f97316)`
+                  ? `linear-gradient(to top, #3b82f6, #8b5cf6)`
                   : "rgba(255,255,255,0.08)",
               }} />
           ))}
@@ -624,7 +560,7 @@ function PodcastRenderer({ data }: { data: any }) {
           <button
             onClick={() => setCurrent(c => Math.min(total - 1, c + 1))}
             className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm flex-shrink-0 transition-all"
-            style={{ background: "linear-gradient(135deg, #ef4444, #ea580c)" }}
+            style={{ background: "linear-gradient(135deg, #3b82f6, #8b5cf6)" }}
           >▶</button>
           <button
             onClick={() => setCurrent(c => Math.min(total - 1, c + 1))}
@@ -644,17 +580,17 @@ function PodcastRenderer({ data }: { data: any }) {
               onClick={() => setCurrent(i)}
               className={`flex gap-3 p-3 rounded-2xl cursor-pointer transition-all border ${
                 isActive
-                  ? isA ? "bg-red-500/10 border-red-500/20" : "bg-amber-500/10 border-amber-500/20"
+                  ? isA ? "bg-blue-500/10 border-blue-500/20" : "bg-pink-500/10 border-pink-500/20"
                   : "bg-white/[0.02] border-transparent hover:bg-white/[0.04]"
               }`}>
               <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold flex-shrink-0 ${
-                isA ? "bg-red-500/20 text-red-400" : "bg-amber-500/20 text-amber-400"
+                isA ? "bg-blue-500/20 text-blue-400" : "bg-pink-500/20 text-pink-400"
               }`}>
                 {isA ? "A" : "B"}
               </div>
               <div className="flex-1">
-                <p className={`text-[10px] font-semibold mb-0.5 ${isA ? "text-red-400" : "text-amber-400"}`}>
-                  {isA ? "Host A (Profesor)" : "Host B (Estudiante)"}
+                <p className={`text-[10px] font-semibold mb-0.5 ${isA ? "text-blue-400" : "text-pink-400"}`}>
+                  {isA ? "Álvaro" : "Elvira"}
                 </p>
                 <p className="text-gray-400 text-xs leading-relaxed">{seg.text}</p>
               </div>
@@ -662,7 +598,7 @@ function PodcastRenderer({ data }: { data: any }) {
                 <div className="flex-shrink-0 flex gap-0.5 items-end">
                   {[0, 1, 2].map(d => (
                     <div key={d} className="w-1 rounded-full animate-bounce"
-                      style={{ height: 8 + d * 4, background: isA ? "#ef4444" : "#f59e0b", animationDelay: `${d * 100}ms` }} />
+                      style={{ height: 8 + d * 4, background: isA ? "#3b82f6" : "#ec4899", animationDelay: `${d * 100}ms` }} />
                   ))}
                 </div>
               )}
