@@ -68,7 +68,7 @@
 ![HuggingFace](https://img.shields.io/badge/HuggingFace-Stable_Diffusion_XL-FFD21E?style=flat-square&logo=huggingface&logoColor=black)
 ![Together](https://img.shields.io/badge/Together_AI-FLUX_Schnell-0EA5E9?style=flat-square)
 ![Pollinations](https://img.shields.io/badge/Pollinations-FLUX_Free_(sin_key)-10B981?style=flat-square)
-![EdgeTTS](https://img.shields.io/badge/Edge_TTS-Podcast_MP3-EC4899?style=flat-square)
+![EdgeTTS](https://img.shields.io/badge/Edge_TTS-Álvaro_/_Elvira-EC4899?style=flat-square)
 ![KaTeX](https://img.shields.io/badge/KaTeX-LaTeX_Render-1D4ED8?style=flat-square)
 ![Mermaid](https://img.shields.io/badge/Mermaid-Diagramas-FF3670?style=flat-square)
 ![PptxGenJS](https://img.shields.io/badge/PptxGenJS-Presentaciones-F59E0B?style=flat-square)
@@ -156,14 +156,14 @@ Motor universal de creación de material educativo. Transforma cualquier conteni
 
 | Formato | Descripción | Descargas |
 |---------|-------------|-----------|
-| 📊 **Infografía** | Visual con 6 secciones, stats, visualType adaptivo | PNG, JPG, PDF |
-| 📑 **Presentación** | 10-12 slides con layout, notas y timingHint | PPTX, PDF, PNG |
-| 🎨 **Afiche/Poster** | Poster con stat por punto y 5 paletas | PNG, JPG, PDF |
-| 🎙️ **Podcast** | 28+ segmentos, 2 hosts con voces Edge TTS | MP3, PDF guión, TXT |
-| 🧠 **Mapa Mental** | 18-22 nodos con edgeLabels e importance | PNG, PDF |
+| 📊 **Infografía** | Layout editorial 2 columnas, 7 paletas, stats destacadas, banner radial | PNG, JPG, PDF |
+| 📑 **Presentación** | 10-12 slides con layout, notas y timingHint, 5 temas visuales | PPTX, PDF, PNG |
+| 🎨 **Afiche/Poster** | Poster con stat por punto, brillo radial, 5 paletas incl. neon | PNG, JPG, PDF |
+| 🎙️ **Podcast** | 28+ segmentos, hosts Álvaro + Elvira con voces Edge TTS | MP3, PDF guión, TXT |
+| 🧠 **Mapa Mental** | SVG puro, 18-22 nodos, curvas Bezier, zoom/drag, 7 colores por rama | PNG, PDF |
 | 📇 **Flashcards** | 20 tarjetas con hint, mnemónico y SM-2 ready | PDF, PNG |
-| ✅ **Quiz** | 15 preguntas con distractorHints pedagógicos | PDF |
-| ⏳ **Timeline** | 10-14 eventos con causalLinks causa-efecto | PNG, PDF |
+| ✅ **Quiz** | 15 preguntas con distractorHints pedagógicos, barra de progreso | PDF |
+| ⏳ **Timeline** | 10-14 eventos con causalLinks, puntos interactivos por importancia | PNG, PDF |
 
 **Motor IA (v3):**
 - **Gemini 2.5 Flash** como modelo principal — contexto 12K chars, output 8192 tokens
@@ -172,7 +172,7 @@ Motor universal de creación de material educativo. Transforma cualquier conteni
 - **12 paletas de color** aplicadas en vista previa y exports
 - **PDFs estilo Canva** — headers de color, badges, tipografía profesional
 - **PPTX reales** con PptxGenJS — editables en PowerPoint/Google Slides
-- **Podcast MP3** con Edge TTS (AlvaroNeural + ElviraNeural)
+- **Podcast MP3** con Edge TTS (AlvaroNeural + ElviraNeural, siempre fijos)
 
 **Campos nuevos por formato (v3):**
 
@@ -188,16 +188,89 @@ Motor universal de creación de material educativo. Transforma cualquier conteni
 
 ---
 
+### ✨ Creator Studio — Renderers rediseñados (v3.1)
+
+Cada renderer fue reconstruido desde cero para producir salidas de calidad editorial:
+
+#### 🧠 Mapa Mental — SVG puro (sin Canvas)
+
+El renderer original usaba Canvas HTML5, lo que causaba que `clientWidth = 0` durante el render inicial en Next.js, dejando el canvas vacío. Se reemplazó completamente por **SVG puro con viewport fijo 700×460** — no requiere medir el DOM, funciona inmediatamente al renderizar:
+
+- Curvas Bezier entre nodos (sin líneas rectas)
+- Gradientes por rama — 7 colores distintos
+- Nodos con formas según categoría: píldoras, rectángulos redondeados, bordes destacados
+- `importance` del nodo afecta el tamaño visible
+- `edgeLabels` renderizados sobre cada conexión
+- Zoom con rueda del mouse, arrastrar para mover el mapa
+- Click en nodo para ver descripción completa
+- Patrón de puntos de fondo estilo Miro/Canva
+
+#### 📊 Infografía — Layout editorial
+
+- Diseño de 2 columnas con 7 paletas de color completas
+- Fondo con gradiente, cards con color propio por sección
+- Stats destacadas con tipografía bold grande
+- Banner superior con efecto radial y fecha
+- Footer con contexto del tema
+- Inspirado en el estilo visual de NotebookLM
+
+#### 📑 Presentación — Sistema de tipos de slide
+
+Nuevo sistema de layouts por slide:
+- `title` — centrado con línea decorativa
+- `quote` — tipografía grande con comillas decorativas
+- `stats` — grid de 3 números con labels
+- `content` — bullets numerados con badge coloreado
+- 5 temas visuales aplicados globalmente
+
+#### 🎙️ Podcast — Hosts fijos: Álvaro y Elvira
+
+Los nombres de los hosts son **permanentes e invariables**:
+- 🎙 **Álvaro** — azul — explica con autoridad, datos y analogías
+- 🎙 **Elvira** — rosa — preguntas, reacciones, humor
+
+Interfaz del reproductor:
+- Waveform animado con barras de progreso (gradiente azul→violeta)
+- Botón play con gradiente azul→violeta
+- Avatares con colores fijos: Álvaro = azul, Elvira = rosa
+- Borde activo + animación de ondas para el segmento en reproducción
+- Segmento activo resaltado visualmente en el guión
+
+#### 🎨 Poster
+
+- 5 esquemas de color: vibrant / pastel / dark / monochrome / **neon** (nuevo)
+- Efecto de brillo radial en el header
+- Cards con badge de color para cada punto
+- Campo `stat` por punto (dato o cifra destacada)
+
+#### ✅ Quiz
+
+- Barra de progreso por preguntas respondidas
+- Respuestas con letras en badge coloreado (A/B/C/D)
+- Barra de score final con color según rendimiento
+- `distractorHints` — explica por qué cada opción incorrecta confunde
+
+#### ⏳ Timeline
+
+- Puntos interactivos que se agrandan al hover
+- Colores por importancia: rojo = alto, ámbar = medio, azul = bajo
+- Línea vertical con gradiente tricolor
+- `causalLinks` visuales entre eventos relacionados
+
+---
+
 ### 🎙️ Generador de Podcast
 
 ```
 Contenido → Gemini 2.5 Flash genera guión (28+ segmentos)
-  → Host A ("El Profesor Marcos"): explica con autoridad, datos, analogías
-  → Host B ("Sofía, la estudiante curiosa"): preguntas, reacciones, humor
+  → Host A "Álvaro" (es-ES-AlvaroNeural): explica con autoridad, datos, analogías
+  → Host B "Elvira" (es-ES-ElviraNeural): preguntas, reacciones, humor
   → Estructura: gancho → contexto → desarrollo → ejemplos → reflexión → cierre
   → Edge TTS genera MP3 (24kHz 96kbps mono)
   → Descarga como .mp3
 ```
+
+Los nombres de los hosts son **fijos en el código** — siempre aparecen como Álvaro y Elvira independientemente de la configuración de variables de entorno.
 
 ---
 
@@ -234,7 +307,7 @@ Imagen base64 → response + galería Supabase (async)
 
 **Estilos disponibles (11):** realistic, digital art, oil painting, anime, watercolor, 3D render, sketch, cinematic, **educational**, **flat design**, **infographic**
 
-**`educationalContext`:** parámetro nuevo que pasa contexto del tema al optimizer, logrando imágenes pedagógicamente precisas (anatomía correcta, mapas exactos, diagramas relevantes).
+**`educationalContext`:** parámetro que pasa contexto del tema al optimizer, logrando imágenes pedagógicamente precisas (anatomía correcta, mapas exactos, diagramas relevantes).
 
 **Pollinations AI:** fallback gratuito sin API key — `image.pollinations.ai/prompt/{prompt}?enhance=true` — usa FLUX internamente.
 
@@ -396,7 +469,7 @@ Vercel (deployment)
 Cheerio 1.2 (web scraping)
 Mammoth 1.11 (DOCX parsing)
 pdf-parse 2.4 (PDF extraction)
-@andresaya/edge-tts 1.8 (podcast MP3)
+@andresaya/edge-tts 1.8 (podcast MP3 — AlvaroNeural + ElviraNeural)
 @google/generative-ai 0.24 (Gemini SDK)
 groq-sdk 0.37 (Groq SDK)
 ```
@@ -507,13 +580,13 @@ eduai-platform/
 │   │   ├── SummaryDownload.tsx
 │   │   └── VisualBlock.tsx
 │   │
-│   ├── creator/page.tsx
+│   ├── creator/page.tsx              ← v3.1: renderers rediseñados
 │   │
 │   ├── examen/
 │   │   ├── page.tsx
 │   │   ├── crear/page.tsx
 │   │   ├── docente/page.tsx
-│   │   ├── p/[code]/page.tsx       ← puntajes visibles + navegador con pts
+│   │   ├── p/[code]/page.tsx         ← puntajes visibles + navegador con pts
 │   │   └── resultados/[id]/page.tsx
 │   │
 │   ├── collab/
@@ -543,17 +616,17 @@ eduai-platform/
 │   ├── agents/
 │   │   ├── chat/route.ts
 │   │   ├── collab/route.ts
-│   │   ├── orchestrator/index.ts    ← orquestador 4 agentes (referencia)
+│   │   ├── orchestrator/index.ts     ← orquestador 6 agentes
 │   │   ├── examen-docente/route.ts
 │   │   ├── examen/route.ts
-│   │   ├── podcast-wav/route.ts
+│   │   ├── podcast-wav/route.ts      ← AlvaroNeural + ElviraNeural (fijos)
 │   │   ├── tts-chunk/route.ts
 │   │   ├── tts/route.ts
 │   │   ├── imagenes/
-│   │   │   ├── route.ts             ← v3: Gemini 2.5 optimizer + Pollinations
+│   │   │   ├── route.ts              ← v3: Gemini 2.5 optimizer + Pollinations
 │   │   │   └── preview/route.ts
 │   │   ├── image/route.ts
-│   │   ├── visual-detect/route.ts   ← AGT-AIm v2: Gemini 2.5 Flash-Lite
+│   │   ├── visual-detect/route.ts    ← AGT-AIm v2: Gemini 2.5 Flash-Lite
 │   │   ├── matematico/route.ts
 │   │   ├── investigador/route.ts
 │   │   ├── redactor/route.ts
@@ -604,8 +677,8 @@ eduai-platform/
 │   └── useXP.ts
 │
 ├── lib/
-│   ├── ai-router.ts                 ← v3: Gemini 2.5 + orquestador 6 agentes
-│   ├── content-processor.ts         ← v3: Gemini 2.5 + responseSchema + 12K ctx
+│   ├── ai-router.ts                  ← v3: Gemini 2.5 + orquestador 6 agentes
+│   ├── content-processor.ts          ← v3: Gemini 2.5 + responseSchema + 12K ctx
 │   ├── creator-downloads.ts
 │   ├── papers/
 │   │   └── extraction.ts
@@ -663,11 +736,9 @@ TOGETHER_API_KEY=xxx...
 
 # Imágenes — HuggingFace fallback adicional (opcional)
 HF_TOKEN_1=hf_xxx...
-
-# TTS — voces del podcast (opcional, usa AlvaroNeural/ElviraNeural por defecto)
-EDGE_TTS_VOICE_A=es-ES-AlvaroNeural
-EDGE_TTS_VOICE_B=es-ES-ElviraNeural
 ```
+
+> **Nota — voces del podcast:** Los hosts siempre se llaman **Álvaro** (`es-ES-AlvaroNeural`) y **Elvira** (`es-ES-ElviraNeural`). Los nombres están definidos directamente en el código del renderer y no pueden cambiarse por variables de entorno.
 
 > **Nota sobre imágenes:** Pollinations AI funciona **sin API key** — si no configuras `TOGETHER_API_KEY`, la generación de imágenes seguirá funcionando con FLUX gratuito vía Pollinations.
 
@@ -698,6 +769,7 @@ npm run dev
 | Orquestador 6 agentes en paralelo | ✅ | ❌ | ❌ | ❌ |
 | Gemini 2.5 Flash con responseSchema | ✅ | ❌ | ❌ | ❌ |
 | Creator Studio (8 formatos) | ✅ | ❌ | ❌ | ❌ |
+| Mapa Mental SVG interactivo | ✅ | ❌ | ❌ | ❌ |
 | Exámenes docente con link público | ✅ | ❌ | ❌ | ❌ |
 | Puntaje visible por pregunta en examen | ✅ | ❌ | ❌ | ❌ |
 | Evaluación IA (desarrollo + V/F) | ✅ | ❌ | ❌ | ❌ |
@@ -717,8 +789,7 @@ npm run dev
 
 ### Próximas funcionalidades
 - [ ] 📑 Layouts avanzados de PPT (two-column, stats-grid) implementados en PptxGenJS
-- [ ] ⏳ Timeline SVG interactivo con causalLinks visuales
-- [ ] 🧠 Renderer de mapa mental mejorado con edgeLabels y nodos escalados por importance
+- [ ] ⏳ Timeline SVG interactivo con causalLinks visuales como flechas
 - [ ] 📇 Modo repaso SM-2 real con scheduling automático desde Supabase
 - [ ] 🏆 XP por Creator Studio y badges por formato completado
 - [ ] 📝 Cornell Notes automáticos
@@ -729,6 +800,13 @@ npm run dev
 - [ ] 📊 Analytics avanzado para docentes
 
 ### Completado ✅
+- [x] 🧠 Mapa Mental renderer — reemplazado de Canvas HTML5 a **SVG puro** (fix `clientWidth = 0` en Next.js)
+- [x] 📊 Infografía renderer — layout editorial 2 columnas, 7 paletas, banner radial
+- [x] 📑 PPT renderer — sistema de tipos de slide (title/quote/stats/content), 5 temas
+- [x] 🎨 Poster renderer — 5 paletas incl. neon, brillo radial, campo `stat` por punto
+- [x] 🎙️ Podcast renderer — hosts **Álvaro** (azul) y **Elvira** (rosa), nombres fijos en código
+- [x] ✅ Quiz renderer — barra de progreso, badges A/B/C/D, score con color por rendimiento
+- [x] ⏳ Timeline renderer — hover interactivo, colores por importancia, gradiente tricolor
 - [x] 🤖 Orquestador potenciado de 6 agentes (AGT-Contexto, AGT-Diagnose, AGT-Investigador, AGT-Synthesize, AGT-Pedagogy, Tutor)
 - [x] ⚡ Gemini 2.5 Flash como modelo principal del Creator Studio
 - [x] ⚡ Gemini 2.5 Flash-Lite para tareas rápidas (optimizer, AIm, diagnose, pedagogy)
