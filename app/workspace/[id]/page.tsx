@@ -13,7 +13,7 @@ import {
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 interface Project {
   id: string; name: string; description: string
-  color: string; icon: string; created_at: string
+  color: string; icon: string; created_at: string; updated_at: string
 }
 
 interface WorkspaceItem {
