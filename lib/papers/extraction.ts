@@ -1,4 +1,4 @@
-import { createHash } from "crypto"
+import { createHash } from "node:crypto"
 
 export const STORAGE_BUCKET = "papers"
 export const MAX_PDF_SIZE_MB = 50
