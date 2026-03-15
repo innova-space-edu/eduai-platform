@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { Target, Calendar, CalendarDays, Zap } from "lucide-react"
 
 interface Mission {
   id: string
@@ -17,7 +18,7 @@ interface Mission {
 
 export default function MissionsPanel() {
   const [missions, setMissions] = useState<Mission[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading]   = useState(true)
 
   useEffect(() => {
     fetch("/api/missions")
@@ -27,70 +28,114 @@ export default function MissionsPanel() {
       .finally(() => setLoading(false))
   }, [])
 
-  const daily = missions.filter(m => m.type === "daily")
+  const daily  = missions.filter(m => m.type === "daily")
   const weekly = missions.filter(m => m.type === "weekly")
 
-  if (loading) return null
-  if (missions.length === 0) return null
+  if (loading || missions.length === 0) return null
 
   return (
-    <div className="mb-6 sm:mb-8">
-      <h3 className="text-base sm:text-lg font-semibold text-white mb-3">⚔️ Misiones</h3>
-      <div className="grid sm:grid-cols-2 gap-4">
-
-        {/* Diarias */}
-        <div className="bg-gray-900/60 border border-white/5 rounded-3xl p-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wider mb-3">📅 Diarias</p>
-          <div className="space-y-3">
-            {daily.map(m => (
-              <MissionItem key={m.id} mission={m} />
-            ))}
-          </div>
+    <div className="animate-fade-in">
+      {/* Header */}
+      <div className="flex items-center gap-2 mb-3">
+        <div className="w-7 h-7 rounded-xl bg-amber-500/15 border border-amber-500/20 flex items-center justify-center">
+          <Target size={14} className="text-amber-400" />
         </div>
+        <h3 className="text-white font-semibold text-sm">Misiones</h3>
+      </div>
+
+      <div className="grid sm:grid-cols-2 gap-3">
+        {/* Diarias */}
+        <MissionGroup
+          title="Diarias"
+          icon={<Calendar size={12} className="text-blue-400" />}
+          missions={daily}
+          color="#3b82f6"
+        />
 
         {/* Semanales */}
-        <div className="bg-gray-900/60 border border-white/5 rounded-3xl p-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wider mb-3">📆 Semanales</p>
-          <div className="space-y-3">
-            {weekly.map(m => (
-              <MissionItem key={m.id} mission={m} />
-            ))}
-          </div>
-        </div>
-
+        <MissionGroup
+          title="Semanales"
+          icon={<CalendarDays size={12} className="text-purple-400" />}
+          missions={weekly}
+          color="#8b5cf6"
+        />
       </div>
     </div>
   )
 }
 
-function MissionItem({ mission }: { mission: Mission }) {
+function MissionGroup({
+  title, icon, missions, color,
+}: {
+  title: string
+  icon: React.ReactNode
+  missions: Mission[]
+  color: string
+}) {
+  if (missions.length === 0) return null
+
+  return (
+    <div
+      className="rounded-2xl p-4 border"
+      style={{
+        background: "rgba(255,255,255,0.02)",
+        borderColor: "rgba(255,255,255,0.06)",
+      }}
+    >
+      <div className="flex items-center gap-1.5 mb-3">
+        {icon}
+        <p className="text-gray-500 text-[11px] font-semibold uppercase tracking-widest">{title}</p>
+      </div>
+      <div className="space-y-2.5">
+        {missions.map(m => <MissionItem key={m.id} mission={m} accentColor={color} />)}
+      </div>
+    </div>
+  )
+}
+
+function MissionItem({ mission, accentColor }: { mission: Mission; accentColor: string }) {
   const percent = Math.round((mission.progress / mission.goal) * 100)
 
   return (
-    <div className={`rounded-2xl p-3 transition-all ${
-      mission.completed
-        ? "bg-green-500/5 border border-green-500/20"
-        : "bg-white/5/50 border border-gray-700/50"
-    }`}>
+    <div
+      className="rounded-xl p-3 border transition-all"
+      style={{
+        background: mission.completed
+          ? "rgba(16,185,129,0.05)"
+          : "rgba(255,255,255,0.02)",
+        borderColor: mission.completed
+          ? "rgba(16,185,129,0.15)"
+          : "rgba(255,255,255,0.05)",
+      }}
+    >
       <div className="flex items-start justify-between gap-2 mb-2">
-        <div>
-          <p className={`text-sm font-medium ${mission.completed ? "text-green-400" : "text-white"}`}>
-            {mission.completed && "✅ "}{mission.title}
+        <div className="min-w-0">
+          <p className="text-sm font-medium leading-tight truncate"
+             style={{ color: mission.completed ? "#6ee7b7" : "#e2e8f0" }}>
+            {mission.completed && "✓ "}{mission.title}
           </p>
-          <p className="text-gray-500 text-xs">{mission.description}</p>
+          <p className="text-gray-500 text-xs mt-0.5 line-clamp-1">{mission.description}</p>
         </div>
-        <span className="text-amber-400 text-xs font-bold whitespace-nowrap">+{mission.xp_reward} XP</span>
+        <div className="flex items-center gap-1 flex-shrink-0 px-2 py-0.5 rounded-lg bg-amber-500/8 border border-amber-500/15">
+          <Zap size={9} className="text-amber-400" />
+          <span className="text-amber-400 text-[11px] font-bold">{mission.xp_reward}</span>
+        </div>
       </div>
 
       {!mission.completed && (
         <>
-          <div className="w-full bg-gray-700 rounded-full h-1.5 mb-1">
+          <div className="w-full h-1 rounded-full bg-white/[0.06] overflow-hidden">
             <div
-              className="h-1.5 bg-blue-500 rounded-full transition-all duration-500"
-              style={{ width: `${percent}%` }}
+              className="h-full rounded-full transition-all duration-700"
+              style={{
+                width: `${percent}%`,
+                background: `linear-gradient(90deg, ${accentColor}bb, ${accentColor})`,
+              }}
             />
           </div>
-          <p className="text-gray-600 text-xs text-right">{mission.progress}/{mission.goal}</p>
+          <p className="text-gray-600 text-[10px] text-right mt-1 tabular-nums">
+            {mission.progress}/{mission.goal}
+          </p>
         </>
       )}
     </div>
