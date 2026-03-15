@@ -19,8 +19,8 @@ const FORMAT_DOWNLOADS: Record<string, { label: string; icon: string; action: st
   ],
   ppt: [
     { label: "PPTX", icon: "📑", action: "pptx" },
-    { label: "PDF", icon: "📄", action: "pdf" },
-    { label: "PNG", icon: "🖼️", action: "png" },
+    { label: "PDF",  icon: "📄", action: "pdf"  },
+    { label: "PNG",  icon: "🖼️", action: "png"  },
   ],
   poster: [
     { label: "PNG", icon: "🖼️", action: "png" },
@@ -28,10 +28,10 @@ const FORMAT_DOWNLOADS: Record<string, { label: string; icon: string; action: st
     { label: "PDF", icon: "📄", action: "pdf" },
   ],
   podcast: [
-    { label: "Audio MP3", icon: "🎵", action: "mp3" },
-    { label: "Escuchar", icon: "🔊", action: "play" },
-    { label: "PDF Guión", icon: "📄", action: "pdf" },
-    { label: "TXT Guión", icon: "📝", action: "txt" },
+    { label: "Audio MP3", icon: "🎵", action: "mp3"  },
+    { label: "Escuchar",  icon: "🔊", action: "play" },
+    { label: "PDF Guión", icon: "📄", action: "pdf"  },
+    { label: "TXT Guión", icon: "📝", action: "txt"  },
   ],
   mindmap: [
     { label: "PNG", icon: "🖼️", action: "png" },
@@ -41,7 +41,7 @@ const FORMAT_DOWNLOADS: Record<string, { label: string; icon: string; action: st
     { label: "PDF", icon: "📄", action: "pdf" },
     { label: "PNG", icon: "🖼️", action: "png" },
   ],
-  quiz: [{ label: "PDF", icon: "📄", action: "pdf" }],
+  quiz:     [{ label: "PDF", icon: "📄", action: "pdf" }],
   timeline: [
     { label: "PNG", icon: "🖼️", action: "png" },
     { label: "PDF", icon: "📄", action: "pdf" },
@@ -50,9 +50,9 @@ const FORMAT_DOWNLOADS: Record<string, { label: string; icon: string; action: st
 
 export default function DownloadBar({ format, data, title, accentColor = "#3b82f6" }: DownloadBarProps) {
   const [downloading, setDownloading] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
-  const [playing, setPlaying] = useState(false)
-  const [progress, setProgress] = useState("")
+  const [success, setSuccess]         = useState<string | null>(null)
+  const [playing, setPlaying]         = useState(false)
+  const [progress, setProgress]       = useState("")
   const cancelRef = useRef(false)
 
   const downloads = FORMAT_DOWNLOADS[format] || []
@@ -118,32 +118,49 @@ export default function DownloadBar({ format, data, title, accentColor = "#3b82f
 
   if (downloads.length === 0) return null
 
+  // ── Solo el return cambió ────────────────────────────────────────────────────
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-gray-600 text-xs font-semibold tracking-wide mr-1">DESCARGAR:</span>
+
+        {/* Label */}
+        <span className="text-gray-600 text-[11px] font-semibold tracking-widest uppercase mr-1">
+          ↓ Exportar
+        </span>
 
         {downloads.map((d) => {
           const isStoppable = (d.action === "play" && playing) || (d.action === "mp3" && downloading === "mp3")
+          const isActive    = downloading === d.action
+          const isDone      = success === d.action
 
           return (
             <button
               key={d.action}
               onClick={() => (isStoppable ? handleStop() : handleDownload(d.action))}
               disabled={downloading !== null && downloading !== d.action && !isStoppable}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all ${
-                isStoppable
-                  ? "bg-red-500/10 border-red-500/30 text-red-400"
-                  : success === d.action
-                  ? "bg-green-500/10 border-green-500/30 text-green-400"
-                  : downloading === d.action
-                  ? "bg-blue-500/10 border-blue-500/30 text-blue-400"
-                  : "bg-white/[0.04] border-white/[0.08] text-gray-400 hover:bg-white/[0.08] hover:text-white hover:border-white/15"
-              } disabled:opacity-40`}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all disabled:opacity-40"
+              style={{
+                background:  isStoppable ? "rgba(239,68,68,0.08)"
+                           : isDone      ? "rgba(16,185,129,0.08)"
+                           : isActive    ? "rgba(59,130,246,0.08)"
+                           : "rgba(255,255,255,0.03)",
+                borderColor: isStoppable ? "rgba(239,68,68,0.25)"
+                           : isDone      ? "rgba(16,185,129,0.25)"
+                           : isActive    ? "rgba(59,130,246,0.25)"
+                           : "rgba(255,255,255,0.08)",
+                color:       isStoppable ? "#f87171"
+                           : isDone      ? "#6ee7b7"
+                           : isActive    ? "#93c5fd"
+                           : "#9ca3af",
+              }}
             >
-              {downloading === d.action && !isStoppable ? (
-                <span className="w-3 h-3 rounded-full border border-gray-500 border-t-blue-400 animate-spin" />
-              ) : success === d.action ? (
+              {/* Ícono / spinner */}
+              {isActive && !isStoppable ? (
+                <span
+                  className="w-3 h-3 rounded-full border-2 animate-spin"
+                  style={{ borderColor: "rgba(59,130,246,0.2)", borderTopColor: "#60a5fa" }}
+                />
+              ) : isDone ? (
                 <span>✅</span>
               ) : isStoppable ? (
                 <span>⏹️</span>
@@ -151,7 +168,10 @@ export default function DownloadBar({ format, data, title, accentColor = "#3b82f
                 <span>{d.icon}</span>
               )}
 
-              {isStoppable ? "Detener" : downloading === d.action ? progress || "Generando..." : d.label}
+              {/* Label — igual que antes */}
+              {isStoppable    ? "Detener"
+               : isActive     ? progress || "Generando..."
+               : d.label}
             </button>
           )
         })}
@@ -279,19 +299,16 @@ async function playWithSpeechAPI(
       await new Promise<void>((resolve) => {
         const u = new SpeechSynthesisUtterance(part)
         u.voice = seg?.speaker === "A" ? voiceA : voiceB
-        u.lang = "es-ES"
-        u.rate = seg?.speaker === "A" ? 0.95 : 1.0
-        u.pitch = seg?.speaker === "A" ? 0.9 : 1.1
+        u.lang  = "es-ES"
+        u.rate  = seg?.speaker === "A" ? 0.95 : 1.0
+        u.pitch = seg?.speaker === "A" ? 0.9  : 1.1
         u.volume = 1.0
 
         let done = false
         const finish = () => {
-          if (!done) {
-            done = true
-            resolve()
-          }
+          if (!done) { done = true; resolve() }
         }
-        u.onend = finish
+        u.onend   = finish
         u.onerror = finish
         setTimeout(finish, 30000)
 
