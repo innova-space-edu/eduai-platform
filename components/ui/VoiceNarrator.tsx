@@ -67,6 +67,35 @@ function splitForNarration(text: string) {
   }
 }
 
+// ── Waveform animado (solo visual, no afecta lógica) ─────────────────────────
+function WaveformBars({ active }: { active: boolean }) {
+  const heights = [3, 5, 4, 6, 3, 5, 4]
+  return (
+    <div className="flex items-center gap-[3px] h-4">
+      {heights.map((h, i) => (
+        <div
+          key={i}
+          className="w-[3px] rounded-full"
+          style={{
+            height: active ? `${h * 2.5}px` : "3px",
+            background: active ? "#60a5fa" : "rgba(148,163,184,0.3)",
+            transition: `height 0.15s ease ${i * 0.05}s`,
+            animation: active
+              ? `waveBar 0.7s ease-in-out ${i * 0.1}s infinite alternate`
+              : "none",
+          }}
+        />
+      ))}
+      <style>{`
+        @keyframes waveBar {
+          from { transform: scaleY(0.4); }
+          to   { transform: scaleY(1); }
+        }
+      `}</style>
+    </div>
+  )
+}
+
 export default function VoiceNarrator({ text, autoPlay = false, addMotivation = false }: Props) {
   const [loading, setLoading] = useState(false)
   const [playing, setPlaying] = useState(false)
@@ -179,7 +208,7 @@ export default function VoiceNarrator({ text, autoPlay = false, addMotivation = 
 
       const audio = new Audio(url)
       audioRef.current = audio
-      audio.onplay = () => setPlaying(true)
+      audio.onplay  = () => setPlaying(true)
       audio.onended = () => setPlaying(false)
       audio.onpause = () => setPlaying(false)
 
@@ -203,16 +232,45 @@ export default function VoiceNarrator({ text, autoPlay = false, addMotivation = 
     }
   }
 
+  // ── Solo el return cambió ──────────────────────────────────────────────────
   return (
-    <div className="flex items-center gap-2 mt-3 flex-wrap">
+    <div className="flex items-center gap-3 mt-3 flex-wrap">
+
+      {/* Botón player */}
       <button
         onClick={playing ? stop : () => void speak()}
         disabled={loading}
-        className="px-3 py-1.5 rounded-full text-xs font-medium transition-colors bg-blue-600/20 border border-blue-500/30 text-blue-300 hover:bg-blue-600/30 disabled:opacity-60"
+        className="flex items-center gap-2.5 px-3.5 py-2 rounded-2xl border transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        style={{
+          background:  playing ? "rgba(239,68,68,0.08)"  : "rgba(59,130,246,0.08)",
+          borderColor: playing ? "rgba(239,68,68,0.2)"   : "rgba(59,130,246,0.2)",
+        }}
       >
-        {loading ? "Generando voz..." : playing ? "⏹ Detener narración" : "🔊 Escuchar narración"}
+        {/* Spinner o ícono */}
+        {loading ? (
+          <span
+            className="w-3.5 h-3.5 rounded-full border-2 animate-spin"
+            style={{ borderColor: "rgba(59,130,246,0.2)", borderTopColor: "#60a5fa" }}
+          />
+        ) : (
+          <span className="text-sm leading-none" style={{ color: playing ? "#f87171" : "#93c5fd" }}>
+            {playing ? "⏹" : "▶"}
+          </span>
+        )}
+
+        {/* Waveform animado */}
+        <WaveformBars active={playing} />
+
+        {/* Texto del botón */}
+        <span
+          className="text-xs font-medium"
+          style={{ color: playing ? "#f87171" : "#93c5fd" }}
+        >
+          {loading ? "Generando voz..." : playing ? "Detener narración" : "Escuchar narración"}
+        </span>
       </button>
 
+      {/* Info voces — igual que antes */}
       <span className="text-[11px] text-gray-500">
         Voz A: Álvaro · Voz B: Elvira
       </span>
