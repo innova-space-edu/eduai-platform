@@ -1,6 +1,8 @@
 "use client"
+
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { ArrowLeft } from "lucide-react"
 
 interface Props {
   icon: string
@@ -12,27 +14,40 @@ interface Props {
 
 export default function AgentHeader({ icon, name, desc, gradient, extra }: Props) {
   const router = useRouter()
+
   return (
-    <div className="border-b border-gray-800 bg-gray-900/80 backdrop-blur-sm sticky top-0 z-10">
-      <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+    <header className="sticky top-0 z-20 border-b border-white/[0.06] bg-gray-950/80 backdrop-blur-xl">
+      <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+
+        {/* Left: back + icon + title */}
+        <div className="flex items-center gap-3 min-w-0">
           <button
             onClick={() => router.back()}
-            className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition-all text-sm"
-            title="Volver"
+            className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/[0.04] border border-white/[0.06] text-gray-400 hover:text-white hover:bg-white/[0.08] hover:border-white/[0.1] transition-all flex-shrink-0"
+            aria-label="Volver"
           >
-            ←
+            <ArrowLeft size={15} strokeWidth={2} />
           </button>
-          <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center text-lg`}>
+
+          {/* Icon pill */}
+          <div className={`w-9 h-9 rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center text-lg shadow-md flex-shrink-0`}>
             {icon}
           </div>
-          <div>
-            <h1 className="text-white font-semibold text-sm">{name}</h1>
-            <p className="text-gray-500 text-xs">{desc}</p>
+
+          {/* Title */}
+          <div className="min-w-0">
+            <h1 className="text-white font-semibold text-sm leading-tight truncate">{name}</h1>
+            <p className="text-gray-500 text-xs truncate">{desc}</p>
           </div>
         </div>
-        {extra}
+
+        {/* Right: extra actions */}
+        {extra && (
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {extra}
+          </div>
+        )}
       </div>
-    </div>
+    </header>
   )
 }
