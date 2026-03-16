@@ -1,5 +1,3 @@
-
-
 "use client"
 
 import { useEffect, useState, useRef } from "react"
@@ -17,194 +15,135 @@ import VisualBlock from "./VisualBlock"
 import AchievementToast from "@/components/ui/AchievementToast"
 import { useAchievements } from "@/hooks/useAchievements"
 
-interface Suggestion { id: number; title: string; description: string; emoji: string }
+// ── Tipos IDÉNTICOS al original ───────────────────────────────────────────────
+interface Suggestion  { id: number; title: string; description: string; emoji: string }
 interface ChatMessage { role: "ai" | "user"; content: string }
-interface StudyType { id: string; label: string; description: string; emoji: string }
-interface QuizResult { question: string; userAnswer: string; correct: string; isCorrect: boolean; feedback: string }
-
-interface Props { topic: string; subtopic: string | null; level: number; initialXP: number }
+interface StudyType   { id: string; label: string; description: string; emoji: string }
+interface QuizResult  { question: string; userAnswer: string; correct: string; isCorrect: boolean; feedback: string }
+interface Props        { topic: string; subtopic: string | null; level: number; initialXP: number }
 
 const STUDY_TYPES: StudyType[] = [
-  { id: "theory",    label: "Teoría",     description: "Explicación del concepto",    emoji: "📖" },
-  { id: "examples",  label: "Ejemplos",   description: "Casos resueltos paso a paso", emoji: "🔢" },
-  { id: "exercises", label: "Ejercicios", description: "Practica con problemas",      emoji: "✏️" },
-  { id: "summary",   label: "Resumen",    description: "Puntos clave en poco tiempo", emoji: "⚡" },
-  { id: "socratic",  label: "Sócrates",   description: "Descubre la respuesta tú mismo", emoji: "🏛️" },
+  { id: "theory",    label: "Teoría",     description: "Explicación del concepto",        emoji: "📖" },
+  { id: "examples",  label: "Ejemplos",   description: "Casos resueltos paso a paso",     emoji: "🔢" },
+  { id: "exercises", label: "Ejercicios", description: "Practica con problemas",          emoji: "✏️" },
+  { id: "summary",   label: "Resumen",    description: "Puntos clave en poco tiempo",     emoji: "⚡" },
+  { id: "socratic",  label: "Sócrates",   description: "Descubre la respuesta tú mismo",  emoji: "🏛️" },
 ]
-
-
 
 export default function StudyClient({ topic, subtopic, level, initialXP }: Props) {
   const router = useRouter()
 
-  const [step, setStep] = useState<"suggest" | "type" | "study" | "quiz" | "results">(
-    subtopic ? "type" : "suggest"
-  )
-  const [selectedSubtopic, setSelectedSubtopic] = useState(subtopic || "")
-  const [selectedType, setSelectedType] = useState("")
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([])
+  // ── State IDÉNTICO al original ────────────────────────────────────────────
+  const [step,               setStep]               = useState<"suggest"|"type"|"study"|"quiz"|"results">(subtopic ? "type" : "suggest")
+  const [selectedSubtopic,   setSelectedSubtopic]   = useState(subtopic || "")
+  const [selectedType,       setSelectedType]       = useState("")
+  const [suggestions,        setSuggestions]        = useState<Suggestion[]>([])
   const [loadingSuggestions, setLoadingSuggestions] = useState(false)
-  const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [streaming, setStreaming] = useState(false)
-  const [userInput, setUserInput] = useState("")
+  const [messages,           setMessages]           = useState<ChatMessage[]>([])
+  const [streaming,          setStreaming]          = useState(false)
+  const [userInput,          setUserInput]          = useState("")
   const [suggestedFollowups, setSuggestedFollowups] = useState<string[]>([])
-  const [quizResults, setQuizResults] = useState<QuizResult[]>([])
-  const [quizXP, setQuizXP] = useState(0)
-  const [currentXP, setCurrentXP] = useState<number | null>(initialXP)
-  const [currentLevel, setCurrentLevel] = useState(level)
-  const [error, setError] = useState("")
+  const [quizResults,        setQuizResults]        = useState<QuizResult[]>([])
+  const [quizXP,             setQuizXP]             = useState(0)
+  const [currentXP,          setCurrentXP]          = useState<number | null>(initialXP)
+  const [currentLevel,       setCurrentLevel]       = useState(level)
+  const [error,              setError]              = useState("")
   const bottomRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const inputRef  = useRef<HTMLInputElement>(null)
 
   const { session, completeSession } = useStudySession(topic, selectedType || "normal")
   const { pending: achievementsPending, checkAchievements, dismiss: dismissAchievement } = useAchievements()
-  const { events: xpEvents, gainXP } = useXP((newXP, newLevel) => {
-    setCurrentXP(newXP)
-    setCurrentLevel(newLevel)
+  const { events: xpEvents, gainXP }  = useXP((newXP, newLevel) => {
+    setCurrentXP(newXP); setCurrentLevel(newLevel)
   })
 
-  useEffect(() => {
-    if (step === "suggest") loadSuggestions()
-  }, [])
+  useEffect(() => { if (step === "suggest") loadSuggestions() }, [])
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }) }, [messages, streaming])
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages, streaming])
-
+  // ── Toda la lógica IDÉNTICA al original ──────────────────────────────────
   async function loadSuggestions() {
     setLoadingSuggestions(true)
     try {
-      const res = await fetch("/api/agents/suggest", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res  = await fetch("/api/agents/suggest", {
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ topic }),
       })
       const data = await res.json()
       setSuggestions(data.suggestions || [])
-    } catch (e: any) {
-      setError(e.message)
-    } finally {
-      setLoadingSuggestions(false)
-    }
+    } catch (e: any) { setError(e.message) }
+    finally { setLoadingSuggestions(false) }
   }
 
   function selectSubtopic(title: string) {
-    setSelectedSubtopic(title)
-    setStep("type")
+    setSelectedSubtopic(title); setStep("type")
   }
 
   function selectType(typeId: string) {
-    setSelectedType(typeId)
-    setStep("study")
+    setSelectedType(typeId); setStep("study")
     const typeLabel = STUDY_TYPES.find(t => t.id === typeId)?.label || typeId
     sendMessage(`Quiero aprender sobre "${selectedSubtopic}" — modo: ${typeLabel}`, [], true)
-    // XP por iniciar sesión
     gainXP(5, "sesión iniciada")
   }
 
   async function sendMessage(userText: string, history: ChatMessage[], isFirst = false) {
     const recentHistory = history.slice(-2)
-
-    if (!isFirst) {
-      setMessages(prev => [...prev, { role: "user", content: userText }])
-    }
-
-    setStreaming(true)
-    setSuggestedFollowups([])
+    if (!isFirst) setMessages(prev => [...prev, { role: "user", content: userText }])
+    setStreaming(true); setSuggestedFollowups([])
     setMessages(prev => [...prev, { role: "ai", content: "" }])
-
     try {
       const isSocratic = selectedType === "socratic"
       const res = await fetch(isSocratic ? "/api/agents/socratic" : "/api/agents/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          topic: selectedSubtopic || topic,
-          studyType: selectedType,
-          userMessage: userText,
-          history: recentHistory,
-          level: currentLevel,
+          topic: selectedSubtopic || topic, studyType: selectedType,
+          userMessage: userText, history: recentHistory, level: currentLevel,
         }),
       })
-
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
-
-      const reader = res.body?.getReader()
+      const reader  = res.body?.getReader()
       const decoder = new TextDecoder()
       if (!reader) return
-
       let buffer = ""
-
       while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
+        const { done, value } = await reader.read(); if (done) break
         buffer += decoder.decode(value)
-
         const splitMarker = "\n---FOLLOWUPS---\n"
         let aiContent = buffer
-
         if (buffer.includes(splitMarker)) {
-          const parts = buffer.split(splitMarker)
-          aiContent = parts[0]
+          const parts = buffer.split(splitMarker); aiContent = parts[0]
           try { setSuggestedFollowups(JSON.parse(parts[1])) } catch {}
         }
-
         setMessages(prev => {
           const updated = [...prev]
           updated[updated.length - 1] = { role: "ai", content: aiContent }
           return updated
         })
       }
-
-      // XP por cada intercambio
       if (!isFirst) { gainXP(5, "pregunta respondida"); checkAchievements() }
-
-    } catch (e: any) {
-      setError(e.message)
-    } finally {
-      setStreaming(false)
-    }
+    } catch (e: any) { setError(e.message) }
+    finally { setStreaming(false) }
   }
 
   function handleUserSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!userInput.trim() || streaming) return
-    const text = userInput.trim()
-    setUserInput("")
+    const text = userInput.trim(); setUserInput("")
     sendMessage(text, messages)
   }
 
   async function handleQuizFinish(results: QuizResult[], xp: number) {
-    setQuizResults(results)
-    setQuizXP(xp)
-    setStep("results")
+    setQuizResults(results); setQuizXP(xp); setStep("results")
     const correct = results.filter(r => r.isCorrect).length
     await completeSession(correct, results.length, currentLevel, xp)
-    if (xp > 0) gainXP(xp, "quiz completado")
-    checkAchievements()
-
-    // Actualizar misiones
+    if (xp > 0) gainXP(xp, "quiz completado"); checkAchievements()
     fetch("/api/missions", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ event: "quiz_completed" }) }).catch(console.error)
     fetch("/api/missions", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ event: "session_completed" }) }).catch(console.error)
-
-    // Registrar en repaso espaciado
     const score = Math.round((results.filter(r => r.isCorrect).length / results.length) * 100)
-
-    // Guardar memoria larga
-    fetch("/api/memory", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ topic: selectedSubtopic || topic, messages, quizResults: results }),
-    }).catch(console.error)
-
-    fetch("/api/spaced-repetition", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ topic: selectedSubtopic || topic, score }),
-    }).catch(console.error)
+    fetch("/api/memory",            { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ topic: selectedSubtopic || topic, messages, quizResults: results }) }).catch(console.error)
+    fetch("/api/spaced-repetition", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ topic: selectedSubtopic || topic, score }) }).catch(console.error)
   }
 
-  // ── PASO 1: Sugerencias ───────────────────────────────────
+  // ── PASO 1: Sugerencias ───────────────────────────────────────────────────
   if (step === "suggest") {
     return (
       <div className="max-w-4xl mx-auto px-6 py-12">
@@ -216,36 +155,46 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
 
         {loadingSuggestions ? (
           <div className="flex flex-col items-center gap-4 py-16">
-            <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            <div className="w-10 h-10 rounded-full border-2 border-white/10 border-t-blue-400 animate-spin" />
             <p className="text-gray-500 text-sm">Preparando opciones...</p>
           </div>
         ) : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {suggestions.map((s) => (
+              {suggestions.map(s => (
                 <button key={s.id} onClick={() => selectSubtopic(s.title)}
-                  className="bg-gray-900 border border-gray-800 hover:border-blue-500 hover:bg-gray-800/80 rounded-2xl p-6 text-left transition-all group">
+                  className="rounded-2xl p-6 text-left transition-all group border"
+                  style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.07)" }}
+                  onMouseEnter={e => {
+                    ;(e.currentTarget as HTMLElement).style.background   = "rgba(59,130,246,0.06)"
+                    ;(e.currentTarget as HTMLElement).style.borderColor  = "rgba(59,130,246,0.2)"
+                  }}
+                  onMouseLeave={e => {
+                    ;(e.currentTarget as HTMLElement).style.background   = "rgba(255,255,255,0.02)"
+                    ;(e.currentTarget as HTMLElement).style.borderColor  = "rgba(255,255,255,0.07)"
+                  }}>
                   <div className="text-3xl mb-3">{s.emoji}</div>
                   <h4 className="text-white font-semibold text-lg mb-1 group-hover:text-blue-400 transition-colors">{s.title}</h4>
                   <p className="text-gray-500 text-sm">{s.description}</p>
                 </button>
               ))}
             </div>
-            <div className="mt-6">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="O escribe tu propio subtema..."
-                  className="w-full bg-gray-900 border border-gray-800 focus:border-blue-500 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none transition-colors text-sm"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && e.currentTarget.value.trim()) {
-                      selectSubtopic(e.currentTarget.value.trim())
-                    }
-                  }}
-                />
-                <span className="absolute right-4 top-3 text-gray-600 text-xs">Enter ↵</span>
-              </div>
+
+            <div className="mt-6 relative">
+              <input
+                type="text"
+                placeholder="O escribe tu propio subtema..."
+                className="w-full rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none transition-all text-sm"
+                style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
+                onFocus={e  => (e.target as HTMLElement).style.borderColor = "rgba(59,130,246,0.4)"}
+                onBlur={e   => (e.target as HTMLElement).style.borderColor = "rgba(255,255,255,0.08)"}
+                onKeyDown={e => {
+                  if (e.key === "Enter" && e.currentTarget.value.trim()) selectSubtopic(e.currentTarget.value.trim())
+                }}
+              />
+              <span className="absolute right-4 top-3.5 text-gray-600 text-xs">Enter ↵</span>
             </div>
+
             <div className="text-center mt-4">
               <button onClick={() => selectSubtopic(topic)}
                 className="text-gray-500 hover:text-gray-300 text-sm underline transition-colors">
@@ -258,7 +207,7 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
     )
   }
 
-  // ── PASO 2: Tipo de estudio ───────────────────────────────
+  // ── PASO 2: Tipo de estudio ───────────────────────────────────────────────
   if (step === "type") {
     return (
       <div className="max-w-4xl mx-auto px-6 py-12">
@@ -267,16 +216,27 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
           <h2 className="text-3xl font-bold text-white mb-2">{selectedSubtopic}</h2>
           <p className="text-gray-500 text-sm">¿Qué tipo de contenido quieres?</p>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {STUDY_TYPES.map((t) => (
+
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          {STUDY_TYPES.map(t => (
             <button key={t.id} onClick={() => selectType(t.id)}
-              className="bg-gray-900 border border-gray-800 hover:border-blue-500 hover:bg-gray-800/80 rounded-2xl p-6 text-center transition-all group">
+              className="rounded-2xl p-5 text-center transition-all group border"
+              style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.07)" }}
+              onMouseEnter={e => {
+                ;(e.currentTarget as HTMLElement).style.background   = "rgba(59,130,246,0.06)"
+                ;(e.currentTarget as HTMLElement).style.borderColor  = "rgba(59,130,246,0.2)"
+              }}
+              onMouseLeave={e => {
+                ;(e.currentTarget as HTMLElement).style.background   = "rgba(255,255,255,0.02)"
+                ;(e.currentTarget as HTMLElement).style.borderColor  = "rgba(255,255,255,0.07)"
+              }}>
               <div className="text-4xl mb-3">{t.emoji}</div>
               <h4 className="text-white font-semibold mb-1 group-hover:text-blue-400 transition-colors">{t.label}</h4>
               <p className="text-gray-500 text-xs">{t.description}</p>
             </button>
           ))}
         </div>
+
         <div className="text-center mt-8">
           <button onClick={() => setStep("suggest")}
             className="text-gray-600 hover:text-gray-400 text-sm underline transition-colors">
@@ -287,7 +247,7 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
     )
   }
 
-  // ── PASO 3: Quiz ──────────────────────────────────────────
+  // ── PASO 3: Quiz ──────────────────────────────────────────────────────────
   if (step === "quiz") {
     return (
       <>
@@ -304,7 +264,7 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
     )
   }
 
-  // ── PASO 4: Resultados ────────────────────────────────────
+  // ── PASO 4: Resultados ────────────────────────────────────────────────────
   if (step === "results") {
     return (
       <QuizResults
@@ -317,7 +277,7 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
     )
   }
 
-  // ── PASO 5: Conversación ──────────────────────────────────
+  // ── PASO 5: Conversación ──────────────────────────────────────────────────
   return (
     <>
       <XPToast events={xpEvents} />
@@ -332,6 +292,8 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
           showEvaluate={messages.length >= 1 && !streaming}
           onEvaluate={() => setStep("quiz")}
         />
+
+        {/* Breadcrumb + XP */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2 text-xs text-gray-600">
             <button onClick={() => setStep("suggest")} className="hover:text-gray-400 transition-colors">{topic}</button>
@@ -340,17 +302,15 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
             <span>→</span>
             <span className="text-blue-400">{STUDY_TYPES.find(t => t.id === selectedType)?.label}</span>
           </div>
-
           <div className="flex items-center gap-3">
-            {/* XP actual */}
             {currentXP !== null && (
               <span className="text-amber-400 text-xs font-medium">⚡ {currentXP} XP</span>
             )}
-            {/* Botón Evalúame */}
             {messages.length >= 1 && !streaming && (
               <button
                 onClick={() => setStep("quiz")}
-                className="bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold px-4 py-2 rounded-full transition-colors"
+                className="text-white text-xs font-semibold px-4 py-2 rounded-full transition-all"
+                style={{ background: "linear-gradient(135deg, #7c3aed, #8b5cf6)", boxShadow: "0 2px 8px rgba(124,58,237,0.3)" }}
               >
                 🎯 Evalúame
               </button>
@@ -370,18 +330,10 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
                   </div>
                   <MathRenderer content={msg.content} />
                   {!streaming && i === messages.length - 1 && msg.role === "ai" && msg.content && (
-                    <VisualBlock
-                      topic={selectedSubtopic || topic}
-                      context={msg.content}
-                    />
+                    <VisualBlock topic={selectedSubtopic || topic} context={msg.content} />
                   )}
-
                   {!streaming && msg.content && (
-                  <VoiceNarrator
-                    text={msg.content}
-                    autoPlay={i === messages.length - 1}
-                    addMotivation={i === messages.length - 1}
-                  />
+                    <VoiceNarrator text={msg.content} autoPlay={i === messages.length - 1} addMotivation={i === messages.length - 1} />
                   )}
                   {streaming && i === messages.length - 1 && (
                     <span className="inline-block w-0.5 h-5 bg-blue-400 animate-pulse ml-1 align-middle" />
@@ -389,7 +341,7 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
                 </div>
               ) : (
                 <div className="flex justify-end">
-                  <div className="bg-blue-600/20 border border-blue-600/30 rounded-2xl rounded-tr-sm px-4 py-3 max-w-lg">
+                  <div className="chat-bubble-user max-w-lg">
                     <p className="text-gray-200 text-sm text-left">{msg.content}</p>
                   </div>
                 </div>
@@ -405,7 +357,18 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
             <div className="flex flex-wrap gap-2">
               {suggestedFollowups.map((f, i) => (
                 <button key={i} onClick={() => sendMessage(f, messages)}
-                  className="bg-gray-800 hover:bg-gray-700 border border-gray-700 hover:border-blue-500 text-gray-300 hover:text-white text-sm px-4 py-2 rounded-full transition-all">
+                  className="text-sm px-4 py-2 rounded-full transition-all"
+                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "#d1d5db" }}
+                  onMouseEnter={e => {
+                    ;(e.currentTarget as HTMLElement).style.background   = "rgba(59,130,246,0.08)"
+                    ;(e.currentTarget as HTMLElement).style.borderColor  = "rgba(59,130,246,0.2)"
+                    ;(e.currentTarget as HTMLElement).style.color        = "#fff"
+                  }}
+                  onMouseLeave={e => {
+                    ;(e.currentTarget as HTMLElement).style.background   = "rgba(255,255,255,0.04)"
+                    ;(e.currentTarget as HTMLElement).style.borderColor  = "rgba(255,255,255,0.08)"
+                    ;(e.currentTarget as HTMLElement).style.color        = "#d1d5db"
+                  }}>
                   {f}
                 </button>
               ))}
@@ -416,7 +379,7 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
         <SummaryDownload topic={selectedSubtopic || topic} messages={messages} quizResults={quizResults} />
 
         {error && (
-          <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-4">
+          <div className="rounded-xl p-4 mb-4 border border-red-500/25" style={{ background: "rgba(239,68,68,0.08)" }}>
             <p className="text-red-400 text-sm">{error}</p>
           </div>
         )}
@@ -428,12 +391,16 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
               ref={inputRef}
               type="text"
               value={userInput}
-              onChange={(e) => setUserInput(e.target.value)}
+              onChange={e => setUserInput(e.target.value)}
               placeholder="Escribe tu pregunta o duda..."
-              className="flex-1 bg-gray-900 border border-gray-700 focus:border-blue-500 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none transition-colors text-sm"
+              className="flex-1 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none transition-all text-sm"
+              style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.10)" }}
+              onFocus={e => (e.target as HTMLElement).style.borderColor = "rgba(59,130,246,0.4)"}
+              onBlur={e  => (e.target as HTMLElement).style.borderColor = "rgba(255,255,255,0.10)"}
             />
             <button type="submit" disabled={!userInput.trim()}
-              className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-800 disabled:text-gray-600 text-white px-5 py-3 rounded-xl transition-colors text-sm font-medium">
+              className="px-5 py-3 rounded-xl text-sm font-medium text-white transition-all disabled:opacity-40"
+              style={{ background: "#2563eb" }}>
               Enviar →
             </button>
           </form>
