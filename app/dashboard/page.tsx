@@ -8,7 +8,8 @@ import MissionsPanel from "./MissionsPanel"
 import {
   Bot, BookOpen, Image, Trophy, MessageCircle, Users,
   Sparkles, UserCircle2, LogOut, ChevronRight, ChevronLeft,
-  Flame, Zap, BookMarked, BarChart3, Search
+  Flame, Zap, BookMarked, BarChart3, Search,
+  Mic, ImagePlus, FolderKanban
 } from "lucide-react"
 
 const LEVELS = [
@@ -21,14 +22,18 @@ const LEVELS = [
 ]
 
 const NAV_LINKS = [
-  { href: "/agentes",  icon: Bot,         label: "Agentes",   color: "#3b82f6" },
-  { href: "/sessions", icon: BookOpen,    label: "Sesiones",  color: "#8b5cf6" },
-  { href: "/galeria",  icon: Image,       label: "Galería",   color: "#ec4899" },
-  { href: "/ranking",  icon: Trophy,      label: "Ranking",   color: "#f59e0b" },
-  { href: "/chat",     icon: MessageCircle,label: "Chat",     color: "#10b981" },
-  { href: "/collab",   icon: Users,       label: "Colaborar", color: "#14b8a6" },
-  { href: "/creator",  icon: Sparkles,    label: "Creator",   color: "#a78bfa" },
-  { href: "/profile",  icon: UserCircle2, label: "Perfil",    color: "#94a3b8" },
+  { href: "/agentes",      icon: Bot,          label: "Agentes",      color: "#3b82f6" },
+  { href: "/sessions",     icon: BookOpen,     label: "Sesiones",     color: "#8b5cf6" },
+  { href: "/galeria",      icon: Image,        label: "Galería",      color: "#ec4899" },
+  { href: "/ranking",      icon: Trophy,       label: "Ranking",      color: "#f59e0b" },
+  { href: "/chat",         icon: MessageCircle,label: "Chat",         color: "#10b981" },
+  { href: "/collab",       icon: Users,        label: "Colaborar",    color: "#14b8a6" },
+  { href: "/creator",      icon: Sparkles,     label: "Creator",      color: "#a78bfa" },
+  { href: "/creator-hub",  icon: Sparkles,     label: "Creator Hub",  color: "#6366f1" },
+  { href: "/audio-lab",    icon: Mic,          label: "Audio Lab",    color: "#8b5cf6" },
+  { href: "/image-studio", icon: ImagePlus,    label: "Image Studio", color: "#db2777" },
+  { href: "/workspace",    icon: FolderKanban, label: "Workspace",    color: "#4338ca" },
+  { href: "/profile",      icon: UserCircle2,  label: "Perfil",       color: "#94a3b8" },
 ]
 
 const LEVEL_COLORS = [
