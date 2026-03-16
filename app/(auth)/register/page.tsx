@@ -4,16 +4,18 @@ import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { Zap, User, Mail, Lock, Eye, EyeOff, AlertCircle } from "lucide-react"
 
 export default function RegisterPage() {
-  const [name, setName] = useState("")
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [error, setError] = useState("")
-  const [loading, setLoading] = useState(false)
+  const [name,             setName]             = useState("")
+  const [email,            setEmail]            = useState("")
+  const [password,         setPassword]         = useState("")
+  const [showPass,         setShowPass]         = useState(false)
+  const [error,            setError]            = useState("")
+  const [loading,          setLoading]          = useState(false)
   const [registrationOpen, setRegistrationOpen] = useState(true)
-  const [userCount, setUserCount] = useState(0)
-  const router = useRouter()
+  const [userCount,        setUserCount]        = useState(0)
+  const router   = useRouter()
   const supabase = createClient()
 
   useEffect(() => {
@@ -22,7 +24,6 @@ export default function RegisterPage() {
         .from("platform_config")
         .select("key, value")
         .in("key", ["registration_open", "current_users", "max_users"])
-
       if (data) {
         const config = Object.fromEntries(data.map((r) => [r.key, r.value]))
         setRegistrationOpen(config.registration_open === "true")
@@ -34,50 +35,32 @@ export default function RegisterPage() {
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault()
-    setLoading(true)
-    setError("")
+    setLoading(true); setError("")
 
     if (!registrationOpen) {
       setError("La plataforma ha alcanzado su capacidad máxima de 200 usuarios.")
-      setLoading(false)
-      return
+      setLoading(false); return
     }
-
     if (password.length < 6) {
       setError("La contraseña debe tener al menos 6 caracteres")
-      setLoading(false)
-      return
+      setLoading(false); return
     }
 
     const { data: signUpData, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { name } },
+      email, password, options: { data: { name } },
     })
 
-    if (error) {
-      setError(error.message)
-      setLoading(false)
-      return
-    }
+    if (error) { setError(error.message); setLoading(false); return }
 
-    // Crear perfil explícitamente con user_code único
     if (signUpData.user) {
-      const userCode = Math.random().toString(36).substring(2, 6).toUpperCase() +
-                       Math.random().toString(36).substring(2, 6).toUpperCase()
+      const userCode = (Math.random().toString(36).substring(2, 6) + Math.random().toString(36).substring(2, 6)).toUpperCase().slice(0, 8)
       await supabase.from("profiles").upsert({
-        id: signUpData.user.id,
-        name,
-        email,
-        user_code: userCode.slice(0, 8),
-        is_online: false,
-        last_seen: new Date().toISOString(),
-        created_at: new Date().toISOString(),
+        id: signUpData.user.id, name, email, user_code: userCode,
+        is_online: false, last_seen: new Date().toISOString(), created_at: new Date().toISOString(),
       }, { onConflict: "id" })
     }
 
-    router.push("/dashboard")
-    router.refresh()
+    router.push("/dashboard"); router.refresh()
   }
 
   // Capacidad llena
@@ -85,13 +68,10 @@ export default function RegisterPage() {
     return (
       <main className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
         <div className="w-full max-w-md text-center">
-          <h1 className="text-4xl font-bold text-blue-400 mb-4">EduAI</h1>
-          <div className="bg-gray-900 border border-red-500/30 rounded-2xl p-8">
-            <div className="text-red-400 text-5xl mb-4">⚠️</div>
+          <div className="rounded-2xl p-8 border border-red-500/25" style={{ background: "rgba(239,68,68,0.06)" }}>
+            <div className="text-5xl mb-4">⚠️</div>
             <h2 className="text-xl font-semibold text-white mb-2">Capacidad máxima alcanzada</h2>
-            <p className="text-gray-400 text-sm">
-              La plataforma ha alcanzado el límite de 200 usuarios. Contacta al administrador para más información.
-            </p>
+            <p className="text-gray-400 text-sm">La plataforma ha alcanzado el límite de 200 usuarios. Contacta al administrador.</p>
           </div>
         </div>
       </main>
@@ -99,92 +79,79 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <main className="min-h-screen bg-gray-950 flex flex-col items-center justify-center px-4 relative overflow-hidden">
+      {/* Glow de fondo */}
+      <div className="absolute inset-0 pointer-events-none"
+           style={{ background: "radial-gradient(ellipse at 50% 0%, rgba(139,92,246,0.06) 0%, transparent 70%)" }} />
 
+      <div className="w-full max-w-sm relative z-10 animate-fade-in">
+        {/* Logo */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-blue-400">EduAI</h1>
-          <p className="text-gray-400 mt-2">Tu tutor personal con IA</p>
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-4"
+               style={{ background: "linear-gradient(135deg, #7c3aed, #2563eb)", boxShadow: "0 8px 32px rgba(124,58,237,0.3)" }}>
+            <Zap size={28} className="text-white" />
+          </div>
+          <h1 className="text-3xl font-bold text-white">Edu<span className="text-blue-400">AI</span></h1>
+          <p className="text-gray-500 text-sm mt-1">Crea tu cuenta gratis</p>
         </div>
 
-        {/* Barra de capacidad */}
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 mb-4">
-          <div className="flex justify-between text-xs text-gray-400 mb-2">
-            <span>Usuarios registrados</span>
-            <span className={userCount >= 160 ? "text-amber-400" : "text-green-400"}>
-              {userCount} / 200
-            </span>
-          </div>
-          <div className="w-full bg-gray-800 rounded-full h-2">
-            <div
-              className={`h-2 rounded-full transition-all ${
-                userCount >= 160 ? "bg-amber-400" : "bg-green-500"
-              }`}
-              style={{ width: `${(userCount / 200) * 100}%` }}
-            />
-          </div>
-        </div>
-
-        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8">
-          <h2 className="text-xl font-semibold text-white mb-6">Crear cuenta</h2>
+        {/* Card */}
+        <div className="rounded-2xl p-6 border"
+             style={{ background: "rgba(255,255,255,0.03)", backdropFilter: "blur(20px)", borderColor: "rgba(255,255,255,0.08)", boxShadow: "0 24px 48px rgba(0,0,0,0.4)" }}>
+          <h2 className="text-xl font-bold text-white mb-6">Crear cuenta</h2>
 
           <form onSubmit={handleRegister} className="space-y-4">
+            {/* Nombre */}
             <div>
-              <label className="text-sm text-gray-400 mb-1 block">Nombre</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
-                placeholder="Tu nombre"
-              />
+              <label className="text-gray-400 text-sm mb-2 block font-medium">Nombre</label>
+              <div className="relative">
+                <User size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+                <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Tu nombre" required
+                  className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50 focus:bg-white/[0.06] transition-all text-sm" />
+              </div>
+            </div>
+            {/* Email */}
+            <div>
+              <label className="text-gray-400 text-sm mb-2 block font-medium">Email</label>
+              <div className="relative">
+                <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@email.com" required
+                  className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50 focus:bg-white/[0.06] transition-all text-sm" />
+              </div>
+            </div>
+            {/* Password */}
+            <div>
+              <label className="text-gray-400 text-sm mb-2 block font-medium">Contraseña</label>
+              <div className="relative">
+                <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+                <input type={showPass ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} placeholder="Mínimo 6 caracteres" required
+                  className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl pl-10 pr-10 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50 focus:bg-white/[0.06] transition-all text-sm" />
+                <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors">
+                  {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              </div>
             </div>
 
-            <div>
-              <label className="text-sm text-gray-400 mb-1 block">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
-                placeholder="tu@email.com"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm text-gray-400 mb-1 block">Contraseña</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
-                placeholder="Mínimo 6 caracteres"
-              />
-            </div>
-
+            {/* Error */}
             {error && (
-              <div className="bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3 text-red-400 text-sm">
-                {error}
+              <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl border border-red-500/20" style={{ background: "rgba(239,68,68,0.08)" }}>
+                <AlertCircle size={14} className="text-red-400 flex-shrink-0" />
+                <p className="text-red-400 text-sm">{error}</p>
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-blue-600/50 text-white font-semibold py-3 rounded-lg transition-colors"
-            >
-              {loading ? "Creando cuenta..." : "Crear cuenta"}
+            <button type="submit" disabled={loading}
+              className="w-full py-3 rounded-xl font-semibold text-white text-sm transition-all disabled:opacity-50"
+              style={{ background: "linear-gradient(135deg, #7c3aed, #6d28d9)", boxShadow: !loading ? "0 4px 16px rgba(124,58,237,0.3)" : "none" }}>
+              {loading
+                ? <span className="flex items-center justify-center gap-2"><span className="w-4 h-4 rounded-full border-2 border-purple-400/30 border-t-purple-400 animate-spin" />Creando cuenta...</span>
+                : "Crear cuenta"}
             </button>
           </form>
 
-          <p className="text-center text-gray-500 text-sm mt-6">
+          <p className="text-center text-gray-500 text-sm mt-5">
             ¿Ya tienes cuenta?{" "}
-            <Link href="/login" className="text-blue-400 hover:text-blue-300">
-              Inicia sesión
-            </Link>
+            <Link href="/login" className="text-blue-400 hover:text-blue-300 transition-colors font-medium">Inicia sesión</Link>
           </p>
         </div>
       </div>
