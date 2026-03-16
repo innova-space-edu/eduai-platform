@@ -126,6 +126,50 @@ const AGENTS = [
     href: "/creator",
     tag: "Creativo",
   },
+  {
+    id: "creator-hub",
+    icon: "🎨",
+    name: "Creator Hub",
+    description: "8 sub-agentes especializados: infografías, PPT, podcast, mapas mentales y más",
+    color: "from-violet-500 to-purple-600",
+    glow: "rgba(139,92,246,0.15)",
+    border: "rgba(139,92,246,0.2)",
+    href: "/creator-hub",
+    tag: "Creativo",
+  },
+  {
+    id: "audio-lab",
+    icon: "🎙️",
+    name: "Audio Lab",
+    description: "Transcribe audio y video con IA, edita y exporta en TXT, SRT y más",
+    color: "from-purple-500 to-fuchsia-600",
+    glow: "rgba(168,85,247,0.15)",
+    border: "rgba(168,85,247,0.2)",
+    href: "/audio-lab",
+    tag: "Creativo",
+  },
+  {
+    id: "image-studio",
+    icon: "🖼️",
+    name: "Image Studio",
+    description: "Genera imágenes con FLUX y SD, galería unificada con búsqueda y filtros",
+    color: "from-pink-500 to-rose-600",
+    glow: "rgba(236,72,153,0.15)",
+    border: "rgba(236,72,153,0.2)",
+    href: "/image-studio",
+    tag: "Creativo",
+  },
+  {
+    id: "workspace",
+    icon: "📁",
+    name: "Workspace",
+    description: "Organiza imágenes, transcripciones, presentaciones y más en proyectos",
+    color: "from-indigo-500 to-blue-600",
+    glow: "rgba(67,56,202,0.15)",
+    border: "rgba(67,56,202,0.2)",
+    href: "/workspace",
+    tag: "Organización",
+  },
 ]
 
 const TAGS = Array.from(new Set(AGENTS.map(a => a.tag)))
@@ -139,6 +183,7 @@ const TAG_STYLES: Record<string, { bg: string; text: string; border: string }> =
   "PDF":           { bg: "rgba(99,102,241,0.1)",   text: "#a5b4fc", border: "rgba(99,102,241,0.2)"  },
   "Evaluación":    { bg: "rgba(239,68,68,0.1)",    text: "#fca5a5", border: "rgba(239,68,68,0.2)"   },
   "Creativo":      { bg: "rgba(236,72,153,0.1)",   text: "#f9a8d4", border: "rgba(236,72,153,0.2)"  },
+  "Organización":  { bg: "rgba(67,56,202,0.1)",    text: "#a5b4fc", border: "rgba(67,56,202,0.2)"   },
 }
 
 export default function AgentesPage() {
