@@ -1,10 +1,25 @@
-// src/app/examen/p/[code]/page.tsx
+// app/examen/p/[code]/page.tsx
+// VERSIÓN CON MODO KIOSK — fullscreen forzado, cierre remoto por admin
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useCallback } from "react"
 import { useParams } from "next/navigation"
+import { createClient } from "@supabase/supabase-js"
 import ExamMathText from "@/components/ui/ExamMathText"
 
+// ── Supabase del PANEL DE CONTROL (para leer examenes_kiosk) ─────────────────
+// Estas vars deben estar en el .env.local de EduAI Platform:
+//   NEXT_PUBLIC_PANEL_SUPABASE_URL=https://iiuglkpkkfrjazewuknt.supabase.co
+//   NEXT_PUBLIC_PANEL_SUPABASE_ANON_KEY=tu_anon_key_del_panel
+const PANEL_URL = process.env.NEXT_PUBLIC_PANEL_SUPABASE_URL || ""
+const PANEL_KEY = process.env.NEXT_PUBLIC_PANEL_SUPABASE_ANON_KEY || ""
+
+function getPanelClient() {
+  if (!PANEL_URL || !PANEL_KEY) return null
+  return createClient(PANEL_URL, PANEL_KEY)
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 function calcGrade(s: number, e = 60) {
   const p = Math.max(0, Math.min(100, s))
   return Math.round((p >= e ? 4 + ((p - e) * 3) / (100 - e) : 1 + (p * 3) / e) * 10) / 10
@@ -35,29 +50,275 @@ function getQuestionMaxPoints(q: any) {
   return 1
 }
 
-type Phase = "loading" | "register" | "exam" | "submitting" | "review" | "error"
+type Phase = "loading" | "register" | "exam" | "submitting" | "review" | "error" | "kiosk_closed"
 
+// ── OVERLAY DE ADVERTENCIA (cuando intentan salir de fullscreen) ─────────────
+function KioskWarningOverlay({ onDismiss }: { onDismiss: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center">
+      <div className="text-center max-w-sm px-6">
+        <div className="text-6xl mb-4">🔒</div>
+        <h2 className="text-white text-xl font-bold mb-3">Examen en progreso</h2>
+        <p className="text-gray-400 text-sm mb-6">
+          No puedes salir del examen. La pantalla completa es obligatoria
+          durante la evaluación. Solo el docente o el tiempo pueden cerrar este examen.
+        </p>
+        <button
+          onClick={onDismiss}
+          className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-xl w-full"
+        >
+          Volver al examen
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── COMPONENTE PRINCIPAL ───────────────────────────────────────────────────────
 export default function ExamenPublicoPage() {
   const { code } = useParams() as { code: string }
 
-  const [phase, setPhase] = useState<Phase>("loading")
-  const [exam, setExam] = useState<any>(null)
+  const [phase, setPhase]     = useState<Phase>("loading")
+  const [exam, setExam]       = useState<any>(null)
   const [errorMsg, setErrorMsg] = useState("")
 
-  const [name, setName] = useState("")
+  const [name, setName]     = useState("")
   const [course, setCourse] = useState("")
-  const [rut, setRut] = useState("")
+  const [rut, setRut]       = useState("")
 
-  const [curQ, setCurQ] = useState(0)
+  const [curQ, setCurQ]         = useState(0)
   const [mcAnswers, setMcAnswers] = useState<Record<number, number>>({})
   const [devAnswers, setDevAnswers] = useState<Record<number, string>>({})
   const [tfJustifications, setTfJustifications] = useState<Record<number, string>>({})
-  const [timeLeft, setTimeLeft] = useState(0)
+  const [timeLeft, setTimeLeft]   = useState(0)
   const [submission, setSubmission] = useState<any>(null)
 
-  const timerRef = useRef<NodeJS.Timeout | null>(null)
-  const startRef = useRef(0)
+  // ── Estado kiosk ─────────────────────────────────────────────────────────────
+  const [isKiosk, setIsKiosk]       = useState(false)
+  const [kioskSala, setKioskSala]   = useState("")
+  const [kioskExamId, setKioskExamId] = useState<string | null>(null)
+  const [showWarning, setShowWarning] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
 
+  const timerRef        = useRef<NodeJS.Timeout | null>(null)
+  const startRef        = useRef(0)
+  const panelPollRef    = useRef<NodeJS.Timeout | null>(null)
+  const realtimeRef     = useRef<any>(null)
+  const fullscreenGuard = useRef(false) // evitar bucle de re-requests
+
+  // ── Detectar parámetros kiosk en el cliente ────────────────────────────────
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get("kiosk") === "1") {
+      setIsKiosk(true)
+      setKioskSala(params.get("sala") || "")
+    }
+  }, [])
+
+  // ── Solicitar fullscreen (solo en kiosk) ──────────────────────────────────
+  const requestFullscreen = useCallback(() => {
+    if (!isKiosk) return
+    const el = document.documentElement
+    if (!document.fullscreenElement) {
+      el.requestFullscreen().catch(err => {
+        console.warn("[KIOSK] No se pudo entrar a fullscreen:", err)
+      })
+    }
+  }, [isKiosk])
+
+  // ── Entrar a fullscreen cuando empieza el examen ──────────────────────────
+  useEffect(() => {
+    if (!isKiosk) return
+    if (phase === "exam" || phase === "register") {
+      requestFullscreen()
+    }
+  }, [phase, isKiosk, requestFullscreen])
+
+  // ── Bloquear salida de fullscreen ─────────────────────────────────────────
+  useEffect(() => {
+    if (!isKiosk) return
+
+    function onFullscreenChange() {
+      const inFS = !!document.fullscreenElement
+      setIsFullscreen(inFS)
+
+      // Si el usuario salió de fullscreen durante el examen → mostrar advertencia y re-entrar
+      if (!inFS && (phase === "exam" || phase === "register") && !fullscreenGuard.current) {
+        setShowWarning(true)
+        fullscreenGuard.current = true
+        // Breve delay para que el usuario vea la advertencia antes de re-entrar
+        setTimeout(() => {
+          requestFullscreen()
+          fullscreenGuard.current = false
+        }, 2000)
+      }
+    }
+
+    document.addEventListener("fullscreenchange", onFullscreenChange)
+    return () => document.removeEventListener("fullscreenchange", onFullscreenChange)
+  }, [isKiosk, phase, requestFullscreen])
+
+  // ── Bloquear teclas peligrosas en modo kiosk ──────────────────────────────
+  useEffect(() => {
+    if (!isKiosk) return
+
+    function onKeyDown(e: KeyboardEvent) {
+      // F11 (toggle fullscreen), Escape, Alt+F4, Ctrl+W, Ctrl+Tab, Win key
+      const blocked =
+        e.key === "F11" ||
+        e.key === "Escape" ||
+        (e.altKey && e.key === "F4") ||
+        (e.ctrlKey && e.key === "w") ||
+        (e.ctrlKey && e.key === "W") ||
+        (e.ctrlKey && e.shiftKey && e.key === "j") || // DevTools
+        (e.ctrlKey && e.shiftKey && e.key === "i") || // DevTools
+        e.key === "Meta"
+
+      if (blocked) {
+        e.preventDefault()
+        e.stopPropagation()
+      }
+    }
+
+    function onContextMenu(e: MouseEvent) {
+      e.preventDefault()
+    }
+
+    function onBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault()
+      e.returnValue = "El examen está en progreso. ¿Seguro que quieres salir?"
+    }
+
+    document.addEventListener("keydown", onKeyDown, true)
+    document.addEventListener("contextmenu", onContextMenu, true)
+    window.addEventListener("beforeunload", onBeforeUnload)
+
+    return () => {
+      document.removeEventListener("keydown", onKeyDown, true)
+      document.removeEventListener("contextmenu", onContextMenu, true)
+      window.removeEventListener("beforeunload", onBeforeUnload)
+    }
+  }, [isKiosk])
+
+  // ── Detectar pérdida de foco (cambio de pestaña/ventana) en kiosk ─────────
+  useEffect(() => {
+    if (!isKiosk) return
+
+    function onVisibilityChange() {
+      if (document.hidden && (phase === "exam" || phase === "register")) {
+        // El estudiante cambió de pestaña — registrar pero no podemos hacer mucho más
+        console.warn("[KIOSK] Tab hidden durante examen")
+        // Cuando vuelva, re-entrar a fullscreen
+      } else if (!document.hidden) {
+        requestFullscreen()
+      }
+    }
+
+    document.addEventListener("visibilitychange", onVisibilityChange)
+    return () => document.removeEventListener("visibilitychange", onVisibilityChange)
+  }, [isKiosk, phase, requestFullscreen])
+
+  // ── Polling al panel Supabase para detectar cierre del examen ─────────────
+  useEffect(() => {
+    if (!isKiosk || !kioskSala || !code) return
+
+    const panelClient = getPanelClient()
+    if (!panelClient) {
+      console.warn("[KIOSK] Sin credenciales del panel Supabase — el cierre remoto no funcionará")
+      return
+    }
+
+    // Primero: obtener el exam_id del examen activo para esta sala y código
+    async function obtenerExamId() {
+      const { data } = await panelClient!
+        .from("examenes_kiosk")
+        .select("id, cerrar_ahora, estado")
+        .eq("sala", kioskSala)
+        .eq("exam_code", code)
+        .eq("estado", "activo")
+        .limit(1)
+
+      if (data && data.length > 0) {
+        setKioskExamId(data[0].id)
+        return data[0].id
+      }
+      return null
+    }
+
+    let examId: string | null = null
+
+    obtenerExamId().then(id => {
+      examId = id
+      if (!id) return
+
+      // Suscripción realtime para recibir cierre inmediato
+      const canal = panelClient!
+        .channel(`exam_kiosk_${id}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "examenes_kiosk",
+            filter: `id=eq.${id}`,
+          },
+          (payload: any) => {
+            const row = payload.new
+            if (row.cerrar_ahora === true || row.estado === "cerrado") {
+              console.log("[KIOSK] Cierre recibido vía realtime")
+              handleKioskClose()
+            }
+          }
+        )
+        .subscribe()
+
+      realtimeRef.current = canal
+
+      // Polling de respaldo cada 6 s (por si realtime falla)
+      panelPollRef.current = setInterval(async () => {
+        if (!examId) return
+        const { data: rows } = await panelClient!
+          .from("examenes_kiosk")
+          .select("cerrar_ahora, estado")
+          .eq("id", examId)
+          .limit(1)
+
+        if (!rows || rows.length === 0) {
+          handleKioskClose()
+          return
+        }
+        if (rows[0].cerrar_ahora === true || rows[0].estado === "cerrado") {
+          handleKioskClose()
+        }
+      }, 6000)
+    })
+
+    return () => {
+      if (panelPollRef.current) clearInterval(panelPollRef.current)
+      if (realtimeRef.current) panelClient.removeChannel(realtimeRef.current)
+    }
+  }, [isKiosk, kioskSala, code])
+
+  function handleKioskClose() {
+    // Limpiar polling
+    if (panelPollRef.current) clearInterval(panelPollRef.current)
+    if (realtimeRef.current) {
+      const panelClient = getPanelClient()
+      if (panelClient) panelClient.removeChannel(realtimeRef.current)
+    }
+
+    // Limpiar timer del examen
+    if (timerRef.current) clearInterval(timerRef.current)
+
+    // Salir de fullscreen
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {})
+    }
+
+    setPhase("kiosk_closed")
+  }
+
+  // ── Cargar examen ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (!code) return
 
@@ -79,6 +340,7 @@ export default function ExamenPublicoPage() {
       })
   }, [code])
 
+  // ── Timer del examen ──────────────────────────────────────────────────────
   useEffect(() => {
     if (phase !== "exam") return
 
@@ -101,6 +363,10 @@ export default function ExamenPublicoPage() {
     if (!name.trim() || !course.trim()) return
     startRef.current = Date.now()
     setPhase("exam")
+    // Solicitar fullscreen al iniciar el examen (segundo intento, el primero fue en register)
+    if (isKiosk) {
+      setTimeout(requestFullscreen, 300)
+    }
   }
 
   const doSubmit = async () => {
@@ -151,6 +417,11 @@ export default function ExamenPublicoPage() {
 
       setSubmission(d.submission)
       setPhase("review")
+
+      // En modo kiosk: salir de fullscreen al terminar el examen correctamente
+      if (isKiosk && document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {})
+      }
     } catch (e: any) {
       setErrorMsg(e.message)
       setPhase("error")
@@ -158,7 +429,7 @@ export default function ExamenPublicoPage() {
   }
 
   const qs = exam?.questions || []
-  const q = qs[curQ]
+  const q  = qs[curQ]
   const totalQ = qs.length
 
   const examTotalPoints = qs.reduce(
@@ -182,6 +453,27 @@ export default function ExamenPublicoPage() {
   }).length
 
   const showRes = exam?.settings?.showResultToStudent !== false
+
+  // ── PANTALLAS ─────────────────────────────────────────────────────────────
+
+  if (phase === "kiosk_closed") {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
+        <div className="text-center max-w-sm">
+          <div className="w-20 h-20 rounded-2xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center mx-auto mb-5">
+            <span className="text-4xl">⏹</span>
+          </div>
+          <h2 className="text-white text-xl font-bold mb-2">Examen finalizado</h2>
+          <p className="text-gray-500 text-sm">
+            El docente o administrador ha cerrado esta sesión de examen.
+          </p>
+          {!isKiosk && (
+            <p className="text-gray-700 text-xs mt-3">Puedes cerrar esta ventana.</p>
+          )}
+        </div>
+      </div>
+    )
+  }
 
   if (phase === "loading") {
     return (
@@ -218,7 +510,20 @@ export default function ExamenPublicoPage() {
   if (phase === "register") {
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
-        <div className="max-w-md w-full space-y-6">
+        {showWarning && (
+          <KioskWarningOverlay onDismiss={() => { setShowWarning(false); requestFullscreen() }} />
+        )}
+
+        {/* Banner kiosk */}
+        {isKiosk && (
+          <div className="fixed top-0 left-0 right-0 z-50 bg-blue-900/80 border-b border-blue-700/40 px-4 py-2 text-center">
+            <p className="text-blue-300 text-xs font-semibold">
+              🔒 MODO EXAMEN — Pantalla controlada · Sala: {kioskSala}
+            </p>
+          </div>
+        )}
+
+        <div className={`max-w-md w-full space-y-6 ${isKiosk ? "mt-10" : ""}`}>
           <div className="text-center">
             <div className="w-16 h-16 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center mx-auto mb-3">
               <span className="text-3xl">📝</span>
@@ -232,6 +537,17 @@ export default function ExamenPublicoPage() {
               <span>📊 {examTotalPoints} pts</span>
             </div>
           </div>
+
+          {isKiosk && (
+            <div className="bg-orange-500/[0.06] border border-orange-500/20 rounded-2xl p-4">
+              <p className="text-orange-400 text-xs font-semibold mb-1">⚠ IMPORTANTE:</p>
+              <p className="text-gray-400 text-xs">
+                Este examen está en modo controlado. La pantalla completa es obligatoria y
+                no puedes cambiar de ventana ni cerrar el navegador. Solo el docente puede
+                finalizar la sesión anticipadamente.
+              </p>
+            </div>
+          )}
 
           {exam?.instructions && (
             <div className="bg-blue-500/[0.06] border border-blue-500/20 rounded-2xl p-4">
@@ -476,7 +792,7 @@ export default function ExamenPublicoPage() {
                                     : "text-gray-600"
                               }`}
                             >
-                              {String.fromCharCode(65 + j)}){" "}
+                              {String.fromCharCode(65 + j)}{" "}
                               <ExamMathText text={opt.replace(/^[A-Da-d][).]\s*/u, "")} className="inline" />{" "}
                               {isRight && "✓"} {isStudent && !isRight && "← tu respuesta"}
                             </div>
@@ -584,16 +900,38 @@ export default function ExamenPublicoPage() {
             <p className="text-gray-600 text-xs">
               {exam?.title} — {name} ({course})
             </p>
-            <p className="text-gray-700 text-xs mt-1">Puedes cerrar esta ventana</p>
+            {!isKiosk && (
+              <p className="text-gray-700 text-xs mt-1">Puedes cerrar esta ventana</p>
+            )}
+            {isKiosk && (
+              <p className="text-gray-700 text-xs mt-1">
+                Espera las instrucciones del docente antes de cerrar.
+              </p>
+            )}
           </div>
         </div>
       </div>
     )
   }
 
+  // ── PANTALLA DEL EXAMEN (preguntas) ─────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gray-950">
-      <div className="sticky top-0 z-10 bg-gray-950/90 backdrop-blur-xl border-b border-white/5">
+      {/* Overlay de advertencia al intentar salir de fullscreen */}
+      {showWarning && isKiosk && (
+        <KioskWarningOverlay onDismiss={() => { setShowWarning(false); requestFullscreen() }} />
+      )}
+
+      {/* Banner kiosk durante el examen */}
+      {isKiosk && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-red-950/80 border-b border-red-900/40 px-4 py-1.5 text-center">
+          <p className="text-red-400 text-xs font-semibold">
+            🔒 EXAMEN EN PROGRESO — Pantalla controlada · {kioskSala} · No puedes salir
+          </p>
+        </div>
+      )}
+
+      <div className={`sticky z-10 bg-gray-950/90 backdrop-blur-xl border-b border-white/5 ${isKiosk ? "top-[32px]" : "top-0"}`}>
         <div className="max-w-2xl mx-auto px-4 py-2.5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="text-gray-400 text-xs">{name}</span>
@@ -803,7 +1141,7 @@ export default function ExamenPublicoPage() {
               )}
             </div>
 
-            {/* Resumen de puntajes */}
+            {/* Navegador de preguntas */}
             <div className="pt-2 border-t border-white/5">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-gray-600 text-[10px] font-semibold tracking-widest">NAVEGADOR DE PREGUNTAS</span>
@@ -812,36 +1150,36 @@ export default function ExamenPublicoPage() {
                 </span>
               </div>
               <div className="flex flex-wrap gap-1.5 justify-center">
-              {qs.map((item: any, i: number) => {
-                const answered =
-                  item.type === "development"
-                    ? Boolean(devAnswers[i] && devAnswers[i].trim().length > 0)
-                    : item.type === "true_false"
-                      ? mcAnswers[i] !== undefined ||
-                        Boolean(tfJustifications[i] && tfJustifications[i].trim().length > 0)
-                      : mcAnswers[i] !== undefined
-                const pts = getQuestionMaxPoints(item)
+                {qs.map((item: any, i: number) => {
+                  const answered =
+                    item.type === "development"
+                      ? Boolean(devAnswers[i] && devAnswers[i].trim().length > 0)
+                      : item.type === "true_false"
+                        ? mcAnswers[i] !== undefined ||
+                          Boolean(tfJustifications[i] && tfJustifications[i].trim().length > 0)
+                        : mcAnswers[i] !== undefined
+                  const pts = getQuestionMaxPoints(item)
 
-                return (
-                  <button
-                    key={i}
-                    onClick={() => setCurQ(i)}
-                    title={`Pregunta ${i + 1} — ${pts} pt${pts !== 1 ? "s" : ""}`}
-                    className={`w-10 h-10 rounded-lg text-xs font-bold transition-all flex flex-col items-center justify-center gap-0 ${
-                      i === curQ
-                        ? "bg-blue-500 text-white"
-                        : answered
-                          ? "bg-green-500/20 text-green-400 border border-green-500/30"
-                          : "bg-white/[0.04] text-gray-600 border border-white/[0.06]"
-                    }`}
-                  >
-                    <span className="text-xs leading-none">{i + 1}</span>
-                    <span className={`text-[9px] leading-none font-normal mt-0.5 ${i === curQ ? "text-blue-200" : answered ? "text-green-500/70" : "text-gray-700"}`}>
-                      {pts}pt
-                    </span>
-                  </button>
-                )
-              })}
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => setCurQ(i)}
+                      title={`Pregunta ${i + 1} — ${pts} pt${pts !== 1 ? "s" : ""}`}
+                      className={`w-10 h-10 rounded-lg text-xs font-bold transition-all flex flex-col items-center justify-center gap-0 ${
+                        i === curQ
+                          ? "bg-blue-500 text-white"
+                          : answered
+                            ? "bg-green-500/20 text-green-400 border border-green-500/30"
+                            : "bg-white/[0.04] text-gray-600 border border-white/[0.06]"
+                      }`}
+                    >
+                      <span className="text-xs leading-none">{i + 1}</span>
+                      <span className={`text-[9px] leading-none font-normal mt-0.5 ${i === curQ ? "text-blue-200" : answered ? "text-green-500/70" : "text-gray-700"}`}>
+                        {pts}pt
+                      </span>
+                    </button>
+                  )
+                })}
               </div>
             </div>
           </div>
