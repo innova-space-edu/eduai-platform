@@ -116,17 +116,16 @@ export default function ExamenPublicoPage() {
   }, [])
 
   // ── Solicitar fullscreen (solo en kiosk) ──────────────────────────────────
+  // ── requestFullscreen: intenta con y sin navigationUI ──────────────────────
   const requestFullscreen = useCallback(() => {
     if (!isKiosk) return
+    if (document.fullscreenElement) return
     const el = document.documentElement
-    if (!document.fullscreenElement) {
-      el.requestFullscreen().catch(err => {
-        console.warn("[KIOSK] No se pudo entrar a fullscreen:", err)
-      })
-    }
+    ;(el.requestFullscreen({ navigationUI: "hide" } as any) as Promise<void>)
+      .catch(() => el.requestFullscreen().catch(() => {}))
   }, [isKiosk])
 
-  // ── Entrar a fullscreen cuando empieza el examen ──────────────────────────
+  // ── Re-pedir fullscreen si la fase activa lo requiere ────────────────────
   useEffect(() => {
     if (!isKiosk) return
     if (phase === "exam" || phase === "register") {
@@ -134,7 +133,7 @@ export default function ExamenPublicoPage() {
     }
   }, [phase, isKiosk, requestFullscreen])
 
-  // ── Bloquear salida de fullscreen ─────────────────────────────────────────
+  // ── Bloquear salida de fullscreen — re-entrada agresiva ───────────────────
   useEffect(() => {
     if (!isKiosk) return
 
@@ -142,15 +141,15 @@ export default function ExamenPublicoPage() {
       const inFS = !!document.fullscreenElement
       setIsFullscreen(inFS)
 
-      // Si el usuario salió de fullscreen durante el examen → mostrar advertencia y re-entrar
       if (!inFS && (phase === "exam" || phase === "register") && !fullscreenGuard.current) {
-        setShowWarning(true)
         fullscreenGuard.current = true
-        // Breve delay para que el usuario vea la advertencia antes de re-entrar
-        setTimeout(() => {
-          requestFullscreen()
-          fullscreenGuard.current = false
-        }, 2000)
+        setShowWarning(true)
+        // Intento 1: inmediato (puede fallar sin gesto de usuario)
+        requestFullscreen()
+        // Intento 2: 800 ms después por si el primero falló
+        setTimeout(() => { requestFullscreen() }, 800)
+        // Intento 3: 2 s — cuando el alumno hace clic en "Volver al examen"
+        setTimeout(() => { fullscreenGuard.current = false }, 2000)
       }
     }
 
@@ -162,60 +161,107 @@ export default function ExamenPublicoPage() {
   useEffect(() => {
     if (!isKiosk) return
 
-    function onKeyDown(e: KeyboardEvent) {
-      // F11 (toggle fullscreen), Escape, Alt+F4, Ctrl+W, Ctrl+Tab, Win key
+    function killKey(e: KeyboardEvent) {
+      const key  = e.key
+      const ctrl = e.ctrlKey
+      const alt  = e.altKey
+      const shift = e.shiftKey
+      const meta = e.metaKey
+
       const blocked =
-        e.key === "F11" ||
-        e.key === "Escape" ||
-        (e.altKey && e.key === "F4") ||
-        (e.ctrlKey && e.key === "w") ||
-        (e.ctrlKey && e.key === "W") ||
-        (e.ctrlKey && e.shiftKey && e.key === "j") || // DevTools
-        (e.ctrlKey && e.shiftKey && e.key === "i") || // DevTools
-        e.key === "Meta"
+        // Salir de fullscreen / cerrar
+        key === "Escape" ||
+        key === "F11" ||
+        (alt  && key === "F4") ||
+        // Cerrar pestaña / ventana
+        (ctrl && (key === "w" || key === "W")) ||
+        (ctrl && (key === "F4")) ||
+        // Cambiar pestaña
+        (ctrl && (key === "Tab" || key === "t" || key === "T")) ||
+        (ctrl && alt && (key === "Tab")) ||
+        // Nueva ventana / incognito
+        (ctrl && (key === "n" || key === "N")) ||
+        (ctrl && shift && (key === "n" || key === "N")) ||
+        // DevTools
+        key === "F12" ||
+        (ctrl && shift && (key === "j" || key === "J")) ||
+        (ctrl && shift && (key === "i" || key === "I")) ||
+        (ctrl && shift && (key === "c" || key === "C")) ||
+        // Barra de direcciones
+        (ctrl && (key === "l" || key === "L")) ||
+        key === "F6" ||
+        // Recargar
+        key === "F5" ||
+        (ctrl && (key === "r" || key === "R")) ||
+        // Tecla Windows / Meta
+        key === "Meta" ||
+        meta
 
       if (blocked) {
         e.preventDefault()
-        e.stopPropagation()
+        e.stopImmediatePropagation()
+      }
+    }
+
+    function killKeyUp(e: KeyboardEvent) {
+      // Bloquear keyup de las mismas teclas para mayor certeza
+      if (e.key === "Escape" || e.key === "F11" || e.key === "Meta") {
+        e.preventDefault()
+        e.stopImmediatePropagation()
       }
     }
 
     function onContextMenu(e: MouseEvent) {
       e.preventDefault()
+      e.stopImmediatePropagation()
     }
 
     function onBeforeUnload(e: BeforeUnloadEvent) {
       e.preventDefault()
-      e.returnValue = "El examen está en progreso. ¿Seguro que quieres salir?"
+      e.returnValue = "El examen esta en progreso."
     }
 
-    document.addEventListener("keydown", onKeyDown, true)
+    // Captura en fase de captura (true) para interceptar antes que el browser
+    document.addEventListener("keydown",     killKey,      true)
+    document.addEventListener("keyup",       killKeyUp,    true)
     document.addEventListener("contextmenu", onContextMenu, true)
-    window.addEventListener("beforeunload", onBeforeUnload)
+    window.addEventListener("beforeunload",  onBeforeUnload)
 
     return () => {
-      document.removeEventListener("keydown", onKeyDown, true)
+      document.removeEventListener("keydown",     killKey,      true)
+      document.removeEventListener("keyup",       killKeyUp,    true)
       document.removeEventListener("contextmenu", onContextMenu, true)
-      window.removeEventListener("beforeunload", onBeforeUnload)
+      window.removeEventListener("beforeunload",  onBeforeUnload)
     }
   }, [isKiosk])
 
-  // ── Detectar pérdida de foco (cambio de pestaña/ventana) en kiosk ─────────
+  // ── Detectar cambio de pestaña / pérdida de foco ──────────────────────────
   useEffect(() => {
     if (!isKiosk) return
 
     function onVisibilityChange() {
-      if (document.hidden && (phase === "exam" || phase === "register")) {
-        // El estudiante cambió de pestaña — registrar pero no podemos hacer mucho más
-        console.warn("[KIOSK] Tab hidden durante examen")
-        // Cuando vuelva, re-entrar a fullscreen
-      } else if (!document.hidden) {
+      if (!document.hidden) {
+        // Volvió al tab → re-pedir fullscreen
         requestFullscreen()
       }
     }
 
+    function onWindowBlur() {
+      // Perdió foco (alt-tab, click en taskbar, etc.) → mostrar advertencia
+      if (phase === "exam" || phase === "register") {
+        setShowWarning(true)
+        // Intentar volver al foco
+        setTimeout(() => window.focus(), 200)
+      }
+    }
+
     document.addEventListener("visibilitychange", onVisibilityChange)
-    return () => document.removeEventListener("visibilitychange", onVisibilityChange)
+    window.addEventListener("blur", onWindowBlur)
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange)
+      window.removeEventListener("blur", onWindowBlur)
+    }
   }, [isKiosk, phase, requestFullscreen])
 
   // ── Polling al panel Supabase para detectar cierre del examen ─────────────
