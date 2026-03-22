@@ -50,7 +50,7 @@ function getQuestionMaxPoints(q: any) {
   return 1
 }
 
-type Phase = "loading" | "register" | "exam" | "submitting" | "review" | "error" | "kiosk_closed"
+type Phase = "loading" | "kiosk_entry" | "register" | "exam" | "submitting" | "review" | "error" | "kiosk_closed"
 
 // ── OVERLAY DE ADVERTENCIA (cuando intentan salir de fullscreen) ─────────────
 function KioskWarningOverlay({ onDismiss }: { onDismiss: () => void }) {
@@ -332,7 +332,15 @@ export default function ExamenPublicoPage() {
         }
         setExam(d.exam)
         setTimeLeft((d.exam.settings?.timeLimit || 30) * 60)
-        setPhase("register")
+        // In kiosk mode, show the fullscreen entry screen first
+        // isKiosk is read from URL params, but at this point the useEffect
+        // for isKiosk may not have run yet, so we check directly
+        const urlParams = new URLSearchParams(window.location.search)
+        if (urlParams.get("kiosk") === "1") {
+          setPhase("kiosk_entry")
+        } else {
+          setPhase("register")
+        }
       })
       .catch(() => {
         setErrorMsg("Error cargando examen")
@@ -359,11 +367,20 @@ export default function ExamenPublicoPage() {
     }
   }, [phase])
 
+  const enterFullscreenAndRegister = () => {
+    // This is called by user click = valid user gesture for Fullscreen API
+    const el = document.documentElement
+    el.requestFullscreen({ navigationUI: "hide" } as any).catch(err => {
+      console.warn("[KIOSK] Fullscreen failed:", err)
+    }).finally(() => {
+      setPhase("register")
+    })
+  }
+
   const startExam = () => {
     if (!name.trim() || !course.trim()) return
     startRef.current = Date.now()
     setPhase("exam")
-    // Solicitar fullscreen al iniciar el examen (segundo intento, el primero fue en register)
     if (isKiosk) {
       setTimeout(requestFullscreen, 300)
     }
@@ -455,6 +472,124 @@ export default function ExamenPublicoPage() {
   const showRes = exam?.settings?.showResultToStudent !== false
 
   // ── PANTALLAS ─────────────────────────────────────────────────────────────
+
+  if (phase === "kiosk_entry" && exam) {
+    const totalPts = (exam.questions || []).reduce(
+      (acc: number, item: any) => acc + getQuestionMaxPoints(item), 0
+    )
+    return (
+      <div
+        className="fixed inset-0 z-[9999] flex items-center justify-center cursor-pointer select-none"
+        style={{ background: "radial-gradient(ellipse at 50% 40%, #0d1f3c 0%, #020408 65%)" }}
+        onClick={enterFullscreenAndRegister}
+      >
+        {/* Decorative grid */}
+        <div
+          className="absolute inset-0 opacity-[0.035]"
+          style={{
+            backgroundImage: "linear-gradient(#3b82f6 1px, transparent 1px), linear-gradient(90deg, #3b82f6 1px, transparent 1px)",
+            backgroundSize: "64px 64px",
+          }}
+        />
+
+        {/* Outer glow rings */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
+          <div className="w-[700px] h-[700px] rounded-full"
+            style={{ border: "1px solid rgba(59,130,246,0.07)", animation: "kiosk-ping 4s ease-in-out infinite" }} />
+          <div className="absolute w-[480px] h-[480px] rounded-full"
+            style={{ border: "1px solid rgba(59,130,246,0.10)", animation: "kiosk-ping 4s ease-in-out infinite 1.3s" }} />
+          <div className="absolute w-[300px] h-[300px] rounded-full"
+            style={{ border: "1px solid rgba(59,130,246,0.13)", animation: "kiosk-ping 4s ease-in-out infinite 2.6s" }} />
+        </div>
+
+        <div className="relative z-10 text-center max-w-md px-8">
+          {/* Icon */}
+          <div
+            className="w-28 h-28 rounded-[28px] flex items-center justify-center mx-auto mb-8"
+            style={{
+              background: "linear-gradient(135deg, rgba(29,78,216,0.25) 0%, rgba(59,130,246,0.10) 100%)",
+              border: "1px solid rgba(59,130,246,0.25)",
+              boxShadow: "0 0 80px rgba(59,130,246,0.18), inset 0 1px 0 rgba(255,255,255,0.05)",
+            }}
+          >
+            <span style={{ fontSize: "52px", lineHeight: 1 }}>&#x1F4DD;</span>
+          </div>
+
+          {/* Sala badge */}
+          <div
+            className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 mb-6"
+            style={{
+              background: "rgba(59,130,246,0.08)",
+              border: "1px solid rgba(59,130,246,0.18)",
+            }}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-400" style={{ animation: "pulse 2s ease-in-out infinite" }} />
+            <span className="text-blue-400 text-xs font-bold tracking-[0.2em] uppercase">
+              Sala: {kioskSala}
+            </span>
+          </div>
+
+          {/* Title */}
+          <h1 className="font-bold text-white mb-2 leading-tight" style={{ fontSize: "clamp(20px,3vw,32px)" }}>
+            {exam.title}
+          </h1>
+          <p className="text-gray-500 text-sm mb-10">{exam.topic}</p>
+
+          {/* Stats row */}
+          <div
+            className="flex justify-center gap-0 mb-10 rounded-2xl overflow-hidden"
+            style={{ border: "1px solid rgba(255,255,255,0.05)", background: "rgba(255,255,255,0.02)" }}
+          >
+            {[
+              { value: exam.questions?.length ?? 0, label: "preguntas" },
+              { value: exam.settings?.timeLimit ?? 30, label: "minutos" },
+              { value: totalPts, label: "puntos" },
+            ].map((stat, i, arr) => (
+              <div
+                key={i}
+                className="flex-1 py-5"
+                style={{ borderRight: i < arr.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none" }}
+              >
+                <p className="text-white font-bold text-3xl">{stat.value}</p>
+                <p className="text-gray-600 text-xs mt-1">{stat.label}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* CTA Button */}
+          <button
+            onClick={e => { e.stopPropagation(); enterFullscreenAndRegister() }}
+            className="group relative w-full py-5 rounded-2xl text-white font-bold text-lg overflow-hidden"
+            style={{
+              background: "linear-gradient(135deg, #1e40af 0%, #2563eb 50%, #3b82f6 100%)",
+              boxShadow: "0 0 0 1px rgba(59,130,246,0.3), 0 8px 32px rgba(59,130,246,0.25), 0 2px 8px rgba(0,0,0,0.5)",
+            }}
+          >
+            <span className="relative z-10 flex items-center justify-center gap-3">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+              </svg>
+              Comenzar examen
+            </span>
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
+              style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.05), transparent)" }} />
+          </button>
+
+          <p className="text-gray-700 text-xs mt-5 leading-relaxed">
+            Haz clic para comenzar. La pantalla se pondrá en modo completo automáticamente.
+          </p>
+        </div>
+
+        <style>{`
+          @keyframes kiosk-ping {
+            0%   { transform: scale(1);    opacity: 1; }
+            80%  { transform: scale(1.15); opacity: 0; }
+            100% { transform: scale(1.15); opacity: 0; }
+          }
+        `}</style>
+      </div>
+    )
+  }
 
   if (phase === "kiosk_closed") {
     return (
