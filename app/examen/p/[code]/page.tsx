@@ -195,7 +195,14 @@ export default function ExamenPublicoPage() {
         (ctrl && (key === "r" || key === "R")) ||
         // Tecla Windows / Meta
         key === "Meta" ||
-        meta
+        meta ||
+        // Copiar / Pegar / Cortar / Seleccionar todo
+        (ctrl && (key === "c" || key === "C")) ||
+        (ctrl && (key === "v" || key === "V")) ||
+        (ctrl && (key === "x" || key === "X")) ||
+        (ctrl && (key === "a" || key === "A")) ||
+        // Captura de pantalla
+        key === "PrintScreen"
 
       if (blocked) {
         e.preventDefault()
@@ -204,11 +211,16 @@ export default function ExamenPublicoPage() {
     }
 
     function killKeyUp(e: KeyboardEvent) {
-      // Bloquear keyup de las mismas teclas para mayor certeza
-      if (e.key === "Escape" || e.key === "F11" || e.key === "Meta") {
+      if (e.key === "Escape" || e.key === "F11" || e.key === "Meta" || e.key === "PrintScreen") {
         e.preventDefault()
         e.stopImmediatePropagation()
       }
+    }
+
+
+    function killClipboard(e: ClipboardEvent) {
+      e.preventDefault()
+      e.stopImmediatePropagation()
     }
 
     function onContextMenu(e: MouseEvent) {
@@ -222,14 +234,20 @@ export default function ExamenPublicoPage() {
     }
 
     // Captura en fase de captura (true) para interceptar antes que el browser
-    document.addEventListener("keydown",     killKey,      true)
-    document.addEventListener("keyup",       killKeyUp,    true)
+    document.addEventListener("keydown",     killKey,       true)
+    document.addEventListener("keyup",       killKeyUp,     true)
+    document.addEventListener("copy",        killClipboard, true)
+    document.addEventListener("cut",         killClipboard, true)
+    document.addEventListener("paste",       killClipboard, true)
     document.addEventListener("contextmenu", onContextMenu, true)
     window.addEventListener("beforeunload",  onBeforeUnload)
 
     return () => {
-      document.removeEventListener("keydown",     killKey,      true)
-      document.removeEventListener("keyup",       killKeyUp,    true)
+      document.removeEventListener("keydown",     killKey,       true)
+      document.removeEventListener("keyup",       killKeyUp,     true)
+      document.removeEventListener("copy",        killClipboard, true)
+      document.removeEventListener("cut",         killClipboard, true)
+      document.removeEventListener("paste",       killClipboard, true)
       document.removeEventListener("contextmenu", onContextMenu, true)
       window.removeEventListener("beforeunload",  onBeforeUnload)
     }
