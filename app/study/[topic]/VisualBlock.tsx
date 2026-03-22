@@ -19,10 +19,10 @@ interface Detection {
   caption: string
 }
 
-// ─── Mermaid renderer ──────────────────────────────────────────────────────────
+// ─── Mermaid renderer ─────────────────────────────────────────────────────────
 function MermaidDiagram({ code, caption }: { code: string; caption: string }) {
-  const ref   = useRef<HTMLDivElement>(null)
-  const [err, setErr]     = useState("")
+  const ref              = useRef<HTMLDivElement>(null)
+  const [err, setErr]    = useState("")
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
@@ -35,26 +35,17 @@ function MermaidDiagram({ code, caption }: { code: string; caption: string }) {
           startOnLoad: false,
           theme: "dark",
           themeVariables: {
-            primaryColor: "#3b82f6",
-            primaryTextColor: "#f1f5f9",
-            primaryBorderColor: "#1e40af",
-            lineColor: "#64748b",
-            background: "#0f172a",
-            mainBkg: "#1e293b",
-            nodeBorder: "#3b82f6",
-            edgeLabelBackground: "#1e293b",
+            primaryColor: "#3b82f6", primaryTextColor: "#f1f5f9",
+            primaryBorderColor: "#1e40af", lineColor: "#64748b",
+            background: "#0f172a", mainBkg: "#1e293b",
+            nodeBorder: "#3b82f6", edgeLabelBackground: "#1e293b",
             titleColor: "#f1f5f9",
           },
         })
         const id = `mmd-${Math.random().toString(36).slice(2)}`
         const { svg } = await mermaid.render(id, code)
-        if (!cancelled && ref.current) {
-          ref.current.innerHTML = svg
-          setReady(true)
-        }
-      } catch (e: any) {
-        if (!cancelled) setErr(e.message)
-      }
+        if (!cancelled && ref.current) { ref.current.innerHTML = svg; setReady(true) }
+      } catch (e: any) { if (!cancelled) setErr(e.message) }
     })()
     return () => { cancelled = true }
   }, [code])
@@ -64,7 +55,6 @@ function MermaidDiagram({ code, caption }: { code: string; caption: string }) {
       Error diagrama: {err}
     </p>
   )
-
   return (
     <div>
       {!ready && (
@@ -72,10 +62,8 @@ function MermaidDiagram({ code, caption }: { code: string; caption: string }) {
           <div className="w-5 h-5 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
         </div>
       )}
-      <div
-        ref={ref}
-        className={`w-full flex justify-center transition-opacity duration-500 ${ready ? "opacity-100" : "opacity-0"}`}
-      />
+      <div ref={ref}
+        className={`w-full flex justify-center transition-opacity duration-500 ${ready ? "opacity-100" : "opacity-0"}`} />
       {caption && ready && (
         <p className="text-gray-500 text-[11px] italic text-center mt-2">{caption}</p>
       )}
@@ -85,8 +73,8 @@ function MermaidDiagram({ code, caption }: { code: string; caption: string }) {
 
 // ─── Chart.js renderer ────────────────────────────────────────────────────────
 function ChartBlock({ specStr, caption }: { specStr: string; caption: string }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const chartRef  = useRef<any>(null)
+  const canvasRef         = useRef<HTMLCanvasElement>(null)
+  const chartRef          = useRef<any>(null)
   const [err, setErr]     = useState("")
   const [ready, setReady] = useState(false)
 
@@ -94,31 +82,23 @@ function ChartBlock({ specStr, caption }: { specStr: string; caption: string }) 
     if (!specStr || !canvasRef.current) return
     let spec: any
     try { spec = JSON.parse(specStr) } catch { setErr("JSON inválido"); return }
-
     ;(async () => {
       try {
         const { Chart, registerables } = await import("chart.js")
         Chart.register(...registerables)
         if (chartRef.current) chartRef.current.destroy()
-
         const palette = ["#3b82f6","#8b5cf6","#10b981","#f59e0b","#ef4444","#06b6d4","#ec4899"]
         if (spec.data?.datasets) {
           spec.data.datasets = spec.data.datasets.map((ds: any, i: number) => ({
             backgroundColor: palette[i % palette.length] + "44",
             borderColor:     palette[i % palette.length],
-            borderWidth: 2,
-            ...ds,
+            borderWidth: 2, ...ds,
           }))
         }
         const isFlat = spec.type === "pie" || spec.type === "doughnut"
         spec.options = {
-          responsive: true,
-          maintainAspectRatio: true,
-          ...spec.options,
-          plugins: {
-            legend: { labels: { color: "#94a3b8", font: { size: 11 } } },
-            ...(spec.options?.plugins || {}),
-          },
+          responsive: true, maintainAspectRatio: true, ...spec.options,
+          plugins: { legend: { labels: { color: "#94a3b8", font: { size: 11 } } }, ...(spec.options?.plugins || {}) },
           ...(!isFlat && {
             scales: {
               x: { ticks: { color: "#64748b" }, grid: { color: "#1e293b" } },
@@ -126,14 +106,10 @@ function ChartBlock({ specStr, caption }: { specStr: string; caption: string }) 
             },
           }),
         }
-
         chartRef.current = new Chart(canvasRef.current!, spec)
         setReady(true)
-      } catch (e: any) {
-        setErr(e.message)
-      }
+      } catch (e: any) { setErr(e.message) }
     })()
-
     return () => { chartRef.current?.destroy() }
   }, [specStr])
 
@@ -142,7 +118,6 @@ function ChartBlock({ specStr, caption }: { specStr: string; caption: string }) 
       Error gráfico: {err}
     </p>
   )
-
   return (
     <div>
       {!ready && (
@@ -164,10 +139,8 @@ function ChartBlock({ specStr, caption }: { specStr: string; caption: string }) 
 function TableBlock({ specStr, caption }: { specStr: string; caption: string }) {
   let data: { headers?: string[]; rows?: string[][] } = {}
   try { data = JSON.parse(specStr) } catch { return null }
-
   const { headers = [], rows = [] } = data
   if (!rows.length) return null
-
   return (
     <div>
       <div className="overflow-x-auto rounded-xl border border-gray-700">
@@ -176,19 +149,14 @@ function TableBlock({ specStr, caption }: { specStr: string; caption: string }) 
             <thead>
               <tr className="border-b border-gray-700 bg-gray-800/60">
                 {headers.map((h, i) => (
-                  <th key={i} className="px-4 py-2.5 text-left text-gray-300 font-semibold text-xs uppercase tracking-wider">
-                    {h}
-                  </th>
+                  <th key={i} className="px-4 py-2.5 text-left text-gray-300 font-semibold text-xs uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
             </thead>
           )}
           <tbody>
             {rows.map((row, ri) => (
-              <tr
-                key={ri}
-                className={`border-b border-gray-800 ${ri % 2 === 0 ? "bg-gray-900/40" : ""} hover:bg-gray-800/40 transition-colors`}
-              >
+              <tr key={ri} className={`border-b border-gray-800 ${ri % 2 === 0 ? "bg-gray-900/40" : ""} hover:bg-gray-800/40 transition-colors`}>
                 {row.map((cell, ci) => (
                   <td key={ci} className="px-4 py-2.5 text-gray-300 text-xs">{cell}</td>
                 ))}
@@ -197,27 +165,24 @@ function TableBlock({ specStr, caption }: { specStr: string; caption: string }) 
           </tbody>
         </table>
       </div>
-      {caption && (
-        <p className="text-gray-500 text-[11px] italic text-center mt-2">{caption}</p>
-      )}
+      {caption && <p className="text-gray-500 text-[11px] italic text-center mt-2">{caption}</p>}
     </div>
   )
 }
 
-// ─── Image block interno ───────────────────────────────────────────────────────
+// ─── Image block — solo se activa cuando el usuario lo pide ──────────────────
 function ImageBlock({
   imagePrompt, topic, caption, regenerateKey,
 }: {
   imagePrompt: string; topic: string; caption: string; regenerateKey: number
 }) {
-  const [url, setUrl]         = useState("")
-  const [provider, setProv]   = useState("")
+  const [url,     setUrl]     = useState("")
+  const [provider,setProv]    = useState("")
   const [loading, setLoading] = useState(true)
-  const [expanded, setExp]    = useState(true)
+  const [expanded,setExp]     = useState(true)
 
   useEffect(() => {
-    setLoading(true)
-    setUrl("")
+    setLoading(true); setUrl("")
     fetch("/api/agents/imagenes", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -238,22 +203,20 @@ function ImageBlock({
   }, [imagePrompt, regenerateKey])
 
   if (loading) return (
-    <div className="flex items-center gap-2 py-3 text-gray-600 text-xs">
-      <div className="w-4 h-4 border border-gray-600 border-t-transparent rounded-full animate-spin" />
-      Generando imagen...
+    <div className="flex items-center gap-2.5 py-4 text-gray-500 text-xs">
+      <div className="w-4 h-4 border-2 border-blue-500/40 border-t-blue-400 rounded-full animate-spin flex-shrink-0" />
+      Generando imagen educativa...
     </div>
   )
-
-  if (!url) return null
-
+  if (!url) return (
+    <p className="text-gray-600 text-xs py-2">No se pudo generar la imagen. Intenta de nuevo.</p>
+  )
   return (
     <div>
       <div className="flex justify-between items-center mb-2">
-        <span className="text-[10px] text-gray-700">via {provider}</span>
-        <button
-          onClick={() => setExp(e => !e)}
-          className="text-[10px] text-gray-600 hover:text-gray-400 px-2 py-1 rounded hover:bg-gray-800 transition-colors"
-        >
+        <span className="text-[10px] text-gray-600">via {provider}</span>
+        <button onClick={() => setExp(e => !e)}
+          className="text-[10px] text-gray-600 hover:text-gray-400 px-2 py-1 rounded hover:bg-black/20 transition-colors">
           {expanded ? "Ocultar ▲" : "Ver ▼"}
         </button>
       </div>
@@ -269,6 +232,65 @@ function ImageBlock({
   )
 }
 
+// ─── Botón de imagen bajo demanda ────────────────────────────────────────────
+function ImageOnDemand({
+  imagePrompt, topic, caption,
+}: {
+  imagePrompt: string; topic: string; caption: string
+}) {
+  const [triggered,  setTriggered]  = useState(false)
+  const [regenKey,   setRegenKey]   = useState(0)
+
+  if (!triggered) {
+    return (
+      <div className="flex items-center justify-between">
+        {/* Descripción de lo que se generaría */}
+        <p className="text-gray-500 text-xs italic truncate flex-1 pr-3">
+          {caption || imagePrompt}
+        </p>
+        <button
+          onClick={() => setTriggered(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-medium transition-all flex-shrink-0"
+          style={{
+            background:  "rgba(59,130,246,0.08)",
+            borderColor: "rgba(59,130,246,0.2)",
+            color:       "#93c5fd",
+          }}
+          onMouseEnter={e => {
+            ;(e.currentTarget as HTMLElement).style.background   = "rgba(59,130,246,0.15)"
+            ;(e.currentTarget as HTMLElement).style.borderColor  = "rgba(59,130,246,0.35)"
+          }}
+          onMouseLeave={e => {
+            ;(e.currentTarget as HTMLElement).style.background   = "rgba(59,130,246,0.08)"
+            ;(e.currentTarget as HTMLElement).style.borderColor  = "rgba(59,130,246,0.2)"
+          }}
+        >
+          🖼️ Generar imagen
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <div className="flex justify-end mb-2">
+        <button
+          onClick={() => setRegenKey(k => k + 1)}
+          className="text-[10px] text-gray-600 hover:text-gray-400 px-2 py-1 rounded hover:bg-black/20 transition-colors"
+        >
+          🔄 Regenerar
+        </button>
+      </div>
+      <ImageBlock
+        imagePrompt={imagePrompt}
+        topic={topic}
+        caption={caption}
+        regenerateKey={regenKey}
+      />
+    </div>
+  )
+}
+
 // ─── Metadatos por tipo ───────────────────────────────────────────────────────
 const TYPE_META = {
   image:   { icon: "🖼️",  label: "Imagen educativa",  borderCls: "border-blue-500/30",   bgCls: "bg-blue-500/5",   textCls: "text-blue-400"   },
@@ -280,9 +302,8 @@ const TYPE_META = {
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 export default function VisualBlock({ topic, context }: Props) {
-  const [state, setState]       = useState<State>("idle")
-  const [det, setDet]           = useState<Detection | null>(null)
-  const [regenKey, setRegenKey] = useState(0)
+  const [state, setState] = useState<State>("idle")
+  const [det,   setDet]   = useState<Detection | null>(null)
 
   useEffect(() => {
     if (!context || context.length < 100) return
@@ -301,23 +322,17 @@ export default function VisualBlock({ topic, context }: Props) {
       if (!data.shouldGenerate || data.type === "none") { setState("skip"); return }
       setDet(data)
       setState("done")
-    } catch {
-      setState("skip")
-    }
+    } catch { setState("skip") }
   }
 
-  // ── Estado vacío / skip
   if (state === "idle" || state === "skip") return null
 
-  // ── Detectando
-  if (state === "detecting") {
-    return (
-      <div className="mt-4 flex items-center gap-2 text-gray-600 text-xs">
-        <div className="w-3 h-3 border border-gray-600 border-t-transparent rounded-full animate-spin" />
-        Analizando si hay algo para visualizar...
-      </div>
-    )
-  }
+  if (state === "detecting") return (
+    <div className="mt-4 flex items-center gap-2 text-gray-600 text-xs">
+      <div className="w-3 h-3 border border-gray-600 border-t-transparent rounded-full animate-spin" />
+      Analizando si hay algo para visualizar...
+    </div>
+  )
 
   if (!det) return null
 
@@ -331,38 +346,27 @@ export default function VisualBlock({ topic, context }: Props) {
           <span className="text-sm">{meta.icon}</span>
           <span className={`text-xs font-medium ${meta.textCls}`}>{meta.label}</span>
         </div>
-        <div className="flex items-center gap-3">
-          {det.type === "image" && (
-            <button
-              onClick={() => setRegenKey(k => k + 1)}
-              className="text-[10px] text-gray-600 hover:text-gray-400 px-2 py-1 rounded hover:bg-black/20 transition-colors"
-            >
-              🔄 Regenerar
-            </button>
-          )}
-          <span className="text-[10px] text-gray-700">AGT-AIm v2</span>
-        </div>
+        <span className="text-[10px] text-gray-700">AGT-AIm v2</span>
       </div>
 
       {/* Contenido */}
       <div className="p-4">
+        {/* ── IMAGEN: solo bajo demanda del usuario ── */}
         {det.type === "image" && (
-          <ImageBlock
+          <ImageOnDemand
             imagePrompt={det.imagePrompt}
             topic={topic}
             caption={det.caption}
-            regenerateKey={regenKey}
           />
         )}
 
+        {/* ── Diagramas, gráficos y tablas: automáticos ── */}
         {det.type === "mermaid" && det.mermaidCode && (
           <MermaidDiagram code={det.mermaidCode} caption={det.caption} />
         )}
-
         {det.type === "chart" && det.chartSpec && (
           <ChartBlock specStr={det.chartSpec} caption={det.caption} />
         )}
-
         {det.type === "table" && det.chartSpec && (
           <TableBlock specStr={det.chartSpec} caption={det.caption} />
         )}
