@@ -609,6 +609,40 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true })
     }
 
+    // ── Actualizar preguntas y configuración de un examen existente ─────────
+    if (action === "update") {
+      const { examId, teacherId, title, instructions, questions, settings } = body
+
+      if (!examId || !teacherId) {
+        return NextResponse.json(
+          { error: "examId y teacherId son requeridos" },
+          { status: 400 }
+        )
+      }
+
+      const sanitized = Array.isArray(questions)
+        ? questions.map(sanitizeQuestion)
+        : undefined
+
+      const patch: Record<string, any> = { updated_at: new Date().toISOString() }
+      if (title)       patch.title       = title
+      if (instructions !== undefined) patch.instructions = instructions
+      if (sanitized)   patch.questions   = sanitized
+      if (settings)    patch.settings    = settings
+
+      const { error } = await supabase
+        .from("teacher_exams")
+        .update(patch)
+        .eq("id", examId)
+        .eq("teacher_id", teacherId)
+
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 })
+      }
+
+      return NextResponse.json({ success: true })
+    }
+
     return NextResponse.json({ error: "Acción inválida" }, { status: 400 })
   } catch (err: any) {
     console.error("Exam API error:", err)
