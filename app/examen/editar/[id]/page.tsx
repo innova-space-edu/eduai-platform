@@ -237,17 +237,22 @@ Formato exacto:
       }
 
       if (normalizedQ.type !== "development") {
-        normalizedQ.options =
+        const options =
           Array.isArray(rawQ.options) && rawQ.options.length > 0
             ? rawQ.options.map((o: any) => String(o))
             : normalizedQ.type === "true_false"
               ? ["Verdadero", "Falso"]
               : ["Opción A", "Opción B", "Opción C", "Opción D"]
-
-        const max = Math.max(0, normalizedQ.options.length - 1)
+        
+        normalizedQ.options = options
+        
+        const max = Math.max(0, options.length - 1)
         const ca  = rawQ.correctAnswer
+        
         normalizedQ.correctAnswer =
-          typeof ca === "number" ? Math.max(0, Math.min(max, ca)) : 0
+          typeof ca === "number" && Number.isFinite(ca)
+            ? Math.max(0, Math.min(max, Math.round(ca)))
+            : 0
       }
 
       if (normalizedQ.type === "true_false") {
