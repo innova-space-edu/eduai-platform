@@ -567,10 +567,20 @@ Formato exacto:
       const data = await res.json()
       if (!data.success) throw new Error(data.error || "No se pudo regenerar la pregunta")
 
-      const newQuestion = normalizeQuestion(
-        data.output?.data?.question || data.output?.data || {},
-        scoreMode
-      )
+      // La IA puede devolver la pregunta en varias estructuras posibles
+      const raw = data.output?.data
+      const rawQuestion =
+        (raw?.question && typeof raw.question === "object")
+          ? raw.question                    // { question: { ... } }
+          : Array.isArray(raw?.questions)
+            ? raw.questions[0]              // { questions: [{ ... }] }
+            : typeof raw === "object" && raw?.type
+              ? raw                         // { type: "...", question: "...", ... } directo
+              : null
+
+      if (!rawQuestion) throw new Error("No se pudo extraer la pregunta de la respuesta")
+
+      const newQuestion = normalizeQuestion(rawQuestion, scoreMode)
 
       updateQuestion(idx, { ...newQuestion, maxPoints: current.maxPoints })
     } catch (err: any) {
@@ -958,44 +968,104 @@ Formato exacto:
                     </span>
                   </div>
 
+                  {/* ── Texto de la pregunta — editable ── */}
                   <div>
-                    <div className="text-sm text-gray-200 mb-2">
-                      <span className="mr-1">{i + 1}.</span>
-                      <ExamMathText text={q.question} className="inline" />
-                    </div>
-
-                    {q.type === "development" && q.modelAnswer && (
-                      <div className="bg-orange-500/[0.05] rounded-lg p-2 border border-orange-500/10 mt-2">
-                        <p className="text-orange-400 text-[10px] font-semibold">
-                          Respuesta modelo:
-                        </p>
-                        <div className="text-gray-400 text-xs">
-                          <ExamMathText text={q.modelAnswer || ""} className="inline" />
-                        </div>
+                    <label className="text-gray-500 text-[10px] font-semibold uppercase tracking-widest block mb-1">
+                      {i + 1}. Texto de la pregunta
+                    </label>
+                    <textarea
+                      value={q.question}
+                      onChange={e => updateQuestion(i, { question: e.target.value })}
+                      rows={2}
+                      className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-blue-500/30 resize-vertical"
+                      placeholder="Texto de la pregunta..."
+                    />
+                    {/* Preview LaTeX si contiene $ */}
+                    {q.question && (q.question.includes("$") || q.question.includes("\\")) && (
+                      <div className="mt-1 px-3 py-1.5 rounded-lg bg-blue-500/5 border border-blue-500/10">
+                        <p className="text-[10px] text-blue-400 mb-0.5">Vista previa:</p>
+                        <ExamMathText text={q.question} className="text-sm text-gray-300" />
                       </div>
                     )}
+                  </div>
 
-                    {q.type !== "development" && (
-                      <div className="space-y-1 mt-2">
+                  {/* ── Alternativas / V-F — editables ── */}
+                  {q.type !== "development" && (
+                    <div>
+                      <label className="text-gray-500 text-[10px] font-semibold uppercase tracking-widest block mb-2">
+                        {q.type === "true_false" ? "Opciones (V/F)" : "Alternativas"}
+                        <span className="text-gray-700 font-normal ml-2">— clic en ✓ para marcar correcta</span>
+                      </label>
+                      <div className="space-y-1.5">
                         {(q.options || []).map((opt, j) => (
-                          <div
-                            key={j}
-                            className={`text-xs px-3 py-1.5 rounded-lg ${
-                              j === q.correctAnswer
-                                ? "bg-green-500/10 text-green-400 border border-green-500/20"
-                                : "text-gray-500"
-                            }`}
-                          >
-                            {q.type === "true_false" ? "" : `${String.fromCharCode(65 + j)}) `}
-                            <ExamMathText text={opt} className="inline" />{" "}
-                            {j === q.correctAnswer && "✓"}
+                          <div key={j} className="flex items-center gap-2">
+                            {/* Botón marcar correcta */}
+                            <button
+                              onClick={() => updateQuestion(i, { correctAnswer: j })}
+                              className={`w-7 h-7 rounded-lg flex-shrink-0 text-xs font-bold transition-all ${
+                                j === q.correctAnswer
+                                  ? "bg-green-500/20 border border-green-500/40 text-green-400"
+                                  : "bg-white/[0.04] border border-white/[0.08] text-gray-600 hover:text-gray-400"
+                              }`}
+                              title={j === q.correctAnswer ? "Respuesta correcta" : "Marcar como correcta"}
+                            >
+                              {j === q.correctAnswer ? "✓" : q.type === "true_false" ? (j === 0 ? "V" : "F") : String.fromCharCode(65 + j)}
+                            </button>
+                            {/* Input del texto de la opción */}
+                            <input
+                              value={opt}
+                              onChange={e => {
+                                const options = [...(q.options || [])]
+                                options[j] = e.target.value
+                                updateQuestion(i, { options })
+                              }}
+                              disabled={q.type === "true_false"}
+                              className={`flex-1 bg-white/[0.04] border rounded-xl px-3 py-2 text-xs focus:outline-none transition-all ${
+                                j === q.correctAnswer
+                                  ? "border-green-500/30 text-green-300 focus:border-green-500/50"
+                                  : "border-white/[0.08] text-gray-300 focus:border-blue-500/30"
+                              } ${q.type === "true_false" ? "opacity-70 cursor-not-allowed" : ""}`}
+                            />
                           </div>
                         ))}
                       </div>
-                    )}
+                    </div>
+                  )}
 
+                  {/* ── Desarrollo: respuesta modelo editable ── */}
+                  {q.type === "development" && (
+                    <div>
+                      <label className="text-gray-500 text-[10px] font-semibold uppercase tracking-widest block mb-1">
+                        Respuesta modelo
+                      </label>
+                      <textarea
+                        value={q.modelAnswer || ""}
+                        onChange={e => updateQuestion(i, { modelAnswer: e.target.value })}
+                        rows={3}
+                        className="w-full bg-orange-500/[0.04] border border-orange-500/20 rounded-xl px-3 py-2 text-xs text-gray-300 focus:outline-none focus:border-orange-500/40 resize-vertical"
+                        placeholder="Respuesta modelo para que la IA evalúe..."
+                      />
+                    </div>
+                  )}
+
+                  {/* ── Explicación ── */}
+                  {q.type !== "development" && (
+                    <div>
+                      <label className="text-gray-500 text-[10px] font-semibold uppercase tracking-widest block mb-1">
+                        Explicación (opcional)
+                      </label>
+                      <input
+                        value={q.explanation || ""}
+                        onChange={e => updateQuestion(i, { explanation: e.target.value })}
+                        className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-gray-400 focus:outline-none focus:border-blue-500/30"
+                        placeholder="Explicación breve de por qué esta respuesta es correcta..."
+                      />
+                    </div>
+                  )}
+
+                  {/* ── Rúbrica desarrollo ── */}
                     {q.type === "development" && q.rubric && q.rubric.length > 0 && (
-                      <div className="mt-2 bg-white/[0.03] rounded-xl border border-white/[0.06] p-3">
+                      <div className="bg-white/[0.03] rounded-xl border border-white/[0.06] p-3">
                         <p className="text-gray-500 text-[11px] font-semibold mb-2">RÚBRICA</p>
 
                         <div className="space-y-2">
