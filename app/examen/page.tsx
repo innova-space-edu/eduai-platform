@@ -157,7 +157,18 @@ export default function ExamenPage() {
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => router.back()}
+              onClick={() => {
+                if (state === "active") {
+                  if (confirm("¿Abandonar el examen? Tu progreso se perderá.")) {
+                    setState("config")
+                    setExam(null)
+                    setAnswers({})
+                    clearInterval(timerRef.current)
+                  }
+                } else {
+                  router.push("/agentes")
+                }
+              }}
               className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition-all text-sm"
             >
               ←
