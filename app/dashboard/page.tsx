@@ -8,7 +8,7 @@ import MissionsPanel from "./MissionsPanel"
 import {
   Bot, BookOpen, MessageCircle, Users,
   Sparkles, UserCircle2, LogOut, ChevronRight, ChevronLeft,
-  Flame, Zap, BookMarked, BarChart3, Search, FolderKanban
+  Flame, Zap, BookMarked, BarChart3, Search, FolderKanban, ShieldCheck
 } from "lucide-react"
 
 const LEVELS = [
@@ -48,6 +48,7 @@ export default function Dashboard() {
   const [topic, setTopic]       = useState("")
   const [expanded, setExpanded] = useState(false)
   const [loaded, setLoaded]     = useState(false)
+  const [isAdmin, setIsAdmin]   = useState(false)
   const router   = useRouter()
   const supabase = createClient()
 
@@ -57,7 +58,13 @@ export default function Dashboard() {
       if (!user) { router.push("/login"); return }
       setUser(user)
 
-      const { data } = await supabase
+      // Verificar si es admin
+      const { data: adminData } = await supabase
+        .from("admin_emails")
+        .select("email")
+        .eq("email", user.email)
+        .maybeSingle()
+      setIsAdmin(!!adminData)
         .from("profiles")
         .select("xp, streak_days")
         .eq("id", user.id)
@@ -147,6 +154,27 @@ export default function Dashboard() {
                 </Link>
               )
             })}
+
+            {/* Enlace admin — solo visible si el usuario es admin */}
+            {isAdmin && (
+              <Link
+                href="/admin"
+                title={!expanded ? "Administración" : undefined}
+                className="flex items-center gap-3 px-2.5 py-2.5 rounded-2xl border border-transparent hover:bg-purple-500/[0.08] hover:border-purple-500/20 transition-all group mt-1"
+              >
+                <div
+                  className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all group-hover:scale-105"
+                  style={{ background: "rgba(124,58,237,0.15)", border: "1px solid rgba(124,58,237,0.3)" }}
+                >
+                  <ShieldCheck size={17} style={{ color: "#a78bfa" }} />
+                </div>
+                {expanded && (
+                  <span className="text-purple-400 group-hover:text-purple-300 text-sm font-medium whitespace-nowrap transition-colors">
+                    Administración
+                  </span>
+                )}
+              </Link>
+            )}
           </nav>
 
           {/* Logout */}
