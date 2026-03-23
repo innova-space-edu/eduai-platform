@@ -9,8 +9,8 @@ import { createClient } from "@/lib/supabase/server"
 export const runtime     = "nodejs"
 export const maxDuration = 120
 
-// gemini-2.0-flash-exp soporta audio multimodal y es más rápido/estable
-const GEMINI_MODEL = "gemini-2.0-flash-exp"
+// gemini-2.0-flash: modelo estable con soporte multimodal de audio
+const GEMINI_MODEL = "gemini-2.0-flash"
 
 const TRANSCRIPTION_PROMPT = `Transcribe este archivo de audio completa y fielmente.
 
@@ -85,108 +85,119 @@ export async function POST(req: NextRequest) {
     if (!insertError && record) recordId = record.id
   } catch { /* tabla puede no existir aún */ }
 
-  // ── Llamar a Gemini API REST directamente (más estable que el SDK) ────────
-  try {
-    const geminiBody = {
-      contents: [{
-        parts: [
-          {
-            inline_data: {
-              mime_type: mimeType,
-              data:      audioBase64,
-            },
-          },
-          { text: TRANSCRIPTION_PROMPT },
-        ],
-      }],
-      generationConfig: {
-        temperature:     0.1,
-        maxOutputTokens: 8192,
-      },
-    }
+  // ── Llamar a Gemini API REST — con fallback de modelo ────────────────────
+  const MODELS_TO_TRY = [
+    "gemini-2.0-flash",
+    "gemini-1.5-flash",
+    "gemini-2.5-flash",
+  ]
 
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify(geminiBody),
-      }
-    )
+  let lastError = ""
 
-    if (!geminiRes.ok) {
-      const errText = await geminiRes.text()
-      throw new Error(`Gemini API error ${geminiRes.status}: ${errText.slice(0, 200)}`)
-    }
-
-    const geminiData = await geminiRes.json()
-    const raw = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || ""
-
-    if (!raw) throw new Error("Gemini no devolvió texto")
-
-    // ── Parsear JSON ───────────────────────────────────────────────────────
-    let parsed: any = {}
+  for (const modelName of MODELS_TO_TRY) {
     try {
-      const clean = raw.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim()
-      parsed = JSON.parse(clean)
-    } catch {
-      // Si no viene como JSON válido, usar el texto crudo
-      parsed = {
-        transcript:       raw,
-        language:         "es",
-        speakerCount:     1,
-        speakers:         [],
-        durationEstimate: "",
-        qualityNotes:     "Respuesta en texto plano (sin estructura JSON)",
+      const geminiBody = {
+        contents: [{
+          parts: [
+            {
+              inline_data: {
+                mime_type: mimeType,
+                data:      audioBase64,
+              },
+            },
+            { text: TRANSCRIPTION_PROMPT },
+          ],
+        }],
+        generationConfig: {
+          temperature:     0.1,
+          maxOutputTokens: 8192,
+        },
+      }
+
+      const geminiRes = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method:  "POST",
+          headers: { "Content-Type": "application/json" },
+          body:    JSON.stringify(geminiBody),
+        }
+      )
+
+      if (!geminiRes.ok) {
+        const errText = await geminiRes.text()
+        lastError = `${modelName} error ${geminiRes.status}: ${errText.slice(0, 150)}`
+        // 404 = modelo no existe o no soporta audio → probar siguiente
+        if (geminiRes.status === 404 || geminiRes.status === 400) continue
+        // Otros errores (401, 429, 500) → lanzar inmediatamente
+        throw new Error(lastError)
+      }
+
+      const geminiData = await geminiRes.json()
+      const raw = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || ""
+      if (!raw) { lastError = `${modelName}: respuesta vacía`; continue }
+
+      // ── Parsear JSON ─────────────────────────────────────────────────────
+      let parsed: any = {}
+      try {
+        const clean = raw.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim()
+        parsed = JSON.parse(clean)
+      } catch {
+        parsed = {
+          transcript: raw, language: "es", speakerCount: 1,
+          speakers: [], durationEstimate: "", qualityNotes: "Texto plano",
+        }
+      }
+
+      const transcript   = String(parsed?.transcript     || "").trim()
+      const language     = String(parsed?.language       || "es")
+      const speakers     = Array.isArray(parsed?.speakers) ? parsed.speakers : []
+      const durationHint = String(parsed?.durationEstimate || "")
+
+      if (!transcript) { lastError = `${modelName}: transcripción vacía`; continue }
+
+      // ── Actualizar DB ────────────────────────────────────────────────────
+      if (recordId) {
+        await supabase
+          .from("audio_transcriptions")
+          .update({
+            transcript_raw:   transcript,
+            transcript_clean: transcript,
+            language,
+            speakers:         JSON.stringify(speakers),
+            duration_hint:    durationHint,
+            status:           "done",
+            model_used:       modelName,
+            updated_at:       new Date().toISOString(),
+          })
+          .eq("id", recordId)
+      }
+
+      return NextResponse.json({
+        success: true, id: recordId,
+        transcript, language, speakers,
+        durationEstimate: durationHint,
+        qualityNotes: parsed?.qualityNotes || "",
+        modelUsed: modelName,
+      })
+
+    } catch (err: any) {
+      lastError = err?.message || lastError
+      // Si no es error de modelo, no seguir intentando
+      if (!err?.message?.includes("404") && !err?.message?.includes("not found")) {
+        break
       }
     }
-
-    const transcript   = String(parsed?.transcript     || "").trim()
-    const language     = String(parsed?.language       || "es")
-    const speakers     = Array.isArray(parsed?.speakers) ? parsed.speakers : []
-    const durationHint = String(parsed?.durationEstimate || "")
-
-    if (!transcript) throw new Error("La transcripción resultó vacía")
-
-    // ── Actualizar DB ──────────────────────────────────────────────────────
-    if (recordId) {
-      await supabase
-        .from("audio_transcriptions")
-        .update({
-          transcript_raw:   transcript,
-          transcript_clean: transcript,
-          language,
-          speakers:         JSON.stringify(speakers),
-          duration_hint:    durationHint,
-          status:           "done",
-          updated_at:       new Date().toISOString(),
-        })
-        .eq("id", recordId)
-    }
-
-    return NextResponse.json({
-      success:         true,
-      id:              recordId,
-      transcript,
-      language,
-      speakers,
-      durationEstimate: durationHint,
-      qualityNotes:    parsed?.qualityNotes || "",
-    })
-
-  } catch (err: any) {
-    console.error("transcription error:", err?.message || err)
-
-    if (recordId) {
-      await supabase
-        .from("audio_transcriptions")
-        .update({ status: "error", error_message: err?.message || "Error desconocido" })
-        .eq("id", recordId)
-    }
-
-    return NextResponse.json(
-      { error: err?.message || "Error transcribiendo el audio" },
-      { status: 500 }
-    )
   }
+
+  // Todos los modelos fallaron
+  console.error("transcription error (todos los modelos fallaron):", lastError)
+  if (recordId) {
+    await supabase.from("audio_transcriptions")
+      .update({ status: "error", error_message: lastError })
+      .eq("id", recordId)
+  }
+  return NextResponse.json(
+    { error: `No se pudo transcribir. ${lastError}` },
+    { status: 500 }
+  )
 }
