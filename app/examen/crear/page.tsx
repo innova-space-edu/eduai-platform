@@ -567,15 +567,14 @@ Formato exacto:
       const data = await res.json()
       if (!data.success) throw new Error(data.error || "No se pudo regenerar la pregunta")
 
-      // La IA puede devolver la pregunta en varias estructuras posibles
       const raw = data.output?.data
       const rawQuestion =
         (raw?.question && typeof raw.question === "object")
-          ? raw.question                    // { question: { ... } }
+          ? raw.question
           : Array.isArray(raw?.questions)
-            ? raw.questions[0]              // { questions: [{ ... }] }
+            ? raw.questions[0]
             : typeof raw === "object" && raw?.type
-              ? raw                         // { type: "...", question: "...", ... } directo
+              ? raw
               : null
 
       if (!rawQuestion) throw new Error("No se pudo extraer la pregunta de la respuesta")
@@ -980,7 +979,6 @@ Formato exacto:
                       className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-blue-500/30 resize-vertical"
                       placeholder="Texto de la pregunta..."
                     />
-                    {/* Preview LaTeX si contiene $ */}
                     {q.question && (q.question.includes("$") || q.question.includes("\\")) && (
                       <div className="mt-1 px-3 py-1.5 rounded-lg bg-blue-500/5 border border-blue-500/10">
                         <p className="text-[10px] text-blue-400 mb-0.5">Vista previa:</p>
@@ -999,7 +997,6 @@ Formato exacto:
                       <div className="space-y-1.5">
                         {(q.options || []).map((opt, j) => (
                           <div key={j} className="flex items-center gap-2">
-                            {/* Botón marcar correcta */}
                             <button
                               onClick={() => updateQuestion(i, { correctAnswer: j })}
                               className={`w-7 h-7 rounded-lg flex-shrink-0 text-xs font-bold transition-all ${
@@ -1011,7 +1008,6 @@ Formato exacto:
                             >
                               {j === q.correctAnswer ? "✓" : q.type === "true_false" ? (j === 0 ? "V" : "F") : String.fromCharCode(65 + j)}
                             </button>
-                            {/* Input del texto de la opción */}
                             <input
                               value={opt}
                               onChange={e => {
@@ -1064,47 +1060,47 @@ Formato exacto:
                   )}
 
                   {/* ── Rúbrica desarrollo ── */}
-                    {q.type === "development" && q.rubric && q.rubric.length > 0 && (
-                      <div className="bg-white/[0.03] rounded-xl border border-white/[0.06] p-3">
-                        <p className="text-gray-500 text-[11px] font-semibold mb-2">RÚBRICA</p>
+                  {q.type === "development" && q.rubric && q.rubric.length > 0 && (
+                    <div className="bg-white/[0.03] rounded-xl border border-white/[0.06] p-3">
+                      <p className="text-gray-500 text-[11px] font-semibold mb-2">RÚBRICA</p>
 
-                        <div className="space-y-2">
-                          {q.rubric.map((item, rIdx) => (
-                            <div key={rIdx} className="grid grid-cols-[1fr_88px] gap-2">
-                              <input
-                                value={item.criteria}
-                                onChange={e => {
-                                  const rubric = [...(q.rubric || [])]
-                                  rubric[rIdx] = {
-                                    ...rubric[rIdx],
-                                    criteria: e.target.value,
-                                  }
-                                  updateQuestion(i, { rubric })
-                                }}
-                                className="bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-blue-500/30"
-                              />
-                              <input
-                                type="number"
-                                min={0}
-                                step={0.5}
-                                value={item.points}
-                                onChange={e => {
-                                  const rubric = [...(q.rubric || [])]
-                                  rubric[rIdx] = {
-                                    ...rubric[rIdx],
-                                    points: clampPositive(Number(e.target.value), 0),
-                                  }
-                                  updateQuestion(i, { rubric })
-                                }}
-                                className="bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-blue-500/30"
-                              />
-                            </div>
-                          ))}
-                        </div>
+                      <div className="space-y-2">
+                        {q.rubric.map((item, rIdx) => (
+                          <div key={rIdx} className="grid grid-cols-[1fr_88px] gap-2">
+                            <input
+                              value={item.criteria}
+                              onChange={e => {
+                                const rubric = [...(q.rubric || [])]
+                                rubric[rIdx] = {
+                                  ...rubric[rIdx],
+                                  criteria: e.target.value,
+                                }
+                                updateQuestion(i, { rubric })
+                              }}
+                              className="bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-blue-500/30"
+                            />
+                            <input
+                              type="number"
+                              min={0}
+                              step={0.5}
+                              value={item.points}
+                              onChange={e => {
+                                const rubric = [...(q.rubric || [])]
+                                rubric[rIdx] = {
+                                  ...rubric[rIdx],
+                                  points: clampPositive(Number(e.target.value), 0),
+                                }
+                                updateQuestion(i, { rubric })
+                              }}
+                              className="bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-blue-500/30"
+                            />
+                          </div>
+                        ))}
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
 
+                  {/* ── Controles: dificultad, habilidad, puntaje, regenerar ── */}
                   <div className="grid lg:grid-cols-4 gap-3">
                     <div>
                       <label className="text-gray-500 text-[11px] font-semibold block mb-1">
@@ -1119,15 +1115,9 @@ Formato exacto:
                         }
                         className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2.5 text-xs focus:outline-none"
                       >
-                        <option value={1} className="bg-gray-900">
-                          Fácil
-                        </option>
-                        <option value={2} className="bg-gray-900">
-                          Media
-                        </option>
-                        <option value={3} className="bg-gray-900">
-                          Difícil
-                        </option>
+                        <option value={1} className="bg-gray-900">Fácil</option>
+                        <option value={2} className="bg-gray-900">Media</option>
+                        <option value={3} className="bg-gray-900">Difícil</option>
                       </select>
                     </div>
 
@@ -1184,6 +1174,7 @@ Formato exacto:
                     </div>
                   </div>
 
+                  {/* ── Botones de regeneración rápida ── */}
                   <div className="flex flex-wrap gap-2">
                     <button
                       onClick={() => regenerateQuestion(i, { difficulty: 1 })}
