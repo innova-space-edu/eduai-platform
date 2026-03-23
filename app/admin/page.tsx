@@ -41,14 +41,39 @@ export default function AdminPage() {
   const [error,        setError]        = useState("")
 
   // ── Auth check ──────────────────────────────────────────────────────────
+  const [accessError, setAccessError] = useState("")
+
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) { router.push("/login"); return }
-      // Verificar si es admin
-      const { data } = await supabase.from("admin_emails").select("email").eq("email", user.email!).maybeSingle()
-      if (!data) { router.push("/dashboard"); return }
-      loadStats()
-      setLoading(false)
+
+      // Verificar si es admin — intentar primero con la tabla admin_emails
+      try {
+        const { data, error } = await supabase
+          .from("admin_emails")
+          .select("email")
+          .eq("email", user.email!)
+          .maybeSingle()
+
+        if (error) {
+          // RLS puede estar bloqueando — mostrar mensaje informativo
+          setAccessError(`Error de acceso: ${error.message}. Verifica que la migración SQL fue ejecutada correctamente.`)
+          setLoading(false)
+          return
+        }
+
+        if (!data) {
+          setAccessError(`El correo ${user.email} no está registrado como administrador.`)
+          setLoading(false)
+          return
+        }
+
+        loadStats()
+        setLoading(false)
+      } catch (e: any) {
+        setAccessError(`Error inesperado: ${e.message}`)
+        setLoading(false)
+      }
     })
   }, [])
 
@@ -89,6 +114,30 @@ export default function AdminPage() {
   if (loading) return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center">
       <div className="w-10 h-10 rounded-full border-2 border-white/10 border-t-blue-400 animate-spin" />
+    </div>
+  )
+
+  // Mostrar error de acceso con instrucciones claras
+  if (accessError) return (
+    <div className="min-h-screen bg-gray-950 flex items-center justify-center p-6">
+      <div className="w-full max-w-md rounded-2xl p-6 border text-center"
+           style={{ background: "rgba(239,68,68,0.06)", borderColor: "rgba(239,68,68,0.25)" }}>
+        <div className="text-4xl mb-4">🔒</div>
+        <h2 className="text-white font-bold text-lg mb-2">Acceso denegado</h2>
+        <p className="text-red-300 text-sm mb-5 leading-relaxed">{accessError}</p>
+        <div className="text-left rounded-xl p-4 mb-5 text-xs space-y-2"
+             style={{ background: "rgba(255,255,255,0.03)", borderColor: "rgba(255,255,255,0.08)", border: "1px solid" }}>
+          <p className="text-gray-400 font-semibold mb-2">Para solucionar esto:</p>
+          <p className="text-gray-500">1. Ir a <span className="text-blue-400 font-mono">Supabase → SQL Editor</span></p>
+          <p className="text-gray-500">2. Ejecutar la migración <span className="font-mono text-amber-400">20260401000000_create_admin_system.sql</span></p>
+          <p className="text-gray-500">3. Luego ejecutar <span className="font-mono text-amber-400">20260403000000_exam_softdelete_admin_fix.sql</span></p>
+          <p className="text-gray-500">4. Verificar que tu correo está en la tabla <span className="font-mono text-green-400">admin_emails</span></p>
+        </div>
+        <Link href="/dashboard"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-gray-300 border border-white/[0.08] hover:bg-white/[0.04] transition-all">
+          <ArrowLeft size={14} /> Volver al dashboard
+        </Link>
+      </div>
     </div>
   )
 
@@ -143,6 +192,12 @@ export default function AdminPage() {
       <div className="max-w-5xl mx-auto px-4 py-6">
 
         {/* ── TAB: DASHBOARD ─────────────────────────────────────── */}
+        {activeTab === "dashboard" && !stats && (
+          <div className="flex justify-center py-12">
+            <div className="w-8 h-8 rounded-full border-2 border-white/10 border-t-purple-400 animate-spin" />
+          </div>
+        )}
+
         {activeTab === "dashboard" && stats && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
