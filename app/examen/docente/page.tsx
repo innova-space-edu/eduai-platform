@@ -5,12 +5,13 @@ import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, Plus, ClipboardList, Pencil, BarChart2, Users, Clock } from "lucide-react"
+import { ArrowLeft, Plus, ClipboardList, Pencil, BarChart2, Clock, Trash2 } from "lucide-react"
 
 export default function ExamenesDocentePage() {
   const [user,    setUser]    = useState<any>(null)
   const [exams,   setExams]   = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const supabase = createClient()
   const router   = useRouter()
 
@@ -24,6 +25,19 @@ export default function ExamenesDocentePage() {
       setLoading(false)
     })
   }, [])
+
+  async function deleteExam(examId: string) {
+    if (!user) return
+    setConfirmDelete(null)
+    const res  = await fetch("/api/agents/examen-docente", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "delete", examId, teacherId: user.id }),
+    })
+    const data = await res.json()
+    if (data.success) {
+      setExams(prev => prev.filter(e => e.id !== examId))
+    }
+  }
 
   if (loading) {
     return (
@@ -62,6 +76,33 @@ export default function ExamenesDocentePage() {
       </header>
 
       <div className="max-w-2xl mx-auto px-4 py-6">
+
+        {/* Modal confirmación eliminar */}
+        {confirmDelete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setConfirmDelete(null)} />
+            <div className="relative w-full max-w-sm rounded-2xl p-6 shadow-2xl"
+                 style={{ background: "#0f172a", border: "1px solid rgba(239,68,68,0.3)" }}>
+              <div className="text-3xl mb-3 text-center">🗑️</div>
+              <h3 className="text-white font-bold text-center mb-1">¿Eliminar examen?</h3>
+              <p className="text-gray-400 text-sm text-center mb-5">
+                Se eliminarán también todas las respuestas de los estudiantes. Esta acción no se puede deshacer.
+              </p>
+              <div className="flex gap-3">
+                <button onClick={() => setConfirmDelete(null)}
+                  className="flex-1 py-2.5 rounded-xl border text-sm font-medium text-gray-400 transition-all"
+                  style={{ borderColor: "rgba(255,255,255,0.08)" }}>
+                  Cancelar
+                </button>
+                <button onClick={() => deleteExam(confirmDelete)}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition-all"
+                  style={{ background: "#dc2626" }}>
+                  Sí, eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {exams.length === 0 ? (
           <div className="flex flex-col items-center py-16 rounded-2xl border text-center"
@@ -157,6 +198,26 @@ export default function ExamenesDocentePage() {
                     }}>
                     <Pencil size={12} /> Editar examen
                   </Link>
+
+                  {/* Eliminar — solo si está cerrado */}
+                  {exam.status === "closed" && (
+                    <button
+                      onClick={() => setConfirmDelete(exam.id)}
+                      className="w-9 flex items-center justify-center rounded-xl border transition-all flex-shrink-0"
+                      style={{ background: "rgba(239,68,68,0.06)", borderColor: "rgba(239,68,68,0.18)", color: "#f87171" }}
+                      onMouseEnter={e => {
+                        ;(e.currentTarget as HTMLElement).style.background  = "rgba(239,68,68,0.15)"
+                        ;(e.currentTarget as HTMLElement).style.borderColor = "rgba(239,68,68,0.35)"
+                      }}
+                      onMouseLeave={e => {
+                        ;(e.currentTarget as HTMLElement).style.background  = "rgba(239,68,68,0.06)"
+                        ;(e.currentTarget as HTMLElement).style.borderColor = "rgba(239,68,68,0.18)"
+                      }}
+                      title="Eliminar examen cerrado"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
