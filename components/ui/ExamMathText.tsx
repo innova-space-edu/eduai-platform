@@ -5,64 +5,54 @@ import ReactMarkdown from "react-markdown"
 import remarkMath from "remark-math"
 import rehypeKatex from "rehype-katex"
 
+/**
+ * Repara LaTeX mal formateado antes de renderizar.
+ * Solo convierte delimitadores alternativos (\( \) y \[ \]) al formato estándar.
+ * NO modifica espacios alrededor de operadores para no romper texto normal.
+ */
 function repairCommonLatex(text: string) {
   return String(text || "")
     .replace(/\r\n/g, "\n")
     .replace(/\r/g, "\n")
-
-    // Delimitadores alternativos -> estándar
-    .replace(/\\\(([\s\S]*?)\\\)/g, (_, expr) => `$${expr}$`)
-    .replace(/\\\[([\s\S]*?)\\\]/g, (_, expr) => `$$${expr}$$`)
-
-    // Operadores pegados al siguiente término
-    .replace(/\\cdot(?=[A-Za-z0-9(])/g, "\\cdot ")
-    .replace(/\\times(?=[A-Za-z0-9(])/g, "\\times ")
-    .replace(/\\div(?=[A-Za-z0-9(])/g, "\\div ")
-    .replace(/\\pm(?=[A-Za-z0-9(])/g, "\\pm ")
-    .replace(/\\leq(?=[A-Za-z0-9(])/g, "\\leq ")
-    .replace(/\\geq(?=[A-Za-z0-9(])/g, "\\geq ")
-    .replace(/\\neq(?=[A-Za-z0-9(])/g, "\\neq ")
-
-    // Operadores pegados al término anterior
-    .replace(/([A-Za-z0-9}])\\cdot/g, "$1 \\cdot")
-    .replace(/([A-Za-z0-9}])\\times/g, "$1 \\times")
-    .replace(/([A-Za-z0-9}])\\div/g, "$1 \\div")
-    .replace(/([A-Za-z0-9}])\\pm/g, "$1 \\pm")
-    .replace(/([A-Za-z0-9}])\\leq/g, "$1 \\leq")
-    .replace(/([A-Za-z0-9}])\\geq/g, "$1 \\geq")
-    .replace(/([A-Za-z0-9}])\\neq/g, "$1 \\neq")
-
-    // Operadores básicos sin espacio
-    .replace(/([A-Za-z0-9}])=([A-Za-z0-9{\\(])/g, "$1 = $2")
-    .replace(/([A-Za-z0-9}])\+([A-Za-z0-9{\\(])/g, "$1 + $2")
-    .replace(/([A-Za-z0-9}])-([A-Za-z0-9{\\(])/g, "$1 - $2")
-
-    // Compactar espacios redundantes
-    .replace(/[ \t]{2,}/g, " ")
-    .trim()
+    // Delimitadores alternativos → estándar
+    .replace(/\\\(([^]*?)\\\)/g, (_, expr) => `$${expr}$`)
+    .replace(/\\\[([^]*?)\\\]/g, (_, expr) => `$$${expr}$$`)
+    // Compactar espacios redundantes dentro de expresiones $...$
+    .replace(/\$([^$]+)\$/g, (_, expr) => `$${expr.replace(/[ \t]{2,}/g, " ")}$`)
+    .replace(/\$\$([^$]+)\$\$/g, (_, expr) => `$$${expr.replace(/[ \t]{2,}/g, " ")}$$`)
 }
 
-function looksLikeMath(text: string) {
-  return /\\frac|\\sqrt|\\cdot|\\times|\\div|\\pm|\\leq|\\geq|\\neq|\\pi|\\alpha|\\beta|\\theta|\\sum|\\int|\^|_|\{|\}/.test(
-    text
+/**
+ * Detecta si un fragmento de texto CONTIENE expresiones claramente matemáticas.
+ * Conservador: solo detecta comandos LaTeX específicos o delimitadores $, NO detecta
+ * llaves sueltas, guiones, acentos circunflejos u otros caracteres ambiguos.
+ */
+function looksLikeMath(text: string): boolean {
+  return (
+    // Comandos LaTeX específicos de matemáticas
+    /\\frac\s*\{|\\sqrt\s*[\[{]|\\sum\s*[_^]|\\int\s*[_^]|\\prod\s*[_^]/.test(text) ||
+    /\\cdot|\\times|\\div|\\pm|\\leq|\\geq|\\neq|\\approx|\\equiv/.test(text) ||
+    /\\pi\b|\\alpha\b|\\beta\b|\\gamma\b|\\theta\b|\\lambda\b|\\sigma\b|\\omega\b/.test(text) ||
+    /\\infty\b|\\partial\b|\\nabla\b|\\Delta\b|\\Sigma\b/.test(text) ||
+    /\\text\s*\{|\\mathbf\s*\{|\\mathrm\s*\{|\\mathit\s*\{/.test(text) ||
+    /\\left\s*[([|]|\\right\s*[)\]|]/.test(text) ||
+    // Superíndices/subíndices solo si van con letras/números específicos
+    /[a-zA-Z0-9]\^[{0-9]|[a-zA-Z0-9]_[{0-9]/.test(text)
   )
 }
 
-function hasMathDelimiters(text: string) {
-  return /\$\$[\s\S]*\$\$|\$[^$]+\$/.test(text)
+function hasMathDelimiters(text: string): boolean {
+  return /\$\$[\s\S]*?\$\$|\$[^$\n]+\$/.test(text)
 }
 
-function normalizeMathDelimiters(text: string) {
+function normalizeMathDelimiters(text: string): string {
   const repaired = repairCommonLatex(text)
 
-  if (hasMathDelimiters(repaired)) {
-    return repaired
-  }
+  // Si ya tiene delimitadores $ correctos, solo retornar reparado
+  if (hasMathDelimiters(repaired)) return repaired
 
-  // Si parece una expresión matemática simple, envolverla automáticamente
-  if (looksLikeMath(repaired)) {
-    return `$${repaired}$`
-  }
+  // Solo auto-envolver si parece CLARAMENTE una expresión matemática LaTeX
+  if (looksLikeMath(repaired)) return `$${repaired}$`
 
   return repaired
 }
