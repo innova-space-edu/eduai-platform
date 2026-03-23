@@ -83,17 +83,6 @@ const AGENTS = [
     tag: "Evaluación",
   },
   {
-    id: "imagenes",
-    icon: "🎨",
-    name: "Generador de Imágenes",
-    description: "Crea imágenes con FLUX y Stable Diffusion desde texto",
-    color: "from-pink-500 to-purple-600",
-    glow: "rgba(236,72,153,0.15)",
-    border: "rgba(236,72,153,0.2)",
-    href: "/imagenes",
-    tag: "Creativo",
-  },
-  {
     id: "examen-docente",
     icon: "📋",
     name: "Exámenes Docente",
