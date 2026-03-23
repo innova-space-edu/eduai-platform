@@ -191,7 +191,7 @@ export default function ResultadosExamenPage() {
 
         {/* Header */}
         <div className="flex flex-wrap items-start gap-3 mb-6">
-          <Link href="/examen" className="text-gray-500 hover:text-white mt-1">←</Link>
+          <Link href="/examen/docente" className="text-gray-500 hover:text-white mt-1">←</Link>
           <div className="flex-1 min-w-0">
             <h1 className="text-lg font-bold text-white truncate">{exam?.title}</h1>
             <p className="text-gray-500 text-xs mt-0.5">
