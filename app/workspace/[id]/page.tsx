@@ -130,15 +130,49 @@ function NewItemModal({
 
   async function saveItem(type: string, title: string, text: string, url = "", meta: any = {}) {
     const user = await getUser(); if (!user) return
+    // Mapeo defensivo: si la tabla aún no tiene el constraint actualizado,
+    // 'note' → 'document', 'file' → 'document', 'link' → 'document'
+    const DB_TYPE_MAP: Record<string, string> = {
+      note: "note", file: "file", link: "link",
+      document: "document", image: "image", audio: "audio",
+      ppt: "ppt", infographic: "infographic", mindmap: "mindmap",
+      timeline: "timeline", poster: "poster", flashcards: "flashcards",
+      quiz: "quiz", podcast: "podcast", chat: "chat",
+    }
+    const dbType = DB_TYPE_MAP[type] || "document"
+
     const { data, error: dbErr } = await supabase
       .from("workspace_items")
       .insert({
         project_id:   projectId, user_id: user.id,
-        item_type:    type, title: title.trim() || "Sin título",
-        content_text: text, content_url: url, metadata: meta,
+        item_type:    dbType,
+        title:        (title.trim() || text.slice(0, 60).trim() || "Sin título"),
+        content_text: text,
+        content_url:  url,
+        metadata:     { ...meta, originalType: type },
       })
       .select("*").single()
-    if (dbErr || !data) throw new Error("Error guardando en la base de datos")
+
+    if (dbErr) {
+      // Si falla por constraint (tipos no actualizados), reintentar con 'document'
+      if (dbErr.code === "23514" || dbErr.message?.includes("violates check constraint")) {
+        const { data: data2, error: dbErr2 } = await supabase
+          .from("workspace_items")
+          .insert({
+            project_id:   projectId, user_id: user.id,
+            item_type:    "document",
+            title:        (title.trim() || text.slice(0, 60).trim() || "Sin título"),
+            content_text: text,
+            content_url:  url,
+            metadata:     { ...meta, originalType: type },
+          })
+          .select("*").single()
+        if (dbErr2 || !data2) throw new Error(`Error guardando: ${dbErr2?.message || "Error desconocido"}`)
+        onAdd(data2); onClose(); return
+      }
+      throw new Error(`Error guardando: ${dbErr.message}`)
+    }
+    if (!data) throw new Error("No se recibió respuesta de la base de datos")
     onAdd(data); onClose()
   }
 
@@ -361,7 +395,7 @@ function ViewItemModal({
     URL.revokeObjectURL(url)
   }
 
-  const isEditable = ["note", "document", "chat"].includes(item.item_type)
+  const isEditable = ["note", "document", "chat", "file"].includes(item.item_type)
   const isImage    = item.item_type === "image" && item.content_url
   const isAudio    = item.item_type === "audio" && item.content_url
   const isLink     = item.item_type === "link"  && item.content_url
