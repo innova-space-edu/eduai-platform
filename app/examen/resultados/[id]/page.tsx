@@ -74,7 +74,8 @@ export default function ResultadosExamenPage() {
       "Curso": s.student_course,
       "RUT": s.student_rut || "-",
       "Correctas": s.correct_count,
-      "Total": s.total_questions,
+      "Total preguntas": s.total_questions,
+      "Puntaje": s.earned_points != null ? `${s.earned_points}/${s.total_points}` : "-",
       "Porcentaje": `${Math.round(s.score)}%`,
       "Nota": s.grade,
       "Tiempo (min)": s.time_spent ? Math.round(s.time_spent / 60) : "-",
@@ -300,7 +301,16 @@ export default function ResultadosExamenPage() {
                     <td className="py-2.5 px-2 text-gray-200 font-medium">{s.student_name}</td>
                     <td className="py-2.5 px-2 text-gray-400">{s.student_course}</td>
                     <td className="py-2.5 px-2 text-gray-500 font-mono text-xs">{s.student_rut || "—"}</td>
-                    <td className="py-2.5 px-2 text-center text-gray-300">{s.correct_count}/{s.total_questions}</td>
+                    <td className="py-2.5 px-2 text-center text-gray-300">
+                      {/* Preguntas correctas / total */}
+                      <span className="font-medium">{s.correct_count}/{s.total_questions}</span>
+                      {/* Puntaje obtenido si está disponible */}
+                      {s.earned_points != null && s.total_points != null && (
+                        <span className="block text-[10px] text-gray-600">
+                          {s.earned_points}/{s.total_points} pts
+                        </span>
+                      )}
+                    </td>
                     <td className="py-2.5 px-2 text-center">
                       <span className={`${s.score >= 60 ? "text-green-400" : "text-red-400"}`}>
                         {Math.round(s.score)}%
