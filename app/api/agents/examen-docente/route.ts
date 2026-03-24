@@ -516,8 +516,9 @@ export async function POST(request: NextRequest) {
 
       gradedAnswers = await evaluateWithAI(sanitizedQuestions, gradedAnswers)
 
-      let totalPoints = 0
-      let earnedPoints = 0
+      let totalPoints   = 0
+      let earnedPoints  = 0
+      let correctCount  = 0   // Preguntas correctas (para la columna "Correctas")
 
       gradedAnswers.forEach((a: any, i: number) => {
         const q = sanitizedQuestions[i]
@@ -526,7 +527,10 @@ export async function POST(request: NextRequest) {
         if (q.type === "multiple_choice") {
           const maxP = getQuestionMaxPoints(q)
           totalPoints += maxP
-          if (a.isCorrect) earnedPoints += maxP
+          if (a.isCorrect) {
+            earnedPoints += maxP
+            correctCount  += 1
+          }
         }
 
         if (q.type === "true_false") {
@@ -539,7 +543,10 @@ export async function POST(request: NextRequest) {
 
           totalPoints += selectionPoints + justificationMaxPoints
 
-          if (a.selectionCorrect || a.isCorrect) earnedPoints += selectionPoints
+          if (a.selectionCorrect || a.isCorrect) {
+            earnedPoints += selectionPoints
+            correctCount  += 1
+          }
 
           earnedPoints += Math.min(
             justificationMaxPoints,
@@ -548,9 +555,12 @@ export async function POST(request: NextRequest) {
         }
 
         if (q.type === "development") {
-          const maxP = getQuestionMaxPoints(q)
-          totalPoints += maxP
-          earnedPoints += Math.min(maxP, Math.max(0, Number(a.aiScore) || 0))
+          const maxP   = getQuestionMaxPoints(q)
+          const scored = Math.min(maxP, Math.max(0, Number(a.aiScore) || 0))
+          totalPoints  += maxP
+          earnedPoints += scored
+          // Contar desarrollo como correcta si obtuvo ≥ 60% de sus puntos
+          if (maxP > 0 && scored / maxP >= 0.6) correctCount += 1
         }
       })
 
@@ -560,16 +570,18 @@ export async function POST(request: NextRequest) {
       const { data, error } = await supabase
         .from("exam_submissions")
         .insert({
-          exam_id: examId,
-          student_name: studentName,
-          student_course: studentCourse,
-          student_rut: studentRut || null,
-          answers: gradedAnswers,
-          score: Math.round(score * 10) / 10,
+          exam_id:         examId,
+          student_name:    studentName,
+          student_course:  studentCourse,
+          student_rut:     studentRut || null,
+          answers:         gradedAnswers,
+          score:           Math.round(score * 10) / 10,
           grade,
-          correct_count: Math.round(earnedPoints * 10) / 10,
-          total_questions: sanitizedQuestions.length,
-          time_spent: timeSpent || null,
+          correct_count:   correctCount,                          // N° preguntas correctas
+          total_questions: sanitizedQuestions.length,             // N° total preguntas
+          earned_points:   Math.round(earnedPoints * 10) / 10,    // Puntaje obtenido
+          total_points:    Math.round(totalPoints * 10) / 10,     // Puntaje máximo
+          time_spent:      timeSpent || null,
         })
         .select()
         .single()
