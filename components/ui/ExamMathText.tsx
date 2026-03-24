@@ -7,52 +7,62 @@ import rehypeKatex from "rehype-katex"
 
 /**
  * Repara LaTeX mal formateado antes de renderizar.
- * Solo convierte delimitadores alternativos (\( \) y \[ \]) al formato estándar.
- * NO modifica espacios alrededor de operadores para no romper texto normal.
+ * Casos que maneja:
+ * 1. Delimitadores alternativos \( \) y \[ \] → $ y $$
+ * 2. Comandos LaTeX sin delimitadores $ (ej: "A = \frac{1}{2} \times b")
+ * 3. "imes" suelto (resultado de \times mal parseado sin \)
+ * 4. "rac{" suelto (resultado de \frac mal parseado sin \)
  */
-function repairCommonLatex(text: string) {
-  return String(text || "")
+function repairLatex(text: string): string {
+  let s = String(text || "")
     .replace(/\r\n/g, "\n")
     .replace(/\r/g, "\n")
     // Delimitadores alternativos → estándar
-    .replace(/\\\(([^]*?)\\\)/g, (_, expr) => `$${expr}$`)
-    .replace(/\\\[([^]*?)\\\]/g, (_, expr) => `$$${expr}$$`)
-    // Compactar espacios redundantes dentro de expresiones $...$
-    .replace(/\$([^$]+)\$/g, (_, expr) => `$${expr.replace(/[ \t]{2,}/g, " ")}$`)
-    .replace(/\$\$([^$]+)\$\$/g, (_, expr) => `$$${expr.replace(/[ \t]{2,}/g, " ")}$$`)
+    .replace(/\\\(([^]*?)\\\)/g, (_, e) => `$${e}$`)
+    .replace(/\\\[([^]*?)\\\]/g, (_, e) => `$$${e}$$`)
+
+  // Reparar "rac{" → "\frac{" y "imes" → "\times" (LaTeX truncado)
+  s = s
+    .replace(/\brac\{/g, "\\frac{")
+    .replace(/\bimes\b/g, "\\times")
+
+  return s
 }
 
 /**
- * Detecta si un fragmento de texto CONTIENE expresiones claramente matemáticas.
- * Conservador: solo detecta comandos LaTeX específicos o delimitadores $, NO detecta
- * llaves sueltas, guiones, acentos circunflejos u otros caracteres ambiguos.
+ * Detecta si el texto tiene LaTeX que necesita delimitadores.
+ * Incluye casos sin delimitadores (ej: "A = \frac{1}{2}")
  */
-function looksLikeMath(text: string): boolean {
+function hasLatexContent(text: string): boolean {
+  // Ya tiene delimitadores $
+  if (/\$\$[\s\S]*?\$\$|\$[^$\n]+\$/.test(text)) return false // ya está bien
+
   return (
-    // Comandos LaTeX específicos de matemáticas
-    /\\frac\s*\{|\\sqrt\s*[\[{]|\\sum\s*[_^]|\\int\s*[_^]|\\prod\s*[_^]/.test(text) ||
+    /\\frac\s*\{/.test(text) ||
+    /\\sqrt\s*[\[{]/.test(text) ||
+    /\\sum\s*[_^]|\\int\s*[_^]|\\prod\s*[_^]/.test(text) ||
     /\\cdot|\\times|\\div|\\pm|\\leq|\\geq|\\neq|\\approx|\\equiv/.test(text) ||
-    /\\pi\b|\\alpha\b|\\beta\b|\\gamma\b|\\theta\b|\\lambda\b|\\sigma\b|\\omega\b/.test(text) ||
-    /\\infty\b|\\partial\b|\\nabla\b|\\Delta\b|\\Sigma\b/.test(text) ||
-    /\\text\s*\{|\\mathbf\s*\{|\\mathrm\s*\{|\\mathit\s*\{/.test(text) ||
+    /\\pi\b|\\alpha\b|\\beta\b|\\gamma\b|\\theta\b|\\lambda\b/.test(text) ||
+    /\\sigma\b|\\omega\b|\\infty\b|\\partial\b/.test(text) ||
     /\\left\s*[([|]|\\right\s*[)\]|]/.test(text) ||
-    // Superíndices/subíndices solo si van con letras/números específicos
+    /\\text\s*\{|\\mathbf\s*\{|\\mathrm\s*\{/.test(text) ||
     /[a-zA-Z0-9]\^[{0-9]|[a-zA-Z0-9]_[{0-9]/.test(text)
   )
 }
 
-function hasMathDelimiters(text: string): boolean {
-  return /\$\$[\s\S]*?\$\$|\$[^$\n]+\$/.test(text)
-}
+/**
+ * Envuelve en $ el texto que contiene LaTeX sin delimitadores.
+ * Si el texto mezcla texto normal con LaTeX (ej: "A = \frac{1}{2} \times b \times h"),
+ * envuelve toda la expresión en $...$
+ */
+function wrapLatexIfNeeded(text: string): string {
+  const repaired = repairLatex(text)
 
-function normalizeMathDelimiters(text: string): string {
-  const repaired = repairCommonLatex(text)
+  // Si ya tiene delimitadores $ correctos, retornar reparado
+  if (/\$\$[\s\S]*?\$\$|\$[^$\n]+\$/.test(repaired)) return repaired
 
-  // Si ya tiene delimitadores $ correctos, solo retornar reparado
-  if (hasMathDelimiters(repaired)) return repaired
-
-  // Solo auto-envolver si parece CLARAMENTE una expresión matemática LaTeX
-  if (looksLikeMath(repaired)) return `$${repaired}$`
+  // Si contiene comandos LaTeX sin delimitadores, envolverlo
+  if (hasLatexContent(repaired)) return `$${repaired}$`
 
   return repaired
 }
@@ -66,7 +76,7 @@ export default function ExamMathText({
 }) {
   if (!text) return null
 
-  const content = normalizeMathDelimiters(text)
+  const content = wrapLatexIfNeeded(text)
 
   return (
     <div className={className}>
@@ -74,9 +84,9 @@ export default function ExamMathText({
         remarkPlugins={[remarkMath]}
         rehypePlugins={[rehypeKatex]}
         components={{
-          p: ({ children }) => <span>{children}</span>,
+          p:    ({ children }) => <span>{children}</span>,
           code: ({ children }) => <code>{children}</code>,
-          pre: ({ children }) => <pre>{children}</pre>,
+          pre:  ({ children }) => <pre>{children}</pre>,
         }}
       >
         {content}
