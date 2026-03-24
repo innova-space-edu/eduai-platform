@@ -386,25 +386,21 @@ Formato exacto:
 Total de preguntas: ${totalQuestions}. Todo en español.`
 
     try {
-      const res = await fetch("/api/process-content", {
+      const res = await fetch("/api/agents/exam-generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sourceType: "text",
-          content: prompt,
-          outputFormat: "quiz",
-        }),
+        body: JSON.stringify({ prompt, mode: "full" }),
       })
 
       const data = await res.json()
       if (!data.success) throw new Error(data.error || "No se pudo generar el examen")
 
-      const qsRaw = data.output?.data?.questions || []
+      const qsRaw     = data.questions || []
       const normalized = qsRaw.map((q: any) => normalizeQuestion(q, scoreMode))
 
       setQuestions(normalized)
-      setTitle(data.output?.data?.title || `Examen: ${topic}`)
-      setAgentSummary(data.output?.data?.summary || null)
+      setTitle(data.title || `Examen: ${topic}`)
+      setAgentSummary(data.summary || null)
       setStep("preview")
     } catch (err: any) {
       setError(err.message || "Error al generar examen")
@@ -554,33 +550,19 @@ Formato exacto:
 }`
 
     try {
-      const res = await fetch("/api/process-content", {
+      const res = await fetch("/api/agents/exam-generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sourceType: "text",
-          content: prompt,
-          outputFormat: "quiz",
-        }),
+        body: JSON.stringify({ prompt, mode: "single" }),
       })
 
       const data = await res.json()
       if (!data.success) throw new Error(data.error || "No se pudo regenerar la pregunta")
 
-      const raw = data.output?.data
-      const rawQuestion =
-        (raw?.question && typeof raw.question === "object")
-          ? raw.question
-          : Array.isArray(raw?.questions)
-            ? raw.questions[0]
-            : typeof raw === "object" && raw?.type
-              ? raw
-              : null
-
-      if (!rawQuestion) throw new Error("No se pudo extraer la pregunta de la respuesta")
+      const rawQuestion = data.question ?? null
+      if (!rawQuestion) throw new Error("La IA no devolvió una pregunta válida")
 
       const newQuestion = normalizeQuestion(rawQuestion, scoreMode)
-
       updateQuestion(idx, { ...newQuestion, maxPoints: current.maxPoints })
     } catch (err: any) {
       setError(err.message || "No se pudo regenerar la pregunta")
@@ -669,9 +651,9 @@ Formato exacto:
 
                 <div className="grid grid-cols-3 gap-3">
                   {[
-                    { label: "Alternativas", icon: "📋", value: mcCount, set: setMcCount, max: 20 },
-                    { label: "Verdadero/Falso", icon: "✓✗", value: tfCount, set: setTfCount, max: 20 },
-                    { label: "Desarrollo", icon: "✍️", value: devCount, set: setDevCount, max: 10 },
+                    { label: "Alternativas",    icon: "📋", value: mcCount, set: setMcCount, max: 50 },
+                    { label: "Verdadero/Falso", icon: "✓✗", value: tfCount, set: setTfCount, max: 30 },
+                    { label: "Desarrollo",      icon: "✍️", value: devCount, set: setDevCount, max: 20 },
                   ].map((item, idx) => (
                     <div
                       key={idx}
