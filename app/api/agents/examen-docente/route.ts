@@ -208,6 +208,38 @@ function safeParseJson(text: string): any {
   }
 }
 
+// ── Helper compartido para aplicar evaluaciones de IA ────────────────────────
+function applyEvaluations(
+  evals: any[], toEvaluate: any[], answers: any[], questions: any[]
+) {
+  for (const ev of evals) {
+    const relativeIndex = Number(ev?.index)
+    if (!Number.isFinite(relativeIndex) || relativeIndex < 0 || relativeIndex >= toEvaluate.length) continue
+
+    const target    = toEvaluate[relativeIndex]
+    const origIndex = target.index
+    const maxAllowed = Math.max(0, Number(target.maxPoints) || 0)
+    const rawScore   = Number(ev?.score) || 0
+    const rawMaxScore = Number(ev?.maxScore) || maxAllowed
+
+    const normalizedMax   = Math.min(maxAllowed, Math.max(0, rawMaxScore || maxAllowed))
+    const normalizedScore = Math.min(normalizedMax > 0 ? normalizedMax : maxAllowed, Math.max(0, rawScore))
+
+    answers[origIndex].aiScore     = normalizedScore
+    answers[origIndex].aiMaxScore  = normalizedMax > 0 ? normalizedMax : maxAllowed
+    answers[origIndex].aiFeedback  = String(ev?.feedback || "")
+    answers[origIndex].aiEvaluated = true
+
+    if (questions[origIndex]?.type === "development") {
+      answers[origIndex].isCorrect = normalizedScore >= ((normalizedMax > 0 ? normalizedMax : maxAllowed) * 0.5)
+    }
+    if (questions[origIndex]?.type === "true_false") {
+      answers[origIndex].justificationScore    = normalizedScore
+      answers[origIndex].justificationFeedback = String(ev?.feedback || "")
+    }
+  }
+}
+
 async function evaluateWithAI(questions: any[], answers: any[]): Promise<any[]> {
   const geminiKey = process.env.GEMINI_API_KEY
   if (!geminiKey) return answers
@@ -312,22 +344,75 @@ Responde con este JSON exacto:
 }`
 
   try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          system_instruction: {
-            parts: [
-              {
-                text: "Eres un evaluador educativo. Responde SOLO con JSON válido.",
-              },
-            ],
-          },
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.2,
+    // ── Intentar con Gemini ───────────────────────────────────────────────
+    const geminiModels = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
+    let geminiOk = false
+
+    for (const model of geminiModels) {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            system_instruction: {
+              parts: [{ text: "Eres un evaluador educativo. Responde SOLO con JSON válido." }],
+            },
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+              temperature: 0.2,
+              maxOutputTokens: 2048,
+              responseMimeType: "application/json",
+            },
+          }),
+          signal: AbortSignal.timeout(25000),
+        }
+      )
+
+      // 429 = cuota agotada → intentar siguiente modelo o caer a Groq
+      if (res.status === 429) continue
+      if (!res.ok) throw new Error(`Gemini ${res.status}`)
+
+      const data = await res.json()
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text
+      if (!text) continue
+
+      const parsed = safeParseJson(text)
+      const evals = Array.isArray(parsed?.evaluations) ? parsed.evaluations : []
+      applyEvaluations(evals, toEvaluate, answers, questions)
+      geminiOk = true
+      break
+    }
+
+    // ── Fallback a Groq si todos los modelos Gemini dieron 429 ────────────
+    if (!geminiOk) {
+      const groqKey = process.env.GROQ_API_KEY
+      if (!groqKey) throw new Error("Sin cuota Gemini y sin GROQ_API_KEY")
+
+      const Groq = (await import("groq-sdk")).default
+      const groq  = new Groq({ apiKey: groqKey })
+
+      const groqRes = await groq.chat.completions.create({
+        model:           "llama-3.3-70b-versatile",
+        max_tokens:      2048,
+        temperature:     0.2,
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: "Eres un evaluador educativo. Responde SOLO con JSON válido." },
+          { role: "user",   content: prompt },
+        ],
+      })
+
+      const groqText = groqRes.choices[0]?.message?.content?.trim() || ""
+      if (groqText) {
+        const parsed = safeParseJson(groqText)
+        const evals  = Array.isArray(parsed?.evaluations) ? parsed.evaluations : []
+        applyEvaluations(evals, toEvaluate, answers, questions)
+      }
+    }
+
+  } catch (err: any) {
+    console.error("AI evaluation error:", err?.message || err)
             maxOutputTokens: 2048,
             responseMimeType: "application/json",
           },
