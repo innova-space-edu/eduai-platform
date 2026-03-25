@@ -461,16 +461,18 @@ export default function ResultadosExamenPage() {
             </table>
           </div>
 
-          {/* Modal de incidentes */}
-          {incidentSub && (
-            <IncidentModal
-              submission={incidentSub}
-              examId={examId}
-              onClose={() => setIncidentSub(null)}
-            />
-          )}
         )}
+
       </div>
+
+      {/* Modal de incidentes */}
+      {incidentSub && (
+        <IncidentModal
+          submission={incidentSub}
+          examId={examId}
+          onClose={() => setIncidentSub(null)}
+        />
+      )}
     </div>
   )
 }
