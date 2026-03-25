@@ -5,6 +5,128 @@ import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
+import { Shield, X, AlertTriangle, Clock } from "lucide-react"
+
+// ── Semáforo de riesgo ────────────────────────────────────────────────────────
+function RiskBadge({ level, count }: { level: string; count: number }) {
+  if (count === 0 || level === "clean") return (
+    <span className="text-gray-700 text-xs">—</span>
+  )
+  const cfg = {
+    low:    { color: "#fbbf24", bg: "rgba(251,191,36,0.1)",  border: "rgba(251,191,36,0.25)",  label: "Leve"   },
+    medium: { color: "#f97316", bg: "rgba(249,115,22,0.1)",  border: "rgba(249,115,22,0.25)",  label: "Medio"  },
+    high:   { color: "#ef4444", bg: "rgba(239,68,68,0.1)",   border: "rgba(239,68,68,0.25)",   label: "Alto"   },
+  }[level] || { color: "#9ca3af", bg: "rgba(156,163,175,0.1)", border: "rgba(156,163,175,0.2)", label: "?" }
+
+  return (
+    <span className="flex items-center justify-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold"
+          style={{ background: cfg.bg, border: `1px solid ${cfg.border}`, color: cfg.color }}>
+      ⚑ {count} {cfg.label}
+    </span>
+  )
+}
+
+// ── Modal de detalle de incidentes ────────────────────────────────────────────
+const EVENT_LABELS: Record<string, string> = {
+  fullscreen_exit:     "🖥 Salió de pantalla completa",
+  window_blur:         "🪟 Perdió foco de ventana",
+  tab_hidden:          "📑 Cambió de pestaña",
+  copy_attempt:        "📋 Intentó copiar",
+  paste_attempt:       "📋 Intentó pegar",
+  cut_attempt:         "✂️ Intentó cortar",
+  contextmenu_attempt: "🖱 Abrió menú contextual",
+  blocked_shortcut:    "⌨️ Tecla bloqueada",
+  print_attempt:       "🖨 Intentó imprimir",
+  reload_attempt:      "🔄 Intentó recargar",
+  drag_attempt:        "↔️ Intentó arrastrar texto",
+}
+
+function IncidentModal({ submission, examId, onClose }: {
+  submission: any; examId: string; onClose: () => void
+}) {
+  const [incidents, setIncidents] = useState<any[]>([])
+  const [loading,   setLoading]   = useState(true)
+
+  useEffect(() => {
+    fetch(`/api/exam-security/event?examId=${examId}&submissionId=${submission.id}`)
+      .then(r => r.json())
+      .then(d => setIncidents(d.incidents || []))
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [submission.id, examId])
+
+  const SEV_COLOR: Record<string, string> = {
+    high:   "#ef4444",
+    medium: "#f97316",
+    low:    "#fbbf24",
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-lg max-h-[85vh] flex flex-col rounded-2xl overflow-hidden shadow-2xl"
+           style={{ background: "#0f172a", border: "1px solid rgba(255,255,255,0.1)" }}>
+
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.07] flex-shrink-0">
+          <div>
+            <h3 className="text-white font-bold text-sm">Incidentes — {submission.student_name}</h3>
+            <p className="text-gray-500 text-xs">{submission.student_course} · {incidents.length} evento{incidents.length !== 1 ? "s" : ""} registrado{incidents.length !== 1 ? "s" : ""}</p>
+          </div>
+          <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4">
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <div className="w-6 h-6 rounded-full border-2 border-white/10 border-t-red-400 animate-spin" />
+            </div>
+          ) : incidents.length === 0 ? (
+            <div className="text-center py-8">
+              <Shield size={28} className="text-gray-700 mx-auto mb-2" />
+              <p className="text-gray-500 text-sm">Sin incidentes registrados</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {incidents.map((inc, i) => (
+                <div key={inc.id || i} className="flex items-start gap-3 px-3 py-2.5 rounded-xl border"
+                     style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.06)" }}>
+                  <div className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0"
+                       style={{ background: SEV_COLOR[inc.severity] || "#9ca3af" }} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-gray-200 text-xs font-medium">
+                        #{inc.incident_number} — {EVENT_LABELS[inc.event_type] || inc.event_type}
+                      </p>
+                      <span className="text-gray-600 text-[10px] flex-shrink-0 flex items-center gap-1">
+                        <Clock size={9} />
+                        {new Date(inc.created_at).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 mt-0.5">
+                      {inc.question_index != null && (
+                        <span className="text-gray-600 text-[10px]">Pregunta {inc.question_index + 1}</span>
+                      )}
+                      {inc.client_time_left != null && (
+                        <span className="text-gray-600 text-[10px]">
+                          {Math.floor(inc.client_time_left / 60)}:{String(inc.client_time_left % 60).padStart(2, "0")} restantes
+                        </span>
+                      )}
+                      {inc.event_detail && (
+                        <span className="text-gray-600 text-[10px] font-mono">{inc.event_detail}</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function ResultadosExamenPage() {
   const params = useParams()
@@ -14,6 +136,7 @@ export default function ResultadosExamenPage() {
   const [submissions, setSubmissions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [incidentSub, setIncidentSub] = useState<any>(null)  // submission seleccionada para modal
   const supabase = createClient()
   const router = useRouter()
 
@@ -74,8 +197,7 @@ export default function ResultadosExamenPage() {
       "Curso": s.student_course,
       "RUT": s.student_rut || "-",
       "Correctas": s.correct_count,
-      "Total preguntas": s.total_questions,
-      "Puntaje": s.earned_points != null ? `${s.earned_points}/${s.total_points}` : "-",
+      "Total": s.total_questions,
       "Porcentaje": `${Math.round(s.score)}%`,
       "Nota": s.grade,
       "Tiempo (min)": s.time_spent ? Math.round(s.time_spent / 60) : "-",
@@ -291,6 +413,7 @@ export default function ResultadosExamenPage() {
                   <th className="text-center py-2 px-2 text-gray-500 text-xs font-semibold">%</th>
                   <th className="text-center py-2 px-2 text-gray-500 text-xs font-semibold">Nota</th>
                   <th className="text-center py-2 px-2 text-gray-500 text-xs font-semibold">Tiempo</th>
+                  <th className="text-center py-2 px-2 text-gray-500 text-xs font-semibold">Incidentes</th>
                   <th className="text-right py-2 px-2 text-gray-500 text-xs font-semibold">Fecha</th>
                 </tr>
               </thead>
@@ -301,16 +424,7 @@ export default function ResultadosExamenPage() {
                     <td className="py-2.5 px-2 text-gray-200 font-medium">{s.student_name}</td>
                     <td className="py-2.5 px-2 text-gray-400">{s.student_course}</td>
                     <td className="py-2.5 px-2 text-gray-500 font-mono text-xs">{s.student_rut || "—"}</td>
-                    <td className="py-2.5 px-2 text-center text-gray-300">
-                      {/* Preguntas correctas / total */}
-                      <span className="font-medium">{s.correct_count}/{s.total_questions}</span>
-                      {/* Puntaje obtenido si está disponible */}
-                      {s.earned_points != null && s.total_points != null && (
-                        <span className="block text-[10px] text-gray-600">
-                          {s.earned_points}/{s.total_points} pts
-                        </span>
-                      )}
-                    </td>
+                    <td className="py-2.5 px-2 text-center text-gray-300">{s.correct_count}/{s.total_questions}</td>
                     <td className="py-2.5 px-2 text-center">
                       <span className={`${s.score >= 60 ? "text-green-400" : "text-red-400"}`}>
                         {Math.round(s.score)}%
@@ -328,6 +442,16 @@ export default function ResultadosExamenPage() {
                     <td className="py-2.5 px-2 text-center text-gray-500 text-xs">
                       {s.time_spent ? `${Math.round(s.time_spent / 60)}m` : "—"}
                     </td>
+                    <td className="py-2.5 px-2 text-center">
+                      {(s.incident_count ?? 0) > 0 ? (
+                        <button onClick={() => setIncidentSub(s)}
+                          className="flex items-center justify-center mx-auto">
+                          <RiskBadge level={s.incident_level || "clean"} count={s.incident_count || 0} />
+                        </button>
+                      ) : (
+                        <span className="text-gray-700 text-xs">—</span>
+                      )}
+                    </td>
                     <td className="py-2.5 px-2 text-right text-gray-600 text-xs">
                       {new Date(s.submitted_at).toLocaleString("es-CL", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
                     </td>
@@ -336,6 +460,15 @@ export default function ResultadosExamenPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Modal de incidentes */}
+          {incidentSub && (
+            <IncidentModal
+              submission={incidentSub}
+              examId={examId}
+              onClose={() => setIncidentSub(null)}
+            />
+          )}
         )}
       </div>
     </div>
