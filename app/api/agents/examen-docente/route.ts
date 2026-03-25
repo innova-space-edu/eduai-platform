@@ -737,6 +737,67 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true })
     }
 
+    // ── Actualizar submission con puntajes manuales del docente ──────────
+    if (action === "update_submission") {
+      const { submissionId, updatedAnswers, examPercentage } = body
+
+      if (!submissionId || !Array.isArray(updatedAnswers)) {
+        return NextResponse.json({ error: "submissionId y updatedAnswers son requeridos" }, { status: 400 })
+      }
+
+      // Recalcular puntaje y nota con los valores manuales
+      let totalPoints  = 0
+      let earnedPoints = 0
+      let correctCount = 0
+
+      for (const a of updatedAnswers) {
+        const max = Number(a.maxPoints) || 0
+        totalPoints += max
+
+        if (a.type === "multiple_choice") {
+          if (a.isCorrect) { earnedPoints += max; correctCount++ }
+
+        } else if (a.type === "true_false") {
+          const selPts  = Number(a.selectionPoints)  || 1
+          const justPts = Number(a.justificationMaxPoints) || Math.max(0, max - selPts)
+          if (a.selectionCorrect || a.isCorrect) { earnedPoints += selPts; correctCount++ }
+          earnedPoints += Math.min(justPts, Math.max(0, Number(a.justificationScore) || 0))
+
+        } else if (a.type === "development") {
+          const scored = Math.min(max, Math.max(0, Number(a.manualScore ?? a.aiScore) || 0))
+          earnedPoints += scored
+          if (max > 0 && scored / max >= 0.6) correctCount++
+        }
+      }
+
+      const pct   = totalPoints > 0 ? (earnedPoints / totalPoints) * 100 : 0
+      const grade = calcGrade(pct, examPercentage || 60)
+
+      const { error: upErr } = await supabase
+        .from("exam_submissions")
+        .update({
+          answers:          updatedAnswers,
+          score:            Math.round(pct * 10) / 10,
+          grade,
+          correct_count:    correctCount,
+          earned_points:    Math.round(earnedPoints * 10) / 10,
+          total_points:     Math.round(totalPoints  * 10) / 10,
+          manually_reviewed: true,
+        })
+        .eq("id", submissionId)
+
+      if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 })
+
+      return NextResponse.json({
+        success: true,
+        score:   Math.round(pct * 10) / 10,
+        grade,
+        correct_count:  correctCount,
+        earned_points:  Math.round(earnedPoints * 10) / 10,
+        total_points:   Math.round(totalPoints  * 10) / 10,
+      })
+    }
+
     return NextResponse.json({ error: "Acción inválida" }, { status: 400 })
   } catch (err: any) {
     console.error("Exam API error:", err)
