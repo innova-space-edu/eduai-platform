@@ -36,7 +36,7 @@
 ![ACo](https://img.shields.io/badge/🤝_ACo-Colaborativo-8B5CF6?style=flat-square)
 ![AIm](https://img.shields.io/badge/🖼️_AIm_v2-Visual_IA-DB2777?style=flat-square)
 
-### 🛠️ Agentes Especializados (13)
+### 🛠️ Agentes Especializados (14)
 
 ![APl](https://img.shields.io/badge/🏫_Planificador-MINEDUC-059669?style=flat-square)
 ![Investigador](https://img.shields.io/badge/🔬_Investigador-Web_Search-2563EB?style=flat-square)
@@ -45,12 +45,13 @@
 ![Traductor](https://img.shields.io/badge/🌐_Traductor-Multiidioma-0891B2?style=flat-square)
 ![ChatPaper](https://img.shields.io/badge/📄_Chat_Paper-PDF_Storage-4338CA?style=flat-square)
 ![Examen](https://img.shields.io/badge/📝_Examen-Simulacro_IA-DC2626?style=flat-square)
-![ExamenDocente](https://img.shields.io/badge/📋_Examen_Docente-Evaluación_IA-F97316?style=flat-square)
+![ExamenDocente](https://img.shields.io/badge/📋_Examen_Docente-Seguridad_IA-F97316?style=flat-square)
 ![AudioLab](https://img.shields.io/badge/🎙️_Audio_Lab-Transcripción_IA-8B5CF6?style=flat-square)
 ![Imágenes](https://img.shields.io/badge/🎨_Image_Studio-FLUX_/_SD_/_Gemini-C026D3?style=flat-square)
 ![Galería](https://img.shields.io/badge/🖼️_Galería-Persistente-DB2777?style=flat-square)
 ![Creator](https://img.shields.io/badge/✨_Creator_Hub-8_Formatos-6366F1?style=flat-square)
 ![Workspace](https://img.shields.io/badge/📁_Workspace-Proyectos-0EA5E9?style=flat-square)
+![Admin](https://img.shields.io/badge/🛡️_Admin-Panel_Sistema-7C3AED?style=flat-square)
 
 ### 🧠 Orquestador de 6 Agentes
 
@@ -84,7 +85,7 @@
 
 ## ¿Qué es EduAI Platform?
 
-EduAI Platform es una plataforma educativa de siguiente generación que combina **25+ agentes de inteligencia artificial especializados**, un **Creator Hub con 8 formatos de salida potenciados por Gemini 2.5 Flash**, un **Audio Lab para transcripción y edición de audio con IA**, un **Workspace de proyectos** para organizar todo tu material, y un **sistema de exámenes para docentes con evaluación IA** para ofrecer una experiencia de aprendizaje completamente personalizada, adaptativa y gamificada.
+EduAI Platform es una plataforma educativa de siguiente generación que combina **25+ agentes de inteligencia artificial especializados**, un **Creator Hub con 8 formatos de salida potenciados por Gemini 2.5 Flash**, un **Audio Lab para transcripción y edición de audio con IA**, un **Workspace de proyectos** para organizar todo tu material, un **sistema de exámenes para docentes con evaluación IA y modo de supervisión antifraude**, y un **panel de administración completo** para gestionar la plataforma.
 
 Va más allá de un simple chatbot — es un ecosistema inteligente donde múltiples agentes colaboran en paralelo para que el estudiante aprenda más rápido y de forma más profunda. Diseñada especialmente para el contexto educativo chileno, incluye cobertura curricular completa del **MINEDUC** (Parvularia, Básica y Media) con escala de notas 1.0–7.0.
 
@@ -102,7 +103,7 @@ Va más allá de un simple chatbot — es un ecosistema inteligente donde múlti
 - **Matemáticas con LaTeX** — fórmulas renderizadas con KaTeX
 - **Narración por voz (TTS)** — contenido leído en voz alta
 - **Historial de sesiones** organizado con estadísticas
-- **Repaso espaciado inteligente** basado en algoritmo SM-2 (tabla `spaced_repetition`)
+- **Repaso espaciado inteligente** basado en algoritmo SM-2
 
 ---
 
@@ -111,7 +112,7 @@ Va más allá de un simple chatbot — es un ecosistema inteligente donde múlti
 Sistema completo para transcribir grabaciones de clases, reuniones o cualquier audio y transformarlas en material útil:
 
 ```
-Audio (MP3/WAV/M4A/MP4/WebM) → Gemini 2.5 Flash multimodal
+Audio (MP3/WAV/M4A/MP4/WebM) → Gemini 2.0 Flash multimodal
     ↓ transcripción completa + detección de hablantes + idioma
     ↓ guardado en audio_transcriptions (Supabase)
     ↓ 6 operaciones de edición con IA
@@ -134,8 +135,8 @@ Audio (MP3/WAV/M4A/MP4/WebM) → Gemini 2.5 Flash multimodal
 **Características:**
 - Archivos hasta **50 MB** (MP3, WAV, M4A, MP4, WebM)
 - Detección automática de múltiples hablantes `[Hablante 1]`, `[Hablante 2]`…
+- Fallback automático de modelos: `gemini-2.0-flash → gemini-1.5-flash → gemini-2.5-flash`
 - Historial persistente en Supabase con fecha, tamaño y duración
-- Cada transcripción guarda resultado crudo + versión limpia + resumen
 
 ---
 
@@ -144,16 +145,17 @@ Audio (MP3/WAV/M4A/MP4/WebM) → Gemini 2.5 Flash multimodal
 Sistema de organización para agrupar todo el material generado en la plataforma:
 
 - **Proyectos con icono y color personalizados** (12 iconos, 8 colores)
-- **Agrupación de contenido** por tipo: documentos, imágenes, audio, presentaciones, infografías, mapas mentales, timelines, posters
-- **Vista de proyecto** (`/workspace/[id]`) con todos los ítems agrupados por categoría
-- **Vinculación con otras herramientas:** guarda creaciones del Creator Hub, imágenes del Image Studio y transcripciones del Audio Lab directamente en un proyecto
+- **Tipos de ítem:** documentos, notas, imágenes, audio, presentaciones, infografías, mapas mentales, timelines, posters, flashcards, quiz, podcast, chat, archivos, links
+- **Editor de notas enriquecido** con toolbar (negrita, cursiva, títulos, listas, código)
+- **Generación con IA** — genera documentos desde un prompt dentro del workspace
+- **Subida de archivos** al bucket `workspace-files`
 - Almacenado en tablas `projects` + `workspace_items` con RLS por usuario
 
 ---
 
 ### 🎨 Image Studio
 
-Nuevo espacio unificado de generación y galería en una sola vista (`/image-studio`), con panel lateral que alterna entre **Generar** y **Galería**:
+Espacio unificado de generación y galería en una sola vista (`/image-studio`), con panel lateral que alterna entre **Generar** y **Galería**:
 
 - **10 estilos:** Realista, Arte Digital, Óleo, Anime, Acuarela, 3D, Boceto, Cinematográfico, Educativo, Flat Design
 - **3 tamaños:** Horizontal 16:9 · Cuadrado 1:1 · Vertical 9:16
@@ -161,31 +163,6 @@ Nuevo espacio unificado de generación y galería en una sola vista (`/image-stu
 - Galería con filtros por origen (manual / auto-estudio) y búsqueda
 - Vista fullscreen con navegación por flechas
 - Optimizador de prompt con Gemini 2.5 Flash-Lite + `educationalContext`
-
----
-
-### 📝 Editor de Exámenes
-
-Nueva página `/examen/editar/[id]` que permite modificar un examen ya publicado sin romper el link existente:
-
-- Editar título, tema, instrucciones y todas las preguntas
-- Añadir y eliminar preguntas individualmente
-- Regenerar preguntas con IA (misma dificultad o diferente)
-- Copiar link del examen con un clic
-- Guardar cambios con feedback visual (botón `Guardado ✓`)
-
----
-
-### ✨ Creator Hub
-
-Nueva UX dedicada (`/creator-hub`) que reemplaza la navegación dentro de `/creator`. Cada formato tiene su propia página especializada (`/creator-hub/[format]`):
-
-- Pantalla de inicio con grid de 8 formatos y descripciones
-- Entrada de contenido por tipo: Tema · Texto · URL · PDF · DOCX
-- Paleta de colores y barra de descarga persistentes
-- Navegación con historial de formatos recientes
-
-Los **8 formatos** y sus renderers están documentados en la sección Creator Studio más abajo.
 
 ---
 
@@ -197,37 +174,34 @@ Sistema completo donde el docente crea pruebas con IA y las comparte mediante un
 DOCENTE                              ESTUDIANTE
 ───────                              ──────────
 1. Elige tema + distribución
-2. IA genera preguntas
+2. IA genera preguntas (sin límite)
 3. Revisa preview con LaTeX
-4. Publica → obtiene link
-5. Edita el examen publicado
+4. Activa Modo Supervisión (opcional)
+5. Publica → obtiene link
 6. Comparte por WhatsApp/Classroom    7. Abre link (SIN login)
                                       8. Ingresa nombre + curso + RUT
-                                      9. Rinde con timer
-                                     10. Puntaje visible por pregunta
+                                      9. Clic "Iniciar examen" → fullscreen
+                                     10. Rinde con timer + seguridad activa
                                      11. IA evalúa desarrollo y V/F
                                      12. Ve nota + retroalimentación
 13. Dashboard con 40 alumnos  ←─── resultados en tiempo real
-14. Descarga Excel/PDF
+14. Ve incidentes por alumno
+15. Descarga Excel/PDF
 ```
 
-**Características:**
-- **3 tipos de preguntas:** Alternativas, Verdadero/Falso con justificación, Desarrollo
-- **Distribución configurable:** el docente elige cuántas de cada tipo
+**Características del examen:**
+- **3 tipos de preguntas:** Alternativas (hasta 50), Verdadero/Falso (hasta 30), Desarrollo (hasta 20)
+- **API dedicada `/api/agents/exam-generate`** — sin los límites del schema genérico de Creator Hub
+- **Fallback Groq automático** cuando Gemini da 429 — genera en lotes de 10 preservando la distribución
+- **LaTeX robusto** — limpia caracteres Unicode (↑ U+2191) que Gemini usa como sustituto de `\`
 - **4 niveles de dificultad:** Fácil, Medio, Difícil, Mixto
-- **Evaluación IA con Gemini:** desarrollo y justificaciones evaluados con puntaje parcial y retroalimentación
+- **Evaluación IA con Gemini:** desarrollo y justificaciones con puntaje parcial y retroalimentación
 - **Escala MINEDUC:** notas 1.0–7.0, exigencia configurable (50%–70%)
-- **Link público sin login:** estudiante solo ingresa nombre, curso y RUT opcional
+- **Conteo correcto de respuestas:** `correct_count` = N° real de preguntas correctas; `earned_points` y `total_points` = puntaje numérico separado
 - **Timer:** 15–120 minutos con alertas visuales
-- **LaTeX en preguntas:** fórmulas renderizadas correctamente
-- **Puntaje visible por pregunta:** badge destacado con pts durante la rendición
-- **Navegador de preguntas con puntajes:** cada botón muestra número de pregunta y `Xpt`
-- **Desglose puntaje V/F:** `(X selección + Y justif.)` visible en pantalla
-- **Barra superior sticky:** nombre · preguntas respondidas · puntaje total del examen
-- **Retroalimentación completa:** cada pregunta con respuesta correcta y explicación
-- **Dashboard docente:** tabla, distribución de notas, estadísticas, auto-refresh 15s
-- **Editor post-publicación:** modifica preguntas y configuración sin cambiar el link
-- **Descarga:** Excel (.xlsx) con estadísticas + PDF con resumen visual
+- **Papelera de exámenes:** soft delete con `deleted_at`, restaurar y eliminar permanente
+- **Dashboard docente:** tabla, distribución de notas, estadísticas, auto-refresh 15s, columna de incidentes
+- **Descarga:** Excel (.xlsx) con puntaje real + PDF con resumen visual
 
 #### Puntaje visible durante el examen
 
@@ -236,6 +210,95 @@ DOCENTE                              ESTUDIANTE
 | Barra superior sticky | Nombre · `N/T preguntas` · **`X pts total`** |
 | Header de pregunta | Badge `X pts` + desglose V/F `(X sel. + Y justif.)` |
 | Navegador inferior | Botón `N` + `Xpt` por pregunta + tooltip al hover |
+| Tabla resultados | Columna `N/T` (preguntas) + `X/Y pts` (puntaje) |
+
+---
+
+### 🔒 Sistema de Supervisión de Exámenes (Anti-trampa)
+
+Sistema de cuatro niveles para detectar y registrar conductas sospechosas durante exámenes:
+
+#### Nivel 1 — Protecciones de frontend
+
+Activadas automáticamente cuando el docente habilita **Modo de supervisión** al crear el examen. El estudiante hace clic en "Iniciar examen" y el modo seguro se activa silenciosamente sin avisos previos:
+
+- **Fullscreen obligatorio** activado por el gesto de clic del estudiante
+- **Bloqueo de teclas:** Ctrl+C/V/X/A/P/S/U/R/N, Ctrl+Shift+I/J/C, F12, F11, F5, Alt+F4, Escape, PrintScreen, Meta
+- **Bloqueo de clipboard:** copy, cut, paste
+- **Bloqueo de menú contextual** y drag
+- **`user-select: none`** en todo el contenido del examen
+- Detección de blur, visibilitychange y fullscreen_exit
+
+#### Nivel 2 — Política de sanciones progresivas (`lib/exam-guard.ts`)
+
+```
+1° incidente → Advertencia: overlay con mensaje, sin bloqueo
+2° incidente → Bloqueo 15 segundos con cuenta regresiva
+3° incidente → Bloqueo 30 segundos con cuenta regresiva
+4° + incidente → Bloqueo 60 segundos + bandera roja (security_flagged)
+```
+
+El `SecurityOverlay` muestra tipo de infracción, número de incidente, si el examen está marcado para revisión, y la cuenta regresiva. Los botones de navegación se deshabilitan mientras dura el bloqueo. El tiempo del examen sigue corriendo.
+
+#### Nivel 3 — Auditoría completa (`exam_incidents`)
+
+Cada evento registra: tipo, detalle (tecla exacta), pregunta en curso, tiempo restante, estado fullscreen, dimensiones de ventana, user-agent y timestamp. Los datos se envían fire-and-forget desde `ExamGuard` — nunca bloquean el examen.
+
+**Tipos de evento registrados:**
+
+| Evento | Severidad |
+|--------|-----------|
+| `tab_hidden` | Alta |
+| `copy_attempt` / `paste_attempt` / `cut_attempt` | Alta |
+| `print_attempt` / `reload_attempt` | Alta |
+| `fullscreen_exit` | Media |
+| `contextmenu_attempt` / `blocked_shortcut` | Media |
+| `window_blur` / `drag_attempt` | Baja |
+
+#### Nivel 4 — Reporte en panel docente
+
+Columna **"Incidentes"** en la tabla de resultados con semáforo de riesgo:
+
+| Conteo | Nivel | Color |
+|--------|-------|-------|
+| 0 | Limpio | — |
+| 1–2 | 🟡 Leve | Amarillo |
+| 3–4 | 🟠 Medio | Naranja |
+| 5+ | 🔴 Alto | Rojo |
+
+Clic en el badge abre un **modal de detalle** con cada evento, hora exacta, número de pregunta y tiempo restante al momento del incidente.
+
+---
+
+### 🛡️ Panel de Administración
+
+Panel accesible en `/admin` exclusivo para correos registrados en la tabla `admin_emails`:
+
+**Tab Resumen:**
+- Métricas del sistema: total usuarios, sesiones, activos hoy, exámenes creados, reportes abiertos
+- Accesos rápidos a Reportes y Usuarios
+
+**Tab Usuarios:**
+- Listado paginado con búsqueda por nombre
+- Por usuario: editar nombre, ajustar XP/nivel/racha, resetear progreso, borrar sesiones
+- Responder reportes directamente desde el perfil del usuario
+
+**Tab Reportes:**
+- Tickets de soporte enviados desde el botón flotante `SupportButton`
+- Filtro por estado: Abierto / En revisión / Resuelto / Cerrado
+- Cambio de estado con un clic
+- Respuesta directa al usuario
+
+**Seguridad:**
+- Acceso controlado por tabla `admin_emails` con RLS y `auth.email()`
+- Función `is_admin()` en PostgreSQL usando `SECURITY DEFINER`
+- Admins fundadores protegidos contra remoción
+- Si las migraciones SQL no están ejecutadas, el panel muestra instrucciones paso a paso
+
+**SupportButton:**
+- Botón flotante visible para todos los usuarios autenticados
+- Formulario de nuevo reporte con categoría (bug/cuenta/contenido/sugerencia/otro)
+- Historial de reportes propios con estado en tiempo real
 
 ---
 
@@ -254,145 +317,16 @@ Motor universal de creación de material educativo. Transforma cualquier conteni
 | ✅ **Quiz** | 15 preguntas con distractorHints pedagógicos, barra de progreso | PDF |
 | ⏳ **Timeline** | 10-14 eventos con causalLinks, puntos interactivos por importancia | PNG, PDF |
 
-**Motor IA (v3):**
-- **Gemini 2.5 Flash** como modelo principal — contexto 12K chars, output 8192 tokens
-- **`responseSchema`** nativo por cada formato — garantiza estructura JSON, cero errores de parsing
-- Cascada automática: `Gemini 2.5 Flash → Gemini 2.0 Flash → Groq Llama 3.3`
-- **12 paletas de color** aplicadas en vista previa y exports
-- **PDFs estilo Canva** — headers de color, badges, tipografía profesional
-- **PPTX reales** con PptxGenJS — editables en PowerPoint/Google Slides
-- **Podcast MP3** con Edge TTS (AlvaroNeural + ElviraNeural, siempre fijos)
-
-**Campos nuevos por formato (v3):**
-
-| Formato | Nuevos campos |
-|---------|--------------|
-| Infografía | `visualType` (statistics/process/comparison/educational/timeline) |
-| PPT | `layout` (default/two-column/image-left/quote-center/stats-grid), `timingHint` |
-| Poster | `stat` por punto, paleta `neon` |
-| Mapa Mental | `edgeLabels` por conexión, `importance` (afecta tamaño del nodo) |
-| Flashcards | `hint` (pista), `mnemonic` (truco de memoria), `id` para SM-2 |
-| Quiz | `distractorHints` — explica por qué cada distractor confunde |
-| Timeline | `causalLinks` (from/to/label), `impact` por evento |
-
----
-
-### ✨ Creator Studio — Renderers rediseñados (v3.1)
-
-Cada renderer fue reconstruido desde cero para producir salidas de calidad editorial:
-
-#### 🧠 Mapa Mental — SVG puro (sin Canvas)
-
-El renderer original usaba Canvas HTML5, lo que causaba que `clientWidth = 0` durante el render inicial en Next.js, dejando el canvas vacío. Se reemplazó completamente por **SVG puro con viewport fijo 700×460**:
-
-- Curvas Bezier entre nodos (sin líneas rectas)
-- Gradientes por rama — 7 colores distintos
-- Nodos con formas según categoría: píldoras, rectángulos redondeados, bordes destacados
-- `importance` del nodo afecta el tamaño visible
-- `edgeLabels` renderizados sobre cada conexión
-- Zoom con rueda del mouse, arrastrar para mover el mapa
-- Click en nodo para ver descripción completa
-- Patrón de puntos de fondo estilo Miro/Canva
-
-#### 📊 Infografía — Layout editorial
-
-- Diseño de 2 columnas con 7 paletas de color completas
-- Fondo con gradiente, cards con color propio por sección
-- Stats destacadas con tipografía bold grande
-- Banner superior con efecto radial y fecha
-- Footer con contexto del tema
-- Inspirado en el estilo visual de NotebookLM
-
-#### 📑 Presentación — Sistema de tipos de slide
-
-Nuevo sistema de layouts por slide:
-- `title` — centrado con línea decorativa
-- `quote` — tipografía grande con comillas decorativas
-- `stats` — grid de 3 números con labels
-- `content` — bullets numerados con badge coloreado
-- 5 temas visuales aplicados globalmente
-
-#### 🎙️ Podcast — Hosts fijos: Álvaro y Elvira
-
-Los nombres de los hosts son **permanentes e invariables**:
-- 🎙 **Álvaro** — azul — explica con autoridad, datos y analogías
-- 🎙 **Elvira** — rosa — preguntas, reacciones, humor
-
-Interfaz del reproductor:
-- Waveform animado con barras de progreso (gradiente azul→violeta)
-- Botón play con gradiente azul→violeta
-- Avatares con colores fijos: Álvaro = azul, Elvira = rosa
-- Borde activo + animación de ondas para el segmento en reproducción
-- Segmento activo resaltado visualmente en el guión
-
----
-
-### 🎙️ Generador de Podcast
-
-```
-Contenido → Gemini 2.5 Flash genera guión (28+ segmentos)
-  → Host A "Álvaro" (es-ES-AlvaroNeural): explica con autoridad, datos, analogías
-  → Host B "Elvira" (es-ES-ElviraNeural): preguntas, reacciones, humor
-  → Estructura: gancho → contexto → desarrollo → ejemplos → reflexión → cierre
-  → Edge TTS genera MP3 (24kHz 96kbps mono)
-  → Descarga como .mp3
-```
-
-Los nombres de los hosts son **fijos en el código** — siempre aparecen como Álvaro y Elvira independientemente de la configuración de variables de entorno.
-
----
-
-### 📄 Chat con Papers PDF
-
-Arquitectura optimizada con Supabase Storage:
-
-```
-Antes: PDF → base64 en body → Vercel (413 Payload Too Large) ❌
-Ahora: PDF → Supabase Storage → backend descarga → chunking inteligente ✅
-```
-
-- Subida directa a bucket privado `papers` (hasta 50MB)
-- Extracción: pdf-parse + fallback Gemini inline
-- Chunking por relevancia según la pregunta
-- Seguridad RLS por usuario
-- Soporte multilingüe (ES/EN)
-
----
-
-### 🎨 Generación de Imágenes IA (v3)
-
-Pipeline potenciado con optimizer inteligente y 4 providers:
-
-```
-Prompt usuario
-    ↓
-Gemini 2.5 Flash-Lite — optimizer con educationalContext
-    ↓ prompt enriquecido pedagógicamente
-Together AI (FLUX Schnell) ──▶ falla ──▶ Pollinations (FLUX, sin API key) ──▶ falla ──▶ HuggingFace (SDXL)
-                                                                                              ↕
-                                                                             Gemini 2.0 Flash Image (nativo)
-    ↓
-Imagen base64 → response + galería Supabase (async)
-```
-
-**Estilos disponibles (10):** realistic, digital art, oil painting, anime, watercolor, 3D render, sketch, cinematic, educational, flat design
-
-**`educationalContext`:** parámetro que pasa contexto del tema al optimizer, logrando imágenes pedagógicamente precisas.
-
-**Pollinations AI:** fallback gratuito sin API key — `image.pollinations.ai/prompt/{prompt}?enhance=true`
-
-**Gemini Image Generation:** nuevo provider nativo con `gemini-2.0-flash-preview-image-generation` disponible via AI Router v4.
-
 ---
 
 ### Para docentes
 - **Planificador MINEDUC (APl)** — planificaciones alineadas al currículo nacional
 - **Exámenes con link público** — pruebas con evaluación IA y notas automáticas
+- **Modo supervisión** — fullscreen forzado, bloqueo de teclas, registro de incidentes
+- **Papelera de exámenes** — soft delete con opción de restaurar o eliminar definitivo
 - **Editor de exámenes publicados** — modifica sin romper el link
 - **Audio Lab** — transcribe clases grabadas y genera apuntes, actas o resúmenes con IA
 - Todos los niveles: Parvularia, 1° Básico hasta 4° Medio
-- Adaptaciones para NEE
-- Contexto del calendario escolar chileno
 
 ### Colaboración en tiempo real
 - **Salas multiusuario** hasta 10 participantes
@@ -409,8 +343,6 @@ Imagen base64 → response + galería Supabase (async)
 
 ## Sistema Orquestador de 6 Agentes
 
-El orquestador fue completamente rediseñado — de 4 agentes secuenciales a 6 agentes con paralelismo real:
-
 ```
 Pregunta del estudiante
         ↓
@@ -424,29 +356,10 @@ Pregunta del estudiante
         fusiona los 3 contextos en briefing pedagógico
                    ↓
         AGT-Pedagogy (Gemini 2.5 Flash-Lite)
-        decide: estilo (directo|socrático|analógico|paso-a-paso|visual)
-                tono (formal|conversacional|motivador|técnico)
-                visual (image|chart|mermaid|table|none)
+        decide: estilo · tono · visual
                    ↓
         Tutor (Groq stream) — responde con contexto enriquecido
 ```
-
----
-
-## AGT-AIm v2 — Agente Visual Inteligente
-
-```
-Antes: quickCheck → Groq confirm → {shouldGenerate, imagePrompt}
-Ahora: quickCheck → Gemini 2.5 Flash-Lite → {
-         shouldGenerate, type, confidence,
-         imagePrompt,    mermaidCode,
-         chartSpec,      caption
-       }
-```
-
-- **`type`** específico: `image | chart | mermaid | table | none`
-- **`confidence`** 0.0–1.0: solo genera si ≥ 0.65 (reduce falsos positivos)
-- `mermaidCode` y `chartSpec` listos para renderizar directamente en el frontend
 
 ---
 
@@ -480,7 +393,7 @@ Ahora: quickCheck → Gemini 2.5 Flash-Lite → {
 | 🎓 **AGT-Pedagogy** | Gemini 2.5 Flash-Lite | Decide estilo, tono y visual sugerido |
 | ⚡ **Tutor** | Groq Llama 3.3 | Stream de respuesta con contexto enriquecido |
 
-### Agentes Especializados (13)
+### Agentes Especializados (14)
 
 | Agente | Función |
 |--------|---------|
@@ -491,12 +404,13 @@ Ahora: quickCheck → Gemini 2.5 Flash-Lite → {
 | 🌐 **Traductor** | Traducción con matices lingüísticos y culturales |
 | 📄 **Chat Paper** | PDFs hasta 50MB con chunking inteligente |
 | 📝 **Examen** | Simulacros de práctica con timer |
-| 📋 **Exámenes Docente** | Pruebas con link público, evaluación IA y editor post-publicación |
-| 🎙️ **AGT-Transcripción** | Transcripción de audio con Gemini 2.5 Flash multimodal |
+| 📋 **Exámenes Docente** | Pruebas con link público, evaluación IA, seguridad y papelera |
+| 🎙️ **AGT-Transcripción** | Transcripción de audio con Gemini 2.0 Flash multimodal + fallback automático |
 | ✂️ **AGT-EditorTranscript** | 6 operaciones sobre transcripciones (limpiar, apuntes, acta, resumen, tareas, custom) |
 | 🎨 **Image Studio** | FLUX (Together/Pollinations) + SDXL + Gemini Image con galería unificada |
 | 🖼️ **Galería** | Imágenes generadas con filtros y descarga |
 | ✨ **Creator Hub** | 8 formatos con Gemini 2.5 Flash + responseSchema, UX por formato dedicado |
+| 🛡️ **Admin** | Panel de administración con usuarios, reportes y métricas del sistema |
 
 ---
 
@@ -536,6 +450,7 @@ pdf-parse 2.4 (PDF extraction)
 @andresaya/edge-tts 1.8 (podcast MP3 — AlvaroNeural + ElviraNeural)
 @google/generative-ai 0.24 (Gemini SDK)
 groq-sdk 0.37 (Groq SDK)
+@supabase/supabase-js 2.97 (cliente Supabase)
 ```
 
 ### AI Router v4
@@ -545,49 +460,28 @@ groq-sdk 0.37 (Groq SDK)
 │                   AI ROUTER v4 (lib/ai-router-v4.ts)             │
 ├──────────────────────────────────────────────────────────────────┤
 │  Gemini 2.5 Flash       → Creator Studio, AGT-Synthesize,        │
-│                            AGT-Investigador, Transcripción audio, │
-│                            Matemático, Redactor, Investigador,   │
-│                            Traductor, Evaluación IA exámenes     │
+│                            AGT-Investigador, Evaluación exámenes │
 │                                                                  │
 │  Gemini 2.5 Flash-Lite  → Prompt optimizer imágenes,             │
-│                            AGT-AIm v2 (visual detect),           │
-│                            AGT-Contexto, AGT-Diagnose,           │
-│                            AGT-Pedagogy, AGT-EditorTranscript    │
+│                            AGT-AIm v2, AGT-Contexto,            │
+│                            AGT-Diagnose, AGT-Pedagogy            │
+│                                                                  │
+│  Gemini 2.0 Flash       → Transcripción de audio multimodal      │
+│                            (con fallback a 1.5-flash, 2.5-flash) │
 │                                                                  │
 │  Gemini 2.0 Flash Image → Generación de imágenes nativa          │
-│                            (gemini-2.0-flash-preview-image-gen)  │
 │                                                                  │
 │  Groq (Llama 3.3 70B)   → AGT Tutor (stream), Quiz, Sócrates,    │
-│                            Sugerencias, fallback Creator         │
+│                            fallback exam-generate (429)          │
 │                                                                  │
-│  OpenRouter             → Fallback general (Llama, Gemma, Mistral)│
+│  OpenRouter             → Fallback general                       │
 ├──────────────────────────────────────────────────────────────────┤
-│  Nuevas funciones v4:                                            │
+│  Funciones v4:                                                   │
 │  callGeminiStructured()  → JSON garantizado via responseSchema   │
 │  callGeminiMultimodal()  → texto + imagen base64                 │
 │  callGeminiImage()       → genera imágenes con Gemini nativo     │
 │  callAICached()          → wrapper con cache Redis (TTL config.) │
-├──────────────────────────────────────────────────────────────────┤
-│  Backward compatible (misma firma que v3):                       │
-│  callAI() · callGroqStream() · callGeminiStream()                │
-│  runOrchestrator() · optimizeImagePrompt() · detectVisualType()  │
 └──────────────────────────────────────────────────────────────────┘
-```
-
-### Redis / Upstash Cache
-
-```
-lib/redis.ts — cliente Upstash con degradación elegante
-
-Si UPSTASH_REDIS_REST_URL no está configurado:
-  → todas las operaciones retornan null silenciosamente
-  → la plataforma funciona igual, sin cache ni rate limiting
-
-Si está configurado:
-  → cache para resultados del AGT-Investigador por tema (TTL 10 min)
-  → cache para extracción de papers (TTL 60 min)
-  → rate limiting por usuario/ruta con sliding window
-  → callAICached() — evita llamadas repetidas para prompts idénticos
 ```
 
 ---
@@ -604,8 +498,10 @@ content_creations     — historial del Creator Hub
 flashcard_decks       — decks con datos SM-2 (easiness, interval, repetitions)
 quiz_sessions         — sesiones de quiz con scores
 user_xp               — gamificación: XP, nivel, racha, badges
-teacher_exams         — exámenes creados por docentes
-exam_submissions      — respuestas con notas y evaluación IA completa
+teacher_exams         — exámenes con settings, code, status, deleted_at (soft delete)
+exam_submissions      — respuestas con grade, correct_count, earned_points,
+                        total_points, incident_count, incident_level, security_flagged
+exam_incidents        — registro completo de incidentes por intento de examen
 study_rooms           — salas de colaboración (tutor_lock)
 room_members          — miembros por sala (hasta 10)
 room_messages         — mensajes de colaboración
@@ -614,16 +510,26 @@ conversations         — conversaciones del chat social
 chat_messages         — mensajes con reacciones (6 emojis)
 notifications         — notificaciones en tiempo real
 platform_config       — configuración global
-spaced_repetition     — SM-2: easiness, interval, repetitions, next_review, last_score
-audio_transcriptions  — transcripciones de audio: raw, clean, summary, speakers, language
+spaced_repetition     — SM-2: easiness, interval, repetitions, next_review
+audio_transcriptions  — transcripciones de audio: raw, clean, summary, speakers
 projects              — proyectos del Workspace con icono y color
-workspace_items       — ítems vinculados a proyectos (docs, imágenes, audio, etc.)
+workspace_items       — ítems vinculados a proyectos (note, file, link, document, etc.)
+admin_emails          — correos con acceso al panel de administración
+admin_reports         — tickets de soporte enviados por usuarios
 ```
 
-### Migraciones SQL
+### Migraciones SQL (ejecutar en orden)
+
 ```
 supabase/migrations/
-└── 20260226000000_create_spaced_repetition.sql   — tabla SM-2 con RLS
+├── 20260226000000_create_spaced_repetition.sql    — tabla SM-2 con RLS
+├── 20260316000000_create_audio_lab.sql            — audio_transcriptions
+├── 20260316000001_create_workspace.sql            — projects + workspace_items
+├── 20260401000000_create_admin_system.sql         — admin_emails, admin_reports, is_admin()
+├── 20260402000000_patch_workspace_item_types.sql  — amplía CHECK constraint (note/file/link)
+├── 20260403000000_exam_softdelete_admin_fix.sql   — deleted_at, auth.email() fix en RLS
+├── 20260404000000_exam_submissions_points.sql     — earned_points, total_points
+└── 20260405000000_create_exam_incidents.sql       — exam_incidents + columnas de seguridad
 ```
 
 ### Storage Buckets
@@ -631,6 +537,7 @@ supabase/migrations/
 papers              — PDFs de papers académicos (privado, RLS por usuario)
 creations           — archivos del Creator Hub (público)
 chat-files          — archivos del chat social (público)
+workspace-files     — archivos subidos al Workspace (privado, RLS por usuario)
 ```
 
 ---
@@ -640,57 +547,41 @@ chat-files          — archivos del chat social (público)
 ```
 eduai-platform/
 ├── app/
-│   ├── (auth)/
-│   │   ├── actions.ts
-│   │   ├── login/page.tsx
-│   │   └── register/page.tsx
+│   ├── (auth)/login/page.tsx
+│   ├── (auth)/register/page.tsx
 │   ├── layout.tsx
 │   ├── page.tsx
 │   │
-│   ├── dashboard/
+│   ├── admin/
+│   │   ├── page.tsx                  ← Panel admin (Resumen / Usuarios / Reportes)
+│   │   └── usuarios/[id]/page.tsx    ← Perfil de usuario editable por admin
+│   │
+│   ├── dashboard/page.tsx
+│   ├── agentes/page.tsx
+│   ├── study/[topic]/page.tsx
+│   │
+│   ├── creator/page.tsx              ← legado
+│   ├── creator-hub/
 │   │   ├── page.tsx
-│   │   ├── MissionsPanel.tsx
-│   │   ├── ReviewSection.tsx
-│   │   ├── SessionList.tsx
-│   │   └── TopicInput.tsx
+│   │   └── [format]/page.tsx
 │   │
-│   ├── study/[topic]/
+│   ├── audio-lab/page.tsx
+│   │
+│   ├── workspace/
 │   │   ├── page.tsx
-│   │   ├── StudyClient.tsx
-│   │   ├── QuizMode.tsx
-│   │   ├── QuizResults.tsx
-│   │   ├── DiagnosisReport.tsx
-│   │   ├── SummaryDownload.tsx
-│   │   └── VisualBlock.tsx
+│   │   └── [id]/page.tsx             ← Editor notas + IA + archivos + links
 │   │
-│   ├── creator/page.tsx              ← v3.1: renderers rediseñados (legado)
-│   ├── creator-hub/                  ← NUEVO: UX dedicada por formato
-│   │   ├── page.tsx                  ← grid de 8 formatos
-│   │   ├── layout.tsx
-│   │   └── [format]/page.tsx         ← página especializada por formato
-│   │
-│   ├── audio-lab/page.tsx            ← NUEVO: transcripción + edición con IA
-│   │
-│   ├── workspace/                    ← NUEVO: gestor de proyectos
-│   │   ├── page.tsx
-│   │   └── [id]/page.tsx
-│   │
-│   ├── image-studio/page.tsx         ← NUEVO: generar + galería unificados
+│   ├── image-studio/page.tsx
 │   │
 │   ├── examen/
-│   │   ├── page.tsx
-│   │   ├── crear/page.tsx
-│   │   ├── editar/[id]/page.tsx      ← NUEVO: editor post-publicación
-│   │   ├── docente/page.tsx
-│   │   ├── p/[code]/page.tsx
-│   │   └── resultados/[id]/page.tsx
+│   │   ├── page.tsx                  ← Simulacro para estudiantes
+│   │   ├── crear/page.tsx            ← Crear con distribución + toggle seguridad
+│   │   ├── editar/[id]/page.tsx      ← Editor post-publicación
+│   │   ├── docente/page.tsx          ← Lista + papelera de exámenes
+│   │   ├── p/[code]/page.tsx         ← Rendición pública + SecurityOverlay
+│   │   └── resultados/[id]/page.tsx  ← Dashboard + RiskBadge + IncidentModal
 │   │
-│   ├── collab/
-│   │   ├── page.tsx
-│   │   └── [code]/
-│   │       ├── page.tsx
-│   │       └── CollabClient.tsx
-│   │
+│   ├── collab/[code]/page.tsx
 │   ├── chat/page.tsx
 │   ├── educador/page.tsx
 │   ├── investigador/page.tsx
@@ -702,29 +593,25 @@ eduai-platform/
 │   ├── galeria/page.tsx
 │   ├── sessions/page.tsx
 │   ├── ranking/page.tsx
-│   ├── agentes/page.tsx
 │   └── profile/
 │       ├── page.tsx
-│       ├── MemoryMap.tsx
 │       └── settings/page.tsx
 │
 ├── app/api/
 │   ├── agents/
+│   │   ├── exam-generate/route.ts    ← API dedicada: sin límite preguntas, fallback Groq lotes
+│   │   ├── examen-docente/route.ts   ← CRUD exámenes + soft delete + restore + incidents
+│   │   ├── examen/route.ts
+│   │   ├── transcription/route.ts    ← gemini-2.0-flash + fallback cadena 3 modelos
+│   │   ├── transcript-editor/route.ts
 │   │   ├── chat/route.ts
 │   │   ├── collab/route.ts
-│   │   ├── orchestrator/index.ts     ← orquestador 6 agentes
-│   │   ├── examen-docente/route.ts
-│   │   ├── examen/route.ts
-│   │   ├── transcription/route.ts    ← NUEVO: AGT-Transcripción (Gemini multimodal)
-│   │   ├── transcript-editor/route.ts ← NUEVO: AGT-EditorTranscript (6 operaciones)
-│   │   ├── podcast-wav/route.ts      ← AlvaroNeural + ElviraNeural (fijos)
-│   │   ├── tts-chunk/route.ts
+│   │   ├── podcast-wav/route.ts
 │   │   ├── tts/route.ts
-│   │   ├── imagenes/
-│   │   │   ├── route.ts
-│   │   │   └── preview/route.ts
+│   │   ├── tts-chunk/route.ts
+│   │   ├── imagenes/route.ts
 │   │   ├── image/route.ts
-│   │   ├── visual-detect/route.ts    ← AGT-AIm v2: Gemini 2.5 Flash-Lite
+│   │   ├── visual-detect/route.ts
 │   │   ├── matematico/route.ts
 │   │   ├── investigador/route.ts
 │   │   ├── redactor/route.ts
@@ -737,22 +624,18 @@ eduai-platform/
 │   │   ├── suggest/route.ts
 │   │   ├── summary/route.ts
 │   │   ├── theory/route.ts
-│   │   └── paper/
-│   │       ├── route.ts
-│   │       └── extract/route.ts
+│   │   └── paper/route.ts
 │   │
+│   ├── exam-security/
+│   │   └── event/route.ts            ← POST incidentes + GET resumen/detalle
+│   │
+│   ├── admin/route.ts                ← stats, users, reports, edit_user, add/remove admin
+│   ├── reports/route.ts              ← tickets de soporte (GET/POST propios)
 │   ├── process-content/route.ts
-│   ├── chat/
-│   │   ├── friends/route.ts
-│   │   ├── messages/route.ts
-│   │   ├── notifications/route.ts
-│   │   ├── presence/route.ts
-│   │   └── upload/route.ts
+│   ├── chat/friends/route.ts
+│   ├── chat/messages/route.ts
 │   ├── rooms/route.ts
-│   ├── sessions/
-│   │   ├── route.ts
-│   │   ├── [id]/messages/route.ts    ← NUEVO: mensajes de una sesión por ID
-│   │   └── delete/route.ts
+│   ├── sessions/route.ts
 │   ├── memory/route.ts
 │   ├── missions/route.ts
 │   ├── achievements/route.ts
@@ -760,45 +643,30 @@ eduai-platform/
 │   └── spaced-repetition/route.ts
 │
 ├── components/
-│   ├── creator-hub/
-│   │   └── renderers.tsx             ← NUEVO: renderers del Creator Hub
+│   ├── creator-hub/renderers.tsx
 │   └── ui/
+│       ├── ExamMathText.tsx          ← limpia U+2191, throwOnError: false
+│       ├── SupportButton.tsx         ← botón flotante de soporte para usuarios
+│       ├── AgentHeader.tsx
+│       ├── AgentChatLayout.tsx
 │       ├── DownloadBar.tsx
 │       ├── ColorPalette.tsx
 │       ├── MathRenderer.tsx
-│       ├── AgentHeader.tsx
-│       ├── AgentChatLayout.tsx
-│       ├── AchievementToast.tsx
-│       ├── StudyBanner.tsx
-│       ├── VoiceNarrator.tsx
-│       ├── ExamMathText.tsx
-│       └── XPToast.tsx
-│
-├── hooks/
-│   ├── useAchievements.ts
-│   ├── useStudySession.ts
-│   └── useXP.ts
+│       └── ...
 │
 ├── lib/
-│   ├── ai-router.ts                  ← v3: compatibilidad
-│   ├── ai-router-v4.ts               ← NUEVO: v4 con multimodal, imagen nativa y cache
-│   ├── redis.ts                      ← NUEVO: Upstash Redis con degradación elegante
+│   ├── exam-guard.ts                 ← ExamGuard: 11 eventos, sanciones, fire-and-forget
+│   ├── ai-router-v4.ts
+│   ├── ai-router.ts
 │   ├── content-processor.ts
 │   ├── creator-downloads.ts
-│   ├── papers/
-│   │   └── extraction.ts
-│   ├── supabase/
-│   │   ├── client.ts
-│   │   └── server.ts
-│   └── utils/cn.ts
+│   ├── redis.ts
+│   └── supabase/
+│       ├── client.ts
+│       └── server.ts
 │
-├── types/index.ts
-├── middleware.ts
-├── next.config.ts
-├── tsconfig.json
-├── vercel.json
 └── supabase/migrations/
-    └── 20260226000000_create_spaced_repetition.sql
+    └── (ver sección Base de Datos)
 ```
 
 ---
@@ -825,12 +693,12 @@ cp .env.example .env.local
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJxxx...
-SUPABASE_SERVICE_ROLE_KEY=eyJxxx...
+SUPABASE_SERVICE_ROLE_KEY=eyJxxx...   ← requerido para el panel admin y exam-security
 
-# IA — Gemini (requerido: Creator Hub, orquestador, transcripción, evaluación exámenes)
+# IA — Gemini (requerido)
 GEMINI_API_KEY=AIzaXxx...
 
-# IA — Groq (requerido: streaming del tutor AGT)
+# IA — Groq (requerido: streaming del tutor + fallback exam-generate)
 GROQ_API_KEY=gsk_xxx...
 
 # IA — OpenRouter (fallback general, opcional)
@@ -842,22 +710,33 @@ TOGETHER_API_KEY=xxx...
 # Imágenes — HuggingFace fallback adicional (opcional)
 HF_TOKEN_1=hf_xxx...
 
-# Cache y rate limiting — Upstash Redis (opcional, pero recomendado en producción)
-# Setup: Vercel Dashboard → Storage → Create → Upstash KV → Connect
+# Cache y rate limiting — Upstash Redis (opcional)
 UPSTASH_REDIS_REST_URL=https://...upstash.io
 UPSTASH_REDIS_REST_TOKEN=...
 ```
 
-> **Nota — voces del podcast:** Los hosts siempre se llaman **Álvaro** (`es-ES-AlvaroNeural`) y **Elvira** (`es-ES-ElviraNeural`). Los nombres están definidos directamente en el código del renderer y no pueden cambiarse por variables de entorno.
+> **Nota — SUPABASE_SERVICE_ROLE_KEY:** requerida para que `/api/exam-security/event` y `/api/admin` puedan escribir en tablas protegidas. Sin esta key, el registro de incidentes y el panel admin no funcionarán.
 
-> **Nota sobre imágenes:** Pollinations AI funciona **sin API key** — si no configuras `TOGETHER_API_KEY`, la generación de imágenes seguirá funcionando con FLUX gratuito vía Pollinations.
+> **Nota — voces del podcast:** Los hosts siempre se llaman **Álvaro** (`es-ES-AlvaroNeural`) y **Elvira** (`es-ES-ElviraNeural`). Los nombres están fijos en el código del renderer.
 
-> **Nota sobre Redis:** Si no configuras Upstash, la plataforma funciona igual — sin cache ni rate limiting. Para habilitarlo en Vercel, ve a *Storage → Create → Upstash KV → Connect* y las variables se agregan automáticamente.
+> **Nota sobre imágenes:** Pollinations AI funciona **sin API key**. Si no configuras `TOGETHER_API_KEY`, la generación sigue funcionando con FLUX gratuito.
 
-### 3. Supabase
-- Ejecutar migraciones SQL en SQL Editor
-- Crear buckets: `papers` (privado + RLS), `creations` (público), `chat-files` (público)
-- Crear tablas `audio_transcriptions`, `projects` y `workspace_items` con RLS por usuario
+### 3. Supabase — Migraciones y Buckets
+
+Ejecutar todas las migraciones SQL en **Supabase → SQL Editor** en el orden indicado en la sección Base de Datos.
+
+Crear los buckets de Storage:
+```
+papers          → Privado + RLS por usuario
+creations       → Público
+chat-files      → Público
+workspace-files → Privado + RLS por usuario
+```
+
+Agregar admins iniciales en la tabla `admin_emails`:
+```sql
+INSERT INTO admin_emails (email) VALUES ('tu@correo.cl');
+```
 
 ### 4. Desarrollo
 ```bash
@@ -871,7 +750,7 @@ npm run dev
 1. Conectar repositorio en [vercel.com](https://vercel.com)
 2. Agregar variables de entorno en Settings → Environment Variables
 3. En Supabase → Authentication → URL Configuration agregar el dominio de Vercel
-4. *(Opcional)* Conectar Upstash KV desde Vercel Dashboard → Storage para activar cache
+4. *(Opcional)* Conectar Upstash KV desde Vercel Dashboard → Storage
 
 ---
 
@@ -881,20 +760,22 @@ npm run dev
 |---------|-------|--------------|-------------|------------|
 | Multi-agente (25+) | ✅ | ❌ | ❌ | ❌ |
 | Orquestador 6 agentes en paralelo | ✅ | ❌ | ❌ | ❌ |
-| Gemini 2.5 Flash con responseSchema | ✅ | ❌ | ❌ | ❌ |
+| Exámenes docente con link público | ✅ | ❌ | ❌ | ❌ |
+| Modo supervisión antifraude (4 niveles) | ✅ | ❌ | ❌ | ❌ |
+| Registro de incidentes por alumno | ✅ | ❌ | ❌ | ❌ |
+| Papelera con soft delete y restaurar | ✅ | ❌ | ❌ | ❌ |
+| Panel de administración completo | ✅ | ❌ | ❌ | ❌ |
+| Sistema de reportes y soporte | ✅ | ❌ | ❌ | ❌ |
 | Creator Hub (8 formatos) | ✅ | ❌ | ❌ | ❌ |
 | Audio Lab — transcripción + 6 operaciones IA | ✅ | ❌ | ❌ | ❌ |
 | Workspace de proyectos | ✅ | ❌ | ❌ | ❌ |
 | Mapa Mental SVG interactivo | ✅ | ❌ | ❌ | ❌ |
-| Exámenes docente con link público | ✅ | ❌ | ❌ | ❌ |
-| Editor de exámenes post-publicación | ✅ | ❌ | ❌ | ❌ |
-| Puntaje visible por pregunta en examen | ✅ | ❌ | ❌ | ❌ |
 | Evaluación IA (desarrollo + V/F) | ✅ | ❌ | ❌ | ❌ |
+| Fallback Groq en lotes cuando Gemini da 429 | ✅ | N/A | N/A | N/A |
 | Podcast MP3 (28+ segmentos, 2 voces) | ✅ | ❌ | ❌ | ✅ |
 | Notas MINEDUC 1.0–7.0 | ✅ | ❌ | ❌ | ❌ |
 | Chat con Papers (50MB) | ✅ | ❌ | ✅ parcial | ✅ |
 | Imágenes IA sin API key (Pollinations) | ✅ | ❌ | ❌ | ❌ |
-| Generación de imágenes con Gemini nativo | ✅ | ❌ | ❌ | ❌ |
 | Cache Redis + rate limiting | ✅ | N/A | N/A | N/A |
 | Gamificación completa + SM-2 | ✅ | ✅ | ❌ | ❌ |
 | LaTeX matemático | ✅ | ✅ | ✅ | ❌ |
@@ -907,51 +788,45 @@ npm run dev
 ## Roadmap
 
 ### Próximas funcionalidades
-- [ ] 📑 Layouts avanzados de PPT (two-column, stats-grid) implementados en PptxGenJS
-- [ ] ⏳ Timeline SVG interactivo con causalLinks visuales como flechas
+- [ ] 📑 Layouts avanzados de PPT (two-column, stats-grid) en PptxGenJS
+- [ ] ⏳ Timeline SVG con causalLinks como flechas visuales
 - [ ] 📇 Modo repaso SM-2 real con scheduling automático desde Supabase
 - [ ] 🏆 XP por Creator Hub y badges por formato completado
 - [ ] 📝 Cornell Notes automáticos
 - [ ] 🗣️ Debate IA (defensa de posturas)
-- [ ] 👨‍🏫 Modo profesor inverso
 - [ ] ⏱️ Pomodoro con XP
 - [ ] 📱 App móvil (Capacitor)
 - [ ] 📊 Analytics avanzado para docentes
-- [ ] 🔗 Integración Workspace ↔ Creator Hub (guardar creaciones directamente en proyectos)
+- [ ] 🔗 Integración Workspace ↔ Creator Hub
 
 ### Completado ✅
-- [x] 🎙️ **Audio Lab** — transcripción con Gemini 2.5 Flash multimodal + 6 operaciones de edición IA + exportación en 4 formatos
-- [x] 📁 **Workspace** — gestor de proyectos con icono/color, agrupación de contenido por tipo
-- [x] 🎨 **Image Studio** — generación + galería unificados en una sola vista con panel lateral
+- [x] 🛡️ **Panel de Administración** — dashboard, usuarios, reportes, SupportButton, is_admin() con auth.email()
+- [x] 🔒 **Sistema antifraude de 4 niveles** — ExamGuard, SecurityOverlay con temporizador, exam_incidents, RiskBadge + IncidentModal en resultados
+- [x] 📋 **Modo supervisión sin kiosk** — fullscreen silencioso al clic "Iniciar examen", sin pantalla de aviso previa
+- [x] 🗑️ **Papelera de exámenes** — soft delete con `deleted_at`, restaurar y eliminar permanente
+- [x] 📊 **Conteo correcto en resultados** — `correct_count` = preguntas correctas reales; `earned_points` / `total_points` = puntaje numérico separado
+- [x] ⚡ **API exam-generate dedicada** — sin límite del schema genérico, `maxOutputTokens` dinámico, fallback Groq en lotes de 10 cuando Gemini da 429
+- [x] 🔤 **LaTeX fix** — limpieza de ↑ (U+2191) y otros Unicode sustitutos de `\`, `throwOnError: false` en KaTeX
+- [x] 🎙️ **Audio Lab fix** — modelo `gemini-2.0-flash` (reemplaza -exp deprecado) + fallback cadena de 3 modelos
+- [x] 🧭 **Navegación exámenes** — flecha ← en resultados apunta a `/examen/docente`; en modo estudiante apunta a `/agentes`
+- [x] 📁 **Workspace notas** — editor RichText funcional, tipos `note/file/link` en DB, fallback de constraint
+- [x] 🎙️ **Audio Lab** — transcripción con Gemini multimodal + 6 operaciones de edición + 4 formatos de exportación
+- [x] 📁 **Workspace** — gestor de proyectos con IA, archivos y links
+- [x] 🎨 **Image Studio** — generación + galería unificados
 - [x] 📝 **Editor de Exámenes** — edición post-publicación sin romper el link
-- [x] ✨ **Creator Hub** (`/creator-hub`) — UX dedicada con páginas individuales por formato
-- [x] 🤖 **AI Router v4** — `callGeminiStructured`, `callGeminiMultimodal`, `callGeminiImage`, `callAICached`
-- [x] ⚡ **Gemini 2.0 Flash Image** — generación de imágenes nativa sin providers externos
-- [x] 🗄️ **Redis/Upstash** — cache configurable con degradación elegante, rate limiting por ruta
+- [x] ✨ **Creator Hub** — UX dedicada con páginas individuales por formato
+- [x] 🤖 **AI Router v4** — callGeminiStructured, callGeminiMultimodal, callGeminiImage, callAICached
+- [x] 🗄️ **Redis/Upstash** — cache configurable con degradación elegante
 - [x] 🧠 Mapa Mental renderer — SVG puro (fix `clientWidth = 0` en Next.js)
-- [x] 📊 Infografía renderer — layout editorial 2 columnas, 7 paletas, banner radial
-- [x] 📑 PPT renderer — sistema de tipos de slide (title/quote/stats/content), 5 temas
-- [x] 🎨 Poster renderer — 5 paletas incl. neon, brillo radial, campo `stat` por punto
-- [x] 🎙️ Podcast renderer — hosts **Álvaro** (azul) y **Elvira** (rosa), nombres fijos en código
-- [x] ✅ Quiz renderer — barra de progreso, badges A/B/C/D, score con color por rendimiento
-- [x] ⏳ Timeline renderer — hover interactivo, colores por importancia, gradiente tricolor
-- [x] 🤖 Orquestador de 6 agentes (AGT-Contexto, AGT-Diagnose, AGT-Investigador, AGT-Synthesize, AGT-Pedagogy, Tutor)
-- [x] ⚡ Gemini 2.5 Flash como modelo principal del Creator Hub
-- [x] ⚡ Gemini 2.5 Flash-Lite para tareas rápidas (optimizer, AIm, diagnose, pedagogy)
-- [x] 📐 `responseSchema` nativo por formato — estructura JSON garantizada
-- [x] 🧠 Contexto extendido 12K chars en extractores (URLs, PDFs, DOCX)
-- [x] 🖼️ AGT-AIm v2 — type/confidence/mermaidCode/chartSpec listos para render
-- [x] 🎨 Pollinations AI como fallback gratuito (FLUX, sin API key)
-- [x] 📊 Puntaje visible por pregunta durante el examen docente
-- [x] 🔢 Navegador de preguntas con pts en botón y desglose V/F
+- [x] 📊 Infografía renderer — layout editorial 2 columnas, 7 paletas
+- [x] 📑 PPT renderer — sistema de tipos de slide (title/quote/stats/content)
+- [x] 🎙️ Podcast renderer — hosts Álvaro (azul) y Elvira (rosa), nombres fijos en código
+- [x] 🤖 Orquestador de 6 agentes en paralelo
 - [x] 📋 Exámenes Docente — link público, evaluación IA, notas MINEDUC
 - [x] 📄 Chat Paper — Supabase Storage, chunking inteligente, 50MB
-- [x] 🔄 AI Router v3 con preferProvider: gemini / gemini-lite / groq / openrouter
 - [x] 🤝 Colaboración multiusuario (hasta 10)
-- [x] 🎓 Profesor ACo con tutor lock
 - [x] 💬 Chat social tipo Messenger
-- [x] 🖼️ Galería persistente con filtros
-- [x] 🔄 Repaso espaciado SM-2 con tabla Supabase y RLS
+- [x] 🔄 Repaso espaciado SM-2
 
 ---
 
