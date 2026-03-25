@@ -5,8 +5,15 @@
 import { useEffect, useRef, useState, useCallback } from "react"
 import { useParams } from "next/navigation"
 import { createClient } from "@supabase/supabase-js"
-import ExamMathText from "@/components/ui/ExamMathText"
+import dynamic from "next/dynamic"
 import { ExamGuard, type GuardState } from "@/lib/exam-guard"
+
+// Import dinámico — KaTeX (~400KB) solo se carga cuando el usuario
+// llega al paso de vista previa, no al abrir la página
+const ExamMathText = dynamic(() => import("@/components/ui/ExamMathText"), {
+  ssr: false,
+  loading: () => <span className="text-gray-400 text-sm">...</span>,
+})
 
 // ── Supabase del PANEL DE CONTROL (para leer examenes_kiosk) ─────────────────
 // Estas vars deben estar en el .env.local de EduAI Platform:
