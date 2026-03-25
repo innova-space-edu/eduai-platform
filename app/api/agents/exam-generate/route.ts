@@ -49,8 +49,19 @@ export async function POST(req: NextRequest) {
 
   const systemPrompt = `Eres un diseñador experto de evaluaciones escolares en español.
 Responde ÚNICAMENTE con JSON válido — sin texto extra, sin backticks, sin markdown.
-Para contenido matemático usa SOLO LaTeX entre $...$ para inline y $$...$$ para bloque.
-No uses \\( \\) ni \\[ \\]. Asegúrate de que toda expresión matemática tenga sus delimitadores $ correctos.`
+
+REGLAS CRÍTICAS PARA LATEX — LEE CON ATENCIÓN:
+1. Para matemáticas usa LaTeX con delimitadores $...$ (inline) o $$...$$ (bloque).
+2. Todos los comandos LaTeX DEBEN comenzar con la barra invertida REAL: \\
+   - CORRECTO: $\\frac{1}{2}$   $\\times$   $x^2 + 3 = 7$
+   - INCORRECTO: ↑frac{1}{2}   ↑times   ^frac{1}{2}
+3. El carácter ↑ (flecha arriba, Unicode U+2191) NO es una barra invertida.
+   NUNCA uses ↑ como sustituto de \\. Usa \\ (backslash real, ASCII 92).
+4. Si el texto tiene LaTeX, SIEMPRE enciérralo en $...$:
+   - CORRECTO: "$\\frac{1}{x} + 4 = 9$"
+   - INCORRECTO: "↑\\frac{1}{x} + 4 = 9"  o  "\\frac{1}{x} + 4 = 9" (sin dólares)
+5. Texto normal sin matemáticas NO necesita delimitadores.
+6. No uses \\\\( \\\\) ni \\\\[ \\\\].`
 
   let lastError = ""
 
@@ -85,9 +96,13 @@ No uses \\( \\) ni \\[ \\]. Asegúrate de que toda expresión matemática tenga 
 
       let parsed: any
       try {
+        // Limpiar el raw: quitar backticks de markdown
         const clean = raw
           .replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim()
-        parsed = JSON.parse(clean)
+        // Luego limpiar caracteres Unicode que Gemini usa como sustituto de \
+        const sanitized = clean
+          .replace(/[\u2191\u2197\u2B06\u25B2\u2227\u21D2](?=[a-zA-Z])/g, "\\")
+        parsed = JSON.parse(sanitized)
       } catch (e: any) {
         lastError = `${model}: JSON inválido — ${e.message}`
         continue
