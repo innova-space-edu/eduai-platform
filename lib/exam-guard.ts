@@ -91,11 +91,12 @@ export class ExamGuard {
     const add = (
       target: EventTarget,
       type: string,
-      fn: EventListener,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      fn: (e: any) => void,
       opts?: boolean | AddEventListenerOptions
     ) => {
-      target.addEventListener(type, fn, opts)
-      this.cleanup.push(() => target.removeEventListener(type, fn, opts as any))
+      target.addEventListener(type, fn as EventListener, opts)
+      this.cleanup.push(() => target.removeEventListener(type, fn as EventListener, opts as any))
     }
 
     // Fullscreen change
