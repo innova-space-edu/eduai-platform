@@ -1,11 +1,10 @@
 /**
  * app/api/agents/exam-generate/route.ts
  *
- * API dedicada para generar preguntas de examen docente.
- * A diferencia de /api/process-content (que usa el schema "quiz" genérico
- * con límites de array), esta API llama directamente a Gemini con un prompt
- * y schema propios que soportan: development, true_false avanzado, ability,
- * maxPoints, rubric y cualquier cantidad de preguntas.
+ * API dedicada para generación de exámenes de docentes.
+ * - Gemini primario (soporta exámenes grandes, JSON nativo)
+ * - Groq fallback automático cuando Gemini da 429 (lotes de ≤10 preguntas)
+ * - Limpieza de ↑ y otros Unicode que Gemini usa como sustituto de backslash
  */
 
 import { NextRequest, NextResponse } from "next/server"
@@ -14,127 +13,222 @@ import { createClient } from "@/lib/supabase/server"
 export const runtime     = "nodejs"
 export const maxDuration = 120
 
-const MODELS = [
-  "gemini-2.5-flash",
-  "gemini-2.0-flash",
-  "gemini-1.5-flash",
-]
+const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
+const GROQ_MODEL    = "llama-3.3-70b-versatile"
+const GROQ_BATCH    = 10   // Groq tiene 32k contexto; lotes de 10 son seguros
 
+// ─── Sanitizar caracteres Unicode que sustituyen a \ ─────────────────────────
+function sanitizeLatex(raw: string): string {
+  return raw.replace(/[\u2191\u2197\u2B06\u25B2\u2227\u21D2](?=[a-zA-Z])/g, "\\")
+}
+
+function parseResponse(raw: string): any {
+  const clean = sanitizeLatex(
+    raw.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim()
+  )
+  return JSON.parse(clean)
+}
+
+// ─── System prompt ────────────────────────────────────────────────────────────
+const SYSTEM = `Eres un diseñador experto de evaluaciones escolares en español.
+Responde ÚNICAMENTE con JSON válido — sin texto extra, sin backticks, sin markdown.
+
+REGLAS LATEX:
+1. Usa $...$ para expresiones inline y $$...$$ para bloque.
+2. Todos los comandos LaTeX deben comenzar con backslash REAL (\\ ASCII 92).
+   CORRECTO:   "$\\frac{1}{2}$"   "$x^2 + 3 = 7$"   "$\\times$"
+   INCORRECTO: "↑frac{1}{2}"   "^frac{1}{2}"   "frac{1}{x}" sin dólares
+3. El carácter ↑ (U+2191) NO es backslash. Nunca lo uses como sustituto de \\.
+4. Sin dólares = texto plano. Toda expresión matemática necesita sus $...$
+5. No uses \\\\( \\\\) ni \\\\[ \\\\].`
+
+// ─── Gemini ───────────────────────────────────────────────────────────────────
+async function gemini(prompt: string, totalQ: number, key: string): Promise<any> {
+  const maxOut = Math.min(Math.max(8192, totalQ * 700 + 3000), 65536)
+
+  for (const model of GEMINI_MODELS) {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
+      {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: SYSTEM }] },
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature:      0.4,
+            maxOutputTokens:  maxOut,
+            responseMimeType: "application/json",
+          },
+        }),
+      }
+    )
+
+    if (!res.ok) {
+      const err = await res.text()
+      if (res.status === 429) throw new Error("QUOTA_EXCEEDED")  // señal para usar Groq
+      if (res.status === 404 || res.status === 400) continue      // probar siguiente modelo
+      throw new Error(`Gemini ${res.status}: ${err.slice(0, 200)}`)
+    }
+
+    const data = await res.json()
+    const raw  = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? ""
+    if (!raw) continue
+
+    return parseResponse(raw)
+  }
+
+  throw new Error("QUOTA_EXCEEDED")  // todos los modelos Gemini fallaron
+}
+
+// ─── Groq (un lote) ───────────────────────────────────────────────────────────
+async function groqBatch(prompt: string, key: string): Promise<any> {
+  const Groq   = (await import("groq-sdk")).default
+  const client = new Groq({ apiKey: key })
+
+  const res = await client.chat.completions.create({
+    model:            GROQ_MODEL,
+    max_tokens:       8000,
+    temperature:      0.4,
+    response_format:  { type: "json_object" },
+    messages: [
+      { role: "system", content: SYSTEM },
+      { role: "user",   content: prompt },
+    ],
+  })
+
+  const raw = res.choices[0]?.message?.content?.trim() ?? ""
+  if (!raw) throw new Error("Groq: respuesta vacía")
+  return parseResponse(raw)
+}
+
+// ─── Groq en lotes para exámenes grandes ────────────────────────────────────
+async function groqFull(
+  basePrompt: string,
+  totalQ: number,
+  mc: number, tf: number, dev: number,
+  key: string
+): Promise<{ title: string; questions: any[] }> {
+  const batches    = Math.ceil(totalQ / GROQ_BATCH)
+  const allQ: any[] = []
+  let title = ""
+
+  for (let i = 0; i < batches; i++) {
+    const done = i * GROQ_BATCH
+    const rem  = Math.min(GROQ_BATCH, totalQ - done)
+
+    // Distribuir tipos proporcionalmente en este lote
+    const r    = rem / totalQ
+    const bMc  = mc  ? Math.max(0, Math.round(mc  * r)) : Math.round(rem * 0.5)
+    const bTf  = tf  ? Math.max(0, Math.round(tf  * r)) : Math.round(rem * 0.2)
+    const bDev = Math.max(0, rem - bMc - bTf)
+
+    const batchNote = batches > 1
+      ? `\n\n[Lote ${i + 1}/${batches}: genera exactamente ${bMc} alternativas, ${bTf} V/F, ${bDev} desarrollo. Total: ${rem}]`
+      : ""
+
+    const prompt = basePrompt
+      .replace(/Total de preguntas: \d+/, `Total de preguntas: ${rem}`)
+      .replace(/- \d+ preguntas de ALTERNATIVAS/, `- ${bMc} preguntas de ALTERNATIVAS`)
+      .replace(/- \d+ preguntas de VERDADERO O FALSO/, `- ${bTf} preguntas de VERDADERO O FALSO`)
+      .replace(/- \d+ preguntas de DESARROLLO/, `- ${bDev} preguntas de DESARROLLO`)
+      + batchNote
+
+    const parsed = await groqBatch(prompt, key)
+    const qs     = parsed?.questions ?? parsed?.items ?? []
+    allQ.push(...qs)
+    if (!title && parsed?.title) title = parsed.title
+  }
+
+  return { title, questions: allQ }
+}
+
+// ─── Handler principal ────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 })
 
-  const GEMINI_API_KEY = process.env.GEMINI_API_KEY
-  if (!GEMINI_API_KEY) {
-    return NextResponse.json({ error: "GEMINI_API_KEY no configurada" }, { status: 500 })
+  const GEMINI_KEY = process.env.GEMINI_API_KEY
+  const GROQ_KEY   = process.env.GROQ_API_KEY
+
+  if (!GEMINI_KEY && !GROQ_KEY) {
+    return NextResponse.json({ error: "Sin API keys configuradas (GEMINI_API_KEY o GROQ_API_KEY)" }, { status: 500 })
   }
 
   let body: any
   try { body = await req.json() }
   catch { return NextResponse.json({ error: "Body inválido" }, { status: 400 }) }
 
-  const { prompt, mode = "full" } = body
-  // mode: "full" = examen completo | "single" = una sola pregunta (regenerar)
+  const { prompt, mode = "full", mc = 0, tf = 0, dev = 0 } = body
+  if (!prompt) return NextResponse.json({ error: "prompt requerido" }, { status: 400 })
 
-  if (!prompt) {
-    return NextResponse.json({ error: "prompt requerido" }, { status: 400 })
+  // ── Single: regenerar una sola pregunta ────────────────────────────────────
+  if (mode === "single") {
+    // Intentar Gemini
+    if (GEMINI_KEY) {
+      try {
+        const parsed = await gemini(prompt, 1, GEMINI_KEY)
+        const q = parsed?.question ?? parsed?.questions?.[0] ?? parsed
+        return NextResponse.json({ success: true, question: q })
+      } catch (e: any) {
+        if (e.message !== "QUOTA_EXCEEDED") {
+          return NextResponse.json({ error: e.message }, { status: 500 })
+        }
+      }
+    }
+    // Fallback Groq
+    if (GROQ_KEY) {
+      try {
+        const parsed = await groqBatch(prompt, GROQ_KEY)
+        const q = parsed?.question ?? parsed?.questions?.[0] ?? parsed
+        return NextResponse.json({ success: true, question: q })
+      } catch (e: any) {
+        return NextResponse.json({ error: e.message }, { status: 500 })
+      }
+    }
+    return NextResponse.json({ error: "Sin providers disponibles" }, { status: 500 })
   }
 
-  // Calcular maxOutputTokens según la cantidad de preguntas pedida
-  // Cada pregunta ocupa ~400-600 tokens. Para 50 preguntas necesitamos ~25k tokens.
-  const totalMatch = prompt.match(/Total de preguntas:\s*(\d+)/)
-  const totalQ     = totalMatch ? parseInt(totalMatch[1]) : 15
-  const maxTokens  = Math.max(8192, totalQ * 600 + 2000)
+  // ── Full: examen completo ──────────────────────────────────────────────────
+  const totalQ = mc + tf + dev || (() => {
+    const m = prompt.match(/Total de preguntas:\s*(\d+)/)
+    return m ? parseInt(m[1]) : 15
+  })()
 
-  const systemPrompt = `Eres un diseñador experto de evaluaciones escolares en español.
-Responde ÚNICAMENTE con JSON válido — sin texto extra, sin backticks, sin markdown.
-
-REGLAS CRÍTICAS PARA LATEX — LEE CON ATENCIÓN:
-1. Para matemáticas usa LaTeX con delimitadores $...$ (inline) o $$...$$ (bloque).
-2. Todos los comandos LaTeX DEBEN comenzar con la barra invertida REAL: \\
-   - CORRECTO: $\\frac{1}{2}$   $\\times$   $x^2 + 3 = 7$
-   - INCORRECTO: ↑frac{1}{2}   ↑times   ^frac{1}{2}
-3. El carácter ↑ (flecha arriba, Unicode U+2191) NO es una barra invertida.
-   NUNCA uses ↑ como sustituto de \\. Usa \\ (backslash real, ASCII 92).
-4. Si el texto tiene LaTeX, SIEMPRE enciérralo en $...$:
-   - CORRECTO: "$\\frac{1}{x} + 4 = 9$"
-   - INCORRECTO: "↑\\frac{1}{x} + 4 = 9"  o  "\\frac{1}{x} + 4 = 9" (sin dólares)
-5. Texto normal sin matemáticas NO necesita delimitadores.
-6. No uses \\\\( \\\\) ni \\\\[ \\\\].`
-
-  let lastError = ""
-
-  for (const model of MODELS) {
+  // Intentar Gemini primero
+  if (GEMINI_KEY) {
     try {
-      const geminiBody = {
-        system_instruction: { parts: [{ text: systemPrompt }] },
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature:     0.4,
-          maxOutputTokens: Math.min(maxTokens, 65536),
-          responseMimeType: "application/json",
-        },
-      }
-
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
-        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(geminiBody) }
-      )
-
-      if (!res.ok) {
-        const errText = await res.text()
-        lastError = `${model} ${res.status}: ${errText.slice(0, 200)}`
-        if (res.status === 404 || res.status === 400) continue
-        throw new Error(lastError)
-      }
-
-      const geminiData = await res.json()
-      const raw = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || ""
-
-      if (!raw) { lastError = `${model}: respuesta vacía`; continue }
-
-      let parsed: any
-      try {
-        // Limpiar el raw: quitar backticks de markdown
-        const clean = raw
-          .replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim()
-        // Luego limpiar caracteres Unicode que Gemini usa como sustituto de \
-        const sanitized = clean
-          .replace(/[\u2191\u2197\u2B06\u25B2\u2227\u21D2](?=[a-zA-Z])/g, "\\")
-        parsed = JSON.parse(sanitized)
-      } catch (e: any) {
-        lastError = `${model}: JSON inválido — ${e.message}`
-        continue
-      }
-
-      // Normalizar estructura según mode
-      if (mode === "single") {
-        // Puede devolver { question: {...} } o { questions: [{...}] } o directamente el objeto
-        const q = parsed?.question ?? parsed?.questions?.[0] ?? parsed
-        return NextResponse.json({ success: true, question: q, model })
-      }
-
-      // mode === "full"
+      const parsed    = await gemini(prompt, totalQ, GEMINI_KEY)
       const questions = parsed?.questions ?? parsed?.items ?? []
-      if (!Array.isArray(questions) || questions.length === 0) {
-        lastError = `${model}: sin preguntas en respuesta`
-        continue
+      if (Array.isArray(questions) && questions.length > 0) {
+        return NextResponse.json({
+          success: true, title: parsed?.title ?? "", summary: parsed?.summary ?? null,
+          questions, provider: "gemini",
+        })
       }
-
-      return NextResponse.json({
-        success:   true,
-        title:     parsed?.title || "",
-        summary:   parsed?.summary || null,
-        questions,
-        model,
-      })
-
-    } catch (err: any) {
-      lastError = err?.message || lastError
-      if (!err?.message?.includes("404") && !err?.message?.includes("not found")) break
+    } catch (e: any) {
+      if (e.message !== "QUOTA_EXCEEDED") {
+        return NextResponse.json({ error: e.message }, { status: 500 })
+      }
+      console.warn("[exam-generate] Gemini cuota agotada → usando Groq en lotes")
     }
   }
 
-  return NextResponse.json({ error: `Error generando examen: ${lastError}` }, { status: 500 })
+  // Fallback: Groq en lotes
+  if (!GROQ_KEY) {
+    return NextResponse.json({
+      error: "Gemini alcanzó su cuota y no hay GROQ_API_KEY configurada. Intenta en unos minutos."
+    }, { status: 429 })
+  }
+
+  try {
+    const { title, questions } = await groqFull(prompt, totalQ, mc, tf, dev, GROQ_KEY)
+    if (questions.length === 0) throw new Error("Groq no generó preguntas")
+    return NextResponse.json({
+      success: true, title, summary: null, questions, provider: "groq",
+    })
+  } catch (e: any) {
+    return NextResponse.json({ error: `Error con Groq: ${e.message}` }, { status: 500 })
+  }
 }
