@@ -1,11 +1,12 @@
 // app/examen/p/[code]/page.tsx
-// VERSIÓN CON MODO KIOSK — fullscreen forzado, cierre remoto por admin
+// VERSIÓN CON MODO KIOSK + SISTEMA DE SEGURIDAD INTEGRADO
 "use client"
 
 import { useEffect, useRef, useState, useCallback } from "react"
 import { useParams } from "next/navigation"
 import { createClient } from "@supabase/supabase-js"
 import ExamMathText from "@/components/ui/ExamMathText"
+import { ExamGuard, type GuardState } from "@/lib/exam-guard"
 
 // ── Supabase del PANEL DE CONTROL (para leer examenes_kiosk) ─────────────────
 // Estas vars deben estar en el .env.local de EduAI Platform:
@@ -52,7 +53,85 @@ function getQuestionMaxPoints(q: any) {
 
 type Phase = "loading" | "kiosk_entry" | "register" | "exam" | "submitting" | "review" | "error" | "kiosk_closed"
 
-// ── OVERLAY DE ADVERTENCIA (cuando intentan salir de fullscreen) ─────────────
+// ── OVERLAY DE SEGURIDAD — con temporizador de bloqueo ───────────────────────
+function SecurityOverlay({
+  incidentCount, sanctionLevel, blockSecsLeft, lastEventType, isFlagged, onDismiss,
+}: {
+  incidentCount:  number
+  sanctionLevel:  "warning" | "block_15" | "block_30" | "block_60" | null
+  blockSecsLeft:  number
+  lastEventType:  string | null
+  isFlagged:      boolean
+  onDismiss:      () => void
+}) {
+  const isBlocked = blockSecsLeft > 0
+
+  const EVENT_LABELS: Record<string, string> = {
+    fullscreen_exit:      "Salida de pantalla completa",
+    window_blur:          "Pérdida de foco de ventana",
+    tab_hidden:           "Cambio de pestaña",
+    copy_attempt:         "Intento de copiar",
+    paste_attempt:        "Intento de pegar",
+    cut_attempt:          "Intento de cortar",
+    contextmenu_attempt:  "Menú contextual",
+    blocked_shortcut:     "Tecla bloqueada",
+    print_attempt:        "Intento de imprimir",
+    reload_attempt:       "Intento de recargar",
+  }
+
+  return (
+    <div className="fixed inset-0 z-[9999] bg-black/97 flex items-center justify-center backdrop-blur-sm">
+      <div className="text-center max-w-sm px-6 py-8 rounded-2xl border"
+           style={{ background: isBlocked ? "rgba(239,68,68,0.08)" : "rgba(245,158,11,0.08)",
+                    borderColor: isBlocked ? "rgba(239,68,68,0.3)" : "rgba(245,158,11,0.3)" }}>
+
+        <div className="text-5xl mb-4">{isBlocked ? "🚫" : "⚠️"}</div>
+
+        <h2 className="text-white text-lg font-bold mb-2">
+          {isBlocked ? "Examen bloqueado temporalmente" : "Advertencia"}
+        </h2>
+
+        {lastEventType && (
+          <p className="text-xs font-semibold mb-3 px-3 py-1.5 rounded-full inline-block"
+             style={{ background: isBlocked ? "rgba(239,68,68,0.15)" : "rgba(245,158,11,0.15)",
+                      color: isBlocked ? "#f87171" : "#fbbf24" }}>
+            {EVENT_LABELS[lastEventType] || lastEventType}
+          </p>
+        )}
+
+        <p className="text-gray-300 text-sm mb-2 leading-relaxed">
+          {isBlocked
+            ? "Se detectó una conducta no permitida. El incidente fue registrado y reportado al docente."
+            : "Se detectó una salida del examen o uso de herramientas externas. Este incidente fue registrado."}
+        </p>
+
+        <p className="text-gray-500 text-xs mb-5">
+          Incidente #{incidentCount} de esta sesión.
+          {isFlagged && <span className="text-red-400 font-semibold"> ⚑ Examen marcado para revisión.</span>}
+        </p>
+
+        {isBlocked ? (
+          <div>
+            <div className="w-16 h-16 rounded-full border-4 flex items-center justify-center mx-auto mb-4"
+                 style={{ borderColor: "rgba(239,68,68,0.4)" }}>
+              <span className="text-red-400 text-xl font-bold tabular-nums">{blockSecsLeft}</span>
+            </div>
+            <p className="text-gray-500 text-xs">Podrás continuar en {blockSecsLeft} {blockSecsLeft === 1 ? "segundo" : "segundos"}.</p>
+          </div>
+        ) : (
+          <button onClick={onDismiss}
+            className="px-6 py-3 rounded-xl text-white text-sm font-bold w-full transition-all"
+            style={{ background: "rgba(245,158,11,0.2)", border: "1px solid rgba(245,158,11,0.4)" }}>
+            Entendido — Volver al examen
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── PANTALLA DE ENTRADA AL MODO SEGURO (sin kiosk app) ───────────────────────
+// ── OVERLAY DE ADVERTENCIA KIOSK (mantener para compatibilidad) ──────────────
 function KioskWarningOverlay({ onDismiss }: { onDismiss: () => void }) {
   return (
     <div className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center">
@@ -63,10 +142,8 @@ function KioskWarningOverlay({ onDismiss }: { onDismiss: () => void }) {
           No puedes salir del examen. La pantalla completa es obligatoria
           durante la evaluación. Solo el docente o el tiempo pueden cerrar este examen.
         </p>
-        <button
-          onClick={onDismiss}
-          className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-xl w-full"
-        >
+        <button onClick={onDismiss}
+          className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-xl w-full">
           Volver al examen
         </button>
       </div>
@@ -99,6 +176,15 @@ export default function ExamenPublicoPage() {
   const [kioskExamId, setKioskExamId] = useState<string | null>(null)
   const [showWarning, setShowWarning] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
+
+  // ── Estado de seguridad (ExamGuard) ──────────────────────────────────────────
+  const [guardState,      setGuardState]      = useState<GuardState | null>(null)
+  const [blockSecsLeft,   setBlockSecsLeft]   = useState(0)
+  const [securityMode,    setSecurityMode]    = useState(false)  // activado por exam.settings
+  const [attemptId]                           = useState(() =>   // ID único del intento
+    `${Date.now()}-${Math.random().toString(36).slice(2,8)}`)
+  const guardRef      = useRef<ExamGuard | null>(null)
+  const blockTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   const timerRef        = useRef<NodeJS.Timeout | null>(null)
   const startRef        = useRef(0)
@@ -396,13 +482,17 @@ export default function ExamenPublicoPage() {
         }
         setExam(d.exam)
         setTimeLeft((d.exam.settings?.timeLimit || 30) * 60)
-        // In kiosk mode, show the fullscreen entry screen first
-        // isKiosk is read from URL params, but at this point the useEffect
-        // for isKiosk may not have run yet, so we check directly
+
+        // Detectar si el examen tiene modo seguro activado
+        const secMode = !!d.exam.settings?.securityMode
+        setSecurityMode(secMode)
+
         const urlParams = new URLSearchParams(window.location.search)
         if (urlParams.get("kiosk") === "1") {
           setPhase("kiosk_entry")
         } else {
+          // En modo seguro o normal → siempre ir directo a register
+          // El fullscreen se activa silenciosamente al hacer clic en "Iniciar examen"
           setPhase("register")
         }
       })
@@ -432,7 +522,6 @@ export default function ExamenPublicoPage() {
   }, [phase])
 
   const enterFullscreenAndRegister = () => {
-    // This is called by user click = valid user gesture for Fullscreen API
     const el = document.documentElement
     el.requestFullscreen({ navigationUI: "hide" } as any).catch(err => {
       console.warn("[KIOSK] Fullscreen failed:", err)
@@ -441,12 +530,61 @@ export default function ExamenPublicoPage() {
     })
   }
 
+  // ── Entrada al modo seguro (sin kiosk app) ────────────────────────────────
+  // ── Iniciar ExamGuard cuando empieza el examen ────────────────────────────
+  const initGuard = (examId: string) => {
+    if (!securityMode && !isKiosk) return
+
+    const guard = new ExamGuard({
+      examId,
+      attemptId,
+      submissionId:  null,
+      studentName:   name,
+      studentCourse: course,
+      studentRut:    rut,
+      getTimeLeft:   () => timeLeft,
+      getCurrentQ:   () => curQ,
+      securityMode:  true,
+      onSanction: (state: GuardState) => {
+        setGuardState({ ...state })
+        const secs = Math.round((state.blockUntil - Date.now()) / 1000)
+        if (secs > 0) {
+          setBlockSecsLeft(secs)
+          if (blockTimerRef.current) clearInterval(blockTimerRef.current)
+          blockTimerRef.current = setInterval(() => {
+            setBlockSecsLeft(prev => {
+              if (prev <= 1) {
+                clearInterval(blockTimerRef.current!)
+                return 0
+              }
+              return prev - 1
+            })
+          }, 1000)
+        }
+      },
+    })
+    guard.start()
+    guardRef.current = guard
+  }
+
   const startExam = () => {
     if (!name.trim() || !course.trim()) return
     startRef.current = Date.now()
-    setPhase("exam")
-    if (isKiosk) {
-      setTimeout(requestFullscreen, 300)
+
+    const doStart = () => {
+      setPhase("exam")
+      if (isKiosk) setTimeout(requestFullscreen, 300)
+      if (exam?.id) initGuard(exam.id)
+    }
+
+    // En modo seguro: activar fullscreen silenciosamente (el clic es el gesto válido)
+    if (securityMode && !isKiosk) {
+      document.documentElement
+        .requestFullscreen({ navigationUI: "hide" } as any)
+        .catch(() => {}) // Si el usuario rechaza fullscreen, continuar igual
+        .finally(doStart)
+    } else {
+      doStart()
     }
   }
 
@@ -497,10 +635,18 @@ export default function ExamenPublicoPage() {
       if (!d.success) throw new Error(d.error)
 
       setSubmission(d.submission)
+
+      // Vincular submissionId al guard para correlacionar incidentes pendientes
+      if (guardRef.current && d.submission?.id) {
+        guardRef.current.setSubmissionId(d.submission.id)
+      }
+      // Detener la guardia al terminar
+      guardRef.current?.stop()
+
       setPhase("review")
 
       // En modo kiosk: salir de fullscreen al terminar el examen correctamente
-      if (isKiosk && document.fullscreenElement) {
+      if ((isKiosk || securityMode) && document.fullscreenElement) {
         document.exitFullscreen().catch(() => {})
       }
     } catch (e: any) {
@@ -800,7 +946,7 @@ export default function ExamenPublicoPage() {
             disabled={!name.trim() || !course.trim()}
             className="w-full py-3.5 rounded-2xl bg-blue-600/90 hover:bg-blue-500 text-white font-bold text-sm disabled:opacity-30"
           >
-            Comenzar examen →
+            Iniciar examen
           </button>
         </div>
       </div>
@@ -1115,13 +1261,51 @@ export default function ExamenPublicoPage() {
 
   // ── PANTALLA DEL EXAMEN (preguntas) ─────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gray-950">
-      {/* Overlay de advertencia al intentar salir de fullscreen */}
+    <div className="min-h-screen bg-gray-950"
+         style={{ userSelect: (securityMode || isKiosk) ? "none" : "auto" }}>
+
+      {/* Overlay kiosk (modo kiosk app) */}
       {showWarning && isKiosk && (
         <KioskWarningOverlay onDismiss={() => { setShowWarning(false); requestFullscreen() }} />
       )}
 
-      {/* Banner kiosk durante el examen */}
+      {/* Overlay de seguridad con temporizador (modo seguro / kiosk) */}
+      {guardState && (guardState.sanctionLevel || blockSecsLeft > 0) && (
+        <SecurityOverlay
+          incidentCount={guardState.incidentCount}
+          sanctionLevel={guardState.sanctionLevel}
+          blockSecsLeft={blockSecsLeft}
+          lastEventType={guardState.lastEventType}
+          isFlagged={guardState.isFlagged}
+          onDismiss={() => {
+            // Solo se puede cerrar si no hay bloqueo activo
+            if (blockSecsLeft === 0) {
+              setGuardState(prev => prev ? { ...prev, sanctionLevel: null } : null)
+            }
+          }}
+        />
+      )}
+
+      {/* Banner modo seguro */}
+      {securityMode && !isKiosk && (
+        <div className="fixed top-0 left-0 right-0 z-50 border-b border-amber-900/40 px-4 py-1.5 text-center"
+             style={{ background: "rgba(120,53,15,0.7)" }}>
+          <p className="text-amber-400 text-xs font-semibold">
+            🔒 MODO SEGURO — Examen supervisado · Las infracciones quedan registradas
+            {guardState && guardState.incidentCount > 0 && (
+              <span className={`ml-2 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                guardState.isFlagged ? "bg-red-500/20 text-red-400" :
+                guardState.incidentCount >= 3 ? "bg-orange-500/20 text-orange-400" :
+                "bg-amber-500/20 text-amber-400"
+              }`}>
+                {guardState.incidentCount} incidente{guardState.incidentCount !== 1 ? "s" : ""}
+              </span>
+            )}
+          </p>
+        </div>
+      )}
+
+      {/* Banner kiosk */}
       {isKiosk && (
         <div className="fixed top-0 left-0 right-0 z-50 bg-red-950/80 border-b border-red-900/40 px-4 py-1.5 text-center">
           <p className="text-red-400 text-xs font-semibold">
@@ -1314,8 +1498,9 @@ export default function ExamenPublicoPage() {
             <div className="flex gap-3 pt-2">
               {curQ > 0 && (
                 <button
-                  onClick={() => setCurQ(curQ - 1)}
-                  className="px-4 py-2.5 rounded-xl border border-white/10 text-gray-500 text-sm"
+                  onClick={() => blockSecsLeft === 0 && setCurQ(curQ - 1)}
+                  disabled={blockSecsLeft > 0}
+                  className="px-4 py-2.5 rounded-xl border border-white/10 text-gray-500 text-sm disabled:opacity-30"
                 >
                   ← Anterior
                 </button>
@@ -1325,15 +1510,17 @@ export default function ExamenPublicoPage() {
 
               {curQ < totalQ - 1 ? (
                 <button
-                  onClick={() => setCurQ(curQ + 1)}
-                  className="px-4 py-2.5 rounded-xl bg-blue-600/80 text-white text-sm font-semibold"
+                  onClick={() => blockSecsLeft === 0 && setCurQ(curQ + 1)}
+                  disabled={blockSecsLeft > 0}
+                  className="px-4 py-2.5 rounded-xl bg-blue-600/80 text-white text-sm font-semibold disabled:opacity-30"
                 >
                   Siguiente →
                 </button>
               ) : (
                 <button
                   onClick={doSubmit}
-                  className="px-6 py-2.5 rounded-xl bg-green-600/90 text-white text-sm font-bold"
+                  disabled={blockSecsLeft > 0}
+                  className="px-6 py-2.5 rounded-xl bg-green-600/90 text-white text-sm font-bold disabled:opacity-30"
                 >
                   ✅ Enviar examen
                 </button>
