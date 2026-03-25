@@ -389,7 +389,7 @@ Total de preguntas: ${totalQuestions}. Todo en español.`
       const res = await fetch("/api/agents/exam-generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, mode: "full" }),
+        body: JSON.stringify({ prompt, mode: "full", mc: mcCount, tf: tfCount, dev: devCount }),
       })
 
       const data = await res.json()
