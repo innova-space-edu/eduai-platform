@@ -413,61 +413,6 @@ Responde con este JSON exacto:
 
   } catch (err: any) {
     console.error("AI evaluation error:", err?.message || err)
-            maxOutputTokens: 2048,
-            responseMimeType: "application/json",
-          },
-        }),
-        signal: AbortSignal.timeout(25000),
-      }
-    )
-
-    if (!res.ok) {
-      throw new Error(`Gemini ${res.status}`)
-    }
-
-    const data = await res.json()
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text
-
-    if (!text) {
-      throw new Error("Empty response")
-    }
-
-    const parsed = safeParseJson(text)
-    const evals = Array.isArray(parsed?.evaluations) ? parsed.evaluations : []
-
-    for (const ev of evals) {
-      const relativeIndex = Number(ev?.index)
-      if (!Number.isFinite(relativeIndex) || relativeIndex < 0 || relativeIndex >= toEvaluate.length) continue
-
-      const target = toEvaluate[relativeIndex]
-      const origIndex = target.index
-      const maxAllowed = Math.max(0, Number(target.maxPoints) || 0)
-      const rawScore = Number(ev?.score) || 0
-      const rawMaxScore = Number(ev?.maxScore) || maxAllowed
-
-      const normalizedMaxScore = Math.min(maxAllowed, Math.max(0, rawMaxScore || maxAllowed))
-      const normalizedScore = Math.min(
-        normalizedMaxScore > 0 ? normalizedMaxScore : maxAllowed,
-        Math.max(0, rawScore)
-      )
-
-      answers[origIndex].aiScore = normalizedScore
-      answers[origIndex].aiMaxScore = normalizedMaxScore > 0 ? normalizedMaxScore : maxAllowed
-      answers[origIndex].aiFeedback = String(ev?.feedback || "")
-      answers[origIndex].aiEvaluated = true
-
-      if (questions[origIndex].type === "development") {
-        answers[origIndex].isCorrect =
-          normalizedScore >= ((normalizedMaxScore > 0 ? normalizedMaxScore : maxAllowed) * 0.5)
-      }
-
-      if (questions[origIndex].type === "true_false") {
-        answers[origIndex].justificationScore = normalizedScore
-        answers[origIndex].justificationFeedback = String(ev?.feedback || "")
-      }
-    }
-  } catch (err: any) {
-    console.error("AI evaluation error:", err?.message || err)
 
     toEvaluate.forEach((e) => {
       answers[e.index].aiEvaluated = false
