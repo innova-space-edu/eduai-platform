@@ -1,23 +1,20 @@
-// src/app/examen/resultados/[id]/page.tsx
+// app/examen/resultados/[id]/page.tsx
 "use client"
 
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
-import { Shield, X, AlertTriangle, Clock } from "lucide-react"
+import { Shield, X, AlertTriangle, Clock, Eye, CheckCircle2, XCircle, Pencil, Save } from "lucide-react"
 
 // ── Semáforo de riesgo ────────────────────────────────────────────────────────
 function RiskBadge({ level, count }: { level: string; count: number }) {
-  if (count === 0 || level === "clean") return (
-    <span className="text-gray-700 text-xs">—</span>
-  )
+  if (count === 0 || level === "clean") return <span className="text-gray-700 text-xs">—</span>
   const cfg = {
     low:    { color: "#fbbf24", bg: "rgba(251,191,36,0.1)",  border: "rgba(251,191,36,0.25)",  label: "Leve"   },
     medium: { color: "#f97316", bg: "rgba(249,115,22,0.1)",  border: "rgba(249,115,22,0.25)",  label: "Medio"  },
     high:   { color: "#ef4444", bg: "rgba(239,68,68,0.1)",   border: "rgba(239,68,68,0.25)",   label: "Alto"   },
   }[level] || { color: "#9ca3af", bg: "rgba(156,163,175,0.1)", border: "rgba(156,163,175,0.2)", label: "?" }
-
   return (
     <span className="flex items-center justify-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold"
           style={{ background: cfg.bg, border: `1px solid ${cfg.border}`, color: cfg.color }}>
@@ -26,7 +23,7 @@ function RiskBadge({ level, count }: { level: string; count: number }) {
   )
 }
 
-// ── Modal de detalle de incidentes ────────────────────────────────────────────
+// ── Labels de eventos de seguridad ───────────────────────────────────────────
 const EVENT_LABELS: Record<string, string> = {
   fullscreen_exit:     "🖥 Salió de pantalla completa",
   window_blur:         "🪟 Perdió foco de ventana",
@@ -38,84 +35,51 @@ const EVENT_LABELS: Record<string, string> = {
   blocked_shortcut:    "⌨️ Tecla bloqueada",
   print_attempt:       "🖨 Intentó imprimir",
   reload_attempt:      "🔄 Intentó recargar",
-  drag_attempt:        "↔️ Intentó arrastrar texto",
 }
 
-function IncidentModal({ submission, examId, onClose }: {
-  submission: any; examId: string; onClose: () => void
-}) {
+// ── Modal de incidentes ───────────────────────────────────────────────────────
+function IncidentModal({ submission, examId, onClose }: { submission: any; examId: string; onClose: () => void }) {
   const [incidents, setIncidents] = useState<any[]>([])
-  const [loading,   setLoading]   = useState(true)
-
+  const [loading, setLoading] = useState(true)
   useEffect(() => {
     fetch(`/api/exam-security/event?examId=${examId}&submissionId=${submission.id}`)
-      .then(r => r.json())
-      .then(d => setIncidents(d.incidents || []))
-      .catch(() => {})
+      .then(r => r.json()).then(d => setIncidents(d.incidents || []))
       .finally(() => setLoading(false))
   }, [submission.id, examId])
-
-  const SEV_COLOR: Record<string, string> = {
-    high:   "#ef4444",
-    medium: "#f97316",
-    low:    "#fbbf24",
-  }
-
+  const SEV: Record<string, string> = { high: "#ef4444", medium: "#f97316", low: "#fbbf24" }
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-lg max-h-[85vh] flex flex-col rounded-2xl overflow-hidden shadow-2xl"
+      <div className="relative w-full max-w-lg max-h-[80vh] flex flex-col rounded-2xl overflow-hidden shadow-2xl"
            style={{ background: "#0f172a", border: "1px solid rgba(255,255,255,0.1)" }}>
-
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.07] flex-shrink-0">
           <div>
             <h3 className="text-white font-bold text-sm">Incidentes — {submission.student_name}</h3>
-            <p className="text-gray-500 text-xs">{submission.student_course} · {incidents.length} evento{incidents.length !== 1 ? "s" : ""} registrado{incidents.length !== 1 ? "s" : ""}</p>
+            <p className="text-gray-500 text-xs">{incidents.length} evento{incidents.length !== 1 ? "s" : ""}</p>
           </div>
-          <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
-            <X size={18} />
-          </button>
+          <button onClick={onClose} className="text-gray-500 hover:text-white"><X size={18} /></button>
         </div>
-
         <div className="flex-1 overflow-y-auto p-4">
           {loading ? (
-            <div className="flex justify-center py-8">
-              <div className="w-6 h-6 rounded-full border-2 border-white/10 border-t-red-400 animate-spin" />
-            </div>
+            <div className="flex justify-center py-8"><div className="w-6 h-6 rounded-full border-2 border-white/10 border-t-red-400 animate-spin" /></div>
           ) : incidents.length === 0 ? (
-            <div className="text-center py-8">
-              <Shield size={28} className="text-gray-700 mx-auto mb-2" />
-              <p className="text-gray-500 text-sm">Sin incidentes registrados</p>
-            </div>
+            <div className="text-center py-8"><Shield size={28} className="text-gray-700 mx-auto mb-2" /><p className="text-gray-500 text-sm">Sin incidentes</p></div>
           ) : (
             <div className="space-y-2">
               {incidents.map((inc, i) => (
-                <div key={inc.id || i} className="flex items-start gap-3 px-3 py-2.5 rounded-xl border"
-                     style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.06)" }}>
-                  <div className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0"
-                       style={{ background: SEV_COLOR[inc.severity] || "#9ca3af" }} />
+                <div key={inc.id || i} className="flex items-start gap-3 px-3 py-2.5 rounded-xl"
+                     style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                  <div className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ background: SEV[inc.severity] || "#9ca3af" }} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="text-gray-200 text-xs font-medium">
-                        #{inc.incident_number} — {EVENT_LABELS[inc.event_type] || inc.event_type}
-                      </p>
-                      <span className="text-gray-600 text-[10px] flex-shrink-0 flex items-center gap-1">
-                        <Clock size={9} />
-                        {new Date(inc.created_at).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                      <p className="text-gray-200 text-xs font-medium">#{inc.incident_number} — {EVENT_LABELS[inc.event_type] || inc.event_type}</p>
+                      <span className="text-gray-600 text-[10px] flex items-center gap-1">
+                        <Clock size={9} />{new Date(inc.created_at).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
                       </span>
                     </div>
                     <div className="flex items-center gap-3 mt-0.5">
-                      {inc.question_index != null && (
-                        <span className="text-gray-600 text-[10px]">Pregunta {inc.question_index + 1}</span>
-                      )}
-                      {inc.client_time_left != null && (
-                        <span className="text-gray-600 text-[10px]">
-                          {Math.floor(inc.client_time_left / 60)}:{String(inc.client_time_left % 60).padStart(2, "0")} restantes
-                        </span>
-                      )}
-                      {inc.event_detail && (
-                        <span className="text-gray-600 text-[10px] font-mono">{inc.event_detail}</span>
-                      )}
+                      {inc.question_index != null && <span className="text-gray-600 text-[10px]">Pregunta {inc.question_index + 1}</span>}
+                      {inc.client_time_left != null && <span className="text-gray-600 text-[10px]">{Math.floor(inc.client_time_left / 60)}:{String(inc.client_time_left % 60).padStart(2,"0")} rest.</span>}
                     </div>
                   </div>
                 </div>
@@ -128,22 +92,508 @@ function IncidentModal({ submission, examId, onClose }: {
   )
 }
 
+// ── Modal de revisión manual ──────────────────────────────────────────────────
+function ReviewModal({
+  submission, exam, onClose, onSave,
+}: {
+  submission: any
+  exam: any
+  onClose: () => void
+  onSave: (updated: any) => void
+}) {
+  const questions: any[] = exam?.questions || []
+  const answers:   any[] = submission?.answers || []
+
+  // Estado local de puntajes manuales — inicializar con los valores actuales
+  const [scores, setScores] = useState<Record<number, number>>(() => {
+    const init: Record<number, number> = {}
+    answers.forEach((a: any, i: number) => {
+      if (a.type === "development") {
+        init[i] = Number(a.manualScore ?? a.aiScore ?? 0)
+      } else if (a.type === "true_false") {
+        init[i] = Number(a.justificationScore ?? 0)
+      }
+    })
+    return init
+  })
+
+  const [feedbacks, setFeedbacks] = useState<Record<number, string>>(() => {
+    const init: Record<number, string> = {}
+    answers.forEach((a: any, i: number) => {
+      if (a.type === "development")  init[i] = a.manualFeedback || a.aiFeedback || ""
+      if (a.type === "true_false")   init[i] = a.justificationFeedback || ""
+    })
+    return init
+  })
+
+  const [mcOverrides, setMcOverrides] = useState<Record<number, boolean>>(() => {
+    const init: Record<number, boolean> = {}
+    answers.forEach((a: any, i: number) => {
+      if (a.type === "multiple_choice") init[i] = a.isCorrect
+    })
+    return init
+  })
+
+  const [saving, setSaving] = useState(false)
+  const [activeQ, setActiveQ] = useState(0)
+
+  // Calcular preview de nota en tiempo real
+  const previewGrade = (() => {
+    let earned = 0
+    let total  = 0
+    answers.forEach((a: any, i: number) => {
+      const q   = questions[i]
+      const max = Number(a.maxPoints || q?.maxPoints || 0)
+      total += max
+      if (a.type === "multiple_choice") {
+        if (mcOverrides[i]) earned += max
+      } else if (a.type === "true_false") {
+        const selPts  = Number(a.selectionPoints) || 1
+        const justMax = Number(a.justificationMaxPoints) || Math.max(0, max - selPts)
+        if (a.selectionCorrect || a.isCorrect) earned += selPts
+        earned += Math.min(justMax, Math.max(0, scores[i] || 0))
+      } else if (a.type === "development") {
+        earned += Math.min(max, Math.max(0, scores[i] || 0))
+      }
+    })
+    const pct = total > 0 ? (earned / total) * 100 : 0
+    const ex  = exam?.settings?.examPercentage || 60
+    const g   = pct >= ex ? 4 + ((pct - ex) * 3) / (100 - ex) : 1 + (pct * 3) / ex
+    return { earned: Math.round(earned * 10) / 10, total: Math.round(total * 10) / 10, pct: Math.round(pct), grade: Math.round(g * 10) / 10 }
+  })()
+
+  async function handleSave() {
+    setSaving(true)
+    // Construir updatedAnswers con los cambios manuales
+    const updatedAnswers = answers.map((a: any, i: number) => {
+      if (a.type === "multiple_choice") {
+        return { ...a, isCorrect: mcOverrides[i] ?? a.isCorrect }
+      }
+      if (a.type === "true_false") {
+        return { ...a, justificationScore: scores[i] ?? a.justificationScore, justificationFeedback: feedbacks[i] ?? a.justificationFeedback }
+      }
+      if (a.type === "development") {
+        return { ...a, manualScore: scores[i] ?? a.aiScore, aiScore: scores[i] ?? a.aiScore, manualFeedback: feedbacks[i] ?? a.aiFeedback, aiEvaluated: true }
+      }
+      return a
+    })
+
+    const res = await fetch("/api/agents/examen-docente", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action:        "update_submission",
+        submissionId:  submission.id,
+        updatedAnswers,
+        examPercentage: exam?.settings?.examPercentage || 60,
+      }),
+    })
+    const data = await res.json()
+    setSaving(false)
+    if (data.success) {
+      onSave({ ...submission, answers: updatedAnswers, score: data.score, grade: data.grade, correct_count: data.correct_count, earned_points: data.earned_points, total_points: data.total_points, manually_reviewed: true })
+    }
+  }
+
+  const q = questions[activeQ]
+  const a = answers[activeQ]
+
+  const typeLabel = (t: string) => t === "multiple_choice" ? "Alternativas" : t === "true_false" ? "V/F" : "Desarrollo"
+  const needsReview = (ans: any) => {
+    if (ans?.type === "development") return !ans?.manualScore && !ans?.aiEvaluated
+    if (ans?.type === "true_false")  return ans?.justificationScore == null
+    return false
+  }
+  const pendingCount = answers.filter(needsReview).length
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 md:p-4">
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-4xl max-h-[95vh] flex flex-col rounded-2xl overflow-hidden shadow-2xl"
+           style={{ background: "#0a0f1a", border: "1px solid rgba(255,255,255,0.1)" }}>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.07] flex-shrink-0"
+             style={{ background: "rgba(255,255,255,0.02)" }}>
+          <div>
+            <h2 className="text-white font-bold text-base">Revisión — {submission.student_name}</h2>
+            <p className="text-gray-500 text-xs mt-0.5">{submission.student_course} · {submission.student_rut || "Sin RUT"}</p>
+          </div>
+          <div className="flex items-center gap-3">
+            {/* Preview nota */}
+            <div className="text-center px-3 py-1.5 rounded-xl"
+                 style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+              <p className="text-gray-500 text-[10px] mb-0.5">Nota actual</p>
+              <p className={`text-lg font-bold leading-none ${
+                previewGrade.grade >= 6 ? "text-green-400" : previewGrade.grade >= 4 ? "text-blue-400" : "text-red-400"
+              }`}>{previewGrade.grade}</p>
+              <p className="text-gray-600 text-[10px]">{previewGrade.earned}/{previewGrade.total} pts</p>
+            </div>
+            {pendingCount > 0 && (
+              <span className="px-2 py-1 rounded-lg text-[10px] font-bold"
+                    style={{ background: "rgba(245,158,11,0.15)", color: "#fbbf24" }}>
+                {pendingCount} sin revisar
+              </span>
+            )}
+            <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors ml-1">
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex flex-1 overflow-hidden">
+          {/* Lista de preguntas */}
+          <div className="w-40 flex-shrink-0 border-r border-white/[0.06] overflow-y-auto py-2"
+               style={{ background: "rgba(0,0,0,0.3)" }}>
+            {questions.map((qq: any, i: number) => {
+              const aa = answers[i]
+              const isActive = i === activeQ
+              const hasManual = aa?.type === "development" ? (aa?.manualScore != null || aa?.aiEvaluated) : aa?.type === "true_false" ? aa?.justificationScore != null : true
+              const isCorrect = aa?.type === "multiple_choice" ? (mcOverrides[i] ?? aa?.isCorrect) : null
+              return (
+                <button key={i} onClick={() => setActiveQ(i)}
+                  className="w-full text-left px-3 py-2.5 transition-all"
+                  style={{
+                    background: isActive ? "rgba(59,130,246,0.15)" : "transparent",
+                    borderRight: isActive ? "2px solid #3b82f6" : "2px solid transparent",
+                  }}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium" style={{ color: isActive ? "#93c5fd" : "#6b7280" }}>
+                      P{i + 1}
+                    </span>
+                    {aa?.type === "multiple_choice" && (
+                      isCorrect
+                        ? <CheckCircle2 size={12} className="text-green-400" />
+                        : <XCircle size={12} className="text-red-400" />
+                    )}
+                    {(aa?.type === "development" || aa?.type === "true_false") && (
+                      hasManual
+                        ? <CheckCircle2 size={12} className="text-blue-400" />
+                        : <AlertTriangle size={12} className="text-amber-400" />
+                    )}
+                  </div>
+                  <p className="text-[10px] text-gray-600 mt-0.5 truncate">{typeLabel(qq?.type || "")}</p>
+                  <p className="text-[10px] text-gray-700">{aa?.type === "development" ? `${scores[i] ?? aa?.aiScore ?? 0}/${aa?.maxPoints || qq?.maxPoints || 0} pts` : aa?.type === "true_false" ? `${aa?.selectionCorrect ? "✓" : "✗"} sel.` : ""}</p>
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Panel de pregunta activa */}
+          <div className="flex-1 overflow-y-auto p-5 space-y-4">
+            {q && a && (
+              <>
+                {/* Encabezado pregunta */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold"
+                            style={{ background: "rgba(59,130,246,0.15)", color: "#93c5fd" }}>
+                        Pregunta {activeQ + 1} de {questions.length}
+                      </span>
+                      <span className="px-2 py-0.5 rounded-lg text-[10px]"
+                            style={{ background: "rgba(255,255,255,0.06)", color: "#9ca3af" }}>
+                        {typeLabel(a.type)} · {a.maxPoints || q.maxPoints || 0} pts máx
+                      </span>
+                    </div>
+                    <p className="text-white text-sm leading-relaxed">{q.question}</p>
+                  </div>
+                </div>
+
+                {/* ── ALTERNATIVAS ────────────────────────────────────── */}
+                {a.type === "multiple_choice" && (
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      {(q.options || []).map((opt: string, oi: number) => {
+                        const isStudentAnswer  = a.selectedAnswer === oi
+                        const isCorrectAnswer  = q.correctAnswer === oi
+                        return (
+                          <div key={oi} className="flex items-start gap-3 px-3 py-2.5 rounded-xl"
+                               style={{
+                                 background: isCorrectAnswer ? "rgba(34,197,94,0.08)" : isStudentAnswer ? "rgba(239,68,68,0.08)" : "rgba(255,255,255,0.03)",
+                                 border: `1px solid ${isCorrectAnswer ? "rgba(34,197,94,0.3)" : isStudentAnswer ? "rgba(239,68,68,0.3)" : "rgba(255,255,255,0.06)"}`,
+                               }}>
+                            <span className="text-xs font-bold mt-0.5 flex-shrink-0"
+                                  style={{ color: isCorrectAnswer ? "#4ade80" : isStudentAnswer ? "#f87171" : "#6b7280" }}>
+                              {["A","B","C","D"][oi]}.
+                            </span>
+                            <span className="text-sm flex-1" style={{ color: isCorrectAnswer ? "#86efac" : isStudentAnswer ? "#fca5a5" : "#9ca3af" }}>
+                              {opt}
+                            </span>
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              {isStudentAnswer  && <span className="text-[10px] font-bold text-blue-400">← estudiante</span>}
+                              {isCorrectAnswer  && <span className="text-[10px] font-bold text-green-400">✓ correcta</span>}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+
+                    {/* Explicación */}
+                    {q.explanation && (
+                      <div className="rounded-xl px-4 py-3 text-xs"
+                           style={{ background: "rgba(59,130,246,0.06)", border: "1px solid rgba(59,130,246,0.15)" }}>
+                        <p className="text-blue-300 font-semibold mb-1">💡 Explicación</p>
+                        <p className="text-gray-400">{q.explanation}</p>
+                      </div>
+                    )}
+
+                    {/* Override manual */}
+                    <div className="rounded-xl px-4 py-3"
+                         style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                      <p className="text-gray-400 text-xs font-semibold mb-2">Revisión del docente</p>
+                      <div className="flex gap-3">
+                        <button onClick={() => setMcOverrides(p => ({ ...p, [activeQ]: true }))}
+                          className="flex-1 py-2 rounded-xl text-sm font-semibold transition-all"
+                          style={{
+                            background: mcOverrides[activeQ] === true ? "rgba(34,197,94,0.2)" : "rgba(255,255,255,0.04)",
+                            border: `1px solid ${mcOverrides[activeQ] === true ? "rgba(34,197,94,0.4)" : "rgba(255,255,255,0.08)"}`,
+                            color: mcOverrides[activeQ] === true ? "#4ade80" : "#6b7280",
+                          }}>
+                          ✓ Correcta
+                        </button>
+                        <button onClick={() => setMcOverrides(p => ({ ...p, [activeQ]: false }))}
+                          className="flex-1 py-2 rounded-xl text-sm font-semibold transition-all"
+                          style={{
+                            background: mcOverrides[activeQ] === false ? "rgba(239,68,68,0.2)" : "rgba(255,255,255,0.04)",
+                            border: `1px solid ${mcOverrides[activeQ] === false ? "rgba(239,68,68,0.4)" : "rgba(255,255,255,0.08)"}`,
+                            color: mcOverrides[activeQ] === false ? "#f87171" : "#6b7280",
+                          }}>
+                          ✗ Incorrecta
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── VERDADERO/FALSO ──────────────────────────────────── */}
+                {a.type === "true_false" && (
+                  <div className="space-y-3">
+                    {/* Selección */}
+                    <div className="rounded-xl px-4 py-3"
+                         style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                      <p className="text-gray-500 text-xs font-semibold mb-2">SELECCIÓN ({a.selectionPoints || 1} pt)</p>
+                      <div className="flex items-center gap-3">
+                        <span className={`px-3 py-1.5 rounded-lg text-sm font-semibold ${a.selectionCorrect ? "bg-green-500/15 text-green-400" : "bg-red-500/15 text-red-400"}`}>
+                          {a.selectionCorrect ? "✓" : "✗"} Estudiante eligió: {(q.options || ["Verdadero","Falso"])[a.selectedAnswer]}
+                        </span>
+                        <span className="text-gray-600 text-xs">
+                          Correcta: {(q.options || ["Verdadero","Falso"])[q.correctAnswer]}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Justificación */}
+                    <div className="rounded-xl px-4 py-3"
+                         style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                      <p className="text-gray-500 text-xs font-semibold mb-2">JUSTIFICACIÓN (máx {a.justificationMaxPoints || 0} pts)</p>
+                      <div className="rounded-lg px-3 py-2.5 mb-3"
+                           style={{ background: "rgba(59,130,246,0.06)", border: "1px solid rgba(59,130,246,0.15)" }}>
+                        <p className="text-blue-300 text-xs font-semibold mb-1">Respuesta del estudiante</p>
+                        <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">
+                          {a.justification || <span className="text-gray-600 italic">Sin justificación</span>}
+                        </p>
+                      </div>
+                      {q.explanation && (
+                        <div className="rounded-lg px-3 py-2.5 mb-3"
+                             style={{ background: "rgba(34,197,94,0.05)", border: "1px solid rgba(34,197,94,0.15)" }}>
+                          <p className="text-green-400 text-xs font-semibold mb-1">Explicación correcta (referencia)</p>
+                          <p className="text-gray-400 text-sm">{q.explanation}</p>
+                        </div>
+                      )}
+                      {a.aiFeedback && a.aiFeedback !== "Pendiente de revisión manual" && (
+                        <div className="rounded-lg px-3 py-2.5 mb-3"
+                             style={{ background: "rgba(139,92,246,0.06)", border: "1px solid rgba(139,92,246,0.15)" }}>
+                          <p className="text-purple-300 text-xs font-semibold mb-1">🤖 Evaluación IA</p>
+                          <p className="text-gray-400 text-sm">{a.aiFeedback}</p>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-3 mt-2">
+                        <label className="text-gray-400 text-xs font-semibold whitespace-nowrap">
+                          Puntaje justificación:
+                        </label>
+                        <input
+                          type="number"
+                          min={0}
+                          max={a.justificationMaxPoints || 0}
+                          step={0.5}
+                          value={scores[activeQ] ?? a.justificationScore ?? 0}
+                          onChange={e => setScores(p => ({ ...p, [activeQ]: Math.max(0, Math.min(a.justificationMaxPoints || 0, Number(e.target.value))) }))}
+                          className="w-20 text-center rounded-xl px-2 py-1.5 text-sm font-bold text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)" }}
+                        />
+                        <span className="text-gray-600 text-xs">/ {a.justificationMaxPoints || 0} pts</span>
+                      </div>
+                      <textarea
+                        placeholder="Retroalimentación opcional..."
+                        value={feedbacks[activeQ] || ""}
+                        onChange={e => setFeedbacks(p => ({ ...p, [activeQ]: e.target.value }))}
+                        rows={2}
+                        className="w-full mt-3 rounded-xl px-3 py-2 text-xs text-gray-300 focus:outline-none resize-none"
+                        style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* ── DESARROLLO ───────────────────────────────────────── */}
+                {a.type === "development" && (
+                  <div className="space-y-3">
+                    {/* Respuesta del estudiante */}
+                    <div className="rounded-xl px-4 py-3"
+                         style={{ background: "rgba(59,130,246,0.06)", border: "1px solid rgba(59,130,246,0.15)" }}>
+                      <p className="text-blue-300 text-xs font-semibold mb-2">Respuesta del estudiante</p>
+                      <p className="text-gray-200 text-sm leading-relaxed whitespace-pre-wrap">
+                        {a.devText || <span className="text-gray-600 italic">Sin respuesta</span>}
+                      </p>
+                    </div>
+
+                    {/* Respuesta modelo */}
+                    {q.modelAnswer && (
+                      <div className="rounded-xl px-4 py-3"
+                           style={{ background: "rgba(34,197,94,0.05)", border: "1px solid rgba(34,197,94,0.15)" }}>
+                        <p className="text-green-400 text-xs font-semibold mb-2">✓ Respuesta modelo (referencia)</p>
+                        <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">{q.modelAnswer}</p>
+                      </div>
+                    )}
+
+                    {/* Rúbrica */}
+                    {q.rubric && q.rubric.length > 0 && (
+                      <div className="rounded-xl px-4 py-3"
+                           style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.07)" }}>
+                        <p className="text-gray-400 text-xs font-semibold mb-3">📋 Rúbrica de evaluación</p>
+                        <div className="space-y-2">
+                          {q.rubric.map((r: any, ri: number) => (
+                            <div key={ri} className="flex items-start justify-between gap-3">
+                              <p className="text-gray-300 text-xs flex-1">{r.criteria || r.criterion || r.criterio}</p>
+                              <span className="text-amber-400 text-xs font-bold flex-shrink-0 whitespace-nowrap">
+                                {r.points || r.puntos || r.puntaje} pts
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Evaluación IA */}
+                    {a.aiFeedback && a.aiFeedback !== "Pendiente de revisión manual" && (
+                      <div className="rounded-xl px-4 py-3"
+                           style={{ background: "rgba(139,92,246,0.06)", border: "1px solid rgba(139,92,246,0.15)" }}>
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-purple-300 text-xs font-semibold">🤖 Evaluación IA</p>
+                          <span className="text-purple-300 text-xs">{a.aiScore ?? 0}/{a.maxPoints || q.maxPoints || 0} pts sugerido</span>
+                        </div>
+                        <p className="text-gray-400 text-sm">{a.aiFeedback}</p>
+                      </div>
+                    )}
+
+                    {/* Puntaje manual */}
+                    <div className="rounded-xl px-4 py-4"
+                         style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.1)" }}>
+                      <p className="text-gray-300 text-xs font-semibold mb-3">Puntaje del docente</p>
+                      <div className="flex items-center gap-4">
+                        <input
+                          type="number"
+                          min={0}
+                          max={a.maxPoints || q.maxPoints || 0}
+                          step={0.5}
+                          value={scores[activeQ] ?? a.manualScore ?? a.aiScore ?? 0}
+                          onChange={e => setScores(p => ({ ...p, [activeQ]: Math.max(0, Math.min(a.maxPoints || q.maxPoints || 0, Number(e.target.value))) }))}
+                          className="w-24 text-center rounded-xl px-3 py-2.5 text-lg font-bold text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.2)" }}
+                        />
+                        <div>
+                          <p className="text-gray-500 text-xs">de {a.maxPoints || q.maxPoints || 0} pts máximo</p>
+                          {/* Barra de progreso */}
+                          <div className="w-32 h-1.5 rounded-full mt-1.5 overflow-hidden" style={{ background: "rgba(255,255,255,0.08)" }}>
+                            <div className="h-full rounded-full transition-all"
+                                 style={{
+                                   width: `${Math.min(100, ((scores[activeQ] ?? 0) / (a.maxPoints || q.maxPoints || 1)) * 100)}%`,
+                                   background: (scores[activeQ] ?? 0) >= (a.maxPoints || q.maxPoints || 0) * 0.6 ? "#4ade80" : "#f97316",
+                                 }} />
+                          </div>
+                        </div>
+                      </div>
+                      <textarea
+                        placeholder="Retroalimentación para el estudiante (opcional)..."
+                        value={feedbacks[activeQ] || ""}
+                        onChange={e => setFeedbacks(p => ({ ...p, [activeQ]: e.target.value }))}
+                        rows={3}
+                        className="w-full mt-3 rounded-xl px-3 py-2.5 text-sm text-gray-300 focus:outline-none resize-none"
+                        style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Nav entre preguntas */}
+                <div className="flex items-center justify-between pt-2 border-t border-white/[0.06]">
+                  <button onClick={() => setActiveQ(Math.max(0, activeQ - 1))}
+                    disabled={activeQ === 0}
+                    className="px-4 py-2 rounded-xl text-sm text-gray-400 border border-white/[0.08] disabled:opacity-30 hover:bg-white/[0.04] transition-all">
+                    ← Anterior
+                  </button>
+                  <span className="text-gray-600 text-xs">{activeQ + 1} / {questions.length}</span>
+                  <button onClick={() => setActiveQ(Math.min(questions.length - 1, activeQ + 1))}
+                    disabled={activeQ === questions.length - 1}
+                    className="px-4 py-2 rounded-xl text-sm text-gray-400 border border-white/[0.08] disabled:opacity-30 hover:bg-white/[0.04] transition-all">
+                    Siguiente →
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Footer con botón guardar */}
+        <div className="flex items-center justify-between px-5 py-4 border-t border-white/[0.07] flex-shrink-0"
+             style={{ background: "rgba(255,255,255,0.02)" }}>
+          <div>
+            <p className="text-gray-400 text-sm font-semibold">
+              Nota final: <span className={`font-bold ${previewGrade.grade >= 6 ? "text-green-400" : previewGrade.grade >= 4 ? "text-blue-400" : "text-red-400"}`}>
+                {previewGrade.grade}
+              </span>
+            </p>
+            <p className="text-gray-600 text-xs">{previewGrade.earned}/{previewGrade.total} pts · {previewGrade.pct}%</p>
+          </div>
+          <div className="flex gap-3">
+            <button onClick={onClose} className="px-4 py-2.5 rounded-xl text-sm text-gray-400 border border-white/[0.08] hover:bg-white/[0.04] transition-all">
+              Cancelar
+            </button>
+            <button onClick={handleSave} disabled={saving}
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-50"
+              style={{ background: "linear-gradient(135deg, #2563eb, #1d4ed8)" }}>
+              {saving ? (
+                <><div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /> Guardando...</>
+              ) : (
+                <><Save size={15} /> Guardar revisión</>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Página principal ──────────────────────────────────────────────────────────
 export default function ResultadosExamenPage() {
   const params = useParams()
   const examId = params.id as string
-  const [user, setUser] = useState<any>(null)
-  const [exam, setExam] = useState<any>(null)
+  const [user,        setUser]        = useState<any>(null)
+  const [exam,        setExam]        = useState<any>(null)
   const [submissions, setSubmissions] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
-  const [incidentSub, setIncidentSub] = useState<any>(null)  // submission seleccionada para modal
+  const [loading,     setLoading]     = useState(true)
+  const [refreshing,  setRefreshing]  = useState(false)
+  const [incidentSub, setIncidentSub] = useState<any>(null)
+  const [reviewSub,   setReviewSub]   = useState<any>(null)   // ← nuevo
   const supabase = createClient()
-  const router = useRouter()
+  const router   = useRouter()
 
   const fetchData = async () => {
-    const res = await fetch(`/api/agents/examen-docente?examId=${examId}`)
+    const res  = await fetch(`/api/agents/examen-docente?examId=${examId}`)
     const data = await res.json()
-    if (data.exam) setExam(data.exam)
+    if (data.exam)        setExam(data.exam)
     if (data.submissions) setSubmissions(data.submissions)
   }
 
@@ -153,7 +603,6 @@ export default function ResultadosExamenPage() {
       else setUser(user)
     })
     fetchData().then(() => setLoading(false))
-    // Auto-refresh cada 15 segundos
     const interval = setInterval(() => { setRefreshing(true); fetchData().then(() => setRefreshing(false)) }, 15000)
     return () => clearInterval(interval)
   }, [examId])
@@ -171,24 +620,22 @@ export default function ResultadosExamenPage() {
 
   // ── Stats ──
   const totalStudents = submissions.length
-  const avgGrade = totalStudents > 0 ? submissions.reduce((a, s) => a + s.grade, 0) / totalStudents : 0
-  const avgScore = totalStudents > 0 ? submissions.reduce((a, s) => a + s.score, 0) / totalStudents : 0
-  const passCount = submissions.filter(s => s.grade >= 4.0).length
-  const failCount = totalStudents - passCount
-  const maxGrade = totalStudents > 0 ? Math.max(...submissions.map(s => s.grade)) : 0
-  const minGrade = totalStudents > 0 ? Math.min(...submissions.map(s => s.grade)) : 0
+  const avgGrade   = totalStudents > 0 ? submissions.reduce((a, s) => a + s.grade, 0) / totalStudents : 0
+  const avgScore   = totalStudents > 0 ? submissions.reduce((a, s) => a + s.score, 0) / totalStudents : 0
+  const passCount  = submissions.filter(s => s.grade >= 4.0).length
+  const maxGrade   = totalStudents > 0 ? Math.max(...submissions.map(s => s.grade)) : 0
+  const minGrade   = totalStudents > 0 ? Math.min(...submissions.map(s => s.grade)) : 0
+  const pendingReview = submissions.filter(s => !s.manually_reviewed && (exam?.questions || []).some((q: any) => q.type === "development" || q.type === "true_false")).length
 
-  // Distribución de notas
   const dist = { "7.0-6.0": 0, "5.9-5.0": 0, "4.9-4.0": 0, "3.9-3.0": 0, "2.9-1.0": 0 }
   submissions.forEach(s => {
-    if (s.grade >= 6.0) dist["7.0-6.0"]++
+    if      (s.grade >= 6.0) dist["7.0-6.0"]++
     else if (s.grade >= 5.0) dist["5.9-5.0"]++
     else if (s.grade >= 4.0) dist["4.9-4.0"]++
     else if (s.grade >= 3.0) dist["3.9-3.0"]++
-    else dist["2.9-1.0"]++
+    else                     dist["2.9-1.0"]++
   })
 
-  // ── Export Excel ──
   const exportExcel = async () => {
     const XLSX = await import("xlsx")
     const rows = submissions.map((s, i) => ({
@@ -197,120 +644,69 @@ export default function ResultadosExamenPage() {
       "Curso": s.student_course,
       "RUT": s.student_rut || "-",
       "Correctas": s.correct_count,
-      "Total": s.total_questions,
+      "Total preguntas": s.total_questions,
+      "Puntaje": s.earned_points != null ? `${s.earned_points}/${s.total_points}` : "-",
       "Porcentaje": `${Math.round(s.score)}%`,
       "Nota": s.grade,
+      "Revisado": s.manually_reviewed ? "Sí" : "No",
       "Tiempo (min)": s.time_spent ? Math.round(s.time_spent / 60) : "-",
       "Fecha": new Date(s.submitted_at).toLocaleString("es-CL"),
     }))
-
     const wb = XLSX.utils.book_new()
     const ws = XLSX.utils.json_to_sheet(rows)
-    ws["!cols"] = [{ wch: 4 }, { wch: 25 }, { wch: 12 }, { wch: 14 }, { wch: 10 }, { wch: 6 }, { wch: 10 }, { wch: 6 }, { wch: 12 }, { wch: 18 }]
     XLSX.utils.book_append_sheet(wb, ws, "Resultados")
-
-    // Hoja de estadísticas
-    const statsRows = [
-      { Estadística: "Total alumnos", Valor: totalStudents },
-      { Estadística: "Promedio nota", Valor: avgGrade.toFixed(1) },
-      { Estadística: "Promedio %", Valor: `${Math.round(avgScore)}%` },
-      { Estadística: "Aprobados", Valor: passCount },
-      { Estadística: "Reprobados", Valor: failCount },
-      { Estadística: "Nota máxima", Valor: maxGrade },
-      { Estadística: "Nota mínima", Valor: minGrade },
-      { Estadística: "% Aprobación", Valor: `${totalStudents > 0 ? Math.round((passCount / totalStudents) * 100) : 0}%` },
-    ]
-    const ws2 = XLSX.utils.json_to_sheet(statsRows)
-    XLSX.utils.book_append_sheet(wb, ws2, "Estadísticas")
-
     XLSX.writeFile(wb, `${exam?.title || "examen"}-resultados.xlsx`)
   }
 
-  // ── Export PDF ──
   const exportPDF = async () => {
     const { jsPDF } = await import("jspdf")
-    const pdf = new jsPDF()
-    const margin = 15
-    let y = margin
-
-    // Header
-    pdf.setFillColor(59, 130, 246)
-    pdf.rect(0, 0, 210, 30, "F")
-    pdf.setTextColor(255, 255, 255)
-    pdf.setFontSize(16)
-    pdf.setFont("helvetica", "bold")
-    pdf.text(exam?.title || "Resultados", margin, 14)
-    pdf.setFontSize(10)
-    pdf.setFont("helvetica", "normal")
-    pdf.text(`${exam?.topic || ""} | ${totalStudents} alumnos | ${new Date().toLocaleDateString("es-CL")}`, margin, 23)
-    pdf.setTextColor(0, 0, 0)
-    y = 38
-
-    // Stats
-    pdf.setFontSize(11)
-    pdf.setFont("helvetica", "bold")
-    pdf.text("Resumen", margin, y); y += 7
-    pdf.setFontSize(9)
-    pdf.setFont("helvetica", "normal")
-    const stats = [
-      `Promedio: ${avgGrade.toFixed(1)} (${Math.round(avgScore)}%)`,
-      `Aprobados: ${passCount} (${totalStudents > 0 ? Math.round((passCount / totalStudents) * 100) : 0}%)`,
-      `Reprobados: ${failCount}`,
-      `Nota max: ${maxGrade} | Nota min: ${minGrade}`,
-    ]
-    stats.forEach(s => { pdf.text(s, margin, y); y += 5 })
-    y += 5
-
-    // Table header
-    pdf.setFillColor(240, 240, 245)
-    pdf.rect(margin, y - 3, 180, 7, "F")
-    pdf.setFontSize(8)
-    pdf.setFont("helvetica", "bold")
-    const cols = [margin, margin + 6, margin + 55, margin + 80, margin + 100, margin + 120, margin + 140, margin + 160]
-    const headers = ["#", "Nombre", "Curso", "RUT", "Correctas", "%", "Nota", "Tiempo"]
-    headers.forEach((h, i) => pdf.text(h, cols[i], y))
+    const doc = new jsPDF({ orientation: "landscape", unit: "mm" })
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(14)
+    doc.text(exam?.title || "Examen", 14, 18)
+    doc.setFont("helvetica", "normal")
+    doc.setFontSize(9)
+    doc.text(`Promedio: ${avgGrade.toFixed(1)} | Aprobados: ${passCount}/${totalStudents} | Nota máx: ${maxGrade} | Nota mín: ${minGrade} | Promedio: ${avgGrade.toFixed(1)}`, 14, 26)
+    const headers = ["#", "Nombre", "Curso", "RUT", "Correctas", "%", "Nota", "Rev.", "Tiempo"]
+    const colW    = [8, 55, 28, 28, 22, 18, 18, 14, 18]
+    let y = 34
+    doc.setFont("helvetica","bold"); doc.setFontSize(8)
+    let x = 14
+    headers.forEach((h, i) => { doc.text(h, x, y); x += colW[i] })
     y += 7
-
-    // Table rows
-    pdf.setFont("helvetica", "normal")
+    doc.setFont("helvetica","normal"); doc.setFontSize(8)
     submissions.forEach((s, i) => {
-      if (y > 275) { pdf.addPage(); y = margin }
-      if (s.grade < 4.0) { pdf.setTextColor(200, 50, 50) } else { pdf.setTextColor(0, 0, 0) }
+      if (s.grade < 4.0) doc.setTextColor(200, 50, 50)
+      else               doc.setTextColor(0, 0, 0)
+      x = 14
       const row = [
-        String(i + 1),
-        s.student_name.substring(0, 25),
-        s.student_course,
+        String(i+1), s.student_name.slice(0,28), s.student_course.slice(0,14),
         s.student_rut || "-",
         `${s.correct_count}/${s.total_questions}`,
         `${Math.round(s.score)}%`,
         String(s.grade),
-        s.time_spent ? `${Math.round(s.time_spent / 60)}m` : "-",
+        s.manually_reviewed ? "✓" : "-",
+        s.time_spent ? `${Math.round(s.time_spent/60)}m` : "-",
       ]
-      row.forEach((cell, j) => pdf.text(cell, cols[j], y))
-      y += 5
+      row.forEach((v, ci) => { doc.text(v, x, y); x += colW[ci] })
+      y += 7
+      if (y > 185) { doc.addPage(); y = 20 }
     })
-
-    // Footer
-    pdf.setTextColor(150, 150, 150)
-    pdf.setFontSize(7)
-    pdf.text("Generado por EduAI Platform", margin, 290)
-
-    pdf.save(`${exam?.title || "examen"}-resultados.pdf`)
+    doc.setTextColor(0,0,0)
+    doc.save(`${exam?.title || "examen"}-resultados.pdf`)
   }
 
-  const examUrl = exam ? `${window.location.origin}/examen/p/${exam.code}` : ""
+  const examUrl = exam ? `${typeof window !== "undefined" ? window.location.origin : ""}/examen/p/${exam.code}` : ""
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="w-10 h-10 rounded-full border-2 border-white/10 border-t-blue-400 animate-spin" />
-      </div>
-    )
-  }
+  if (loading) return (
+    <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+      <div className="w-10 h-10 rounded-full border-2 border-white/10 border-t-blue-400 animate-spin" />
+    </div>
+  )
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-200">
-      <div className="max-w-4xl mx-auto px-4 py-6">
+      <div className="max-w-6xl mx-auto px-4 py-6">
 
         {/* Header */}
         <div className="flex flex-wrap items-start gap-3 mb-6">
@@ -318,7 +714,7 @@ export default function ResultadosExamenPage() {
           <div className="flex-1 min-w-0">
             <h1 className="text-lg font-bold text-white truncate">{exam?.title}</h1>
             <p className="text-gray-500 text-xs mt-0.5">
-              {exam?.topic} • Código: <span className="font-mono text-blue-400">{exam?.code}</span>
+              {exam?.topic} · Código: <span className="font-mono text-blue-400">{exam?.code}</span>
               {refreshing && <span className="ml-2 text-blue-400 animate-pulse">actualizando...</span>}
             </p>
           </div>
@@ -326,74 +722,80 @@ export default function ResultadosExamenPage() {
             <button onClick={toggleStatus}
               className={`px-3 py-1.5 rounded-xl text-xs font-semibold border ${
                 exam?.status === "active"
-                  ? "bg-red-500/10 border-red-500/30 text-red-400"
-                  : "bg-green-500/10 border-green-500/30 text-green-400"
+                  ? "bg-green-500/10 border-green-500/30 text-green-400"
+                  : "bg-gray-500/10 border-gray-500/30 text-gray-400"
               }`}>
-              {exam?.status === "active" ? "🔒 Cerrar" : "🔓 Reabrir"}
+              {exam?.status === "active" ? "🟢 Activo" : "⭕ Cerrado"}
             </button>
-            <button onClick={() => navigator.clipboard?.writeText(examUrl)}
-              className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-500/10 border border-blue-500/30 text-blue-400">
-              📋 Link
+            <button onClick={toggleStatus}
+              className="px-3 py-1.5 rounded-xl text-xs font-semibold border border-white/[0.08] bg-white/[0.04] text-gray-400 hover:bg-white/[0.08] transition-all">
+              {exam?.status === "active" ? "Cerrar" : "Reabrir"}
             </button>
           </div>
         </div>
 
-        {/* Stats cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-          {[
-            { label: "Alumnos", value: totalStudents, color: "text-blue-400" },
-            { label: "Promedio", value: avgGrade.toFixed(1), color: avgGrade >= 4.0 ? "text-green-400" : "text-red-400" },
-            { label: "Aprobados", value: `${passCount} (${totalStudents > 0 ? Math.round((passCount / totalStudents) * 100) : 0}%)`, color: "text-green-400" },
-            { label: "Reprobados", value: failCount, color: "text-red-400" },
-          ].map(s => (
-            <div key={s.label} className="bg-gray-900/60 border border-white/5 rounded-2xl p-3">
-              <p className="text-gray-600 text-[10px]">{s.label}</p>
-              <p className={`font-bold text-lg ${s.color}`}>{s.value}</p>
-            </div>
-          ))}
-        </div>
+        {/* Alert de pendientes */}
+        {pendingReview > 0 && (
+          <div className="flex items-center gap-3 rounded-xl px-4 py-3 mb-5"
+               style={{ background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.25)" }}>
+            <AlertTriangle size={16} className="text-amber-400 flex-shrink-0" />
+            <p className="text-amber-300 text-sm">
+              <strong>{pendingReview} alumno{pendingReview !== 1 ? "s" : ""}</strong> con preguntas de desarrollo o V/F pendientes de revisión manual.
+              Haz clic en <strong>Revisar</strong> para asignar puntajes.
+            </p>
+          </div>
+        )}
 
-        {/* Distribution */}
+        {/* Stats */}
         {totalStudents > 0 && (
-          <div className="bg-gray-900/60 border border-white/5 rounded-2xl p-4 mb-6">
-            <h3 className="text-xs font-semibold text-gray-400 mb-3">DISTRIBUCIÓN DE NOTAS</h3>
-            <div className="space-y-2">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
+            {[
+              { label: "Alumnos",   value: totalStudents },
+              { label: "Promedio",  value: avgGrade.toFixed(1) },
+              { label: "Aprobados", value: `${passCount}/${totalStudents}` },
+              { label: "Nota máx",  value: maxGrade },
+              { label: "Nota mín",  value: minGrade },
+            ].map(s => (
+              <div key={s.label} className="rounded-2xl p-3 text-center"
+                   style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
+                <p className="text-white text-xl font-bold">{s.value}</p>
+                <p className="text-gray-600 text-xs mt-0.5">{s.label}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Distribución + exports */}
+        {totalStudents > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+            <div className="flex flex-wrap gap-2">
               {Object.entries(dist).map(([range, count]) => (
-                <div key={range} className="flex items-center gap-3">
-                  <span className="text-gray-500 text-xs w-14">{range}</span>
-                  <div className="flex-1 h-5 bg-gray-800 rounded-full overflow-hidden">
-                    <div className={`h-full rounded-full transition-all ${
-                      range.startsWith("7") || range.startsWith("5.9") || range.startsWith("4.9")
-                        ? "bg-green-500/60" : "bg-red-500/60"
-                    }`} style={{ width: `${totalStudents > 0 ? (count / totalStudents) * 100 : 0}%` }} />
-                  </div>
-                  <span className="text-gray-400 text-xs w-8 text-right">{count}</span>
+                <div key={range} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
+                     style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                  <span className="text-gray-400 text-xs font-mono">{range}</span>
+                  <span className="text-white text-xs font-bold">{count}</span>
                 </div>
               ))}
             </div>
-            <div className="flex justify-between mt-3 text-[10px] text-gray-600">
-              <span>Nota max: {maxGrade}</span>
-              <span>Nota min: {minGrade}</span>
-              <span>Promedio: {avgGrade.toFixed(1)}</span>
+            <div className="flex gap-2">
+              <button onClick={exportExcel}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-white"
+                style={{ background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.3)" }}>
+                📊 Descargar Excel
+              </button>
+              <button onClick={exportPDF}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-white"
+                style={{ background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.3)" }}>
+                📄 Descargar PDF
+              </button>
             </div>
           </div>
         )}
 
-        {/* Export buttons */}
-        <div className="flex gap-2 mb-4">
-          <button onClick={exportExcel} disabled={totalStudents === 0}
-            className="px-4 py-2 rounded-xl bg-green-600/20 border border-green-500/30 text-green-400 text-xs font-semibold disabled:opacity-30">
-            📊 Descargar Excel
-          </button>
-          <button onClick={exportPDF} disabled={totalStudents === 0}
-            className="px-4 py-2 rounded-xl bg-red-600/20 border border-red-500/30 text-red-400 text-xs font-semibold disabled:opacity-30">
-            📄 Descargar PDF
-          </button>
-        </div>
-
-        {/* Table */}
+        {/* Tabla */}
         {totalStudents === 0 ? (
-          <div className="text-center py-12 bg-white/[0.02] rounded-2xl border border-white/[0.06]">
+          <div className="text-center py-12 rounded-2xl border border-white/[0.06]"
+               style={{ background: "rgba(255,255,255,0.02)" }}>
             <div className="text-4xl mb-3">⏳</div>
             <h3 className="text-white font-bold mb-1">Esperando alumnos...</h3>
             <p className="text-gray-500 text-sm mb-3">Comparte el link para que tus estudiantes rindan el examen</p>
@@ -401,58 +803,76 @@ export default function ResultadosExamenPage() {
             <p className="text-gray-600 text-xs mt-2">La tabla se actualiza automáticamente cada 15 segundos</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-2xl border border-white/[0.06]"
+               style={{ background: "rgba(255,255,255,0.01)" }}>
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-white/5">
-                  <th className="text-left py-2 px-2 text-gray-500 text-xs font-semibold">#</th>
-                  <th className="text-left py-2 px-2 text-gray-500 text-xs font-semibold">Nombre</th>
-                  <th className="text-left py-2 px-2 text-gray-500 text-xs font-semibold">Curso</th>
-                  <th className="text-left py-2 px-2 text-gray-500 text-xs font-semibold">RUT</th>
-                  <th className="text-center py-2 px-2 text-gray-500 text-xs font-semibold">Correctas</th>
-                  <th className="text-center py-2 px-2 text-gray-500 text-xs font-semibold">%</th>
-                  <th className="text-center py-2 px-2 text-gray-500 text-xs font-semibold">Nota</th>
-                  <th className="text-center py-2 px-2 text-gray-500 text-xs font-semibold">Tiempo</th>
-                  <th className="text-center py-2 px-2 text-gray-500 text-xs font-semibold">Incidentes</th>
-                  <th className="text-right py-2 px-2 text-gray-500 text-xs font-semibold">Fecha</th>
+                  <th className="text-left py-3 px-3 text-gray-500 text-xs font-semibold">#</th>
+                  <th className="text-left py-3 px-3 text-gray-500 text-xs font-semibold">Nombre</th>
+                  <th className="text-left py-3 px-3 text-gray-500 text-xs font-semibold">Curso</th>
+                  <th className="text-left py-3 px-3 text-gray-500 text-xs font-semibold">RUT</th>
+                  <th className="text-center py-3 px-3 text-gray-500 text-xs font-semibold">Correctas</th>
+                  <th className="text-center py-3 px-3 text-gray-500 text-xs font-semibold">%</th>
+                  <th className="text-center py-3 px-3 text-gray-500 text-xs font-semibold">Nota</th>
+                  <th className="text-center py-3 px-3 text-gray-500 text-xs font-semibold">Revisado</th>
+                  <th className="text-center py-3 px-3 text-gray-500 text-xs font-semibold">Incidentes</th>
+                  <th className="text-center py-3 px-3 text-gray-500 text-xs font-semibold">Acciones</th>
+                  <th className="text-right py-3 px-3 text-gray-500 text-xs font-semibold">Fecha</th>
                 </tr>
               </thead>
               <tbody>
                 {submissions.map((s, i) => (
                   <tr key={s.id} className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors">
-                    <td className="py-2.5 px-2 text-gray-600">{i + 1}</td>
-                    <td className="py-2.5 px-2 text-gray-200 font-medium">{s.student_name}</td>
-                    <td className="py-2.5 px-2 text-gray-400">{s.student_course}</td>
-                    <td className="py-2.5 px-2 text-gray-500 font-mono text-xs">{s.student_rut || "—"}</td>
-                    <td className="py-2.5 px-2 text-center text-gray-300">{s.correct_count}/{s.total_questions}</td>
-                    <td className="py-2.5 px-2 text-center">
-                      <span className={`${s.score >= 60 ? "text-green-400" : "text-red-400"}`}>
+                    <td className="py-3 px-3 text-gray-600 text-xs">{i + 1}</td>
+                    <td className="py-3 px-3 text-gray-200 font-medium text-sm">{s.student_name}</td>
+                    <td className="py-3 px-3 text-gray-400 text-xs">{s.student_course}</td>
+                    <td className="py-3 px-3 text-gray-500 font-mono text-xs">{s.student_rut || "—"}</td>
+                    <td className="py-3 px-3 text-center">
+                      <span className="text-gray-300 text-xs font-medium">{s.correct_count}/{s.total_questions}</span>
+                      {s.earned_points != null && s.total_points != null && (
+                        <span className="block text-[10px] text-gray-600">{s.earned_points}/{s.total_points} pts</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-3 text-center">
+                      <span className={`text-xs font-semibold ${s.score >= 60 ? "text-green-400" : "text-red-400"}`}>
                         {Math.round(s.score)}%
                       </span>
                     </td>
-                    <td className="py-2.5 px-2 text-center">
+                    <td className="py-3 px-3 text-center">
                       <span className={`font-bold text-sm px-2 py-0.5 rounded-lg ${
                         s.grade >= 6.0 ? "bg-green-500/10 text-green-400" :
                         s.grade >= 4.0 ? "bg-blue-500/10 text-blue-400" :
                         "bg-red-500/10 text-red-400"
-                      }`}>
-                        {s.grade}
-                      </span>
+                      }`}>{s.grade}</span>
                     </td>
-                    <td className="py-2.5 px-2 text-center text-gray-500 text-xs">
-                      {s.time_spent ? `${Math.round(s.time_spent / 60)}m` : "—"}
+                    <td className="py-3 px-3 text-center">
+                      {s.manually_reviewed
+                        ? <span className="text-green-400 text-xs font-semibold">✓ Revisado</span>
+                        : <span className="text-gray-600 text-xs">—</span>
+                      }
                     </td>
-                    <td className="py-2.5 px-2 text-center">
+                    <td className="py-3 px-3 text-center">
                       {(s.incident_count ?? 0) > 0 ? (
-                        <button onClick={() => setIncidentSub(s)}
-                          className="flex items-center justify-center mx-auto">
+                        <button onClick={() => setIncidentSub(s)} className="mx-auto block">
                           <RiskBadge level={s.incident_level || "clean"} count={s.incident_count || 0} />
                         </button>
                       ) : (
                         <span className="text-gray-700 text-xs">—</span>
                       )}
                     </td>
-                    <td className="py-2.5 px-2 text-right text-gray-600 text-xs">
+                    <td className="py-3 px-3 text-center">
+                      <button onClick={() => setReviewSub(s)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all mx-auto"
+                        style={{
+                          background: s.manually_reviewed ? "rgba(34,197,94,0.08)" : "rgba(59,130,246,0.1)",
+                          border: `1px solid ${s.manually_reviewed ? "rgba(34,197,94,0.2)" : "rgba(59,130,246,0.25)"}`,
+                          color: s.manually_reviewed ? "#4ade80" : "#93c5fd",
+                        }}>
+                        {s.manually_reviewed ? <><CheckCircle2 size={11} /> Ver</> : <><Eye size={11} /> Revisar</>}
+                      </button>
+                    </td>
+                    <td className="py-3 px-3 text-right text-gray-600 text-xs">
                       {new Date(s.submitted_at).toLocaleString("es-CL", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
                     </td>
                   </tr>
@@ -460,17 +880,25 @@ export default function ResultadosExamenPage() {
               </tbody>
             </table>
           </div>
-
         )}
 
       </div>
 
       {/* Modal de incidentes */}
       {incidentSub && (
-        <IncidentModal
-          submission={incidentSub}
-          examId={examId}
-          onClose={() => setIncidentSub(null)}
+        <IncidentModal submission={incidentSub} examId={examId} onClose={() => setIncidentSub(null)} />
+      )}
+
+      {/* Modal de revisión manual */}
+      {reviewSub && exam && (
+        <ReviewModal
+          submission={reviewSub}
+          exam={exam}
+          onClose={() => setReviewSub(null)}
+          onSave={(updated) => {
+            setSubmissions(prev => prev.map(s => s.id === updated.id ? updated : s))
+            setReviewSub(null)
+          }}
         />
       )}
     </div>
