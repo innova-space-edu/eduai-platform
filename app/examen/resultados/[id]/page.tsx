@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { Shield, X, AlertTriangle, Clock, Eye, CheckCircle2, XCircle, Pencil, Save } from "lucide-react"
+import ReportExporter from "./ReportExporter"
 
 // ── Semáforo de riesgo ────────────────────────────────────────────────────────
 function RiskBadge({ level, count }: { level: string; count: number }) {
@@ -636,66 +637,6 @@ export default function ResultadosExamenPage() {
     else                     dist["2.9-1.0"]++
   })
 
-  const exportExcel = async () => {
-    const XLSX = await import("xlsx")
-    const rows = submissions.map((s, i) => ({
-      "#": i + 1,
-      "Nombre": s.student_name,
-      "Curso": s.student_course,
-      "RUT": s.student_rut || "-",
-      "Correctas": s.correct_count,
-      "Total preguntas": s.total_questions,
-      "Puntaje": s.earned_points != null ? `${s.earned_points}/${s.total_points}` : "-",
-      "Porcentaje": `${Math.round(s.score)}%`,
-      "Nota": s.grade,
-      "Revisado": s.manually_reviewed ? "Sí" : "No",
-      "Tiempo (min)": s.time_spent ? Math.round(s.time_spent / 60) : "-",
-      "Fecha": new Date(s.submitted_at).toLocaleString("es-CL"),
-    }))
-    const wb = XLSX.utils.book_new()
-    const ws = XLSX.utils.json_to_sheet(rows)
-    XLSX.utils.book_append_sheet(wb, ws, "Resultados")
-    XLSX.writeFile(wb, `${exam?.title || "examen"}-resultados.xlsx`)
-  }
-
-  const exportPDF = async () => {
-    const { jsPDF } = await import("jspdf")
-    const doc = new jsPDF({ orientation: "landscape", unit: "mm" })
-    doc.setFont("helvetica", "bold")
-    doc.setFontSize(14)
-    doc.text(exam?.title || "Examen", 14, 18)
-    doc.setFont("helvetica", "normal")
-    doc.setFontSize(9)
-    doc.text(`Promedio: ${avgGrade.toFixed(1)} | Aprobados: ${passCount}/${totalStudents} | Nota máx: ${maxGrade} | Nota mín: ${minGrade} | Promedio: ${avgGrade.toFixed(1)}`, 14, 26)
-    const headers = ["#", "Nombre", "Curso", "RUT", "Correctas", "%", "Nota", "Rev.", "Tiempo"]
-    const colW    = [8, 55, 28, 28, 22, 18, 18, 14, 18]
-    let y = 34
-    doc.setFont("helvetica","bold"); doc.setFontSize(8)
-    let x = 14
-    headers.forEach((h, i) => { doc.text(h, x, y); x += colW[i] })
-    y += 7
-    doc.setFont("helvetica","normal"); doc.setFontSize(8)
-    submissions.forEach((s, i) => {
-      if (s.grade < 4.0) doc.setTextColor(200, 50, 50)
-      else               doc.setTextColor(0, 0, 0)
-      x = 14
-      const row = [
-        String(i+1), s.student_name.slice(0,28), s.student_course.slice(0,14),
-        s.student_rut || "-",
-        `${s.correct_count}/${s.total_questions}`,
-        `${Math.round(s.score)}%`,
-        String(s.grade),
-        s.manually_reviewed ? "✓" : "-",
-        s.time_spent ? `${Math.round(s.time_spent/60)}m` : "-",
-      ]
-      row.forEach((v, ci) => { doc.text(v, x, y); x += colW[ci] })
-      y += 7
-      if (y > 185) { doc.addPage(); y = 20 }
-    })
-    doc.setTextColor(0,0,0)
-    doc.save(`${exam?.title || "examen"}-resultados.pdf`)
-  }
-
   const examUrl = exam ? `${typeof window !== "undefined" ? window.location.origin : ""}/examen/p/${exam.code}` : ""
 
   if (loading) return (
@@ -778,16 +719,7 @@ export default function ResultadosExamenPage() {
               ))}
             </div>
             <div className="flex gap-2">
-              <button onClick={exportExcel}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-white"
-                style={{ background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.3)" }}>
-                📊 Descargar Excel
-              </button>
-              <button onClick={exportPDF}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-white"
-                style={{ background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.3)" }}>
-                📄 Descargar PDF
-              </button>
+              <ReportExporter exam={exam} submissions={submissions} />
             </div>
           </div>
         )}
