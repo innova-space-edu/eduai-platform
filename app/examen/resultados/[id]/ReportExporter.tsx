@@ -478,7 +478,7 @@ export default function ReportExporter({
       const qHeaders = ["Pregunta", "Tipo", "Habilidad", "% Logro", "Clasificación"]
       const qRows = qStats.map(q => [
         q.label.replace(/…$/, ""),
-        { multiple_choice: "Alternativas", true_false: "V/F", development: "Desarrollo" }[q.type] || q.type,
+        (({ multiple_choice: "Alternativas", true_false: "V/F", development: "Desarrollo" } as Record<string, string>)[q.type] ?? q.type),
         questions[parseInt(q.label.split(":")[0].slice(1)) - 1]?.ability || "—",
         `${q.pct}%`,
         q.pct >= 70 ? "Logrado" : q.pct >= 40 ? "Por mejorar" : "No logrado",
