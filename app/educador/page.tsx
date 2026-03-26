@@ -20,7 +20,7 @@ const CURSOS: Record<string, string[]> = {
 const ASIGNATURAS: Record<string, string[]> = {
   parvularia: ["Identidad y Autonomía", "Convivencia y Ciudadanía", "Corporalidad y Movimiento", "Lenguaje Verbal", "Lenguajes Artísticos", "Exploración del Entorno Natural", "Pensamiento Matemático", "Comprensión del Entorno Sociocultural"],
   basica:     ["Lenguaje y Comunicación", "Matemática", "Ciencias Naturales", "Historia, Geografía y Cs. Sociales", "Inglés", "Educación Física", "Artes Visuales", "Música", "Tecnología", "Orientación"],
-  media:      ["Lengua y Literatura", "Matemática", "Ciencias para la Ciudadanía", "Historia, Geografía y Cs. Sociales", "Inglés", "Educación Física", "Artes", "Filosofía", "Orientación"],
+  media:      ["Lengua y Literatura", "Matemática", "Biología", "Química", "Física", "Historia, Geografía y Cs. Sociales", "Inglés", "Educación Física", "Artes", "Filosofía", "Orientación"],
 }
 
 const QUICK_PROMPTS = [
@@ -31,8 +31,33 @@ const QUICK_PROMPTS = [
   { icon: "🧩", label: "Proyecto interdisciplinario", prompt: "Propone un proyecto que integre varias asignaturas" },
   { icon: "♿", label: "Adaptación NEE", prompt: "¿Cómo adaptar esta actividad para estudiantes con NEE?" },
   { icon: "🏠", label: "Tarea para el hogar", prompt: "Sugiere tareas o actividades para trabajar en casa con la familia" },
-  { icon: "🎪", label: "Acto o evento escolar", prompt: "Ayúdame a planificar un acto o evento escolar" },
+  { icon: "🎪", label: "Acto o evento escolar",       prompt: "Ayúdame a planificar un acto escolar para las Fiestas Patrias que integre el currículum" },
+  { icon: "🔍", label: "Todos los OA del curso",         prompt: "Lista todos los Objetivos de Aprendizaje de esta asignatura y curso con su descripción completa" },
+  { icon: "💡", label: "Estrategias diferenciadas",      prompt: "¿Qué estrategias de enseñanza diferenciada puedo usar para que todos los estudiantes logren el OA?" },
+  { icon: "📅", label: "Unidad didáctica",               prompt: "Diseña una unidad didáctica de 3 semanas con OA, actividades secuenciadas y evaluación" },
 ]
+
+// N° de OA disponibles por asignatura para mostrar botones de acceso rápido
+const OA_COUNTS: Record<string, Record<string, number>> = {
+  basica: {
+    "Lenguaje y Comunicación": 13,
+    "Matemática": 13,
+    "Ciencias Naturales": 8,
+    "Historia, Geografía y Cs. Sociales": 5,
+  },
+  media: {
+    "Lengua y Literatura": 5,
+    "Matemática": 6,
+    "Historia, Geografía y Cs. Sociales": 4,
+    "Biología": 5,
+  },
+  parvularia: {
+    "Identidad y Autonomía": 8,
+    "Lenguaje Verbal": 8,
+    "Pensamiento Matemático": 8,
+    "Exploración del Entorno Natural": 5,
+  },
+}
 
 interface Message {
   role: "user" | "assistant"
@@ -205,6 +230,33 @@ export default function EducadorPage() {
                 className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-gray-300 text-sm focus:outline-none focus:border-emerald-500/50 placeholder-gray-600"
               />
             </div>
+
+            {/* Acceso rápido a OA */}
+            {OA_COUNTS[config.nivel]?.[config.asignatura] && (
+              <div>
+                <p className="text-gray-500 text-xs font-semibold mb-2">🎯 ACCESO RÁPIDO A OA — {config.asignatura} {config.curso}</p>
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    onClick={() => { setInput(`Lista todos los OA de ${config.asignatura} para ${config.curso} con su descripción completa`); setConfigOpen(false) }}
+                    className="px-3 py-1 rounded-lg text-xs font-semibold transition-all"
+                    style={{ background: "rgba(16,185,129,0.15)", border: "1px solid rgba(16,185,129,0.3)", color: "#6ee7b7" }}
+                  >
+                    Ver todos los OA
+                  </button>
+                  {Array.from({ length: OA_COUNTS[config.nivel][config.asignatura] }, (_, i) => i + 1).map(n => (
+                    <button
+                      key={n}
+                      onClick={() => { setInput(`Crea una planificación de clase trabajando el OA${n} de ${config.asignatura} para ${config.curso}`); setConfigOpen(false) }}
+                      className="w-8 h-8 rounded-lg text-xs font-bold transition-all hover:scale-105"
+                      style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#9ca3af" }}
+                      title={`Planificar con OA${n}`}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
