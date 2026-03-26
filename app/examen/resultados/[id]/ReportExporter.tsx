@@ -85,7 +85,8 @@ function drawBars(
     // Fondo barra
     ctx.fillStyle = "rgba(226,232,240,0.5)"
     ctx.beginPath()
-    ctx.roundRect?.(labelW, y, maxBarW, barH, 4) || ctx.rect(labelW, y, maxBarW, barH)
+    if (ctx.roundRect) ctx.roundRect(labelW, y, maxBarW, barH, 4)
+    else ctx.rect(labelW, y, maxBarW, barH)
     ctx.fill()
     // Barra de valor
     const barW = Math.max(4, (item.value / item.max) * maxBarW)
@@ -94,7 +95,8 @@ function drawBars(
     grad.addColorStop(1, `rgba(${item.color.join(",")},0.7)`)
     ctx.fillStyle = grad
     ctx.beginPath()
-    ctx.roundRect?.(labelW, y, barW, barH, 4) || ctx.rect(labelW, y, barW, barH)
+    if (ctx.roundRect) ctx.roundRect(labelW, y, barW, barH, 4)
+    else ctx.rect(labelW, y, barW, barH)
     ctx.fill()
     // Valor
     ctx.fillStyle = rgb(PALETTE.text)
