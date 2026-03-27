@@ -1,0 +1,104 @@
+{
+  "metadata": {
+    "nivel": "Parvularia",
+    "tramo": "NT1",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://curriculumnacional.mineduc.cl/",
+    "estado": "parcial_verificado",
+    "ultima_actualizacion_manual": "2026-03-27"
+  },
+  "ambitos": [
+    {
+      "nombre": "Desarrollo personal y social",
+      "nucleos": [
+        {
+          "nombre": "Identidad y autonomía",
+          "oa_transversales": [
+            {
+              "id": "NT1-IDAU-OAT-01",
+              "codigo_oficial": "OAT IA NT1-01",
+              "descripcion": "Manifestar progresiva independencia en sus prácticas de alimentación, vigilia, sueño, higiene y vestuario."
+            }
+          ],
+          "oa_contenido": []
+        },
+        {
+          "nombre": "Convivencia y ciudadanía",
+          "oa_transversales": [
+            {
+              "id": "NT1-COCI-OAT-01",
+              "codigo_oficial": "OAT CC NT1-01",
+              "descripcion": "Participar en actividades y juegos grupales con sus pares, conversando, intercambiando pertenencias, cooperando."
+            }
+          ],
+          "oa_contenido": []
+        },
+        {
+          "nombre": "Corporalidad y movimiento",
+          "oa_transversales": [
+            {
+              "id": "NT1-CM-OAT-01",
+              "codigo_oficial": "OAT CM NT1-01",
+              "descripcion": "Manifestar iniciativa para resguardar el autocuidado de su cuerpo y su confortabilidad, en función de su propio bienestar."
+            }
+          ],
+          "oa_contenido": []
+        }
+      ]
+    },
+    {
+      "nombre": "Interacción y comprensión del entorno",
+      "nucleos": [
+        {
+          "nombre": "Exploración del entorno natural",
+          "oa_transversales": [],
+          "oa_contenido": [
+            {
+              "id": "NT1-EEN-OA-01",
+              "codigo_oficial": "OA EEN NT1-01",
+              "descripcion": "Manifestar interés y asombro por diversos elementos, situaciones y fenómenos del entorno natural, explorando, observando, preguntando y comentando."
+            }
+          ]
+        },
+        {
+          "nombre": "Pensamiento matemático",
+          "oa_transversales": [],
+          "oa_contenido": [
+            {
+              "id": "NT1-PMAT-OA-01",
+              "codigo_oficial": "OA PM NT1-01",
+              "descripcion": "Reproducir patrones sonoros, visuales, gestuales, corporales u otros, de dos o tres elementos."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "nombre": "Comunicación integral",
+      "nucleos": [
+        {
+          "nombre": "Lenguaje verbal",
+          "oa_transversales": [],
+          "oa_contenido": [
+            {
+              "id": "NT1-LV-OA-01",
+              "codigo_oficial": "OA LV NT1-01",
+              "descripcion": "Expresarse oralmente en forma clara y comprensible, empleando estructuras oracionales completas y vocabulario adecuado a diversas situaciones comunicativas."
+            }
+          ]
+        },
+        {
+          "nombre": "Lenguajes artísticos",
+          "oa_transversales": [],
+          "oa_contenido": [
+            {
+              "id": "NT1-LA-OA-01",
+              "codigo_oficial": "OA LA NT1-01",
+              "descripcion": "Expresar creativamente ideas, sensaciones y emociones a través de distintos lenguajes artísticos."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
