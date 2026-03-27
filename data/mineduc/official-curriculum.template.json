@@ -1,0 +1,87 @@
+{
+  "metadata": {
+    "fuente": "MINEDUC Chile - Currículum Nacional",
+    "version": "1.0",
+    "descripcion": "Estructura oficial para almacenar OA por nivel, curso, asignatura y unidad"
+  },
+  "niveles": [
+    {
+      "nivel": "Parvularia",
+      "tramos": [
+        {
+          "tramo": "NT1",
+          "ambitos": [
+            {
+              "ambito": "Desarrollo personal y social",
+              "nucleos": [
+                {
+                  "nucleo": "Identidad y autonomía",
+                  "oa_transversales": [
+                    {
+                      "id": "OAT-NT1-1",
+                      "descripcion": "Ejemplo OA transversal oficial (reemplazar con real)"
+                    }
+                  ],
+                  "oa_contenido": [
+                    {
+                      "id": "OA-NT1-IA-1",
+                      "descripcion": "Ejemplo OA contenido oficial (reemplazar con real)"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "nivel": "Básica",
+      "cursos": [
+        {
+          "curso": "1° Básico",
+          "asignaturas": [
+            {
+              "nombre": "Matemática",
+              "unidades": [
+                {
+                  "unidad": "Unidad 1",
+                  "oa": [
+                    {
+                      "id": "MA01-OA01",
+                      "descripcion": "Ejemplo OA oficial (reemplazar con real)"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "nivel": "Media",
+      "cursos": [
+        {
+          "curso": "1° Medio",
+          "asignaturas": [
+            {
+              "nombre": "Matemática",
+              "unidades": [
+                {
+                  "unidad": "Unidad 1",
+                  "oa": [
+                    {
+                      "id": "MA1M-OA07",
+                      "descripcion": "Ejemplo OA oficial (reemplazar con real)"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
