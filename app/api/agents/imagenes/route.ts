@@ -261,9 +261,9 @@ async function tryPollinations(prompt: string, width: number, height: number): P
     const encodedPrompt = encodeURIComponent(prompt)
     const seed = Math.floor(Math.random() * 999999)
     const safeWidth = clampDimension(width, 256, 1024, 1024)
-    const safeHeight = clampDimension(height, 256, 1024, 1024, 768)
+    const safeHeight = clampDimension(height, 256, 1024, 768)
     const url = `https://gen.pollinations.ai/image/${encodedPrompt}?model=flux&width=${safeWidth}&height=${safeHeight}&seed=${seed}&nologo=true&enhance=true`
-
+    
     const res = await fetch(url, {
       headers: {
         Authorization: `Bearer ${key}`,
@@ -321,7 +321,7 @@ async function tryTogether(prompt: string, width: number, height: number): Promi
         model,
         prompt,
         width: clampDimension(width, 256, 1024, 1024),
-        height: clampDimension(height, 256, 1024, 1024, 768),
+        height: clampDimension(height, 256, 1024, 768),
         steps: 4,
         n: 1,
         response_format: "base64",
