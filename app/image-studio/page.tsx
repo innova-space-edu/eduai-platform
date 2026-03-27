@@ -10,7 +10,6 @@ import {
   SlidersHorizontal, ImagePlus, Loader2, X
 } from "lucide-react"
 
-// ── Constantes (idénticas a /imagenes para usar el mismo API) ─────────────────
 const STYLES = [
   { id: "realistic", label: "Realista", emoji: "📷" },
   { id: "digital art", label: "Arte Digital", emoji: "🎨" },
@@ -32,9 +31,16 @@ const SIZES = [
 
 const PROVIDERS = [
   { id: "auto", label: "Auto" },
-  { id: "together", label: "Together (FLUX)" },
-  { id: "huggingface", label: "Hugging Face" },
+  { id: "openrouter", label: "OpenRouter" },
   { id: "pollinations", label: "Pollinations" },
+  { id: "together", label: "Together" },
+  { id: "huggingface", label: "Hugging Face" },
+]
+
+const MODES = [
+  { id: "fast", label: "Rápido" },
+  { id: "quality", label: "Calidad" },
+  { id: "educational", label: "Educativo" },
 ]
 
 const EXAMPLES = [
@@ -46,7 +52,6 @@ const EXAMPLES = [
   "Célula animal con orgánulos iluminados",
 ]
 
-// ── Tipos ─────────────────────────────────────────────────────────────────────
 interface GalleryImage {
   id: string
   prompt: string
@@ -63,34 +68,35 @@ interface GalleryImage {
 
 type FilterSource = "all" | "manual" | "auto_study"
 type PanelMode = "generate" | "gallery"
+type GenerationMode = "fast" | "quality" | "educational"
 
-// ─────────────────────────────────────────────────────────────────────────────
-// COMPONENTE PRINCIPAL
-// ─────────────────────────────────────────────────────────────────────────────
 export default function ImageStudioPage() {
   const router = useRouter()
   const supabase = createClient()
 
-  // ── Panel activo ─────────────────────────────────────────────────────────
   const [panel, setPanel] = useState<PanelMode>("generate")
 
-  // ── Auth ─────────────────────────────────────────────────────────────────
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) router.push("/login")
     })
   }, [router, supabase])
 
-  // ── Generar: state ────────────────────────────────────────────────────────
   const [prompt, setPrompt] = useState("")
   const [style, setStyle] = useState("realistic")
   const [sizeIdx, setSizeIdx] = useState(0)
   const [provider, setProvider] = useState("auto")
+  const [mode, setMode] = useState<GenerationMode>("fast")
   const [generating, setGenerating] = useState(false)
   const [genError, setGenError] = useState("")
-  const [result, setResult] = useState<{ imageUrl: string; optimizedPrompt: string; provider: string } | null>(null)
+  const [result, setResult] = useState<{
+    imageUrl: string
+    optimizedPrompt: string
+    provider: string
+    model?: string
+    mode?: string
+  } | null>(null)
 
-  // ── Galería: state ────────────────────────────────────────────────────────
   const [images, setImages] = useState<GalleryImage[]>([])
   const [galLoading, setGalLoading] = useState(true)
   const [filter, setFilter] = useState<FilterSource>("all")
@@ -98,7 +104,6 @@ export default function ImageStudioPage() {
   const [fullscreen, setFullscreen] = useState<GalleryImage | null>(null)
   const [fsIdx, setFsIdx] = useState(0)
 
-  // ── Cargar galería ────────────────────────────────────────────────────────
   useEffect(() => {
     loadGallery()
   }, [])
@@ -139,7 +144,6 @@ export default function ImageStudioPage() {
     }
   }
 
-  // ── Generar imagen — llama al mismo endpoint que /imagenes ────────────────
   async function handleGenerate() {
     if (!prompt.trim() || generating) return
 
@@ -159,6 +163,7 @@ export default function ImageStudioPage() {
           width: size.w,
           height: size.h,
           provider,
+          mode,
           source: "manual",
         }),
       })
@@ -174,6 +179,8 @@ export default function ImageStudioPage() {
         imageUrl: data.imageUrl,
         optimizedPrompt: data.optimizedPrompt,
         provider: data.provider,
+        model: data.model,
+        mode: data.mode,
       })
 
       setTimeout(loadGallery, 1000)
@@ -184,14 +191,12 @@ export default function ImageStudioPage() {
     }
   }
 
-  // ── Eliminar imagen ────────────────────────────────────────────────────────
   async function handleDelete(id: string) {
     await supabase.from("generated_images").delete().eq("id", id)
     setImages((prev) => prev.filter((img) => img.id !== id))
     if (fullscreen?.id === id) setFullscreen(null)
   }
 
-  // ── Descargar imagen ──────────────────────────────────────────────────────
   function handleDownload(imageUrl: string, promptText: string) {
     const a = document.createElement("a")
     a.href = imageUrl
@@ -199,7 +204,6 @@ export default function ImageStudioPage() {
     a.click()
   }
 
-  // ── Fullscreen nav ────────────────────────────────────────────────────────
   const filtered = images.filter((img) => {
     const matchSource = filter === "all" ? true : img.source === filter
     const matchSearch =
@@ -235,19 +239,13 @@ export default function ImageStudioPage() {
 
   const styleLabel: Record<string, string> = Object.fromEntries(STYLES.map((s) => [s.id, s.label]))
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // RENDER
-  // ─────────────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gray-950">
-
-      {/* ── Fullscreen viewer ──────────────────────────────────────────────── */}
       {fullscreen && (
         <div
           className="fixed inset-0 z-50 bg-black/95 flex flex-col"
           onClick={() => setFullscreen(null)}
         >
-          {/* Top bar */}
           <div className="flex items-start justify-between p-4 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
             <div className="flex-1 min-w-0 pr-4">
               <p className="text-white/70 text-sm leading-relaxed">{fullscreen.prompt}</p>
@@ -280,7 +278,6 @@ export default function ImageStudioPage() {
             </div>
           </div>
 
-          {/* Image + nav arrows */}
           <div className="flex-1 flex items-center justify-center relative px-4 pb-4" onClick={(e) => e.stopPropagation()}>
             {fsIdx > 0 && (
               <button
@@ -309,14 +306,12 @@ export default function ImageStudioPage() {
             )}
           </div>
 
-          {/* Counter */}
           <div className="text-center pb-4 flex-shrink-0">
             <span className="text-gray-600 text-xs">{fsIdx + 1} / {filtered.length}</span>
           </div>
         </div>
       )}
 
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-20 border-b border-white/[0.06] bg-gray-950/90 backdrop-blur-xl">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-3">
           <Link
@@ -338,7 +333,6 @@ export default function ImageStudioPage() {
             <p className="text-gray-600 text-[11px]">Generación · Galería · Análisis visual</p>
           </div>
 
-          {/* Tab switcher */}
           <div
             className="flex items-center gap-1 p-1 rounded-xl"
             style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
@@ -361,14 +355,9 @@ export default function ImageStudioPage() {
         </div>
       </header>
 
-      {/* ── Content ────────────────────────────────────────────────────────── */}
       <div className="max-w-4xl mx-auto px-4 py-6">
-
-        {/* ════════════════ PANEL: GENERAR ════════════════ */}
         {panel === "generate" && (
           <div className="flex flex-col gap-5 animate-fade-in">
-
-            {/* Prompt */}
             <div>
               <label className="text-gray-600 text-[11px] font-semibold tracking-widest block mb-2">DESCRIPCIÓN</label>
               <div className="relative">
@@ -379,7 +368,6 @@ export default function ImageStudioPage() {
                   placeholder="Describe la imagen que quieres crear..."
                   className="w-full bg-white/[0.04] border border-white/[0.08] rounded-2xl px-4 py-3.5 text-gray-200 placeholder-gray-600 text-sm focus:outline-none focus:border-pink-500/30 focus:bg-white/[0.06] transition-all resize-none min-h-[80px]"
                 />
-                {/* Ejemplos */}
                 <div className="flex gap-1.5 flex-wrap mt-2">
                   {EXAMPLES.slice(0, 3).map((ex) => (
                     <button
@@ -395,10 +383,7 @@ export default function ImageStudioPage() {
               </div>
             </div>
 
-            {/* Controles en row */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-
-              {/* Estilo */}
               <div>
                 <label className="text-gray-600 text-[11px] font-semibold tracking-widest block mb-2">ESTILO</label>
                 <div className="flex flex-wrap gap-1.5">
@@ -419,7 +404,6 @@ export default function ImageStudioPage() {
                 </div>
               </div>
 
-              {/* Tamaño */}
               <div>
                 <label className="text-gray-600 text-[11px] font-semibold tracking-widest block mb-2">TAMAÑO</label>
                 <div className="flex flex-col gap-1.5">
@@ -450,9 +434,8 @@ export default function ImageStudioPage() {
                 </div>
               </div>
 
-              {/* Proveedor */}
               <div>
-                <label className="text-gray-600 text-[11px] font-semibold tracking-widest block mb-2">MODELO</label>
+                <label className="text-gray-600 text-[11px] font-semibold tracking-widest block mb-2">PROVEEDOR</label>
                 <div className="flex flex-col gap-1.5">
                   {PROVIDERS.map((p) => (
                     <button
@@ -469,13 +452,32 @@ export default function ImageStudioPage() {
                     </button>
                   ))}
                 </div>
-                <p className="text-[10px] text-gray-600 mt-2 leading-relaxed">
-                  Auto prueba Together → Hugging Face → Pollinations.
-                </p>
               </div>
             </div>
 
-            {/* Botón generar */}
+            <div>
+              <label className="text-gray-600 text-[11px] font-semibold tracking-widest block mb-2">MODO</label>
+              <div className="flex gap-2 flex-wrap">
+                {MODES.map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => setMode(m.id as GenerationMode)}
+                    className="px-3 py-2 rounded-xl text-xs font-medium border transition-all"
+                    style={{
+                      background: mode === m.id ? "rgba(219,39,119,0.1)" : "rgba(255,255,255,0.02)",
+                      borderColor: mode === m.id ? "rgba(219,39,119,0.3)" : "rgba(255,255,255,0.07)",
+                      color: mode === m.id ? "#f9a8d4" : "#6b7280",
+                    }}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[10px] text-gray-600 mt-2 leading-relaxed">
+                Rápido: menor costo · Calidad: mejor acabado · Educativo: mejor para diagramas, infografías y texto.
+              </p>
+            </div>
+
             <button
               onClick={handleGenerate}
               disabled={!prompt.trim() || generating}
@@ -491,17 +493,14 @@ export default function ImageStudioPage() {
               }
             </button>
 
-            {/* Error */}
             {genError && (
               <div className="px-4 py-3 rounded-xl border border-red-500/25 bg-red-500/8 text-red-400 text-sm whitespace-pre-wrap">
                 ❌ {genError}
               </div>
             )}
 
-            {/* Resultado */}
             {result && (
               <div className="flex flex-col gap-3 animate-fade-in-scale">
-                {/* Imagen */}
                 <div className="relative rounded-2xl overflow-hidden border border-white/[0.08]">
                   <img
                     src={result.imageUrl}
@@ -509,7 +508,6 @@ export default function ImageStudioPage() {
                     className="w-full object-cover"
                     style={{ aspectRatio: SIZES[sizeIdx].ratio }}
                   />
-                  {/* Overlay actions */}
                   <div className="absolute top-3 right-3 flex gap-2">
                     <button
                       onClick={() => handleDownload(result.imageUrl, prompt)}
@@ -521,17 +519,17 @@ export default function ImageStudioPage() {
                   </div>
                 </div>
 
-                {/* Prompt optimizado */}
                 <div
                   className="px-4 py-3 rounded-xl border"
                   style={{ background: "rgba(219,39,119,0.05)", borderColor: "rgba(219,39,119,0.15)" }}
                 >
                   <p className="text-[10px] text-pink-400 font-semibold uppercase tracking-widest mb-1">Prompt optimizado</p>
                   <p className="text-gray-400 text-xs leading-relaxed">{result.optimizedPrompt}</p>
-                  <p className="text-gray-600 text-[10px] mt-1.5">Modelo: {result.provider}</p>
+                  <p className="text-gray-600 text-[10px] mt-1.5">
+                    Proveedor: {result.provider}{result.model ? ` · Modelo: ${result.model}` : ""}{result.mode ? ` · Modo: ${result.mode}` : ""}
+                  </p>
                 </div>
 
-                {/* Nueva imagen */}
                 <button
                   onClick={() => { setResult(null); setPrompt("") }}
                   className="text-gray-600 hover:text-gray-400 text-xs transition-colors text-center"
@@ -543,13 +541,9 @@ export default function ImageStudioPage() {
           </div>
         )}
 
-        {/* ════════════════ PANEL: GALERÍA ════════════════ */}
         {panel === "gallery" && (
           <div className="flex flex-col gap-4 animate-fade-in">
-
-            {/* Filtros + búsqueda */}
             <div className="flex flex-col sm:flex-row gap-3">
-              {/* Búsqueda */}
               <div className="relative flex-1">
                 <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-600" />
                 <input
@@ -560,7 +554,6 @@ export default function ImageStudioPage() {
                 />
               </div>
 
-              {/* Filtros de fuente */}
               <div className="flex gap-1.5">
                 {([
                   { id: "all", label: "Todas" },
@@ -583,7 +576,6 @@ export default function ImageStudioPage() {
               </div>
             </div>
 
-            {/* Barra info */}
             <div
               className="flex items-center justify-between px-4 py-3 rounded-2xl border"
               style={{ background: "rgba(255,255,255,0.03)", borderColor: "rgba(255,255,255,0.07)" }}
@@ -600,7 +592,6 @@ export default function ImageStudioPage() {
               </button>
             </div>
 
-            {/* Loading */}
             {galLoading ? (
               <div className="py-16 flex items-center justify-center text-gray-500 text-sm">
                 <Loader2 size={18} className="animate-spin mr-2" />
@@ -634,12 +625,10 @@ export default function ImageStudioPage() {
                       loading="lazy"
                     />
 
-                    {/* Hover overlay */}
                     <div
                       className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-2"
                       style={{ background: "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.1) 60%, transparent 100%)" }}
                     >
-                      {/* Top: delete */}
                       <div className="flex justify-end">
                         <button
                           onClick={(e) => { e.stopPropagation(); handleDelete(img.id) }}
@@ -650,7 +639,6 @@ export default function ImageStudioPage() {
                         </button>
                       </div>
 
-                      {/* Bottom: prompt + actions */}
                       <div>
                         <p className="text-white/80 text-[10px] leading-tight line-clamp-2 mb-2">{img.prompt}</p>
                         <div className="flex gap-1.5">
