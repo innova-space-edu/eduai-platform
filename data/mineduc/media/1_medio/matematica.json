@@ -1,0 +1,111 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "1° Medio",
+    "asignatura": "Matemática",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://curriculumnacional.mineduc.cl/",
+    "estado": "parcial_verificado",
+    "ultima_actualizacion_manual": "2026-03-27"
+  },
+  "objetivos_habilidad": [
+    {
+      "id": "MA1M-OAH-f",
+      "descripcion": "Fundamentar conjeturas usando lenguaje algebraico para comprobar o descartar la validez de los enunciados.",
+      "unidades": [1, 2, 3]
+    },
+    {
+      "id": "MA1M-OAH-l",
+      "descripcion": "Elegir o elaborar representaciones de acuerdo a las necesidades de la actividad, identificando sus limitaciones y validez de estas.",
+      "unidades": [1, 2, 3, 4]
+    },
+    {
+      "id": "MA1M-OAH-n",
+      "descripcion": "Organizar, analizar y hacer inferencias acerca de información representada en tablas y gráficos.",
+      "unidades": [1, 2, 3, 4]
+    }
+  ],
+  "objetivos_actitud": [
+    {
+      "id": "MA1M-OAA-d",
+      "descripcion": "Trabajar en equipo en forma responsable y proactiva, ayudando a los otros, considerando y respetando los aportes de todos, y manifestando disposición a entender sus argumentos en las soluciones de los problemas.",
+      "unidades": [1, 2, 3]
+    }
+  ],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "Productos notables. Potencias con exponente entero. El cono.",
+      "oa": [
+        {
+          "id": "MA1M-OA-01",
+          "codigo_oficial": "MA1M OA 01",
+          "descripcion": "Calcular operaciones con números racionales en forma simbólica."
+        },
+        {
+          "id": "MA1M-OA-02",
+          "codigo_oficial": "MA1M OA 02",
+          "descripcion": "Mostrar que comprenden las potencias de base racional y exponente entero."
+        },
+        {
+          "id": "MA1M-OA-03",
+          "codigo_oficial": "MA1M OA 03",
+          "descripcion": "Desarrollar los productos notables de manera concreta, pictórica y simbólica."
+        },
+        {
+          "id": "MA1M-OA-07",
+          "codigo_oficial": "MA1M OA 07",
+          "descripcion": "Desarrollar las fórmulas para encontrar el área de la superficie y el volumen del cono."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Sistemas de ecuaciones lineales. Área y perímetros de sectores y segmentos circulares.",
+      "oa": [
+        {
+          "id": "MA1M-OA-04",
+          "codigo_oficial": "MA1M OA 04",
+          "descripcion": "Resolver sistemas de ecuaciones lineales (2x2) relacionados con problemas de la vida diaria y de otras asignaturas, mediante representaciones gráficas y simbólicas, de manera manual y/o con software educativo."
+        },
+        {
+          "id": "MA1M-OA-05",
+          "codigo_oficial": "MA1M OA 05",
+          "descripcion": "Graficar relaciones lineales en dos variables de la forma f(x, y) = ax + by."
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "nombre": "Homotecia y sus aplicaciones",
+      "oa": [
+        {
+          "id": "MA1M-OA-10",
+          "codigo_oficial": "MA1M OA 10",
+          "descripcion": "Aplicar propiedades de semejanza y de proporcionalidad a modelos a escala y otras situaciones de la vida diaria y otras asignaturas."
+        },
+        {
+          "id": "MA1M-OA-11",
+          "codigo_oficial": "MA1M OA 11",
+          "descripcion": "Representar el concepto de homotecia de forma vectorial, relacionándolo con el producto de un vector por un escalar, de manera manual y/o con software educativo."
+        }
+      ]
+    },
+    {
+      "numero": 4,
+      "nombre": "Nube de punto y gráficos “xy”. Regla aditiva y multiplicativa de probabilidades.",
+      "oa": [
+        {
+          "id": "MA1M-OA-12",
+          "codigo_oficial": "MA1M OA 12",
+          "descripcion": "Registrar distribuciones de dos características distintas, de una misma población, en una tabla de doble entrada y en una nube de puntos."
+        },
+        {
+          "id": "MA1M-OA-13",
+          "codigo_oficial": "MA1M OA 13",
+          "descripcion": "Comparar poblaciones mediante la confección de gráficos “xy” para dos atributos de muestras, de manera concreta y pictórica."
+        }
+      ]
+    }
+  ]
+}
