@@ -1,11 +1,10 @@
 // src/app/api/agents/imagenes/route.ts
-// v4 — Together + Hugging Face + Pollinations con logs reales, fallback robusto y error detallado
+// v5 — OpenRouter principal + Pollinations + Together + Hugging Face fallback
 
 import { createClient } from "@/lib/supabase/server"
 
 export const runtime = "nodejs"
 
-// ── ESTILOS ──────────────────────────────────────────────
 const STYLE_GUIDES: Record<string, string> = {
   realistic: "photorealistic, DSLR photo, 85mm lens, sharp focus, natural lighting, ultra detailed, 8k",
   "digital art": "digital painting, concept art, artstation trending, vibrant colors, detailed illustration, professional",
@@ -20,21 +19,19 @@ const STYLE_GUIDES: Record<string, string> = {
   infographic: "infographic style, data visualization, clean, informative, colorful sections, professional design",
 }
 
-type ProviderId = "auto" | "together" | "huggingface" | "pollinations"
+type ProviderId = "auto" | "openrouter" | "pollinations" | "together" | "huggingface"
+type GenerationMode = "fast" | "quality" | "educational"
 
 type ProviderResult = {
   imageBase64: string | null
   label: string
+  model?: string
   error?: string
 }
 
 function clampDimension(value: number, min: number, max: number, fallback: number) {
   if (!Number.isFinite(value)) return fallback
   return Math.max(min, Math.min(max, Math.round(value)))
-}
-
-function buildBasicPrompt(userPrompt: string, styleDesc: string): string {
-  return `${userPrompt}, ${styleDesc}, highly detailed, masterpiece, best quality`
 }
 
 function getErrorMessage(error: unknown) {
@@ -50,10 +47,49 @@ async function readResponseTextSafe(res: Response) {
   }
 }
 
+function buildBasicPrompt(userPrompt: string, styleDesc: string) {
+  return `${userPrompt}, ${styleDesc}, highly detailed, masterpiece, best quality`
+}
+
+function getAspectRatio(width: number, height: number): string {
+  const ratio = width / height
+
+  if (Math.abs(ratio - 1) < 0.05) return "1:1"
+  if (Math.abs(ratio - 16 / 9) < 0.15) return "16:9"
+  if (Math.abs(ratio - 9 / 16) < 0.15) return "9:16"
+  if (Math.abs(ratio - 4 / 3) < 0.15) return "4:3"
+  if (Math.abs(ratio - 3 / 4) < 0.15) return "3:4"
+  if (Math.abs(ratio - 3 / 2) < 0.15) return "3:2"
+  if (Math.abs(ratio - 2 / 3) < 0.15) return "2:3"
+  if (Math.abs(ratio - 4 / 5) < 0.15) return "4:5"
+  if (Math.abs(ratio - 5 / 4) < 0.15) return "5:4"
+
+  return ratio >= 1 ? "16:9" : "9:16"
+}
+
+function getOpenRouterModel(mode: GenerationMode): string {
+  const fast = process.env.OPENROUTER_IMAGE_MODEL_FAST || "openai/gpt-5-image-mini"
+  const quality = process.env.OPENROUTER_IMAGE_MODEL_QUALITY || "openai/gpt-5-image"
+  const educational =
+    process.env.OPENROUTER_IMAGE_MODEL_EDU || "google/gemini-2.5-flash-image-preview"
+
+  switch (mode) {
+    case "quality":
+      return quality
+    case "educational":
+      return educational
+    case "fast":
+    default:
+      return fast
+  }
+}
+
 async function fetchAsBase64(url: string): Promise<string | null> {
   try {
     const res = await fetch(url, {
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; EduAI/1.0)" },
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; EduAI/1.0)",
+      },
       signal: AbortSignal.timeout(30000),
     })
 
@@ -65,16 +101,14 @@ async function fetchAsBase64(url: string): Promise<string | null> {
     const buffer = await res.arrayBuffer()
     if (!buffer.byteLength) return null
 
-    const base64 = Buffer.from(buffer).toString("base64")
     const mime = res.headers.get("content-type") || "image/png"
-    return `data:${mime};base64,${base64}`
+    return `data:${mime};base64,${Buffer.from(buffer).toString("base64")}`
   } catch (error) {
     console.error("[Image][fetchAsBase64] error:", getErrorMessage(error))
     return null
   }
 }
 
-// ── OPTIMIZAR PROMPT con Gemini 2.5 Flash-Lite ──────────
 async function optimizePromptWithGemini(
   userPrompt: string,
   style: string,
@@ -85,18 +119,18 @@ async function optimizePromptWithGemini(
 
   if (!apiKey) return buildBasicPrompt(userPrompt, styleDesc)
 
-  const systemPrompt = `You are an expert prompt engineer for AI image generation (FLUX, Stable Diffusion, DALL-E).
-Transform user descriptions into highly detailed, vivid English generation prompts.
-CRITICAL RULES:
-- Keep the user's EXACT subject — never change what they asked for
-- Add specific visual details: lighting, composition, perspective, textures, colors
-- Add technical quality keywords appropriate to the style
-- If educational context is provided, make the image pedagogically useful and accurate
-- Output ONLY the final optimized prompt — no explanations, no quotes, no preamble`
+  const systemPrompt = `You are an expert prompt engineer for AI image generation.
+Transform user descriptions into highly detailed, vivid English prompts.
+Rules:
+- Keep the user's exact subject
+- Add useful visual details, lighting, framing, textures and color cues
+- Respect the requested style
+- If educational context exists, make the image pedagogically accurate
+- Output only the final prompt`
 
   const userMsg = `User request: "${userPrompt}"
 Style: ${style} — Visual keywords: ${styleDesc}
-${educationalContext ? `Educational context (use to make image accurate): "${educationalContext.slice(0, 600)}"` : ""}
+${educationalContext ? `Educational context: "${educationalContext.slice(0, 600)}"` : ""}
 
 Write the optimized generation prompt:`
 
@@ -121,25 +155,159 @@ Write the optimized generation prompt:`
     }
 
     const data = await res.json()
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim()
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim()
 
     if (text) return text.replace(/^["']|["']$/g, "")
   } catch (error) {
-    console.warn("[ImageOptimizer] Gemini 2.5 Flash-Lite falló:", getErrorMessage(error))
+    console.warn("[ImageOptimizer][Gemini] error:", getErrorMessage(error))
   }
 
   return buildBasicPrompt(userPrompt, styleDesc)
 }
 
-// ── PROVIDERS DE GENERACIÓN ───────────────────────────────
-
-// Provider 1: Together AI — FLUX Schnell
-async function tryTogether(prompt: string, width: number, height: number): Promise<ProviderResult> {
-  const key = process.env.TOGETHER_API_KEY
-  const label = "Together AI (FLUX Schnell)"
+async function tryOpenRouter(
+  prompt: string,
+  width: number,
+  height: number,
+  mode: GenerationMode
+): Promise<ProviderResult> {
+  const key = process.env.OPENROUTER_API_KEY
+  const model = getOpenRouterModel(mode)
+  const label = "OpenRouter"
 
   if (!key) {
-    return { imageBase64: null, label, error: "TOGETHER_API_KEY no configurada" }
+    return { imageBase64: null, label, model, error: "OPENROUTER_API_KEY no configurada" }
+  }
+
+  const payload = {
+    model,
+    messages: [{ role: "user", content: prompt }],
+    modalities: ["image", "text"],
+    stream: false,
+    image_config: {
+      aspect_ratio: getAspectRatio(width, height),
+      image_size: "1K",
+    },
+  }
+
+  try {
+    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://eduai.local",
+        "X-Title": "EduAI Image Studio",
+      },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(45000),
+    })
+
+    if (!res.ok) {
+      const body = await readResponseTextSafe(res)
+      console.error("[OpenRouter]", res.status, body)
+      return {
+        imageBase64: null,
+        label,
+        model,
+        error: `HTTP ${res.status}: ${body || "sin detalle"}`,
+      }
+    }
+
+    const data = await res.json()
+    const message = data?.choices?.[0]?.message
+
+    const images = Array.isArray(message?.images) ? message.images : []
+    const firstImage = images[0]
+
+    const dataUrl =
+      firstImage?.image_url?.url ||
+      firstImage?.imageUrl?.url ||
+      firstImage?.url ||
+      null
+
+    if (typeof dataUrl === "string" && dataUrl.startsWith("data:image/")) {
+      return { imageBase64: dataUrl, label, model }
+    }
+
+    if (typeof dataUrl === "string" && /^https?:\/\//.test(dataUrl)) {
+      const converted = await fetchAsBase64(dataUrl)
+      if (converted) return { imageBase64: converted, label, model }
+    }
+
+    return {
+      imageBase64: null,
+      label,
+      model,
+      error: "La respuesta no trajo message.images con una imagen válida",
+    }
+  } catch (error) {
+    const msg = getErrorMessage(error)
+    console.error("[OpenRouter] error:", msg)
+    return { imageBase64: null, label, model, error: msg }
+  }
+}
+
+async function tryPollinations(prompt: string, width: number, height: number): Promise<ProviderResult> {
+  const key = process.env.POLLINATIONS_API_KEY
+  const label = "Pollinations"
+  const model = "flux"
+
+  if (!key) {
+    return { imageBase64: null, label, model, error: "POLLINATIONS_API_KEY no configurada" }
+  }
+
+  try {
+    const encodedPrompt = encodeURIComponent(prompt)
+    const seed = Math.floor(Math.random() * 999999)
+    const safeWidth = clampDimension(width, 256, 1024, 1024)
+    const safeHeight = clampDimension(height, 256, 1024, 1024, 768)
+    const url = `https://gen.pollinations.ai/image/${encodedPrompt}?model=flux&width=${safeWidth}&height=${safeHeight}&seed=${seed}&nologo=true&enhance=true`
+
+    const res = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${key}`,
+        "User-Agent": "Mozilla/5.0 (compatible; EduAI/1.0)",
+      },
+      signal: AbortSignal.timeout(40000),
+    })
+
+    if (!res.ok) {
+      const body = await readResponseTextSafe(res)
+      console.error("[Pollinations]", res.status, body)
+      return {
+        imageBase64: null,
+        label,
+        model,
+        error: `HTTP ${res.status}: ${body || "sin detalle"}`,
+      }
+    }
+
+    const buffer = await res.arrayBuffer()
+    if (!buffer.byteLength) {
+      return { imageBase64: null, label, model, error: "La respuesta llegó vacía" }
+    }
+
+    const mime = res.headers.get("content-type") || "image/png"
+    return {
+      imageBase64: `data:${mime};base64,${Buffer.from(buffer).toString("base64")}`,
+      label,
+      model,
+    }
+  } catch (error) {
+    const msg = getErrorMessage(error)
+    console.error("[Pollinations] error:", msg)
+    return { imageBase64: null, label, model, error: msg }
+  }
+}
+
+async function tryTogether(prompt: string, width: number, height: number): Promise<ProviderResult> {
+  const key = process.env.TOGETHER_API_KEY
+  const label = "Together AI"
+  const model = "black-forest-labs/FLUX.1-schnell"
+
+  if (!key) {
+    return { imageBase64: null, label, model, error: "TOGETHER_API_KEY no configurada" }
   }
 
   try {
@@ -150,10 +318,10 @@ async function tryTogether(prompt: string, width: number, height: number): Promi
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "black-forest-labs/FLUX.1-schnell-Free",
+        model,
         prompt,
         width: clampDimension(width, 256, 1024, 1024),
-        height: clampDimension(height, 256, 1024, 768),
+        height: clampDimension(height, 256, 1024, 1024, 768),
         steps: 4,
         n: 1,
         response_format: "base64",
@@ -164,7 +332,12 @@ async function tryTogether(prompt: string, width: number, height: number): Promi
     if (!res.ok) {
       const body = await readResponseTextSafe(res)
       console.error("[Together]", res.status, body)
-      return { imageBase64: null, label, error: `HTTP ${res.status}: ${body || "sin detalle"}` }
+      return {
+        imageBase64: null,
+        label,
+        model,
+        error: `HTTP ${res.status}: ${body || "sin detalle"}`,
+      }
     }
 
     const data = await res.json()
@@ -176,26 +349,40 @@ async function tryTogether(prompt: string, width: number, height: number): Promi
       data?.output?.[0]?.base64
 
     if (base64) {
-      return { imageBase64: `data:image/png;base64,${base64}`, label }
+      return {
+        imageBase64: `data:image/png;base64,${base64}`,
+        label,
+        model,
+      }
     }
 
     const imageUrl = data?.data?.[0]?.url || data?.output?.[0]?.url
     if (imageUrl) {
-      const imageBase64 = await fetchAsBase64(imageUrl)
-      if (imageBase64) return { imageBase64, label }
+      const converted = await fetchAsBase64(imageUrl)
+      if (converted) {
+        return {
+          imageBase64: converted,
+          label,
+          model,
+        }
+      }
     }
 
-    return { imageBase64: null, label, error: "La API respondió, pero no devolvió imagen en base64 ni URL válida" }
+    return {
+      imageBase64: null,
+      label,
+      model,
+      error: "La API respondió, pero no devolvió base64 ni URL válida",
+    }
   } catch (error) {
     const msg = getErrorMessage(error)
     console.error("[Together] error:", msg)
-    return { imageBase64: null, label, error: msg }
+    return { imageBase64: null, label, model, error: msg }
   }
 }
 
-// Provider 2: Hugging Face
 async function tryHuggingFace(prompt: string, width: number, height: number): Promise<ProviderResult> {
-  const label = "Hugging Face (Stable Diffusion XL)"
+  const label = "Hugging Face"
   const tokens = [process.env.HF_TOKEN_1, process.env.HF_TOKEN_2, process.env.HF_TOKEN_3].filter(Boolean) as string[]
 
   if (!tokens.length) {
@@ -204,32 +391,26 @@ async function tryHuggingFace(prompt: string, width: number, height: number): Pr
 
   const models = [
     "stabilityai/stable-diffusion-xl-base-1.0",
-    "black-forest-labs/FLUX.1-schnell",
     "runwayml/stable-diffusion-v1-5",
   ]
-
-  const negative =
-    "blurry, low quality, distorted, ugly, bad anatomy, watermark, text, nsfw, wrong subject, deformed"
 
   const attempts: string[] = []
 
   for (const model of models) {
     for (let i = 0; i < tokens.length; i++) {
-      const token = tokens[i]
-
       try {
         const res = await fetch(`https://router.huggingface.co/hf-inference/models/${model}`, {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${tokens[i]}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
             inputs: prompt,
             parameters: {
-              negative_prompt: negative,
-              width: clampDimension(width, 256, 1024, 768),
-              height: clampDimension(height, 256, 1024, 768),
+              negative_prompt: "blurry, low quality, distorted, ugly, bad anatomy, watermark, text, deformed",
+              width: clampDimension(width, 256, 768, 768),
+              height: clampDimension(height, 256, 768, 768),
               num_inference_steps: 28,
               guidance_scale: 7.5,
             },
@@ -246,28 +427,26 @@ async function tryHuggingFace(prompt: string, width: number, height: number): Pr
         }
 
         const contentType = res.headers.get("content-type") || ""
-
         if (contentType.includes("application/json")) {
-          const text = await readResponseTextSafe(res)
-          const detail = `[HF][${model}][token ${i + 1}] Respuesta JSON inesperada: ${text || "vacía"}`
+          const body = await readResponseTextSafe(res)
+          const detail = `[HF][${model}][token ${i + 1}] Respuesta JSON inesperada: ${body || "vacía"}`
           console.error(detail)
           attempts.push(detail)
           continue
         }
 
-        const arrayBuffer = await res.arrayBuffer()
-        if (!arrayBuffer.byteLength) {
+        const buffer = await res.arrayBuffer()
+        if (!buffer.byteLength) {
           const detail = `[HF][${model}][token ${i + 1}] Imagen vacía`
           console.error(detail)
           attempts.push(detail)
           continue
         }
 
-        const base64 = Buffer.from(arrayBuffer).toString("base64")
-        const mime = contentType || "image/png"
         return {
-          imageBase64: `data:${mime};base64,${base64}`,
+          imageBase64: `data:${contentType || "image/png"};base64,${Buffer.from(buffer).toString("base64")}`,
           label,
+          model,
         }
       } catch (error) {
         const detail = `[HF][${model}][token ${i + 1}] ${getErrorMessage(error)}`
@@ -284,80 +463,33 @@ async function tryHuggingFace(prompt: string, width: number, height: number): Pr
   }
 }
 
-// Provider 3: Pollinations
-async function tryPollinations(prompt: string, width: number, height: number): Promise<ProviderResult> {
-  const key = process.env.POLLINATIONS_API_KEY
-  const label = "Pollinations"
-
-  if (!key) {
-    return { imageBase64: null, label, error: "POLLINATIONS_API_KEY no configurada" }
-  }
-
-  try {
-    const encodedPrompt = encodeURIComponent(prompt)
-    const seed = Math.floor(Math.random() * 999999)
-    const safeWidth = clampDimension(width, 256, 1024, 1024)
-    const safeHeight = clampDimension(height, 256, 1024, 768)
-
-    const url = `https://gen.pollinations.ai/image/${encodedPrompt}?width=${safeWidth}&height=${safeHeight}&seed=${seed}&nologo=true&enhance=true`
-
-    const res = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "User-Agent": "Mozilla/5.0 (compatible; EduAI/1.0)",
-      },
-      signal: AbortSignal.timeout(40000),
-    })
-
-    if (!res.ok) {
-      const body = await readResponseTextSafe(res)
-      console.error("[Pollinations]", res.status, body)
-      return { imageBase64: null, label, error: `HTTP ${res.status}: ${body || "sin detalle"}` }
-    }
-
-    const buffer = await res.arrayBuffer()
-    if (!buffer.byteLength) {
-      return { imageBase64: null, label, error: "La respuesta llegó vacía" }
-    }
-
-    const mime = res.headers.get("content-type") || "image/png"
-    const base64 = Buffer.from(buffer).toString("base64")
-    return {
-      imageBase64: `data:${mime};base64,${base64}`,
-      label,
-    }
-  } catch (error) {
-    const msg = getErrorMessage(error)
-    console.error("[Pollinations] error:", msg)
-    return { imageBase64: null, label, error: msg }
-  }
-}
-
 async function runProvider(
   providerId: Exclude<ProviderId, "auto">,
   prompt: string,
   width: number,
-  height: number
+  height: number,
+  mode: GenerationMode
 ): Promise<ProviderResult> {
   switch (providerId) {
+    case "openrouter":
+      return tryOpenRouter(prompt, width, height, mode)
+    case "pollinations":
+      return tryPollinations(prompt, width, height)
     case "together":
       return tryTogether(prompt, width, height)
     case "huggingface":
       return tryHuggingFace(prompt, width, height)
-    case "pollinations":
-      return tryPollinations(prompt, width, height)
   }
 }
 
 function getProviderOrder(provider: ProviderId): Exclude<ProviderId, "auto">[] {
   if (provider === "auto") {
-    return ["together", "huggingface", "pollinations"]
+    return ["openrouter", "pollinations", "together", "huggingface"]
   }
 
   return [provider]
 }
 
-// ── HANDLER PRINCIPAL ─────────────────────────────────────
 export async function POST(req: Request) {
   const supabase = await createClient()
   const {
@@ -373,6 +505,7 @@ export async function POST(req: Request) {
   const width = clampDimension(Number(body?.width), 256, 1024, 1024)
   const height = clampDimension(Number(body?.height), 256, 1024, 768)
   const provider = (body?.provider || "auto") as ProviderId
+  const mode = (body?.mode || "fast") as GenerationMode
   const customPrompt = String(body?.customPrompt || "").trim()
   const source = String(body?.source || "manual")
   const topic = body?.topic ?? null
@@ -381,27 +514,31 @@ export async function POST(req: Request) {
   if (!prompt) return new Response("Prompt requerido", { status: 400 })
 
   try {
-    const optimizedPrompt = customPrompt || (await optimizePromptWithGemini(prompt, style, educationalContext))
-    console.log("[Image] Prompt optimizado:", optimizedPrompt.slice(0, 150))
+    const optimizedPrompt =
+      customPrompt || (await optimizePromptWithGemini(prompt, style, educationalContext))
 
     const providerOrder = getProviderOrder(provider)
     const providerErrors: string[] = []
 
     let imageBase64: string | null = null
     let usedProvider = ""
+    let usedModel = ""
 
     for (const currentProvider of providerOrder) {
       console.log(`[Image] Intentando provider: ${currentProvider}`)
 
-      const result = await runProvider(currentProvider, optimizedPrompt, width, height)
+      const result = await runProvider(currentProvider, optimizedPrompt, width, height, mode)
 
       if (result.imageBase64) {
         imageBase64 = result.imageBase64
         usedProvider = result.label
+        usedModel = result.model || ""
         break
       }
 
-      providerErrors.push(`${result.label}: ${result.error || "falló sin detalle"}`)
+      providerErrors.push(
+        `${result.label}${result.model ? ` (${result.model})` : ""}: ${result.error || "falló sin detalle"}`
+      )
     }
 
     if (!imageBase64) {
@@ -412,7 +549,6 @@ export async function POST(req: Request) {
       return new Response(message, { status: 503 })
     }
 
-    // Guardar en galería (async, no bloquea la respuesta)
     void (async () => {
       try {
         const { error } = await supabase.from("generated_images").insert({
@@ -420,7 +556,7 @@ export async function POST(req: Request) {
           prompt,
           optimized_prompt: optimizedPrompt,
           image_url: imageBase64,
-          provider: usedProvider,
+          provider: usedModel ? `${usedProvider} · ${usedModel}` : usedProvider,
           style,
           width,
           height,
@@ -429,7 +565,7 @@ export async function POST(req: Request) {
         })
 
         if (error) {
-          console.error("[Image] Error guardando en generated_images:", error.message)
+          console.error("[Image] Error guardando generated_images:", error.message)
         }
       } catch (error) {
         console.error("[Image] Error inesperado guardando imagen:", getErrorMessage(error))
@@ -440,6 +576,8 @@ export async function POST(req: Request) {
       imageUrl: imageBase64,
       optimizedPrompt,
       provider: usedProvider,
+      model: usedModel,
+      mode,
       type: "base64",
     })
   } catch (error) {
