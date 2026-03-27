@@ -1,0 +1,82 @@
+{
+  "metadata": {
+    "nivel": "Parvularia",
+    "tramo": "NT2",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://curriculumnacional.mineduc.cl/",
+    "estado": "parcial_verificado",
+    "ultima_actualizacion_manual": "2026-03-27"
+  },
+  "ambitos": [
+    {
+      "nombre": "Desarrollo personal y social",
+      "nucleos": [
+        {
+          "nombre": "Identidad y autonomía",
+          "oa_transversales": [
+            {
+              "id": "DP-IDAU-NT-OAT-06",
+              "codigo_oficial": "OAT 06 IA NT",
+              "descripcion": "Planificar proyectos y juegos, en función de sus ideas e intereses, proponiendo actividades, organizando los recursos, incorporando los ajustes necesarios e iniciándose en la apreciación de sus resultados."
+            }
+          ],
+          "oa_contenido": []
+        },
+        {
+          "nombre": "Convivencia y ciudadanía",
+          "oa_transversales": [
+            {
+              "id": "DP-COCI-NT-OAT-07",
+              "codigo_oficial": "OAT 07 CC NT",
+              "descripcion": "Identificar objetos, comportamientos y situaciones de riesgo que pueden atentar contra su bienestar y seguridad, o la de los demás, proponiendo alternativas para enfrentarlas."
+            }
+          ],
+          "oa_contenido": []
+        },
+        {
+          "nombre": "Corporalidad y movimiento",
+          "oa_transversales": [
+            {
+              "id": "OAT-02-CM-NT",
+              "codigo_oficial": "OAT 02 CM NT",
+              "descripcion": "Apreciar sus características corporales, manifestando interés y cuidado por su bienestar y apariencia personal."
+            }
+          ],
+          "oa_contenido": []
+        }
+      ]
+    },
+    {
+      "nombre": "Interacción y comprensión del entorno",
+      "nucleos": [
+        {
+          "nombre": "Exploración del entorno natural",
+          "oa_transversales": [],
+          "oa_contenido": [
+            {
+              "id": "IC-EEN-NT-OA-08",
+              "codigo_oficial": "OA 08 EEN NT",
+              "descripcion": "Practicar algunas acciones cotidianas, que contribuyen al cuidado de ambientes sostenibles, tales como manejo de desechos en paseos al aire libre, separación de residuos, utilizar envases o papeles, plantar flores o árboles."
+            },
+            {
+              "id": "IC-EENA-NT-OA-12",
+              "codigo_oficial": "OA 12 EEN NT",
+              "descripcion": "Comprender que la acción humana puede aportar al desarrollo de ambientes sostenibles y también al deterioro de estos."
+            }
+          ]
+        },
+        {
+          "nombre": "Pensamiento matemático",
+          "oa_transversales": [],
+          "oa_contenido": [
+            {
+              "id": "IC-PMAT-NT-OA-11",
+              "codigo_oficial": "OA 11 PM NT",
+              "descripcion": "Emplear medidas no estandarizadas, para determinar longitud de objetos, registrando datos, en diversas situaciones lúdicas o actividades cotidianas."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
