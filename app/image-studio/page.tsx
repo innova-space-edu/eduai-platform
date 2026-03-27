@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import Link from "next/link"
@@ -12,28 +12,29 @@ import {
 
 // ── Constantes (idénticas a /imagenes para usar el mismo API) ─────────────────
 const STYLES = [
-  { id: "realistic",    label: "Realista",        emoji: "📷" },
-  { id: "digital art",  label: "Arte Digital",    emoji: "🎨" },
-  { id: "oil painting", label: "Óleo",            emoji: "🖼️" },
-  { id: "anime",        label: "Anime",           emoji: "⛩️" },
-  { id: "watercolor",   label: "Acuarela",        emoji: "💧" },
-  { id: "3d render",    label: "3D",              emoji: "🧊" },
-  { id: "sketch",       label: "Boceto",          emoji: "✏️" },
-  { id: "cinematic",    label: "Cinematográfico", emoji: "🎬" },
-  { id: "educational",  label: "Educativo",       emoji: "📚" },
-  { id: "flat design",  label: "Flat Design",     emoji: "✦"  },
+  { id: "realistic", label: "Realista", emoji: "📷" },
+  { id: "digital art", label: "Arte Digital", emoji: "🎨" },
+  { id: "oil painting", label: "Óleo", emoji: "🖼️" },
+  { id: "anime", label: "Anime", emoji: "⛩️" },
+  { id: "watercolor", label: "Acuarela", emoji: "💧" },
+  { id: "3d render", label: "3D", emoji: "🧊" },
+  { id: "sketch", label: "Boceto", emoji: "✏️" },
+  { id: "cinematic", label: "Cinematográfico", emoji: "🎬" },
+  { id: "educational", label: "Educativo", emoji: "📚" },
+  { id: "flat design", label: "Flat Design", emoji: "✦" },
 ]
 
 const SIZES = [
-  { label: "Horizontal", w: 1024, h: 576,  ratio: "16/9" },
-  { label: "Cuadrado",   w: 1024, h: 1024, ratio: "1/1"  },
-  { label: "Vertical",   w: 576,  h: 1024, ratio: "9/16" },
+  { label: "Horizontal", w: 1024, h: 576, ratio: "16/9" },
+  { label: "Cuadrado", w: 1024, h: 1024, ratio: "1/1" },
+  { label: "Vertical", w: 576, h: 1024, ratio: "9/16" },
 ]
 
 const PROVIDERS = [
-  { id: "auto",        label: "Auto"          },
-  { id: "together",    label: "Together (FLUX)" },
-  { id: "huggingface", label: "Hugging Face"  },
+  { id: "auto", label: "Auto" },
+  { id: "together", label: "Together (FLUX)" },
+  { id: "huggingface", label: "Hugging Face" },
+  { id: "pollinations", label: "Pollinations" },
 ]
 
 const EXAMPLES = [
@@ -61,13 +62,13 @@ interface GalleryImage {
 }
 
 type FilterSource = "all" | "manual" | "auto_study"
-type PanelMode    = "generate" | "gallery"
+type PanelMode = "generate" | "gallery"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // COMPONENTE PRINCIPAL
 // ─────────────────────────────────────────────────────────────────────────────
 export default function ImageStudioPage() {
-  const router   = useRouter()
+  const router = useRouter()
   const supabase = createClient()
 
   // ── Panel activo ─────────────────────────────────────────────────────────
@@ -78,69 +79,106 @@ export default function ImageStudioPage() {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) router.push("/login")
     })
-  }, [])
+  }, [router, supabase])
 
   // ── Generar: state ────────────────────────────────────────────────────────
-  const [prompt,     setPrompt]     = useState("")
-  const [style,      setStyle]      = useState("realistic")
-  const [sizeIdx,    setSizeIdx]    = useState(0)
-  const [provider,   setProvider]   = useState("auto")
+  const [prompt, setPrompt] = useState("")
+  const [style, setStyle] = useState("realistic")
+  const [sizeIdx, setSizeIdx] = useState(0)
+  const [provider, setProvider] = useState("auto")
   const [generating, setGenerating] = useState(false)
-  const [genError,   setGenError]   = useState("")
-  const [result,     setResult]     = useState<{ imageUrl: string; optimizedPrompt: string; provider: string } | null>(null)
+  const [genError, setGenError] = useState("")
+  const [result, setResult] = useState<{ imageUrl: string; optimizedPrompt: string; provider: string } | null>(null)
 
   // ── Galería: state ────────────────────────────────────────────────────────
-  const [images,       setImages]       = useState<GalleryImage[]>([])
-  const [galLoading,   setGalLoading]   = useState(true)
-  const [filter,       setFilter]       = useState<FilterSource>("all")
-  const [search,       setSearch]       = useState("")
-  const [fullscreen,   setFullscreen]   = useState<GalleryImage | null>(null)
-  const [fsIdx,        setFsIdx]        = useState(0)
+  const [images, setImages] = useState<GalleryImage[]>([])
+  const [galLoading, setGalLoading] = useState(true)
+  const [filter, setFilter] = useState<FilterSource>("all")
+  const [search, setSearch] = useState("")
+  const [fullscreen, setFullscreen] = useState<GalleryImage | null>(null)
+  const [fsIdx, setFsIdx] = useState(0)
 
   // ── Cargar galería ────────────────────────────────────────────────────────
-  useEffect(() => { loadGallery() }, [])
+  useEffect(() => {
+    loadGallery()
+  }, [])
 
   async function loadGallery() {
     setGalLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
+
     const { data } = await supabase
       .from("generated_images")
       .select("*")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(120)
+
     setImages(data || [])
     setGalLoading(false)
+  }
+
+  async function readErrorResponse(res: Response) {
+    const contentType = res.headers.get("content-type") || ""
+
+    if (contentType.includes("application/json")) {
+      try {
+        const data = await res.json()
+        return data?.error || data?.message || JSON.stringify(data)
+      } catch {
+        return `Error ${res.status}`
+      }
+    }
+
+    try {
+      const text = await res.text()
+      return text || `Error ${res.status}`
+    } catch {
+      return `Error ${res.status}`
+    }
   }
 
   // ── Generar imagen — llama al mismo endpoint que /imagenes ────────────────
   async function handleGenerate() {
     if (!prompt.trim() || generating) return
+
     setGenerating(true)
     setGenError("")
     setResult(null)
+
     const size = SIZES[sizeIdx]
+
     try {
       const res = await fetch("/api/agents/imagenes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt:   prompt.trim(),
+          prompt: prompt.trim(),
           style,
-          width:    size.w,
-          height:   size.h,
+          width: size.w,
+          height: size.h,
           provider,
-          source:   "manual",
+          source: "manual",
         }),
       })
-      if (!res.ok) { const txt = await res.text(); throw new Error(txt || `Error ${res.status}`) }
+
+      if (!res.ok) {
+        const msg = await readErrorResponse(res)
+        throw new Error(msg)
+      }
+
       const data = await res.json()
-      setResult({ imageUrl: data.imageUrl, optimizedPrompt: data.optimizedPrompt, provider: data.provider })
-      // Refrescar galería después de generar
+
+      setResult({
+        imageUrl: data.imageUrl,
+        optimizedPrompt: data.optimizedPrompt,
+        provider: data.provider,
+      })
+
       setTimeout(loadGallery, 1000)
     } catch (err: any) {
-      setGenError(err.message || "No se pudo generar la imagen")
+      setGenError(err?.message || "No se pudo generar la imagen")
     } finally {
       setGenerating(false)
     }
@@ -149,27 +187,29 @@ export default function ImageStudioPage() {
   // ── Eliminar imagen ────────────────────────────────────────────────────────
   async function handleDelete(id: string) {
     await supabase.from("generated_images").delete().eq("id", id)
-    setImages(prev => prev.filter(img => img.id !== id))
+    setImages((prev) => prev.filter((img) => img.id !== id))
     if (fullscreen?.id === id) setFullscreen(null)
   }
 
   // ── Descargar imagen ──────────────────────────────────────────────────────
-  function handleDownload(imageUrl: string, prompt: string) {
+  function handleDownload(imageUrl: string, promptText: string) {
     const a = document.createElement("a")
     a.href = imageUrl
-    a.download = `eduai-${prompt.slice(0, 30).replace(/\s+/g, "-")}.jpg`
+    a.download = `eduai-${promptText.slice(0, 30).replace(/\s+/g, "-")}.jpg`
     a.click()
   }
 
   // ── Fullscreen nav ────────────────────────────────────────────────────────
-  const filtered = images.filter(img => {
+  const filtered = images.filter((img) => {
     const matchSource = filter === "all" ? true : img.source === filter
-    const matchSearch = search.trim() === "" ? true : img.prompt.toLowerCase().includes(search.toLowerCase())
+    const matchSearch =
+      search.trim() === "" ? true : img.prompt.toLowerCase().includes(search.toLowerCase())
+
     return matchSource && matchSearch
   })
 
   function openFullscreen(img: GalleryImage) {
-    const idx = filtered.findIndex(i => i.id === img.id)
+    const idx = filtered.findIndex((i) => i.id === img.id)
     setFsIdx(idx)
     setFullscreen(img)
   }
@@ -184,15 +224,16 @@ export default function ImageStudioPage() {
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (!fullscreen) return
-      if (e.key === "Escape")      setFullscreen(null)
-      if (e.key === "ArrowLeft")   fsNavigate(-1)
-      if (e.key === "ArrowRight")  fsNavigate(1)
+      if (e.key === "Escape") setFullscreen(null)
+      if (e.key === "ArrowLeft") fsNavigate(-1)
+      if (e.key === "ArrowRight") fsNavigate(1)
     }
+
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
   }, [fullscreen, fsIdx, filtered])
 
-  const styleLabel: Record<string, string> = Object.fromEntries(STYLES.map(s => [s.id, s.label]))
+  const styleLabel: Record<string, string> = Object.fromEntries(STYLES.map((s) => [s.id, s.label]))
 
   // ─────────────────────────────────────────────────────────────────────────
   // RENDER
@@ -207,7 +248,7 @@ export default function ImageStudioPage() {
           onClick={() => setFullscreen(null)}
         >
           {/* Top bar */}
-          <div className="flex items-start justify-between p-4 flex-shrink-0" onClick={e => e.stopPropagation()}>
+          <div className="flex items-start justify-between p-4 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
             <div className="flex-1 min-w-0 pr-4">
               <p className="text-white/70 text-sm leading-relaxed">{fullscreen.prompt}</p>
               <p className="text-white/30 text-xs mt-1">
@@ -240,7 +281,7 @@ export default function ImageStudioPage() {
           </div>
 
           {/* Image + nav arrows */}
-          <div className="flex-1 flex items-center justify-center relative px-4 pb-4" onClick={e => e.stopPropagation()}>
+          <div className="flex-1 flex items-center justify-center relative px-4 pb-4" onClick={(e) => e.stopPropagation()}>
             {fsIdx > 0 && (
               <button
                 onClick={() => fsNavigate(-1)}
@@ -302,14 +343,14 @@ export default function ImageStudioPage() {
             className="flex items-center gap-1 p-1 rounded-xl"
             style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
           >
-            {(["generate", "gallery"] as PanelMode[]).map(p => (
+            {(["generate", "gallery"] as PanelMode[]).map((p) => (
               <button
                 key={p}
                 onClick={() => setPanel(p)}
                 className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
                 style={{
-                  background:  panel === p ? "rgba(219,39,119,0.15)" : "transparent",
-                  color:       panel === p ? "#f9a8d4" : "#6b7280",
+                  background: panel === p ? "rgba(219,39,119,0.15)" : "transparent",
+                  color: panel === p ? "#f9a8d4" : "#6b7280",
                   borderColor: panel === p ? "rgba(219,39,119,0.3)" : "transparent",
                 }}
               >
@@ -333,14 +374,14 @@ export default function ImageStudioPage() {
               <div className="relative">
                 <textarea
                   value={prompt}
-                  onChange={e => setPrompt(e.target.value)}
-                  onKeyDown={e => { if (e.key === "Enter" && e.metaKey) handleGenerate() }}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && e.metaKey) handleGenerate() }}
                   placeholder="Describe la imagen que quieres crear..."
                   className="w-full bg-white/[0.04] border border-white/[0.08] rounded-2xl px-4 py-3.5 text-gray-200 placeholder-gray-600 text-sm focus:outline-none focus:border-pink-500/30 focus:bg-white/[0.06] transition-all resize-none min-h-[80px]"
                 />
                 {/* Ejemplos */}
                 <div className="flex gap-1.5 flex-wrap mt-2">
-                  {EXAMPLES.slice(0, 3).map(ex => (
+                  {EXAMPLES.slice(0, 3).map((ex) => (
                     <button
                       key={ex}
                       onClick={() => setPrompt(ex)}
@@ -361,15 +402,15 @@ export default function ImageStudioPage() {
               <div>
                 <label className="text-gray-600 text-[11px] font-semibold tracking-widest block mb-2">ESTILO</label>
                 <div className="flex flex-wrap gap-1.5">
-                  {STYLES.map(s => (
+                  {STYLES.map((s) => (
                     <button
                       key={s.id}
                       onClick={() => setStyle(s.id)}
                       className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-medium border transition-all"
                       style={{
-                        background:  style === s.id ? "rgba(219,39,119,0.1)" : "rgba(255,255,255,0.02)",
+                        background: style === s.id ? "rgba(219,39,119,0.1)" : "rgba(255,255,255,0.02)",
                         borderColor: style === s.id ? "rgba(219,39,119,0.3)" : "rgba(255,255,255,0.07)",
-                        color:       style === s.id ? "#f9a8d4" : "#6b7280",
+                        color: style === s.id ? "#f9a8d4" : "#6b7280",
                       }}
                     >
                       <span>{s.emoji}</span><span>{s.label}</span>
@@ -388,18 +429,18 @@ export default function ImageStudioPage() {
                       onClick={() => setSizeIdx(i)}
                       className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium border transition-all text-left"
                       style={{
-                        background:  sizeIdx === i ? "rgba(219,39,119,0.1)" : "rgba(255,255,255,0.02)",
+                        background: sizeIdx === i ? "rgba(219,39,119,0.1)" : "rgba(255,255,255,0.02)",
                         borderColor: sizeIdx === i ? "rgba(219,39,119,0.3)" : "rgba(255,255,255,0.07)",
-                        color:       sizeIdx === i ? "#f9a8d4" : "#6b7280",
+                        color: sizeIdx === i ? "#f9a8d4" : "#6b7280",
                       }}
                     >
                       <div
                         className="rounded flex-shrink-0"
                         style={{
-                          width:      s.ratio === "16/9" ? 18 : s.ratio === "1/1" ? 12 : 9,
-                          height:     s.ratio === "16/9" ? 10 : s.ratio === "1/1" ? 12 : 16,
+                          width: s.ratio === "16/9" ? 18 : s.ratio === "1/1" ? 12 : 9,
+                          height: s.ratio === "16/9" ? 10 : s.ratio === "1/1" ? 12 : 16,
                           background: sizeIdx === i ? "rgba(219,39,119,0.4)" : "rgba(255,255,255,0.2)",
-                          border:     `1px solid ${sizeIdx === i ? "rgba(219,39,119,0.6)" : "rgba(255,255,255,0.2)"}`,
+                          border: `1px solid ${sizeIdx === i ? "rgba(219,39,119,0.6)" : "rgba(255,255,255,0.2)"}`,
                         }}
                       />
                       <span>{s.label}</span>
@@ -413,21 +454,24 @@ export default function ImageStudioPage() {
               <div>
                 <label className="text-gray-600 text-[11px] font-semibold tracking-widest block mb-2">MODELO</label>
                 <div className="flex flex-col gap-1.5">
-                  {PROVIDERS.map(p => (
+                  {PROVIDERS.map((p) => (
                     <button
                       key={p.id}
                       onClick={() => setProvider(p.id)}
                       className="px-3 py-2 rounded-xl text-xs font-medium border transition-all text-left"
                       style={{
-                        background:  provider === p.id ? "rgba(219,39,119,0.1)" : "rgba(255,255,255,0.02)",
+                        background: provider === p.id ? "rgba(219,39,119,0.1)" : "rgba(255,255,255,0.02)",
                         borderColor: provider === p.id ? "rgba(219,39,119,0.3)" : "rgba(255,255,255,0.07)",
-                        color:       provider === p.id ? "#f9a8d4" : "#6b7280",
+                        color: provider === p.id ? "#f9a8d4" : "#6b7280",
                       }}
                     >
                       {p.label}
                     </button>
                   ))}
                 </div>
+                <p className="text-[10px] text-gray-600 mt-2 leading-relaxed">
+                  Auto prueba Together → Hugging Face → Pollinations.
+                </p>
               </div>
             </div>
 
@@ -438,7 +482,7 @@ export default function ImageStudioPage() {
               className="flex items-center justify-center gap-2.5 w-full py-3.5 rounded-2xl font-bold text-sm text-white transition-all disabled:opacity-40"
               style={{
                 background: "linear-gradient(135deg, #be185d, #db2777)",
-                boxShadow:  prompt.trim() && !generating ? "0 4px 20px rgba(219,39,119,0.3)" : "none",
+                boxShadow: prompt.trim() && !generating ? "0 4px 20px rgba(219,39,119,0.3)" : "none",
               }}
             >
               {generating
@@ -449,7 +493,7 @@ export default function ImageStudioPage() {
 
             {/* Error */}
             {genError && (
-              <div className="px-4 py-3 rounded-xl border border-red-500/25 bg-red-500/8 text-red-400 text-sm">
+              <div className="px-4 py-3 rounded-xl border border-red-500/25 bg-red-500/8 text-red-400 text-sm whitespace-pre-wrap">
                 ❌ {genError}
               </div>
             )}
@@ -510,7 +554,7 @@ export default function ImageStudioPage() {
                 <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-600" />
                 <input
                   value={search}
-                  onChange={e => setSearch(e.target.value)}
+                  onChange={(e) => setSearch(e.target.value)}
                   placeholder="Buscar por descripción..."
                   className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl pl-9 pr-4 py-2.5 text-gray-300 placeholder-gray-600 text-sm focus:outline-none focus:border-pink-500/30 transition-all"
                 />
@@ -518,19 +562,19 @@ export default function ImageStudioPage() {
 
               {/* Filtros de fuente */}
               <div className="flex gap-1.5">
-                {[
-                  { id: "all",        label: "Todas"    },
-                  { id: "manual",     label: "Por mí"   },
-                  { id: "auto_study", label: "Del tutor" },
-                ].map(f => (
+                {([
+                  { id: "all", label: "Todas" },
+                  { id: "manual", label: "Manual" },
+                  { id: "auto_study", label: "Auto-estudio" },
+                ] as { id: FilterSource; label: string }[]).map((f) => (
                   <button
                     key={f.id}
-                    onClick={() => setFilter(f.id as FilterSource)}
-                    className="px-3 py-2.5 rounded-xl text-xs font-medium border transition-all"
+                    onClick={() => setFilter(f.id)}
+                    className="px-3 py-2 rounded-xl text-xs font-medium border transition-all"
                     style={{
-                      background:  filter === f.id ? "rgba(219,39,119,0.1)" : "rgba(255,255,255,0.02)",
+                      background: filter === f.id ? "rgba(219,39,119,0.1)" : "rgba(255,255,255,0.02)",
                       borderColor: filter === f.id ? "rgba(219,39,119,0.3)" : "rgba(255,255,255,0.07)",
-                      color:       filter === f.id ? "#f9a8d4" : "#6b7280",
+                      color: filter === f.id ? "#f9a8d4" : "#6b7280",
                     }}
                   >
                     {f.label}
@@ -539,45 +583,44 @@ export default function ImageStudioPage() {
               </div>
             </div>
 
-            {/* Contador */}
-            <p className="text-gray-600 text-xs">
-              {filtered.length} imagen{filtered.length !== 1 ? "es" : ""}
-              {search && ` · "${search}"`}
-            </p>
+            {/* Barra info */}
+            <div
+              className="flex items-center justify-between px-4 py-3 rounded-2xl border"
+              style={{ background: "rgba(255,255,255,0.03)", borderColor: "rgba(255,255,255,0.07)" }}
+            >
+              <div className="flex items-center gap-2 text-gray-400 text-xs">
+                <SlidersHorizontal size={13} />
+                <span>{filtered.length} imágenes</span>
+              </div>
+              <button
+                onClick={loadGallery}
+                className="text-xs text-pink-400 hover:text-pink-300 transition-colors"
+              >
+                Recargar
+              </button>
+            </div>
 
-            {/* Grid de imágenes */}
+            {/* Loading */}
             {galLoading ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                {Array.from({ length: 12 }).map((_, i) => (
-                  <div key={i} className="aspect-video rounded-2xl skeleton" />
-                ))}
+              <div className="py-16 flex items-center justify-center text-gray-500 text-sm">
+                <Loader2 size={18} className="animate-spin mr-2" />
+                Cargando galería...
               </div>
             ) : filtered.length === 0 ? (
-              <div className="text-center py-20">
-                <div className="text-5xl mb-4">🖼️</div>
-                <p className="text-gray-400 font-semibold mb-2">
-                  {search ? `Sin resultados para "${search}"` : "Sin imágenes aún"}
-                </p>
-                <p className="text-gray-600 text-sm mb-5">
-                  {search
-                    ? "Prueba con otra búsqueda"
-                    : filter === "auto_study"
-                    ? "Las imágenes se generan automáticamente durante tus sesiones de estudio"
-                    : "Genera tu primera imagen en el panel de creación"}
-                </p>
-                {!search && (
-                  <button
-                    onClick={() => setPanel("generate")}
-                    className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all"
-                    style={{ background: "linear-gradient(135deg, #be185d, #db2777)" }}
-                  >
-                    ✨ Crear imagen
-                  </button>
-                )}
+              <div
+                className="py-16 rounded-2xl border text-center"
+                style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.06)" }}
+              >
+                <div className="w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center"
+                     style={{ background: "rgba(219,39,119,0.08)" }}>
+                  <ImagePlus size={24} className="text-pink-400" />
+                </div>
+                <p className="text-gray-300 text-sm font-medium mb-1">No hay imágenes todavía</p>
+                <p className="text-gray-600 text-xs">Genera tu primera imagen para verla aquí.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                {filtered.map(img => (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {filtered.map((img) => (
                   <div
                     key={img.id}
                     className="group relative rounded-2xl overflow-hidden border border-white/[0.06] cursor-pointer transition-all hover:border-white/[0.12] hover:scale-[1.02]"
@@ -592,13 +635,14 @@ export default function ImageStudioPage() {
                     />
 
                     {/* Hover overlay */}
-                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-2"
-                         style={{ background: "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.1) 60%, transparent 100%)" }}>
-
+                    <div
+                      className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-2"
+                      style={{ background: "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.1) 60%, transparent 100%)" }}
+                    >
                       {/* Top: delete */}
                       <div className="flex justify-end">
                         <button
-                          onClick={e => { e.stopPropagation(); handleDelete(img.id) }}
+                          onClick={(e) => { e.stopPropagation(); handleDelete(img.id) }}
                           className="w-7 h-7 flex items-center justify-center rounded-lg backdrop-blur-md transition-all"
                           style={{ background: "rgba(239,68,68,0.3)", border: "1px solid rgba(239,68,68,0.4)" }}
                         >
@@ -611,14 +655,14 @@ export default function ImageStudioPage() {
                         <p className="text-white/80 text-[10px] leading-tight line-clamp-2 mb-2">{img.prompt}</p>
                         <div className="flex gap-1.5">
                           <button
-                            onClick={e => { e.stopPropagation(); handleDownload(img.image_url, img.prompt) }}
+                            onClick={(e) => { e.stopPropagation(); handleDownload(img.image_url, img.prompt) }}
                             className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium text-white backdrop-blur-md"
                             style={{ background: "rgba(255,255,255,0.12)" }}
                           >
                             <Download size={10} /> Descargar
                           </button>
                           <button
-                            onClick={e => { e.stopPropagation(); openFullscreen(img) }}
+                            onClick={(e) => { e.stopPropagation(); openFullscreen(img) }}
                             className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium text-white backdrop-blur-md"
                             style={{ background: "rgba(255,255,255,0.12)" }}
                           >
