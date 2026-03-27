@@ -1,7 +1,8 @@
 // app/api/agents/educador/route.ts
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import { buildOAContext, cursoToKey, normalizeAsignatura, type NivelKey } from "@/lib/mineduc-oa"
+import { buildOAContext, cursoToKey, type NivelKey } from "@/lib/mineduc-oa"
+import { buildPlanningHorizonText, buildSelectedOAContext, getParvulariaAmbito, getParvulariaOAT } from "@/lib/planificador-curriculum"
 import { callAI } from "@/lib/ai-router-v4"
 
 export const runtime     = "nodejs"
@@ -113,6 +114,12 @@ export async function POST(req: NextRequest) {
   const asignatura: string   = config?.asignatura || "Lenguaje y Comunicación"
   const contexto:   string   = config?.contexto   || ""
   const mes:        string   = config?.mes        || new Date().toLocaleString("es-CL", { month: "long" }).toLowerCase()
+  const unidadId:   string   = config?.unidadId   || ""
+  const selectedOAIds: string[] = Array.isArray(config?.selectedOAIds) ? config.selectedOAIds : []
+  const selectedOATIds: string[] = Array.isArray(config?.selectedOATIds) ? config.selectedOATIds : []
+  const tiempoPlanificacion = config?.tiempoPlanificacion || "diaria"
+  const sesiones = Number(config?.sesiones || 1)
+  const duracionMinutos = Number(config?.duracionMinutos || 45)
 
   const temporada  = SEASONS[mes] || ""
   const nivelCtx   = NIVEL_INFO[nivel]
@@ -122,7 +129,13 @@ export async function POST(req: NextRequest) {
   const { oaNum, keywords } = extractOARequest(message)
 
   // 1. Intentar desde la base de datos local
-  let oaContext = buildOAContext(nivel, curso, asignatura, oaNum ?? undefined)
+  let oaContext = selectedOAIds.length
+    ? buildSelectedOAContext({ nivel, curso, asignatura }, selectedOAIds, unidadId || undefined)
+    : buildOAContext(nivel, curso, asignatura, oaNum ?? undefined)
+
+  const ambitoParvularia = nivel === "parvularia" ? getParvulariaAmbito(asignatura) : ""
+  const parvulariaOAT = nivel === "parvularia" ? getParvulariaOAT(asignatura).filter(item => selectedOATIds.length ? selectedOATIds.includes(item.id) : true) : []
+  const horizontePlanificacion = buildPlanningHorizonText(tiempoPlanificacion, sesiones, duracionMinutos)
 
   // 2. Si no hay datos locales, consultar a Gemini con baja temperatura
   if (!oaContext && GEMINI_KEY) {
@@ -156,14 +169,20 @@ ${oaContext ? oaContext : `\nNota: Para obtener los OA exactos de ${asignatura} 
 CONTEXTO TEMPORAL
 ═══════════════════════════════════════════════
 Mes: ${mes.charAt(0).toUpperCase() + mes.slice(1)} — ${temporada}
+Horizonte de planificación: ${tiempoPlanificacion} | Sesiones: ${sesiones} | Minutos por sesión: ${duracionMinutos}
+${horizontePlanificacion}
 ${contexto ? `Información adicional del docente: ${contexto}` : ""}
+${unidadId ? `Unidad seleccionada por el docente: ${unidadId}` : ""}
+${selectedOAIds.length ? `OA seleccionados explícitamente: ${selectedOAIds.join(", ")}` : ""}
+${nivel === "parvularia" && ambitoParvularia ? `Ámbito de experiencia: ${ambitoParvularia} | Núcleo: ${asignatura}` : ""}
+${nivel === "parvularia" && parvulariaOAT.length ? `Focos transversales seleccionados: ${parvulariaOAT.map(item => `${item.id}: ${item.label}`).join(" | ")}` : ""}
 
 ═══════════════════════════════════════════════
 CAPACIDADES PEDAGÓGICAS
 ═══════════════════════════════════════════════
-1. Planificaciones completas alineadas al currículum con OA oficiales numerados
-2. Unidades didácticas de 1-8 semanas con secuencia lógica
-3. Actividades de inicio, desarrollo y cierre con estrategias variadas
+1. Planificaciones completas alineadas al currículum con OA oficiales numerados y coherencia vertical
+2. Unidades didácticas de 1-8 semanas con secuencia lógica y progresión por sesiones
+3. Actividades de inicio, desarrollo y cierre con estrategias variadas y tiempos realistas
 4. Rúbricas e instrumentos de evaluación (listas de cotejo, escalas, portafolios)
 5. Adaptaciones para NEE y atención a la diversidad
 6. Proyectos interdisciplinarios y aprendizaje basado en proyectos (ABP)
@@ -171,6 +190,8 @@ CAPACIDADES PEDAGÓGICAS
 8. Recursos digitales y tecnológicos integrados a la clase
 9. Tareas y actividades para el trabajo en familia
 10. Planificación de actos y efemérides escolares
+11. Selección y articulación de varios OA cuando el docente los marque
+12. En Parvularia, integrar ámbito, núcleo y focos transversales en experiencias lúdicas
 
 ═══════════════════════════════════════════════
 FORMATO DE PLANIFICACIONES
@@ -178,22 +199,29 @@ FORMATO DE PLANIFICACIONES
 Cuando generes una planificación, usa SIEMPRE esta estructura:
 
 📚 **DATOS GENERALES**
-> Nivel/Curso | Asignatura | Tiempo estimado | Fecha/Período
+> Nivel/Curso | Asignatura o Núcleo | Unidad | Tiempo estimado | Fecha/Período
 
 🎯 **OBJETIVO(S) DE APRENDIZAJE**
 > OA[N]: [texto oficial completo]
+> Si el usuario eligió varios OA, preséntalos todos y explica cómo se articulan.
+> En Parvularia, agrega también ámbito, núcleo y foco transversal cuando corresponda.
 > Indicadores de Evaluación:
 > - [indicador 1]
 > - [indicador 2]
 
-⚡ **INICIO** (10-15 min)
+🗓️ **SECUENCIA SEGÚN EL TIEMPO DE PLANIFICACIÓN**
+> Si es diaria: una clase completa.
+> Si es semanal: divide por sesiones.
+> Si es mensual: organiza por semanas y sesiones.
+
+⚡ **INICIO**
 > Activación conocimientos previos / Motivación
 > [descripción de la actividad]
 
-🔍 **DESARROLLO** (25-35 min)
+🔍 **DESARROLLO**
 > [actividades paso a paso, estrategias didácticas, agrupaciones]
 
-🌟 **CIERRE** (10-15 min)
+🌟 **CIERRE**
 > Síntesis / Metacognición / Conexión con próxima clase
 
 🛠️ **RECURSOS Y MATERIALES**
@@ -211,7 +239,9 @@ Cuando generes una planificación, usa SIEMPRE esta estructura:
 IMPORTANTE SOBRE LOS OA
 ═══════════════════════════════════════════════
 - SIEMPRE cita los OA con su número oficial (OA1, OA2, etc.)
+- Si el docente selecciona varios OA, articúlalos sin mezclarlos arbitrariamente
 - Si el docente pide un OA específico, desarrolla la planificación centrada en ese OA
+- Si el nivel es Parvularia, usa lenguaje de experiencia de aprendizaje y juego, e integra ideas lúdicas inspiradas en prácticas y materiales pedagógicos de JUNJI cuando sea pertinente
 - Si necesitas OA que no tienes disponibles, indícalo y orienta al docente hacia curriculum.mineduc.cl
 - Los OA son el eje articulador: toda actividad debe contribuir al logro del OA indicado`
 
