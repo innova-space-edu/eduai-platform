@@ -371,7 +371,7 @@ export async function POST(req: Request) {
   const prompt = String(body?.prompt || "").trim()
   const style = String(body?.style || "realistic")
   const width = clampDimension(Number(body?.width), 256, 1024, 1024)
-  const height = clampDimension(Number(body?.height), 256, 1024, 1024, 768)
+  const height = clampDimension(Number(body?.height), 256, 1024, 768)
   const provider = (body?.provider || "auto") as ProviderId
   const customPrompt = String(body?.customPrompt || "").trim()
   const source = String(body?.source || "manual")
