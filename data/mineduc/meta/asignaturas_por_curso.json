@@ -1,24 +1,64 @@
 {
   "Parvularia": {
-    "NT1": [
+    "Sala Cuna Menor (0 a 1 año)": [
       "Identidad y Autonomía",
       "Convivencia y Ciudadanía",
       "Corporalidad y Movimiento",
       "Lenguaje Verbal",
       "Lenguajes Artísticos",
       "Exploración del Entorno Natural",
-      "Pensamiento Matemático",
-      "Comprensión del Entorno Sociocultural"
+      "Comprensión del Entorno Sociocultural",
+      "Pensamiento Matemático"
     ],
-    "NT2": [
+    "Sala Cuna Mayor (1 a 2 años)": [
       "Identidad y Autonomía",
       "Convivencia y Ciudadanía",
       "Corporalidad y Movimiento",
       "Lenguaje Verbal",
       "Lenguajes Artísticos",
       "Exploración del Entorno Natural",
-      "Pensamiento Matemático",
-      "Comprensión del Entorno Sociocultural"
+      "Comprensión del Entorno Sociocultural",
+      "Pensamiento Matemático"
+    ],
+    "Medio Menor (2 a 3 años)": [
+      "Identidad y Autonomía",
+      "Convivencia y Ciudadanía",
+      "Corporalidad y Movimiento",
+      "Lenguaje Verbal",
+      "Lenguajes Artísticos",
+      "Exploración del Entorno Natural",
+      "Comprensión del Entorno Sociocultural",
+      "Pensamiento Matemático"
+    ],
+    "Medio Mayor (3 a 4 años)": [
+      "Identidad y Autonomía",
+      "Convivencia y Ciudadanía",
+      "Corporalidad y Movimiento",
+      "Lenguaje Verbal",
+      "Lenguajes Artísticos",
+      "Exploración del Entorno Natural",
+      "Comprensión del Entorno Sociocultural",
+      "Pensamiento Matemático"
+    ],
+    "NT1 - Pre Kinder (4-5 años)": [
+      "Identidad y Autonomía",
+      "Convivencia y Ciudadanía",
+      "Corporalidad y Movimiento",
+      "Lenguaje Verbal",
+      "Lenguajes Artísticos",
+      "Exploración del Entorno Natural",
+      "Comprensión del Entorno Sociocultural",
+      "Pensamiento Matemático"
+    ],
+    "NT2 - Kinder (5-6 años)": [
+      "Identidad y Autonomía",
+      "Convivencia y Ciudadanía",
+      "Corporalidad y Movimiento",
+      "Lenguaje Verbal",
+      "Lenguajes Artísticos",
+      "Exploración del Entorno Natural",
+      "Comprensión del Entorno Sociocultural",
+      "Pensamiento Matemático"
     ]
   },
   "Básica": {
@@ -93,7 +133,8 @@
       "Matemática",
       "Tecnología",
       "Biología",
-      "Química"
+      "Química",
+      "Física"
     ],
     "2° Medio": [
       "Lengua y Literatura",
@@ -104,11 +145,13 @@
       "Física"
     ],
     "3° Medio": [
+      "Matemática",
       "Educación Ciudadana",
       "Ciencias para la Ciudadanía"
     ],
     "4° Medio": [
       "Matemática",
+      "Lengua y Literatura",
       "Educación Ciudadana",
       "Ciencias para la Ciudadanía"
     ]
