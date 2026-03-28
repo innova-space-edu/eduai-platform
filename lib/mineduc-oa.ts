@@ -454,16 +454,60 @@ function flattenParvulariaNucleo(
   return result
 }
 
+function flattenParvulariaAll(
+  raw: ParvulariaCurriculumFile,
+  sourceFile: string
+): OA[] {
+  const result: OA[] = []
+
+  for (const ambito of raw.ambitos || []) {
+    for (const nucleo of ambito.nucleos || []) {
+      for (const oa of nucleo.oa_contenido || []) {
+        result.push({
+          id: oa.id,
+          texto: oa.descripcion,
+          codigoOficial: oa.codigo_oficial,
+          ambito: ambito.nombre,
+          nucleo: nucleo.nombre,
+          ejes: [ambito.nombre, nucleo.nombre],
+          tipo: "oa",
+          sourceFile,
+        })
+      }
+
+      for (const oat of nucleo.oa_transversales || []) {
+        result.push({
+          id: oat.id,
+          texto: oat.descripcion,
+          codigoOficial: oat.codigo_oficial,
+          ambito: ambito.nombre,
+          nucleo: nucleo.nombre,
+          ejes: [ambito.nombre, nucleo.nombre],
+          tipo: "oat",
+          sourceFile,
+        })
+      }
+    }
+  }
+
+  return result
+}
+
+export function getParvulariaIntegratedItems(curso: string): OA[] {
+  const cursoKey = cursoToKey(curso)
+
+  return Object.values(REGISTRY)
+    .filter((record) => record.nivel === "parvularia" && record.cursoKey === cursoKey && record.kind === "parvularia")
+    .flatMap((record) => flattenParvulariaAll(record.raw as ParvulariaCurriculumFile, record.sourceFile))
+    .filter((item, index, arr) => arr.findIndex((x) => x.id === item.id) === index)
+}
+
 export function getOAs(nivel: NivelKey, curso: string, asignatura: string): OA[] {
   const record = getCurriculumRecord(nivel, curso, asignatura)
   if (!record) return []
 
   if (record.kind === "parvularia") {
-    return flattenParvulariaNucleo(
-      record.raw as ParvulariaCurriculumFile,
-      record.asignaturaNormalizada,
-      record.sourceFile
-    )
+    return getParvulariaIntegratedItems(curso).filter((item) => item.tipo === "oa")
   }
 
   if (record.sharedBaseKey) {
@@ -573,26 +617,24 @@ export function getParvulariaAmbitoForCurso(curso: string, asignatura: string): 
 export function getParvulariaOATForCurso(
   curso: string,
   asignatura: string
-): Array<{ id: string; label: string; description?: string }> {
-  const record = getCurriculumRecord("parvularia", curso, asignatura)
-  if (!record || record.kind !== "parvularia") return []
+): Array<{ id: string; label: string; description?: string; ambito?: string; nucleo?: string }> {
+  const normalizedTarget = normalizeAsignatura(asignatura, "parvularia")
 
-  const raw = record.raw as ParvulariaCurriculumFile
-  const nucleoNormalizado = normalizeAsignatura(asignatura, "parvularia")
+  const all = getParvulariaIntegratedItems(curso)
+    .filter((item) => item.tipo === "oat")
+    .map((item) => ({
+      id: item.id,
+      label: item.texto,
+      description: item.codigoOficial,
+      ambito: item.ambito,
+      nucleo: item.nucleo,
+    }))
 
-  for (const ambito of raw.ambitos || []) {
-    for (const nucleo of ambito.nucleos || []) {
-      if (normalizeAsignatura(nucleo.nombre, "parvularia") !== nucleoNormalizado) continue
+  const sameNucleo = all.filter(
+    (item) => normalizeAsignatura(item.nucleo || "", "parvularia") === normalizedTarget
+  )
 
-      return (nucleo.oa_transversales || []).map((oat) => ({
-        id: oat.id,
-        label: oat.descripcion,
-        description: oat.codigo_oficial,
-      }))
-    }
-  }
-
-  return []
+  return sameNucleo.length ? [...sameNucleo, ...all.filter((item) => !sameNucleo.includes(item))] : all
 }
 
 export const OA_DATABASE = REGISTRY
