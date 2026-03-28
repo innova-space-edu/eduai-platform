@@ -735,7 +735,7 @@ export async function ensurePaperProcessed(params: {
     summary,
     page_count: chosen.pageCount || pages.length || 1,
     extraction_method: chosen.method,
-    parser_used: "internal-v2",
+    parser_used: chosen.method === "docling-api" ? "docling" : "internal-v2",
     ocr_used: !!chosen.usedOCR,
     source_file_size_bytes: fileBlob.size,
     source_file_sha256: sha256,
