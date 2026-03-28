@@ -15,6 +15,7 @@ import {
 } from "@/lib/planificador-curriculum"
 import {
   getAvailableAsignaturas,
+  hasLocalCurriculumForAsignatura,
   type NivelKey,
 } from "@/lib/mineduc-oa"
 
@@ -49,37 +50,6 @@ const CURSOS: Record<NivelKey, string[]> = {
     "8° Básico",
   ],
   media: ["1° Medio", "2° Medio", "3° Medio", "4° Medio"],
-}
-
-const FALLBACK_ASIGNATURAS: Record<NivelKey, string[]> = {
-  parvularia: [
-    "Identidad y Autonomía",
-    "Convivencia y Ciudadanía",
-    "Corporalidad y Movimiento",
-    "Lenguaje Verbal",
-    "Lenguajes Artísticos",
-    "Exploración del Entorno Natural",
-    "Pensamiento Matemático",
-    "Comprensión del Entorno Sociocultural",
-  ],
-  basica: [
-    "Lenguaje y Comunicación",
-    "Matemática",
-    "Ciencias Naturales",
-    "Historia, Geografía y Cs. Sociales",
-    "Tecnología",
-    "Inglés",
-  ],
-  media: [
-    "Lengua y Literatura",
-    "Matemática",
-    "Tecnología",
-    "Biología",
-    "Química",
-    "Física",
-    "Educación Ciudadana",
-    "Ciencias para la Ciudadanía",
-  ],
 }
 
 const QUICK_PROMPTS = [
@@ -135,10 +105,14 @@ interface Config {
   duracionMinutos: number
 }
 
+interface AsignaturaOption {
+  name: string
+  hasLocal: boolean
+}
+
 function getInitialAsignatura(nivel: NivelKey, curso: string) {
   const available = getAvailableAsignaturas(nivel, curso)
-  if (available.length) return available[0]
-  return FALLBACK_ASIGNATURAS[nivel][0] || ""
+  return available[0] || ""
 }
 
 export default function EducadorPage() {
@@ -174,10 +148,22 @@ export default function EducadorPage() {
     [config.nivel, config.curso, config.asignatura]
   )
 
-  const availableAsignaturas = useMemo(() => {
-    const dynamic = getAvailableAsignaturas(config.nivel, config.curso)
-    return dynamic.length ? dynamic : FALLBACK_ASIGNATURAS[config.nivel]
+  const availableAsignaturas = useMemo<AsignaturaOption[]>(() => {
+    return getAvailableAsignaturas(config.nivel, config.curso).map((name) => ({
+      name,
+      hasLocal: hasLocalCurriculumForAsignatura(config.nivel, config.curso, name),
+    }))
   }, [config.nivel, config.curso])
+
+  const currentAsignaturaHasLocal = useMemo(
+    () =>
+      hasLocalCurriculumForAsignatura(
+        config.nivel,
+        config.curso,
+        config.asignatura
+      ),
+    [config.nivel, config.curso, config.asignatura]
+  )
 
   const units = useMemo(
     () => getPlannerUnits(curriculumState),
@@ -226,14 +212,10 @@ export default function EducadorPage() {
     setConfig((prev) => {
       const cursos = CURSOS[prev.nivel]
       const nextCurso = cursos.includes(prev.curso) ? prev.curso : cursos[0]
-      const dynamicAsignaturas = getAvailableAsignaturas(prev.nivel, nextCurso)
-      const nextAsignaturaPool = dynamicAsignaturas.length
-        ? dynamicAsignaturas
-        : FALLBACK_ASIGNATURAS[prev.nivel]
-
-      const nextAsignatura = nextAsignaturaPool.includes(prev.asignatura)
+      const nextAsignaturas = getAvailableAsignaturas(prev.nivel, nextCurso)
+      const nextAsignatura = nextAsignaturas.includes(prev.asignatura)
         ? prev.asignatura
-        : nextAsignaturaPool[0] || ""
+        : nextAsignaturas[0] || ""
 
       return {
         ...prev,
@@ -245,14 +227,10 @@ export default function EducadorPage() {
 
   useEffect(() => {
     setConfig((prev) => {
-      const dynamicAsignaturas = getAvailableAsignaturas(prev.nivel, prev.curso)
-      const validAsignaturas = dynamicAsignaturas.length
-        ? dynamicAsignaturas
-        : FALLBACK_ASIGNATURAS[prev.nivel]
-
-      const nextAsignatura = validAsignaturas.includes(prev.asignatura)
+      const nextAsignaturas = getAvailableAsignaturas(prev.nivel, prev.curso)
+      const nextAsignatura = nextAsignaturas.includes(prev.asignatura)
         ? prev.asignatura
-        : validAsignaturas[0] || ""
+        : nextAsignaturas[0] || ""
 
       if (nextAsignatura === prev.asignatura) return prev
 
@@ -495,10 +473,37 @@ export default function EducadorPage() {
                     className="w-full bg-gray-800 border border-gray-700 rounded-2xl px-3 py-2.5 text-gray-300 text-sm focus:outline-none focus:border-emerald-500/50"
                   >
                     {availableAsignaturas.map((asignatura) => (
-                      <option key={asignatura}>{asignatura}</option>
+                      <option key={asignatura.name} value={asignatura.name}>
+                        {asignatura.hasLocal ? "✅" : "🟡"} {asignatura.name}
+                      </option>
                     ))}
                   </select>
                 </div>
+              </div>
+
+              <div className="mb-4 rounded-2xl border border-gray-800 bg-gray-800/40 p-4">
+                <p className="text-[11px] uppercase tracking-wide text-gray-500 mb-2">
+                  Estado curricular de la asignatura seleccionada
+                </p>
+                <div className="flex items-center gap-2 text-sm">
+                  <span
+                    className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border ${
+                      currentAsignaturaHasLocal
+                        ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                        : "border-amber-500/30 bg-amber-500/10 text-amber-300"
+                    }`}
+                  >
+                    <span>{currentAsignaturaHasLocal ? "✅" : "🟡"}</span>
+                    {currentAsignaturaHasLocal
+                      ? "Base curricular local cargada"
+                      : "Solo catálogo/meta por ahora"}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-400 mt-2 text-justify">
+                  {currentAsignaturaHasLocal
+                    ? "Esta asignatura ya tiene archivo curricular local conectado al planificador."
+                    : "Esta asignatura aparece en el catálogo por curso, pero todavía falta cargar o completar su archivo curricular oficial."}
+                </p>
               </div>
 
               {config.nivel === "parvularia" && (
@@ -811,6 +816,19 @@ export default function EducadorPage() {
 
                   <div className="space-y-2 text-justify">
                     <p className="text-gray-300 text-sm">
+                      Estado de asignatura:{" "}
+                      <span
+                        className={
+                          currentAsignaturaHasLocal ? "text-emerald-300" : "text-amber-300"
+                        }
+                      >
+                        {currentAsignaturaHasLocal
+                          ? "Base curricular local disponible"
+                          : "Solo catálogo/meta"}
+                      </span>
+                    </p>
+
+                    <p className="text-gray-300 text-sm">
                       {config.asignatura === "Ciencias para la Ciudadanía" ? "Módulo" : "Unidad"}:{" "}
                       <span className="text-white">
                         {selectedUnit?.label || "Sin unidad/módulo local"}
@@ -846,11 +864,27 @@ export default function EducadorPage() {
                     Sugerencia de uso
                   </p>
                   <p className="text-gray-300 text-sm">
-                    Primero selecciona una unidad o módulo, luego marca varios OA. Después
-                    pide una planificación diaria, semanal o mensual. El agente organizará
-                    actividades, evaluación, adaptaciones y secuencia didáctica con mayor
-                    precisión.
+                    Primero selecciona una unidad o módulo, luego marca varios OA. Si ves una
+                    asignatura con ícono 🟡, significa que ya está contemplada en el catálogo
+                    por curso, pero aún debes cargar o completar su archivo curricular oficial.
                   </p>
+                </div>
+
+                <div className="rounded-2xl bg-gray-800/80 border border-gray-700 p-4">
+                  <p className="text-gray-500 text-xs uppercase tracking-wide mb-2">
+                    Leyenda visual
+                  </p>
+
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center gap-2 text-emerald-300">
+                      <span>✅</span>
+                      <span>Asignatura con base curricular local cargada</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-amber-300">
+                      <span>🟡</span>
+                      <span>Asignatura listada en catálogo/meta, pendiente de archivo curricular</span>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 pt-2">
