@@ -3,7 +3,7 @@ import {
   STORAGE_BUCKET,
   MAX_RETURN_TEXT_CHARS,
   truncateText,
-  extractPaperFromStorage,
+  ensurePaperProcessed,
 } from "@/lib/papers/extraction"
 
 export const runtime = "nodejs"
@@ -24,6 +24,7 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json()
+
     const bucket = getString(body?.bucket).trim()
     const filePath = getString(body?.filePath).trim()
     const filename = getString(body?.filename).trim()
@@ -50,7 +51,7 @@ export async function POST(req: Request) {
       )
     }
 
-    const result = await extractPaperFromStorage({
+    const result = await ensurePaperProcessed({
       supabase,
       userId: user.id,
       bucket,
@@ -61,15 +62,6 @@ export async function POST(req: Request) {
 
     const finalText = truncateText(result.text || "", MAX_RETURN_TEXT_CHARS)
 
-    console.log("Extraction result:", {
-      title: result.title,
-      pageCount: result.pageCount,
-      extractionMethod: result.extractionMethod,
-      fromCache: result.fromCache,
-      hasText: !!result.text?.trim(),
-      textLength: result.text?.length || 0,
-    })
-
     return Response.json({
       title: result.title,
       text: finalText,
@@ -77,13 +69,17 @@ export async function POST(req: Request) {
       pageCount: result.pageCount,
       truncated: finalText.length < (result.text || "").length,
       extractionMethod: result.extractionMethod,
+      parserUsed: result.parserUsed,
+      ocrUsed: result.ocrUsed,
       fromCache: result.fromCache,
       bucket,
       filePath,
-      error: "error" in result ? result.error : false,
+      documentId: result.documentId || null,
+      chunkCount: result.chunks?.length || 0,
+      error: result.error || false,
     })
   } catch (error: any) {
-    console.error("PDF extraction error:", error)
+    console.error("[Paper][extract] error:", error)
 
     return Response.json(
       {
