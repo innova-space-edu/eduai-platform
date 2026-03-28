@@ -5,6 +5,7 @@ import {
   ensurePaperProcessed,
   cleanText,
 } from "@/lib/papers/extraction"
+import { semanticSearchPaperChunks, updateChunkEmbeddings } from "@/lib/papers/embeddings"
 
 export const runtime = "nodejs"
 
@@ -16,6 +17,7 @@ type ChunkRecord = {
   page_end: number
   content: string
   lexical_hint: string
+  similarity?: number
 }
 
 function escapeRegExp(value: string) {
@@ -68,14 +70,38 @@ function scoreChunkLexically(chunk: ChunkRecord, query: string) {
   if (/(conclusi)/i.test(query) && /(conclusi|discussion)/i.test(content)) score += 5
   if (/(tabla|figure|figura|ecuaci|formula)/i.test(query) && /(tabla|table|figure|figura|equation|ecuaci|formula)/i.test(content)) score += 4
 
-  const questionWords = query.trim().split(/\s+/).length
-  if (questionWords <= 4 && chunk.section_title) score += 1
-
   return score
 }
 
+function mergeSemanticAndLexical(params: {
+  semantic: ChunkRecord[]
+  lexical: ChunkRecord[]
+  maxItems?: number
+}) {
+  const { semantic, lexical, maxItems = 8 } = params
+  const map = new Map<number, ChunkRecord & { rankScore: number }>()
+
+  semantic.forEach((chunk, index) => {
+    map.set(chunk.chunk_index, {
+      ...chunk,
+      rankScore: (map.get(chunk.chunk_index)?.rankScore || 0) + (100 - index * 8) + ((chunk.similarity || 0) * 20),
+    })
+  })
+
+  lexical.forEach((chunk, index) => {
+    map.set(chunk.chunk_index, {
+      ...chunk,
+      rankScore: (map.get(chunk.chunk_index)?.rankScore || 0) + (60 - index * 5),
+    })
+  })
+
+  return Array.from(map.values())
+    .sort((a, b) => b.rankScore - a.rankScore)
+    .slice(0, maxItems)
+}
+
 async function rerankChunksWithGemini(question: string, chunks: ChunkRecord[]) {
-  if (!process.env.GEMINI_API_KEY || chunks.length <= 3) return chunks.slice(0, 4)
+  if (!process.env.GEMINI_API_KEY || chunks.length <= 3) return chunks.slice(0, 5)
 
   try {
     const compact = chunks.map((chunk) => ({
@@ -92,8 +118,7 @@ async function rerankChunksWithGemini(question: string, chunks: ChunkRecord[]) {
         content:
           "Eres un reranker documental. " +
           "Debes elegir los fragmentos más útiles para responder una pregunta sobre un documento. " +
-          "Responde SOLO JSON válido con este formato: " +
-          '{"selected":[0,3,2,5]}. ' +
+          'Responde SOLO JSON válido con este formato: {"selected":[0,3,2,5]}. ' +
           "Máximo 5 índices. No expliques nada.",
       },
       {
@@ -122,10 +147,10 @@ async function rerankChunksWithGemini(question: string, chunks: ChunkRecord[]) {
       .map((index: number) => byIndex.get(index))
       .filter(Boolean) as ChunkRecord[]
 
-    return reranked.length ? reranked.slice(0, 5) : chunks.slice(0, 4)
+    return reranked.length ? reranked.slice(0, 5) : chunks.slice(0, 5)
   } catch (error) {
-    console.warn("[Paper][rerank] fallback lexical:", error)
-    return chunks.slice(0, 4)
+    console.warn("[Paper][rerank] fallback merged:", error)
+    return chunks.slice(0, 5)
   }
 }
 
@@ -137,15 +162,6 @@ function buildCitationLabel(chunk: ChunkRecord) {
 
   const sectionLabel = chunk.section_title ? ` · ${chunk.section_title}` : ""
   return `Fragmento ${chunk.chunk_index + 1} (${pageLabel}${sectionLabel})`
-}
-
-function uniqueByChunkIndex(chunks: ChunkRecord[]) {
-  const seen = new Set<number>()
-  return chunks.filter(chunk => {
-    if (seen.has(chunk.chunk_index)) return false
-    seen.add(chunk.chunk_index)
-    return true
-  })
 }
 
 export async function POST(req: Request) {
@@ -173,10 +189,7 @@ export async function POST(req: Request) {
     }
 
     if (!storagePath) {
-      return Response.json(
-        { error: "Falta la ruta del documento en Storage." },
-        { status: 400 }
-      )
+      return Response.json({ error: "Falta la ruta del documento en Storage." }, { status: 400 })
     }
 
     if (storageBucket !== STORAGE_BUCKET) {
@@ -206,7 +219,19 @@ export async function POST(req: Request) {
       )
     }
 
-    let chunks: ChunkRecord[] = Array.isArray(paper.chunks) ? paper.chunks as ChunkRecord[] : []
+    if (paper.documentId) {
+      try {
+        await updateChunkEmbeddings({
+          supabase,
+          documentId: paper.documentId,
+          userId: user.id,
+        })
+      } catch (embedError) {
+        console.error("[Paper][chat][embeddings] error:", embedError)
+      }
+    }
+
+    let chunks: ChunkRecord[] = Array.isArray(paper.chunks) ? (paper.chunks as ChunkRecord[]) : []
 
     if (!chunks.length && paper.documentId) {
       const { data } = await supabase
@@ -225,6 +250,21 @@ export async function POST(req: Request) {
       )
     }
 
+    let semanticTop: ChunkRecord[] = []
+    if (paper.documentId) {
+      try {
+        semanticTop = await semanticSearchPaperChunks({
+          supabase,
+          userId: user.id,
+          documentId: paper.documentId,
+          query: message,
+          limit: 8,
+        })
+      } catch (semanticError) {
+        console.warn("[Paper][semantic] fallback lexical:", semanticError)
+      }
+    }
+
     const lexicalTop = chunks
       .map(chunk => ({
         chunk,
@@ -234,8 +274,13 @@ export async function POST(req: Request) {
       .slice(0, 8)
       .map(item => item.chunk)
 
-    const candidates = uniqueByChunkIndex(lexicalTop)
-    const selected = await rerankChunksWithGemini(message, candidates)
+    const merged = mergeSemanticAndLexical({
+      semantic: semanticTop,
+      lexical: lexicalTop,
+      maxItems: 8,
+    })
+
+    const selected = await rerankChunksWithGemini(message, merged)
 
     const contextBlock = selected
       .map(chunk => `### ${buildCitationLabel(chunk)}\n${cleanText(chunk.content)}`)
