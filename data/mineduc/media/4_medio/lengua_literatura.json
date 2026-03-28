@@ -1,0 +1,81 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "4° Medio",
+    "asignatura": "Lengua y Literatura",
+    "plan": "Formación General",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/",
+    "estado": "verificado_parcialmente_por_unidad",
+    "ultima_actualizacion_manual": "2026-03-28",
+    "nota": "Los OA FG-LELI-4M-OAC-01 al OAC-08 están verificados oficialmente. Los nombres de unidades 1, 3 y 4 quedaron confirmados en recursos oficiales del portal; la unidad 2 también aparece en recursos oficiales asociados. La distribución de OA por unidad quedó armada de forma consistente con esos recursos y debe considerarse lista de trabajo robusta."
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "Comparando lecturas literarias",
+      "oa": [
+        {
+          "id": "FG-LELI-4M-OAC-01",
+          "codigo_oficial": "FG-LELI-4M-OAC-01",
+          "descripcion": "Formular interpretaciones de obras que aborden un mismo tema o problema, comparando: la relación de cada obra con sus contextos de producción y de recepción; el tratamiento del tema o problema y la perspectiva adoptada sobre estos; y el efecto estético producido por los textos."
+        },
+        {
+          "id": "FG-LELI-4M-OAC-02",
+          "codigo_oficial": "FG-LELI-4M-OAC-02",
+          "descripcion": "Proponer distintas interpretaciones para una obra literaria, a partir de un criterio de análisis literario, fundamentándolas con evidencia del texto coherente con el criterio adoptado."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Elaborar y comunicar interpretaciones literarias",
+      "oa": [
+        {
+          "id": "FG-LELI-4M-OAC-05",
+          "codigo_oficial": "FG-LELI-4M-OAC-05",
+          "descripcion": "Producir textos (orales, escritos o audiovisuales) coherentes y cohesionados para comunicar sus análisis e interpretaciones de textos, desarrollar posturas sobre temas, explorar creativamente con el lenguaje, entre otros propósitos."
+        },
+        {
+          "id": "FG-LELI-4M-OAC-06",
+          "codigo_oficial": "FG-LELI-4M-OAC-06",
+          "descripcion": "Usar los recursos lingüísticos y no lingüísticos (visuales, sonoros y gestuales) al producir textos, considerando su incidencia en el posicionamiento frente al tema, en los roles y actitudes asumidos ante la audiencia, y la forma en que dichos recursos se combinan para construir el sentido del discurso."
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "nombre": "Desafíos en el análisis crítico de los discursos",
+      "oa": [
+        {
+          "id": "FG-LELI-4M-OAC-03",
+          "codigo_oficial": "FG-LELI-4M-OAC-03",
+          "descripcion": "Evaluar críticamente textos de diversos géneros no literarios (orales, escritos y audiovisuales), analizando cuando corresponda: intenciones explícitas e implícitas del texto; tratamiento de temas y veracidad de la información; presentación de ideologías, creencias y puntos de vista; y posicionamiento del enunciador frente al tema y el rol que busca representar ante la audiencia."
+        },
+        {
+          "id": "FG-LELI-4M-OAC-04",
+          "codigo_oficial": "FG-LELI-4M-OAC-04",
+          "descripcion": "Evaluar los recursos lingüísticos y no lingüísticos (visuales, sonoros y gestuales) al comprender textos, considerando su incidencia en el posicionamiento frente al tema, en los roles y actitudes asumidos ante la audiencia, y la forma en que dichos recursos se combinan para construir el sentido del discurso."
+        }
+      ]
+    },
+    {
+      "numero": 4,
+      "nombre": "La escritura como forma de participación social",
+      "oa": [
+        {
+          "id": "FG-LELI-4M-OAC-07",
+          "codigo_oficial": "FG-LELI-4M-OAC-07",
+          "descripcion": "Dialogar argumentativamente, evitando descalificaciones o prejuicios, para construir y ampliar ideas en torno a interpretaciones literarias y análisis crítico de textos."
+        },
+        {
+          "id": "FG-LELI-4M-OAC-08",
+          "codigo_oficial": "FG-LELI-4M-OAC-08",
+          "descripcion": "Investigar sobre diversos temas para enriquecer sus lecturas y análisis, o para responder interrogantes propios de la asignatura, seleccionando fuentes e información según criterios de validez y confiabilidad, procesando la información y comunicando sus hallazgos con uso ético de la información."
+        }
+      ]
+    }
+  ]
+}
