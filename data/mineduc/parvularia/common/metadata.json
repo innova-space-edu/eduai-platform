@@ -1,0 +1,35 @@
+{
+  "metadata": {
+    "nivel": "Parvularia",
+    "fuente_principal": "Bases Curriculares de la Educación Parvularia (vigentes desde 2019)",
+    "institucion": "Ministerio de Educación de Chile / Subsecretaría de Educación Parvularia",
+    "source_urls": [
+      "https://parvularia.mineduc.cl/wp-content/uploads/2019/09/Bases_Curriculares_Ed_Parvularia_2018-1.pdf",
+      "https://www.curriculumnacional.cl/614/w3-propertyname-753.html",
+      "https://www.curriculumnacional.cl/614/w3-article-69957.html",
+      "https://parvularia.mineduc.cl/orientaciones-tecnico-pedagogicas/"
+    ],
+    "estado": "estructura_base_lista",
+    "ultima_actualizacion_manual": "2026-03-28"
+  },
+  "observaciones": [
+    "La estructura curricular oficial de Educación Parvularia se organiza en Ámbitos de Experiencia y Núcleos de Aprendizaje.",
+    "Para el planificador, se recomienda separar OA de contenido y OAT.",
+    "Las experiencias pedagógicas pueden inspirarse en orientaciones oficiales y recursos divulgados por MINEDUC / Subsecretaría / Currículum Nacional.",
+    "Las actividades tipo JUNJI o sugerencias lúdicas deben usarse como inspiración pedagógica, no como reemplazo del OA oficial."
+  ],
+  "niveles_soportados": [
+    "NT1 - Pre Kinder (4-5 años)",
+    "NT2 - Kinder (5-6 años)"
+  ],
+  "nucleos_oficiales": [
+    "Identidad y Autonomía",
+    "Convivencia y Ciudadanía",
+    "Corporalidad y Movimiento",
+    "Lenguaje Verbal",
+    "Lenguajes Artísticos",
+    "Exploración del Entorno Natural",
+    "Comprensión del Entorno Sociocultural",
+    "Pensamiento Matemático"
+  ]
+}
