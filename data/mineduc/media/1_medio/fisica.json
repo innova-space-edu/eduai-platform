@@ -1,0 +1,81 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "1° Medio",
+    "asignatura": "Física",
+    "base_asignatura_origen": "Ciencias Naturales 1° Medio",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/",
+    "estado": "verificado",
+    "ultima_actualizacion_manual": "2026-03-28",
+    "nota": "Archivo separado por eje para facilitar el planificador. Los OA pertenecen a Ciencias Naturales 1° Medio, eje Física."
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "Ondas y sonido",
+      "oa": [
+        {
+          "id": "CN1M-OA-09",
+          "codigo_oficial": "CN1M OA 09",
+          "descripcion": "Demostrar que comprende, por medio de la creación de modelos y experimentos, que las ondas transmiten energía y que se pueden reflejar, refractar y absorber, explicando y considerando: sus características (amplitud, frecuencia, longitud de onda y velocidad de propagación, entre otras); y los criterios para clasificarlas (mecánicas, electromagnéticas, transversales, longitudinales, superficiales)."
+        },
+        {
+          "id": "CN1M-OA-10",
+          "codigo_oficial": "CN1M OA 10",
+          "descripcion": "Explicar fenómenos del sonido perceptibles por las personas, como el eco, la resonancia y el efecto Doppler, entre otros, utilizando el modelo ondulatorio y por medio de la experimentación, considerando sus características y cualidades (intensidad, tono, timbre y rapidez), emisiones, consecuencias y aplicaciones tecnológicas."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Luz y óptica geométrica",
+      "oa": [
+        {
+          "id": "CN1M-OA-11",
+          "codigo_oficial": "CN1M OA 11",
+          "descripcion": "Explicar fenómenos luminosos, como la reflexión, la refracción, la interferencia y el efecto Doppler, entre otros, por medio de la experimentación y el uso de modelos, considerando: los modelos corpuscular y ondulatorio de la luz; las características y la propagación de la luz; la formación de imágenes; la formación de colores; y sus aplicaciones tecnológicas."
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "nombre": "Percepción sonora y visual y ondas sísmicas",
+      "oa": [
+        {
+          "id": "CN1M-OA-12",
+          "codigo_oficial": "CN1M OA 12",
+          "descripcion": "Explorar y describir el funcionamiento del oído y del ojo humano, considerando: la recepción de ondas sonoras y luminosas; el espectro sonoro y de la luz visible; sus capacidades, limitaciones y consecuencias sociales; y la tecnología correctiva (lentes y audífonos)."
+        },
+        {
+          "id": "CN1M-OA-13",
+          "codigo_oficial": "CN1M OA 13",
+          "descripcion": "Describir el origen y la propagación, por medio del modelo ondulatorio, de la energía liberada en un sismo, considerando la clasificación de las ondas sísmicas, su importancia en geología y sus consecuencias en la superficie terrestre."
+        }
+      ]
+    },
+    {
+      "numero": 4,
+      "nombre": "Estructuras cósmicas",
+      "oa": [
+        {
+          "id": "CN1M-OA-14",
+          "codigo_oficial": "CN1M OA 14",
+          "descripcion": "Crear modelos que expliquen los fenómenos astronómicos del sistema solar relacionados con: los movimientos del sistema Tierra-Luna y los fenómenos de luz y sombra, como las fases lunares y los eclipses; los movimientos de la Tierra respecto del Sol y sus consecuencias, como las estaciones climáticas; y la comparación de los distintos planetas con la Tierra en cuanto a su distancia al Sol, su tamaño, su período orbital, su atmósfera y otros."
+        },
+        {
+          "id": "CN1M-OA-15",
+          "codigo_oficial": "CN1M OA 15",
+          "descripcion": "Describir y comparar diversas estructuras cósmicas, como meteoros, asteroides, cometas, satélites, planetas, estrellas, nebulosas, galaxias y cúmulo de galaxias, considerando: sus tamaños y formas; sus posiciones en el espacio; temperatura, masa, color y magnitud, entre otros."
+        },
+        {
+          "id": "CN1M-OA-16",
+          "codigo_oficial": "CN1M OA 16",
+          "descripcion": "Investigar y explicar sobre la investigación astronómica en Chile y el resto del mundo, considerando aspectos como el desarrollo de la astronomía, la tecnología asociada y los aportes científicos."
+        }
+      ]
+    }
+  ]
+}
