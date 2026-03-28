@@ -1,0 +1,60 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "4° Medio",
+    "asignatura": "Matemática",
+    "plan": "Formación General",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/",
+    "estado": "verificado",
+    "ultima_actualizacion_manual": "2026-03-27"
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "Matemática financiera",
+      "oa": [
+        {
+          "id": "FG-MATE-4M-OAC-01",
+          "codigo_oficial": "FG-MATE-4M-OAC-01",
+          "descripcion": "Fundamentar decisiones en el ámbito financiero y económico personal o comunitario, a partir de modelos que consideren porcentajes, tasas de interés e índices económicos."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Modelos binomial y normal",
+      "oa": [
+        {
+          "id": "FG-MATE-4M-OAC-02",
+          "codigo_oficial": "FG-MATE-4M-OAC-02",
+          "descripcion": "Fundamentar decisiones en situaciones de incerteza, a partir del análisis crítico de datos estadísticos y con base en los modelos binomial y normal."
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "nombre": "Funciones potencias y trigonométricas",
+      "oa": [
+        {
+          "id": "FG-MATE-4M-OAC-03",
+          "codigo_oficial": "FG-MATE-4M-OAC-03",
+          "descripcion": "Construir modelos de situaciones o fenómenos de crecimiento, decrecimiento y periódicos que involucren funciones potencias de exponente entero y trigonométricas sen(x) y cos(x), de forma manuscrita, con uso de herramientas tecnológicas y promoviendo la búsqueda, selección, contrastación y verificación de información en ambientes digitales y redes sociales."
+        }
+      ]
+    },
+    {
+      "numero": 4,
+      "nombre": "Rectas y circunferencias en el plano",
+      "oa": [
+        {
+          "id": "FG-MATE-4M-OAC-04",
+          "codigo_oficial": "FG-MATE-4M-OAC-04",
+          "descripcion": "Resolver problemas acerca de rectas y circunferencias en el plano cartesiano, utilizando ecuaciones, sistemas, representaciones gráficas y herramientas tecnológicas."
+        }
+      ]
+    }
+  ]
+}
