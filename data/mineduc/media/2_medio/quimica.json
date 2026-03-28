@@ -1,0 +1,49 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "2° Medio",
+    "asignatura": "Química",
+    "base_asignatura_origen": "Ciencias Naturales 2° Medio",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/",
+    "estado": "parcial_verificado",
+    "ultima_actualizacion_manual": "2026-03-28",
+    "nota": "Archivo separado por eje para facilitar el planificador. Los OA pertenecen a Ciencias Naturales 2° Medio, eje Química."
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "Soluciones químicas",
+      "oa": [
+        {
+          "id": "CN2M-OA-15",
+          "codigo_oficial": "CN2M OA 15",
+          "descripcion": "Explicar, por medio de modelos y la experimentación, las propiedades de las soluciones en ejemplos cercanos, considerando el estado físico, sus componentes y la concentración."
+        },
+        {
+          "id": "CN2M-OA-16",
+          "codigo_oficial": "CN2M OA 16",
+          "descripcion": "Planificar y conducir una investigación experimental para proveer evidencias que expliquen las propiedades coligativas de las soluciones y su importancia en procesos cotidianos e industriales."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Química orgánica",
+      "oa": [
+        {
+          "id": "CN2M-OA-17",
+          "codigo_oficial": "CN2M OA 17",
+          "descripcion": "Crear modelos del carbono y explicar sus propiedades como base para la formación de moléculas útiles para los seres vivos y el entorno."
+        },
+        {
+          "id": "CN2M-OA-18",
+          "codigo_oficial": "CN2M OA 18",
+          "descripcion": "Investigar y comunicar aplicaciones de compuestos orgánicos en la vida cotidiana, la industria y el ambiente."
+        }
+      ]
+    }
+  ]
+}
