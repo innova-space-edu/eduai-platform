@@ -1,0 +1,89 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "2° Medio",
+    "asignatura": "Lengua y Literatura",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/",
+    "estado": "parcial_verificado",
+    "ultima_actualizacion_manual": "2026-03-27"
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "Sobre la ausencia: exilio, migración e identidad (narrativa)",
+      "oa": [
+        {
+          "id": "LE2M-OA-01",
+          "codigo_oficial": "LE2M OA 01",
+          "descripcion": "Leer habitualmente para aprender y recrearse, y seleccionar textos de acuerdo con sus preferencias y propósitos."
+        },
+        {
+          "id": "LE2M-OA-02",
+          "codigo_oficial": "LE2M OA 02",
+          "descripcion": "Reflexionar sobre las diferentes dimensiones de la experiencia humana, propia y ajena, a partir de la lectura de obras literarias y otros textos que forman parte de nuestras herencias culturales."
+        },
+        {
+          "id": "LE2M-OA-12",
+          "codigo_oficial": "LE2M OA 12",
+          "descripcion": "Aplicar flexiblemente y creativamente las habilidades de escritura adquiridas en clases como medio de expresión personal y cuando se enfrentan a nuevos géneros."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Ciudadanía y trabajo (medios de comunicación)",
+      "oa": [
+        {
+          "id": "LE2M-OA-11",
+          "codigo_oficial": "LE2M OA 11",
+          "descripcion": "Leer y comprender textos no literarios para contextualizar y complementar las lecturas literarias realizadas en clases."
+        },
+        {
+          "id": "LE2M-OA-13",
+          "codigo_oficial": "LE2M OA 13",
+          "descripcion": "Escribir, con el propósito de explicar un tema, textos de diversos géneros, como artículos, informes o reportajes."
+        },
+        {
+          "id": "LE2M-OA-15",
+          "codigo_oficial": "LE2M OA 15",
+          "descripcion": "Planificar, escribir, revisar, reescribir y editar sus textos en función del contexto, el destinatario y el propósito."
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "nombre": "Lo divino y lo humano (género lírico)",
+      "oa": [
+        {
+          "id": "LE2M-OA-03",
+          "codigo_oficial": "LE2M OA 03",
+          "descripcion": "Analizar las narraciones leídas para enriquecer su comprensión, considerando, cuando sea pertinente, el conflicto, el narrador, los personajes, el tiempo, el espacio, los símbolos y el lenguaje figurado."
+        },
+        {
+          "id": "LE2M-OA-08",
+          "codigo_oficial": "LE2M OA 08",
+          "descripcion": "Analizar y evaluar textos con finalidad argumentativa, como columnas de opinión, ensayos o discursos, considerando tesis, argumentos, evidencias y recursos persuasivos."
+        }
+      ]
+    },
+    {
+      "numero": 4,
+      "nombre": "Poder y ambición (género dramático)",
+      "oa": [
+        {
+          "id": "LE2M-OA-01",
+          "codigo_oficial": "LE2M OA 01",
+          "descripcion": "Leer habitualmente para aprender y recrearse, y seleccionar textos de acuerdo con sus preferencias y propósitos."
+        },
+        {
+          "id": "LE2M-OA-19",
+          "codigo_oficial": "LE2M OA 19",
+          "descripcion": "Comprender, comparar y evaluar textos orales y audiovisuales, tales como exposiciones, discursos, documentales, noticias, reportajes y obras dramáticas."
+        }
+      ]
+    }
+  ]
+}
