@@ -300,21 +300,43 @@ export default function EducadorPage() {
   }, [config.nivel, config.curso, config.asignatura])
 
   function toggleOA(id: string) {
-    setConfig((prev) => ({
-      ...prev,
-      selectedOAIds: prev.selectedOAIds.includes(id)
-        ? prev.selectedOAIds.filter((x) => x !== id)
-        : [...prev.selectedOAIds, id],
-    }))
+    setConfig((prev) => {
+      const exists = prev.selectedOAIds.includes(id)
+      if (exists) {
+        return {
+          ...prev,
+          selectedOAIds: prev.selectedOAIds.filter((x) => x !== id),
+        }
+      }
+
+      const maxOA = prev.nivel === "parvularia" ? 3 : 10
+      if (prev.selectedOAIds.length >= maxOA) return prev
+
+      return {
+        ...prev,
+        selectedOAIds: [...prev.selectedOAIds, id],
+      }
+    })
   }
 
   function toggleOAT(id: string) {
-    setConfig((prev) => ({
-      ...prev,
-      selectedOATIds: prev.selectedOATIds.includes(id)
-        ? prev.selectedOATIds.filter((x) => x !== id)
-        : [...prev.selectedOATIds, id],
-    }))
+    setConfig((prev) => {
+      const exists = prev.selectedOATIds.includes(id)
+      if (exists) {
+        return {
+          ...prev,
+          selectedOATIds: prev.selectedOATIds.filter((x) => x !== id),
+        }
+      }
+
+      const maxOAT = prev.nivel === "parvularia" ? 2 : 10
+      if (prev.selectedOATIds.length >= maxOAT) return prev
+
+      return {
+        ...prev,
+        selectedOATIds: [...prev.selectedOATIds, id],
+      }
+    })
   }
 
   async function sendMessage(text: string) {
@@ -635,7 +657,7 @@ export default function EducadorPage() {
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-gray-500 text-xs block">OA seleccionables</label>
                   <span className="text-[11px] text-emerald-300">
-                    Se pueden elegir varios OA
+                    Se pueden elegir varios OA (en parvularia: hasta 3 integrados)
                   </span>
                 </div>
 
@@ -704,7 +726,7 @@ export default function EducadorPage() {
                       OAT / foco transversal
                     </label>
                     <span className="text-[11px] text-emerald-300">
-                      Se integran junto al núcleo
+                      Se pueden combinar con otros núcleos y ámbitos
                     </span>
                   </div>
 
@@ -888,9 +910,9 @@ export default function EducadorPage() {
                     Sugerencia de uso
                   </p>
                   <p className="text-gray-300 text-sm">
-                    En Parvularia, selecciona primero el subnivel, luego el núcleo. Después marca
-                    varios OA y, si existen, uno o más OAT. Así la planificación queda mucho más
-                    precisa según la etapa de desarrollo.
+                    En Parvularia, selecciona primero el subnivel. Luego puedes combinar hasta 3 OA
+                    de distintos núcleos o ámbitos y sumar hasta 2 OAT transversales. Así la planificación
+                    queda integrada y mucho más realista para educación parvularia.
                   </p>
                 </div>
 
