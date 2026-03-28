@@ -10,6 +10,10 @@
       "id": "parvularia",
       "name": "Educación Parvularia",
       "files": [
+        "data/mineduc/parvularia/sala_cuna_menor.json",
+        "data/mineduc/parvularia/sala_cuna_mayor.json",
+        "data/mineduc/parvularia/medio_menor.json",
+        "data/mineduc/parvularia/medio_mayor.json",
         "data/mineduc/parvularia/nt1.json",
         "data/mineduc/parvularia/nt2.json"
       ]
