@@ -1,0 +1,23 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "3° Medio",
+    "asignatura": "Ciencias para la Ciudadanía",
+    "usa_base_compartida": "data/mineduc/shared/ciencias_para_la_ciudadania_3y4_base.json",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/",
+    "estado": "verificado_estructura",
+    "ultima_actualizacion_manual": "2026-03-27",
+    "nota": "Curso separado para planificación. Los OA siguen siendo compartidos 3y4, pero este archivo permite asignar módulos, tiempos y secuencias para 3° medio."
+  },
+  "estructura_planificacion": {
+    "tipo": "modular",
+    "modulos_disponibles": [
+      "ambiente_sostenibilidad",
+      "bienestar_salud",
+      "seguridad_prevencion_autocuidado",
+      "tecnologia_sociedad"
+    ],
+    "sugerencia_uso": "Permitir que el docente seleccione uno o más módulos para 3° medio y luego OA específicos desde la base compartida."
+  }
+}
