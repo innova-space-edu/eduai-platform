@@ -156,6 +156,7 @@ export function getPlannerUnits(state: PlannerCurriculumState): PlannerUnit[] {
   return []
 }
 
+// Parvularia: getOAs() ya devuelve OA integrados de todo el subnivel/curso, por lo que aquí se pueden combinar OA de varios núcleos.
 export function getPlannerOAOptions(state: PlannerCurriculumState, selectedUnitId?: string): OA[] {
   const all = getOAs(state.nivel, state.curso, state.asignatura)
   if (!selectedUnitId) return all
