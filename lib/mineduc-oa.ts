@@ -5,6 +5,13 @@ import medioMayorData from "@/data/mineduc/parvularia/medio_mayor.json"
 import nt1Data from "@/data/mineduc/parvularia/nt1.json"
 import nt2Data from "@/data/mineduc/parvularia/nt2.json"
 
+import basica1Matematica from "@/data/mineduc/basica/1_basico/matematica.json"
+import basica2Matematica from "@/data/mineduc/basica/2_basico/matematica.json"
+import basica3Matematica from "@/data/mineduc/basica/3_basico/matematica.json"
+import basica4Matematica from "@/data/mineduc/basica/4_basico/matematica.json"
+import basica5Matematica from "@/data/mineduc/basica/5_basico/matematica.json"
+import basica6Matematica from "@/data/mineduc/basica/6_basico/matematica.json"
+
 import media1Matematica from "@/data/mineduc/media/1_medio/matematica.json"
 import media1Lengua from "@/data/mineduc/media/1_medio/lengua_literatura.json"
 import media1Tecnologia from "@/data/mineduc/media/1_medio/tecnologia.json"
@@ -308,6 +315,13 @@ registerParvulariaFile(
   nt2Data as ParvulariaCurriculumFile,
   "data/mineduc/parvularia/nt2.json"
 )
+
+registerStandardFile("basica", "1° Básico", "Matemática", basica1Matematica as StandardCurriculumFile, "data/mineduc/basica/1_basico/matematica.json")
+registerStandardFile("basica", "2° Básico", "Matemática", basica2Matematica as StandardCurriculumFile, "data/mineduc/basica/2_basico/matematica.json")
+registerStandardFile("basica", "3° Básico", "Matemática", basica3Matematica as StandardCurriculumFile, "data/mineduc/basica/3_basico/matematica.json")
+registerStandardFile("basica", "4° Básico", "Matemática", basica4Matematica as StandardCurriculumFile, "data/mineduc/basica/4_basico/matematica.json")
+registerStandardFile("basica", "5° Básico", "Matemática", basica5Matematica as StandardCurriculumFile, "data/mineduc/basica/5_basico/matematica.json")
+registerStandardFile("basica", "6° Básico", "Matemática", basica6Matematica as StandardCurriculumFile, "data/mineduc/basica/6_basico/matematica.json")
 
 registerStandardFile("media", "1° Medio", "Matemática", media1Matematica as StandardCurriculumFile, "data/mineduc/media/1_medio/matematica.json")
 registerStandardFile("media", "1° Medio", "Lengua y Literatura", media1Lengua as StandardCurriculumFile, "data/mineduc/media/1_medio/lengua_literatura.json")
