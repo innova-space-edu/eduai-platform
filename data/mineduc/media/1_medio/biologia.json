@@ -1,0 +1,81 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "1° Medio",
+    "asignatura": "Biología",
+    "base_asignatura_origen": "Ciencias Naturales 1° Medio",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/",
+    "estado": "parcial_verificado",
+    "ultima_actualizacion_manual": "2026-03-28",
+    "nota": "Archivo separado por eje para facilitar el planificador. Los OA pertenecen a Ciencias Naturales 1° Medio, eje Biología."
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "Evolución y biodiversidad",
+      "oa": [
+        {
+          "id": "CN1M-OA-01",
+          "codigo_oficial": "CN1M OA 01",
+          "descripcion": "Explicar, basándose en evidencias, que los fósiles: se forman a partir de restos de animales y plantas; se forman en rocas sedimentarias; se ubican de acuerdo a su antigüedad en los estratos de la Tierra."
+        },
+        {
+          "id": "CN1M-OA-02",
+          "codigo_oficial": "CN1M OA 02",
+          "descripcion": "Analizar e interpretar datos para proveer de evidencias que apoyen que la diversidad de organismos es el resultado de la evolución, considerando: evidencias de la evolución; los postulados de la teoría de la selección natural; y los aportes de científicos como Darwin y Wallace a las teorías evolutivas."
+        },
+        {
+          "id": "CN1M-OA-03",
+          "codigo_oficial": "CN1M OA 03",
+          "descripcion": "Explicar, basándose en evidencias, que la clasificación de la diversidad de organismos se construye a través del tiempo sobre la base de criterios taxonómicos que permiten organizarlos en grupos y subgrupos, identificando sus relaciones de parentesco con ancestros comunes."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Organismos en ecosistemas",
+      "oa": [
+        {
+          "id": "CN1M-OA-04",
+          "codigo_oficial": "CN1M OA 04",
+          "descripcion": "Investigar y explicar cómo se organizan e interactúan los seres vivos en diversos ecosistemas, a partir de ejemplos de Chile, considerando: los niveles de organización de los seres vivos y las interacciones biológicas."
+        },
+        {
+          "id": "CN1M-OA-05",
+          "codigo_oficial": "CN1M OA 05",
+          "descripcion": "Analizar e interpretar los factores que afectan el tamaño de las poblaciones y predecir posibles consecuencias sobre el ecosistema."
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "nombre": "Materia y energía en ecosistema",
+      "oa": [
+        {
+          "id": "CN1M-OA-06",
+          "codigo_oficial": "CN1M OA 06",
+          "descripcion": "Desarrollar modelos que expliquen el ciclo del carbono, nitrógeno, agua y fósforo, su importancia biológica, los flujos de energía en un ecosistema y la trayectoria de contaminantes y su bioacumulación."
+        },
+        {
+          "id": "CN1M-OA-07",
+          "codigo_oficial": "CN1M OA 07",
+          "descripcion": "Explicar, por medio de una investigación, el rol de la fotosíntesis y la respiración celular en el ecosistema considerando el flujo de la energía y el ciclo de la materia."
+        }
+      ]
+    },
+    {
+      "numero": 4,
+      "nombre": "Impactos en ecosistema y sustentabilidad",
+      "oa": [
+        {
+          "id": "CN1M-OA-08",
+          "codigo_oficial": "CN1M OA 08",
+          "descripcion": "Explicar y evaluar los efectos de acciones humanas y de fenómenos naturales en relación con el equilibrio de los ecosistemas, la disponibilidad de recursos naturales renovables y no renovables, y las posibles medidas para un desarrollo sustentable."
+        }
+      ]
+    }
+  ]
+}
