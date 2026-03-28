@@ -1,0 +1,63 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "3° Medio",
+    "asignatura": "Educación Ciudadana",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/",
+    "estado": "parcial_verificado",
+    "ultima_actualizacion_manual": "2026-03-28"
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "Estado, democracia y ciudadanía",
+      "oa": [
+        {
+          "id": "FG-ECIU-3M-OAC-01",
+          "codigo_oficial": "FG-ECIU-3M-OAC-01",
+          "descripcion": "Identificar los fundamentos, atributos y dimensiones de la democracia y la ciudadanía, considerando las libertades fundamentales de las personas como un principio de estas y reconociendo sus implicancias en los deberes del Estado y en los derechos y responsabilidades ciudadanas."
+        },
+        {
+          "id": "FG-ECIU-3M-OAC-02",
+          "codigo_oficial": "FG-ECIU-3M-OAC-02",
+          "descripcion": "Evaluar las relaciones entre el Estado y el mercado, considerando temas como sueldos justos, productividad, carga tributaria, comercio justo, probidad, desarrollo sustentable, riqueza y pobreza."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Justicia y derechos humanos",
+      "oa": [
+        {
+          "id": "FG-ECIU-3M-OAC-03",
+          "codigo_oficial": "FG-ECIU-3M-OAC-03",
+          "descripcion": "Reflexionar personal y grupalmente sobre riesgos para la democracia en Chile y el mundo, tales como el fenómeno de la desafección política, la desigualdad, la corrupción, el narcotráfico, la violencia, entre otros."
+        },
+        {
+          "id": "FG-ECIU-3M-OAC-04",
+          "codigo_oficial": "FG-ECIU-3M-OAC-04",
+          "descripcion": "Analizar las relaciones entre el derecho, la justicia y la equidad en situaciones de la vida cotidiana, considerando principios de derechos humanos y el funcionamiento del sistema judicial."
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "nombre": "Participación y la organización territorial en democracia",
+      "oa": [
+        {
+          "id": "FG-ECIU-3M-OAC-05",
+          "codigo_oficial": "FG-ECIU-3M-OAC-05",
+          "descripcion": "Investigar mecanismos y espacios de participación ciudadana a nivel local, comunal, regional o nacional, evaluando su incidencia en la vida democrática."
+        },
+        {
+          "id": "FG-ECIU-3M-OAC-06",
+          "codigo_oficial": "FG-ECIU-3M-OAC-06",
+          "descripcion": "Analizar la organización político-administrativa del territorio chileno y su relación con la descentralización, la participación y el desarrollo regional."
+        }
+      ]
+    }
+  ]
+}
