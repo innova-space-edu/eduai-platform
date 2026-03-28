@@ -5,7 +5,7 @@
     "base_oficial_compartida": "Nivel Transición",
     "fuente": "Programa Pedagógico Primer y Segundo Nivel de Transición / BCEP - MINEDUC Chile",
     "source_url": "https://parvularia.mineduc.cl/wp-content/uploads/2020/09/Programa-Pedagogico-NT1-y-NT2.pdf",
-    "estado": "base_segura_expandible",
+    "estado": "actualizado_con_CES_y_PM_completos",
     "ultima_actualizacion_manual": "2026-03-28",
     "nota": "NT2 usa los mismos OA oficiales del Nivel Transición. La progresión propia de NT2 debe trabajarse luego con indicadores/observables y experiencias sugeridas diferenciadas."
   },
@@ -189,6 +189,56 @@
               "id": "IC-CES-NT-OA-01",
               "codigo_oficial": "OA 01 CES NT",
               "descripcion": "Comprender los roles que desarrollan miembros de su familia y de su comunidad, y su aporte para el bienestar común."
+            },
+            {
+              "id": "IC-CES-NT-OA-02",
+              "codigo_oficial": "OA 02 CES NT",
+              "descripcion": "Apreciar diversas formas de vida de comunidades, del país y del mundo, en el pasado y en el presente, tales como: viviendas, paisajes, alimentación, costumbres, identificando mediante diversas fuentes de documentación gráfica y audiovisual, sus características relevantes."
+            },
+            {
+              "id": "IC-CES-NT-OA-03",
+              "codigo_oficial": "OA 03 CES NT",
+              "descripcion": "Comparar características de diseño, funcionamiento, utilidad, precaución de uso e impacto en el entorno, de diferentes objetos tecnológicos."
+            },
+            {
+              "id": "IC-CES-NT-OA-04",
+              "codigo_oficial": "OA 04 CES NT",
+              "descripcion": "Formular interpretaciones respecto de las necesidades y situaciones que dieron origen a creaciones e inventos, tales como: refrigerador, radio, avión, naves espaciales, cámara fotográfica, entre otros."
+            },
+            {
+              "id": "IC-CES-NT-OA-05",
+              "codigo_oficial": "OA 05 CES NT",
+              "descripcion": "Comunicar algunos relatos sociales sobre hechos significativos del pasado de su comunidad y país, apoyándose en recursos tales como: fotografías, videos, utensilios u objetos representativos."
+            },
+            {
+              "id": "IC-CES-NT-OA-06",
+              "codigo_oficial": "OA 06 CES NT",
+              "descripcion": "Reconocer diversas acciones para el cuidado del patrimonio cultural material (construcciones, obras de carácter arqueológico, lugares) e inmaterial (tradiciones, celebraciones), de su comunidad local."
+            },
+            {
+              "id": "IC-CES-NT-OA-07",
+              "codigo_oficial": "OA 07 CES NT",
+              "descripcion": "Reconocer la importancia del servicio que prestan instituciones, organizaciones, lugares y obras de interés patrimonial, tales como: escuelas, transporte público, empresas, iglesias, museos, bibliotecas, entre otros."
+            },
+            {
+              "id": "IC-CES-NT-OA-08",
+              "codigo_oficial": "OA 08 CES NT",
+              "descripcion": "Conocer sobre la vida de algunas mujeres y hombres, que han realizado en el pasado y en el presente, aportes diversos en su comunidad, país, y el mundo, a través de relatos, o con apoyo de TICs."
+            },
+            {
+              "id": "IC-CES-NT-OA-09",
+              "codigo_oficial": "OA 09 CES NT",
+              "descripcion": "Ampliar sus estrategias de indagación utilizando diversas fuentes, instrumentos y tecnologías de la información y comunicación, que le permitan expandir su entorno."
+            },
+            {
+              "id": "IC-CES-NT-OA-10",
+              "codigo_oficial": "OA 10 CES NT",
+              "descripcion": "Comprender normas de protección y seguridad referidas a tránsito, incendios, inundaciones, sismos, y otras pertinentes a su contexto geográfico."
+            },
+            {
+              "id": "IC-CES-NT-OA-11",
+              "codigo_oficial": "OA 11 CES NT",
+              "descripcion": "Identificar lugares de su entorno a través de su representación geográfica, tales como: maquetas, fotografías aéreas, dibujos y planos."
             }
           ]
         },
@@ -207,14 +257,54 @@
               "descripcion": "Experimentar con diversos objetos estableciendo relaciones al clasificar por dos o tres atributos a la vez (forma, color, tamaño, función, masa, materialidad, entre otros) y seriar por altura, ancho, longitud o capacidad para contener."
             },
             {
+              "id": "IC-PMAT-NT-OA-03",
+              "codigo_oficial": "OA 03 PM NT",
+              "descripcion": "Comunicar la posición de objetos y personas respecto de un punto u objeto de referencia, empleando conceptos de ubicación (dentro/fuera; encima/debajo/entre; al frente de/detrás de); distancia (cerca/lejos) y dirección (adelante/atrás/hacia el lado), en situaciones lúdicas."
+            },
+            {
               "id": "IC-PMAT-NT-OA-04",
               "codigo_oficial": "OA 04 PM NT",
               "descripcion": "Emplear cuantificadores, tales como: “más que”, “menos que”, “igual que”, al comparar cantidades de objetos en situaciones cotidianas."
             },
             {
+              "id": "IC-PMAT-NT-OA-05",
+              "codigo_oficial": "OA 05 PM NT",
+              "descripcion": "Orientarse temporalmente en situaciones cotidianas, empleando nociones y relaciones de secuencia (antes/ahora/después/al mismo tiempo, día/noche), frecuencia (siempre/a veces/nunca) y duración (larga/corta)."
+            },
+            {
               "id": "IC-PMAT-NT-OA-06",
               "codigo_oficial": "OA 06 PM NT",
               "descripcion": "Emplear los números, para contar, identificar, cuantificar y comparar cantidades hasta el 20 e indicar orden o posición de algunos elementos en situaciones cotidianas o juegos."
+            },
+            {
+              "id": "IC-PMAT-NT-OA-07",
+              "codigo_oficial": "OA 07 PM NT",
+              "descripcion": "Representar números y cantidades hasta el 10, en forma concreta, pictórica y simbólica."
+            },
+            {
+              "id": "IC-PMAT-NT-OA-08",
+              "codigo_oficial": "OA 08 PM NT",
+              "descripcion": "Resolver problemas simples de manera concreta y pictórica agregando o quitando hasta 10 elementos, comunicando las acciones llevadas a cabo."
+            },
+            {
+              "id": "IC-PMAT-NT-OA-09",
+              "codigo_oficial": "OA 09 PM NT",
+              "descripcion": "Representar objetos desde arriba, del lado, abajo, a través de dibujos, fotografías o TICs, formulando conjeturas frente a sus descubrimientos."
+            },
+            {
+              "id": "IC-PMAT-NT-OA-10",
+              "codigo_oficial": "OA 10 PM NT",
+              "descripcion": "Identificar atributos de figuras 2D y 3D, tales como: forma, cantidad de lados, vértices, caras, que observa en forma directa o a través de TICs."
+            },
+            {
+              "id": "IC-PMAT-NT-OA-11",
+              "codigo_oficial": "OA 11 PM NT",
+              "descripcion": "Emplear medidas no estandarizadas, para determinar longitud de objetos, registrando datos, en diversas situaciones lúdicas o actividades cotidianas."
+            },
+            {
+              "id": "IC-PMAT-NT-OA-12",
+              "codigo_oficial": "OA 12 PM NT",
+              "descripcion": "Comunicar el proceso desarrollado en la resolución de problemas concretos, identificando la pregunta, acciones y posibles respuestas."
             }
           ]
         }
