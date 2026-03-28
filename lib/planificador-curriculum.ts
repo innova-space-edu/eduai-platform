@@ -2,6 +2,8 @@ import {
   cursoToKey,
   getCurriculumRecord,
   getOAs,
+  getParvulariaAmbitoForCurso,
+  getParvulariaOATForCurso,
   normalizeAsignatura,
   type NivelKey,
   type OA,
@@ -95,11 +97,13 @@ export function getPlannerUnits(state: PlannerCurriculumState): PlannerUnit[] {
       for (const nucleo of ambito.nucleos || []) {
         if (normalizeAsignatura(nucleo.nombre, "parvularia") !== nucleoNormalizado) continue
 
-        const oaIds = (nucleo.oa_contenido || []).map(item => item.id)
+        const oaIds = (nucleo.oa_contenido || []).map((item) => item.id)
+        const courseKey = cursoToKey(state.curso)
+
         return [
           {
-            id: `nucleo-${nucleoNormalizado.toLowerCase().replace(/\s+/g, "-")}`,
-            label: `${ambito.nombre} · ${nucleo.nombre}`,
+            id: `parv-${courseKey}-${nucleoNormalizado.toLowerCase().replace(/\s+/g, "-")}`,
+            label: `${state.curso} · ${ambito.nombre} · ${nucleo.nombre}`,
             oaIds,
           },
         ]
@@ -109,12 +113,7 @@ export function getPlannerUnits(state: PlannerCurriculumState): PlannerUnit[] {
     return []
   }
 
-  const raw = record.sharedBaseKey
-    ? ({
-        ...record.raw,
-        modulos: ((record.raw as StandardCurriculumFile).modulos || []),
-      } as StandardCurriculumFile)
-    : (record.raw as StandardCurriculumFile)
+  const raw = record.raw as StandardCurriculumFile
 
   if (record.sharedBaseKey) {
     const sharedOAs = getOAs(state.nivel, state.curso, state.asignatura)
@@ -123,8 +122,9 @@ export function getPlannerUnits(state: PlannerCurriculumState): PlannerUnit[] {
     for (const oa of sharedOAs) {
       const id = oa.unidadId || "modulo"
       const prev = grouped.get(id)
+
       if (prev) {
-        prev.oaIds.push(oa.id)
+        if (!prev.oaIds.includes(oa.id)) prev.oaIds.push(oa.id)
       } else {
         grouped.set(id, {
           id,
@@ -161,49 +161,18 @@ export function getPlannerOAOptions(state: PlannerCurriculumState, selectedUnitI
   if (!selectedUnitId) return all
 
   return all.filter((oa) => {
+    if (state.nivel === "parvularia") return true
     if (oa.unidadId) return oa.unidadId === selectedUnitId
     return false
   })
 }
 
-export function getParvulariaAmbito(asignatura: string): string {
-  const record = getCurriculumRecord("parvularia", "NT1", asignatura)
-  if (!record || record.kind !== "parvularia") return ""
-
-  const raw = record.raw as ParvulariaCurriculumFile
-  const nucleoNormalizado = normalizeAsignatura(asignatura, "parvularia")
-
-  for (const ambito of raw.ambitos || []) {
-    for (const nucleo of ambito.nucleos || []) {
-      if (normalizeAsignatura(nucleo.nombre, "parvularia") === nucleoNormalizado) {
-        return ambito.nombre
-      }
-    }
-  }
-
-  return ""
+export function getParvulariaAmbito(curso: string, asignatura: string): string {
+  return getParvulariaAmbitoForCurso(curso, asignatura)
 }
 
-export function getParvulariaOAT(asignatura: string): PlannerOption[] {
-  const record = getCurriculumRecord("parvularia", "NT1", asignatura)
-  if (!record || record.kind !== "parvularia") return []
-
-  const raw = record.raw as ParvulariaCurriculumFile
-  const nucleoNormalizado = normalizeAsignatura(asignatura, "parvularia")
-
-  for (const ambito of raw.ambitos || []) {
-    for (const nucleo of ambito.nucleos || []) {
-      if (normalizeAsignatura(nucleo.nombre, "parvularia") !== nucleoNormalizado) continue
-
-      return (nucleo.oa_transversales || []).map((oat) => ({
-        id: oat.id,
-        label: oat.descripcion,
-        description: oat.codigo_oficial,
-      }))
-    }
-  }
-
-  return []
+export function getParvulariaOAT(curso: string, asignatura: string): PlannerOption[] {
+  return getParvulariaOATForCurso(curso, asignatura)
 }
 
 export function buildSelectedOAContext(
@@ -272,6 +241,7 @@ export function hasLocalCurriculum(state: PlannerCurriculumState) {
 export function getPlannerSummary(state: PlannerCurriculumState) {
   const units = getPlannerUnits(state)
   const oas = getPlannerOAOptions(state)
+
   return {
     hasCurriculum: oas.length > 0,
     units: units.length,
