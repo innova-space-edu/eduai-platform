@@ -1,0 +1,66 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "2° Medio",
+    "asignatura": "Biología",
+    "base_asignatura_origen": "Ciencias Naturales 2° Medio",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/",
+    "estado": "parcial_verificado",
+    "ultima_actualizacion_manual": "2026-03-28",
+    "nota": "Archivo separado por eje para facilitar el planificador. Los OA pertenecen a Ciencias Naturales 2° Medio, eje Biología."
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [
+    {
+      "id": "CN2M-OAA-A",
+      "codigo_oficial": "CN2M OAA A",
+      "descripcion": "Mostrar curiosidad, creatividad e interés por conocer y comprender los fenómenos del entorno natural y tecnológico, disfrutando del crecimiento intelectual que genera el conocimiento científico y valorando su importancia para el desarrollo de la sociedad."
+    }
+  ],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "Coordinación y regulación",
+      "oa": [
+        {
+          "id": "CN2M-OA-01",
+          "codigo_oficial": "CN2M OA 01",
+          "descripcion": "Explicar cómo el sistema nervioso coordina las acciones del organismo para adaptarse a estímulos del ambiente por medio de señales transmitidas por neuronas a lo largo del cuerpo, e investigar y comunicar sus cuidados."
+        },
+        {
+          "id": "CN2M-OA-02",
+          "codigo_oficial": "CN2M OA 02",
+          "descripcion": "Crear modelos que expliquen la regulación de la glicemia por medio del control de las hormonas pancreáticas y los caracteres sexuales y las funciones reproductivas por medio del control de las hormonas sexuales en el organismo."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Sexualidad y reproducción",
+      "oa": [
+        {
+          "id": "CN2M-OA-03",
+          "codigo_oficial": "CN2M OA 03",
+          "descripcion": "Describir la fecundación, la implantación y el desarrollo del embrión, y analizar medidas de autocuidado y salud sexual y reproductiva."
+        },
+        {
+          "id": "CN2M-OA-05",
+          "codigo_oficial": "CN2M OA 05",
+          "descripcion": "Explicar y evaluar los métodos de regulación de la fertilidad e identificar los elementos de una paternidad y una maternidad responsables."
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "nombre": "Herencia y división celular",
+      "oa": [
+        {
+          "id": "CN2M-OA-06",
+          "codigo_oficial": "CN2M OA 06",
+          "descripcion": "Investigar y argumentar, basándose en evidencias, que el material genético se transmite de generación en generación en organismos como plantas y animales, considerando la comparación de la mitosis y la meiosis, y las causas y consecuencias de anomalías y pérdida de control de la división celular."
+        }
+      ]
+    }
+  ]
+}
