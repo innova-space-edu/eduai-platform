@@ -1,3 +1,7 @@
+import salaCunaMenorData from "@/data/mineduc/parvularia/sala_cuna_menor.json"
+import salaCunaMayorData from "@/data/mineduc/parvularia/sala_cuna_mayor.json"
+import medioMenorData from "@/data/mineduc/parvularia/medio_menor.json"
+import medioMayorData from "@/data/mineduc/parvularia/medio_mayor.json"
 import nt1Data from "@/data/mineduc/parvularia/nt1.json"
 import nt2Data from "@/data/mineduc/parvularia/nt2.json"
 
@@ -6,6 +10,7 @@ import media1Lengua from "@/data/mineduc/media/1_medio/lengua_literatura.json"
 import media1Tecnologia from "@/data/mineduc/media/1_medio/tecnologia.json"
 import media1Biologia from "@/data/mineduc/media/1_medio/biologia.json"
 import media1Quimica from "@/data/mineduc/media/1_medio/quimica.json"
+import media1Fisica from "@/data/mineduc/media/1_medio/fisica.json"
 
 import media2Matematica from "@/data/mineduc/media/2_medio/matematica.json"
 import media2Lengua from "@/data/mineduc/media/2_medio/lengua_literatura.json"
@@ -14,10 +19,12 @@ import media2Biologia from "@/data/mineduc/media/2_medio/biologia.json"
 import media2Quimica from "@/data/mineduc/media/2_medio/quimica.json"
 import media2Fisica from "@/data/mineduc/media/2_medio/fisica.json"
 
+import media3Matematica from "@/data/mineduc/media/3_medio/matematica.json"
 import media3CienciasCiudadania from "@/data/mineduc/media/3_medio/ciencias_para_la_ciudadania.json"
 import media3EducacionCiudadana from "@/data/mineduc/media/3_medio/educacion_ciudadana.json"
 
 import media4Matematica from "@/data/mineduc/media/4_medio/matematica.json"
+import media4Lengua from "@/data/mineduc/media/4_medio/lengua_literatura.json"
 import media4CienciasCiudadania from "@/data/mineduc/media/4_medio/ciencias_para_la_ciudadania.json"
 import media4EducacionCiudadana from "@/data/mineduc/media/4_medio/educacion_ciudadana.json"
 
@@ -25,8 +32,6 @@ import sharedCienciasCiudadaniaBase from "@/data/mineduc/shared/ciencias_para_la
 import asignaturasPorCurso from "@/data/mineduc/meta/asignaturas_por_curso.json"
 
 export type NivelKey = "parvularia" | "basica" | "media"
-export type CursoKey = string
-export type AsignaturaKey = string
 
 export interface OA {
   id: string
@@ -128,6 +133,10 @@ function slugify(value: string) {
 export function cursoToKey(curso: string): string {
   const c = normalizeText(curso)
 
+  if (c.includes("sala cuna menor")) return "SCM"
+  if (c.includes("sala cuna mayor")) return "SCY"
+  if (c.includes("medio menor")) return "MME"
+  if (c.includes("medio mayor")) return "MMA"
   if (c.includes("nt1") || c.includes("pre kinder") || c.includes("prekinder")) return "NT1"
   if (c.includes("nt2") || c.includes("kinder")) return "NT2"
 
@@ -148,8 +157,8 @@ const ASIGNATURA_SYNONYMS: Record<NivelKey, Record<string, string>> = {
     lenguaje_verbal: "Lenguaje Verbal",
     lenguajes_artisticos: "Lenguajes Artísticos",
     exploracion_del_entorno_natural: "Exploración del Entorno Natural",
-    pensamiento_matematico: "Pensamiento Matemático",
     comprension_del_entorno_sociocultural: "Comprensión del Entorno Sociocultural",
+    pensamiento_matematico: "Pensamiento Matemático",
     parvularia: "Parvularia",
   },
   basica: {
@@ -269,14 +278,43 @@ function registerParvulariaFile(
   }
 }
 
-registerParvulariaFile("NT1", nt1Data as ParvulariaCurriculumFile, "data/mineduc/parvularia/nt1.json")
-registerParvulariaFile("NT2", nt2Data as ParvulariaCurriculumFile, "data/mineduc/parvularia/nt2.json")
+registerParvulariaFile(
+  "Sala Cuna Menor (0 a 1 año)",
+  salaCunaMenorData as ParvulariaCurriculumFile,
+  "data/mineduc/parvularia/sala_cuna_menor.json"
+)
+registerParvulariaFile(
+  "Sala Cuna Mayor (1 a 2 años)",
+  salaCunaMayorData as ParvulariaCurriculumFile,
+  "data/mineduc/parvularia/sala_cuna_mayor.json"
+)
+registerParvulariaFile(
+  "Medio Menor (2 a 3 años)",
+  medioMenorData as ParvulariaCurriculumFile,
+  "data/mineduc/parvularia/medio_menor.json"
+)
+registerParvulariaFile(
+  "Medio Mayor (3 a 4 años)",
+  medioMayorData as ParvulariaCurriculumFile,
+  "data/mineduc/parvularia/medio_mayor.json"
+)
+registerParvulariaFile(
+  "NT1 - Pre Kinder (4-5 años)",
+  nt1Data as ParvulariaCurriculumFile,
+  "data/mineduc/parvularia/nt1.json"
+)
+registerParvulariaFile(
+  "NT2 - Kinder (5-6 años)",
+  nt2Data as ParvulariaCurriculumFile,
+  "data/mineduc/parvularia/nt2.json"
+)
 
 registerStandardFile("media", "1° Medio", "Matemática", media1Matematica as StandardCurriculumFile, "data/mineduc/media/1_medio/matematica.json")
 registerStandardFile("media", "1° Medio", "Lengua y Literatura", media1Lengua as StandardCurriculumFile, "data/mineduc/media/1_medio/lengua_literatura.json")
 registerStandardFile("media", "1° Medio", "Tecnología", media1Tecnologia as StandardCurriculumFile, "data/mineduc/media/1_medio/tecnologia.json")
 registerStandardFile("media", "1° Medio", "Biología", media1Biologia as StandardCurriculumFile, "data/mineduc/media/1_medio/biologia.json")
 registerStandardFile("media", "1° Medio", "Química", media1Quimica as StandardCurriculumFile, "data/mineduc/media/1_medio/quimica.json")
+registerStandardFile("media", "1° Medio", "Física", media1Fisica as StandardCurriculumFile, "data/mineduc/media/1_medio/fisica.json")
 
 registerStandardFile("media", "2° Medio", "Matemática", media2Matematica as StandardCurriculumFile, "data/mineduc/media/2_medio/matematica.json")
 registerStandardFile("media", "2° Medio", "Lengua y Literatura", media2Lengua as StandardCurriculumFile, "data/mineduc/media/2_medio/lengua_literatura.json")
@@ -285,6 +323,7 @@ registerStandardFile("media", "2° Medio", "Biología", media2Biologia as Standa
 registerStandardFile("media", "2° Medio", "Química", media2Quimica as StandardCurriculumFile, "data/mineduc/media/2_medio/quimica.json")
 registerStandardFile("media", "2° Medio", "Física", media2Fisica as StandardCurriculumFile, "data/mineduc/media/2_medio/fisica.json")
 
+registerStandardFile("media", "3° Medio", "Matemática", media3Matematica as StandardCurriculumFile, "data/mineduc/media/3_medio/matematica.json")
 registerSharedPlanningFile(
   "media",
   "3° Medio",
@@ -293,7 +332,10 @@ registerSharedPlanningFile(
   "data/mineduc/media/3_medio/ciencias_para_la_ciudadania.json",
   "data/mineduc/shared/ciencias_para_la_ciudadania_3y4_base.json"
 )
+registerStandardFile("media", "3° Medio", "Educación Ciudadana", media3EducacionCiudadana as StandardCurriculumFile, "data/mineduc/media/3_medio/educacion_ciudadana.json")
 
+registerStandardFile("media", "4° Medio", "Matemática", media4Matematica as StandardCurriculumFile, "data/mineduc/media/4_medio/matematica.json")
+registerStandardFile("media", "4° Medio", "Lengua y Literatura", media4Lengua as StandardCurriculumFile, "data/mineduc/media/4_medio/lengua_literatura.json")
 registerSharedPlanningFile(
   "media",
   "4° Medio",
@@ -302,9 +344,6 @@ registerSharedPlanningFile(
   "data/mineduc/media/4_medio/ciencias_para_la_ciudadania.json",
   "data/mineduc/shared/ciencias_para_la_ciudadania_3y4_base.json"
 )
-
-registerStandardFile("media", "3° Medio", "Educación Ciudadana", media3EducacionCiudadana as StandardCurriculumFile, "data/mineduc/media/3_medio/educacion_ciudadana.json")
-registerStandardFile("media", "4° Medio", "Matemática", media4Matematica as StandardCurriculumFile, "data/mineduc/media/4_medio/matematica.json")
 registerStandardFile("media", "4° Medio", "Educación Ciudadana", media4EducacionCiudadana as StandardCurriculumFile, "data/mineduc/media/4_medio/educacion_ciudadana.json")
 
 function getSharedCienciasBase(): StandardCurriculumFile {
@@ -316,13 +355,6 @@ function getMetaAsignaturas(): MetaAsignaturas {
 }
 
 function getCursoMetaLabel(nivel: NivelKey, curso: string): string {
-  if (nivel === "parvularia") {
-    const key = cursoToKey(curso)
-    if (key === "NT1") return "NT1"
-    if (key === "NT2") return "NT2"
-    return curso
-  }
-
   return curso
 }
 
@@ -451,6 +483,7 @@ export function getOA(
 ): OA | null {
   const oas = getOAs(nivel, curso, asignatura)
   const suffix = String(numero)
+
   return (
     oas.find((oa) => oa.id === `OA${numero}`) ||
     oas.find((oa) => oa.id.endsWith(`-${suffix}`)) ||
@@ -469,7 +502,9 @@ export function buildOAContext(
   if (!oas.length) return ""
 
   const filtered = oaNumero
-    ? (getOA(nivel, curso, asignatura, oaNumero) ? [getOA(nivel, curso, asignatura, oaNumero)!] : [])
+    ? (getOA(nivel, curso, asignatura, oaNumero)
+        ? [getOA(nivel, curso, asignatura, oaNumero)!]
+        : [])
     : oas
 
   if (!filtered.length) return ""
@@ -503,12 +538,10 @@ export function getAvailableAsignaturas(nivel: NivelKey, curso: string): string[
 
   const fromMeta = getMetaAsignaturasForCourse(nivel, curso)
 
-  const merged = [...fromRegistry, ...fromMeta]
+  return [...fromRegistry, ...fromMeta]
     .map((item) => normalizeAsignatura(item, nivel))
     .filter((value, index, arr) => arr.indexOf(value) === index)
     .sort((a, b) => a.localeCompare(b, "es"))
-
-  return merged
 }
 
 export function hasLocalCurriculumForAsignatura(
@@ -517,6 +550,49 @@ export function hasLocalCurriculumForAsignatura(
   asignatura: string
 ): boolean {
   return !!getCurriculumRecord(nivel, curso, asignatura)
+}
+
+export function getParvulariaAmbitoForCurso(curso: string, asignatura: string): string {
+  const record = getCurriculumRecord("parvularia", curso, asignatura)
+  if (!record || record.kind !== "parvularia") return ""
+
+  const raw = record.raw as ParvulariaCurriculumFile
+  const nucleoNormalizado = normalizeAsignatura(asignatura, "parvularia")
+
+  for (const ambito of raw.ambitos || []) {
+    for (const nucleo of ambito.nucleos || []) {
+      if (normalizeAsignatura(nucleo.nombre, "parvularia") === nucleoNormalizado) {
+        return ambito.nombre
+      }
+    }
+  }
+
+  return ""
+}
+
+export function getParvulariaOATForCurso(
+  curso: string,
+  asignatura: string
+): Array<{ id: string; label: string; description?: string }> {
+  const record = getCurriculumRecord("parvularia", curso, asignatura)
+  if (!record || record.kind !== "parvularia") return []
+
+  const raw = record.raw as ParvulariaCurriculumFile
+  const nucleoNormalizado = normalizeAsignatura(asignatura, "parvularia")
+
+  for (const ambito of raw.ambitos || []) {
+    for (const nucleo of ambito.nucleos || []) {
+      if (normalizeAsignatura(nucleo.nombre, "parvularia") !== nucleoNormalizado) continue
+
+      return (nucleo.oa_transversales || []).map((oat) => ({
+        id: oat.id,
+        label: oat.descripcion,
+        description: oat.codigo_oficial,
+      }))
+    }
+  }
+
+  return []
 }
 
 export const OA_DATABASE = REGISTRY
