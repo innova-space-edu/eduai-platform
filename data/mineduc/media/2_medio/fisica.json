@@ -1,0 +1,44 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "2° Medio",
+    "asignatura": "Física",
+    "base_asignatura_origen": "Ciencias Naturales 2° Medio",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/",
+    "estado": "estructura_base",
+    "ultima_actualizacion_manual": "2026-03-28",
+    "nota": "Archivo base estructural. Completar OA con validación literal desde fichas oficiales antes de usarlo como definitivo."
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "Fuerza y movimiento",
+      "oa": [
+        {
+          "id": "CN2M-OA-10",
+          "codigo_oficial": "CN2M OA 10",
+          "descripcion": "Explicar, por medio de investigaciones experimentales, los efectos que tiene una fuerza neta sobre un objeto, utilizando las leyes de Newton y el diagrama de cuerpo libre."
+        },
+        {
+          "id": "CN2M-OA-11",
+          "codigo_oficial": "CN2M OA 11",
+          "descripcion": "Describir el movimiento de un objeto, usando la ley de conservación de la energía mecánica y los conceptos de trabajo y potencia mecánica."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Astronomía, geofísica y clima",
+      "oa": [
+        {
+          "id": "CN2M-OA-14",
+          "codigo_oficial": "CN2M OA 14",
+          "descripcion": "Explicar cualitativamente por medio de las leyes de Kepler y la de gravitación universal de Newton el origen de las mareas, la formación y dinámica de estructuras cósmicas naturales y el movimiento de estructuras artificiales como sondas, satélites y naves espaciales."
+        }
+      ]
+    }
+  ]
+}
