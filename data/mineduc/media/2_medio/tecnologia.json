@@ -1,0 +1,68 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "2° Medio",
+    "asignatura": "Tecnología",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/",
+    "estado": "verificado",
+    "ultima_actualizacion_manual": "2026-03-27"
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [
+    {
+      "id": "TE2M-OAA-A",
+      "codigo_oficial": "TE2M OAA A",
+      "descripcion": "Respetar al otro y al medio ambiente, lo que se expresa en los requerimientos del trabajo colaborativo exigido en la producción de soluciones tecnológicas, en la reflexión y el debate sobre el análisis de productos tecnológicos, en la conservación de los recursos y del bien común, entre otros."
+    },
+    {
+      "id": "TE2M-OAA-B",
+      "codigo_oficial": "TE2M OAA B",
+      "descripcion": "Valorar las potencialidades propias y del otro, en relación con el desarrollo de capacidades técnicas y tecnológicas, de los desarrollos tecnológicos en virtud de su aporte al mejoramiento de la calidad de vida, con todo lo que su producción requiere."
+    }
+  ],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "Mejorando el uso de los recursos",
+      "oa": [
+        {
+          "id": "TE2M-OA-01",
+          "codigo_oficial": "TE2M OA 01",
+          "descripcion": "Identificar necesidades que impliquen la reducción de efectos perjudiciales relacionados con el uso de recursos energéticos y materiales en una perspectiva de sustentabilidad."
+        },
+        {
+          "id": "TE2M-OA-02",
+          "codigo_oficial": "TE2M OA 02",
+          "descripcion": "Proponer soluciones que apunten a resolver necesidades de reducción de efectos perjudiciales relacionados con el uso de recursos energéticos y materiales en una perspectiva de sustentabilidad, utilizando herramientas TIC colaborativas de producción, edición, publicación y comunicación."
+        },
+        {
+          "id": "TE2M-OA-03",
+          "codigo_oficial": "TE2M OA 03",
+          "descripcion": "Evaluar las propuestas de soluciones que apunten a resolver necesidades de reducción de efectos perjudiciales relacionados con el uso de recursos energéticos y materiales considerando aspectos o dilemas éticos, legales, económicos, ambientales y sociales."
+        },
+        {
+          "id": "TE2M-OA-04",
+          "codigo_oficial": "TE2M OA 04",
+          "descripcion": "Comunicar propuestas de soluciones para reducir los efectos perjudiciales proyectando posibles escenarios de cambio y sus impactos, utilizando herramientas TIC, considerando diferentes tipos de objetivos y audiencias, teniendo en cuenta aspectos éticos y aplicando normas de cuidado y seguridad."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Oportunidades y desafíos de la tecnología en la actualidad",
+      "oa": [
+        {
+          "id": "TE2M-OA-05",
+          "codigo_oficial": "TE2M OA 05",
+          "descripcion": "Evaluar críticamente cómo las innovaciones tecnológicas actuales afectan a la sociedad y al ambiente, considerando criterios éticos, económicos, ambientales y sociales."
+        },
+        {
+          "id": "TE2M-OA-06",
+          "codigo_oficial": "TE2M OA 06",
+          "descripcion": "Proyectar escenarios de posibles impactos positivos y/o negativos de las innovaciones tecnológicas actuales en ámbitos personales, sociales, ambientales, legales, económicos u otros."
+        }
+      ]
+    }
+  ]
+}
