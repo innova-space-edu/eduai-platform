@@ -5,6 +5,7 @@ import {
   truncateText,
   ensurePaperProcessed,
 } from "@/lib/papers/extraction"
+import { updateChunkEmbeddings } from "@/lib/papers/embeddings"
 
 export const runtime = "nodejs"
 
@@ -31,17 +32,11 @@ export async function POST(req: Request) {
     const forceRefresh = body?.forceRefresh === true
 
     if (!bucket || !filePath) {
-      return Response.json(
-        { error: "Faltan bucket o filePath." },
-        { status: 400 }
-      )
+      return Response.json({ error: "Faltan bucket o filePath." }, { status: 400 })
     }
 
     if (bucket !== STORAGE_BUCKET) {
-      return Response.json(
-        { error: "Bucket no permitido." },
-        { status: 400 }
-      )
+      return Response.json({ error: "Bucket no permitido." }, { status: 400 })
     }
 
     if (!filePath.startsWith(`${user.id}/`)) {
@@ -59,6 +54,18 @@ export async function POST(req: Request) {
       filename,
       forceRefresh,
     })
+
+    if (result.documentId) {
+      try {
+        await updateChunkEmbeddings({
+          supabase,
+          documentId: result.documentId,
+          userId: user.id,
+        })
+      } catch (embedError) {
+        console.error("[Paper][extract][embeddings] error:", embedError)
+      }
+    }
 
     const finalText = truncateText(result.text || "", MAX_RETURN_TEXT_CHARS)
 
