@@ -21,7 +21,14 @@
     {
       "id": "basica",
       "name": "Educación Básica",
-      "files": []
+      "files": [
+        "data/mineduc/basica/1_basico/matematica.json",
+        "data/mineduc/basica/2_basico/matematica.json",
+        "data/mineduc/basica/3_basico/matematica.json",
+        "data/mineduc/basica/4_basico/matematica.json",
+        "data/mineduc/basica/5_basico/matematica.json",
+        "data/mineduc/basica/6_basico/matematica.json"
+      ]
     },
     {
       "id": "media",
