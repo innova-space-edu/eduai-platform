@@ -44,6 +44,7 @@ const NIVEL_INFO: Record<NivelKey, string> = {
   parvularia: `
 EDUCACIÓN PARVULARIA — Bases Curriculares de la Educación Parvularia (BCEP)
 Estructura curricular:
+- Subnivel o tramo
 - Ámbitos de experiencia
 - Núcleos de aprendizaje
 - Objetivos de Aprendizaje (OA)
@@ -52,12 +53,13 @@ Estructura curricular:
 Enfoque pedagógico:
 - juego
 - exploración
+- vínculo afectivo
 - experiencia de aprendizaje
 - mediación pedagógica
 - participación activa
 - evaluación formativa y cualitativa
 
-La respuesta debe usar lenguaje apropiado para educación parvularia y organizar experiencias lúdicas, significativas, comprensibles y bien secuenciadas.
+La respuesta debe usar lenguaje apropiado para el subnivel seleccionado. Debe diferenciar cuando se trata de sala cuna, nivel medio o transición.
 `.trim(),
 
   basica: `
@@ -159,8 +161,12 @@ function buildLocalCoverageNotice(
   return `Existe base curricular local cargada o catalogada para ${asignatura} en ${curso}.`
 }
 
-function buildSelectedOATContext(asignatura: string, selectedOATIds: string[]): string {
-  const allOAT = getParvulariaOAT(asignatura)
+function buildSelectedOATContext(
+  curso: string,
+  asignatura: string,
+  selectedOATIds: string[]
+): string {
+  const allOAT = getParvulariaOAT(curso, asignatura)
   const picked = selectedOATIds.length
     ? allOAT.filter((item) => selectedOATIds.includes(item.id))
     : []
@@ -197,6 +203,36 @@ function buildUnitContext(
   ]
     .filter(Boolean)
     .join("\n")
+}
+
+function inferParvulariaStage(curso: string): string {
+  const c = curso.toLowerCase()
+
+  if (c.includes("sala cuna menor")) {
+    return "Subnivel: Sala Cuna Menor. Enfatiza vínculo, apego, exploración sensoriomotriz, bienestar, rutinas, interacción corporal y lenguaje emergente."
+  }
+
+  if (c.includes("sala cuna mayor")) {
+    return "Subnivel: Sala Cuna Mayor. Enfatiza desplazamiento inicial, exploración activa, juego simple, comunicación emergente, rutinas y seguridad afectiva."
+  }
+
+  if (c.includes("medio menor")) {
+    return "Subnivel: Medio Menor. Enfatiza lenguaje en expansión, juego activo, autonomía inicial, regulación progresiva, exploración y experiencias concretas."
+  }
+
+  if (c.includes("medio mayor")) {
+    return "Subnivel: Medio Mayor. Enfatiza lenguaje, juego simbólico, interacción grupal, descubrimiento del entorno, progresión motriz y pensamiento inicial."
+  }
+
+  if (c.includes("nt1")) {
+    return "Subnivel: NT1. Enfatiza experiencias de aprendizaje lúdicas con mayor desarrollo verbal, pensamiento matemático inicial, exploración, representación y trabajo grupal guiado."
+  }
+
+  if (c.includes("nt2")) {
+    return "Subnivel: NT2. Enfatiza consolidación de aprendizajes del nivel transición, mayor autonomía, comunicación, representación, pensamiento y preparación pedagógica para enseñanza básica."
+  }
+
+  return "Subnivel de educación parvularia no identificado con precisión."
 }
 
 function buildPromptContext(params: {
@@ -253,16 +289,19 @@ function buildPromptContext(params: {
         : ""
 
   const oaContext = selectedOAContext || fallbackOAContext
-
   const unitContext = buildUnitContext(nivel, curso, asignatura, unidadId)
   const localCoverage = buildLocalCoverageNotice(nivel, curso, asignatura)
 
   const ambito =
-    nivel === "parvularia" ? getParvulariaAmbito(asignatura) : ""
+    nivel === "parvularia" ? getParvulariaAmbito(curso, asignatura) : ""
+
   const oatContext =
     nivel === "parvularia"
-      ? buildSelectedOATContext(asignatura, selectedOATIds)
+      ? buildSelectedOATContext(curso, asignatura, selectedOATIds)
       : ""
+
+  const stageContext =
+    nivel === "parvularia" ? inferParvulariaStage(curso) : ""
 
   return {
     seasonText,
@@ -272,6 +311,7 @@ function buildPromptContext(params: {
     localCoverage,
     ambito,
     oatContext,
+    stageContext,
     summary,
     selectedCount: selectedOAIds.length,
   }
@@ -324,13 +364,13 @@ export async function POST(req: NextRequest) {
   const nivel: NivelKey =
     cfg.nivel === "parvularia" || cfg.nivel === "basica" || cfg.nivel === "media"
       ? cfg.nivel
-      : "media"
+      : "parvularia"
 
   const curso =
     typeof cfg.curso === "string" && cfg.curso.trim()
       ? cfg.curso.trim()
       : nivel === "parvularia"
-        ? "NT1 - Pre Kinder (4-5 años)"
+        ? "Sala Cuna Menor (0 a 1 año)"
         : nivel === "basica"
           ? "1° Básico"
           : "1° Medio"
@@ -360,7 +400,12 @@ export async function POST(req: NextRequest) {
       : "diaria"
 
   const sesiones = clampNumber(cfg.sesiones, 1, 1, 40)
-  const duracionMinutos = clampNumber(cfg.duracionMinutos, 90, 15, 300)
+  const duracionMinutos = clampNumber(
+    cfg.duracionMinutos,
+    nivel === "parvularia" ? 30 : 90,
+    15,
+    300
+  )
 
   const promptContext = buildPromptContext({
     nivel,
@@ -391,7 +436,7 @@ REGLAS CRÍTICAS
 4. No completes vacíos curriculares “por intuición”.
 5. Si el usuario seleccionó varios OA, debes articularlos explícitamente.
 6. Si el usuario seleccionó una unidad o módulo, la planificación debe centrarse en ese marco curricular.
-7. En Parvularia, integra ámbito, núcleo, OA y OAT cuando estén disponibles.
+7. En Parvularia, integra subnivel, ámbito, núcleo, OA y OAT cuando estén disponibles.
 8. La respuesta debe ser útil para copiar a un documento docente.
 9. Debes escribir en español claro, formal y pedagógico.
 10. Presenta el contenido de forma ordenada, bonita y entendible.
@@ -400,11 +445,13 @@ REGLAS CRÍTICAS
 CONTEXTO CURRICULAR
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Nivel: ${nivel}
-Curso: ${curso}
+Curso/Subnivel: ${curso}
 Asignatura/Núcleo: ${asignatura}
 
 Referencia del nivel:
 ${NIVEL_INFO[nivel]}
+
+${nivel === "parvularia" ? `Contexto del subnivel:\n${promptContext.stageContext}` : ""}
 
 Cobertura curricular local:
 ${promptContext.localCoverage}
@@ -450,7 +497,7 @@ ${
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 COBERTURA LOCAL DETECTADA
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-- Unidades/Módulos cargados localmente: ${promptContext.summary.units}
+- Unidades/Módulos/Bloques cargados localmente: ${promptContext.summary.units}
 - OA cargados localmente: ${promptContext.summary.oas}
 - OA seleccionados explícitamente: ${promptContext.selectedCount}
 
@@ -462,9 +509,9 @@ Cuando el usuario pida una planificación, responde usando esta estructura, salv
 # Planificación
 
 ## 1. Datos generales
-- Nivel / Curso:
+- Nivel / Curso o Subnivel:
 - Asignatura o Núcleo:
-- Unidad o Módulo:
+- Unidad, módulo o bloque:
 - Horizonte:
 - Sesiones:
 - Duración por sesión:
@@ -472,6 +519,7 @@ Cuando el usuario pida una planificación, responde usando esta estructura, salv
 ## 2. Objetivos de Aprendizaje
 - Lista textual de OA oficiales disponibles y seleccionados
 - Si es Parvularia, agrega también:
+  - Subnivel
   - Ámbito
   - Núcleo
   - OAT seleccionados
@@ -512,7 +560,8 @@ CRITERIOS DE CALIDAD
 - Debe evitar relleno innecesario.
 - Debe mantener un nivel académico sólido.
 - Si no hay OA locales suficientes, dilo claramente antes de planificar.
-- En Parvularia, prioriza experiencias de aprendizaje, juego, lenguaje claro y mediación pedagógica.
+- En Parvularia, prioriza experiencias de aprendizaje, juego, vínculo, mediación pedagógica, seguridad, bienestar y lenguaje apropiado a la etapa.
+- Si el subnivel es Sala Cuna, evita estructuras escolarizadas y prioriza experiencias breves, sensoriales, corporales, afectivas y situadas.
 `.trim()
 
   const aiMessages = [
