@@ -1,9 +1,9 @@
 {
-  "schema_version": "1.0.0",
+  "schema_version": "1.1.0",
   "country": "Chile",
   "source": {
     "name": "Currículum Nacional - MINEDUC",
-    "base_url": "https://curriculumnacional.mineduc.cl/"
+    "base_url": "https://www.curriculumnacional.cl/"
   },
   "levels": [
     {
@@ -17,26 +17,25 @@
     {
       "id": "basica",
       "name": "Educación Básica",
-      "files": [
-        "data/mineduc/basica/1_basico",
-        "data/mineduc/basica/2_basico",
-        "data/mineduc/basica/3_basico",
-        "data/mineduc/basica/4_basico",
-        "data/mineduc/basica/5_basico",
-        "data/mineduc/basica/6_basico",
-        "data/mineduc/basica/7_basico",
-        "data/mineduc/basica/8_basico"
-      ]
+      "files": []
     },
     {
       "id": "media",
       "name": "Educación Media",
       "files": [
-        "data/mineduc/media/1_medio",
-        "data/mineduc/media/2_medio",
-        "data/mineduc/media/3_medio",
-        "data/mineduc/media/4_medio"
+        "data/mineduc/media/1_medio/matematica.json",
+        "data/mineduc/media/1_medio/lengua_literatura.json",
+        "data/mineduc/media/1_medio/tecnologia.json",
+        "data/mineduc/media/2_medio/matematica.json",
+        "data/mineduc/media/2_medio/lengua_literatura.json",
+        "data/mineduc/media/2_medio/tecnologia.json",
+        "data/mineduc/media/3_medio/ciencias_para_la_ciudadania.json",
+        "data/mineduc/media/4_medio/matematica.json",
+        "data/mineduc/media/4_medio/ciencias_para_la_ciudadania.json"
       ]
     }
+  ],
+  "shared_files": [
+    "data/mineduc/shared/ciencias_para_la_ciudadania_3y4_base.json"
   ]
 }
