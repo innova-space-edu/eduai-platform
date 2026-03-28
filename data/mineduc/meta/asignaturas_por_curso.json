@@ -1,36 +1,116 @@
 {
   "Parvularia": {
     "NT1": [
-      "Parvularia"
+      "Identidad y Autonomía",
+      "Convivencia y Ciudadanía",
+      "Corporalidad y Movimiento",
+      "Lenguaje Verbal",
+      "Lenguajes Artísticos",
+      "Exploración del Entorno Natural",
+      "Pensamiento Matemático",
+      "Comprensión del Entorno Sociocultural"
     ],
     "NT2": [
-      "Parvularia"
+      "Identidad y Autonomía",
+      "Convivencia y Ciudadanía",
+      "Corporalidad y Movimiento",
+      "Lenguaje Verbal",
+      "Lenguajes Artísticos",
+      "Exploración del Entorno Natural",
+      "Pensamiento Matemático",
+      "Comprensión del Entorno Sociocultural"
+    ]
+  },
+  "Básica": {
+    "1° Básico": [
+      "Lenguaje y Comunicación",
+      "Matemática",
+      "Ciencias Naturales",
+      "Historia, Geografía y Cs. Sociales",
+      "Tecnología",
+      "Inglés"
+    ],
+    "2° Básico": [
+      "Lenguaje y Comunicación",
+      "Matemática",
+      "Ciencias Naturales",
+      "Historia, Geografía y Cs. Sociales",
+      "Tecnología",
+      "Inglés"
+    ],
+    "3° Básico": [
+      "Lenguaje y Comunicación",
+      "Matemática",
+      "Ciencias Naturales",
+      "Historia, Geografía y Cs. Sociales",
+      "Tecnología",
+      "Inglés"
+    ],
+    "4° Básico": [
+      "Lenguaje y Comunicación",
+      "Matemática",
+      "Ciencias Naturales",
+      "Historia, Geografía y Cs. Sociales",
+      "Tecnología",
+      "Inglés"
+    ],
+    "5° Básico": [
+      "Lenguaje y Comunicación",
+      "Matemática",
+      "Ciencias Naturales",
+      "Historia, Geografía y Cs. Sociales",
+      "Tecnología",
+      "Inglés"
+    ],
+    "6° Básico": [
+      "Lenguaje y Comunicación",
+      "Matemática",
+      "Ciencias Naturales",
+      "Historia, Geografía y Cs. Sociales",
+      "Tecnología",
+      "Inglés"
+    ],
+    "7° Básico": [
+      "Lengua y Literatura",
+      "Matemática",
+      "Ciencias Naturales",
+      "Historia, Geografía y Cs. Sociales",
+      "Tecnología",
+      "Inglés"
+    ],
+    "8° Básico": [
+      "Lengua y Literatura",
+      "Matemática",
+      "Ciencias Naturales",
+      "Historia, Geografía y Cs. Sociales",
+      "Tecnología",
+      "Inglés"
     ]
   },
   "Media": {
     "1° Medio": [
-      "Matemática",
       "Lengua y Literatura",
+      "Matemática",
       "Tecnología",
       "Biología",
       "Química"
     ],
     "2° Medio": [
-      "Matemática",
       "Lengua y Literatura",
+      "Matemática",
       "Tecnología",
       "Biología",
       "Química",
       "Física"
     ],
     "3° Medio": [
-      "Ciencias para la Ciudadanía",
-      "Educación Ciudadana"
+      "Educación Ciudadana",
+      "Ciencias para la Ciudadanía"
     ],
     "4° Medio": [
       "Matemática",
-      "Ciencias para la Ciudadanía",
-      "Educación Ciudadana"
+      "Educación Ciudadana",
+      "Ciencias para la Ciudadanía"
     ]
   }
 }
