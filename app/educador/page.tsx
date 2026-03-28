@@ -6,8 +6,6 @@ import remarkGfm from "remark-gfm"
 import { useRouter } from "next/navigation"
 import {
   buildPlanningHorizonText,
-  getParvulariaAmbito,
-  getParvulariaOAT,
   getPlannerOAOptions,
   getPlannerSummary,
   getPlannerUnits,
@@ -15,6 +13,8 @@ import {
 } from "@/lib/planificador-curriculum"
 import {
   getAvailableAsignaturas,
+  getParvulariaAmbitoForCurso,
+  getParvulariaOATForCurso,
   hasLocalCurriculumForAsignatura,
   type NivelKey,
 } from "@/lib/mineduc-oa"
@@ -23,7 +23,7 @@ const NIVELES = [
   {
     id: "parvularia",
     label: "🌸 Parvularia",
-    sub: "NT1 · NT2 · ámbitos, núcleos y OAT",
+    sub: "Sala cuna · nivel medio · transición",
   },
   {
     id: "basica",
@@ -38,7 +38,14 @@ const NIVELES = [
 ] as const
 
 const CURSOS: Record<NivelKey, string[]> = {
-  parvularia: ["NT1 - Pre Kinder (4-5 años)", "NT2 - Kinder (5-6 años)"],
+  parvularia: [
+    "Sala Cuna Menor (0 a 1 año)",
+    "Sala Cuna Mayor (1 a 2 años)",
+    "Medio Menor (2 a 3 años)",
+    "Medio Mayor (3 a 4 años)",
+    "NT1 - Pre Kinder (4-5 años)",
+    "NT2 - Kinder (5-6 años)",
+  ],
   basica: [
     "1° Básico",
     "2° Básico",
@@ -120,9 +127,9 @@ export default function EducadorPage() {
   const bottomRef = useRef<HTMLDivElement>(null)
 
   const [config, setConfig] = useState<Config>({
-    nivel: "media",
-    curso: "1° Medio",
-    asignatura: getInitialAsignatura("media", "1° Medio"),
+    nivel: "parvularia",
+    curso: "Sala Cuna Menor (0 a 1 año)",
+    asignatura: getInitialAsignatura("parvularia", "Sala Cuna Menor (0 a 1 año)"),
     contexto: "",
     mes: new Date().toLocaleString("es-CL", { month: "long" }).toLowerCase(),
     unidadId: "",
@@ -130,7 +137,7 @@ export default function EducadorPage() {
     selectedOATIds: [],
     tiempoPlanificacion: "diaria",
     sesiones: 1,
-    duracionMinutos: 90,
+    duracionMinutos: 30,
   })
 
   const [messages, setMessages] = useState<Message[]>([])
@@ -181,13 +188,19 @@ export default function EducadorPage() {
   )
 
   const parvulariaOAT = useMemo(
-    () => (config.nivel === "parvularia" ? getParvulariaOAT(config.asignatura) : []),
-    [config.nivel, config.asignatura]
+    () =>
+      config.nivel === "parvularia"
+        ? getParvulariaOATForCurso(config.curso, config.asignatura)
+        : [],
+    [config.nivel, config.curso, config.asignatura]
   )
 
   const ambito = useMemo(
-    () => (config.nivel === "parvularia" ? getParvulariaAmbito(config.asignatura) : ""),
-    [config.nivel, config.asignatura]
+    () =>
+      config.nivel === "parvularia"
+        ? getParvulariaAmbitoForCurso(config.curso, config.asignatura)
+        : "",
+    [config.nivel, config.curso, config.asignatura]
   )
 
   const currentMes = new Date().toLocaleString("es-CL", {
@@ -269,7 +282,11 @@ export default function EducadorPage() {
       const allowedOAIds = new Set(nextOAOptions.map((oa) => oa.id))
       const selectedOAIds = prev.selectedOAIds.filter((id) => allowedOAIds.has(id))
 
-      const nextOAT = prev.nivel === "parvularia" ? getParvulariaOAT(prev.asignatura) : []
+      const nextOAT =
+        prev.nivel === "parvularia"
+          ? getParvulariaOATForCurso(prev.curso, prev.asignatura)
+          : []
+
       const allowedOATIds = new Set(nextOAT.map((item) => item.id))
       const selectedOATIds = prev.selectedOATIds.filter((id) => allowedOATIds.has(id))
 
@@ -369,7 +386,7 @@ export default function EducadorPage() {
                 APl — Agente Planificador
               </h1>
               <p className="text-gray-500 text-xs">
-                MINEDUC · OA reales · unidades/módulos · {currentMes}
+                MINEDUC · OA reales · parvularia completa · {currentMes}
               </p>
             </div>
           </div>
@@ -435,7 +452,7 @@ export default function EducadorPage() {
 
               <div className="grid md:grid-cols-2 gap-3 mb-4">
                 <div>
-                  <label className="text-gray-500 text-xs mb-1.5 block">Curso</label>
+                  <label className="text-gray-500 text-xs mb-1.5 block">Curso / subnivel</label>
                   <select
                     value={config.curso}
                     onChange={(e) =>
@@ -483,9 +500,9 @@ export default function EducadorPage() {
 
               <div className="mb-4 rounded-2xl border border-gray-800 bg-gray-800/40 p-4">
                 <p className="text-[11px] uppercase tracking-wide text-gray-500 mb-2">
-                  Estado curricular de la asignatura seleccionada
+                  Estado curricular de la selección
                 </p>
-                <div className="flex items-center gap-2 text-sm">
+                <div className="flex flex-wrap items-center gap-2 text-sm">
                   <span
                     className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border ${
                       currentAsignaturaHasLocal
@@ -498,12 +515,12 @@ export default function EducadorPage() {
                       ? "Base curricular local cargada"
                       : "Solo catálogo/meta por ahora"}
                   </span>
+                  {config.nivel === "parvularia" && (
+                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-teal-500/30 bg-teal-500/10 text-teal-300">
+                      👶 {config.curso}
+                    </span>
+                  )}
                 </div>
-                <p className="text-xs text-gray-400 mt-2 text-justify">
-                  {currentAsignaturaHasLocal
-                    ? "Esta asignatura ya tiene archivo curricular local conectado al planificador."
-                    : "Esta asignatura aparece en el catálogo por curso, pero todavía falta cargar o completar su archivo curricular oficial."}
-                </p>
               </div>
 
               {config.nivel === "parvularia" && (
@@ -582,7 +599,9 @@ export default function EducadorPage() {
                   <label className="text-gray-500 text-xs mb-2 block">
                     {config.asignatura === "Ciencias para la Ciudadanía"
                       ? "Módulo según base curricular"
-                      : "Unidad según bases curriculares"}
+                      : config.nivel === "parvularia"
+                        ? "Bloque curricular detectado"
+                        : "Unidad según bases curriculares"}
                   </label>
 
                   <div className="space-y-2">
@@ -672,8 +691,7 @@ export default function EducadorPage() {
                     })
                   ) : (
                     <div className="md:col-span-2 rounded-2xl border border-dashed border-gray-700 p-4 text-sm text-gray-500">
-                      No hay OA locales cargados para esta combinación todavía. Puedes seguir
-                      usando el agente, pero conviene ampliar la base curricular oficial.
+                      No hay OA locales cargados para esta combinación todavía.
                     </div>
                   )}
                 </div>
@@ -683,7 +701,7 @@ export default function EducadorPage() {
                 <div className="mb-4">
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-gray-500 text-xs block">
-                      OA transversales / foco transversal
+                      OAT / foco transversal
                     </label>
                     <span className="text-[11px] text-emerald-300">
                       Se integran junto al núcleo
@@ -730,7 +748,7 @@ export default function EducadorPage() {
                       })
                     ) : (
                       <div className="rounded-2xl border border-dashed border-gray-700 p-4 text-sm text-gray-500">
-                        No hay OA transversales cargados para este núcleo todavía.
+                        No hay OAT cargados para este núcleo o subnivel todavía.
                       </div>
                     )}
                   </div>
@@ -749,7 +767,7 @@ export default function EducadorPage() {
                       contexto: e.target.value,
                     }))
                   }
-                  placeholder="Ej: curso con 36 estudiantes, 3 con NEE, énfasis PAES, trabajo cooperativo, contexto rural o urbano, feria científica, evaluación por rúbrica, etc."
+                  placeholder="Ej: grupo pequeño, lactantes, nivel heterogéneo, rutinas de apego, juego heurístico, deambuladores, control de esfínter, transición al jardín, etc."
                   className="w-full min-h-[96px] bg-gray-800 border border-gray-700 rounded-2xl px-3 py-2.5 text-gray-300 text-sm focus:outline-none focus:border-emerald-500/50 placeholder-gray-600"
                 />
               </div>
@@ -785,7 +803,11 @@ export default function EducadorPage() {
                     <div className="rounded-xl bg-gray-900/70 border border-gray-700 p-3">
                       <div className="text-white text-base font-semibold">{summary.units}</div>
                       <div className="text-[11px] text-gray-500">
-                        {config.asignatura === "Ciencias para la Ciudadanía" ? "Módulos" : "Unidades"}
+                        {config.asignatura === "Ciencias para la Ciudadanía"
+                          ? "Módulos"
+                          : config.nivel === "parvularia"
+                            ? "Bloques"
+                            : "Unidades"}
                       </div>
                     </div>
                     <div className="rounded-xl bg-gray-900/70 border border-gray-700 p-3">
@@ -816,7 +838,7 @@ export default function EducadorPage() {
 
                   <div className="space-y-2 text-justify">
                     <p className="text-gray-300 text-sm">
-                      Estado de asignatura:{" "}
+                      Estado de selección:{" "}
                       <span
                         className={
                           currentAsignaturaHasLocal ? "text-emerald-300" : "text-amber-300"
@@ -829,9 +851,13 @@ export default function EducadorPage() {
                     </p>
 
                     <p className="text-gray-300 text-sm">
-                      {config.asignatura === "Ciencias para la Ciudadanía" ? "Módulo" : "Unidad"}:{" "}
+                      {config.asignatura === "Ciencias para la Ciudadanía"
+                        ? "Módulo"
+                        : config.nivel === "parvularia"
+                          ? "Bloque"
+                          : "Unidad"}:{" "}
                       <span className="text-white">
-                        {selectedUnit?.label || "Sin unidad/módulo local"}
+                        {selectedUnit?.label || "Sin bloque/unidad local"}
                       </span>
                     </p>
 
@@ -839,20 +865,18 @@ export default function EducadorPage() {
                       OA elegidos:{" "}
                       <span className="text-white">
                         {selectedOAObjects.length
-                          ? selectedOAObjects
-                              .map((oa) => oa.codigoOficial || oa.id)
-                              .join(", ")
+                          ? selectedOAObjects.map((oa) => oa.codigoOficial || oa.id).join(", ")
                           : "Aún no seleccionados"}
                       </span>
                     </p>
 
                     {config.nivel === "parvularia" && (
                       <p className="text-gray-300 text-sm">
-                        Foco transversal:{" "}
+                        OAT elegidos:{" "}
                         <span className="text-white">
                           {config.selectedOATIds.length
                             ? config.selectedOATIds.join(", ")
-                            : "Sin foco transversal seleccionado"}
+                            : "Sin OAT seleccionado"}
                         </span>
                       </p>
                     )}
@@ -864,27 +888,10 @@ export default function EducadorPage() {
                     Sugerencia de uso
                   </p>
                   <p className="text-gray-300 text-sm">
-                    Primero selecciona una unidad o módulo, luego marca varios OA. Si ves una
-                    asignatura con ícono 🟡, significa que ya está contemplada en el catálogo
-                    por curso, pero aún debes cargar o completar su archivo curricular oficial.
+                    En Parvularia, selecciona primero el subnivel, luego el núcleo. Después marca
+                    varios OA y, si existen, uno o más OAT. Así la planificación queda mucho más
+                    precisa según la etapa de desarrollo.
                   </p>
-                </div>
-
-                <div className="rounded-2xl bg-gray-800/80 border border-gray-700 p-4">
-                  <p className="text-gray-500 text-xs uppercase tracking-wide mb-2">
-                    Leyenda visual
-                  </p>
-
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center gap-2 text-emerald-300">
-                      <span>✅</span>
-                      <span>Asignatura con base curricular local cargada</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-amber-300">
-                      <span>🟡</span>
-                      <span>Asignatura listada en catálogo/meta, pendiente de archivo curricular</span>
-                    </div>
-                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 pt-2">
@@ -908,13 +915,12 @@ export default function EducadorPage() {
 
         {showWelcome && !configOpen && (
           <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/5 border border-emerald-500/20 rounded-3xl p-6 text-center">
-            <div className="text-4xl mb-3">🏫</div>
+            <div className="text-4xl mb-3">🌸</div>
             <h2 className="text-white font-semibold text-lg mb-1">
               APl — Planificador curricular inteligente
             </h2>
             <p className="text-gray-400 text-sm mb-2">
-              OA por unidad, selección múltiple, horizonte diario/semanal/mensual y soporte
-              mejorado para parvularia.
+              Parvularia completa: sala cuna, nivel medio y transición, con ámbitos, núcleos, OA y OAT.
             </p>
             <p className="text-emerald-300 text-xs">
               {config.curso} · {config.asignatura} · {planningBadge}
@@ -930,7 +936,7 @@ export default function EducadorPage() {
             >
               {msg.role === "assistant" && (
                 <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-sm mr-2 mt-1 flex-shrink-0">
-                  🏫
+                  🌸
                 </div>
               )}
 
@@ -965,28 +971,19 @@ export default function EducadorPage() {
           {loading && (
             <div className="flex justify-start">
               <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-sm mr-2 mt-1 flex-shrink-0">
-                🏫
+                🌸
               </div>
 
               <div className="bg-gray-900 border border-gray-800 rounded-3xl px-4 py-3">
                 <div className="flex items-center gap-2">
                   <div className="flex gap-1">
-                    <div
-                      className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce"
-                      style={{ animationDelay: "0ms" }}
-                    />
-                    <div
-                      className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce"
-                      style={{ animationDelay: "150ms" }}
-                    />
-                    <div
-                      className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce"
-                      style={{ animationDelay: "300ms" }}
-                    />
+                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
                   </div>
 
                   <span className="text-gray-600 text-xs">
-                    APl organizando OA, tiempos y secuencia didáctica...
+                    APl organizando OA, OAT, tiempos y experiencias pedagógicas...
                   </span>
                 </div>
               </div>
@@ -1023,7 +1020,7 @@ export default function EducadorPage() {
           </div>
 
           <p className="text-gray-700 text-xs mt-1.5 text-center">
-            APl · Bases Curriculares MINEDUC · OA múltiples · unidad/módulo · horizonte temporal
+            APl · Parvularia completa · OA múltiples · OAT · ámbitos y núcleos · horizonte temporal
           </p>
         </div>
       </div>
