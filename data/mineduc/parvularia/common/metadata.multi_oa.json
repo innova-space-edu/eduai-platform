@@ -1,0 +1,25 @@
+{
+  "metadata": {
+    "nivel": "Parvularia",
+    "fuente_principal": "Bases Curriculares de la Educación Parvularia (vigentes desde 2019)",
+    "institucion": "Ministerio de Educación de Chile / Subsecretaría de Educación Parvularia",
+    "estado": "selector_integrado_multi_oa_listo_para_edicion",
+    "ultima_actualizacion_manual": "2026-03-28"
+  },
+  "reglas_planificador_integrado": {
+    "modo_recomendado": "1 OA principal + 1 o 2 OA complementarios + hasta 2 OAT",
+    "max_oa_parvularia": 3,
+    "max_oat_parvularia": 2,
+    "permite_combinar_ambitos": true,
+    "permite_combinar_nucleos": true,
+    "nota": "El selector integrado puede mezclar OA de diferentes núcleos y ámbitos del mismo subnivel para una experiencia de aprendizaje unificada."
+  },
+  "niveles_soportados": [
+    "Sala Cuna Menor (0 a 1 año)",
+    "Sala Cuna Mayor (1 a 2 años)",
+    "Medio Menor (2 a 3 años)",
+    "Medio Mayor (3 a 4 años)",
+    "NT1 - Pre Kinder (4-5 años)",
+    "NT2 - Kinder (5-6 años)"
+  ]
+}
