@@ -2,120 +2,150 @@ import { callAI } from "@/lib/ai-router"
 import { createClient } from "@/lib/supabase/server"
 import {
   STORAGE_BUCKET,
-  extractPaperFromStorage,
+  ensurePaperProcessed,
   cleanText,
 } from "@/lib/papers/extraction"
 
 export const runtime = "nodejs"
 
-const CHUNK_SIZE = 3500
-const CHUNK_OVERLAP = 400
-const MAX_SELECTED_CHUNKS = 4
+type ChunkRecord = {
+  id?: string
+  chunk_index: number
+  section_title: string | null
+  page_start: number
+  page_end: number
+  content: string
+  lexical_hint: string
+}
 
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 }
 
-function splitIntoChunks(text: string, chunkSize = CHUNK_SIZE, overlap = CHUNK_OVERLAP) {
-  const clean = cleanText(text)
-  if (!clean) return []
-
-  const chunks: string[] = []
-  let start = 0
-
-  while (start < clean.length) {
-    const end = Math.min(start + chunkSize, clean.length)
-    const chunk = clean.slice(start, end).trim()
-    if (chunk) chunks.push(chunk)
-    if (end >= clean.length) break
-    start = Math.max(end - overlap, start + 1)
-  }
-
-  return chunks
+function normalize(text: string) {
+  return String(text || "")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[^\p{L}\p{N}\s\-.:/]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim()
 }
 
 function extractKeywords(text: string) {
   const stopwords = new Set([
-    "de", "la", "el", "los", "las", "un", "una", "unos", "unas", "y", "o", "u",
-    "que", "qué", "en", "por", "para", "con", "sin", "del", "al", "se", "su",
-    "sus", "es", "son", "ser", "como", "cómo", "cuál", "cuáles", "qué", "me",
-    "mi", "tu", "te", "lo", "le", "les", "this", "that", "the", "and", "or",
-    "for", "with", "from", "into", "about", "paper", "documento", "paper?"
+    "de","la","el","los","las","un","una","unos","unas","y","o","u","que","qué",
+    "en","por","para","con","sin","del","al","se","su","sus","es","son","ser",
+    "como","cómo","cuál","cuáles","me","mi","tu","te","lo","le","les","this","that",
+    "the","and","or","for","with","from","into","about","paper","documento","artículo"
   ])
 
-  const normalized = text
-    .toLowerCase()
-    .normalize("NFKD")
-    .replace(/[^\p{L}\p{N}\s-]/gu, " ")
-
-  const terms = normalized
-    .split(/\s+/)
-    .map(t => t.trim())
-    .filter(t => t.length >= 3 && !stopwords.has(t))
-
-  return Array.from(new Set(terms)).slice(0, 20)
+  return Array.from(
+    new Set(
+      normalize(text)
+        .split(/\s+/)
+        .map(t => t.trim())
+        .filter(t => t.length >= 3 && !stopwords.has(t))
+    )
+  ).slice(0, 20)
 }
 
-function scoreChunk(chunk: string, query: string) {
-  const chunkLower = chunk.toLowerCase()
+function scoreChunkLexically(chunk: ChunkRecord, query: string) {
+  const content = normalize(`${chunk.section_title || ""} ${chunk.content} ${chunk.lexical_hint || ""}`)
   const keywords = extractKeywords(query)
+
   let score = 0
 
   for (const keyword of keywords) {
     const regex = new RegExp(`\\b${escapeRegExp(keyword)}\\b`, "gi")
-    const matches = chunk.match(regex)
-    if (matches) {
-      score += matches.length * 3
-    } else if (chunkLower.includes(keyword)) {
-      score += 1
-    }
+    const matches = content.match(regex)
+    if (matches) score += matches.length * 4
+    else if (content.includes(keyword)) score += 1
   }
 
-  if (/abstract|summary|resumen/i.test(chunk) && /resume|summary|abstract|resumen/i.test(query)) {
-    score += 4
-  }
+  if (/(resumen|abstract|summary)/i.test(query) && /(abstract|summary|resumen)/i.test(content)) score += 5
+  if (/(m[eé]todo|metodolog|method)/i.test(query) && /(method|methodology|metodolog)/i.test(content)) score += 5
+  if (/(resultado|hallazgo|result)/i.test(query) && /(result|resultado|finding)/i.test(content)) score += 5
+  if (/(conclusi)/i.test(query) && /(conclusi|discussion)/i.test(content)) score += 5
+  if (/(tabla|figure|figura|ecuaci|formula)/i.test(query) && /(tabla|table|figure|figura|equation|ecuaci|formula)/i.test(content)) score += 4
 
-  if (/method|methodology|metodolog/i.test(chunk) && /método|metodolog|method/i.test(query)) {
-    score += 4
-  }
-
-  if (/result|resultado/i.test(chunk) && /resultado|hallazgo|result/i.test(query)) {
-    score += 4
-  }
-
-  if (/conclusion|conclusi/i.test(chunk) && /conclusi/i.test(query)) {
-    score += 4
-  }
-
-  if (/limit/i.test(chunk) && /limit|sesgo|bias/i.test(query)) {
-    score += 4
-  }
+  const questionWords = query.trim().split(/\s+/).length
+  if (questionWords <= 4 && chunk.section_title) score += 1
 
   return score
 }
 
-function selectRelevantChunks(text: string, query: string, maxChunks = MAX_SELECTED_CHUNKS) {
-  const chunks = splitIntoChunks(text)
-  if (!chunks.length) return []
+async function rerankChunksWithGemini(question: string, chunks: ChunkRecord[]) {
+  if (!process.env.GEMINI_API_KEY || chunks.length <= 3) return chunks.slice(0, 4)
 
-  const scored = chunks.map((chunk, index) => ({
-    chunk,
-    index,
-    score: scoreChunk(chunk, query),
-  }))
+  try {
+    const compact = chunks.map((chunk) => ({
+      chunk_index: chunk.chunk_index,
+      section_title: chunk.section_title,
+      page_start: chunk.page_start,
+      page_end: chunk.page_end,
+      preview: chunk.content.slice(0, 1000),
+    }))
 
-  const positive = scored
-    .filter(item => item.score > 0)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, maxChunks)
+    const messages = [
+      {
+        role: "system" as const,
+        content:
+          "Eres un reranker documental. " +
+          "Debes elegir los fragmentos más útiles para responder una pregunta sobre un documento. " +
+          "Responde SOLO JSON válido con este formato: " +
+          '{"selected":[0,3,2,5]}. ' +
+          "Máximo 5 índices. No expliques nada.",
+      },
+      {
+        role: "user" as const,
+        content:
+          `Pregunta del usuario:\n${question}\n\n` +
+          `Fragmentos candidatos:\n${JSON.stringify(compact)}`,
+      },
+    ]
 
-  if (positive.length > 0) {
-    return positive
-      .sort((a, b) => a.index - b.index)
-      .map(item => item.chunk)
+    const result = await callAI(messages, {
+      maxTokens: 300,
+      preferProvider: "gemini-lite",
+    })
+
+    const raw = result.text || ""
+    const match = raw.match(/\{[\s\S]*\}/)
+    const parsed = match ? JSON.parse(match[0]) : JSON.parse(raw)
+
+    const selected = Array.isArray(parsed?.selected)
+      ? parsed.selected.filter((n: unknown) => Number.isInteger(n)).map((n: number) => Number(n))
+      : []
+
+    const byIndex = new Map(chunks.map(chunk => [chunk.chunk_index, chunk]))
+    const reranked = selected
+      .map((index: number) => byIndex.get(index))
+      .filter(Boolean) as ChunkRecord[]
+
+    return reranked.length ? reranked.slice(0, 5) : chunks.slice(0, 4)
+  } catch (error) {
+    console.warn("[Paper][rerank] fallback lexical:", error)
+    return chunks.slice(0, 4)
   }
+}
 
-  return chunks.slice(0, maxChunks)
+function buildCitationLabel(chunk: ChunkRecord) {
+  const pageLabel =
+    chunk.page_start === chunk.page_end
+      ? `p. ${chunk.page_start}`
+      : `pp. ${chunk.page_start}-${chunk.page_end}`
+
+  const sectionLabel = chunk.section_title ? ` · ${chunk.section_title}` : ""
+  return `Fragmento ${chunk.chunk_index + 1} (${pageLabel}${sectionLabel})`
+}
+
+function uniqueByChunkIndex(chunks: ChunkRecord[]) {
+  const seen = new Set<number>()
+  return chunks.filter(chunk => {
+    if (seen.has(chunk.chunk_index)) return false
+    seen.add(chunk.chunk_index)
+    return true
+  })
 }
 
 export async function POST(req: Request) {
@@ -160,7 +190,7 @@ export async function POST(req: Request) {
       )
     }
 
-    const paper = await extractPaperFromStorage({
+    const paper = await ensurePaperProcessed({
       supabase,
       userId: user.id,
       bucket: storageBucket,
@@ -176,44 +206,58 @@ export async function POST(req: Request) {
       )
     }
 
-    const relevantChunks = selectRelevantChunks(paper.text, message, MAX_SELECTED_CHUNKS)
-    const excerptBlock = relevantChunks
-      .map((chunk, index) => `### Fragmento ${index + 1}\n${chunk}`)
+    let chunks: ChunkRecord[] = Array.isArray(paper.chunks) ? paper.chunks as ChunkRecord[] : []
+
+    if (!chunks.length && paper.documentId) {
+      const { data } = await supabase
+        .from("paper_chunks")
+        .select("*")
+        .eq("document_id", paper.documentId)
+        .order("chunk_index", { ascending: true })
+
+      chunks = (data || []) as ChunkRecord[]
+    }
+
+    if (!chunks.length) {
+      return Response.json(
+        { error: "El documento no tiene fragmentos indexados todavía." },
+        { status: 400 }
+      )
+    }
+
+    const lexicalTop = chunks
+      .map(chunk => ({
+        chunk,
+        score: scoreChunkLexically(chunk, message),
+      }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 8)
+      .map(item => item.chunk)
+
+    const candidates = uniqueByChunkIndex(lexicalTop)
+    const selected = await rerankChunksWithGemini(message, candidates)
+
+    const contextBlock = selected
+      .map(chunk => `### ${buildCitationLabel(chunk)}\n${cleanText(chunk.content)}`)
       .join("\n\n")
 
-    const systemPrompt = `Eres APaper, un agente especializado en análisis profundo de documentos académicos y papers científicos.
-
-DOCUMENTO CARGADO:
-Título: "${paper.title || paperTitle}"
-
-FRAGMENTOS RELEVANTES DEL DOCUMENTO:
----
-${excerptBlock}
----
-
-TUS CAPACIDADES:
-1. Responder preguntas específicas sobre el paper con citas o referencias al contenido mostrado
-2. Explicar metodologías, resultados y conclusiones
-3. Cuestionar críticamente los argumentos del paper
-4. Comparar con literatura existente
-5. Identificar limitaciones y sesgos
-6. Extraer datos clave, fórmulas y hallazgos
-7. Generar resúmenes por sección
-8. Debatir las implicaciones de los resultados
-
-REGLAS:
-- Basa tu respuesta solo en los fragmentos entregados y en el contexto conversacional
-- Si la respuesta no está suficientemente respaldada por los fragmentos, dilo claramente
-- Cuando cites, menciona el "Fragmento 1", "Fragmento 2", etc.
-- Sé crítico y académico: no solo describas, analiza
-- Usa formato estructurado con markdown
-- Para fórmulas matemáticas usa LaTeX: $formula$
-
-Responde en español, salvo que el usuario pida otro idioma.`
+    const systemPrompt =
+      `Eres APaper, un agente experto en análisis de documentos académicos.\n\n` +
+      `DOCUMENTO: "${paper.title || paperTitle}"\n` +
+      `RESUMEN DEL DOCUMENTO:\n${paper.summary}\n\n` +
+      `FRAGMENTOS RECUPERADOS:\n${contextBlock}\n\n` +
+      `REGLAS:\n` +
+      `- Responde SOLO usando los fragmentos recuperados y el contexto conversacional.\n` +
+      `- Si la evidencia es insuficiente, dilo claramente.\n` +
+      `- Cita explícitamente usando el nombre del fragmento, por ejemplo: "Fragmento 3 (p. 4)".\n` +
+      `- Si la pregunta pide análisis crítico, puedes inferir, pero debes separar claramente "evidencia del documento" de "interpretación".\n` +
+      `- Usa markdown claro.\n` +
+      `- Si hay fórmulas, usa LaTeX inline como $x^2$.\n` +
+      `- Responde en español, salvo que el usuario pida otro idioma.`
 
     const messages = [
       { role: "system" as const, content: systemPrompt },
-      ...history.slice(-12).map((m: any) => ({
+      ...history.slice(-10).map((m: any) => ({
         role: m.role as "user" | "assistant",
         content: typeof m?.content === "string" ? m.content : "",
       })),
@@ -228,13 +272,22 @@ Responde en español, salvo que el usuario pida otro idioma.`
     return Response.json({
       text: result.text,
       provider: result.provider,
+      model: result.model,
       storageBucket,
       storagePath,
       extractionMethod: paper.extractionMethod,
+      parserUsed: paper.parserUsed,
+      ocrUsed: paper.ocrUsed,
       fromCache: paper.fromCache,
+      citations: selected.map(chunk => ({
+        chunkIndex: chunk.chunk_index,
+        sectionTitle: chunk.section_title,
+        pageStart: chunk.page_start,
+        pageEnd: chunk.page_end,
+      })),
     })
   } catch (e: any) {
-    console.error("Paper chat error:", e)
+    console.error("[Paper][chat] error:", e)
     return Response.json(
       { error: e?.message || "Error al analizar el paper." },
       { status: 500 }
