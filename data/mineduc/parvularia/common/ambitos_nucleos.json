@@ -1,0 +1,63 @@
+{
+  "metadata": {
+    "nivel": "Parvularia",
+    "fuente": "Bases Curriculares de la Educación Parvularia (BCEP) - MINEDUC Chile",
+    "estado": "verificado",
+    "ultima_actualizacion_manual": "2026-03-28"
+  },
+  "ambitos": [
+    {
+      "id": "desarrollo_personal_y_social",
+      "nombre": "Desarrollo personal y social",
+      "descripcion": "Ámbito orientado al bienestar integral, la identidad, la autonomía, la convivencia y la corporalidad de niñas y niños.",
+      "nucleos": [
+        {
+          "id": "identidad_y_autonomia",
+          "nombre": "Identidad y autonomía"
+        },
+        {
+          "id": "convivencia_y_ciudadania",
+          "nombre": "Convivencia y ciudadanía"
+        },
+        {
+          "id": "corporalidad_y_movimiento",
+          "nombre": "Corporalidad y movimiento"
+        }
+      ]
+    },
+    {
+      "id": "comunicacion_integral",
+      "nombre": "Comunicación integral",
+      "descripcion": "Ámbito que favorece la expresión, comprensión y creación a través del lenguaje verbal y los lenguajes artísticos.",
+      "nucleos": [
+        {
+          "id": "lenguaje_verbal",
+          "nombre": "Lenguaje verbal"
+        },
+        {
+          "id": "lenguajes_artisticos",
+          "nombre": "Lenguajes artísticos"
+        }
+      ]
+    },
+    {
+      "id": "interaccion_y_comprension_del_entorno",
+      "nombre": "Interacción y comprensión del entorno",
+      "descripcion": "Ámbito centrado en la exploración, comprensión y relación con el entorno natural, sociocultural y matemático.",
+      "nucleos": [
+        {
+          "id": "exploracion_del_entorno_natural",
+          "nombre": "Exploración del entorno natural"
+        },
+        {
+          "id": "comprension_del_entorno_sociocultural",
+          "nombre": "Comprensión del entorno sociocultural"
+        },
+        {
+          "id": "pensamiento_matematico",
+          "nombre": "Pensamiento matemático"
+        }
+      ]
+    }
+  ]
+}
