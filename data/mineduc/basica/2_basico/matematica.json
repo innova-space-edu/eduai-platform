@@ -1,0 +1,167 @@
+{
+  "metadata": {
+    "nivel": "Básica",
+    "curso": "2° Básico",
+    "asignatura": "Matemática",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://curriculumnacional.mineduc.cl/",
+    "estado": "base_inicial_en_revision",
+    "ultima_actualizacion_manual": "2026-03-28",
+    "nota": "Archivo base estructurado para activar Educación Básica en el planificador. Requiere revisión final OA por OA contra las Bases/Programas oficiales MINEDUC antes de marcarlo como verificado."
+  },
+  "objetivos_habilidad": [
+    {
+      "id": "2_BASICO-OAH-RP",
+      "descripcion": "Resolver problemas, modelar y comunicar procedimientos matemáticos en contextos cotidianos y escolares.",
+      "unidades": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "2_BASICO-OAH-REP",
+      "descripcion": "Representar información matemática de manera concreta, pictórica y simbólica.",
+      "unidades": [
+        1,
+        2,
+        3,
+        4
+      ]
+    }
+  ],
+  "objetivos_actitud": [
+    {
+      "id": "2_BASICO-OAA-A",
+      "descripcion": "Manifestar un estilo de trabajo ordenado, perseverante y colaborativo en la resolución de tareas matemáticas.",
+      "unidades": [
+        1,
+        2,
+        3,
+        4
+      ]
+    }
+  ],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "Números hasta 1 000 y valor posicional",
+      "oa": [
+        {
+          "id": "MA2B-OA-01",
+          "codigo_oficial": "MA02 OA 01",
+          "descripcion": "Contar números del 0 al 1 000 de 2 en 2, de 5 en 5, de 10 en 10 y de 100 en 100, hacia adelante y hacia atrás, empezando por cualquier número menor que 1 000."
+        },
+        {
+          "id": "MA2B-OA-02",
+          "codigo_oficial": "MA02 OA 02",
+          "descripcion": "Leer números del 0 al 100 y representarlos en forma concreta, pictórica y simbólica."
+        },
+        {
+          "id": "MA2B-OA-03",
+          "codigo_oficial": "MA02 OA 03",
+          "descripcion": "Comparar y ordenar números del 0 al 100 de menor a mayor y viceversa, usando el valor posicional."
+        },
+        {
+          "id": "MA2B-OA-04",
+          "codigo_oficial": "MA02 OA 04",
+          "descripcion": "Estimar cantidades hasta 100 en situaciones concretas, usando un referente."
+        },
+        {
+          "id": "MA2B-OA-05",
+          "codigo_oficial": "MA02 OA 05",
+          "descripcion": "Componer y descomponer números del 0 al 100 de manera aditiva, de forma concreta, pictórica y simbólica."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Adición, sustracción, multiplicación y división inicial",
+      "oa": [
+        {
+          "id": "MA2B-OA-06",
+          "codigo_oficial": "MA02 OA 06",
+          "descripcion": "Demostrar que comprenden la adición y la sustracción en el ámbito del 0 al 100."
+        },
+        {
+          "id": "MA2B-OA-07",
+          "codigo_oficial": "MA02 OA 07",
+          "descripcion": "Resolver problemas rutinarios y no rutinarios de adición y sustracción en el ámbito del 0 al 100."
+        },
+        {
+          "id": "MA2B-OA-08",
+          "codigo_oficial": "MA02 OA 08",
+          "descripcion": "Crear, representar y continuar una variedad de patrones numéricos y completar los elementos faltantes."
+        },
+        {
+          "id": "MA2B-OA-09",
+          "codigo_oficial": "MA02 OA 09",
+          "descripcion": "Demostrar que comprenden la multiplicación como una adición repetida de iguales grupos y la división como reparto equitativo y agrupación."
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "nombre": "Figuras, ubicación espacial y medición",
+      "oa": [
+        {
+          "id": "MA2B-OA-10",
+          "codigo_oficial": "MA02 OA 10",
+          "descripcion": "Construir, describir y comparar figuras 2D y cuerpos geométricos 3D del entorno."
+        },
+        {
+          "id": "MA2B-OA-11",
+          "codigo_oficial": "MA02 OA 11",
+          "descripcion": "Describir, comparar y construir figuras 2D y 3D usando material concreto."
+        },
+        {
+          "id": "MA2B-OA-12",
+          "codigo_oficial": "MA02 OA 12",
+          "descripcion": "Medir longitudes, usando unidades estandarizadas y no estandarizadas, y comparar resultados."
+        },
+        {
+          "id": "MA2B-OA-14",
+          "codigo_oficial": "MA02 OA 14",
+          "descripcion": "Representar y describir la posición de objetos y personas en relación a sí mismos y a otros objetos y personas, incluyendo derecha e izquierda, usando material concreto y dibujos."
+        }
+      ]
+    },
+    {
+      "numero": 4,
+      "nombre": "Tiempo, dinero y datos",
+      "oa": [
+        {
+          "id": "MA2B-OA-13",
+          "codigo_oficial": "MA02 OA 13",
+          "descripcion": "Demostrar, explicar y registrar la igualdad y la desigualdad en forma concreta y pictórica del 0 al 20, usando el símbolo igual (=) y los símbolos mayor que y menor que."
+        },
+        {
+          "id": "MA2B-OA-15",
+          "codigo_oficial": "MA02 OA 15",
+          "descripcion": "Demostrar que comprenden la relación entre horas y medias horas en relojes análogos y digitales en contextos cotidianos."
+        },
+        {
+          "id": "MA2B-OA-16",
+          "codigo_oficial": "MA02 OA 16",
+          "descripcion": "Describir días, semanas, meses y eventos del calendario en situaciones cotidianas."
+        },
+        {
+          "id": "MA2B-OA-17",
+          "codigo_oficial": "MA02 OA 17",
+          "descripcion": "Identificar monedas y billetes y resolver problemas simples de compra y cambio en contextos cotidianos."
+        },
+        {
+          "id": "MA2B-OA-18",
+          "codigo_oficial": "MA02 OA 18",
+          "descripcion": "Recolectar, registrar y representar datos en tablas de conteo, pictogramas y gráficos de barra simples."
+        },
+        {
+          "id": "MA2B-OA-19",
+          "codigo_oficial": "MA02 OA 19",
+          "descripcion": "Construir, leer e interpretar pictogramas y gráficos de barra simples para responder preguntas."
+        }
+      ]
+    }
+  ]
+}
