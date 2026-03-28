@@ -5,7 +5,7 @@
     "base_oficial_compartida": "Nivel Transición",
     "fuente": "Programa Pedagógico Primer y Segundo Nivel de Transición / BCEP - MINEDUC Chile",
     "source_url": "https://parvularia.mineduc.cl/wp-content/uploads/2020/09/Programa-Pedagogico-NT1-y-NT2.pdf",
-    "estado": "actualizado_con_CES_y_PM_completos",
+    "estado": "completo_con_DPS_CI_ICE",
     "ultima_actualizacion_manual": "2026-03-28",
     "nota": "NT1 usa los OA oficiales del Nivel Transición. La progresión propia de NT1 debe trabajarse luego con indicadores/observables y experiencias sugeridas diferenciadas."
   },
@@ -15,17 +15,185 @@
       "nucleos": [
         {
           "nombre": "Identidad y Autonomía",
-          "oa_transversales": [],
+          "oa_transversales": [
+            {
+              "id": "DPS-IA-NT-OAT-01",
+              "codigo_oficial": "OAT 01 IA NT",
+              "descripcion": "Comunicar a los demás, emociones y sentimientos tales como: amor, miedo, alegría, ira, que le provocan diversas narraciones o situaciones observadas en forma directa o a través de TICs."
+            },
+            {
+              "id": "DPS-IA-NT-OAT-02",
+              "codigo_oficial": "OAT 02 IA NT",
+              "descripcion": "Manifestar disposición y confianza para relacionarse con algunos adultos y pares que no son parte del grupo o curso."
+            },
+            {
+              "id": "DPS-IA-NT-OAT-03",
+              "codigo_oficial": "OAT 03 IA NT",
+              "descripcion": "Reconocer emociones y sentimientos en otras personas, observadas en forma directa o a través de TICs."
+            },
+            {
+              "id": "DPS-IA-NT-OAT-04",
+              "codigo_oficial": "OAT 04 IA NT",
+              "descripcion": "Expresar sus emociones y sentimientos autorregulándose en función de las necesidades propias, de los demás y las normas de funcionamiento grupal."
+            },
+            {
+              "id": "DPS-IA-NT-OAT-05",
+              "codigo_oficial": "OAT 05 IA NT",
+              "descripcion": "Comunicar sus preferencias, opiniones, ideas, en diversas situaciones cotidianas y juegos."
+            },
+            {
+              "id": "DPS-IA-NT-OAT-06",
+              "codigo_oficial": "OAT 06 IA NT",
+              "descripcion": "Planificar proyectos y juegos, en función de sus ideas e intereses, proponiendo actividades, organizando los recursos, incorporando los ajustes necesarios e iniciándose en la apreciación de sus resultados."
+            },
+            {
+              "id": "DPS-IA-NT-OAT-07",
+              "codigo_oficial": "OAT 07 IA NT",
+              "descripcion": "Comunicar rasgos de su identidad de género, roles (nieta/o, vecino/a, entre otros), sentido de pertenencia y cualidades personales."
+            },
+            {
+              "id": "DPS-IA-NT-OAT-08",
+              "codigo_oficial": "OAT 08 IA NT",
+              "descripcion": "Comunicar sus características identitarias, fortalezas, habilidades y desafíos personales."
+            },
+            {
+              "id": "DPS-IA-NT-OAT-09",
+              "codigo_oficial": "OAT 09 IA NT",
+              "descripcion": "Cuidar su bienestar personal, llevando a cabo sus prácticas de higiene, alimentación y vestuario, con independencia y progresiva responsabilidad."
+            },
+            {
+              "id": "DPS-IA-NT-OAT-10",
+              "codigo_oficial": "OAT 10 IA NT",
+              "descripcion": "Comunicar a otras personas desafíos alcanzados, identificando acciones que aportaron a su logro y definiendo nuevas metas."
+            },
+            {
+              "id": "DPS-IA-NT-OAT-11",
+              "codigo_oficial": "OAT 11 IA NT",
+              "descripcion": "Distinguir parámetros establecidos para la regulación de alimentos, tales como: etiquetado de sellos, fechas de vencimiento, entre otros."
+            },
+            {
+              "id": "DPS-IA-NT-OAT-12",
+              "codigo_oficial": "OAT 12 IA NT",
+              "descripcion": "Anticipar acciones y prever algunas situaciones o desafíos que se pueden presentar, en juegos, proyectos, sucesos que experimenta o que observa a través de TICs."
+            },
+            {
+              "id": "DPS-IA-NT-OAT-13",
+              "codigo_oficial": "OAT 13 IA NT",
+              "descripcion": "Representar en juegos sociodramáticos, sus pensamientos y experiencias atribuyendo significados a objetos, personas y situaciones."
+            }
+          ],
           "oa_contenido": []
         },
         {
           "nombre": "Convivencia y Ciudadanía",
-          "oa_transversales": [],
+          "oa_transversales": [
+            {
+              "id": "DPS-CC-NT-OAT-01",
+              "codigo_oficial": "OAT 01 CC NT",
+              "descripcion": "Participar en actividades y juegos colaborativos, planificando, acordando estrategias para un propósito común y asumiendo progresivamente responsabilidades en ellos."
+            },
+            {
+              "id": "DPS-CC-NT-OAT-02",
+              "codigo_oficial": "OAT 02 CC NT",
+              "descripcion": "Participar en actividades solidarias, que integran a las familias, la comunidad educativa y local."
+            },
+            {
+              "id": "DPS-CC-NT-OAT-03",
+              "codigo_oficial": "OAT 03 CC NT",
+              "descripcion": "Manifestar empatía y solidaridad frente a situaciones que vivencian sus pares, o que observa en textos o TICs, practicando acciones de escucha, apoyo y colaboración."
+            },
+            {
+              "id": "DPS-CC-NT-OAT-04",
+              "codigo_oficial": "OAT 04 CC NT",
+              "descripcion": "Apreciar el significado que tienen para las personas y las comunidades, diversas manifestaciones culturales que se desarrollan en su entorno."
+            },
+            {
+              "id": "DPS-CC-NT-OAT-05",
+              "codigo_oficial": "OAT 05 CC NT",
+              "descripcion": "Aplicar estrategias pacíficas frente a la resolución de conflictos cotidianos con otros niños y niñas."
+            },
+            {
+              "id": "DPS-CC-NT-OAT-06",
+              "codigo_oficial": "OAT 06 CC NT",
+              "descripcion": "Respetar normas y acuerdos creados colaborativamente con pares y adultos, para el bienestar del grupo."
+            },
+            {
+              "id": "DPS-CC-NT-OAT-07",
+              "codigo_oficial": "OAT 07 CC NT",
+              "descripcion": "Identificar objetos, comportamientos y situaciones de riesgo que pueden atentar contra su bienestar y seguridad, o la de los demás, proponiendo alternativas para enfrentarlas."
+            },
+            {
+              "id": "DPS-CC-NT-OAT-08",
+              "codigo_oficial": "OAT 08 CC NT",
+              "descripcion": "Comprender que algunas de sus acciones y decisiones respecto al desarrollo de juegos y proyectos colectivos, influyen en las de sus pares."
+            },
+            {
+              "id": "DPS-CC-NT-OAT-09",
+              "codigo_oficial": "OAT 09 CC NT",
+              "descripcion": "Reconocer, y progresivamente hacer respetar el derecho a expresarse libremente, a ser escuchado y a que su opinión sea tomada en cuenta."
+            },
+            {
+              "id": "DPS-CC-NT-OAT-10",
+              "codigo_oficial": "OAT 10 CC NT",
+              "descripcion": "Reconocer progresivamente requerimientos esenciales de las prácticas de convivencia democrática, tales como: escucha de opiniones divergentes, el respeto por los demás, de los turnos, de los acuerdos de las mayorías."
+            },
+            {
+              "id": "DPS-CC-NT-OAT-11",
+              "codigo_oficial": "OAT 11 CC NT",
+              "descripcion": "Apreciar la diversidad de las personas y sus formas de vida, tales como: singularidades fisonómicas, lingüísticas, religiosas, de género, entre otras."
+            }
+          ],
           "oa_contenido": []
         },
         {
           "nombre": "Corporalidad y Movimiento",
-          "oa_transversales": [],
+          "oa_transversales": [
+            {
+              "id": "DPS-CM-NT-OAT-01",
+              "codigo_oficial": "OAT 01 CM NT",
+              "descripcion": "Manifestar iniciativa para resguardar el autocuidado de su cuerpo y su confortabilidad, en función de su propio bienestar."
+            },
+            {
+              "id": "DPS-CM-NT-OAT-02",
+              "codigo_oficial": "OAT 02 CM NT",
+              "descripcion": "Apreciar sus características corporales, manifestando interés y cuidado por su bienestar y apariencia personal."
+            },
+            {
+              "id": "DPS-CM-NT-OAT-03",
+              "codigo_oficial": "OAT 03 CM NT",
+              "descripcion": "Tomar conciencia de su cuerpo, de algunas de sus características internas (tales como: ritmo cardíaco, de respiración), de su esquema y progresivamente de su tono corporal y lateralidad, por medio de juegos."
+            },
+            {
+              "id": "DPS-CM-NT-OAT-04",
+              "codigo_oficial": "OAT 04 CM NT",
+              "descripcion": "Comunicar nuevas posibilidades de acción logradas a través de su cuerpo en situaciones cotidianas y de juego, empleando vocabulario preciso."
+            },
+            {
+              "id": "DPS-CM-NT-OAT-05",
+              "codigo_oficial": "OAT 05 CM NT",
+              "descripcion": "Comunicar el bienestar que le produce el movimiento, al ejercitar y recrear su cuerpo en forma habitual, con y sin implementos u obstáculos."
+            },
+            {
+              "id": "DPS-CM-NT-OAT-06",
+              "codigo_oficial": "OAT 06 CM NT",
+              "descripcion": "Coordinar con precisión y eficiencia sus habilidades psicomotrices finas en función de sus intereses de exploración y juego."
+            },
+            {
+              "id": "DPS-CM-NT-OAT-07",
+              "codigo_oficial": "OAT 07 CM NT",
+              "descripcion": "Resolver desafíos prácticos manteniendo control, equilibrio y coordinación al combinar diversos movimientos, posturas y desplazamientos tales como: lanzar y recibir, desplazarse en planos inclinados, seguir ritmos, en una variedad de juegos."
+            },
+            {
+              "id": "DPS-CM-NT-OAT-08",
+              "codigo_oficial": "OAT 08 CM NT",
+              "descripcion": "Coordinar sus habilidades psicomotoras practicando posturas y movimientos de fuerza, resistencia y tracción tales como: tirar la cuerda, transportar objetos, utilizar implementos, en situaciones cotidianas y de juego."
+            },
+            {
+              "id": "DPS-CM-NT-OAT-09",
+              "codigo_oficial": "OAT 09 CM NT",
+              "descripcion": "Utilizar categorías de ubicación espacial y temporal, tales como: adelante/atrás/al lado/entre, día/noche, hoy/mañana, antes/durante/después, en situaciones cotidianas y lúdicas."
+            }
+          ],
           "oa_contenido": []
         }
       ]
