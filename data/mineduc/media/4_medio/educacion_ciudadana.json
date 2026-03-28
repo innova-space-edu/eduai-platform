@@ -1,0 +1,58 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "4° Medio",
+    "asignatura": "Educación Ciudadana",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/",
+    "estado": "parcial_verificado",
+    "ultima_actualizacion_manual": "2026-03-28"
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "La participación ciudadana contribuye con soluciones a los desafíos, problemas y conflictos presentes en la sociedad",
+      "oa": [
+        {
+          "id": "FG-ECIU-4M-OAC-01",
+          "codigo_oficial": "FG-ECIU-4M-OAC-01",
+          "descripcion": "Analizar problemáticas públicas relevantes a distintas escalas y proponer alternativas de participación ciudadana dentro del sistema democrático."
+        },
+        {
+          "id": "FG-ECIU-4M-OAC-02",
+          "codigo_oficial": "FG-ECIU-4M-OAC-02",
+          "descripcion": "Evaluar formas de participación social, política y comunitaria, considerando su contribución al bien común."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Trabajo, derechos y organización social",
+      "oa": [
+        {
+          "id": "FG-ECIU-4M-OAC-03",
+          "codigo_oficial": "FG-ECIU-4M-OAC-03",
+          "descripcion": "Analizar el trabajo como dimensión fundamental de la vida social, considerando derechos laborales, instituciones y conflictos asociados."
+        },
+        {
+          "id": "FG-ECIU-4M-OAC-05",
+          "codigo_oficial": "FG-ECIU-4M-OAC-05",
+          "descripcion": "Comprender la importancia de los derechos laborales en Chile, considerando las principales tendencias globales y nacionales, la evolución de los mecanismos institucionales que buscan resguardarlos y los aportes de los movimientos y organizaciones sociales a su fortalecimiento."
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "nombre": "Ciudadanía activa y deliberación democrática",
+      "oa": [
+        {
+          "id": "FG-ECIU-4M-OAC-04",
+          "codigo_oficial": "FG-ECIU-4M-OAC-04",
+          "descripcion": "Deliberar sobre asuntos públicos relevantes considerando distintas perspectivas, evidencia, derechos y responsabilidades ciudadanas."
+        }
+      ]
+    }
+  ]
+}
