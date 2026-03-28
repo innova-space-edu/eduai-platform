@@ -657,10 +657,38 @@ export async function ensurePaperProcessed(params: {
   const arrayBuffer = await fileBlob.arrayBuffer()
   const buffer = Buffer.from(arrayBuffer)
   const sha256 = createHash("sha256").update(buffer).digest("hex")
+  
+  let chosen: ExtractorResult = {
+    text: "",
+    pageCount: 0,
+    pages: [],
+    success: false,
+    method: "none",
+  }
+  
+  const external = await parseDocumentWithExternalService({
+    buffer,
+    filename: filename || filePath.split("/").pop() || "documento.pdf",
+    mimeType: "application/pdf",
+  })
 
-  const pdfResult = await extractTextWithPdfParse(buffer)
-
-  let chosen: ExtractorResult = pdfResult
+  if (external?.success) {
+    chosen = {
+      text: external.text,
+      pageCount: external.pageCount,
+      pages: external.pages.map((p) => ({
+        pageNumber: p.pageNumber,
+        text: p.text,
+      })),
+      success: true,
+      usedOCR: !!external.ocrUsed,
+      method: external.method || "docling-api",
+      summary: external.summary,
+    }
+  } else {
+    const pdfResult = await extractTextWithPdfParse(buffer)
+    chosen = pdfResult
+  }
 
   if (!chosen.success) {
     const ocrResult = await extractTextWithOCR(
