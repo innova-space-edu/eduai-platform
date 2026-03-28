@@ -6,26 +6,40 @@ export const MAX_PDF_SIZE_BYTES = MAX_PDF_SIZE_MB * 1024 * 1024
 export const MAX_GEMINI_INLINE_PDF_MB = 10
 export const MAX_GEMINI_INLINE_PDF_BYTES = MAX_GEMINI_INLINE_PDF_MB * 1024 * 1024
 export const MAX_RETURN_TEXT_CHARS = 180_000
+
 const MAX_SUMMARY_SOURCE_CHARS = 12_000
+const CHUNK_TARGET_CHARS = 1800
+const CHUNK_MIN_CHARS = 450
+const CHUNK_MAX_CHARS = 2400
 
 type SupabaseClientLike = any
 
-export interface CachedPaperExtraction {
-  id?: number
+export interface PaperChunkRow {
+  document_id: string
+  user_id: string
+  chunk_index: number
+  section_title: string | null
+  page_start: number
+  page_end: number
+  content: string
+  lexical_hint: string
+}
+
+export interface PaperDocumentRow {
+  id?: string
   user_id: string
   bucket: string
   file_path: string
   title: string
-  extracted_text: string
+  raw_text: string
   summary: string
   page_count: number
   extraction_method: string
-  truncated: boolean
+  parser_used: string
+  ocr_used: boolean
   source_file_size_bytes?: number | null
   source_file_sha256?: string | null
-  error_message?: string | null
-  created_at?: string
-  updated_at?: string
+  metadata?: Record<string, any>
 }
 
 export interface PaperExtractionResult {
@@ -34,23 +48,43 @@ export interface PaperExtractionResult {
   summary: string
   pageCount: number
   extractionMethod: string
+  parserUsed: string
+  ocrUsed: boolean
   truncated: boolean
   fromCache: boolean
   bucket: string
   filePath: string
+  documentId?: string
+  chunks?: PaperChunkRow[]
   error?: boolean
 }
 
-// ============================================================
-// UTILIDADES
-// ============================================================
+interface PageText {
+  pageNumber: number
+  text: string
+}
+
+interface ExtractorResult {
+  text: string
+  pageCount: number
+  pages: PageText[]
+  summary?: string
+  success: boolean
+  usedOCR?: boolean
+  method: string
+}
+
+function getString(value: unknown) {
+  return typeof value === "string" ? value : ""
+}
 
 export function cleanText(text: string) {
-  return text
+  return String(text || "")
     .replace(/\u0000/g, "")
     .replace(/\r/g, "\n")
+    .replace(/\t/g, " ")
+    .replace(/[ \u00A0]{2,}/g, " ")
     .replace(/\n{3,}/g, "\n\n")
-    .replace(/[ \t]{2,}/g, " ")
     .trim()
 }
 
@@ -59,53 +93,49 @@ export function truncateText(text: string, maxChars: number) {
   return text.slice(0, maxChars) + "\n\n[Texto truncado por límite interno]"
 }
 
-function getString(value: unknown) {
-  return typeof value === "string" ? value : ""
-}
-
 function hasUsefulExtractedText(text: string) {
   const clean = cleanText(text)
   if (!clean) return false
-  if (clean.length >= 500) return true
-  return clean.split(/\s+/).filter(Boolean).length >= 80
+  if (clean.length >= 700) return true
+  return clean.split(/\s+/).filter(Boolean).length >= 120
 }
 
 export function deriveTitle(filename?: string, filePath?: string) {
   const cleanFilename = getString(filename).trim()
-  if (cleanFilename) {
-    return cleanFilename.replace(/\.pdf$/i, "") || "Documento"
-  }
+  if (cleanFilename) return cleanFilename.replace(/\.pdf$/i, "") || "Documento"
+
   const cleanPath = getString(filePath).trim()
-  if (cleanPath) {
-    const parts = cleanPath.split("/")
-    const lastPart = decodeURIComponent(parts[parts.length - 1] || "documento.pdf")
-      .replace(/^\d+-/, "")
-      .replace(/^[a-f0-9-]{20,}-/i, "")
-    return lastPart.replace(/\.pdf$/i, "") || "Documento"
-  }
-  return "Documento"
+  if (!cleanPath) return "Documento"
+
+  const parts = cleanPath.split("/")
+  const lastPart = decodeURIComponent(parts[parts.length - 1] || "documento.pdf")
+    .replace(/^\d+-/, "")
+    .replace(/^[a-f0-9-]{20,}-/i, "")
+
+  return lastPart.replace(/\.pdf$/i, "") || "Documento"
 }
 
 function parseGeminiJson(raw: string) {
   let data: any = null
+
   try {
     data = JSON.parse(raw)
   } catch {}
 
   if (!data) {
-    const match = raw.match(/\{[\s\S]*\}/)
-    if (match) {
+    const md = raw.match(/```(?:json)?\s*([\s\S]*?)```/i)
+    if (md) {
       try {
-        data = JSON.parse(match[0])
+        data = JSON.parse(md[1].trim())
       } catch {}
     }
   }
 
   if (!data) {
-    const mdMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/)
-    if (mdMatch) {
+    const obj = raw.match(/\{[\s\S]*\}/)
+    if (obj) {
       try {
-        data = JSON.parse(mdMatch[1].trim())
+        data = JSON.parse(obj[0])
       } catch {}
     }
   }
@@ -113,140 +143,213 @@ function parseGeminiJson(raw: string) {
   return data
 }
 
-// ============================================================
-// CACHE (tabla paper_extractions — opcional, no rompe si no existe)
-// ============================================================
-
-export async function getCachedPaperExtraction(
-  supabase: SupabaseClientLike,
-  userId: string,
-  bucket: string,
-  filePath: string
-): Promise<CachedPaperExtraction | null> {
-  try {
-    const { data, error } = await supabase
-      .from("paper_extractions")
-      .select("*")
-      .eq("user_id", userId)
-      .eq("bucket", bucket)
-      .eq("file_path", filePath)
-      .maybeSingle()
-
-    if (error) {
-      console.error("paper_extractions select error:", error)
-      return null
-    }
-
-    return data ?? null
-  } catch {
-    return null
-  }
+function normalizeForLexical(text: string) {
+  return text
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[^\p{L}\p{N}\s\-.:/]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim()
 }
 
-export async function upsertPaperExtraction(
-  supabase: SupabaseClientLike,
-  row: CachedPaperExtraction
-) {
-  try {
-    const { error } = await supabase
-      .from("paper_extractions")
-      .upsert(row, { onConflict: "user_id,bucket,file_path" })
-
-    if (error) {
-      console.error("paper_extractions upsert error:", error)
-    }
-  } catch {
-    // tabla no existe, ignorar silenciosamente
+function looksLikeHeading(line: string) {
+  const s = line.trim()
+  if (!s) return false
+  if (s.length > 110) return false
+  if (/^(abstract|summary|resumen|introduction|introducci[oó]n|method|methodology|metodolog[ií]a|results|resultados|discussion|discusi[oó]n|conclusion|conclusiones|references|referencias)\b/i.test(s)) {
+    return true
   }
+  if (/^\d+(\.\d+)*\s+[A-ZÁÉÍÓÚÑ]/.test(s)) return true
+  if (/^[A-ZÁÉÍÓÚÑ0-9][A-ZÁÉÍÓÚÑ0-9\s\-:,()]{4,}$/.test(s)) return true
+  return false
 }
 
-// ============================================================
-// EXTRACTORES
-// ============================================================
+function buildPagesFromRawText(text: string) {
+  const raw = String(text || "")
+  if (!raw.trim()) return []
 
-async function extractTextWithPdfParse(buffer: Buffer) {
+  const splitByFormFeed = raw.split(/\f/g).map(t => cleanText(t)).filter(Boolean)
+  if (splitByFormFeed.length > 1) {
+    return splitByFormFeed.map((pageText, index) => ({
+      pageNumber: index + 1,
+      text: pageText,
+    }))
+  }
+
+  return [{ pageNumber: 1, text: cleanText(raw) }]
+}
+
+function buildChunksFromPages(pages: PageText[]) {
+  const chunks: Array<{
+    sectionTitle: string | null
+    pageStart: number
+    pageEnd: number
+    content: string
+    lexicalHint: string
+  }> = []
+
+  let currentSection: string | null = null
+  let currentText = ""
+  let currentPageStart = pages[0]?.pageNumber || 1
+  let currentPageEnd = pages[0]?.pageNumber || 1
+
+  const flush = () => {
+    const content = cleanText(currentText)
+    if (!content || content.length < CHUNK_MIN_CHARS) return
+
+    chunks.push({
+      sectionTitle: currentSection,
+      pageStart: currentPageStart,
+      pageEnd: currentPageEnd,
+      content,
+      lexicalHint: normalizeForLexical(`${currentSection || ""} ${content.slice(0, 300)}`),
+    })
+
+    currentText = ""
+  }
+
+  for (const page of pages) {
+    const paragraphs = page.text
+      .split(/\n\s*\n/g)
+      .map(p => cleanText(p))
+      .filter(Boolean)
+
+    for (const paragraph of paragraphs) {
+      const lines = paragraph.split("\n").map(l => l.trim()).filter(Boolean)
+      const firstLine = lines[0] || ""
+
+      if (looksLikeHeading(firstLine) && paragraph.length <= 180) {
+        flush()
+        currentSection = firstLine
+        currentPageStart = page.pageNumber
+        currentPageEnd = page.pageNumber
+        continue
+      }
+
+      const candidate = currentText ? `${currentText}\n\n${paragraph}` : paragraph
+
+      if (!currentText) {
+        currentPageStart = page.pageNumber
+        currentPageEnd = page.pageNumber
+      }
+
+      if (candidate.length <= CHUNK_TARGET_CHARS) {
+        currentText = candidate
+        currentPageEnd = page.pageNumber
+        continue
+      }
+
+      if (currentText) {
+        flush()
+      }
+
+      if (paragraph.length <= CHUNK_MAX_CHARS) {
+        currentText = paragraph
+        currentPageStart = page.pageNumber
+        currentPageEnd = page.pageNumber
+        continue
+      }
+
+      let remaining = paragraph
+      while (remaining.length > CHUNK_MAX_CHARS) {
+        const slice = remaining.slice(0, CHUNK_TARGET_CHARS)
+        const lastBreak = Math.max(
+          slice.lastIndexOf(". "),
+          slice.lastIndexOf("\n"),
+          slice.lastIndexOf("; "),
+          slice.lastIndexOf(", ")
+        )
+        const cut = lastBreak > CHUNK_MIN_CHARS ? lastBreak + 1 : CHUNK_TARGET_CHARS
+        const part = cleanText(remaining.slice(0, cut))
+        if (part) {
+          chunks.push({
+            sectionTitle: currentSection,
+            pageStart: page.pageNumber,
+            pageEnd: page.pageNumber,
+            content: part,
+            lexicalHint: normalizeForLexical(`${currentSection || ""} ${part.slice(0, 300)}`),
+          })
+        }
+        remaining = cleanText(remaining.slice(cut))
+      }
+
+      currentText = remaining
+      currentPageStart = page.pageNumber
+      currentPageEnd = page.pageNumber
+    }
+  }
+
+  flush()
+
+  if (!chunks.length && pages.length) {
+    const fallbackText = cleanText(pages.map(p => p.text).join("\n\n"))
+    if (fallbackText) {
+      chunks.push({
+        sectionTitle: null,
+        pageStart: 1,
+        pageEnd: pages.length,
+        content: fallbackText,
+        lexicalHint: normalizeForLexical(fallbackText.slice(0, 600)),
+      })
+    }
+  }
+
+  return chunks
+}
+
+async function extractTextWithPdfParse(buffer: Buffer): Promise<ExtractorResult> {
   try {
     const pdfParseModule: any = await import("pdf-parse")
-    const pdfParse =
-      pdfParseModule.default || pdfParseModule.pdf || pdfParseModule
-
+    const pdfParse = pdfParseModule.default || pdfParseModule.pdf || pdfParseModule
     const parsed = await pdfParse(buffer)
-    const text = cleanText(parsed?.text || "")
 
-    console.log("pdf-parse extracted:", text.length, "chars,", parsed?.numpages, "pages")
-
-    return {
-      text,
-      pageCount: parsed?.numpages || 0,
-      success: hasUsefulExtractedText(text),
-    }
-  } catch (error) {
-    console.error("pdf-parse failed:", error)
-    return { text: "", pageCount: 0, success: false }
-  }
-}
-
-async function extractTextWithGemini(base64: string, title: string) {
-  if (!process.env.GEMINI_API_KEY) {
-    return { text: "", summary: "", success: false }
-  }
-
-  try {
-    const { GoogleGenerativeAI } = await import("@google/generative-ai")
-    const genai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
-    const model = genai.getGenerativeModel({ model: "gemini-2.0-flash" })
-
-    const result = await model.generateContent([
-      { inlineData: { mimeType: "application/pdf", data: base64 } },
-      {
-        text: `Extract ALL text from this document preserving structure, titles, sections and formulas.
-Then generate a 3-4 sentence executive summary.
-Respond ONLY with valid JSON, no markdown, no backticks:
-{"title":"document title","text":"full extracted text","summary":"executive summary"}
-Keep original language. Preserve LaTeX formulas. If title unclear use: "${title}"`,
-      },
-    ])
-
-    const raw = result.response.text().trim()
-    const data = parseGeminiJson(raw)
-
-    if (!data) {
-      return { text: "", summary: "", success: false }
-    }
-
-    const text = cleanText(getString(data.text))
-    console.log("Gemini extracted:", text.length, "chars")
+    const rawText = String(parsed?.text || "")
+    const pages = buildPagesFromRawText(rawText)
+    const text = cleanText(pages.map(p => p.text).join("\n\n"))
 
     return {
       text,
-      summary: getString(data.summary).trim(),
+      pageCount: parsed?.numpages || pages.length || 0,
+      pages,
       success: hasUsefulExtractedText(text),
+      method: "pdf-parse",
     }
   } catch (error) {
-    console.error("Gemini extraction failed:", error)
-    return { text: "", summary: "", success: false }
+    console.error("[Paper] pdf-parse failed:", error)
+    return {
+      text: "",
+      pageCount: 0,
+      pages: [],
+      success: false,
+      method: "pdf-parse",
+    }
   }
 }
 
-async function extractTextWithOCR(buffer: Buffer, filename: string) {
+async function extractTextWithOCR(buffer: Buffer, filename: string): Promise<ExtractorResult> {
   if (!process.env.OCR_SPACE_API_KEY) {
-    console.warn("OCR_SPACE_API_KEY not set, skipping OCR")
-    return { text: "", success: false }
+    return {
+      text: "",
+      pageCount: 0,
+      pages: [],
+      success: false,
+      usedOCR: false,
+      method: "ocr-space",
+    }
   }
 
   try {
     const formData = new FormData()
-    const uint8 = new Uint8Array(buffer)
-
     formData.append(
       "file",
-      new Blob([uint8], { type: "application/pdf" }),
+      new Blob([new Uint8Array(buffer)], { type: "application/pdf" }),
       filename || "documento.pdf"
     )
     formData.append("isOverlayRequired", "false")
     formData.append("OCREngine", "2")
     formData.append("detectOrientation", "true")
     formData.append("scale", "true")
+    formData.append("language", "spa")
 
     const res = await fetch("https://api.ocr.space/parse/image", {
       method: "POST",
@@ -257,27 +360,99 @@ async function extractTextWithOCR(buffer: Buffer, filename: string) {
     const data: any = await res.json().catch(() => null)
 
     if (!res.ok || !data || data.IsErroredOnProcessing) {
-      console.error("OCR error:", data?.ErrorMessage || data?.ErrorDetails)
-      return { text: "", success: false }
+      console.error("[Paper] OCR error:", data?.ErrorMessage || data?.ErrorDetails)
+      return {
+        text: "",
+        pageCount: 0,
+        pages: [],
+        success: false,
+        usedOCR: true,
+        method: "ocr-space",
+      }
     }
 
-    const text = (data.ParsedResults || [])
-      .map((r: any) => r?.ParsedText || "")
-      .join("\n\n")
+    const pages: PageText[] = (data.ParsedResults || [])
+      .map((r: any, index: number) => ({
+        pageNumber: index + 1,
+        text: cleanText(r?.ParsedText || ""),
+      }))
+      .filter((p: PageText) => !!p.text)
 
-    const clean = cleanText(text)
-    console.log("OCR extracted:", clean.length, "chars")
+    const text = cleanText(pages.map(p => p.text).join("\n\n"))
 
-    return { text: clean, success: hasUsefulExtractedText(clean) }
+    return {
+      text,
+      pageCount: pages.length,
+      pages,
+      success: hasUsefulExtractedText(text),
+      usedOCR: true,
+      method: "ocr-space",
+    }
   } catch (error) {
-    console.error("OCR failed:", error)
-    return { text: "", success: false }
+    console.error("[Paper] OCR failed:", error)
+    return {
+      text: "",
+      pageCount: 0,
+      pages: [],
+      success: false,
+      usedOCR: true,
+      method: "ocr-space",
+    }
   }
 }
 
-// ============================================================
-// RESUMEN
-// ============================================================
+async function extractTextWithGemini(base64: string, title: string): Promise<ExtractorResult> {
+  if (!process.env.GEMINI_API_KEY) {
+    return {
+      text: "",
+      pageCount: 0,
+      pages: [],
+      success: false,
+      method: "gemini-inline",
+    }
+  }
+
+  try {
+    const { GoogleGenerativeAI } = await import("@google/generative-ai")
+    const genai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+    const model = genai.getGenerativeModel({ model: "gemini-2.0-flash" })
+
+    const result = await model.generateContent([
+      { inlineData: { mimeType: "application/pdf", data: base64 } },
+      {
+        text:
+          `Extrae TODO el texto del PDF preservando estructura y secciones.\n` +
+          `Luego devuelve JSON válido, sin markdown:\n` +
+          `{"title":"...","text":"...","summary":"..."}\n` +
+          `Mantén el idioma original. Si no puedes identificar el título usa "${title}".`,
+      },
+    ])
+
+    const raw = result.response.text().trim()
+    const data = parseGeminiJson(raw)
+    const text = cleanText(getString(data?.text))
+    const summary = cleanText(getString(data?.summary))
+    const pages = buildPagesFromRawText(text)
+
+    return {
+      text,
+      summary,
+      pageCount: pages.length,
+      pages,
+      success: hasUsefulExtractedText(text),
+      method: "gemini-inline",
+    }
+  } catch (error) {
+    console.error("[Paper] Gemini inline failed:", error)
+    return {
+      text: "",
+      pageCount: 0,
+      pages: [],
+      success: false,
+      method: "gemini-inline",
+    }
+  }
+}
 
 async function summarizeWithGemini(title: string, text: string) {
   if (!process.env.GEMINI_API_KEY || !text.trim()) return ""
@@ -287,26 +462,142 @@ async function summarizeWithGemini(title: string, text: string) {
     const genai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
     const model = genai.getGenerativeModel({ model: "gemini-2.0-flash" })
 
-    const result = await model.generateContent(
-      `Resume este documento en 3-4 frases en el mismo idioma del documento.
-Menciona: tema central, método, hallazgo principal y conclusión.
+    const prompt =
+      `Resume este documento en 4 frases en el mismo idioma del documento.\n` +
+      `Incluye: tema central, método o enfoque, hallazgo principal y conclusión.\n\n` +
+      `TÍTULO: ${title}\n\n` +
+      `TEXTO:\n${text.slice(0, MAX_SUMMARY_SOURCE_CHARS)}`
 
-TÍTULO: ${title}
-
-TEXTO: ${text.slice(0, MAX_SUMMARY_SOURCE_CHARS)}`
-    )
-
-    return result.response.text().trim() || ""
-  } catch {
+    const result = await model.generateContent(prompt)
+    return cleanText(result.response.text())
+  } catch (error) {
+    console.error("[Paper] summary failed:", error)
     return ""
   }
 }
 
-// ============================================================
-// PIPELINE PRINCIPAL
-// ============================================================
+async function getPaperDocument(
+  supabase: SupabaseClientLike,
+  userId: string,
+  bucket: string,
+  filePath: string
+) {
+  try {
+    const { data, error } = await supabase
+      .from("paper_documents")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("bucket", bucket)
+      .eq("file_path", filePath)
+      .maybeSingle()
 
-export async function extractPaperFromStorage(params: {
+    if (error) {
+      console.error("[Paper] getPaperDocument:", error)
+      return null
+    }
+
+    return data ?? null
+  } catch {
+    return null
+  }
+}
+
+async function getPaperChunks(
+  supabase: SupabaseClientLike,
+  documentId: string
+) {
+  try {
+    const { data, error } = await supabase
+      .from("paper_chunks")
+      .select("*")
+      .eq("document_id", documentId)
+      .order("chunk_index", { ascending: true })
+
+    if (error) {
+      console.error("[Paper] getPaperChunks:", error)
+      return []
+    }
+
+    return data ?? []
+  } catch {
+    return []
+  }
+}
+
+async function upsertPaperDocument(
+  supabase: SupabaseClientLike,
+  row: PaperDocumentRow
+) {
+  const { data, error } = await supabase
+    .from("paper_documents")
+    .upsert(row, { onConflict: "user_id,bucket,file_path" })
+    .select("id")
+    .single()
+
+  if (error) throw error
+  return data?.id as string
+}
+
+async function replacePaperChunks(
+  supabase: SupabaseClientLike,
+  documentId: string,
+  rows: PaperChunkRow[]
+) {
+  const { error: delError } = await supabase
+    .from("paper_chunks")
+    .delete()
+    .eq("document_id", documentId)
+
+  if (delError) throw delError
+
+  if (!rows.length) return
+
+  const { error } = await supabase
+    .from("paper_chunks")
+    .insert(rows)
+
+  if (error) throw error
+}
+
+async function syncLegacyExtractionCache(
+  supabase: SupabaseClientLike,
+  params: {
+    userId: string
+    bucket: string
+    filePath: string
+    title: string
+    text: string
+    summary: string
+    pageCount: number
+    extractionMethod: string
+    fileSize?: number
+    sha256?: string
+  }
+) {
+  try {
+    await supabase.from("paper_extractions").upsert(
+      {
+        user_id: params.userId,
+        bucket: params.bucket,
+        file_path: params.filePath,
+        title: params.title,
+        extracted_text: params.text,
+        summary: params.summary,
+        page_count: params.pageCount,
+        extraction_method: params.extractionMethod,
+        truncated: false,
+        source_file_size_bytes: params.fileSize ?? null,
+        source_file_sha256: params.sha256 ?? null,
+        error_message: null,
+      },
+      { onConflict: "user_id,bucket,file_path" }
+    )
+  } catch {
+    // opcional
+  }
+}
+
+export async function ensurePaperProcessed(params: {
   supabase: SupabaseClientLike
   userId: string
   bucket: string
@@ -326,19 +617,24 @@ export async function extractPaperFromStorage(params: {
   const title = deriveTitle(filename, filePath)
 
   if (!forceRefresh) {
-    const cached = await getCachedPaperExtraction(supabase, userId, bucket, filePath)
-    if (cached?.extracted_text?.trim()) {
-      console.log("Using cached extraction for:", filePath)
+    const cachedDoc = await getPaperDocument(supabase, userId, bucket, filePath)
+    if (cachedDoc?.raw_text?.trim()) {
+      const chunks = cachedDoc.id ? await getPaperChunks(supabase, cachedDoc.id) : []
+
       return {
-        title: cached.title || title,
-        text: cached.extracted_text,
-        summary: cached.summary || "",
-        pageCount: cached.page_count || 0,
-        extractionMethod: cached.extraction_method || "cache",
+        title: cachedDoc.title || title,
+        text: cachedDoc.raw_text,
+        summary: cachedDoc.summary || "",
+        pageCount: cachedDoc.page_count || 0,
+        extractionMethod: cachedDoc.extraction_method || "cache",
+        parserUsed: cachedDoc.parser_used || "internal-v2",
+        ocrUsed: !!cachedDoc.ocr_used,
         truncated: false,
         fromCache: true,
         bucket,
         filePath,
+        documentId: cachedDoc.id,
+        chunks,
       }
     }
   }
@@ -359,120 +655,105 @@ export async function extractPaperFromStorage(params: {
 
   const arrayBuffer = await fileBlob.arrayBuffer()
   const buffer = Buffer.from(arrayBuffer)
+  const sha256 = createHash("sha256").update(buffer).digest("hex")
 
-  let sha256 = ""
-  try {
-    sha256 = createHash("sha256").update(buffer).digest("hex")
-  } catch {}
-
-  let extractedText = ""
-  let summary = ""
-  let pageCount = 0
-  let extractionMethod = "none"
-
-  console.log("Trying pdf-parse...")
   const pdfResult = await extractTextWithPdfParse(buffer)
 
-  if (pdfResult.success && hasUsefulExtractedText(pdfResult.text)) {
-    extractedText = pdfResult.text
-    pageCount = pdfResult.pageCount
-    extractionMethod = "pdf-parse"
-    console.log("pdf-parse succeeded")
-  }
+  let chosen: ExtractorResult = pdfResult
 
-  if (!extractedText) {
-    console.log("Trying OCR...")
+  if (!chosen.success) {
     const ocrResult = await extractTextWithOCR(
       buffer,
       filename || filePath.split("/").pop() || "documento.pdf"
     )
-
-    if (ocrResult.success && hasUsefulExtractedText(ocrResult.text)) {
-      extractedText = ocrResult.text
-      extractionMethod = "ocr-space"
-      console.log("OCR succeeded")
-    }
+    if (ocrResult.success) chosen = ocrResult
   }
 
-  if (!extractedText && buffer.byteLength <= MAX_GEMINI_INLINE_PDF_BYTES) {
-    console.log("Trying Gemini inline...")
+  if (!chosen.success && buffer.byteLength <= MAX_GEMINI_INLINE_PDF_BYTES) {
     const geminiResult = await extractTextWithGemini(buffer.toString("base64"), title)
-
-    if (geminiResult.success && hasUsefulExtractedText(geminiResult.text)) {
-      extractedText = geminiResult.text
-      summary = geminiResult.summary || ""
-      extractionMethod = "gemini-inline"
-      console.log("Gemini inline succeeded")
-    }
+    if (geminiResult.success) chosen = geminiResult
   }
 
-  extractedText = cleanText(extractedText)
+  const extractedText = cleanText(chosen.text)
+  const pages = chosen.pages?.length ? chosen.pages : buildPagesFromRawText(extractedText)
 
   if (!extractedText) {
-    const errorResult: PaperExtractionResult = {
+    return {
       title,
       text: "",
-      summary:
-        "No se pudo extraer texto del documento. Si el PDF es escaneado, intenta con uno que tenga texto seleccionable.",
-      pageCount,
-      extractionMethod,
+      summary: "No se pudo extraer texto útil del documento.",
+      pageCount: chosen.pageCount || 0,
+      extractionMethod: chosen.method || "none",
+      parserUsed: "internal-v2",
+      ocrUsed: !!chosen.usedOCR,
       truncated: false,
       fromCache: false,
       bucket,
       filePath,
       error: true,
     }
-
-    await upsertPaperExtraction(supabase, {
-      user_id: userId,
-      bucket,
-      file_path: filePath,
-      title,
-      extracted_text: "",
-      summary: errorResult.summary,
-      page_count: pageCount,
-      extraction_method: extractionMethod,
-      truncated: false,
-      source_file_size_bytes: fileBlob.size,
-      source_file_sha256: sha256,
-      error_message: "No text extracted",
-    })
-
-    return errorResult
   }
 
-  if (!summary) {
-    summary = await summarizeWithGemini(title, extractedText)
-  }
+  const summary = chosen.summary || await summarizeWithGemini(title, extractedText) || "Documento procesado correctamente."
+  const builtChunks = buildChunksFromPages(pages)
 
-  if (!summary) {
-    summary = "Documento procesado correctamente."
-  }
-
-  await upsertPaperExtraction(supabase, {
+  const documentId = await upsertPaperDocument(supabase, {
     user_id: userId,
     bucket,
     file_path: filePath,
     title,
-    extracted_text: extractedText,
+    raw_text: extractedText,
     summary,
-    page_count: pageCount,
-    extraction_method: extractionMethod,
-    truncated: false,
+    page_count: chosen.pageCount || pages.length || 1,
+    extraction_method: chosen.method,
+    parser_used: "internal-v2",
+    ocr_used: !!chosen.usedOCR,
     source_file_size_bytes: fileBlob.size,
     source_file_sha256: sha256,
-    error_message: null,
+    metadata: {
+      chunk_count: builtChunks.length,
+    },
+  })
+
+  const chunkRows: PaperChunkRow[] = builtChunks.map((chunk, index) => ({
+    document_id: documentId,
+    user_id: userId,
+    chunk_index: index,
+    section_title: chunk.sectionTitle,
+    page_start: chunk.pageStart,
+    page_end: chunk.pageEnd,
+    content: chunk.content,
+    lexical_hint: chunk.lexicalHint,
+  }))
+
+  await replacePaperChunks(supabase, documentId, chunkRows)
+
+  await syncLegacyExtractionCache(supabase, {
+    userId,
+    bucket,
+    filePath,
+    title,
+    text: extractedText,
+    summary,
+    pageCount: chosen.pageCount || pages.length || 1,
+    extractionMethod: chosen.method,
+    fileSize: fileBlob.size,
+    sha256,
   })
 
   return {
     title,
     text: extractedText,
     summary,
-    pageCount,
-    extractionMethod,
+    pageCount: chosen.pageCount || pages.length || 1,
+    extractionMethod: chosen.method,
+    parserUsed: "internal-v2",
+    ocrUsed: !!chosen.usedOCR,
     truncated: false,
     fromCache: false,
     bucket,
     filePath,
+    documentId,
+    chunks: chunkRows,
   }
 }
