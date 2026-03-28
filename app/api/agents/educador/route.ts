@@ -21,6 +21,11 @@ export const maxDuration = 60
 
 type TiempoPlanificacion = "diaria" | "semanal" | "mensual"
 
+type ChatHistoryItem = {
+  role: "user" | "assistant"
+  content: string
+}
+
 interface EducadorConfig {
   nivel?: NivelKey
   curso?: string
@@ -151,7 +156,7 @@ function buildLocalCoverageNotice(
     return `No existe aún base curricular local cargada para ${asignatura} en ${curso}.`
   }
 
-  return `Existe base curricular local cargada para ${asignatura} en ${curso}.`
+  return `Existe base curricular local cargada o catalogada para ${asignatura} en ${curso}.`
 }
 
 function buildSelectedOATContext(asignatura: string, selectedOATIds: string[]): string {
@@ -272,6 +277,18 @@ function buildPromptContext(params: {
   }
 }
 
+function isChatHistoryItem(msg: unknown): msg is ChatHistoryItem {
+  return (
+    !!msg &&
+    typeof msg === "object" &&
+    "role" in msg &&
+    "content" in msg &&
+    ((msg as { role?: unknown }).role === "user" ||
+      (msg as { role?: unknown }).role === "assistant") &&
+    typeof (msg as { content?: unknown }).content === "string"
+  )
+}
+
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
   const {
@@ -323,9 +340,7 @@ export async function POST(req: NextRequest) {
       ? cfg.asignatura.trim()
       : nivel === "parvularia"
         ? "Lenguaje Verbal"
-        : nivel === "basica"
-          ? "Matemática"
-          : "Matemática"
+        : "Matemática"
 
   const contexto =
     typeof cfg.contexto === "string" ? cfg.contexto.trim() : ""
@@ -507,16 +522,8 @@ CRITERIOS DE CALIDAD
     },
     ...history
       .slice(-10)
-      .filter(
-        (msg: unknown): msg is { role: "user" | "assistant"; content: string } =>
-          !!msg &&
-          typeof msg === "object" &&
-          "role" in msg &&
-          "content" in msg &&
-          (msg as { role?: unknown }).role !== "system" &&
-          typeof (msg as { content?: unknown }).content === "string"
-      )
-      .map((msg) => ({
+      .filter(isChatHistoryItem)
+      .map((msg: ChatHistoryItem) => ({
         role: msg.role,
         content: msg.content,
       })),
@@ -544,13 +551,13 @@ CRITERIOS DE CALIDAD
       unidadId,
     })
   } catch (error) {
-    const message =
+    const errorMessage =
       error instanceof Error
         ? error.message
         : "No fue posible generar la planificación"
 
     return NextResponse.json(
-      { error: message },
+      { error: errorMessage },
       { status: 500 }
     )
   }
