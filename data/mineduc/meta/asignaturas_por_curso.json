@@ -1,0 +1,36 @@
+{
+  "Parvularia": {
+    "NT1": [
+      "Parvularia"
+    ],
+    "NT2": [
+      "Parvularia"
+    ]
+  },
+  "Media": {
+    "1° Medio": [
+      "Matemática",
+      "Lengua y Literatura",
+      "Tecnología",
+      "Biología",
+      "Química"
+    ],
+    "2° Medio": [
+      "Matemática",
+      "Lengua y Literatura",
+      "Tecnología",
+      "Biología",
+      "Química",
+      "Física"
+    ],
+    "3° Medio": [
+      "Ciencias para la Ciudadanía",
+      "Educación Ciudadana"
+    ],
+    "4° Medio": [
+      "Matemática",
+      "Ciencias para la Ciudadanía",
+      "Educación Ciudadana"
+    ]
+  }
+}
