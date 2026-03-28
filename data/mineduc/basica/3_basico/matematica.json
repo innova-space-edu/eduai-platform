@@ -1,0 +1,152 @@
+{
+  "metadata": {
+    "nivel": "Básica",
+    "curso": "3° Básico",
+    "asignatura": "Matemática",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://curriculumnacional.mineduc.cl/",
+    "estado": "base_inicial_en_revision",
+    "ultima_actualizacion_manual": "2026-03-28",
+    "nota": "Archivo base estructurado para activar Educación Básica en el planificador. Requiere revisión final OA por OA contra las Bases/Programas oficiales MINEDUC antes de marcarlo como verificado."
+  },
+  "objetivos_habilidad": [
+    {
+      "id": "3_BASICO-OAH-RP",
+      "descripcion": "Resolver problemas, modelar y comunicar procedimientos matemáticos en contextos cotidianos y escolares.",
+      "unidades": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "3_BASICO-OAH-REP",
+      "descripcion": "Representar información matemática de manera concreta, pictórica y simbólica.",
+      "unidades": [
+        1,
+        2,
+        3,
+        4
+      ]
+    }
+  ],
+  "objetivos_actitud": [
+    {
+      "id": "3_BASICO-OAA-A",
+      "descripcion": "Manifestar un estilo de trabajo ordenado, perseverante y colaborativo en la resolución de tareas matemáticas.",
+      "unidades": [
+        1,
+        2,
+        3,
+        4
+      ]
+    }
+  ],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "Números naturales hasta 1 000 y operaciones",
+      "oa": [
+        {
+          "id": "MA3B-OA-01",
+          "codigo_oficial": "MA03 OA 01",
+          "descripcion": "Leer, escribir, representar, componer y descomponer números naturales hasta 1 000, considerando el valor posicional de sus cifras."
+        },
+        {
+          "id": "MA3B-OA-02",
+          "codigo_oficial": "MA03 OA 02",
+          "descripcion": "Comparar y ordenar números naturales hasta 1 000, usando la recta numérica y el valor posicional."
+        },
+        {
+          "id": "MA3B-OA-03",
+          "codigo_oficial": "MA03 OA 03",
+          "descripcion": "Demostrar que comprenden la adición y la sustracción de números naturales hasta 1 000."
+        },
+        {
+          "id": "MA3B-OA-04",
+          "codigo_oficial": "MA03 OA 04",
+          "descripcion": "Resolver problemas rutinarios y no rutinarios de adición y sustracción con números hasta 1 000."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Multiplicación, división y fracciones iniciales",
+      "oa": [
+        {
+          "id": "MA3B-OA-05",
+          "codigo_oficial": "MA03 OA 05",
+          "descripcion": "Demostrar que comprenden la multiplicación de números del 0 al 10 como suma repetida, arreglos y combinaciones simples."
+        },
+        {
+          "id": "MA3B-OA-06",
+          "codigo_oficial": "MA03 OA 06",
+          "descripcion": "Demostrar que comprenden la división en el contexto de repartir y agrupar en partes iguales."
+        },
+        {
+          "id": "MA3B-OA-07",
+          "codigo_oficial": "MA03 OA 07",
+          "descripcion": "Resolver problemas rutinarios y no rutinarios de multiplicación y división usando diversas estrategias."
+        },
+        {
+          "id": "MA3B-OA-08",
+          "codigo_oficial": "MA03 OA 08",
+          "descripcion": "Demostrar que comprenden las fracciones como partes de un todo, de una colección y en la recta numérica, en casos simples."
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "nombre": "Patrones, geometría y medición",
+      "oa": [
+        {
+          "id": "MA3B-OA-09",
+          "codigo_oficial": "MA03 OA 09",
+          "descripcion": "Identificar, describir y extender patrones numéricos y geométricos crecientes y decrecientes."
+        },
+        {
+          "id": "MA3B-OA-10",
+          "codigo_oficial": "MA03 OA 10",
+          "descripcion": "Describir, comparar y construir figuras 2D y cuerpos 3D, reconociendo sus características."
+        },
+        {
+          "id": "MA3B-OA-11",
+          "codigo_oficial": "MA03 OA 11",
+          "descripcion": "Demostrar que comprenden el perímetro de figuras regulares e irregulares y estimar o medir longitudes."
+        },
+        {
+          "id": "MA3B-OA-12",
+          "codigo_oficial": "MA03 OA 12",
+          "descripcion": "Medir, estimar y comparar longitudes, masas y capacidades usando unidades estandarizadas."
+        }
+      ]
+    },
+    {
+      "numero": 4,
+      "nombre": "Tiempo, dinero y datos",
+      "oa": [
+        {
+          "id": "MA3B-OA-13",
+          "codigo_oficial": "MA03 OA 13",
+          "descripcion": "Leer y registrar horas y fechas en distintos contextos cotidianos."
+        },
+        {
+          "id": "MA3B-OA-14",
+          "codigo_oficial": "MA03 OA 14",
+          "descripcion": "Resolver problemas que involucren dinero en contextos de compra, venta y cambio."
+        },
+        {
+          "id": "MA3B-OA-15",
+          "codigo_oficial": "MA03 OA 15",
+          "descripcion": "Recolectar, registrar y representar datos en tablas, pictogramas y gráficos de barra."
+        },
+        {
+          "id": "MA3B-OA-16",
+          "codigo_oficial": "MA03 OA 16",
+          "descripcion": "Interpretar información presentada en tablas y gráficos y sacar conclusiones simples."
+        }
+      ]
+    }
+  ]
+}
