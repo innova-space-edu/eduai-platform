@@ -1,275 +1,557 @@
-// app/api/agents/educador/route.ts
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import { buildOAContext, cursoToKey, type NivelKey } from "@/lib/mineduc-oa"
-import { buildPlanningHorizonText, buildSelectedOAContext, getParvulariaAmbito, getParvulariaOAT } from "@/lib/planificador-curriculum"
 import { callAI } from "@/lib/ai-router-v4"
+import {
+  buildOAContext,
+  cursoToKey,
+  getAvailableAsignaturas,
+  type NivelKey,
+} from "@/lib/mineduc-oa"
+import {
+  buildPlanningHorizonText,
+  buildSelectedOAContext,
+  getParvulariaAmbito,
+  getParvulariaOAT,
+  getPlannerSummary,
+  getPlannerUnits,
+} from "@/lib/planificador-curriculum"
 
-export const runtime     = "nodejs"
+export const runtime = "nodejs"
 export const maxDuration = 60
 
-// ─── Contexto curricular por nivel ───────────────────────────────────────────
+type TiempoPlanificacion = "diaria" | "semanal" | "mensual"
+
+interface EducadorConfig {
+  nivel?: NivelKey
+  curso?: string
+  asignatura?: string
+  contexto?: string
+  mes?: string
+  unidadId?: string
+  selectedOAIds?: string[]
+  selectedOATIds?: string[]
+  tiempoPlanificacion?: TiempoPlanificacion
+  sesiones?: number
+  duracionMinutos?: number
+}
+
 const NIVEL_INFO: Record<NivelKey, string> = {
   parvularia: `
-EDUCACIÓN PARVULARIA — Bases Curriculares para la Educación Parvularia (BCEP 2018, MINEDUC Chile)
-Niveles: Sala Cuna (0-2 años) | Nivel Medio (2-4 años) | NT1/NT2 (4-6 años)
-Ámbitos de Experiencias:
-  1. Desarrollo Personal y Social → Núcleos: Identidad y Autonomía · Convivencia y Ciudadanía · Corporalidad y Movimiento
-  2. Comunicación Integral → Núcleos: Lenguaje Verbal · Lenguajes Artísticos
-  3. Interacción y Comprensión del Entorno → Núcleos: Exploración del Entorno Natural · Pensamiento Matemático · Comprensión del Entorno Sociocultural
-Enfoque pedagógico: juego libre y dirigido, experiencias de aprendizaje, ambiente enriquecido, rol de la familia.
-Formato oficial: Experiencia de Aprendizaje con Núcleo / OA / Indicadores / Estrategias / Recursos / Evaluación formativa.`,
+EDUCACIÓN PARVULARIA — Bases Curriculares de la Educación Parvularia (BCEP)
+Estructura curricular:
+- Ámbitos de experiencia
+- Núcleos de aprendizaje
+- Objetivos de Aprendizaje (OA)
+- Objetivos de Aprendizaje Transversales (OAT)
+
+Enfoque pedagógico:
+- juego
+- exploración
+- experiencia de aprendizaje
+- mediación pedagógica
+- participación activa
+- evaluación formativa y cualitativa
+
+La respuesta debe usar lenguaje apropiado para educación parvularia y organizar experiencias lúdicas, significativas, comprensibles y bien secuenciadas.
+`.trim(),
 
   basica: `
-EDUCACIÓN BÁSICA 1°-6° — Bases Curriculares (2012, actualizadas 2023, MINEDUC Chile)
-Asignaturas: Lenguaje y Comunicación · Matemática · Ciencias Naturales · Historia, Geografía y Cs. Sociales · Inglés · Educación Física · Artes Visuales · Música · Tecnología · Orientación
-Estructura OA: cada asignatura tiene OA numerados (OA1, OA2…) organizados por curso.
-Habilidades transversales: pensamiento crítico, comunicación, colaboración, ciudadanía digital, autogestión.
-Formato oficial: Unidad Didáctica con OA / Indicadores de Evaluación / Actividades (Inicio, Desarrollo, Cierre) / Recursos / Evaluación (formativa y sumativa).`,
+EDUCACIÓN BÁSICA — Bases Curriculares MINEDUC
+Estructura curricular:
+- curso
+- asignatura
+- unidad
+- Objetivos de Aprendizaje (OA)
+- indicadores de evaluación
+- habilidades y actitudes cuando corresponda
+
+La planificación debe mantener coherencia curricular, claridad metodológica, progresión didáctica y evaluación alineada al OA.
+`.trim(),
 
   media: `
-EDUCACIÓN MEDIA 7°-4°M — Bases Curriculares (2015-2020, MINEDUC Chile)
-Asignaturas formación general: Lengua y Literatura · Matemática · Historia, Geografía y Cs. Sociales · Inglés · Ciencias Naturales (Biología, Física, Química) · Educación Física · Artes · Filosofía · Orientación
-Plan diferenciado: Electivos según modalidad (Humanista-Científica / Técnico-Profesional)
-Estructura OA: Objetivos de Aprendizaje numerados por asignatura y curso.
-Formato oficial: Unidad con OA / Aprendizajes Esperados / Actividades / Evaluación / Recursos.`,
+EDUCACIÓN MEDIA — Bases Curriculares MINEDUC
+Estructura curricular:
+- curso
+- asignatura
+- unidad o módulo
+- Objetivos de Aprendizaje (OA)
+- habilidades y actitudes cuando corresponda
+
+La planificación debe ser académicamente rigurosa, clara, útil para aula chilena real y alineada con OA oficiales.
+`.trim(),
 }
 
 const SEASONS: Record<string, string> = {
-  marzo:      "inicio año escolar, conocimiento del grupo, establecimiento de rutinas y expectativas",
-  abril:      "otoño, Semana Santa, Mes del Mar, consolidación de aprendizajes iniciales",
-  mayo:       "otoño, Día del Trabajador, Día de la Madre, Glorias Navales (21 de mayo)",
-  junio:      "invierno, San Juan y San Pedro, inicio vacaciones invierno",
-  julio:      "invierno, vacaciones de invierno, retorno segunda mitad del año",
-  agosto:     "inicio 2° semestre, preparación Fiestas Patrias",
-  septiembre: "primavera, Fiestas Patrias 18-19 septiembre, Día del Roto Chileno, Dieziocho",
-  octubre:    "primavera, Día del Encuentro de dos Mundos, Día del Docente (16 oct)",
-  noviembre:  "primavera, cierre de unidades, pre-evaluaciones finales",
-  diciembre:  "verano, Navidad, cierre año escolar, actos de graduación",
-  enero:      "verano, vacaciones — no hay clases habituales",
-  febrero:    "verano, preparación inicio año escolar",
+  marzo: "inicio del año escolar, diagnóstico, establecimiento de rutinas y normas",
+  abril: "consolidación inicial, otoño, primeras evaluaciones formativas",
+  mayo: "desarrollo de unidades, trabajo sistemático y seguimiento del progreso",
+  junio: "cierre parcial de procesos, invierno, ajustes antes de vacaciones",
+  julio: "retorno o vacaciones de invierno según calendario escolar",
+  agosto: "inicio del segundo semestre, reorganización y profundización",
+  septiembre: "Fiestas Patrias, primavera, actividades con contexto nacional y cultural",
+  octubre: "mes con efemérides escolares, consolidación y proyectos",
+  noviembre: "cierre de unidades, evaluaciones finales y síntesis",
+  diciembre: "cierre del año escolar, integración, evidencias finales",
+  enero: "receso escolar habitual",
+  febrero: "preparación del nuevo año escolar",
 }
 
-// ─── Detectar si el mensaje pide OA específicos ───────────────────────────────
-function extractOARequest(message: string): { oaNum: number | null; keywords: string[] } {
+function normalizeMonth(input?: string) {
+  const month =
+    input ||
+    new Date().toLocaleString("es-CL", {
+      month: "long",
+    })
+
+  return month
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+}
+
+function extractOARequest(message: string): { oaNum: number | null } {
   const oaMatch = message.match(/\bOA\s*(\d+)\b/i)
-  const numMatch = message.match(/\bobjetivo\s+(?:de\s+aprendizaje\s+)?(?:n[°º.]?\s*)?(\d+)\b/i)
-  const num = oaMatch ? parseInt(oaMatch[1]) : numMatch ? parseInt(numMatch[1]) : null
+  const numMatch = message.match(
+    /\bobjetivo\s+(?:de\s+aprendizaje\s+)?(?:n[°º.]?\s*)?(\d+)\b/i
+  )
 
-  const keywords: string[] = []
-  const kws = ["planificación", "planificacion", "unidad", "clase", "actividad", "rúbrica", "rubrica", "evaluación", "evaluacion", "proyecto", "estrategia"]
-  kws.forEach(k => { if (message.toLowerCase().includes(k)) keywords.push(k) })
+  const num = oaMatch
+    ? parseInt(oaMatch[1], 10)
+    : numMatch
+      ? parseInt(numMatch[1], 10)
+      : null
 
-  return { oaNum: num, keywords }
+  return { oaNum: Number.isFinite(num as number) ? num : null }
 }
 
-// ─── Buscar OA con la API de Gemini cuando no está en la DB local ─────────────
-async function searchOAWithAI(
-  nivel: NivelKey, curso: string, asignatura: string,
-  oaNum: number | null, query: string, apiKey: string
-): Promise<string> {
-  const prompt = `Eres un experto en las Bases Curriculares del MINEDUC Chile.
-Necesito los Objetivos de Aprendizaje (OA) oficiales para:
-- Nivel: ${nivel}
-- Curso: ${curso}
-- Asignatura: ${asignatura}
-${oaNum ? `- OA específico: OA${oaNum}` : ""}
-- Consulta del docente: "${query}"
+function ensureArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  return value.filter((item): item is string => typeof item === "string")
+}
 
-Responde con los OA exactos tal como aparecen en las Bases Curriculares oficiales del MINEDUC.
-Incluye el número de OA, el texto oficial completo y las habilidades involucradas.
-Si no tienes certeza del texto exacto, indícalo claramente.
-Responde en español, de forma concisa y estructurada.`
+function clampNumber(value: unknown, fallback: number, min: number, max: number) {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) return fallback
+  return Math.max(min, Math.min(max, parsed))
+}
 
-  try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-      {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.1, maxOutputTokens: 600 },
-        }),
-        signal: AbortSignal.timeout(10000),
-      }
-    )
-    if (!res.ok) return ""
-    const data = await res.json()
-    return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || ""
-  } catch {
-    return ""
+function buildLocalCoverageNotice(
+  nivel: NivelKey,
+  curso: string,
+  asignatura: string
+): string {
+  const asignaturasDisponibles = getAvailableAsignaturas(nivel, curso)
+
+  if (!asignaturasDisponibles.length) {
+    return `No existe aún base curricular local cargada para ${curso} en este nivel.`
+  }
+
+  if (!asignaturasDisponibles.includes(asignatura)) {
+    return `No existe aún base curricular local cargada para ${asignatura} en ${curso}.`
+  }
+
+  return `Existe base curricular local cargada para ${asignatura} en ${curso}.`
+}
+
+function buildSelectedOATContext(asignatura: string, selectedOATIds: string[]): string {
+  const allOAT = getParvulariaOAT(asignatura)
+  const picked = selectedOATIds.length
+    ? allOAT.filter((item) => selectedOATIds.includes(item.id))
+    : []
+
+  if (!picked.length) return ""
+
+  return [
+    "OBJETIVOS DE APRENDIZAJE TRANSVERSALES SELECCIONADOS:",
+    ...picked.map(
+      (item) =>
+        `- ${item.description || item.id}: ${item.label}`
+    ),
+  ].join("\n")
+}
+
+function buildUnitContext(
+  nivel: NivelKey,
+  curso: string,
+  asignatura: string,
+  unidadId?: string
+): string {
+  const units = getPlannerUnits({ nivel, curso, asignatura })
+  if (!units.length || !unidadId) return ""
+
+  const selected = units.find((unit) => unit.id === unidadId)
+  if (!selected) return ""
+
+  return [
+    "UNIDAD O MÓDULO CURRICULAR SELECCIONADO:",
+    `- ${selected.label}`,
+    selected.oaIds.length
+      ? `- OA vinculados en base local: ${selected.oaIds.join(", ")}`
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n")
+}
+
+function buildPromptContext(params: {
+  nivel: NivelKey
+  curso: string
+  asignatura: string
+  contexto: string
+  mes: string
+  unidadId: string
+  selectedOAIds: string[]
+  selectedOATIds: string[]
+  tiempoPlanificacion: TiempoPlanificacion
+  sesiones: number
+  duracionMinutos: number
+  userMessage: string
+}) {
+  const {
+    nivel,
+    curso,
+    asignatura,
+    contexto,
+    mes,
+    unidadId,
+    selectedOAIds,
+    selectedOATIds,
+    tiempoPlanificacion,
+    sesiones,
+    duracionMinutos,
+    userMessage,
+  } = params
+
+  const summary = getPlannerSummary({ nivel, curso, asignatura })
+  const seasonText = SEASONS[mes] || ""
+  const horizonText = buildPlanningHorizonText(
+    tiempoPlanificacion,
+    sesiones,
+    duracionMinutos
+  )
+  const { oaNum } = extractOARequest(userMessage)
+
+  const selectedOAContext = selectedOAIds.length
+    ? buildSelectedOAContext(
+        { nivel, curso, asignatura },
+        selectedOAIds,
+        unidadId || undefined
+      )
+    : ""
+
+  const fallbackOAContext =
+    !selectedOAContext && oaNum
+      ? buildOAContext(nivel, curso, asignatura, oaNum)
+      : !selectedOAContext
+        ? buildOAContext(nivel, curso, asignatura)
+        : ""
+
+  const oaContext = selectedOAContext || fallbackOAContext
+
+  const unitContext = buildUnitContext(nivel, curso, asignatura, unidadId)
+  const localCoverage = buildLocalCoverageNotice(nivel, curso, asignatura)
+
+  const ambito =
+    nivel === "parvularia" ? getParvulariaAmbito(asignatura) : ""
+  const oatContext =
+    nivel === "parvularia"
+      ? buildSelectedOATContext(asignatura, selectedOATIds)
+      : ""
+
+  return {
+    seasonText,
+    horizonText,
+    oaContext,
+    unitContext,
+    localCoverage,
+    ambito,
+    oatContext,
+    summary,
+    selectedCount: selectedOAIds.length,
   }
 }
 
-// ─── Handler principal ────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
-  const { message, history = [], config } = await req.json()
-  const nivel:      NivelKey = config?.nivel      || "basica"
-  const curso:      string   = config?.curso      || "3° Básico"
-  const asignatura: string   = config?.asignatura || "Lenguaje y Comunicación"
-  const contexto:   string   = config?.contexto   || ""
-  const mes:        string   = config?.mes        || new Date().toLocaleString("es-CL", { month: "long" }).toLowerCase()
-  const unidadId:   string   = config?.unidadId   || ""
-  const selectedOAIds: string[] = Array.isArray(config?.selectedOAIds) ? config.selectedOAIds : []
-  const selectedOATIds: string[] = Array.isArray(config?.selectedOATIds) ? config.selectedOATIds : []
-  const tiempoPlanificacion = config?.tiempoPlanificacion || "diaria"
-  const sesiones = Number(config?.sesiones || 1)
-  const duracionMinutos = Number(config?.duracionMinutos || 45)
-
-  const temporada  = SEASONS[mes] || ""
-  const nivelCtx   = NIVEL_INFO[nivel]
-  const GEMINI_KEY = process.env.GEMINI_API_KEY || ""
-
-  // ── Obtener OA relevantes ──────────────────────────────────────────────────
-  const { oaNum, keywords } = extractOARequest(message)
-
-  // 1. Intentar desde la base de datos local
-  let oaContext = selectedOAIds.length
-    ? buildSelectedOAContext({ nivel, curso, asignatura }, selectedOAIds, unidadId || undefined)
-    : buildOAContext(nivel, curso, asignatura, oaNum ?? undefined)
-
-  const ambitoParvularia = nivel === "parvularia" ? getParvulariaAmbito(asignatura) : ""
-  const parvulariaOAT = nivel === "parvularia" ? getParvulariaOAT(asignatura).filter(item => selectedOATIds.length ? selectedOATIds.includes(item.id) : true) : []
-  const horizontePlanificacion = buildPlanningHorizonText(tiempoPlanificacion, sesiones, duracionMinutos)
-
-  // 2. Si no hay datos locales, consultar a Gemini con baja temperatura
-  if (!oaContext && GEMINI_KEY) {
-    const aiOA = await searchOAWithAI(nivel, curso, asignatura, oaNum, message, GEMINI_KEY)
-    if (aiOA) {
-      oaContext = `\nOBJETIVOS DE APRENDIZAJE (obtenidos desde bases curriculares):\n${aiOA}`
-    }
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  // ── System prompt completo ─────────────────────────────────────────────────
-  const systemPrompt = `Eres APl, el Agente Planificador Educativo de EduAI — experta pedagoga chilena con 20 años de experiencia en todos los niveles del sistema escolar chileno.
+  const body = await req.json().catch(() => null)
 
-═══════════════════════════════════════════════
-IDENTIDAD Y EXPERTISE
-═══════════════════════════════════════════════
-• Dominas las Bases Curriculares MINEDUC en todos los niveles (BCEP, Básica, Media).
-• Conoces los OA oficiales, sus habilidades asociadas y los indicadores de evaluación.
-• Diseñas planificaciones alineadas al currículum con actividades pedagógicamente sólidas.
-• Adaptas para NEE (TEA, dislexia, TDAH, discapacidad visual/motora) e inclusión.
-• Conoces el contexto escolar chileno: calendario, efemérides, clima cultural.
-• Hablas con calidez profesional, precisión y entusiasmo por la educación.
+  if (!body || typeof body !== "object") {
+    return NextResponse.json(
+      { error: "Solicitud inválida" },
+      { status: 400 }
+    )
+  }
 
-═══════════════════════════════════════════════
-CONTEXTO CURRICULAR ACTIVO
-═══════════════════════════════════════════════
-NIVEL: ${nivel.toUpperCase()} | CURSO: ${curso} | ASIGNATURA: ${asignatura}
-${nivelCtx}
-${oaContext ? oaContext : `\nNota: Para obtener los OA exactos de ${asignatura} en ${curso}, puedes consultarlos en curriculum.mineduc.cl`}
+  const message =
+    typeof body.message === "string" ? body.message.trim() : ""
 
-═══════════════════════════════════════════════
-CONTEXTO TEMPORAL
-═══════════════════════════════════════════════
-Mes: ${mes.charAt(0).toUpperCase() + mes.slice(1)} — ${temporada}
-Horizonte de planificación: ${tiempoPlanificacion} | Sesiones: ${sesiones} | Minutos por sesión: ${duracionMinutos}
-${horizontePlanificacion}
-${contexto ? `Información adicional del docente: ${contexto}` : ""}
-${unidadId ? `Unidad seleccionada por el docente: ${unidadId}` : ""}
-${selectedOAIds.length ? `OA seleccionados explícitamente: ${selectedOAIds.join(", ")}` : ""}
-${nivel === "parvularia" && ambitoParvularia ? `Ámbito de experiencia: ${ambitoParvularia} | Núcleo: ${asignatura}` : ""}
-${nivel === "parvularia" && parvulariaOAT.length ? `Focos transversales seleccionados: ${parvulariaOAT.map(item => `${item.id}: ${item.label}`).join(" | ")}` : ""}
+  if (!message) {
+    return NextResponse.json(
+      { error: "Falta el mensaje del usuario" },
+      { status: 400 }
+    )
+  }
 
-═══════════════════════════════════════════════
-CAPACIDADES PEDAGÓGICAS
-═══════════════════════════════════════════════
-1. Planificaciones completas alineadas al currículum con OA oficiales numerados y coherencia vertical
-2. Unidades didácticas de 1-8 semanas con secuencia lógica y progresión por sesiones
-3. Actividades de inicio, desarrollo y cierre con estrategias variadas y tiempos realistas
-4. Rúbricas e instrumentos de evaluación (listas de cotejo, escalas, portafolios)
-5. Adaptaciones para NEE y atención a la diversidad
-6. Proyectos interdisciplinarios y aprendizaje basado en proyectos (ABP)
-7. Gestión de aula: ambientes, rutinas, clima escolar
-8. Recursos digitales y tecnológicos integrados a la clase
-9. Tareas y actividades para el trabajo en familia
-10. Planificación de actos y efemérides escolares
-11. Selección y articulación de varios OA cuando el docente los marque
-12. En Parvularia, integrar ámbito, núcleo y focos transversales en experiencias lúdicas
+  const history = Array.isArray(body.history) ? body.history : []
+  const cfg: EducadorConfig = body.config || {}
 
-═══════════════════════════════════════════════
-FORMATO DE PLANIFICACIONES
-═══════════════════════════════════════════════
-Cuando generes una planificación, usa SIEMPRE esta estructura:
+  const nivel: NivelKey =
+    cfg.nivel === "parvularia" || cfg.nivel === "basica" || cfg.nivel === "media"
+      ? cfg.nivel
+      : "media"
 
-📚 **DATOS GENERALES**
-> Nivel/Curso | Asignatura o Núcleo | Unidad | Tiempo estimado | Fecha/Período
+  const curso =
+    typeof cfg.curso === "string" && cfg.curso.trim()
+      ? cfg.curso.trim()
+      : nivel === "parvularia"
+        ? "NT1 - Pre Kinder (4-5 años)"
+        : nivel === "basica"
+          ? "1° Básico"
+          : "1° Medio"
 
-🎯 **OBJETIVO(S) DE APRENDIZAJE**
-> OA[N]: [texto oficial completo]
-> Si el usuario eligió varios OA, preséntalos todos y explica cómo se articulan.
-> En Parvularia, agrega también ámbito, núcleo y foco transversal cuando corresponda.
-> Indicadores de Evaluación:
-> - [indicador 1]
-> - [indicador 2]
+  const asignatura =
+    typeof cfg.asignatura === "string" && cfg.asignatura.trim()
+      ? cfg.asignatura.trim()
+      : nivel === "parvularia"
+        ? "Lenguaje Verbal"
+        : nivel === "basica"
+          ? "Matemática"
+          : "Matemática"
 
-🗓️ **SECUENCIA SEGÚN EL TIEMPO DE PLANIFICACIÓN**
-> Si es diaria: una clase completa.
-> Si es semanal: divide por sesiones.
-> Si es mensual: organiza por semanas y sesiones.
+  const contexto =
+    typeof cfg.contexto === "string" ? cfg.contexto.trim() : ""
 
-⚡ **INICIO**
-> Activación conocimientos previos / Motivación
-> [descripción de la actividad]
+  const mes = normalizeMonth(cfg.mes)
+  const unidadId =
+    typeof cfg.unidadId === "string" ? cfg.unidadId.trim() : ""
 
-🔍 **DESARROLLO**
-> [actividades paso a paso, estrategias didácticas, agrupaciones]
+  const selectedOAIds = ensureArray(cfg.selectedOAIds)
+  const selectedOATIds = ensureArray(cfg.selectedOATIds)
 
-🌟 **CIERRE**
-> Síntesis / Metacognición / Conexión con próxima clase
+  const tiempoPlanificacion: TiempoPlanificacion =
+    cfg.tiempoPlanificacion === "diaria" ||
+    cfg.tiempoPlanificacion === "semanal" ||
+    cfg.tiempoPlanificacion === "mensual"
+      ? cfg.tiempoPlanificacion
+      : "diaria"
 
-🛠️ **RECURSOS Y MATERIALES**
-> [lista de recursos: físicos, digitales, humanos]
+  const sesiones = clampNumber(cfg.sesiones, 1, 1, 40)
+  const duracionMinutos = clampNumber(cfg.duracionMinutos, 90, 15, 300)
 
-📊 **EVALUACIÓN**
-> Tipo: [formativa/sumativa] | Instrumento: [rúbrica/lista de cotejo/etc.]
+  const promptContext = buildPromptContext({
+    nivel,
+    curso,
+    asignatura,
+    contexto,
+    mes,
+    unidadId,
+    selectedOAIds,
+    selectedOATIds,
+    tiempoPlanificacion,
+    sesiones,
+    duracionMinutos,
+    userMessage: message,
+  })
 
-♿ **ADAPTACIONES SUGERIDAS**
-> [para NEE o diversidad de aprendizajes]
+  const systemPrompt = `
+Eres APl, el Agente Planificador Curricular de EduAI.
 
-💡 **SUGERENCIA VISUAL** para acompañar esta planificación: [mapa conceptual/infografía/etc.]
+Tu función es ayudar a docentes de Chile a crear planificaciones rigurosas, útiles, claras y visualmente ordenadas, alineadas con el currículum oficial del MINEDUC.
 
-═══════════════════════════════════════════════
-IMPORTANTE SOBRE LOS OA
-═══════════════════════════════════════════════
-- SIEMPRE cita los OA con su número oficial (OA1, OA2, etc.)
-- Si el docente selecciona varios OA, articúlalos sin mezclarlos arbitrariamente
-- Si el docente pide un OA específico, desarrolla la planificación centrada en ese OA
-- Si el nivel es Parvularia, usa lenguaje de experiencia de aprendizaje y juego, e integra ideas lúdicas inspiradas en prácticas y materiales pedagógicos de JUNJI cuando sea pertinente
-- Si necesitas OA que no tienes disponibles, indícalo y orienta al docente hacia curriculum.mineduc.cl
-- Los OA son el eje articulador: toda actividad debe contribuir al logro del OA indicado`
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REGLAS CRÍTICAS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. NUNCA inventes Objetivos de Aprendizaje.
+2. Usa SOLO los OA entregados en el contexto local de esta conversación.
+3. Si faltan OA oficiales para una combinación curso/asignatura, debes decirlo claramente.
+4. No completes vacíos curriculares “por intuición”.
+5. Si el usuario seleccionó varios OA, debes articularlos explícitamente.
+6. Si el usuario seleccionó una unidad o módulo, la planificación debe centrarse en ese marco curricular.
+7. En Parvularia, integra ámbito, núcleo, OA y OAT cuando estén disponibles.
+8. La respuesta debe ser útil para copiar a un documento docente.
+9. Debes escribir en español claro, formal y pedagógico.
+10. Presenta el contenido de forma ordenada, bonita y entendible.
 
-  // ── Construir historial ────────────────────────────────────────────────────
-  const messages = [
-    { role: "system" as const, content: systemPrompt },
-    ...history.slice(-12).map((m: any) => ({
-      role: m.role as "user" | "assistant",
-      content: m.content,
-    })),
-    { role: "user" as const, content: message },
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CONTEXTO CURRICULAR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Nivel: ${nivel}
+Curso: ${curso}
+Asignatura/Núcleo: ${asignatura}
+
+Referencia del nivel:
+${NIVEL_INFO[nivel]}
+
+Cobertura curricular local:
+${promptContext.localCoverage}
+
+${promptContext.unitContext ? `${promptContext.unitContext}` : "No hay unidad o módulo local seleccionado."}
+
+${
+  promptContext.oaContext
+    ? promptContext.oaContext
+    : "No hay OA oficiales locales disponibles para esta combinación. Debes indicarlo claramente y evitar inventar OA."
+}
+
+${
+  nivel === "parvularia" && promptContext.ambito
+    ? `ÁMBITO DE EXPERIENCIA: ${promptContext.ambito}`
+    : ""
+}
+
+${
+  nivel === "parvularia" && promptContext.oatContext
+    ? promptContext.oatContext
+    : ""
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CONTEXTO TEMPORAL Y PEDAGÓGICO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Mes: ${mes}
+Contexto temporal: ${promptContext.seasonText || "Sin referencia estacional específica"}
+Horizonte de planificación: ${tiempoPlanificacion}
+Sesiones estimadas: ${sesiones}
+Minutos por sesión: ${duracionMinutos}
+
+Interpretación del horizonte:
+${promptContext.horizonText}
+
+${
+  contexto
+    ? `Información adicional del docente:\n${contexto}`
+    : "No hay contexto adicional aportado por el docente."
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+COBERTURA LOCAL DETECTADA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Unidades/Módulos cargados localmente: ${promptContext.summary.units}
+- OA cargados localmente: ${promptContext.summary.oas}
+- OA seleccionados explícitamente: ${promptContext.selectedCount}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FORMATO OBLIGATORIO DE RESPUESTA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Cuando el usuario pida una planificación, responde usando esta estructura, salvo que pida otra cosa:
+
+# Planificación
+
+## 1. Datos generales
+- Nivel / Curso:
+- Asignatura o Núcleo:
+- Unidad o Módulo:
+- Horizonte:
+- Sesiones:
+- Duración por sesión:
+
+## 2. Objetivos de Aprendizaje
+- Lista textual de OA oficiales disponibles y seleccionados
+- Si es Parvularia, agrega también:
+  - Ámbito
+  - Núcleo
+  - OAT seleccionados
+
+## 3. Propósito de aprendizaje
+- Redacta el propósito de forma pedagógica y comprensible
+
+## 4. Secuencia didáctica
+### Inicio
+### Desarrollo
+### Cierre
+
+Si el horizonte es semanal o mensual:
+- distribuye la secuencia por sesiones o semanas
+
+## 5. Evaluación
+- tipo
+- instrumento
+- evidencia esperada
+- criterios o indicadores sugeridos
+
+## 6. Recursos y materiales
+- lista clara y pertinente
+
+## 7. Adaptaciones y diversidad
+- estrategias para distintos ritmos
+- sugerencias para NEE
+- inclusión y participación
+
+## 8. Observaciones pedagógicas
+- recomendaciones de implementación real
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CRITERIOS DE CALIDAD
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Debe haber coherencia entre OA, actividades y evaluación.
+- Las actividades deben ser realistas para el tiempo disponible.
+- Debe evitar relleno innecesario.
+- Debe mantener un nivel académico sólido.
+- Si no hay OA locales suficientes, dilo claramente antes de planificar.
+- En Parvularia, prioriza experiencias de aprendizaje, juego, lenguaje claro y mediación pedagógica.
+`.trim()
+
+  const aiMessages = [
+    {
+      role: "system" as const,
+      content: systemPrompt,
+    },
+    ...history
+      .slice(-10)
+      .filter(
+        (msg: unknown): msg is { role: "user" | "assistant"; content: string } =>
+          !!msg &&
+          typeof msg === "object" &&
+          "role" in msg &&
+          "content" in msg &&
+          (msg as { role?: unknown }).role !== "system" &&
+          typeof (msg as { content?: unknown }).content === "string"
+      )
+      .map((msg) => ({
+        role: msg.role,
+        content: msg.content,
+      })),
+    {
+      role: "user" as const,
+      content: message,
+    },
   ]
 
   try {
-    // Usar Gemini para respuestas largas y de calidad pedagógica
-    const result = await callAI(messages, {
-      maxTokens:      4000,
+    const result = await callAI(aiMessages, {
+      maxTokens: 5000,
       preferProvider: "gemini",
     })
 
     return NextResponse.json({
-      text:     result.text,
+      text: result.text,
       provider: result.provider,
-      model:    result.model,
-      oaFound:  !!oaContext,
+      model: result.model,
       cursoKey: cursoToKey(curso),
+      localCoverage: promptContext.summary,
+      hasLocalCurriculum: promptContext.summary.oas > 0,
+      selectedOAIds,
+      selectedOATIds,
+      unidadId,
     })
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 })
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "No fue posible generar la planificación"
+
+    return NextResponse.json(
+      { error: message },
+      { status: 500 }
+    )
   }
 }
