@@ -2,74 +2,31 @@
   "metadata": {
     "nivel": "Parvularia",
     "tramo": "NT1",
-    "fuente": "Currículum Nacional - MINEDUC Chile",
-    "source_url": "https://curriculumnacional.mineduc.cl/",
-    "estado": "parcial_verificado",
-    "ultima_actualizacion_manual": "2026-03-27"
+    "base_oficial_compartida": "Nivel Transición",
+    "fuente": "Programa Pedagógico Primer y Segundo Nivel de Transición / BCEP - MINEDUC Chile",
+    "source_url": "https://parvularia.mineduc.cl/wp-content/uploads/2020/09/Programa-Pedagogico-NT1-y-NT2.pdf",
+    "estado": "base_segura_expandible",
+    "ultima_actualizacion_manual": "2026-03-28",
+    "nota": "NT1 usa los OA oficiales del Nivel Transición. La progresión propia de NT1 debe trabajarse luego con indicadores/observables y experiencias sugeridas diferenciadas."
   },
   "ambitos": [
     {
       "nombre": "Desarrollo personal y social",
       "nucleos": [
         {
-          "nombre": "Identidad y autonomía",
-          "oa_transversales": [
-            {
-              "id": "NT1-IDAU-OAT-01",
-              "codigo_oficial": "OAT IA NT1-01",
-              "descripcion": "Manifestar progresiva independencia en sus prácticas de alimentación, vigilia, sueño, higiene y vestuario."
-            }
-          ],
-          "oa_contenido": []
-        },
-        {
-          "nombre": "Convivencia y ciudadanía",
-          "oa_transversales": [
-            {
-              "id": "NT1-COCI-OAT-01",
-              "codigo_oficial": "OAT CC NT1-01",
-              "descripcion": "Participar en actividades y juegos grupales con sus pares, conversando, intercambiando pertenencias, cooperando."
-            }
-          ],
-          "oa_contenido": []
-        },
-        {
-          "nombre": "Corporalidad y movimiento",
-          "oa_transversales": [
-            {
-              "id": "NT1-CM-OAT-01",
-              "codigo_oficial": "OAT CM NT1-01",
-              "descripcion": "Manifestar iniciativa para resguardar el autocuidado de su cuerpo y su confortabilidad, en función de su propio bienestar."
-            }
-          ],
-          "oa_contenido": []
-        }
-      ]
-    },
-    {
-      "nombre": "Interacción y comprensión del entorno",
-      "nucleos": [
-        {
-          "nombre": "Exploración del entorno natural",
+          "nombre": "Identidad y Autonomía",
           "oa_transversales": [],
-          "oa_contenido": [
-            {
-              "id": "NT1-EEN-OA-01",
-              "codigo_oficial": "OA EEN NT1-01",
-              "descripcion": "Manifestar interés y asombro por diversos elementos, situaciones y fenómenos del entorno natural, explorando, observando, preguntando y comentando."
-            }
-          ]
+          "oa_contenido": []
         },
         {
-          "nombre": "Pensamiento matemático",
+          "nombre": "Convivencia y Ciudadanía",
           "oa_transversales": [],
-          "oa_contenido": [
-            {
-              "id": "NT1-PMAT-OA-01",
-              "codigo_oficial": "OA PM NT1-01",
-              "descripcion": "Reproducir patrones sonoros, visuales, gestuales, corporales u otros, de dos o tres elementos."
-            }
-          ]
+          "oa_contenido": []
+        },
+        {
+          "nombre": "Corporalidad y Movimiento",
+          "oa_transversales": [],
+          "oa_contenido": []
         }
       ]
     },
@@ -77,24 +34,187 @@
       "nombre": "Comunicación integral",
       "nucleos": [
         {
-          "nombre": "Lenguaje verbal",
+          "nombre": "Lenguaje Verbal",
           "oa_transversales": [],
           "oa_contenido": [
             {
-              "id": "NT1-LV-OA-01",
-              "codigo_oficial": "OA LV NT1-01",
-              "descripcion": "Expresarse oralmente en forma clara y comprensible, empleando estructuras oracionales completas y vocabulario adecuado a diversas situaciones comunicativas."
+              "id": "CI-LV-NT-OA-01",
+              "codigo_oficial": "OA 01 LV NT",
+              "descripcion": "Expresarse oralmente en forma clara y comprensible, empleando estructuras oracionales completas, conjugaciones verbales adecuadas y precisas con los tiempos, personas e intenciones comunicativas."
+            },
+            {
+              "id": "CI-LV-NT-OA-02",
+              "codigo_oficial": "OA 02 LV NT",
+              "descripcion": "Comprender textos orales como preguntas, explicaciones, relatos, instrucciones y algunos conceptos abstractos en distintas situaciones comunicativas, identificando la intencionalidad comunicativa de diversos interlocutores."
+            },
+            {
+              "id": "CI-LV-NT-OA-03",
+              "codigo_oficial": "OA 03 LV NT",
+              "descripcion": "Descubrir en contextos lúdicos, atributos fonológicos de palabras conocidas, tales como conteo de palabras, segmentación y conteo de sílabas, identificación de sonidos finales e iniciales."
+            },
+            {
+              "id": "CI-LV-NT-OA-04",
+              "codigo_oficial": "OA 04 LV NT",
+              "descripcion": "Comunicar oralmente temas de su interés, empleando un vocabulario variado e incorporando palabras nuevas y pertinentes a las distintas situaciones comunicativas e interlocutores."
+            },
+            {
+              "id": "CI-LV-NT-OA-05",
+              "codigo_oficial": "OA 05 LV NT",
+              "descripcion": "Manifestar interés por descubrir el contenido y algunos propósitos de diferentes textos escritos (manipulando, explorando, realizando descripciones y conjeturas) a través del contacto cotidiano con algunos de ellos, o del uso de TIC."
+            },
+            {
+              "id": "CI-LV-NT-OA-06",
+              "codigo_oficial": "OA 06 LV NT",
+              "descripcion": "Comprender contenidos explícitos de textos literarios y no literarios, a partir de la escucha atenta, describiendo información y realizando progresivamente inferencias y predicciones."
+            },
+            {
+              "id": "CI-LV-NT-OA-07",
+              "codigo_oficial": "OA 07 LV NT",
+              "descripcion": "Reconocer palabras que se encuentran en diversos soportes asociando algunos fonemas a sus correspondientes grafemas."
+            },
+            {
+              "id": "CI-LV-NT-OA-08",
+              "codigo_oficial": "OA 08 LV NT",
+              "descripcion": "Representar gráficamente algunos trazos, letras, signos, palabras significativas y mensajes simples legibles, utilizando diferentes recursos y soportes en situaciones auténticas."
+            },
+            {
+              "id": "CI-LV-NT-OA-09",
+              "codigo_oficial": "OA 09 LV NT",
+              "descripcion": "Comunicar mensajes simples en la lengua indígena pertinente a la comunidad donde habita."
+            },
+            {
+              "id": "CI-LV-NT-OA-10",
+              "codigo_oficial": "OA 10 LV NT",
+              "descripcion": "Reconocer algunas palabras o mensajes sencillos de lenguas maternas de sus pares, distintas al castellano."
             }
           ]
         },
         {
-          "nombre": "Lenguajes artísticos",
+          "nombre": "Lenguajes Artísticos",
           "oa_transversales": [],
           "oa_contenido": [
             {
-              "id": "NT1-LA-OA-01",
-              "codigo_oficial": "OA LA NT1-01",
-              "descripcion": "Expresar creativamente ideas, sensaciones y emociones a través de distintos lenguajes artísticos."
+              "id": "CI-LA-NT-OA-01",
+              "codigo_oficial": "OA 01 LA NT",
+              "descripcion": "Apreciar producciones artísticas de diversos contextos (en forma directa o a través de medios tecnológicos), describiendo y comparando algunas características visuales, musicales o escénicas (desplazamiento, ritmo, carácter expresivo, colorido, formas, diseño, entre otros)."
+            },
+            {
+              "id": "CI-LA-NT-OA-02",
+              "codigo_oficial": "OA 02 LA NT",
+              "descripcion": "Comunicar sus impresiones, emociones e ideas respecto de diversas obras de arte, producciones propias y de sus pares (artesanías, piezas musicales, obras plásticas y escénicas, entre otras)."
+            },
+            {
+              "id": "CI-LA-NT-OA-03",
+              "codigo_oficial": "OA 03 LA NT",
+              "descripcion": "Interpretar canciones y juegos musicales, utilizando de manera integrada diversos recursos tales como, la voz, el cuerpo, instrumentos musicales y objetos."
+            },
+            {
+              "id": "CI-LA-NT-OA-04",
+              "codigo_oficial": "OA 04 LA NT",
+              "descripcion": "Expresar corporalmente sensaciones, emociones e ideas a partir de la improvisación de escenas dramáticas, juegos teatrales, mímica y danza."
+            },
+            {
+              "id": "CI-LA-NT-OA-05",
+              "codigo_oficial": "OA 05 LA NT",
+              "descripcion": "Representar plásticamente emociones, ideas, experiencias e intereses, a través de líneas, formas, colores, texturas, con recursos y soportes en plano y volumen."
+            },
+            {
+              "id": "CI-LA-NT-OA-06",
+              "codigo_oficial": "OA 06 LA NT",
+              "descripcion": "Experimentar diversas combinaciones de expresión plástica, corporal y musical, comunicando las razones del proceso realizado."
+            },
+            {
+              "id": "CI-LA-NT-OA-07",
+              "codigo_oficial": "OA 07 LA NT",
+              "descripcion": "Representar a través del dibujo, sus ideas, intereses y experiencias, incorporando detalles a las figuras humanas y a objetos de su entorno, ubicándolos en parámetros básicos de organización espacial (arriba/abajo, dentro/fuera)."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "nombre": "Interacción y comprensión del entorno",
+      "nucleos": [
+        {
+          "nombre": "Exploración del Entorno Natural",
+          "oa_transversales": [],
+          "oa_contenido": [
+            {
+              "id": "IC-EEN-NT-OA-01",
+              "codigo_oficial": "OA 01 EEN NT",
+              "descripcion": "Manifestar interés y asombro al ampliar información sobre cambios que ocurren en el entorno natural, a las personas, animales, plantas, lugares y cuerpos celestes, utilizando diversas fuentes y procedimientos."
+            },
+            {
+              "id": "IC-EEN-NT-OA-02",
+              "codigo_oficial": "OA 02 EEN NT",
+              "descripcion": "Formular conjeturas y predicciones acerca de las causas o consecuencias de fenómenos naturales que observa, a partir de sus conocimientos y experiencias previas."
+            },
+            {
+              "id": "IC-EEN-NT-OA-03",
+              "codigo_oficial": "OA 03 EEN NT",
+              "descripcion": "Reconocer la importancia del agua y la energía solar para la vida humana, los animales y las plantas, a partir de experiencias directas o TIC."
+            },
+            {
+              "id": "IC-EEN-NT-OA-04",
+              "codigo_oficial": "OA 04 EEN NT",
+              "descripcion": "Comunicar propiedades básicas de los objetos y elementos naturales que explora, tales como: transparencia/opacidad, flexibilidad/rigidez, rugosidad/lisura, relacionándolos con posibles usos."
+            },
+            {
+              "id": "IC-EEN-NT-OA-05",
+              "codigo_oficial": "OA 05 EEN NT",
+              "descripcion": "Explorar los cambios o efectos que se producen en los materiales al aplicarles fuerza, calor o agua."
+            },
+            {
+              "id": "IC-EEN-NT-OA-06",
+              "codigo_oficial": "OA 06 EEN NT",
+              "descripcion": "Establecer relaciones de semejanzas y diferencias de animales y plantas, a partir de algunas características (tamaño, color, textura y morfología), sus necesidades básicas (formas de alimentación y abrigo), y los lugares que habitan, al observarlos en forma directa, en libros ilustrados o en TIC."
+            },
+            {
+              "id": "IC-EEN-NT-OA-07",
+              "codigo_oficial": "OA 07 EEN NT",
+              "descripcion": "Describir semejanzas y diferencias respecto a características, necesidades básicas y cambios que ocurren en el proceso de crecimiento, en personas, animales y plantas."
+            },
+            {
+              "id": "IC-EEN-NT-OA-08",
+              "codigo_oficial": "OA 08 EEN NT",
+              "descripcion": "Practicar algunas acciones cotidianas, que contribuyen al cuidado de ambientes sostenibles, tales como manejo de desechos en paseos al aire libre, separación de residuos, utilizar envases o papeles, plantar flores o árboles."
+            }
+          ]
+        },
+        {
+          "nombre": "Comprensión del Entorno Sociocultural",
+          "oa_transversales": [],
+          "oa_contenido": [
+            {
+              "id": "IC-CES-NT-OA-01",
+              "codigo_oficial": "OA 01 CES NT",
+              "descripcion": "Comprender los roles que desarrollan miembros de su familia y de su comunidad, y su aporte para el bienestar común."
+            }
+          ]
+        },
+        {
+          "nombre": "Pensamiento Matemático",
+          "oa_transversales": [],
+          "oa_contenido": [
+            {
+              "id": "IC-PMAT-NT-OA-01",
+              "codigo_oficial": "OA 01 PM NT",
+              "descripcion": "Crear patrones sonoros, visuales, gestuales, corporales u otros, de dos o tres elementos."
+            },
+            {
+              "id": "IC-PMAT-NT-OA-02",
+              "codigo_oficial": "OA 02 PM NT",
+              "descripcion": "Experimentar con diversos objetos estableciendo relaciones al clasificar por dos o tres atributos a la vez (forma, color, tamaño, función, masa, materialidad, entre otros) y seriar por altura, ancho, longitud o capacidad para contener."
+            },
+            {
+              "id": "IC-PMAT-NT-OA-04",
+              "codigo_oficial": "OA 04 PM NT",
+              "descripcion": "Emplear cuantificadores, tales como: “más que”, “menos que”, “igual que”, al comparar cantidades de objetos en situaciones cotidianas."
+            },
+            {
+              "id": "IC-PMAT-NT-OA-06",
+              "codigo_oficial": "OA 06 PM NT",
+              "descripcion": "Emplear los números, para contar, identificar, cuantificar y comparar cantidades hasta el 20 e indicar orden o posición de algunos elementos en situaciones cotidianas o juegos."
             }
           ]
         }
