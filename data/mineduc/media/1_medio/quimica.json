@@ -1,0 +1,61 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "1° Medio",
+    "asignatura": "Química",
+    "base_asignatura_origen": "Ciencias Naturales 1° Medio",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/",
+    "estado": "parcial_verificado",
+    "ultima_actualizacion_manual": "2026-03-28",
+    "nota": "Archivo separado por eje para facilitar el planificador. Los OA pertenecen a Ciencias Naturales 1° Medio, eje Química."
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "Reacciones químicas cotidianas",
+      "oa": [
+        {
+          "id": "CN1M-OA-17",
+          "codigo_oficial": "CN1M OA 17",
+          "descripcion": "Investigar experimentalmente y explicar, usando evidencias, que la fermentación, la combustión provocada por un motor y un calefactor, y la oxidación de metales, entre otras, son reacciones químicas presentes en la vida diaria."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Reacciones químicas",
+      "oa": [
+        {
+          "id": "CN1M-OA-18",
+          "codigo_oficial": "CN1M OA 18",
+          "descripcion": "Desarrollar un modelo que describa cómo el número total de átomos no varía en una reacción química y cómo la masa se conserva aplicando la ley de la conservación de la materia."
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "nombre": "Nomenclatura inorgánica",
+      "oa": [
+        {
+          "id": "CN1M-OA-19",
+          "codigo_oficial": "CN1M OA 19",
+          "descripcion": "Explicar la formación de compuestos binarios y ternarios, considerando las fuerzas eléctricas entre partículas y la nomenclatura inorgánica correspondiente."
+        }
+      ]
+    },
+    {
+      "numero": 4,
+      "nombre": "Estequiometría de reacción",
+      "oa": [
+        {
+          "id": "CN1M-OA-20",
+          "codigo_oficial": "CN1M OA 20",
+          "descripcion": "OA pendiente de verificación literal exacta desde ficha oficial antes de dejarlo definitivo."
+        }
+      ]
+    }
+  ]
+}
