@@ -1,0 +1,203 @@
+{
+  "metadata": {
+    "nivel": "Parvularia",
+    "tramo": "Nivel Transición",
+    "fuente": "Bases Curriculares de la Educación Parvularia (BCEP) - MINEDUC Chile",
+    "estado": "base_robusta_expandible",
+    "ultima_actualizacion_manual": "2026-03-28",
+    "nota": "Estos OAT están organizados por núcleo para que el planificador los pueda combinar con OA de contenido. La lista puede seguir ampliándose y afinarse con rastreo OA por OA desde Currículum Nacional."
+  },
+  "oat_por_nucleo": {
+    "Identidad y Autonomía": [
+      {
+        "id": "OAT-IA-01",
+        "description": "OAT 01",
+        "label": "Comunicar a los demás, emociones y sentimientos tales como: amor, miedo, alegría, ira, que le provocan diversas narraciones o situaciones observadas en forma directa o a través de TICs."
+      },
+      {
+        "id": "OAT-IA-02",
+        "description": "OAT 02",
+        "label": "Manifestar disposición y confianza para relacionarse con algunos adultos y pares que no son parte del grupo o curso."
+      },
+      {
+        "id": "OAT-IA-03",
+        "description": "OAT 03",
+        "label": "Reconocer emociones y sentimientos en otras personas, observadas en forma directa o a través de TICs."
+      },
+      {
+        "id": "OAT-IA-04",
+        "description": "OAT 04",
+        "label": "Expresar sus preferencias, intereses y características personales, reconociéndose a sí mismo en diversas situaciones cotidianas."
+      },
+      {
+        "id": "OAT-IA-05",
+        "description": "OAT 05",
+        "label": "Comunicar el bienestar que le producen ciertas situaciones, actividades, alimentos, objetos o experiencias."
+      },
+      {
+        "id": "OAT-IA-06",
+        "description": "OAT 06",
+        "label": "Planificar proyectos y juegos, en función de sus ideas e intereses, proponiendo acciones para llevarlos a cabo."
+      },
+      {
+        "id": "OAT-IA-07",
+        "description": "OAT 07",
+        "label": "Comunicar rasgos de su identidad de género, roles y pertenencias, reconociendo elementos significativos de sí mismo."
+      },
+      {
+        "id": "OAT-IA-08",
+        "description": "OAT 08",
+        "label": "Manifestar progresivamente independencia y autorregulación en acciones cotidianas, juegos y desafíos."
+      },
+      {
+        "id": "OAT-IA-09",
+        "description": "OAT 09",
+        "label": "Cuidar su bienestar personal, incorporando hábitos de higiene, alimentación, descanso y autocuidado."
+      },
+      {
+        "id": "OAT-IA-10",
+        "description": "OAT 10",
+        "label": "Comunicar a otras personas desafíos alcanzados, identificando acciones que aportaron a su logro y definiendo nuevas metas."
+      }
+    ],
+    "Convivencia y Ciudadanía": [
+      {
+        "id": "OAT-CC-01",
+        "description": "OAT 01",
+        "label": "Participar en actividades y juegos grupales, colaborando con otros y respetando acuerdos básicos de convivencia."
+      },
+      {
+        "id": "OAT-CC-02",
+        "description": "OAT 02",
+        "label": "Establecer relaciones de confianza, respeto y colaboración con pares y adultos."
+      },
+      {
+        "id": "OAT-CC-03",
+        "description": "OAT 03",
+        "label": "Resolver conflictos de convivencia con mediación del adulto, utilizando progresivamente el diálogo."
+      },
+      {
+        "id": "OAT-CC-04",
+        "description": "OAT 04",
+        "label": "Reconocer normas, acuerdos y prácticas de buen trato en diferentes contextos de participación."
+      },
+      {
+        "id": "OAT-CC-05",
+        "description": "OAT 05",
+        "label": "Participar en decisiones y acciones que favorezcan el bienestar común dentro del grupo."
+      }
+    ],
+    "Corporalidad y Movimiento": [
+      {
+        "id": "OAT-CM-01",
+        "description": "OAT 01",
+        "label": "Manifestar iniciativa y confianza al usar sus posibilidades motrices en diferentes situaciones de juego y desplazamiento."
+      },
+      {
+        "id": "OAT-CM-02",
+        "description": "OAT 02",
+        "label": "Coordinar movimientos, posturas y desplazamientos en actividades lúdicas y desafiantes."
+      },
+      {
+        "id": "OAT-CM-03",
+        "description": "OAT 03",
+        "label": "Reconocer sensaciones, emociones y estados corporales al realizar actividad física y movimiento."
+      },
+      {
+        "id": "OAT-CM-04",
+        "description": "OAT 04",
+        "label": "Cuidar su cuerpo y seguridad en juegos, desplazamientos y acciones cotidianas."
+      },
+      {
+        "id": "OAT-CM-05",
+        "description": "OAT 05",
+        "label": "Comunicar el bienestar que le produce el movimiento, al ejercitar y recrear su cuerpo en forma habitual, con y sin implementos u obstáculos."
+      }
+    ],
+    "Lenguaje Verbal": [
+      {
+        "id": "OAT-LV-01",
+        "description": "OAT 01",
+        "label": "Expresarse oralmente en distintas situaciones comunicativas, ampliando progresivamente vocabulario y claridad."
+      },
+      {
+        "id": "OAT-LV-02",
+        "description": "OAT 02",
+        "label": "Escuchar comprensivamente relatos, instrucciones, conversaciones y textos literarios."
+      },
+      {
+        "id": "OAT-LV-03",
+        "description": "OAT 03",
+        "label": "Participar en conversaciones, narraciones y juegos verbales, respetando turnos y aportando ideas."
+      }
+    ],
+    "Lenguajes Artísticos": [
+      {
+        "id": "OAT-LA-01",
+        "description": "OAT 01",
+        "label": "Expresar ideas, emociones y experiencias mediante diversos lenguajes artísticos."
+      },
+      {
+        "id": "OAT-LA-02",
+        "description": "OAT 02",
+        "label": "Explorar materiales, técnicas y recursos expresivos de manera creativa."
+      },
+      {
+        "id": "OAT-LA-03",
+        "description": "OAT 03",
+        "label": "Apreciar producciones artísticas propias y de otros, comunicando sus impresiones."
+      }
+    ],
+    "Exploración del Entorno Natural": [
+      {
+        "id": "OAT-EEN-01",
+        "description": "OAT 01",
+        "label": "Observar, explorar y formular preguntas sobre elementos y fenómenos del entorno natural."
+      },
+      {
+        "id": "OAT-EEN-02",
+        "description": "OAT 02",
+        "label": "Participar en experiencias de indagación simple, registrando observaciones con apoyo."
+      },
+      {
+        "id": "OAT-EEN-03",
+        "description": "OAT 03",
+        "label": "Manifestar actitudes de cuidado y valoración por los seres vivos y el ambiente."
+      }
+    ],
+    "Comprensión del Entorno Sociocultural": [
+      {
+        "id": "OAT-CES-01",
+        "description": "OAT 01",
+        "label": "Reconocer elementos de su familia, comunidad, costumbres y entorno social cercano."
+      },
+      {
+        "id": "OAT-CES-02",
+        "description": "OAT 02",
+        "label": "Participar en experiencias que favorezcan la comprensión de tradiciones, celebraciones y vida comunitaria."
+      },
+      {
+        "id": "OAT-CES-03",
+        "description": "OAT 03",
+        "label": "Explorar objetos, espacios y roles sociales presentes en su entorno cotidiano."
+      }
+    ],
+    "Pensamiento Matemático": [
+      {
+        "id": "OAT-PM-01",
+        "description": "OAT 01",
+        "label": "Explorar relaciones de cantidad, número, orden, comparación y patrones en situaciones cotidianas."
+      },
+      {
+        "id": "OAT-PM-02",
+        "description": "OAT 02",
+        "label": "Resolver desafíos simples de clasificación, seriación, ubicación espacial y temporal."
+      },
+      {
+        "id": "OAT-PM-03",
+        "description": "OAT 03",
+        "label": "Representar ideas matemáticas iniciales mediante lenguaje oral, corporal, gráfico y concreto."
+      }
+    ]
+  }
+}
