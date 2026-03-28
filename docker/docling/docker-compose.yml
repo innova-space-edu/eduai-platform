@@ -1,0 +1,22 @@
+version: "3.9"
+
+services:
+  docling-serve:
+    image: ghcr.io/docling-project/docling-serve-cu124:latest
+    container_name: docling-serve
+    restart: unless-stopped
+    ports:
+      - "8090:5001"
+    environment:
+      DOCLING_SERVE_ENABLE_UI: "false"
+    volumes:
+      - docling_cache:/root/.cache
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+volumes:
+  docling_cache:
