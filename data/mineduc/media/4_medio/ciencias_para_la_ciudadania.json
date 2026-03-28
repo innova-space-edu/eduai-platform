@@ -1,0 +1,105 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "4° Medio",
+    "asignatura": "Ciencias para la Ciudadanía",
+    "base_compartida": "3° y 4° Medio FG",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/",
+    "estado": "parcial_verificado",
+    "ultima_actualizacion_manual": "2026-03-27",
+    "nota": "Los códigos oficiales usan nomenclatura 3y4 porque pertenecen a la base común de Formación General para 3° y 4° medio."
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
+  "modulos": [
+    {
+      "id": "ambiente_sostenibilidad",
+      "nombre": "Ambiente y sostenibilidad",
+      "descripcion_modulo": "En este módulo se revisan estrategias de consumo sostenible, se diseñan proyectos locales para la protección de los recursos naturales y se modelan los efectos del cambio climático y posibles soluciones para su mitigación.",
+      "oa": [
+        {
+          "id": "FG-CIAS-3y4-OAC-01",
+          "codigo_oficial": "FG-CIAS-3y4-OAC-01",
+          "descripcion": "Investigar el ciclo de vida de productos de uso cotidiano y proponer, basados en evidencia, estrategias de consumo sostenible para prevenir y mitigar impactos ambientales."
+        },
+        {
+          "id": "FG-CIAS-3y4-OAC-02",
+          "codigo_oficial": "FG-CIAS-3y4-OAC-02",
+          "descripcion": "Diseñar proyectos locales, basados en evidencia científica, para la protección y utilización sostenible de recursos naturales de Chile, considerando eficiencia energética, reducción de emisiones, tratamiento de recursos hídricos, conservación de ecosistemas o gestión de residuos, entre otros."
+        },
+        {
+          "id": "FG-CIAS-3y4-OAC-03",
+          "codigo_oficial": "FG-CIAS-3y4-OAC-03",
+          "descripcion": "Modelar los efectos del cambio climático en diversos ecosistemas y sus componentes biológicos, físicos y químicos, y evaluar posibles soluciones para su mitigación."
+        }
+      ]
+    },
+    {
+      "id": "bienestar_salud",
+      "nombre": "Bienestar y salud",
+      "descripcion_modulo": "En este módulo se analizan los factores biológicos, ambientales y sociales que influyen en la salud humana; diversas medicinas; la transmisión de agentes infecciosos; y las medidas de prevención, como el uso de vacunas.",
+      "oa": [
+        {
+          "id": "FG-CIBS-3y4-OAC-01",
+          "codigo_oficial": "FG-CIBS-3y4-OAC-01",
+          "descripcion": "Analizar, sobre la base de la investigación, factores biológicos, ambientales y sociales que influyen en la salud humana (como la nutrición, el consumo de alimentos transgénicos, la actividad física, el estrés, el consumo de alcohol y drogas, y la exposición a rayos UV, plaguicidas, patógenos y elementos contaminantes, entre otros)."
+        },
+        {
+          "id": "FG-CIBS-3y4-OAC-02",
+          "codigo_oficial": "FG-CIBS-3y4-OAC-02",
+          "descripcion": "Investigar y comparar diversas medicinas (incluyendo la convencional, la tradicional de nuestros pueblos originarios y la complementaria alternativa), considerando su origen, conocimientos y prácticas para la resolución de problemas de salud cotidianos."
+        },
+        {
+          "id": "FG-CIBS-3y4-OAC-03",
+          "codigo_oficial": "FG-CIBS-3y4-OAC-03",
+          "descripcion": "Analizar, a partir de evidencias, situaciones de transmisión de agentes infecciosos a nivel nacional y mundial (como virus de influenza, VIH-sida, hanta, hepatitis B, sarampión, entre otros), y evaluar críticamente posibles medidas de prevención como el uso de vacunas."
+        }
+      ]
+    },
+    {
+      "id": "seguridad_prevencion_autocuidado",
+      "nombre": "Seguridad, prevención y autocuidado",
+      "descripcion_modulo": "En este módulo se investigan las sustancias químicas de uso cotidiano y se evalúan soluciones para disminuir los riesgos para las personas y el ambiente.",
+      "oa": [
+        {
+          "id": "FG-CISA-3y4-OAC-01",
+          "codigo_oficial": "FG-CISA-3y4-OAC-01",
+          "descripcion": "Investigar sustancias químicas de uso cotidiano en el hogar y el trabajo (medicamentos, detergentes y plaguicidas, entre otros), analizando su composición, reactividad, riesgos potenciales y medidas de seguridad asociadas (manipulación, almacenaje y eliminación)."
+        },
+        {
+          "id": "FG-CISA-3y4-OAC-02",
+          "codigo_oficial": "FG-CISA-3y4-OAC-02",
+          "descripcion": "Diseñar, evaluar y mejorar soluciones que permitan reducir las amenazas existentes en el hogar y en el mundo del trabajo (en sistemas eléctricos y de calefacción, y exposición a radiaciones, entre otros) para disminuir posibles riesgos en el bienestar de las personas y el cuidado del ambiente."
+        },
+        {
+          "id": "FG-CISA-3y4-OAC-03",
+          "codigo_oficial": "FG-CISA-3y4-OAC-03",
+          "descripcion": "Analizar, a partir de modelos, riesgos de origen natural o provocados por la acción humana en su contexto local (como aludes, incendios, sismos de alta magnitud, erupciones volcánicas, tsunamis e inundaciones, entre otros) y evaluar las capacidades existentes en la escuela y la comunidad para la prevención, la mitigación y la adaptación frente a sus consecuencias."
+        }
+      ]
+    },
+    {
+      "id": "tecnologia_sociedad",
+      "nombre": "Tecnología y sociedad",
+      "descripcion_modulo": "En este módulo se diseñan proyectos tecnológicos, se revisan avances tecnológicos y se evalúan los alcances y limitaciones de la tecnología.",
+      "oa": [
+        {
+          "id": "FG-CITS-3y4-OAC-01",
+          "codigo_oficial": "FG-CITS-3y4-OAC-01",
+          "descripcion": "Diseñar proyectos tecnológicos que permitan resolver problemas personales y/o locales de diversos ámbitos de la vida (como vivienda y transporte, entre otros)."
+        },
+        {
+          "id": "FG-CITS-3y4-OAC-02",
+          "codigo_oficial": "FG-CITS-3y4-OAC-02",
+          "descripcion": "Explicar, basados en investigaciones y modelos, cómo los avances tecnológicos (en robótica, telecomunicaciones, astronomía, física cuántica, entre otros) han permitido al ser humano ampliar sus capacidades sensoriales y su comprensión de fenómenos relacionados con la materia, los seres vivos y el entorno."
+        },
+        {
+          "id": "FG-CITS-3y4-OAC-03",
+          "codigo_oficial": "FG-CITS-3y4-OAC-03",
+          "descripcion": "Evaluar alcances y limitaciones de la tecnología y sus aplicaciones, argumentando riesgos y beneficios desde una perspectiva de salud, ética, social, económica y ambiental."
+        }
+      ]
+    }
+  ]
+}
