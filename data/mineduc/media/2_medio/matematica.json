@@ -1,0 +1,144 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "2° Medio",
+    "asignatura": "Matemática",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/",
+    "estado": "verificado",
+    "ultima_actualizacion_manual": "2026-03-27"
+  },
+  "objetivos_habilidad": [
+    {
+      "id": "MA2M-OAH-a",
+      "codigo_oficial": "MA2M OAH a",
+      "descripcion": "Resolver problemas utilizando estrategias como las siguientes: simplificar el problema y estimar el resultado; descomponer el problema en subproblemas más sencillos; buscar patrones; usar herramientas computacionales."
+    },
+    {
+      "id": "MA2M-OAH-b",
+      "codigo_oficial": "MA2M OAH b",
+      "descripcion": "Evaluar el proceso y comprobar resultados y soluciones dadas de un problema matemático."
+    },
+    {
+      "id": "MA2M-OAH-c",
+      "codigo_oficial": "MA2M OAH c",
+      "descripcion": "Utilizar lenguaje matemático para identificar sus propias ideas o respuestas."
+    },
+    {
+      "id": "MA2M-OAH-d",
+      "codigo_oficial": "MA2M OAH d",
+      "descripcion": "Describir relaciones y situaciones matemáticas, usando lenguaje matemático, esquemas y gráficos."
+    },
+    {
+      "id": "MA2M-OAH-e",
+      "codigo_oficial": "MA2M OAH e",
+      "descripcion": "Explicar soluciones propias y los procedimientos utilizados; demostraciones de resultados mediante definiciones, axiomas, propiedades y teoremas; generalizaciones por medio de conectores lógicos y cuantificadores utilizándolos apropiadamente."
+    },
+    {
+      "id": "MA2M-OAH-f",
+      "codigo_oficial": "MA2M OAH f",
+      "descripcion": "Fundamentar conjeturas usando lenguaje algebraico para comprobar o descartar la validez de los enunciados."
+    },
+    {
+      "id": "MA2M-OAH-g",
+      "codigo_oficial": "MA2M OAH g",
+      "descripcion": "Realizar demostraciones simples de resultados e identificar en una demostración si hay saltos o errores."
+    },
+    {
+      "id": "MA2M-OAH-h",
+      "codigo_oficial": "MA2M OAH h",
+      "descripcion": "Usar modelos, utilizando un lenguaje funcional para resolver problemas cotidianos y para representar patrones y fenómenos de la ciencia y la realidad."
+    }
+  ],
+  "objetivos_actitud": [],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "Números",
+      "titulo_programa": "Aplicación de raíces, potencias y logaritmos. Área y superficie de la esfera",
+      "oa": [
+        {
+          "id": "MA2M-OA-01",
+          "codigo_oficial": "MA2M OA 01",
+          "descripcion": "Realizar cálculos y estimaciones que involucren operaciones con números reales: utilizando la descomposición de raíces y las propiedades de las raíces; combinando raíces con números racionales; resolviendo problemas que involucren estas operaciones en contextos diversos."
+        },
+        {
+          "id": "MA2M-OA-02",
+          "codigo_oficial": "MA2M OA 02",
+          "descripcion": "Mostrar que comprenden las relaciones entre potencias, raíces enésimas y logaritmos: comparando representaciones de potencias de exponente racional con raíces enésimas en la recta numérica; convirtiendo raíces enésimas a potencias de exponente racional y viceversa; describiendo la relación entre potencias y logaritmos; resolviendo problemas rutinarios y no rutinarios que involucren potencias, logaritmos y raíces enésimas."
+        },
+        {
+          "id": "MA2M-OA-07",
+          "codigo_oficial": "MA2M OA 07",
+          "descripcion": "Desarrollar las fórmulas del área de la superficie y del volumen de la esfera: conjeturando la fórmula; representando de manera concreta y simbólica, de manera manual y/o con software educativo; resolviendo problemas de la vida diaria y de geometría."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Geometría",
+      "titulo_programa": "Funciones cuadráticas, ecuaciones cuadráticas y la inversa de una función",
+      "oa": [
+        {
+          "id": "MA2M-OA-03",
+          "codigo_oficial": "MA2M OA 03",
+          "descripcion": "Mostrar que comprenden la función cuadrática f(x)= ax^2 + bx + c (a ≠ 0): reconociendo la función cuadrática f(x) = ax^2 en situaciones de la vida diaria y otras asignaturas; representándola en tablas y gráficos de manera manual y/o con software educativo; determinando puntos especiales de su gráfica; seleccionándola como modelo de situaciones de cambio cuadrático de otras asignaturas, en particular de la oferta y demanda."
+        },
+        {
+          "id": "MA2M-OA-04",
+          "codigo_oficial": "MA2M OA 04",
+          "descripcion": "Resolver, de manera concreta, pictórica y simbólica, o usando herramientas tecnológicas, ecuaciones cuadráticas de la forma: ax^2 = b; (ax + b)^2 = c; ax^2 + bx = 0; ax^2 + bx = c; (a, b, c son números racionales, a ≠ 0)."
+        },
+        {
+          "id": "MA2M-OA-05",
+          "codigo_oficial": "MA2M OA 05",
+          "descripcion": "Mostrar que comprenden la inversa de una función: utilizando la metáfora de una máquina; representándola por medio de tablas y gráficos, de manera manual y/o con software educativo; utilizando la reflexión de la función representada en el gráfico en un plano cartesiano; calculando las inversas en casos de funciones lineales y cuadráticas."
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "nombre": "Álgebra",
+      "titulo_programa": "El cambio porcentual constante y razones trigonométricas",
+      "oa": [
+        {
+          "id": "MA2M-OA-06",
+          "codigo_oficial": "MA2M OA 06",
+          "descripcion": "Explicar el cambio porcentual constante en intervalos de tiempo: por medio de situaciones de la vida real y de otras asignaturas; identificándolo con el interés compuesto; representándolo de manera concreta, pictórica y simbólica, de manera manual y/o con software educativo; expresándolo en forma recursiva f(t+1) - f(t) = a · f(t); resolviendo problemas de la vida diaria y de otras asignaturas."
+        },
+        {
+          "id": "MA2M-OA-08",
+          "codigo_oficial": "MA2M OA 08",
+          "descripcion": "Mostrar que comprenden las razones trigonométricas de seno, coseno y tangente en triángulos rectángulos: relacionándolas con las propiedades de la semejanza y los ángulos; explicándolas de manera pictórica y simbólica, de manera manual y/o con software educativo; aplicándolas para determinar ángulos o medidas de lados; resolviendo problemas geométricos y de otras asignaturas."
+        },
+        {
+          "id": "MA2M-OA-09",
+          "codigo_oficial": "MA2M OA 09",
+          "descripcion": "Aplicar las razones trigonométricas en diversos contextos, en la composición y descomposición de vectores y determinar las proyecciones de vectores."
+        }
+      ]
+    },
+    {
+      "numero": 4,
+      "nombre": "Datos y azar",
+      "titulo_programa": "Variable aleatoria finita",
+      "oa": [
+        {
+          "id": "MA2M-OA-10",
+          "codigo_oficial": "MA2M OA 10",
+          "descripcion": "Mostrar que comprenden las variables aleatorias finitas: definiendo la variable; determinando los posibles valores de la incógnita; calculando su probabilidad; graficando sus distribuciones."
+        },
+        {
+          "id": "MA2M-OA-11",
+          "codigo_oficial": "MA2M OA 11",
+          "descripcion": "Utilizar permutaciones y la combinatoria sencilla para calcular probabilidades de eventos y resolver problemas."
+        },
+        {
+          "id": "MA2M-OA-12",
+          "codigo_oficial": "MA2M OA 12",
+          "descripcion": "Mostrar que comprenden el rol de la probabilidad en la sociedad: revisando informaciones de los medios de comunicación; identificando suposiciones basadas en probabilidades; explicando cómo una probabilidad puede sustentar suposiciones opuestas; explicando decisiones basadas en situaciones subjetivas o en probabilidades."
+        }
+      ]
+    }
+  ]
+}
