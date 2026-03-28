@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto"
+import { parseDocumentWithExternalService } from "@/lib/papers/parser-client"
 
 export const STORAGE_BUCKET = "papers"
 export const MAX_PDF_SIZE_MB = 50
