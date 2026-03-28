@@ -22,6 +22,7 @@ import media4CienciasCiudadania from "@/data/mineduc/media/4_medio/ciencias_para
 import media4EducacionCiudadana from "@/data/mineduc/media/4_medio/educacion_ciudadana.json"
 
 import sharedCienciasCiudadaniaBase from "@/data/mineduc/shared/ciencias_para_la_ciudadania_3y4_base.json"
+import asignaturasPorCurso from "@/data/mineduc/meta/asignaturas_por_curso.json"
 
 export type NivelKey = "parvularia" | "basica" | "media"
 export type CursoKey = string
@@ -106,6 +107,8 @@ export interface CurriculumRecord {
   sharedBaseKey?: string
 }
 
+type MetaAsignaturas = Record<string, Record<string, string[]>>
+
 function normalizeText(value: string) {
   return String(value || "")
     .normalize("NFD")
@@ -151,6 +154,7 @@ const ASIGNATURA_SYNONYMS: Record<NivelKey, Record<string, string>> = {
   },
   basica: {
     lenguaje_y_comunicacion: "Lenguaje y Comunicación",
+    lengua_y_literatura: "Lengua y Literatura",
     matematica: "Matemática",
     ciencias_naturales: "Ciencias Naturales",
     historia_geografia_y_cs_sociales: "Historia, Geografía y Cs. Sociales",
@@ -170,6 +174,12 @@ const ASIGNATURA_SYNONYMS: Record<NivelKey, Record<string, string>> = {
     historia_geografia_y_cs_sociales: "Historia, Geografía y Cs. Sociales",
     historia_geografia_y_ciencias_sociales: "Historia, Geografía y Cs. Sociales",
   },
+}
+
+const NIVEL_META_KEY: Record<NivelKey, string> = {
+  parvularia: "Parvularia",
+  basica: "Básica",
+  media: "Media",
 }
 
 export function normalizeAsignatura(asignatura: string, nivel: NivelKey): string {
@@ -301,6 +311,32 @@ function getSharedCienciasBase(): StandardCurriculumFile {
   return sharedCienciasCiudadaniaBase as StandardCurriculumFile
 }
 
+function getMetaAsignaturas(): MetaAsignaturas {
+  return asignaturasPorCurso as MetaAsignaturas
+}
+
+function getCursoMetaLabel(nivel: NivelKey, curso: string): string {
+  if (nivel === "parvularia") {
+    const key = cursoToKey(curso)
+    if (key === "NT1") return "NT1"
+    if (key === "NT2") return "NT2"
+    return curso
+  }
+
+  return curso
+}
+
+function getMetaAsignaturasForCourse(nivel: NivelKey, curso: string): string[] {
+  const meta = getMetaAsignaturas()
+  const nivelMeta = meta[NIVEL_META_KEY[nivel]]
+  if (!nivelMeta) return []
+
+  const cursoLabel = getCursoMetaLabel(nivel, curso)
+  const asignaturas = nivelMeta[cursoLabel] || []
+
+  return asignaturas.map((item) => normalizeAsignatura(item, nivel))
+}
+
 export function getCurriculumRecord(
   nivel: NivelKey,
   curso: string,
@@ -416,9 +452,9 @@ export function getOA(
   const oas = getOAs(nivel, curso, asignatura)
   const suffix = String(numero)
   return (
-    oas.find(oa => oa.id === `OA${numero}`) ||
-    oas.find(oa => oa.id.endsWith(`-${suffix}`)) ||
-    oas.find(oa => oa.codigoOficial?.match(new RegExp(`\\bOA\\s*0*${suffix}\\b`, "i"))) ||
+    oas.find((oa) => oa.id === `OA${numero}`) ||
+    oas.find((oa) => oa.id.endsWith(`-${suffix}`)) ||
+    oas.find((oa) => oa.codigoOficial?.match(new RegExp(`\\bOA\\s*0*${suffix}\\b`, "i"))) ||
     null
   )
 }
@@ -432,7 +468,10 @@ export function buildOAContext(
   const oas = getOAs(nivel, curso, asignatura)
   if (!oas.length) return ""
 
-  const filtered = oaNumero ? (getOA(nivel, curso, asignatura, oaNumero) ? [getOA(nivel, curso, asignatura, oaNumero)!] : []) : oas
+  const filtered = oaNumero
+    ? (getOA(nivel, curso, asignatura, oaNumero) ? [getOA(nivel, curso, asignatura, oaNumero)!] : [])
+    : oas
+
   if (!filtered.length) return ""
 
   const header = `\nOBJETIVOS DE APRENDIZAJE OFICIALES MINEDUC — ${asignatura} ${curso}:\n`
@@ -440,7 +479,7 @@ export function buildOAContext(
   return (
     header +
     filtered
-      .map(oa => {
+      .map((oa) => {
         const pieces = [
           oa.codigoOficial || oa.id,
           oa.texto,
@@ -458,11 +497,26 @@ export function buildOAContext(
 export function getAvailableAsignaturas(nivel: NivelKey, curso: string): string[] {
   const cursoKey = cursoToKey(curso)
 
-  return Object.values(REGISTRY)
-    .filter(item => item.nivel === nivel && item.cursoKey === cursoKey)
-    .map(item => item.asignaturaNormalizada)
+  const fromRegistry = Object.values(REGISTRY)
+    .filter((item) => item.nivel === nivel && item.cursoKey === cursoKey)
+    .map((item) => item.asignaturaNormalizada)
+
+  const fromMeta = getMetaAsignaturasForCourse(nivel, curso)
+
+  const merged = [...fromRegistry, ...fromMeta]
+    .map((item) => normalizeAsignatura(item, nivel))
     .filter((value, index, arr) => arr.indexOf(value) === index)
     .sort((a, b) => a.localeCompare(b, "es"))
+
+  return merged
+}
+
+export function hasLocalCurriculumForAsignatura(
+  nivel: NivelKey,
+  curso: string,
+  asignatura: string
+): boolean {
+  return !!getCurriculumRecord(nivel, curso, asignatura)
 }
 
 export const OA_DATABASE = REGISTRY
