@@ -1,0 +1,61 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "3° Medio",
+    "asignatura": "Matemática",
+    "plan": "Formación General",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/",
+    "estado": "verificado_parcialmente_por_unidad",
+    "ultima_actualizacion_manual": "2026-03-28",
+    "nota": "Las unidades y los OA están verificados oficialmente. La asociación OA→unidad quedó organizada de forma coherente con el programa; conviene hacer una validación fina posterior porque algunas páginas de apoyo del portal muestran asociaciones inconsistentes entre recursos y ficha de programa."
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "Relaciones métricas en la circunferencia",
+      "oa": [
+        {
+          "id": "FG-MATE-3M-OAC-04",
+          "codigo_oficial": "FG-MATE-3M-OAC-04",
+          "descripcion": "Resolver problemas de geometría euclidiana que involucren relaciones métricas entre ángulos, arcos, cuerdas y secantes en la circunferencia, de forma manuscrita y con uso de herramientas tecnológicas."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Medidas de dispersión y probabilidades condicionales",
+      "oa": [
+        {
+          "id": "FG-MATE-3M-OAC-02",
+          "codigo_oficial": "FG-MATE-3M-OAC-02",
+          "descripcion": "Tomar decisiones en situaciones de incerteza que involucren el análisis de datos estadísticos con medidas de dispersión y probabilidades condicionales."
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "nombre": "Funciones exponencial y logarítmica",
+      "oa": [
+        {
+          "id": "FG-MATE-3M-OAC-03",
+          "codigo_oficial": "FG-MATE-3M-OAC-03",
+          "descripcion": "Aplicar modelos matemáticos que describen fenómenos o situaciones de crecimiento y decrecimiento, que involucran las funciones exponencial y logarítmica, de forma manuscrita, con uso de herramientas tecnológicas y promoviendo la búsqueda, selección, contrastación y verificación de información en ambientes digitales y redes sociales."
+        }
+      ]
+    },
+    {
+      "numero": 4,
+      "nombre": "Los números complejos",
+      "oa": [
+        {
+          "id": "FG-MATE-3M-OAC-01",
+          "codigo_oficial": "FG-MATE-3M-OAC-01",
+          "descripcion": "Resolver problemas de adición, sustracción, multiplicación y división de números complejos C, en forma pictórica, simbólica y con uso de herramientas tecnológicas."
+        }
+      ]
+    }
+  ]
+}
