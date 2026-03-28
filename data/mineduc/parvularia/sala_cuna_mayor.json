@@ -1,0 +1,327 @@
+{
+  "metadata": {
+    "nivel": "Parvularia",
+    "subnivel": "Sala Cuna Mayor",
+    "base_oficial_compartida": "SC (Sala Cuna)",
+    "fuente": "Currículum Nacional / BCEP - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/portal/Curso/Educacion-Parvularia/SC-Sala-Cuna/",
+    "estado": "verificado_en_base_oficial_SC",
+    "ultima_actualizacion_manual": "2026-03-28",
+    "nota": "Archivo operativo para planificación. Comparte la base oficial SC del portal Currículum Nacional."
+  },
+  "ambitos": [
+    {
+      "nombre": "Desarrollo personal y social",
+      "nucleos": [
+        {
+          "nombre": "Identidad y autonomía",
+          "oa_transversales": [
+            {
+              "id": "DPS-IA-SC-OAT-01",
+              "codigo_oficial": "OAT 01 IA SC",
+              "descripcion": "Expresar vocal, gestual o corporalmente distintas necesidades o emociones (alegría, miedo, pena, entre otras)."
+            },
+            {
+              "id": "DPS-IA-SC-OAT-02",
+              "codigo_oficial": "OAT 02 IA SC",
+              "descripcion": "Manifestar satisfacción cuando percibe que adultos significativos le expresan afecto."
+            },
+            {
+              "id": "DPS-IA-SC-OAT-03",
+              "codigo_oficial": "OAT 03 IA SC",
+              "descripcion": "Reconocer algunas emociones en adultos significativos, reaccionando frente a ellas."
+            },
+            {
+              "id": "DPS-IA-SC-OAT-04",
+              "codigo_oficial": "OAT 04 IA SC",
+              "descripcion": "Manifestar sus preferencias por algunas situaciones, objetos y juegos."
+            },
+            {
+              "id": "DPS-IA-SC-OAT-05",
+              "codigo_oficial": "OAT 05 IA SC",
+              "descripcion": "Manifestar interés por nuevas situaciones u objetos, ampliando su campo y repertorio de acción habitual."
+            },
+            {
+              "id": "DPS-IA-SC-OAT-06",
+              "codigo_oficial": "OAT 06 IA SC",
+              "descripcion": "Reconocer algunos rasgos distintivos de su identidad, tales como: su nombre y su imagen física en el espejo."
+            },
+            {
+              "id": "DPS-IA-SC-OAT-07",
+              "codigo_oficial": "OAT 07 IA SC",
+              "descripcion": "Incorporar rutinas básicas vinculadas a la alimentación, vigilia, sueño, higiene, y vestuario dentro de un contexto diferente a su hogar y sensible a sus necesidades personales."
+            }
+          ],
+          "oa_contenido": []
+        },
+        {
+          "nombre": "Convivencia y ciudadanía",
+          "oa_transversales": [
+            {
+              "id": "DPS-CC-SC-OAT-01",
+              "codigo_oficial": "OAT 01 CC SC",
+              "descripcion": "Interactuar con pares y adultos significativos (a través de gestos y vocalizaciones, entre otros), en diferentes situaciones y juegos."
+            },
+            {
+              "id": "DPS-CC-SC-OAT-02",
+              "codigo_oficial": "OAT 02 CC SC",
+              "descripcion": "Disfrutar de la cercanía de niños, niñas y adultos en juegos y situaciones cotidianas."
+            },
+            {
+              "id": "DPS-CC-SC-OAT-03",
+              "codigo_oficial": "OAT 03 CC SC",
+              "descripcion": "Manifestar interés por lo que le sucede a otros niños y niñas, a través de acciones tales como: abrazar a quien está llorando, hacer cariños, entre otros."
+            },
+            {
+              "id": "DPS-CC-SC-OAT-04",
+              "codigo_oficial": "OAT 04 CC SC",
+              "descripcion": "Manifestar interés por participar en celebraciones de su entorno significativo."
+            },
+            {
+              "id": "DPS-CC-SC-OAT-05",
+              "codigo_oficial": "OAT 05 CC SC",
+              "descripcion": "Practicar algunas normas de convivencia, tales como: sentarse en su silla para almorzar, saludar, despedirse, y colaborar en acciones cotidianas."
+            },
+            {
+              "id": "DPS-CC-SC-OAT-06",
+              "codigo_oficial": "OAT 06 CC SC",
+              "descripcion": "Manifestar disposición para responder positivamente o cambiar su comportamiento, frente a requerimientos del adulto, asociados a su seguridad y bienestar."
+            }
+          ],
+          "oa_contenido": []
+        },
+        {
+          "nombre": "Corporalidad y movimiento",
+          "oa_transversales": [
+            {
+              "id": "DPS-CM-SC-OAT-01",
+              "codigo_oficial": "OAT 01 CM SC",
+              "descripcion": "Manifestar su agrado, al sentirse cómodo, seguro y contenido corporalmente."
+            },
+            {
+              "id": "DPS-CM-SC-OAT-02",
+              "codigo_oficial": "OAT 02 CM SC",
+              "descripcion": "Descubrir partes de su cuerpo y algunas de sus características físicas, a través de diversas experiencias sensoriomotrices."
+            },
+            {
+              "id": "DPS-CM-SC-OAT-03",
+              "codigo_oficial": "OAT 03 CM SC",
+              "descripcion": "Manifestar interés y satisfacción al moverse libremente en situaciones cotidianas y lúdicas."
+            },
+            {
+              "id": "DPS-CM-SC-OAT-04",
+              "codigo_oficial": "OAT 04 CM SC",
+              "descripcion": "Ampliar sus posibilidades de exploración sensoriomotriz, adquiriendo control de la prensión palmar voluntaria (toma objetos, se pasa objetos de una mano a otra, entre otros) y la postura sedente."
+            },
+            {
+              "id": "DPS-CM-SC-OAT-05",
+              "codigo_oficial": "OAT 05 CM SC",
+              "descripcion": "Adquirir desplazamiento gradual en sus distintas formas (girar, reptar, ponerse de pie, caminar), para disfrutar la ampliación de sus posibilidades de movimiento, exploración y juego."
+            },
+            {
+              "id": "DPS-CM-SC-OAT-06",
+              "codigo_oficial": "OAT 06 CM SC",
+              "descripcion": "Coordinar movimientos de manipulación ubicando objetos en relación a su propio cuerpo, tales como: acercar objetos pequeños utilizando índice y pulgar en oposición."
+            },
+            {
+              "id": "DPS-CM-SC-OAT-07",
+              "codigo_oficial": "OAT 07 CM SC",
+              "descripcion": "Explorar la alternancia de posturas y movimientos en acciones tales como: trepar, lanzar objetos o hacer ronda, adquiriendo control gradual de su cuerpo al jugar."
+            }
+          ],
+          "oa_contenido": []
+        }
+      ]
+    },
+    {
+      "nombre": "Comunicación integral",
+      "nucleos": [
+        {
+          "nombre": "Lenguaje verbal",
+          "oa_transversales": [],
+          "oa_contenido": [
+            {
+              "id": "CI-LV-SC-OA-01",
+              "codigo_oficial": "OA 01 LV SC",
+              "descripcion": "Expresar oralmente sus emociones y necesidades, a través de balbuceos, vocalizaciones y diversos recursos gestuales."
+            },
+            {
+              "id": "CI-LV-SC-OA-02",
+              "codigo_oficial": "OA 02 LV SC",
+              "descripcion": "Expresar oralmente sus necesidades e intereses, mediante la combinación de palabras y gestos, el uso de palabra-frase y progresivamente el empleo de frases simples."
+            },
+            {
+              "id": "CI-LV-SC-OA-03",
+              "codigo_oficial": "OA 03 LV SC",
+              "descripcion": "Identificar progresivamente la intención comunicativa de las distintas personas de su entorno a partir de sus expresiones verbales, no verbales y paraverbales."
+            },
+            {
+              "id": "CI-LV-SC-OA-04",
+              "codigo_oficial": "OA 04 LV SC",
+              "descripcion": "Comprender mensajes simples y breves en juegos y situaciones comunicativas cotidianas, respondiendo en forma gestual y corporal."
+            },
+            {
+              "id": "CI-LV-SC-OA-05",
+              "codigo_oficial": "OA 05 LV SC",
+              "descripcion": "Reconocer sonidos de diferentes fuentes sonoras de su entorno cotidiano, tales como objetos, artefactos, instrumentos musicales, animales, naturaleza."
+            },
+            {
+              "id": "CI-LV-SC-OA-06",
+              "codigo_oficial": "OA 06 LV SC",
+              "descripcion": "Incorporar nuevas palabras a su repertorio lingüístico para comunicarse con otros, en juegos y conversaciones."
+            },
+            {
+              "id": "CI-LV-SC-OA-07",
+              "codigo_oficial": "OA 07 LV SC",
+              "descripcion": "Disfrutar de distintos textos gráficos (libros de cuentos, láminas, entre otros) al manipularlos y observar sus imágenes."
+            },
+            {
+              "id": "CI-LV-SC-OA-08",
+              "codigo_oficial": "OA 08 LV SC",
+              "descripcion": "Comprender progresivamente, a partir de la escucha atenta, algunos contenidos explícitos de textos literarios y no literarios, respondiendo preguntas simples, en forma oral o gestual (¿qué es?, ¿quién es?, ¿dónde está?)."
+            }
+          ]
+        },
+        {
+          "nombre": "Lenguajes artísticos",
+          "oa_transversales": [],
+          "oa_contenido": [
+            {
+              "id": "CI-LA-SC-OA-01",
+              "codigo_oficial": "OA 01 LA SC",
+              "descripcion": "Manifestar interés por los sonidos, las texturas, los colores y la luminosidad de su entorno, respondiendo a través de diversas formas, tales como balbuceo, gestos, sonrisas, entre otros."
+            },
+            {
+              "id": "CI-LA-SC-OA-02",
+              "codigo_oficial": "OA 02 LA SC",
+              "descripcion": "Producir sonidos con su voz, su cuerpo y diversos objetos sonoros, en forma espontánea o por imitación."
+            },
+            {
+              "id": "CI-LA-SC-OA-03",
+              "codigo_oficial": "OA 03 LA SC",
+              "descripcion": "Imitar gestos, movimientos, sonidos de su entorno significativo, a través de diversos medios."
+            },
+            {
+              "id": "CI-LA-SC-OA-04",
+              "codigo_oficial": "OA 04 LA SC",
+              "descripcion": "Manifestar sus preferencias por recursos expresivos presentes en piezas musicales, visuales, y escénicas, a través de gestos, movimientos, palabras, entre otros."
+            },
+            {
+              "id": "CI-LA-SC-OA-05",
+              "codigo_oficial": "OA 05 LA SC",
+              "descripcion": "Expresar corporalmente las emociones y sensaciones que le provocan algunas piezas musicales, bailando, cantando e intentando seguir el ritmo."
+            },
+            {
+              "id": "CI-LA-SC-OA-06",
+              "codigo_oficial": "OA 06 LA SC",
+              "descripcion": "Experimentar sus posibilidades de expresión plástica a través de diversos recursos, produciendo sus primeros garabateos espontáneos."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "nombre": "Interacción y comprensión del entorno",
+      "nucleos": [
+        {
+          "nombre": "Exploración del entorno natural",
+          "oa_transversales": [],
+          "oa_contenido": [
+            {
+              "id": "ICE-EEN-SC-OA-01",
+              "codigo_oficial": "OA 01 EEN SC",
+              "descripcion": "Manifestar curiosidad y asombro por algunos elementos, situaciones y fenómenos que ocurren en su entorno natural cercano, tales como: arena, lluvia, viento, entre otros."
+            },
+            {
+              "id": "ICE-EEN-SC-OA-02",
+              "codigo_oficial": "OA 02 EEN SC",
+              "descripcion": "Reconocer algunos elementos representativos de su entorno natural, tales como: animales, plantas, ríos, cerros, desierto."
+            },
+            {
+              "id": "ICE-EEN-SC-OA-03",
+              "codigo_oficial": "OA 03 EEN SC",
+              "descripcion": "Explorar su entorno, observando, manipulando y experimentando con diversos materiales de su interés, tales como: mezclar agua con tierra, recoger hojas o ramas, trasladar piedras, hacer huellas."
+            },
+            {
+              "id": "ICE-EEN-SC-OA-04",
+              "codigo_oficial": "OA 04 EEN SC",
+              "descripcion": "Descubrir características de animales al observarlos en forma directa, en textos y en imágenes."
+            },
+            {
+              "id": "ICE-EEN-SC-OA-05",
+              "codigo_oficial": "OA 05 EEN SC",
+              "descripcion": "Colaborar en actividades sencillas de cuidado de la naturaleza, tales como: regar, recoger hojas, trasladar ramitas, entre otras."
+            }
+          ]
+        },
+        {
+          "nombre": "Comprensión del entorno sociocultural",
+          "oa_transversales": [],
+          "oa_contenido": [
+            {
+              "id": "ICE-CES-SC-OA-01",
+              "codigo_oficial": "OA 01 CES SC",
+              "descripcion": "Imitar gestos y acciones que realizan personas de su entorno cercano."
+            },
+            {
+              "id": "ICE-CES-SC-OA-02",
+              "codigo_oficial": "OA 02 CES SC",
+              "descripcion": "Identificar algunas actividades habituales que se realizan en su vida cotidiana, tales como: preparación de alimentos, rutinas antes de dormir, entre otras."
+            },
+            {
+              "id": "ICE-CES-SC-OA-03",
+              "codigo_oficial": "OA 03 CES SC",
+              "descripcion": "Manifestar interés por canciones, juegos y bailes que forman parte de su cotidianeidad."
+            },
+            {
+              "id": "ICE-CES-SC-OA-04",
+              "codigo_oficial": "OA 04 CES SC",
+              "descripcion": "Manifestar interés por canciones, juegos y bailes que forman parte de su cotidianeidad."
+            },
+            {
+              "id": "ICE-CES-SC-OA-05",
+              "codigo_oficial": "OA 05 CES SC",
+              "descripcion": "Reconocer objetos y personas, asociándolos a ciertos lugares, tales como: educadora/ técnico y jardín infantil; mamá/papá y casa; cama y dormir, recinto de cocina y comida, de su entorno sociocultural."
+            }
+          ]
+        },
+        {
+          "nombre": "Pensamiento matemático",
+          "oa_transversales": [],
+          "oa_contenido": [
+            {
+              "id": "ICE-PM-SC-OA-01",
+              "codigo_oficial": "OA 01 PM SC",
+              "descripcion": "Adquirir la noción de permanencia de objetos y de personas significativas, mediante juegos con diversos objetos de uso cotidiano."
+            },
+            {
+              "id": "ICE-PM-SC-OA-02",
+              "codigo_oficial": "OA 02 PM SC",
+              "descripcion": "Explorar a través de sus experiencias sensoriales y motrices, atributos de los objetos tales como: tamaño, textura y dureza."
+            },
+            {
+              "id": "ICE-PM-SC-OA-03",
+              "codigo_oficial": "OA 03 PM SC",
+              "descripcion": "Experimentar con los objetos, resolviendo situaciones concretas, tales como: alcanzar objetos, apretar botones en aparatos sonoros, sacar juguetes de contenedores, juntar objetos, entre otros."
+            },
+            {
+              "id": "ICE-PM-SC-OA-04",
+              "codigo_oficial": "OA 04 PM SC",
+              "descripcion": "Utilizar en situaciones lúdicas, nociones de ubicación en relación con su propio cuerpo tales como: dentro/fuera; encima/debajo."
+            },
+            {
+              "id": "ICE-PM-SC-OA-05",
+              "codigo_oficial": "OA 05 PM SC",
+              "descripcion": "Orientarse temporalmente en situaciones cotidianas, siguiendo secuencias breves tales como: antes/después."
+            },
+            {
+              "id": "ICE-PM-SC-OA-06",
+              "codigo_oficial": "OA 06 PM SC",
+              "descripcion": "Emplear cuantificadores (más/menos, mucho/poco), en situaciones cotidianas."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
