@@ -146,6 +146,7 @@ export default function EducadorPage() {
   const [configOpen, setConfigOpen] = useState(true)
   const [showWelcome, setShowWelcome] = useState(true)
   const [openOAT, setOpenOAT] = useState(false)
+  const [openOA, setOpenOA] = useState(false)
 
   const curriculumState = useMemo(
     () => ({
@@ -663,71 +664,90 @@ export default function EducadorPage() {
               )}
 
               <div className="mb-4">
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-gray-500 text-xs block">OA seleccionables</label>
-                  <span className="text-[11px] text-emerald-300">
-                    Se pueden elegir varios OA (en parvularia: hasta 3 integrados)
+                <button
+                  onClick={() => setOpenOA((prev) => !prev)}
+                  className="w-full flex items-center justify-between rounded-2xl border border-gray-700 bg-gray-800 hover:border-emerald-500/40 px-4 py-3 transition-all group"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-emerald-300 text-sm font-medium">OA seleccionables</span>
+                    {config.selectedOAIds.length > 0 && (
+                      <span className="rounded-full bg-emerald-500/20 border border-emerald-500/30 px-2 py-0.5 text-[10px] text-emerald-300 font-medium">
+                        {config.selectedOAIds.length} seleccionado{config.selectedOAIds.length > 1 ? "s" : ""}
+                      </span>
+                    )}
+                  </div>
+                  <span className={`text-gray-500 text-sm transition-transform duration-200 ${openOA ? "rotate-180" : ""}`}>
+                    ▾
                   </span>
-                </div>
+                </button>
 
-                <div className="grid md:grid-cols-2 gap-2 max-h-[360px] overflow-y-auto pr-1">
-                  {oaOptions.length ? (
-                    oaOptions.map((oa) => {
-                      const isSelected = config.selectedOAIds.includes(oa.id)
+                {openOA && (
+                  <div className="mt-2">
+                    <p className="text-[11px] text-emerald-300 px-1 mb-2">
+                      {config.nivel === "parvularia"
+                        ? "Hasta 3 OA integrados de distintos núcleos o ámbitos"
+                        : "Se pueden elegir varios OA"}
+                    </p>
+                    <div className="grid md:grid-cols-2 gap-2 max-h-[360px] overflow-y-auto pr-1">
+                      {oaOptions.length ? (
+                        oaOptions.map((oa) => {
+                          const isSelected = config.selectedOAIds.includes(oa.id)
 
-                      return (
-                        <button
-                          key={oa.id}
-                          onClick={() => toggleOA(oa.id)}
-                          className={`text-left rounded-2xl border p-3 transition-all ${
-                            isSelected
-                              ? "bg-emerald-500/10 border-emerald-500/40"
-                              : "bg-gray-800 border-gray-700 hover:border-gray-600"
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <div className="text-sm font-semibold text-white">
-                                {oa.codigoOficial || oa.id}
-                              </div>
-                              <p className="text-xs text-gray-300 leading-relaxed mt-1 text-justify">
-                                {oa.texto}
-                              </p>
-                            </div>
-
-                            <div
-                              className={`w-5 h-5 rounded-full border flex items-center justify-center text-[10px] ${
+                          return (
+                            <button
+                              key={oa.id}
+                              onClick={() => toggleOA(oa.id)}
+                              className={`text-left rounded-2xl border p-3 transition-all ${
                                 isSelected
-                                  ? "border-emerald-400 text-emerald-300"
-                                  : "border-gray-600 text-gray-500"
+                                  ? "bg-emerald-500/10 border-emerald-500/40"
+                                  : "bg-gray-800 border-gray-700 hover:border-gray-600"
                               }`}
                             >
-                              {isSelected ? "✓" : ""}
-                            </div>
-                          </div>
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <div className="text-sm font-semibold text-white">
+                                    {oa.codigoOficial || oa.id}
+                                  </div>
+                                  <p className="text-xs text-gray-300 leading-relaxed mt-1 text-justify">
+                                    {oa.texto}
+                                  </p>
+                                </div>
 
-                          {!!oa.unidadNombre && (
-                            <p className="text-[11px] text-gray-500 mt-2">
-                              Unidad/Módulo: {oa.unidadNombre}
-                            </p>
-                          )}
+                                <div
+                                  className={`w-5 h-5 rounded-full border flex items-center justify-center text-[10px] ${
+                                    isSelected
+                                      ? "border-emerald-400 text-emerald-300"
+                                      : "border-gray-600 text-gray-500"
+                                  }`}
+                                >
+                                  {isSelected ? "✓" : ""}
+                                </div>
+                              </div>
 
-                          {!!oa.ambito && !!oa.nucleo && (
-                            <div className="mt-2">
-                              <span className="rounded-full border border-green-500/30 bg-green-500/15 px-3 py-1 text-[11px] font-medium text-green-300">
-                                {oa.ambito} · {oa.nucleo}
-                              </span>
-                            </div>
-                          )}
-                        </button>
-                      )
-                    })
-                  ) : (
-                    <div className="md:col-span-2 rounded-2xl border border-dashed border-gray-700 p-4 text-sm text-gray-500">
-                      No hay OA locales cargados para esta combinación todavía.
+                              {!!oa.unidadNombre && (
+                                <p className="text-[11px] text-gray-500 mt-2">
+                                  Unidad/Módulo: {oa.unidadNombre}
+                                </p>
+                              )}
+
+                              {!!oa.ambito && !!oa.nucleo && (
+                                <div className="mt-2">
+                                  <span className="rounded-full border border-green-500/30 bg-green-500/15 px-3 py-1 text-[11px] font-medium text-green-300">
+                                    {oa.ambito} · {oa.nucleo}
+                                  </span>
+                                </div>
+                              )}
+                            </button>
+                          )
+                        })
+                      ) : (
+                        <div className="md:col-span-2 rounded-2xl border border-dashed border-gray-700 p-4 text-sm text-gray-500">
+                          No hay OA locales cargados para esta combinación todavía.
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
 
               {config.nivel === "parvularia" && (
