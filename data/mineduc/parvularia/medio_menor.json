@@ -1,0 +1,417 @@
+{
+  "metadata": {
+    "nivel": "Parvularia",
+    "subnivel": "Medio Menor",
+    "base_oficial_compartida": "NM (Nivel Medio)",
+    "fuente": "Currículum Nacional / BCEP - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/portal/Curso/Educacion-Parvularia/NM-Nivel-Medio/",
+    "estado": "verificado_en_base_oficial_NM",
+    "ultima_actualizacion_manual": "2026-03-28",
+    "nota": "Archivo operativo para planificación. Comparte la base oficial NM del portal Currículum Nacional."
+  },
+  "ambitos": [
+    {
+      "nombre": "Desarrollo personal y social",
+      "nucleos": [
+        {
+          "nombre": "Identidad y autonomía",
+          "oa_transversales": [
+            {
+              "id": "DPS-IA-NM-OAT-01",
+              "codigo_oficial": "OAT 01 IA NM",
+              "descripcion": "Representar verbal y corporalmente diferentes emociones y sentimientos, en sus juegos."
+            },
+            {
+              "id": "DPS-IA-NM-OAT-02",
+              "codigo_oficial": "OAT 02 IA NM",
+              "descripcion": "Manifestar disposición y confianza al separarse de los adultos significativos."
+            },
+            {
+              "id": "DPS-IA-NM-OAT-03",
+              "codigo_oficial": "OAT 03 IA NM",
+              "descripcion": "Reconocer en sí mismo, en otras personas y en personajes de cuentos, emociones tales como: tristeza, miedo, alegría, pena y rabia."
+            },
+            {
+              "id": "DPS-IA-NM-OAT-04",
+              "codigo_oficial": "OAT 04 IA NM",
+              "descripcion": "Manifestar disposición para regular sus emociones y sentimientos, en función de las necesidades propias, de los demás y de algunos acuerdos para el funcionamiento grupal."
+            },
+            {
+              "id": "DPS-IA-NM-OAT-05",
+              "codigo_oficial": "OAT 05 IA NM",
+              "descripcion": "Manifestar sus preferencias cuando participa o cuando solicita participar, en diversas situaciones cotidianas y juegos."
+            },
+            {
+              "id": "DPS-IA-NM-OAT-06",
+              "codigo_oficial": "OAT 06 IA NM",
+              "descripcion": "Actuar con progresiva independencia, ampliando su repertorio de acciones, acorde a sus necesidades e intereses."
+            },
+            {
+              "id": "DPS-IA-NM-OAT-07",
+              "codigo_oficial": "OAT 07 IA NM",
+              "descripcion": "Comunicar algunos rasgos de su identidad, como su nombre, sus características corporales, género y otros."
+            },
+            {
+              "id": "DPS-IA-NM-OAT-08",
+              "codigo_oficial": "OAT 08 IA NM",
+              "descripcion": "Apreciar sus características identitarias, fortalezas y habilidades."
+            },
+            {
+              "id": "DPS-IA-NM-OAT-09",
+              "codigo_oficial": "OAT 09 IA NM",
+              "descripcion": "Manifestar progresiva independencia en sus prácticas de alimentación, vigilia y sueño, vestimenta, higiene corporal, bucal y evacuación."
+            },
+            {
+              "id": "DPS-IA-NM-OAT-10",
+              "codigo_oficial": "OAT 10 IA NM",
+              "descripcion": "Manifestar satisfacción y confianza por su autovalía, comunicando algunos desafíos alcanzados, tales como: saltar, hacer torres, sacar cáscara de huevos, entre otros."
+            },
+            {
+              "id": "DPS-IA-NM-OAT-11",
+              "codigo_oficial": "OAT 11 IA NM",
+              "descripcion": "Identificar alimentos que se consumen en algunas celebraciones propias de su familia y comunidad."
+            },
+            {
+              "id": "DPS-IA-NM-OAT-12",
+              "codigo_oficial": "OAT 12 IA NM",
+              "descripcion": "Representar sus pensamientos y experiencias, atribuyendo significados a objetos o elementos de su entorno, usando la imaginación en situaciones de juego."
+            }
+          ],
+          "oa_contenido": []
+        },
+        {
+          "nombre": "Convivencia y ciudadanía",
+          "oa_transversales": [
+            {
+              "id": "DPS-CC-NM-OAT-01",
+              "codigo_oficial": "OAT 01 CC NM",
+              "descripcion": "Participar en actividades y juegos grupales con sus pares, conversando, intercambiando pertenencias, cooperando."
+            },
+            {
+              "id": "DPS-CC-NM-OAT-02",
+              "codigo_oficial": "OAT 02 CC NM",
+              "descripcion": "Disfrutar de instancias de interacción social con diversas personas de la comunidad."
+            },
+            {
+              "id": "DPS-CC-NM-OAT-03",
+              "codigo_oficial": "OAT 03 CC NM",
+              "descripcion": "Colaborar en situaciones cotidianas y de juego, proponiendo acciones simples frente a necesidades que presentan sus pares."
+            },
+            {
+              "id": "DPS-CC-NM-OAT-04",
+              "codigo_oficial": "OAT 04 CC NM",
+              "descripcion": "Colaborar en actividades, conmemoraciones o celebraciones culturales de su familia y comunidad."
+            },
+            {
+              "id": "DPS-CC-NM-OAT-05",
+              "codigo_oficial": "OAT 05 CC NM",
+              "descripcion": "Iniciarse en la resolución pacífica de conflictos, dialogando respecto de la situación, escuchando, opinando y proponiendo acciones para resolver."
+            },
+            {
+              "id": "DPS-CC-NM-OAT-06",
+              "codigo_oficial": "OAT 06 CC NM",
+              "descripcion": "Manifestar disposición para practicar acuerdos de convivencia básica que regulan situaciones cotidianas y juegos."
+            },
+            {
+              "id": "DPS-CC-NM-OAT-07",
+              "codigo_oficial": "OAT 07 CC NM",
+              "descripcion": "Identificar objetos, comportamientos y situaciones de riesgo que pueden atentar contra su seguridad, bienestar y el de los demás."
+            },
+            {
+              "id": "DPS-CC-NM-OAT-08",
+              "codigo_oficial": "OAT 08 CC NM",
+              "descripcion": "Reconocer acciones correctas e incorrectas para la convivencia armónica del grupo, que se presentan en diferentes situaciones cotidianas y juegos."
+            },
+            {
+              "id": "DPS-CC-NM-OAT-09",
+              "codigo_oficial": "OAT 09 CC NM",
+              "descripcion": "Manifestar interés por algunos de sus derechos, tales como: ser escuchados, tener un nombre, jugar, entre otros."
+            },
+            {
+              "id": "DPS-CC-NM-OAT-10",
+              "codigo_oficial": "OAT 10 CC NM",
+              "descripcion": "Manifestar interés para interactuar con niños y niñas, reconociendo la diversidad de sus características y formas de vida (costumbres, fisonomía, lingüística, entre otras)."
+            }
+          ],
+          "oa_contenido": []
+        },
+        {
+          "nombre": "Corporalidad y movimiento",
+          "oa_transversales": [
+            {
+              "id": "DPS-CM-NM-OAT-01",
+              "codigo_oficial": "OAT 01 CM NM",
+              "descripcion": "Reconocer situaciones en que se siente cómodo corporalmente, manifestando al adulto su bienestar y su interés por mantener estas condiciones."
+            },
+            {
+              "id": "DPS-CM-NM-OAT-02",
+              "codigo_oficial": "OAT 02 CM NM",
+              "descripcion": "Reconocer las principales partes, características físicas de su cuerpo y sus funciones en situaciones cotidianas y de juego."
+            },
+            {
+              "id": "DPS-CM-NM-OAT-03",
+              "codigo_oficial": "OAT 03 CM NM",
+              "descripcion": "Experimentar diversas posibilidades de acción con su cuerpo, en situaciones cotidianas y de juego, identificando progresivamente el vocabulario asociado."
+            },
+            {
+              "id": "DPS-CM-NM-OAT-04",
+              "codigo_oficial": "OAT 04 CM NM",
+              "descripcion": "Reconocer el bienestar que le produce el movimiento libre en situaciones cotidianas y lúdicas, manifestando su interés por desarrollarlo en forma frecuente."
+            },
+            {
+              "id": "DPS-CM-NM-OAT-05",
+              "codigo_oficial": "OAT 05 CM NM",
+              "descripcion": "Perfeccionar su coordinación visomotriz fina, a través del uso de diversos objetos, juguetes y utensilios."
+            },
+            {
+              "id": "DPS-CM-NM-OAT-06",
+              "codigo_oficial": "OAT 06 CM NM",
+              "descripcion": "Adquirir control y equilibrio en movimientos, posturas y desplazamientos que realiza en diferentes direcciones y en variadas situaciones cotidianas y juegos, con y sin implementos."
+            },
+            {
+              "id": "DPS-CM-NM-OAT-07",
+              "codigo_oficial": "OAT 07 CM NM",
+              "descripcion": "Resolver desafíos prácticos en situaciones cotidianas y juegos, incorporando mayor precisión y coordinación en la realización de posturas, movimientos y desplazamientos, tales como: esquivar obstáculos o mantener equilibrio al subir escalas."
+            },
+            {
+              "id": "DPS-CM-NM-OAT-08",
+              "codigo_oficial": "OAT 08 CM NM",
+              "descripcion": "Utilizar categorías de ubicación espacial y temporal, tales como: adelante/atrás, arriba/abajo, adentro/afuera, antes/después, rápido/lento, en situaciones cotidianas y lúdicas."
+            }
+          ],
+          "oa_contenido": []
+        }
+      ]
+    },
+    {
+      "nombre": "Comunicación integral",
+      "nucleos": [
+        {
+          "nombre": "Lenguaje verbal",
+          "oa_transversales": [],
+          "oa_contenido": [
+            {
+              "id": "CI-LV-NM-OA-01",
+              "codigo_oficial": "OA 01 LV NM",
+              "descripcion": "Expresarse oralmente, empleando estructuras oracionales simples y respetando patrones gramaticales básicos, en distintas situaciones cotidianas y juegos."
+            },
+            {
+              "id": "CI-LV-NM-OA-02",
+              "codigo_oficial": "OA 02 LV NM",
+              "descripcion": "Comprender mensajes simples como instrucciones explícitas, explicaciones y preguntas relativas a objetos, personas, acciones, tiempo y lugar, identificando la intencionalidad comunicativa de diversos interlocutores."
+            },
+            {
+              "id": "CI-LV-NM-OA-03",
+              "codigo_oficial": "OA 03 LV NM",
+              "descripcion": "Identificar algunos atributos de los sonidos de diferentes fuentes sonoras como intensidad (fuerte/suave), velocidad (rápido/lento)."
+            },
+            {
+              "id": "CI-LV-NM-OA-04",
+              "codigo_oficial": "OA 04 LV NM",
+              "descripcion": "Incorporar progresivamente nuevas palabras, al comunicar oralmente temas variados de su interés e información básica, en distintas situaciones cotidianas."
+            },
+            {
+              "id": "CI-LV-NM-OA-05",
+              "codigo_oficial": "OA 05 LV NM",
+              "descripcion": "Manifestar interés por descubrir el contenido de textos de diferentes formatos, a través de la manipulación, la exploración, la escucha atenta y la formulación de preguntas."
+            },
+            {
+              "id": "CI-LV-NM-OA-06",
+              "codigo_oficial": "OA 06 LV NM",
+              "descripcion": "Comprender a partir de la escucha atenta, contenidos explícitos de textos literarios y no literarios, reconociendo ideas centrales, señalando preferencias, realizando sencillas descripciones, preguntando sobre el contenido."
+            },
+            {
+              "id": "CI-LV-NM-OA-07",
+              "codigo_oficial": "OA 07 LV NM",
+              "descripcion": "Reconocer progresivamente el significado de diversas imágenes, logos, símbolos de su entorno cotidiano, en diversos soportes (incluye uso de TICs)."
+            },
+            {
+              "id": "CI-LV-NM-OA-08",
+              "codigo_oficial": "OA 08 LV NM",
+              "descripcion": "Producir sus propios signos gráficos en situaciones lúdicas."
+            }
+          ]
+        },
+        {
+          "nombre": "Lenguajes artísticos",
+          "oa_transversales": [],
+          "oa_contenido": [
+            {
+              "id": "CI-LA-NM-OA-01",
+              "codigo_oficial": "OA 01 LA NM",
+              "descripcion": "Manifestar interés por diversas producciones artísticas (arquitectura, modelado, piezas musicales, pintura, dibujos, títeres, obras de teatro, danzas, entre otras), describiendo algunas características."
+            },
+            {
+              "id": "CI-LA-NM-OA-02",
+              "codigo_oficial": "OA 02 LA NM",
+              "descripcion": "Expresar sus preferencias, sensaciones y emociones relacionadas con diferentes recursos expresivos que se encuentran en sencillas obras visuales (colorido, formas), musicales (fuente, intensidad del sonido) o escénicas (desplazamiento, vestimenta, carácter expresivo)."
+            },
+            {
+              "id": "CI-LA-NM-OA-03",
+              "codigo_oficial": "OA 03 LA NM",
+              "descripcion": "Interpretar canciones y juegos musicales, experimentando con diversos recursos tales como, la voz, el cuerpo, instrumentos musicales y objetos."
+            },
+            {
+              "id": "CI-LA-NM-OA-04",
+              "codigo_oficial": "OA 04 LA NM",
+              "descripcion": "Expresar corporalmente sensaciones y emociones experimentando con mímica, juegos teatrales, rondas, bailes y danzas."
+            },
+            {
+              "id": "CI-LA-NM-OA-05",
+              "codigo_oficial": "OA 05 LA NM",
+              "descripcion": "Expresar emociones, ideas y experiencias por medio de la plástica experimentando con recursos pictóricos, gráficos y de modelado."
+            },
+            {
+              "id": "CI-LA-NM-OA-06",
+              "codigo_oficial": "OA 06 LA NM",
+              "descripcion": "Experimentar diversas posibilidades de expresión, combinando lenguajes artísticos en sus producciones."
+            },
+            {
+              "id": "CI-LA-NM-OA-07",
+              "codigo_oficial": "OA 07 LA NM",
+              "descripcion": "Representar a través del dibujo, diversos elementos de su entorno, incorporando figuras cerradas, trazos intencionados y primeros esbozos de la figura humana."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "nombre": "Interacción y comprensión del entorno",
+      "nucleos": [
+        {
+          "nombre": "Exploración del entorno natural",
+          "oa_transversales": [],
+          "oa_contenido": [
+            {
+              "id": "ICE-EEN-NM-OA-01",
+              "codigo_oficial": "OA 01 EEN NM",
+              "descripcion": "Manifestar interés y asombro por diversos elementos, situaciones y fenómenos del entorno natural, explorando, observando, preguntando, describiendo, agrupando, entre otros."
+            },
+            {
+              "id": "ICE-EEN-NM-OA-02",
+              "codigo_oficial": "OA 02 EEN NM",
+              "descripcion": "Comunicar verbalmente características de elementos y paisajes de su entorno natural, tales como cuerpos celestes, cerros, desierto, flora; y de fenómenos como marejadas, sismos, tormentas, sequías."
+            },
+            {
+              "id": "ICE-EEN-NM-OA-03",
+              "codigo_oficial": "OA 03 EEN NM",
+              "descripcion": "Descubrir que el sol es fuente de luz y calor para el planeta, a través de experiencias directas o TICs."
+            },
+            {
+              "id": "ICE-EEN-NM-OA-04",
+              "codigo_oficial": "OA 04 EEN NM",
+              "descripcion": "Comunicar algunas propiedades básicas de los elementos naturales que explora, tales como: colores, texturas, tamaños, temperaturas entre otras."
+            },
+            {
+              "id": "ICE-EEN-NM-OA-05",
+              "codigo_oficial": "OA 05 EEN NM",
+              "descripcion": "Distinguir una variedad progresivamente más amplia de animales y plantas, respecto a sus características (tamaño, color, textura y morfología), sus necesidades básicas y los lugares que habitan, al observarlos en forma directa, en libros ilustrados o en TICs."
+            },
+            {
+              "id": "ICE-EEN-NM-OA-06",
+              "codigo_oficial": "OA 06 EEN NM",
+              "descripcion": "Colaborar en situaciones cotidianas, en acciones que contribuyen al desarrollo de ambientes sostenibles, tales como cerrar las llaves de agua, apagar aparatos eléctricos, entre otras."
+            },
+            {
+              "id": "ICE-EEN-NM-OA-07",
+              "codigo_oficial": "OA 07 EEN NM",
+              "descripcion": "Emplear instrumentos y herramientas de observación y recolección (lupas, frascos, recipientes, botellas, cucharas, embudos, pinzas, entre otros) en la exploración del entorno natural."
+            },
+            {
+              "id": "ICE-EEN-NM-OA-08",
+              "codigo_oficial": "OA 08 EEN NM",
+              "descripcion": "Experimentar mezclas y disoluciones con materiales cotidianos tales como: burbujas de jabón, agua salada, gelatina, describiendo los cambios observados."
+            },
+            {
+              "id": "ICE-EEN-NM-OA-09",
+              "codigo_oficial": "OA 09 EEN NM",
+              "descripcion": "Reconocer que el aire y el agua son elementos vitales para las personas, los animales y las plantas, y que estos elementos pueden encontrarse con o sin contaminación."
+            }
+          ]
+        },
+        {
+          "nombre": "Comprensión del entorno sociocultural",
+          "oa_transversales": [],
+          "oa_contenido": [
+            {
+              "id": "ICE-CES-NM-OA-01",
+              "codigo_oficial": "OA 01 CES NM",
+              "descripcion": "Describir actividades habituales de su comunidad, como ir de compras, jugar en la plaza, viajar en bus, entre otras, señalando su participación en ellas."
+            },
+            {
+              "id": "ICE-CES-NM-OA-02",
+              "codigo_oficial": "OA 02 CES NM",
+              "descripcion": "Describir características de las formas de vida de su comunidad (viviendas, paisajes, costumbres), a través de canciones, juegos, relatos y fotos familiares, entre otras."
+            },
+            {
+              "id": "ICE-CES-NM-OA-03",
+              "codigo_oficial": "OA 03 CES NM",
+              "descripcion": "Seleccionar utensilios domésticos y objetos tecnológicos que les permiten resolver problemas en contextos sociales auténticos."
+            },
+            {
+              "id": "ICE-CES-NM-OA-04",
+              "codigo_oficial": "OA 04 CES NM",
+              "descripcion": "Reconocer sucesos significativos de su historia personal y familiar, en diversas situaciones, tales como: conversaciones familiares, relatos de un agente comunitario, visitas a lugares, observación de fotografías, entre otros."
+            },
+            {
+              "id": "ICE-CES-NM-OA-05",
+              "codigo_oficial": "OA 05 CES NM",
+              "descripcion": "Identificar instituciones significativas de su entorno, describiendo actividades y rutinas representativas que en ellas se realizan."
+            },
+            {
+              "id": "ICE-CES-NM-OA-06",
+              "codigo_oficial": "OA 06 CES NM",
+              "descripcion": "Identificar algunas normas de protección y seguridad de su entorno cotidiano referidas a alimentación, tránsito y sismos, y otras pertinentes a su contexto geográfico."
+            },
+            {
+              "id": "ICE-CES-NM-OA-07",
+              "codigo_oficial": "OA 07 CES NM",
+              "descripcion": "Distinguir en paisajes de su localidad, elementos naturales (bosque, cerros, ríos), y culturales (caminos, edificios, puentes)."
+            }
+          ]
+        },
+        {
+          "nombre": "Pensamiento matemático",
+          "oa_transversales": [],
+          "oa_contenido": [
+            {
+              "id": "ICE-PM-NM-OA-01",
+              "codigo_oficial": "OA 01 PM NM",
+              "descripcion": "Reproducir patrones sonoros, visuales, gestuales, corporales u otros, de dos o tres elementos."
+            },
+            {
+              "id": "ICE-PM-NM-OA-02",
+              "codigo_oficial": "OA 02 PM NM",
+              "descripcion": "Experimentar con diversos objetos, estableciendo relaciones al clasificar por dos atributos a la vez (forma, color, entre otros) y seriar por altura o longitud."
+            },
+            {
+              "id": "ICE-PM-NM-OA-03",
+              "codigo_oficial": "OA 03 PM NM",
+              "descripcion": "Describir la posición de objetos y personas, respecto de un punto u objeto de referencia, empleando conceptos de ubicación y distancia tales como: dentro/fuera; encima/debajo; cerca/lejos."
+            },
+            {
+              "id": "ICE-PM-NM-OA-04",
+              "codigo_oficial": "OA 04 PM NM",
+              "descripcion": "Orientarse temporalmente en situaciones cotidianas, mediante la utilización progresiva de algunas nociones y relaciones de secuencias, tales como: antes/después, día/noche, hoy/mañana."
+            },
+            {
+              "id": "ICE-PM-NM-OA-05",
+              "codigo_oficial": "OA 05 PM NM",
+              "descripcion": "Emplear cuantificadores, tales como: más/menos, mucho/poco, todo/ninguno, al comparar cantidades de objetos en situaciones cotidianas."
+            },
+            {
+              "id": "ICE-PM-NM-OA-06",
+              "codigo_oficial": "OA 06 PM NM",
+              "descripcion": "Emplear progresivamente los números, para contar, identificar, cuantificar y comparar cantidades, hasta el 10 e indicar orden o posición de algunos elementos en situaciones cotidianas o juegos."
+            },
+            {
+              "id": "ICE-PM-NM-OA-07",
+              "codigo_oficial": "OA 07 PM NM",
+              "descripcion": "Representar progresivamente, números y cantidades en forma concreta y pictórica hasta el 10."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
