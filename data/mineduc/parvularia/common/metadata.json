@@ -9,7 +9,7 @@
       "https://www.curriculumnacional.cl/614/w3-article-69957.html",
       "https://parvularia.mineduc.cl/orientaciones-tecnico-pedagogicas/"
     ],
-    "estado": "estructura_base_lista",
+    "estado": "estructura_y_tramos_operativos_listos",
     "ultima_actualizacion_manual": "2026-03-28"
   },
   "observaciones": [
@@ -19,8 +19,12 @@
     "Las actividades tipo JUNJI o sugerencias lúdicas deben usarse como inspiración pedagógica, no como reemplazo del OA oficial."
   ],
   "niveles_soportados": [
-    "NT1 - Pre Kinder (4-5 años)",
-    "NT2 - Kinder (5-6 años)"
+    "Sala Cuna Menor (0 a 1 año aprox.)",
+    "Sala Cuna Mayor (1 a 2 años aprox.)",
+    "Medio Menor (2 a 3 años aprox.)",
+    "Medio Mayor (3 a 4 años aprox.)",
+    "NT1 - Pre Kinder (4 a 5 años)",
+    "NT2 - Kinder (5 a 6 años)"
   ],
   "nucleos_oficiales": [
     "Identidad y Autonomía",
