@@ -145,6 +145,7 @@ export default function EducadorPage() {
   const [loading, setLoading] = useState(false)
   const [configOpen, setConfigOpen] = useState(true)
   const [showWelcome, setShowWelcome] = useState(true)
+  const [openOAT, setOpenOAT] = useState(false)
 
   const curriculumState = useMemo(
     () => ({
@@ -217,8 +218,16 @@ export default function EducadorPage() {
     config.duracionMinutos
   )
 
+  // Forzar scroll arriba al cargar la página
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" })
+    window.scrollTo(0, 0)
+  }, [])
+
+  // Scroll al fondo solo cuando hay mensajes activos en el chat
+  useEffect(() => {
+    if (messages.length > 0) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" })
+    }
   }, [messages, loading])
 
   useEffect(() => {
@@ -704,9 +713,11 @@ export default function EducadorPage() {
                           )}
 
                           {!!oa.ambito && !!oa.nucleo && (
-                            <p className="text-[11px] text-gray-500 mt-1">
-                              {oa.ambito} · {oa.nucleo}
-                            </p>
+                            <div className="mt-2">
+                              <span className="rounded-full border border-green-500/30 bg-green-500/15 px-3 py-1 text-[11px] font-medium text-green-300">
+                                {oa.ambito} · {oa.nucleo}
+                              </span>
+                            </div>
                           )}
                         </button>
                       )
@@ -721,59 +732,80 @@ export default function EducadorPage() {
 
               {config.nivel === "parvularia" && (
                 <div className="mb-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-gray-500 text-xs block">
-                      OAT / foco transversal
-                    </label>
-                    <span className="text-[11px] text-emerald-300">
-                      Se pueden combinar con otros núcleos y ámbitos
+                  <button
+                    onClick={() => setOpenOAT((prev) => !prev)}
+                    className="w-full flex items-center justify-between rounded-2xl border border-gray-700 bg-gray-800 hover:border-teal-500/40 px-4 py-3 transition-all group"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-teal-300 text-sm font-medium">OAT / foco transversal</span>
+                      {config.selectedOATIds.length > 0 && (
+                        <span className="rounded-full bg-teal-500/20 border border-teal-500/30 px-2 py-0.5 text-[10px] text-teal-300 font-medium">
+                          {config.selectedOATIds.length} seleccionado{config.selectedOATIds.length > 1 ? "s" : ""}
+                        </span>
+                      )}
+                    </div>
+                    <span className={`text-gray-500 text-sm transition-transform duration-200 ${openOAT ? "rotate-180" : ""}`}>
+                      ▾
                     </span>
-                  </div>
+                  </button>
 
-                  <div className="space-y-2">
-                    {parvulariaOAT.length ? (
-                      parvulariaOAT.map((item) => {
-                        const isSelected = config.selectedOATIds.includes(item.id)
+                  {openOAT && (
+                    <div className="mt-2 space-y-2">
+                      <p className="text-[11px] text-emerald-300 px-1">
+                        Se pueden combinar con otros núcleos y ámbitos (máx. 2)
+                      </p>
+                      {parvulariaOAT.length ? (
+                        parvulariaOAT.map((item) => {
+                          const isSelected = config.selectedOATIds.includes(item.id)
 
-                        return (
-                          <button
-                            key={item.id}
-                            onClick={() => toggleOAT(item.id)}
-                            className={`w-full text-left rounded-2xl border p-3 transition-all ${
-                              isSelected
-                                ? "bg-teal-500/10 border-teal-500/40"
-                                : "bg-gray-800 border-gray-700 hover:border-gray-600"
-                            }`}
-                          >
-                            <div className="flex items-start justify-between gap-3">
-                              <div>
-                                <div className="text-sm font-semibold text-white">
-                                  {item.description || item.id}
+                          return (
+                            <button
+                              key={item.id}
+                              onClick={() => toggleOAT(item.id)}
+                              className={`w-full text-left rounded-2xl border p-3 transition-all ${
+                                isSelected
+                                  ? "bg-teal-500/10 border-teal-500/40"
+                                  : "bg-gray-800 border-gray-700 hover:border-gray-600"
+                              }`}
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <div className="text-sm font-semibold text-white">
+                                    {item.description || item.id}
+                                  </div>
+                                  <p className="text-xs text-gray-300 leading-relaxed mt-1 text-justify">
+                                    {item.label}
+                                  </p>
                                 </div>
-                                <p className="text-xs text-gray-300 leading-relaxed mt-1 text-justify">
-                                  {item.label}
-                                </p>
+
+                                <div
+                                  className={`w-5 h-5 rounded-full border flex items-center justify-center text-[10px] ${
+                                    isSelected
+                                      ? "border-teal-300 text-teal-300"
+                                      : "border-gray-600 text-gray-500"
+                                  }`}
+                                >
+                                  {isSelected ? "✓" : ""}
+                                </div>
                               </div>
 
-                              <div
-                                className={`w-5 h-5 rounded-full border flex items-center justify-center text-[10px] ${
-                                  isSelected
-                                    ? "border-teal-300 text-teal-300"
-                                    : "border-gray-600 text-gray-500"
-                                }`}
-                              >
-                                {isSelected ? "✓" : ""}
-                              </div>
-                            </div>
-                          </button>
-                        )
-                      })
-                    ) : (
-                      <div className="rounded-2xl border border-dashed border-gray-700 p-4 text-sm text-gray-500">
-                        No hay OAT cargados para este núcleo o subnivel todavía.
-                      </div>
-                    )}
-                  </div>
+                              {!!item.ambito && !!item.nucleo && (
+                                <div className="mt-2">
+                                  <span className="rounded-full border border-green-500/30 bg-green-500/15 px-3 py-1 text-[11px] font-medium text-green-300">
+                                    {item.ambito} · {item.nucleo}
+                                  </span>
+                                </div>
+                              )}
+                            </button>
+                          )
+                        })
+                      ) : (
+                        <div className="rounded-2xl border border-dashed border-gray-700 p-4 text-sm text-gray-500">
+                          No hay OAT cargados para este núcleo o subnivel todavía.
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -891,6 +923,16 @@ export default function EducadorPage() {
                           : "Aún no seleccionados"}
                       </span>
                     </p>
+
+                    {selectedOAObjects.some((oa) => oa.ambito && oa.nucleo) && (
+                      <div className="flex flex-wrap gap-1.5 mt-1">
+                        {[...new Set(selectedOAObjects.filter((oa) => oa.ambito && oa.nucleo).map((oa) => `${oa.ambito} · ${oa.nucleo}`))].map((label) => (
+                          <span key={label} className="rounded-full border border-green-500/30 bg-green-500/15 px-3 py-1 text-[11px] font-medium text-green-300">
+                            {label}
+                          </span>
+                        ))}
+                      </div>
+                    )}
 
                     {config.nivel === "parvularia" && (
                       <p className="text-gray-300 text-sm">
