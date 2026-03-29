@@ -1,0 +1,114 @@
+{
+  "estado": "base_verificada_mineduc",
+  "curso": "7_basico",
+  "asignatura": "matematica",
+  "nombre_asignatura": "Matemática",
+  "fuente": "Currículum Nacional MINEDUC",
+  "unidades": [
+    {
+      "unidad": 1,
+      "titulo": "Números y operaciones",
+      "oa": [
+        {
+          "id": "OA1",
+          "descripcion": "Mostrar que comprenden la adición y la sustracción de números enteros.",
+          "eje": "Números",
+          "indicadores": [
+            "Representan situaciones con números enteros.",
+            "Resuelven problemas con adición y sustracción de enteros."
+          ]
+        },
+        {
+          "id": "OA2",
+          "descripcion": "Explicar la multiplicación y la división de fracciones positivas.",
+          "eje": "Números",
+          "indicadores": [
+            "Calculan multiplicaciones de fracciones.",
+            "Resuelven divisiones de fracciones en contexto."
+          ]
+        },
+        {
+          "id": "OA3",
+          "descripcion": "Resolver problemas que involucren operaciones combinadas con números racionales.",
+          "eje": "Números",
+          "indicadores": [
+            "Aplican jerarquía de operaciones.",
+            "Resuelven problemas contextualizados."
+          ]
+        }
+      ]
+    },
+    {
+      "unidad": 2,
+      "titulo": "Álgebra y funciones",
+      "oa": [
+        {
+          "id": "OA4",
+          "descripcion": "Modelar y resolver problemas usando expresiones algebraicas.",
+          "eje": "Álgebra",
+          "indicadores": [
+            "Traducen situaciones a lenguaje algebraico.",
+            "Simplifican expresiones algebraicas."
+          ]
+        },
+        {
+          "id": "OA5",
+          "descripcion": "Resolver ecuaciones de primer grado con una incógnita.",
+          "eje": "Álgebra",
+          "indicadores": [
+            "Plantean ecuaciones desde problemas.",
+            "Resuelven ecuaciones lineales simples."
+          ]
+        }
+      ]
+    },
+    {
+      "unidad": 3,
+      "titulo": "Geometría",
+      "oa": [
+        {
+          "id": "OA6",
+          "descripcion": "Desarrollar y aplicar la relación entre ángulos formados por rectas paralelas y una secante.",
+          "eje": "Geometría",
+          "indicadores": [
+            "Identifican ángulos correspondientes, alternos y colaterales.",
+            "Resuelven problemas geométricos usando propiedades de ángulos."
+          ]
+        },
+        {
+          "id": "OA7",
+          "descripcion": "Calcular perímetros y áreas de figuras planas.",
+          "eje": "Geometría",
+          "indicadores": [
+            "Calculan áreas de triángulos y cuadriláteros.",
+            "Resuelven problemas aplicados."
+          ]
+        }
+      ]
+    },
+    {
+      "unidad": 4,
+      "titulo": "Probabilidad y estadística",
+      "oa": [
+        {
+          "id": "OA8",
+          "descripcion": "Analizar datos presentados en tablas y gráficos.",
+          "eje": "Datos y azar",
+          "indicadores": [
+            "Interpretan gráficos de barras, líneas y circulares.",
+            "Extraen conclusiones desde datos."
+          ]
+        },
+        {
+          "id": "OA9",
+          "descripcion": "Calcular probabilidades simples en experimentos aleatorios.",
+          "eje": "Datos y azar",
+          "indicadores": [
+            "Identifican eventos equiprobables.",
+            "Calculan probabilidades simples."
+          ]
+        }
+      ]
+    }
+  ]
+}
