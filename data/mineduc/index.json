@@ -1,72 +1,123 @@
 {
-  "path": "basica/7_basico/matematica.json",
-  "nivel": "basica",
-  "curso": "7_basico",
-  "asignatura": "matematica"
-},
-{
-  "path": "basica/7_basico/lengua_literatura.json",
-  "nivel": "basica",
-  "curso": "7_basico",
-  "asignatura": "lengua_literatura"
-},
-{
-  "path": "basica/7_basico/ciencias_naturales.json",
-  "nivel": "basica",
-  "curso": "7_basico",
-  "asignatura": "ciencias_naturales"
-},
-{
-  "path": "basica/7_basico/historia_geografia_y_cs_sociales.json",
-  "nivel": "basica",
-  "curso": "7_basico",
-  "asignatura": "historia_geografia_y_cs_sociales"
-},
-{
-  "path": "basica/7_basico/tecnologia.json",
-  "nivel": "basica",
-  "curso": "7_basico",
-  "asignatura": "tecnologia"
-},
-{
-  "path": "basica/7_basico/ingles.json",
-  "nivel": "basica",
-  "curso": "7_basico",
-  "asignatura": "ingles"
-},
-{
-  "path": "basica/8_basico/matematica.json",
-  "nivel": "basica",
-  "curso": "8_basico",
-  "asignatura": "matematica"
-},
-{
-  "path": "basica/8_basico/lengua_literatura.json",
-  "nivel": "basica",
-  "curso": "8_basico",
-  "asignatura": "lengua_literatura"
-},
-{
-  "path": "basica/8_basico/ciencias_naturales.json",
-  "nivel": "basica",
-  "curso": "8_basico",
-  "asignatura": "ciencias_naturales"
-},
-{
-  "path": "basica/8_basico/historia_geografia_y_cs_sociales.json",
-  "nivel": "basica",
-  "curso": "8_basico",
-  "asignatura": "historia_geografia_y_cs_sociales"
-},
-{
-  "path": "basica/8_basico/tecnologia.json",
-  "nivel": "basica",
-  "curso": "8_basico",
-  "asignatura": "tecnologia"
-},
-{
-  "path": "basica/8_basico/ingles.json",
-  "nivel": "basica",
-  "curso": "8_basico",
-  "asignatura": "ingles"
+  "niveles": [
+    {
+      "id": "parvularia",
+      "name": "Educación Parvularia",
+      "files": [
+        { "path": "parvularia/sala_cuna_menor.json", "nivel": "parvularia", "curso": "sala_cuna_menor" },
+        { "path": "parvularia/sala_cuna_mayor.json", "nivel": "parvularia", "curso": "sala_cuna_mayor" },
+        { "path": "parvularia/medio_menor.json", "nivel": "parvularia", "curso": "medio_menor" },
+        { "path": "parvularia/medio_mayor.json", "nivel": "parvularia", "curso": "medio_mayor" },
+        { "path": "parvularia/nt1.json", "nivel": "parvularia", "curso": "nt1" },
+        { "path": "parvularia/nt2.json", "nivel": "parvularia", "curso": "nt2" }
+      ]
+    },
+
+    {
+      "id": "basica",
+      "name": "Educación Básica",
+      "files": [
+
+        /* ======================
+           1° a 6° BÁSICO
+        ====================== */
+
+        /* 1° */
+        { "path": "basica/1_basico/matematica.json", "nivel": "basica", "curso": "1_basico", "asignatura": "matematica" },
+        { "path": "basica/1_basico/lenguaje.json", "nivel": "basica", "curso": "1_basico", "asignatura": "lenguaje" },
+        { "path": "basica/1_basico/ciencias_naturales.json", "nivel": "basica", "curso": "1_basico", "asignatura": "ciencias_naturales" },
+        { "path": "basica/1_basico/historia_geografia_y_cs_sociales.json", "nivel": "basica", "curso": "1_basico", "asignatura": "historia_geografia_y_cs_sociales" },
+        { "path": "basica/1_basico/tecnologia.json", "nivel": "basica", "curso": "1_basico", "asignatura": "tecnologia" },
+        { "path": "basica/1_basico/ingles.json", "nivel": "basica", "curso": "1_basico", "asignatura": "ingles" },
+
+        /* 2° */
+        { "path": "basica/2_basico/matematica.json", "nivel": "basica", "curso": "2_basico", "asignatura": "matematica" },
+        { "path": "basica/2_basico/lenguaje.json", "nivel": "basica", "curso": "2_basico", "asignatura": "lenguaje" },
+        { "path": "basica/2_basico/ciencias_naturales.json", "nivel": "basica", "curso": "2_basico", "asignatura": "ciencias_naturales" },
+        { "path": "basica/2_basico/historia_geografia_y_cs_sociales.json", "nivel": "basica", "curso": "2_basico", "asignatura": "historia_geografia_y_cs_sociales" },
+        { "path": "basica/2_basico/tecnologia.json", "nivel": "basica", "curso": "2_basico", "asignatura": "tecnologia" },
+        { "path": "basica/2_basico/ingles.json", "nivel": "basica", "curso": "2_basico", "asignatura": "ingles" },
+
+        /* 3° */
+        { "path": "basica/3_basico/matematica.json", "nivel": "basica", "curso": "3_basico", "asignatura": "matematica" },
+        { "path": "basica/3_basico/lenguaje.json", "nivel": "basica", "curso": "3_basico", "asignatura": "lenguaje" },
+        { "path": "basica/3_basico/ciencias_naturales.json", "nivel": "basica", "curso": "3_basico", "asignatura": "ciencias_naturales" },
+        { "path": "basica/3_basico/historia_geografia_y_cs_sociales.json", "nivel": "basica", "curso": "3_basico", "asignatura": "historia_geografia_y_cs_sociales" },
+        { "path": "basica/3_basico/tecnologia.json", "nivel": "basica", "curso": "3_basico", "asignatura": "tecnologia" },
+        { "path": "basica/3_basico/ingles.json", "nivel": "basica", "curso": "3_basico", "asignatura": "ingles" },
+
+        /* 4° */
+        { "path": "basica/4_basico/matematica.json", "nivel": "basica", "curso": "4_basico", "asignatura": "matematica" },
+        { "path": "basica/4_basico/lenguaje.json", "nivel": "basica", "curso": "4_basico", "asignatura": "lenguaje" },
+        { "path": "basica/4_basico/ciencias_naturales.json", "nivel": "basica", "curso": "4_basico", "asignatura": "ciencias_naturales" },
+        { "path": "basica/4_basico/historia_geografia_y_cs_sociales.json", "nivel": "basica", "curso": "4_basico", "asignatura": "historia_geografia_y_cs_sociales" },
+        { "path": "basica/4_basico/tecnologia.json", "nivel": "basica", "curso": "4_basico", "asignatura": "tecnologia" },
+        { "path": "basica/4_basico/ingles.json", "nivel": "basica", "curso": "4_basico", "asignatura": "ingles" },
+
+        /* 5° */
+        { "path": "basica/5_basico/matematica.json", "nivel": "basica", "curso": "5_basico", "asignatura": "matematica" },
+        { "path": "basica/5_basico/lenguaje.json", "nivel": "basica", "curso": "5_basico", "asignatura": "lenguaje" },
+        { "path": "basica/5_basico/ciencias_naturales.json", "nivel": "basica", "curso": "5_basico", "asignatura": "ciencias_naturales" },
+        { "path": "basica/5_basico/historia_geografia_y_cs_sociales.json", "nivel": "basica", "curso": "5_basico", "asignatura": "historia_geografia_y_cs_sociales" },
+        { "path": "basica/5_basico/tecnologia.json", "nivel": "basica", "curso": "5_basico", "asignatura": "tecnologia" },
+        { "path": "basica/5_basico/ingles.json", "nivel": "basica", "curso": "5_basico", "asignatura": "ingles" },
+
+        /* 6° */
+        { "path": "basica/6_basico/matematica.json", "nivel": "basica", "curso": "6_basico", "asignatura": "matematica" },
+        { "path": "basica/6_basico/lenguaje.json", "nivel": "basica", "curso": "6_basico", "asignatura": "lenguaje" },
+        { "path": "basica/6_basico/ciencias_naturales.json", "nivel": "basica", "curso": "6_basico", "asignatura": "ciencias_naturales" },
+        { "path": "basica/6_basico/historia_geografia_y_cs_sociales.json", "nivel": "basica", "curso": "6_basico", "asignatura": "historia_geografia_y_cs_sociales" },
+        { "path": "basica/6_basico/tecnologia.json", "nivel": "basica", "curso": "6_basico", "asignatura": "tecnologia" },
+        { "path": "basica/6_basico/ingles.json", "nivel": "basica", "curso": "6_basico", "asignatura": "ingles" },
+
+        /* ======================
+           7° y 8° BÁSICO
+        ====================== */
+
+        { "path": "basica/7_basico/matematica.json", "nivel": "basica", "curso": "7_basico", "asignatura": "matematica" },
+        { "path": "basica/7_basico/lengua_literatura.json", "nivel": "basica", "curso": "7_basico", "asignatura": "lengua_literatura" },
+        { "path": "basica/7_basico/ciencias_naturales.json", "nivel": "basica", "curso": "7_basico", "asignatura": "ciencias_naturales" },
+        { "path": "basica/7_basico/historia_geografia_y_cs_sociales.json", "nivel": "basica", "curso": "7_basico", "asignatura": "historia_geografia_y_cs_sociales" },
+        { "path": "basica/7_basico/tecnologia.json", "nivel": "basica", "curso": "7_basico", "asignatura": "tecnologia" },
+        { "path": "basica/7_basico/ingles.json", "nivel": "basica", "curso": "7_basico", "asignatura": "ingles" },
+
+        { "path": "basica/8_basico/matematica.json", "nivel": "basica", "curso": "8_basico", "asignatura": "matematica" },
+        { "path": "basica/8_basico/lengua_literatura.json", "nivel": "basica", "curso": "8_basico", "asignatura": "lengua_literatura" },
+        { "path": "basica/8_basico/ciencias_naturales.json", "nivel": "basica", "curso": "8_basico", "asignatura": "ciencias_naturales" },
+        { "path": "basica/8_basico/historia_geografia_y_cs_sociales.json", "nivel": "basica", "curso": "8_basico", "asignatura": "historia_geografia_y_cs_sociales" },
+        { "path": "basica/8_basico/tecnologia.json", "nivel": "basica", "curso": "8_basico", "asignatura": "tecnologia" },
+        { "path": "basica/8_basico/ingles.json", "nivel": "basica", "curso": "8_basico", "asignatura": "ingles" }
+
+      ]
+    },
+
+    {
+      "id": "media",
+      "name": "Educación Media",
+      "files": [
+        { "path": "media/1_medio/matematica.json", "nivel": "media", "curso": "1_medio", "asignatura": "matematica" },
+        { "path": "media/1_medio/lengua_literatura.json", "nivel": "media", "curso": "1_medio", "asignatura": "lengua_literatura" },
+        { "path": "media/1_medio/biologia.json", "nivel": "media", "curso": "1_medio", "asignatura": "biologia" },
+        { "path": "media/1_medio/quimica.json", "nivel": "media", "curso": "1_medio", "asignatura": "quimica" },
+        { "path": "media/1_medio/fisica.json", "nivel": "media", "curso": "1_medio", "asignatura": "fisica" },
+        { "path": "media/1_medio/tecnologia.json", "nivel": "media", "curso": "1_medio", "asignatura": "tecnologia" },
+
+        { "path": "media/2_medio/matematica.json", "nivel": "media", "curso": "2_medio", "asignatura": "matematica" },
+        { "path": "media/2_medio/lengua_literatura.json", "nivel": "media", "curso": "2_medio", "asignatura": "lengua_literatura" },
+        { "path": "media/2_medio/biologia.json", "nivel": "media", "curso": "2_medio", "asignatura": "biologia" },
+        { "path": "media/2_medio/quimica.json", "nivel": "media", "curso": "2_medio", "asignatura": "quimica" },
+        { "path": "media/2_medio/fisica.json", "nivel": "media", "curso": "2_medio", "asignatura": "fisica" },
+        { "path": "media/2_medio/tecnologia.json", "nivel": "media", "curso": "2_medio", "asignatura": "tecnologia" },
+
+        { "path": "media/3_medio/matematica.json", "nivel": "media", "curso": "3_medio", "asignatura": "matematica" },
+        { "path": "media/3_medio/ciencias_para_la_ciudadania.json", "nivel": "media", "curso": "3_medio", "asignatura": "ciencias_para_la_ciudadania" },
+        { "path": "media/3_medio/educacion_ciudadana.json", "nivel": "media", "curso": "3_medio", "asignatura": "educacion_ciudadana" },
+
+        { "path": "media/4_medio/matematica.json", "nivel": "media", "curso": "4_medio", "asignatura": "matematica" },
+        { "path": "media/4_medio/lengua_literatura.json", "nivel": "media", "curso": "4_medio", "asignatura": "lengua_literatura" },
+        { "path": "media/4_medio/ciencias_para_la_ciudadania.json", "nivel": "media", "curso": "4_medio", "asignatura": "ciencias_para_la_ciudadania" },
+        { "path": "media/4_medio/educacion_ciudadana.json", "nivel": "media", "curso": "4_medio", "asignatura": "educacion_ciudadana" }
+      ]
+    }
+  ]
 }
