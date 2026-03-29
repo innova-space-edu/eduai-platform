@@ -1,0 +1,176 @@
+{
+  "metadata": {
+    "nivel": "Básica",
+    "curso": "2° Básico",
+    "asignatura": "Ciencias Naturales",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/",
+    "estado": "base_verificada_mineduc",
+    "ultima_actualizacion_manual": "2026-03-29",
+    "nota": "Archivo base creado a partir de OA publicados en Currículum Nacional MINEDUC. Recomendable revisar la distribución por unidades del planificador según el enfoque pedagógico del establecimiento."
+  },
+  "objetivos_habilidad": [
+    {
+      "id": "CN02-OAH-a",
+      "descripcion": "Explorar, observar y formular inferencias y predicciones, en forma guiada, sobre objetos y eventos del entorno.",
+      "unidades": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "CN02-OAH-b",
+      "descripcion": "Explorar y experimentar, en forma guiada, con elementos del entorno a partir de preguntas dadas, utilizando observación, manipulación y clasificación.",
+      "unidades": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "CN02-OAH-c",
+      "descripcion": "Observar, medir y registrar datos cuidadosamente, utilizando unidades no estandarizadas.",
+      "unidades": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "CN02-OAH-d",
+      "descripcion": "Seguir instrucciones para utilizar materiales e instrumentos en forma segura.",
+      "unidades": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "CN02-OAH-e",
+      "descripcion": "Comunicar y comparar ideas, observaciones, mediciones y experiencias de forma oral y escrita, y a través de presentaciones, TIC y dibujos.",
+      "unidades": [
+        1,
+        2,
+        3,
+        4
+      ]
+    }
+  ],
+  "objetivos_actitud": [
+    {
+      "id": "CN02-OAA-A",
+      "descripcion": "Demostrar curiosidad e interés por conocer seres vivos, objetos y eventos del entorno natural.",
+      "unidades": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "CN02-OAA-B",
+      "descripcion": "Reconocer la importancia del entorno natural y desarrollar conductas de cuidado y protección del ambiente.",
+      "unidades": [
+        1,
+        2,
+        3,
+        4
+      ]
+    }
+  ],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "Ciencias de la vida: animales, hábitat y cuerpo humano",
+      "oa": [
+        {
+          "id": "CN2B-OA-01",
+          "codigo_oficial": "CN02 OA 01",
+          "descripcion": "Observar, describir y clasificar los vertebrados en mamíferos, aves, reptiles, anfibios y peces, a partir de características como cubierta corporal, presencia de mamas y estructuras para la respiración, entre otras."
+        },
+        {
+          "id": "CN2B-OA-02",
+          "codigo_oficial": "CN02 OA 02",
+          "descripcion": "Observar, describir y clasificar, por medio de la exploración, las características de los animales sin columna vertebral, como insectos, arácnidos, crustáceos, entre otros, y compararlos con los vertebrados."
+        },
+        {
+          "id": "CN2B-OA-03",
+          "codigo_oficial": "CN02 OA 03",
+          "descripcion": "Observar y comparar las características de las etapas del ciclo de vida de distintos animales (mamíferos, aves, insectos y anfibios), relacionándolas con su hábitat."
+        },
+        {
+          "id": "CN2B-OA-04",
+          "codigo_oficial": "CN02 OA 04",
+          "descripcion": "Observar y comparar las características de distintos hábitat, identificando la luminosidad, humedad y temperatura necesarias para la supervivencia de los animales que habitan en él."
+        },
+        {
+          "id": "CN2B-OA-05",
+          "codigo_oficial": "CN02 OA 05",
+          "descripcion": "Observar e identificar algunos animales nativos que se encuentran en peligro de extinción, así como el deterioro de su hábitat, proponiendo medidas para protegerlos."
+        },
+        {
+          "id": "CN2B-OA-06",
+          "codigo_oficial": "CN02 OA 06",
+          "descripcion": "Identificar y comunicar los efectos de la actividad humana sobre los animales y su hábitat."
+        },
+        {
+          "id": "CN2B-OA-07",
+          "codigo_oficial": "CN02 OA 07",
+          "descripcion": "Identificar la ubicación y explicar la función de algunas partes del cuerpo que son fundamentales para vivir: corazón, pulmones, estómago, esqueleto y músculos."
+        },
+        {
+          "id": "CN2B-OA-08",
+          "codigo_oficial": "CN02 OA 08",
+          "descripcion": "Explicar la importancia de la actividad física para el desarrollo de los músculos y el fortalecimiento del corazón, proponiendo formas de ejercitarla e incorporarla en sus hábitos diarios."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Ciencias físicas y químicas: agua y sus cambios",
+      "oa": [
+        {
+          "id": "CN2B-OA-09",
+          "codigo_oficial": "CN02 OA 09",
+          "descripcion": "Observar y describir, por medio de la investigación experimental, algunas características del agua, como: escurrir, adaptarse a la forma del recipiente, disolver algunos sólidos, ser transparente e inodora, evaporarse y congelarse con los cambios de temperatura."
+        },
+        {
+          "id": "CN2B-OA-10",
+          "codigo_oficial": "CN02 OA 10",
+          "descripcion": "Identificar y comparar, por medio de la exploración, los estados sólido, líquido y gaseoso del agua."
+        },
+        {
+          "id": "CN2B-OA-11",
+          "codigo_oficial": "CN02 OA 11",
+          "descripcion": "Describir el ciclo del agua en la naturaleza, reconociendo que el agua es un recurso preciado y proponiendo acciones cotidianas para su cuidado."
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "nombre": "Ciencias de la Tierra y el Universo: tiempo atmosférico",
+      "oa": [
+        {
+          "id": "CN2B-OA-12",
+          "codigo_oficial": "CN02 OA 12",
+          "descripcion": "Reconocer y describir algunas características del tiempo atmosférico, como precipitaciones (lluvia, granizo, nieve), viento y temperatura ambiente, entre otras, y sus cambios a lo largo del año."
+        },
+        {
+          "id": "CN2B-OA-13",
+          "codigo_oficial": "CN02 OA 13",
+          "descripcion": "Medir algunas características del tiempo atmosférico, construyendo y/o usando algunos instrumentos tecnológicos útiles para su localidad, como termómetro, pluviómetro o veleta."
+        },
+        {
+          "id": "CN2B-OA-14",
+          "codigo_oficial": "CN02 OA 14",
+          "descripcion": "Describir la relación de los cambios del tiempo atmosférico con las estaciones del año y sus efectos sobre los seres vivos y el ambiente."
+        }
+      ]
+    }
+  ]
+}
