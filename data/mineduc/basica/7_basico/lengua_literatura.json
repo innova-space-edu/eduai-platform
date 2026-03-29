@@ -1,0 +1,72 @@
+{
+  "estado": "base_verificada_mineduc",
+  "curso": "7_basico",
+  "asignatura": "lengua_literatura",
+  "nombre_asignatura": "Lengua y Literatura",
+  "fuente": "Currículum Nacional MINEDUC",
+  "unidades": [
+    {
+      "unidad": 1,
+      "titulo": "Lectura",
+      "oa": [
+        {
+          "id": "OA1",
+          "descripcion": "Leer habitualmente para aprender y recrearse.",
+          "eje": "Lectura",
+          "indicadores": [
+            "Seleccionan textos de interés personal.",
+            "Comentan sus lecturas con fundamentos."
+          ]
+        },
+        {
+          "id": "OA2",
+          "descripcion": "Analizar narraciones literarias considerando personajes, ambiente, conflicto y tema.",
+          "eje": "Lectura",
+          "indicadores": [
+            "Identifican elementos narrativos.",
+            "Relacionan el tema con experiencias y contexto."
+          ]
+        }
+      ]
+    },
+    {
+      "unidad": 2,
+      "titulo": "Escritura",
+      "oa": [
+        {
+          "id": "OA3",
+          "descripcion": "Escribir textos narrativos, descriptivos y argumentativos coherentes.",
+          "eje": "Escritura",
+          "indicadores": [
+            "Organizan ideas con introducción, desarrollo y cierre.",
+            "Revisan y mejoran sus escritos."
+          ]
+        },
+        {
+          "id": "OA4",
+          "descripcion": "Utilizar adecuadamente normas ortográficas y gramaticales.",
+          "eje": "Escritura",
+          "indicadores": [
+            "Aplican reglas ortográficas frecuentes.",
+            "Corrigen errores gramaticales en sus textos."
+          ]
+        }
+      ]
+    },
+    {
+      "unidad": 3,
+      "titulo": "Comunicación oral",
+      "oa": [
+        {
+          "id": "OA5",
+          "descripcion": "Dialogar y exponer ideas de forma clara, respetuosa y fundamentada.",
+          "eje": "Comunicación oral",
+          "indicadores": [
+            "Participan en discusiones respetando turnos.",
+            "Presentan exposiciones orales con apoyo pertinente."
+          ]
+        }
+      ]
+    }
+  ]
+}
