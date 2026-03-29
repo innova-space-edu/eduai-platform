@@ -1,0 +1,167 @@
+{
+  "metadata": {
+    "nivel": "Básica",
+    "curso": "5° Básico",
+    "asignatura": "Historia, Geografía y Cs. Sociales",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/",
+    "estado": "base_oa_completa_en_revision",
+    "ultima_actualizacion_manual": "2026-03-29",
+    "nota": "Archivo creado a partir de la Base Curricular oficial del curso en Currículum Nacional. Se recomienda una última revisión fina de habilidades e indicadores antes de marcarlo como 100% verificado."
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [
+    {
+      "id": "5_BASICO-OAA-A",
+      "descripcion": "Trabajar en forma rigurosa y perseverante, con espíritu emprendedor y con una disposición positiva a la crítica y la autocrítica."
+    },
+    {
+      "id": "5_BASICO-OAA-B",
+      "descripcion": "Reconocer la importancia y la dignidad de todos los trabajos, valorando y respetando a las personas que los realizan."
+    },
+    {
+      "id": "5_BASICO-OAA-C",
+      "descripcion": "Respetar y defender la igualdad de derechos entre hombres y mujeres y apreciar la importancia de desarrollar relaciones que potencien su participación equitativa en la vida económica, familiar, social y cultural."
+    },
+    {
+      "id": "5_BASICO-OAA-D",
+      "descripcion": "Respetar y defender la igualdad de derechos esenciales de todas las personas, sin distinción de sexo, edad, condición física, etnia, religión o situación económica."
+    },
+    {
+      "id": "5_BASICO-OAA-E",
+      "descripcion": "Participar solidaria y responsablemente en las actividades y proyectos del establecimiento y del espacio comunitario, demostrando espíritu emprendedor."
+    },
+    {
+      "id": "5_BASICO-OAA-F",
+      "descripcion": "Establecer lazos de pertenencia con su entorno social y natural a partir del conocimiento, la valoración y la reflexión sobre su historia personal, su comunidad y el país."
+    },
+    {
+      "id": "5_BASICO-OAA-G",
+      "descripcion": "Comportarse y actuar en la vida cotidiana según principios y virtudes ciudadanas."
+    },
+    {
+      "id": "5_BASICO-OAA-H",
+      "descripcion": "Demostrar valoración por la democracia, reconociendo su importancia para la convivencia y el resguardo de derechos."
+    },
+    {
+      "id": "5_BASICO-OAA-I",
+      "descripcion": "Demostrar valoración por la vida en sociedad para el desarrollo y el crecimiento de la persona."
+    }
+  ],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "Descubrimiento, conquista y cambios",
+      "oa": [
+        {
+          "id": "HI5B-OA-01",
+          "codigo_oficial": "HI05 OA 01",
+          "descripcion": "Explicar los viajes de descubrimiento de Cristóbal Colón, de Hernando de Magallanes y de algún otro explorador, considerando sus objetivos, rutas, avances tecnológicos, dificultades y contexto europeo general."
+        },
+        {
+          "id": "HI5B-OA-02",
+          "codigo_oficial": "HI05 OA 02",
+          "descripcion": "Describir el proceso de conquista de América y de Chile, incluyendo principales actores, expediciones, conflictos bélicos y fundación de ciudades, y reconocer el surgimiento de una nueva sociedad."
+        },
+        {
+          "id": "HI5B-OA-03",
+          "codigo_oficial": "HI05 OA 03",
+          "descripcion": "Analizar el impacto y las consecuencias que tuvo el proceso de conquista para Europa y para América, considerando diversos ámbitos."
+        },
+        {
+          "id": "HI5B-OA-04",
+          "codigo_oficial": "HI05 OA 04",
+          "descripcion": "Investigar sobre los efectos de la conquista sobre los pueblos indígenas americanos, utilizando fuentes dadas por el docente."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Vida colonial y patrimonio",
+      "oa": [
+        {
+          "id": "HI5B-OA-05",
+          "codigo_oficial": "HI05 OA 05",
+          "descripcion": "Describir algunas dimensiones de la vida colonial en Chile, como organización de la sociedad, oficios, actividades económicas, costumbres, vida cotidiana, arte y celebraciones."
+        },
+        {
+          "id": "HI5B-OA-06",
+          "codigo_oficial": "HI05 OA 06",
+          "descripcion": "Explicar aspectos centrales de la Colonia, como la dependencia de las colonias americanas de la metrópoli, el rol de la Iglesia católica y el surgimiento de una sociedad mestiza."
+        },
+        {
+          "id": "HI5B-OA-07",
+          "codigo_oficial": "HI05 OA 07",
+          "descripcion": "Explicar y dar ejemplos de las distintas formas en las que españoles y mapuches se relacionaron en el período colonial."
+        },
+        {
+          "id": "HI5B-OA-08",
+          "codigo_oficial": "HI05 OA 08",
+          "descripcion": "Identificar, en su entorno o en fotografías, elementos del patrimonio colonial de Chile que siguen presentes hoy, como edificios, obras de arte y costumbres, entre otros."
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "nombre": "Grandes zonas y recursos de Chile",
+      "oa": [
+        {
+          "id": "HI5B-OA-09",
+          "codigo_oficial": "HI05 OA 09",
+          "descripcion": "Caracterizar las grandes zonas de Chile y sus paisajes (Norte Grande, Norte Chico, Zona Central, Zona Sur y Zona Austral), considerando ubicación, clima, relieve, hidrografía, población y recursos naturales, entre otros."
+        },
+        {
+          "id": "HI5B-OA-10",
+          "codigo_oficial": "HI05 OA 10",
+          "descripcion": "Reconocer y ubicar en mapas recursos naturales significativos de Chile, diferenciar recursos renovables y no renovables y explicar la importancia de cuidarlos en el marco de un desarrollo sostenible."
+        },
+        {
+          "id": "HI5B-OA-11",
+          "codigo_oficial": "HI05 OA 11",
+          "descripcion": "Analizar y dar ejemplos de diversas maneras en las que el trabajo de las personas, sus ideas y proyectos potencian y dan valor a los recursos naturales."
+        },
+        {
+          "id": "HI5B-OA-12",
+          "codigo_oficial": "HI05 OA 12",
+          "descripcion": "Investigar, describir y ubicar los riesgos naturales que afectan a su localidad e identificar formas en que la comunidad puede protegerse."
+        }
+      ]
+    },
+    {
+      "numero": 4,
+      "nombre": "Derechos, deberes y participación",
+      "oa": [
+        {
+          "id": "HI5B-OA-13",
+          "codigo_oficial": "HI05 OA 13",
+          "descripcion": "Reconocer que todas las personas son sujetos de derecho, que deben ser respetados por los pares, la comunidad y el Estado, y que esos derechos no dependen de características individuales."
+        },
+        {
+          "id": "HI5B-OA-14",
+          "codigo_oficial": "HI05 OA 14",
+          "descripcion": "Reconocer que los derechos generan deberes y responsabilidades en las personas y en el Estado."
+        },
+        {
+          "id": "HI5B-OA-15",
+          "codigo_oficial": "HI05 OA 15",
+          "descripcion": "Reconocer que hay logros y beneficios que dependen del esfuerzo, el mérito y el comportamiento de cada persona."
+        },
+        {
+          "id": "HI5B-OA-16",
+          "codigo_oficial": "HI05 OA 16",
+          "descripcion": "Demostrar actitudes cívicas con acciones en su vida diaria, como actuar con honestidad, respetar a todas las personas, contribuir a la buena convivencia y cuidar el patrimonio y el medioambiente."
+        },
+        {
+          "id": "HI5B-OA-17",
+          "codigo_oficial": "HI05 OA 17",
+          "descripcion": "Participar en su comunidad, tomando parte en elecciones para una directiva de curso, asignando roles y funciones a cada cargo, y comprendiendo las responsabilidades de los cargos."
+        },
+        {
+          "id": "HI5B-OA-18",
+          "codigo_oficial": "HI05 OA 18",
+          "descripcion": "Diseñar y participar en un proyecto que solucione un problema de la comunidad escolar, ateniéndose a un plan y a un presupuesto."
+        }
+      ]
+    }
+  ]
+}
