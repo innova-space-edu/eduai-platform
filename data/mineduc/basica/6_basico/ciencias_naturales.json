@@ -1,0 +1,166 @@
+{
+  "metadata": {
+    "nivel": "Básica",
+    "curso": "6° Básico",
+    "asignatura": "Ciencias Naturales",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/",
+    "estado": "base_verificada_mineduc",
+    "ultima_actualizacion_manual": "2026-03-29",
+    "nota": "Archivo base creado a partir de OA publicados en Currículum Nacional MINEDUC. Recomendable revisar la distribución por unidades del planificador según el enfoque pedagógico del establecimiento."
+  },
+  "objetivos_habilidad": [
+    {
+      "id": "CN06-OAH-a",
+      "descripcion": "Seleccionar preguntas que orienten investigaciones científicas y formular predicciones fundamentadas.",
+      "unidades": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "CN06-OAH-b",
+      "descripcion": "Planificar y conducir investigaciones, registrando y analizando evidencias con rigor y seguridad.",
+      "unidades": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "CN06-OAH-c",
+      "descripcion": "Comunicar explicaciones científicas usando tablas, gráficos, modelos y TIC cuando corresponda.",
+      "unidades": [
+        1,
+        2,
+        3,
+        4
+      ]
+    }
+  ],
+  "objetivos_actitud": [
+    {
+      "id": "CN06-OAA-A",
+      "descripcion": "Valorar el conocimiento científico para la comprensión del entorno, la vida saludable y la protección ambiental.",
+      "unidades": [
+        1,
+        2,
+        3,
+        4
+      ]
+    }
+  ],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "Ciencias de la vida: fotosíntesis, ecosistemas y desarrollo humano",
+      "oa": [
+        {
+          "id": "CN6B-OA-01",
+          "codigo_oficial": "CN06 OA 01",
+          "descripcion": "Explicar, a partir de una investigación experimental, los requerimientos de agua, dióxido de carbono y energía lumínica para la producción de azúcar y liberación de oxígeno en la fotosíntesis, comunicando sus resultados y los aportes de científicos en este campo a través del tiempo."
+        },
+        {
+          "id": "CN6B-OA-02",
+          "codigo_oficial": "CN06 OA 02",
+          "descripcion": "Representar, por medio de modelos, la transferencia de energía y materia desde los organismos fotosintéticos a otros seres vivos por medio de cadenas y redes alimentarias en diferentes ecosistemas."
+        },
+        {
+          "id": "CN6B-OA-03",
+          "codigo_oficial": "CN06 OA 03",
+          "descripcion": "Analizar los efectos de la actividad humana sobre las redes alimentarias."
+        },
+        {
+          "id": "CN6B-OA-04",
+          "codigo_oficial": "CN06 OA 04",
+          "descripcion": "Identificar y describir las funciones de las principales estructuras del sistema reproductor humano femenino y masculino."
+        },
+        {
+          "id": "CN6B-OA-05",
+          "codigo_oficial": "CN06 OA 05",
+          "descripcion": "Describir y comparar los cambios que se producen en la pubertad en mujeres y hombres, reconociéndola como una etapa del desarrollo humano."
+        },
+        {
+          "id": "CN6B-OA-06",
+          "codigo_oficial": "CN06 OA 06",
+          "descripcion": "Reconocer los beneficios de realizar actividad física en forma regular y de cuidar la higiene corporal en el período de la pubertad."
+        },
+        {
+          "id": "CN6B-OA-07",
+          "codigo_oficial": "CN06 OA 07",
+          "descripcion": "Investigar y comunicar los efectos nocivos de algunas drogas para la salud, proponiendo conductas de protección."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Ciencias físicas y químicas: energía, calor y materia",
+      "oa": [
+        {
+          "id": "CN6B-OA-08",
+          "codigo_oficial": "CN06 OA 08",
+          "descripcion": "Explicar que la energía es necesaria para que los objetos cambien y los seres vivos realicen sus procesos vitales y que la mayoría de los recursos energéticos proviene directa o indirectamente del Sol, dando ejemplos de ello."
+        },
+        {
+          "id": "CN6B-OA-09",
+          "codigo_oficial": "CN06 OA 09",
+          "descripcion": "Investigar en forma experimental la transformación de la energía de una forma a otra, dando ejemplos y comunicando sus conclusiones."
+        },
+        {
+          "id": "CN6B-OA-10",
+          "codigo_oficial": "CN06 OA 10",
+          "descripcion": "Demostrar, por medio de la investigación experimental, que el calor fluye de un objeto caliente a uno frío hasta que ambos alcanzan la misma temperatura."
+        },
+        {
+          "id": "CN6B-OA-11",
+          "codigo_oficial": "CN06 OA 11",
+          "descripcion": "Clasificar los recursos naturales energéticos en no renovables y renovables y proponer medidas para el uso responsable de la energía."
+        },
+        {
+          "id": "CN6B-OA-12",
+          "codigo_oficial": "CN06 OA 12",
+          "descripcion": "Explicar, a partir de modelos, que la materia está formada por partículas en movimiento en sus estados sólido, líquido y gaseoso."
+        },
+        {
+          "id": "CN6B-OA-13",
+          "codigo_oficial": "CN06 OA 13",
+          "descripcion": "Demostrar, mediante la investigación experimental, los cambios de estado de la materia, como fusión, evaporación, ebullición, condensación, solidificación y sublimación."
+        },
+        {
+          "id": "CN6B-OA-14",
+          "codigo_oficial": "CN06 OA 14",
+          "descripcion": "Diferenciar entre calor y temperatura, considerando que el calor es una forma de energía y la temperatura es una medida de lo caliente de un objeto."
+        },
+        {
+          "id": "CN6B-OA-15",
+          "codigo_oficial": "CN06 OA 15",
+          "descripcion": "Medir e interpretar la información obtenida al calentar y enfriar el agua, considerando las transformaciones de un estado a otro."
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "nombre": "Ciencias de la Tierra y el Universo: capas de la Tierra y suelo",
+      "oa": [
+        {
+          "id": "CN6B-OA-16",
+          "codigo_oficial": "CN06 OA 16",
+          "descripcion": "Describir las características de las capas de la Tierra (atmósfera, litósfera e hidrósfera) que posibilitan el desarrollo de la vida y proveen recursos para el ser humano, y proponer medidas de protección de dichas capas."
+        },
+        {
+          "id": "CN6B-OA-17",
+          "codigo_oficial": "CN06 OA 17",
+          "descripcion": "Investigar experimentalmente la formación del suelo, sus propiedades (como color, textura y capacidad de retención de agua) y la importancia de protegerlo de la contaminación, comunicando sus resultados."
+        },
+        {
+          "id": "CN6B-OA-18",
+          "codigo_oficial": "CN06 OA 18",
+          "descripcion": "Explicar las consecuencias de la erosión sobre la superficie de la Tierra, identificando los agentes que la provocan, como el viento, el agua y las actividades humanas."
+        }
+      ]
+    }
+  ]
+}
