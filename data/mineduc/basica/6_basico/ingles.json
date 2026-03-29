@@ -1,0 +1,137 @@
+{
+  "metadata": {
+    "nivel": "Básica",
+    "curso": "6° Básico",
+    "asignatura": "Inglés",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/",
+    "estado": "base_verificada_mineduc",
+    "ultima_actualizacion_manual": "2026-03-29",
+    "nota": "Archivo estructurado con los OA de Inglés publicados en la Base Curricular oficial para 5° y 6° básico."
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [
+    {
+      "id": "6_BASICO-IN-OAA-A",
+      "descripcion": "Demostrar curiosidad e interés por conocer tanto su propia realidad como otras realidades y culturas, valorando lo propio y ampliando su conocimiento del mundo."
+    },
+    {
+      "id": "6_BASICO-IN-OAA-B",
+      "descripcion": "Manifestar una actitud positiva frente a sí mismo y sus capacidades para aprender un nuevo idioma."
+    },
+    {
+      "id": "6_BASICO-IN-OAA-C",
+      "descripcion": "Demostrar respeto ante otras personas, realidades o culturas, reconociendo sus aportes y valorando la diversidad de modos de vida."
+    },
+    {
+      "id": "6_BASICO-IN-OAA-D",
+      "descripcion": "Manifestar un estilo de trabajo y estudio riguroso y perseverante, para alcanzar los propósitos de la asignatura."
+    }
+  ],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "Comprensión auditiva",
+      "oa": [
+        {
+          "id": "IN6B-OA-01",
+          "codigo_oficial": "IN06 OA 01",
+          "descripcion": "Escuchar y demostrar comprensión de información explícita en textos adaptados y auténticos simples, tanto no literarios como literarios, relacionados con las funciones del año y temas cotidianos, del entorno y de interés global."
+        },
+        {
+          "id": "IN6B-OA-02",
+          "codigo_oficial": "IN06 OA 02",
+          "descripcion": "Identificar en los textos escuchados tema e ideas generales, información específica, vocabulario temático y sonidos del idioma que interfieren con la comunicación."
+        },
+        {
+          "id": "IN6B-OA-03",
+          "codigo_oficial": "IN06 OA 03",
+          "descripcion": "Escuchar textos orales en diversos formatos audiovisuales, usando estrategias para apoyar la comprensión como predicciones, claves contextuales, focalización en palabras clave y apoyo visual."
+        },
+        {
+          "id": "IN6B-OA-04",
+          "codigo_oficial": "IN06 OA 04",
+          "descripcion": "Reaccionar a los textos escuchados, expresando opiniones y sentimientos o haciendo conexiones con experiencias personales, en forma oral o escrita."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Comprensión de lectura",
+      "oa": [
+        {
+          "id": "IN6B-OA-05",
+          "codigo_oficial": "IN06 OA 05",
+          "descripcion": "Leer y demostrar comprensión de textos adaptados y auténticos simples no literarios, relacionados con los temas y funciones del año."
+        },
+        {
+          "id": "IN6B-OA-06",
+          "codigo_oficial": "IN06 OA 06",
+          "descripcion": "Leer comprensivamente textos no literarios, como notas, postales, invitaciones, menús, recetas, instrucciones, avisos, emails, diálogos o textos expositivos, identificando propósito, ideas generales, información explícita y vocabulario temático."
+        },
+        {
+          "id": "IN6B-OA-07",
+          "codigo_oficial": "IN06 OA 07",
+          "descripcion": "Leer comprensivamente textos literarios adaptados y auténticos simples, como rimas, poemas, tiras cómicas y cuentos, identificando tema, personajes, tiempo, acciones y secuencia de eventos."
+        },
+        {
+          "id": "IN6B-OA-08",
+          "codigo_oficial": "IN06 OA 08",
+          "descripcion": "Reaccionar a los textos leídos, expresando opiniones y sentimientos o haciendo conexiones con experiencias personales, en forma oral o escrita."
+        },
+        {
+          "id": "IN6B-OA-09",
+          "codigo_oficial": "IN06 OA 09",
+          "descripcion": "Usar estrategias para apoyar la comprensión de los textos leídos, tanto en formato digital como impreso, incluyendo prelectura, lectura y poslectura."
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "nombre": "Expresión oral",
+      "oa": [
+        {
+          "id": "IN6B-OA-10",
+          "codigo_oficial": "IN06 OA 10",
+          "descripcion": "Reproducir y producir textos orales, como monólogos, canciones, poemas, adivinanzas y diálogos, para identificar y familiarizarse con los sonidos propios del idioma."
+        },
+        {
+          "id": "IN6B-OA-11",
+          "codigo_oficial": "IN06 OA 11",
+          "descripcion": "Expresarse oralmente, ya sea en diálogos, presentaciones o actividades grupales, con apoyo visual y/o digital, en torno a los temas del año."
+        },
+        {
+          "id": "IN6B-OA-12",
+          "codigo_oficial": "IN06 OA 12",
+          "descripcion": "Participar en diálogos con pares y profesores al realizar funciones comunicativas del nivel, como expresar habilidad e inhabilidad, dar direcciones, contrastar información, pedir la hora, referirse al presente y pasado, describir acciones, cantidades y posesiones, formular preguntas y dar información general."
+        },
+        {
+          "id": "IN6B-OA-13",
+          "codigo_oficial": "IN06 OA 13",
+          "descripcion": "Demostrar conocimiento y uso del vocabulario aprendido: vocabulario temático de uso cotidiano, palabras frecuentes y expresiones de uso común asociadas a las funciones del nivel."
+        }
+      ]
+    },
+    {
+      "numero": 4,
+      "nombre": "Expresión escrita",
+      "oa": [
+        {
+          "id": "IN6B-OA-14",
+          "codigo_oficial": "IN06 OA 14",
+          "descripcion": "Completar y escribir, de acuerdo a un modelo y con apoyo visual, textos no literarios y literarios breves para compartir información en torno a los temas del año."
+        },
+        {
+          "id": "IN6B-OA-15",
+          "codigo_oficial": "IN06 OA 15",
+          "descripcion": "Escribir para realizar funciones del nivel, como expresar habilidad, dar direcciones, describir personas, acciones, posiciones, pasado, cantidades, necesidad y posesiones."
+        },
+        {
+          "id": "IN6B-OA-16",
+          "codigo_oficial": "IN06 OA 16",
+          "descripcion": "Utilizar los pasos del proceso de escritura, recurriendo a herramientas como diccionario en línea y procesador de texto, para escribir oraciones simples y párrafos breves de acuerdo a un modelo."
+        }
+      ]
+    }
+  ]
+}

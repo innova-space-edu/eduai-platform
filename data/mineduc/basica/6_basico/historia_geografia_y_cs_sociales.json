@@ -1,0 +1,157 @@
+{
+  "metadata": {
+    "nivel": "Básica",
+    "curso": "6° Básico",
+    "asignatura": "Historia, Geografía y Cs. Sociales",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/",
+    "estado": "base_oa_completa_en_revision",
+    "ultima_actualizacion_manual": "2026-03-29",
+    "nota": "Archivo creado a partir de la Base Curricular oficial del curso en Currículum Nacional. Se recomienda una última revisión fina de habilidades e indicadores antes de marcarlo como 100% verificado."
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [
+    {
+      "id": "6_BASICO-OAA-A",
+      "descripcion": "Trabajar en forma rigurosa y perseverante, con espíritu emprendedor y con una disposición positiva a la crítica y la autocrítica."
+    },
+    {
+      "id": "6_BASICO-OAA-B",
+      "descripcion": "Reconocer la importancia y la dignidad de todos los trabajos, valorando y respetando a las personas que los realizan."
+    },
+    {
+      "id": "6_BASICO-OAA-C",
+      "descripcion": "Respetar y defender la igualdad de derechos entre hombres y mujeres y apreciar la importancia de desarrollar relaciones que potencien su participación equitativa en la vida económica, familiar, social y cultural."
+    },
+    {
+      "id": "6_BASICO-OAA-D",
+      "descripcion": "Respetar y defender la igualdad de derechos esenciales de todas las personas, sin distinción de sexo, edad, condición física, etnia, religión o situación económica."
+    },
+    {
+      "id": "6_BASICO-OAA-E",
+      "descripcion": "Participar solidaria y responsablemente en las actividades y proyectos del establecimiento y del espacio comunitario, demostrando espíritu emprendedor."
+    },
+    {
+      "id": "6_BASICO-OAA-F",
+      "descripcion": "Establecer lazos de pertenencia con su entorno social y natural a partir del conocimiento, la valoración y la reflexión sobre su historia personal, su comunidad y el país."
+    },
+    {
+      "id": "6_BASICO-OAA-G",
+      "descripcion": "Comportarse y actuar en la vida cotidiana según principios y virtudes ciudadanas."
+    },
+    {
+      "id": "6_BASICO-OAA-H",
+      "descripcion": "Demostrar valoración por la democracia, reconociendo su importancia para la convivencia y el resguardo de derechos."
+    },
+    {
+      "id": "6_BASICO-OAA-I",
+      "descripcion": "Demostrar valoración por la vida en sociedad para el desarrollo y el crecimiento de la persona."
+    }
+  ],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "Independencia y organización de la república",
+      "oa": [
+        {
+          "id": "HI6B-OA-01",
+          "codigo_oficial": "HI06 OA 01",
+          "descripcion": "Explicar los múltiples antecedentes de la independencia de las colonias americanas y reconocer que la independencia de Chile se enmarca en un proceso continental."
+        },
+        {
+          "id": "HI6B-OA-02",
+          "codigo_oficial": "HI06 OA 02",
+          "descripcion": "Explicar el desarrollo del proceso de independencia de Chile, considerando actores y bandos, avances y retrocesos de la causa patriota y acontecimientos significativos."
+        },
+        {
+          "id": "HI6B-OA-03",
+          "codigo_oficial": "HI06 OA 03",
+          "descripcion": "Describir algunos hitos y procesos de la organización de la república, incluyendo dificultades y desafíos, grupos con distintas ideas políticas y reformas del siglo XIX."
+        },
+        {
+          "id": "HI6B-OA-04",
+          "codigo_oficial": "HI06 OA 04",
+          "descripcion": "Investigar sobre algunos aspectos culturales del siglo XIX, como avances en educación, instituciones, intelectuales y científicos, primeras mujeres con títulos universitarios y avances tecnológicos."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Chile en el siglo XIX y XX",
+      "oa": [
+        {
+          "id": "HI6B-OA-05",
+          "codigo_oficial": "HI06 OA 05",
+          "descripcion": "Describir cómo se conformó el territorio de Chile durante el siglo XIX, considerando colonizaciones europeas, incorporación de Isla de Pascua, ocupación de la Araucanía, Guerra del Pacífico y otros factores."
+        },
+        {
+          "id": "HI6B-OA-06",
+          "codigo_oficial": "HI06 OA 06",
+          "descripcion": "Caracterizar los principales aspectos que definieron el período de riqueza aportada por la explotación del salitre, considerando la expansión económica y el inicio de la cuestión social."
+        },
+        {
+          "id": "HI6B-OA-07",
+          "codigo_oficial": "HI06 OA 07",
+          "descripcion": "Explicar y dar ejemplos de la progresiva democratización de la sociedad durante el siglo XX, considerando acceso creciente al voto, participación de la mujer y acceso a la educación y la cultura."
+        },
+        {
+          "id": "HI6B-OA-08",
+          "codigo_oficial": "HI06 OA 08",
+          "descripcion": "Comparar diferentes visiones sobre el quiebre de la democracia en Chile, el régimen o dictadura militar y el proceso de recuperación de la democracia a fines del siglo XX, considerando distintos actores, experiencias y puntos de vista."
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "nombre": "Territorio, regiones y medioambiente",
+      "oa": [
+        {
+          "id": "HI6B-OA-09",
+          "codigo_oficial": "HI06 OA 09",
+          "descripcion": "Explicar y dar ejemplos de aspectos que se mantienen y aspectos que han cambiado o se han desarrollado en la sociedad chilena a lo largo de su historia."
+        },
+        {
+          "id": "HI6B-OA-10",
+          "codigo_oficial": "HI06 OA 10",
+          "descripcion": "Identificar elementos constitutivos del territorio nacional, considerando la localización de Chile en el mundo y su carácter tricontinental."
+        },
+        {
+          "id": "HI6B-OA-11",
+          "codigo_oficial": "HI06 OA 11",
+          "descripcion": "Caracterizar geográficamente las regiones político-administrativas del país, destacando rasgos físicos, humanos y productivos relevantes."
+        },
+        {
+          "id": "HI6B-OA-12",
+          "codigo_oficial": "HI06 OA 12",
+          "descripcion": "Comparar diversos ambientes naturales de Chile, considerando sus características y las formas de adaptación e intervención humana."
+        }
+      ]
+    },
+    {
+      "numero": 4,
+      "nombre": "Democracia, ciudadanía y derechos humanos",
+      "oa": [
+        {
+          "id": "HI6B-OA-13",
+          "codigo_oficial": "HI06 OA 13",
+          "descripcion": "Analizar problemas ambientales y riesgos naturales del país y de la región, proponiendo formas de prevención y cuidado sustentable."
+        },
+        {
+          "id": "HI6B-OA-14",
+          "codigo_oficial": "HI06 OA 14",
+          "descripcion": "Reconocer que la Constitución y las leyes organizan la vida en sociedad y resguardan derechos y deberes de las personas."
+        },
+        {
+          "id": "HI6B-OA-15",
+          "codigo_oficial": "HI06 OA 15",
+          "descripcion": "Explicar algunos componentes del sistema democrático chileno y valorar la participación ciudadana informada y responsable."
+        },
+        {
+          "id": "HI6B-OA-16",
+          "codigo_oficial": "HI06 OA 16",
+          "descripcion": "Demostrar actitudes cívicas, de respeto a los derechos humanos, valoración de la diversidad y compromiso con la convivencia democrática."
+        }
+      ]
+    }
+  ]
+}
