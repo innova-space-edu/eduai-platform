@@ -85,9 +85,9 @@
 
 ## ¿Qué es EduAI Platform?
 
-EduAI Platform es una plataforma educativa de siguiente generación que combina **25+ agentes de inteligencia artificial especializados**, un **Creator Hub con 8 formatos de salida potenciados por Gemini 2.5 Flash**, un **Audio Lab para transcripción y edición de audio con IA**, un **Workspace de proyectos** para organizar todo tu material, un **sistema de exámenes para docentes con evaluación IA y modo de supervisión antifraude**, y un **panel de administración completo** para gestionar la plataforma.
+EduAI Platform es una plataforma educativa de siguiente generación que combina **25+ agentes de inteligencia artificial especializados**, un **Creator Hub con 8 formatos de salida potenciados por Gemini 2.5 Flash**, un **Audio Lab para transcripción y edición de audio con IA**, un **Workspace de proyectos** para organizar todo el material, un **sistema de exámenes para docentes con evaluación IA, análisis pedagógico automático y modo de supervisión antifraude**, y un **panel de administración completo** para gestionar la plataforma.
 
-Va más allá de un simple chatbot — es un ecosistema inteligente donde múltiples agentes colaboran en paralelo para que el estudiante aprenda más rápido y de forma más profunda. Diseñada especialmente para el contexto educativo chileno, incluye cobertura curricular completa del **MINEDUC** (Parvularia, Básica y Media) con escala de notas 1.0–7.0.
+Va más allá de un simple chatbot — es un ecosistema inteligente donde múltiples agentes colaboran en paralelo para que el estudiante aprenda más rápido y de forma más profunda. Diseñada especialmente para el contexto educativo chileno, incluye cobertura curricular completa del **MINEDUC** (Parvularia, Básica 1°–8° y Media 1°–4°) con **77 archivos JSON de OA oficiales** y escala de notas 1.0–7.0.
 
 ---
 
@@ -98,12 +98,49 @@ Va más allá de un simple chatbot — es un ecosistema inteligente donde múlti
 - **4 modos de aprendizaje:** Normal, Socrático, Evaluación y Colaborativo
 - **Quiz adaptativo** que ajusta dificultad automáticamente según desempeño
 - **Modo Examen completo** con timer, corrección automática y retroalimentación
-- **Chat con Papers PDF** — sube un paper (hasta 50MB via Supabase Storage) y conversa sobre él
+- **Chat con Papers PDF** — sube un paper (hasta 50 MB via Supabase Storage) y conversa sobre él con chunking inteligente y embeddings
 - **Visualizaciones automáticas:** imágenes IA, diagramas Mermaid, gráficos Chart.js
 - **Matemáticas con LaTeX** — fórmulas renderizadas con KaTeX
 - **Narración por voz (TTS)** — contenido leído en voz alta
 - **Historial de sesiones** organizado con estadísticas
 - **Repaso espaciado inteligente** basado en algoritmo SM-2
+
+---
+
+### 🏫 APl — Planificador Curricular MINEDUC
+
+Agente especializado para docentes chilenos que genera planificaciones rigurosas, completas y alineadas al currículum oficial.
+
+#### Cobertura curricular (77 archivos JSON de OA oficiales)
+
+| Nivel | Cursos | Asignaturas por curso |
+|-------|--------|----------------------|
+| **Parvularia** | Sala Cuna Menor/Mayor · Medio Menor/Mayor · NT1 · NT2 | Ámbitos, Núcleos, OA y OAT por subnivel |
+| **Básica** | 1° a 8° Básico | Matemática · Lenguaje/Lengua · Ciencias Naturales · Historia · Inglés · Tecnología |
+| **Media** | 1° a 4° Medio | Matemática · Lengua y Literatura · Biología · Química · Física · Tecnología · Ciencias para la Ciudadanía · Educación Ciudadana |
+
+#### Planificación generada (estructura completa, 8 bloques)
+
+Cada planificación producida por APl incluye:
+
+| Bloque | Contenido |
+|--------|-----------|
+| 📌 **Datos generales** | Tabla con nivel, asignatura, horizonte, sesiones, duración y mes |
+| 🎯 **Objetivo(s) de Aprendizaje** | Texto oficial completo del OA + subnivel/ámbito/núcleo/OAT en Parvularia |
+| 📊 **Indicadores de evaluación** | 4–6 indicadores observables derivados del OA con nivel de logro (básico/intermedio/avanzado) |
+| 🏁 **Objetivos de clase** | Uno o dos objetivos concretos y medibles por sesión *(solo Básica y Media)* |
+| 📚 **Propósito de aprendizaje** | 2–3 párrafos con sentido pedagógico, relevancia y conexión curricular |
+| 🗂️ **Planificación de clase(s)** | Timing explícito por etapa (Inicio / Desarrollo / Cierre con minutos), hasta 4 sesiones detalladas |
+| ✅ **Evaluación** | Tabla: tipo, momento, instrumento, evidencia esperada y criterios de logro |
+| 🌈 **Adaptaciones y diversidad** | Estrategias para distintos ritmos, aventajados y NEE |
+
+#### UI del planificador
+
+- **OA seleccionables** — acordeón desplegable con badge contador, etiquetas verde `ámbito · núcleo`
+- **OAT / foco transversal** — acordeón independiente con badge contador
+- Scroll forzado arriba al abrir la ruta; scroll al chat solo cuando hay mensajes
+- Resumen lateral con etiquetas verdes de los OA elegidos
+- Límite de tokens: **8.000** (sin cortes de respuesta)
 
 ---
 
@@ -186,7 +223,8 @@ DOCENTE                              ESTUDIANTE
                                      12. Ve nota + retroalimentación
 13. Dashboard con 40 alumnos  ←─── resultados en tiempo real
 14. Ve incidentes por alumno
-15. Descarga Excel/PDF
+15. Análisis pedagógico IA    ←─── /api/exam-report
+16. Descarga Excel/PDF
 ```
 
 **Características del examen:**
@@ -202,6 +240,18 @@ DOCENTE                              ESTUDIANTE
 - **Papelera de exámenes:** soft delete con `deleted_at`, restaurar y eliminar permanente
 - **Dashboard docente:** tabla, distribución de notas, estadísticas, auto-refresh 15s, columna de incidentes
 - **Descarga:** Excel (.xlsx) con puntaje real + PDF con resumen visual
+
+#### Análisis pedagógico automático (`/api/exam-report`)
+
+API dedicada que genera un informe pedagógico completo del examen con Gemini 2.5 Flash:
+
+- Calcula estadísticas completas: promedio, tasa de aprobación, máximo y mínimo
+- Identifica las **3 preguntas con menor rendimiento** (contenidos críticos) y las **3 mejor dominadas**
+- Analiza distribución de notas por rangos (7.0–6.0 / 5.9–5.0 / 4.9–4.0 / 3.9–1.0)
+- Genera **3 párrafos de análisis pedagógico formal:**
+  1. **Análisis general** — rendimiento del curso con causas pedagógicas concretas
+  2. **Contenidos críticos** — habilidades y contenidos con menor logro y por qué
+  3. **Recomendaciones** — 3–4 acciones pedagógicas concretas y accionables
 
 #### Puntaje visible durante el examen
 
@@ -238,11 +288,9 @@ Activadas automáticamente cuando el docente habilita **Modo de supervisión** a
 4° + incidente → Bloqueo 60 segundos + bandera roja (security_flagged)
 ```
 
-El `SecurityOverlay` muestra tipo de infracción, número de incidente, si el examen está marcado para revisión, y la cuenta regresiva. Los botones de navegación se deshabilitan mientras dura el bloqueo. El tiempo del examen sigue corriendo.
-
 #### Nivel 3 — Auditoría completa (`exam_incidents`)
 
-Cada evento registra: tipo, detalle (tecla exacta), pregunta en curso, tiempo restante, estado fullscreen, dimensiones de ventana, user-agent y timestamp. Los datos se envían fire-and-forget desde `ExamGuard` — nunca bloquean el examen.
+Cada evento registra: tipo, detalle (tecla exacta), pregunta en curso, tiempo restante, estado fullscreen, dimensiones de ventana, user-agent y timestamp.
 
 **Tipos de evento registrados:**
 
@@ -266,39 +314,21 @@ Columna **"Incidentes"** en la tabla de resultados con semáforo de riesgo:
 | 3–4 | 🟠 Medio | Naranja |
 | 5+ | 🔴 Alto | Rojo |
 
-Clic en el badge abre un **modal de detalle** con cada evento, hora exacta, número de pregunta y tiempo restante al momento del incidente.
-
 ---
 
 ### 🛡️ Panel de Administración
 
 Panel accesible en `/admin` exclusivo para correos registrados en la tabla `admin_emails`:
 
-**Tab Resumen:**
-- Métricas del sistema: total usuarios, sesiones, activos hoy, exámenes creados, reportes abiertos
-- Accesos rápidos a Reportes y Usuarios
+**Tab Resumen:** Métricas del sistema: total usuarios, sesiones, activos hoy, exámenes creados, reportes abiertos.
 
-**Tab Usuarios:**
-- Listado paginado con búsqueda por nombre
-- Por usuario: editar nombre, ajustar XP/nivel/racha, resetear progreso, borrar sesiones
-- Responder reportes directamente desde el perfil del usuario
+**Tab Usuarios:** Listado paginado con búsqueda · editar nombre · ajustar XP/nivel/racha · resetear progreso · borrar sesiones · responder reportes.
 
-**Tab Reportes:**
-- Tickets de soporte enviados desde el botón flotante `SupportButton`
-- Filtro por estado: Abierto / En revisión / Resuelto / Cerrado
-- Cambio de estado con un clic
-- Respuesta directa al usuario
+**Tab Reportes:** Tickets de soporte, filtro por estado, respuesta directa al usuario.
 
-**Seguridad:**
-- Acceso controlado por tabla `admin_emails` con RLS y `auth.email()`
-- Función `is_admin()` en PostgreSQL usando `SECURITY DEFINER`
-- Admins fundadores protegidos contra remoción
-- Si las migraciones SQL no están ejecutadas, el panel muestra instrucciones paso a paso
+**Seguridad:** Acceso controlado por tabla `admin_emails` con RLS y `auth.email()`. Función `is_admin()` en PostgreSQL con `SECURITY DEFINER`. Admins fundadores protegidos contra remoción.
 
-**SupportButton:**
-- Botón flotante visible para todos los usuarios autenticados
-- Formulario de nuevo reporte con categoría (bug/cuenta/contenido/sugerencia/otro)
-- Historial de reportes propios con estado en tiempo real
+**SupportButton:** Botón flotante visible para todos los usuarios autenticados. Formulario con categoría (bug/cuenta/contenido/sugerencia/otro). Historial de reportes propios con estado en tiempo real.
 
 ---
 
@@ -320,13 +350,14 @@ Motor universal de creación de material educativo. Transforma cualquier conteni
 ---
 
 ### Para docentes
-- **Planificador MINEDUC (APl)** — planificaciones alineadas al currículo nacional
+- **Planificador MINEDUC (APl)** — planificaciones completas con indicadores, objetivos de clase, secuencia con timing y análisis de evaluación
 - **Exámenes con link público** — pruebas con evaluación IA y notas automáticas
+- **Análisis pedagógico IA** — informe de 3 párrafos con contenidos críticos y recomendaciones
 - **Modo supervisión** — fullscreen forzado, bloqueo de teclas, registro de incidentes
 - **Papelera de exámenes** — soft delete con opción de restaurar o eliminar definitivo
 - **Editor de exámenes publicados** — modifica sin romper el link
 - **Audio Lab** — transcribe clases grabadas y genera apuntes, actas o resúmenes con IA
-- Todos los niveles: Parvularia, 1° Básico hasta 4° Medio
+- Todos los niveles: Parvularia · 1° a 8° Básico · 1° a 4° Medio
 
 ### Colaboración en tiempo real
 - **Salas multiusuario** hasta 10 participantes
@@ -337,7 +368,8 @@ Motor universal de creación de material educativo. Transforma cualquier conteni
 - Código de usuario único (8 caracteres)
 - Solicitudes de amistad, reacciones (6 emojis)
 - Archivos e imágenes via Supabase Storage
-- Estado online/offline, check de leído, notificaciones
+- Estado online/offline, presencia en tiempo real, check de leído, notificaciones
+- APIs dedicadas: friends · messages · notifications · presence · upload
 
 ---
 
@@ -397,14 +429,14 @@ Pregunta del estudiante
 
 | Agente | Función |
 |--------|---------|
-| 🏫 **Planificador** | Planificaciones MINEDUC para docentes chilenos |
+| 🏫 **Planificador (APl)** | Planificaciones MINEDUC completas: indicadores, objetivos de clase, secuencia con timing, evaluación y adaptaciones |
 | 🔬 **Investigador** | Búsqueda y análisis de papers académicos |
 | ✍️ **Redactor** | Ensayos, informes y documentos formales |
 | 🧮 **Matemático** | Resolución paso a paso con LaTeX (KaTeX) |
 | 🌐 **Traductor** | Traducción con matices lingüísticos y culturales |
-| 📄 **Chat Paper** | PDFs hasta 50MB con chunking inteligente |
+| 📄 **Chat Paper** | PDFs hasta 50 MB con chunking inteligente y embeddings |
 | 📝 **Examen** | Simulacros de práctica con timer |
-| 📋 **Exámenes Docente** | Pruebas con link público, evaluación IA, seguridad y papelera |
+| 📋 **Exámenes Docente** | Pruebas con link público, evaluación IA, análisis pedagógico, seguridad y papelera |
 | 🎙️ **AGT-Transcripción** | Transcripción de audio con Gemini 2.0 Flash multimodal + fallback automático |
 | ✂️ **AGT-EditorTranscript** | 6 operaciones sobre transcripciones (limpiar, apuntes, acta, resumen, tareas, custom) |
 | 🎨 **Image Studio** | FLUX (Together/Pollinations) + SDXL + Gemini Image con galería unificada |
@@ -461,9 +493,10 @@ groq-sdk 0.37 (Groq SDK)
 ├──────────────────────────────────────────────────────────────────┤
 │  Gemini 2.5 Flash       → Creator Studio, AGT-Synthesize,        │
 │                            AGT-Investigador, Evaluación exámenes │
+│                            APl Planificador (8.000 tokens)       │
 │                                                                  │
 │  Gemini 2.5 Flash-Lite  → Prompt optimizer imágenes,             │
-│                            AGT-AIm v2, AGT-Contexto,            │
+│                            AGT-AIm v2, AGT-Contexto,             │
 │                            AGT-Diagnose, AGT-Pedagogy            │
 │                                                                  │
 │  Gemini 2.0 Flash       → Transcripción de audio multimodal      │
@@ -518,7 +551,7 @@ admin_emails          — correos con acceso al panel de administración
 admin_reports         — tickets de soporte enviados por usuarios
 ```
 
-### Migraciones SQL (ejecutar en orden)
+### Migraciones SQL (ejecutar en orden en Supabase SQL Editor)
 
 ```
 supabase/migrations/
@@ -579,11 +612,13 @@ eduai-platform/
 │   │   ├── editar/[id]/page.tsx      ← Editor post-publicación
 │   │   ├── docente/page.tsx          ← Lista + papelera de exámenes
 │   │   ├── p/[code]/page.tsx         ← Rendición pública + SecurityOverlay
-│   │   └── resultados/[id]/page.tsx  ← Dashboard + RiskBadge + IncidentModal
+│   │   └── resultados/[id]/page.tsx  ← Dashboard + RiskBadge + IncidentModal + análisis IA
 │   │
-│   ├── collab/[code]/page.tsx
+│   ├── collab/
+│   │   ├── page.tsx
+│   │   └── [code]/page.tsx
 │   ├── chat/page.tsx
-│   ├── educador/page.tsx
+│   ├── educador/page.tsx             ← APl con acordeones OA/OAT + etiquetas verdes
 │   ├── investigador/page.tsx
 │   ├── redactor/page.tsx
 │   ├── matematico/page.tsx
@@ -616,7 +651,7 @@ eduai-platform/
 │   │   ├── investigador/route.ts
 │   │   ├── redactor/route.ts
 │   │   ├── traductor/route.ts
-│   │   ├── educador/route.ts
+│   │   ├── educador/route.ts         ← APl: 8.000 tokens, indicadores, obj. clase, timing
 │   │   ├── socratic/route.ts
 │   │   ├── diagnose/route.ts
 │   │   ├── evaluate/route.ts
@@ -625,7 +660,10 @@ eduai-platform/
 │   │   ├── summary/route.ts
 │   │   ├── theory/route.ts
 │   │   └── paper/route.ts
+│   │       ├── extract/route.ts      ← extracción avanzada con chunking
+│   │       └── parser-health/route.ts
 │   │
+│   ├── exam-report/route.ts          ← Análisis pedagógico IA: 3 párrafos, estadísticas
 │   ├── exam-security/
 │   │   └── event/route.ts            ← POST incidentes + GET resumen/detalle
 │   │
@@ -634,8 +672,13 @@ eduai-platform/
 │   ├── process-content/route.ts
 │   ├── chat/friends/route.ts
 │   ├── chat/messages/route.ts
+│   ├── chat/notifications/route.ts   ← notificaciones en tiempo real
+│   ├── chat/presence/route.ts        ← presencia online/offline
+│   ├── chat/upload/route.ts          ← subida de archivos al chat
 │   ├── rooms/route.ts
 │   ├── sessions/route.ts
+│   │   └── [id]/messages/route.ts
+│   │   └── delete/route.ts
 │   ├── memory/route.ts
 │   ├── missions/route.ts
 │   ├── achievements/route.ts
@@ -647,12 +690,15 @@ eduai-platform/
 │   └── ui/
 │       ├── ExamMathText.tsx          ← limpia U+2191, throwOnError: false
 │       ├── SupportButton.tsx         ← botón flotante de soporte para usuarios
+│       ├── AchievementToast.tsx
+│       ├── XPToast.tsx
+│       ├── StudyBanner.tsx
+│       ├── VoiceNarrator.tsx
 │       ├── AgentHeader.tsx
 │       ├── AgentChatLayout.tsx
 │       ├── DownloadBar.tsx
 │       ├── ColorPalette.tsx
-│       ├── MathRenderer.tsx
-│       └── ...
+│       └── MathRenderer.tsx
 │
 ├── lib/
 │   ├── exam-guard.ts                 ← ExamGuard: 11 eventos, sanciones, fire-and-forget
@@ -660,10 +706,30 @@ eduai-platform/
 │   ├── ai-router.ts
 │   ├── content-processor.ts
 │   ├── creator-downloads.ts
+│   ├── mineduc-oa.ts                 ← 77 archivos JSON: parvularia + básica + media
+│   ├── planificador-curriculum.ts
 │   ├── redis.ts
+│   ├── papers/
+│   │   ├── embeddings.ts             ← embeddings para búsqueda semántica en papers
+│   │   ├── extraction.ts             ← chunking inteligente, hasta 50 MB, 180K chars
+│   │   └── parser-client.ts          ← cliente para parser externo
 │   └── supabase/
 │       ├── client.ts
 │       └── server.ts
+│
+├── data/mineduc/                     ← 77 archivos JSON de OA oficiales MINEDUC
+│   ├── parvularia/                   ← 10 archivos (6 subniveles + common)
+│   ├── basica/                       ← 48 archivos (8 cursos × 6 asignaturas)
+│   │   ├── {1-8}_basico/
+│   │   │   ├── matematica.json
+│   │   │   ├── lenguaje.json / lengua_literatura.json
+│   │   │   ├── ciencias_naturales.json
+│   │   │   ├── historia_geografia_y_cs_sociales.json
+│   │   │   ├── ingles.json
+│   │   │   └── tecnologia.json
+│   ├── media/                        ← 19 archivos (4 cursos con asignaturas variables)
+│   ├── meta/asignaturas_por_curso.json
+│   └── shared/
 │
 └── supabase/migrations/
     └── (ver sección Base de Datos)
@@ -693,7 +759,7 @@ cp .env.example .env.local
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJxxx...
-SUPABASE_SERVICE_ROLE_KEY=eyJxxx...   ← requerido para el panel admin y exam-security
+SUPABASE_SERVICE_ROLE_KEY=eyJxxx...   ← requerido para panel admin y exam-security
 
 # IA — Gemini (requerido)
 GEMINI_API_KEY=AIzaXxx...
@@ -715,7 +781,7 @@ UPSTASH_REDIS_REST_URL=https://...upstash.io
 UPSTASH_REDIS_REST_TOKEN=...
 ```
 
-> **Nota — SUPABASE_SERVICE_ROLE_KEY:** requerida para que `/api/exam-security/event` y `/api/admin` puedan escribir en tablas protegidas. Sin esta key, el registro de incidentes y el panel admin no funcionarán.
+> **Nota — SUPABASE_SERVICE_ROLE_KEY:** requerida para `/api/exam-security/event`, `/api/exam-report` y `/api/admin`. Sin esta key, el registro de incidentes, el análisis pedagógico y el panel admin no funcionarán.
 
 > **Nota — voces del podcast:** Los hosts siempre se llaman **Álvaro** (`es-ES-AlvaroNeural`) y **Elvira** (`es-ES-ElviraNeural`). Los nombres están fijos en el código del renderer.
 
@@ -761,6 +827,7 @@ npm run dev
 | Multi-agente (25+) | ✅ | ❌ | ❌ | ❌ |
 | Orquestador 6 agentes en paralelo | ✅ | ❌ | ❌ | ❌ |
 | Exámenes docente con link público | ✅ | ❌ | ❌ | ❌ |
+| Análisis pedagógico IA post-examen | ✅ | ❌ | ❌ | ❌ |
 | Modo supervisión antifraude (4 niveles) | ✅ | ❌ | ❌ | ❌ |
 | Registro de incidentes por alumno | ✅ | ❌ | ❌ | ❌ |
 | Papelera con soft delete y restaurar | ✅ | ❌ | ❌ | ❌ |
@@ -769,18 +836,20 @@ npm run dev
 | Creator Hub (8 formatos) | ✅ | ❌ | ❌ | ❌ |
 | Audio Lab — transcripción + 6 operaciones IA | ✅ | ❌ | ❌ | ❌ |
 | Workspace de proyectos | ✅ | ❌ | ❌ | ❌ |
+| Planificador MINEDUC con 77 JSONs curriculares | ✅ | ❌ | ❌ | ❌ |
+| Planificación con indicadores y obj. de clase | ✅ | ❌ | ❌ | ❌ |
 | Mapa Mental SVG interactivo | ✅ | ❌ | ❌ | ❌ |
 | Evaluación IA (desarrollo + V/F) | ✅ | ❌ | ❌ | ❌ |
 | Fallback Groq en lotes cuando Gemini da 429 | ✅ | N/A | N/A | N/A |
 | Podcast MP3 (28+ segmentos, 2 voces) | ✅ | ❌ | ❌ | ✅ |
 | Notas MINEDUC 1.0–7.0 | ✅ | ❌ | ❌ | ❌ |
-| Chat con Papers (50MB) | ✅ | ❌ | ✅ parcial | ✅ |
+| Chat con Papers (50 MB, embeddings) | ✅ | ❌ | ✅ parcial | ✅ |
 | Imágenes IA sin API key (Pollinations) | ✅ | ❌ | ❌ | ❌ |
 | Cache Redis + rate limiting | ✅ | N/A | N/A | N/A |
 | Gamificación completa + SM-2 | ✅ | ✅ | ❌ | ❌ |
 | LaTeX matemático | ✅ | ✅ | ✅ | ❌ |
 | Colaborativo multiusuario | ✅ | ❌ | ❌ | ❌ |
-| Chat social con amigos | ✅ | ❌ | ❌ | ❌ |
+| Chat social con amigos + presencia | ✅ | ❌ | ❌ | ❌ |
 | 100% gratuito + open source | ✅ | ✅/❌ | ❌ | ✅/❌ |
 
 ---
@@ -798,32 +867,32 @@ npm run dev
 - [ ] 📱 App móvil (Capacitor)
 - [ ] 📊 Analytics avanzado para docentes
 - [ ] 🔗 Integración Workspace ↔ Creator Hub
+- [ ] 📋 Currículum Básica 5°–8° en asignaturas adicionales (Artes, Música, Ed. Física)
 
 ### Completado ✅
+- [x] 📊 **APl — Análisis pedagógico de examen** — `/api/exam-report` con Gemini: 3 párrafos, contenidos críticos, recomendaciones
+- [x] 🏫 **APl — Planificación completa con 8 bloques** — indicadores de evaluación (tabla), objetivos de clase por sesión, secuencia con timing explícito (inicio/desarrollo/cierre con minutos), hasta 8.000 tokens
+- [x] 🎨 **APl — UI mejorada** — acordeones OA/OAT desplegables con badge contador, etiquetas verdes ámbito · núcleo, scroll forzado arriba al cargar
+- [x] 📚 **Currículum Básica completo** — 48 JSONs con OA oficiales para 1° a 8° Básico (Matemática, Lenguaje, Ciencias, Historia, Inglés, Tecnología)
+- [x] 💬 **Chat social ampliado** — APIs de notificaciones, presencia online y subida de archivos
+- [x] 📄 **Chat Paper mejorado** — lib/papers/ con embeddings, chunking inteligente y parser externo
 - [x] 🛡️ **Panel de Administración** — dashboard, usuarios, reportes, SupportButton, is_admin() con auth.email()
 - [x] 🔒 **Sistema antifraude de 4 niveles** — ExamGuard, SecurityOverlay con temporizador, exam_incidents, RiskBadge + IncidentModal en resultados
-- [x] 📋 **Modo supervisión sin kiosk** — fullscreen silencioso al clic "Iniciar examen", sin pantalla de aviso previa
+- [x] 📋 **Modo supervisión sin kiosk** — fullscreen silencioso al clic "Iniciar examen"
 - [x] 🗑️ **Papelera de exámenes** — soft delete con `deleted_at`, restaurar y eliminar permanente
 - [x] 📊 **Conteo correcto en resultados** — `correct_count` = preguntas correctas reales; `earned_points` / `total_points` = puntaje numérico separado
-- [x] ⚡ **API exam-generate dedicada** — sin límite del schema genérico, `maxOutputTokens` dinámico, fallback Groq en lotes de 10 cuando Gemini da 429
-- [x] 🔤 **LaTeX fix** — limpieza de ↑ (U+2191) y otros Unicode sustitutos de `\`, `throwOnError: false` en KaTeX
-- [x] 🎙️ **Audio Lab fix** — modelo `gemini-2.0-flash` (reemplaza -exp deprecado) + fallback cadena de 3 modelos
-- [x] 🧭 **Navegación exámenes** — flecha ← en resultados apunta a `/examen/docente`; en modo estudiante apunta a `/agentes`
-- [x] 📁 **Workspace notas** — editor RichText funcional, tipos `note/file/link` en DB, fallback de constraint
-- [x] 🎙️ **Audio Lab** — transcripción con Gemini multimodal + 6 operaciones de edición + 4 formatos de exportación
+- [x] ⚡ **API exam-generate dedicada** — sin límite del schema genérico, fallback Groq en lotes de 10
+- [x] 🔤 **LaTeX fix** — limpieza de ↑ (U+2191), `throwOnError: false` en KaTeX
+- [x] 🎙️ **Audio Lab** — transcripción con Gemini multimodal + 6 operaciones + 4 formatos
 - [x] 📁 **Workspace** — gestor de proyectos con IA, archivos y links
 - [x] 🎨 **Image Studio** — generación + galería unificados
-- [x] 📝 **Editor de Exámenes** — edición post-publicación sin romper el link
 - [x] ✨ **Creator Hub** — UX dedicada con páginas individuales por formato
 - [x] 🤖 **AI Router v4** — callGeminiStructured, callGeminiMultimodal, callGeminiImage, callAICached
 - [x] 🗄️ **Redis/Upstash** — cache configurable con degradación elegante
 - [x] 🧠 Mapa Mental renderer — SVG puro (fix `clientWidth = 0` en Next.js)
-- [x] 📊 Infografía renderer — layout editorial 2 columnas, 7 paletas
-- [x] 📑 PPT renderer — sistema de tipos de slide (title/quote/stats/content)
-- [x] 🎙️ Podcast renderer — hosts Álvaro (azul) y Elvira (rosa), nombres fijos en código
 - [x] 🤖 Orquestador de 6 agentes en paralelo
 - [x] 📋 Exámenes Docente — link público, evaluación IA, notas MINEDUC
-- [x] 📄 Chat Paper — Supabase Storage, chunking inteligente, 50MB
+- [x] 📄 Chat Paper — Supabase Storage, chunking inteligente, 50 MB
 - [x] 🤝 Colaboración multiusuario (hasta 10)
 - [x] 💬 Chat social tipo Messenger
 - [x] 🔄 Repaso espaciado SM-2
