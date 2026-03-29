@@ -1,0 +1,166 @@
+{
+  "metadata": {
+    "nivel": "Básica",
+    "curso": "5° Básico",
+    "asignatura": "Ciencias Naturales",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/",
+    "estado": "base_verificada_mineduc",
+    "ultima_actualizacion_manual": "2026-03-29",
+    "nota": "Archivo base creado a partir de OA publicados en Currículum Nacional MINEDUC. Recomendable revisar la distribución por unidades del planificador según el enfoque pedagógico del establecimiento."
+  },
+  "objetivos_habilidad": [
+    {
+      "id": "CN05-OAH-a",
+      "descripcion": "Seleccionar preguntas significativas que se puedan investigar.",
+      "unidades": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "CN05-OAH-b",
+      "descripcion": "Formular predicciones de resultados de una investigación, fundamentándolas.",
+      "unidades": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "CN05-OAH-c",
+      "descripcion": "Planificar y llevar a cabo investigaciones guiadas experimentales y no experimentales, considerando una variable y diversas fuentes de información.",
+      "unidades": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "CN05-OAH-d",
+      "descripcion": "Medir y registrar datos en forma precisa con instrumentos de medición, especificando unidades y comparándolos mediante tablas, gráficos y TIC.",
+      "unidades": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "CN05-OAH-e",
+      "descripcion": "Seleccionar materiales e instrumentos usándolos de manera segura y adecuada, identificando riesgos potenciales.",
+      "unidades": [
+        1,
+        2,
+        3,
+        4
+      ]
+    }
+  ],
+  "objetivos_actitud": [
+    {
+      "id": "CN05-OAA-A",
+      "descripcion": "Manifestar compromiso con la vida saludable, la investigación rigurosa y el cuidado del ambiente.",
+      "unidades": [
+        1,
+        2,
+        3,
+        4
+      ]
+    }
+  ],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "Ciencias de la vida: célula, sistemas y salud",
+      "oa": [
+        {
+          "id": "CN5B-OA-01",
+          "codigo_oficial": "CN05 OA 01",
+          "descripcion": "Reconocer y explicar que los seres vivos están formados por una o más células y que estas se organizan en tejidos, órganos y sistemas."
+        },
+        {
+          "id": "CN5B-OA-02",
+          "codigo_oficial": "CN05 OA 02",
+          "descripcion": "Identificar y describir por medio de modelos las estructuras básicas del sistema digestivo (boca, esófago, estómago, hígado, intestino delgado, intestino grueso, recto y ano) y sus funciones en la digestión, la absorción de alimentos y la eliminación de desechos."
+        },
+        {
+          "id": "CN5B-OA-03",
+          "codigo_oficial": "CN05 OA 03",
+          "descripcion": "Explicar por medio de modelos la respiración (inspiración-espiración-intercambio de oxígeno y dióxido de carbono), identificando las estructuras básicas del sistema respiratorio (nariz, tráquea, bronquios, alvéolos, pulmones)."
+        },
+        {
+          "id": "CN5B-OA-04",
+          "codigo_oficial": "CN05 OA 04",
+          "descripcion": "Explicar la función de transporte del sistema circulatorio (sustancias alimenticias, oxígeno y dióxido de carbono), identificando sus estructuras básicas (corazón, vasos sanguíneos y sangre)."
+        },
+        {
+          "id": "CN5B-OA-05",
+          "codigo_oficial": "CN05 OA 05",
+          "descripcion": "Analizar el consumo de alimento diario (variedad, tamaño y frecuencia de porciones) reconociendo los alimentos para el crecimiento, la reparación, el desarrollo y el movimiento del cuerpo."
+        },
+        {
+          "id": "CN5B-OA-06",
+          "codigo_oficial": "CN05 OA 06",
+          "descripcion": "Investigar en diversas fuentes y comunicar los efectos nocivos que produce el cigarrillo (humo del tabaco) en los sistemas respiratorio y circulatorio."
+        },
+        {
+          "id": "CN5B-OA-07",
+          "codigo_oficial": "CN05 OA 07",
+          "descripcion": "Investigar e identificar algunos microorganismos beneficiosos y dañinos para la salud (bacterias, virus y hongos), y proponer medidas de cuidado e higiene del cuerpo."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Ciencias físicas y químicas: electricidad",
+      "oa": [
+        {
+          "id": "CN5B-OA-08",
+          "codigo_oficial": "CN05 OA 08",
+          "descripcion": "Reconocer los cambios que experimenta la energía eléctrica al pasar de una forma a otra (eléctrica a calórica, sonora, lumínica etc.) e investigar los principales aportes de científicos en su estudio a lo largo del tiempo."
+        },
+        {
+          "id": "CN5B-OA-09",
+          "codigo_oficial": "CN05 OA 09",
+          "descripcion": "Construir un circuito eléctrico simple (cable, ampolleta, interruptor y pila), usarlo para resolver problemas cotidianos y explicar su funcionamiento."
+        },
+        {
+          "id": "CN5B-OA-10",
+          "codigo_oficial": "CN05 OA 10",
+          "descripcion": "Observar y distinguir, por medio de la investigación experimental, los materiales conductores (cobre y aluminio) y aisladores (plásticos y goma) de electricidad, relacionándolos con la manipulación segura de artefactos tecnológicos y circuitos eléctricos domiciliarios."
+        },
+        {
+          "id": "CN5B-OA-11",
+          "codigo_oficial": "CN05 OA 11",
+          "descripcion": "Explicar la importancia de la energía eléctrica en la vida cotidiana y proponer medidas para promover su ahorro y uso responsable."
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "nombre": "Ciencias de la Tierra y el Universo: aguas del planeta",
+      "oa": [
+        {
+          "id": "CN5B-OA-12",
+          "codigo_oficial": "CN05 OA 12",
+          "descripcion": "Describir la distribución del agua dulce y salada en la Tierra, considerando océanos, glaciares, ríos y lagos, aguas subterráneas, nubes, vapor de agua, etc. y comparar sus volúmenes, reconociendo la escasez relativa de agua dulce."
+        },
+        {
+          "id": "CN5B-OA-13",
+          "codigo_oficial": "CN05 OA 13",
+          "descripcion": "Analizar y describir las características de los océanos y lagos: variación de temperatura, luminosidad y presión en relación con la profundidad; diversidad de flora y fauna; movimiento de las aguas, como olas, mareas y corrientes (El Niño y Humboldt)."
+        },
+        {
+          "id": "CN5B-OA-14",
+          "codigo_oficial": "CN05 OA 14",
+          "descripcion": "Investigar y explicar efectos positivos y negativos de la actividad humana en los océanos, lagos, ríos, glaciares, entre otros, proponiendo acciones de protección de las reservas hídricas en Chile y comunicando sus resultados."
+        }
+      ]
+    }
+  ]
+}
