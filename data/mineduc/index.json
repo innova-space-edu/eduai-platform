@@ -27,7 +27,13 @@
         "data/mineduc/basica/3_basico/matematica.json",
         "data/mineduc/basica/4_basico/matematica.json",
         "data/mineduc/basica/5_basico/matematica.json",
-        "data/mineduc/basica/6_basico/matematica.json"
+        "data/mineduc/basica/6_basico/matematica.json",
+        "data/mineduc/basica/1_basico/lenguaje.json",
+        "data/mineduc/basica/2_basico/lenguaje.json",
+        "data/mineduc/basica/3_basico/lenguaje.json",
+        "data/mineduc/basica/4_basico/lenguaje.json",
+        "data/mineduc/basica/5_basico/lenguaje.json",
+        "data/mineduc/basica/6_basico/lenguaje.json"
       ]
     },
     {
