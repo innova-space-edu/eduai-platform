@@ -1,0 +1,54 @@
+{
+  "estado": "base_verificada_mineduc",
+  "curso": "8_basico",
+  "asignatura": "ciencias_naturales",
+  "nombre_asignatura": "Ciencias Naturales",
+  "fuente": "Currículum Nacional MINEDUC",
+  "unidades": [
+    {
+      "unidad": 1,
+      "titulo": "Biología",
+      "oa": [
+        {
+          "id": "OA1",
+          "descripcion": "Analizar funciones del organismo humano y su relación con la salud.",
+          "eje": "Biología",
+          "indicadores": [
+            "Explican funciones de sistemas corporales.",
+            "Relacionan hábitos saludables con prevención de enfermedades."
+          ]
+        }
+      ]
+    },
+    {
+      "unidad": 2,
+      "titulo": "Física",
+      "oa": [
+        {
+          "id": "OA2",
+          "descripcion": "Explicar fenómenos relacionados con energía, calor y electricidad.",
+          "eje": "Física",
+          "indicadores": [
+            "Describen transformaciones de energía.",
+            "Analizan situaciones de transferencia de calor y electricidad."
+          ]
+        }
+      ]
+    },
+    {
+      "unidad": 3,
+      "titulo": "Química",
+      "oa": [
+        {
+          "id": "OA3",
+          "descripcion": "Analizar la estructura de la materia y sus transformaciones.",
+          "eje": "Química",
+          "indicadores": [
+            "Distinguen elementos, compuestos y mezclas.",
+            "Explican cambios físicos y químicos."
+          ]
+        }
+      ]
+    }
+  ]
+}
