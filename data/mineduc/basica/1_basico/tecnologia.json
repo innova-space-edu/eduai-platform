@@ -1,0 +1,90 @@
+{
+  "metadata": {
+    "nivel": "Básica",
+    "curso": "1° Básico",
+    "asignatura": "Tecnología",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/",
+    "estado": "base_verificada_mineduc",
+    "ultima_actualizacion_manual": "2026-03-29",
+    "nota": "Archivo estructurado con los OA de Tecnología publicados en la Base Curricular oficial de Currículum Nacional."
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [
+    {
+      "id": "1_BASICO-TE-OAA-A",
+      "descripcion": "Demostrar curiosidad por el entorno tecnológico, y disposición a informarse y explorar sus diversos usos, funcionamiento y materiales."
+    },
+    {
+      "id": "1_BASICO-TE-OAA-B",
+      "descripcion": "Demostrar disposición a desarrollar su creatividad, experimentando, imaginando y pensando divergentemente."
+    },
+    {
+      "id": "1_BASICO-TE-OAA-C",
+      "descripcion": "Demostrar iniciativa personal y emprendimiento en la creación y diseño de tecnologías innovadoras."
+    },
+    {
+      "id": "1_BASICO-TE-OAA-D",
+      "descripcion": "Demostrar disposición a trabajar en equipo, colaborar con otros y aceptar consejos y críticas."
+    },
+    {
+      "id": "1_BASICO-TE-OAA-E",
+      "descripcion": "Demostrar un uso seguro y responsable de internet, cumpliendo las reglas entregadas por el profesor y respetando los derechos de autor."
+    }
+  ],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "Diseño y representación de ideas",
+      "oa": [
+        {
+          "id": "TE1B-OA-01",
+          "codigo_oficial": "TE01 OA 01",
+          "descripcion": "Crear diseños de objetos tecnológicos, a partir de sus propias experiencias y representando sus ideas, a través de dibujo a mano alzada o modelos concretos, y con orientación del profesor."
+        },
+        {
+          "id": "TE1B-OA-02",
+          "codigo_oficial": "TE01 OA 02",
+          "descripcion": "Distinguir las tareas para elaborar un objeto tecnológico, identificando los materiales y las herramientas necesarios en cada una de ellas para lograr el resultado deseado."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Elaboración y prueba de objetos",
+      "oa": [
+        {
+          "id": "TE1B-OA-03",
+          "codigo_oficial": "TE01 OA 03",
+          "descripcion": "Elaborar un objeto tecnológico para responder a desafíos, experimentando con técnicas, herramientas y materiales diversos."
+        },
+        {
+          "id": "TE1B-OA-04",
+          "codigo_oficial": "TE01 OA 04",
+          "descripcion": "Probar y explicar los resultados de los trabajos propios y de otros, de forma individual o en equipos, dialogando sobre sus ideas e identificando lo que podría hacerse de otra manera."
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "nombre": "Herramientas digitales y software",
+      "oa": [
+        {
+          "id": "TE1B-OA-05",
+          "codigo_oficial": "TE01 OA 05",
+          "descripcion": "Usar software de dibujo para crear y representar ideas por medio de imágenes, guiados por el docente."
+        },
+        {
+          "id": "TE1B-OA-06",
+          "codigo_oficial": "TE01 OA 06",
+          "descripcion": "Explorar y usar una variedad de software educativos para lograr aprendizajes significativos y una interacción apropiada con las TIC."
+        }
+      ]
+    },
+    {
+      "numero": 4,
+      "nombre": "Uso responsable de internet",
+      "oa": []
+    }
+  ]
+}

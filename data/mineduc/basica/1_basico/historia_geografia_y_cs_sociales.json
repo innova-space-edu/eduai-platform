@@ -1,0 +1,152 @@
+{
+  "metadata": {
+    "nivel": "Básica",
+    "curso": "1° Básico",
+    "asignatura": "Historia, Geografía y Cs. Sociales",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/",
+    "estado": "base_oa_completa_en_revision",
+    "ultima_actualizacion_manual": "2026-03-29",
+    "nota": "Archivo creado a partir de la Base Curricular oficial del curso en Currículum Nacional. Se recomienda una última revisión fina de habilidades e indicadores antes de marcarlo como 100% verificado."
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [
+    {
+      "id": "1_BASICO-OAA-A",
+      "descripcion": "Trabajar en forma rigurosa y perseverante, con espíritu emprendedor y con una disposición positiva a la crítica y la autocrítica."
+    },
+    {
+      "id": "1_BASICO-OAA-B",
+      "descripcion": "Reconocer la importancia y la dignidad de todos los trabajos, valorando y respetando a las personas que los realizan."
+    },
+    {
+      "id": "1_BASICO-OAA-C",
+      "descripcion": "Respetar y defender la igualdad de derechos entre hombres y mujeres y apreciar la importancia de desarrollar relaciones que potencien su participación equitativa en la vida económica, familiar, social y cultural."
+    },
+    {
+      "id": "1_BASICO-OAA-D",
+      "descripcion": "Respetar y defender la igualdad de derechos esenciales de todas las personas, sin distinción de sexo, edad, condición física, etnia, religión o situación económica."
+    },
+    {
+      "id": "1_BASICO-OAA-E",
+      "descripcion": "Participar solidaria y responsablemente en las actividades y proyectos del establecimiento y del espacio comunitario, demostrando espíritu emprendedor."
+    },
+    {
+      "id": "1_BASICO-OAA-F",
+      "descripcion": "Establecer lazos de pertenencia con su entorno social y natural a partir del conocimiento, la valoración y la reflexión sobre su historia personal, su comunidad y el país."
+    },
+    {
+      "id": "1_BASICO-OAA-G",
+      "descripcion": "Comportarse y actuar en la vida cotidiana según principios y virtudes ciudadanas."
+    },
+    {
+      "id": "1_BASICO-OAA-H",
+      "descripcion": "Demostrar valoración por la democracia, reconociendo su importancia para la convivencia y el resguardo de derechos."
+    },
+    {
+      "id": "1_BASICO-OAA-I",
+      "descripcion": "Demostrar valoración por la vida en sociedad para el desarrollo y el crecimiento de la persona."
+    }
+  ],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "Identidad personal, tiempo y familia",
+      "oa": [
+        {
+          "id": "HI1B-OA-01",
+          "codigo_oficial": "HI01 OA 01",
+          "descripcion": "Nombrar y secuenciar días de la semana y meses del año, utilizando calendarios, e identificar el año en curso."
+        },
+        {
+          "id": "HI1B-OA-02",
+          "codigo_oficial": "HI01 OA 02",
+          "descripcion": "Secuenciar acontecimientos y actividades de la vida cotidiana, personal y familiar, utilizando categorías relativas de ubicación temporal, como antes, después; ayer, hoy, mañana; día, noche; este año, el año pasado, el año próximo."
+        },
+        {
+          "id": "HI1B-OA-03",
+          "codigo_oficial": "HI01 OA 03",
+          "descripcion": "Registrar y comunicar información sobre elementos que forman parte de su identidad personal (nombre, fecha de nacimiento, lugar de procedencia, ascendencias, gustos, intereses, amigos y otros) para reconocer sus características individuales."
+        },
+        {
+          "id": "HI1B-OA-04",
+          "codigo_oficial": "HI01 OA 04",
+          "descripcion": "Obtener y comunicar aspectos de la historia de su familia y sus características, como costumbres, tradiciones, ritos, fiestas, recuerdos y roles que desempeñan los distintos miembros de su grupo familiar, mediante la formulación de preguntas a adultos de su entorno cercano."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Identidad local y nacional",
+      "oa": [
+        {
+          "id": "HI1B-OA-05",
+          "codigo_oficial": "HI01 OA 05",
+          "descripcion": "Reconocer los símbolos representativos de Chile (como la bandera, el escudo y el himno nacional), describir costumbres, actividades y la participación de hombres y mujeres respecto de conmemoraciones nacionales y reconocer en ellos un elemento de unidad e identidad nacional."
+        },
+        {
+          "id": "HI1B-OA-06",
+          "codigo_oficial": "HI01 OA 06",
+          "descripcion": "Conocer expresiones culturales locales y nacionales (como comidas, flores y animales típicos, música y juegos, entre otros), describir fiestas y tradiciones importantes de nivel local y reconocer estas expresiones como elementos de unidad e identidad local y/o nacional."
+        },
+        {
+          "id": "HI1B-OA-07",
+          "codigo_oficial": "HI01 OA 07",
+          "descripcion": "Conocer sobre la vida de hombres y mujeres que han contribuido a la sociedad chilena en diversos ámbitos; por ejemplo, fundadores de ciudades, exploradores, científicos, artistas, deportistas y grandes poetas, entre otros."
+        },
+        {
+          "id": "HI1B-OA-08",
+          "codigo_oficial": "HI01 OA 08",
+          "descripcion": "Reconocer que los mapas y planos son formas de representar lugares."
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "nombre": "Representaciones del espacio y entorno",
+      "oa": [
+        {
+          "id": "HI1B-OA-09",
+          "codigo_oficial": "HI01 OA 09",
+          "descripcion": "Identificar a Chile en mapas, incluyendo la cordillera de los Andes, el océano Pacífico, su región, su capital y su localidad."
+        },
+        {
+          "id": "HI1B-OA-10",
+          "codigo_oficial": "HI01 OA 10",
+          "descripcion": "Observar y describir paisajes de su entorno local, utilizando vocabulario geográfico adecuado y categorías de ubicación relativa."
+        },
+        {
+          "id": "HI1B-OA-11",
+          "codigo_oficial": "HI01 OA 11",
+          "descripcion": "Identificar trabajos y productos de su familia y su localidad y cómo estos aportan a su vida diaria, reconociendo la importancia de todos los trabajos, tanto remunerados como no remunerados."
+        },
+        {
+          "id": "HI1B-OA-12",
+          "codigo_oficial": "HI01 OA 12",
+          "descripcion": "Conocer cómo viven otros niños en diferentes partes del mundo por medio de imágenes y relatos, ubicando en un globo terráqueo o mapamundi los países donde habitan, y comparando su idioma, vestimenta, comida, fiestas, costumbres y principales tareas con las de niños chilenos."
+        }
+      ]
+    },
+    {
+      "numero": 4,
+      "nombre": "Convivencia e instituciones de la comunidad",
+      "oa": [
+        {
+          "id": "HI1B-OA-13",
+          "codigo_oficial": "HI01 OA 13",
+          "descripcion": "Mostrar actitudes y realizar acciones concretas en su entorno cercano que reflejen respeto al otro, empatía y responsabilidad."
+        },
+        {
+          "id": "HI1B-OA-14",
+          "codigo_oficial": "HI01 OA 14",
+          "descripcion": "Explicar y aplicar algunas normas para la buena convivencia y para la seguridad y el autocuidado en su familia, en la escuela y en la vía pública."
+        },
+        {
+          "id": "HI1B-OA-15",
+          "codigo_oficial": "HI01 OA 15",
+          "descripcion": "Identificar la labor que cumplen, en beneficio de la comunidad, instituciones como la escuela, la municipalidad, el hospital o la posta, Carabineros de Chile, y las personas que trabajan en ellas."
+        }
+      ]
+    }
+  ]
+}
