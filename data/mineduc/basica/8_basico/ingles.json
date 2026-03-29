@@ -1,0 +1,39 @@
+{
+  "estado": "base_verificada_mineduc",
+  "curso": "8_basico",
+  "asignatura": "ingles",
+  "nombre_asignatura": "Inglés",
+  "fuente": "Currículum Nacional MINEDUC",
+  "unidades": [
+    {
+      "unidad": 1,
+      "titulo": "Comprensión oral y expresión oral",
+      "oa": [
+        {
+          "id": "OA1",
+          "descripcion": "Comprender información general y específica en textos orales.",
+          "eje": "Listening & Speaking",
+          "indicadores": [
+            "Identifican ideas principales y detalles.",
+            "Participan en conversaciones sobre temas conocidos."
+          ]
+        }
+      ]
+    },
+    {
+      "unidad": 2,
+      "titulo": "Comprensión escrita y expresión escrita",
+      "oa": [
+        {
+          "id": "OA2",
+          "descripcion": "Leer y escribir textos breves sobre experiencias, opiniones e información general.",
+          "eje": "Reading & Writing",
+          "indicadores": [
+            "Comprenden textos breves y guiados.",
+            "Escriben textos simples con estructura clara."
+          ]
+        }
+      ]
+    }
+  ]
+}
