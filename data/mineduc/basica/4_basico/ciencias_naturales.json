@@ -1,0 +1,171 @@
+{
+  "metadata": {
+    "nivel": "Básica",
+    "curso": "4° Básico",
+    "asignatura": "Ciencias Naturales",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/",
+    "estado": "base_verificada_mineduc",
+    "ultima_actualizacion_manual": "2026-03-29",
+    "nota": "Archivo base creado a partir de OA publicados en Currículum Nacional MINEDUC. Recomendable revisar la distribución por unidades del planificador según el enfoque pedagógico del establecimiento."
+  },
+  "objetivos_habilidad": [
+    {
+      "id": "CN04-OAH-a",
+      "descripcion": "Formular preguntas que puedan ser investigadas y predicciones fundadas sobre fenómenos naturales.",
+      "unidades": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "CN04-OAH-b",
+      "descripcion": "Planificar y realizar investigaciones guiadas, registrando, comparando y comunicando evidencias.",
+      "unidades": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "CN04-OAH-c",
+      "descripcion": "Usar instrumentos y materiales en forma segura y adecuada durante experiencias científicas.",
+      "unidades": [
+        1,
+        2,
+        3,
+        4
+      ]
+    }
+  ],
+  "objetivos_actitud": [
+    {
+      "id": "CN04-OAA-A",
+      "descripcion": "Demostrar curiosidad y rigor al investigar y explicar fenómenos del entorno natural.",
+      "unidades": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "CN04-OAA-B",
+      "descripcion": "Valorar el cuidado del ambiente y la vida saludable.",
+      "unidades": [
+        1,
+        2,
+        3,
+        4
+      ]
+    }
+  ],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "Ciencias de la vida: ecosistemas y sistemas del cuerpo",
+      "oa": [
+        {
+          "id": "CN4B-OA-01",
+          "codigo_oficial": "CN04 OA 01",
+          "descripcion": "Reconocer, por medio de la exploración, que un ecosistema está compuesto por elementos vivos (animales, plantas, etc.) y no vivos (piedras, aguas, tierra, etc.) que interactúan entre sí."
+        },
+        {
+          "id": "CN4B-OA-02",
+          "codigo_oficial": "CN04 OA 02",
+          "descripcion": "Observar y comparar adaptaciones de plantas y animales para sobrevivir en los ecosistemas en relación con su estructura y conducta; por ejemplo: cubierta corporal, camuflaje, tipo de hojas, hibernación, entre otras."
+        },
+        {
+          "id": "CN4B-OA-03",
+          "codigo_oficial": "CN04 OA 03",
+          "descripcion": "Dar ejemplos de cadenas alimentarias, identificando la función de los organismos productores, consumidores y descomponedores, en diferentes ecosistemas de Chile."
+        },
+        {
+          "id": "CN4B-OA-04",
+          "codigo_oficial": "CN04 OA 04",
+          "descripcion": "Analizar los efectos de la actividad humana en ecosistemas de Chile, proponiendo medidas para protegerlos (parques nacionales y vedas, entre otras)."
+        },
+        {
+          "id": "CN4B-OA-05",
+          "codigo_oficial": "CN04 OA 05",
+          "descripcion": "Identificar y describir, usando modelos, estructuras del sistema esquelético y algunas de sus funciones, como protección (costillas y cráneo), soporte (vértebras y columna vertebral) y movimiento (pelvis y fémur)."
+        },
+        {
+          "id": "CN4B-OA-06",
+          "codigo_oficial": "CN04 OA 06",
+          "descripcion": "Explicar, con apoyo de modelos, el movimiento del cuerpo, considerando la acción coordinada de músculos, huesos, tendones y articulación (ejemplo: brazo y pierna), y describir los beneficios de la actividad física para el sistema musculo-esquelético."
+        },
+        {
+          "id": "CN4B-OA-07",
+          "codigo_oficial": "CN04 OA 07",
+          "descripcion": "Identificar estructuras del sistema nervioso y describir algunas de sus funciones, como conducción de información (médula espinal y nervios) y elaboración y control (cerebro)."
+        },
+        {
+          "id": "CN4B-OA-08",
+          "codigo_oficial": "CN04 OA 08",
+          "descripcion": "Investigar en diversas fuentes y comunicar los efectos que produce el consumo excesivo de alcohol en la salud humana (como descoordinación, confusión y lentitud, entre otras)."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Ciencias físicas y químicas: materia y fuerzas",
+      "oa": [
+        {
+          "id": "CN4B-OA-09",
+          "codigo_oficial": "CN04 OA 09",
+          "descripcion": "Demostrar, por medio de la investigación experimental, que la materia tiene masa y ocupa espacio, usando materiales del entorno."
+        },
+        {
+          "id": "CN4B-OA-10",
+          "codigo_oficial": "CN04 OA 10",
+          "descripcion": "Comparar los tres estados de la materia (sólido, líquido y gaseoso) en relación con criterios como la capacidad de fluir, cambiar de forma y volumen, entre otros."
+        },
+        {
+          "id": "CN4B-OA-11",
+          "codigo_oficial": "CN04 OA 11",
+          "descripcion": "Medir la masa, el volumen y la temperatura de la materia (en estados sólido, líquido y gaseoso), utilizando instrumentos y unidades de medida apropiados."
+        },
+        {
+          "id": "CN4B-OA-12",
+          "codigo_oficial": "CN04 OA 12",
+          "descripcion": "Demostrar, por medio de la investigación experimental, los efectos de la aplicación de fuerzas sobre objetos, considerando cambios en la forma, la rapidez y la dirección del movimiento, entre otros."
+        },
+        {
+          "id": "CN4B-OA-13",
+          "codigo_oficial": "CN04 OA 13",
+          "descripcion": "Identificar, por medio de la investigación experimental, diferentes tipos de fuerzas y sus efectos en situaciones concretas: fuerza de roce (arrastrando objetos), peso (fuerza de gravedad) y fuerza magnética (en imanes)."
+        },
+        {
+          "id": "CN4B-OA-14",
+          "codigo_oficial": "CN04 OA 14",
+          "descripcion": "Diseñar y construir objetos tecnológicos que usen la fuerza para resolver problemas cotidianos."
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "nombre": "Ciencias de la Tierra y el Universo: estructura terrestre y riesgos naturales",
+      "oa": [
+        {
+          "id": "CN4B-OA-15",
+          "codigo_oficial": "CN04 OA 15",
+          "descripcion": "Describir, por medio de modelos, que la Tierra tiene una estructura de capas (corteza, manto y núcleo) con características distintivas en cuanto a su composición, rigidez y temperatura."
+        },
+        {
+          "id": "CN4B-OA-16",
+          "codigo_oficial": "CN04 OA 16",
+          "descripcion": "Explicar los cambios de la superficie de la Tierra a partir de la interacción de sus capas y los movimientos de las placas tectónicas (sismos, tsunamis y erupciones volcánicas)."
+        },
+        {
+          "id": "CN4B-OA-17",
+          "codigo_oficial": "CN04 OA 17",
+          "descripcion": "Proponer medidas de prevención y seguridad ante riesgos naturales en la escuela, la calle y el hogar, para desarrollar una cultura preventiva."
+        }
+      ]
+    }
+  ]
+}
