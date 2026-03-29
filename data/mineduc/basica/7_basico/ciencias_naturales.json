@@ -1,0 +1,63 @@
+{
+  "estado": "base_verificada_mineduc",
+  "curso": "7_basico",
+  "asignatura": "ciencias_naturales",
+  "nombre_asignatura": "Ciencias Naturales",
+  "fuente": "Currículum Nacional MINEDUC",
+  "unidades": [
+    {
+      "unidad": 1,
+      "titulo": "Biología",
+      "oa": [
+        {
+          "id": "OA1",
+          "descripcion": "Explicar la organización de los seres vivos y el funcionamiento de sus sistemas.",
+          "eje": "Biología",
+          "indicadores": [
+            "Describen niveles de organización biológica.",
+            "Relacionan estructura y función en organismos."
+          ]
+        },
+        {
+          "id": "OA2",
+          "descripcion": "Analizar el funcionamiento del sistema digestivo, respiratorio y circulatorio.",
+          "eje": "Biología",
+          "indicadores": [
+            "Explican funciones de cada sistema.",
+            "Relacionan hábitos saludables con el funcionamiento corporal."
+          ]
+        }
+      ]
+    },
+    {
+      "unidad": 2,
+      "titulo": "Física",
+      "oa": [
+        {
+          "id": "OA3",
+          "descripcion": "Describir y analizar el movimiento y las fuerzas en situaciones cotidianas.",
+          "eje": "Física",
+          "indicadores": [
+            "Describen trayectorias y tipos de movimiento.",
+            "Explican efectos de fuerzas en objetos."
+          ]
+        }
+      ]
+    },
+    {
+      "unidad": 3,
+      "titulo": "Química",
+      "oa": [
+        {
+          "id": "OA4",
+          "descripcion": "Distinguir entre cambios físicos y químicos en la materia.",
+          "eje": "Química",
+          "indicadores": [
+            "Identifican propiedades de la materia.",
+            "Clasifican transformaciones como físicas o químicas."
+          ]
+        }
+      ]
+    }
+  ]
+}
