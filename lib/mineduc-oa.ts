@@ -11,6 +11,12 @@ import basica3Matematica from "../data/mineduc/basica/3_basico/matematica.json"
 import basica4Matematica from "../data/mineduc/basica/4_basico/matematica.json"
 import basica5Matematica from "../data/mineduc/basica/5_basico/matematica.json"
 import basica6Matematica from "../data/mineduc/basica/6_basico/matematica.json"
+import basica1Lenguaje from "../data/mineduc/basica/1_basico/lenguaje.json"
+import basica2Lenguaje from "../data/mineduc/basica/2_basico/lenguaje.json"
+import basica3Lenguaje from "../data/mineduc/basica/3_basico/lenguaje.json"
+import basica4Lenguaje from "../data/mineduc/basica/4_basico/lenguaje.json"
+import basica5Lenguaje from "../data/mineduc/basica/5_basico/lenguaje.json"
+import basica6Lenguaje from "../data/mineduc/basica/6_basico/lenguaje.json"
 
 import media1Matematica from "../data/mineduc/media/1_medio/matematica.json"
 import media1Lengua from "../data/mineduc/media/1_medio/lengua_literatura.json"
@@ -322,6 +328,13 @@ registerStandardFile("basica", "3° Básico", "Matemática", basica3Matematica a
 registerStandardFile("basica", "4° Básico", "Matemática", basica4Matematica as StandardCurriculumFile, "data/mineduc/basica/4_basico/matematica.json")
 registerStandardFile("basica", "5° Básico", "Matemática", basica5Matematica as StandardCurriculumFile, "data/mineduc/basica/5_basico/matematica.json")
 registerStandardFile("basica", "6° Básico", "Matemática", basica6Matematica as StandardCurriculumFile, "data/mineduc/basica/6_basico/matematica.json")
+
+registerStandardFile("basica", "1° Básico", "Lenguaje y Comunicación", basica1Lenguaje as StandardCurriculumFile, "data/mineduc/basica/1_basico/lenguaje.json")
+registerStandardFile("basica", "2° Básico", "Lenguaje y Comunicación", basica2Lenguaje as StandardCurriculumFile, "data/mineduc/basica/2_basico/lenguaje.json")
+registerStandardFile("basica", "3° Básico", "Lenguaje y Comunicación", basica3Lenguaje as StandardCurriculumFile, "data/mineduc/basica/3_basico/lenguaje.json")
+registerStandardFile("basica", "4° Básico", "Lenguaje y Comunicación", basica4Lenguaje as StandardCurriculumFile, "data/mineduc/basica/4_basico/lenguaje.json")
+registerStandardFile("basica", "5° Básico", "Lenguaje y Comunicación", basica5Lenguaje as StandardCurriculumFile, "data/mineduc/basica/5_basico/lenguaje.json")
+registerStandardFile("basica", "6° Básico", "Lenguaje y Comunicación", basica6Lenguaje as StandardCurriculumFile, "data/mineduc/basica/6_basico/lenguaje.json")
 
 registerStandardFile("media", "1° Medio", "Matemática", media1Matematica as StandardCurriculumFile, "data/mineduc/media/1_medio/matematica.json")
 registerStandardFile("media", "1° Medio", "Lengua y Literatura", media1Lengua as StandardCurriculumFile, "data/mineduc/media/1_medio/lengua_literatura.json")
