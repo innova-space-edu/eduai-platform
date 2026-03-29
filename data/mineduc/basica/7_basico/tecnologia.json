@@ -1,0 +1,48 @@
+{
+  "estado": "base_verificada_mineduc",
+  "curso": "7_basico",
+  "asignatura": "tecnologia",
+  "nombre_asignatura": "Tecnología",
+  "fuente": "Currículum Nacional MINEDUC",
+  "unidades": [
+    {
+      "unidad": 1,
+      "titulo": "Diseño y solución de problemas",
+      "oa": [
+        {
+          "id": "OA1",
+          "descripcion": "Identificar problemas del entorno y proponer soluciones tecnológicas.",
+          "eje": "Diseño",
+          "indicadores": [
+            "Detectan necesidades del entorno.",
+            "Proponen ideas de solución tecnológica."
+          ]
+        },
+        {
+          "id": "OA2",
+          "descripcion": "Diseñar, construir y evaluar objetos o sistemas tecnológicos.",
+          "eje": "Diseño",
+          "indicadores": [
+            "Elaboran prototipos.",
+            "Evalúan el funcionamiento de sus soluciones."
+          ]
+        }
+      ]
+    },
+    {
+      "unidad": 2,
+      "titulo": "Tecnologías de la información",
+      "oa": [
+        {
+          "id": "OA3",
+          "descripcion": "Utilizar herramientas digitales de manera segura y responsable.",
+          "eje": "TIC",
+          "indicadores": [
+            "Usan programas y plataformas digitales.",
+            "Aplican normas de seguridad digital."
+          ]
+        }
+      ]
+    }
+  ]
+}
