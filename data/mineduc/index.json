@@ -18,11 +18,7 @@
       "name": "Educación Básica",
       "files": [
 
-        /* ======================
-           1° a 6° BÁSICO
-        ====================== */
-
-        /* 1° */
+       
         { "path": "basica/1_basico/matematica.json", "nivel": "basica", "curso": "1_basico", "asignatura": "matematica" },
         { "path": "basica/1_basico/lenguaje.json", "nivel": "basica", "curso": "1_basico", "asignatura": "lenguaje" },
         { "path": "basica/1_basico/ciencias_naturales.json", "nivel": "basica", "curso": "1_basico", "asignatura": "ciencias_naturales" },
@@ -30,7 +26,7 @@
         { "path": "basica/1_basico/tecnologia.json", "nivel": "basica", "curso": "1_basico", "asignatura": "tecnologia" },
         { "path": "basica/1_basico/ingles.json", "nivel": "basica", "curso": "1_basico", "asignatura": "ingles" },
 
-        /* 2° */
+        
         { "path": "basica/2_basico/matematica.json", "nivel": "basica", "curso": "2_basico", "asignatura": "matematica" },
         { "path": "basica/2_basico/lenguaje.json", "nivel": "basica", "curso": "2_basico", "asignatura": "lenguaje" },
         { "path": "basica/2_basico/ciencias_naturales.json", "nivel": "basica", "curso": "2_basico", "asignatura": "ciencias_naturales" },
@@ -38,7 +34,7 @@
         { "path": "basica/2_basico/tecnologia.json", "nivel": "basica", "curso": "2_basico", "asignatura": "tecnologia" },
         { "path": "basica/2_basico/ingles.json", "nivel": "basica", "curso": "2_basico", "asignatura": "ingles" },
 
-        /* 3° */
+        
         { "path": "basica/3_basico/matematica.json", "nivel": "basica", "curso": "3_basico", "asignatura": "matematica" },
         { "path": "basica/3_basico/lenguaje.json", "nivel": "basica", "curso": "3_basico", "asignatura": "lenguaje" },
         { "path": "basica/3_basico/ciencias_naturales.json", "nivel": "basica", "curso": "3_basico", "asignatura": "ciencias_naturales" },
@@ -46,7 +42,7 @@
         { "path": "basica/3_basico/tecnologia.json", "nivel": "basica", "curso": "3_basico", "asignatura": "tecnologia" },
         { "path": "basica/3_basico/ingles.json", "nivel": "basica", "curso": "3_basico", "asignatura": "ingles" },
 
-        /* 4° */
+        
         { "path": "basica/4_basico/matematica.json", "nivel": "basica", "curso": "4_basico", "asignatura": "matematica" },
         { "path": "basica/4_basico/lenguaje.json", "nivel": "basica", "curso": "4_basico", "asignatura": "lenguaje" },
         { "path": "basica/4_basico/ciencias_naturales.json", "nivel": "basica", "curso": "4_basico", "asignatura": "ciencias_naturales" },
@@ -54,7 +50,7 @@
         { "path": "basica/4_basico/tecnologia.json", "nivel": "basica", "curso": "4_basico", "asignatura": "tecnologia" },
         { "path": "basica/4_basico/ingles.json", "nivel": "basica", "curso": "4_basico", "asignatura": "ingles" },
 
-        /* 5° */
+        
         { "path": "basica/5_basico/matematica.json", "nivel": "basica", "curso": "5_basico", "asignatura": "matematica" },
         { "path": "basica/5_basico/lenguaje.json", "nivel": "basica", "curso": "5_basico", "asignatura": "lenguaje" },
         { "path": "basica/5_basico/ciencias_naturales.json", "nivel": "basica", "curso": "5_basico", "asignatura": "ciencias_naturales" },
@@ -62,7 +58,7 @@
         { "path": "basica/5_basico/tecnologia.json", "nivel": "basica", "curso": "5_basico", "asignatura": "tecnologia" },
         { "path": "basica/5_basico/ingles.json", "nivel": "basica", "curso": "5_basico", "asignatura": "ingles" },
 
-        /* 6° */
+        
         { "path": "basica/6_basico/matematica.json", "nivel": "basica", "curso": "6_basico", "asignatura": "matematica" },
         { "path": "basica/6_basico/lenguaje.json", "nivel": "basica", "curso": "6_basico", "asignatura": "lenguaje" },
         { "path": "basica/6_basico/ciencias_naturales.json", "nivel": "basica", "curso": "6_basico", "asignatura": "ciencias_naturales" },
@@ -70,9 +66,7 @@
         { "path": "basica/6_basico/tecnologia.json", "nivel": "basica", "curso": "6_basico", "asignatura": "tecnologia" },
         { "path": "basica/6_basico/ingles.json", "nivel": "basica", "curso": "6_basico", "asignatura": "ingles" },
 
-        /* ======================
-           7° y 8° BÁSICO
-        ====================== */
+        
 
         { "path": "basica/7_basico/matematica.json", "nivel": "basica", "curso": "7_basico", "asignatura": "matematica" },
         { "path": "basica/7_basico/lengua_literatura.json", "nivel": "basica", "curso": "7_basico", "asignatura": "lengua_literatura" },
