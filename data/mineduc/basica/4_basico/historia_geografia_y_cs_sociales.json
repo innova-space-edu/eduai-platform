@@ -1,0 +1,152 @@
+{
+  "metadata": {
+    "nivel": "Básica",
+    "curso": "4° Básico",
+    "asignatura": "Historia, Geografía y Cs. Sociales",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/",
+    "estado": "base_oa_completa_en_revision",
+    "ultima_actualizacion_manual": "2026-03-29",
+    "nota": "Archivo creado a partir de la Base Curricular oficial del curso en Currículum Nacional. Se recomienda una última revisión fina de habilidades e indicadores antes de marcarlo como 100% verificado."
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [
+    {
+      "id": "4_BASICO-OAA-A",
+      "descripcion": "Trabajar en forma rigurosa y perseverante, con espíritu emprendedor y con una disposición positiva a la crítica y la autocrítica."
+    },
+    {
+      "id": "4_BASICO-OAA-B",
+      "descripcion": "Reconocer la importancia y la dignidad de todos los trabajos, valorando y respetando a las personas que los realizan."
+    },
+    {
+      "id": "4_BASICO-OAA-C",
+      "descripcion": "Respetar y defender la igualdad de derechos entre hombres y mujeres y apreciar la importancia de desarrollar relaciones que potencien su participación equitativa en la vida económica, familiar, social y cultural."
+    },
+    {
+      "id": "4_BASICO-OAA-D",
+      "descripcion": "Respetar y defender la igualdad de derechos esenciales de todas las personas, sin distinción de sexo, edad, condición física, etnia, religión o situación económica."
+    },
+    {
+      "id": "4_BASICO-OAA-E",
+      "descripcion": "Participar solidaria y responsablemente en las actividades y proyectos del establecimiento y del espacio comunitario, demostrando espíritu emprendedor."
+    },
+    {
+      "id": "4_BASICO-OAA-F",
+      "descripcion": "Establecer lazos de pertenencia con su entorno social y natural a partir del conocimiento, la valoración y la reflexión sobre su historia personal, su comunidad y el país."
+    },
+    {
+      "id": "4_BASICO-OAA-G",
+      "descripcion": "Comportarse y actuar en la vida cotidiana según principios y virtudes ciudadanas."
+    },
+    {
+      "id": "4_BASICO-OAA-H",
+      "descripcion": "Demostrar valoración por la democracia, reconociendo su importancia para la convivencia y el resguardo de derechos."
+    },
+    {
+      "id": "4_BASICO-OAA-I",
+      "descripcion": "Demostrar valoración por la vida en sociedad para el desarrollo y el crecimiento de la persona."
+    }
+  ],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "Civilizaciones americanas",
+      "oa": [
+        {
+          "id": "HI4B-OA-01",
+          "codigo_oficial": "HI04 OA 01",
+          "descripcion": "Describir la civilización maya, considerando ubicación geográfica, organización política, actividades económicas, organización social, religión, conocimientos y vida cotidiana, entre otros."
+        },
+        {
+          "id": "HI4B-OA-02",
+          "codigo_oficial": "HI04 OA 02",
+          "descripcion": "Describir la civilización azteca, considerando ubicación geográfica, organización política, la ciudad de Tenochtitlán, formas de cultivo, avances tecnológicos, organización social y vida cotidiana, entre otros."
+        },
+        {
+          "id": "HI4B-OA-03",
+          "codigo_oficial": "HI04 OA 03",
+          "descripcion": "Describir la civilización inca, considerando ubicación geográfica, organización política, sistema de caminos y correos, religión, avances tecnológicos, organización social, formas de cultivo y vida cotidiana, entre otros."
+        },
+        {
+          "id": "HI4B-OA-04",
+          "codigo_oficial": "HI04 OA 04",
+          "descripcion": "Analizar y comparar las principales características de las civilizaciones americanas (mayas, aztecas e incas)."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Comparación de pueblos americanos",
+      "oa": [
+        {
+          "id": "HI4B-OA-05",
+          "codigo_oficial": "HI04 OA 05",
+          "descripcion": "Investigar en diversas fuentes sobre algunos temas relacionados con el presente de los pueblos indígenas americanos y su influencia actual."
+        },
+        {
+          "id": "HI4B-OA-06",
+          "codigo_oficial": "HI04 OA 06",
+          "descripcion": "Ubicar lugares en un mapa, utilizando coordenadas geográficas como referencia (paralelos y meridianos)."
+        },
+        {
+          "id": "HI4B-OA-07",
+          "codigo_oficial": "HI04 OA 07",
+          "descripcion": "Distinguir recursos naturales renovables y no renovables, reconocer su carácter limitado e identificar recursos presentes en objetos y bienes cotidianos."
+        },
+        {
+          "id": "HI4B-OA-08",
+          "codigo_oficial": "HI04 OA 08",
+          "descripcion": "Describir distintos paisajes del continente americano, considerando climas, ríos, población, idiomas, países y grandes ciudades, entre otros, y utilizando vocabulario geográfico adecuado."
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "nombre": "América: paisajes y recursos",
+      "oa": [
+        {
+          "id": "HI4B-OA-09",
+          "codigo_oficial": "HI04 OA 09",
+          "descripcion": "Reconocer y ubicar los principales recursos naturales de América, considerando su distribución geográfica, su uso, y la importancia de cuidarlos en el marco de un desarrollo sostenible."
+        },
+        {
+          "id": "HI4B-OA-10",
+          "codigo_oficial": "HI04 OA 10",
+          "descripcion": "Comparar paisajes de su región con paisajes de América, distinguiendo distintas formas de adaptación y transformación de la población a su ambiente natural."
+        },
+        {
+          "id": "HI4B-OA-11",
+          "codigo_oficial": "HI04 OA 11",
+          "descripcion": "Distinguir algunos actores de la organización política y democrática de Chile, como Presidente, ministros, senadores, diputados y alcaldes, considerando las instituciones en las que ejercen y cómo son nombrados o elegidos."
+        },
+        {
+          "id": "HI4B-OA-12",
+          "codigo_oficial": "HI04 OA 12",
+          "descripcion": "Reconocer sus principales derechos en situaciones de la vida cotidiana y dar ejemplos de cómo se pueden ejercer y proteger esos derechos."
+        }
+      ]
+    },
+    {
+      "numero": 4,
+      "nombre": "Organización democrática y derechos",
+      "oa": [
+        {
+          "id": "HI4B-OA-13",
+          "codigo_oficial": "HI04 OA 13",
+          "descripcion": "Identificar mecanismos y actitudes que favorecen la buena convivencia y la participación responsable en la comunidad escolar y local."
+        },
+        {
+          "id": "HI4B-OA-14",
+          "codigo_oficial": "HI04 OA 14",
+          "descripcion": "Reconocer que la sociedad requiere de normas y leyes para organizar la convivencia y proteger a las personas."
+        },
+        {
+          "id": "HI4B-OA-15",
+          "codigo_oficial": "HI04 OA 15",
+          "descripcion": "Participar en proyectos colaborativos que mejoren la convivencia y el cuidado del entorno escolar o comunitario."
+        }
+      ]
+    }
+  ]
+}
