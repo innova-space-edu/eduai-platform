@@ -1,0 +1,249 @@
+{
+  "metadata": {
+    "nivel": "Básica",
+    "curso": "6° Básico",
+    "asignatura": "Lenguaje y Comunicación",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/lenguaje-comunicacion/6-basico",
+    "estado": "base_completa_web_mineduc_en_revision_fina",
+    "ultima_actualizacion_manual": "2026-03-29",
+    "nota": "Archivo construido con la base curricular oficial del sitio Currículum Nacional de MINEDUC. Contiene todos los OA base del nivel; se recomienda una revisión fina final de redacción OA por OA antes de marcarlo como verificado final."
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [
+    {
+      "id": "LE06 OAA A",
+      "descripcion": "Demostrar interés y una actitud activa frente a la lectura, orientada al disfrute de la misma y a la valoración del conocimiento que se puede obtener a partir de ella."
+    },
+    {
+      "id": "LE06 OAA B",
+      "descripcion": "Demostrar disposición e interés por compartir ideas, experiencias y opiniones con otros."
+    },
+    {
+      "id": "LE06 OAA C",
+      "descripcion": "Demostrar disposición e interés por expresarse de manera creativa por medio de la comunicación oral y escrita."
+    },
+    {
+      "id": "LE06 OAA D",
+      "descripcion": "Realizar tareas y trabajos de forma rigurosa y perseverante, con el fin de desarrollarlos de manera adecuada a los propósitos de la asignatura."
+    },
+    {
+      "id": "LE06 OAA E",
+      "descripcion": "Reflexionar sobre sí mismo, sus ideas y sus intereses para comprenderse y valorarse."
+    },
+    {
+      "id": "LE06 OAA F",
+      "descripcion": "Demostrar empatía hacia los demás, comprendiendo el contexto en el que se sitúan."
+    },
+    {
+      "id": "LE06 OAA G",
+      "descripcion": "Demostrar respeto por las diversas opiniones y puntos de vista, reconociendo el diálogo como una herramienta de enriquecimiento personal y social."
+    }
+  ],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "Lectura - Comprensión",
+      "oa": [
+        {
+          "id": "LE06-OA-01",
+          "codigo_oficial": "LE06 OA 01",
+          "eje": "Lectura - Comprensión",
+          "descripcion": "Leer de manera fluida textos variados apropiados a su edad."
+        },
+        {
+          "id": "LE06-OA-02",
+          "codigo_oficial": "LE06 OA 02",
+          "eje": "Lectura - Comprensión",
+          "descripcion": "Comprender textos aplicando estrategias de comprensión lectora; por ejemplo: relacionar la información del texto con sus experiencias y conocimientos, releer lo que no fue comprendido, formular preguntas y subrayar información relevante."
+        },
+        {
+          "id": "LE06-OA-03",
+          "codigo_oficial": "LE06 OA 03",
+          "eje": "Lectura - Comprensión",
+          "descripcion": "Leer y familiarizarse con un amplio repertorio de literatura para aumentar su conocimiento del mundo, desarrollar su imaginación y reconocer su valor social y cultural."
+        },
+        {
+          "id": "LE06-OA-04",
+          "codigo_oficial": "LE06 OA 04",
+          "eje": "Lectura - Comprensión",
+          "descripcion": "Analizar aspectos relevantes de narraciones leídas para profundizar su comprensión."
+        },
+        {
+          "id": "LE06-OA-05",
+          "codigo_oficial": "LE06 OA 05",
+          "eje": "Lectura - Comprensión",
+          "descripcion": "Analizar aspectos relevantes de diversos poemas para profundizar su comprensión."
+        },
+        {
+          "id": "LE06-OA-06",
+          "codigo_oficial": "LE06 OA 06",
+          "eje": "Lectura - Comprensión",
+          "descripcion": "Leer independientemente y comprender textos no literarios (cartas, biografías, relatos históricos, libros y artículos informativos, noticias, etc.) para ampliar su conocimiento del mundo y formarse una opinión."
+        },
+        {
+          "id": "LE06-OA-07",
+          "codigo_oficial": "LE06 OA 07",
+          "eje": "Lectura - Comprensión",
+          "descripcion": "Evaluar críticamente la información presente en textos de diversa procedencia."
+        },
+        {
+          "id": "LE06-OA-08",
+          "codigo_oficial": "LE06 OA 08",
+          "eje": "Lectura - Comprensión",
+          "descripcion": "Sintetizar y registrar las ideas principales de textos leídos para satisfacer propósitos diversos."
+        },
+        {
+          "id": "LE06-OA-09",
+          "codigo_oficial": "LE06 OA 09",
+          "eje": "Lectura - Comprensión",
+          "descripcion": "Desarrollar el gusto por la lectura, leyendo habitualmente diversos textos."
+        },
+        {
+          "id": "LE06-OA-10",
+          "codigo_oficial": "LE06 OA 10",
+          "eje": "Lectura - Comprensión",
+          "descripcion": "Asistir habitualmente a la biblioteca para buscar información y elegir libros, cuidando el material en favor del uso común."
+        },
+        {
+          "id": "LE06-OA-11",
+          "codigo_oficial": "LE06 OA 11",
+          "eje": "Lectura - Comprensión",
+          "descripcion": "Aplicar estrategias para determinar el significado de palabras nuevas."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Escritura - Producción",
+      "oa": [
+        {
+          "id": "LE06-OA-12",
+          "codigo_oficial": "LE06 OA 12",
+          "eje": "Escritura - Producción",
+          "descripcion": "Escribir frecuentemente, para desarrollar la creatividad y expresar sus ideas, textos como poemas, diarios de vida, cuentos, anécdotas, cartas, comentarios sobre sus lecturas, noticias y reportajes."
+        },
+        {
+          "id": "LE06-OA-13",
+          "codigo_oficial": "LE06 OA 13",
+          "eje": "Escritura - Producción",
+          "descripcion": "Escribir creativamente narraciones (relatos de experiencias personales, noticias, cuentos, etc.) que consideren una secuencia lógica de eventos."
+        },
+        {
+          "id": "LE06-OA-14",
+          "codigo_oficial": "LE06 OA 14",
+          "eje": "Escritura - Producción",
+          "descripcion": "Escribir artículos informativos para comunicar información sobre un tema."
+        },
+        {
+          "id": "LE06-OA-15",
+          "codigo_oficial": "LE06 OA 15",
+          "eje": "Escritura - Producción",
+          "descripcion": "Escribir con letra clara para que pueda ser leída por otros con facilidad."
+        },
+        {
+          "id": "LE06-OA-16",
+          "codigo_oficial": "LE06 OA 16",
+          "eje": "Escritura - Producción",
+          "descripcion": "Planificar sus textos estableciendo propósito y destinatario, y generando ideas a partir de investigaciones, conversaciones, lectura de modelos u otras estrategias."
+        },
+        {
+          "id": "LE06-OA-17",
+          "codigo_oficial": "LE06 OA 17",
+          "eje": "Escritura - Producción",
+          "descripcion": "Escribir, revisar y editar sus textos para satisfacer un propósito y transmitir sus ideas con claridad."
+        },
+        {
+          "id": "LE06-OA-18",
+          "codigo_oficial": "LE06 OA 18",
+          "eje": "Escritura - Producción",
+          "descripcion": "Escribir, revisar y editar sus textos para que se adecuen al propósito y al destinatario, y para mejorar la cohesión y corrección ortográfica."
+        },
+        {
+          "id": "LE06-OA-19",
+          "codigo_oficial": "LE06 OA 19",
+          "eje": "Escritura - Producción",
+          "descripcion": "Incorporar de manera pertinente en la escritura el vocabulario nuevo extraído de textos escuchados o leídos."
+        },
+        {
+          "id": "LE06-OA-20",
+          "codigo_oficial": "LE06 OA 20",
+          "eje": "Escritura - Producción",
+          "descripcion": "Ampliar su capacidad expresiva, utilizando los recursos que ofrece el lenguaje para expresar un mismo mensaje de diversas maneras; por ejemplo: sinónimos, hipónimos e hiperónimos, locuciones, comparaciones y otros."
+        },
+        {
+          "id": "LE06-OA-21",
+          "codigo_oficial": "LE06 OA 21",
+          "eje": "Escritura - Producción",
+          "descripcion": "Utilizar correctamente los participios irregulares en sus producciones escritas."
+        },
+        {
+          "id": "LE06-OA-22",
+          "codigo_oficial": "LE06 OA 22",
+          "eje": "Escritura - Producción",
+          "descripcion": "Escribir correctamente para facilitar la comprensión por parte del lector, aplicando todas las reglas de ortografía literal, acentual y puntual aprendidas en años anteriores, además de reglas específicas del nivel."
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "nombre": "Comunicación oral",
+      "oa": [
+        {
+          "id": "LE06-OA-23",
+          "codigo_oficial": "LE06 OA 23",
+          "eje": "Comunicación oral",
+          "descripcion": "Comprender y disfrutar versiones completas de obras de la literatura, narradas o leídas por un adulto, como cuentos folclóricos y de autor, poemas, mitos y leyendas, y capítulos de novelas."
+        },
+        {
+          "id": "LE06-OA-24",
+          "codigo_oficial": "LE06 OA 24",
+          "eje": "Comunicación oral",
+          "descripcion": "Comprender textos orales (explicaciones, instrucciones, noticias, documentales, entrevistas, testimonios, relatos, reportajes, etc.) para obtener información y desarrollar su curiosidad por el mundo."
+        },
+        {
+          "id": "LE06-OA-25",
+          "codigo_oficial": "LE06 OA 25",
+          "eje": "Comunicación oral",
+          "descripcion": "Apreciar obras de teatro, películas o representaciones para ampliar sus posibilidades de expresión y desarrollar una opinión crítica."
+        },
+        {
+          "id": "LE06-OA-26",
+          "codigo_oficial": "LE06 OA 26",
+          "eje": "Comunicación oral",
+          "descripcion": "Dialogar para compartir y desarrollar ideas y buscar acuerdos."
+        },
+        {
+          "id": "LE06-OA-27",
+          "codigo_oficial": "LE06 OA 27",
+          "eje": "Comunicación oral",
+          "descripcion": "Expresarse de manera clara y efectiva en exposiciones orales y conversaciones, adecuando el registro a la situación comunicativa."
+        },
+        {
+          "id": "LE06-OA-28",
+          "codigo_oficial": "LE06 OA 28",
+          "eje": "Comunicación oral",
+          "descripcion": "Realizar presentaciones orales para comunicar información y opiniones sobre diversos temas."
+        },
+        {
+          "id": "LE06-OA-29",
+          "codigo_oficial": "LE06 OA 29",
+          "eje": "Comunicación oral",
+          "descripcion": "Incorporar de manera pertinente en sus intervenciones orales el vocabulario nuevo extraído de textos escuchados o leídos."
+        },
+        {
+          "id": "LE06-OA-30",
+          "codigo_oficial": "LE06 OA 30",
+          "eje": "Comunicación oral",
+          "descripcion": "Producir textos orales planificados de diverso tipo para desarrollar su capacidad expresiva: poemas, narraciones y dramatizaciones."
+        },
+        {
+          "id": "LE06-OA-31",
+          "codigo_oficial": "LE06 OA 31",
+          "eje": "Comunicación oral",
+          "descripcion": "Producir textos orales espontáneos o planificados de diverso tipo para desarrollar su capacidad expresiva: poemas, narraciones y dramatizaciones."
+        }
+      ]
+    }
+  ]
+}
