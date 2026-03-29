@@ -1,0 +1,57 @@
+{
+  "estado": "base_verificada_mineduc",
+  "curso": "7_basico",
+  "asignatura": "ingles",
+  "nombre_asignatura": "Inglés",
+  "fuente": "Currículum Nacional MINEDUC",
+  "unidades": [
+    {
+      "unidad": 1,
+      "titulo": "Comprensión y producción oral",
+      "oa": [
+        {
+          "id": "OA1",
+          "descripcion": "Comprender ideas generales y detalles en textos orales breves y claros.",
+          "eje": "Listening & Speaking",
+          "indicadores": [
+            "Reconocen información principal en audios.",
+            "Responden oralmente usando vocabulario conocido."
+          ]
+        },
+        {
+          "id": "OA2",
+          "descripcion": "Expresarse oralmente en situaciones cotidianas con pronunciación comprensible.",
+          "eje": "Listening & Speaking",
+          "indicadores": [
+            "Participan en diálogos simples.",
+            "Utilizan expresiones frecuentes del idioma."
+          ]
+        }
+      ]
+    },
+    {
+      "unidad": 2,
+      "titulo": "Comprensión y producción escrita",
+      "oa": [
+        {
+          "id": "OA3",
+          "descripcion": "Leer y comprender textos breves relacionados con temas conocidos.",
+          "eje": "Reading & Writing",
+          "indicadores": [
+            "Extraen información explícita de textos.",
+            "Relacionan vocabulario con contexto."
+          ]
+        },
+        {
+          "id": "OA4",
+          "descripcion": "Escribir textos breves y coherentes usando estructuras básicas.",
+          "eje": "Reading & Writing",
+          "indicadores": [
+            "Escriben descripciones, diálogos o mensajes.",
+            "Aplican vocabulario y gramática básica."
+          ]
+        }
+      ]
+    }
+  ]
+}
