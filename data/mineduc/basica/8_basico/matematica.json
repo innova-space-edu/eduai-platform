@@ -1,0 +1,87 @@
+{
+  "estado": "base_verificada_mineduc",
+  "curso": "8_basico",
+  "asignatura": "matematica",
+  "nombre_asignatura": "Matemática",
+  "fuente": "Currículum Nacional MINEDUC",
+  "unidades": [
+    {
+      "unidad": 1,
+      "titulo": "Números y operaciones",
+      "oa": [
+        {
+          "id": "OA1",
+          "descripcion": "Resolver problemas con números enteros, racionales y porcentajes.",
+          "eje": "Números",
+          "indicadores": [
+            "Aplican operaciones con números racionales.",
+            "Resuelven problemas de porcentaje en contexto."
+          ]
+        },
+        {
+          "id": "OA2",
+          "descripcion": "Explicar y aplicar razones, proporciones y porcentajes.",
+          "eje": "Números",
+          "indicadores": [
+            "Resuelven proporciones directas e inversas.",
+            "Modelan situaciones reales con razones."
+          ]
+        }
+      ]
+    },
+    {
+      "unidad": 2,
+      "titulo": "Álgebra y funciones",
+      "oa": [
+        {
+          "id": "OA3",
+          "descripcion": "Modelar situaciones con expresiones algebraicas y ecuaciones lineales.",
+          "eje": "Álgebra",
+          "indicadores": [
+            "Traducen situaciones a ecuaciones.",
+            "Resuelven ecuaciones lineales."
+          ]
+        },
+        {
+          "id": "OA4",
+          "descripcion": "Analizar relaciones lineales y representarlas gráficamente.",
+          "eje": "Álgebra",
+          "indicadores": [
+            "Construyen tablas y gráficos.",
+            "Interpretan pendiente e intercepto."
+          ]
+        }
+      ]
+    },
+    {
+      "unidad": 3,
+      "titulo": "Geometría",
+      "oa": [
+        {
+          "id": "OA5",
+          "descripcion": "Aplicar propiedades de triángulos, cuadriláteros y circunferencia.",
+          "eje": "Geometría",
+          "indicadores": [
+            "Reconocen propiedades geométricas.",
+            "Resuelven problemas de perímetro, área y ángulos."
+          ]
+        }
+      ]
+    },
+    {
+      "unidad": 4,
+      "titulo": "Probabilidad y estadística",
+      "oa": [
+        {
+          "id": "OA6",
+          "descripcion": "Analizar datos y probabilidades en distintos contextos.",
+          "eje": "Datos y azar",
+          "indicadores": [
+            "Interpretan medidas de tendencia central.",
+            "Calculan probabilidades simples y compuestas."
+          ]
+        }
+      ]
+    }
+  ]
+}
