@@ -1,0 +1,157 @@
+{
+  "metadata": {
+    "nivel": "Básica",
+    "curso": "2° Básico",
+    "asignatura": "Historia, Geografía y Cs. Sociales",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/",
+    "estado": "base_oa_completa_en_revision",
+    "ultima_actualizacion_manual": "2026-03-29",
+    "nota": "Archivo creado a partir de la Base Curricular oficial del curso en Currículum Nacional. Se recomienda una última revisión fina de habilidades e indicadores antes de marcarlo como 100% verificado."
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [
+    {
+      "id": "2_BASICO-OAA-A",
+      "descripcion": "Trabajar en forma rigurosa y perseverante, con espíritu emprendedor y con una disposición positiva a la crítica y la autocrítica."
+    },
+    {
+      "id": "2_BASICO-OAA-B",
+      "descripcion": "Reconocer la importancia y la dignidad de todos los trabajos, valorando y respetando a las personas que los realizan."
+    },
+    {
+      "id": "2_BASICO-OAA-C",
+      "descripcion": "Respetar y defender la igualdad de derechos entre hombres y mujeres y apreciar la importancia de desarrollar relaciones que potencien su participación equitativa en la vida económica, familiar, social y cultural."
+    },
+    {
+      "id": "2_BASICO-OAA-D",
+      "descripcion": "Respetar y defender la igualdad de derechos esenciales de todas las personas, sin distinción de sexo, edad, condición física, etnia, religión o situación económica."
+    },
+    {
+      "id": "2_BASICO-OAA-E",
+      "descripcion": "Participar solidaria y responsablemente en las actividades y proyectos del establecimiento y del espacio comunitario, demostrando espíritu emprendedor."
+    },
+    {
+      "id": "2_BASICO-OAA-F",
+      "descripcion": "Establecer lazos de pertenencia con su entorno social y natural a partir del conocimiento, la valoración y la reflexión sobre su historia personal, su comunidad y el país."
+    },
+    {
+      "id": "2_BASICO-OAA-G",
+      "descripcion": "Comportarse y actuar en la vida cotidiana según principios y virtudes ciudadanas."
+    },
+    {
+      "id": "2_BASICO-OAA-H",
+      "descripcion": "Demostrar valoración por la democracia, reconociendo su importancia para la convivencia y el resguardo de derechos."
+    },
+    {
+      "id": "2_BASICO-OAA-I",
+      "descripcion": "Demostrar valoración por la vida en sociedad para el desarrollo y el crecimiento de la persona."
+    }
+  ],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "Pueblos originarios y mestizaje",
+      "oa": [
+        {
+          "id": "HI2B-OA-01",
+          "codigo_oficial": "HI02 OA 01",
+          "descripcion": "Describir los modos de vida de algunos pueblos originarios de Chile en el período precolombino, incluyendo ubicación geográfica, medio natural, vida nómada o sedentaria, roles, herramientas, actividades, vivienda, costumbres, idioma, creencias, alimentación y fiestas, entre otros."
+        },
+        {
+          "id": "HI2B-OA-02",
+          "codigo_oficial": "HI02 OA 02",
+          "descripcion": "Comparar el modo de vida y expresiones culturales de algunos pueblos indígenas presentes en Chile actual con respecto al período precolombino, identificando aspectos que se han mantenido y aspectos que han cambiado."
+        },
+        {
+          "id": "HI2B-OA-03",
+          "codigo_oficial": "HI02 OA 03",
+          "descripcion": "Distinguir los diversos aportes a la sociedad chilena provenientes de los pueblos originarios y de los españoles, y reconocer nuestra sociedad como mestiza."
+        },
+        {
+          "id": "HI2B-OA-04",
+          "codigo_oficial": "HI02 OA 04",
+          "descripcion": "Reconocer y dar ejemplos de la influencia y aportes de inmigrantes de distintas naciones europeas, orientales, árabes y latinoamericanas a la diversidad de la sociedad chilena, a lo largo de su historia."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Patrimonio cultural y natural",
+      "oa": [
+        {
+          "id": "HI2B-OA-05",
+          "codigo_oficial": "HI02 OA 05",
+          "descripcion": "Reconocer diversas expresiones del patrimonio cultural del país y de su región, tales como manifestaciones artísticas, tradiciones folclóricas, leyendas, costumbres familiares, idioma, construcciones, comidas típicas, fiestas, monumentos y sitios históricos."
+        },
+        {
+          "id": "HI2B-OA-06",
+          "codigo_oficial": "HI02 OA 06",
+          "descripcion": "Leer y dibujar planos simples de su entorno, utilizando puntos de referencia, categorías de posición relativa y simbología pictórica."
+        },
+        {
+          "id": "HI2B-OA-07",
+          "codigo_oficial": "HI02 OA 07",
+          "descripcion": "Ubicar Chile, Santiago, la propia región y su capital en el globo terráqueo o en mapas, y describir la ubicación relativa de países limítrofes y de otros países de América del Sur, utilizando los puntos cardinales."
+        },
+        {
+          "id": "HI2B-OA-08",
+          "codigo_oficial": "HI02 OA 08",
+          "descripcion": "Clasificar y caracterizar algunos paisajes de Chile según su ubicación en la zona norte, centro y sur del país, observando imágenes, utilizando diversas fuentes y un vocabulario geográfico adecuado."
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "nombre": "Mapas, zonas y paisajes de Chile",
+      "oa": [
+        {
+          "id": "HI2B-OA-09",
+          "codigo_oficial": "HI02 OA 09",
+          "descripcion": "Reconocer diversas expresiones del patrimonio natural de Chile y de su región, como paisajes, flora y fauna característica y parques nacionales, entre otros."
+        },
+        {
+          "id": "HI2B-OA-10",
+          "codigo_oficial": "HI02 OA 10",
+          "descripcion": "Ubicar en mapas las zonas habitadas por algunos pueblos originarios de Chile, distinguiendo zonas norte, centro y sur."
+        },
+        {
+          "id": "HI2B-OA-11",
+          "codigo_oficial": "HI02 OA 11",
+          "descripcion": "Relacionar las principales características geográficas de las zonas habitadas por algunos pueblos originarios de Chile, con los recursos que utilizaron para satisfacer sus necesidades de alimentación, abrigo y vivienda."
+        },
+        {
+          "id": "HI2B-OA-12",
+          "codigo_oficial": "HI02 OA 12",
+          "descripcion": "Mostrar actitudes y realizar acciones concretas en su entorno cercano que reflejen respeto al otro, responsabilidad, tolerancia y empatía."
+        }
+      ]
+    },
+    {
+      "numero": 4,
+      "nombre": "Convivencia, normas y espacios públicos",
+      "oa": [
+        {
+          "id": "HI2B-OA-13",
+          "codigo_oficial": "HI02 OA 13",
+          "descripcion": "Mantener una conducta honesta en la vida cotidiana, en los juegos y en el trabajo escolar, hablando con la verdad, respetando las reglas y reconociendo errores y acciones."
+        },
+        {
+          "id": "HI2B-OA-14",
+          "codigo_oficial": "HI02 OA 14",
+          "descripcion": "Conocer, proponer, aplicar y explicar la importancia de algunas normas necesarias para cuidarse, cuidar a otros, organizar un ambiente propicio al aprendizaje y cuidar el patrimonio y el medioambiente."
+        },
+        {
+          "id": "HI2B-OA-15",
+          "codigo_oficial": "HI02 OA 15",
+          "descripcion": "Identificar la labor que cumplen en beneficio de la comunidad servicios como los medios de transporte y de comunicación y el mercado, y algunas instituciones encargadas de proteger nuestro patrimonio cultural y natural."
+        },
+        {
+          "id": "HI2B-OA-16",
+          "codigo_oficial": "HI02 OA 16",
+          "descripcion": "Practicar y proponer acciones para cuidar y respetar los espacios públicos dentro y fuera de la escuela, reconociendo que pertenecen y benefician a todos."
+        }
+      ]
+    }
+  ]
+}

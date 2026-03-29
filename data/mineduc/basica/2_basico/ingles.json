@@ -1,0 +1,127 @@
+{
+  "metadata": {
+    "nivel": "Básica",
+    "curso": "2° Básico",
+    "asignatura": "Inglés",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/",
+    "estado": "propuesta_curricular_mineduc",
+    "ultima_actualizacion_manual": "2026-03-29",
+    "nota": "Archivo basado en la propuesta curricular de Inglés publicada por Currículum Nacional para 1° a 4° básico. Se integra al planificador como propuesta curricular, no como base obligatoria."
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [
+    {
+      "id": "2_BASICO-EN-OAA-A",
+      "descripcion": "Demostrar valoración e interés por conocer su propio contexto y realidad, ampliando el conocimiento de su entorno."
+    },
+    {
+      "id": "2_BASICO-EN-OAA-B",
+      "descripcion": "Manifestar una actitud positiva frente a sí mismo y sus capacidades para aprender un nuevo idioma."
+    },
+    {
+      "id": "2_BASICO-EN-OAA-C",
+      "descripcion": "Demostrar curiosidad, interés y respeto ante otras realidades y culturas, reconociendo sus aportes y valorando la diversidad de modos de vida."
+    },
+    {
+      "id": "2_BASICO-EN-OAA-D",
+      "descripcion": "Manifestar un estilo de trabajo cooperativo entre compañeros para alcanzar los propósitos de la asignatura."
+    }
+  ],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "Comprensión oral y lectura inicial",
+      "oa": [
+        {
+          "id": "EN2B-OA-01",
+          "codigo_oficial": "EN02 OA 01",
+          "descripcion": "Comprender textos leídos por un adulto o en formato audiovisual, breves y simples, como: rimas y chants; canciones; cuentos; diálogos."
+        },
+        {
+          "id": "EN2B-OA-02",
+          "codigo_oficial": "EN02 OA 02",
+          "descripcion": "Comprender textos orales relacionados con temas conocidos o de otras asignaturas y que contengan funciones comunicativas simples del nivel."
+        },
+        {
+          "id": "EN2B-OA-03",
+          "codigo_oficial": "EN02 OA 03",
+          "descripcion": "Demostrar comprensión de textos orales identificando personajes, objetos, vocabulario aprendido, instrucciones simples y algunos sonidos propios del inglés que pueden interferir en la comprensión."
+        },
+        {
+          "id": "EN2B-OA-04",
+          "codigo_oficial": "EN02 OA 04",
+          "descripcion": "Escuchar textos orales y aplicar estrategias para apoyar la comprensión; por ejemplo: hacer predicciones, relacionar el texto con imágenes y focalizar la atención en palabras clave."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Respuesta a textos y comprensión lectora",
+      "oa": [
+        {
+          "id": "EN2B-OA-05",
+          "codigo_oficial": "EN02 OA 05",
+          "descripcion": "Reaccionar a lo escuchado, estableciendo relaciones con experiencias personales y/o expresando preferencias, sentimientos u opiniones, por medio de dibujos, mímicas, dramatizaciones o palabras y frases escritas."
+        },
+        {
+          "id": "EN2B-OA-06",
+          "codigo_oficial": "EN02 OA 06",
+          "descripcion": "Leer y demostrar comprensión de textos como cuentos, rimas, chants, tarjetas de saludo, instrucciones y textos informativos, identificando ideas generales, personajes, acciones y vocabulario aprendido."
+        },
+        {
+          "id": "EN2B-OA-07",
+          "codigo_oficial": "EN02 OA 07",
+          "descripcion": "Leer y demostrar comprensión de textos relacionados con temas conocidos o de otras asignaturas y con funciones comunicativas propias del nivel."
+        },
+        {
+          "id": "EN2B-OA-08",
+          "codigo_oficial": "EN02 OA 08",
+          "descripcion": "Leer y aplicar estrategias para apoyar la comprensión; por ejemplo: hacer predicciones, establecer relaciones con conocimientos previos, relacionar el texto con las imágenes y releer."
+        },
+        {
+          "id": "EN2B-OA-09",
+          "codigo_oficial": "EN02 OA 09",
+          "descripcion": "Reaccionar a lo leído, estableciendo relaciones con experiencias personales y/o expresando preferencias, sentimientos u opiniones por medio de ilustraciones, dramatizaciones o palabras y frases escritas."
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "nombre": "Expresión oral",
+      "oa": [
+        {
+          "id": "EN2B-OA-10",
+          "codigo_oficial": "EN02 OA 10",
+          "descripcion": "Reproducir chants, rimas y diálogos muy breves y simples para familiarizarse con los sonidos propios del inglés."
+        },
+        {
+          "id": "EN2B-OA-11",
+          "codigo_oficial": "EN02 OA 11",
+          "descripcion": "Participar en diálogos, interacciones de clase y exposiciones muy breves y simples, usando apoyo del docente, objetos, gestos e imágenes, y vocabulario aprendido."
+        },
+        {
+          "id": "EN2B-OA-12",
+          "codigo_oficial": "EN02 OA 12",
+          "descripcion": "Expresarse oralmente con el apoyo del docente para compartir información personal y describir temas, objetos, acciones, cantidades y ubicaciones del entorno cercano."
+        }
+      ]
+    },
+    {
+      "numero": 4,
+      "nombre": "Escritura guiada",
+      "oa": [
+        {
+          "id": "EN2B-OA-13",
+          "codigo_oficial": "EN02 OA 13",
+          "descripcion": "Escribir (por ejemplo: copiar o completar) palabras y oraciones simples de acuerdo a un modelo, acerca de temas conocidos o de otras asignaturas."
+        },
+        {
+          "id": "EN2B-OA-14",
+          "codigo_oficial": "EN02 OA 14",
+          "descripcion": "Escribir, sobre la base de imágenes, para identificar animales, acciones, objetos, lugares, comida, sentimientos, cantidades y ubicación de objetos o acciones en curso."
+        }
+      ]
+    }
+  ]
+}
