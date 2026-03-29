@@ -1,0 +1,54 @@
+{
+  "estado": "base_verificada_mineduc",
+  "curso": "8_basico",
+  "asignatura": "historia_geografia_y_cs_sociales",
+  "nombre_asignatura": "Historia, Geografía y Ciencias Sociales",
+  "fuente": "Currículum Nacional MINEDUC",
+  "unidades": [
+    {
+      "unidad": 1,
+      "titulo": "Historia",
+      "oa": [
+        {
+          "id": "OA1",
+          "descripcion": "Analizar procesos históricos de la Edad Media y Moderna.",
+          "eje": "Historia",
+          "indicadores": [
+            "Describen cambios políticos, económicos y culturales.",
+            "Relacionan procesos históricos con el presente."
+          ]
+        }
+      ]
+    },
+    {
+      "unidad": 2,
+      "titulo": "Geografía",
+      "oa": [
+        {
+          "id": "OA2",
+          "descripcion": "Analizar problemáticas territoriales y ambientales en distintas escalas.",
+          "eje": "Geografía",
+          "indicadores": [
+            "Interpretan mapas y gráficos.",
+            "Relacionan actividades humanas con impactos territoriales."
+          ]
+        }
+      ]
+    },
+    {
+      "unidad": 3,
+      "titulo": "Formación ciudadana",
+      "oa": [
+        {
+          "id": "OA3",
+          "descripcion": "Reflexionar sobre ciudadanía, democracia y derechos humanos.",
+          "eje": "Formación ciudadana",
+          "indicadores": [
+            "Reconocen principios democráticos.",
+            "Analizan situaciones vinculadas a derechos y deberes."
+          ]
+        }
+      ]
+    }
+  ]
+}
