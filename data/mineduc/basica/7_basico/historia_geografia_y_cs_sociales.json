@@ -1,0 +1,63 @@
+{
+  "estado": "base_verificada_mineduc",
+  "curso": "7_basico",
+  "asignatura": "historia_geografia_y_cs_sociales",
+  "nombre_asignatura": "Historia, Geografía y Ciencias Sociales",
+  "fuente": "Currículum Nacional MINEDUC",
+  "unidades": [
+    {
+      "unidad": 1,
+      "titulo": "Historia",
+      "oa": [
+        {
+          "id": "OA1",
+          "descripcion": "Analizar las principales características de las civilizaciones antiguas.",
+          "eje": "Historia",
+          "indicadores": [
+            "Describen organización política, social y cultural.",
+            "Comparan distintas civilizaciones."
+          ]
+        },
+        {
+          "id": "OA2",
+          "descripcion": "Explicar el legado cultural, político y social de la Antigüedad.",
+          "eje": "Historia",
+          "indicadores": [
+            "Reconocen aportes de Grecia y Roma.",
+            "Relacionan esos legados con el presente."
+          ]
+        }
+      ]
+    },
+    {
+      "unidad": 2,
+      "titulo": "Geografía",
+      "oa": [
+        {
+          "id": "OA3",
+          "descripcion": "Analizar el espacio geográfico y su relación con la vida humana.",
+          "eje": "Geografía",
+          "indicadores": [
+            "Interpretan mapas y recursos geográficos.",
+            "Relacionan territorio y actividades humanas."
+          ]
+        }
+      ]
+    },
+    {
+      "unidad": 3,
+      "titulo": "Formación ciudadana",
+      "oa": [
+        {
+          "id": "OA4",
+          "descripcion": "Reflexionar sobre convivencia, derechos y deberes ciudadanos.",
+          "eje": "Formación ciudadana",
+          "indicadores": [
+            "Reconocen principios de convivencia democrática.",
+            "Relacionan derechos y deberes con la vida escolar y social."
+          ]
+        }
+      ]
+    }
+  ]
+}
