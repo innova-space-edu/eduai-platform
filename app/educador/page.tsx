@@ -1033,7 +1033,36 @@ export default function EducadorPage() {
               >
                 {msg.role === "assistant" ? (
                   <>
-                    <div className="prose prose-invert prose-sm max-w-none text-justify [&_h1]:text-emerald-300 [&_h1]:text-base [&_h2]:text-emerald-300 [&_h2]:text-sm [&_h3]:text-teal-300 [&_strong]:text-white [&_p]:leading-relaxed [&_p]:text-gray-300 [&_ul]:text-gray-300 [&_ol]:text-gray-300 [&_li]:mb-1 [&_table]:w-full [&_th]:bg-emerald-900/40 [&_th]:text-emerald-300 [&_th]:px-3 [&_th]:py-1.5 [&_th]:text-xs [&_th]:border [&_th]:border-gray-700 [&_td]:px-3 [&_td]:py-1.5 [&_td]:text-gray-300 [&_td]:text-xs [&_td]:border [&_td]:border-gray-800 [&_blockquote]:border-l-2 [&_blockquote]:border-emerald-500 [&_blockquote]:pl-3 [&_blockquote]:text-gray-400 [&_blockquote]:italic">
+                    <div className={[
+                      "prose prose-invert prose-sm max-w-none",
+                      // Headings
+                      "[&_h1]:text-emerald-300 [&_h1]:text-base [&_h1]:font-bold [&_h1]:mb-3 [&_h1]:mt-5 [&_h1]:pb-2 [&_h1]:border-b [&_h1]:border-emerald-500/20",
+                      "[&_h2]:text-emerald-200 [&_h2]:text-sm [&_h2]:font-semibold [&_h2]:mb-2 [&_h2]:mt-5 [&_h2]:flex [&_h2]:items-center [&_h2]:gap-1",
+                      "[&_h3]:text-teal-300 [&_h3]:text-xs [&_h3]:font-semibold [&_h3]:mb-1.5 [&_h3]:mt-4 [&_h3]:uppercase [&_h3]:tracking-wide",
+                      "[&_h4]:text-gray-300 [&_h4]:text-xs [&_h4]:font-semibold [&_h4]:mb-1 [&_h4]:mt-3",
+                      // Body text
+                      "[&_p]:leading-relaxed [&_p]:text-gray-300 [&_p]:text-sm [&_p]:mb-2 text-justify",
+                      "[&_strong]:text-white [&_strong]:font-semibold",
+                      "[&_em]:text-gray-400 [&_em]:italic",
+                      // Lists
+                      "[&_ul]:text-gray-300 [&_ul]:space-y-1 [&_ul]:my-2 [&_ul]:pl-4",
+                      "[&_ol]:text-gray-300 [&_ol]:space-y-1 [&_ol]:my-2 [&_ol]:pl-4",
+                      "[&_li]:text-sm [&_li]:leading-relaxed [&_li]:text-gray-300",
+                      "[&_li_strong]:text-emerald-200",
+                      // Tables
+                      "[&_table]:w-full [&_table]:text-xs [&_table]:rounded-xl [&_table]:overflow-hidden [&_table]:my-3 [&_table]:border-collapse",
+                      "[&_thead]:bg-emerald-900/50",
+                      "[&_th]:text-emerald-300 [&_th]:font-semibold [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:border [&_th]:border-emerald-800/40",
+                      "[&_td]:px-3 [&_td]:py-2 [&_td]:text-gray-300 [&_td]:border [&_td]:border-gray-800 [&_td]:align-top",
+                      "[&_tr:nth-child(even)_td]:bg-gray-800/30",
+                      // Blockquotes (used for notes/tips)
+                      "[&_blockquote]:border-l-2 [&_blockquote]:border-teal-500/50 [&_blockquote]:pl-3 [&_blockquote]:py-1 [&_blockquote]:my-2 [&_blockquote]:bg-teal-500/5 [&_blockquote]:rounded-r-lg",
+                      "[&_blockquote_p]:text-teal-200 [&_blockquote_p]:text-xs [&_blockquote_p]:italic [&_blockquote_p]:mb-0",
+                      // Horizontal rules (section dividers)
+                      "[&_hr]:border-gray-800 [&_hr]:my-4",
+                      // Code
+                      "[&_code]:bg-gray-800 [&_code]:text-emerald-300 [&_code]:px-1 [&_code]:rounded [&_code]:text-xs",
+                    ].join(" ")}>
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>
                         {msg.content}
                       </ReactMarkdown>
