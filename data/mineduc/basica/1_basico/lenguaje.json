@@ -1,0 +1,219 @@
+{
+  "metadata": {
+    "nivel": "Básica",
+    "curso": "1° Básico",
+    "asignatura": "Lenguaje y Comunicación",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/lenguaje-comunicacion/1-basico",
+    "estado": "base_completa_web_mineduc_en_revision_fina",
+    "ultima_actualizacion_manual": "2026-03-29",
+    "nota": "Archivo construido con la base curricular oficial del sitio Currículum Nacional de MINEDUC. Contiene todos los OA base del nivel; se recomienda una revisión fina final de redacción OA por OA antes de marcarlo como verificado final."
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [
+    {
+      "id": "LE01 OAA A",
+      "descripcion": "Demostrar interés y una actitud activa frente a la lectura, orientada al disfrute de la misma y a la valoración del conocimiento que se puede obtener a partir de ella."
+    },
+    {
+      "id": "LE01 OAA B",
+      "descripcion": "Demostrar disposición e interés por compartir ideas, experiencias y opiniones con otros."
+    },
+    {
+      "id": "LE01 OAA C",
+      "descripcion": "Demostrar disposición e interés por expresarse de manera creativa por medio de la comunicación oral y escrita."
+    },
+    {
+      "id": "LE01 OAA D",
+      "descripcion": "Realizar tareas y trabajos de forma rigurosa y perseverante, con el fin de desarrollarlos de manera adecuada a los propósitos de la asignatura."
+    },
+    {
+      "id": "LE01 OAA E",
+      "descripcion": "Reflexionar sobre sí mismo, sus ideas y sus intereses para comprenderse y valorarse."
+    },
+    {
+      "id": "LE01 OAA F",
+      "descripcion": "Demostrar empatía hacia los demás, comprendiendo el contexto en el que se sitúan."
+    },
+    {
+      "id": "LE01 OAA G",
+      "descripcion": "Demostrar respeto por las diversas opiniones y puntos de vista, reconociendo el diálogo como una herramienta de enriquecimiento personal y social."
+    }
+  ],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "Lectura - Comprensión",
+      "oa": [
+        {
+          "id": "LE01-OA-01",
+          "codigo_oficial": "LE01 OA 01",
+          "eje": "Lectura - Comprensión",
+          "descripcion": "Reconocer que los textos escritos transmiten mensajes y que son escritos por alguien para cumplir un propósito."
+        },
+        {
+          "id": "LE01-OA-02",
+          "codigo_oficial": "LE01 OA 02",
+          "eje": "Lectura - Comprensión",
+          "descripcion": "Reconocer que las palabras son unidades de significado separadas por espacios en el texto escrito."
+        },
+        {
+          "id": "LE01-OA-03",
+          "codigo_oficial": "LE01 OA 03",
+          "eje": "Lectura - Comprensión",
+          "descripcion": "Identificar los sonidos que componen las palabras (conciencia fonológica), reconociendo, separando y combinando sus fonemas y sílabas."
+        },
+        {
+          "id": "LE01-OA-04",
+          "codigo_oficial": "LE01 OA 04",
+          "eje": "Lectura - Comprensión",
+          "descripcion": "Leer palabras aisladas y en contexto, aplicando su conocimiento de la correspondencia letra-sonido en diferentes combinaciones: sílaba directa, indirecta o compleja y dígrafos rr-ll-ch-qu."
+        },
+        {
+          "id": "LE01-OA-05",
+          "codigo_oficial": "LE01 OA 05",
+          "eje": "Lectura - Comprensión",
+          "descripcion": "Leer textos breves en voz alta para adquirir fluidez: pronunciando cada palabra con precisión, respetando el punto seguido y el punto aparte, y leyendo palabra a palabra."
+        },
+        {
+          "id": "LE01-OA-06",
+          "codigo_oficial": "LE01 OA 06",
+          "eje": "Lectura - Comprensión",
+          "descripcion": "Comprender textos aplicando estrategias de comprensión lectora; por ejemplo: relacionar la información del texto con sus experiencias y conocimientos, y visualizar lo que describe el texto."
+        },
+        {
+          "id": "LE01-OA-07",
+          "codigo_oficial": "LE01 OA 07",
+          "eje": "Lectura - Comprensión",
+          "descripcion": "Leer independientemente y familiarizarse con un amplio repertorio de literatura para aumentar su conocimiento del mundo y desarrollar su imaginación; por ejemplo: poemas, historias breves y textos con una estructura predecible."
+        },
+        {
+          "id": "LE01-OA-08",
+          "codigo_oficial": "LE01 OA 08",
+          "eje": "Lectura - Comprensión",
+          "descripcion": "Demostrar comprensión de narraciones que aborden temas que les sean familiares."
+        },
+        {
+          "id": "LE01-OA-09",
+          "codigo_oficial": "LE01 OA 09",
+          "eje": "Lectura - Comprensión",
+          "descripcion": "Leer habitualmente y disfrutar los mejores poemas de autor y de la tradición oral adecuados a su edad."
+        },
+        {
+          "id": "LE01-OA-10",
+          "codigo_oficial": "LE01 OA 10",
+          "eje": "Lectura - Comprensión",
+          "descripcion": "Leer independientemente y comprender textos no literarios escritos con oraciones simples (cartas, notas, instrucciones y artículos informativos) para entretenerse y ampliar su conocimiento del mundo."
+        },
+        {
+          "id": "LE01-OA-11",
+          "codigo_oficial": "LE01 OA 11",
+          "eje": "Lectura - Comprensión",
+          "descripcion": "Desarrollar el gusto por la lectura, explorando libros y sus ilustraciones."
+        },
+        {
+          "id": "LE01-OA-12",
+          "codigo_oficial": "LE01 OA 12",
+          "eje": "Lectura - Comprensión",
+          "descripcion": "Asistir habitualmente a la biblioteca para elegir, escuchar, leer y explorar textos de su interés."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Escritura - Producción",
+      "oa": [
+        {
+          "id": "LE01-OA-13",
+          "codigo_oficial": "LE01 OA 13",
+          "eje": "Escritura - Producción",
+          "descripcion": "Experimentar con la escritura para comunicar hechos, ideas y sentimientos, entre otros."
+        },
+        {
+          "id": "LE01-OA-14",
+          "codigo_oficial": "LE01 OA 14",
+          "eje": "Escritura - Producción",
+          "descripcion": "Escribir oraciones completas para transmitir mensajes."
+        },
+        {
+          "id": "LE01-OA-15",
+          "codigo_oficial": "LE01 OA 15",
+          "eje": "Escritura - Producción",
+          "descripcion": "Escribir con letra clara, separando las palabras con un espacio para que puedan ser leídas por otros con facilidad."
+        },
+        {
+          "id": "LE01-OA-16",
+          "codigo_oficial": "LE01 OA 16",
+          "eje": "Escritura - Producción",
+          "descripcion": "Incorporar de manera pertinente en la escritura el vocabulario nuevo extraído de textos escuchados o leídos."
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "nombre": "Comunicación oral",
+      "oa": [
+        {
+          "id": "LE01-OA-17",
+          "codigo_oficial": "LE01 OA 17",
+          "eje": "Comunicación oral",
+          "descripcion": "Comprender y disfrutar versiones completas de obras de la literatura, narradas o leídas por un adulto, como cuentos folclóricos y de autor, poemas, fábulas y leyendas."
+        },
+        {
+          "id": "LE01-OA-18",
+          "codigo_oficial": "LE01 OA 18",
+          "eje": "Comunicación oral",
+          "descripcion": "Comprender textos orales (explicaciones, instrucciones, relatos, anécdotas, etc.) para obtener información y desarrollar su curiosidad por el mundo."
+        },
+        {
+          "id": "LE01-OA-19",
+          "codigo_oficial": "LE01 OA 19",
+          "eje": "Comunicación oral",
+          "descripcion": "Desarrollar la curiosidad por las palabras o expresiones que desconocen y adquirir el hábito de averiguar su significado."
+        },
+        {
+          "id": "LE01-OA-20",
+          "codigo_oficial": "LE01 OA 20",
+          "eje": "Comunicación oral",
+          "descripcion": "Disfrutar de la experiencia de asistir a obras de teatro infantiles o representaciones para ampliar sus posibilidades de expresión, desarrollar su creatividad y familiarizarse con el género."
+        },
+        {
+          "id": "LE01-OA-21",
+          "codigo_oficial": "LE01 OA 21",
+          "eje": "Comunicación oral",
+          "descripcion": "Participar activamente en conversaciones grupales sobre textos leídos o escuchados en clases o temas de su interés."
+        },
+        {
+          "id": "LE01-OA-22",
+          "codigo_oficial": "LE01 OA 22",
+          "eje": "Comunicación oral",
+          "descripcion": "Interactuar de acuerdo con las convenciones sociales en diferentes situaciones."
+        },
+        {
+          "id": "LE01-OA-23",
+          "codigo_oficial": "LE01 OA 23",
+          "eje": "Comunicación oral",
+          "descripcion": "Expresarse de manera coherente y articulada sobre temas de su interés."
+        },
+        {
+          "id": "LE01-OA-24",
+          "codigo_oficial": "LE01 OA 24",
+          "eje": "Comunicación oral",
+          "descripcion": "Incorporar de manera pertinente en sus intervenciones orales el vocabulario nuevo extraído de textos escuchados o leídos."
+        },
+        {
+          "id": "LE01-OA-25",
+          "codigo_oficial": "LE01 OA 25",
+          "eje": "Comunicación oral",
+          "descripcion": "Desempeñar diferentes roles para desarrollar su lenguaje y autoestima, y aprender a trabajar en equipo."
+        },
+        {
+          "id": "LE01-OA-26",
+          "codigo_oficial": "LE01 OA 26",
+          "eje": "Comunicación oral",
+          "descripcion": "Recitar con entonación y expresión poemas, rimas, canciones, trabalenguas y adivinanzas para fortalecer la confianza en sí mismos, aumentar el vocabulario y desarrollar su capacidad expresiva."
+        }
+      ]
+    }
+  ]
+}
