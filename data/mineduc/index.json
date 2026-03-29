@@ -1,58 +1,72 @@
 {
-  "schema_version": "1.1.0",
-  "country": "Chile",
-  "source": {
-    "name": "Currículum Nacional - MINEDUC",
-    "base_url": "https://www.curriculumnacional.cl/"
-  },
-  "levels": [
-    {
-      "id": "parvularia",
-      "name": "Educación Parvularia",
-      "files": [
-        "data/mineduc/parvularia/sala_cuna_menor.json",
-        "data/mineduc/parvularia/sala_cuna_mayor.json",
-        "data/mineduc/parvularia/medio_menor.json",
-        "data/mineduc/parvularia/medio_mayor.json",
-        "data/mineduc/parvularia/nt1.json",
-        "data/mineduc/parvularia/nt2.json"
-      ]
-    },
-    {
-      "id": "basica",
-      "name": "Educación Básica",
-      "files": [
-        "data/mineduc/basica/1_basico/matematica.json",
-        "data/mineduc/basica/2_basico/matematica.json",
-        "data/mineduc/basica/3_basico/matematica.json",
-        "data/mineduc/basica/4_basico/matematica.json",
-        "data/mineduc/basica/5_basico/matematica.json",
-        "data/mineduc/basica/6_basico/matematica.json",
-        "data/mineduc/basica/1_basico/lenguaje.json",
-        "data/mineduc/basica/2_basico/lenguaje.json",
-        "data/mineduc/basica/3_basico/lenguaje.json",
-        "data/mineduc/basica/4_basico/lenguaje.json",
-        "data/mineduc/basica/5_basico/lenguaje.json",
-        "data/mineduc/basica/6_basico/lenguaje.json"
-      ]
-    },
-    {
-      "id": "media",
-      "name": "Educación Media",
-      "files": [
-        "data/mineduc/media/1_medio/matematica.json",
-        "data/mineduc/media/1_medio/lengua_literatura.json",
-        "data/mineduc/media/1_medio/tecnologia.json",
-        "data/mineduc/media/2_medio/matematica.json",
-        "data/mineduc/media/2_medio/lengua_literatura.json",
-        "data/mineduc/media/2_medio/tecnologia.json",
-        "data/mineduc/media/3_medio/ciencias_para_la_ciudadania.json",
-        "data/mineduc/media/4_medio/matematica.json",
-        "data/mineduc/media/4_medio/ciencias_para_la_ciudadania.json"
-      ]
-    }
-  ],
-  "shared_files": [
-    "data/mineduc/shared/ciencias_para_la_ciudadania_3y4_base.json"
-  ]
+  "path": "basica/7_basico/matematica.json",
+  "nivel": "basica",
+  "curso": "7_basico",
+  "asignatura": "matematica"
+},
+{
+  "path": "basica/7_basico/lengua_literatura.json",
+  "nivel": "basica",
+  "curso": "7_basico",
+  "asignatura": "lengua_literatura"
+},
+{
+  "path": "basica/7_basico/ciencias_naturales.json",
+  "nivel": "basica",
+  "curso": "7_basico",
+  "asignatura": "ciencias_naturales"
+},
+{
+  "path": "basica/7_basico/historia_geografia_y_cs_sociales.json",
+  "nivel": "basica",
+  "curso": "7_basico",
+  "asignatura": "historia_geografia_y_cs_sociales"
+},
+{
+  "path": "basica/7_basico/tecnologia.json",
+  "nivel": "basica",
+  "curso": "7_basico",
+  "asignatura": "tecnologia"
+},
+{
+  "path": "basica/7_basico/ingles.json",
+  "nivel": "basica",
+  "curso": "7_basico",
+  "asignatura": "ingles"
+},
+{
+  "path": "basica/8_basico/matematica.json",
+  "nivel": "basica",
+  "curso": "8_basico",
+  "asignatura": "matematica"
+},
+{
+  "path": "basica/8_basico/lengua_literatura.json",
+  "nivel": "basica",
+  "curso": "8_basico",
+  "asignatura": "lengua_literatura"
+},
+{
+  "path": "basica/8_basico/ciencias_naturales.json",
+  "nivel": "basica",
+  "curso": "8_basico",
+  "asignatura": "ciencias_naturales"
+},
+{
+  "path": "basica/8_basico/historia_geografia_y_cs_sociales.json",
+  "nivel": "basica",
+  "curso": "8_basico",
+  "asignatura": "historia_geografia_y_cs_sociales"
+},
+{
+  "path": "basica/8_basico/tecnologia.json",
+  "nivel": "basica",
+  "curso": "8_basico",
+  "asignatura": "tecnologia"
+},
+{
+  "path": "basica/8_basico/ingles.json",
+  "nivel": "basica",
+  "curso": "8_basico",
+  "asignatura": "ingles"
 }
