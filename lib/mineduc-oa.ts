@@ -350,6 +350,20 @@ registerStandardFile("basica", "4° Básico", "Lenguaje y Comunicación", basica
 registerStandardFile("basica", "5° Básico", "Lenguaje y Comunicación", basica5Lenguaje as StandardCurriculumFile, "data/mineduc/basica/5_basico/lenguaje.json")
 registerStandardFile("basica", "6° Básico", "Lenguaje y Comunicación", basica6Lenguaje as StandardCurriculumFile, "data/mineduc/basica/6_basico/lenguaje.json")
 
+registerStandardFile("basica", "7_basico", "matematica", basica7Matematica)
+registerStandardFile("basica", "7_basico", "lengua_literatura", basica7LenguaLiteratura)
+registerStandardFile("basica", "7_basico", "ciencias_naturales", basica7CienciasNaturales)
+registerStandardFile("basica", "7_basico", "historia_geografia_y_cs_sociales", basica7Historia)
+registerStandardFile("basica", "7_basico", "tecnologia", basica7Tecnologia)
+registerStandardFile("basica", "7_basico", "ingles", basica7Ingles)
+
+registerStandardFile("basica", "8_basico", "matematica", basica8Matematica)
+registerStandardFile("basica", "8_basico", "lengua_literatura", basica8LenguaLiteratura)
+registerStandardFile("basica", "8_basico", "ciencias_naturales", basica8CienciasNaturales)
+registerStandardFile("basica", "8_basico", "historia_geografia_y_cs_sociales", basica8Historia)
+registerStandardFile("basica", "8_basico", "tecnologia", basica8Tecnologia)
+registerStandardFile("basica", "8_basico", "ingles", basica8Ingles)
+
 registerStandardFile("media", "1° Medio", "Matemática", media1Matematica as StandardCurriculumFile, "data/mineduc/media/1_medio/matematica.json")
 registerStandardFile("media", "1° Medio", "Lengua y Literatura", media1Lengua as StandardCurriculumFile, "data/mineduc/media/1_medio/lengua_literatura.json")
 registerStandardFile("media", "1° Medio", "Tecnología", media1Tecnologia as StandardCurriculumFile, "data/mineduc/media/1_medio/tecnologia.json")
