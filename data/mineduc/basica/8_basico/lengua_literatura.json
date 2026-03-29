@@ -1,0 +1,63 @@
+{
+  "estado": "base_verificada_mineduc",
+  "curso": "8_basico",
+  "asignatura": "lengua_literatura",
+  "nombre_asignatura": "Lengua y Literatura",
+  "fuente": "Currículum Nacional MINEDUC",
+  "unidades": [
+    {
+      "unidad": 1,
+      "titulo": "Lectura",
+      "oa": [
+        {
+          "id": "OA1",
+          "descripcion": "Leer y analizar obras literarias y no literarias de diversa complejidad.",
+          "eje": "Lectura",
+          "indicadores": [
+            "Interpretan temas, personajes y conflictos.",
+            "Relacionan textos con su contexto."
+          ]
+        },
+        {
+          "id": "OA2",
+          "descripcion": "Analizar recursos literarios y estrategias discursivas.",
+          "eje": "Lectura",
+          "indicadores": [
+            "Reconocen metáforas, comparaciones y otros recursos.",
+            "Analizan la intención comunicativa del texto."
+          ]
+        }
+      ]
+    },
+    {
+      "unidad": 2,
+      "titulo": "Escritura",
+      "oa": [
+        {
+          "id": "OA3",
+          "descripcion": "Escribir textos coherentes y cohesionados con propósito comunicativo claro.",
+          "eje": "Escritura",
+          "indicadores": [
+            "Planifican y organizan sus textos.",
+            "Revisan y corrigen versiones finales."
+          ]
+        }
+      ]
+    },
+    {
+      "unidad": 3,
+      "titulo": "Comunicación oral",
+      "oa": [
+        {
+          "id": "OA4",
+          "descripcion": "Participar en discusiones y exposiciones argumentando con claridad.",
+          "eje": "Comunicación oral",
+          "indicadores": [
+            "Expresan ideas fundamentadas.",
+            "Escuchan y responden respetuosamente."
+          ]
+        }
+      ]
+    }
+  ]
+}
