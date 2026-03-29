@@ -1,0 +1,48 @@
+{
+  "estado": "base_verificada_mineduc",
+  "curso": "8_basico",
+  "asignatura": "tecnologia",
+  "nombre_asignatura": "Tecnología",
+  "fuente": "Currículum Nacional MINEDUC",
+  "unidades": [
+    {
+      "unidad": 1,
+      "titulo": "Diseño y solución tecnológica",
+      "oa": [
+        {
+          "id": "OA1",
+          "descripcion": "Diseñar soluciones tecnológicas para responder a necesidades del entorno.",
+          "eje": "Diseño",
+          "indicadores": [
+            "Identifican problemas del entorno.",
+            "Plantean y prototipan soluciones."
+          ]
+        },
+        {
+          "id": "OA2",
+          "descripcion": "Evaluar la funcionalidad, impacto y mejora de productos tecnológicos.",
+          "eje": "Diseño",
+          "indicadores": [
+            "Analizan ventajas y desventajas de soluciones tecnológicas.",
+            "Proponen mejoras a diseños existentes."
+          ]
+        }
+      ]
+    },
+    {
+      "unidad": 2,
+      "titulo": "TIC",
+      "oa": [
+        {
+          "id": "OA3",
+          "descripcion": "Usar herramientas digitales de forma ética, segura y eficiente.",
+          "eje": "TIC",
+          "indicadores": [
+            "Utilizan programas digitales con autonomía.",
+            "Aplican criterios de seguridad y ciudadanía digital."
+          ]
+        }
+      ]
+    }
+  ]
+}
