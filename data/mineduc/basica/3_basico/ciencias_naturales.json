@@ -1,0 +1,161 @@
+{
+  "metadata": {
+    "nivel": "Básica",
+    "curso": "3° Básico",
+    "asignatura": "Ciencias Naturales",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/",
+    "estado": "base_verificada_mineduc",
+    "ultima_actualizacion_manual": "2026-03-29",
+    "nota": "Archivo base creado a partir de OA publicados en Currículum Nacional MINEDUC. Recomendable revisar la distribución por unidades del planificador según el enfoque pedagógico del establecimiento."
+  },
+  "objetivos_habilidad": [
+    {
+      "id": "CN03-OAH-a",
+      "descripcion": "Formular preguntas que puedan ser investigadas y predicciones fundadas.",
+      "unidades": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "CN03-OAH-b",
+      "descripcion": "Participar en investigaciones experimentales y no experimentales guiadas, obteniendo información de diversas fuentes.",
+      "unidades": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "CN03-OAH-c",
+      "descripcion": "Observar, medir y registrar datos en forma precisa, organizándolos en tablas, gráficos y TIC cuando corresponda.",
+      "unidades": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "CN03-OAH-d",
+      "descripcion": "Usar materiales e instrumentos en forma segura y autónoma para hacer observaciones y mediciones.",
+      "unidades": [
+        1,
+        2,
+        3,
+        4
+      ]
+    }
+  ],
+  "objetivos_actitud": [
+    {
+      "id": "CN03-OAA-A",
+      "descripcion": "Mostrar curiosidad, creatividad e interés por comprender fenómenos naturales y tecnológicos.",
+      "unidades": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "CN03-OAA-B",
+      "descripcion": "Asumir responsabilidades y hábitos de cuidado del ambiente y de la propia salud.",
+      "unidades": [
+        1,
+        2,
+        3,
+        4
+      ]
+    }
+  ],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "Ciencias de la vida: plantas, recursos y alimentación",
+      "oa": [
+        {
+          "id": "CN3B-OA-01",
+          "codigo_oficial": "CN03 OA 01",
+          "descripcion": "Observar y describir, por medio de la investigación experimental, las necesidades de las plantas y su relación con la raíz, el tallo y las hojas."
+        },
+        {
+          "id": "CN3B-OA-02",
+          "codigo_oficial": "CN03 OA 02",
+          "descripcion": "Observar, registrar e identificar variadas plantas de nuestro país, incluyendo vegetales autóctonos y cultivos principales a nivel nacional y regional."
+        },
+        {
+          "id": "CN3B-OA-03",
+          "codigo_oficial": "CN03 OA 03",
+          "descripcion": "Observar y describir y algunos cambios de las plantas con flor durante su ciclo de vida (germinación, crecimiento, reproducción, formación de la flor y del fruto), reconociendo la importancia de la polinización y de la dispersión de la semilla."
+        },
+        {
+          "id": "CN3B-OA-04",
+          "codigo_oficial": "CN03 OA 04",
+          "descripcion": "Describir la importancia de las plantas para los seres vivos, el ser humano y el medio ambiente (por ejemplo: alimentación, aire para respirar, productos derivados, ornamentación, uso medicinal) proponiendo y comunicando medidas de cuidado."
+        },
+        {
+          "id": "CN3B-OA-05",
+          "codigo_oficial": "CN03 OA 05",
+          "descripcion": "Explicar la importancia de usar adecuadamente los recursos, proponiendo acciones y construyendo instrumentos tecnológicos para reutilizarlos, reducirlos y reciclarlos en la casa y en la escuela."
+        },
+        {
+          "id": "CN3B-OA-06",
+          "codigo_oficial": "CN03 OA 06",
+          "descripcion": "Clasificar los alimentos, distinguiendo sus efectos sobre la salud y proponer hábitos alimenticios saludables."
+        },
+        {
+          "id": "CN3B-OA-07",
+          "codigo_oficial": "CN03 OA 07",
+          "descripcion": "Proponer, comunicar y ejercitar buenas prácticas de higiene en la manipulación de alimentos para prevenir enfermedades."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Ciencias físicas y químicas: luz y sonido",
+      "oa": [
+        {
+          "id": "CN3B-OA-08",
+          "codigo_oficial": "CN03 OA 08",
+          "descripcion": "Distinguir fuentes naturales y artificiales de luz, como el Sol, las ampolletas y el fuego, entre otras."
+        },
+        {
+          "id": "CN3B-OA-09",
+          "codigo_oficial": "CN03 OA 09",
+          "descripcion": "Investigar experimentalmente y explicar algunas características de la luz; por ejemplo: viaja en línea recta, se refleja, puede ser separada en colores."
+        },
+        {
+          "id": "CN3B-OA-10",
+          "codigo_oficial": "CN03 OA 10",
+          "descripcion": "Investigar experimentalmente y explicar las características del sonido; por ejemplo: viaja en todas las direcciones, se absorbe o se refleja, se transmite por medio de distintos materiales, tiene tono e intensidad."
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "nombre": "Ciencias de la Tierra y el Universo: sistema solar y movimientos de la Tierra",
+      "oa": [
+        {
+          "id": "CN3B-OA-11",
+          "codigo_oficial": "CN03 OA 11",
+          "descripcion": "Describir las características de algunos de los componentes del Sistema Solar (Sol, planetas, lunas, cometas y asteroides) en relación con su tamaño, localización, apariencia y distancia relativa a la Tierra, entre otros."
+        },
+        {
+          "id": "CN3B-OA-12",
+          "codigo_oficial": "CN03 OA 12",
+          "descripcion": "Explicar, por medio de modelos, los movimientos de rotación y traslación, considerando sus efectos en la Tierra."
+        },
+        {
+          "id": "CN3B-OA-13",
+          "codigo_oficial": "CN03 OA 13",
+          "descripcion": "Diseñar y construir modelos tecnológicos para explicar eventos del sistema solar, como la sucesión de las fases de la Luna y los eclipses de Luna y de Sol, entre otros."
+        }
+      ]
+    }
+  ]
+}
