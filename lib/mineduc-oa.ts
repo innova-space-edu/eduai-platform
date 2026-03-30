@@ -79,12 +79,16 @@ interface RawOAItem {
   id: string
   codigo_oficial?: string
   descripcion: string
+  eje?: string
+  indicadores?: string[]
 }
 
 interface RawUnidad {
   numero?: number
+  unidad?: number
   id?: string
-  nombre: string
+  nombre?: string
+  titulo?: string
   oa: RawOAItem[]
 }
 
@@ -434,19 +438,35 @@ export function getCurriculumRecord(
   return REGISTRY[buildRegistryKey(nivel, cursoKey, asignaturaNormalizada)] || null
 }
 
+function getUnidadNumero(unidad: RawUnidad): number | string | undefined {
+  return unidad.numero ?? unidad.unidad
+}
+
+function getUnidadNombre(unidad: RawUnidad): string {
+  return unidad.nombre ?? unidad.titulo ?? ""
+}
+
+function getUnidadId(unidad: RawUnidad): string {
+  return unidad.id || `u${String(getUnidadNumero(unidad) ?? "").trim()}`
+}
+
 function flattenStandardUnits(raw: StandardCurriculumFile, sourceFile: string): OA[] {
   const result: OA[] = []
 
   for (const unidad of raw.unidades || []) {
+    const unidadId = getUnidadId(unidad)
+    const unidadNombre = getUnidadNombre(unidad)
+    const unidadNumero = getUnidadNumero(unidad)
+
     for (const oa of unidad.oa || []) {
       result.push({
         id: oa.id,
         texto: oa.descripcion,
         codigoOficial: oa.codigo_oficial,
-        unidadId: unidad.id || `u${String(unidad.numero ?? "").trim()}`,
-        unidadNombre: unidad.nombre,
-        unidadNumero: unidad.numero,
-        ejes: unidad.nombre ? [unidad.nombre] : [],
+        unidadId,
+        unidadNombre,
+        unidadNumero,
+        ejes: oa.eje ? [oa.eje] : unidadNombre ? [unidadNombre] : [],
         tipo: "oa",
         sourceFile,
       })
