@@ -302,13 +302,19 @@ export async function callGroqStream(
 // ══════════════════════════════════════════════════════════════════════════════
 async function callOpenRouter(
   messages: Message[],
-  maxTokens = 2000
+  maxTokens = 2000,
+  preferredModel?: string
 ): Promise<AIResponse> {
-  const models = [
-    "meta-llama/llama-3.3-70b-instruct:free",
-    "google/gemma-2-27b-it:free",
-    "mistralai/mistral-7b-instruct:free",
-  ]
+  const models = preferredModel
+    ? [preferredModel, "openai/gpt-4o-mini", "meta-llama/llama-3.3-70b-instruct:free"]
+    : [
+        "openai/gpt-4o-mini",               // 1° — rápido, económico, muy buena calidad
+        "anthropic/claude-3-haiku",          // 2° — rápido, excelente para texto largo
+        "openai/gpt-4o",                     // 3° — máxima calidad OpenAI
+        "anthropic/claude-3.5-sonnet",       // 4° — máxima calidad Anthropic
+        "meta-llama/llama-3.3-70b-instruct:free", // 5° — gratuito, fallback
+        "google/gemma-2-27b-it:free",        // 6° — gratuito, fallback
+      ]
   for (const model of models) {
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
@@ -371,9 +377,10 @@ export async function callAI(
   options: {
     maxTokens?: number
     preferProvider?: "groq" | "openrouter" | "gemini" | "gemini-lite"
+    openrouterModel?: string  // modelo específico de OpenRouter (ej: "openai/gpt-4o")
   } = {}
 ): Promise<AIResponse> {
-  const { maxTokens = 2000, preferProvider } = options
+  const { maxTokens = 2000, preferProvider, openrouterModel } = options
 
   // gemini-lite → Gemini Flash Lite
   if (preferProvider === "gemini-lite") {
@@ -390,10 +397,10 @@ export async function callAI(
   // Orden de providers según preferencia
   type ProviderDef = { name: string; fn: () => Promise<AIResponse>; enabled: boolean }
   const providers: ProviderDef[] = [
-    { name: "gemini",     fn: () => callGemini(messages, maxTokens, false), enabled: !!process.env.GEMINI_API_KEY },
-    { name: "groq",       fn: () => callGroq(messages, maxTokens),          enabled: !!process.env.GROQ_API_KEY },
-    { name: "openrouter", fn: () => callOpenRouter(messages, maxTokens),    enabled: !!process.env.OPENROUTER_API_KEY },
-    { name: "together",   fn: () => callTogetherAI(messages, maxTokens),    enabled: !!process.env.TOGETHER_API_KEY },
+    { name: "gemini",     fn: () => callGemini(messages, maxTokens, false),              enabled: !!process.env.GEMINI_API_KEY },
+    { name: "groq",       fn: () => callGroq(messages, maxTokens),                       enabled: !!process.env.GROQ_API_KEY },
+    { name: "openrouter", fn: () => callOpenRouter(messages, maxTokens, openrouterModel), enabled: !!process.env.OPENROUTER_API_KEY },
+    { name: "together",   fn: () => callTogetherAI(messages, maxTokens),                 enabled: !!process.env.TOGETHER_API_KEY },
   ]
 
   if (preferProvider) {
