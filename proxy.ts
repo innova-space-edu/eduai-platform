@@ -1,0 +1,127 @@
+/**
+ * proxy.ts — EduAI Platform v3
+ * ─────────────────────────────────────────────────────────────────────────────
+ * IMPORTANTE: Supabase SSR requiere que auth.getUser() se ejecute en TODAS
+ * las rutas (incluyendo /api/*) para refrescar el access token antes de que
+ * expire. Si se omite en rutas API, el token puede estar vencido cuando el
+ * handler lo lee → 401 Unauthorized.
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+
+import { createServerClient } from "@supabase/ssr"
+import { NextResponse, type NextRequest } from "next/server"
+
+const PROTECTED_ROUTES = [
+  "/dashboard", "/study", "/profile", "/admin",
+  "/creator-hub", "/audio-lab", "/image-studio", "/workspace",
+]
+const AUTH_ROUTES = ["/login", "/register"]
+
+const RATE_LIMITS: Record<string, { limit: number; windowSecs: number }> = {
+  "/api/agents/chat":          { limit: 30, windowSecs: 60 },
+  "/api/agents/socratic":      { limit: 30, windowSecs: 60 },
+  "/api/agents/theory":        { limit: 20, windowSecs: 60 },
+  "/api/agents/summary":       { limit: 20, windowSecs: 60 },
+  "/api/agents/evaluate":      { limit: 20, windowSecs: 60 },
+  "/api/agents/feedback":      { limit: 20, windowSecs: 60 },
+  "/api/agents/paper":         { limit: 10, windowSecs: 60 },
+  "/api/agents/paper/extract": { limit: 5,  windowSecs: 60 },
+  "/api/agents/imagenes":      { limit: 10, windowSecs: 60 },
+  "/api/agents/gemini-image":  { limit: 10, windowSecs: 60 },
+  "/api/agents/podcast-wav":   { limit: 5,  windowSecs: 60 },
+  "/api/agents/transcription": { limit: 5,  windowSecs: 60 },
+  "__default_agents__":        { limit: 20, windowSecs: 60 },
+}
+
+async function checkRateLimit(
+  identifier: string,
+  limit: number,
+  windowSecs: number
+): Promise<{ allowed: boolean; remaining: number }> {
+  const url   = process.env.UPSTASH_REDIS_REST_URL
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN
+  if (!url || !token) return { allowed: true, remaining: limit }
+  try {
+    const key = `rl:${identifier}`
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify(["INCR", key]),
+    })
+    if (!res.ok) return { allowed: true, remaining: limit }
+    const { result: current } = await res.json()
+    if (current === 1) {
+      fetch(url, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify(["EXPIRE", key, windowSecs]),
+      }).catch(() => {})
+    }
+    return { allowed: current <= limit, remaining: Math.max(0, limit - current) }
+  } catch {
+    return { allowed: true, remaining: limit }
+  }
+}
+
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
+
+  // ── 1. Refresh de sesión Supabase — SIEMPRE, para todas las rutas ──────────
+  // Esto refresca el access token si está por vencer y escribe las cookies
+  // actualizadas en la respuesta. Sin esto, /api/* recibe tokens vencidos → 401.
+  let response = NextResponse.next({ request })
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    {
+      cookies: {
+        getAll() { return request.cookies.getAll() },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => { request.cookies.set(name, value) })
+          response = NextResponse.next({ request })
+          cookiesToSet.forEach(({ name, value, options }) => { response.cookies.set(name, value, options) })
+        },
+      },
+    }
+  )
+
+  // Refresca el token (y escribe cookies frescas en `response` si hace falta)
+  const { data: { user } } = await supabase.auth.getUser()
+
+  // ── 2. Rate limiting para /api/agents/* ────────────────────────────────────
+  if (pathname.startsWith("/api/agents/")) {
+    const authCookie = request.cookies.getAll().find(c => c.name.includes("auth-token"))?.value
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown"
+    const identifier = authCookie
+      ? `user:${authCookie.slice(0, 32)}:${pathname}`
+      : `ip:${ip}:${pathname}`
+    const config = RATE_LIMITS[pathname] || RATE_LIMITS["__default_agents__"]
+    const effectiveLimit = authCookie ? config.limit : Math.floor(config.limit / 2)
+    const { allowed, remaining } = await checkRateLimit(identifier, effectiveLimit, config.windowSecs)
+
+    if (!allowed) {
+      return new NextResponse(
+        JSON.stringify({ error: "Rate limit exceeded", message: "Demasiadas solicitudes. Espera un momento.", retryAfter: config.windowSecs }),
+        { status: 429, headers: { "Content-Type": "application/json", "Retry-After": String(config.windowSecs), "X-RateLimit-Remaining": "0" } }
+      )
+    }
+
+    // Devuelve la respuesta con cookies frescas (no el early return vacío de antes)
+    response.headers.set("X-RateLimit-Remaining", String(remaining))
+    return response
+  }
+
+  // ── 3. Protección de rutas de página ──────────────────────────────────────
+  const isProtected = PROTECTED_ROUTES.some(r => pathname.startsWith(r))
+  const isAuth = AUTH_ROUTES.some(r => pathname === r)
+
+  if (!user && isProtected) return NextResponse.redirect(new URL("/login", request.url))
+  if (user && isAuth)       return NextResponse.redirect(new URL("/dashboard", request.url))
+
+  return response
+}
+
+export const config = {
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"],
+}
