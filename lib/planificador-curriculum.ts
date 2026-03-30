@@ -33,12 +33,16 @@ interface RawOAItem {
   id: string
   codigo_oficial?: string
   descripcion: string
+  eje?: string
+  indicadores?: string[]
 }
 
 interface RawUnidad {
   numero?: number
+  unidad?: number
   id?: string
-  nombre: string
+  nombre?: string
+  titulo?: string
   oa: RawOAItem[]
 }
 
@@ -83,6 +87,18 @@ export function getCurriculumIdentity({ nivel, curso, asignatura }: PlannerCurri
   const cursoKey = cursoToKey(curso)
   const asigKey = normalizeAsignatura(asignatura, nivel)
   return { cursoKey, asigKey, mapKey: `${nivel}|${cursoKey}|${asigKey}` }
+}
+
+function getUnidadNumero(unidad: RawUnidad): number | string | undefined {
+  return unidad.numero ?? unidad.unidad
+}
+
+function getUnidadNombre(unidad: RawUnidad): string {
+  return unidad.nombre ?? unidad.titulo ?? ""
+}
+
+function getUnidadId(unidad: RawUnidad): string {
+  return unidad.id || `u${String(getUnidadNumero(unidad) ?? "").trim()}`
 }
 
 export function getPlannerUnits(state: PlannerCurriculumState): PlannerUnit[] {
@@ -138,11 +154,16 @@ export function getPlannerUnits(state: PlannerCurriculumState): PlannerUnit[] {
   }
 
   if (raw.unidades?.length) {
-    return raw.unidades.map((unidad) => ({
-      id: unidad.id || `u${String(unidad.numero ?? "").trim()}`,
-      label: unidad.numero ? `Unidad ${unidad.numero} · ${unidad.nombre}` : unidad.nombre,
-      oaIds: (unidad.oa || []).map((item) => item.id),
-    }))
+    return raw.unidades.map((unidad) => {
+      const numero = getUnidadNumero(unidad)
+      const nombre = getUnidadNombre(unidad)
+
+      return {
+        id: getUnidadId(unidad),
+        label: numero ? `Unidad ${numero} · ${nombre}` : nombre,
+        oaIds: (unidad.oa || []).map((item) => item.id),
+      }
+    })
   }
 
   if (raw.modulos?.length) {
