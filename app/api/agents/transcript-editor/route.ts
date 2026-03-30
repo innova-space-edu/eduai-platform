@@ -100,10 +100,13 @@ export async function POST(req: NextRequest) {
     : `TRANSCRIPCIÓN:\n${transcript}`
 
   try {
-    const ai = await callAI([
-      { role: "system", content: system },
-      { role: "user", content: userPrompt },
-    ], 5000)
+    const ai = await callAI(
+      [
+        { role: "system", content: system },
+        { role: "user", content: userPrompt },
+      ],
+      { maxTokens: 4000, preferProvider: "gemini" }
+    )
 
     const output = ai.text.trim()
 
