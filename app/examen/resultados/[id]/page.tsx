@@ -334,6 +334,40 @@ function ReviewModal({
   const [saving, setSaving] = useState(false)
   const [activeQ, setActiveQ] = useState(0)
 
+  const getLiveQuestionState = (answer: any, question: any, index: number) => {
+    if (answer?.type === "multiple_choice") {
+      const liveCorrect = mcOverrides[index] ?? answer?.isCorrect
+      return {
+        reviewed: true,
+        correct: !!liveCorrect,
+        score: liveCorrect ? Number(answer?.maxPoints || question?.maxPoints || 0) : 0,
+      }
+    }
+
+    if (answer?.type === "true_false") {
+      const hasScore = scores[index] != null
+      const liveScore = Number(hasScore ? scores[index] : answer?.justificationScore ?? 0)
+      const selPts = answer?.selectionCorrect || answer?.isCorrect ? Number(answer?.selectionPoints || 1) : 0
+      return {
+        reviewed: hasScore || answer?.justificationScore != null,
+        correct: (answer?.selectionCorrect || answer?.isCorrect) && liveScore > 0,
+        score: selPts + liveScore,
+      }
+    }
+
+    if (answer?.type === "development") {
+      const hasScore = scores[index] != null
+      const liveScore = Number(hasScore ? scores[index] : answer?.manualScore ?? answer?.aiScore ?? 0)
+      return {
+        reviewed: hasScore || answer?.manualScore != null || answer?.aiEvaluated,
+        correct: false,
+        score: liveScore,
+      }
+    }
+
+    return { reviewed: true, correct: false, score: 0 }
+  }
+
   const previewGrade = (() => {
     let earned = 0
     let total = 0
@@ -343,16 +377,8 @@ function ReviewModal({
       const max = Number(a.maxPoints || q?.maxPoints || 0)
       total += max
 
-      if (a.type === "multiple_choice") {
-        if (mcOverrides[i]) earned += max
-      } else if (a.type === "true_false") {
-        const selPts = Number(a.selectionPoints) || 1
-        const justMax = Number(a.justificationMaxPoints) || Math.max(0, max - selPts)
-        if (a.selectionCorrect || a.isCorrect) earned += selPts
-        earned += Math.min(justMax, Math.max(0, scores[i] || 0))
-      } else if (a.type === "development") {
-        earned += Math.min(max, Math.max(0, scores[i] || 0))
-      }
+      const live = getLiveQuestionState(a, q, i)
+      earned += Math.min(max, Math.max(0, Number(live.score || 0)))
     })
 
     const pct = total > 0 ? (earned / total) * 100 : 0
@@ -367,48 +393,60 @@ function ReviewModal({
     }
   })()
 
+  const needsReview = (ans: any, idx: number) => {
+    const live = getLiveQuestionState(ans, questions[idx], idx)
+    if (ans?.type === "development") return !live.reviewed
+    if (ans?.type === "true_false") return !live.reviewed
+    return false
+  }
+
+  const pendingCount = answers.filter((ans: any, idx: number) => needsReview(ans, idx)).length
+
   async function handleSave() {
     setSaving(true)
 
-    const updatedAnswers = answers.map((a: any, i: number) => {
-      if (a.type === "multiple_choice") {
-        return { ...a, isCorrect: mcOverrides[i] ?? a.isCorrect }
-      }
-      if (a.type === "true_false") {
-        return {
-          ...a,
-          justificationScore: scores[i] ?? a.justificationScore,
-          justificationFeedback: feedbacks[i] ?? a.justificationFeedback,
+    try {
+      const updatedAnswers = answers.map((a: any, i: number) => {
+        if (a.type === "multiple_choice") {
+          return { ...a, isCorrect: mcOverrides[i] ?? a.isCorrect }
         }
-      }
-      if (a.type === "development") {
-        return {
-          ...a,
-          manualScore: scores[i] ?? a.aiScore,
-          aiScore: scores[i] ?? a.aiScore,
-          manualFeedback: feedbacks[i] ?? a.aiFeedback,
-          aiEvaluated: true,
+        if (a.type === "true_false") {
+          return {
+            ...a,
+            justificationScore: scores[i] ?? a.justificationScore,
+            justificationFeedback: feedbacks[i] ?? a.justificationFeedback,
+          }
         }
+        if (a.type === "development") {
+          return {
+            ...a,
+            manualScore: scores[i] ?? a.aiScore,
+            aiScore: scores[i] ?? a.aiScore,
+            manualFeedback: feedbacks[i] ?? a.aiFeedback,
+            aiEvaluated: true,
+          }
+        }
+        return a
+      })
+
+      const res = await fetch("/api/agents/examen-docente", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "update_submission",
+          submissionId: submission.id,
+          updatedAnswers,
+          examPercentage: exam?.settings?.examPercentage || 60,
+        }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok || !data.success) {
+        throw new Error(data?.error || "No se pudo guardar la revisión")
       }
-      return a
-    })
 
-    const res = await fetch("/api/agents/examen-docente", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "update_submission",
-        submissionId: submission.id,
-        updatedAnswers,
-        examPercentage: exam?.settings?.examPercentage || 60,
-      }),
-    })
-
-    const data = await res.json()
-    setSaving(false)
-
-    if (data.success) {
-      onSave({
+      const updatedSubmission = {
         ...submission,
         answers: updatedAnswers,
         score: data.score,
@@ -417,7 +455,14 @@ function ReviewModal({
         earned_points: data.earned_points,
         total_points: data.total_points,
         manually_reviewed: true,
-      })
+      }
+
+      onSave(updatedSubmission)
+      onClose()
+    } catch (error: any) {
+      alert(error?.message || "No se pudo guardar la revisión")
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -426,14 +471,6 @@ function ReviewModal({
 
   const typeLabel = (t: string) =>
     t === "multiple_choice" ? "Alternativas" : t === "true_false" ? "V/F" : "Desarrollo"
-
-  const needsReview = (ans: any) => {
-    if (ans?.type === "development") return !ans?.manualScore && !ans?.aiEvaluated
-    if (ans?.type === "true_false") return ans?.justificationScore == null
-    return false
-  }
-
-  const pendingCount = answers.filter(needsReview).length
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 md:p-4">
@@ -503,13 +540,7 @@ function ReviewModal({
             {questions.map((qq: any, i: number) => {
               const aa = answers[i]
               const isActive = i === activeQ
-              const hasManual =
-                aa?.type === "development"
-                  ? aa?.manualScore != null || aa?.aiEvaluated
-                  : aa?.type === "true_false"
-                    ? aa?.justificationScore != null
-                    : true
-              const isCorrect = aa?.type === "multiple_choice" ? (mcOverrides[i] ?? aa?.isCorrect) : null
+              const live = getLiveQuestionState(aa, qq, i)
 
               return (
                 <button
@@ -527,14 +558,14 @@ function ReviewModal({
                     </span>
 
                     {aa?.type === "multiple_choice" &&
-                      (isCorrect ? (
+                      (live.correct ? (
                         <CheckCircle2 size={12} className="text-green-400" />
                       ) : (
                         <XCircle size={12} className="text-red-400" />
                       ))}
 
                     {(aa?.type === "development" || aa?.type === "true_false") &&
-                      (hasManual ? (
+                      (live.reviewed ? (
                         <CheckCircle2 size={12} className="text-blue-400" />
                       ) : (
                         <AlertTriangle size={12} className="text-amber-400" />
@@ -542,12 +573,28 @@ function ReviewModal({
                   </div>
 
                   <p className="text-[10px] text-gray-600 mt-0.5 truncate">{typeLabel(qq?.type || "")}</p>
-                  <p className="text-[10px] text-gray-700">
+                  <p
+                    className="text-[10px] font-semibold"
+                    style={{
+                      color:
+                        aa?.type === "development" || aa?.type === "true_false"
+                          ? live.reviewed
+                            ? "#60a5fa"
+                            : "#fbbf24"
+                          : live.correct
+                            ? "#4ade80"
+                            : "#f87171",
+                    }}
+                  >
                     {aa?.type === "development"
-                      ? `${scores[i] ?? aa?.aiScore ?? 0}/${aa?.maxPoints || qq?.maxPoints || 0} pts`
+                      ? `${live.score}/${aa?.maxPoints || qq?.maxPoints || 0} pts`
                       : aa?.type === "true_false"
-                        ? `${aa?.selectionCorrect ? "✓" : "✗"} sel.`
-                        : ""}
+                        ? live.reviewed
+                          ? `${live.score}/${aa?.maxPoints || qq?.maxPoints || 0} pts`
+                          : "Pendiente"
+                        : live.correct
+                          ? "Correcta"
+                          : "Incorrecta"}
                   </p>
                 </button>
               )
@@ -1079,12 +1126,8 @@ export default function ResultadosExamenPage() {
 
       setSubmissions((prev) => prev.filter((s) => s.id !== deleteSub.id))
 
-      if (reviewSub?.id === deleteSub.id) {
-        setReviewSub(null)
-      }
-      if (incidentSub?.id === deleteSub.id) {
-        setIncidentSub(null)
-      }
+      if (reviewSub?.id === deleteSub.id) setReviewSub(null)
+      if (incidentSub?.id === deleteSub.id) setIncidentSub(null)
 
       setDeleteSub(null)
     } catch (error: any) {
