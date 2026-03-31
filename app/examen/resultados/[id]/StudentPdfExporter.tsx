@@ -123,19 +123,40 @@ function normalizeQuestionType(type?: string): string {
 
 function levelFromScore(score: number): {
   label: string
+  short: string
   color: readonly number[]
   soft: readonly number[]
 } {
   if (score >= 85) {
-    return { label: "Logro destacado", color: PALETTE.green, soft: PALETTE.softGreen }
+    return {
+      label: "Logro destacado",
+      short: "APROBADO DESTACADO",
+      color: PALETTE.green,
+      soft: PALETTE.softGreen,
+    }
   }
   if (score >= 70) {
-    return { label: "Buen nivel", color: PALETTE.blue, soft: PALETTE.softBlue }
+    return {
+      label: "Buen nivel",
+      short: "BUEN NIVEL",
+      color: PALETTE.blue,
+      soft: PALETTE.softBlue,
+    }
   }
   if (score >= 50) {
-    return { label: "En desarrollo", color: PALETTE.amber, soft: PALETTE.softAmber }
+    return {
+      label: "En desarrollo",
+      short: "EN DESARROLLO",
+      color: PALETTE.amber,
+      soft: PALETTE.softAmber,
+    }
   }
-  return { label: "Requiere apoyo", color: PALETTE.red, soft: PALETTE.softRed }
+  return {
+    label: "Requiere apoyo",
+    short: "REQUIERE APOYO",
+    color: PALETTE.red,
+    soft: PALETTE.softRed,
+  }
 }
 
 function recommendationFromScore(score: number): { title: string; body: string } {
@@ -195,6 +216,85 @@ function getImageFormatFromDataUrl(dataUrl: string): "PNG" | "JPEG" {
   return "PNG"
 }
 
+function normalizeFeedback(text?: string): string {
+  const t = clean(text)
+  if (!t) return ""
+  if (t.toLowerCase().includes("pendiente de revisión manual")) {
+    return "Revisión docente aún no registrada."
+  }
+  return t
+}
+
+function getQuestionScore(answer: SubmissionAnswer, question: ExamQuestion): number {
+  if (typeof answer.manualScore === "number") return answer.manualScore
+  if (typeof answer.aiScore === "number") return answer.aiScore
+  if (typeof answer.justificationScore === "number") {
+    const base = answer.selectionCorrect ? 1 : 0
+    return base + answer.justificationScore
+  }
+  if (typeof answer.isCorrect === "boolean") return answer.isCorrect ? Number(answer.maxPoints ?? question.maxPoints ?? 0) : 0
+  return 0
+}
+
+function buildAnalyticSummary(
+  questions: ExamQuestion[],
+  answers: SubmissionAnswer[],
+  score: number,
+): { strengths: string; weak: string; profile: string } {
+  let mc = 0
+  let tf = 0
+  let dev = 0
+  let mcOk = 0
+  let tfOk = 0
+  let devOk = 0
+
+  questions.forEach((q: ExamQuestion, i: number) => {
+    const a = answers[i] || {}
+    const type = (a.type || q.type || "").toLowerCase()
+
+    if (type.includes("multiple")) {
+      mc++
+      if (a.isCorrect) mcOk++
+    } else if (type.includes("true") || type.includes("false")) {
+      tf++
+      if (a.selectionCorrect) tfOk++
+    } else if (type.includes("develop")) {
+      dev++
+      const maxPts = Number(a.maxPoints ?? q.maxPoints ?? 0)
+      const pts = Number(a.manualScore ?? a.aiScore ?? 0)
+      if (maxPts > 0 && pts / maxPts >= 0.7) devOk++
+    }
+  })
+
+  const parts: string[] = []
+  if (mc > 0) parts.push(`alternativas (${mcOk}/${mc})`)
+  if (tf > 0) parts.push(`verdadero/falso (${tfOk}/${tf})`)
+  if (dev > 0) parts.push(`desarrollo (${devOk}/${dev})`)
+
+  let strengths = "Desempeño equilibrado en los distintos tipos de preguntas."
+  if (score >= 85) {
+    strengths = `Muestra dominio sólido en ${parts.join(", ")}.`
+  } else if (score >= 70) {
+    strengths = `Evidencia buen manejo general, especialmente en ${parts.join(", ")}.`
+  }
+
+  let weak = "No se observan debilidades críticas en este informe."
+  if (score < 85 && dev > 0 && devOk < dev) {
+    weak = "Conviene reforzar la profundidad y precisión en respuestas de desarrollo."
+  } else if (score < 70 && tf > 0 && tfOk < tf) {
+    weak = "Se recomienda fortalecer la justificación conceptual en ítems de verdadero/falso."
+  } else if (score < 70 && mc > 0 && mcOk < mc) {
+    weak = "Sería útil reforzar reconocimiento de conceptos clave en preguntas de selección."
+  }
+
+  let profile = "Perfil de logro alto con proyección de profundización."
+  if (score < 85 && score >= 70) profile = "Perfil sólido, con espacio para consolidar algunos detalles."
+  if (score < 70 && score >= 50) profile = "Perfil en desarrollo, requiere práctica guiada."
+  if (score < 50) profile = "Perfil que requiere apoyo focalizado y reforzamiento."
+
+  return { strengths, weak, profile }
+}
+
 export default function StudentPdfExporter({
   exam,
   submission,
@@ -217,6 +317,7 @@ export default function StudentPdfExporter({
       const margin = 12
       const contentW = pageW - margin * 2
       let y = 0
+      let pageNumber = 1
 
       const questions: ExamQuestion[] = exam?.questions || []
       const answers: SubmissionAnswer[] = submission?.answers || []
@@ -230,6 +331,7 @@ export default function StudentPdfExporter({
 
       const level = levelFromScore(score)
       const recommendation = recommendationFromScore(score)
+      const analytics = buildAnalyticSummary(questions, answers, score)
 
       const logoUrl = clean(exam?.logoUrl || DEFAULT_LOGO_URL)
       const logoDataUrl = logoUrl ? await loadImageAsDataUrl(logoUrl) : null
@@ -284,20 +386,21 @@ export default function StudentPdfExporter({
       }
 
       const addFooter = (): void => {
-        setFont(false, 7.5, PALETTE.muted)
-        doc.text(
-          `EduAI Platform · Informe individual · ${new Date().toLocaleString("es-CL")}`,
-          pageW - margin,
-          pageH - 7,
-          { align: "right" },
-        )
+        setFont(false, 7.2, PALETTE.muted)
+        doc.text(`EduAI Platform · Informe individual`, margin, pageH - 7)
+        doc.text(`Página ${pageNumber}`, pageW - margin, pageH - 7, { align: "right" })
+      }
+
+      const newPage = (): void => {
+        addFooter()
+        doc.addPage()
+        pageNumber += 1
+        y = 14
       }
 
       const ensureSpace = (need = 18): void => {
         if (y + need > pageH - 16) {
-          addFooter()
-          doc.addPage()
-          y = 16
+          newPage()
         }
       }
 
@@ -306,14 +409,14 @@ export default function StudentPdfExporter({
         x: number,
         yy: number,
         w: number,
-        lineHeight = 5,
+        lineHeight = 4.5,
       ): number => {
         const lines: string[] = split(text, w)
         let cy = yy
 
         for (let i = 0; i < lines.length; i++) {
           const line: string = lines[i]
-          ensureSpace(lineHeight + 2)
+          ensureSpace(lineHeight + 1.5)
 
           const isLast = i === lines.length - 1
           const words: string[] = line.trim().split(/\s+/)
@@ -342,17 +445,17 @@ export default function StudentPdfExporter({
       }
 
       const sectionTitle = (title: string, subtitle?: string): void => {
-        ensureSpace(14)
-        fill(margin, y - 0.5, 5, 9, PALETTE.violet, 1.5)
-        setFont(true, 12.5, PALETTE.navy)
-        doc.text(clean(title), margin + 8, y + 5)
+        ensureSpace(10)
+        fill(margin, y - 0.5, 4.5, 8, PALETTE.violet, 1.2)
+        setFont(true, 11.5, PALETTE.navy)
+        doc.text(clean(title), margin + 7, y + 4.5)
 
         if (subtitle) {
-          setFont(false, 8.2, PALETTE.slate)
-          doc.text(clean(subtitle), pageW - margin, y + 5, { align: "right" })
+          setFont(false, 7.8, PALETTE.slate)
+          doc.text(clean(subtitle), pageW - margin, y + 4.5, { align: "right" })
         }
 
-        y += 12
+        y += 9.5
       }
 
       const drawKpiCard = (
@@ -366,10 +469,10 @@ export default function StudentPdfExporter({
       ): void => {
         drawBox(x, yy, w, h, PALETTE.border, PALETTE.white, 4)
         fill(x, yy, 4, h, color, 2)
-        setFont(true, 7.5, PALETTE.slate)
-        doc.text(clean(label).toUpperCase(), x + 8, yy + 6)
-        setFont(true, 15, color)
-        doc.text(clean(value), x + 8, yy + 14)
+        setFont(true, 7.2, PALETTE.slate)
+        doc.text(clean(label).toUpperCase(), x + 7.5, yy + 5.5)
+        setFont(true, 13.5, color)
+        doc.text(clean(value), x + 7.5, yy + 12.8)
       }
 
       const drawProgressBar = (
@@ -379,32 +482,32 @@ export default function StudentPdfExporter({
         value: number,
         color: readonly number[],
       ): void => {
-        drawBox(x, yy, w, 5.5, PALETTE.border, [238, 242, 247], 2)
-        fill(x, yy, Math.max(4, (w * Math.min(Math.max(value, 0), 100)) / 100), 5.5, color, 2)
+        drawBox(x, yy, w, 5, PALETTE.border, [238, 242, 247], 2)
+        fill(x, yy, Math.max(4, (w * Math.min(Math.max(value, 0), 100)) / 100), 5, color, 2)
       }
 
       const tableHeader = (headers: string[], widths: number[]): void => {
-        ensureSpace(10)
+        ensureSpace(8)
         const totalW = widths.reduce((a: number, b: number) => a + b, 0)
-        fill(margin, y, totalW, 8, PALETTE.navy, 2)
-        setFont(true, 8, PALETTE.white)
+        fill(margin, y, totalW, 7, PALETTE.navy, 2)
+        setFont(true, 7.6, PALETTE.white)
 
         let x = margin
         headers.forEach((header: string, idx: number) => {
-          doc.text(clean(header), x + 2, y + 5.2)
+          doc.text(clean(header), x + 2, y + 4.6)
           x += widths[idx]
         })
 
-        y += 8
+        y += 7
       }
 
       const tableRow = (cols: string[], widths: number[], alt = false): void => {
         const prepared: string[][] = cols.map((col: string, i: number) => split(col || "—", widths[i] - 4))
         const maxLines = Math.max(...prepared.map((p: string[]) => p.length), 1)
-        const rowH = Math.max(8, maxLines * 4.4 + 3)
+        const rowH = Math.max(7, maxLines * 3.9 + 2.5)
         const totalW = widths.reduce((a: number, b: number) => a + b, 0)
 
-        ensureSpace(rowH + 2)
+        ensureSpace(rowH + 1)
 
         if (alt) {
           fill(margin, y, totalW, rowH, [250, 252, 255], 1.5)
@@ -414,14 +517,14 @@ export default function StudentPdfExporter({
         doc.rect(margin, y, totalW, rowH)
 
         let x = margin
-        setFont(false, 8, PALETTE.text)
+        setFont(false, 7.8, PALETTE.text)
 
         prepared.forEach((cell: string[], i: number) => {
           doc.line(x, y, x, y + rowH)
-          let cy = y + 4.2
+          let cy = y + 4
           cell.forEach((line: string) => {
             doc.text(line, x + 2, cy)
-            cy += 4
+            cy += 3.7
           })
           x += widths[i]
         })
@@ -432,70 +535,78 @@ export default function StudentPdfExporter({
 
       const questionBadge = (label: string, color: readonly number[]): void => {
         const badgeW = Math.max(18, doc.getTextWidth(label) + 6)
-        fill(pageW - margin - badgeW, y - 1, badgeW, 6.5, color, 2)
-        setFont(true, 7.3, PALETTE.white)
-        doc.text(label, pageW - margin - badgeW / 2, y + 3.2, { align: "center" })
+        fill(pageW - margin - badgeW, y - 0.5, badgeW, 6, color, 2)
+        setFont(true, 7, PALETTE.white)
+        doc.text(label, pageW - margin - badgeW / 2, y + 3.5, { align: "center" })
       }
 
-      fill(0, 0, pageW, 48, PALETTE.navy)
-      fill(0, 0, pageW, 8, PALETTE.violet)
-      fill(0, 44, pageW, 4, PALETTE.cyan)
-      fill(0, 0, 7, 48, PALETTE.blue)
+      // PORTADA
+      fill(0, 0, pageW, 44, PALETTE.navy)
+      fill(0, 0, pageW, 7, PALETTE.violet)
+      fill(0, 40, pageW, 4, PALETTE.cyan)
+      fill(0, 0, 6, 44, PALETTE.blue)
 
       if (logoDataUrl) {
         try {
           const format = getImageFormatFromDataUrl(logoDataUrl)
-          doc.addImage(logoDataUrl, format, pageW - 36, 10, 18, 18)
+          doc.addImage(logoDataUrl, format, pageW - 34, 9, 16, 16)
         } catch {
-          // el PDF sigue aunque falle el logo
+          // sigue sin romper
         }
       }
 
-      setFont(true, 20, PALETTE.white)
+      setFont(true, 18, PALETTE.white)
       const titleLines: string[] = split(exam?.title || "Informe individual del examen", contentW - 26)
-      let titleY = 18
+      let titleY = 17
       titleLines.forEach((line: string) => {
         doc.text(line, margin + 5, titleY)
-        titleY += 7.6
+        titleY += 7
       })
 
-      setFont(false, 10, [221, 226, 235])
-      doc.text("Reporte individual del estudiante", margin + 5, 37)
+      setFont(false, 9.5, [221, 226, 235])
+      doc.text("Reporte individual del estudiante", margin + 5, 34)
 
-      setFont(true, 9.5, PALETTE.white)
-      doc.text(`Código: ${clean(exam?.code || "—")}`, pageW - margin, 18, { align: "right" })
-      doc.text(`Asignatura: ${clean(exam?.subject || "—")}`, pageW - margin, 25, { align: "right" })
-      doc.text(`Docente: ${clean(exam?.teacher_name || "—")}`, pageW - margin, 32, { align: "right" })
+      const headerMeta: string[] = [`Código: ${clean(exam?.code || "—")}`]
+      if (clean(exam?.subject)) headerMeta.push(`Asignatura: ${clean(exam.subject)}`)
+      if (clean(exam?.teacher_name)) headerMeta.push(`Docente: ${clean(exam.teacher_name)}`)
 
-      y = 56
+      setFont(true, 8.8, PALETTE.white)
+      let headerMetaY = 16
+      headerMeta.forEach((item: string) => {
+        doc.text(item, pageW - margin, headerMetaY, { align: "right" })
+        headerMetaY += 6
+      })
 
-      drawBox(margin, y, contentW, 29, PALETTE.border, PALETTE.white, 5)
-      fill(margin, y, contentW, 6, PALETTE.grayBg, 4)
+      y = 50
 
-      setFont(true, 9, PALETTE.navy)
-      doc.text("IDENTIFICACIÓN DEL ESTUDIANTE", margin + 4, y + 4.3)
+      // DATOS ESTUDIANTE
+      drawBox(margin, y, contentW, 27, PALETTE.border, PALETTE.white, 5)
+      fill(margin, y, contentW, 5.5, PALETTE.grayBg, 4)
+
+      setFont(true, 8.8, PALETTE.navy)
+      doc.text("IDENTIFICACIÓN DEL ESTUDIANTE", margin + 4, y + 3.9)
 
       const leftX = margin + 4
       const rightX = margin + 107
 
-      setFont(true, 8, PALETTE.slate)
-      doc.text("Alumno", leftX, y + 11)
-      setFont(false, 9.5, PALETTE.text)
-      doc.text(clean(submission?.student_name || "Sin nombre"), leftX, y + 16)
+      setFont(true, 7.7, PALETTE.slate)
+      doc.text("Alumno", leftX, y + 10)
+      setFont(false, 9.2, PALETTE.text)
+      doc.text(clean(submission?.student_name || "Sin nombre"), leftX, y + 14.8)
 
-      setFont(true, 8, PALETTE.slate)
-      doc.text("Curso", leftX, y + 22)
-      setFont(false, 9.5, PALETTE.text)
-      doc.text(clean(submission?.student_course || "—"), leftX, y + 27)
+      setFont(true, 7.7, PALETTE.slate)
+      doc.text("Curso", leftX, y + 20)
+      setFont(false, 9.2, PALETTE.text)
+      doc.text(clean(submission?.student_course || "—"), leftX, y + 24.6)
 
-      setFont(true, 8, PALETTE.slate)
-      doc.text("RUT", rightX, y + 11)
-      setFont(false, 9.5, PALETTE.text)
-      doc.text(clean(submission?.student_rut || "—"), rightX, y + 16)
+      setFont(true, 7.7, PALETTE.slate)
+      doc.text("RUT", rightX, y + 10)
+      setFont(false, 9.2, PALETTE.text)
+      doc.text(clean(submission?.student_rut || "—"), rightX, y + 14.8)
 
-      setFont(true, 8, PALETTE.slate)
-      doc.text("Fecha de envío", rightX, y + 22)
-      setFont(false, 9.5, PALETTE.text)
+      setFont(true, 7.7, PALETTE.slate)
+      doc.text("Fecha de envío", rightX, y + 20)
+      setFont(false, 9.2, PALETTE.text)
       doc.text(
         submission?.submitted_at
           ? new Date(submission.submitted_at).toLocaleString("es-CL", {
@@ -507,19 +618,29 @@ export default function StudentPdfExporter({
             })
           : "—",
         rightX,
-        y + 27,
+        y + 24.6,
       )
 
-      y += 36
+      y += 31
+
+      // BADGE ESTADO
+      {
+        const badgeW = doc.getTextWidth(level.short) + 10
+        fill(margin, y, badgeW, 7.5, level.color, 3)
+        setFont(true, 8, PALETTE.white)
+        doc.text(level.short, margin + badgeW / 2, y + 4.9, { align: "center" })
+      }
+
+      y += 10
 
       const kpiW = (contentW - 9) / 4
-      drawKpiCard(margin, y, kpiW, 24, "Nota final", grade.toFixed(1), PALETTE.blue)
-      drawKpiCard(margin + kpiW + 3, y, kpiW, 24, "Logro", `${Math.round(score)}%`, level.color)
+      drawKpiCard(margin, y, kpiW, 20, "Nota final", grade.toFixed(1), PALETTE.blue)
+      drawKpiCard(margin + kpiW + 3, y, kpiW, 20, "Logro", `${Math.round(score)}%`, level.color)
       drawKpiCard(
         margin + (kpiW + 3) * 2,
         y,
         kpiW,
-        24,
+        20,
         "Correctas",
         `${correctCount}/${totalQuestions}`,
         PALETTE.indigo,
@@ -528,50 +649,69 @@ export default function StudentPdfExporter({
         margin + (kpiW + 3) * 3,
         y,
         kpiW,
-        24,
+        20,
         "Puntaje",
         `${earnedPoints}/${totalPoints}`,
         PALETTE.cyan,
       )
 
-      y += 30
+      y += 24
 
-      drawBox(margin, y, contentW, 22, PALETTE.border, level.soft, 4)
-      setFont(true, 8.4, PALETTE.slate)
-      doc.text("NIVEL DE LOGRO", margin + 4, y + 6)
+      drawBox(margin, y, contentW, 18, PALETTE.border, level.soft, 4)
+      setFont(true, 7.8, PALETTE.slate)
+      doc.text("NIVEL DE LOGRO", margin + 4, y + 5.2)
 
-      setFont(true, 13, level.color)
-      doc.text(level.label, margin + 4, y + 13.2)
+      setFont(true, 11.5, level.color)
+      doc.text(level.label, margin + 4, y + 11.6)
 
-      drawProgressBar(margin + 95, y + 8, 82, score, level.color)
+      drawProgressBar(margin + 92, y + 6.8, 84, score, level.color)
 
-      setFont(true, 8.5, PALETTE.text)
-      doc.text(`${Math.round(score)}%`, pageW - margin - 3, y + 12.2, { align: "right" })
+      setFont(true, 8, PALETTE.text)
+      doc.text(`${Math.round(score)}%`, pageW - margin - 3, y + 10.8, { align: "right" })
 
-      y += 28
+      y += 22
 
       sectionTitle("Resumen del desempeño", "Visión global del resultado")
-
-      setFont(false, 9.6, PALETTE.text)
+      setFont(false, 9, PALETTE.text)
       y = justifiedParagraph(
         `Este informe presenta el resultado individual del estudiante en el examen "${clean(exam?.title)}". Incluye el porcentaje de logro, el puntaje obtenido, el detalle de cada respuesta, la corrección correspondiente y la retroalimentación asociada, con el propósito de mantener una revisión clara, ordenada y pedagógicamente útil.`,
         margin,
         y,
         contentW,
       )
-      y += 4
+      y += 2
 
       if ((submission?.incident_count || 0) > 0) {
-        ensureSpace(16)
-        drawBox(margin, y, contentW, 14, PALETTE.red, PALETTE.softRed, 3)
-        setFont(true, 8.8, PALETTE.red)
+        ensureSpace(14)
+        drawBox(margin, y, contentW, 12, PALETTE.red, PALETTE.softRed, 3)
+        setFont(true, 8.2, PALETTE.red)
         doc.text(
           `Incidentes de seguridad registrados durante el examen: ${submission.incident_count}`,
           margin + 4,
-          y + 8.6,
+          y + 7.5,
         )
-        y += 19
+        y += 15
       }
+
+      sectionTitle("Resumen analítico del estudiante", "Síntesis automática")
+      drawBox(margin, y, contentW, 28, PALETTE.border, PALETTE.white, 4)
+
+      setFont(true, 8, PALETTE.navy)
+      doc.text("Fortalezas observadas", margin + 4, y + 6)
+      setFont(false, 8.4, PALETTE.text)
+      y = justifiedParagraph(analytics.strengths, margin + 4, y + 10, contentW - 8, 4.2)
+
+      setFont(true, 8, PALETTE.navy)
+      doc.text("Aspectos a reforzar", margin + 4, y + 2)
+      setFont(false, 8.4, PALETTE.text)
+      y = justifiedParagraph(analytics.weak, margin + 4, y + 6, contentW - 8, 4.2)
+
+      setFont(true, 8, PALETTE.navy)
+      doc.text("Perfil general", margin + 4, y + 2)
+      setFont(false, 8.4, PALETTE.text)
+      y = justifiedParagraph(analytics.profile, margin + 4, y + 6, contentW - 8, 4.2)
+
+      y += 4
 
       sectionTitle("Detalle de respuestas", "Pregunta por pregunta")
 
@@ -579,24 +719,30 @@ export default function StudentPdfExporter({
         const a: SubmissionAnswer = answers[qi] || {}
         const questionType = normalizeQuestionType(a?.type || q?.type)
         const questionPoints = a?.maxPoints ?? q?.maxPoints ?? 0
+        const questionScore = getQuestionScore(a, q)
 
-        ensureSpace(28)
+        const estimatedNeed =
+          26 +
+          split(stripHtml(q?.question || "Sin enunciado."), contentW).length * 4 +
+          12
 
-        drawBox(margin, y, contentW, 10, PALETTE.border, PALETTE.grayBg, 3)
-        setFont(true, 10, PALETTE.navy)
-        doc.text(`Pregunta ${qi + 1}`, margin + 4, y + 6.4)
+        ensureSpace(Math.min(Math.max(estimatedNeed, 32), 70))
+
+        drawBox(margin, y, contentW, 8.5, PALETTE.border, PALETTE.grayBg, 3)
+        setFont(true, 9.2, PALETTE.navy)
+        doc.text(`Pregunta ${qi + 1}`, margin + 4, y + 5.5)
         questionBadge(questionType, PALETTE.violet)
 
-        setFont(false, 8.2, PALETTE.slate)
-        doc.text(`${questionPoints} pts`, pageW - margin - 30, y + 6.4)
+        setFont(false, 7.6, PALETTE.slate)
+        doc.text(`${questionScore}/${questionPoints} pts`, pageW - margin - 30, y + 5.5)
 
-        y += 14
+        y += 11.5
 
-        setFont(true, 8.5, PALETTE.slate)
+        setFont(true, 8, PALETTE.slate)
         doc.text("Enunciado", margin, y)
-        setFont(false, 9.4, PALETTE.text)
-        y = justifiedParagraph(stripHtml(q?.question || "Sin enunciado."), margin, y + 5, contentW)
-        y += 3
+        setFont(false, 8.8, PALETTE.text)
+        y = justifiedParagraph(stripHtml(q?.question || "Sin enunciado."), margin, y + 4.3, contentW, 4.2)
+        y += 2
 
         if (a?.type === "multiple_choice" || q?.type === "multiple_choice") {
           const selected =
@@ -619,7 +765,7 @@ export default function StudentPdfExporter({
           )
 
           if (Array.isArray(q?.options) && q.options.length > 0) {
-            y += 3
+            y += 2
             tableHeader(["Alternativa", "Contenido"], [26, contentW - 26])
             q.options.forEach((opt: string, idx: number) => {
               tableRow(
@@ -631,12 +777,12 @@ export default function StudentPdfExporter({
           }
 
           if (q?.explanation) {
-            y += 3
-            setFont(true, 8.5, PALETTE.slate)
+            y += 2
+            setFont(true, 8, PALETTE.slate)
             doc.text("Explicación de referencia", margin, y)
-            setFont(false, 9.2, PALETTE.text)
-            y = justifiedParagraph(stripHtml(q.explanation), margin, y + 5, contentW)
-            y += 3
+            setFont(false, 8.7, PALETTE.text)
+            y = justifiedParagraph(stripHtml(q.explanation), margin, y + 4.3, contentW, 4.1)
+            y += 2
           }
         }
 
@@ -679,21 +825,22 @@ export default function StudentPdfExporter({
             false,
           )
 
-          if (a.justificationFeedback) {
-            y += 3
-            setFont(true, 8.5, PALETTE.slate)
+          const feedback = normalizeFeedback(a.justificationFeedback)
+          if (feedback) {
+            y += 2
+            setFont(true, 8, PALETTE.slate)
             doc.text("Retroalimentación", margin, y)
-            setFont(false, 9.2, PALETTE.text)
-            y = justifiedParagraph(a.justificationFeedback, margin, y + 5, contentW)
-            y += 3
+            setFont(false, 8.7, PALETTE.text)
+            y = justifiedParagraph(feedback, margin, y + 4.3, contentW, 4.1)
+            y += 2
           }
 
           if (q?.explanation) {
-            setFont(true, 8.5, PALETTE.slate)
+            setFont(true, 8, PALETTE.slate)
             doc.text("Explicación de referencia", margin, y)
-            setFont(false, 9.2, PALETTE.text)
-            y = justifiedParagraph(stripHtml(q.explanation), margin, y + 5, contentW)
-            y += 3
+            setFont(false, 8.7, PALETTE.text)
+            y = justifiedParagraph(stripHtml(q.explanation), margin, y + 4.3, contentW, 4.1)
+            y += 2
           }
         }
 
@@ -710,12 +857,12 @@ export default function StudentPdfExporter({
           )
 
           if (q?.modelAnswer) {
-            y += 3
-            setFont(true, 8.5, PALETTE.slate)
+            y += 2
+            setFont(true, 8, PALETTE.slate)
             doc.text("Respuesta modelo", margin, y)
-            setFont(false, 9.2, PALETTE.text)
-            y = justifiedParagraph(q.modelAnswer, margin, y + 5, contentW)
-            y += 3
+            setFont(false, 8.7, PALETTE.text)
+            y = justifiedParagraph(q.modelAnswer, margin, y + 4.3, contentW, 4.1)
+            y += 2
           }
 
           if (q?.rubric?.length) {
@@ -744,32 +891,32 @@ export default function StudentPdfExporter({
             )
           }
 
-          const finalFeedback = a.manualFeedback || a.aiFeedback
+          const finalFeedback = normalizeFeedback(a.manualFeedback || a.aiFeedback)
           if (finalFeedback) {
-            y += 3
-            setFont(true, 8.5, PALETTE.slate)
+            y += 2
+            setFont(true, 8, PALETTE.slate)
             doc.text("Retroalimentación", margin, y)
-            setFont(false, 9.2, PALETTE.text)
-            y = justifiedParagraph(finalFeedback, margin, y + 5, contentW)
-            y += 3
+            setFont(false, 8.7, PALETTE.text)
+            y = justifiedParagraph(finalFeedback, margin, y + 4.3, contentW, 4.1)
+            y += 2
           }
         }
 
-        y += 4
+        y += 2
       })
 
       sectionTitle("Cierre pedagógico", "Síntesis final del desempeño")
 
-      drawBox(margin, y, contentW, 34, PALETTE.border, level.soft, 5)
-      fill(margin, y, 5, 34, level.color, 3)
+      const closingTextHeight =
+        split(recommendation.body, contentW - 14).length * 4.3 + 18
+      drawBox(margin, y, contentW, Math.max(26, closingTextHeight), PALETTE.border, level.soft, 5)
+      fill(margin, y, 5, Math.max(26, closingTextHeight), level.color, 3)
 
-      setFont(true, 11, level.color)
-      doc.text(recommendation.title, margin + 9, y + 8)
+      setFont(true, 10.5, level.color)
+      doc.text(recommendation.title, margin + 9, y + 7)
 
-      setFont(false, 9.4, PALETTE.text)
-      y = justifiedParagraph(recommendation.body, margin + 9, y + 15, contentW - 14)
-
-      y += 10
+      setFont(false, 8.9, PALETTE.text)
+      y = justifiedParagraph(recommendation.body, margin + 9, y + 13, contentW - 14, 4.2)
 
       addFooter()
 
