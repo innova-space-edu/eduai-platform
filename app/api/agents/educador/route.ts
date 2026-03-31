@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import { callAI } from "@/lib/ai-router-v4"
+import { callAI, getEducadorModelStrategy } from "@/lib/ai-router-v4"
 import {
   buildOAContext,
   cursoToKey,
@@ -12,6 +12,7 @@ import {
   buildSelectedOAContext,
   getParvulariaAmbito,
   getParvulariaOAT,
+  getPlannerOAOptions,
   getPlannerSummary,
   getPlannerUnits,
 } from "@/lib/planificador-curriculum"
@@ -27,6 +28,7 @@ type ChatHistoryItem = {
 }
 
 interface EducadorConfig {
+  mode?: "planificar" | "sugerir_parvularia"
   nivel?: NivelKey
   curso?: string
   asignatura?: string
@@ -220,6 +222,297 @@ function buildPromptContext(params: {
   return { seasonText, horizonText, oaContext, unitContext, localCoverage, ambito, oatContext, stageContext, summary, selectedCount: selectedOAIds.length }
 }
 
+
+
+type SuggestionOAHit = {
+  id: string
+  label: string
+  texto: string
+  asignatura: string
+  ambito?: string
+  nucleo?: string
+  score: number
+  reason: string
+}
+
+type SuggestionOATHit = {
+  id: string
+  label: string
+  description?: string
+  asignatura: string
+  score: number
+  reason: string
+}
+
+type SuggestionContext = {
+  temaUsuario: string
+  curso: string
+  tokens: string[]
+  oaSugeridos: SuggestionOAHit[]
+  oatSugeridos: SuggestionOATHit[]
+  ambitosSugeridos: Array<{ ambito: string; score: number }>
+  nucleosSugeridos: Array<{ nucleo: string; score: number }>
+  resumenCurricular: string
+}
+
+function normalizeSuggestionText(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\w\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+function tokenizeSuggestionText(text: string): string[] {
+  const stopwords = new Set([
+    "para", "como", "con", "una", "unos", "unas", "del", "las", "los", "que",
+    "quiero", "hacer", "actividad", "trabajar", "sobre", "desde", "este", "esta",
+    "estos", "estas", "seria", "podria", "puedo", "tema", "ideas", "idea", "usar",
+    "objetivo", "objetivos", "parvulos", "parvulas", "ninos", "ninas", "nivel",
+  ])
+
+  return normalizeSuggestionText(text)
+    .split(" ")
+    .filter(Boolean)
+    .filter((token) => token.length >= 3 && !stopwords.has(token))
+}
+
+function countSuggestionMatches(target: string, tokens: string[]): number {
+  const normalizedTarget = normalizeSuggestionText(target)
+  let score = 0
+
+  for (const token of tokens) {
+    if (normalizedTarget.includes(token)) {
+      score += token.length >= 7 ? 4 : 2
+    }
+  }
+
+  return score
+}
+
+function buildSuggestionReason(kind: "OA" | "OAT", temaUsuario: string, score: number): string {
+  if (score >= 10) return `${kind} muy relacionado con el tema "${temaUsuario}".`
+  if (score >= 6) return `${kind} relacionado de forma clara con el tema "${temaUsuario}".`
+  return `${kind} con relacion parcial al tema "${temaUsuario}".`
+}
+
+function dedupeById<T extends { id: string; score: number }>(items: T[]): T[] {
+  const map = new Map<string, T>()
+
+  for (const item of items) {
+    const prev = map.get(item.id)
+    if (!prev || item.score > prev.score) {
+      map.set(item.id, item)
+    }
+  }
+
+  return [...map.values()]
+}
+
+function dedupeByKey<T extends { score: number }>(
+  items: T[],
+  getKey: (item: T) => string
+): T[] {
+  const map = new Map<string, T>()
+
+  for (const item of items) {
+    const key = getKey(item)
+    const prev = map.get(key)
+    if (!prev || item.score > prev.score) {
+      map.set(key, item)
+    }
+  }
+
+  return [...map.values()]
+}
+
+function suggestParvulariaFromTopic(curso: string, temaUsuario: string): SuggestionContext {
+  const tokens = tokenizeSuggestionText(temaUsuario)
+  const asignaturas = getAvailableAsignaturas("parvularia", curso)
+
+  const oaHits: SuggestionOAHit[] = []
+  const oatHits: SuggestionOATHit[] = []
+  const ambitoHits: Array<{ ambito: string; score: number }> = []
+  const nucleoHits: Array<{ nucleo: string; score: number }> = []
+
+  for (const asignatura of asignaturas) {
+    const oaOptions = getPlannerOAOptions({ nivel: "parvularia", curso, asignatura })
+
+    for (const oa of oaOptions) {
+      const textBase = [
+        oa.id,
+        oa.codigoOficial || "",
+        oa.texto,
+        oa.ambito || "",
+        oa.nucleo || "",
+        asignatura,
+      ].join(" ")
+
+      const score = countSuggestionMatches(textBase, tokens)
+      if (score <= 0) continue
+
+      oaHits.push({
+        id: oa.id,
+        label: oa.codigoOficial ? `${oa.codigoOficial} — ${oa.texto}` : `${oa.id} — ${oa.texto}`,
+        texto: oa.texto,
+        asignatura,
+        ambito: oa.ambito,
+        nucleo: oa.nucleo,
+        score,
+        reason: buildSuggestionReason("OA", temaUsuario, score),
+      })
+
+      if (oa.ambito) ambitoHits.push({ ambito: oa.ambito, score })
+      if (oa.nucleo) nucleoHits.push({ nucleo: oa.nucleo, score })
+    }
+
+    const oatOptions = getParvulariaOAT(curso, asignatura)
+    for (const oat of oatOptions) {
+      const textBase = [oat.id, oat.label, oat.description || "", asignatura].join(" ")
+      const score = countSuggestionMatches(textBase, tokens)
+      if (score <= 0) continue
+
+      oatHits.push({
+        id: oat.id,
+        label: oat.label,
+        description: oat.description,
+        asignatura,
+        score,
+        reason: buildSuggestionReason("OAT", temaUsuario, score),
+      })
+    }
+
+    const ambito = getParvulariaAmbito(curso, asignatura)
+    const ambitoScore = countSuggestionMatches(`${ambito} ${asignatura}`, tokens)
+    if (ambito && ambitoScore > 0) {
+      ambitoHits.push({ ambito, score: ambitoScore })
+    }
+  }
+
+  const oaSugeridos = dedupeById(oaHits)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 8)
+
+  const oatSugeridos = dedupeById(oatHits)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5)
+
+  const ambitosSugeridos = dedupeByKey(ambitoHits, (item) => item.ambito)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 4)
+
+  const nucleosSugeridos = dedupeByKey(nucleoHits, (item) => item.nucleo)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 6)
+
+  const resumenCurricular = [
+    `Curso/Subnivel: ${curso}`,
+    `Tema del docente: ${temaUsuario}`,
+    tokens.length ? `Palabras clave detectadas: ${tokens.join(", ")}` : "Palabras clave detectadas: sin coincidencias fuertes",
+    ambitosSugeridos.length
+      ? `Ambitos sugeridos: ${ambitosSugeridos.map((item) => item.ambito).join(" | ")}`
+      : "Ambitos sugeridos: sin coincidencias claras",
+    nucleosSugeridos.length
+      ? `Nucleos sugeridos: ${nucleosSugeridos.map((item) => item.nucleo).join(" | ")}`
+      : "Nucleos sugeridos: sin coincidencias claras",
+    oaSugeridos.length
+      ? `OA sugeridos: ${oaSugeridos.map((item) => item.id).join(", ")}`
+      : "OA sugeridos: sin coincidencias claras",
+    oatSugeridos.length
+      ? `OAT sugeridos: ${oatSugeridos.map((item) => item.id).join(", ")}`
+      : "OAT sugeridos: sin coincidencias claras",
+  ].join("\n")
+
+  return {
+    temaUsuario,
+    curso,
+    tokens,
+    oaSugeridos,
+    oatSugeridos,
+    ambitosSugeridos,
+    nucleosSugeridos,
+    resumenCurricular,
+  }
+}
+
+function buildParvulariaSuggestionJsonPrompt(ctx: SuggestionContext): string {
+  return `
+CURSO/SUBNIVEL:
+${ctx.curso}
+
+TEMA DEL DOCENTE:
+${ctx.temaUsuario}
+
+RESUMEN CURRICULAR LOCAL:
+${ctx.resumenCurricular}
+
+OA SUGERIDOS:
+${JSON.stringify(ctx.oaSugeridos, null, 2)}
+
+OAT SUGERIDOS:
+${JSON.stringify(ctx.oatSugeridos, null, 2)}
+
+Debes responder SOLO JSON válido con esta estructura:
+{
+  "ambitosSugeridos": [
+    { "ambito": "string", "score": 0 }
+  ],
+  "nucleosSugeridos": [
+    { "nucleo": "string", "score": 0 }
+  ],
+  "oaSugeridos": [
+    {
+      "id": "string",
+      "label": "string",
+      "asignatura": "string",
+      "ambito": "string",
+      "nucleo": "string",
+      "score": 0,
+      "reason": "string"
+    }
+  ],
+  "oatSugeridos": [
+    {
+      "id": "string",
+      "label": "string",
+      "asignatura": "string",
+      "score": 0,
+      "reason": "string"
+    }
+  ],
+  "actividades": [
+    {
+      "titulo": "string",
+      "objetivoBreve": "string",
+      "inicio": "string",
+      "desarrollo": "string",
+      "cierre": "string",
+      "materiales": ["string"],
+      "evaluacion": "string",
+      "adaptaciones": ["string"]
+    }
+  ],
+  "sugerenciaDocente": "string"
+}
+`.trim()
+}
+
+function safeJsonParse<T = unknown>(raw: string): T | null {
+  try {
+    return JSON.parse(raw) as T
+  } catch {
+    const match = raw.match(/\{[\s\S]*\}$|\[[\s\S]*\]$/)
+    if (!match) return null
+    try {
+      return JSON.parse(match[0]) as T
+    } catch {
+      return null
+    }
+  }
+}
+
 function isChatHistoryItem(msg: unknown): msg is ChatHistoryItem {
   return (
     !!msg && typeof msg === "object" && "role" in msg && "content" in msg &&
@@ -242,6 +535,7 @@ export async function POST(req: NextRequest) {
 
   const history = Array.isArray(body.history) ? body.history : []
   const cfg: EducadorConfig = body.config || {}
+  const mode = cfg.mode === "sugerir_parvularia" ? "sugerir_parvularia" : "planificar"
 
   const nivel: NivelKey = cfg.nivel === "parvularia" || cfg.nivel === "basica" || cfg.nivel === "media"
     ? cfg.nivel : "parvularia"
@@ -257,6 +551,68 @@ export async function POST(req: NextRequest) {
   const unidadId = typeof cfg.unidadId === "string" ? cfg.unidadId.trim() : ""
   const selectedOAIds = ensureArray(cfg.selectedOAIds)
   const selectedOATIds = ensureArray(cfg.selectedOATIds)
+
+  if (mode === "sugerir_parvularia") {
+    if (nivel !== "parvularia") {
+      return NextResponse.json(
+        { error: "El modo sugerir_parvularia solo aplica para Educacion Parvularia" },
+        { status: 400 }
+      )
+    }
+
+    const temaUsuario = (contexto || message).trim()
+    if (!temaUsuario) {
+      return NextResponse.json(
+        { error: "Falta el tema o descripcion para sugerir OA, OAT y actividades" },
+        { status: 400 }
+      )
+    }
+
+    const localSuggestion = suggestParvulariaFromTopic(curso, temaUsuario)
+    const strategy = getEducadorModelStrategy("parvularia_suggestion")
+
+    const systemPrompt = `Eres APl, el Agente Planificador Curricular de EduAI, especializado en Educacion Parvularia de Chile.
+Trabajas con las BCEP.
+Tu tarea es sugerir experiencias de aprendizaje a partir de un tema dado por el docente.
+REGLAS:
+1. Usa primero el contexto curricular local entregado.
+2. No inventes OA u OAT fuera del contexto si ya hay coincidencias locales.
+3. Prioriza juego, exploracion, mediacion, lenguaje apropiado al subnivel y evaluacion formativa.
+4. Devuelve SOLO JSON valido.
+5. Si no hay coincidencias perfectas, propone las mas cercanas y explicalo en "sugerenciaDocente".`
+
+    const userPrompt = buildParvulariaSuggestionJsonPrompt(localSuggestion)
+
+    try {
+      const result = await callAI(
+        [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        {
+          maxTokens: strategy.maxTokens,
+          preferProvider: strategy.preferProvider,
+          openrouterModel: strategy.openrouterModel,
+        }
+      )
+
+      return NextResponse.json({
+        success: true,
+        mode,
+        provider: result.provider,
+        model: result.model,
+        temaUsuario,
+        cursoKey: cursoToKey(curso),
+        localSuggestion,
+        suggestion: safeJsonParse(result.text),
+        raw: result.text,
+      })
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "No fue posible sugerir actividades de parvularia"
+      return NextResponse.json({ error: errorMessage }, { status: 500 })
+    }
+  }
+
 
   const tiempoPlanificacion: TiempoPlanificacion =
     cfg.tiempoPlanificacion === "diaria" || cfg.tiempoPlanificacion === "semanal" || cfg.tiempoPlanificacion === "mensual"
@@ -442,9 +798,16 @@ CRITERIOS DE CALIDAD - VERIFICAR ANTES DE RESPONDER:
   ]
 
   try {
+    const strategy = getEducadorModelStrategy(
+      sesiones > 1 || selectedOAIds.length > 1 || message.length > 500
+        ? "planning_full"
+        : "planning_short"
+    )
+
     const result = await callAI(aiMessages, {
-      maxTokens: 8000,
-      preferProvider: "gemini",
+      maxTokens: strategy.maxTokens,
+      preferProvider: strategy.preferProvider,
+      openrouterModel: strategy.openrouterModel,
     })
 
     return NextResponse.json({
