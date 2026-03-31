@@ -1,35 +1,20 @@
 /**
- * AI Router v4 — EduAI Platform
- * ─────────────────────────────────────────────────────────────────────────────
- * GEMINI como motor principal. Misma interfaz que v3 — drop-in replacement.
- *
- * Modelos:
- *   gemini-2.5-flash          → razonamiento, texto largo, análisis, exámenes
- *   gemini-2.5-flash-lite      → tareas rápidas/económicas (classify, brief agents)
- *   gemini-2.0-flash-preview-image-generation → generación de imágenes
- *   llama-3.3-70b-versatile   → streaming ultra-rápido (Groq, fallback 1)
- *   OpenRouter models          → fallback 2
- *   Together AI models         → fallback 3
- *
- * Nuevas funciones v4:
- *   callGeminiStructured()    → JSON garantizado via responseSchema
- *   callGeminiMultimodal()    → acepta texto + imagen base64
- *   callGeminiImage()         → genera imágenes con Gemini
- *   callAICached()            → wrapper con cache Redis (TTL configurable)
- *
- * Backward compatible:
- *   callAI()        → misma firma que v3
- *   callGroqStream() → sin cambios
- *   callGeminiStream() → sin cambios
- *   runOrchestrator() → sin cambios
- *   optimizeImagePrompt() → sin cambios
- *   detectVisualType() → sin cambios
- * ─────────────────────────────────────────────────────────────────────────────
+ * lib/ai-router-v4.ts
+ * AI Router v4 — actualizado con separación de keys para texto / imagen / prompt optimizer
  */
 
 import { getRedis } from "./redis"
+import {
+  basicPrompt,
+  errMsg,
+  getGeminiImageKeys,
+  getGeminiTextKeys,
+  getOpenRouterKeys,
+  getPromptOptimizerKeys,
+  getTogetherKeys,
+  pickFromPool,
+} from "./image-config"
 
-// ── Types ─────────────────────────────────────────────────────────────────────
 export interface Message {
   role: "system" | "user" | "assistant"
   content: string
@@ -88,11 +73,40 @@ export function getEducadorModelStrategy(task: EducadorTask): {
   }
 }
 
-// ── Modelos ───────────────────────────────────────────────────────────────────
-const GEMINI_FLASH       = "gemini-2.5-flash"
-const GEMINI_FLASH_LITE  = "gemini-2.5-flash-lite"
-const GEMINI_IMAGE_MODEL = "gemini-2.0-flash-preview-image-generation"
-const GROQ_MODEL         = "llama-3.3-70b-versatile"
+const GEMINI_FLASH = process.env.GEMINI_TEXT_MODEL_PRIMARY || "gemini-2.5-flash"
+const GEMINI_FLASH_LITE = process.env.GEMINI_TEXT_MODEL_LITE || "gemini-2.5-flash-lite"
+const GEMINI_IMAGE_MODEL = process.env.GEMINI_IMAGE_MODEL_PRIMARY || "gemini-2.0-flash-preview-image-generation"
+const GROQ_MODEL = process.env.GROQ_TEXT_MODEL || "llama-3.3-70b-versatile"
+
+function getGeminiTextKey(): string {
+  const key = pickFromPool(getGeminiTextKeys())
+  if (!key) throw new Error("No Gemini text key configured")
+  return key
+}
+
+function getGeminiImageKey(): string {
+  const key = pickFromPool(getGeminiImageKeys())
+  if (!key) throw new Error("No Gemini image key configured")
+  return key
+}
+
+function getGeminiPromptKey(seed?: string): string {
+  const key = pickFromPool(getPromptOptimizerKeys(), seed)
+  if (!key) throw new Error("No Gemini prompt optimizer key configured")
+  return key
+}
+
+function getOpenRouterKey(seed?: string): string {
+  const key = pickFromPool(getOpenRouterKeys(), seed)
+  if (!key) throw new Error("No OpenRouter key configured")
+  return key
+}
+
+function getTogetherKey(seed?: string): string {
+  const key = pickFromPool(getTogetherKeys(), seed)
+  if (!key) throw new Error("No Together key configured")
+  return key
+}
 
 // ══════════════════════════════════════════════════════════════════════════════
 // GEMINI — texto
@@ -103,16 +117,16 @@ async function callGemini(
   lite = false
 ): Promise<AIResponse> {
   const { GoogleGenerativeAI } = await import("@google/generative-ai")
-  const genai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
+  const genai = new GoogleGenerativeAI(getGeminiTextKey())
   const modelId = lite ? GEMINI_FLASH_LITE : GEMINI_FLASH
   const model = genai.getGenerativeModel({ model: modelId })
 
-  const system = messages.find(m => m.role === "system")?.content || ""
-  const history = messages.filter(m => m.role !== "system")
+  const system = messages.find((m) => m.role === "system")?.content || ""
+  const history = messages.filter((m) => m.role !== "system")
 
   const chat = model.startChat({
     systemInstruction: system,
-    history: history.slice(0, -1).map(m => ({
+    history: history.slice(0, -1).map((m) => ({
       role: m.role === "assistant" ? "model" : "user",
       parts: [{ text: m.content }],
     })),
@@ -121,26 +135,30 @@ async function callGemini(
 
   const last = history.at(-1)?.content || ""
   const result = await chat.sendMessage(last)
-  return { text: result.response.text(), provider: "Gemini", model: modelId }
+
+  return {
+    text: result.response.text(),
+    provider: "Gemini",
+    model: modelId,
+  }
 }
 
-// ── Gemini streaming ──────────────────────────────────────────────────────────
 export async function callGeminiStream(
   messages: Message[],
   maxTokens = 4000,
   lite = false
 ): Promise<ReadableStream> {
   const { GoogleGenerativeAI } = await import("@google/generative-ai")
-  const genai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
+  const genai = new GoogleGenerativeAI(getGeminiTextKey())
   const modelId = lite ? GEMINI_FLASH_LITE : GEMINI_FLASH
   const model = genai.getGenerativeModel({ model: modelId })
 
-  const system = messages.find(m => m.role === "system")?.content || ""
-  const history = messages.filter(m => m.role !== "system")
+  const system = messages.find((m) => m.role === "system")?.content || ""
+  const history = messages.filter((m) => m.role !== "system")
 
   const chat = model.startChat({
     systemInstruction: system,
-    history: history.slice(0, -1).map(m => ({
+    history: history.slice(0, -1).map((m) => ({
       role: m.role === "assistant" ? "model" : "user",
       parts: [{ text: m.content }],
     })),
@@ -154,31 +172,23 @@ export async function callGeminiStream(
     async start(controller) {
       for await (const chunk of result.stream) {
         const text = chunk.text()
-        if (text) controller.enqueue(new TextEncoder().encode(text))
+        if (text) {
+          controller.enqueue(new TextEncoder().encode(text))
+        }
       }
       controller.close()
     },
   })
 }
 
-// ── Gemini structured output — JSON garantizado ────────────────────────────────
-/**
- * Usa responseSchema de Gemini para obtener JSON estructurado sin try/catch.
- * Ideal para Creator Hub, Orquestador, y cualquier agente que necesite JSON.
- *
- * @param messages   - Historial de mensajes (igual que callAI)
- * @param schema     - JSON Schema del objeto esperado
- * @param maxTokens  - Máximo de tokens
- * @param lite       - Usar modelo lite (más económico)
- */
 export async function callGeminiStructured<T = Record<string, unknown>>(
   messages: Message[],
   schema: object,
   maxTokens = 2000,
   lite = false
 ): Promise<{ data: T; provider: string; model: string }> {
-  const { GoogleGenerativeAI, SchemaType } = await import("@google/generative-ai")
-  const genai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
+  const { GoogleGenerativeAI } = await import("@google/generative-ai")
+  const genai = new GoogleGenerativeAI(getGeminiTextKey())
   const modelId = lite ? GEMINI_FLASH_LITE : GEMINI_FLASH
 
   const model = genai.getGenerativeModel({
@@ -187,27 +197,28 @@ export async function callGeminiStructured<T = Record<string, unknown>>(
       responseMimeType: "application/json",
       responseSchema: schema as any,
       maxOutputTokens: maxTokens,
-      temperature: 0.4, // más determinista para structured outputs
+      temperature: 0.4,
     },
   })
 
-  const system = messages.find(m => m.role === "system")?.content || ""
-  const history = messages.filter(m => m.role !== "system")
+  const system = messages.find((m) => m.role === "system")?.content || ""
+  const history = messages.filter((m) => m.role !== "system")
 
-  // Para structured outputs, concatenamos system + historial en una sola llamada
   const fullPrompt = system
-    ? `${system}\n\n${history.map(m => `${m.role === "user" ? "User" : "Assistant"}: ${m.content}`).join("\n")}`
-    : history.map(m => `${m.role === "user" ? "User" : "Assistant"}: ${m.content}`).join("\n")
+    ? `${system}\n\n${history
+        .map((m) => `${m.role === "user" ? "User" : "Assistant"}: ${m.content}`)
+        .join("\n")}`
+    : history
+        .map((m) => `${m.role === "user" ? "User" : "Assistant"}: ${m.content}`)
+        .join("\n")
 
   const result = await model.generateContent(fullPrompt)
   const raw = result.response.text().trim()
 
-  // Gemini structured outputs garantizan JSON válido, pero hacemos doble check
   let data: T
   try {
     data = JSON.parse(raw) as T
   } catch {
-    // Fallback: extraer JSON del texto
     const match = raw.match(/\{[\s\S]*\}|\[[\s\S]*\]/)
     if (!match) throw new Error(`Gemini structured output invalid JSON: ${raw.slice(0, 200)}`)
     data = JSON.parse(match[0]) as T
@@ -216,18 +227,13 @@ export async function callGeminiStructured<T = Record<string, unknown>>(
   return { data, provider: "Gemini", model: modelId }
 }
 
-// ── Gemini multimodal — texto + imagen ────────────────────────────────────────
-/**
- * Envía texto + imagen a Gemini para análisis visual.
- * Usar para: foto de problema, captura de pantalla, análisis de diagrama.
- */
 export async function callGeminiMultimodal(
   input: MultimodalInput,
   systemPrompt?: string,
   maxTokens = 3000
 ): Promise<AIResponse> {
   const { GoogleGenerativeAI } = await import("@google/generative-ai")
-  const genai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
+  const genai = new GoogleGenerativeAI(getGeminiTextKey())
   const model = genai.getGenerativeModel({
     model: GEMINI_FLASH,
     ...(systemPrompt ? { systemInstruction: systemPrompt } : {}),
@@ -246,6 +252,7 @@ export async function callGeminiMultimodal(
   }
 
   const result = await model.generateContent(parts)
+
   return {
     text: result.response.text(),
     provider: "Gemini",
@@ -253,22 +260,17 @@ export async function callGeminiMultimodal(
   }
 }
 
-// ── Gemini Image Generation ───────────────────────────────────────────────────
-/**
- * Genera imágenes con Gemini Image model.
- * Devuelve base64 de la imagen generada.
- */
 export async function callGeminiImage(
   prompt: string,
-  opts: { width?: number; height?: number } = {}
+  _opts: { width?: number; height?: number } = {}
 ): Promise<ImageGenerationResult> {
   const { GoogleGenerativeAI } = await import("@google/generative-ai")
-  const genai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
+  const genai = new GoogleGenerativeAI(getGeminiImageKey())
 
   const model = genai.getGenerativeModel({
     model: GEMINI_IMAGE_MODEL,
     generationConfig: {
-      // @ts-ignore — responseModalities es parte de la API de imagen
+      // @ts-ignore
       responseModalities: ["Text", "Image"],
     },
   })
@@ -277,7 +279,7 @@ export async function callGeminiImage(
   const response = result.response
 
   for (const part of response.candidates?.[0]?.content?.parts || []) {
-    if (part.inlineData) {
+    if (part.inlineData?.data) {
       return {
         base64: part.inlineData.data,
         mimeType: part.inlineData.mimeType || "image/png",
@@ -290,17 +292,19 @@ export async function callGeminiImage(
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// GROQ — streaming ultra-rápido (sin cambios vs v3)
+// GROQ
 // ══════════════════════════════════════════════════════════════════════════════
 async function callGroq(messages: Message[], maxTokens = 2000): Promise<AIResponse> {
   const Groq = (await import("groq-sdk")).default
   const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
+
   const res = await groq.chat.completions.create({
     model: GROQ_MODEL,
     messages,
     max_tokens: maxTokens,
     temperature: 0.7,
   })
+
   return {
     text: res.choices[0]?.message?.content || "",
     provider: "Groq",
@@ -314,6 +318,7 @@ export async function callGroqStream(
 ): Promise<ReadableStream> {
   const Groq = (await import("groq-sdk")).default
   const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
+
   const stream = await groq.chat.completions.create({
     model: GROQ_MODEL,
     messages,
@@ -321,6 +326,7 @@ export async function callGroqStream(
     temperature: 0.7,
     stream: true,
   })
+
   return new ReadableStream({
     async start(controller) {
       for await (const chunk of stream) {
@@ -333,7 +339,7 @@ export async function callGroqStream(
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// OPENROUTER — fallback 2
+// OPENROUTER
 // ══════════════════════════════════════════════════════════════════════════════
 async function callOpenRouter(
   messages: Message[],
@@ -343,111 +349,155 @@ async function callOpenRouter(
   const models = preferredModel
     ? [preferredModel, "openai/gpt-4o-mini", "meta-llama/llama-3.3-70b-instruct:free"]
     : [
-        "openai/gpt-4o-mini",               // 1° — rápido, económico, muy buena calidad
-        "anthropic/claude-3-haiku",          // 2° — rápido, excelente para texto largo
-        "openai/gpt-4o",                     // 3° — máxima calidad OpenAI
-        "anthropic/claude-3.5-sonnet",       // 4° — máxima calidad Anthropic
-        "meta-llama/llama-3.3-70b-instruct:free", // 5° — gratuito, fallback
-        "google/gemma-2-27b-it:free",        // 6° — gratuito, fallback
+        "openai/gpt-4o-mini",
+        "anthropic/claude-3-haiku",
+        "openai/gpt-4o",
+        "anthropic/claude-3.5-sonnet",
+        "meta-llama/llama-3.3-70b-instruct:free",
+        "google/gemma-2-27b-it:free",
       ]
+
+  const apiKey = getOpenRouterKey(JSON.stringify({ messages, preferredModel, maxTokens }))
+
   for (const model of models) {
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
-        "HTTP-Referer": "https://eduai-platform-virid.vercel.app",
-        "X-Title": "EduAI Platform",
+        "HTTP-Referer": process.env.OPENROUTER_REFERER || "https://eduai-platform-virid.vercel.app",
+        "X-Title": process.env.OPENROUTER_APP_TITLE || "EduAI Platform",
       },
-      body: JSON.stringify({ model, messages, max_tokens: maxTokens }),
+      body: JSON.stringify({
+        model,
+        messages,
+        max_tokens: maxTokens,
+      }),
     })
-    if (res.ok) {
-      const data = await res.json()
-      const text = data.choices?.[0]?.message?.content
-      if (text) return { text, provider: "OpenRouter", model }
+
+    if (!res.ok) continue
+
+    const data = await res.json()
+    const text = data?.choices?.[0]?.message?.content
+    if (text) {
+      return {
+        text,
+        provider: "OpenRouter",
+        model,
+      }
     }
   }
+
   throw new Error("OpenRouter: all models failed")
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// TOGETHER AI — fallback 3
+// TOGETHER AI
 // ══════════════════════════════════════════════════════════════════════════════
 async function callTogetherAI(
   messages: Message[],
   maxTokens = 2000
 ): Promise<AIResponse> {
-  const model = "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo"
+  const model = process.env.TOGETHER_TEXT_MODEL || "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo"
+  const apiKey = getTogetherKey(JSON.stringify({ messages, maxTokens }))
+
   const res = await fetch("https://api.together.xyz/v1/chat/completions", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${process.env.TOGETHER_API_KEY}`,
+      Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ model, messages, max_tokens: maxTokens }),
+    body: JSON.stringify({
+      model,
+      messages,
+      max_tokens: maxTokens,
+    }),
   })
+
   if (!res.ok) throw new Error(`Together AI error: ${res.status}`)
+
   const data = await res.json()
-  const text = data.choices?.[0]?.message?.content
+  const text = data?.choices?.[0]?.message?.content
   if (!text) throw new Error("Together AI: empty response")
-  return { text, provider: "TogetherAI", model }
+
+  return {
+    text,
+    provider: "TogetherAI",
+    model,
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// ROUTER PRINCIPAL — v4 (backward compatible con v3)
+// ROUTER PRINCIPAL
 // ══════════════════════════════════════════════════════════════════════════════
-/**
- * callAI() — misma firma exacta que ai-router.ts v3.
- *
- * Cambios v4:
- *   - Gemini es ahora el proveedor por defecto (preferProvider: undefined)
- *   - Fallback chain actualizado: Gemini → Groq → OpenRouter → TogetherAI
- *   - "gemini-lite" usa GEMINI_FLASH_LITE
- *
- * Migración: cambiar el import de "@/lib/ai-router" a "@/lib/ai-router-v4"
- * en cada agente. La firma callAI() es idéntica.
- */
 export async function callAI(
   messages: Message[],
   options: {
     maxTokens?: number
     preferProvider?: "groq" | "openrouter" | "gemini" | "gemini-lite"
-    openrouterModel?: string  // modelo específico de OpenRouter (ej: "openai/gpt-4o")
+    openrouterModel?: string
   } = {}
 ): Promise<AIResponse> {
   const { maxTokens = 2000, preferProvider, openrouterModel } = options
 
-  // gemini-lite → Gemini Flash Lite
   if (preferProvider === "gemini-lite") {
     try {
       return await callGemini(messages, maxTokens, true)
     } catch (e: any) {
-      console.warn("[AI Router v4] gemini-lite failed, fallback to flash:", e.message)
-      try { return await callGemini(messages, maxTokens, false) } catch {}
-      try { return await callGroq(messages, maxTokens) } catch {}
+      console.warn("[AI Router v4] gemini-lite failed, fallback to flash:", e?.message || String(e))
+      try {
+        return await callGemini(messages, maxTokens, false)
+      } catch {}
+      try {
+        return await callGroq(messages, maxTokens)
+      } catch {}
       throw new Error("All providers failed for gemini-lite task")
     }
   }
 
-  // Orden de providers según preferencia
-  type ProviderDef = { name: string; fn: () => Promise<AIResponse>; enabled: boolean }
+  type ProviderDef = {
+    name: string
+    fn: () => Promise<AIResponse>
+    enabled: boolean
+  }
+
   const providers: ProviderDef[] = [
-    { name: "gemini",     fn: () => callGemini(messages, maxTokens, false),              enabled: !!process.env.GEMINI_API_KEY },
-    { name: "groq",       fn: () => callGroq(messages, maxTokens),                       enabled: !!process.env.GROQ_API_KEY },
-    { name: "openrouter", fn: () => callOpenRouter(messages, maxTokens, openrouterModel), enabled: !!process.env.OPENROUTER_API_KEY },
-    { name: "together",   fn: () => callTogetherAI(messages, maxTokens),                 enabled: !!process.env.TOGETHER_API_KEY },
+    {
+      name: "gemini",
+      fn: () => callGemini(messages, maxTokens, false),
+      enabled: getGeminiTextKeys().length > 0,
+    },
+    {
+      name: "groq",
+      fn: () => callGroq(messages, maxTokens),
+      enabled: !!process.env.GROQ_API_KEY,
+    },
+    {
+      name: "openrouter",
+      fn: () => callOpenRouter(messages, maxTokens, openrouterModel),
+      enabled: getOpenRouterKeys().length > 0,
+    },
+    {
+      name: "together",
+      fn: () => callTogetherAI(messages, maxTokens),
+      enabled: getTogetherKeys().length > 0,
+    },
   ]
 
   if (preferProvider) {
-    providers.sort((a, b) =>
-      a.name === preferProvider ? -1 : b.name === preferProvider ? 1 : 0
-    )
+    providers.sort((a, b) => {
+      if (a.name === preferProvider) return -1
+      if (b.name === preferProvider) return 1
+      return 0
+    })
   }
 
-  for (const p of providers) {
-    if (!p.enabled) continue
-    try { return await p.fn() } catch (e: any) {
-      console.warn(`[AI Router v4] ${p.name} failed:`, e.message)
+  for (const provider of providers) {
+    if (!provider.enabled) continue
+    try {
+      return await provider.fn()
+    } catch (e: any) {
+      console.warn(`[AI Router v4] ${provider.name} failed:`, e?.message || String(e))
     }
   }
 
@@ -455,15 +505,8 @@ export async function callAI(
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// CACHE LAYER — callAICached
+// CACHE LAYER
 // ══════════════════════════════════════════════════════════════════════════════
-/**
- * Wrapper de callAI con cache en Redis (Upstash).
- * Si Redis no está configurado, pasa directo a callAI sin error.
- *
- * @param cacheKey  - Clave única para esta consulta (ej: `investigador:${topic}`)
- * @param ttl       - Tiempo de vida en segundos (default: 300 = 5 minutos)
- */
 export async function callAICached(
   messages: Message[],
   options: Parameters<typeof callAI>[1] & { cacheKey: string; ttl?: number }
@@ -475,11 +518,10 @@ export async function callAICached(
     try {
       const cached = await redis.get<AIResponse>(cacheKey)
       if (cached) {
-        console.log(`[AI Cache] HIT: ${cacheKey}`)
         return { ...cached, provider: `${cached.provider} (cached)` }
       }
     } catch (e: any) {
-      console.warn("[AI Cache] Redis get failed:", e.message)
+      console.warn("[AI Cache] Redis get failed:", e?.message || String(e))
     }
   }
 
@@ -488,9 +530,8 @@ export async function callAICached(
   if (redis) {
     try {
       await redis.set(cacheKey, result, { ex: ttl })
-      console.log(`[AI Cache] SET: ${cacheKey} (TTL: ${ttl}s)`)
     } catch (e: any) {
-      console.warn("[AI Cache] Redis set failed:", e.message)
+      console.warn("[AI Cache] Redis set failed:", e?.message || String(e))
     }
   }
 
@@ -498,7 +539,7 @@ export async function callAICached(
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// ORQUESTADOR POTENCIADO — 6 Agentes (igual que v3, ahora usa Gemini como primario)
+// ORQUESTADOR
 // ══════════════════════════════════════════════════════════════════════════════
 interface OrchestratorInput {
   question: string
@@ -528,56 +569,120 @@ export async function runOrchestrator(
     studyMode = "normal",
   } = input
 
-  // Agentes 1-3 en paralelo
   const [contextoRes, diagnoseRes, investigadorRes] = await Promise.allSettled([
-    callAI([
-      { role: "system", content: `Eres AGT-Contexto. Analizas el historial de aprendizaje de un alumno y extraes lo más relevante para responder su pregunta actual.\nResponde en máximo 3 oraciones concisas. No repitas la pregunta. Solo contexto útil.` },
-      { role: "user",   content: `Pregunta actual: "${question}"\nTema de estudio: ${topic}\nHistorial reciente: ${studentHistory.slice(0, 1500) || "Sin historial"}\nMemoria larga del alumno: ${longMemory.slice(0, 1000) || "Sin memoria previa"}\n¿Qué sabe el alumno sobre esto? ¿Hay brechas o conceptos pendientes?` },
-    ], { maxTokens: 400, preferProvider: "gemini-lite" }),
+    callAI(
+      [
+        {
+          role: "system",
+          content:
+            "Eres AGT-Contexto. Analizas el historial de aprendizaje de un alumno y extraes lo más relevante para responder su pregunta actual. Responde en máximo 3 oraciones concisas. No repitas la pregunta. Solo contexto útil.",
+        },
+        {
+          role: "user",
+          content: `Pregunta actual: "${question}"\nTema de estudio: ${topic}\nHistorial reciente: ${studentHistory.slice(0, 1500) || "Sin historial"}\nMemoria larga del alumno: ${longMemory.slice(0, 1000) || "Sin memoria previa"}\n¿Qué sabe el alumno sobre esto? ¿Hay brechas o conceptos pendientes?`,
+        },
+      ],
+      { maxTokens: 400, preferProvider: "gemini-lite" }
+    ),
 
-    callAI([
-      { role: "system", content: `Eres AGT-Diagnose. Experto en diagnóstico pedagógico.\nIdentifica: (1) nivel real implícito, (2) conceptos previos necesarios, (3) tipo de dificultad cognitiva.\nFormato: NIVEL: x | PREREQUISITOS: a, b | TIPO_DIFICULTAD: conceptual/procedimental/aplicación` },
-      { role: "user",   content: `Nivel declarado: ${studentLevel}\nPregunta: "${question}"\nTema: ${topic}\nModo de estudio: ${studyMode}` },
-    ], { maxTokens: 300, preferProvider: "gemini-lite" }),
+    callAI(
+      [
+        {
+          role: "system",
+          content:
+            'Eres AGT-Diagnose. Experto en diagnóstico pedagógico. Identifica: (1) nivel real implícito, (2) conceptos previos necesarios, (3) tipo de dificultad cognitiva. Formato: NIVEL: x | PREREQUISITOS: a, b | TIPO_DIFICULTAD: conceptual/procedimental/aplicación',
+        },
+        {
+          role: "user",
+          content: `Nivel declarado: ${studentLevel}\nPregunta: "${question}"\nTema: ${topic}\nModo de estudio: ${studyMode}`,
+        },
+      ],
+      { maxTokens: 300, preferProvider: "gemini-lite" }
+    ),
 
-    callAICached([
-      { role: "system", content: `Eres AGT-Investigador. Aportas contexto técnico preciso, datos verificados y analogías pedagógicas de alto valor.\nMáximo 4 oraciones. Solo información de alto valor pedagógico.` },
-      { role: "user",   content: `Pregunta del alumno: "${question}"\nTema: ${topic}\nAporta el contexto técnico y datos clave más relevantes:` },
-    ], { maxTokens: 500, preferProvider: "gemini", cacheKey: `orch-inv:${topic}:${question.slice(0,60)}`, ttl: 300 }),
+    callAICached(
+      [
+        {
+          role: "system",
+          content:
+            "Eres AGT-Investigador. Aportas contexto técnico preciso, datos verificados y analogías pedagógicas de alto valor. Máximo 4 oraciones. Solo información de alto valor pedagógico.",
+        },
+        {
+          role: "user",
+          content: `Pregunta del alumno: "${question}"\nTema: ${topic}\nAporta el contexto técnico y datos clave más relevantes:`,
+        },
+      ],
+      {
+        maxTokens: 500,
+        preferProvider: "gemini",
+        cacheKey: `orch-inv:${topic}:${question.slice(0, 60)}`,
+        ttl: 300,
+      }
+    ),
   ])
 
-  const contexto     = contextoRes.status     === "fulfilled" ? contextoRes.value.text     : ""
-  const diagnostico  = diagnoseRes.status     === "fulfilled" ? diagnoseRes.value.text     : ""
+  const contexto = contextoRes.status === "fulfilled" ? contextoRes.value.text : ""
+  const diagnostico = diagnoseRes.status === "fulfilled" ? diagnoseRes.value.text : ""
   const investigacion = investigadorRes.status === "fulfilled" ? investigadorRes.value.text : ""
 
-  // Agente 4: Síntesis
-  const agentSynthesize = await callAI([
-    { role: "system", content: `Eres AGT-Synthesize. Produces un briefing pedagógico integrado para el tutor IA.\nResponde con un briefing claro en máximo 5 oraciones. Incluye: qué sabe el alumno, qué necesita, qué contexto técnico es relevante.` },
-    { role: "user",   content: `PREGUNTA: "${question}"\nTEMA: ${topic}\n\n─── CONTEXTO-ALUMNO ───\n${contexto}\n\n─── DIAGNÓSTICO ───\n${diagnostico}\n\n─── INVESTIGACIÓN ───\n${investigacion}\n\nBriefing pedagógico para el tutor:` },
-  ], { maxTokens: 600, preferProvider: "gemini" })
+  const agentSynthesize = await callAI(
+    [
+      {
+        role: "system",
+        content:
+          "Eres AGT-Synthesize. Produces un briefing pedagógico integrado para el tutor IA. Responde con un briefing claro en máximo 5 oraciones. Incluye: qué sabe el alumno, qué necesita, qué contexto técnico es relevante.",
+      },
+      {
+        role: "user",
+        content: `PREGUNTA: "${question}"\nTEMA: ${topic}\n\n─── CONTEXTO-ALUMNO ───\n${contexto}\n\n─── DIAGNÓSTICO ───\n${diagnostico}\n\n─── INVESTIGACIÓN ───\n${investigacion}\n\nBriefing pedagógico para el tutor:`,
+      },
+    ],
+    { maxTokens: 600, preferProvider: "gemini" }
+  )
 
-  // Agente 5: Pedagogía
-  const agentPedagogia = await callAI([
-    { role: "system", content: `Eres AGT-Pedagogy. Experto en didáctica.\nDecide: estilo (directo|socrático|analógico|paso-a-paso|visual), tono (formal|conversacional|motivador|técnico), visual (image|chart|mermaid|table|none), consejo corto para el tutor.\nResponde SOLO con este JSON: {"estilo":"...","tono":"...","visual":"...","consejo":"..."}` },
-    { role: "user",   content: `Briefing: ${agentSynthesize.text}\nModo: ${studyMode}\nNivel: ${studentLevel}\nPregunta: "${question}"` },
-  ], { maxTokens: 200, preferProvider: "gemini-lite" })
+  const agentPedagogia = await callAI(
+    [
+      {
+        role: "system",
+        content:
+          'Eres AGT-Pedagogy. Experto en didáctica. Decide: estilo (directo|socrático|analógico|paso-a-paso|visual), tono (formal|conversacional|motivador|técnico), visual (image|chart|mermaid|table|none), consejo corto para el tutor. Responde SOLO con este JSON: {"estilo":"...","tono":"...","visual":"...","consejo":"..."}',
+      },
+      {
+        role: "user",
+        content: `Briefing: ${agentSynthesize.text}\nModo: ${studyMode}\nNivel: ${studentLevel}\nPregunta: "${question}"`,
+      },
+    ],
+    { maxTokens: 200, preferProvider: "gemini-lite" }
+  )
 
-  let pedagogyDecision = { estilo: "directo", tono: "conversacional", visual: "none" as const, consejo: "" }
+  let pedagogyDecision = {
+    estilo: "directo",
+    tono: "conversacional",
+    visual: "none" as const,
+    consejo: "",
+  }
+
   try {
     const raw = agentPedagogia.text.replace(/```json|```/g, "").trim()
     pedagogyDecision = { ...pedagogyDecision, ...JSON.parse(raw) }
-  } catch { /* mantener defaults */ }
+  } catch {}
 
   return {
     enrichedContext: `${agentSynthesize.text}\n\n[CONSEJO PEDAGÓGICO]: ${pedagogyDecision.consejo}`,
     pedagogyStyle: `${pedagogyDecision.estilo} | ${pedagogyDecision.tono}`,
     suggestedVisual: pedagogyDecision.visual as OrchestratorResult["suggestedVisual"],
-    agentsUsed: ["AGT-Contexto", "AGT-Diagnose", "AGT-Investigador", "AGT-Synthesize", "AGT-Pedagogy"],
+    agentsUsed: [
+      "AGT-Contexto",
+      "AGT-Diagnose",
+      "AGT-Investigador",
+      "AGT-Synthesize",
+      "AGT-Pedagogy",
+    ],
   }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// OPTIMIZER DE PROMPTS PARA IMÁGENES (igual que v3)
+// OPTIMIZER DE PROMPTS PARA IMÁGENES
 // ══════════════════════════════════════════════════════════════════════════════
 export async function optimizeImagePrompt(
   userPrompt: string,
@@ -585,25 +690,76 @@ export async function optimizeImagePrompt(
   styleKeywords: string,
   educationalContext?: string
 ): Promise<string> {
-  const result = await callAI([
-    { role: "system", content: `You are an expert prompt engineer for AI image generation.\nTransform user descriptions into highly detailed, vivid English prompts.\nCRITICAL: Keep the user's EXACT subject. Add style, lighting, composition, quality keywords.\nOutput ONLY the optimized prompt, no explanations, no quotes.` },
-    { role: "user",   content: `User request: "${userPrompt}"\nStyle: ${style} — keywords: ${styleKeywords}\n${educationalContext ? `Educational context: "${educationalContext.slice(0, 400)}"` : ""}\nOptimized prompt:` },
-  ], { maxTokens: 400, preferProvider: "gemini-lite" })
-  return result.text.trim().replace(/^[\"']|[\"']$/g, "")
+  const promptKey = getGeminiPromptKey(`${userPrompt}:${style}:${educationalContext || ""}`)
+
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_FLASH_LITE}:generateContent?key=${promptKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          system_instruction: {
+            parts: [
+              {
+                text: "You are an expert prompt engineer for AI image generation. Transform user descriptions into highly detailed, vivid English prompts. CRITICAL: Keep the user's exact subject. Add style, lighting, composition, quality keywords. Output ONLY the optimized prompt, no explanations, no quotes.",
+              },
+            ],
+          },
+          contents: [
+            {
+              parts: [
+                {
+                  text: `User request: "${userPrompt}"\nStyle: ${style} — keywords: ${styleKeywords}\n${educationalContext ? `Educational context: "${educationalContext.slice(0, 400)}"` : ""}\nOptimized prompt:`,
+                },
+              ],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.6,
+            maxOutputTokens: 400,
+          },
+        }),
+        signal: AbortSignal.timeout(12000),
+      }
+    )
+
+    if (!res.ok) return basicPrompt(userPrompt, style)
+
+    const data = await res.json()
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim()
+
+    if (!text) return basicPrompt(userPrompt, style)
+    return text.replace(/^[\"']|[\"']$/g, "")
+  } catch (e) {
+    console.warn("[AI Router v4] optimizeImagePrompt failed:", errMsg(e))
+    return basicPrompt(userPrompt, style)
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// DETECTOR DE VISUAL INTELIGENTE — AGT-AIm (igual que v3)
+// DETECTOR DE VISUAL
 // ══════════════════════════════════════════════════════════════════════════════
 export async function detectVisualType(
   context: string,
   topic: string
 ): Promise<{ type: string; title: string; imagePrompt?: string; content?: string; caption: string }> {
   try {
-    const result = await callAI([
-      { role: "system", content: `Eres AIm v2, el agente visual de EduAI. Analizas texto educativo y decides el visual más efectivo.\nREGLAS: valores/datos/porcentajes → "chart" | procesos/pasos/flujos → "mermaid" | comparaciones → "table" | conceptos físicos/visualizables → "image" | solo conversacional → "none"\nPara "image": prompt educativo en inglés 15-25 palabras.\nPara "mermaid": flowchart TD, máximo 7 nodos.\nPara "chart": JSON con type/data/labels/datasets.\nPara "table": markdown, máximo 4col × 6fil.\nResponde SOLO con JSON: {"type":"...","title":"...","imagePrompt":"...","content":"...","caption":"..."}` },
-      { role: "user",   content: `Tema: ${topic}\nTexto educativo:\n"${context.slice(0, 2000)}"\n\n¿Qué visual añade más valor?` },
-    ], { maxTokens: 600, preferProvider: "gemini-lite" })
+    const result = await callAI(
+      [
+        {
+          role: "system",
+          content:
+            'Eres AIm v2, el agente visual de EduAI. Analizas texto educativo y decides el visual más efectivo. REGLAS: valores/datos/porcentajes → "chart" | procesos/pasos/flujos → "mermaid" | comparaciones → "table" | conceptos físicos/visualizables → "image" | solo conversacional → "none". Para "image": prompt educativo en inglés 15-25 palabras. Para "mermaid": flowchart TD, máximo 7 nodos. Para "chart": JSON con type/data/labels/datasets. Para "table": markdown, máximo 4col × 6fil. Responde SOLO con JSON: {"type":"...","title":"...","imagePrompt":"...","content":"...","caption":"..."}',
+        },
+        {
+          role: "user",
+          content: `Tema: ${topic}\nTexto educativo:\n"${context.slice(0, 2000)}"\n\n¿Qué visual añade más valor?`,
+        },
+      ],
+      { maxTokens: 600, preferProvider: "gemini-lite" }
+    )
+
     const raw = result.text.replace(/```json|```/g, "").trim()
     return JSON.parse(raw)
   } catch {
