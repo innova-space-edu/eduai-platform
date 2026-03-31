@@ -562,7 +562,7 @@ export default function ReportExporter({ exam, submissions }: { exam: any; submi
         y += 7.4
       })
 
-      const pageCount = doc.internal.getNumberOfPages()
+      const pageCount = doc.getNumberOfPages()
       for (let p = 1; p <= pageCount; p += 1) {
         doc.setPage(p)
         addFooter(p, pageCount)
