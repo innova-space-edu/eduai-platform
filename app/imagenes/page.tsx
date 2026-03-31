@@ -23,9 +23,12 @@ const SIZES = [
 ]
 
 const PROVIDERS = [
-  { id: "auto",        label: "Auto (mejor disponible)" },
-  { id: "together",    label: "Together AI (FLUX)"      },
-  { id: "huggingface", label: "Hugging Face (SD XL)"    },
+  { id: "auto",         label: "Auto (mejor disponible)" },
+  { id: "gemini",       label: "Gemini Imagen (Google)"  },
+  { id: "pollinations", label: "Pollinations (FLUX free)" },
+  { id: "together",     label: "Together AI (FLUX)"      },
+  { id: "huggingface",  label: "Hugging Face (FLUX/SDXL)"},
+  { id: "openrouter",   label: "OpenRouter (premium)"    },
 ]
 
 const EXAMPLES = [
@@ -266,8 +269,9 @@ export default function ImagenesPage() {
             <div className="rounded-2xl p-4 border" style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.07)" }}>
               <label className="text-gray-500 text-[11px] font-semibold tracking-widest block mb-2">MODELO</label>
               <select value={provider} onChange={e => setProvider(e.target.value)}
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2 text-gray-300 text-xs focus:outline-none transition-all">
-                {PROVIDERS.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+                className="w-full border border-white/[0.08] rounded-xl px-3 py-2 text-gray-300 text-xs focus:outline-none transition-all appearance-none cursor-pointer"
+                style={{ background: "#111827", colorScheme: "dark" }}>
+                {PROVIDERS.map(p => <option key={p.id} value={p.id} style={{ background: "#111827", color: "#d1d5db" }}>{p.label}</option>)}
               </select>
             </div>
           </div>
