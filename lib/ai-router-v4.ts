@@ -53,6 +53,41 @@ export interface ImageGenerationResult {
   model: string
 }
 
+export type EducadorTask =
+  | "parvularia_suggestion"
+  | "planning_short"
+  | "planning_full"
+
+export function getEducadorModelStrategy(task: EducadorTask): {
+  maxTokens: number
+  preferProvider?: "groq" | "openrouter" | "gemini" | "gemini-lite"
+  openrouterModel?: string
+} {
+  switch (task) {
+    case "parvularia_suggestion":
+      return {
+        maxTokens: 2200,
+        preferProvider: "gemini-lite",
+        openrouterModel: "openai/gpt-4o-mini",
+      }
+
+    case "planning_short":
+      return {
+        maxTokens: 3200,
+        preferProvider: "groq",
+        openrouterModel: "openai/gpt-4o-mini",
+      }
+
+    case "planning_full":
+    default:
+      return {
+        maxTokens: 8000,
+        preferProvider: "gemini",
+        openrouterModel: "openai/gpt-4o",
+      }
+  }
+}
+
 // ── Modelos ───────────────────────────────────────────────────────────────────
 const GEMINI_FLASH       = "gemini-2.5-flash"
 const GEMINI_FLASH_LITE  = "gemini-2.5-flash-lite"
