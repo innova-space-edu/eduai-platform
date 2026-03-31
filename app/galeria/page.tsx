@@ -132,7 +132,7 @@ export default function GaleriaPage() {
             <h1 className="text-white font-semibold text-sm">Mi Galería</h1>
             <p className="text-gray-500 text-xs">{images.length} imágenes guardadas</p>
           </div>
-          <button onClick={() => router.push("/imagenes")}
+          <button onClick={() => router.push("/image-studio")}
             className="bg-pink-600 hover:bg-pink-500 text-white px-4 py-2 rounded-xl text-xs font-medium transition-colors">
             + Nueva imagen
           </button>
@@ -173,7 +173,7 @@ export default function GaleriaPage() {
                 ? "Las imágenes se generan automáticamente mientras estudias"
                 : "Crea tu primera imagen en el generador"}
             </p>
-            <button onClick={() => router.push("/imagenes")}
+            <button onClick={() => router.push("/image-studio")}
               className="bg-pink-600 hover:bg-pink-500 text-white px-6 py-3 rounded-xl text-sm font-medium transition-colors">
               🎨 Ir al generador
             </button>
