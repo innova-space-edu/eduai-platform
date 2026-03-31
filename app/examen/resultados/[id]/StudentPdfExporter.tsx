@@ -63,6 +63,18 @@ type Exam = {
   logoUrl?: string
 }
 
+type JsPdfWithRoundedRect = {
+  roundedRect?: (
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    rx: number,
+    ry: number,
+    style?: string,
+  ) => void
+}
+
 const PALETTE = {
   navy: [15, 23, 42] as const,
   blue: [37, 99, 235] as const,
@@ -198,6 +210,7 @@ export default function StudentPdfExporter({
     try {
       const { jsPDF } = await import("jspdf")
       const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" })
+      const docWithRounded = doc as unknown as JsPdfWithRoundedRect
 
       const pageW = 210
       const pageH = 297
@@ -240,8 +253,8 @@ export default function StudentPdfExporter({
         radius = 0,
       ): void => {
         doc.setFillColor(color[0], color[1], color[2])
-        if (radius > 0 && (doc as jsPDF & { roundedRect?: Function }).roundedRect) {
-          ;(doc as jsPDF & { roundedRect: Function }).roundedRect(x, yy, w, h, radius, radius, "F")
+        if (radius > 0 && docWithRounded.roundedRect) {
+          docWithRounded.roundedRect(x, yy, w, h, radius, radius, "F")
         } else {
           doc.rect(x, yy, w, h, "F")
         }
@@ -259,16 +272,8 @@ export default function StudentPdfExporter({
         doc.setDrawColor(border[0], border[1], border[2])
         if (bg) doc.setFillColor(bg[0], bg[1], bg[2])
 
-        if ((doc as jsPDF & { roundedRect?: Function }).roundedRect) {
-          ;(doc as jsPDF & { roundedRect: Function }).roundedRect(
-            x,
-            yy,
-            w,
-            h,
-            radius,
-            radius,
-            bg ? "FD" : "S",
-          )
+        if (docWithRounded.roundedRect) {
+          docWithRounded.roundedRect(x, yy, w, h, radius, radius, bg ? "FD" : "S")
         } else {
           doc.rect(x, yy, w, h, bg ? "FD" : "S")
         }
@@ -432,7 +437,6 @@ export default function StudentPdfExporter({
         doc.text(label, pageW - margin - badgeW / 2, y + 3.2, { align: "center" })
       }
 
-      // PORTADA
       fill(0, 0, pageW, 48, PALETTE.navy)
       fill(0, 0, pageW, 8, PALETTE.violet)
       fill(0, 44, pageW, 4, PALETTE.cyan)
@@ -443,7 +447,7 @@ export default function StudentPdfExporter({
           const format = getImageFormatFromDataUrl(logoDataUrl)
           doc.addImage(logoDataUrl, format, pageW - 36, 10, 18, 18)
         } catch {
-          // si falla el logo, el PDF sigue normal
+          // el PDF sigue aunque falle el logo
         }
       }
 
@@ -465,7 +469,6 @@ export default function StudentPdfExporter({
 
       y = 56
 
-      // DATOS DEL ESTUDIANTE
       drawBox(margin, y, contentW, 29, PALETTE.border, PALETTE.white, 5)
       fill(margin, y, contentW, 6, PALETTE.grayBg, 4)
 
@@ -509,7 +512,6 @@ export default function StudentPdfExporter({
 
       y += 36
 
-      // KPI
       const kpiW = (contentW - 9) / 4
       drawKpiCard(margin, y, kpiW, 24, "Nota final", grade.toFixed(1), PALETTE.blue)
       drawKpiCard(margin + kpiW + 3, y, kpiW, 24, "Logro", `${Math.round(score)}%`, level.color)
@@ -534,7 +536,6 @@ export default function StudentPdfExporter({
 
       y += 30
 
-      // LOGRO GENERAL
       drawBox(margin, y, contentW, 22, PALETTE.border, level.soft, 4)
       setFont(true, 8.4, PALETTE.slate)
       doc.text("NIVEL DE LOGRO", margin + 4, y + 6)
