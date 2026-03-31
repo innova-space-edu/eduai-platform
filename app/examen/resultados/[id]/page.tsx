@@ -7,6 +7,7 @@ import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { Shield, X, AlertTriangle, Clock, Eye, CheckCircle2, XCircle, Pencil, Save } from "lucide-react"
 import ReportExporter from "./ReportExporter"
+import StudentPdfExporter from "./StudentPdfExporter"
 
 // ── Semáforo de riesgo ────────────────────────────────────────────────────────
 function RiskBadge({ level, count }: { level: string; count: number }) {
@@ -792,17 +793,20 @@ export default function ResultadosExamenPage() {
                       ) : (
                         <span className="text-gray-700 text-xs">—</span>
                       )}
-                    </td>
-                    <td className="py-3 px-3 text-center">
-                      <button onClick={() => setReviewSub(s)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all mx-auto"
-                        style={{
-                          background: s.manually_reviewed ? "rgba(34,197,94,0.08)" : "rgba(59,130,246,0.1)",
-                          border: `1px solid ${s.manually_reviewed ? "rgba(34,197,94,0.2)" : "rgba(59,130,246,0.25)"}`,
-                          color: s.manually_reviewed ? "#4ade80" : "#93c5fd",
-                        }}>
-                        {s.manually_reviewed ? <><CheckCircle2 size={11} /> Ver</> : <><Eye size={11} /> Revisar</>}
-                      </button>
+                    </td>                    <td className="py-3 px-3 text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <button onClick={() => setReviewSub(s)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
+                          style={{
+                            background: s.manually_reviewed ? "rgba(34,197,94,0.08)" : "rgba(59,130,246,0.1)",
+                            border: `1px solid ${s.manually_reviewed ? "rgba(34,197,94,0.2)" : "rgba(59,130,246,0.25)"}` ,
+                            color: s.manually_reviewed ? "#4ade80" : "#93c5fd",
+                          }}>
+                          {s.manually_reviewed ? <><CheckCircle2 size={11} /> Ver</> : <><Eye size={11} /> Revisar</>}
+                        </button>
+
+                        <StudentPdfExporter exam={exam} submission={s} />
+                      </div>
                     </td>
                     <td className="py-3 px-3 text-right text-gray-600 text-xs">
                       {new Date(s.submitted_at).toLocaleString("es-CL", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
