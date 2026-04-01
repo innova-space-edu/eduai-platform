@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { useRouter } from "next/navigation"
+import { createClient } from "@/lib/supabase/client"
 import {
   buildPlanningHorizonText,
   getPlannerOAOptions,
@@ -125,6 +126,14 @@ function getInitialAsignatura(nivel: NivelKey, curso: string) {
 export default function EducadorPage() {
   const router = useRouter()
   const bottomRef = useRef<HTMLDivElement>(null)
+  const supabase = useMemo(() => createClient(), [])
+
+  async function forceRecoverSession() {
+    try {
+      await supabase.auth.signOut({ scope: "local" })
+    } catch {}
+    router.replace("/login?next=/educador")
+  }
 
   const [config, setConfig] = useState<Config>({
     nivel: "parvularia",
@@ -223,6 +232,33 @@ export default function EducadorPage() {
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function ensureAuth() {
+      const { data, error } = await supabase.auth.getUser()
+
+      if (cancelled) return
+
+      if (error || !data.user) {
+        await forceRecoverSession()
+      }
+    }
+
+    ensureAuth()
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") {
+        router.replace("/login?next=/educador")
+      }
+    })
+
+    return () => {
+      cancelled = true
+      authListener.subscription.unsubscribe()
+    }
+  }, [router, supabase])
 
   // Scroll al fondo solo cuando hay mensajes activos en el chat
   useEffect(() => {
@@ -371,8 +407,18 @@ export default function EducadorPage() {
         }),
       })
 
+      if (res.status === 401) {
+        await forceRecoverSession()
+        throw new Error("Sesion expirada")
+      }
+
       if (!res.ok) {
-        throw new Error("Error al llamar al agente educador")
+        const errorPayload = await res.json().catch(() => null)
+        throw new Error(
+          typeof errorPayload?.error === "string"
+            ? errorPayload.error
+            : "Error al llamar al agente educador"
+        )
       }
 
       const data = await res.json()
@@ -385,13 +431,16 @@ export default function EducadorPage() {
           provider: data.provider,
         },
       ])
-    } catch {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Hubo un error al generar la planificación."
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
           content:
-            "Hubo un error al generar la planificación. Revisa la configuración curricular y vuelve a intentarlo.",
+            message === "Sesion expirada"
+              ? "Tu sesión expiró. Te redirigí al login para volver a entrar."
+              : `Hubo un error al generar la planificación. ${message}` ,
         },
       ])
     } finally {
