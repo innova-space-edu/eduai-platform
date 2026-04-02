@@ -1,5 +1,5 @@
 import VideoStudioClient from "@/components/video/VideoStudioClient"
-   
+
 export const metadata = {
   title: "Video Studio | EduAI",
   description: "Generación de videos con IA desde texto o imagen",
