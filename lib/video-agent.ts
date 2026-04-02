@@ -1,8 +1,8 @@
 import crypto from "crypto"
+import { fal } from "@fal-ai/client"
 import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 import {
-  getProviderApiKey,
-  getProviderEndpoint,
+  getFalModelForRequest,
   normalizeVideoRequest,
   parseVideoProviderOrder,
   supportsRequest,
@@ -28,6 +28,7 @@ type VideoJobRow = {
   attempts: number
   provider: string | null
   provider_model: string | null
+  provider_request_id: string | null
   video_url: string | null
   audio_url: string | null
   preview_image_url: string | null
@@ -36,20 +37,14 @@ type VideoJobRow = {
   updated_at: string
 }
 
-type ProviderCallResult = {
-  ok: boolean
-  status?: "queued" | "processing" | "completed" | "failed"
-  videoUrl?: string
-  audioUrl?: string
-  previewImageUrl?: string
-  providerJobId?: string
-  raw?: unknown
-  error?: string
-}
-
 const DAILY_VIDEO_LIMIT = Number(process.env.VIDEO_DAILY_LIMIT || 12)
 const ACTIVE_VIDEO_LIMIT = Number(process.env.VIDEO_ACTIVE_LIMIT || 1)
-const MAX_ATTEMPTS_PER_JOB = Number(process.env.VIDEO_MAX_ATTEMPTS || 3)
+
+if (process.env.FAL_KEY) {
+  fal.config({
+    credentials: process.env.FAL_KEY,
+  })
+}
 
 function getAdminSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -161,10 +156,7 @@ export async function getCachedCompletedVideo(
     .limit(1)
     .maybeSingle()
 
-  if (error) {
-    throw new Error(error.message)
-  }
-
+  if (error) throw new Error(error.message)
   return (data as VideoJobRow | null) || null
 }
 
@@ -180,7 +172,6 @@ export async function getNextQueuedVideoJob(): Promise<VideoJobRow | null> {
     .maybeSingle()
 
   if (error) throw new Error(error.message)
-
   return (data as VideoJobRow | null) || null
 }
 
@@ -191,7 +182,6 @@ export async function markVideoJobProcessing(jobId: string) {
     .from("video_jobs")
     .update({
       status: "processing",
-      attempts: 1,
       error_message: null,
       updated_at: new Date().toISOString(),
     })
@@ -203,24 +193,11 @@ export async function markVideoJobProcessing(jobId: string) {
   return data as VideoJobRow
 }
 
-export async function bumpVideoJobAttempt(jobId: string, attempts: number) {
-  const supabase = getAdminSupabase()
-
-  const { error } = await supabase
-    .from("video_jobs")
-    .update({
-      attempts,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", jobId)
-
-  if (error) throw new Error(error.message)
-}
-
 export async function completeVideoJob(params: {
   jobId: string
   provider: string
   providerModel: string
+  queueRequestId?: string | null
   videoUrl: string
   audioUrl?: string | null
   previewImageUrl?: string | null
@@ -233,6 +210,7 @@ export async function completeVideoJob(params: {
       status: "completed",
       provider: params.provider,
       provider_model: params.providerModel,
+      provider_request_id: params.queueRequestId || null,
       video_url: params.videoUrl,
       audio_url: params.audioUrl || null,
       preview_image_url: params.previewImageUrl || null,
@@ -247,7 +225,6 @@ export async function completeVideoJob(params: {
 export async function failVideoJob(params: {
   jobId: string
   errorMessage: string
-  attempts?: number
 }) {
   const supabase = getAdminSupabase()
 
@@ -256,7 +233,6 @@ export async function failVideoJob(params: {
     .update({
       status: "failed",
       error_message: params.errorMessage,
-      attempts: params.attempts,
       updated_at: new Date().toISOString(),
     })
     .eq("id", params.jobId)
@@ -264,181 +240,111 @@ export async function failVideoJob(params: {
   if (error) throw new Error(error.message)
 }
 
-function normalizeProviderResponse(
-  provider: VideoProviderId,
-  raw: any
-): ProviderCallResult {
-  if (!raw || typeof raw !== "object") {
-    return {
-      ok: false,
-      status: "failed",
-      error: "Respuesta vacía o inválida del proveedor.",
-      raw,
-    }
-  }
+export async function setVideoJobProviderRequestId(params: {
+  jobId: string
+  provider: string
+  providerModel: string
+  queueRequestId: string
+}) {
+  const supabase = getAdminSupabase()
 
-  const status =
-    raw.status === "queued" ||
-    raw.status === "processing" ||
-    raw.status === "completed" ||
-    raw.status === "failed"
-      ? raw.status
-      : raw.videoUrl || raw.video_url || raw.output_url
-      ? "completed"
-      : "failed"
+  const { error } = await supabase
+    .from("video_jobs")
+    .update({
+      provider: params.provider,
+      provider_model: params.providerModel,
+      provider_request_id: params.queueRequestId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", params.jobId)
 
-  const videoUrl =
-    raw.videoUrl || raw.video_url || raw.output_url || raw.url || null
-
-  const audioUrl = raw.audioUrl || raw.audio_url || null
-  const previewImageUrl =
-    raw.previewImageUrl || raw.preview_image_url || raw.thumbnail_url || null
-
-  if (status === "completed" && videoUrl) {
-    return {
-      ok: true,
-      status,
-      videoUrl,
-      audioUrl,
-      previewImageUrl,
-      raw,
-    }
-  }
-
-  if (status === "queued" || status === "processing") {
-    return {
-      ok: true,
-      status,
-      providerJobId: raw.jobId || raw.job_id || raw.id || undefined,
-      raw,
-    }
-  }
-
-  return {
-    ok: false,
-    status: "failed",
-    error: raw.error || raw.message || "El proveedor no devolvió un video válido.",
-    raw,
-  }
+  if (error) throw new Error(error.message)
 }
 
-async function callVideoProvider(
-  provider: VideoProviderId,
-  request: NormalizedVideoRequest
-): Promise<ProviderCallResult> {
-  const endpoint = getProviderEndpoint(provider)
-  if (!endpoint) {
-    return {
-      ok: false,
-      status: "failed",
-      error: `No existe endpoint configurado para ${provider}.`,
-    }
+function extractVideoUrl(data: any): string | null {
+  if (!data) return null
+
+  if (typeof data.video?.url === "string") return data.video.url
+  if (typeof data.video_url === "string") return data.video_url
+  if (typeof data.output_url === "string") return data.output_url
+
+  if (Array.isArray(data.videos) && typeof data.videos[0]?.url === "string") {
+    return data.videos[0].url
   }
 
-  const apiKey = getProviderApiKey(provider)
+  return null
+}
 
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  }
-
-  if (apiKey) {
-    headers.Authorization = `Bearer ${apiKey}`
-  }
-
-  const payload = {
+function buildFalArguments(request: NormalizedVideoRequest) {
+  const args: Record<string, unknown> = {
     prompt: request.prompt,
-    mode: request.mode,
-    imageUrl: request.imageUrl,
-    imageBase64: request.imageBase64,
-    durationSeconds: request.durationSeconds,
-    extendToSeconds: request.extendToSeconds,
-    aspectRatio: request.aspectRatio,
-    fps: request.fps,
-    style: request.style,
-    audio: request.audio,
   }
 
-  const res = await fetch(endpoint, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(payload),
-  })
-
-  let raw: any = null
-  try {
-    raw = await res.json()
-  } catch {
-    raw = null
+  if (request.imageUrl) {
+    args.image_url = request.imageUrl
   }
 
-  if (!res.ok) {
-    return {
-      ok: false,
-      status: "failed",
-      error:
-        raw?.error ||
-        raw?.message ||
-        `Proveedor ${provider} respondió ${res.status}.`,
-      raw,
-    }
+  if (request.mode === "image_to_video") {
+    args.image_url = request.imageUrl
   }
 
-  return normalizeProviderResponse(provider, raw)
+  return args
 }
 
 export async function processVideoJob(
   job: VideoJobRow
 ): Promise<VideoProviderResult> {
+  if (!process.env.FAL_KEY) {
+    return {
+      ok: false,
+      provider: "ltx",
+      model: "missing-fal-key",
+      error: "Falta FAL_KEY en variables de entorno.",
+    }
+  }
+
   const request = normalizeVideoRequest(job.request_payload as any)
 
   if (!request.prompt) {
     return {
       ok: false,
       provider: "ltx",
-      model: "unknown",
+      model: "invalid-request",
       error: "El job no tiene prompt válido.",
     }
   }
 
   const providers = parseVideoProviderOrder()
-
   let lastError = "No fue posible generar el video con ningún proveedor."
 
   for (const provider of providers) {
     if (!supportsRequest(provider, request)) continue
 
-    const endpoint = getProviderEndpoint(provider)
-    if (!endpoint) continue
+    const modelId = getFalModelForRequest(provider, request)
+    if (!modelId) continue
 
-    const attempts = Math.min((job.attempts || 0) + 1, MAX_ATTEMPTS_PER_JOB)
-    await bumpVideoJobAttempt(job.id, attempts)
+    try {
+      const result = await fal.subscribe(modelId, {
+        input: buildFalArguments(request),
+      })
 
-    const result = await callVideoProvider(provider, request)
+      const videoUrl = extractVideoUrl((result as any)?.data ?? result)
+      if (!videoUrl) {
+        lastError = `El modelo ${modelId} no devolvió una URL de video válida.`
+        continue
+      }
 
-    if (result.ok && result.status === "completed" && result.videoUrl) {
       return {
         ok: true,
         provider,
-        model: endpoint,
-        videoUrl: result.videoUrl,
-        audioUrl: result.audioUrl,
-        previewImageUrl: result.previewImageUrl,
-        raw: result.raw,
+        model: modelId,
+        videoUrl,
+        raw: result,
       }
+    } catch (error: any) {
+      lastError =
+        error?.message || `Falló el proveedor ${provider} (${modelId}).`
     }
-
-    if (result.ok && (result.status === "queued" || result.status === "processing")) {
-      return {
-        ok: false,
-        provider,
-        model: endpoint,
-        raw: result.raw,
-        error:
-          "El proveedor dejó el trabajo en estado asíncrono. Debes implementar polling externo para ese endpoint.",
-      }
-    }
-
-    lastError = result.error || lastError
   }
 
   return {
