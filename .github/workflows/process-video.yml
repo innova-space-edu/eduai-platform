@@ -1,0 +1,15 @@
+name: Process Video Queue
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/5 * * * *"
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call video process endpoint
+        run: |
+          curl -X POST "https://eduai-platformdon.vercel.app/api/agents/video/process" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
