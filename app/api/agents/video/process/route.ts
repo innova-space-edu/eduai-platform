@@ -1,17 +1,12 @@
 import { NextResponse } from "next/server"
-import {
-  completeVideoJob,
-  failVideoJob,
-  getNextQueuedVideoJob,
-  markVideoJobProcessing,
-  processVideoJob,
-} from "@/lib/video-agent"
+import { createClient } from "@supabase/supabase-js"
+import { processVideoJob } from "@/lib/video-agent"
 
 type ProcessVideoResponse = {
   ok: boolean
   message?: string
   jobId?: string
-  status?: "queued" | "processing" | "completed" | "failed" | "canceled"
+  status?: "queued" | "processing" | "completed" | "failed" | "canceled" | "blocked"
   provider?: string
   videoUrl?: string
   error?: string
@@ -23,6 +18,19 @@ function isAuthorized(req: Request) {
 
   const authHeader = req.headers.get("authorization")
   return authHeader === `Bearer ${cronSecret}`
+}
+
+function getAdminSupabase() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!url || !key) {
+    throw new Error(
+      "Faltan NEXT_PUBLIC_SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY."
+    )
+  }
+
+  return createClient(url, key)
 }
 
 export async function POST(req: Request) {
@@ -37,7 +45,25 @@ export async function POST(req: Request) {
       )
     }
 
-    const nextJob = await getNextQueuedVideoJob()
+    const supabase = getAdminSupabase()
+
+    const { data: nextJob, error: nextJobError } = await supabase
+      .from("video_jobs")
+      .select("*")
+      .eq("status", "queued")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle()
+
+    if (nextJobError) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: nextJobError.message,
+        } satisfies ProcessVideoResponse,
+        { status: 500 }
+      )
+    }
 
     if (!nextJob) {
       return NextResponse.json(
@@ -48,43 +74,119 @@ export async function POST(req: Request) {
       )
     }
 
-    const processingJob = await markVideoJobProcessing(nextJob.id)
-    const result = await processVideoJob(processingJob)
-
-    if (!result.ok || !result.videoUrl) {
-      await failVideoJob({
-        jobId: processingJob.id,
-        errorMessage:
-          result.error ||
-          "No fue posible generar el video con los proveedores configurados.",
+    const { error: processingError } = await supabase
+      .from("video_jobs")
+      .update({
+        status: "processing",
+        error_message: null,
+        updated_at: new Date().toISOString(),
       })
+      .eq("id", nextJob.id)
 
+    if (processingError) {
       return NextResponse.json(
         {
           ok: false,
-          jobId: processingJob.id,
-          status: "failed",
-          provider: result.provider,
-          error: result.error || "Error desconocido al procesar el video.",
+          error: processingError.message,
         } satisfies ProcessVideoResponse,
         { status: 500 }
       )
     }
 
-    await completeVideoJob({
-      jobId: processingJob.id,
-      provider: result.provider,
-      providerModel: result.model,
-      queueRequestId: result.queueRequestId || null,
-      videoUrl: result.videoUrl,
-      audioUrl: result.audioUrl || null,
-      previewImageUrl: result.previewImageUrl || null,
+    const requestPayload = (nextJob.request_payload || {}) as {
+      prompt?: string
+      style?: string | null
+      duration?: number | null
+      durationSeconds?: number | null
+      withAudio?: boolean | null
+      includeAudio?: boolean | null
+      mode?: string | null
+      imageUrl?: string | null
+      image_url?: string | null
+    }
+
+    const result = await processVideoJob({
+      prompt: requestPayload.prompt || "",
+      style: requestPayload.style || "",
+      duration:
+        requestPayload.duration ??
+        requestPayload.durationSeconds ??
+        6,
+      withAudio:
+        requestPayload.withAudio ??
+        requestPayload.includeAudio ??
+        false,
+      mode: requestPayload.mode || "text_to_video",
+      imageUrl: requestPayload.imageUrl || requestPayload.image_url || null,
     })
+
+    if (!result.ok || !result.videoUrl) {
+      const finalStatus =
+        result.status === "blocked" ? "failed" : "failed"
+
+      const { error: failError } = await supabase
+        .from("video_jobs")
+        .update({
+          status: finalStatus,
+          provider: result.provider || null,
+          error_message:
+            result.moderationReason ||
+            result.error ||
+            "No fue posible generar el video.",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", nextJob.id)
+
+      if (failError) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: failError.message,
+          } satisfies ProcessVideoResponse,
+          { status: 500 }
+        )
+      }
+
+      return NextResponse.json(
+        {
+          ok: false,
+          jobId: nextJob.id,
+          status: "failed",
+          provider: result.provider,
+          error:
+            result.moderationReason ||
+            result.error ||
+            "Error desconocido al procesar el video.",
+        } satisfies ProcessVideoResponse,
+        { status: 500 }
+      )
+    }
+
+    const { error: completeError } = await supabase
+      .from("video_jobs")
+      .update({
+        status: "completed",
+        provider: result.provider || null,
+        video_url: result.videoUrl,
+        error_message: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", nextJob.id)
+
+    if (completeError) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: completeError.message,
+        } satisfies ProcessVideoResponse,
+        { status: 500 }
+      )
+    }
 
     return NextResponse.json(
       {
         ok: true,
-        jobId: processingJob.id,
+        jobId: nextJob.id,
         status: "completed",
         provider: result.provider,
         videoUrl: result.videoUrl,
