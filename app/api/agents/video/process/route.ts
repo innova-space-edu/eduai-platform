@@ -1,3 +1,4 @@
+import { NextResponse } from "next/server"
 import {
   completeVideoJob,
   failVideoJob,
@@ -27,11 +28,11 @@ function isAuthorized(req: Request) {
 export async function POST(req: Request) {
   try {
     if (!isAuthorized(req)) {
-      return Response.json<ProcessVideoResponse>(
+      return NextResponse.json(
         {
           ok: false,
           error: "Unauthorized",
-        },
+        } satisfies ProcessVideoResponse,
         { status: 401 }
       )
     }
@@ -39,10 +40,12 @@ export async function POST(req: Request) {
     const nextJob = await getNextQueuedVideoJob()
 
     if (!nextJob) {
-      return Response.json<ProcessVideoResponse>({
-        ok: true,
-        message: "No hay jobs pendientes en la cola.",
-      })
+      return NextResponse.json(
+        {
+          ok: true,
+          message: "No hay jobs pendientes en la cola.",
+        } satisfies ProcessVideoResponse
+      )
     }
 
     const processingJob = await markVideoJobProcessing(nextJob.id)
@@ -51,19 +54,20 @@ export async function POST(req: Request) {
     if (!result.ok || !result.videoUrl) {
       await failVideoJob({
         jobId: processingJob.id,
-        attempts: processingJob.attempts + 1,
+        attempts: (processingJob.attempts || 0) + 1,
         errorMessage:
-          result.error || "No fue posible generar el video con los proveedores configurados.",
+          result.error ||
+          "No fue posible generar el video con los proveedores configurados.",
       })
 
-      return Response.json<ProcessVideoResponse>(
+      return NextResponse.json(
         {
           ok: false,
           jobId: processingJob.id,
           status: "failed",
           provider: result.provider,
           error: result.error || "Error desconocido al procesar el video.",
-        },
+        } satisfies ProcessVideoResponse,
         { status: 500 }
       )
     }
@@ -77,20 +81,22 @@ export async function POST(req: Request) {
       previewImageUrl: result.previewImageUrl || null,
     })
 
-    return Response.json<ProcessVideoResponse>({
-      ok: true,
-      jobId: processingJob.id,
-      status: "completed",
-      provider: result.provider,
-      videoUrl: result.videoUrl,
-      message: "Video procesado correctamente.",
-    })
+    return NextResponse.json(
+      {
+        ok: true,
+        jobId: processingJob.id,
+        status: "completed",
+        provider: result.provider,
+        videoUrl: result.videoUrl,
+        message: "Video procesado correctamente.",
+      } satisfies ProcessVideoResponse
+    )
   } catch (error: any) {
-    return Response.json<ProcessVideoResponse>(
+    return NextResponse.json(
       {
         ok: false,
         error: error?.message || "Unexpected error",
-      },
+      } satisfies ProcessVideoResponse,
       { status: 500 }
     )
   }
