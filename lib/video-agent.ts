@@ -1,356 +1,357 @@
 import crypto from "crypto"
-import { fal } from "@fal-ai/client"
-import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 import {
-  getFalModelForRequest,
-  normalizeVideoRequest,
-  parseVideoProviderOrder,
-  supportsRequest,
-  type NormalizedVideoRequest,
-  type VideoProviderId,
-  type VideoProviderResult,
+  getProviderOrder,
+  HF_API_TOKEN,
+  HF_VIDEO_ENDPOINT,
+  isProviderConfigured,
+  normalizeDuration,
+  normalizeMode,
+  type VideoProvider,
 } from "@/lib/video-config"
 
-type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json }
-  | Json[]
-
-type VideoJobRow = {
-  id: string
-  user_id: string
-  status: "queued" | "processing" | "completed" | "failed" | "canceled"
-  request_hash: string
-  request_payload: Json
-  attempts: number
-  provider: string | null
-  provider_model: string | null
-  provider_request_id: string | null
-  video_url: string | null
-  audio_url: string | null
-  preview_image_url: string | null
-  error_message: string | null
-  created_at: string
-  updated_at: string
+export type GenerateVideoInput = {
+  prompt: string
+  style?: string | null
+  duration?: number | null
+  withAudio?: boolean | null
+  mode?: "text_to_video" | "image_to_video" | string | null
+  imageUrl?: string | null
 }
 
-const DAILY_VIDEO_LIMIT = Number(process.env.VIDEO_DAILY_LIMIT || 12)
-const ACTIVE_VIDEO_LIMIT = Number(process.env.VIDEO_ACTIVE_LIMIT || 1)
-
-if (process.env.FAL_KEY) {
-  fal.config({
-    credentials: process.env.FAL_KEY,
-  })
+export type GenerateVideoResult = {
+  ok: boolean
+  provider?: VideoProvider
+  videoUrl?: string
+  error?: string
+  blocked?: boolean
+  moderationReason?: string
+  raw?: any
 }
 
-function getAdminSupabase() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+/**
+ * ============================================
+ * MODERACIÓN
+ * ============================================
+ */
 
-  if (!url || !key) {
-    throw new Error(
-      "Faltan NEXT_PUBLIC_SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY para video-agent."
-    )
+const SEXUAL_BLOCKLIST = [
+  // desnudez general
+  "desnudo",
+  "desnuda",
+  "desnudos",
+  "desnudas",
+  "sin ropa",
+  "sin ropa interior",
+  "ropa interior transparente",
+  "topless",
+  "en pelotas",
+  "completamente desnudo",
+  "completamente desnuda",
+
+  // anatomía explícita
+  "pechos",
+  "senos",
+  "tetas",
+  "tetona",
+  "pezones",
+  "nalgas",
+  "trasero",
+  "culo",
+  "caderas sensuales",
+  "vagina",
+  "vulva",
+  "pene",
+  "miembro",
+  "genitales",
+  "paquete",
+  "bulto sexual",
+  "entrepierna",
+
+  // actos sexuales
+  "sexo",
+  "acto sexual",
+  "penetracion",
+  "penetración",
+  "masturb",
+  "oral",
+  "sexo oral",
+  "sexo anal",
+  "eyacul",
+  "climax",
+  "orgasmo",
+  "correrse",
+  "venirse",
+  "tocandose",
+  "tocándose",
+  "acariciandose",
+  "acariciándose",
+  "beso apasionado",
+  "lamer",
+  "chupar",
+  "frotar",
+  "sentada encima",
+  "cabalgando",
+
+  // erotización / pornografía
+  "sensual",
+  "erotico",
+  "erótico",
+  "sexy",
+  "seductora",
+  "seductor",
+  "provocativa",
+  "provocativo",
+  "porn",
+  "porno",
+  "pornografia",
+  "pornografía",
+  "nsfw",
+  "onlyfans",
+  "contenido adulto",
+  "escort",
+  "prostituta",
+  "prostituto",
+  "stripper",
+  "striptease",
+  "bdsm",
+  "fetiche",
+  "dominacion sexual",
+  "dominación sexual",
+  "sumision",
+  "sumisión",
+
+  // cosificación / cuerpos
+  "mujer voluptuosa",
+  "mujer sexy",
+  "mujer erotica",
+  "mujer erótica",
+  "hombre sexy",
+  "hombre musculoso sensual",
+  "cuerpo sexualizado",
+  "curvas provocativas",
+  "cuerpo provocativo",
+  "cuerpo erotico",
+  "cuerpo erótico",
+
+  // menores / ilegal
+  "adolescente sexy",
+  "niña sexy",
+  "niño sexy",
+  "menor sexualizado",
+  "lolita",
+  "teen sexy",
+  "schoolgirl sexy",
+  "schoolboy sexy",
+  "incesto",
+  "zoofilia",
+  "necrofilia",
+  "violacion",
+  "violación",
+  "abuso sexual",
+  "sexo forzado",
+  "violencia sexual",
+]
+
+const HIGH_RISK_REGEX = [
+  /\b(nsfw|porn|porno|onlyfans)\b/i,
+  /\b(sexo|sexual|er[oó]tico|sensual|provocativ[oa])\b/i,
+  /\b(desnud[oa]s?|topless|sin ropa)\b/i,
+  /\b(vagina|vulva|pene|genital(?:es)?)\b/i,
+  /\b(pechos|senos|tetas|pezones|nalgas|culo)\b/i,
+  /\b(masturb\w*|orgasm\w*|eyacul\w*|climax)\b/i,
+  /\b(escort|stripper|striptease|prostitu\w*)\b/i,
+  /\b(violaci[oó]n|abuso sexual|sexo forzado)\b/i,
+  /\b(teen sexy|schoolgirl sexy|schoolboy sexy|lolita)\b/i,
+]
+
+function normalizeText(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+function containsBlockedSexualContent(input: string): { blocked: boolean; reason?: string } {
+  const text = normalizeText(input)
+
+  for (const term of SEXUAL_BLOCKLIST) {
+    if (text.includes(normalizeText(term))) {
+      return {
+        blocked: true,
+        reason: `Prompt bloqueado por contenido sexual explícito o sugerente: "${term}"`,
+      }
+    }
   }
 
-  return createSupabaseClient(url, key)
-}
-
-function stableStringify(input: unknown): string {
-  if (input === null || typeof input !== "object") {
-    return JSON.stringify(input)
+  for (const regex of HIGH_RISK_REGEX) {
+    if (regex.test(text)) {
+      return {
+        blocked: true,
+        reason: "Prompt bloqueado por patrón sexual explícito o sensible.",
+      }
+    }
   }
 
-  if (Array.isArray(input)) {
-    return `[${input.map((v) => stableStringify(v)).join(",")}]`
-  }
-
-  const entries = Object.entries(input as Record<string, unknown>).sort(([a], [b]) =>
-    a.localeCompare(b)
-  )
-
-  return `{${entries
-    .map(([k, v]) => `${JSON.stringify(k)}:${stableStringify(v)}`)
-    .join(",")}}`
+  return { blocked: false }
 }
 
-export function hashVideoRequest(input: NormalizedVideoRequest): string {
-  const normalized = normalizeVideoRequest(input)
+function sanitizePrompt(input: string): string {
+  return input.replace(/\s+/g, " ").trim()
+}
+
+/**
+ * ============================================
+ * PROVEEDORES
+ * ============================================
+ */
+
+async function callHFSpace(input: GenerateVideoInput): Promise<GenerateVideoResult> {
+  if (!HF_VIDEO_ENDPOINT) {
+    return { ok: false, provider: "hf-space", error: "HF_VIDEO_ENDPOINT no configurado" }
+  }
+
   const payload = {
-    prompt: normalized.prompt,
-    mode: normalized.mode,
-    imageUrl: normalized.imageUrl || null,
-    imageBase64: normalized.imageBase64 ? "[inline-image]" : null,
-    durationSeconds: normalized.durationSeconds,
-    extendToSeconds: normalized.extendToSeconds || null,
-    aspectRatio: normalized.aspectRatio,
-    fps: normalized.fps,
-    style: normalized.style,
-    audio: {
-      enabled: normalized.audio.enabled,
-      ttsText: normalized.audio.ttsText || null,
-      audioUrl: normalized.audio.audioUrl || null,
-    },
+    prompt: input.prompt,
+    mode: normalizeMode(input.mode),
+    image_url: input.imageUrl || null,
+    duration: normalizeDuration(input.duration),
+    style: input.style || "",
+    with_audio: Boolean(input.withAudio),
   }
 
-  return crypto
-    .createHash("sha256")
-    .update(stableStringify(payload))
-    .digest("hex")
-}
-
-export async function enforceVideoLimits(userId: string) {
-  const supabase = getAdminSupabase()
-
-  const startOfDay = new Date()
-  startOfDay.setUTCHours(0, 0, 0, 0)
-
-  const [{ count: dailyCount, error: dailyError }, { count: activeCount, error: activeError }] =
-    await Promise.all([
-      supabase
-        .from("video_jobs")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", userId)
-        .gte("created_at", startOfDay.toISOString()),
-      supabase
-        .from("video_jobs")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", userId)
-        .in("status", ["queued", "processing"]),
-    ])
-
-  if (dailyError) throw new Error(dailyError.message)
-  if (activeError) throw new Error(activeError.message)
-
-  if ((dailyCount || 0) >= DAILY_VIDEO_LIMIT) {
-    throw new Error(
-      `Has alcanzado el límite diario de ${DAILY_VIDEO_LIMIT} videos.`
-    )
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
   }
 
-  if ((activeCount || 0) >= ACTIVE_VIDEO_LIMIT) {
-    throw new Error(
-      "Ya tienes un video en cola o procesándose. Espera a que termine antes de crear otro."
-    )
-  }
-}
-
-export async function getCachedCompletedVideo(
-  userId: string,
-  request: NormalizedVideoRequest
-): Promise<VideoJobRow | null> {
-  const supabase = getAdminSupabase()
-  const requestHash = hashVideoRequest(request)
-
-  const { data, error } = await supabase
-    .from("video_jobs")
-    .select("*")
-    .eq("user_id", userId)
-    .eq("request_hash", requestHash)
-    .eq("status", "completed")
-    .not("video_url", "is", null)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  if (error) throw new Error(error.message)
-  return (data as VideoJobRow | null) || null
-}
-
-export async function getNextQueuedVideoJob(): Promise<VideoJobRow | null> {
-  const supabase = getAdminSupabase()
-
-  const { data, error } = await supabase
-    .from("video_jobs")
-    .select("*")
-    .eq("status", "queued")
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle()
-
-  if (error) throw new Error(error.message)
-  return (data as VideoJobRow | null) || null
-}
-
-export async function markVideoJobProcessing(jobId: string) {
-  const supabase = getAdminSupabase()
-
-  const { data, error } = await supabase
-    .from("video_jobs")
-    .update({
-      status: "processing",
-      error_message: null,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", jobId)
-    .select("*")
-    .single()
-
-  if (error) throw new Error(error.message)
-  return data as VideoJobRow
-}
-
-export async function completeVideoJob(params: {
-  jobId: string
-  provider: string
-  providerModel: string
-  queueRequestId?: string | null
-  videoUrl: string
-  audioUrl?: string | null
-  previewImageUrl?: string | null
-}) {
-  const supabase = getAdminSupabase()
-
-  const { error } = await supabase
-    .from("video_jobs")
-    .update({
-      status: "completed",
-      provider: params.provider,
-      provider_model: params.providerModel,
-      provider_request_id: params.queueRequestId || null,
-      video_url: params.videoUrl,
-      audio_url: params.audioUrl || null,
-      preview_image_url: params.previewImageUrl || null,
-      error_message: null,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", params.jobId)
-
-  if (error) throw new Error(error.message)
-}
-
-export async function failVideoJob(params: {
-  jobId: string
-  errorMessage: string
-}) {
-  const supabase = getAdminSupabase()
-
-  const { error } = await supabase
-    .from("video_jobs")
-    .update({
-      status: "failed",
-      error_message: params.errorMessage,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", params.jobId)
-
-  if (error) throw new Error(error.message)
-}
-
-export async function setVideoJobProviderRequestId(params: {
-  jobId: string
-  provider: string
-  providerModel: string
-  queueRequestId: string
-}) {
-  const supabase = getAdminSupabase()
-
-  const { error } = await supabase
-    .from("video_jobs")
-    .update({
-      provider: params.provider,
-      provider_model: params.providerModel,
-      provider_request_id: params.queueRequestId,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", params.jobId)
-
-  if (error) throw new Error(error.message)
-}
-
-function extractVideoUrl(data: any): string | null {
-  if (!data) return null
-
-  if (typeof data.video?.url === "string") return data.video.url
-  if (typeof data.video_url === "string") return data.video_url
-  if (typeof data.output_url === "string") return data.output_url
-
-  if (Array.isArray(data.videos) && typeof data.videos[0]?.url === "string") {
-    return data.videos[0].url
+  if (HF_API_TOKEN) {
+    headers.Authorization = `Bearer ${HF_API_TOKEN}`
   }
 
-  return null
-}
+  const res = await fetch(`${HF_VIDEO_ENDPOINT}/generate`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(payload),
+  })
 
-function buildFalArguments(request: NormalizedVideoRequest) {
-  const args: Record<string, unknown> = {
-    prompt: request.prompt,
-  }
+  const data = await res.json().catch(() => null)
 
-  if (request.imageUrl) {
-    args.image_url = request.imageUrl
-  }
-
-  if (request.mode === "image_to_video") {
-    args.image_url = request.imageUrl
-  }
-
-  return args
-}
-
-export async function processVideoJob(
-  job: VideoJobRow
-): Promise<VideoProviderResult> {
-  if (!process.env.FAL_KEY) {
+  if (!res.ok) {
     return {
       ok: false,
-      provider: "ltx",
-      model: "missing-fal-key",
-      error: "Falta FAL_KEY en variables de entorno.",
+      provider: "hf-space",
+      error: data?.error || `HF Space error (${res.status})`,
+      raw: data,
     }
   }
 
-  const request = normalizeVideoRequest(job.request_payload as any)
+  return {
+    ok: Boolean(data?.ok),
+    provider: "hf-space",
+    videoUrl: data?.video_url || data?.videoUrl || "",
+    raw: data,
+  }
+}
 
-  if (!request.prompt) {
+/**
+ * Placeholders para siguientes providers.
+ * Quedan listos para conectar sin romper la arquitectura.
+ */
+async function callReplicate(_: GenerateVideoInput): Promise<GenerateVideoResult> {
+  return {
+    ok: false,
+    provider: "replicate",
+    error: "Replicate aún no implementado en esta fase.",
+  }
+}
+
+async function callFal(_: GenerateVideoInput): Promise<GenerateVideoResult> {
+  return {
+    ok: false,
+    provider: "fal",
+    error: "fal aún no implementado en esta fase.",
+  }
+}
+
+/**
+ * ============================================
+ * ORQUESTADOR
+ * ============================================
+ */
+
+export async function generateVideoWithFallback(
+  input: GenerateVideoInput
+): Promise<GenerateVideoResult> {
+  const cleanedPrompt = sanitizePrompt(input.prompt)
+
+  const moderation = containsBlockedSexualContent(cleanedPrompt)
+  if (moderation.blocked) {
     return {
       ok: false,
-      provider: "ltx",
-      model: "invalid-request",
-      error: "El job no tiene prompt válido.",
+      blocked: true,
+      moderationReason: moderation.reason,
+      error: moderation.reason,
     }
   }
 
-  const providers = parseVideoProviderOrder()
-  let lastError = "No fue posible generar el video con ningún proveedor."
+  const normalizedInput: GenerateVideoInput = {
+    ...input,
+    prompt: cleanedPrompt,
+    duration: normalizeDuration(input.duration),
+    mode: normalizeMode(input.mode),
+  }
+
+  const providers = getProviderOrder().filter(isProviderConfigured)
 
   for (const provider of providers) {
-    if (!supportsRequest(provider, request)) continue
-
-    const modelId = getFalModelForRequest(provider, request)
-    if (!modelId) continue
-
     try {
-      const result = await fal.subscribe(modelId, {
-        input: buildFalArguments(request),
-      })
+      let result: GenerateVideoResult
 
-      const videoUrl = extractVideoUrl((result as any)?.data ?? result)
-      if (!videoUrl) {
-        lastError = `El modelo ${modelId} no devolvió una URL de video válida.`
-        continue
+      switch (provider) {
+        case "hf-space":
+          result = await callHFSpace(normalizedInput)
+          break
+        case "replicate":
+          result = await callReplicate(normalizedInput)
+          break
+        case "fal":
+        case "ltx":
+        case "cogvideox":
+        case "hunyuan":
+          result = await callFal(normalizedInput)
+          break
+        default:
+          result = {
+            ok: false,
+            provider,
+            error: `Proveedor no soportado: ${provider}`,
+          }
       }
 
-      return {
-        ok: true,
-        provider,
-        model: modelId,
-        videoUrl,
-        raw: result,
+      if (result.ok && result.videoUrl) {
+        return result
       }
     } catch (error: any) {
-      lastError =
-        error?.message || `Falló el proveedor ${provider} (${modelId}).`
+      console.error(`[video-agent] Error con provider ${provider}:`, error)
     }
   }
 
   return {
     ok: false,
-    provider: "ltx",
-    model: "none",
-    error: lastError,
+    error: "Todos los proveedores fallaron o no están disponibles.",
   }
+}
+
+export function buildVideoJobHash(input: GenerateVideoInput): string {
+  const base = JSON.stringify({
+    prompt: sanitizePrompt(input.prompt),
+    style: input.style || "",
+    duration: normalizeDuration(input.duration),
+    withAudio: Boolean(input.withAudio),
+    mode: normalizeMode(input.mode),
+    imageUrl: input.imageUrl || "",
+  })
+
+  return crypto.createHash("sha256").update(base).digest("hex")
 }
