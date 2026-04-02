@@ -1,133 +1,361 @@
-import { createHash } from "node:crypto"
+import crypto from "crypto"
+import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 import {
   getProviderApiKey,
   getProviderEndpoint,
-  NormalizedVideoRequest,
+  normalizeVideoRequest,
   parseVideoProviderOrder,
   supportsRequest,
-  VIDEO_PROVIDER_CONFIGS,
+  type NormalizedVideoRequest,
   type VideoProviderId,
   type VideoProviderResult,
 } from "@/lib/video-config"
-import { getRedis, rateLimit } from "@/lib/redis"
 
-export interface VideoJobRecord {
+type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json }
+  | Json[]
+
+type VideoJobRow = {
   id: string
   user_id: string
-  status: "queued" | "processing" | "completed" | "failed"
+  status: "queued" | "processing" | "completed" | "failed" | "canceled"
   request_hash: string
-  request_payload: NormalizedVideoRequest
-  provider?: VideoProviderId | null
-  provider_model?: string | null
-  video_url?: string | null
-  audio_url?: string | null
-  preview_image_url?: string | null
-  error_message?: string | null
-  attempts?: number | null
-  created_at?: string
-  updated_at?: string
+  request_payload: Json
+  attempts: number
+  provider: string | null
+  provider_model: string | null
+  video_url: string | null
+  audio_url: string | null
+  preview_image_url: string | null
+  error_message: string | null
+  created_at: string
+  updated_at: string
 }
 
-export function buildVideoCacheKey(userId: string, request: NormalizedVideoRequest): string {
-  return `video:job:${userId}:${hashVideoRequest(request)}`
+type ProviderCallResult = {
+  ok: boolean
+  status?: "queued" | "processing" | "completed" | "failed"
+  videoUrl?: string
+  audioUrl?: string
+  previewImageUrl?: string
+  providerJobId?: string
+  raw?: unknown
+  error?: string
 }
 
-export function hashVideoRequest(request: NormalizedVideoRequest): string {
-  const normalized = JSON.stringify({
-    prompt: request.prompt.toLowerCase().trim(),
-    mode: request.mode,
-    imageUrl: request.imageUrl || null,
-    hasImageBase64: Boolean(request.imageBase64),
-    durationSeconds: request.durationSeconds,
-    extendToSeconds: request.extendToSeconds || null,
-    aspectRatio: request.aspectRatio,
-    fps: request.fps,
-    style: request.style.toLowerCase().trim(),
+const DAILY_VIDEO_LIMIT = Number(process.env.VIDEO_DAILY_LIMIT || 12)
+const ACTIVE_VIDEO_LIMIT = Number(process.env.VIDEO_ACTIVE_LIMIT || 1)
+const MAX_ATTEMPTS_PER_JOB = Number(process.env.VIDEO_MAX_ATTEMPTS || 3)
+
+function getAdminSupabase() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!url || !key) {
+    throw new Error(
+      "Faltan NEXT_PUBLIC_SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY para video-agent."
+    )
+  }
+
+  return createSupabaseClient(url, key)
+}
+
+function stableStringify(input: unknown): string {
+  if (input === null || typeof input !== "object") {
+    return JSON.stringify(input)
+  }
+
+  if (Array.isArray(input)) {
+    return `[${input.map((v) => stableStringify(v)).join(",")}]`
+  }
+
+  const entries = Object.entries(input as Record<string, unknown>).sort(([a], [b]) =>
+    a.localeCompare(b)
+  )
+
+  return `{${entries
+    .map(([k, v]) => `${JSON.stringify(k)}:${stableStringify(v)}`)
+    .join(",")}}`
+}
+
+export function hashVideoRequest(input: NormalizedVideoRequest): string {
+  const normalized = normalizeVideoRequest(input)
+  const payload = {
+    prompt: normalized.prompt,
+    mode: normalized.mode,
+    imageUrl: normalized.imageUrl || null,
+    imageBase64: normalized.imageBase64 ? "[inline-image]" : null,
+    durationSeconds: normalized.durationSeconds,
+    extendToSeconds: normalized.extendToSeconds || null,
+    aspectRatio: normalized.aspectRatio,
+    fps: normalized.fps,
+    style: normalized.style,
     audio: {
-      enabled: request.audio.enabled,
-      hasTtsText: Boolean(request.audio.ttsText),
-      audioUrl: request.audio.audioUrl || null,
+      enabled: normalized.audio.enabled,
+      ttsText: normalized.audio.ttsText || null,
+      audioUrl: normalized.audio.audioUrl || null,
     },
-  })
+  }
 
-  return createHash("sha256").update(normalized).digest("hex")
-}
-
-export function buildPromptWithStyle(request: NormalizedVideoRequest): string {
-  return [request.prompt, request.style].filter(Boolean).join(", ")
+  return crypto
+    .createHash("sha256")
+    .update(stableStringify(payload))
+    .digest("hex")
 }
 
 export async function enforceVideoLimits(userId: string) {
-  const perMinute = await rateLimit(`${userId}:video:minute`, 2, 60)
-  if (!perMinute.allowed) {
-    throw new Error(`Has alcanzado el límite temporal. Intenta nuevamente en ${perMinute.resetIn}s.`)
+  const supabase = getAdminSupabase()
+
+  const startOfDay = new Date()
+  startOfDay.setUTCHours(0, 0, 0, 0)
+
+  const [{ count: dailyCount, error: dailyError }, { count: activeCount, error: activeError }] =
+    await Promise.all([
+      supabase
+        .from("video_jobs")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .gte("created_at", startOfDay.toISOString()),
+      supabase
+        .from("video_jobs")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .in("status", ["queued", "processing"]),
+    ])
+
+  if (dailyError) throw new Error(dailyError.message)
+  if (activeError) throw new Error(activeError.message)
+
+  if ((dailyCount || 0) >= DAILY_VIDEO_LIMIT) {
+    throw new Error(
+      `Has alcanzado el límite diario de ${DAILY_VIDEO_LIMIT} videos.`
+    )
   }
 
-  const perDay = await rateLimit(`${userId}:video:day`, 10, 60 * 60 * 24)
-  if (!perDay.allowed) {
-    throw new Error("Has alcanzado el máximo diario de videos para este plan.")
+  if ((activeCount || 0) >= ACTIVE_VIDEO_LIMIT) {
+    throw new Error(
+      "Ya tienes un video en cola o procesándose. Espera a que termine antes de crear otro."
+    )
   }
 }
 
-export async function getCachedCompletedVideo(userId: string, request: NormalizedVideoRequest): Promise<VideoJobRecord | null> {
-  const redis = getRedis()
-  if (!redis) return null
+export async function getCachedCompletedVideo(
+  userId: string,
+  request: NormalizedVideoRequest
+): Promise<VideoJobRow | null> {
+  const supabase = getAdminSupabase()
+  const requestHash = hashVideoRequest(request)
 
-  const key = buildVideoCacheKey(userId, request)
-  try {
-    return await redis.get<VideoJobRecord>(key)
-  } catch {
-    return null
+  const { data, error } = await supabase
+    .from("video_jobs")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("request_hash", requestHash)
+    .eq("status", "completed")
+    .not("video_url", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return (data as VideoJobRow | null) || null
+}
+
+export async function getNextQueuedVideoJob(): Promise<VideoJobRow | null> {
+  const supabase = getAdminSupabase()
+
+  const { data, error } = await supabase
+    .from("video_jobs")
+    .select("*")
+    .eq("status", "queued")
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) throw new Error(error.message)
+
+  return (data as VideoJobRow | null) || null
+}
+
+export async function markVideoJobProcessing(jobId: string) {
+  const supabase = getAdminSupabase()
+
+  const { data, error } = await supabase
+    .from("video_jobs")
+    .update({
+      status: "processing",
+      attempts: 1,
+      error_message: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", jobId)
+    .select("*")
+    .single()
+
+  if (error) throw new Error(error.message)
+  return data as VideoJobRow
+}
+
+export async function bumpVideoJobAttempt(jobId: string, attempts: number) {
+  const supabase = getAdminSupabase()
+
+  const { error } = await supabase
+    .from("video_jobs")
+    .update({
+      attempts,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", jobId)
+
+  if (error) throw new Error(error.message)
+}
+
+export async function completeVideoJob(params: {
+  jobId: string
+  provider: string
+  providerModel: string
+  videoUrl: string
+  audioUrl?: string | null
+  previewImageUrl?: string | null
+}) {
+  const supabase = getAdminSupabase()
+
+  const { error } = await supabase
+    .from("video_jobs")
+    .update({
+      status: "completed",
+      provider: params.provider,
+      provider_model: params.providerModel,
+      video_url: params.videoUrl,
+      audio_url: params.audioUrl || null,
+      preview_image_url: params.previewImageUrl || null,
+      error_message: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", params.jobId)
+
+  if (error) throw new Error(error.message)
+}
+
+export async function failVideoJob(params: {
+  jobId: string
+  errorMessage: string
+  attempts?: number
+}) {
+  const supabase = getAdminSupabase()
+
+  const { error } = await supabase
+    .from("video_jobs")
+    .update({
+      status: "failed",
+      error_message: params.errorMessage,
+      attempts: params.attempts,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", params.jobId)
+
+  if (error) throw new Error(error.message)
+}
+
+function normalizeProviderResponse(
+  provider: VideoProviderId,
+  raw: any
+): ProviderCallResult {
+  if (!raw || typeof raw !== "object") {
+    return {
+      ok: false,
+      status: "failed",
+      error: "Respuesta vacía o inválida del proveedor.",
+      raw,
+    }
+  }
+
+  const status =
+    raw.status === "queued" ||
+    raw.status === "processing" ||
+    raw.status === "completed" ||
+    raw.status === "failed"
+      ? raw.status
+      : raw.videoUrl || raw.video_url || raw.output_url
+      ? "completed"
+      : "failed"
+
+  const videoUrl =
+    raw.videoUrl || raw.video_url || raw.output_url || raw.url || null
+
+  const audioUrl = raw.audioUrl || raw.audio_url || null
+  const previewImageUrl =
+    raw.previewImageUrl || raw.preview_image_url || raw.thumbnail_url || null
+
+  if (status === "completed" && videoUrl) {
+    return {
+      ok: true,
+      status,
+      videoUrl,
+      audioUrl,
+      previewImageUrl,
+      raw,
+    }
+  }
+
+  if (status === "queued" || status === "processing") {
+    return {
+      ok: true,
+      status,
+      providerJobId: raw.jobId || raw.job_id || raw.id || undefined,
+      raw,
+    }
+  }
+
+  return {
+    ok: false,
+    status: "failed",
+    error: raw.error || raw.message || "El proveedor no devolvió un video válido.",
+    raw,
   }
 }
 
-export async function setCachedCompletedVideo(userId: string, request: NormalizedVideoRequest, job: VideoJobRecord) {
-  const redis = getRedis()
-  if (!redis) return
-
-  const key = buildVideoCacheKey(userId, request)
-  try {
-    await redis.set(key, job, { ex: 60 * 60 * 24 * 3 })
-  } catch {
-    // noop
-  }
-}
-
-export function getPreferredProviders(request: NormalizedVideoRequest): VideoProviderId[] {
-  const configured = parseVideoProviderOrder()
-  return configured.filter((provider) => supportsRequest(provider, request) && Boolean(getProviderEndpoint(provider)))
-}
-
-async function callProvider(provider: VideoProviderId, request: NormalizedVideoRequest, jobId: string): Promise<VideoProviderResult> {
-  const cfg = VIDEO_PROVIDER_CONFIGS[provider]
+async function callVideoProvider(
+  provider: VideoProviderId,
+  request: NormalizedVideoRequest
+): Promise<ProviderCallResult> {
   const endpoint = getProviderEndpoint(provider)
   if (!endpoint) {
     return {
       ok: false,
-      provider,
-      model: cfg.model,
-      error: `No endpoint configured for ${provider}`,
+      status: "failed",
+      error: `No existe endpoint configurado para ${provider}.`,
     }
   }
 
   const apiKey = getProviderApiKey(provider)
+
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    "X-Video-Job": jobId,
   }
-  if (apiKey) headers.Authorization = `Bearer ${apiKey}`
+
+  if (apiKey) {
+    headers.Authorization = `Bearer ${apiKey}`
+  }
 
   const payload = {
-    prompt: buildPromptWithStyle(request),
+    prompt: request.prompt,
     mode: request.mode,
-    image_url: request.imageUrl,
-    image_base64: request.imageBase64,
-    duration_seconds: request.durationSeconds,
-    extend_to_seconds: request.extendToSeconds,
+    imageUrl: request.imageUrl,
+    imageBase64: request.imageBase64,
+    durationSeconds: request.durationSeconds,
+    extendToSeconds: request.extendToSeconds,
+    aspectRatio: request.aspectRatio,
     fps: request.fps,
-    aspect_ratio: request.aspectRatio,
+    style: request.style,
     audio: request.audio,
-    output_format: "mp4",
   }
 
   const res = await fetch(endpoint, {
@@ -136,59 +364,87 @@ async function callProvider(provider: VideoProviderId, request: NormalizedVideoR
     body: JSON.stringify(payload),
   })
 
-  const text = await res.text()
-  let data: any = null
+  let raw: any = null
   try {
-    data = text ? JSON.parse(text) : null
+    raw = await res.json()
   } catch {
-    data = { raw: text }
+    raw = null
   }
 
   if (!res.ok) {
     return {
       ok: false,
-      provider,
-      model: cfg.model,
-      raw: data,
-      error: data?.error || `HTTP ${res.status}`,
+      status: "failed",
+      error:
+        raw?.error ||
+        raw?.message ||
+        `Proveedor ${provider} respondió ${res.status}.`,
+      raw,
     }
   }
 
-  return {
-    ok: Boolean(data?.video_url),
-    provider,
-    model: data?.model || cfg.model,
-    videoUrl: data?.video_url,
-    audioUrl: data?.audio_url,
-    previewImageUrl: data?.preview_image_url,
-    raw: data,
-    error: data?.video_url ? undefined : "El proveedor respondió sin video_url",
-  }
+  return normalizeProviderResponse(provider, raw)
 }
 
-export async function executeVideoJob(request: NormalizedVideoRequest, jobId: string): Promise<VideoProviderResult> {
-  const providers = getPreferredProviders(request)
-  if (!providers.length) {
+export async function processVideoJob(
+  job: VideoJobRow
+): Promise<VideoProviderResult> {
+  const request = normalizeVideoRequest(job.request_payload as any)
+
+  if (!request.prompt) {
     return {
       ok: false,
       provider: "ltx",
-      model: VIDEO_PROVIDER_CONFIGS.ltx.model,
-      error: "No hay endpoints de video configurados. Define LTX_VIDEO_ENDPOINT o COGVIDEOX_ENDPOINT o HUNYUAN_I2V_ENDPOINT.",
+      model: "unknown",
+      error: "El job no tiene prompt válido.",
     }
   }
 
-  let lastError: VideoProviderResult | null = null
+  const providers = parseVideoProviderOrder()
+
+  let lastError = "No fue posible generar el video con ningún proveedor."
 
   for (const provider of providers) {
-    const result = await callProvider(provider, request, jobId)
-    if (result.ok) return result
-    lastError = result
+    if (!supportsRequest(provider, request)) continue
+
+    const endpoint = getProviderEndpoint(provider)
+    if (!endpoint) continue
+
+    const attempts = Math.min((job.attempts || 0) + 1, MAX_ATTEMPTS_PER_JOB)
+    await bumpVideoJobAttempt(job.id, attempts)
+
+    const result = await callVideoProvider(provider, request)
+
+    if (result.ok && result.status === "completed" && result.videoUrl) {
+      return {
+        ok: true,
+        provider,
+        model: endpoint,
+        videoUrl: result.videoUrl,
+        audioUrl: result.audioUrl,
+        previewImageUrl: result.previewImageUrl,
+        raw: result.raw,
+      }
+    }
+
+    if (result.ok && (result.status === "queued" || result.status === "processing")) {
+      return {
+        ok: false,
+        provider,
+        model: endpoint,
+        raw: result.raw,
+        error:
+          "El proveedor dejó el trabajo en estado asíncrono. Debes implementar polling externo para ese endpoint.",
+      }
+    }
+
+    lastError = result.error || lastError
   }
 
-  return lastError || {
+  return {
     ok: false,
-    provider: providers[0],
-    model: VIDEO_PROVIDER_CONFIGS[providers[0]].model,
-    error: "Todos los proveedores fallaron.",
+    provider: "ltx",
+    model: "none",
+    error: lastError,
   }
 }
