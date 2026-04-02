@@ -1,3 +1,4 @@
+import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import {
   normalizeVideoRequest,
@@ -27,11 +28,11 @@ export async function POST(req: Request) {
     } = await supabase.auth.getUser()
 
     if (authError || !user) {
-      return Response.json<CreateVideoApiResponse>(
+      return NextResponse.json(
         {
           ok: false,
           error: "Unauthorized",
-        },
+        } satisfies CreateVideoApiResponse,
         { status: 401 }
       )
     }
@@ -40,31 +41,39 @@ export async function POST(req: Request) {
     const request = normalizeVideoRequest(body)
 
     if (!request.prompt) {
-      return Response.json<CreateVideoApiResponse>(
+      return NextResponse.json(
         {
           ok: false,
           error: "Debes ingresar un prompt para generar el video.",
-        },
+        } satisfies CreateVideoApiResponse,
         { status: 400 }
       )
     }
 
-    if (request.mode === "image_to_video" && !request.imageUrl && !request.imageBase64) {
-      return Response.json<CreateVideoApiResponse>(
+    if (
+      request.mode === "image_to_video" &&
+      !request.imageUrl &&
+      !request.imageBase64
+    ) {
+      return NextResponse.json(
         {
           ok: false,
           error: "Para Imagen → Video debes subir o enviar una imagen base.",
-        },
+        } satisfies CreateVideoApiResponse,
         { status: 400 }
       )
     }
 
-    if (request.audio.enabled && !request.audio.ttsText && !request.audio.audioUrl) {
-      return Response.json<CreateVideoApiResponse>(
+    if (
+      request.audio.enabled &&
+      !request.audio.ttsText &&
+      !request.audio.audioUrl
+    ) {
+      return NextResponse.json(
         {
           ok: false,
           error: "Activaste audio, pero falta el texto o archivo base para el audio.",
-        },
+        } satisfies CreateVideoApiResponse,
         { status: 400 }
       )
     }
@@ -73,13 +82,15 @@ export async function POST(req: Request) {
 
     const cached = await getCachedCompletedVideo(user.id, request)
     if (cached?.status === "completed" && cached.video_url) {
-      return Response.json<CreateVideoApiResponse>({
-        ok: true,
-        jobId: cached.id,
-        cached: true,
-        status: "completed",
-        message: "Se reutilizó un video ya generado para esta misma solicitud.",
-      })
+      return NextResponse.json(
+        {
+          ok: true,
+          jobId: cached.id,
+          cached: true,
+          status: "completed",
+          message: "Se reutilizó un video ya generado para esta misma solicitud.",
+        } satisfies CreateVideoApiResponse
+      )
     }
 
     const requestHash = hashVideoRequest(request)
@@ -95,26 +106,28 @@ export async function POST(req: Request) {
       .maybeSingle()
 
     if (sameRequestError) {
-      return Response.json<CreateVideoApiResponse>(
+      return NextResponse.json(
         {
           ok: false,
           error: sameRequestError.message,
-        },
+        } satisfies CreateVideoApiResponse,
         { status: 500 }
       )
     }
 
     if (sameRequestJob) {
-      return Response.json<CreateVideoApiResponse>({
-        ok: true,
-        jobId: sameRequestJob.id,
-        cached: sameRequestJob.status === "completed",
-        status: sameRequestJob.status,
-        message:
-          sameRequestJob.status === "completed"
-            ? "Ya existía un video generado para esta solicitud."
-            : "La solicitud ya estaba en cola o procesándose.",
-      })
+      return NextResponse.json(
+        {
+          ok: true,
+          jobId: sameRequestJob.id,
+          cached: sameRequestJob.status === "completed",
+          status: sameRequestJob.status,
+          message:
+            sameRequestJob.status === "completed"
+              ? "Ya existía un video generado para esta solicitud."
+              : "La solicitud ya estaba en cola o procesándose.",
+        } satisfies CreateVideoApiResponse
+      )
     }
 
     const { data: activeJob, error: activeJobError } = await supabase
@@ -127,24 +140,24 @@ export async function POST(req: Request) {
       .maybeSingle()
 
     if (activeJobError) {
-      return Response.json<CreateVideoApiResponse>(
+      return NextResponse.json(
         {
           ok: false,
           error: activeJobError.message,
-        },
+        } satisfies CreateVideoApiResponse,
         { status: 500 }
       )
     }
 
     if (activeJob) {
-      return Response.json<CreateVideoApiResponse>(
+      return NextResponse.json(
         {
           ok: false,
           jobId: activeJob.id,
           status: activeJob.status,
           error:
             "Ya tienes un video en cola o procesándose. Espera a que termine antes de crear otro.",
-        },
+        } satisfies CreateVideoApiResponse,
         { status: 429 }
       )
     }
@@ -170,28 +183,30 @@ export async function POST(req: Request) {
       .single()
 
     if (insertError || !insertedJob) {
-      return Response.json<CreateVideoApiResponse>(
+      return NextResponse.json(
         {
           ok: false,
           error: insertError?.message || "No se pudo crear el job de video.",
-        },
+        } satisfies CreateVideoApiResponse,
         { status: 500 }
       )
     }
 
-    return Response.json<CreateVideoApiResponse>({
-      ok: true,
-      jobId: insertedJob.id,
-      cached: false,
-      status: insertedJob.status,
-      message: "Video enviado a la cola correctamente.",
-    })
+    return NextResponse.json(
+      {
+        ok: true,
+        jobId: insertedJob.id,
+        cached: false,
+        status: insertedJob.status,
+        message: "Video enviado a la cola correctamente.",
+      } satisfies CreateVideoApiResponse
+    )
   } catch (error: any) {
-    return Response.json<CreateVideoApiResponse>(
+    return NextResponse.json(
       {
         ok: false,
         error: error?.message || "Unexpected error",
-      },
+      } satisfies CreateVideoApiResponse,
       { status: 500 }
     )
   }
