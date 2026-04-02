@@ -35,7 +35,6 @@ export type GenerateVideoResult = {
  */
 
 const SEXUAL_BLOCKLIST = [
-  // desnudez general
   "desnudo",
   "desnuda",
   "desnudos",
@@ -48,7 +47,6 @@ const SEXUAL_BLOCKLIST = [
   "completamente desnudo",
   "completamente desnuda",
 
-  // anatomía explícita
   "pechos",
   "senos",
   "tetas",
@@ -67,7 +65,6 @@ const SEXUAL_BLOCKLIST = [
   "bulto sexual",
   "entrepierna",
 
-  // actos sexuales
   "sexo",
   "acto sexual",
   "penetracion",
@@ -92,7 +89,6 @@ const SEXUAL_BLOCKLIST = [
   "sentada encima",
   "cabalgando",
 
-  // erotización / pornografía
   "sensual",
   "erotico",
   "erótico",
@@ -120,7 +116,6 @@ const SEXUAL_BLOCKLIST = [
   "sumision",
   "sumisión",
 
-  // cosificación / cuerpos
   "mujer voluptuosa",
   "mujer sexy",
   "mujer erotica",
@@ -133,7 +128,6 @@ const SEXUAL_BLOCKLIST = [
   "cuerpo erotico",
   "cuerpo erótico",
 
-  // menores / ilegal
   "adolescente sexy",
   "niña sexy",
   "niño sexy",
@@ -254,10 +248,6 @@ async function callHFSpace(input: GenerateVideoInput): Promise<GenerateVideoResu
   }
 }
 
-/**
- * Placeholders para siguientes providers.
- * Quedan listos para conectar sin romper la arquitectura.
- */
 async function callReplicate(_: GenerateVideoInput): Promise<GenerateVideoResult> {
   return {
     ok: false,
@@ -343,6 +333,12 @@ export async function generateVideoWithFallback(
   }
 }
 
+/**
+ * ============================================
+ * HASH / CACHE
+ * ============================================
+ */
+
 export function buildVideoJobHash(input: GenerateVideoInput): string {
   const base = JSON.stringify({
     prompt: sanitizePrompt(input.prompt),
@@ -354,4 +350,41 @@ export function buildVideoJobHash(input: GenerateVideoInput): string {
   })
 
   return crypto.createHash("sha256").update(base).digest("hex")
+}
+
+/**
+ * ============================================
+ * PROCESS JOB (COMPAT CON TU COLA)
+ * ============================================
+ */
+
+export async function processVideoJob(input: GenerateVideoInput): Promise<{
+  ok: boolean
+  status: "completed" | "failed" | "blocked"
+  provider?: VideoProvider
+  videoUrl?: string
+  error?: string
+  moderationReason?: string
+  raw?: any
+}> {
+  const result = await generateVideoWithFallback(input)
+
+  if (!result.ok) {
+    return {
+      ok: false,
+      status: result.blocked ? "blocked" : "failed",
+      provider: result.provider,
+      error: result.error,
+      moderationReason: result.moderationReason,
+      raw: result.raw,
+    }
+  }
+
+  return {
+    ok: true,
+    status: "completed",
+    provider: result.provider,
+    videoUrl: result.videoUrl,
+    raw: result.raw,
+  }
 }
