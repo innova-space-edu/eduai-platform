@@ -1,3 +1,4 @@
+import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 
 type VideoStatusApiResponse = {
@@ -32,11 +33,11 @@ export async function GET(
     } = await supabase.auth.getUser()
 
     if (authError || !user) {
-      return Response.json<VideoStatusApiResponse>(
+      return NextResponse.json(
         {
           ok: false,
           error: "Unauthorized",
-        },
+        } satisfies VideoStatusApiResponse,
         { status: 401 }
       )
     }
@@ -49,21 +50,21 @@ export async function GET(
       .maybeSingle()
 
     if (error) {
-      return Response.json<VideoStatusApiResponse>(
+      return NextResponse.json(
         {
           ok: false,
           error: error.message,
-        },
+        } satisfies VideoStatusApiResponse,
         { status: 500 }
       )
     }
 
     if (!job) {
-      return Response.json<VideoStatusApiResponse>(
+      return NextResponse.json(
         {
           ok: false,
           error: "Job no encontrado.",
-        },
+        } satisfies VideoStatusApiResponse,
         { status: 404 }
       )
     }
@@ -76,31 +77,33 @@ export async function GET(
       audio?: { enabled?: boolean }
     }
 
-    const uiMode =
+    const uiMode: "text-to-video" | "image-to-video" =
       payload.mode === "image_to_video" ? "image-to-video" : "text-to-video"
 
-    return Response.json<VideoStatusApiResponse>({
-      ok: true,
-      job: {
-        id: job.id,
-        status: job.status,
-        prompt: payload.prompt || "",
-        mode: uiMode,
-        duration_seconds: Number(payload.durationSeconds || 6),
-        include_audio: Boolean(payload.audio?.enabled),
-        image_url: payload.imageUrl || null,
-        output_url: job.video_url || null,
-        error_message: job.error_message || null,
-        created_at: job.created_at,
-        updated_at: job.updated_at,
-      },
-    })
+    return NextResponse.json(
+      {
+        ok: true,
+        job: {
+          id: job.id,
+          status: job.status,
+          prompt: payload.prompt || "",
+          mode: uiMode,
+          duration_seconds: Number(payload.durationSeconds || 6),
+          include_audio: Boolean(payload.audio?.enabled),
+          image_url: payload.imageUrl || null,
+          output_url: job.video_url || null,
+          error_message: job.error_message || null,
+          created_at: job.created_at,
+          updated_at: job.updated_at,
+        },
+      } satisfies VideoStatusApiResponse
+    )
   } catch (error: any) {
-    return Response.json<VideoStatusApiResponse>(
+    return NextResponse.json(
       {
         ok: false,
         error: error?.message || "Unexpected error",
-      },
+      } satisfies VideoStatusApiResponse,
       { status: 500 }
     )
   }
