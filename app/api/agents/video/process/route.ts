@@ -54,7 +54,6 @@ export async function POST(req: Request) {
     if (!result.ok || !result.videoUrl) {
       await failVideoJob({
         jobId: processingJob.id,
-        attempts: (processingJob.attempts || 0) + 1,
         errorMessage:
           result.error ||
           "No fue posible generar el video con los proveedores configurados.",
@@ -76,6 +75,7 @@ export async function POST(req: Request) {
       jobId: processingJob.id,
       provider: result.provider,
       providerModel: result.model,
+      queueRequestId: result.queueRequestId || null,
       videoUrl: result.videoUrl,
       audioUrl: result.audioUrl || null,
       previewImageUrl: result.previewImageUrl || null,
