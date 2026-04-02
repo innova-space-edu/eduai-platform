@@ -48,9 +48,9 @@ type RecentJob = {
 }
 
 const PROMPT_EXAMPLES = [
-  "Un profesor robot explicando matemáticas en una sala futurista, movimiento suave de cámara, estilo cinematográfico.",
-  "Un estudiante observando el sistema solar holográfico en una sala espacial, luz azul y morada.",
-  "Una molécula girando en un laboratorio futurista con pantallas científicas alrededor.",
+  "Un profesor robot explicando matemáticas en una sala futurista, movimiento suave de cámara, estilo educativo cinematográfico.",
+  "Un estudiante observando el sistema solar holográfico en una sala espacial, iluminación azul y morada, estilo moderno.",
+  "Una molécula girando en un laboratorio futurista con pantallas científicas alrededor y cámara lenta.",
 ]
 
 export default function VideoStudioClient() {
@@ -59,7 +59,7 @@ export default function VideoStudioClient() {
   const [duration, setDuration] = useState<VideoDuration>(6)
   const [includeAudio, setIncludeAudio] = useState(false)
   const [audioPrompt, setAudioPrompt] = useState("")
-  const [style, setStyle] = useState("cinematic educational")
+  const [style, setStyle] = useState("educational cinematic")
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -74,14 +74,14 @@ export default function VideoStudioClient() {
 
   const [recentJobs, setRecentJobs] = useState<RecentJob[]>([])
 
-  const pollingRef = useRef<NodeJS.Timeout | null>(null)
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const canSubmit = useMemo(() => {
     if (!prompt.trim()) return false
-    if (mode === "image-to-video" && !uploadedImageUrl) return false
+    if (mode === "image-to-video" && !uploadedImageUrl && !selectedFile) return false
     if (includeAudio && !audioPrompt.trim()) return false
     return true
-  }, [prompt, mode, uploadedImageUrl, includeAudio, audioPrompt])
+  }, [prompt, mode, uploadedImageUrl, selectedFile, includeAudio, audioPrompt])
 
   useEffect(() => {
     return () => {
@@ -130,16 +130,17 @@ export default function VideoStudioClient() {
             created_at: job.created_at,
           }
 
-          if (idx >= 0) {
-            next[idx] = item
-          } else {
-            next.unshift(item)
-          }
+          if (idx >= 0) next[idx] = item
+          else next.unshift(item)
 
           return next.slice(0, 8)
         })
 
-        if (job.status === "completed" || job.status === "failed" || job.status === "canceled") {
+        if (
+          job.status === "completed" ||
+          job.status === "failed" ||
+          job.status === "canceled"
+        ) {
           stopPolling()
         }
       } catch (error) {
@@ -149,7 +150,6 @@ export default function VideoStudioClient() {
     }
 
     await fetchStatus()
-
     pollingRef.current = setInterval(fetchStatus, 4000)
   }
 
@@ -162,10 +162,12 @@ export default function VideoStudioClient() {
     setSelectedFile(file)
     setUploadedImageUrl(null)
 
-    if (!file) {
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview)
       setImagePreview(null)
-      return
     }
+
+    if (!file) return
 
     const objectUrl = URL.createObjectURL(file)
     setImagePreview(objectUrl)
@@ -182,14 +184,6 @@ export default function VideoStudioClient() {
       const formData = new FormData()
       formData.append("file", selectedFile)
 
-      /**
-       * Aquí tienes 2 opciones:
-       * 1) Crear una ruta propia /api/uploads/video-image
-       * 2) Subir directo a Supabase Storage desde cliente
-       *
-       * Por ahora asumo que crearás la ruta:
-       * POST /api/uploads/video-image
-       */
       const res = await fetch("/api/uploads/video-image", {
         method: "POST",
         body: formData,
@@ -260,15 +254,17 @@ export default function VideoStudioClient() {
       setCurrentJobId(data.jobId)
       setCurrentStatus(data.status || "queued")
 
-      setRecentJobs((prev) => [
-        {
-          id: data.jobId!,
-          prompt: prompt.trim(),
-          status: data.status || "queued",
-          output_url: null,
-        },
-        ...prev,
-      ].slice(0, 8))
+      setRecentJobs((prev) =>
+        [
+          {
+            id: data.jobId!,
+            prompt: prompt.trim(),
+            status: data.status || "queued",
+            output_url: null,
+          },
+          ...prev,
+        ].slice(0, 8)
+      )
 
       await startPolling(data.jobId)
     } catch (error) {
@@ -284,11 +280,15 @@ export default function VideoStudioClient() {
     setDuration(6)
     setIncludeAudio(false)
     setAudioPrompt("")
-    setStyle("cinematic educational")
+    setStyle("educational cinematic")
     setSelectedFile(null)
-    setImagePreview(null)
     setUploadedImageUrl(null)
     setCurrentError(null)
+
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview)
+      setImagePreview(null)
+    }
   }
 
   function getStatusColor(status: VideoJobStatus | null) {
@@ -458,7 +458,8 @@ export default function VideoStudioClient() {
               </button>
 
               <p className="mt-3 text-xs text-slate-400">
-                Puedes agregar una voz, ambiente o breve descripción hablada.
+                Por ahora puedes dejarlo desactivado mientras validamos el flujo
+                principal del video.
               </p>
             </div>
           </div>
@@ -472,7 +473,7 @@ export default function VideoStudioClient() {
                 value={audioPrompt}
                 onChange={(e) => setAudioPrompt(e.target.value)}
                 rows={3}
-                placeholder="Ej: Explicación breve del experimento, voz narrando el contenido o ambiente espacial suave."
+                placeholder="Ej: una narración breve o ambiente educativo."
                 className="w-full rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-400 focus:border-cyan-400/50"
               />
             </div>
@@ -518,7 +519,7 @@ export default function VideoStudioClient() {
               <span className="text-xs uppercase tracking-wide text-slate-400">
                 Job ID
               </span>
-              <div className="mt-1 rounded-xl bg-slate-900/70 px-3 py-2 text-xs text-slate-200 break-all">
+              <div className="mt-1 break-all rounded-xl bg-slate-900/70 px-3 py-2 text-xs text-slate-200">
                 {currentJobId || "Sin generación activa"}
               </div>
             </div>
