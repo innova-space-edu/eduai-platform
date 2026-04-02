@@ -2,7 +2,7 @@ import VideoStudioClient from "@/components/video/VideoStudioClient"
 
 export const metadata = {
   title: "Video Studio | EduAI",
-  description: "Generación de videos desde texto o imagen",
+  description: "Generación de videos con IA desde texto o imagen",
 }
 
 export default function VideoStudioPage() {
@@ -19,9 +19,9 @@ export default function VideoStudioPage() {
           </h1>
 
           <p className="mt-3 max-w-3xl text-sm text-slate-300 md:text-base">
-            Crea clips cortos de hasta 6 segundos, con opción de extensión hasta
-            10 segundos. Puedes usar un prompt, subir una imagen base y agregar
-            audio o voz para acompañar el video.
+            Crea clips cortos de 6 segundos con opción de extensión hasta 10
+            segundos. Puedes usar un prompt, subir una imagen base y luego
+            procesar el job en tu cola de video.
           </p>
         </div>
 
