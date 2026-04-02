@@ -1,6 +1,19 @@
 export type VideoProviderId = "ltx" | "cogvideox" | "hunyuan_i2v"
-export type VideoMode = "text_to_video" | "image_to_video"
-export type VideoJobStatus = "queued" | "processing" | "completed" | "failed"
+
+export type VideoModeInput =
+  | "text-to-video"
+  | "image-to-video"
+  | "text_to_video"
+  | "image_to_video"
+
+export type NormalizedVideoMode = "text_to_video" | "image_to_video"
+
+export type VideoJobStatus =
+  | "queued"
+  | "processing"
+  | "completed"
+  | "failed"
+  | "canceled"
 
 export interface VideoAudioOptions {
   enabled: boolean
@@ -10,8 +23,8 @@ export interface VideoAudioOptions {
 
 export interface VideoRequestInput {
   prompt: string
-  mode: VideoMode
-  imageUrl?: string
+  mode: VideoModeInput
+  imageUrl?: string | null
   imageBase64?: string
   durationSeconds?: number
   extendToSeconds?: number
@@ -19,12 +32,13 @@ export interface VideoRequestInput {
   fps?: number
   style?: string
   includeAudio?: boolean
+  audioPrompt?: string
   audio?: VideoAudioOptions
 }
 
 export interface NormalizedVideoRequest {
   prompt: string
-  mode: VideoMode
+  mode: NormalizedVideoMode
   imageUrl?: string
   imageBase64?: string
   durationSeconds: number
@@ -57,9 +71,16 @@ export interface VideoProviderResult {
   error?: string
 }
 
-export const DEFAULT_VIDEO_PROVIDER_ORDER: VideoProviderId[] = ["ltx", "cogvideox", "hunyuan_i2v"]
+export const DEFAULT_VIDEO_PROVIDER_ORDER: VideoProviderId[] = [
+  "ltx",
+  "cogvideox",
+  "hunyuan_i2v",
+]
 
-export const VIDEO_PROVIDER_CONFIGS: Record<VideoProviderId, VideoProviderConfig> = {
+export const VIDEO_PROVIDER_CONFIGS: Record<
+  VideoProviderId,
+  VideoProviderConfig
+> = {
   ltx: {
     id: "ltx",
     label: "LTX",
@@ -83,7 +104,8 @@ export const VIDEO_PROVIDER_CONFIGS: Record<VideoProviderId, VideoProviderConfig
   hunyuan_i2v: {
     id: "hunyuan_i2v",
     label: "HunyuanVideo-I2V",
-    model: process.env.HUNYUAN_I2V_MODEL || "Tencent-Hunyuan/HunyuanVideo-I2V",
+    model:
+      process.env.HUNYUAN_I2V_MODEL || "Tencent-Hunyuan/HunyuanVideo-I2V",
     endpointEnv: "HUNYUAN_I2V_ENDPOINT",
     keyEnv: "HUNYUAN_I2V_API_KEY",
     supportsImageToVideo: true,
@@ -92,31 +114,64 @@ export const VIDEO_PROVIDER_CONFIGS: Record<VideoProviderId, VideoProviderConfig
   },
 }
 
-export function clampInt(value: unknown, min: number, max: number, fallback: number): number {
+export function clampInt(
+  value: unknown,
+  min: number,
+  max: number,
+  fallback: number
+): number {
   const n = Number(value)
   if (!Number.isFinite(n)) return fallback
   return Math.max(min, Math.min(max, Math.round(n)))
 }
 
-export function normalizeVideoRequest(input: VideoRequestInput): NormalizedVideoRequest {
+export function normalizeVideoMode(
+  mode: VideoModeInput | undefined
+): NormalizedVideoMode {
+  if (mode === "image-to-video" || mode === "image_to_video") {
+    return "image_to_video"
+  }
+  return "text_to_video"
+}
+
+export function normalizeVideoRequest(
+  input: VideoRequestInput
+): NormalizedVideoRequest {
+  const mode = normalizeVideoMode(input.mode)
   const durationSeconds = clampInt(input.durationSeconds, 1, 6, 6)
-  const requestedExtension = clampInt(input.extendToSeconds ?? 0, 0, 10, 0)
-  const extendToSeconds = requestedExtension > durationSeconds ? requestedExtension : undefined
+
+  const requestedExtension = clampInt(
+    input.extendToSeconds ?? input.durationSeconds ?? 0,
+    0,
+    10,
+    0
+  )
+
+  const extendToSeconds =
+    requestedExtension > durationSeconds ? requestedExtension : undefined
+
   const fps = clampInt(input.fps, 6, 12, 8)
+
+  const includeAudio = Boolean(input.includeAudio || input.audio?.enabled)
+  const normalizedAudioText =
+    input.audioPrompt?.trim() || input.audio?.ttsText?.trim() || undefined
 
   return {
     prompt: String(input.prompt || "").trim(),
-    mode: input.mode === "image_to_video" ? "image_to_video" : "text_to_video",
+    mode,
     imageUrl: input.imageUrl?.trim() || undefined,
     imageBase64: input.imageBase64?.trim() || undefined,
     durationSeconds,
     extendToSeconds,
-    aspectRatio: input.aspectRatio === "9:16" || input.aspectRatio === "1:1" ? input.aspectRatio : "16:9",
+    aspectRatio:
+      input.aspectRatio === "9:16" || input.aspectRatio === "1:1"
+        ? input.aspectRatio
+        : "16:9",
     fps,
     style: input.style?.trim() || "educational cinematic",
     audio: {
-      enabled: Boolean(input.includeAudio || input.audio?.enabled),
-      ttsText: input.audio?.ttsText?.trim() || undefined,
+      enabled: includeAudio,
+      ttsText: includeAudio ? normalizedAudioText : undefined,
       audioUrl: input.audio?.audioUrl?.trim() || undefined,
     },
   }
@@ -130,7 +185,10 @@ export function parseVideoProviderOrder(): VideoProviderId[] {
   const deduped: VideoProviderId[] = []
 
   for (const part of raw.split(",").map((v) => v.trim().toLowerCase())) {
-    if (valid.has(part as VideoProviderId) && !deduped.includes(part as VideoProviderId)) {
+    if (
+      valid.has(part as VideoProviderId) &&
+      !deduped.includes(part as VideoProviderId)
+    ) {
       deduped.push(part as VideoProviderId)
     }
   }
@@ -152,9 +210,16 @@ export function getProviderApiKey(provider: VideoProviderId): string | null {
   return key?.trim() || null
 }
 
-export function supportsRequest(provider: VideoProviderId, request: NormalizedVideoRequest): boolean {
+export function supportsRequest(
+  provider: VideoProviderId,
+  request: NormalizedVideoRequest
+): boolean {
   const cfg = VIDEO_PROVIDER_CONFIGS[provider]
-  if (request.mode === "image_to_video" && !cfg.supportsImageToVideo) return false
-  if (request.audio.enabled && !cfg.supportsAudio) return false
+  if (request.mode === "image_to_video" && !cfg.supportsImageToVideo) {
+    return false
+  }
+  if (request.audio.enabled && !cfg.supportsAudio) {
+    return false
+  }
   return true
 }
