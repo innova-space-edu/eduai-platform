@@ -17,7 +17,11 @@ type Props = {
   timeLeft?: number
   enabled?: boolean
 
+  /**
+   * Debe activarse cuando el examen ya fue entregado correctamente.
+   */
   isSubmitted?: boolean
+
   onForceSubmit?: (reason: string) => Promise<void> | void
   onSecurityTerminate?: (reason: string) => void
   onSessionReady?: (payload: { sessionId: string }) => void
@@ -58,13 +62,17 @@ export default function ExamSecurityExamBridge({
     },
   })
 
+  // Cierre normal por entrega del examen
   useEffect(() => {
     if (!enabled) return
     if (!isSubmitted) return
 
-    void closeSecurityAsFinished("Entrega normal del examen por parte del estudiante.")
+    void closeSecurityAsFinished(
+      "Entrega normal del examen por parte del estudiante."
+    )
   }, [enabled, isSubmitted, closeSecurityAsFinished])
 
+  // Cierre por tiempo agotado
   useEffect(() => {
     if (!enabled) return
     if (typeof timeLeft !== "number") return
@@ -74,6 +82,7 @@ export default function ExamSecurityExamBridge({
     void closeSecurityAsFinished("Tiempo agotado del examen.")
   }, [enabled, timeLeft, isSubmitted, closeSecurityAsFinished])
 
+  // Cierre por terminación de seguridad
   useEffect(() => {
     if (!enabled) return
     if (!wasSecurityTerminated) return
@@ -84,7 +93,11 @@ export default function ExamSecurityExamBridge({
   }, [enabled, wasSecurityTerminated, closeSecurityAsTerminated])
 
   const handleSessionReady = useCallback(
-    (payload: { sessionId: string; policy: SecurityPolicy; session: SecuritySessionRecord | null }) => {
+    (payload: {
+      sessionId: string
+      policy: SecurityPolicy
+      session: SecuritySessionRecord | null
+    }) => {
       _handleSessionReady(payload)
       onSessionReady?.({ sessionId: payload.sessionId })
     },
