@@ -12,6 +12,12 @@ import type {
   SecuritySessionRecord,
 } from "@/lib/exam-security/types"
 
+type SecurityActionPayload = {
+  type?: SecurityActionType
+  message?: string
+  durationSeconds?: number
+}
+
 type Props = {
   examId: string
   submissionId?: string | null
@@ -21,6 +27,22 @@ type Props = {
   getCurrentQuestionIndex?: () => number | null
   getCurrentTimeLeft?: () => number | null
   enabled?: boolean
+
+  onSessionReady?: (payload: {
+    sessionId: string
+    policy: SecurityPolicy
+    session: SecuritySessionRecord | null
+  }) => void
+
+  onActionApplied?: (payload: {
+    sessionId: string | null
+    action: SecurityActionPayload
+  }) => void
+
+  onTerminated?: (payload: {
+    sessionId: string | null
+    action: SecurityActionPayload
+  }) => void
 }
 
 type OverlayState = {
@@ -49,17 +71,7 @@ const DEFAULT_POLICY: SecurityPolicy = {
   strictMode: false,
 }
 
-const BLOCKED_SHORTCUTS = new Set([
-  "c",
-  "v",
-  "x",
-  "a",
-  "p",
-  "s",
-  "u",
-  "r",
-])
-
+const BLOCKED_SHORTCUTS = new Set(["c", "v", "x", "a", "p", "s", "u", "r"])
 const BLOCKED_FUNCTION_KEYS = new Set(["F12", "F11", "F5"])
 
 export default function ExamSecurityClient({
@@ -71,6 +83,9 @@ export default function ExamSecurityClient({
   getCurrentQuestionIndex,
   getCurrentTimeLeft,
   enabled = true,
+  onSessionReady,
+  onActionApplied,
+  onTerminated,
 }: Props) {
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [policy, setPolicy] = useState<SecurityPolicy>(DEFAULT_POLICY)
@@ -202,12 +217,13 @@ export default function ExamSecurityClient({
   )
 
   const applyAction = useCallback(
-    (action?: {
-      type?: SecurityActionType
-      message?: string
-      durationSeconds?: number
-    }) => {
+    (action?: SecurityActionPayload) => {
       if (!action?.type || action.type === "none") return
+
+      onActionApplied?.({
+        sessionId,
+        action,
+      })
 
       if (action.type === "warn") {
         setOverlay({
@@ -277,9 +293,14 @@ export default function ExamSecurityClient({
             action.message ||
             "Tu intento fue finalizado por política de seguridad.",
         })
+
+        onTerminated?.({
+          sessionId,
+          action,
+        })
       }
     },
-    [startFreezeCountdown]
+    [onActionApplied, onTerminated, sessionId, startFreezeCountdown]
   )
 
   const sendSecurityEvent = useCallback(
@@ -337,6 +358,7 @@ export default function ExamSecurityClient({
 
   const sendHeartbeat = useCallback(async () => {
     if (!sessionId || !enabled) return
+    if (overlay.actionType === "terminate_attempt") return
 
     try {
       await fetch("/api/exam-security/session/heartbeat", {
@@ -354,7 +376,14 @@ export default function ExamSecurityClient({
     } catch (error) {
       console.warn("[ExamSecurityClient] Heartbeat falló", error)
     }
-  }, [sessionId, enabled, examId, submissionId, getClientMetadata])
+  }, [
+    sessionId,
+    enabled,
+    overlay.actionType,
+    examId,
+    submissionId,
+    getClientMetadata,
+  ])
 
   useEffect(() => {
     if (!enabled || !examId || mountedRef.current) return
@@ -388,6 +417,12 @@ export default function ExamSecurityClient({
         setPolicy(json.policy ?? DEFAULT_POLICY)
         setSession(json.session ?? null)
 
+        onSessionReady?.({
+          sessionId: json.sessionId,
+          policy: json.policy ?? DEFAULT_POLICY,
+          session: json.session ?? null,
+        })
+
         if (json.policy?.requireFullscreen) {
           setTimeout(() => {
             enterFullscreen()
@@ -406,6 +441,7 @@ export default function ExamSecurityClient({
     studentRut,
     getClientMetadata,
     enterFullscreen,
+    onSessionReady,
   ])
 
   useEffect(() => {
@@ -623,7 +659,6 @@ export default function ExamSecurityClient({
         countdown={overlay.countdown}
       />
 
-      {/* marcador útil para debug */}
       <div
         data-exam-security="active"
         data-session-id={sessionId ?? ""}
