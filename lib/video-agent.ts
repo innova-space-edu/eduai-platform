@@ -46,7 +46,6 @@ const SEXUAL_BLOCKLIST = [
   "en pelotas",
   "completamente desnudo",
   "completamente desnuda",
-
   "pechos",
   "senos",
   "tetas",
@@ -55,16 +54,11 @@ const SEXUAL_BLOCKLIST = [
   "nalgas",
   "trasero",
   "culo",
-  "caderas sensuales",
   "vagina",
   "vulva",
   "pene",
   "miembro",
   "genitales",
-  "paquete",
-  "bulto sexual",
-  "entrepierna",
-
   "sexo",
   "acto sexual",
   "penetracion",
@@ -73,22 +67,11 @@ const SEXUAL_BLOCKLIST = [
   "oral",
   "sexo oral",
   "sexo anal",
-  "eyacul",
-  "climax",
   "orgasmo",
-  "correrse",
-  "venirse",
   "tocandose",
   "tocándose",
   "acariciandose",
   "acariciándose",
-  "beso apasionado",
-  "lamer",
-  "chupar",
-  "frotar",
-  "sentada encima",
-  "cabalgando",
-
   "sensual",
   "erotico",
   "erótico",
@@ -105,34 +88,13 @@ const SEXUAL_BLOCKLIST = [
   "onlyfans",
   "contenido adulto",
   "escort",
-  "prostituta",
-  "prostituto",
   "stripper",
   "striptease",
   "bdsm",
   "fetiche",
-  "dominacion sexual",
-  "dominación sexual",
-  "sumision",
-  "sumisión",
-
-  "mujer voluptuosa",
-  "mujer sexy",
-  "mujer erotica",
-  "mujer erótica",
-  "hombre sexy",
-  "hombre musculoso sensual",
-  "cuerpo sexualizado",
-  "curvas provocativas",
-  "cuerpo provocativo",
-  "cuerpo erotico",
-  "cuerpo erótico",
-
   "adolescente sexy",
   "niña sexy",
   "niño sexy",
-  "menor sexualizado",
-  "lolita",
   "teen sexy",
   "schoolgirl sexy",
   "schoolboy sexy",
@@ -202,7 +164,12 @@ function sanitizePrompt(input: string): string {
  */
 
 async function callHFSpace(input: GenerateVideoInput): Promise<GenerateVideoResult> {
+  console.log("[VIDEO][HF] Iniciando callHFSpace")
+  console.log("[VIDEO][HF] Endpoint:", HF_VIDEO_ENDPOINT)
+  console.log("[VIDEO][HF] Token configurado:", Boolean(HF_API_TOKEN))
+
   if (!HF_VIDEO_ENDPOINT) {
+    console.error("[VIDEO][HF] HF_VIDEO_ENDPOINT no configurado")
     return { ok: false, provider: "hf-space", error: "HF_VIDEO_ENDPOINT no configurado" }
   }
 
@@ -215,6 +182,8 @@ async function callHFSpace(input: GenerateVideoInput): Promise<GenerateVideoResu
     with_audio: Boolean(input.withAudio),
   }
 
+  console.log("[VIDEO][HF] Payload:", payload)
+
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   }
@@ -223,32 +192,57 @@ async function callHFSpace(input: GenerateVideoInput): Promise<GenerateVideoResu
     headers.Authorization = `Bearer ${HF_API_TOKEN}`
   }
 
-  const res = await fetch(`${HF_VIDEO_ENDPOINT}/generate`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(payload),
-  })
+  try {
+    const url = `${HF_VIDEO_ENDPOINT}/generate`
+    console.log("[VIDEO][HF] URL final:", url)
 
-  const data = await res.json().catch(() => null)
+    const res = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload),
+    })
 
-  if (!res.ok) {
+    const rawText = await res.text()
+    console.log("[VIDEO][HF] Status:", res.status)
+    console.log("[VIDEO][HF] Respuesta raw:", rawText)
+
+    let data: any = null
+    try {
+      data = JSON.parse(rawText)
+    } catch {
+      data = { raw: rawText }
+    }
+
+    if (!res.ok) {
+      console.error("[VIDEO][HF] Error HTTP:", res.status, data)
+      return {
+        ok: false,
+        provider: "hf-space",
+        error: data?.error || `HF Space error (${res.status})`,
+        raw: data,
+      }
+    }
+
+    console.log("[VIDEO][HF] OK:", data)
+
+    return {
+      ok: Boolean(data?.ok),
+      provider: "hf-space",
+      videoUrl: data?.video_url || data?.videoUrl || "",
+      raw: data,
+    }
+  } catch (error: any) {
+    console.error("[VIDEO][HF] Excepción:", error)
     return {
       ok: false,
       provider: "hf-space",
-      error: data?.error || `HF Space error (${res.status})`,
-      raw: data,
+      error: error?.message || "Error inesperado llamando HF Space",
     }
-  }
-
-  return {
-    ok: Boolean(data?.ok),
-    provider: "hf-space",
-    videoUrl: data?.video_url || data?.videoUrl || "",
-    raw: data,
   }
 }
 
 async function callReplicate(_: GenerateVideoInput): Promise<GenerateVideoResult> {
+  console.log("[VIDEO][REPLICATE] No implementado aún")
   return {
     ok: false,
     provider: "replicate",
@@ -257,6 +251,7 @@ async function callReplicate(_: GenerateVideoInput): Promise<GenerateVideoResult
 }
 
 async function callFal(_: GenerateVideoInput): Promise<GenerateVideoResult> {
+  console.log("[VIDEO][FAL] No implementado aún")
   return {
     ok: false,
     provider: "fal",
@@ -273,10 +268,15 @@ async function callFal(_: GenerateVideoInput): Promise<GenerateVideoResult> {
 export async function generateVideoWithFallback(
   input: GenerateVideoInput
 ): Promise<GenerateVideoResult> {
+  console.log("[VIDEO] generateVideoWithFallback()")
+  console.log("[VIDEO] Input original:", input)
+
   const cleanedPrompt = sanitizePrompt(input.prompt)
+  console.log("[VIDEO] Prompt limpio:", cleanedPrompt)
 
   const moderation = containsBlockedSexualContent(cleanedPrompt)
   if (moderation.blocked) {
+    console.warn("[VIDEO] Prompt bloqueado:", moderation.reason)
     return {
       ok: false,
       blocked: true,
@@ -292,9 +292,21 @@ export async function generateVideoWithFallback(
     mode: normalizeMode(input.mode),
   }
 
-  const providers = getProviderOrder().filter(isProviderConfigured)
+  console.log("[VIDEO] Input normalizado:", normalizedInput)
+
+  const providerOrder = getProviderOrder()
+  console.log("[VIDEO] Provider order (raw):", providerOrder)
+
+  const providers = providerOrder.filter(isProviderConfigured)
+  console.log("[VIDEO] Providers configurados:", providers)
+
+  if (!providers.length) {
+    console.error("[VIDEO] No hay proveedores configurados válidos.")
+  }
 
   for (const provider of providers) {
+    console.log(`[VIDEO] Intentando provider: ${provider}`)
+
     try {
       let result: GenerateVideoResult
 
@@ -319,14 +331,18 @@ export async function generateVideoWithFallback(
           }
       }
 
+      console.log(`[VIDEO] Resultado provider ${provider}:`, result)
+
       if (result.ok && result.videoUrl) {
+        console.log(`[VIDEO] Éxito con provider ${provider}`)
         return result
       }
     } catch (error: any) {
-      console.error(`[video-agent] Error con provider ${provider}:`, error)
+      console.error(`[VIDEO] Error con provider ${provider}:`, error)
     }
   }
 
+  console.error("[VIDEO] Todos los proveedores fallaron o no están disponibles.")
   return {
     ok: false,
     error: "Todos los proveedores fallaron o no están disponibles.",
@@ -367,9 +383,12 @@ export async function processVideoJob(input: GenerateVideoInput): Promise<{
   moderationReason?: string
   raw?: any
 }> {
+  console.log("[VIDEO][PROCESS] Procesando job:", input)
+
   const result = await generateVideoWithFallback(input)
 
   if (!result.ok) {
+    console.warn("[VIDEO][PROCESS] Job fallido:", result)
     return {
       ok: false,
       status: result.blocked ? "blocked" : "failed",
@@ -379,6 +398,8 @@ export async function processVideoJob(input: GenerateVideoInput): Promise<{
       raw: result.raw,
     }
   }
+
+  console.log("[VIDEO][PROCESS] Job completado:", result)
 
   return {
     ok: true,
