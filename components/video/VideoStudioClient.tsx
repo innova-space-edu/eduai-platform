@@ -293,17 +293,14 @@ export default function VideoStudioClient() {
       setCurrentJobId(data.jobId)
       setCurrentStatus(data.status || "queued")
 
-      setRecentJobs((prev) =>
-        [
-          {
-            id: data.jobId!,
-            prompt: prompt.trim(),
-            status: data.status || "queued",
-            output_url: null,
-          },
-          ...prev,
-        ].slice(0, 8)
-      )
+      const queuedJob: RecentJob = {
+      id: data.jobId!,
+      prompt: prompt.trim(),
+      status: (data.status || "queued") as VideoJobStatus,
+      output_url: null,
+    }
+    
+    setRecentJobs((prev) => [queuedJob, ...prev].slice(0, 8))
 
       await startPolling(data.jobId)
     } catch (error) {
