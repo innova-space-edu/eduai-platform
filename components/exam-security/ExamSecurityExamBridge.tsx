@@ -2,7 +2,8 @@
 
 "use client"
 
-import { useEffect } from "react"
+import { useCallback, useEffect } from "react"
+import type { SecurityPolicy, SecuritySessionRecord } from "@/lib/exam-security/types"
 import ExamSecurityMount from "./ExamSecurityMount"
 import { useExamSecurityIntegration } from "@/hooks/useExamSecurityIntegration"
 
@@ -19,6 +20,7 @@ type Props = {
   isSubmitted?: boolean
   onForceSubmit?: (reason: string) => Promise<void> | void
   onSecurityTerminate?: (reason: string) => void
+  onSessionReady?: (payload: { sessionId: string }) => void
 }
 
 export default function ExamSecurityExamBridge({
@@ -33,12 +35,13 @@ export default function ExamSecurityExamBridge({
   isSubmitted = false,
   onForceSubmit,
   onSecurityTerminate,
+  onSessionReady,
 }: Props) {
   const {
     securitySessionId,
     lastSecurityAction,
     wasSecurityTerminated,
-    handleSessionReady,
+    handleSessionReady: _handleSessionReady,
     handleActionApplied,
     handleTerminated,
     closeSecurityAsFinished,
@@ -79,6 +82,14 @@ export default function ExamSecurityExamBridge({
       "Intento terminado por el motor de seguridad del examen."
     )
   }, [enabled, wasSecurityTerminated, closeSecurityAsTerminated])
+
+  const handleSessionReady = useCallback(
+    (payload: { sessionId: string; policy: SecurityPolicy; session: SecuritySessionRecord | null }) => {
+      _handleSessionReady(payload)
+      onSessionReady?.({ sessionId: payload.sessionId })
+    },
+    [_handleSessionReady, onSessionReady]
+  )
 
   return (
     <>
