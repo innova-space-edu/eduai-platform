@@ -31,6 +31,19 @@ import type {
   SecuritySeverity,
 } from "@/lib/exam-security/types"
 
+type NewIncidentRow = {
+  id: string
+  exam_id: string
+  submission_id: string | null
+  event_type: string
+  severity: string
+  question_index: number | null
+  client_time_left: number | null
+  created_at: string
+  incident_number: number | null
+  payload: Record<string, unknown> | null
+}
+
 type LegacyIncidentRow = {
   id: string
   exam_id: string
@@ -392,7 +405,7 @@ export async function GET(req: NextRequest) {
     }
 
     const { data: newEvents, error: newError } =
-      await query.returns<LegacyIncidentRow[]>()
+      await query.returns<NewIncidentRow[]>()
 
     if (!newError && newEvents) {
       const mapped = newEvents.map((item) => ({
