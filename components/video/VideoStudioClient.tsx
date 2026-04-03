@@ -275,7 +275,7 @@ export default function VideoStudioClient() {
             {
               id: `instant-${Date.now()}`,
               prompt: prompt.trim(),
-              status: "completed",
+              status: "completed" as VideoJobStatus,
               output_url: data.videoUrl,
             },
             ...prev,
