@@ -109,7 +109,7 @@ export default function ExamenPublicoPage() {
   // seguridad
   const [securityBlocked, setSecurityBlocked] = useState(false)
   const [securitySessionId, setSecuritySessionId] = useState<string | null>(null)
-  const [securityTerminateReason, setSecurityTerminateReason] = useState<string>("")
+  const [securityTerminateReason, setSecurityTerminateReason] = useState("")
   const [submittedForSecurity, setSubmittedForSecurity] = useState(false)
 
   const timerRef = useRef<NodeJS.Timeout | null>(null)
@@ -229,7 +229,7 @@ export default function ExamenPublicoPage() {
 
       if (
         isKiosk &&
-        (phase === "exam" || phase === "submitting") &&
+        phase === "exam" &&
         !current &&
         !fullscreenGuard.current
       ) {
@@ -264,15 +264,6 @@ export default function ExamenPublicoPage() {
       if (timerRef.current) clearInterval(timerRef.current)
     }
   }, [phase])
-
-  // ── Auto submit por tiempo ────────────────────────────────────────────────
-  useEffect(() => {
-    if (phase !== "exam") return
-    if (timeLeft > 0) return
-    if (!exam) return
-
-    void doSubmit("time_up")
-  }, [phase, timeLeft, exam])
 
   // ── Inicio examen ──────────────────────────────────────────────────────────
   const startExam = useCallback(() => {
@@ -361,10 +352,19 @@ export default function ExamenPublicoPage() {
     [exam, phase, devAnswers, mcAnswers, tfJustifications, name, course, rut]
   )
 
+  // ── Auto submit por tiempo ────────────────────────────────────────────────
+  useEffect(() => {
+    if (phase !== "exam") return
+    if (timeLeft > 0) return
+    if (!exam) return
+
+    void doSubmit("time_up")
+  }, [phase, timeLeft, exam, doSubmit])
+
   // ── Controles kiosk mínimos ────────────────────────────────────────────────
   useEffect(() => {
     if (!isKiosk) return
-    if (!(phase === "exam" || phase === "submitting")) return
+    if (phase !== "exam") return
 
     const onContextMenu = (e: MouseEvent) => e.preventDefault()
     const onCopy = (e: ClipboardEvent) => e.preventDefault()
@@ -473,7 +473,9 @@ export default function ExamenPublicoPage() {
         <div className="max-w-2xl mx-auto">
           <div className="text-center mb-10">
             <div className="text-6xl mb-4">🧪</div>
-            <h1 className="text-4xl font-extrabold tracking-tight">{exam?.title || "Examen"}</h1>
+            <h1 className="text-4xl font-extrabold tracking-tight">
+              {exam?.title || "Examen"}
+            </h1>
             <p className="text-gray-400 mt-3">{exam?.topic || "Evaluación"}</p>
             {kioskSala ? (
               <p className="text-blue-400 text-sm mt-2">Sala kiosk: {kioskSala}</p>
@@ -541,13 +543,19 @@ export default function ExamenPublicoPage() {
         <div className="w-full max-w-xl bg-white/[0.04] border border-white/[0.08] rounded-3xl p-6 md:p-8">
           <div className="text-center mb-6">
             <div className="text-5xl mb-3">📝</div>
-            <h1 className="text-2xl md:text-3xl font-extrabold">{exam?.title || "Examen"}</h1>
-            <p className="text-gray-400 text-sm mt-2">{exam?.topic || "Completa tus datos para comenzar."}</p>
+            <h1 className="text-2xl md:text-3xl font-extrabold">
+              {exam?.title || "Examen"}
+            </h1>
+            <p className="text-gray-400 text-sm mt-2">
+              {exam?.topic || "Completa tus datos para comenzar."}
+            </p>
           </div>
 
           <div className="space-y-4">
             <div>
-              <label className="text-gray-400 text-xs font-semibold block mb-1">NOMBRE *</label>
+              <label className="text-gray-400 text-xs font-semibold block mb-1">
+                NOMBRE *
+              </label>
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -557,7 +565,9 @@ export default function ExamenPublicoPage() {
             </div>
 
             <div>
-              <label className="text-gray-400 text-xs font-semibold block mb-1">CURSO *</label>
+              <label className="text-gray-400 text-xs font-semibold block mb-1">
+                CURSO *
+              </label>
               <input
                 value={course}
                 onChange={(e) => setCourse(e.target.value)}
@@ -567,7 +577,9 @@ export default function ExamenPublicoPage() {
             </div>
 
             <div>
-              <label className="text-gray-400 text-xs font-semibold block mb-1">RUT (opcional)</label>
+              <label className="text-gray-400 text-xs font-semibold block mb-1">
+                RUT (opcional)
+              </label>
               <input
                 value={rut}
                 onChange={(e) => setRut(e.target.value)}
@@ -759,17 +771,17 @@ export default function ExamenPublicoPage() {
     )
   }
 
-  if (!exam || phase === "submitting") {
+  if (!exam) {
     return (
       <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center">
-        <p className="text-gray-400">Enviando examen...</p>
+        <p className="text-gray-400">Cargando examen...</p>
       </div>
     )
   }
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
-      {phase === "review" && exam?.id ? (
+      {phase === "exam" && exam?.id ? (
         <ExamSecurityExamBridge
           examId={exam.id}
           submissionId={submission?.id ?? null}
@@ -806,7 +818,14 @@ export default function ExamenPublicoPage() {
             <h1 className="text-2xl md:text-3xl font-extrabold">{exam.title}</h1>
             <p className="text-gray-400 text-sm mt-1">{exam.topic || "Evaluación"}</p>
             {securitySessionId ? (
-              <p className="text-gray-600 text-xs mt-2">Seguridad activa · sesión {securitySessionId}</p>
+              <p className="text-gray-600 text-xs mt-2">
+                Seguridad activa · sesión {securitySessionId}
+              </p>
+            ) : null}
+            {kioskExamId ? (
+              <p className="text-gray-600 text-xs mt-1">
+                Kiosk exam id: {kioskExamId}
+              </p>
             ) : null}
           </div>
 
@@ -995,9 +1014,15 @@ export default function ExamenPublicoPage() {
             </div>
 
             <div className="mt-6 text-xs text-gray-500">
-              <p>Alumno: <span className="text-gray-300">{name || "—"}</span></p>
-              <p className="mt-1">Curso: <span className="text-gray-300">{course || "—"}</span></p>
-              <p className="mt-1">RUT: <span className="text-gray-300">{rut || "—"}</span></p>
+              <p>
+                Alumno: <span className="text-gray-300">{name || "—"}</span>
+              </p>
+              <p className="mt-1">
+                Curso: <span className="text-gray-300">{course || "—"}</span>
+              </p>
+              <p className="mt-1">
+                RUT: <span className="text-gray-300">{rut || "—"}</span>
+              </p>
             </div>
           </aside>
         </div>
