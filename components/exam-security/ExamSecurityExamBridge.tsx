@@ -3,7 +3,10 @@
 "use client"
 
 import { useCallback, useEffect } from "react"
-import type { SecurityPolicy, SecuritySessionRecord } from "@/lib/exam-security/types"
+import type {
+  SecurityPolicy,
+  SecuritySessionRecord,
+} from "@/lib/exam-security/types"
 import ExamSecurityMount from "./ExamSecurityMount"
 import { useExamSecurityIntegration } from "@/hooks/useExamSecurityIntegration"
 
@@ -19,6 +22,7 @@ type Props = {
 
   /**
    * Debe activarse cuando el examen ya fue entregado correctamente.
+   * No depende de phase directamente; debe venir desde el estado del page.tsx.
    */
   isSubmitted?: boolean
 
@@ -45,7 +49,7 @@ export default function ExamSecurityExamBridge({
     securitySessionId,
     lastSecurityAction,
     wasSecurityTerminated,
-    handleSessionReady: _handleSessionReady,
+    handleSessionReady: internalHandleSessionReady,
     handleActionApplied,
     handleTerminated,
     closeSecurityAsFinished,
@@ -62,7 +66,7 @@ export default function ExamSecurityExamBridge({
     },
   })
 
-  // Cierre normal por entrega del examen
+  // ── Cierre normal por entrega del examen ─────────────────────────────────
   useEffect(() => {
     if (!enabled) return
     if (!isSubmitted) return
@@ -72,7 +76,7 @@ export default function ExamSecurityExamBridge({
     )
   }, [enabled, isSubmitted, closeSecurityAsFinished])
 
-  // Cierre por tiempo agotado
+  // ── Cierre por tiempo agotado ─────────────────────────────────────────────
   useEffect(() => {
     if (!enabled) return
     if (typeof timeLeft !== "number") return
@@ -82,7 +86,7 @@ export default function ExamSecurityExamBridge({
     void closeSecurityAsFinished("Tiempo agotado del examen.")
   }, [enabled, timeLeft, isSubmitted, closeSecurityAsFinished])
 
-  // Cierre por terminación de seguridad
+  // ── Cierre por terminación de seguridad ───────────────────────────────────
   useEffect(() => {
     if (!enabled) return
     if (!wasSecurityTerminated) return
@@ -98,10 +102,10 @@ export default function ExamSecurityExamBridge({
       policy: SecurityPolicy
       session: SecuritySessionRecord | null
     }) => {
-      _handleSessionReady(payload)
+      internalHandleSessionReady(payload)
       onSessionReady?.({ sessionId: payload.sessionId })
     },
-    [_handleSessionReady, onSessionReady]
+    [internalHandleSessionReady, onSessionReady]
   )
 
   return (
