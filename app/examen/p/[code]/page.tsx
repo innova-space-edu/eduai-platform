@@ -1,6 +1,3 @@
-// app/examen/p/[code]/page.tsx
-// VERSIÓN CORREGIDA — kiosk + seguridad integrada
-
 "use client"
 
 import { useEffect, useRef, useState, useCallback, useMemo } from "react"
@@ -592,8 +589,11 @@ export default function ExamenPublicoPage() {
     )
   }
 
-  if ((phase === "review" || phase === "submitting") && submission && phase !== "exam") {
-    const nota = submission.grade ?? calcGrade(Number(submission.score || 0), exam?.settings?.examPercentage || 60)
+  if ((phase === "review" || phase === "submitting") && submission) {
+    const nota =
+      submission.grade ??
+      calcGrade(Number(submission.score || 0), exam?.settings?.examPercentage || 60)
+
     const pct = Number(submission.score || 0)
     const graded = submission.answers || []
 
