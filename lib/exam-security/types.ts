@@ -5,22 +5,22 @@ export type SecurityEventType =
   | "security_session_end"
   | "fullscreen_exit"
   | "fullscreen_reenter"
-  | "window_blur"
-  | "window_focus_return"
-  | "tab_hidden"
+  | "visibility_hidden"
   | "visibility_return"
+  | "window_blur"
+  | "window_focus"
   | "copy_attempt"
   | "paste_attempt"
   | "cut_attempt"
-  | "contextmenu_attempt"
+  | "context_menu"
   | "blocked_shortcut"
   | "print_attempt"
-  | "reload_attempt"
+  | "before_unload"
   | "drag_attempt"
   | "heartbeat_missed"
   | "reconnect_attempt"
-  | "network_offline"
-  | "network_online"
+  | "offline"
+  | "online"
   | "exam_submit"
 
 export type SecuritySeverity = "low" | "medium" | "high" | "critical"
@@ -71,6 +71,10 @@ export interface SecurityEventPayload {
   reason?: string
   windowWidth?: number
   windowHeight?: number
+  detail?: string
+  dw?: number
+  dh?: number
+  phase?: string
   [key: string]: unknown
 }
 
