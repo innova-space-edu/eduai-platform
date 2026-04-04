@@ -769,7 +769,7 @@ export default function ExamenPublicoPage() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
-      {(phase === "exam" || phase === "submitting" || phase === "review") && exam?.id ? (
+      {phase === "review" && exam?.id ? (
         <ExamSecurityExamBridge
           examId={exam.id}
           submissionId={submission?.id ?? null}
