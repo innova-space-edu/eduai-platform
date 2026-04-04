@@ -2,8 +2,9 @@
 // VERSIÓN FUSIONADA: Agente IA (Gemini→Groq) + Sistema de Seguridad Nuevo
 "use client"
 
-import { useMemo, useState, useRef } from "react"
+import { useMemo, useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { createClient } from "@/lib/supabase/client"
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 type Difficulty    = "facil" | "medio" | "dificil" | "mixto"
