@@ -361,57 +361,180 @@ export default function ExamenPublicoPage() {
     void doSubmit("time_up")
   }, [phase, timeLeft, exam, doSubmit])
 
-  // ── Controles kiosk mínimos ────────────────────────────────────────────────
+  // ── Controles kiosk — bloqueo completo de teclado/clipboard ─────────────
+  // Restaurado del sistema antiguo: bloquea Escape, F11, F12, Ctrl+W, Alt+F4,
+  // copiar/pegar/cortar, menú contextual, beforeunload y más teclas peligrosas.
   useEffect(() => {
     if (!isKiosk) return
-    if (phase !== "exam") return
 
-    const onContextMenu = (e: MouseEvent) => e.preventDefault()
-    const onCopy = (e: ClipboardEvent) => e.preventDefault()
-    const onPaste = (e: ClipboardEvent) => e.preventDefault()
-    const onCut = (e: ClipboardEvent) => e.preventDefault()
+    function killKey(e: KeyboardEvent) {
+      const key   = e.key
+      const ctrl  = e.ctrlKey
+      const alt   = e.altKey
+      const shift = e.shiftKey
+      const meta  = e.metaKey
 
-    document.addEventListener("contextmenu", onContextMenu)
-    document.addEventListener("copy", onCopy)
-    document.addEventListener("paste", onPaste)
-    document.addEventListener("cut", onCut)
+      const blocked =
+        key === "Escape"   || key === "F11"   || key === "F12"  ||
+        key === "Meta"     || meta             ||
+        key === "PrintScreen" || key === "F5" || key === "F6"   ||
+        (alt   && key === "F4")  ||
+        (ctrl  && (key === "w" || key === "W"))   ||
+        (ctrl  && key === "F4")  ||
+        (ctrl  && (key === "Tab" || key === "t" || key === "T")) ||
+        (ctrl  && alt  && key === "Tab")          ||
+        (ctrl  && (key === "n" || key === "N"))   ||
+        (ctrl  && shift && (key === "n" || key === "N")) ||
+        (ctrl  && shift && (key === "j" || key === "J")) ||
+        (ctrl  && shift && (key === "i" || key === "I")) ||
+        (ctrl  && shift && (key === "c" || key === "C")) ||
+        (ctrl  && (key === "l" || key === "L"))   ||
+        (ctrl  && (key === "r" || key === "R"))   ||
+        (ctrl  && (key === "c" || key === "C"))   ||
+        (ctrl  && (key === "v" || key === "V"))   ||
+        (ctrl  && (key === "x" || key === "X"))   ||
+        (ctrl  && (key === "a" || key === "A"))
+
+      if (blocked) {
+        e.preventDefault()
+        e.stopImmediatePropagation()
+      }
+    }
+
+    function killKeyUp(e: KeyboardEvent) {
+      if (
+        e.key === "Escape" || e.key === "F11" ||
+        e.key === "Meta"   || e.key === "PrintScreen"
+      ) {
+        e.preventDefault()
+        e.stopImmediatePropagation()
+      }
+    }
+
+    function killClipboard(e: ClipboardEvent) {
+      e.preventDefault()
+      e.stopImmediatePropagation()
+    }
+
+    function onContextMenu(e: MouseEvent) {
+      e.preventDefault()
+      e.stopImmediatePropagation()
+    }
+
+    function onBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault()
+      e.returnValue = "El examen está en progreso."
+    }
+
+    // Usar capture:true para interceptar antes que el navegador
+    document.addEventListener("keydown",     killKey,       true)
+    document.addEventListener("keyup",       killKeyUp,     true)
+    document.addEventListener("copy",        killClipboard, true)
+    document.addEventListener("cut",         killClipboard, true)
+    document.addEventListener("paste",       killClipboard, true)
+    document.addEventListener("contextmenu", onContextMenu, true)
+    window.addEventListener("beforeunload",  onBeforeUnload)
 
     return () => {
-      document.removeEventListener("contextmenu", onContextMenu)
-      document.removeEventListener("copy", onCopy)
-      document.removeEventListener("paste", onPaste)
-      document.removeEventListener("cut", onCut)
+      document.removeEventListener("keydown",     killKey,       true)
+      document.removeEventListener("keyup",       killKeyUp,     true)
+      document.removeEventListener("copy",        killClipboard, true)
+      document.removeEventListener("cut",         killClipboard, true)
+      document.removeEventListener("paste",       killClipboard, true)
+      document.removeEventListener("contextmenu", onContextMenu, true)
+      window.removeEventListener("beforeunload",  onBeforeUnload)
     }
-  }, [isKiosk, phase])
+  }, [isKiosk])
 
-  // ── Poll opcional kiosk/panel ──────────────────────────────────────────────
+  // ── Cierre remoto kiosk — Realtime + polling de respaldo ────────────────
+  // Restaurado del sistema antiguo: Supabase Realtime para cierre instantáneo
+  // via cerrar_ahora/estado, con polling cada 6s como fallback.
   useEffect(() => {
-    if (!isKiosk || !kioskSala || !exam?.id) return
+    if (!isKiosk || !kioskSala || !code) return
 
-    const panel = getPanelClient()
-    if (!panel) return
+    const panelClient = getPanelClient()
+    if (!panelClient) {
+      console.warn("[KIOSK] Sin credenciales del panel Supabase — el cierre remoto no funcionará")
+      return
+    }
 
-    setKioskExamId(exam.id)
+    async function obtenerExamId() {
+      const { data } = await panelClient!
+        .from("examenes_kiosk")
+        .select("id, cerrar_ahora, estado")
+        .eq("sala", kioskSala)
+        .eq("exam_code", code)
+        .eq("estado", "activo")
+        .limit(1)
 
-    panelPollRef.current = setInterval(async () => {
-      try {
-        const { data } = await panel
-          .from("examenes_kiosk")
-          .select("*")
-          .eq("exam_id", exam.id)
-          .eq("sala", kioskSala)
-          .maybeSingle()
-
-        if (data?.estado === "cerrado") {
-          setPhase("kiosk_closed")
+      if (data && data.length > 0) {
+        setKioskExamId(data[0].id)
+        // Cierre ya marcado antes de conectar
+        if (data[0].cerrar_ahora === true || data[0].estado === "cerrado") {
+          handleKioskClose()
+          return null
         }
-      } catch {}
-    }, 10000)
+        return data[0].id
+      }
+      return null
+    }
+
+    obtenerExamId().then((id) => {
+      if (!id) return
+
+      // Suscripción Realtime — cierre instantáneo
+      const canal = panelClient!
+        .channel(`exam_kiosk_${id}`)
+        .on(
+          "postgres_changes",
+          { event: "UPDATE", schema: "public", table: "examenes_kiosk", filter: `id=eq.${id}` },
+          (payload: any) => {
+            const row = payload.new
+            if (row.cerrar_ahora === true || row.estado === "cerrado") {
+              console.log("[KIOSK] Cierre recibido vía Realtime")
+              handleKioskClose()
+            }
+          }
+        )
+        .subscribe()
+
+      realtimeRef.current = canal
+
+      // Polling de respaldo cada 6 s (si Realtime falla)
+      panelPollRef.current = setInterval(async () => {
+        try {
+          const { data: rows } = await panelClient!
+            .from("examenes_kiosk")
+            .select("cerrar_ahora, estado")
+            .eq("id", id)
+            .limit(1)
+
+          if (!rows || rows.length === 0 || rows[0].cerrar_ahora === true || rows[0].estado === "cerrado") {
+            handleKioskClose()
+          }
+        } catch {}
+      }, 6000)
+    })
 
     return () => {
       if (panelPollRef.current) clearInterval(panelPollRef.current)
+      if (realtimeRef.current) panelClient.removeChannel(realtimeRef.current)
     }
-  }, [isKiosk, kioskSala, exam?.id])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isKiosk, kioskSala, code])
+
+  function handleKioskClose() {
+    if (panelPollRef.current) clearInterval(panelPollRef.current)
+    if (realtimeRef.current) {
+      const panelClient = getPanelClient()
+      if (panelClient) panelClient.removeChannel(realtimeRef.current)
+    }
+    if (timerRef.current) clearInterval(timerRef.current)
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {})
+    }
+    setPhase("kiosk_closed")
+  }
 
   // ── cleanup ────────────────────────────────────────────────────────────────
   useEffect(() => {
