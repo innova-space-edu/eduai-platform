@@ -3,196 +3,277 @@
 import type {
   SecurityActionDecision,
   SecurityEventType,
+  SecurityPolicy,
   SecurityRiskLevel,
+  SecuritySessionStatus,
   SecuritySeverity,
-  SecuritySessionRecord,
-} from "./types"
-import type { SecurityPolicy } from "./types"
+} from "@/lib/exam-security/types"
 
-const EVENT_SCORE_MAP: Record<SecurityEventType, number> = {
+type EscalationInput = {
+  nextRiskScore: number
+  nextRiskLevel: SecurityRiskLevel
+  eventType: SecurityEventType
+  session: {
+    warning_count: number
+    freeze_count: number
+    block_count: number
+    status: SecuritySessionStatus
+  }
+  policy: SecurityPolicy
+}
+
+const EVENT_SCORES: Record<SecurityEventType, number> = {
   security_session_start: 0,
   security_session_end: 0,
 
   fullscreen_exit: 15,
   fullscreen_reenter: 0,
 
-  window_blur: 8,
-  window_focus_return: 0,
-
-  tab_hidden: 10,
+  visibility_hidden: 10,
   visibility_return: 0,
 
-  copy_attempt: 18,
-  paste_attempt: 15,
-  cut_attempt: 15,
+  window_blur: 8,
+  window_focus: 0,
 
-  contextmenu_attempt: 10,
+  copy_attempt: 12,
+  paste_attempt: 14,
+  cut_attempt: 10,
+  context_menu: 6,
   blocked_shortcut: 12,
-  print_attempt: 20,
-  reload_attempt: 18,
-  drag_attempt: 8,
+  print_attempt: 18,
+  before_unload: 16,
+  drag_attempt: 6,
 
-  heartbeat_missed: 12,
-  reconnect_attempt: 10,
-  network_offline: 4,
-  network_online: 0,
+  heartbeat_missed: 14,
+  reconnect_attempt: 4,
+  offline: 8,
+  online: 0,
 
   exam_submit: 0,
 }
 
-const EVENT_SEVERITY_MAP: Record<SecurityEventType, SecuritySeverity> = {
+const EVENT_SEVERITIES: Record<SecurityEventType, SecuritySeverity> = {
   security_session_start: "low",
   security_session_end: "low",
 
   fullscreen_exit: "high",
   fullscreen_reenter: "low",
 
-  window_blur: "low",
-  window_focus_return: "low",
-
-  tab_hidden: "medium",
+  visibility_hidden: "high",
   visibility_return: "low",
+
+  window_blur: "medium",
+  window_focus: "low",
 
   copy_attempt: "high",
   paste_attempt: "high",
-  cut_attempt: "high",
-
-  contextmenu_attempt: "medium",
-  blocked_shortcut: "medium",
+  cut_attempt: "medium",
+  context_menu: "low",
+  blocked_shortcut: "high",
   print_attempt: "critical",
-  reload_attempt: "high",
+  before_unload: "critical",
   drag_attempt: "low",
 
-  heartbeat_missed: "medium",
-  reconnect_attempt: "medium",
-  network_offline: "low",
-  network_online: "low",
+  heartbeat_missed: "high",
+  reconnect_attempt: "low",
+  offline: "medium",
+  online: "low",
 
   exam_submit: "low",
 }
 
-export function getEventScore(eventType: SecurityEventType): number {
-  return EVENT_SCORE_MAP[eventType] ?? 0
+const EVENT_GROUPS: Record<SecurityEventType, string> = {
+  security_session_start: "session",
+  security_session_end: "session",
+
+  fullscreen_exit: "fullscreen",
+  fullscreen_reenter: "fullscreen",
+
+  visibility_hidden: "visibility",
+  visibility_return: "visibility",
+
+  window_blur: "window",
+  window_focus: "window",
+
+  copy_attempt: "clipboard",
+  paste_attempt: "clipboard",
+  cut_attempt: "clipboard",
+
+  context_menu: "interaction",
+  blocked_shortcut: "shortcut",
+  print_attempt: "print",
+  before_unload: "navigation",
+  drag_attempt: "interaction",
+
+  heartbeat_missed: "heartbeat",
+  reconnect_attempt: "network",
+  offline: "network",
+  online: "network",
+
+  exam_submit: "exam",
 }
 
-export function getEventSeverity(
-  eventType: SecurityEventType
-): SecuritySeverity {
-  return EVENT_SEVERITY_MAP[eventType] ?? "low"
+export function getEventScore(eventType: SecurityEventType): number {
+  return EVENT_SCORES[eventType] ?? 0
+}
+
+export function getEventSeverity(eventType: SecurityEventType): SecuritySeverity {
+  return EVENT_SEVERITIES[eventType] ?? "low"
+}
+
+export function getEventGroup(eventType: SecurityEventType): string {
+  return EVENT_GROUPS[eventType] ?? "general"
 }
 
 export function getRiskLevel(score: number): SecurityRiskLevel {
   if (score >= 70) return "high"
   if (score >= 40) return "medium"
-  if (score >= 20) return "low"
+  if (score >= 15) return "low"
   return "clean"
 }
 
-export function getEventGroup(eventType: SecurityEventType): string {
-  if (eventType.includes("fullscreen")) return "fullscreen"
-  if (eventType.includes("blur") || eventType.includes("focus")) return "focus"
-  if (eventType.includes("hidden") || eventType.includes("visibility")) {
-    return "visibility"
+export function computeEscalationAction({
+  nextRiskScore,
+  nextRiskLevel,
+  eventType,
+  session,
+  policy,
+}: EscalationInput): SecurityActionDecision {
+  if (!policy.enabled) {
+    return { type: "none" }
   }
+
+  // Terminación directa por política de alto riesgo
   if (
-    eventType.includes("copy") ||
-    eventType.includes("paste") ||
-    eventType.includes("cut") ||
-    eventType.includes("shortcut") ||
-    eventType.includes("contextmenu") ||
-    eventType.includes("drag") ||
-    eventType.includes("print")
+    policy.terminateOnHighRisk &&
+    nextRiskScore >= policy.highRiskThreshold
   ) {
-    return "interaction"
-  }
-  if (
-    eventType.includes("heartbeat") ||
-    eventType.includes("network") ||
-    eventType.includes("reconnect")
-  ) {
-    return "connectivity"
-  }
-  return "general"
-}
-
-export function computeEscalationAction(params: {
-  nextRiskScore: number
-  nextRiskLevel: SecurityRiskLevel
-  eventType: SecurityEventType
-  session: Pick<
-    SecuritySessionRecord,
-    "warning_count" | "freeze_count" | "block_count" | "status"
-  >
-  policy: SecurityPolicy
-}): SecurityActionDecision {
-  const { nextRiskScore, nextRiskLevel, eventType, session, policy } = params
-
-  const warningCount = session.warning_count ?? 0
-  const freezeCount = session.freeze_count ?? 0
-
-  const isCriticalEvent =
-    eventType === "print_attempt" ||
-    eventType === "reload_attempt" ||
-    eventType === "copy_attempt"
-
-  const isMediumOrHigher =
-    nextRiskLevel === "medium" || nextRiskLevel === "high"
-
-  const isHighRisk = nextRiskScore >= policy.highRiskThreshold
-
-  if (policy.terminateOnHighRisk && isHighRisk) {
     return {
       type: "terminate_attempt",
-      message: "Tu intento fue finalizado por política de seguridad.",
-      reason: "High risk threshold reached",
+      reason: "high_risk_threshold",
+      message:
+        "Tu intento fue finalizado porque superó el umbral de riesgo permitido.",
     }
   }
 
-  if (isHighRisk) {
+  // Eventos críticos que ameritan corte inmediato
+  if (eventType === "before_unload" || eventType === "print_attempt") {
+    if (policy.strictMode) {
+      return {
+        type: "terminate_attempt",
+        reason: eventType,
+        message:
+          "Tu intento fue finalizado por una acción crítica no permitida.",
+      }
+    }
+
     return {
       type: "flag_review",
+      reason: eventType,
       message:
-        "Tu sesión fue marcada para revisión obligatoria por seguridad.",
-      reason: "High risk session flagged",
+        "Tu intento fue marcado para revisión por una acción crítica detectada.",
     }
   }
 
-  if (isCriticalEvent && freezeCount >= policy.maxFreezes) {
+  // Atajos peligrosos / fullscreen / visibilidad
+  if (
+    eventType === "blocked_shortcut" ||
+    eventType === "fullscreen_exit" ||
+    eventType === "visibility_hidden"
+  ) {
+    if (session.warning_count < policy.maxWarnings) {
+      return {
+        type: "warn",
+        reason: eventType,
+        message:
+          "Se detectó una acción no permitida. Esta advertencia quedó registrada.",
+      }
+    }
+
+    if (session.freeze_count < policy.maxFreezes) {
+      const isFirstFreeze = session.freeze_count === 0
+      return {
+        type: "freeze",
+        reason: eventType,
+        durationSeconds: isFirstFreeze
+          ? policy.freezeSecondsFirst
+          : policy.freezeSecondsRepeat,
+        message:
+          "Tu examen fue congelado temporalmente por reiteración de incidentes.",
+      }
+    }
+
     return {
       type: "block",
+      reason: eventType,
       message:
-        "Tu sesión fue bloqueada temporalmente por reiteración de incidentes.",
-      reason: "Repeated critical event after max freezes",
+        "Tu sesión fue bloqueada por reiteración de incidentes de seguridad.",
     }
   }
 
-  if (isMediumOrHigher || isCriticalEvent) {
-    const durationSeconds =
-      freezeCount === 0
-        ? policy.freezeSecondsFirst
-        : policy.freezeSecondsRepeat
-
-    return {
-      type: "freeze",
-      durationSeconds,
-      message: `Examen bloqueado temporalmente por ${durationSeconds} segundos.`,
-      reason: "Escalated temporary freeze",
+  // Clipboard
+  if (
+    eventType === "copy_attempt" ||
+    eventType === "paste_attempt" ||
+    eventType === "cut_attempt"
+  ) {
+    if (policy.strictMode && nextRiskLevel === "high") {
+      return {
+        type: "terminate_attempt",
+        reason: eventType,
+        message:
+          "Tu intento fue finalizado por una infracción reiterada de seguridad.",
+      }
     }
-  }
 
-  if (warningCount < policy.maxWarnings) {
+    if (nextRiskLevel === "high") {
+      return {
+        type: "flag_review",
+        reason: eventType,
+        message:
+          "Tu intento fue marcado para revisión por actividad sospechosa.",
+      }
+    }
+
     return {
       type: "warn",
+      reason: eventType,
       message:
-        "Advertencia: se detectó una acción no permitida y fue registrada.",
-      reason: "Initial warning",
+        "Se detectó uso de funciones no permitidas durante el examen.",
+    }
+  }
+
+  // Heartbeat / conectividad
+  if (
+    eventType === "heartbeat_missed" ||
+    eventType === "offline" ||
+    eventType === "reconnect_attempt"
+  ) {
+    if (nextRiskLevel === "high") {
+      return {
+        type: "flag_review",
+        reason: eventType,
+        message:
+          "Tu intento fue marcado para revisión por inestabilidad o desconexiones reiteradas.",
+      }
+    }
+
+    return {
+      type: "none",
+    }
+  }
+
+  // Contexto general
+  if (nextRiskLevel === "high") {
+    return {
+      type: "flag_review",
+      reason: eventType,
+      message:
+        "Tu intento fue marcado para revisión por acumulación de riesgo.",
     }
   }
 
   return {
-    type: "freeze",
-    durationSeconds: policy.freezeSecondsFirst,
-    message: `Examen bloqueado temporalmente por ${policy.freezeSecondsFirst} segundos.`,
-    reason: "Warnings exceeded",
+    type: "none",
   }
 }
