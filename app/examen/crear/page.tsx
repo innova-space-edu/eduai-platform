@@ -114,7 +114,18 @@ function normalizeAIQuestion(raw: any): Question {
 
 // ─── Componente ───────────────────────────────────────────────────────────────
 export default function CrearExamenPage() {
-  const router = useRouter()
+  const router   = useRouter()
+  const supabase = createClient()
+  const [userId, setUserId] = useState<string | null>(null)
+
+  // ── Obtener usuario autenticado ───────────────────────────────────────────
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) { router.push("/login"); return }
+      setUserId(user.id)
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // ── Metadatos del examen ──────────────────────────────────────────────────
   const [title,       setTitle]       = useState("")
@@ -186,6 +197,7 @@ export default function CrearExamenPage() {
   // ── Guardar examen ────────────────────────────────────────────────────────
   const handleCreate = async () => {
     setErrorMsg(""); setSuccessMsg("")
+    if (!userId) { setErrorMsg("No autenticado. Recarga la página."); return }
     const ve = validateExam()
     if (ve) { setErrorMsg(ve); return }
     setSaving(true)
@@ -215,6 +227,7 @@ export default function CrearExamenPage() {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "create", title, topic, instructions, difficulty,
+          teacherId: userId,
           questions: payloadQuestions,
           settings: {
             timeLimit:           Number(timeLimit || 60),
