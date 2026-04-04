@@ -347,6 +347,18 @@ export default function ExamSecurityClient({
     ]
   )
 
+  /**
+   * Wrapper local para no romper compilación mientras el union
+   * SecurityEventType todavía no esté 100% alineado con todos
+   * los nombres usados por el cliente.
+   */
+  const emitSecurityEvent = useCallback(
+    async (eventType: string, extraPayload?: Record<string, unknown>) => {
+      await sendSecurityEvent(eventType as SecurityEventType, extraPayload)
+    },
+    [sendSecurityEvent]
+  )
+
   const sendHeartbeat = useCallback(async () => {
     if (!sessionId || !enabled || overlay.actionType === "terminate_attempt") {
       return
@@ -428,6 +440,12 @@ export default function ExamSecurityClient({
     onSessionReady,
   ])
 
+  // Reset de arranque si el componente se deshabilita y vuelve a habilitarse
+  useEffect(() => {
+    if (enabled) return
+    mountedRef.current = false
+  }, [enabled])
+
   // ── Heartbeat ──────────────────────────────────────────────
   useEffect(() => {
     if (!sessionId || !enabled) return
@@ -447,23 +465,23 @@ export default function ExamSecurityClient({
 
     const onVisibilityChange = () => {
       if (document.visibilityState === "hidden") {
-        void sendSecurityEvent("visibility_hidden")
+        void emitSecurityEvent("visibility_hidden")
       }
     }
 
     const onBlur = () => {
-      void sendSecurityEvent("window_blur")
+      void emitSecurityEvent("window_blur")
     }
 
     const onFocus = () => {
-      void sendSecurityEvent("window_focus")
+      void emitSecurityEvent("window_focus")
     }
 
     const onFullscreenChange = () => {
       const inFullscreen = !!document.fullscreenElement
 
       if (!inFullscreen && policy.requireFullscreen) {
-        void sendSecurityEvent("fullscreen_exit")
+        void emitSecurityEvent("fullscreen_exit")
 
         window.setTimeout(() => {
           if (!document.fullscreenElement) {
@@ -477,34 +495,34 @@ export default function ExamSecurityClient({
       if (!policy.blockCopyPaste) return
       e.preventDefault()
       e.stopPropagation()
-      void sendSecurityEvent("copy_attempt")
+      void emitSecurityEvent("copy_attempt")
     }
 
     const onPaste = (e: ClipboardEvent) => {
       if (!policy.blockCopyPaste) return
       e.preventDefault()
       e.stopPropagation()
-      void sendSecurityEvent("paste_attempt")
+      void emitSecurityEvent("paste_attempt")
     }
 
     const onCut = (e: ClipboardEvent) => {
       if (!policy.blockCopyPaste) return
       e.preventDefault()
       e.stopPropagation()
-      void sendSecurityEvent("cut_attempt")
+      void emitSecurityEvent("cut_attempt")
     }
 
     const onContextMenu = (e: MouseEvent) => {
       if (!policy.blockContextMenu) return
       e.preventDefault()
       e.stopPropagation()
-      void sendSecurityEvent("context_menu")
+      void emitSecurityEvent("context_menu")
     }
 
     const onDragStart = (e: DragEvent) => {
       e.preventDefault()
       e.stopPropagation()
-      void sendSecurityEvent("drag_attempt")
+      void emitSecurityEvent("drag_attempt")
     }
 
     const onKeyDown = (e: KeyboardEvent) => {
@@ -532,22 +550,20 @@ export default function ExamSecurityClient({
           e.preventDefault()
           e.stopPropagation()
 
-          void sendSecurityEvent("blocked_shortcut", {
+          void emitSecurityEvent("blocked_shortcut", {
             key,
             ctrlKey: e.ctrlKey,
             shiftKey: e.shiftKey,
             altKey: e.altKey,
             metaKey: e.metaKey,
           })
-
-          return
         }
       }
     }
 
     const onKeyUp = (e: KeyboardEvent) => {
       if (e.key === "PrintScreen") {
-        void sendSecurityEvent("blocked_shortcut", {
+        void emitSecurityEvent("blocked_shortcut", {
           key: "PrintScreen",
           phase: "keyup",
         })
@@ -555,22 +571,22 @@ export default function ExamSecurityClient({
     }
 
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
-      void sendSecurityEvent("before_unload")
+      void emitSecurityEvent("before_unload")
       e.preventDefault()
       e.returnValue = ""
     }
 
     const onOffline = () => {
-      void sendSecurityEvent("offline")
+      void emitSecurityEvent("offline")
     }
 
     const onOnline = () => {
-      void sendSecurityEvent("online")
+      void emitSecurityEvent("online")
     }
 
     const onBeforePrint = (e: Event) => {
       e.preventDefault?.()
-      void sendSecurityEvent("print_attempt")
+      void emitSecurityEvent("print_attempt")
     }
 
     document.addEventListener("visibilitychange", onVisibilityChange)
@@ -606,7 +622,7 @@ export default function ExamSecurityClient({
       window.removeEventListener("online", onOnline)
       window.removeEventListener("beforeprint", onBeforePrint)
     }
-  }, [enabled, sessionId, policy, sendSecurityEvent, enterFullscreen])
+  }, [enabled, sessionId, policy, emitSecurityEvent, enterFullscreen])
 
   // ── Detección de DevTools (resize heurístico) ─────────────
   useEffect(() => {
@@ -627,7 +643,7 @@ export default function ExamSecurityClient({
         ) {
           if (!devtoolsOpenRef.current) {
             devtoolsOpenRef.current = true
-            void sendSecurityEvent("blocked_shortcut", {
+            void emitSecurityEvent("blocked_shortcut", {
               detail: "devtools_resize",
               dw,
               dh,
@@ -643,7 +659,7 @@ export default function ExamSecurityClient({
 
     window.addEventListener("resize", onResize)
     return () => window.removeEventListener("resize", onResize)
-  }, [enabled, sessionId, sendSecurityEvent])
+  }, [enabled, sessionId, emitSecurityEvent])
 
   // ── CSS de seguridad global ────────────────────────────────
   useEffect(() => {
