@@ -1,17 +1,15 @@
 // app/examen/p/[code]/page.tsx
-// VERSIÓN CON MODO KIOSK + SISTEMA DE SEGURIDAD INTEGRADO
+// VERSIÓN CORREGIDA — kiosk + seguridad integrada
+
 "use client"
 
-import { useEffect, useRef, useState, useCallback } from "react"
+import { useEffect, useRef, useState, useCallback, useMemo } from "react"
 import { useParams } from "next/navigation"
 import { createClient } from "@supabase/supabase-js"
 import ExamMathText from "@/components/ui/ExamMathText"
 import ExamSecurityExamBridge from "@/components/exam-security/ExamSecurityExamBridge"
 
-// ── Supabase del PANEL DE CONTROL (para leer examenes_kiosk) ─────────────────
-// Estas vars deben estar en el .env.local de EduAI Platform:
-//   NEXT_PUBLIC_PANEL_SUPABASE_URL=https://iiuglkpkkfrjazewuknt.supabase.co
-//   NEXT_PUBLIC_PANEL_SUPABASE_ANON_KEY=tu_anon_key_del_panel
+// ── Supabase del PANEL DE CONTROL ────────────────────────────────────────────
 const PANEL_URL = process.env.NEXT_PUBLIC_PANEL_SUPABASE_URL || ""
 const PANEL_KEY = process.env.NEXT_PUBLIC_PANEL_SUPABASE_ANON_KEY || ""
 
@@ -20,14 +18,18 @@ function getPanelClient() {
   return createClient(PANEL_URL, PANEL_KEY)
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function calcGrade(s: number, e = 60) {
-  const p = Math.max(0, Math.min(100, s))
-  return Math.round((p >= e ? 4 + ((p - e) * 3) / (100 - e) : 1 + (p * 3) / e) * 10) / 10
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function calcGrade(scorePercent: number, exigencia = 60) {
+  const p = Math.max(0, Math.min(100, scorePercent))
+  return Math.round(
+    (p >= exigencia
+      ? 4 + ((p - exigencia) * 3) / (100 - exigencia)
+      : 1 + (p * 3) / exigencia) * 10
+  ) / 10
 }
 
-function fmt(s: number) {
-  return `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`
+function fmt(seconds: number) {
+  return `${Math.floor(seconds / 60)}:${(seconds % 60).toString().padStart(2, "0")}`
 }
 
 function getQuestionMaxPoints(q: any) {
@@ -51,12 +53,16 @@ function getQuestionMaxPoints(q: any) {
   return 1
 }
 
-type Phase = "loading" | "kiosk_entry" | "register" | "exam" | "submitting" | "review" | "error" | "kiosk_closed"
+type Phase =
+  | "loading"
+  | "kiosk_entry"
+  | "register"
+  | "exam"
+  | "submitting"
+  | "review"
+  | "error"
+  | "kiosk_closed"
 
-// ── OVERLAY DE SEGURIDAD — con temporizador de bloqueo ───────────────────────
-
-// ── PANTALLA DE ENTRADA AL MODO SEGURO (sin kiosk app) ───────────────────────
-// ── OVERLAY DE ADVERTENCIA KIOSK (mantener para compatibilidad) ──────────────
 function KioskWarningOverlay({ onDismiss }: { onDismiss: () => void }) {
   return (
     <div className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center">
@@ -64,11 +70,13 @@ function KioskWarningOverlay({ onDismiss }: { onDismiss: () => void }) {
         <div className="text-6xl mb-4">🔒</div>
         <h2 className="text-white text-xl font-bold mb-3">Examen en progreso</h2>
         <p className="text-gray-400 text-sm mb-6">
-          No puedes salir del examen. La pantalla completa es obligatoria
-          durante la evaluación. Solo el docente o el tiempo pueden cerrar este examen.
+          No puedes salir del examen. La pantalla completa es obligatoria durante la evaluación.
+          Solo el docente o el tiempo pueden cerrar este examen.
         </p>
-        <button onClick={onDismiss}
-          className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-xl w-full">
+        <button
+          onClick={onDismiss}
+          className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-xl w-full"
+        >
           Volver al examen
         </button>
       </div>
@@ -76,360 +84,179 @@ function KioskWarningOverlay({ onDismiss }: { onDismiss: () => void }) {
   )
 }
 
-// ── COMPONENTE PRINCIPAL ───────────────────────────────────────────────────────
 export default function ExamenPublicoPage() {
   const { code } = useParams() as { code: string }
 
-  const [phase, setPhase]     = useState<Phase>("loading")
-  const [exam, setExam]       = useState<any>(null)
+  const [phase, setPhase] = useState<Phase>("loading")
+  const [exam, setExam] = useState<any>(null)
   const [errorMsg, setErrorMsg] = useState("")
 
-  const [name, setName]     = useState("")
+  const [name, setName] = useState("")
   const [course, setCourse] = useState("")
-  const [rut, setRut]       = useState("")
+  const [rut, setRut] = useState("")
 
-  const [curQ, setCurQ]         = useState(0)
+  const [curQ, setCurQ] = useState(0)
   const [mcAnswers, setMcAnswers] = useState<Record<number, number>>({})
   const [devAnswers, setDevAnswers] = useState<Record<number, string>>({})
   const [tfJustifications, setTfJustifications] = useState<Record<number, string>>({})
-  const [timeLeft, setTimeLeft]   = useState(0)
+  const [timeLeft, setTimeLeft] = useState(0)
   const [submission, setSubmission] = useState<any>(null)
 
-  // ── Estado kiosk ─────────────────────────────────────────────────────────────
-  const [isKiosk, setIsKiosk]       = useState(false)
-  const [kioskSala, setKioskSala]   = useState("")
+  // kiosk
+  const [isKiosk, setIsKiosk] = useState(false)
+  const [kioskSala, setKioskSala] = useState("")
   const [kioskExamId, setKioskExamId] = useState<string | null>(null)
   const [showWarning, setShowWarning] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
 
-  // ── Estado de seguridad (ExamSecurityExamBridge) ──────────────────────────────
-  const [securityBlocked,  setSecurityBlocked]  = useState(false)
+  // seguridad
+  const [securityBlocked, setSecurityBlocked] = useState(false)
   const [securitySessionId, setSecuritySessionId] = useState<string | null>(null)
-  const [attemptId]                           = useState(() =>   // ID único del intento
-    `${Date.now()}-${Math.random().toString(36).slice(2,8)}`)
+  const [securityTerminateReason, setSecurityTerminateReason] = useState<string>("")
+  const [submittedForSecurity, setSubmittedForSecurity] = useState(false)
 
-  const timerRef        = useRef<NodeJS.Timeout | null>(null)
-  const startRef        = useRef(0)
-  const panelPollRef    = useRef<NodeJS.Timeout | null>(null)
-  const realtimeRef     = useRef<any>(null)
-  const fullscreenGuard = useRef(false) // evitar bucle de re-requests
+  const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const startRef = useRef(0)
+  const panelPollRef = useRef<NodeJS.Timeout | null>(null)
+  const realtimeRef = useRef<any>(null)
+  const fullscreenGuard = useRef(false)
 
-  // ── Detectar parámetros kiosk en el cliente ────────────────────────────────
+  const qs = exam?.questions || []
+  const q = qs[curQ]
+  const totalQ = qs.length
+
+  const examTotalPoints = useMemo(
+    () => qs.reduce((acc: number, item: any) => acc + getQuestionMaxPoints(item), 0),
+    [qs]
+  )
+
+  const answeredCount = useMemo(() => {
+    return qs.filter((item: any, i: number) => {
+      if (item.type === "development") {
+        return Boolean(devAnswers[i] && devAnswers[i].trim().length > 0)
+      }
+
+      if (item.type === "true_false") {
+        return (
+          mcAnswers[i] !== undefined ||
+          Boolean(tfJustifications[i] && tfJustifications[i].trim().length > 0)
+        )
+      }
+
+      return mcAnswers[i] !== undefined
+    }).length
+  }, [qs, mcAnswers, devAnswers, tfJustifications])
+
+  const showRes = exam?.settings?.showResultToStudent !== false
+
+  // ── Detectar kiosk ─────────────────────────────────────────────────────────
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     if (params.get("kiosk") === "1") {
       setIsKiosk(true)
       setKioskSala(params.get("sala") || "")
+      setPhase("kiosk_entry")
     }
   }, [])
 
-  // ── Solicitar fullscreen (solo en kiosk) ──────────────────────────────────
-  // ── requestFullscreen: intenta con y sin navigationUI ──────────────────────
+  // ── Cargar examen ──────────────────────────────────────────────────────────
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadExam() {
+      try {
+        setPhase((prev) => (prev === "kiosk_entry" ? prev : "loading"))
+
+        const res = await fetch("/api/agents/examen-docente", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "public_exam_by_code",
+            code,
+          }),
+        })
+
+        const data = await res.json()
+        if (!data?.success) {
+          throw new Error(data?.error || "No se pudo cargar el examen.")
+        }
+
+        if (cancelled) return
+
+        setExam(data.exam)
+        setTimeLeft((data.exam?.settings?.timeLimit || 30) * 60)
+
+        if (!isKiosk) {
+          setPhase("register")
+        }
+      } catch (e: any) {
+        if (cancelled) return
+        setErrorMsg(e?.message || "Error al cargar el examen.")
+        setPhase("error")
+      }
+    }
+
+    void loadExam()
+
+    return () => {
+      cancelled = true
+    }
+  }, [code, isKiosk])
+
+  // ── Fullscreen helpers ─────────────────────────────────────────────────────
   const requestFullscreen = useCallback(() => {
     if (!isKiosk) return
     if (document.fullscreenElement) return
+
     const el = document.documentElement
     ;(el.requestFullscreen({ navigationUI: "hide" } as any) as Promise<void>)
       .catch(() => el.requestFullscreen().catch(() => {}))
   }, [isKiosk])
 
-  // ── Re-pedir fullscreen si la fase activa lo requiere ────────────────────
+  const enterFullscreenAndRegister = useCallback(() => {
+    const el = document.documentElement
+    el.requestFullscreen({ navigationUI: "hide" } as any)
+      .catch((err) => {
+        console.warn("[KIOSK] Fullscreen failed:", err)
+      })
+      .finally(() => {
+        setPhase("register")
+      })
+  }, [])
+
+  // ── Estado fullscreen ──────────────────────────────────────────────────────
   useEffect(() => {
-    if (!isKiosk) return
-    if (phase === "exam" || phase === "register") {
-      requestFullscreen()
-    }
-  }, [phase, isKiosk, requestFullscreen])
+    const onFs = () => {
+      const current = !!document.fullscreenElement
+      setIsFullscreen(current)
 
-  // ── Bloquear salida de fullscreen — re-entrada agresiva ───────────────────
-  useEffect(() => {
-    if (!isKiosk) return
-
-    function onFullscreenChange() {
-      const inFS = !!document.fullscreenElement
-      setIsFullscreen(inFS)
-
-      if (!inFS && (phase === "exam" || phase === "register") && !fullscreenGuard.current) {
+      if (
+        isKiosk &&
+        (phase === "exam" || phase === "submitting") &&
+        !current &&
+        !fullscreenGuard.current
+      ) {
         fullscreenGuard.current = true
         setShowWarning(true)
-        // Intento 1: inmediato (puede fallar sin gesto de usuario)
-        requestFullscreen()
-        // Intento 2: 800 ms después por si el primero falló
-        setTimeout(() => { requestFullscreen() }, 800)
-        // Intento 3: 2 s — cuando el alumno hace clic en "Volver al examen"
-        setTimeout(() => { fullscreenGuard.current = false }, 2000)
+
+        setTimeout(() => {
+          fullscreenGuard.current = false
+        }, 900)
       }
     }
 
-    document.addEventListener("fullscreenchange", onFullscreenChange)
-    return () => document.removeEventListener("fullscreenchange", onFullscreenChange)
-  }, [isKiosk, phase, requestFullscreen])
+    document.addEventListener("fullscreenchange", onFs)
+    return () => document.removeEventListener("fullscreenchange", onFs)
+  }, [isKiosk, phase])
 
-  // ── Bloquear teclas peligrosas en modo kiosk ──────────────────────────────
-  useEffect(() => {
-    if (!isKiosk) return
-
-    function killKey(e: KeyboardEvent) {
-      const key  = e.key
-      const ctrl = e.ctrlKey
-      const alt  = e.altKey
-      const shift = e.shiftKey
-      const meta = e.metaKey
-
-      const blocked =
-        // Salir de fullscreen / cerrar
-        key === "Escape" ||
-        key === "F11" ||
-        (alt  && key === "F4") ||
-        // Cerrar pestaña / ventana
-        (ctrl && (key === "w" || key === "W")) ||
-        (ctrl && (key === "F4")) ||
-        // Cambiar pestaña
-        (ctrl && (key === "Tab" || key === "t" || key === "T")) ||
-        (ctrl && alt && (key === "Tab")) ||
-        // Nueva ventana / incognito
-        (ctrl && (key === "n" || key === "N")) ||
-        (ctrl && shift && (key === "n" || key === "N")) ||
-        // DevTools
-        key === "F12" ||
-        (ctrl && shift && (key === "j" || key === "J")) ||
-        (ctrl && shift && (key === "i" || key === "I")) ||
-        (ctrl && shift && (key === "c" || key === "C")) ||
-        // Barra de direcciones
-        (ctrl && (key === "l" || key === "L")) ||
-        key === "F6" ||
-        // Recargar
-        key === "F5" ||
-        (ctrl && (key === "r" || key === "R")) ||
-        // Tecla Windows / Meta
-        key === "Meta" ||
-        meta ||
-        // Copiar / Pegar / Cortar / Seleccionar todo
-        (ctrl && (key === "c" || key === "C")) ||
-        (ctrl && (key === "v" || key === "V")) ||
-        (ctrl && (key === "x" || key === "X")) ||
-        (ctrl && (key === "a" || key === "A")) ||
-        // Captura de pantalla
-        key === "PrintScreen"
-
-      if (blocked) {
-        e.preventDefault()
-        e.stopImmediatePropagation()
-      }
-    }
-
-    function killKeyUp(e: KeyboardEvent) {
-      if (e.key === "Escape" || e.key === "F11" || e.key === "Meta" || e.key === "PrintScreen") {
-        e.preventDefault()
-        e.stopImmediatePropagation()
-      }
-    }
-
-
-    function killClipboard(e: ClipboardEvent) {
-      e.preventDefault()
-      e.stopImmediatePropagation()
-    }
-
-    function onContextMenu(e: MouseEvent) {
-      e.preventDefault()
-      e.stopImmediatePropagation()
-    }
-
-    function onBeforeUnload(e: BeforeUnloadEvent) {
-      e.preventDefault()
-      e.returnValue = "El examen esta en progreso."
-    }
-
-    // Captura en fase de captura (true) para interceptar antes que el browser
-    document.addEventListener("keydown",     killKey,       true)
-    document.addEventListener("keyup",       killKeyUp,     true)
-    document.addEventListener("copy",        killClipboard, true)
-    document.addEventListener("cut",         killClipboard, true)
-    document.addEventListener("paste",       killClipboard, true)
-    document.addEventListener("contextmenu", onContextMenu, true)
-    window.addEventListener("beforeunload",  onBeforeUnload)
-
-    return () => {
-      document.removeEventListener("keydown",     killKey,       true)
-      document.removeEventListener("keyup",       killKeyUp,     true)
-      document.removeEventListener("copy",        killClipboard, true)
-      document.removeEventListener("cut",         killClipboard, true)
-      document.removeEventListener("paste",       killClipboard, true)
-      document.removeEventListener("contextmenu", onContextMenu, true)
-      window.removeEventListener("beforeunload",  onBeforeUnload)
-    }
-  }, [isKiosk])
-
-  // ── Detectar cambio de pestaña / pérdida de foco ──────────────────────────
-  useEffect(() => {
-    if (!isKiosk) return
-
-    function onVisibilityChange() {
-      if (!document.hidden) {
-        // Volvió al tab → re-pedir fullscreen
-        requestFullscreen()
-      }
-    }
-
-    function onWindowBlur() {
-      // Perdió foco (alt-tab, click en taskbar, etc.) → mostrar advertencia
-      if (phase === "exam" || phase === "register") {
-        setShowWarning(true)
-        // Intentar volver al foco
-        setTimeout(() => window.focus(), 200)
-      }
-    }
-
-    document.addEventListener("visibilitychange", onVisibilityChange)
-    window.addEventListener("blur", onWindowBlur)
-
-    return () => {
-      document.removeEventListener("visibilitychange", onVisibilityChange)
-      window.removeEventListener("blur", onWindowBlur)
-    }
-  }, [isKiosk, phase, requestFullscreen])
-
-  // ── Polling al panel Supabase para detectar cierre del examen ─────────────
-  useEffect(() => {
-    if (!isKiosk || !kioskSala || !code) return
-
-    const panelClient = getPanelClient()
-    if (!panelClient) {
-      console.warn("[KIOSK] Sin credenciales del panel Supabase — el cierre remoto no funcionará")
-      return
-    }
-
-    // Primero: obtener el exam_id del examen activo para esta sala y código
-    async function obtenerExamId() {
-      const { data } = await panelClient!
-        .from("examenes_kiosk")
-        .select("id, cerrar_ahora, estado")
-        .eq("sala", kioskSala)
-        .eq("exam_code", code)
-        .eq("estado", "activo")
-        .limit(1)
-
-      if (data && data.length > 0) {
-        setKioskExamId(data[0].id)
-        return data[0].id
-      }
-      return null
-    }
-
-    let examId: string | null = null
-
-    obtenerExamId().then(id => {
-      examId = id
-      if (!id) return
-
-      // Suscripción realtime para recibir cierre inmediato
-      const canal = panelClient!
-        .channel(`exam_kiosk_${id}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "UPDATE",
-            schema: "public",
-            table: "examenes_kiosk",
-            filter: `id=eq.${id}`,
-          },
-          (payload: any) => {
-            const row = payload.new
-            if (row.cerrar_ahora === true || row.estado === "cerrado") {
-              console.log("[KIOSK] Cierre recibido vía realtime")
-              handleKioskClose()
-            }
-          }
-        )
-        .subscribe()
-
-      realtimeRef.current = canal
-
-      // Polling de respaldo cada 6 s (por si realtime falla)
-      panelPollRef.current = setInterval(async () => {
-        if (!examId) return
-        const { data: rows } = await panelClient!
-          .from("examenes_kiosk")
-          .select("cerrar_ahora, estado")
-          .eq("id", examId)
-          .limit(1)
-
-        if (!rows || rows.length === 0) {
-          handleKioskClose()
-          return
-        }
-        if (rows[0].cerrar_ahora === true || rows[0].estado === "cerrado") {
-          handleKioskClose()
-        }
-      }, 6000)
-    })
-
-    return () => {
-      if (panelPollRef.current) clearInterval(panelPollRef.current)
-      if (realtimeRef.current) panelClient.removeChannel(realtimeRef.current)
-    }
-  }, [isKiosk, kioskSala, code])
-
-  function handleKioskClose() {
-    // Limpiar polling
-    if (panelPollRef.current) clearInterval(panelPollRef.current)
-    if (realtimeRef.current) {
-      const panelClient = getPanelClient()
-      if (panelClient) panelClient.removeChannel(realtimeRef.current)
-    }
-
-    // Limpiar timer del examen
-    if (timerRef.current) clearInterval(timerRef.current)
-
-    // Salir de fullscreen
-    if (document.fullscreenElement) {
-      document.exitFullscreen().catch(() => {})
-    }
-
-    setPhase("kiosk_closed")
-  }
-
-  // ── Cargar examen ─────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!code) return
-
-    fetch(`/api/agents/examen-docente?code=${code}`)
-      .then(r => r.json())
-      .then(d => {
-        if (d.error) {
-          setErrorMsg(d.error)
-          setPhase("error")
-          return
-        }
-        setExam(d.exam)
-        setTimeLeft((d.exam.settings?.timeLimit || 30) * 60)
-
-        // Detectar si el examen tiene modo seguro activado
-
-        const urlParams = new URLSearchParams(window.location.search)
-        if (urlParams.get("kiosk") === "1") {
-          setPhase("kiosk_entry")
-        } else {
-          // En modo seguro o normal → siempre ir directo a register
-          // El fullscreen se activa silenciosamente al hacer clic en "Iniciar examen"
-          setPhase("register")
-        }
-      })
-      .catch(() => {
-        setErrorMsg("Error cargando examen")
-        setPhase("error")
-      })
-  }, [code])
-
-  // ── Timer del examen ──────────────────────────────────────────────────────
+  // ── Timer examen ───────────────────────────────────────────────────────────
   useEffect(() => {
     if (phase !== "exam") return
 
     timerRef.current = setInterval(() => {
-      setTimeLeft(prev => {
+      setTimeLeft((prev) => {
         if (prev <= 1) {
-          doSubmit()
+          if (timerRef.current) clearInterval(timerRef.current)
           return 0
         }
         return prev - 1
@@ -441,198 +268,240 @@ export default function ExamenPublicoPage() {
     }
   }, [phase])
 
-  const enterFullscreenAndRegister = () => {
-    const el = document.documentElement
-    el.requestFullscreen({ navigationUI: "hide" } as any).catch(err => {
-      console.warn("[KIOSK] Fullscreen failed:", err)
-    }).finally(() => {
-      setPhase("register")
-    })
-  }
+  // ── Auto submit por tiempo ────────────────────────────────────────────────
+  useEffect(() => {
+    if (phase !== "exam") return
+    if (timeLeft > 0) return
+    if (!exam) return
 
-  // ── Entrada al modo seguro (sin kiosk app) ────────────────────────────────
-  const startExam = () => {
+    void doSubmit("time_up")
+  }, [phase, timeLeft, exam])
+
+  // ── Inicio examen ──────────────────────────────────────────────────────────
+  const startExam = useCallback(() => {
     if (!name.trim() || !course.trim()) return
+
     startRef.current = Date.now()
+    setSubmittedForSecurity(false)
+    setSecurityBlocked(false)
+    setSecurityTerminateReason("")
 
     const doStart = () => {
       setPhase("exam")
       if (isKiosk) setTimeout(requestFullscreen, 300)
-      // ExamSecurityExamBridge se monta automáticamente cuando phase === "exam"
-      // y solicita fullscreen según la policy de la DB
     }
 
-    // Solicitar fullscreen al click (gesto válido del usuario)
     document.documentElement
       .requestFullscreen({ navigationUI: "hide" } as any)
       .catch(() => {})
       .finally(doStart)
-  }
+  }, [name, course, isKiosk, requestFullscreen])
 
-  const doSubmit = async () => {
-    if (timerRef.current) clearInterval(timerRef.current)
+  // ── Submit examen ──────────────────────────────────────────────────────────
+  const doSubmit = useCallback(
+    async (_reason: "manual" | "forced" | "time_up" = "manual") => {
+      if (!exam) return
+      if (phase === "submitting" || phase === "review") return
 
-    setPhase("submitting")
+      if (timerRef.current) clearInterval(timerRef.current)
 
-    const qs = exam.questions || []
-    const ansArr = qs.map((q: any, i: number) => {
-      if (q.type === "development") {
-        return {
-          devText: devAnswers[i] || "",
-          selectedAnswer: -1,
+      setSubmittedForSecurity(true)
+      setPhase("submitting")
+
+      const ansArr = (exam.questions || []).map((question: any, i: number) => {
+        if (question.type === "development") {
+          return {
+            devText: devAnswers[i] || "",
+            selectedAnswer: -1,
+          }
         }
-      }
 
-      if (q.type === "true_false") {
+        if (question.type === "true_false") {
+          return {
+            selectedAnswer: mcAnswers[i] ?? -1,
+            justification: tfJustifications[i] || "",
+          }
+        }
+
         return {
           selectedAnswer: mcAnswers[i] ?? -1,
-          justification: tfJustifications[i] || "",
         }
-      }
-
-      return {
-        selectedAnswer: mcAnswers[i] ?? -1,
-      }
-    })
-
-    try {
-      const res = await fetch("/api/agents/examen-docente", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "submit",
-          examId: exam.id,
-          studentName: name,
-          studentCourse: course,
-          studentRut: rut || null,
-          answers: ansArr,
-          questions: qs,
-          timeSpent: Math.round((Date.now() - startRef.current) / 1000),
-          examPercentage: exam.settings?.examPercentage || 60,
-        }),
       })
 
-      const d = await res.json()
-      if (!d.success) throw new Error(d.error)
+      try {
+        const res = await fetch("/api/agents/examen-docente", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "submit",
+            examId: exam.id,
+            studentName: name,
+            studentCourse: course,
+            studentRut: rut || null,
+            answers: ansArr,
+            questions: exam.questions || [],
+            timeSpent: Math.round((Date.now() - startRef.current) / 1000),
+            examPercentage: exam.settings?.examPercentage || 60,
+          }),
+        })
 
-      setSubmission(d.submission)
+        const data = await res.json()
+        if (!data?.success) {
+          throw new Error(data?.error || "No se pudo enviar el examen.")
+        }
 
-      setPhase("review")
+        setSubmission(data.submission)
+        setPhase("review")
 
-      // Salir de fullscreen al terminar el examen
-      if (document.fullscreenElement) {
-        document.exitFullscreen().catch(() => {})
+        if (document.fullscreenElement) {
+          document.exitFullscreen().catch(() => {})
+        }
+      } catch (e: any) {
+        setErrorMsg(e?.message || "Error al enviar el examen.")
+        setPhase("error")
       }
-    } catch (e: any) {
-      setErrorMsg(e.message)
-      setPhase("error")
-    }
-  }
-
-  const qs = exam?.questions || []
-  const q  = qs[curQ]
-  const totalQ = qs.length
-
-  const examTotalPoints = qs.reduce(
-    (acc: number, item: any) => acc + getQuestionMaxPoints(item),
-    0
+    },
+    [exam, phase, devAnswers, mcAnswers, tfJustifications, name, course, rut]
   )
 
-  const answeredCount = qs.filter((item: any, i: number) => {
-    if (item.type === "development") {
-      return Boolean(devAnswers[i] && devAnswers[i].trim().length > 0)
+  // ── Controles kiosk mínimos ────────────────────────────────────────────────
+  useEffect(() => {
+    if (!isKiosk) return
+    if (!(phase === "exam" || phase === "submitting")) return
+
+    const onContextMenu = (e: MouseEvent) => e.preventDefault()
+    const onCopy = (e: ClipboardEvent) => e.preventDefault()
+    const onPaste = (e: ClipboardEvent) => e.preventDefault()
+    const onCut = (e: ClipboardEvent) => e.preventDefault()
+
+    document.addEventListener("contextmenu", onContextMenu)
+    document.addEventListener("copy", onCopy)
+    document.addEventListener("paste", onPaste)
+    document.addEventListener("cut", onCut)
+
+    return () => {
+      document.removeEventListener("contextmenu", onContextMenu)
+      document.removeEventListener("copy", onCopy)
+      document.removeEventListener("paste", onPaste)
+      document.removeEventListener("cut", onCut)
     }
+  }, [isKiosk, phase])
 
-    if (item.type === "true_false") {
-      return (
-        mcAnswers[i] !== undefined ||
-        Boolean(tfJustifications[i] && tfJustifications[i].trim().length > 0)
-      )
+  // ── Poll opcional kiosk/panel ──────────────────────────────────────────────
+  useEffect(() => {
+    if (!isKiosk || !kioskSala || !exam?.id) return
+
+    const panel = getPanelClient()
+    if (!panel) return
+
+    setKioskExamId(exam.id)
+
+    panelPollRef.current = setInterval(async () => {
+      try {
+        const { data } = await panel
+          .from("examenes_kiosk")
+          .select("*")
+          .eq("exam_id", exam.id)
+          .eq("sala", kioskSala)
+          .maybeSingle()
+
+        if (data?.estado === "cerrado") {
+          setPhase("kiosk_closed")
+        }
+      } catch {}
+    }, 10000)
+
+    return () => {
+      if (panelPollRef.current) clearInterval(panelPollRef.current)
     }
+  }, [isKiosk, kioskSala, exam?.id])
 
-    return mcAnswers[i] !== undefined
-  }).length
+  // ── cleanup ────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current)
+      if (panelPollRef.current) clearInterval(panelPollRef.current)
+      if (realtimeRef.current?.unsubscribe) {
+        realtimeRef.current.unsubscribe()
+      }
+    }
+  }, [])
 
-  const showRes = exam?.settings?.showResultToStudent !== false
-
-  // ── PANTALLAS ─────────────────────────────────────────────────────────────
-
-  if (phase === "kiosk_entry" && exam) {
-    const totalPts = (exam.questions || []).reduce(
-      (acc: number, item: any) => acc + getQuestionMaxPoints(item), 0
-    )
+  // ── UI states ──────────────────────────────────────────────────────────────
+  if (phase === "loading") {
     return (
-      <div
-        className="fixed inset-0 z-[9999] flex items-center justify-center cursor-pointer select-none"
-        style={{ background: "radial-gradient(ellipse at 50% 40%, #0d1f3c 0%, #020408 65%)" }}
-        onClick={enterFullscreenAndRegister}
-      >
-        {/* Decorative grid */}
-        <div
-          className="absolute inset-0 opacity-[0.035]"
-          style={{
-            backgroundImage: "linear-gradient(#3b82f6 1px, transparent 1px), linear-gradient(90deg, #3b82f6 1px, transparent 1px)",
-            backgroundSize: "64px 64px",
-          }}
-        />
-
-        {/* Outer glow rings */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
-          <div className="w-[700px] h-[700px] rounded-full"
-            style={{ border: "1px solid rgba(59,130,246,0.07)", animation: "kiosk-ping 4s ease-in-out infinite" }} />
-          <div className="absolute w-[480px] h-[480px] rounded-full"
-            style={{ border: "1px solid rgba(59,130,246,0.10)", animation: "kiosk-ping 4s ease-in-out infinite 1.3s" }} />
-          <div className="absolute w-[300px] h-[300px] rounded-full"
-            style={{ border: "1px solid rgba(59,130,246,0.13)", animation: "kiosk-ping 4s ease-in-out infinite 2.6s" }} />
+      <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-pulse text-4xl mb-3">🧠</div>
+          <p className="text-gray-400">Cargando examen...</p>
         </div>
+      </div>
+    )
+  }
 
-        <div className="relative z-10 text-center max-w-md px-8">
-          {/* Icon */}
-          <div
-            className="w-28 h-28 rounded-[28px] flex items-center justify-center mx-auto mb-8"
-            style={{
-              background: "linear-gradient(135deg, rgba(29,78,216,0.25) 0%, rgba(59,130,246,0.10) 100%)",
-              border: "1px solid rgba(59,130,246,0.25)",
-              boxShadow: "0 0 80px rgba(59,130,246,0.18), inset 0 1px 0 rgba(255,255,255,0.05)",
-            }}
-          >
-            <span style={{ fontSize: "52px", lineHeight: 1 }}>&#x1F4DD;</span>
+  if (phase === "error") {
+    return (
+      <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center px-6">
+        <div className="max-w-md w-full bg-white/[0.04] border border-white/[0.08] rounded-3xl p-6 text-center">
+          <div className="text-5xl mb-3">⚠️</div>
+          <h2 className="text-2xl font-bold mb-2">Error</h2>
+          <p className="text-gray-400 text-sm">{errorMsg || "Ha ocurrido un problema."}</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (phase === "kiosk_closed") {
+    return (
+      <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center px-6">
+        <div className="max-w-md w-full bg-white/[0.04] border border-white/[0.08] rounded-3xl p-6 text-center">
+          <div className="text-5xl mb-3">🔒</div>
+          <h2 className="text-2xl font-bold mb-2">Examen cerrado</h2>
+          <p className="text-gray-400 text-sm">
+            La sesión de kiosco fue cerrada por el panel de control.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (phase === "kiosk_entry") {
+    const totalPts = (exam?.questions || []).reduce(
+      (acc: number, item: any) => acc + getQuestionMaxPoints(item),
+      0
+    )
+
+    return (
+      <div className="min-h-screen bg-gray-950 px-4 py-8 text-white">
+        <div className="max-w-2xl mx-auto">
+          <div className="text-center mb-10">
+            <div className="text-6xl mb-4">🧪</div>
+            <h1 className="text-4xl font-extrabold tracking-tight">{exam?.title || "Examen"}</h1>
+            <p className="text-gray-400 mt-3">{exam?.topic || "Evaluación"}</p>
+            {kioskSala ? (
+              <p className="text-blue-400 text-sm mt-2">Sala kiosk: {kioskSala}</p>
+            ) : null}
           </div>
 
-          {/* Sala badge */}
-          <div
-            className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 mb-6"
-            style={{
-              background: "rgba(59,130,246,0.08)",
-              border: "1px solid rgba(59,130,246,0.18)",
-            }}
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-400" style={{ animation: "pulse 2s ease-in-out infinite" }} />
-            <span className="text-blue-400 text-xs font-bold tracking-[0.2em] uppercase">
-              Sala: {kioskSala}
-            </span>
-          </div>
-
-          {/* Title */}
-          <h1 className="font-bold text-white mb-2 leading-tight" style={{ fontSize: "clamp(20px,3vw,32px)" }}>
-            {exam.title}
-          </h1>
-          <p className="text-gray-500 text-sm mb-10">{exam.topic}</p>
-
-          {/* Stats row */}
           <div
             className="flex justify-center gap-0 mb-10 rounded-2xl overflow-hidden"
-            style={{ border: "1px solid rgba(255,255,255,0.05)", background: "rgba(255,255,255,0.02)" }}
+            style={{
+              border: "1px solid rgba(255,255,255,0.05)",
+              background: "rgba(255,255,255,0.02)",
+            }}
           >
             {[
-              { value: exam.questions?.length ?? 0, label: "preguntas" },
-              { value: exam.settings?.timeLimit ?? 30, label: "minutos" },
+              { value: exam?.questions?.length ?? 0, label: "preguntas" },
+              { value: exam?.settings?.timeLimit ?? 30, label: "minutos" },
               { value: totalPts, label: "puntos" },
             ].map((stat, i, arr) => (
               <div
                 key={i}
                 className="flex-1 py-5"
-                style={{ borderRight: i < arr.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none" }}
+                style={{
+                  borderRight:
+                    i < arr.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none",
+                }}
               >
                 <p className="text-white font-bold text-3xl">{stat.value}</p>
                 <p className="text-gray-600 text-xs mt-1">{stat.label}</p>
@@ -640,87 +509,30 @@ export default function ExamenPublicoPage() {
             ))}
           </div>
 
-          {/* CTA Button */}
           <button
-            onClick={e => { e.stopPropagation(); enterFullscreenAndRegister() }}
+            onClick={(e) => {
+              e.stopPropagation()
+              enterFullscreenAndRegister()
+            }}
             className="group relative w-full py-5 rounded-2xl text-white font-bold text-lg overflow-hidden"
             style={{
-              background: "linear-gradient(135deg, #1e40af 0%, #2563eb 50%, #3b82f6 100%)",
-              boxShadow: "0 0 0 1px rgba(59,130,246,0.3), 0 8px 32px rgba(59,130,246,0.25), 0 2px 8px rgba(0,0,0,0.5)",
+              background:
+                "linear-gradient(135deg, #1e40af 0%, #2563eb 50%, #3b82f6 100%)",
+              boxShadow:
+                "0 0 0 1px rgba(59,130,246,0.3), 0 8px 32px rgba(59,130,246,0.25), 0 2px 8px rgba(0,0,0,0.5)",
             }}
           >
             <span className="relative z-10 flex items-center justify-center gap-3">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
               </svg>
               Comenzar examen
             </span>
-            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
-              style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.05), transparent)" }} />
           </button>
 
-          <p className="text-gray-700 text-xs mt-5 leading-relaxed">
+          <p className="text-gray-700 text-xs mt-5 leading-relaxed text-center">
             Haz clic para comenzar. La pantalla se pondrá en modo completo automáticamente.
           </p>
-        </div>
-
-        <style>{`
-          @keyframes kiosk-ping {
-            0%   { transform: scale(1);    opacity: 1; }
-            80%  { transform: scale(1.15); opacity: 0; }
-            100% { transform: scale(1.15); opacity: 0; }
-          }
-        `}</style>
-      </div>
-    )
-  }
-
-  if (phase === "kiosk_closed") {
-    return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
-        <div className="text-center max-w-sm">
-          <div className="w-20 h-20 rounded-2xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center mx-auto mb-5">
-            <span className="text-4xl">⏹</span>
-          </div>
-          <h2 className="text-white text-xl font-bold mb-2">Examen finalizado</h2>
-          <p className="text-gray-500 text-sm">
-            El docente o administrador ha cerrado esta sesión de examen.
-          </p>
-          {!isKiosk && (
-            <p className="text-gray-700 text-xs mt-3">Puedes cerrar esta ventana.</p>
-          )}
-        </div>
-      </div>
-    )
-  }
-
-  if (phase === "loading") {
-    return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="w-10 h-10 rounded-full border-2 border-white/10 border-t-blue-400 animate-spin" />
-      </div>
-    )
-  }
-
-  if (phase === "error") {
-    return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
-        <div className="text-center">
-          <div className="text-4xl mb-3">❌</div>
-          <h2 className="text-white font-bold text-lg mb-2">Examen no disponible</h2>
-          <p className="text-gray-500 text-sm">{errorMsg}</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (phase === "submitting") {
-    return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 rounded-full border-2 border-white/10 border-t-green-400 animate-spin mx-auto mb-3" />
-          <p className="text-gray-400 text-sm">Evaluando respuestas con IA...</p>
-          <p className="text-gray-600 text-xs mt-1">Esto puede tomar unos segundos</p>
         </div>
       </div>
     )
@@ -728,87 +540,40 @@ export default function ExamenPublicoPage() {
 
   if (phase === "register") {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
-        {showWarning && (
-          <KioskWarningOverlay onDismiss={() => { setShowWarning(false); requestFullscreen() }} />
-        )}
-
-        {/* Banner kiosk */}
-        {isKiosk && (
-          <div className="fixed top-0 left-0 right-0 z-50 bg-blue-900/80 border-b border-blue-700/40 px-4 py-2 text-center">
-            <p className="text-blue-300 text-xs font-semibold">
-              🔒 MODO EXAMEN — Pantalla controlada · Sala: {kioskSala}
-            </p>
-          </div>
-        )}
-
-        <div className={`max-w-md w-full space-y-6 ${isKiosk ? "mt-10" : ""}`}>
-          <div className="text-center">
-            <div className="w-16 h-16 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center mx-auto mb-3">
-              <span className="text-3xl">📝</span>
-            </div>
-            <h1 className="text-xl font-bold text-white">{exam?.title}</h1>
-            <p className="text-gray-500 text-sm mt-1">{exam?.topic}</p>
-
-            <div className="flex justify-center gap-4 mt-3 text-xs text-gray-500">
-              <span>📋 {totalQ} preguntas</span>
-              <span>⏱ {exam?.settings?.timeLimit || 30} min</span>
-              <span>📊 {examTotalPoints} pts</span>
-            </div>
+      <div className="min-h-screen bg-gray-950 px-4 py-8 text-white flex items-center justify-center">
+        <div className="w-full max-w-xl bg-white/[0.04] border border-white/[0.08] rounded-3xl p-6 md:p-8">
+          <div className="text-center mb-6">
+            <div className="text-5xl mb-3">📝</div>
+            <h1 className="text-2xl md:text-3xl font-extrabold">{exam?.title || "Examen"}</h1>
+            <p className="text-gray-400 text-sm mt-2">{exam?.topic || "Completa tus datos para comenzar."}</p>
           </div>
 
-          {isKiosk && (
-            <div className="bg-orange-500/[0.06] border border-orange-500/20 rounded-2xl p-4">
-              <p className="text-orange-400 text-xs font-semibold mb-1">⚠ IMPORTANTE:</p>
-              <p className="text-gray-400 text-xs">
-                Este examen está en modo controlado. La pantalla completa es obligatoria y
-                no puedes cambiar de ventana ni cerrar el navegador. Solo el docente puede
-                finalizar la sesión anticipadamente.
-              </p>
-            </div>
-          )}
-
-          {exam?.instructions && (
-            <div className="bg-blue-500/[0.06] border border-blue-500/20 rounded-2xl p-4">
-              <p className="text-blue-400 text-xs font-semibold mb-1">INSTRUCCIONES:</p>
-              <div className="text-gray-400 text-sm">
-                <ExamMathText text={exam.instructions} className="inline" />
-              </div>
-            </div>
-          )}
-
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div>
-              <label className="text-gray-400 text-xs font-semibold block mb-1">
-                NOMBRE COMPLETO *
-              </label>
+              <label className="text-gray-400 text-xs font-semibold block mb-1">NOMBRE *</label>
               <input
                 value={name}
-                onChange={e => setName(e.target.value)}
-                placeholder="Juan Pérez López"
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Tu nombre completo"
                 className="w-full bg-white/[0.04] border border-white/[0.08] rounded-2xl px-4 py-3 text-gray-200 text-sm focus:outline-none focus:border-blue-500/30"
               />
             </div>
 
             <div>
-              <label className="text-gray-400 text-xs font-semibold block mb-1">
-                CURSO *
-              </label>
+              <label className="text-gray-400 text-xs font-semibold block mb-1">CURSO *</label>
               <input
                 value={course}
-                onChange={e => setCourse(e.target.value)}
+                onChange={(e) => setCourse(e.target.value)}
                 placeholder="8°A, 1° Medio B"
                 className="w-full bg-white/[0.04] border border-white/[0.08] rounded-2xl px-4 py-3 text-gray-200 text-sm focus:outline-none focus:border-blue-500/30"
               />
             </div>
 
             <div>
-              <label className="text-gray-400 text-xs font-semibold block mb-1">
-                RUT (opcional)
-              </label>
+              <label className="text-gray-400 text-xs font-semibold block mb-1">RUT (opcional)</label>
               <input
                 value={rut}
-                onChange={e => setRut(e.target.value)}
+                onChange={(e) => setRut(e.target.value)}
                 placeholder="12.345.678-9"
                 className="w-full bg-white/[0.04] border border-white/[0.08] rounded-2xl px-4 py-3 text-gray-200 text-sm focus:outline-none focus:border-blue-500/30"
               />
@@ -818,7 +583,7 @@ export default function ExamenPublicoPage() {
           <button
             onClick={startExam}
             disabled={!name.trim() || !course.trim()}
-            className="w-full py-3.5 rounded-2xl bg-blue-600/90 hover:bg-blue-500 text-white font-bold text-sm disabled:opacity-30"
+            className="w-full mt-6 py-3.5 rounded-2xl bg-blue-600/90 hover:bg-blue-500 text-white font-bold text-sm disabled:opacity-30"
           >
             Iniciar examen
           </button>
@@ -827,13 +592,35 @@ export default function ExamenPublicoPage() {
     )
   }
 
-  if (phase === "review" && submission) {
-    const nota = submission.grade
-    const pct = submission.score
+  if ((phase === "review" || phase === "submitting") && submission && phase !== "exam") {
+    const nota = submission.grade ?? calcGrade(Number(submission.score || 0), exam?.settings?.examPercentage || 60)
+    const pct = Number(submission.score || 0)
     const graded = submission.answers || []
 
     return (
       <div className="min-h-screen bg-gray-950 px-4 py-6">
+        {(phase === "submitting" || phase === "review") && exam?.id && (
+          <ExamSecurityExamBridge
+            examId={exam.id}
+            submissionId={submission?.id ?? null}
+            studentName={name}
+            studentCourse={course}
+            studentRut={rut || null}
+            currentQuestionIndex={curQ}
+            timeLeft={timeLeft}
+            enabled={!securityBlocked}
+            isSubmitted={submittedForSecurity}
+            onForceSubmit={() => doSubmit("forced")}
+            onSecurityTerminate={(reason) => {
+              setSecurityTerminateReason(reason || "Intento terminado por seguridad.")
+              setSecurityBlocked(true)
+            }}
+            onSessionReady={({ sessionId }) => {
+              setSecuritySessionId(sessionId)
+            }}
+          />
+        )}
+
         <div className="max-w-2xl mx-auto">
           <div className="text-center mb-6">
             <div className="text-5xl mb-2">
@@ -871,13 +658,6 @@ export default function ExamenPublicoPage() {
                     </p>
                   </div>
                 </div>
-
-                <div className="w-full bg-gray-800 rounded-full h-3 mt-4">
-                  <div
-                    className={`h-full rounded-full ${nota >= 4.0 ? "bg-green-500" : "bg-red-500"}`}
-                    style={{ width: `${pct}%` }}
-                  />
-                </div>
               </>
             ) : (
               <>
@@ -889,24 +669,35 @@ export default function ExamenPublicoPage() {
             )}
           </div>
 
+          {securityBlocked && (
+            <div className="mb-6 rounded-2xl border border-red-500/30 bg-red-500/10 p-4">
+              <p className="text-red-300 font-semibold">Sesión de seguridad bloqueada</p>
+              <p className="text-red-200/80 text-sm mt-1">
+                {securityTerminateReason || "El intento fue marcado por el sistema de seguridad."}
+              </p>
+              {securitySessionId ? (
+                <p className="text-red-200/60 text-xs mt-2">Session ID: {securitySessionId}</p>
+              ) : null}
+            </div>
+          )}
+
           {showRes && (
             <div className="space-y-3">
               <h3 className="text-gray-400 text-xs font-semibold tracking-widest">
                 REVISIÓN DETALLADA
               </h3>
 
-              {qs.map((q: any, i: number) => {
+              {qs.map((item: any, i: number) => {
                 const g = graded[i] || {}
-                const isDev = q.type === "development"
-                const isTF = q.type === "true_false"
+                const isDev = item.type === "development"
+                const isTF = item.type === "true_false"
                 const baseCorrect = g.isCorrect === true
 
-                const tfSelectionPoints =
-                  Number(g.selectionPoints ?? q.selectionPoints ?? 1) || 1
+                const tfSelectionPoints = Number(g.selectionPoints ?? item.selectionPoints ?? 1) || 1
                 const tfJustificationScore = Math.max(0, Number(g.justificationScore) || 0)
                 const tfJustificationMax = Math.max(
                   0,
-                  Number(g.justificationMaxPoints ?? q.justificationMaxPoints ?? 0) || 0
+                  Number(g.justificationMaxPoints ?? item.justificationMaxPoints ?? 0) || 0
                 )
                 const tfEarned = (baseCorrect ? tfSelectionPoints : 0) + tfJustificationScore
                 const tfTotal = tfSelectionPoints + tfJustificationMax
@@ -928,223 +719,57 @@ export default function ExamenPublicoPage() {
                 return (
                   <div
                     key={i}
-                    className={`rounded-2xl p-4 border ${
-                      reviewState === "dev"
-                        ? "bg-orange-500/[0.03] border-orange-500/10"
-                        : reviewState === "full"
-                          ? "bg-green-500/[0.03] border-green-500/10"
-                          : reviewState === "partial"
-                            ? "bg-yellow-500/[0.03] border-yellow-500/10"
-                            : "bg-red-500/[0.03] border-red-500/10"
-                    }`}
+                    className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4"
                   >
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Pregunta {i + 1}</p>
+                        <div className="text-white text-sm leading-relaxed">
+                          <ExamMathText text={item.question || item.statement || ""} />
+                        </div>
+                      </div>
+
                       <span
-                        className={`text-sm ${
-                          reviewState === "dev"
-                            ? "text-orange-400"
-                            : reviewState === "full"
-                              ? "text-green-400"
-                              : reviewState === "partial"
-                                ? "text-yellow-400"
-                                : "text-red-400"
-                        }`}
-                      >
-                        {reviewState === "dev"
-                          ? "✍️"
-                          : reviewState === "full"
-                            ? "✅"
+                        className={`text-[11px] px-2 py-1 rounded-full font-semibold ${
+                          reviewState === "full"
+                            ? "bg-green-500/15 text-green-300"
                             : reviewState === "partial"
-                              ? "◑"
-                              : "❌"}
-                      </span>
-
-                      <span className="text-gray-400 text-xs font-semibold">P{i + 1}</span>
-
-                      <span
-                        className={`text-[10px] px-1.5 py-0.5 rounded ${
-                          q.type === "multiple_choice"
-                            ? "bg-blue-500/10 text-blue-400"
-                            : isTF
-                              ? "bg-green-500/10 text-green-400"
-                              : "bg-orange-500/10 text-orange-400"
+                              ? "bg-yellow-500/15 text-yellow-300"
+                              : reviewState === "dev"
+                                ? "bg-blue-500/15 text-blue-300"
+                                : "bg-red-500/15 text-red-300"
                         }`}
                       >
-                        {q.type === "multiple_choice"
-                          ? "Alternativas"
-                          : isTF
-                            ? "V/F"
-                            : "Desarrollo"}
+                        {reviewState === "full"
+                          ? "Correcta"
+                          : reviewState === "partial"
+                            ? "Parcial"
+                            : reviewState === "dev"
+                              ? "Desarrollo"
+                              : "Incorrecta"}
                       </span>
-
-                      {g.aiScore !== undefined && (
-                        <span className="text-[10px] text-blue-400 ml-auto">
-                          {g.aiScore}/{g.aiMaxScore} pts (IA)
-                        </span>
-                      )}
-
-                      {isTF && (
-                        <span className="text-[10px] text-blue-400 ml-auto">
-                          {tfEarned}/{tfTotal} pts
-                        </span>
-                      )}
                     </div>
-
-                    <div className="text-gray-200 text-sm mb-3">
-                      <ExamMathText text={q.question} className="inline" />
-                    </div>
-
-                    {q.type === "multiple_choice" && (
-                      <div className="space-y-1 mb-3">
-                        {(q.options || []).map((opt: string, j: number) => {
-                          const isStudent = g.selectedAnswer === j
-                          const isRight = j === q.correctAnswer
-
-                          return (
-                            <div
-                              key={j}
-                              className={`text-xs px-3 py-1.5 rounded-lg ${
-                                isRight
-                                  ? "bg-green-500/10 text-green-400 border border-green-500/20"
-                                  : isStudent
-                                    ? "bg-red-500/10 text-red-400 border border-red-500/20 line-through"
-                                    : "text-gray-600"
-                              }`}
-                            >
-                              {String.fromCharCode(65 + j)}{" "}
-                              <ExamMathText text={opt.replace(/^[A-Da-d][).]\s*/u, "")} className="inline" />{" "}
-                              {isRight && "✓"} {isStudent && !isRight && "← tu respuesta"}
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
-
-                    {isTF && (
-                      <div className="space-y-2 mb-3">
-                        <div className="flex gap-2">
-                          {(q.options || ["Verdadero", "Falso"]).map((opt: string, j: number) => (
-                            <div
-                              key={j}
-                              className={`text-xs px-3 py-1.5 rounded-lg flex-1 text-center ${
-                                j === q.correctAnswer
-                                  ? "bg-green-500/10 text-green-400 border border-green-500/20"
-                                  : g.selectedAnswer === j
-                                    ? "bg-red-500/10 text-red-400 border border-red-500/20"
-                                    : "text-gray-600"
-                              }`}
-                            >
-                              <ExamMathText text={opt} className="inline" />{" "}
-                              {j === q.correctAnswer && "✓"}{" "}
-                              {g.selectedAnswer === j && j !== q.correctAnswer && "✗"}
-                            </div>
-                          ))}
-                        </div>
-
-                        {g.justification && (
-                          <div className="bg-white/[0.03] rounded-lg p-2.5 border border-white/[0.06]">
-                            <p className="text-gray-600 text-[10px] font-semibold">
-                              TU JUSTIFICACIÓN:
-                            </p>
-                            <p className="text-gray-300 text-xs whitespace-pre-wrap">
-                              {g.justification}
-                            </p>
-                          </div>
-                        )}
-
-                        {g.justificationFeedback && (
-                          <div className="bg-blue-500/[0.05] rounded-lg p-2.5 border-l-2 border-blue-500/30">
-                            <p className="text-blue-400 text-[10px] font-semibold">
-                              EVALUACIÓN IA ({g.justificationScore}/
-                              {g.justificationMaxPoints ?? q.justificationMaxPoints ?? 2} pts):
-                            </p>
-                            <p className="text-gray-400 text-xs whitespace-pre-wrap">
-                              {g.justificationFeedback}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {isDev && (
-                      <div className="space-y-2 mb-3">
-                        <div className="bg-white/[0.03] rounded-lg p-2.5 border border-white/[0.06]">
-                          <p className="text-gray-600 text-[10px] font-semibold">
-                            TU RESPUESTA:
-                          </p>
-                          <p className="text-gray-300 text-xs whitespace-pre-wrap">
-                            {g.devText || "Sin respuesta"}
-                          </p>
-                        </div>
-
-                        <div className="bg-green-500/[0.05] rounded-lg p-2.5 border border-green-500/10">
-                          <p className="text-green-400 text-[10px] font-semibold">
-                            RESPUESTA MODELO:
-                          </p>
-                          <div className="text-gray-300 text-xs">
-                            <ExamMathText text={q.modelAnswer || ""} className="inline" />
-                          </div>
-                        </div>
-
-                        {g.aiFeedback && (
-                          <div className="bg-blue-500/[0.05] rounded-lg p-2.5 border-l-2 border-blue-500/30">
-                            <p className="text-blue-400 text-[10px] font-semibold">
-                              EVALUACIÓN IA ({g.aiScore}/{g.aiMaxScore} pts):
-                            </p>
-                            <p className="text-gray-400 text-xs whitespace-pre-wrap">
-                              {g.aiFeedback}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {q.explanation && !isDev && (
-                      <div className="bg-blue-500/[0.05] rounded-lg p-2.5 border-l-2 border-blue-500/30">
-                        <p className="text-blue-400 text-[10px] font-semibold">
-                          EXPLICACIÓN:
-                        </p>
-                        <div className="text-gray-400 text-xs">
-                          <ExamMathText text={q.explanation} className="inline" />
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )
               })}
             </div>
           )}
-
-          <div className="text-center mt-6">
-            <p className="text-gray-600 text-xs">
-              {exam?.title} — {name} ({course})
-            </p>
-            {!isKiosk && (
-              <p className="text-gray-700 text-xs mt-1">Puedes cerrar esta ventana</p>
-            )}
-            {isKiosk && (
-              <p className="text-gray-700 text-xs mt-1">
-                Espera las instrucciones del docente antes de cerrar.
-              </p>
-            )}
-          </div>
         </div>
       </div>
     )
   }
 
-  // ── PANTALLA DEL EXAMEN (preguntas) ─────────────────────────────────────────
+  if (!exam || phase === "submitting") {
+    return (
+      <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center">
+        <p className="text-gray-400">Enviando examen...</p>
+      </div>
+    )
+  }
+
   return (
-    <div className="min-h-screen bg-gray-950"
-         style={{ userSelect: "none" }}>
-
-      {/* Overlay kiosk (modo kiosk app) */}
-      {showWarning && isKiosk && (
-        <KioskWarningOverlay onDismiss={() => { setShowWarning(false); requestFullscreen() }} />
-      )}
-
-      {/* Sistema de seguridad completo — ExamSecurityExamBridge */}
-      {phase === "exam" && exam?.id && (
+    <div className="min-h-screen bg-gray-950 text-white">
+      {(phase === "exam" || phase === "submitting" || phase === "review") && exam?.id ? (
         <ExamSecurityExamBridge
           examId={exam.id}
           submissionId={submission?.id ?? null}
@@ -1153,296 +778,229 @@ export default function ExamenPublicoPage() {
           studentRut={rut || null}
           currentQuestionIndex={curQ}
           timeLeft={timeLeft}
-          enabled={true}
-          isSubmitted={phase === "review"}
-          onForceSubmit={async (reason) => {
-            console.warn("[Security] Force submit:", reason)
-            await doSubmit()
-          }}
+          enabled={!securityBlocked}
+          isSubmitted={submittedForSecurity}
+          onForceSubmit={() => doSubmit("forced")}
           onSecurityTerminate={(reason) => {
+            setSecurityTerminateReason(reason || "Intento terminado por seguridad.")
             setSecurityBlocked(true)
           }}
           onSessionReady={({ sessionId }) => {
             setSecuritySessionId(sessionId)
           }}
         />
-      )}
+      ) : null}
 
-      {/* Banner modo seguro */}
-      {!isKiosk && (phase === "exam" || phase === "register") && (
-        <div className="fixed top-0 left-0 right-0 z-50 border-b border-amber-900/40 px-4 py-1.5 text-center"
-             style={{ background: "rgba(120,53,15,0.7)" }}>
-          <p className="text-amber-400 text-xs font-semibold">
-            🔒 MODO SEGURO — Examen supervisado · Las infracciones quedan registradas
-          </p>
-        </div>
-      )}
+      {showWarning && isKiosk ? (
+        <KioskWarningOverlay
+          onDismiss={() => {
+            setShowWarning(false)
+            requestFullscreen()
+          }}
+        />
+      ) : null}
 
-      {/* Banner kiosk */}
-      {isKiosk && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-red-950/80 border-b border-red-900/40 px-4 py-1.5 text-center">
-          <p className="text-red-400 text-xs font-semibold">
-            🔒 EXAMEN EN PROGRESO — Pantalla controlada · {kioskSala} · No puedes salir
-          </p>
-        </div>
-      )}
-
-      <div className={`sticky z-10 bg-gray-950/90 backdrop-blur-xl border-b border-white/5 ${isKiosk ? "top-[32px]" : "top-0"}`}>
-        <div className="max-w-2xl mx-auto px-4 py-2.5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="text-gray-400 text-xs">{name}</span>
-            <span className="text-gray-700">|</span>
-            <span className="text-gray-500 text-xs">
-              {answeredCount}/{totalQ} preguntas
-            </span>
-            <span className="text-gray-700">|</span>
-            <span className="text-blue-400 text-xs font-semibold">
-              {examTotalPoints} pts total
-            </span>
+      <div className="max-w-5xl mx-auto px-4 py-6 exam-root exam-content">
+        <div className="flex items-center justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-extrabold">{exam.title}</h1>
+            <p className="text-gray-400 text-sm mt-1">{exam.topic || "Evaluación"}</p>
+            {securitySessionId ? (
+              <p className="text-gray-600 text-xs mt-2">Seguridad activa · sesión {securitySessionId}</p>
+            ) : null}
           </div>
 
-          <div
-            className={`font-mono font-bold text-sm ${
-              timeLeft < 60
-                ? "text-red-400 animate-pulse"
-                : timeLeft < 300
-                  ? "text-yellow-400"
-                  : "text-gray-400"
-            }`}
-          >
-            ⏱ {fmt(timeLeft)}
+          <div className="text-right">
+            <p className="text-gray-500 text-xs">Tiempo restante</p>
+            <p className="text-2xl font-bold text-blue-400">{fmt(timeLeft)}</p>
+            <p className="text-gray-500 text-xs mt-1">
+              {answeredCount}/{totalQ} respondidas
+            </p>
+            {isKiosk ? (
+              <p className="text-gray-600 text-[11px] mt-1">
+                Fullscreen: {isFullscreen ? "activo" : "inactivo"}
+              </p>
+            ) : null}
           </div>
         </div>
 
-        <div className="h-1 bg-gray-800">
-          <div
-            className="h-full bg-blue-500 transition-all"
-            style={{ width: `${(answeredCount / totalQ) * 100}%` }}
-          />
-        </div>
-      </div>
+        {securityBlocked ? (
+          <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 mb-6">
+            <p className="text-red-300 font-semibold">El examen fue detenido por seguridad.</p>
+            <p className="text-red-200/80 text-sm mt-1">
+              {securityTerminateReason || "Se detectó una política de riesgo alta."}
+            </p>
+          </div>
+        ) : null}
 
-      <div className="max-w-2xl mx-auto px-4 py-6">
-        {q && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between gap-2 flex-wrap">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-blue-400 text-xs font-semibold">
-                  Pregunta {curQ + 1} de {totalQ}
-                </span>
-
-                <span
-                  className={`text-[10px] px-2 py-0.5 rounded-full ${
-                    q.type === "multiple_choice"
-                      ? "bg-blue-500/10 text-blue-400"
-                      : q.type === "true_false"
-                        ? "bg-green-500/10 text-green-400"
-                        : "bg-orange-500/10 text-orange-400"
-                  }`}
-                >
-                  {q.type === "multiple_choice"
-                    ? "Alternativas"
-                    : q.type === "true_false"
-                      ? "V/F + Justificación"
-                      : "Desarrollo"}
-                </span>
-
-                {q.difficulty && (
-                  <span
-                    className={`text-[10px] px-2 py-0.5 rounded-full ${
-                      q.difficulty === 3
-                        ? "bg-red-500/10 text-red-400"
-                        : q.difficulty === 2
-                          ? "bg-yellow-500/10 text-yellow-400"
-                          : "bg-green-500/10 text-green-400"
-                    }`}
-                  >
-                    {q.difficulty === 3
-                      ? "Difícil"
-                      : q.difficulty === 2
-                        ? "Media"
-                        : "Fácil"}
-                  </span>
-                )}
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="text-xs px-2.5 py-1 rounded-full bg-blue-500/15 text-blue-300 font-bold border border-blue-500/20">
-                  {getQuestionMaxPoints(q)} pts
-                </span>
-                {q.type === "true_false" && (
-                  <span className="text-[10px] text-gray-500">
-                    ({q.selectionPoints ?? 1} selección + {q.justificationMaxPoints ?? 2} justif.)
-                  </span>
-                )}
-                {q.type === "development" && q.maxPoints && (
-                  <span className="text-[10px] text-gray-500">evaluado por IA</span>
-                )}
-              </div>
+        <div className="grid lg:grid-cols-[1fr_320px] gap-6">
+          <div className="rounded-3xl border border-white/[0.08] bg-white/[0.03] p-5 md:p-6 exam-question">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-xs tracking-widest text-gray-500 font-semibold">
+                PREGUNTA {curQ + 1} DE {totalQ}
+              </p>
+              <p className="text-xs text-gray-500">
+                Puntaje: {getQuestionMaxPoints(q)} pts
+              </p>
             </div>
 
-            <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-5">
-              <div className="text-white font-semibold text-sm leading-relaxed">
-                <ExamMathText text={q.question} className="inline" />
-              </div>
+            <div className="text-white text-base leading-relaxed mb-6">
+              <ExamMathText text={q?.question || q?.statement || ""} />
             </div>
 
-            {q.type === "multiple_choice" && (
-              <div className="space-y-2">
-                {(q.options || []).map((opt: string, i: number) => (
-                  <button
-                    key={i}
-                    onClick={() => setMcAnswers({ ...mcAnswers, [curQ]: i })}
-                    className={`w-full text-left p-3.5 rounded-xl border text-sm transition-all ${
-                      mcAnswers[curQ] === i
-                        ? "bg-blue-500/10 border-blue-500/30 text-blue-300"
-                        : "bg-white/[0.03] border-white/[0.06] text-gray-400 hover:bg-white/[0.06]"
-                    }`}
-                  >
-                    <span className="font-bold mr-2">{String.fromCharCode(65 + i)}.</span>
-                    <ExamMathText text={opt.replace(/^[A-Da-d][).]\s*/u, "")} className="inline" />
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {q.type === "true_false" && (
+            {q?.type === "multiple_choice" && (
               <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-2">
-                  {(q.options || ["Verdadero", "Falso"]).map((opt: string, i: number) => (
-                    <button
-                      key={i}
-                      onClick={() => setMcAnswers({ ...mcAnswers, [curQ]: i })}
-                      className={`p-3.5 rounded-xl border text-sm font-semibold text-center transition-all ${
-                        mcAnswers[curQ] === i
-                          ? "bg-blue-500/10 border-blue-500/30 text-blue-300"
-                          : "bg-white/[0.03] border-white/[0.06] text-gray-400 hover:bg-white/[0.06]"
-                      }`}
-                    >
-                      <ExamMathText text={opt} className="inline" />
-                    </button>
-                  ))}
-                </div>
-
-                <div>
-                  <label className="text-gray-500 text-xs font-semibold block mb-1">
-                    JUSTIFICA TU RESPUESTA *
-                  </label>
-                  <textarea
-                    value={tfJustifications[curQ] || ""}
-                    onChange={e =>
-                      setTfJustifications({
-                        ...tfJustifications,
-                        [curQ]: e.target.value,
-                      })
-                    }
-                    placeholder="Explica por qué elegiste esa opción..."
-                    className="w-full min-h-[80px] bg-white/[0.04] border border-white/[0.08] rounded-2xl px-4 py-3 text-gray-200 text-sm focus:outline-none focus:border-blue-500/30 resize-vertical"
-                  />
-                  <p className="text-gray-600 text-[10px] mt-1">
-                    La justificación vale {q.justificationMaxPoints ?? 2} punto
-                    {(q.justificationMaxPoints ?? 2) === 1 ? "" : "s"} adicional
-                    {(q.justificationMaxPoints ?? 2) === 1 ? "" : "es"} evaluado
-                    {(q.justificationMaxPoints ?? 2) === 1 ? "" : "s"} por IA
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {q.type === "development" && (
-              <div>
-                <textarea
-                  value={devAnswers[curQ] || ""}
-                  onChange={e =>
-                    setDevAnswers({
-                      ...devAnswers,
-                      [curQ]: e.target.value,
-                    })
-                  }
-                  placeholder="Escribe tu respuesta aquí. Sé detallado y preciso..."
-                  className="w-full min-h-[160px] bg-white/[0.04] border border-white/[0.08] rounded-2xl px-4 py-3 text-gray-200 text-sm focus:outline-none focus:border-blue-500/30 resize-vertical"
-                />
-                <p className="text-gray-600 text-[10px] mt-1">
-                  Puntaje máximo: {q.maxPoints || 5} puntos • Evaluado por IA
-                </p>
-              </div>
-            )}
-
-            <div className="flex gap-3 pt-2">
-              {curQ > 0 && (
-                <button
-                  onClick={() => !securityBlocked && setCurQ(curQ - 1)}
-                  disabled={securityBlocked}
-                  className="px-4 py-2.5 rounded-xl border border-white/10 text-gray-500 text-sm disabled:opacity-30"
-                >
-                  ← Anterior
-                </button>
-              )}
-
-              <div className="flex-1" />
-
-              {curQ < totalQ - 1 ? (
-                <button
-                  onClick={() => !securityBlocked && setCurQ(curQ + 1)}
-                  disabled={securityBlocked}
-                  className="px-4 py-2.5 rounded-xl bg-blue-600/80 text-white text-sm font-semibold disabled:opacity-30"
-                >
-                  Siguiente →
-                </button>
-              ) : (
-                <button
-                  onClick={doSubmit}
-                  disabled={securityBlocked}
-                  className="px-6 py-2.5 rounded-xl bg-green-600/90 text-white text-sm font-bold disabled:opacity-30"
-                >
-                  ✅ Enviar examen
-                </button>
-              )}
-            </div>
-
-            {/* Navegador de preguntas */}
-            <div className="pt-2 border-t border-white/5">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-gray-600 text-[10px] font-semibold tracking-widest">NAVEGADOR DE PREGUNTAS</span>
-                <span className="text-gray-600 text-[10px]">
-                  Puntaje total: <span className="text-blue-400 font-bold">{examTotalPoints} pts</span>
-                </span>
-              </div>
-              <div className="flex flex-wrap gap-1.5 justify-center">
-                {qs.map((item: any, i: number) => {
-                  const answered =
-                    item.type === "development"
-                      ? Boolean(devAnswers[i] && devAnswers[i].trim().length > 0)
-                      : item.type === "true_false"
-                        ? mcAnswers[i] !== undefined ||
-                          Boolean(tfJustifications[i] && tfJustifications[i].trim().length > 0)
-                        : mcAnswers[i] !== undefined
-                  const pts = getQuestionMaxPoints(item)
-
+                {(q.options || []).map((option: string, i: number) => {
+                  const active = mcAnswers[curQ] === i
                   return (
                     <button
                       key={i}
-                      onClick={() => setCurQ(i)}
-                      title={`Pregunta ${i + 1} — ${pts} pt${pts !== 1 ? "s" : ""}`}
-                      className={`w-10 h-10 rounded-lg text-xs font-bold transition-all flex flex-col items-center justify-center gap-0 ${
-                        i === curQ
-                          ? "bg-blue-500 text-white"
-                          : answered
-                            ? "bg-green-500/20 text-green-400 border border-green-500/30"
-                            : "bg-white/[0.04] text-gray-600 border border-white/[0.06]"
+                      onClick={() =>
+                        setMcAnswers((prev) => ({
+                          ...prev,
+                          [curQ]: i,
+                        }))
+                      }
+                      className={`w-full text-left rounded-2xl px-4 py-3 border transition ${
+                        active
+                          ? "border-blue-500 bg-blue-500/10 text-white"
+                          : "border-white/[0.08] bg-white/[0.03] text-gray-200 hover:border-blue-500/30"
                       }`}
                     >
-                      <span className="text-xs leading-none">{i + 1}</span>
-                      <span className={`text-[9px] leading-none font-normal mt-0.5 ${i === curQ ? "text-blue-200" : answered ? "text-green-500/70" : "text-gray-700"}`}>
-                        {pts}pt
-                      </span>
+                      {option}
                     </button>
                   )
                 })}
               </div>
-            </div>
+            )}
+
+            {q?.type === "true_false" && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  {["Verdadero", "Falso"].map((label, i) => {
+                    const active = mcAnswers[curQ] === i
+                    return (
+                      <button
+                        key={label}
+                        onClick={() =>
+                          setMcAnswers((prev) => ({
+                            ...prev,
+                            [curQ]: i,
+                          }))
+                        }
+                        className={`rounded-2xl px-4 py-3 border font-semibold transition ${
+                          active
+                            ? "border-blue-500 bg-blue-500/10 text-white"
+                            : "border-white/[0.08] bg-white/[0.03] text-gray-200 hover:border-blue-500/30"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    )
+                  })}
+                </div>
+
+                <div>
+                  <label className="text-gray-400 text-xs font-semibold block mb-2">
+                    Justificación
+                  </label>
+                  <textarea
+                    value={tfJustifications[curQ] || ""}
+                    onChange={(e) =>
+                      setTfJustifications((prev) => ({
+                        ...prev,
+                        [curQ]: e.target.value,
+                      }))
+                    }
+                    className="w-full min-h-[120px] rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-gray-200 text-sm focus:outline-none focus:border-blue-500/30"
+                    placeholder="Escribe tu justificación..."
+                  />
+                </div>
+              </div>
+            )}
+
+            {q?.type === "development" && (
+              <div>
+                <label className="text-gray-400 text-xs font-semibold block mb-2">
+                  Respuesta de desarrollo
+                </label>
+                <textarea
+                  value={devAnswers[curQ] || ""}
+                  onChange={(e) =>
+                    setDevAnswers((prev) => ({
+                      ...prev,
+                      [curQ]: e.target.value,
+                    }))
+                  }
+                  className="w-full min-h-[220px] rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-gray-200 text-sm focus:outline-none focus:border-blue-500/30"
+                  placeholder="Escribe tu respuesta..."
+                />
+              </div>
+            )}
           </div>
-        )}
+
+          <aside className="rounded-3xl border border-white/[0.08] bg-white/[0.03] p-5">
+            <h3 className="text-sm font-bold text-white mb-4">Navegación</h3>
+
+            <div className="grid grid-cols-5 gap-2 mb-6">
+              {qs.map((_: any, i: number) => {
+                const answered =
+                  qs[i]?.type === "development"
+                    ? Boolean(devAnswers[i]?.trim())
+                    : qs[i]?.type === "true_false"
+                      ? mcAnswers[i] !== undefined || Boolean(tfJustifications[i]?.trim())
+                      : mcAnswers[i] !== undefined
+
+                return (
+                  <button
+                    key={i}
+                    onClick={() => setCurQ(i)}
+                    className={`h-10 rounded-xl text-sm font-bold border transition ${
+                      curQ === i
+                        ? "border-blue-500 bg-blue-500/15 text-blue-300"
+                        : answered
+                          ? "border-green-500/30 bg-green-500/10 text-green-300"
+                          : "border-white/[0.08] bg-white/[0.03] text-gray-300"
+                    }`}
+                  >
+                    {i + 1}
+                  </button>
+                )
+              })}
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={() => setCurQ((prev) => Math.max(0, prev - 1))}
+                disabled={curQ === 0}
+                className="w-full py-3 rounded-2xl bg-white/[0.04] border border-white/[0.08] text-white disabled:opacity-30"
+              >
+                Anterior
+              </button>
+
+              <button
+                onClick={() => setCurQ((prev) => Math.min(totalQ - 1, prev + 1))}
+                disabled={curQ === totalQ - 1}
+                className="w-full py-3 rounded-2xl bg-white/[0.04] border border-white/[0.08] text-white disabled:opacity-30"
+              >
+                Siguiente
+              </button>
+
+              <button
+                onClick={() => void doSubmit("manual")}
+                className="w-full py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold"
+              >
+                Enviar examen
+              </button>
+            </div>
+
+            <div className="mt-6 text-xs text-gray-500">
+              <p>Alumno: <span className="text-gray-300">{name || "—"}</span></p>
+              <p className="mt-1">Curso: <span className="text-gray-300">{course || "—"}</span></p>
+              <p className="mt-1">RUT: <span className="text-gray-300">{rut || "—"}</span></p>
+            </div>
+          </aside>
+        </div>
       </div>
     </div>
   )
