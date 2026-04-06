@@ -1,5 +1,5 @@
 // lib/image-config.ts
-// v2 — FLUX.2 en Together, modelos OpenRouter 2026, Gemini via OR
+// v2 — FLUX.2 en Together, cadena OpenRouter 2026, Gemini via OR
 
 export type ProviderId =
   | "auto"
@@ -46,8 +46,8 @@ export const STYLE_GUIDES: Record<string, string> = {
 }
 
 export const DEFAULT_IMAGE_PROVIDER_ORDER: Record<GenerationMode, ConcreteProviderId[]> = {
-  fast: ["pollinations", "huggingface", "together"],
-  quality: ["gemini", "together", "openrouter", "huggingface", "pollinations"],
+  fast:        ["pollinations", "openrouter", "together", "huggingface"],
+  quality:     ["gemini", "openrouter", "together", "huggingface", "pollinations"],
   educational: ["gemini", "openrouter", "together", "huggingface", "pollinations"],
 }
 
@@ -55,22 +55,22 @@ export const GEMINI_IMAGE_MODELS = [
   process.env.GEMINI_IMAGE_MODEL_PRIMARY,
   process.env.GEMINI_IMAGE_MODEL_SECONDARY,
   process.env.GEMINI_IMAGE_MODEL_TERTIARY,
-  // Modelos activos con soporte de generación nativa de imágenes (2025-2026)
+  // Modelos activos (2025-2026)
   "gemini-2.0-flash-exp",
   "gemini-2.0-flash",
   "gemini-2.5-flash-preview-04-17",
-  // Fallbacks legacy (pueden seguir activos en algunas regiones)
+  // Fallbacks legacy
   "gemini-2.0-flash-preview-image-generation",
   "gemini-2.0-flash-exp-image-generation",
 ].filter(Boolean) as string[]
 
 export type TogetherImageModel = { id: string; steps: number; guidance: number; useAspectRatio: boolean }
 export const TOGETHER_IMAGE_MODELS: TogetherImageModel[] = [
-  // FLUX.2 (nov 2025) — calidad producción
-  { id: "black-forest-labs/FLUX.2-pro",    steps: 28, guidance: 3.5, useAspectRatio: true  },
-  { id: "black-forest-labs/FLUX.2-flex",   steps: 28, guidance: 3.5, useAspectRatio: true  },
-  // FLUX.1.x — generación anterior, más rápida
-  { id: "black-forest-labs/FLUX.1-schnell", steps: 4,  guidance: 0,  useAspectRatio: false },
+  // FLUX.2 (nov 2025) — calidad producción, usa aspect_ratio
+  { id: "black-forest-labs/FLUX.2-pro",     steps: 28, guidance: 3.5, useAspectRatio: true  },
+  { id: "black-forest-labs/FLUX.2-flex",    steps: 28, guidance: 3.5, useAspectRatio: true  },
+  // FLUX.1.x — más rápido, usa width/height
+  { id: "black-forest-labs/FLUX.1-schnell", steps: 4,  guidance: 0,   useAspectRatio: false },
   { id: "black-forest-labs/FLUX.1-dev",     steps: 20, guidance: 3.5, useAspectRatio: false },
 ]
 
@@ -79,14 +79,14 @@ export const HUGGINGFACE_IMAGE_MODELS = [
   { id: "stabilityai/stable-diffusion-xl-base-1.0", steps: 25, guidance: 7.5 },
 ]
 
-// Modelos de generación de imagen disponibles vía OpenRouter (abril 2026).
-// modalities: ["image","text"] para modelos que devuelven texto + imagen (Gemini, OpenAI)
-//             ["image"]        para modelos que solo devuelven imagen (FLUX, Sourceful, ByteDance)
+// Modelos de imagen disponibles vía OpenRouter (abril 2026).
+// modalities: ["image","text"] → modelos que devuelven texto + imagen (Gemini, OpenAI)
+//             ["image"]        → solo imagen (Sourceful, ByteDance, FLUX)
 export const OPENROUTER_IMAGE_MODELS: { id: string; modalities: string[] }[] = [
-  // Google Gemini — GA, mejor calidad/precio para educación
+  // Google Gemini — GA, mejor calidad/precio, excelente para educación
   { id: "google/gemini-2.5-flash-image",         modalities: ["image", "text"] },
   { id: "google/gemini-3.1-flash-image-preview", modalities: ["image", "text"] },
-  // Sourceful Riverflow — rápido, barato ($0.02/imagen)
+  // Sourceful Riverflow — rápido y barato ($0.02/imagen)
   { id: "sourceful/riverflow-v2-fast",           modalities: ["image"] },
   // ByteDance Seedream 4.5 — alta calidad ($0.04/imagen)
   { id: "bytedance-seed/seedream-4.5",           modalities: ["image"] },
