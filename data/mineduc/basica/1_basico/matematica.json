@@ -4,157 +4,232 @@
     "curso": "1° Básico",
     "asignatura": "Matemática",
     "fuente": "Currículum Nacional - MINEDUC Chile",
-    "source_url": "https://curriculumnacional.mineduc.cl/",
-    "estado": "base_inicial_en_revision",
-    "ultima_actualizacion_manual": "2026-03-28",
-    "nota": "Archivo base estructurado para activar Educación Básica en el planificador. Requiere revisión final OA por OA contra las Bases/Programas oficiales MINEDUC antes de marcarlo como verificado."
+    "source_url": "https://www.curriculumnacional.cl/",
+    "estado": "base_verificada_mineduc",
+    "ultima_actualizacion_manual": "2026-04-06",
+    "nota": "Archivo corregido con OA oficiales de la base curricular y nombres de unidades según recursos/programa oficial de Currículum Nacional."
   },
   "objetivos_habilidad": [
     {
-      "id": "1_BASICO-OAH-RP",
-      "descripcion": "Resolver problemas, modelar y comunicar procedimientos matemáticos en contextos cotidianos y escolares.",
-      "unidades": [
-        1,
-        2,
-        3,
-        4
-      ]
+      "id": "MA01 OAH a",
+      "descripcion": "Resolver problemas: Emplear diversas estrategias para resolver problemas.",
+      "unidades": [1, 2, 3, 4]
     },
     {
-      "id": "1_BASICO-OAH-REP",
-      "descripcion": "Representar información matemática de manera concreta, pictórica y simbólica.",
-      "unidades": [
-        1,
-        2,
-        3,
-        4
-      ]
+      "id": "MA01 OAH b",
+      "descripcion": "Resolver problemas: Comprobar enunciados, usando material concreto y gráfico.",
+      "unidades": [1, 2, 3, 4]
+    },
+    {
+      "id": "MA01 OAH c",
+      "descripcion": "Resolver problemas: Expresar un problema con sus propias palabras.",
+      "unidades": [1, 2, 3, 4]
+    },
+    {
+      "id": "MA01 OAH d",
+      "descripcion": "Argumentar y comunicar: Describir situaciones del entorno con lenguaje matemático.",
+      "unidades": [1, 2, 3, 4]
+    },
+    {
+      "id": "MA01 OAH e",
+      "descripcion": "Argumentar y comunicar: Comunicar el resultado de descubrimientos de relaciones, patrones y reglas, entre otros, empleando expresiones matemáticas.",
+      "unidades": [1, 2, 3, 4]
+    },
+    {
+      "id": "MA01 OAH f",
+      "descripcion": "Argumentar y comunicar: Explicar las soluciones propias y los procedimientos utilizados.",
+      "unidades": [1, 2, 3, 4]
+    },
+    {
+      "id": "MA01 OAH g",
+      "descripcion": "Modelar: Aplicar modelos que involucren sumas, restas y orden de cantidades.",
+      "unidades": [1, 2, 3, 4]
+    },
+    {
+      "id": "MA01 OAH h",
+      "descripcion": "Modelar: Expresar, a partir de representaciones pictóricas y explicaciones dadas, acciones y situaciones cotidianas en lenguaje matemático.",
+      "unidades": [1, 2, 3, 4]
+    },
+    {
+      "id": "MA01 OAH i",
+      "descripcion": "Representar: Elegir y utilizar representaciones concretas, pictóricas y simbólicas para representar enunciados.",
+      "unidades": [1, 2, 3, 4]
+    },
+    {
+      "id": "MA01 OAH j",
+      "descripcion": "Representar: Crear un relato basado en una expresión matemática simple.",
+      "unidades": [1, 2, 3, 4]
     }
   ],
   "objetivos_actitud": [
     {
-      "id": "1_BASICO-OAA-A",
-      "descripcion": "Manifestar un estilo de trabajo ordenado, perseverante y colaborativo en la resolución de tareas matemáticas.",
-      "unidades": [
-        1,
-        2,
-        3,
-        4
-      ]
+      "id": "MA01 OAA A",
+      "descripcion": "Manifestar un estilo de trabajo ordenado y metódico.",
+      "unidades": [1, 2, 3, 4]
+    },
+    {
+      "id": "MA01 OAA B",
+      "descripcion": "Abordar de manera flexible y creativa la búsqueda de soluciones a problemas.",
+      "unidades": [1, 2, 3, 4]
+    },
+    {
+      "id": "MA01 OAA C",
+      "descripcion": "Manifestar curiosidad e interés por el aprendizaje de las matemáticas.",
+      "unidades": [1, 2, 3, 4]
+    },
+    {
+      "id": "MA01 OAA D",
+      "descripcion": "Manifestar una actitud positiva frente a sí mismo y sus capacidades.",
+      "unidades": [1, 2, 3, 4]
+    },
+    {
+      "id": "MA01 OAA E",
+      "descripcion": "Demostrar una actitud de esfuerzo y perseverancia.",
+      "unidades": [1, 2, 3, 4]
+    },
+    {
+      "id": "MA01 OAA F",
+      "descripcion": "Expresar y escuchar ideas de forma respetuosa.",
+      "unidades": [1, 2, 3, 4]
     }
   ],
   "unidades": [
     {
       "numero": 1,
-      "nombre": "Números del 0 al 20, composición y patrones",
+      "nombre": "Números, patrones repetitivos y unidades no estandarizadas en el tiempo",
       "oa": [
         {
           "id": "MA1B-OA-01",
           "codigo_oficial": "MA01 OA 01",
-          "descripcion": "Contar números naturales del 0 al 100, de 1 en 1, de 2 en 2, de 5 en 5 y de 10 en 10, hacia adelante y hacia atrás, empezando por cualquier número menor que 100."
+          "descripcion": "Contar números del 0 al 100 de 1 en 1, de 2 en 2, de 5 en 5 y de 10 en 10, hacia adelante y hacia atrás, empezando por cualquier número menor que 100."
         },
         {
           "id": "MA1B-OA-02",
           "codigo_oficial": "MA01 OA 02",
-          "descripcion": "Identificar el orden de los elementos de una serie, utilizando números ordinales del primero (1°) al décimo (10°)."
+          "descripcion": "Identificar el orden de los elementos de una serie, utilizando números ordinales del primero (1º) al décimo (10º)."
         },
         {
           "id": "MA1B-OA-03",
           "codigo_oficial": "MA01 OA 03",
-          "descripcion": "Leer números del 0 al 20 y representarlos de manera concreta, pictórica y simbólica."
+          "descripcion": "Leer números del 0 al 20 y representarlos en forma concreta, pictórica y simbólica."
         },
         {
           "id": "MA1B-OA-04",
           "codigo_oficial": "MA01 OA 04",
-          "descripcion": "Comparar y ordenar números del 0 al 20 de menor a mayor y/o viceversa, utilizando material concreto y/o software educativo."
+          "descripcion": "Comparar y ordenar números del 0 al 20 de menor a mayor y/o viceversa, utilizando material concreto y/o usando software educativo."
         },
         {
-          "id": "MA1B-OA-06",
-          "codigo_oficial": "MA01 OA 06",
-          "descripcion": "Componer y descomponer números del 0 al 20 de manera aditiva, de forma concreta, pictórica y simbólica."
-        },
-        {
-          "id": "MA1B-OA-11",
-          "codigo_oficial": "MA01 OA 11",
-          "descripcion": "Reconocer, describir, crear y continuar patrones repetitivos y patrones numéricos hasta 20, crecientes y decrecientes, usando material concreto, pictórico y simbólico."
+          "id": "MA1B-OA-05",
+          "codigo_oficial": "MA01 OA 05",
+          "descripcion": "Estimar cantidades hasta 20 en situaciones concretas, usando un referente."
         }
       ]
     },
     {
       "numero": 2,
-      "nombre": "Adición y sustracción en el ámbito del 20 al 100",
+      "nombre": "Números, patrones numéricos y geométricos. Figuras 2D y 3D.",
       "oa": [
         {
-          "id": "MA1B-OA-05",
-          "codigo_oficial": "MA01 OA 05",
-          "descripcion": "Estimar cantidades hasta 20 en situaciones concretas, usando un referente."
+          "id": "MA1B-OA-01",
+          "codigo_oficial": "MA01 OA 01",
+          "descripcion": "Contar números del 0 al 100 de 1 en 1, de 2 en 2, de 5 en 5 y de 10 en 10, hacia adelante y hacia atrás, empezando por cualquier número menor que 100."
         },
         {
-          "id": "MA1B-OA-07",
-          "codigo_oficial": "MA01 OA 07",
-          "descripcion": "Demostrar que comprenden la adición y la sustracción de números del 0 al 20 progresivamente, de 0 a 5, de 6 a 10 y de 11 a 20."
+          "id": "MA1B-OA-03",
+          "codigo_oficial": "MA01 OA 03",
+          "descripcion": "Leer números del 0 al 20 y representarlos en forma concreta, pictórica y simbólica."
+        },
+        {
+          "id": "MA1B-OA-04",
+          "codigo_oficial": "MA01 OA 04",
+          "descripcion": "Comparar y ordenar números del 0 al 20 de menor a mayor y/o viceversa, utilizando material concreto y/o usando software educativo."
+        },
+        {
+          "id": "MA1B-OA-06",
+          "codigo_oficial": "MA01 OA 06",
+          "descripcion": "Componer y descomponer números del 0 a 20 de manera aditiva, en forma concreta, pictórica y simbólica."
         },
         {
           "id": "MA1B-OA-08",
           "codigo_oficial": "MA01 OA 08",
-          "descripcion": "Resolver problemas rutinarios y no rutinarios de adición y sustracción en el ámbito del 0 al 20."
+          "descripcion": "Determinar las unidades y decenas en números del 0 al 20, agrupando de a 10, de manera concreta, pictórica y simbólica."
         },
         {
-          "id": "MA1B-OA-09",
-          "codigo_oficial": "MA01 OA 09",
-          "descripcion": "Demostrar que comprenden la adición y la sustracción en el ámbito del 0 al 100, usando estrategias personales y material concreto."
+          "id": "MA1B-OA-11",
+          "codigo_oficial": "MA01 OA 11",
+          "descripcion": "Reconocer, describir, crear y continuar patrones repetitivos y patrones numéricos hasta el 20, crecientes y decrecientes, usando material concreto, pictórico y simbólico, de manera manual y/o por medio de software educativo."
+        },
+        {
+          "id": "MA1B-OA-14",
+          "codigo_oficial": "MA01 OA 14",
+          "descripcion": "Identificar en el entorno figuras 3D y figuras 2D y relacionarlas, usando material concreto."
         }
       ]
     },
     {
       "numero": 3,
-      "nombre": "Geometría y medición inicial",
+      "nombre": "Adición y sustracción de números. Igualdades y desigualdades. Expresar longitudes en palabras. Datos y pictogramas",
       "oa": [
+        {
+          "id": "MA1B-OA-07",
+          "codigo_oficial": "MA01 OA 07",
+          "descripcion": "Describir y aplicar estrategias de cálculo mental para las adiciones y sustracciones hasta 20: conteo hacia adelante y atrás, completar 10, dobles."
+        },
+        {
+          "id": "MA1B-OA-09",
+          "codigo_oficial": "MA01 OA 09",
+          "descripcion": "Demostrar que comprenden la adición y la sustracción de números del 0 al 20 progresivamente, de 0 a 5, de 6 a 10, de 11 a 20 con dos sumandos: usando un lenguaje cotidiano para describir acciones desde su propia experiencia; representando adiciones y sustracciones con material concreto y pictórico, de manera manual y/o usando software educativo; representando el proceso en forma simbólica; resolviendo problemas en contextos familiares; creando problemas matemáticos y resolviéndolos."
+        },
+        {
+          "id": "MA1B-OA-10",
+          "codigo_oficial": "MA01 OA 10",
+          "descripcion": "Demostrar que la adición y la sustracción son operaciones inversas, de manera concreta, pictórica y simbólica."
+        },
         {
           "id": "MA1B-OA-12",
           "codigo_oficial": "MA01 OA 12",
-          "descripcion": "Describir y registrar la igualdad y desigualdad como equilibrio y desequilibrio, usando una balanza en forma concreta, pictórica y simbólica."
+          "descripcion": "Describir y registrar la igualdad y la desigualdad como equilibrio y desequilibrio, usando una balanza en forma concreta, pictórica y simbólica del 0 al 20, usando el símbolo igual (=)."
         },
         {
-          "id": "MA1B-OA-13",
-          "codigo_oficial": "MA01 OA 13",
-          "descripcion": "Describir la posición de objetos y personas en relación a sí mismos y a otros objetos y personas, usando un lenguaje común y geométrico simple."
+          "id": "MA1B-OA-18",
+          "codigo_oficial": "MA01 OA 18",
+          "descripcion": "Identificar y comparar la longitud de objetos, usando palabras como largo y corto."
         },
         {
-          "id": "MA1B-OA-14",
-          "codigo_oficial": "MA01 OA 14",
-          "descripcion": "Identificar en el entorno figuras 3D y figuras 2D y relacionarlas entre sí."
+          "id": "MA1B-OA-19",
+          "codigo_oficial": "MA01 OA 19",
+          "descripcion": "Recolectar y registrar datos para responder preguntas estadísticas sobre sí mismo y el entorno, usando bloques, tablas de conteo y pictogramas."
         },
         {
-          "id": "MA1B-OA-15",
-          "codigo_oficial": "MA01 OA 15",
-          "descripcion": "Comparar la longitud, masa y capacidad de dos o más objetos, usando unidades no estandarizadas."
+          "id": "MA1B-OA-20",
+          "codigo_oficial": "MA01 OA 20",
+          "descripcion": "Construir, leer e interpretar pictogramas."
         }
       ]
     },
     {
       "numero": 4,
-      "nombre": "Tiempo, datos y entorno cotidiano",
+      "nombre": "Aplicación de la adición y sustracción. Líneas rectas y curvas. Posición y ubicación de objetos. Datos en diferentes representaciones",
       "oa": [
         {
-          "id": "MA1B-OA-16",
-          "codigo_oficial": "MA01 OA 16",
-          "descripcion": "Usar unidades no estandarizadas de tiempo para comparar la duración de eventos cotidianos."
+          "id": "MA1B-OA-13",
+          "codigo_oficial": "MA01 OA 13",
+          "descripcion": "Describir la posición de objetos y personas en relación a sí mismos y a otros objetos y personas, usando un lenguaje común (como derecha e izquierda)."
         },
         {
-          "id": "MA1B-OA-17",
-          "codigo_oficial": "MA01 OA 17",
-          "descripcion": "Usar un lenguaje cotidiano para secuenciar eventos en el tiempo: días de la semana, meses del año y algunas fechas significativas."
-        },
-        {
-          "id": "MA1B-OA-18",
-          "codigo_oficial": "MA01 OA 18",
-          "descripcion": "Identificar y comparar monedas y billetes del sistema monetario nacional en situaciones simples."
+          "id": "MA1B-OA-15",
+          "codigo_oficial": "MA01 OA 15",
+          "descripcion": "Identificar y dibujar líneas rectas y curvas."
         },
         {
           "id": "MA1B-OA-19",
           "codigo_oficial": "MA01 OA 19",
-          "descripcion": "Recolectar y registrar datos para responder preguntas estadísticas simples, usando tablas y gráficos pictóricos."
+          "descripcion": "Recolectar y registrar datos para responder preguntas estadísticas sobre sí mismo y el entorno, usando bloques, tablas de conteo y pictogramas."
+        },
+        {
+          "id": "MA1B-OA-20",
+          "codigo_oficial": "MA01 OA 20",
+          "descripcion": "Construir, leer e interpretar pictogramas."
         }
       ]
     }
