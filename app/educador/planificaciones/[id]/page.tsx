@@ -20,7 +20,12 @@ type SavedPlanning = {
   tiempo_planificacion: string | null
   sesiones: number | null
   duracion_minutos: number | null
-  content: string
+  content: string | null
+  course: string | null
+  subject: string | null
+  unit: string | null
+  planning_text: string | null
+  planning_json: Record<string, unknown> | null
   created_at: string
   updated_at: string
 }
@@ -30,6 +35,16 @@ function formatDate(date: string) {
     dateStyle: "medium",
     timeStyle: "short",
   })
+}
+
+function normalizePlanning(item: SavedPlanning): SavedPlanning {
+  return {
+    ...item,
+    curso: item.curso || item.course || null,
+    asignatura: item.asignatura || item.subject || null,
+    unidad_id: item.unidad_id || item.unit || null,
+    content: item.content || item.planning_text || "",
+  }
 }
 
 export default function SavedPlanningDetailPage() {
@@ -64,7 +79,7 @@ export default function SavedPlanningDetailPage() {
       if (error || !data) {
         setStatus(error?.message || "No se encontró la planificación solicitada.")
       } else {
-        setItem(data as SavedPlanning)
+        setItem(normalizePlanning(data as SavedPlanning))
       }
       setLoading(false)
     }
@@ -79,17 +94,33 @@ export default function SavedPlanningDetailPage() {
     if (!item) return
     setSaving(true)
     setStatus("")
-
-    const { error } = await supabase
-      .from("saved_plannings")
-      .update({
+    const payload = {
+      title: item.title,
+      contexto: item.contexto,
+      content: item.content,
+      planning_text: item.content,
+      planning_json: {
         title: item.title,
+        nivel: item.nivel,
+        curso: item.curso,
+        asignatura: item.asignatura,
         contexto: item.contexto,
+        mes: item.mes,
+        unidad_id: item.unidad_id,
+        selected_oa_ids: item.selected_oa_ids,
+        selected_oat_ids: item.selected_oat_ids,
+        tiempo_planificacion: item.tiempo_planificacion,
+        sesiones: item.sesiones,
+        duracion_minutos: item.duracion_minutos,
         content: item.content,
         updated_at: new Date().toISOString(),
-      })
+      },
+      updated_at: new Date().toISOString(),
+    }
+    const { error } = await supabase
+      .from("saved_plannings")
+      .update(payload)
       .eq("id", item.id)
-
     setSaving(false)
     setStatus(error ? `No se pudo guardar: ${error.message}` : "Cambios guardados correctamente.")
   }
@@ -124,7 +155,7 @@ export default function SavedPlanningDetailPage() {
         fechaCreacion: formatDate(item.created_at),
         contexto: item.contexto || undefined,
       },
-      item.content
+      item.content || ""
     )
   }
 
@@ -245,7 +276,7 @@ export default function SavedPlanningDetailPage() {
           <div className="rounded-3xl border border-gray-800 bg-gray-900 p-5">
             <label className="mb-2 block text-sm font-medium text-gray-300">Contenido de la planificación</label>
             <textarea
-              value={item.content}
+              value={item.content || ""}
               onChange={(e) => setItem((prev) => (prev ? { ...prev, content: e.target.value } : prev))}
               rows={24}
               className="w-full rounded-2xl border border-gray-700 bg-gray-950 px-4 py-3 text-sm leading-relaxed text-white focus:border-emerald-500/40 focus:outline-none"
