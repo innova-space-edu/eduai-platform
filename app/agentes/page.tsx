@@ -19,18 +19,7 @@ type AgentItem = {
 }
 
 const AGENTS: AgentItem[] = [
-  {
-    id: "educador",
-    icon: "🏫",
-    name: "Planificador",
-    description: "Planificaciones MINEDUC para docentes chilenos",
-    color: "from-emerald-500 to-teal-600",
-    glow: "rgba(16,185,129,0.15)",
-    border: "rgba(16,185,129,0.2)",
-    href: "/educador",
-    tag: "Docentes",
-    status: "active",
-  },
+
   {
     id: "investigador",
     icon: "🔬",
