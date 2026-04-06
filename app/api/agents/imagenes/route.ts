@@ -456,9 +456,9 @@ async function tryOpenRouter(
       // Formato 1: message.images[] (estándar OpenRouter)
       const images = Array.isArray(message?.images) ? message.images : []
       const imgEntry = images[0]
-      const dataUrlA = imgEntry?.image_url?.url || imgEntry?.url || null
+      const dataUrlA: string | null = imgEntry?.image_url?.url || imgEntry?.url || null
 
-      if (typeof dataUrlA === "string") {
+      if (dataUrlA) {
         if (dataUrlA.startsWith("data:image/")) return { imageBase64: dataUrlA, label, model: id }
         if (/^https?:\/\//.test(dataUrlA)) {
           const converted = await fetchBase64(dataUrlA)
@@ -466,11 +466,12 @@ async function tryOpenRouter(
         }
       }
 
-      // Formato 2: message.content[] con partes tipo image_url (algunos modelos Gemini)
-      const parts = Array.isArray(message?.content) ? message.content : []
+      // Formato 2: message.content[] con partes tipo image_url (algunos modelos Gemini via OR)
+      const parts: unknown[] = Array.isArray(message?.content) ? message.content : []
       for (const part of parts) {
-        if (part?.type === "image_url") {
-          const u = part?.image_url?.url as string | undefined
+        const p = part as Record<string, unknown>
+        if (p?.type === "image_url") {
+          const u = (p?.image_url as Record<string, string> | undefined)?.url
           if (u?.startsWith("data:image/")) return { imageBase64: u, label, model: id }
           if (u && /^https?:\/\//.test(u)) {
             const converted = await fetchBase64(u)
