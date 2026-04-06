@@ -1,10 +1,12 @@
 "use client"
 
+import Link from "next/link"
 import { useEffect, useMemo, useRef, useState } from "react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
+import { exportPlanningPdf } from "@/lib/planning-pdf"
 import {
   buildPlanningHorizonText,
   getPlannerOAOptions,
@@ -118,6 +120,24 @@ interface AsignaturaOption {
   hasLocal: boolean
 }
 
+
+interface SavedPlanningInsert {
+  user_id: string
+  title: string
+  nivel: string
+  curso: string
+  asignatura: string
+  contexto: string
+  mes: string
+  unidad_id: string
+  selected_oa_ids: string[]
+  selected_oat_ids: string[]
+  tiempo_planificacion: string
+  sesiones: number
+  duracion_minutos: number
+  content: string
+}
+
 function getInitialAsignatura(nivel: NivelKey, curso: string) {
   const available = getAvailableAsignaturas(nivel, curso)
   return available[0] || ""
@@ -156,6 +176,10 @@ export default function EducadorPage() {
   const [showWelcome, setShowWelcome] = useState(true)
   const [openOAT, setOpenOAT] = useState(false)
   const [openOA, setOpenOA] = useState(false)
+  const [currentUserId, setCurrentUserId] = useState("")
+  const [saveStatus, setSaveStatus] = useState("")
+  const [savingPlanning, setSavingPlanning] = useState(false)
+  const [exportingPlanning, setExportingPlanning] = useState(false)
 
   const curriculumState = useMemo(
     () => ({
@@ -228,6 +252,8 @@ export default function EducadorPage() {
     config.duracionMinutos
   )
 
+  const latestAssistantMessage = [...messages].reverse().find((msg) => msg.role === "assistant")
+
   // Forzar scroll arriba al cargar la página
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -243,7 +269,10 @@ export default function EducadorPage() {
 
       if (error || !data.user) {
         await forceRecoverSession()
+        return
       }
+
+      setCurrentUserId(data.user.id)
     }
 
     ensureAuth()
@@ -447,6 +476,80 @@ export default function EducadorPage() {
       setLoading(false)
     }
   }
+  function buildPlanningTitle() {
+    const now = new Date().toLocaleDateString("es-CL")
+    return `Planificación ${config.curso} · ${config.asignatura} · ${now}`
+  }
+
+  function buildPlanningPayload(content: string): SavedPlanningInsert | null {
+    if (!currentUserId || !content.trim()) return null
+
+    return {
+      user_id: currentUserId,
+      title: buildPlanningTitle(),
+      nivel: config.nivel,
+      curso: config.curso,
+      asignatura: config.asignatura,
+      contexto: config.contexto,
+      mes: config.mes,
+      unidad_id: config.unidadId,
+      selected_oa_ids: config.selectedOAIds,
+      selected_oat_ids: config.selectedOATIds,
+      tiempo_planificacion: config.tiempoPlanificacion,
+      sesiones: config.sesiones,
+      duracion_minutos: config.duracionMinutos,
+      content,
+    }
+  }
+
+  async function handleSavePlanning() {
+    if (!latestAssistantMessage?.content?.trim()) {
+      setSaveStatus("Primero genera una planificación para guardarla.")
+      return
+    }
+
+    const payload = buildPlanningPayload(latestAssistantMessage.content)
+    if (!payload) {
+      setSaveStatus("No se pudo preparar la planificación para guardarla.")
+      return
+    }
+
+    setSavingPlanning(true)
+    setSaveStatus("")
+
+    const { error } = await supabase.from("saved_plannings").insert(payload)
+
+    setSavingPlanning(false)
+    setSaveStatus(error ? `No se pudo guardar: ${error.message}` : "Planificación guardada correctamente.")
+  }
+
+  async function handleExportPlanning() {
+    if (!latestAssistantMessage?.content?.trim()) {
+      setSaveStatus("Primero genera una planificación para exportarla.")
+      return
+    }
+
+    setExportingPlanning(true)
+    await exportPlanningPdf(
+      {
+        title: buildPlanningTitle(),
+        subtitle: "Planificación generada desde el Agente Planificador",
+        curso: config.curso,
+        asignatura: config.asignatura,
+        nivel: config.nivel,
+        mes: config.mes,
+        horizonte: config.tiempoPlanificacion,
+        sesiones: config.sesiones,
+        duracionMinutos: config.duracionMinutos,
+        fechaCreacion: new Date().toLocaleString("es-CL"),
+        contexto: config.contexto,
+      },
+      latestAssistantMessage.content
+    )
+    setExportingPlanning(false)
+  }
+
+
 
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col">
@@ -472,20 +575,47 @@ export default function EducadorPage() {
             </div>
           </div>
 
-          <button
-            onClick={() => setConfigOpen((prev) => !prev)}
-            className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${
-              configOpen
-                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
-                : "bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600"
-            }`}
-          >
-            ⚙️ {config.curso} · {config.asignatura}
-          </button>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Link
+              href="/educador/planificaciones"
+              className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-3 py-1.5 text-xs text-cyan-200 transition-all hover:bg-cyan-500/20"
+            >
+              🗂️ Ver guardadas
+            </Link>
+            <button
+              onClick={handleSavePlanning}
+              disabled={!latestAssistantMessage || savingPlanning}
+              className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-200 transition-all hover:bg-emerald-500/20 disabled:opacity-40"
+            >
+              {savingPlanning ? "Guardando..." : "💾 Guardar"}
+            </button>
+            <button
+              onClick={handleExportPlanning}
+              disabled={!latestAssistantMessage || exportingPlanning}
+              className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-200 transition-all hover:bg-amber-500/20 disabled:opacity-40"
+            >
+              {exportingPlanning ? "Exportando..." : "📄 Exportar PDF"}
+            </button>
+            <button
+              onClick={() => setConfigOpen((prev) => !prev)}
+              className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${
+                configOpen
+                  ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                  : "bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600"
+              }`}
+            >
+              ⚙️ {config.curso} · {config.asignatura}
+            </button>
+          </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto w-full flex-1 flex flex-col px-4 py-4 gap-4">
+        {saveStatus && (
+          <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-3 text-sm text-cyan-100">
+            {saveStatus}
+          </div>
+        )}
         {configOpen && (
           <div className="grid xl:grid-cols-[1.2fr_0.8fr] gap-4">
             <div className="bg-gray-900 border border-gray-800 rounded-3xl p-5">
@@ -1181,7 +1311,30 @@ export default function EducadorPage() {
             </button>
           </div>
 
-          <p className="text-gray-700 text-xs mt-1.5 text-center">
+          <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
+            <button
+              onClick={handleSavePlanning}
+              disabled={!latestAssistantMessage || savingPlanning}
+              className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-200 hover:bg-emerald-500/20 disabled:opacity-40"
+            >
+              {savingPlanning ? "Guardando..." : "Guardar planificación"}
+            </button>
+            <button
+              onClick={handleExportPlanning}
+              disabled={!latestAssistantMessage || exportingPlanning}
+              className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-200 hover:bg-amber-500/20 disabled:opacity-40"
+            >
+              {exportingPlanning ? "Exportando PDF..." : "Exportar PDF bonito"}
+            </button>
+            <Link
+              href="/educador/planificaciones"
+              className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-3 py-1.5 text-xs text-cyan-200 hover:bg-cyan-500/20"
+            >
+              Ver, editar o eliminar guardadas
+            </Link>
+          </div>
+
+          <p className="text-gray-700 text-xs mt-2 text-center">
             APl · Parvularia completa · OA múltiples · OAT · ámbitos y núcleos · horizonte temporal
           </p>
         </div>
