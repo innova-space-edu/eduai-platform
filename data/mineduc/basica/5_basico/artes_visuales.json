@@ -1,0 +1,102 @@
+{
+  "metadata": {
+    "nivel": "Básica",
+    "curso": "5° Básico",
+    "asignatura": "Artes Visuales",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/",
+    "estado": "base_verificada_mineduc",
+    "ultima_actualizacion_manual": "2026-04-06",
+    "nota": "Archivo organizado para el planificador con OA oficiales de Artes Visuales 5° básico. La distribución por unidades sigue el enfoque del programa MINEDUC."
+  },
+  "objetivos_habilidad": [
+    {
+      "id": "AV05-OAH-a",
+      "descripcion": "Crear trabajos de arte y diseños a partir de ideas propias y de la observación del entorno cultural y artístico.",
+      "unidades": [1, 2, 3, 4]
+    },
+    {
+      "id": "AV05-OAH-b",
+      "descripcion": "Aplicar y combinar elementos del lenguaje visual en composiciones con fines expresivos.",
+      "unidades": [1, 2, 3, 4]
+    },
+    {
+      "id": "AV05-OAH-c",
+      "descripcion": "Analizar, interpretar y comunicar apreciaciones sobre obras de arte y diseño.",
+      "unidades": [1, 2, 3, 4]
+    }
+  ],
+  "objetivos_actitud": [
+    {
+      "id": "AV05-OAA-A",
+      "descripcion": "Disfrutar y valorar el arte como medio de expresión personal y cultural.",
+      "unidades": [1, 2, 3, 4]
+    },
+    {
+      "id": "AV05-OAA-B",
+      "descripcion": "Respetar y valorar sus creaciones y las de otros.",
+      "unidades": [1, 2, 3, 4]
+    }
+  ],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "Uso de formas y color",
+      "oa": [
+        {
+          "id": "AV5B-OA-01",
+          "codigo_oficial": "AR05 OA 01",
+          "descripcion": "Crear trabajos de arte y diseños a partir de sus propias ideas y de la observación del entorno cultural: Chile, su paisaje y sus costumbres en el pasado y en el presente; entorno artístico: impresionismo y postimpresionismo; diseño en Chile, Latinoamérica y del resto del mundo."
+        },
+        {
+          "id": "AV5B-OA-02",
+          "codigo_oficial": "AR05 OA 02",
+          "descripcion": "Aplicar y combinar elementos del lenguaje visual en trabajos de arte y diseño con diferentes propósitos expresivos y creativos."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Obras de paisajes y costumbres chilenas",
+      "oa": [
+        {
+          "id": "AV5B-OA-01",
+          "codigo_oficial": "AR05 OA 01",
+          "descripcion": "Crear trabajos de arte y diseños a partir de sus propias ideas y de la observación del entorno cultural: Chile, su paisaje y sus costumbres en el pasado y en el presente; entorno artístico: impresionismo y postimpresionismo; diseño en Chile, Latinoamérica y del resto del mundo."
+        },
+        {
+          "id": "AV5B-OA-03",
+          "codigo_oficial": "AR05 OA 03",
+          "descripcion": "Crear trabajos de arte y diseños a partir de diferentes desafíos, utilizando materiales, herramientas y procedimientos diversos."
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "nombre": "Diseño, observación y creación visual",
+      "oa": [
+        {
+          "id": "AV5B-OA-02",
+          "codigo_oficial": "AR05 OA 02",
+          "descripcion": "Aplicar y combinar elementos del lenguaje visual en trabajos de arte y diseño con diferentes propósitos expresivos y creativos."
+        },
+        {
+          "id": "AV5B-OA-03",
+          "codigo_oficial": "AR05 OA 03",
+          "descripcion": "Crear trabajos de arte y diseños a partir de diferentes desafíos, utilizando materiales, herramientas y procedimientos diversos."
+        }
+      ]
+    },
+    {
+      "numero": 4,
+      "nombre": "Apreciación y análisis de obras",
+      "oa": [
+        {
+          "id": "AV5B-OA-04",
+          "codigo_oficial": "AR05 OA 04",
+          "descripcion": "Analizar e interpretar obras de arte y diseño en relación con la aplicación del lenguaje visual, contextos, materiales, estilos u otros."
+        }
+      ]
+    }
+  ]
+}
