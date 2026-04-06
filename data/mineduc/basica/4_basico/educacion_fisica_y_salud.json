@@ -1,0 +1,97 @@
+{
+  "metadata": {
+    "nivel": "Básica",
+    "curso": "4° Básico",
+    "asignatura": "Educación Física y Salud",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/",
+    "estado": "base_en_revision_mineduc",
+    "ultima_actualizacion_manual": "2026-04-06",
+    "nota": "Archivo estructurado para el planificador según el eje oficial de habilidades motrices, vida activa y seguridad. Requiere afinación final OA por OA."
+  },
+  "objetivos_habilidad": [
+    {
+      "id": "EF04-OAH-a",
+      "descripcion": "Combinar e integrar patrones motrices en actividades físicas, juegos y deportes.",
+      "unidades": [1, 2, 3, 4]
+    },
+    {
+      "id": "EF04-OAH-b",
+      "descripcion": "Practicar actividad física de manera segura, colaborativa y saludable.",
+      "unidades": [1, 2, 3, 4]
+    }
+  ],
+  "objetivos_actitud": [
+    {
+      "id": "EF04-OAA-A",
+      "descripcion": "Demostrar disposición al esfuerzo, respeto por las reglas y trabajo con otros.",
+      "unidades": [1, 2, 3, 4]
+    },
+    {
+      "id": "EF04-OAA-B",
+      "descripcion": "Valorar la actividad física como parte de una vida activa y saludable.",
+      "unidades": [1, 2, 3, 4]
+    }
+  ],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "Combinando habilidades motrices",
+      "oa": [
+        {
+          "id": "EF4B-OA-01",
+          "codigo_oficial": "EF04 OA 01",
+          "descripcion": "Demostrar la combinación de habilidades motrices básicas de locomoción, manipulación y estabilidad en diferentes situaciones motrices."
+        },
+        {
+          "id": "EF4B-OA-02",
+          "codigo_oficial": "EF04 OA 02",
+          "descripcion": "Aplicar habilidades motrices en juegos y actividades físicas en diferentes espacios."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Juegos predeportivos y trabajo en equipo",
+      "oa": [
+        {
+          "id": "EF4B-OA-03",
+          "codigo_oficial": "EF04 OA 03",
+          "descripcion": "Participar en juegos predeportivos y actividades físicas colectivas, respetando reglas y roles."
+        },
+        {
+          "id": "EF4B-OA-04",
+          "codigo_oficial": "EF04 OA 04",
+          "descripcion": "Practicar actividades físicas demostrando colaboración, respeto y juego limpio."
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "nombre": "Vida activa y condición física",
+      "oa": [
+        {
+          "id": "EF4B-OA-05",
+          "codigo_oficial": "EF04 OA 05",
+          "descripcion": "Practicar actividades físicas de intensidad moderada a vigorosa para mejorar su condición física."
+        },
+        {
+          "id": "EF4B-OA-06",
+          "codigo_oficial": "EF04 OA 06",
+          "descripcion": "Reconocer los beneficios de la actividad física y hábitos de vida saludable."
+        }
+      ]
+    },
+    {
+      "numero": 4,
+      "nombre": "Seguridad, autocuidado y responsabilidad",
+      "oa": [
+        {
+          "id": "EF4B-OA-07",
+          "codigo_oficial": "EF04 OA 07",
+          "descripcion": "Practicar actividad física en forma segura, aplicando normas de higiene, seguridad y autocuidado."
+        }
+      ]
+    }
+  ]
+}
