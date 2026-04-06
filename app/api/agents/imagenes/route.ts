@@ -1,10 +1,11 @@
 // app/api/agents/imagenes/route.ts
-// v8 — rotación de keys, optimizador condicional, orden por modo y soporte SDXL vía Hugging Face
+// v9 — FLUX.2 en Together, cadena de modelos OpenRouter 2026, Gemini via OR
 
 import { createClient } from "@/lib/supabase/server"
 import { createClient as createAdmin } from "@supabase/supabase-js"
 import {
   HUGGINGFACE_IMAGE_MODELS,
+  OPENROUTER_IMAGE_MODELS,
   TOGETHER_IMAGE_MODELS,
   GenerationMode,
   ProviderId,
@@ -278,8 +279,13 @@ async function tryTogether(
     return { imageBase64: null, label, error: "No hay key de Together configurada" }
   }
 
-  for (const { id, steps, guidance } of TOGETHER_IMAGE_MODELS) {
+  for (const { id, steps, guidance, useAspectRatio } of TOGETHER_IMAGE_MODELS) {
     try {
+      // FLUX.2 usa aspect_ratio; FLUX.1.x usa width/height
+      const sizeParams = useAspectRatio
+        ? { aspect_ratio: aspectRatio(width, height) }
+        : { width: clamp(width, 256, 1440, 1024), height: clamp(height, 256, 1440, 768) }
+
       const res = await fetch("https://api.together.xyz/v1/images/generations", {
         method: "POST",
         headers: {
@@ -289,14 +295,13 @@ async function tryTogether(
         body: JSON.stringify({
           model: id,
           prompt,
-          width: clamp(width, 256, 1440, 1024),
-          height: clamp(height, 256, 1440, 768),
+          ...sizeParams,
           steps,
           n: 1,
           guidance,
           response_format: "base64",
         }),
-        signal: AbortSignal.timeout(50000),
+        signal: AbortSignal.timeout(55000),
       })
 
       if (!res.ok) {
@@ -407,98 +412,80 @@ async function tryOpenRouter(
   prompt: string,
   width: number,
   height: number,
-  mode: GenerationMode
+  _mode: GenerationMode
 ): Promise<ProviderResult> {
   const label = "OpenRouter"
   const keys = getOpenRouterKeys()
-  const key = pickFromPool(keys, `${prompt}:${mode}`)
-
-  const modelMap: Record<GenerationMode, string> = {
-    fast: process.env.OPENROUTER_IMAGE_MODEL_FAST || "black-forest-labs/FLUX-1.1-pro",
-    quality: process.env.OPENROUTER_IMAGE_MODEL_QUALITY || "black-forest-labs/FLUX-1.1-pro-ultra",
-    educational: process.env.OPENROUTER_IMAGE_MODEL_EDU || "black-forest-labs/FLUX-1.1-pro",
-  }
-
-  const model = modelMap[mode]
+  const key = pickFromPool(keys, prompt)
 
   if (!key) {
-    return {
-      imageBase64: null,
-      label,
-      model,
-      error: "No hay key de OpenRouter configurada",
-    }
+    return { imageBase64: null, label, error: "No hay key de OpenRouter configurada" }
   }
 
-  try {
-    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": process.env.OPENROUTER_REFERER || "https://eduai.local",
-        "X-Title": process.env.OPENROUTER_APP_TITLE || "EduAI Image Studio",
-      },
-      body: JSON.stringify({
-        model,
-        messages: [{ role: "user", content: prompt }],
-        modalities: ["image", "text"],
-        stream: false,
-        image_config: {
-          aspect_ratio: aspectRatio(width, height),
+  const ar = aspectRatio(width, height)
+
+  for (const { id, modalities } of OPENROUTER_IMAGE_MODELS) {
+    try {
+      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${key}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": process.env.OPENROUTER_REFERER || "https://eduai.local",
+          "X-Title": process.env.OPENROUTER_APP_TITLE || "EduAI Image Studio",
         },
-      }),
-      signal: AbortSignal.timeout(55000),
-    })
+        body: JSON.stringify({
+          model: id,
+          messages: [{ role: "user", content: prompt }],
+          modalities,
+          stream: false,
+          image_config: { aspect_ratio: ar },
+        }),
+        signal: AbortSignal.timeout(65000),
+      })
 
-    if (!res.ok) {
-      const body = await safeText(res)
-      return {
-        imageBase64: null,
-        label,
-        model,
-        error: `HTTP ${res.status}: ${body.slice(0, 200)}`,
+      if (!res.ok) {
+        const body = await safeText(res)
+        console.warn(`[OpenRouter][${id}] HTTP ${res.status}: ${body.slice(0, 150)}`)
+        continue
       }
-    }
 
-    const data = await res.json()
-    const message = data?.choices?.[0]?.message
-    const images = Array.isArray(message?.images) ? message.images : []
-    const dataUrl = images[0]?.image_url?.url || images[0]?.url || null
+      const data = await res.json()
+      const message = data?.choices?.[0]?.message
 
-    if (typeof dataUrl === "string" && dataUrl.startsWith("data:image/")) {
-      return {
-        imageBase64: dataUrl,
-        label,
-        model,
-      }
-    }
+      // Formato 1: message.images[] (estándar OpenRouter)
+      const images = Array.isArray(message?.images) ? message.images : []
+      const imgEntry = images[0]
+      const dataUrlA = imgEntry?.image_url?.url || imgEntry?.url || null
 
-    if (typeof dataUrl === "string" && /^https?:\/\//.test(dataUrl)) {
-      const converted = await fetchBase64(dataUrl)
-      if (converted) {
-        return {
-          imageBase64: converted,
-          label,
-          model,
+      if (typeof dataUrlA === "string") {
+        if (dataUrlA.startsWith("data:image/")) return { imageBase64: dataUrlA, label, model: id }
+        if (/^https?:\/\//.test(dataUrlA)) {
+          const converted = await fetchBase64(dataUrlA)
+          if (converted) return { imageBase64: converted, label, model: id }
         }
       }
-    }
 
-    return {
-      imageBase64: null,
-      label,
-      model,
-      error: "OpenRouter no devolvió imagen",
-    }
-  } catch (e) {
-    return {
-      imageBase64: null,
-      label,
-      model,
-      error: errMsg(e),
+      // Formato 2: message.content[] con partes tipo image_url (algunos modelos Gemini)
+      const parts = Array.isArray(message?.content) ? message.content : []
+      for (const part of parts) {
+        if (part?.type === "image_url") {
+          const u = part?.image_url?.url as string | undefined
+          if (u?.startsWith("data:image/")) return { imageBase64: u, label, model: id }
+          if (u && /^https?:\/\//.test(u)) {
+            const converted = await fetchBase64(u)
+            if (converted) return { imageBase64: converted, label, model: id }
+          }
+        }
+      }
+
+      console.warn(`[OpenRouter][${id}] respuesta OK pero sin imagen detectada`)
+    } catch (e) {
+      console.warn(`[OpenRouter][${id}]`, errMsg(e))
     }
   }
+
+  return { imageBase64: null, label, error: "OpenRouter: todos los modelos fallaron" }
 }
 
 async function runProvider(
