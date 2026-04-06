@@ -104,8 +104,8 @@ function GeneratingAnimation({ prompt, style }: { prompt: string; style: string 
     if (!rawCtx) return
     const ctx: CanvasRenderingContext2D = rawCtx
 
-    const W = canvas.width  = canvas.offsetWidth
-    const H = canvas.height = canvas.offsetHeight
+    const W = canvas.width  = canvas.offsetWidth  || 600
+    const H = canvas.height = canvas.offsetHeight || 400
 
     // Nodos de la red
     const NODE_COUNT = 22
@@ -196,7 +196,7 @@ function GeneratingAnimation({ prompt, style }: { prompt: string; style: string 
 
       // Nodos
       nodes.forEach(n => {
-        const pSize = n.r + Math.sin(n.pulse) * 1.2
+        const pSize = Math.max(0.1, n.r + Math.sin(n.pulse) * 1.2)
         // Glow
         const glow = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, pSize * 5)
         glow.addColorStop(0, "rgba(0,245,255,0.3)")
