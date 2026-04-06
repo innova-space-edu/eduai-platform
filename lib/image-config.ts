@@ -1,4 +1,5 @@
 // lib/image-config.ts
+// v2 — FLUX.2 en Together, modelos OpenRouter 2026, Gemini via OR
 
 export type ProviderId =
   | "auto"
@@ -54,20 +55,43 @@ export const GEMINI_IMAGE_MODELS = [
   process.env.GEMINI_IMAGE_MODEL_PRIMARY,
   process.env.GEMINI_IMAGE_MODEL_SECONDARY,
   process.env.GEMINI_IMAGE_MODEL_TERTIARY,
+  // Modelos activos con soporte de generación nativa de imágenes (2025-2026)
+  "gemini-2.0-flash-exp",
+  "gemini-2.0-flash",
+  "gemini-2.5-flash-preview-04-17",
+  // Fallbacks legacy (pueden seguir activos en algunas regiones)
   "gemini-2.0-flash-preview-image-generation",
   "gemini-2.0-flash-exp-image-generation",
-  "gemini-2.0-flash-exp",
 ].filter(Boolean) as string[]
 
-export const TOGETHER_IMAGE_MODELS = [
-  { id: "black-forest-labs/FLUX.1-schnell-Free", steps: 4, guidance: 0 },
-  { id: "black-forest-labs/FLUX.1-schnell", steps: 4, guidance: 0 },
-  { id: "black-forest-labs/FLUX.1-dev", steps: 20, guidance: 3.5 },
+export type TogetherImageModel = { id: string; steps: number; guidance: number; useAspectRatio: boolean }
+export const TOGETHER_IMAGE_MODELS: TogetherImageModel[] = [
+  // FLUX.2 (nov 2025) — calidad producción
+  { id: "black-forest-labs/FLUX.2-pro",    steps: 28, guidance: 3.5, useAspectRatio: true  },
+  { id: "black-forest-labs/FLUX.2-flex",   steps: 28, guidance: 3.5, useAspectRatio: true  },
+  // FLUX.1.x — generación anterior, más rápida
+  { id: "black-forest-labs/FLUX.1-schnell", steps: 4,  guidance: 0,  useAspectRatio: false },
+  { id: "black-forest-labs/FLUX.1-dev",     steps: 20, guidance: 3.5, useAspectRatio: false },
 ]
 
 export const HUGGINGFACE_IMAGE_MODELS = [
   { id: "black-forest-labs/FLUX.1-schnell", steps: 4, guidance: 0 },
   { id: "stabilityai/stable-diffusion-xl-base-1.0", steps: 25, guidance: 7.5 },
+]
+
+// Modelos de generación de imagen disponibles vía OpenRouter (abril 2026).
+// modalities: ["image","text"] para modelos que devuelven texto + imagen (Gemini, OpenAI)
+//             ["image"]        para modelos que solo devuelven imagen (FLUX, Sourceful, ByteDance)
+export const OPENROUTER_IMAGE_MODELS: { id: string; modalities: string[] }[] = [
+  // Google Gemini — GA, mejor calidad/precio para educación
+  { id: "google/gemini-2.5-flash-image",         modalities: ["image", "text"] },
+  { id: "google/gemini-3.1-flash-image-preview", modalities: ["image", "text"] },
+  // Sourceful Riverflow — rápido, barato ($0.02/imagen)
+  { id: "sourceful/riverflow-v2-fast",           modalities: ["image"] },
+  // ByteDance Seedream 4.5 — alta calidad ($0.04/imagen)
+  { id: "bytedance-seed/seedream-4.5",           modalities: ["image"] },
+  // OpenAI GPT-5 Image Mini — fallback premium
+  { id: "openai/gpt-5-image-mini",               modalities: ["image", "text"] },
 ]
 
 export function clamp(v: number, min: number, max: number, fallback: number): number {
