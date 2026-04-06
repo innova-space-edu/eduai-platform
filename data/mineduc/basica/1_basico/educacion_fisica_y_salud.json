@@ -1,0 +1,127 @@
+{
+  "metadata": {
+    "nivel": "Básica",
+    "curso": "1° Básico",
+    "asignatura": "Educación Física y Salud",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/",
+    "estado": "base_verificada_mineduc",
+    "ultima_actualizacion_manual": "2026-04-06",
+    "nota": "Archivo base creado a partir de OA oficiales de Educación Física y Salud 1° básico del Currículum Nacional MINEDUC. La agrupación por unidades fue organizada para el planificador según los ejes oficiales."
+  },
+  "objetivos_habilidad": [
+    {
+      "id": "EF01-OAH-a",
+      "descripcion": "Desarrollar habilidades motrices básicas, coordinación, ubicación espacial y control corporal.",
+      "unidades": [1, 2, 3, 4]
+    },
+    {
+      "id": "EF01-OAH-b",
+      "descripcion": "Participar en juegos y actividades físicas demostrando seguridad, colaboración y respeto.",
+      "unidades": [1, 2, 3, 4]
+    },
+    {
+      "id": "EF01-OAH-c",
+      "descripcion": "Reconocer hábitos de vida activa y saludable en la práctica corporal cotidiana.",
+      "unidades": [1, 2, 3, 4]
+    }
+  ],
+  "objetivos_actitud": [
+    {
+      "id": "EF01-OAA-A",
+      "descripcion": "Demostrar disposición al esfuerzo personal, superación y perseverancia.",
+      "unidades": [1, 2, 3, 4]
+    },
+    {
+      "id": "EF01-OAA-B",
+      "descripcion": "Respetar las normas, reglas y a sus compañeros en juegos y actividades.",
+      "unidades": [1, 2, 3, 4]
+    },
+    {
+      "id": "EF01-OAA-C",
+      "descripcion": "Valorar la actividad física y el cuidado del cuerpo como parte de una vida saludable.",
+      "unidades": [1, 2, 3, 4]
+    }
+  ],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "Habilidades motrices básicas de locomoción, manipulación y estabilidad",
+      "oa": [
+        {
+          "id": "EF1B-OA-01",
+          "codigo_oficial": "EF01 OA 01",
+          "descripcion": "Demostrar habilidades motrices básicas de locomoción, manipulación y estabilidad en una variedad de juegos y actividades físicas, como saltar con dos pies consecutivamente en una dirección, lanzar un balón hacia un compañero, caminar y correr consecutivamente, lanzar y recoger un balón, caminar sobre una línea manteniendo el control del cuerpo, realizar suspensiones, giros y rodadas o volteos."
+        },
+        {
+          "id": "EF1B-OA-02",
+          "codigo_oficial": "EF01 OA 02",
+          "descripcion": "Ejecutar acciones motrices con relación a sí mismo, a un objeto o un compañero, usando diferentes categorías de ubicación espacial y temporal, como derecha, izquierda, adelante, atrás, arriba, abajo, adentro, afuera, entre, al lado, antes, durante, después, rápido y lento."
+        },
+        {
+          "id": "EF1B-OA-03",
+          "codigo_oficial": "EF01 OA 03",
+          "descripcion": "Practicar una amplia gama de juegos con y sin oposición, con y sin colaboración, de persecución, individuales y colectivos."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Movimiento en distintos espacios y expresión corporal",
+      "oa": [
+        {
+          "id": "EF1B-OA-04",
+          "codigo_oficial": "EF01 OA 04",
+          "descripcion": "Ejecutar habilidades motrices básicas en diferentes entornos, como las plazas activas, el patio del colegio, parques, playas, entre otros."
+        },
+        {
+          "id": "EF1B-OA-05",
+          "codigo_oficial": "EF01 OA 05",
+          "descripcion": "Ejecutar movimientos corporales, expresando sensaciones, ideas, estados de ánimo y emociones en variados espacios y a diferentes ritmos."
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "nombre": "Vida activa y saludable",
+      "oa": [
+        {
+          "id": "EF1B-OA-06",
+          "codigo_oficial": "EF01 OA 06",
+          "descripcion": "Ejecutar actividades físicas de intensidad moderada a vigorosa que incrementen la condición física, por medio de juegos y circuitos."
+        },
+        {
+          "id": "EF1B-OA-07",
+          "codigo_oficial": "EF01 OA 07",
+          "descripcion": "Practicar en su vida cotidiana actividades físicas de intensidad moderada a vigorosa de forma guiada, por medio de juegos tradicionales y actividades lúdicas."
+        },
+        {
+          "id": "EF1B-OA-08",
+          "codigo_oficial": "EF01 OA 08",
+          "descripcion": "Reconocer las sensaciones y respuestas corporales provocadas por la práctica de actividad física, como cambios del color de la piel, sudor, agitación, ritmo de respiración, cansancio y dificultad al hablar."
+        },
+        {
+          "id": "EF1B-OA-09",
+          "codigo_oficial": "EF01 OA 09",
+          "descripcion": "Practicar actividades físicas en forma segura, demostrando la adquisición de hábitos de higiene, posturales y de vida saludable, como lavarse las manos y la cara después de la clase, mantener una correcta postura y comer una colación saludable antes y después de practicar actividad física."
+        }
+      ]
+    },
+    {
+      "numero": 4,
+      "nombre": "Seguridad, juego limpio y trabajo en equipo",
+      "oa": [
+        {
+          "id": "EF1B-OA-10",
+          "codigo_oficial": "EF01 OA 10",
+          "descripcion": "Practicar juegos o actividades motrices para aprender a trabajar en equipo, asumiendo diferentes roles (respetar al otro, recoger los materiales solicitados o liderar si se le asigna ese rol)."
+        },
+        {
+          "id": "EF1B-OA-11",
+          "codigo_oficial": "EF01 OA 11",
+          "descripcion": "Practicar actividades físicas, demostrando comportamientos seguros como: realizar un calentamiento mediante un juego; escuchar y seguir instrucciones; utilizar implementos bajo supervisión; mantener su posición dentro de los límites establecidos para la actividad."
+        }
+      ]
+    }
+  ]
+}
