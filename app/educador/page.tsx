@@ -120,10 +120,16 @@ interface AsignaturaOption {
   hasLocal: boolean
 }
 
-
 interface SavedPlanningInsert {
   user_id: string
   title: string
+  // formato antiguo
+  course: string
+  subject: string
+  unit: string
+  planning_text: string
+  planning_json: Record<string, unknown>
+  // formato nuevo
   nivel: string
   curso: string
   asignatura: string
@@ -476,6 +482,7 @@ export default function EducadorPage() {
       setLoading(false)
     }
   }
+
   function buildPlanningTitle() {
     const now = new Date().toLocaleDateString("es-CL")
     return `Planificación ${config.curso} · ${config.asignatura} · ${now}`
@@ -483,10 +490,31 @@ export default function EducadorPage() {
 
   function buildPlanningPayload(content: string): SavedPlanningInsert | null {
     if (!currentUserId || !content.trim()) return null
-
     return {
       user_id: currentUserId,
       title: buildPlanningTitle(),
+      // compatibilidad antigua
+      course: config.curso,
+      subject: config.asignatura,
+      unit: config.unidadId || "",
+      planning_text: content,
+      planning_json: {
+        nivel: config.nivel,
+        curso: config.curso,
+        asignatura: config.asignatura,
+        contexto: config.contexto,
+        mes: config.mes,
+        unidad_id: config.unidadId,
+        selected_oa_ids: config.selectedOAIds,
+        selected_oat_ids: config.selectedOATIds,
+        tiempo_planificacion: config.tiempoPlanificacion,
+        sesiones: config.sesiones,
+        duracion_minutos: config.duracionMinutos,
+        title: buildPlanningTitle(),
+        content,
+        created_at: new Date().toISOString(),
+      },
+      // formato nuevo
       nivel: config.nivel,
       curso: config.curso,
       asignatura: config.asignatura,
@@ -507,20 +535,26 @@ export default function EducadorPage() {
       setSaveStatus("Primero genera una planificación para guardarla.")
       return
     }
-
     const payload = buildPlanningPayload(latestAssistantMessage.content)
     if (!payload) {
       setSaveStatus("No se pudo preparar la planificación para guardarla.")
       return
     }
-
     setSavingPlanning(true)
     setSaveStatus("")
-
-    const { error } = await supabase.from("saved_plannings").insert(payload)
-
+    const { data, error } = await supabase
+      .from("saved_plannings")
+      .insert(payload)
+      .select("id, title, created_at")
+      .single()
     setSavingPlanning(false)
-    setSaveStatus(error ? `No se pudo guardar: ${error.message}` : "Planificación guardada correctamente.")
+    if (error) {
+      console.error("Error al guardar planificación:", error)
+      setSaveStatus(`No se pudo guardar: ${error.message}`)
+      return
+    }
+    console.log("Planificación guardada:", data)
+    setSaveStatus("Planificación guardada correctamente.")
   }
 
   async function handleExportPlanning() {
