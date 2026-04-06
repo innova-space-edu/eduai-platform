@@ -1,0 +1,92 @@
+{
+  "metadata": {
+    "nivel": "Básica",
+    "curso": "5° Básico",
+    "asignatura": "Orientación",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/",
+    "estado": "base_verificada_mineduc",
+    "ultima_actualizacion_manual": "2026-04-06",
+    "nota": "Archivo base para el planificador de Orientación 5° básico, organizado según ejes formativos y la estructura general del programa MINEDUC."
+  },
+  "objetivos_habilidad": [
+    {
+      "id": "OR05-OAH-a",
+      "descripcion": "Reconocer fortalezas personales, cambios del desarrollo y formas de relación respetuosa con otros.",
+      "unidades": [1, 2, 3, 4]
+    },
+    {
+      "id": "OR05-OAH-b",
+      "descripcion": "Desarrollar convivencia, participación, autocuidado y prevención de riesgos.",
+      "unidades": [1, 2, 3, 4]
+    }
+  ],
+  "objetivos_actitud": [
+    {
+      "id": "OR05-OAA-A",
+      "descripcion": "Valorar positivamente su identidad y desarrollo personal.",
+      "unidades": [1, 2, 3, 4]
+    },
+    {
+      "id": "OR05-OAA-B",
+      "descripcion": "Participar con respeto, solidaridad y responsabilidad en la vida escolar.",
+      "unidades": [1, 2, 3, 4]
+    }
+  ],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "Trato respetuoso y solidario",
+      "oa": [
+        {
+          "id": "OR5B-OA-01",
+          "codigo_oficial": "OR05 OA 01",
+          "descripcion": "Demostrar una valoración positiva de sí mismo reconociendo habilidades, fortalezas y aspectos que requiera superar."
+        },
+        {
+          "id": "OR5B-OA-02",
+          "codigo_oficial": "OR05 OA 02",
+          "descripcion": "Establecer y practicar relaciones respetuosas y solidarias, rechazando toda forma de violencia y discriminación."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Desarrollo afectivo y sexual",
+      "oa": [
+        {
+          "id": "OR5B-OA-03",
+          "codigo_oficial": "OR05 OA 03",
+          "descripcion": "Reconocer y valorar el proceso de desarrollo afectivo y sexual, que aprecia en sí mismo y en los demás, describiendo los cambios físicos, afectivos y sociales que ocurren en la pubertad."
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "nombre": "Autocuidado y prevención",
+      "oa": [
+        {
+          "id": "OR5B-OA-04",
+          "codigo_oficial": "OR05 OA 04",
+          "descripcion": "Practicar en forma autónoma conductas protectoras y de autocuidado."
+        },
+        {
+          "id": "OR5B-OA-05",
+          "codigo_oficial": "OR05 OA 05",
+          "descripcion": "Identificar y aplicar estrategias para resolver conflictos y pedir ayuda en situaciones de riesgo."
+        }
+      ]
+    },
+    {
+      "numero": 4,
+      "nombre": "Participación y vida escolar",
+      "oa": [
+        {
+          "id": "OR5B-OA-06",
+          "codigo_oficial": "OR05 OA 06",
+          "descripcion": "Participar activa y colaborativamente en la vida del curso y de la comunidad escolar, asumiendo responsabilidades y compromisos."
+        }
+      ]
+    }
+  ]
+}
