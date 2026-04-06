@@ -21,7 +21,12 @@ type SavedPlanning = {
   tiempo_planificacion: string | null
   sesiones: number | null
   duracion_minutos: number | null
-  content: string
+  content: string | null
+  course: string | null
+  subject: string | null
+  unit: string | null
+  planning_text: string | null
+  planning_json: Record<string, unknown> | null
   created_at: string
   updated_at: string
 }
@@ -31,6 +36,16 @@ function formatDate(date: string) {
     dateStyle: "medium",
     timeStyle: "short",
   })
+}
+
+function normalizePlanning(item: SavedPlanning): SavedPlanning {
+  return {
+    ...item,
+    curso: item.curso || item.course || null,
+    asignatura: item.asignatura || item.subject || null,
+    unidad_id: item.unidad_id || item.unit || null,
+    content: item.content || item.planning_text || "",
+  }
 }
 
 export default function SavedPlanningsPage() {
@@ -64,9 +79,11 @@ export default function SavedPlanningsPage() {
       if (!active) return
 
       if (error) {
+        console.error("Error cargando planificaciones:", error)
         setError(error.message)
       } else {
-        setItems((data || []) as SavedPlanning[])
+        const normalized = ((data || []) as SavedPlanning[]).map(normalizePlanning)
+        setItems(normalized)
       }
       setLoading(false)
     }
@@ -118,7 +135,7 @@ export default function SavedPlanningsPage() {
         fechaCreacion: formatDate(item.created_at),
         contexto: item.contexto || undefined,
       },
-      item.content
+      item.content || ""
     )
   }
 
@@ -197,7 +214,7 @@ export default function SavedPlanningsPage() {
                       {item.curso || "Sin curso"} · {item.asignatura || "Sin asignatura"}
                     </p>
                     <p className="mt-2 line-clamp-3 text-sm text-gray-400">
-                      {item.content.replace(/[#*_`>-]/g, " ").slice(0, 280)}...
+                      {(item.content || "").replace(/[#*_`>-]/g, " ").slice(0, 280)}...
                     </p>
                   </div>
 
