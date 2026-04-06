@@ -1,0 +1,107 @@
+{
+  "metadata": {
+    "nivel": "Básica",
+    "curso": "5° Básico",
+    "asignatura": "Educación Física y Salud",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/",
+    "estado": "base_verificada_mineduc",
+    "ultima_actualizacion_manual": "2026-04-06",
+    "nota": "Archivo estructurado para el planificador según OA oficiales de Educación Física y Salud 5° básico y la organización general del programa MINEDUC."
+  },
+  "objetivos_habilidad": [
+    {
+      "id": "EF05-OAH-a",
+      "descripcion": "Aplicar habilidades motrices en actividades deportivas y predeportivas.",
+      "unidades": [1, 2, 3, 4]
+    },
+    {
+      "id": "EF05-OAH-b",
+      "descripcion": "Practicar actividad física segura, saludable y colaborativa, aplicando estrategias y reglas.",
+      "unidades": [1, 2, 3, 4]
+    }
+  ],
+  "objetivos_actitud": [
+    {
+      "id": "EF05-OAA-A",
+      "descripcion": "Demostrar esfuerzo, responsabilidad y respeto en la práctica de actividad física.",
+      "unidades": [1, 2, 3, 4]
+    },
+    {
+      "id": "EF05-OAA-B",
+      "descripcion": "Valorar la actividad física y el deporte como medios para el bienestar personal y social.",
+      "unidades": [1, 2, 3, 4]
+    }
+  ],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "Habilidades motrices básicas",
+      "oa": [
+        {
+          "id": "EF5B-OA-01",
+          "codigo_oficial": "EF05 OA 01",
+          "descripcion": "Demostrar la aplicación de las habilidades motrices básicas adquiridas, en una variedad de actividades deportivas."
+        },
+        {
+          "id": "EF5B-OA-02",
+          "codigo_oficial": "EF05 OA 02",
+          "descripcion": "Resolver problemas motores aplicando combinaciones de habilidades motrices básicas en juegos y actividades físicas."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Práctica de deportes individuales y colectivos",
+      "oa": [
+        {
+          "id": "EF5B-OA-03",
+          "codigo_oficial": "EF05 OA 03",
+          "descripcion": "Practicar deportes individuales y colectivos, aplicando reglas, estrategias específicas y principios de juego."
+        },
+        {
+          "id": "EF5B-OA-04",
+          "codigo_oficial": "EF05 OA 04",
+          "descripcion": "Aplicar estrategias tácticas básicas en situaciones de juego y actividades predeportivas."
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "nombre": "Condición física y vida saludable",
+      "oa": [
+        {
+          "id": "EF5B-OA-05",
+          "codigo_oficial": "EF05 OA 05",
+          "descripcion": "Participar en actividades físicas de intensidad moderada a vigorosa para mejorar la condición física."
+        },
+        {
+          "id": "EF5B-OA-06",
+          "codigo_oficial": "EF05 OA 06",
+          "descripcion": "Reconocer y practicar hábitos de vida activa y saludable asociados a la actividad física."
+        },
+        {
+          "id": "EF5B-OA-08",
+          "codigo_oficial": "EF05 OA 08",
+          "descripcion": "Reconocer y monitorear respuestas corporales provocadas por la actividad física."
+        }
+      ]
+    },
+    {
+      "numero": 4,
+      "nombre": "Seguridad, autocuidado y trabajo en equipo",
+      "oa": [
+        {
+          "id": "EF5B-OA-10",
+          "codigo_oficial": "EF05 OA 10",
+          "descripcion": "Participar en actividades motrices y deportivas, demostrando actitudes de trabajo en equipo, respeto, liderazgo y colaboración."
+        },
+        {
+          "id": "EF5B-OA-11",
+          "codigo_oficial": "EF05 OA 11",
+          "descripcion": "Practicar actividades físicas y/o deportivas, demostrando comportamientos seguros y un manejo adecuado de los materiales y los procedimientos."
+        }
+      ]
+    }
+  ]
+}
