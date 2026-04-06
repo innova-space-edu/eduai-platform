@@ -1,0 +1,112 @@
+{
+  "metadata": {
+    "nivel": "Básica",
+    "curso": "1° Básico",
+    "asignatura": "Artes Visuales",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/",
+    "estado": "base_verificada_mineduc",
+    "ultima_actualizacion_manual": "2026-04-06",
+    "nota": "Archivo base creado a partir de OA oficiales de Artes Visuales 1° básico del Currículum Nacional MINEDUC. La agrupación por unidades fue organizada para uso pedagógico dentro del planificador."
+  },
+  "objetivos_habilidad": [
+    {
+      "id": "AV01-OAH-a",
+      "descripcion": "Expresar y crear trabajos de arte a partir de la observación del entorno, experiencias personales e imaginación.",
+      "unidades": [1, 2, 3, 4]
+    },
+    {
+      "id": "AV01-OAH-b",
+      "descripcion": "Experimentar y aplicar elementos del lenguaje visual y diversos materiales, herramientas y procedimientos.",
+      "unidades": [1, 2, 3, 4]
+    },
+    {
+      "id": "AV01-OAH-c",
+      "descripcion": "Comunicar y explicar sus procesos y resultados en trabajos artísticos.",
+      "unidades": [1, 2, 3, 4]
+    }
+  ],
+  "objetivos_actitud": [
+    {
+      "id": "AV01-OAA-A",
+      "descripcion": "Disfrutar y valorar las posibilidades expresivas del arte.",
+      "unidades": [1, 2, 3, 4]
+    },
+    {
+      "id": "AV01-OAA-B",
+      "descripcion": "Demostrar disposición a expresar ideas, sentimientos y emociones.",
+      "unidades": [1, 2, 3, 4]
+    },
+    {
+      "id": "AV01-OAA-C",
+      "descripcion": "Respetar sus propias creaciones y las de sus compañeros.",
+      "unidades": [1, 2, 3, 4]
+    }
+  ],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "Exploración visual del entorno natural",
+      "oa": [
+        {
+          "id": "AV1B-OA-01",
+          "codigo_oficial": "AV01 OA 01",
+          "descripcion": "Expresar y crear trabajos de arte a partir de la observación del entorno natural: paisaje, animales y plantas."
+        },
+        {
+          "id": "AV1B-OA-02",
+          "codigo_oficial": "AV01 OA 02",
+          "descripcion": "Expresar y crear trabajos de arte a partir de la observación del entorno cultural: vida cotidiana y familiar."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Materiales, técnicas y experimentación artística",
+      "oa": [
+        {
+          "id": "AV1B-OA-03",
+          "codigo_oficial": "AV01 OA 03",
+          "descripcion": "Experimentar y aplicar elementos del lenguaje visual en sus trabajos de arte."
+        },
+        {
+          "id": "AV1B-OA-04",
+          "codigo_oficial": "AV01 OA 04",
+          "descripcion": "Experimentar y aplicar diferentes materiales, herramientas y procedimientos."
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "nombre": "Creación artística personal y colectiva",
+      "oa": [
+        {
+          "id": "AV1B-OA-01",
+          "codigo_oficial": "AV01 OA 01",
+          "descripcion": "Expresar y crear trabajos de arte a partir de la observación del entorno natural: paisaje, animales y plantas."
+        },
+        {
+          "id": "AV1B-OA-02",
+          "codigo_oficial": "AV01 OA 02",
+          "descripcion": "Expresar y crear trabajos de arte a partir de la observación del entorno cultural: vida cotidiana y familiar."
+        },
+        {
+          "id": "AV1B-OA-04",
+          "codigo_oficial": "AV01 OA 04",
+          "descripcion": "Experimentar y aplicar diferentes materiales, herramientas y procedimientos."
+        }
+      ]
+    },
+    {
+      "numero": 4,
+      "nombre": "Apreciación y comunicación artística",
+      "oa": [
+        {
+          "id": "AV1B-OA-05",
+          "codigo_oficial": "AV01 OA 05",
+          "descripcion": "Explicar sus preferencias frente al trabajo de arte personal y de sus pares, usando elementos del lenguaje visual."
+        }
+      ]
+    }
+  ]
+}
