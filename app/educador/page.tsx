@@ -591,7 +591,7 @@ export default function EducadorPage() {
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => router.back()}
+              onClick={() => router.push("/agentes")}
               className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition-all text-sm"
             >
               ←
