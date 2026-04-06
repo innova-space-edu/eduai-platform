@@ -55,11 +55,11 @@ export const GEMINI_IMAGE_MODELS = [
   process.env.GEMINI_IMAGE_MODEL_PRIMARY,
   process.env.GEMINI_IMAGE_MODEL_SECONDARY,
   process.env.GEMINI_IMAGE_MODEL_TERTIARY,
-  // Modelos activos (2025-2026)
+  // GA — modelos activos oficiales
+  "gemini-2.5-flash-image",           // GA desde Oct 2025, modelo correcto
+  "gemini-3.1-flash-image-preview",   // preview más reciente
+  // Fallbacks (pueden fallar en cuentas nuevas o regiones)
   "gemini-2.0-flash-exp",
-  "gemini-2.0-flash",
-  "gemini-2.5-flash-preview-04-17",
-  // Fallbacks legacy
   "gemini-2.0-flash-preview-image-generation",
   "gemini-2.0-flash-exp-image-generation",
 ].filter(Boolean) as string[]
