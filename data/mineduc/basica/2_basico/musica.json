@@ -1,0 +1,69 @@
+{
+  "metadata": {
+    "nivel": "Básica",
+    "curso": "2° Básico",
+    "asignatura": "Música",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "estado": "base_verificada_mineduc"
+  },
+  "objetivos_habilidad": [
+    {
+      "id": "MU02-OAH-a",
+      "descripcion": "Escuchar, interpretar y crear música usando diversos recursos.",
+      "unidades": [1, 2, 3, 4]
+    }
+  ],
+  "objetivos_actitud": [
+    {
+      "id": "MU02-OAA-A",
+      "descripcion": "Valorar la música como forma de expresión.",
+      "unidades": [1, 2, 3, 4]
+    }
+  ],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "Escucha musical",
+      "oa": [
+        {
+          "id": "MU2B-OA-01",
+          "codigo_oficial": "MU02 OA 01",
+          "descripcion": "Escuchar cualidades del sonido y elementos musicales."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Interpretación musical",
+      "oa": [
+        {
+          "id": "MU2B-OA-02",
+          "codigo_oficial": "MU02 OA 02",
+          "descripcion": "Cantar y tocar instrumentos."
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "nombre": "Creación musical",
+      "oa": [
+        {
+          "id": "MU2B-OA-03",
+          "codigo_oficial": "MU02 OA 03",
+          "descripcion": "Crear e improvisar música."
+        }
+      ]
+    },
+    {
+      "numero": 4,
+      "nombre": "Expresión musical",
+      "oa": [
+        {
+          "id": "MU2B-OA-04",
+          "codigo_oficial": "MU02 OA 04",
+          "descripcion": "Expresar ideas y emociones mediante música."
+        }
+      ]
+    }
+  ]
+}
