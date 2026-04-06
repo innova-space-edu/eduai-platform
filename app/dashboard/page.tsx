@@ -26,6 +26,7 @@ const NAV_LINKS = [
   { href: "/chat", icon: MessageCircle, label: "Chat", color: "#10b981" },
   { href: "/collab", icon: Users, label: "Colaborar", color: "#14b8a6" },
   { href: "/creator-hub", icon: Sparkles, label: "Creator Hub", color: "#6366f1" },
+  { href: "/educador/planificaciones", icon: BookMarked, label: "Planificaciones", color: "#14b8a6" },
   { href: "/workspace", icon: FolderKanban, label: "Workspace", color: "#4338ca" },
   { href: "/profile", icon: UserCircle2, label: "Perfil", color: "#94a3b8" },
 ]
