@@ -12,6 +12,30 @@ import basica4Matematica from "../data/mineduc/basica/4_basico/matematica.json"
 import basica5Matematica from "../data/mineduc/basica/5_basico/matematica.json"
 import basica6Matematica from "../data/mineduc/basica/6_basico/matematica.json"
 import basica1Lenguaje from "../data/mineduc/basica/1_basico/lenguaje.json"
+import basica1CienciasNaturales from "../data/mineduc/basica/1_basico/ciencias_naturales.json"
+import basica1Historia from "../data/mineduc/basica/1_basico/historia_geografia_y_cs_sociales.json"
+import basica1Ingles from "../data/mineduc/basica/1_basico/ingles.json"
+import basica1Tecnologia from "../data/mineduc/basica/1_basico/tecnologia.json"
+import basica2CienciasNaturales from "../data/mineduc/basica/2_basico/ciencias_naturales.json"
+import basica2Historia from "../data/mineduc/basica/2_basico/historia_geografia_y_cs_sociales.json"
+import basica2Ingles from "../data/mineduc/basica/2_basico/ingles.json"
+import basica2Tecnologia from "../data/mineduc/basica/2_basico/tecnologia.json"
+import basica3CienciasNaturales from "../data/mineduc/basica/3_basico/ciencias_naturales.json"
+import basica3Historia from "../data/mineduc/basica/3_basico/historia_geografia_y_cs_sociales.json"
+import basica3Ingles from "../data/mineduc/basica/3_basico/ingles.json"
+import basica3Tecnologia from "../data/mineduc/basica/3_basico/tecnologia.json"
+import basica4CienciasNaturales from "../data/mineduc/basica/4_basico/ciencias_naturales.json"
+import basica4Historia from "../data/mineduc/basica/4_basico/historia_geografia_y_cs_sociales.json"
+import basica4Ingles from "../data/mineduc/basica/4_basico/ingles.json"
+import basica4Tecnologia from "../data/mineduc/basica/4_basico/tecnologia.json"
+import basica5CienciasNaturales from "../data/mineduc/basica/5_basico/ciencias_naturales.json"
+import basica5Historia from "../data/mineduc/basica/5_basico/historia_geografia_y_cs_sociales.json"
+import basica5Ingles from "../data/mineduc/basica/5_basico/ingles.json"
+import basica5Tecnologia from "../data/mineduc/basica/5_basico/tecnologia.json"
+import basica6CienciasNaturales from "../data/mineduc/basica/6_basico/ciencias_naturales.json"
+import basica6Historia from "../data/mineduc/basica/6_basico/historia_geografia_y_cs_sociales.json"
+import basica6Ingles from "../data/mineduc/basica/6_basico/ingles.json"
+import basica6Tecnologia from "../data/mineduc/basica/6_basico/tecnologia.json"
 import basica2Lenguaje from "../data/mineduc/basica/2_basico/lenguaje.json"
 import basica3Lenguaje from "../data/mineduc/basica/3_basico/lenguaje.json"
 import basica4Lenguaje from "../data/mineduc/basica/4_basico/lenguaje.json"
@@ -353,6 +377,38 @@ registerStandardFile("basica", "3° Básico", "Lenguaje y Comunicación", basica
 registerStandardFile("basica", "4° Básico", "Lenguaje y Comunicación", basica4Lenguaje as StandardCurriculumFile, "data/mineduc/basica/4_basico/lenguaje.json")
 registerStandardFile("basica", "5° Básico", "Lenguaje y Comunicación", basica5Lenguaje as StandardCurriculumFile, "data/mineduc/basica/5_basico/lenguaje.json")
 registerStandardFile("basica", "6° Básico", "Lenguaje y Comunicación", basica6Lenguaje as StandardCurriculumFile, "data/mineduc/basica/6_basico/lenguaje.json")
+
+// Ciencias Naturales 1°–6° Básico
+registerStandardFile("basica", "1° Básico", "Ciencias Naturales", basica1CienciasNaturales as StandardCurriculumFile, "data/mineduc/basica/1_basico/ciencias_naturales.json")
+registerStandardFile("basica", "2° Básico", "Ciencias Naturales", basica2CienciasNaturales as StandardCurriculumFile, "data/mineduc/basica/2_basico/ciencias_naturales.json")
+registerStandardFile("basica", "3° Básico", "Ciencias Naturales", basica3CienciasNaturales as StandardCurriculumFile, "data/mineduc/basica/3_basico/ciencias_naturales.json")
+registerStandardFile("basica", "4° Básico", "Ciencias Naturales", basica4CienciasNaturales as StandardCurriculumFile, "data/mineduc/basica/4_basico/ciencias_naturales.json")
+registerStandardFile("basica", "5° Básico", "Ciencias Naturales", basica5CienciasNaturales as StandardCurriculumFile, "data/mineduc/basica/5_basico/ciencias_naturales.json")
+registerStandardFile("basica", "6° Básico", "Ciencias Naturales", basica6CienciasNaturales as StandardCurriculumFile, "data/mineduc/basica/6_basico/ciencias_naturales.json")
+
+// Historia, Geografía y Cs. Sociales 1°–6° Básico
+registerStandardFile("basica", "1° Básico", "Historia, Geografía y Cs. Sociales", basica1Historia as StandardCurriculumFile, "data/mineduc/basica/1_basico/historia_geografia_y_cs_sociales.json")
+registerStandardFile("basica", "2° Básico", "Historia, Geografía y Cs. Sociales", basica2Historia as StandardCurriculumFile, "data/mineduc/basica/2_basico/historia_geografia_y_cs_sociales.json")
+registerStandardFile("basica", "3° Básico", "Historia, Geografía y Cs. Sociales", basica3Historia as StandardCurriculumFile, "data/mineduc/basica/3_basico/historia_geografia_y_cs_sociales.json")
+registerStandardFile("basica", "4° Básico", "Historia, Geografía y Cs. Sociales", basica4Historia as StandardCurriculumFile, "data/mineduc/basica/4_basico/historia_geografia_y_cs_sociales.json")
+registerStandardFile("basica", "5° Básico", "Historia, Geografía y Cs. Sociales", basica5Historia as StandardCurriculumFile, "data/mineduc/basica/5_basico/historia_geografia_y_cs_sociales.json")
+registerStandardFile("basica", "6° Básico", "Historia, Geografía y Cs. Sociales", basica6Historia as StandardCurriculumFile, "data/mineduc/basica/6_basico/historia_geografia_y_cs_sociales.json")
+
+// Inglés 1°–6° Básico
+registerStandardFile("basica", "1° Básico", "Inglés", basica1Ingles as StandardCurriculumFile, "data/mineduc/basica/1_basico/ingles.json")
+registerStandardFile("basica", "2° Básico", "Inglés", basica2Ingles as StandardCurriculumFile, "data/mineduc/basica/2_basico/ingles.json")
+registerStandardFile("basica", "3° Básico", "Inglés", basica3Ingles as StandardCurriculumFile, "data/mineduc/basica/3_basico/ingles.json")
+registerStandardFile("basica", "4° Básico", "Inglés", basica4Ingles as StandardCurriculumFile, "data/mineduc/basica/4_basico/ingles.json")
+registerStandardFile("basica", "5° Básico", "Inglés", basica5Ingles as StandardCurriculumFile, "data/mineduc/basica/5_basico/ingles.json")
+registerStandardFile("basica", "6° Básico", "Inglés", basica6Ingles as StandardCurriculumFile, "data/mineduc/basica/6_basico/ingles.json")
+
+// Tecnología 1°–6° Básico
+registerStandardFile("basica", "1° Básico", "Tecnología", basica1Tecnologia as StandardCurriculumFile, "data/mineduc/basica/1_basico/tecnologia.json")
+registerStandardFile("basica", "2° Básico", "Tecnología", basica2Tecnologia as StandardCurriculumFile, "data/mineduc/basica/2_basico/tecnologia.json")
+registerStandardFile("basica", "3° Básico", "Tecnología", basica3Tecnologia as StandardCurriculumFile, "data/mineduc/basica/3_basico/tecnologia.json")
+registerStandardFile("basica", "4° Básico", "Tecnología", basica4Tecnologia as StandardCurriculumFile, "data/mineduc/basica/4_basico/tecnologia.json")
+registerStandardFile("basica", "5° Básico", "Tecnología", basica5Tecnologia as StandardCurriculumFile, "data/mineduc/basica/5_basico/tecnologia.json")
+registerStandardFile("basica", "6° Básico", "Tecnología", basica6Tecnologia as StandardCurriculumFile, "data/mineduc/basica/6_basico/tecnologia.json")
 
 registerStandardFile("basica", "7° Básico", "Matemática", basica7Matematica as StandardCurriculumFile, "data/mineduc/basica/7_basico/matematica.json")
 registerStandardFile("basica", "7° Básico", "Lengua y Literatura", basica7LenguaLiteratura as StandardCurriculumFile, "data/mineduc/basica/7_basico/lengua_literatura.json")
