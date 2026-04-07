@@ -1,13 +1,8 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "nextjs",
-  "buildCommand": "npm run build",
-  "devCommand": "npm run dev",
-  "installCommand": "npm install",
   "crons": [
     {
       "path": "/api/agents/video/process",
-      "schedule": "0 12 * * *"
+      "schedule": "*/2 * * * *"
     }
   ]
 }
