@@ -1,15 +1,18 @@
 name: Process Video Queue
 
 on:
-  workflow_dispatch:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "*/2 * * * *" # cada 2 minutos
+  workflow_dispatch: # permite ejecutarlo manualmente desde GitHub
 
 jobs:
   process:
     runs-on: ubuntu-latest
+
     steps:
       - name: Call video process endpoint
         run: |
           curl -X POST "https://eduaiplatformdon.vercel.app/api/agents/video/process" \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+          -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+          -H "Content-Type: application/json" \
+          --fail
