@@ -1,0 +1,75 @@
+{
+  "metadata": {
+    "nivel": "Básica",
+    "curso": "8° Básico",
+    "asignatura": "Artes Visuales",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/",
+    "estado": "base_verificada_mineduc",
+    "ultima_actualizacion_manual": "2026-04-07",
+    "nota": "Archivo organizado con OA oficiales visibles en Currículum Nacional. Agrupación por ejes/unidades funcionales para el planificador."
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [
+    {
+      "id": "AR08 OAA A",
+      "descripcion": "Disfrutar y valorar la diversidad en manifestaciones estéticas provenientes de múltiples contextos.",
+      "unidades": [1, 2, 3]
+    },
+    {
+      "id": "AR08 OAA B",
+      "descripcion": "Valorar el patrimonio artístico de su comunidad, aportando a su cuidado.",
+      "unidades": [1, 2, 3]
+    }
+  ],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "Creación visual y desafíos creativos",
+      "oa": [
+        {
+          "id": "AV8B-OA-01",
+          "codigo_oficial": "AR08 OA 01",
+          "descripcion": "Crear trabajos visuales basados en la apreciación y el análisis de manifestaciones estéticas referidas a la relación entre personas, naturaleza y medioambiente, en diferentes contextos."
+        },
+        {
+          "id": "AV8B-OA-02",
+          "codigo_oficial": "AR08 OA 02",
+          "descripcion": "Crear trabajos visuales a partir de diferentes desafíos creativos, experimentando con materiales sustentables en técnicas de impresión, papeles y textiles."
+        },
+        {
+          "id": "AV8B-OA-03",
+          "codigo_oficial": "AR08 OA 03",
+          "descripcion": "Crear trabajos visuales a partir de diferentes desafíos creativos, usando medios de expresión contemporáneos como la instalación."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Apreciar y responder frente al arte",
+      "oa": [
+        {
+          "id": "AV8B-OA-04",
+          "codigo_oficial": "AR08 OA 04",
+          "descripcion": "Analizar manifestaciones visuales patrimoniales y contemporáneas, contemplando criterios como: contexto, materialidad, lenguaje visual y propósito expresivo."
+        },
+        {
+          "id": "AV8B-OA-05",
+          "codigo_oficial": "AR08 OA 05",
+          "descripcion": "Evaluar trabajos visuales personales y de sus pares, considerando criterios como: materialidad, lenguaje visual y propósito expresivo."
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "nombre": "Difundir y comunicar",
+      "oa": [
+        {
+          "id": "AV8B-OA-06",
+          "codigo_oficial": "AR08 OA 06",
+          "descripcion": "Comparar y valorar espacios de difusión de las artes visuales, considerando: medios de expresión presentes, espacio, montaje, público y aporte a la comunidad."
+        }
+      ]
+    }
+  ]
+}
