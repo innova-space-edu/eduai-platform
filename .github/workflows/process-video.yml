@@ -12,7 +12,7 @@ jobs:
     steps:
       - name: Call video process endpoint
         run: |
-          curl -X POST "https://eduaiplatformdon.vercel.app/api/agents/video/process" \
+          curl -X POST "https://eduaiplatformclon.vercel.app/api/agents/video/process" \
           -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
           -H "Content-Type: application/json" \
           --fail
