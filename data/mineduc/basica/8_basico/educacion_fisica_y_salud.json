@@ -1,0 +1,75 @@
+{
+  "metadata": {
+    "nivel": "Básica",
+    "curso": "8° Básico",
+    "asignatura": "Educación Física y Salud",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/",
+    "estado": "base_verificada_mineduc",
+    "ultima_actualizacion_manual": "2026-04-07",
+    "nota": "Archivo organizado con OA oficiales visibles en Currículum Nacional. Ejes oficiales usados como unidades del planificador."
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [
+    {
+      "id": "EF08 OAA A",
+      "descripcion": "Demostrar respeto por los demás al participar en actividades físicas y/o deportivas; por ejemplo: aplicar el principio de juego limpio, llegar a acuerdos, jugar en forma cooperativa, aceptar el resultado y manejar el triunfo, entre otros.",
+      "unidades": [1, 2, 3]
+    },
+    {
+      "id": "EF08 OAA B",
+      "descripcion": "Promover la participación de todos en las actividades físicas, valorando la diversidad de las personas, sin discriminar por características como altura, peso, color de piel, origen, condición física, discapacidades, etc.",
+      "unidades": [1, 2, 3]
+    },
+    {
+      "id": "EF08 OAA C",
+      "descripcion": "Trabajar en equipo, asumiendo responsablemente roles y tareas, colaborando con otros y aceptando consejos y críticas.",
+      "unidades": [1, 2, 3]
+    }
+  ],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "Habilidades motrices",
+      "oa": [
+        {
+          "id": "EF8B-OA-01",
+          "codigo_oficial": "EF08 OA 01",
+          "descripcion": "Seleccionar, combinar y aplicar con mayor dominio las habilidades motrices específicas de locomoción, manipulación y estabilidad en, al menos: un deporte individual, un deporte de oposición, un deporte de colaboración, un deporte de oposición/colaboración y una danza."
+        },
+        {
+          "id": "EF8B-OA-02",
+          "codigo_oficial": "EF08 OA 02",
+          "descripcion": "Seleccionar y aplicar estrategias y tácticas específicas para la resolución de problemas durante la práctica de juegos o deportes."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Vida activa y saludable",
+      "oa": [
+        {
+          "id": "EF8B-OA-03",
+          "codigo_oficial": "EF08 OA 03",
+          "descripcion": "Desarrollar la resistencia cardiovascular, la fuerza muscular, la velocidad y la flexibilidad para alcanzar una condición física saludable, considerando: frecuencia, intensidad, tiempo de duración y recuperación, progresión y tipo de ejercicio."
+        },
+        {
+          "id": "EF8B-OA-04",
+          "codigo_oficial": "EF08 OA 04",
+          "descripcion": "Practicar regularmente una variedad de actividades físicas alternativas y/o deportivas en diferentes entornos, aplicando conductas de autocuidado y seguridad."
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "nombre": "Responsabilidad personal y social en el deporte y la actividad física",
+      "oa": [
+        {
+          "id": "EF8B-OA-05",
+          "codigo_oficial": "EF08 OA 05",
+          "descripcion": "Participar y promover una variedad de actividades físicas y/o deportivas de su interés y que se desarrollan en su comunidad escolar y/o en su entorno."
+        }
+      ]
+    }
+  ]
+}
