@@ -37,6 +37,20 @@ import basica6Historia from "../data/mineduc/basica/6_basico/historia_geografia_
 import basica6Ingles from "../data/mineduc/basica/6_basico/ingles.json"
 import basica6Tecnologia from "../data/mineduc/basica/6_basico/tecnologia.json"
 
+// Artes Visuales / Ed. Física / Música / Orientación — 6°, 7°, 8° Básico
+import basica6ArtesVisuales from "../data/mineduc/basica/6_basico/artes_visuales.json"
+import basica6EducacionFisica from "../data/mineduc/basica/6_basico/educacion_fisica_y_salud.json"
+import basica6Musica from "../data/mineduc/basica/6_basico/musica.json"
+import basica6Orientacion from "../data/mineduc/basica/6_basico/orientacion.json"
+import basica7ArtesVisuales from "../data/mineduc/basica/7_basico/artes_visuales.json"
+import basica7EducacionFisica from "../data/mineduc/basica/7_basico/educacion_fisica_y_salud.json"
+import basica7Musica from "../data/mineduc/basica/7_basico/musica.json"
+import basica7Orientacion from "../data/mineduc/basica/7_basico/orientacion.json"
+import basica8ArtesVisuales from "../data/mineduc/basica/8_basico/artes_visuales.json"
+import basica8EducacionFisica from "../data/mineduc/basica/8_basico/educacion_fisica_y_salud.json"
+import basica8Musica from "../data/mineduc/basica/8_basico/musica.json"
+import basica8Orientacion from "../data/mineduc/basica/8_basico/orientacion.json"
+
 // Artes Visuales 1°–5° Básico
 import basica1ArtesVisuales from "../data/mineduc/basica/1_basico/artes_visuales.json"
 import basica2ArtesVisuales from "../data/mineduc/basica/2_basico/artes_visuales.json"
@@ -437,6 +451,26 @@ registerStandardFile("basica", "3° Básico", "Tecnología", basica3Tecnologia a
 registerStandardFile("basica", "4° Básico", "Tecnología", basica4Tecnologia as StandardCurriculumFile, "data/mineduc/basica/4_basico/tecnologia.json")
 registerStandardFile("basica", "5° Básico", "Tecnología", basica5Tecnologia as StandardCurriculumFile, "data/mineduc/basica/5_basico/tecnologia.json")
 registerStandardFile("basica", "6° Básico", "Tecnología", basica6Tecnologia as StandardCurriculumFile, "data/mineduc/basica/6_basico/tecnologia.json")
+
+// Artes Visuales 6°–8° Básico
+registerStandardFile("basica", "6° Básico", "Artes Visuales", basica6ArtesVisuales as StandardCurriculumFile, "data/mineduc/basica/6_basico/artes_visuales.json")
+registerStandardFile("basica", "7° Básico", "Artes Visuales", basica7ArtesVisuales as StandardCurriculumFile, "data/mineduc/basica/7_basico/artes_visuales.json")
+registerStandardFile("basica", "8° Básico", "Artes Visuales", basica8ArtesVisuales as StandardCurriculumFile, "data/mineduc/basica/8_basico/artes_visuales.json")
+
+// Educación Física y Salud 6°–8° Básico
+registerStandardFile("basica", "6° Básico", "Educación Física y Salud", basica6EducacionFisica as StandardCurriculumFile, "data/mineduc/basica/6_basico/educacion_fisica_y_salud.json")
+registerStandardFile("basica", "7° Básico", "Educación Física y Salud", basica7EducacionFisica as StandardCurriculumFile, "data/mineduc/basica/7_basico/educacion_fisica_y_salud.json")
+registerStandardFile("basica", "8° Básico", "Educación Física y Salud", basica8EducacionFisica as StandardCurriculumFile, "data/mineduc/basica/8_basico/educacion_fisica_y_salud.json")
+
+// Música 6°–8° Básico
+registerStandardFile("basica", "6° Básico", "Música", basica6Musica as StandardCurriculumFile, "data/mineduc/basica/6_basico/musica.json")
+registerStandardFile("basica", "7° Básico", "Música", basica7Musica as StandardCurriculumFile, "data/mineduc/basica/7_basico/musica.json")
+registerStandardFile("basica", "8° Básico", "Música", basica8Musica as StandardCurriculumFile, "data/mineduc/basica/8_basico/musica.json")
+
+// Orientación 6°–8° Básico
+registerStandardFile("basica", "6° Básico", "Orientación", basica6Orientacion as StandardCurriculumFile, "data/mineduc/basica/6_basico/orientacion.json")
+registerStandardFile("basica", "7° Básico", "Orientación", basica7Orientacion as StandardCurriculumFile, "data/mineduc/basica/7_basico/orientacion.json")
+registerStandardFile("basica", "8° Básico", "Orientación", basica8Orientacion as StandardCurriculumFile, "data/mineduc/basica/8_basico/orientacion.json")
 
 // Artes Visuales 1°–5° Básico
 registerStandardFile("basica", "1° Básico", "Artes Visuales", basica1ArtesVisuales as StandardCurriculumFile, "data/mineduc/basica/1_basico/artes_visuales.json")
