@@ -1,0 +1,69 @@
+{
+  "metadata": {
+    "nivel": "Básica",
+    "curso": "7° Básico",
+    "asignatura": "Música",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/",
+    "estado": "base_verificada_mineduc",
+    "ultima_actualizacion_manual": "2026-04-07",
+    "nota": "Archivo organizado con OA oficiales visibles en Currículum Nacional. Agrupación por ejes oficiales para el planificador."
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "Escuchar y apreciar",
+      "oa": [
+        {
+          "id": "MU7B-OA-01",
+          "codigo_oficial": "MU07 OA 01",
+          "descripcion": "Reconocer sentimientos, sensaciones e ideas al escuchar manifestaciones y obras musicales de Chile y el mundo, presentes en la tradición oral, escrita y popular, manifestándolos a través de medios verbales, visuales, sonoros y corporales."
+        },
+        {
+          "id": "MU7B-OA-02",
+          "codigo_oficial": "MU07 OA 02",
+          "descripcion": "Describir analíticamente los elementos del lenguaje musical y los procedimientos compositivos evidentes en la música escuchada, interpretada y creada, y su relación con el propósito expresivo."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Interpretar y crear",
+      "oa": [
+        {
+          "id": "MU7B-OA-03",
+          "codigo_oficial": "MU07 OA 03",
+          "descripcion": "Cantar y tocar repertorio diverso, desarrollando habilidades tales como precisión rítmica y melódica, expresividad, conciencia de fraseo y dinámica, entre otros, fortaleciendo el interés por el hacer musical individual y grupal."
+        },
+        {
+          "id": "MU7B-OA-04",
+          "codigo_oficial": "MU07 OA 04",
+          "descripcion": "Interpretar a una y más voces repertorio diverso, incorporando como apoyo el uso de medios de registro y transmisión."
+        },
+        {
+          "id": "MU7B-OA-05",
+          "codigo_oficial": "MU07 OA 05",
+          "descripcion": "Improvisar y crear música dando énfasis a ambientaciones sonoras libres, acompañamientos rítmicos, melódicos y/o armónicos simples."
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "nombre": "Reflexionar y relacionar",
+      "oa": [
+        {
+          "id": "MU7B-OA-06",
+          "codigo_oficial": "MU07 OA 06",
+          "descripcion": "Reconocer fortalezas y áreas de crecimiento personal en la audición, interpretación, creación y reflexión."
+        },
+        {
+          "id": "MU7B-OA-07",
+          "codigo_oficial": "MU07 OA 07",
+          "descripcion": "Reconocer el rol de la música en la sociedad, considerando sus propias experiencias musicales, contextos en que surge y las personas que la cultivan."
+        }
+      ]
+    }
+  ]
+}
