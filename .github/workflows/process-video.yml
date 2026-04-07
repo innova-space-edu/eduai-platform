@@ -2,8 +2,8 @@ name: Process Video Queue
 
 on:
   schedule:
-    - cron: "*/2 * * * *" # cada 2 minutos
-  workflow_dispatch: # permite ejecutarlo manualmente desde GitHub
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
 
 jobs:
   process:
