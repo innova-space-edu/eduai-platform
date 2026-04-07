@@ -2,14 +2,60 @@ import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { processVideoJob } from "@/lib/video-agent"
 
+type JobStatus =
+  | "queued"
+  | "processing"
+  | "completed"
+  | "failed"
+  | "canceled"
+  | "blocked"
+
 type ProcessVideoResponse = {
   ok: boolean
   message?: string
   jobId?: string
-  status?: "queued" | "processing" | "completed" | "failed" | "canceled" | "blocked"
-  provider?: string
-  videoUrl?: string
+  status?: JobStatus
+  provider?: string | null
+  model?: string | null
+  videoUrl?: string | null
+  thumbnailUrl?: string | null
   error?: string
+}
+
+type VideoJobRow = {
+  id: string
+  user_id: string
+  status: JobStatus
+  plan?: string | null
+  mode?: string | null
+  prompt?: string | null
+  style?: string | null
+  duration_seconds?: number | null
+  include_audio?: boolean | null
+  image_url?: string | null
+  provider?: string | null
+  model?: string | null
+  request_payload?: {
+    prompt?: string
+    style?: string | null
+    duration?: number | null
+    durationSeconds?: number | null
+    withAudio?: boolean | null
+    includeAudio?: boolean | null
+    mode?: string | null
+    imageUrl?: string | null
+    image_url?: string | null
+  } | null
+  response_payload?: Record<string, unknown> | null
+  moderation_payload?: Record<string, unknown> | null
+  video_url?: string | null
+  thumbnail_url?: string | null
+  error_message?: string | null
+  retry_count?: number | null
+  started_at?: string | null
+  completed_at?: string | null
+  created_at?: string
+  updated_at?: string
 }
 
 function isAuthorized(req: Request) {
@@ -21,16 +67,39 @@ function isAuthorized(req: Request) {
 }
 
 function getAdminSupabase() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  // Preferir SUPABASE_URL (servidor) sobre NEXT_PUBLIC_SUPABASE_URL (cliente)
+  const url =
+    process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
 
   if (!url || !key) {
     throw new Error(
-      "Faltan NEXT_PUBLIC_SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY."
+      "Faltan SUPABASE_URL (o NEXT_PUBLIC_SUPABASE_URL) o SUPABASE_SERVICE_ROLE_KEY."
     )
   }
 
   return createClient(url, key)
+}
+
+function extractRequestInput(job: VideoJobRow) {
+  const payload = job.request_payload || {}
+
+  return {
+    prompt: payload.prompt || job.prompt || "",
+    style: payload.style ?? job.style ?? "",
+    duration:
+      payload.duration ??
+      payload.durationSeconds ??
+      job.duration_seconds ??
+      6,
+    withAudio:
+      payload.withAudio ??
+      payload.includeAudio ??
+      job.include_audio ??
+      false,
+    mode: payload.mode || job.mode || "text_to_video",
+    imageUrl: payload.imageUrl || payload.image_url || job.image_url || null,
+  }
 }
 
 export async function POST(req: Request) {
@@ -47,13 +116,14 @@ export async function POST(req: Request) {
 
     const supabase = getAdminSupabase()
 
+    // 1. Leer el próximo job en cola
     const { data: nextJob, error: nextJobError } = await supabase
       .from("video_jobs")
       .select("*")
       .eq("status", "queued")
       .order("created_at", { ascending: true })
       .limit(1)
-      .maybeSingle()
+      .maybeSingle<VideoJobRow>()
 
     if (nextJobError) {
       return NextResponse.json(
@@ -74,14 +144,21 @@ export async function POST(req: Request) {
       )
     }
 
-    const { error: processingError } = await supabase
+    // 2. Toma exclusiva: marcar como processing solo si sigue en queued.
+    //    Si otro worker ya lo tomó, el update no devolverá fila → abortamos.
+    const nowIso = new Date().toISOString()
+
+    const { data: claimedJob, error: processingError } = await supabase
       .from("video_jobs")
       .update({
         status: "processing",
         error_message: null,
-        updated_at: new Date().toISOString(),
+        started_at: nowIso,
       })
       .eq("id", nextJob.id)
+      .eq("status", "queued")
+      .select("id")
+      .maybeSingle()
 
     if (processingError) {
       return NextResponse.json(
@@ -93,47 +170,38 @@ export async function POST(req: Request) {
       )
     }
 
-    const requestPayload = (nextJob.request_payload || {}) as {
-      prompt?: string
-      style?: string | null
-      duration?: number | null
-      durationSeconds?: number | null
-      withAudio?: boolean | null
-      includeAudio?: boolean | null
-      mode?: string | null
-      imageUrl?: string | null
-      image_url?: string | null
+    // Otro worker ya tomó este job → nada que hacer, responder OK vacío
+    if (!claimedJob) {
+      return NextResponse.json(
+        {
+          ok: true,
+          message: "Job ya fue tomado por otro worker.",
+        } satisfies ProcessVideoResponse
+      )
     }
 
-    const result = await processVideoJob({
-      prompt: requestPayload.prompt || "",
-      style: requestPayload.style || "",
-      duration:
-        requestPayload.duration ??
-        requestPayload.durationSeconds ??
-        6,
-      withAudio:
-        requestPayload.withAudio ??
-        requestPayload.includeAudio ??
-        false,
-      mode: requestPayload.mode || "text_to_video",
-      imageUrl: requestPayload.imageUrl || requestPayload.image_url || null,
-    })
+    // 3. Procesar el job
+    const input = extractRequestInput(nextJob)
+    const result = await processVideoJob(input)
 
+    // 4a. Fallo
     if (!result.ok || !result.videoUrl) {
-      const finalStatus =
-        result.status === "blocked" ? "failed" : "failed"
+      const failedStatus: JobStatus =
+        result.status === "blocked" ? "blocked" : "failed"
 
       const { error: failError } = await supabase
         .from("video_jobs")
         .update({
-          status: finalStatus,
-          provider: result.provider || null,
+          status: failedStatus,
+          provider: result.provider || nextJob.provider || null,
+          model: result.model || nextJob.model || null,
+          response_payload: result.raw ?? null,
           error_message:
             result.moderationReason ||
             result.error ||
             "No fue posible generar el video.",
-          updated_at: new Date().toISOString(),
+          completed_at: new Date().toISOString(),
+          retry_count: (nextJob.retry_count ?? 0) + 1,
         })
         .eq("id", nextJob.id)
 
@@ -147,29 +215,35 @@ export async function POST(req: Request) {
         )
       }
 
+      // El job fue procesado y persistido como failed/blocked → responder 200,
+      // no 500, para que schedulers no reintenten innecesariamente.
       return NextResponse.json(
         {
           ok: false,
           jobId: nextJob.id,
-          status: "failed",
-          provider: result.provider,
+          status: failedStatus,
+          provider: result.provider || nextJob.provider || null,
+          model: result.model || nextJob.model || null,
           error:
             result.moderationReason ||
             result.error ||
             "Error desconocido al procesar el video.",
-        } satisfies ProcessVideoResponse,
-        { status: 500 }
+        } satisfies ProcessVideoResponse
       )
     }
 
+    // 4b. Éxito
     const { error: completeError } = await supabase
       .from("video_jobs")
       .update({
         status: "completed",
-        provider: result.provider || null,
+        provider: result.provider || nextJob.provider || "wan-worker",
+        model: result.model || nextJob.model || null,
         video_url: result.videoUrl,
+        thumbnail_url: result.thumbnailUrl || null,
+        response_payload: result.raw ?? null,
         error_message: null,
-        updated_at: new Date().toISOString(),
+        completed_at: new Date().toISOString(),
       })
       .eq("id", nextJob.id)
 
@@ -188,16 +262,21 @@ export async function POST(req: Request) {
         ok: true,
         jobId: nextJob.id,
         status: "completed",
-        provider: result.provider,
+        provider: result.provider || nextJob.provider || "wan-worker",
+        model: result.model || nextJob.model || null,
         videoUrl: result.videoUrl,
+        thumbnailUrl: result.thumbnailUrl || null,
         message: "Video procesado correctamente.",
       } satisfies ProcessVideoResponse
     )
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Unexpected error"
+
     return NextResponse.json(
       {
         ok: false,
-        error: error?.message || "Unexpected error",
+        error: message,
       } satisfies ProcessVideoResponse,
       { status: 500 }
     )
