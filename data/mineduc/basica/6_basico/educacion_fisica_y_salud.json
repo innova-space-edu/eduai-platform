@@ -1,0 +1,117 @@
+{
+  "metadata": {
+    "nivel": "Básica",
+    "curso": "6° Básico",
+    "asignatura": "Educación Física y Salud",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/",
+    "estado": "base_verificada_mineduc",
+    "ultima_actualizacion_manual": "2026-04-06",
+    "nota": "Archivo estructurado para el planificador según OA oficiales de Educación Física y Salud 6° básico y la organización general del programa MINEDUC."
+  },
+  "objetivos_habilidad": [
+    {
+      "id": "EF06-OAH-a",
+      "descripcion": "Aplicar habilidades motrices y estrategias en actividades deportivas, juegos y expresión corporal.",
+      "unidades": [1, 2, 3, 4]
+    },
+    {
+      "id": "EF06-OAH-b",
+      "descripcion": "Practicar actividad física de manera segura, saludable y colaborativa, reconociendo sus beneficios.",
+      "unidades": [1, 2, 3, 4]
+    }
+  ],
+  "objetivos_actitud": [
+    {
+      "id": "EF06-OAA-A",
+      "descripcion": "Demostrar respeto por los demás al participar en actividades físicas y/o deportivas.",
+      "unidades": [1, 2, 3, 4]
+    },
+    {
+      "id": "EF06-OAA-B",
+      "descripcion": "Promover la participación de todos en actividades físicas, valorando la diversidad de las personas.",
+      "unidades": [1, 2, 3, 4]
+    },
+    {
+      "id": "EF06-OAA-C",
+      "descripcion": "Trabajar en equipo, asumiendo responsablemente roles y tareas, colaborando con otros.",
+      "unidades": [1, 2, 3, 4]
+    },
+    {
+      "id": "EF06-OAA-D",
+      "descripcion": "Demostrar disposición a participar de manera activa en la clase.",
+      "unidades": [1, 2, 3, 4]
+    }
+  ],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "Aplicar habilidades motrices a las actividades deportivas",
+      "oa": [
+        {
+          "id": "EF6B-OA-01",
+          "codigo_oficial": "EF06 OA 01",
+          "descripcion": "Demostrar la aplicación de habilidades motrices específicas en una variedad de actividades deportivas y juegos."
+        },
+        {
+          "id": "EF6B-OA-02",
+          "codigo_oficial": "EF06 OA 02",
+          "descripcion": "Aplicar estrategias tácticas y técnicas en actividades predeportivas y deportivas."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Práctica de juegos y deportes individuales y colectivos",
+      "oa": [
+        {
+          "id": "EF6B-OA-03",
+          "codigo_oficial": "EF06 OA 03",
+          "descripcion": "Participar en juegos y deportes individuales y colectivos, aplicando reglas, estrategias y trabajo colaborativo."
+        },
+        {
+          "id": "EF6B-OA-04",
+          "codigo_oficial": "EF06 OA 04",
+          "descripcion": "Practicar actividades motrices y deportivas demostrando juego limpio, respeto y liderazgo positivo."
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "nombre": "Ejecución de una danza nacional y vida activa",
+      "oa": [
+        {
+          "id": "EF6B-OA-05",
+          "codigo_oficial": "EF06 OA 05",
+          "descripcion": "Ejecutar movimientos y secuencias motrices expresivas, incluyendo danzas nacionales u otras manifestaciones culturales."
+        },
+        {
+          "id": "EF6B-OA-06",
+          "codigo_oficial": "EF06 OA 06",
+          "descripcion": "Practicar actividades físicas de intensidad moderada a vigorosa para mejorar su condición física."
+        },
+        {
+          "id": "EF6B-OA-08",
+          "codigo_oficial": "EF06 OA 08",
+          "descripcion": "Reconocer y monitorear respuestas corporales provocadas por la actividad física."
+        }
+      ]
+    },
+    {
+      "numero": 4,
+      "nombre": "Seguridad, autocuidado y responsabilidad",
+      "oa": [
+        {
+          "id": "EF6B-OA-10",
+          "codigo_oficial": "EF06 OA 10",
+          "descripcion": "Participar en actividades motrices y deportivas, demostrando trabajo en equipo, respeto, liderazgo y colaboración."
+        },
+        {
+          "id": "EF6B-OA-11",
+          "codigo_oficial": "EF06 OA 11",
+          "descripcion": "Practicar actividades físicas y/o deportivas, demostrando comportamientos seguros y un manejo adecuado de los materiales y procedimientos."
+        }
+      ]
+    }
+  ]
+}
