@@ -1,0 +1,43 @@
+{
+  "metadata": {
+    "nivel": "Básica",
+    "curso": "8° Básico",
+    "asignatura": "Orientación",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/",
+    "estado": "base_parcial_verificada_mineduc",
+    "ultima_actualizacion_manual": "2026-04-07",
+    "nota": "Archivo organizado con ejes oficiales y OA verificados directamente en Currículum Nacional. Conviene completar el resto de OA del eje desde la ficha completa del programa."
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
+  "unidades": [
+    {
+      "numero": 1,
+      "nombre": "Crecimiento personal",
+      "oa": [
+        {
+          "id": "OR8B-OA-01",
+          "codigo_oficial": "OR08 OA 01",
+          "descripcion": "Construir, en forma individual y colectiva, representaciones positivas de sí mismos, incorporando sus características, motivaciones, intereses y capacidades, considerando las experiencias de cambio asociadas a la pubertad y adolescencia."
+        },
+        {
+          "id": "OR8B-OA-02",
+          "codigo_oficial": "OR08 OA 02",
+          "descripcion": "Analizar, considerando sus experiencias e inquietudes, la importancia que tiene para el desarrollo personal la integración de las distintas dimensiones de la sexualidad, el cuidado del cuerpo y la intimidad, discriminando formas de relacionarse en un marco de respeto y el uso de fuentes de información apropiadas para su desarrollo personal."
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Gestión y proyección del aprendizaje",
+      "oa": [
+        {
+          "id": "OR8B-OA-10",
+          "codigo_oficial": "OR08 OA 10",
+          "descripcion": "Gestionar de manera autónoma su propio proceso de aprendizaje escolar, a través del establecimiento de metas progresivas de aprendizaje, la definición de líneas de acción para lograrlas, el monitoreo de logros y la redefinición de acciones que resulten necesarias."
+        }
+      ]
+    }
+  ]
+}
