@@ -70,6 +70,36 @@ type SocialSessionResponse = {
   error?: string
 }
 
+type DraftType =
+  | "study_guide"
+  | "lesson_plan"
+  | "exam"
+  | "research_outline"
+  | "prompt_pack"
+  | "generic"
+
+type DraftFile = {
+  id: string
+  title: string
+  filename: string
+  draftType: DraftType
+  content: string
+  summary: string
+  createdAt: string
+  metadata?: Record<string, unknown>
+}
+
+type DraftApiResponse = {
+  ok: boolean
+  name?: string
+  alias?: string
+  message?: string
+  target?: "drafts"
+  draft?: DraftFile
+  logs?: Record<string, unknown>[]
+  error?: string
+}
+
 function RoomCard({
   title,
   description,
@@ -233,6 +263,8 @@ export default function AISocialPage() {
   const [session, setSession] = useState<SocialSession | null>(null)
   const [loading, setLoading] = useState(false)
   const [sending, setSending] = useState(false)
+  const [draftLoading, setDraftLoading] = useState(false)
+  const [draftResponse, setDraftResponse] = useState<DraftApiResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [countdown, setCountdown] = useState(60)
 
@@ -269,6 +301,7 @@ export default function AISocialPage() {
       try {
         setLoading(true)
         setError(null)
+        setDraftResponse(null)
 
         const res = await fetch("/api/superagent/social/session", {
           method: "POST",
@@ -410,6 +443,61 @@ export default function AISocialPage() {
       setSending(false)
     }
   }, [session?.sessionId, userMessage])
+
+  const createDraftFromConversation = useCallback(async () => {
+    if (!session) return
+
+    try {
+      setDraftLoading(true)
+      setError(null)
+
+      const conversationContext = session.messages
+        .map((msg) => `${msg.authorName}: ${msg.content}`)
+        .join("\n")
+
+      const draftGoal = `${session.room.topic}\n\nResumen social:\n${session.summary}\n\nConversación:\n${conversationContext}`
+
+      const res = await fetch("/api/superagent/drafts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          currentPage: "/ai-social",
+          activeAgent: "drafts",
+          userGoal: draftGoal,
+          tags: [
+            "social",
+            "draft",
+            session.room.slug,
+            ...(session.participants.map((p) => p.role) || []),
+          ],
+          metadata: {
+            source: "ai-social",
+            sessionId: session.sessionId,
+            roomTitle: session.room.title,
+            roomTopic: session.room.topic,
+            socialSummary: session.summary,
+            messageCount: session.messages.length,
+          },
+        }),
+      })
+
+      const json = (await res.json()) as DraftApiResponse
+
+      if (!res.ok || !json.ok) {
+        setError(json.error || json.message || "No se pudo crear el borrador.")
+        setDraftResponse(json)
+        return
+      }
+
+      setDraftResponse(json)
+    } catch {
+      setError("Ocurrió un error al crear el borrador desde la conversación.")
+    } finally {
+      setDraftLoading(false)
+    }
+  }, [session])
 
   useEffect(() => {
     createSession(DEFAULT_GOAL)
@@ -591,6 +679,21 @@ export default function AISocialPage() {
                     >
                       Reanudar conversación
                     </button>
+
+                    <button
+                      type="button"
+                      onClick={createDraftFromConversation}
+                      disabled={
+                        draftLoading ||
+                        !session ||
+                        session.messages.length === 0
+                      }
+                      className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm font-medium text-emerald-200 transition hover:border-emerald-400/40 hover:bg-emerald-400/15 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {draftLoading
+                        ? "Creando borrador..."
+                        : "Crear borrador desde esta conversación"}
+                    </button>
                   </div>
 
                   {error && (
@@ -676,6 +779,63 @@ export default function AISocialPage() {
                   </div>
                 </div>
               </div>
+
+              {draftResponse?.draft && (
+                <div className="rounded-[1.75rem] border border-emerald-400/15 bg-emerald-400/5 p-4">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                    <div>
+                      <h2 className="text-lg font-semibold text-white">
+                        Borrador generado desde la conversación
+                      </h2>
+                      <p className="mt-2 text-sm text-slate-300">
+                        {draftResponse.draft.summary}
+                      </p>
+                    </div>
+
+                    <span className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-xs text-emerald-200">
+                      {draftResponse.draft.filename}
+                    </span>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 md:grid-cols-3">
+                    <div className="rounded-2xl border border-white/10 bg-slate-900/70 p-3">
+                      <p className="text-xs uppercase tracking-[0.18em] text-slate-400">
+                        Tipo
+                      </p>
+                      <p className="mt-1 text-sm font-medium text-white">
+                        {draftResponse.draft.draftType}
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl border border-white/10 bg-slate-900/70 p-3">
+                      <p className="text-xs uppercase tracking-[0.18em] text-slate-400">
+                        Creado
+                      </p>
+                      <p className="mt-1 text-sm font-medium text-white">
+                        {new Date(draftResponse.draft.createdAt).toLocaleString()}
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl border border-white/10 bg-slate-900/70 p-3">
+                      <p className="text-xs uppercase tracking-[0.18em] text-slate-400">
+                        Estado
+                      </p>
+                      <p className="mt-1 text-sm font-medium text-white">
+                        Draft seguro
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 rounded-2xl border border-white/10 bg-slate-950/70 p-4">
+                    <p className="mb-3 text-sm font-medium text-slate-200">
+                      Contenido del borrador
+                    </p>
+                    <pre className="overflow-x-auto whitespace-pre-wrap text-sm leading-7 text-slate-300">
+                      {draftResponse.draft.content}
+                    </pre>
+                  </div>
+                </div>
+              )}
             </section>
 
             <aside className="space-y-4 lg:col-span-3">
