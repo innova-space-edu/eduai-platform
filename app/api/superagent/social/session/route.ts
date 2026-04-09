@@ -3,6 +3,7 @@
 import { NextRequest } from "next/server"
 import { SUPERAGENT_CONFIG } from "@/lib/superagent/config"
 import { detectActionFromUserMessage } from "@/lib/superagent/action-router"
+import { executeSuggestedAction } from "@/lib/superagent/action-executor"
 import {
   appendAgentRoundFromUser,
   appendSocialMessage,
@@ -55,6 +56,30 @@ function buildContextFromBody(body: Record<string, unknown>): SuperAgentUserCont
       : [],
     metadata:
       body.metadata && typeof body.metadata === "object" && !Array.isArray(body.metadata)
+        ? (body.metadata as Record<string, unknown>)
+        : {},
+  }
+}
+
+function buildExecutionContext(
+  body: Record<string, unknown>
+): SuperAgentUserContext {
+  return {
+    userId: typeof body.userId === "string" ? body.userId : undefined,
+    currentPage: "/ai-social",
+    activeAgent: "social",
+    userGoal:
+      typeof body.userGoal === "string" ? body.userGoal : undefined,
+    recentMessages: Array.isArray(body.recentMessages)
+      ? body.recentMessages.filter((item): item is string => typeof item === "string")
+      : [],
+    tags: Array.isArray(body.tags)
+      ? body.tags.filter((item): item is string => typeof item === "string")
+      : ["social", "action"],
+    metadata:
+      body.metadata &&
+      typeof body.metadata === "object" &&
+      !Array.isArray(body.metadata)
         ? (body.metadata as Record<string, unknown>)
         : {},
   }
@@ -317,6 +342,51 @@ export async function POST(request: NextRequest) {
         action: "agent-round",
         session,
         actionSuggestion,
+      })
+    }
+
+    if (action === "execute-suggested-action") {
+      const suggestionRaw =
+        body.suggestion &&
+        typeof body.suggestion === "object" &&
+        !Array.isArray(body.suggestion)
+          ? (body.suggestion as Record<string, unknown>)
+          : null
+
+      if (!suggestionRaw) {
+        return Response.json(
+          { ok: false, error: "Debes enviar una sugerencia de acción válida." },
+          { status: 400 }
+        )
+      }
+
+      const suggestion = {
+        detected: suggestionRaw.detected === true,
+        intent:
+          typeof suggestionRaw.intent === "string"
+            ? (suggestionRaw.intent as
+                | "create_lesson_plan" | "create_study_guide" | "create_exam"
+                | "create_research_outline" | "create_math_support"
+                | "create_visual_material" | "unknown")
+            : "unknown",
+        target:
+          typeof suggestionRaw.target === "string"
+            ? (suggestionRaw.target as
+                | "drafts" | "educador" | "examen" | "paper"
+                | "matematico" | "imagenes" | "unknown")
+            : "unknown",
+        label:   typeof suggestionRaw.label       === "string" ? suggestionRaw.label       : "Acción sugerida",
+        reason:  typeof suggestionRaw.reason      === "string" ? suggestionRaw.reason      : "",
+        suggestedGoal: typeof suggestionRaw.suggestedGoal === "string" ? suggestionRaw.suggestedGoal : "",
+      }
+
+      const context = buildExecutionContext(body)
+      const result  = await executeSuggestedAction({ suggestion, context })
+
+      return Response.json({
+        ok: result.ok,
+        action: "execute-suggested-action",
+        result,
       })
     }
 
