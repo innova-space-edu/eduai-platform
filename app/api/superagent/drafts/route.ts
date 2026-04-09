@@ -3,7 +3,10 @@
 import { NextRequest } from "next/server"
 import { createSafeDraft } from "@/lib/superagent/draft-engine"
 import { SUPERAGENT_CONFIG } from "@/lib/superagent/config"
-import type { SuperAgentTarget, SuperAgentUserContext } from "@/lib/superagent/types"
+import type {
+  SuperAgentTarget,
+  SuperAgentUserContext,
+} from "@/lib/superagent/types"
 
 function normalizeActiveAgent(value: unknown): SuperAgentTarget | undefined {
   if (typeof value !== "string") return undefined
@@ -29,20 +32,27 @@ function normalizeActiveAgent(value: unknown): SuperAgentTarget | undefined {
     : undefined
 }
 
-function buildContextFromBody(body: Record<string, unknown>): SuperAgentUserContext {
+function buildContextFromBody(
+  body: Record<string, unknown>
+): SuperAgentUserContext {
   return {
     userId: typeof body.userId === "string" ? body.userId : undefined,
-    currentPage: typeof body.currentPage === "string" ? body.currentPage : undefined,
+    currentPage:
+      typeof body.currentPage === "string" ? body.currentPage : undefined,
     activeAgent: normalizeActiveAgent(body.activeAgent),
     userGoal: typeof body.userGoal === "string" ? body.userGoal : undefined,
     recentMessages: Array.isArray(body.recentMessages)
-      ? body.recentMessages.filter((item): item is string => typeof item === "string")
+      ? body.recentMessages.filter(
+          (item): item is string => typeof item === "string"
+        )
       : [],
     tags: Array.isArray(body.tags)
       ? body.tags.filter((item): item is string => typeof item === "string")
       : [],
     metadata:
-      body.metadata && typeof body.metadata === "object" && !Array.isArray(body.metadata)
+      body.metadata &&
+      typeof body.metadata === "object" &&
+      !Array.isArray(body.metadata)
         ? (body.metadata as Record<string, unknown>)
         : {},
   }
@@ -65,14 +75,16 @@ export async function POST(request: NextRequest) {
 
     const result = await createSafeDraft(context)
 
-    return Response.json({
-      ok: result.ok,
-      name: SUPERAGENT_CONFIG.identity.displayName,
-      alias: SUPERAGENT_CONFIG.identity.engineAlias,
-      ...result,
-    }, {
-      status: result.ok ? 200 : 400,
-    })
+    return Response.json(
+      {
+        name: SUPERAGENT_CONFIG.identity.displayName,
+        alias: SUPERAGENT_CONFIG.identity.engineAlias,
+        ...result,
+      },
+      {
+        status: result.ok ? 200 : 400,
+      }
+    )
   } catch (error) {
     const message =
       error instanceof Error
