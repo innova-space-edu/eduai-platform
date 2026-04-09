@@ -408,12 +408,11 @@ export default function AISocialPage() {
 
   const sendUserMessage = useCallback(async () => {
     if (!session?.sessionId || !userMessage.trim()) return
-
+    const messageToSend = userMessage.trim()
     try {
       setSending(true)
       setError(null)
-
-      const res = await fetch("/api/superagent/social/session", {
+      const appendRes = await fetch("/api/superagent/social/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -422,21 +421,32 @@ export default function AISocialPage() {
           authorId: "user",
           authorName: "Usuario",
           role: "assistant",
-          content: userMessage.trim(),
+          content: messageToSend,
           fromUser: true,
         }),
       })
-
-      const json = (await res.json()) as SocialSessionResponse
-
-      if (!res.ok || !json.ok || !json.session) {
-        setError(json.error || "No se pudo agregar tu mensaje.")
+      const appendJson = (await appendRes.json()) as SocialSessionResponse
+      if (!appendRes.ok || !appendJson.ok || !appendJson.session) {
+        setError(appendJson.error || "No se pudo agregar tu mensaje.")
         return
       }
-
-      setSession(json.session)
+      setSession(appendJson.session)
       setUserMessage("")
-      setCountdown(Math.floor(json.session.inactivityTimeoutMs / 1000))
+      setCountdown(Math.floor(appendJson.session.inactivityTimeoutMs / 1000))
+      const roundRes = await fetch("/api/superagent/social/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "agent-round",
+          sessionId: session.sessionId,
+          userMessage: messageToSend,
+        }),
+      })
+      const roundJson = (await roundRes.json()) as SocialSessionResponse
+      if (roundRes.ok && roundJson.ok && roundJson.session) {
+        setSession(roundJson.session)
+        setCountdown(Math.floor(roundJson.session.inactivityTimeoutMs / 1000))
+      }
     } catch {
       setError("Ocurrió un error al enviar tu mensaje.")
     } finally {
