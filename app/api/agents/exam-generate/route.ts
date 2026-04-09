@@ -14,9 +14,15 @@ export const runtime     = "nodejs"
 export const maxDuration = 120
 
 const GEMINI_MODELS  = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
-const GROQ_MODEL     = "llama-3.3-70b-versatile"   // mejor modelo Groq: 128k ctx, 32k output
-const GROQ_BATCH     = 30   // lotes de 30 — seguros con max_tokens 32768
-const GROQ_MAX_TOKENS = 32768  // máximo soportado por llama-3.3-70b-versatile
+// Cadena de modelos Groq — se prueban en orden hasta que uno funcione
+const GROQ_MODELS = [
+  "llama-3.3-70b-versatile",         // primero: 128k ctx, 32k output, el mejor para JSON largo
+  "llama-3.1-70b-versatile",         // segundo: similar capacidad
+  "llama3-70b-8192",                 // tercero: más limitado pero muy estable
+  "mixtral-8x7b-32768",              // cuarto: 32k ctx, bueno para exámenes medianos
+]
+const GROQ_BATCH      = 30   // lotes de 30 — seguros con 32k tokens
+const GROQ_MAX_TOKENS = 32768
 
 // ─── Sanitizar caracteres Unicode que sustituyen a \ ─────────────────────────
 function sanitizeLatex(raw: string): string {
@@ -67,7 +73,7 @@ async function gemini(prompt: string, totalQ: number, key: string): Promise<any>
 
     if (!res.ok) {
       const err = await res.text()
-      if (res.status === 429) throw new Error("QUOTA_EXCEEDED")  // señal para usar Groq
+      if (res.status === 429 || res.status === 503) throw new Error("QUOTA_EXCEEDED")  // señal para usar Groq
       if (res.status === 404 || res.status === 400) continue      // probar siguiente modelo
       throw new Error(`Gemini ${res.status}: ${err.slice(0, 200)}`)
     }
@@ -87,20 +93,30 @@ async function groqBatch(prompt: string, key: string): Promise<any> {
   const Groq   = (await import("groq-sdk")).default
   const client = new Groq({ apiKey: key })
 
-  const res = await client.chat.completions.create({
-    model:            GROQ_MODEL,
-    max_tokens:       GROQ_MAX_TOKENS,
-    temperature:      0.4,
-    response_format:  { type: "json_object" },
-    messages: [
-      { role: "system", content: SYSTEM },
-      { role: "user",   content: prompt },
-    ],
-  })
+  let lastError = ""
+  for (const model of GROQ_MODELS) {
+    try {
+      const res = await client.chat.completions.create({
+        model,
+        max_tokens:      model === "llama3-70b-8192" ? 8192 : GROQ_MAX_TOKENS,
+        temperature:     0.4,
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: SYSTEM },
+          { role: "user",   content: prompt },
+        ],
+      })
 
-  const raw = res.choices[0]?.message?.content?.trim() ?? ""
-  if (!raw) throw new Error("Groq: respuesta vacía")
-  return parseResponse(raw)
+      const raw = res.choices[0]?.message?.content?.trim() ?? ""
+      if (!raw) { lastError = `${model}: respuesta vacía`; continue }
+      console.log(`[exam-generate] Groq modelo usado: ${model}`)
+      return parseResponse(raw)
+    } catch (e: any) {
+      lastError = `${model}: ${e.message}`
+      console.warn(`[exam-generate] Groq ${model} falló:`, e.message)
+    }
+  }
+  throw new Error(`Groq: todos los modelos fallaron. Último error: ${lastError}`)
 }
 
 // ─── Groq en lotes para exámenes grandes ────────────────────────────────────
