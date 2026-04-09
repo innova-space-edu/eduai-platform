@@ -3,6 +3,7 @@
 "use client"
 
 import { useMemo, useState, useRef, useEffect } from "react"
+import ExamMathText from "@/components/ui/ExamMathText"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 
@@ -513,15 +514,15 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                                 {aiRegenIdx === idx ? "⟳" : "↺ regen"}
                               </button>
                             </div>
-                            <p className="text-white text-xs leading-relaxed line-clamp-3">{q.question}</p>
+                            <ExamMathText text={q.question} className="text-white text-xs leading-relaxed line-clamp-3" />
                             {q.type === "multiple_choice" && (
                               <div className="mt-2 grid grid-cols-2 gap-1">
                                 {q.options.map((o, j) => (
-                                  <p key={j} className={`text-[11px] px-2 py-1 rounded-lg ${
+                                  <div key={j} className={`text-[11px] px-2 py-1 rounded-lg ${
                                     j === q.correctAnswer ? "bg-green-500/10 text-green-400" : "text-gray-600"
                                   }`}>
-                                    {String.fromCharCode(65 + j)}. {o}
-                                  </p>
+                                    {String.fromCharCode(65 + j)}. <ExamMathText text={o} className="inline" />
+                                  </div>
                                 ))}
                               </div>
                             )}
