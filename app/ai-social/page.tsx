@@ -2,7 +2,7 @@
 "use client"
 
 import Link from "next/link"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type SocialRoomSlug = "ideas" | "research" | "teaching-lab" | "creative-studio" | "user-support" | "anticipation"
@@ -11,12 +11,10 @@ type SocialParticipantRole = "supervisor" | "researcher" | "educator" | "mathema
 type SocialParticipant = {
   id: string; name: string; role: SocialParticipantRole; specialty: string; tone: string
 }
-
 type SocialMessage = {
   id: string; authorId: string; authorName: string
   role: SocialParticipantRole; content: string; createdAt: string
 }
-
 type SocialSession = {
   sessionId: string; userId?: string; status: "active" | "paused" | "closed"
   room: { id: string; slug: SocialRoomSlug; title: string; topic: string; createdAt: string }
@@ -24,86 +22,79 @@ type SocialSession = {
   summary: string; createdAt: string; updatedAt: string
   lastUserActivityAt: string; lastAgentActivityAt: string; inactivityTimeoutMs: number
 }
-
 type SocialActionTarget = "drafts" | "educador" | "examen" | "paper" | "matematico" | "imagenes" | "unknown"
 type SocialActionIntent =
   | "create_lesson_plan" | "create_study_guide" | "create_exam"
   | "create_research_outline" | "create_math_support" | "create_visual_material" | "unknown"
-
 type SocialActionSuggestion = {
   detected: boolean; intent: SocialActionIntent; target: SocialActionTarget
   label: string; reason: string; suggestedGoal: string
 }
-
+type ExecutedActionResult = {
+  ok: boolean; executed: boolean
+  target: SocialActionTarget; intent: SocialActionIntent
+  label: string; message: string
+  mode: "draft_created" | "prepared_action"
+  draft?: DraftFile; payload?: Record<string, unknown>
+}
 type SocialSessionResponse = {
   ok: boolean; name?: string; alias?: string; action?: string
   session?: SocialSession; sessions?: SocialSession[]; pausedCount?: number
   actionSuggestion?: SocialActionSuggestion; error?: string
 }
-
 type DraftType = "study_guide" | "lesson_plan" | "exam" | "research_outline" | "prompt_pack" | "generic"
-
 type DraftFile = {
   id: string; title: string; filename: string; draftType: DraftType
   content: string; summary: string; createdAt: string; metadata?: Record<string, unknown>
 }
-
 type DraftApiResponse = {
   ok: boolean; name?: string; alias?: string; message?: string; target?: "drafts"
   draft?: DraftFile; logs?: Record<string, unknown>[]; error?: string
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const ROOM_PRESETS: Array<{
-  slug: SocialRoomSlug; emoji: string; title: string; suggestedGoal: string
-}> = [
-  { slug: "ideas",          emoji: "💡", title: "Ideas",        suggestedGoal: "Quiero que los agentes conversen libremente sobre nuevas ideas para mejorar EduAI" },
-  { slug: "research",       emoji: "🔬", title: "Research",     suggestedGoal: "Quiero que los agentes conversen sobre una idea de investigación en plasma para CubeSats" },
-  { slug: "teaching-lab",   emoji: "🏫", title: "Teaching Lab", suggestedGoal: "Necesito que los agentes conversen sobre una planificación con OA e indicadores" },
-  { slug: "creative-studio",emoji: "🎨", title: "Creative",     suggestedGoal: "Quiero que los agentes conversen sobre una infografía educativa y un afiche visual" },
-  { slug: "user-support",   emoji: "🤝", title: "Soporte",      suggestedGoal: "Necesito que los agentes conversen sobre cómo ayudar mejor al usuario en el chat" },
-  { slug: "anticipation",   emoji: "⚡", title: "Anticipar",    suggestedGoal: "Conversemos sobre cómo anticipar un borrador de guía de estudio" },
+const ROOM_PRESETS: Array<{ slug: SocialRoomSlug; emoji: string; title: string; suggestedGoal: string }> = [
+  { slug: "ideas",           emoji: "💡", title: "Ideas",        suggestedGoal: "Conversemos sobre nuevas ideas para mejorar EduAI" },
+  { slug: "research",        emoji: "🔬", title: "Research",     suggestedGoal: "Quiero debatir una idea de investigación sobre plasma y CubeSats" },
+  { slug: "teaching-lab",    emoji: "🏫", title: "Docencia",     suggestedGoal: "Necesito apoyo para una planificación con OA e indicadores MINEDUC" },
+  { slug: "creative-studio", emoji: "🎨", title: "Creativo",     suggestedGoal: "Quiero crear una infografía educativa y materiales visuales" },
+  { slug: "user-support",    emoji: "🤝", title: "Soporte",      suggestedGoal: "¿Cómo podemos mejorar la experiencia del usuario en EduAI?" },
+  { slug: "anticipation",    emoji: "⚡", title: "Anticipar",    suggestedGoal: "Anticipemos un borrador de guía de estudio para mañana" },
 ]
 
 const ROLE_COLORS: Record<string, { dot: string; name: string }> = {
-  supervisor:   { dot: "bg-cyan-400",    name: "text-cyan-300" },
-  researcher:   { dot: "bg-violet-400",  name: "text-violet-300" },
-  educator:     { dot: "bg-emerald-400", name: "text-emerald-300" },
-  mathematician:{ dot: "bg-amber-400",   name: "text-amber-300" },
-  creative:     { dot: "bg-fuchsia-400", name: "text-fuchsia-300" },
-  assistant:    { dot: "bg-slate-400",   name: "text-slate-300" },
+  supervisor:    { dot: "bg-cyan-400",    name: "text-cyan-300" },
+  researcher:    { dot: "bg-violet-400",  name: "text-violet-300" },
+  educator:      { dot: "bg-emerald-400", name: "text-emerald-300" },
+  mathematician: { dot: "bg-amber-400",   name: "text-amber-300" },
+  creative:      { dot: "bg-fuchsia-400", name: "text-fuchsia-300" },
+  assistant:     { dot: "bg-slate-400",   name: "text-slate-300" },
 }
 
-const DEFAULT_GOAL = "Quiero que los agentes conversen sobre una idea de investigación en plasma para CubeSats"
-
-// ─── Small helpers ────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 function timeAgo(iso: string) {
   const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
-  if (s < 60)  return "ahora"
+  if (s < 60)   return "ahora"
   if (s < 3600) return `${Math.floor(s / 60)}m`
   return `${Math.floor(s / 3600)}h`
 }
 
-// ─── Message bubble (Twitter-style) ──────────────────────────────────────────
+// ─── Message bubble ───────────────────────────────────────────────────────────
 function MessageBubble({ msg, isUser }: { msg: SocialMessage; isUser: boolean }) {
   const colors = ROLE_COLORS[msg.role] || ROLE_COLORS.assistant
   return (
     <div className={`flex gap-3 ${isUser ? "flex-row-reverse" : ""}`}>
-      {/* Avatar */}
-      <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold
-        ${isUser ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
-                  : "bg-slate-800 border border-white/10 text-white"}`}>
+      <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-[11px] font-bold
+        ${isUser
+          ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
+          : "bg-slate-800 border border-white/10 text-white"}`}>
         {isUser ? "Tú" : msg.authorName.slice(0, 2)}
       </div>
-
-      {/* Bubble */}
-      <div className={`max-w-[78%] ${isUser ? "items-end" : "items-start"} flex flex-col gap-1`}>
+      <div className={`max-w-[78%] flex flex-col gap-1 ${isUser ? "items-end" : "items-start"}`}>
         {!isUser && (
           <span className={`text-[11px] font-semibold ${colors.name}`}>
             {msg.authorName}
-            <span className="text-slate-600 font-normal ml-1.5 uppercase tracking-wide text-[10px]">
-              {msg.role}
-            </span>
+            <span className="text-slate-600 font-normal ml-1.5 uppercase tracking-wide text-[10px]">{msg.role}</span>
           </span>
         )}
         <div className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed
@@ -112,9 +103,7 @@ function MessageBubble({ msg, isUser }: { msg: SocialMessage; isUser: boolean })
             : "bg-slate-800/80 border border-white/[0.07] text-slate-200 rounded-tl-sm"}`}>
           {msg.content}
         </div>
-        <span className="text-[10px] text-slate-600 px-1">
-          {timeAgo(msg.createdAt)}
-        </span>
+        <span className="text-[10px] text-slate-600 px-1">{timeAgo(msg.createdAt)}</span>
       </div>
     </div>
   )
@@ -122,28 +111,34 @@ function MessageBubble({ msg, isUser }: { msg: SocialMessage; isUser: boolean })
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function AISocialPage() {
-  const [goal, setGoal]                   = useState(DEFAULT_GOAL)
-  const [userMessage, setUserMessage]     = useState("")
-  const [session, setSession]             = useState<SocialSession | null>(null)
-  const [loading, setLoading]             = useState(false)
-  const [sending, setSending]             = useState(false)
-  const [draftLoading, setDraftLoading]   = useState(false)
-  const [draftResponse, setDraftResponse] = useState<DraftApiResponse | null>(null)
-  const [error, setError]                 = useState<string | null>(null)
-  const [countdown, setCountdown]         = useState(60)
-  const [actionSuggestion, setActionSuggestion] = useState<SocialActionSuggestion | null>(null)
-  const [showNewTopic, setShowNewTopic]   = useState(false)
+  // Session state
+  const [session, setSession]           = useState<SocialSession | null>(null)
+  const [loading, setLoading]           = useState(false)
+  const [sending, setSending]           = useState(false)
+  const [countdown, setCountdown]       = useState(60)
+  const [error, setError]               = useState<string | null>(null)
 
-  const bottomRef          = useRef<HTMLDivElement>(null)
-  const countdownRef       = useRef<NodeJS.Timeout | null>(null)
-  const cleanupRef         = useRef<NodeJS.Timeout | null>(null)
-  const activeRoomSlug     = session?.room?.slug
+  // UI state
+  const [userMessage, setUserMessage]   = useState("")
+  const [goal, setGoal]                 = useState("")
+  const [topicInput, setTopicInput]     = useState("") // entrada libre del usuario
+  const [phase, setPhase]               = useState<"start" | "chat">("start") // pantalla inicial vs chat
 
-  // Auto-scroll to bottom on new messages
+  // Action / draft state
+  const [actionSuggestion, setActionSuggestion]   = useState<SocialActionSuggestion | null>(null)
+  const [executedAction, setExecutedAction]         = useState<ExecutedActionResult | null>(null)
+  const [draftLoading, setDraftLoading]             = useState(false)
+  const [draftResponse, setDraftResponse]           = useState<DraftApiResponse | null>(null)
+
+  const bottomRef   = useRef<HTMLDivElement>(null)
+  const countdownRef = useRef<NodeJS.Timeout | null>(null)
+  const cleanupRef   = useRef<NodeJS.Timeout | null>(null)
+
+  const activeRoomSlug = session?.room?.slug
+
+  // Auto-scroll
   useEffect(() => {
-    if (session?.messages?.length) {
-      bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-    }
+    if (session?.messages?.length) bottomRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [session?.messages?.length])
 
   const resetCountdown = useCallback(() => {
@@ -151,11 +146,12 @@ export default function AISocialPage() {
   }, [session?.inactivityTimeoutMs])
 
   // ── createSession ──────────────────────────────────────────────────────────
-  const createSession = useCallback(async (customGoal?: string) => {
-    const finalGoal = (customGoal ?? goal).trim()
-    if (!finalGoal) { setError("Escribe primero el tema."); return }
+  const createSession = useCallback(async (customGoal: string) => {
+    const finalGoal = customGoal.trim()
+    if (!finalGoal) { setError("Escribe primero un tema."); return }
 
-    setLoading(true); setError(null); setDraftResponse(null); setActionSuggestion(null)
+    setLoading(true); setError(null); setDraftResponse(null)
+    setActionSuggestion(null); setExecutedAction(null)
     try {
       const res  = await fetch("/api/superagent/social/session", {
         method: "POST",
@@ -166,15 +162,15 @@ export default function AISocialPage() {
         }),
       })
       const json = (await res.json()) as SocialSessionResponse
-      if (!res.ok || !json.ok || !json.session) {
-        setError(json.error || "No se pudo crear la sesión."); return
-      }
-      setGoal(finalGoal); setSession(json.session); setUserMessage("")
+      if (!res.ok || !json.ok || !json.session) { setError(json.error || "No se pudo crear la sesión."); return }
+      setGoal(finalGoal)
+      setSession(json.session)
+      setUserMessage("")
       setCountdown(Math.floor(json.session.inactivityTimeoutMs / 1000))
-      setShowNewTopic(false)
+      setPhase("chat")
     } catch { setError("Error al crear la sesión.") }
     finally   { setLoading(false) }
-  }, [goal])
+  }, [])
 
   // ── touchSession ───────────────────────────────────────────────────────────
   const touchSession = useCallback(async (sessionId: string) => {
@@ -256,6 +252,36 @@ export default function AISocialPage() {
     finally  { setSending(false) }
   }, [session?.sessionId, userMessage])
 
+  // ── executeDetectedAction ──────────────────────────────────────────────────
+  const executeDetectedAction = useCallback(async () => {
+    if (!actionSuggestion) return
+    setLoading(true); setError(null)
+    try {
+      const res  = await fetch("/api/superagent/social/session", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "execute-suggested-action",
+          suggestion: actionSuggestion,
+          userGoal: actionSuggestion.suggestedGoal || goal,
+          tags: ["social", "executed-action"],
+          metadata: {
+            source: "ai-social",
+            sessionId: session?.sessionId || null,
+            roomTitle: session?.room?.title || null,
+            roomTopic: session?.room?.topic || null,
+          },
+        }),
+      })
+      const json = (await res.json()) as { ok: boolean; result?: ExecutedActionResult; error?: string }
+      if (!res.ok || !json.ok || !json.result) { setError(json.error || "No se pudo ejecutar la acción."); return }
+      setExecutedAction(json.result)
+      if (json.result.mode === "draft_created" && json.result.draft) {
+        setDraftResponse({ ok: true, message: json.result.message, target: "drafts", draft: json.result.draft })
+      }
+    } catch { setError("Error al ejecutar la acción.") }
+    finally  { setLoading(false) }
+  }, [actionSuggestion, goal, session?.room?.title, session?.room?.topic, session?.sessionId])
+
   // ── createDraft ────────────────────────────────────────────────────────────
   const createDraft = useCallback(async () => {
     if (!session) return
@@ -276,15 +302,13 @@ export default function AISocialPage() {
         }),
       })
       const json = (await res.json()) as DraftApiResponse
-      if (!res.ok || !json.ok) { setError(json.error || json.message || "No se pudo crear el borrador.") }
+      if (!res.ok || !json.ok) setError(json.error || json.message || "No se pudo crear el borrador.")
       setDraftResponse(json)
     } catch { setError("Error al crear el borrador.") }
     finally  { setDraftLoading(false) }
   }, [session])
 
   // ── Effects ────────────────────────────────────────────────────────────────
-  useEffect(() => { createSession(DEFAULT_GOAL) }, [createSession])
-
   useEffect(() => {
     if (!session || session.status !== "active") {
       if (countdownRef.current) clearInterval(countdownRef.current); return
@@ -308,53 +332,145 @@ export default function AISocialPage() {
   }, [])
 
   const handleInteraction = async () => {
-    if (session?.sessionId && session.status === "active") {
-      await touchSession(session.sessionId); resetCountdown()
-    }
+    if (session?.sessionId && session.status === "active") { await touchSession(session.sessionId); resetCountdown() }
   }
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendUserMessage() }
   }
+  const handleTopicKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); createSession(topicInput) }
+  }
 
-  // ─── Render ─────────────────────────────────────────────────────────────────
+  // ════════════════════════════════════════════════════════════════════════════
+  // PANTALLA INICIAL — el usuario elige el tema
+  // ════════════════════════════════════════════════════════════════════════════
+  if (phase === "start") {
+    return (
+      <div className="min-h-screen bg-[#0d1117] text-white flex flex-col">
+        <header className="sticky top-0 z-20 border-b border-white/[0.06] bg-[#0d1117]/90 backdrop-blur-sm">
+          <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Link href="/" className="text-slate-400 hover:text-white transition text-sm">←</Link>
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-cyan-500 to-violet-600 flex items-center justify-center text-xs font-bold">C</div>
+                <p className="text-sm font-semibold">EduAI Social</p>
+              </div>
+            </div>
+            <Link href="/superagent" className="text-[11px] text-slate-500 hover:text-slate-300 transition px-2 py-1 rounded-lg border border-white/10 hover:border-white/20">
+              Claw ↗
+            </Link>
+          </div>
+        </header>
+
+        <div className="flex-1 flex flex-col items-center justify-center px-4 py-12">
+          <div className="w-full max-w-lg space-y-6">
+            {/* Hero */}
+            <div className="text-center space-y-2">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-violet-600/20 border border-white/10 flex items-center justify-center text-2xl mx-auto">
+                💬
+              </div>
+              <h1 className="text-2xl font-bold">Chat social de agentes</h1>
+              <p className="text-sm text-slate-400">
+                Elige un tema y los agentes de EduAI conversan entre sí y contigo.
+              </p>
+            </div>
+
+            {/* Topic input */}
+            <div className="rounded-2xl border border-white/[0.08] bg-slate-900/60 p-4 space-y-3">
+              <label className="text-xs text-slate-500 uppercase tracking-wide">¿Sobre qué quieres conversar?</label>
+              <textarea
+                value={topicInput}
+                onChange={e => setTopicInput(e.target.value)}
+                onKeyDown={handleTopicKeyDown}
+                rows={3}
+                autoFocus
+                className="w-full bg-transparent text-sm text-white outline-none resize-none placeholder-slate-600"
+                placeholder="Escribe tu tema, pregunta u opinión... (Enter para iniciar)"
+              />
+              <button
+                onClick={() => createSession(topicInput)}
+                disabled={loading || !topicInput.trim()}
+                className="w-full py-2.5 rounded-xl bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 text-sm font-medium hover:bg-cyan-500/30 transition disabled:opacity-30"
+              >
+                {loading ? "Iniciando..." : "Iniciar conversación →"}
+              </button>
+            </div>
+
+            {/* Room presets */}
+            <div className="space-y-2">
+              <p className="text-xs text-slate-600 text-center">o elige una sala temática</p>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {ROOM_PRESETS.map(r => (
+                  <button
+                    key={r.slug}
+                    onClick={() => { setTopicInput(r.suggestedGoal); createSession(r.suggestedGoal) }}
+                    disabled={loading}
+                    className="flex flex-col gap-1 p-3 rounded-2xl border border-white/[0.07] bg-slate-900/40 hover:border-white/20 hover:bg-slate-800/60 transition text-left disabled:opacity-40"
+                  >
+                    <span className="text-lg">{r.emoji}</span>
+                    <span className="text-xs font-semibold text-slate-200">{r.title}</span>
+                    <span className="text-[10px] text-slate-500 line-clamp-2">{r.suggestedGoal}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {error && (
+              <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-2.5 text-sm text-rose-200">
+                {error}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // PANTALLA CHAT
+  // ════════════════════════════════════════════════════════════════════════════
   return (
     <div className="min-h-screen bg-[#0d1117] text-white flex flex-col">
 
       {/* ── Top bar ── */}
       <header className="sticky top-0 z-20 border-b border-white/[0.06] bg-[#0d1117]/90 backdrop-blur-sm">
-        <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
+        <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <Link href="/" className="text-slate-400 hover:text-white transition text-sm">←</Link>
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-cyan-500 to-violet-600 flex items-center justify-center text-xs font-bold">C</div>
-              <div>
-                <p className="text-sm font-semibold leading-none">EduAI Social</p>
+            <button
+              onClick={() => { setPhase("start"); setSession(null) }}
+              className="text-slate-400 hover:text-white transition text-sm"
+            >
+              ←
+            </button>
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-cyan-500 to-violet-600 flex-shrink-0 flex items-center justify-center text-xs font-bold">C</div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold leading-none truncate">{session?.room?.title ?? "..."}</p>
                 <p className="text-[11px] text-slate-500 leading-none mt-0.5">
-                  {session?.room?.title ?? "Cargando..."} ·{" "}
                   <span className={session?.status === "active" ? "text-emerald-400" : "text-amber-400"}>
-                    {session?.status === "active" ? "activa" : session?.status === "paused" ? "pausada" : "—"}
+                    {session?.status === "active" ? "activa" : "pausada"}
                   </span>
                   {session?.status === "active" && <span className="text-slate-600"> · {countdown}s</span>}
+                  {" · "}{session?.participants?.length ?? 0} agentes
                 </p>
               </div>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Room pills */}
+            {/* Room pills — mobile: hidden, sm: visible */}
             <div className="hidden sm:flex items-center gap-1">
               {ROOM_PRESETS.map(r => (
                 <button
                   key={r.slug}
                   onClick={() => createSession(r.suggestedGoal)}
-                  className={`text-[11px] px-2.5 py-1 rounded-full border transition ${
+                  className={`text-[11px] px-2 py-1 rounded-full border transition ${
                     activeRoomSlug === r.slug
                       ? "border-cyan-400/40 bg-cyan-400/10 text-cyan-300"
-                      : "border-white/10 text-slate-500 hover:text-slate-300 hover:border-white/20"
+                      : "border-white/10 text-slate-600 hover:text-slate-300 hover:border-white/20"
                   }`}
                 >
-                  {r.emoji} {r.title}
+                  {r.emoji}
                 </button>
               ))}
             </div>
@@ -365,88 +481,57 @@ export default function AISocialPage() {
         </div>
       </header>
 
-      {/* ── Main two-column layout ── */}
-      <div className="max-w-3xl mx-auto w-full flex-1 flex flex-col px-4 py-4 gap-3">
+      {/* ── Content ── */}
+      <div className="max-w-2xl mx-auto w-full flex-1 flex flex-col px-4 py-4 gap-3">
 
-        {/* ── Topic bar ── */}
-        {session?.room && (
-          <div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] px-4 py-3 flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-[11px] text-slate-500 uppercase tracking-wide">Tema actual</p>
-              <p className="text-sm text-slate-200 mt-0.5 line-clamp-1">{session.room.topic}</p>
-            </div>
+        {/* Topic badge */}
+        {goal && (
+          <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2 flex items-center justify-between gap-2">
+            <p className="text-xs text-slate-400 truncate flex-1">{goal}</p>
             <button
-              onClick={() => setShowNewTopic(t => !t)}
-              className="flex-shrink-0 text-[11px] px-3 py-1.5 rounded-xl border border-white/10 text-slate-400 hover:text-white hover:border-white/20 transition"
+              onClick={() => setPhase("start")}
+              className="flex-shrink-0 text-[10px] px-2.5 py-1 rounded-lg border border-white/10 text-slate-500 hover:text-white hover:border-white/20 transition"
             >
               Cambiar
             </button>
           </div>
         )}
 
-        {/* ── New topic panel (collapsible) ── */}
-        {showNewTopic && (
-          <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/5 p-4 space-y-3">
-            <p className="text-xs text-slate-400">Escribe el nuevo tema o elige una sala:</p>
-            <textarea
-              value={goal}
-              onChange={e => setGoal(e.target.value)}
-              rows={2}
-              className="w-full rounded-xl border border-white/10 bg-slate-900/80 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400/40 resize-none"
-              placeholder="Nuevo tema de conversación..."
-            />
-            <div className="flex flex-wrap gap-2">
-              {ROOM_PRESETS.map(r => (
-                <button
-                  key={r.slug}
-                  onClick={() => createSession(r.suggestedGoal)}
-                  disabled={loading}
-                  className="text-[11px] px-3 py-1.5 rounded-xl border border-white/10 text-slate-300 hover:border-cyan-400/30 hover:text-cyan-300 transition disabled:opacity-40"
-                >
-                  {r.emoji} {r.title}
-                </button>
-              ))}
-              <button
-                onClick={() => createSession()}
-                disabled={loading}
-                className="text-[11px] px-3 py-1.5 rounded-xl border border-cyan-400/30 bg-cyan-400/10 text-cyan-300 hover:bg-cyan-400/20 transition disabled:opacity-40 ml-auto"
-              >
-                {loading ? "Abriendo..." : "Abrir →"}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── Action suggestion banner ── */}
+        {/* Action suggestion banner */}
         {actionSuggestion?.detected && (
-          <div className="rounded-2xl border border-violet-400/20 bg-violet-400/10 px-4 py-3">
+          <div className="rounded-2xl border border-violet-400/20 bg-violet-400/10 px-4 py-3 space-y-2">
             <p className="text-xs font-semibold text-violet-300">⚡ EduAI Claw sugiere</p>
-            <p className="text-sm text-slate-200 mt-1">{actionSuggestion.label}</p>
-            <p className="text-xs text-slate-400 mt-0.5">{actionSuggestion.reason}</p>
-            <div className="flex flex-wrap gap-1.5 mt-2">
+            <p className="text-sm text-slate-200">{actionSuggestion.label}</p>
+            <p className="text-xs text-slate-400">{actionSuggestion.reason}</p>
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-[10px] px-2 py-0.5 rounded-full border border-violet-400/20 bg-violet-400/10 text-violet-300">
                 {actionSuggestion.intent}
               </span>
               <span className="text-[10px] px-2 py-0.5 rounded-full border border-cyan-400/20 bg-cyan-400/10 text-cyan-300">
                 → {actionSuggestion.target}
               </span>
+              <button
+                onClick={executeDetectedAction}
+                disabled={loading}
+                className="ml-auto text-[11px] px-3 py-1.5 rounded-xl border border-violet-400/30 bg-violet-400/10 text-violet-200 hover:bg-violet-400/20 transition disabled:opacity-40"
+              >
+                {loading ? "Ejecutando..." : "Ejecutar →"}
+              </button>
             </div>
           </div>
         )}
 
-        {/* ── Error ── */}
+        {/* Error */}
         {error && (
-          <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-2.5 text-sm text-rose-200">
+          <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-2.5 text-sm text-rose-200">
             {error}
           </div>
         )}
 
-        {/* ── Chat feed ── */}
+        {/* Chat feed */}
         <div className="flex-1 space-y-4 py-2 min-h-[300px]">
           {!session ? (
-            <div className="flex items-center justify-center h-48 text-slate-600 text-sm">
-              Iniciando sesión...
-            </div>
+            <div className="flex items-center justify-center h-48 text-slate-600 text-sm">Cargando...</div>
           ) : session.messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-48 gap-2 text-slate-600">
               <div className="text-3xl">💬</div>
@@ -475,14 +560,14 @@ export default function AISocialPage() {
           <div ref={bottomRef} />
         </div>
 
-        {/* ── Participants strip ── */}
+        {/* Participants strip */}
         {session?.participants?.length ? (
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+          <div className="flex gap-1.5 overflow-x-auto pb-0.5">
             {session.participants.map(p => {
-              const colors = ROLE_COLORS[p.role] || ROLE_COLORS.assistant
+              const c = ROLE_COLORS[p.role] || ROLE_COLORS.assistant
               return (
                 <div key={p.id} className="flex-shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-white/[0.07] bg-white/[0.02]">
-                  <span className={`w-1.5 h-1.5 rounded-full ${colors.dot}`} />
+                  <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
                   <span className="text-[11px] text-slate-300">{p.name}</span>
                 </div>
               )
@@ -490,7 +575,7 @@ export default function AISocialPage() {
           </div>
         ) : null}
 
-        {/* ── Paused banner ── */}
+        {/* Paused banner */}
         {session?.status === "paused" && (
           <div className="rounded-2xl border border-amber-400/20 bg-amber-400/5 px-4 py-3 flex items-center justify-between gap-3">
             <p className="text-sm text-amber-300">Conversación pausada</p>
@@ -499,12 +584,12 @@ export default function AISocialPage() {
               disabled={loading}
               className="text-xs px-3 py-1.5 rounded-xl border border-amber-400/30 bg-amber-400/10 text-amber-300 hover:bg-amber-400/20 transition disabled:opacity-40"
             >
-              {loading ? "Reanudando..." : "Reanudar →"}
+              {loading ? "..." : "Reanudar →"}
             </button>
           </div>
         )}
 
-        {/* ── Input box ── */}
+        {/* Input box */}
         <div className="rounded-2xl border border-white/[0.08] bg-slate-900/80 p-3">
           <textarea
             value={userMessage}
@@ -514,7 +599,9 @@ export default function AISocialPage() {
             disabled={!session || session.status !== "active" || sending}
             rows={2}
             className="w-full bg-transparent text-sm text-white outline-none resize-none placeholder-slate-600 disabled:opacity-40"
-            placeholder={session?.status === "active" ? "Escribe un mensaje... (Enter para enviar)" : "Reanuda la conversación para escribir"}
+            placeholder={session?.status === "active"
+              ? "Escribe un mensaje o tu opinión... (Enter para enviar)"
+              : "Reanuda la conversación para escribir"}
           />
           <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/[0.06]">
             <div className="flex items-center gap-2">
@@ -545,7 +632,7 @@ export default function AISocialPage() {
           </div>
         </div>
 
-        {/* ── Draft result ── */}
+        {/* Draft result */}
         {draftResponse?.draft && (
           <div className="rounded-2xl border border-emerald-400/15 bg-emerald-400/5 p-4 space-y-3">
             <div className="flex items-start justify-between gap-3">
@@ -562,6 +649,41 @@ export default function AISocialPage() {
                 {draftResponse.draft.content}
               </pre>
             </div>
+          </div>
+        )}
+
+        {/* Executed action panel */}
+        {executedAction && executedAction.mode === "prepared_action" && (
+          <div className="rounded-2xl border border-cyan-400/15 bg-cyan-400/5 p-4 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-cyan-300">Acción ejecutada por EduAI Claw</p>
+                <p className="text-xs text-slate-300 mt-1">{executedAction.message}</p>
+              </div>
+              <span className="text-[10px] px-2 py-1 rounded-lg border border-cyan-400/20 bg-cyan-400/10 text-cyan-300 flex-shrink-0">
+                {executedAction.target}
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { label: "Intent", value: executedAction.intent },
+                { label: "Target", value: executedAction.target },
+                { label: "Modo",   value: executedAction.mode },
+              ].map(item => (
+                <div key={item.label} className="rounded-xl border border-white/[0.07] bg-slate-900/70 p-2.5">
+                  <p className="text-[10px] uppercase tracking-wide text-slate-500">{item.label}</p>
+                  <p className="text-xs font-medium text-white mt-0.5">{item.value}</p>
+                </div>
+              ))}
+            </div>
+            {executedAction.payload && (
+              <div className="rounded-xl border border-white/[0.07] bg-slate-950/60 p-3 max-h-40 overflow-y-auto">
+                <p className="text-[10px] text-slate-500 mb-2">Payload preparado</p>
+                <pre className="whitespace-pre-wrap text-xs leading-6 text-slate-300">
+                  {JSON.stringify(executedAction.payload, null, 2)}
+                </pre>
+              </div>
+            )}
           </div>
         )}
 
