@@ -3,6 +3,7 @@
 import { NextRequest } from "next/server"
 import { SUPERAGENT_CONFIG } from "@/lib/superagent/config"
 import {
+  appendAgentRoundFromUser,
   appendSocialMessage,
   checkAndPauseInactiveSessions,
   closeSocialSession,
@@ -275,6 +276,42 @@ export async function POST(request: NextRequest) {
       return Response.json({
         ok: true,
         action: "append-message",
+        session,
+      })
+    }
+
+    if (action === "agent-round") {
+      const userMessage =
+        typeof body.userMessage === "string" ? body.userMessage.trim() : ""
+
+      if (!userMessage) {
+        return Response.json(
+          {
+            ok: false,
+            error: "Debes enviar userMessage para generar una ronda de agentes.",
+          },
+          { status: 400 }
+        )
+      }
+
+      const session = appendAgentRoundFromUser({
+        sessionId,
+        userMessage,
+      })
+
+      if (!session) {
+        return Response.json(
+          {
+            ok: false,
+            error: "Sesión no encontrada para generar la ronda de agentes.",
+          },
+          { status: 404 }
+        )
+      }
+
+      return Response.json({
+        ok: true,
+        action: "agent-round",
         session,
       })
     }
