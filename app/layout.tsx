@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import SupportButton from "@/components/ui/SupportButton"
+import SuperAgentButton from "@/components/ui/SuperAgentButton"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -23,6 +24,7 @@ export default function RootLayout({
       <body className={inter.className}>
         {children}
         <SupportButton />
+        <SuperAgentButton />
       </body>
     </html>
   )
