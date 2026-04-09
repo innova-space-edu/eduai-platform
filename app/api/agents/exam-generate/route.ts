@@ -2,8 +2,8 @@
  * app/api/agents/exam-generate/route.ts
  *
  * API dedicada para generación de exámenes de docentes.
- * - Gemini primario (soporta exámenes grandes, JSON nativo)
- * - Groq fallback automático cuando Gemini da 429 (lotes de ≤10 preguntas)
+ * - Groq primario (llama-3.3-70b-versatile, hasta 50+ preguntas por lote)
+ * - Gemini fallback automático cuando Groq falla
  * - Limpieza de ↑ y otros Unicode que Gemini usa como sustituto de backslash
  */
 
@@ -13,9 +13,10 @@ import { createClient } from "@/lib/supabase/server"
 export const runtime     = "nodejs"
 export const maxDuration = 120
 
-const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
-const GROQ_MODEL    = "llama-3.3-70b-versatile"
-const GROQ_BATCH    = 10   // Groq tiene 32k contexto; lotes de 10 son seguros
+const GEMINI_MODELS  = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
+const GROQ_MODEL     = "llama-3.3-70b-versatile"   // mejor modelo Groq: 128k ctx, 32k output
+const GROQ_BATCH     = 30   // lotes de 30 — seguros con max_tokens 32768
+const GROQ_MAX_TOKENS = 32768  // máximo soportado por llama-3.3-70b-versatile
 
 // ─── Sanitizar caracteres Unicode que sustituyen a \ ─────────────────────────
 function sanitizeLatex(raw: string): string {
@@ -88,7 +89,7 @@ async function groqBatch(prompt: string, key: string): Promise<any> {
 
   const res = await client.chat.completions.create({
     model:            GROQ_MODEL,
-    max_tokens:       8000,
+    max_tokens:       GROQ_MAX_TOKENS,
     temperature:      0.4,
     response_format:  { type: "json_object" },
     messages: [
@@ -165,24 +166,22 @@ export async function POST(req: NextRequest) {
 
   // ── Single: regenerar una sola pregunta ────────────────────────────────────
   if (mode === "single") {
-    // Intentar Gemini
-    if (GEMINI_KEY) {
-      try {
-        const parsed = await gemini(prompt, 1, GEMINI_KEY)
-        const q = parsed?.question ?? parsed?.questions?.[0] ?? parsed
-        return NextResponse.json({ success: true, question: q })
-      } catch (e: any) {
-        if (e.message !== "QUOTA_EXCEEDED") {
-          return NextResponse.json({ error: e.message }, { status: 500 })
-        }
-      }
-    }
-    // Fallback Groq
+    // Primario: Groq
     if (GROQ_KEY) {
       try {
         const parsed = await groqBatch(prompt, GROQ_KEY)
         const q = parsed?.question ?? parsed?.questions?.[0] ?? parsed
-        return NextResponse.json({ success: true, question: q })
+        return NextResponse.json({ success: true, question: q, provider: "groq" })
+      } catch (e: any) {
+        console.warn("[exam-generate/single] Groq falló:", e.message)
+      }
+    }
+    // Fallback: Gemini
+    if (GEMINI_KEY) {
+      try {
+        const parsed = await gemini(prompt, 1, GEMINI_KEY)
+        const q = parsed?.question ?? parsed?.questions?.[0] ?? parsed
+        return NextResponse.json({ success: true, question: q, provider: "gemini" })
       } catch (e: any) {
         return NextResponse.json({ error: e.message }, { status: 500 })
       }
@@ -196,39 +195,38 @@ export async function POST(req: NextRequest) {
     return m ? parseInt(m[1]) : 15
   })()
 
-  // Intentar Gemini primero
-  if (GEMINI_KEY) {
+  // ── Primario: Groq (soporta 30+ preguntas por lote) ──────────────────────
+  if (GROQ_KEY) {
     try {
-      const parsed    = await gemini(prompt, totalQ, GEMINI_KEY)
-      const questions = parsed?.questions ?? parsed?.items ?? []
-      if (Array.isArray(questions) && questions.length > 0) {
+      const { title, questions } = await groqFull(prompt, totalQ, mc, tf, dev, GROQ_KEY)
+      if (questions.length > 0) {
         return NextResponse.json({
-          success: true, title: parsed?.title ?? "", summary: parsed?.summary ?? null,
-          questions, provider: "gemini",
+          success: true, title, summary: null, questions, provider: "groq",
         })
       }
     } catch (e: any) {
-      if (e.message !== "QUOTA_EXCEEDED") {
-        return NextResponse.json({ error: e.message }, { status: 500 })
-      }
-      console.warn("[exam-generate] Gemini cuota agotada → usando Groq en lotes")
+      console.warn("[exam-generate] Groq falló → usando Gemini como fallback:", e.message)
     }
   }
 
-  // Fallback: Groq en lotes
-  if (!GROQ_KEY) {
+  // ── Fallback: Gemini ───────────────────────────────────────────────────────
+  if (!GEMINI_KEY) {
     return NextResponse.json({
-      error: "Gemini alcanzó su cuota y no hay GROQ_API_KEY configurada. Intenta en unos minutos."
-    }, { status: 429 })
+      error: "No hay API keys configuradas (GROQ_API_KEY o GEMINI_API_KEY)."
+    }, { status: 500 })
   }
 
   try {
-    const { title, questions } = await groqFull(prompt, totalQ, mc, tf, dev, GROQ_KEY)
-    if (questions.length === 0) throw new Error("Groq no generó preguntas")
-    return NextResponse.json({
-      success: true, title, summary: null, questions, provider: "groq",
-    })
+    const parsed    = await gemini(prompt, totalQ, GEMINI_KEY)
+    const questions = parsed?.questions ?? parsed?.items ?? []
+    if (Array.isArray(questions) && questions.length > 0) {
+      return NextResponse.json({
+        success: true, title: parsed?.title ?? "", summary: parsed?.summary ?? null,
+        questions, provider: "gemini",
+      })
+    }
+    throw new Error("Gemini no generó preguntas")
   } catch (e: any) {
-    return NextResponse.json({ error: `Error con Groq: ${e.message}` }, { status: 500 })
+    return NextResponse.json({ error: `Error generando examen: ${e.message}` }, { status: 500 })
   }
 }
