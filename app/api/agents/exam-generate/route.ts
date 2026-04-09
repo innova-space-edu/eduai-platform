@@ -15,14 +15,15 @@ export const maxDuration = 120
 
 const GEMINI_MODELS  = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
 // Cadena de modelos Groq — se prueban en orden hasta que uno funcione
+// TPM free tier: llama-3.3-70b ~6k, llama-3.1-8b ~30k, mixtral ~5k
 const GROQ_MODELS = [
-  "llama-3.3-70b-versatile",         // primero: 128k ctx, 32k output, el mejor para JSON largo
-  "llama-3.1-70b-versatile",         // segundo: similar capacidad
-  "llama3-70b-8192",                 // tercero: más limitado pero muy estable
-  "mixtral-8x7b-32768",              // cuarto: 32k ctx, bueno para exámenes medianos
+  "llama-3.3-70b-versatile",   // mejor calidad, 6k TPM free
+  "llama-3.1-8b-instant",      // menor calidad pero 30k TPM — no falla por rate limit
+  "llama-3.1-70b-versatile",   // alternativa al 3.3
+  "mixtral-8x7b-32768",        // fallback final
 ]
-const GROQ_BATCH      = 30   // lotes de 30 — seguros con 32k tokens
-const GROQ_MAX_TOKENS = 32768
+const GROQ_BATCH      = 12   // 12 preguntas/lote ≈ 4-5k tokens, seguro bajo el TPM de 6k
+const GROQ_MAX_TOKENS = 16384
 
 // ─── Sanitizar caracteres Unicode que sustituyen a \ ─────────────────────────
 function sanitizeLatex(raw: string): string {
@@ -160,6 +161,95 @@ async function groqFull(
   return { title, questions: allQ }
 }
 
+
+// ─── OpenRouter (lotes, formato OpenAI-compatible) ────────────────────────────
+async function openRouterBatch(prompt: string, key: string): Promise<any> {
+  // Modelos baratos y confiables disponibles en OpenRouter
+  const models = [
+    "meta-llama/llama-3.3-70b-instruct",
+    "google/gemini-2.5-flash",
+    "anthropic/claude-3-haiku",
+    "openai/gpt-4o-mini",
+  ]
+
+  let lastError = ""
+  for (const model of models) {
+    try {
+      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${key}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": process.env.OPENROUTER_REFERER || "https://eduai.local",
+          "X-Title": "EduAI Exam Generator",
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 16384,
+          temperature: 0.4,
+          response_format: { type: "json_object" },
+          messages: [
+            { role: "system", content: SYSTEM },
+            { role: "user",   content: prompt },
+          ],
+        }),
+        signal: AbortSignal.timeout(90000),
+      })
+
+      if (!res.ok) {
+        const err = await res.text()
+        lastError = `${model} HTTP ${res.status}: ${err.slice(0, 100)}`
+        console.warn("[exam-generate] OpenRouter", lastError)
+        continue
+      }
+
+      const data = await res.json()
+      const raw  = data?.choices?.[0]?.message?.content?.trim() ?? ""
+      if (!raw) { lastError = `${model}: respuesta vacía`; continue }
+      console.log(`[exam-generate] OpenRouter modelo usado: ${model}`)
+      return parseResponse(raw)
+    } catch (e: any) {
+      lastError = `${model}: ${e.message}`
+      console.warn("[exam-generate] OpenRouter", lastError)
+    }
+  }
+  throw new Error(`OpenRouter: todos los modelos fallaron. Último: ${lastError}`)
+}
+
+async function openRouterFull(
+  basePrompt: string,
+  totalQ: number,
+  mc: number, tf: number, dev: number,
+  key: string
+): Promise<{ title: string; questions: any[] }> {
+  const batches    = Math.ceil(totalQ / GROQ_BATCH)
+  const allQ: any[] = []
+  let title = ""
+
+  for (let i = 0; i < batches; i++) {
+    const done = i * GROQ_BATCH
+    const rem  = Math.min(GROQ_BATCH, totalQ - done)
+    const r    = rem / totalQ
+    const bMc  = mc  ? Math.max(0, Math.round(mc  * r)) : Math.round(rem * 0.5)
+    const bTf  = tf  ? Math.max(0, Math.round(tf  * r)) : Math.round(rem * 0.2)
+    const bDev = Math.max(0, rem - bMc - bTf)
+    const batchNote = batches > 1
+      ? `\n\n[Lote ${i + 1}/${batches}: genera exactamente ${bMc} alternativas, ${bTf} V/F, ${bDev} desarrollo. Total: ${rem}]`
+      : ""
+    const prompt = basePrompt
+      .replace(/Total de preguntas: \d+/, `Total de preguntas: ${rem}`)
+      .replace(/- \d+ preguntas de ALTERNATIVAS/, `- ${bMc} preguntas de ALTERNATIVAS`)
+      .replace(/- \d+ preguntas de VERDADERO O FALSO/, `- ${bTf} preguntas de VERDADERO O FALSO`)
+      .replace(/- \d+ preguntas de DESARROLLO/, `- ${bDev} preguntas de DESARROLLO`)
+      + batchNote
+    const parsed = await openRouterBatch(prompt, key)
+    const qs     = parsed?.questions ?? parsed?.items ?? []
+    allQ.push(...qs)
+    if (!title && parsed?.title) title = parsed.title
+  }
+  return { title, questions: allQ }
+}
+
 // ─── Handler principal ────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
@@ -225,10 +315,25 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // ── Fallback: Gemini ───────────────────────────────────────────────────────
+  // ── Fallback 2: OpenRouter (usa OPENROUTER_API_KEY_1 ya configurada) ────────
+  const OR_KEY = process.env.OPENROUTER_API_KEY_1 || process.env.OPENROUTER_API_KEY
+  if (OR_KEY) {
+    try {
+      const { title, questions } = await openRouterFull(prompt, totalQ, mc, tf, dev, OR_KEY)
+      if (questions.length > 0) {
+        return NextResponse.json({
+          success: true, title, summary: null, questions, provider: "openrouter",
+        })
+      }
+    } catch (e: any) {
+      console.warn("[exam-generate] OpenRouter falló:", e.message)
+    }
+  }
+
+  // ── Fallback 3: Gemini ────────────────────────────────────────────────────
   if (!GEMINI_KEY) {
     return NextResponse.json({
-      error: "No hay API keys configuradas (GROQ_API_KEY o GEMINI_API_KEY)."
+      error: "No hay API keys disponibles (GROQ_API_KEY, OPENROUTER_API_KEY_1 o GEMINI_API_KEY)."
     }, { status: 500 })
   }
 
