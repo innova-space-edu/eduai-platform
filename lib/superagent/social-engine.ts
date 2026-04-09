@@ -60,7 +60,7 @@ function includesAny(text: string, keywords: string[]): boolean {
   return keywords.some((keyword) => text.includes(keyword))
 }
 
-function detectRoomFromGoal(goal?: string): SocialRoomSlug {
+export function detectRoomFromGoal(goal?: string): SocialRoomSlug {
   const text = normalizeText(goal)
 
   if (
@@ -160,7 +160,7 @@ function getRoomTitle(slug: SocialRoomSlug): string {
   }
 }
 
-function buildParticipants(room: SocialRoomSlug): SocialParticipant[] {
+export function buildParticipants(room: SocialRoomSlug): SocialParticipant[] {
   const claw: SocialParticipant = {
     id: "eduai-claw",
     name: "EduAI Claw",
@@ -217,6 +217,21 @@ function buildParticipants(room: SocialRoomSlug): SocialParticipant[] {
   }
 }
 
+function createMessage(
+  participant: SocialParticipant,
+  content: string,
+  createdAt: string
+): SocialMessage {
+  return {
+    id: crypto.randomUUID(),
+    authorId: participant.id,
+    authorName: participant.name,
+    role: participant.role,
+    content,
+    createdAt,
+  }
+}
+
 function buildMessages(
   room: SocialRoomSlug,
   topic: string,
@@ -233,145 +248,100 @@ function buildMessages(
   const messages: SocialMessage[] = []
 
   if (claw) {
-    messages.push({
-      id: crypto.randomUUID(),
-      authorId: claw.id,
-      authorName: claw.name,
-      role: claw.role,
-      content: `He abierto esta conversación en la sala "${getRoomTitle(
-        room
-      )}" para analizar el tema: "${topic}". Quiero que construyamos una visión útil para ayudar al usuario.`,
-      createdAt,
-    })
+    messages.push(
+      createMessage(
+        claw,
+        `He abierto esta conversación en la sala "${getRoomTitle(
+          room
+        )}" para analizar el tema: "${topic}". Quiero que construyamos una visión útil para ayudar al usuario.`,
+        createdAt
+      )
+    )
   }
 
   if (room === "research" && researcher && mathematician) {
     messages.push(
-      {
-        id: crypto.randomUUID(),
-        authorId: researcher.id,
-        authorName: researcher.name,
-        role: researcher.role,
-        content:
-          "Veo una oportunidad de estructurar el tema como un problema de investigación, con antecedentes, referencias y una ruta de profundización.",
-        createdAt,
-      },
-      {
-        id: crypto.randomUUID(),
-        authorId: mathematician.id,
-        authorName: mathematician.name,
-        role: mathematician.role,
-        content:
-          "También conviene ordenar el razonamiento en pasos claros. Si el tema requiere precisión, podemos separar definiciones, supuestos y desarrollo lógico.",
-        createdAt,
-      }
+      createMessage(
+        researcher,
+        "Veo una oportunidad de estructurar el tema como un problema de investigación, con antecedentes, referencias y una ruta de profundización.",
+        createdAt
+      ),
+      createMessage(
+        mathematician,
+        "También conviene ordenar el razonamiento en pasos claros. Si el tema requiere precisión, podemos separar definiciones, supuestos y desarrollo lógico.",
+        createdAt
+      )
     )
   } else if (room === "teaching-lab" && educator && mathematician) {
     messages.push(
-      {
-        id: crypto.randomUUID(),
-        authorId: educator.id,
-        authorName: educator.name,
-        role: educator.role,
-        content:
-          "Desde lo pedagógico, esto podría transformarse en una secuencia de aprendizaje clara, con objetivo, desarrollo, actividad y cierre.",
-        createdAt,
-      },
-      {
-        id: crypto.randomUUID(),
-        authorId: mathematician.id,
-        authorName: mathematician.name,
-        role: mathematician.role,
-        content:
-          "Y si el contenido necesita estructura, puedo apoyar ordenando ejemplos, ejercicios o criterios de progresión.",
-        createdAt,
-      }
+      createMessage(
+        educator,
+        "Desde lo pedagógico, esto podría transformarse en una secuencia de aprendizaje clara, con objetivo, desarrollo, actividad y cierre.",
+        createdAt
+      ),
+      createMessage(
+        mathematician,
+        "Y si el contenido necesita estructura, puedo apoyar ordenando ejemplos, ejercicios o criterios de progresión.",
+        createdAt
+      )
     )
   } else if (room === "creative-studio" && creative && educator) {
     messages.push(
-      {
-        id: crypto.randomUUID(),
-        authorId: creative.id,
-        authorName: creative.name,
-        role: creative.role,
-        content:
-          "Este tema puede beneficiarse de una salida visual o narrativa. Podríamos preparar un afiche, infografía o apoyo multimedia.",
-        createdAt,
-      },
-      {
-        id: crypto.randomUUID(),
-        authorId: educator.id,
-        authorName: educator.name,
-        role: educator.role,
-        content:
-          "Si lo hacemos, conviene que el material no solo sea bonito, sino también útil para enseñar o comunicar mejor.",
-        createdAt,
-      }
+      createMessage(
+        creative,
+        "Este tema puede beneficiarse de una salida visual o narrativa. Podríamos preparar un afiche, infografía o apoyo multimedia.",
+        createdAt
+      ),
+      createMessage(
+        educator,
+        "Si lo hacemos, conviene que el material no solo sea bonito, sino también útil para enseñar o comunicar mejor.",
+        createdAt
+      )
     )
   } else if (room === "anticipation" && researcher && educator) {
     messages.push(
-      {
-        id: crypto.randomUUID(),
-        authorId: researcher.id,
-        authorName: researcher.name,
-        role: researcher.role,
-        content:
-          "Creo que ya hay suficiente contexto para anticipar un borrador útil. Podemos preparar una base para que el usuario avance más rápido.",
-        createdAt,
-      },
-      {
-        id: crypto.randomUUID(),
-        authorId: educator.id,
-        authorName: educator.name,
-        role: educator.role,
-        content:
-          "Estoy de acuerdo. Conviene que ese borrador sea claro, editable y seguro, sin tocar directamente archivos productivos.",
-        createdAt,
-      }
+      createMessage(
+        researcher,
+        "Creo que ya hay suficiente contexto para anticipar un borrador útil. Podemos preparar una base para que el usuario avance más rápido.",
+        createdAt
+      ),
+      createMessage(
+        educator,
+        "Estoy de acuerdo. Conviene que ese borrador sea claro, editable y seguro, sin tocar directamente archivos productivos.",
+        createdAt
+      )
     )
   } else if (room === "user-support" && educator) {
-    messages.push({
-      id: crypto.randomUUID(),
-      authorId: educator.id,
-      authorName: educator.name,
-      role: educator.role,
-      content:
+    messages.push(
+      createMessage(
+        educator,
         "Este caso sugiere acompañamiento claro y amable. Lo importante es que la experiencia siga siendo útil, comprensible y centrada en ayudar.",
-      createdAt,
-    })
+        createdAt
+      )
+    )
   } else if (researcher && educator) {
     messages.push(
-      {
-        id: crypto.randomUUID(),
-        authorId: researcher.id,
-        authorName: researcher.name,
-        role: researcher.role,
-        content:
-          "Veo posibilidades interesantes en este tema. Podemos explorarlo desde distintas perspectivas antes de decidir una acción.",
-        createdAt,
-      },
-      {
-        id: crypto.randomUUID(),
-        authorId: educator.id,
-        authorName: educator.name,
-        role: educator.role,
-        content:
-          "Sí. Y después conviene traducir esas ideas en algo que el usuario pueda aprovechar directamente.",
-        createdAt,
-      }
+      createMessage(
+        researcher,
+        "Veo posibilidades interesantes en este tema. Podemos explorarlo desde distintas perspectivas antes de decidir una acción.",
+        createdAt
+      ),
+      createMessage(
+        educator,
+        "Sí. Y después conviene traducir esas ideas en algo que el usuario pueda aprovechar directamente.",
+        createdAt
+      )
     )
   }
 
   if (claw) {
-    messages.push({
-      id: crypto.randomUUID(),
-      authorId: claw.id,
-      authorName: claw.name,
-      role: claw.role,
-      content:
+    messages.push(
+      createMessage(
+        claw,
         "Conclusión preliminar: esta conversación puede transformarse en una recomendación, borrador o ruta de acción dentro de EduAI.",
-      createdAt,
-    })
+        createdAt
+      )
+    )
   }
 
   return messages
@@ -391,6 +361,166 @@ function buildSummary(room: SocialRoomSlug, topic: string): string {
       return `La conversación social detectó que el tema "${topic}" requiere apoyo claro, amable y orientado al usuario.`
     default:
       return `La conversación social abrió una exploración colaborativa sobre "${topic}" y generó una primera síntesis útil.`
+  }
+}
+
+export function buildAgentFollowUpRound(params: {
+  room: SocialRoomSlug
+  topic: string
+  userMessage: string
+  participants: SocialParticipant[]
+}): SocialMessage[] {
+  const { room, topic, userMessage, participants } = params
+  const createdAt = new Date().toISOString()
+
+  const claw = participants.find((p) => p.id === "eduai-claw")
+  const researcher = participants.find((p) => p.id === "investigador")
+  const educator = participants.find((p) => p.id === "educador")
+  const mathematician = participants.find((p) => p.id === "matematico")
+  const creative = participants.find((p) => p.id === "creativo")
+
+  const lowerUserMessage = normalizeText(userMessage)
+  const messages: SocialMessage[] = []
+
+  if (claw) {
+    messages.push(
+      createMessage(
+        claw,
+        `He detectado una nueva intervención del usuario sobre "${topic}". Tomaré esta entrada para coordinar una nueva ronda breve entre agentes.`,
+        createdAt
+      )
+    )
+  }
+
+  if (room === "research" && researcher && mathematician) {
+    messages.push(
+      createMessage(
+        researcher,
+        includesAny(lowerUserMessage, ["referencia", "paper", "artículo", "articulo"])
+          ? "A partir de lo que indica el usuario, conviene priorizar antecedentes y referencias clave para fortalecer la línea de investigación."
+          : "La nueva idea del usuario abre una vía interesante. Podríamos traducirla en una hipótesis, una pregunta central o una ruta de análisis.",
+        createdAt
+      ),
+      createMessage(
+        mathematician,
+        includesAny(lowerUserMessage, ["modelo", "ecuación", "ecuacion", "simulación", "simulacion"])
+          ? "También sería útil estructurar esa propuesta mediante variables, supuestos y una formulación más rigurosa."
+          : "Desde mi lado, sugiero convertir la idea en una estructura ordenada para que pueda desarrollarse con claridad.",
+        createdAt
+      )
+    )
+  } else if (room === "teaching-lab" && educator && mathematician) {
+    messages.push(
+      createMessage(
+        educator,
+        "Lo que plantea el usuario puede transformarse en una actividad, una planificación o una secuencia con propósito pedagógico claro.",
+        createdAt
+      ),
+      createMessage(
+        mathematician,
+        "Puedo apoyar organizando el contenido en pasos, ejercicios, niveles de dificultad o criterios de evaluación.",
+        createdAt
+      )
+    )
+  } else if (room === "creative-studio" && creative && educator) {
+    messages.push(
+      createMessage(
+        creative,
+        "La nueva intervención del usuario sugiere una salida creativa concreta. Podemos pensar en formato visual, narrativa o estructura expresiva.",
+        createdAt
+      ),
+      createMessage(
+        educator,
+        "Y conviene que esa creatividad siga siendo útil para enseñar, explicar o comunicar mejor el objetivo central.",
+        createdAt
+      )
+    )
+  } else if (room === "anticipation" && researcher && educator) {
+    messages.push(
+      createMessage(
+        researcher,
+        "Con esta nueva entrada del usuario ya hay suficiente contexto para generar un borrador más afinado y con mejor dirección.",
+        createdAt
+      ),
+      createMessage(
+        educator,
+        "De acuerdo. La salida ideal sería un borrador claro, editable y listo para que el usuario lo refine.",
+        createdAt
+      )
+    )
+  } else if (room === "user-support" && educator) {
+    messages.push(
+      createMessage(
+        educator,
+        "Tomando lo que dijo el usuario, la respuesta debería ser clara, acompañada y orientada a resolver su necesidad de forma concreta.",
+        createdAt
+      )
+    )
+  } else {
+    if (researcher) {
+      messages.push(
+        createMessage(
+          researcher,
+          "La intervención del usuario aporta una dirección nueva. Conviene convertirla en una idea accionable o en una pregunta más específica.",
+          createdAt
+        )
+      )
+    }
+
+    if (educator) {
+      messages.push(
+        createMessage(
+          educator,
+          "Sí, y después deberíamos traducir esa idea a una salida comprensible y útil para el usuario.",
+          createdAt
+        )
+      )
+    }
+
+    if (creative && includesAny(lowerUserMessage, ["imagen", "visual", "afiche", "infografía", "infografia"])) {
+      messages.push(
+        createMessage(
+          creative,
+          "Además, esta idea podría enriquecerse con una representación visual o una estructura más atractiva.",
+          createdAt
+        )
+      )
+    }
+  }
+
+  if (claw) {
+    messages.push(
+      createMessage(
+        claw,
+        "Síntesis de la ronda: la nueva intervención del usuario ya fue integrada y puede usarse para seguir la conversación o generar un borrador.",
+        createdAt
+      )
+    )
+  }
+
+  return messages
+}
+
+export function buildFollowUpSummary(params: {
+  room: SocialRoomSlug
+  topic: string
+  userMessage: string
+}): string {
+  const { room, topic, userMessage } = params
+
+  switch (room) {
+    case "research":
+      return `Tras la intervención del usuario ("${userMessage}"), la sala de investigación reforzó el tema "${topic}" con una propuesta de análisis, estructura y profundización.`
+    case "teaching-lab":
+      return `Tras la intervención del usuario ("${userMessage}"), la sala pedagógica propuso convertir el tema "${topic}" en una secuencia o planificación más clara.`
+    case "creative-studio":
+      return `Tras la intervención del usuario ("${userMessage}"), la sala creativa propuso enriquecer el tema "${topic}" con una salida visual o comunicativa.`
+    case "anticipation":
+      return `Tras la intervención del usuario ("${userMessage}"), la sala de anticipación concluyó que el tema "${topic}" ya está en condiciones de generar un borrador más útil.`
+    case "user-support":
+      return `Tras la intervención del usuario ("${userMessage}"), la sala de apoyo enfatizó una respuesta clara y centrada en ayudar mejor.`
+    default:
+      return `La conversación sobre "${topic}" integró la nueva idea del usuario ("${userMessage}") y generó una nueva ronda de síntesis.`
   }
 }
 
