@@ -2,6 +2,7 @@
 
 import { NextRequest } from "next/server"
 import { SUPERAGENT_CONFIG } from "@/lib/superagent/config"
+import { detectActionFromUserMessage } from "@/lib/superagent/action-router"
 import {
   appendAgentRoundFromUser,
   appendSocialMessage,
@@ -309,10 +310,13 @@ export async function POST(request: NextRequest) {
         )
       }
 
+      const actionSuggestion = detectActionFromUserMessage(userMessage)
+
       return Response.json({
         ok: true,
         action: "agent-round",
         session,
+        actionSuggestion,
       })
     }
 
