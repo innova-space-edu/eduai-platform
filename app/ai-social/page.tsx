@@ -3,18 +3,83 @@
 "use client"
 
 import Link from "next/link"
+import { useMemo, useState } from "react"
+
+type SocialRoomSlug =
+  | "ideas"
+  | "research"
+  | "teaching-lab"
+  | "creative-studio"
+  | "user-support"
+  | "anticipation"
+
+type SocialParticipantRole =
+  | "supervisor"
+  | "researcher"
+  | "educator"
+  | "mathematician"
+  | "creative"
+  | "assistant"
+
+type SocialParticipant = {
+  id: string
+  name: string
+  role: SocialParticipantRole
+  specialty: string
+  tone: string
+}
+
+type SocialMessage = {
+  id: string
+  authorId: string
+  authorName: string
+  role: SocialParticipantRole
+  content: string
+  createdAt: string
+}
+
+type SocialApiResponse = {
+  ok: boolean
+  name?: string
+  alias?: string
+  room?: {
+    id: string
+    slug: SocialRoomSlug
+    title: string
+    topic: string
+    createdAt: string
+  }
+  participants?: SocialParticipant[]
+  messages?: SocialMessage[]
+  summary?: string
+  logs?: Record<string, unknown>[]
+  error?: string
+}
 
 function RoomCard({
   title,
   description,
   status,
+  active = false,
+  onClick,
 }: {
   title: string
   description: string
   status: string
+  active?: boolean
+  onClick?: () => void
 }) {
   return (
-    <div className="rounded-[1.5rem] border border-white/10 bg-slate-900/70 p-4 transition hover:border-cyan-400/20 hover:bg-slate-900">
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        "w-full rounded-[1.5rem] border p-4 text-left transition",
+        active
+          ? "border-cyan-400/30 bg-cyan-400/10"
+          : "border-white/10 bg-slate-900/70 hover:border-cyan-400/20 hover:bg-slate-900",
+      ].join(" ")}
+    >
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="text-sm font-semibold text-white">{title}</h3>
@@ -24,7 +89,7 @@ function RoomCard({
           {status}
         </span>
       </div>
-    </div>
+    </button>
   )
 }
 
@@ -37,6 +102,15 @@ function AgentBubble({
   role: string
   message: string
 }) {
+  const roleStyles: Record<string, string> = {
+    supervisor: "border-cyan-400/20 bg-cyan-400/5 text-cyan-200",
+    researcher: "border-violet-400/20 bg-violet-400/5 text-violet-200",
+    educator: "border-emerald-400/20 bg-emerald-400/5 text-emerald-200",
+    mathematician: "border-amber-400/20 bg-amber-400/5 text-amber-200",
+    creative: "border-fuchsia-400/20 bg-fuchsia-400/5 text-fuchsia-200",
+    assistant: "border-slate-400/20 bg-slate-400/5 text-slate-200",
+  }
+
   return (
     <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-4">
       <div className="flex items-center justify-between gap-3">
@@ -46,7 +120,12 @@ function AgentBubble({
             {role}
           </p>
         </div>
-        <span className="rounded-full border border-violet-400/20 bg-violet-400/10 px-2.5 py-1 text-[11px] text-violet-200">
+        <span
+          className={[
+            "rounded-full border px-2.5 py-1 text-[11px]",
+            roleStyles[role] || "border-slate-400/20 bg-slate-400/5 text-slate-200",
+          ].join(" ")}
+        >
           IA
         </span>
       </div>
@@ -56,7 +135,123 @@ function AgentBubble({
   )
 }
 
+function ParticipantCard({ participant }: { participant: SocialParticipant }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-slate-900/70 p-3">
+      <p className="text-sm font-semibold text-white">{participant.name}</p>
+      <p className="mt-1 text-xs uppercase tracking-[0.18em] text-slate-400">
+        {participant.role}
+      </p>
+      <p className="mt-2 text-sm text-slate-300">{participant.specialty}</p>
+      <p className="mt-2 text-xs text-slate-500">Tono: {participant.tone}</p>
+    </div>
+  )
+}
+
+const ROOM_PRESETS: Array<{
+  slug: SocialRoomSlug
+  title: string
+  description: string
+  suggestedGoal: string
+}> = [
+  {
+    slug: "ideas",
+    title: "#ideas",
+    description: "Exploración libre de ideas, conceptos y posibles mejoras.",
+    suggestedGoal: "Quiero que los agentes conversen libremente sobre nuevas ideas para mejorar EduAI",
+  },
+  {
+    slug: "research",
+    title: "#research",
+    description: "Intercambio entre agentes orientados a investigación y papers.",
+    suggestedGoal: "Quiero que los agentes conversen sobre una idea de investigación en plasma para CubeSats",
+  },
+  {
+    slug: "teaching-lab",
+    title: "#teaching-lab",
+    description: "Espacio pedagógico para planificación, clases y actividades.",
+    suggestedGoal: "Necesito que los agentes conversen sobre una planificación con OA e indicadores",
+  },
+  {
+    slug: "creative-studio",
+    title: "#creative-studio",
+    description: "Sala para imagen, audio, narrativa y materiales visuales.",
+    suggestedGoal: "Quiero que los agentes conversen sobre una infografía educativa y un afiche visual",
+  },
+  {
+    slug: "user-support",
+    title: "#user-support",
+    description: "Sala para debatir cómo acompañar mejor al usuario.",
+    suggestedGoal: "Necesito que los agentes conversen sobre cómo ayudar mejor al usuario en el chat",
+  },
+  {
+    slug: "anticipation",
+    title: "#anticipation",
+    description: "Sala especial para propuestas anticipadas y borradores.",
+    suggestedGoal: "Conversemos sobre cómo anticipar un borrador de guía de estudio",
+  },
+]
+
 export default function AISocialPage() {
+  const [goal, setGoal] = useState(
+    "Quiero que los agentes conversen sobre una idea de investigación en plasma para CubeSats"
+  )
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [response, setResponse] = useState<SocialApiResponse | null>(null)
+
+  const activeRoomSlug = response?.room?.slug
+
+  const roomStatusMap = useMemo(() => {
+    const map = new Map<SocialRoomSlug, string>()
+    ROOM_PRESETS.forEach((room) => {
+      map.set(room.slug, activeRoomSlug === room.slug ? "Abierta" : "Lista")
+    })
+    return map
+  }, [activeRoomSlug])
+
+  async function handleStartConversation(customGoal?: string) {
+    const finalGoal = (customGoal ?? goal).trim()
+
+    if (!finalGoal) {
+      setError("Escribe primero el tema que quieres conversar entre agentes.")
+      return
+    }
+
+    try {
+      setLoading(true)
+      setError(null)
+
+      const res = await fetch("/api/superagent/social", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          currentPage: "/ai-social",
+          activeAgent: "social",
+          userGoal: finalGoal,
+          tags: ["social", "agents"],
+        }),
+      })
+
+      const json = (await res.json()) as SocialApiResponse
+
+      if (!res.ok || !json.ok) {
+        setError(json.error || "No se pudo iniciar la conversación social.")
+        setResponse(json)
+        return
+      }
+
+      setGoal(finalGoal)
+      setResponse(json)
+    } catch {
+      setError("Ocurrió un error al conectar con el chat social de agentes.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.08),_transparent_25%),radial-gradient(circle_at_right,_rgba(168,85,247,0.10),_transparent_20%),linear-gradient(to_bottom,_#020617,_#0f172a)] text-white">
       <div className="mx-auto flex w-full max-w-7xl flex-col px-4 py-6 sm:px-6 lg:px-8">
@@ -85,10 +280,9 @@ export default function AISocialPage() {
               Chat social de agentes
             </h1>
             <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-300 sm:text-base">
-              Espacio donde los agentes podrán conversar entre ellos,
-              enriquecerse, debatir ideas, descubrir enfoques y considerar al
-              usuario como un participante más dentro de una experiencia social
-              separada del chat privado tradicional.
+              Espacio donde los agentes conversan entre ellos, enriquecen ideas,
+              debaten rutas de acción y consideran al usuario como un participante
+              más dentro de una experiencia separada del chat privado tradicional.
             </p>
           </div>
 
@@ -96,71 +290,109 @@ export default function AISocialPage() {
             <aside className="space-y-4 lg:col-span-3">
               <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.03] p-4">
                 <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-300">
-                  Salas activas
+                  Salas
                 </h2>
 
                 <div className="mt-4 space-y-3">
-                  <RoomCard
-                    title="#ideas"
-                    description="Exploración libre de ideas, conceptos y posibles mejoras."
-                    status="Activa"
-                  />
-                  <RoomCard
-                    title="#research"
-                    description="Intercambio entre agentes orientados a investigación y papers."
-                    status="Activa"
-                  />
-                  <RoomCard
-                    title="#teaching-lab"
-                    description="Espacio pedagógico para planificación, clases y actividades."
-                    status="Próxima"
-                  />
-                  <RoomCard
-                    title="#anticipation"
-                    description="Sala especial para propuestas anticipadas y borradores."
-                    status="Próxima"
-                  />
+                  {ROOM_PRESETS.map((room) => (
+                    <RoomCard
+                      key={room.slug}
+                      title={room.title}
+                      description={room.description}
+                      status={roomStatusMap.get(room.slug) || "Lista"}
+                      active={activeRoomSlug === room.slug}
+                      onClick={() => {
+                        setGoal(room.suggestedGoal)
+                        handleStartConversation(room.suggestedGoal)
+                      }}
+                    />
+                  ))}
                 </div>
               </div>
             </aside>
 
             <section className="space-y-4 lg:col-span-6">
               <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.03] p-4">
+                <div className="flex flex-col gap-3">
+                  <div>
+                    <h2 className="text-lg font-semibold text-white">
+                      Iniciar conversación social
+                    </h2>
+                    <p className="mt-1 text-sm text-slate-400">
+                      Define el tema y deja que EduAI Claw convoque a los agentes adecuados.
+                    </p>
+                  </div>
+
+                  <textarea
+                    value={goal}
+                    onChange={(e) => setGoal(e.target.value)}
+                    rows={4}
+                    className="w-full rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-400/40"
+                    placeholder="Ejemplo: Quiero que los agentes conversen sobre una idea de investigación..."
+                  />
+
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={() => handleStartConversation()}
+                      disabled={loading}
+                      className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-sm font-medium text-cyan-200 transition hover:border-cyan-400/40 hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {loading ? "Iniciando..." : "Iniciar conversación"}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setResponse(null)
+                        setError(null)
+                      }}
+                      className="rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3 text-sm text-slate-200 transition hover:border-white/20 hover:text-white"
+                    >
+                      Limpiar vista
+                    </button>
+                  </div>
+
+                  {error && (
+                    <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+                      {error}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.03] p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <h2 className="text-lg font-semibold text-white">
-                      Conversación de muestra
+                      Conversación activa
                     </h2>
                     <p className="mt-1 text-sm text-slate-400">
-                      Vista previa del estilo social que tendrán los agentes.
+                      {response?.room
+                        ? `${response.room.title} · ${response.room.topic}`
+                        : "Todavía no hay una conversación iniciada."}
                     </p>
                   </div>
                   <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-xs text-emerald-200">
-                    Demo visual
+                    {response?.ok ? "Activa" : "Esperando"}
                   </span>
                 </div>
 
                 <div className="mt-5 space-y-4">
-                  <AgentBubble
-                    name="Investigador"
-                    role="análisis académico"
-                    message="Creo que el usuario podría necesitar una línea de trabajo más robusta. Podemos comenzar comparando enfoques y luego guardar una propuesta preliminar."
-                  />
-                  <AgentBubble
-                    name="Educador"
-                    role="diseño pedagógico"
-                    message="Estoy de acuerdo. Si el objetivo final es enseñar o presentar, conviene traducir esa idea a una guía, actividad o secuencia clara."
-                  />
-                  <AgentBubble
-                    name="Matemático"
-                    role="rigor lógico"
-                    message="También sería útil estructurar bien el razonamiento y dividir el contenido en partes comprensibles, para que el usuario pueda avanzar con orden."
-                  />
-                  <AgentBubble
-                    name="EduAI Claw"
-                    role="supervisor social"
-                    message="He detectado una posible oportunidad: podría prepararse un borrador de trabajo anticipado sin intervenir el chat privado del usuario."
-                  />
+                  {response?.messages?.length ? (
+                    response.messages.map((message) => (
+                      <AgentBubble
+                        key={message.id}
+                        name={message.authorName}
+                        role={message.role}
+                        message={message.content}
+                      />
+                    ))
+                  ) : (
+                    <div className="rounded-[1.5rem] border border-dashed border-white/10 bg-slate-900/40 p-6 text-sm leading-7 text-slate-400">
+                      Aquí aparecerá la conversación social real entre agentes cuando inicies una sala.
+                    </div>
+                  )}
                 </div>
               </div>
             </section>
@@ -168,27 +400,33 @@ export default function AISocialPage() {
             <aside className="space-y-4 lg:col-span-3">
               <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.03] p-4">
                 <h2 className="text-lg font-semibold text-white">
-                  Resumen social
+                  Participantes
                 </h2>
-                <p className="mt-3 text-sm leading-7 text-slate-300">
-                  En esta capa, los agentes podrán conversar libremente entre
-                  ellos y construir conocimiento compartido. El usuario podrá
-                  entrar como participante adicional, sin que esto invada su
-                  chat personal tradicional.
-                </p>
+
+                <div className="mt-4 space-y-3">
+                  {response?.participants?.length ? (
+                    response.participants.map((participant) => (
+                      <ParticipantCard
+                        key={participant.id}
+                        participant={participant}
+                      />
+                    ))
+                  ) : (
+                    <div className="rounded-2xl border border-dashed border-white/10 bg-slate-900/40 p-4 text-sm text-slate-400">
+                      Los participantes aparecerán al iniciar una conversación.
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.03] p-4">
                 <h2 className="text-lg font-semibold text-white">
-                  Próximamente
+                  Resumen social
                 </h2>
-                <ul className="mt-3 space-y-2 text-sm text-slate-300">
-                  <li>• Mensajes persistentes por sala</li>
-                  <li>• Participación real de agentes</li>
-                  <li>• Entrada del usuario como miembro</li>
-                  <li>• Conexión con drafts automáticos</li>
-                  <li>• Memoria social del ecosistema IA</li>
-                </ul>
+                <p className="mt-3 text-sm leading-7 text-slate-300">
+                  {response?.summary ||
+                    "Cuando abras una sala, EduAI Claw sintetizará la conversación aquí."}
+                </p>
               </div>
 
               <div className="rounded-[1.75rem] border border-violet-400/10 bg-violet-400/5 p-4">
@@ -196,8 +434,8 @@ export default function AISocialPage() {
                   Nota de diseño
                 </p>
                 <p className="mt-3 text-sm leading-7 text-slate-300">
-                  Esta página está pensada como una mezcla entre laboratorio de
-                  ideas, sala de debate y red social interna de agentes.
+                  Esta página funciona como laboratorio vivo de agentes: ideas,
+                  debate, síntesis y futura conexión con drafts y memoria.
                 </p>
               </div>
             </aside>
