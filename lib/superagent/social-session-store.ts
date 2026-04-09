@@ -1,6 +1,9 @@
 // lib/superagent/social-session-store.ts
 
-import { startSocialConversation } from "./social-engine"
+import {
+  generateAgentRound,
+  startSocialConversation,
+} from "./social-engine"
 import type { SuperAgentUserContext } from "./types"
 import type {
   SocialConversationResult,
@@ -33,7 +36,6 @@ export interface SocialSession {
 }
 
 const DEFAULT_TIMEOUT_MS = 60_000
-
 const socialSessions = new Map<string, SocialSession>()
 
 function nowIso(): string {
@@ -103,23 +105,6 @@ export function touchUserActivity(sessionId: string): SocialSession | null {
   return updated
 }
 
-export function touchAgentActivity(sessionId: string): SocialSession | null {
-  const session = socialSessions.get(sessionId)
-  if (!session) return null
-
-  const timestamp = nowIso()
-
-  const updated: SocialSession = {
-    ...session,
-    status: "active",
-    updatedAt: timestamp,
-    lastAgentActivityAt: timestamp,
-  }
-
-  socialSessions.set(sessionId, updated)
-  return updated
-}
-
 export function appendSocialMessage(params: {
   sessionId: string
   authorId: string
@@ -149,6 +134,37 @@ export function appendSocialMessage(params: {
     updatedAt: timestamp,
     lastUserActivityAt: params.fromUser ? timestamp : session.lastUserActivityAt,
     lastAgentActivityAt: params.fromUser ? session.lastAgentActivityAt : timestamp,
+  }
+
+  socialSessions.set(params.sessionId, updated)
+  return updated
+}
+
+export function appendAgentRoundFromUser(params: {
+  sessionId: string
+  userMessage: string
+}): SocialSession | null {
+  const session = socialSessions.get(params.sessionId)
+  if (!session) return null
+
+  const generated = generateAgentRound({
+    room: session.room.slug,
+    topic: session.room.topic,
+    userMessage: params.userMessage,
+    participants: session.participants,
+  })
+
+  if (!generated.length) return session
+
+  const timestamp = nowIso()
+
+  const updated: SocialSession = {
+    ...session,
+    status: "active",
+    messages: [...session.messages, ...generated],
+    updatedAt: timestamp,
+    lastAgentActivityAt: timestamp,
+    summary: `La sala "${session.room.title}" respondió a una nueva intervención del usuario y generó una ronda adicional de ideas sobre "${session.room.topic}".`,
   }
 
   socialSessions.set(params.sessionId, updated)
