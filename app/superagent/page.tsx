@@ -4,6 +4,7 @@
 
 import Link from "next/link"
 import { useEffect, useState } from "react"
+import DraftCreatorCard from "@/components/superagent/DraftCreatorCard"
 
 type SuperAgentHealthResponse = {
   ok: boolean
@@ -236,6 +237,9 @@ export default function SuperAgentPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Creador de borradores anticipados */}
+              <DraftCreatorCard />
             </div>
 
             <aside className="space-y-6 lg:col-span-4">
