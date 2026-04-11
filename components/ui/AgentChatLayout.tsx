@@ -182,9 +182,14 @@ export function ChatInput({
           }}
           placeholder={placeholder}
           rows={1}
-          disabled={loading}
-          className="flex-1 rounded-2xl px-4 py-3 text-sm focus:outline-none transition-all resize-none disabled:opacity-50 text-main" style={{ background: "var(--bg-input)", border: "1px solid var(--border-medium)" }}
-          style={{ minHeight: "48px", maxHeight: "140px" }}
+           disabled={loading}
+          className="flex-1 rounded-2xl px-4 py-3 text-sm focus:outline-none transition-all resize-none disabled:opacity-50 text-main"
+          style={{
+            background: "var(--bg-input)",
+            border: "1px solid var(--border-medium)",
+            minHeight: "48px",
+            maxHeight: "140px",
+          }}
           onInput={e => {
             const el = e.target as HTMLTextAreaElement
             el.style.height = "auto"
