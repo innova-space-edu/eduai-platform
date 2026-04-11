@@ -175,7 +175,7 @@ function CreateProjectModal({
           <button
             onClick={handleCreate}
             disabled={loading || !name.trim()}
-            className="flex-1 py-2.5 rounded-xl text-sm font-bold text-main disabled:opacity-40 transition-all" style={{ background: "var(--accent-blue)" }}
+            className="flex-1 py-2.5 rounded-xl text-sm font-bold text-main disabled:opacity-40 transition-all" 
             style={{ background: color, boxShadow: `0 4px 16px ${color}40` }}
           >
             {loading ? "Creando..." : "Crear proyecto"}
