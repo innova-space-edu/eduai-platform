@@ -347,7 +347,7 @@ function NewItemModal({
           {error && <p className="text-red-400 text-xs px-3 py-2 rounded-xl border border-red-500/20 bg-red-500/[0.08]">{error}</p>}
 
           <button onClick={currentAction} disabled={loading}
-            className="w-full py-3 rounded-xl font-semibold text-sm text-white transition-all disabled:opacity-50 flex items-center justify-center gap-2" style={{ background: "var(--accent-purple)" }}
+            className="w-full py-3 rounded-xl font-semibold text-sm text-white transition-all disabled:opacity-50 flex items-center justify-center gap-2" 
             style={{ background: `linear-gradient(135deg, ${color}, ${color}aa)`, boxShadow: `0 4px 14px ${color}30` }}>
             {loading ? <><Loader2 size={15} className="animate-spin" /> Procesando...</> : <><Plus size={15} /> Agregar al workspace</>}
           </button>
