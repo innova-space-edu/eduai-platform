@@ -100,7 +100,7 @@ function statusTone(status?: string | null) {
     case "finished":
       return "border-emerald-400/30 bg-emerald-500/15 text-emerald-700"
     case "offline_grace":
-      return "border-sky-400/30 bg-sky-500/15 text-sky-200"
+      return "border-sky-400/30 bg-sky-500/15 text-sky-700"
     default:
       return "border-emerald-400/30 bg-emerald-500/15 text-emerald-700"
   }

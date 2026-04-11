@@ -87,7 +87,7 @@ function statusColor(status: JobStatus | null) {
     case "canceled":
       return "bg-rose-500"
     default:
-      return "bg-slate-300"
+      return "bg-slate-200"
   }
 }
 
@@ -676,7 +676,7 @@ export default function VideoStudioClient() {
                     href={videoUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-main hover:bg-emerald-500"
+                    className="inline-flex rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500"
                   >
                     Abrir video
                   </a>

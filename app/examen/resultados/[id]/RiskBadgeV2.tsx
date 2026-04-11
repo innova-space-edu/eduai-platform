@@ -42,7 +42,7 @@ function getTone(level: RiskLevel) {
       }
     case "low":
       return {
-        wrapper: "border-sky-400/30 bg-sky-500/15 text-sky-200",
+        wrapper: "border-sky-400/30 bg-sky-500/15 text-sky-700",
         dot: "bg-sky-400",
         label: "Bajo",
       }

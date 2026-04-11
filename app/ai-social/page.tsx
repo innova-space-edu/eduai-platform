@@ -68,7 +68,7 @@ const ROLE_COLORS: Record<string, { dot: string; name: string }> = {
   educator:      { dot: "bg-emerald-400", name: "text-emerald-700" },
   mathematician: { dot: "bg-amber-400",   name: "text-amber-700" },
   creative:      { dot: "bg-fuchsia-400", name: "text-fuchsia-700" },
-  assistant:     { dot: "bg-slate-300",   name: "text-sub" },
+  assistant:     { dot: "bg-slate-200",   name: "text-sub" },
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
