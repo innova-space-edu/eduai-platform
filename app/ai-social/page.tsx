@@ -346,8 +346,8 @@ export default function AISocialPage() {
   // ════════════════════════════════════════════════════════════════════════════
   if (phase === "start") {
     return (
-      <div className="min-h-screen bg-[#0d1117] text-main flex flex-col">
-        <header className="sticky top-0 z-20 border-b border-soft bg-[#0d1117]/90 backdrop-blur-sm">
+      <div className="min-h-screen bg-app text-main flex flex-col">
+        <header className="sticky top-0 z-20 border-b border-soft bg-app/90 backdrop-blur-sm">
           <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Link href="/" className="text-sub hover:text-main transition text-sm">←</Link>
@@ -430,10 +430,10 @@ export default function AISocialPage() {
   // PANTALLA CHAT
   // ════════════════════════════════════════════════════════════════════════════
   return (
-    <div className="min-h-screen bg-[#0d1117] text-main flex flex-col">
+    <div className="min-h-screen bg-app text-main flex flex-col">
 
       {/* ── Top bar ── */}
-      <header className="sticky top-0 z-20 border-b border-soft bg-[#0d1117]/90 backdrop-blur-sm">
+      <header className="sticky top-0 z-20 border-b border-soft bg-app/90 backdrop-blur-sm">
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <button
@@ -609,7 +609,7 @@ export default function AISocialPage() {
                 onClick={createDraft}
                 disabled={draftLoading || !session || session.messages.length === 0 ||
                   !!(actionSuggestion && actionSuggestion.target !== "drafts" && actionSuggestion.target !== "unknown")}
-                className="text-[11px] px-3 py-1.5 rounded-xl border border-emerald-400/20 text-emerald-400 hover:bg-emerald-400/10 transition disabled:opacity-30"
+                className="text-[11px] px-3 py-1.5 rounded-xl border border-emerald-400/20 text-emerald-700 hover:bg-emerald-400/10 transition disabled:opacity-30"
               >
                 {draftLoading ? "Creando..." : "📄 Borrador"}
               </button>
