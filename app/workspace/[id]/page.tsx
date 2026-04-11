@@ -76,7 +76,7 @@ function RichTextEditor({
     setTimeout(() => { el.focus(); el.setSelectionRange(start + prefix.length, start + prefix.length) }, 0)
   }
 
-  const btnClass = "w-7 h-7 flex items-center justify-center rounded-lg text-muted2 hover:text-main transition-all" style={{ cursor: "pointer" }}
+  const btnClass = "w-7 h-7 flex items-center justify-center rounded-lg text-muted2 hover:text-main transition-all"
 
   return (
     <div className="flex flex-col rounded-2xl overflow-hidden border" style={{ borderColor: "var(--border-soft)", background: "var(--bg-card)" }}>
