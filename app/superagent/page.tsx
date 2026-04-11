@@ -87,7 +87,7 @@ export default function SuperAgentPage() {
   const features = data?.features || {}
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(34,211,238,0.10),_transparent_25%),radial-gradient(circle_at_top_right,_rgba(139,92,246,0.12),_transparent_25%),linear-gradient(to_bottom,_#020617,_#0f172a)] text-main">
+    <main className="min-h-screen bg-gradient-to-b from-white via-violet-50/30 to-cyan-50/20 text-main">
       <div className="mx-auto flex w-full max-w-7xl flex-col px-4 py-6 sm:px-6 lg:px-8">
         <div className="mb-6">
           <Link
