@@ -75,7 +75,7 @@ export default function IncidentSummaryCard({
           <p className="text-xs uppercase tracking-[0.18em] text-sub">
             Low
           </p>
-          <p className="mt-2 text-2xl font-bold text-sky-300">
+          <p className="mt-2 text-2xl font-bold text-sky-700">
             {summary.severity.low}
           </p>
         </div>

@@ -72,7 +72,7 @@ function getAccentClasses(actionType: SecurityActionType | "none") {
         ring: "ring-sky-400/40",
         border: "border-sky-400/30",
         glow: "shadow-sky-500/20",
-        badge: "bg-sky-500/15 text-sky-200 border-sky-400/30",
+        badge: "bg-sky-500/15 text-sky-700 border-sky-400/30",
       }
   }
 }

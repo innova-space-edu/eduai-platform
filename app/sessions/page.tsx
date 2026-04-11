@@ -231,7 +231,7 @@ export default function SessionsPage() {
             >
               ←
             </button>
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-gray-600 to-gray-700 flex items-center justify-center text-lg">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-lg">
               📚
             </div>
             <div className="flex-1">

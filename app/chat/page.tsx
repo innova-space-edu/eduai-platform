@@ -25,7 +25,7 @@ function Avatar({ profile, size = "md" }: { profile: Profile; size?: "sm"|"md"|"
         : <div className={`${sz} rounded-full flex items-center justify-center font-bold text-main`}
                style={{ background: "linear-gradient(135deg, #3b82f6, #8b5cf6)" }}>{initials}</div>
       }
-      <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-card ${profile?.is_online ? "bg-emerald-400" : "bg-slate-300"}`} />
+      <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-card ${profile?.is_online ? "bg-emerald-400" : "bg-slate-200"}`} />
     </div>
   )
 }

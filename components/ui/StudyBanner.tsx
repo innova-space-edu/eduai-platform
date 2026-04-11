@@ -13,7 +13,7 @@ const levelNames = ["", "Explorador", "Aprendiz", "Practicante", "Analista", "Ex
 
 const levelGradients = [
   "",
-  "from-gray-400 to-gray-500",
+  "from-slate-200 to-slate-300",
   "from-blue-400 to-blue-500",
   "from-green-400 to-emerald-500",
   "from-purple-400 to-violet-500",

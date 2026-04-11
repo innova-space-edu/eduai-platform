@@ -34,7 +34,7 @@ export default function XPToast({ events }: Props) {
 
           {/* Reason */}
           {event.reason && (
-            <span className="text-amber-300/60 text-xs font-normal max-w-[120px] truncate">
+            <span className="text-amber-700 text-xs font-normal max-w-[120px] truncate">
               {event.reason}
             </span>
           )}

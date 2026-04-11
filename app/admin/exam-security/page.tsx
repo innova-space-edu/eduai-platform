@@ -100,7 +100,7 @@ function toneForRisk(riskLevel: string | null | undefined) {
     case "medium":
       return "bg-yellow-500/15 text-yellow-700 border-yellow-400/30"
     case "low":
-      return "bg-sky-500/15 text-sky-300 border-sky-400/30"
+      return "bg-sky-500/15 text-sky-700 border-sky-400/30"
     default:
       return "bg-emerald-500/15 text-emerald-700 border-emerald-400/30"
   }
@@ -117,7 +117,7 @@ function toneForStatus(status: string | null | undefined) {
     case "warned":
       return "bg-yellow-500/15 text-yellow-700 border-yellow-400/30"
     case "offline_grace":
-      return "bg-sky-500/15 text-sky-300 border-sky-400/30"
+      return "bg-sky-500/15 text-sky-700 border-sky-400/30"
     case "finished":
       return "bg-emerald-500/15 text-emerald-700 border-emerald-400/30"
     case "terminated":
@@ -254,7 +254,7 @@ export default function ExamSecurityAdminPage() {
           <div className="mt-5 grid gap-4 md:grid-cols-4">
             <div className="rounded-2xl border border-soft bg-card-soft-theme p-4">
               <p className="text-xs uppercase tracking-[0.18em] text-sub">Low</p>
-              <p className="mt-2 text-2xl font-bold text-sky-300">
+              <p className="mt-2 text-2xl font-bold text-sky-700">
                 {summary.incidentsBySeverity.low}
               </p>
             </div>

@@ -51,7 +51,7 @@ function getActionTone(actionType: string) {
     case "teacher_override":
       return {
         dot: "bg-blue-500",
-        badge: "border-sky-400/30 bg-sky-500/15 text-sky-200",
+        badge: "border-sky-400/30 bg-sky-500/15 text-sky-700",
         label: "Intervención docente",
       }
     case "clear_state":
@@ -62,7 +62,7 @@ function getActionTone(actionType: string) {
       }
     default:
       return {
-        dot: "bg-slate-300",
+        dot: "bg-slate-200",
         badge: "border-soft bg-card-soft-theme text-main",
         label: actionType || "Acción",
       }
