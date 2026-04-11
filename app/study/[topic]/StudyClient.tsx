@@ -148,15 +148,15 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
     return (
       <div className="max-w-4xl mx-auto px-6 py-12">
         <div className="text-center mb-10">
-          <h2 className="text-3xl font-bold text-white mb-2">¿Qué quieres aprender sobre</h2>
+          <h2 className="text-3xl font-bold text-main mb-2">¿Qué quieres aprender sobre</h2>
           <h3 className="text-3xl font-bold text-blue-400 mb-3">{topic}?</h3>
-          <p className="text-gray-500 text-sm">Elige un subtema para una explicación más precisa</p>
+          <p className="text-muted2 text-sm">Elige un subtema para una explicación más precisa</p>
         </div>
 
         {loadingSuggestions ? (
           <div className="flex flex-col items-center gap-4 py-16">
-            <div className="w-10 h-10 rounded-full border-2 border-white/10 border-t-blue-400 animate-spin" />
-            <p className="text-gray-500 text-sm">Preparando opciones...</p>
+            <div className="w-10 h-10 rounded-full border-2 border-soft border-t-blue-400 animate-spin" />
+            <p className="text-muted2 text-sm">Preparando opciones...</p>
           </div>
         ) : (
           <>
@@ -164,18 +164,18 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
               {suggestions.map(s => (
                 <button key={s.id} onClick={() => selectSubtopic(s.title)}
                   className="rounded-2xl p-6 text-left transition-all group border"
-                  style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.07)" }}
+                  style={{ background: "var(--bg-card-soft)", borderColor: "var(--bg-card-soft)" }}
                   onMouseEnter={e => {
                     ;(e.currentTarget as HTMLElement).style.background   = "rgba(59,130,246,0.06)"
                     ;(e.currentTarget as HTMLElement).style.borderColor  = "rgba(59,130,246,0.2)"
                   }}
                   onMouseLeave={e => {
-                    ;(e.currentTarget as HTMLElement).style.background   = "rgba(255,255,255,0.02)"
-                    ;(e.currentTarget as HTMLElement).style.borderColor  = "rgba(255,255,255,0.07)"
+                    ;(e.currentTarget as HTMLElement).style.background   = "var(--bg-card-soft)"
+                    ;(e.currentTarget as HTMLElement).style.borderColor  = "var(--bg-card-soft)"
                   }}>
                   <div className="text-3xl mb-3">{s.emoji}</div>
-                  <h4 className="text-white font-semibold text-lg mb-1 group-hover:text-blue-400 transition-colors">{s.title}</h4>
-                  <p className="text-gray-500 text-sm">{s.description}</p>
+                  <h4 className="text-main font-semibold text-lg mb-1 group-hover:text-blue-400 transition-colors">{s.title}</h4>
+                  <p className="text-muted2 text-sm">{s.description}</p>
                 </button>
               ))}
             </div>
@@ -184,20 +184,20 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
               <input
                 type="text"
                 placeholder="O escribe tu propio subtema..."
-                className="w-full rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none transition-all text-sm"
-                style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
+                className="w-full rounded-xl px-4 py-3 text-main placeholder-gray-400 focus:outline-none transition-all text-sm"
+                style={{ background: "var(--bg-input)", border: "1px solid var(--border-soft)" }}
                 onFocus={e  => (e.target as HTMLElement).style.borderColor = "rgba(59,130,246,0.4)"}
-                onBlur={e   => (e.target as HTMLElement).style.borderColor = "rgba(255,255,255,0.08)"}
+                onBlur={e   => (e.target as HTMLElement).style.borderColor = "var(--border-soft)"}
                 onKeyDown={e => {
                   if (e.key === "Enter" && e.currentTarget.value.trim()) selectSubtopic(e.currentTarget.value.trim())
                 }}
               />
-              <span className="absolute right-4 top-3.5 text-gray-600 text-xs">Enter ↵</span>
+              <span className="absolute right-4 top-3.5 text-muted2 text-xs">Enter ↵</span>
             </div>
 
             <div className="text-center mt-4">
               <button onClick={() => selectSubtopic(topic)}
-                className="text-gray-500 hover:text-gray-300 text-sm underline transition-colors">
+                className="text-muted2 hover:text-sub text-sm underline transition-colors">
                 Estudiar "{topic}" de forma general →
               </button>
             </div>
@@ -212,34 +212,34 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
     return (
       <div className="max-w-4xl mx-auto px-6 py-12">
         <div className="text-center mb-10">
-          <p className="text-gray-500 text-sm mb-1">{topic} →</p>
-          <h2 className="text-3xl font-bold text-white mb-2">{selectedSubtopic}</h2>
-          <p className="text-gray-500 text-sm">¿Qué tipo de contenido quieres?</p>
+          <p className="text-muted2 text-sm mb-1">{topic} →</p>
+          <h2 className="text-3xl font-bold text-main mb-2">{selectedSubtopic}</h2>
+          <p className="text-muted2 text-sm">¿Qué tipo de contenido quieres?</p>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {STUDY_TYPES.map(t => (
             <button key={t.id} onClick={() => selectType(t.id)}
               className="rounded-2xl p-5 text-center transition-all group border"
-              style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.07)" }}
+              style={{ background: "var(--bg-card-soft)", borderColor: "var(--bg-card-soft)" }}
               onMouseEnter={e => {
                 ;(e.currentTarget as HTMLElement).style.background   = "rgba(59,130,246,0.06)"
                 ;(e.currentTarget as HTMLElement).style.borderColor  = "rgba(59,130,246,0.2)"
               }}
               onMouseLeave={e => {
-                ;(e.currentTarget as HTMLElement).style.background   = "rgba(255,255,255,0.02)"
-                ;(e.currentTarget as HTMLElement).style.borderColor  = "rgba(255,255,255,0.07)"
+                ;(e.currentTarget as HTMLElement).style.background   = "var(--bg-card-soft)"
+                ;(e.currentTarget as HTMLElement).style.borderColor  = "var(--bg-card-soft)"
               }}>
               <div className="text-4xl mb-3">{t.emoji}</div>
-              <h4 className="text-white font-semibold mb-1 group-hover:text-blue-400 transition-colors">{t.label}</h4>
-              <p className="text-gray-500 text-xs">{t.description}</p>
+              <h4 className="text-main font-semibold mb-1 group-hover:text-blue-400 transition-colors">{t.label}</h4>
+              <p className="text-muted2 text-xs">{t.description}</p>
             </button>
           ))}
         </div>
 
         <div className="text-center mt-8">
           <button onClick={() => setStep("suggest")}
-            className="text-gray-600 hover:text-gray-400 text-sm underline transition-colors">
+            className="text-muted2 hover:text-sub text-sm underline transition-colors">
             ← Cambiar subtema
           </button>
         </div>
@@ -295,10 +295,10 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
 
         {/* Breadcrumb + XP */}
         <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2 text-xs text-gray-600">
-            <button onClick={() => setStep("suggest")} className="hover:text-gray-400 transition-colors">{topic}</button>
+          <div className="flex items-center gap-2 text-xs text-muted2">
+            <button onClick={() => setStep("suggest")} className="hover:text-sub transition-colors">{topic}</button>
             <span>→</span>
-            <button onClick={() => setStep("type")} className="hover:text-gray-400 transition-colors">{selectedSubtopic}</button>
+            <button onClick={() => setStep("type")} className="hover:text-sub transition-colors">{selectedSubtopic}</button>
             <span>→</span>
             <span className="text-blue-400">{STUDY_TYPES.find(t => t.id === selectedType)?.label}</span>
           </div>
@@ -342,7 +342,7 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
               ) : (
                 <div className="flex justify-end">
                   <div className="chat-bubble-user max-w-lg">
-                    <p className="text-gray-200 text-sm text-left">{msg.content}</p>
+                    <p className="text-main text-sm text-left">{msg.content}</p>
                   </div>
                 </div>
               )}
@@ -353,21 +353,21 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
         {/* Sugerencias followup */}
         {!streaming && suggestedFollowups.length > 0 && (
           <div className="mb-4">
-            <p className="text-xs text-gray-600 mb-2">Sugerencias:</p>
+            <p className="text-xs text-muted2 mb-2">Sugerencias:</p>
             <div className="flex flex-wrap gap-2">
               {suggestedFollowups.map((f, i) => (
                 <button key={i} onClick={() => sendMessage(f, messages)}
                   className="text-sm px-4 py-2 rounded-full transition-all"
-                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "#d1d5db" }}
+                  style={{ background: "var(--bg-input)", border: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}
                   onMouseEnter={e => {
                     ;(e.currentTarget as HTMLElement).style.background   = "rgba(59,130,246,0.08)"
                     ;(e.currentTarget as HTMLElement).style.borderColor  = "rgba(59,130,246,0.2)"
                     ;(e.currentTarget as HTMLElement).style.color        = "#fff"
                   }}
                   onMouseLeave={e => {
-                    ;(e.currentTarget as HTMLElement).style.background   = "rgba(255,255,255,0.04)"
-                    ;(e.currentTarget as HTMLElement).style.borderColor  = "rgba(255,255,255,0.08)"
-                    ;(e.currentTarget as HTMLElement).style.color        = "#d1d5db"
+                    ;(e.currentTarget as HTMLElement).style.background   = "var(--bg-input)"
+                    ;(e.currentTarget as HTMLElement).style.borderColor  = "var(--border-soft)"
+                    ;(e.currentTarget as HTMLElement).style.color        = "var(--text-secondary)"
                   }}>
                   {f}
                 </button>
@@ -393,13 +393,13 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
               value={userInput}
               onChange={e => setUserInput(e.target.value)}
               placeholder="Escribe tu pregunta o duda..."
-              className="flex-1 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none transition-all text-sm"
-              style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.10)" }}
+              className="flex-1 rounded-xl px-4 py-3 text-main placeholder-gray-400 focus:outline-none transition-all text-sm"
+              style={{ background: "var(--border-soft)", border: "1px solid var(--border-medium)" }}
               onFocus={e => (e.target as HTMLElement).style.borderColor = "rgba(59,130,246,0.4)"}
               onBlur={e  => (e.target as HTMLElement).style.borderColor = "rgba(255,255,255,0.10)"}
             />
             <button type="submit" disabled={!userInput.trim()}
-              className="px-5 py-3 rounded-xl text-sm font-medium text-white transition-all disabled:opacity-40"
+              className="px-5 py-3 rounded-xl text-sm font-medium text-main transition-all disabled:opacity-40"
               style={{ background: "#2563eb" }}>
               Enviar →
             </button>

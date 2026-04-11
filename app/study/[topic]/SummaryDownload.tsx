@@ -172,7 +172,7 @@ export default function SummaryDownload({ topic, messages, quizResults }: Props)
         <button
           onClick={generateSummary}
           disabled={loading}
-          className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 hover:border-blue-500 text-gray-300 hover:text-white text-sm px-4 py-2.5 rounded-xl transition-all disabled:opacity-50"
+          className="flex items-center gap-2 bg-card-soft-theme hover:bg-card-soft-theme border border-soft hover:border-blue-500 text-sub hover:text-main text-sm px-4 py-2.5 rounded-xl transition-all disabled:opacity-50"
         >
           {loading ? (
             <>
@@ -184,7 +184,7 @@ export default function SummaryDownload({ topic, messages, quizResults }: Props)
           )}
         </button>
       ) : (
-        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4">
+        <div className="bg-card-theme border border-soft rounded-2xl p-4">
           <div className="flex items-center justify-between mb-3">
             <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/20 rounded-full px-3 py-1">
               <div className="w-1.5 h-1.5 bg-green-400 rounded-full" />
@@ -192,13 +192,13 @@ export default function SummaryDownload({ topic, messages, quizResults }: Props)
             </div>
             <button
               onClick={downloadPDF}
-              className="flex items-center gap-2 text-xs bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg transition-colors font-medium"
+              className="flex items-center gap-2 text-xs bg-blue-600 hover:bg-blue-500 text-main px-4 py-2 rounded-lg transition-colors font-medium"
             >
               ⬇ Descargar PDF
             </button>
           </div>
 
-          <div className="bg-gray-950 rounded-xl p-4 text-sm text-gray-300 whitespace-pre-wrap leading-relaxed max-h-64 overflow-y-auto">
+          <div className="bg-app rounded-xl p-4 text-sm text-sub whitespace-pre-wrap leading-relaxed max-h-64 overflow-y-auto">
             {summary.replace(/[#*`]/g, "").trim()}
           </div>
         </div>

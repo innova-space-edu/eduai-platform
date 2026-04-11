@@ -95,7 +95,7 @@ export default function CreatorHubFormatPage() {
     <div className="flex flex-col min-h-screen">
 
       {/* Topbar */}
-      <div className="border-b border-white/[0.06] bg-gray-950/80 backdrop-blur-xl sticky top-0 z-10">
+      <div className="border-b border-soft bg-app backdrop-blur-xl sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-6 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             {/* Color dot del formato */}
@@ -106,15 +106,15 @@ export default function CreatorHubFormatPage() {
               {meta.icon}
             </div>
             <div>
-              <p className="text-white font-bold text-sm leading-tight">{meta.label}</p>
-              <p className="text-gray-600 text-[11px] hidden sm:block">{meta.desc}</p>
+              <p className="text-main font-bold text-sm leading-tight">{meta.label}</p>
+              <p className="text-muted2 text-[11px] hidden sm:block">{meta.desc}</p>
             </div>
           </div>
 
           {step === "result" && (
             <button
               onClick={handleReset}
-              className="text-xs text-gray-500 hover:text-white border border-white/10 rounded-xl px-3 py-1.5 transition-colors flex-shrink-0"
+              className="text-xs text-muted2 hover:text-main border border-soft rounded-xl px-3 py-1.5 transition-colors flex-shrink-0"
             >
               + Nueva creación
             </button>
@@ -130,7 +130,7 @@ export default function CreatorHubFormatPage() {
           <>
             {/* Fuente */}
             <div>
-              <label className="text-gray-600 text-[11px] font-semibold tracking-widest block mb-2">FUENTE</label>
+              <label className="text-muted2 text-[11px] font-semibold tracking-widest block mb-2">FUENTE</label>
               <div className="flex gap-2 flex-wrap">
                 {SOURCE_TYPES.map(s => (
                   <button
@@ -138,8 +138,8 @@ export default function CreatorHubFormatPage() {
                     onClick={() => { setSourceType(s.id); setContent(""); setFileName("") }}
                     className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl border text-sm font-medium transition-all"
                     style={{
-                      background:   sourceType === s.id ? `${meta.color}12` : "rgba(255,255,255,0.03)",
-                      borderColor:  sourceType === s.id ? `${meta.color}35` : "rgba(255,255,255,0.08)",
+                      background:   sourceType === s.id ? `${meta.color}12` : "var(--bg-card)",
+                      borderColor:  sourceType === s.id ? `${meta.color}35` : "var(--border-soft)",
                       color:        sourceType === s.id ? meta.color : "#9ca3af",
                     }}
                   >
@@ -159,7 +159,7 @@ export default function CreatorHubFormatPage() {
                   sourceType === "url"   ? "https://ejemplo.com/articulo" :
                   "Pega aquí el texto que quieres transformar..."
                 }
-                className={`w-full bg-white/[0.04] border border-white/[0.08] rounded-2xl px-4 py-3.5 text-gray-200 placeholder-gray-600 text-sm focus:outline-none focus:border-blue-500/30 focus:bg-white/[0.06] transition-all resize-vertical ${
+                className={`w-full bg-card-soft-theme border border-soft rounded-2xl px-4 py-3.5 text-main placeholder-gray-400 text-sm focus:outline-none focus:border-blue-500/30 focus:bg-input-theme transition-all resize-vertical ${
                   sourceType === "text" ? "min-h-[140px]" : "min-h-[56px]"
                 }`}
               />
@@ -169,11 +169,11 @@ export default function CreatorHubFormatPage() {
                 className={`border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all ${
                   content
                     ? "border-green-500/30 bg-green-500/[0.04]"
-                    : "border-white/10 bg-white/[0.02] hover:border-white/20"
+                    : "border-soft bg-card-soft-theme hover:border-medium"
                 }`}
               >
                 <div className="text-3xl mb-2">{content ? "✅" : sourceType === "pdf" ? "📄" : "📎"}</div>
-                <p className={`text-sm ${content ? "text-green-400" : "text-gray-500"}`}>
+                <p className={`text-sm ${content ? "text-green-400" : "text-muted2"}`}>
                   {content ? `${fileName} cargado` : `Clic para subir .${sourceType}`}
                 </p>
                 <input
@@ -214,11 +214,11 @@ export default function CreatorHubFormatPage() {
         {step === "processing" && (
           <div className="text-center py-16">
             <div className="relative w-16 h-16 mx-auto mb-5">
-              <div className="w-16 h-16 rounded-full border-2 border-white/10 border-t-blue-400 animate-spin" />
+              <div className="w-16 h-16 rounded-full border-2 border-soft border-t-blue-400 animate-spin" />
               <div className="absolute inset-0 flex items-center justify-center text-2xl">{meta.icon}</div>
             </div>
-            <h3 className="text-white font-bold text-base mb-1">Generando {meta.label.toLowerCase()}...</h3>
-            <p className="text-gray-600 text-sm">Extrayendo conceptos y construyendo el resultado</p>
+            <h3 className="text-main font-bold text-base mb-1">Generando {meta.label.toLowerCase()}...</h3>
+            <p className="text-muted2 text-sm">Extrayendo conceptos y construyendo el resultado</p>
           </div>
         )}
 
@@ -246,8 +246,8 @@ export default function CreatorHubFormatPage() {
             {/* Resultado */}
             <div
               id="creator-result-container"
-              className="rounded-3xl p-5 border"
-              style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.07)" }}
+              className="rounded-2xl p-5 border"
+              style={{ background: "var(--bg-card-soft)", borderColor: "var(--bg-card-soft)" }}
             >
               {Renderer && <Renderer data={result} />}
             </div>

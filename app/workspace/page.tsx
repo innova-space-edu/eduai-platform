@@ -95,36 +95,36 @@ function CreateProjectModal({
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
       <div
         className="relative w-full max-w-md rounded-2xl p-6 animate-fade-in-scale"
-        style={{ background: "#0f172a", border: "1px solid rgba(255,255,255,0.1)" }}
+        style={{ background: "var(--bg-card)", border: "1px solid rgba(255,255,255,0.1)" }}
         onClick={e => e.stopPropagation()}
       >
-        <h2 className="text-white font-bold text-lg mb-5">Nuevo proyecto</h2>
+        <h2 className="text-main font-bold text-lg mb-5">Nuevo proyecto</h2>
 
         {/* Nombre */}
         <div className="mb-4">
-          <label className="text-gray-500 text-[11px] font-semibold uppercase tracking-widest block mb-2">Nombre</label>
+          <label className="text-muted2 text-[11px] font-semibold uppercase tracking-widest block mb-2">Nombre</label>
           <input
             value={name} onChange={e => setName(e.target.value)}
             onKeyDown={e => e.key === "Enter" && handleCreate()}
             placeholder="Mi proyecto de Física..."
             autoFocus
-            className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-2.5 text-white placeholder-gray-600 text-sm focus:outline-none focus:border-blue-500/40 transition-all"
+            className="w-full rounded-xl px-4 py-2.5 text-sm focus:outline-none transition-all" style={{ background: "var(--bg-input)", border: "1px solid var(--border-medium)", color: "var(--text-primary)" }}
           />
         </div>
 
         {/* Descripción */}
         <div className="mb-4">
-          <label className="text-gray-500 text-[11px] font-semibold uppercase tracking-widest block mb-2">Descripción (opcional)</label>
+          <label className="text-muted2 text-[11px] font-semibold uppercase tracking-widest block mb-2">Descripción (opcional)</label>
           <input
             value={desc} onChange={e => setDesc(e.target.value)}
             placeholder="Preparación para el examen final..."
-            className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-2.5 text-white placeholder-gray-600 text-sm focus:outline-none focus:border-blue-500/40 transition-all"
+            className="w-full rounded-xl px-4 py-2.5 text-sm focus:outline-none transition-all" style={{ background: "var(--bg-input)", border: "1px solid var(--border-medium)", color: "var(--text-primary)" }}
           />
         </div>
 
         {/* Icono */}
         <div className="mb-4">
-          <label className="text-gray-500 text-[11px] font-semibold uppercase tracking-widest block mb-2">Ícono</label>
+          <label className="text-muted2 text-[11px] font-semibold uppercase tracking-widest block mb-2">Ícono</label>
           <div className="flex flex-wrap gap-2">
             {PROJECT_ICONS.map(ic => (
               <button
@@ -132,8 +132,8 @@ function CreateProjectModal({
                 onClick={() => setIcon(ic)}
                 className="w-9 h-9 rounded-xl flex items-center justify-center text-lg transition-all"
                 style={{
-                  background:  icon === ic ? `${color}25` : "rgba(255,255,255,0.04)",
-                  border:      `1px solid ${icon === ic ? `${color}50` : "rgba(255,255,255,0.08)"}`,
+                  background:  icon === ic ? `${color}25` : "var(--bg-input)",
+                  border:      `1px solid ${icon === ic ? `${color}50` : "var(--border-soft)"}`,
                   transform:   icon === ic ? "scale(1.1)" : "scale(1)",
                 }}
               >
@@ -145,7 +145,7 @@ function CreateProjectModal({
 
         {/* Color */}
         <div className="mb-6">
-          <label className="text-gray-500 text-[11px] font-semibold uppercase tracking-widest block mb-2">Color</label>
+          <label className="text-muted2 text-[11px] font-semibold uppercase tracking-widest block mb-2">Color</label>
           <div className="flex gap-2">
             {PROJECT_COLORS.map(c => (
               <button
@@ -168,14 +168,14 @@ function CreateProjectModal({
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 py-2.5 rounded-xl text-sm font-medium text-gray-400 border border-white/[0.08] hover:bg-white/[0.04] transition-all"
+            className="flex-1 py-2.5 rounded-xl text-sm font-medium text-sub transition-all" style={{ border: "1px solid var(--border-medium)" }}
           >
             Cancelar
           </button>
           <button
             onClick={handleCreate}
             disabled={loading || !name.trim()}
-            className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-40 transition-all"
+            className="flex-1 py-2.5 rounded-xl text-sm font-bold text-main disabled:opacity-40 transition-all" style={{ background: "var(--accent-blue)" }}
             style={{ background: color, boxShadow: `0 4px 16px ${color}40` }}
           >
             {loading ? "Creando..." : "Crear proyecto"}
@@ -240,7 +240,7 @@ export default function WorkspacePage() {
 
   // ── Render ───────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gray-950">
+    <div className="min-h-screen bg-app">
 
       {showCreate && (
         <CreateProjectModal
@@ -250,11 +250,11 @@ export default function WorkspacePage() {
       )}
 
       {/* Header */}
-      <header className="sticky top-0 z-20 border-b border-white/[0.06] bg-gray-950/90 backdrop-blur-xl">
+      <header className="sticky top-0 z-20 border-b backdrop-blur-xl" style={{ background: "var(--bg-header)", borderColor: "var(--border-soft)" }}>
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
           <Link
             href="/dashboard"
-            className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/[0.04] border border-white/[0.06] text-gray-400 hover:text-white hover:bg-white/[0.07] transition-all flex-shrink-0"
+            className="w-8 h-8 flex items-center justify-center rounded-xl transition-all flex-shrink-0 text-sub hover:text-main" style={{ background: "var(--bg-card-soft)", border: "1px solid var(--border-soft)" }}
           >
             <ArrowLeft size={15} />
           </Link>
@@ -262,11 +262,11 @@ export default function WorkspacePage() {
             className="w-9 h-9 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-md"
             style={{ background: "linear-gradient(135deg, #4338ca, #6366f1)", boxShadow: "0 4px 12px rgba(67,56,202,0.3)" }}
           >
-            <FolderKanban size={17} className="text-white" />
+            <FolderKanban size={17} className="text-main" />
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-white font-bold text-sm leading-tight">Workspace</h1>
-            <p className="text-gray-600 text-[11px]">{projects.length} proyecto{projects.length !== 1 ? "s" : ""}</p>
+            <h1 className="text-main font-bold text-sm leading-tight">Workspace</h1>
+            <p className="text-muted2 text-[11px]">{projects.length} proyecto{projects.length !== 1 ? "s" : ""}</p>
           </div>
           <button
             onClick={() => setShowCreate(true)}
@@ -282,8 +282,8 @@ export default function WorkspacePage() {
 
         {/* Intro */}
         <div className="animate-fade-in">
-          <h2 className="text-white font-semibold text-lg mb-1">Tus proyectos</h2>
-          <p className="text-gray-500 text-sm">
+          <h2 className="text-main font-semibold text-lg mb-1">Tus proyectos</h2>
+          <p className="text-muted2 text-sm">
             Organiza todo tu trabajo en proyectos. Guarda imágenes, transcripciones, presentaciones y más en un solo lugar.
           </p>
         </div>
@@ -299,7 +299,7 @@ export default function WorkspacePage() {
           /* Empty state */
           <div
             className="flex flex-col items-center py-16 rounded-2xl border text-center"
-            style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.07)" }}
+            style={{ background: "var(--bg-card-soft)", borderColor: "var(--bg-card-soft)" }}
           >
             <div
               className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mb-4"
@@ -307,8 +307,8 @@ export default function WorkspacePage() {
             >
               📁
             </div>
-            <p className="text-white font-semibold mb-2">Sin proyectos aún</p>
-            <p className="text-gray-500 text-sm mb-6 max-w-xs">
+            <p className="text-main font-semibold mb-2">Sin proyectos aún</p>
+            <p className="text-muted2 text-sm mb-6 max-w-xs">
               Crea tu primer proyecto para empezar a organizar imágenes, transcripciones, presentaciones y más.
             </p>
             <button
@@ -326,16 +326,16 @@ export default function WorkspacePage() {
                 key={project.id}
                 className="group relative flex items-center gap-4 p-4 rounded-2xl border transition-all cursor-pointer animate-fade-in"
                 style={{
-                  background:   "rgba(255,255,255,0.02)",
-                  borderColor:  "rgba(255,255,255,0.07)",
+                  background:   "var(--bg-card-soft)",
+                  borderColor:  "var(--bg-card-soft)",
                 }}
                 onMouseEnter={e => {
                   ;(e.currentTarget as HTMLElement).style.background   = `${project.color}08`
                   ;(e.currentTarget as HTMLElement).style.borderColor  = `${project.color}25`
                 }}
                 onMouseLeave={e => {
-                  ;(e.currentTarget as HTMLElement).style.background   = "rgba(255,255,255,0.02)"
-                  ;(e.currentTarget as HTMLElement).style.borderColor  = "rgba(255,255,255,0.07)"
+                  ;(e.currentTarget as HTMLElement).style.background   = "var(--bg-card-soft)"
+                  ;(e.currentTarget as HTMLElement).style.borderColor  = "var(--bg-card-soft)"
                 }}
                 onClick={() => router.push(`/workspace/${project.id}`)}
               >
@@ -349,15 +349,15 @@ export default function WorkspacePage() {
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-white font-semibold text-sm leading-tight truncate">{project.name}</p>
+                  <p className="text-main font-semibold text-sm leading-tight truncate">{project.name}</p>
                   {project.description && (
-                    <p className="text-gray-500 text-xs mt-0.5 truncate">{project.description}</p>
+                    <p className="text-muted2 text-xs mt-0.5 truncate">{project.description}</p>
                   )}
                   <div className="flex items-center gap-3 mt-1.5">
-                    <span className="text-gray-600 text-[11px] flex items-center gap-1">
+                    <span className="text-muted2 text-[11px] flex items-center gap-1">
                       <Layers size={10} /> {project.item_count} ítem{project.item_count !== 1 ? "s" : ""}
                     </span>
-                    <span className="text-gray-700 text-[11px] flex items-center gap-1">
+                    <span className="text-muted2 text-[11px] flex items-center gap-1">
                       <Calendar size={10} /> {timeAgo(project.updated_at)}
                     </span>
                   </div>
@@ -367,12 +367,12 @@ export default function WorkspacePage() {
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <button
                     onClick={e => { e.stopPropagation(); deleteProject(project.id) }}
-                    className="w-7 h-7 flex items-center justify-center rounded-lg opacity-0 group-hover:opacity-100 transition-all text-gray-600 hover:text-red-400"
+                    className="w-7 h-7 flex items-center justify-center rounded-lg opacity-0 group-hover:opacity-100 transition-all text-muted2 hover:text-red-400"
                     style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.1)" }}
                   >
                     <Trash2 size={12} />
                   </button>
-                  <ChevronRight size={16} className="text-gray-700 group-hover:text-gray-400 transition-colors" />
+                  <ChevronRight size={16} className="text-muted2 group-hover:text-sub transition-colors" />
                 </div>
               </div>
             ))}
@@ -382,7 +382,7 @@ export default function WorkspacePage() {
         {/* Tip */}
         {projects.length > 0 && (
           <div
-            className="rounded-2xl px-5 py-4 border text-sm text-gray-500 animate-fade-in"
+            className="rounded-2xl px-5 py-4 border text-sm text-muted2 animate-fade-in"
             style={{ background: "rgba(67,56,202,0.04)", borderColor: "rgba(67,56,202,0.12)" }}
           >
             <span className="text-indigo-400 font-semibold">💡 Tip: </span>

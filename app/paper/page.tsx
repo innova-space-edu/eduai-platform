@@ -342,8 +342,8 @@ export default function PaperPage() {
 
   if (!userReady) {
     return (
-      <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center">
-        <div className="flex items-center gap-3 text-gray-400">
+      <div className="min-h-screen bg-app text-main flex items-center justify-center">
+        <div className="flex items-center gap-3 text-sub">
           <Loader2 className="animate-spin" size={18} />
           Cargando...
         </div>
@@ -352,23 +352,23 @@ export default function PaperPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
-      <header className="sticky top-0 z-20 border-b border-white/10 bg-gray-950/90 backdrop-blur-xl">
+    <div className="min-h-screen bg-app text-main">
+      <header className="sticky top-0 z-20 border-b border-soft bg-app backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
           <Link
             href="/dashboard"
-            className="w-9 h-9 rounded-xl flex items-center justify-center border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:bg-white/10 transition"
+            className="w-9 h-9 rounded-xl flex items-center justify-center border border-soft bg-card-soft-theme text-sub hover:text-main hover:bg-card-soft-theme transition"
           >
             <ArrowLeft size={16} />
           </Link>
 
           <div className="w-10 h-10 rounded-2xl flex items-center justify-center bg-gradient-to-br from-pink-600 to-violet-600 shadow-lg">
-            <FileSearch size={18} className="text-white" />
+            <FileSearch size={18} className="text-main" />
           </div>
 
           <div className="flex-1 min-w-0">
             <h1 className="font-bold text-sm sm:text-base">Chat Paper v2</h1>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-muted2">
               Sube un PDF, extráelo y conversa con su contenido
             </p>
           </div>
@@ -378,7 +378,7 @@ export default function PaperPage() {
       <div className="max-w-7xl mx-auto px-4 py-5 grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-5">
         {/* Sidebar */}
         <aside className="space-y-4">
-          <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+          <div className="rounded-2xl border border-soft bg-card-soft-theme p-4">
             <div className="flex items-center gap-2 mb-3">
               <Upload size={16} className="text-pink-400" />
               <h2 className="font-semibold text-sm">Subir documento</h2>
@@ -398,17 +398,17 @@ export default function PaperPage() {
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading || extracting}
-              className="w-full rounded-2xl px-4 py-3 bg-gradient-to-r from-pink-600 to-fuchsia-600 text-white font-semibold text-sm disabled:opacity-50"
+              className="w-full rounded-2xl px-4 py-3 bg-gradient-to-r from-pink-600 to-fuchsia-600 text-main font-semibold text-sm disabled:opacity-50"
             >
               {uploading ? "Subiendo..." : "Elegir PDF"}
             </button>
 
-            <div className="mt-3 text-xs text-gray-500 leading-relaxed">
+            <div className="mt-3 text-xs text-muted2 leading-relaxed">
               El sistema procesa el documento, crea fragmentos y luego te permite hacer preguntas.
             </div>
           </div>
 
-          <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+          <div className="rounded-2xl border border-soft bg-card-soft-theme p-4">
             <div className="flex items-center gap-2 mb-3">
               <FileText size={16} className="text-violet-400" />
               <h2 className="font-semibold text-sm">Estado del documento</h2>
@@ -416,39 +416,39 @@ export default function PaperPage() {
 
             <div className="space-y-2 text-sm">
               <div>
-                <div className="text-gray-500 text-xs">Título</div>
-                <div className="text-gray-200 break-words">{paperTitle || "Sin documento"}</div>
+                <div className="text-muted2 text-xs">Título</div>
+                <div className="text-main break-words">{paperTitle || "Sin documento"}</div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <div className="text-gray-500 text-xs">Páginas</div>
-                  <div className="text-gray-200">{paperPageCount || 0}</div>
+                  <div className="text-muted2 text-xs">Páginas</div>
+                  <div className="text-main">{paperPageCount || 0}</div>
                 </div>
                 <div>
-                  <div className="text-gray-500 text-xs">Chunks</div>
-                  <div className="text-gray-200">{chunkCount || 0}</div>
+                  <div className="text-muted2 text-xs">Chunks</div>
+                  <div className="text-main">{chunkCount || 0}</div>
                 </div>
               </div>
 
               <div>
-                <div className="text-gray-500 text-xs">Extracción</div>
-                <div className="text-gray-200">{extractionMethod || "-"}</div>
+                <div className="text-muted2 text-xs">Extracción</div>
+                <div className="text-main">{extractionMethod || "-"}</div>
               </div>
 
               <div>
-                <div className="text-gray-500 text-xs">Parser</div>
-                <div className="text-gray-200">{parserUsed || "-"}</div>
+                <div className="text-muted2 text-xs">Parser</div>
+                <div className="text-main">{parserUsed || "-"}</div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <div className="text-gray-500 text-xs">OCR</div>
-                  <div className="text-gray-200">{ocrUsed ? "Sí" : "No"}</div>
+                  <div className="text-muted2 text-xs">OCR</div>
+                  <div className="text-main">{ocrUsed ? "Sí" : "No"}</div>
                 </div>
                 <div>
-                  <div className="text-gray-500 text-xs">Cache</div>
-                  <div className="text-gray-200">{fromCache ? "Sí" : "No"}</div>
+                  <div className="text-muted2 text-xs">Cache</div>
+                  <div className="text-main">{fromCache ? "Sí" : "No"}</div>
                 </div>
               </div>
             </div>
@@ -464,7 +464,7 @@ export default function PaperPage() {
                   })
                 }
                 disabled={extracting}
-                className="mt-4 w-full rounded-2xl px-4 py-2.5 border border-white/10 bg-white/5 hover:bg-white/10 text-sm font-medium text-gray-200 disabled:opacity-50 flex items-center justify-center gap-2"
+                className="mt-4 w-full rounded-2xl px-4 py-2.5 border border-soft bg-card-soft-theme hover:bg-card-soft-theme text-sm font-medium text-main disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {extracting ? (
                   <>
@@ -481,18 +481,18 @@ export default function PaperPage() {
             )}
           </div>
 
-          <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+          <div className="rounded-2xl border border-soft bg-card-soft-theme p-4">
             <div className="flex items-center gap-2 mb-3">
               <Brain size={16} className="text-cyan-400" />
               <h2 className="font-semibold text-sm">Resumen</h2>
             </div>
 
-            <div className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">
+            <div className="text-sm text-sub leading-relaxed whitespace-pre-wrap">
               {paperSummary || "Todavía no hay resumen disponible."}
             </div>
           </div>
 
-          <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+          <div className="rounded-2xl border border-soft bg-card-soft-theme p-4">
             <div className="flex items-center gap-2 mb-3">
               <Sparkles size={16} className="text-yellow-400" />
               <h2 className="font-semibold text-sm">Preguntas sugeridas</h2>
@@ -504,7 +504,7 @@ export default function PaperPage() {
                   key={item}
                   disabled={!hasDocument || chatting}
                   onClick={() => handleAsk(item)}
-                  className="text-left rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 px-3 py-2.5 text-sm text-gray-200 disabled:opacity-40"
+                  className="text-left rounded-2xl border border-soft bg-card-soft-theme hover:bg-card-soft-theme px-3 py-2.5 text-sm text-main disabled:opacity-40"
                 >
                   {item}
                 </button>
@@ -513,25 +513,25 @@ export default function PaperPage() {
           </div>
 
           {error && (
-            <div className="rounded-2xl border border-red-500/25 bg-red-500/10 p-3 text-sm text-red-300 whitespace-pre-wrap">
+            <div className="rounded-2xl border border-red-500/25 bg-red-500/10 p-3 text-sm text-red-700 whitespace-pre-wrap">
               {error}
             </div>
           )}
 
           {success && (
-            <div className="rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-3 text-sm text-emerald-300 whitespace-pre-wrap">
+            <div className="rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-3 text-sm text-emerald-700 whitespace-pre-wrap">
               {success}
             </div>
           )}
         </aside>
 
         {/* Main chat */}
-        <main className="rounded-3xl border border-white/10 bg-white/[0.03] min-h-[75vh] flex flex-col overflow-hidden">
-          <div className="border-b border-white/10 px-4 py-3 flex items-center gap-2">
+        <main className="rounded-2xl border border-soft bg-card-soft-theme min-h-[75vh] flex flex-col overflow-hidden">
+          <div className="border-b border-soft px-4 py-3 flex items-center gap-2">
             <Search size={16} className="text-pink-400" />
             <div>
               <div className="font-semibold text-sm">Conversación con el documento</div>
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-muted2">
                 Haz preguntas sobre el contenido extraído del PDF
               </div>
             </div>
@@ -539,11 +539,11 @@ export default function PaperPage() {
 
           <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
             {!messages.length && (
-              <div className="h-full flex flex-col items-center justify-center text-center text-gray-500 px-6">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-pink-600/20 to-violet-600/20 border border-white/10 flex items-center justify-center mb-4">
+              <div className="h-full flex flex-col items-center justify-center text-center text-muted2 px-6">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-pink-600/20 to-violet-600/20 border border-soft flex items-center justify-center mb-4">
                   <FileSearch size={24} className="text-pink-400" />
                 </div>
-                <h3 className="text-gray-300 font-semibold mb-1">Sube un paper para comenzar</h3>
+                <h3 className="text-sub font-semibold mb-1">Sube un paper para comenzar</h3>
                 <p className="text-sm max-w-xl">
                   Una vez procesado, podrás preguntarle por metodología, resultados, conclusiones,
                   limitaciones, tablas o explicaciones en lenguaje simple.
@@ -554,24 +554,24 @@ export default function PaperPage() {
             {messages.map((msg, index) => (
               <div
                 key={index}
-                className={`max-w-[88%] rounded-3xl px-4 py-3 whitespace-pre-wrap ${
+                className={`max-w-[88%] rounded-2xl px-4 py-3 whitespace-pre-wrap ${
                   msg.role === "user"
-                    ? "ml-auto bg-gradient-to-r from-pink-600 to-fuchsia-600 text-white"
-                    : "mr-auto bg-white/[0.05] border border-white/10 text-gray-100"
+                    ? "ml-auto bg-gradient-to-r from-pink-600 to-fuchsia-600 text-main"
+                    : "mr-auto bg-card-soft-theme text-main"
                 }`}
               >
                 <div className="text-sm leading-relaxed">{msg.content}</div>
 
                 {msg.role === "assistant" && !!msg.citations?.length && (
-                  <div className="mt-3 pt-3 border-t border-white/10">
-                    <div className="text-[11px] uppercase tracking-wide text-gray-400 mb-2">
+                  <div className="mt-3 pt-3 border-t border-soft">
+                    <div className="text-[11px] uppercase tracking-wide text-sub mb-2">
                       Citas usadas
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {msg.citations.map((citation, i) => (
                         <span
                           key={i}
-                          className="rounded-xl px-2.5 py-1 bg-black/20 border border-white/10 text-xs text-gray-300"
+                          className="rounded-xl px-2.5 py-1 bg-card-soft-theme text-xs text-sub"
                         >
                           {formatCitation(citation)}
                         </span>
@@ -583,7 +583,7 @@ export default function PaperPage() {
             ))}
 
             {(extracting || chatting) && (
-              <div className="mr-auto max-w-[88%] rounded-3xl px-4 py-3 bg-white/[0.05] border border-white/10 text-gray-300">
+              <div className="mr-auto max-w-[88%] rounded-2xl px-4 py-3 bg-card-soft-theme text-sub">
                 <div className="flex items-center gap-2 text-sm">
                   <Loader2 size={15} className="animate-spin" />
                   {extracting ? "Procesando el documento..." : "Analizando tu pregunta..."}
@@ -594,7 +594,7 @@ export default function PaperPage() {
             <div ref={chatEndRef} />
           </div>
 
-          <div className="border-t border-white/10 p-4">
+          <div className="border-t border-soft p-4">
             <div className="flex gap-3">
               <textarea
                 value={question}
@@ -606,12 +606,12 @@ export default function PaperPage() {
                 }
                 disabled={!hasDocument || chatting || extracting}
                 rows={3}
-                className="flex-1 resize-none rounded-2xl bg-white/[0.05] border border-white/10 px-4 py-3 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-pink-500/40 disabled:opacity-50"
+                className="flex-1 resize-none rounded-2xl bg-card-soft-theme px-4 py-3 text-sm text-main placeholder:text-muted2 focus:outline-none focus:border-pink-500/40 disabled:opacity-50"
               />
               <button
                 onClick={() => handleAsk()}
                 disabled={!hasDocument || !question.trim() || chatting || extracting}
-                className="self-end rounded-2xl px-4 py-3 bg-gradient-to-r from-pink-600 to-fuchsia-600 text-white font-semibold disabled:opacity-50 flex items-center gap-2"
+                className="self-end rounded-2xl px-4 py-3 bg-gradient-to-r from-pink-600 to-fuchsia-600 text-main font-semibold disabled:opacity-50 flex items-center gap-2"
               >
                 <Send size={15} />
                 Enviar

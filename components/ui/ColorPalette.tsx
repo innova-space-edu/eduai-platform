@@ -19,14 +19,14 @@ const PALETTES = [
   { name: "Verde",     color: "#22c55e", bg: "bg-green-500"   },
   { name: "Esmeralda", color: "#10b981", bg: "bg-emerald-500" },
   { name: "Cian",      color: "#06b6d4", bg: "bg-cyan-500"    },
-  { name: "Slate",     color: "#64748b", bg: "bg-slate-500"   },
-  { name: "Negro",     color: "#1e293b", bg: "bg-slate-800"   },
+  { name: "Gris",      color: "var(--text-muted)", bg: ""               },
+  { name: "Negro",     color: "var(--bg-card-soft)", bg: "bg-card-soft-theme"   },
 ]
 
 export default function ColorPalette({ value, onChange }: ColorPaletteProps) {
   return (
     <div>
-      <label className="text-gray-600 text-[11px] font-semibold tracking-widest block mb-2">COLOR</label>
+      <label className="text-muted2 text-[11px] font-semibold tracking-widest block mb-2">COLOR</label>
       <div className="flex gap-1.5 flex-wrap">
         {PALETTES.map(p => (
           <button
@@ -34,7 +34,7 @@ export default function ColorPalette({ value, onChange }: ColorPaletteProps) {
             onClick={() => onChange(p.color)}
             title={p.name}
             className={`w-7 h-7 rounded-lg transition-all border-2 ${
-              value === p.color ? "border-white scale-110 shadow-lg" : "border-transparent hover:scale-105"
+              value === p.color ? "border-medium scale-110 shadow-md ring-2 ring-offset-1 ring-medium" : "border-transparent hover:scale-105 hover:border-soft"
             }`}
             style={{ backgroundColor: p.color }}
           />

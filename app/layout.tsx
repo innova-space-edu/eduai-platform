@@ -3,6 +3,7 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import SupportButton from "@/components/ui/SupportButton"
 import SuperAgentButton from "@/components/ui/SuperAgentButton"
+import { ThemeProvider } from "@/components/theme-provider"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -22,9 +23,11 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <body className={inter.className}>
-        {children}
-        <SupportButton />
-        <SuperAgentButton />
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+          {children}
+          <SupportButton />
+          <SuperAgentButton />
+        </ThemeProvider>
       </body>
     </html>
   )

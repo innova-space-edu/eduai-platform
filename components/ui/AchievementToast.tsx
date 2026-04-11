@@ -79,10 +79,10 @@ function AchievementCard({
         </div>
 
         <div className="flex-1 min-w-0">
-          <p className="text-white font-bold text-sm leading-tight truncate">
+          <p className="text-main font-bold text-sm leading-tight truncate">
             {achievement.title}
           </p>
-          <p className="text-gray-500 text-xs mt-0.5 leading-snug line-clamp-2">
+          <p className="text-muted2 text-xs mt-0.5 leading-snug line-clamp-2">
             {achievement.description}
           </p>
         </div>
@@ -95,7 +95,7 @@ function AchievementCard({
       </div>
 
       {/* Progress bar (visual only) */}
-      <div className="mt-3 h-0.5 bg-white/5 rounded-full overflow-hidden">
+      <div className="mt-3 h-0.5 bg-card-soft-theme rounded-full overflow-hidden">
         <div
           className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full"
           style={{

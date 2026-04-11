@@ -271,7 +271,7 @@ export default function VoiceNarrator({ text, autoPlay = false, addMotivation = 
       </button>
 
       {/* Info voces — igual que antes */}
-      <span className="text-[11px] text-gray-500">
+      <span className="text-[11px] text-muted2">
         Voz A: Álvaro · Voz B: Elvira
       </span>
 

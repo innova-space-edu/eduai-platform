@@ -223,14 +223,14 @@ function statusPill(status?: "active" | "maintenance") {
     return {
       label: "En mantención",
       className:
-        "bg-amber-500/10 text-amber-200 border border-amber-400/20",
+        "bg-amber-500/10 text-amber-700 border border-amber-400/20",
     }
   }
 
   return {
     label: "Disponible",
     className:
-      "bg-emerald-500/10 text-emerald-200 border border-emerald-400/20",
+      "bg-emerald-500/10 text-emerald-700 border border-emerald-400/20",
   }
 }
 
@@ -238,12 +238,12 @@ export default function AgentesPage() {
   const router = useRouter()
 
   return (
-    <div className="min-h-screen bg-gray-950">
-      <header className="sticky top-0 z-10 border-b border-white/[0.06] bg-gray-950/90 backdrop-blur-xl">
+    <div className="min-h-screen bg-app">
+      <header className="sticky top-0 z-10 border-b border-soft bg-app backdrop-blur-xl">
         <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3.5">
           <button
             onClick={() => router.back()}
-            className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/[0.06] bg-white/[0.04] text-gray-400 transition-all hover:bg-white/[0.07] hover:text-white"
+            className="flex h-8 w-8 items-center justify-center rounded-xl border border-soft bg-card-soft-theme text-sub transition-all hover:bg-input-theme hover:text-main"
           >
             <ArrowLeft size={15} />
           </button>
@@ -253,8 +253,8 @@ export default function AgentesPage() {
           </div>
 
           <div>
-            <h1 className="text-sm font-semibold text-white">Agentes de IA</h1>
-            <p className="text-xs text-gray-500">{AGENTS.length} agentes especializados</p>
+            <h1 className="text-sm font-semibold text-main">Agentes de IA</h1>
+            <p className="text-xs text-muted2">{AGENTS.length} agentes especializados</p>
           </div>
         </div>
       </header>
@@ -293,8 +293,8 @@ export default function AgentesPage() {
                 href={a.href}
                 className="group relative flex flex-col gap-4 rounded-2xl border p-5 transition-all duration-200 hover:scale-[1.02] animate-fade-in"
                 style={{
-                  background: "rgba(255,255,255,0.02)",
-                  borderColor: "rgba(255,255,255,0.07)",
+                  background: "var(--bg-card-soft)",
+                  borderColor: "var(--bg-card-soft)",
                 }}
                 onMouseEnter={(e) => {
                   ;(e.currentTarget as HTMLElement).style.background = a.glow
@@ -302,8 +302,8 @@ export default function AgentesPage() {
                   ;(e.currentTarget as HTMLElement).style.boxShadow = `0 8px 32px ${a.glow}`
                 }}
                 onMouseLeave={(e) => {
-                  ;(e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.02)"
-                  ;(e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.07)"
+                  ;(e.currentTarget as HTMLElement).style.background = "var(--bg-card-soft)"
+                  ;(e.currentTarget as HTMLElement).style.borderColor = "var(--bg-card-soft)"
                   ;(e.currentTarget as HTMLElement).style.boxShadow = "none"
                 }}
               >
@@ -340,17 +340,17 @@ export default function AgentesPage() {
                 </div>
 
                 <div className="flex-1">
-                  <h3 className="mb-1.5 text-base font-semibold text-white transition-colors group-hover:text-white">
+                  <h3 className="mb-1.5 text-base font-semibold text-main transition-colors group-hover:text-main">
                     {a.name}
                   </h3>
-                  <p className="text-sm leading-relaxed text-gray-500">{a.description}</p>
+                  <p className="text-sm leading-relaxed text-muted2">{a.description}</p>
                 </div>
 
                 <div
                   className={`flex items-center gap-1 text-xs font-medium transition-colors ${
                     a.status === "maintenance"
-                      ? "text-amber-300 group-hover:text-amber-200"
-                      : "text-gray-600 group-hover:text-blue-400"
+                      ? "text-amber-700 group-hover:text-amber-700"
+                      : "text-muted2 group-hover:text-blue-400"
                   }`}
                 >
                   <span>{a.ctaLabel || "Abrir agente"}</span>

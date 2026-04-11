@@ -21,7 +21,7 @@ import StudentPdfExporter from "./StudentPdfExporter"
 
 function RiskBadge({ level, count }: { level: string; count: number }) {
   if (count === 0 || level === "clean") {
-    return <span className="text-gray-700 text-xs">—</span>
+    return <span className="text-muted2 text-xs">—</span>
   }
 
   const cfg =
@@ -45,7 +45,7 @@ function RiskBadge({ level, count }: { level: string; count: number }) {
         label: "Alto",
       },
     }[level] || {
-      color: "#9ca3af",
+      color: "var(--text-muted)",
       bg: "rgba(156,163,175,0.1)",
       border: "rgba(156,163,175,0.2)",
       label: "?",
@@ -108,16 +108,16 @@ function IncidentModal({
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
       <div
         className="relative w-full max-w-lg max-h-[80vh] flex flex-col rounded-2xl overflow-hidden shadow-2xl"
-        style={{ background: "#0f172a", border: "1px solid rgba(255,255,255,0.1)" }}
+        style={{ background: "var(--bg-card)", border: "1px solid var(--border-medium)" }}
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.07] flex-shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-soft flex-shrink-0">
           <div>
-            <h3 className="text-white font-bold text-sm">Incidentes — {submission.student_name}</h3>
-            <p className="text-gray-500 text-xs">
+            <h3 className="text-main font-bold text-sm">Incidentes — {submission.student_name}</h3>
+            <p className="text-muted2 text-xs">
               {incidents.length} evento{incidents.length !== 1 ? "s" : ""}
             </p>
           </div>
-          <button onClick={onClose} className="text-gray-500 hover:text-white">
+          <button onClick={onClose} className="text-muted2 hover:text-main">
             <X size={18} />
           </button>
         </div>
@@ -125,12 +125,12 @@ function IncidentModal({
         <div className="flex-1 overflow-y-auto p-4">
           {loading ? (
             <div className="flex justify-center py-8">
-              <div className="w-6 h-6 rounded-full border-2 border-white/10 border-t-red-400 animate-spin" />
+              <div className="w-6 h-6 rounded-full border-2 border-soft border-t-red-400 animate-spin" />
             </div>
           ) : incidents.length === 0 ? (
             <div className="text-center py-8">
-              <Shield size={28} className="text-gray-700 mx-auto mb-2" />
-              <p className="text-gray-500 text-sm">Sin incidentes</p>
+              <Shield size={28} className="text-muted2 mx-auto mb-2" />
+              <p className="text-muted2 text-sm">Sin incidentes</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -139,20 +139,20 @@ function IncidentModal({
                   key={inc.id || i}
                   className="flex items-start gap-3 px-3 py-2.5 rounded-xl"
                   style={{
-                    background: "rgba(255,255,255,0.02)",
-                    border: "1px solid rgba(255,255,255,0.06)",
+                    background: "var(--bg-card-soft)",
+                    border: "1px solid var(--border-soft)",
                   }}
                 >
                   <div
                     className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0"
-                    style={{ background: SEV[inc.severity] || "#9ca3af" }}
+                    style={{ background: SEV[inc.severity] || "var(--text-muted)" }}
                   />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="text-gray-200 text-xs font-medium">
+                      <p className="text-main text-xs font-medium">
                         #{inc.incident_number} — {EVENT_LABELS[inc.event_type] || inc.event_type}
                       </p>
-                      <span className="text-gray-600 text-[10px] flex items-center gap-1">
+                      <span className="text-muted2 text-[10px] flex items-center gap-1">
                         <Clock size={9} />
                         {new Date(inc.created_at).toLocaleTimeString("es-CL", {
                           hour: "2-digit",
@@ -163,12 +163,12 @@ function IncidentModal({
                     </div>
                     <div className="flex items-center gap-3 mt-0.5">
                       {inc.question_index != null && (
-                        <span className="text-gray-600 text-[10px]">
+                        <span className="text-muted2 text-[10px]">
                           Pregunta {inc.question_index + 1}
                         </span>
                       )}
                       {inc.client_time_left != null && (
-                        <span className="text-gray-600 text-[10px]">
+                        <span className="text-muted2 text-[10px]">
                           {Math.floor(inc.client_time_left / 60)}:
                           {String(inc.client_time_left % 60).padStart(2, "0")} rest.
                         </span>
@@ -201,9 +201,9 @@ function DeleteSubmissionModal({
       <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" onClick={onClose} />
       <div
         className="relative w-full max-w-md rounded-2xl shadow-2xl overflow-hidden"
-        style={{ background: "#0f172a", border: "1px solid rgba(255,255,255,0.1)" }}
+        style={{ background: "var(--bg-card)", border: "1px solid var(--border-medium)" }}
       >
-        <div className="px-5 py-4 border-b border-white/[0.07] flex items-center justify-between">
+        <div className="px-5 py-4 border-b border-soft flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div
               className="w-10 h-10 rounded-xl flex items-center justify-center"
@@ -215,33 +215,33 @@ function DeleteSubmissionModal({
               <Trash2 size={18} className="text-red-400" />
             </div>
             <div>
-              <h3 className="text-white font-bold text-sm">Eliminar registro</h3>
-              <p className="text-gray-500 text-xs">Esta acción no se puede deshacer.</p>
+              <h3 className="text-main font-bold text-sm">Eliminar registro</h3>
+              <p className="text-muted2 text-xs">Esta acción no se puede deshacer.</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-gray-500 hover:text-white">
+          <button onClick={onClose} className="text-muted2 hover:text-main">
             <X size={18} />
           </button>
         </div>
 
         <div className="px-5 py-4 space-y-4">
-          <p className="text-sm text-gray-300 leading-relaxed">
+          <p className="text-sm text-sub leading-relaxed">
             ¿Estás seguro de quitar a{" "}
-            <span className="font-bold text-white">{submission.student_name || "este estudiante"}</span>?
+            <span className="font-bold text-main">{submission.student_name || "este estudiante"}</span>?
           </p>
 
           <div
             className="rounded-xl px-4 py-3 text-xs"
             style={{
-              background: "rgba(255,255,255,0.03)",
-              border: "1px solid rgba(255,255,255,0.06)",
+              background: "var(--bg-card)",
+              border: "1px solid var(--border-soft)",
             }}
           >
-            <p className="text-gray-400">
-              Curso: <span className="text-gray-200">{submission.student_course || "—"}</span>
+            <p className="text-sub">
+              Curso: <span className="text-main">{submission.student_course || "—"}</span>
             </p>
-            <p className="text-gray-400 mt-1">
-              RUT: <span className="text-gray-200">{submission.student_rut || "—"}</span>
+            <p className="text-sub mt-1">
+              RUT: <span className="text-main">{submission.student_rut || "—"}</span>
             </p>
           </div>
 
@@ -251,9 +251,9 @@ function DeleteSubmissionModal({
               disabled={deleting}
               className="px-4 py-2 rounded-xl text-sm font-semibold transition-all"
               style={{
-                background: "rgba(255,255,255,0.04)",
-                border: "1px solid rgba(255,255,255,0.08)",
-                color: "#9ca3af",
+                background: "var(--bg-input)",
+                border: "1px solid var(--border-soft)",
+                color: "var(--text-muted)",
               }}
             >
               Cancelar
@@ -477,15 +477,15 @@ function ReviewModal({
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
       <div
         className="relative w-full max-w-4xl max-h-[95vh] flex flex-col rounded-2xl overflow-hidden shadow-2xl"
-        style={{ background: "#0a0f1a", border: "1px solid rgba(255,255,255,0.1)" }}
+        style={{ background: "#0a0f1a", border: "1px solid var(--border-medium)" }}
       >
         <div
-          className="flex items-center justify-between px-5 py-4 border-b border-white/[0.07] flex-shrink-0"
-          style={{ background: "rgba(255,255,255,0.02)" }}
+          className="flex items-center justify-between px-5 py-4 border-b border-soft flex-shrink-0"
+          style={{ background: "var(--bg-card-soft)" }}
         >
           <div>
-            <h2 className="text-white font-bold text-base">Revisión — {submission.student_name}</h2>
-            <p className="text-gray-500 text-xs mt-0.5">
+            <h2 className="text-main font-bold text-base">Revisión — {submission.student_name}</h2>
+            <p className="text-muted2 text-xs mt-0.5">
               {submission.student_course} · {submission.student_rut || "Sin RUT"}
             </p>
           </div>
@@ -496,11 +496,11 @@ function ReviewModal({
             <div
               className="text-center px-3 py-1.5 rounded-xl"
               style={{
-                background: "rgba(255,255,255,0.04)",
-                border: "1px solid rgba(255,255,255,0.08)",
+                background: "var(--bg-input)",
+                border: "1px solid var(--border-soft)",
               }}
             >
-              <p className="text-gray-500 text-[10px] mb-0.5">Nota actual</p>
+              <p className="text-muted2 text-[10px] mb-0.5">Nota actual</p>
               <p
                 className={`text-lg font-bold leading-none ${
                   previewGrade.grade >= 6
@@ -512,7 +512,7 @@ function ReviewModal({
               >
                 {previewGrade.grade}
               </p>
-              <p className="text-gray-600 text-[10px]">
+              <p className="text-muted2 text-[10px]">
                 {previewGrade.earned}/{previewGrade.total} pts
               </p>
             </div>
@@ -526,7 +526,7 @@ function ReviewModal({
               </span>
             )}
 
-            <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors ml-1">
+            <button onClick={onClose} className="text-muted2 hover:text-main transition-colors ml-1">
               <X size={18} />
             </button>
           </div>
@@ -534,7 +534,7 @@ function ReviewModal({
 
         <div className="flex flex-1 overflow-hidden">
           <div
-            className="w-40 flex-shrink-0 border-r border-white/[0.06] overflow-y-auto py-2"
+            className="w-40 flex-shrink-0 border-r border-soft overflow-y-auto py-2"
             style={{ background: "rgba(0,0,0,0.3)" }}
           >
             {questions.map((qq: any, i: number) => {
@@ -572,7 +572,7 @@ function ReviewModal({
                       ))}
                   </div>
 
-                  <p className="text-[10px] text-gray-600 mt-0.5 truncate">{typeLabel(qq?.type || "")}</p>
+                  <p className="text-[10px] text-muted2 mt-0.5 truncate">{typeLabel(qq?.type || "")}</p>
                   <p
                     className="text-[10px] font-semibold"
                     style={{
@@ -616,13 +616,13 @@ function ReviewModal({
 
                       <span
                         className="px-2 py-0.5 rounded-lg text-[10px]"
-                        style={{ background: "rgba(255,255,255,0.06)", color: "#9ca3af" }}
+                        style={{ background: "var(--bg-card-soft)", color: "var(--text-muted)" }}
                       >
                         {typeLabel(a.type)} · {a.maxPoints || q.maxPoints || 0} pts máx
                       </span>
                     </div>
 
-                    <p className="text-white text-sm leading-relaxed">{q.question}</p>
+                    <p className="text-main text-sm leading-relaxed">{q.question}</p>
                   </div>
                 </div>
 
@@ -642,13 +642,13 @@ function ReviewModal({
                                 ? "rgba(34,197,94,0.08)"
                                 : isStudentAnswer
                                   ? "rgba(239,68,68,0.08)"
-                                  : "rgba(255,255,255,0.03)",
+                                  : "var(--bg-card)",
                               border: `1px solid ${
                                 isCorrectAnswer
                                   ? "rgba(34,197,94,0.3)"
                                   : isStudentAnswer
                                     ? "rgba(239,68,68,0.3)"
-                                    : "rgba(255,255,255,0.06)"
+                                    : "var(--bg-card-soft)"
                               }`,
                             }}
                           >
@@ -664,7 +664,7 @@ function ReviewModal({
                             <span
                               className="text-sm flex-1"
                               style={{
-                                color: isCorrectAnswer ? "#86efac" : isStudentAnswer ? "#fca5a5" : "#9ca3af",
+                                color: isCorrectAnswer ? "#86efac" : isStudentAnswer ? "#fca5a5" : "var(--text-muted)",
                               }}
                             >
                               {opt}
@@ -691,19 +691,19 @@ function ReviewModal({
                           border: "1px solid rgba(59,130,246,0.15)",
                         }}
                       >
-                        <p className="text-blue-300 font-semibold mb-1">💡 Explicación</p>
-                        <p className="text-gray-400">{q.explanation}</p>
+                        <p className="text-blue-700 font-semibold mb-1">💡 Explicación</p>
+                        <p className="text-sub">{q.explanation}</p>
                       </div>
                     )}
 
                     <div
                       className="rounded-xl px-4 py-3"
                       style={{
-                        background: "rgba(255,255,255,0.03)",
-                        border: "1px solid rgba(255,255,255,0.08)",
+                        background: "var(--bg-card)",
+                        border: "1px solid var(--border-soft)",
                       }}
                     >
-                      <p className="text-gray-400 text-xs font-semibold mb-2">Revisión del docente</p>
+                      <p className="text-sub text-xs font-semibold mb-2">Revisión del docente</p>
 
                       <div className="flex gap-3">
                         <button
@@ -713,11 +713,11 @@ function ReviewModal({
                             background:
                               mcOverrides[activeQ] === true
                                 ? "rgba(34,197,94,0.2)"
-                                : "rgba(255,255,255,0.04)",
+                                : "var(--bg-input)",
                             border: `1px solid ${
                               mcOverrides[activeQ] === true
                                 ? "rgba(34,197,94,0.4)"
-                                : "rgba(255,255,255,0.08)"
+                                : "var(--border-soft)"
                             }`,
                             color: mcOverrides[activeQ] === true ? "#4ade80" : "#6b7280",
                           }}
@@ -732,11 +732,11 @@ function ReviewModal({
                             background:
                               mcOverrides[activeQ] === false
                                 ? "rgba(239,68,68,0.2)"
-                                : "rgba(255,255,255,0.04)",
+                                : "var(--bg-input)",
                             border: `1px solid ${
                               mcOverrides[activeQ] === false
                                 ? "rgba(239,68,68,0.4)"
-                                : "rgba(255,255,255,0.08)"
+                                : "var(--border-soft)"
                             }`,
                             color: mcOverrides[activeQ] === false ? "#f87171" : "#6b7280",
                           }}
@@ -753,11 +753,11 @@ function ReviewModal({
                     <div
                       className="rounded-xl px-4 py-3"
                       style={{
-                        background: "rgba(255,255,255,0.03)",
-                        border: "1px solid rgba(255,255,255,0.08)",
+                        background: "var(--bg-card)",
+                        border: "1px solid var(--border-soft)",
                       }}
                     >
-                      <p className="text-gray-500 text-xs font-semibold mb-2">
+                      <p className="text-muted2 text-xs font-semibold mb-2">
                         SELECCIÓN ({a.selectionPoints || 1} pt)
                       </p>
 
@@ -773,7 +773,7 @@ function ReviewModal({
                           {(q.options || ["Verdadero", "Falso"])[a.selectedAnswer]}
                         </span>
 
-                        <span className="text-gray-600 text-xs">
+                        <span className="text-muted2 text-xs">
                           Correcta: {(q.options || ["Verdadero", "Falso"])[q.correctAnswer]}
                         </span>
                       </div>
@@ -782,11 +782,11 @@ function ReviewModal({
                     <div
                       className="rounded-xl px-4 py-3"
                       style={{
-                        background: "rgba(255,255,255,0.03)",
-                        border: "1px solid rgba(255,255,255,0.08)",
+                        background: "var(--bg-card)",
+                        border: "1px solid var(--border-soft)",
                       }}
                     >
-                      <p className="text-gray-500 text-xs font-semibold mb-2">
+                      <p className="text-muted2 text-xs font-semibold mb-2">
                         JUSTIFICACIÓN (máx {a.justificationMaxPoints || 0} pts)
                       </p>
 
@@ -797,9 +797,9 @@ function ReviewModal({
                           border: "1px solid rgba(59,130,246,0.15)",
                         }}
                       >
-                        <p className="text-blue-300 text-xs font-semibold mb-1">Respuesta del estudiante</p>
-                        <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">
-                          {a.justification || <span className="text-gray-600 italic">Sin justificación</span>}
+                        <p className="text-blue-700 text-xs font-semibold mb-1">Respuesta del estudiante</p>
+                        <p className="text-sub text-sm leading-relaxed whitespace-pre-wrap">
+                          {a.justification || <span className="text-muted2 italic">Sin justificación</span>}
                         </p>
                       </div>
 
@@ -814,7 +814,7 @@ function ReviewModal({
                           <p className="text-green-400 text-xs font-semibold mb-1">
                             Explicación correcta (referencia)
                           </p>
-                          <p className="text-gray-400 text-sm">{q.explanation}</p>
+                          <p className="text-sub text-sm">{q.explanation}</p>
                         </div>
                       )}
 
@@ -826,13 +826,13 @@ function ReviewModal({
                             border: "1px solid rgba(139,92,246,0.15)",
                           }}
                         >
-                          <p className="text-purple-300 text-xs font-semibold mb-1">🤖 Evaluación IA</p>
-                          <p className="text-gray-400 text-sm">{a.aiFeedback}</p>
+                          <p className="text-purple-700 text-xs font-semibold mb-1">🤖 Evaluación IA</p>
+                          <p className="text-sub text-sm">{a.aiFeedback}</p>
                         </div>
                       )}
 
                       <div className="flex items-center gap-3 mt-2">
-                        <label className="text-gray-400 text-xs font-semibold whitespace-nowrap">
+                        <label className="text-sub text-xs font-semibold whitespace-nowrap">
                           Puntaje justificación:
                         </label>
 
@@ -851,14 +851,14 @@ function ReviewModal({
                               ),
                             }))
                           }
-                          className="w-20 text-center rounded-xl px-2 py-1.5 text-sm font-bold text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          className="w-20 text-center rounded-xl px-2 py-1.5 text-sm font-bold text-main focus:outline-none focus:ring-1 focus:ring-blue-500"
                           style={{
-                            background: "rgba(255,255,255,0.08)",
-                            border: "1px solid rgba(255,255,255,0.15)",
+                            background: "var(--border-soft)",
+                            border: "1px solid var(--border-medium)",
                           }}
                         />
 
-                        <span className="text-gray-600 text-xs">/ {a.justificationMaxPoints || 0} pts</span>
+                        <span className="text-muted2 text-xs">/ {a.justificationMaxPoints || 0} pts</span>
                       </div>
 
                       <textarea
@@ -866,10 +866,10 @@ function ReviewModal({
                         value={feedbacks[activeQ] || ""}
                         onChange={(e) => setFeedbacks((p) => ({ ...p, [activeQ]: e.target.value }))}
                         rows={2}
-                        className="w-full mt-3 rounded-xl px-3 py-2 text-xs text-gray-300 focus:outline-none resize-none"
+                        className="w-full mt-3 rounded-xl px-3 py-2 text-xs text-sub focus:outline-none resize-none"
                         style={{
-                          background: "rgba(255,255,255,0.04)",
-                          border: "1px solid rgba(255,255,255,0.08)",
+                          background: "var(--bg-input)",
+                          border: "1px solid var(--border-soft)",
                         }}
                       />
                     </div>
@@ -885,9 +885,9 @@ function ReviewModal({
                         border: "1px solid rgba(59,130,246,0.15)",
                       }}
                     >
-                      <p className="text-blue-300 text-xs font-semibold mb-2">Respuesta del estudiante</p>
-                      <p className="text-gray-200 text-sm leading-relaxed whitespace-pre-wrap">
-                        {a.devText || <span className="text-gray-600 italic">Sin respuesta</span>}
+                      <p className="text-blue-700 text-xs font-semibold mb-2">Respuesta del estudiante</p>
+                      <p className="text-main text-sm leading-relaxed whitespace-pre-wrap">
+                        {a.devText || <span className="text-muted2 italic">Sin respuesta</span>}
                       </p>
                     </div>
 
@@ -902,7 +902,7 @@ function ReviewModal({
                         <p className="text-green-400 text-xs font-semibold mb-2">
                           ✓ Respuesta modelo (referencia)
                         </p>
-                        <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">
+                        <p className="text-sub text-sm leading-relaxed whitespace-pre-wrap">
                           {q.modelAnswer}
                         </p>
                       </div>
@@ -912,20 +912,20 @@ function ReviewModal({
                       <div
                         className="rounded-xl overflow-hidden"
                         style={{
-                          background: "rgba(255,255,255,0.03)",
-                          border: "1px solid rgba(255,255,255,0.08)",
+                          background: "var(--bg-card)",
+                          border: "1px solid var(--border-soft)",
                         }}
                       >
-                        <div className="px-4 py-3 border-b border-white/[0.06]">
-                          <p className="text-gray-400 text-xs font-semibold">Rúbrica</p>
+                        <div className="px-4 py-3 border-b border-soft">
+                          <p className="text-sub text-xs font-semibold">Rúbrica</p>
                         </div>
-                        <div className="divide-y divide-white/[0.05]">
+                        <div className="divide-y divide-[var(--border-soft)]">
                           {q.rubric.map((r: any, idx: number) => (
                             <div key={idx} className="px-4 py-2.5 flex items-center justify-between gap-4">
-                              <p className="text-sm text-gray-300">
+                              <p className="text-sm text-sub">
                                 {r.criteria || r.criterion || r.criterio || "Criterio"}
                               </p>
-                              <span className="text-xs text-gray-500 font-semibold whitespace-nowrap">
+                              <span className="text-xs text-muted2 font-semibold whitespace-nowrap">
                                 {r.points || r.puntos || r.puntaje || 0} pts
                               </span>
                             </div>
@@ -942,8 +942,8 @@ function ReviewModal({
                           border: "1px solid rgba(139,92,246,0.15)",
                         }}
                       >
-                        <p className="text-purple-300 text-xs font-semibold mb-2">🤖 Evaluación IA</p>
-                        <p className="text-gray-400 text-sm leading-relaxed whitespace-pre-wrap">
+                        <p className="text-purple-700 text-xs font-semibold mb-2">🤖 Evaluación IA</p>
+                        <p className="text-sub text-sm leading-relaxed whitespace-pre-wrap">
                           {a.aiFeedback}
                         </p>
                       </div>
@@ -952,12 +952,12 @@ function ReviewModal({
                     <div
                       className="rounded-xl px-4 py-3"
                       style={{
-                        background: "rgba(255,255,255,0.03)",
-                        border: "1px solid rgba(255,255,255,0.08)",
+                        background: "var(--bg-card)",
+                        border: "1px solid var(--border-soft)",
                       }}
                     >
                       <div className="flex items-center gap-3">
-                        <label className="text-gray-400 text-xs font-semibold whitespace-nowrap">
+                        <label className="text-sub text-xs font-semibold whitespace-nowrap">
                           Puntaje:
                         </label>
 
@@ -976,14 +976,14 @@ function ReviewModal({
                               ),
                             }))
                           }
-                          className="w-20 text-center rounded-xl px-2 py-1.5 text-sm font-bold text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          className="w-20 text-center rounded-xl px-2 py-1.5 text-sm font-bold text-main focus:outline-none focus:ring-1 focus:ring-blue-500"
                           style={{
-                            background: "rgba(255,255,255,0.08)",
-                            border: "1px solid rgba(255,255,255,0.15)",
+                            background: "var(--border-soft)",
+                            border: "1px solid var(--border-medium)",
                           }}
                         />
 
-                        <span className="text-gray-600 text-xs">/ {a.maxPoints || q.maxPoints || 0} pts</span>
+                        <span className="text-muted2 text-xs">/ {a.maxPoints || q.maxPoints || 0} pts</span>
                       </div>
 
                       <textarea
@@ -991,10 +991,10 @@ function ReviewModal({
                         value={feedbacks[activeQ] || ""}
                         onChange={(e) => setFeedbacks((p) => ({ ...p, [activeQ]: e.target.value }))}
                         rows={4}
-                        className="w-full mt-3 rounded-xl px-3 py-2 text-xs text-gray-300 focus:outline-none resize-y"
+                        className="w-full mt-3 rounded-xl px-3 py-2 text-xs text-sub focus:outline-none resize-y"
                         style={{
-                          background: "rgba(255,255,255,0.04)",
-                          border: "1px solid rgba(255,255,255,0.08)",
+                          background: "var(--bg-input)",
+                          border: "1px solid var(--border-soft)",
                         }}
                       />
                     </div>
@@ -1006,10 +1006,10 @@ function ReviewModal({
         </div>
 
         <div
-          className="px-5 py-4 border-t border-white/[0.07] flex items-center justify-between gap-3"
-          style={{ background: "rgba(255,255,255,0.02)" }}
+          className="px-5 py-4 border-t border-soft flex items-center justify-between gap-3"
+          style={{ background: "var(--bg-card-soft)" }}
         >
-          <div className="text-xs text-gray-500">
+          <div className="text-xs text-muted2">
             Guarda los cambios para actualizar nota, puntajes y retroalimentación.
           </div>
 
@@ -1018,9 +1018,9 @@ function ReviewModal({
               onClick={onClose}
               className="px-4 py-2 rounded-xl text-sm font-semibold transition-all"
               style={{
-                background: "rgba(255,255,255,0.04)",
-                border: "1px solid rgba(255,255,255,0.08)",
-                color: "#9ca3af",
+                background: "var(--bg-input)",
+                border: "1px solid var(--border-soft)",
+                color: "var(--text-muted)",
               }}
             >
               Cerrar
@@ -1038,7 +1038,7 @@ function ReviewModal({
             >
               {saving ? (
                 <>
-                  <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                  <div className="w-4 h-4 rounded-full border-2 border-soft border-t-white animate-spin" />
                   Guardando...
                 </>
               ) : (
@@ -1169,27 +1169,27 @@ export default function ResultadosExamenPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="w-10 h-10 rounded-full border-2 border-white/10 border-t-blue-400 animate-spin" />
+      <div className="min-h-screen bg-app flex items-center justify-center">
+        <div className="w-10 h-10 rounded-full border-2 border-soft border-t-blue-400 animate-spin" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#020617] text-gray-200">
+    <div className="min-h-screen bg-[#020617] text-main">
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="flex items-start justify-between gap-4 mb-8">
           <div className="flex items-start gap-3">
             <Link
               href="/examen/docente"
-              className="mt-1 text-gray-500 hover:text-white transition-colors"
+              className="mt-1 text-muted2 hover:text-main transition-colors"
             >
               ←
             </Link>
 
             <div>
-              <h1 className="text-2xl font-bold text-white">{exam?.title || "Resultados del examen"}</h1>
-              <p className="text-gray-500 text-sm mt-1">
+              <h1 className="text-2xl font-bold text-main">{exam?.title || "Resultados del examen"}</h1>
+              <p className="text-muted2 text-sm mt-1">
                 Código: {exam?.code || "—"} · Estado:{" "}
                 <span className={exam?.status === "active" ? "text-green-400" : "text-red-400"}>
                   {exam?.status === "active" ? "Activo" : "Cerrado"}
@@ -1217,7 +1217,7 @@ export default function ResultadosExamenPage() {
 
             <ReportExporter exam={exam} submissions={submissions} />
 
-            <span className="text-[10px] text-gray-600">
+            <span className="text-[10px] text-muted2">
               {refreshing ? "Actualizando..." : "Auto refresh 15s"}
             </span>
           </div>
@@ -1236,11 +1236,11 @@ export default function ResultadosExamenPage() {
               key={card.label}
               className="rounded-2xl p-4"
               style={{
-                background: "rgba(255,255,255,0.03)",
-                border: "1px solid rgba(255,255,255,0.06)",
+                background: "var(--bg-card)",
+                border: "1px solid var(--border-soft)",
               }}
             >
-              <p className="text-gray-500 text-xs font-semibold mb-1">{card.label}</p>
+              <p className="text-muted2 text-xs font-semibold mb-1">{card.label}</p>
               <p className="text-xl font-bold" style={{ color: card.color }}>
                 {card.value}
               </p>
@@ -1252,11 +1252,11 @@ export default function ResultadosExamenPage() {
           <div
             className="rounded-2xl p-4"
             style={{
-              background: "rgba(255,255,255,0.03)",
-              border: "1px solid rgba(255,255,255,0.06)",
+              background: "var(--bg-card)",
+              border: "1px solid var(--border-soft)",
             }}
           >
-            <p className="text-white font-semibold text-sm mb-3">Resumen de revisión</p>
+            <p className="text-main font-semibold text-sm mb-3">Resumen de revisión</p>
 
             <div className="flex flex-wrap gap-3">
               <span
@@ -1292,12 +1292,12 @@ export default function ResultadosExamenPage() {
           <div
             className="rounded-2xl p-4"
             style={{
-              background: "rgba(255,255,255,0.03)",
-              border: "1px solid rgba(255,255,255,0.06)",
+              background: "var(--bg-card)",
+              border: "1px solid var(--border-soft)",
             }}
           >
-            <p className="text-white font-semibold text-sm mb-1">Acciones</p>
-            <p className="text-gray-500 text-xs">
+            <p className="text-main font-semibold text-sm mb-1">Acciones</p>
+            <p className="text-muted2 text-xs">
               Revisa, exporta PDF individual o elimina registros erróneos.
             </p>
           </div>
@@ -1306,8 +1306,8 @@ export default function ResultadosExamenPage() {
         <div
           className="rounded-2xl overflow-hidden"
           style={{
-            background: "rgba(255,255,255,0.03)",
-            border: "1px solid rgba(255,255,255,0.06)",
+            background: "var(--bg-card)",
+            border: "1px solid var(--border-soft)",
           }}
         >
           <div className="overflow-x-auto">
@@ -1315,7 +1315,7 @@ export default function ResultadosExamenPage() {
               <thead>
                 <tr
                   className="text-left text-[11px] uppercase tracking-wide"
-                  style={{ background: "rgba(255,255,255,0.03)", color: "#6b7280" }}
+                  style={{ background: "var(--bg-card)", color: "#6b7280" }}
                 >
                   <th className="py-3 px-4">Estudiante</th>
                   <th className="py-3 px-3">Curso</th>
@@ -1332,7 +1332,7 @@ export default function ResultadosExamenPage() {
               <tbody>
                 {submissions.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="py-12 text-center text-gray-500 text-sm">
+                    <td colSpan={9} className="py-12 text-center text-muted2 text-sm">
                       Aún no hay estudiantes que hayan rendido este examen.
                     </td>
                   </tr>
@@ -1340,13 +1340,13 @@ export default function ResultadosExamenPage() {
                   submissions.map((s: any) => (
                     <tr
                       key={s.id}
-                      className="border-t border-white/[0.05]"
+                      className="border-t border-soft"
                       style={{ background: "rgba(255,255,255,0.01)" }}
                     >
                       <td className="py-3 px-4">
                         <div>
-                          <p className="text-sm font-semibold text-white">{s.student_name || "Sin nombre"}</p>
-                          <p className="text-[11px] text-gray-500">
+                          <p className="text-sm font-semibold text-main">{s.student_name || "Sin nombre"}</p>
+                          <p className="text-[11px] text-muted2">
                             {s.submitted_at
                               ? new Date(s.submitted_at).toLocaleString("es-CL", {
                                   day: "2-digit",
@@ -1360,8 +1360,8 @@ export default function ResultadosExamenPage() {
                         </div>
                       </td>
 
-                      <td className="py-3 px-3 text-sm text-gray-300">{s.student_course || "—"}</td>
-                      <td className="py-3 px-3 text-sm text-gray-400">{s.student_rut || "—"}</td>
+                      <td className="py-3 px-3 text-sm text-sub">{s.student_course || "—"}</td>
+                      <td className="py-3 px-3 text-sm text-sub">{s.student_rut || "—"}</td>
 
                       <td className="py-3 px-3 text-center">
                         <span
@@ -1377,11 +1377,11 @@ export default function ResultadosExamenPage() {
                         </span>
                       </td>
 
-                      <td className="py-3 px-3 text-center text-sm font-semibold text-cyan-300">
+                      <td className="py-3 px-3 text-center text-sm font-semibold text-cyan-700">
                         {Math.round(Number(s.score || 0))}%
                       </td>
 
-                      <td className="py-3 px-3 text-center text-sm text-gray-300">
+                      <td className="py-3 px-3 text-center text-sm text-sub">
                         {Number(s.earned_points || 0)}/{Number(s.total_points || 0)}
                       </td>
 

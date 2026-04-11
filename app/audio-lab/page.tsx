@@ -295,23 +295,23 @@ export default function AudioLabPage() {
   const hasTranscript = !!activeTranscription
 
   return (
-    <div className="min-h-screen bg-gray-950">
-      <header className="sticky top-0 z-20 border-b border-white/[0.06] bg-gray-950/90 backdrop-blur-xl">
+    <div className="min-h-screen bg-app">
+      <header className="sticky top-0 z-20 border-b border-soft bg-app backdrop-blur-xl">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <Link href="/dashboard" className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/[0.04] border border-white/[0.06] text-gray-400 hover:text-white hover:bg-white/[0.07] transition-all">
+            <Link href="/dashboard" className="w-8 h-8 flex items-center justify-center rounded-xl bg-card-soft-theme text-sub hover:text-main hover:bg-input-theme transition-all">
               <ArrowLeft size={15} />
             </Link>
             <div className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-md" style={{ background: "linear-gradient(135deg, #7c3aed, #a855f7)", boxShadow: "0 4px 12px rgba(124,58,237,0.3)" }}>
-              <Mic size={18} className="text-white" />
+              <Mic size={18} className="text-main" />
             </div>
             <div>
-              <h1 className="text-white font-bold text-sm leading-tight">Audio Lab Pro</h1>
-              <p className="text-gray-600 text-[11px]">Transcripción y edición robusta</p>
+              <h1 className="text-main font-bold text-sm leading-tight">Audio Lab Pro</h1>
+              <p className="text-muted2 text-[11px]">Transcripción y edición robusta</p>
             </div>
           </div>
 
-          <button onClick={() => setShowHistory(!showHistory)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-medium transition-all" style={{ background: showHistory ? "rgba(124,58,237,0.1)" : "rgba(255,255,255,0.03)", borderColor: showHistory ? "rgba(124,58,237,0.3)" : "rgba(255,255,255,0.08)", color: showHistory ? "#c4b5fd" : "#9ca3af" }}>
+          <button onClick={() => setShowHistory(!showHistory)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-medium transition-all" style={{ background: showHistory ? "rgba(124,58,237,0.1)" : "var(--bg-card)", borderColor: showHistory ? "rgba(124,58,237,0.3)" : "var(--border-soft)", color: showHistory ? "#c4b5fd" : "#9ca3af" }}>
             <Clock size={12} />
             <span>Historial</span>
             <span className="tabular-nums">({history.length})</span>
@@ -322,18 +322,18 @@ export default function AudioLabPage() {
 
       <div className="max-w-5xl mx-auto px-4 py-8 flex flex-col gap-6">
         {showHistory && (
-          <div className="rounded-2xl border overflow-hidden" style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.07)" }}>
-            <div className="px-4 py-3 border-b border-white/[0.06]"><p className="text-gray-400 text-xs font-semibold uppercase tracking-widest">Transcripciones recientes</p></div>
-            {historyLoading ? <div className="flex items-center justify-center py-8"><Loader2 size={20} className="text-gray-600 animate-spin" /></div> : history.length === 0 ? <div className="py-8 text-center text-gray-600 text-sm">Sin transcripciones aún</div> : (
-              <div className="divide-y divide-white/[0.04]">
+          <div className="rounded-2xl border overflow-hidden" style={{ background: "var(--bg-card-soft)", borderColor: "var(--bg-card-soft)" }}>
+            <div className="px-4 py-3 border-b border-soft"><p className="text-sub text-xs font-semibold uppercase tracking-widest">Transcripciones recientes</p></div>
+            {historyLoading ? <div className="flex items-center justify-center py-8"><Loader2 size={20} className="text-muted2 animate-spin" /></div> : history.length === 0 ? <div className="py-8 text-center text-muted2 text-sm">Sin transcripciones aún</div> : (
+              <div className="divide-y divide-[var(--border-soft)]">
                 {history.map((t) => (
-                  <button key={`${t.id}_${t.created_at}`} onClick={() => loadFromHistory(t)} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/[0.03] transition-all text-left">
+                  <button key={`${t.id}_${t.created_at}`} onClick={() => loadFromHistory(t)} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-card-soft-theme transition-all text-left">
                     <FileAudio size={16} className="text-purple-400 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-gray-300 text-sm font-medium truncate">{t.file_name}</p>
-                      <p className="text-gray-600 text-xs">{formatBytes(t.file_size_bytes)} · {t.language?.toUpperCase()} · {timeAgo(t.created_at)}</p>
+                      <p className="text-sub text-sm font-medium truncate">{t.file_name}</p>
+                      <p className="text-muted2 text-xs">{formatBytes(t.file_size_bytes)} · {t.language?.toUpperCase()} · {timeAgo(t.created_at)}</p>
                     </div>
-                    <span className="text-gray-700 text-xs flex-shrink-0">{t.segments?.length || 0} seg.</span>
+                    <span className="text-muted2 text-xs flex-shrink-0">{t.segments?.length || 0} seg.</span>
                   </button>
                 ))}
               </div>
@@ -345,24 +345,24 @@ export default function AudioLabPage() {
           <div className="grid lg:grid-cols-[1.2fr_0.8fr] gap-6">
             <div className="flex flex-col gap-4 animate-fade-in">
               <div>
-                <h2 className="text-white font-semibold text-lg mb-1">Sube tu audio o video</h2>
-                <p className="text-gray-500 text-sm">MP3, WAV, M4A, MP4 o WEBM · máximo {MAX_SIZE_MB} MB</p>
+                <h2 className="text-main font-semibold text-lg mb-1">Sube tu audio o video</h2>
+                <p className="text-muted2 text-sm">MP3, WAV, M4A, MP4 o WEBM · máximo {MAX_SIZE_MB} MB</p>
               </div>
 
-              <div onClick={() => fileInputRef.current?.click()} onDragEnter={handleDrag} onDragLeave={handleDrag} onDragOver={handleDrag} onDrop={handleDrop} className="border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all" style={{ background: selectedFile ? "rgba(124,58,237,0.05)" : dragActive ? "rgba(124,58,237,0.08)" : "rgba(255,255,255,0.02)", borderColor: selectedFile ? "rgba(124,58,237,0.4)" : dragActive ? "rgba(124,58,237,0.4)" : "rgba(255,255,255,0.1)" }}>
+              <div onClick={() => fileInputRef.current?.click()} onDragEnter={handleDrag} onDragLeave={handleDrag} onDragOver={handleDrag} onDrop={handleDrop} className="border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all" style={{ background: selectedFile ? "rgba(124,58,237,0.05)" : dragActive ? "rgba(124,58,237,0.08)" : "var(--bg-card-soft)", borderColor: selectedFile ? "rgba(124,58,237,0.4)" : dragActive ? "rgba(124,58,237,0.4)" : "var(--border-medium)" }}>
                 <input ref={fileInputRef} type="file" accept={ACCEPTED_FORMATS} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(f) }} className="hidden" />
                 {selectedFile ? (
                   <div className="space-y-2">
                     <FileAudio size={36} className="mx-auto text-purple-400" />
-                    <p className="text-white font-semibold">{selectedFile.name}</p>
-                    <p className="text-gray-500 text-sm">{formatBytes(selectedFile.size)}</p>
+                    <p className="text-main font-semibold">{selectedFile.name}</p>
+                    <p className="text-muted2 text-sm">{formatBytes(selectedFile.size)}</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    <Upload size={36} className="mx-auto text-gray-600" />
+                    <Upload size={36} className="mx-auto text-muted2" />
                     <div>
-                      <p className="text-gray-300 font-medium">Arrastra tu archivo aquí</p>
-                      <p className="text-gray-600 text-sm mt-1">o haz clic para seleccionar</p>
+                      <p className="text-sub font-medium">Arrastra tu archivo aquí</p>
+                      <p className="text-muted2 text-sm mt-1">o haz clic para seleccionar</p>
                     </div>
                   </div>
                 )}
@@ -377,12 +377,12 @@ export default function AudioLabPage() {
               )}
             </div>
 
-            <div className="rounded-2xl border overflow-hidden" style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.07)" }}>
-              <div className="px-4 py-3 border-b border-white/[0.06]"><p className="text-gray-400 text-xs font-semibold uppercase tracking-widest">Pipeline robusto</p></div>
+            <div className="rounded-2xl border overflow-hidden" style={{ background: "var(--bg-card-soft)", borderColor: "var(--bg-card-soft)" }}>
+              <div className="px-4 py-3 border-b border-soft"><p className="text-sub text-xs font-semibold uppercase tracking-widest">Pipeline robusto</p></div>
               <div className="p-4 space-y-4">
                 <div className="grid grid-cols-2 gap-2">
-                  <button onClick={() => setMode("quick")} className="rounded-xl border px-3 py-2 text-sm font-semibold transition-all" style={{ background: mode === "quick" ? "rgba(124,58,237,0.12)" : "rgba(255,255,255,0.02)", borderColor: mode === "quick" ? "rgba(124,58,237,0.35)" : "rgba(255,255,255,0.08)", color: mode === "quick" ? "#e9d5ff" : "#9ca3af" }}>Modo rápido</button>
-                  <button onClick={() => setMode("pro")} className="rounded-xl border px-3 py-2 text-sm font-semibold transition-all" style={{ background: mode === "pro" ? "rgba(124,58,237,0.12)" : "rgba(255,255,255,0.02)", borderColor: mode === "pro" ? "rgba(124,58,237,0.35)" : "rgba(255,255,255,0.08)", color: mode === "pro" ? "#e9d5ff" : "#9ca3af" }}>Modo pro</button>
+                  <button onClick={() => setMode("quick")} className="rounded-xl border px-3 py-2 text-sm font-semibold transition-all" style={{ background: mode === "quick" ? "rgba(124,58,237,0.12)" : "var(--bg-card-soft)", borderColor: mode === "quick" ? "rgba(124,58,237,0.35)" : "var(--border-soft)", color: mode === "quick" ? "#e9d5ff" : "#9ca3af" }}>Modo rápido</button>
+                  <button onClick={() => setMode("pro")} className="rounded-xl border px-3 py-2 text-sm font-semibold transition-all" style={{ background: mode === "pro" ? "rgba(124,58,237,0.12)" : "var(--bg-card-soft)", borderColor: mode === "pro" ? "rgba(124,58,237,0.35)" : "var(--border-soft)", color: mode === "pro" ? "#e9d5ff" : "#9ca3af" }}>Modo pro</button>
                 </div>
 
                 <ToggleRow icon={AudioLines} label="Mejorar audio" desc="Prepara la integración con enhancement" value={improveAudio} onChange={setImproveAudio} />
@@ -390,9 +390,9 @@ export default function AudioLabPage() {
                 <ToggleRow icon={Captions} label="Subtítulos precisos" desc="Usa segmentos al exportar SRT/VTT" value={preciseSubtitles} onChange={setPreciseSubtitles} />
                 <ToggleRow icon={ShieldCheck} label="Crear resumen base" desc="Genera resumen junto a la transcripción" value={createSummary} onChange={setCreateSummary} />
 
-                <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 text-xs text-gray-500 leading-relaxed">
-                  <p className="text-gray-300 font-semibold mb-1">Arquitectura lista para crecer</p>
-                  <p>Este módulo ya queda preparado para conectar Faster-Whisper, WhisperX, pyannote o un microservicio externo vía <code className="text-purple-300">AUDIO_PIPELINE_URL</code>.</p>
+                <div className="rounded-xl border border-soft bg-card-soft-theme p-3 text-xs text-muted2 leading-relaxed">
+                  <p className="text-sub font-semibold mb-1">Arquitectura lista para crecer</p>
+                  <p>Este módulo ya queda preparado para conectar Faster-Whisper, WhisperX, pyannote o un microservicio externo vía <code className="text-purple-700">AUDIO_PIPELINE_URL</code>.</p>
                 </div>
               </div>
             </div>
@@ -405,8 +405,8 @@ export default function AudioLabPage() {
               <div className="flex items-center gap-3 px-4 py-3 rounded-2xl border" style={{ background: "rgba(124,58,237,0.06)", borderColor: "rgba(124,58,237,0.2)" }}>
                 <FileAudio size={18} className="text-purple-400 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-white font-semibold text-sm truncate">{activeTranscription.file_name}</p>
-                  <div className="flex gap-3 flex-wrap text-xs text-gray-500 mt-0.5">
+                  <p className="text-main font-semibold text-sm truncate">{activeTranscription.file_name}</p>
+                  <div className="flex gap-3 flex-wrap text-xs text-muted2 mt-0.5">
                     {activeTranscription.file_size_bytes && <span>{formatBytes(activeTranscription.file_size_bytes)}</span>}
                     {activeTranscription.duration_hint && <span>~{activeTranscription.duration_hint}</span>}
                     {activeTranscription.language && <span>{activeTranscription.language.toUpperCase()}</span>}
@@ -414,41 +414,41 @@ export default function AudioLabPage() {
                     {activeTranscription.provider && <span>{activeTranscription.provider}</span>}
                   </div>
                 </div>
-                <button onClick={() => { setActiveTranscription(null); setSelectedFile(null); setOpResult("") }} className="text-gray-600 hover:text-gray-400 transition-colors flex-shrink-0" title="Nueva transcripción"><Trash2 size={14} /></button>
+                <button onClick={() => { setActiveTranscription(null); setSelectedFile(null); setOpResult("") }} className="text-muted2 hover:text-sub transition-colors flex-shrink-0" title="Nueva transcripción"><Trash2 size={14} /></button>
               </div>
 
-              <div className="rounded-2xl border overflow-hidden" style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.07)" }}>
-                <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/[0.06]">
-                  <p className="text-gray-400 text-xs font-semibold uppercase tracking-widest">Transcripción</p>
-                  <div className="flex items-center gap-2 text-xs text-gray-600">
+              <div className="rounded-2xl border overflow-hidden" style={{ background: "var(--bg-card-soft)", borderColor: "var(--bg-card-soft)" }}>
+                <div className="flex items-center justify-between px-4 py-2.5 border-b border-soft">
+                  <p className="text-sub text-xs font-semibold uppercase tracking-widest">Transcripción</p>
+                  <div className="flex items-center gap-2 text-xs text-muted2">
                     <span>{editedText.length} caracteres</span>
                     {!!activeTranscription.qualityNotes && <span className="truncate max-w-[220px]">· {activeTranscription.qualityNotes}</span>}
                   </div>
                 </div>
-                <textarea value={editedText} onChange={(e) => setEditedText(e.target.value)} className="w-full bg-transparent px-4 py-4 text-gray-300 text-sm leading-relaxed resize-none focus:outline-none min-h-[260px] max-h-[520px] overflow-y-auto" placeholder="La transcripción aparecerá aquí..." />
+                <textarea value={editedText} onChange={(e) => setEditedText(e.target.value)} className="w-full bg-transparent px-4 py-4 text-sub text-sm leading-relaxed resize-none focus:outline-none min-h-[260px] max-h-[520px] overflow-y-auto" placeholder="La transcripción aparecerá aquí..." />
               </div>
 
               <ExportBar onExport={handleExport} onCopy={() => handleCopy(opResult || editedText)} copied={copied} />
 
               {!!activeTranscription.summary && !opResult && (
-                <div className="rounded-2xl border p-4" style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.07)" }}>
-                  <p className="text-gray-400 text-xs font-semibold uppercase tracking-widest mb-2">Resumen base</p>
-                  <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">{activeTranscription.summary}</p>
+                <div className="rounded-2xl border p-4" style={{ background: "var(--bg-card-soft)", borderColor: "var(--bg-card-soft)" }}>
+                  <p className="text-sub text-xs font-semibold uppercase tracking-widest mb-2">Resumen base</p>
+                  <p className="text-sub text-sm leading-relaxed whitespace-pre-wrap">{activeTranscription.summary}</p>
                 </div>
               )}
 
-              <div className="rounded-2xl border overflow-hidden" style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.07)" }}>
-                <div className="px-4 py-3 border-b border-white/[0.06]"><p className="text-gray-400 text-xs font-semibold uppercase tracking-widest">Procesar con IA</p></div>
+              <div className="rounded-2xl border overflow-hidden" style={{ background: "var(--bg-card-soft)", borderColor: "var(--bg-card-soft)" }}>
+                <div className="px-4 py-3 border-b border-soft"><p className="text-sub text-xs font-semibold uppercase tracking-widest">Procesar con IA</p></div>
                 <div className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {OPERATIONS.map((op) => {
                     const Icon = op.icon
                     const isActive = selectedOp === op.id
                     return (
-                      <button key={op.id} onClick={() => setSelectedOp(op.id)} className="flex items-start gap-2.5 p-3 rounded-xl border text-left transition-all" style={{ background: isActive ? "rgba(124,58,237,0.1)" : "rgba(255,255,255,0.02)", borderColor: isActive ? "rgba(124,58,237,0.35)" : "rgba(255,255,255,0.06)" }}>
+                      <button key={op.id} onClick={() => setSelectedOp(op.id)} className="flex items-start gap-2.5 p-3 rounded-xl border text-left transition-all" style={{ background: isActive ? "rgba(124,58,237,0.1)" : "var(--bg-card-soft)", borderColor: isActive ? "rgba(124,58,237,0.35)" : "var(--bg-card-soft)" }}>
                         <Icon size={15} className="flex-shrink-0 mt-0.5" style={{ color: isActive ? "#c4b5fd" : "#6b7280" }} />
                         <div>
                           <p className="text-xs font-semibold leading-tight" style={{ color: isActive ? "#e2e8f0" : "#9ca3af" }}>{op.label}</p>
-                          <p className="text-[10px] text-gray-600 mt-0.5 leading-tight">{op.desc}</p>
+                          <p className="text-[10px] text-muted2 mt-0.5 leading-tight">{op.desc}</p>
                         </div>
                       </button>
                     )
@@ -457,12 +457,12 @@ export default function AudioLabPage() {
 
                 {selectedOp === "custom" && (
                   <div className="px-4 pb-3">
-                    <textarea value={customInstruction} onChange={(e) => setCustomInstruction(e.target.value)} placeholder="Ej: Traduce al inglés, extrae solo preguntas del profesor, conviértelo en guión de video..." className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-gray-300 text-sm placeholder-gray-600 focus:outline-none focus:border-purple-500/40 transition-all resize-none min-h-[72px]" />
+                    <textarea value={customInstruction} onChange={(e) => setCustomInstruction(e.target.value)} placeholder="Ej: Traduce al inglés, extrae solo preguntas del profesor, conviértelo en guión de video..." className="w-full bg-card-soft-theme border border-soft rounded-xl px-3.5 py-2.5 text-sub text-sm placeholder-gray-400 focus:outline-none focus:border-purple-500/40 transition-all resize-none min-h-[72px]" />
                   </div>
                 )}
 
                 <div className="px-4 pb-4">
-                  <button onClick={handleOperation} disabled={opLoading || !editedText.trim() || (selectedOp === "custom" && !customInstruction.trim())} className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl font-semibold text-sm text-white transition-all disabled:opacity-40" style={{ background: "rgba(124,58,237,0.7)", border: "1px solid rgba(124,58,237,0.4)" }}>
+                  <button onClick={handleOperation} disabled={opLoading || !editedText.trim() || (selectedOp === "custom" && !customInstruction.trim())} className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl font-semibold text-sm text-main transition-all disabled:opacity-40" style={{ background: "rgba(124,58,237,0.7)", border: "1px solid rgba(124,58,237,0.4)" }}>
                     {opLoading ? <><Loader2 size={16} className="animate-spin" /> Procesando...</> : <><Sparkles size={16} /> {OPERATIONS.find((o) => o.id === selectedOp)?.label || "Procesar"}</>}
                   </button>
                   {opError && <p className="text-red-400 text-xs mt-2">❌ {opError}</p>}
@@ -470,41 +470,41 @@ export default function AudioLabPage() {
               </div>
 
               {opResult && (
-                <div className="rounded-2xl border overflow-hidden" style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(124,58,237,0.2)" }}>
-                  <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/[0.06]">
-                    <p className="text-gray-400 text-xs font-semibold uppercase tracking-widest">Resultado IA</p>
-                    <button onClick={() => handleCopy(opResult)} className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs transition-all" style={{ background: "rgba(255,255,255,0.04)", color: "#9ca3af" }}>{copied ? <Check size={11} className="text-green-400" /> : <Copy size={11} />}{copied ? "Copiado" : "Copiar"}</button>
+                <div className="rounded-2xl border overflow-hidden" style={{ background: "var(--bg-card-soft)", borderColor: "rgba(124,58,237,0.2)" }}>
+                  <div className="flex items-center justify-between px-4 py-2.5 border-b border-soft">
+                    <p className="text-sub text-xs font-semibold uppercase tracking-widest">Resultado IA</p>
+                    <button onClick={() => handleCopy(opResult)} className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs transition-all" style={{ background: "var(--bg-input)", color: "#9ca3af" }}>{copied ? <Check size={11} className="text-green-400" /> : <Copy size={11} />}{copied ? "Copiado" : "Copiar"}</button>
                   </div>
-                  <div className="px-4 py-4 whitespace-pre-wrap text-sm text-gray-300 leading-relaxed">{opResult}</div>
+                  <div className="px-4 py-4 whitespace-pre-wrap text-sm text-sub leading-relaxed">{opResult}</div>
                 </div>
               )}
             </div>
 
             <div className="flex flex-col gap-4">
-              <div className="rounded-2xl border overflow-hidden" style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.07)" }}>
-                <div className="px-4 py-3 border-b border-white/[0.06]"><p className="text-gray-400 text-xs font-semibold uppercase tracking-widest">Segmentos</p></div>
-                <div className="max-h-[420px] overflow-y-auto divide-y divide-white/[0.05]">
+              <div className="rounded-2xl border overflow-hidden" style={{ background: "var(--bg-card-soft)", borderColor: "var(--bg-card-soft)" }}>
+                <div className="px-4 py-3 border-b border-soft"><p className="text-sub text-xs font-semibold uppercase tracking-widest">Segmentos</p></div>
+                <div className="max-h-[420px] overflow-y-auto divide-y divide-[var(--border-soft)]">
                   {activeTranscription.segments?.length ? activeTranscription.segments.map((seg) => (
                     <div key={seg.id} className="px-4 py-3 text-sm">
                       <div className="flex items-center justify-between gap-2 mb-1">
-                        <div className="text-xs text-purple-300">{seg.speaker || "Segmento"}</div>
-                        <div className="text-[11px] text-gray-600">{seg.start.toFixed(1)}s → {seg.end.toFixed(1)}s</div>
+                        <div className="text-xs text-purple-700">{seg.speaker || "Segmento"}</div>
+                        <div className="text-[11px] text-muted2">{seg.start.toFixed(1)}s → {seg.end.toFixed(1)}s</div>
                       </div>
-                      <p className="text-gray-300 leading-relaxed">{seg.text}</p>
+                      <p className="text-sub leading-relaxed">{seg.text}</p>
                     </div>
-                  )) : <div className="px-4 py-6 text-sm text-gray-600">Aún no hay segmentos disponibles.</div>}
+                  )) : <div className="px-4 py-6 text-sm text-muted2">Aún no hay segmentos disponibles.</div>}
                 </div>
               </div>
 
-              <div className="rounded-2xl border overflow-hidden" style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.07)" }}>
-                <div className="px-4 py-3 border-b border-white/[0.06]"><p className="text-gray-400 text-xs font-semibold uppercase tracking-widest">Hablantes</p></div>
+              <div className="rounded-2xl border overflow-hidden" style={{ background: "var(--bg-card-soft)", borderColor: "var(--bg-card-soft)" }}>
+                <div className="px-4 py-3 border-b border-soft"><p className="text-sub text-xs font-semibold uppercase tracking-widest">Hablantes</p></div>
                 <div className="p-4 space-y-2">
                   {activeTranscription.speakers?.length ? activeTranscription.speakers.map((sp) => (
-                    <div key={sp.id} className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2">
-                      <p className="text-sm font-semibold text-gray-200">{sp.label || sp.id}</p>
-                      {sp.estimatedRole && <p className="text-xs text-gray-500">{sp.estimatedRole}</p>}
+                    <div key={sp.id} className="rounded-xl border border-soft bg-card-soft-theme px-3 py-2">
+                      <p className="text-sm font-semibold text-main">{sp.label || sp.id}</p>
+                      {sp.estimatedRole && <p className="text-xs text-muted2">{sp.estimatedRole}</p>}
                     </div>
-                  )) : <p className="text-sm text-gray-600">No se detectaron hablantes múltiples.</p>}
+                  )) : <p className="text-sm text-muted2">No se detectaron hablantes múltiples.</p>}
                 </div>
               </div>
             </div>
@@ -517,15 +517,15 @@ export default function AudioLabPage() {
 
 function ToggleRow({ icon: Icon, label, desc, value, onChange }: { icon: React.ElementType; label: string; desc: string; value: boolean; onChange: (v: boolean) => void }) {
   return (
-    <button onClick={() => onChange(!value)} className="w-full flex items-center justify-between gap-3 rounded-xl border px-3 py-3 text-left transition-all" style={{ background: value ? "rgba(124,58,237,0.08)" : "rgba(255,255,255,0.02)", borderColor: value ? "rgba(124,58,237,0.25)" : "rgba(255,255,255,0.06)" }}>
+    <button onClick={() => onChange(!value)} className="w-full flex items-center justify-between gap-3 rounded-xl border px-3 py-3 text-left transition-all" style={{ background: value ? "rgba(124,58,237,0.08)" : "var(--bg-card-soft)", borderColor: value ? "rgba(124,58,237,0.25)" : "var(--bg-card-soft)" }}>
       <div className="flex items-start gap-3">
         <Icon size={16} className="mt-0.5" style={{ color: value ? "#c4b5fd" : "#6b7280" }} />
         <div>
           <p className="text-sm font-semibold" style={{ color: value ? "#e9d5ff" : "#d1d5db" }}>{label}</p>
-          <p className="text-xs text-gray-600 mt-0.5">{desc}</p>
+          <p className="text-xs text-muted2 mt-0.5">{desc}</p>
         </div>
       </div>
-      <div className={`w-10 h-6 rounded-full border transition-all ${value ? "bg-purple-500/80 border-purple-400/60" : "bg-white/[0.03] border-white/[0.08]"}`}>
+      <div className={`w-10 h-6 rounded-full border transition-all ${value ? "bg-purple-500/80 border-purple-400/60" : "bg-card-soft-theme border-medium"}`}>
         <div className={`w-4 h-4 rounded-full bg-white mt-[3px] transition-all ${value ? "ml-[19px]" : "ml-[3px]"}`} />
       </div>
     </button>
@@ -542,11 +542,11 @@ function ExportBar({ onExport, onCopy, copied }: { onExport: (fmt: ExportFormat)
   ]
   return (
     <div className="flex items-center gap-2 flex-wrap">
-      <span className="text-gray-600 text-[11px] font-semibold uppercase tracking-widest flex items-center gap-1"><Download size={11} /> Exportar</span>
+      <span className="text-muted2 text-[11px] font-semibold uppercase tracking-widest flex items-center gap-1"><Download size={11} /> Exportar</span>
       {formats.map((f) => (
-        <button key={f.id} onClick={() => onExport(f.id)} className="px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all" style={{ background: "rgba(255,255,255,0.03)", borderColor: "rgba(255,255,255,0.08)", color: "#9ca3af" }}>{f.label}</button>
+        <button key={f.id} onClick={() => onExport(f.id)} className="px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all" style={{ background: "var(--bg-card)", borderColor: "var(--border-soft)", color: "#9ca3af" }}>{f.label}</button>
       ))}
-      <button onClick={onCopy} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all" style={{ background: copied ? "rgba(16,185,129,0.08)" : "rgba(255,255,255,0.03)", borderColor: copied ? "rgba(16,185,129,0.25)" : "rgba(255,255,255,0.08)", color: copied ? "#6ee7b7" : "#9ca3af" }}>
+      <button onClick={onCopy} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all" style={{ background: copied ? "rgba(16,185,129,0.08)" : "var(--bg-card)", borderColor: copied ? "rgba(16,185,129,0.25)" : "var(--border-soft)", color: copied ? "#6ee7b7" : "#9ca3af" }}>
         {copied ? <Check size={11} /> : <Copy size={11} />} {copied ? "Copiado" : "Copiar"}
       </button>
     </div>

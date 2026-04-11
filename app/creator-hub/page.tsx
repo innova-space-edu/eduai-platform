@@ -19,13 +19,13 @@ export default function CreatorHubPage() {
     <div className="flex flex-col min-h-screen">
 
       {/* Topbar */}
-      <div className="border-b border-white/[0.06] bg-gray-950/80 backdrop-blur-xl sticky top-0 z-10">
+      <div className="border-b border-soft bg-app backdrop-blur-xl sticky top-0 z-10">
         <div className="max-w-3xl mx-auto px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-lg">✨</span>
-            <p className="text-white font-bold text-sm">Creator Hub</p>
+            <p className="text-main font-bold text-sm">Creator Hub</p>
           </div>
-          <p className="text-gray-600 text-xs">Elige un formato para empezar</p>
+          <p className="text-muted2 text-xs">Elige un formato para empezar</p>
         </div>
       </div>
 
@@ -34,10 +34,10 @@ export default function CreatorHubPage() {
 
         {/* Header */}
         <div className="animate-fade-in">
-          <h1 className="text-2xl font-bold text-white mb-2">
+          <h1 className="text-2xl font-bold text-main mb-2">
             Crea material de estudio
           </h1>
-          <p className="text-gray-500 text-sm leading-relaxed">
+          <p className="text-muted2 text-sm leading-relaxed">
             Transforma cualquier tema, texto, PDF o URL en 8 formatos distintos. Cada sub-agente está especializado en su propio formato y genera resultados descargables.
           </p>
         </div>
@@ -50,8 +50,8 @@ export default function CreatorHubPage() {
               href={`/creator-hub/${f.id}`}
               className="group flex items-center gap-4 p-4 rounded-2xl border transition-all animate-fade-in"
               style={{
-                background:   "rgba(255,255,255,0.02)",
-                borderColor:  "rgba(255,255,255,0.07)",
+                background:   "var(--bg-card-soft)",
+                borderColor:  "var(--bg-card-soft)",
               }}
               onMouseEnter={e => {
                 (e.currentTarget as HTMLElement).style.background = `${f.color}0c`
@@ -59,8 +59,8 @@ export default function CreatorHubPage() {
                 ;(e.currentTarget as HTMLElement).style.boxShadow = `0 4px 20px ${f.color}15`
               }}
               onMouseLeave={e => {
-                (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.02)"
-                ;(e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.07)"
+                (e.currentTarget as HTMLElement).style.background = "var(--bg-card-soft)"
+                ;(e.currentTarget as HTMLElement).style.borderColor = "var(--bg-card-soft)"
                 ;(e.currentTarget as HTMLElement).style.boxShadow = "none"
               }}
             >
@@ -74,14 +74,14 @@ export default function CreatorHubPage() {
 
               {/* Info */}
               <div className="flex-1 min-w-0">
-                <p className="text-white font-semibold text-sm leading-tight">{f.label}</p>
-                <p className="text-gray-500 text-xs mt-0.5 leading-relaxed line-clamp-2">{f.desc}</p>
+                <p className="text-main font-semibold text-sm leading-tight">{f.label}</p>
+                <p className="text-muted2 text-xs mt-0.5 leading-relaxed line-clamp-2">{f.desc}</p>
               </div>
 
               {/* Arrow */}
               <ChevronRight
                 size={16}
-                className="text-gray-600 group-hover:text-gray-300 transition-all group-hover:translate-x-0.5 flex-shrink-0"
+                className="text-muted2 group-hover:text-sub transition-all group-hover:translate-x-0.5 flex-shrink-0"
               />
             </Link>
           ))}
@@ -89,7 +89,7 @@ export default function CreatorHubPage() {
 
         {/* Tip */}
         <div
-          className="rounded-2xl px-5 py-4 border text-sm text-gray-500 leading-relaxed animate-fade-in"
+          className="rounded-2xl px-5 py-4 border text-sm text-muted2 leading-relaxed animate-fade-in"
           style={{ background: "rgba(59,130,246,0.04)", borderColor: "rgba(59,130,246,0.12)" }}
         >
           <span className="text-blue-400 font-semibold">💡 Tip: </span>

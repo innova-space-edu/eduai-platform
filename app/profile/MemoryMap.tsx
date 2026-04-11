@@ -30,16 +30,16 @@ export default function MemoryMap() {
 
   return (
     <div>
-      <h3 className="text-lg font-semibold text-white mb-4">🧠 Memoria de aprendizaje</h3>
+      <h3 className="text-lg font-semibold text-main mb-4">🧠 Memoria de aprendizaje</h3>
       <div className="grid gap-3">
         {memories.map((m) => (
           <div
             key={m.topic}
-            className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden"
+            className="bg-card-theme border border-soft rounded-xl overflow-hidden"
           >
             <button
               onClick={() => setExpanded(expanded === m.topic ? null : m.topic)}
-              className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-800/50 transition-colors"
+              className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-card-soft-theme transition-colors"
             >
               <div className="flex items-center gap-3">
                 <div className={`w-2 h-2 rounded-full ${
@@ -47,17 +47,17 @@ export default function MemoryMap() {
                   m.last_score >= 60 ? "bg-amber-400" : "bg-red-400"
                 }`} />
                 <div>
-                  <p className="text-white font-medium capitalize">{m.topic}</p>
-                  <p className="text-gray-500 text-xs">{m.study_count} sesión{m.study_count !== 1 ? "es" : ""} · {m.last_score}%</p>
+                  <p className="text-main font-medium capitalize">{m.topic}</p>
+                  <p className="text-muted2 text-xs">{m.study_count} sesión{m.study_count !== 1 ? "es" : ""} · {m.last_score}%</p>
                 </div>
               </div>
-              <span className="text-gray-600 text-sm">{expanded === m.topic ? "▲" : "▼"}</span>
+              <span className="text-muted2 text-sm">{expanded === m.topic ? "▲" : "▼"}</span>
             </button>
 
             {expanded === m.topic && (
-              <div className="px-4 pb-4 border-t border-gray-800 pt-3 space-y-3">
+              <div className="px-4 pb-4 border-t border-soft pt-3 space-y-3">
                 {m.summary && (
-                  <p className="text-gray-400 text-sm italic">"{m.summary}"</p>
+                  <p className="text-sub text-sm italic">"{m.summary}"</p>
                 )}
 
                 {m.strong_points?.length > 0 && (
@@ -65,7 +65,7 @@ export default function MemoryMap() {
                     <p className="text-xs text-green-400 font-medium mb-1">✅ Puntos fuertes</p>
                     <ul className="space-y-1">
                       {m.strong_points.map((p, i) => (
-                        <li key={i} className="text-gray-400 text-xs flex items-start gap-1">
+                        <li key={i} className="text-sub text-xs flex items-start gap-1">
                           <span className="text-green-500 mt-0.5">·</span> {p}
                         </li>
                       ))}
@@ -78,7 +78,7 @@ export default function MemoryMap() {
                     <p className="text-xs text-red-400 font-medium mb-1">⚠️ Puntos débiles</p>
                     <ul className="space-y-1">
                       {m.weak_points.map((p, i) => (
-                        <li key={i} className="text-gray-400 text-xs flex items-start gap-1">
+                        <li key={i} className="text-sub text-xs flex items-start gap-1">
                           <span className="text-red-500 mt-0.5">·</span> {p}
                         </li>
                       ))}
@@ -88,7 +88,7 @@ export default function MemoryMap() {
 
                 <Link
                   href={`/study/${encodeURIComponent(m.topic)}`}
-                  className="inline-block text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                  className="inline-block text-xs text-blue-400 hover:text-blue-700 transition-colors"
                 >
                   Estudiar de nuevo →
                 </Link>

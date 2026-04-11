@@ -288,27 +288,27 @@ Formato exacto:
 
   // ── Loading / Error ───────────────────────────────────────────────────────
   if (loadingInit) return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-      <div className="w-10 h-10 rounded-full border-2 border-white/10 border-t-blue-400 animate-spin" />
+    <div className="min-h-screen bg-app flex items-center justify-center">
+      <div className="w-10 h-10 rounded-full border-2 border-soft border-t-blue-400 animate-spin" />
     </div>
   )
 
   if (!questions.length && !loadingInit && error) return (
-    <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center gap-4">
+    <div className="min-h-screen bg-app flex flex-col items-center justify-center gap-4">
       <p className="text-red-400 text-sm">{error}</p>
-      <Link href="/examen/docente" className="text-gray-500 hover:text-white text-sm">← Volver al panel</Link>
+      <Link href="/examen/docente" className="text-muted2 hover:text-main text-sm">← Volver al panel</Link>
     </div>
   )
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-200">
+    <div className="min-h-screen bg-app text-main">
 
       {/* Header sticky */}
-      <header className="sticky top-0 z-20 border-b border-white/[0.06] bg-gray-950/90 backdrop-blur-xl">
+      <header className="sticky top-0 z-20 border-b border-soft bg-header-theme backdrop-blur-xl">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-3">
           <Link href="/examen/docente"
-            className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/[0.04] border border-white/[0.06] text-gray-400 hover:text-white transition-all flex-shrink-0">
+            className="w-8 h-8 flex items-center justify-center rounded-xl bg-card-soft-theme text-sub hover:text-main transition-all flex-shrink-0">
             <ArrowLeft size={15} />
           </Link>
 
@@ -316,17 +316,17 @@ Formato exacto:
             <input
               value={title}
               onChange={e => setTitle(e.target.value)}
-              className="w-full bg-transparent text-white font-bold text-sm focus:outline-none truncate"
+              className="w-full bg-transparent text-main font-bold text-sm focus:outline-none truncate"
               placeholder="Título del examen..."
             />
             <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-gray-600 text-[11px]">{topic}</span>
-              <span className="text-gray-700">·</span>
-              <span className="text-gray-600 text-[11px]">{questions.length} preguntas</span>
-              <span className="text-gray-700">·</span>
-              <span className="text-gray-600 text-[11px]">{totalPoints} pts</span>
-              <span className="text-gray-700">·</span>
-              <span className={`text-[11px] ${status === "active" ? "text-green-400" : "text-gray-500"}`}>
+              <span className="text-muted2 text-[11px]">{topic}</span>
+              <span className="text-muted2">·</span>
+              <span className="text-muted2 text-[11px]">{questions.length} preguntas</span>
+              <span className="text-muted2">·</span>
+              <span className="text-muted2 text-[11px]">{totalPoints} pts</span>
+              <span className="text-muted2">·</span>
+              <span className={`text-[11px] ${status === "active" ? "text-green-400" : "text-muted2"}`}>
                 {status === "active" ? "Activo" : "Cerrado"}
               </span>
             </div>
@@ -341,7 +341,7 @@ Formato exacto:
               {copied ? "¡Copiado!" : "Copiar link"}
             </button>
             <button onClick={saveChanges} disabled={saving}
-              className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-semibold text-white transition-all disabled:opacity-50"
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-semibold text-main transition-all disabled:opacity-50"
               style={{ background: saved ? "#16a34a" : "#2563eb", boxShadow: "0 2px 8px rgba(37,99,235,0.3)" }}>
               {saving
                 ? <><Loader2 size={12} className="animate-spin" /> Guardando...</>
@@ -356,15 +356,15 @@ Formato exacto:
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-4">
 
         {/* Instrucciones */}
-        <div className="rounded-2xl p-4 border" style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.07)" }}>
-          <label className="text-gray-500 text-[10px] font-semibold uppercase tracking-widest block mb-2">
+        <div className="rounded-2xl p-4 border" style={{ background: "var(--bg-card-soft)", borderColor: "var(--bg-card-soft)" }}>
+          <label className="text-muted2 text-[10px] font-semibold uppercase tracking-widest block mb-2">
             Instrucciones para los estudiantes
           </label>
           <input
             value={instructions}
             onChange={e => setInstructions(e.target.value)}
             placeholder="Ej: Justifica tus respuestas y muestra procedimiento..."
-            className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500/30"
+            className="w-full bg-card-soft-theme border border-soft rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500/30"
           />
         </div>
 
@@ -379,7 +379,7 @@ Formato exacto:
         {questions.map((q, i) => (
           <div key={i}
             className="rounded-2xl border p-4 space-y-3"
-            style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.07)" }}>
+            style={{ background: "var(--bg-card-soft)", borderColor: "var(--bg-card-soft)" }}>
 
             {/* Badges + acciones */}
             <div className="flex flex-wrap items-center gap-2">
@@ -392,33 +392,33 @@ Formato exacto:
               <span className={`text-[10px] ${difficultyColor(q.difficulty)}`}>
                 {difficultyLabel(q.difficulty)}
               </span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-300">
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-700">
                 {abilityOptions.find(a => a.id === q.ability)?.label || "Aplicación"}
               </span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-300 ml-auto">
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-700 ml-auto">
                 {q.maxPoints || 0} pts
               </span>
               <button onClick={() => removeQuestion(i)}
-                className="text-gray-700 hover:text-red-400 transition-colors" title="Eliminar pregunta">
+                className="text-muted2 hover:text-red-400 transition-colors" title="Eliminar pregunta">
                 <Trash2 size={13} />
               </button>
             </div>
 
             {/* Texto pregunta */}
             <div>
-              <label className="text-gray-500 text-[10px] font-semibold uppercase tracking-widest block mb-1">
+              <label className="text-muted2 text-[10px] font-semibold uppercase tracking-widest block mb-1">
                 {i + 1}. Pregunta
               </label>
               <textarea
                 value={q.question}
                 onChange={e => updateQuestion(i, { question: e.target.value })}
                 rows={2}
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500/30 resize-vertical"
+                className="w-full bg-card-soft-theme border border-soft rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500/30 resize-vertical"
               />
               {q.question && (q.question.includes("$") || q.question.includes("\\")) && (
                 <div className="mt-1 px-3 py-1.5 rounded-lg bg-blue-500/5 border border-blue-500/10">
                   <p className="text-[10px] text-blue-400 mb-0.5">Vista previa LaTeX:</p>
-                  <ExamMathText text={q.question} className="text-sm text-gray-300" />
+                  <ExamMathText text={q.question} className="text-sm text-sub" />
                 </div>
               )}
             </div>
@@ -426,9 +426,9 @@ Formato exacto:
             {/* Alternativas editables */}
             {q.type !== "development" && (
               <div>
-                <label className="text-gray-500 text-[10px] font-semibold uppercase tracking-widest block mb-2">
+                <label className="text-muted2 text-[10px] font-semibold uppercase tracking-widest block mb-2">
                   {q.type === "true_false" ? "Opciones" : "Alternativas"}
-                  <span className="text-gray-700 font-normal ml-2">— clic en la letra para marcar correcta</span>
+                  <span className="text-muted2 font-normal ml-2">— clic en la letra para marcar correcta</span>
                 </label>
                 <div className="space-y-1.5">
                   {(q.options || []).map((opt, j) => (
@@ -438,7 +438,7 @@ Formato exacto:
                         className={`w-7 h-7 rounded-lg flex-shrink-0 text-xs font-bold transition-all ${
                           j === q.correctAnswer
                             ? "bg-green-500/20 border border-green-500/40 text-green-400"
-                            : "bg-white/[0.04] border border-white/[0.08] text-gray-600 hover:text-gray-300"}`}
+                            : "bg-card-soft-theme border border-soft text-muted2 hover:text-sub"}`}
                         title={j === q.correctAnswer ? "Correcta" : "Marcar como correcta"}>
                         {j === q.correctAnswer ? "✓" : q.type === "true_false" ? (j === 0 ? "V" : "F") : String.fromCharCode(65 + j)}
                       </button>
@@ -450,10 +450,10 @@ Formato exacto:
                           options[j] = e.target.value
                           updateQuestion(i, { options })
                         }}
-                        className={`flex-1 bg-white/[0.04] border rounded-xl px-3 py-2 text-xs focus:outline-none transition-all ${
+                        className={`flex-1 bg-card-soft-theme border rounded-xl px-3 py-2 text-xs focus:outline-none transition-all ${
                           j === q.correctAnswer
-                            ? "border-green-500/30 text-green-300 focus:border-green-500/50"
-                            : "border-white/[0.08] text-gray-300 focus:border-blue-500/30"
+                            ? "border-green-500/30 text-green-700 focus:border-green-500/50"
+                            : "border-medium text-sub focus:border-blue-500/30"
                         } ${q.type === "true_false" ? "opacity-60 cursor-not-allowed" : ""}`}
                       />
                     </div>
@@ -465,11 +465,11 @@ Formato exacto:
             {/* Explicación */}
             {q.type !== "development" && (
               <div>
-                <label className="text-gray-500 text-[10px] font-semibold uppercase tracking-widest block mb-1">Explicación (opcional)</label>
+                <label className="text-muted2 text-[10px] font-semibold uppercase tracking-widest block mb-1">Explicación (opcional)</label>
                 <input
                   value={q.explanation || ""}
                   onChange={e => updateQuestion(i, { explanation: e.target.value })}
-                  className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-blue-500/30"
+                  className="w-full bg-card-soft-theme border border-soft rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-blue-500/30"
                   placeholder="Explica por qué esta respuesta es correcta..."
                 />
               </div>
@@ -478,7 +478,7 @@ Formato exacto:
             {/* Desarrollo: respuesta modelo */}
             {q.type === "development" && (
               <div>
-                <label className="text-gray-500 text-[10px] font-semibold uppercase tracking-widest block mb-1">Respuesta modelo</label>
+                <label className="text-muted2 text-[10px] font-semibold uppercase tracking-widest block mb-1">Respuesta modelo</label>
                 <textarea
                   value={q.modelAnswer || ""}
                   onChange={e => updateQuestion(i, { modelAnswer: e.target.value })}
@@ -491,8 +491,8 @@ Formato exacto:
 
             {/* Rúbrica desarrollo */}
             {q.type === "development" && q.rubric && q.rubric.length > 0 && (
-              <div className="bg-white/[0.02] rounded-xl border border-white/[0.06] p-3">
-                <p className="text-gray-500 text-[10px] font-semibold uppercase tracking-widest mb-2">Rúbrica</p>
+              <div className="bg-card-soft-theme rounded-xl border border-soft p-3">
+                <p className="text-muted2 text-[10px] font-semibold uppercase tracking-widest mb-2">Rúbrica</p>
                 <div className="space-y-2">
                   {q.rubric.map((item, rIdx) => (
                     <div key={rIdx} className="grid grid-cols-[1fr_80px] gap-2">
@@ -503,7 +503,7 @@ Formato exacto:
                           rubric[rIdx] = { ...rubric[rIdx], criteria: e.target.value }
                           updateQuestion(i, { rubric })
                         }}
-                        className="bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-blue-500/30"
+                        className="bg-card-soft-theme border border-soft rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-blue-500/30"
                       />
                       <input
                         type="number" min={0} step={0.5}
@@ -513,7 +513,7 @@ Formato exacto:
                           rubric[rIdx] = { ...rubric[rIdx], points: clampPositive(Number(e.target.value), 0) }
                           updateQuestion(i, { rubric })
                         }}
-                        className="bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-blue-500/30"
+                        className="bg-card-soft-theme border border-soft rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-blue-500/30"
                       />
                     </div>
                   ))}
@@ -524,37 +524,37 @@ Formato exacto:
             {/* Controles: dificultad, habilidad, puntaje */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <div>
-                <label className="text-gray-600 text-[10px] font-semibold block mb-1">Dificultad</label>
+                <label className="text-muted2 text-[10px] font-semibold block mb-1">Dificultad</label>
                 <select value={q.difficulty || 2}
                   onChange={e => updateQuestion(i, { difficulty: Number(e.target.value) as 1|2|3 })}
-                  className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-2 py-2 text-xs focus:outline-none">
+                  className="w-full bg-card-soft-theme border border-soft rounded-xl px-2 py-2 text-xs focus:outline-none">
                   <option value={1}>Fácil</option>
                   <option value={2}>Medio</option>
                   <option value={3}>Difícil</option>
                 </select>
               </div>
               <div>
-                <label className="text-gray-600 text-[10px] font-semibold block mb-1">Habilidad</label>
+                <label className="text-muted2 text-[10px] font-semibold block mb-1">Habilidad</label>
                 <select value={q.ability || "aplicacion"}
                   onChange={e => updateQuestion(i, { ability: e.target.value as Ability })}
-                  className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-2 py-2 text-xs focus:outline-none">
+                  className="w-full bg-card-soft-theme border border-soft rounded-xl px-2 py-2 text-xs focus:outline-none">
                   {abilityOptions.map(a => <option key={a.id} value={a.id}>{a.label}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-gray-600 text-[10px] font-semibold block mb-1">Puntaje</label>
+                <label className="text-muted2 text-[10px] font-semibold block mb-1">Puntaje</label>
                 <input type="number" min={0} step={0.5}
                   value={q.maxPoints || 0}
                   onChange={e => updateQuestion(i, { maxPoints: clampPositive(Number(e.target.value), 0) })}
-                  className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-2 py-2 text-xs focus:outline-none focus:border-blue-500/30"
+                  className="w-full bg-card-soft-theme border border-soft rounded-xl px-2 py-2 text-xs focus:outline-none focus:border-blue-500/30"
                 />
               </div>
               <div>
-                <label className="text-gray-600 text-[10px] font-semibold block mb-1">IA</label>
+                <label className="text-muted2 text-[10px] font-semibold block mb-1">IA</label>
                 <button
                   onClick={() => regenerateQuestion(i)}
                   disabled={busyQuestion === i}
-                  className="w-full bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.07] rounded-xl px-2 py-2 text-xs disabled:opacity-50 flex items-center justify-center gap-1.5 transition-all">
+                  className="w-full bg-card-soft-theme border border-soft hover:bg-input-theme rounded-xl px-2 py-2 text-xs disabled:opacity-50 flex items-center justify-center gap-1.5 transition-all">
                   {busyQuestion === i
                     ? <><Loader2 size={11} className="animate-spin" /> Generando...</>
                     : <><RefreshCw size={11} /> Regenerar</>}
@@ -566,9 +566,9 @@ Formato exacto:
             {busyQuestion !== i && (
               <div className="flex flex-wrap gap-1.5">
                 {[
-                  { label: "Más fácil",   diff: 1, cls: "bg-green-500/10 border-green-500/20 text-green-300"  },
-                  { label: "Nivel medio", diff: 2, cls: "bg-yellow-500/10 border-yellow-500/20 text-yellow-300"},
-                  { label: "Más difícil", diff: 3, cls: "bg-red-500/10 border-red-500/20 text-red-300"        },
+                  { label: "Más fácil",   diff: 1, cls: "bg-green-500/10 border-green-500/20 text-green-700"  },
+                  { label: "Nivel medio", diff: 2, cls: "bg-yellow-500/10 border-yellow-500/20 text-yellow-700"},
+                  { label: "Más difícil", diff: 3, cls: "bg-red-500/10 border-red-500/20 text-red-700"        },
                 ].map(btn => (
                   <button key={btn.label}
                     onClick={() => regenerateQuestion(i, { difficulty: btn.diff as 1|2|3 })}
@@ -585,7 +585,7 @@ Formato exacto:
         {/* Botón guardar flotante al fondo */}
         <div className="sticky bottom-4 flex justify-center pt-2">
           <button onClick={saveChanges} disabled={saving}
-            className="flex items-center gap-2 px-8 py-3 rounded-2xl text-sm font-bold text-white shadow-xl transition-all disabled:opacity-50"
+            className="flex items-center gap-2 px-8 py-3 rounded-2xl text-sm font-bold text-main shadow-xl transition-all disabled:opacity-50"
             style={{ background: saved ? "#16a34a" : "#2563eb", boxShadow: "0 4px 20px rgba(37,99,235,0.4)" }}>
             {saving
               ? <><Loader2 size={15} className="animate-spin" /> Guardando...</>

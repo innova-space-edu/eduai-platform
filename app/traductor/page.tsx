@@ -40,19 +40,19 @@ export default function TraductorPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 flex flex-col">
-      <div className="border-b border-gray-800 bg-gray-900/80 sticky top-0 z-10">
+    <div className="min-h-screen bg-app flex flex-col">
+      <div className="border-b border-soft bg-header-theme sticky top-0 z-10">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button onClick={() => router.back()} className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition-all text-sm">←</button>
+            <button onClick={() => router.back()} className="w-8 h-8 flex items-center justify-center rounded-lg bg-card-soft-theme hover:bg-card-soft-theme text-sub hover:text-main transition-all text-sm">←</button>
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 to-sky-600 flex items-center justify-center text-lg">🌐</div>
             <div>
-              <h1 className="text-white font-semibold text-sm">Traductor Multiidioma</h1>
-              <p className="text-gray-500 text-xs">Traduce y explica expresiones en múltiples idiomas</p>
+              <h1 className="text-main font-semibold text-sm">Traductor Multiidioma</h1>
+              <p className="text-muted2 text-xs">Traduce y explica expresiones en múltiples idiomas</p>
             </div>
           </div>
           <select value={idiomaTarget} onChange={e => setIdiomaTarget(e.target.value)}
-            className="bg-gray-800 border border-gray-700 rounded-xl px-3 py-1.5 text-gray-300 text-xs focus:outline-none focus:border-cyan-500/50">
+            className="bg-card-soft-theme border border-soft rounded-xl px-3 py-1.5 text-sub text-xs focus:outline-none focus:border-cyan-500/50">
             {IDIOMAS.map(i => <option key={i}>{i}</option>)}
           </select>
         </div>
@@ -62,15 +62,15 @@ export default function TraductorPage() {
           <>
             <div className="bg-gradient-to-br from-cyan-500/10 to-sky-500/5 border border-cyan-500/20 rounded-2xl p-6 text-center">
               <div className="text-4xl mb-2">🌐</div>
-              <h2 className="text-white font-semibold">Agente Traductor</h2>
-              <p className="text-gray-400 text-sm mt-1">Traduzco textos, explico gramática y expresiones en {idiomaTarget} y más idiomas</p>
+              <h2 className="text-main font-semibold">Agente Traductor</h2>
+              <p className="text-sub text-sm mt-1">Traduzco textos, explico gramática y expresiones en {idiomaTarget} y más idiomas</p>
             </div>
             <div className="grid grid-cols-2 gap-2">
               {QUICK.map(q => (
                 <button key={q.label} onClick={() => setInput(q.prompt)}
-                  className="bg-gray-900 hover:bg-gray-800 border border-gray-800 hover:border-cyan-500/30 rounded-xl p-3 text-left">
+                  className="bg-card-theme hover:bg-card-soft-theme hover:border-cyan-500/30 rounded-xl p-3 text-left">
                   <span className="text-lg">{q.icon}</span>
-                  <p className="text-gray-300 text-xs mt-1">{q.label}</p>
+                  <p className="text-sub text-xs mt-1">{q.label}</p>
                 </button>
               ))}
             </div>
@@ -80,9 +80,9 @@ export default function TraductorPage() {
           {messages.map((msg, i) => (
             <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
               {msg.role === "assistant" && <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-cyan-500 to-sky-600 flex items-center justify-center mr-2 mt-1 flex-shrink-0">🌐</div>}
-              <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${msg.role === "user" ? "bg-cyan-600 text-white" : "bg-gray-900 border border-gray-800 text-gray-200"}`}>
+              <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${msg.role === "user" ? "bg-cyan-600 text-main" : "bg-card-theme border border-soft text-main"}`}>
                 {msg.role === "assistant" ? (
-                  <div className="prose prose-invert prose-sm max-w-none [&_h2]:text-cyan-300 [&_strong]:text-white [&_em]:text-cyan-300">
+                  <div className="prose prose-sm max-w-none [&_h2]:text-cyan-700 [&_strong]:text-main [&_em]:text-cyan-700">
                     <ReactMarkdown>{msg.content}</ReactMarkdown>
                   </div>
                 ) : <p className="text-sm">{msg.content}</p>}
@@ -92,7 +92,7 @@ export default function TraductorPage() {
           {loading && (
             <div className="flex gap-2 items-center">
               <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-cyan-500 to-sky-600 flex items-center justify-center">🌐</div>
-              <div className="bg-gray-900 border border-gray-800 rounded-2xl px-4 py-3 flex gap-1">
+              <div className="bg-card-theme border border-soft rounded-2xl px-4 py-3 flex gap-1">
                 {[0,150,300].map(d => <div key={d} className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-bounce" style={{animationDelay:`${d}ms`}} />)}
               </div>
             </div>
@@ -100,11 +100,11 @@ export default function TraductorPage() {
           <div ref={bottomRef} />
         </div>
       </div>
-      <div className="sticky bottom-0 bg-gray-950/90 backdrop-blur-sm border-t border-gray-800 px-4 py-3">
+      <div className="sticky bottom-0 bg-app backdrop-blur-sm border-t border-soft px-4 py-3">
         <div className="max-w-3xl mx-auto flex gap-2">
           <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && send(input)}
             placeholder={`Escribe lo que quieres traducir al ${idiomaTarget}...`}
-            className="flex-1 bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-gray-200 placeholder-gray-600 text-sm focus:outline-none focus:border-cyan-500/50" />
+            className="flex-1 bg-card-theme border border-medium rounded-xl px-4 py-3 text-main placeholder-gray-400 text-sm focus:outline-none focus:border-cyan-500/50" />
           <button onClick={() => send(input)} disabled={!input.trim() || loading} className="bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 text-white px-4 py-3 rounded-xl">→</button>
         </div>
       </div>

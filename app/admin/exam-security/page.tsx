@@ -85,10 +85,10 @@ function StatCard({
   subtitle?: string
 }) {
   return (
-    <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-5 shadow-xl">
-      <p className="text-xs uppercase tracking-[0.18em] text-slate-400">{title}</p>
-      <p className="mt-3 text-3xl font-bold text-white">{value}</p>
-      {subtitle ? <p className="mt-2 text-sm text-slate-300">{subtitle}</p> : null}
+    <div className="rounded-2xl border border-soft bg-card-theme p-5 shadow-xl">
+      <p className="text-xs uppercase tracking-[0.18em] text-sub">{title}</p>
+      <p className="mt-3 text-3xl font-bold text-main">{value}</p>
+      {subtitle ? <p className="mt-2 text-sm text-sub">{subtitle}</p> : null}
     </div>
   )
 }
@@ -96,34 +96,34 @@ function StatCard({
 function toneForRisk(riskLevel: string | null | undefined) {
   switch (riskLevel) {
     case "high":
-      return "bg-orange-500/15 text-orange-300 border-orange-400/30"
+      return "bg-orange-500/15 text-orange-700 border-orange-400/30"
     case "medium":
-      return "bg-yellow-500/15 text-yellow-300 border-yellow-400/30"
+      return "bg-yellow-500/15 text-yellow-700 border-yellow-400/30"
     case "low":
       return "bg-sky-500/15 text-sky-300 border-sky-400/30"
     default:
-      return "bg-emerald-500/15 text-emerald-300 border-emerald-400/30"
+      return "bg-emerald-500/15 text-emerald-700 border-emerald-400/30"
   }
 }
 
 function toneForStatus(status: string | null | undefined) {
   switch (status) {
     case "blocked":
-      return "bg-red-500/15 text-red-300 border-red-400/30"
+      return "bg-red-500/15 text-red-700 border-red-400/30"
     case "frozen":
-      return "bg-orange-500/15 text-orange-300 border-orange-400/30"
+      return "bg-orange-500/15 text-orange-700 border-orange-400/30"
     case "flagged":
-      return "bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-400/30"
+      return "bg-fuchsia-500/15 text-fuchsia-700 border-fuchsia-400/30"
     case "warned":
-      return "bg-yellow-500/15 text-yellow-300 border-yellow-400/30"
+      return "bg-yellow-500/15 text-yellow-700 border-yellow-400/30"
     case "offline_grace":
       return "bg-sky-500/15 text-sky-300 border-sky-400/30"
     case "finished":
-      return "bg-emerald-500/15 text-emerald-300 border-emerald-400/30"
+      return "bg-emerald-500/15 text-emerald-700 border-emerald-400/30"
     case "terminated":
-      return "bg-red-600/15 text-red-200 border-red-400/30"
+      return "bg-red-600/15 text-red-700 border-red-400/30"
     default:
-      return "bg-emerald-500/15 text-emerald-300 border-emerald-400/30"
+      return "bg-emerald-500/15 text-emerald-700 border-emerald-400/30"
   }
 }
 
@@ -182,10 +182,10 @@ export default function ExamSecurityAdminPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-slate-950 p-6 text-white">
+      <main className="min-h-screen bg-app p-6 text-main">
         <div className="mx-auto max-w-7xl">
           <h1 className="text-3xl font-bold">Exam Security Admin</h1>
-          <p className="mt-3 text-slate-300">Cargando dashboard de seguridad...</p>
+          <p className="mt-3 text-sub">Cargando dashboard de seguridad...</p>
         </div>
       </main>
     )
@@ -193,10 +193,10 @@ export default function ExamSecurityAdminPage() {
 
   if (error || !summary) {
     return (
-      <main className="min-h-screen bg-slate-950 p-6 text-white">
+      <main className="min-h-screen bg-app p-6 text-main">
         <div className="mx-auto max-w-7xl">
           <h1 className="text-3xl font-bold">Exam Security Admin</h1>
-          <div className="mt-6 rounded-3xl border border-red-400/20 bg-red-500/10 p-5 text-red-100">
+          <div className="mt-6 rounded-2xl border border-red-400/20 bg-red-500/10 p-5 text-red-700">
             {error || "No se pudo cargar la información del dashboard."}
           </div>
         </div>
@@ -205,14 +205,14 @@ export default function ExamSecurityAdminPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 p-6 text-white">
+    <main className="min-h-screen bg-app p-6 text-main">
       <div className="mx-auto max-w-7xl">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">
               Exam Security Admin
             </h1>
-            <p className="mt-2 text-slate-300">
+            <p className="mt-2 text-sub">
               Panel general de sesiones, incidentes y acciones automáticas.
             </p>
           </div>
@@ -248,47 +248,47 @@ export default function ExamSecurityAdminPage() {
           <StatCard title="Acciones" value={summary.totalActions} />
         </section>
 
-        <section className="mt-8 rounded-3xl border border-white/10 bg-slate-900/80 p-5 shadow-xl">
-          <h2 className="text-xl font-semibold text-white">Incidentes por severidad</h2>
+        <section className="mt-8 rounded-2xl border border-soft bg-card-theme p-5 shadow-xl">
+          <h2 className="text-xl font-semibold text-main">Incidentes por severidad</h2>
 
           <div className="mt-5 grid gap-4 md:grid-cols-4">
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Low</p>
+            <div className="rounded-2xl border border-soft bg-card-soft-theme p-4">
+              <p className="text-xs uppercase tracking-[0.18em] text-sub">Low</p>
               <p className="mt-2 text-2xl font-bold text-sky-300">
                 {summary.incidentsBySeverity.low}
               </p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Medium</p>
-              <p className="mt-2 text-2xl font-bold text-yellow-300">
+            <div className="rounded-2xl border border-soft bg-card-soft-theme p-4">
+              <p className="text-xs uppercase tracking-[0.18em] text-sub">Medium</p>
+              <p className="mt-2 text-2xl font-bold text-yellow-700">
                 {summary.incidentsBySeverity.medium}
               </p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-slate-400">High</p>
-              <p className="mt-2 text-2xl font-bold text-orange-300">
+            <div className="rounded-2xl border border-soft bg-card-soft-theme p-4">
+              <p className="text-xs uppercase tracking-[0.18em] text-sub">High</p>
+              <p className="mt-2 text-2xl font-bold text-orange-700">
                 {summary.incidentsBySeverity.high}
               </p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Critical</p>
-              <p className="mt-2 text-2xl font-bold text-red-300">
+            <div className="rounded-2xl border border-soft bg-card-soft-theme p-4">
+              <p className="text-xs uppercase tracking-[0.18em] text-sub">Critical</p>
+              <p className="mt-2 text-2xl font-bold text-red-700">
                 {summary.incidentsBySeverity.critical}
               </p>
             </div>
           </div>
         </section>
 
-        <section className="mt-8 rounded-3xl border border-white/10 bg-slate-900/80 p-5 shadow-xl">
+        <section className="mt-8 rounded-2xl border border-soft bg-card-theme p-5 shadow-xl">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-xl font-semibold text-white">Sesiones con mayor riesgo</h2>
-            <span className="text-sm text-slate-400">Top 10</span>
+            <h2 className="text-xl font-semibold text-main">Sesiones con mayor riesgo</h2>
+            <span className="text-sm text-sub">Top 10</span>
           </div>
 
           <div className="mt-5 overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
-                <tr className="border-b border-white/10 text-left text-slate-400">
+                <tr className="border-b border-soft text-left text-sub">
                   <th className="px-3 py-3">Alumno</th>
                   <th className="px-3 py-3">Curso</th>
                   <th className="px-3 py-3">Estado</th>
@@ -301,11 +301,11 @@ export default function ExamSecurityAdminPage() {
               </thead>
               <tbody>
                 {topSessions.map((session) => (
-                  <tr key={session.id} className="border-b border-white/5">
-                    <td className="px-3 py-3 text-white">
+                  <tr key={session.id} className="border-b border-soft">
+                    <td className="px-3 py-3 text-main">
                       {session.student_name || "Sin nombre"}
                     </td>
-                    <td className="px-3 py-3 text-slate-300">
+                    <td className="px-3 py-3 text-sub">
                       {session.student_course || "—"}
                     </td>
                     <td className="px-3 py-3">
@@ -328,14 +328,14 @@ export default function ExamSecurityAdminPage() {
                         {session.risk_level || "clean"}
                       </span>
                     </td>
-                    <td className="px-3 py-3 text-white">{session.risk_score ?? 0}</td>
-                    <td className="px-3 py-3 text-slate-300">
+                    <td className="px-3 py-3 text-main">{session.risk_score ?? 0}</td>
+                    <td className="px-3 py-3 text-sub">
                       {session.warning_count ?? 0}
                     </td>
-                    <td className="px-3 py-3 text-slate-300">
+                    <td className="px-3 py-3 text-sub">
                       {session.freeze_count ?? 0}
                     </td>
-                    <td className="px-3 py-3 text-slate-300">
+                    <td className="px-3 py-3 text-sub">
                       {session.block_count ?? 0}
                     </td>
                   </tr>
@@ -344,7 +344,7 @@ export default function ExamSecurityAdminPage() {
             </table>
 
             {topSessions.length === 0 ? (
-              <p className="mt-4 text-sm text-slate-400">
+              <p className="mt-4 text-sm text-sub">
                 No hay sesiones registradas en la ventana actual.
               </p>
             ) : null}
@@ -352,75 +352,75 @@ export default function ExamSecurityAdminPage() {
         </section>
 
         <section className="mt-8 grid gap-6 xl:grid-cols-2">
-          <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-5 shadow-xl">
-            <h2 className="text-xl font-semibold text-white">Incidentes recientes</h2>
+          <div className="rounded-2xl border border-soft bg-card-theme p-5 shadow-xl">
+            <h2 className="text-xl font-semibold text-main">Incidentes recientes</h2>
 
             <div className="mt-4 space-y-3">
               {recentEvents.map((event) => (
                 <div
                   key={event.id}
-                  className="rounded-2xl border border-white/10 bg-white/5 p-4"
+                  className="rounded-2xl border border-soft bg-card-soft-theme p-4"
                 >
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-semibold text-white">
+                    <span className="text-sm font-semibold text-main">
                       {event.event_type}
                     </span>
-                    <span className="rounded-full border border-white/10 bg-slate-800 px-2 py-0.5 text-xs text-slate-300">
+                    <span className="rounded-full border border-soft bg-card-soft-theme px-2 py-0.5 text-xs text-sub">
                       {event.severity}
                     </span>
                     {typeof event.incident_number === "number" ? (
-                      <span className="rounded-full border border-white/10 bg-slate-800 px-2 py-0.5 text-xs text-slate-300">
+                      <span className="rounded-full border border-soft bg-card-soft-theme px-2 py-0.5 text-xs text-sub">
                         #{event.incident_number}
                       </span>
                     ) : null}
                   </div>
 
-                  <p className="mt-2 text-xs text-slate-400">
+                  <p className="mt-2 text-xs text-sub">
                     Sesión: {event.session_id}
                   </p>
-                  <p className="mt-1 text-xs text-slate-500">{event.created_at}</p>
+                  <p className="mt-1 text-xs text-muted2">{event.created_at}</p>
                 </div>
               ))}
 
               {recentEvents.length === 0 ? (
-                <p className="text-sm text-slate-400">
+                <p className="text-sm text-sub">
                   No hay incidentes recientes.
                 </p>
               ) : null}
             </div>
           </div>
 
-          <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-5 shadow-xl">
-            <h2 className="text-xl font-semibold text-white">Acciones recientes</h2>
+          <div className="rounded-2xl border border-soft bg-card-theme p-5 shadow-xl">
+            <h2 className="text-xl font-semibold text-main">Acciones recientes</h2>
 
             <div className="mt-4 space-y-3">
               {recentActions.map((action) => (
                 <div
                   key={action.id}
-                  className="rounded-2xl border border-white/10 bg-white/5 p-4"
+                  className="rounded-2xl border border-soft bg-card-soft-theme p-4"
                 >
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-semibold text-white">
+                    <span className="text-sm font-semibold text-main">
                       {action.action_type}
                     </span>
-                    <span className="rounded-full border border-white/10 bg-slate-800 px-2 py-0.5 text-xs text-slate-300">
+                    <span className="rounded-full border border-soft bg-card-soft-theme px-2 py-0.5 text-xs text-sub">
                       {action.applied_by}
                     </span>
                   </div>
 
                   {action.reason ? (
-                    <p className="mt-2 text-sm text-slate-300">{action.reason}</p>
+                    <p className="mt-2 text-sm text-sub">{action.reason}</p>
                   ) : null}
 
-                  <p className="mt-2 text-xs text-slate-400">
+                  <p className="mt-2 text-xs text-sub">
                     Sesión: {action.session_id}
                   </p>
-                  <p className="mt-1 text-xs text-slate-500">{action.created_at}</p>
+                  <p className="mt-1 text-xs text-muted2">{action.created_at}</p>
                 </div>
               ))}
 
               {recentActions.length === 0 ? (
-                <p className="text-sm text-slate-400">
+                <p className="text-sm text-sub">
                   No hay acciones recientes.
                 </p>
               ) : null}

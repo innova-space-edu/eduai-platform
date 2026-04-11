@@ -348,14 +348,14 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
 
   // ── RENDER ────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
+    <div className="min-h-screen bg-app text-main">
       <div className="max-w-6xl mx-auto px-4 py-8">
 
         {/* Header */}
         <div className="mb-8">
           <p className="text-blue-400 text-xs tracking-[0.25em] font-semibold mb-2">EXAMEN DOCENTE</p>
           <h1 className="text-3xl md:text-4xl font-extrabold">Crear nuevo examen</h1>
-          <p className="text-gray-400 mt-2 text-sm md:text-base">
+          <p className="text-sub mt-2 text-sm md:text-base">
             Diseña tu evaluación manualmente o usa la IA para generar preguntas automáticamente.
           </p>
         </div>
@@ -366,7 +366,7 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
             {/* ════════════════════════════════════════════════════════════
                 PANEL IA — Generador de preguntas con Gemini / Groq
             ════════════════════════════════════════════════════════════ */}
-            <section className="rounded-3xl border border-violet-500/25 bg-violet-500/[0.04] p-5 md:p-6">
+            <section className="rounded-2xl border border-violet-500/25 bg-violet-500/[0.04] p-5 md:p-6">
               {/* Toggle header */}
               <button
                 onClick={() => setAiOpen(o => !o)}
@@ -375,32 +375,32 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-lg">✨</div>
                   <div className="text-left">
-                    <p className="font-bold text-sm text-white">Generador de preguntas con IA</p>
+                    <p className="font-bold text-sm text-main">Generador de preguntas con IA</p>
                     <p className="text-xs text-violet-400">Gemini 2.5 Flash → Groq fallback automático</p>
                   </div>
                 </div>
-                <span className={`text-gray-400 text-sm transition-transform ${aiOpen ? "rotate-180" : ""}`}>▾</span>
+                <span className={`text-sub text-sm transition-transform ${aiOpen ? "rotate-180" : ""}`}>▾</span>
               </button>
 
               {aiOpen && (
                 <div className="mt-5 space-y-4">
                   {/* Descripción / tema para la IA */}
                   <div>
-                    <label className="text-xs text-gray-400 font-semibold block mb-2">
+                    <label className="text-xs text-sub font-semibold block mb-2">
                       DESCRIPCIÓN PARA LA IA
-                      <span className="text-gray-600 font-normal ml-1">(si está vacío usa el Tema de arriba)</span>
+                      <span className="text-muted2 font-normal ml-1">(si está vacío usa el Tema de arriba)</span>
                     </label>
                     <textarea
                       value={aiPrompt}
                       onChange={e => setAiPrompt(e.target.value)}
                       placeholder="Ej: Funciones cuadráticas para 2° medio, enfocado en discriminante y vértice. Incluye problemas contextualizados."
-                      className="w-full min-h-[90px] rounded-2xl bg-white/[0.04] border border-white/[0.08] px-4 py-3 text-sm text-white focus:outline-none focus:border-violet-500/40 resize-none"
+                      className="w-full min-h-[90px] rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main focus:outline-none focus:border-violet-500/40 resize-none"
                     />
                   </div>
 
                   {/* Cantidad de preguntas por tipo */}
                   <div>
-                    <label className="text-xs text-gray-400 font-semibold block mb-3">CANTIDAD DE PREGUNTAS</label>
+                    <label className="text-xs text-sub font-semibold block mb-3">CANTIDAD DE PREGUNTAS</label>
                     <div className="grid grid-cols-3 gap-3">
                       {[
                         { label: "Alternativas", color: "blue",   val: aiMC,  set: setAiMC },
@@ -412,23 +412,23 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                           <input
                             type="number" min={0} max={20} value={val}
                             onChange={e => set(Math.max(0, Number(e.target.value || 0)))}
-                            className="w-full bg-transparent text-center text-white font-bold text-xl focus:outline-none"
+                            className="w-full bg-transparent text-center text-main font-bold text-xl focus:outline-none"
                           />
                         </div>
                       ))}
                     </div>
-                    <p className="text-xs text-gray-600 mt-2 text-right">
-                      Total: <span className="text-white font-semibold">{aiMC + aiTF + aiDev}</span> preguntas
+                    <p className="text-xs text-muted2 mt-2 text-right">
+                      Total: <span className="text-main font-semibold">{aiMC + aiTF + aiDev}</span> preguntas
                     </p>
                   </div>
 
                   {/* Dificultad IA */}
                   <div className="grid md:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs text-gray-400 font-semibold block mb-2">DIFICULTAD</label>
+                      <label className="text-xs text-sub font-semibold block mb-2">DIFICULTAD</label>
                       <select
                         value={aiDiff} onChange={e => setAiDiff(e.target.value as Difficulty)}
-                        className="w-full rounded-2xl bg-white/[0.04] border border-white/[0.08] px-4 py-3 text-sm text-white focus:outline-none"
+                        className="w-full rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main focus:outline-none"
                       >
                         <option value="facil">Fácil</option>
                         <option value="medio">Medio</option>
@@ -437,10 +437,10 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                       </select>
                     </div>
                     <div>
-                      <label className="text-xs text-gray-400 font-semibold block mb-2">AL IMPORTAR</label>
+                      <label className="text-xs text-sub font-semibold block mb-2">AL IMPORTAR</label>
                       <select
                         value={aiImportMode} onChange={e => setAiImportMode(e.target.value as "replace" | "append")}
-                        className="w-full rounded-2xl bg-white/[0.04] border border-white/[0.08] px-4 py-3 text-sm text-white focus:outline-none"
+                        className="w-full rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main focus:outline-none"
                       >
                         <option value="append">Agregar al final</option>
                         <option value="replace">Reemplazar todas</option>
@@ -457,7 +457,7 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                   >
                     {aiStatus === "generating" ? (
                       <span className="flex items-center justify-center gap-2">
-                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" />
+                        <span className="w-4 h-4 border-2 border-soft border-t-white rounded-full animate-spin inline-block" />
                         Generando con IA...
                       </span>
                     ) : "✨ Generar preguntas con IA"}
@@ -465,7 +465,7 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
 
                   {/* Error IA */}
                   {aiStatus === "error" && (
-                    <div className="rounded-2xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-300">
+                    <div className="rounded-2xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-700">
                       ❌ {aiError}
                     </div>
                   )}
@@ -474,7 +474,7 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                   {aiStatus === "done" && aiPreview.length > 0 && (
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <p className="text-xs font-semibold text-gray-400 tracking-widest">
+                        <p className="text-xs font-semibold text-sub tracking-widest">
                           VISTA PREVIA — {aiPreview.length} pregunta{aiPreview.length !== 1 ? "s" : ""}
                           {aiProvider && (
                             <span className={`ml-2 px-2 py-0.5 rounded-full text-[10px] font-bold ${
@@ -486,7 +486,7 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                         </p>
                         <button
                           onClick={importAIQuestions}
-                          className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold"
+                          className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-main text-xs font-bold"
                         >
                           {aiImportMode === "replace" ? "↩ Reemplazar" : "＋ Importar al examen"}
                         </button>
@@ -494,7 +494,7 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
 
                       <div className="space-y-2 max-h-[480px] overflow-y-auto pr-1">
                         {aiPreview.map((q, idx) => (
-                          <div key={q.id} className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-3">
+                          <div key={q.id} className="rounded-2xl bg-card-soft-theme p-3">
                             <div className="flex items-center justify-between gap-2 mb-1">
                               <div className="flex items-center gap-2">
                                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
@@ -504,22 +504,22 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                                 }`}>
                                   {q.type === "multiple_choice" ? "Alt" : q.type === "true_false" ? "V/F" : "Des"}
                                 </span>
-                                <span className="text-gray-600 text-[10px]">P{idx + 1} · {getQuestionPoints(q)} pts</span>
+                                <span className="text-muted2 text-[10px]">P{idx + 1} · {getQuestionPoints(q)} pts</span>
                               </div>
                               <button
                                 onClick={() => regenerateSingleQuestion(idx)}
                                 disabled={aiRegenIdx !== null}
-                                className="text-[10px] px-2 py-1 rounded-lg bg-white/[0.04] text-gray-400 hover:text-white hover:bg-white/[0.08] disabled:opacity-40 transition-all"
+                                className="text-[10px] px-2 py-1 rounded-lg bg-card-soft-theme text-sub hover:text-main hover:bg-input-theme disabled:opacity-40 transition-all"
                               >
                                 {aiRegenIdx === idx ? "⟳" : "↺ regen"}
                               </button>
                             </div>
-                            <ExamMathText text={q.question} className="text-white text-xs leading-relaxed line-clamp-3" />
+                            <ExamMathText text={q.question} className="text-main text-xs leading-relaxed line-clamp-3" />
                             {q.type === "multiple_choice" && (
                               <div className="mt-2 grid grid-cols-2 gap-1">
                                 {q.options.map((o, j) => (
                                   <div key={j} className={`text-[11px] px-2 py-1 rounded-lg ${
-                                    j === q.correctAnswer ? "bg-green-500/10 text-green-400" : "text-gray-600"
+                                    j === q.correctAnswer ? "bg-green-500/10 text-green-400" : "text-muted2"
                                   }`}>
                                     {String.fromCharCode(65 + j)}. <ExamMathText text={o} className="inline" />
                                   </div>
@@ -527,13 +527,13 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                               </div>
                             )}
                             {q.type === "true_false" && (
-                              <p className="text-xs text-gray-500 mt-1">
-                                Correcta: <span className="text-white font-semibold">{q.correctAnswer === 0 ? "Verdadero" : "Falso"}</span>
+                              <p className="text-xs text-muted2 mt-1">
+                                Correcta: <span className="text-main font-semibold">{q.correctAnswer === 0 ? "Verdadero" : "Falso"}</span>
                                 {" · "}{q.selectionPoints}+{q.justificationMaxPoints} pts
                               </p>
                             )}
                             {q.type === "development" && (
-                              <p className="text-xs text-gray-500 mt-1">
+                              <p className="text-xs text-muted2 mt-1">
                                 Rúbrica: {q.rubric.map(r => `${r.criterion} (${r.points}p)`).join(" · ")}
                               </p>
                             )}
@@ -543,7 +543,7 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
 
                       <button
                         onClick={importAIQuestions}
-                        className="w-full py-3 rounded-2xl font-bold text-sm bg-violet-600 hover:bg-violet-500 text-white"
+                        className="w-full py-3 rounded-2xl font-bold text-sm bg-violet-600 hover:bg-violet-500 text-main"
                       >
                         {aiImportMode === "replace"
                           ? `↩ Reemplazar ${questions.length} pregunta${questions.length !== 1 ? "s" : ""} con las ${aiPreview.length} generadas`
@@ -558,26 +558,26 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
             {/* ════════════════════════════════════════════════════════════
                 INFORMACIÓN GENERAL
             ════════════════════════════════════════════════════════════ */}
-            <section className="rounded-3xl border border-white/[0.08] bg-white/[0.03] p-5 md:p-6">
+            <section className="rounded-2xl border border-medium bg-card-soft-theme p-5 md:p-6">
               <h2 className="text-lg font-bold mb-4">Información general</h2>
 
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs text-gray-400 font-semibold block mb-2">TÍTULO</label>
+                  <label className="text-xs text-sub font-semibold block mb-2">TÍTULO</label>
                   <input value={title} onChange={e => setTitle(e.target.value)}
                     placeholder="Ej: Prueba de porcentajes e interés"
-                    className="w-full rounded-2xl bg-white/[0.04] border border-white/[0.08] px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500/40" />
+                    className="w-full rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main focus:outline-none focus:border-blue-500/40" />
                 </div>
                 <div>
-                  <label className="text-xs text-gray-400 font-semibold block mb-2">TEMA</label>
+                  <label className="text-xs text-sub font-semibold block mb-2">TEMA</label>
                   <input value={topic} onChange={e => setTopic(e.target.value)}
                     placeholder="Ej: Matemática financiera"
-                    className="w-full rounded-2xl bg-white/[0.04] border border-white/[0.08] px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500/40" />
+                    className="w-full rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main focus:outline-none focus:border-blue-500/40" />
                 </div>
                 <div>
-                  <label className="text-xs text-gray-400 font-semibold block mb-2">DIFICULTAD</label>
+                  <label className="text-xs text-sub font-semibold block mb-2">DIFICULTAD</label>
                   <select value={difficulty} onChange={e => setDifficulty(e.target.value as Difficulty)}
-                    className="w-full rounded-2xl bg-white/[0.04] border border-white/[0.08] px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500/40">
+                    className="w-full rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main focus:outline-none focus:border-blue-500/40">
                     <option value="facil">Fácil</option>
                     <option value="medio">Medio</option>
                     <option value="dificil">Difícil</option>
@@ -585,16 +585,16 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs text-gray-400 font-semibold block mb-2">TIEMPO (MINUTOS)</label>
+                  <label className="text-xs text-sub font-semibold block mb-2">TIEMPO (MINUTOS)</label>
                   <input type="number" min={5} value={timeLimit}
                     onChange={e => setTimeLimit(Number(e.target.value || 60))}
-                    className="w-full rounded-2xl bg-white/[0.04] border border-white/[0.08] px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500/40" />
+                    className="w-full rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main focus:outline-none focus:border-blue-500/40" />
                 </div>
                 <div>
-                  <label className="text-xs text-gray-400 font-semibold block mb-2">EXIGENCIA (%)</label>
+                  <label className="text-xs text-sub font-semibold block mb-2">EXIGENCIA (%)</label>
                   <input type="number" min={1} max={100} value={examPercentage}
                     onChange={e => setExamPercentage(Number(e.target.value || 60))}
-                    className="w-full rounded-2xl bg-white/[0.04] border border-white/[0.08] px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500/40" />
+                    className="w-full rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main focus:outline-none focus:border-blue-500/40" />
                 </div>
                 <div className="flex flex-col justify-end">
                   <div className="grid grid-cols-1 gap-2 text-sm">
@@ -603,7 +603,7 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                       { label: "Permitir revisión",               val: allowReview,         set: setAllowReview },
                       { label: "Hacer examen público",            val: isPublic,            set: setIsPublic },
                     ].map(({ label, val, set }) => (
-                      <label key={label} className="flex items-center gap-2 text-gray-300 cursor-pointer">
+                      <label key={label} className="flex items-center gap-2 text-sub cursor-pointer">
                         <input type="checkbox" checked={val} onChange={e => set(e.target.checked)} />
                         {label}
                       </label>
@@ -618,8 +618,8 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                   <div className="flex items-start gap-3">
                     <span className="text-xl mt-0.5">🔒</span>
                     <div>
-                      <p className="text-sm font-bold text-white">Modo Seguro</p>
-                      <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">
+                      <p className="text-sm font-bold text-main">Modo Seguro</p>
+                      <p className="text-xs text-sub mt-0.5 leading-relaxed">
                         Activa el sistema de seguridad avanzado: fullscreen forzado, bloqueo de teclado/clipboard,
                         detección de cambio de pestaña, sesiones con heartbeat y panel de incidentes para el docente.
                       </p>
@@ -634,7 +634,7 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                   </div>
                   <button
                     onClick={() => setSecurityMode(s => !s)}
-                    className={`relative flex-shrink-0 w-12 h-6 rounded-full transition-colors ${securityMode ? "bg-amber-500" : "bg-gray-700"}`}
+                    className={`relative flex-shrink-0 w-12 h-6 rounded-full transition-colors ${securityMode ? "bg-amber-500" : "bg-card-soft-theme"}`}
                   >
                     <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${securityMode ? "translate-x-6" : "translate-x-0.5"}`} />
                   </button>
@@ -643,30 +643,30 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
 
               {/* Instrucciones */}
               <div className="mt-4">
-                <label className="text-xs text-gray-400 font-semibold block mb-2">INSTRUCCIONES</label>
+                <label className="text-xs text-sub font-semibold block mb-2">INSTRUCCIONES</label>
                 <textarea value={instructions} onChange={e => setInstructions(e.target.value)}
                   placeholder="Escribe instrucciones para tus estudiantes..."
-                  className="w-full min-h-[120px] rounded-2xl bg-white/[0.04] border border-white/[0.08] px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500/40" />
+                  className="w-full min-h-[120px] rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main focus:outline-none focus:border-blue-500/40" />
               </div>
             </section>
 
             {/* ════════════════════════════════════════════════════════════
                 PREGUNTAS DEL EXAMEN
             ════════════════════════════════════════════════════════════ */}
-            <section className="rounded-3xl border border-white/[0.08] bg-white/[0.03] p-5 md:p-6">
+            <section className="rounded-2xl border border-medium bg-card-soft-theme p-5 md:p-6">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-5">
                 <h2 className="text-lg font-bold">Preguntas del examen</h2>
                 <div className="flex flex-wrap gap-2">
                   <button onClick={() => addQuestion("multiple_choice")}
-                    className="px-4 py-2 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold">
+                    className="px-4 py-2 rounded-2xl bg-blue-600 hover:bg-blue-500 text-main text-sm font-semibold">
                     + Alternativas
                   </button>
                   <button onClick={() => addQuestion("true_false")}
-                    className="px-4 py-2 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold">
+                    className="px-4 py-2 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-main text-sm font-semibold">
                     + V/F
                   </button>
                   <button onClick={() => addQuestion("development")}
-                    className="px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold">
+                    className="px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-main text-sm font-semibold">
                     + Desarrollo
                   </button>
                 </div>
@@ -674,30 +674,30 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
 
               <div className="space-y-5">
                 {questions.map((q, index) => (
-                  <div key={q.id} className="rounded-3xl border border-white/[0.08] bg-black/20 p-4 md:p-5">
+                  <div key={q.id} className="rounded-2xl border border-medium bg-card-soft-theme p-4 md:p-5">
                     <div className="flex items-start justify-between gap-3 mb-4">
                       <div>
-                        <p className="text-xs tracking-widest text-gray-500 font-semibold">PREGUNTA {index + 1}</p>
-                        <p className="text-sm text-gray-300 mt-1">
+                        <p className="text-xs tracking-widest text-muted2 font-semibold">PREGUNTA {index + 1}</p>
+                        <p className="text-sm text-sub mt-1">
                           Tipo:{" "}
-                          <span className="font-semibold text-white">
+                          <span className="font-semibold text-main">
                             {q.type === "multiple_choice" ? "Alternativas" : q.type === "true_false" ? "Verdadero/Falso" : "Desarrollo"}
                           </span>
-                          <span className="ml-2 text-xs text-gray-600">· {getQuestionPoints(q)} pts</span>
+                          <span className="ml-2 text-xs text-muted2">· {getQuestionPoints(q)} pts</span>
                         </p>
                       </div>
                       <button onClick={() => removeQuestion(q.id)} disabled={questions.length === 1}
-                        className="px-3 py-2 rounded-xl bg-red-500/15 text-red-300 hover:bg-red-500/25 disabled:opacity-40 text-sm">
+                        className="px-3 py-2 rounded-xl bg-red-500/15 text-red-700 hover:bg-red-500/25 disabled:opacity-40 text-sm">
                         Eliminar
                       </button>
                     </div>
 
                     {/* Enunciado */}
                     <div className="mb-4">
-                      <label className="text-xs text-gray-400 font-semibold block mb-2">ENUNCIADO</label>
+                      <label className="text-xs text-sub font-semibold block mb-2">ENUNCIADO</label>
                       <textarea value={q.question}
                         onChange={e => updateQuestion(q.id, prev => ({ ...prev, question: e.target.value }))}
-                        className="w-full min-h-[110px] rounded-2xl bg-white/[0.04] border border-white/[0.08] px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500/40"
+                        className="w-full min-h-[110px] rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main focus:outline-none focus:border-blue-500/40"
                         placeholder="Escribe la pregunta..." />
                     </div>
 
@@ -712,9 +712,9 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                                 const next = [...prev.options]; next[optIndex] = e.target.value
                                 return { ...prev, options: next }
                               })}
-                              className="w-full rounded-2xl bg-white/[0.04] border border-white/[0.08] px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500/40"
+                              className="w-full rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main focus:outline-none focus:border-blue-500/40"
                               placeholder={`Alternativa ${optIndex + 1}`} />
-                            <label className="flex items-center gap-2 text-sm text-gray-300 whitespace-nowrap">
+                            <label className="flex items-center gap-2 text-sm text-sub whitespace-nowrap">
                               <input type="radio" name={`correct-${q.id}`} checked={q.correctAnswer === optIndex}
                                 onChange={() => updateQuestion(q.id, prev => prev.type === "multiple_choice" ? { ...prev, correctAnswer: optIndex } : prev)} />
                               Correcta
@@ -723,16 +723,16 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                         ))}
                         <div className="grid md:grid-cols-2 gap-4 mt-3">
                           <div>
-                            <label className="text-xs text-gray-400 font-semibold block mb-2">EXPLICACIÓN</label>
+                            <label className="text-xs text-sub font-semibold block mb-2">EXPLICACIÓN</label>
                             <textarea value={q.explanation || ""}
                               onChange={e => updateQuestion(q.id, prev => prev.type === "multiple_choice" ? { ...prev, explanation: e.target.value } : prev)}
-                              className="w-full min-h-[90px] rounded-2xl bg-white/[0.04] border border-white/[0.08] px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500/40" />
+                              className="w-full min-h-[90px] rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main focus:outline-none focus:border-blue-500/40" />
                           </div>
                           <div>
-                            <label className="text-xs text-gray-400 font-semibold block mb-2">PUNTAJE</label>
+                            <label className="text-xs text-sub font-semibold block mb-2">PUNTAJE</label>
                             <input type="number" min={1} value={q.maxPoints || 1}
                               onChange={e => updateQuestion(q.id, prev => prev.type === "multiple_choice" ? { ...prev, maxPoints: Number(e.target.value || 1) } : prev)}
-                              className="w-full rounded-2xl bg-white/[0.04] border border-white/[0.08] px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500/40" />
+                              className="w-full rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main focus:outline-none focus:border-blue-500/40" />
                           </div>
                         </div>
                       </div>
@@ -743,7 +743,7 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                       <div className="space-y-4">
                         <div className="flex gap-4">
                           {["Verdadero", "Falso"].map((label, j) => (
-                            <label key={j} className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+                            <label key={j} className="flex items-center gap-2 text-sm text-sub cursor-pointer">
                               <input type="radio" name={`tf-${q.id}`} checked={q.correctAnswer === j}
                                 onChange={() => updateQuestion(q.id, prev => prev.type === "true_false" ? { ...prev, correctAnswer: j } : prev)} />
                               {label}
@@ -752,29 +752,29 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                         </div>
                         <div className="grid md:grid-cols-3 gap-4">
                           <div>
-                            <label className="text-xs text-gray-400 font-semibold block mb-2">PTS SELECCIÓN</label>
+                            <label className="text-xs text-sub font-semibold block mb-2">PTS SELECCIÓN</label>
                             <input type="number" min={0} value={q.selectionPoints || 1}
                               onChange={e => updateQuestion(q.id, prev => prev.type === "true_false" ? { ...prev, selectionPoints: Number(e.target.value || 0) } : prev)}
-                              className="w-full rounded-2xl bg-white/[0.04] border border-white/[0.08] px-4 py-3 text-sm text-white" />
+                              className="w-full rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main" />
                           </div>
                           <div>
-                            <label className="text-xs text-gray-400 font-semibold block mb-2">PTS JUSTIFICACIÓN</label>
+                            <label className="text-xs text-sub font-semibold block mb-2">PTS JUSTIFICACIÓN</label>
                             <input type="number" min={0} value={q.justificationMaxPoints || 2}
                               onChange={e => updateQuestion(q.id, prev => prev.type === "true_false" ? { ...prev, justificationMaxPoints: Number(e.target.value || 0) } : prev)}
-                              className="w-full rounded-2xl bg-white/[0.04] border border-white/[0.08] px-4 py-3 text-sm text-white" />
+                              className="w-full rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main" />
                           </div>
                           <div>
-                            <label className="text-xs text-gray-400 font-semibold block mb-2">TOTAL</label>
-                            <div className="rounded-2xl bg-white/[0.04] border border-white/[0.08] px-4 py-3 text-sm text-white">
+                            <label className="text-xs text-sub font-semibold block mb-2">TOTAL</label>
+                            <div className="rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main">
                               {getQuestionPoints(q)}
                             </div>
                           </div>
                         </div>
                         <div>
-                          <label className="text-xs text-gray-400 font-semibold block mb-2">EXPLICACIÓN</label>
+                          <label className="text-xs text-sub font-semibold block mb-2">EXPLICACIÓN</label>
                           <textarea value={q.explanation || ""}
                             onChange={e => updateQuestion(q.id, prev => prev.type === "true_false" ? { ...prev, explanation: e.target.value } : prev)}
-                            className="w-full min-h-[90px] rounded-2xl bg-white/[0.04] border border-white/[0.08] px-4 py-3 text-sm text-white" />
+                            className="w-full min-h-[90px] rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main" />
                         </div>
                       </div>
                     )}
@@ -783,13 +783,13 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                     {q.type === "development" && (
                       <div className="space-y-4">
                         <div>
-                          <label className="text-xs text-gray-400 font-semibold block mb-2">RESPUESTA ESPERADA</label>
+                          <label className="text-xs text-sub font-semibold block mb-2">RESPUESTA ESPERADA</label>
                           <textarea value={(q as DevelopmentQuestion).expectedAnswer || ""}
                             onChange={e => updateQuestion(q.id, prev => prev.type === "development" ? { ...prev, expectedAnswer: e.target.value } : prev)}
-                            className="w-full min-h-[90px] rounded-2xl bg-white/[0.04] border border-white/[0.08] px-4 py-3 text-sm text-white" />
+                            className="w-full min-h-[90px] rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main" />
                         </div>
                         <div>
-                          <label className="text-xs text-gray-400 font-semibold block mb-2">RÚBRICA</label>
+                          <label className="text-xs text-sub font-semibold block mb-2">RÚBRICA</label>
                           <div className="space-y-3">
                             {(q as DevelopmentQuestion).rubric.map((item, rubricIndex) => (
                               <div key={rubricIndex} className="grid grid-cols-[1fr_120px_auto] gap-3 items-center">
@@ -799,21 +799,21 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                                     const next = [...prev.rubric]; next[rubricIndex] = { ...next[rubricIndex], criterion: e.target.value }
                                     return { ...prev, rubric: next }
                                   })}
-                                  className="w-full rounded-2xl bg-white/[0.04] border border-white/[0.08] px-4 py-3 text-sm text-white" placeholder="Criterio" />
+                                  className="w-full rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main" placeholder="Criterio" />
                                 <input type="number" min={1} value={item.points}
                                   onChange={e => updateQuestion(q.id, prev => {
                                     if (prev.type !== "development") return prev
                                     const next = [...prev.rubric]; next[rubricIndex] = { ...next[rubricIndex], points: Number(e.target.value || 0) }
                                     return { ...prev, rubric: next }
                                   })}
-                                  className="w-full rounded-2xl bg-white/[0.04] border border-white/[0.08] px-4 py-3 text-sm text-white" />
+                                  className="w-full rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main" />
                                 <button
                                   onClick={() => updateQuestion(q.id, prev => {
                                     if (prev.type !== "development") return prev
                                     return { ...prev, rubric: prev.rubric.filter((_, idx) => idx !== rubricIndex) }
                                   })}
                                   disabled={(q as DevelopmentQuestion).rubric.length === 1}
-                                  className="px-3 py-2 rounded-xl bg-red-500/15 text-red-300 hover:bg-red-500/25 disabled:opacity-40 text-sm">
+                                  className="px-3 py-2 rounded-xl bg-red-500/15 text-red-700 hover:bg-red-500/25 disabled:opacity-40 text-sm">
                                   Quitar
                                 </button>
                               </div>
@@ -824,11 +824,11 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                               if (prev.type !== "development") return prev
                               return { ...prev, rubric: [...prev.rubric, { criterion: "", points: 1 }] }
                             })}
-                            className="mt-3 px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold">
+                            className="mt-3 px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-main text-sm font-semibold">
                             + Agregar criterio
                           </button>
-                          <p className="text-sm text-gray-400 mt-3">
-                            Puntaje total: <span className="text-white font-semibold">{getQuestionPoints(q)}</span>
+                          <p className="text-sm text-sub mt-3">
+                            Puntaje total: <span className="text-main font-semibold">{getQuestionPoints(q)}</span>
                           </p>
                         </div>
                       </div>
@@ -843,7 +843,7 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
               SIDEBAR — Resumen + Guardar
           ════════════════════════════════════════════════════════════ */}
           <aside className="space-y-6">
-            <section className="rounded-3xl border border-white/[0.08] bg-white/[0.03] p-5 sticky top-6">
+            <section className="rounded-2xl border border-medium bg-card-soft-theme p-5 sticky top-6">
               <h2 className="text-lg font-bold mb-4">Resumen</h2>
 
               <div className="space-y-3 text-sm">
@@ -855,21 +855,21 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                   { label: "Dificultad",    value: difficulty },
                 ].map(({ label, value }) => (
                   <div key={label} className="flex justify-between gap-3">
-                    <span className="text-gray-400">{label}</span>
-                    <span className="font-semibold text-white capitalize">{value}</span>
+                    <span className="text-sub">{label}</span>
+                    <span className="font-semibold text-main capitalize">{value}</span>
                   </div>
                 ))}
 
                 {/* Indicador de seguridad en resumen */}
                 <div className="flex justify-between gap-3 pt-1">
-                  <span className="text-gray-400">Modo Seguro</span>
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${securityMode ? "bg-amber-500/15 text-amber-400" : "bg-gray-800 text-gray-600"}`}>
+                  <span className="text-sub">Modo Seguro</span>
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${securityMode ? "bg-amber-500/15 text-amber-400" : "bg-card-soft-theme text-muted2"}`}>
                     {securityMode ? "ACTIVO" : "Inactivo"}
                   </span>
                 </div>
 
                 {/* Desglose de tipos */}
-                <div className="pt-1 border-t border-white/[0.05] space-y-1">
+                <div className="pt-1 border-t border-soft space-y-1">
                   {(["multiple_choice","true_false","development"] as QuestionType[]).map(type => {
                     const count = questions.filter(q => q.type === type).length
                     if (count === 0) return null
@@ -878,7 +878,7 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                     return (
                       <div key={type} className="flex justify-between gap-3">
                         <span className={`text-xs ${color}`}>{label}</span>
-                        <span className="text-xs text-gray-400">{count} pregunta{count !== 1 ? "s" : ""}</span>
+                        <span className="text-xs text-sub">{count} pregunta{count !== 1 ? "s" : ""}</span>
                       </div>
                     )
                   })}
@@ -886,12 +886,12 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
               </div>
 
               {errorMsg && (
-                <div className="mt-5 rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-200">
+                <div className="mt-5 rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-700">
                   {errorMsg}
                 </div>
               )}
               {successMsg && (
-                <div className="mt-5 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-200">
+                <div className="mt-5 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-700">
                   {successMsg}
                 </div>
               )}
@@ -902,7 +902,7 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                   {saving ? "Creando examen..." : "Crear examen"}
                 </button>
                 <button onClick={() => router.push("/examen/docente")}
-                  className="w-full py-3 rounded-2xl bg-white/[0.04] border border-white/[0.08] text-white">
+                  className="w-full py-3 rounded-2xl bg-card-soft-theme border border-soft text-main">
                   Volver
                 </button>
               </div>

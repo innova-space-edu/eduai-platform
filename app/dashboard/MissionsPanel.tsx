@@ -35,38 +35,23 @@ export default function MissionsPanel() {
 
   return (
     <div className="animate-fade-in">
-      {/* Header */}
       <div className="flex items-center gap-2 mb-3">
-        <div className="w-7 h-7 rounded-xl bg-amber-500/15 border border-amber-500/20 flex items-center justify-center">
-          <Target size={14} className="text-amber-400" />
+        <div className="w-7 h-7 rounded-xl flex items-center justify-center"
+          style={{ background: "rgba(217,119,6,0.12)", border: "1px solid rgba(217,119,6,0.22)" }}>
+          <Target size={14} style={{ color: "var(--accent-amber)" }} />
         </div>
-        <h3 className="text-white font-semibold text-sm">Misiones</h3>
+        <h3 className="text-main font-semibold text-sm">Misiones</h3>
       </div>
 
       <div className="grid sm:grid-cols-2 gap-3">
-        {/* Diarias */}
-        <MissionGroup
-          title="Diarias"
-          icon={<Calendar size={12} className="text-blue-400" />}
-          missions={daily}
-          color="#3b82f6"
-        />
-
-        {/* Semanales */}
-        <MissionGroup
-          title="Semanales"
-          icon={<CalendarDays size={12} className="text-purple-400" />}
-          missions={weekly}
-          color="#8b5cf6"
-        />
+        <MissionGroup title="Diarias"   icon={<Calendar    size={12} style={{ color: "var(--accent-blue)"   }} />} missions={daily}  color="var(--accent-blue)" />
+        <MissionGroup title="Semanales" icon={<CalendarDays size={12} style={{ color: "var(--accent-purple)" }} />} missions={weekly} color="var(--accent-purple)" />
       </div>
     </div>
   )
 }
 
-function MissionGroup({
-  title, icon, missions, color,
-}: {
+function MissionGroup({ title, icon, missions, color }: {
   title: string
   icon: React.ReactNode
   missions: Mission[]
@@ -75,16 +60,11 @@ function MissionGroup({
   if (missions.length === 0) return null
 
   return (
-    <div
-      className="rounded-2xl p-4 border"
-      style={{
-        background: "rgba(255,255,255,0.02)",
-        borderColor: "rgba(255,255,255,0.06)",
-      }}
-    >
+    <div className="rounded-2xl p-4 border"
+      style={{ background: "var(--bg-card)", borderColor: "var(--border-soft)", boxShadow: "var(--shadow-sm)" }}>
       <div className="flex items-center gap-1.5 mb-3">
         {icon}
-        <p className="text-gray-500 text-[11px] font-semibold uppercase tracking-widest">{title}</p>
+        <p className="text-muted2 text-[11px] font-semibold uppercase tracking-widest">{title}</p>
       </div>
       <div className="space-y-2.5">
         {missions.map(m => <MissionItem key={m.id} mission={m} accentColor={color} />)}
@@ -100,40 +80,34 @@ function MissionItem({ mission, accentColor }: { mission: Mission; accentColor: 
     <div
       className="rounded-xl p-3 border transition-all"
       style={{
-        background: mission.completed
-          ? "rgba(16,185,129,0.05)"
-          : "rgba(255,255,255,0.02)",
-        borderColor: mission.completed
-          ? "rgba(16,185,129,0.15)"
-          : "rgba(255,255,255,0.05)",
+        background: mission.completed ? "rgba(5,150,105,0.06)" : "var(--bg-card-soft)",
+        borderColor: mission.completed ? "rgba(5,150,105,0.18)" : "var(--border-soft)",
       }}
     >
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="min-w-0">
           <p className="text-sm font-medium leading-tight truncate"
-             style={{ color: mission.completed ? "#6ee7b7" : "#e2e8f0" }}>
+            style={{ color: mission.completed ? "#059669" : "var(--text-primary)" }}>
             {mission.completed && "✓ "}{mission.title}
           </p>
-          <p className="text-gray-500 text-xs mt-0.5 line-clamp-1">{mission.description}</p>
+          <p className="text-muted2 text-xs mt-0.5 line-clamp-1">{mission.description}</p>
         </div>
-        <div className="flex items-center gap-1 flex-shrink-0 px-2 py-0.5 rounded-lg bg-amber-500/8 border border-amber-500/15">
-          <Zap size={9} className="text-amber-400" />
-          <span className="text-amber-400 text-[11px] font-bold">{mission.xp_reward}</span>
+        <div className="flex items-center gap-1 flex-shrink-0 px-2 py-0.5 rounded-lg"
+          style={{ background: "rgba(217,119,6,0.09)", border: "1px solid rgba(217,119,6,0.18)" }}>
+          <Zap size={9} style={{ color: "var(--accent-amber)" }} />
+          <span className="text-[11px] font-bold" style={{ color: "var(--accent-amber)" }}>{mission.xp_reward}</span>
         </div>
       </div>
 
       {!mission.completed && (
         <>
-          <div className="w-full h-1 rounded-full bg-white/[0.06] overflow-hidden">
+          <div className="w-full h-1 rounded-full overflow-hidden" style={{ background: "var(--border-soft)" }}>
             <div
               className="h-full rounded-full transition-all duration-700"
-              style={{
-                width: `${percent}%`,
-                background: `linear-gradient(90deg, ${accentColor}bb, ${accentColor})`,
-              }}
+              style={{ width: `${percent}%`, background: `linear-gradient(90deg, ${accentColor}bb, ${accentColor})` }}
             />
           </div>
-          <p className="text-gray-600 text-[10px] text-right mt-1 tabular-nums">
+          <p className="text-muted2 text-[10px] text-right mt-1 tabular-nums">
             {mission.progress}/{mission.goal}
           </p>
         </>

@@ -96,15 +96,15 @@ function getPlanningStats(item: SavedPlanning) {
 function badgeClass(tone: string) {
   switch (tone) {
     case "emerald":
-      return "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+      return "border-emerald-500/30 bg-emerald-500/10 text-emerald-700"
     case "cyan":
-      return "border-cyan-500/30 bg-cyan-500/10 text-cyan-300"
+      return "border-cyan-500/30 bg-cyan-500/10 text-cyan-700"
     case "violet":
-      return "border-violet-500/30 bg-violet-500/10 text-violet-300"
+      return "border-violet-500/30 bg-violet-500/10 text-violet-700"
     case "amber":
-      return "border-amber-500/30 bg-amber-500/10 text-amber-300"
+      return "border-amber-500/30 bg-amber-500/10 text-amber-700"
     default:
-      return "border-slate-700 bg-slate-800 text-slate-300"
+      return "border-medium bg-card-soft-theme text-sub"
   }
 }
 
@@ -221,13 +221,13 @@ export default function SavedPlanningsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#020817] text-white">
-      <div className="sticky top-0 z-20 border-b border-slate-800 bg-[#061127]/90 backdrop-blur">
+    <div className="min-h-screen bg-[#020817] text-main">
+      <div className="sticky top-0 z-20 border-b border-soft bg-[#061127]/90 backdrop-blur">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-start gap-4">
             <button
               onClick={() => router.push("/educador")}
-              className="inline-flex items-center gap-2 rounded-2xl border border-slate-700 bg-slate-900 px-4 py-2 text-sm text-slate-200 transition hover:bg-slate-800"
+              className="inline-flex items-center gap-2 rounded-2xl border border-medium bg-card-theme px-4 py-2 text-sm text-main transition hover:bg-card-soft-theme"
             >
               ← Volver
             </button>
@@ -236,7 +236,7 @@ export default function SavedPlanningsPage() {
               <h1 className="text-3xl font-semibold tracking-tight">
                 Planificaciones guardadas
               </h1>
-              <p className="mt-1 text-sm text-slate-400">
+              <p className="mt-1 text-sm text-sub">
                 Ver, editar, exportar y eliminar planificaciones.
               </p>
             </div>
@@ -247,7 +247,7 @@ export default function SavedPlanningsPage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Buscar por título, curso o asignatura..."
-              className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-slate-200 placeholder:text-slate-500 outline-none transition focus:border-emerald-500/40"
+              className="w-full rounded-2xl border border-medium bg-card-theme px-4 py-3 text-sm text-main placeholder:text-muted2 outline-none transition focus:border-emerald-500/40"
             />
           </div>
         </div>
@@ -259,37 +259,37 @@ export default function SavedPlanningsPage() {
             {Array.from({ length: 3 }).map((_, idx) => (
               <div
                 key={idx}
-                className="animate-pulse rounded-3xl border border-slate-800 bg-slate-900/70 p-6"
+                className="animate-pulse rounded-2xl border border-soft bg-card-theme p-6"
               >
                 <div className="mb-5 flex flex-wrap gap-2">
-                  <div className="h-7 w-20 rounded-full bg-slate-800" />
-                  <div className="h-7 w-24 rounded-full bg-slate-800" />
-                  <div className="h-7 w-40 rounded-full bg-slate-800" />
+                  <div className="h-7 w-20 rounded-full bg-card-soft-theme" />
+                  <div className="h-7 w-24 rounded-full bg-card-soft-theme" />
+                  <div className="h-7 w-40 rounded-full bg-card-soft-theme" />
                 </div>
-                <div className="h-8 w-2/3 rounded-xl bg-slate-800" />
-                <div className="mt-4 h-5 w-40 rounded-xl bg-slate-800" />
+                <div className="h-8 w-2/3 rounded-xl bg-card-soft-theme" />
+                <div className="mt-4 h-5 w-40 rounded-xl bg-card-soft-theme" />
                 <div className="mt-6 space-y-2">
-                  <div className="h-4 w-full rounded bg-slate-800" />
-                  <div className="h-4 w-full rounded bg-slate-800" />
-                  <div className="h-4 w-2/3 rounded bg-slate-800" />
+                  <div className="h-4 w-full rounded bg-card-soft-theme" />
+                  <div className="h-4 w-full rounded bg-card-soft-theme" />
+                  <div className="h-4 w-2/3 rounded bg-card-soft-theme" />
                 </div>
               </div>
             ))}
           </div>
         ) : error ? (
-          <div className="rounded-3xl border border-rose-500/20 bg-rose-500/10 p-8 text-center text-rose-200">
+          <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 p-8 text-center text-rose-700">
             No se pudieron cargar las planificaciones. {error}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="rounded-3xl border border-dashed border-slate-700 bg-slate-900/60 p-12 text-center">
+          <div className="rounded-2xl border border-dashed border-medium bg-card-theme p-12 text-center">
             <div className="mb-4 text-5xl">🗂️</div>
             <h2 className="text-2xl font-semibold">Aún no hay planificaciones guardadas</h2>
-            <p className="mx-auto mt-3 max-w-xl text-sm text-slate-400">
+            <p className="mx-auto mt-3 max-w-xl text-sm text-sub">
               Crea una planificación en el agente y guárdala para verla aquí.
             </p>
             <Link
               href="/educador"
-              className="mt-6 inline-flex rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-medium text-white transition hover:bg-emerald-500"
+              className="mt-6 inline-flex rounded-2xl bg-blue-600 hover:bg-blue-700 px-5 py-3 text-sm font-medium text-white transition"
             >
               Ir al planificador
             </Link>
@@ -303,7 +303,7 @@ export default function SavedPlanningsPage() {
               return (
                 <article
                   key={item.id}
-                  className="overflow-hidden rounded-[28px] border border-slate-800 bg-gradient-to-br from-slate-900 via-[#081224] to-[#050b16] shadow-2xl shadow-black/20"
+                  className="overflow-hidden rounded-2xl border border-soft bg-card-theme shadow-md hover:shadow-lg transition-shadow"
                 >
                   <div className="grid gap-0 xl:grid-cols-[minmax(0,1fr)_320px]">
                     <div className="p-6">
@@ -318,61 +318,61 @@ export default function SavedPlanningsPage() {
                           </span>
                         ))}
 
-                        <span className="rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-xs text-slate-300">
+                        <span className="rounded-full border border-medium bg-card-soft-theme px-3 py-1 text-xs text-sub">
                           Creada: {formatDate(item.created_at)}
                         </span>
                       </div>
 
-                      <h2 className="text-2xl font-semibold leading-tight text-white">
+                      <h2 className="text-2xl font-semibold leading-tight text-main">
                         {item.title}
                       </h2>
 
-                      <p className="mt-3 text-base text-slate-300">
+                      <p className="mt-3 text-base text-sub">
                         {item.curso || "Sin curso"} · {item.asignatura || "Sin asignatura"}
                       </p>
 
                       {item.contexto ? (
-                        <div className="mt-5 rounded-2xl border border-slate-800 bg-slate-950/40 px-4 py-3">
-                          <p className="mb-1 text-[11px] uppercase tracking-[0.18em] text-slate-500">
+                        <div className="mt-5 rounded-2xl border border-soft bg-app px-4 py-3">
+                          <p className="mb-1 text-[11px] uppercase tracking-[0.18em] text-muted2">
                             Contexto pedagógico
                           </p>
-                          <p className="line-clamp-2 text-sm leading-6 text-slate-300">
+                          <p className="line-clamp-2 text-sm leading-6 text-sub">
                             {item.contexto}
                           </p>
                         </div>
                       ) : null}
 
-                      <div className="mt-5 rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
-                        <p className="mb-2 text-[11px] uppercase tracking-[0.18em] text-slate-500">
+                      <div className="mt-5 rounded-2xl border border-soft bg-app p-4">
+                        <p className="mb-2 text-[11px] uppercase tracking-[0.18em] text-muted2">
                           Vista previa del contenido
                         </p>
-                        <p className="text-sm leading-7 text-slate-300">
+                        <p className="text-sm leading-7 text-sub">
                           {preview}
                         </p>
                       </div>
 
-                      <div className="mt-5 flex flex-wrap gap-3 text-xs text-slate-500">
+                      <div className="mt-5 flex flex-wrap gap-3 text-xs text-muted2">
                         <span>
-                          Última edición: <span className="text-slate-300">{formatDate(item.updated_at)}</span>
+                          Última edición: <span className="text-sub">{formatDate(item.updated_at)}</span>
                         </span>
                         {item.mes ? (
                           <span>
-                            Mes: <span className="text-slate-300">{item.mes}</span>
+                            Mes: <span className="text-sub">{item.mes}</span>
                           </span>
                         ) : null}
                       </div>
                     </div>
 
-                    <div className="border-t border-slate-800/80 bg-slate-950/30 p-6 xl:border-l xl:border-t-0">
+                    <div className="border-t border-soft bg-app p-6 xl:border-l xl:border-t-0">
                       <div className="flex h-full flex-col justify-between">
                         <div>
-                          <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">
+                          <p className="text-[11px] uppercase tracking-[0.18em] text-muted2">
                             Acciones
                           </p>
-                          <h3 className="mt-2 text-lg font-semibold text-slate-100">
+                          <h3 className="mt-2 text-lg font-semibold text-main">
                             Gestionar planificación
                           </h3>
-                          <p className="mt-2 text-sm leading-6 text-slate-400">
+                          <p className="mt-2 text-sm leading-6 text-sub">
                             Abre la vista completa, edita el contenido, exporta el PDF o elimina este registro.
                           </p>
                         </div>
@@ -380,7 +380,7 @@ export default function SavedPlanningsPage() {
                         <div className="mt-6 grid gap-3">
                           <Link
                             href={`/educador/planificaciones/${item.id}`}
-                            className="inline-flex items-center justify-center rounded-2xl border border-cyan-500/25 bg-cyan-500/10 px-4 py-3 text-sm font-medium text-cyan-200 transition hover:bg-cyan-500/20"
+                            className="inline-flex items-center justify-center rounded-2xl border border-cyan-500/25 bg-cyan-500/10 px-4 py-3 text-sm font-medium text-cyan-700 transition hover:bg-cyan-500/20"
                           >
                             Ver y editar
                           </Link>
@@ -388,7 +388,7 @@ export default function SavedPlanningsPage() {
                           <button
                             onClick={() => handleExport(item)}
                             disabled={exportingId === item.id}
-                            className="rounded-2xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm font-medium text-amber-200 transition hover:bg-amber-500/20 disabled:opacity-50"
+                            className="rounded-2xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm font-medium text-amber-700 transition hover:bg-amber-500/20 disabled:opacity-50"
                           >
                             {exportingId === item.id ? "Exportando..." : "Exportar PDF"}
                           </button>
@@ -396,7 +396,7 @@ export default function SavedPlanningsPage() {
                           <button
                             onClick={() => handleDelete(item.id, item.title)}
                             disabled={deletingId === item.id}
-                            className="rounded-2xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm font-medium text-rose-200 transition hover:bg-rose-500/20 disabled:opacity-50"
+                            className="rounded-2xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm font-medium text-rose-700 transition hover:bg-rose-500/20 disabled:opacity-50"
                           >
                             {deletingId === item.id ? "Eliminando..." : "Eliminar"}
                           </button>

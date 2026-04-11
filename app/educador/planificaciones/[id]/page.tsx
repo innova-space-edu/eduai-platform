@@ -64,10 +64,10 @@ function statCardTone(index: number) {
     "border-cyan-500/20 bg-cyan-500/[0.06]",
     "border-violet-500/20 bg-violet-500/[0.06]",
     "border-amber-500/20 bg-amber-500/[0.06]",
-    "border-slate-700 bg-[#040b1a]",
-    "border-slate-700 bg-[#040b1a]",
+    "border-medium bg-[#040b1a]",
+    "border-medium bg-[#040b1a]",
   ]
-  return tones[index] || "border-slate-700 bg-[#040b1a]"
+  return tones[index] || "border-medium bg-[#040b1a]"
 }
 
 export default function SavedPlanningDetailPage() {
@@ -231,13 +231,13 @@ export default function SavedPlanningDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#020817] text-white">
+      <div className="min-h-screen bg-[#020817] text-main">
         <div className="mx-auto max-w-7xl px-6 py-8">
           <div className="animate-pulse space-y-5">
-            <div className="h-20 rounded-3xl bg-slate-900/70 border border-slate-800" />
+            <div className="h-20 rounded-2xl bg-card-theme border border-soft" />
             <div className="grid gap-6 xl:grid-cols-[340px_minmax(0,1fr)]">
-              <div className="h-[680px] rounded-3xl bg-slate-900/70 border border-slate-800" />
-              <div className="h-[680px] rounded-3xl bg-slate-900/70 border border-slate-800" />
+              <div className="h-[680px] rounded-2xl bg-card-theme border border-soft" />
+              <div className="h-[680px] rounded-2xl bg-card-theme border border-soft" />
             </div>
           </div>
         </div>
@@ -247,17 +247,17 @@ export default function SavedPlanningDetailPage() {
 
   if (!item) {
     return (
-      <div className="min-h-screen bg-[#020817] text-white">
+      <div className="min-h-screen bg-[#020817] text-main">
         <div className="mx-auto max-w-4xl px-6 py-10">
-          <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-8">
+          <div className="rounded-2xl border border-soft bg-card-theme p-8">
             <Link
               href="/educador/planificaciones"
-              className="mb-6 inline-flex items-center gap-2 rounded-2xl border border-slate-700 bg-slate-900 px-4 py-2 text-sm text-slate-200 transition hover:bg-slate-800"
+              className="mb-6 inline-flex items-center gap-2 rounded-2xl border border-medium bg-card-theme px-4 py-2 text-sm text-main transition hover:bg-card-soft-theme"
             >
               ← Volver
             </Link>
             <h1 className="text-2xl font-semibold">Planificación no disponible</h1>
-            <p className="mt-3 text-slate-400">{status || "No se encontró el registro."}</p>
+            <p className="mt-3 text-sub">{status || "No se encontró el registro."}</p>
           </div>
         </div>
       </div>
@@ -277,35 +277,35 @@ export default function SavedPlanningDetailPage() {
   ] as const
 
   return (
-    <div className="min-h-screen bg-[#020817] text-white">
-      <div className="border-b border-slate-800 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.12),transparent_30%),linear-gradient(to_bottom,rgba(6,17,39,0.95),rgba(6,17,39,0.88))] backdrop-blur">
+    <div className="min-h-screen bg-[#020817] text-main">
+      <div className="border-b border-soft bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.12),transparent_30%),linear-gradient(to_bottom,rgba(6,17,39,0.95),rgba(6,17,39,0.88))] backdrop-blur">
         <div className="mx-auto max-w-7xl px-6 py-6">
           <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex items-start gap-4">
               <Link
                 href="/educador/planificaciones"
-                className="inline-flex items-center gap-2 rounded-2xl border border-slate-700 bg-slate-900 px-4 py-2 text-sm text-slate-200 transition hover:bg-slate-800"
+                className="inline-flex items-center gap-2 rounded-2xl border border-medium bg-card-theme px-4 py-2 text-sm text-main transition hover:bg-card-soft-theme"
               >
                 ← Volver
               </Link>
 
               <div className="min-w-0">
                 <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-300">
+                  <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-700">
                     {item.nivel || "planificación"}
                   </span>
-                  <span className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 text-xs text-cyan-300">
+                  <span className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 text-xs text-cyan-700">
                     {item.tiempo_planificacion || "sin horizonte"}
                   </span>
-                  <span className="rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-xs text-slate-300">
+                  <span className="rounded-full border border-medium bg-card-soft-theme px-3 py-1 text-xs text-sub">
                     Creada: {formatDate(item.created_at)}
                   </span>
                 </div>
 
-                <h1 className="text-3xl font-semibold tracking-tight text-white">
+                <h1 className="text-3xl font-semibold tracking-tight text-main">
                   {item.title}
                 </h1>
-                <p className="mt-2 text-sm text-slate-400">
+                <p className="mt-2 text-sm text-sub">
                   {item.curso || "Sin curso"} · {item.asignatura || "Sin asignatura"}
                 </p>
               </div>
@@ -315,7 +315,7 @@ export default function SavedPlanningDetailPage() {
               <button
                 onClick={handleExport}
                 disabled={exporting}
-                className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-5 py-2.5 text-sm text-amber-200 transition hover:bg-amber-500/20 disabled:opacity-50"
+                className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-5 py-2.5 text-sm text-amber-700 transition hover:bg-amber-500/20 disabled:opacity-50"
               >
                 {exporting ? "Exportando..." : "Exportar PDF"}
               </button>
@@ -323,7 +323,7 @@ export default function SavedPlanningDetailPage() {
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-5 py-2.5 text-sm text-emerald-200 transition hover:bg-emerald-500/20 disabled:opacity-50"
+                className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-5 py-2.5 text-sm text-emerald-700 transition hover:bg-emerald-500/20 disabled:opacity-50"
               >
                 {saving ? "Guardando..." : "Guardar cambios"}
               </button>
@@ -331,7 +331,7 @@ export default function SavedPlanningDetailPage() {
               <button
                 onClick={handleDelete}
                 disabled={deleting}
-                className="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-5 py-2.5 text-sm text-rose-200 transition hover:bg-rose-500/20 disabled:opacity-50"
+                className="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-5 py-2.5 text-sm text-rose-700 transition hover:bg-rose-500/20 disabled:opacity-50"
               >
                 {deleting ? "Eliminando..." : "Eliminar"}
               </button>
@@ -342,26 +342,26 @@ export default function SavedPlanningDetailPage() {
 
       <div className="mx-auto max-w-7xl px-6 py-6">
         {status && (
-          <div className="mb-6 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-3 text-sm text-cyan-100">
+          <div className="mb-6 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-3 text-sm text-cyan-700">
             {status}
           </div>
         )}
 
         <div className="grid gap-6 xl:grid-cols-[340px_minmax(0,1fr)]">
           <aside className="space-y-6">
-            <section className="rounded-3xl border border-slate-800 bg-slate-900/70 p-5 shadow-2xl shadow-black/20">
-              <h2 className="mb-4 text-xl font-semibold text-emerald-300">Resumen</h2>
+            <section className="rounded-2xl border border-soft bg-card-theme p-5 shadow-2xl shadow-black/20">
+              <h2 className="mb-4 text-xl font-semibold text-emerald-700">Resumen</h2>
 
               <div className="space-y-4">
                 {summaryItems.map(([label, value], index) => (
                   <div
                     key={label}
-                    className={`rounded-3xl border px-5 py-4 ${statCardTone(index)}`}
+                    className={`rounded-2xl border px-5 py-4 ${statCardTone(index)}`}
                   >
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-muted2">
                       {label}
                     </p>
-                    <p className="mt-2 text-lg font-medium leading-snug text-slate-100">
+                    <p className="mt-2 text-lg font-medium leading-snug text-main">
                       {value}
                     </p>
                   </div>
@@ -369,18 +369,18 @@ export default function SavedPlanningDetailPage() {
               </div>
             </section>
 
-            <section className="rounded-3xl border border-slate-800 bg-slate-900/70 p-5 shadow-2xl shadow-black/20">
-              <h3 className="mb-3 text-lg font-semibold text-slate-100">
+            <section className="rounded-2xl border border-soft bg-card-theme p-5 shadow-2xl shadow-black/20">
+              <h3 className="mb-3 text-lg font-semibold text-main">
                 Modo de visualización
               </h3>
 
-              <div className="inline-flex w-full rounded-2xl border border-slate-700 bg-[#071224] p-1">
+              <div className="inline-flex w-full rounded-2xl border border-medium bg-[#071224] p-1">
                 <button
                   onClick={() => setViewMode("preview")}
                   className={`flex-1 rounded-xl px-4 py-2.5 text-sm transition ${
                     viewMode === "preview"
-                      ? "bg-emerald-500/15 text-emerald-200"
-                      : "text-slate-400 hover:text-white"
+                      ? "bg-emerald-500/15 text-emerald-700"
+                      : "text-sub hover:text-main"
                   }`}
                 >
                   Vista previa
@@ -389,38 +389,38 @@ export default function SavedPlanningDetailPage() {
                   onClick={() => setViewMode("edit")}
                   className={`flex-1 rounded-xl px-4 py-2.5 text-sm transition ${
                     viewMode === "edit"
-                      ? "bg-cyan-500/15 text-cyan-200"
-                      : "text-slate-400 hover:text-white"
+                      ? "bg-cyan-500/15 text-cyan-700"
+                      : "text-sub hover:text-main"
                   }`}
                 >
                   Editar
                 </button>
               </div>
 
-              <p className="mt-3 text-sm leading-6 text-slate-400">
+              <p className="mt-3 text-sm leading-6 text-sub">
                 Usa vista previa para leer la planificación como documento, o editar para modificar el markdown directamente.
               </p>
             </section>
           </aside>
 
           <main className="space-y-6">
-            <section className="rounded-3xl border border-slate-800 bg-slate-900/70 p-5 shadow-2xl shadow-black/20">
-              <label className="mb-3 block text-sm font-medium text-slate-200">
+            <section className="rounded-2xl border border-soft bg-card-theme p-5 shadow-2xl shadow-black/20">
+              <label className="mb-3 block text-sm font-medium text-main">
                 Título
               </label>
               <input
                 value={item.title}
                 onChange={(e) => setItem({ ...item, title: e.target.value })}
-                className="w-full rounded-3xl border border-slate-700 bg-[#020817] px-5 py-4 text-lg text-white outline-none transition focus:border-emerald-500/50"
+                className="w-full rounded-2xl border border-medium bg-[#020817] px-5 py-4 text-lg text-main outline-none transition focus:border-emerald-500/50"
               />
             </section>
 
-            <section className="rounded-3xl border border-slate-800 bg-slate-900/70 p-5 shadow-2xl shadow-black/20">
+            <section className="rounded-2xl border border-soft bg-card-theme p-5 shadow-2xl shadow-black/20">
               <div className="mb-3 flex items-center justify-between gap-3">
-                <label className="block text-sm font-medium text-slate-200">
+                <label className="block text-sm font-medium text-main">
                   Contexto pedagógico
                 </label>
-                <span className="text-xs text-slate-500">
+                <span className="text-xs text-muted2">
                   {item.contexto?.length || 0} caracteres
                 </span>
               </div>
@@ -429,25 +429,25 @@ export default function SavedPlanningDetailPage() {
                 value={item.contexto || ""}
                 onChange={(e) => setItem({ ...item, contexto: e.target.value })}
                 rows={5}
-                className="w-full resize-y rounded-3xl border border-slate-700 bg-[#020817] px-5 py-4 text-base leading-7 text-white outline-none transition focus:border-emerald-500/50"
+                className="w-full resize-y rounded-2xl border border-medium bg-[#020817] px-5 py-4 text-base leading-7 text-main outline-none transition focus:border-emerald-500/50"
                 placeholder="Describe el contexto pedagógico..."
               />
             </section>
 
-            <section className="rounded-3xl border border-slate-800 bg-slate-900/70 shadow-2xl shadow-black/20">
-              <div className="border-b border-slate-800 px-5 py-4">
+            <section className="rounded-2xl border border-soft bg-card-theme shadow-2xl shadow-black/20">
+              <div className="border-b border-soft px-5 py-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <h3 className="text-xl font-semibold text-slate-100">
+                    <h3 className="text-xl font-semibold text-main">
                       Contenido de la planificación
                     </h3>
-                    <p className="mt-1 text-sm text-slate-400">
+                    <p className="mt-1 text-sm text-sub">
                       {viewMode === "preview"
                         ? "Lectura tipo documento con formato visual."
                         : "Edición directa del contenido markdown."}
                     </p>
                   </div>
-                  <span className="rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-xs text-slate-300">
+                  <span className="rounded-full border border-medium bg-card-soft-theme px-3 py-1 text-xs text-sub">
                     {viewMode === "preview" ? "Vista previa activa" : "Modo edición activo"}
                   </span>
                 </div>
@@ -459,38 +459,38 @@ export default function SavedPlanningDetailPage() {
                     value={item.content || ""}
                     onChange={(e) => setItem({ ...item, content: e.target.value })}
                     rows={24}
-                    className="min-h-[680px] w-full resize-y rounded-3xl border border-slate-700 bg-[#020817] px-5 py-4 font-mono text-[15px] leading-7 text-slate-100 outline-none transition focus:border-cyan-500/50"
+                    className="min-h-[680px] w-full resize-y rounded-2xl border border-medium bg-[#020817] px-5 py-4 font-mono text-[15px] leading-7 text-main outline-none transition focus:border-cyan-500/50"
                   />
                 ) : (
-                  <div className="rounded-[28px] border border-slate-800 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.02),rgba(255,255,255,0.01))] p-0 overflow-hidden">
-                    <div className="border-b border-slate-800 bg-slate-950/40 px-6 py-4">
-                      <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                  <div className="rounded-[28px] border border-soft bg-card-soft-theme p-0 overflow-hidden">
+                    <div className="border-b border-soft bg-app px-6 py-4">
+                      <p className="text-xs uppercase tracking-[0.2em] text-muted2">
                         Documento
                       </p>
-                      <h4 className="mt-2 text-lg font-semibold text-white">
+                      <h4 className="mt-2 text-lg font-semibold text-main">
                         {item.title}
                       </h4>
-                      <p className="mt-1 text-sm text-slate-400">
+                      <p className="mt-1 text-sm text-sub">
                         {item.curso || "—"} · {item.asignatura || "—"} · {item.mes || "—"}
                       </p>
                     </div>
 
                     <div className="p-6 md:p-8">
-                      <article className="prose prose-invert prose-slate max-w-none
+                      <article className="prose max-w-none
                         prose-headings:scroll-mt-24
-                        prose-h1:text-3xl prose-h1:font-semibold prose-h1:text-white
-                        prose-h2:mt-10 prose-h2:text-2xl prose-h2:font-semibold prose-h2:text-white
-                        prose-h3:mt-8 prose-h3:text-xl prose-h3:font-semibold prose-h3:text-slate-100
-                        prose-p:text-slate-300 prose-p:leading-8
-                        prose-strong:text-white
-                        prose-li:text-slate-300
+                        prose-h1:text-3xl prose-h1:font-semibold prose-h1:text-main
+                        prose-h2:mt-10 prose-h2:text-2xl prose-h2:font-semibold prose-h2:text-main
+                        prose-h3:mt-8 prose-h3:text-xl prose-h3:font-semibold prose-h3:text-main
+                        prose-p:text-sub prose-p:leading-8
+                        prose-strong:text-main
+                        prose-li:text-sub
                         prose-ul:leading-8 prose-ol:leading-8
-                        prose-hr:border-slate-700
-                        prose-blockquote:border-l-emerald-500 prose-blockquote:text-slate-300
+                        prose-hr:border-medium
+                        prose-blockquote:border-l-emerald-500 prose-blockquote:text-sub
                         prose-table:my-8 prose-table:w-full prose-table:overflow-hidden
-                        prose-thead:border-slate-700
-                        prose-th:border prose-th:border-slate-700 prose-th:bg-slate-800 prose-th:px-3 prose-th:py-3 prose-th:text-left prose-th:text-slate-100
-                        prose-td:border prose-td:border-slate-800 prose-td:px-3 prose-td:py-3 prose-td:text-slate-300">
+                        prose-thead:border-medium
+                        prose-th:border prose-th:border-medium prose-th:bg-card-soft-theme prose-th:px-3 prose-th:py-3 prose-th:text-left prose-th:text-main
+                        prose-td:border prose-td:border-soft prose-td:px-3 prose-td:py-3 prose-td:text-sub">
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>
                           {item.content || ""}
                         </ReactMarkdown>

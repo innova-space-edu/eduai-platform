@@ -88,21 +88,21 @@ type ApiResponse = {
 function statusTone(status?: string | null) {
   switch (status) {
     case "blocked":
-      return "border-red-400/30 bg-red-500/15 text-red-200"
+      return "border-red-400/30 bg-red-500/15 text-red-700"
     case "frozen":
-      return "border-orange-400/30 bg-orange-500/15 text-orange-200"
+      return "border-orange-400/30 bg-orange-500/15 text-orange-700"
     case "flagged":
-      return "border-fuchsia-400/30 bg-fuchsia-500/15 text-fuchsia-200"
+      return "border-fuchsia-400/30 bg-fuchsia-500/15 text-fuchsia-700"
     case "warned":
-      return "border-yellow-400/30 bg-yellow-500/15 text-yellow-200"
+      return "border-yellow-400/30 bg-yellow-500/15 text-yellow-700"
     case "terminated":
-      return "border-red-500/30 bg-red-600/15 text-red-100"
+      return "border-red-500/30 bg-red-600/15 text-red-700"
     case "finished":
-      return "border-emerald-400/30 bg-emerald-500/15 text-emerald-200"
+      return "border-emerald-400/30 bg-emerald-500/15 text-emerald-700"
     case "offline_grace":
       return "border-sky-400/30 bg-sky-500/15 text-sky-200"
     default:
-      return "border-emerald-400/30 bg-emerald-500/15 text-emerald-200"
+      return "border-emerald-400/30 bg-emerald-500/15 text-emerald-700"
   }
 }
 
@@ -115,7 +115,7 @@ function eventTone(severity?: string | null) {
     case "medium":
       return "border-yellow-400/30 bg-yellow-500/10"
     default:
-      return "border-slate-700 bg-white/5"
+      return "border-medium bg-card-soft-theme"
   }
 }
 
@@ -204,10 +204,10 @@ export default function ExamSecuritySessionDetailPage({
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-slate-950 p-6 text-white">
+      <main className="min-h-screen bg-app p-6 text-main">
         <div className="mx-auto max-w-7xl">
           <h1 className="text-3xl font-bold">Detalle de sesión</h1>
-          <p className="mt-3 text-slate-300">Cargando sesión...</p>
+          <p className="mt-3 text-sub">Cargando sesión...</p>
         </div>
       </main>
     )
@@ -215,10 +215,10 @@ export default function ExamSecuritySessionDetailPage({
 
   if (error || !session) {
     return (
-      <main className="min-h-screen bg-slate-950 p-6 text-white">
+      <main className="min-h-screen bg-app p-6 text-main">
         <div className="mx-auto max-w-7xl">
           <h1 className="text-3xl font-bold">Detalle de sesión</h1>
-          <div className="mt-6 rounded-3xl border border-red-400/20 bg-red-500/10 p-5 text-red-100">
+          <div className="mt-6 rounded-2xl border border-red-400/20 bg-red-500/10 p-5 text-red-700">
             {error || "No se pudo cargar la sesión."}
           </div>
         </div>
@@ -227,12 +227,12 @@ export default function ExamSecuritySessionDetailPage({
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 p-6 text-white">
+    <main className="min-h-screen bg-app p-6 text-main">
       <div className="mx-auto max-w-7xl">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Detalle de sesión</h1>
-            <p className="mt-2 text-slate-300">
+            <p className="mt-2 text-sub">
               Revisión completa de eventos, acciones y estado de seguridad.
             </p>
           </div>
@@ -256,45 +256,45 @@ export default function ExamSecuritySessionDetailPage({
         </div>
 
         <section className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-5">
-            <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Alumno</p>
-            <p className="mt-3 text-lg font-semibold text-white">
+          <div className="rounded-2xl border border-soft bg-card-theme p-5">
+            <p className="text-xs uppercase tracking-[0.18em] text-sub">Alumno</p>
+            <p className="mt-3 text-lg font-semibold text-main">
               {session.student_name || "Sin nombre"}
             </p>
-            <p className="mt-2 text-sm text-slate-300">
+            <p className="mt-2 text-sm text-sub">
               {session.student_course || "Sin curso"}
             </p>
-            <p className="mt-1 text-xs text-slate-500">{session.student_rut || "Sin RUT"}</p>
+            <p className="mt-1 text-xs text-muted2">{session.student_rut || "Sin RUT"}</p>
           </div>
 
-          <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-5">
-            <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Examen</p>
-            <p className="mt-3 break-all text-sm text-white">{session.exam_id}</p>
-            <p className="mt-2 text-xs text-slate-500">
+          <div className="rounded-2xl border border-soft bg-card-theme p-5">
+            <p className="text-xs uppercase tracking-[0.18em] text-sub">Examen</p>
+            <p className="mt-3 break-all text-sm text-main">{session.exam_id}</p>
+            <p className="mt-2 text-xs text-muted2">
               Submission: {session.submission_id || "—"}
             </p>
           </div>
 
-          <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-5">
-            <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Contadores</p>
-            <p className="mt-3 text-sm text-slate-200">
+          <div className="rounded-2xl border border-soft bg-card-theme p-5">
+            <p className="text-xs uppercase tracking-[0.18em] text-sub">Contadores</p>
+            <p className="mt-3 text-sm text-main">
               Warnings: {session.warning_count ?? 0}
             </p>
-            <p className="mt-1 text-sm text-slate-200">
+            <p className="mt-1 text-sm text-main">
               Freezes: {session.freeze_count ?? 0}
             </p>
-            <p className="mt-1 text-sm text-slate-200">
+            <p className="mt-1 text-sm text-main">
               Blocks: {session.block_count ?? 0}
             </p>
           </div>
 
-          <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-5">
-            <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Tiempo</p>
-            <p className="mt-3 text-sm text-slate-200">Inicio: {session.started_at}</p>
-            <p className="mt-1 text-sm text-slate-200">
+          <div className="rounded-2xl border border-soft bg-card-theme p-5">
+            <p className="text-xs uppercase tracking-[0.18em] text-sub">Tiempo</p>
+            <p className="mt-3 text-sm text-main">Inicio: {session.started_at}</p>
+            <p className="mt-1 text-sm text-main">
               Último evento: {session.last_event_at || "—"}
             </p>
-            <p className="mt-1 text-sm text-slate-200">
+            <p className="mt-1 text-sm text-main">
               Último heartbeat: {session.last_heartbeat_at || "—"}
             </p>
           </div>
@@ -308,16 +308,16 @@ export default function ExamSecuritySessionDetailPage({
         </section>
 
         <section className="mt-8 grid gap-6 xl:grid-cols-[1.1fr,0.9fr]">
-          <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-5 shadow-xl">
+          <div className="rounded-2xl border border-soft bg-card-theme p-5 shadow-xl">
             <div className="flex items-center justify-between gap-3">
-              <h2 className="text-xl font-semibold text-white">Timeline de eventos</h2>
-              <span className="text-xs uppercase tracking-[0.18em] text-slate-400">
+              <h2 className="text-xl font-semibold text-main">Timeline de eventos</h2>
+              <span className="text-xs uppercase tracking-[0.18em] text-sub">
                 {events.length} eventos
               </span>
             </div>
 
             {events.length === 0 ? (
-              <p className="mt-4 text-sm text-slate-400">
+              <p className="mt-4 text-sm text-sub">
                 No hay eventos registrados en esta sesión.
               </p>
             ) : (
@@ -331,28 +331,28 @@ export default function ExamSecuritySessionDetailPage({
                     ].join(" ")}
                   >
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm font-semibold text-white">
+                      <span className="text-sm font-semibold text-main">
                         {event.event_type}
                       </span>
 
-                      <span className="rounded-full border border-white/10 bg-slate-800 px-2.5 py-1 text-xs text-slate-300">
+                      <span className="rounded-full border border-soft bg-card-soft-theme px-2.5 py-1 text-xs text-sub">
                         {event.severity}
                       </span>
 
                       {typeof event.incident_number === "number" ? (
-                        <span className="rounded-full border border-white/10 bg-slate-800 px-2.5 py-1 text-xs text-slate-300">
+                        <span className="rounded-full border border-soft bg-card-soft-theme px-2.5 py-1 text-xs text-sub">
                           #{event.incident_number}
                         </span>
                       ) : null}
 
                       {typeof event.score_delta === "number" ? (
-                        <span className="rounded-full border border-white/10 bg-slate-800 px-2.5 py-1 text-xs text-slate-300">
+                        <span className="rounded-full border border-soft bg-card-soft-theme px-2.5 py-1 text-xs text-sub">
                           +{event.score_delta}
                         </span>
                       ) : null}
                     </div>
 
-                    <div className="mt-3 grid gap-2 text-sm text-slate-300 md:grid-cols-2">
+                    <div className="mt-3 grid gap-2 text-sm text-sub md:grid-cols-2">
                       <p>Grupo: {event.event_group || "—"}</p>
                       <p>Pregunta: {event.question_index ?? "—"}</p>
                       <p>Time left: {event.client_time_left ?? "—"}</p>
@@ -366,7 +366,7 @@ export default function ExamSecuritySessionDetailPage({
                       </p>
                     </div>
 
-                    <p className="mt-3 text-xs text-slate-500">{event.created_at}</p>
+                    <p className="mt-3 text-xs text-muted2">{event.created_at}</p>
                   </div>
                 ))}
               </div>
@@ -386,16 +386,16 @@ export default function ExamSecuritySessionDetailPage({
               title="Timeline de acciones"
             />
 
-            <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-5 shadow-xl">
+            <div className="rounded-2xl border border-soft bg-card-theme p-5 shadow-xl">
               <div className="flex items-center justify-between gap-3">
-                <h2 className="text-xl font-semibold text-white">Notas administrativas</h2>
-                <span className="text-xs uppercase tracking-[0.18em] text-slate-400">
+                <h2 className="text-xl font-semibold text-main">Notas administrativas</h2>
+                <span className="text-xs uppercase tracking-[0.18em] text-sub">
                   {notes.length} notas
                 </span>
               </div>
 
               {notes.length === 0 ? (
-                <p className="mt-4 text-sm text-slate-400">
+                <p className="mt-4 text-sm text-sub">
                   No hay notas administrativas registradas para esta sesión.
                 </p>
               ) : (
@@ -403,10 +403,10 @@ export default function ExamSecuritySessionDetailPage({
                   {notes.map((note) => (
                     <div
                       key={note.id}
-                      className="rounded-2xl border border-white/10 bg-white/5 p-4"
+                      className="rounded-2xl border border-soft bg-card-soft-theme p-4"
                     >
-                      <p className="text-sm leading-6 text-slate-200">{note.note}</p>
-                      <p className="mt-3 text-xs text-slate-500">
+                      <p className="text-sm leading-6 text-main">{note.note}</p>
+                      <p className="mt-3 text-xs text-muted2">
                         {note.author_id} · {note.created_at}
                       </p>
                     </div>
@@ -415,10 +415,10 @@ export default function ExamSecuritySessionDetailPage({
               )}
             </div>
 
-            <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-5 shadow-xl">
-              <h2 className="text-xl font-semibold text-white">Cliente</h2>
+            <div className="rounded-2xl border border-soft bg-card-theme p-5 shadow-xl">
+              <h2 className="text-xl font-semibold text-main">Cliente</h2>
 
-              <div className="mt-4 space-y-2 text-sm text-slate-300">
+              <div className="mt-4 space-y-2 text-sm text-sub">
                 <p>
                   User agent:{" "}
                   {typeof session.client_metadata?.userAgent === "string"

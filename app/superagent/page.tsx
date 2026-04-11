@@ -30,8 +30,8 @@ function FeatureBadge({
       className={[
         "rounded-full border px-3 py-1 text-xs font-medium",
         active
-          ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-200"
-          : "border-slate-700 bg-slate-800/80 text-slate-300",
+          ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-700"
+          : "border-medium bg-card-soft-theme text-sub",
       ].join(" ")}
     >
       {label}
@@ -87,48 +87,48 @@ export default function SuperAgentPage() {
   const features = data?.features || {}
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(34,211,238,0.10),_transparent_25%),radial-gradient(circle_at_top_right,_rgba(139,92,246,0.12),_transparent_25%),linear-gradient(to_bottom,_#020617,_#0f172a)] text-white">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(34,211,238,0.10),_transparent_25%),radial-gradient(circle_at_top_right,_rgba(139,92,246,0.12),_transparent_25%),linear-gradient(to_bottom,_#020617,_#0f172a)] text-main">
       <div className="mx-auto flex w-full max-w-7xl flex-col px-4 py-6 sm:px-6 lg:px-8">
         <div className="mb-6">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-2 text-sm text-slate-200 transition hover:border-cyan-400/30 hover:text-white"
+            className="inline-flex items-center gap-2 rounded-2xl border border-soft bg-card-theme px-4 py-2 text-sm text-main transition hover:border-cyan-400/30 hover:text-main"
           >
             ← Volver
           </Link>
         </div>
 
-        <section className="overflow-hidden rounded-[2rem] border border-white/10 bg-slate-950/70 shadow-2xl backdrop-blur-xl">
-          <div className="border-b border-white/10 bg-gradient-to-r from-cyan-500/10 via-violet-500/10 to-fuchsia-500/10 px-6 py-6 sm:px-8">
+        <section className="overflow-hidden rounded-[2rem] border border-soft bg-app shadow-2xl backdrop-blur-xl">
+          <div className="border-b border-soft bg-gradient-to-r from-cyan-500/10 via-violet-500/10 to-fuchsia-500/10 px-6 py-6 sm:px-8">
             <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
               <div>
-                <p className="text-xs uppercase tracking-[0.25em] text-cyan-300/90">
+                <p className="text-xs uppercase tracking-[0.25em] text-cyan-700/90">
                   Panel maestro
                 </p>
                 <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
                   EduAI Claw
                 </h1>
-                <p className="mt-2 text-sm text-slate-300 sm:text-base">
+                <p className="mt-2 text-sm text-sub sm:text-base">
                   Superagente autónomo supervisor de la plataforma, con enfoque
                   seguro, anticipatorio y social.
                 </p>
-                <p className="mt-2 text-sm text-violet-200">
+                <p className="mt-2 text-sm text-violet-700">
                   {data?.alias || "EduAI Claw — modo PicoClaw"}
                 </p>
               </div>
 
-              <div className="rounded-3xl border border-cyan-400/20 bg-slate-900/80 px-5 py-4">
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
+              <div className="rounded-2xl border border-cyan-400/20 bg-card-theme px-5 py-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-sub">
                   Estado actual
                 </p>
-                <p className="mt-2 text-lg font-semibold text-white">
+                <p className="mt-2 text-lg font-semibold text-main">
                   {loading
                     ? "Conectando..."
                     : error
                     ? "No disponible"
                     : "Activo y observando"}
                 </p>
-                <p className="mt-1 text-sm text-slate-300">
+                <p className="mt-1 text-sm text-sub">
                   {data?.mode || "observe_social_anticipate"}
                 </p>
               </div>
@@ -137,11 +137,11 @@ export default function SuperAgentPage() {
 
           <div className="grid gap-6 px-6 py-6 sm:px-8 lg:grid-cols-12">
             <div className="space-y-6 lg:col-span-8">
-              <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.03] p-5">
-                <h2 className="text-lg font-semibold text-white">
+              <div className="rounded-[1.75rem] border border-soft bg-card-soft-theme p-5">
+                <h2 className="text-lg font-semibold text-main">
                   Resumen del superagente
                 </h2>
-                <p className="mt-3 leading-7 text-slate-300">
+                <p className="mt-3 leading-7 text-sub">
                   EduAI Claw se posiciona por encima del router actual de
                   agentes para observar contexto, decidir la mejor ruta de ayuda,
                   anticipar necesidades del usuario y preparar borradores
@@ -150,35 +150,35 @@ export default function SuperAgentPage() {
                 </p>
 
                 <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                  <div className="rounded-2xl border border-white/10 bg-slate-900/70 p-4">
-                    <p className="text-sm text-slate-400">Nombre</p>
-                    <p className="mt-1 font-medium text-white">
+                  <div className="rounded-2xl border border-soft bg-card-theme p-4">
+                    <p className="text-sm text-sub">Nombre</p>
+                    <p className="mt-1 font-medium text-main">
                       {data?.name || "EduAI Claw"}
                     </p>
                   </div>
-                  <div className="rounded-2xl border border-white/10 bg-slate-900/70 p-4">
-                    <p className="text-sm text-slate-400">Alias</p>
-                    <p className="mt-1 font-medium text-white">
+                  <div className="rounded-2xl border border-soft bg-card-theme p-4">
+                    <p className="text-sm text-sub">Alias</p>
+                    <p className="mt-1 font-medium text-main">
                       {data?.alias || "EduAI Claw — modo PicoClaw"}
                     </p>
                   </div>
-                  <div className="rounded-2xl border border-white/10 bg-slate-900/70 p-4">
-                    <p className="text-sm text-slate-400">Versión</p>
-                    <p className="mt-1 font-medium text-white">
+                  <div className="rounded-2xl border border-soft bg-card-theme p-4">
+                    <p className="text-sm text-sub">Versión</p>
+                    <p className="mt-1 font-medium text-main">
                       {data?.version || "0.1.0"}
                     </p>
                   </div>
                 </div>
 
                 {error && (
-                  <div className="mt-5 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+                  <div className="mt-5 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-700">
                     {error}
                   </div>
                 )}
               </div>
 
-              <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.03] p-5">
-                <h2 className="text-lg font-semibold text-white">
+              <div className="rounded-[1.75rem] border border-soft bg-card-soft-theme p-5">
+                <h2 className="text-lg font-semibold text-main">
                   Capacidades activas
                 </h2>
 
@@ -215,8 +215,8 @@ export default function SuperAgentPage() {
 
                 <div className="mt-5 grid gap-4 md:grid-cols-2">
                   <div className="rounded-2xl border border-cyan-400/10 bg-cyan-400/5 p-4">
-                    <p className="font-medium text-cyan-200">Qué sí hace</p>
-                    <ul className="mt-3 space-y-2 text-sm text-slate-300">
+                    <p className="font-medium text-cyan-700">Qué sí hace</p>
+                    <ul className="mt-3 space-y-2 text-sm text-sub">
                       <li>• Observa el contexto actual del usuario.</li>
                       <li>• Selecciona rutas útiles entre agentes.</li>
                       <li>• Sugiere próximos pasos.</li>
@@ -226,8 +226,8 @@ export default function SuperAgentPage() {
                   </div>
 
                   <div className="rounded-2xl border border-amber-400/10 bg-amber-400/5 p-4">
-                    <p className="font-medium text-amber-200">Qué no hace aún</p>
-                    <ul className="mt-3 space-y-2 text-sm text-slate-300">
+                    <p className="font-medium text-amber-700">Qué no hace aún</p>
+                    <ul className="mt-3 space-y-2 text-sm text-sub">
                       <li>• No escribe en el chat privado del usuario.</li>
                       <li>• No sobrescribe producción.</li>
                       <li>• No toca archivos sensibles o secretos.</li>
@@ -243,22 +243,22 @@ export default function SuperAgentPage() {
             </div>
 
             <aside className="space-y-6 lg:col-span-4">
-              <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.03] p-5">
-                <h2 className="text-lg font-semibold text-white">
+              <div className="rounded-[1.75rem] border border-soft bg-card-soft-theme p-5">
+                <h2 className="text-lg font-semibold text-main">
                   Acciones rápidas
                 </h2>
 
                 <div className="mt-4 grid gap-3">
                   <Link
                     href="/ai-social"
-                    className="rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3 text-sm text-slate-200 transition hover:border-cyan-400/30 hover:text-white"
+                    className="rounded-2xl border border-soft bg-card-theme px-4 py-3 text-sm text-main transition hover:border-cyan-400/30 hover:text-main"
                   >
                     Abrir chat social de agentes
                   </Link>
 
                   <button
                     type="button"
-                    className="rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3 text-left text-sm text-slate-500"
+                    className="rounded-2xl border border-soft bg-card-theme px-4 py-3 text-left text-sm text-muted2"
                     disabled
                   >
                     Ver drafts anticipados próximamente
@@ -266,7 +266,7 @@ export default function SuperAgentPage() {
 
                   <button
                     type="button"
-                    className="rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3 text-left text-sm text-slate-500"
+                    className="rounded-2xl border border-soft bg-card-theme px-4 py-3 text-left text-sm text-muted2"
                     disabled
                   >
                     Ver memoria del superagente próximamente
@@ -274,11 +274,11 @@ export default function SuperAgentPage() {
                 </div>
               </div>
 
-              <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.03] p-5">
-                <h2 className="text-lg font-semibold text-white">
+              <div className="rounded-[1.75rem] border border-soft bg-card-soft-theme p-5">
+                <h2 className="text-lg font-semibold text-main">
                   Filosofía de trabajo
                 </h2>
-                <p className="mt-3 text-sm leading-7 text-slate-300">
+                <p className="mt-3 text-sm leading-7 text-sub">
                   EduAI Claw opera como supervisor seguro: observa, recomienda,
                   coordina y anticipa. Su objetivo es ayudar y optimizar la
                   experiencia del usuario sin interferir en zonas privadas ni
@@ -286,11 +286,11 @@ export default function SuperAgentPage() {
                 </p>
               </div>
 
-              <div className="rounded-[1.75rem] border border-white/10 bg-gradient-to-br from-violet-500/10 via-slate-900 to-cyan-500/10 p-5">
-                <p className="text-sm font-medium text-white">
+              <div className="rounded-[1.75rem] border border-soft bg-gradient-to-br from-violet-500/8 via-white to-cyan-500/8 p-5">
+                <p className="text-sm font-medium text-main">
                   Mensaje del sistema
                 </p>
-                <p className="mt-3 text-sm leading-7 text-slate-300">
+                <p className="mt-3 text-sm leading-7 text-sub">
                   Este panel es la base visual del superagente. Luego se
                   conectará con drafts, memoria persistente, logs activos y
                   conversaciones entre agentes.

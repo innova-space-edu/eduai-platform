@@ -21,38 +21,38 @@ export default function MathRenderer({ content, className = "" }: Props) {
         components={{
           // Párrafos normales
           p: ({ children }) => (
-            <p className="text-gray-300 leading-relaxed mb-3">{children}</p>
+            <p className="text-sub leading-relaxed mb-3">{children}</p>
           ),
           // Headings
-          h1: ({ children }) => <h1 className="text-white text-xl font-bold mt-4 mb-2">{children}</h1>,
-          h2: ({ children }) => <h2 className="text-white text-lg font-semibold mt-3 mb-2">{children}</h2>,
-          h3: ({ children }) => <h3 className="text-blue-300 text-base font-medium mt-2 mb-1">{children}</h3>,
+          h1: ({ children }) => <h1 className="text-main text-xl font-bold mt-4 mb-2">{children}</h1>,
+          h2: ({ children }) => <h2 className="text-main text-lg font-semibold mt-3 mb-2">{children}</h2>,
+          h3: ({ children }) => <h3 className="text-blue-700 text-base font-medium mt-2 mb-1">{children}</h3>,
           // Código inline (no math)
           code: ({ children, className }) => {
             const isMath = className?.includes("math")
             if (isMath) return <code className={className}>{children}</code>
             return (
-              <code className="bg-gray-800 text-orange-300 px-1.5 py-0.5 rounded text-sm font-mono">
+              <code className="bg-card-soft-theme text-orange-700 px-1.5 py-0.5 rounded text-sm font-mono">
                 {children}
               </code>
             )
           },
           // Bloques de código
           pre: ({ children }) => (
-            <pre className="bg-gray-800 border border-gray-700 rounded-xl p-4 overflow-x-auto text-sm font-mono text-gray-300 my-3">
+            <pre className="bg-card-soft-theme border border-soft rounded-xl p-4 overflow-x-auto text-sm font-mono text-sub my-3">
               {children}
             </pre>
           ),
           // Listas
-          ul: ({ children }) => <ul className="list-disc list-inside text-gray-300 space-y-1 mb-3 ml-2">{children}</ul>,
-          ol: ({ children }) => <ol className="list-decimal list-inside text-gray-300 space-y-1 mb-3 ml-2">{children}</ol>,
-          li: ({ children }) => <li className="text-gray-300">{children}</li>,
+          ul: ({ children }) => <ul className="list-disc list-inside text-sub space-y-1 mb-3 ml-2">{children}</ul>,
+          ol: ({ children }) => <ol className="list-decimal list-inside text-sub space-y-1 mb-3 ml-2">{children}</ol>,
+          li: ({ children }) => <li className="text-sub">{children}</li>,
           // Strong/em
-          strong: ({ children }) => <strong className="text-white font-semibold">{children}</strong>,
-          em: ({ children }) => <em className="text-blue-300 italic">{children}</em>,
+          strong: ({ children }) => <strong className="text-main font-semibold">{children}</strong>,
+          em: ({ children }) => <em className="text-blue-700 italic">{children}</em>,
           // Blockquote
           blockquote: ({ children }) => (
-            <blockquote className="border-l-2 border-blue-500 pl-4 text-gray-400 italic my-3">
+            <blockquote className="border-l-2 border-blue-500 pl-4 text-sub italic my-3">
               {children}
             </blockquote>
           ),
@@ -63,15 +63,15 @@ export default function MathRenderer({ content, className = "" }: Props) {
             </div>
           ),
           th: ({ children }) => (
-            <th className="bg-gray-800 text-blue-300 font-semibold px-4 py-2 text-left text-sm border border-gray-700">
+            <th className="bg-card-soft-theme text-blue-700 font-semibold px-4 py-2 text-left text-sm border border-medium">
               {children}
             </th>
           ),
           td: ({ children }) => (
-            <td className="px-4 py-2 text-gray-300 text-sm border border-gray-800">{children}</td>
+            <td className="px-4 py-2 text-sub text-sm border border-soft">{children}</td>
           ),
           tr: ({ children }) => (
-            <tr className="hover:bg-gray-800/40 transition-colors">{children}</tr>
+            <tr className="hover:bg-card-soft-theme transition-colors">{children}</tr>
           ),
         }}
       >

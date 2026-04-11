@@ -46,8 +46,8 @@ export default function RedactorPage() {
         <div className="flex flex-col gap-4 animate-fade-in">
           <div className="rounded-2xl p-6 text-center border" style={{ background: `${ACCENT}0c`, borderColor: `${ACCENT}25` }}>
             <div className="text-4xl mb-2">✍️</div>
-            <h2 className="text-white font-bold text-lg">Agente Redactor</h2>
-            <p className="text-gray-400 text-sm mt-1">Redacto ensayos, informes, cartas y documentos académicos o profesionales</p>
+            <h2 className="text-main font-bold text-lg">Agente Redactor</h2>
+            <p className="text-sub text-sm mt-1">Redacto ensayos, informes, cartas y documentos académicos o profesionales</p>
           </div>
           <QuickPrompts prompts={QUICK} onSelect={p => setInput(p)} accentColor={ACCENT} />
         </div>
@@ -58,7 +58,7 @@ export default function RedactorPage() {
             msg.role === "user"
               ? <UserBubble key={i} content={msg.content} />
               : <AgentBubble key={i} icon="✍️" accentColor={ACCENT}>
-                  <div className="prose prose-invert prose-sm max-w-none [&_h2]:text-purple-300 [&_strong]:text-white">
+                  <div className="prose prose-sm max-w-none [&_h2]:text-purple-700 [&_strong]:text-main">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
                   </div>
                 </AgentBubble>

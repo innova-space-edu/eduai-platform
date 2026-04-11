@@ -22,10 +22,10 @@ function Avatar({ profile, size = "md" }: { profile: Profile; size?: "sm"|"md"|"
     <div className="relative flex-shrink-0">
       {profile?.avatar_url
         ? <img src={profile.avatar_url} className={`${sz} rounded-full object-cover`} alt="" />
-        : <div className={`${sz} rounded-full flex items-center justify-center font-bold text-white`}
+        : <div className={`${sz} rounded-full flex items-center justify-center font-bold text-main`}
                style={{ background: "linear-gradient(135deg, #3b82f6, #8b5cf6)" }}>{initials}</div>
       }
-      <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-gray-950 ${profile?.is_online ? "bg-green-400" : "bg-gray-600"}`} />
+      <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-card ${profile?.is_online ? "bg-emerald-400" : "bg-slate-300"}`} />
     </div>
   )
 }
@@ -206,9 +206,9 @@ export default function ChatPage() {
     return (
       <a href={msg.file_url} target="_blank" rel="noreferrer"
          className="flex items-center gap-2 mt-2 rounded-xl px-3 py-2 transition-all"
-         style={{ background: "rgba(255,255,255,0.08)" }}>
+         style={{ background: "var(--border-soft)" }}>
         <span>{msg.file_type === "application/pdf" ? "📄" : "📎"}</span>
-        <span className="text-xs text-blue-300 truncate max-w-[150px]">{msg.file_name}</span>
+        <span className="text-xs text-blue-700 truncate max-w-[150px]">{msg.file_name}</span>
       </a>
     )
   }
@@ -222,22 +222,22 @@ export default function ChatPage() {
   ] as const
 
   return (
-    <div className="h-screen bg-gray-950 text-white flex overflow-hidden">
+    <div className="h-screen bg-app text-main flex overflow-hidden">
 
       {/* ── Sidebar ──────────────────────────────────────────────────────────── */}
-      <aside className="w-72 border-r border-white/[0.06] flex flex-col flex-shrink-0"
+      <aside className="w-72 border-r border-soft flex flex-col flex-shrink-0"
              style={{ background: "rgba(255,255,255,0.015)" }}>
 
         {/* Header del sidebar */}
-        <div className="p-4 border-b border-white/[0.06] flex items-center gap-3">
+        <div className="p-4 border-b border-soft flex items-center gap-3">
           <Link href="/dashboard"
-            className="w-7 h-7 flex items-center justify-center rounded-lg bg-white/[0.04] border border-white/[0.06] text-gray-400 hover:text-white transition-all flex-shrink-0">
+            className="w-7 h-7 flex items-center justify-center rounded-lg bg-card-soft-theme text-sub hover:text-main transition-all flex-shrink-0">
             <ArrowLeft size={13} />
           </Link>
           {userProfile && <Avatar profile={userProfile} size="sm" />}
           <div className="flex-1 min-w-0">
-            <p className="text-white text-sm font-semibold truncate">{userProfile?.name}</p>
-            <p className="text-gray-600 text-[10px] font-mono">#{userProfile?.user_code}</p>
+            <p className="text-main text-sm font-semibold truncate">{userProfile?.name}</p>
+            <p className="text-muted2 text-[10px] font-mono">#{userProfile?.user_code}</p>
           </div>
           {(requests.length > 0 || unreadCount > 0) && (
             <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0">
@@ -247,7 +247,7 @@ export default function ChatPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-white/[0.06] flex-shrink-0">
+        <div className="flex border-b border-soft flex-shrink-0">
           {TABS.map(({ id, icon: Icon, label }) => (
             <button key={id} onClick={() => setTab(id)}
               className="flex-1 py-2.5 text-xs font-medium transition-all flex flex-col items-center gap-0.5"
@@ -265,7 +265,7 @@ export default function ChatPage() {
           {tab === "chats" && (
             <div>
               {conversations.length === 0 && (
-                <p className="text-gray-600 text-xs text-center py-10">Sin conversaciones aún</p>
+                <p className="text-muted2 text-xs text-center py-10">Sin conversaciones aún</p>
               )}
               {conversations.map(conv => {
                 const o = getOther(conv); if (!o) return null
@@ -277,15 +277,15 @@ export default function ChatPage() {
                       background:   isActive ? "rgba(59,130,246,0.08)" : "transparent",
                       borderRight:  isActive ? "2px solid #3b82f6" : "2px solid transparent",
                     }}
-                    onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.03)" }}
+                    onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = "var(--bg-card)" }}
                     onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = "transparent" }}>
                     <Avatar profile={o} size="sm" />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-1">
-                        <p className="text-white text-sm font-medium truncate">{o.name}</p>
-                        <p className="text-gray-600 text-[10px] flex-shrink-0">{formatLastSeen(conv.last_message_at)}</p>
+                        <p className="text-main text-sm font-medium truncate">{o.name}</p>
+                        <p className="text-muted2 text-[10px] flex-shrink-0">{formatLastSeen(conv.last_message_at)}</p>
                       </div>
-                      <p className="text-gray-500 text-xs truncate">{conv.last_message || "Iniciar conversación"}</p>
+                      <p className="text-muted2 text-xs truncate">{conv.last_message || "Iniciar conversación"}</p>
                     </div>
                   </button>
                 )
@@ -297,42 +297,42 @@ export default function ChatPage() {
           {tab === "friends" && (
             <div>
               {requests.length > 0 && (
-                <div className="p-3 border-b border-white/[0.06]">
-                  <p className="text-[10px] text-gray-500 mb-2 font-semibold uppercase tracking-widest">Solicitudes ({requests.length})</p>
+                <div className="p-3 border-b border-soft">
+                  <p className="text-[10px] text-muted2 mb-2 font-semibold uppercase tracking-widest">Solicitudes ({requests.length})</p>
                   {requests.map(r => (
                     <div key={r.id} className="flex items-center gap-2 mb-2 rounded-xl p-2"
-                         style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                         style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)" }}>
                       <Avatar profile={r.requester} size="sm" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-white text-xs font-medium truncate">{r.requester?.name}</p>
-                        <p className="text-gray-600 text-[10px] font-mono">#{r.requester?.user_code}</p>
+                        <p className="text-main text-xs font-medium truncate">{r.requester?.name}</p>
+                        <p className="text-muted2 text-[10px] font-mono">#{r.requester?.user_code}</p>
                       </div>
                       <button onClick={() => respondRequest(r.id, true)}
-                        className="text-white text-[10px] px-2 py-1 rounded-lg transition-all"
+                        className="text-main text-[10px] px-2 py-1 rounded-lg transition-all"
                         style={{ background: "#2563eb" }}>✓</button>
                       <button onClick={() => respondRequest(r.id, false)}
-                        className="text-gray-400 text-[10px] px-2 py-1 rounded-lg transition-all"
-                        style={{ background: "rgba(255,255,255,0.06)" }}>✗</button>
+                        className="text-sub text-[10px] px-2 py-1 rounded-lg transition-all"
+                        style={{ background: "var(--bg-card-soft)" }}>✗</button>
                     </div>
                   ))}
                 </div>
               )}
               <div className="p-3">
-                <p className="text-[10px] text-gray-500 mb-2 font-semibold uppercase tracking-widest">Amigos ({friends.length})</p>
-                {friends.length === 0 && <p className="text-gray-600 text-xs py-4 text-center">Busca amigos por código</p>}
+                <p className="text-[10px] text-muted2 mb-2 font-semibold uppercase tracking-widest">Amigos ({friends.length})</p>
+                {friends.length === 0 && <p className="text-muted2 text-xs py-4 text-center">Busca amigos por código</p>}
                 {friends.map(f => (
                   <button key={f.id} onClick={() => openChat(f)}
                     className="w-full flex items-center gap-3 py-2.5 px-2 rounded-xl transition-all"
-                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)"}
+                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "var(--bg-input)"}
                     onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}>
                     <Avatar profile={f} size="sm" />
                     <div className="flex-1 text-left min-w-0">
-                      <p className="text-white text-sm truncate">{f.name}</p>
-                      <p className={`text-[10px] ${f.is_online ? "text-green-400" : "text-gray-600"}`}>
+                      <p className="text-main text-sm truncate">{f.name}</p>
+                      <p className={`text-[10px] ${f.is_online ? "text-green-400" : "text-muted2"}`}>
                         {f.is_online ? "🟢 En línea" : `Visto ${formatLastSeen(f.last_seen)}`}
                       </p>
                     </div>
-                    <MessageSquare size={13} className="text-gray-600 flex-shrink-0" />
+                    <MessageSquare size={13} className="text-muted2 flex-shrink-0" />
                   </button>
                 ))}
               </div>
@@ -342,36 +342,36 @@ export default function ChatPage() {
           {/* Add tab */}
           {tab === "add" && (
             <div className="p-4 space-y-4">
-              <p className="text-gray-400 text-xs">Busca por código de 8 caracteres</p>
+              <p className="text-sub text-xs">Busca por código de 8 caracteres</p>
               <div className="flex gap-2">
                 <input value={searchCode}
                   onChange={e => setSearchCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
                   onKeyDown={e => e.key === "Enter" && searchUser()}
                   placeholder="A1B2C3D4" maxLength={8}
-                  className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-blue-500/40 font-mono tracking-widest transition-all" />
+                  className="flex-1 bg-card-soft-theme border border-soft rounded-xl px-3 py-2 text-main text-sm placeholder-gray-400 focus:outline-none focus:border-blue-500/40 font-mono tracking-widest transition-all" />
                 <button onClick={searchUser} disabled={searching || searchCode.length < 4}
-                  className="flex items-center justify-center w-10 h-10 rounded-xl text-white disabled:opacity-40 transition-all"
+                  className="flex items-center justify-center w-10 h-10 rounded-xl text-main disabled:opacity-40 transition-all"
                   style={{ background: "#2563eb" }}>
-                  {searching ? <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /> : <Search size={16} />}
+                  {searching ? <span className="w-4 h-4 rounded-full border-2 border-soft border-t-white animate-spin" /> : <Search size={16} />}
                 </button>
               </div>
               {searchResult === null && (
                 <p className="text-red-400 text-xs">No se encontró ningún usuario con ese código.</p>
               )}
               {searchResult && (
-                <div className="rounded-2xl p-4 border" style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.07)" }}>
+                <div className="rounded-2xl p-4 border" style={{ background: "var(--bg-card-soft)", borderColor: "var(--bg-card-soft)" }}>
                   <div className="flex items-center gap-3 mb-3">
                     <Avatar profile={searchResult} size="md" />
                     <div>
-                      <p className="text-white font-semibold">{searchResult.name}</p>
-                      <p className="text-gray-500 text-xs font-mono">#{searchResult.user_code}</p>
-                      <p className={`text-xs mt-0.5 ${searchResult.is_online ? "text-green-400" : "text-gray-500"}`}>
+                      <p className="text-main font-semibold">{searchResult.name}</p>
+                      <p className="text-muted2 text-xs font-mono">#{searchResult.user_code}</p>
+                      <p className={`text-xs mt-0.5 ${searchResult.is_online ? "text-green-400" : "text-muted2"}`}>
                         {searchResult.is_online ? "🟢 En línea" : `Visto ${formatLastSeen(searchResult.last_seen)}`}
                       </p>
                     </div>
                   </div>
                   <button onClick={() => sendFriendRequest(searchResult!.id)}
-                    className="w-full py-2 rounded-xl text-sm font-semibold text-white transition-all"
+                    className="w-full py-2 rounded-xl text-sm font-semibold text-main transition-all"
                     style={{ background: "#2563eb" }}>
                     Enviar solicitud de amistad
                   </button>
@@ -386,19 +386,19 @@ export default function ChatPage() {
       <div className="flex-1 flex flex-col min-w-0">
         {!activeConv || !other ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-3">
-            <MessageSquare size={48} className="text-gray-800" />
-            <p className="text-gray-400 font-medium">Selecciona una conversación</p>
-            <p className="text-gray-600 text-sm">o busca amigos por su código en ➕</p>
+            <MessageSquare size={48} className="text-muted2" />
+            <p className="text-sub font-medium">Selecciona una conversación</p>
+            <p className="text-muted2 text-sm">o busca amigos por su código en ➕</p>
           </div>
         ) : (
           <>
             {/* Conv header */}
-            <div className="border-b border-white/[0.06] px-6 py-3 flex items-center gap-3 flex-shrink-0"
+            <div className="border-b border-soft px-6 py-3 flex items-center gap-3 flex-shrink-0"
                  style={{ background: "rgba(255,255,255,0.015)" }}>
               <Avatar profile={other} size="md" />
               <div className="flex-1 min-w-0">
-                <p className="text-white font-semibold truncate">{other.name}</p>
-                <p className={`text-xs ${other.is_online ? "text-green-400" : "text-gray-500"}`}>
+                <p className="text-main font-semibold truncate">{other.name}</p>
+                <p className={`text-xs ${other.is_online ? "text-green-400" : "text-muted2"}`}>
                   {other.is_online ? "🟢 En línea" : `⚫ Última vez ${formatLastSeen(other.last_seen)}`}
                 </p>
               </div>
@@ -407,7 +407,7 @@ export default function ChatPage() {
             {/* Messages */}
             <div className="flex-1 overflow-y-auto px-6 py-4 space-y-1">
               {messages.length === 0 && (
-                <p className="text-gray-600 text-sm text-center py-12">Sé el primero en escribir 👋</p>
+                <p className="text-muted2 text-sm text-center py-12">Sé el primero en escribir 👋</p>
               )}
               {messages.map(msg => {
                 const isMe = msg.sender_id === userId
@@ -416,12 +416,12 @@ export default function ChatPage() {
                   <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"} group mb-1`}>
                     <div className="relative max-w-sm">
                       <div className={`rounded-2xl px-4 py-2.5 ${isMe ? "rounded-tr-sm" : "rounded-tl-sm"}`}
-                           style={{ background: isMe ? "#2563eb" : "rgba(255,255,255,0.06)", border: isMe ? "none" : "1px solid rgba(255,255,255,0.08)" }}>
-                        {msg.content && <p className="text-white text-sm leading-relaxed break-words">{msg.content}</p>}
+                           style={{ background: isMe ? "#2563eb" : "var(--bg-card-soft)", border: isMe ? "none" : "1px solid var(--border-soft)" }}>
+                        {msg.content && <p className="text-main text-sm leading-relaxed break-words">{msg.content}</p>}
                         {renderFile(msg)}
                         <div className="flex items-center justify-end gap-1 mt-0.5">
-                          <p className="text-white/40 text-[10px]">{formatTime(msg.created_at)}</p>
-                          {isMe && <span className="text-white/40 text-[10px]">{msg.read_at ? "✓✓" : "✓"}</span>}
+                          <p className="text-muted2 text-[10px]">{formatTime(msg.created_at)}</p>
+                          {isMe && <span className="text-muted2 text-[10px]">{msg.read_at ? "✓✓" : "✓"}</span>}
                         </div>
                       </div>
                       {rxns.length > 0 && (
@@ -429,7 +429,7 @@ export default function ChatPage() {
                           {rxns.map(([e, u]) => (
                             <button key={e} onClick={() => react(msg.id, e)}
                               className="rounded-full px-1.5 py-0.5 text-xs transition-all"
-                              style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.1)" }}>
+                              style={{ background: "var(--border-soft)", border: "1px solid var(--border-medium)" }}>
                               {e} {u.length}
                             </button>
                           ))}
@@ -437,7 +437,7 @@ export default function ChatPage() {
                       )}
                       {/* Reaction picker on hover */}
                       <div className={`absolute ${isMe ? "right-full mr-2" : "left-full ml-2"} top-1 hidden group-hover:flex gap-1 rounded-full px-2 py-1.5 shadow-xl z-10`}
-                           style={{ background: "#1e293b", border: "1px solid rgba(255,255,255,0.1)" }}>
+                           style={{ background: "var(--bg-card-soft)", border: "1px solid var(--border-medium)" }}>
                         {REACTIONS.map(e => (
                           <button key={e} onClick={() => react(msg.id, e)} className="hover:scale-125 transition-transform text-sm">{e}</button>
                         ))}
@@ -450,24 +450,24 @@ export default function ChatPage() {
             </div>
 
             {/* Input */}
-            <div className="border-t border-white/[0.06] px-4 py-3 flex-shrink-0"
+            <div className="border-t border-soft px-4 py-3 flex-shrink-0"
                  style={{ background: "rgba(255,255,255,0.01)" }}>
               <div className="flex items-center gap-2">
                 <input ref={fileRef} type="file" className="hidden" onChange={handleFile} />
                 <button onClick={() => fileRef.current?.click()} disabled={uploading}
                   className="w-9 h-9 flex items-center justify-center rounded-xl transition-all disabled:opacity-40 flex-shrink-0"
-                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
-                  {uploading ? <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /> : <Paperclip size={15} className="text-gray-400" />}
+                  style={{ background: "var(--bg-input)", border: "1px solid var(--border-soft)" }}>
+                  {uploading ? <span className="w-4 h-4 rounded-full border-2 border-soft border-t-white animate-spin" /> : <Paperclip size={15} className="text-sub" />}
                 </button>
                 <input value={input} onChange={e => setInput(e.target.value)}
                   onKeyDown={e => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), sendMessage())}
                   placeholder="Escribe un mensaje..."
-                  className="flex-1 rounded-2xl px-4 py-2.5 text-white placeholder-gray-600 text-sm focus:outline-none transition-all"
-                  style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }} />
+                  className="flex-1 rounded-2xl px-4 py-2.5 text-main placeholder-gray-400 text-sm focus:outline-none transition-all"
+                  style={{ background: "var(--border-soft)", border: "1px solid var(--border-soft)" }} />
                 <button onClick={() => sendMessage()} disabled={!input.trim() || sending}
-                  className="w-9 h-9 flex items-center justify-center rounded-xl text-white disabled:opacity-40 transition-all flex-shrink-0"
+                  className="w-9 h-9 flex items-center justify-center rounded-xl text-main disabled:opacity-40 transition-all flex-shrink-0"
                   style={{ background: "#2563eb" }}>
-                  {sending ? <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /> : <Send size={15} />}
+                  {sending ? <span className="w-4 h-4 rounded-full border-2 border-soft border-t-white animate-spin" /> : <Send size={15} />}
                 </button>
               </div>
             </div>
