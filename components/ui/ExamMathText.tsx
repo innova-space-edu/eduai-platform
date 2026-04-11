@@ -5,71 +5,129 @@ import ReactMarkdown from "react-markdown"
 import remarkMath from "remark-math"
 import rehypeKatex from "rehype-katex"
 
-// ─── Caracteres que Gemini/LLMs usan como sustituto de \ ─────────────────────
-// U+2191 ↑  U+2197 ↗  U+2B06 ⬆  U+25B2 ▲  U+2227 ∧  U+21D2 ⇒
-const FAKE_BACKSLASH_RE = /[\u2191\u2197\u2B06\u25B2\u2227\u21D2](?=[a-zA-Z])/g
+// Caracteres que a veces reemplazan "\" en respuestas IA
+const FAKE_BACKSLASH_RE = /[\u2191\u2197\u2B06\u25B2\u2227\u21D2\u2044\u2216\u29F5]/g
 
-// Comandos LaTeX conocidos — si aparecen sin \ real, añadirla
 const LATEX_COMMANDS = [
-  "frac","sqrt","sum","int","prod","lim","infty","partial",
-  "times","cdot","div","pm","leq","geq","neq","approx","equiv",
-  "pi","alpha","beta","gamma","theta","lambda","sigma","omega","Delta","Sigma",
-  "left","right","text","mathbf","mathrm","mathit","vec","hat","bar",
-  "sin","cos","tan","log","ln","max","min",
+  "frac", "sqrt", "sum", "int", "prod", "lim", "infty", "partial",
+  "times", "cdot", "div", "pm", "leq", "geq", "neq", "approx", "equiv",
+  "pi", "alpha", "beta", "gamma", "theta", "lambda", "sigma", "omega",
+  "Delta", "Sigma", "bar", "overline",
+  "left", "right", "text", "mathbf", "mathrm", "mathit", "vec", "hat",
+  "sin", "cos", "tan", "log", "ln", "max", "min"
 ]
-// Regex: palabra que coincide con un comando LaTeX precedido de espacio/inicio
-// pero NO precedida de \ real
+
 const MISSING_BACKSLASH_RE = new RegExp(
   `(?<!\\\\)\\b(${LATEX_COMMANDS.join("|")})(?=\\s*[{\\s^_\\(\\[])`,
   "g"
 )
 
-function repairLatex(raw: string): string {
+function normalizeLatex(raw: string): string {
   let s = String(raw || "")
     .replace(/\r\n/g, "\n")
     .replace(/\r/g, "\n")
 
-  // 1. Reemplazar caracteres Unicode falsos por \ real
+  // Reemplaza “slashes falsos”
   s = s.replace(FAKE_BACKSLASH_RE, "\\")
 
-  // 2. Delimitadores alternativos → estándar
+  // Delimitadores alternativos
   s = s
-    .replace(/\\\(([^]*?)\\\)/g, (_, e) => `$${e}$`)
-    .replace(/\\\[([^]*?)\\\]/g, (_, e) => `$$${e}$$`)
+    .replace(/\\\(([\s\S]*?)\\\)/g, (_, e) => `$${e}$`)
+    .replace(/\\\[([\s\S]*?)\\\]/g, (_, e) => `$$${e}$$`)
 
-  // 3. Comandos LaTeX sin \ (ej: "frac{1}{2}" → "\frac{1}{2}")
-  //    Solo aplica fuera de delimitadores $ ya existentes
+  // Comandos sin backslash
   s = s.replace(MISSING_BACKSLASH_RE, (_, cmd) => `\\${cmd}`)
+
+  // Casos comunes mal formados
+  s = s
+    .replace(/(?<!\\)times\b/g, "\\times")
+    .replace(/(?<!\\)cdot\b/g, "\\cdot")
+    .replace(/(?<!\\)sqrt\b/g, "\\sqrt")
+    .replace(/(?<!\\)frac\b/g, "\\frac")
+    .replace(/(?<!\\)bar\b/g, "\\bar")
+    .replace(/(?<!\\)overline\b/g, "\\overline")
 
   return s
 }
 
-// ─── Detectar si contiene LaTeX sin delimitadores ────────────────────────────
-function needsWrapping(text: string): boolean {
-  // Ya tiene delimitadores $ → no envolver de nuevo
-  if (/\$\$[\s\S]*?\$\$|\$[^$\n]+\$/.test(text)) return false
+function protectExistingMath(text: string) {
+  const blocks: string[] = []
+  const protectedText = text.replace(/\$\$[\s\S]*?\$\$|\$[^$\n]+\$/g, (m) => {
+    const key = `@@MATH_${blocks.length}@@`
+    blocks.push(m)
+    return key
+  })
+  return { protectedText, blocks }
+}
 
-  return (
-    /\\frac\s*\{/.test(text) ||
-    /\\sqrt\s*[\[{]/.test(text) ||
-    /\\(sum|int|prod)\s*[_^]/.test(text) ||
-    /\\(times|cdot|div|pm|leq|geq|neq|approx|equiv)\b/.test(text) ||
-    /\\(pi|alpha|beta|gamma|theta|lambda|sigma|omega|infty|partial)\b/.test(text) ||
-    /\\(left|right)\s*[([|]/.test(text) ||
-    /\\(text|mathbf|mathrm)\s*\{/.test(text) ||
-    /[a-zA-Z0-9]\^[{0-9]/.test(text) ||
-    /[a-zA-Z0-9]_[{0-9]/.test(text)
+function restoreExistingMath(text: string, blocks: string[]) {
+  let s = text
+  blocks.forEach((b, i) => {
+    s = s.replace(`@@MATH_${i}@@`, b)
+  })
+  return s
+}
+
+function wrapLatexFragments(text: string): string {
+  let s = text
+
+  // 1) fracciones
+  s = s.replace(
+    /(\\frac\s*\{[^{}]+\}\s*\{[^{}]+\})/g,
+    " $1 "
   )
+
+  // 2) raíces
+  s = s.replace(
+    /(\\sqrt(?:\[[^\]]+\])?\s*\{[^{}]+\})/g,
+    " $1 "
+  )
+
+  // 3) potencias/subíndices simples
+  s = s.replace(
+    /((?:[A-Za-z0-9]+)(?:\^\{[^{}]+\}|\^[A-Za-z0-9]+|_\{[^{}]+\}|_[A-Za-z0-9]+))/g,
+    " $1 "
+  )
+
+  // 4) productos/divisiones tipo 2 \times 3 o 2 \times \frac{3}{4}
+  s = s.replace(
+    /((?:\d+|[A-Za-z]+|\\frac\s*\{[^{}]+\}\s*\{[^{}]+\}|\\sqrt(?:\[[^\]]+\])?\s*\{[^{}]+\})\s*(?:\\times|\\cdot|\\div)\s*(?:\d+|[A-Za-z]+|\\frac\s*\{[^{}]+\}\s*\{[^{}]+\}|\\sqrt(?:\[[^\]]+\])?\s*\{[^{}]+\}))/g,
+    " $1 "
+  )
+
+  // 5) decimales periódicos 0.\bar{3}
+  s = s.replace(
+    /((?:\d+\.)?\\bar\s*\{[^{}]+\})/g,
+    " $1 "
+  )
+
+  // Ahora envuelve cada fragmento latex aislado con $
+  s = s.replace(
+    /(?<!\$)\s*(\\(?:frac|sqrt|times|cdot|div|bar|overline|pi|alpha|beta|gamma|theta|lambda|sigma|omega|Delta|Sigma|sin|cos|tan|log|ln|left|right)[^,.;\n]*)\s*(?!\$)/g,
+    (_, expr) => ` $${expr.trim()}$ `
+  )
+
+  // Caso especial: expresiones completas como "2 \times \frac{3}{4}"
+  s = s.replace(
+    /(?<!\$)\b(\d+\s*(?:\\times|\\cdot|\\div)\s*\$\\frac\s*\{[^{}]+\}\s*\{[^{}]+\}\$)(?!\$)/g,
+    (_, expr) => ` $${expr.replace(/\$/g, "").trim()}$ `
+  )
+
+  // Limpieza
+  s = s.replace(/\s{2,}/g, " ").trim()
+  return s
 }
 
-function processText(text: string): string {
-  const repaired = repairLatex(text)
-  if (/\$\$[\s\S]*?\$\$|\$[^$\n]+\$/.test(repaired)) return repaired
-  if (needsWrapping(repaired)) return `$${repaired}$`
-  return repaired
+function preprocessText(raw: string): string {
+  const normalized = normalizeLatex(raw)
+
+  const { protectedText, blocks } = protectExistingMath(normalized)
+  let processed = wrapLatexFragments(protectedText)
+  processed = restoreExistingMath(processed, blocks)
+
+  return processed
 }
 
-// ─── Componente ───────────────────────────────────────────────────────────────
 export default function ExamMathText({
   text,
   className = "",
@@ -79,11 +137,11 @@ export default function ExamMathText({
 }) {
   if (!text) return null
 
-  let content: string
+  let content = text
   try {
-    content = processText(text)
+    content = preprocessText(text)
   } catch {
-    content = text // fallback: texto crudo si algo falla
+    content = text
   }
 
   return (
@@ -92,9 +150,9 @@ export default function ExamMathText({
         remarkPlugins={[remarkMath]}
         rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: false }]]}
         components={{
-          p:    ({ children }) => <span>{children}</span>,
+          p: ({ children }) => <span>{children}</span>,
           code: ({ children }) => <code>{children}</code>,
-          pre:  ({ children }) => <pre>{children}</pre>,
+          pre: ({ children }) => <pre>{children}</pre>,
         }}
       >
         {content}
