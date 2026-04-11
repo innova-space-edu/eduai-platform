@@ -44,8 +44,8 @@ export default function InvestigadorPage() {
         <div className="flex flex-col gap-4 animate-fade-in">
           <div className="rounded-2xl p-6 text-center border" style={{ background: `${ACCENT}0c`, borderColor: `${ACCENT}25` }}>
             <div className="text-4xl mb-2">🔬</div>
-            <h2 className="text-white font-bold text-lg">Agente Investigador</h2>
-            <p className="text-gray-400 text-sm mt-1">Busco fuentes académicas actualizadas, analizo papers y genero estados del arte</p>
+            <h2 className="text-main font-bold text-lg">Agente Investigador</h2>
+            <p className="text-sub text-sm mt-1">Busco fuentes académicas actualizadas, analizo papers y genero estados del arte</p>
           </div>
           <QuickPrompts prompts={QUICK} onSelect={p => setInput(p)} accentColor={ACCENT} />
         </div>
@@ -56,10 +56,10 @@ export default function InvestigadorPage() {
             msg.role === "user"
               ? <UserBubble key={i} content={msg.content} />
               : <AgentBubble key={i} icon="🔬" accentColor={ACCENT}>
-                  <div className="prose prose-invert prose-sm max-w-none [&_h2]:text-blue-300 [&_strong]:text-white [&_a]:text-blue-400">
+                  <div className="prose prose-sm max-w-none [&_h2]:text-blue-700 [&_strong]:text-main [&_a]:text-blue-400">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
                   </div>
-                  {msg.provider && <p className="text-[10px] text-gray-600 mt-2">via {msg.provider}</p>}
+                  {msg.provider && <p className="text-[10px] text-muted2 mt-2">via {msg.provider}</p>}
                 </AgentBubble>
           )}
           <div ref={bottomRef} />

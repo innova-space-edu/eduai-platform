@@ -40,7 +40,7 @@ export default function SessionList({ sessions: initialSessions }: Props) {
 
   if (sessions.length === 0) {
     return (
-      <div className="text-center py-16 text-gray-600">
+      <div className="text-center py-16 text-muted2">
         <p className="text-5xl mb-4">📖</p>
         <p className="text-lg">Aún no tienes sesiones de estudio</p>
         <p className="text-sm mt-1">Escribe un tema arriba para comenzar</p>
@@ -53,13 +53,13 @@ export default function SessionList({ sessions: initialSessions }: Props) {
       {sessions.map((session) => (
         <div
           key={session.id}
-          className="bg-gray-900 border border-gray-800 hover:border-gray-700 rounded-xl px-5 py-4 flex items-center justify-between transition-colors group"
+          className="bg-card-theme border border-soft hover:border-medium rounded-xl px-5 py-4 flex items-center justify-between transition-colors group"
         >
           <Link href={`/study/${encodeURIComponent(session.topic)}`} className="flex-1">
-            <p className="text-white font-medium group-hover:text-blue-400 transition-colors">
+            <p className="text-main font-medium group-hover:text-blue-400 transition-colors">
               {session.topic}
             </p>
-            <p className="text-gray-500 text-xs mt-1">
+            <p className="text-muted2 text-xs mt-1">
               Nivel {session.current_level} · {session.correct_answers}/{session.total_questions} correctas
             </p>
           </Link>
@@ -76,7 +76,7 @@ export default function SessionList({ sessions: initialSessions }: Props) {
             <button
               onClick={() => deleteSession(session.id)}
               disabled={deleting === session.id}
-              className="text-gray-700 hover:text-red-400 transition-colors text-lg disabled:opacity-50"
+              className="text-muted2 hover:text-red-400 transition-colors text-lg disabled:opacity-50"
               title="Eliminar sesión"
             >
               {deleting === session.id ? "..." : "×"}

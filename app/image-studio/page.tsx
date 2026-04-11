@@ -233,7 +233,7 @@ function GeneratingAnimation({ prompt, style }: { prompt: string; style: string 
   const step = GEN_STEPS[stepIdx]
 
   return (
-    <div className="relative rounded-3xl overflow-hidden" style={{
+    <div className="relative rounded-2xl overflow-hidden" style={{
       background: "linear-gradient(160deg, #020614, #050d24, #020614)",
       border: "1px solid rgba(0,245,255,0.15)",
       boxShadow: "0 0 60px rgba(0,245,255,0.06), inset 0 0 60px rgba(0,0,0,0.5)",
@@ -290,7 +290,7 @@ function GeneratingAnimation({ prompt, style }: { prompt: string; style: string 
           </p>
           <p className={`text-base font-semibold transition-all duration-200 ${glitch ? "translate-x-0.5 blur-[0.5px]" : ""}`}
             style={{
-              color: "#e2e8f0",
+              color: "var(--text-primary)",
               textShadow: glitch ? "2px 0 rgba(0,245,255,0.6), -2px 0 rgba(236,72,153,0.6)" : "none",
             }}>
             {step.label}
@@ -314,7 +314,7 @@ function GeneratingAnimation({ prompt, style }: { prompt: string; style: string 
             </span>
           </div>
           <div className="h-1.5 rounded-full overflow-hidden"
-            style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(0,245,255,0.15)" }}>
+            style={{ background: "var(--bg-card-soft)", border: "1px solid rgba(0,245,255,0.15)" }}>
             <div className="h-full rounded-full transition-all duration-300 relative overflow-hidden"
               style={{
                 width: `${progress}%`,
@@ -334,7 +334,7 @@ function GeneratingAnimation({ prompt, style }: { prompt: string; style: string 
             {GEN_STEPS.filter((_, i) => i % 2 === 0).map((_, i) => (
               <div key={i} className="w-1.5 h-1.5 rounded-full transition-all duration-500"
                 style={{
-                  background: i * 2 <= stepIdx ? "#00f5ff" : "rgba(255,255,255,0.1)",
+                  background: i * 2 <= stepIdx ? "#00f5ff" : "var(--border-medium)",
                   boxShadow: i * 2 <= stepIdx ? "0 0 6px #00f5ff" : "none",
                 }} />
             ))}
@@ -486,20 +486,20 @@ export default function ImageStudioPage() {
   const styleLabel = Object.fromEntries(STYLES.map(s => [s.id, s.label]))
 
   return (
-    <div className="min-h-screen bg-gray-950">
+    <div className="min-h-screen bg-app">
 
       {/* ── Fullscreen viewer ──────────────────────────────────────────────── */}
       {fullscreen && (
         <div className="fixed inset-0 z-50 bg-black/97 flex flex-col" onClick={() => setFullscreen(null)}>
           <div className="flex items-start justify-between p-4 flex-shrink-0" onClick={e => e.stopPropagation()}>
             <div className="flex-1 min-w-0 pr-4">
-              <p className="text-white/70 text-sm leading-relaxed">{fullscreen.prompt}</p>
-              <p className="text-white/30 text-xs mt-1">{styleLabel[fullscreen.style] || fullscreen.style} · {fullscreen.provider}</p>
+              <p className="text-muted2 text-sm leading-relaxed">{fullscreen.prompt}</p>
+              <p className="text-muted2 text-xs mt-1">{styleLabel[fullscreen.style] || fullscreen.style} · {fullscreen.provider}</p>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
               <button onClick={() => handleDownload(fullscreen.image_url, fullscreen.prompt)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-white transition-all"
-                style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)" }}>
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-main transition-all"
+                style={{ background: "var(--border-soft)", border: "1px solid var(--border-medium)" }}>
                 <Download size={13} /> Descargar
               </button>
               <button onClick={() => handleDelete(fullscreen.id)}
@@ -508,51 +508,51 @@ export default function ImageStudioPage() {
                 <Trash2 size={13} /> Eliminar
               </button>
               <button onClick={() => setFullscreen(null)}
-                className="w-8 h-8 flex items-center justify-center rounded-xl text-gray-400 hover:text-white"
-                style={{ background: "rgba(255,255,255,0.06)" }}>
+                className="w-8 h-8 flex items-center justify-center rounded-xl text-sub hover:text-main"
+                style={{ background: "var(--bg-card-soft)" }}>
                 <X size={16} />
               </button>
             </div>
           </div>
           <div className="flex-1 flex items-center justify-center relative px-4 pb-4" onClick={e => e.stopPropagation()}>
             {fsIdx > 0 && (
-              <button onClick={() => fsNav(-1)} className="absolute left-4 z-10 w-10 h-10 rounded-full flex items-center justify-center text-white"
-                style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.1)" }}>
+              <button onClick={() => fsNav(-1)} className="absolute left-4 z-10 w-10 h-10 rounded-full flex items-center justify-center text-main"
+                style={{ background: "var(--border-soft)", border: "1px solid var(--border-medium)" }}>
                 <ChevronLeft size={18} />
               </button>
             )}
             <img src={fullscreen.image_url} alt={fullscreen.prompt}
               className="max-h-[75vh] max-w-full rounded-2xl object-contain shadow-2xl" />
             {fsIdx < filtered.length - 1 && (
-              <button onClick={() => fsNav(1)} className="absolute right-4 z-10 w-10 h-10 rounded-full flex items-center justify-center text-white"
-                style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.1)" }}>
+              <button onClick={() => fsNav(1)} className="absolute right-4 z-10 w-10 h-10 rounded-full flex items-center justify-center text-main"
+                style={{ background: "var(--border-soft)", border: "1px solid var(--border-medium)" }}>
                 <ChevronRight size={18} />
               </button>
             )}
           </div>
           <div className="text-center pb-4 flex-shrink-0">
-            <span className="text-gray-600 text-xs">{fsIdx + 1} / {filtered.length}</span>
+            <span className="text-muted2 text-xs">{fsIdx + 1} / {filtered.length}</span>
           </div>
         </div>
       )}
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-20 border-b border-white/[0.06] bg-gray-950/90 backdrop-blur-xl">
+      <header className="sticky top-0 z-20 border-b border-soft bg-app backdrop-blur-xl">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-3">
           <Link href="/dashboard"
-            className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/[0.04] border border-white/[0.06] text-gray-400 hover:text-white hover:bg-white/[0.07] transition-all flex-shrink-0">
+            className="w-8 h-8 flex items-center justify-center rounded-xl bg-card-soft-theme text-sub hover:text-main hover:bg-input-theme transition-all flex-shrink-0">
             <ArrowLeft size={15} />
           </Link>
           <div className="w-9 h-9 rounded-2xl flex items-center justify-center shadow-md flex-shrink-0"
             style={{ background: "linear-gradient(135deg,#db2777,#9333ea)", boxShadow: "0 4px 12px rgba(219,39,119,0.3)" }}>
-            <ImagePlus size={17} className="text-white" />
+            <ImagePlus size={17} className="text-main" />
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-white font-bold text-sm leading-tight">Image Studio</h1>
-            <p className="text-gray-600 text-[11px]">Gemini · Pollinations · FLUX · IA multiproveedor</p>
+            <h1 className="text-main font-bold text-sm leading-tight">Image Studio</h1>
+            <p className="text-muted2 text-[11px]">Gemini · Pollinations · FLUX · IA multiproveedor</p>
           </div>
           <div className="flex items-center gap-1 p-1 rounded-xl"
-            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+            style={{ background: "var(--bg-input)", border: "1px solid var(--border-soft)" }}>
             {(["generate", "gallery"] as PanelMode[]).map(p => (
               <button key={p} onClick={() => setPanel(p)}
                 className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
@@ -575,13 +575,13 @@ export default function ImageStudioPage() {
 
             {/* Prompt */}
             <div>
-              <label className="text-gray-600 text-[11px] font-semibold tracking-widest block mb-2">DESCRIPCIÓN</label>
+              <label className="text-muted2 text-[11px] font-semibold tracking-widest block mb-2">DESCRIPCIÓN</label>
               <textarea
                 value={prompt}
                 onChange={e => setPrompt(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter" && e.metaKey) handleGenerate() }}
                 placeholder="Describe la imagen que quieres crear..."
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-2xl px-4 py-3.5 text-gray-200 placeholder-gray-600 text-sm focus:outline-none focus:border-pink-500/30 focus:bg-white/[0.06] transition-all resize-none min-h-[80px]"
+                className="w-full bg-card-soft-theme border border-soft rounded-2xl px-4 py-3.5 text-main placeholder-gray-400 text-sm focus:outline-none focus:border-pink-500/30 focus:bg-input-theme transition-all resize-none min-h-[80px]"
               />
               <div className="flex gap-2 flex-wrap mt-2">
                 {EXAMPLES.slice(0, 3).map(ex => (
@@ -598,14 +598,14 @@ export default function ImageStudioPage() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {/* Estilos */}
               <div>
-                <label className="text-gray-600 text-[11px] font-semibold tracking-widest block mb-2">ESTILO</label>
+                <label className="text-muted2 text-[11px] font-semibold tracking-widest block mb-2">ESTILO</label>
                 <div className="flex flex-wrap gap-1.5">
                   {STYLES.map(s => (
                     <button key={s.id} onClick={() => setStyle(s.id)}
                       className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-medium border transition-all"
                       style={{
-                        background:  style === s.id ? "rgba(219,39,119,0.1)" : "rgba(255,255,255,0.02)",
-                        borderColor: style === s.id ? "rgba(219,39,119,0.3)" : "rgba(255,255,255,0.07)",
+                        background:  style === s.id ? "rgba(219,39,119,0.1)" : "var(--bg-card-soft)",
+                        borderColor: style === s.id ? "rgba(219,39,119,0.3)" : "var(--bg-card-soft)",
                         color:       style === s.id ? "#f9a8d4" : "#6b7280",
                       }}>
                       <span>{s.emoji}</span><span>{s.label}</span>
@@ -616,14 +616,14 @@ export default function ImageStudioPage() {
 
               {/* Tamaño */}
               <div>
-                <label className="text-gray-600 text-[11px] font-semibold tracking-widest block mb-2">TAMAÑO</label>
+                <label className="text-muted2 text-[11px] font-semibold tracking-widest block mb-2">TAMAÑO</label>
                 <div className="flex flex-col gap-1.5">
                   {SIZES.map((s, i) => (
                     <button key={s.label} onClick={() => setSizeIdx(i)}
                       className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium border transition-all text-left"
                       style={{
-                        background:  sizeIdx === i ? "rgba(219,39,119,0.1)" : "rgba(255,255,255,0.02)",
-                        borderColor: sizeIdx === i ? "rgba(219,39,119,0.3)" : "rgba(255,255,255,0.07)",
+                        background:  sizeIdx === i ? "rgba(219,39,119,0.1)" : "var(--bg-card-soft)",
+                        borderColor: sizeIdx === i ? "rgba(219,39,119,0.3)" : "var(--bg-card-soft)",
                         color:       sizeIdx === i ? "#f9a8d4" : "#6b7280",
                       }}>
                       <div className="rounded flex-shrink-0" style={{
@@ -641,14 +641,14 @@ export default function ImageStudioPage() {
 
               {/* Proveedor */}
               <div>
-                <label className="text-gray-600 text-[11px] font-semibold tracking-widest block mb-2">PROVEEDOR</label>
+                <label className="text-muted2 text-[11px] font-semibold tracking-widest block mb-2">PROVEEDOR</label>
                 <div className="flex flex-col gap-1.5">
                   {PROVIDERS.map(p => (
                     <button key={p.id} onClick={() => setProvider(p.id)}
                       className="px-3 py-2 rounded-xl text-xs font-medium border transition-all text-left"
                       style={{
-                        background:  provider === p.id ? "rgba(219,39,119,0.1)" : "rgba(255,255,255,0.02)",
-                        borderColor: provider === p.id ? "rgba(219,39,119,0.3)" : "rgba(255,255,255,0.07)",
+                        background:  provider === p.id ? "rgba(219,39,119,0.1)" : "var(--bg-card-soft)",
+                        borderColor: provider === p.id ? "rgba(219,39,119,0.3)" : "var(--bg-card-soft)",
                         color:       provider === p.id ? "#f9a8d4" : "#6b7280",
                       }}>
                       {p.label}
@@ -660,14 +660,14 @@ export default function ImageStudioPage() {
 
             {/* Modo */}
             <div>
-              <label className="text-gray-600 text-[11px] font-semibold tracking-widest block mb-2">MODO</label>
+              <label className="text-muted2 text-[11px] font-semibold tracking-widest block mb-2">MODO</label>
               <div className="flex gap-2 flex-wrap">
                 {MODES.map(m => (
                   <button key={m.id} onClick={() => setMode(m.id as GenerationMode)}
                     className="flex flex-col px-4 py-2 rounded-xl text-xs font-medium border transition-all text-left"
                     style={{
-                      background:  mode === m.id ? "rgba(219,39,119,0.1)" : "rgba(255,255,255,0.02)",
-                      borderColor: mode === m.id ? "rgba(219,39,119,0.3)" : "rgba(255,255,255,0.07)",
+                      background:  mode === m.id ? "rgba(219,39,119,0.1)" : "var(--bg-card-soft)",
+                      borderColor: mode === m.id ? "rgba(219,39,119,0.3)" : "var(--bg-card-soft)",
                       color:       mode === m.id ? "#f9a8d4" : "#6b7280",
                     }}>
                     <span className="font-semibold">{m.label}</span>
@@ -705,15 +705,15 @@ export default function ImageStudioPage() {
             {/* Resultado */}
             {result && !generating && (
               <div className="flex flex-col gap-3">
-                <div className="relative rounded-2xl overflow-hidden border border-white/[0.08]"
+                <div className="relative rounded-2xl overflow-hidden border border-medium"
                   style={{ boxShadow: "0 8px 40px rgba(219,39,119,0.15)" }}>
                   <img src={result.imageUrl} alt={prompt}
                     className="w-full object-cover"
                     style={{ aspectRatio: SIZES[sizeIdx].ratio }} />
                   <div className="absolute top-3 right-3 flex gap-2">
                     <button onClick={() => handleDownload(result.imageUrl, prompt)}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-white backdrop-blur-md"
-                      style={{ background: "rgba(0,0,0,0.65)", border: "1px solid rgba(255,255,255,0.15)" }}>
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-main backdrop-blur-md"
+                      style={{ background: "rgba(0,0,0,0.65)", border: "1px solid var(--border-medium)" }}>
                       <Download size={13} /> Descargar
                     </button>
                   </div>
@@ -722,14 +722,14 @@ export default function ImageStudioPage() {
                 <div className="px-4 py-3 rounded-xl border"
                   style={{ background: "rgba(219,39,119,0.05)", borderColor: "rgba(219,39,119,0.15)" }}>
                   <p className="text-[10px] text-pink-400 font-semibold uppercase tracking-widest mb-1">Prompt optimizado</p>
-                  <p className="text-gray-400 text-xs leading-relaxed">{result.optimizedPrompt}</p>
-                  <p className="text-gray-600 text-[10px] mt-1.5">
+                  <p className="text-sub text-xs leading-relaxed">{result.optimizedPrompt}</p>
+                  <p className="text-muted2 text-[10px] mt-1.5">
                     {result.provider}{result.model ? ` · ${result.model}` : ""}
                   </p>
                 </div>
 
                 <button onClick={() => { setResult(null); setPrompt("") }}
-                  className="text-gray-600 hover:text-gray-400 text-xs transition-colors text-center">
+                  className="text-muted2 hover:text-sub text-xs transition-colors text-center">
                   + Nueva imagen
                 </button>
               </div>
@@ -742,18 +742,18 @@ export default function ImageStudioPage() {
           <div className="flex flex-col gap-4">
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
-                <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-600" />
+                <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted2" />
                 <input value={search} onChange={e => setSearch(e.target.value)}
                   placeholder="Buscar por descripción..."
-                  className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl pl-9 pr-4 py-2.5 text-gray-300 placeholder-gray-600 text-sm focus:outline-none focus:border-pink-500/30 transition-all" />
+                  className="w-full bg-card-soft-theme border border-soft rounded-xl pl-9 pr-4 py-2.5 text-sub placeholder-gray-400 text-sm focus:outline-none focus:border-pink-500/30 transition-all" />
               </div>
               <div className="flex gap-1.5">
                 {(["all","manual","auto_study"] as FilterSource[]).map(f => (
                   <button key={f} onClick={() => setFilter(f)}
                     className="px-3 py-2 rounded-xl text-xs font-medium border transition-all"
                     style={{
-                      background:  filter === f ? "rgba(219,39,119,0.1)" : "rgba(255,255,255,0.02)",
-                      borderColor: filter === f ? "rgba(219,39,119,0.3)" : "rgba(255,255,255,0.07)",
+                      background:  filter === f ? "rgba(219,39,119,0.1)" : "var(--bg-card-soft)",
+                      borderColor: filter === f ? "rgba(219,39,119,0.3)" : "var(--bg-card-soft)",
                       color:       filter === f ? "#f9a8d4" : "#6b7280",
                     }}>
                     {f === "all" ? "Todas" : f === "manual" ? "Manual" : "Auto-estudio"}
@@ -763,12 +763,12 @@ export default function ImageStudioPage() {
             </div>
 
             <div className="flex items-center justify-between px-4 py-3 rounded-2xl border"
-              style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.07)" }}>
-              <div className="flex items-center gap-2 text-gray-400 text-xs">
+              style={{ background: "var(--bg-card-soft)", borderColor: "var(--bg-card-soft)" }}>
+              <div className="flex items-center gap-2 text-sub text-xs">
                 <SlidersHorizontal size={13} />
                 <span>{filtered.length} imágenes</span>
               </div>
-              <button onClick={loadGallery} className="text-xs text-pink-400 hover:text-pink-300 transition-colors">
+              <button onClick={loadGallery} className="text-xs text-pink-400 hover:text-pink-700 transition-colors">
                 Recargar
               </button>
             </div>
@@ -777,24 +777,24 @@ export default function ImageStudioPage() {
               <div className="py-16 flex items-center justify-center">
                 <div className="flex flex-col items-center gap-3">
                   <div className="w-8 h-8 rounded-full border-2 border-pink-500/30 border-t-pink-400 animate-spin" />
-                  <p className="text-gray-600 text-xs">Cargando galería...</p>
+                  <p className="text-muted2 text-xs">Cargando galería...</p>
                 </div>
               </div>
             ) : filtered.length === 0 ? (
               <div className="py-16 rounded-2xl border text-center"
-                style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.06)" }}>
+                style={{ background: "var(--bg-card-soft)", borderColor: "var(--bg-card-soft)" }}>
                 <div className="w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center"
                   style={{ background: "rgba(219,39,119,0.08)" }}>
                   <ImagePlus size={24} className="text-pink-400" />
                 </div>
-                <p className="text-gray-300 text-sm font-medium mb-1">No hay imágenes todavía</p>
-                <p className="text-gray-600 text-xs">Genera tu primera imagen para verla aquí.</p>
+                <p className="text-sub text-sm font-medium mb-1">No hay imágenes todavía</p>
+                <p className="text-muted2 text-xs">Genera tu primera imagen para verla aquí.</p>
               </div>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {filtered.map(img => (
                   <div key={img.id}
-                    className="group relative rounded-2xl overflow-hidden border border-white/[0.06] cursor-pointer transition-all hover:border-white/[0.14] hover:scale-[1.02]"
+                    className="group relative rounded-2xl overflow-hidden border border-soft cursor-pointer transition-all hover:border-soft hover:scale-[1.02]"
                     style={{ aspectRatio: img.width && img.height ? `${img.width}/${img.height}` : "16/9", background: "#0a1020" }}
                     onClick={() => openFullscreen(img)}>
                     <img src={img.image_url} alt={img.prompt}
@@ -805,20 +805,20 @@ export default function ImageStudioPage() {
                         <button onClick={e => { e.stopPropagation(); handleDelete(img.id) }}
                           className="w-7 h-7 flex items-center justify-center rounded-lg backdrop-blur-md"
                           style={{ background: "rgba(239,68,68,0.3)", border: "1px solid rgba(239,68,68,0.4)" }}>
-                          <Trash2 size={12} className="text-red-300" />
+                          <Trash2 size={12} className="text-red-700" />
                         </button>
                       </div>
                       <div>
-                        <p className="text-white/80 text-[10px] leading-tight line-clamp-2 mb-2">{img.prompt}</p>
+                        <p className="text-sub text-[10px] leading-tight line-clamp-2 mb-2">{img.prompt}</p>
                         <div className="flex gap-1.5">
                           <button onClick={e => { e.stopPropagation(); handleDownload(img.image_url, img.prompt) }}
-                            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium text-white backdrop-blur-md"
-                            style={{ background: "rgba(255,255,255,0.12)" }}>
+                            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium text-main backdrop-blur-md"
+                            style={{ background: "var(--border-medium)" }}>
                             <Download size={10} /> Descargar
                           </button>
                           <button onClick={e => { e.stopPropagation(); openFullscreen(img) }}
-                            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium text-white backdrop-blur-md"
-                            style={{ background: "rgba(255,255,255,0.12)" }}>
+                            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium text-main backdrop-blur-md"
+                            style={{ background: "var(--border-medium)" }}>
                             <ZoomIn size={10} /> Ver
                           </button>
                         </div>

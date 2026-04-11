@@ -27,13 +27,13 @@ function Tpl({ opts, val, onChange, color }: { opts: string[]; val: string; onCh
           className="px-3 py-1 rounded-full text-xs font-semibold border transition-all"
           style={{
             background: val === o ? color + "18" : "transparent",
-            borderColor: val === o ? color + "50" : "rgba(255,255,255,0.12)",
+            borderColor: val === o ? color + "50" : "var(--border-medium)",
             color: val === o ? color : "#6b7280",
           }}>
           {o}
         </button>
       ))}
-      <span className="ml-auto text-[10px] text-gray-600 self-center">Plantilla</span>
+      <span className="ml-auto text-[10px] text-muted2 self-center">Plantilla</span>
     </div>
   )
 }
@@ -151,7 +151,7 @@ export function MindmapRenderer({ data }: { data: any }) {
             ["↺",  () => { setScale(1); setPan({ x: 0, y: 0 }) }]
           ].map(([label, fn]: any, i) => (
             <button key={i} onClick={fn}
-              className="w-7 h-7 rounded-lg bg-gray-800/80 text-gray-400 hover:text-white text-sm flex items-center justify-center transition-colors">
+              className="w-7 h-7 rounded-lg bg-card-soft-theme text-sub hover:text-main text-sm flex items-center justify-center transition-colors">
               {label}
             </button>
           ))}
@@ -159,7 +159,7 @@ export function MindmapRenderer({ data }: { data: any }) {
       </div>
 
       <div
-        className="relative rounded-3xl border border-gray-800 overflow-hidden cursor-grab active:cursor-grabbing select-none"
+        className="relative rounded-2xl border border-soft overflow-hidden cursor-grab active:cursor-grabbing select-none"
         style={{ height: 480, background: "radial-gradient(ellipse at 40% 40%, #0d1f3c, #060c1a)" }}
         onMouseDown={e => { dragging.current = true; drag0.current = { x: e.clientX, y: e.clientY, px: pan.x, py: pan.y } }}
         onMouseMove={e => { if (!dragging.current) return; setPan({ x: drag0.current.px + e.clientX - drag0.current.x, y: drag0.current.py + e.clientY - drag0.current.y }) }}
@@ -231,7 +231,7 @@ export function MindmapRenderer({ data }: { data: any }) {
                     fill={c.bg + "1a"} stroke={c.bg} strokeWidth={1.3} />
                 ) : (
                   <rect x={n.x-w/2} y={n.y-h/2} width={w} height={h} rx={5}
-                    fill="rgba(255,255,255,0.03)" stroke={c.bg + "55"} strokeWidth={1}
+                    fill="var(--bg-card)" stroke={c.bg + "55"} strokeWidth={1}
                     strokeDasharray="3 2" />
                 )}
 
@@ -258,19 +258,19 @@ export function MindmapRenderer({ data }: { data: any }) {
         }}>
           <div className="flex items-start justify-between gap-2">
             <div>
-              <h4 className="font-bold text-sm text-white mb-1">{selected.label}</h4>
-              {selected.description && <p className="text-gray-400 text-xs leading-relaxed">{selected.description}</p>}
+              <h4 className="font-bold text-sm text-main mb-1">{selected.label}</h4>
+              {selected.description && <p className="text-sub text-xs leading-relaxed">{selected.description}</p>}
               <span className="inline-block mt-2 text-[10px] px-2 py-0.5 rounded-full font-semibold"
                 style={{ background: BRANCH[selected.colorIdx]?.bg + "20", color: BRANCH[selected.colorIdx]?.bg }}>
                 {selected.category === "main" ? "Concepto principal" : selected.category === "sub" ? "Subtema" : "Detalle"}
               </span>
             </div>
-            <button onClick={() => setSelected(null)} className="text-gray-600 hover:text-gray-300 text-xl leading-none">×</button>
+            <button onClick={() => setSelected(null)} className="text-muted2 hover:text-sub text-xl leading-none">×</button>
           </div>
         </div>
       )}
 
-      <p className="text-[10px] text-gray-700 text-right">Arrastra · Rueda = zoom · Click = detalle</p>
+      <p className="text-[10px] text-muted2 text-right">Arrastra · Rueda = zoom · Click = detalle</p>
     </div>
   )
 }
@@ -294,19 +294,19 @@ export function InfographicRenderer({ data }: { data: any }) {
     Moderno: {
       wrap: `linear-gradient(160deg,#09142a,#0d1f3f)`,
       hdrBg: `linear-gradient(135deg,${accent}30,${accent}08)`,
-      hdrText: accent, card: "rgba(255,255,255,0.04)", cardBorder: "rgba(255,255,255,0.08)",
-      title: "#f1f5f9", body: "#94a3b8", accent2: accent, sectionHdr: "rgba(255,255,255,0.03)", statBg: accent + "20",
+      hdrText: accent, card: "var(--bg-input)", cardBorder: "var(--border-soft)",
+      title: "var(--text-primary)", body: "var(--text-muted)", accent2: accent, sectionHdr: "var(--bg-card)", statBg: accent + "20",
     },
     Claro: {
       wrap: `linear-gradient(160deg,#f8fafc,#eef2f7)`,
       hdrBg: `linear-gradient(135deg,${accent}20,${accent}05)`,
       hdrText: accent, card: "#ffffff", cardBorder: "rgba(0,0,0,0.07)",
-      title: "#0f172a", body: "#475569", accent2: accent, sectionHdr: accent + "0d", statBg: accent + "14",
+      title: "var(--bg-card)", body: "#475569", accent2: accent, sectionHdr: accent + "0d", statBg: accent + "14",
     },
     Impacto: {
       wrap: `#050505`,
       hdrBg: accent,
-      hdrText: "#ffffff", card: "rgba(255,255,255,0.04)", cardBorder: "rgba(255,255,255,0.1)",
+      hdrText: "#ffffff", card: "var(--bg-input)", cardBorder: "var(--border-medium)",
       title: "#ffffff", body: "#a1a1aa", accent2: "#ffffff", sectionHdr: accent, statBg: accent + "25",
     },
   }
@@ -315,7 +315,7 @@ export function InfographicRenderer({ data }: { data: any }) {
   return (
     <div>
       <Tpl opts={["Moderno","Claro","Impacto"]} val={tpl} onChange={setTpl} color={accent} />
-      <div className="rounded-3xl overflow-hidden" style={{ background: t.wrap }}>
+      <div className="rounded-2xl overflow-hidden" style={{ background: t.wrap }}>
 
         {/* Header */}
         <div className="relative px-6 pt-8 pb-6 text-center overflow-hidden" style={{ background: t.hdrBg }}>
@@ -354,7 +354,7 @@ export function InfographicRenderer({ data }: { data: any }) {
               <div className="flex items-center gap-3 px-4 py-3 border-b"
                 style={{ background: t.sectionHdr, borderColor: t.cardBorder }}>
                 {tpl === "Impacto" && (
-                  <span className="font-black opacity-20 text-white tabular-nums leading-none" style={{ fontSize: 28 }}>
+                  <span className="font-black opacity-20 text-main tabular-nums leading-none" style={{ fontSize: 28 }}>
                     {String(i + 1).padStart(2, "0")}
                   </span>
                 )}
@@ -410,9 +410,9 @@ export function PPTRenderer({ data }: { data: any }) {
   if (!s) return null
 
   const THEMES: Record<string, { bg: string; accent: string; text: string; sub: string; bar: string; cardBg: string }> = {
-    Académico:  { bg: "linear-gradient(150deg,#0a1628,#112040)", accent: "#3b82f6", text: "#f1f5f9", sub: "#94a3b8", bar: "#3b82f6", cardBg: "rgba(59,130,246,0.12)" },
+    Académico:  { bg: "linear-gradient(150deg,#0a1628,#112040)", accent: "#3b82f6", text: "var(--text-primary)", sub: "var(--text-muted)", bar: "#3b82f6", cardBg: "rgba(59,130,246,0.12)" },
     Ejecutivo:  { bg: "linear-gradient(150deg,#070f1a,#0c1a2e)", accent: "#22d3ee", text: "#ecfeff", sub: "#67e8f9", bar: "#22d3ee", cardBg: "rgba(34,211,238,0.1)" },
-    Minimalista:{ bg: "linear-gradient(150deg,#18181b,#27272a)", accent: "#e4e4e7", text: "#fafafa", sub: "#a1a1aa", bar: "#e4e4e7", cardBg: "rgba(255,255,255,0.07)" },
+    Minimalista:{ bg: "linear-gradient(150deg,#18181b,#27272a)", accent: "#e4e4e7", text: "#fafafa", sub: "#a1a1aa", bar: "#e4e4e7", cardBg: "var(--bg-card-soft)" },
   }
   const T = THEMES[tpl]
   const isTitle = idx === 0 || s.type === "title"
@@ -425,11 +425,11 @@ export function PPTRenderer({ data }: { data: any }) {
       <Tpl opts={["Académico","Ejecutivo","Minimalista"]} val={tpl} onChange={setTpl} color={T.accent} />
 
       <div className="flex justify-between items-center">
-        <span className="text-gray-400 text-xs font-medium truncate max-w-[180px]">{data.title}</span>
-        <span className="text-gray-600 text-xs">{idx + 1} / {slides.length}</span>
+        <span className="text-sub text-xs font-medium truncate max-w-[180px]">{data.title}</span>
+        <span className="text-muted2 text-xs">{idx + 1} / {slides.length}</span>
       </div>
 
-      <div className="aspect-video rounded-2xl overflow-hidden border border-white/10 relative flex flex-col"
+      <div className="aspect-video rounded-2xl overflow-hidden border border-soft relative flex flex-col"
         style={{ background: T.bg }}>
         {/* Accent bar */}
         <div className="absolute top-0 left-0 h-1 w-full" style={{ background: `linear-gradient(90deg,${T.bar},${T.bar}44)` }} />
@@ -461,7 +461,7 @@ export function PPTRenderer({ data }: { data: any }) {
                 {(s.bullets || []).slice(0, 3).map((b: string, i: number) => {
                   const [val, ...rest] = b.split(" — ")
                   return (
-                    <div key={i} className="rounded-xl p-3 text-center border border-white/5" style={{ background: T.cardBg }}>
+                    <div key={i} className="rounded-xl p-3 text-center border border-soft" style={{ background: T.cardBg }}>
                       <p className="text-xl font-black" style={{ color: T.accent }}>{val}</p>
                       <p className="text-[10px] mt-1 leading-snug" style={{ color: T.sub }}>{rest.join(" — ")}</p>
                     </div>
@@ -510,7 +510,7 @@ export function PPTRenderer({ data }: { data: any }) {
 
       <div className="flex items-center justify-between">
         <button onClick={() => setIdx(Math.max(0, idx - 1))} disabled={idx === 0}
-          className="px-3 py-1.5 rounded-lg border border-white/10 text-gray-500 text-xs disabled:opacity-30 hover:border-white/20 hover:text-gray-300 transition-all">← Ant.</button>
+          className="px-3 py-1.5 rounded-lg border border-soft text-muted2 text-xs disabled:opacity-30 hover:border-medium hover:text-sub transition-all">← Ant.</button>
         <div className="flex gap-1">
           {slides.map((_: any, i: number) => (
             <button key={i} onClick={() => setIdx(i)} className="rounded-full transition-all"
@@ -518,13 +518,13 @@ export function PPTRenderer({ data }: { data: any }) {
           ))}
         </div>
         <button onClick={() => setIdx(Math.min(slides.length - 1, idx + 1))} disabled={idx === slides.length - 1}
-          className="px-3 py-1.5 rounded-lg border border-white/10 text-gray-500 text-xs disabled:opacity-30 hover:border-white/20 hover:text-gray-300 transition-all">Sig. →</button>
+          className="px-3 py-1.5 rounded-lg border border-soft text-muted2 text-xs disabled:opacity-30 hover:border-medium hover:text-sub transition-all">Sig. →</button>
       </div>
 
       {s.notes && (
-        <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3">
-          <span className="text-gray-700 text-[10px] font-semibold uppercase tracking-wider">Notas</span>
-          <p className="text-gray-500 text-xs mt-1">{s.notes}</p>
+        <div className="bg-card-soft-theme rounded-xl p-3">
+          <span className="text-muted2 text-[10px] font-semibold uppercase tracking-wider">Notas</span>
+          <p className="text-muted2 text-xs mt-1">{s.notes}</p>
         </div>
       )}
     </div>
@@ -538,7 +538,7 @@ export function PosterRenderer({ data }: { data: any }) {
   const [tpl, setTpl] = useState("Hero")
 
   const SCHEMES: Record<string, { bg: string; accent: string; text: string; sub: string; cardBg: string; cardBorder: string }> = {
-    vibrant:    { bg: "linear-gradient(135deg,#0f172a,#1e1b4b,#2d0f3f)", accent: "#818cf8", text: "#f1f5f9", sub: "#94a3b8", cardBg: "rgba(129,140,248,0.1)", cardBorder: "rgba(129,140,248,0.2)" },
+    vibrant:    { bg: "linear-gradient(135deg,#0f172a,#1e1b4b,#2d0f3f)", accent: "#818cf8", text: "var(--text-primary)", sub: "var(--text-muted)", cardBg: "rgba(129,140,248,0.1)", cardBorder: "rgba(129,140,248,0.2)" },
     pastel:     { bg: "linear-gradient(135deg,#fef9ff,#f0f9ff,#fff7ed)", accent: "#7c3aed", text: "#1e1b4b", sub: "#6b7280",  cardBg: "rgba(124,58,237,0.06)", cardBorder: "rgba(124,58,237,0.15)" },
     dark:       { bg: "linear-gradient(135deg,#000,#18181b)",             accent: "#22d3ee", text: "#f0fdfa", sub: "#a1a1aa", cardBg: "rgba(34,211,238,0.07)", cardBorder: "rgba(34,211,238,0.2)" },
     monochrome: { bg: "linear-gradient(135deg,#18181b,#27272a)",          accent: "#e4e4e7", text: "#fafafa", sub: "#71717a",  cardBg: "rgba(228,228,231,0.07)", cardBorder: "rgba(228,228,231,0.15)" },
@@ -552,7 +552,7 @@ export function PosterRenderer({ data }: { data: any }) {
 
       {/* ── HERO: gran titular centrado ────────────────────────────── */}
       {tpl === "Hero" && (
-        <div className="rounded-3xl overflow-hidden border border-white/10" style={{ background: cs.bg }}>
+        <div className="rounded-2xl overflow-hidden border border-soft" style={{ background: cs.bg }}>
           <div className="relative px-8 pt-12 pb-8 text-center overflow-hidden">
             <div className="absolute inset-0 opacity-25"
               style={{ backgroundImage: `radial-gradient(ellipse at 50% 0%,${cs.accent}aa,transparent 65%)` }} />
@@ -593,7 +593,7 @@ export function PosterRenderer({ data }: { data: any }) {
 
       {/* ── REVISTA: titular izquierda, puntos en grid ────────────── */}
       {tpl === "Revista" && (
-        <div className="rounded-3xl overflow-hidden border border-white/10" style={{ background: cs.bg }}>
+        <div className="rounded-2xl overflow-hidden border border-soft" style={{ background: cs.bg }}>
           <div className="flex">
             {/* Columna izquierda: titular */}
             <div className="w-2/5 p-7 flex flex-col justify-between relative overflow-hidden"
@@ -631,7 +631,7 @@ export function PosterRenderer({ data }: { data: any }) {
 
       {/* ── SPLIT: fondo dividido con cards prominentes ────────────── */}
       {tpl === "Split" && (
-        <div className="rounded-3xl overflow-hidden border border-white/10">
+        <div className="rounded-2xl overflow-hidden border border-soft">
           {/* Header dividido */}
           <div className="flex" style={{ background: cs.accent }}>
             <div className="flex-1 px-8 py-8">
@@ -691,8 +691,8 @@ export function TimelineRenderer({ data }: { data: any }) {
   return (
     <div className="space-y-3">
       <div className="text-center">
-        <h3 className="text-white font-bold text-sm">⏳ {data.title}</h3>
-        {data.period && <p className="text-gray-600 text-xs mt-0.5">{data.period}</p>}
+        <h3 className="text-main font-bold text-sm">⏳ {data.title}</h3>
+        {data.period && <p className="text-muted2 text-xs mt-0.5">{data.period}</p>}
       </div>
 
       <Tpl opts={["Línea","Tarjetas"]} val={tpl} onChange={setTpl} color="#f97316" />
@@ -712,7 +712,7 @@ export function TimelineRenderer({ data }: { data: any }) {
                 {/* Dot */}
                 <button
                   onClick={() => setExpanded(isOpen ? null : i)}
-                  className="absolute -left-6 top-3.5 w-4 h-4 rounded-full border-2 border-gray-950 transition-all z-10"
+                  className="absolute -left-6 top-3.5 w-4 h-4 rounded-full border-2 border-card transition-all z-10"
                   style={{ background: color, boxShadow: isOpen ? `0 0 10px ${color}80` : "none",
                     transform: isOpen ? "scale(1.35)" : "scale(1)" }} />
 
@@ -721,7 +721,7 @@ export function TimelineRenderer({ data }: { data: any }) {
                   className="rounded-2xl border cursor-pointer transition-all"
                   style={{
                     background: isOpen ? IMP_BG[evt.importance] : "rgba(255,255,255,0.025)",
-                    borderColor: isOpen ? color + "50" : "rgba(255,255,255,0.07)",
+                    borderColor: isOpen ? color + "50" : "var(--bg-card-soft)",
                   }}>
                   <div className="flex items-center gap-3 p-4">
                     <span className="text-xl flex-shrink-0">{evt.icon || "📅"}</span>
@@ -735,14 +735,14 @@ export function TimelineRenderer({ data }: { data: any }) {
                           <span className="text-[10px] text-red-400 font-semibold">★ Hito clave</span>
                         )}
                       </div>
-                      <h4 className="text-gray-200 font-bold text-xs mt-1">{evt.title}</h4>
+                      <h4 className="text-main font-bold text-xs mt-1">{evt.title}</h4>
                     </div>
-                    <span className="text-gray-600 text-xs transition-transform" style={{ transform: isOpen ? "rotate(90deg)" : "none" }}>›</span>
+                    <span className="text-muted2 text-xs transition-transform" style={{ transform: isOpen ? "rotate(90deg)" : "none" }}>›</span>
                   </div>
 
                   {isOpen && (
-                    <div className="px-4 pb-4 border-t" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
-                      <p className="text-gray-400 text-xs leading-relaxed mt-3">{evt.description}</p>
+                    <div className="px-4 pb-4 border-t" style={{ borderColor: "var(--bg-card-soft)" }}>
+                      <p className="text-sub text-xs leading-relaxed mt-3">{evt.description}</p>
                       {evt.impact && (
                         <p className="mt-2 text-xs font-semibold" style={{ color }}>⚡ {evt.impact}</p>
                       )}
@@ -761,7 +761,7 @@ export function TimelineRenderer({ data }: { data: any }) {
           {events.map((evt: any, i: number) => {
             const color = IMP[evt.importance] || IMP.low
             return (
-              <div key={i} className="rounded-2xl overflow-hidden border border-white/[0.06]">
+              <div key={i} className="rounded-2xl overflow-hidden border border-soft">
                 {/* Top color bar */}
                 <div className="h-1.5 w-full" style={{ background: `linear-gradient(90deg,${color},${color}55)` }} />
                 <div className="p-4" style={{ background: "rgba(255,255,255,0.025)" }}>
@@ -777,8 +777,8 @@ export function TimelineRenderer({ data }: { data: any }) {
                       <span className="text-[10px] text-amber-400 font-bold flex-shrink-0">★ Clave</span>
                     )}
                   </div>
-                  <h4 className="text-gray-200 font-bold text-xs mb-1.5">{evt.title}</h4>
-                  <p className="text-gray-500 text-[11px] leading-relaxed">{evt.description}</p>
+                  <h4 className="text-main font-bold text-xs mb-1.5">{evt.title}</h4>
+                  <p className="text-muted2 text-[11px] leading-relaxed">{evt.description}</p>
                   {evt.impact && (
                     <p className="mt-2 text-[10px] font-semibold" style={{ color }}>⚡ {evt.impact}</p>
                   )}
@@ -811,8 +811,8 @@ export function PodcastRenderer({ data }: { data: any }) {
           <div className="absolute bottom-1 right-1 w-3 h-3 bg-red-400 rounded-full animate-pulse" />
         </div>
         <div>
-          <h3 className="text-white font-bold text-sm">{data.title}</h3>
-          <p className="text-gray-500 text-xs mt-0.5">EduAI Podcast · {data.duration || "8 min"}</p>
+          <h3 className="text-main font-bold text-sm">{data.title}</h3>
+          <p className="text-muted2 text-xs mt-0.5">EduAI Podcast · {data.duration || "8 min"}</p>
           <div className="flex gap-2 mt-1.5">
             <span className="text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded-full font-medium">🎙 Álvaro</span>
             <span className="text-[10px] bg-pink-500/10 text-pink-400 border border-pink-500/20 px-2 py-0.5 rounded-full font-medium">🎙 Elvira</span>
@@ -820,18 +820,18 @@ export function PodcastRenderer({ data }: { data: any }) {
         </div>
       </div>
 
-      <div className="bg-gray-900/80 rounded-2xl p-4 border border-white/5">
+      <div className="bg-header-theme rounded-2xl p-4 border border-soft">
         <div className="flex items-end gap-[2px] h-12 mb-3">
           {bars.map((h, i) => (
             <div key={i} className="flex-1 rounded-full transition-all duration-75"
-              style={{ height: `${h * 100}%`, background: i / BARS <= progress ? "linear-gradient(to top,#3b82f6,#8b5cf6)" : "rgba(255,255,255,0.08)" }} />
+              style={{ height: `${h * 100}%`, background: i / BARS <= progress ? "linear-gradient(to top,#3b82f6,#8b5cf6)" : "var(--border-soft)" }} />
           ))}
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={() => setCurrent(c => Math.max(0, c - 1))} className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white text-xs transition-colors">⏮</button>
+          <button onClick={() => setCurrent(c => Math.max(0, c - 1))} className="w-7 h-7 rounded-full bg-card-soft-theme hover:bg-card-soft-theme flex items-center justify-center text-main text-xs transition-colors">⏮</button>
           <button onClick={() => setCurrent(c => Math.min(total - 1, c + 1))} className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm" style={{ background: "linear-gradient(135deg,#3b82f6,#8b5cf6)" }}>▶</button>
-          <button onClick={() => setCurrent(c => Math.min(total - 1, c + 1))} className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white text-xs transition-colors">⏭</button>
-          <span className="text-gray-600 text-xs ml-auto">{current + 1} / {total}</span>
+          <button onClick={() => setCurrent(c => Math.min(total - 1, c + 1))} className="w-7 h-7 rounded-full bg-card-soft-theme hover:bg-card-soft-theme flex items-center justify-center text-main text-xs transition-colors">⏭</button>
+          <span className="text-muted2 text-xs ml-auto">{current + 1} / {total}</span>
         </div>
       </div>
 
@@ -842,11 +842,11 @@ export function PodcastRenderer({ data }: { data: any }) {
           return (
             <div key={i} onClick={() => setCurrent(i)}
               className={`flex gap-3 p-3 rounded-2xl cursor-pointer transition-all border ${
-                isActive ? (isA ? "bg-blue-500/10 border-blue-500/20" : "bg-pink-500/10 border-pink-500/20") : "bg-white/[0.02] border-transparent hover:bg-white/[0.04]"
+                isActive ? (isA ? "bg-blue-500/10 border-blue-500/20" : "bg-pink-500/10 border-pink-500/20") : "bg-card-soft-theme border-transparent hover:bg-card-soft-theme"
               }`}>
               <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold flex-shrink-0 ${isA ? "bg-blue-500/20 text-blue-400" : "bg-pink-500/20 text-pink-400"}`}>{isA ? "A" : "B"}</div>
               <div className="flex-1"><p className={`text-[10px] font-semibold mb-0.5 ${isA ? "text-blue-400" : "text-pink-400"}`}>{isA ? "Álvaro" : "Elvira"}</p>
-                <p className="text-gray-400 text-xs leading-relaxed">{seg.text}</p></div>
+                <p className="text-sub text-xs leading-relaxed">{seg.text}</p></div>
               {isActive && (
                 <div className="flex-shrink-0 flex gap-0.5 items-end">
                   {[0, 1, 2].map(d => <div key={d} className="w-1 rounded-full animate-bounce"
@@ -884,28 +884,28 @@ export function FlashcardsRenderer({ data }: { data: any }) {
         <span className="text-blue-400 font-bold text-sm">{data.deckTitle}</span>
         <div className="flex items-center gap-3">
           <span className="text-green-400 text-xs font-semibold">{correct.size} / {cards.length}</span>
-          <span className="text-gray-600 text-xs bg-gray-800 rounded-full px-3 py-1">{idx + 1} / {cards.length}</span>
+          <span className="text-muted2 text-xs bg-card-soft-theme rounded-full px-3 py-1">{idx + 1} / {cards.length}</span>
         </div>
       </div>
 
       {/* Progress bar */}
-      <div className="w-full h-1 bg-gray-800 rounded-full">
+      <div className="w-full h-1 bg-card-soft-theme rounded-full">
         <div className="h-1 bg-green-400 rounded-full transition-all" style={{ width: `${(correct.size / cards.length) * 100}%` }} />
       </div>
 
       <div onClick={() => setFlipped(!flipped)}
-        className={`min-h-[200px] rounded-3xl p-7 cursor-pointer border-2 transition-all flex flex-col items-center justify-center select-none ${
+        className={`min-h-[200px] rounded-2xl p-7 cursor-pointer border-2 transition-all flex flex-col items-center justify-center select-none ${
           flipped ? "bg-green-500/[0.06] border-green-500/25" : "bg-blue-500/[0.06] border-blue-500/20"
         }`}>
         <span className={`text-[10px] font-bold tracking-widest mb-4 px-3 py-1 rounded-full ${flipped ? "bg-green-500/12 text-green-400" : "bg-blue-500/12 text-blue-400"}`}>
           {flipped ? "↩ RESPUESTA" : "PREGUNTA — toca para ver"}
         </span>
-        <p className="text-white font-semibold text-base leading-relaxed">{flipped ? card.back : card.front}</p>
-        {card.hint && !flipped && <p className="text-gray-600 text-xs mt-3 italic">💡 {card.hint}</p>}
+        <p className="text-main font-semibold text-base leading-relaxed">{flipped ? card.back : card.front}</p>
+        {card.hint && !flipped && <p className="text-muted2 text-xs mt-3 italic">💡 {card.hint}</p>}
         {flipped && card.mnemonic && <p className="text-amber-400/70 text-xs mt-3 italic">🧠 {card.mnemonic}</p>}
         {card.difficulty && (
           <div className="flex gap-1 mt-3">
-            {[1, 2, 3].map(d => <div key={d} className={`w-2 h-2 rounded-full ${d <= card.difficulty ? "bg-yellow-400" : "bg-white/10"}`} />)}
+            {[1, 2, 3].map(d => <div key={d} className={`w-2 h-2 rounded-full ${d <= card.difficulty ? "bg-yellow-400" : "bg-card-soft-theme"}`} />)}
           </div>
         )}
       </div>
@@ -918,7 +918,7 @@ export function FlashcardsRenderer({ data }: { data: any }) {
       ) : (
         <div className="flex justify-center gap-2">
           <button onClick={() => { setIdx(Math.max(0, idx - 1)); setFlipped(false) }} disabled={idx === 0}
-            className="px-4 py-2 rounded-xl border border-white/10 text-gray-500 text-sm disabled:opacity-30 hover:border-white/20 hover:text-gray-300 transition-all">← Ant.</button>
+            className="px-4 py-2 rounded-xl border border-soft text-muted2 text-sm disabled:opacity-30 hover:border-medium hover:text-sub transition-all">← Ant.</button>
           <button onClick={() => { setIdx(Math.min(cards.length - 1, idx + 1)); setFlipped(false) }} disabled={idx === cards.length - 1}
             className="px-4 py-2 rounded-xl bg-blue-600/20 border border-blue-500/20 text-blue-400 text-sm disabled:opacity-30 hover:bg-blue-600/30 transition-all">Sig. →</button>
         </div>
@@ -946,14 +946,14 @@ export function QuizRenderer({ data }: { data: any }) {
     return (
       <div className="text-center py-8 space-y-4">
         <div className="text-6xl">{pct >= 0.7 ? "🏆" : pct >= 0.4 ? "📚" : "💪"}</div>
-        <h3 className="text-3xl font-extrabold text-white">{score} <span className="text-gray-600">/ {questions.length}</span></h3>
-        <div className="w-full bg-gray-800 rounded-full h-2 max-w-xs mx-auto">
+        <h3 className="text-3xl font-extrabold text-main">{score} <span className="text-muted2">/ {questions.length}</span></h3>
+        <div className="w-full bg-card-soft-theme rounded-full h-2 max-w-xs mx-auto">
           <div className="h-2 rounded-full transition-all duration-700"
             style={{ width: `${(score / questions.length) * 100}%`, background: pct >= 0.7 ? "#22c55e" : pct >= 0.4 ? "#f59e0b" : "#ef4444" }} />
         </div>
-        <p className="text-gray-400 text-sm">{pct >= 0.7 ? "¡Excelente dominio!" : pct >= 0.4 ? "Buen progreso, sigue repasando" : "Repasa y vuelve a intentar"}</p>
+        <p className="text-sub text-sm">{pct >= 0.7 ? "¡Excelente dominio!" : pct >= 0.4 ? "Buen progreso, sigue repasando" : "Repasa y vuelve a intentar"}</p>
         <button onClick={() => { setAnswers({}); setQIdx(0); setDone(false) }}
-          className="mt-2 px-6 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-colors">
+          className="mt-2 px-6 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-main text-sm font-semibold transition-colors">
           Reintentar
         </button>
       </div>
@@ -966,15 +966,15 @@ export function QuizRenderer({ data }: { data: any }) {
       <div className="flex justify-between items-center">
         <div className="flex gap-1">
           {questions.map((_: any, i: number) => (
-            <div key={i} className={`h-1 rounded-full transition-all ${i === qIdx ? "w-6 bg-blue-400" : answers[i] !== undefined ? "w-3 bg-green-400/60" : "w-3 bg-white/10"}`} />
+            <div key={i} className={`h-1 rounded-full transition-all ${i === qIdx ? "w-6 bg-blue-400" : answers[i] !== undefined ? "w-3 bg-green-400/60" : "w-3 bg-card-soft-theme"}`} />
           ))}
         </div>
         <span className="text-blue-400 text-xs font-semibold">{score} pts</span>
       </div>
 
-      <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-5">
-        <p className="text-xs text-gray-600 mb-2">Pregunta {qIdx + 1} de {questions.length}</p>
-        <p className="text-white font-semibold text-sm leading-relaxed">{q.question}</p>
+      <div className="bg-card-soft-theme border border-soft rounded-2xl p-5">
+        <p className="text-xs text-muted2 mb-2">Pregunta {qIdx + 1} de {questions.length}</p>
+        <p className="text-main font-semibold text-sm leading-relaxed">{q.question}</p>
       </div>
 
       <div className="space-y-2">
@@ -982,19 +982,19 @@ export function QuizRenderer({ data }: { data: any }) {
           const answered = answers[qIdx] !== undefined
           const selected = answers[qIdx] === i
           const correct  = i === q.correctAnswer
-          let cls = "bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.06] cursor-pointer"
+          let cls = "bg-card-soft-theme border-soft hover:bg-input-theme cursor-pointer"
           if (answered && correct)          cls = "bg-green-500/10 border-green-500/30 cursor-default"
           else if (answered && selected)    cls = "bg-red-500/10 border-red-500/30 cursor-default"
-          else if (answered)                cls = "bg-white/[0.01] border-white/[0.04] opacity-50 cursor-default"
+          else if (answered)                cls = "bg-card-soft-theme border-soft opacity-50 cursor-default"
           return (
             <button key={i} onClick={() => !answered && setAnswers({ ...answers, [qIdx]: i })}
               className={`w-full text-left p-3.5 rounded-2xl border text-sm transition-all ${cls}`}>
               <div className="flex items-center gap-3">
                 <span className="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0"
-                  style={{ background: answered && correct ? "rgba(34,197,94,0.2)" : answered && selected ? "rgba(239,68,68,0.2)" : "rgba(255,255,255,0.06)" }}>
+                  style={{ background: answered && correct ? "rgba(34,197,94,0.2)" : answered && selected ? "rgba(239,68,68,0.2)" : "var(--bg-card-soft)" }}>
                   {String.fromCharCode(65 + i)}
                 </span>
-                <span className="text-gray-300 flex-1">{opt}</span>
+                <span className="text-sub flex-1">{opt}</span>
                 {answered && correct  && <span>✅</span>}
                 {answered && selected && !correct && <span>❌</span>}
               </div>
@@ -1005,20 +1005,20 @@ export function QuizRenderer({ data }: { data: any }) {
 
       {answers[qIdx] !== undefined && q.explanation && (
         <div className="bg-blue-500/[0.06] border-l-2 border-blue-500/50 rounded-xl p-3">
-          <p className="text-gray-400 text-xs">💡 {q.explanation}</p>
+          <p className="text-sub text-xs">💡 {q.explanation}</p>
         </div>
       )}
 
       <div className="flex justify-end gap-2 pt-1">
         {qIdx > 0 && (
-          <button onClick={() => setQIdx(qIdx - 1)} className="px-3 py-2 rounded-xl border border-white/10 text-gray-500 text-xs hover:border-white/20 hover:text-gray-300 transition-all">← Ant.</button>
+          <button onClick={() => setQIdx(qIdx - 1)} className="px-3 py-2 rounded-xl border border-soft text-muted2 text-xs hover:border-medium hover:text-sub transition-all">← Ant.</button>
         )}
         {qIdx < questions.length - 1 ? (
           <button onClick={() => setQIdx(qIdx + 1)} disabled={answers[qIdx] === undefined}
-            className="px-4 py-2 rounded-xl bg-blue-600/80 hover:bg-blue-500 text-white text-xs font-semibold disabled:opacity-30 transition-colors">Siguiente →</button>
+            className="px-4 py-2 rounded-xl bg-blue-600/80 hover:bg-blue-500 text-main text-xs font-semibold disabled:opacity-30 transition-colors">Siguiente →</button>
         ) : (
           <button onClick={() => setDone(true)} disabled={answers[qIdx] === undefined}
-            className="px-4 py-2 rounded-xl bg-green-600/80 hover:bg-green-500 text-white text-xs font-semibold disabled:opacity-30 transition-colors">Ver resultado 🏆</button>
+            className="px-4 py-2 rounded-xl bg-green-600/80 hover:bg-green-500 text-main text-xs font-semibold disabled:opacity-30 transition-colors">Ver resultado 🏆</button>
         )}
       </div>
     </div>

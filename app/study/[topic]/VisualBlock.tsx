@@ -35,11 +35,11 @@ function MermaidDiagram({ code, caption }: { code: string; caption: string }) {
           startOnLoad: false,
           theme: "dark",
           themeVariables: {
-            primaryColor: "#3b82f6", primaryTextColor: "#f1f5f9",
-            primaryBorderColor: "#1e40af", lineColor: "#64748b",
-            background: "#0f172a", mainBkg: "#1e293b",
-            nodeBorder: "#3b82f6", edgeLabelBackground: "#1e293b",
-            titleColor: "#f1f5f9",
+            primaryColor: "#3b82f6", primaryTextColor: "var(--text-primary)",
+            primaryBorderColor: "#1e40af", lineColor: "var(--text-muted)",
+            background: "var(--bg-card)", mainBkg: "var(--bg-card-soft)",
+            nodeBorder: "#3b82f6", edgeLabelBackground: "var(--bg-card-soft)",
+            titleColor: "var(--text-primary)",
           },
         })
         const id = `mmd-${Math.random().toString(36).slice(2)}`
@@ -65,7 +65,7 @@ function MermaidDiagram({ code, caption }: { code: string; caption: string }) {
       <div ref={ref}
         className={`w-full flex justify-center transition-opacity duration-500 ${ready ? "opacity-100" : "opacity-0"}`} />
       {caption && ready && (
-        <p className="text-gray-500 text-[11px] italic text-center mt-2">{caption}</p>
+        <p className="text-muted2 text-[11px] italic text-center mt-2">{caption}</p>
       )}
     </div>
   )
@@ -98,11 +98,11 @@ function ChartBlock({ specStr, caption }: { specStr: string; caption: string }) 
         const isFlat = spec.type === "pie" || spec.type === "doughnut"
         spec.options = {
           responsive: true, maintainAspectRatio: true, ...spec.options,
-          plugins: { legend: { labels: { color: "#94a3b8", font: { size: 11 } } }, ...(spec.options?.plugins || {}) },
+          plugins: { legend: { labels: { color: "var(--text-muted)", font: { size: 11 } } }, ...(spec.options?.plugins || {}) },
           ...(!isFlat && {
             scales: {
-              x: { ticks: { color: "#64748b" }, grid: { color: "#1e293b" } },
-              y: { ticks: { color: "#64748b" }, grid: { color: "#1e293b" } },
+              x: { ticks: { color: "var(--text-muted)" }, grid: { color: "var(--bg-card-soft)" } },
+              y: { ticks: { color: "var(--text-muted)" }, grid: { color: "var(--bg-card-soft)" } },
             },
           }),
         }
@@ -129,7 +129,7 @@ function ChartBlock({ specStr, caption }: { specStr: string; caption: string }) 
         <canvas ref={canvasRef} className="max-h-64" />
       </div>
       {caption && ready && (
-        <p className="text-gray-500 text-[11px] italic text-center mt-2">{caption}</p>
+        <p className="text-muted2 text-[11px] italic text-center mt-2">{caption}</p>
       )}
     </div>
   )
@@ -143,29 +143,29 @@ function TableBlock({ specStr, caption }: { specStr: string; caption: string }) 
   if (!rows.length) return null
   return (
     <div>
-      <div className="overflow-x-auto rounded-xl border border-gray-700">
+      <div className="overflow-x-auto rounded-xl border border-medium">
         <table className="w-full text-sm">
           {headers.length > 0 && (
             <thead>
-              <tr className="border-b border-gray-700 bg-gray-800/60">
+              <tr className="border-b border-medium bg-card-soft-theme">
                 {headers.map((h, i) => (
-                  <th key={i} className="px-4 py-2.5 text-left text-gray-300 font-semibold text-xs uppercase tracking-wider">{h}</th>
+                  <th key={i} className="px-4 py-2.5 text-left text-sub font-semibold text-xs uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
             </thead>
           )}
           <tbody>
             {rows.map((row, ri) => (
-              <tr key={ri} className={`border-b border-gray-800 ${ri % 2 === 0 ? "bg-gray-900/40" : ""} hover:bg-gray-800/40 transition-colors`}>
+              <tr key={ri} className={`border-b border-soft ${ri % 2 === 0 ? "bg-card-theme" : ""} hover:bg-card-soft-theme transition-colors`}>
                 {row.map((cell, ci) => (
-                  <td key={ci} className="px-4 py-2.5 text-gray-300 text-xs">{cell}</td>
+                  <td key={ci} className="px-4 py-2.5 text-sub text-xs">{cell}</td>
                 ))}
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      {caption && <p className="text-gray-500 text-[11px] italic text-center mt-2">{caption}</p>}
+      {caption && <p className="text-muted2 text-[11px] italic text-center mt-2">{caption}</p>}
     </div>
   )
 }
@@ -203,20 +203,20 @@ function ImageBlock({
   }, [imagePrompt, regenerateKey])
 
   if (loading) return (
-    <div className="flex items-center gap-2.5 py-4 text-gray-500 text-xs">
+    <div className="flex items-center gap-2.5 py-4 text-muted2 text-xs">
       <div className="w-4 h-4 border-2 border-blue-500/40 border-t-blue-400 rounded-full animate-spin flex-shrink-0" />
       Generando imagen educativa...
     </div>
   )
   if (!url) return (
-    <p className="text-gray-600 text-xs py-2">No se pudo generar la imagen. Intenta de nuevo.</p>
+    <p className="text-muted2 text-xs py-2">No se pudo generar la imagen. Intenta de nuevo.</p>
   )
   return (
     <div>
       <div className="flex justify-between items-center mb-2">
-        <span className="text-[10px] text-gray-600">via {provider}</span>
+        <span className="text-[10px] text-muted2">via {provider}</span>
         <button onClick={() => setExp(e => !e)}
-          className="text-[10px] text-gray-600 hover:text-gray-400 px-2 py-1 rounded hover:bg-black/20 transition-colors">
+          className="text-[10px] text-muted2 hover:text-sub px-2 py-1 rounded hover:bg-card-soft-theme transition-colors">
           {expanded ? "Ocultar ▲" : "Ver ▼"}
         </button>
       </div>
@@ -224,7 +224,7 @@ function ImageBlock({
         <div className="relative rounded-xl overflow-hidden">
           <img src={url} alt={imagePrompt} className="w-full object-cover max-h-64" />
           <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent px-4 py-3">
-            <p className="text-white/70 text-[10px] italic line-clamp-1">{caption || imagePrompt}</p>
+            <p className="text-muted2 text-[10px] italic line-clamp-1">{caption || imagePrompt}</p>
           </div>
         </div>
       )}
@@ -245,7 +245,7 @@ function ImageOnDemand({
     return (
       <div className="flex items-center justify-between">
         {/* Descripción de lo que se generaría */}
-        <p className="text-gray-500 text-xs italic truncate flex-1 pr-3">
+        <p className="text-muted2 text-xs italic truncate flex-1 pr-3">
           {caption || imagePrompt}
         </p>
         <button
@@ -276,7 +276,7 @@ function ImageOnDemand({
       <div className="flex justify-end mb-2">
         <button
           onClick={() => setRegenKey(k => k + 1)}
-          className="text-[10px] text-gray-600 hover:text-gray-400 px-2 py-1 rounded hover:bg-black/20 transition-colors"
+          className="text-[10px] text-muted2 hover:text-sub px-2 py-1 rounded hover:bg-card-soft-theme transition-colors"
         >
           🔄 Regenerar
         </button>
@@ -328,8 +328,8 @@ export default function VisualBlock({ topic, context }: Props) {
   if (state === "idle" || state === "skip") return null
 
   if (state === "detecting") return (
-    <div className="mt-4 flex items-center gap-2 text-gray-600 text-xs">
-      <div className="w-3 h-3 border border-gray-600 border-t-transparent rounded-full animate-spin" />
+    <div className="mt-4 flex items-center gap-2 text-muted2 text-xs">
+      <div className="w-3 h-3 border border-medium border-t-transparent rounded-full animate-spin" />
       Analizando si hay algo para visualizar...
     </div>
   )
@@ -341,12 +341,12 @@ export default function VisualBlock({ topic, context }: Props) {
   return (
     <div className={`mt-4 border ${meta.borderCls} rounded-2xl overflow-hidden ${meta.bgCls}`}>
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/5">
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-soft">
         <div className="flex items-center gap-2">
           <span className="text-sm">{meta.icon}</span>
           <span className={`text-xs font-medium ${meta.textCls}`}>{meta.label}</span>
         </div>
-        <span className="text-[10px] text-gray-700">AGT-AIm v2</span>
+        <span className="text-[10px] text-muted2">AGT-AIm v2</span>
       </div>
 
       {/* Contenido */}

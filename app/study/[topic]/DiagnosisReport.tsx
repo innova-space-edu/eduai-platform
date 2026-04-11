@@ -35,10 +35,10 @@ const severityLabel = {
 export default function DiagnosisReport({ diagnosis, loading }: Props) {
   if (loading) {
     return (
-      <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 mt-6">
+      <div className="bg-card-theme border border-soft rounded-2xl p-6 mt-6">
         <div className="flex items-center gap-3">
           <div className="w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
-          <span className="text-gray-400 text-sm">ADL analizando tu desempeño...</span>
+          <span className="text-sub text-sm">ADL analizando tu desempeño...</span>
         </div>
       </div>
     )
@@ -53,7 +53,7 @@ export default function DiagnosisReport({ diagnosis, loading }: Props) {
           <span className="text-2xl">🎉</span>
           <div>
             <p className="text-green-400 font-semibold">Sin lagunas detectadas</p>
-            <p className="text-gray-400 text-sm">{diagnosis.message}</p>
+            <p className="text-sub text-sm">{diagnosis.message}</p>
           </div>
         </div>
       </div>
@@ -61,7 +61,7 @@ export default function DiagnosisReport({ diagnosis, loading }: Props) {
   }
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 mt-6 space-y-5">
+    <div className="bg-card-theme border border-soft rounded-2xl p-6 mt-6 space-y-5">
 
       {/* Header */}
       <div className="flex items-center gap-2">
@@ -73,12 +73,12 @@ export default function DiagnosisReport({ diagnosis, loading }: Props) {
 
       {/* Resumen */}
       {diagnosis.summary && (
-        <p className="text-gray-300 text-sm">{diagnosis.summary}</p>
+        <p className="text-sub text-sm">{diagnosis.summary}</p>
       )}
 
       {/* Lagunas */}
       <div>
-        <p className="text-xs text-gray-500 mb-3 uppercase tracking-wider">Conceptos a reforzar</p>
+        <p className="text-xs text-muted2 mb-3 uppercase tracking-wider">Conceptos a reforzar</p>
         <div className="space-y-2">
           {diagnosis.gaps.map((gap, i) => (
             <div key={i} className={`border rounded-xl p-4 ${severityColor[gap.severity]}`}>
@@ -91,7 +91,7 @@ export default function DiagnosisReport({ diagnosis, loading }: Props) {
                       {severityLabel[gap.severity]}
                     </span>
                   </div>
-                  <p className="text-gray-400 text-xs">{gap.explanation}</p>
+                  <p className="text-sub text-xs">{gap.explanation}</p>
                 </div>
               </div>
             </div>
@@ -102,10 +102,10 @@ export default function DiagnosisReport({ diagnosis, loading }: Props) {
       {/* Recomendaciones */}
       {diagnosis.recommendations.length > 0 && (
         <div>
-          <p className="text-xs text-gray-500 mb-3 uppercase tracking-wider">Recomendaciones</p>
+          <p className="text-xs text-muted2 mb-3 uppercase tracking-wider">Recomendaciones</p>
           <ul className="space-y-2">
             {diagnosis.recommendations.map((rec, i) => (
-              <li key={i} className="flex items-start gap-2 text-sm text-gray-300">
+              <li key={i} className="flex items-start gap-2 text-sm text-sub">
                 <span className="text-blue-400 mt-0.5">→</span>
                 <span>{rec}</span>
               </li>

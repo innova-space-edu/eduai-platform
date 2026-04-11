@@ -96,8 +96,8 @@ export default function ExamenesDocentePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="w-10 h-10 rounded-full border-2 border-white/10 border-t-blue-400 animate-spin" />
+      <div className="min-h-screen bg-app flex items-center justify-center">
+        <div className="w-10 h-10 rounded-full border-2 border-soft border-t-blue-400 animate-spin" />
       </div>
     )
   }
@@ -106,13 +106,13 @@ export default function ExamenesDocentePage() {
   function ExamCard({ exam, inTrash }: { exam: any; inTrash?: boolean }) {
     return (
       <div className="rounded-2xl border p-4 transition-all"
-           style={{ background: inTrash ? "rgba(239,68,68,0.04)" : "rgba(255,255,255,0.02)", borderColor: inTrash ? "rgba(239,68,68,0.15)" : "rgba(255,255,255,0.07)" }}>
+           style={{ background: inTrash ? "rgba(239,68,68,0.04)" : "var(--bg-card-soft)", borderColor: inTrash ? "rgba(239,68,68,0.15)" : "var(--bg-card-soft)" }}>
 
         {/* Título + badge */}
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap mb-0.5">
-              <h3 className="text-white font-semibold text-sm truncate">{exam.title}</h3>
+              <h3 className="text-main font-semibold text-sm truncate">{exam.title}</h3>
               {!inTrash && (
                 <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold flex-shrink-0"
                       style={{
@@ -130,23 +130,23 @@ export default function ExamenesDocentePage() {
                 </span>
               )}
             </div>
-            <p className="text-gray-500 text-xs truncate">{exam.topic}</p>
+            <p className="text-muted2 text-xs truncate">{exam.topic}</p>
           </div>
           <div className="text-center flex-shrink-0">
             <p className="text-blue-400 font-bold text-xl leading-none">{exam.submissionCount}</p>
-            <p className="text-gray-600 text-[10px] mt-0.5">respuestas</p>
+            <p className="text-muted2 text-[10px] mt-0.5">respuestas</p>
           </div>
         </div>
 
         {/* Info */}
         <div className="flex items-center gap-3 flex-wrap mb-3">
-          <span className="text-gray-600 text-xs flex items-center gap-1">
+          <span className="text-muted2 text-xs flex items-center gap-1">
             <ClipboardList size={10} /> {exam.settings?.questionCount || "?"} preguntas
           </span>
-          <span className="text-gray-600 text-xs flex items-center gap-1">
+          <span className="text-muted2 text-xs flex items-center gap-1">
             <Clock size={10} /> {exam.settings?.timeLimit || "?"} min
           </span>
-          <span className="text-gray-700 text-xs">
+          <span className="text-muted2 text-xs">
             {new Date(exam.created_at).toLocaleDateString("es-CL")}
           </span>
           {inTrash && exam.deleted_at && (
@@ -155,7 +155,7 @@ export default function ExamenesDocentePage() {
             </span>
           )}
           {!inTrash && (
-            <span className="text-gray-700 font-mono text-xs ml-auto">{exam.code}</span>
+            <span className="text-muted2 font-mono text-xs ml-auto">{exam.code}</span>
           )}
         </div>
 
@@ -217,23 +217,23 @@ export default function ExamenesDocentePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950">
+    <div className="min-h-screen bg-app">
 
       {/* Header */}
-      <header className="sticky top-0 z-20 border-b border-white/[0.06] bg-gray-950/90 backdrop-blur-xl">
+      <header className="sticky top-0 z-20 border-b border-soft bg-app backdrop-blur-xl">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <Link href="/dashboard"
-              className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/[0.04] border border-white/[0.06] text-gray-400 hover:text-white transition-all">
+              className="w-8 h-8 flex items-center justify-center rounded-xl bg-card-soft-theme text-sub hover:text-main transition-all">
               <ArrowLeft size={15} />
             </Link>
             <div className="w-9 h-9 rounded-2xl flex items-center justify-center shadow-md"
                  style={{ background: "linear-gradient(135deg, #dc2626, #ef4444)", boxShadow: "0 4px 12px rgba(220,38,38,0.3)" }}>
-              <ClipboardList size={17} className="text-white" />
+              <ClipboardList size={17} className="text-main" />
             </div>
             <div>
-              <h1 className="text-white font-bold text-sm">Exámenes para Docentes</h1>
-              <p className="text-gray-600 text-[11px]">Crea exámenes y comparte el link con tus estudiantes</p>
+              <h1 className="text-main font-bold text-sm">Exámenes para Docentes</h1>
+              <p className="text-muted2 text-[11px]">Crea exámenes y comparte el link con tus estudiantes</p>
             </div>
           </div>
 
@@ -242,8 +242,8 @@ export default function ExamenesDocentePage() {
             <button onClick={toggleTrash}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium transition-all"
               style={{
-                background:  showTrash ? "rgba(239,68,68,0.12)" : "rgba(255,255,255,0.04)",
-                borderColor: showTrash ? "rgba(239,68,68,0.3)"  : "rgba(255,255,255,0.08)",
+                background:  showTrash ? "rgba(239,68,68,0.12)" : "var(--bg-input)",
+                borderColor: showTrash ? "rgba(239,68,68,0.3)"  : "var(--border-soft)",
                 color:       showTrash ? "#f87171"               : "#9ca3af",
               }}
               title="Ver papelera">
@@ -269,20 +269,20 @@ export default function ExamenesDocentePage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setConfirmDelete(null)} />
             <div className="relative w-full max-w-sm rounded-2xl p-6 shadow-2xl"
-                 style={{ background: "#0f172a", border: "1px solid rgba(239,68,68,0.3)" }}>
+                 style={{ background: "var(--bg-card)", border: "1px solid rgba(239,68,68,0.3)" }}>
               <div className="text-3xl mb-3 text-center">🗑️</div>
-              <h3 className="text-white font-bold text-center mb-1">¿Mover a la papelera?</h3>
-              <p className="text-gray-400 text-sm text-center mb-5">
+              <h3 className="text-main font-bold text-center mb-1">¿Mover a la papelera?</h3>
+              <p className="text-sub text-sm text-center mb-5">
                 El examen se guardará en la papelera. Podrás restaurarlo cuando quieras.
               </p>
               <div className="flex gap-3">
                 <button onClick={() => setConfirmDelete(null)}
-                  className="flex-1 py-2.5 rounded-xl border text-sm font-medium text-gray-400"
-                  style={{ borderColor: "rgba(255,255,255,0.08)" }}>
+                  className="flex-1 py-2.5 rounded-xl border text-sm font-medium text-sub"
+                  style={{ borderColor: "var(--border-soft)" }}>
                   Cancelar
                 </button>
                 <button onClick={() => deleteExam(confirmDelete)}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white"
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-main"
                   style={{ background: "#dc2626" }}>
                   Mover a papelera
                 </button>
@@ -296,20 +296,20 @@ export default function ExamenesDocentePage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setConfirmPerm(null)} />
             <div className="relative w-full max-w-sm rounded-2xl p-6 shadow-2xl"
-                 style={{ background: "#0f172a", border: "1px solid rgba(239,68,68,0.4)" }}>
+                 style={{ background: "var(--bg-card)", border: "1px solid rgba(239,68,68,0.4)" }}>
               <div className="text-3xl mb-3 text-center">⚠️</div>
-              <h3 className="text-white font-bold text-center mb-1">¿Eliminar definitivamente?</h3>
-              <p className="text-gray-400 text-sm text-center mb-5">
+              <h3 className="text-main font-bold text-center mb-1">¿Eliminar definitivamente?</h3>
+              <p className="text-sub text-sm text-center mb-5">
                 Se eliminarán el examen y todas las respuestas de estudiantes. <strong className="text-red-400">Esta acción no se puede deshacer.</strong>
               </p>
               <div className="flex gap-3">
                 <button onClick={() => setConfirmPerm(null)}
-                  className="flex-1 py-2.5 rounded-xl border text-sm font-medium text-gray-400"
-                  style={{ borderColor: "rgba(255,255,255,0.08)" }}>
+                  className="flex-1 py-2.5 rounded-xl border text-sm font-medium text-sub"
+                  style={{ borderColor: "var(--border-soft)" }}>
                   Cancelar
                 </button>
                 <button onClick={() => permanentDelete(confirmPerm)}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white"
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-main"
                   style={{ background: "#7f1d1d" }}>
                   Sí, eliminar para siempre
                 </button>
@@ -322,10 +322,10 @@ export default function ExamenesDocentePage() {
         {!showTrash && (
           exams.length === 0 ? (
             <div className="flex flex-col items-center py-16 rounded-2xl border text-center"
-                 style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.07)" }}>
+                 style={{ background: "var(--bg-card-soft)", borderColor: "var(--bg-card-soft)" }}>
               <div className="text-4xl mb-3">📝</div>
-              <h3 className="text-white font-bold mb-2">Sin exámenes aún</h3>
-              <p className="text-gray-500 text-sm mb-5">Crea tu primer examen con IA y comparte el link</p>
+              <h3 className="text-main font-bold mb-2">Sin exámenes aún</h3>
+              <p className="text-muted2 text-sm mb-5">Crea tu primer examen con IA y comparte el link</p>
               <Link href="/examen/crear"
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white"
                 style={{ background: "linear-gradient(135deg, #dc2626, #ef4444)" }}>
@@ -344,22 +344,22 @@ export default function ExamenesDocentePage() {
           <div>
             <div className="flex items-center gap-2 mb-4">
               <Archive size={16} className="text-red-400" />
-              <h2 className="text-white font-semibold text-sm">Papelera de exámenes</h2>
-              <span className="text-gray-600 text-xs ml-auto">
+              <h2 className="text-main font-semibold text-sm">Papelera de exámenes</h2>
+              <span className="text-muted2 text-xs ml-auto">
                 Los exámenes aquí pueden restaurarse o eliminarse permanentemente
               </span>
             </div>
 
             {loadingTrash ? (
               <div className="flex justify-center py-12">
-                <div className="w-8 h-8 rounded-full border-2 border-white/10 border-t-red-400 animate-spin" />
+                <div className="w-8 h-8 rounded-full border-2 border-soft border-t-red-400 animate-spin" />
               </div>
             ) : deletedExams.length === 0 ? (
               <div className="flex flex-col items-center py-16 rounded-2xl border text-center"
                    style={{ background: "rgba(239,68,68,0.03)", borderColor: "rgba(239,68,68,0.12)" }}>
-                <Archive size={32} className="text-gray-700 mb-3" />
-                <h3 className="text-gray-400 font-medium mb-1">Papelera vacía</h3>
-                <p className="text-gray-600 text-sm">Los exámenes eliminados aparecerán aquí</p>
+                <Archive size={32} className="text-muted2 mb-3" />
+                <h3 className="text-sub font-medium mb-1">Papelera vacía</h3>
+                <p className="text-muted2 text-sm">Los exámenes eliminados aparecerán aquí</p>
               </div>
             ) : (
               <div className="flex flex-col gap-3">

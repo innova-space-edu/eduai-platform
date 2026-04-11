@@ -109,31 +109,31 @@ export default function AdminUserPage() {
   }
 
   if (loading) return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-      <div className="w-10 h-10 rounded-full border-2 border-white/10 border-t-purple-400 animate-spin" />
+    <div className="min-h-screen bg-app flex items-center justify-center">
+      <div className="w-10 h-10 rounded-full border-2 border-soft border-t-purple-400 animate-spin" />
     </div>
   )
 
   const accentColor = levelColors[level] || "#94a3b8"
 
   return (
-    <div className="min-h-screen bg-gray-950">
+    <div className="min-h-screen bg-app">
 
       {/* Header */}
-      <header className="sticky top-0 z-20 border-b border-white/[0.06] bg-gray-950/90 backdrop-blur-xl">
+      <header className="sticky top-0 z-20 border-b border-soft bg-header-theme backdrop-blur-xl">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <Link href="/admin"
-              className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/[0.04] border border-white/[0.06] text-gray-400 hover:text-white transition-all">
+              className="w-8 h-8 flex items-center justify-center rounded-xl bg-card-soft-theme text-sub hover:text-main transition-all">
               <ArrowLeft size={15} />
             </Link>
             <div>
-              <h1 className="text-white font-bold text-sm">{profile?.name || "Usuario"}</h1>
-              <p className="text-gray-600 text-[11px]">{profile?.email}</p>
+              <h1 className="text-main font-bold text-sm">{profile?.name || "Usuario"}</h1>
+              <p className="text-muted2 text-[11px]">{profile?.email}</p>
             </div>
           </div>
           <button onClick={saveProfile} disabled={saving}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-50"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-main transition-all disabled:opacity-50"
             style={{ background: saved ? "#16a34a" : "#7c3aed", boxShadow: "0 2px 10px rgba(124,58,237,0.3)" }}>
             {saving ? <><Loader2 size={13} className="animate-spin" />Guardando...</>
               : saved ? <><Check size={13} />Guardado</> : <><Save size={13} />Guardar</>}
@@ -153,44 +153,44 @@ export default function AdminUserPage() {
         {/* Confirmar acciones destructivas */}
         {confirm && (
           <div className="flex items-center justify-between p-4 rounded-2xl border border-red-500/25" style={{ background: "rgba(239,68,68,0.08)" }}>
-            <p className="text-red-300 text-sm">
+            <p className="text-red-700 text-sm">
               {confirm === "reset_xp" ? "¿Resetear XP, nivel y racha a cero?" : "¿Eliminar todas las sesiones de este usuario?"}
             </p>
             <div className="flex gap-2">
-              <button onClick={() => setConfirm(null)} className="px-3 py-1.5 rounded-xl text-xs text-gray-400 border border-white/[0.08]">Cancelar</button>
-              <button onClick={() => confirmAction(confirm)} className="px-3 py-1.5 rounded-xl text-xs text-white bg-red-600 font-semibold">Confirmar</button>
+              <button onClick={() => setConfirm(null)} className="px-3 py-1.5 rounded-xl text-xs text-sub border border-medium">Cancelar</button>
+              <button onClick={() => confirmAction(confirm)} className="px-3 py-1.5 rounded-xl text-xs text-main bg-red-600 font-semibold">Confirmar</button>
             </div>
           </div>
         )}
 
         {/* Editar datos del perfil */}
-        <div className="rounded-2xl border p-5 space-y-4" style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.07)" }}>
-          <h2 className="text-white font-semibold text-sm">Datos del perfil</h2>
+        <div className="rounded-2xl border p-5 space-y-4" style={{ background: "var(--bg-card-soft)", borderColor: "var(--bg-card-soft)" }}>
+          <h2 className="text-main font-semibold text-sm">Datos del perfil</h2>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
-              <label className="text-gray-500 text-[10px] font-semibold uppercase tracking-widest block mb-1.5">Nombre</label>
+              <label className="text-muted2 text-[10px] font-semibold uppercase tracking-widest block mb-1.5">Nombre</label>
               <input value={name} onChange={e => setName(e.target.value)}
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-purple-500/40 transition-all" />
+                className="w-full bg-card-soft-theme border border-soft rounded-xl px-3 py-2.5 text-sm text-main focus:outline-none focus:border-purple-500/40 transition-all" />
             </div>
 
             <div>
-              <label className="text-gray-500 text-[10px] font-semibold uppercase tracking-widest block mb-1.5 flex items-center gap-1">
+              <label className="text-muted2 text-[10px] font-semibold uppercase tracking-widest block mb-1.5 flex items-center gap-1">
                 <Zap size={10} className="text-amber-400" /> XP Total
               </label>
               <input type="number" min={0} value={xp} onChange={e => setXp(Number(e.target.value))}
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-amber-400 font-bold focus:outline-none focus:border-amber-500/40 transition-all" />
+                className="w-full bg-card-soft-theme border border-soft rounded-xl px-3 py-2.5 text-sm text-amber-400 font-bold focus:outline-none focus:border-amber-500/40 transition-all" />
             </div>
 
             <div>
-              <label className="text-gray-500 text-[10px] font-semibold uppercase tracking-widest block mb-1.5 flex items-center gap-1">
+              <label className="text-muted2 text-[10px] font-semibold uppercase tracking-widest block mb-1.5 flex items-center gap-1">
                 <Trophy size={10} style={{ color: accentColor }} /> Nivel
               </label>
               <select value={level} onChange={e => setLevel(Number(e.target.value))}
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm focus:outline-none transition-all"
+                className="w-full bg-card-soft-theme border border-soft rounded-xl px-3 py-2.5 text-sm focus:outline-none transition-all"
                 style={{ color: accentColor }}>
                 {[1,2,3,4,5,6].map(l => (
-                  <option key={l} value={l} className="bg-gray-900 text-white">
+                  <option key={l} value={l} className="bg-card-theme text-main">
                     {l} — {levelNames[l]}
                   </option>
                 ))}
@@ -198,23 +198,23 @@ export default function AdminUserPage() {
             </div>
 
             <div>
-              <label className="text-gray-500 text-[10px] font-semibold uppercase tracking-widest block mb-1.5 flex items-center gap-1">
+              <label className="text-muted2 text-[10px] font-semibold uppercase tracking-widest block mb-1.5 flex items-center gap-1">
                 <Flame size={10} className="text-orange-400" /> Racha (días)
               </label>
               <input type="number" min={0} value={streakDays} onChange={e => setStreakDays(Number(e.target.value))}
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-orange-400 font-bold focus:outline-none focus:border-orange-500/40 transition-all" />
+                className="w-full bg-card-soft-theme border border-soft rounded-xl px-3 py-2.5 text-sm text-orange-400 font-bold focus:outline-none focus:border-orange-500/40 transition-all" />
             </div>
 
-            <div className="col-span-2 flex items-center gap-2 text-gray-500 text-xs pt-1">
+            <div className="col-span-2 flex items-center gap-2 text-muted2 text-xs pt-1">
               <span>Código de usuario:</span>
-              <span className="font-mono text-gray-300">{profile?.user_code || "—"}</span>
+              <span className="font-mono text-sub">{profile?.user_code || "—"}</span>
             </div>
           </div>
         </div>
 
         {/* Acciones destructivas */}
         <div className="rounded-2xl border p-5 space-y-3 border-red-500/15" style={{ background: "rgba(239,68,68,0.04)" }}>
-          <h2 className="text-red-300 font-semibold text-sm flex items-center gap-2">
+          <h2 className="text-red-700 font-semibold text-sm flex items-center gap-2">
             <AlertTriangle size={14} /> Acciones de mantenimiento
           </h2>
           <div className="flex gap-3 flex-wrap">
@@ -232,21 +232,21 @@ export default function AdminUserPage() {
         </div>
 
         {/* Sesiones recientes */}
-        <div className="rounded-2xl border p-5" style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.07)" }}>
-          <h2 className="text-white font-semibold text-sm mb-3 flex items-center gap-2">
+        <div className="rounded-2xl border p-5" style={{ background: "var(--bg-card-soft)", borderColor: "var(--bg-card-soft)" }}>
+          <h2 className="text-main font-semibold text-sm mb-3 flex items-center gap-2">
             <BookOpen size={14} className="text-blue-400" /> Últimas sesiones ({sessions.length})
           </h2>
           {sessions.length === 0 ? (
-            <p className="text-gray-600 text-sm">Sin sesiones de estudio</p>
+            <p className="text-muted2 text-sm">Sin sesiones de estudio</p>
           ) : (
             <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
               {sessions.map(s => (
                 <div key={s.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl border"
-                     style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.06)" }}>
+                     style={{ background: "var(--bg-card-soft)", borderColor: "var(--bg-card-soft)" }}>
                   <span className="text-xs">{s.status === "completed" ? "✅" : "📁"}</span>
-                  <span className="text-gray-200 text-xs flex-1 truncate">{s.topic}</span>
+                  <span className="text-main text-xs flex-1 truncate">{s.topic}</span>
                   {s.score != null && <span className="text-amber-400 text-xs font-bold">{s.score}%</span>}
-                  <span className="text-gray-600 text-[10px]">
+                  <span className="text-muted2 text-[10px]">
                     {new Date(s.created_at).toLocaleDateString("es-CL")}
                   </span>
                 </div>
@@ -257,14 +257,14 @@ export default function AdminUserPage() {
 
         {/* Reportes del usuario */}
         {reports.length > 0 && (
-          <div className="rounded-2xl border p-5" style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.07)" }}>
-            <h2 className="text-white font-semibold text-sm mb-3">🎫 Reportes enviados por este usuario</h2>
+          <div className="rounded-2xl border p-5" style={{ background: "var(--bg-card-soft)", borderColor: "var(--bg-card-soft)" }}>
+            <h2 className="text-main font-semibold text-sm mb-3">🎫 Reportes enviados por este usuario</h2>
             <div className="space-y-3">
               {reports.map(r => (
                 <div key={r.id} className="rounded-xl border p-3 space-y-2"
-                     style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.06)" }}>
+                     style={{ background: "var(--bg-card-soft)", borderColor: "var(--bg-card-soft)" }}>
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-white text-xs font-semibold">{r.subject}</p>
+                    <p className="text-main text-xs font-semibold">{r.subject}</p>
                     <span className="text-[10px] font-medium px-2 py-0.5 rounded-full"
                           style={{ background: "rgba(124,58,237,0.15)", color: "#c4b5fd" }}>
                       {r.status}
@@ -279,20 +279,20 @@ export default function AdminUserPage() {
                         onChange={e => setAdminReply(prev => ({ ...prev, [r.id]: e.target.value }))}
                         placeholder="Escribe tu respuesta al usuario..."
                         rows={2}
-                        className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-gray-300 placeholder-gray-600 focus:outline-none focus:border-purple-500/30 resize-none transition-all"
+                        className="w-full bg-card-soft-theme border border-soft rounded-xl px-3 py-2 text-xs text-sub placeholder-gray-400 focus:outline-none focus:border-purple-500/30 resize-none transition-all"
                       />
                       <div className="flex gap-2">
                         <select
                           value={replyStatus[r.id] || "resuelto"}
                           onChange={e => setReplyStatus(prev => ({ ...prev, [r.id]: e.target.value }))}
-                          className="bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-1.5 text-xs focus:outline-none flex-1">
+                          className="bg-card-soft-theme border border-soft rounded-xl px-3 py-1.5 text-xs focus:outline-none flex-1">
                           <option value="resuelto">Marcar resuelto</option>
                           <option value="en_revision">Marcar en revisión</option>
                           <option value="cerrado">Cerrar sin responder</option>
                         </select>
                         <button onClick={() => sendReply(r.id)}
                           disabled={!adminReply[r.id]?.trim()}
-                          className="px-4 py-1.5 rounded-xl text-xs font-semibold text-white disabled:opacity-40 transition-all"
+                          className="px-4 py-1.5 rounded-xl text-xs font-semibold text-main disabled:opacity-40 transition-all"
                           style={{ background: "#7c3aed" }}>
                           Enviar respuesta
                         </button>

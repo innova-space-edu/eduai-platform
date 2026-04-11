@@ -586,13 +586,13 @@ export default function EducadorPage() {
 
 
   return (
-    <div className="min-h-screen bg-gray-950 flex flex-col">
-      <div className="border-b border-gray-800 bg-gray-900/80 backdrop-blur-sm sticky top-0 z-10">
+    <div className="min-h-screen bg-app flex flex-col">
+      <div className="border-b border-soft bg-header-theme backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <button
               onClick={() => router.push("/agentes")}
-              className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition-all text-sm"
+              className="w-8 h-8 flex items-center justify-center rounded-lg bg-card-soft-theme hover:bg-card-soft-theme text-sub hover:text-main transition-all text-sm"
             >
               ←
             </button>
@@ -600,10 +600,10 @@ export default function EducadorPage() {
               🏫
             </div>
             <div>
-              <h1 className="text-white font-semibold text-sm">
+              <h1 className="text-main font-semibold text-sm">
                 APl — Agente Planificador
               </h1>
-              <p className="text-gray-500 text-xs">
+              <p className="text-muted2 text-xs">
                 MINEDUC · OA reales · parvularia completa · {currentMes}
               </p>
             </div>
@@ -612,21 +612,21 @@ export default function EducadorPage() {
           <div className="flex flex-wrap items-center justify-end gap-2">
             <Link
               href="/educador/planificaciones"
-              className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-3 py-1.5 text-xs text-cyan-200 transition-all hover:bg-cyan-500/20"
+              className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-3 py-1.5 text-xs text-cyan-700 transition-all hover:bg-cyan-500/20"
             >
               🗂️ Ver guardadas
             </Link>
             <button
               onClick={handleSavePlanning}
               disabled={!latestAssistantMessage || savingPlanning}
-              className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-200 transition-all hover:bg-emerald-500/20 disabled:opacity-40"
+              className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-700 transition-all hover:bg-emerald-500/20 disabled:opacity-40"
             >
               {savingPlanning ? "Guardando..." : "💾 Guardar"}
             </button>
             <button
               onClick={handleExportPlanning}
               disabled={!latestAssistantMessage || exportingPlanning}
-              className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-200 transition-all hover:bg-amber-500/20 disabled:opacity-40"
+              className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-700 transition-all hover:bg-amber-500/20 disabled:opacity-40"
             >
               {exportingPlanning ? "Exportando..." : "📄 Exportar PDF"}
             </button>
@@ -635,7 +635,7 @@ export default function EducadorPage() {
               className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${
                 configOpen
                   ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
-                  : "bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600"
+                  : "bg-card-soft-theme border-medium text-sub hover:border-medium"
               }`}
             >
               ⚙️ {config.curso} · {config.asignatura}
@@ -646,19 +646,19 @@ export default function EducadorPage() {
 
       <div className="max-w-7xl mx-auto w-full flex-1 flex flex-col px-4 py-4 gap-4">
         {saveStatus && (
-          <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-3 text-sm text-cyan-100">
+          <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-3 text-sm text-cyan-700">
             {saveStatus}
           </div>
         )}
         {configOpen && (
           <div className="grid xl:grid-cols-[1.2fr_0.8fr] gap-4">
-            <div className="bg-gray-900 border border-gray-800 rounded-3xl p-5">
-              <h2 className="text-white font-medium text-sm mb-4">
+            <div className="bg-card-theme border border-soft rounded-2xl p-5">
+              <h2 className="text-main font-medium text-sm mb-4">
                 📐 Configurar contexto pedagógico
               </h2>
 
               <div className="mb-4">
-                <label className="text-gray-500 text-xs mb-2 block">
+                <label className="text-muted2 text-xs mb-2 block">
                   Nivel educativo
                 </label>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
@@ -684,12 +684,12 @@ export default function EducadorPage() {
                       }
                       className={`p-3 rounded-2xl border text-left transition-all ${
                         config.nivel === n.id
-                          ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-300"
-                          : "bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600"
+                          ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-700"
+                          : "bg-card-soft-theme border-medium text-sub hover:border-medium"
                       }`}
                     >
                       <div className="text-sm font-medium">{n.label}</div>
-                      <div className="text-xs text-gray-500 mt-0.5">{n.sub}</div>
+                      <div className="text-xs text-muted2 mt-0.5">{n.sub}</div>
                     </button>
                   ))}
                 </div>
@@ -697,7 +697,7 @@ export default function EducadorPage() {
 
               <div className="grid md:grid-cols-2 gap-3 mb-4">
                 <div>
-                  <label className="text-gray-500 text-xs mb-1.5 block">Curso / subnivel</label>
+                  <label className="text-muted2 text-xs mb-1.5 block">Curso / subnivel</label>
                   <select
                     value={config.curso}
                     onChange={(e) =>
@@ -709,7 +709,7 @@ export default function EducadorPage() {
                         unidadId: "",
                       }))
                     }
-                    className="w-full bg-gray-800 border border-gray-700 rounded-2xl px-3 py-2.5 text-gray-300 text-sm focus:outline-none focus:border-emerald-500/50"
+                    className="w-full bg-card-soft-theme border border-soft rounded-2xl px-3 py-2.5 text-sub text-sm focus:outline-none focus:border-emerald-500/50"
                   >
                     {CURSOS[config.nivel].map((curso) => (
                       <option key={curso}>{curso}</option>
@@ -718,7 +718,7 @@ export default function EducadorPage() {
                 </div>
 
                 <div>
-                  <label className="text-gray-500 text-xs mb-1.5 block">
+                  <label className="text-muted2 text-xs mb-1.5 block">
                     {config.nivel === "parvularia" ? "Núcleo de aprendizaje" : "Asignatura"}
                   </label>
                   <select
@@ -732,7 +732,7 @@ export default function EducadorPage() {
                         unidadId: "",
                       }))
                     }
-                    className="w-full bg-gray-800 border border-gray-700 rounded-2xl px-3 py-2.5 text-gray-300 text-sm focus:outline-none focus:border-emerald-500/50"
+                    className="w-full bg-card-soft-theme border border-soft rounded-2xl px-3 py-2.5 text-sub text-sm focus:outline-none focus:border-emerald-500/50"
                   >
                     {availableAsignaturas.map((asignatura) => (
                       <option key={asignatura.name} value={asignatura.name}>
@@ -743,16 +743,16 @@ export default function EducadorPage() {
                 </div>
               </div>
 
-              <div className="mb-4 rounded-2xl border border-gray-800 bg-gray-800/40 p-4">
-                <p className="text-[11px] uppercase tracking-wide text-gray-500 mb-2">
+              <div className="mb-4 rounded-2xl border border-soft bg-card-soft-theme p-4">
+                <p className="text-[11px] uppercase tracking-wide text-muted2 mb-2">
                   Estado curricular de la selección
                 </p>
                 <div className="flex flex-wrap items-center gap-2 text-sm">
                   <span
                     className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border ${
                       currentAsignaturaHasLocal
-                        ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
-                        : "border-amber-500/30 bg-amber-500/10 text-amber-300"
+                        ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700"
+                        : "border-amber-500/30 bg-amber-500/10 text-amber-700"
                     }`}
                   >
                     <span>{currentAsignaturaHasLocal ? "✅" : "🟡"}</span>
@@ -761,7 +761,7 @@ export default function EducadorPage() {
                       : "Solo catálogo/meta por ahora"}
                   </span>
                   {config.nivel === "parvularia" && (
-                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-teal-500/30 bg-teal-500/10 text-teal-300">
+                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-teal-500/30 bg-teal-500/10 text-teal-700">
                       👶 {config.curso}
                     </span>
                   )}
@@ -770,13 +770,13 @@ export default function EducadorPage() {
 
               {config.nivel === "parvularia" && (
                 <div className="mb-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4">
-                  <p className="text-[11px] uppercase tracking-wide text-emerald-300 mb-1">
+                  <p className="text-[11px] uppercase tracking-wide text-emerald-700 mb-1">
                     Ámbito y núcleo
                   </p>
-                  <p className="text-white text-sm font-medium">
+                  <p className="text-main text-sm font-medium">
                     {ambito || "Ámbito no detectado todavía"}
                   </p>
-                  <p className="text-gray-400 text-xs mt-1">
+                  <p className="text-sub text-xs mt-1">
                     Núcleo activo: {config.asignatura}
                   </p>
                 </div>
@@ -784,7 +784,7 @@ export default function EducadorPage() {
 
               <div className="grid md:grid-cols-3 gap-3 mb-4">
                 <div>
-                  <label className="text-gray-500 text-xs mb-1.5 block">Horizonte</label>
+                  <label className="text-muted2 text-xs mb-1.5 block">Horizonte</label>
                   <select
                     value={config.tiempoPlanificacion}
                     onChange={(e) =>
@@ -793,7 +793,7 @@ export default function EducadorPage() {
                         tiempoPlanificacion: e.target.value as TiempoPlanificacion,
                       }))
                     }
-                    className="w-full bg-gray-800 border border-gray-700 rounded-2xl px-3 py-2.5 text-gray-300 text-sm focus:outline-none focus:border-emerald-500/50"
+                    className="w-full bg-card-soft-theme border border-soft rounded-2xl px-3 py-2.5 text-sub text-sm focus:outline-none focus:border-emerald-500/50"
                   >
                     <option value="diaria">Diaria</option>
                     <option value="semanal">Semanal</option>
@@ -802,7 +802,7 @@ export default function EducadorPage() {
                 </div>
 
                 <div>
-                  <label className="text-gray-500 text-xs mb-1.5 block">Sesiones</label>
+                  <label className="text-muted2 text-xs mb-1.5 block">Sesiones</label>
                   <input
                     type="number"
                     min={1}
@@ -814,12 +814,12 @@ export default function EducadorPage() {
                         sesiones: Number(e.target.value || 1),
                       }))
                     }
-                    className="w-full bg-gray-800 border border-gray-700 rounded-2xl px-3 py-2.5 text-gray-300 text-sm focus:outline-none focus:border-emerald-500/50"
+                    className="w-full bg-card-soft-theme border border-soft rounded-2xl px-3 py-2.5 text-sub text-sm focus:outline-none focus:border-emerald-500/50"
                   />
                 </div>
 
                 <div>
-                  <label className="text-gray-500 text-xs mb-1.5 block">
+                  <label className="text-muted2 text-xs mb-1.5 block">
                     Minutos por sesión
                   </label>
                   <input
@@ -834,14 +834,14 @@ export default function EducadorPage() {
                         duracionMinutos: Number(e.target.value || 45),
                       }))
                     }
-                    className="w-full bg-gray-800 border border-gray-700 rounded-2xl px-3 py-2.5 text-gray-300 text-sm focus:outline-none focus:border-emerald-500/50"
+                    className="w-full bg-card-soft-theme border border-soft rounded-2xl px-3 py-2.5 text-sub text-sm focus:outline-none focus:border-emerald-500/50"
                   />
                 </div>
               </div>
 
               {!!units.length && (
                 <div className="mb-4">
-                  <label className="text-gray-500 text-xs mb-2 block">
+                  <label className="text-muted2 text-xs mb-2 block">
                     {config.asignatura === "Ciencias para la Ciudadanía"
                       ? "Módulo según base curricular"
                       : config.nivel === "parvularia"
@@ -862,12 +862,12 @@ export default function EducadorPage() {
                         }
                         className={`w-full text-left rounded-2xl border p-3 transition-all ${
                           config.unidadId === unit.id
-                            ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-200"
-                            : "bg-gray-800 border-gray-700 text-gray-300 hover:border-gray-600"
+                            ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-700"
+                            : "bg-card-soft-theme border-medium text-sub hover:border-medium"
                         }`}
                       >
                         <div className="text-sm font-medium">{unit.label}</div>
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="text-xs text-muted2 mt-1">
                           OA asociados: {unit.oaIds.join(", ")}
                         </div>
                       </button>
@@ -879,24 +879,24 @@ export default function EducadorPage() {
               <div className="mb-4">
                 <button
                   onClick={() => setOpenOA((prev) => !prev)}
-                  className="w-full flex items-center justify-between rounded-2xl border border-gray-700 bg-gray-800 hover:border-emerald-500/40 px-4 py-3 transition-all group"
+                  className="w-full flex items-center justify-between rounded-2xl border border-medium bg-card-soft-theme hover:border-emerald-500/40 px-4 py-3 transition-all group"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-emerald-300 text-sm font-medium">OA seleccionables</span>
+                    <span className="text-emerald-700 text-sm font-medium">OA seleccionables</span>
                     {config.selectedOAIds.length > 0 && (
-                      <span className="rounded-full bg-emerald-500/20 border border-emerald-500/30 px-2 py-0.5 text-[10px] text-emerald-300 font-medium">
+                      <span className="rounded-full bg-emerald-500/20 border border-emerald-500/30 px-2 py-0.5 text-[10px] text-emerald-700 font-medium">
                         {config.selectedOAIds.length} seleccionado{config.selectedOAIds.length > 1 ? "s" : ""}
                       </span>
                     )}
                   </div>
-                  <span className={`text-gray-500 text-sm transition-transform duration-200 ${openOA ? "rotate-180" : ""}`}>
+                  <span className={`text-muted2 text-sm transition-transform duration-200 ${openOA ? "rotate-180" : ""}`}>
                     ▾
                   </span>
                 </button>
 
                 {openOA && (
                   <div className="mt-2">
-                    <p className="text-[11px] text-emerald-300 px-1 mb-2">
+                    <p className="text-[11px] text-emerald-700 px-1 mb-2">
                       {config.nivel === "parvularia"
                         ? "Hasta 3 OA integrados de distintos núcleos o ámbitos"
                         : "Se pueden elegir varios OA"}
@@ -913,15 +913,15 @@ export default function EducadorPage() {
                               className={`text-left rounded-2xl border p-3 transition-all ${
                                 isSelected
                                   ? "bg-emerald-500/10 border-emerald-500/40"
-                                  : "bg-gray-800 border-gray-700 hover:border-gray-600"
+                                  : "bg-card-soft-theme border-medium hover:border-medium"
                               }`}
                             >
                               <div className="flex items-start justify-between gap-3">
                                 <div>
-                                  <div className="text-sm font-semibold text-white">
+                                  <div className="text-sm font-semibold text-main">
                                     {oa.codigoOficial || oa.id}
                                   </div>
-                                  <p className="text-xs text-gray-300 leading-relaxed mt-1 text-justify">
+                                  <p className="text-xs text-sub leading-relaxed mt-1 text-justify">
                                     {oa.texto}
                                   </p>
                                 </div>
@@ -929,8 +929,8 @@ export default function EducadorPage() {
                                 <div
                                   className={`w-5 h-5 rounded-full border flex items-center justify-center text-[10px] ${
                                     isSelected
-                                      ? "border-emerald-400 text-emerald-300"
-                                      : "border-gray-600 text-gray-500"
+                                      ? "border-emerald-400 text-emerald-700"
+                                      : "border-medium text-muted2"
                                   }`}
                                 >
                                   {isSelected ? "✓" : ""}
@@ -938,14 +938,14 @@ export default function EducadorPage() {
                               </div>
 
                               {!!oa.unidadNombre && (
-                                <p className="text-[11px] text-gray-500 mt-2">
+                                <p className="text-[11px] text-muted2 mt-2">
                                   Unidad/Módulo: {oa.unidadNombre}
                                 </p>
                               )}
 
                               {!!oa.ambito && !!oa.nucleo && (
                                 <div className="mt-2">
-                                  <span className="rounded-full border border-green-500/30 bg-green-500/15 px-3 py-1 text-[11px] font-medium text-green-300">
+                                  <span className="rounded-full border border-green-500/30 bg-green-500/15 px-3 py-1 text-[11px] font-medium text-green-700">
                                     {oa.ambito} · {oa.nucleo}
                                   </span>
                                 </div>
@@ -954,7 +954,7 @@ export default function EducadorPage() {
                           )
                         })
                       ) : (
-                        <div className="md:col-span-2 rounded-2xl border border-dashed border-gray-700 p-4 text-sm text-gray-500">
+                        <div className="md:col-span-2 rounded-2xl border border-dashed border-medium p-4 text-sm text-muted2">
                           No hay OA locales cargados para esta combinación todavía.
                         </div>
                       )}
@@ -967,24 +967,24 @@ export default function EducadorPage() {
                 <div className="mb-4">
                   <button
                     onClick={() => setOpenOAT((prev) => !prev)}
-                    className="w-full flex items-center justify-between rounded-2xl border border-gray-700 bg-gray-800 hover:border-teal-500/40 px-4 py-3 transition-all group"
+                    className="w-full flex items-center justify-between rounded-2xl border border-medium bg-card-soft-theme hover:border-teal-500/40 px-4 py-3 transition-all group"
                   >
                     <div className="flex items-center gap-2">
-                      <span className="text-teal-300 text-sm font-medium">OAT / foco transversal</span>
+                      <span className="text-teal-700 text-sm font-medium">OAT / foco transversal</span>
                       {config.selectedOATIds.length > 0 && (
-                        <span className="rounded-full bg-teal-500/20 border border-teal-500/30 px-2 py-0.5 text-[10px] text-teal-300 font-medium">
+                        <span className="rounded-full bg-teal-500/20 border border-teal-500/30 px-2 py-0.5 text-[10px] text-teal-700 font-medium">
                           {config.selectedOATIds.length} seleccionado{config.selectedOATIds.length > 1 ? "s" : ""}
                         </span>
                       )}
                     </div>
-                    <span className={`text-gray-500 text-sm transition-transform duration-200 ${openOAT ? "rotate-180" : ""}`}>
+                    <span className={`text-muted2 text-sm transition-transform duration-200 ${openOAT ? "rotate-180" : ""}`}>
                       ▾
                     </span>
                   </button>
 
                   {openOAT && (
                     <div className="mt-2 space-y-2">
-                      <p className="text-[11px] text-emerald-300 px-1">
+                      <p className="text-[11px] text-emerald-700 px-1">
                         Se pueden combinar con otros núcleos y ámbitos (máx. 2)
                       </p>
                       {parvulariaOAT.length ? (
@@ -998,15 +998,15 @@ export default function EducadorPage() {
                               className={`w-full text-left rounded-2xl border p-3 transition-all ${
                                 isSelected
                                   ? "bg-teal-500/10 border-teal-500/40"
-                                  : "bg-gray-800 border-gray-700 hover:border-gray-600"
+                                  : "bg-card-soft-theme border-medium hover:border-medium"
                               }`}
                             >
                               <div className="flex items-start justify-between gap-3">
                                 <div>
-                                  <div className="text-sm font-semibold text-white">
+                                  <div className="text-sm font-semibold text-main">
                                     {item.description || item.id}
                                   </div>
-                                  <p className="text-xs text-gray-300 leading-relaxed mt-1 text-justify">
+                                  <p className="text-xs text-sub leading-relaxed mt-1 text-justify">
                                     {item.label}
                                   </p>
                                 </div>
@@ -1014,8 +1014,8 @@ export default function EducadorPage() {
                                 <div
                                   className={`w-5 h-5 rounded-full border flex items-center justify-center text-[10px] ${
                                     isSelected
-                                      ? "border-teal-300 text-teal-300"
-                                      : "border-gray-600 text-gray-500"
+                                      ? "border-teal-300 text-teal-700"
+                                      : "border-medium text-muted2"
                                   }`}
                                 >
                                   {isSelected ? "✓" : ""}
@@ -1024,7 +1024,7 @@ export default function EducadorPage() {
 
                               {!!item.ambito && !!item.nucleo && (
                                 <div className="mt-2">
-                                  <span className="rounded-full border border-green-500/30 bg-green-500/15 px-3 py-1 text-[11px] font-medium text-green-300">
+                                  <span className="rounded-full border border-green-500/30 bg-green-500/15 px-3 py-1 text-[11px] font-medium text-green-700">
                                     {item.ambito} · {item.nucleo}
                                   </span>
                                 </div>
@@ -1033,7 +1033,7 @@ export default function EducadorPage() {
                           )
                         })
                       ) : (
-                        <div className="rounded-2xl border border-dashed border-gray-700 p-4 text-sm text-gray-500">
+                        <div className="rounded-2xl border border-dashed border-medium p-4 text-sm text-muted2">
                           No hay OAT cargados para este núcleo o subnivel todavía.
                         </div>
                       )}
@@ -1043,7 +1043,7 @@ export default function EducadorPage() {
               )}
 
               <div>
-                <label className="text-gray-500 text-xs mb-1.5 block">
+                <label className="text-muted2 text-xs mb-1.5 block">
                   Contexto adicional
                 </label>
                 <textarea
@@ -1055,41 +1055,41 @@ export default function EducadorPage() {
                     }))
                   }
                   placeholder="Ej: grupo pequeño, lactantes, nivel heterogéneo, rutinas de apego, juego heurístico, deambuladores, control de esfínter, transición al jardín, etc."
-                  className="w-full min-h-[96px] bg-gray-800 border border-gray-700 rounded-2xl px-3 py-2.5 text-gray-300 text-sm focus:outline-none focus:border-emerald-500/50 placeholder-gray-600"
+                  className="w-full min-h-[96px] bg-card-soft-theme border border-soft rounded-2xl px-3 py-2.5 text-sub text-sm focus:outline-none focus:border-emerald-500/50 placeholder-gray-400"
                 />
               </div>
             </div>
 
-            <div className="bg-gray-900 border border-gray-800 rounded-3xl p-5">
-              <h2 className="text-white font-medium text-sm mb-4">
+            <div className="bg-card-theme border border-soft rounded-2xl p-5">
+              <h2 className="text-main font-medium text-sm mb-4">
                 🧭 Resumen de planificación
               </h2>
 
               <div className="space-y-3 text-sm">
-                <div className="rounded-2xl bg-gray-800/80 border border-gray-700 p-4">
-                  <p className="text-gray-500 text-xs uppercase tracking-wide mb-1">
+                <div className="rounded-2xl bg-card-soft-theme border border-soft p-4">
+                  <p className="text-muted2 text-xs uppercase tracking-wide mb-1">
                     Contexto activo
                   </p>
-                  <p className="text-white leading-relaxed text-justify">
+                  <p className="text-main leading-relaxed text-justify">
                     {config.curso} · {config.asignatura} · {planningBadge}
                   </p>
 
                   {config.nivel === "parvularia" && (
-                    <p className="text-emerald-300 text-xs mt-2 text-justify">
+                    <p className="text-emerald-700 text-xs mt-2 text-justify">
                       Ámbito: {ambito || "No detectado"} · Núcleo: {config.asignatura}
                     </p>
                   )}
                 </div>
 
-                <div className="rounded-2xl bg-gray-800/80 border border-gray-700 p-4">
-                  <p className="text-gray-500 text-xs uppercase tracking-wide mb-2">
+                <div className="rounded-2xl bg-card-soft-theme border border-soft p-4">
+                  <p className="text-muted2 text-xs uppercase tracking-wide mb-2">
                     Cobertura curricular local
                   </p>
 
                   <div className="grid grid-cols-3 gap-2 text-center mb-3">
-                    <div className="rounded-xl bg-gray-900/70 border border-gray-700 p-3">
-                      <div className="text-white text-base font-semibold">{summary.units}</div>
-                      <div className="text-[11px] text-gray-500">
+                    <div className="rounded-xl bg-card-theme border border-medium p-3">
+                      <div className="text-main text-base font-semibold">{summary.units}</div>
+                      <div className="text-[11px] text-muted2">
                         {config.asignatura === "Ciencias para la Ciudadanía"
                           ? "Módulos"
                           : config.nivel === "parvularia"
@@ -1097,38 +1097,38 @@ export default function EducadorPage() {
                             : "Unidades"}
                       </div>
                     </div>
-                    <div className="rounded-xl bg-gray-900/70 border border-gray-700 p-3">
-                      <div className="text-white text-base font-semibold">{summary.oas}</div>
-                      <div className="text-[11px] text-gray-500">OA cargados</div>
+                    <div className="rounded-xl bg-card-theme border border-medium p-3">
+                      <div className="text-main text-base font-semibold">{summary.oas}</div>
+                      <div className="text-[11px] text-muted2">OA cargados</div>
                     </div>
-                    <div className="rounded-xl bg-gray-900/70 border border-gray-700 p-3">
+                    <div className="rounded-xl bg-card-theme border border-medium p-3">
                       <div
                         className={`text-base font-semibold ${
-                          summary.hasCurriculum ? "text-emerald-300" : "text-amber-300"
+                          summary.hasCurriculum ? "text-emerald-700" : "text-amber-700"
                         }`}
                       >
                         {summary.hasCurriculum ? "Sí" : "Parcial"}
                       </div>
-                      <div className="text-[11px] text-gray-500">Base local</div>
+                      <div className="text-[11px] text-muted2">Base local</div>
                     </div>
                   </div>
 
-                  <p className="text-gray-300 text-sm text-justify">
+                  <p className="text-sub text-sm text-justify">
                     {horizonText}
                   </p>
                 </div>
 
-                <div className="rounded-2xl bg-gray-800/80 border border-gray-700 p-4">
-                  <p className="text-gray-500 text-xs uppercase tracking-wide mb-2">
+                <div className="rounded-2xl bg-card-soft-theme border border-soft p-4">
+                  <p className="text-muted2 text-xs uppercase tracking-wide mb-2">
                     Selección curricular
                   </p>
 
                   <div className="space-y-2 text-justify">
-                    <p className="text-gray-300 text-sm">
+                    <p className="text-sub text-sm">
                       Estado de selección:{" "}
                       <span
                         className={
-                          currentAsignaturaHasLocal ? "text-emerald-300" : "text-amber-300"
+                          currentAsignaturaHasLocal ? "text-emerald-700" : "text-amber-700"
                         }
                       >
                         {currentAsignaturaHasLocal
@@ -1137,20 +1137,20 @@ export default function EducadorPage() {
                       </span>
                     </p>
 
-                    <p className="text-gray-300 text-sm">
+                    <p className="text-sub text-sm">
                       {config.asignatura === "Ciencias para la Ciudadanía"
                         ? "Módulo"
                         : config.nivel === "parvularia"
                           ? "Bloque"
                           : "Unidad"}:{" "}
-                      <span className="text-white">
+                      <span className="text-main">
                         {selectedUnit?.label || "Sin bloque/unidad local"}
                       </span>
                     </p>
 
-                    <p className="text-gray-300 text-sm">
+                    <p className="text-sub text-sm">
                       OA elegidos:{" "}
-                      <span className="text-white">
+                      <span className="text-main">
                         {selectedOAObjects.length
                           ? selectedOAObjects.map((oa) => oa.codigoOficial || oa.id).join(", ")
                           : "Aún no seleccionados"}
@@ -1160,7 +1160,7 @@ export default function EducadorPage() {
                     {selectedOAObjects.some((oa) => oa.ambito && oa.nucleo) && (
                       <div className="flex flex-wrap gap-1.5 mt-1">
                         {[...new Set(selectedOAObjects.filter((oa) => oa.ambito && oa.nucleo).map((oa) => `${oa.ambito} · ${oa.nucleo}`))].map((label) => (
-                          <span key={label} className="rounded-full border border-green-500/30 bg-green-500/15 px-3 py-1 text-[11px] font-medium text-green-300">
+                          <span key={label} className="rounded-full border border-green-500/30 bg-green-500/15 px-3 py-1 text-[11px] font-medium text-green-700">
                             {label}
                           </span>
                         ))}
@@ -1168,9 +1168,9 @@ export default function EducadorPage() {
                     )}
 
                     {config.nivel === "parvularia" && (
-                      <p className="text-gray-300 text-sm">
+                      <p className="text-sub text-sm">
                         OAT elegidos:{" "}
-                        <span className="text-white">
+                        <span className="text-main">
                           {config.selectedOATIds.length
                             ? config.selectedOATIds.join(", ")
                             : "Sin OAT seleccionado"}
@@ -1181,10 +1181,10 @@ export default function EducadorPage() {
                 </div>
 
                 <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 text-justify">
-                  <p className="text-emerald-300 text-xs uppercase tracking-wide mb-2">
+                  <p className="text-emerald-700 text-xs uppercase tracking-wide mb-2">
                     Sugerencia de uso
                   </p>
-                  <p className="text-gray-300 text-sm">
+                  <p className="text-sub text-sm">
                     En Parvularia, selecciona primero el subnivel. Luego puedes combinar hasta 3 OA
                     de distintos núcleos o ámbitos y sumar hasta 2 OAT transversales. Así la planificación
                     queda integrada y mucho más realista para educación parvularia.
@@ -1196,10 +1196,10 @@ export default function EducadorPage() {
                     <button
                       key={qp.label}
                       onClick={() => sendMessage(qp.prompt)}
-                      className="bg-gray-800 hover:bg-gray-700 border border-gray-700 hover:border-emerald-500/30 rounded-2xl p-3 text-left transition-all group"
+                      className="bg-card-soft-theme hover:bg-card-soft-theme border border-soft hover:border-emerald-500/30 rounded-2xl p-3 text-left transition-all group"
                     >
                       <div className="text-lg mb-1">{qp.icon}</div>
-                      <div className="text-gray-300 text-xs group-hover:text-white">
+                      <div className="text-sub text-xs group-hover:text-main">
                         {qp.label}
                       </div>
                     </button>
@@ -1211,15 +1211,15 @@ export default function EducadorPage() {
         )}
 
         {showWelcome && !configOpen && (
-          <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/5 border border-emerald-500/20 rounded-3xl p-6 text-center">
+          <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/5 border border-emerald-500/20 rounded-2xl p-6 text-center">
             <div className="text-4xl mb-3">🌸</div>
-            <h2 className="text-white font-semibold text-lg mb-1">
+            <h2 className="text-main font-semibold text-lg mb-1">
               APl — Planificador curricular inteligente
             </h2>
-            <p className="text-gray-400 text-sm mb-2">
+            <p className="text-sub text-sm mb-2">
               Parvularia completa: sala cuna, nivel medio y transición, con ámbitos, núcleos, OA y OAT.
             </p>
-            <p className="text-emerald-300 text-xs">
+            <p className="text-emerald-700 text-xs">
               {config.curso} · {config.asignatura} · {planningBadge}
             </p>
           </div>
@@ -1238,43 +1238,43 @@ export default function EducadorPage() {
               )}
 
               <div
-                className={`max-w-[90%] rounded-3xl px-4 py-3 ${
+                className={`max-w-[90%] rounded-2xl px-4 py-3 ${
                   msg.role === "user"
-                    ? "bg-emerald-600 text-white"
-                    : "bg-gray-900 border border-gray-800 text-gray-200"
+                    ? "bg-emerald-600 text-main"
+                    : "bg-card-theme border border-soft text-main"
                 }`}
               >
                 {msg.role === "assistant" ? (
                   <>
                     <div className={[
-                      "prose prose-invert prose-sm max-w-none",
+                      "prose prose-sm max-w-none",
                       // Headings
-                      "[&_h1]:text-emerald-300 [&_h1]:text-base [&_h1]:font-bold [&_h1]:mb-3 [&_h1]:mt-5 [&_h1]:pb-2 [&_h1]:border-b [&_h1]:border-emerald-500/20",
-                      "[&_h2]:text-emerald-200 [&_h2]:text-sm [&_h2]:font-semibold [&_h2]:mb-2 [&_h2]:mt-5 [&_h2]:flex [&_h2]:items-center [&_h2]:gap-1",
-                      "[&_h3]:text-teal-300 [&_h3]:text-xs [&_h3]:font-semibold [&_h3]:mb-1.5 [&_h3]:mt-4 [&_h3]:uppercase [&_h3]:tracking-wide",
-                      "[&_h4]:text-gray-300 [&_h4]:text-xs [&_h4]:font-semibold [&_h4]:mb-1 [&_h4]:mt-3",
+                      "[&_h1]:text-emerald-700 [&_h1]:text-base [&_h1]:font-bold [&_h1]:mb-3 [&_h1]:mt-5 [&_h1]:pb-2 [&_h1]:border-b [&_h1]:border-emerald-500/20",
+                      "[&_h2]:text-emerald-700 [&_h2]:text-sm [&_h2]:font-semibold [&_h2]:mb-2 [&_h2]:mt-5 [&_h2]:flex [&_h2]:items-center [&_h2]:gap-1",
+                      "[&_h3]:text-teal-700 [&_h3]:text-xs [&_h3]:font-semibold [&_h3]:mb-1.5 [&_h3]:mt-4 [&_h3]:uppercase [&_h3]:tracking-wide",
+                      "[&_h4]:text-sub [&_h4]:text-xs [&_h4]:font-semibold [&_h4]:mb-1 [&_h4]:mt-3",
                       // Body text
-                      "[&_p]:leading-relaxed [&_p]:text-gray-300 [&_p]:text-sm [&_p]:mb-2 text-justify",
-                      "[&_strong]:text-white [&_strong]:font-semibold",
-                      "[&_em]:text-gray-400 [&_em]:italic",
+                      "[&_p]:leading-relaxed [&_p]:text-sub [&_p]:text-sm [&_p]:mb-2 text-justify",
+                      "[&_strong]:text-main [&_strong]:font-semibold",
+                      "[&_em]:text-sub [&_em]:italic",
                       // Lists
-                      "[&_ul]:text-gray-300 [&_ul]:space-y-1 [&_ul]:my-2 [&_ul]:pl-4",
-                      "[&_ol]:text-gray-300 [&_ol]:space-y-1 [&_ol]:my-2 [&_ol]:pl-4",
-                      "[&_li]:text-sm [&_li]:leading-relaxed [&_li]:text-gray-300",
-                      "[&_li_strong]:text-emerald-200",
+                      "[&_ul]:text-sub [&_ul]:space-y-1 [&_ul]:my-2 [&_ul]:pl-4",
+                      "[&_ol]:text-sub [&_ol]:space-y-1 [&_ol]:my-2 [&_ol]:pl-4",
+                      "[&_li]:text-sm [&_li]:leading-relaxed [&_li]:text-sub",
+                      "[&_li_strong]:text-emerald-700",
                       // Tables
                       "[&_table]:w-full [&_table]:text-xs [&_table]:rounded-xl [&_table]:overflow-hidden [&_table]:my-3 [&_table]:border-collapse",
                       "[&_thead]:bg-emerald-900/50",
-                      "[&_th]:text-emerald-300 [&_th]:font-semibold [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:border [&_th]:border-emerald-800/40",
-                      "[&_td]:px-3 [&_td]:py-2 [&_td]:text-gray-300 [&_td]:border [&_td]:border-gray-800 [&_td]:align-top",
-                      "[&_tr:nth-child(even)_td]:bg-gray-800/30",
+                      "[&_th]:text-emerald-700 [&_th]:font-semibold [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:border [&_th]:border-emerald-800/40",
+                      "[&_td]:px-3 [&_td]:py-2 [&_td]:text-sub [&_td]:border [&_td]:border-soft [&_td]:align-top",
+                      "[&_tr:nth-child(even)_td]:bg-card-soft-theme",
                       // Blockquotes (used for notes/tips)
                       "[&_blockquote]:border-l-2 [&_blockquote]:border-teal-500/50 [&_blockquote]:pl-3 [&_blockquote]:py-1 [&_blockquote]:my-2 [&_blockquote]:bg-teal-500/5 [&_blockquote]:rounded-r-lg",
-                      "[&_blockquote_p]:text-teal-200 [&_blockquote_p]:text-xs [&_blockquote_p]:italic [&_blockquote_p]:mb-0",
+                      "[&_blockquote_p]:text-teal-700 [&_blockquote_p]:text-xs [&_blockquote_p]:italic [&_blockquote_p]:mb-0",
                       // Horizontal rules (section dividers)
-                      "[&_hr]:border-gray-800 [&_hr]:my-4",
+                      "[&_hr]:border-soft [&_hr]:my-4",
                       // Code
-                      "[&_code]:bg-gray-800 [&_code]:text-emerald-300 [&_code]:px-1 [&_code]:rounded [&_code]:text-xs",
+                      "[&_code]:bg-card-soft-theme [&_code]:text-emerald-700 [&_code]:px-1 [&_code]:rounded [&_code]:text-xs",
                     ].join(" ")}>
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>
                         {msg.content}
@@ -1282,7 +1282,7 @@ export default function EducadorPage() {
                     </div>
 
                     {msg.provider && (
-                      <p className="text-gray-700 text-xs mt-2 pt-2 border-t border-gray-800">
+                      <p className="text-muted2 text-xs mt-2 pt-2 border-t border-soft">
                         via {msg.provider}
                       </p>
                     )}
@@ -1300,7 +1300,7 @@ export default function EducadorPage() {
                 🌸
               </div>
 
-              <div className="bg-gray-900 border border-gray-800 rounded-3xl px-4 py-3">
+              <div className="bg-card-theme border border-soft rounded-2xl px-4 py-3">
                 <div className="flex items-center gap-2">
                   <div className="flex gap-1">
                     <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
@@ -1308,7 +1308,7 @@ export default function EducadorPage() {
                     <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
                   </div>
 
-                  <span className="text-gray-600 text-xs">
+                  <span className="text-muted2 text-xs">
                     APl organizando OA, OAT, tiempos y experiencias pedagógicas...
                   </span>
                 </div>
@@ -1320,7 +1320,7 @@ export default function EducadorPage() {
         </div>
       </div>
 
-      <div className="sticky bottom-0 bg-gray-950/90 backdrop-blur-sm border-t border-gray-800 px-4 py-3">
+      <div className="sticky bottom-0 bg-app backdrop-blur-sm border-t border-soft px-4 py-3">
         <div className="max-w-7xl mx-auto">
           <div className="flex gap-2">
             <textarea
@@ -1333,7 +1333,7 @@ export default function EducadorPage() {
                 }
               }}
               placeholder={`Pide una planificación ${config.tiempoPlanificacion} para ${config.curso} · ${config.asignatura}...`}
-              className="flex-1 min-h-[60px] max-h-40 bg-gray-900 border border-gray-700 rounded-2xl px-4 py-3 text-gray-200 placeholder-gray-600 text-sm focus:outline-none focus:border-emerald-500/50"
+              className="flex-1 min-h-[60px] max-h-40 bg-card-theme border border-medium rounded-2xl px-4 py-3 text-main placeholder-gray-400 text-sm focus:outline-none focus:border-emerald-500/50"
             />
 
             <button
@@ -1349,26 +1349,26 @@ export default function EducadorPage() {
             <button
               onClick={handleSavePlanning}
               disabled={!latestAssistantMessage || savingPlanning}
-              className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-200 hover:bg-emerald-500/20 disabled:opacity-40"
+              className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-700 hover:bg-emerald-500/20 disabled:opacity-40"
             >
               {savingPlanning ? "Guardando..." : "Guardar planificación"}
             </button>
             <button
               onClick={handleExportPlanning}
               disabled={!latestAssistantMessage || exportingPlanning}
-              className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-200 hover:bg-amber-500/20 disabled:opacity-40"
+              className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-700 hover:bg-amber-500/20 disabled:opacity-40"
             >
               {exportingPlanning ? "Exportando PDF..." : "Exportar PDF bonito"}
             </button>
             <Link
               href="/educador/planificaciones"
-              className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-3 py-1.5 text-xs text-cyan-200 hover:bg-cyan-500/20"
+              className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-3 py-1.5 text-xs text-cyan-700 hover:bg-cyan-500/20"
             >
               Ver, editar o eliminar guardadas
             </Link>
           </div>
 
-          <p className="text-gray-700 text-xs mt-2 text-center">
+          <p className="text-muted2 text-xs mt-2 text-center">
             APl · Parvularia completa · OA múltiples · OAT · ámbitos y núcleos · horizonte temporal
           </p>
         </div>

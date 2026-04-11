@@ -29,7 +29,7 @@ function Avatar({ name, size = "sm" }: { name: string; size?: "sm" | "md" }) {
   const color = getAvatarColor(name)
   const cls   = size === "md" ? "w-8 h-8 text-sm" : "w-6 h-6 text-xs"
   return (
-    <div className={`${cls} rounded-full bg-gradient-to-br ${color} flex items-center justify-center text-white font-bold flex-shrink-0`}>
+    <div className={`${cls} rounded-full bg-gradient-to-br ${color} flex items-center justify-center text-main font-bold flex-shrink-0`}>
       {name.charAt(0).toUpperCase()}
     </div>
   )
@@ -323,16 +323,16 @@ export default function CollabClient({ room, userId, userName }: Props) {
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
-    <main className="min-h-screen bg-gray-950 text-white flex flex-col">
+    <main className="min-h-screen bg-app text-main flex flex-col">
 
       {/* Nav */}
-      <nav className="border-b border-white/5 bg-gray-900/80 backdrop-blur px-4 py-3 sticky top-0 z-20">
+      <nav className="border-b border-soft bg-card-theme backdrop-blur px-4 py-3 sticky top-0 z-20">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link href="/dashboard" className="text-gray-500 hover:text-white text-sm transition-colors">← Salir</Link>
-            <span className="text-gray-700">|</span>
-            <span className="text-white font-semibold text-sm">{room.topic}</span>
-            <span className="text-gray-500 text-xs">#{room.code}</span>
+            <Link href="/dashboard" className="text-muted2 hover:text-main text-sm transition-colors">← Salir</Link>
+            <span className="text-muted2">|</span>
+            <span className="text-main font-semibold text-sm">{room.topic}</span>
+            <span className="text-muted2 text-xs">#{room.code}</span>
           </div>
 
           <div className="flex items-center gap-3">
@@ -346,14 +346,14 @@ export default function CollabClient({ room, userId, userName }: Props) {
                   {isHost && (
                     <span className="absolute -top-1 -right-1 text-[8px]">👑</span>
                   )}
-                  <span className="absolute bottom-0 right-0 w-2 h-2 bg-green-400 rounded-full border border-gray-900" />
+                  <span className="absolute bottom-0 right-0 w-2 h-2 bg-green-400 rounded-full border border-soft" />
                 </div>
 
                 {/* Avatares de otros */}
                 {otherUsers.map(u => (
                   <div key={u.userId} className="relative" title={u.userName}>
                     <Avatar name={u.userName} size="md" />
-                    <span className="absolute bottom-0 right-0 w-2 h-2 bg-green-400 rounded-full border border-gray-900" />
+                    <span className="absolute bottom-0 right-0 w-2 h-2 bg-green-400 rounded-full border border-soft" />
                   </div>
                 ))}
               </div>
@@ -361,7 +361,7 @@ export default function CollabClient({ room, userId, userName }: Props) {
               {/* Contador y estado */}
               <div className="flex items-center gap-1.5 ml-1">
                 <div className={`w-1.5 h-1.5 rounded-full ${roomStatus === "active" ? "bg-green-400 animate-pulse" : "bg-amber-400 animate-pulse"}`} />
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-sub">
                   {roomStatus === "active" ? `${onlineCount} en línea` : "Esperando..."}
                 </span>
               </div>
@@ -369,7 +369,7 @@ export default function CollabClient({ room, userId, userName }: Props) {
 
             {/* Indicador realtime */}
             <div
-              className={`w-1.5 h-1.5 rounded-full ${realtimeOk ? "bg-blue-400" : "bg-gray-600"}`}
+              className={`w-1.5 h-1.5 rounded-full ${realtimeOk ? "bg-emerald-400" : "bg-red-300"}`}
               title={realtimeOk ? "Realtime activo" : "Conectando..."}
             />
           </div>
@@ -381,13 +381,13 @@ export default function CollabClient({ room, userId, userName }: Props) {
         <div className="flex-1 flex flex-col items-center justify-center gap-5 px-6">
           <div className="text-5xl animate-bounce">⏳</div>
           <h2 className="text-xl font-bold">Sala creada</h2>
-          <div className="bg-gray-900 border border-blue-500/30 rounded-3xl px-10 py-6 text-center">
+          <div className="bg-card-theme border border-blue-500/30 rounded-2xl px-10 py-6 text-center">
             <p className="text-5xl font-bold text-blue-400 tracking-widest">{room.code}</p>
-            <p className="text-gray-500 text-xs mt-3">Tema: {room.topic}</p>
+            <p className="text-muted2 text-xs mt-3">Tema: {room.topic}</p>
           </div>
-          <p className="text-gray-500 text-xs">Esperando que se una alguien...</p>
-          <div className="flex items-center gap-2 text-gray-600 text-xs">
-            <div className={`w-2 h-2 rounded-full ${realtimeOk ? "bg-green-400 animate-pulse" : "bg-gray-700"}`} />
+          <p className="text-muted2 text-xs">Esperando que se una alguien...</p>
+          <div className="flex items-center gap-2 text-muted2 text-xs">
+            <div className={`w-2 h-2 rounded-full ${realtimeOk ? "bg-green-400 animate-pulse" : "bg-card-soft-theme"}`} />
             {realtimeOk ? "Presencia activa — te notificaremos al instante" : "Conectando..."}
           </div>
         </div>
@@ -401,9 +401,9 @@ export default function CollabClient({ room, userId, userName }: Props) {
             {messages.length === 0 && (
               <div className="text-center py-16">
                 <p className="text-5xl mb-3">🤝</p>
-                <p className="text-gray-300 font-medium">¡Sesión colaborativa iniciada!</p>
-                <p className="text-gray-600 text-sm mt-1">Tema: <span className="text-blue-400">{room.topic}</span></p>
-                <p className="text-gray-700 text-xs mt-2">El Profesor ACo llegará pronto...</p>
+                <p className="text-sub font-medium">¡Sesión colaborativa iniciada!</p>
+                <p className="text-muted2 text-sm mt-1">Tema: <span className="text-blue-400">{room.topic}</span></p>
+                <p className="text-muted2 text-xs mt-2">El Profesor ACo llegará pronto...</p>
               </div>
             )}
 
@@ -414,7 +414,7 @@ export default function CollabClient({ room, userId, userName }: Props) {
 
               if (isSystem) return (
                 <div key={msg.id} className="flex justify-center">
-                  <span className="text-gray-700 text-xs bg-gray-900 border border-gray-800 px-3 py-1 rounded-full">
+                  <span className="text-muted2 text-xs bg-card-theme border border-soft px-3 py-1 rounded-full">
                     {msg.content}
                   </span>
                 </div>
@@ -428,7 +428,7 @@ export default function CollabClient({ room, userId, userName }: Props) {
                   <div className="bg-purple-500/10 border border-purple-500/20 rounded-2xl rounded-tl-sm px-4 py-3 max-w-lg">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-purple-400 text-xs font-semibold">Profesor ACo</span>
-                      <span className="text-gray-700 text-[10px]">{formatTime(msg.created_at)}</span>
+                      <span className="text-muted2 text-[10px]">{formatTime(msg.created_at)}</span>
                     </div>
                     <MathRenderer content={msg.content} />
                   </div>
@@ -438,14 +438,14 @@ export default function CollabClient({ room, userId, userName }: Props) {
               return (
                 <div key={msg.id} className={`flex gap-2 ${isMe ? "justify-end" : "justify-start"}`}>
                   {!isMe && <Avatar name={msg.user_name} />}
-                  <div className={`rounded-2xl px-4 py-3 max-w-sm ${isMe ? "bg-blue-600/20 border border-blue-500/30 rounded-tr-sm" : "bg-gray-900 border border-white/5 rounded-tl-sm"}`}>
+                  <div className={`rounded-2xl px-4 py-3 max-w-sm ${isMe ? "bg-blue-600/20 border border-blue-500/30 rounded-tr-sm" : "bg-card-theme border border-soft rounded-tl-sm"}`}>
                     <div className="flex items-center gap-2 mb-1">
-                      <span className={`text-xs font-semibold ${isMe ? "text-blue-300" : "text-amber-400"}`}>
+                      <span className={`text-xs font-semibold ${isMe ? "text-blue-700" : "text-amber-400"}`}>
                         {isMe ? "Tú" : msg.user_name}
                       </span>
-                      <span className="text-gray-700 text-[10px]">{formatTime(msg.created_at)}</span>
+                      <span className="text-muted2 text-[10px]">{formatTime(msg.created_at)}</span>
                     </div>
-                    <p className="text-gray-200 text-sm leading-relaxed">{msg.content}</p>
+                    <p className="text-main text-sm leading-relaxed">{msg.content}</p>
                   </div>
                   {isMe && <Avatar name={userName} />}
                 </div>
@@ -477,13 +477,13 @@ export default function CollabClient({ room, userId, userName }: Props) {
                 <div className="flex -space-x-1">
                   {typingUsers.map(u => <Avatar key={u.userId} name={u.userName} />)}
                 </div>
-                <div className="bg-gray-800 border border-gray-700 rounded-2xl px-3 py-2 flex items-center gap-2">
+                <div className="bg-card-soft-theme border border-soft rounded-2xl px-3 py-2 flex items-center gap-2">
                   <div className="flex gap-0.5">
                     {[0, 150, 300].map(d => (
-                      <div key={d} className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: `${d}ms` }} />
+                      <div key={d} className="w-1 h-1 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: `${d}ms` }} />
                     ))}
                   </div>
-                  <span className="text-gray-500 text-xs">
+                  <span className="text-muted2 text-xs">
                     {typingNames.length === 1
                       ? `${typingNames[0]} está escribiendo`
                       : `${typingNames.join(", ")} están escribiendo`}
@@ -500,7 +500,7 @@ export default function CollabClient({ room, userId, userName }: Props) {
             <button
               onClick={() => triggerACo(false)}
               disabled={acoThinking}
-              className="text-xs text-purple-500 hover:text-purple-300 disabled:opacity-40 transition-colors"
+              className="text-xs text-purple-500 hover:text-purple-700 disabled:opacity-40 transition-colors"
             >
               🎓 Pedir explicación
             </button>
@@ -509,7 +509,7 @@ export default function CollabClient({ room, userId, userName }: Props) {
             {otherUsers.length > 0 && (
               <div className="flex items-center gap-1.5 ml-auto">
                 <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-                <span className="text-[10px] text-gray-600">
+                <span className="text-[10px] text-muted2">
                   {otherUsers.map(u => u.userName).join(", ")} en línea
                 </span>
               </div>
@@ -517,7 +517,7 @@ export default function CollabClient({ room, userId, userName }: Props) {
           </div>
 
           {/* Input */}
-          <div className="border-t border-white/5 bg-gray-900/60 backdrop-blur px-4 py-3">
+          <div className="border-t border-soft bg-card-theme backdrop-blur px-4 py-3">
             <div className="max-w-2xl mx-auto flex gap-3">
               <input
                 type="text"
@@ -525,12 +525,12 @@ export default function CollabClient({ room, userId, userName }: Props) {
                 onChange={e => handleInputChange(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && !sending && sendMessage()}
                 placeholder="Escribe tu respuesta o pregunta..."
-                className="flex-1 bg-white/5 border border-white/8 focus:border-blue-500/40 rounded-2xl px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none text-sm"
+                className="flex-1 bg-card-soft-theme focus:border-blue-500/40 rounded-2xl px-4 py-2.5 text-main placeholder-gray-400 focus:outline-none text-sm"
               />
               <button
                 onClick={sendMessage}
                 disabled={!input.trim() || sending}
-                className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-800 disabled:text-gray-600 text-white px-5 py-2.5 rounded-2xl text-sm font-medium transition-colors"
+                className="bg-blue-600 hover:bg-blue-500 disabled:bg-card-soft-theme disabled:text-muted2 text-main px-5 py-2.5 rounded-2xl text-sm font-medium transition-colors"
               >
                 {sending ? "..." : "Enviar"}
               </button>

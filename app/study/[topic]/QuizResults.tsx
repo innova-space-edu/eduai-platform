@@ -70,34 +70,34 @@ export default function QuizResults({ topic, results, xpEarned, onStudyMore, onR
     <div className="max-w-2xl mx-auto px-6 py-8">
 
       {/* Resultado principal */}
-      <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 text-center mb-6">
+      <div className="bg-card-theme border border-soft rounded-2xl p-8 text-center mb-6">
         <div className="text-6xl mb-4">
           {percent === 100 ? "🏆" : percent >= 80 ? "🎯" : percent >= 60 ? "💪" : "📚"}
         </div>
         <h2 className={`text-2xl font-bold mb-1 ${msg.color}`}>{msg.text}</h2>
-        <p className="text-gray-500 text-sm mb-6">{topic}</p>
+        <p className="text-muted2 text-sm mb-6">{topic}</p>
 
         <div className="flex items-center justify-center gap-8">
           <div>
-            <p className="text-4xl font-bold text-white">{correct}/{total}</p>
-            <p className="text-gray-500 text-xs mt-1">correctas</p>
+            <p className="text-4xl font-bold text-main">{correct}/{total}</p>
+            <p className="text-muted2 text-xs mt-1">correctas</p>
           </div>
-          <div className="w-px h-12 bg-gray-800" />
+          <div className="w-px h-12 bg-card-soft-theme" />
           <div>
             <p className="text-4xl font-bold text-amber-400">+{xpEarned}</p>
-            <p className="text-gray-500 text-xs mt-1">XP ganado</p>
+            <p className="text-muted2 text-xs mt-1">XP ganado</p>
           </div>
-          <div className="w-px h-12 bg-gray-800" />
+          <div className="w-px h-12 bg-card-soft-theme" />
           <div>
             <p className="text-4xl font-bold text-blue-400">{percent}%</p>
-            <p className="text-gray-500 text-xs mt-1">puntuación</p>
+            <p className="text-muted2 text-xs mt-1">puntuación</p>
           </div>
         </div>
       </div>
 
       {/* Detalle de respuestas */}
       <div className="space-y-3 mb-4">
-        <h3 className="text-sm font-medium text-gray-400">Detalle de respuestas</h3>
+        <h3 className="text-sm font-medium text-sub">Detalle de respuestas</h3>
         {results.map((r, i) => (
           <div key={i} className={`border rounded-xl p-4 ${
             r.isCorrect ? "bg-green-500/5 border-green-500/20" : "bg-red-500/5 border-red-500/20"
@@ -105,13 +105,13 @@ export default function QuizResults({ topic, results, xpEarned, onStudyMore, onR
             <div className="flex items-start gap-3">
               <span className="text-lg mt-0.5">{r.isCorrect ? "✅" : "❌"}</span>
               <div className="flex-1">
-                <p className="text-gray-300 text-sm mb-1">{r.question}</p>
+                <p className="text-sub text-sm mb-1">{r.question}</p>
                 {!r.isCorrect && (
-                  <p className="text-gray-500 text-xs mb-1">
+                  <p className="text-muted2 text-xs mb-1">
                     Correcta: <span className="text-green-400">{r.correct}</span>
                   </p>
                 )}
-                <p className="text-gray-500 text-xs">{r.feedback}</p>
+                <p className="text-muted2 text-xs">{r.feedback}</p>
               </div>
             </div>
           </div>
@@ -124,11 +124,11 @@ export default function QuizResults({ topic, results, xpEarned, onStudyMore, onR
       {/* Acciones */}
       <div className="flex gap-3 mt-6">
         <button onClick={onStudyMore}
-          className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl transition-colors">
+          className="flex-1 bg-blue-600 hover:bg-blue-500 text-main font-semibold py-3 rounded-xl transition-colors">
           Seguir estudiando
         </button>
         <button onClick={onRetry}
-          className="flex-1 bg-gray-800 hover:bg-gray-700 text-white font-semibold py-3 rounded-xl transition-colors">
+          className="flex-1 bg-card-soft-theme hover:bg-card-soft-theme text-main font-semibold py-3 rounded-xl transition-colors">
           Reintentar quiz
         </button>
       </div>

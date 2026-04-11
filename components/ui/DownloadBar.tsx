@@ -124,7 +124,7 @@ export default function DownloadBar({ format, data, title, accentColor = "#3b82f
       <div className="flex items-center gap-2 flex-wrap">
 
         {/* Label */}
-        <span className="text-gray-600 text-[11px] font-semibold tracking-widest uppercase mr-1">
+        <span className="text-muted2 text-[11px] font-semibold tracking-widest uppercase mr-1">
           ↓ Exportar
         </span>
 
@@ -143,11 +143,11 @@ export default function DownloadBar({ format, data, title, accentColor = "#3b82f
                 background:  isStoppable ? "rgba(239,68,68,0.08)"
                            : isDone      ? "rgba(16,185,129,0.08)"
                            : isActive    ? "rgba(59,130,246,0.08)"
-                           : "rgba(255,255,255,0.03)",
+                           : "var(--bg-card)",
                 borderColor: isStoppable ? "rgba(239,68,68,0.25)"
                            : isDone      ? "rgba(16,185,129,0.25)"
                            : isActive    ? "rgba(59,130,246,0.25)"
-                           : "rgba(255,255,255,0.08)",
+                           : "var(--border-soft)",
                 color:       isStoppable ? "#f87171"
                            : isDone      ? "#6ee7b7"
                            : isActive    ? "#93c5fd"

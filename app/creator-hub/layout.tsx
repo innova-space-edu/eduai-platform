@@ -35,29 +35,29 @@ export default function CreatorHubLayout({ children }: { children: React.ReactNo
 
   if (!ready) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="w-10 h-10 rounded-full border-2 border-white/10 border-t-blue-400 animate-spin" />
+      <div className="min-h-screen bg-app flex items-center justify-center">
+        <div className="w-10 h-10 rounded-full border-2 border-soft border-t-blue-400 animate-spin" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 flex">
+    <div className="min-h-screen bg-app flex">
 
       {/* ── Sidebar ──────────────────────────────────────────────────────────── */}
-      <aside className="fixed left-0 top-0 h-full w-[220px] z-20 flex flex-col border-r border-white/[0.06] bg-gray-950/95 backdrop-blur-xl">
+      <aside className="fixed left-0 top-0 h-full w-[220px] z-20 flex flex-col border-r border-soft bg-header-theme backdrop-blur-xl">
 
         {/* Header */}
-        <div className="h-14 flex items-center gap-3 px-4 border-b border-white/[0.06] flex-shrink-0">
+        <div className="h-14 flex items-center gap-3 px-4 border-b border-soft flex-shrink-0">
           <Link
             href="/dashboard"
-            className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/[0.04] border border-white/[0.06] text-gray-400 hover:text-white hover:bg-white/[0.07] transition-all flex-shrink-0"
+            className="w-8 h-8 flex items-center justify-center rounded-xl bg-card-soft-theme text-sub hover:text-main hover:bg-input-theme transition-all flex-shrink-0"
           >
             <ArrowLeft size={14} />
           </Link>
           <div className="min-w-0">
-            <p className="text-white font-bold text-sm leading-tight">Creator Hub</p>
-            <p className="text-gray-600 text-[10px]">8 formatos</p>
+            <p className="text-main font-bold text-sm leading-tight">Creator Hub</p>
+            <p className="text-muted2 text-[10px]">8 formatos</p>
           </div>
         </div>
 
@@ -76,8 +76,8 @@ export default function CreatorHubLayout({ children }: { children: React.ReactNo
                 }}
                 onMouseEnter={e => {
                   if (!isActive) {
-                    (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)"
-                    ;(e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.07)"
+                    (e.currentTarget as HTMLElement).style.background = "var(--bg-input)"
+                    ;(e.currentTarget as HTMLElement).style.borderColor = "var(--bg-card-soft)"
                   }
                 }}
                 onMouseLeave={e => {
@@ -98,10 +98,10 @@ export default function CreatorHubLayout({ children }: { children: React.ReactNo
                 {/* Labels */}
                 <div className="min-w-0">
                   <p className="text-sm font-semibold leading-tight truncate"
-                     style={{ color: isActive ? f.color : "#e2e8f0" }}>
+                     style={{ color: isActive ? f.color : "var(--text-primary)" }}>
                     {f.label}
                   </p>
-                  <p className="text-[10px] text-gray-600 truncate">{f.desc}</p>
+                  <p className="text-[10px] text-muted2 truncate">{f.desc}</p>
                 </div>
 
                 {/* Active indicator */}
@@ -115,10 +115,10 @@ export default function CreatorHubLayout({ children }: { children: React.ReactNo
         </nav>
 
         {/* Footer: link al Creator original */}
-        <div className="border-t border-white/[0.06] p-3 flex-shrink-0">
+        <div className="border-t border-soft p-3 flex-shrink-0">
           <Link
             href="/creator"
-            className="flex items-center gap-2 px-3 py-2 rounded-xl text-gray-600 hover:text-gray-400 hover:bg-white/[0.03] transition-all text-xs"
+            className="flex items-center gap-2 px-3 py-2 rounded-xl text-muted2 hover:text-sub hover:bg-card-soft-theme transition-all text-xs"
           >
             <span>✨</span>
             <span>Creator clásico</span>

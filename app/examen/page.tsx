@@ -152,8 +152,8 @@ export default function ExamenPage() {
           : "text-red-400"
 
   return (
-    <div className="min-h-screen bg-gray-950 flex flex-col">
-      <div className="border-b border-gray-800 bg-gray-900/80 sticky top-0 z-10">
+    <div className="min-h-screen bg-app flex flex-col">
+      <div className="border-b border-soft bg-header-theme sticky top-0 z-10">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
@@ -169,7 +169,7 @@ export default function ExamenPage() {
                   router.push("/agentes")
                 }
               }}
-              className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition-all text-sm"
+              className="w-8 h-8 flex items-center justify-center rounded-lg bg-card-soft-theme hover:bg-card-soft-theme text-sub hover:text-main transition-all text-sm"
             >
               ←
             </button>
@@ -179,8 +179,8 @@ export default function ExamenPage() {
             </div>
 
             <div>
-              <h1 className="text-white font-semibold text-sm">Modo Examen</h1>
-              <p className="text-gray-500 text-xs">
+              <h1 className="text-main font-semibold text-sm">Modo Examen</h1>
+              <p className="text-muted2 text-xs">
                 {state === "active"
                   ? `${exam?.title} · ${answered}/${exam?.questions.length} respondidas`
                   : "Simulacro de examen con evaluación"}
@@ -191,7 +191,7 @@ export default function ExamenPage() {
           {state === "active" && (
             <div
               className={`font-mono font-bold text-sm px-3 py-1.5 rounded-lg ${
-                timeLeft < 120 ? "bg-red-500/20 text-red-400" : "bg-gray-800 text-gray-300"
+                timeLeft < 120 ? "bg-red-500/20 text-red-400" : "bg-card-soft-theme text-sub"
               }`}
             >
               ⏱ {formatTime(timeLeft)}
@@ -205,22 +205,22 @@ export default function ExamenPage() {
           <div className="flex flex-col gap-5">
             <div className="bg-gradient-to-br from-red-500/10 to-rose-500/5 border border-red-500/20 rounded-2xl p-6 text-center">
               <div className="text-4xl mb-2">📝</div>
-              <h2 className="text-white font-semibold text-lg">Preparación de Examen</h2>
-              <p className="text-gray-400 text-sm mt-1">
+              <h2 className="text-main font-semibold text-lg">Preparación de Examen</h2>
+              <p className="text-sub text-sm mt-1">
                 Genera un examen personalizado, respóndelo con tiempo límite y recibe
                 retroalimentación detallada
               </p>
             </div>
 
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 flex flex-col gap-4">
+            <div className="bg-card-theme border border-soft rounded-2xl p-5 flex flex-col gap-4">
               <div>
-                <label className="text-gray-500 text-xs mb-2 block">Tema del examen</label>
+                <label className="text-muted2 text-xs mb-2 block">Tema del examen</label>
                 <input
                   value={topic}
                   onChange={e => setTopic(e.target.value)}
                   onKeyDown={e => e.key === "Enter" && generateExam()}
                   placeholder="Ej: Derivadas e integrales, Segunda Guerra Mundial..."
-                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-gray-200 text-sm focus:outline-none focus:border-red-500/50 placeholder-gray-600"
+                  className="w-full bg-card-soft-theme border border-soft rounded-xl px-4 py-3 text-main text-sm focus:outline-none focus:border-red-500/50 placeholder-gray-400"
                 />
 
                 <div className="flex flex-wrap gap-2 mt-2">
@@ -228,7 +228,7 @@ export default function ExamenPage() {
                     <button
                       key={t}
                       onClick={() => setTopic(t)}
-                      className="text-xs bg-gray-800 hover:bg-gray-700 text-gray-500 hover:text-gray-300 px-3 py-1 rounded-full transition-colors"
+                      className="text-xs bg-card-soft-theme hover:bg-card-soft-theme text-muted2 hover:text-sub px-3 py-1 rounded-full transition-colors"
                     >
                       {t}
                     </button>
@@ -238,7 +238,7 @@ export default function ExamenPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-gray-500 text-xs mb-2 block">
+                  <label className="text-muted2 text-xs mb-2 block">
                     Nivel de dificultad
                   </label>
 
@@ -249,8 +249,8 @@ export default function ExamenPage() {
                         onClick={() => setLevel(l)}
                         className={`py-2 rounded-xl text-xs font-medium capitalize border transition-all ${
                           level === l
-                            ? "bg-red-500/20 border-red-500/40 text-red-300"
-                            : "bg-gray-800 border-gray-700 text-gray-500 hover:border-gray-600"
+                            ? "bg-red-500/20 border-red-500/40 text-red-700"
+                            : "bg-card-soft-theme border-medium text-muted2 hover:border-medium"
                         }`}
                       >
                         {l}
@@ -260,7 +260,7 @@ export default function ExamenPage() {
                 </div>
 
                 <div>
-                  <label className="text-gray-500 text-xs mb-2 block">
+                  <label className="text-muted2 text-xs mb-2 block">
                     Número de preguntas
                   </label>
 
@@ -271,8 +271,8 @@ export default function ExamenPage() {
                         onClick={() => setNumQ(n)}
                         className={`py-2 rounded-xl text-sm font-bold border transition-all ${
                           numQ === n
-                            ? "bg-red-500/20 border-red-500/40 text-red-300"
-                            : "bg-gray-800 border-gray-700 text-gray-500 hover:border-gray-600"
+                            ? "bg-red-500/20 border-red-500/40 text-red-700"
+                            : "bg-card-soft-theme border-medium text-muted2 hover:border-medium"
                         }`}
                       >
                         {n}
@@ -296,15 +296,15 @@ export default function ExamenPage() {
         {state === "loading" && (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
             <div className="w-14 h-14 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
-            <p className="text-white font-medium">Generando examen de {numQ} preguntas...</p>
-            <p className="text-gray-500 text-sm">Preparando preguntas sobre: {topic}</p>
+            <p className="text-main font-medium">Generando examen de {numQ} preguntas...</p>
+            <p className="text-muted2 text-sm">Preparando preguntas sobre: {topic}</p>
           </div>
         )}
 
         {state === "active" && exam && (
           <div className="flex flex-col gap-4">
-            <div className="bg-gray-900 border border-gray-800 rounded-xl px-4 py-3">
-              <div className="flex justify-between text-xs text-gray-500 mb-2">
+            <div className="bg-card-theme border border-soft rounded-xl px-4 py-3">
+              <div className="flex justify-between text-xs text-muted2 mb-2">
                 <span>
                   Pregunta {currentQ + 1} de {exam.questions.length}
                 </span>
@@ -313,7 +313,7 @@ export default function ExamenPage() {
                 </span>
               </div>
 
-              <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
+              <div className="h-1.5 bg-card-soft-theme rounded-full overflow-hidden">
                 <div
                   className="h-full bg-gradient-to-r from-red-500 to-rose-500 rounded-full transition-all"
                   style={{ width: `${(currentQ / exam.questions.length) * 100}%` }}
@@ -325,9 +325,9 @@ export default function ExamenPage() {
               const q = exam.questions[currentQ]
 
               return (
-                <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+                <div className="bg-card-theme border border-soft rounded-2xl p-5">
                   <div className="flex items-center gap-2 mb-4 flex-wrap">
-                    <span className="text-xs bg-gray-800 text-gray-500 px-2 py-1 rounded-lg">
+                    <span className="text-xs bg-card-soft-theme text-muted2 px-2 py-1 rounded-lg">
                       {q.type === "multiple"
                         ? "Opción múltiple"
                         : q.type === "truefalse"
@@ -358,7 +358,7 @@ export default function ExamenPage() {
                     </span>
                   </div>
 
-                  <div className="mb-5 text-gray-200 text-sm">
+                  <div className="mb-5 text-main text-sm">
                     <span className="font-semibold mr-1">{currentQ + 1}.</span>
                     <ExamMathText text={q.question} className="inline" />
                   </div>
@@ -371,8 +371,8 @@ export default function ExamenPage() {
                           onClick={() => setAnswers(prev => ({ ...prev, [q.id]: opt }))}
                           className={`text-left px-4 py-3 rounded-xl border text-sm transition-all ${
                             answers[q.id] === opt
-                              ? "bg-red-500/20 border-red-500/40 text-white"
-                              : "bg-gray-800 border-gray-700 text-gray-300 hover:border-gray-600 hover:text-white"
+                              ? "bg-red-500/20 border-red-500/40 text-main"
+                              : "bg-card-soft-theme border-medium text-sub hover:border-medium hover:text-main"
                           }`}
                         >
                           <span className="font-semibold mr-2">
@@ -392,8 +392,8 @@ export default function ExamenPage() {
                           onClick={() => setAnswers(prev => ({ ...prev, [q.id]: opt }))}
                           className={`flex-1 py-3 rounded-xl border text-sm font-medium transition-all ${
                             answers[q.id] === opt
-                              ? "bg-red-500/20 border-red-500/40 text-white"
-                              : "bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600"
+                              ? "bg-red-500/20 border-red-500/40 text-main"
+                              : "bg-card-soft-theme border-medium text-sub hover:border-medium"
                           }`}
                         >
                           {opt === "Verdadero" ? "✓ Verdadero" : "✗ Falso"}
@@ -410,7 +410,7 @@ export default function ExamenPage() {
                       }
                       placeholder="Escribe tu respuesta aquí..."
                       rows={4}
-                      className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-gray-200 text-sm focus:outline-none focus:border-red-500/50 resize-none placeholder-gray-600"
+                      className="w-full bg-card-soft-theme border border-soft rounded-xl px-4 py-3 text-main text-sm focus:outline-none focus:border-red-500/50 resize-none placeholder-gray-400"
                     />
                   )}
                 </div>
@@ -421,7 +421,7 @@ export default function ExamenPage() {
               <button
                 onClick={() => setCurrentQ(prev => Math.max(0, prev - 1))}
                 disabled={currentQ === 0}
-                className="flex-1 bg-gray-800 hover:bg-gray-700 disabled:opacity-30 text-gray-300 py-3 rounded-xl text-sm transition-colors"
+                className="flex-1 bg-card-soft-theme hover:bg-card-soft-theme disabled:opacity-30 text-sub py-3 rounded-xl text-sm transition-colors"
               >
                 ← Anterior
               </button>
@@ -429,14 +429,14 @@ export default function ExamenPage() {
               {currentQ < exam.questions.length - 1 ? (
                 <button
                   onClick={() => setCurrentQ(prev => prev + 1)}
-                  className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 py-3 rounded-xl text-sm transition-colors"
+                  className="flex-1 bg-card-soft-theme hover:bg-card-soft-theme text-sub py-3 rounded-xl text-sm transition-colors"
                 >
                   Siguiente →
                 </button>
               ) : (
                 <button
                   onClick={handleSubmit}
-                  className="flex-1 bg-red-600 hover:bg-red-500 text-white py-3 rounded-xl text-sm font-semibold transition-colors"
+                  className="flex-1 bg-red-600 hover:bg-red-500 text-main py-3 rounded-xl text-sm font-semibold transition-colors"
                 >
                   Entregar examen ✓
                 </button>
@@ -450,10 +450,10 @@ export default function ExamenPage() {
                   onClick={() => setCurrentQ(i)}
                   className={`w-8 h-8 rounded-lg text-xs font-medium transition-all ${
                     i === currentQ
-                      ? "bg-red-600 text-white scale-110"
+                      ? "bg-red-600 text-main scale-110"
                       : answers[q.id]
                         ? "bg-green-500/20 border border-green-500/40 text-green-400"
-                        : "bg-gray-800 text-gray-500 hover:bg-gray-700"
+                        : "bg-card-soft-theme text-muted2 hover:bg-card-soft-theme"
                   }`}
                 >
                   {i + 1}
@@ -466,14 +466,14 @@ export default function ExamenPage() {
         {state === "evaluating" && (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
             <div className="w-14 h-14 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin" />
-            <p className="text-white font-medium">Evaluando tus respuestas...</p>
-            <p className="text-gray-500 text-sm">Analizando {answered} respuestas</p>
+            <p className="text-main font-medium">Evaluando tus respuestas...</p>
+            <p className="text-muted2 text-sm">Analizando {answered} respuestas</p>
           </div>
         )}
 
         {state === "results" && evaluation && exam && (
           <div className="flex flex-col gap-5">
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 text-center">
+            <div className="bg-card-theme border border-soft rounded-2xl p-6 text-center">
               <div className={`text-6xl font-black mb-2 ${scoreColor(evaluation.percentage)}`}>
                 {evaluation.percentage}%
               </div>
@@ -482,11 +482,11 @@ export default function ExamenPage() {
                 {evaluation.grade}
               </div>
 
-              <p className="text-gray-500 text-sm">
+              <p className="text-muted2 text-sm">
                 {evaluation.totalScore} / {evaluation.maxScore} puntos
               </p>
 
-              <div className="mt-4 h-3 bg-gray-800 rounded-full overflow-hidden">
+              <div className="mt-4 h-3 bg-card-soft-theme rounded-full overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all duration-1000 ${
                     evaluation.percentage >= 70
@@ -498,8 +498,8 @@ export default function ExamenPage() {
               </div>
             </div>
 
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
-              <p className="text-gray-300 text-sm leading-relaxed">{evaluation.feedback}</p>
+            <div className="bg-card-theme border border-soft rounded-2xl p-5">
+              <p className="text-sub text-sm leading-relaxed">{evaluation.feedback}</p>
 
               <div className="grid grid-cols-2 gap-3 mt-4">
                 {evaluation.strongAreas.length > 0 && (
@@ -508,7 +508,7 @@ export default function ExamenPage() {
                       ✓ Puntos fuertes
                     </p>
                     {evaluation.strongAreas.map(a => (
-                      <p key={a} className="text-gray-400 text-xs mb-1">
+                      <p key={a} className="text-sub text-xs mb-1">
                         • {a}
                       </p>
                     ))}
@@ -519,7 +519,7 @@ export default function ExamenPage() {
                   <div>
                     <p className="text-red-400 text-xs font-medium mb-2">↑ Por mejorar</p>
                     {evaluation.weakAreas.map(a => (
-                      <p key={a} className="text-gray-400 text-xs mb-1">
+                      <p key={a} className="text-sub text-xs mb-1">
                         • {a}
                       </p>
                     ))}
@@ -529,7 +529,7 @@ export default function ExamenPage() {
             </div>
 
             <div className="flex flex-col gap-3">
-              <h3 className="text-white font-semibold">Revisión pregunta por pregunta</h3>
+              <h3 className="text-main font-semibold">Revisión pregunta por pregunta</h3>
 
               {exam.questions.map((q, i) => {
                 const r = evaluation.results.find(r => r.questionId === q.id)
@@ -541,7 +541,7 @@ export default function ExamenPage() {
                 return (
                   <div
                     key={i}
-                    className={`bg-gray-900 border rounded-2xl p-4 ${
+                    className={`bg-card-theme border rounded-2xl p-4 ${
                       isCorrect
                         ? "border-green-500/30"
                         : isPartial
@@ -563,13 +563,13 @@ export default function ExamenPage() {
                       </span>
 
                       <div className="flex-1 min-w-0">
-                        <div className="text-gray-300 text-sm font-medium mb-1">
+                        <div className="text-sub text-sm font-medium mb-1">
                           <ExamMathText text={q.question} className="inline" />
                         </div>
 
-                        <div className="text-gray-600 text-xs mb-1">
+                        <div className="text-muted2 text-xs mb-1">
                           Tu respuesta:{" "}
-                          <span className="text-gray-400">
+                          <span className="text-sub">
                             <ExamMathText
                               text={answers[q.id] || "Sin responder"}
                               className="inline"
@@ -578,7 +578,7 @@ export default function ExamenPage() {
                         </div>
 
                         {!isCorrect && (
-                          <div className="text-gray-600 text-xs mb-1">
+                          <div className="text-muted2 text-xs mb-1">
                             Correcta:{" "}
                             <span className="text-green-400">
                               <ExamMathText text={q.correctAnswer} className="inline" />
@@ -587,15 +587,15 @@ export default function ExamenPage() {
                         )}
 
                         {q.explanation && (
-                          <div className="text-gray-500 text-xs mb-1">
+                          <div className="text-muted2 text-xs mb-1">
                             Explicación:{" "}
-                            <span className="text-gray-400">
+                            <span className="text-sub">
                               <ExamMathText text={q.explanation} className="inline" />
                             </span>
                           </div>
                         )}
 
-                        <p className="text-gray-500 text-xs italic">{r.feedback}</p>
+                        <p className="text-muted2 text-xs italic">{r.feedback}</p>
 
                         <p className="text-xs mt-1">
                           <span
@@ -623,7 +623,7 @@ export default function ExamenPage() {
                   📚 Recomendaciones de estudio
                 </p>
                 {evaluation.studyRecommendations.map(r => (
-                  <p key={r} className="text-gray-400 text-sm mb-1.5">
+                  <p key={r} className="text-sub text-sm mb-1.5">
                     • {r}
                   </p>
                 ))}
@@ -637,7 +637,7 @@ export default function ExamenPage() {
                   setExam(null)
                   setEval(null)
                 }}
-                className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 py-3 rounded-xl text-sm transition-colors"
+                className="flex-1 bg-card-soft-theme hover:bg-card-soft-theme text-sub py-3 rounded-xl text-sm transition-colors"
               >
                 Nuevo examen
               </button>
@@ -647,7 +647,7 @@ export default function ExamenPage() {
                   setState("config")
                   setLevel("avanzado")
                 }}
-                className="flex-1 bg-red-600 hover:bg-red-500 text-white py-3 rounded-xl text-sm font-medium transition-colors"
+                className="flex-1 bg-red-600 hover:bg-red-500 text-main py-3 rounded-xl text-sm font-medium transition-colors"
               >
                 Repetir más difícil
               </button>

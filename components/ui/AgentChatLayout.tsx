@@ -29,7 +29,7 @@ export default function AgentChatLayout({
   header, welcome, messages, input, loading = false, accentColor = "#3b82f6",
 }: LayoutProps) {
   return (
-    <div className="min-h-screen bg-gray-950 flex flex-col">
+    <div className="min-h-screen bg-app flex flex-col">
       {/* Header fijo arriba */}
       {header}
 
@@ -61,7 +61,7 @@ export default function AgentChatLayout({
       </div>
 
       {/* Input sticky abajo */}
-      <div className="sticky bottom-0 border-t border-white/[0.06] bg-gray-950/90 backdrop-blur-xl">
+      <div className="sticky bottom-0 border-t backdrop-blur-xl" style={{ background: "var(--bg-header)", borderColor: "var(--border-soft)" }}>
         <div className="max-w-3xl mx-auto px-4 py-3">
           {input}
         </div>
@@ -78,7 +78,7 @@ export function UserBubble({ content }: { content: string }) {
         className="max-w-[80%] rounded-2xl rounded-tr-sm px-4 py-3"
         style={{ background: "rgba(59,130,246,0.2)", border: "1px solid rgba(59,130,246,0.3)" }}
       >
-        <p className="text-gray-200 text-sm leading-relaxed whitespace-pre-wrap">{content}</p>
+        <p className="text-main text-sm leading-relaxed whitespace-pre-wrap">{content}</p>
       </div>
     </div>
   )
@@ -102,7 +102,7 @@ export function AgentBubble({
       </div>
       <div
         className="flex-1 rounded-2xl rounded-tl-sm px-4 py-3"
-        style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
+        style={{ background: "var(--bg-input)", border: "1px solid var(--border-soft)" }}
       >
         {children}
       </div>
@@ -129,18 +129,18 @@ export function QuickPrompts({
           key={q.label}
           onClick={() => onSelect(q.prompt)}
           className="flex items-start gap-2.5 p-3 rounded-2xl border text-left transition-all"
-          style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.07)" }}
+          style={{ background: "var(--bg-card-soft)", borderColor: "var(--bg-card-soft)" }}
           onMouseEnter={e => {
             ;(e.currentTarget as HTMLElement).style.background  = `${accentColor}0c`
             ;(e.currentTarget as HTMLElement).style.borderColor = `${accentColor}25`
           }}
           onMouseLeave={e => {
-            ;(e.currentTarget as HTMLElement).style.background  = "rgba(255,255,255,0.02)"
-            ;(e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.07)"
+            ;(e.currentTarget as HTMLElement).style.background  = "var(--bg-card-soft)"
+            ;(e.currentTarget as HTMLElement).style.borderColor = "var(--bg-card-soft)"
           }}
         >
           <span className="text-lg flex-shrink-0">{q.icon}</span>
-          <span className="text-gray-400 text-xs leading-snug mt-0.5">{q.label}</span>
+          <span className="text-muted2 text-xs leading-snug mt-0.5">{q.label}</span>
         </button>
       ))}
     </div>
@@ -182,9 +182,14 @@ export function ChatInput({
           }}
           placeholder={placeholder}
           rows={1}
-          disabled={loading}
-          className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-2xl px-4 py-3 text-gray-200 placeholder-gray-600 text-sm focus:outline-none focus:border-blue-500/30 focus:bg-white/[0.06] transition-all resize-none disabled:opacity-50"
-          style={{ minHeight: "48px", maxHeight: "140px" }}
+           disabled={loading}
+          className="flex-1 rounded-2xl px-4 py-3 text-sm focus:outline-none transition-all resize-none disabled:opacity-50 text-main"
+          style={{
+            background: "var(--bg-input)",
+            border: "1px solid var(--border-medium)",
+            minHeight: "48px",
+            maxHeight: "140px",
+          }}
           onInput={e => {
             const el = e.target as HTMLTextAreaElement
             el.style.height = "auto"
@@ -194,14 +199,14 @@ export function ChatInput({
         <button
           onClick={onSend}
           disabled={loading || !value.trim()}
-          className="flex-shrink-0 w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-white transition-all disabled:opacity-40"
+          className="flex-shrink-0 w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-main transition-all disabled:opacity-40"
           style={{
-            background: value.trim() && !loading ? accentColor : "rgba(255,255,255,0.06)",
+            background: value.trim() && !loading ? accentColor : "var(--bg-card-soft)",
             boxShadow:  value.trim() && !loading ? `0 4px 12px ${accentColor}40` : "none",
           }}
         >
           {loading
-            ? <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+            ? <span className="w-4 h-4 rounded-full border-2 border-soft border-t-white animate-spin" />
             : <span className="text-base">↑</span>
           }
         </button>

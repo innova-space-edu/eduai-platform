@@ -111,7 +111,7 @@ export default function SupportButton() {
         style={{ background: "linear-gradient(135deg, #2563eb, #7c3aed)", boxShadow: "0 4px 20px rgba(37,99,235,0.4)" }}
         title="Soporte y reportes"
       >
-        <LifeBuoy size={22} className="text-white" />
+        <LifeBuoy size={22} className="text-main" />
         {unreadReply > 0 && (
           <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-green-400 text-gray-950 text-[10px] font-bold flex items-center justify-center">
             {unreadReply}
@@ -127,27 +127,27 @@ export default function SupportButton() {
 
           <div
             className="relative w-full sm:w-[420px] max-h-[85vh] flex flex-col rounded-2xl overflow-hidden shadow-2xl"
-            style={{ background: "#0f172a", border: "1px solid rgba(255,255,255,0.08)" }}
+            style={{ background: "var(--bg-card)", border: "1px solid rgba(255,255,255,0.08)" }}
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.07] flex-shrink-0">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-soft flex-shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl flex items-center justify-center"
                      style={{ background: "linear-gradient(135deg, #2563eb, #7c3aed)" }}>
-                  <LifeBuoy size={16} className="text-white" />
+                  <LifeBuoy size={16} className="text-main" />
                 </div>
                 <div>
-                  <p className="text-white font-bold text-sm">Centro de soporte</p>
-                  <p className="text-gray-600 text-[10px]">Colegio Providencia</p>
+                  <p className="text-main font-bold text-sm">Centro de soporte</p>
+                  <p className="text-muted2 text-[10px]">Colegio Providencia</p>
                 </div>
               </div>
-              <button onClick={() => setOpen(false)} className="text-gray-500 hover:text-white transition-colors">
+              <button onClick={() => setOpen(false)} className="text-muted2 hover:text-main transition-colors">
                 <X size={18} />
               </button>
             </div>
 
             {/* Tabs */}
-            <div className="flex border-b border-white/[0.07] flex-shrink-0">
+            <div className="flex border-b border-soft flex-shrink-0">
               {[
                 { id: "new",     label: "Nuevo reporte",  icon: Send          },
                 { id: "history", label: "Mis reportes",   icon: MessageSquare },
@@ -176,21 +176,21 @@ export default function SupportButton() {
                   {sent ? (
                     <div className="flex flex-col items-center py-8 gap-3 animate-fade-in">
                       <CheckCircle2 size={40} className="text-green-400" />
-                      <p className="text-white font-bold">¡Reporte enviado!</p>
-                      <p className="text-gray-400 text-sm text-center">El administrador revisará tu reporte y te responderá pronto.</p>
+                      <p className="text-main font-bold">¡Reporte enviado!</p>
+                      <p className="text-sub text-sm text-center">El administrador revisará tu reporte y te responderá pronto.</p>
                     </div>
                   ) : (
                     <>
                       {/* Categoría */}
                       <div>
-                        <label className="text-gray-500 text-[10px] font-semibold uppercase tracking-widest block mb-2">Categoría</label>
+                        <label className="text-muted2 text-[10px] font-semibold uppercase tracking-widest block mb-2">Categoría</label>
                         <div className="grid grid-cols-1 gap-1.5">
                           {CATEGORIES.map(c => (
                             <button key={c.id} onClick={() => setCategory(c.id)}
                               className="text-left px-3 py-2 rounded-xl border text-xs transition-all"
                               style={{
-                                background:  category === c.id ? "rgba(59,130,246,0.1)" : "rgba(255,255,255,0.02)",
-                                borderColor: category === c.id ? "rgba(59,130,246,0.3)" : "rgba(255,255,255,0.07)",
+                                background:  category === c.id ? "rgba(59,130,246,0.1)" : "var(--bg-card-soft)",
+                                borderColor: category === c.id ? "rgba(59,130,246,0.3)" : "var(--bg-card-soft)",
                                 color:       category === c.id ? "#93c5fd" : "#9ca3af",
                               }}>
                               {c.label}
@@ -201,14 +201,14 @@ export default function SupportButton() {
 
                       {/* Prioridad */}
                       <div>
-                        <label className="text-gray-500 text-[10px] font-semibold uppercase tracking-widest block mb-2">Urgencia</label>
+                        <label className="text-muted2 text-[10px] font-semibold uppercase tracking-widest block mb-2">Urgencia</label>
                         <div className="flex gap-2">
                           {PRIORITIES.map(p => (
                             <button key={p.id} onClick={() => setPriority(p.id)}
                               className="flex-1 py-2 rounded-xl border text-[10px] font-semibold transition-all"
                               style={{
-                                background:  priority === p.id ? `${p.color}18` : "rgba(255,255,255,0.02)",
-                                borderColor: priority === p.id ? `${p.color}50` : "rgba(255,255,255,0.07)",
+                                background:  priority === p.id ? `${p.color}18` : "var(--bg-card-soft)",
+                                borderColor: priority === p.id ? `${p.color}50` : "var(--bg-card-soft)",
                                 color:       priority === p.id ? p.color : "#6b7280",
                               }}>
                               {p.label}
@@ -219,22 +219,22 @@ export default function SupportButton() {
 
                       {/* Asunto */}
                       <div>
-                        <label className="text-gray-500 text-[10px] font-semibold uppercase tracking-widest block mb-2">Asunto *</label>
+                        <label className="text-muted2 text-[10px] font-semibold uppercase tracking-widest block mb-2">Asunto *</label>
                         <input
                           value={subject} onChange={e => setSubject(e.target.value)}
                           placeholder="Describe brevemente el problema..."
-                          className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-blue-500/40 transition-all"
+                          className="w-full bg-card-soft-theme border border-soft rounded-xl px-3 py-2.5 text-sm text-main placeholder-gray-400 focus:outline-none focus:border-blue-500/40 transition-all"
                         />
                       </div>
 
                       {/* Descripción */}
                       <div>
-                        <label className="text-gray-500 text-[10px] font-semibold uppercase tracking-widest block mb-2">Descripción *</label>
+                        <label className="text-muted2 text-[10px] font-semibold uppercase tracking-widest block mb-2">Descripción *</label>
                         <textarea
                           value={description} onChange={e => setDescription(e.target.value)}
                           placeholder="Explica con detalle qué ocurrió, qué esperabas que pasara y cualquier información adicional relevante..."
                           rows={4}
-                          className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-blue-500/40 resize-none transition-all"
+                          className="w-full bg-card-soft-theme border border-soft rounded-xl px-3 py-2.5 text-sm text-main placeholder-gray-400 focus:outline-none focus:border-blue-500/40 resize-none transition-all"
                         />
                       </div>
 
@@ -259,12 +259,12 @@ export default function SupportButton() {
                 <div className="p-4">
                   {loadingHist ? (
                     <div className="flex justify-center py-10">
-                      <div className="w-8 h-8 rounded-full border-2 border-white/10 border-t-blue-400 animate-spin" />
+                      <div className="w-8 h-8 rounded-full border-2 border-soft border-t-blue-400 animate-spin" />
                     </div>
                   ) : reports.length === 0 ? (
                     <div className="text-center py-10">
-                      <MessageSquare size={32} className="text-gray-700 mx-auto mb-2" />
-                      <p className="text-gray-500 text-sm">Sin reportes enviados</p>
+                      <MessageSquare size={32} className="text-muted2 mx-auto mb-2" />
+                      <p className="text-muted2 text-sm">Sin reportes enviados</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -273,16 +273,16 @@ export default function SupportButton() {
                         const Icon = meta.icon
                         return (
                           <div key={r.id} className="rounded-2xl border p-3.5 space-y-2"
-                               style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.07)" }}>
+                               style={{ background: "var(--bg-card-soft)", borderColor: "var(--bg-card-soft)" }}>
                             <div className="flex items-start justify-between gap-2">
-                              <p className="text-white text-xs font-semibold leading-snug flex-1">{r.subject}</p>
+                              <p className="text-main text-xs font-semibold leading-snug flex-1">{r.subject}</p>
                               <div className="flex items-center gap-1 flex-shrink-0">
                                 <Icon size={11} style={{ color: meta.color }} />
                                 <span className="text-[10px] font-medium" style={{ color: meta.color }}>{meta.label}</span>
                               </div>
                             </div>
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-[10px] text-gray-600">
+                              <span className="text-[10px] text-muted2">
                                 {new Date(r.created_at).toLocaleDateString("es-CL", { day: "numeric", month: "short", year: "numeric" })}
                               </span>
                               {PRIORITIES.find(p => p.id === r.priority) && (
@@ -299,7 +299,7 @@ export default function SupportButton() {
                               <div className="rounded-xl p-2.5 mt-1 border border-green-500/20"
                                    style={{ background: "rgba(34,197,94,0.06)" }}>
                                 <p className="text-green-400 text-[10px] font-semibold mb-1">✓ Respuesta del administrador:</p>
-                                <p className="text-gray-300 text-xs leading-relaxed">{r.admin_reply}</p>
+                                <p className="text-sub text-xs leading-relaxed">{r.admin_reply}</p>
                               </div>
                             )}
                           </div>

@@ -63,12 +63,12 @@ const ROOM_PRESETS: Array<{ slug: SocialRoomSlug; emoji: string; title: string; 
 ]
 
 const ROLE_COLORS: Record<string, { dot: string; name: string }> = {
-  supervisor:    { dot: "bg-cyan-400",    name: "text-cyan-300" },
-  researcher:    { dot: "bg-violet-400",  name: "text-violet-300" },
-  educator:      { dot: "bg-emerald-400", name: "text-emerald-300" },
-  mathematician: { dot: "bg-amber-400",   name: "text-amber-300" },
-  creative:      { dot: "bg-fuchsia-400", name: "text-fuchsia-300" },
-  assistant:     { dot: "bg-slate-400",   name: "text-slate-300" },
+  supervisor:    { dot: "bg-cyan-400",    name: "text-cyan-700" },
+  researcher:    { dot: "bg-violet-400",  name: "text-violet-700" },
+  educator:      { dot: "bg-emerald-400", name: "text-emerald-700" },
+  mathematician: { dot: "bg-amber-400",   name: "text-amber-700" },
+  creative:      { dot: "bg-fuchsia-400", name: "text-fuchsia-700" },
+  assistant:     { dot: "bg-slate-300",   name: "text-sub" },
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -86,24 +86,24 @@ function MessageBubble({ msg, isUser }: { msg: SocialMessage; isUser: boolean })
     <div className={`flex gap-3 ${isUser ? "flex-row-reverse" : ""}`}>
       <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-[11px] font-bold
         ${isUser
-          ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
-          : "bg-slate-800 border border-white/10 text-white"}`}>
+          ? "bg-cyan-500/20 text-cyan-700 border border-cyan-500/30"
+          : "bg-card-soft-theme text-main"}`}>
         {isUser ? "Tú" : msg.authorName.slice(0, 2)}
       </div>
       <div className={`max-w-[78%] flex flex-col gap-1 ${isUser ? "items-end" : "items-start"}`}>
         {!isUser && (
           <span className={`text-[11px] font-semibold ${colors.name}`}>
             {msg.authorName}
-            <span className="text-slate-600 font-normal ml-1.5 uppercase tracking-wide text-[10px]">{msg.role}</span>
+            <span className="text-muted2 font-normal ml-1.5 uppercase tracking-wide text-[10px]">{msg.role}</span>
           </span>
         )}
         <div className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed
           ${isUser
-            ? "bg-cyan-500/15 border border-cyan-500/20 text-white rounded-tr-sm"
-            : "bg-slate-800/80 border border-white/[0.07] text-slate-200 rounded-tl-sm"}`}>
+            ? "bg-cyan-500/15 border border-cyan-500/20 text-main rounded-tr-sm"
+            : "bg-card-soft-theme text-main rounded-tl-sm"}`}>
           {msg.content}
         </div>
-        <span className="text-[10px] text-slate-600 px-1">{timeAgo(msg.createdAt)}</span>
+        <span className="text-[10px] text-muted2 px-1">{timeAgo(msg.createdAt)}</span>
       </div>
     </div>
   )
@@ -346,17 +346,17 @@ export default function AISocialPage() {
   // ════════════════════════════════════════════════════════════════════════════
   if (phase === "start") {
     return (
-      <div className="min-h-screen bg-[#0d1117] text-white flex flex-col">
-        <header className="sticky top-0 z-20 border-b border-white/[0.06] bg-[#0d1117]/90 backdrop-blur-sm">
+      <div className="min-h-screen bg-[#0d1117] text-main flex flex-col">
+        <header className="sticky top-0 z-20 border-b border-soft bg-[#0d1117]/90 backdrop-blur-sm">
           <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Link href="/" className="text-slate-400 hover:text-white transition text-sm">←</Link>
+              <Link href="/" className="text-sub hover:text-main transition text-sm">←</Link>
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-full bg-gradient-to-br from-cyan-500 to-violet-600 flex items-center justify-center text-xs font-bold">C</div>
                 <p className="text-sm font-semibold">EduAI Social</p>
               </div>
             </div>
-            <Link href="/superagent" className="text-[11px] text-slate-500 hover:text-slate-300 transition px-2 py-1 rounded-lg border border-white/10 hover:border-white/20">
+            <Link href="/superagent" className="text-[11px] text-muted2 hover:text-sub transition px-2 py-1 rounded-lg border border-soft hover:border-medium">
               Claw ↗
             </Link>
           </div>
@@ -366,31 +366,31 @@ export default function AISocialPage() {
           <div className="w-full max-w-lg space-y-6">
             {/* Hero */}
             <div className="text-center space-y-2">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-violet-600/20 border border-white/10 flex items-center justify-center text-2xl mx-auto">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-violet-600/20 border border-soft flex items-center justify-center text-2xl mx-auto">
                 💬
               </div>
               <h1 className="text-2xl font-bold">Chat social de agentes</h1>
-              <p className="text-sm text-slate-400">
+              <p className="text-sm text-sub">
                 Elige un tema y los agentes de EduAI conversan entre sí y contigo.
               </p>
             </div>
 
             {/* Topic input */}
-            <div className="rounded-2xl border border-white/[0.08] bg-slate-900/60 p-4 space-y-3">
-              <label className="text-xs text-slate-500 uppercase tracking-wide">¿Sobre qué quieres conversar?</label>
+            <div className="rounded-2xl border border-medium bg-card-theme p-4 space-y-3">
+              <label className="text-xs text-muted2 uppercase tracking-wide">¿Sobre qué quieres conversar?</label>
               <textarea
                 value={topicInput}
                 onChange={e => setTopicInput(e.target.value)}
                 onKeyDown={handleTopicKeyDown}
                 rows={3}
                 autoFocus
-                className="w-full bg-transparent text-sm text-white outline-none resize-none placeholder-slate-600"
+                className="w-full bg-transparent text-sm text-main outline-none resize-none placeholder-gray-400"
                 placeholder="Escribe tu tema, pregunta u opinión... (Enter para iniciar)"
               />
               <button
                 onClick={() => createSession(topicInput)}
                 disabled={loading || !topicInput.trim()}
-                className="w-full py-2.5 rounded-xl bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 text-sm font-medium hover:bg-cyan-500/30 transition disabled:opacity-30"
+                className="w-full py-2.5 rounded-xl bg-cyan-500/20 border border-cyan-500/30 text-cyan-700 text-sm font-medium hover:bg-cyan-500/30 transition disabled:opacity-30"
               >
                 {loading ? "Iniciando..." : "Iniciar conversación →"}
               </button>
@@ -398,25 +398,25 @@ export default function AISocialPage() {
 
             {/* Room presets */}
             <div className="space-y-2">
-              <p className="text-xs text-slate-600 text-center">o elige una sala temática</p>
+              <p className="text-xs text-muted2 text-center">o elige una sala temática</p>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                 {ROOM_PRESETS.map(r => (
                   <button
                     key={r.slug}
                     onClick={() => { setTopicInput(r.suggestedGoal); createSession(r.suggestedGoal) }}
                     disabled={loading}
-                    className="flex flex-col gap-1 p-3 rounded-2xl border border-white/[0.07] bg-slate-900/40 hover:border-white/20 hover:bg-slate-800/60 transition text-left disabled:opacity-40"
+                    className="flex flex-col gap-1 p-3 rounded-2xl border border-soft bg-card-theme hover:border-medium hover:bg-card-soft-theme transition text-left disabled:opacity-40"
                   >
                     <span className="text-lg">{r.emoji}</span>
-                    <span className="text-xs font-semibold text-slate-200">{r.title}</span>
-                    <span className="text-[10px] text-slate-500 line-clamp-2">{r.suggestedGoal}</span>
+                    <span className="text-xs font-semibold text-main">{r.title}</span>
+                    <span className="text-[10px] text-muted2 line-clamp-2">{r.suggestedGoal}</span>
                   </button>
                 ))}
               </div>
             </div>
 
             {error && (
-              <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-2.5 text-sm text-rose-200">
+              <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-2.5 text-sm text-rose-700">
                 {error}
               </div>
             )}
@@ -430,15 +430,15 @@ export default function AISocialPage() {
   // PANTALLA CHAT
   // ════════════════════════════════════════════════════════════════════════════
   return (
-    <div className="min-h-screen bg-[#0d1117] text-white flex flex-col">
+    <div className="min-h-screen bg-[#0d1117] text-main flex flex-col">
 
       {/* ── Top bar ── */}
-      <header className="sticky top-0 z-20 border-b border-white/[0.06] bg-[#0d1117]/90 backdrop-blur-sm">
+      <header className="sticky top-0 z-20 border-b border-soft bg-[#0d1117]/90 backdrop-blur-sm">
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <button
               onClick={() => { setPhase("start"); setSession(null) }}
-              className="text-slate-400 hover:text-white transition text-sm"
+              className="text-sub hover:text-main transition text-sm"
             >
               ←
             </button>
@@ -446,11 +446,11 @@ export default function AISocialPage() {
               <div className="w-7 h-7 rounded-full bg-gradient-to-br from-cyan-500 to-violet-600 flex-shrink-0 flex items-center justify-center text-xs font-bold">C</div>
               <div className="min-w-0">
                 <p className="text-sm font-semibold leading-none truncate">{session?.room?.title ?? "..."}</p>
-                <p className="text-[11px] text-slate-500 leading-none mt-0.5">
+                <p className="text-[11px] text-muted2 leading-none mt-0.5">
                   <span className={session?.status === "active" ? "text-emerald-400" : "text-amber-400"}>
                     {session?.status === "active" ? "activa" : "pausada"}
                   </span>
-                  {session?.status === "active" && <span className="text-slate-600"> · {countdown}s</span>}
+                  {session?.status === "active" && <span className="text-muted2"> · {countdown}s</span>}
                   {" · "}{session?.participants?.length ?? 0} agentes
                 </p>
               </div>
@@ -466,15 +466,15 @@ export default function AISocialPage() {
                   onClick={() => createSession(r.suggestedGoal)}
                   className={`text-[11px] px-2 py-1 rounded-full border transition ${
                     activeRoomSlug === r.slug
-                      ? "border-cyan-400/40 bg-cyan-400/10 text-cyan-300"
-                      : "border-white/10 text-slate-600 hover:text-slate-300 hover:border-white/20"
+                      ? "border-cyan-400/40 bg-cyan-400/10 text-cyan-700"
+                      : "border-soft text-muted2 hover:text-sub hover:border-medium"
                   }`}
                 >
                   {r.emoji}
                 </button>
               ))}
             </div>
-            <Link href="/superagent" className="text-[11px] text-slate-500 hover:text-slate-300 transition px-2 py-1 rounded-lg border border-white/10 hover:border-white/20">
+            <Link href="/superagent" className="text-[11px] text-muted2 hover:text-sub transition px-2 py-1 rounded-lg border border-soft hover:border-medium">
               Claw ↗
             </Link>
           </div>
@@ -486,11 +486,11 @@ export default function AISocialPage() {
 
         {/* Topic badge */}
         {goal && (
-          <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2 flex items-center justify-between gap-2">
-            <p className="text-xs text-slate-400 truncate flex-1">{goal}</p>
+          <div className="rounded-xl border border-soft bg-card-soft-theme px-3 py-2 flex items-center justify-between gap-2">
+            <p className="text-xs text-sub truncate flex-1">{goal}</p>
             <button
               onClick={() => setPhase("start")}
-              className="flex-shrink-0 text-[10px] px-2.5 py-1 rounded-lg border border-white/10 text-slate-500 hover:text-white hover:border-white/20 transition"
+              className="flex-shrink-0 text-[10px] px-2.5 py-1 rounded-lg border border-soft text-muted2 hover:text-main hover:border-medium transition"
             >
               Cambiar
             </button>
@@ -500,20 +500,20 @@ export default function AISocialPage() {
         {/* Action suggestion banner */}
         {actionSuggestion?.detected && (
           <div className="rounded-2xl border border-violet-400/20 bg-violet-400/10 px-4 py-3 space-y-2">
-            <p className="text-xs font-semibold text-violet-300">⚡ EduAI Claw sugiere</p>
-            <p className="text-sm text-slate-200">{actionSuggestion.label}</p>
-            <p className="text-xs text-slate-400">{actionSuggestion.reason}</p>
+            <p className="text-xs font-semibold text-violet-700">⚡ EduAI Claw sugiere</p>
+            <p className="text-sm text-main">{actionSuggestion.label}</p>
+            <p className="text-xs text-sub">{actionSuggestion.reason}</p>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[10px] px-2 py-0.5 rounded-full border border-violet-400/20 bg-violet-400/10 text-violet-300">
+              <span className="text-[10px] px-2 py-0.5 rounded-full border border-violet-400/20 bg-violet-400/10 text-violet-700">
                 {actionSuggestion.intent}
               </span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full border border-cyan-400/20 bg-cyan-400/10 text-cyan-300">
+              <span className="text-[10px] px-2 py-0.5 rounded-full border border-cyan-400/20 bg-cyan-400/10 text-cyan-700">
                 → {actionSuggestion.target}
               </span>
               <button
                 onClick={executeDetectedAction}
                 disabled={loading}
-                className="ml-auto text-[11px] px-3 py-1.5 rounded-xl border border-violet-400/30 bg-violet-400/10 text-violet-200 hover:bg-violet-400/20 transition disabled:opacity-40"
+                className="ml-auto text-[11px] px-3 py-1.5 rounded-xl border border-violet-400/30 bg-violet-400/10 text-violet-700 hover:bg-violet-400/20 transition disabled:opacity-40"
               >
                 {loading ? "Ejecutando..." : "Ejecutar →"}
               </button>
@@ -523,7 +523,7 @@ export default function AISocialPage() {
 
         {/* Error */}
         {error && (
-          <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-2.5 text-sm text-rose-200">
+          <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-2.5 text-sm text-rose-700">
             {error}
           </div>
         )}
@@ -531,9 +531,9 @@ export default function AISocialPage() {
         {/* Chat feed */}
         <div className="flex-1 space-y-4 py-2 min-h-[300px]">
           {!session ? (
-            <div className="flex items-center justify-center h-48 text-slate-600 text-sm">Cargando...</div>
+            <div className="flex items-center justify-center h-48 text-muted2 text-sm">Cargando...</div>
           ) : session.messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-48 gap-2 text-slate-600">
+            <div className="flex flex-col items-center justify-center h-48 gap-2 text-muted2">
               <div className="text-3xl">💬</div>
               <p className="text-sm">La conversación aparecerá aquí</p>
             </div>
@@ -545,14 +545,14 @@ export default function AISocialPage() {
 
           {sending && (
             <div className="flex gap-3">
-              <div className="w-8 h-8 rounded-full bg-slate-800 border border-white/10 flex-shrink-0 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full bg-card-soft-theme flex-shrink-0 flex items-center justify-center">
                 <span className="flex gap-0.5">
                   {[0, 150, 300].map(d => (
                     <span key={d} className="w-1 h-1 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: `${d}ms` }} />
                   ))}
                 </span>
               </div>
-              <div className="rounded-2xl rounded-tl-sm px-4 py-3 bg-slate-800/80 border border-white/[0.07] text-slate-500 text-xs">
+              <div className="rounded-2xl rounded-tl-sm px-4 py-3 bg-card-soft-theme text-muted2 text-xs">
                 Agentes respondiendo...
               </div>
             </div>
@@ -566,9 +566,9 @@ export default function AISocialPage() {
             {session.participants.map(p => {
               const c = ROLE_COLORS[p.role] || ROLE_COLORS.assistant
               return (
-                <div key={p.id} className="flex-shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-white/[0.07] bg-white/[0.02]">
+                <div key={p.id} className="flex-shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-soft bg-card-soft-theme">
                   <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
-                  <span className="text-[11px] text-slate-300">{p.name}</span>
+                  <span className="text-[11px] text-sub">{p.name}</span>
                 </div>
               )
             })}
@@ -578,11 +578,11 @@ export default function AISocialPage() {
         {/* Paused banner */}
         {session?.status === "paused" && (
           <div className="rounded-2xl border border-amber-400/20 bg-amber-400/5 px-4 py-3 flex items-center justify-between gap-3">
-            <p className="text-sm text-amber-300">Conversación pausada</p>
+            <p className="text-sm text-amber-700">Conversación pausada</p>
             <button
               onClick={resumeSession}
               disabled={loading}
-              className="text-xs px-3 py-1.5 rounded-xl border border-amber-400/30 bg-amber-400/10 text-amber-300 hover:bg-amber-400/20 transition disabled:opacity-40"
+              className="text-xs px-3 py-1.5 rounded-xl border border-amber-400/30 bg-amber-400/10 text-amber-700 hover:bg-amber-400/20 transition disabled:opacity-40"
             >
               {loading ? "..." : "Reanudar →"}
             </button>
@@ -590,7 +590,7 @@ export default function AISocialPage() {
         )}
 
         {/* Input box */}
-        <div className="rounded-2xl border border-white/[0.08] bg-slate-900/80 p-3">
+        <div className="rounded-2xl border border-medium bg-card-theme p-3">
           <textarea
             value={userMessage}
             onChange={e => setUserMessage(e.target.value)}
@@ -598,12 +598,12 @@ export default function AISocialPage() {
             onKeyDown={handleKeyDown}
             disabled={!session || session.status !== "active" || sending}
             rows={2}
-            className="w-full bg-transparent text-sm text-white outline-none resize-none placeholder-slate-600 disabled:opacity-40"
+            className="w-full bg-transparent text-sm text-main outline-none resize-none placeholder-gray-400 disabled:opacity-40"
             placeholder={session?.status === "active"
               ? "Escribe un mensaje o tu opinión... (Enter para enviar)"
               : "Reanuda la conversación para escribir"}
           />
-          <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/[0.06]">
+          <div className="flex items-center justify-between mt-2 pt-2 border-t border-soft">
             <div className="flex items-center gap-2">
               <button
                 onClick={createDraft}
@@ -616,7 +616,7 @@ export default function AISocialPage() {
               {session?.status === "active" && (
                 <button
                   onClick={() => session?.sessionId && pauseSession(session.sessionId)}
-                  className="text-[11px] px-3 py-1.5 rounded-xl border border-white/10 text-slate-500 hover:text-slate-300 hover:border-white/20 transition"
+                  className="text-[11px] px-3 py-1.5 rounded-xl border border-soft text-muted2 hover:text-sub hover:border-medium transition"
                 >
                   Pausar
                 </button>
@@ -625,7 +625,7 @@ export default function AISocialPage() {
             <button
               onClick={sendUserMessage}
               disabled={sending || !session || session.status !== "active" || !userMessage.trim()}
-              className="px-4 py-1.5 rounded-xl bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 text-sm font-medium hover:bg-cyan-500/30 transition disabled:opacity-30"
+              className="px-4 py-1.5 rounded-xl bg-cyan-500/20 border border-cyan-500/30 text-cyan-700 text-sm font-medium hover:bg-cyan-500/30 transition disabled:opacity-30"
             >
               {sending ? "..." : "Enviar →"}
             </button>
@@ -637,15 +637,15 @@ export default function AISocialPage() {
           <div className="rounded-2xl border border-emerald-400/15 bg-emerald-400/5 p-4 space-y-3">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-sm font-semibold text-emerald-300">Borrador generado ✓</p>
-                <p className="text-xs text-slate-400 mt-1">{draftResponse.draft.summary}</p>
+                <p className="text-sm font-semibold text-emerald-700">Borrador generado ✓</p>
+                <p className="text-xs text-sub mt-1">{draftResponse.draft.summary}</p>
               </div>
-              <span className="text-[10px] px-2 py-1 rounded-lg border border-emerald-400/20 bg-emerald-400/10 text-emerald-300 flex-shrink-0">
+              <span className="text-[10px] px-2 py-1 rounded-lg border border-emerald-400/20 bg-emerald-400/10 text-emerald-700 flex-shrink-0">
                 {draftResponse.draft.draftType}
               </span>
             </div>
-            <div className="rounded-xl border border-white/[0.07] bg-slate-950/60 p-3 max-h-48 overflow-y-auto">
-              <pre className="whitespace-pre-wrap text-xs leading-6 text-slate-300">
+            <div className="rounded-xl border border-soft bg-app p-3 max-h-48 overflow-y-auto">
+              <pre className="whitespace-pre-wrap text-xs leading-6 text-sub">
                 {draftResponse.draft.content}
               </pre>
             </div>
@@ -657,10 +657,10 @@ export default function AISocialPage() {
           <div className="rounded-2xl border border-cyan-400/15 bg-cyan-400/5 p-4 space-y-3">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-sm font-semibold text-cyan-300">Acción ejecutada por EduAI Claw</p>
-                <p className="text-xs text-slate-300 mt-1">{executedAction.message}</p>
+                <p className="text-sm font-semibold text-cyan-700">Acción ejecutada por EduAI Claw</p>
+                <p className="text-xs text-sub mt-1">{executedAction.message}</p>
               </div>
-              <span className="text-[10px] px-2 py-1 rounded-lg border border-cyan-400/20 bg-cyan-400/10 text-cyan-300 flex-shrink-0">
+              <span className="text-[10px] px-2 py-1 rounded-lg border border-cyan-400/20 bg-cyan-400/10 text-cyan-700 flex-shrink-0">
                 {executedAction.target}
               </span>
             </div>
@@ -670,16 +670,16 @@ export default function AISocialPage() {
                 { label: "Target", value: executedAction.target },
                 { label: "Modo",   value: executedAction.mode },
               ].map(item => (
-                <div key={item.label} className="rounded-xl border border-white/[0.07] bg-slate-900/70 p-2.5">
-                  <p className="text-[10px] uppercase tracking-wide text-slate-500">{item.label}</p>
-                  <p className="text-xs font-medium text-white mt-0.5">{item.value}</p>
+                <div key={item.label} className="rounded-xl border border-soft bg-card-theme p-2.5">
+                  <p className="text-[10px] uppercase tracking-wide text-muted2">{item.label}</p>
+                  <p className="text-xs font-medium text-main mt-0.5">{item.value}</p>
                 </div>
               ))}
             </div>
             {executedAction.payload && (
-              <div className="rounded-xl border border-white/[0.07] bg-slate-950/60 p-3 max-h-40 overflow-y-auto">
-                <p className="text-[10px] text-slate-500 mb-2">Payload preparado</p>
-                <pre className="whitespace-pre-wrap text-xs leading-6 text-slate-300">
+              <div className="rounded-xl border border-soft bg-app p-3 max-h-40 overflow-y-auto">
+                <p className="text-[10px] text-muted2 mb-2">Payload preparado</p>
+                <pre className="whitespace-pre-wrap text-xs leading-6 text-sub">
                   {JSON.stringify(executedAction.payload, null, 2)}
                 </pre>
               </div>

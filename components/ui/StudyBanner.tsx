@@ -33,15 +33,15 @@ export default function StudyBanner({
   const gradient  = levelGradients[level] || levelGradients[1]
 
   return (
-    <div className="sticky top-[57px] z-10 border-b border-white/[0.06] bg-gray-950/70 backdrop-blur-xl">
+    <div className="sticky top-[57px] z-10 border-b border-soft bg-app backdrop-blur-xl">
       <div className="max-w-4xl mx-auto px-4 py-2 flex items-center justify-between gap-4">
 
         {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-xs text-gray-500 min-w-0">
-          <span className="truncate max-w-[120px] sm:max-w-none text-gray-400">{topic}</span>
+        <div className="flex items-center gap-2 text-xs text-muted2 min-w-0">
+          <span className="truncate max-w-[120px] sm:max-w-none text-sub">{topic}</span>
           {subtopic && subtopic !== topic && (
             <>
-              <svg width="10" height="10" viewBox="0 0 10 10" className="text-gray-700 flex-shrink-0">
+              <svg width="10" height="10" viewBox="0 0 10 10" className="text-muted2 flex-shrink-0">
                 <path d="M3 2l4 3-4 3" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
               <span className="text-blue-400 truncate max-w-[140px]">{subtopic}</span>
@@ -55,7 +55,7 @@ export default function StudyBanner({
           {/* Level badge */}
           <div className="hidden sm:flex items-center gap-1.5">
             <div className={`w-2 h-2 rounded-full bg-gradient-to-br ${gradient}`} />
-            <span className="text-xs text-gray-400 font-medium">
+            <span className="text-xs text-sub font-medium">
               Nv.{level} {levelName}
             </span>
           </div>

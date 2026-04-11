@@ -49,19 +49,19 @@ function ConversationModal({
     new Date(d).toLocaleDateString("es-CL", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })
 
   const scoreColor = (score?: number) => {
-    if (!score) return "text-gray-500"
+    if (!score) return "text-muted2"
     if (score >= 80) return "text-green-400"
     if (score >= 50) return "text-amber-400"
     return "text-red-400"
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-gray-950">
+    <div className="fixed inset-0 z-50 flex flex-col bg-app">
       {/* Header */}
-      <div className="border-b border-gray-800 bg-gray-900/90 backdrop-blur px-4 py-3 sticky top-0 z-10 flex items-center gap-3">
+      <div className="border-b border-soft bg-header-theme backdrop-blur px-4 py-3 sticky top-0 z-10 flex items-center gap-3">
         <button
           onClick={onClose}
-          className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition-all text-sm"
+          className="w-8 h-8 flex items-center justify-center rounded-lg bg-card-soft-theme hover:bg-card-soft-theme text-sub hover:text-main transition-all text-sm"
         >
           ←
         </button>
@@ -69,28 +69,28 @@ function ConversationModal({
           📖
         </div>
         <div className="flex-1 min-w-0">
-          <h2 className="text-white font-semibold text-sm truncate">{session.topic}</h2>
-          <p className="text-gray-500 text-xs">{formatDate(session.created_at)}</p>
+          <h2 className="text-main font-semibold text-sm truncate">{session.topic}</h2>
+          <p className="text-muted2 text-xs">{formatDate(session.created_at)}</p>
         </div>
         {session.score !== undefined && session.score !== null && (
           <div className={`text-right flex-shrink-0 ${scoreColor(session.score)}`}>
             <p className="text-lg font-bold">{session.score}%</p>
-            <p className="text-xs text-gray-600">quiz</p>
+            <p className="text-xs text-muted2">quiz</p>
           </div>
         )}
       </div>
 
       {/* Stats rápidas */}
-      <div className="flex gap-3 px-4 py-3 border-b border-gray-800 bg-gray-900/50 overflow-x-auto">
+      <div className="flex gap-3 px-4 py-3 border-b border-soft bg-card-theme overflow-x-auto">
         {[
           { label: "Modo", value: session.study_mode || "normal" },
           { label: "Mensajes", value: session.messages_count?.toString() || "—" },
           { label: "Correctas", value: session.correct_answers !== undefined ? `${session.correct_answers}/${session.total_questions}` : "—" },
           { label: "Estado", value: session.status === "completed" ? "✓ Completada" : "En progreso" },
         ].map(stat => (
-          <div key={stat.label} className="flex-shrink-0 bg-gray-800/60 rounded-xl px-3 py-2 text-center min-w-[80px]">
-            <p className="text-white text-sm font-semibold">{stat.value}</p>
-            <p className="text-gray-500 text-[10px] mt-0.5">{stat.label}</p>
+          <div key={stat.label} className="flex-shrink-0 bg-card-soft-theme rounded-xl px-3 py-2 text-center min-w-[80px]">
+            <p className="text-main text-sm font-semibold">{stat.value}</p>
+            <p className="text-muted2 text-[10px] mt-0.5">{stat.label}</p>
           </div>
         ))}
       </div>
@@ -100,20 +100,20 @@ function ConversationModal({
         {loading && (
           <div className="flex flex-col items-center gap-3 py-16">
             <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-            <p className="text-gray-500 text-sm">Cargando conversación...</p>
+            <p className="text-muted2 text-sm">Cargando conversación...</p>
           </div>
         )}
 
         {!loading && messages.length === 0 && (
           <div className="text-center py-16">
             <p className="text-4xl mb-3">💬</p>
-            <h3 className="text-white font-semibold mb-1">Conversación no guardada</h3>
-            <p className="text-gray-500 text-sm mb-6">
+            <h3 className="text-main font-semibold mb-1">Conversación no guardada</h3>
+            <p className="text-muted2 text-sm mb-6">
               Esta sesión fue creada antes de que el guardado de mensajes estuviera activo.
             </p>
             <Link
               href={`/study/${encodeURIComponent(session.topic)}`}
-              className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl text-sm font-medium transition-colors"
+              className="bg-blue-600 hover:bg-blue-500 text-main px-5 py-2.5 rounded-xl text-sm font-medium transition-colors"
             >
               Estudiar de nuevo →
             </Link>
@@ -135,18 +135,18 @@ function ConversationModal({
                 ) : (
                   <div className="flex justify-end">
                     <div className="bg-blue-600/20 border border-blue-600/30 rounded-2xl rounded-tr-sm px-4 py-3 max-w-lg">
-                      <p className="text-gray-200 text-sm leading-relaxed">{msg.content}</p>
+                      <p className="text-main text-sm leading-relaxed">{msg.content}</p>
                     </div>
                   </div>
                 )}
               </div>
             ))}
 
-            <div className="pt-4 border-t border-gray-800 text-center">
-              <p className="text-gray-600 text-xs mb-3">— Fin de la sesión —</p>
+            <div className="pt-4 border-t border-soft text-center">
+              <p className="text-muted2 text-xs mb-3">— Fin de la sesión —</p>
               <Link
                 href={`/study/${encodeURIComponent(session.topic)}`}
-                className="bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 px-5 py-2.5 rounded-xl text-sm font-medium transition-colors inline-flex items-center gap-2"
+                className="bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-700 px-5 py-2.5 rounded-xl text-sm font-medium transition-colors inline-flex items-center gap-2"
               >
                 🔄 Continuar estudiando este tema
               </Link>
@@ -193,7 +193,7 @@ export default function SessionsPage() {
     new Date(d).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })
 
   const scoreColor = (score?: number) => {
-    if (!score) return "text-gray-600"
+    if (!score) return "text-muted2"
     if (score >= 80) return "text-green-400"
     if (score >= 50) return "text-amber-400"
     return "text-red-400"
@@ -221,13 +221,13 @@ export default function SessionsPage() {
         />
       )}
 
-      <div className="min-h-screen bg-gray-950 flex flex-col">
+      <div className="min-h-screen bg-app flex flex-col">
         {/* Header */}
-        <div className="border-b border-gray-800 bg-gray-900/80 sticky top-0 z-10">
+        <div className="border-b border-soft bg-header-theme sticky top-0 z-10">
           <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
             <button
               onClick={() => router.back()}
-              className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition-all text-sm"
+              className="w-8 h-8 flex items-center justify-center rounded-lg bg-card-soft-theme hover:bg-card-soft-theme text-sub hover:text-main transition-all text-sm"
             >
               ←
             </button>
@@ -235,12 +235,12 @@ export default function SessionsPage() {
               📚
             </div>
             <div className="flex-1">
-              <h1 className="text-white font-semibold text-sm">Mis Sesiones</h1>
-              <p className="text-gray-500 text-xs">{sessions.length} sesiones guardadas</p>
+              <h1 className="text-main font-semibold text-sm">Mis Sesiones</h1>
+              <p className="text-muted2 text-xs">{sessions.length} sesiones guardadas</p>
             </div>
             <Link
               href="/dashboard"
-              className="text-xs bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg transition-colors"
+              className="text-xs bg-blue-600 hover:bg-blue-500 text-main px-3 py-1.5 rounded-lg transition-colors"
             >
               + Nueva sesión
             </Link>
@@ -254,24 +254,24 @@ export default function SessionsPage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Buscar sesión por tema..."
-            className="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-2.5 text-gray-200 text-sm placeholder-gray-600 focus:outline-none focus:border-blue-500/50"
+            className="w-full bg-card-theme border border-soft rounded-xl px-4 py-2.5 text-main text-sm placeholder-gray-400 focus:outline-none focus:border-blue-500/50"
           />
 
           {/* Stats */}
           <div className="grid grid-cols-3 gap-3">
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-3 text-center">
+            <div className="bg-card-theme border border-soft rounded-xl p-3 text-center">
               <p className="text-2xl font-bold text-blue-400">{sessions.length}</p>
-              <p className="text-gray-600 text-xs mt-0.5">Total sesiones</p>
+              <p className="text-muted2 text-xs mt-0.5">Total sesiones</p>
             </div>
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-3 text-center">
+            <div className="bg-card-theme border border-soft rounded-xl p-3 text-center">
               <p className="text-2xl font-bold text-green-400">{totalCompleted}</p>
-              <p className="text-gray-600 text-xs mt-0.5">Completadas</p>
+              <p className="text-muted2 text-xs mt-0.5">Completadas</p>
             </div>
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-3 text-center">
-              <p className={`text-2xl font-bold ${avgScore ? scoreColor(avgScore) : "text-gray-600"}`}>
+            <div className="bg-card-theme border border-soft rounded-xl p-3 text-center">
+              <p className={`text-2xl font-bold ${avgScore ? scoreColor(avgScore) : "text-muted2"}`}>
                 {avgScore ? `${avgScore}%` : "—"}
               </p>
-              <p className="text-gray-600 text-xs mt-0.5">Promedio quiz</p>
+              <p className="text-muted2 text-xs mt-0.5">Promedio quiz</p>
             </div>
           </div>
 
@@ -286,11 +286,11 @@ export default function SessionsPage() {
           {!loading && sessions.length === 0 && (
             <div className="text-center py-16">
               <p className="text-5xl mb-4">📖</p>
-              <h2 className="text-white font-semibold mb-2">Sin sesiones aún</h2>
-              <p className="text-gray-500 text-sm mb-6">Empieza a estudiar para ver tu historial aquí</p>
+              <h2 className="text-main font-semibold mb-2">Sin sesiones aún</h2>
+              <p className="text-muted2 text-sm mb-6">Empieza a estudiar para ver tu historial aquí</p>
               <Link
                 href="/dashboard"
-                className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-colors"
+                className="bg-blue-600 hover:bg-blue-500 text-main px-6 py-2.5 rounded-xl text-sm font-medium transition-colors"
               >
                 Iniciar primera sesión →
               </Link>
@@ -300,12 +300,12 @@ export default function SessionsPage() {
           {/* Sesiones agrupadas por fecha */}
           {!loading && Object.entries(grouped).map(([date, items]) => (
             <div key={date}>
-              <p className="text-gray-600 text-xs font-medium mb-2 px-1">{date}</p>
+              <p className="text-muted2 text-xs font-medium mb-2 px-1">{date}</p>
               <div className="flex flex-col gap-2">
                 {items.map(s => (
                   <div
                     key={s.id}
-                    className="flex items-center gap-4 bg-gray-900 border border-gray-800 hover:border-gray-700 rounded-2xl p-4 transition-all group"
+                    className="flex items-center gap-4 bg-card-theme border border-soft hover:border-medium rounded-2xl p-4 transition-all group"
                   >
                     {/* Icono */}
                     <div className="w-11 h-11 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-xl flex-shrink-0 group-hover:bg-blue-500/20 transition-colors">
@@ -317,21 +317,21 @@ export default function SessionsPage() {
                       onClick={() => setActive(s)}
                       className="flex-1 min-w-0 text-left"
                     >
-                      <p className="text-gray-200 font-medium text-sm truncate group-hover:text-white transition-colors">
+                      <p className="text-main font-medium text-sm truncate group-hover:text-main transition-colors">
                         {s.topic}
                       </p>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-gray-600 text-xs">{formatTime(s.created_at)}</span>
+                        <span className="text-muted2 text-xs">{formatTime(s.created_at)}</span>
                         {s.messages_count && s.messages_count > 0 && (
                           <>
-                            <span className="text-gray-700">·</span>
-                            <span className="text-gray-600 text-xs">{s.messages_count} mensajes</span>
+                            <span className="text-muted2">·</span>
+                            <span className="text-muted2 text-xs">{s.messages_count} mensajes</span>
                           </>
                         )}
                         {s.study_mode && s.study_mode !== "normal" && (
                           <>
-                            <span className="text-gray-700">·</span>
-                            <span className="text-gray-600 text-xs capitalize">{s.study_mode}</span>
+                            <span className="text-muted2">·</span>
+                            <span className="text-muted2 text-xs capitalize">{s.study_mode}</span>
                           </>
                         )}
                       </div>
@@ -342,16 +342,16 @@ export default function SessionsPage() {
                       {s.score !== null && s.score !== undefined ? (
                         <div className={`text-sm font-bold ${scoreColor(s.score)} text-right`}>
                           {s.score}%
-                          <p className="text-gray-700 text-xs font-normal">quiz</p>
+                          <p className="text-muted2 text-xs font-normal">quiz</p>
                         </div>
                       ) : (
-                        <span className="text-gray-700 text-xs">Sin quiz</span>
+                        <span className="text-muted2 text-xs">Sin quiz</span>
                       )}
 
                       {/* Botón ver conversación */}
                       <button
                         onClick={() => setActive(s)}
-                        className="text-[10px] text-gray-600 hover:text-blue-400 border border-gray-800 hover:border-blue-500/40 rounded-lg px-2 py-1.5 transition-all"
+                        className="text-[10px] text-muted2 hover:text-blue-400 border border-soft hover:border-blue-500/40 rounded-lg px-2 py-1.5 transition-all"
                         title="Ver conversación"
                       >
                         👁 Ver
@@ -360,7 +360,7 @@ export default function SessionsPage() {
                       {/* Botón continuar */}
                       <Link
                         href={`/study/${encodeURIComponent(s.topic)}`}
-                        className="text-[10px] text-gray-600 hover:text-gray-300 border border-gray-800 hover:border-gray-600 rounded-lg px-2 py-1.5 transition-all"
+                        className="text-[10px] text-muted2 hover:text-sub border border-soft hover:border-medium rounded-lg px-2 py-1.5 transition-all"
                         title="Continuar estudiando"
                       >
                         →
@@ -375,7 +375,7 @@ export default function SessionsPage() {
           {/* No results */}
           {!loading && sessions.length > 0 && filtered.length === 0 && (
             <div className="text-center py-10">
-              <p className="text-gray-600 text-sm">No se encontraron sesiones con "{search}"</p>
+              <p className="text-muted2 text-sm">No se encontraron sesiones con "{search}"</p>
             </div>
           )}
         </div>

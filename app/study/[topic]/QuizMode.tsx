@@ -142,7 +142,7 @@ export default function QuizMode({ topic, initialLevel, onFinish, onExit, onXP }
     return (
       <div className="flex flex-col items-center gap-4 py-16">
         <div className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-gray-400 text-sm">Preparando pregunta {questionNumber}...</p>
+        <p className="text-sub text-sm">Preparando pregunta {questionNumber}...</p>
       </div>
     )
   }
@@ -159,11 +159,11 @@ export default function QuizMode({ topic, initialLevel, onFinish, onExit, onXP }
             <div className="w-1.5 h-1.5 bg-purple-400 rounded-full" />
             <span className="text-purple-400 text-xs font-medium">AEv — Evaluación</span>
           </div>
-          <span className="text-gray-600 text-xs">Nivel {currentLevel}/6</span>
+          <span className="text-muted2 text-xs">Nivel {currentLevel}/6</span>
         </div>
         <button
           onClick={onExit}
-          className="text-gray-600 hover:text-gray-400 text-xs transition-colors"
+          className="text-muted2 hover:text-sub text-xs transition-colors"
         >
           Salir del quiz
         </button>
@@ -171,11 +171,11 @@ export default function QuizMode({ topic, initialLevel, onFinish, onExit, onXP }
 
       {/* Barra de progreso */}
       <div className="mb-6">
-        <div className="flex justify-between text-xs text-gray-600 mb-2">
+        <div className="flex justify-between text-xs text-muted2 mb-2">
           <span>Pregunta {questionNumber} de {TOTAL_QUESTIONS}</span>
           <span className="text-amber-400">+{totalXP} XP</span>
         </div>
-        <div className="w-full bg-gray-800 rounded-full h-2">
+        <div className="w-full bg-card-soft-theme rounded-full h-2">
           <div
             className="h-2 bg-purple-500 rounded-full transition-all duration-500"
             style={{ width: `${progressPercent}%` }}
@@ -184,8 +184,8 @@ export default function QuizMode({ topic, initialLevel, onFinish, onExit, onXP }
       </div>
 
       {/* Pregunta */}
-      <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 mb-4">
-        <div className="prose prose-invert max-w-none prose-p:text-white prose-p:text-base">
+      <div className="bg-card-theme border border-soft rounded-2xl p-6 mb-4">
+        <div className="prose max-w-none prose-p:text-main prose-p:text-base">
           <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
             {currentQuestion.question}
           </ReactMarkdown>
@@ -199,13 +199,13 @@ export default function QuizMode({ topic, initialLevel, onFinish, onExit, onXP }
           const isSelected = selectedAnswer === option
           const isCorrectOption = option.startsWith(currentQuestion.correct)
 
-          let optionStyle = "bg-gray-900 border-gray-800 hover:border-gray-600 text-gray-300"
+          let optionStyle = "bg-card-theme border-soft hover:border-medium text-sub"
           if (submitted) {
-            if (isCorrectOption) optionStyle = "bg-green-500/10 border-green-500 text-green-300"
-            else if (isSelected && !isCorrectOption) optionStyle = "bg-red-500/10 border-red-500 text-red-300"
-            else optionStyle = "bg-gray-900 border-gray-800 text-gray-600"
+            if (isCorrectOption) optionStyle = "bg-green-500/10 border-green-500 text-green-700"
+            else if (isSelected && !isCorrectOption) optionStyle = "bg-red-500/10 border-red-500 text-red-700"
+            else optionStyle = "bg-card-theme border-soft text-muted2"
           } else if (isSelected) {
-            optionStyle = "bg-blue-500/10 border-blue-500 text-white"
+            optionStyle = "bg-blue-500/10 border-blue-500 text-main"
           }
 
           return (
@@ -242,11 +242,11 @@ export default function QuizMode({ topic, initialLevel, onFinish, onExit, onXP }
           </div>
           {feedbackLoading ? (
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-              <span className="text-gray-400 text-xs">Generando feedback...</span>
+              <div className="w-3 h-3 border-2 border-soft border-t-transparent rounded-full animate-spin" />
+              <span className="text-sub text-xs">Generando feedback...</span>
             </div>
           ) : (
-            <p className="text-gray-300 text-sm">{feedback}</p>
+            <p className="text-sub text-sm">{feedback}</p>
           )}
         </div>
       )}
@@ -256,7 +256,7 @@ export default function QuizMode({ topic, initialLevel, onFinish, onExit, onXP }
         <button
           onClick={submitAnswer}
           disabled={!selectedAnswer}
-          className="w-full bg-purple-600 hover:bg-purple-500 disabled:bg-gray-800 disabled:text-gray-600 text-white font-semibold py-3 rounded-xl transition-colors"
+          className="w-full bg-purple-600 hover:bg-purple-500 disabled:bg-card-soft-theme disabled:text-muted2 text-main font-semibold py-3 rounded-xl transition-colors"
         >
           Responder
         </button>
@@ -264,7 +264,7 @@ export default function QuizMode({ topic, initialLevel, onFinish, onExit, onXP }
         <button
           onClick={nextQuestion}
           disabled={feedbackLoading}
-          className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-gray-800 text-white font-semibold py-3 rounded-xl transition-colors"
+          className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-card-soft-theme text-main font-semibold py-3 rounded-xl transition-colors"
         >
           {questionNumber >= TOTAL_QUESTIONS ? "Ver resultados →" : "Siguiente pregunta →"}
         </button>

@@ -24,19 +24,19 @@ function getTone(level: RiskLevel) {
   switch (level) {
     case "critical":
       return {
-        wrapper: "border-red-400/30 bg-red-500/15 text-red-200",
+        wrapper: "border-red-400/30 bg-red-500/15 text-red-700",
         dot: "bg-red-400",
         label: "Crítico",
       }
     case "high":
       return {
-        wrapper: "border-orange-400/30 bg-orange-500/15 text-orange-200",
+        wrapper: "border-orange-400/30 bg-orange-500/15 text-orange-700",
         dot: "bg-orange-400",
         label: "Alto",
       }
     case "medium":
       return {
-        wrapper: "border-yellow-400/30 bg-yellow-500/15 text-yellow-200",
+        wrapper: "border-yellow-400/30 bg-yellow-500/15 text-yellow-700",
         dot: "bg-yellow-400",
         label: "Medio",
       }
@@ -48,7 +48,7 @@ function getTone(level: RiskLevel) {
       }
     default:
       return {
-        wrapper: "border-emerald-400/30 bg-emerald-500/15 text-emerald-200",
+        wrapper: "border-emerald-400/30 bg-emerald-500/15 text-emerald-700",
         dot: "bg-emerald-400",
         label: "Limpio",
       }
@@ -86,7 +86,7 @@ export default function RiskBadgeV2({
     >
       <span className={["h-2.5 w-2.5 rounded-full", tone.dot].join(" ")} />
       <span>Riesgo {tone.label}</span>
-      <span className="rounded-full border border-white/10 bg-black/10 px-2 py-0.5 text-xs">
+      <span className="rounded-full border border-soft bg-card-soft-theme px-2 py-0.5 text-xs">
         Score {score ?? 0}
       </span>
     </div>

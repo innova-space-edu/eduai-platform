@@ -29,7 +29,7 @@ const TYPE_META: Record<string, { label: string; icon: React.ElementType; color:
   note:        { label: "Notas",          icon: Edit3,    color: "#8b5cf6" },
   image:       { label: "Imágenes",       icon: Image,    color: "#ec4899" },
   audio:       { label: "Audio",          icon: Mic,      color: "#8b5cf6" },
-  file:        { label: "Archivos",       icon: FileText, color: "#94a3b8" },
+  file:        { label: "Archivos",       icon: FileText, color: "var(--text-muted)" },
   ppt:         { label: "Presentaciones", icon: Layers,   color: "#f59e0b" },
   infographic: { label: "Infografías",    icon: Layers,   color: "#10b981" },
   mindmap:     { label: "Mapas mentales", icon: Layers,   color: "#06b6d4" },
@@ -76,18 +76,18 @@ function RichTextEditor({
     setTimeout(() => { el.focus(); el.setSelectionRange(start + prefix.length, start + prefix.length) }, 0)
   }
 
-  const btnClass = "w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-white hover:bg-white/[0.08] transition-all"
+  const btnClass = "w-7 h-7 flex items-center justify-center rounded-lg text-muted2 hover:text-main transition-all"
 
   return (
-    <div className="flex flex-col rounded-2xl overflow-hidden border border-white/[0.08]">
+    <div className="flex flex-col rounded-2xl overflow-hidden border" style={{ borderColor: "var(--border-soft)", background: "var(--bg-card)" }}>
       {/* Toolbar */}
-      <div className="flex items-center gap-1 px-3 py-2 border-b border-white/[0.06]" style={{ background: "rgba(255,255,255,0.02)" }}>
+      <div className="flex items-center gap-1 px-3 py-2 border-b" style={{ background: "var(--bg-card-soft)", borderColor: "var(--border-soft)" }}>
         <button onClick={() => wrap("**", "**")} className={btnClass} title="Negrita"><Bold size={13} /></button>
         <button onClick={() => wrap("_", "_")}   className={btnClass} title="Cursiva"><Italic size={13} /></button>
-        <div className="w-px h-4 bg-white/10 mx-1" />
+        <div className="w-px h-4 bg-card-soft-theme mx-1" />
         <button onClick={() => insertLine("## ")} className={btnClass} title="Título"><Heading2 size={13} /></button>
         <button onClick={() => insertLine("- ")}  className={btnClass} title="Lista"><List size={13} /></button>
-        <div className="w-px h-4 bg-white/10 mx-1" />
+        <div className="w-px h-4 bg-card-soft-theme mx-1" />
         <button onClick={() => wrap("`", "`")}    className={btnClass} title="Código">{"<>"}</button>
       </div>
       {/* Textarea */}
@@ -97,7 +97,7 @@ function RichTextEditor({
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         rows={minRows}
-        className="bg-transparent px-4 py-3 text-sm text-gray-200 placeholder-gray-600 focus:outline-none resize-y leading-relaxed"
+        className="bg-transparent px-4 py-3 text-sm focus:outline-none resize-y leading-relaxed text-main placeholder:text-muted2"
         style={{ minHeight: `${minRows * 1.6}rem` }}
       />
     </div>
@@ -240,17 +240,17 @@ function NewItemModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
       <div className="relative w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl animate-fade-in"
-           style={{ background: "#0f172a", border: "1px solid rgba(255,255,255,0.1)" }}
+           style={{ background: "var(--bg-card)", border: "1px solid rgba(255,255,255,0.1)" }}
            onClick={e => e.stopPropagation()}>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.07]">
-          <h3 className="text-white font-bold">Añadir al workspace</h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors"><X size={18} /></button>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-soft">
+          <h3 className="text-main font-bold">Añadir al workspace</h3>
+          <button onClick={onClose} className="text-muted2 hover:text-main transition-colors"><X size={18} /></button>
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-white/[0.07]">
+        <div className="flex border-b border-soft">
           {TABS.map(t => (
             <button key={t.id} onClick={() => { setTab(t.id as any); setError("") }}
               className="flex-1 py-2.5 text-xs font-medium transition-all"
@@ -268,7 +268,7 @@ function NewItemModal({
           {/* Título */}
           {(tab === "note" || tab === "link" || tab === "upload") && (
             <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Título (opcional)"
-              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/40 transition-all" />
+              className="w-full rounded-xl px-3 py-2.5 text-sm focus:outline-none transition-all" style={{ background: "var(--bg-input)", border: "1px solid var(--border-medium)", color: "var(--text-primary)" }} />
           )}
 
           {/* Note */}
@@ -281,14 +281,14 @@ function NewItemModal({
           {tab === "ai" && (
             <>
               <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Título del documento (opcional)"
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/40 transition-all" />
+                className="w-full rounded-xl px-3 py-2.5 text-sm focus:outline-none transition-all" style={{ background: "var(--bg-input)", border: "1px solid var(--border-medium)", color: "var(--text-primary)" }} />
               <div className="flex gap-2">
                 {(["document","notes","summary"] as const).map(t => (
                   <button key={t} onClick={() => setAiType(t)}
                     className="flex-1 py-2 rounded-xl border text-xs font-medium transition-all"
                     style={{
-                      background:  aiType === t ? "rgba(167,139,250,0.1)" : "rgba(255,255,255,0.02)",
-                      borderColor: aiType === t ? "rgba(167,139,250,0.3)" : "rgba(255,255,255,0.08)",
+                      background:  aiType === t ? "rgba(167,139,250,0.1)" : "var(--bg-card-soft)",
+                      borderColor: aiType === t ? "rgba(167,139,250,0.3)" : "var(--border-soft)",
                       color:       aiType === t ? "#a78bfa" : "#6b7280",
                     }}>
                     {t === "document" ? "📄 Documento" : t === "notes" ? "📝 Apuntes" : "⚡ Resumen"}
@@ -297,7 +297,7 @@ function NewItemModal({
               </div>
               <textarea value={aiPrompt} onChange={e => setAiPrompt(e.target.value)} rows={4}
                 placeholder="Describe qué quieres que la IA cree. Ej: 'Documento sobre la Segunda Ley de Newton con ejemplos prácticos y ejercicios'"
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-purple-500/40 resize-none transition-all" />
+                className="w-full rounded-xl px-3 py-2.5 text-sm focus:outline-none resize-none transition-all" style={{ background: "var(--bg-input)", border: "1px solid var(--border-medium)", color: "var(--text-primary)" }} />
             </>
           )}
 
@@ -308,26 +308,26 @@ function NewItemModal({
                 onClick={() => fileRef.current?.click()}
                 className="border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all"
                 style={{
-                  borderColor: file ? `${color}50` : "rgba(255,255,255,0.1)",
-                  background:  file ? `${color}08` : "rgba(255,255,255,0.02)",
+                  borderColor: file ? `${color}50` : "var(--border-medium)",
+                  background:  file ? `${color}08` : "var(--bg-card-soft)",
                 }}>
                 {file ? (
                   <>
-                    <p className="text-white font-medium text-sm">{file.name}</p>
-                    <p className="text-gray-500 text-xs mt-1">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                    <p className="text-sub font-medium text-sm">{file.name}</p>
+                    <p className="text-muted2 text-xs mt-1">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
                   </>
                 ) : (
                   <>
-                    <Upload size={28} className="text-gray-600 mx-auto mb-2" />
-                    <p className="text-gray-400 text-sm">Arrastra o haz clic para seleccionar</p>
-                    <p className="text-gray-600 text-xs mt-1">PDF, imágenes, audio, Word, etc.</p>
+                    <Upload size={28} className="text-muted2 mx-auto mb-2" />
+                    <p className="text-sub text-sm">Arrastra o haz clic para seleccionar</p>
+                    <p className="text-muted2 text-xs mt-1">PDF, imágenes, audio, Word, etc.</p>
                   </>
                 )}
                 <input ref={fileRef} type="file" className="hidden"
                   accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.md,.png,.jpg,.jpeg,.gif,.webp,.mp3,.wav,.mp4,.m4a"
                   onChange={e => { const f = e.target.files?.[0]; if (f) setFile(f) }} />
               </div>
-              <p className="text-gray-600 text-[11px] mt-2 text-center">
+              <p className="text-muted2 text-[11px] mt-2 text-center">
                 ⚠️ Requiere bucket "workspace-files" en Supabase Storage
               </p>
             </div>
@@ -337,17 +337,17 @@ function NewItemModal({
           {tab === "link" && (
             <>
               <input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://..."
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/40 transition-all" />
+                className="w-full rounded-xl px-3 py-2.5 text-sm focus:outline-none transition-all" style={{ background: "var(--bg-input)", border: "1px solid var(--border-medium)", color: "var(--text-primary)" }} />
               <textarea value={content} onChange={e => setContent(e.target.value)} rows={3}
                 placeholder="Descripción o notas sobre este link (opcional)"
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-gray-300 placeholder-gray-600 focus:outline-none focus:border-purple-500/40 resize-none transition-all" />
+                className="w-full bg-card-soft-theme border border-soft rounded-xl px-3 py-2.5 text-sm text-sub placeholder-gray-400 focus:outline-none focus:border-purple-500/40 resize-none transition-all" />
             </>
           )}
 
           {error && <p className="text-red-400 text-xs px-3 py-2 rounded-xl border border-red-500/20 bg-red-500/[0.08]">{error}</p>}
 
           <button onClick={currentAction} disabled={loading}
-            className="w-full py-3 rounded-xl font-semibold text-sm text-white transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full py-3 rounded-xl font-semibold text-sm text-white transition-all disabled:opacity-50 flex items-center justify-center gap-2" 
             style={{ background: `linear-gradient(135deg, ${color}, ${color}aa)`, boxShadow: `0 4px 14px ${color}30` }}>
             {loading ? <><Loader2 size={15} className="animate-spin" /> Procesando...</> : <><Plus size={15} /> Agregar al workspace</>}
           </button>
@@ -404,25 +404,25 @@ function ViewItemModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
       <div className="relative w-full max-w-2xl max-h-[88vh] flex flex-col rounded-2xl overflow-hidden shadow-2xl"
-           style={{ background: "#0f172a", border: "1px solid rgba(255,255,255,0.1)" }}
+           style={{ background: "var(--bg-card)", border: "1px solid rgba(255,255,255,0.1)" }}
            onClick={e => e.stopPropagation()}>
 
         {/* Header */}
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.07] flex-shrink-0">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-soft flex-shrink-0">
           <input value={title} onChange={e => setTitle(e.target.value)}
-            className="flex-1 bg-transparent text-white font-bold text-sm focus:outline-none" />
+            className="flex-1 bg-transparent text-main font-bold text-sm focus:outline-none" />
           <div className="flex items-center gap-2">
-            <button onClick={handleCopy}   className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/[0.04] text-gray-400 hover:text-white transition-all" title="Copiar">
+            <button onClick={handleCopy}   className="w-8 h-8 flex items-center justify-center rounded-xl bg-card-soft-theme text-sub hover:text-main transition-all" title="Copiar">
               {copied ? <Check size={14} className="text-green-400" /> : <Copy size={14} />}
             </button>
-            <button onClick={handleDownload} className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/[0.04] text-gray-400 hover:text-white transition-all" title="Descargar">
+            <button onClick={handleDownload} className="w-8 h-8 flex items-center justify-center rounded-xl bg-card-soft-theme text-sub hover:text-main transition-all" title="Descargar">
               <Download size={14} />
             </button>
             <button onClick={() => { onDelete(item.id); onClose() }}
               className="w-8 h-8 flex items-center justify-center rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all" title="Eliminar">
               <Trash2 size={14} />
             </button>
-            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/[0.04] text-gray-400 hover:text-white transition-all">
+            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-xl bg-card-soft-theme text-sub hover:text-main transition-all">
               <X size={14} />
             </button>
           </div>
@@ -451,8 +451,8 @@ function ViewItemModal({
             <RichTextEditor value={content} onChange={setContent} minRows={12} />
           ) : (
             content && (
-              <div className="rounded-2xl p-4 border border-white/[0.08] bg-white/[0.02]">
-                <pre className="text-gray-300 text-sm whitespace-pre-wrap leading-relaxed font-sans">{content}</pre>
+              <div className="rounded-2xl p-4 border border-medium bg-card-soft-theme">
+                <pre className="text-sub text-sm whitespace-pre-wrap leading-relaxed font-sans">{content}</pre>
               </div>
             )
           )}
@@ -460,9 +460,9 @@ function ViewItemModal({
 
         {/* Footer guardar */}
         {isEditable && (
-          <div className="px-5 py-3 border-t border-white/[0.07] flex-shrink-0">
+          <div className="px-5 py-3 border-t border-soft flex-shrink-0">
             <button onClick={handleSave} disabled={saving}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-50"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-main transition-all disabled:opacity-50"
               style={{ background: saved ? "#16a34a" : color, boxShadow: `0 2px 10px ${color}30` }}>
               {saving ? <><Loader2 size={13} className="animate-spin" />Guardando...</>
                 : saved ? <><Check size={13} />Guardado</> : <><Save size={13} />Guardar cambios</>}
@@ -536,8 +536,8 @@ export default function WorkspaceProjectPage() {
   const presentTypes = [...new Set(items.map(i => i.item_type))]
 
   if (loading) return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-      <div className="w-10 h-10 rounded-full border-2 border-white/10 border-t-indigo-400 animate-spin" />
+    <div className="min-h-screen bg-app flex items-center justify-center">
+      <div className="w-10 h-10 rounded-full border-2 border-soft border-t-indigo-400 animate-spin" />
     </div>
   )
   if (!project) return null
@@ -545,7 +545,7 @@ export default function WorkspaceProjectPage() {
   const color = project.color || "#4338ca"
 
   return (
-    <div className="min-h-screen bg-gray-950">
+    <div className="min-h-screen bg-app">
 
       {/* Modales */}
       {showNew && (
@@ -561,10 +561,10 @@ export default function WorkspaceProjectPage() {
       )}
 
       {/* Header */}
-      <header className="sticky top-0 z-20 border-b border-white/[0.06] bg-gray-950/90 backdrop-blur-xl">
+      <header className="sticky top-0 z-20 border-b border-soft bg-header-theme backdrop-blur-xl">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
           <Link href="/workspace"
-            className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/[0.04] border border-white/[0.06] text-gray-400 hover:text-white transition-all flex-shrink-0">
+            className="w-8 h-8 flex items-center justify-center rounded-xl bg-card-soft-theme text-sub hover:text-main transition-all flex-shrink-0">
             <ArrowLeft size={15} />
           </Link>
 
@@ -579,20 +579,20 @@ export default function WorkspaceProjectPage() {
             <div className="flex items-center gap-2 flex-1">
               <input value={nameValue} onChange={e => setNameValue(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter") saveProjectName(); if (e.key === "Escape") setEditingName(false) }}
-                autoFocus className="flex-1 bg-white/[0.06] border border-white/[0.12] rounded-xl px-3 py-1.5 text-white text-sm focus:outline-none" />
-              <button onClick={saveProjectName} className="text-green-400 hover:text-green-300"><Check size={16} /></button>
-              <button onClick={() => setEditingName(false)} className="text-gray-500 hover:text-gray-300"><X size={16} /></button>
+                autoFocus className="flex-1 bg-input-theme border border-medium rounded-xl px-3 py-1.5 text-main text-sm focus:outline-none" />
+              <button onClick={saveProjectName} className="text-green-400 hover:text-green-700"><Check size={16} /></button>
+              <button onClick={() => setEditingName(false)} className="text-muted2 hover:text-sub"><X size={16} /></button>
             </div>
           ) : (
             <button onClick={() => setEditingName(true)}
-              className="flex items-center gap-2 hover:bg-white/[0.04] rounded-xl px-2 py-1 transition-all group flex-1 text-left min-w-0">
-              <span className="text-white font-bold text-sm truncate">{project.name}</span>
-              <Edit3 size={12} className="text-gray-600 opacity-0 group-hover:opacity-100 flex-shrink-0 transition-opacity" />
+              className="flex items-center gap-2 hover:bg-card-soft-theme rounded-xl px-2 py-1 transition-all group flex-1 text-left min-w-0">
+              <span className="text-main font-bold text-sm truncate">{project.name}</span>
+              <Edit3 size={12} className="text-muted2 opacity-0 group-hover:opacity-100 flex-shrink-0 transition-opacity" />
             </button>
           )}
 
           <div className="flex items-center gap-2 flex-shrink-0">
-            <span className="text-gray-600 text-xs">{items.length} items</span>
+            <span className="text-muted2 text-xs">{items.length} items</span>
             <button onClick={() => setShowNew(true)}
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-white transition-all"
               style={{ background: `linear-gradient(135deg, ${color}, ${color}bb)`, boxShadow: `0 2px 8px ${color}30` }}>
@@ -607,12 +607,12 @@ export default function WorkspaceProjectPage() {
             <input
               value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Buscar en el workspace..."
-              className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-purple-500/30 transition-all"
+              className="flex-1 bg-card-soft-theme border border-soft rounded-xl px-3 py-2 text-sm text-main placeholder-gray-400 focus:outline-none focus:border-purple-500/30 transition-all"
             />
             <div className="flex gap-1.5 overflow-x-auto">
               <button onClick={() => setFilter("all")}
                 className="px-3 py-2 rounded-xl border text-xs font-medium whitespace-nowrap transition-all flex-shrink-0"
-                style={{ background: filter === "all" ? `${color}15` : "rgba(255,255,255,0.02)", borderColor: filter === "all" ? `${color}35` : "rgba(255,255,255,0.08)", color: filter === "all" ? color : "#6b7280" }}>
+                style={{ background: filter === "all" ? `${color}15` : "var(--bg-card-soft)", borderColor: filter === "all" ? `${color}35` : "var(--border-soft)", color: filter === "all" ? color : "#6b7280" }}>
                 Todos ({items.length})
               </button>
               {presentTypes.map(type => {
@@ -622,7 +622,7 @@ export default function WorkspaceProjectPage() {
                 return (
                   <button key={type} onClick={() => setFilter(type)}
                     className="px-3 py-2 rounded-xl border text-xs font-medium whitespace-nowrap transition-all flex-shrink-0"
-                    style={{ background: filter === type ? `${meta.color}15` : "rgba(255,255,255,0.02)", borderColor: filter === type ? `${meta.color}35` : "rgba(255,255,255,0.08)", color: filter === type ? meta.color : "#6b7280" }}>
+                    style={{ background: filter === type ? `${meta.color}15` : "var(--bg-card-soft)", borderColor: filter === type ? `${meta.color}35` : "var(--border-soft)", color: filter === type ? meta.color : "#6b7280" }}>
                     {meta.label} ({count})
                   </button>
                 )
@@ -641,8 +641,8 @@ export default function WorkspaceProjectPage() {
                  style={{ background: `${color}15`, border: `1px solid ${color}25` }}>
               {project.icon}
             </div>
-            <h3 className="text-white font-bold text-lg">Workspace vacío</h3>
-            <p className="text-gray-500 text-sm text-center max-w-sm">
+            <h3 className="text-main font-bold text-lg">Workspace vacío</h3>
+            <p className="text-muted2 text-sm text-center max-w-sm">
               Agrega notas, documentos, imágenes, archivos o genera contenido con IA directamente aquí.
             </p>
             <div className="flex flex-wrap gap-3 justify-center mt-2">
@@ -677,9 +677,9 @@ export default function WorkspaceProjectPage() {
                 <div key={item.id}
                   onClick={() => setViewItem(item)}
                   className="group relative flex flex-col rounded-2xl border cursor-pointer transition-all hover:scale-[1.01]"
-                  style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.07)", minHeight: "120px" }}
+                  style={{ background: "var(--bg-card-soft)", borderColor: "var(--bg-card-soft)", minHeight: "120px" }}
                   onMouseEnter={e => { ;(e.currentTarget as HTMLElement).style.background = `${meta.color}08`; (e.currentTarget as HTMLElement).style.borderColor = `${meta.color}25` }}
-                  onMouseLeave={e => { ;(e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.02)"; (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.07)" }}>
+                  onMouseLeave={e => { ;(e.currentTarget as HTMLElement).style.background = "var(--bg-card-soft)"; (e.currentTarget as HTMLElement).style.borderColor = "var(--bg-card-soft)" }}>
 
                   {/* Imagen preview */}
                   {isImg ? (
@@ -696,9 +696,9 @@ export default function WorkspaceProjectPage() {
                   )}
 
                   <div className={`flex-1 px-4 ${isImg ? "pt-2" : "pt-0"} pb-4`}>
-                    <p className="text-white text-sm font-semibold leading-snug mb-1 line-clamp-2">{item.title}</p>
+                    <p className="text-main text-sm font-semibold leading-snug mb-1 line-clamp-2">{item.title}</p>
                     {item.content_text && !isImg && (
-                      <p className="text-gray-500 text-xs leading-relaxed line-clamp-3">{item.content_text}</p>
+                      <p className="text-muted2 text-xs leading-relaxed line-clamp-3">{item.content_text}</p>
                     )}
                     {item.content_url && item.item_type === "link" && (
                       <p className="text-blue-400 text-xs truncate mt-1">{item.content_url}</p>
@@ -710,7 +710,7 @@ export default function WorkspaceProjectPage() {
                           style={{ background: `${meta.color}12`, color: meta.color }}>
                       {meta.label}
                     </span>
-                    <span className="text-gray-700 text-[10px]">{timeAgo(item.updated_at || item.created_at)}</span>
+                    <span className="text-muted2 text-[10px]">{timeAgo(item.updated_at || item.created_at)}</span>
                   </div>
 
                   {/* Botón eliminar en hover */}
@@ -730,7 +730,7 @@ export default function WorkspaceProjectPage() {
         {/* Sin resultados */}
         {items.length > 0 && filtered.length === 0 && (
           <div className="text-center py-16">
-            <p className="text-gray-500 text-sm">Sin resultados para "{search}"</p>
+            <p className="text-muted2 text-sm">Sin resultados para "{search}"</p>
           </div>
         )}
       </div>

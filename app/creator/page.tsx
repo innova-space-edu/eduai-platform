@@ -141,17 +141,17 @@ function MindmapRenderer({ data }: { data: any }) {
         <h3 className="text-blue-400 font-bold text-sm">🧠 {centralTopic}</h3>
         <div className="flex gap-2">
           <button onClick={() => setScale(s => Math.min(s + 0.15, 2.2))}
-            className="w-7 h-7 rounded-lg bg-gray-800 text-gray-400 hover:text-white text-sm flex items-center justify-center">+</button>
+            className="w-7 h-7 rounded-lg bg-card-soft-theme text-sub hover:text-main text-sm flex items-center justify-center">+</button>
           <button onClick={() => setScale(s => Math.max(s - 0.15, 0.35))}
-            className="w-7 h-7 rounded-lg bg-gray-800 text-gray-400 hover:text-white text-sm flex items-center justify-center">−</button>
+            className="w-7 h-7 rounded-lg bg-card-soft-theme text-sub hover:text-main text-sm flex items-center justify-center">−</button>
           <button onClick={() => { setScale(1); setPan({ x: 0, y: 0 }) }}
-            className="px-2 h-7 rounded-lg bg-gray-800 text-gray-500 hover:text-white text-xs">Reset</button>
+            className="px-2 h-7 rounded-lg bg-card-soft-theme text-muted2 hover:text-main text-xs">Reset</button>
         </div>
       </div>
 
       {/* SVG container */}
       <div
-        className="relative bg-gray-950 rounded-3xl border border-gray-800 overflow-hidden cursor-grab active:cursor-grabbing"
+        className="relative bg-app rounded-2xl border border-soft overflow-hidden cursor-grab active:cursor-grabbing"
         style={{ height: 460 }}
         onMouseDown={e => {
           dragging.current = true
@@ -237,7 +237,7 @@ function MindmapRenderer({ data }: { data: any }) {
                   />
                 ) : (
                   <rect x={node.x - w / 2} y={node.y - h / 2} width={w} height={h} rx={5}
-                    fill="rgba(255,255,255,0.04)" stroke={node.color.bg + "55"} strokeWidth={1}
+                    fill="var(--bg-input)" stroke={node.color.bg + "55"} strokeWidth={1}
                     strokeDasharray="3,2"
                   />
                 )}
@@ -264,20 +264,20 @@ function MindmapRenderer({ data }: { data: any }) {
           style={{ background: selected.color?.light + "18", borderColor: selected.color?.bg + "44" }}>
           <div className="flex items-start justify-between gap-2">
             <div>
-              <h4 className="font-bold text-sm text-white mb-1">{selected.label}</h4>
-              {selected.description && <p className="text-gray-400 text-xs leading-relaxed">{selected.description}</p>}
+              <h4 className="font-bold text-sm text-main mb-1">{selected.label}</h4>
+              {selected.description && <p className="text-sub text-xs leading-relaxed">{selected.description}</p>}
               <span className="inline-block mt-2 text-[10px] px-2 py-0.5 rounded-full font-semibold"
                 style={{ background: selected.color?.bg + "22", color: selected.color?.bg }}>
                 {selected.category === "main" ? "Concepto principal" : selected.category === "sub" ? "Subtema" : "Detalle"}
               </span>
             </div>
-            <button onClick={() => setSelected(null)} className="text-gray-600 hover:text-gray-400 text-xl leading-none flex-shrink-0">×</button>
+            <button onClick={() => setSelected(null)} className="text-muted2 hover:text-sub text-xl leading-none flex-shrink-0">×</button>
           </div>
         </div>
       )}
 
       {/* Leyenda */}
-      <div className="flex flex-wrap gap-3 text-[10px] text-gray-600">
+      <div className="flex flex-wrap gap-3 text-[10px] text-muted2">
         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-blue-500 inline-block" />Tema central</span>
         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-green-500 inline-block" />Conceptos principales</span>
         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-amber-200 border border-amber-400 inline-block" />Subtemas</span>
@@ -306,7 +306,7 @@ function InfographicRenderer({ data }: { data: any }) {
   const col2 = sections.filter((_: any, i: number) => i % 2 === 1)
 
   return (
-    <div className="rounded-3xl overflow-hidden font-sans" style={{ background: p.bg }}>
+    <div className="rounded-2xl overflow-hidden font-sans" style={{ background: p.bg }}>
       {/* Banner principal */}
       <div className="relative px-6 pt-8 pb-6 text-center overflow-hidden">
         <div className="absolute inset-0 opacity-10"
@@ -390,7 +390,7 @@ function PPTRenderer({ data }: { data: any }) {
   if (!s) return null
 
   const THEMES: Record<string, { bg: string; accent: string; text: string; sub: string }> = {
-    academic:   { bg: "linear-gradient(135deg,#0f172a,#1e293b)", accent: "#3b82f6", text: "#f1f5f9", sub: "#94a3b8" },
+    academic:   { bg: "linear-gradient(135deg,#0f172a,#1e293b)", accent: "#3b82f6", text: "var(--text-primary)", sub: "var(--text-muted)" },
     minimal:    { bg: "linear-gradient(135deg,#18181b,#27272a)", accent: "#a1a1aa", text: "#fafafa", sub: "#71717a" },
     corporate:  { bg: "linear-gradient(135deg,#0c1a2e,#1a3a5c)", accent: "#0ea5e9", text: "#e0f2fe", sub: "#7dd3fc" },
     creative:   { bg: "linear-gradient(135deg,#1a0533,#2d1b69)", accent: "#c084fc", text: "#f5f3ff", sub: "#d8b4fe" },
@@ -406,14 +406,14 @@ function PPTRenderer({ data }: { data: any }) {
     <div className="space-y-3">
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-2">
-          <span className="text-gray-600 text-xs">📑</span>
-          <span className="text-gray-400 text-xs font-medium">{data.title}</span>
+          <span className="text-muted2 text-xs">📑</span>
+          <span className="text-sub text-xs font-medium">{data.title}</span>
         </div>
-        <span className="text-gray-600 text-xs">{idx + 1} / {slides.length}</span>
+        <span className="text-muted2 text-xs">{idx + 1} / {slides.length}</span>
       </div>
 
       {/* Slide */}
-      <div className="aspect-video rounded-2xl overflow-hidden border border-white/10 relative flex flex-col"
+      <div className="aspect-video rounded-2xl overflow-hidden border border-soft relative flex flex-col"
         style={{ background: theme.bg }}>
 
         {/* Decoración */}
@@ -480,7 +480,7 @@ function PPTRenderer({ data }: { data: any }) {
       {/* Navegación */}
       <div className="flex items-center justify-between">
         <button onClick={() => setIdx(Math.max(0, idx - 1))} disabled={idx === 0}
-          className="px-3 py-1.5 rounded-lg border border-white/10 text-gray-500 text-xs disabled:opacity-30 hover:border-white/20 hover:text-gray-300 transition-all">
+          className="px-3 py-1.5 rounded-lg border border-soft text-muted2 text-xs disabled:opacity-30 hover:border-medium hover:text-sub transition-all">
           ← Anterior
         </button>
         <div className="flex gap-1.5">
@@ -491,15 +491,15 @@ function PPTRenderer({ data }: { data: any }) {
           ))}
         </div>
         <button onClick={() => setIdx(Math.min(slides.length - 1, idx + 1))} disabled={idx === slides.length - 1}
-          className="px-3 py-1.5 rounded-lg border border-white/10 text-gray-500 text-xs disabled:opacity-30 hover:border-white/20 hover:text-gray-300 transition-all">
+          className="px-3 py-1.5 rounded-lg border border-soft text-muted2 text-xs disabled:opacity-30 hover:border-medium hover:text-sub transition-all">
           Siguiente →
         </button>
       </div>
 
       {s.notes && (
-        <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3">
-          <span className="text-gray-700 text-[10px] font-semibold uppercase tracking-wider">Notas del presentador</span>
-          <p className="text-gray-500 text-xs mt-1">{s.notes}</p>
+        <div className="bg-card-soft-theme rounded-xl p-3">
+          <span className="text-muted2 text-[10px] font-semibold uppercase tracking-wider">Notas del presentador</span>
+          <p className="text-muted2 text-xs mt-1">{s.notes}</p>
         </div>
       )}
     </div>
@@ -530,8 +530,8 @@ function PodcastRenderer({ data }: { data: any }) {
           <div className="absolute bottom-1 right-1 w-3 h-3 bg-red-400 rounded-full animate-pulse" />
         </div>
         <div>
-          <h3 className="text-white font-bold text-sm">{data.title}</h3>
-          <p className="text-gray-500 text-xs mt-0.5">EduAI Podcast · {data.duration || "5 min"}</p>
+          <h3 className="text-main font-bold text-sm">{data.title}</h3>
+          <p className="text-muted2 text-xs mt-0.5">EduAI Podcast · {data.duration || "5 min"}</p>
           <div className="flex gap-2 mt-1.5">
             <span className="text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded-full font-medium">🎙 Álvaro</span>
             <span className="text-[10px] bg-pink-500/10 text-pink-400 border border-pink-500/20 px-2 py-0.5 rounded-full font-medium">🎙 Elvira</span>
@@ -540,7 +540,7 @@ function PodcastRenderer({ data }: { data: any }) {
       </div>
 
       {/* Waveform + controles */}
-      <div className="bg-gray-900/80 rounded-2xl p-4 border border-white/5">
+      <div className="bg-header-theme rounded-2xl p-4 border border-soft">
         <div className="flex items-end gap-[2px] h-12 mb-3">
           {bars.map((h, i) => (
             <div key={i} className="flex-1 rounded-full transition-all duration-75"
@@ -548,14 +548,14 @@ function PodcastRenderer({ data }: { data: any }) {
                 height: `${h * 100}%`,
                 background: i / BARS <= progress
                   ? `linear-gradient(to top, #3b82f6, #8b5cf6)`
-                  : "rgba(255,255,255,0.08)",
+                  : "var(--border-soft)",
               }} />
           ))}
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={() => setCurrent(c => Math.max(0, c - 1))}
-            className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white text-xs transition-colors"
+            className="w-7 h-7 rounded-full bg-card-soft-theme hover:bg-card-soft-theme flex items-center justify-center text-main text-xs transition-colors"
           >⏮</button>
           <button
             onClick={() => setCurrent(c => Math.min(total - 1, c + 1))}
@@ -564,9 +564,9 @@ function PodcastRenderer({ data }: { data: any }) {
           >▶</button>
           <button
             onClick={() => setCurrent(c => Math.min(total - 1, c + 1))}
-            className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white text-xs transition-colors"
+            className="w-7 h-7 rounded-full bg-card-soft-theme hover:bg-card-soft-theme flex items-center justify-center text-main text-xs transition-colors"
           >⏭</button>
-          <span className="text-gray-600 text-xs ml-auto">{current + 1} / {total}</span>
+          <span className="text-muted2 text-xs ml-auto">{current + 1} / {total}</span>
         </div>
       </div>
 
@@ -581,7 +581,7 @@ function PodcastRenderer({ data }: { data: any }) {
               className={`flex gap-3 p-3 rounded-2xl cursor-pointer transition-all border ${
                 isActive
                   ? isA ? "bg-blue-500/10 border-blue-500/20" : "bg-pink-500/10 border-pink-500/20"
-                  : "bg-white/[0.02] border-transparent hover:bg-white/[0.04]"
+                  : "bg-card-soft-theme border-transparent hover:bg-card-soft-theme"
               }`}>
               <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold flex-shrink-0 ${
                 isA ? "bg-blue-500/20 text-blue-400" : "bg-pink-500/20 text-pink-400"
@@ -592,7 +592,7 @@ function PodcastRenderer({ data }: { data: any }) {
                 <p className={`text-[10px] font-semibold mb-0.5 ${isA ? "text-blue-400" : "text-pink-400"}`}>
                   {isA ? "Álvaro" : "Elvira"}
                 </p>
-                <p className="text-gray-400 text-xs leading-relaxed">{seg.text}</p>
+                <p className="text-sub text-xs leading-relaxed">{seg.text}</p>
               </div>
               {isActive && (
                 <div className="flex-shrink-0 flex gap-0.5 items-end">
@@ -613,7 +613,7 @@ function PodcastRenderer({ data }: { data: any }) {
 // ─── RENDERER: Poster mejorado ────────────────────────────────────────────────
 function PosterRenderer({ data }: { data: any }) {
   const SCHEMES: Record<string, { bg: string; accent: string; text: string; sub: string; badge: string }> = {
-    vibrant:    { bg: "linear-gradient(135deg,#0f172a,#1e1b4b,#2d0f3f)", accent: "#818cf8", text: "#f1f5f9", sub: "#94a3b8", badge: "rgba(129,140,248,0.15)" },
+    vibrant:    { bg: "linear-gradient(135deg,#0f172a,#1e1b4b,#2d0f3f)", accent: "#818cf8", text: "var(--text-primary)", sub: "var(--text-muted)", badge: "rgba(129,140,248,0.15)" },
     pastel:     { bg: "linear-gradient(135deg,#fef9ff,#f0f9ff,#fff7ed)", accent: "#7c3aed", text: "#1e1b4b", sub: "#6b7280", badge: "rgba(124,58,237,0.1)" },
     dark:       { bg: "linear-gradient(135deg,#000,#18181b)", accent: "#22d3ee", text: "#f0fdfa", sub: "#a1a1aa", badge: "rgba(34,211,238,0.1)" },
     monochrome: { bg: "linear-gradient(135deg,#18181b,#27272a)", accent: "#a1a1aa", text: "#fafafa", sub: "#71717a", badge: "rgba(161,161,170,0.1)" },
@@ -622,7 +622,7 @@ function PosterRenderer({ data }: { data: any }) {
   const s = SCHEMES[data.colorScheme] || SCHEMES.vibrant
 
   return (
-    <div className="rounded-3xl overflow-hidden border border-white/10" style={{ background: s.bg }}>
+    <div className="rounded-2xl overflow-hidden border border-soft" style={{ background: s.bg }}>
       {/* Header con brillo */}
       <div className="relative px-8 pt-10 pb-8 text-center overflow-hidden">
         <div className="absolute inset-0 opacity-20"
@@ -643,7 +643,7 @@ function PosterRenderer({ data }: { data: any }) {
       {/* Puntos principales */}
       <div className="px-8 py-6 space-y-4">
         {(data.mainPoints || []).map((pt: any, i: number) => (
-          <div key={i} className="flex gap-4 rounded-2xl p-4 border border-white/5"
+          <div key={i} className="flex gap-4 rounded-2xl p-4 border border-soft"
             style={{ background: s.badge }}>
             <div className="text-2xl flex-shrink-0 w-10 h-10 flex items-center justify-center">{pt.icon}</div>
             <div>
@@ -682,11 +682,11 @@ function FlashcardsRenderer({ data }: { data: any }) {
     <div className="text-center space-y-4">
       <div className="flex items-center justify-between px-1">
         <span className="text-blue-400 font-bold text-sm">{data.deckTitle}</span>
-        <span className="text-gray-600 text-xs bg-gray-800 rounded-full px-3 py-1">{idx + 1} / {cards.length}</span>
+        <span className="text-muted2 text-xs bg-card-soft-theme rounded-full px-3 py-1">{idx + 1} / {cards.length}</span>
       </div>
 
       <div onClick={() => setFlipped(!flipped)}
-        className={`min-h-[200px] rounded-3xl p-7 cursor-pointer border transition-all flex flex-col items-center justify-center select-none ${
+        className={`min-h-[200px] rounded-2xl p-7 cursor-pointer border transition-all flex flex-col items-center justify-center select-none ${
           flipped ? "bg-green-500/[0.06] border-green-500/20" : "bg-blue-500/[0.06] border-blue-500/20"
         }`}>
         <span className={`text-[10px] font-bold tracking-widest mb-3 px-3 py-1 rounded-full ${
@@ -694,12 +694,12 @@ function FlashcardsRenderer({ data }: { data: any }) {
         }`}>
           {flipped ? "↩ RESPUESTA" : "PREGUNTA → toca para voltear"}
         </span>
-        <p className="text-white font-semibold text-base leading-relaxed">{flipped ? card.back : card.front}</p>
-        {card.hint && !flipped && <p className="text-gray-600 text-xs mt-3 italic">💡 {card.hint}</p>}
+        <p className="text-main font-semibold text-base leading-relaxed">{flipped ? card.back : card.front}</p>
+        {card.hint && !flipped && <p className="text-muted2 text-xs mt-3 italic">💡 {card.hint}</p>}
         {card.difficulty && (
           <div className="flex gap-1 mt-3">
             {[1, 2, 3].map(d => (
-              <div key={d} className={`w-2 h-2 rounded-full ${d <= card.difficulty ? "bg-yellow-400" : "bg-white/10"}`} />
+              <div key={d} className={`w-2 h-2 rounded-full ${d <= card.difficulty ? "bg-yellow-400" : "bg-card-soft-theme"}`} />
             ))}
           </div>
         )}
@@ -707,7 +707,7 @@ function FlashcardsRenderer({ data }: { data: any }) {
 
       <div className="flex justify-center gap-2">
         <button onClick={() => { setIdx(Math.max(0, idx - 1)); setFlipped(false) }} disabled={idx === 0}
-          className="px-4 py-2 rounded-xl border border-white/10 text-gray-500 text-sm disabled:opacity-30 hover:border-white/20 hover:text-gray-300 transition-all">← Anterior</button>
+          className="px-4 py-2 rounded-xl border border-soft text-muted2 text-sm disabled:opacity-30 hover:border-medium hover:text-sub transition-all">← Anterior</button>
         <button onClick={() => { setIdx(Math.min(cards.length - 1, idx + 1)); setFlipped(false) }} disabled={idx === cards.length - 1}
           className="px-4 py-2 rounded-xl bg-blue-600/20 border border-blue-500/20 text-blue-400 text-sm disabled:opacity-30 hover:bg-blue-600/30 transition-all">Siguiente →</button>
       </div>
@@ -731,14 +731,14 @@ function QuizRenderer({ data }: { data: any }) {
     return (
       <div className="text-center py-8 space-y-4">
         <div className="text-6xl">{pct >= 0.7 ? "🏆" : pct >= 0.4 ? "📚" : "💪"}</div>
-        <h3 className="text-3xl font-extrabold text-white">{score} <span className="text-gray-600">/ {questions.length}</span></h3>
-        <div className="w-full bg-gray-800 rounded-full h-2 max-w-xs mx-auto">
+        <h3 className="text-3xl font-extrabold text-main">{score} <span className="text-muted2">/ {questions.length}</span></h3>
+        <div className="w-full bg-card-soft-theme rounded-full h-2 max-w-xs mx-auto">
           <div className="h-2 rounded-full transition-all duration-700"
             style={{ width: `${(score / questions.length) * 100}%`, background: pct >= 0.7 ? "#22c55e" : pct >= 0.4 ? "#f59e0b" : "#ef4444" }} />
         </div>
-        <p className="text-gray-400 text-sm">{pct >= 0.7 ? "¡Excelente dominio del tema!" : pct >= 0.4 ? "Buen progreso, sigue repasando" : "Repasa el material y vuelve a intentar"}</p>
+        <p className="text-sub text-sm">{pct >= 0.7 ? "¡Excelente dominio del tema!" : pct >= 0.4 ? "Buen progreso, sigue repasando" : "Repasa el material y vuelve a intentar"}</p>
         <button onClick={() => { setAnswers({}); setQIdx(0); setDone(false) }}
-          className="mt-2 px-6 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-colors">Reintentar</button>
+          className="mt-2 px-6 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-main text-sm font-semibold transition-colors">Reintentar</button>
       </div>
     )
   }
@@ -750,16 +750,16 @@ function QuizRenderer({ data }: { data: any }) {
         <div className="flex gap-1">
           {questions.map((_: any, i: number) => (
             <div key={i} className={`h-1 rounded-full transition-all ${
-              i === qIdx ? "w-6 bg-blue-400" : answers[i] !== undefined ? "w-3 bg-green-400/60" : "w-3 bg-white/10"
+              i === qIdx ? "w-6 bg-blue-400" : answers[i] !== undefined ? "w-3 bg-green-400/60" : "w-3 bg-card-soft-theme"
             }`} />
           ))}
         </div>
         <span className="text-blue-400 text-xs font-semibold">{score} pts</span>
       </div>
 
-      <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-5">
-        <p className="text-xs text-gray-600 mb-2">Pregunta {qIdx + 1} de {questions.length}</p>
-        <p className="text-white font-semibold text-sm leading-relaxed">{q.question}</p>
+      <div className="bg-card-soft-theme border border-soft rounded-2xl p-5">
+        <p className="text-xs text-muted2 mb-2">Pregunta {qIdx + 1} de {questions.length}</p>
+        <p className="text-main font-semibold text-sm leading-relaxed">{q.question}</p>
       </div>
 
       <div className="space-y-2">
@@ -767,19 +767,19 @@ function QuizRenderer({ data }: { data: any }) {
           const answered = answers[qIdx] !== undefined
           const selected = answers[qIdx] === i
           const correct = i === q.correctAnswer
-          let cls = "bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.06] cursor-pointer"
+          let cls = "bg-card-soft-theme border-soft hover:bg-input-theme cursor-pointer"
           if (answered && correct) cls = "bg-green-500/10 border-green-500/30 cursor-default"
           else if (answered && selected) cls = "bg-red-500/10 border-red-500/30 cursor-default"
-          else if (answered) cls = "bg-white/[0.01] border-white/[0.04] opacity-50 cursor-default"
+          else if (answered) cls = "bg-card-soft-theme border-soft opacity-50 cursor-default"
           return (
             <button key={i} onClick={() => !answered && setAnswers({ ...answers, [qIdx]: i })}
               className={`w-full text-left p-3.5 rounded-2xl border text-sm transition-all ${cls}`}>
               <div className="flex items-center gap-3">
                 <span className="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0"
-                  style={{ background: answered && correct ? "rgba(34,197,94,0.2)" : answered && selected ? "rgba(239,68,68,0.2)" : "rgba(255,255,255,0.06)" }}>
+                  style={{ background: answered && correct ? "rgba(34,197,94,0.2)" : answered && selected ? "rgba(239,68,68,0.2)" : "var(--bg-card-soft)" }}>
                   {String.fromCharCode(65 + i)}
                 </span>
-                <span className="text-gray-300 flex-1">{opt}</span>
+                <span className="text-sub flex-1">{opt}</span>
                 {answered && correct && <span>✅</span>}
                 {answered && selected && !correct && <span>❌</span>}
               </div>
@@ -790,20 +790,20 @@ function QuizRenderer({ data }: { data: any }) {
 
       {answers[qIdx] !== undefined && q.explanation && (
         <div className="bg-blue-500/[0.06] border-l-2 border-blue-500/50 rounded-xl p-3">
-          <p className="text-gray-400 text-xs">💡 {q.explanation}</p>
+          <p className="text-sub text-xs">💡 {q.explanation}</p>
         </div>
       )}
 
       <div className="flex justify-end gap-2 pt-1">
         {qIdx > 0 && (
-          <button onClick={() => setQIdx(qIdx - 1)} className="px-3 py-2 rounded-xl border border-white/10 text-gray-500 text-xs hover:border-white/20 hover:text-gray-300 transition-all">← Anterior</button>
+          <button onClick={() => setQIdx(qIdx - 1)} className="px-3 py-2 rounded-xl border border-soft text-muted2 text-xs hover:border-medium hover:text-sub transition-all">← Anterior</button>
         )}
         {qIdx < questions.length - 1 ? (
           <button onClick={() => setQIdx(qIdx + 1)} disabled={answers[qIdx] === undefined}
-            className="px-4 py-2 rounded-xl bg-blue-600/80 hover:bg-blue-500 text-white text-xs font-semibold disabled:opacity-30 transition-colors">Siguiente →</button>
+            className="px-4 py-2 rounded-xl bg-blue-600/80 hover:bg-blue-500 text-main text-xs font-semibold disabled:opacity-30 transition-colors">Siguiente →</button>
         ) : (
           <button onClick={() => setDone(true)} disabled={answers[qIdx] === undefined}
-            className="px-4 py-2 rounded-xl bg-green-600/80 hover:bg-green-500 text-white text-xs font-semibold disabled:opacity-30 transition-colors">Ver resultado 🏆</button>
+            className="px-4 py-2 rounded-xl bg-green-600/80 hover:bg-green-500 text-main text-xs font-semibold disabled:opacity-30 transition-colors">Ver resultado 🏆</button>
         )}
       </div>
     </div>
@@ -823,8 +823,8 @@ function TimelineRenderer({ data }: { data: any }) {
   return (
     <div className="space-y-3">
       <div className="text-center">
-        <h3 className="text-white font-bold text-sm">⏳ {data.title}</h3>
-        {data.period && <p className="text-gray-600 text-xs mt-0.5">{data.period}</p>}
+        <h3 className="text-main font-bold text-sm">⏳ {data.title}</h3>
+        {data.period && <p className="text-muted2 text-xs mt-0.5">{data.period}</p>}
       </div>
 
       <div className="relative pl-8">
@@ -840,11 +840,11 @@ function TimelineRenderer({ data }: { data: any }) {
               onMouseEnter={() => setHoveredIdx(i)}
               onMouseLeave={() => setHoveredIdx(null)}>
               {/* Punto */}
-              <div className="absolute -left-5 top-3 w-3.5 h-3.5 rounded-full border-2 border-gray-950 transition-transform"
+              <div className="absolute -left-5 top-3 w-3.5 h-3.5 rounded-full border-2 border-card transition-transform"
                 style={{ background: dotColor, transform: isHov ? "scale(1.4)" : "scale(1)" }} />
 
               <div className={`rounded-2xl p-3.5 border transition-all ${
-                isHov ? "bg-white/[0.06] border-white/15" : "bg-white/[0.02] border-white/[0.05]"
+                isHov ? "bg-input-theme border-soft" : "bg-card-soft-theme border-soft"
               }`}>
                 <div className="flex items-center gap-2 mb-1.5">
                   <span className="text-base">{evt.icon || "📅"}</span>
@@ -856,8 +856,8 @@ function TimelineRenderer({ data }: { data: any }) {
                     <span className="text-[10px] text-red-400 font-semibold">⭐ Hito clave</span>
                   )}
                 </div>
-                <h4 className="text-gray-200 font-bold text-xs mb-0.5">{evt.title}</h4>
-                <p className="text-gray-500 text-[11px] leading-relaxed">{evt.description}</p>
+                <h4 className="text-main font-bold text-xs mb-0.5">{evt.title}</h4>
+                <p className="text-muted2 text-[11px] leading-relaxed">{evt.description}</p>
               </div>
             </div>
           )
@@ -942,10 +942,10 @@ export default function CreatorStudioPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+      <div className="min-h-screen bg-app flex items-center justify-center">
         <div className="text-center">
-          <div className="w-10 h-10 rounded-full border-2 border-white/10 border-t-blue-400 animate-spin mx-auto mb-3" />
-          <p className="text-gray-500 text-sm">Cargando Creator Studio...</p>
+          <div className="w-10 h-10 rounded-full border-2 border-soft border-t-blue-400 animate-spin mx-auto mb-3" />
+          <p className="text-muted2 text-sm">Cargando Creator Studio...</p>
         </div>
       </div>
     )
@@ -960,51 +960,51 @@ export default function CreatorStudioPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 flex">
+    <div className="min-h-screen bg-app flex">
       {/* Sidebar */}
       <aside style={{ width: sw }}
-        className="fixed left-0 top-0 h-full bg-gray-900/95 backdrop-blur-xl border-r border-white/5 flex flex-col z-20 transition-all duration-300 overflow-hidden">
+        className="fixed left-0 top-0 h-full bg-card-theme backdrop-blur-xl border-r border-soft flex flex-col z-20 transition-all duration-300 overflow-hidden">
         <button onClick={() => setExpanded(!expanded)}
-          className="h-14 flex items-center border-b border-white/5 shrink-0 hover:bg-white/5 transition-colors px-3 gap-3 w-full">
+          className="h-14 flex items-center border-b border-soft shrink-0 hover:bg-card-soft-theme transition-colors px-3 gap-3 w-full">
           <div className="w-10 flex items-center justify-center shrink-0">
             <span className="text-blue-400 font-bold text-lg">{expanded ? "◀" : "▶"}</span>
           </div>
-          {expanded && <span className="text-blue-400 font-bold text-sm whitespace-nowrap">Edu<span className="text-white">AI</span></span>}
+          {expanded && <span className="text-blue-400 font-bold text-sm whitespace-nowrap">Edu<span className="text-main">AI</span></span>}
         </button>
         <div className="flex-1 py-3 flex flex-col overflow-y-auto overflow-x-hidden">
           {NAV_LINKS.map(item => (
             <Link key={item.href} href={item.href} title={!expanded ? item.label : undefined}
               className={`flex items-center gap-3 mx-2 mb-1 px-2 py-2.5 rounded-2xl border border-transparent transition-all group ${
-                item.href === "/creator" ? "bg-white/[0.06] border-white/[0.08]" : "hover:bg-white/[0.06] hover:border-white/[0.08]"
+                item.href === "/creator" ? "bg-input-theme border-medium" : "hover:bg-input-theme hover:border-medium"
               }`}>
               <span className="text-2xl w-10 text-center shrink-0">{item.icon}</span>
               {expanded && <span className={`text-sm font-medium whitespace-nowrap ${
-                item.href === "/creator" ? "text-white" : "text-gray-400 group-hover:text-white"
+                item.href === "/creator" ? "text-main" : "text-sub group-hover:text-main"
               }`}>{item.label}</span>}
             </Link>
           ))}
         </div>
-        <div className="border-t border-gray-800 py-3 shrink-0">
+        <div className="border-t border-soft py-3 shrink-0">
           <button onClick={async () => { await supabase.auth.signOut(); router.push("/login") }}
-            className="flex items-center gap-3 mx-2 px-2 py-2.5 rounded-2xl border border-transparent hover:bg-white/[0.06] hover:border-white/[0.08] transition-all group w-[calc(100%-16px)]"
+            className="flex items-center gap-3 mx-2 px-2 py-2.5 rounded-2xl border border-transparent hover:bg-input-theme hover:border-medium transition-all group w-[calc(100%-16px)]"
             title={!expanded ? "Salir" : undefined}>
             <span className="text-2xl w-10 text-center shrink-0">🚪</span>
-            {expanded && <span className="text-gray-500 group-hover:text-red-400 text-sm whitespace-nowrap transition-colors">Cerrar sesión</span>}
+            {expanded && <span className="text-muted2 group-hover:text-red-400 text-sm whitespace-nowrap transition-colors">Cerrar sesión</span>}
           </button>
         </div>
       </aside>
 
       {/* Main */}
       <main style={{ marginLeft: sw }} className="flex-1 flex flex-col min-h-screen transition-all duration-300">
-        <div className="border-b border-white/5 bg-gray-950/80 backdrop-blur-xl sticky top-0 z-10">
+        <div className="border-b border-soft bg-header-theme backdrop-blur-xl sticky top-0 z-10">
           <div className="max-w-2xl mx-auto px-6 py-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-lg">✨</span>
-              <p className="text-white font-bold text-sm">Creator Studio</p>
+              <p className="text-main font-bold text-sm">Creator Studio</p>
             </div>
             {step === "result" && (
               <button onClick={() => { setStep("input"); setResult(null); setContent(""); setFileName("") }}
-                className="text-xs text-gray-500 hover:text-white border border-white/10 rounded-xl px-3 py-1.5 transition-colors">
+                className="text-xs text-muted2 hover:text-main border border-soft rounded-xl px-3 py-1.5 transition-colors">
                 + Nueva creación
               </button>
             )}
@@ -1017,19 +1017,19 @@ export default function CreatorStudioPage() {
           {step === "input" && (
             <>
               <div>
-                <h1 className="text-2xl font-bold text-white mb-1">Crea material de estudio</h1>
-                <p className="text-gray-500 text-sm">Transforma cualquier contenido en infografías, presentaciones, podcasts y más</p>
+                <h1 className="text-2xl font-bold text-main mb-1">Crea material de estudio</h1>
+                <p className="text-muted2 text-sm">Transforma cualquier contenido en infografías, presentaciones, podcasts y más</p>
               </div>
 
               <div>
-                <label className="text-gray-600 text-[11px] font-semibold tracking-widest block mb-2">FUENTE</label>
+                <label className="text-muted2 text-[11px] font-semibold tracking-widest block mb-2">FUENTE</label>
                 <div className="flex gap-2 flex-wrap">
                   {SOURCE_TYPES.map(s => (
                     <button key={s.id} onClick={() => { setSourceType(s.id); setContent(""); setFileName("") }}
                       className={`flex items-center gap-1.5 px-3.5 py-2 rounded-2xl border text-sm font-medium transition-all ${
                         sourceType === s.id
                           ? "bg-blue-500/10 border-blue-500/30 text-blue-400"
-                          : "bg-white/[0.03] border-white/[0.06] text-gray-500 hover:bg-white/[0.06]"
+                          : "bg-card-soft-theme border-soft text-muted2 hover:bg-input-theme"
                       }`}>
                       <span>{s.icon}</span>{s.label}
                     </button>
@@ -1044,16 +1044,16 @@ export default function CreatorStudioPage() {
                     sourceType === "url" ? "https://ejemplo.com/articulo" :
                     "Pega aquí el texto que quieres transformar..."
                   }
-                  className={`w-full bg-white/[0.04] border border-white/[0.08] rounded-2xl px-4 py-3.5 text-gray-200 placeholder-gray-600 text-sm focus:outline-none focus:border-blue-500/30 focus:bg-white/[0.06] transition-all resize-vertical ${
+                  className={`w-full bg-card-soft-theme border border-soft rounded-2xl px-4 py-3.5 text-main placeholder-gray-400 text-sm focus:outline-none focus:border-blue-500/30 focus:bg-input-theme transition-all resize-vertical ${
                     sourceType === "text" ? "min-h-[140px]" : "min-h-[52px]"
                   }`} />
               ) : (
                 <div onClick={() => fileRef.current?.click()}
                   className={`border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all ${
-                    content ? "border-green-500/30 bg-green-500/[0.04]" : "border-white/10 bg-white/[0.02] hover:border-white/20"
+                    content ? "border-green-500/30 bg-green-500/[0.04]" : "border-soft bg-card-soft-theme hover:border-medium"
                   }`}>
                   <div className="text-3xl mb-2">{content ? "✅" : sourceType === "pdf" ? "📄" : "📎"}</div>
-                  <p className={`text-sm ${content ? "text-green-400" : "text-gray-500"}`}>
+                  <p className={`text-sm ${content ? "text-green-400" : "text-muted2"}`}>
                     {content ? `${fileName} cargado` : `Clic para subir .${sourceType}`}
                   </p>
                   <input ref={fileRef} type="file" accept={sourceType === "pdf" ? ".pdf" : ".docx,.doc"} onChange={handleFile} className="hidden" />
@@ -1061,18 +1061,18 @@ export default function CreatorStudioPage() {
               )}
 
               <div>
-                <label className="text-gray-600 text-[11px] font-semibold tracking-widest block mb-2">¿QUÉ QUIERES CREAR?</label>
+                <label className="text-muted2 text-[11px] font-semibold tracking-widest block mb-2">¿QUÉ QUIERES CREAR?</label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {OUTPUT_FORMATS.map(f => (
                     <button key={f.id} onClick={() => setOutputFormat(f.id)}
                       className={`p-3 rounded-2xl border text-center transition-all ${
                         outputFormat === f.id
                           ? "bg-blue-500/10 border-blue-500/30"
-                          : "bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.04]"
+                          : "bg-card-soft-theme border-soft hover:bg-card-soft-theme"
                       }`}>
                       <div className="text-xl mb-1">{f.icon}</div>
-                      <div className={`text-xs font-bold ${outputFormat === f.id ? "text-blue-400" : "text-gray-400"}`}>{f.label}</div>
-                      <div className="text-[10px] text-gray-600 mt-0.5">{f.desc}</div>
+                      <div className={`text-xs font-bold ${outputFormat === f.id ? "text-blue-400" : "text-sub"}`}>{f.label}</div>
+                      <div className="text-[10px] text-muted2 mt-0.5">{f.desc}</div>
                     </button>
                   ))}
                 </div>
@@ -1081,7 +1081,7 @@ export default function CreatorStudioPage() {
               <ColorPalette value={accentColor} onChange={setAccentColor} />
 
               <button onClick={handleGenerate} disabled={!content.trim() || processing}
-                className="w-full py-3.5 rounded-2xl font-bold text-sm transition-all disabled:opacity-30 bg-blue-600/90 hover:bg-blue-500 text-white hover:shadow-lg hover:shadow-blue-500/20">
+                className="w-full py-3.5 rounded-2xl font-bold text-sm transition-all disabled:opacity-30 bg-blue-600/90 hover:bg-blue-500 text-main hover:shadow-lg hover:shadow-blue-500/20">
                 ✨ Generar {OUTPUT_FORMATS.find(f => f.id === outputFormat)?.label}
               </button>
 
@@ -1097,13 +1097,13 @@ export default function CreatorStudioPage() {
           {step === "processing" && (
             <div className="text-center py-16">
               <div className="relative w-16 h-16 mx-auto mb-5">
-                <div className="w-16 h-16 rounded-full border-2 border-white/10 border-t-blue-400 animate-spin" />
+                <div className="w-16 h-16 rounded-full border-2 border-soft border-t-blue-400 animate-spin" />
                 <div className="absolute inset-0 flex items-center justify-center text-2xl">
                   {FORMAT_ICONS[outputFormat]}
                 </div>
               </div>
-              <h3 className="text-white font-bold text-base mb-1">Procesando contenido...</h3>
-              <p className="text-gray-600 text-sm">
+              <h3 className="text-main font-bold text-base mb-1">Procesando contenido...</h3>
+              <p className="text-muted2 text-sm">
                 Extrayendo conceptos y generando {OUTPUT_FORMATS.find(f => f.id === outputFormat)?.label.toLowerCase()}
               </p>
             </div>
@@ -1122,7 +1122,7 @@ export default function CreatorStudioPage() {
                   📋 JSON
                 </button>
               </div>
-              <div id="creator-result-container" className="bg-gray-900/60 border border-white/5 rounded-3xl p-5 backdrop-blur-sm">
+              <div id="creator-result-container" className="bg-card-theme border border-soft rounded-2xl p-5 backdrop-blur-sm">
                 {Renderer && <Renderer data={result} />}
               </div>
               <DownloadBar format={outputFormat} data={result} accentColor={accentColor} />

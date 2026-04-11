@@ -21,21 +21,21 @@ const LEVELS = [
 ]
 
 const NAV_LINKS = [
-  { href: "/agentes", icon: Bot, label: "Agentes", color: "#3b82f6" },
-  { href: "/sessions", icon: BookOpen, label: "Sesiones", color: "#8b5cf6" },
-  { href: "/chat", icon: MessageCircle, label: "Chat", color: "#10b981" },
-  { href: "/collab", icon: Users, label: "Colaborar", color: "#14b8a6" },
+  { href: "/agentes", icon: Bot, label: "Agentes", color: "#2563eb" },
+  { href: "/sessions", icon: BookOpen, label: "Sesiones", color: "#7c3aed" },
+  { href: "/chat", icon: MessageCircle, label: "Chat", color: "#059669" },
+  { href: "/collab", icon: Users, label: "Colaborar", color: "#0d9488" },
   { href: "/workspace", icon: FolderKanban, label: "Workspace", color: "#4338ca" },
-  { href: "/profile", icon: UserCircle2, label: "Perfil", color: "#94a3b8" },
+  { href: "/profile", icon: UserCircle2, label: "Perfil", color: "var(--text-muted)" },
 ]
 
 const LEVEL_COLORS = [
-  { text: "text-gray-400", glow: "rgba(148,163,184,0.3)" },
-  { text: "text-blue-400", glow: "rgba(96,165,250,0.3)" },
-  { text: "text-green-400", glow: "rgba(52,211,153,0.3)" },
-  { text: "text-purple-400", glow: "rgba(167,139,250,0.3)" },
-  { text: "text-amber-400", glow: "rgba(251,191,36,0.3)" },
-  { text: "text-red-400", glow: "rgba(248,113,113,0.3)" },
+  { text: "text-muted2", glow: "rgba(100,116,139,0.25)" },
+  { text: "text-blue-600",  glow: "rgba(37,99,235,0.22)" },
+  { text: "text-emerald-600", glow: "rgba(5,150,105,0.22)" },
+  { text: "text-purple-600", glow: "rgba(124,58,237,0.22)" },
+  { text: "text-amber-600",  glow: "rgba(217,119,6,0.22)" },
+  { text: "text-red-600",   glow: "rgba(220,38,38,0.22)" },
 ]
 
 export default function Dashboard() {
@@ -54,55 +54,31 @@ export default function Dashboard() {
 
   useEffect(() => {
     const init = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!user) {
-        router.push("/login")
-        return
-      }
-
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.push("/login"); return }
       setUser(user)
 
-      // Verificar si es admin
       const { data: adminData } = await supabase
-        .from("admin_emails")
-        .select("email")
-        .eq("email", user.email)
-        .maybeSingle()
-
+        .from("admin_emails").select("email").eq("email", user.email).maybeSingle()
       setIsAdmin(!!adminData)
 
-      // Cargar perfil
       const { data: profileData } = await supabase
-        .from("profiles")
-        .select("xp, streak_days")
-        .eq("id", user.id)
-        .maybeSingle()
+        .from("profiles").select("xp, streak_days").eq("id", user.id).maybeSingle()
 
-      // Contar sesiones
       const { count } = await supabase
-        .from("study_sessions")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id)
-
+        .from("study_sessions").select("*", { count: "exact", head: true }).eq("user_id", user.id)
       setSessions(count || 0)
 
       if (profileData) {
         const currentXp = profileData.xp || 0
         const currentStreak = profileData.streak_days || 0
-
         setXp(currentXp)
         setStreak(currentStreak)
-
         const lvl = [...LEVELS].reverse().find((l) => currentXp >= l.min)
         setLevel(lvl?.name || "Principiante")
       }
-
       setLoaded(true)
     }
-
     init()
   }, [router, supabase])
 
@@ -115,36 +91,42 @@ export default function Dashboard() {
   const levelColor = LEVEL_COLORS[levelIdx] || LEVEL_COLORS[0]
 
   const handleStudy = () => {
-    if (topic.trim()) {
-      router.push(`/study/${encodeURIComponent(topic.trim())}`)
-    }
+    if (topic.trim()) router.push(`/study/${encodeURIComponent(topic.trim())}`)
   }
 
-  const displayName =
-    user?.user_metadata?.name || user?.email?.split("@")[0] || "Estudiante"
+  const displayName = user?.user_metadata?.name || user?.email?.split("@")[0] || "Estudiante"
 
   return (
-    <div className="min-h-screen bg-gray-950 flex">
+    <div className="min-h-screen bg-app flex">
+      {/* ── Sidebar ── */}
       <aside
         style={{ width: expanded ? "220px" : "68px" }}
         className="fixed left-0 top-0 h-full z-20 flex flex-col transition-all duration-300 overflow-hidden"
         onMouseEnter={() => setExpanded(true)}
         onMouseLeave={() => setExpanded(false)}
       >
-        <div className="absolute inset-0 bg-gray-950/95 backdrop-blur-xl border-r border-white/[0.06]" />
+        <div
+          className="absolute inset-0 backdrop-blur-xl border-r"
+          style={{ background: "var(--bg-sidebar)", borderColor: "var(--border-soft)", boxShadow: "var(--shadow-sm)" }}
+        />
 
         <div className="relative flex flex-col h-full">
-          <div className="h-14 flex items-center border-b border-white/[0.06] px-4 gap-3 flex-shrink-0">
-            <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-500/20">
-              <Zap size={18} className="text-white" />
+          {/* Logo */}
+          <div
+            className="h-14 flex items-center border-b px-4 gap-3 flex-shrink-0"
+            style={{ borderColor: "var(--border-soft)" }}
+          >
+            <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-500/20">
+              <Zap size={18} className="text-main" />
             </div>
             {expanded && (
-              <span className="font-bold text-white text-base whitespace-nowrap animate-fade-in">
-                Edu<span className="text-blue-400">AI</span>
+              <span className="font-bold text-main text-base whitespace-nowrap animate-fade-in">
+                Edu<span className="text-blue-600">AI</span>
               </span>
             )}
           </div>
 
+          {/* Nav links */}
           <nav className="flex-1 py-3 flex flex-col gap-0.5 px-2 overflow-y-auto overflow-x-hidden">
             {NAV_LINKS.map((item) => {
               const Icon = item.icon
@@ -153,19 +135,19 @@ export default function Dashboard() {
                   key={item.href}
                   href={item.href}
                   title={!expanded ? item.label : undefined}
-                  className="flex items-center gap-3 px-2.5 py-2.5 rounded-2xl border border-transparent hover:bg-white/[0.05] hover:border-white/[0.07] transition-all group"
+                  className="flex items-center gap-3 px-2.5 py-2.5 rounded-2xl border border-transparent transition-all group"
+                  style={{ ["--hover-bg" as string]: `${item.color}10` }}
+                  onMouseEnter={e => (e.currentTarget.style.background = `${item.color}0d`)}
+                  onMouseLeave={e => (e.currentTarget.style.background = "")}
                 >
                   <div
                     className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all group-hover:scale-105"
-                    style={{
-                      background: `${item.color}18`,
-                      border: `1px solid ${item.color}30`,
-                    }}
+                    style={{ background: `${item.color}15`, border: `1px solid ${item.color}28` }}
                   >
                     <Icon size={17} style={{ color: item.color }} />
                   </div>
                   {expanded && (
-                    <span className="text-gray-400 group-hover:text-white text-sm font-medium whitespace-nowrap transition-colors">
+                    <span className="text-sub group-hover:text-main text-sm font-medium whitespace-nowrap transition-colors">
                       {item.label}
                     </span>
                   )}
@@ -177,19 +159,16 @@ export default function Dashboard() {
               <Link
                 href="/admin"
                 title={!expanded ? "Administración" : undefined}
-                className="flex items-center gap-3 px-2.5 py-2.5 rounded-2xl border border-transparent hover:bg-purple-500/[0.08] hover:border-purple-500/20 transition-all group mt-1"
+                className="flex items-center gap-3 px-2.5 py-2.5 rounded-2xl border border-transparent transition-all group mt-1"
+                onMouseEnter={e => (e.currentTarget.style.background = "rgba(124,58,237,0.07)")}
+                onMouseLeave={e => (e.currentTarget.style.background = "")}
               >
-                <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all group-hover:scale-105"
-                  style={{
-                    background: "rgba(124,58,237,0.15)",
-                    border: "1px solid rgba(124,58,237,0.3)",
-                  }}
-                >
-                  <ShieldCheck size={17} style={{ color: "#a78bfa" }} />
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all group-hover:scale-105"
+                  style={{ background: "rgba(124,58,237,0.12)", border: "1px solid rgba(124,58,237,0.25)" }}>
+                  <ShieldCheck size={17} style={{ color: "#7c3aed" }} />
                 </div>
                 {expanded && (
-                  <span className="text-purple-400 group-hover:text-purple-300 text-sm font-medium whitespace-nowrap transition-colors">
+                  <span className="text-purple-600 group-hover:text-purple-700 text-sm font-medium whitespace-nowrap transition-colors">
                     Administración
                   </span>
                 )}
@@ -197,23 +176,19 @@ export default function Dashboard() {
             )}
           </nav>
 
-          <div className="border-t border-white/[0.06] py-3 px-2 flex-shrink-0">
+          {/* Logout */}
+          <div className="border-t py-3 px-2 flex-shrink-0" style={{ borderColor: "var(--border-soft)" }}>
             <button
-              onClick={async () => {
-                await supabase.auth.signOut()
-                router.push("/login")
-              }}
-              className="flex items-center gap-3 px-2.5 py-2.5 rounded-2xl border border-transparent hover:bg-red-500/8 hover:border-red-500/15 transition-all group w-full"
+              onClick={async () => { await supabase.auth.signOut(); router.push("/login") }}
+              className="flex items-center gap-3 px-2.5 py-2.5 rounded-2xl border border-transparent hover:bg-red-50 hover:border-red-100 transition-all group w-full"
               title={!expanded ? "Salir" : undefined}
             >
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 bg-white/[0.03] border border-white/[0.06]">
-                <LogOut
-                  size={16}
-                  className="text-gray-500 group-hover:text-red-400 transition-colors"
-                />
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ background: "var(--bg-card-soft)", border: "1px solid var(--border-soft)" }}>
+                <LogOut size={16} className="text-muted2 group-hover:text-red-500 transition-colors" />
               </div>
               {expanded && (
-                <span className="text-gray-500 group-hover:text-red-400 text-sm whitespace-nowrap transition-colors">
+                <span className="text-muted2 group-hover:text-red-500 text-sm whitespace-nowrap transition-colors">
                   Cerrar sesión
                 </span>
               )}
@@ -222,133 +197,113 @@ export default function Dashboard() {
         </div>
       </aside>
 
+      {/* ── Main content ── */}
       <main
         style={{ marginLeft: expanded ? "220px" : "68px" }}
         className="flex-1 flex flex-col min-h-screen transition-all duration-300"
       >
-        <div className="border-b border-white/[0.06] bg-gray-950/80 backdrop-blur-xl sticky top-0 z-10">
+        {/* Header */}
+        <div
+          className="backdrop-blur-xl sticky top-0 z-10 border-b"
+          style={{ background: "var(--bg-header)", borderColor: "var(--border-soft)" }}
+        >
           <div className="max-w-2xl mx-auto px-6 py-3 flex items-center justify-between">
-            <p className="text-gray-600 text-xs font-medium uppercase tracking-widest">
-              Panel
-            </p>
+            <p className="text-muted2 text-xs font-semibold uppercase tracking-widest">Panel</p>
             <div className="flex items-center gap-3">
-              <span className="text-gray-500 text-sm">{displayName}</span>
+              <span className="text-sub text-sm">{displayName}</span>
               <div
-                className="px-2.5 py-1 rounded-xl text-xs font-semibold"
-                style={{
-                  background: `${levelColor.glow}20`,
-                  color:
-                    levelColor.text.replace("text-", "") === "gray-400"
-                      ? "#94a3b8"
-                      : undefined,
-                }}
+                className="px-2.5 py-1 rounded-xl text-xs font-semibold border"
+                style={{ background: `${levelColor.glow}`, borderColor: "var(--border-soft)" }}
               >
                 <span className={levelColor.text}>{level}</span>
               </div>
-              <div className="flex items-center gap-1 px-2 py-1 rounded-xl bg-amber-500/8 border border-amber-500/15">
-                <Zap size={11} className="text-amber-400" />
-                <span className="text-amber-400 text-xs font-bold tabular-nums">
-                  {xp}
-                </span>
+              <div className="flex items-center gap-1 px-2 py-1 rounded-xl border"
+                style={{ background: "rgba(217,119,6,0.08)", borderColor: "rgba(217,119,6,0.18)" }}>
+                <Zap size={11} style={{ color: "var(--accent-amber)" }} />
+                <span className="text-xs font-bold tabular-nums" style={{ color: "var(--accent-amber)" }}>{xp}</span>
               </div>
             </div>
           </div>
         </div>
 
         <div className="max-w-2xl mx-auto w-full px-6 py-8 flex flex-col gap-6">
+          {/* Greeting */}
           <div className="animate-fade-in">
-            <h1 className="text-3xl font-bold text-white mb-1">
-              Hola, {displayName} 👋
-            </h1>
-            <p className="text-gray-500 text-sm">¿Qué quieres aprender hoy?</p>
+            <h1 className="text-3xl font-bold text-main mb-1">Hola, {displayName} 👋</h1>
+            <p className="text-muted2 text-sm">¿Qué quieres aprender hoy?</p>
           </div>
 
+          {/* Stats */}
           <div className="grid grid-cols-4 gap-3 stagger">
             {[
-              { label: "Nivel", value: level, icon: BarChart3, color: "#3b82f6" },
-              { label: "XP Total", value: `${xp}`, icon: Zap, color: "#f59e0b" },
-              { label: "Racha", value: `${streak}d`, icon: Flame, color: "#f97316" },
-              {
-                label: "Sesiones",
-                value: String(sessions),
-                icon: BookMarked,
-                color: "#10b981",
-              },
+              { label: "Nivel", value: level, icon: BarChart3, color: "#2563eb" },
+              { label: "XP Total", value: `${xp}`, icon: Zap, color: "#d97706" },
+              { label: "Racha", value: `${streak}d`, icon: Flame, color: "#ea580c" },
+              { label: "Sesiones", value: String(sessions), icon: BookMarked, color: "#059669" },
             ].map((s) => {
               const Icon = s.icon
               return (
                 <div
                   key={s.label}
-                  className="rounded-2xl p-4 border transition-all hover:scale-[1.02] animate-fade-in"
-                  style={{
-                    background: `${s.color}0c`,
-                    borderColor: `${s.color}20`,
-                  }}
+                  className="rounded-2xl p-4 border transition-all hover:scale-[1.02] hover:shadow-md animate-fade-in"
+                  style={{ background: `${s.color}0c`, borderColor: `${s.color}20` }}
                 >
                   <div className="flex items-center gap-1.5 mb-2">
                     <Icon size={12} style={{ color: s.color }} />
-                    <p className="text-gray-500 text-[11px] font-medium uppercase tracking-wide">
-                      {s.label}
-                    </p>
+                    <p className="text-muted2 text-[11px] font-medium uppercase tracking-wide">{s.label}</p>
                   </div>
-                  <p className="font-bold text-xl leading-tight text-white">{s.value}</p>
+                  <p className="font-bold text-xl leading-tight text-main">{s.value}</p>
                 </div>
               )
             })}
           </div>
 
+          {/* XP Progress */}
           <div
             className="rounded-2xl px-5 py-4 border animate-fade-in"
-            style={{
-              background: "rgba(255,255,255,0.02)",
-              borderColor: "rgba(255,255,255,0.06)",
-            }}
+            style={{ background: "var(--bg-card)", borderColor: "var(--border-soft)", boxShadow: "var(--shadow-sm)" }}
           >
-            <div className="flex justify-between text-xs text-gray-500 mb-2.5">
+            <div className="flex justify-between text-xs mb-2.5" style={{ color: "var(--text-muted)" }}>
               <span>
                 Progreso hacia{" "}
-                <span className="text-gray-400">{nextLevel?.name || "Maestro"}</span>
+                <span style={{ color: "var(--text-secondary)" }}>{nextLevel?.name || "Maestro"}</span>
               </span>
-              <span className="tabular-nums">
-                {xp} / {nextLevel?.min || curLevel.max} XP
-              </span>
+              <span className="tabular-nums">{xp} / {nextLevel?.min || curLevel.max} XP</span>
             </div>
             <div className="xp-bar-track">
-              <div
-                className="xp-bar-fill"
-                style={{ width: loaded ? `${progress}%` : "0%" }}
-              />
+              <div className="xp-bar-fill" style={{ width: loaded ? `${progress}%` : "0%" }} />
             </div>
           </div>
 
+          {/* Study input */}
           <div
             className="rounded-2xl p-5 border animate-fade-in"
-            style={{
-              background: "rgba(255,255,255,0.02)",
-              borderColor: "rgba(255,255,255,0.06)",
-            }}
+            style={{ background: "var(--bg-card)", borderColor: "var(--border-soft)", boxShadow: "var(--shadow-sm)" }}
           >
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-7 h-7 rounded-xl bg-blue-500/15 border border-blue-500/20 flex items-center justify-center">
-                <BookOpen size={14} className="text-blue-400" />
+              <div className="w-7 h-7 rounded-xl flex items-center justify-center"
+                style={{ background: "rgba(37,99,235,0.10)", border: "1px solid rgba(37,99,235,0.20)" }}>
+                <BookOpen size={14} style={{ color: "var(--accent-blue)" }} />
               </div>
-              <h2 className="text-white font-semibold text-sm">
-                Nueva sesión de estudio
-              </h2>
+              <h2 className="text-main font-semibold text-sm">Nueva sesión de estudio</h2>
             </div>
 
             <div className="flex gap-3">
               <div className="flex-1 relative">
-                <Search
-                  size={14}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-600"
-                />
+                <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted2" />
                 <input
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleStudy()}
                   placeholder="Ej: Leyes de Newton, Integrales, Segunda Guerra..."
-                  className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl pl-9 pr-4 py-3 text-gray-200 placeholder-gray-600 focus:outline-none focus:border-blue-500/40 focus:bg-white/[0.06] text-sm transition-all"
+                  className="w-full rounded-xl pl-9 pr-4 py-3 text-sm transition-all focus:outline-none"
+                  style={{
+                    background: "var(--bg-input)",
+                    border: "1px solid var(--border-medium)",
+                    color: "var(--text-primary)",
+                  }}
+                  onFocus={e => (e.currentTarget.style.borderColor = "rgba(37,99,235,0.45)")}
+                  onBlur={e => (e.currentTarget.style.borderColor = "var(--border-medium)")}
                 />
               </div>
               <button
@@ -357,11 +312,10 @@ export default function Dashboard() {
                 className="flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm text-white transition-all disabled:opacity-40"
                 style={{
                   background: topic.trim()
-                    ? "linear-gradient(135deg, #2563eb, #3b82f6)"
-                    : "rgba(255,255,255,0.05)",
-                  boxShadow: topic.trim()
-                    ? "0 4px 16px rgba(59,130,246,0.25)"
-                    : "none",
+                    ? "linear-gradient(135deg, #1d4ed8, #2563eb)"
+                    : "var(--border-medium)",
+                  boxShadow: topic.trim() ? "0 4px 16px rgba(37,99,235,0.28)" : "none",
+                  color: topic.trim() ? "white" : "var(--text-muted)",
                 }}
               >
                 <span>Estudiar</span>
