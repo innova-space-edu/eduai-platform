@@ -798,6 +798,52 @@ export async function POST(request: NextRequest) {
       })
     }
 
+    // ── Restaurar examen desde papelera ────────────────────────────────────
+    if (action === "restore") {
+      const { examId, teacherId } = body
+      if (!examId || !teacherId) {
+        return NextResponse.json({ error: "examId y teacherId son requeridos" }, { status: 400 })
+      }
+      const { error } = await supabase
+        .from("teacher_exams")
+        .update({ deleted_at: null })
+        .eq("id", examId)
+        .eq("teacher_id", teacherId)
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ success: true })
+    }
+
+    // ── Eliminar permanente ──────────────────────────────────────────────────
+    if (action === "permanent_delete") {
+      const { examId, teacherId } = body
+      if (!examId || !teacherId) {
+        return NextResponse.json({ error: "examId y teacherId son requeridos" }, { status: 400 })
+      }
+      await supabase.from("exam_submissions").delete().eq("exam_id", examId)
+      const { error } = await supabase
+        .from("teacher_exams")
+        .delete()
+        .eq("id", examId)
+        .eq("teacher_id", teacherId)
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ success: true })
+    }
+
+    // ── Mover a papelera (soft delete) ───────────────────────────────────────
+    if (action === "soft_delete") {
+      const { examId, teacherId } = body
+      if (!examId || !teacherId) {
+        return NextResponse.json({ error: "examId y teacherId son requeridos" }, { status: 400 })
+      }
+      const { error } = await supabase
+        .from("teacher_exams")
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("id", examId)
+        .eq("teacher_id", teacherId)
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ success: true })
+    }
+
     return NextResponse.json({ error: "Acción inválida" }, { status: 400 })
   } catch (err: any) {
     console.error("Exam API error:", err)
@@ -853,11 +899,16 @@ export async function GET(request: NextRequest) {
     }
 
     if (teacherId) {
-      const { data } = await supabase
+      const showDeleted = searchParams.get("showDeleted") === "true"
+      const query = supabase
         .from("teacher_exams")
-        .select("id, code, title, topic, status, created_at, settings")
+        .select("id, code, title, topic, status, created_at, settings, deleted_at")
         .eq("teacher_id", teacherId)
         .order("created_at", { ascending: false })
+
+      const { data } = showDeleted
+        ? await query.not("deleted_at", "is", null)
+        : await query.is("deleted_at", null)
 
       const examsWithCount = await Promise.all(
         (data || []).map(async (exam) => {
