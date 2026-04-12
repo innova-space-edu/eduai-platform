@@ -1176,7 +1176,7 @@ export default function ResultadosExamenPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#020617] text-main">
+    <div className="min-h-screen bg-app text-main">
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="flex items-start justify-between gap-4 mb-8">
           <div className="flex items-start gap-3">
