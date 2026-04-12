@@ -1,246 +1,215 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import Link from "next/link"
 
-type SuperAgentHealthResponse = {
-  ok: boolean
-  name: string
-  alias: string
-  internalName: string
-  version: string
-  mode: string
-  features?: Record<string, boolean>
-  limits?: Record<string, unknown>
-  message?: string
-}
-
-type SuperAgentButtonProps = {
-  className?: string
-}
+type Msg = { role: "user" | "assistant"; content: string }
+type Suggestion = { label: string; href: string; emoji: string }
 
 function StatusDot({ online }: { online: boolean }) {
   return (
-    <span
-      className={[
-        "inline-block h-2.5 w-2.5 rounded-full",
-        online ? "bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.9)]" : "bg-slate-200",
-      ].join(" ")}
-    />
+    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${online
+      ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]"
+      : "bg-slate-200"}`} />
   )
 }
 
-export default function SuperAgentButton({
-  className = "",
-}: SuperAgentButtonProps) {
+// Render markdown links inline: [text](href)
+function MsgContent({ text }: { text: string }) {
+  const parts = text.split(/(\[[^\]]+\]\([^)]+\))/g)
+  return (
+    <span className="whitespace-pre-wrap text-sm leading-relaxed">
+      {parts.map((p, i) => {
+        const m = p.match(/^\[([^\]]+)\]\(([^)]+)\)$/)
+        if (m) return (
+          <Link key={i} href={m[2]}
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-violet-100 text-violet-700 hover:bg-violet-200 font-medium text-xs transition mx-0.5">
+            {m[1]} →
+          </Link>
+        )
+        return <span key={i}>{p}</span>
+      })}
+    </span>
+  )
+}
+
+export default function SuperAgentButton() {
   const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [data, setData] = useState<SuperAgentHealthResponse | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [isOnline, setIsOnline] = useState(false)
+  const [messages, setMessages] = useState<Msg[]>([])
+  const [input, setInput] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([])
+  const bottomRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
 
+  // Check if Claw is online
   useEffect(() => {
-    let active = true
-
-    async function loadHealth() {
-      try {
-        setLoading(true)
-        setError(null)
-
-        const response = await fetch("/api/superagent", {
-          method: "GET",
-          cache: "no-store",
-        })
-
-        const json = (await response.json()) as SuperAgentHealthResponse
-
-        if (!active) return
-
-        if (!response.ok) {
-          setError("No se pudo obtener el estado de EduAI Claw.")
-          setData(null)
-          return
-        }
-
-        setData(json)
-      } catch {
-        if (!active) return
-        setError("EduAI Claw no está disponible en este momento.")
-        setData(null)
-      } finally {
-        if (active) setLoading(false)
-      }
-    }
-
-    loadHealth()
-    const interval = setInterval(loadHealth, 30000)
-
-    return () => {
-      active = false
-      clearInterval(interval)
-    }
+    fetch("/api/superagent", { cache: "no-store" })
+      .then(r => r.json())
+      .then(d => setIsOnline(d.ok))
+      .catch(() => setIsOnline(false))
   }, [])
 
-  const isOnline = useMemo(() => Boolean(data?.ok && !error), [data, error])
+  // Welcome message on first open
+  useEffect(() => {
+    if (open && messages.length === 0) {
+      setMessages([{
+        role: "assistant",
+        content: "¡Hola! Soy Claw 👋 Tu asistente en EduAI. Puedo ayudarte con lo que necesites — trabajo, ideas, dudas, o llevarte directo al agente que más te sirva. ¿En qué andas hoy?"
+      }])
+    }
+  }, [open, messages.length])
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [messages, loading])
+
+  useEffect(() => {
+    if (open) setTimeout(() => inputRef.current?.focus(), 100)
+  }, [open])
+
+  const send = useCallback(async (text?: string) => {
+    const msg = (text || input).trim()
+    if (!msg || loading) return
+    setInput("")
+    setSuggestions([])
+
+    const newMsgs: Msg[] = [...messages, { role: "user", content: msg }]
+    setMessages(newMsgs)
+    setLoading(true)
+
+    try {
+      const res = await fetch("/api/agents/claw-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: msg,
+          history: newMsgs.slice(-10).map(m => ({ role: m.role, content: m.content })),
+        }),
+      })
+      const data = await res.json()
+      if (data.reply) {
+        setMessages(prev => [...prev, { role: "assistant", content: data.reply }])
+        if (data.suggestions?.length) setSuggestions(data.suggestions)
+      }
+    } catch {
+      setMessages(prev => [...prev, { role: "assistant", content: "Ups, algo falló. Intenta de nuevo 🔁" }])
+    } finally {
+      setLoading(false)
+    }
+  }, [input, loading, messages])
+
+  const handleKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send() }
+  }
 
   return (
-    <div className={`fixed right-5 top-5 z-[70] ${className}`}>
-      <div className="relative">
-        <button
-          type="button"
-          onClick={() => setOpen((prev) => !prev)}
-          aria-label="Abrir EduAI Claw"
-          title="EduAI Claw — modo PicoClaw"
-          className={[
-            "group relative flex h-14 w-14 items-center justify-center rounded-full",
-            "border border-cyan-400/30 bg-header-theme backdrop-blur-xl",
-            "shadow-[0_0_30px_rgba(34,211,238,0.16)]",
-            "transition-all duration-300 hover:scale-105 hover:shadow-[0_0_40px_rgba(139,92,246,0.28)]",
-            "focus:outline-none focus:ring-2 focus:ring-cyan-400/60",
-          ].join(" ")}
-        >
-          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-cyan-400/20 via-violet-500/15 to-fuchsia-500/20 opacity-100" />
-          <div className="relative flex items-center justify-center">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full border border-soft bg-card-theme">
-              <span className="text-lg font-bold text-cyan-700">✦</span>
+    <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-2">
+      {/* Chat panel */}
+      {open && (
+        <div className="w-[340px] sm:w-[380px] rounded-3xl border border-soft bg-app shadow-2xl flex flex-col overflow-hidden"
+          style={{ maxHeight: "min(560px, 80vh)" }}>
+          {/* Header */}
+          <div className="flex items-center gap-3 px-4 py-3 border-b border-soft bg-gradient-to-r from-violet-500/8 via-cyan-500/6 to-transparent flex-shrink-0">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-violet-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">C</div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-main leading-none">Claw</p>
+              <p className="text-[11px] text-muted2 mt-0.5 flex items-center gap-1">
+                <StatusDot online={isOnline} />
+                {isOnline ? "activo" : "pausado"}
+              </p>
             </div>
+            <button onClick={() => setMessages([])}
+              className="text-[10px] text-muted2 hover:text-sub px-2 py-1 rounded-lg hover:bg-card-soft-theme transition"
+              title="Limpiar chat">↺</button>
+            <button onClick={() => setOpen(false)}
+              className="w-7 h-7 flex items-center justify-center rounded-xl text-muted2 hover:text-main hover:bg-card-soft-theme transition">×</button>
           </div>
 
-          <span className="absolute -bottom-1 -right-1 rounded-full border border-soft bg-app p-1">
-            <StatusDot online={isOnline} />
-          </span>
-        </button>
-
-        {open && (
-          <div
-            className={[
-              "absolute right-0 mt-3 w-[340px] overflow-hidden rounded-2xl border border-soft",
-              "bg-app text-main shadow-2xl backdrop-blur-2xl",
-            ].join(" ")}
-          >
-            <div className="border-b border-soft bg-gradient-to-r from-cyan-500/10 via-violet-500/10 to-fuchsia-500/10 px-5 py-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.22em] text-cyan-700/90">
-                    Superagente
-                  </p>
-                  <h3 className="mt-1 text-lg font-semibold text-main">
-                    {data?.name || "EduAI Claw"}
-                  </h3>
-                  <p className="mt-1 text-sm text-sub">
-                    {data?.alias || "EduAI Claw — modo PicoClaw"}
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setOpen(false)}
-                  className="rounded-full border border-soft px-2 py-1 text-xs text-sub transition hover:bg-card-soft-theme hover:text-main"
-                >
-                  Cerrar
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-4 px-5 py-4">
-              <div className="rounded-2xl border border-soft bg-card-soft-theme p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.18em] text-sub">
-                      Estado
-                    </p>
-                    <p className="mt-1 text-sm font-medium text-main">
-                      {loading
-                        ? "Conectando..."
-                        : isOnline
-                        ? "Activo y observando"
-                        : "Pausado o no disponible"}
-                    </p>
-                  </div>
-                  <StatusDot online={isOnline} />
-                </div>
-
-                <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
-                  <div className="rounded-xl border border-soft bg-card-theme p-3">
-                    <p className="text-sub">Modo</p>
-                    <p className="mt-1 font-medium text-main">
-                      {data?.mode || "observe_social_anticipate"}
-                    </p>
-                  </div>
-                  <div className="rounded-xl border border-soft bg-card-theme p-3">
-                    <p className="text-sub">Versión</p>
-                    <p className="mt-1 font-medium text-main">
-                      {data?.version || "0.1.0"}
-                    </p>
-                  </div>
-                </div>
-
-                {error && (
-                  <p className="mt-3 rounded-xl border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-sm text-rose-700">
-                    {error}
-                  </p>
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+            {messages.map((m, i) => (
+              <div key={i} className={`flex gap-2 ${m.role === "user" ? "flex-row-reverse" : ""}`}>
+                {m.role === "assistant" && (
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-cyan-500 to-violet-600 flex-shrink-0 flex items-center justify-center text-white text-[10px] font-bold mt-0.5">C</div>
                 )}
-              </div>
-
-              <div className="rounded-2xl border border-soft bg-card-soft-theme p-4">
-                <p className="text-xs uppercase tracking-[0.18em] text-sub">
-                  Capacidades base
-                </p>
-
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-xs text-cyan-700">
-                    Observación
-                  </span>
-                  <span className="rounded-full border border-violet-400/20 bg-violet-400/10 px-3 py-1 text-xs text-violet-700">
-                    Routing
-                  </span>
-                  <span className="rounded-full border border-fuchsia-400/20 bg-fuchsia-400/10 px-3 py-1 text-xs text-fuchsia-700">
-                    Social IA
-                  </span>
-                  <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-xs text-emerald-700">
-                    Anticipación
-                  </span>
-                  <span className="rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-1 text-xs text-amber-700">
-                    Drafts
-                  </span>
+                <div className={`max-w-[82%] rounded-2xl px-3 py-2.5 ${m.role === "user"
+                  ? "bg-blue-600 text-white rounded-tr-sm"
+                  : "bg-card-soft-theme text-main rounded-tl-sm"}`}>
+                  {m.role === "assistant"
+                    ? <MsgContent text={m.content} />
+                    : <span className="text-sm">{m.content}</span>}
                 </div>
               </div>
+            ))}
 
-              <div className="rounded-2xl border border-soft bg-card-soft-theme p-4">
-                <p className="text-xs uppercase tracking-[0.18em] text-sub">
-                  Próximos accesos
-                </p>
-
-                <div className="mt-3 grid gap-2">
-                  <Link
-                    href="/ai-social"
-                    className="rounded-2xl border border-soft bg-card-theme px-4 py-3 text-sm text-main transition hover:border-cyan-400/30 hover:bg-card-theme hover:text-main"
-                  >
-                    Ir al chat social de agentes
-                  </Link>
-
-                  <Link
-                    href="/superagent"
-                    className="rounded-2xl border border-soft bg-card-theme px-4 py-3 text-sm text-main transition hover:border-violet-400/30 hover:bg-card-theme hover:text-main"
-                  >
-                    Abrir panel completo de EduAI Claw
-                  </Link>
+            {loading && (
+              <div className="flex gap-2">
+                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-cyan-500 to-violet-600 flex-shrink-0 flex items-center justify-center text-white text-[10px] font-bold">C</div>
+                <div className="bg-card-soft-theme rounded-2xl rounded-tl-sm px-3 py-2.5 flex gap-1 items-center">
+                  {[0,120,240].map(d => (
+                    <span key={d} className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: `${d}ms` }} />
+                  ))}
                 </div>
               </div>
+            )}
 
-              <div className="rounded-2xl border border-soft bg-gradient-to-br from-cyan-500/10 via-transparent to-violet-500/10 p-4">
-                <p className="text-sm font-medium text-main">
-                  Rol actual
-                </p>
-                <p className="mt-2 text-sm leading-6 text-sub">
-                  EduAI Claw supervisa, observa, propone mejoras y anticipa
-                  borradores sin intervenir directamente en el chat privado del
-                  usuario ni sobrescribir producción.
-                </p>
+            {/* Agent suggestions */}
+            {suggestions.length > 0 && !loading && (
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {suggestions.map(s => (
+                  <Link key={s.href} href={s.href} onClick={() => setOpen(false)}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-violet-200 bg-violet-50 text-violet-700 text-xs font-medium hover:bg-violet-100 transition">
+                    {s.emoji} {s.label} →
+                  </Link>
+                ))}
               </div>
-            </div>
+            )}
+
+            <div ref={bottomRef} />
           </div>
-        )}
-      </div>
+
+          {/* Input */}
+          <div className="flex-shrink-0 px-3 py-3 border-t border-soft bg-app">
+            <div className="flex items-end gap-2 bg-card-soft-theme rounded-2xl px-3 py-2">
+              <textarea
+                ref={inputRef}
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={handleKey}
+                rows={1}
+                disabled={loading}
+                placeholder="Escríbeme lo que necesitas..."
+                className="flex-1 bg-transparent text-sm text-main outline-none resize-none placeholder-gray-400 disabled:opacity-40 max-h-28"
+              />
+              <button onClick={() => send()} disabled={loading || !input.trim()}
+                className="flex-shrink-0 w-8 h-8 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-30 flex items-center justify-center transition"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                </svg>
+              </button>
+            </div>
+            <p className="text-[10px] text-muted2 mt-1.5 text-center">Enter para enviar · Shift+Enter para nueva línea</p>
+          </div>
+        </div>
+      )}
+
+      {/* Toggle button */}
+      <button
+        onClick={() => setOpen(p => !p)}
+        className="w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-105 active:scale-95"
+        style={{ background: "linear-gradient(135deg, #2563eb, #7c3aed)" }}
+        title="Claw — Asistente EduAI"
+      >
+        {open
+          ? <span className="text-white text-xl font-bold">×</span>
+          : <span className="text-2xl">✦</span>}
+        <span className="absolute bottom-1 right-1 w-3 h-3 rounded-full border-2 border-white">
+          <StatusDot online={isOnline} />
+        </span>
+      </button>
     </div>
   )
 }
