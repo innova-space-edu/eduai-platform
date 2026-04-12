@@ -190,13 +190,11 @@ function sanitizeQuestionsArray(questions: any[]): any[] {
 }
 
 function parseResponse(raw: string): any {
-  const clean = sanitizeLatex(
-    raw
-      .replace(/^```json\s*/i, "")
-      .replace(/^```\s*/i, "")
-      .replace(/```\s*$/i, "")
-      .trim()
-  )
+  const clean = String(raw || "")
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/```\s*$/i, "")
+    .trim()
 
   return JSON.parse(clean)
 }
