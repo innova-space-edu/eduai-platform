@@ -216,13 +216,11 @@ export default function ExamenPublicoPage() {
 
   // ── Fullscreen helpers ─────────────────────────────────────────────────────
   const requestFullscreen = useCallback(() => {
-    if (!isKiosk) return
     if (document.fullscreenElement) return
-
     const el = document.documentElement
     ;(el.requestFullscreen({ navigationUI: "hide" } as any) as Promise<void>)
       .catch(() => el.requestFullscreen().catch(() => {}))
-  }, [isKiosk])
+  }, [])
 
   const enterFullscreenAndRegister = useCallback(() => {
     const el = document.documentElement
@@ -241,24 +239,33 @@ export default function ExamenPublicoPage() {
       const current = !!document.fullscreenElement
       setIsFullscreen(current)
 
-      if (
-        isKiosk &&
-        phase === "exam" &&
-        !current &&
-        !fullscreenGuard.current
-      ) {
+      if (phase === "exam" && !current && !fullscreenGuard.current) {
         fullscreenGuard.current = true
         setShowWarning(true)
+        // Re-enter fullscreen aggressively
+        requestFullscreen()
+        setTimeout(() => { if (!document.fullscreenElement) requestFullscreen() }, 300)
+        setTimeout(() => { if (!document.fullscreenElement) requestFullscreen() }, 900)
+        setTimeout(() => { fullscreenGuard.current = false }, 1200)
+      }
+    }
 
-        setTimeout(() => {
-          fullscreenGuard.current = false
-        }, 900)
+    const onKeyDown = (e: KeyboardEvent) => {
+      // Block ESC and F11 at the page level too
+      if (phase === "exam" && (e.key === "Escape" || e.key === "F11")) {
+        e.preventDefault()
+        e.stopImmediatePropagation()
+        if (!document.fullscreenElement) requestFullscreen()
       }
     }
 
     document.addEventListener("fullscreenchange", onFs)
-    return () => document.removeEventListener("fullscreenchange", onFs)
-  }, [isKiosk, phase])
+    document.addEventListener("keydown", onKeyDown, { capture: true })
+    return () => {
+      document.removeEventListener("fullscreenchange", onFs)
+      document.removeEventListener("keydown", onKeyDown, true)
+    }
+  }, [phase, requestFullscreen])
 
   // ── Timer examen ───────────────────────────────────────────────────────────
   useEffect(() => {
@@ -287,6 +294,8 @@ export default function ExamenPublicoPage() {
     setSubmittedForSecurity(false)
     setSecurityBlocked(false)
     setSecurityTerminateReason("")
+    // Always request fullscreen when exam starts
+    setTimeout(() => requestFullscreen(), 200)
 
     const doStart = () => {
       setPhase("exam")
