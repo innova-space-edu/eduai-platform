@@ -79,7 +79,7 @@ const BLOCKED_CTRL_SHIFT_KEYS = new Set([
   "I", "J", "C", "N", "K",
 ])
 
-const BLOCKED_FUNCTION_KEYS = new Set(["F1", "F5", "F11", "F12"])
+const BLOCKED_FUNCTION_KEYS = new Set(["F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12"])
 
 const DEVTOOLS_WIDTH_THRESHOLD = 160
 const DEVTOOLS_HEIGHT_THRESHOLD = 200
@@ -482,12 +482,12 @@ export default function ExamSecurityClient({
 
       if (!inFullscreen && policy.requireFullscreen) {
         void emitSecurityEvent("fullscreen_exit")
-
-        window.setTimeout(() => {
-          if (!document.fullscreenElement) {
-            void enterFullscreen()
-          }
-        }, 450)
+        // Re-enter immediately, then again after short delay as backup
+        void enterFullscreen()
+        window.setTimeout(() => { if (!document.fullscreenElement) void enterFullscreen() }, 200)
+        window.setTimeout(() => { if (!document.fullscreenElement) void enterFullscreen() }, 800)
+        // Freeze the exam for the violation
+        startFreezeCountdown(10, "Saliste de pantalla completa. El examen está pausado 10 segundos.")
       }
     }
 
@@ -525,7 +525,22 @@ export default function ExamSecurityClient({
       void emitSecurityEvent("drag_attempt")
     }
 
-    const onKeyDown = (e: KeyboardEvent) => {
+    // ── Ocultar cursor cerca del borde superior (impide ver barra del browser) ──
+    const onMouseMove = (e: MouseEvent) => {
+      if (e.clientY < 8) {
+        // Force fullscreen if mouse reached top bar zone
+        if (!document.fullscreenElement && policy.requireFullscreen) {
+          void enterFullscreen()
+          void emitSecurityEvent("fullscreen_exit", { detail: "mouse_top_edge" })
+        }
+        // Hide cursor at top
+        document.documentElement.style.cursor = "none"
+      } else if (e.clientY > 20) {
+        document.documentElement.style.cursor = ""
+      }
+    }
+
+        const onKeyDown = (e: KeyboardEvent) => {
       const key = e.key
 
       if (policy.blockShortcuts) {
@@ -535,7 +550,7 @@ export default function ExamSecurityClient({
         const fnBlocked = BLOCKED_FUNCTION_KEYS.has(key)
         const altBlocked = e.altKey && ["Tab", "F4"].includes(key)
         const printScreenBlocked = key === "PrintScreen"
-        const escapeBlocked = key === "Escape"
+        const escapeBlocked = key === "Escape" || key === "F11"
         const metaBlocked = e.metaKey
 
         if (
@@ -589,6 +604,7 @@ export default function ExamSecurityClient({
       void emitSecurityEvent("print_attempt")
     }
 
+    document.addEventListener("mousemove", onMouseMove, { capture: true })
     document.addEventListener("visibilitychange", onVisibilityChange)
     window.addEventListener("blur", onBlur)
     window.addEventListener("focus", onFocus)
@@ -606,6 +622,7 @@ export default function ExamSecurityClient({
     window.addEventListener("beforeprint", onBeforePrint)
 
     return () => {
+      document.removeEventListener("mousemove", onMouseMove, true)
       document.removeEventListener("visibilitychange", onVisibilityChange)
       window.removeEventListener("blur", onBlur)
       window.removeEventListener("focus", onFocus)
@@ -673,24 +690,23 @@ export default function ExamSecurityClient({
         -webkit-user-select: none !important;
         -ms-user-select: none !important;
       }
-
-      .exam-dev-input,
-      textarea,
-      input {
+      .exam-dev-input, textarea, input {
         user-select: text !important;
         -webkit-user-select: text !important;
-        -ms-user-select: text !important;
       }
-
+      /* Ocultar scrollbar para que no se vea el borde del browser */
+      ::-webkit-scrollbar { width: 0 !important; height: 0 !important; }
+      /* Bloquear selección de texto en opciones */
+      button, label, p, span, h1, h2, h3, li {
+        -webkit-user-select: none !important;
+        user-select: none !important;
+      }
       @media print {
         body * { display: none !important; }
         body::after {
           content: "Este contenido no puede imprimirse.";
-          display: block !important;
-          font-size: 24px;
-          text-align: center;
-          padding: 40px;
-          color: #000;
+          display: block !important; font-size: 24px;
+          text-align: center; padding: 40px; color: #000;
         }
       }
     `
