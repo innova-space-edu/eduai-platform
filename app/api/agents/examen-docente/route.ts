@@ -434,6 +434,23 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { action } = body
 
+    // ── Cargar examen público por código (estudiantes) ──────────────────────
+    if (action === "public_exam_by_code") {
+      const { code } = body
+      if (!code) return NextResponse.json({ error: "Código requerido" }, { status: 400 })
+
+      const { data, error } = await supabase
+        .from("teacher_exams")
+        .select("id, code, title, topic, instructions, questions, settings, status")
+        .eq("code", code)
+        .maybeSingle()
+
+      if (error || !data) return NextResponse.json({ error: "Examen no encontrado" }, { status: 404 })
+      if (data.status !== "active") return NextResponse.json({ error: "Este examen está cerrado" }, { status: 403 })
+
+      return NextResponse.json({ success: true, exam: data })
+    }
+
     if (action === "create") {
       const { teacherId, title, topic, instructions, questions, settings } = body
 
@@ -688,52 +705,13 @@ export async function POST(request: NextRequest) {
     // ── Eliminar examen (solo si está cerrado) ───────────────────────────
     if (action === "delete") {
       const { examId, teacherId } = body
-
-      if (!examId || !teacherId) {
-        return NextResponse.json(
-          { error: "examId y teacherId son requeridos" },
-          { status: 400 }
-        )
-      }
-
-      // Verificar que el examen existe, pertenece al docente y está cerrado
-      const { data: exam } = await supabase
+      if (!examId || !teacherId) return NextResponse.json({ error: "examId y teacherId son requeridos" }, { status: 400 })
+      const { error } = await supabase
         .from("teacher_exams")
-        .select("id, status")
+        .update({ deleted_at: new Date().toISOString(), status: "closed" })
         .eq("id", examId)
         .eq("teacher_id", teacherId)
-        .maybeSingle()
-
-      if (!exam) {
-        return NextResponse.json(
-          { error: "Examen no encontrado" },
-          { status: 404 }
-        )
-      }
-
-      if (exam.status === "active") {
-        return NextResponse.json(
-          { error: "Cierra el examen antes de eliminarlo" },
-          { status: 400 }
-        )
-      }
-
-      // Eliminar submissions primero (por FK) y luego el examen
-      await supabase
-        .from("exam_submissions")
-        .delete()
-        .eq("exam_id", examId)
-
-      const { error: delErr } = await supabase
-        .from("teacher_exams")
-        .delete()
-        .eq("id", examId)
-        .eq("teacher_id", teacherId)
-
-      if (delErr) {
-        return NextResponse.json({ error: delErr.message }, { status: 500 })
-      }
-
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
       return NextResponse.json({ success: true })
     }
 
