@@ -148,6 +148,8 @@ export default function CrearExamenPage() {
 
   // ── Guardar examen ────────────────────────────────────────────────────────
   const [saving,      setSaving]      = useState(false)
+  const [createdExam, setCreatedExam] = useState<{ code: string; id: string; title: string } | null>(null)
+  const [linkCopied,  setLinkCopied]  = useState(false)
   const [errorMsg,    setErrorMsg]    = useState("")
   const [successMsg,  setSuccessMsg]  = useState("")
 
