@@ -241,8 +241,7 @@ export default function CrearExamenPage() {
       })
       const data = await res.json()
       if (!data?.success) throw new Error(data?.error || "No se pudo crear el examen.")
-      setSuccessMsg("Examen creado correctamente.")
-      setTimeout(() => router.push("/examen/docente"), 900)
+      setCreatedExam({ code: data.code, id: data.exam?.id, title: title.trim() || "Examen" })
     } catch (e: any) {
       setErrorMsg(e?.message || "Error al crear el examen.")
     } finally {
@@ -347,6 +346,85 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
   }
 
   // ── RENDER ────────────────────────────────────────────────────────────────
+  // ── Share panel after creation ────────────────────────────────────────────
+  if (createdExam) {
+    const examUrl = typeof window !== "undefined"
+      ? `${window.location.origin}/examen/p/${createdExam.code}`
+      : `/examen/p/${createdExam.code}`
+
+    const copyLink = () => {
+      navigator.clipboard.writeText(examUrl).then(() => {
+        setLinkCopied(true)
+        setTimeout(() => setLinkCopied(false), 2500)
+      })
+    }
+
+    return (
+      <div className="min-h-screen bg-app flex items-center justify-center px-4">
+        <div className="w-full max-w-lg space-y-5">
+          {/* Success header */}
+          <div className="text-center">
+            <div className="text-5xl mb-3">✅</div>
+            <h1 className="text-2xl font-extrabold text-main">¡Examen creado!</h1>
+            <p className="text-sub text-sm mt-1">{createdExam.title}</p>
+          </div>
+
+          {/* Link panel */}
+          <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5 space-y-4">
+            <div>
+              <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-2">🔗 Link para estudiantes</p>
+              <div className="flex items-center gap-2 bg-white rounded-xl border border-blue-200 px-3 py-2.5">
+                <span className="flex-1 text-sm text-blue-800 font-mono truncate">{examUrl}</span>
+                <button
+                  onClick={copyLink}
+                  className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    linkCopied
+                      ? "bg-green-100 text-green-700 border border-green-300"
+                      : "bg-blue-600 text-white hover:bg-blue-700"
+                  }`}
+                >
+                  {linkCopied ? "✓ Copiado" : "Copiar"}
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 bg-white rounded-xl border border-blue-100 px-3 py-2.5">
+              <span className="text-xs text-blue-700">Código de acceso:</span>
+              <span className="font-mono font-bold text-blue-900 text-sm tracking-widest">{createdExam.code}</span>
+            </div>
+
+            <p className="text-xs text-blue-600">
+              Comparte este link o código con tus estudiantes. El examen está <strong>activo</strong> y listo para recibir respuestas.
+            </p>
+          </div>
+
+          {/* Warning reminder */}
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-700 space-y-1">
+            <p className="font-semibold">⚠️ Recuerda a tus estudiantes:</p>
+            <p>Al ingresar deberán aceptar las condiciones de monitoreo académico (prohibido uso de IA y herramientas externas).</p>
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-3">
+            <button
+              onClick={copyLink}
+              className="flex-1 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition-all"
+            >
+              {linkCopied ? "✓ Link copiado" : "📋 Copiar link"}
+            </button>
+            <button
+              onClick={() => router.push("/examen/docente")}
+              className="flex-1 py-3 rounded-2xl border border-soft bg-card-soft-theme hover:bg-card-theme text-main font-semibold text-sm transition-all"
+            >
+              Ver mis exámenes →
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+
   return (
     <div className="min-h-screen bg-app text-main">
       <div className="max-w-6xl mx-auto px-4 py-8">
