@@ -1056,7 +1056,7 @@ export default function ExamenPublicoPage() {
                           : "border-medium bg-card-soft-theme text-main hover:border-blue-500/30"
                       }`}
                     >
-                      {option}
+                      <ExamMathText text={option} className="inline" />
                     </button>
                   )
                 })}
