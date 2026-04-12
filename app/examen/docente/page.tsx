@@ -7,7 +7,7 @@ import Link from "next/link"
 import {
   ArrowLeft, Plus, ClipboardList, Pencil,
   BarChart2, Clock, Trash2, RotateCcw,
-  Archive, ChevronLeft
+  Archive, ChevronLeft, Copy, Link2, Check
 } from "lucide-react"
 
 export default function ExamenesDocentePage() {
@@ -17,6 +17,7 @@ export default function ExamenesDocentePage() {
   const [loading,       setLoading]       = useState(true)
   const [loadingTrash,  setLoadingTrash]  = useState(false)
   const [showTrash,     setShowTrash]     = useState(false)
+  const [copiedId,      setCopiedId]      = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [confirmPerm,   setConfirmPerm]   = useState<string | null>(null)
   const supabase = createClient()
@@ -103,6 +104,14 @@ export default function ExamenesDocentePage() {
   }
 
   // ── Shared card component ─────────────────────────────────────────────────
+  const copyLink = (code: string, id: string) => {
+    const url = `${window.location.origin}/examen/p/${code}`
+    navigator.clipboard.writeText(url).then(() => {
+      setCopiedId(id)
+      setTimeout(() => setCopiedId(null), 2000)
+    })
+  }
+
   function ExamCard({ exam, inTrash }: { exam: any; inTrash?: boolean }) {
     return (
       <div className="rounded-2xl border p-4 transition-all"
@@ -162,9 +171,17 @@ export default function ExamenesDocentePage() {
         {/* Botones */}
         {!inTrash ? (
           <div className="flex gap-2">
+            {/* Share link button */}
+            <button
+              onClick={() => copyLink(exam.code, exam.id)}
+              className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border text-xs font-medium transition-all flex-shrink-0"
+              style={{ background: copiedId === exam.id ? "rgba(34,197,94,0.12)" : "rgba(124,58,237,0.08)", borderColor: copiedId === exam.id ? "rgba(34,197,94,0.3)" : "rgba(124,58,237,0.25)", color: copiedId === exam.id ? "#15803d" : "#7c3aed" }}
+              title="Copiar link para estudiantes">
+              {copiedId === exam.id ? <><Check size={12} /> Copiado</> : <><Link2 size={12} /> Link</>}
+            </button>
             <Link href={`/examen/resultados/${exam.id}`}
               className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl border text-xs font-medium transition-all"
-              style={{ background: "rgba(59,130,246,0.08)", borderColor: "rgba(59,130,246,0.2)", color: "#93c5fd" }}
+              style={{ background: "rgba(59,130,246,0.08)", borderColor: "rgba(59,130,246,0.2)", color: "#2563eb" }}
               onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = "rgba(59,130,246,0.15)"; el.style.borderColor = "rgba(59,130,246,0.35)" }}
               onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = "rgba(59,130,246,0.08)"; el.style.borderColor = "rgba(59,130,246,0.2)" }}>
               <BarChart2 size={12} /> Ver resultados
