@@ -95,6 +95,21 @@ function KioskWarningOverlay({ onDismiss }: { onDismiss: () => void }) {
   )
 }
 
+
+// ── Freeze countdown display ──────────────────────────────────────────────────
+function FreezeCountdown({ until }: { until: number }) {
+  const [secs, setSecs] = useState(Math.max(0, Math.ceil((until - Date.now()) / 1000)))
+  useEffect(() => {
+    const t = setInterval(() => {
+      const remaining = Math.max(0, Math.ceil((until - Date.now()) / 1000))
+      setSecs(remaining)
+      if (remaining <= 0) clearInterval(t)
+    }, 500)
+    return () => clearInterval(t)
+  }, [until])
+  return <p className="text-5xl font-black tabular-nums">{secs}s</p>
+}
+
 export default function ExamenPublicoPage() {
   const { code } = useParams() as { code: string }
 
@@ -119,6 +134,9 @@ export default function ExamenPublicoPage() {
   const [kioskExamId, setKioskExamId] = useState<string | null>(null)
   const [showWarning, setShowWarning] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [frozenUntil, setFrozenUntil] = useState<number>(0)
+  const [frozenMsg, setFrozenMsg] = useState("")
+  const frozenRef = useRef(false)
 
   // seguridad
   const [securityBlocked, setSecurityBlocked] = useState(false)
@@ -233,37 +251,82 @@ export default function ExamenPublicoPage() {
       })
   }, [])
 
-  // ── Estado fullscreen ──────────────────────────────────────────────────────
+  // ── Estado fullscreen + bloqueo por incidentes ────────────────────────────
   useEffect(() => {
+    const triggerFreeze = (seconds: number, msg: string) => {
+      if (frozenRef.current) return
+      frozenRef.current = true
+      const until = Date.now() + seconds * 1000
+      setFrozenUntil(until)
+      setFrozenMsg(msg)
+      // Re-enter fullscreen during freeze
+      requestFullscreen()
+      setTimeout(() => { if (!document.fullscreenElement) requestFullscreen() }, 200)
+      // Unfreeze when timer ends
+      setTimeout(() => {
+        frozenRef.current = false
+        setFrozenUntil(0)
+        setFrozenMsg("")
+        requestFullscreen()
+      }, seconds * 1000)
+    }
+
     const onFs = () => {
       const current = !!document.fullscreenElement
       setIsFullscreen(current)
 
-      if (phase === "exam" && !current && !fullscreenGuard.current) {
-        fullscreenGuard.current = true
-        setShowWarning(true)
-        // Re-enter fullscreen aggressively
+      if (phase === "exam" && !current) {
+        // Immediate re-entry attempts
         requestFullscreen()
-        setTimeout(() => { if (!document.fullscreenElement) requestFullscreen() }, 300)
-        setTimeout(() => { if (!document.fullscreenElement) requestFullscreen() }, 900)
-        setTimeout(() => { fullscreenGuard.current = false }, 1200)
+        setTimeout(() => { if (!document.fullscreenElement) requestFullscreen() }, 100)
+        setTimeout(() => { if (!document.fullscreenElement) requestFullscreen() }, 400)
+        setTimeout(() => { if (!document.fullscreenElement) requestFullscreen() }, 1000)
+        // Freeze for incident
+        if (!fullscreenGuard.current) {
+          fullscreenGuard.current = true
+          triggerFreeze(15, "Saliste de pantalla completa. El examen está bloqueado 15 segundos.")
+          setTimeout(() => { fullscreenGuard.current = false }, 16000)
+        }
       }
     }
 
     const onKeyDown = (e: KeyboardEvent) => {
-      // Block ESC and F11 at the page level too
-      if (phase === "exam" && (e.key === "Escape" || e.key === "F11")) {
+      if (phase !== "exam") return
+      // Hard block ESC, F11 and all function keys during exam
+      const blocked = e.key === "Escape" || e.key === "F11" ||
+        (e.key.startsWith("F") && !isNaN(Number(e.key.slice(1)))) ||
+        (e.ctrlKey && ["w","t","n","r"].includes(e.key.toLowerCase())) ||
+        (e.altKey && ["F4","Tab"].includes(e.key)) ||
+        e.key === "PrintScreen"
+
+      if (blocked) {
         e.preventDefault()
         e.stopImmediatePropagation()
         if (!document.fullscreenElement) requestFullscreen()
+        if (e.key === "Escape" && !document.fullscreenElement) {
+          triggerFreeze(10, "Intento de salir del examen bloqueado. Espera 10 segundos.")
+        }
+      }
+    }
+
+    const onMouseMove = (e: MouseEvent) => {
+      if (phase !== "exam") return
+      if (e.clientY < 5) {
+        document.documentElement.style.cursor = "none"
+        if (!document.fullscreenElement) requestFullscreen()
+      } else if (e.clientY > 20) {
+        document.documentElement.style.cursor = ""
       }
     }
 
     document.addEventListener("fullscreenchange", onFs)
     document.addEventListener("keydown", onKeyDown, { capture: true })
+    document.addEventListener("mousemove", onMouseMove, { capture: true })
     return () => {
       document.removeEventListener("fullscreenchange", onFs)
       document.removeEventListener("keydown", onKeyDown, true)
+      document.removeEventListener("mousemove", onMouseMove, true)
+      document.documentElement.style.cursor = ""
     }
   }, [phase, requestFullscreen])
 
