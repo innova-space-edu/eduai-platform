@@ -29,6 +29,20 @@ function fmt(seconds: number) {
   return `${Math.floor(seconds / 60)}:${(seconds % 60).toString().padStart(2, "0")}`
 }
 
+
+// ── Cursos indexados ─────────────────────────────────────────────────────────
+const CURSOS_BASICA = [
+  "1° Básico A","1° Básico B","2° Básico A","2° Básico B",
+  "3° Básico A","3° Básico B","4° Básico A","4° Básico B",
+  "5° Básico A","5° Básico B","6° Básico A","6° Básico B",
+  "7° Básico A","7° Básico B","8° Básico A","8° Básico B",
+]
+const CURSOS_MEDIA = [
+  "1° Medio A","1° Medio B","2° Medio A","2° Medio B",
+  "3° Medio A","3° Medio B","4° Medio A","4° Medio B",
+]
+const TODOS_LOS_CURSOS = [...CURSOS_BASICA, ...CURSOS_MEDIA]
+
 function getQuestionMaxPoints(q: any) {
   if (!q) return 1
   if (typeof q.maxPoints === "number" && q.maxPoints > 0) return q.maxPoints
@@ -691,12 +705,19 @@ export default function ExamenPublicoPage() {
               <label className="text-sub text-xs font-semibold block mb-1">
                 CURSO *
               </label>
-              <input
+              <select
                 value={course}
                 onChange={(e) => setCourse(e.target.value)}
-                placeholder="8°A, 1° Medio B"
-                className="w-full bg-card-soft-theme border border-soft rounded-2xl px-4 py-3 text-main text-sm focus:outline-none focus:border-blue-500/30"
-              />
+                className="w-full bg-card-soft-theme border border-soft rounded-2xl px-4 py-3 text-main text-sm focus:outline-none focus:border-blue-500/30 cursor-pointer"
+              >
+                <option value="">— Selecciona tu curso —</option>
+                <optgroup label="Enseñanza Básica">
+                  {CURSOS_BASICA.map(c => <option key={c} value={c}>{c}</option>)}
+                </optgroup>
+                <optgroup label="Enseñanza Media">
+                  {CURSOS_MEDIA.map(c => <option key={c} value={c}>{c}</option>)}
+                </optgroup>
+              </select>
             </div>
 
             <div>
@@ -712,12 +733,29 @@ export default function ExamenPublicoPage() {
             </div>
           </div>
 
+          {/* ⚠️ Advertencia monitoreo IA */}
+          <div className="mt-5 rounded-2xl border border-amber-400/30 bg-amber-50 px-4 py-4 space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">🔒</span>
+              <p className="text-sm font-bold text-amber-800">Advertencia de monitoreo académico</p>
+            </div>
+            <ul className="text-xs text-amber-700 space-y-1 pl-6 list-disc leading-relaxed">
+              <li>Este examen está bajo <strong>monitoreo de integridad académica</strong>.</li>
+              <li>Queda <strong>estrictamente prohibido</strong> el uso de inteligencia artificial, buscadores, traductores o cualquier herramienta de apoyo externo.</li>
+              <li>Cualquier intento de copiar, salir de la pantalla o usar otras aplicaciones <strong>será registrado y notificado al docente</strong>.</li>
+              <li>Al iniciar confirmas que realizarás esta evaluación <strong>de forma honesta e individual</strong>.</li>
+            </ul>
+            <p className="text-[11px] text-amber-600 pt-1 border-t border-amber-200">
+              Sistema de supervisión: EduAI Exam Security · Colegio Providencia
+            </p>
+          </div>
+
           <button
             onClick={startExam}
             disabled={!name.trim() || !course.trim()}
-            className="w-full mt-6 py-3.5 rounded-2xl bg-blue-600/90 hover:bg-blue-500 text-main font-bold text-sm disabled:opacity-30"
+            className="w-full mt-4 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm disabled:opacity-30 transition-all"
           >
-            Iniciar examen
+            Entiendo y acepto — Iniciar examen →
           </button>
         </div>
       </div>
