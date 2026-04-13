@@ -190,8 +190,8 @@ function validateQuestionConsistency(q: any): any {
     
     // If explanation mentions a specific value, try to verify it matches the correct option
     // Strip LaTeX to get comparable text
-    const cleanOption = correctOption.replace(/\$|\\frac\{(\d+)\}\{(\d+)\}/g, (_:string, n:string, d:string) => `${n}/${d}`).replace(/\/g, "")
-    const cleanExpl = explanation.replace(/\$|\\frac\{(\d+)\}\{(\d+)\}/g, (_:string, n:string, d:string) => `${n}/${d}`).replace(/\/g, "")
+    const cleanOption = correctOption.replace(/[\$\\]/g, "")
+    const cleanExpl = explanation.replace(/[\$\\]/g, "")
     
     if (cleanOption && cleanExpl && !cleanExpl.includes(cleanOption.trim().slice(0, 4))) {
       // Mismatch detected — log it but don't block
