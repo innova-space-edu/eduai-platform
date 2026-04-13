@@ -271,10 +271,13 @@ REGLAS ESTRICTAS:
 1. Responde ÚNICAMENTE con JSON válido, sin texto adicional, sin backticks.
 2. Estructura: { "title": "...", "questions": [...] }
 3. Cada pregunta: { "type", "question", ...campos propios }
-4. multiple_choice: options:[4 strings], correctAnswer:0-3, explanation, maxPoints:1
-5. true_false: correctAnswer:0(V) o 1(F), explanation, selectionPoints:1, justificationMaxPoints:2
+4. multiple_choice: options:[4 strings], correctAnswer:ÍNDICE (0,1,2,3) de la opción CORRECTA, explanation, maxPoints:1
+5. true_false: correctAnswer:0(Verdadero) o 1(Falso), explanation, selectionPoints:1, justificationMaxPoints:2
 6. development: expectedAnswer, rubric:[{criterion,points}], maxPoints:suma
-7. LaTeX inline con $...$ y bloque con $$...$$. Usa backslash real (\\).`
+7. LaTeX inline con $...$ y bloque con $$...$$. Usa backslash real (\\).
+8. CRÍTICO: Si ${aiMC}>0 y ${aiTF}===0 y ${aiDev}===0 → genera SOLO tipo multiple_choice. 
+9. CRÍTICO: correctAnswer SIEMPRE es el índice de la respuesta académicamente correcta, NO siempre 0.
+10. Verifica: options[correctAnswer] debe ser la respuesta correcta según la materia.`
   }
 
   const generateAI = async () => {
@@ -407,16 +410,22 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3">
+          <div className="flex flex-col gap-2">
             <button
               onClick={copyLink}
-              className="flex-1 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition-all"
+              className="w-full py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition-all"
             >
-              {linkCopied ? "✓ Link copiado" : "📋 Copiar link"}
+              {linkCopied ? "✓ Link copiado" : "📋 Copiar link para estudiantes"}
+            </button>
+            <button
+              onClick={() => router.push(`/examen/editar/${createdExam.id}`)}
+              className="w-full py-3 rounded-2xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800 font-semibold text-sm transition-all"
+            >
+              ✏️ Revisar y editar preguntas antes de publicar
             </button>
             <button
               onClick={() => router.push("/examen/docente")}
-              className="flex-1 py-3 rounded-2xl border border-soft bg-card-soft-theme hover:bg-card-theme text-main font-semibold text-sm transition-all"
+              className="w-full py-2.5 rounded-2xl border border-soft bg-card-soft-theme hover:bg-card-theme text-sub text-sm transition-all"
             >
               Ver mis exámenes →
             </button>
