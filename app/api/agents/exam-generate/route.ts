@@ -1,5 +1,4 @@
-/**
- * app/api/agents/exam-generate/route.ts
+* app/api/agents/exam-generate/route.ts
  *
  * API dedicada para generación de exámenes de docentes.
  * - Groq primario
@@ -186,7 +185,28 @@ function sanitizeQuestionLatex(q: any) {
 
 function sanitizeQuestionsArray(questions: any[]): any[] {
   if (!Array.isArray(questions)) return []
-  return questions.map(sanitizeQuestionLatex)
+  return questions.map(q => validateQuestionConsistency(sanitizeQuestionLatex(q)))
+}
+
+function validateQuestionConsistency(q: any): any {
+  // For multiple_choice: warn in logs if explanation contradicts correctAnswer
+  // This is a best-effort check — can't fully validate math, but catches obvious issues
+  if (q?.type === "multiple_choice" && Array.isArray(q?.options) && q?.correctAnswer != null) {
+    const correctIdx = Number(q.correctAnswer)
+    const correctOption = String(q.options[correctIdx] || "")
+    const explanation = String(q.explanation || "")
+    
+    // If explanation mentions a specific value, try to verify it matches the correct option
+    // Strip LaTeX to get comparable text
+    const cleanOption = correctOption.replace(/\$|\\frac\{(\d+)\}\{(\d+)\}/g, (_:string, n:string, d:string) => `${n}/${d}`).replace(/\/g, "")
+    const cleanExpl = explanation.replace(/\$|\\frac\{(\d+)\}\{(\d+)\}/g, (_:string, n:string, d:string) => `${n}/${d}`).replace(/\/g, "")
+    
+    if (cleanOption && cleanExpl && !cleanExpl.includes(cleanOption.trim().slice(0, 4))) {
+      // Mismatch detected — log it but don't block
+      console.warn("[exam-generate] Possible correctAnswer mismatch in question:", q.question?.slice(0, 60))
+    }
+  }
+  return q
 }
 
 function parseResponse(raw: string): any {
@@ -202,13 +222,30 @@ function parseResponse(raw: string): any {
 const SYSTEM = `Eres un diseñador experto de evaluaciones escolares en español.
 Responde ÚNICAMENTE con JSON válido — sin texto extra, sin backticks, sin markdown.
 
-REGLAS CRÍTICAS DE CORRECTNESS:
-1. Para multiple_choice: correctAnswer debe ser el ÍNDICE (0,1,2,3) de la opción REALMENTE correcta según la materia
-2. Verifica SIEMPRE que la opción en options[correctAnswer] sea la respuesta académicamente correcta
-3. Para true_false: correctAnswer=0 si es Verdadero, correctAnswer=1 si es Falso — verifica que sea correcto
-4. NUNCA pongas correctAnswer=0 por defecto — siempre elige el índice de la opción correcta
-5. Si el tipo es multiple_choice y solo se piden alternativas, NO generes preguntas de otro tipo
-6. La explanation debe explicar POR QUÉ esa respuesta es correcta
+REGLAS CRÍTICAS DE CORRECTNESS — LEE ESTO CON ATENCIÓN:
+1. PROCESO OBLIGATORIO para cada pregunta de alternativas:
+   a) Primero CALCULA tú mismo la respuesta correcta matemáticamente
+   b) Luego crea la opción correcta con ese valor exacto
+   c) Luego crea 3 distractores plausibles (errores comunes, no inventados al azar)
+   d) Mezcla las 4 opciones en orden aleatorio
+   e) Asigna correctAnswer al ÍNDICE donde quedó la respuesta correcta
+   f) Escribe la explanation BASÁNDOTE en ese mismo cálculo — debe coincidir exactamente con la opción correcta
+
+2. VERIFICACIÓN OBLIGATORIA antes de cerrar cada pregunta:
+   - options[correctAnswer] debe ser EXACTAMENTE el resultado correcto que calculaste
+   - La explanation debe terminar diciendo el mismo valor que options[correctAnswer]
+   - Si hay inconsistencia, CORRIGE antes de continuar
+
+3. EJEMPLO CORRECTO:
+   Pregunta: ¿Cuánto es 2 × 3/4 + 1/2?
+   Cálculo: 2×3/4 = 6/4 = 3/2 ; 3/2 + 1/2 = 4/2 = 2
+   Respuesta correcta: 2 (o equivalente: 8/4)
+   options: ["$\frac{5}{4}$", "2", "$\frac{7}{4}$", "$\frac{3}{2}$"]
+   correctAnswer: 1  ← índice de "2"
+   explanation: "...el resultado es 4/2 = 2" ← coincide con options[1]
+
+4. NUNCA pongas correctAnswer=0 por default
+5. Si el tipo es multiple_choice y solo se piden alternativas, NO generes otros tipos
 
 REGLAS DE TIPOS:
 - Si se piden 0 preguntas de un tipo, NO generes ese tipo
