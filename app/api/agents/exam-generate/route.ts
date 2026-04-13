@@ -1,12 +1,4 @@
-* app/api/agents/exam-generate/route.ts
- *
- * API dedicada para generación de exámenes de docentes.
- * - Groq primario
- * - OpenRouter fallback
- * - Gemini fallback final
- * - Sanitización robusta de LaTeX para evitar errores visuales en frontend
- */
-
+// app/api/agents/exam-generate/route.ts
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 
