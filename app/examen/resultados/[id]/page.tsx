@@ -623,7 +623,7 @@ function ReviewModal({
                       </span>
                     </div>
 
-                    <p className="text-main text-sm leading-relaxed">{q.question}</p>
+                    <div className="text-main text-sm leading-relaxed"><ExamMathText text={q.question || ""} /></div>
                   </div>
                 </div>
 
@@ -656,7 +656,7 @@ function ReviewModal({
                             <span
                               className="text-xs font-bold mt-0.5 flex-shrink-0"
                               style={{
-                                color: isCorrectAnswer ? "#4ade80" : isStudentAnswer ? "#f87171" : "#6b7280",
+                                color: isCorrectAnswer ? "#15803d" : isStudentAnswer ? "#b91c1c" : "#6b7280",
                               }}
                             >
                               {["A", "B", "C", "D"][oi]}.
@@ -665,18 +665,18 @@ function ReviewModal({
                             <span
                               className="text-sm flex-1"
                               style={{
-                                color: isCorrectAnswer ? "#86efac" : isStudentAnswer ? "#fca5a5" : "var(--text-muted)",
+                                color: isCorrectAnswer ? "#166534" : isStudentAnswer ? "#991b1b" : "var(--text-muted)",
                               }}
                             >
-                              {opt}
+                              <ExamMathText text={opt || ""} />
                             </span>
 
                             <div className="flex items-center gap-1.5 flex-shrink-0">
                               {isStudentAnswer && (
-                                <span className="text-[10px] font-bold text-blue-400">← estudiante</span>
+                                <span className="text-[10px] font-bold text-blue-700">← estudiante</span>
                               )}
                               {isCorrectAnswer && (
-                                <span className="text-[10px] font-bold text-green-400">✓ correcta</span>
+                                <span className="text-[10px] font-bold text-green-700">✓ correcta</span>
                               )}
                             </div>
                           </div>
@@ -693,7 +693,7 @@ function ReviewModal({
                         }}
                       >
                         <p className="text-blue-700 font-semibold mb-1">💡 Explicación</p>
-                        <p className="text-sub">{q.explanation}</p>
+                        <div className="text-sub"><ExamMathText text={q.explanation || ""} /></div>
                       </div>
                     )}
 
@@ -815,7 +815,7 @@ function ReviewModal({
                           <p className="text-green-400 text-xs font-semibold mb-1">
                             Explicación correcta (referencia)
                           </p>
-                          <p className="text-sub text-sm">{q.explanation}</p>
+                          <div className="text-sub text-sm"><ExamMathText text={q.explanation || ""} /></div>
                         </div>
                       )}
 
@@ -904,7 +904,7 @@ function ReviewModal({
                           ✓ Respuesta modelo (referencia)
                         </p>
                         <p className="text-sub text-sm leading-relaxed whitespace-pre-wrap">
-                          {q.modelAnswer}
+                          <ExamMathText text={q.modelAnswer || ""} />
                         </p>
                       </div>
                     )}
