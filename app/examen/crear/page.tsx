@@ -271,13 +271,18 @@ REGLAS ESTRICTAS:
 1. Responde ÚNICAMENTE con JSON válido, sin texto adicional, sin backticks.
 2. Estructura: { "title": "...", "questions": [...] }
 3. Cada pregunta: { "type", "question", ...campos propios }
-4. multiple_choice: options:[4 strings], correctAnswer:ÍNDICE (0,1,2,3) de la opción CORRECTA, explanation, maxPoints:1
+4. PROCESO PARA ALTERNATIVAS (OBLIGATORIO):
+   a) CALCULA tú mismo la respuesta correcta
+   b) Crea la opción correcta con ESE valor exacto
+   c) Crea 3 distractores (errores comunes, NO inventados)
+   d) Mezcla las 4 en orden aleatorio
+   e) correctAnswer = ÍNDICE donde quedó la respuesta correcta
+   f) explanation menciona el MISMO resultado que options[correctAnswer]
 5. true_false: correctAnswer:0(Verdadero) o 1(Falso), explanation, selectionPoints:1, justificationMaxPoints:2
 6. development: expectedAnswer, rubric:[{criterion,points}], maxPoints:suma
 7. LaTeX inline con $...$ y bloque con $$...$$. Usa backslash real (\\).
-8. CRÍTICO: Si ${aiMC}>0 y ${aiTF}===0 y ${aiDev}===0 → genera SOLO tipo multiple_choice. 
-9. CRÍTICO: correctAnswer SIEMPRE es el índice de la respuesta académicamente correcta, NO siempre 0.
-10. Verifica: options[correctAnswer] debe ser la respuesta correcta según la materia.`
+8. Si ${aiTF}===0 y ${aiDev}===0 → genera SOLO multiple_choice.
+9. NUNCA correctAnswer=0 por defecto. Verifica que options[correctAnswer] sea correcto.`
   }
 
   const generateAI = async () => {
