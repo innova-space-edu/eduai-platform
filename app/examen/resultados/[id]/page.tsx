@@ -17,6 +17,7 @@ import {
   Loader2,
 } from "lucide-react"
 import ReportExporter from "./ReportExporter"
+import ExamMathText from "@/components/ui/ExamMathText"
 import StudentPdfExporter from "./StudentPdfExporter"
 
 function RiskBadge({ level, count }: { level: string; count: number }) {
@@ -827,7 +828,7 @@ function ReviewModal({
                           }}
                         >
                           <p className="text-purple-700 text-xs font-semibold mb-1">🤖 Evaluación IA</p>
-                          <p className="text-sub text-sm">{a.aiFeedback}</p>
+                          <div className="text-sub text-sm"><ExamMathText text={a.aiFeedback} /></div>
                         </div>
                       )}
 
@@ -944,7 +945,7 @@ function ReviewModal({
                       >
                         <p className="text-purple-700 text-xs font-semibold mb-2">🤖 Evaluación IA</p>
                         <p className="text-sub text-sm leading-relaxed whitespace-pre-wrap">
-                          {a.aiFeedback}
+                          <ExamMathText text={a.aiFeedback} />
                         </p>
                       </div>
                     )}
@@ -1087,12 +1088,29 @@ export default function ResultadosExamenPage() {
 
     fetchData().then(() => setLoading(false))
 
+    // ── Realtime: listen for new submissions ──────────────────────────
+    const channel = supabase
+      .channel(`exam-submissions-${examId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "exam_submissions", filter: `exam_id=eq.${examId}` },
+        () => {
+          setRefreshing(true)
+          fetchData().then(() => setRefreshing(false))
+        }
+      )
+      .subscribe()
+
+    // Fallback polling every 8s
     const interval = setInterval(() => {
       setRefreshing(true)
       fetchData().then(() => setRefreshing(false))
-    }, 15000)
+    }, 8000)
 
-    return () => clearInterval(interval)
+    return () => {
+      clearInterval(interval)
+      supabase.removeChannel(channel)
+    }
   }, [examId])
 
   const toggleStatus = async () => {
@@ -1218,7 +1236,7 @@ export default function ResultadosExamenPage() {
             <ReportExporter exam={exam} submissions={submissions} />
 
             <span className="text-[10px] text-muted2">
-              {refreshing ? "Actualizando..." : "Auto refresh 15s"}
+              {refreshing ? "⟳ Actualizando..." : "🔴 En vivo · 8s"}
             </span>
           </div>
         </div>
