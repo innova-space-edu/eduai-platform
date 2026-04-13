@@ -179,6 +179,9 @@ export default function SuperAgentButton() {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send() }
   }
 
+  // Hide completely on exam taking page
+  if (pathname?.startsWith("/examen/p/")) return null
+
   return (
     <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-2">
       {open && (
