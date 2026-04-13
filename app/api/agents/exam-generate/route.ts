@@ -1,4 +1,5 @@
-* app/api/agents/exam-generate/route.ts
+/**
+ * app/api/agents/exam-generate/route.ts
  *
  * API dedicada para generación de exámenes de docentes.
  * - Groq primario
