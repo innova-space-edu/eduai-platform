@@ -1,5 +1,7 @@
 "use client"
 
+import { usePathname } from "next/navigation"
+
 import { useEffect, useState } from "react"
 import {
   LifeBuoy, X, Send, ChevronRight, Loader2,
@@ -40,6 +42,9 @@ interface Report {
 }
 
 export default function SupportButton() {
+  const pathname = usePathname()
+  if (pathname?.startsWith("/examen/p/")) return null
+
   const [open,        setOpen]        = useState(false)
   const [tab,         setTab]         = useState<"new" | "history">("new")
   const [reports,     setReports]     = useState<Report[]>([])
