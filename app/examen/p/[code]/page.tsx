@@ -127,6 +127,9 @@ export default function ExamenPublicoPage() {
   const [tfJustifications, setTfJustifications] = useState<Record<number, string>>({})
   const [timeLeft, setTimeLeft] = useState(0)
   const [submission, setSubmission] = useState<any>(null)
+  const [feedback, setFeedback] = useState<Record<number, string>>({})
+  const [feedbackLoading, setFeedbackLoading] = useState(false)
+  const [feedbackDone, setFeedbackDone] = useState(false)
 
   // kiosk
   const [isKiosk, setIsKiosk] = useState(false)
@@ -372,7 +375,39 @@ export default function ExamenPublicoPage() {
   }, [name, course, isKiosk, requestFullscreen])
 
   // ── Submit examen ──────────────────────────────────────────────────────────
-  const doSubmit = useCallback(
+  // ── Generate AI feedback per question ────────────────────────────────────
+  const generateFeedback = useCallback(async (sub: any, ex: any) => {
+    if (!ex?.questions?.length) return
+    setFeedbackLoading(true)
+    setFeedbackDone(false)
+    const questions = ex.questions || []
+    const answers = sub.answers || []
+    const feedbackMap: Record<number, string> = {}
+
+    try {
+      const gKey = process.env.NEXT_PUBLIC_GEMINI_KEY // not available client-side
+      // Call our own API endpoint for feedback
+      const res = await fetch("/api/agents/exam-feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ questions, answers }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        if (Array.isArray(data.feedback)) {
+          data.feedback.forEach((f: { index: number; text: string }) => {
+            feedbackMap[f.index] = f.text
+          })
+        }
+      }
+    } catch {}
+
+    setFeedback(feedbackMap)
+    setFeedbackLoading(false)
+    setFeedbackDone(true)
+  }, [])
+
+    const doSubmit = useCallback(
     async (_reason: "manual" | "forced" | "time_up" = "manual") => {
       if (!exam) return
       if (phase === "submitting" || phase === "review") return
@@ -430,6 +465,9 @@ export default function ExamenPublicoPage() {
         if (document.fullscreenElement) {
           document.exitFullscreen().catch(() => {})
         }
+
+        // Generate AI feedback for each question
+        generateFeedback(data.submission, exam)
       } catch (e: any) {
         setErrorMsg(e?.message || "Error al enviar el examen.")
         setPhase("error")
@@ -835,170 +873,149 @@ export default function ExamenPublicoPage() {
   }
 
   if ((phase === "review" || phase === "submitting") && submission) {
-    const nota =
-      submission.grade ??
-      calcGrade(Number(submission.score || 0), exam?.settings?.examPercentage || 60)
-
+    const nota = submission.grade ?? calcGrade(Number(submission.score || 0), exam?.settings?.examPercentage || 60)
     const pct = Number(submission.score || 0)
     const graded = submission.answers || []
 
     return (
-      <div className="min-h-screen bg-app px-4 py-6">
-        {exam?.id && (
-          <ExamSecurityExamBridge
-            examId={exam.id}
-            submissionId={submission?.id ?? null}
-            studentName={name}
-            studentCourse={course}
-            studentRut={rut || null}
-            currentQuestionIndex={curQ}
-            timeLeft={timeLeft}
-            enabled={!securityBlocked}
-            isSubmitted={submittedForSecurity}
-            onForceSubmit={() => doSubmit("forced")}
-            onSecurityTerminate={(reason) => {
-              setSecurityTerminateReason(reason || "Intento terminado por seguridad.")
-              setSecurityBlocked(true)
-            }}
-            onSessionReady={({ sessionId }) => {
-              setSecuritySessionId(sessionId)
-            }}
-          />
-        )}
+      <div className="min-h-screen bg-app px-4 py-8">
+        <div className="max-w-2xl mx-auto space-y-6">
 
-        <div className="max-w-2xl mx-auto">
-          <div className="text-center mb-6">
-            <div className="text-5xl mb-2">
-              {nota >= 5.5 ? "🎉" : nota >= 4.0 ? "📚" : "💪"}
-            </div>
-
+          {/* ── Score card ── */}
+          <div className="rounded-2xl border border-soft bg-card-theme p-6 text-center">
+            <div className="text-5xl mb-3">{nota >= 5.5 ? "🎉" : nota >= 4.0 ? "📚" : "💪"}</div>
             {showRes ? (
               <>
                 <h2 className="text-3xl font-extrabold text-main">Nota: {nota}</h2>
-                <p className="text-muted2 text-sm mt-1">
-                  {nota >= 5.5
-                    ? "¡Excelente trabajo!"
-                    : nota >= 4.0
-                      ? "Aprobado. Sigue practicando."
-                      : "Repasa el material."}
-                </p>
-
-                <div className="flex justify-center gap-6 mt-3">
-                  <div>
-                    <p className="text-muted2 text-xs">Puntaje</p>
-                    <p className="text-blue-400 font-bold text-lg">
-                      {submission.correct_count}/{examTotalPoints > 0 ? examTotalPoints : 0} pts
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-muted2 text-xs">Porcentaje</p>
-                    <p className="text-blue-400 font-bold text-lg">{Math.round(pct)}%</p>
-                  </div>
-
-                  <div>
-                    <p className="text-muted2 text-xs">Tiempo</p>
-                    <p className="text-sub font-bold text-lg">
-                      {submission.time_spent ? `${Math.round(submission.time_spent / 60)}m` : "—"}
-                    </p>
-                  </div>
+                <p className="text-sub text-sm mt-1">{nota >= 5.5 ? "¡Excelente trabajo!" : nota >= 4.0 ? "Aprobado. ¡Bien hecho!" : "Sigue practicando, puedes mejorar."}</p>
+                <div className="flex justify-center gap-8 mt-4">
+                  <div><p className="text-muted2 text-xs">Puntaje</p><p className="text-blue-600 font-bold text-xl">{submission.correct_count}/{examTotalPoints > 0 ? examTotalPoints : "?"} pts</p></div>
+                  <div><p className="text-muted2 text-xs">Logro</p><p className="text-blue-600 font-bold text-xl">{Math.round(pct)}%</p></div>
+                  <div><p className="text-muted2 text-xs">Tiempo</p><p className="text-sub font-bold text-xl">{submission.time_spent ? `${Math.round(submission.time_spent / 60)}m` : "—"}</p></div>
                 </div>
               </>
             ) : (
               <>
-                <h2 className="text-xl font-bold text-main">Examen enviado</h2>
-                <p className="text-muted2 text-sm mt-1">
-                  Tu docente revisará tus respuestas
-                </p>
+                <h2 className="text-xl font-bold text-main">Examen enviado ✓</h2>
+                <p className="text-sub text-sm mt-1">Tu docente revisará tus respuestas</p>
               </>
             )}
           </div>
 
-          {securityBlocked && (
-            <div className="mb-6 rounded-2xl border border-red-500/30 bg-red-500/10 p-4">
-              <p className="text-red-700 font-semibold">Sesión de seguridad bloqueada</p>
-              <p className="text-red-700/80 text-sm mt-1">
-                {securityTerminateReason || "El intento fue marcado por el sistema de seguridad."}
-              </p>
-              {securitySessionId ? (
-                <p className="text-red-700/60 text-xs mt-2">Session ID: {securitySessionId}</p>
-              ) : null}
+          {/* ── Feedback loading indicator ── */}
+          {feedbackLoading && (
+            <div className="rounded-2xl border border-violet-200 bg-violet-50 px-5 py-4 flex items-center gap-3">
+              <div className="w-5 h-5 rounded-full border-2 border-violet-400 border-t-transparent animate-spin flex-shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-violet-800">Claw está analizando tu examen...</p>
+                <p className="text-xs text-violet-600 mt-0.5">Preparando retroalimentación personalizada para cada pregunta</p>
+              </div>
             </div>
           )}
 
-          {showRes && (
-            <div className="space-y-3">
-              <h3 className="text-sub text-xs font-semibold tracking-widest">
-                REVISIÓN DETALLADA
-              </h3>
+          {/* ── Detailed review with AI feedback ── */}
+          {showRes && qs.length > 0 && (
+            <div className="space-y-4">
+              <h3 className="text-xs font-semibold text-muted2 uppercase tracking-widest px-1">Retroalimentación por pregunta</h3>
 
               {qs.map((item: any, i: number) => {
                 const g = graded[i] || {}
                 const isDev = item.type === "development"
                 const isTF = item.type === "true_false"
                 const baseCorrect = g.isCorrect === true
-
-                const tfSelectionPoints = Number(g.selectionPoints ?? item.selectionPoints ?? 1) || 1
-                const tfJustificationScore = Math.max(0, Number(g.justificationScore) || 0)
-                const tfJustificationMax = Math.max(
-                  0,
-                  Number(g.justificationMaxPoints ?? item.justificationMaxPoints ?? 0) || 0
-                )
-                const tfEarned = (baseCorrect ? tfSelectionPoints : 0) + tfJustificationScore
-                const tfTotal = tfSelectionPoints + tfJustificationMax
+                const tfSelPts = Number(g.selectionPoints ?? item.selectionPoints ?? 1) || 1
+                const tfJustScore = Math.max(0, Number(g.justificationScore) || 0)
+                const tfJustMax = Math.max(0, Number(g.justificationMaxPoints ?? item.justificationMaxPoints ?? 0) || 0)
+                const tfEarned = (baseCorrect ? tfSelPts : 0) + tfJustScore
+                const tfTotal = tfSelPts + tfJustMax
                 const tfFull = isTF && tfTotal > 0 && tfEarned >= tfTotal
                 const tfPartial = isTF && tfEarned > 0 && tfEarned < tfTotal
+                const state = isDev ? "dev" : isTF ? (tfFull ? "full" : tfPartial ? "partial" : "wrong") : baseCorrect ? "full" : "wrong"
+                const stateColor = { full: "border-green-200 bg-green-50", partial: "border-yellow-200 bg-yellow-50", dev: "border-blue-200 bg-blue-50", wrong: "border-red-200 bg-red-50" }[state]
+                const stateLabel = { full: "✓ Correcta", partial: "◐ Parcial", dev: "📝 Desarrollo", wrong: "✗ Incorrecta" }[state]
+                const stateBadge = { full: "bg-green-100 text-green-700", partial: "bg-yellow-100 text-yellow-700", dev: "bg-blue-100 text-blue-700", wrong: "bg-red-100 text-red-700" }[state]
 
-                const reviewState = isDev
-                  ? "dev"
-                  : isTF
-                    ? tfFull
-                      ? "full"
-                      : tfPartial
-                        ? "partial"
-                        : "wrong"
-                    : baseCorrect
-                      ? "full"
-                      : "wrong"
+                const studentAnswer = isDev ? (g.devText || "—") : isTF ? (item.options?.[g.selectedAnswer] || "—") : (item.options?.[g.selectedAnswer] || "—")
+                const correctAnswer = isDev ? (item.modelAnswer || item.expectedAnswer || "Ver rúbrica") : (item.options?.[item.correctAnswer] ?? "—")
+                const aiFeedback = feedback[i]
 
                 return (
-                  <div
-                    key={i}
-                    className="rounded-2xl border border-medium bg-card-soft-theme p-4"
-                  >
+                  <div key={i} className={`rounded-2xl border p-4 space-y-3 ${stateColor}`}>
+                    {/* Header */}
                     <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-xs text-muted2 mb-1">Pregunta {i + 1}</p>
-                        <div className="text-main text-sm leading-relaxed">
+                      <div className="flex-1">
+                        <p className="text-[11px] text-muted2 mb-1">Pregunta {i + 1} · {item.maxPoints || 1} pts</p>
+                        <div className="text-main text-sm font-medium leading-relaxed">
                           <ExamMathText text={item.question || item.statement || ""} />
                         </div>
                       </div>
-
-                      <span
-                        className={`text-[11px] px-2 py-1 rounded-full font-semibold ${
-                          reviewState === "full"
-                            ? "bg-green-500/15 text-green-700"
-                            : reviewState === "partial"
-                              ? "bg-yellow-500/15 text-yellow-700"
-                              : reviewState === "dev"
-                                ? "bg-blue-500/15 text-blue-700"
-                                : "bg-red-500/15 text-red-700"
-                        }`}
-                      >
-                        {reviewState === "full"
-                          ? "Correcta"
-                          : reviewState === "partial"
-                            ? "Parcial"
-                            : reviewState === "dev"
-                              ? "Desarrollo"
-                              : "Incorrecta"}
-                      </span>
+                      <span className={`text-xs px-2.5 py-1 rounded-full font-semibold flex-shrink-0 ${stateBadge}`}>{stateLabel}</span>
                     </div>
+
+                    {/* Student answer vs correct */}
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="rounded-xl bg-white/80 border border-soft px-3 py-2">
+                        <p className="text-muted2 mb-0.5">Tu respuesta</p>
+                        <p className={`font-medium ${state === "full" ? "text-green-700" : state === "wrong" ? "text-red-700" : "text-amber-700"}`}>
+                          <ExamMathText text={studentAnswer} />
+                        </p>
+                      </div>
+                      {!isDev && (
+                        <div className="rounded-xl bg-white/80 border border-soft px-3 py-2">
+                          <p className="text-muted2 mb-0.5">Respuesta correcta</p>
+                          <p className="font-medium text-green-700"><ExamMathText text={correctAnswer} /></p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* AI Feedback */}
+                    {aiFeedback ? (
+                      <div className="rounded-xl bg-white/90 border border-violet-200 px-3 py-2.5">
+                        <p className="text-[10px] font-semibold text-violet-600 uppercase tracking-wide mb-1">✦ Retroalimentación de Claw</p>
+                        <p className="text-xs text-main leading-relaxed">{aiFeedback}</p>
+                      </div>
+                    ) : feedbackLoading ? (
+                      <div className="rounded-xl bg-white/60 border border-violet-100 px-3 py-2 flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full border border-violet-300 border-t-transparent animate-spin flex-shrink-0" />
+                        <p className="text-xs text-violet-400">Analizando...</p>
+                      </div>
+                    ) : item.explanation ? (
+                      <div className="rounded-xl bg-white/90 border border-blue-100 px-3 py-2.5">
+                        <p className="text-[10px] font-semibold text-blue-600 uppercase tracking-wide mb-1">💡 Explicación</p>
+                        <p className="text-xs text-main leading-relaxed">{item.explanation}</p>
+                      </div>
+                    ) : null}
                   </div>
                 )
               })}
             </div>
           )}
+
+          {/* ── Close button — only after feedback is done ── */}
+          {feedbackDone && (
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-center space-y-3">
+              <p className="text-2xl">✅</p>
+              <p className="text-sm font-semibold text-emerald-800">Retroalimentación completa</p>
+              <p className="text-xs text-emerald-600">Has revisado todas tus preguntas. Puedes cerrar esta página.</p>
+              <button
+                onClick={() => { if (window.opener) window.close(); else window.location.href = "/dashboard" }}
+                className="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm transition-all"
+              >
+                ✓ He terminado — Cerrar evaluación
+              </button>
+            </div>
+          )}
+
+          {/* If feedback not enabled (showRes false), still show a minimal close */}
+          {!showRes && !feedbackLoading && (
+            <button
+              onClick={() => { if (window.opener) window.close(); else window.location.href = "/dashboard" }}
+              className="w-full py-3 rounded-2xl border border-soft bg-card-soft-theme text-sub text-sm font-medium transition hover:bg-card-theme"
+            >
+              Cerrar
+            </button>
+          )}
+
         </div>
       </div>
     )
