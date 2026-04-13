@@ -213,7 +213,7 @@ function DeleteSubmissionModal({
                 border: "1px solid rgba(239,68,68,0.2)",
               }}
             >
-              <Trash2 size={18} className="text-red-400" />
+              <Trash2 size={18} className="text-red-700" />
             </div>
             <div>
               <h3 className="text-main font-bold text-sm">Eliminar registro</h3>
@@ -478,7 +478,7 @@ function ReviewModal({
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
       <div
         className="relative w-full max-w-4xl max-h-[95vh] flex flex-col rounded-2xl overflow-hidden shadow-2xl"
-        style={{ background: "#0a0f1a", border: "1px solid var(--border-medium)" }}
+        style={{ background: "var(--bg-card)", border: "1px solid var(--border-medium)" }}
       >
         <div
           className="flex items-center justify-between px-5 py-4 border-b border-soft flex-shrink-0"
@@ -505,10 +505,10 @@ function ReviewModal({
               <p
                 className={`text-lg font-bold leading-none ${
                   previewGrade.grade >= 6
-                    ? "text-green-400"
+                    ? "text-green-700"
                     : previewGrade.grade >= 4
-                      ? "text-blue-400"
-                      : "text-red-400"
+                      ? "text-blue-700"
+                      : "text-red-700"
                 }`}
               >
                 {previewGrade.grade}
@@ -560,14 +560,14 @@ function ReviewModal({
 
                     {aa?.type === "multiple_choice" &&
                       (live.correct ? (
-                        <CheckCircle2 size={12} className="text-green-400" />
+                        <CheckCircle2 size={12} className="text-green-700" />
                       ) : (
-                        <XCircle size={12} className="text-red-400" />
+                        <XCircle size={12} className="text-red-700" />
                       ))}
 
                     {(aa?.type === "development" || aa?.type === "true_false") &&
                       (live.reviewed ? (
-                        <CheckCircle2 size={12} className="text-blue-400" />
+                        <CheckCircle2 size={12} className="text-blue-700" />
                       ) : (
                         <AlertTriangle size={12} className="text-amber-400" />
                       ))}
@@ -1209,7 +1209,7 @@ export default function ResultadosExamenPage() {
               <h1 className="text-2xl font-bold text-main">{exam?.title || "Resultados del examen"}</h1>
               <p className="text-muted2 text-sm mt-1">
                 Código: {exam?.code || "—"} · Estado:{" "}
-                <span className={exam?.status === "active" ? "text-green-400" : "text-red-400"}>
+                <span className={exam?.status === "active" ? "text-green-700" : "text-red-700"}>
                   {exam?.status === "active" ? "Activo" : "Cerrado"}
                 </span>
               </p>
@@ -1385,10 +1385,10 @@ export default function ResultadosExamenPage() {
                         <span
                           className={`text-sm font-bold ${
                             Number(s.grade || 0) >= 6
-                              ? "text-green-400"
+                              ? "text-green-700"
                               : Number(s.grade || 0) >= 4
-                                ? "text-blue-400"
-                                : "text-red-400"
+                                ? "text-blue-700"
+                                : "text-red-700"
                           }`}
                         >
                           {Number(s.grade || 0).toFixed(1)}
