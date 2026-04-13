@@ -49,29 +49,33 @@ export async function POST(req: NextRequest) {
 
     const questionBlock = questions.map((q: any, i: number) => {
       const a = answers?.[i] || {}
-      const isCorrect = a.isCorrect === true
+      const isCorrect = a.isCorrect === true || a.selectionCorrect === true
       const studentAns = q.type === "development"
         ? (a.devText || "Sin respuesta")
-        : (q.options?.[a.selectedAnswer] || "Sin respuesta")
+        : (q.options?.[a.selectedAnswer] !== undefined ? q.options[a.selectedAnswer] : "Sin respuesta")
+      const correctIdx = typeof q.correctAnswer === "number" ? q.correctAnswer : 0
       const correctAns = q.type === "development"
         ? (q.modelAnswer || q.expectedAnswer || "Ver rúbrica")
-        : (q.options?.[q.correctAnswer] || "—")
+        : (q.options?.[correctIdx] || "—")
+      const allOptions = Array.isArray(q.options) ? q.options.map((o: string, j: number) => `  ${j===correctIdx?"✓":"-"} ${o}`).join("\n") : ""
 
-      return `[${i}] Pregunta: ${q.question}
-Tipo: ${q.type}
-Respuesta estudiante: ${studentAns}
-Respuesta correcta: ${q.type !== "development" ? correctAns : "Ver rúbrica"}
-¿Correcta?: ${isCorrect ? "Sí" : "No"}
-Explicación del autor: ${q.explanation || "—"}`
+      return `[${i}] Tipo: ${q.type}
+Pregunta: ${q.question}
+Opciones:\n${allOptions}
+Respuesta del estudiante: "${studentAns}" → ${isCorrect ? "✓ CORRECTA" : "✗ INCORRECTA"}
+Respuesta correcta: "${correctAns}"
+Explicación oficial: ${q.explanation || "—"}
+Puntaje obtenido: ${a.aiScore !== undefined ? a.aiScore : (isCorrect ? (q.maxPoints||1) : 0)} / ${q.maxPoints || 1}`
     }).join("\n\n")
 
-    const prompt = `Eres un tutor educativo amigable y empático. Genera retroalimentación breve (2-3 oraciones) para cada pregunta de este examen.
+    const prompt = `Eres un tutor educativo amigable, empático y PRECISO. Genera retroalimentación para cada pregunta.
 
-Para cada pregunta:
-- Si fue correcta: refuerza por qué está bien y destaca lo que el estudiante demostró saber
-- Si fue incorrecta: explica el concepto clave de forma clara y positiva, sin regañar
-- Si es desarrollo: comenta sobre la calidad de la respuesta dada
-- Usa lenguaje cercano, motivador y constructivo
+REGLAS IMPORTANTES:
+- Basa tu retroalimentación ÚNICAMENTE en la respuesta correcta indicada — no inventes ni cambies la respuesta correcta
+- Para alternativas: la opción marcada con ✓ es la ÚNICA correcta — comenta por qué esa opción es la correcta
+- Si el estudiante erró: explica el concepto clave que lleva a la respuesta correcta, de forma positiva
+- Si fue correcta: refuerza brevemente por qué esa respuesta demuestra comprensión del concepto
+- Extensión: 2-3 oraciones por pregunta, lenguaje cercano y constructivo
 
 PREGUNTAS:
 ${questionBlock}
