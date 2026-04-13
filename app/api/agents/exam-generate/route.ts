@@ -202,6 +202,18 @@ function parseResponse(raw: string): any {
 const SYSTEM = `Eres un diseñador experto de evaluaciones escolares en español.
 Responde ÚNICAMENTE con JSON válido — sin texto extra, sin backticks, sin markdown.
 
+REGLAS CRÍTICAS DE CORRECTNESS:
+1. Para multiple_choice: correctAnswer debe ser el ÍNDICE (0,1,2,3) de la opción REALMENTE correcta según la materia
+2. Verifica SIEMPRE que la opción en options[correctAnswer] sea la respuesta académicamente correcta
+3. Para true_false: correctAnswer=0 si es Verdadero, correctAnswer=1 si es Falso — verifica que sea correcto
+4. NUNCA pongas correctAnswer=0 por defecto — siempre elige el índice de la opción correcta
+5. Si el tipo es multiple_choice y solo se piden alternativas, NO generes preguntas de otro tipo
+6. La explanation debe explicar POR QUÉ esa respuesta es correcta
+
+REGLAS DE TIPOS:
+- Si se piden 0 preguntas de un tipo, NO generes ese tipo
+- Respeta EXACTAMENTE la cantidad pedida de cada tipo
+
 REGLAS LATEX OBLIGATORIAS:
 1. Toda expresión matemática inline debe ir en $...$
 2. Toda expresión matemática en bloque debe ir en $$...$$
@@ -312,13 +324,15 @@ async function groqFull(
     const rem = Math.min(GROQ_BATCH, totalQ - done)
 
     const r = rem / totalQ
-    const bMc = mc ? Math.max(0, Math.round(mc * r)) : Math.round(rem * 0.5)
-    const bTf = tf ? Math.max(0, Math.round(tf * r)) : Math.round(rem * 0.2)
-    const bDev = Math.max(0, rem - bMc - bTf)
+    // If user specified types explicitly, scale them; otherwise fallback to all-MC
+    const hasExplicitTypes = mc > 0 || tf > 0 || dev > 0
+    const bMc = hasExplicitTypes ? Math.max(0, Math.round(mc * r)) : rem
+    const bTf = hasExplicitTypes ? Math.max(0, Math.round(tf * r)) : 0
+    const bDev = hasExplicitTypes ? Math.max(0, rem - Math.round(mc * r) - Math.round(tf * r)) : 0
 
     const batchNote =
       batches > 1
-        ? `\n\n[Lote ${i + 1}/${batches}: genera exactamente ${bMc} alternativas, ${bTf} V/F, ${bDev} desarrollo. Total: ${rem}]`
+        ? `\n\n[Lote ${i + 1}/${batches}: genera EXACTAMENTE ${bMc} alternativas, ${bTf} V/F, ${bDev} desarrollo. NO uses otros tipos. Total: ${rem}]`
         : ""
 
     const prompt = basePrompt
@@ -412,13 +426,14 @@ async function openRouterFull(
     const done = i * GROQ_BATCH
     const rem = Math.min(GROQ_BATCH, totalQ - done)
     const r = rem / totalQ
-    const bMc = mc ? Math.max(0, Math.round(mc * r)) : Math.round(rem * 0.5)
-    const bTf = tf ? Math.max(0, Math.round(tf * r)) : Math.round(rem * 0.2)
-    const bDev = Math.max(0, rem - bMc - bTf)
+    const hasExplicitTypes2 = mc > 0 || tf > 0 || dev > 0
+    const bMc = hasExplicitTypes2 ? Math.max(0, Math.round(mc * r)) : rem
+    const bTf = hasExplicitTypes2 ? Math.max(0, Math.round(tf * r)) : 0
+    const bDev = hasExplicitTypes2 ? Math.max(0, rem - Math.round(mc * r) - Math.round(tf * r)) : 0
 
     const batchNote =
       batches > 1
-        ? `\n\n[Lote ${i + 1}/${batches}: genera exactamente ${bMc} alternativas, ${bTf} V/F, ${bDev} desarrollo. Total: ${rem}]`
+        ? `\n\n[Lote ${i + 1}/${batches}: genera EXACTAMENTE ${bMc} alternativas, ${bTf} V/F, ${bDev} desarrollo. NO uses otros tipos. Total: ${rem}]`
         : ""
 
     const prompt = basePrompt
