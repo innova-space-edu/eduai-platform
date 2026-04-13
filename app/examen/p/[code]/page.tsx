@@ -972,7 +972,7 @@ export default function ExamenPublicoPage() {
                     {aiFeedback ? (
                       <div className="rounded-xl bg-white/90 border border-violet-200 px-3 py-2.5">
                         <p className="text-[10px] font-semibold text-violet-600 uppercase tracking-wide mb-1">✦ Retroalimentación de Claw</p>
-                        <p className="text-xs text-main leading-relaxed">{aiFeedback}</p>
+                        <div className="text-xs text-main leading-relaxed"><ExamMathText text={aiFeedback} /></div>
                       </div>
                     ) : feedbackLoading ? (
                       <div className="rounded-xl bg-white/60 border border-violet-100 px-3 py-2 flex items-center gap-2">
