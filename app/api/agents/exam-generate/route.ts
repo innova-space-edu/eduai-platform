@@ -175,29 +175,130 @@ function sanitizeQuestionLatex(q: any) {
   return cleaned
 }
 
+function normalizeCorrectAnswerIndex(
+  rawCorrectAnswer: any,
+  options: string[],
+  type: "multiple_choice" | "true_false" | "development"
+): number {
+  const maxIndex = Math.max(0, options.length - 1)
+
+  if (typeof rawCorrectAnswer === "number" && Number.isFinite(rawCorrectAnswer)) {
+    return Math.max(0, Math.min(maxIndex, Math.round(rawCorrectAnswer)))
+  }
+
+  if (typeof rawCorrectAnswer === "boolean" && type === "true_false") {
+    return rawCorrectAnswer ? 0 : Math.min(1, maxIndex)
+  }
+
+  if (typeof rawCorrectAnswer === "string") {
+    const value = rawCorrectAnswer.trim().toLowerCase()
+    const numeric = Number(value)
+    if (Number.isFinite(numeric)) {
+      return Math.max(0, Math.min(maxIndex, Math.round(numeric)))
+    }
+
+    const letters = ["a", "b", "c", "d", "e", "f"]
+    const letterIndex = letters.indexOf(value)
+    if (letterIndex >= 0) {
+      return Math.max(0, Math.min(maxIndex, letterIndex))
+    }
+
+    if (type === "true_false") {
+      if (["verdadero", "v", "true"].includes(value)) return 0
+      if (["falso", "f", "false"].includes(value)) return Math.min(1, maxIndex)
+    }
+
+    const optionIndex = options.findIndex((opt) => String(opt).trim().toLowerCase() === value)
+    if (optionIndex >= 0) return optionIndex
+  }
+
+  return 0
+}
+
+function repairQuestionStructure(q: any): any {
+  if (!q || typeof q !== "object") return q
+
+  const type =
+    q.type === "true_false" || q.type === "development" ? q.type : "multiple_choice"
+
+  const fixed = { ...q, type }
+
+  if (type === "multiple_choice") {
+    const options =
+      Array.isArray(q.options) && q.options.length > 0
+        ? q.options.map((opt: any) => sanitizeLatexText(opt))
+        : ["Opción A", "Opción B", "Opción C", "Opción D"]
+
+    fixed.options = options
+    fixed.correctAnswer = normalizeCorrectAnswerIndex(q.correctAnswer, options, type)
+    fixed.maxPoints = Number.isFinite(Number(q.maxPoints)) ? Math.max(1, Number(q.maxPoints)) : 1
+  }
+
+  if (type === "true_false") {
+    fixed.options = ["Verdadero", "Falso"]
+    fixed.correctAnswer = normalizeCorrectAnswerIndex(q.correctAnswer, fixed.options, type)
+    fixed.selectionPoints = Number.isFinite(Number(q.selectionPoints)) ? Math.max(0, Number(q.selectionPoints)) : 1
+    fixed.justificationMaxPoints = Number.isFinite(Number(q.justificationMaxPoints))
+      ? Math.max(0, Number(q.justificationMaxPoints))
+      : 2
+    fixed.maxPoints = fixed.selectionPoints + fixed.justificationMaxPoints
+  }
+
+  if (type === "development") {
+    fixed.modelAnswer = sanitizeLatexText(q.modelAnswer ?? q.expectedAnswer ?? q.respuestaModelo ?? "")
+    fixed.rubric = Array.isArray(q.rubric)
+      ? q.rubric.map((r: any) => ({
+          criteria: String(r?.criteria ?? r?.criterion ?? r?.criterio ?? "Criterio"),
+          points: Number.isFinite(Number(r?.points ?? r?.puntos)) ? Math.max(0, Number(r?.points ?? r?.puntos)) : 1,
+        }))
+      : []
+    const rubricSum = fixed.rubric.reduce((acc: number, item: any) => acc + (Number(item?.points) || 0), 0)
+    fixed.maxPoints = rubricSum > 0 ? rubricSum : (Number.isFinite(Number(q.maxPoints)) ? Math.max(1, Number(q.maxPoints)) : 5)
+  }
+
+  return fixed
+}
+
 function sanitizeQuestionsArray(questions: any[]): any[] {
   if (!Array.isArray(questions)) return []
-  return questions.map(q => validateQuestionConsistency(sanitizeQuestionLatex(q)))
+  return questions.map(q => validateQuestionConsistency(repairQuestionStructure(sanitizeQuestionLatex(q))))
 }
 
 function validateQuestionConsistency(q: any): any {
-  // For multiple_choice: warn in logs if explanation contradicts correctAnswer
-  // This is a best-effort check — can't fully validate math, but catches obvious issues
   if (q?.type === "multiple_choice" && Array.isArray(q?.options) && q?.correctAnswer != null) {
-    const correctIdx = Number(q.correctAnswer)
+    const correctIdx = normalizeCorrectAnswerIndex(q.correctAnswer, q.options, "multiple_choice")
     const correctOption = String(q.options[correctIdx] || "")
     const explanation = String(q.explanation || "")
-    
-    // If explanation mentions a specific value, try to verify it matches the correct option
-    // Strip LaTeX to get comparable text
-    const cleanOption = correctOption.replace(/[\$\\]/g, "")
-    const cleanExpl = explanation.replace(/[\$\\]/g, "")
-    
-    if (cleanOption && cleanExpl && !cleanExpl.includes(cleanOption.trim().slice(0, 4))) {
-      // Mismatch detected — log it but don't block
+    const cleanOption = correctOption.replace(/[\$\\]/g, "").trim().toLowerCase()
+    const cleanExpl = explanation.replace(/[\$\\]/g, "").trim().toLowerCase()
+
+    q.correctAnswer = correctIdx
+
+    if (cleanOption && cleanExpl && !cleanExpl.includes(cleanOption.slice(0, Math.min(8, cleanOption.length)))) {
       console.warn("[exam-generate] Possible correctAnswer mismatch in question:", q.question?.slice(0, 60))
+      q.explanation = explanation
+        ? `${explanation.trim()} Respuesta correcta: ${correctOption}`
+        : `Respuesta correcta: ${correctOption}`
     }
   }
+
+  if (q?.type === "true_false") {
+    q.options = ["Verdadero", "Falso"]
+    q.correctAnswer = normalizeCorrectAnswerIndex(q.correctAnswer, q.options, "true_false")
+  }
+
+  if (q?.type === "development") {
+    q.modelAnswer = sanitizeLatexText(q.modelAnswer ?? q.expectedAnswer ?? "")
+    q.rubric = Array.isArray(q.rubric)
+      ? q.rubric.map((r: any) => ({
+          criteria: String(r?.criteria ?? r?.criterion ?? r?.criterio ?? "Criterio"),
+          points: Number.isFinite(Number(r?.points ?? r?.puntos))
+            ? Math.max(0, Number(r?.points ?? r?.puntos))
+            : 1,
+        }))
+      : []
+  }
+
   return q
 }
 
@@ -383,8 +484,9 @@ async function groqFull(
 async function openRouterBatch(prompt: string, key: string): Promise<any> {
   const models = [
     "meta-llama/llama-3.3-70b-instruct",
+    "qwen/qwen3-32b",
+    "deepseek/deepseek-chat",
     "google/gemini-2.5-flash",
-    "anthropic/claude-3-haiku",
     "openai/gpt-4o-mini",
   ]
 
@@ -516,25 +618,10 @@ export async function POST(req: NextRequest) {
   }
 
   if (mode === "single") {
-    if (GROQ_KEY) {
-      try {
-        const parsed = await groqBatch(prompt, GROQ_KEY)
-        const q = sanitizeQuestionLatex(parsed?.question ?? parsed?.questions?.[0] ?? parsed)
-
-        return NextResponse.json({
-          success: true,
-          question: q,
-          provider: "groq",
-        })
-      } catch (e: any) {
-        console.warn("[exam-generate/single] Groq falló:", e.message)
-      }
-    }
-
     if (OR_KEY) {
       try {
         const parsed = await openRouterBatch(prompt, OR_KEY)
-        const q = sanitizeQuestionLatex(parsed?.question ?? parsed?.questions?.[0] ?? parsed)
+        const q = repairQuestionStructure(sanitizeQuestionLatex(parsed?.question ?? parsed?.questions?.[0] ?? parsed))
 
         return NextResponse.json({
           success: true,
@@ -546,10 +633,25 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    if (GROQ_KEY) {
+      try {
+        const parsed = await groqBatch(prompt, GROQ_KEY)
+        const q = repairQuestionStructure(sanitizeQuestionLatex(parsed?.question ?? parsed?.questions?.[0] ?? parsed))
+
+        return NextResponse.json({
+          success: true,
+          question: q,
+          provider: "groq",
+        })
+      } catch (e: any) {
+        console.warn("[exam-generate/single] Groq falló:", e.message)
+      }
+    }
+
     if (GEMINI_KEY) {
       try {
         const parsed = await gemini(prompt, 1, GEMINI_KEY)
-        const q = sanitizeQuestionLatex(parsed?.question ?? parsed?.questions?.[0] ?? parsed)
+        const q = repairQuestionStructure(sanitizeQuestionLatex(parsed?.question ?? parsed?.questions?.[0] ?? parsed))
 
         return NextResponse.json({
           success: true,
@@ -571,23 +673,6 @@ export async function POST(req: NextRequest) {
       return m ? parseInt(m[1], 10) : 15
     })()
 
-  if (GROQ_KEY) {
-    try {
-      const { title, questions } = await groqFull(prompt, totalQ, mc, tf, dev, GROQ_KEY)
-      if (questions.length > 0) {
-        return NextResponse.json({
-          success: true,
-          title,
-          summary: null,
-          questions,
-          provider: "groq",
-        })
-      }
-    } catch (e: any) {
-      console.warn("[exam-generate] Groq falló → usando fallback:", e.message)
-    }
-  }
-
   if (OR_KEY) {
     try {
       const { title, questions } = await openRouterFull(prompt, totalQ, mc, tf, dev, OR_KEY)
@@ -602,6 +687,23 @@ export async function POST(req: NextRequest) {
       }
     } catch (e: any) {
       console.warn("[exam-generate] OpenRouter falló:", e.message)
+    }
+  }
+
+  if (GROQ_KEY) {
+    try {
+      const { title, questions } = await groqFull(prompt, totalQ, mc, tf, dev, GROQ_KEY)
+      if (questions.length > 0) {
+        return NextResponse.json({
+          success: true,
+          title,
+          summary: null,
+          questions,
+          provider: "groq",
+        })
+      }
+    } catch (e: any) {
+      console.warn("[exam-generate] Groq falló → usando fallback:", e.message)
     }
   }
 
