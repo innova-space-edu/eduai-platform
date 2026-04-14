@@ -1489,9 +1489,7 @@ export default function ResultadosExamenPage() {
                                   ⭐ Dar décimas
                                 </button>
                                 <div className="border-t border-soft" />
-                                <div className="w-full">
-                                  <StudentPdfExporter exam={exam} submission={s} />
-                                </div>
+                                <StudentPdfExporter exam={exam} submission={s} asMenuItem />
                                 <button onClick={() => { setDeleteSub(s); setActionMenuId(null) }} disabled={deletingId === s.id}
                                   className="w-full text-left px-3 py-2.5 text-xs text-red-700 hover:bg-red-50 transition flex items-center gap-2">
                                   🗑️ Eliminar
@@ -1512,8 +1510,9 @@ export default function ResultadosExamenPage() {
         </div>
       </div>
 
-      {/* ── Extra time modal ───────────────────────────────────────────── */}
-      {extraTimeSub && (
+      {incidentSub && (
+        {/* ── Extra time modal ───────────────────────────────────────────── */}
+        {extraTimeSub && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setExtraTimeSub(null)} />
             <div className="relative bg-card-theme rounded-2xl border border-soft p-6 w-full max-w-sm shadow-2xl">
@@ -1574,7 +1573,8 @@ export default function ResultadosExamenPage() {
           </div>
         )}
 
-      {incidentSub && <IncidentModal submission={incidentSub} examId={examId} onClose={() => setIncidentSub(null)} />}
+        <IncidentModal submission={incidentSub} examId={examId} onClose={() => setIncidentSub(null)} />
+      )}
 
       {reviewSub && (
         <ReviewModal
