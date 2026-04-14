@@ -130,6 +130,7 @@ export default function ExamenPublicoPage() {
   const [feedback, setFeedback] = useState<Record<number, string>>({})
   const [feedbackLoading, setFeedbackLoading] = useState(false)
   const [feedbackDone, setFeedbackDone] = useState(false)
+  const [confirmSubmit, setConfirmSubmit] = useState(false)
 
   // kiosk
   const [isKiosk, setIsKiosk] = useState(false)
@@ -998,10 +999,18 @@ export default function ExamenPublicoPage() {
               <p className="text-sm font-semibold text-emerald-800">Retroalimentación completa</p>
               <p className="text-xs text-emerald-600">Has revisado todas tus preguntas. Puedes cerrar esta página.</p>
               <button
-                onClick={() => { if (window.opener) window.close(); else window.location.href = "/dashboard" }}
+                onClick={() => {
+                  if (document.fullscreenElement) {
+                    document.exitFullscreen().catch(() => {}).finally(() => {
+                      if (window.opener) window.close(); else window.location.href = "/dashboard"
+                    })
+                  } else {
+                    if (window.opener) window.close(); else window.location.href = "/dashboard"
+                  }
+                }}
                 className="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm transition-all"
               >
-                ✓ He terminado — Cerrar evaluación
+                ✓ He terminado — Salir del examen
               </button>
             </div>
           )}
@@ -1239,28 +1248,59 @@ export default function ExamenPublicoPage() {
             </div>
 
             <div className="space-y-3">
-              <button
-                onClick={() => setCurQ((prev) => Math.max(0, prev - 1))}
-                disabled={curQ === 0}
-                className="w-full py-3 rounded-2xl bg-card-soft-theme border border-soft text-main disabled:opacity-30"
-              >
-                Anterior
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setCurQ((prev) => Math.max(0, prev - 1))}
+                  disabled={curQ === 0}
+                  className="flex-1 py-2.5 rounded-2xl bg-card-soft-theme border border-soft text-main text-sm disabled:opacity-30 transition-all"
+                >
+                  ← Anterior
+                </button>
+                <button
+                  onClick={() => setCurQ((prev) => Math.min(totalQ - 1, prev + 1))}
+                  disabled={curQ === totalQ - 1}
+                  className="flex-1 py-2.5 rounded-2xl text-white font-bold text-sm transition-all disabled:opacity-30"
+                  style={{ background: curQ === totalQ - 1 ? undefined : "linear-gradient(135deg,#2563eb,#3b82f6)", boxShadow: curQ === totalQ - 1 ? undefined : "0 2px 12px rgba(37,99,235,0.35)" }}
+                >
+                  Siguiente →
+                </button>
+              </div>
 
-              <button
-                onClick={() => setCurQ((prev) => Math.min(totalQ - 1, prev + 1))}
-                disabled={curQ === totalQ - 1}
-                className="w-full py-3 rounded-2xl bg-card-soft-theme border border-soft text-main disabled:opacity-30"
-              >
-                Siguiente
-              </button>
-
-              <button
-                onClick={() => void doSubmit("manual")}
-                className="w-full py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-main font-bold"
-              >
-                Enviar examen
-              </button>
+              {/* Confirm submit overlay */}
+              {confirmSubmit ? (
+                <div className="rounded-2xl border border-amber-300 bg-amber-50 p-3 space-y-2">
+                  <p className="text-xs font-bold text-amber-800 text-center">¿Seguro que quieres entregar?</p>
+                  <p className="text-[11px] text-amber-700 text-center">
+                    {answeredCount < totalQ ? `⚠️ Te faltan ${totalQ - answeredCount} preguntas sin responder.` : "✓ Todas las preguntas respondidas."}
+                  </p>
+                  <div className="flex gap-2">
+                    <button onClick={() => setConfirmSubmit(false)}
+                      className="flex-1 py-2 rounded-xl border border-amber-300 text-amber-800 text-xs font-semibold transition-all hover:bg-amber-100">
+                      Seguir revisando
+                    </button>
+                    <button onClick={() => { setConfirmSubmit(false); void doSubmit("manual") }}
+                      className="flex-1 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-all">
+                      Sí, entregar
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setConfirmSubmit(true)}
+                  disabled={curQ < totalQ - 1}
+                  className="w-full py-3 rounded-2xl font-bold text-sm transition-all"
+                  style={{
+                    background: curQ < totalQ - 1 ? "var(--bg-card-soft)" : "linear-gradient(135deg,#dc2626,#ef4444)",
+                    border: curQ < totalQ - 1 ? "1px solid var(--border-soft)" : "none",
+                    color: curQ < totalQ - 1 ? "var(--text-muted)" : "white",
+                    boxShadow: curQ < totalQ - 1 ? "none" : "0 4px 16px rgba(220,38,38,0.4)",
+                    cursor: curQ < totalQ - 1 ? "not-allowed" : "pointer",
+                  }}
+                  title={curQ < totalQ - 1 ? "Llega a la última pregunta para poder entregar" : ""}
+                >
+                  {curQ < totalQ - 1 ? `📋 Llega a la pregunta ${totalQ} para entregar` : "🔴 Entregar examen"}
+                </button>
+              )}
             </div>
 
             <div className="mt-6 text-xs text-muted2">
