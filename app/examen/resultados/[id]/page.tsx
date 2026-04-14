@@ -1069,6 +1069,12 @@ export default function ResultadosExamenPage() {
   const [reviewSub, setReviewSub] = useState<any>(null)
   const [deleteSub, setDeleteSub] = useState<any>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [actionMenuId, setActionMenuId] = useState<string | null>(null)
+  const [extraTimeSub, setExtraTimeSub] = useState<any>(null)
+  const [decimasSub, setDecimasSub] = useState<any>(null)
+  const [extraMinutes, setExtraMinutes] = useState(15)
+  const [decimasVal, setDecimasVal] = useState(0.5)
+  const [savingExtra, setSavingExtra] = useState(false)
 
   const supabase = createClient()
   const router = useRouter()
@@ -1112,6 +1118,21 @@ export default function ResultadosExamenPage() {
       supabase.removeChannel(channel)
     }
   }, [examId])
+
+  const applyDecimas = async () => {
+    if (!decimasSub) return
+    setSavingExtra(true)
+    try {
+      const newGrade = Math.min(7.0, Math.round((Number(decimasSub.grade || 1) + Number(decimasVal)) * 10) / 10)
+      await fetch("/api/agents/examen-docente", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "apply_bonus_grade", submissionId: decimasSub.id, bonusGrade: newGrade }),
+      })
+      setSubmissions(prev => prev.map(s => s.id === decimasSub.id ? { ...s, grade: newGrade } : s))
+      setDecimasSub(null)
+    } catch {}
+    setSavingExtra(false)
+  }
 
   const toggleStatus = async () => {
     if (!exam || !user) return
@@ -1441,60 +1462,43 @@ export default function ResultadosExamenPage() {
                       </td>
 
                       <td className="py-3 px-3 text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => setReviewSub(s)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
-                            style={{
-                              background: s.manually_reviewed
-                                ? "rgba(34,197,94,0.08)"
-                                : "rgba(59,130,246,0.1)",
-                              border: `1px solid ${
-                                s.manually_reviewed
-                                  ? "rgba(34,197,94,0.2)"
-                                  : "rgba(59,130,246,0.25)"
-                              }`,
-                              color: s.manually_reviewed ? "#4ade80" : "#93c5fd",
-                            }}
-                          >
-                            {s.manually_reviewed ? (
-                              <>
-                                <CheckCircle2 size={11} />
-                                Ver
-                              </>
-                            ) : (
-                              <>
-                                <Eye size={11} />
-                                Revisar
-                              </>
-                            )}
+                        <div className="relative flex items-center justify-center gap-1.5">
+                          {/* Review button */}
+                          <button onClick={() => setReviewSub(s)}
+                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all"
+                            style={{ background: s.manually_reviewed ? "rgba(34,197,94,0.1)" : "rgba(59,130,246,0.1)", border: `1px solid ${s.manually_reviewed ? "rgba(34,197,94,0.25)" : "rgba(59,130,246,0.25)"}`, color: s.manually_reviewed ? "#15803d" : "#2563eb" }}>
+                            {s.manually_reviewed ? <><CheckCircle2 size={11} />Ver</> : <><Eye size={11} />Revisar</>}
                           </button>
 
-                          <StudentPdfExporter exam={exam} submission={s} />
-
-                          <button
-                            onClick={() => setDeleteSub(s)}
-                            disabled={deletingId === s.id}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
-                            style={{
-                              background: "rgba(239,68,68,0.10)",
-                              border: "1px solid rgba(239,68,68,0.22)",
-                              color: "#fca5a5",
-                              opacity: deletingId === s.id ? 0.65 : 1,
-                            }}
-                          >
-                            {deletingId === s.id ? (
-                              <>
-                                <Loader2 size={11} className="animate-spin" />
-                                Eliminando
-                              </>
-                            ) : (
-                              <>
-                                <Trash2 size={11} />
-                                Eliminar
-                              </>
+                          {/* Action menu */}
+                          <div className="relative">
+                            <button
+                              onClick={() => setActionMenuId(prev => prev === s.id ? null : s.id)}
+                              className="flex items-center gap-0.5 px-2 py-1.5 rounded-xl text-xs font-semibold bg-card-soft-theme border border-soft text-main hover:border-medium transition-all"
+                            >
+                              ⚡ Más
+                            </button>
+                            {actionMenuId === s.id && (
+                              <div className="absolute right-0 top-8 z-30 w-44 rounded-2xl border border-soft bg-card-theme shadow-xl overflow-hidden">
+                                <button onClick={() => { setExtraTimeSub(s); setActionMenuId(null) }}
+                                  className="w-full text-left px-3 py-2.5 text-xs text-main hover:bg-card-soft-theme transition flex items-center gap-2">
+                                  ⏱️ Dar más tiempo
+                                </button>
+                                <button onClick={() => { setDecimasSub(s); setActionMenuId(null) }}
+                                  className="w-full text-left px-3 py-2.5 text-xs text-main hover:bg-card-soft-theme transition flex items-center gap-2">
+                                  ⭐ Dar décimas
+                                </button>
+                                <div className="border-t border-soft" />
+                                <StudentPdfExporter exam={exam} submission={s} asMenuItem />
+                                <button onClick={() => { setDeleteSub(s); setActionMenuId(null) }} disabled={deletingId === s.id}
+                                  className="w-full text-left px-3 py-2.5 text-xs text-red-700 hover:bg-red-50 transition flex items-center gap-2">
+                                  🗑️ Eliminar
+                                </button>
+                              </div>
                             )}
-                          </button>
+                          </div>
+
+
                         </div>
                       </td>
                     </tr>
@@ -1507,6 +1511,68 @@ export default function ResultadosExamenPage() {
       </div>
 
       {incidentSub && (
+        {/* ── Extra time modal ───────────────────────────────────────────── */}
+        {extraTimeSub && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setExtraTimeSub(null)} />
+            <div className="relative bg-card-theme rounded-2xl border border-soft p-6 w-full max-w-sm shadow-2xl">
+              <h3 className="text-main font-bold mb-1">⏱️ Dar más tiempo</h3>
+              <p className="text-muted2 text-sm mb-4">Estudiante: <strong>{extraTimeSub.student_name}</strong></p>
+              <p className="text-sub text-xs mb-3">El estudiante podrá reingresar al examen con el tiempo extra indicado y sus respuestas anteriores cargadas.</p>
+              <div className="flex items-center gap-3 mb-5">
+                <label className="text-sub text-sm font-semibold flex-shrink-0">Minutos extra:</label>
+                <input type="number" min={5} max={120} value={extraMinutes} onChange={e => setExtraMinutes(Number(e.target.value))}
+                  className="flex-1 bg-card-soft-theme border border-medium rounded-xl px-3 py-2 text-main text-sm focus:outline-none focus:border-blue-500/40" />
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => setExtraTimeSub(null)} className="flex-1 py-2.5 rounded-xl border border-soft text-sub text-sm">Cancelar</button>
+                <button
+                  onClick={async () => {
+                    if (!extraTimeSub || !exam) return
+                    setSavingExtra(true)
+                    await fetch("/api/agents/examen-docente", {
+                      method: "POST", headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ action: "grant_extra_time", submissionId: extraTimeSub.id, examId: exam.id, extraMinutes }),
+                    })
+                    setSavingExtra(false)
+                    setExtraTimeSub(null)
+                    alert(`✓ Se le dieron ${extraMinutes} minutos extra a ${extraTimeSub.student_name}. El link del examen sigue activo.`)
+                  }}
+                  disabled={savingExtra}
+                  className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold disabled:opacity-40"
+                >
+                  {savingExtra ? "Guardando..." : "Dar tiempo"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Décimas modal ──────────────────────────────────────────────────── */}
+        {decimasSub && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setDecimasSub(null)} />
+            <div className="relative bg-card-theme rounded-2xl border border-soft p-6 w-full max-w-sm shadow-2xl">
+              <h3 className="text-main font-bold mb-1">⭐ Dar décimas</h3>
+              <p className="text-muted2 text-sm mb-1">Estudiante: <strong>{decimasSub.student_name}</strong></p>
+              <p className="text-muted2 text-sm mb-4">Nota actual: <strong className="text-blue-700">{decimasSub.grade}</strong></p>
+              <div className="flex items-center gap-3 mb-2">
+                <label className="text-sub text-sm font-semibold flex-shrink-0">Décimas a agregar:</label>
+                <input type="number" min={0.1} max={2.0} step={0.1} value={decimasVal} onChange={e => setDecimasVal(Number(e.target.value))}
+                  className="flex-1 bg-card-soft-theme border border-medium rounded-xl px-3 py-2 text-main text-sm focus:outline-none focus:border-blue-500/40" />
+              </div>
+              <p className="text-xs text-sub mb-5">Nota resultante: <strong className="text-emerald-700">{Math.min(7.0, Math.round((Number(decimasSub.grade||1) + Number(decimasVal)) * 10) / 10)}</strong></p>
+              <div className="flex gap-2">
+                <button onClick={() => setDecimasSub(null)} className="flex-1 py-2.5 rounded-xl border border-soft text-sub text-sm">Cancelar</button>
+                <button onClick={applyDecimas} disabled={savingExtra}
+                  className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold disabled:opacity-40">
+                  {savingExtra ? "Guardando..." : "Aplicar"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <IncidentModal submission={incidentSub} examId={examId} onClose={() => setIncidentSub(null)} />
       )}
 
