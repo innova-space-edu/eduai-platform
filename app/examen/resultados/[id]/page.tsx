@@ -1489,7 +1489,9 @@ export default function ResultadosExamenPage() {
                                   ⭐ Dar décimas
                                 </button>
                                 <div className="border-t border-soft" />
-                                <StudentPdfExporter exam={exam} submission={s} asMenuItem />
+                                <div className="w-full">
+                                  <StudentPdfExporter exam={exam} submission={s} />
+                                </div>
                                 <button onClick={() => { setDeleteSub(s); setActionMenuId(null) }} disabled={deletingId === s.id}
                                   className="w-full text-left px-3 py-2.5 text-xs text-red-700 hover:bg-red-50 transition flex items-center gap-2">
                                   🗑️ Eliminar
