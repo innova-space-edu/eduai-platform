@@ -753,12 +753,13 @@ export async function POST(request: NextRequest) {
       const pct   = totalPoints > 0 ? (earnedPoints / totalPoints) * 100 : 0
       const grade = calcGrade(pct, examPercentage || 60)
 
+      const finalGrade = body.bonusGrade != null ? Math.min(7.0, Number(body.bonusGrade)) : grade
       const { error: upErr } = await supabase
         .from("exam_submissions")
         .update({
           answers:          updatedAnswers,
           score:            Math.round(pct * 10) / 10,
-          grade,
+          grade:            finalGrade,
           correct_count:    correctCount,
           earned_points:    Math.round(earnedPoints * 10) / 10,
           total_points:     Math.round(totalPoints  * 10) / 10,
@@ -822,6 +823,27 @@ export async function POST(request: NextRequest) {
         .eq("teacher_id", teacherId)
       if (error) return NextResponse.json({ error: error.message }, { status: 500 })
       return NextResponse.json({ success: true })
+    }
+
+    // ── Dar décimas (bonus grade) ────────────────────────────────────────
+    if (action === "apply_bonus_grade") {
+      const { submissionId, bonusGrade } = body
+      if (!submissionId) return NextResponse.json({ error: "submissionId requerido" }, { status: 400 })
+      const grade = Math.min(7.0, Math.max(1.0, Number(bonusGrade)))
+      const { error } = await supabase.from("exam_submissions").update({ grade }).eq("id", submissionId)
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ success: true, grade })
+    }
+
+    // ── Dar más tiempo (reopen exam access for student) ───────────────────
+    if (action === "grant_extra_time") {
+      const { submissionId, examId: targetExamId, extraMinutes } = body
+      if (!submissionId || !targetExamId) return NextResponse.json({ error: "Faltan parámetros" }, { status: 400 })
+      // Ensure exam is active (reopen if needed)
+      await supabase.from("teacher_exams").update({ status: "active", closed_at: null }).eq("id", targetExamId)
+      // Mark submission with extra time flag
+      await supabase.from("exam_submissions").update({ manually_reviewed: false }).eq("id", submissionId)
+      return NextResponse.json({ success: true, extraMinutes })
     }
 
     return NextResponse.json({ error: "Acción inválida" }, { status: 400 })
