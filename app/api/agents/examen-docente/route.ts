@@ -450,7 +450,14 @@ export async function POST(request: NextRequest) {
       if (error || !data) return NextResponse.json({ error: "Examen no encontrado" }, { status: 404 })
       if (data.status !== "active") return NextResponse.json({ error: "Este examen está cerrado" }, { status: 403 })
 
-      return NextResponse.json({ success: true, exam: data })
+      // Include prior submissions summary (name, course, rut) for re-entry flow
+      const { data: subs } = await supabase
+        .from("exam_submissions")
+        .select("id, student_name, student_course, student_rut, answers, score, grade, submitted_at")
+        .eq("exam_id", data.id)
+        .order("submitted_at", { ascending: false })
+
+      return NextResponse.json({ success: true, exam: data, priorSubmissions: subs || [] })
     }
 
     if (action === "create") {
