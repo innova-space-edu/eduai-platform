@@ -25,11 +25,11 @@ type TrueFalseQuestion = {
   justificationMaxPoints?: number; maxPoints?: number
 }
 
-type DevelopmentRubricItem = { criterion: string; points: number }
+type DevelopmentRubricItem = { criteria: string; points: number }
 
 type DevelopmentQuestion = {
   id: string; type: "development"
-  question: string; expectedAnswer?: string
+  question: string; modelAnswer?: string
   rubric: DevelopmentRubricItem[]; maxPoints?: number
 }
 
@@ -48,11 +48,11 @@ function defaultQuestion(type: QuestionType): Question {
     return { id: uid(), type: "true_false", question: "", correctAnswer: 0, explanation: "", selectionPoints: 1, justificationMaxPoints: 2, maxPoints: 3 }
   }
   return {
-    id: uid(), type: "development", question: "", expectedAnswer: "",
+    id: uid(), type: "development", question: "", modelAnswer: "",
     rubric: [
-      { criterion: "Comprensión del contenido", points: 2 },
-      { criterion: "Desarrollo y fundamentación", points: 2 },
-      { criterion: "Claridad de la respuesta",   points: 1 },
+      { criteria: "Comprensión del contenido", points: 2 },
+      { criteria: "Desarrollo y fundamentación", points: 2 },
+      { criteria: "Claridad de la respuesta",   points: 1 },
     ],
     maxPoints: 5,
   }
@@ -74,10 +74,23 @@ function normalizeAIQuestion(raw: any): Question {
 
   if (raw.type === "true_false" || raw.type === "verdadero_falso") {
     const correctRaw = raw.correctAnswer ?? raw.respuestaCorrecta ?? 0
-    const correct    = typeof correctRaw === "boolean" ? (correctRaw ? 0 : 1) : Number(correctRaw)
+    let correct = 0
+    if (typeof correctRaw === "boolean") {
+      correct = correctRaw ? 0 : 1
+    } else if (typeof correctRaw === "number" && Number.isFinite(correctRaw)) {
+      correct = Math.round(correctRaw)
+    } else if (typeof correctRaw === "string") {
+      const value = correctRaw.trim().toLowerCase()
+      if (["verdadero", "v", "true", "1"].includes(value)) correct = 0
+      else if (["falso", "f", "false", "0"].includes(value)) correct = 1
+      else {
+        const numeric = Number(value)
+        correct = Number.isFinite(numeric) ? Math.round(numeric) : 0
+      }
+    }
     return {
       ...base, type: "true_false",
-      correctAnswer: correct,
+      correctAnswer: Math.max(0, Math.min(correct, 1)),
       explanation:              raw.explanation  ?? raw.explicacion ?? "",
       selectionPoints:          Number(raw.selectionPoints          ?? raw.puntosSeleccion    ?? 1),
       justificationMaxPoints:   Number(raw.justificationMaxPoints   ?? raw.puntosJustificacion ?? 2),
@@ -87,12 +100,12 @@ function normalizeAIQuestion(raw: any): Question {
 
   if (raw.type === "development" || raw.type === "desarrollo") {
     const rubric: DevelopmentRubricItem[] = Array.isArray(raw.rubric)
-      ? raw.rubric.map((r: any) => ({ criterion: r.criterion ?? r.criterio ?? "", points: Number(r.points ?? r.puntos ?? 1) }))
-      : [{ criterion: "Comprensión", points: 2 }, { criterion: "Desarrollo", points: 2 }, { criterion: "Claridad", points: 1 }]
+      ? raw.rubric.map((r: any) => ({ criteria: r.criteria ?? r.criterion ?? r.criterio ?? "", points: Number(r.points ?? r.puntos ?? 1) }))
+      : [{ criteria: "Comprensión", points: 2 }, { criteria: "Desarrollo", points: 2 }, { criteria: "Claridad", points: 1 }]
     const maxPoints = rubric.reduce((a, r) => a + r.points, 0)
     return {
       ...base, type: "development",
-      expectedAnswer: raw.expectedAnswer ?? raw.modelAnswer ?? raw.respuestaModelo ?? "",
+      modelAnswer: raw.modelAnswer ?? raw.expectedAnswer ?? raw.respuestaModelo ?? "",
       rubric, maxPoints,
     }
   }
@@ -102,9 +115,25 @@ function normalizeAIQuestion(raw: any): Question {
     ? raw.options.map((o: any) => (typeof o === "string" ? o : String(o.text ?? o.opcion ?? o)).replace(/^[A-Da-d][).]\s*/u, "").trim())
     : ["", "", "", ""]
   const correctRaw = raw.correctAnswer ?? raw.respuestaCorrecta ?? 0
-  const correct    = typeof correctRaw === "string"
-    ? Math.max(0, correctRaw.charCodeAt(0) - 65)
-    : Number(correctRaw)
+  let correct = 0
+  if (typeof correctRaw === "number" && Number.isFinite(correctRaw)) {
+    correct = Math.round(correctRaw)
+  } else if (typeof correctRaw === "string") {
+    const value = correctRaw.trim().toLowerCase()
+    const numeric = Number(value)
+    if (Number.isFinite(numeric)) {
+      correct = Math.round(numeric)
+    } else {
+      const letters = ["a", "b", "c", "d", "e", "f"]
+      const letterIndex = letters.indexOf(value)
+      if (letterIndex >= 0) {
+        correct = letterIndex
+      } else {
+        const matchedOption = options.findIndex((opt) => opt.trim().toLowerCase() === value)
+        correct = matchedOption >= 0 ? matchedOption : 0
+      }
+    }
+  }
   return {
     ...base, type: "multiple_choice",
     options,
@@ -162,7 +191,7 @@ export default function CrearExamenPage() {
   const [aiDiff,        setAiDiff]        = useState<Difficulty>("mixto")
   const [aiStatus,      setAiStatus]      = useState<AIStatus>("idle")
   const [aiError,       setAiError]       = useState("")
-  const [aiProvider,    setAiProvider]    = useState<"gemini" | "groq" | "">("")
+  const [aiProvider,    setAiProvider]    = useState<"gemini" | "groq" | "openrouter" | "">("")
   const [aiPreview,     setAiPreview]     = useState<Question[]>([])
   const [aiImportMode,  setAiImportMode]  = useState<"replace" | "append">("append")
   const [aiRegenIdx,    setAiRegenIdx]    = useState<number | null>(null)
@@ -191,7 +220,7 @@ export default function CrearExamenPage() {
       }
       if (q.type === "development") {
         if (!q.rubric.length) return `La pregunta ${i + 1} de desarrollo debe tener rúbrica.`
-        if (q.rubric.some(r => !r.criterion.trim() || Number(r.points) <= 0))
+        if (q.rubric.some(r => !r.criteria.trim() || Number(r.points) <= 0))
           return `La rúbrica de la pregunta ${i + 1} tiene elementos inválidos.`
       }
     }
@@ -221,8 +250,8 @@ export default function CrearExamenPage() {
         }
         return {
           type: q.type, question: q.question,
-          expectedAnswer: (q as DevelopmentQuestion).expectedAnswer || "",
-          rubric: (q as DevelopmentQuestion).rubric.map(r => ({ criterion: r.criterion, points: Number(r.points || 0) })),
+          modelAnswer: (q as DevelopmentQuestion).modelAnswer || "",
+          rubric: (q as DevelopmentQuestion).rubric.map(r => ({ criteria: r.criteria, points: Number(r.points || 0) })),
           maxPoints: getQuestionPoints(q),
         }
       })
@@ -279,7 +308,7 @@ REGLAS ESTRICTAS:
    e) correctAnswer = ÍNDICE donde quedó la respuesta correcta
    f) explanation menciona el MISMO resultado que options[correctAnswer]
 5. true_false: correctAnswer:0(Verdadero) o 1(Falso), explanation, selectionPoints:1, justificationMaxPoints:2
-6. development: expectedAnswer, rubric:[{criterion,points}], maxPoints:suma
+6. development: modelAnswer, rubric:[{criteria,points}], maxPoints:suma
 7. LaTeX inline con $...$ y bloque con $$...$$. Usa backslash real (\\).
 8. Si ${aiTF}===0 y ${aiDev}===0 → genera SOLO multiple_choice.
 9. NUNCA correctAnswer=0 por defecto. Verifica que options[correctAnswer] sea correcto.`
@@ -572,9 +601,9 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                           VISTA PREVIA — {aiPreview.length} pregunta{aiPreview.length !== 1 ? "s" : ""}
                           {aiProvider && (
                             <span className={`ml-2 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                              aiProvider === "gemini" ? "bg-blue-500/15 text-blue-400" : "bg-orange-500/15 text-orange-400"
+                              aiProvider === "gemini" ? "bg-blue-500/15 text-blue-400" : aiProvider === "openrouter" ? "bg-violet-500/15 text-violet-400" : "bg-orange-500/15 text-orange-400"
                             }`}>
-                              {aiProvider === "gemini" ? "Gemini 2.5" : "Groq (fallback)"}
+                              {aiProvider === "gemini" ? "Gemini 2.5" : aiProvider === "openrouter" ? "OpenRouter" : "Groq"}
                             </span>
                           )}
                         </p>
@@ -628,7 +657,7 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                             )}
                             {q.type === "development" && (
                               <p className="text-xs text-muted2 mt-1">
-                                Rúbrica: {q.rubric.map(r => `${r.criterion} (${r.points}p)`).join(" · ")}
+                                Rúbrica: {q.rubric.map(r => `${r.criteria} (${r.points}p)`).join(" · ")}
                               </p>
                             )}
                           </div>
@@ -878,8 +907,8 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                       <div className="space-y-4">
                         <div>
                           <label className="text-xs text-sub font-semibold block mb-2">RESPUESTA ESPERADA</label>
-                          <textarea value={(q as DevelopmentQuestion).expectedAnswer || ""}
-                            onChange={e => updateQuestion(q.id, prev => prev.type === "development" ? { ...prev, expectedAnswer: e.target.value } : prev)}
+                          <textarea value={(q as DevelopmentQuestion).modelAnswer || ""}
+                            onChange={e => updateQuestion(q.id, prev => prev.type === "development" ? { ...prev, modelAnswer: e.target.value } : prev)}
                             className="w-full min-h-[90px] rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main" />
                         </div>
                         <div>
@@ -887,10 +916,10 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                           <div className="space-y-3">
                             {(q as DevelopmentQuestion).rubric.map((item, rubricIndex) => (
                               <div key={rubricIndex} className="grid grid-cols-[1fr_120px_auto] gap-3 items-center">
-                                <input value={item.criterion}
+                                <input value={item.criteria}
                                   onChange={e => updateQuestion(q.id, prev => {
                                     if (prev.type !== "development") return prev
-                                    const next = [...prev.rubric]; next[rubricIndex] = { ...next[rubricIndex], criterion: e.target.value }
+                                    const next = [...prev.rubric]; next[rubricIndex] = { ...next[rubricIndex], criteria: e.target.value }
                                     return { ...prev, rubric: next }
                                   })}
                                   className="w-full rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main" placeholder="Criterio" />
@@ -916,7 +945,7 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                           <button
                             onClick={() => updateQuestion(q.id, prev => {
                               if (prev.type !== "development") return prev
-                              return { ...prev, rubric: [...prev.rubric, { criterion: "", points: 1 }] }
+                              return { ...prev, rubric: [...prev.rubric, { criteria: "", points: 1 }] }
                             })}
                             className="mt-3 px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-main text-sm font-semibold">
                             + Agregar criterio
