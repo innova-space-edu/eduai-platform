@@ -136,11 +136,13 @@ function sanitizeQuestion(question: any) {
   }
 
   if (type === "development") {
-    sanitized.modelAnswer = String(question?.modelAnswer || "")
+    sanitized.modelAnswer = String(
+      question?.modelAnswer || question?.expectedAnswer || question?.respuestaModelo || ""
+    )
     sanitized.rubric = Array.isArray(question?.rubric)
       ? question.rubric.map((r: any) => ({
-          criteria: String(r?.criteria || "Criterio"),
-          points: clampPositive(Number(r?.points), 1),
+          criteria: String(r?.criteria || r?.criterion || r?.criterio || "Criterio"),
+          points: clampPositive(Number(r?.points ?? r?.puntos), 1),
         }))
       : []
 
