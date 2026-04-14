@@ -1573,7 +1573,6 @@ export default function ResultadosExamenPage() {
         )}
 
       {incidentSub && <IncidentModal submission={incidentSub} examId={examId} onClose={() => setIncidentSub(null)} />}
-      )}
 
       {reviewSub && (
         <ReviewModal
