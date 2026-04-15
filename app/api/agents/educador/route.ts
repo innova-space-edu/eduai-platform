@@ -521,6 +521,38 @@ function isChatHistoryItem(msg: unknown): msg is ChatHistoryItem {
   )
 }
 
+
+// ── Web search for topic ideas ────────────────────────────────────────────────
+async function searchTopicIdeas(nivel: NivelKey, curso: string, asignatura: string, mes: string): Promise<string> {
+  const gKey = process.env.GEMINI_API_KEY
+  if (!gKey) return ""
+
+  const query = `ideas temas actividades ${nivel === "parvularia" ? "JUNJI parvularia" : "MINEDUC"} ${asignatura} ${curso} ${mes} Chile 2024 2025`
+
+  try {
+    // Use Gemini with web grounding to get real topic ideas
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${gKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tools: [{ google_search: {} }],
+          contents: [{ parts: [{ text: `Busca y lista 6-8 temas concretos y actuales para trabajar en clases de ${asignatura} para ${curso} en ${mes} en Chile. Incluye temas relevantes del contexto chileno actual, efemérides, noticias educativas o iniciativas MINEDUC/JUNJI vigentes. Sé específico y práctico.` }] }],
+          generationConfig: { temperature: 0.3, maxOutputTokens: 800 },
+        }),
+        signal: AbortSignal.timeout(12000),
+      }
+    )
+    if (!res.ok) return ""
+    const data = await res.json()
+    const text = data.candidates?.[0]?.content?.parts?.map((p: any) => p.text || "").join("") || ""
+    return text.slice(0, 1200)
+  } catch {
+    return ""
+  }
+}
+
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -571,7 +603,31 @@ export async function POST(req: NextRequest) {
     const localSuggestion = suggestParvulariaFromTopic(curso, temaUsuario)
     const strategy = getEducadorModelStrategy("parvularia_suggestion")
 
-    const systemPrompt = `Eres APl, el Agente Planificador Curricular de EduAI, especializado en Educacion Parvularia de Chile.
+    // ── Detect if user provided a specific topic or wants ideas ──────────────
+  const messageLC = message.toLowerCase()
+  const wantsIdeas = !contexto && (
+    messageLC.includes("idea") || messageLC.includes("suger") ||
+    messageLC.includes("qué puedo") || messageLC.includes("que puedo") ||
+    messageLC.includes("tema") || messageLC.includes("no sé") ||
+    messageLC.includes("no se") || messageLC.includes("ayuda") ||
+    message.length < 40
+  )
+  const hasExplicitTopic = contexto.length > 20 || message.length > 60
+
+  // If user wants ideas → search the web for real topics
+  let webTopicIdeas = ""
+  if (wantsIdeas) {
+    webTopicIdeas = await searchTopicIdeas(nivel, curso, asignatura, mes)
+  }
+
+  // Topic priority instruction for system prompt
+  const topicInstruction = hasExplicitTopic
+    ? `PRIORIDAD MÁXIMA: El docente ya definió el tema/actividad: "${contexto || message}". Úsalo como eje central de toda la planificación. No propongas temas alternativos — desarrolla exactamente este.`
+    : wantsIdeas && webTopicIdeas
+      ? `El docente no tiene tema definido. Propón 5-7 temas concretos y actuales basados en esta búsqueda web:\n${webTopicIdeas}\n\nLuego pregunta cuál prefiere desarrollar.`
+      : `El docente no indicó un tema específico. Propón 4-5 temas relevantes para ${asignatura} en ${curso} durante ${mes} en el contexto escolar chileno y pregunta cuál desarrollar.`
+
+  const systemPrompt = `Eres APl, el Agente Planificador Curricular de EduAI, especializado en Educacion Parvularia de Chile.
 Trabajas con las BCEP.
 Tu tarea es sugerir experiencias de aprendizaje a partir de un tema dado por el docente.
 REGLAS:
@@ -633,9 +689,12 @@ REGLAS:
   const sessionBlocks = buildSessionBlocks(sesiones, duracionMinutos)
   const claseObjectives = isBasicaMedia ? buildClaseObjectives(sesiones) : ""
 
+
   const systemPrompt = `Eres APl, el Agente Planificador Curricular de EduAI, especializado en el curriculum oficial chileno del MINEDUC.
 
 Tu mision: generar planificaciones docentes completas, rigurosas, detalladas y directamente usables en el aula chilena real.
+
+${topicInstruction}
 
 REGLAS CRITICAS - NUNCA VIOLAR:
 1. NUNCA inventes OA. Usa SOLO los OA entregados en el contexto.
