@@ -584,26 +584,7 @@ export async function POST(req: NextRequest) {
   const selectedOAIds = ensureArray(cfg.selectedOAIds)
   const selectedOATIds = ensureArray(cfg.selectedOATIds)
 
-  if (mode === "sugerir_parvularia") {
-    if (nivel !== "parvularia") {
-      return NextResponse.json(
-        { error: "El modo sugerir_parvularia solo aplica para Educacion Parvularia" },
-        { status: 400 }
-      )
-    }
-
-    const temaUsuario = (contexto || message).trim()
-    if (!temaUsuario) {
-      return NextResponse.json(
-        { error: "Falta el tema o descripcion para sugerir OA, OAT y actividades" },
-        { status: 400 }
-      )
-    }
-
-    const localSuggestion = suggestParvulariaFromTopic(curso, temaUsuario)
-    const strategy = getEducadorModelStrategy("parvularia_suggestion")
-
-    // ── Detect if user provided a specific topic or wants ideas ──────────────
+  // ── Detect if user provided a specific topic or wants ideas ──────────────
   const messageLC = message.toLowerCase()
   const wantsIdeas = !contexto && (
     messageLC.includes("idea") || messageLC.includes("suger") ||
@@ -626,6 +607,25 @@ export async function POST(req: NextRequest) {
     : wantsIdeas && webTopicIdeas
       ? `El docente no tiene tema definido. Propón 5-7 temas concretos y actuales basados en esta búsqueda web:\n${webTopicIdeas}\n\nLuego pregunta cuál prefiere desarrollar.`
       : `El docente no indicó un tema específico. Propón 4-5 temas relevantes para ${asignatura} en ${curso} durante ${mes} en el contexto escolar chileno y pregunta cuál desarrollar.`
+
+  if (mode === "sugerir_parvularia") {
+    if (nivel !== "parvularia") {
+      return NextResponse.json(
+        { error: "El modo sugerir_parvularia solo aplica para Educacion Parvularia" },
+        { status: 400 }
+      )
+    }
+
+    const temaUsuario = (contexto || message).trim()
+    if (!temaUsuario) {
+      return NextResponse.json(
+        { error: "Falta el tema o descripcion para sugerir OA, OAT y actividades" },
+        { status: 400 }
+      )
+    }
+
+    const localSuggestion = suggestParvulariaFromTopic(curso, temaUsuario)
+    const strategy = getEducadorModelStrategy("parvularia_suggestion")
 
   const systemPrompt = `Eres APl, el Agente Planificador Curricular de EduAI, especializado en Educacion Parvularia de Chile.
 Trabajas con las BCEP.
