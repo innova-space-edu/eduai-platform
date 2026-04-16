@@ -1135,7 +1135,7 @@ export default function EducadorPage() {
 
               <div>
                 <label className="text-muted2 text-xs mb-1.5 block">
-                  Contexto adicional
+                  Tu proyecto o idea 💡 <span className="text-emerald-700">(el agente lo usará como eje central)</span>
                 </label>
                 <textarea
                   value={config.contexto}
@@ -1145,7 +1145,7 @@ export default function EducadorPage() {
                       contexto: e.target.value,
                     }))
                   }
-                  placeholder="Ej: grupo pequeño, lactantes, nivel heterogéneo, rutinas de apego, juego heurístico, deambuladores, control de esfínter, transición al jardín, etc."
+                  placeholder="Describe tu proyecto, idea o contexto con libertad. Ej: «Estamos haciendo un proyecto STEAM sobre cambio climático, los estudiantes van a diseñar espacios de intervención en el colegio». Mientras más detalles des, más relevante será la planificación."
                   className="w-full min-h-[96px] bg-card-soft-theme border border-soft rounded-2xl px-3 py-2.5 text-sub text-sm focus:outline-none focus:border-emerald-500/50 placeholder-gray-400"
                 />
               </div>
