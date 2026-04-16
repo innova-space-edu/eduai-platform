@@ -617,7 +617,7 @@ export async function POST(req: NextRequest) {
     messageLC.includes("no tengo tema") || messageLC.includes("no sé qué") ||
     messageLC.includes("no se que") || message.length < 45
   )
-  const hasExplicitTopic = contexto.length > 20 || message.length > 70
+  const hasExplicitTopic = contexto.length > 15 || message.length > 50
 
   // Specific output instruction based on intent
   const intentInstruction = wantsRubrica
@@ -646,7 +646,22 @@ export async function POST(req: NextRequest) {
   const topicInstruction = intentInstruction
     ? intentInstruction
     : hasExplicitTopic
-      ? `PRIORIDAD MÁXIMA: El docente ya definió el tema/actividad: "${contexto || message}". Úsalo como eje central de toda la planificación. No propongas temas alternativos — desarrolla exactamente este.`
+      ? `══ EL PROYECTO O IDEA DEL DOCENTE ES EL EJE ABSOLUTO DE ESTA PLANIFICACIÓN ══
+
+El docente describió lo que quiere trabajar:
+"${contexto || message}"
+
+CÓMO DEBES CONSTRUIR ESTA PLANIFICACIÓN:
+1. EMPIEZA desde la idea/proyecto del docente — no desde el OA
+2. Las actividades, metodología, tiempos y recursos deben estar diseñados para ESA idea concreta
+3. Si es un proyecto STEAM, PBL, ABP o similar: la planificación SIGUE LA LÓGICA DE ESA METODOLOGÍA
+4. El OA aparece como "respaldo curricular" — es el paraguas legal/formal, no la guía de las actividades
+5. Los indicadores deben evaluar SI LOS ESTUDIANTES LOGRARON EL PROYECTO, no solo si "saben el OA"
+6. El propósito de aprendizaje debe explicar el proyecto en sus propias palabras, su impacto, su lógica
+7. Las sesiones deben mostrar el desarrollo REAL del proyecto: investigación, diseño, construcción, presentación
+8. NUNCA simplifiques el proyecto a "una actividad más" — desarrolla toda su profundidad
+9. Si el docente dice "STEAM + cambio climático + intervención en el colegio", la planificación debe tener exactamente eso: diseño de espacios, investigación de datos reales, impacto local/global, presentación a la comunidad
+10. El OA aparece una vez en la sección de OA, y luego se menciona puntualmente — no domina el resto`
       : wantsIdeas && webTopicIdeas
         ? `El docente no tiene tema definido. Propón 6-8 temas concretos y actuales basados en esta búsqueda web:\n${webTopicIdeas}\n\nPreséntalos numerados con una breve descripción de cada uno y pregunta cuál prefiere desarrollar.`
         : webTopicIdeas
@@ -742,19 +757,27 @@ Tu mision: generar planificaciones docentes completas, rigurosas, detalladas y d
 
 ${topicInstruction}
 
-REGLAS CRITICAS - NUNCA VIOLAR:
-1. NUNCA inventes OA. Usa SOLO los OA entregados en el contexto.
-2. Si no hay OA oficiales para la combinacion, indicalo antes de planificar.
-3. Si hay varios OA seleccionados, articulalos en toda la planificacion.
-4. Si hay unidad o modulo seleccionado, la planificacion se centra en ese marco.
-5. En Parvularia integra siempre: subnivel, ambito, nucleo, OA y OAT disponibles.
+REGLAS DE PLANIFICACION:
+1. Los OA son MARCO CURRICULAR de referencia — el docente puede ir más allá si su contexto lo requiere.
+2. Si el docente entregó un contexto rico (proyecto, idea, metodología), ESO es el eje. Los OA lo respaldan.
+3. Si el docente NO entregó contexto propio, los OA son el eje principal.
+4. Si hay OA seleccionados, menciónales en la planificación — no los ignores, pero tampoco los conviertas en una jaula.
+5. En Parvularia integra siempre: subnivel, ámbito, núcleo, OA y OAT disponibles.
 6. NUNCA cortes la respuesta. SIEMPRE completa TODOS los bloques del formato.
-7. Los indicadores de evaluacion deben ser observables y derivarse directamente del OA.
-8. Los objetivos de clase deben ser concretos y en lenguaje docente real.
-9. Escribe en espanol formal, claro y pedagogico.
-10. El resultado debe poder copiarse directamente a un documento docente.
+7. Los indicadores deben reflejar tanto el OA como el contexto real descrito por el docente.
+8. Los objetivos de clase deben ser concretos, útiles en el aula real y coherentes con la propuesta del docente.
+9. Escribe en español formal, claro y pedagógico.
+10. La planificación debe poder usarse directamente en el aula — que sea práctica, no solo teórica.
+11. Si el docente describe un proyecto o metodología específica (STEAM, PBL, ABP, etc.), adáptala — no la ignores.
 
-CONTEXTO CURRICULAR:
+${contexto ? `═══════════════════════════════════════════════
+PROYECTO / CONTEXTO DEL DOCENTE — LEER PRIMERO
+═══════════════════════════════════════════════
+${contexto}
+═══════════════════════════════════════════════
+` : ""}
+
+CONTEXTO CURRICULAR (MARCO DE REFERENCIA):
 Nivel: ${nivel}
 Curso/Subnivel: ${curso}
 Asignatura/Nucleo: ${asignatura}
@@ -762,7 +785,8 @@ ${isParv ? `Contexto del subnivel: ${promptContext.stageContext}` : ""}
 Referencia curricular: ${NIVEL_INFO[nivel]}
 Cobertura local: ${promptContext.localCoverage}
 ${promptContext.unitContext || "Sin unidad o modulo local seleccionado."}
-${promptContext.oaContext || "ADVERTENCIA: No hay OA oficiales locales para esta combinacion. Indicalo claramente antes de planificar."}
+OA como referencia curricular (no como restricción):
+${promptContext.oaContext || "Sin OA locales — planifica centrado en el contexto del docente."}
 ${isParv && promptContext.ambito ? `Ambito de experiencia: ${promptContext.ambito}` : ""}
 ${isParv && promptContext.oatContext ? promptContext.oatContext : ""}
 
@@ -770,10 +794,18 @@ CONTEXTO TEMPORAL:
 Mes: ${mes} - ${promptContext.seasonText || "sin referencia estacional especifica"}
 Horizonte: ${tiempoPlanificacion} - ${sessionWord} - ${duracionMinutos} min c/u
 ${promptContext.horizonText}
-${contexto ? `Contexto adicional del docente: ${contexto}` : ""}
 Cobertura detectada: ${promptContext.summary.units} unidades - ${promptContext.summary.oas} OA locales - ${promptContext.selectedCount} OA seleccionados
 
 FORMATO OBLIGATORIO - COMPLETAR TODOS LOS BLOQUES SIN EXCEPCION:
+
+${(contexto && contexto.length > 40) ? `NOTA ESPECIAL PARA EL FORMATO:
+Como el docente entregó un contexto propio rico, ajusta el formato así:
+- En "Datos generales": incluye una fila "Proyecto / Metodología" con el nombre del proyecto
+- En "Propósito": explica el PROYECTO en profundidad (qué es, para qué, impacto esperado), luego menciona los OA como respaldo
+- En "Planificación de clases": las actividades siguen la lógica del proyecto, no la lógica del OA
+- En "Evaluación": los criterios evalúan el resultado del proyecto, no solo el conocimiento declarativo
+- En "Observaciones": incluye recomendaciones específicas para implementar ESE proyecto en el aula real
+` : ""}
 
 ---
 
