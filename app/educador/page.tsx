@@ -644,7 +644,25 @@ export default function EducadorPage() {
 
 
 
-  return (
+
+  function handleCopyPlanning() {
+    if (!latestAssistantMessage) return
+    navigator.clipboard.writeText(latestAssistantMessage.content).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
+  async function handleRegenerate() {
+    const lastUser = [...messages].reverse().find(m => m.role === "user")
+    if (!lastUser || loading) return
+    setRegenerating(true)
+    setMessages(prev => prev.filter((_, i) => i < prev.length - 1))
+    await sendMessage(lastUser.content)
+    setRegenerating(false)
+  }
+
+    return (
     <div className="min-h-screen bg-app flex flex-col">
       <div className="border-b border-soft bg-header-theme backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
@@ -1466,21 +1484,5 @@ export default function EducadorPage() {
     </div>
   )
 }
-  function handleCopyPlanning() {
-    if (!latestAssistantMessage) return
-    navigator.clipboard.writeText(latestAssistantMessage.content).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    })
-  }
-
-  async function handleRegenerate() {
-    const lastUser = [...messages].reverse().find(m => m.role === "user")
-    if (!lastUser || loading) return
-    setRegenerating(true)
-    setMessages(prev => prev.filter((_, i) => i < prev.length - 1)) // remove last assistant
-    await sendMessage(lastUser.content)
-    setRegenerating(false)
-  }
 
 
