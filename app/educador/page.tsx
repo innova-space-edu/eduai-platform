@@ -66,34 +66,91 @@ const QUICK_PROMPTS = [
   {
     icon: "📋",
     label: "Planificación completa",
-    prompt: "Crea una planificación completa alineada a los OA seleccionados.",
+    color: "emerald",
+    prompt: "Crea una planificación docente completa con todos los bloques: OA, indicadores, objetivos de clase, desarrollo de sesiones, evaluación, recursos y adaptaciones.",
   },
   {
-    icon: "🧠",
-    label: "Secuencia por tiempo",
-    prompt: "Distribuye actividades según el tiempo de planificación elegido.",
+    icon: "💡",
+    label: "Proponer ideas de tema",
+    color: "violet",
+    prompt: "No tengo un tema definido. Busca y propón 6 ideas de temas o actividades concretas y actuales para este nivel, curso y asignatura en el contexto escolar chileno.",
   },
   {
     icon: "📊",
-    label: "Evaluación",
-    prompt: "Crea instrumentos de evaluación para los OA seleccionados.",
+    label: "Rúbrica de evaluación",
+    color: "blue",
+    prompt: "Crea una rúbrica de evaluación completa con criterios, niveles de desempeño e indicadores observables para los OA seleccionados.",
+  },
+  {
+    icon: "🎯",
+    label: "OA → Indicadores",
+    color: "amber",
+    prompt: "A partir de los OA seleccionados, genera indicadores de evaluación detallados, observables y graduados por nivel de logro (básico, intermedio, avanzado).",
+  },
+  {
+    icon: "📅",
+    label: "Actividad del mes",
+    color: "pink",
+    prompt: "Propón una actividad relevante para este mes considerando el calendario escolar chileno, efemérides, estaciones del año y contexto cultural vigente.",
+  },
+  {
+    icon: "🏠",
+    label: "Tarea para casa",
+    color: "teal",
+    prompt: "Diseña una tarea para la casa significativa, realizable y alineada al OA. Incluye instrucciones claras para el estudiante y orientaciones para el apoderado.",
+  },
+  {
+    icon: "📖",
+    label: "Guía de estudio",
+    color: "indigo",
+    prompt: "Crea una guía de estudio completa para el estudiante: resumen del contenido, actividades de práctica, preguntas de reflexión y recursos recomendados.",
+  },
+  {
+    icon: "✉️",
+    label: "Carta a apoderados",
+    color: "orange",
+    prompt: "Redacta una carta o comunicado formal para apoderados explicando los objetivos de la unidad, cómo pueden apoyar en casa y qué evaluar en el período.",
   },
   {
     icon: "♿",
     label: "Adaptación NEE",
-    prompt: "Adapta la planificación para diversidad y NEE.",
-  },
-  {
-    icon: "🌸",
-    label: "Parvularia",
-    prompt: "Diseña una experiencia de aprendizaje lúdica y contextualizada para educación parvularia.",
+    color: "green",
+    prompt: "Adapta la planificación para atender la diversidad: estudiantes con NEE, ritmos distintos, estudiantes aventajados y diferentes estilos de aprendizaje.",
   },
   {
     icon: "🧩",
     label: "Interdisciplinario",
-    prompt: "Integra habilidades transversales y trabajo interdisciplinario.",
+    color: "purple",
+    prompt: "Diseña una actividad o proyecto interdisciplinario que integre esta asignatura con al menos otra área, con habilidades transversales y trabajo colaborativo.",
+  },
+  {
+    icon: "🔄",
+    label: "Secuencia semanal",
+    color: "cyan",
+    prompt: "Distribuye las actividades en una secuencia semanal progresiva, indicando el trabajo de cada sesión, los recursos y cómo se conecta una clase con la siguiente.",
+  },
+  {
+    icon: "🌸",
+    label: "Experiencia parvularia",
+    color: "rose",
+    prompt: "Diseña una experiencia de aprendizaje lúdica, experiencial y contextualizada para parvularia, integrando juego, exploración, lenguaje y evaluación formativa cualitativa.",
   },
 ]
+
+const PROMPT_COLORS: Record<string, { bg: string; border: string; text: string }> = {
+  emerald: { bg: "bg-emerald-50 hover:bg-emerald-100", border: "border-emerald-200 hover:border-emerald-400", text: "text-emerald-800" },
+  violet:  { bg: "bg-violet-50  hover:bg-violet-100",  border: "border-violet-200  hover:border-violet-400",  text: "text-violet-800"  },
+  blue:    { bg: "bg-blue-50    hover:bg-blue-100",    border: "border-blue-200    hover:border-blue-400",    text: "text-blue-800"    },
+  amber:   { bg: "bg-amber-50   hover:bg-amber-100",   border: "border-amber-200   hover:border-amber-400",   text: "text-amber-800"   },
+  pink:    { bg: "bg-pink-50    hover:bg-pink-100",    border: "border-pink-200    hover:border-pink-400",    text: "text-pink-800"    },
+  teal:    { bg: "bg-teal-50    hover:bg-teal-100",    border: "border-teal-200    hover:border-teal-400",    text: "text-teal-800"    },
+  indigo:  { bg: "bg-indigo-50  hover:bg-indigo-100",  border: "border-indigo-200  hover:border-indigo-400",  text: "text-indigo-800"  },
+  orange:  { bg: "bg-orange-50  hover:bg-orange-100",  border: "border-orange-200  hover:border-orange-400",  text: "text-orange-800"  },
+  green:   { bg: "bg-green-50   hover:bg-green-100",   border: "border-green-200   hover:border-green-400",   text: "text-green-800"   },
+  purple:  { bg: "bg-purple-50  hover:bg-purple-100",  border: "border-purple-200  hover:border-purple-400",  text: "text-purple-800"  },
+  cyan:    { bg: "bg-cyan-50    hover:bg-cyan-100",    border: "border-cyan-200    hover:border-cyan-400",    text: "text-cyan-800"    },
+  rose:    { bg: "bg-rose-50    hover:bg-rose-100",    border: "border-rose-200    hover:border-rose-400",    text: "text-rose-800"    },
+}
 
 interface Message {
   role: "user" | "assistant"
@@ -186,6 +243,8 @@ export default function EducadorPage() {
   const [saveStatus, setSaveStatus] = useState("")
   const [savingPlanning, setSavingPlanning] = useState(false)
   const [exportingPlanning, setExportingPlanning] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [regenerating, setRegenerating] = useState(false)
 
   const curriculumState = useMemo(
     () => ({
@@ -616,6 +675,20 @@ export default function EducadorPage() {
             >
               🗂️ Ver guardadas
             </Link>
+            <button
+              onClick={handleCopyPlanning}
+              disabled={!latestAssistantMessage}
+              className="rounded-xl border border-blue-500/20 bg-blue-500/10 px-3 py-1.5 text-xs text-blue-700 transition-all hover:bg-blue-500/20 disabled:opacity-40"
+            >
+              {copied ? "✓ Copiado" : "📋 Copiar"}
+            </button>
+            <button
+              onClick={handleRegenerate}
+              disabled={!latestAssistantMessage || loading}
+              className="rounded-xl border border-violet-500/20 bg-violet-500/10 px-3 py-1.5 text-xs text-violet-700 transition-all hover:bg-violet-500/20 disabled:opacity-40"
+            >
+              {regenerating ? "..." : "🔄 Regenerar"}
+            </button>
             <button
               onClick={handleSavePlanning}
               disabled={!latestAssistantMessage || savingPlanning}
@@ -1191,19 +1264,22 @@ export default function EducadorPage() {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 pt-2">
-                  {QUICK_PROMPTS.map((qp) => (
-                    <button
-                      key={qp.label}
-                      onClick={() => sendMessage(qp.prompt)}
-                      className="bg-card-soft-theme hover:bg-card-soft-theme border border-soft hover:border-emerald-500/30 rounded-2xl p-3 text-left transition-all group"
-                    >
-                      <div className="text-lg mb-1">{qp.icon}</div>
-                      <div className="text-sub text-xs group-hover:text-main">
-                        {qp.label}
-                      </div>
-                    </button>
-                  ))}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-2">
+                  {QUICK_PROMPTS.map((qp) => {
+                    const clr = PROMPT_COLORS[qp.color] || PROMPT_COLORS.emerald
+                    return (
+                      <button
+                        key={qp.label}
+                        onClick={() => sendMessage(qp.prompt)}
+                        className={`${clr.bg} ${clr.border} border rounded-2xl p-3 text-left transition-all`}
+                      >
+                        <div className="text-base mb-1">{qp.icon}</div>
+                        <div className={`${clr.text} text-xs font-medium leading-tight`}>
+                          {qp.label}
+                        </div>
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
             </div>
@@ -1347,18 +1423,32 @@ export default function EducadorPage() {
 
           <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
             <button
+              onClick={handleCopyPlanning}
+              disabled={!latestAssistantMessage}
+              className="rounded-xl border border-blue-500/20 bg-blue-500/10 px-3 py-1.5 text-xs text-blue-700 hover:bg-blue-500/20 disabled:opacity-40"
+            >
+              {copied ? "✓ Copiado" : "📋 Copiar texto"}
+            </button>
+            <button
+              onClick={handleRegenerate}
+              disabled={!latestAssistantMessage || loading}
+              className="rounded-xl border border-violet-500/20 bg-violet-500/10 px-3 py-1.5 text-xs text-violet-700 hover:bg-violet-500/20 disabled:opacity-40"
+            >
+              🔄 Regenerar
+            </button>
+            <button
               onClick={handleSavePlanning}
               disabled={!latestAssistantMessage || savingPlanning}
               className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-700 hover:bg-emerald-500/20 disabled:opacity-40"
             >
-              {savingPlanning ? "Guardando..." : "Guardar planificación"}
+              {savingPlanning ? "Guardando..." : "💾 Guardar planificación"}
             </button>
             <button
               onClick={handleExportPlanning}
               disabled={!latestAssistantMessage || exportingPlanning}
               className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-700 hover:bg-amber-500/20 disabled:opacity-40"
             >
-              {exportingPlanning ? "Exportando PDF..." : "Exportar PDF bonito"}
+              {exportingPlanning ? "Exportando..." : "📄 Exportar PDF"}
             </button>
             <Link
               href="/educador/planificaciones"
@@ -1376,3 +1466,21 @@ export default function EducadorPage() {
     </div>
   )
 }
+  function handleCopyPlanning() {
+    if (!latestAssistantMessage) return
+    navigator.clipboard.writeText(latestAssistantMessage.content).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
+  async function handleRegenerate() {
+    const lastUser = [...messages].reverse().find(m => m.role === "user")
+    if (!lastUser || loading) return
+    setRegenerating(true)
+    setMessages(prev => prev.filter((_, i) => i < prev.length - 1)) // remove last assistant
+    await sendMessage(lastUser.content)
+    setRegenerating(false)
+  }
+
+
