@@ -527,10 +527,22 @@ async function searchTopicIdeas(nivel: NivelKey, curso: string, asignatura: stri
   const gKey = process.env.GEMINI_API_KEY
   if (!gKey) return ""
 
-  const query = `ideas temas actividades ${nivel === "parvularia" ? "JUNJI parvularia" : "MINEDUC"} ${asignatura} ${curso} ${mes} Chile 2024 2025`
+  const nivelCtx = nivel === "parvularia"
+    ? "JUNJI educacion parvularia Chile bases curriculares BCEP"
+    : nivel === "media"
+      ? `MINEDUC enseñanza media Chile ${curso} plan de estudios 2024 2025`
+      : `MINEDUC educacion basica Chile ${curso}`
+
+  const searchQuery = `Busca ideas y temas concretos y actuales para clases de ${asignatura} en ${curso} (${nivelCtx}) durante ${mes} en Chile.
+Incluye:
+- Temas del programa oficial MINEDUC${nivel === "parvularia" ? "/JUNJI" : ""}
+- Efemérides y fechas relevantes del calendario escolar chileno en ${mes}
+- Contexto cultural, social o medioambiental chileno actual
+- Iniciativas o lineamientos educativos recientes en Chile
+- Ideas de actividades prácticas y realizables en aula
+Sé específico, nombra contenidos concretos del currículum y da al menos 7 ideas distintas.`
 
   try {
-    // Use Gemini with web grounding to get real topic ideas
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${gKey}`,
       {
@@ -538,16 +550,16 @@ async function searchTopicIdeas(nivel: NivelKey, curso: string, asignatura: stri
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           tools: [{ google_search: {} }],
-          contents: [{ parts: [{ text: `Busca y lista 6-8 temas concretos y actuales para trabajar en clases de ${asignatura} para ${curso} en ${mes} en Chile. Incluye temas relevantes del contexto chileno actual, efemérides, noticias educativas o iniciativas MINEDUC/JUNJI vigentes. Sé específico y práctico.` }] }],
-          generationConfig: { temperature: 0.3, maxOutputTokens: 800 },
+          contents: [{ parts: [{ text: searchQuery }] }],
+          generationConfig: { temperature: 0.3, maxOutputTokens: 1200 },
         }),
-        signal: AbortSignal.timeout(12000),
+        signal: AbortSignal.timeout(15000),
       }
     )
     if (!res.ok) return ""
     const data = await res.json()
     const text = data.candidates?.[0]?.content?.parts?.map((p: any) => p.text || "").join("") || ""
-    return text.slice(0, 1200)
+    return text.slice(0, 1800)
   } catch {
     return ""
   }
@@ -584,30 +596,6 @@ export async function POST(req: NextRequest) {
   const selectedOAIds = ensureArray(cfg.selectedOAIds)
   const selectedOATIds = ensureArray(cfg.selectedOATIds)
 
-  // ── Detect if user provided a specific topic or wants ideas ──────────────
-  const messageLC = message.toLowerCase()
-  const wantsIdeas = !contexto && (
-    messageLC.includes("idea") || messageLC.includes("suger") ||
-    messageLC.includes("qué puedo") || messageLC.includes("que puedo") ||
-    messageLC.includes("tema") || messageLC.includes("no sé") ||
-    messageLC.includes("no se") || messageLC.includes("ayuda") ||
-    message.length < 40
-  )
-  const hasExplicitTopic = contexto.length > 20 || message.length > 60
-
-  // If user wants ideas → search the web for real topics
-  let webTopicIdeas = ""
-  if (wantsIdeas) {
-    webTopicIdeas = await searchTopicIdeas(nivel, curso, asignatura, mes)
-  }
-
-  // Topic priority instruction for system prompt
-  const topicInstruction = hasExplicitTopic
-    ? `PRIORIDAD MÁXIMA: El docente ya definió el tema/actividad: "${contexto || message}". Úsalo como eje central de toda la planificación. No propongas temas alternativos — desarrolla exactamente este.`
-    : wantsIdeas && webTopicIdeas
-      ? `El docente no tiene tema definido. Propón 5-7 temas concretos y actuales basados en esta búsqueda web:\n${webTopicIdeas}\n\nLuego pregunta cuál prefiere desarrollar.`
-      : `El docente no indicó un tema específico. Propón 4-5 temas relevantes para ${asignatura} en ${curso} durante ${mes} en el contexto escolar chileno y pregunta cuál desarrollar.`
-
   if (mode === "sugerir_parvularia") {
     if (nivel !== "parvularia") {
       return NextResponse.json(
@@ -626,6 +614,63 @@ export async function POST(req: NextRequest) {
 
     const localSuggestion = suggestParvulariaFromTopic(curso, temaUsuario)
     const strategy = getEducadorModelStrategy("parvularia_suggestion")
+
+    // ── Detect intent from message ────────────────────────────────────────────
+  const messageLC = message.toLowerCase()
+
+  // What kind of output does the docente want?
+  const wantsRubrica   = messageLC.includes("rúbrica") || messageLC.includes("rubrica")
+  const wantsIndicadores = messageLC.includes("indicador")
+  const wantsTarea     = messageLC.includes("tarea") && (messageLC.includes("casa") || messageLC.includes("hogar"))
+  const wantsGuia      = messageLC.includes("guía") || messageLC.includes("guia de estudio")
+  const wantsCarta     = messageLC.includes("carta") || messageLC.includes("apoderado") || messageLC.includes("comunicado")
+  const wantsAdaptacion = messageLC.includes("nee") || messageLC.includes("adaptaci")
+  const wantsInter     = messageLC.includes("interdiscipli") || messageLC.includes("transversal")
+  const wantsActividad = messageLC.includes("actividad") && !messageLC.includes("planif")
+  const wantsEfemeride = messageLC.includes("efeméride") || messageLC.includes("fecha") || messageLC.includes("mes")
+  const wantsSecuencia = messageLC.includes("secuencia") || messageLC.includes("distribuye") || messageLC.includes("semana")
+
+  const wantsIdeas = !contexto && (
+    messageLC.includes("idea") || messageLC.includes("suger") ||
+    messageLC.includes("qué puedo") || messageLC.includes("que puedo") ||
+    messageLC.includes("no tengo tema") || messageLC.includes("no sé qué") ||
+    messageLC.includes("no se que") || message.length < 45
+  )
+  const hasExplicitTopic = contexto.length > 20 || message.length > 70
+
+  // Specific output instruction based on intent
+  const intentInstruction = wantsRubrica
+    ? "INSTRUCCIÓN: El docente pide una RÚBRICA. Genera exclusivamente una rúbrica analítica completa con criterios, descriptores y niveles de logro."
+    : wantsIndicadores
+      ? "INSTRUCCIÓN: El docente pide INDICADORES. Genera indicadores de evaluación detallados, observables y graduados por nivel de logro para cada OA."
+      : wantsTarea
+        ? "INSTRUCCIÓN: El docente pide una TAREA PARA LA CASA. Diseña una tarea significativa con instrucciones claras para el estudiante y orientaciones para el apoderado."
+      : wantsGuia
+        ? "INSTRUCCIÓN: El docente pide una GUÍA DE ESTUDIO. Crea una guía completa con resumen, actividades de práctica, preguntas de reflexión y recursos."
+        : wantsCarta
+          ? "INSTRUCCIÓN: El docente pide una CARTA A APODERADOS. Redacta una comunicación formal y cálida explicando objetivos, actividades y cómo apoyar en casa."
+          : wantsAdaptacion
+            ? "INSTRUCCIÓN: El docente pide ADAPTACIONES. Genera estrategias específicas para NEE, ritmos distintos y estudiantes aventajados."
+            : wantsInter
+              ? "INSTRUCCIÓN: El docente pide una ACTIVIDAD INTERDISCIPLINARIA. Diseña una actividad que integre esta asignatura con al menos otra área curricular."
+              : ""
+
+  // If user wants ideas → search the web for real topics
+  let webTopicIdeas = ""
+  if (wantsIdeas || (wantsActividad && !hasExplicitTopic)) {
+    webTopicIdeas = await searchTopicIdeas(nivel, curso, asignatura, mes)
+  }
+
+  // Topic priority instruction for system prompt
+  const topicInstruction = intentInstruction
+    ? intentInstruction
+    : hasExplicitTopic
+      ? `PRIORIDAD MÁXIMA: El docente ya definió el tema/actividad: "${contexto || message}". Úsalo como eje central de toda la planificación. No propongas temas alternativos — desarrolla exactamente este.`
+      : wantsIdeas && webTopicIdeas
+        ? `El docente no tiene tema definido. Propón 6-8 temas concretos y actuales basados en esta búsqueda web:\n${webTopicIdeas}\n\nPreséntalos numerados con una breve descripción de cada uno y pregunta cuál prefiere desarrollar.`
+        : webTopicIdeas
+          ? `El docente pide actividades. Aquí hay ideas actuales del contexto chileno:\n${webTopicIdeas}\n\nDesarrolla la más adecuada o pregunta cuál prefiere.`
+          : `El docente no indicó un tema específico. Propón 5 temas relevantes para ${asignatura} en ${curso} durante ${mes} en el contexto escolar chileno y pregunta cuál desarrollar.`
 
   const systemPrompt = `Eres APl, el Agente Planificador Curricular de EduAI, especializado en Educacion Parvularia de Chile.
 Trabajas con las BCEP.
