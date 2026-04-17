@@ -2,6 +2,7 @@
 
 export type ProviderId =
   | "auto"
+  | "stability"
   | "gemini"
   | "pollinations"
   | "together"
@@ -85,13 +86,32 @@ export const NEGATIVE_PROMPTS: Record<string, string> = {
 
 // ─── Provider order ───────────────────────────────────────────────────────────
 export const DEFAULT_IMAGE_PROVIDER_ORDER: Record<GenerationMode, ConcreteProviderId[]> = {
-  fast:        ["pollinations", "openrouter", "together", "huggingface"],
-  quality:     ["together", "openrouter", "gemini", "huggingface", "pollinations"],
-  educational: ["gemini", "openrouter", "together", "huggingface", "pollinations"],
+  fast:        ["stability", "pollinations", "openrouter", "together", "huggingface"],
+  quality:     ["stability", "together", "openrouter", "gemini", "huggingface", "pollinations"],
+  educational: ["gemini", "stability", "openrouter", "together", "huggingface", "pollinations"],
 }
 
 // ─── Model lists ──────────────────────────────────────────────────────────────
-export const GEMINI_IMAGE_MODELS = [
+
+// Stability AI — api.stability.ai/v2beta
+// Requiere: STABILITY_API_KEY en .env
+export type StabilityModel = {
+  id: string          // model name para el campo "model" del body
+  endpoint: string    // "core" | "sd3"
+  label: string       // nombre para mostrar
+  supportsNegative: boolean
+}
+
+export const STABILITY_MODELS: StabilityModel[] = [
+  // Stable Image Core — más rápido y barato (~$0.03/imagen), sin campo "model"
+  { id: "core",               endpoint: "core", label: "Stable Image Core",      supportsNegative: true  },
+  // SD3.5 Large Turbo — 4 pasos, rápido y de alta calidad (~$0.04/imagen)
+  { id: "sd3.5-large-turbo",  endpoint: "sd3",  label: "SD3.5 Large Turbo",      supportsNegative: false },
+  // SD3.5 Large — máxima calidad (~$0.065/imagen)
+  { id: "sd3.5-large",        endpoint: "sd3",  label: "SD3.5 Large",            supportsNegative: true  },
+  // SD3.5 Medium — equilibrio calidad/velocidad (~$0.035/imagen)
+  { id: "sd3.5-medium",       endpoint: "sd3",  label: "SD3.5 Medium",           supportsNegative: true  },
+]
   process.env.GEMINI_IMAGE_MODEL_PRIMARY,
   process.env.GEMINI_IMAGE_MODEL_SECONDARY,
   process.env.GEMINI_IMAGE_MODEL_TERTIARY,
@@ -110,10 +130,15 @@ export type TogetherImageModel = {
 }
 
 export const TOGETHER_IMAGE_MODELS: TogetherImageModel[] = [
-  { id: "black-forest-labs/FLUX.2-pro",     steps: 35, guidance: 3.5, useAspectRatio: true  },
-  { id: "black-forest-labs/FLUX.2-flex",    steps: 30, guidance: 3.5, useAspectRatio: true  },
-  { id: "black-forest-labs/FLUX.1-schnell", steps: 4,  guidance: 0,   useAspectRatio: false },
-  { id: "black-forest-labs/FLUX.1-dev",     steps: 25, guidance: 3.5, useAspectRatio: false },
+  // FLUX.2
+  { id: "black-forest-labs/FLUX.2-pro",             steps: 35, guidance: 3.5, useAspectRatio: true  },
+  { id: "black-forest-labs/FLUX.2-flex",            steps: 30, guidance: 3.5, useAspectRatio: true  },
+  // Stable Diffusion 3.5 vía Together (~$0.0019/MP)
+  { id: "stabilityai/stable-diffusion-3.5-large",   steps: 28, guidance: 7.0, useAspectRatio: false },
+  { id: "stabilityai/stable-diffusion-3-medium",    steps: 28, guidance: 7.0, useAspectRatio: false },
+  // FLUX.1.x
+  { id: "black-forest-labs/FLUX.1-schnell",         steps: 4,  guidance: 0,   useAspectRatio: false },
+  { id: "black-forest-labs/FLUX.1-dev",             steps: 25, guidance: 3.5, useAspectRatio: false },
 ]
 
 export type HuggingFaceModel = {
@@ -202,6 +227,9 @@ export function getGeminiImageKeys(): string[] {
 export function getGeminiTextKeys(): string[] {
   return envPool("GEMINI_API_KEY_TEXT","GEMINI_API_KEY")
 }
+export function getStabilityKeys(): string[] {
+  return envPool("STABILITY_API_KEY_1","STABILITY_API_KEY_2","STABILITY_API_KEY")
+}
 export function getTogetherKeys(): string[] {
   return envPool("TOGETHER_API_KEY_1","TOGETHER_API_KEY_2","TOGETHER_API_KEY_3","TOGETHER_API_KEY")
 }
@@ -217,7 +245,7 @@ export function parseProviderOrder(
   fallback: ConcreteProviderId[]
 ): ConcreteProviderId[] {
   if (!value?.trim()) return fallback
-  const valid: ConcreteProviderId[] = ["gemini","pollinations","together","huggingface","openrouter"]
+  const valid: ConcreteProviderId[] = ["stability","gemini","pollinations","together","huggingface","openrouter"]
   const parsed = value
     .split(",")
     .map(p => p.trim().toLowerCase())
