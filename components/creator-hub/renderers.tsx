@@ -43,84 +43,83 @@ function Tpl({ opts, val, onChange, color }: { opts: string[]; val: string; onCh
 // ═══════════════════════════════════════════════════════════════════════════════
 export function MindmapRenderer({ data }: { data: any }) {
   const [selected, setSelected] = useState<any>(null)
-  const [hovered, setHovered] = useState<string | null>(null)
-  const [scale, setScale] = useState(1)
-  const [pan, setPan] = useState({ x: 0, y: 0 })
+  const [hovered,  setHovered]  = useState<string | null>(null)
+  const [scale,    setScale]    = useState(1)
+  const [pan,      setPan]      = useState({ x: 0, y: 0 })
   const dragging = useRef(false)
-  const drag0 = useRef({ x: 0, y: 0, px: 0, py: 0 })
+  const drag0    = useRef({ x: 0, y: 0, px: 0, py: 0 })
 
-  const nodes: any[] = data.nodes || []
-  const centralTopic: string = data.centralTopic || "Tema"
-  const VW = 960, VH = 600
+  const nodes: any[]     = data.nodes || []
+  const centralTopic     = String(data.centralTopic || "Tema")
+  const VW = 960, VH = 580
   const cx = VW / 2, cy = VH / 2
 
-  const mainNodes = nodes.filter(n => n.category === "main")
-  const subNodes  = nodes.filter(n => n.category === "sub")
-  const detNodes  = nodes.filter(n => n.category === "detail")
-  const mainIds   = new Set(mainNodes.map(n => n.id))
-  const subIds    = new Set(subNodes.map(n => n.id))
+  // ── Robusto: asignar colorIdx y parentId garantizados ─────────────────
+  const mainNodes   = nodes.filter(n => n.category === "main")
+  const subNodes    = nodes.filter(n => n.category === "sub")
+  const detNodes    = nodes.filter(n => n.category === "detail")
+  const mainIdSet   = new Set(mainNodes.map(n => n.id))
+  const subIdSet    = new Set(subNodes.map(n => n.id))
 
   type LNode = { id: string; label: string; x: number; y: number; category: string; colorIdx: number; parentId: string; isCenter?: boolean; description?: string }
+  const layout: LNode[] = []
 
-  // ── Centro ────────────────────────────────────────────────────────────────
-  const layout: LNode[] = [
-    { id: "__center__", label: centralTopic, x: cx, y: cy, category: "center", colorIdx: 0, parentId: "", isCenter: true },
-  ]
+  // Centro
+  layout.push({ id: "__center__", label: centralTopic, x: cx, y: cy, category: "center", colorIdx: 0, parentId: "", isCenter: true })
 
-  // ── Nodos principales en círculo ──────────────────────────────────────────
-  const Rm = Math.min(230, Math.max(170, 240 - mainNodes.length * 5))
+  // Main nodes en círculo
+  const Rm = Math.min(220, Math.max(160, 250 - mainNodes.length * 6))
   mainNodes.forEach((n: any, i: number) => {
     const a = (2 * Math.PI * i / mainNodes.length) - Math.PI / 2
     layout.push({ ...n, x: cx + Math.cos(a) * Rm, y: cy + Math.sin(a) * Rm, colorIdx: (i + 1) % BRANCH.length, parentId: "__center__" })
   })
 
-  // ── Subnodos: agrupar por padre real (connections) ──────────────────────
-  const subsByMain = new Map<string, any[]>()
-  mainNodes.forEach((m: any) => subsByMain.set(m.id, []))
+  // Sub nodes agrupados por main parent (con fallback round-robin)
+  const subByMain = new Map<string, any[]>()
+  mainNodes.forEach((m: any) => subByMain.set(m.id, []))
   subNodes.forEach((sub: any, si: number) => {
-    const pid = (sub.connections as string[] || []).find(c => mainIds.has(c))
-    if (pid && subsByMain.has(pid)) { subsByMain.get(pid)!.push(sub) }
+    const pid = (sub.connections as string[] || []).find((c: string) => mainIdSet.has(c))
+    if (pid && subByMain.has(pid)) subByMain.get(pid)!.push(sub)
     else {
       const fb = mainNodes[si % Math.max(mainNodes.length, 1)]?.id
-      if (fb) subsByMain.get(fb)?.push(sub)
+      if (fb) subByMain.get(fb)?.push(sub)
     }
   })
 
-  // ── Colocar subnodos en abanico ────────────────────────────────────────
-  const Rs = 130
-  subsByMain.forEach((subs, mid) => {
-    const pm = layout.find(l => l.id === mid); if (!pm) return
+  const Rs = 125
+  subByMain.forEach((subs, mid) => {
+    const pm = layout.find(l => l.id === mid)
+    if (!pm) return
     const base = Math.atan2(pm.y - cy, pm.x - cx)
-    const fan  = Math.min(Math.PI * 0.7, Math.max(0.4, subs.length * 0.38))
+    const fan  = Math.min(Math.PI * 0.72, Math.max(0.42, subs.length * 0.38))
     subs.forEach((sub: any, j: number) => {
-      const off = subs.length > 1 ? -fan/2 + fan * j / (subs.length - 1) : 0
-      const a   = base + off
+      const off = subs.length > 1 ? -fan / 2 + fan * j / (subs.length - 1) : 0
+      const a = base + off
       layout.push({ ...sub, x: pm.x + Math.cos(a) * Rs, y: pm.y + Math.sin(a) * Rs, colorIdx: pm.colorIdx, parentId: mid })
     })
   })
 
-  // ── Detalles: conectar a subnodo real ──────────────────────────────────
-  const Rd = 80
+  // Detail nodes agrupados por sub parent
+  const Rd = 78
   detNodes.forEach((det: any, di: number) => {
-    const psid    = (det.connections as string[] || []).find(c => subIds.has(c))
-    const placed  = layout.filter(l => l.category === "sub")
-    const ps      = psid ? layout.find(l => l.id === psid) : placed[di % Math.max(placed.length, 1)]
+    const psid = (det.connections as string[] || []).find((c: string) => subIdSet.has(c))
+    const placed = layout.filter(l => l.category === "sub")
+    const ps = psid ? layout.find(l => l.id === psid) : placed[di % Math.max(placed.length, 1)]
     if (!ps) return
-    const sibs    = layout.filter(l => l.parentId === ps.id && l.category === "detail").length
-    const base    = Math.atan2(ps.y - cy, ps.x - cx)
-    const off     = (sibs - 0.5) * 0.55
+    const sibs = layout.filter(l => l.parentId === ps.id).length
+    const base = Math.atan2(ps.y - cy, ps.x - cx)
+    const off  = (sibs - 0.5) * 0.52
     layout.push({ ...det, x: ps.x + Math.cos(base + off) * Rd, y: ps.y + Math.sin(base + off) * Rd, colorIdx: ps.colorIdx, parentId: ps.id })
   })
 
-  // ── Curva suave radial ────────────────────────────────────────────────
   function curve(x1: number, y1: number, x2: number, y2: number) {
     const dx = x2 - x1, dy = y2 - y1
-    const L  = Math.sqrt(dx*dx + dy*dy) || 1
-    const nx = -dy / L * L * 0.12, ny = dx / L * L * 0.12
-    return `M ${x1} ${y1} Q ${(x1+x2)/2+nx} ${(y1+y2)/2+ny} ${x2} ${y2}`
+    const L  = Math.sqrt(dx * dx + dy * dy) || 1
+    const nx = -dy / L * L * 0.12
+    const ny =  dx / L * L * 0.12
+    return `M ${x1} ${y1} Q ${(x1 + x2) / 2 + nx} ${(y1 + y2) / 2 + ny} ${x2} ${y2}`
   }
 
-  // ── Texto multilínea ─────────────────────────────────────────────────
   function wrap(s: string, max: number): string[] {
     if (s.length <= max) return [s]
     const ws = s.split(" "); const lines: string[] = []; let cur = ""
@@ -137,8 +136,19 @@ export function MindmapRenderer({ data }: { data: any }) {
   function sz(n: LNode) {
     if (n.isCenter) return { w: Math.max(130, n.label.length * 7.5 + 28), h: 44 }
     if (n.category === "main") { const ls = wrap(n.label, 12); return { w: Math.max(92, n.label.length * 6.5 + 22), h: ls.length > 1 ? 46 : 34 } }
-    if (n.category === "sub")    return { w: Math.max(74, Math.min(n.label.length, 16) * 6.2 + 18), h: 27 }
+    if (n.category === "sub")  return { w: Math.max(74, Math.min(n.label.length, 16) * 6.2 + 18), h: 27 }
     return { w: Math.max(62, Math.min(n.label.length, 13) * 5.8 + 14), h: 22 }
+  }
+
+  if (nodes.length === 0) {
+    return (
+      <div className="rounded-2xl border border-soft flex items-center justify-center py-16 text-center text-muted2 text-sm">
+        <div>
+          <p className="text-3xl mb-2">🧠</p>
+          <p>No hay nodos para mostrar</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -146,10 +156,10 @@ export function MindmapRenderer({ data }: { data: any }) {
       <div className="flex items-center justify-between">
         <h3 className="text-emerald-400 font-bold text-sm">🧠 {centralTopic}</h3>
         <div className="flex gap-2">
-          {[["+ ", () => setScale(s => Math.min(s + 0.15, 2.5))],
+          {([["+", () => setScale(s => Math.min(s + 0.15, 2.5))],
             ["−",  () => setScale(s => Math.max(s - 0.15, 0.3))],
             ["↺",  () => { setScale(1); setPan({ x: 0, y: 0 }) }]
-          ].map(([label, fn]: any, i) => (
+          ] as [string, () => void][]).map(([label, fn], i) => (
             <button key={i} onClick={fn}
               className="w-7 h-7 rounded-lg bg-card-soft-theme text-sub hover:text-main text-sm flex items-center justify-center transition-colors">
               {label}
@@ -165,8 +175,8 @@ export function MindmapRenderer({ data }: { data: any }) {
         onMouseMove={e => { if (!dragging.current) return; setPan({ x: drag0.current.px + e.clientX - drag0.current.x, y: drag0.current.py + e.clientY - drag0.current.y }) }}
         onMouseUp={() => { dragging.current = false }}
         onMouseLeave={() => { dragging.current = false }}
-        onWheel={e => { e.preventDefault(); setScale(s => Math.max(0.3, Math.min(2.5, s - e.deltaY * 0.001))) }}>
-
+        onWheel={e => { e.preventDefault(); setScale(s => Math.max(0.3, Math.min(2.5, s - e.deltaY * 0.001))) }}
+      >
         <div className="absolute inset-0 opacity-[0.07] pointer-events-none"
           style={{ backgroundImage: "radial-gradient(#6b7280 1px, transparent 1px)", backgroundSize: "30px 30px" }} />
 
@@ -185,10 +195,10 @@ export function MindmapRenderer({ data }: { data: any }) {
             </filter>
           </defs>
 
-          {/* Líneas de conexión */}
           {layout.map(n => {
             if (!n.parentId) return null
-            const p = layout.find(l => l.id === n.parentId); if (!p) return null
+            const p = layout.find(l => l.id === n.parentId)
+            if (!p) return null
             const c = BRANCH[n.colorIdx % BRANCH.length]
             return (
               <path key={`l-${n.id}`} d={curve(p.x, p.y, n.x, n.y)} fill="none"
@@ -199,7 +209,6 @@ export function MindmapRenderer({ data }: { data: any }) {
             )
           })}
 
-          {/* Nodos */}
           {layout.map(n => {
             const { w, h } = sz(n)
             const hov = hovered === n.id
@@ -207,38 +216,34 @@ export function MindmapRenderer({ data }: { data: any }) {
             const c   = BRANCH[n.colorIdx % BRANCH.length]
             const maxC = n.isCenter ? 14 : n.category === "main" ? 12 : n.category === "sub" ? 14 : 11
             const lines = wrap(n.label, maxC)
-
             return (
               <g key={n.id} style={{ cursor: "pointer" }}
-                onMouseEnter={() => setHovered(n.id)} onMouseLeave={() => setHovered(null)}
+                onMouseEnter={() => setHovered(n.id)}
+                onMouseLeave={() => setHovered(null)}
                 onMouseDown={e => { e.stopPropagation(); setSelected(n.isCenter ? null : n) }}>
-
                 {(hov || sel) && (
-                  <rect x={n.x-w/2-6} y={n.y-h/2-6} width={w+12} height={h+12} rx={h/2+6}
+                  <rect x={n.x - w / 2 - 6} y={n.y - h / 2 - 6} width={w + 12} height={h + 12} rx={h / 2 + 6}
                     fill={c.bg + "18"} stroke={c.bg + "70"} strokeWidth={1} />
                 )}
-
                 {n.isCenter ? (
-                  <rect x={n.x-w/2} y={n.y-h/2} width={w} height={h} rx={h/2}
-                    fill={`url(#g0)`} stroke="rgba(255,255,255,0.35)" strokeWidth={2}
+                  <rect x={n.x - w / 2} y={n.y - h / 2} width={w} height={h} rx={h / 2}
+                    fill="url(#g0)" stroke="rgba(255,255,255,0.35)" strokeWidth={2}
                     filter={sel ? "url(#glow)" : undefined} />
                 ) : n.category === "main" ? (
-                  <rect x={n.x-w/2} y={n.y-h/2} width={w} height={h} rx={h/2}
+                  <rect x={n.x - w / 2} y={n.y - h / 2} width={w} height={h} rx={h / 2}
                     fill={`url(#g${n.colorIdx})`} stroke={c.bg + "90"} strokeWidth={1}
                     filter={hov ? "url(#glow)" : undefined} />
                 ) : n.category === "sub" ? (
-                  <rect x={n.x-w/2} y={n.y-h/2} width={w} height={h} rx={7}
+                  <rect x={n.x - w / 2} y={n.y - h / 2} width={w} height={h} rx={7}
                     fill={c.bg + "1a"} stroke={c.bg} strokeWidth={1.3} />
                 ) : (
-                  <rect x={n.x-w/2} y={n.y-h/2} width={w} height={h} rx={5}
-                    fill="var(--bg-card)" stroke={c.bg + "55"} strokeWidth={1}
-                    strokeDasharray="3 2" />
+                  <rect x={n.x - w / 2} y={n.y - h / 2} width={w} height={h} rx={5}
+                    fill="var(--bg-card)" stroke={c.bg + "55"} strokeWidth={1} strokeDasharray="3 2" />
                 )}
-
                 <text x={n.x} textAnchor="middle" dominantBaseline="middle"
                   fontSize={n.isCenter ? 12 : n.category === "main" ? 11 : n.category === "sub" ? 10 : 9}
                   fontWeight={n.isCenter || n.category === "main" ? "700" : "600"}
-                  fontFamily="system-ui, -apple-system, sans-serif"
+                  fontFamily="system-ui,-apple-system,sans-serif"
                   fill={n.isCenter || n.category === "main" ? "white" : c.text}
                   style={{ userSelect: "none", pointerEvents: "none" }}>
                   {lines.map((line, i) => (
@@ -252,10 +257,7 @@ export function MindmapRenderer({ data }: { data: any }) {
       </div>
 
       {selected && (
-        <div className="rounded-2xl p-4 border" style={{
-          background: BRANCH[selected.colorIdx]?.bg + "10",
-          borderColor: BRANCH[selected.colorIdx]?.bg + "40"
-        }}>
+        <div className="rounded-2xl p-4 border" style={{ background: BRANCH[selected.colorIdx]?.bg + "10", borderColor: BRANCH[selected.colorIdx]?.bg + "40" }}>
           <div className="flex items-start justify-between gap-2">
             <div>
               <h4 className="font-bold text-sm text-main mb-1">{selected.label}</h4>
@@ -269,15 +271,14 @@ export function MindmapRenderer({ data }: { data: any }) {
           </div>
         </div>
       )}
-
       <p className="text-[10px] text-muted2 text-right">Arrastra · Rueda = zoom · Click = detalle</p>
     </div>
   )
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// INFOGRAFÍA — 3 templates
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
+// TIMELINE — v3 con renderizado garantizado
+// ═══════════════════════════════════════════════════════════════════════════
 export function InfographicRenderer({ data }: { data: any }) {
   const [tpl, setTpl] = useState("Moderno")
   const SCHEME: Record<string, string> = {
@@ -403,57 +404,63 @@ export function InfographicRenderer({ data }: { data: any }) {
 // PRESENTACIÓN — 3 themes, selector interno
 // ═══════════════════════════════════════════════════════════════════════════════
 export function PPTRenderer({ data }: { data: any }) {
-  const [idx, setIdx]   = useState(0)
-  const [tpl, setTpl]   = useState("Académico")
+  const [idx, setIdx] = useState(0)
+  const [tpl, setTpl] = useState("Académico")
   const slides = data.slides || []
   const s = slides[idx]
   if (!s) return null
 
-  const THEMES: Record<string, { bg: string; accent: string; text: string; sub: string; bar: string; cardBg: string }> = {
-    Académico:  { bg: "linear-gradient(150deg,#0a1628,#112040)", accent: "#3b82f6", text: "var(--text-primary)", sub: "var(--text-muted)", bar: "#3b82f6", cardBg: "rgba(59,130,246,0.12)" },
-    Ejecutivo:  { bg: "linear-gradient(150deg,#070f1a,#0c1a2e)", accent: "#22d3ee", text: "#ecfeff", sub: "#67e8f9", bar: "#22d3ee", cardBg: "rgba(34,211,238,0.1)" },
-    Minimalista:{ bg: "linear-gradient(150deg,#18181b,#27272a)", accent: "#e4e4e7", text: "#fafafa", sub: "#a1a1aa", bar: "#e4e4e7", cardBg: "var(--bg-card-soft)" },
+  const THEMES: Record<string, { bg: string; accent: string; text: string; sub: string; cardBg: string; numColor: string }> = {
+    Académico:   { bg: "linear-gradient(150deg,#0a1628,#112040)", accent: "#3b82f6", text: "#f0f9ff", sub: "#93c5fd", cardBg: "rgba(59,130,246,0.12)",  numColor: "rgba(59,130,246,0.15)" },
+    Ejecutivo:   { bg: "linear-gradient(150deg,#070f1a,#0c1a2e)", accent: "#22d3ee", text: "#ecfeff", sub: "#67e8f9", cardBg: "rgba(34,211,238,0.1)",   numColor: "rgba(34,211,238,0.12)" },
+    Minimalista: { bg: "linear-gradient(150deg,#18181b,#27272a)", accent: "#e4e4e7", text: "#fafafa", sub: "#a1a1aa", cardBg: "rgba(228,228,231,0.08)", numColor: "rgba(228,228,231,0.1)"  },
   }
   const T = THEMES[tpl]
-  const isTitle = idx === 0 || s.type === "title"
-  const isQuote = s.type === "quote"
-  const isStats = s.type === "stats"
-  const is2col  = s.layout === "two-column" && (s.bullets?.length || 0) >= 4
+  const isTitle  = idx === 0 || s.type === "title"
+  const isQuote  = s.type === "quote"
+  const isStats  = s.type === "stats"
+  const isSplit  = s.layout === "two-column" && (s.bullets?.length || 0) >= 4
 
   return (
     <div className="space-y-3">
-      <Tpl opts={["Académico","Ejecutivo","Minimalista"]} val={tpl} onChange={setTpl} color={T.accent} />
+      <Tpl opts={["Académico", "Ejecutivo", "Minimalista"]} val={tpl} onChange={setTpl} color={T.accent} />
 
       <div className="flex justify-between items-center">
         <span className="text-sub text-xs font-medium truncate max-w-[180px]">{data.title}</span>
         <span className="text-muted2 text-xs">{idx + 1} / {slides.length}</span>
       </div>
 
-      <div className="aspect-video rounded-2xl overflow-hidden border border-soft relative flex flex-col"
-        style={{ background: T.bg }}>
-        {/* Accent bar */}
-        <div className="absolute top-0 left-0 h-1 w-full" style={{ background: `linear-gradient(90deg,${T.bar},${T.bar}44)` }} />
-        <div className="absolute left-0 top-0 w-1.5 h-full opacity-70" style={{ background: T.bar }} />
+      {/* Slide canvas */}
+      <div className="aspect-video rounded-2xl overflow-hidden border border-soft relative flex flex-col" style={{ background: T.bg }}>
+        {/* Accent top bar */}
+        <div className="absolute top-0 left-0 h-1 w-full" style={{ background: `linear-gradient(90deg,${T.accent},${T.accent}33)` }} />
+        {/* Left accent bar */}
+        {!isTitle && <div className="absolute left-0 top-0 w-1.5 h-full opacity-60" style={{ background: T.accent }} />}
+        {/* Glow */}
         <div className="absolute inset-0 opacity-[0.06] pointer-events-none"
           style={{ backgroundImage: `radial-gradient(ellipse at top right,${T.accent},transparent 55%)` }} />
+        {/* Slide number watermark */}
+        <div className="absolute bottom-3 right-5 text-6xl font-black opacity-[0.07] select-none leading-none" style={{ color: T.accent }}>
+          {idx + 1}
+        </div>
 
         <div className="relative z-10 flex-1 flex flex-col justify-center px-10 py-6">
           {isTitle ? (
             <div className="text-center">
-              <div className="w-12 h-0.5 mx-auto mb-5 rounded-full" style={{ background: T.accent }} />
+              <div className="w-16 h-0.5 mx-auto mb-5 rounded-full" style={{ background: T.accent }} />
               <h1 className="text-2xl font-black leading-tight mb-3" style={{ color: T.text }}>{s.title}</h1>
-              {s.subtitle && <p className="text-sm" style={{ color: T.sub }}>{s.subtitle}</p>}
-              {data.author && <p className="text-xs mt-6 font-semibold" style={{ color: T.accent }}>{data.author}</p>}
+              {s.subtitle && <p className="text-sm font-medium" style={{ color: T.sub }}>{s.subtitle}</p>}
+              {data.author && <p className="text-xs mt-6 font-bold tracking-widest uppercase" style={{ color: T.accent }}>{data.author}</p>}
             </div>
           ) : isQuote ? (
             <div className="text-center px-4">
-              <div className="text-5xl mb-2 opacity-25 font-serif leading-none" style={{ color: T.accent }}>"</div>
-              <p className="text-lg font-semibold italic leading-relaxed" style={{ color: T.text }}>{s.title}</p>
-              {s.notes && <p className="text-xs mt-3" style={{ color: T.sub }}>— {s.notes}</p>}
+              <div className="text-5xl mb-2 opacity-20 font-serif leading-none" style={{ color: T.accent }}>"</div>
+              <p className="text-base font-semibold italic leading-relaxed" style={{ color: T.text }}>{s.title}</p>
+              {s.notes && <p className="text-xs mt-3 font-medium" style={{ color: T.sub }}>— {s.notes}</p>}
             </div>
           ) : isStats ? (
             <div>
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center gap-2 mb-5">
                 <div className="w-1 h-5 rounded-full" style={{ background: T.accent }} />
                 <h2 className="text-base font-bold" style={{ color: T.text }}>{s.title}</h2>
               </div>
@@ -461,25 +468,25 @@ export function PPTRenderer({ data }: { data: any }) {
                 {(s.bullets || []).slice(0, 3).map((b: string, i: number) => {
                   const [val, ...rest] = b.split(" — ")
                   return (
-                    <div key={i} className="rounded-xl p-3 text-center border border-soft" style={{ background: T.cardBg }}>
-                      <p className="text-xl font-black" style={{ color: T.accent }}>{val}</p>
+                    <div key={i} className="rounded-2xl p-3 text-center border border-soft" style={{ background: T.cardBg }}>
+                      <p className="text-2xl font-black" style={{ color: T.accent }}>{val}</p>
                       <p className="text-[10px] mt-1 leading-snug" style={{ color: T.sub }}>{rest.join(" — ")}</p>
                     </div>
                   )
                 })}
               </div>
             </div>
-          ) : is2col ? (
+          ) : isSplit ? (
             <div>
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-2 mb-4">
                 <div className="w-1 h-5 rounded-full" style={{ background: T.accent }} />
                 <h2 className="text-base font-bold" style={{ color: T.text }}>{s.title}</h2>
               </div>
-              <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+              <div className="grid grid-cols-2 gap-x-8 gap-y-2.5">
                 {(s.bullets || []).map((b: string, i: number) => (
-                  <div key={i} className="flex gap-2 items-start">
+                  <div key={i} className="flex gap-2.5 items-start">
                     <div className="w-5 h-5 rounded-md flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5"
-                      style={{ background: T.accent + "22", color: T.accent }}>{i + 1}</div>
+                      style={{ background: T.cardBg, color: T.accent }}>{i + 1}</div>
                     <p className="text-xs leading-relaxed" style={{ color: T.sub }}>{b}</p>
                   </div>
                 ))}
@@ -495,7 +502,7 @@ export function PPTRenderer({ data }: { data: any }) {
                 {(s.bullets || []).map((b: string, i: number) => (
                   <div key={i} className="flex gap-3 items-start">
                     <div className="w-5 h-5 rounded-md flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5"
-                      style={{ background: T.accent + "22", color: T.accent }}>{i + 1}</div>
+                      style={{ background: T.cardBg, color: T.accent }}>{i + 1}</div>
                     <p className="text-sm leading-relaxed" style={{ color: T.sub }}>{b}</p>
                   </div>
                 ))}
@@ -503,14 +510,12 @@ export function PPTRenderer({ data }: { data: any }) {
             </div>
           )}
         </div>
-        <div className="absolute bottom-2 right-3">
-          <span className="text-[10px]" style={{ color: T.accent + "55" }}>{idx + 1}</span>
-        </div>
       </div>
 
+      {/* Controls */}
       <div className="flex items-center justify-between">
         <button onClick={() => setIdx(Math.max(0, idx - 1))} disabled={idx === 0}
-          className="px-3 py-1.5 rounded-lg border border-soft text-muted2 text-xs disabled:opacity-30 hover:border-medium hover:text-sub transition-all">← Ant.</button>
+          className="px-3 py-1.5 rounded-xl border border-soft text-muted2 text-xs disabled:opacity-30 hover:border-medium hover:text-sub transition-all">← Ant.</button>
         <div className="flex gap-1">
           {slides.map((_: any, i: number) => (
             <button key={i} onClick={() => setIdx(i)} className="rounded-full transition-all"
@@ -518,22 +523,19 @@ export function PPTRenderer({ data }: { data: any }) {
           ))}
         </div>
         <button onClick={() => setIdx(Math.min(slides.length - 1, idx + 1))} disabled={idx === slides.length - 1}
-          className="px-3 py-1.5 rounded-lg border border-soft text-muted2 text-xs disabled:opacity-30 hover:border-medium hover:text-sub transition-all">Sig. →</button>
+          className="px-3 py-1.5 rounded-xl border border-soft text-muted2 text-xs disabled:opacity-30 hover:border-medium hover:text-sub transition-all">Sig. →</button>
       </div>
 
       {s.notes && (
         <div className="bg-card-soft-theme rounded-xl p-3">
-          <span className="text-muted2 text-[10px] font-semibold uppercase tracking-wider">Notas</span>
-          <p className="text-muted2 text-xs mt-1">{s.notes}</p>
+          <span className="text-muted2 text-[10px] font-semibold uppercase tracking-wider">Notas del orador</span>
+          <p className="text-muted2 text-xs mt-1 leading-relaxed">{s.notes}</p>
         </div>
       )}
     </div>
   )
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// AFICHE — 3 templates Canva-style
-// ═══════════════════════════════════════════════════════════════════════════════
 export function PosterRenderer({ data }: { data: any }) {
   const [tpl, setTpl] = useState("Hero")
 
@@ -682,11 +684,19 @@ export function PosterRenderer({ data }: { data: any }) {
 // TIMELINE — 2 modos: vertical mejorado + tarjetas en grid
 // ═══════════════════════════════════════════════════════════════════════════════
 export function TimelineRenderer({ data }: { data: any }) {
-  const [tpl, setTpl]     = useState("Línea")
+  const [tpl,      setTpl]      = useState("Línea")
   const [expanded, setExpanded] = useState<number | null>(null)
-  const events: any[]     = data.events || []
-  const IMP: Record<string, string> = { high: "#ef4444", medium: "#f59e0b", low: "#3b82f6" }
+  const events: any[] = data.events || []
+  const IMP: Record<string, string>    = { high: "#ef4444", medium: "#f59e0b", low: "#3b82f6" }
   const IMP_BG: Record<string, string> = { high: "#ef444418", medium: "#f59e0b18", low: "#3b82f618" }
+
+  if (events.length === 0) {
+    return (
+      <div className="rounded-2xl border border-soft flex items-center justify-center py-16 text-center text-muted2 text-sm">
+        <div><p className="text-3xl mb-2">⏳</p><p>No hay eventos para mostrar</p></div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-3">
@@ -695,57 +705,39 @@ export function TimelineRenderer({ data }: { data: any }) {
         {data.period && <p className="text-muted2 text-xs mt-0.5">{data.period}</p>}
       </div>
 
-      <Tpl opts={["Línea","Tarjetas"]} val={tpl} onChange={setTpl} color="#f97316" />
+      <Tpl opts={["Línea", "Tarjetas"]} val={tpl} onChange={setTpl} color="#f97316" />
 
-      {/* ── LÍNEA VERTICAL ───────────────────────────────────────── */}
+      {/* ── LÍNEA VERTICAL ─────────────────────────────────────── */}
       {tpl === "Línea" && (
         <div className="relative pl-10">
-          {/* Línea vertical degradada */}
           <div className="absolute left-4 top-3 bottom-3 w-0.5 rounded-full"
             style={{ background: "linear-gradient(to bottom,#3b82f6,#8b5cf6,#ec4899,#f97316)" }} />
-
           {events.map((evt: any, i: number) => {
             const color  = IMP[evt.importance] || IMP.low
             const isOpen = expanded === i
             return (
               <div key={i} className="mb-4 relative">
-                {/* Dot */}
-                <button
-                  onClick={() => setExpanded(isOpen ? null : i)}
+                <button onClick={() => setExpanded(isOpen ? null : i)}
                   className="absolute -left-6 top-3.5 w-4 h-4 rounded-full border-2 border-card transition-all z-10"
-                  style={{ background: color, boxShadow: isOpen ? `0 0 10px ${color}80` : "none",
-                    transform: isOpen ? "scale(1.35)" : "scale(1)" }} />
-
-                <div
-                  onClick={() => setExpanded(isOpen ? null : i)}
+                  style={{ background: color, boxShadow: isOpen ? `0 0 10px ${color}80` : "none", transform: isOpen ? "scale(1.35)" : "scale(1)" }} />
+                <div onClick={() => setExpanded(isOpen ? null : i)}
                   className="rounded-2xl border cursor-pointer transition-all"
-                  style={{
-                    background: isOpen ? IMP_BG[evt.importance] : "rgba(255,255,255,0.025)",
-                    borderColor: isOpen ? color + "50" : "var(--bg-card-soft)",
-                  }}>
+                  style={{ background: isOpen ? IMP_BG[evt.importance] : "rgba(255,255,255,0.025)", borderColor: isOpen ? color + "50" : "var(--bg-card-soft)" }}>
                   <div className="flex items-center gap-3 p-4">
                     <span className="text-xl flex-shrink-0">{evt.icon || "📅"}</span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-bold px-2 py-0.5 rounded-full"
-                          style={{ background: color + "25", color }}>
-                          {evt.date}
-                        </span>
-                        {evt.importance === "high" && (
-                          <span className="text-[10px] text-red-400 font-semibold">★ Hito clave</span>
-                        )}
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: color + "25", color }}>{evt.date}</span>
+                        {evt.importance === "high" && <span className="text-[10px] text-red-400 font-semibold">★ Hito clave</span>}
                       </div>
                       <h4 className="text-main font-bold text-xs mt-1">{evt.title}</h4>
                     </div>
                     <span className="text-muted2 text-xs transition-transform" style={{ transform: isOpen ? "rotate(90deg)" : "none" }}>›</span>
                   </div>
-
                   {isOpen && (
                     <div className="px-4 pb-4 border-t" style={{ borderColor: "var(--bg-card-soft)" }}>
                       <p className="text-sub text-xs leading-relaxed mt-3">{evt.description}</p>
-                      {evt.impact && (
-                        <p className="mt-2 text-xs font-semibold" style={{ color }}>⚡ {evt.impact}</p>
-                      )}
+                      {evt.impact && <p className="mt-2 text-xs font-semibold" style={{ color }}>⚡ {evt.impact}</p>}
                     </div>
                   )}
                 </div>
@@ -755,33 +747,25 @@ export function TimelineRenderer({ data }: { data: any }) {
         </div>
       )}
 
-      {/* ── TARJETAS ─────────────────────────────────────────────── */}
+      {/* ── TARJETAS ───────────────────────────────────────────── */}
       {tpl === "Tarjetas" && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {events.map((evt: any, i: number) => {
             const color = IMP[evt.importance] || IMP.low
             return (
               <div key={i} className="rounded-2xl overflow-hidden border border-soft">
-                {/* Top color bar */}
                 <div className="h-1.5 w-full" style={{ background: `linear-gradient(90deg,${color},${color}55)` }} />
                 <div className="p-4" style={{ background: "rgba(255,255,255,0.025)" }}>
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="flex items-center gap-2">
                       <span className="text-lg">{evt.icon || "📅"}</span>
-                      <span className="text-xs font-bold px-2 py-0.5 rounded-full"
-                        style={{ background: color + "25", color }}>
-                        {evt.date}
-                      </span>
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: color + "25", color }}>{evt.date}</span>
                     </div>
-                    {evt.importance === "high" && (
-                      <span className="text-[10px] text-amber-400 font-bold flex-shrink-0">★ Clave</span>
-                    )}
+                    {evt.importance === "high" && <span className="text-[10px] text-amber-400 font-bold flex-shrink-0">★ Clave</span>}
                   </div>
                   <h4 className="text-main font-bold text-xs mb-1.5">{evt.title}</h4>
                   <p className="text-muted2 text-[11px] leading-relaxed">{evt.description}</p>
-                  {evt.impact && (
-                    <p className="mt-2 text-[10px] font-semibold" style={{ color }}>⚡ {evt.impact}</p>
-                  )}
+                  {evt.impact && <p className="mt-2 text-[10px] font-semibold" style={{ color }}>⚡ {evt.impact}</p>}
                 </div>
               </div>
             )
@@ -792,9 +776,9 @@ export function TimelineRenderer({ data }: { data: any }) {
   )
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// PODCAST — sin cambios (ya estaba bien)
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
+// CORNELL — v2 adaptado al schema real (cueColumn)
+// ═══════════════════════════════════════════════════════════════════════════
 export function PodcastRenderer({ data }: { data: any }) {
   const segments: any[] = data.segments || []
   const total = segments.length
@@ -1249,28 +1233,32 @@ export function QuizRenderer({ data }: { data: any }) {
 // data shape: { title, subject, date, mainNotes: [{topic, notes}], summary, keywords[] }
 // ─────────────────────────────────────────────────────────────────────────
 export function CornellRenderer({ data }: { data: any }) {
-  const notes: any[] = data.mainNotes || []
+  // Soporta tanto cueColumn (schema real) como mainNotes (schema nuevo)
+  const rows: Array<{ topic: string; notes: string }> = useMemo(() => {
+    if (Array.isArray(data.mainNotes)) return data.mainNotes.map((r: any) => ({ topic: r.topic || r.cue, notes: r.notes }))
+    if (Array.isArray(data.cueColumn))  return data.cueColumn.map((r: any)  => ({ topic: r.cue || r.topic, notes: r.notes }))
+    return []
+  }, [data])
+
   return (
-    <div className="space-y-3 font-mono text-xs">
-      {/* Header */}
+    <div className="space-y-3">
       <div className="rounded-2xl border border-violet-500/20 bg-violet-500/5 px-4 py-3 flex items-center justify-between">
         <div>
           <p className="text-main font-bold text-sm">{data.title}</p>
-          <p className="text-muted2 text-[11px] mt-0.5">{data.subject} · {data.date || "Hoy"}</p>
+          <p className="text-muted2 text-[11px] mt-0.5">{data.subject || "Apuntes"} · {data.date || "Hoy"}</p>
         </div>
-        <span className="text-violet-400 text-2xl">📓</span>
+        <span className="text-2xl">📓</span>
       </div>
 
-      {/* Cornell grid */}
       <div className="rounded-2xl border border-soft overflow-hidden" style={{ background: "rgba(255,255,255,0.02)" }}>
-        {/* Column headers */}
         <div className="grid grid-cols-[1fr_2fr] border-b border-soft">
           <div className="px-3 py-2 border-r border-soft text-violet-400 font-bold text-[10px] tracking-widest">PREGUNTAS / PALABRAS CLAVE</div>
           <div className="px-3 py-2 text-blue-400 font-bold text-[10px] tracking-widest">APUNTES</div>
         </div>
-
-        {/* Rows */}
-        {notes.map((row: any, i: number) => (
+        {rows.length === 0 && (
+          <div className="text-center py-8 text-muted2 text-sm">Sin filas de apuntes</div>
+        )}
+        {rows.map((row, i) => (
           <div key={i} className={`grid grid-cols-[1fr_2fr] border-b border-soft/50 ${i % 2 === 0 ? "" : "bg-white/[0.01]"}`}>
             <div className="px-3 py-3 border-r border-soft/50">
               <p className="text-violet-300 font-semibold text-[11px] leading-relaxed">{row.topic}</p>
@@ -1282,7 +1270,6 @@ export function CornellRenderer({ data }: { data: any }) {
         ))}
       </div>
 
-      {/* Summary box */}
       {data.summary && (
         <div className="rounded-2xl border border-violet-500/20 bg-violet-500/5 px-4 py-3">
           <p className="text-violet-400 font-bold text-[10px] tracking-widest mb-2">▸ RESUMEN</p>
@@ -1290,13 +1277,10 @@ export function CornellRenderer({ data }: { data: any }) {
         </div>
       )}
 
-      {/* Keywords */}
       {Array.isArray(data.keywords) && data.keywords.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {data.keywords.map((kw: string, i: number) => (
-            <span key={i} className="px-2.5 py-1 rounded-lg text-[11px] font-medium border border-violet-500/20 bg-violet-500/8 text-violet-300">
-              {kw}
-            </span>
+            <span key={i} className="px-2.5 py-1 rounded-lg text-[11px] font-medium border border-violet-500/20 bg-violet-500/8 text-violet-300">{kw}</span>
           ))}
         </div>
       )}
@@ -1304,10 +1288,9 @@ export function CornellRenderer({ data }: { data: any }) {
   )
 }
 
-// ─────────────────────────────────────────────────────────────────────────
-// GLOSSARY RENDERER
-// data shape: { title, subject, terms: [{term, definition, example?, category?}] }
-// ─────────────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+// PPT — v3 con slide "image" type y mejor tipografía
+// ═══════════════════════════════════════════════════════════════════════════
 export function GlossaryRenderer({ data }: { data: any }) {
   const [search, setSearch] = useState("")
   const [filter, setFilter] = useState("Todos")
