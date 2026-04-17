@@ -1236,6 +1236,378 @@ export function QuizRenderer({ data }: { data: any }) {
   )
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// NUEVOS RENDERERS v2 — Cornell, Glosario, Cuento, Canción, Plan de Clase
+// ─────────────────────────────────────────────────────────────────────────
+// 1. Añade estas funciones a: components/creator-hub/renderers.tsx
+// 2. Añade las nuevas entradas a FORMAT_META en: app/creator-hub/[format]/page.tsx
+// 3. Actualiza el map RENDERERS al final de renderers.tsx
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ─────────────────────────────────────────────────────────────────────────
+// CORNELL NOTES RENDERER
+// data shape: { title, subject, date, mainNotes: [{topic, notes}], summary, keywords[] }
+// ─────────────────────────────────────────────────────────────────────────
+export function CornellRenderer({ data }: { data: any }) {
+  const notes: any[] = data.mainNotes || []
+  return (
+    <div className="space-y-3 font-mono text-xs">
+      {/* Header */}
+      <div className="rounded-2xl border border-violet-500/20 bg-violet-500/5 px-4 py-3 flex items-center justify-between">
+        <div>
+          <p className="text-main font-bold text-sm">{data.title}</p>
+          <p className="text-muted2 text-[11px] mt-0.5">{data.subject} · {data.date || "Hoy"}</p>
+        </div>
+        <span className="text-violet-400 text-2xl">📓</span>
+      </div>
+
+      {/* Cornell grid */}
+      <div className="rounded-2xl border border-soft overflow-hidden" style={{ background: "rgba(255,255,255,0.02)" }}>
+        {/* Column headers */}
+        <div className="grid grid-cols-[1fr_2fr] border-b border-soft">
+          <div className="px-3 py-2 border-r border-soft text-violet-400 font-bold text-[10px] tracking-widest">PREGUNTAS / PALABRAS CLAVE</div>
+          <div className="px-3 py-2 text-blue-400 font-bold text-[10px] tracking-widest">APUNTES</div>
+        </div>
+
+        {/* Rows */}
+        {notes.map((row: any, i: number) => (
+          <div key={i} className={`grid grid-cols-[1fr_2fr] border-b border-soft/50 ${i % 2 === 0 ? "" : "bg-white/[0.01]"}`}>
+            <div className="px-3 py-3 border-r border-soft/50">
+              <p className="text-violet-300 font-semibold text-[11px] leading-relaxed">{row.topic}</p>
+            </div>
+            <div className="px-3 py-3">
+              <p className="text-sub text-[11px] leading-relaxed whitespace-pre-line">{row.notes}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Summary box */}
+      {data.summary && (
+        <div className="rounded-2xl border border-violet-500/20 bg-violet-500/5 px-4 py-3">
+          <p className="text-violet-400 font-bold text-[10px] tracking-widest mb-2">▸ RESUMEN</p>
+          <p className="text-sub text-xs leading-relaxed">{data.summary}</p>
+        </div>
+      )}
+
+      {/* Keywords */}
+      {Array.isArray(data.keywords) && data.keywords.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {data.keywords.map((kw: string, i: number) => (
+            <span key={i} className="px-2.5 py-1 rounded-lg text-[11px] font-medium border border-violet-500/20 bg-violet-500/8 text-violet-300">
+              {kw}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// GLOSSARY RENDERER
+// data shape: { title, subject, terms: [{term, definition, example?, category?}] }
+// ─────────────────────────────────────────────────────────────────────────
+export function GlossaryRenderer({ data }: { data: any }) {
+  const [search, setSearch] = useState("")
+  const [filter, setFilter] = useState("Todos")
+  const terms: any[] = data.terms || []
+
+  const categories = ["Todos", ...Array.from(new Set(terms.map(t => t.category).filter(Boolean)))]
+
+  const filtered = terms.filter(t => {
+    const matchSearch = !search || t.term.toLowerCase().includes(search.toLowerCase()) || t.definition.toLowerCase().includes(search.toLowerCase())
+    const matchCat    = filter === "Todos" || t.category === filter
+    return matchSearch && matchCat
+  })
+
+  return (
+    <div className="space-y-3">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-emerald-400 font-bold text-sm">📖 {data.title}</h3>
+        <span className="text-muted2 text-xs">{filtered.length} / {terms.length} términos</span>
+      </div>
+
+      {/* Search + filter */}
+      <div className="flex gap-2">
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Buscar término..."
+          className="flex-1 bg-card-soft-theme border border-soft rounded-xl px-3 py-2 text-main text-xs placeholder:text-muted2 focus:outline-none focus:border-emerald-500/40"
+        />
+      </div>
+
+      {categories.length > 2 && (
+        <div className="flex gap-1.5 overflow-x-auto">
+          {categories.map(c => (
+            <button key={c} onClick={() => setFilter(c)}
+              className={`flex-shrink-0 px-2.5 py-1 rounded-full text-[11px] font-medium transition border ${filter === c ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400" : "bg-card-soft-theme border-soft text-muted2 hover:text-sub"}`}>
+              {c}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Terms */}
+      <div className="space-y-2">
+        {filtered.map((t: any, i: number) => (
+          <div key={i} className="rounded-2xl border border-soft bg-card-soft-theme p-3.5">
+            <div className="flex items-start justify-between gap-2 mb-1.5">
+              <span className="text-main font-bold text-sm">{t.term}</span>
+              {t.category && (
+                <span className="flex-shrink-0 text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
+                  {t.category}
+                </span>
+              )}
+            </div>
+            <p className="text-sub text-xs leading-relaxed">{t.definition}</p>
+            {t.example && (
+              <p className="mt-2 text-[11px] text-muted2 italic border-t border-soft/50 pt-2">
+                💡 Ej: {t.example}
+              </p>
+            )}
+          </div>
+        ))}
+        {filtered.length === 0 && (
+          <p className="text-center text-muted2 text-sm py-8">No se encontraron términos</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// STORY RENDERER
+// data shape: { title, subject, moral, characters: [{name, role}], chapters: [{title, content}] }
+// ─────────────────────────────────────────────────────────────────────────
+export function StoryRenderer({ data }: { data: any }) {
+  const [chapterIdx, setChapterIdx] = useState(0)
+  const chapters: any[] = data.chapters || []
+  const chapter = chapters[chapterIdx]
+
+  return (
+    <div className="space-y-4">
+      {/* Book cover */}
+      <div className="rounded-2xl p-5 text-center"
+        style={{ background: "linear-gradient(135deg,rgba(248,113,113,0.1),rgba(251,146,60,0.1))", border: "1px solid rgba(248,113,113,0.2)" }}>
+        <div className="text-4xl mb-2">📚</div>
+        <h3 className="text-main font-bold text-base">{data.title}</h3>
+        {data.subject && <p className="text-muted2 text-xs mt-1">Tema: {data.subject}</p>}
+        {data.characters?.length > 0 && (
+          <div className="flex justify-center gap-2 mt-3 flex-wrap">
+            {data.characters.map((c: any, i: number) => (
+              <span key={i} className="text-xs px-2.5 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-red-300">
+                {c.name} · <span className="opacity-70">{c.role}</span>
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Chapter navigation */}
+      {chapters.length > 1 && (
+        <div className="flex gap-1.5 overflow-x-auto">
+          {chapters.map((_: any, i: number) => (
+            <button key={i} onClick={() => setChapterIdx(i)}
+              className={`flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-medium transition border ${i === chapterIdx ? "bg-red-500/15 border-red-500/30 text-red-300" : "bg-card-soft-theme border-soft text-muted2 hover:text-sub"}`}>
+              {i + 1}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Chapter content */}
+      {chapter && (
+        <div className="rounded-2xl border border-soft p-5 space-y-3" style={{ background: "rgba(255,255,255,0.02)" }}>
+          {chapter.title && <h4 className="text-red-300 font-bold text-sm">{chapter.title}</h4>}
+          <p className="text-sub text-sm leading-loose whitespace-pre-line">{chapter.content}</p>
+        </div>
+      )}
+
+      {/* Moral */}
+      {data.moral && (
+        <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 px-4 py-3">
+          <p className="text-amber-400 font-bold text-[10px] tracking-widest mb-1.5">🌟 MORALEJA</p>
+          <p className="text-sub text-sm leading-relaxed italic">{data.moral}</p>
+        </div>
+      )}
+
+      {/* Navigation buttons */}
+      {chapters.length > 1 && (
+        <div className="flex justify-between gap-2 pt-1">
+          <button onClick={() => setChapterIdx(i => Math.max(0, i - 1))} disabled={chapterIdx === 0}
+            className="px-4 py-2 rounded-xl border border-soft text-muted2 text-xs disabled:opacity-30 hover:text-sub transition">← Ant.</button>
+          <button onClick={() => setChapterIdx(i => Math.min(chapters.length - 1, i + 1))} disabled={chapterIdx === chapters.length - 1}
+            className="px-4 py-2 rounded-xl bg-red-500/15 border border-red-500/25 text-red-300 text-xs disabled:opacity-30 hover:bg-red-500/25 transition">Sig. →</button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// SONG / RAP RENDERER
+// data shape: { title, subject, style, verses: [{label, lines[]}], chorus?: {lines[]}, tip? }
+// ─────────────────────────────────────────────────────────────────────────
+export function SongRenderer({ data }: { data: any }) {
+  const verses: any[] = data.verses || []
+
+  return (
+    <div className="space-y-4">
+      {/* Cover */}
+      <div className="rounded-2xl p-4 flex items-center gap-4"
+        style={{ background: "linear-gradient(135deg,rgba(251,146,60,0.1),rgba(250,204,21,0.1))", border: "1px solid rgba(251,146,60,0.2)" }}>
+        <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0"
+          style={{ background: "linear-gradient(135deg,#f97316,#eab308)" }}>
+          🎵
+        </div>
+        <div>
+          <h3 className="text-main font-bold text-sm">{data.title}</h3>
+          <p className="text-muted2 text-xs mt-0.5">{data.subject}</p>
+          {data.style && (
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-500/15 border border-orange-500/20 text-orange-300 font-medium mt-1 inline-block">
+              {data.style}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Chorus */}
+      {data.chorus && (
+        <div className="rounded-2xl border border-amber-500/25 bg-amber-500/8 p-4">
+          <p className="text-amber-400 font-bold text-[10px] tracking-widest mb-2">🔁 CORO</p>
+          <div className="space-y-1">
+            {(data.chorus.lines || []).map((line: string, i: number) => (
+              <p key={i} className="text-main text-sm leading-relaxed font-medium">{line}</p>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Verses */}
+      {verses.map((verse: any, i: number) => (
+        <div key={i} className="space-y-1.5">
+          <p className="text-orange-400 font-bold text-[10px] tracking-widest">{verse.label || `ESTROFA ${i + 1}`}</p>
+          <div className="rounded-2xl border border-soft bg-card-soft-theme p-4 space-y-1">
+            {(verse.lines || []).map((line: string, j: number) => (
+              <p key={j} className="text-sub text-sm leading-relaxed">{line}</p>
+            ))}
+          </div>
+        </div>
+      ))}
+
+      {/* Mnemonic tip */}
+      {data.tip && (
+        <div className="rounded-xl border border-soft bg-card-soft-theme px-4 py-3">
+          <p className="text-muted2 text-xs leading-relaxed">💡 <span className="text-sub">{data.tip}</span></p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// LESSON PLAN RENDERER
+// data shape: { title, subject, grade, duration, objective, bloom, phases: [{name, duration, activity, materials, notes}], assessment, resources[] }
+// ─────────────────────────────────────────────────────────────────────────
+export function LessonPlanRenderer({ data }: { data: any }) {
+  const phases: any[] = data.phases || []
+  const COLORS: Record<string, string> = {
+    "Inicio":      "#3b82f6",
+    "Desarrollo":  "#8b5cf6",
+    "Cierre":      "#10b981",
+    "Evaluación":  "#f59e0b",
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="rounded-2xl p-4 border border-blue-500/20 bg-blue-500/5 space-y-2">
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <h3 className="text-main font-bold text-sm">{data.title}</h3>
+            <p className="text-muted2 text-xs mt-0.5">{data.subject} · {data.grade}</p>
+          </div>
+          <span className="text-3xl">🗒️</span>
+        </div>
+        <div className="grid grid-cols-2 gap-2 pt-1 border-t border-soft/50">
+          <div>
+            <p className="text-muted2 text-[10px]">Duración</p>
+            <p className="text-main text-xs font-semibold">{data.duration || "45 min"}</p>
+          </div>
+          <div>
+            <p className="text-muted2 text-[10px]">Nivel Bloom</p>
+            <p className="text-blue-300 text-xs font-semibold">{data.bloom || "-"}</p>
+          </div>
+        </div>
+        {data.objective && (
+          <div className="pt-2 border-t border-soft/50">
+            <p className="text-muted2 text-[10px] mb-1">Objetivo de aprendizaje</p>
+            <p className="text-sub text-xs leading-relaxed">{data.objective}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Phases timeline */}
+      <div className="space-y-2.5">
+        <p className="text-muted2 text-[10px] font-semibold tracking-widest">FASES DE LA CLASE</p>
+        {phases.map((phase: any, i: number) => {
+          const color = COLORS[phase.name] || "#6b7280"
+          return (
+            <div key={i} className="flex gap-3 items-start">
+              <div className="flex flex-col items-center flex-shrink-0">
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center text-white text-xs font-bold" style={{ background: color }}>
+                  {i + 1}
+                </div>
+                {i < phases.length - 1 && (
+                  <div className="w-0.5 h-4 mt-1 rounded" style={{ background: color + "40" }} />
+                )}
+              </div>
+              <div className="flex-1 rounded-2xl border border-soft bg-card-soft-theme p-3.5 -mt-0.5">
+                <div className="flex items-center justify-between gap-2 mb-1.5">
+                  <span className="text-xs font-bold" style={{ color }}>{phase.name}</span>
+                  <span className="text-muted2 text-[10px]">{phase.duration}</span>
+                </div>
+                <p className="text-sub text-xs leading-relaxed">{phase.activity}</p>
+                {phase.materials && (
+                  <p className="mt-1.5 text-[11px] text-muted2">🔧 {phase.materials}</p>
+                )}
+                {phase.notes && (
+                  <p className="mt-1.5 text-[11px] text-amber-400/70 italic">📌 {phase.notes}</p>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Assessment */}
+      {data.assessment && (
+        <div className="rounded-2xl border border-green-500/20 bg-green-500/5 px-4 py-3">
+          <p className="text-green-400 font-bold text-[10px] tracking-widest mb-1.5">📋 EVALUACIÓN</p>
+          <p className="text-sub text-xs leading-relaxed">{data.assessment}</p>
+        </div>
+      )}
+
+      {/* Resources */}
+      {Array.isArray(data.resources) && data.resources.length > 0 && (
+        <div className="rounded-2xl border border-soft bg-card-soft-theme px-4 py-3">
+          <p className="text-muted2 font-bold text-[10px] tracking-widest mb-2">📎 RECURSOS</p>
+          <ul className="space-y-1">
+            {data.resources.map((r: string, i: number) => (
+              <li key={i} className="text-sub text-xs flex items-start gap-1.5">
+                <span className="text-muted2 mt-0.5">·</span>{r}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Mapa de renderers ────────────────────────────────────────────────────────
 export const RENDERERS: Record<string, React.FC<{ data: any }>> = {
   infographic: InfographicRenderer,
@@ -1246,4 +1618,9 @@ export const RENDERERS: Record<string, React.FC<{ data: any }>> = {
   flashcards:  FlashcardsRenderer,
   quiz:        QuizRenderer,
   timeline:    TimelineRenderer,
+  cornell:     CornellRenderer,
+  glossary:    GlossaryRenderer,
+  story:       StoryRenderer,
+  song:        SongRenderer,
+  lessonplan:  LessonPlanRenderer,
 }
