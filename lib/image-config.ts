@@ -21,10 +21,10 @@ export type ProviderResult = {
 // ─── Style guides — prompts estructurados FLUX.2 ──────────────────────────────
 export const STYLE_GUIDES: Record<string, string> = {
   realistic:
-    "RAW photo, photorealistic, shot on Sony A7R V with 85mm f/1.4 lens, shallow depth of field, perfect facial symmetry, natural skin texture with visible pores, catchlights in eyes, studio three-point lighting, ultra-sharp focus on face, 8K resolution, no filters, professional photography",
+    "RAW photo, photorealistic, shot on Sony A7R V with 85mm f/1.4 lens, natural skin texture with visible pores, catchlights in eyes, natural lighting, ultra-sharp focus, 8K resolution, no filters, professional photography",
 
   portrait:
-    "close-up portrait, professional photography, Sony A7IV 85mm f/1.8, natural skin texture, sharp eyes with natural catchlights, warm golden hour window light, soft bokeh background, perfect facial anatomy, detailed hair strands, cinematic color grading",
+    "professional photography, Sony A7IV 85mm f/1.8, natural skin texture, sharp eyes with natural catchlights, warm golden hour window light, soft bokeh background, perfect facial anatomy, detailed hair strands, cinematic color grading",
 
   "3d animation":
     "3D animated character, Pixar style, subsurface scattering skin shader, high-fidelity 3D render, cinema4d octane render, volumetric lighting, professional character design, smooth textures, expressive face, vibrant color palette, depth of field",
@@ -154,7 +154,8 @@ export async function safeText(res: Response): Promise<string> {
 export function buildStructuredPrompt(subject: string, styleGuide: string, style: string): string {
   const isPortrait = style === "realistic" || style === "portrait"
   if (isPortrait) {
-    return `${subject}, ${styleGuide}, perfect facial symmetry, natural skin texture with visible pores, sharp detailed eyes, natural catchlights in eyes, detailed hair strands, masterpiece, best quality, highly detailed`
+    // Sólo añade calidad de piel/ojos — sin forzar encuadre facial
+    return `${subject}, ${styleGuide}, natural skin texture with visible pores, sharp detailed eyes with natural catchlights, detailed hair strands, masterpiece, best quality, highly detailed`
   }
   return `${subject}, ${styleGuide}, highly detailed, masterpiece, best quality`
 }
