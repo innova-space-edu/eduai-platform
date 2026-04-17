@@ -5,9 +5,9 @@ import { createClient } from "@/lib/supabase/server"
 
 const STYLE_GUIDES: Record<string, string> = {
   realistic:
-    "RAW photo, shot on Sony A7R V 85mm f/1.4, shallow depth of field, perfect facial symmetry, natural skin texture, catchlights in eyes, studio three-point lighting, 8K resolution, ultra-sharp",
+    "RAW photo, photorealistic, shot on Sony A7R V 85mm f/1.4, natural skin texture with visible pores, catchlights in eyes, natural lighting, ultra-sharp focus, 8K resolution, professional photography",
   portrait:
-    "close-up portrait, Sony A7IV 85mm f/1.8, natural skin texture, sharp eyes with catchlights, warm golden hour window light, soft bokeh background, perfect facial anatomy, detailed hair strands",
+    "professional photography, Sony A7IV 85mm f/1.8, natural skin texture, sharp eyes with catchlights, warm golden hour window light, soft bokeh background, perfect facial anatomy, detailed hair strands",
   "3d animation":
     "Pixar/Disney 3D animated style, subsurface scattering skin, cinema4d octane render, volumetric lighting, expressive character design, vibrant color palette, depth of field",
   "comic book":
@@ -38,6 +38,17 @@ const STYLE_GUIDES: Record<string, string> = {
     "minimal flat design vector illustration, geometric bold shapes, harmonious color palette, modern icon style, clean negative space, professional graphic design, Dribbble quality",
 }
 
+// Detecta si el usuario especificó un encuadre/composición
+function detectComposition(prompt: string): string | null {
+  const p = prompt.toLowerCase()
+  if (/full.?body|cuerpo.?completo|de.?cuerpo.?entero|figura.?completa|full.?length/.test(p)) return "full body, full figure visible from head to toe"
+  if (/half.?body|medio.?cuerpo|waist.?up|hasta.?cintura/.test(p))                            return "half body shot, waist up"
+  if (/bust|torso|chest.?up|pecho|busto/.test(p))                                             return "bust shot, chest and shoulders"
+  if (/close.?up|primer.?plano|rostro|cara\b/.test(p))                                        return "close-up portrait, tight face framing"
+  if (/wide.?shot|toma.?amplia|paisaje\b|ambiente\b|escena\b/.test(p))                        return "wide shot, environment visible"
+  return null
+}
+
 export async function POST(req: Request) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -46,19 +57,27 @@ export async function POST(req: Request) {
   const { prompt, style = "realistic" } = await req.json()
   if (!prompt?.trim()) return Response.json({ optimizedPrompt: prompt || "" })
 
-  const styleDesc  = STYLE_GUIDES[style] || STYLE_GUIDES.realistic
-  const isPortrait = style === "realistic" || style === "portrait"
+  const styleDesc      = STYLE_GUIDES[style] || STYLE_GUIDES.realistic
+  const isPortrait     = style === "realistic" || style === "portrait"
+  const userComposition = detectComposition(prompt)
+  const compositionNote = userComposition
+    ? `IMPORTANT — User requested framing: "${userComposition}". RESPECT IT. Do NOT override with close-up or face framing.`
+    : isPortrait
+      ? `Default to close-up portrait framing.`
+      : `Add a composition note matching the content.`
 
   const systemPrompt = isPortrait
-    ? `You are an expert FLUX.2 prompt engineer for photorealistic portraits.
+    ? `You are an expert FLUX.2 prompt engineer for photorealistic photography.
 Transform user descriptions into structured English prompts.
-FORMAT: [Detailed subject description] + [Camera: model + lens + aperture] + [Lighting type] + [Composition] + [Quality tags]
-Always include: "perfect facial symmetry", "sharp detailed eyes with natural catchlights", "natural skin pores", "detailed hair strands", "photorealistic, 8K, masterpiece"
+FORMAT: [Detailed subject description] + [Camera: model + lens + aperture] + [Lighting type] + [Composition/Framing] + [Quality tags]
+Always include: "sharp detailed eyes with natural catchlights", "natural skin pores and texture", "detailed hair strands", "photorealistic, 8K, masterpiece"
+${compositionNote}
 DO NOT add any NSFW content.
 Output ONLY the optimized prompt, no explanations, no quotes.`
     : `You are an expert FLUX.2 prompt engineer for AI image generation.
 Transform user descriptions into highly detailed structured English prompts.
 FORMAT: [Vivid subject description] + [${styleDesc}] + [Lighting and atmosphere] + [Composition] + [Quality keywords]
+${compositionNote}
 Output ONLY the optimized English prompt, no explanations, no quotes.`
 
   const messages = [
