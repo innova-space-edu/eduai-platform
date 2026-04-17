@@ -5,7 +5,7 @@
  */
 "use client"
 
-import { useState, useRef } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 
 // ─── Paleta de ramas del mapa mental ─────────────────────────────────────────
 const BRANCH = [
@@ -796,23 +796,144 @@ export function TimelineRenderer({ data }: { data: any }) {
 // PODCAST — sin cambios (ya estaba bien)
 // ═══════════════════════════════════════════════════════════════════════════════
 export function PodcastRenderer({ data }: { data: any }) {
-  const [current, setCurrent] = useState(0)
-  const segments = data.segments || []
-  const total    = segments.length
-  const BARS     = 56
-  const bars     = Array.from({ length: BARS }, (_, i) => Math.max(0.15, Math.sin(i * 127.1 + 311.7) * 0.5 + 0.5))
-  const progress = total > 0 ? current / total : 0
+  const segments: any[] = data.segments || []
+  const total = segments.length
+
+  // ── Audio state ────────────────────────────────────────────────────────
+  const audioRef       = useRef<HTMLAudioElement>(null)
+  const [audioUrl,     setAudioUrl]     = useState<string | null>(null)
+  const [generating,   setGenerating]   = useState(false)
+  const [genError,     setGenError]     = useState("")
+  const [playing,      setPlaying]      = useState(false)
+  const [currentTime,  setCurrentTime]  = useState(0)
+  const [duration,     setDuration]     = useState(0)
+  const [currentSeg,   setCurrentSeg]   = useState(0)
+
+  // ── Estimated segment timestamps (by word count @ ~2.2 wps) ───────────
+  const segTimestamps = useMemo(() => {
+    const WPS = 2.2
+    let cum = 0
+    return segments.map((seg: any) => {
+      const words = String(seg.text || "").split(/\s+/).filter(Boolean).length
+      const dur   = Math.max(1.5, words / WPS + 0.4)
+      const start = cum
+      cum += dur
+      return { start, end: cum, dur }
+    })
+  }, [segments])
+
+  // ── Auto-generate audio on mount ──────────────────────────────────────
+  useEffect(() => {
+    if (segments.length === 0) return
+    generateAudio()
+    return () => {
+      if (audioUrl) URL.revokeObjectURL(audioUrl)
+    }
+  }, []) // eslint-disable-line
+
+  async function generateAudio() {
+    setGenerating(true)
+    setGenError("")
+    try {
+      const res = await fetch("/api/agents/tts-chunk", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ segments: segments.map((s: any) => ({ speaker: s.speaker, text: s.text })) }),
+      })
+      if (!res.ok) throw new Error(`TTS respondió ${res.status}`)
+      const blob = await res.blob()
+      if (blob.size < 1000) throw new Error("Audio demasiado pequeño, reintenta")
+      const url = URL.createObjectURL(blob)
+      setAudioUrl(url)
+    } catch (e: any) {
+      setGenError(e.message || "Error generando audio")
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  // ── Audio element event handlers ──────────────────────────────────────
+  function onTimeUpdate() {
+    const t = audioRef.current?.currentTime || 0
+    setCurrentTime(t)
+    const idx = segTimestamps.findIndex((ts, i) =>
+      t >= ts.start && (i === segTimestamps.length - 1 || t < segTimestamps[i + 1].start)
+    )
+    if (idx !== -1) setCurrentSeg(idx)
+  }
+
+  function onLoadedMetadata() {
+    setDuration(audioRef.current?.duration || 0)
+  }
+
+  function onEnded() { setPlaying(false) }
+
+  function togglePlay() {
+    if (!audioRef.current) return
+    if (playing) { audioRef.current.pause(); setPlaying(false) }
+    else { audioRef.current.play(); setPlaying(true) }
+  }
+
+  function seekTo(e: React.MouseEvent<HTMLDivElement>) {
+    if (!audioRef.current || !duration) return
+    const rect  = e.currentTarget.getBoundingClientRect()
+    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
+    audioRef.current.currentTime = ratio * duration
+  }
+
+  function skipToSegment(idx: number) {
+    if (!audioRef.current) return
+    audioRef.current.currentTime = segTimestamps[idx]?.start || 0
+    setCurrentSeg(idx)
+    audioRef.current.play()
+    setPlaying(true)
+  }
+
+  function formatTime(s: number) {
+    if (!isFinite(s)) return "0:00"
+    const m = Math.floor(s / 60), sec = Math.floor(s % 60)
+    return `${m}:${sec.toString().padStart(2, "0")}`
+  }
+
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0
+  const BARS     = 48
+
 
   return (
     <div className="space-y-4">
+
+      {/* ── Hidden real audio element ─────────────────────────────── */}
+      {audioUrl && (
+        <audio
+          ref={audioRef}
+          src={audioUrl}
+          onTimeUpdate={onTimeUpdate}
+          onLoadedMetadata={onLoadedMetadata}
+          onEnded={onEnded}
+          style={{ display: "none" }}
+        />
+      )}
+
+      {/* ── Cover + title ─────────────────────────────────────────── */}
       <div className="flex items-center gap-4">
-        <div className="w-16 h-16 rounded-2xl flex-shrink-0 relative" style={{ background: "linear-gradient(135deg,#2563eb,#7c3aed)" }}>
+        <div
+          className="w-16 h-16 rounded-2xl flex-shrink-0 relative overflow-hidden"
+          style={{ background: "linear-gradient(135deg,#2563eb,#7c3aed)" }}
+        >
           <div className="absolute inset-0 flex items-center justify-center text-3xl">🎙️</div>
-          <div className="absolute bottom-1 right-1 w-3 h-3 bg-red-400 rounded-full animate-pulse" />
+          {playing && (
+            <div className="absolute inset-0 flex items-end justify-center gap-[2px] pb-1.5 px-1.5">
+              {[0,1,2,3].map(i => (
+                <div key={i} className="w-1 rounded-full bg-white/60 animate-bounce"
+                  style={{ height: 4 + i * 3, animationDelay: `${i * 80}ms` }} />
+              ))}
+            </div>
+          )}
+          {!playing && <div className="absolute bottom-1 right-1 w-2.5 h-2.5 bg-red-400 rounded-full animate-pulse" />}
         </div>
-        <div>
-          <h3 className="text-main font-bold text-sm">{data.title}</h3>
-          <p className="text-muted2 text-xs mt-0.5">EduAI Podcast · {data.duration || "8 min"}</p>
+        <div className="flex-1 min-w-0">
+          <h3 className="text-main font-bold text-sm leading-tight">{data.title}</h3>
+          <p className="text-muted2 text-xs mt-0.5">EduAI Podcast · {data.duration || `${total} segmentos`}</p>
           <div className="flex gap-2 mt-1.5">
             <span className="text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded-full font-medium">🎙 Álvaro</span>
             <span className="text-[10px] bg-pink-500/10 text-pink-400 border border-pink-500/20 px-2 py-0.5 rounded-full font-medium">🎙 Elvira</span>
@@ -820,37 +941,127 @@ export function PodcastRenderer({ data }: { data: any }) {
         </div>
       </div>
 
-      <div className="bg-header-theme rounded-2xl p-4 border border-soft">
-        <div className="flex items-end gap-[2px] h-12 mb-3">
-          {bars.map((h, i) => (
-            <div key={i} className="flex-1 rounded-full transition-all duration-75"
-              style={{ height: `${h * 100}%`, background: i / BARS <= progress ? "linear-gradient(to top,#3b82f6,#8b5cf6)" : "var(--border-soft)" }} />
-          ))}
+      {/* ── Player ────────────────────────────────────────────────── */}
+      <div className="rounded-2xl border border-soft p-4 space-y-3" style={{ background: "var(--bg-header)" }}>
+
+        {/* Generation state */}
+        {generating && (
+          <div className="flex items-center gap-2.5 py-1">
+            <div className="flex gap-1 items-end h-5">
+              {[0,1,2,3,4].map(i => (
+                <div key={i} className="w-1 rounded-full bg-amber-400/70 animate-bounce"
+                  style={{ height: 8 + Math.abs(Math.sin(i)) * 8, animationDelay: `${i * 100}ms` }} />
+              ))}
+            </div>
+            <p className="text-amber-400 text-xs font-medium">Generando voces con Edge TTS…</p>
+          </div>
+        )}
+
+        {genError && (
+          <div className="flex items-center justify-between gap-2 text-xs">
+            <span className="text-red-400">⚠ {genError}</span>
+            <button onClick={generateAudio} className="text-amber-400 hover:text-amber-300 font-semibold underline">Reintentar</button>
+          </div>
+        )}
+
+        {/* Waveform */}
+        <div
+          onClick={seekTo}
+          className={`flex items-end gap-[1.5px] h-10 ${audioUrl ? "cursor-pointer" : "pointer-events-none"}`}
+        >
+          {Array.from({ length: BARS }, (_, i) => {
+            const filled = i / BARS <= progress / 100
+            const h = Math.max(0.12, Math.abs(Math.sin(i * 127.1 + 311.7) * 0.5 + 0.5))
+            return (
+              <div key={i} className="flex-1 rounded-full transition-all duration-75"
+                style={{
+                  height:     `${h * 100}%`,
+                  background: filled ? "linear-gradient(to top,#3b82f6,#8b5cf6)" : "var(--border-soft)",
+                  opacity:    filled ? 1 : 0.5,
+                }} />
+            )
+          })}
         </div>
+
+        {/* Progress bar (click to seek) */}
+        <div onClick={seekTo} className={`h-1 rounded-full overflow-hidden ${audioUrl ? "cursor-pointer" : ""}`} style={{ background: "var(--border-soft)" }}>
+          <div className="h-full rounded-full transition-all duration-200"
+            style={{ width: `${progress}%`, background: "linear-gradient(90deg,#3b82f6,#8b5cf6)" }} />
+        </div>
+
+        {/* Controls */}
         <div className="flex items-center gap-3">
-          <button onClick={() => setCurrent(c => Math.max(0, c - 1))} className="w-7 h-7 rounded-full bg-card-soft-theme hover:bg-card-soft-theme flex items-center justify-center text-main text-xs transition-colors">⏮</button>
-          <button onClick={() => setCurrent(c => Math.min(total - 1, c + 1))} className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm" style={{ background: "linear-gradient(135deg,#3b82f6,#8b5cf6)" }}>▶</button>
-          <button onClick={() => setCurrent(c => Math.min(total - 1, c + 1))} className="w-7 h-7 rounded-full bg-card-soft-theme hover:bg-card-soft-theme flex items-center justify-center text-main text-xs transition-colors">⏭</button>
-          <span className="text-muted2 text-xs ml-auto">{current + 1} / {total}</span>
+          {/* Skip back */}
+          <button
+            onClick={() => { if (audioRef.current) { audioRef.current.currentTime = Math.max(0, currentTime - 10); } }}
+            disabled={!audioUrl}
+            className="w-7 h-7 rounded-full bg-card-soft-theme hover:bg-input-theme flex items-center justify-center text-xs text-sub transition disabled:opacity-30"
+            title="−10s"
+          >⏪</button>
+
+          {/* Play/Pause */}
+          <button
+            onClick={togglePlay}
+            disabled={!audioUrl || generating}
+            className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold transition-all disabled:opacity-30 disabled:scale-100 hover:scale-105"
+            style={{ background: "linear-gradient(135deg,#3b82f6,#8b5cf6)", boxShadow: audioUrl ? "0 0 15px rgba(59,130,246,0.4)" : "none" }}
+          >
+            {generating ? (
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : playing ? "⏸" : "▶"}
+          </button>
+
+          {/* Skip forward */}
+          <button
+            onClick={() => { if (audioRef.current) { audioRef.current.currentTime = Math.min(duration, currentTime + 10); } }}
+            disabled={!audioUrl}
+            className="w-7 h-7 rounded-full bg-card-soft-theme hover:bg-input-theme flex items-center justify-center text-xs text-sub transition disabled:opacity-30"
+            title="+10s"
+          >⏩</button>
+
+          {/* Time */}
+          <span className="text-muted2 text-xs tabular-nums ml-1">
+            {formatTime(currentTime)} / {formatTime(duration || segTimestamps.reduce((s, t) => s + t.dur, 0))}
+          </span>
+
+          {/* Segment counter */}
+          <span className="text-muted2 text-xs ml-auto">{currentSeg + 1} / {total}</span>
         </div>
       </div>
 
-      <div className="max-h-72 overflow-y-auto space-y-2 pr-1">
+      {/* ── Transcript segments ────────────────────────────────────── */}
+      <div className="max-h-80 overflow-y-auto space-y-1.5 pr-1">
         {segments.map((seg: any, i: number) => {
-          const isA     = seg.speaker === "A"
-          const isActive = i === current
+          const isA      = seg.speaker === "A"
+          const isActive = i === currentSeg && playing
           return (
-            <div key={i} onClick={() => setCurrent(i)}
-              className={`flex gap-3 p-3 rounded-2xl cursor-pointer transition-all border ${
-                isActive ? (isA ? "bg-blue-500/10 border-blue-500/20" : "bg-pink-500/10 border-pink-500/20") : "bg-card-soft-theme border-transparent hover:bg-card-soft-theme"
-              }`}>
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold flex-shrink-0 ${isA ? "bg-blue-500/20 text-blue-400" : "bg-pink-500/20 text-pink-400"}`}>{isA ? "A" : "B"}</div>
-              <div className="flex-1"><p className={`text-[10px] font-semibold mb-0.5 ${isA ? "text-blue-400" : "text-pink-400"}`}>{isA ? "Álvaro" : "Elvira"}</p>
-                <p className="text-sub text-xs leading-relaxed">{seg.text}</p></div>
+            <div
+              key={i}
+              onClick={() => audioUrl && skipToSegment(i)}
+              className={`flex gap-3 p-3 rounded-2xl border transition-all ${audioUrl ? "cursor-pointer" : "cursor-default"}
+                ${isActive
+                  ? isA ? "bg-blue-500/10 border-blue-500/25" : "bg-pink-500/10 border-pink-500/25"
+                  : i === currentSeg
+                  ? isA ? "bg-blue-500/5 border-blue-500/15" : "bg-pink-500/5 border-pink-500/15"
+                  : "bg-card-soft-theme border-transparent hover:bg-input-theme"
+                }`}
+            >
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold flex-shrink-0
+                ${isA ? "bg-blue-500/20 text-blue-400" : "bg-pink-500/20 text-pink-400"}`}>
+                {isA ? "A" : "B"}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className={`text-[10px] font-semibold mb-0.5 ${isA ? "text-blue-400" : "text-pink-400"}`}>
+                  {isA ? "Álvaro" : "Elvira"}
+                </p>
+                <p className="text-sub text-xs leading-relaxed">{seg.text}</p>
+              </div>
               {isActive && (
-                <div className="flex-shrink-0 flex gap-0.5 items-end">
-                  {[0, 1, 2].map(d => <div key={d} className="w-1 rounded-full animate-bounce"
-                    style={{ height: 8 + d * 4, background: isA ? "#3b82f6" : "#ec4899", animationDelay: `${d * 100}ms` }} />)}
+                <div className="flex-shrink-0 flex gap-0.5 items-end self-center">
+                  {[0, 1, 2].map(d => (
+                    <div key={d} className="w-1 rounded-full animate-bounce"
+                      style={{ height: 8 + d * 3, background: isA ? "#3b82f6" : "#ec4899", animationDelay: `${d * 100}ms` }} />
+                  ))}
                 </div>
               )}
             </div>
