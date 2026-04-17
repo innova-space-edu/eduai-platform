@@ -1,20 +1,17 @@
-// app/api/agents/imagenes/route.ts — v10
+// app/api/agents/imagenes/route.ts — fixed for current lib/image-config.ts
 
 import { createClient } from "@/lib/supabase/server"
 import { createClient as createAdmin } from "@supabase/supabase-js"
 import {
-  HuggingFaceModel,
-  StabilityModel,
   HUGGINGFACE_IMAGE_MODELS,
   OPENROUTER_IMAGE_MODELS,
   TOGETHER_IMAGE_MODELS,
-  GenerationMode,
-  ProviderId,
-  ProviderResult,
+  type GenerationMode,
+  type ProviderId,
+  type ProviderResult,
   STYLE_GUIDES,
   aspectRatio,
   basicPrompt,
-  buildStructuredPrompt,
   clamp,
   errMsg,
   GEMINI_IMAGE_MODELS,
@@ -22,7 +19,6 @@ import {
   getHuggingFaceTokens,
   getOpenRouterKeys,
   getPromptOptimizerKeys,
-  getStabilityKeys,
   getTogetherKeys,
   pickFromPool,
   providerOrder,
@@ -32,7 +28,40 @@ import {
 
 export const runtime = "nodejs"
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+type HuggingFaceModel = {
+  id: string
+  steps: number
+  guidance: number
+  supportsNegative?: boolean
+}
+
+function getNegativePrompt(style: string): string {
+  const common = [
+    "blurry",
+    "low quality",
+    "worst quality",
+    "pixelated",
+    "deformed",
+    "distorted",
+    "extra fingers",
+    "bad anatomy",
+    "cropped",
+    "watermark",
+    "text",
+    "signature",
+  ]
+
+  if (style === "educational" || style === "infographic" || style === "flat design") {
+    return [...common, "photorealistic skin", "dark background", "messy layout", "illegible labels"].join(", ")
+  }
+
+  if (style === "realistic" || style === "cinematic") {
+    return [...common, "cgi", "3d render", "plastic skin", "oversaturated", "cartoon"].join(", ")
+  }
+
+  return common.join(", ")
+}
+
 async function fetchBase64(url: string): Promise<string | null> {
   try {
     const res = await fetch(url, {
@@ -44,25 +73,35 @@ async function fetchBase64(url: string): Promise<string | null> {
     if (!buf.byteLength) return null
     const mime = res.headers.get("content-type") || "image/png"
     return `data:${mime};base64,${Buffer.from(buf).toString("base64")}`
-  } catch { return null }
+  } catch {
+    return null
+  }
 }
 
 async function uploadToStorage(imageBase64: string, userId: string): Promise<string | null> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !key) return null
+
   try {
     const admin = createAdmin(url, key)
     const match = imageBase64.match(/^data:(image\/[\w.+-]+);base64,(.+)$/)
     if (!match) return null
+
     const mime = match[1]
-    const ext  = mime.split("/")[1] || "png"
-    const buf  = Buffer.from(match[2], "base64")
+    const ext = mime.split("/")[1] || "png"
+    const buf = Buffer.from(match[2], "base64")
     const fileName = `${userId}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`
+
     const { error } = await admin.storage
       .from("generated-images")
       .upload(fileName, buf, { contentType: mime, upsert: false })
-    if (error) { console.warn("[Image][Storage]", error.message); return null }
+
+    if (error) {
+      console.warn("[Image][Storage]", error.message)
+      return null
+    }
+
     const { data } = admin.storage.from("generated-images").getPublicUrl(fileName)
     return data?.publicUrl || null
   } catch (e) {
@@ -71,16 +110,23 @@ async function uploadToStorage(imageBase64: string, userId: string): Promise<str
   }
 }
 
-// ─── Prompt optimizer v3 — FLUX.2 structured format ──────────────────────────
-
-// Detecta si el usuario especificó un encuadre/composición
 function detectComposition(prompt: string): string | null {
   const p = prompt.toLowerCase()
-  if (/full.?body|cuerpo.?completo|de.?cuerpo.?entero|figura.?completa|full.?length/.test(p)) return "full body, full figure visible from head to toe"
-  if (/half.?body|medio.?cuerpo|waist.?up|hasta.?cintura/.test(p))                            return "half body shot, waist up"
-  if (/bust|torso|chest.?up|pecho|busto/.test(p))                                             return "bust shot, chest and shoulders"
-  if (/close.?up|primer.?plano|rostro|cara\b/.test(p))                                        return "close-up portrait, tight face framing"
-  if (/wide.?shot|toma.?amplia|paisaje\b|ambiente\b|escena\b/.test(p))                        return "wide shot, environment visible"
+  if (/full.?body|cuerpo.?completo|de.?cuerpo.?entero|figura.?completa|full.?length/.test(p)) {
+    return "full body, full figure visible from head to toe"
+  }
+  if (/half.?body|medio.?cuerpo|waist.?up|hasta.?cintura/.test(p)) {
+    return "half body shot, waist up"
+  }
+  if (/bust|torso|chest.?up|pecho|busto/.test(p)) {
+    return "bust shot, chest and shoulders"
+  }
+  if (/close.?up|primer.?plano|rostro|cara\b/.test(p)) {
+    return "close-up portrait, tight face framing"
+  }
+  if (/wide.?shot|toma.?amplia|paisaje\b|ambiente\b|escena\b/.test(p)) {
+    return "wide shot, environment visible"
+  }
   return null
 }
 
@@ -92,16 +138,14 @@ async function optimizePrompt(
   const apiKey = pickFromPool(getPromptOptimizerKeys(), `${userPrompt}:${style}`)
   if (!apiKey) return basicPrompt(userPrompt, style)
 
-  const styleDesc  = STYLE_GUIDES[style] || STYLE_GUIDES.realistic
+  const styleDesc = STYLE_GUIDES[style] || STYLE_GUIDES.realistic
   const isPortrait = style === "realistic" || style === "portrait"
-
-  // Detectar composición pedida por el usuario — no forzar encuadre facial si pidió otra cosa
   const userComposition = detectComposition(userPrompt)
   const compositionNote = userComposition
     ? `IMPORTANT — The user explicitly requested this framing: "${userComposition}". RESPECT IT. Do NOT override with close-up or face framing.`
     : isPortrait
-      ? `Default to close-up portrait framing unless the user specified otherwise.`
-      : `Include a composition note matching the content (rule of thirds, centered, wide shot, etc.).`
+      ? "Default to close-up portrait framing unless the user specified otherwise."
+      : "Include a composition note matching the content (rule of thirds, centered, wide shot, etc.)."
 
   const systemInstruction = isPortrait
     ? `You are an expert FLUX.2 prompt engineer specializing in photorealistic photography.
@@ -147,6 +191,7 @@ RULES:
         signal: AbortSignal.timeout(12000),
       }
     )
+
     if (!res.ok) return basicPrompt(userPrompt, style)
     const data = await res.json()
     const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim()
@@ -157,88 +202,8 @@ RULES:
   }
 }
 
-// ─── Provider functions ───────────────────────────────────────────────────────
-
-// Stability AI — v2beta REST API
-// Docs: https://platform.stability.ai/docs/api-reference
-async function tryStability(
-  prompt: string,
-  width: number,
-  height: number,
-  style: string
-): Promise<ProviderResult> {
-  const label = "Stability AI"
-  const key   = pickFromPool(getStabilityKeys(), prompt)
-  if (!key) return { imageBase64: null, label, error: "No STABILITY_API_KEY configurada" }
-
-  const ar             = aspectRatio(width, height)
-  const negativePrompt = getNegativePrompt(style)
-
-  for (const model of STABILITY_MODELS as StabilityModel[]) {
-    try {
-      const url = `https://api.stability.ai/v2beta/stable-image/generate/${model.endpoint}`
-
-      const form = new FormData()
-      form.append("prompt",        prompt)
-      form.append("output_format", "jpeg")
-      form.append("aspect_ratio",  ar)
-
-      // Core endpoint no usa "model"; SD3 sí
-      if (model.endpoint === "sd3") {
-        form.append("model", model.id)
-        form.append("mode",  "text-to-image")
-      }
-
-      // Negative prompt solo en modelos que lo soportan (no en turbo)
-      if (model.supportsNegative && negativePrompt) {
-        form.append("negative_prompt", negativePrompt)
-      }
-
-      const res = await fetch(url, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${key}`,
-          Accept:        "application/json",  // → devuelve base64 JSON
-        },
-        body: form,
-        signal: AbortSignal.timeout(60_000),
-      })
-
-      if (!res.ok) {
-        const body = await safeText(res)
-        console.warn(`[Stability][${model.id}] ${res.status}: ${body.slice(0, 150)}`)
-        continue
-      }
-
-      const data = await res.json()
-
-      // Respuesta: { image: "base64...", finish_reason: "SUCCESS", seed: 123 }
-      if (data?.finish_reason === "CONTENT_FILTERED") {
-        console.warn(`[Stability][${model.id}] CONTENT_FILTERED`)
-        continue
-      }
-
-      const base64 = data?.image
-      if (!base64) {
-        console.warn(`[Stability][${model.id}] sin imagen en respuesta`)
-        continue
-      }
-
-      return {
-        imageBase64: `data:image/jpeg;base64,${base64}`,
-        label,
-        model: model.label,
-      }
-    } catch (e) {
-      console.warn(`[Stability][${model.id}]`, errMsg(e))
-    }
-  }
-
-  return { imageBase64: null, label, error: "Stability AI: todos los modelos fallaron" }
-}
-
 async function tryGemini(prompt: string): Promise<ProviderResult> {
-  const label  = "Gemini Imagen"
+  const label = "Gemini Imagen"
   const apiKey = pickFromPool(getGeminiImageKeys(), prompt)
   if (!apiKey) return { imageBase64: null, label, error: "No Gemini key" }
 
@@ -256,8 +221,13 @@ async function tryGemini(prompt: string): Promise<ProviderResult> {
           signal: AbortSignal.timeout(45000),
         }
       )
-      if (!res.ok) { console.warn(`[Gemini][${model}] ${res.status}`); continue }
-      const data  = await res.json()
+
+      if (!res.ok) {
+        console.warn(`[Gemini][${model}] ${res.status}`)
+        continue
+      }
+
+      const data = await res.json()
       const parts = data?.candidates?.[0]?.content?.parts || []
       for (const part of parts) {
         if (part?.inlineData?.data && part?.inlineData?.mimeType?.startsWith("image/")) {
@@ -268,8 +238,11 @@ async function tryGemini(prompt: string): Promise<ProviderResult> {
           }
         }
       }
-    } catch (e) { console.warn(`[Gemini][${model}]`, errMsg(e)) }
+    } catch (e) {
+      console.warn(`[Gemini][${model}]`, errMsg(e))
+    }
   }
+
   return { imageBase64: null, label, error: "Gemini no generó imagen" }
 }
 
@@ -278,14 +251,14 @@ async function tryPollinations(
   width: number,
   height: number
 ): Promise<ProviderResult> {
-  const label  = "Pollinations"
+  const label = "Pollinations"
   const apiKey = process.env.POLLINATIONS_API_KEY
-  const safeW  = clamp(width, 256, 1920, 1024)
-  const safeH  = clamp(height, 256, 1920, 768)
+  const safeW = clamp(width, 256, 1920, 1024)
+  const safeH = clamp(height, 256, 1920, 768)
 
   for (const model of ["flux", "flux-realism", "turbo"]) {
     try {
-      const seed    = Math.floor(Math.random() * 999999)
+      const seed = Math.floor(Math.random() * 999999)
       const encoded = encodeURIComponent(prompt)
       const headers: Record<string, string> = { "User-Agent": "Mozilla/5.0 (compatible; EduAI/1.0)" }
       let url: string
@@ -298,18 +271,27 @@ async function tryPollinations(
       }
 
       const res = await fetch(url, { headers, signal: AbortSignal.timeout(55000) })
-      if (!res.ok) { console.warn(`[Pollinations][${model}] ${res.status}`); continue }
+      if (!res.ok) {
+        console.warn(`[Pollinations][${model}] ${res.status}`)
+        continue
+      }
+
       const contentType = res.headers.get("content-type") || ""
       if (!contentType.startsWith("image/")) continue
+
       const buf = await res.arrayBuffer()
       if (!buf.byteLength) continue
+
       return {
         imageBase64: `data:${contentType};base64,${Buffer.from(buf).toString("base64")}`,
         label,
         model,
       }
-    } catch (e) { console.warn(`[Pollinations][${model}]`, errMsg(e)) }
+    } catch (e) {
+      console.warn(`[Pollinations][${model}]`, errMsg(e))
+    }
   }
+
   return { imageBase64: null, label, error: "Pollinations: todos los modelos fallaron" }
 }
 
@@ -319,7 +301,7 @@ async function tryTogether(
   height: number
 ): Promise<ProviderResult> {
   const label = "Together AI"
-  const key   = pickFromPool(getTogetherKeys(), prompt)
+  const key = pickFromPool(getTogetherKeys(), prompt)
   if (!key) return { imageBase64: null, label, error: "No Together key" }
 
   for (const { id, steps, guidance, useAspectRatio } of TOGETHER_IMAGE_MODELS) {
@@ -331,20 +313,39 @@ async function tryTogether(
       const res = await fetch("https://api.together.xyz/v1/images/generations", {
         method: "POST",
         headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: id, prompt, ...sizeParams, steps, n: 1, guidance, response_format: "base64" }),
+        body: JSON.stringify({
+          model: id,
+          prompt,
+          ...sizeParams,
+          steps,
+          n: 1,
+          guidance,
+          response_format: "base64",
+        }),
         signal: AbortSignal.timeout(55000),
       })
-      if (!res.ok) { console.warn(`[Together][${id}] ${res.status}: ${(await safeText(res)).slice(0, 120)}`); continue }
-      const data   = await res.json()
+
+      if (!res.ok) {
+        console.warn(`[Together][${id}] ${res.status}: ${(await safeText(res)).slice(0, 120)}`)
+        continue
+      }
+
+      const data = await res.json()
       const base64 = data?.data?.[0]?.b64_json || data?.data?.[0]?.base64
-      if (base64) return { imageBase64: `data:image/png;base64,${base64}`, label, model: id }
+      if (base64) {
+        return { imageBase64: `data:image/png;base64,${base64}`, label, model: id }
+      }
+
       const imageUrl = data?.data?.[0]?.url
       if (imageUrl) {
         const converted = await fetchBase64(imageUrl)
         if (converted) return { imageBase64: converted, label, model: id }
       }
-    } catch (e) { console.warn(`[Together][${id}]`, errMsg(e)) }
+    } catch (e) {
+      console.warn(`[Together][${id}]`, errMsg(e))
+    }
   }
+
   return { imageBase64: null, label, error: "Together: todos los modelos fallaron" }
 }
 
@@ -354,53 +355,63 @@ async function tryHuggingFace(
   height: number,
   style: string
 ): Promise<ProviderResult> {
-  const label  = "Hugging Face"
+  const label = "Hugging Face"
   const tokens = getHuggingFaceTokens()
   if (!tokens.length) return { imageBase64: null, label, error: "No HF tokens" }
 
   const negativePrompt = getNegativePrompt(style)
 
-  for (const hfModel of HUGGINGFACE_IMAGE_MODELS) {
-    const { id, steps, guidance, supportsNegative } = hfModel as HuggingFaceModel
+  for (const hfModel of HUGGINGFACE_IMAGE_MODELS as HuggingFaceModel[]) {
+    const { id, steps, guidance, supportsNegative } = hfModel
     for (const token of tokens) {
       try {
         const params = {
-          negative_prompt:    supportsNegative ? negativePrompt : undefined,
-          width:              clamp(width, 256, 1024, 1024),
-          height:             clamp(height, 256, 1024, 768),
+          negative_prompt: supportsNegative ? negativePrompt : undefined,
+          width: clamp(width, 256, 1024, 1024),
+          height: clamp(height, 256, 1024, 768),
           num_inference_steps: steps,
-          guidance_scale:     guidance,
+          guidance_scale: guidance,
         }
+
         const res = await fetch(`https://router.huggingface.co/hf-inference/models/${id}`, {
           method: "POST",
           headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
           body: JSON.stringify({ inputs: prompt, parameters: params }),
           signal: AbortSignal.timeout(60000),
         })
-        if (!res.ok) { console.warn(`[HF][${id}] ${res.status}`); continue }
+
+        if (!res.ok) {
+          console.warn(`[HF][${id}] ${res.status}`)
+          continue
+        }
+
         const contentType = res.headers.get("content-type") || ""
         if (contentType.includes("application/json")) continue
+
         const buf = await res.arrayBuffer()
         if (!buf.byteLength) continue
+
         return {
           imageBase64: `data:${contentType || "image/png"};base64,${Buffer.from(buf).toString("base64")}`,
           label,
           model: id,
         }
-      } catch (e) { console.warn(`[HF][${id}]`, errMsg(e)) }
+      } catch (e) {
+        console.warn(`[HF][${id}]`, errMsg(e))
+      }
     }
   }
+
   return { imageBase64: null, label, error: "HF: todos los intentos fallaron" }
 }
 
 async function tryOpenRouter(
   prompt: string,
   width: number,
-  height: number,
-  _mode: GenerationMode
+  height: number
 ): Promise<ProviderResult> {
   const label = "OpenRouter"
-  const key   = pickFromPool(getOpenRouterKeys(), prompt)
+  const key = pickFromPool(getOpenRouterKeys(), prompt)
   if (!key) return { imageBase64: null, label, error: "No OpenRouter key" }
 
   const ar = aspectRatio(width, height)
@@ -412,8 +423,8 @@ async function tryOpenRouter(
         headers: {
           Authorization: `Bearer ${key}`,
           "Content-Type": "application/json",
-          "HTTP-Referer": process.env.OPENROUTER_REFERER    || "https://eduai.local",
-          "X-Title":      process.env.OPENROUTER_APP_TITLE  || "EduAI Image Studio",
+          "HTTP-Referer": process.env.OPENROUTER_REFERER || "https://eduai.local",
+          "X-Title": process.env.OPENROUTER_APP_TITLE || "EduAI Image Studio",
         },
         body: JSON.stringify({
           model: id,
@@ -424,23 +435,26 @@ async function tryOpenRouter(
         }),
         signal: AbortSignal.timeout(65000),
       })
-      if (!res.ok) { console.warn(`[OpenRouter][${id}] ${res.status}`); continue }
-      const data    = await res.json()
+
+      if (!res.ok) {
+        console.warn(`[OpenRouter][${id}] ${res.status}`)
+        continue
+      }
+
+      const data = await res.json()
       const message = data?.choices?.[0]?.message
 
-      // Format 1: message.images[]
-      const images   = Array.isArray(message?.images) ? message.images : []
+      const images = Array.isArray(message?.images) ? message.images : []
       const imgEntry = images[0]
       const urlA: string | null = imgEntry?.image_url?.url || imgEntry?.url || null
       if (urlA) {
         if (urlA.startsWith("data:image/")) return { imageBase64: urlA, label, model: id }
         if (/^https?:\/\//.test(urlA)) {
-          const c = await fetchBase64(urlA)
-          if (c) return { imageBase64: c, label, model: id }
+          const converted = await fetchBase64(urlA)
+          if (converted) return { imageBase64: converted, label, model: id }
         }
       }
 
-      // Format 2: message.content[] parts
       const parts: unknown[] = Array.isArray(message?.content) ? message.content : []
       for (const part of parts) {
         const p = part as Record<string, unknown>
@@ -448,14 +462,18 @@ async function tryOpenRouter(
           const u = (p?.image_url as Record<string, string> | undefined)?.url
           if (u?.startsWith("data:image/")) return { imageBase64: u, label, model: id }
           if (u && /^https?:\/\//.test(u)) {
-            const c = await fetchBase64(u)
-            if (c) return { imageBase64: c, label, model: id }
+            const converted = await fetchBase64(u)
+            if (converted) return { imageBase64: converted, label, model: id }
           }
         }
       }
+
       console.warn(`[OpenRouter][${id}] respuesta OK sin imagen`)
-    } catch (e) { console.warn(`[OpenRouter][${id}]`, errMsg(e)) }
+    } catch (e) {
+      console.warn(`[OpenRouter][${id}]`, errMsg(e))
+    }
   }
+
   return { imageBase64: null, label, error: "OpenRouter: todos los modelos fallaron" }
 }
 
@@ -464,43 +482,49 @@ async function runProvider(
   prompt: string,
   width: number,
   height: number,
-  mode: GenerationMode,
   style: string
 ): Promise<ProviderResult> {
   switch (id) {
-    case "stability":    return tryStability(prompt, width, height, style)
-    case "gemini":       return tryGemini(prompt)
-    case "pollinations": return tryPollinations(prompt, width, height)
-    case "together":     return tryTogether(prompt, width, height)
-    case "huggingface":  return tryHuggingFace(prompt, width, height, style)
-    case "openrouter":   return tryOpenRouter(prompt, width, height, mode)
+    case "gemini":
+      return tryGemini(prompt)
+    case "pollinations":
+      return tryPollinations(prompt, width, height)
+    case "together":
+      return tryTogether(prompt, width, height)
+    case "huggingface":
+      return tryHuggingFace(prompt, width, height, style)
+    case "openrouter":
+      return tryOpenRouter(prompt, width, height)
   }
 }
 
-// ─── POST handler ─────────────────────────────────────────────────────────────
 export async function POST(req: Request) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
   if (!user) return new Response("Unauthorized", { status: 401 })
 
-  const body              = await req.json()
-  const prompt            = String(body?.prompt  || "").trim()
-  const style             = String(body?.style   || "realistic")
-  const width             = clamp(Number(body?.width),  256, 1920, 1024)
-  const height            = clamp(Number(body?.height), 256, 1920, 768)
-  const provider          = (body?.provider || "auto") as ProviderId
-  const mode              = (body?.mode     || "fast") as GenerationMode
-  const customPrompt      = String(body?.customPrompt || "").trim()
-  const source            = String(body?.source || "manual")
-  const topic             = body?.topic ?? null
+  const body = await req.json()
+  const prompt = String(body?.prompt || "").trim()
+  const style = String(body?.style || "realistic")
+  const width = clamp(Number(body?.width), 256, 1920, 1024)
+  const height = clamp(Number(body?.height), 256, 1920, 768)
+  const provider = (body?.provider || "auto") as ProviderId
+  const mode = (body?.mode || "fast") as GenerationMode
+  const customPrompt = String(body?.customPrompt || "").trim()
+  const source = String(body?.source || "manual")
+  const topic = body?.topic ?? null
   const educationalContext = body?.educationalContext ? String(body.educationalContext) : undefined
 
   if (!prompt) return new Response("Prompt requerido", { status: 400 })
 
   try {
+    const promptWasOptimized = !customPrompt && shouldOptimizePrompt(mode, customPrompt)
     const optimizedPrompt = customPrompt
       ? customPrompt
-      : shouldOptimizePrompt(mode, customPrompt)
+      : promptWasOptimized
         ? await optimizePrompt(prompt, style, educationalContext)
         : basicPrompt(prompt, style)
 
@@ -508,39 +532,36 @@ export async function POST(req: Request) {
     const errors: string[] = []
     let imageBase64: string | null = null
     let usedProvider = ""
-    let usedModel    = ""
+    let usedModel = ""
 
     for (const p of order) {
       console.log(`[Image] Intentando: ${p}`)
-      const result = await runProvider(p, optimizedPrompt, width, height, mode, style)
+      const result = await runProvider(p, optimizedPrompt, width, height, style)
       if (result.imageBase64) {
-        imageBase64  = result.imageBase64
+        imageBase64 = result.imageBase64
         usedProvider = result.label
-        usedModel    = result.model || ""
+        usedModel = result.model || ""
         break
       }
-      errors.push(
-        `${result.label}${result.model ? ` (${result.model})` : ""}: ${result.error || "falló"}`
-      )
+      errors.push(`${result.label}${result.model ? ` (${result.model})` : ""}: ${result.error || "falló"}`)
     }
 
     if (!imageBase64) {
       return new Response(
-        "No se pudo generar la imagen.\n\n" + errors.map((l, i) => `${i + 1}. ${l}`).join("\n"),
+        "No se pudo generar la imagen.\n\n" + errors.map((line, index) => `${index + 1}. ${line}`).join("\n"),
         { status: 503 }
       )
     }
 
-    // Save to DB async — non-blocking
     void (async () => {
       try {
-        const publicUrl = await uploadToStorage(imageBase64!, user.id)
+        const publicUrl = await uploadToStorage(imageBase64, user.id)
         const { error } = await supabase.from("generated_images").insert({
-          user_id:          user.id,
+          user_id: user.id,
           prompt,
           optimized_prompt: optimizedPrompt,
-          image_url:        publicUrl ?? imageBase64!,
-          provider:         usedModel ? `${usedProvider} · ${usedModel}` : usedProvider,
+          image_url: publicUrl ?? imageBase64,
+          provider: usedModel ? `${usedProvider} · ${usedModel}` : usedProvider,
           style,
           width,
           height,
@@ -548,18 +569,20 @@ export async function POST(req: Request) {
           topic,
         })
         if (error) console.error("[Image][DB]", error.message)
-      } catch (e) { console.error("[Image][Save]", errMsg(e)) }
+      } catch (e) {
+        console.error("[Image][Save]", errMsg(e))
+      }
     })()
 
     return Response.json({
-      imageUrl:       imageBase64,
+      imageUrl: imageBase64,
       optimizedPrompt,
-      provider:       usedProvider,
-      model:          usedModel,
+      provider: usedProvider,
+      model: usedModel,
       mode,
-      type:           "base64",
-      providerOrder:  order,
-      promptOptimized: shouldOptimizePrompt(mode, customPrompt),
+      type: "base64",
+      providerOrder: order,
+      promptOptimized: promptWasOptimized,
     })
   } catch (e) {
     return new Response(`Error: ${errMsg(e)}`, { status: 500 })
