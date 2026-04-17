@@ -71,8 +71,7 @@ export async function POST(req: Request) {
 Transform user descriptions into structured English prompts.
 FORMAT: [Detailed subject description] + [Camera: model + lens + aperture] + [Lighting type] + [Composition/Framing] + [Quality tags]
 Always include: "sharp detailed eyes with natural catchlights", "natural skin pores and texture", "detailed hair strands", "photorealistic, 8K, masterpiece"
-${compositionNote}
-DO NOT add any NSFW content.
+${compositionNote}.
 Output ONLY the optimized prompt, no explanations, no quotes.`
     : `You are an expert FLUX.2 prompt engineer for AI image generation.
 Transform user descriptions into highly detailed structured English prompts.
