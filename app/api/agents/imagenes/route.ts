@@ -5,7 +5,6 @@ import { createClient as createAdmin } from "@supabase/supabase-js"
 import {
   HuggingFaceModel,
   StabilityModel,
-  STABILITY_MODELS,
   HUGGINGFACE_IMAGE_MODELS,
   OPENROUTER_IMAGE_MODELS,
   TOGETHER_IMAGE_MODELS,
@@ -16,7 +15,6 @@ import {
   aspectRatio,
   basicPrompt,
   buildStructuredPrompt,
-  getNegativePrompt,
   clamp,
   errMsg,
   GEMINI_IMAGE_MODELS,
