@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server"
 import { createClient as createAdmin } from "@supabase/supabase-js"
 import {
   HuggingFaceModel,
+  StabilityModel,
+  STABILITY_MODELS,
   HUGGINGFACE_IMAGE_MODELS,
   OPENROUTER_IMAGE_MODELS,
   TOGETHER_IMAGE_MODELS,
@@ -22,6 +24,7 @@ import {
   getHuggingFaceTokens,
   getOpenRouterKeys,
   getPromptOptimizerKeys,
+  getStabilityKeys,
   getTogetherKeys,
   pickFromPool,
   providerOrder,
@@ -157,6 +160,85 @@ RULES:
 }
 
 // ─── Provider functions ───────────────────────────────────────────────────────
+
+// Stability AI — v2beta REST API
+// Docs: https://platform.stability.ai/docs/api-reference
+async function tryStability(
+  prompt: string,
+  width: number,
+  height: number,
+  style: string
+): Promise<ProviderResult> {
+  const label = "Stability AI"
+  const key   = pickFromPool(getStabilityKeys(), prompt)
+  if (!key) return { imageBase64: null, label, error: "No STABILITY_API_KEY configurada" }
+
+  const ar             = aspectRatio(width, height)
+  const negativePrompt = getNegativePrompt(style)
+
+  for (const model of STABILITY_MODELS as StabilityModel[]) {
+    try {
+      const url = `https://api.stability.ai/v2beta/stable-image/generate/${model.endpoint}`
+
+      const form = new FormData()
+      form.append("prompt",        prompt)
+      form.append("output_format", "jpeg")
+      form.append("aspect_ratio",  ar)
+
+      // Core endpoint no usa "model"; SD3 sí
+      if (model.endpoint === "sd3") {
+        form.append("model", model.id)
+        form.append("mode",  "text-to-image")
+      }
+
+      // Negative prompt solo en modelos que lo soportan (no en turbo)
+      if (model.supportsNegative && negativePrompt) {
+        form.append("negative_prompt", negativePrompt)
+      }
+
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${key}`,
+          Accept:        "application/json",  // → devuelve base64 JSON
+        },
+        body: form,
+        signal: AbortSignal.timeout(60_000),
+      })
+
+      if (!res.ok) {
+        const body = await safeText(res)
+        console.warn(`[Stability][${model.id}] ${res.status}: ${body.slice(0, 150)}`)
+        continue
+      }
+
+      const data = await res.json()
+
+      // Respuesta: { image: "base64...", finish_reason: "SUCCESS", seed: 123 }
+      if (data?.finish_reason === "CONTENT_FILTERED") {
+        console.warn(`[Stability][${model.id}] CONTENT_FILTERED`)
+        continue
+      }
+
+      const base64 = data?.image
+      if (!base64) {
+        console.warn(`[Stability][${model.id}] sin imagen en respuesta`)
+        continue
+      }
+
+      return {
+        imageBase64: `data:image/jpeg;base64,${base64}`,
+        label,
+        model: model.label,
+      }
+    } catch (e) {
+      console.warn(`[Stability][${model.id}]`, errMsg(e))
+    }
+  }
+
+  return { imageBase64: null, label, error: "Stability AI: todos los modelos fallaron" }
+}
+
 async function tryGemini(prompt: string): Promise<ProviderResult> {
   const label  = "Gemini Imagen"
   const apiKey = pickFromPool(getGeminiImageKeys(), prompt)
@@ -388,6 +470,7 @@ async function runProvider(
   style: string
 ): Promise<ProviderResult> {
   switch (id) {
+    case "stability":    return tryStability(prompt, width, height, style)
     case "gemini":       return tryGemini(prompt)
     case "pollinations": return tryPollinations(prompt, width, height)
     case "together":     return tryTogether(prompt, width, height)
