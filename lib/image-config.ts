@@ -51,7 +51,7 @@ export const DEFAULT_IMAGE_PROVIDER_ORDER: Record<GenerationMode, ConcreteProvid
   educational: ["gemini", "openrouter", "together", "huggingface", "pollinations"],
 }
 
-export const GEMINI_IMAGE_MODELS: string[] = [
+const GEMINI_IMAGE_MODELS_RAW = [
   process.env.GEMINI_IMAGE_MODEL_PRIMARY,
   process.env.GEMINI_IMAGE_MODEL_SECONDARY,
   process.env.GEMINI_IMAGE_MODEL_TERTIARY,
@@ -62,7 +62,11 @@ export const GEMINI_IMAGE_MODELS: string[] = [
   "gemini-2.0-flash-exp",
   "gemini-2.0-flash-preview-image-generation",
   "gemini-2.0-flash-exp-image-generation",
-].filter((model): model is string => Boolean(model))
+]
+
+export const GEMINI_IMAGE_MODELS: string[] = GEMINI_IMAGE_MODELS_RAW.filter(
+  (model): model is string => Boolean(model)
+)
 
 export type TogetherImageModel = { id: string; steps: number; guidance: number; useAspectRatio: boolean }
 export const TOGETHER_IMAGE_MODELS: TogetherImageModel[] = [
