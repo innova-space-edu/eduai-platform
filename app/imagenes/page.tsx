@@ -1,350 +1,352 @@
-"use client"
+// app/api/agents/imagenes/route.ts — v10
+// Mejoras: prompts estructurados FLUX.2, negative prompts para HF SD/SDXL,
+// optimizador mejorado con formato Subject→Camera→Lighting→Composition
 
-import { useState, useEffect, useRef } from "react"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { ArrowLeft, ImagePlus, Sparkles, Download, ZoomIn, X, Loader2 } from "lucide-react"
+import { createClient } from "@/lib/supabase/server"
+import { createClient as createAdmin } from "@supabase/supabase-js"
+import {
+  HUGGINGFACE_IMAGE_MODELS,
+  OPENROUTER_IMAGE_MODELS,
+  TOGETHER_IMAGE_MODELS,
+  GenerationMode,
+  ProviderId,
+  ProviderResult,
+  STYLE_GUIDES,
+  aspectRatio,
+  basicPrompt,
+  buildStructuredPrompt,
+  getNegativePrompt,
+  clamp,
+  errMsg,
+  GEMINI_IMAGE_MODELS,
+  getGeminiImageKeys,
+  getHuggingFaceTokens,
+  getOpenRouterKeys,
+  getPromptOptimizerKeys,
+  getTogetherKeys,
+  pickFromPool,
+  providerOrder,
+  safeText,
+  shouldOptimizePrompt,
+} from "@/lib/image-config"
 
-const STYLES = [
-  { id: "realistic",    label: "Realista",        emoji: "📷" },
-  { id: "digital art",  label: "Arte Digital",    emoji: "🎨" },
-  { id: "oil painting", label: "Óleo",            emoji: "🖼️" },
-  { id: "anime",        label: "Anime",           emoji: "⛩️" },
-  { id: "watercolor",   label: "Acuarela",        emoji: "💧" },
-  { id: "3d render",    label: "3D",              emoji: "🧊" },
-  { id: "sketch",       label: "Boceto",          emoji: "✏️" },
-  { id: "cinematic",    label: "Cinematográfico", emoji: "🎬" },
-]
+export const runtime = "nodejs"
 
-const SIZES = [
-  { label: "Horizontal", w: 1024, h: 576  },
-  { label: "Cuadrado",   w: 1024, h: 1024 },
-  { label: "Vertical",   w: 576,  h: 1024 },
-]
-
-const PROVIDERS = [
-  { id: "auto",         label: "Auto (mejor disponible)" },
-  { id: "gemini",       label: "Gemini Imagen (Google)"  },
-  { id: "pollinations", label: "Pollinations (FLUX free)" },
-  { id: "together",     label: "Together AI (FLUX)"      },
-  { id: "huggingface",  label: "Hugging Face (FLUX/SDXL)"},
-  { id: "openrouter",   label: "OpenRouter (premium)"    },
-]
-
-const EXAMPLES = [
-  "Un astronauta en el espacio profundo, la Tierra detrás de él",
-  "Un bosque de bambú al amanecer con niebla",
-  "Un robot leyendo un libro en una biblioteca antigua",
-  "Una ciudad chilena en el año 2150",
-  "Sistema solar visto desde una nave espacial",
-  "Un gato samurái bajo la lluvia en Tokio",
-]
-
-const LOADING_MESSAGES = [
-  "Optimizando tu descripción con IA...",
-  "Componiendo la escena...",
-  "Añadiendo detalles de iluminación...",
-  "Refinando texturas y colores...",
-  "Aplicando estilo artístico...",
-  "Casi listo...",
-]
-
-interface Result {
-  imageUrl: string
-  optimizedPrompt: string
-  provider: string
-  originalPrompt: string
+async function fetchBase64(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url, { headers: { "User-Agent": "EduAI/1.0" }, signal: AbortSignal.timeout(35000) })
+    if (!res.ok) return null
+    const buf = await res.arrayBuffer()
+    if (!buf.byteLength) return null
+    const mime = res.headers.get("content-type") || "image/png"
+    return `data:${mime};base64,${Buffer.from(buf).toString("base64")}`
+  } catch { return null }
 }
 
-function ImageSkeleton({ aspectRatio }: { aspectRatio: string }) {
-  const [msgIdx, setMsgIdx] = useState(0)
-  const [progress, setProgress] = useState(0)
-
-  useEffect(() => {
-    const mi = setInterval(() => setMsgIdx(i => (i + 1) % LOADING_MESSAGES.length), 2500)
-    const pi = setInterval(() => setProgress(p => p >= 92 ? p : p + Math.random() * 3), 300)
-    return () => { clearInterval(mi); clearInterval(pi) }
-  }, [])
-
-  return (
-    <div className="relative overflow-hidden rounded-2xl border border-soft" style={{ aspectRatio }}>
-      <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, #0f172a, #1e293b)" }}>
-        <div className="absolute inset-0 opacity-20"
-          style={{ background: "linear-gradient(105deg, transparent 40%, rgba(139,92,246,0.4) 50%, transparent 60%)", animation: "shimmer 2s infinite" }} />
-      </div>
-      <div className="absolute bottom-0 inset-x-0 p-4">
-        <div className="flex items-center gap-2 mb-2">
-          <Loader2 size={13} className="text-purple-400 animate-spin flex-shrink-0" />
-          <p className="text-purple-700 text-xs">{LOADING_MESSAGES[msgIdx]}</p>
-        </div>
-        <div className="h-1 rounded-full overflow-hidden" style={{ background: "var(--border-medium)" }}>
-          <div className="h-full rounded-full transition-all duration-300"
-            style={{ width: `${progress}%`, background: "linear-gradient(90deg, #8b5cf6, #ec4899)" }} />
-        </div>
-      </div>
-      <style>{`@keyframes shimmer { 0% { transform: translateX(-100%) } 100% { transform: translateX(200%) } }`}</style>
-    </div>
-  )
+async function uploadToStorage(imageBase64: string, userId: string): Promise<string | null> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !key) return null
+  try {
+    const admin = createAdmin(url, key)
+    const match = imageBase64.match(/^data:(image\/[\w.+-]+);base64,(.+)$/)
+    if (!match) return null
+    const mime = match[1]; const ext = mime.split("/")[1] || "png"; const b64data = match[2]
+    const buf = Buffer.from(b64data, "base64")
+    const fileName = `${userId}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`
+    const { error } = await admin.storage.from("generated-images").upload(fileName, buf, { contentType: mime, upsert: false })
+    if (error) { console.warn("[Image][Storage]", error.message); return null }
+    const { data } = admin.storage.from("generated-images").getPublicUrl(fileName)
+    return data?.publicUrl || null
+  } catch (e) { console.error("[Image][Storage]", errMsg(e)); return null }
 }
 
-export default function ImagenesPage() {
-  const [prompt,        setPrompt]        = useState("")
-  const [style,         setStyle]         = useState("realistic")
-  const [size,          setSize]          = useState(SIZES[0])
-  const [provider,      setProvider]      = useState("auto")
-  const [loading,       setLoading]       = useState(false)
-  const [optimizing,    setOptimizing]    = useState(false)
-  const [results,       setResults]       = useState<Result[]>([])
-  const [editingPrompt, setEditingPrompt] = useState("")
-  const [showEditor,    setShowEditor]    = useState(false)
-  const [fullscreen,    setFullscreen]    = useState<string | null>(null)
-  const router = useRouter()
+// ─── Optimizador de prompts v3 — FLUX.2 structured format ────────────────────
+async function optimizePrompt(userPrompt: string, style: string, educationalCtx?: string): Promise<string> {
+  const optimizerKeys = getPromptOptimizerKeys()
+  const apiKey = pickFromPool(optimizerKeys, `${userPrompt}:${style}`)
+  if (!apiKey) return basicPrompt(userPrompt, style)
 
-  // ── Lógica idéntica al original ──────────────────────────────────────────────
-  async function getOptimizedPrompt() {
-    if (!prompt.trim()) return
-    setOptimizing(true)
+  const styleDesc = STYLE_GUIDES[style] || STYLE_GUIDES.realistic
+  const isPortrait = style === "realistic" || style === "portrait"
+  const isAnimation = style === "3d animation" || style === "anime"
+
+  const systemInstruction = isPortrait
+    ? `You are an expert FLUX.2 prompt engineer specializing in photorealistic portrait generation.
+Transform the user description into a highly detailed structured English prompt.
+STRUCTURE: [Subject with detailed physical description] + [Camera: specific model + lens + aperture] + [Lighting: specific type and direction] + [Composition] + [Quality keywords]
+RULES FOR PORTRAITS:
+- Always specify: exact camera model (Sony A7R V, Canon R5, etc.), lens (85mm f/1.4), aperture
+- Specify lighting precisely: "Rembrandt lighting", "soft diffused window light", "golden hour side light"
+- Add: "perfect facial symmetry", "sharp detailed eyes with natural catchlights", "natural skin pores and texture", "detailed hair strands"
+- End with: "photorealistic, 8K, masterpiece, best quality, highly detailed"
+- DO NOT add any NSFW content
+- Output ONLY the optimized English prompt, no explanations`
+    : `You are an expert FLUX.2 prompt engineer for AI image generation.
+Transform the user description into a highly detailed structured English prompt.
+STRUCTURE: [Main subject with vivid details] + [Style: ${styleDesc}] + [Lighting and atmosphere] + [Composition] + [Quality]
+RULES:
+- Keep the exact subject intent
+- Add specific visual details, color palette, lighting, mood
+- Include composition guidance: "rule of thirds", "centered composition", etc.
+- End with quality keywords matching the style
+- Output ONLY the optimized English prompt, no explanations, no quotes`
+
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: systemInstruction }] },
+          contents: [{
+            parts: [{
+              text: `User request: "${userPrompt}"\nStyle: ${style}\n${educationalCtx ? `Context: "${educationalCtx.slice(0, 400)}"` : ""}\nOptimized prompt:`,
+            }],
+          }],
+          generationConfig: { temperature: 0.5, maxOutputTokens: 600 },
+        }),
+        signal: AbortSignal.timeout(12000),
+      }
+    )
+    if (!res.ok) return basicPrompt(userPrompt, style)
+    const data = await res.json()
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim()
+    if (!text) return basicPrompt(userPrompt, style)
+    return text.replace(/^["']|["']$/g, "")
+  } catch { return basicPrompt(userPrompt, style) }
+}
+
+// ─── Providers ────────────────────────────────────────────────────────────────
+async function tryGemini(prompt: string): Promise<ProviderResult> {
+  const label = "Gemini Imagen"; const keys = getGeminiImageKeys()
+  const apiKey = pickFromPool(keys, prompt)
+  if (!apiKey) return { imageBase64: null, label, error: "No Gemini key" }
+  for (const model of GEMINI_IMAGE_MODELS) {
     try {
-      const res  = await fetch("/api/agents/imagenes/preview", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, style }),
-      })
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+        {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { responseModalities: ["IMAGE", "TEXT"] },
+          }),
+          signal: AbortSignal.timeout(45000),
+        }
+      )
+      if (!res.ok) { console.warn(`[Gemini][${model}] ${res.status}`); continue }
       const data = await res.json()
-      setEditingPrompt(data.optimizedPrompt || prompt)
-      setShowEditor(true)
-    } catch {
-      setEditingPrompt(prompt); setShowEditor(true)
-    } finally { setOptimizing(false) }
+      const parts = data?.candidates?.[0]?.content?.parts || []
+      for (const part of parts) {
+        if (part?.inlineData?.data && part?.inlineData?.mimeType?.startsWith("image/")) {
+          return { imageBase64: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`, label, model }
+        }
+      }
+    } catch (e) { console.warn(`[Gemini][${model}]`, errMsg(e)) }
   }
+  return { imageBase64: null, label, error: "Gemini no generó imagen" }
+}
 
-  async function generate(useCustomPrompt = false) {
-    if (!prompt.trim() || loading) return
-    setLoading(true); setShowEditor(false)
+async function tryPollinations(prompt: string, width: number, height: number): Promise<ProviderResult> {
+  const label = "Pollinations"; const apiKey = process.env.POLLINATIONS_API_KEY
+  const safeW = clamp(width, 256, 1920, 1024); const safeH = clamp(height, 256, 1920, 768)
+  const models = ["flux", "flux-realism", "turbo"]
+  for (const model of models) {
     try {
-      const res = await fetch("/api/agents/imagenes", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, style, width: size.w, height: size.h, provider, customPrompt: useCustomPrompt ? editingPrompt : undefined }),
+      const seed = Math.floor(Math.random() * 999999)
+      const encoded = encodeURIComponent(prompt)
+      const headers: Record<string, string> = { "User-Agent": "Mozilla/5.0 (compatible; EduAI/1.0)" }
+      let url: string
+      if (apiKey) {
+        url = `https://gen.pollinations.ai/image/${encoded}?model=${model}&width=${safeW}&height=${safeH}&seed=${seed}&nologo=true&enhance=true`
+        headers.Authorization = `Bearer ${apiKey}`
+      } else {
+        url = `https://image.pollinations.ai/prompt/${encoded}?model=${model}&width=${safeW}&height=${safeH}&seed=${seed}&nologo=true&enhance=true&safe=false`
+      }
+      const res = await fetch(url, { headers, signal: AbortSignal.timeout(55000) })
+      if (!res.ok) { console.warn(`[Pollinations][${model}] ${res.status}`); continue }
+      const contentType = res.headers.get("content-type") || ""
+      if (!contentType.startsWith("image/")) continue
+      const buf = await res.arrayBuffer()
+      if (!buf.byteLength) continue
+      return { imageBase64: `data:${contentType};base64,${Buffer.from(buf).toString("base64")}`, label, model }
+    } catch (e) { console.warn(`[Pollinations][${model}]`, errMsg(e)) }
+  }
+  return { imageBase64: null, label, error: "Pollinations fallaron" }
+}
+
+async function tryTogether(prompt: string, width: number, height: number): Promise<ProviderResult> {
+  const label = "Together AI"; const keys = getTogetherKeys()
+  const key = pickFromPool(keys, prompt)
+  if (!key) return { imageBase64: null, label, error: "No Together key" }
+  for (const { id, steps, guidance, useAspectRatio } of TOGETHER_IMAGE_MODELS) {
+    try {
+      const sizeParams = useAspectRatio
+        ? { aspect_ratio: aspectRatio(width, height) }
+        : { width: clamp(width, 256, 1440, 1024), height: clamp(height, 256, 1440, 768) }
+      const res = await fetch("https://api.together.xyz/v1/images/generations", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ model: id, prompt, ...sizeParams, steps, n: 1, guidance, response_format: "base64" }),
+        signal: AbortSignal.timeout(55000),
       })
-      if (!res.ok) throw new Error(await res.text())
+      if (!res.ok) { console.warn(`[Together][${id}] ${res.status}: ${(await safeText(res)).slice(0, 120)}`); continue }
       const data = await res.json()
-      setResults(prev => [{ ...data, originalPrompt: prompt }, ...prev])
-      setEditingPrompt(data.optimizedPrompt)
-    } catch (e: any) { alert(`Error: ${e.message}`) }
-    finally { setLoading(false) }
+      const base64 = data?.data?.[0]?.b64_json || data?.data?.[0]?.base64
+      if (base64) return { imageBase64: `data:image/png;base64,${base64}`, label, model: id }
+      const imageUrl = data?.data?.[0]?.url
+      if (imageUrl) { const converted = await fetchBase64(imageUrl); if (converted) return { imageBase64: converted, label, model: id } }
+    } catch (e) { console.warn(`[Together][${id}]`, errMsg(e)) }
   }
+  return { imageBase64: null, label, error: "Together: todos fallaron" }
+}
 
-  function downloadImage(url: string, index: number) {
-    const a = document.createElement("a"); a.href = url; a.download = `eduai-imagen-${index + 1}.jpg`; a.click()
+async function tryHuggingFace(prompt: string, width: number, height: number, style: string): Promise<ProviderResult> {
+  const label = "Hugging Face"; const tokens = getHuggingFaceTokens()
+  if (!tokens.length) return { imageBase64: null, label, error: "No HF tokens" }
+  const negativePrompt = getNegativePrompt(style)
+  for (const { id, steps, guidance, supportsNegative } of HUGGINGFACE_IMAGE_MODELS as any[]) {
+    for (const token of tokens) {
+      try {
+        const params: any = {
+          negative_prompt: supportsNegative ? negativePrompt : undefined,
+          width:  clamp(width, 256, 1024, 1024),
+          height: clamp(height, 256, 1024, 768),
+          num_inference_steps: steps,
+          guidance_scale: guidance,
+        }
+        const res = await fetch(`https://router.huggingface.co/hf-inference/models/${id}`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ inputs: prompt, parameters: params }),
+          signal: AbortSignal.timeout(60000),
+        })
+        if (!res.ok) { console.warn(`[HF][${id}] ${res.status}`); continue }
+        const contentType = res.headers.get("content-type") || ""
+        if (contentType.includes("application/json")) continue
+        const buf = await res.arrayBuffer()
+        if (!buf.byteLength) continue
+        return { imageBase64: `data:${contentType || "image/png"};base64,${Buffer.from(buf).toString("base64")}`, label, model: id }
+      } catch (e) { console.warn(`[HF][${id}]`, errMsg(e)) }
+    }
   }
+  return { imageBase64: null, label, error: "HF: todos fallaron" }
+}
 
-  useEffect(() => {
-    const fn = (e: KeyboardEvent) => { if (e.key === "Escape") setFullscreen(null) }
-    window.addEventListener("keydown", fn); return () => window.removeEventListener("keydown", fn)
-  }, [])
+async function tryOpenRouter(prompt: string, width: number, height: number, _mode: GenerationMode): Promise<ProviderResult> {
+  const label = "OpenRouter"; const keys = getOpenRouterKeys()
+  const key = pickFromPool(keys, prompt)
+  if (!key) return { imageBase64: null, label, error: "No OpenRouter key" }
+  const ar = aspectRatio(width, height)
+  for (const { id, modalities } of OPENROUTER_IMAGE_MODELS) {
+    try {
+      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${key}`, "Content-Type": "application/json",
+          "HTTP-Referer": process.env.OPENROUTER_REFERER || "https://eduai.local",
+          "X-Title": process.env.OPENROUTER_APP_TITLE || "EduAI Image Studio",
+        },
+        body: JSON.stringify({ model: id, messages: [{ role: "user", content: prompt }], modalities, stream: false, image_config: { aspect_ratio: ar } }),
+        signal: AbortSignal.timeout(65000),
+      })
+      if (!res.ok) { console.warn(`[OpenRouter][${id}] ${res.status}`); continue }
+      const data = await res.json()
+      const message = data?.choices?.[0]?.message
+      const images = Array.isArray(message?.images) ? message.images : []
+      const imgEntry = images[0]
+      const dataUrlA: string | null = imgEntry?.image_url?.url || imgEntry?.url || null
+      if (dataUrlA) {
+        if (dataUrlA.startsWith("data:image/")) return { imageBase64: dataUrlA, label, model: id }
+        if (/^https?:\/\//.test(dataUrlA)) { const c = await fetchBase64(dataUrlA); if (c) return { imageBase64: c, label, model: id } }
+      }
+      const parts: unknown[] = Array.isArray(message?.content) ? message.content : []
+      for (const part of parts) {
+        const p = part as Record<string, unknown>
+        if (p?.type === "image_url") {
+          const u = (p?.image_url as Record<string, string> | undefined)?.url
+          if (u?.startsWith("data:image/")) return { imageBase64: u, label, model: id }
+          if (u && /^https?:\/\//.test(u)) { const c = await fetchBase64(u); if (c) return { imageBase64: c, label, model: id } }
+        }
+      }
+    } catch (e) { console.warn(`[OpenRouter][${id}]`, errMsg(e)) }
+  }
+  return { imageBase64: null, label, error: "OpenRouter: todos fallaron" }
+}
 
-  const aspectRatio = `${size.w}/${size.h}`
-  const ACCENT = "#ec4899"
+async function runProvider(id: Exclude<ProviderId, "auto">, prompt: string, width: number, height: number, mode: GenerationMode, style: string): Promise<ProviderResult> {
+  switch (id) {
+    case "gemini":       return tryGemini(prompt)
+    case "pollinations": return tryPollinations(prompt, width, height)
+    case "together":     return tryTogether(prompt, width, height)
+    case "huggingface":  return tryHuggingFace(prompt, width, height, style)
+    case "openrouter":   return tryOpenRouter(prompt, width, height, mode)
+  }
+}
 
-  return (
-    <div className="min-h-screen bg-app flex flex-col">
+export async function POST(req: Request) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return new Response("Unauthorized", { status: 401 })
 
-      {/* Fullscreen */}
-      {fullscreen && (
-        <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4" onClick={() => setFullscreen(null)}>
-          <div className="relative max-w-5xl w-full" onClick={e => e.stopPropagation()}>
-            <button onClick={() => setFullscreen(null)}
-              className="absolute -top-12 right-0 flex items-center gap-2 px-4 py-2 rounded-full text-sm text-main transition-all"
-              style={{ background: "var(--border-soft)" }}>
-              <X size={14} /> Cerrar
-            </button>
-            <img src={fullscreen} alt="Imagen ampliada" className="w-full rounded-2xl object-contain shadow-2xl" style={{ maxHeight: "85vh" }} />
-          </div>
-        </div>
-      )}
+  const body = await req.json()
+  const prompt            = String(body?.prompt || "").trim()
+  const style             = String(body?.style || "realistic")
+  const width             = clamp(Number(body?.width), 256, 1920, 1024)
+  const height            = clamp(Number(body?.height), 256, 1920, 768)
+  const provider          = (body?.provider || "auto") as ProviderId
+  const mode              = (body?.mode || "fast") as GenerationMode
+  const customPrompt      = String(body?.customPrompt || "").trim()
+  const source            = String(body?.source || "manual")
+  const topic             = body?.topic ?? null
+  const educationalContext = body?.educationalContext ? String(body.educationalContext) : undefined
 
-      {/* Header */}
-      <header className="border-b border-soft bg-app backdrop-blur-xl sticky top-0 z-10">
-        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
-          <Link href="/dashboard"
-            className="w-8 h-8 flex items-center justify-center rounded-xl bg-card-soft-theme text-sub hover:text-main hover:bg-input-theme transition-all flex-shrink-0">
-            <ArrowLeft size={15} />
-          </Link>
-          <div className="w-9 h-9 rounded-2xl flex items-center justify-center shadow-md flex-shrink-0"
-               style={{ background: "linear-gradient(135deg, #db2777, #9333ea)", boxShadow: "0 4px 12px rgba(219,39,119,0.3)" }}>
-            <ImagePlus size={17} className="text-main" />
-          </div>
-          <div>
-            <h1 className="text-main font-bold text-sm">Generador de Imágenes</h1>
-            <p className="text-muted2 text-xs">Prompt optimizado con IA · FLUX · Stable Diffusion</p>
-          </div>
-        </div>
-      </header>
+  if (!prompt) return new Response("Prompt requerido", { status: 400 })
 
-      <div className="max-w-3xl mx-auto w-full px-4 py-6 flex flex-col gap-5">
+  try {
+    const optimizedPrompt = customPrompt
+      ? customPrompt
+      : shouldOptimizePrompt(mode, customPrompt)
+        ? await optimizePrompt(prompt, style, educationalContext)
+        : basicPrompt(prompt, style)
 
-        {/* Prompt input */}
-        <div className="rounded-2xl p-5 border" style={{ background: "var(--bg-card-soft)", borderColor: "var(--bg-card-soft)" }}>
-          <label className="text-muted2 text-[11px] font-semibold tracking-widest block mb-2">DESCRIPCIÓN</label>
-          <textarea
-            value={prompt} onChange={e => { setPrompt(e.target.value); setShowEditor(false) }}
-            placeholder="Ej: Un astronauta en el espacio profundo, la Tierra detrás de él..."
-            rows={3}
-            className="w-full bg-card-soft-theme border border-soft rounded-xl px-4 py-3 text-main placeholder-gray-400 text-sm focus:outline-none focus:border-pink-500/30 focus:bg-input-theme resize-none transition-all"
-          />
-          <div className="flex flex-wrap gap-2 mt-3">
-            {EXAMPLES.map(ex => (
-              <button key={ex} onClick={() => { setPrompt(ex); setShowEditor(false) }}
-                className="text-xs px-3 py-1 rounded-full transition-all truncate max-w-xs"
-                style={{ background: "rgba(219,39,119,0.08)", border: "1px solid rgba(219,39,119,0.15)", color: "#f9a8d4" }}>
-                {ex.slice(0, 30)}…
-              </button>
-            ))}
-          </div>
-        </div>
+    const order = providerOrder(provider, mode)
+    const errors: string[] = []
+    let imageBase64: string | null = null
+    let usedProvider = "", usedModel = ""
 
-        {/* Prompt editor */}
-        {showEditor && (
-          <div className="rounded-2xl p-4 border animate-fade-in"
-               style={{ background: "rgba(59,130,246,0.05)", borderColor: "rgba(59,130,246,0.2)" }}>
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-blue-700 text-xs font-medium">✨ Prompt optimizado — puedes editarlo</p>
-              <button onClick={() => setShowEditor(false)} className="text-muted2 hover:text-sub"><X size={14} /></button>
-            </div>
-            <textarea value={editingPrompt} onChange={e => setEditingPrompt(e.target.value)} rows={4}
-              className="w-full bg-card-soft-theme border border-blue-500/20 rounded-xl px-4 py-3 text-sub text-xs focus:outline-none focus:border-blue-500/40 resize-none font-mono leading-relaxed transition-all" />
-            <div className="flex gap-2 mt-3">
-              <button onClick={() => generate(true)}
-                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition-all"
-                style={{ background: "linear-gradient(135deg, #db2777, #9333ea)" }}>
-                🎨 Generar con este prompt
-              </button>
-              <button onClick={() => generate(false)}
-                className="px-4 py-2.5 rounded-xl text-sm text-sub transition-all"
-                style={{ background: "var(--bg-input)", border: "1px solid var(--border-soft)" }}>
-                Ignorar
-              </button>
-            </div>
-          </div>
-        )}
+    for (const p of order) {
+      console.log(`[Image] Intentando: ${p}`)
+      const result = await runProvider(p, optimizedPrompt, width, height, mode, style)
+      if (result.imageBase64) {
+        imageBase64 = result.imageBase64; usedProvider = result.label; usedModel = result.model || ""; break
+      }
+      errors.push(`${result.label}${result.model ? ` (${result.model})` : ""}: ${result.error || "falló"}`)
+    }
 
-        {/* Controls grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Estilos */}
-          <div className="rounded-2xl p-4 border md:col-span-2" style={{ background: "var(--bg-card-soft)", borderColor: "var(--bg-card-soft)" }}>
-            <label className="text-muted2 text-[11px] font-semibold tracking-widest block mb-3">ESTILO ARTÍSTICO</label>
-            <div className="grid grid-cols-4 gap-2">
-              {STYLES.map(s => (
-                <button key={s.id} onClick={() => setStyle(s.id)}
-                  className="flex flex-col items-center gap-1 py-2.5 rounded-xl border text-xs font-medium transition-all"
-                  style={{
-                    background:  style === s.id ? "rgba(219,39,119,0.1)" : "var(--bg-card-soft)",
-                    borderColor: style === s.id ? "rgba(219,39,119,0.35)" : "var(--bg-card-soft)",
-                    color:       style === s.id ? "#f9a8d4" : "var(--text-muted)",
-                  }}>
-                  <span className="text-lg">{s.emoji}</span>
-                  <span>{s.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
+    if (!imageBase64) {
+      return new Response("No se pudo generar la imagen.\n\n" + errors.map((l, i) => `${i + 1}. ${l}`).join("\n"), { status: 503 })
+    }
 
-          {/* Tamaño + Proveedor */}
-          <div className="flex flex-col gap-3">
-            <div className="rounded-2xl p-4 border" style={{ background: "var(--bg-card-soft)", borderColor: "var(--bg-card-soft)" }}>
-              <label className="text-muted2 text-[11px] font-semibold tracking-widest block mb-2">TAMAÑO</label>
-              <div className="flex flex-col gap-1.5">
-                {SIZES.map(s => (
-                  <button key={s.label} onClick={() => setSize(s)}
-                    className="text-xs py-2 px-3 rounded-xl border text-left transition-all"
-                    style={{
-                      background:  size.label === s.label ? "rgba(219,39,119,0.1)" : "var(--bg-card-soft)",
-                      borderColor: size.label === s.label ? "rgba(219,39,119,0.3)" : "var(--bg-card-soft)",
-                      color:       size.label === s.label ? "#f9a8d4" : "var(--text-muted)",
-                    }}>
-                    {s.label} <span className="opacity-40">{s.w}×{s.h}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="rounded-2xl p-4 border" style={{ background: "var(--bg-card-soft)", borderColor: "var(--bg-card-soft)" }}>
-              <label className="text-muted2 text-[11px] font-semibold tracking-widest block mb-2">MODELO</label>
-              <select value={provider} onChange={e => setProvider(e.target.value)}
-                className="w-full border border-medium rounded-xl px-3 py-2 text-sub text-xs focus:outline-none transition-all appearance-none cursor-pointer"
-                style={{ background: "var(--bg-card-soft)", colorScheme: "dark" }}>
-                {PROVIDERS.map(p => <option key={p.id} value={p.id} style={{ background: "var(--bg-card-soft)", color: "var(--text-secondary)" }}>{p.label}</option>)}
-              </select>
-            </div>
-          </div>
-        </div>
+    void (async () => {
+      try {
+        const publicUrl = await uploadToStorage(imageBase64!, user.id)
+        const { error } = await supabase.from("generated_images").insert({
+          user_id: user.id, prompt, optimized_prompt: optimizedPrompt,
+          image_url: publicUrl ?? imageBase64!, provider: usedModel ? `${usedProvider} · ${usedModel}` : usedProvider,
+          style, width, height, source, topic,
+        })
+        if (error) console.error("[Image][DB]", error.message)
+      } catch (e) { console.error("[Image][Save]", errMsg(e)) }
+    })()
 
-        {/* Botones de acción */}
-        {!showEditor && (
-          <div className="flex gap-3">
-            <button onClick={getOptimizedPrompt} disabled={!prompt.trim() || optimizing || loading}
-              className="flex-1 py-3.5 rounded-2xl font-medium text-sm transition-all disabled:opacity-40 flex items-center justify-center gap-2"
-              style={{ background: "var(--bg-input)", border: "1px solid var(--border-soft)", color: "var(--text-muted)" }}>
-              {optimizing
-                ? <><Loader2 size={15} className="animate-spin" /> Optimizando...</>
-                : <><Sparkles size={15} /> Ver prompt optimizado</>}
-            </button>
-            <button onClick={() => generate(false)} disabled={!prompt.trim() || loading || optimizing}
-              className="flex-1 py-3.5 rounded-2xl font-bold text-sm text-white transition-all disabled:opacity-40 flex items-center justify-center gap-2"
-              style={{ background: "linear-gradient(135deg, #db2777, #9333ea)", boxShadow: prompt.trim() ? "0 4px 20px rgba(219,39,119,0.3)" : "none" }}>
-              {loading
-                ? <><Loader2 size={16} className="animate-spin" /> Generando...</>
-                : <>🎨 Generar imagen</>}
-            </button>
-          </div>
-        )}
-
-        {/* Resultados */}
-        {results.length > 0 && (
-          <div className="flex flex-col gap-4">
-            <h2 className="text-main font-semibold text-sm">Imágenes generadas</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Skeleton mientras carga */}
-              {loading && <ImageSkeleton aspectRatio={aspectRatio} />}
-              {results.map((r, i) => (
-                <div key={i} className="rounded-2xl overflow-hidden border border-soft group"
-                     style={{ background: "var(--bg-card)" }}>
-                  <div className="relative" style={{ aspectRatio }}>
-                    <img src={r.imageUrl} alt={r.originalPrompt}
-                      onClick={() => setFullscreen(r.imageUrl)}
-                      className="w-full h-full object-cover cursor-zoom-in" />
-                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3"
-                         style={{ background: "rgba(0,0,0,0.6)" }}>
-                      <button onClick={() => setFullscreen(r.imageUrl)}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-main backdrop-blur-sm"
-                        style={{ background: "var(--border-medium)" }}>
-                        <ZoomIn size={13} /> Ampliar
-                      </button>
-                      <button onClick={() => downloadImage(r.imageUrl, i)}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-main backdrop-blur-sm"
-                        style={{ background: "var(--border-medium)" }}>
-                        <Download size={13} /> Descargar
-                      </button>
-                      <button onClick={() => { setPrompt(r.originalPrompt); setEditingPrompt(r.optimizedPrompt); setShowEditor(true) }}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-main backdrop-blur-sm"
-                        style={{ background: "var(--border-medium)" }}>
-                        ✏️ Refinar
-                      </button>
-                    </div>
-                  </div>
-                  <div className="p-3 border-t border-soft">
-                    <p className="text-muted2 text-xs mb-1">via {r.provider}</p>
-                    <p className="text-muted2 text-xs italic leading-relaxed line-clamp-2">{r.optimizedPrompt}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Skeleton inicial */}
-        {loading && results.length === 0 && (
-          <ImageSkeleton aspectRatio={aspectRatio} />
-        )}
-      </div>
-    </div>
-  )
+    return Response.json({
+      imageUrl: imageBase64, optimizedPrompt, provider: usedProvider, model: usedModel,
+      mode, type: "base64", providerOrder: order, promptOptimized: shouldOptimizePrompt(mode, customPrompt),
+    })
+  } catch (e) {
+    return new Response(`Error: ${errMsg(e)}`, { status: 500 })
+  }
 }
