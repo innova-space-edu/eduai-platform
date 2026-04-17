@@ -71,6 +71,18 @@ async function uploadToStorage(imageBase64: string, userId: string): Promise<str
 }
 
 // ─── Prompt optimizer v3 — FLUX.2 structured format ──────────────────────────
+
+// Detecta si el usuario especificó un encuadre/composición
+function detectComposition(prompt: string): string | null {
+  const p = prompt.toLowerCase()
+  if (/full.?body|cuerpo.?completo|de.?cuerpo.?entero|figura.?completa|full.?length/.test(p)) return "full body, full figure visible from head to toe"
+  if (/half.?body|medio.?cuerpo|waist.?up|hasta.?cintura/.test(p))                            return "half body shot, waist up"
+  if (/bust|torso|chest.?up|pecho|busto/.test(p))                                             return "bust shot, chest and shoulders"
+  if (/close.?up|primer.?plano|rostro|cara\b/.test(p))                                        return "close-up portrait, tight face framing"
+  if (/wide.?shot|toma.?amplia|paisaje\b|ambiente\b|escena\b/.test(p))                        return "wide shot, environment visible"
+  return null
+}
+
 async function optimizePrompt(
   userPrompt: string,
   style: string,
@@ -82,24 +94,35 @@ async function optimizePrompt(
   const styleDesc  = STYLE_GUIDES[style] || STYLE_GUIDES.realistic
   const isPortrait = style === "realistic" || style === "portrait"
 
+  // Detectar composición pedida por el usuario — no forzar encuadre facial si pidió otra cosa
+  const userComposition = detectComposition(userPrompt)
+  const compositionNote = userComposition
+    ? `IMPORTANT — The user explicitly requested this framing: "${userComposition}". RESPECT IT. Do NOT override with close-up or face framing.`
+    : isPortrait
+      ? `Default to close-up portrait framing unless the user specified otherwise.`
+      : `Include a composition note matching the content (rule of thirds, centered, wide shot, etc.).`
+
   const systemInstruction = isPortrait
-    ? `You are an expert FLUX.2 prompt engineer specializing in photorealistic portrait generation.
+    ? `You are an expert FLUX.2 prompt engineer specializing in photorealistic photography.
 Transform the user description into a highly detailed structured English prompt.
-STRUCTURE: [Subject with detailed physical description] + [Camera: specific model + lens + aperture] + [Lighting: specific type and direction] + [Composition] + [Quality keywords]
-RULES FOR PORTRAITS:
-- Always specify: exact camera model (Sony A7R V, Canon R5, etc.), lens (85mm f/1.4), aperture
-- Specify lighting precisely: "Rembrandt lighting", "soft diffused window light", "golden hour side light"
-- Add: "perfect facial symmetry", "sharp detailed eyes with natural catchlights", "natural skin pores and texture", "detailed hair strands"
+STRUCTURE: [Subject with detailed physical description] + [Camera: specific model + lens + aperture] + [Lighting: specific type and direction] + [Composition/Framing] + [Quality keywords]
+
+RULES:
+- Always specify: exact camera model (Sony A7R V, Canon R5, etc.), lens mm, aperture
+- Specify lighting: "Rembrandt lighting", "soft diffused window light", "golden hour side light", "studio three-point lighting"
+- Add skin/detail quality: "natural skin texture with visible pores", "sharp detailed eyes with natural catchlights", "detailed hair strands"
+- ${compositionNote}
 - End with: "photorealistic, 8K, masterpiece, best quality, highly detailed"
 - DO NOT add any NSFW content
-- Output ONLY the optimized English prompt, no explanations`
+- Output ONLY the optimized English prompt, no explanations, no quotes`
     : `You are an expert FLUX.2 prompt engineer for AI image generation.
 Transform the user description into a highly detailed structured English prompt.
 STRUCTURE: [Main subject with vivid details] + [Style: ${styleDesc}] + [Lighting and atmosphere] + [Composition] + [Quality]
+
 RULES:
 - Keep the exact subject intent
 - Add specific visual details, color palette, lighting, mood
-- Include composition guidance: "rule of thirds", "centered composition", etc.
+- ${compositionNote}
 - End with quality keywords matching the style
 - Output ONLY the optimized English prompt, no explanations, no quotes`
 
