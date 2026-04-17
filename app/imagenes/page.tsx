@@ -38,12 +38,13 @@ const MODES = [
 ]
 
 const PROVIDERS = [
-  { id: "auto",         label: "Auto (mejor disponible)" },
-  { id: "together",     label: "Together AI (FLUX.2 Pro)" },
-  { id: "openrouter",   label: "OpenRouter (Seedream/FLUX)" },
-  { id: "gemini",       label: "Gemini Imagen (Google)" },
-  { id: "pollinations", label: "Pollinations (FLUX free)" },
-  { id: "huggingface",  label: "Hugging Face (SDXL/FLUX)" },
+  { id: "auto",         label: "Auto (mejor disponible)"        },
+  { id: "stability",    label: "Stability AI (SD3.5 / Core)"    },
+  { id: "together",     label: "Together AI (FLUX.2 / SD3.5)"   },
+  { id: "openrouter",   label: "OpenRouter (Seedream/FLUX)"      },
+  { id: "gemini",       label: "Gemini Imagen (Google)"          },
+  { id: "pollinations", label: "Pollinations (FLUX free)"        },
+  { id: "huggingface",  label: "Hugging Face (SDXL/FLUX)"        },
 ]
 
 // Portrait presets — descripciones de personas con alta calidad facial
@@ -344,7 +345,9 @@ export default function ImagenesPage() {
               {PROVIDERS.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
             </select>
             <p className="text-muted2 text-[10px] mt-2">
-              {mode === "quality" ? "✨ Modo Calidad: FLUX.2 Pro (35 pasos)" : "⚡ Modo Rápido: FLUX schnell (4 pasos)"}
+              {mode === "quality"
+                ? "✨ Calidad: SD3.5 Large + FLUX.2 Pro"
+                : "⚡ Rápido: Stable Image Core + FLUX schnell"}
             </p>
           </div>
         </div>
