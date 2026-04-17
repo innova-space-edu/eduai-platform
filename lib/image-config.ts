@@ -1,8 +1,8 @@
-// lib/image-config.ts — v3
+// lib/image-config.ts
+// v2 — FLUX.2 en Together, cadena OpenRouter 2026, Gemini via OR
 
 export type ProviderId =
   | "auto"
-  | "stability"
   | "gemini"
   | "pollinations"
   | "together"
@@ -10,6 +10,7 @@ export type ProviderId =
   | "openrouter"
 
 export type ConcreteProviderId = Exclude<ProviderId, "auto">
+
 export type GenerationMode = "fast" | "quality" | "educational"
 
 export type ProviderResult = {
@@ -19,150 +20,80 @@ export type ProviderResult = {
   error?: string
 }
 
-// ─── Style guides — prompts estructurados FLUX.2 ──────────────────────────────
 export const STYLE_GUIDES: Record<string, string> = {
   realistic:
-    "RAW photo, photorealistic, shot on Sony A7R V with 85mm f/1.4 lens, natural skin texture with visible pores, catchlights in eyes, natural lighting, ultra-sharp focus, 8K resolution, no filters, professional photography",
-
-  portrait:
-    "professional photography, Sony A7IV 85mm f/1.8, natural skin texture, sharp eyes with natural catchlights, warm golden hour window light, soft bokeh background, perfect facial anatomy, detailed hair strands, cinematic color grading",
-
-  "3d animation":
-    "3D animated character, Pixar style, subsurface scattering skin shader, high-fidelity 3D render, cinema4d octane render, volumetric lighting, professional character design, smooth textures, expressive face, vibrant color palette, depth of field",
-
-  "comic book":
-    "classic American comic book illustration style, 1970s-1980s era, bold ink outlines, halftone dot patterns, strong shadows and highlights, dynamic composition, vintage color palette with warm tones, detailed cross-hatching, graphic novel quality",
-
+    "photorealistic, DSLR photo, 85mm lens, sharp focus, natural lighting, ultra detailed, 8k resolution",
   "digital art":
-    "digital painting, concept art, artstation trending 2025, vibrant colors, highly detailed, professional illustration, dramatic lighting, rich color contrast, cinematic composition, masterpiece quality",
-
+    "digital painting, concept art, artstation trending, vibrant colors, detailed illustration, professional quality",
   "oil painting":
-    "oil on canvas, classical fine art portrait, museum quality, rich impasto textures, Rembrandt dramatic chiaroscuro lighting, warm amber tones, detailed brushwork, renaissance composition, masterpiece",
-
+    "oil on canvas, impressionist brushstrokes, museum quality, rich textures, classical fine art painting",
   anime:
-    "high-quality anime illustration, Studio Ghibli or KyoAni inspired, clean linework, expressive detailed eyes with light reflections, vibrant colors, soft cel shading, professional anime key visual, detailed hair, cinematic framing",
-
+    "anime style, Studio Ghibli inspired, detailed linework, vibrant colors, manga illustration, clean lines",
   watercolor:
-    "watercolor painting, loose expressive brushwork, delicate transparent washes, artistic, soft dreamy edges, paper texture visible, natural light, harmonious color palette, award-winning illustration",
-
+    "watercolor painting, soft edges, transparent washes, artistic, delicate details, paper texture visible",
   "3d render":
-    "photorealistic 3D render, octane render or Blender cycles, ray-traced reflections, subsurface scattering, volumetric atmosphere, cinematic depth of field, PBR materials, studio HDR lighting, 4K resolution",
-
+    "3D render, octane render, cinema4d, ray tracing, photorealistic 3D, subsurface scattering, volumetric light",
   sketch:
-    "detailed pencil sketch, graphite on white paper, precise technical linework, cross-hatching for shadows, expressive gestural marks, concept art quality, clean white background",
-
+    "pencil sketch, detailed linework, graphite drawing, cross-hatching, artistic sketch, white background",
   cinematic:
-    "anamorphic cinema lens, movie still, dramatic Kodak 35mm film look, golden hour or magic hour lighting, epic widescreen composition, shallow depth of field, cinematic color grade with lifted shadows, blockbuster quality",
-
-  "neon cyberpunk":
-    "neon-lit cyberpunk aesthetic, rain-slicked streets reflection, holographic UI elements, volumetric neon glow, deep contrast darkness, cyan and magenta accent lights, futuristic urban environment, blade runner 2049 inspired",
-
-  fantasy:
-    "epic fantasy digital painting, highly detailed, dramatic magical lighting, intricate costume and environment design, rich jewel-tone color palette, bokeh particles of light, fantastical landscape, cinematic composition",
-
-  architectural:
-    "architectural photography, Canon EOS R5 with 24mm tilt-shift lens, blue hour lighting, perfect vertical lines, HDR detail, award-winning architectural digest quality, dramatic sky, long exposure",
-
+    "cinematic photography, movie still, dramatic lighting, anamorphic lens, epic composition, shallow depth of field",
   educational:
-    "clean educational diagram, professional scientific illustration, white background, clear labeled elements, high contrast, pedagogical design, colorful but not garish, precise anatomical or technical accuracy",
-
+    "educational diagram, clean illustration, labeled, informative, white background, professional, colorful, pedagogical",
   "flat design":
-    "minimal flat design vector illustration, geometric bold shapes, harmonious color palette, modern icon style, clean negative space, professional graphic design, Dribbble quality",
+    "flat design illustration, minimal, geometric shapes, bold colors, modern vector art, icon style",
+  infographic:
+    "infographic style, data visualization, clean design, informative, colorful sections, professional design",
 }
 
-// ─── Negative prompts (HuggingFace SD/SDXL) ──────────────────────────────────
-export const NEGATIVE_PROMPTS: Record<string, string> = {
-  realistic:
-    "deformed face, asymmetrical eyes, crossed eyes, bad anatomy, blurry, low quality, distorted, ugly, mutated hands, extra fingers, missing fingers, watermark, text, signature, overexposed, underexposed, cartoon, painting, illustration, artificial, plastic skin, doll-like",
-  portrait:
-    "deformed iris, deformed pupils, bad eyes, asymmetrical face, ugly, poorly drawn face, bad anatomy, blurry, text, watermark, extra fingers, mutated hands, bad hands, long neck, skin blemishes, oversaturated",
-  "3d animation":
-    "photo realistic, blurry, low quality, bad proportions, deformed, ugly textures",
-  "comic book":
-    "photorealistic, 3d render, blurry, low quality, inconsistent style",
-  default:
-    "blurry, low quality, distorted, watermark, text, deformed, bad anatomy, ugly, oversaturated, underexposed",
-}
-
-// ─── Provider order ───────────────────────────────────────────────────────────
 export const DEFAULT_IMAGE_PROVIDER_ORDER: Record<GenerationMode, ConcreteProviderId[]> = {
-  fast:        ["stability", "pollinations", "openrouter", "together", "huggingface"],
-  quality:     ["stability", "together", "openrouter", "gemini", "huggingface", "pollinations"],
-  educational: ["gemini", "stability", "openrouter", "together", "huggingface", "pollinations"],
+  fast:        ["pollinations", "openrouter", "together", "huggingface"],
+  quality:     ["gemini", "openrouter", "together", "huggingface", "pollinations"],
+  educational: ["gemini", "openrouter", "together", "huggingface", "pollinations"],
 }
 
-// ─── Model lists ──────────────────────────────────────────────────────────────
-
-// Stability AI — api.stability.ai/v2beta
-// Requiere: STABILITY_API_KEY en .env
-export type StabilityModel = {
-  id: string          // model name para el campo "model" del body
-  endpoint: string    // "core" | "sd3"
-  label: string       // nombre para mostrar
-  supportsNegative: boolean
-}
-
-export const STABILITY_MODELS: StabilityModel[] = [
-  // Stable Image Core — más rápido y barato (~$0.03/imagen), sin campo "model"
-  { id: "core",               endpoint: "core", label: "Stable Image Core",      supportsNegative: true  },
-  // SD3.5 Large Turbo — 4 pasos, rápido y de alta calidad (~$0.04/imagen)
-  { id: "sd3.5-large-turbo",  endpoint: "sd3",  label: "SD3.5 Large Turbo",      supportsNegative: false },
-  // SD3.5 Large — máxima calidad (~$0.065/imagen)
-  { id: "sd3.5-large",        endpoint: "sd3",  label: "SD3.5 Large",            supportsNegative: true  },
-  // SD3.5 Medium — equilibrio calidad/velocidad (~$0.035/imagen)
-  { id: "sd3.5-medium",       endpoint: "sd3",  label: "SD3.5 Medium",           supportsNegative: true  },
-]
+export const GEMINI_IMAGE_MODELS: string[] = [
   process.env.GEMINI_IMAGE_MODEL_PRIMARY,
   process.env.GEMINI_IMAGE_MODEL_SECONDARY,
   process.env.GEMINI_IMAGE_MODEL_TERTIARY,
-  "gemini-2.5-flash-image",
-  "gemini-3.1-flash-image-preview",
+  // GA — modelos activos oficiales
+  "gemini-2.5-flash-image", // GA desde Oct 2025, modelo correcto
+  "gemini-3.1-flash-image-preview", // preview más reciente
+  // Fallbacks (pueden fallar en cuentas nuevas o regiones)
   "gemini-2.0-flash-exp",
   "gemini-2.0-flash-preview-image-generation",
   "gemini-2.0-flash-exp-image-generation",
-].filter(Boolean) as string[]
+].filter((model): model is string => Boolean(model))
 
-export type TogetherImageModel = {
-  id: string
-  steps: number
-  guidance: number
-  useAspectRatio: boolean
-}
-
+export type TogetherImageModel = { id: string; steps: number; guidance: number; useAspectRatio: boolean }
 export const TOGETHER_IMAGE_MODELS: TogetherImageModel[] = [
-  // FLUX.2
-  { id: "black-forest-labs/FLUX.2-pro",             steps: 35, guidance: 3.5, useAspectRatio: true  },
-  { id: "black-forest-labs/FLUX.2-flex",            steps: 30, guidance: 3.5, useAspectRatio: true  },
-  // Stable Diffusion 3.5 vía Together (~$0.0019/MP)
-  { id: "stabilityai/stable-diffusion-3.5-large",   steps: 28, guidance: 7.0, useAspectRatio: false },
-  { id: "stabilityai/stable-diffusion-3-medium",    steps: 28, guidance: 7.0, useAspectRatio: false },
-  // FLUX.1.x
-  { id: "black-forest-labs/FLUX.1-schnell",         steps: 4,  guidance: 0,   useAspectRatio: false },
-  { id: "black-forest-labs/FLUX.1-dev",             steps: 25, guidance: 3.5, useAspectRatio: false },
+  // FLUX.2 (nov 2025) — calidad producción, usa aspect_ratio
+  { id: "black-forest-labs/FLUX.2-pro",     steps: 28, guidance: 3.5, useAspectRatio: true  },
+  { id: "black-forest-labs/FLUX.2-flex",    steps: 28, guidance: 3.5, useAspectRatio: true  },
+  // FLUX.1.x — más rápido, usa width/height
+  { id: "black-forest-labs/FLUX.1-schnell", steps: 4,  guidance: 0,   useAspectRatio: false },
+  { id: "black-forest-labs/FLUX.1-dev",     steps: 20, guidance: 3.5, useAspectRatio: false },
 ]
 
-export type HuggingFaceModel = {
-  id: string
-  steps: number
-  guidance: number
-  supportsNegative: boolean
-}
-
-export const HUGGINGFACE_IMAGE_MODELS: HuggingFaceModel[] = [
-  { id: "black-forest-labs/FLUX.1-schnell",         steps: 4,  guidance: 0,   supportsNegative: false },
-  { id: "stabilityai/stable-diffusion-xl-base-1.0", steps: 30, guidance: 7.5, supportsNegative: true  },
-  { id: "stabilityai/stable-diffusion-3.5-large",   steps: 28, guidance: 7.0, supportsNegative: true  },
+export const HUGGINGFACE_IMAGE_MODELS = [
+  { id: "black-forest-labs/FLUX.1-schnell", steps: 4, guidance: 0 },
+  { id: "stabilityai/stable-diffusion-xl-base-1.0", steps: 25, guidance: 7.5 },
 ]
 
+// Modelos de imagen disponibles vía OpenRouter (abril 2026).
+// modalities: ["image","text"] → modelos que devuelven texto + imagen (Gemini, OpenAI)
+//             ["image"]        → solo imagen (Sourceful, ByteDance, FLUX)
 export const OPENROUTER_IMAGE_MODELS: { id: string; modalities: string[] }[] = [
+  // Google Gemini — GA, mejor calidad/precio, excelente para educación
   { id: "google/gemini-2.5-flash-image",         modalities: ["image", "text"] },
   { id: "google/gemini-3.1-flash-image-preview", modalities: ["image", "text"] },
+  // Sourceful Riverflow — rápido y barato ($0.02/imagen)
   { id: "sourceful/riverflow-v2-fast",           modalities: ["image"] },
+  // ByteDance Seedream 4.5 — alta calidad ($0.04/imagen)
   { id: "bytedance-seed/seedream-4.5",           modalities: ["image"] },
+  // OpenAI GPT-5 Image Mini — fallback premium
   { id: "openai/gpt-5-image-mini",               modalities: ["image", "text"] },
 ]
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 export function clamp(v: number, min: number, max: number, fallback: number): number {
   if (!Number.isFinite(v)) return fallback
   return Math.max(min, Math.min(max, Math.round(v)))
@@ -173,104 +104,151 @@ export function errMsg(error: unknown): string {
 }
 
 export async function safeText(res: Response): Promise<string> {
-  try { return await res.text() } catch { return "" }
-}
-
-export function buildStructuredPrompt(subject: string, styleGuide: string, style: string): string {
-  const isPortrait = style === "realistic" || style === "portrait"
-  if (isPortrait) {
-    // Sólo añade calidad de piel/ojos — sin forzar encuadre facial
-    return `${subject}, ${styleGuide}, natural skin texture with visible pores, sharp detailed eyes with natural catchlights, detailed hair strands, masterpiece, best quality, highly detailed`
+  try {
+    return await res.text()
+  } catch {
+    return ""
   }
-  return `${subject}, ${styleGuide}, highly detailed, masterpiece, best quality`
 }
 
 export function basicPrompt(prompt: string, style: string): string {
-  const guide = STYLE_GUIDES[style] || STYLE_GUIDES.realistic
-  return buildStructuredPrompt(prompt, guide, style)
-}
-
-export function getNegativePrompt(style: string): string {
-  return NEGATIVE_PROMPTS[style] || NEGATIVE_PROMPTS.default
+  return `${prompt}, ${STYLE_GUIDES[style] || STYLE_GUIDES.realistic}, highly detailed, masterpiece, best quality`
 }
 
 export function aspectRatio(width: number, height: number): string {
   const r = width / height
-  if (Math.abs(r - 1)       < 0.05)  return "1:1"
-  if (Math.abs(r - 16 / 9)  < 0.15)  return "16:9"
-  if (Math.abs(r - 9 / 16)  < 0.15)  return "9:16"
-  if (Math.abs(r - 4 / 3)   < 0.15)  return "4:3"
-  if (Math.abs(r - 3 / 4)   < 0.15)  return "3:4"
-  if (Math.abs(r - 3 / 2)   < 0.15)  return "3:2"
-  if (Math.abs(r - 2 / 3)   < 0.15)  return "2:3"
+  if (Math.abs(r - 1) < 0.05) return "1:1"
+  if (Math.abs(r - 16 / 9) < 0.15) return "16:9"
+  if (Math.abs(r - 9 / 16) < 0.15) return "9:16"
+  if (Math.abs(r - 4 / 3) < 0.15) return "4:3"
+  if (Math.abs(r - 3 / 4) < 0.15) return "3:4"
+  if (Math.abs(r - 3 / 2) < 0.15) return "3:2"
+  if (Math.abs(r - 2 / 3) < 0.15) return "2:3"
   return r >= 1 ? "16:9" : "9:16"
 }
 
 export function envPool(...names: string[]): string[] {
-  return names.map(n => process.env[n]).filter(Boolean) as string[]
+  return names.map((name) => process.env[name]).filter(Boolean) as string[]
 }
 
 export function pickFromPool<T>(items: T[], seed?: string): T | null {
   if (!items.length) return null
   if (!seed) return items[Math.floor(Math.random() * items.length)]
+
   let hash = 0
-  for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) >>> 0
+  for (let i = 0; i < seed.length; i += 1) {
+    hash = (hash * 31 + seed.charCodeAt(i)) >>> 0
+  }
   return items[hash % items.length]
 }
 
 export function getPromptOptimizerKeys(): string[] {
-  return envPool("GEMINI_API_KEY_PROMPT_1","GEMINI_API_KEY_PROMPT_2","GEMINI_API_KEY_PROMPT_3","GEMINI_API_KEY_PROMPT_4","GEMINI_API_KEY_IMAGE","GEMINI_API_KEY")
-}
-export function getGeminiImageKeys(): string[] {
-  return envPool("GEMINI_API_KEY_IMAGE","GEMINI_API_KEY_IMAGE_2","GEMINI_API_KEY")
-}
-export function getGeminiTextKeys(): string[] {
-  return envPool("GEMINI_API_KEY_TEXT","GEMINI_API_KEY")
-}
-export function getStabilityKeys(): string[] {
-  return envPool("STABILITY_API_KEY_1","STABILITY_API_KEY_2","STABILITY_API_KEY")
-}
-export function getTogetherKeys(): string[] {
-  return envPool("TOGETHER_API_KEY_1","TOGETHER_API_KEY_2","TOGETHER_API_KEY_3","TOGETHER_API_KEY")
-}
-export function getOpenRouterKeys(): string[] {
-  return envPool("OPENROUTER_API_KEY_1","OPENROUTER_API_KEY_2","OPENROUTER_API_KEY_3","OPENROUTER_API_KEY")
-}
-export function getHuggingFaceTokens(): string[] {
-  return envPool("HF_TOKEN_1","HF_TOKEN_2","HF_TOKEN_3","HF_TOKEN_4","HF_TOKEN_5")
+  return envPool(
+    "GEMINI_API_KEY_PROMPT_1",
+    "GEMINI_API_KEY_PROMPT_2",
+    "GEMINI_API_KEY_PROMPT_3",
+    "GEMINI_API_KEY_PROMPT_4",
+    "GEMINI_API_KEY_IMAGE",
+    "GEMINI_API_KEY"
+  )
 }
 
-export function parseProviderOrder(
-  value: string | undefined,
-  fallback: ConcreteProviderId[]
-): ConcreteProviderId[] {
+export function getGeminiImageKeys(): string[] {
+  return envPool(
+    "GEMINI_API_KEY_IMAGE",
+    "GEMINI_API_KEY_IMAGE_2",
+    "GEMINI_API_KEY"
+  )
+}
+
+export function getGeminiTextKeys(): string[] {
+  return envPool(
+    "GEMINI_API_KEY_TEXT",
+    "GEMINI_API_KEY"
+  )
+}
+
+export function getTogetherKeys(): string[] {
+  return envPool(
+    "TOGETHER_API_KEY_1",
+    "TOGETHER_API_KEY_2",
+    "TOGETHER_API_KEY_3",
+    "TOGETHER_API_KEY"
+  )
+}
+
+export function getOpenRouterKeys(): string[] {
+  return envPool(
+    "OPENROUTER_API_KEY_1",
+    "OPENROUTER_API_KEY_2",
+    "OPENROUTER_API_KEY_3",
+    "OPENROUTER_API_KEY"
+  )
+}
+
+export function getHuggingFaceTokens(): string[] {
+  return envPool(
+    "HF_TOKEN_1",
+    "HF_TOKEN_2",
+    "HF_TOKEN_3",
+    "HF_TOKEN_4",
+    "HF_TOKEN_5"
+  )
+}
+
+export function parseProviderOrder(value: string | undefined, fallback: ConcreteProviderId[]): ConcreteProviderId[] {
   if (!value?.trim()) return fallback
-  const valid: ConcreteProviderId[] = ["stability","gemini","pollinations","together","huggingface","openrouter"]
+
+  const valid: ConcreteProviderId[] = ["gemini", "pollinations", "together", "huggingface", "openrouter"]
   const parsed = value
     .split(",")
-    .map(p => p.trim().toLowerCase())
-    .filter((p): p is ConcreteProviderId => valid.includes(p as ConcreteProviderId))
+    .map((part) => part.trim().toLowerCase())
+    .filter((part): part is ConcreteProviderId => valid.includes(part as ConcreteProviderId))
+
   if (!parsed.length) return fallback
+
   const unique: ConcreteProviderId[] = []
-  for (const p of parsed) { if (!unique.includes(p)) unique.push(p) }
+  for (const provider of parsed) {
+    if (!unique.includes(provider)) unique.push(provider)
+  }
   return unique
 }
 
 export function providerOrder(provider: ProviderId, mode: GenerationMode): ConcreteProviderId[] {
   if (provider !== "auto") return [provider]
-  if (mode === "fast")    return parseProviderOrder(process.env.IMAGE_PROVIDER_ORDER_FAST,        DEFAULT_IMAGE_PROVIDER_ORDER.fast)
-  if (mode === "quality") return parseProviderOrder(process.env.IMAGE_PROVIDER_ORDER_QUALITY,     DEFAULT_IMAGE_PROVIDER_ORDER.quality)
-  return parseProviderOrder(process.env.IMAGE_PROVIDER_ORDER_EDUCATIONAL, DEFAULT_IMAGE_PROVIDER_ORDER.educational)
+
+  if (mode === "fast") {
+    return parseProviderOrder(
+      process.env.IMAGE_PROVIDER_ORDER_FAST,
+      DEFAULT_IMAGE_PROVIDER_ORDER.fast
+    )
+  }
+
+  if (mode === "quality") {
+    return parseProviderOrder(
+      process.env.IMAGE_PROVIDER_ORDER_QUALITY,
+      DEFAULT_IMAGE_PROVIDER_ORDER.quality
+    )
+  }
+
+  return parseProviderOrder(
+    process.env.IMAGE_PROVIDER_ORDER_EDUCATIONAL,
+    DEFAULT_IMAGE_PROVIDER_ORDER.educational
+  )
 }
 
 export function shouldOptimizePrompt(mode: GenerationMode, customPrompt?: string): boolean {
   if (customPrompt?.trim()) return false
+
   const enabled = (process.env.IMAGE_PROMPT_OPTIMIZER_ENABLED || "true").toLowerCase() === "true"
   if (!enabled) return false
+
   const optimizerMode = (process.env.IMAGE_PROMPT_OPTIMIZER_MODE || "quality_only").toLowerCase()
-  if (optimizerMode === "always")           return true
-  if (optimizerMode === "never")            return false
-  if (optimizerMode === "quality_only")     return mode === "quality" || mode === "educational"
+
+  if (optimizerMode === "always") return true
+  if (optimizerMode === "never") return false
+  if (optimizerMode === "quality_only") return mode === "quality" || mode === "educational"
   if (optimizerMode === "educational_only") return mode === "educational"
+
   return mode === "quality" || mode === "educational"
 }
