@@ -1,5 +1,4 @@
 // lib/image-config.ts — v3
-// Mejoras: prompts estructurados FLUX.2, nuevos estilos, calidad de caras/retratos
 
 export type ProviderId =
   | "auto"
@@ -19,8 +18,7 @@ export type ProviderResult = {
   error?: string
 }
 
-// ─── Style guides v3 — con specs técnicas de cámara y composición ────────────
-// FLUX.2 responde mejor a prompts estructurados: Sujeto → Estilo → Cámara → Luz → Composición
+// ─── Style guides — prompts estructurados FLUX.2 ──────────────────────────────
 export const STYLE_GUIDES: Record<string, string> = {
   realistic:
     "RAW photo, photorealistic, shot on Sony A7R V with 85mm f/1.4 lens, shallow depth of field, perfect facial symmetry, natural skin texture with visible pores, catchlights in eyes, studio three-point lighting, ultra-sharp focus on face, 8K resolution, no filters, professional photography",
@@ -71,7 +69,7 @@ export const STYLE_GUIDES: Record<string, string> = {
     "minimal flat design vector illustration, geometric bold shapes, harmonious color palette, modern icon style, clean negative space, professional graphic design, Dribbble quality",
 }
 
-// ─── Negative prompts por tipo (para HuggingFace SD/SDXL) ────────────────────
+// ─── Negative prompts (HuggingFace SD/SDXL) ──────────────────────────────────
 export const NEGATIVE_PROMPTS: Record<string, string> = {
   realistic:
     "deformed face, asymmetrical eyes, crossed eyes, bad anatomy, blurry, low quality, distorted, ugly, mutated hands, extra fingers, missing fingers, watermark, text, signature, overexposed, underexposed, cartoon, painting, illustration, artificial, plastic skin, doll-like",
@@ -104,7 +102,13 @@ export const GEMINI_IMAGE_MODELS = [
   "gemini-2.0-flash-exp-image-generation",
 ].filter(Boolean) as string[]
 
-export type TogetherImageModel = { id: string; steps: number; guidance: number; useAspectRatio: boolean }
+export type TogetherImageModel = {
+  id: string
+  steps: number
+  guidance: number
+  useAspectRatio: boolean
+}
+
 export const TOGETHER_IMAGE_MODELS: TogetherImageModel[] = [
   { id: "black-forest-labs/FLUX.2-pro",     steps: 35, guidance: 3.5, useAspectRatio: true  },
   { id: "black-forest-labs/FLUX.2-flex",    steps: 30, guidance: 3.5, useAspectRatio: true  },
@@ -112,10 +116,17 @@ export const TOGETHER_IMAGE_MODELS: TogetherImageModel[] = [
   { id: "black-forest-labs/FLUX.1-dev",     steps: 25, guidance: 3.5, useAspectRatio: false },
 ]
 
-export const HUGGINGFACE_IMAGE_MODELS = [
-  { id: "black-forest-labs/FLUX.1-schnell", steps: 4,  guidance: 0,   supportsNegative: false },
-  { id: "stabilityai/stable-diffusion-xl-base-1.0", steps: 30, guidance: 7.5, supportsNegative: true },
-  { id: "stabilityai/stable-diffusion-3.5-large",   steps: 28, guidance: 7.0, supportsNegative: true },
+export type HuggingFaceModel = {
+  id: string
+  steps: number
+  guidance: number
+  supportsNegative: boolean
+}
+
+export const HUGGINGFACE_IMAGE_MODELS: HuggingFaceModel[] = [
+  { id: "black-forest-labs/FLUX.1-schnell",         steps: 4,  guidance: 0,   supportsNegative: false },
+  { id: "stabilityai/stable-diffusion-xl-base-1.0", steps: 30, guidance: 7.5, supportsNegative: true  },
+  { id: "stabilityai/stable-diffusion-3.5-large",   steps: 28, guidance: 7.0, supportsNegative: true  },
 ]
 
 export const OPENROUTER_IMAGE_MODELS: { id: string; modalities: string[] }[] = [
@@ -131,27 +142,26 @@ export function clamp(v: number, min: number, max: number, fallback: number): nu
   if (!Number.isFinite(v)) return fallback
   return Math.max(min, Math.min(max, Math.round(v)))
 }
+
 export function errMsg(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
+
 export async function safeText(res: Response): Promise<string> {
   try { return await res.text() } catch { return "" }
 }
-export function basicPrompt(prompt: string, style: string): string {
-  const guide = STYLE_GUIDES[style] || STYLE_GUIDES.realistic
-  return buildStructuredPrompt(prompt, guide, style)
-}
 
-// ─── FLUX.2 structured prompt builder ────────────────────────────────────────
-// FLUX.2 follows: Subject → Style → Camera → Lighting → Composition
 export function buildStructuredPrompt(subject: string, styleGuide: string, style: string): string {
   const isPortrait = style === "realistic" || style === "portrait"
-
   if (isPortrait) {
     return `${subject}, ${styleGuide}, perfect facial symmetry, natural skin texture with visible pores, sharp detailed eyes, natural catchlights in eyes, detailed hair strands, masterpiece, best quality, highly detailed`
   }
-
   return `${subject}, ${styleGuide}, highly detailed, masterpiece, best quality`
+}
+
+export function basicPrompt(prompt: string, style: string): string {
+  const guide = STYLE_GUIDES[style] || STYLE_GUIDES.realistic
+  return buildStructuredPrompt(prompt, guide, style)
 }
 
 export function getNegativePrompt(style: string): string {
@@ -173,6 +183,7 @@ export function aspectRatio(width: number, height: number): string {
 export function envPool(...names: string[]): string[] {
   return names.map(n => process.env[n]).filter(Boolean) as string[]
 }
+
 export function pickFromPool<T>(items: T[], seed?: string): T | null {
   if (!items.length) return null
   if (!seed) return items[Math.floor(Math.random() * items.length)]
@@ -181,17 +192,35 @@ export function pickFromPool<T>(items: T[], seed?: string): T | null {
   return items[hash % items.length]
 }
 
-export function getPromptOptimizerKeys() { return envPool("GEMINI_API_KEY_PROMPT_1","GEMINI_API_KEY_PROMPT_2","GEMINI_API_KEY_PROMPT_3","GEMINI_API_KEY_PROMPT_4","GEMINI_API_KEY_IMAGE","GEMINI_API_KEY") }
-export function getGeminiImageKeys()     { return envPool("GEMINI_API_KEY_IMAGE","GEMINI_API_KEY_IMAGE_2","GEMINI_API_KEY") }
-export function getGeminiTextKeys()      { return envPool("GEMINI_API_KEY_TEXT","GEMINI_API_KEY") }
-export function getTogetherKeys()        { return envPool("TOGETHER_API_KEY_1","TOGETHER_API_KEY_2","TOGETHER_API_KEY_3","TOGETHER_API_KEY") }
-export function getOpenRouterKeys()      { return envPool("OPENROUTER_API_KEY_1","OPENROUTER_API_KEY_2","OPENROUTER_API_KEY_3","OPENROUTER_API_KEY") }
-export function getHuggingFaceTokens()   { return envPool("HF_TOKEN_1","HF_TOKEN_2","HF_TOKEN_3","HF_TOKEN_4","HF_TOKEN_5") }
+export function getPromptOptimizerKeys(): string[] {
+  return envPool("GEMINI_API_KEY_PROMPT_1","GEMINI_API_KEY_PROMPT_2","GEMINI_API_KEY_PROMPT_3","GEMINI_API_KEY_PROMPT_4","GEMINI_API_KEY_IMAGE","GEMINI_API_KEY")
+}
+export function getGeminiImageKeys(): string[] {
+  return envPool("GEMINI_API_KEY_IMAGE","GEMINI_API_KEY_IMAGE_2","GEMINI_API_KEY")
+}
+export function getGeminiTextKeys(): string[] {
+  return envPool("GEMINI_API_KEY_TEXT","GEMINI_API_KEY")
+}
+export function getTogetherKeys(): string[] {
+  return envPool("TOGETHER_API_KEY_1","TOGETHER_API_KEY_2","TOGETHER_API_KEY_3","TOGETHER_API_KEY")
+}
+export function getOpenRouterKeys(): string[] {
+  return envPool("OPENROUTER_API_KEY_1","OPENROUTER_API_KEY_2","OPENROUTER_API_KEY_3","OPENROUTER_API_KEY")
+}
+export function getHuggingFaceTokens(): string[] {
+  return envPool("HF_TOKEN_1","HF_TOKEN_2","HF_TOKEN_3","HF_TOKEN_4","HF_TOKEN_5")
+}
 
-export function parseProviderOrder(value: string | undefined, fallback: ConcreteProviderId[]): ConcreteProviderId[] {
+export function parseProviderOrder(
+  value: string | undefined,
+  fallback: ConcreteProviderId[]
+): ConcreteProviderId[] {
   if (!value?.trim()) return fallback
   const valid: ConcreteProviderId[] = ["gemini","pollinations","together","huggingface","openrouter"]
-  const parsed = value.split(",").map(p => p.trim().toLowerCase()).filter((p): p is ConcreteProviderId => valid.includes(p as ConcreteProviderId))
+  const parsed = value
+    .split(",")
+    .map(p => p.trim().toLowerCase())
+    .filter((p): p is ConcreteProviderId => valid.includes(p as ConcreteProviderId))
   if (!parsed.length) return fallback
   const unique: ConcreteProviderId[] = []
   for (const p of parsed) { if (!unique.includes(p)) unique.push(p) }
@@ -200,8 +229,8 @@ export function parseProviderOrder(value: string | undefined, fallback: Concrete
 
 export function providerOrder(provider: ProviderId, mode: GenerationMode): ConcreteProviderId[] {
   if (provider !== "auto") return [provider]
-  if (mode === "fast")        return parseProviderOrder(process.env.IMAGE_PROVIDER_ORDER_FAST,        DEFAULT_IMAGE_PROVIDER_ORDER.fast)
-  if (mode === "quality")     return parseProviderOrder(process.env.IMAGE_PROVIDER_ORDER_QUALITY,     DEFAULT_IMAGE_PROVIDER_ORDER.quality)
+  if (mode === "fast")    return parseProviderOrder(process.env.IMAGE_PROVIDER_ORDER_FAST,        DEFAULT_IMAGE_PROVIDER_ORDER.fast)
+  if (mode === "quality") return parseProviderOrder(process.env.IMAGE_PROVIDER_ORDER_QUALITY,     DEFAULT_IMAGE_PROVIDER_ORDER.quality)
   return parseProviderOrder(process.env.IMAGE_PROVIDER_ORDER_EDUCATIONAL, DEFAULT_IMAGE_PROVIDER_ORDER.educational)
 }
 
