@@ -1,0 +1,62 @@
+// app/api/agents/traductor/extract/route.ts
+// Extracts text from a PDF using Gemini multimodal (reuses the same pattern as the paper agent)
+import { createClient } from "@/lib/supabase/server"
+
+export const runtime = "nodejs"
+export const maxDuration = 60
+
+const GEMINI_MODEL = "gemini-2.5-flash"
+
+export async function POST(req: Request) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return new Response("Unauthorized", { status: 401 })
+
+  const GEMINI_API_KEY = process.env.GEMINI_API_KEY
+  if (!GEMINI_API_KEY) {
+    return Response.json({ error: "GEMINI_API_KEY no configurada" }, { status: 500 })
+  }
+
+  try {
+    const { pdfBase64, fileName } = await req.json()
+    if (!pdfBase64) return Response.json({ error: "Falta pdfBase64" }, { status: 400 })
+
+    const prompt = `Extrae TODO el texto de este documento PDF de forma fiel.
+Preserva la estructura: párrafos, listas, títulos, etc.
+No traduzcas, solo extrae el texto original.
+Devuelve SOLO el texto extraído, sin comentarios ni explicaciones adicionales.`
+
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { inline_data: { mime_type: "application/pdf", data: pdfBase64 } },
+              { text: prompt },
+            ],
+          }],
+          generationConfig: { temperature: 0, maxOutputTokens: 8192 },
+        }),
+        signal: AbortSignal.timeout(50_000),
+      }
+    )
+
+    if (!res.ok) {
+      const err = await res.text().catch(() => "")
+      throw new Error(`Gemini respondió ${res.status}: ${err.slice(0, 200)}`)
+    }
+
+    const data = await res.json()
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || ""
+
+    if (!text) return Response.json({ error: "No se pudo extraer texto del PDF" }, { status: 400 })
+
+    return Response.json({ text, fileName })
+  } catch (e: any) {
+    console.error("[Traductor][extract]", e)
+    return Response.json({ error: e?.message || "Error extrayendo PDF" }, { status: 500 })
+  }
+}
