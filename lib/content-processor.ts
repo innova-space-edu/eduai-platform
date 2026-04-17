@@ -9,6 +9,7 @@ export type SourceType = "url" | "text" | "topic" | "pdf" | "docx"
 export type OutputFormat =
   | "infographic" | "ppt" | "poster" | "podcast"
   | "mindmap" | "flashcards" | "quiz" | "timeline" | "cornell"
+  | "glossary" | "story" | "song" | "lessonplan"
 
 interface ExtractedContent {
   success: boolean
@@ -389,21 +390,147 @@ const SCHEMAS: Record<OutputFormat, object> = {
     type: "object",
     properties: {
       title:   { type: "string" },
+      subject: { type: "string" },
       date:    { type: "string" },
-      summary: { type: "string" },
-      cueColumn: {
+      mainNotes: {
         type: "array",
         items: {
           type: "object",
           properties: {
-            cue:   { type: "string" },
+            topic: { type: "string" },
             notes: { type: "string" },
           },
-          required: ["cue","notes"],
+          required: ["topic","notes"],
+        },
+      },
+      summary: { type: "string" },
+      keywords: {
+        type: "array",
+        items: { type: "string" },
+      },
+    },
+    required: ["title","subject","date","mainNotes","summary","keywords"],
+  },
+
+  glossary: {
+    type: "object",
+    properties: {
+      title: { type: "string" },
+      subject: { type: "string" },
+      terms: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            term: { type: "string" },
+            definition: { type: "string" },
+            example: { type: "string" },
+            category: { type: "string" },
+          },
+          required: ["term","definition","example"],
         },
       },
     },
-    required: ["title","cueColumn","summary"],
+    required: ["title","subject","terms"],
+  },
+
+  story: {
+    type: "object",
+    properties: {
+      title: { type: "string" },
+      subject: { type: "string" },
+      moral: { type: "string" },
+      characters: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            name: { type: "string" },
+            role: { type: "string" },
+          },
+          required: ["name","role"],
+        },
+      },
+      chapters: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            title: { type: "string" },
+            content: { type: "string" },
+          },
+          required: ["title","content"],
+        },
+      },
+    },
+    required: ["title","subject","moral","characters","chapters"],
+  },
+
+  song: {
+    type: "object",
+    properties: {
+      title: { type: "string" },
+      subject: { type: "string" },
+      style: { type: "string" },
+      chorus: {
+        type: "object",
+        properties: {
+          lines: {
+            type: "array",
+            items: { type: "string" },
+          },
+        },
+        required: ["lines"],
+      },
+      verses: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            label: { type: "string" },
+            lines: {
+              type: "array",
+              items: { type: "string" },
+            },
+          },
+          required: ["label","lines"],
+        },
+      },
+      tip: { type: "string" },
+    },
+    required: ["title","subject","style","chorus","verses","tip"],
+  },
+
+  lessonplan: {
+    type: "object",
+    properties: {
+      title: { type: "string" },
+      subject: { type: "string" },
+      grade: { type: "string" },
+      duration: { type: "string" },
+      bloom: { type: "string" },
+      objective: { type: "string" },
+      phases: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            name: { type: "string" },
+            duration: { type: "string" },
+            activity: { type: "string" },
+            materials: { type: "string" },
+            notes: { type: "string" },
+          },
+          required: ["name","duration","activity","materials","notes"],
+        },
+      },
+      assessment: { type: "string" },
+      resources: {
+        type: "array",
+        items: { type: "string" },
+      },
+    },
+    required: ["title","subject","grade","duration","bloom","objective","phases","assessment","resources"],
   },
 }
 
@@ -574,18 +701,154 @@ INSTRUCCIONES:
 
 ${contentBlock}`,
 
-    cornell: `Eres un experto en técnicas de estudio activo y aprendizaje profundo.
-Crea NOTAS CORNELL COMPLETAS que maximicen la retención y comprensión.
+    cornell: `Eres un experto en técnicas de estudio. Genera unas notas en formato Cornell estructuradas para estudiar el tema dado.
+
+FORMATO DE RESPUESTA — Solo JSON válido:
+{
+  "title": "Título descriptivo del tema",
+  "subject": "Materia o asignatura",
+  "date": "Hoy",
+  "mainNotes": [
+    { "topic": "Pregunta o palabra clave", "notes": "Apuntes detallados sobre ese sub-tema. Pueden ser varias oraciones." }
+  ],
+  "summary": "Resumen de 3-4 oraciones que sintetiza los puntos más importantes del tema completo.",
+  "keywords": ["palabra1", "palabra2", "palabra3"]
+}
 
 INSTRUCCIONES:
-- Genera 10-12 pares cue-notes exhaustivos
-- Los cues deben ser PREGUNTAS de examen o conceptos clave — no frases declarativas
-  Usar: "¿Cómo funciona X?", "¿Por qué importa Y?", "Define Z y su relación con W"
-- Las notes deben ser DENSAS: 4-6 oraciones con datos concretos, ejemplos, fórmulas si aplica
-- Organizar de lo general a lo específico (primeros cues = conceptos macro, últimos = detalles)
-- El summary debe ser un párrafo ejecutivo de 5-6 oraciones que capture:
-  (1) la idea central, (2) los 2-3 conceptos más importantes, (3) las implicaciones o aplicaciones
-- date = fecha actual en formato DD/MM/AAAA
+- Genera entre 6 y 10 filas en mainNotes
+- Los topics deben ser preguntas, conceptos o palabras clave realmente útiles para estudiar
+- Las notes deben ser claras, precisas y pedagógicas
+- El summary debe sintetizar todo el contenido
+- keywords debe incluir entre 8 y 12 palabras clave
+- Todo en español
+
+${contentBlock}`,
+
+    glossary: `Eres un lexicógrafo educativo. Genera un glosario completo con los términos clave del tema dado.
+
+FORMATO DE RESPUESTA — Solo JSON válido:
+{
+  "title": "Glosario: [Tema]",
+  "subject": "Materia",
+  "terms": [
+    {
+      "term": "Nombre del término",
+      "definition": "Definición clara y precisa en 1-3 oraciones.",
+      "example": "Ejemplo concreto y cotidiano de uso o aplicación",
+      "category": "Categoría temática (opcional)"
+    }
+  ]
+}
+
+INSTRUCCIONES:
+- Genera entre 15 y 25 términos
+- Las definiciones deben ser precisas y fáciles de entender
+- Cada término debe incluir un ejemplo útil
+- Usa category cuando ayude a organizar mejor el contenido
+- Todo en español
+
+${contentBlock}`,
+
+    story: `Eres un escritor educativo creativo. Genera un cuento didáctico entretenido que enseñe el concepto dado de forma narrativa.
+
+FORMATO DE RESPUESTA — Solo JSON válido:
+{
+  "title": "Título creativo y atractivo del cuento",
+  "subject": "Concepto educativo que enseña",
+  "moral": "La moraleja o lección aprendida en 1-2 oraciones",
+  "characters": [
+    { "name": "Nombre del personaje", "role": "Rol en la historia (protagonista, maestro, etc.)" }
+  ],
+  "chapters": [
+    { "title": "Nombre del capítulo o escena", "content": "Contenido narrativo de 100-200 palabras" }
+  ]
+}
+
+INSTRUCCIONES:
+- Genera entre 3 y 5 capítulos
+- Cada capítulo debe tener entre 100 y 200 palabras
+- La historia debe enseñar el concepto de forma clara pero entretenida
+- Incluye personajes con roles definidos
+- La moraleja debe conectar con el aprendizaje central
+- Todo en español
+
+${contentBlock}`,
+
+    song: `Eres un compositor de canciones educativas. Crea una letra de canción o rap mnemónico para ayudar a memorizar el concepto dado.
+
+FORMATO DE RESPUESTA — Solo JSON válido:
+{
+  "title": "Título de la canción",
+  "subject": "Concepto que enseña",
+  "style": "Rap educativo / Canción pegadiza / Jingle mnemónico",
+  "chorus": {
+    "lines": ["Línea 1 del coro", "Línea 2 del coro", "Línea 3 del coro", "Línea 4 del coro"]
+  },
+  "verses": [
+    {
+      "label": "ESTROFA 1",
+      "lines": ["Línea 1", "Línea 2", "Línea 3", "Línea 4", "Línea 5", "Línea 6"]
+    },
+    {
+      "label": "ESTROFA 2",
+      "lines": ["Línea 1", "Línea 2", "Línea 3", "Línea 4", "Línea 5", "Línea 6"]
+    }
+  ],
+  "tip": "Consejo sobre cómo usar esta canción para memorizar (ritmo sugerido, gestos, etc.)"
+}
+
+INSTRUCCIONES:
+- Debe incluir un coro de 4 líneas
+- Genera al menos 2 estrofas de 6 líneas cada una
+- El texto debe ayudar a memorizar ideas clave
+- Usa un estilo pegadizo y educativo
+- Todo en español
+
+${contentBlock}`,
+
+    lessonplan: `Eres un pedagogo experto en diseño curricular chileno (MINEDUC). Genera un plan de clase completo y detallado.
+
+FORMATO DE RESPUESTA — Solo JSON válido:
+{
+  "title": "Plan de Clase: [Tema específico]",
+  "subject": "Asignatura",
+  "grade": "Nivel educativo (ej: 7° Básico, 3° Medio)",
+  "duration": "45 min",
+  "bloom": "Nivel de Bloom principal (Recordar / Comprender / Aplicar / Analizar / Evaluar / Crear)",
+  "objective": "OA específico: Los estudiantes serán capaces de... [verbo Bloom + contenido + contexto]",
+  "phases": [
+    {
+      "name": "Inicio",
+      "duration": "10 min",
+      "activity": "Descripción detallada de la actividad de activación o motivación",
+      "materials": "Lista de materiales necesarios",
+      "notes": "Sugerencia pedagógica o diferenciación"
+    },
+    {
+      "name": "Desarrollo",
+      "duration": "25 min",
+      "activity": "Descripción de la actividad principal de enseñanza-aprendizaje",
+      "materials": "Materiales",
+      "notes": "Notas pedagógicas"
+    },
+    {
+      "name": "Cierre",
+      "duration": "10 min",
+      "activity": "Síntesis, metacognición o actividad de cierre",
+      "materials": "Materiales",
+      "notes": "Cómo verificar la comprensión"
+    }
+  ],
+  "assessment": "Descripción del instrumento o criterio de evaluación formativa o sumativa",
+  "resources": ["Recurso 1", "Recurso 2", "Recurso 3"]
+}
+
+INSTRUCCIONES:
+- Debe incluir las 3 fases: Inicio, Desarrollo y Cierre
+- El objetivo debe estar redactado pedagógicamente
+- El plan debe ser claro, útil y aplicable en aula
+- resources debe incluir al menos 3 recursos
 - Todo en español
 
 ${contentBlock}`,
