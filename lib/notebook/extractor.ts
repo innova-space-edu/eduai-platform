@@ -129,7 +129,7 @@ async function extractWithPlaywright(url: string): Promise<ExtractResult | null>
       el.querySelectorAll("nav, footer, header, aside, script, style, .ad, [class*='nav']")
         .forEach((n) => n.remove())
 
-      return el.innerText.slice(0, 60_000)
+      return (el as HTMLElement).innerText.slice(0, 60_000)
     })
 
     const title  = await page.title()
