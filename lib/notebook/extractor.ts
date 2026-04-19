@@ -122,12 +122,13 @@ async function extractWithPuppeteer(url: string): Promise<ExtractResult | null> 
 
     const browser = await puppeteer.launch({
       args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
       executablePath: await chromium.executablePath(),
-      headless: chromium.headless,
+      headless: true,
     })
 
-    const page = await browser.newPage()
+    const page = await browser.newPage({
+      viewport: { width: 1366, height: 768 },
+    })
 
     try {
       await page.goto(url, {
