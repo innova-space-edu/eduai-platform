@@ -58,7 +58,8 @@ async function extractFromUrl(url: string): Promise<string> {
 
 async function extractFromPdfBase64(base64: string): Promise<string> {
   try {
-    const pdfParse = (await import("pdf-parse")).default
+    const mod      = await import("pdf-parse")
+    const pdfParse = (mod.default ?? mod) as (buf: Buffer) => Promise<{ text: string }>
     const buffer   = Buffer.from(base64, "base64")
     const data     = await pdfParse(buffer)
     return data.text.slice(0, 80_000)
