@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
-import { chunkText, cleanHtml } from "./chunking"
+import { chunkText } from "./chunking"
+import { extractUrlContent } from "./extractor"
 import type { NotebookSource } from "./types"
 
 const EMBEDDING_BATCH = 4
@@ -39,22 +40,10 @@ export async function extractTextFromSource(
 
 async function extractFromUrl(url: string): Promise<string> {
   try {
-    const res = await fetch(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; EduAI-NotebookBot/1.0)",
-        Accept: "text/html,application/xhtml+xml",
-      },
-      signal: AbortSignal.timeout(15_000),
-    })
-
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`)
-    }
-
-    const html = await res.text()
-    return cleanHtml(html).slice(0, 50_000)
+    const result = await extractUrlContent(url)
+    return (result.text ?? "").slice(0, 60_000)
   } catch (err) {
-    console.error("[Ingestion] URL fetch failed:", err)
+    console.error("[Ingestion] URL extraction failed:", err)
     return ""
   }
 }
@@ -118,10 +107,7 @@ async function generateEmbedding(text: string): Promise<number[] | null> {
   }
 }
 
-async function updateSource(
-  sourceId: string,
-  patch: Record<string, unknown>
-): Promise<void> {
+async function updateSource(sourceId: string, patch: Record<string, unknown>): Promise<void> {
   const supabase = await createClient()
   const { error } = await supabase.from("notebook_sources").update(patch).eq("id", sourceId)
   if (error) {
@@ -216,16 +202,32 @@ export async function ingestNotebookSource(
   }
 
   try {
-    await updateSource(sourceId, { status: "processing" })
+    await updateSource(sourceId, { status: "processing", error_message: null })
 
-    const text = await extractTextFromSource(source as NotebookSource, rawFileBase64)
+    let text = ""
+    let resolvedTitle = source.title || null
+
+    if (source.type === "url" && source.url) {
+      const extracted = await extractUrlContent(source.url)
+      text = (extracted.text ?? "").slice(0, 60_000)
+      resolvedTitle = resolvedTitle || extracted.title || null
+
+      await updateSource(sourceId, {
+        raw_text: text || source.raw_text,
+        extracted_text: text || source.extracted_text,
+        title: resolvedTitle,
+        status: "processing",
+      })
+    } else {
+      text = await extractTextFromSource(source as NotebookSource, rawFileBase64)
+    }
 
     if (!text || text.trim().length < 20) {
-      await safeSetSourceError(sourceId, "No se pudo extraer texto suficiente")
+      await safeSetSourceError(sourceId, "No se pudo extraer texto suficiente desde la fuente")
       return { ok: false, chunkCount: 0, error: "Texto insuficiente" }
     }
 
-    const title = source.title || extractTitleFromText(text, source.url)
+    const title = resolvedTitle || extractTitleFromText(text, source.url)
 
     await updateSource(sourceId, {
       extracted_text: text.slice(0, 100_000),
@@ -291,12 +293,12 @@ export async function ingestNotebookSource(
       }
     }
 
-    await updateSource(sourceId, { status: "ready", title })
+    await updateSource(sourceId, { status: "ready", title, error_message: null })
 
     return { ok: true, chunkCount: rawChunks.length }
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err)
-    console.error("[Ingestion] ingestNotebookSource failed:", err)
+    console.error("[Ingestion] Fatal error:", err)
     await safeSetSourceError(sourceId, message)
     return { ok: false, chunkCount: 0, error: message }
   }
