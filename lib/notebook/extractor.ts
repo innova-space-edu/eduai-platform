@@ -2,7 +2,7 @@ type ExtractResult = {
   title?: string
   text: string
   images?: string[]
-  provider: "firecrawl" | "playwright" | "fetch"
+  provider: "firecrawl" | "puppeteer" | "fetch"
 }
 
 function cleanText(input: string): string {
@@ -59,6 +59,7 @@ function extractImagesFromHtml(html: string, baseUrl?: string): string[] {
     } catch {
       continue
     }
+  }
 
   return Array.from(out).slice(0, 12)
 }
@@ -99,8 +100,8 @@ async function extractWithFirecrawl(url: string): Promise<ExtractResult | null> 
     const images = Array.isArray(block?.metadata?.ogImage)
       ? block.metadata.ogImage
       : typeof block?.metadata?.ogImage === "string"
-      ? [block.metadata.ogImage]
-      : extractImagesFromHtml(html, url)
+        ? [block.metadata.ogImage]
+        : extractImagesFromHtml(html, url)
 
     return {
       title,
@@ -114,30 +115,30 @@ async function extractWithFirecrawl(url: string): Promise<ExtractResult | null> 
   }
 }
 
-async function extractWithPlaywright(url: string): Promise<ExtractResult | null> {
-  const wsEndpoint = process.env.PLAYWRIGHT_WS_ENDPOINT
-  if (!wsEndpoint) return null
-
+async function extractWithPuppeteer(url: string): Promise<ExtractResult | null> {
   try {
-    // Avoid static resolution at build time when playwright-core is not installed.
-    const dynamicImport = new Function("m", "return import(m)") as (m: string) => Promise<any>
-    const playwright = await dynamicImport("playwright-core").catch(() => null)
+    const chromium = (await import("@sparticuz/chromium")).default
+    const puppeteer = await import("puppeteer-core")
 
-    if (!playwright?.chromium?.connect) {
-      console.warn("[Extractor] playwright-core not available, skipping Playwright fallback")
-      return null
-    }
+    const browser = await puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+    })
 
-    const browser = await playwright.chromium.connect(wsEndpoint)
     const page = await browser.newPage()
 
     try {
-      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 })
-      await page.waitForLoadState("networkidle", { timeout: 10000 }).catch(() => null)
+      await page.goto(url, {
+        waitUntil: "networkidle2",
+        timeout: 30000,
+      })
 
       const title = await page.title().catch(() => undefined)
       const html = await page.content()
       const text = cleanText(html)
+
       const images = await page
         .evaluate(() =>
           Array.from(document.images)
@@ -153,14 +154,14 @@ async function extractWithPlaywright(url: string): Promise<ExtractResult | null>
         title,
         text,
         images,
-        provider: "playwright",
+        provider: "puppeteer",
       }
     } finally {
       await page.close().catch(() => null)
       await browser.close().catch(() => null)
     }
   } catch (err) {
-    console.warn("[Extractor] Playwright failed:", err)
+    console.warn("[Extractor] Puppeteer failed:", err)
     return null
   }
 }
@@ -204,8 +205,8 @@ export async function extractUrlContent(url: string): Promise<ExtractResult> {
   const firecrawl = await extractWithFirecrawl(url)
   if (firecrawl) return firecrawl
 
-  const playwright = await extractWithPlaywright(url)
-  if (playwright) return playwright
+  const puppeteer = await extractWithPuppeteer(url)
+  if (puppeteer) return puppeteer
 
   const fetched = await extractWithFetch(url)
   if (fetched) return fetched
