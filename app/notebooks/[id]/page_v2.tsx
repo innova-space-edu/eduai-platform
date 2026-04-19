@@ -106,7 +106,9 @@ export default function NotebookPage() {
 
         <SpecialistRoleSelector
           value={notebook.specialist_role}
-          onChange={(role) => updateNotebook({ specialist_role: role })}
+          onChange={async (role) => {
+            await updateNotebook({ specialist_role: role })
+          }}
         />
 
         <div className="flex items-center gap-1 flex-shrink-0">
