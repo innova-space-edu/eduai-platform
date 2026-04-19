@@ -47,6 +47,10 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
     // Si no hay resumen (o la tabla no existe aún), devolver null sin crash
     if (error || !data) {
+      // PGRST116 = "no rows" — es normal cuando aún no hay resumen
+      if (error?.code !== "PGRST116") {
+        console.error("[Summary GET] DB error:", error)
+      }
       return NextResponse.json({ summary: null })
     }
 

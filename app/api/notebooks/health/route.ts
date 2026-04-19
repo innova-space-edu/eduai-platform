@@ -48,15 +48,17 @@ export async function GET() {
     }
 
     // Verificar extensión vector
-    const { data: vecData } = await supabase
-      .from("pg_extension")
-      .select("extname")
-      .eq("extname", "vector")
-      .maybeSingle()
-      .throwOnError()
-      .catch(() => ({ data: null }))
+    let vecOk = false
+    try {
+      const { data: vecData } = await supabase
+        .from("pg_extension")
+        .select("extname")
+        .eq("extname", "vector")
+        .maybeSingle()
+      vecOk = !!vecData
+    } catch { vecOk = false }
 
-    checks["pgvector_extension"] = vecData
+    checks["pgvector_extension"] = vecOk
       ? { ok: true }
       : { ok: false, error: "Extensión vector no habilitada — ejecutar: CREATE EXTENSION IF NOT EXISTS vector" }
 
