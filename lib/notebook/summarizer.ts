@@ -1,5 +1,5 @@
-// lib/notebook/summarizer.ts
-// Genera el resumen base del notebook desde las fuentes activas
+// lib/notebook/summarizer.ts  v2
+// Bug fix: guardar JSONB como objetos reales, no como strings serializados
 
 import { createClient }   from "@/lib/supabase/server"
 import { callAI }         from "@/lib/ai-router-v4"
@@ -13,7 +13,7 @@ export async function generateNotebookSummary(
 ): Promise<NotebookSummary | null> {
   const supabase = await createClient()
 
-  // 1. Obtener chunks y fuentes activas
+  // 1. Chunks + fuentes activas
   const chunks = await getActiveChunks(notebookId, 15_000)
   if (chunks.length === 0) return null
 
@@ -25,13 +25,13 @@ export async function generateNotebookSummary(
 
   const contextText = buildContextFromChunks(chunks, sources ?? [])
 
-  // 2. Llamar al AI
+  // 2. Llamar AI
   const prompt = buildSummaryPrompt(contextText, specialistRole)
   let parsed: {
     summary_markdown: string
-    key_points: string[]
-    glossary: Array<{ term: string; definition: string }>
-    topics: string[]
+    key_points:       string[]
+    glossary:         Array<{ term: string; definition: string }>
+    topics:           string[]
   }
 
   try {
@@ -39,37 +39,39 @@ export async function generateNotebookSummary(
       [{ role: "user", content: prompt }],
       { maxTokens: 3000, preferProvider: "gemini" }
     )
-
     const raw = response.text
       .replace(/```json\n?/g, "")
       .replace(/```\n?/g, "")
       .trim()
-
     parsed = JSON.parse(raw)
   } catch (err) {
     console.error("[Summarizer] AI/parse failed:", err)
-    // Fallback básico
     parsed = {
-      summary_markdown: contextText.slice(0, 500) + "...",
-      key_points: [],
-      glossary: [],
-      topics: [],
+      summary_markdown: `Resumen generado desde ${chunks.length} fragmentos.`,
+      key_points:       [],
+      glossary:         [],
+      topics:           [],
     }
   }
 
-  // 3. Upsert en Supabase
+  // 3. Normalizar arrays por si la IA devuelve algo raro
+  const key_points   = Array.isArray(parsed.key_points)  ? parsed.key_points  : []
+  const glossary     = Array.isArray(parsed.glossary)     ? parsed.glossary    : []
+  const topics       = Array.isArray(parsed.topics)       ? parsed.topics      : []
+
+  // 4. Upsert — BUG FIX: guardar como objetos JSONB, NO como JSON.stringify
   const { data: existing } = await supabase
     .from("notebook_summaries")
     .select("id")
     .eq("notebook_id", notebookId)
     .single()
 
-  const summaryData = {
+  const payload = {
     notebook_id:      notebookId,
     summary_markdown: parsed.summary_markdown ?? "",
-    key_points:       JSON.stringify(parsed.key_points ?? []),
-    glossary_json:    JSON.stringify(parsed.glossary ?? []),
-    topics:           JSON.stringify(parsed.topics ?? []),
+    key_points,         // ← array directo, no string
+    glossary_json:  glossary,  // ← objeto directo, no string
+    topics,             // ← array directo, no string
     updated_at:       new Date().toISOString(),
   }
 
@@ -77,7 +79,7 @@ export async function generateNotebookSummary(
   if (existing?.id) {
     const { data } = await supabase
       .from("notebook_summaries")
-      .update(summaryData)
+      .update(payload)
       .eq("notebook_id", notebookId)
       .select()
       .single()
@@ -85,7 +87,7 @@ export async function generateNotebookSummary(
   } else {
     const { data } = await supabase
       .from("notebook_summaries")
-      .insert(summaryData)
+      .insert(payload)
       .select()
       .single()
     result = data
@@ -93,19 +95,14 @@ export async function generateNotebookSummary(
 
   if (!result) return null
 
+  // 5. Devolver tipado — sin parseo extra porque ya guardamos como JSONB
   return {
     id:               result.id,
     notebook_id:      result.notebook_id,
     summary_markdown: result.summary_markdown,
-    key_points:       typeof result.key_points === "string"
-      ? JSON.parse(result.key_points)
-      : result.key_points ?? [],
-    glossary_json:    typeof result.glossary_json === "string"
-      ? JSON.parse(result.glossary_json)
-      : result.glossary_json ?? [],
-    topics:           typeof result.topics === "string"
-      ? JSON.parse(result.topics)
-      : result.topics ?? [],
+    key_points:       Array.isArray(result.key_points)   ? result.key_points   : [],
+    glossary_json:    Array.isArray(result.glossary_json) ? result.glossary_json : [],
+    topics:           Array.isArray(result.topics)        ? result.topics        : [],
     updated_at:       result.updated_at,
   }
 }
