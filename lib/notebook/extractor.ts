@@ -110,7 +110,10 @@ async function extractWithPlaywright(url: string): Promise<ExtractResult | null>
   if (!wsEndpoint) return null
 
   try {
-    const { chromium } = await import("playwright-core")
+    // "playwright-core" es opcional — solo si está instalado y PLAYWRIGHT_WS_ENDPOINT está definido.
+    // El cast evita el error TS cuando el paquete no está en node_modules.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { chromium } = await import("playwright-core" as any) as any
 
     const browser = await chromium.connect(wsEndpoint)
     const page    = await browser.newPage()
