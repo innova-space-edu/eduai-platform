@@ -126,11 +126,11 @@ async function extractWithPuppeteer(url: string): Promise<ExtractResult | null> 
       headless: true,
     })
 
-    const page = await browser.newPage({
-      viewport: { width: 1366, height: 768 },
-    })
+    const page = await browser.newPage()
 
     try {
+      await page.setViewport({ width: 1366, height: 768 })
+
       await page.goto(url, {
         waitUntil: "networkidle2",
         timeout: 30000,
