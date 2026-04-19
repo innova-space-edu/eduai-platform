@@ -41,7 +41,9 @@
     "tailwind-merge": "^3.5.0",
     "tus-js-client": "^4.3.1",
     "xlsx": "^0.18.5",
-    "zustand": "^5.0.11"
+    "zustand": "^5.0.11",
+    "@sparticuz/chromium": "^latest",
+    "puppeteer-core": "^latest"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
