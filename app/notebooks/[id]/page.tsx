@@ -1,87 +1,28 @@
 "use client"
-// app/notebooks/[id]/page.tsx
-// Workspace principal tipo NotebookLM
+// app/notebooks/[id]/page.tsx  — v2 (usa useNotebook hook)
 
-import { useCallback, useEffect, useState } from "react"
+import { useState } from "react"
 import { useParams, useRouter } from "next/navigation"
+import { ArrowLeft, PanelLeftClose, PanelRightClose, Loader2, Zap } from "lucide-react"
+import { useNotebook } from "@/hooks/useNotebook"
 import SourcePanel from "@/components/notebook/SourcePanel"
 import NotebookChat from "@/components/notebook/NotebookChat"
 import StudioPanel from "@/components/notebook/StudioPanel"
 import SpecialistRoleSelector from "@/components/notebook/SpecialistRoleSelector"
-import { ArrowLeft, PanelLeftClose, PanelRightClose, Loader2 } from "lucide-react"
-import type { Notebook, NotebookSource, NotebookSummary } from "@/lib/notebook/types"
 
 export default function NotebookPage() {
-  const { id }   = useParams() as { id: string }
-  const router   = useRouter()
+  const { id }  = useParams() as { id: string }
+  const router  = useRouter()
+  const {
+    notebook, sources, summary, loading,
+    hasReadySources, processingCount,
+    refreshSources, refreshSummary, updateNotebook,
+  } = useNotebook(id)
 
-  const [notebook,     setNotebook]     = useState<Notebook | null>(null)
-  const [sources,      setSources]      = useState<NotebookSource[]>([])
-  const [summary,      setSummary]      = useState<NotebookSummary | null>(null)
-  const [loading,      setLoading]      = useState(true)
   const [leftOpen,     setLeftOpen]     = useState(true)
   const [rightOpen,    setRightOpen]    = useState(true)
   const [editingTitle, setEditingTitle] = useState(false)
   const [titleDraft,   setTitleDraft]   = useState("")
-
-  // ─── Carga inicial ───────────────────────────────────────────────────────────
-
-  const loadNotebook = useCallback(async () => {
-    const [nbRes, srcRes, sumRes] = await Promise.all([
-      fetch(`/api/notebooks/${id}`),
-      fetch(`/api/notebooks/${id}/sources`),
-      fetch(`/api/notebooks/${id}/summary`),
-    ])
-    const [nbData, srcData, sumData] = await Promise.all([
-      nbRes.json(), srcRes.json(), sumRes.json(),
-    ])
-    if (nbData.notebook)  setNotebook(nbData.notebook)
-    if (srcData.sources)  setSources(srcData.sources)
-    if (sumData.summary)  setSummary(sumData.summary)
-    setLoading(false)
-  }, [id])
-
-  useEffect(() => { loadNotebook() }, [loadNotebook])
-
-  const refreshSources = useCallback(async () => {
-    const res  = await fetch(`/api/notebooks/${id}/sources`)
-    const data = await res.json()
-    if (data.sources) setSources(data.sources)
-  }, [id])
-
-  const refreshSummary = useCallback(async () => {
-    const res  = await fetch(`/api/notebooks/${id}/summary`)
-    const data = await res.json()
-    if (data.summary) setSummary(data.summary)
-  }, [id])
-
-  // ─── Editar título ───────────────────────────────────────────────────────────
-
-  const saveTitle = async () => {
-    if (!titleDraft.trim() || !notebook) return
-    await fetch(`/api/notebooks/${id}`, {
-      method:  "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ title: titleDraft.trim() }),
-    })
-    setNotebook((prev) => prev ? { ...prev, title: titleDraft.trim() } : prev)
-    setEditingTitle(false)
-  }
-
-  // ─── Cambiar rol ─────────────────────────────────────────────────────────────
-
-  const changeRole = async (role: string) => {
-    await fetch(`/api/notebooks/${id}`, {
-      method:  "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ specialist_role: role }),
-    })
-    setNotebook((prev) => prev ? { ...prev, specialist_role: role } : prev)
-  }
-
-  const hasReadySources = sources.some((s) => s.status === "ready" && s.is_active)
-
-  // ─── Loading ─────────────────────────────────────────────────────────────────
 
   if (loading) {
     return (
@@ -100,10 +41,8 @@ export default function NotebookPage() {
         <div className="text-center">
           <p className="text-4xl mb-3">📓</p>
           <p className="text-main font-semibold mb-2">Cuaderno no encontrado</p>
-          <button
-            onClick={() => router.push("/notebooks")}
-            className="text-xs text-blue-400 hover:underline"
-          >
+          <button onClick={() => router.push("/notebooks")}
+            className="text-xs text-blue-400 hover:underline">
             Volver a mis cuadernos
           </button>
         </div>
@@ -111,25 +50,27 @@ export default function NotebookPage() {
     )
   }
 
+  const saveTitle = async () => {
+    if (!titleDraft.trim()) return
+    await updateNotebook({ title: titleDraft.trim() })
+    setEditingTitle(false)
+  }
+
   return (
     <div className="flex flex-col h-screen bg-app overflow-hidden">
 
       {/* ── Topbar ─────────────────────────────────────────────────────────── */}
       <div
-        className="flex items-center gap-3 px-4 py-2 border-b border-soft flex-shrink-0"
+        className="flex items-center gap-3 px-4 py-2 border-b border-soft flex-shrink-0 z-10"
         style={{ background: "var(--bg-header)", backdropFilter: "blur(12px)" }}
       >
-        <button
-          onClick={() => router.push("/notebooks")}
-          className="p-1.5 rounded-lg transition-colors"
-          style={{ color: "var(--text-muted)" }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = "var(--text-primary)" }}
-          onMouseLeave={(e) => { e.currentTarget.style.color = "var(--text-muted)" }}
-        >
+        <button onClick={() => router.push("/notebooks")}
+          className="p-1.5 rounded-lg transition-colors flex-shrink-0"
+          style={{ color: "var(--text-muted)" }}>
           <ArrowLeft size={16} />
         </button>
 
-        <span className="text-base">📓</span>
+        <span className="text-base flex-shrink-0">📓</span>
 
         {/* Título editable */}
         {editingTitle ? (
@@ -138,35 +79,44 @@ export default function NotebookPage() {
             value={titleDraft}
             onChange={(e) => setTitleDraft(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") saveTitle()
+              if (e.key === "Enter")  saveTitle()
               if (e.key === "Escape") setEditingTitle(false)
             }}
             onBlur={saveTitle}
-            className="flex-1 bg-transparent outline-none text-sm font-semibold text-main border-b"
+            className="flex-1 bg-transparent outline-none text-sm font-semibold text-main border-b min-w-0"
             style={{ borderColor: "var(--accent-blue)" }}
           />
         ) : (
           <button
-            className="flex-1 text-sm font-semibold text-main text-left truncate hover:opacity-70 transition-opacity"
+            className="flex-1 text-sm font-semibold text-main text-left truncate hover:opacity-70 transition-opacity min-w-0"
             onClick={() => { setTitleDraft(notebook.title); setEditingTitle(true) }}
           >
             {notebook.title}
           </button>
         )}
 
-        {/* Rol especialista */}
+        {/* Procesando badge */}
+        {processingCount > 0 && (
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium flex-shrink-0"
+            style={{ background: "rgba(245,158,11,0.1)", color: "#f59e0b" }}>
+            <Zap size={10} className="animate-pulse" />
+            Procesando {processingCount}
+          </div>
+        )}
+
         <SpecialistRoleSelector
           value={notebook.specialist_role}
-          onChange={changeRole}
+          onChange={async (role) => {
+            await updateNotebook({ specialist_role: role })
+          }}
         />
 
-        {/* Toggle paneles */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 flex-shrink-0">
           <button
             onClick={() => setLeftOpen(!leftOpen)}
             className="p-1.5 rounded-lg transition-all"
             style={{ color: leftOpen ? "var(--accent-blue)" : "var(--text-muted)" }}
-            title="Panel de fuentes"
+            title="Fuentes"
           >
             <PanelLeftClose size={15} />
           </button>
@@ -181,24 +131,27 @@ export default function NotebookPage() {
         </div>
       </div>
 
-      {/* ── Main workspace ─────────────────────────────────────────────────── */}
+      {/* ── 3-panel workspace ──────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">
 
-        {/* Left: Sources */}
+        {/* LEFT — Fuentes */}
         {leftOpen && (
           <div
-            className="flex-shrink-0 border-r border-soft overflow-hidden flex flex-col"
+            className="flex-shrink-0 border-r border-soft overflow-hidden flex flex-col transition-all"
             style={{ width: "260px" }}
           >
             <SourcePanel
               notebookId={id}
               sources={sources}
-              onSourcesChange={() => { refreshSources(); refreshSummary() }}
+              onSourcesChange={() => {
+                refreshSources()
+                refreshSummary()
+              }}
             />
           </div>
         )}
 
-        {/* Center: Chat + Summary */}
+        {/* CENTER — Chat */}
         <div className="flex-1 overflow-hidden flex flex-col min-w-0">
           <NotebookChat
             notebookId={id}
@@ -208,10 +161,10 @@ export default function NotebookPage() {
           />
         </div>
 
-        {/* Right: Studio */}
+        {/* RIGHT — Studio */}
         {rightOpen && (
           <div
-            className="flex-shrink-0 border-l border-soft overflow-hidden flex flex-col"
+            className="flex-shrink-0 border-l border-soft overflow-hidden flex flex-col transition-all"
             style={{ width: "260px" }}
           >
             <StudioPanel
