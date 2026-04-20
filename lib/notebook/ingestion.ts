@@ -1,8 +1,9 @@
-// lib/notebook/ingestion.ts  v4
-// OPTIMIZACIÓN: ingestión en 2 fases
-// Fase 1 (ingestNotebookSource): extrae texto + chunks, marca ready en ~3-8s
-// Fase 2 (generateEmbeddingsForSource): genera embeddings en background sin bloquear UI
-// Si no hay embeddings, retrieval cae a keyword (funciona igual)
+// lib/notebook/ingestion.ts  v5
+// Mejoras:
+// - Contextual RAG: enriquece cada chunk con título+resumen del documento antes de embeddear
+//   (Anthropic Contextual Retrieval: ~49% mejora en retrieval)
+// - Fase 1: extrae texto + chunking + guarda → ready en ~5-10s
+// - Fase 2 (background): genera embeddings con contexto enriquecido
 
 import { createClient } from "@/lib/supabase/server"
 import { chunkText, cleanHtml } from "./chunking"
@@ -81,7 +82,38 @@ async function extractFromDocxBase64(base64: string): Promise<string> {
   }
 }
 
-// ─── Embedding ───────────────────────────────────────────────────────────────
+// ─── Contextual enrichment ────────────────────────────────────────────────────
+// Prepend document context to each chunk text before embedding
+// Técnica: Anthropic Contextual Retrieval (mejora retrieval ~49%)
+// No requiere LLM — usa el título y primeros 300 chars del documento
+
+function buildContextualChunkText(
+  chunkText:     string,
+  sourceTitle:   string,
+  documentIntro: string
+): string {
+  const intro = documentIntro.slice(0, 300).replace(/\s+/g, " ").trim()
+  return `[Fuente: ${sourceTitle}]\n[Contexto del documento: ${intro}]\n\n${chunkText}`
+}
+
+// ─── Embeddings en lotes ─────────────────────────────────────────────────────
+
+const EMBEDDING_BATCH = 4
+
+async function generateEmbeddingsBatched(
+  texts: string[]
+): Promise<(number[] | null)[]> {
+  const results: (number[] | null)[] = []
+  for (let i = 0; i < texts.length; i += EMBEDDING_BATCH) {
+    const batch        = texts.slice(i, i + EMBEDDING_BATCH)
+    const batchResults = await Promise.all(batch.map(generateEmbedding))
+    results.push(...batchResults)
+    if (i + EMBEDDING_BATCH < texts.length) {
+      await new Promise((r) => setTimeout(r, 200))
+    }
+  }
+  return results
+}
 
 async function generateEmbedding(text: string): Promise<number[] | null> {
   try {
@@ -92,16 +124,14 @@ async function generateEmbedding(text: string): Promise<number[] | null> {
     const key    = keys[Math.floor(Math.random() * keys.length)]
     const genai  = new GoogleGenerativeAI(key)
     const model  = genai.getGenerativeModel({ model: "text-embedding-004" })
-    const result = await model.embedContent(text.slice(0, 2000))
+    const result = await model.embedContent(text.slice(0, 2048))
     return result.embedding.values
   } catch {
     return null
   }
 }
 
-// ─── FASE 1: ingestión rápida — sin embeddings ───────────────────────────────
-// Objetivo: < 10s por fuente
-// Extrae texto → chunks → guarda sin embeddings → marca ready
+// ─── FASE 1: Ingestión rápida — sin embeddings ───────────────────────────────
 
 export async function ingestNotebookSource(
   sourceId: string,
@@ -119,7 +149,6 @@ export async function ingestNotebookSource(
   await supabase.from("notebook_sources").update({ status: "processing" }).eq("id", sourceId)
 
   try {
-    // Extraer texto
     const text = await extractTextFromSource(source as NotebookSource, rawFileBase64)
 
     if (!text || text.trim().length < 20) {
@@ -138,7 +167,6 @@ export async function ingestNotebookSource(
     if (updErr) throw new Error(`No se pudo actualizar la fuente: ${updErr.message}`)
 
     const rawChunks = chunkText(text)
-
     if (rawChunks.length === 0) {
       await supabase.from("notebook_sources")
         .update({ status: "error", error_message: "No se generaron chunks" })
@@ -148,7 +176,7 @@ export async function ingestNotebookSource(
 
     await supabase.from("notebook_chunks").delete().eq("source_id", sourceId)
 
-    // Insertar chunks SIN embeddings — rápido
+    // Insertar chunks sin embeddings (rápido)
     const chunkRows = rawChunks.map((c) => ({
       notebook_id: source.notebook_id,
       source_id:   sourceId,
@@ -161,7 +189,6 @@ export async function ingestNotebookSource(
     for (let i = 0; i < chunkRows.length; i += 50) {
       const { error: insertErr } = await supabase
         .from("notebook_chunks").insert(chunkRows.slice(i, i + 50))
-
       if (insertErr) {
         await supabase.from("notebook_sources")
           .update({ status: "error", error_message: `Error insertando chunks: ${insertErr.message}` })
@@ -170,9 +197,7 @@ export async function ingestNotebookSource(
       }
     }
 
-    // Marcar READY sin esperar embeddings
     await supabase.from("notebook_sources").update({ status: "ready", title }).eq("id", sourceId)
-
     return { ok: true, chunkCount: rawChunks.length }
 
   } catch (err: unknown) {
@@ -184,15 +209,25 @@ export async function ingestNotebookSource(
   }
 }
 
-// ─── FASE 2: generar embeddings en background ────────────────────────────────
-// Llamada asíncrona DESPUÉS de que la UI muestra ready
-// Si falla, keyword retrieval sigue funcionando
+// ─── FASE 2: Embeddings con contextual enrichment ────────────────────────────
+// Llamada en background tras ingestión. Usa título + intro del doc como contexto.
 
 export async function generateEmbeddingsForSource(
   sourceId: string
 ): Promise<{ ok: boolean; embedded: number }> {
   const supabase = await createClient()
 
+  // Obtener fuente para título y texto de intro
+  const { data: source } = await supabase
+    .from("notebook_sources")
+    .select("id, title, extracted_text")
+    .eq("id", sourceId)
+    .single()
+
+  const sourceTitle = source?.title ?? "Fuente"
+  const docIntro    = (source?.extracted_text ?? "").slice(0, 400)
+
+  // Chunks sin embedding
   const { data: chunks, error } = await supabase
     .from("notebook_chunks")
     .select("id, chunk_text")
@@ -202,21 +237,20 @@ export async function generateEmbeddingsForSource(
 
   if (error || !chunks || chunks.length === 0) return { ok: true, embedded: 0 }
 
-  let embedded = 0
-  const BATCH  = 4
+  // Enriquecer cada chunk con contexto del documento (Contextual RAG)
+  const enrichedTexts = chunks.map((c) =>
+    buildContextualChunkText(c.chunk_text, sourceTitle, docIntro)
+  )
 
-  for (let i = 0; i < chunks.length; i += BATCH) {
-    const batch = chunks.slice(i, i + BATCH)
-    const results = await Promise.all(
-      batch.map(async (c) => ({ id: c.id, embedding: await generateEmbedding(c.chunk_text) }))
-    )
-    for (const r of results) {
-      if (!r.embedding) continue
-      await supabase.from("notebook_chunks")
-        .update({ embedding: `[${r.embedding.join(",")}]` }).eq("id", r.id)
-      embedded++
-    }
-    if (i + BATCH < chunks.length) await new Promise((res) => setTimeout(res, 300))
+  const embeddings = await generateEmbeddingsBatched(enrichedTexts)
+
+  let embedded = 0
+  for (let i = 0; i < chunks.length; i++) {
+    if (!embeddings[i]) continue
+    const { error: e } = await supabase.from("notebook_chunks")
+      .update({ embedding: `[${embeddings[i]!.join(",")}]` })
+      .eq("id", chunks[i].id)
+    if (!e) embedded++
   }
 
   return { ok: true, embedded }
