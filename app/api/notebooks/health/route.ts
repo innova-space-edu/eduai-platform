@@ -58,9 +58,9 @@ export async function GET() {
       vecOk = !!vecData
     } catch { vecOk = false }
 
-    checks["pgvector_extension"] = vecOk
+    checks["pgvector_extension"] = checks["rpc_match_notebook_chunks"]?.ok
       ? { ok: true }
-      : { ok: false, error: "Extensión vector no habilitada — ejecutar: CREATE EXTENSION IF NOT EXISTS vector" }
+      : { ok: false, error: "pgvector no disponible o RPC vectorial no operativa" }
 
     const allOk = Object.values(checks).every((c) => c.ok)
 
