@@ -146,13 +146,19 @@ export async function POST(request: NextRequest) {
     const { data: source, error: srcErr } = await supabase
       .from("notebook_sources")
       .insert({
-        notebook_id: notebookId,
-        type:        "url",
-        title:       scraped.title,
+        notebook_id:    notebookId,
+        type:           "url",
+        title:          scraped.title,
         url,
-        raw_text:    scraped.text,
-        metadata:    { extractor: scraped.method, scraped_at: new Date().toISOString(), char_count: scraped.text.length },
-        status:      "pending",
+        raw_text:       scraped.text,
+        extracted_text: scraped.text,   // ya limpio — no necesita re-ingestar
+        metadata: {
+          source:      "web",
+          extractor:   scraped.method,
+          scraped_at:  new Date().toISOString(),
+          char_count:  scraped.text.length,
+        },
+        status: "ready",   // listo para usar — el texto ya está extraído
       })
       .select().single()
 
