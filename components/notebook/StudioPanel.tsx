@@ -150,14 +150,14 @@ function OutputView({ notebookId, format, data, onBack }: {
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
-        {/* Acciones especiales según formato */}
-        {format === "podcast" && data._podcastWavSegments && (
+        {/* Acciones especiales según formato — !! fuerza boolean para evitar unknown en JSX */}
+        {format === "podcast" && !!data._podcastWavSegments && (
           <PodcastPlayer
             segments={data._podcastWavSegments as Array<{ speaker: "A" | "B"; text: string }>}
           />
         )}
 
-        {format === "infographic" && data._hasImageSuggestion && (
+        {format === "infographic" && !!data._hasImageSuggestion && (
           <InfographicImageButton
             notebookId={notebookId}
             imagePrompt={data._imagePrompt as string}
