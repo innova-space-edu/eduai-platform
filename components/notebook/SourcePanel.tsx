@@ -12,7 +12,7 @@ type WebSearchResult = {
 type Props = {
   notebookId: string
   sources: any[]
-  onSourcesChange: () => Promise<void>
+  onSourcesChange: () => void | Promise<void>
 }
 
 function normalizeUrl(url: string) {
