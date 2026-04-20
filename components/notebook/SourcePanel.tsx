@@ -175,44 +175,50 @@ export default function SourcePanel({ notebookId, sources, onSourcesChange }: So
   // El usuario usa "Procesar pendientes" después
 
   const addWebResult = async (result: WebSearchResult) => {
-    if (existingUrlSet.has(normalizeUrl(result.url))) {
-      setMessage("Esta fuente ya está en el cuaderno."); return
-    }
-    setLoading(true); setError(null); setMessage(null)
+    setMessage("Agregando fuente web...")
     try {
-      const { duplicated } = await addSource({
-        type: "url", title: result.title, url: result.url,
-        metadata: { snippet: result.snippet, source: result.source ?? "web-search", search_query: webQuery.trim() },
+      const res = await fetch("/api/web/ingest", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ url: result.url, notebookId }),
       })
-      setMessage(duplicated ? "La fuente ya existía en el cuaderno." : `Fuente agregada: ${result.title.slice(0, 60)}`)
+      const data = await res.json().catch(() => ({}))
+
+      if (res.status === 409) {
+        setMessage("⚠️ Esta fuente ya está agregada")
+        return
+      }
+      if (!res.ok) throw new Error(data?.error || `Error HTTP ${res.status}`)
+
+      setMessage(`✅ Fuente agregada: ${result.title.slice(0, 60)}`)
       onSourcesChange()
-    } catch (e: unknown) { setError(e instanceof Error ? e.message : "Error agregando fuente web") }
-    finally { setLoading(false) }
+    } catch (err) {
+      console.error(err)
+      setMessage("❌ Error al agregar fuente web")
+    }
   }
 
   // ─── Agregar TODOS los resultados (solo add, SIN ingest) ─────────
 
   const addAllResults = async () => {
     if (!webResults.length) return
-    setAddingAll(true); setError(null); setMessage(null)
-    let added = 0; let skipped = 0
+    setAddingAll(true); setMessage("Agregando todas las fuentes web...")
+    let ok = 0; let duplicated = 0; let failed = 0
     try {
       for (const result of webResults) {
-        if (existingUrlSet.has(normalizeUrl(result.url))) { skipped++; continue }
         try {
-          const res  = await fetch(`/api/notebooks/${notebookId}/sources`, {
-            method: "POST", headers: { "Content-Type": "application/json" },
-            body:   JSON.stringify({ type: "url", title: result.title, url: result.url,
-              metadata: { snippet: result.snippet ?? "", source: result.source ?? "web-search" } }),
+          const res = await fetch("/api/web/ingest", {
+            method:  "POST",
+            headers: { "Content-Type": "application/json" },
+            body:    JSON.stringify({ url: result.url, notebookId }),
           })
-          const data = await res.json().catch(() => ({}))
-          if (res.status === 409 || data?.code === "SOURCE_ALREADY_EXISTS") { skipped++; continue }
-          if (!res.ok) throw new Error(data?.error || "Error")
-          added++
-        } catch { skipped++ }
+          if (res.status === 409) { duplicated++; continue }
+          if (!res.ok)            { failed++;     continue }
+          ok++
+        } catch { failed++ }
       }
-      await onSourcesChange()
-      setMessage(`Agregadas: ${added}. Omitidas: ${skipped}. Pulsa "Procesar pendientes" para ingestarlas.`)
+      setMessage(`✅ ${ok} agregadas | ⚠️ ${duplicated} duplicadas | ❌ ${failed} fallidas`)
+      onSourcesChange()
     } finally { setAddingAll(false) }
   }
 
