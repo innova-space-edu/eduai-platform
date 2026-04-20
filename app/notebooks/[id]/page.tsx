@@ -154,7 +154,7 @@ export default function NotebookPage() {
         {/* Rol especialista */}
         <SpecialistRoleSelector
           value={notebook.specialist_role}
-          onChange={(role) => updateNotebook({ specialist_role: role })}
+          onChange={async (role) => { await updateNotebook({ specialist_role: role }) }}
         />
 
         {/* Toggle paneles */}
