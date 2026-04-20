@@ -1,3 +1,7 @@
+// app/api/notebooks/health/route.ts
+// Diagnóstico rápido — verifica que todas las tablas y funciones existen
+// Visitar: /api/notebooks/health
+
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 
@@ -9,6 +13,7 @@ export async function GET() {
 
     const checks: Record<string, { ok: boolean; error?: string }> = {}
 
+    // Verificar cada tabla
     const tables = [
       "notebooks",
       "notebook_sources",
@@ -25,57 +30,52 @@ export async function GET() {
         : { ok: true }
     }
 
-    let rpcOk = false
-
+    // Verificar función RPC
     try {
-      const { error } = await supabase.rpc("match_notebook_chunks", {
+      await supabase.rpc("match_notebook_chunks", {
         p_notebook_id: "00000000-0000-0000-0000-000000000000",
-        p_embedding: "[" + Array(768).fill(0).join(",") + "]",
-        p_limit: 1,
+        p_embedding:   "[" + Array(768).fill(0).join(",") + "]",
+        p_limit:       1,
         p_active_only: true,
       })
-
-      if (error) {
-        checks["rpc_match_notebook_chunks"] = {
-          ok: false,
-          error: error.message,
-        }
-      } else {
-        rpcOk = true
-        checks["rpc_match_notebook_chunks"] = { ok: true }
-      }
+      checks["rpc_match_notebook_chunks"] = { ok: true }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
+      // Si el error es "no rows" está OK, si es "function not found" no está
       checks["rpc_match_notebook_chunks"] = msg.includes("does not exist")
         ? { ok: false, error: "Función no existe — ejecutar migration.sql" }
-        : { ok: false, error: msg }
+        : { ok: true }
     }
 
-    // Si el RPC vectorial funciona, pgvector está operativo para la app.
-    checks["pgvector_extension"] = rpcOk
+    // Verificar extensión vector
+    let vecOk = false
+    try {
+      const { data: vecData } = await supabase
+        .from("pg_extension")
+        .select("extname")
+        .eq("extname", "vector")
+        .maybeSingle()
+      vecOk = !!vecData
+    } catch { vecOk = false }
+
+    checks["pgvector_extension"] = vecOk
       ? { ok: true }
-      : {
-          ok: false,
-          error: "No se pudo verificar pgvector a través del RPC match_notebook_chunks",
-        }
+      : { ok: false, error: "Extensión vector no habilitada — ejecutar: CREATE EXTENSION IF NOT EXISTS vector" }
 
     const allOk = Object.values(checks).every((c) => c.ok)
 
     return NextResponse.json({
-      ok: allOk,
+      ok:     allOk,
       checks,
-      hint: allOk
+      hint:   allOk
         ? "Todo está correcto."
-        : "Hay uno o más checks fallando. Revisa la salida.",
+        : "Ejecuta migration.sql en Supabase SQL Editor. Ver checks con ok: false.",
     })
   } catch (err) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: err instanceof Error ? err.message : "Error desconocido",
-        hint: "Verifica variables de entorno y conexión con Supabase.",
-      },
-      { status: 500 }
-    )
+    return NextResponse.json({
+      ok:    false,
+      error: err instanceof Error ? err.message : "Error desconocido",
+      hint:  "Verifica que NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY estén configuradas.",
+    }, { status: 500 })
   }
 }

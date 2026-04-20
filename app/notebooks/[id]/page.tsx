@@ -1,18 +1,26 @@
 "use client"
-// app/notebooks/[id]/page.tsx  — v2 (usa useNotebook hook)
+// app/notebooks/[id]/page.tsx  v3
+// + Botón volver a Creator Hub
+// + ProcessingIndicator con spinner de colores
+// + Fire-and-forget embeddings después de ingest
 
 import { useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, PanelLeftClose, PanelRightClose, Loader2, Zap } from "lucide-react"
+import {
+  ArrowLeft, PanelLeftClose, PanelRightClose,
+  Loader2, Zap, Sparkles,
+} from "lucide-react"
 import { useNotebook } from "@/hooks/useNotebook"
-import SourcePanel from "@/components/notebook/SourcePanel"
-import NotebookChat from "@/components/notebook/NotebookChat"
-import StudioPanel from "@/components/notebook/StudioPanel"
+import SourcePanel     from "@/components/notebook/SourcePanel"
+import NotebookChat    from "@/components/notebook/NotebookChat"
+import StudioPanel     from "@/components/notebook/StudioPanel"
 import SpecialistRoleSelector from "@/components/notebook/SpecialistRoleSelector"
+import ProcessingIndicator    from "@/components/notebook/ProcessingIndicator"
 
 export default function NotebookPage() {
   const { id }  = useParams() as { id: string }
   const router  = useRouter()
+
   const {
     notebook, sources, summary, loading,
     hasReadySources, processingCount,
@@ -24,11 +32,32 @@ export default function NotebookPage() {
   const [editingTitle, setEditingTitle] = useState(false)
   const [titleDraft,   setTitleDraft]   = useState("")
 
+  // ─── Loading ─────────────────────────────────────────────────────
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-app">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 size={28} className="animate-spin" style={{ color: "var(--accent-blue)" }} />
+        <div className="flex flex-col items-center gap-4">
+          {/* Spinner grande con gradiente */}
+          <div style={{ position: "relative", width: 48, height: 48 }}>
+            <svg width={48} height={48} viewBox="0 0 36 36"
+              style={{ animation: "nb-spin 0.9s linear infinite", display: "block" }}>
+              <defs>
+                <linearGradient id="load-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%"   stopColor="#3b82f6" />
+                  <stop offset="50%"  stopColor="#8b5cf6" />
+                  <stop offset="100%" stopColor="#06b6d4" />
+                </linearGradient>
+              </defs>
+              <circle cx="18" cy="18" r="14" fill="none"
+                stroke="rgba(255,255,255,0.08)" strokeWidth="3" />
+              <circle cx="18" cy="18" r="14" fill="none"
+                stroke="url(#load-grad)" strokeWidth="3"
+                strokeLinecap="round" strokeDasharray="44 44"
+                transform="rotate(-90 18 18)" />
+            </svg>
+            <style>{`@keyframes nb-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
+          </div>
           <p className="text-sm text-muted2">Cargando cuaderno...</p>
         </div>
       </div>
@@ -56,19 +85,37 @@ export default function NotebookPage() {
     setEditingTitle(false)
   }
 
+  const totalSources = sources.length
+
   return (
     <div className="flex flex-col h-screen bg-app overflow-hidden">
 
-      {/* ── Topbar ─────────────────────────────────────────────────────────── */}
+      {/* ── Topbar ─────────────────────────────────────────────────── */}
       <div
-        className="flex items-center gap-3 px-4 py-2 border-b border-soft flex-shrink-0 z-10"
+        className="flex items-center gap-2 px-3 py-2 border-b border-soft flex-shrink-0 z-10"
         style={{ background: "var(--bg-header)", backdropFilter: "blur(12px)" }}
       >
-        <button onClick={() => router.push("/notebooks")}
-          className="p-1.5 rounded-lg transition-colors flex-shrink-0"
-          style={{ color: "var(--text-muted)" }}>
-          <ArrowLeft size={16} />
+        {/* Volver a Creator Hub */}
+        <button
+          onClick={() => router.push("/creator-hub")}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium flex-shrink-0 transition-all"
+          style={{ color: "var(--text-muted)", background: "transparent" }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "var(--bg-card-soft)"
+            e.currentTarget.style.color      = "var(--text-primary)"
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "transparent"
+            e.currentTarget.style.color      = "var(--text-muted)"
+          }}
+          title="Volver a Creator Hub"
+        >
+          <ArrowLeft size={14} />
+          <span className="hidden sm:inline">Creator Hub</span>
         </button>
+
+        {/* Separador */}
+        <span className="text-muted2 text-xs flex-shrink-0">/</span>
 
         <span className="text-base flex-shrink-0">📓</span>
 
@@ -95,28 +142,28 @@ export default function NotebookPage() {
           </button>
         )}
 
-        {/* Procesando badge */}
+        {/* Indicador de procesamiento */}
         {processingCount > 0 && (
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium flex-shrink-0"
-            style={{ background: "rgba(245,158,11,0.1)", color: "#f59e0b" }}>
-            <Zap size={10} className="animate-pulse" />
-            Procesando {processingCount}
-          </div>
+          <ProcessingIndicator
+            count={processingCount}
+            total={totalSources}
+            size="sm"
+          />
         )}
 
+        {/* Rol especialista */}
         <SpecialistRoleSelector
           value={notebook.specialist_role}
-          onChange={async (role) => {
-            await updateNotebook({ specialist_role: role })
-          }}
+          onChange={(role) => updateNotebook({ specialist_role: role })}
         />
 
+        {/* Toggle paneles */}
         <div className="flex items-center gap-1 flex-shrink-0">
           <button
             onClick={() => setLeftOpen(!leftOpen)}
             className="p-1.5 rounded-lg transition-all"
             style={{ color: leftOpen ? "var(--accent-blue)" : "var(--text-muted)" }}
-            title="Fuentes"
+            title="Panel de fuentes"
           >
             <PanelLeftClose size={15} />
           </button>
@@ -131,13 +178,13 @@ export default function NotebookPage() {
         </div>
       </div>
 
-      {/* ── 3-panel workspace ──────────────────────────────────────────────── */}
+      {/* ── Workspace 3 paneles ────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">
 
         {/* LEFT — Fuentes */}
         {leftOpen && (
           <div
-            className="flex-shrink-0 border-r border-soft overflow-hidden flex flex-col transition-all"
+            className="flex-shrink-0 border-r border-soft overflow-hidden flex flex-col"
             style={{ width: "260px" }}
           >
             <SourcePanel
@@ -164,7 +211,7 @@ export default function NotebookPage() {
         {/* RIGHT — Studio */}
         {rightOpen && (
           <div
-            className="flex-shrink-0 border-l border-soft overflow-hidden flex flex-col transition-all"
+            className="flex-shrink-0 border-l border-soft overflow-hidden flex flex-col"
             style={{ width: "260px" }}
           >
             <StudioPanel

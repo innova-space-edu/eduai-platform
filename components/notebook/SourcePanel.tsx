@@ -7,6 +7,7 @@ import {
   ToggleLeft, ToggleRight, ChevronDown, ChevronUp, Search, RefreshCw, PlayCircle,
 } from "lucide-react"
 import { safeJson } from "@/lib/notebook/safe-fetch"
+import { InlineSpinner } from "@/components/notebook/ProcessingIndicator"
 import type { NotebookSource, WebSearchResult } from "@/lib/notebook/types"
 
 const TYPE_ICONS: Record<string, string> = {
@@ -91,6 +92,14 @@ export default function SourcePanel({ notebookId, sources, onSourcesChange }: So
     })
     const data = await res.json().catch(() => ({}))
     if (!res.ok) throw new Error(data?.error || `Error HTTP ${res.status} al procesar la fuente`)
+
+    // Fire-and-forget: generar embeddings en background sin bloquear la UI
+    // Si falla, el keyword retrieval sigue funcionando
+    fetch(`/api/notebooks/${notebookId}/embeddings`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body:   JSON.stringify({ sourceId }),
+    }).catch(() => {}) // ignorar error — es background
+
     return data
   }
 
@@ -502,7 +511,7 @@ function SourceCard({ source, busy, onToggle, onDelete, onProcess }: {
 
   const statusIcon = {
     pending:    <Clock        size={10} className="text-amber-400" />,
-    processing: <Loader2      size={10} className="text-blue-400 animate-spin" />,
+    processing: <InlineSpinner color="#3b82f6" />,
     ready:      <CheckCircle2 size={10} className="text-green-400" />,
     error:      <AlertCircle  size={10} className="text-red-400" />,
   }[source.status ?? "pending"]

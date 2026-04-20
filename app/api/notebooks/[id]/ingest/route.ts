@@ -10,7 +10,6 @@ export async function POST(request: NextRequest, { params }: Params) {
   try {
     const { id } = await params
     const supabase = await createClient()
-
     const {
       data: { user },
     } = await supabase.auth.getUser()
@@ -39,7 +38,7 @@ export async function POST(request: NextRequest, { params }: Params) {
 
     const { data: src, error: srcErr } = await supabase
       .from("notebook_sources")
-      .select("id, notebook_id, status")
+      .select("id, notebook_id")
       .eq("id", sourceId)
       .eq("notebook_id", id)
       .single()
@@ -50,25 +49,13 @@ export async function POST(request: NextRequest, { params }: Params) {
 
     const result = await ingestNotebookSource(sourceId, fileBase64)
 
-    if (!result.ok) {
-      console.error("[Ingest POST] Controlled ingest error:", result)
-    }
-
     return NextResponse.json(result, {
       status: result.ok ? 200 : 422,
     })
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "Error interno al ingestar fuente"
-
-    console.error("[Ingest POST] Fatal error:", err)
-
+    console.error("[Ingest POST]", err)
     return NextResponse.json(
-      {
-        ok: false,
-        chunkCount: 0,
-        error: message,
-      },
+      { ok: false, chunkCount: 0, error: "Error interno al ingestar fuente" },
       { status: 500 }
     )
   }
