@@ -149,7 +149,10 @@ export default function NotebookPage() {
           <div className="flex-shrink-0 border-r border-soft overflow-hidden flex flex-col" style={{ width: "260px" }}>
             <SourcePanel
               notebookId={id} sources={sources}
-              onSourcesChange={() => { refreshSources(); refreshSummary() }} />
+              onSourcesChange={async () => {
+                await Promise.resolve(refreshSources())
+                await Promise.resolve(refreshSummary())
+              }} />
           </div>
         )}
         <div className="flex-1 overflow-hidden flex flex-col min-w-0">
