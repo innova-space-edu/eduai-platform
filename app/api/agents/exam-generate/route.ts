@@ -6,10 +6,10 @@ export const runtime = "nodejs"
 export const maxDuration = 120
 
 const GROQ_MODELS = [
+  // Modelos activos de Groq. Evitar modelos decommissioned como mixtral-8x7b-32768 y gemma2-9b-it.
   "llama-3.3-70b-versatile",
-  "mistral-saba-24b",
   "llama-3.1-8b-instant",
-  "gemma2-9b-it",
+  "openai/gpt-oss-20b",
 ]
 
 const GROQ_MAX_TOKENS = 16384
@@ -664,18 +664,7 @@ export async function POST(req: NextRequest) {
   if (mode === "single") {
     const singleErrors: string[] = []
 
-    if (OR_KEY) {
-      try {
-        const parsed = await openRouterBatch(prompt, OR_KEY)
-        const q = repairQuestionStructure(sanitizeQuestionLatex(parsed?.question ?? parsed?.questions?.[0] ?? parsed))
-
-        return NextResponse.json({ success: true, question: q, provider: "openrouter" })
-      } catch (e: any) {
-        singleErrors.push(`OpenRouter: ${e.message}`)
-        console.warn("[exam-generate/single] OpenRouter falló:", e.message)
-      }
-    }
-
+    // Prioridad Groq: OpenRouter puede devolver 402 si no tiene créditos.
     if (GROQ_KEY) {
       try {
         const parsed = await groqBatch(prompt, GROQ_KEY)
@@ -685,6 +674,18 @@ export async function POST(req: NextRequest) {
       } catch (e: any) {
         singleErrors.push(`Groq: ${e.message}`)
         console.warn("[exam-generate/single] Groq falló:", e.message)
+      }
+    }
+
+    if (OR_KEY) {
+      try {
+        const parsed = await openRouterBatch(prompt, OR_KEY)
+        const q = repairQuestionStructure(sanitizeQuestionLatex(parsed?.question ?? parsed?.questions?.[0] ?? parsed))
+
+        return NextResponse.json({ success: true, question: q, provider: "openrouter" })
+      } catch (e: any) {
+        singleErrors.push(`OpenRouter: ${e.message}`)
+        console.warn("[exam-generate/single] OpenRouter falló:", e.message)
       }
     }
 
@@ -714,6 +715,20 @@ export async function POST(req: NextRequest) {
 
   const providerErrors: string[] = []
 
+  // Prioridad Groq: OpenRouter puede devolver 402 si la cuenta no tiene créditos.
+  if (GROQ_KEY) {
+    try {
+      const { title, questions } = await groqFull(prompt, totalQ, Number(mc), Number(tf), Number(dev), GROQ_KEY)
+      if (questions.length > 0) {
+        return NextResponse.json({ success: true, title, summary: null, questions, provider: "groq" })
+      }
+      providerErrors.push("Groq: no devolvió preguntas")
+    } catch (e: any) {
+      providerErrors.push(`Groq: ${e.message}`)
+      console.warn("[exam-generate] Groq falló:", e.message)
+    }
+  }
+
   if (OR_KEY) {
     try {
       const { title, questions } = await openRouterFull(prompt, totalQ, Number(mc), Number(tf), Number(dev), OR_KEY)
@@ -724,19 +739,6 @@ export async function POST(req: NextRequest) {
     } catch (e: any) {
       providerErrors.push(`OpenRouter: ${e.message}`)
       console.warn("[exam-generate] OpenRouter falló:", e.message)
-    }
-  }
-
-  if (GROQ_KEY) {
-    try {
-      const { title, questions } = await groqFull(prompt, totalQ, Number(mc), Number(tf), Number(dev), GROQ_KEY)
-      if (questions.length > 0) {
-        return NextResponse.json({ success: true, title, summary: null, questions, provider: "groq" })
-      }
-      providerErrors.push("Groq: no devolvió preguntas")
-    } catch (e: any) {
-      providerErrors.push(`Groq: ${e.message}`)
-      console.warn("[exam-generate] Groq falló → usando fallback:", e.message)
     }
   }
 
