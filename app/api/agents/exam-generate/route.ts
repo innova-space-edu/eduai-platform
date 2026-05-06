@@ -7,9 +7,9 @@ export const maxDuration = 120
 
 const GROQ_MODELS = [
   "llama-3.3-70b-versatile",
+  "mistral-saba-24b",
   "llama-3.1-8b-instant",
-  "llama-3.1-70b-versatile",
-  "mixtral-8x7b-32768",
+  "gemma2-9b-it",
 ]
 
 const GROQ_MAX_TOKENS = 16384
