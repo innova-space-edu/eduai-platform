@@ -5,8 +5,6 @@ import { createClient } from "@/lib/supabase/server"
 export const runtime = "nodejs"
 export const maxDuration = 120
 
-const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
-
 const GROQ_MODELS = [
   "llama-3.3-70b-versatile",
   "llama-3.1-8b-instant",
@@ -14,7 +12,6 @@ const GROQ_MODELS = [
   "mixtral-8x7b-32768",
 ]
 
-const GROQ_BATCH = 12
 const GROQ_MAX_TOKENS = 16384
 
 const FAKE_BACKSLASH_RE = /[\u2191\u2197\u2B06\u25B2\u2227\u21D2\u2044\u2216\u29F5]/g
@@ -488,88 +485,6 @@ Genera EXACTAMENTE ${batch.total} preguntas en este lote:
 No generes tipos con cantidad 0. Devuelve únicamente JSON válido con { "title": "...", "questions": [...] }.`
 }
 
-async function gemini(prompt: string, totalQ: number, key: string): Promise<any> {
-  const maxOut = Math.min(Math.max(4096, totalQ * 750 + 2500), 12000)
-  let lastError = ""
-
-  for (const model of GEMINI_MODELS) {
-    for (let attempt = 0; attempt < 2; attempt++) {
-      try {
-        const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              system_instruction: { parts: [{ text: SYSTEM }] },
-              contents: [{ role: "user", parts: [{ text: prompt }] }],
-              generationConfig: {
-                temperature: 0.35,
-                maxOutputTokens: maxOut,
-                responseMimeType: "application/json",
-              },
-            }),
-            signal: AbortSignal.timeout(60000),
-          }
-        )
-
-        if (!res.ok) {
-          const err = await readProviderError(res)
-          lastError = `Gemini ${model} HTTP ${res.status}: ${err}`
-
-          // 429 = cuota/rate limit. 503 = servicio sobrecargado. No son el mismo problema.
-          if (res.status === 429 || res.status === 503) {
-            if (attempt === 0) await sleep(res.status === 429 ? 1200 : 1800)
-            continue
-          }
-
-          // Probar siguiente modelo si el modelo no existe o no acepta responseMimeType.
-          if (res.status === 400 || res.status === 404) break
-
-          throw new Error(lastError)
-        }
-
-        const data = await res.json()
-        const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? ""
-        if (!raw) {
-          lastError = `Gemini ${model}: respuesta vacía`
-          continue
-        }
-
-        return parseResponse(raw)
-      } catch (e: any) {
-        lastError = `Gemini ${model}: ${e?.message || String(e)}`
-        if (attempt === 0) await sleep(1000)
-      }
-    }
-  }
-
-  throw new Error(`Gemini: todos los modelos fallaron. Último error: ${lastError}`)
-}
-
-async function geminiFull(
-  basePrompt: string,
-  totalQ: number,
-  mc: number,
-  tf: number,
-  dev: number,
-  key: string
-): Promise<{ title: string; questions: any[] }> {
-  const batches = makeBatchPlans(totalQ, mc, tf, dev)
-  const allQ: any[] = []
-  let title = ""
-
-  for (let i = 0; i < batches.length; i++) {
-    const prompt = promptForBatch(basePrompt, batches[i], i, batches.length)
-    const parsed = await gemini(prompt, batches[i].total, key)
-    const qs = sanitizeQuestionsArray(parsed?.questions ?? parsed?.items ?? [])
-    allQ.push(...qs)
-    if (!title && parsed?.title) title = sanitizeLatexText(parsed.title)
-  }
-
-  return { title, questions: allQ.slice(0, totalQ) }
-}
-
 async function groqBatch(prompt: string, key: string): Promise<any> {
   const Groq = (await import("groq-sdk")).default
   const client = new Groq({ apiKey: key })
@@ -635,7 +550,6 @@ async function openRouterBatch(prompt: string, key: string): Promise<any> {
     "meta-llama/llama-3.3-70b-instruct",
     "qwen/qwen3-32b",
     "deepseek/deepseek-chat",
-    "google/gemini-2.5-flash",
     "openai/gpt-4o-mini",
   ]
 
@@ -724,13 +638,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No autenticado" }, { status: 401 })
   }
 
-  const GEMINI_KEY = process.env.GEMINI_API_KEY
   const GROQ_KEY = process.env.GROQ_API_KEY
   const OR_KEY = process.env.OPENROUTER_API_KEY_1 || process.env.OPENROUTER_API_KEY
 
-  if (!GEMINI_KEY && !GROQ_KEY && !OR_KEY) {
+  if (!GROQ_KEY && !OR_KEY) {
     return NextResponse.json(
-      { error: "Sin API keys configuradas (GEMINI_API_KEY, GROQ_API_KEY u OPENROUTER_API_KEY)." },
+      { error: "Sin API keys configuradas. Agrega GROQ_API_KEY u OPENROUTER_API_KEY en Vercel." },
       { status: 500 }
     )
   }
@@ -772,17 +685,6 @@ export async function POST(req: NextRequest) {
       } catch (e: any) {
         singleErrors.push(`Groq: ${e.message}`)
         console.warn("[exam-generate/single] Groq falló:", e.message)
-      }
-    }
-
-    if (GEMINI_KEY) {
-      try {
-        const parsed = await gemini(prompt, 1, GEMINI_KEY)
-        const q = repairQuestionStructure(sanitizeQuestionLatex(parsed?.question ?? parsed?.questions?.[0] ?? parsed))
-
-        return NextResponse.json({ success: true, question: q, provider: "gemini" })
-      } catch (e: any) {
-        singleErrors.push(`Gemini: ${e.message}`)
       }
     }
 
@@ -835,21 +737,6 @@ export async function POST(req: NextRequest) {
     } catch (e: any) {
       providerErrors.push(`Groq: ${e.message}`)
       console.warn("[exam-generate] Groq falló → usando fallback:", e.message)
-    }
-  }
-
-  if (GEMINI_KEY) {
-    try {
-      const { title, questions } = await geminiFull(prompt, totalQ, Number(mc), Number(tf), Number(dev), GEMINI_KEY)
-
-      if (Array.isArray(questions) && questions.length > 0) {
-        return NextResponse.json({ success: true, title, summary: null, questions, provider: "gemini" })
-      }
-
-      providerErrors.push("Gemini: no generó preguntas")
-    } catch (e: any) {
-      providerErrors.push(`Gemini: ${e.message}`)
-      console.warn("[exam-generate] Gemini falló:", e.message)
     }
   }
 
