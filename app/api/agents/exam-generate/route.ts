@@ -363,42 +363,211 @@ ESTRUCTURA:
 - Si generas una sola pregunta, puedes devolver "question" o "questions"
 `
 
-async function gemini(prompt: string, totalQ: number, key: string): Promise<any> {
-  const maxOut = Math.min(Math.max(8192, totalQ * 700 + 3000), 65536)
+const PROVIDER_BATCH = Number(process.env.EXAM_GENERATE_BATCH_SIZE || 8)
+const MAX_AI_QUESTIONS_PER_CALL = Number(process.env.EXAM_GENERATE_MAX_QUESTIONS || 36)
 
-  for (const model of GEMINI_MODELS) {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          system_instruction: { parts: [{ text: SYSTEM }] },
-          contents: [{ role: "user", parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.4,
-            maxOutputTokens: maxOut,
-            responseMimeType: "application/json",
-          },
-        }),
-      }
-    )
+type BatchPlan = { total: number; mc: number; tf: number; dev: number }
 
-    if (!res.ok) {
-      const err = await res.text()
-      if (res.status === 429 || res.status === 503) throw new Error("QUOTA_EXCEEDED")
-      if (res.status === 404 || res.status === 400) continue
-      throw new Error(`Gemini ${res.status}: ${err.slice(0, 200)}`)
-    }
+function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
 
-    const data = await res.json()
-    const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? ""
-    if (!raw) continue
+function compactErrorText(raw: string): string {
+  const s = String(raw || "").replace(/\s+/g, " ").trim()
+  return s.length > 260 ? `${s.slice(0, 260)}...` : s
+}
 
-    return parseResponse(raw)
+async function readProviderError(res: Response): Promise<string> {
+  try {
+    const txt = await res.text()
+    return compactErrorText(txt)
+  } catch {
+    return "sin detalle del proveedor"
+  }
+}
+
+function friendlyProviderError(message: string): string {
+  const msg = String(message || "")
+  const lower = msg.toLowerCase()
+
+  if (msg.includes("429") || lower.includes("resource_exhausted") || lower.includes("rate") || lower.includes("quota")) {
+    return "La generación llegó al límite temporal de la API. Puede ser cuota, muchas solicitudes seguidas o límite de tokens por minuto. Prueba con menos preguntas por tanda, espera unos minutos o revisa billing/cuotas de la API configurada."
   }
 
-  throw new Error("QUOTA_EXCEEDED")
+  if (msg.includes("503") || lower.includes("unavailable") || lower.includes("overloaded") || lower.includes("sobrecarg")) {
+    return "El proveedor de IA está temporalmente sobrecargado. No necesariamente es problema de tu API key. Intenta nuevamente o usa otro proveedor/fallback."
+  }
+
+  if (lower.includes("json") || lower.includes("unexpected token")) {
+    return "La IA respondió con un formato inválido. Se recomienda generar menos preguntas por tanda o usar un tema más específico."
+  }
+
+  if (lower.includes("api key") || lower.includes("unauthorized") || msg.includes("401") || msg.includes("403")) {
+    return "La API key no está autorizada o no está correctamente configurada en las variables de entorno."
+  }
+
+  return "No se pudieron generar las preguntas con los proveedores configurados. Revisa las variables de entorno, cuota disponible y logs del servidor."
+}
+
+function makeBatchPlans(totalQ: number, mc: number, tf: number, dev: number): BatchPlan[] {
+  const explicit = mc > 0 || tf > 0 || dev > 0
+  const initial = explicit
+    ? { mc: Math.max(0, mc), tf: Math.max(0, tf), dev: Math.max(0, dev) }
+    : { mc: Math.max(1, totalQ), tf: 0, dev: 0 }
+
+  let remaining = {
+    ...initial,
+    total: initial.mc + initial.tf + initial.dev,
+  }
+
+  const plans: BatchPlan[] = []
+
+  while (remaining.total > 0) {
+    const take = Math.min(PROVIDER_BATCH, remaining.total)
+
+    let bMc = 0
+    let bTf = 0
+    let bDev = 0
+
+    if (!explicit) {
+      bMc = take
+    } else {
+      bMc = Math.min(remaining.mc, Math.floor((take * remaining.mc) / remaining.total))
+      bTf = Math.min(remaining.tf, Math.floor((take * remaining.tf) / remaining.total))
+      bDev = Math.min(remaining.dev, Math.floor((take * remaining.dev) / remaining.total))
+
+      let left = take - bMc - bTf - bDev
+      const order: ("mc" | "tf" | "dev")[] = ["mc", "tf", "dev"]
+
+      while (left > 0) {
+        let assigned = false
+        for (const key of order) {
+          if (left <= 0) break
+          const current = key === "mc" ? bMc : key === "tf" ? bTf : bDev
+          const capacity = remaining[key] - current
+          if (capacity > 0) {
+            if (key === "mc") bMc++
+            if (key === "tf") bTf++
+            if (key === "dev") bDev++
+            left--
+            assigned = true
+          }
+        }
+        if (!assigned) break
+      }
+    }
+
+    const total = bMc + bTf + bDev
+    if (total <= 0) break
+
+    plans.push({ total, mc: bMc, tf: bTf, dev: bDev })
+
+    remaining.mc -= bMc
+    remaining.tf -= bTf
+    remaining.dev -= bDev
+    remaining.total -= total
+  }
+
+  return plans
+}
+
+function promptForBatch(basePrompt: string, batch: BatchPlan, index: number, totalBatches: number): string {
+  const prompt = basePrompt
+    .replace(/Total de preguntas:\s*\d+/i, `Total de preguntas: ${batch.total}`)
+    .replace(/-\s*\d+\s+preguntas de ALTERNATIVAS/i, `- ${batch.mc} preguntas de ALTERNATIVAS`)
+    .replace(/-\s*\d+\s+preguntas de VERDADERO O FALSO/i, `- ${batch.tf} preguntas de VERDADERO O FALSO`)
+    .replace(/-\s*\d+\s+preguntas de DESARROLLO/i, `- ${batch.dev} preguntas de DESARROLLO`)
+
+  return `${prompt}
+
+[Lote ${index + 1}/${totalBatches}]
+Genera EXACTAMENTE ${batch.total} preguntas en este lote:
+- ${batch.mc} multiple_choice
+- ${batch.tf} true_false
+- ${batch.dev} development
+No generes tipos con cantidad 0. Devuelve únicamente JSON válido con { "title": "...", "questions": [...] }.`
+}
+
+async function gemini(prompt: string, totalQ: number, key: string): Promise<any> {
+  const maxOut = Math.min(Math.max(4096, totalQ * 750 + 2500), 12000)
+  let lastError = ""
+
+  for (const model of GEMINI_MODELS) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              system_instruction: { parts: [{ text: SYSTEM }] },
+              contents: [{ role: "user", parts: [{ text: prompt }] }],
+              generationConfig: {
+                temperature: 0.35,
+                maxOutputTokens: maxOut,
+                responseMimeType: "application/json",
+              },
+            }),
+            signal: AbortSignal.timeout(60000),
+          }
+        )
+
+        if (!res.ok) {
+          const err = await readProviderError(res)
+          lastError = `Gemini ${model} HTTP ${res.status}: ${err}`
+
+          // 429 = cuota/rate limit. 503 = servicio sobrecargado. No son el mismo problema.
+          if (res.status === 429 || res.status === 503) {
+            if (attempt === 0) await sleep(res.status === 429 ? 1200 : 1800)
+            continue
+          }
+
+          // Probar siguiente modelo si el modelo no existe o no acepta responseMimeType.
+          if (res.status === 400 || res.status === 404) break
+
+          throw new Error(lastError)
+        }
+
+        const data = await res.json()
+        const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? ""
+        if (!raw) {
+          lastError = `Gemini ${model}: respuesta vacía`
+          continue
+        }
+
+        return parseResponse(raw)
+      } catch (e: any) {
+        lastError = `Gemini ${model}: ${e?.message || String(e)}`
+        if (attempt === 0) await sleep(1000)
+      }
+    }
+  }
+
+  throw new Error(`Gemini: todos los modelos fallaron. Último error: ${lastError}`)
+}
+
+async function geminiFull(
+  basePrompt: string,
+  totalQ: number,
+  mc: number,
+  tf: number,
+  dev: number,
+  key: string
+): Promise<{ title: string; questions: any[] }> {
+  const batches = makeBatchPlans(totalQ, mc, tf, dev)
+  const allQ: any[] = []
+  let title = ""
+
+  for (let i = 0; i < batches.length; i++) {
+    const prompt = promptForBatch(basePrompt, batches[i], i, batches.length)
+    const parsed = await gemini(prompt, batches[i].total, key)
+    const qs = sanitizeQuestionsArray(parsed?.questions ?? parsed?.items ?? [])
+    allQ.push(...qs)
+    if (!title && parsed?.title) title = sanitizeLatexText(parsed.title)
+  }
+
+  return { title, questions: allQ.slice(0, totalQ) }
 }
 
 async function groqBatch(prompt: string, key: string): Promise<any> {
@@ -411,8 +580,8 @@ async function groqBatch(prompt: string, key: string): Promise<any> {
     try {
       const res = await client.chat.completions.create({
         model,
-        max_tokens: model === "llama3-70b-8192" ? 8192 : GROQ_MAX_TOKENS,
-        temperature: 0.4,
+        max_tokens: Math.min(GROQ_MAX_TOKENS, 12000),
+        temperature: 0.35,
         response_format: { type: "json_object" },
         messages: [
           { role: "system", content: SYSTEM },
@@ -445,32 +614,12 @@ async function groqFull(
   dev: number,
   key: string
 ): Promise<{ title: string; questions: any[] }> {
-  const batches = Math.ceil(totalQ / GROQ_BATCH)
+  const batches = makeBatchPlans(totalQ, mc, tf, dev)
   const allQ: any[] = []
   let title = ""
 
-  for (let i = 0; i < batches; i++) {
-    const done = i * GROQ_BATCH
-    const rem = Math.min(GROQ_BATCH, totalQ - done)
-
-    const r = rem / totalQ
-    // If user specified types explicitly, scale them; otherwise fallback to all-MC
-    const hasExplicitTypes = mc > 0 || tf > 0 || dev > 0
-    const bMc = hasExplicitTypes ? Math.max(0, Math.round(mc * r)) : rem
-    const bTf = hasExplicitTypes ? Math.max(0, Math.round(tf * r)) : 0
-    const bDev = hasExplicitTypes ? Math.max(0, rem - Math.round(mc * r) - Math.round(tf * r)) : 0
-
-    const batchNote =
-      batches > 1
-        ? `\n\n[Lote ${i + 1}/${batches}: genera EXACTAMENTE ${bMc} alternativas, ${bTf} V/F, ${bDev} desarrollo. NO uses otros tipos. Total: ${rem}]`
-        : ""
-
-    const prompt = basePrompt
-      .replace(/Total de preguntas: \d+/, `Total de preguntas: ${rem}`)
-      .replace(/- \d+ preguntas de ALTERNATIVAS/, `- ${bMc} preguntas de ALTERNATIVAS`)
-      .replace(/- \d+ preguntas de VERDADERO O FALSO/, `- ${bTf} preguntas de VERDADERO O FALSO`)
-      .replace(/- \d+ preguntas de DESARROLLO/, `- ${bDev} preguntas de DESARROLLO`) + batchNote
-
+  for (let i = 0; i < batches.length; i++) {
+    const prompt = promptForBatch(basePrompt, batches[i], i, batches.length)
     const parsed = await groqBatch(prompt, key)
     const qs = sanitizeQuestionsArray(parsed?.questions ?? parsed?.items ?? [])
 
@@ -478,7 +627,7 @@ async function groqFull(
     if (!title && parsed?.title) title = sanitizeLatexText(parsed.title)
   }
 
-  return { title, questions: allQ }
+  return { title, questions: allQ.slice(0, totalQ) }
 }
 
 async function openRouterBatch(prompt: string, key: string): Promise<any> {
@@ -500,24 +649,24 @@ async function openRouterBatch(prompt: string, key: string): Promise<any> {
           Authorization: `Bearer ${key}`,
           "Content-Type": "application/json",
           "HTTP-Referer": process.env.OPENROUTER_REFERER || "https://eduai.local",
-          "X-Title": "EduAI Exam Generator",
+          "X-Title": process.env.OPENROUTER_APP_TITLE || "EduAI Exam Generator",
         },
         body: JSON.stringify({
           model,
-          max_tokens: 16384,
-          temperature: 0.4,
+          max_tokens: 12000,
+          temperature: 0.35,
           response_format: { type: "json_object" },
           messages: [
             { role: "system", content: SYSTEM },
             { role: "user", content: prompt },
           ],
         }),
-        signal: AbortSignal.timeout(90000),
+        signal: AbortSignal.timeout(75000),
       })
 
       if (!res.ok) {
-        const err = await res.text()
-        lastError = `${model} HTTP ${res.status}: ${err.slice(0, 100)}`
+        const err = await readProviderError(res)
+        lastError = `${model} HTTP ${res.status}: ${err}`
         console.warn("[exam-generate] OpenRouter", lastError)
         continue
       }
@@ -549,30 +698,12 @@ async function openRouterFull(
   dev: number,
   key: string
 ): Promise<{ title: string; questions: any[] }> {
-  const batches = Math.ceil(totalQ / GROQ_BATCH)
+  const batches = makeBatchPlans(totalQ, mc, tf, dev)
   const allQ: any[] = []
   let title = ""
 
-  for (let i = 0; i < batches; i++) {
-    const done = i * GROQ_BATCH
-    const rem = Math.min(GROQ_BATCH, totalQ - done)
-    const r = rem / totalQ
-    const hasExplicitTypes2 = mc > 0 || tf > 0 || dev > 0
-    const bMc = hasExplicitTypes2 ? Math.max(0, Math.round(mc * r)) : rem
-    const bTf = hasExplicitTypes2 ? Math.max(0, Math.round(tf * r)) : 0
-    const bDev = hasExplicitTypes2 ? Math.max(0, rem - Math.round(mc * r) - Math.round(tf * r)) : 0
-
-    const batchNote =
-      batches > 1
-        ? `\n\n[Lote ${i + 1}/${batches}: genera EXACTAMENTE ${bMc} alternativas, ${bTf} V/F, ${bDev} desarrollo. NO uses otros tipos. Total: ${rem}]`
-        : ""
-
-    const prompt = basePrompt
-      .replace(/Total de preguntas: \d+/, `Total de preguntas: ${rem}`)
-      .replace(/- \d+ preguntas de ALTERNATIVAS/, `- ${bMc} preguntas de ALTERNATIVAS`)
-      .replace(/- \d+ preguntas de VERDADERO O FALSO/, `- ${bTf} preguntas de VERDADERO O FALSO`)
-      .replace(/- \d+ preguntas de DESARROLLO/, `- ${bDev} preguntas de DESARROLLO`) + batchNote
-
+  for (let i = 0; i < batches.length; i++) {
+    const prompt = promptForBatch(basePrompt, batches[i], i, batches.length)
     const parsed = await openRouterBatch(prompt, key)
     const qs = sanitizeQuestionsArray(parsed?.questions ?? parsed?.items ?? [])
 
@@ -580,7 +711,7 @@ async function openRouterFull(
     if (!title && parsed?.title) title = sanitizeLatexText(parsed.title)
   }
 
-  return { title, questions: allQ }
+  return { title, questions: allQ.slice(0, totalQ) }
 }
 
 export async function POST(req: NextRequest) {
@@ -618,17 +749,16 @@ export async function POST(req: NextRequest) {
   }
 
   if (mode === "single") {
+    const singleErrors: string[] = []
+
     if (OR_KEY) {
       try {
         const parsed = await openRouterBatch(prompt, OR_KEY)
         const q = repairQuestionStructure(sanitizeQuestionLatex(parsed?.question ?? parsed?.questions?.[0] ?? parsed))
 
-        return NextResponse.json({
-          success: true,
-          question: q,
-          provider: "openrouter",
-        })
+        return NextResponse.json({ success: true, question: q, provider: "openrouter" })
       } catch (e: any) {
+        singleErrors.push(`OpenRouter: ${e.message}`)
         console.warn("[exam-generate/single] OpenRouter falló:", e.message)
       }
     }
@@ -638,12 +768,9 @@ export async function POST(req: NextRequest) {
         const parsed = await groqBatch(prompt, GROQ_KEY)
         const q = repairQuestionStructure(sanitizeQuestionLatex(parsed?.question ?? parsed?.questions?.[0] ?? parsed))
 
-        return NextResponse.json({
-          success: true,
-          question: q,
-          provider: "groq",
-        })
+        return NextResponse.json({ success: true, question: q, provider: "groq" })
       } catch (e: any) {
+        singleErrors.push(`Groq: ${e.message}`)
         console.warn("[exam-generate/single] Groq falló:", e.message)
       }
     }
@@ -653,89 +780,85 @@ export async function POST(req: NextRequest) {
         const parsed = await gemini(prompt, 1, GEMINI_KEY)
         const q = repairQuestionStructure(sanitizeQuestionLatex(parsed?.question ?? parsed?.questions?.[0] ?? parsed))
 
-        return NextResponse.json({
-          success: true,
-          question: q,
-          provider: "gemini",
-        })
+        return NextResponse.json({ success: true, question: q, provider: "gemini" })
       } catch (e: any) {
-        return NextResponse.json({ error: e.message }, { status: 500 })
+        singleErrors.push(`Gemini: ${e.message}`)
       }
     }
 
-    return NextResponse.json({ error: "Sin providers disponibles" }, { status: 500 })
+    const details = singleErrors.join(" | ")
+    return NextResponse.json({ error: friendlyProviderError(details), details }, { status: 500 })
   }
 
   const totalQ =
-    mc + tf + dev ||
+    Number(mc) + Number(tf) + Number(dev) ||
     (() => {
-      const m = prompt.match(/Total de preguntas:\s*(\d+)/)
+      const m = String(prompt).match(/Total de preguntas:\s*(\d+)/i)
       return m ? parseInt(m[1], 10) : 15
     })()
 
+  if (!Number.isFinite(totalQ) || totalQ <= 0) {
+    return NextResponse.json({ error: "La cantidad de preguntas debe ser mayor que 0." }, { status: 400 })
+  }
+
+  if (totalQ > MAX_AI_QUESTIONS_PER_CALL) {
+    return NextResponse.json(
+      {
+        error: `Para evitar errores de cuota/timeout, genera máximo ${MAX_AI_QUESTIONS_PER_CALL} preguntas por tanda. Puedes importar esas preguntas y luego generar otra tanda con modo "Agregar al final".`,
+      },
+      { status: 400 }
+    )
+  }
+
+  const providerErrors: string[] = []
+
   if (OR_KEY) {
     try {
-      const { title, questions } = await openRouterFull(prompt, totalQ, mc, tf, dev, OR_KEY)
+      const { title, questions } = await openRouterFull(prompt, totalQ, Number(mc), Number(tf), Number(dev), OR_KEY)
       if (questions.length > 0) {
-        return NextResponse.json({
-          success: true,
-          title,
-          summary: null,
-          questions,
-          provider: "openrouter",
-        })
+        return NextResponse.json({ success: true, title, summary: null, questions, provider: "openrouter" })
       }
+      providerErrors.push("OpenRouter: no devolvió preguntas")
     } catch (e: any) {
+      providerErrors.push(`OpenRouter: ${e.message}`)
       console.warn("[exam-generate] OpenRouter falló:", e.message)
     }
   }
 
   if (GROQ_KEY) {
     try {
-      const { title, questions } = await groqFull(prompt, totalQ, mc, tf, dev, GROQ_KEY)
+      const { title, questions } = await groqFull(prompt, totalQ, Number(mc), Number(tf), Number(dev), GROQ_KEY)
       if (questions.length > 0) {
-        return NextResponse.json({
-          success: true,
-          title,
-          summary: null,
-          questions,
-          provider: "groq",
-        })
+        return NextResponse.json({ success: true, title, summary: null, questions, provider: "groq" })
       }
+      providerErrors.push("Groq: no devolvió preguntas")
     } catch (e: any) {
+      providerErrors.push(`Groq: ${e.message}`)
       console.warn("[exam-generate] Groq falló → usando fallback:", e.message)
     }
   }
 
-  if (!GEMINI_KEY) {
-    return NextResponse.json(
-      {
-        error:
-          "No hay API keys disponibles (GROQ_API_KEY, OPENROUTER_API_KEY_1/OPENROUTER_API_KEY o GEMINI_API_KEY).",
-      },
-      { status: 500 }
-    )
-  }
+  if (GEMINI_KEY) {
+    try {
+      const { title, questions } = await geminiFull(prompt, totalQ, Number(mc), Number(tf), Number(dev), GEMINI_KEY)
 
-  try {
-    const parsed = await gemini(prompt, totalQ, GEMINI_KEY)
-    const questions = sanitizeQuestionsArray(parsed?.questions ?? parsed?.items ?? [])
+      if (Array.isArray(questions) && questions.length > 0) {
+        return NextResponse.json({ success: true, title, summary: null, questions, provider: "gemini" })
+      }
 
-    if (Array.isArray(questions) && questions.length > 0) {
-      return NextResponse.json({
-        success: true,
-        title: sanitizeLatexText(parsed?.title ?? ""),
-        summary: parsed?.summary ? sanitizeLatexText(parsed.summary) : null,
-        questions,
-        provider: "gemini",
-      })
+      providerErrors.push("Gemini: no generó preguntas")
+    } catch (e: any) {
+      providerErrors.push(`Gemini: ${e.message}`)
+      console.warn("[exam-generate] Gemini falló:", e.message)
     }
-
-    throw new Error("Gemini no generó preguntas")
-  } catch (e: any) {
-    return NextResponse.json(
-      { error: `Error generando examen: ${e.message}` },
-      { status: 500 }
-    )
   }
+
+  const details = providerErrors.join(" | ")
+  return NextResponse.json(
+    {
+      error: friendlyProviderError(details),
+      details,
+    },
+    { status: 500 }
+  )
 }
