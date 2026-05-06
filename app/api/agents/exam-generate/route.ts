@@ -12,7 +12,7 @@ const GROQ_MODELS = [
   "openai/gpt-oss-20b",
 ]
 
-const GROQ_MAX_TOKENS = 16384
+const GROQ_MAX_TOKENS = 3200
 
 const FAKE_BACKSLASH_RE = /[\u2191\u2197\u2B06\u25B2\u2227\u21D2\u2044\u2216\u29F5]/g
 
@@ -309,59 +309,20 @@ function parseResponse(raw: string): any {
   return JSON.parse(clean)
 }
 
-const SYSTEM = `Eres un diseñador experto de evaluaciones escolares en español.
-Responde ÚNICAMENTE con JSON válido — sin texto extra, sin backticks, sin markdown.
-
-REGLAS CRÍTICAS DE CORRECTNESS — LEE ESTO CON ATENCIÓN:
-1. PROCESO OBLIGATORIO para cada pregunta de alternativas:
-   a) Primero CALCULA tú mismo la respuesta correcta matemáticamente
-   b) Luego crea la opción correcta con ese valor exacto
-   c) Luego crea 3 distractores plausibles (errores comunes, no inventados al azar)
-   d) Mezcla las 4 opciones en orden aleatorio
-   e) Asigna correctAnswer al ÍNDICE donde quedó la respuesta correcta
-   f) Escribe la explanation BASÁNDOTE en ese mismo cálculo — debe coincidir exactamente con la opción correcta
-
-2. VERIFICACIÓN OBLIGATORIA antes de cerrar cada pregunta:
-   - options[correctAnswer] debe ser EXACTAMENTE el resultado correcto que calculaste
-   - La explanation debe terminar diciendo el mismo valor que options[correctAnswer]
-   - Si hay inconsistencia, CORRIGE antes de continuar
-
-3. EJEMPLO CORRECTO:
-   Pregunta: ¿Cuánto es 2 × 3/4 + 1/2?
-   Cálculo: 2×3/4 = 6/4 = 3/2 ; 3/2 + 1/2 = 4/2 = 2
-   Respuesta correcta: 2 (o equivalente: 8/4)
-   options: ["$\frac{5}{4}$", "2", "$\frac{7}{4}$", "$\frac{3}{2}$"]
-   correctAnswer: 1  ← índice de "2"
-   explanation: "...el resultado es 4/2 = 2" ← coincide con options[1]
-
-4. NUNCA pongas correctAnswer=0 por default
-5. Si el tipo es multiple_choice y solo se piden alternativas, NO generes otros tipos
-
-REGLAS DE TIPOS:
-- Si se piden 0 preguntas de un tipo, NO generes ese tipo
-- Respeta EXACTAMENTE la cantidad pedida de cada tipo
-
-REGLAS LATEX OBLIGATORIAS:
-1. Toda expresión matemática inline debe ir en $...$
-2. Toda expresión matemática en bloque debe ir en $$...$$
-3. Todos los comandos LaTeX deben comenzar con backslash REAL (\\ ASCII 92)
-4. Nunca uses caracteres parecidos a "\\" como ↑, ↗, ∧, ⇒, ⁄
-5. No devuelvas comandos LaTeX sueltos fuera de $...$
-6. Ejemplo correcto:
-   "¿Cuál es el valor de $2 \\\\times \\\\frac{3}{4}$?"
-7. Ejemplo correcto en alternativas:
-   ["$\\\\frac{3}{2}$", "$\\\\frac{5}{2}$", "$\\\\frac{3}{4}$", "$\\\\frac{6}{4}$"]
-8. No uses \\\\( \\\\) ni \\\\[ \\\\]
-9. Si no hay matemática, usa texto normal
-
-ESTRUCTURA:
-- Devuelve JSON válido
-- Si generas examen completo, usa "title" y "questions"
-- Si generas una sola pregunta, puedes devolver "question" o "questions"
+const SYSTEM = `Eres experto en evaluaciones escolares en español.
+Devuelve SOLO JSON válido, sin markdown.
+Formato: {"title":"...","questions":[...]}.
+Tipos permitidos: multiple_choice, true_false, development.
+Respeta EXACTAMENTE las cantidades pedidas y no generes tipos con cantidad 0.
+Alternativas: 4 options, correctAnswer = índice 0-3 de la opción correcta. Calcula antes de elegir. La explicación debe coincidir con options[correctAnswer]. Nunca uses correctAnswer=0 por defecto.
+V/F: options ["Verdadero","Falso"], correctAnswer 0 o 1, incluye explicación.
+Desarrollo: incluye modelAnswer, rubric [{criteria,points}], maxPoints.
+Matemática: usa LaTeX solo dentro de $...$ o $$...$$; comandos con backslash real: \\frac, \\sqrt, \\times.
 `
 
-const PROVIDER_BATCH = Number(process.env.EXAM_GENERATE_BATCH_SIZE || 8)
-const MAX_AI_QUESTIONS_PER_CALL = Number(process.env.EXAM_GENERATE_MAX_QUESTIONS || 36)
+const PROVIDER_BATCH = Number(process.env.EXAM_GENERATE_BATCH_SIZE || 3)
+const MAX_AI_QUESTIONS_PER_CALL = Number(process.env.EXAM_GENERATE_MAX_QUESTIONS || 30)
+const GROQ_TOKEN_BUDGET_PER_BATCH = Number(process.env.EXAM_GENERATE_GROQ_MAX_TOKENS || 3200)
 
 type BatchPlan = { total: number; mc: number; tf: number; dev: number }
 
@@ -387,7 +348,7 @@ function friendlyProviderError(message: string): string {
   const msg = String(message || "")
   const lower = msg.toLowerCase()
 
-  if (msg.includes("429") || lower.includes("resource_exhausted") || lower.includes("rate") || lower.includes("quota")) {
+  if (msg.includes("413") || lower.includes("request too large") || lower.includes("tokens per minute") || msg.includes("429") || lower.includes("resource_exhausted") || lower.includes("rate") || lower.includes("quota")) {
     return "La generación llegó al límite temporal de la API. Puede ser cuota, muchas solicitudes seguidas o límite de tokens por minuto. Prueba con menos preguntas por tanda, espera unos minutos o revisa billing/cuotas de la API configurada."
   }
 
@@ -468,21 +429,34 @@ function makeBatchPlans(totalQ: number, mc: number, tf: number, dev: number): Ba
   return plans
 }
 
+function compactPromptForProvider(basePrompt: string): string {
+  const raw = String(basePrompt || "")
+  const keepLines = raw
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((line) => !/REGLAS|OBLIGATORI|JSON|ESTRUCTURA|LaTeX|correctAnswer/i.test(line))
+
+  const compact = keepLines.join("\n").slice(0, 1800)
+  return compact || raw.slice(0, 1800)
+}
+
 function promptForBatch(basePrompt: string, batch: BatchPlan, index: number, totalBatches: number): string {
-  const prompt = basePrompt
-    .replace(/Total de preguntas:\s*\d+/i, `Total de preguntas: ${batch.total}`)
-    .replace(/-\s*\d+\s+preguntas de ALTERNATIVAS/i, `- ${batch.mc} preguntas de ALTERNATIVAS`)
-    .replace(/-\s*\d+\s+preguntas de VERDADERO O FALSO/i, `- ${batch.tf} preguntas de VERDADERO O FALSO`)
-    .replace(/-\s*\d+\s+preguntas de DESARROLLO/i, `- ${batch.dev} preguntas de DESARROLLO`)
+  const compactBase = compactPromptForProvider(basePrompt)
+  return `${compactBase}
 
-  return `${prompt}
-
-[Lote ${index + 1}/${totalBatches}]
-Genera EXACTAMENTE ${batch.total} preguntas en este lote:
+LOTE ${index + 1}/${totalBatches}.
+Genera EXACTAMENTE ${batch.total} preguntas:
 - ${batch.mc} multiple_choice
 - ${batch.tf} true_false
 - ${batch.dev} development
-No generes tipos con cantidad 0. Devuelve únicamente JSON válido con { "title": "...", "questions": [...] }.`
+Salida obligatoria: {"title":"...","questions":[...]}
+No agregues texto fuera del JSON.`
+}
+
+function tokenBudgetForBatch(questionCount: number): number {
+  const dynamic = 900 + Math.max(1, questionCount) * 650
+  return Math.min(GROQ_MAX_TOKENS, GROQ_TOKEN_BUDGET_PER_BATCH, dynamic)
 }
 
 async function groqBatch(prompt: string, key: string): Promise<any> {
@@ -495,7 +469,7 @@ async function groqBatch(prompt: string, key: string): Promise<any> {
     try {
       const res = await client.chat.completions.create({
         model,
-        max_tokens: Math.min(GROQ_MAX_TOKENS, 12000),
+        max_tokens: GROQ_TOKEN_BUDGET_PER_BATCH,
         temperature: 0.35,
         response_format: { type: "json_object" },
         messages: [
@@ -540,6 +514,7 @@ async function groqFull(
 
     allQ.push(...qs)
     if (!title && parsed?.title) title = sanitizeLatexText(parsed.title)
+    if (i < batches.length - 1) await sleep(900)
   }
 
   return { title, questions: allQ.slice(0, totalQ) }
@@ -567,7 +542,7 @@ async function openRouterBatch(prompt: string, key: string): Promise<any> {
         },
         body: JSON.stringify({
           model,
-          max_tokens: 12000,
+          max_tokens: 3200,
           temperature: 0.35,
           response_format: { type: "json_object" },
           messages: [
@@ -623,6 +598,7 @@ async function openRouterFull(
 
     allQ.push(...qs)
     if (!title && parsed?.title) title = sanitizeLatexText(parsed.title)
+    if (i < batches.length - 1) await sleep(900)
   }
 
   return { title, questions: allQ.slice(0, totalQ) }
