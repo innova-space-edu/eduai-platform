@@ -1,5 +1,5 @@
 // app/examen/crear/page.tsx
-// VERSIÓN FUSIONADA: Agente IA (Gemini→Groq) + Sistema de Seguridad Nuevo
+// VERSIÓN FUSIONADA: Agente IA (OpenRouter/Groq) + Sistema de Seguridad Nuevo
 "use client"
 
 import { useMemo, useState, useRef, useEffect } from "react"
@@ -193,7 +193,7 @@ export default function CrearExamenPage() {
   const [aiDiff,        setAiDiff]        = useState<Difficulty>("mixto")
   const [aiStatus,      setAiStatus]      = useState<AIStatus>("idle")
   const [aiError,       setAiError]       = useState("")
-  const [aiProvider,    setAiProvider]    = useState<"gemini" | "groq" | "openrouter" | "">("")
+  const [aiProvider,    setAiProvider]    = useState<"groq" | "openrouter" | "">("")
   const [aiPreview,     setAiPreview]     = useState<Question[]>([])
   const [aiImportMode,  setAiImportMode]  = useState<"replace" | "append">("append")
   const [aiRegenIdx,    setAiRegenIdx]    = useState<number | null>(null)
@@ -354,7 +354,7 @@ Detalle técnico: ${data.details}` : ""
       if (!title.trim() && data.title) setTitle(data.title)
 
       setAiPreview(normalized)
-      setAiProvider(data.provider ?? "gemini")
+      setAiProvider(data.provider ?? "openrouter")
       setAiStatus("done")
     } catch (e: any) {
       if (e.name === "AbortError") return
@@ -499,7 +499,7 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
           <div className="space-y-6">
 
             {/* ════════════════════════════════════════════════════════════
-                PANEL IA — Generador de preguntas con Gemini / Groq
+                PANEL IA — Generador de preguntas con OpenRouter / Groq
             ════════════════════════════════════════════════════════════ */}
             <section className="rounded-2xl border border-violet-500/25 bg-violet-500/[0.04] p-5 md:p-6">
               {/* Toggle header */}
@@ -511,7 +511,7 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                   <div className="w-9 h-9 rounded-xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-lg">✨</div>
                   <div className="text-left">
                     <p className="font-bold text-sm text-main">Generador de preguntas con IA</p>
-                    <p className="text-xs text-violet-400">Gemini 2.5 Flash → Groq fallback automático</p>
+                    <p className="text-xs text-violet-400">OpenRouter → Groq fallback automático</p>
                   </div>
                 </div>
                 <span className={`text-sub text-sm transition-transform ${aiOpen ? "rotate-180" : ""}`}>▾</span>
@@ -613,9 +613,9 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                           VISTA PREVIA — {aiPreview.length} pregunta{aiPreview.length !== 1 ? "s" : ""}
                           {aiProvider && (
                             <span className={`ml-2 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                              aiProvider === "gemini" ? "bg-blue-500/15 text-blue-400" : aiProvider === "openrouter" ? "bg-violet-500/15 text-violet-400" : "bg-orange-500/15 text-orange-400"
+                              aiProvider === "openrouter" ? "bg-violet-500/15 text-violet-400" : "bg-orange-500/15 text-orange-400"
                             }`}>
-                              {aiProvider === "gemini" ? "Gemini 2.5" : aiProvider === "openrouter" ? "OpenRouter" : "Groq"}
+                              {aiProvider === "openrouter" ? "OpenRouter" : "Groq"}
                             </span>
                           )}
                         </p>
