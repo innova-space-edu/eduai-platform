@@ -1,0 +1,58 @@
+--- eduai_original/eduai-platform-main/app/examen/crear/page.tsx	2026-04-20 04:39:16.000000000 +0000
++++ eduai_inspect/eduai-platform-main/app/examen/crear/page.tsx	2026-05-06 18:27:54.265461892 +0000
+@@ -12,6 +12,8 @@
+ type QuestionType  = "multiple_choice" | "true_false" | "development"
+ type AIStatus      = "idle" | "generating" | "done" | "error"
+ 
++const AI_TOTAL_LIMIT = 36
++
+ type MultipleChoiceQuestion = {
+   id: string; type: "multiple_choice"
+   question: string; options: string[]; correctAnswer: number
+@@ -315,7 +317,12 @@
+   }
+ 
+   const generateAI = async () => {
+-    if (aiMC + aiTF + aiDev === 0) { setAiError("Define al menos 1 pregunta a generar."); return }
++    const totalAIQuestions = aiMC + aiTF + aiDev
++    if (totalAIQuestions === 0) { setAiError("Define al menos 1 pregunta a generar."); return }
++    if (totalAIQuestions > AI_TOTAL_LIMIT) {
++      setAiError(`Para evitar errores de cuota o timeout, genera máximo ${AI_TOTAL_LIMIT} preguntas por tanda. Puedes importarlas y luego generar otra tanda con "Agregar al final".`)
++      return
++    }
+     if (!aiPrompt.trim() && !topic.trim()) { setAiError("Escribe un tema en el campo de descripción o en la información general."); return }
+ 
+     abortRef.current?.abort()
+@@ -333,7 +340,12 @@
+         }),
+       })
+       const data = await res.json()
+-      if (!data?.success) throw new Error(data?.error || "Error generando preguntas.")
++      if (!data?.success) {
++        const detail = data?.details ? `
++
++Detalle técnico: ${data.details}` : ""
++        throw new Error(`${data?.error || "Error generando preguntas."}${detail}`)
++      }
+ 
+       const normalized: Question[] = (data.questions ?? []).map((raw: any) => normalizeAIQuestion(raw))
+       if (normalized.length === 0) throw new Error("La IA no generó preguntas. Intenta con un tema más específico.")
+@@ -533,15 +545,15 @@
+                         <div key={label} className={`rounded-2xl bg-${color}-500/[0.06] border border-${color}-500/20 p-3 text-center`}>
+                           <p className={`text-xs text-${color}-400 font-semibold mb-2`}>{label}</p>
+                           <input
+-                            type="number" min={0} max={20} value={val}
+-                            onChange={e => set(Math.max(0, Number(e.target.value || 0)))}
++                            type="number" min={0} max={AI_TOTAL_LIMIT} value={val}
++                            onChange={e => set(Math.max(0, Math.min(AI_TOTAL_LIMIT, Number(e.target.value || 0))))}
+                             className="w-full bg-transparent text-center text-main font-bold text-xl focus:outline-none"
+                           />
+                         </div>
+                       ))}
+                     </div>
+                     <p className="text-xs text-muted2 mt-2 text-right">
+-                      Total: <span className="text-main font-semibold">{aiMC + aiTF + aiDev}</span> preguntas
++                      Total: <span className="text-main font-semibold">{aiMC + aiTF + aiDev}</span> preguntas · Máx. {AI_TOTAL_LIMIT} por tanda
+                     </p>
+                   </div>
+ 
