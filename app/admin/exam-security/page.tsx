@@ -146,14 +146,15 @@ function StatCard({
   subtitle?: string
   accent?: "red" | "orange" | "yellow" | "emerald" | "sky" | "fuchsia"
 }) {
-  const accentClass = {
+  const accentColors: Record<string, string> = {
     red:     "text-red-600",
     orange:  "text-orange-600",
     yellow:  "text-yellow-600",
     emerald: "text-emerald-600",
     sky:     "text-sky-600",
     fuchsia: "text-fuchsia-600",
-  }[accent ?? ""] ?? "text-main"
+  }
+  const accentClass = (accent && accentColors[accent]) || "text-main"
 
   return (
     <div className="rounded-2xl border border-soft bg-card-theme p-5 shadow-xl">
