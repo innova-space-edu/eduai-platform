@@ -5,6 +5,8 @@ import { useParams } from "next/navigation"
 import { createClient } from "@supabase/supabase-js"
 import ExamMathText from "@/components/ui/ExamMathText"
 import ExamSecurityExamBridge from "@/components/exam-security/ExamSecurityExamBridge"
+import ExamThemeProvider from "@/components/exam/ExamThemeProvider"
+import QuestionCard from "@/components/exam/QuestionCard"
 
 // ── Supabase del PANEL DE CONTROL ────────────────────────────────────────────
 const PANEL_URL = process.env.NEXT_PUBLIC_PANEL_SUPABASE_URL || ""
@@ -1039,6 +1041,7 @@ export default function ExamenPublicoPage() {
   }
 
   return (
+    <ExamThemeProvider settings={exam?.settings}>
     <div className="min-h-screen bg-app text-main">
       {phase === "exam" && exam?.id ? (
         <ExamSecurityExamBridge
@@ -1112,110 +1115,20 @@ export default function ExamenPublicoPage() {
         ) : null}
 
         <div className="grid lg:grid-cols-[1fr_320px] gap-6">
-          <div className="rounded-2xl border border-medium bg-card-soft-theme p-5 md:p-6 exam-question">
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-xs tracking-widest text-muted2 font-semibold">
-                PREGUNTA {curQ + 1} DE {totalQ}
-              </p>
-              <p className="text-xs text-muted2">
-                Puntaje: {getQuestionMaxPoints(q)} pts
-              </p>
-            </div>
-
-            <div className="text-main text-base leading-relaxed mb-6">
-              <ExamMathText text={q?.question || q?.statement || ""} />
-            </div>
-
-            {q?.type === "multiple_choice" && (
-              <div className="space-y-3">
-                {(q.options || []).map((option: string, i: number) => {
-                  const active = mcAnswers[curQ] === i
-                  return (
-                    <button
-                      key={i}
-                      onClick={() =>
-                        setMcAnswers((prev) => ({
-                          ...prev,
-                          [curQ]: i,
-                        }))
-                      }
-                      className={`w-full text-left rounded-2xl px-4 py-3 border transition ${
-                        active
-                          ? "border-blue-500 bg-blue-500/10 text-main"
-                          : "border-medium bg-card-soft-theme text-main hover:border-blue-500/30"
-                      }`}
-                    >
-                      <ExamMathText text={option} className="inline" />
-                    </button>
-                  )
-                })}
-              </div>
-            )}
-
-            {q?.type === "true_false" && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  {["Verdadero", "Falso"].map((label, i) => {
-                    const active = mcAnswers[curQ] === i
-                    return (
-                      <button
-                        key={label}
-                        onClick={() =>
-                          setMcAnswers((prev) => ({
-                            ...prev,
-                            [curQ]: i,
-                          }))
-                        }
-                        className={`rounded-2xl px-4 py-3 border font-semibold transition ${
-                          active
-                            ? "border-blue-500 bg-blue-500/10 text-main"
-                            : "border-medium bg-card-soft-theme text-main hover:border-blue-500/30"
-                        }`}
-                      >
-                        {label}
-                      </button>
-                    )
-                  })}
-                </div>
-
-                <div>
-                  <label className="text-sub text-xs font-semibold block mb-2">
-                    Justificación
-                  </label>
-                  <textarea
-                    value={tfJustifications[curQ] || ""}
-                    onChange={(e) =>
-                      setTfJustifications((prev) => ({
-                        ...prev,
-                        [curQ]: e.target.value,
-                      }))
-                    }
-                    className="w-full min-h-[120px] rounded-2xl border border-medium bg-card-soft-theme px-4 py-3 text-main text-sm focus:outline-none focus:border-blue-500/30"
-                    placeholder="Escribe tu justificación..."
-                  />
-                </div>
-              </div>
-            )}
-
-            {q?.type === "development" && (
-              <div>
-                <label className="text-sub text-xs font-semibold block mb-2">
-                  Respuesta de desarrollo
-                </label>
-                <textarea
-                  value={devAnswers[curQ] || ""}
-                  onChange={(e) =>
-                    setDevAnswers((prev) => ({
-                      ...prev,
-                      [curQ]: e.target.value,
-                    }))
-                  }
-                  className="w-full min-h-[220px] rounded-2xl border border-medium bg-card-soft-theme px-4 py-3 text-main text-sm focus:outline-none focus:border-blue-500/30"
-                  placeholder="Escribe tu respuesta..."
-                />
-              </div>
-            )}
-          </div>
+          <QuestionCard
+            question={q}
+            index={curQ}
+            total={totalQ}
+            maxPoints={getQuestionMaxPoints(q)}
+            mcAnswer={mcAnswers[curQ]}
+            tfAnswer={mcAnswers[curQ]}
+            tfJustification={tfJustifications[curQ]}
+            devAnswer={devAnswers[curQ]}
+            onMcChange={(i) => setMcAnswers((prev) => ({ ...prev, [curQ]: i }))}
+            onTfChange={(i) => setMcAnswers((prev) => ({ ...prev, [curQ]: i }))}
+            onTfJustificationChange={(v) => setTfJustifications((prev) => ({ ...prev, [curQ]: v }))}
+            onDevChange={(v) => setDevAnswers((prev) => ({ ...prev, [curQ]: v }))}
+          />
 
           <aside className="rounded-2xl border border-medium bg-card-soft-theme p-5">
             <h3 className="text-sm font-bold text-main mb-4">Navegación</h3>
@@ -1318,5 +1231,6 @@ export default function ExamenPublicoPage() {
         </div>
       </div>
     </div>
+    </ExamThemeProvider>
   )
 }
