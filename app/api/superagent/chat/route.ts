@@ -8,6 +8,8 @@
 import { NextRequest } from "next/server"
 import { callAIv5, getAvailableProviders, getModelForTask } from "@/lib/ai-router-v5"
 import type { Message, AITaskType } from "@/lib/ai-router-v5"
+import { runCoreCycle } from "@/lib/superagent/superagent-core"
+import type { CoreContext } from "@/lib/superagent/superagent-core"
 
 export const runtime = "nodejs"
 export const maxDuration = 60
@@ -193,21 +195,28 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    // ── Non-streaming ────────────────────────────────────────────────────────
-    const result = await callAIv5(messages, {
-      task,
-      maxTokens,
-      systemPrompt: sysPrompt,
-    })
+    // ── Non-streaming: usar superagent-core con tool detection ────────────────
+    const coreContext: CoreContext = {
+      currentPage:   context?.page,
+      subject:       context?.subject,
+      examTitle:     context?.examTitle,
+      studentCourse: context?.studentCourse,
+    }
+
+    const baseUrl = req.nextUrl.origin
+
+    const result = await runCoreCycle(messages, coreContext, baseUrl)
 
     return Response.json(
       {
-        success:  true,
-        text:     result.text,
-        provider: result.provider,
-        model:    result.model,
-        task,
-        latencyMs: result.latencyMs,
+        success:     true,
+        text:        result.text,
+        provider:    result.provider,
+        model:       result.model,
+        task:        result.task,
+        latencyMs:   result.latencyMs,
+        wasToolCall: result.wasToolCall,
+        toolUsed:    result.toolUsed,
       },
       { status: 200 }
     )
