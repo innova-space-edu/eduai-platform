@@ -135,6 +135,23 @@ export default function SuperAgentPage() {
             </div>
           </div>
 
+          {/* Banner de acceso rápido al chat */}
+          <div className="border-b border-soft px-6 py-4 sm:px-8">
+            <Link
+              href="/superagent/chat"
+              className="flex items-center justify-between gap-4 rounded-2xl border border-violet-500/25 bg-gradient-to-r from-violet-500/10 to-cyan-500/10 px-5 py-4 hover:from-violet-500/15 hover:to-cyan-500/15 transition-all"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">🦅</span>
+                <div>
+                  <p className="font-bold text-main text-sm">EduAI Claw — Chat con herramientas</p>
+                  <p className="text-xs text-sub mt-0.5">Genera exámenes, adapta PIE, planifica clases y más con IA</p>
+                </div>
+              </div>
+              <span className="text-violet-600 text-sm font-semibold shrink-0">Abrir →</span>
+            </Link>
+          </div>
+
           <div className="grid gap-6 px-6 py-6 sm:px-8 lg:grid-cols-12">
             <div className="space-y-6 lg:col-span-8">
               <div className="rounded-[1.75rem] border border-soft bg-card-soft-theme p-5">
@@ -238,6 +255,32 @@ export default function SuperAgentPage() {
                 </div>
               </div>
 
+              {/* Herramientas disponibles */}
+              <div className="rounded-[1.75rem] border border-soft bg-card-soft-theme p-5">
+                <h2 className="text-lg font-semibold text-main">🛠️ Herramientas disponibles</h2>
+                <p className="mt-2 text-sm text-sub">Disponibles desde el chat de EduAI Claw.</p>
+                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                  {[
+                    { icon: "📝", label: "Generar preguntas",   desc: "Exámenes con IA"          },
+                    { icon: "♿", label: "Adaptar para PIE",     desc: "Dislexia, TDAH, TEA"      },
+                    { icon: "📚", label: "Planificación",        desc: "Clases MINEDUC"           },
+                    { icon: "🔬", label: "Explicar concepto",    desc: "Con ejemplos y analogías" },
+                    { icon: "📊", label: "Crear rúbrica",        desc: "Criterios de evaluación"  },
+                    { icon: "📄", label: "Resumir texto",        desc: "Ideas clave"              },
+                    { icon: "🌐", label: "Traducir",             desc: "Múltiples idiomas"        },
+                    { icon: "🖼️", label: "Prompt de imagen",    desc: "Para generador IA"        },
+                  ].map(({ icon, label, desc }) => (
+                    <div key={label} className="rounded-2xl border border-soft bg-card-theme p-3 flex items-start gap-3">
+                      <span className="text-xl shrink-0">{icon}</span>
+                      <div>
+                        <p className="text-sm font-semibold text-main">{label}</p>
+                        <p className="text-xs text-sub">{desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               {/* Creador de borradores anticipados */}
               <DraftCreatorCard />
             </div>
@@ -249,11 +292,26 @@ export default function SuperAgentPage() {
                 </h2>
 
                 <div className="mt-4 grid gap-3">
+                  {/* Chat principal — nuevo */}
+                  <Link
+                    href="/superagent/chat"
+                    className="rounded-2xl border border-violet-500/30 bg-violet-500/10 px-4 py-3 text-sm font-semibold text-violet-700 transition hover:bg-violet-500/20 flex items-center gap-2"
+                  >
+                    <span>🦅</span> Abrir chat con EduAI Claw
+                  </Link>
+
                   <Link
                     href="/ai-social"
                     className="rounded-2xl border border-soft bg-card-theme px-4 py-3 text-sm text-main transition hover:border-cyan-400/30 hover:text-main"
                   >
-                    Abrir chat social de agentes
+                    Chat social de agentes
+                  </Link>
+
+                  <Link
+                    href="/examen/crear"
+                    className="rounded-2xl border border-soft bg-card-theme px-4 py-3 text-sm text-main transition hover:border-cyan-400/30"
+                  >
+                    📝 Crear examen visual
                   </Link>
 
                   <button
@@ -261,15 +319,7 @@ export default function SuperAgentPage() {
                     className="rounded-2xl border border-soft bg-card-theme px-4 py-3 text-left text-sm text-muted2"
                     disabled
                   >
-                    Ver drafts anticipados próximamente
-                  </button>
-
-                  <button
-                    type="button"
-                    className="rounded-2xl border border-soft bg-card-theme px-4 py-3 text-left text-sm text-muted2"
-                    disabled
-                  >
-                    Ver memoria del superagente próximamente
+                    Memoria del superagente — próximamente
                   </button>
                 </div>
               </div>
