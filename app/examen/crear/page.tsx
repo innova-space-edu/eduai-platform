@@ -3,6 +3,9 @@
 "use client"
 
 import { useMemo, useState, useRef, useEffect } from "react"
+import { recommendDesign, getSubjectSuggestions } from "@/lib/agents/design-agent"
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { analyzeAccessibility } from "@/lib/agents/accessibility-agent"
 import ExamMathText from "@/components/ui/ExamMathText"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
@@ -191,6 +194,26 @@ export default function CrearExamenPage() {
   const [dyslexiaMode, setDyslexiaMode] = useState(false)
   const [adhdMode,     setAdhdMode]     = useState(false)
   const [lowVisionMode,setLowVisionMode]= useState(false)
+
+  // ── Auto-recomendación de diseño (DesignAgent) ────────────────────────────
+  const designRec = useMemo(() => recommendDesign({
+    subject:    subject,
+    pieMode:    pieMode,
+    dyslexia:   dyslexiaMode,
+    adhd:       adhdMode,
+    lowVision:  lowVisionMode,
+    manualTheme: examTheme !== "classic" ? examTheme : undefined,
+    manualFont:  examFont  !== "inter"   ? examFont  : undefined,
+  }), [subject, pieMode, dyslexiaMode, adhdMode, lowVisionMode, examTheme, examFont])
+
+  const subjectTips = useMemo(() => getSubjectSuggestions(subject), [subject])
+
+  // Auto-aplicar tema/fuente cuando cambia asignatura (solo si el docente no eligió manualmente)
+  useEffect(() => {
+    if (examTheme === "classic") setExamTheme(designRec.theme)
+    if (examFont  === "inter")   setExamFont(designRec.font)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subject, pieMode])
 
   // ── Preguntas manuales ────────────────────────────────────────────────────
   const [questions, setQuestions] = useState<Question[]>([defaultQuestion("multiple_choice")])
@@ -647,6 +670,20 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                 )}
               </div>
             </section>
+
+            {/* Recomendación del DesignAgent */}
+            {(designRec.suggestions.length > 0 || designRec.reason) && (
+              <div className="rounded-2xl border border-sky-500/20 bg-sky-500/[0.04] px-5 py-4 text-sm space-y-2">
+                <p className="font-semibold text-sky-700">💡 Sugerencia de diseño</p>
+                {designRec.reason && <p className="text-sub">{designRec.reason}</p>}
+                {designRec.suggestions.map((s, i) => (
+                  <p key={i} className="text-sub">• {s}</p>
+                ))}
+                {subjectTips.tips.map((t, i) => (
+                  <p key={`tip-${i}`} className="text-sub">• {t}</p>
+                ))}
+              </div>
+            )}
 
             {/* ════════════════════════════════════════════════════════════
                 PANEL IA — Generador de preguntas con OpenRouter / Groq
