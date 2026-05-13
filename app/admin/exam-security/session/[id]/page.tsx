@@ -1,12 +1,19 @@
 // app/admin/exam-security/session/[id]/page.tsx
+// ──────────────────────────────────────────────────────────────────────────────
+// Detalle de sesión con panel de acciones de administrador:
+// freeze, block, terminate, clear_state, add_note, reopen
+// ──────────────────────────────────────────────────────────────────────────────
 
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import Link from "next/link"
 import RiskBadgeV2 from "@/app/examen/resultados/[id]/RiskBadgeV2"
 import SessionActionTimeline from "@/app/examen/resultados/[id]/SessionActionTimeline"
 import IncidentSummaryCard from "@/app/examen/resultados/[id]/IncidentSummaryCard"
 import type { ResultIncident } from "@/lib/exam-security/result-utils"
+
+// ── Tipos ─────────────────────────────────────────────────────────────────────
 
 type SessionRow = {
   id: string
@@ -85,39 +92,284 @@ type ApiResponse = {
   }
 }
 
+type AdminActionType = "freeze" | "block" | "terminate" | "clear_state" | "warn" | "flag_review" | "reopen"
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
 function statusTone(status?: string | null) {
   switch (status) {
-    case "blocked":
-      return "border-red-400/30 bg-red-500/15 text-red-700"
-    case "frozen":
-      return "border-orange-400/30 bg-orange-500/15 text-orange-700"
-    case "flagged":
-      return "border-fuchsia-400/30 bg-fuchsia-500/15 text-fuchsia-700"
-    case "warned":
-      return "border-yellow-400/30 bg-yellow-500/15 text-yellow-700"
-    case "terminated":
-      return "border-red-500/30 bg-red-600/15 text-red-700"
-    case "finished":
-      return "border-emerald-400/30 bg-emerald-500/15 text-emerald-700"
-    case "offline_grace":
-      return "border-sky-400/30 bg-sky-500/15 text-sky-700"
-    default:
-      return "border-emerald-400/30 bg-emerald-500/15 text-emerald-700"
+    case "blocked":       return "border-red-400/30 bg-red-500/15 text-red-700"
+    case "frozen":        return "border-orange-400/30 bg-orange-500/15 text-orange-700"
+    case "flagged":       return "border-fuchsia-400/30 bg-fuchsia-500/15 text-fuchsia-700"
+    case "warned":        return "border-yellow-400/30 bg-yellow-500/15 text-yellow-700"
+    case "terminated":    return "border-red-500/30 bg-red-600/15 text-red-700"
+    case "finished":      return "border-emerald-400/30 bg-emerald-500/15 text-emerald-700"
+    case "offline_grace": return "border-sky-400/30 bg-sky-500/15 text-sky-700"
+    default:              return "border-emerald-400/30 bg-emerald-500/15 text-emerald-700"
   }
 }
 
 function eventTone(severity?: string | null) {
   switch (severity) {
-    case "critical":
-      return "border-red-500/30 bg-red-600/10"
-    case "high":
-      return "border-orange-400/30 bg-orange-500/10"
-    case "medium":
-      return "border-yellow-400/30 bg-yellow-500/10"
-    default:
-      return "border-medium bg-card-soft-theme"
+    case "critical": return "border-red-500/30 bg-red-600/10"
+    case "high":     return "border-orange-400/30 bg-orange-500/10"
+    case "medium":   return "border-yellow-400/30 bg-yellow-500/10"
+    default:         return "border-medium bg-card-soft-theme"
   }
 }
+
+function formatDateTime(iso: string | null | undefined) {
+  if (!iso) return "—"
+  return new Date(iso).toLocaleString("es-CL", {
+    day: "2-digit", month: "2-digit", year: "numeric",
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+  })
+}
+
+// ── Panel de acciones de admin ────────────────────────────────────────────────
+
+const ADMIN_ACTIONS: {
+  action: AdminActionType
+  label: string
+  confirm: string
+  style: string
+  icon: string
+  disabled?: (status: string) => boolean
+}[] = [
+  {
+    action: "warn",
+    label:  "Advertir",
+    confirm: "¿Enviar advertencia al estudiante?",
+    style:  "border-yellow-400/30 bg-yellow-500/10 text-yellow-700 hover:bg-yellow-500/20",
+    icon:   "⚠️",
+  },
+  {
+    action: "freeze",
+    label:  "Congelar",
+    confirm: "¿Congelar la sesión del estudiante?",
+    style:  "border-orange-400/30 bg-orange-500/10 text-orange-700 hover:bg-orange-500/20",
+    icon:   "🧊",
+    disabled: (s) => s === "frozen",
+  },
+  {
+    action: "block",
+    label:  "Bloquear",
+    confirm: "¿Bloquear al estudiante? No podrá continuar la evaluación.",
+    style:  "border-red-400/30 bg-red-500/10 text-red-700 hover:bg-red-500/20",
+    icon:   "🚫",
+    disabled: (s) => s === "blocked",
+  },
+  {
+    action: "flag_review",
+    label:  "Marcar revisión",
+    confirm: "¿Marcar esta sesión para revisión?",
+    style:  "border-fuchsia-400/30 bg-fuchsia-500/10 text-fuchsia-700 hover:bg-fuchsia-500/20",
+    icon:   "🔍",
+    disabled: (s) => s === "flagged",
+  },
+  {
+    action: "terminate",
+    label:  "Terminar",
+    confirm: "⚠️ ¿TERMINAR la sesión? Esta acción invalida el intento del estudiante.",
+    style:  "border-red-600/40 bg-red-600/15 text-red-800 hover:bg-red-600/25",
+    icon:   "❌",
+    disabled: (s) => ["terminated", "finished"].includes(s),
+  },
+  {
+    action: "reopen",
+    label:  "Reabrir",
+    confirm: "¿Reabrir la sesión y volver a estado activo?",
+    style:  "border-emerald-400/30 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20",
+    icon:   "🔓",
+    disabled: (s) => s === "active",
+  },
+  {
+    action: "clear_state",
+    label:  "Limpiar estado",
+    confirm: "¿Resetear todos los contadores (warnings, freezes, blocks) y volver a active?",
+    style:  "border-sky-400/30 bg-sky-500/10 text-sky-700 hover:bg-sky-500/20",
+    icon:   "🧹",
+  },
+]
+
+// ── Componente AdminActionPanel ───────────────────────────────────────────────
+
+function AdminActionPanel({
+  sessionId,
+  currentStatus,
+  onActionSuccess,
+}: {
+  sessionId: string
+  currentStatus: string
+  onActionSuccess: () => void
+}) {
+  const [busy,       setBusy]       = useState(false)
+  const [feedback,   setFeedback]   = useState<{ ok: boolean; msg: string } | null>(null)
+  const [reason,     setReason]     = useState("")
+  const [noteText,   setNoteText]   = useState("")
+  const [noteLoading,setNoteLoading]= useState(false)
+  const [noteFeedback, setNoteFeedback] = useState<{ ok: boolean; msg: string } | null>(null)
+
+  async function handleAction(action: AdminActionType, confirmMsg: string) {
+    if (!window.confirm(confirmMsg)) return
+
+    setBusy(true)
+    setFeedback(null)
+
+    try {
+      const res = await fetch(`/api/exam-security/admin/session/${sessionId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action,
+          reason: reason || undefined,
+          adminId: "admin",
+        }),
+      })
+
+      const json = await res.json()
+
+      if (json.success) {
+        setFeedback({ ok: true, msg: json.message ?? "Acción ejecutada." })
+        setReason("")
+        onActionSuccess()
+      } else {
+        setFeedback({ ok: false, msg: json.error ?? "Error desconocido." })
+      }
+    } catch (err) {
+      console.error("[AdminActionPanel]", err)
+      setFeedback({ ok: false, msg: "Error de conexión." })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleAddNote() {
+    if (!noteText.trim()) return
+
+    setNoteLoading(true)
+    setNoteFeedback(null)
+
+    try {
+      const res = await fetch(`/api/exam-security/admin/session/${sessionId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "add_note",
+          note: noteText.trim(),
+          adminId: "admin",
+        }),
+      })
+
+      const json = await res.json()
+
+      if (json.success) {
+        setNoteFeedback({ ok: true, msg: "Nota agregada." })
+        setNoteText("")
+        onActionSuccess()
+      } else {
+        setNoteFeedback({ ok: false, msg: json.error ?? "Error al guardar la nota." })
+      }
+    } catch {
+      setNoteFeedback({ ok: false, msg: "Error de conexión." })
+    } finally {
+      setNoteLoading(false)
+    }
+  }
+
+  return (
+    <div className="rounded-2xl border border-soft bg-card-theme p-5 shadow-xl space-y-5">
+      <h2 className="text-xl font-semibold text-main">🎛️ Acciones de Administrador</h2>
+
+      {/* Motivo opcional (aplica a todas las acciones de estado) */}
+      <div>
+        <label className="text-xs uppercase tracking-[0.15em] text-sub block mb-1.5">
+          Motivo (opcional)
+        </label>
+        <input
+          type="text"
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          placeholder="Ej: múltiples intentos de copia detectados…"
+          disabled={busy}
+          className="w-full rounded-xl border border-soft bg-card-soft-theme px-3 py-2 text-sm text-main placeholder:text-sub disabled:opacity-50"
+        />
+      </div>
+
+      {/* Botones de acción */}
+      <div className="flex flex-wrap gap-2">
+        {ADMIN_ACTIONS.map(({ action, label, confirm, style, icon, disabled }) => {
+          const isDisabled = busy || (disabled?.(currentStatus) ?? false)
+          return (
+            <button
+              key={action}
+              onClick={() => handleAction(action, confirm)}
+              disabled={isDisabled}
+              className={[
+                "flex items-center gap-1.5 rounded-xl border px-3 py-2 text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed",
+                style,
+              ].join(" ")}
+            >
+              <span>{icon}</span>
+              {label}
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Feedback de acción */}
+      {feedback && (
+        <p
+          className={[
+            "rounded-xl border px-4 py-2 text-sm",
+            feedback.ok
+              ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-700"
+              : "border-red-400/30 bg-red-500/10 text-red-700",
+          ].join(" ")}
+        >
+          {feedback.msg}
+        </p>
+      )}
+
+      {/* Separador */}
+      <hr className="border-soft" />
+
+      {/* Agregar nota */}
+      <div className="space-y-2">
+        <label className="text-xs uppercase tracking-[0.15em] text-sub block">
+          📝 Agregar nota administrativa
+        </label>
+        <textarea
+          value={noteText}
+          onChange={(e) => setNoteText(e.target.value)}
+          placeholder="Descripción del incidente, observaciones, decisión tomada…"
+          rows={3}
+          disabled={noteLoading}
+          className="w-full rounded-xl border border-soft bg-card-soft-theme px-3 py-2 text-sm text-main placeholder:text-sub resize-none disabled:opacity-50"
+        />
+        <button
+          onClick={handleAddNote}
+          disabled={noteLoading || !noteText.trim()}
+          className="rounded-xl border border-soft bg-card-soft-theme px-4 py-2 text-sm text-main hover:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {noteLoading ? "Guardando…" : "Guardar nota"}
+        </button>
+        {noteFeedback && (
+          <p
+            className={[
+              "text-sm",
+              noteFeedback.ok ? "text-emerald-700" : "text-red-700",
+            ].join(" ")}
+          >
+            {noteFeedback.msg}
+          </p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── Página principal ──────────────────────────────────────────────────────────
 
 export default function ExamSecuritySessionDetailPage({
   params,
@@ -125,44 +377,34 @@ export default function ExamSecuritySessionDetailPage({
   params: Promise<{ id: string }>
 }) {
   const [sessionId, setSessionId] = useState<string>("")
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [session, setSession] = useState<SessionRow | null>(null)
-  const [events, setEvents] = useState<EventRow[]>([])
-  const [actions, setActions] = useState<ActionRow[]>([])
-  const [notes, setNotes] = useState<NoteRow[]>([])
+  const [loading,   setLoading]   = useState(true)
+  const [error,     setError]     = useState<string | null>(null)
+  const [session,   setSession]   = useState<SessionRow | null>(null)
+  const [events,    setEvents]    = useState<EventRow[]>([])
+  const [actions,   setActions]   = useState<ActionRow[]>([])
+  const [notes,     setNotes]     = useState<NoteRow[]>([])
+  const [refreshing, setRefreshing] = useState(false)
 
+  // Resolver params
   useEffect(() => {
     let active = true
-
     ;(async () => {
       const resolved = await params
       if (!active) return
       setSessionId(resolved.id)
     })()
-
-    return () => {
-      active = false
-    }
+    return () => { active = false }
   }, [params])
 
-  useEffect(() => {
-    if (!sessionId) return
+  // Fetch datos de sesión
+  const fetchData = useCallback(
+    async (manual = false) => {
+      if (!sessionId) return
+      if (manual) setRefreshing(true)
 
-    let active = true
-
-    ;(async () => {
       try {
-        setLoading(true)
-        setError(null)
-
-        const res = await fetch(`/api/exam-security/admin/session/${sessionId}`, {
-          cache: "no-store",
-        })
-
+        const res  = await fetch(`/api/exam-security/admin/session/${sessionId}`, { cache: "no-store" })
         const json = (await res.json()) as ApiResponse
-
-        if (!active) return
 
         if (!json.success || !json.data) {
           setError(json.error || "No se pudo cargar el detalle de la sesión.")
@@ -173,41 +415,47 @@ export default function ExamSecuritySessionDetailPage({
         setEvents(json.data.events)
         setActions(json.data.actions)
         setNotes(json.data.notes)
+        setError(null)
       } catch (err) {
         console.error("[ExamSecuritySessionDetailPage]", err)
-        if (!active) return
         setError("Ocurrió un error cargando la sesión.")
       } finally {
-        if (active) setLoading(false)
+        setLoading(false)
+        setRefreshing(false)
       }
-    })()
+    },
+    [sessionId]
+  )
 
-    return () => {
-      active = false
-    }
-  }, [sessionId])
+  useEffect(() => {
+    setLoading(true)
+    fetchData()
+  }, [fetchData])
 
+  // Incidents mapeados para el componente
   const mappedIncidents = useMemo<ResultIncident[]>(() => {
     return events.map((event) => ({
-      id: event.id,
-      exam_id: event.exam_id,
-      submission_id: event.submission_id,
-      event_type: event.event_type,
-      severity: event.severity,
+      id:             event.id,
+      exam_id:        event.exam_id,
+      submission_id:  event.submission_id,
+      event_type:     event.event_type,
+      severity:       event.severity,
       question_index: event.question_index,
       client_time_left: event.client_time_left,
-      created_at: event.created_at,
+      created_at:     event.created_at,
       incident_number: event.incident_number,
-      metadata: event.payload ?? {},
+      metadata:       event.payload ?? {},
     }))
   }, [events])
+
+  // ── Loading / error ─────────────────────────────────────────────────────────
 
   if (loading) {
     return (
       <main className="min-h-screen bg-app p-6 text-main">
         <div className="mx-auto max-w-7xl">
           <h1 className="text-3xl font-bold">Detalle de sesión</h1>
-          <p className="mt-3 text-sub">Cargando sesión...</p>
+          <p className="mt-3 text-sub">Cargando sesión…</p>
         </div>
       </main>
     )
@@ -217,7 +465,10 @@ export default function ExamSecuritySessionDetailPage({
     return (
       <main className="min-h-screen bg-app p-6 text-main">
         <div className="mx-auto max-w-7xl">
-          <h1 className="text-3xl font-bold">Detalle de sesión</h1>
+          <Link href="/admin/exam-security" className="text-xs text-sub hover:text-main underline">
+            ← Centro de Seguridad
+          </Link>
+          <h1 className="mt-2 text-3xl font-bold">Detalle de sesión</h1>
           <div className="mt-6 rounded-2xl border border-red-400/20 bg-red-500/10 p-5 text-red-700">
             {error || "No se pudo cargar la sesión."}
           </div>
@@ -226,44 +477,67 @@ export default function ExamSecuritySessionDetailPage({
     )
   }
 
+  // ── Render ──────────────────────────────────────────────────────────────────
+
   return (
     <main className="min-h-screen bg-app p-6 text-main">
-      <div className="mx-auto max-w-7xl">
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Detalle de sesión</h1>
-            <p className="mt-2 text-sub">
-              Revisión completa de eventos, acciones y estado de seguridad.
-            </p>
-          </div>
+      <div className="mx-auto max-w-7xl space-y-8">
 
-          <div className="flex flex-wrap gap-2">
-            <span
-              className={[
-                "inline-flex rounded-full border px-3 py-1 text-xs font-semibold",
-                statusTone(session.status),
-              ].join(" ")}
-            >
-              {session.status}
-            </span>
+        {/* ── Cabecera ── */}
+        <div>
+          <Link
+            href="/admin/exam-security"
+            className="text-xs text-sub hover:text-main underline underline-offset-2"
+          >
+            ← Centro de Seguridad
+          </Link>
 
-            <RiskBadgeV2
-              level={session.risk_level}
-              score={session.risk_score}
-              compact={false}
-            />
+          <div className="mt-2 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">
+                Detalle de sesión
+              </h1>
+              <p className="mt-1 text-sub">
+                {session.student_name || "Sin nombre"} ·{" "}
+                {session.student_course || "Sin curso"}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <span
+                className={[
+                  "inline-flex rounded-full border px-3 py-1 text-xs font-semibold",
+                  statusTone(session.status),
+                ].join(" ")}
+              >
+                {session.status}
+              </span>
+
+              <RiskBadgeV2
+                level={session.risk_level}
+                score={session.risk_score}
+                compact={false}
+              />
+
+              <button
+                onClick={() => fetchData(true)}
+                disabled={refreshing}
+                className="rounded-xl border border-soft bg-card-soft-theme px-3 py-1.5 text-sm text-sub hover:text-main disabled:opacity-50"
+              >
+                {refreshing ? "↻ Actualizando…" : "↻ Actualizar"}
+              </button>
+            </div>
           </div>
         </div>
 
-        <section className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {/* ── Info cards ── */}
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-2xl border border-soft bg-card-theme p-5">
             <p className="text-xs uppercase tracking-[0.18em] text-sub">Alumno</p>
             <p className="mt-3 text-lg font-semibold text-main">
               {session.student_name || "Sin nombre"}
             </p>
-            <p className="mt-2 text-sm text-sub">
-              {session.student_course || "Sin curso"}
-            </p>
+            <p className="mt-1 text-sm text-sub">{session.student_course || "Sin curso"}</p>
             <p className="mt-1 text-xs text-muted2">{session.student_rut || "Sin RUT"}</p>
           </div>
 
@@ -277,37 +551,54 @@ export default function ExamSecuritySessionDetailPage({
 
           <div className="rounded-2xl border border-soft bg-card-theme p-5">
             <p className="text-xs uppercase tracking-[0.18em] text-sub">Contadores</p>
-            <p className="mt-3 text-sm text-main">
-              Warnings: {session.warning_count ?? 0}
-            </p>
-            <p className="mt-1 text-sm text-main">
-              Freezes: {session.freeze_count ?? 0}
-            </p>
-            <p className="mt-1 text-sm text-main">
-              Blocks: {session.block_count ?? 0}
-            </p>
+            <div className="mt-3 space-y-1">
+              <p className="text-sm text-main">
+                ⚠️ Warnings: <span className="font-semibold">{session.warning_count ?? 0}</span>
+              </p>
+              <p className="text-sm text-main">
+                🧊 Freezes: <span className="font-semibold">{session.freeze_count ?? 0}</span>
+              </p>
+              <p className="text-sm text-main">
+                🚫 Blocks: <span className="font-semibold">{session.block_count ?? 0}</span>
+              </p>
+            </div>
           </div>
 
           <div className="rounded-2xl border border-soft bg-card-theme p-5">
             <p className="text-xs uppercase tracking-[0.18em] text-sub">Tiempo</p>
-            <p className="mt-3 text-sm text-main">Inicio: {session.started_at}</p>
-            <p className="mt-1 text-sm text-main">
-              Último evento: {session.last_event_at || "—"}
-            </p>
-            <p className="mt-1 text-sm text-main">
-              Último heartbeat: {session.last_heartbeat_at || "—"}
-            </p>
+            <div className="mt-3 space-y-1">
+              <p className="text-sm text-sub">
+                Inicio: <span className="text-main">{formatDateTime(session.started_at)}</span>
+              </p>
+              <p className="text-sm text-sub">
+                Último evento: <span className="text-main">{formatDateTime(session.last_event_at)}</span>
+              </p>
+              <p className="text-sm text-sub">
+                Heartbeat: <span className="text-main">{formatDateTime(session.last_heartbeat_at)}</span>
+              </p>
+            </div>
           </div>
         </section>
 
-        <section className="mt-8">
+        {/* ── Panel de acciones admin ── */}
+        <AdminActionPanel
+          sessionId={session.id}
+          currentStatus={session.status}
+          onActionSuccess={() => fetchData()}
+        />
+
+        {/* ── Resumen de incidentes ── */}
+        <section>
           <IncidentSummaryCard
             incidents={mappedIncidents}
             title="Resumen de incidentes de esta sesión"
           />
         </section>
 
-        <section className="mt-8 grid gap-6 xl:grid-cols-[1.1fr,0.9fr]">
+        {/* ── Timeline de eventos + acciones + notas ── */}
+        <section className="grid gap-6 xl:grid-cols-[1.1fr,0.9fr]">
+
+          {/* Eventos */}
           <div className="rounded-2xl border border-soft bg-card-theme p-5 shadow-xl">
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-xl font-semibold text-main">Timeline de eventos</h2>
@@ -321,7 +612,7 @@ export default function ExamSecuritySessionDetailPage({
                 No hay eventos registrados en esta sesión.
               </p>
             ) : (
-              <div className="mt-5 space-y-3">
+              <div className="mt-5 space-y-3 max-h-[36rem] overflow-y-auto pr-1">
                 {events.map((event) => (
                   <div
                     key={event.id}
@@ -334,22 +625,19 @@ export default function ExamSecuritySessionDetailPage({
                       <span className="text-sm font-semibold text-main">
                         {event.event_type}
                       </span>
-
                       <span className="rounded-full border border-soft bg-card-soft-theme px-2.5 py-1 text-xs text-sub">
                         {event.severity}
                       </span>
-
-                      {typeof event.incident_number === "number" ? (
+                      {typeof event.incident_number === "number" && (
                         <span className="rounded-full border border-soft bg-card-soft-theme px-2.5 py-1 text-xs text-sub">
                           #{event.incident_number}
                         </span>
-                      ) : null}
-
-                      {typeof event.score_delta === "number" ? (
+                      )}
+                      {typeof event.score_delta === "number" && (
                         <span className="rounded-full border border-soft bg-card-soft-theme px-2.5 py-1 text-xs text-sub">
                           +{event.score_delta}
                         </span>
-                      ) : null}
+                      )}
                     </div>
 
                     <div className="mt-3 grid gap-2 text-sm text-sub md:grid-cols-2">
@@ -366,26 +654,30 @@ export default function ExamSecuritySessionDetailPage({
                       </p>
                     </div>
 
-                    <p className="mt-3 text-xs text-muted2">{event.created_at}</p>
+                    <p className="mt-3 text-xs text-muted2">
+                      {formatDateTime(event.created_at)}
+                    </p>
                   </div>
                 ))}
               </div>
             )}
           </div>
 
+          {/* Panel derecho: acciones + notas + cliente */}
           <div className="space-y-6">
             <SessionActionTimeline
               actions={actions.map((action) => ({
-                id: action.id,
-                action_type: action.action_type,
-                reason: action.reason,
-                applied_by: action.applied_by,
-                created_at: action.created_at,
+                id:               action.id,
+                action_type:      action.action_type,
+                reason:           action.reason,
+                applied_by:       action.applied_by,
+                created_at:       action.created_at,
                 duration_seconds: action.duration_seconds,
               }))}
               title="Timeline de acciones"
             />
 
+            {/* Notas administrativas */}
             <div className="rounded-2xl border border-soft bg-card-theme p-5 shadow-xl">
               <div className="flex items-center justify-between gap-3">
                 <h2 className="text-xl font-semibold text-main">Notas administrativas</h2>
@@ -396,10 +688,10 @@ export default function ExamSecuritySessionDetailPage({
 
               {notes.length === 0 ? (
                 <p className="mt-4 text-sm text-sub">
-                  No hay notas administrativas registradas para esta sesión.
+                  No hay notas administrativas para esta sesión.
                 </p>
               ) : (
-                <div className="mt-5 space-y-3">
+                <div className="mt-5 space-y-3 max-h-60 overflow-y-auto pr-1">
                   {notes.map((note) => (
                     <div
                       key={note.id}
@@ -407,7 +699,7 @@ export default function ExamSecuritySessionDetailPage({
                     >
                       <p className="text-sm leading-6 text-main">{note.note}</p>
                       <p className="mt-3 text-xs text-muted2">
-                        {note.author_id} · {note.created_at}
+                        {note.author_id} · {formatDateTime(note.created_at)}
                       </p>
                     </div>
                   ))}
@@ -415,33 +707,50 @@ export default function ExamSecuritySessionDetailPage({
               )}
             </div>
 
+            {/* Info cliente */}
             <div className="rounded-2xl border border-soft bg-card-theme p-5 shadow-xl">
-              <h2 className="text-xl font-semibold text-main">Cliente</h2>
-
-              <div className="mt-4 space-y-2 text-sm text-sub">
+              <h2 className="text-xl font-semibold text-main">Info del cliente</h2>
+              <div className="mt-4 space-y-1.5 text-sm text-sub">
                 <p>
                   User agent:{" "}
-                  {typeof session.client_metadata?.userAgent === "string"
-                    ? session.client_metadata.userAgent
-                    : "—"}
+                  <span className="text-main break-all">
+                    {typeof session.client_metadata?.userAgent === "string"
+                      ? session.client_metadata.userAgent
+                      : "—"}
+                  </span>
                 </p>
                 <p>
                   Idioma:{" "}
-                  {typeof session.client_metadata?.language === "string"
-                    ? session.client_metadata.language
-                    : "—"}
+                  <span className="text-main">
+                    {typeof session.client_metadata?.language === "string"
+                      ? session.client_metadata.language
+                      : "—"}
+                  </span>
                 </p>
                 <p>
                   Zona horaria:{" "}
-                  {typeof session.client_metadata?.timezone === "string"
-                    ? session.client_metadata.timezone
-                    : "—"}
+                  <span className="text-main">
+                    {typeof session.client_metadata?.timezone === "string"
+                      ? session.client_metadata.timezone
+                      : "—"}
+                  </span>
                 </p>
                 <p>
                   Plataforma:{" "}
-                  {typeof session.client_metadata?.platform === "string"
-                    ? session.client_metadata.platform
-                    : "—"}
+                  <span className="text-main">
+                    {typeof session.client_metadata?.platform === "string"
+                      ? session.client_metadata.platform
+                      : "—"}
+                  </span>
+                </p>
+                <p>
+                  Resolución:{" "}
+                  <span className="text-main">
+                    {typeof session.client_metadata?.screenWidth === "number" &&
+                    typeof session.client_metadata?.screenHeight === "number"
+                      ? `${session.client_metadata.screenWidth}×${session.client_metadata.screenHeight}`
+                      : "—"}
+                  </span>
                 </p>
               </div>
             </div>
