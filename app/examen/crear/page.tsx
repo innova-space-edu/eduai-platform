@@ -18,6 +18,7 @@ type MultipleChoiceQuestion = {
   id: string; type: "multiple_choice"
   question: string; options: string[]; correctAnswer: number
   explanation?: string; maxPoints?: number
+  imageUrl?: string
 }
 
 type TrueFalseQuestion = {
@@ -25,6 +26,7 @@ type TrueFalseQuestion = {
   question: string; correctAnswer: number
   explanation?: string; selectionPoints?: number
   justificationMaxPoints?: number; maxPoints?: number
+  imageUrl?: string
 }
 
 type DevelopmentRubricItem = { criteria: string; points: number }
@@ -33,7 +35,14 @@ type DevelopmentQuestion = {
   id: string; type: "development"
   question: string; modelAnswer?: string
   rubric: DevelopmentRubricItem[]; maxPoints?: number
+  imageUrl?: string
 }
+
+type ExamTheme =
+  | "classic" | "modern" | "canva" | "pie_calm"
+  | "adhd_focus" | "high_contrast" | "stem" | "kids"
+
+type ExamFont = "inter" | "lexend" | "atkinson" | "poppins"
 
 type Question = MultipleChoiceQuestion | TrueFalseQuestion | DevelopmentQuestion
 
@@ -44,10 +53,10 @@ function uid() {
 
 function defaultQuestion(type: QuestionType): Question {
   if (type === "multiple_choice") {
-    return { id: uid(), type: "multiple_choice", question: "", options: ["", "", "", ""], correctAnswer: 0, explanation: "", maxPoints: 1 }
+    return { id: uid(), type: "multiple_choice", question: "", options: ["", "", "", ""], correctAnswer: 0, explanation: "", maxPoints: 1, imageUrl: "" }
   }
   if (type === "true_false") {
-    return { id: uid(), type: "true_false", question: "", correctAnswer: 0, explanation: "", selectionPoints: 1, justificationMaxPoints: 2, maxPoints: 3 }
+    return { id: uid(), type: "true_false", question: "", correctAnswer: 0, explanation: "", selectionPoints: 1, justificationMaxPoints: 2, maxPoints: 3, imageUrl: "" }
   }
   return {
     id: uid(), type: "development", question: "", modelAnswer: "",
@@ -56,7 +65,7 @@ function defaultQuestion(type: QuestionType): Question {
       { criteria: "Desarrollo y fundamentación", points: 2 },
       { criteria: "Claridad de la respuesta",   points: 1 },
     ],
-    maxPoints: 5,
+    maxPoints: 5, imageUrl: "",
   }
 }
 
@@ -174,6 +183,15 @@ export default function CrearExamenPage() {
   // ── Seguridad (nuevo sistema) ─────────────────────────────────────────────
   const [securityMode, setSecurityMode] = useState(false)
 
+  // ── Asignatura y personalización visual ───────────────────────────────────
+  const [subject,      setSubject]      = useState("Matemática")
+  const [examTheme,    setExamTheme]    = useState<ExamTheme>("classic")
+  const [examFont,     setExamFont]     = useState<ExamFont>("inter")
+  const [pieMode,      setPieMode]      = useState(false)
+  const [dyslexiaMode, setDyslexiaMode] = useState(false)
+  const [adhdMode,     setAdhdMode]     = useState(false)
+  const [lowVisionMode,setLowVisionMode]= useState(false)
+
   // ── Preguntas manuales ────────────────────────────────────────────────────
   const [questions, setQuestions] = useState<Question[]>([defaultQuestion("multiple_choice")])
 
@@ -263,12 +281,19 @@ export default function CrearExamenPage() {
         body: JSON.stringify({
           action: "create", title, topic, instructions, difficulty,
           teacherId: userId,
+          subject,
           questions: payloadQuestions,
           settings: {
             timeLimit:           Number(timeLimit || 60),
             examPercentage:      Number(examPercentage || 60),
             showResultToStudent, allowReview, isPublic,
-            securityMode,        // ← nuevo sistema de seguridad
+            securityMode,
+            theme:        examTheme,
+            font:         examFont,
+            subject,
+            accessibility: {
+              pieMode, dyslexiaMode, adhdMode, lowVisionMode,
+            },
           },
         }),
       })
@@ -287,8 +312,12 @@ export default function CrearExamenPage() {
     const totalQ  = aiMC + aiTF + aiDev
     const diffMap = { facil: "fácil", medio: "media", dificil: "difícil", mixto: "mixta" }
     const diffTxt = diffMap[aiDiff]
+    const subjectCtx = subject ? `\nAsignatura: ${subject}` : ""
+    const pieCtx = pieMode
+      ? `\nIMPORTANTE — Este examen es para estudiantes con NEE/PIE:${dyslexiaMode ? " dislexia," : ""}${adhdMode ? " TDAH," : ""}${lowVisionMode ? " baja visión," : ""} usa lenguaje claro, frases cortas, instrucciones simples y evita exceso de texto.`
+      : ""
     return `Genera un examen escolar en español sobre el siguiente tema:
-"${aiPrompt.trim() || topic.trim() || "tema del docente"}"
+"${aiPrompt.trim() || topic.trim() || "tema del docente"}"${subjectCtx}${pieCtx}
 
 Total de preguntas: ${totalQ}
 - ${aiMC} preguntas de ALTERNATIVAS (tipo multiple_choice, 4 opciones, una correcta)
@@ -499,6 +528,127 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
           <div className="space-y-6">
 
             {/* ════════════════════════════════════════════════════════════
+                PERSONALIZACIÓN VISUAL — Tema, fuente y accesibilidad PIE
+            ════════════════════════════════════════════════════════════ */}
+            <section className="rounded-2xl border border-teal-500/25 bg-teal-500/[0.04] p-5 md:p-6 space-y-5">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-teal-600/20 border border-teal-500/30 flex items-center justify-center text-lg">🎨</div>
+                <div>
+                  <p className="font-bold text-sm text-main">Personalización Visual</p>
+                  <p className="text-xs text-teal-400">Tema, tipografía y accesibilidad PIE/NEE</p>
+                </div>
+              </div>
+
+              {/* Selector de tema */}
+              <div>
+                <label className="text-xs text-sub font-semibold block mb-3">TEMA VISUAL</label>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {([
+                    { value: "classic",       label: "Classic",      icon: "📄", desc: "Limpio y formal" },
+                    { value: "modern",        label: "Modern",       icon: "✦",  desc: "Minimalista" },
+                    { value: "canva",         label: "Canva",        icon: "🃏", desc: "Tarjetas visuales" },
+                    { value: "pie_calm",      label: "PIE Calm",     icon: "🌿", desc: "Cálido, bajo estímulo" },
+                    { value: "adhd_focus",    label: "ADHD Focus",   icon: "🎯", desc: "Un bloque a la vez" },
+                    { value: "high_contrast", label: "Alto contraste",icon: "👁", desc: "Baja visión" },
+                    { value: "stem",          label: "STEM",         icon: "⚗️", desc: "Ciencias exactas" },
+                    { value: "kids",          label: "Kids",         icon: "🐣", desc: "Básica / PIE" },
+                  ] as { value: ExamTheme; label: string; icon: string; desc: string }[]).map(({ value, label, icon, desc }) => (
+                    <button
+                      key={value}
+                      onClick={() => setExamTheme(value)}
+                      className={[
+                        "rounded-2xl border p-3 text-left transition-all",
+                        examTheme === value
+                          ? "border-teal-500/60 bg-teal-500/10"
+                          : "border-soft bg-card-soft-theme hover:border-teal-500/30",
+                      ].join(" ")}
+                    >
+                      <span className="text-xl block mb-1">{icon}</span>
+                      <p className="text-xs font-bold text-main">{label}</p>
+                      <p className="text-[10px] text-sub mt-0.5">{desc}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Selector de fuente */}
+              <div>
+                <label className="text-xs text-sub font-semibold block mb-2">
+                  TIPOGRAFÍA
+                  <span className="ml-2 text-muted2 font-normal normal-case">
+                    (Lexend y Atkinson son las más recomendadas para accesibilidad)
+                  </span>
+                </label>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {([
+                    { value: "inter",    label: "Inter",               sub: "Moderna, estándar" },
+                    { value: "lexend",   label: "Lexend",              sub: "TDAH / lectura ★" },
+                    { value: "atkinson", label: "Atkinson Hyperlegible",sub: "Baja visión ★" },
+                    { value: "poppins",  label: "Poppins",             sub: "Amigable, básica" },
+                  ] as { value: ExamFont; label: string; sub: string }[]).map(({ value, label, sub }) => (
+                    <button
+                      key={value}
+                      onClick={() => setExamFont(value)}
+                      className={[
+                        "rounded-2xl border p-3 text-left transition-all",
+                        examFont === value
+                          ? "border-teal-500/60 bg-teal-500/10"
+                          : "border-soft bg-card-soft-theme hover:border-teal-500/30",
+                      ].join(" ")}
+                    >
+                      <p className="text-sm font-bold text-main">{label}</p>
+                      <p className="text-[10px] text-sub mt-0.5">{sub}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Modo PIE/NEE */}
+              <div className="rounded-2xl border border-purple-500/20 bg-purple-500/[0.04] p-4 space-y-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">♿</span>
+                    <div>
+                      <p className="text-sm font-bold text-main">Modo PIE / NEE</p>
+                      <p className="text-xs text-sub">Activa ajustes para estudiantes con necesidades educativas especiales</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setPieMode(s => !s)}
+                    className={`relative flex-shrink-0 w-12 h-6 rounded-full transition-colors ${pieMode ? "bg-purple-500" : "bg-card-soft-theme"}`}
+                  >
+                    <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${pieMode ? "translate-x-6" : "translate-x-0.5"}`} />
+                  </button>
+                </div>
+
+                {pieMode && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {[
+                      { label: "Dislexia",    desc: "Fuente Lexend + espaciado amplio", val: dyslexiaMode, set: setDyslexiaMode, icon: "📖" },
+                      { label: "TDAH",        desc: "Bloques cortos, foco secuencial",  val: adhdMode,     set: setAdhdMode,     icon: "🎯" },
+                      { label: "Baja visión", desc: "Alto contraste, texto grande",      val: lowVisionMode,set: setLowVisionMode,icon: "👁" },
+                    ].map(({ label, desc, val, set, icon }) => (
+                      <button
+                        key={label}
+                        onClick={() => set(v => !v)}
+                        className={[
+                          "rounded-2xl border p-3 text-left transition-all",
+                          val
+                            ? "border-purple-500/50 bg-purple-500/10"
+                            : "border-soft bg-card-soft-theme hover:border-purple-500/20",
+                        ].join(" ")}
+                      >
+                        <span className="text-lg block mb-1">{icon}</span>
+                        <p className="text-xs font-bold text-main">{label}</p>
+                        <p className="text-[10px] text-sub mt-0.5">{desc}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {/* ════════════════════════════════════════════════════════════
                 PANEL IA — Generador de preguntas con OpenRouter / Groq
             ════════════════════════════════════════════════════════════ */}
             <section className="rounded-2xl border border-violet-500/25 bg-violet-500/[0.04] p-5 md:p-6">
@@ -698,6 +848,16 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
 
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
+                  <label className="text-xs text-sub font-semibold block mb-2">ASIGNATURA</label>
+                  <select value={subject} onChange={e => setSubject(e.target.value)}
+                    className="w-full rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main focus:outline-none focus:border-blue-500/40">
+                    {["Matemática","Lenguaje","Ciencias Naturales","Física","Química","Biología",
+                      "Historia","Educación Física","Artes","Inglés","Tecnología","Otra"].map(s => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
                   <label className="text-xs text-sub font-semibold block mb-2">TÍTULO</label>
                   <input value={title} onChange={e => setTitle(e.target.value)}
                     placeholder="Ej: Prueba de porcentajes e interés"
@@ -834,6 +994,29 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                         onChange={e => updateQuestion(q.id, prev => ({ ...prev, question: e.target.value }))}
                         className="w-full min-h-[110px] rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main focus:outline-none focus:border-blue-500/40"
                         placeholder="Escribe la pregunta..." />
+                    </div>
+
+                    {/* Imagen opcional */}
+                    <div className="mb-4">
+                      <label className="text-xs text-sub font-semibold block mb-2">IMAGEN (URL opcional)</label>
+                      <input
+                        type="url"
+                        value={(q as any).imageUrl || ""}
+                        onChange={e => updateQuestion(q.id, prev => ({ ...prev, imageUrl: e.target.value } as any))}
+                        placeholder="https://... (imagen para ilustrar la pregunta)"
+                        className="w-full rounded-2xl bg-card-soft-theme border border-soft px-4 py-2.5 text-sm text-main focus:outline-none focus:border-blue-500/40"
+                      />
+                      {(q as any).imageUrl && (
+                        <div className="mt-2 rounded-xl overflow-hidden border border-soft max-h-40">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={(q as any).imageUrl}
+                            alt="Vista previa"
+                            className="w-full h-40 object-contain bg-card-soft-theme"
+                            onError={e => { (e.target as HTMLImageElement).style.display = "none" }}
+                          />
+                        </div>
+                      )}
                     </div>
 
                     {/* ── Alternativas ──────────────────────────────── */}
@@ -1002,6 +1185,20 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                     {securityMode ? "ACTIVO" : "Inactivo"}
                   </span>
                 </div>
+                <div className="flex justify-between gap-3">
+                  <span className="text-sub">Tema</span>
+                  <span className="text-xs font-semibold text-teal-400 capitalize">{examTheme.replace("_"," ")}</span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span className="text-sub">Tipografía</span>
+                  <span className="text-xs font-semibold text-main capitalize">{examFont}</span>
+                </div>
+                {pieMode && (
+                  <div className="flex justify-between gap-3">
+                    <span className="text-sub">Modo PIE</span>
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-400">ACTIVO</span>
+                  </div>
+                )}
 
                 {/* Desglose de tipos */}
                 <div className="pt-1 border-t border-soft space-y-1">
