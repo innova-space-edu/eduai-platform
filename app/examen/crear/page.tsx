@@ -320,8 +320,14 @@ export default function CrearExamenPage() {
         dyslexia: dyslexiaMode,
         adhd: adhdMode,
         lowVision: lowVisionMode,
-        manualTheme: examTheme !== "classic" ? examTheme : undefined,
-        manualFont: examFont !== "inter" ? examFont : undefined,
+        // Compatibilidad estricta: si recommendDesign tiene un tipo ExamTheme más antiguo
+        // en otra rama/archivo, el cast evita que Vercel corte el build por la unión de temas.
+        manualTheme: examTheme !== "classic"
+          ? (examTheme as Parameters<typeof recommendDesign>[0]["manualTheme"])
+          : undefined,
+        manualFont: examFont !== "inter"
+          ? (examFont as Parameters<typeof recommendDesign>[0]["manualFont"])
+          : undefined,
       }),
     [
       subject,
