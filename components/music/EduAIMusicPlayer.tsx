@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   ExternalLink,
@@ -118,9 +118,16 @@ function formatSeconds(seconds: number) {
 function sourceLabel(source?: EduMusicTrack["source"]) {
   if (source === "jamendo") return "Jamendo";
   if (source === "audius") return "Audius";
-  if (source === "itunes") return "Preview";
+  if (source === "itunes") return "DJ 30s";
   if (source === "external") return "Externo";
   return "EduAI";
+}
+
+function playbackKind(track?: EduMusicTrack) {
+  if (track?.source === "itunes") return "Preview 30 segundos · modo DJ";
+  if (track?.source === "jamendo" || track?.source === "audius")
+    return "Canción completa reproducible";
+  return "Pista completa EduAI";
 }
 
 function Cover({
@@ -272,7 +279,7 @@ function SidebarTrackRow({
           {track.title}
         </span>
         <span className="block truncate text-[10px] text-slate-500">
-          {track.artist}
+          {track.artist} · {sourceLabel(track.source)}
         </span>
       </span>
     </button>
@@ -706,7 +713,7 @@ function MainPanel({ tracks }: { tracks: EduMusicTrack[] }) {
               {playlist.name}
             </h2>
             <p className="truncate text-xs text-slate-400">
-              Las listas y resultados quedan en los paneles laterales. Aquí se muestra solo la canción seleccionada.
+              Las listas quedan a los lados. Aquí se muestra solo la canción actual.
             </p>
           </div>
           <button
@@ -726,7 +733,7 @@ function MainPanel({ tracks }: { tracks: EduMusicTrack[] }) {
 
             <div className="mx-auto mt-5 max-w-xl">
               <p className="mx-auto mb-2 w-fit rounded-full bg-emerald-400/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-300">
-                {sourceLabel(track.source)}
+                {playbackKind(track)}
               </p>
               <h3 className="line-clamp-2 text-2xl font-black leading-tight text-white max-xl:text-xl">
                 {track.title}
@@ -834,7 +841,7 @@ function RightPanel() {
       <section className="shrink-0 rounded-2xl border border-emerald-400/20 bg-[#14171f] p-3">
         <p className="text-sm font-black text-white">Buscar canciones</p>
         <p className="mt-1 text-xs text-slate-400">
-          Jamendo/Audius para audio reproducible; iTunes como preview.
+          Busca canciones completas con Jamendo/Audius o previews para modo DJ.
         </p>
         <div className="mt-3 flex gap-2">
           <input
@@ -855,10 +862,29 @@ function RightPanel() {
         </div>
         {music.onlineError && <p className="mt-2 text-xs font-bold text-rose-300">{music.onlineError}</p>}
         <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] font-black uppercase tracking-wide">
-          <span className="rounded-full bg-emerald-400/15 px-2 py-1 text-emerald-200">Jamendo</span>
-          <span className="rounded-full bg-violet-400/15 px-2 py-1 text-violet-200">Audius</span>
-          <span className="rounded-full bg-sky-400/15 px-2 py-1 text-sky-200">iTunes</span>
+          {[
+            { id: "full", label: "Completas" },
+            { id: "preview", label: "DJ 30s" },
+            { id: "all", label: "Todo" },
+          ].map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => music.setOnlineProviderMode(item.id as "all" | "full" | "preview")}
+              className={cn(
+                "rounded-full px-2 py-1 transition",
+                music.onlineProviderMode === item.id
+                  ? "bg-emerald-400 text-slate-950"
+                  : "bg-white/8 text-slate-300 hover:bg-emerald-400/12 hover:text-emerald-200",
+              )}
+            >
+              {item.label}
+            </button>
+          ))}
         </div>
+        <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
+          Completas usa Jamendo/Audius. DJ 30s usa previews iTunes y avanza automáticamente al terminar cada pista.
+        </p>
       </section>
 
       <section className="flex min-h-0 flex-[0.65] flex-col rounded-2xl border border-white/10 bg-[#14171f] p-3">
@@ -955,7 +981,7 @@ function BottomPlayer() {
         <Cover track={music.currentTrack} size="md" />
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-black text-white">{music.currentTrack.title}</p>
-          <p className="truncate text-xs text-slate-400">{music.currentTrack.artist}</p>
+          <p className="truncate text-xs text-slate-400">{music.currentTrack.artist} · {sourceLabel(music.currentTrack.source)}</p>
         </div>
         <button
           type="button"
@@ -1113,6 +1139,12 @@ export default function EduAIMusicPlayer({
   onOpenPanel,
 }: Props) {
   const music = useEduAIMusic();
+  const setPendingTrackId = music.setPendingTrackId;
+
+  useEffect(() => {
+    if (mode === "page") setPendingTrackId(null);
+  }, [mode, setPendingTrackId]);
+
   const tracksForMain = useMemo(() => {
     if (music.view === "liked") return music.allTracks.filter((track) => music.liked.has(track.id));
     if (music.view === "queue") return music.queue;
