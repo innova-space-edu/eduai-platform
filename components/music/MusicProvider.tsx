@@ -98,7 +98,7 @@ type MusicContextValue = {
   currentTime: number;
   durationSeconds: number;
   seekTo: (seconds: number) => void;
-  searchOnline: (term?: string) => Promise<void>;
+  searchOnline: (term?: string, providerOverride?: OnlineProviderMode) => Promise<void>;
 };
 
 const STORAGE_KEY = "eduai_music_player_v52";
@@ -507,7 +507,9 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const searchOnline = useCallback(
-    async (term?: string) => {
+    async (term?: string, providerOverride?: OnlineProviderMode) => {
+      const mode = providerOverride || onlineProviderMode;
+      if (providerOverride) setOnlineProviderMode(providerOverride);
       const clean = (term || onlineQuery || query).trim();
       if (!clean) return;
       setOnlineLoading(true);
@@ -516,7 +518,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         const res = await fetch("/api/music/search", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query: clean, provider: onlineProviderMode }),
+          body: JSON.stringify({ query: clean, provider: mode }),
         });
         const data = await res.json();
         if (!res.ok || !data?.ok)
@@ -526,9 +528,15 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
           : [];
         if (!tracks.length) {
           setOnlineError(
-            onlineProviderMode === "full"
-              ? "No encontré canciones completas en Jamendo/Audius ni videos embebibles de YouTube. Prueba otro término o cambia a DJ 30s."
-              : "No encontré resultados reproducibles para esa búsqueda.",
+            mode === "full"
+              ? (data?.sources?.youtube
+                  ? "No encontré canciones completas en Jamendo/Audius ni videos embebibles de YouTube. Prueba otro término o cambia a DJ 30s."
+                  : "No encontré canciones completas en Jamendo/Audius. Para buscar videos de YouTube debes agregar YOUTUBE_API_KEY en Vercel o cambiar a DJ 30s.")
+              : mode === "youtube"
+                ? (data?.sources?.youtube
+                    ? "No encontré videos embebibles de YouTube para esa búsqueda."
+                    : "Falta configurar YOUTUBE_API_KEY en Vercel para buscar videos de YouTube.")
+                : "No encontré resultados reproducibles para esa búsqueda.",
           );
           return;
         }
