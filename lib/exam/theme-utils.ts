@@ -9,7 +9,11 @@ export type ExamTheme =
   | "adhd_focus"
   | "high_contrast"
   | "stem"
-  | "kids";
+  | "kids"
+  | "blue_focus"
+  | "green_calm"
+  | "lavender_reading"
+  | "warm_attention";
 
 export type ExamFont = "inter" | "lexend" | "atkinson" | "poppins";
 
@@ -35,6 +39,10 @@ export const THEME_LABELS: Record<ExamTheme, string> = {
   high_contrast: "Alta legibilidad",
   stem: "STEM claro",
   kids: "Kids visual",
+  blue_focus: "Azul foco",
+  green_calm: "Verde calma",
+  lavender_reading: "Lavanda lectura",
+  warm_attention: "Cálido atención",
 };
 
 export const THEME_DESCRIPTIONS: Record<ExamTheme, string> = {
@@ -46,6 +54,10 @@ export const THEME_DESCRIPTIONS: Record<ExamTheme, string> = {
   high_contrast: "Texto muy oscuro, fondo claro cálido y bordes definidos.",
   stem: "Azules claros para matemática, ciencia y tecnología.",
   kids: "Tonos cálidos, amigables y alto apoyo visual.",
+  blue_focus: "Azules suaves para foco sostenido y baja ansiedad.",
+  green_calm: "Verdes suaves para regulación emocional y concentración calmada.",
+  lavender_reading: "Lavanda suave para lectura extendida y menor fatiga visual.",
+  warm_attention: "Ámbar suave como acento para orientar sin saturar.",
 };
 
 export const THEME_VARS: Record<ExamTheme, Record<string, string>> = {
@@ -192,6 +204,79 @@ export const THEME_VARS: Record<ExamTheme, Record<string, string>> = {
     "--exam-spacing": "1.85rem",
     "--exam-font-size": "18px",
     "--exam-line-height": "2.0",
+  },
+
+  blue_focus: {
+    "--exam-bg": "#eff6ff",
+    "--exam-surface": "#ffffff",
+    "--exam-card-bg": "#ffffff",
+    "--exam-soft-bg": "#dbeafe",
+    "--exam-border": "#bfdbfe",
+    "--exam-text": "#0f172a",
+    "--exam-text-sub": "#1e3a8a",
+    "--exam-muted": "#475569",
+    "--exam-accent": "#2563eb",
+    "--exam-accent-soft": "#dbeafe",
+    "--exam-success": "#047857",
+    "--exam-warning": "#b45309",
+    "--exam-radius": "26px",
+    "--exam-spacing": "1.7rem",
+    "--exam-font-size": "17px",
+    "--exam-line-height": "1.9",
+  },
+  green_calm: {
+    "--exam-bg": "#f0fdf4",
+    "--exam-surface": "#ffffff",
+    "--exam-card-bg": "#ffffff",
+    "--exam-soft-bg": "#dcfce7",
+    "--exam-border": "#bbf7d0",
+    "--exam-text": "#0f172a",
+    "--exam-text-sub": "#14532d",
+    "--exam-muted": "#4b5563",
+    "--exam-accent": "#059669",
+    "--exam-accent-soft": "#d1fae5",
+    "--exam-success": "#047857",
+    "--exam-warning": "#b45309",
+    "--exam-radius": "28px",
+    "--exam-spacing": "1.8rem",
+    "--exam-font-size": "17px",
+    "--exam-line-height": "1.9",
+  },
+  lavender_reading: {
+    "--exam-bg": "#faf5ff",
+    "--exam-surface": "#ffffff",
+    "--exam-card-bg": "#ffffff",
+    "--exam-soft-bg": "#f3e8ff",
+    "--exam-border": "#ddd6fe",
+    "--exam-text": "#1e1b4b",
+    "--exam-text-sub": "#5b21b6",
+    "--exam-muted": "#6b7280",
+    "--exam-accent": "#7c3aed",
+    "--exam-accent-soft": "#ede9fe",
+    "--exam-success": "#047857",
+    "--exam-warning": "#b45309",
+    "--exam-radius": "28px",
+    "--exam-spacing": "1.85rem",
+    "--exam-font-size": "17px",
+    "--exam-line-height": "1.95",
+  },
+  warm_attention: {
+    "--exam-bg": "#fffbeb",
+    "--exam-surface": "#ffffff",
+    "--exam-card-bg": "#ffffff",
+    "--exam-soft-bg": "#fef3c7",
+    "--exam-border": "#fde68a",
+    "--exam-text": "#1f2937",
+    "--exam-text-sub": "#92400e",
+    "--exam-muted": "#6b7280",
+    "--exam-accent": "#f59e0b",
+    "--exam-accent-soft": "#fef3c7",
+    "--exam-success": "#047857",
+    "--exam-warning": "#b45309",
+    "--exam-radius": "26px",
+    "--exam-spacing": "1.7rem",
+    "--exam-font-size": "17px",
+    "--exam-line-height": "1.9",
   },
 };
 
