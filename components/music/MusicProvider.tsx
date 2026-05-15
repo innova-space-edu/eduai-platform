@@ -12,7 +12,6 @@ import {
 import {
   EDU_MUSIC_TRACKS,
   SYSTEM_PLAYLISTS,
-  getTrackById,
   getTracksForPlaylist,
   type EduMusicMood,
   type EduMusicPlaylist,
@@ -28,6 +27,7 @@ type StoredState = {
   volume?: number;
   likedTrackIds?: string[];
   userPlaylists?: EduMusicPlaylist[];
+  onlineTracks?: EduMusicTrack[];
   queueIds?: string[];
   view?: MusicView;
   shuffle?: boolean;
@@ -39,6 +39,10 @@ type MusicContextValue = {
   setView: (value: MusicView) => void;
   query: string;
   setQuery: (value: string) => void;
+  onlineQuery: string;
+  setOnlineQuery: (value: string) => void;
+  onlineLoading: boolean;
+  onlineError: string;
   selectedMood: EduMusicMood | "all";
   setSelectedMood: (value: EduMusicMood | "all") => void;
   volume: number;
@@ -51,8 +55,10 @@ type MusicContextValue = {
   setSelectedPlaylistId: (id: string) => void;
   playlists: EduMusicPlaylist[];
   userPlaylists: EduMusicPlaylist[];
+  onlineTracks: EduMusicTrack[];
   visibleTracks: EduMusicTrack[];
   baseTracks: EduMusicTrack[];
+  allTracks: EduMusicTrack[];
   liked: Set<string>;
   createOpen: boolean;
   setCreateOpen: (value: boolean | ((prev: boolean) => boolean)) => void;
@@ -78,9 +84,10 @@ type MusicContextValue = {
   requestAddToPlaylist: (trackId: string) => void;
   addToQueue: (trackId: string) => void;
   clearQueue: () => void;
+  searchOnline: (term?: string) => Promise<void>;
 };
 
-const STORAGE_KEY = "eduai_music_player_v5";
+const STORAGE_KEY = "eduai_music_player_v52";
 const MusicContext = createContext<MusicContextValue | null>(null);
 
 function safeReadState(): StoredState {
@@ -101,13 +108,17 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const [hydrated, setHydrated] = useState(false);
   const [view, setView] = useState<MusicView>("home");
   const [query, setQuery] = useState("");
+  const [onlineQuery, setOnlineQuery] = useState("");
+  const [onlineLoading, setOnlineLoading] = useState(false);
+  const [onlineError, setOnlineError] = useState("");
   const [selectedMood, setSelectedMood] = useState<EduMusicMood | "all">("all");
-  const [volume, setVolume] = useState(0.64);
+  const [volume, setVolume] = useState(0.62);
   const [playing, setPlaying] = useState(false);
   const [currentId, setCurrentId] = useState(EDU_MUSIC_TRACKS[0]?.id);
   const [selectedPlaylistId, setSelectedPlaylistId] = useState(SYSTEM_PLAYLISTS[0]?.id);
   const [likedTrackIds, setLikedTrackIds] = useState<string[]>([]);
   const [userPlaylists, setUserPlaylists] = useState<EduMusicPlaylist[]>([]);
+  const [onlineTracks, setOnlineTracks] = useState<EduMusicTrack[]>([]);
   const [newPlaylistName, setNewPlaylistName] = useState("");
   const [pendingTrackId, setPendingTrackId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
@@ -115,10 +126,22 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const [shuffle, setShuffle] = useState(false);
   const [repeat, setRepeat] = useState<RepeatMode>("all");
 
+  const allTracks = useMemo(() => {
+    const byId = new Map<string, EduMusicTrack>();
+    [...EDU_MUSIC_TRACKS, ...onlineTracks].forEach((track) => byId.set(track.id, track));
+    return Array.from(byId.values());
+  }, [onlineTracks]);
+
+  const getTrack = useCallback(
+    (id?: string) => allTracks.find((track) => track.id === id),
+    [allTracks],
+  );
+
   useEffect(() => {
     const stored = safeReadState();
     if (stored.volume !== undefined) setVolume(stored.volume);
-    if (stored.trackId && getTrackById(stored.trackId)) setCurrentId(stored.trackId);
+    if (stored.onlineTracks) setOnlineTracks(stored.onlineTracks.slice(0, 60));
+    if (stored.trackId) setCurrentId(stored.trackId);
     if (stored.playlistId) setSelectedPlaylistId(stored.playlistId);
     if (stored.likedTrackIds) setLikedTrackIds(stored.likedTrackIds);
     if (stored.userPlaylists) setUserPlaylists(stored.userPlaylists);
@@ -135,40 +158,49 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       name: "Tus me gusta",
       description: "Canciones guardadas por ti.",
       mood: "mixed",
-      cover: "linear-gradient(135deg,#1DB954,#ec4899)",
+      cover: "linear-gradient(135deg,#fee2e2,#bfdbfe)",
       trackIds: likedTrackIds,
       system: true,
     };
-    return [...SYSTEM_PLAYLISTS, likedPlaylist, ...userPlaylists];
-  }, [likedTrackIds, userPlaylists]);
+    const onlinePlaylist: EduMusicPlaylist = {
+      id: "pl-online",
+      name: "Resultados online",
+      description: "Previews encontrados en la web mediante iTunes Search API.",
+      mood: "mixed",
+      cover: "linear-gradient(135deg,#e0f2fe,#ddd6fe)",
+      trackIds: onlineTracks.map((track) => track.id),
+      system: true,
+    };
+    return [...SYSTEM_PLAYLISTS, onlinePlaylist, likedPlaylist, ...userPlaylists];
+  }, [likedTrackIds, onlineTracks, userPlaylists]);
 
   const selectedPlaylist = useMemo(
     () => playlists.find((playlist) => playlist.id === selectedPlaylistId) ?? playlists[0],
     [playlists, selectedPlaylistId],
   );
 
-  const baseTracks = useMemo(() => getTracksForPlaylist(selectedPlaylist), [selectedPlaylist]);
-  const currentTrack = useMemo(() => getTrackById(currentId || "") ?? EDU_MUSIC_TRACKS[0], [currentId]);
+  const baseTracks = useMemo(() => getTracksForPlaylist(selectedPlaylist, allTracks), [allTracks, selectedPlaylist]);
+  const currentTrack = useMemo(() => getTrack(currentId) ?? allTracks[0] ?? EDU_MUSIC_TRACKS[0], [allTracks, currentId, getTrack]);
   const liked = useMemo(() => new Set(likedTrackIds), [likedTrackIds]);
   const queue = useMemo(
-    () => queueIds.map((id) => getTrackById(id)).filter(Boolean) as EduMusicTrack[],
-    [queueIds],
+    () => queueIds.map((id) => getTrack(id)).filter(Boolean) as EduMusicTrack[],
+    [getTrack, queueIds],
   );
 
   const visibleTracks = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const source = view === "search" || q ? EDU_MUSIC_TRACKS : baseTracks;
+    const source = view === "search" || q ? allTracks : baseTracks;
     return source.filter((track) => {
       const moodOk = selectedMood === "all" || track.mood === selectedMood;
       const queryOk =
         !q ||
-        [track.title, track.artist, track.album, track.mood, ...track.tags]
+        [track.title, track.artist, track.album, track.mood, track.source || "", ...track.tags]
           .join(" ")
           .toLowerCase()
           .includes(q);
       return moodOk && queryOk;
     });
-  }, [baseTracks, query, selectedMood, view]);
+  }, [allTracks, baseTracks, query, selectedMood, view]);
 
   useEffect(() => {
     if (!hydrated || typeof window === "undefined") return;
@@ -178,13 +210,14 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       volume,
       likedTrackIds,
       userPlaylists,
+      onlineTracks: onlineTracks.slice(0, 60),
       queueIds,
       view,
       shuffle,
       repeat,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [hydrated, currentId, selectedPlaylistId, volume, likedTrackIds, userPlaylists, queueIds, view, shuffle, repeat]);
+  }, [hydrated, currentId, selectedPlaylistId, volume, likedTrackIds, userPlaylists, onlineTracks, queueIds, view, shuffle, repeat]);
 
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = volume;
@@ -195,7 +228,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     if (!audio) return;
     if (playing) audio.play().catch(() => setPlaying(false));
     else audio.pause();
-  }, [playing, currentId]);
+  }, [playing, currentTrack?.src]);
 
   const playTrack = useCallback((track: EduMusicTrack, queueFrom?: EduMusicTrack[]) => {
     if (queueFrom?.length) setQueueIds(queueFrom.map((t) => t.id));
@@ -209,13 +242,13 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
   const playPlaylist = useCallback((playlistId?: string) => {
     const playlist = playlists.find((p) => p.id === (playlistId || selectedPlaylistId)) ?? selectedPlaylist;
-    const tracks = getTracksForPlaylist(playlist);
+    const tracks = getTracksForPlaylist(playlist, allTracks);
     if (!tracks.length) return;
     setSelectedPlaylistId(playlist.id);
     setQueueIds(tracks.map((track) => track.id));
     setCurrentId(tracks[0].id);
     setPlaying(true);
-  }, [playlists, selectedPlaylist, selectedPlaylistId]);
+  }, [allTracks, playlists, selectedPlaylist, selectedPlaylistId]);
 
   const nextTrack = useCallback(() => {
     if (repeat === "one") {
@@ -228,7 +261,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const list = queue.length ? queue : visibleTracks.length ? visibleTracks : baseTracks.length ? baseTracks : EDU_MUSIC_TRACKS;
+    const list = queue.length ? queue : visibleTracks.length ? visibleTracks : baseTracks.length ? baseTracks : allTracks;
     if (!list.length) return;
 
     if (shuffle && list.length > 1) {
@@ -247,10 +280,10 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     } else {
       setPlaying(false);
     }
-  }, [baseTracks, currentId, queue, repeat, shuffle, visibleTracks]);
+  }, [allTracks, baseTracks, currentId, queue, repeat, shuffle, visibleTracks]);
 
   const prevTrack = useCallback(() => {
-    const list = queue.length ? queue : visibleTracks.length ? visibleTracks : baseTracks.length ? baseTracks : EDU_MUSIC_TRACKS;
+    const list = queue.length ? queue : visibleTracks.length ? visibleTracks : baseTracks.length ? baseTracks : allTracks;
     if (!list.length) return;
     const index = Math.max(0, list.findIndex((track) => track.id === currentId));
     const prev = list[(index - 1 + list.length) % list.length];
@@ -258,7 +291,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       setCurrentId(prev.id);
       setPlaying(true);
     }
-  }, [baseTracks, currentId, queue, visibleTracks]);
+  }, [allTracks, baseTracks, currentId, queue, visibleTracks]);
 
   const toggleLike = useCallback((id: string) => {
     setLikedTrackIds((prev) =>
@@ -274,7 +307,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       name,
       description: "Playlist creada en EduAI Music.",
       mood: "mixed",
-      cover: "linear-gradient(135deg,#1DB954,#0ea5e9)",
+      cover: "linear-gradient(135deg,#dbeafe,#bbf7d0)",
       trackIds: pendingTrackId ? [pendingTrackId] : currentTrack ? [currentTrack.id] : [],
     };
     setUserPlaylists((prev) => [...prev, playlist]);
@@ -330,11 +363,44 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
   const clearQueue = useCallback(() => setQueueIds([]), []);
 
+  const searchOnline = useCallback(async (term?: string) => {
+    const clean = (term || onlineQuery || query).trim();
+    if (!clean) return;
+    setOnlineLoading(true);
+    setOnlineError("");
+    try {
+      const res = await fetch("/api/music/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: clean }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.ok) throw new Error(data?.error || "No se pudo buscar música online.");
+      const tracks = Array.isArray(data.tracks) ? (data.tracks as EduMusicTrack[]) : [];
+      setOnlineTracks((prev) => {
+        const map = new Map<string, EduMusicTrack>();
+        [...tracks, ...prev].forEach((track) => map.set(track.id, track));
+        return Array.from(map.values()).slice(0, 60);
+      });
+      setSelectedPlaylistId("pl-online");
+      setView("search");
+      if (tracks[0]) playTrack(tracks[0], tracks);
+    } catch (error) {
+      setOnlineError(error instanceof Error ? error.message : "Error buscando música online.");
+    } finally {
+      setOnlineLoading(false);
+    }
+  }, [onlineQuery, playTrack, query]);
+
   const value: MusicContextValue = {
     view,
     setView,
     query,
     setQuery,
+    onlineQuery,
+    setOnlineQuery,
+    onlineLoading,
+    onlineError,
     selectedMood,
     setSelectedMood,
     volume,
@@ -347,8 +413,10 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     setSelectedPlaylistId,
     playlists,
     userPlaylists,
+    onlineTracks,
     visibleTracks,
     baseTracks,
+    allTracks,
     liked,
     createOpen,
     setCreateOpen,
@@ -374,6 +442,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     requestAddToPlaylist,
     addToQueue,
     clearQueue,
+    searchOnline,
   };
 
   return (
