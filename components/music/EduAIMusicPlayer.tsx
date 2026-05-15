@@ -872,7 +872,7 @@ function RightPanel() {
       <section className="shrink-0 rounded-2xl border border-emerald-400/20 bg-[#14171f] p-3">
         <p className="text-sm font-black text-white">Buscar canciones</p>
         <p className="mt-1 text-xs text-slate-400">
-          Busca canciones completas con Jamendo/Audius. Si no hay audio completo, EduAI puede mostrar video de YouTube.
+          Busca canciones completas con Jamendo/Audius. Si no hay audio completo, EduAI usa YouTube embebido como respaldo.
         </p>
         <div className="mt-3 flex gap-2">
           <input
@@ -894,28 +894,34 @@ function RightPanel() {
         {music.onlineError && <p className="mt-2 text-xs font-bold text-rose-300">{music.onlineError}</p>}
         <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] font-black uppercase tracking-wide">
           {[
-            { id: "full", label: "Completas" },
+            { id: "full", label: "Completas + YouTube" },
             { id: "preview", label: "DJ 30s" },
             { id: "all", label: "Todo" },
-            { id: "youtube", label: "YouTube" },
-          ].map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => music.setOnlineProviderMode(item.id as "all" | "full" | "preview" | "youtube")}
-              className={cn(
-                "rounded-full px-2 py-1 transition",
-                music.onlineProviderMode === item.id
-                  ? "bg-emerald-400 text-slate-950"
-                  : "bg-white/8 text-slate-300 hover:bg-emerald-400/12 hover:text-emerald-200",
-              )}
-            >
-              {item.label}
-            </button>
-          ))}
+            { id: "youtube", label: "Solo YouTube" },
+          ].map((item) => {
+            const provider = item.id as "all" | "full" | "preview" | "youtube";
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => {
+                  music.setOnlineProviderMode(provider);
+                  if (music.onlineQuery.trim()) void music.searchOnline(undefined, provider);
+                }}
+                className={cn(
+                  "rounded-full px-2 py-1 transition",
+                  music.onlineProviderMode === item.id
+                    ? "bg-emerald-400 text-slate-950"
+                    : "bg-white/8 text-slate-300 hover:bg-emerald-400/12 hover:text-emerald-200",
+                )}
+              >
+                {item.label}
+              </button>
+            );
+          })}
         </div>
         <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
-          Completas usa Jamendo/Audius. Si no encuentra audio completo, muestra video de YouTube. DJ 30s usa previews iTunes.
+          Completas busca primero audio completo en Jamendo/Audius y, si no hay resultados, usa YouTube embebido. DJ 30s usa previews iTunes y cambia automáticamente.
         </p>
       </section>
 
