@@ -679,11 +679,11 @@ function CurrentTrackArtwork({ track }: { track: EduMusicTrack }) {
 
   if (track.source === "youtube" && track.videoEmbedUrl) {
     return (
-      <div className="aspect-video w-full max-w-xl overflow-hidden rounded-3xl border border-emerald-400/20 bg-black shadow-2xl shadow-black/35">
+      <div className="aspect-video w-full max-w-[460px] overflow-hidden rounded-2xl border border-emerald-400/20 bg-black shadow-xl shadow-black/30">
         <iframe
           title={track.title}
           src={`${track.videoEmbedUrl}?rel=0&modestbranding=1`}
-          className="h-full w-full"
+          className="block h-full w-full"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           allowFullScreen
           loading="lazy"
@@ -751,16 +751,16 @@ function MainPanel({ tracks }: { tracks: EduMusicTrack[] }) {
         </div>
 
         <div className="flex min-h-0 flex-1 items-center justify-center rounded-3xl border border-emerald-400/15 bg-[radial-gradient(circle_at_center,rgba(16,185,129,.18),rgba(15,23,42,.78)_48%,rgba(5,7,10,.95))] p-5">
-          <div className="w-full max-w-2xl rounded-[2rem] border border-white/10 bg-black/20 p-6 text-center shadow-2xl shadow-black/25 backdrop-blur-xl max-xl:p-5">
+          <div className="w-full max-w-xl rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-center shadow-xl shadow-black/25 backdrop-blur-xl max-xl:p-4">
             <div className="flex justify-center">
               <CurrentTrackArtwork track={track} />
             </div>
 
-            <div className="mx-auto mt-5 max-w-xl">
+            <div className="mx-auto mt-4 max-w-lg">
               <p className="mx-auto mb-2 w-fit rounded-full bg-emerald-400/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-300">
                 {playbackKind(track)}
               </p>
-              <h3 className="line-clamp-2 text-2xl font-black leading-tight text-white max-xl:text-xl">
+              <h3 className="line-clamp-2 text-xl font-black leading-tight text-white max-xl:text-lg">
                 {track.title}
               </h3>
               <p className="mt-1 truncate text-sm font-semibold text-slate-300">
@@ -771,7 +771,7 @@ function MainPanel({ tracks }: { tracks: EduMusicTrack[] }) {
               </p>
             </div>
 
-            <div className="mt-5 flex items-center justify-center gap-3">
+            <div className="mt-4 flex items-center justify-center gap-2.5">
               <IconButton onClick={() => music.setShuffle((value) => !value)} active={music.shuffle} title="Aleatorio">
                 <Shuffle className="h-4 w-4" />
               </IconButton>
@@ -793,11 +793,11 @@ function MainPanel({ tracks }: { tracks: EduMusicTrack[] }) {
 
             {track.source === "youtube" && (
               <p className="mt-3 text-xs font-semibold text-emerald-200/90">
-                Esta canción no apareció como audio completo en Jamendo/Audius. Usa el video embebido de YouTube como respaldo.
+                No apareció audio completo en Jamendo/Audius para esta búsqueda; EduAI muestra el video embebido de YouTube como respaldo.
               </p>
             )}
 
-            <div className="mt-5 grid grid-cols-2 gap-2 max-sm:grid-cols-1">
+            <div className="mt-4 grid grid-cols-2 gap-2 max-sm:grid-cols-1">
               <button
                 type="button"
                 onClick={() => music.toggleLike(track.id)}
@@ -819,7 +819,7 @@ function MainPanel({ tracks }: { tracks: EduMusicTrack[] }) {
               </button>
             </div>
 
-            <p className="mt-4 text-xs text-slate-500">
+            <p className="mt-3 text-[11px] text-slate-500">
               {tracks.length} canciones disponibles en la lista lateral izquierda.
             </p>
           </div>
@@ -894,10 +894,10 @@ function RightPanel() {
         {music.onlineError && <p className="mt-2 text-xs font-bold text-rose-300">{music.onlineError}</p>}
         <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] font-black uppercase tracking-wide">
           {[
-            { id: "full", label: "Completas + YouTube" },
+            { id: "full", label: "Completas" },
             { id: "preview", label: "DJ 30s" },
             { id: "all", label: "Todo" },
-            { id: "youtube", label: "Solo YouTube" },
+            { id: "youtube", label: "YouTube" },
           ].map((item) => {
             const provider = item.id as "all" | "full" | "preview" | "youtube";
             return (
@@ -921,7 +921,7 @@ function RightPanel() {
           })}
         </div>
         <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
-          Completas busca primero audio completo en Jamendo/Audius y, si no hay resultados, usa YouTube embebido. DJ 30s usa previews iTunes y cambia automáticamente.
+          Por defecto se buscan canciones completas en Jamendo/Audius. Si no existe audio completo para tu búsqueda, EduAI muestra un video embebido de YouTube en el centro. DJ 30s usa previews iTunes.
         </p>
       </section>
 
