@@ -156,14 +156,14 @@ const AGENTS: AgentItem[] = [
     icon: "🎬",
     name: "Video Studio",
     description:
-      "Generación de video con IA conectada al nuevo motor de video. Por ahora se encuentra en mantención mientras finalizamos la integración.",
+      "Genera videos educativos desde texto o imagen con cola de trabajos, límites por plan y seguimiento de estado.",
     color: "from-cyan-500 to-blue-600",
     glow: "rgba(34,211,238,0.14)",
     border: "rgba(34,211,238,0.24)",
     href: "/video-studio",
     tag: "Creativo",
-    status: "maintenance",
-    ctaLabel: "Ver estado",
+    status: "active",
+    ctaLabel: "Abrir Video Studio",
   },
   {
     id: "galeria",
