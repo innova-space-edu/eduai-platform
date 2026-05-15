@@ -48,7 +48,15 @@ function buildPreparedMessage(
     case "matematico":
       return "EduAI Claw dejó preparada una acción para el agente Matemático."
     case "imagenes":
-      return "EduAI Claw dejó preparada una acción visual para el agente de Imágenes."
+      return "EduAI Claw dejó preparada una acción visual para Image Studio."
+    case "video":
+      return "EduAI Claw dejó preparada una acción para Video Studio."
+    case "music":
+      return "EduAI Claw dejó preparada una sesión de música focus."
+    case "code":
+      return "EduAI Claw dejó preparada una acción de código."
+    case "audio":
+      return "EduAI Claw dejó preparada una acción de narración o audio."
     default:
       return "EduAI Claw dejó preparada una acción general."
   }
