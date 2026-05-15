@@ -420,7 +420,7 @@ function TopBar() {
   const music = useEduAIMusic();
   return (
     <header className="flex h-[58px] shrink-0 items-center gap-4 border-b border-white/10 bg-[#05070a] px-4 text-white">
-      <div className="flex w-[308px] shrink-0 items-center gap-3">
+      <div className="flex w-[300px] shrink-0 items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-400 text-slate-950 shadow-md shadow-emerald-500/20">
           <Music2 className="h-5 w-5" />
         </div>
@@ -466,7 +466,7 @@ function Sidebar({ tracks }: { tracks: EduMusicTrack[] }) {
   );
 
   return (
-    <aside className="flex min-h-0 w-[320px] shrink-0 flex-col border-r border-white/10 bg-[#0b0d12] p-3 text-white">
+    <aside className="flex min-h-0 min-w-0 flex-col border-r border-white/10 bg-[#0b0d12] p-2.5 text-white">
       <div className="shrink-0 rounded-2xl border border-white/10 bg-[#14171f] p-3">
         <div className="flex items-center justify-between gap-2">
           <div>
@@ -595,17 +595,17 @@ function PlaylistHeader({ tracks }: { tracks: EduMusicTrack[] }) {
   );
 
   return (
-    <section className="shrink-0 rounded-2xl border border-emerald-400/20 bg-[linear-gradient(135deg,rgba(16,185,129,.22),rgba(17,24,39,.98)_50%,rgba(34,197,94,.12))] p-4 text-white shadow-md shadow-black/25">
-      <div className="flex items-center gap-4">
+    <section className="shrink-0 rounded-2xl border border-emerald-400/20 bg-[linear-gradient(135deg,rgba(16,185,129,.22),rgba(17,24,39,.98)_50%,rgba(34,197,94,.12))] p-3 text-white shadow-md shadow-black/25">
+      <div className="flex min-w-0 items-center gap-3">
         <Cover label={playlist.name} cover={playlist.cover} size="hero" />
         <div className="min-w-0 flex-1">
           <p className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-300">
             Playlist seleccionada
           </p>
-          <h2 className="mt-1 truncate text-3xl font-black tracking-tight text-white max-xl:text-2xl">
+          <h2 className="mt-1 truncate text-2xl font-black tracking-tight text-white max-xl:text-xl">
             {playlist.name}
           </h2>
-          <p className="mt-1 line-clamp-2 max-w-2xl text-sm leading-relaxed text-slate-300">
+          <p className="mt-1 line-clamp-1 max-w-2xl text-xs leading-relaxed text-slate-300">
             {playlist.description}
           </p>
           <p className="mt-2 text-xs font-semibold text-slate-400">
@@ -615,7 +615,7 @@ function PlaylistHeader({ tracks }: { tracks: EduMusicTrack[] }) {
         <button
           type="button"
           onClick={() => music.playPlaylist(playlist.id)}
-          className="inline-flex h-10 shrink-0 items-center gap-2 rounded-full bg-emerald-400 px-5 text-sm font-black text-slate-950 shadow-md shadow-emerald-500/20 hover:bg-emerald-300"
+          className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full bg-emerald-400 px-4 text-xs font-black text-slate-950 shadow-md shadow-emerald-500/20 hover:bg-emerald-300"
         >
           <Play className="h-4 w-4" fill="currentColor" /> Reproducir
         </button>
@@ -635,14 +635,14 @@ function PlaylistHeader({ tracks }: { tracks: EduMusicTrack[] }) {
         >
           <Repeat className="h-4 w-4" />
         </IconButton>
-        <div className="ml-1 flex flex-wrap gap-1.5">
+        <div className="ml-1 flex min-w-0 flex-wrap gap-1.5">
           {MOODS.map((mood) => (
             <button
               key={mood}
               type="button"
               onClick={() => music.setSelectedMood(mood)}
               className={cn(
-                "rounded-full border px-3 py-1.5 text-[11px] font-bold transition",
+                "rounded-full border px-2.5 py-1.5 text-[10px] font-bold transition",
                 music.selectedMood === mood
                   ? "border-emerald-300 bg-emerald-400 text-slate-950"
                   : "border-white/10 bg-white/7 text-slate-300 hover:bg-emerald-400/10 hover:text-emerald-200",
@@ -659,7 +659,7 @@ function PlaylistHeader({ tracks }: { tracks: EduMusicTrack[] }) {
 
 function MainPanel({ tracks }: { tracks: EduMusicTrack[] }) {
   return (
-    <main className="flex min-h-0 flex-1 flex-col bg-[#101218] p-3 text-white">
+    <main className="flex min-h-0 min-w-0 flex-col bg-[#101218] p-2.5 text-white">
       <PlaylistHeader tracks={tracks} />
       <section className="mt-3 flex min-h-0 flex-1 flex-col rounded-2xl border border-white/10 bg-[#151922] p-3">
         <div className="mb-2 flex items-center justify-between">
@@ -722,7 +722,7 @@ function RightPanel() {
     .slice(0, 6);
 
   return (
-    <aside className="flex min-h-0 w-[370px] shrink-0 flex-col gap-3 border-l border-white/10 bg-[#0b0d12] p-3 text-white">
+    <aside className="flex min-h-0 min-w-0 flex-col gap-2.5 overflow-y-auto border-l border-white/10 bg-[#0b0d12] p-2.5 text-white">
       <section className="shrink-0 rounded-2xl border border-emerald-400/20 bg-[#14171f] p-3">
         <p className="text-sm font-black text-white">Buscar canciones</p>
         <p className="mt-1 text-xs text-slate-400">
@@ -1021,7 +1021,10 @@ export default function EduAIMusicPlayer({
     <div className="h-screen min-h-[680px] overflow-hidden bg-[#05070a] text-white">
       <div className="flex h-full flex-col">
         <TopBar />
-        <div className="flex min-h-0 flex-1 overflow-hidden">
+        <div
+          className="grid min-h-0 flex-1 overflow-hidden"
+          style={{ gridTemplateColumns: "300px minmax(0, 1fr) 340px" }}
+        >
           <Sidebar tracks={tracksForMain} />
           <MainPanel tracks={tracksForMain} />
           <RightPanel />
