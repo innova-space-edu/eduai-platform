@@ -136,14 +136,14 @@ const AGENTS: AgentItem[] = [
     icon: "♫",
     name: "EduAI Music",
     description:
-      "Reproductor estilo Spotify/OpenSpot integrado al panel flotante, con música focus persistente",
+      "Reproductor tipo Spotify/OpenSpot con playlists, favoritos y reproducción persistente",
     color: "from-emerald-500 to-green-700",
     glow: "rgba(29,185,84,0.15)",
     border: "rgba(29,185,84,0.25)",
-    href: "/exam-focus",
+    href: "/music",
     tag: "Creativo",
     status: "active",
-    ctaLabel: "Abrir música focus",
+    ctaLabel: "Abrir EduAI Music",
   },
   {
     id: "creator-hub",
