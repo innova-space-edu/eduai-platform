@@ -126,7 +126,7 @@ const AGENTS: AgentItem[] = [
     color: "from-slate-900 to-blue-600",
     glow: "rgba(37,99,235,0.16)",
     border: "rgba(37,99,235,0.24)",
-    href: "/superagent/chat",
+    href: "/chat-global",
     tag: "General",
     status: "active",
     ctaLabel: "Abrir chat global",
@@ -183,6 +183,21 @@ const AGENTS: AgentItem[] = [
     href: "/image-studio",
     tag: "Creativo",
     status: "active",
+  },
+
+  {
+    id: "admin-model-lab",
+    icon: "🛡️",
+    name: "Admin Model Lab",
+    description:
+      "Laboratorio aislado para modelos experimentales solo con rol administrador, auditoría y filtros.",
+    color: "from-slate-950 to-amber-700",
+    glow: "rgba(245,158,11,0.16)",
+    border: "rgba(245,158,11,0.24)",
+    href: "/admin/model-lab",
+    tag: "Admin",
+    status: "active",
+    ctaLabel: "Abrir laboratorio",
   },
   {
     id: "video-studio",
