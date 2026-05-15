@@ -27,6 +27,8 @@ type MusicView =
   | "queue";
 type RepeatMode = "off" | "one" | "all";
 
+type OnlineProviderMode = "all" | "full" | "preview";
+
 type StoredState = {
   trackId?: string;
   playlistId?: string;
@@ -34,6 +36,7 @@ type StoredState = {
   likedTrackIds?: string[];
   userPlaylists?: EduMusicPlaylist[];
   onlineTracks?: EduMusicTrack[];
+  onlineProviderMode?: OnlineProviderMode;
   queueIds?: string[];
   view?: MusicView;
   shuffle?: boolean;
@@ -49,6 +52,8 @@ type MusicContextValue = {
   setOnlineQuery: (value: string) => void;
   onlineLoading: boolean;
   onlineError: string;
+  onlineProviderMode: OnlineProviderMode;
+  setOnlineProviderMode: (value: OnlineProviderMode) => void;
   selectedMood: EduMusicMood | "all";
   setSelectedMood: (value: EduMusicMood | "all") => void;
   volume: number;
@@ -120,6 +125,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const [onlineQuery, setOnlineQuery] = useState("");
   const [onlineLoading, setOnlineLoading] = useState(false);
   const [onlineError, setOnlineError] = useState("");
+  const [onlineProviderMode, setOnlineProviderMode] = useState<OnlineProviderMode>("full");
   const [selectedMood, setSelectedMood] = useState<EduMusicMood | "all">("all");
   const [volume, setVolume] = useState(0.62);
   const [playing, setPlaying] = useState(false);
@@ -161,6 +167,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     if (stored.likedTrackIds) setLikedTrackIds(stored.likedTrackIds);
     if (stored.userPlaylists) setUserPlaylists(stored.userPlaylists);
     if (stored.queueIds) setQueueIds(stored.queueIds);
+    if (stored.onlineProviderMode) setOnlineProviderMode(stored.onlineProviderMode);
     if (stored.view) setView(stored.view);
     if (stored.shuffle !== undefined) setShuffle(stored.shuffle);
     if (stored.repeat) setRepeat(stored.repeat);
@@ -246,6 +253,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       likedTrackIds,
       userPlaylists,
       onlineTracks: onlineTracks.slice(0, 60),
+      onlineProviderMode,
       queueIds,
       view,
       shuffle,
@@ -260,6 +268,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     likedTrackIds,
     userPlaylists,
     onlineTracks,
+    onlineProviderMode,
     queueIds,
     view,
     shuffle,
@@ -502,7 +511,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         const res = await fetch("/api/music/search", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query: clean }),
+          body: JSON.stringify({ query: clean, provider: onlineProviderMode }),
         });
         const data = await res.json();
         if (!res.ok || !data?.ok)
@@ -510,6 +519,14 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         const tracks = Array.isArray(data.tracks)
           ? (data.tracks as EduMusicTrack[])
           : [];
+        if (!tracks.length) {
+          setOnlineError(
+            onlineProviderMode === "full"
+              ? "No encontré canciones completas en Jamendo/Audius para esa búsqueda. Prueba con otro término o cambia a DJ 30s."
+              : "No encontré resultados reproducibles para esa búsqueda.",
+          );
+          return;
+        }
         setOnlineTracks((prev) => {
           const map = new Map<string, EduMusicTrack>();
           [...tracks, ...prev].forEach((track) => map.set(track.id, track));
@@ -528,7 +545,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         setOnlineLoading(false);
       }
     },
-    [onlineQuery, playTrack, query],
+    [onlineProviderMode, onlineQuery, playTrack, query],
   );
 
   const value: MusicContextValue = {
@@ -540,6 +557,8 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     setOnlineQuery,
     onlineLoading,
     onlineError,
+    onlineProviderMode,
+    setOnlineProviderMode,
     selectedMood,
     setSelectedMood,
     volume,
