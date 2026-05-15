@@ -3,6 +3,25 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
+  ArrowLeft,
+  ExternalLink,
+  Heart,
+  Home,
+  Library,
+  ListMusic,
+  Menu,
+  Music2,
+  Pause,
+  Play,
+  Plus,
+  Repeat,
+  Search,
+  Shuffle,
+  SkipBack,
+  SkipForward,
+  Volume2,
+} from "lucide-react";
+import {
   EXTERNAL_MUSIC_COLLECTIONS,
   MOOD_LABELS,
   type EduMusicMood,
@@ -20,12 +39,12 @@ type Props = {
 };
 
 const NAV_ITEMS = [
-  { id: "home", label: "Inicio", icon: "⌂" },
-  { id: "search", label: "Buscar", icon: "⌕" },
-  { id: "library", label: "Biblioteca", icon: "♪" },
-  { id: "playlists", label: "Playlists", icon: "▦" },
-  { id: "liked", label: "Me gusta", icon: "♡" },
-  { id: "queue", label: "Cola", icon: "☰" },
+  { id: "home", label: "Inicio", icon: Home },
+  { id: "search", label: "Buscar", icon: Search },
+  { id: "library", label: "Biblioteca", icon: Library },
+  { id: "playlists", label: "Playlists", icon: ListMusic },
+  { id: "liked", label: "Me gusta", icon: Heart },
+  { id: "queue", label: "Cola", icon: Menu },
 ] as const;
 
 const MOODS: Array<EduMusicMood | "all"> = [
@@ -48,6 +67,19 @@ function youtubeSearchUrl(query: string) {
   return `https://www.youtube.com/results?search_query=${encodeURIComponent(query || "study music playlist")}`;
 }
 
+function parseDuration(duration?: string) {
+  if (!duration) return 0;
+  const [m, s] = duration.split(":").map((part) => Number(part));
+  return Number.isFinite(m) && Number.isFinite(s) ? m * 60 + s : 0;
+}
+
+function formatSeconds(seconds: number) {
+  const safe = Math.max(0, Math.floor(seconds || 0));
+  const min = Math.floor(safe / 60);
+  const sec = safe % 60;
+  return `${min}:${String(sec).padStart(2, "0")}`;
+}
+
 function Cover({
   track,
   label,
@@ -57,45 +89,71 @@ function Cover({
   track?: EduMusicTrack;
   label?: string;
   cover?: string;
-  size?: "xs" | "sm" | "md" | "lg";
+  size?: "xs" | "sm" | "md" | "lg" | "hero";
 }) {
   const cls =
-    size === "lg"
-      ? "h-28 w-28 rounded-3xl text-4xl"
-      : size === "md"
-        ? "h-14 w-14 rounded-2xl text-lg"
-        : size === "sm"
-          ? "h-10 w-10 rounded-xl text-sm"
-          : "h-8 w-8 rounded-lg text-xs";
+    size === "hero"
+      ? "h-36 w-36 rounded-[26px] text-5xl"
+      : size === "lg"
+        ? "h-24 w-24 rounded-3xl text-3xl"
+        : size === "md"
+          ? "h-12 w-12 rounded-2xl text-base"
+          : size === "sm"
+            ? "h-10 w-10 rounded-xl text-sm"
+            : "h-8 w-8 rounded-lg text-xs";
   const title = track?.title || label || "Música";
-  const artwork = track?.artworkUrl || (track?.cover?.startsWith("http") ? track.cover : undefined);
+  const artwork =
+    track?.artworkUrl ||
+    (track?.cover?.startsWith("http") ? track.cover : undefined);
 
   if (artwork) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={artwork} alt={title} className={`${cls} shrink-0 object-cover shadow-sm`} />
+      <img
+        src={artwork}
+        alt={title}
+        className={`${cls} shrink-0 object-cover shadow-lg shadow-black/20`}
+      />
     );
   }
 
   return (
     <div
-      className={`${cls} flex shrink-0 items-center justify-center border border-slate-200 font-black text-slate-700 shadow-sm`}
-      style={{ background: cover || track?.cover || "linear-gradient(135deg,#eff6ff,#dbeafe)" }}
+      className={`${cls} flex shrink-0 items-center justify-center font-black text-white shadow-lg shadow-black/20 ring-1 ring-white/10`}
+      style={{
+        background:
+          cover || track?.cover || "linear-gradient(135deg,#38bdf8,#2563eb)",
+      }}
     >
       {title.slice(0, 1).toUpperCase()}
     </div>
   );
 }
 
-function MiniIconButton({ children, onClick, active, title }: { children: React.ReactNode; onClick: () => void; active?: boolean; title?: string }) {
+function IconButton({
+  children,
+  onClick,
+  active,
+  title,
+  className,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  active?: boolean;
+  title?: string;
+  className?: string;
+}) {
   return (
     <button
       type="button"
       title={title}
       onClick={onClick}
       className={cn(
-        "inline-flex h-8 w-8 items-center justify-center rounded-full text-xs font-black transition",
-        active ? "bg-blue-600 text-white shadow-sm" : "bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-blue-700",
+        "inline-flex h-9 w-9 items-center justify-center rounded-full text-sm font-black transition",
+        active
+          ? "bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/20"
+          : "bg-white/10 text-slate-200 hover:bg-white/15 hover:text-white",
+        className,
       )}
     >
       {children}
@@ -103,309 +161,701 @@ function MiniIconButton({ children, onClick, active, title }: { children: React.
   );
 }
 
-function TrackRows({ tracks, compact = false, limit }: { tracks: EduMusicTrack[]; compact?: boolean; limit?: number }) {
+function PlayButton({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
   const music = useEduAIMusic();
-  const shown = typeof limit === "number" ? tracks.slice(0, limit) : tracks;
-
-  if (!shown.length) {
-    return (
-      <div className="rounded-2xl border border-dashed border-slate-200 bg-white/70 px-4 py-5 text-center text-sm text-slate-500">
-        No hay canciones en esta vista. Busca online o selecciona otra playlist.
-      </div>
-    );
-  }
-
+  const cls =
+    size === "lg" ? "h-14 w-14" : size === "sm" ? "h-9 w-9" : "h-11 w-11";
+  const iconCls = size === "lg" ? "h-7 w-7" : "h-5 w-5";
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-      {shown.map((track, index) => {
-        const active = track.id === music.currentTrack.id;
-        return (
-          <div
-            key={track.id}
+    <button
+      type="button"
+      onClick={() => music.setPlaying((value) => !value)}
+      className={`${cls} inline-flex items-center justify-center rounded-full bg-emerald-400 text-slate-950 shadow-xl shadow-emerald-500/25 transition hover:scale-105 hover:bg-emerald-300`}
+      aria-label={music.playing ? "Pausar" : "Reproducir"}
+    >
+      {music.playing ? (
+        <Pause className={iconCls} fill="currentColor" />
+      ) : (
+        <Play className={`${iconCls} translate-x-0.5`} fill="currentColor" />
+      )}
+    </button>
+  );
+}
+
+function TrackRow({
+  track,
+  index,
+  tracks,
+  compact = false,
+}: {
+  track: EduMusicTrack;
+  index: number;
+  tracks: EduMusicTrack[];
+  compact?: boolean;
+}) {
+  const music = useEduAIMusic();
+  const active = track.id === music.currentTrack.id;
+  return (
+    <div
+      className={cn(
+        "group grid min-h-[54px] items-center gap-3 rounded-xl px-3 text-sm transition",
+        compact
+          ? "grid-cols-[30px,40px,minmax(0,1fr),48px]"
+          : "grid-cols-[36px,44px,minmax(0,1.8fr),minmax(0,1fr),70px,94px]",
+        active
+          ? "bg-white/15 text-white"
+          : "text-slate-300 hover:bg-white/8 hover:text-white",
+      )}
+    >
+      <button
+        type="button"
+        onClick={() => music.playTrack(track, tracks)}
+        className={cn(
+          "flex h-8 w-8 items-center justify-center rounded-full text-[11px] font-black transition",
+          active
+            ? "bg-emerald-400 text-slate-950"
+            : "bg-white/8 text-slate-300 group-hover:bg-emerald-400 group-hover:text-slate-950",
+        )}
+        aria-label={`Reproducir ${track.title}`}
+      >
+        {active && music.playing ? (
+          <Pause className="h-3.5 w-3.5" fill="currentColor" />
+        ) : active ? (
+          <Play className="h-3.5 w-3.5" fill="currentColor" />
+        ) : (
+          index + 1
+        )}
+      </button>
+      <Cover track={track} size="sm" />
+      <button
+        type="button"
+        onClick={() => music.playTrack(track, tracks)}
+        className="min-w-0 text-left"
+      >
+        <p
+          className={cn(
+            "truncate font-bold",
+            active ? "text-emerald-300" : "text-current",
+          )}
+        >
+          {track.title}
+        </p>
+        <p className="truncate text-xs text-slate-400">{track.artist}</p>
+      </button>
+      {!compact && (
+        <p className="truncate text-xs text-slate-400">{track.album}</p>
+      )}
+      {!compact && (
+        <span className="text-xs text-slate-500">
+          {track.source === "itunes"
+            ? "Preview"
+            : track.source === "jamendo"
+              ? "Jamendo"
+              : track.source === "audius"
+                ? "Audius"
+                : "EduAI"}
+        </span>
+      )}
+      <div className="flex items-center justify-end gap-2">
+        {!compact && (
+          <button
+            type="button"
+            onClick={() => music.toggleLike(track.id)}
             className={cn(
-              "group grid min-h-[54px] items-center gap-2 border-b border-slate-100 px-3 text-sm last:border-b-0 hover:bg-slate-50",
-              compact ? "grid-cols-[30px,1fr,44px]" : "grid-cols-[36px,42px,minmax(0,1.7fr),minmax(0,1fr),58px,34px,34px,34px]",
-              active && "bg-blue-50/80",
+              "text-slate-500 hover:text-rose-300",
+              music.liked.has(track.id) && "text-rose-300",
             )}
+            aria-label="Me gusta"
           >
-            <button
-              type="button"
-              onClick={() => music.playTrack(track, tracks)}
-              className={cn(
-                "flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-black transition",
-                active ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-700",
-              )}
-              aria-label={`Reproducir ${track.title}`}
-            >
-              {active && music.playing ? "Ⅱ" : active ? "▶" : index + 1}
-            </button>
-
-            {!compact && <Cover track={track} size="xs" />}
-
-            <button type="button" onClick={() => music.playTrack(track, tracks)} className="min-w-0 text-left">
-              <p className={cn("truncate font-bold", active ? "text-blue-800" : "text-slate-900")}>{track.title}</p>
-              <p className="truncate text-[11px] text-slate-500">
-                {track.artist} · {track.source === "itunes" ? "Preview online" : track.album}
-              </p>
-            </button>
-
-            {!compact && <p className="truncate text-xs text-slate-500">{track.album}</p>}
-            {!compact && <span className="text-right text-xs text-slate-400">{track.duration}</span>}
-
-            {!compact && (
-              <MiniIconButton onClick={() => music.toggleLike(track.id)} active={music.liked.has(track.id)} title="Me gusta">
-                ♥
-              </MiniIconButton>
-            )}
-            {!compact && (
-              <MiniIconButton onClick={() => music.addToQueue(track.id)} title="Agregar a cola">
-                ≡
-              </MiniIconButton>
-            )}
-            {!compact && (
-              <MiniIconButton onClick={() => music.requestAddToPlaylist(track.id)} title="Agregar a playlist">
-                +
-              </MiniIconButton>
-            )}
-
-            {compact && <span className="text-right text-[11px] text-slate-400">{track.duration}</span>}
-          </div>
-        );
-      })}
+            <Heart
+              className="h-4 w-4"
+              fill={music.liked.has(track.id) ? "currentColor" : "none"}
+            />
+          </button>
+        )}
+        <span className="w-10 text-right text-xs text-slate-500">
+          {track.duration}
+        </span>
+      </div>
     </div>
   );
 }
 
-function SearchAndSourcesPanel() {
+function TrackList({
+  tracks,
+  compact = false,
+  limit,
+}: {
+  tracks: EduMusicTrack[];
+  compact?: boolean;
+  limit?: number;
+}) {
+  const shown = typeof limit === "number" ? tracks.slice(0, limit) : tracks;
+  if (!shown.length) {
+    return (
+      <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-8 text-center text-sm text-slate-400">
+        No hay canciones en esta vista.
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-1">
+      {!compact && (
+        <div className="grid grid-cols-[36px,44px,minmax(0,1.8fr),minmax(0,1fr),70px,94px] gap-3 px-3 pb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">
+          <span>#</span>
+          <span></span>
+          <span>Título</span>
+          <span>Álbum</span>
+          <span>Fuente</span>
+          <span className="text-right">Duración</span>
+        </div>
+      )}
+      {shown.map((track, index) => (
+        <TrackRow
+          key={track.id}
+          track={track}
+          index={index}
+          tracks={shown}
+          compact={compact}
+        />
+      ))}
+    </div>
+  );
+}
+
+function TopBar() {
   const music = useEduAIMusic();
-  const [youtubeQuery, setYoutubeQuery] = useState("música para estudiar sin letra");
+  return (
+    <header className="grid h-16 grid-cols-[320px,minmax(0,1fr),320px] items-center gap-3 border-b border-white/10 bg-[#07080d] px-4 text-white max-lg:grid-cols-[1fr,auto]">
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-950">
+          <Music2 className="h-5 w-5" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm font-black tracking-tight">EduAI Music</p>
+          <p className="text-[11px] text-slate-400">Music Dashboard Pro</p>
+        </div>
+      </div>
+      <div className="mx-auto flex h-11 w-full max-w-2xl items-center gap-3 rounded-full border border-white/10 bg-white/10 px-4 shadow-inner max-lg:hidden">
+        <Search className="h-4 w-4 text-slate-400" />
+        <input
+          value={music.query}
+          onChange={(e) => music.setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && music.query.trim())
+              void music.searchOnline(music.query);
+          }}
+          placeholder="¿Qué quieres reproducir? Busca en biblioteca o presiona Enter para buscar online"
+          className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
+        />
+      </div>
+      <div className="flex justify-end gap-2">
+        <Link
+          href="/agentes"
+          className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-xs font-bold text-slate-200 hover:bg-white/15"
+        >
+          <ArrowLeft className="h-4 w-4" /> Agentes
+        </Link>
+      </div>
+    </header>
+  );
+}
+
+function Sidebar({ tracks }: { tracks: EduMusicTrack[] }) {
+  const music = useEduAIMusic();
+  const [playlistFilter, setPlaylistFilter] = useState("");
+  const filteredPlaylists = music.playlists.filter((playlist) =>
+    playlist.name.toLowerCase().includes(playlistFilter.toLowerCase()),
+  );
 
   return (
-    <div className="space-y-3">
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <p className="text-sm font-black text-slate-900">Buscar y escuchar</p>
-        <p className="mt-1 text-xs leading-relaxed text-slate-500">
-          Búsqueda interna con previews reproducibles. Para YouTube se abre el reproductor oficial.
+    <aside className="flex min-h-0 flex-col gap-3 border-r border-white/10 bg-[#0c0e14] p-3 text-white">
+      <div className="rounded-3xl border border-white/10 bg-white/[0.06] p-3">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-sm font-black">Tu biblioteca</p>
+          <button
+            onClick={() => music.setCreateOpen((value) => !value)}
+            className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold text-slate-200 hover:bg-white/15"
+          >
+            <Plus className="h-3.5 w-3.5" /> Crear
+          </button>
+        </div>
+        <div className="mt-3 flex gap-2 overflow-x-auto pb-1 text-xs font-bold text-slate-300">
+          {NAV_ITEMS.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                onClick={() => music.setView(item.id)}
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-full px-3 py-1.5 transition",
+                  music.view === item.id
+                    ? "bg-white text-slate-950"
+                    : "bg-white/10 hover:bg-white/15",
+                )}
+              >
+                <Icon className="h-3.5 w-3.5" /> {item.label}
+              </button>
+            );
+          })}
+        </div>
+        {music.createOpen && (
+          <div className="mt-3 rounded-2xl border border-white/10 bg-black/20 p-2">
+            <input
+              value={music.newPlaylistName}
+              onChange={(e) => music.setNewPlaylistName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && music.createPlaylist()}
+              placeholder="Nombre de playlist"
+              className="h-9 w-full rounded-xl border border-white/10 bg-white/10 px-3 text-xs outline-none placeholder:text-slate-500"
+            />
+            <button
+              onClick={music.createPlaylist}
+              className="mt-2 h-9 w-full rounded-xl bg-emerald-400 text-xs font-black text-slate-950 hover:bg-emerald-300"
+            >
+              Crear playlist
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="rounded-3xl border border-white/10 bg-white/[0.06] p-3">
+        <div className="mb-2 flex items-center gap-2 rounded-xl bg-black/20 px-3 py-2">
+          <Search className="h-3.5 w-3.5 text-slate-500" />
+          <input
+            value={playlistFilter}
+            onChange={(e) => setPlaylistFilter(e.target.value)}
+            placeholder="Filtrar playlists"
+            className="min-w-0 flex-1 bg-transparent text-xs outline-none placeholder:text-slate-500"
+          />
+        </div>
+        <div className="max-h-[260px] space-y-1 overflow-y-auto pr-1">
+          {filteredPlaylists.map((playlist: EduMusicPlaylist) => (
+            <button
+              key={playlist.id}
+              onClick={() => {
+                music.setSelectedPlaylistId(playlist.id);
+                music.setView(
+                  playlist.id === "pl-liked"
+                    ? "liked"
+                    : playlist.id === "pl-online"
+                      ? "search"
+                      : "playlists",
+                );
+              }}
+              className={cn(
+                "flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition",
+                music.selectedPlaylistId === playlist.id
+                  ? "bg-white/15"
+                  : "hover:bg-white/10",
+              )}
+            >
+              <Cover label={playlist.name} cover={playlist.cover} size="sm" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-bold text-white">
+                  {playlist.name}
+                </span>
+                <span className="block truncate text-xs text-slate-400">
+                  {playlist.trackIds.length} canciones
+                </span>
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="min-h-0 flex-1 rounded-3xl border border-white/10 bg-white/[0.06] p-3">
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">
+            Canciones
+          </p>
+          <span className="text-xs text-slate-500">{tracks.length}</span>
+        </div>
+        <div className="h-[calc(100%-28px)] overflow-y-auto pr-1">
+          <TrackList tracks={tracks} compact limit={36} />
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+function PlaylistHero({ tracks }: { tracks: EduMusicTrack[] }) {
+  const music = useEduAIMusic();
+  const playlist = music.selectedPlaylist;
+  const totalSeconds = tracks.reduce(
+    (sum, track) => sum + parseDuration(track.duration),
+    0,
+  );
+  return (
+    <section className="rounded-[32px] border border-white/10 bg-[linear-gradient(135deg,rgba(59,130,246,0.35),rgba(15,23,42,0.92)_55%,rgba(16,185,129,0.22))] p-6 text-white shadow-2xl shadow-black/20">
+      <div className="flex items-end gap-6 max-md:flex-col max-md:items-start">
+        <Cover label={playlist.name} cover={playlist.cover} size="hero" />
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-200">
+            Playlist educativa
+          </p>
+          <h1 className="mt-2 truncate text-5xl font-black tracking-tight max-xl:text-4xl max-md:text-3xl">
+            {playlist.name}
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-300">
+            {playlist.description}
+          </p>
+          <p className="mt-3 text-sm font-semibold text-slate-300">
+            EduAI Music · {tracks.length} canciones ·{" "}
+            {formatSeconds(totalSeconds)} aprox.
+          </p>
+        </div>
+      </div>
+      <div className="mt-6 flex flex-wrap items-center gap-3">
+        <button
+          onClick={() => music.playPlaylist(playlist.id)}
+          className="inline-flex h-12 items-center gap-2 rounded-full bg-emerald-400 px-6 text-sm font-black text-slate-950 shadow-xl shadow-emerald-500/20 hover:bg-emerald-300"
+        >
+          <Play className="h-5 w-5" fill="currentColor" /> Reproducir lista
+        </button>
+        <IconButton
+          onClick={() => music.setShuffle((value) => !value)}
+          active={music.shuffle}
+          title="Aleatorio"
+        >
+          <Shuffle className="h-4 w-4" />
+        </IconButton>
+        <IconButton
+          onClick={() => music.toggleLike(music.currentTrack.id)}
+          active={music.liked.has(music.currentTrack.id)}
+          title="Me gusta"
+        >
+          <Heart
+            className="h-4 w-4"
+            fill={
+              music.liked.has(music.currentTrack.id) ? "currentColor" : "none"
+            }
+          />
+        </IconButton>
+        <IconButton
+          onClick={() =>
+            music.setRepeat(
+              music.repeat === "off"
+                ? "all"
+                : music.repeat === "all"
+                  ? "one"
+                  : "off",
+            )
+          }
+          active={music.repeat !== "off"}
+          title="Repetir"
+        >
+          <Repeat className="h-4 w-4" />
+        </IconButton>
+      </div>
+    </section>
+  );
+}
+
+function MainPanel({ tracks }: { tracks: EduMusicTrack[] }) {
+  const music = useEduAIMusic();
+  return (
+    <main className="min-h-0 overflow-y-auto bg-[#11131a] p-4 text-white">
+      <PlaylistHero tracks={tracks} />
+      <div className="mt-4 rounded-[28px] border border-white/10 bg-black/20 p-4">
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          {MOODS.map((mood) => (
+            <button
+              key={mood}
+              type="button"
+              onClick={() => music.setSelectedMood(mood)}
+              className={cn(
+                "rounded-full border px-3 py-1.5 text-xs font-bold transition",
+                music.selectedMood === mood
+                  ? "border-emerald-300 bg-emerald-400 text-slate-950"
+                  : "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10",
+              )}
+            >
+              {mood === "all" ? "Todo" : MOOD_LABELS[mood]}
+            </button>
+          ))}
+        </div>
+        <TrackList tracks={tracks} />
+      </div>
+    </main>
+  );
+}
+
+function RightPanel() {
+  const music = useEduAIMusic();
+  const [youtubeQuery, setYoutubeQuery] = useState(
+    "música para estudiar sin letra",
+  );
+  const related = music.allTracks
+    .filter(
+      (track) =>
+        track.mood === music.currentTrack.mood &&
+        track.id !== music.currentTrack.id,
+    )
+    .slice(0, 5);
+  return (
+    <aside className="flex min-h-0 flex-col gap-3 border-l border-white/10 bg-[#0c0e14] p-3 text-white">
+      <div className="rounded-3xl border border-white/10 bg-white/[0.06] p-3">
+        <p className="text-sm font-black">Buscar online</p>
+        <p className="mt-1 text-xs text-slate-400">
+          Busca previews o música reproducible según proveedor disponible.
         </p>
         <div className="mt-3 flex gap-2">
           <input
             value={music.onlineQuery}
             onChange={(e) => music.setOnlineQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") void music.searchOnline();
-            }}
-            placeholder="Artista, canción, lofi, piano..."
-            className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-300 focus:bg-white"
+            onKeyDown={(e) => e.key === "Enter" && void music.searchOnline()}
+            placeholder="Calvin Harris, lofi, piano..."
+            className="min-w-0 flex-1 rounded-full border border-white/10 bg-black/25 px-3 py-2 text-xs outline-none placeholder:text-slate-500"
           />
           <button
-            type="button"
             onClick={() => void music.searchOnline()}
             disabled={music.onlineLoading}
-            className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-black text-white shadow-sm hover:bg-blue-700 disabled:opacity-50"
+            className="rounded-full bg-emerald-400 px-4 py-2 text-xs font-black text-slate-950 disabled:opacity-50"
           >
             {music.onlineLoading ? "..." : "Buscar"}
           </button>
         </div>
-        {music.onlineError && <p className="mt-2 text-xs font-semibold text-red-600">{music.onlineError}</p>}
+        {music.onlineError && (
+          <p className="mt-2 text-xs font-bold text-rose-300">
+            {music.onlineError}
+          </p>
+        )}
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <p className="text-sm font-black text-slate-900">YouTube / playlists externas</p>
-        <p className="mt-1 text-xs leading-relaxed text-slate-500">
-          Se usa como fuente externa. No se convierte a MP3 dentro de EduAI.
+      <div className="rounded-3xl border border-white/10 bg-white/[0.06] p-3">
+        <p className="text-sm font-black">Acerca de la canción</p>
+        <Cover track={music.currentTrack} size="lg" />
+        <p className="mt-3 text-lg font-black leading-tight">
+          {music.currentTrack.title}
         </p>
-        <div className="mt-3 flex gap-2">
+        <p className="text-sm text-slate-400">{music.currentTrack.artist}</p>
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {music.currentTrack.tags.slice(0, 4).map((tag) => (
+            <span
+              key={tag}
+              className="rounded-full bg-white/10 px-2 py-1 text-[10px] font-bold text-slate-300"
+            >
+              #{tag}
+            </span>
+          ))}
+        </div>
+        {music.currentTrack.externalUrl && (
+          <a
+            href={music.currentTrack.externalUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-emerald-300 hover:underline"
+          >
+            Abrir fuente <ExternalLink className="h-3 w-3" />
+          </a>
+        )}
+      </div>
+
+      <div className="min-h-0 flex-1 rounded-3xl border border-white/10 bg-white/[0.06] p-3">
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-sm font-black">Cola / relacionados</p>
+          <button
+            onClick={music.clearQueue}
+            className="text-xs font-bold text-emerald-300 hover:underline"
+          >
+            limpiar
+          </button>
+        </div>
+        <div className="max-h-[180px] overflow-y-auto pr-1">
+          <TrackList
+            tracks={music.queue.length ? music.queue : related}
+            compact
+          />
+        </div>
+      </div>
+
+      <div className="rounded-3xl border border-white/10 bg-white/[0.06] p-3">
+        <p className="text-sm font-black">Fuentes externas</p>
+        <div className="mt-2 flex gap-2">
           <input
             value={youtubeQuery}
             onChange={(e) => setYoutubeQuery(e.target.value)}
-            placeholder="Buscar playlist en YouTube"
-            className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-300 focus:bg-white"
+            placeholder="Buscar en YouTube"
+            className="min-w-0 flex-1 rounded-full border border-white/10 bg-black/25 px-3 py-2 text-xs outline-none placeholder:text-slate-500"
           />
           <a
             href={youtubeSearchUrl(youtubeQuery)}
             target="_blank"
             rel="noreferrer"
-            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-700 hover:bg-slate-50"
+            className="rounded-full bg-white/10 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-white/15"
           >
             Abrir
           </a>
         </div>
-        <div className="mt-3 space-y-2">
+        <div className="mt-2 max-h-[150px] space-y-1 overflow-y-auto pr-1">
           {EXTERNAL_MUSIC_COLLECTIONS.map((item) => (
             <a
               key={item.id}
               href={item.url}
               target="_blank"
               rel="noreferrer"
-              className="flex items-center justify-between gap-2 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 hover:border-blue-200 hover:bg-blue-50"
+              className="flex items-center justify-between gap-2 rounded-xl px-2 py-2 text-xs hover:bg-white/10"
             >
               <span className="min-w-0">
-                <span className="block truncate text-xs font-black text-slate-900">{item.name}</span>
-                <span className="block truncate text-[10px] text-slate-500">{item.provider} · {item.description}</span>
+                <span className="block truncate font-bold text-slate-200">
+                  {item.name}
+                </span>
+                <span className="block truncate text-[10px] text-slate-500">
+                  {item.provider}
+                </span>
               </span>
-              <span className="text-xs text-slate-400">↗</span>
+              <ExternalLink className="h-3.5 w-3.5 text-slate-500" />
             </a>
           ))}
         </div>
       </div>
-    </div>
+    </aside>
   );
 }
 
-function PlaylistSidebar() {
+function BottomPlayer() {
   const music = useEduAIMusic();
-
+  const duration =
+    music.durationSeconds || parseDuration(music.currentTrack.duration);
+  const progress = duration
+    ? Math.min(100, (music.currentTime / duration) * 100)
+    : 0;
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Tu biblioteca</p>
+    <footer className="grid h-[88px] grid-cols-[320px,minmax(0,1fr),320px] items-center gap-4 border-t border-white/10 bg-[#07080d] px-4 text-white max-lg:grid-cols-[1fr,auto]">
+      <div className="flex min-w-0 items-center gap-3">
+        <Cover track={music.currentTrack} size="md" />
+        <div className="min-w-0">
+          <p className="truncate text-sm font-black">
+            {music.currentTrack.title}
+          </p>
+          <p className="truncate text-xs text-slate-400">
+            {music.currentTrack.artist}
+          </p>
+        </div>
         <button
-          type="button"
-          onClick={() => music.setCreateOpen((v) => !v)}
-          className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-black text-slate-700 hover:bg-slate-50"
+          onClick={() => music.toggleLike(music.currentTrack.id)}
+          className={cn(
+            "text-slate-500 hover:text-rose-300",
+            music.liked.has(music.currentTrack.id) && "text-rose-300",
+          )}
         >
-          + Crear
+          <Heart
+            className="h-4 w-4"
+            fill={
+              music.liked.has(music.currentTrack.id) ? "currentColor" : "none"
+            }
+          />
         </button>
       </div>
-
-      {music.createOpen && (
-        <div className="rounded-2xl border border-blue-100 bg-blue-50/50 p-3">
-          <input
-            value={music.newPlaylistName}
-            onChange={(e) => music.setNewPlaylistName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") music.createPlaylist();
-            }}
-            placeholder="Nombre de playlist"
-            className="w-full rounded-xl border border-blue-100 bg-white px-3 py-2 text-xs outline-none focus:border-blue-300"
-          />
-          <button type="button" onClick={music.createPlaylist} className="mt-2 w-full rounded-xl bg-blue-600 px-3 py-2 text-xs font-black text-white hover:bg-blue-700">
-            Crear playlist
-          </button>
-        </div>
-      )}
-
-      <div className="max-h-[230px] space-y-1 overflow-y-auto pr-1">
-        {music.playlists.map((playlist: EduMusicPlaylist) => (
-          <button
-            key={playlist.id}
-            type="button"
-            onClick={() => {
-              music.setSelectedPlaylistId(playlist.id);
-              music.setView(playlist.id === "pl-liked" ? "liked" : playlist.id === "pl-online" ? "search" : "playlists");
-            }}
-            className={cn(
-              "flex w-full items-center gap-2 rounded-xl px-2 py-2 text-left transition",
-              music.selectedPlaylistId === playlist.id ? "bg-blue-50 text-blue-800" : "hover:bg-slate-50",
-            )}
+      <div className="min-w-0">
+        <div className="flex items-center justify-center gap-3">
+          <IconButton
+            onClick={() => music.setShuffle((value) => !value)}
+            active={music.shuffle}
           >
-            <Cover label={playlist.name} cover={playlist.cover} size="xs" />
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-xs font-black text-slate-900">{playlist.name}</span>
-              <span className="block truncate text-[10px] text-slate-500">{playlist.trackIds.length} canciones</span>
-            </span>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function CurrentTrackCard() {
-  const music = useEduAIMusic();
-  const track = music.currentTrack;
-
-  return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex flex-col gap-5 md:flex-row md:items-center">
-        <Cover track={track} size="lg" />
-        <div className="min-w-0 flex-1">
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-600">
-            {track.source === "itunes" ? "Preview online" : MOOD_LABELS[track.mood]}
-          </p>
-          <h2 className="mt-1 truncate text-3xl font-black tracking-tight text-slate-950">{track.title}</h2>
-          <p className="mt-1 truncate text-sm text-slate-500">{track.artist} · {track.album}</p>
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {track.tags.slice(0, 4).map((tag) => (
-              <span key={tag} className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-500">
-                #{tag}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex shrink-0 items-center justify-center gap-2">
-          <MiniIconButton onClick={() => music.setShuffle((value) => !value)} active={music.shuffle} title="Shuffle">
-            ↭
-          </MiniIconButton>
-          <MiniIconButton onClick={music.prevTrack} title="Anterior">
-            ‹
-          </MiniIconButton>
-          <button
-            type="button"
-            onClick={() => music.setPlaying((value) => !value)}
-            className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-xl font-black text-white shadow-lg shadow-blue-200 hover:bg-blue-700"
+            <Shuffle className="h-4 w-4" />
+          </IconButton>
+          <IconButton onClick={music.prevTrack}>
+            <SkipBack className="h-4 w-4" fill="currentColor" />
+          </IconButton>
+          <PlayButton />
+          <IconButton onClick={music.nextTrack}>
+            <SkipForward className="h-4 w-4" fill="currentColor" />
+          </IconButton>
+          <IconButton
+            onClick={() =>
+              music.setRepeat(
+                music.repeat === "off"
+                  ? "all"
+                  : music.repeat === "all"
+                    ? "one"
+                    : "off",
+              )
+            }
+            active={music.repeat !== "off"}
           >
-            {music.playing ? "Ⅱ" : "▶"}
-          </button>
-          <MiniIconButton onClick={music.nextTrack} title="Siguiente">
-            ›
-          </MiniIconButton>
-          <MiniIconButton onClick={() => music.setRepeat(music.repeat === "off" ? "all" : music.repeat === "all" ? "one" : "off")} active={music.repeat !== "off"} title="Repetir">
-            {music.repeat === "one" ? "1" : "↻"}
-          </MiniIconButton>
+            <Repeat className="h-4 w-4" />
+          </IconButton>
         </div>
-      </div>
-
-      <div className="mt-5 grid gap-3 lg:grid-cols-[1fr,220px] lg:items-center">
-        <div className="flex items-center gap-3 rounded-2xl bg-slate-50 px-3 py-2">
-          <span className="text-xs font-bold text-slate-500">Volumen</span>
+        <div className="mt-2 flex items-center gap-2 text-[11px] text-slate-500">
+          <span className="w-9 text-right">
+            {formatSeconds(music.currentTime)}
+          </span>
           <input
             type="range"
             min="0"
-            max="1"
-            step="0.01"
-            value={music.volume}
-            onChange={(e) => music.setVolume(Number(e.target.value))}
-            className="w-full accent-blue-600"
+            max={Math.max(1, duration)}
+            step="1"
+            value={Math.min(music.currentTime, Math.max(1, duration))}
+            onChange={(e) => music.seekTo(Number(e.target.value))}
+            className="h-1 min-w-0 flex-1 accent-emerald-400"
+            style={{
+              background: `linear-gradient(90deg,#34d399 ${progress}%,rgba(255,255,255,.16) ${progress}%)`,
+            }}
           />
-        </div>
-        <div className="flex gap-2">
-          <button type="button" onClick={() => music.toggleLike(track.id)} className="flex-1 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-rose-50 hover:text-rose-600">
-            {music.liked.has(track.id) ? "♥ Guardada" : "♡ Me gusta"}
-          </button>
-          <button type="button" onClick={() => music.addToQueue(track.id)} className="flex-1 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-blue-50 hover:text-blue-700">
-            + Cola
-          </button>
+          <span className="w-9">{formatSeconds(duration)}</span>
         </div>
       </div>
-
-      {track.externalUrl && (
-        <a href={track.externalUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-xs font-bold text-blue-700 hover:underline">
-          Abrir fuente original ↗
-        </a>
-      )}
-    </div>
+      <div className="flex items-center justify-end gap-3 max-lg:hidden">
+        <ListMusic className="h-4 w-4 text-slate-500" />
+        <Volume2 className="h-4 w-4 text-slate-500" />
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          value={music.volume}
+          onChange={(e) => music.setVolume(Number(e.target.value))}
+          className="w-28 accent-emerald-400"
+        />
+      </div>
+    </footer>
   );
 }
 
 function AddToPlaylistBar() {
   const music = useEduAIMusic();
   if (!music.pendingTrackId) return null;
-  const track = music.allTracks.find((item) => item.id === music.pendingTrackId);
-
+  const track = music.allTracks.find(
+    (item) => item.id === music.pendingTrackId,
+  );
   return (
-    <div className="fixed bottom-24 left-1/2 z-50 w-[min(92vw,720px)] -translate-x-1/2 rounded-3xl border border-blue-200 bg-white p-3 shadow-2xl">
+    <div className="fixed bottom-24 left-1/2 z-50 w-[min(92vw,720px)] -translate-x-1/2 rounded-3xl border border-white/10 bg-[#11131a] p-3 text-white shadow-2xl">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-bold text-slate-800">Agregar {track?.title ?? "canción"} a playlist:</p>
-        <button onClick={() => music.setPendingTrackId(null)} className="rounded-full px-2 text-slate-400 hover:bg-slate-100">×</button>
+        <p className="text-xs font-bold">
+          Agregar {track?.title ?? "canción"} a playlist:
+        </p>
+        <button
+          onClick={() => music.setPendingTrackId(null)}
+          className="rounded-full px-2 text-slate-400 hover:bg-white/10"
+        >
+          ×
+        </button>
       </div>
       <div className="mt-2 flex flex-wrap gap-2">
-        <button onClick={() => music.addToPlaylist("pl-liked", music.pendingTrackId!)} className="rounded-full bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-100">♥ Me gusta</button>
+        <button
+          onClick={() => music.addToPlaylist("pl-liked", music.pendingTrackId!)}
+          className="rounded-full bg-rose-400 px-3 py-1.5 text-xs font-bold text-slate-950"
+        >
+          ♥ Me gusta
+        </button>
         {music.userPlaylists.map((playlist) => (
-          <button key={playlist.id} onClick={() => music.addToPlaylist(playlist.id, music.pendingTrackId!)} className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-200">{playlist.name}</button>
+          <button
+            key={playlist.id}
+            onClick={() =>
+              music.addToPlaylist(playlist.id, music.pendingTrackId!)
+            }
+            className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold hover:bg-white/15"
+          >
+            {playlist.name}
+          </button>
         ))}
-        <button onClick={() => music.setCreateOpen(true)} className="rounded-full bg-blue-600 px-3 py-1.5 text-xs font-black text-white hover:bg-blue-700">+ Nueva</button>
+        <button
+          onClick={() => music.setCreateOpen(true)}
+          className="rounded-full bg-emerald-400 px-3 py-1.5 text-xs font-black text-slate-950"
+        >
+          + Nueva
+        </button>
       </div>
     </div>
   );
@@ -414,18 +864,29 @@ function AddToPlaylistBar() {
 function MiniBar({ onOpenPanel }: { onOpenPanel?: () => void }) {
   const music = useEduAIMusic();
   return (
-    <div className="fixed bottom-4 left-1/2 z-50 w-[min(92vw,540px)] -translate-x-1/2 rounded-2xl border border-slate-200 bg-white/95 p-2 text-slate-900 shadow-2xl backdrop-blur-xl">
+    <div className="fixed bottom-4 left-1/2 z-50 w-[min(92vw,540px)] -translate-x-1/2 rounded-2xl border border-white/10 bg-[#07080d]/95 p-2 text-white shadow-2xl backdrop-blur-xl">
       <div className="flex items-center gap-2">
-        <button onClick={onOpenPanel} className="flex min-w-0 flex-1 items-center gap-2 text-left">
+        <button
+          onClick={onOpenPanel}
+          className="flex min-w-0 flex-1 items-center gap-2 text-left"
+        >
           <Cover track={music.currentTrack} size="sm" />
-          <div className="min-w-0">
-            <p className="truncate text-xs font-black">{music.currentTrack.title}</p>
-            <p className="truncate text-[10px] text-slate-500">{music.currentTrack.artist}</p>
-          </div>
+          <span className="min-w-0">
+            <span className="block truncate text-xs font-black">
+              {music.currentTrack.title}
+            </span>
+            <span className="block truncate text-[10px] text-slate-400">
+              {music.currentTrack.artist}
+            </span>
+          </span>
         </button>
-        <MiniIconButton onClick={music.prevTrack}>‹</MiniIconButton>
-        <button onClick={() => music.setPlaying((value) => !value)} className="h-9 w-9 rounded-full bg-blue-600 text-xs font-black text-white hover:bg-blue-700">{music.playing ? "Ⅱ" : "▶"}</button>
-        <MiniIconButton onClick={music.nextTrack}>›</MiniIconButton>
+        <IconButton onClick={music.prevTrack}>
+          <SkipBack className="h-3.5 w-3.5" />
+        </IconButton>
+        <PlayButton size="sm" />
+        <IconButton onClick={music.nextTrack}>
+          <SkipForward className="h-3.5 w-3.5" />
+        </IconButton>
       </div>
     </div>
   );
@@ -433,37 +894,46 @@ function MiniBar({ onOpenPanel }: { onOpenPanel?: () => void }) {
 
 function CompactPanel({ onOpenPanel }: { onOpenPanel?: () => void }) {
   const music = useEduAIMusic();
-  const tracksForMain = music.view === "liked"
-    ? music.allTracks.filter((track) => music.liked.has(track.id))
-    : music.view === "queue"
-      ? music.queue
-      : music.visibleTracks;
-
+  const tracks =
+    music.view === "liked"
+      ? music.allTracks.filter((track) => music.liked.has(track.id))
+      : music.view === "queue"
+        ? music.queue
+        : music.visibleTracks;
   return (
-    <div className="h-full overflow-hidden rounded-[26px] border border-slate-200 bg-white text-slate-950 shadow-xl">
+    <div className="h-full overflow-hidden rounded-[26px] border border-white/10 bg-[#0c0e14] text-white shadow-xl">
       <div className="flex h-full flex-col">
-        <div className="border-b border-slate-200 p-3">
+        <div className="border-b border-white/10 p-3">
           <div className="flex items-center justify-between gap-2">
             <button onClick={onOpenPanel} className="min-w-0 text-left">
               <p className="text-sm font-black">EduAI Music</p>
-              <p className="truncate text-[10px] text-slate-500">{music.currentTrack.title}</p>
+              <p className="truncate text-[10px] text-slate-400">
+                {music.currentTrack.title}
+              </p>
             </button>
-            <Link href="/music" className="rounded-full bg-blue-50 px-3 py-1.5 text-[10px] font-bold text-blue-700 hover:bg-blue-100">Abrir</Link>
+            <Link
+              href="/music"
+              className="rounded-full bg-white/10 px-3 py-1.5 text-[10px] font-bold text-slate-200 hover:bg-white/15"
+            >
+              Abrir
+            </Link>
           </div>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto p-3">
-          <TrackRows tracks={tracksForMain} compact limit={12} />
+          <TrackList tracks={tracks} compact limit={12} />
         </div>
-        <div className="border-t border-slate-200 p-3">
+        <div className="border-t border-white/10 p-3">
           <div className="flex items-center gap-2">
             <Cover track={music.currentTrack} size="sm" />
             <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-black">{music.currentTrack.title}</p>
-              <p className="truncate text-[10px] text-slate-500">{music.currentTrack.artist}</p>
+              <p className="truncate text-xs font-black">
+                {music.currentTrack.title}
+              </p>
+              <p className="truncate text-[10px] text-slate-400">
+                {music.currentTrack.artist}
+              </p>
             </div>
-            <MiniIconButton onClick={music.prevTrack}>‹</MiniIconButton>
-            <button onClick={() => music.setPlaying((value) => !value)} className="h-9 w-9 rounded-full bg-blue-600 text-xs font-black text-white">{music.playing ? "Ⅱ" : "▶"}</button>
-            <MiniIconButton onClick={music.nextTrack}>›</MiniIconButton>
+            <PlayButton size="sm" />
           </div>
         </div>
       </div>
@@ -472,114 +942,45 @@ function CompactPanel({ onOpenPanel }: { onOpenPanel?: () => void }) {
   );
 }
 
-export default function EduAIMusicPlayer({ mode = "page", showMiniWhenStopped = false, onOpenPanel }: Props) {
+export default function EduAIMusicPlayer({
+  mode = "page",
+  showMiniWhenStopped = false,
+  onOpenPanel,
+}: Props) {
   const music = useEduAIMusic();
-
   const tracksForMain = useMemo(() => {
-    if (music.view === "liked") return music.allTracks.filter((track) => music.liked.has(track.id));
+    if (music.view === "liked")
+      return music.allTracks.filter((track) => music.liked.has(track.id));
     if (music.view === "queue") return music.queue;
     return music.visibleTracks;
-  }, [music.allTracks, music.liked, music.queue, music.view, music.visibleTracks]);
+  }, [
+    music.allTracks,
+    music.liked,
+    music.queue,
+    music.view,
+    music.visibleTracks,
+  ]);
 
   if (mode === "mini") {
     if (!showMiniWhenStopped && !music.playing) return null;
     return <MiniBar onOpenPanel={onOpenPanel} />;
   }
-
   if (mode === "panel") return <CompactPanel onOpenPanel={onOpenPanel} />;
 
   return (
-    <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-[#f8fafc] text-slate-950 shadow-sm">
-      <div className="grid min-h-[calc(100vh-170px)] max-h-[calc(100vh-115px)] grid-rows-[1fr] overflow-hidden lg:grid-cols-[310px,minmax(0,1fr),340px]">
-        <aside className="flex min-h-0 flex-col border-r border-slate-200 bg-white p-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-600 font-black text-white">♫</div>
-            <div>
-              <p className="text-sm font-black">EduAI Music</p>
-              <p className="text-xs text-slate-500">Biblioteca + listas</p>
-            </div>
+    <div className="h-screen min-h-[720px] overflow-hidden bg-[#07080d] text-white">
+      <div className="grid h-full grid-rows-[64px,minmax(0,1fr),88px]">
+        <TopBar />
+        <div className="grid min-h-0 grid-cols-[320px,minmax(0,1fr),320px] max-xl:grid-cols-[300px,minmax(0,1fr)] max-lg:grid-cols-1">
+          <div className="max-lg:hidden">
+            <Sidebar tracks={tracksForMain} />
           </div>
-
-          <div className="mt-4 grid grid-cols-2 gap-1.5">
-            {NAV_ITEMS.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => music.setView(item.id)}
-                className={cn(
-                  "flex items-center gap-1.5 rounded-xl px-2 py-2 text-left text-xs font-black transition",
-                  music.view === item.id ? "bg-blue-600 text-white" : "bg-slate-50 text-slate-600 hover:bg-slate-100",
-                )}
-              >
-                <span className="w-4 text-center">{item.icon}</span>
-                <span className="truncate">{item.label}</span>
-              </button>
-            ))}
+          <MainPanel tracks={tracksForMain} />
+          <div className="max-xl:hidden">
+            <RightPanel />
           </div>
-
-          <div className="mt-4">
-            <PlaylistSidebar />
-          </div>
-
-          <div className="mt-4 min-h-0 flex-1 overflow-hidden">
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Canciones</p>
-              <span className="text-[10px] font-bold text-slate-400">{tracksForMain.length}</span>
-            </div>
-            <div className="h-full overflow-y-auto pr-1">
-              <TrackRows tracks={tracksForMain} compact />
-            </div>
-          </div>
-        </aside>
-
-        <main className="min-h-0 overflow-y-auto p-4">
-          <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm md:flex-row md:items-center">
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-blue-600">Reproductor central</p>
-              <h1 className="truncate text-xl font-black tracking-tight">{music.view === "search" ? "Buscar y reproducir" : music.selectedPlaylist.name}</h1>
-            </div>
-            <input
-              value={music.query}
-              onChange={(e) => music.setQuery(e.target.value)}
-              placeholder="Filtrar biblioteca..."
-              className="min-w-[220px] rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-300 focus:bg-white"
-            />
-          </div>
-
-          <CurrentTrackCard />
-
-          <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="mb-3 flex flex-wrap gap-1.5">
-              {MOODS.map((mood) => (
-                <button
-                  key={mood}
-                  type="button"
-                  onClick={() => music.setSelectedMood(mood)}
-                  className={cn(
-                    "rounded-full border px-3 py-1.5 text-xs font-bold transition",
-                    music.selectedMood === mood ? "border-blue-600 bg-blue-50 text-blue-700" : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50",
-                  )}
-                >
-                  {mood === "all" ? "Todo" : MOOD_LABELS[mood]}
-                </button>
-              ))}
-            </div>
-            <TrackRows tracks={tracksForMain} />
-          </div>
-        </main>
-
-        <aside className="min-h-0 overflow-y-auto border-l border-slate-200 bg-white p-4">
-          <SearchAndSourcesPanel />
-          <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-sm font-black text-slate-900">Cola</p>
-              <button onClick={music.clearQueue} className="text-xs font-bold text-blue-700 hover:underline">limpiar</button>
-            </div>
-            <div className="mt-3 max-h-[220px] overflow-y-auto pr-1">
-              <TrackRows tracks={music.queue.slice(0, 8)} compact />
-            </div>
-          </div>
-        </aside>
+        </div>
+        <BottomPlayer />
       </div>
       <AddToPlaylistBar />
     </div>
