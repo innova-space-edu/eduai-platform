@@ -452,7 +452,7 @@ function TopBar() {
         href="/agentes"
         className="ml-auto inline-flex shrink-0 items-center gap-2 rounded-full border border-white/10 bg-white/8 px-4 py-2 text-xs font-bold text-slate-200 transition hover:bg-white/12 hover:text-white"
       >
-        <ArrowLeft className="h-4 w-4" /> Agentes
+        <ArrowLeft className="h-4 w-4" /> Volver
       </Link>
     </header>
   );
@@ -657,26 +657,134 @@ function PlaylistHeader({ tracks }: { tracks: EduMusicTrack[] }) {
   );
 }
 
+function CurrentTrackArtwork({ track }: { track: EduMusicTrack }) {
+  const artwork = track.artworkUrl || (track.cover?.startsWith("http") ? track.cover : undefined);
+
+  if (artwork) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={artwork}
+        alt={track.title}
+        className="h-44 w-44 rounded-3xl object-cover shadow-2xl shadow-black/35 ring-1 ring-white/10 max-xl:h-36 max-xl:w-36"
+      />
+    );
+  }
+
+  return (
+    <div
+      className="flex h-44 w-44 flex-col items-center justify-center rounded-3xl p-5 text-center shadow-2xl shadow-black/35 ring-1 ring-white/10 max-xl:h-36 max-xl:w-36"
+      style={{ background: track.cover || "linear-gradient(135deg,#34d399,#0f766e)" }}
+    >
+      <span className="text-4xl font-black text-slate-950 max-xl:text-3xl">
+        {track.title.slice(0, 1).toUpperCase()}
+      </span>
+      <span className="mt-3 line-clamp-2 text-xs font-black leading-tight text-slate-950">
+        {track.title}
+      </span>
+      <span className="mt-1 line-clamp-1 text-[10px] font-bold text-slate-800">
+        {track.artist}
+      </span>
+    </div>
+  );
+}
+
 function MainPanel({ tracks }: { tracks: EduMusicTrack[] }) {
+  const music = useEduAIMusic();
+  const track = music.currentTrack;
+  const playlist = music.selectedPlaylist;
+
   return (
     <main className="flex min-h-0 min-w-0 flex-col bg-[#101218] p-2.5 text-white">
-      <PlaylistHeader tracks={tracks} />
-      <section className="mt-3 flex min-h-0 flex-1 flex-col rounded-2xl border border-white/10 bg-[#151922] p-3">
-        <div className="mb-2 flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-emerald-300">
-              Canciones seleccionadas
+      <section className="flex min-h-0 flex-1 flex-col rounded-2xl border border-white/10 bg-[#151922] p-4 shadow-lg shadow-black/20">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-300">
+              Reproductor central
             </p>
-            <p className="text-xs text-slate-400">
-              Haz clic en una canción para reproducirla. Los íconos son compactos y no tapan el texto.
+            <h2 className="truncate text-xl font-black text-white">
+              {playlist.name}
+            </h2>
+            <p className="truncate text-xs text-slate-400">
+              Las listas y resultados quedan en los paneles laterales. Aquí se muestra solo la canción seleccionada.
             </p>
           </div>
-          <span className="rounded-full bg-white/7 px-3 py-1 text-xs font-bold text-slate-300">
-            {tracks.length} canciones
-          </span>
+          <button
+            type="button"
+            onClick={() => music.playPlaylist(playlist.id)}
+            className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full bg-emerald-400 px-4 text-xs font-black text-slate-950 shadow-md shadow-emerald-500/20 hover:bg-emerald-300"
+          >
+            <Play className="h-4 w-4" fill="currentColor" /> Reproducir lista
+          </button>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-          <TableTrackList tracks={tracks} />
+
+        <div className="flex min-h-0 flex-1 items-center justify-center rounded-3xl border border-emerald-400/15 bg-[radial-gradient(circle_at_center,rgba(16,185,129,.18),rgba(15,23,42,.78)_48%,rgba(5,7,10,.95))] p-5">
+          <div className="w-full max-w-2xl rounded-[2rem] border border-white/10 bg-black/20 p-6 text-center shadow-2xl shadow-black/25 backdrop-blur-xl max-xl:p-5">
+            <div className="flex justify-center">
+              <CurrentTrackArtwork track={track} />
+            </div>
+
+            <div className="mx-auto mt-5 max-w-xl">
+              <p className="mx-auto mb-2 w-fit rounded-full bg-emerald-400/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-300">
+                {sourceLabel(track.source)}
+              </p>
+              <h3 className="line-clamp-2 text-2xl font-black leading-tight text-white max-xl:text-xl">
+                {track.title}
+              </h3>
+              <p className="mt-1 truncate text-sm font-semibold text-slate-300">
+                {track.artist}
+              </p>
+              <p className="mt-1 truncate text-xs text-slate-500">
+                {track.album || "Sin álbum"} · {track.duration || "--:--"}
+              </p>
+            </div>
+
+            <div className="mt-5 flex items-center justify-center gap-3">
+              <IconButton onClick={() => music.setShuffle((value) => !value)} active={music.shuffle} title="Aleatorio">
+                <Shuffle className="h-4 w-4" />
+              </IconButton>
+              <IconButton onClick={music.prevTrack} title="Anterior">
+                <SkipBack className="h-4 w-4" fill="currentColor" />
+              </IconButton>
+              <PlayButton size="lg" />
+              <IconButton onClick={music.nextTrack} title="Siguiente">
+                <SkipForward className="h-4 w-4" fill="currentColor" />
+              </IconButton>
+              <IconButton
+                onClick={() => music.setRepeat(music.repeat === "off" ? "all" : music.repeat === "all" ? "one" : "off")}
+                active={music.repeat !== "off"}
+                title="Repetir"
+              >
+                <Repeat className="h-4 w-4" />
+              </IconButton>
+            </div>
+
+            <div className="mt-5 grid grid-cols-2 gap-2 max-sm:grid-cols-1">
+              <button
+                type="button"
+                onClick={() => music.toggleLike(track.id)}
+                className={cn(
+                  "rounded-full border px-3 py-2 text-xs font-black transition",
+                  music.liked.has(track.id)
+                    ? "border-emerald-400 bg-emerald-400 text-slate-950"
+                    : "border-white/10 bg-white/7 text-slate-300 hover:bg-emerald-400/10 hover:text-emerald-200",
+                )}
+              >
+                ♥ Me gusta
+              </button>
+              <button
+                type="button"
+                onClick={() => music.requestAddToPlaylist(track.id)}
+                className="rounded-full border border-white/10 bg-white/7 px-3 py-2 text-xs font-black text-slate-300 transition hover:bg-emerald-400/10 hover:text-emerald-200"
+              >
+                + Agregar a playlist
+              </button>
+            </div>
+
+            <p className="mt-4 text-xs text-slate-500">
+              {tracks.length} canciones disponibles en la lista lateral izquierda.
+            </p>
+          </div>
         </div>
       </section>
     </main>
