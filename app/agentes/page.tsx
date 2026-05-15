@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, ChevronRight, Wrench } from "lucide-react";
 
@@ -330,18 +329,17 @@ function statusPill(status?: "active" | "maintenance") {
 }
 
 export default function AgentesPage() {
-  const router = useRouter();
-
   return (
     <div className="min-h-screen bg-app">
       <header className="sticky top-0 z-10 border-b border-soft bg-app backdrop-blur-xl">
         <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3.5">
-          <button
-            onClick={() => router.back()}
+          <Link
+            href="/dashboard"
+            aria-label="Volver al inicio"
             className="flex h-8 w-8 items-center justify-center rounded-xl border border-soft bg-card-soft-theme text-sub transition-all hover:bg-input-theme hover:text-main"
           >
             <ArrowLeft size={15} />
-          </button>
+          </Link>
 
           <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md shadow-blue-500/20">
             🤖
