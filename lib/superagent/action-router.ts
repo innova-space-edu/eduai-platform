@@ -7,6 +7,10 @@ export type SocialActionTarget =
   | "paper"
   | "matematico"
   | "imagenes"
+  | "video"
+  | "audio"
+  | "music"
+  | "code"
   | "unknown"
 
 export type SocialActionIntent =
