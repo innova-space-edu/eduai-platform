@@ -12,7 +12,7 @@ import {
   getToolByName,
   getEnabledTools,
 } from "./tool-registry"
-import type { ToolName, ToolResult } from "./tool-registry"
+import type { ToolExecutionOptions, ToolName, ToolResult } from "./tool-registry"
 
 // ── Tipos de respuesta del core ───────────────────────────────────────────────
 
@@ -160,7 +160,8 @@ function extractToolArgs(
 export async function runCoreCycle(
   messages:  CoreMessage[],
   context:   CoreContext = {},
-  baseUrl:   string = ""
+  baseUrl:   string = "",
+  options:   ToolExecutionOptions = {}
 ): Promise<CoreResponse> {
   const t0 = Date.now()
 
@@ -176,7 +177,7 @@ export async function runCoreCycle(
 
     if (tool?.enabled) {
       const args   = extractToolArgs(toolName, userText)
-      const result = await tool.execute(args, baseUrl)
+      const result = await tool.execute(args, baseUrl, options)
 
       if (result.success) {
         return {
@@ -238,7 +239,9 @@ export function getQuickSuggestions(context: CoreContext): string[] {
 
   suggestions.push("Planificación de clase para 3 sesiones")
   suggestions.push("Crea preguntas de desarrollo con rúbrica")
+  suggestions.push("Genera una imagen educativa sobre el tema")
+  suggestions.push("Genera un video educativo corto sobre el tema")
   suggestions.push("Resume este texto en 5 puntos clave")
 
-  return suggestions.slice(0, 6)
+  return suggestions.slice(0, 8)
 }
