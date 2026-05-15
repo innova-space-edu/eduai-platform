@@ -64,11 +64,15 @@ const QUICK_PROMPTS = [
   { label: "Rúbrica de evaluación", icon: "📊", text: "Diseña una rúbrica para evaluar " },
   { label: "Explicar concepto",     icon: "🔬", text: "Explica de forma simple y con ejemplos: " },
   { label: "Preguntas STEM",        icon: "⚗️", text: "Genera preguntas de Física/Química sobre " },
+  { label: "Imagen educativa",      icon: "🎨", text: "Genera una imagen educativa sobre " },
+  { label: "Video educativo",       icon: "🎬", text: "Genera un video educativo corto sobre " },
+  { label: "Corregir código",       icon: "🔧", text: "Corrige este error de código: " },
 ]
 
 // ── Renderizador simple de markdown ──────────────────────────────────────────
 function renderMd(text: string) {
   return text
+    .replace(/!\[([^\]]*)\]\((data:image\/[^)]+|https?:\/\/[^)]+)\)/g, "<img src=\"$2\" alt=\"$1\" class=\"mt-3 max-h-80 w-full rounded-xl border border-soft object-contain bg-white\" />")
     .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
     .replace(/\*(.*?)\*/g, "<em>$1</em>")
     .replace(/`(.*?)`/g, "<code class='bg-card-soft-theme px-1.5 py-0.5 rounded text-sm font-mono'>$1</code>")
