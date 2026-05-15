@@ -59,6 +59,39 @@ const MOODS: Array<EduMusicMood | "all"> = [
   "energy",
 ];
 
+const SPOTIFY_EMBEDS = [
+  {
+    id: "spotify-mix-1",
+    title: "Spotify playlist 1",
+    src: "https://open.spotify.com/embed/playlist/37i9dQZF1EIZna6YqhjeY0?utm_source=generator&theme=0",
+  },
+  {
+    id: "spotify-top-global",
+    title: "Spotify playlist 2",
+    src: "https://open.spotify.com/embed/playlist/37i9dQZEVXddk5AflVss6A?utm_source=generator",
+  },
+  {
+    id: "spotify-mix-2",
+    title: "Spotify playlist 3",
+    src: "https://open.spotify.com/embed/playlist/37i9dQZF1E8KVBYF00LoMc?utm_source=generator",
+  },
+  {
+    id: "spotify-custom-1",
+    title: "Spotify playlist 4",
+    src: "https://open.spotify.com/embed/playlist/3z0zQdiFbPdiZ1I7xRpqPx?utm_source=generator",
+  },
+  {
+    id: "spotify-custom-2",
+    title: "Spotify playlist 5",
+    src: "https://open.spotify.com/embed/playlist/6VjXyFH9Z5HlGPAjRBKR32?utm_source=generator&theme=0",
+  },
+  {
+    id: "spotify-focus",
+    title: "Spotify playlist 6",
+    src: "https://open.spotify.com/embed/playlist/37i9dQZF1DX6aTaZa0K6VA?utm_source=generator&theme=0",
+  },
+];
+
 function cn(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(" ");
 }
@@ -103,14 +136,14 @@ function Cover({
 }) {
   const cls =
     size === "hero"
-      ? "h-28 w-28 rounded-2xl text-4xl"
+      ? "h-20 w-20 rounded-2xl text-2xl"
       : size === "lg"
-        ? "h-20 w-20 rounded-2xl text-2xl"
+        ? "h-14 w-14 rounded-xl text-xl"
         : size === "md"
-          ? "h-12 w-12 rounded-xl text-base"
+          ? "h-10 w-10 rounded-xl text-base"
           : size === "sm"
-            ? "h-10 w-10 rounded-xl text-sm"
-            : "h-8 w-8 rounded-lg text-xs";
+            ? "h-8 w-8 rounded-lg text-xs"
+            : "h-7 w-7 rounded-lg text-[10px]";
   const title = track?.title || label || "Música";
   const artwork =
     track?.artworkUrl ||
@@ -122,17 +155,17 @@ function Cover({
       <img
         src={artwork}
         alt={title}
-        className={`${cls} shrink-0 object-cover shadow-md shadow-black/30`}
+        className={`${cls} shrink-0 object-cover shadow-sm shadow-black/40`}
       />
     );
   }
 
   return (
     <div
-      className={`${cls} flex shrink-0 items-center justify-center font-black text-slate-950 shadow-md shadow-black/30 ring-1 ring-white/10`}
+      className={`${cls} flex shrink-0 items-center justify-center font-black text-slate-950 shadow-sm shadow-black/40 ring-1 ring-white/10`}
       style={{
         background:
-          cover || track?.cover || "linear-gradient(135deg,#34d399,#22c55e)",
+          cover || track?.cover || "linear-gradient(135deg,#34d399,#10b981)",
       }}
     >
       {title.slice(0, 1).toUpperCase()}
@@ -159,9 +192,9 @@ function IconButton({
       title={title}
       onClick={onClick}
       className={cn(
-        "inline-flex h-9 w-9 items-center justify-center rounded-full text-sm font-black transition",
+        "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-black transition",
         active
-          ? "bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/25"
+          ? "bg-emerald-400 text-slate-950 shadow-md shadow-emerald-500/25"
           : "bg-white/8 text-slate-300 hover:bg-emerald-400/15 hover:text-emerald-200",
         className,
       )}
@@ -174,13 +207,13 @@ function IconButton({
 function PlayButton({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
   const music = useEduAIMusic();
   const cls =
-    size === "lg" ? "h-12 w-12" : size === "sm" ? "h-9 w-9" : "h-11 w-11";
-  const iconCls = size === "lg" ? "h-6 w-6" : "h-5 w-5";
+    size === "lg" ? "h-11 w-11" : size === "sm" ? "h-8 w-8" : "h-10 w-10";
+  const iconCls = size === "lg" ? "h-5 w-5" : "h-4 w-4";
   return (
     <button
       type="button"
       onClick={() => music.setPlaying((value) => !value)}
-      className={`${cls} inline-flex items-center justify-center rounded-full bg-emerald-400 text-slate-950 shadow-xl shadow-emerald-500/25 transition hover:scale-105 hover:bg-emerald-300`}
+      className={`${cls} inline-flex shrink-0 items-center justify-center rounded-full bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/25 transition hover:scale-105 hover:bg-emerald-300`}
       aria-label={music.playing ? "Pausar" : "Reproducir"}
     >
       {music.playing ? (
@@ -192,28 +225,75 @@ function PlayButton({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
   );
 }
 
-function TrackRow({
+function SidebarTrackRow({
   track,
   index,
   tracks,
-  variant = "table",
 }: {
   track: EduMusicTrack;
   index: number;
   tracks: EduMusicTrack[];
-  variant?: "compact" | "table";
 }) {
   const music = useEduAIMusic();
   const active = track.id === music.currentTrack.id;
-  const compact = variant === "compact";
+  return (
+    <button
+      type="button"
+      onClick={() => music.playTrack(track, tracks)}
+      className={cn(
+        "flex h-12 w-full items-center gap-2 rounded-xl px-2 text-left transition",
+        active
+          ? "bg-emerald-400/14 text-white ring-1 ring-emerald-400/35"
+          : "text-slate-300 hover:bg-white/7 hover:text-white",
+      )}
+    >
+      <span
+        className={cn(
+          "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-black",
+          active ? "bg-emerald-400 text-slate-950" : "bg-white/8 text-slate-400",
+        )}
+      >
+        {active && music.playing ? (
+          <Pause className="h-3 w-3" fill="currentColor" />
+        ) : active ? (
+          <Play className="h-3 w-3" fill="currentColor" />
+        ) : (
+          index + 1
+        )}
+      </span>
+      <Cover track={track} size="xs" />
+      <span className="min-w-0 flex-1">
+        <span
+          className={cn(
+            "block truncate text-xs font-black",
+            active ? "text-emerald-300" : "text-current",
+          )}
+        >
+          {track.title}
+        </span>
+        <span className="block truncate text-[10px] text-slate-500">
+          {track.artist}
+        </span>
+      </span>
+    </button>
+  );
+}
 
+function TableTrackRow({
+  track,
+  index,
+  tracks,
+}: {
+  track: EduMusicTrack;
+  index: number;
+  tracks: EduMusicTrack[];
+}) {
+  const music = useEduAIMusic();
+  const active = track.id === music.currentTrack.id;
   return (
     <div
       className={cn(
-        "group grid items-center gap-2 rounded-xl px-2 transition",
-        compact
-          ? "h-12 grid-cols-[30px,40px,minmax(0,1fr)]"
-          : "h-14 grid-cols-[36px,44px,minmax(0,1.6fr),minmax(0,1fr),72px,78px]",
+        "group flex h-12 items-center gap-3 rounded-xl px-3 transition",
         active
           ? "bg-emerald-400/12 text-white ring-1 ring-emerald-400/25"
           : "text-slate-300 hover:bg-white/7 hover:text-white",
@@ -223,10 +303,10 @@ function TrackRow({
         type="button"
         onClick={() => music.playTrack(track, tracks)}
         className={cn(
-          "flex h-8 w-8 items-center justify-center rounded-full text-[11px] font-black transition",
+          "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-black transition",
           active
             ? "bg-emerald-400 text-slate-950"
-            : "bg-white/8 text-slate-300 group-hover:bg-emerald-400 group-hover:text-slate-950",
+            : "bg-white/8 text-slate-400 group-hover:bg-emerald-400 group-hover:text-slate-950",
         )}
         aria-label={`Reproducir ${track.title}`}
       >
@@ -242,96 +322,95 @@ function TrackRow({
       <button
         type="button"
         onClick={() => music.playTrack(track, tracks)}
-        className="min-w-0 text-left"
+        className="min-w-0 flex-[1.6] text-left"
       >
-        <p
+        <span
           className={cn(
-            "truncate text-sm font-black",
+            "block truncate text-sm font-black",
             active ? "text-emerald-300" : "text-current",
           )}
         >
           {track.title}
-        </p>
-        <p className="truncate text-xs text-slate-400">{track.artist}</p>
-      </button>
-      {!compact && (
-        <p className="truncate text-xs text-slate-400">{track.album}</p>
-      )}
-      {!compact && (
-        <span className="rounded-full bg-white/7 px-2 py-1 text-center text-[10px] font-bold uppercase tracking-wide text-slate-400">
-          {sourceLabel(track.source)}
         </span>
-      )}
-      {!compact && (
-        <div className="flex items-center justify-end gap-2">
-          <button
-            type="button"
-            onClick={() => music.toggleLike(track.id)}
-            className={cn(
-              "text-slate-500 hover:text-emerald-300",
-              music.liked.has(track.id) && "text-emerald-300",
-            )}
-            aria-label="Me gusta"
-          >
-            <Heart
-              className="h-4 w-4"
-              fill={music.liked.has(track.id) ? "currentColor" : "none"}
-            />
-          </button>
-          <button
-            type="button"
-            onClick={() => music.requestAddToPlaylist(track.id)}
-            className="text-slate-500 hover:text-emerald-300"
-            aria-label="Agregar a playlist"
-          >
-            <Plus className="h-4 w-4" />
-          </button>
-          <span className="w-9 text-right text-xs text-slate-500">
-            {track.duration}
-          </span>
-        </div>
-      )}
+        <span className="block truncate text-xs text-slate-500">
+          {track.artist}
+        </span>
+      </button>
+      <span className="hidden min-w-0 flex-1 truncate text-xs text-slate-400 md:block">
+        {track.album}
+      </span>
+      <span className="hidden w-20 shrink-0 rounded-full bg-white/7 px-2 py-1 text-center text-[10px] font-bold uppercase tracking-wide text-slate-400 lg:block">
+        {sourceLabel(track.source)}
+      </span>
+      <div className="ml-auto flex shrink-0 items-center gap-3">
+        <button
+          type="button"
+          onClick={() => music.toggleLike(track.id)}
+          className={cn(
+            "text-slate-500 hover:text-emerald-300",
+            music.liked.has(track.id) && "text-emerald-300",
+          )}
+          aria-label="Me gusta"
+        >
+          <Heart
+            className="h-3.5 w-3.5"
+            fill={music.liked.has(track.id) ? "currentColor" : "none"}
+          />
+        </button>
+        <button
+          type="button"
+          onClick={() => music.requestAddToPlaylist(track.id)}
+          className="text-slate-500 hover:text-emerald-300"
+          aria-label="Agregar a playlist"
+        >
+          <Plus className="h-3.5 w-3.5" />
+        </button>
+        <span className="w-9 text-right text-xs text-slate-500">
+          {track.duration}
+        </span>
+      </div>
     </div>
   );
 }
 
-function TrackList({
-  tracks,
-  variant = "table",
-  limit,
-}: {
-  tracks: EduMusicTrack[];
-  variant?: "compact" | "table";
-  limit?: number;
-}) {
-  const shown = typeof limit === "number" ? tracks.slice(0, limit) : tracks;
+function SidebarTrackList({ tracks, limit = 40 }: { tracks: EduMusicTrack[]; limit?: number }) {
+  const shown = tracks.slice(0, limit);
   if (!shown.length) {
     return (
-      <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-6 text-center text-sm text-slate-400">
+      <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-4 text-center text-xs text-slate-400">
         No hay canciones en esta vista.
       </div>
     );
   }
   return (
     <div className="space-y-1">
-      {variant === "table" && (
-        <div className="grid grid-cols-[36px,44px,minmax(0,1.6fr),minmax(0,1fr),72px,78px] gap-2 px-2 pb-2 text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">
-          <span>#</span>
-          <span></span>
-          <span>Título</span>
-          <span>Álbum</span>
-          <span>Fuente</span>
-          <span className="text-right">Duración</span>
-        </div>
-      )}
       {shown.map((track, index) => (
-        <TrackRow
-          key={track.id}
-          track={track}
-          index={index}
-          tracks={shown}
-          variant={variant}
-        />
+        <SidebarTrackRow key={track.id} track={track} index={index} tracks={shown} />
+      ))}
+    </div>
+  );
+}
+
+function TableTrackList({ tracks }: { tracks: EduMusicTrack[] }) {
+  if (!tracks.length) {
+    return (
+      <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-8 text-center text-sm text-slate-400">
+        No hay canciones seleccionadas.
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center gap-3 px-3 pb-2 text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">
+        <span className="w-7">#</span>
+        <span className="w-8"></span>
+        <span className="min-w-0 flex-[1.6]">Título</span>
+        <span className="hidden min-w-0 flex-1 md:block">Álbum</span>
+        <span className="hidden w-20 text-center lg:block">Fuente</span>
+        <span className="ml-auto w-24 text-right">Acciones</span>
+      </div>
+      {tracks.map((track, index) => (
+        <TableTrackRow key={track.id} track={track} index={index} tracks={tracks} />
       ))}
     </div>
   );
@@ -340,10 +419,10 @@ function TrackList({
 function TopBar() {
   const music = useEduAIMusic();
   return (
-    <header className="flex h-16 shrink-0 items-center gap-4 border-b border-white/10 bg-[#05070a] px-4 text-white">
-      <div className="flex w-[300px] shrink-0 items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/20">
-          <Music2 className="h-6 w-6" />
+    <header className="flex h-[58px] shrink-0 items-center gap-4 border-b border-white/10 bg-[#05070a] px-4 text-white">
+      <div className="flex w-[308px] shrink-0 items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-400 text-slate-950 shadow-md shadow-emerald-500/20">
+          <Music2 className="h-5 w-5" />
         </div>
         <div className="min-w-0">
           <h1 className="truncate text-xl font-black tracking-tight text-white">
@@ -355,7 +434,7 @@ function TopBar() {
         </div>
       </div>
 
-      <div className="flex h-11 min-w-0 flex-1 items-center gap-3 rounded-full border border-white/10 bg-white/8 px-4 shadow-inner shadow-black/30 max-md:hidden">
+      <div className="flex h-10 min-w-0 flex-1 items-center gap-3 rounded-full border border-white/10 bg-white/8 px-4 shadow-inner shadow-black/30 max-md:hidden">
         <Search className="h-4 w-4 text-emerald-300" />
         <input
           value={music.query}
@@ -387,10 +466,7 @@ function Sidebar({ tracks }: { tracks: EduMusicTrack[] }) {
   );
 
   return (
-    <aside
-      className="flex min-h-0 shrink-0 flex-col border-r border-white/10 bg-[#0b0d12] p-3 text-white"
-      style={{ width: 320 }}
-    >
+    <aside className="flex min-h-0 w-[320px] shrink-0 flex-col border-r border-white/10 bg-[#0b0d12] p-3 text-white">
       <div className="shrink-0 rounded-2xl border border-white/10 bg-[#14171f] p-3">
         <div className="flex items-center justify-between gap-2">
           <div>
@@ -447,8 +523,8 @@ function Sidebar({ tracks }: { tracks: EduMusicTrack[] }) {
       </div>
 
       <div className="mt-3 flex min-h-0 flex-1 flex-col gap-3">
-        <section className="flex min-h-0 flex-[0.92] flex-col rounded-2xl border border-white/10 bg-[#14171f] p-3">
-          <div className="mb-2 flex items-center gap-2 rounded-xl bg-black/25 px-3 py-2">
+        <section className="flex min-h-0 flex-[0.8] flex-col rounded-2xl border border-white/10 bg-[#14171f] p-3">
+          <div className="mb-2 flex h-9 items-center gap-2 rounded-xl bg-black/25 px-3">
             <Search className="h-3.5 w-3.5 text-emerald-300" />
             <input
               value={playlistFilter}
@@ -473,22 +549,18 @@ function Sidebar({ tracks }: { tracks: EduMusicTrack[] }) {
                     );
                   }}
                   className={cn(
-                    "flex h-[52px] w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition",
+                    "flex h-[48px] w-full items-center gap-2 rounded-xl px-2 text-left transition",
                     music.selectedPlaylistId === playlist.id
                       ? "bg-white/12 ring-1 ring-emerald-400/25"
                       : "hover:bg-white/7",
                   )}
                 >
-                  <Cover
-                    label={playlist.name}
-                    cover={playlist.cover}
-                    size="sm"
-                  />
+                  <Cover label={playlist.name} cover={playlist.cover} size="xs" />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-black text-white">
+                    <span className="block truncate text-xs font-black text-white">
                       {playlist.name}
                     </span>
-                    <span className="block truncate text-xs text-slate-400">
+                    <span className="block truncate text-[10px] text-slate-500">
                       {playlist.trackIds.length} canciones
                     </span>
                   </span>
@@ -501,12 +573,12 @@ function Sidebar({ tracks }: { tracks: EduMusicTrack[] }) {
         <section className="flex min-h-0 flex-1 flex-col rounded-2xl border border-white/10 bg-[#14171f] p-3">
           <div className="mb-2 flex items-center justify-between">
             <p className="text-[11px] font-black uppercase tracking-[0.16em] text-emerald-300">
-              Lista lateral
+              Canciones
             </p>
             <span className="text-xs text-slate-500">{tracks.length}</span>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-            <TrackList tracks={tracks} variant="compact" limit={50} />
+            <SidebarTrackList tracks={tracks} limit={60} />
           </div>
         </section>
       </div>
@@ -523,7 +595,7 @@ function PlaylistHeader({ tracks }: { tracks: EduMusicTrack[] }) {
   );
 
   return (
-    <section className="shrink-0 rounded-2xl border border-white/10 bg-[linear-gradient(135deg,rgba(16,185,129,.24),rgba(17,24,39,.96)_48%,rgba(34,197,94,.12))] p-4 text-white shadow-lg shadow-black/25">
+    <section className="shrink-0 rounded-2xl border border-emerald-400/20 bg-[linear-gradient(135deg,rgba(16,185,129,.22),rgba(17,24,39,.98)_50%,rgba(34,197,94,.12))] p-4 text-white shadow-md shadow-black/25">
       <div className="flex items-center gap-4">
         <Cover label={playlist.name} cover={playlist.cover} size="hero" />
         <div className="min-w-0 flex-1">
@@ -537,49 +609,27 @@ function PlaylistHeader({ tracks }: { tracks: EduMusicTrack[] }) {
             {playlist.description}
           </p>
           <p className="mt-2 text-xs font-semibold text-slate-400">
-            EduAI Music · {tracks.length} canciones ·{" "}
-            {formatSeconds(totalSeconds)} aprox.
+            EduAI Music · {tracks.length} canciones · {formatSeconds(totalSeconds)} aprox.
           </p>
         </div>
         <button
           type="button"
           onClick={() => music.playPlaylist(playlist.id)}
-          className="inline-flex h-11 shrink-0 items-center gap-2 rounded-full bg-emerald-400 px-5 text-sm font-black text-slate-950 shadow-lg shadow-emerald-500/20 hover:bg-emerald-300"
+          className="inline-flex h-10 shrink-0 items-center gap-2 rounded-full bg-emerald-400 px-5 text-sm font-black text-slate-950 shadow-md shadow-emerald-500/20 hover:bg-emerald-300"
         >
-          <Play className="h-5 w-5" fill="currentColor" /> Reproducir
+          <Play className="h-4 w-4" fill="currentColor" /> Reproducir
         </button>
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        <IconButton
-          onClick={() => music.setShuffle((value) => !value)}
-          active={music.shuffle}
-          title="Aleatorio"
-        >
+        <IconButton onClick={() => music.setShuffle((value) => !value)} active={music.shuffle} title="Aleatorio">
           <Shuffle className="h-4 w-4" />
         </IconButton>
-        <IconButton
-          onClick={() => music.toggleLike(music.currentTrack.id)}
-          active={music.liked.has(music.currentTrack.id)}
-          title="Me gusta"
-        >
-          <Heart
-            className="h-4 w-4"
-            fill={
-              music.liked.has(music.currentTrack.id) ? "currentColor" : "none"
-            }
-          />
+        <IconButton onClick={() => music.toggleLike(music.currentTrack.id)} active={music.liked.has(music.currentTrack.id)} title="Me gusta">
+          <Heart className="h-4 w-4" fill={music.liked.has(music.currentTrack.id) ? "currentColor" : "none"} />
         </IconButton>
         <IconButton
-          onClick={() =>
-            music.setRepeat(
-              music.repeat === "off"
-                ? "all"
-                : music.repeat === "all"
-                  ? "one"
-                  : "off",
-            )
-          }
+          onClick={() => music.setRepeat(music.repeat === "off" ? "all" : music.repeat === "all" ? "one" : "off")}
           active={music.repeat !== "off"}
           title="Repetir"
         >
@@ -618,8 +668,7 @@ function MainPanel({ tracks }: { tracks: EduMusicTrack[] }) {
               Canciones seleccionadas
             </p>
             <p className="text-xs text-slate-400">
-              Haz clic en una canción para reproducirla. El botón principal
-              queda abajo y visible.
+              Haz clic en una canción para reproducirla. Los íconos son compactos y no tapan el texto.
             </p>
           </div>
           <span className="rounded-full bg-white/7 px-3 py-1 text-xs font-bold text-slate-300">
@@ -627,42 +676,64 @@ function MainPanel({ tracks }: { tracks: EduMusicTrack[] }) {
           </span>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-          <TrackList tracks={tracks} variant="table" />
+          <TableTrackList tracks={tracks} />
         </div>
       </section>
     </main>
   );
 }
 
+function SpotifyEmbeds() {
+  return (
+    <section className="shrink-0 rounded-2xl border border-white/10 bg-[#14171f] p-3">
+      <div className="mb-2 flex items-center justify-between">
+        <div>
+          <p className="text-sm font-black text-white">Playlists Spotify</p>
+          <p className="text-[11px] text-slate-500">Embeds oficiales agregados.</p>
+        </div>
+      </div>
+      <div className="max-h-[320px] space-y-2 overflow-y-auto pr-1">
+        {SPOTIFY_EMBEDS.map((item) => (
+          <iframe
+            key={item.id}
+            data-testid="embed-iframe"
+            title={item.title}
+            style={{ borderRadius: 12 }}
+            src={item.src}
+            width="100%"
+            height="152"
+            frameBorder="0"
+            allowFullScreen
+            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+            loading="lazy"
+            className="block border-0"
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function RightPanel() {
   const music = useEduAIMusic();
-  const [youtubeQuery, setYoutubeQuery] = useState(
-    "música para estudiar sin letra",
-  );
+  const [youtubeQuery, setYoutubeQuery] = useState("música para estudiar sin letra");
   const related = music.allTracks
-    .filter(
-      (track) =>
-        track.mood === music.currentTrack.mood &&
-        track.id !== music.currentTrack.id,
-    )
+    .filter((track) => track.mood === music.currentTrack.mood && track.id !== music.currentTrack.id)
     .slice(0, 6);
 
   return (
-    <aside
-      className="flex min-h-0 shrink-0 flex-col gap-3 border-l border-white/10 bg-[#0b0d12] p-3 text-white"
-      style={{ width: 360 }}
-    >
+    <aside className="flex min-h-0 w-[370px] shrink-0 flex-col gap-3 border-l border-white/10 bg-[#0b0d12] p-3 text-white">
       <section className="shrink-0 rounded-2xl border border-emerald-400/20 bg-[#14171f] p-3">
         <p className="text-sm font-black text-white">Buscar canciones</p>
         <p className="mt-1 text-xs text-slate-400">
-          Jamendo y Audius para audio reproducible; iTunes como preview.
+          Jamendo/Audius para audio reproducible; iTunes como preview.
         </p>
         <div className="mt-3 flex gap-2">
           <input
             value={music.onlineQuery}
             onChange={(e) => music.setOnlineQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && void music.searchOnline()}
-            placeholder="lofi, piano, calvin harris..."
+            placeholder="daddy, lofi, piano, estudio..."
             className="min-w-0 flex-1 rounded-full border border-white/10 bg-black/25 px-3 py-2 text-xs text-white outline-none placeholder:text-slate-500 focus:border-emerald-400/60"
           />
           <button
@@ -674,25 +745,15 @@ function RightPanel() {
             {music.onlineLoading ? "..." : "Buscar"}
           </button>
         </div>
-        {music.onlineError && (
-          <p className="mt-2 text-xs font-bold text-rose-300">
-            {music.onlineError}
-          </p>
-        )}
+        {music.onlineError && <p className="mt-2 text-xs font-bold text-rose-300">{music.onlineError}</p>}
         <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] font-black uppercase tracking-wide">
-          <span className="rounded-full bg-emerald-400/15 px-2 py-1 text-emerald-200">
-            Jamendo
-          </span>
-          <span className="rounded-full bg-violet-400/15 px-2 py-1 text-violet-200">
-            Audius
-          </span>
-          <span className="rounded-full bg-sky-400/15 px-2 py-1 text-sky-200">
-            iTunes
-          </span>
+          <span className="rounded-full bg-emerald-400/15 px-2 py-1 text-emerald-200">Jamendo</span>
+          <span className="rounded-full bg-violet-400/15 px-2 py-1 text-violet-200">Audius</span>
+          <span className="rounded-full bg-sky-400/15 px-2 py-1 text-sky-200">iTunes</span>
         </div>
       </section>
 
-      <section className="flex min-h-0 flex-1 flex-col rounded-2xl border border-white/10 bg-[#14171f] p-3">
+      <section className="flex min-h-0 flex-[0.65] flex-col rounded-2xl border border-white/10 bg-[#14171f] p-3">
         <div className="mb-2 flex items-center justify-between">
           <p className="text-sm font-black text-white">Resultados online</p>
           <button
@@ -707,39 +768,21 @@ function RightPanel() {
           </button>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-          <TrackList
-            tracks={music.onlineTracks.length ? music.onlineTracks : related}
-            variant="compact"
-            limit={18}
-          />
+          <SidebarTrackList tracks={music.onlineTracks.length ? music.onlineTracks : related} limit={12} />
         </div>
       </section>
+
+      <SpotifyEmbeds />
 
       <section className="shrink-0 rounded-2xl border border-white/10 bg-[#14171f] p-3">
         <p className="text-sm font-black text-white">Ahora suena</p>
         <div className="mt-3 flex items-center gap-3">
           <Cover track={music.currentTrack} size="lg" />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-base font-black text-emerald-300">
-              {music.currentTrack.title}
-            </p>
-            <p className="truncate text-sm text-slate-300">
-              {music.currentTrack.artist}
-            </p>
-            <p className="truncate text-xs text-slate-500">
-              {music.currentTrack.album}
-            </p>
+            <p className="truncate text-sm font-black text-emerald-300">{music.currentTrack.title}</p>
+            <p className="truncate text-xs text-slate-300">{music.currentTrack.artist}</p>
+            <p className="truncate text-[11px] text-slate-500">{music.currentTrack.album}</p>
           </div>
-        </div>
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {music.currentTrack.tags.slice(0, 4).map((tag) => (
-            <span
-              key={tag}
-              className="rounded-full bg-white/8 px-2 py-1 text-[10px] font-bold text-slate-300"
-            >
-              #{tag}
-            </span>
-          ))}
         </div>
         {music.currentTrack.externalUrl && (
           <a
@@ -771,22 +814,18 @@ function RightPanel() {
             Abrir
           </a>
         </div>
-        <div className="mt-2 max-h-[112px] space-y-1 overflow-y-auto pr-1">
+        <div className="mt-2 max-h-[88px] space-y-1 overflow-y-auto pr-1">
           {EXTERNAL_MUSIC_COLLECTIONS.map((item) => (
             <a
               key={item.id}
               href={item.url}
               target="_blank"
               rel="noreferrer"
-              className="flex items-center justify-between gap-2 rounded-xl px-2 py-2 text-xs hover:bg-white/7"
+              className="flex items-center justify-between gap-2 rounded-xl px-2 py-1.5 text-xs hover:bg-white/7"
             >
               <span className="min-w-0">
-                <span className="block truncate font-bold text-slate-200">
-                  {item.name}
-                </span>
-                <span className="block truncate text-[10px] text-slate-500">
-                  {item.provider}
-                </span>
+                <span className="block truncate font-bold text-slate-200">{item.name}</span>
+                <span className="block truncate text-[10px] text-slate-500">{item.provider}</span>
               </span>
               <ExternalLink className="h-3.5 w-3.5 text-slate-500" />
             </a>
@@ -799,47 +838,29 @@ function RightPanel() {
 
 function BottomPlayer() {
   const music = useEduAIMusic();
-  const duration =
-    music.durationSeconds || parseDuration(music.currentTrack.duration);
-  const progress = duration
-    ? Math.min(100, (music.currentTime / duration) * 100)
-    : 0;
+  const duration = music.durationSeconds || parseDuration(music.currentTrack.duration);
+  const progress = duration ? Math.min(100, (music.currentTime / duration) * 100) : 0;
 
   return (
-    <footer className="flex h-20 shrink-0 items-center gap-4 border-t border-white/10 bg-[#05070a] px-4 text-white">
+    <footer className="flex h-[76px] shrink-0 items-center gap-4 border-t border-white/10 bg-[#05070a] px-4 text-white">
       <div className="flex min-w-0 items-center gap-3" style={{ width: 320 }}>
         <Cover track={music.currentTrack} size="md" />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-black text-white">
-            {music.currentTrack.title}
-          </p>
-          <p className="truncate text-xs text-slate-400">
-            {music.currentTrack.artist}
-          </p>
+          <p className="truncate text-sm font-black text-white">{music.currentTrack.title}</p>
+          <p className="truncate text-xs text-slate-400">{music.currentTrack.artist}</p>
         </div>
         <button
           type="button"
           onClick={() => music.toggleLike(music.currentTrack.id)}
-          className={cn(
-            "text-slate-500 hover:text-emerald-300",
-            music.liked.has(music.currentTrack.id) && "text-emerald-300",
-          )}
+          className={cn("text-slate-500 hover:text-emerald-300", music.liked.has(music.currentTrack.id) && "text-emerald-300")}
         >
-          <Heart
-            className="h-4 w-4"
-            fill={
-              music.liked.has(music.currentTrack.id) ? "currentColor" : "none"
-            }
-          />
+          <Heart className="h-4 w-4" fill={music.liked.has(music.currentTrack.id) ? "currentColor" : "none"} />
         </button>
       </div>
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-center gap-3">
-          <IconButton
-            onClick={() => music.setShuffle((value) => !value)}
-            active={music.shuffle}
-          >
+          <IconButton onClick={() => music.setShuffle((value) => !value)} active={music.shuffle}>
             <Shuffle className="h-4 w-4" />
           </IconButton>
           <IconButton onClick={music.prevTrack}>
@@ -850,24 +871,14 @@ function BottomPlayer() {
             <SkipForward className="h-4 w-4" fill="currentColor" />
           </IconButton>
           <IconButton
-            onClick={() =>
-              music.setRepeat(
-                music.repeat === "off"
-                  ? "all"
-                  : music.repeat === "all"
-                    ? "one"
-                    : "off",
-              )
-            }
+            onClick={() => music.setRepeat(music.repeat === "off" ? "all" : music.repeat === "all" ? "one" : "off")}
             active={music.repeat !== "off"}
           >
             <Repeat className="h-4 w-4" />
           </IconButton>
         </div>
-        <div className="mt-1.5 flex items-center gap-2 text-[11px] text-slate-500">
-          <span className="w-9 text-right">
-            {formatSeconds(music.currentTime)}
-          </span>
+        <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-500">
+          <span className="w-9 text-right">{formatSeconds(music.currentTime)}</span>
           <input
             type="range"
             min="0"
@@ -876,18 +887,13 @@ function BottomPlayer() {
             value={Math.min(music.currentTime, Math.max(1, duration))}
             onChange={(e) => music.seekTo(Number(e.target.value))}
             className="h-1 min-w-0 flex-1 accent-emerald-400"
-            style={{
-              background: `linear-gradient(90deg,#34d399 ${progress}%,rgba(255,255,255,.16) ${progress}%)`,
-            }}
+            style={{ background: `linear-gradient(90deg,#34d399 ${progress}%,rgba(255,255,255,.16) ${progress}%)` }}
           />
           <span className="w-9">{formatSeconds(duration)}</span>
         </div>
       </div>
 
-      <div
-        className="hidden items-center justify-end gap-3 xl:flex"
-        style={{ width: 320 }}
-      >
+      <div className="hidden items-center justify-end gap-3 pr-14 xl:flex" style={{ width: 320 }}>
         <ListMusic className="h-4 w-4 text-slate-500" />
         <Volume2 className="h-4 w-4 text-slate-500" />
         <input
@@ -897,7 +903,7 @@ function BottomPlayer() {
           step="0.01"
           value={music.volume}
           onChange={(e) => music.setVolume(Number(e.target.value))}
-          className="w-28 accent-emerald-400"
+          className="w-24 accent-emerald-400"
         />
       </div>
     </footer>
@@ -907,48 +913,25 @@ function BottomPlayer() {
 function AddToPlaylistBar() {
   const music = useEduAIMusic();
   if (!music.pendingTrackId) return null;
-  const track = music.allTracks.find(
-    (item) => item.id === music.pendingTrackId,
-  );
+  const track = music.allTracks.find((item) => item.id === music.pendingTrackId);
   return (
     <div className="fixed bottom-24 left-1/2 z-50 w-[min(92vw,720px)] -translate-x-1/2 rounded-2xl border border-emerald-400/20 bg-[#11131a] p-3 text-white shadow-2xl">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-bold">
-          Agregar {track?.title ?? "canción"} a playlist:
-        </p>
-        <button
-          type="button"
-          onClick={() => music.setPendingTrackId(null)}
-          className="rounded-full px-2 text-slate-400 hover:bg-white/10"
-        >
+        <p className="text-xs font-bold">Agregar {track?.title ?? "canción"} a playlist:</p>
+        <button type="button" onClick={() => music.setPendingTrackId(null)} className="rounded-full px-2 text-slate-400 hover:bg-white/10">
           ×
         </button>
       </div>
       <div className="mt-2 flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={() => music.addToPlaylist("pl-liked", music.pendingTrackId!)}
-          className="rounded-full bg-emerald-400 px-3 py-1.5 text-xs font-black text-slate-950"
-        >
+        <button type="button" onClick={() => music.addToPlaylist("pl-liked", music.pendingTrackId!)} className="rounded-full bg-emerald-400 px-3 py-1.5 text-xs font-black text-slate-950">
           ♥ Me gusta
         </button>
         {music.userPlaylists.map((playlist) => (
-          <button
-            key={playlist.id}
-            type="button"
-            onClick={() =>
-              music.addToPlaylist(playlist.id, music.pendingTrackId!)
-            }
-            className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold hover:bg-white/15"
-          >
+          <button key={playlist.id} type="button" onClick={() => music.addToPlaylist(playlist.id, music.pendingTrackId!)} className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold hover:bg-white/15">
             {playlist.name}
           </button>
         ))}
-        <button
-          type="button"
-          onClick={() => music.setCreateOpen(true)}
-          className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold hover:bg-emerald-400/15 hover:text-emerald-200"
-        >
+        <button type="button" onClick={() => music.setCreateOpen(true)} className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold hover:bg-emerald-400/15 hover:text-emerald-200">
           + Nueva
         </button>
       </div>
@@ -961,19 +944,11 @@ function MiniBar({ onOpenPanel }: { onOpenPanel?: () => void }) {
   return (
     <div className="fixed bottom-4 left-1/2 z-50 w-[min(92vw,540px)] -translate-x-1/2 rounded-2xl border border-white/10 bg-[#07080d]/95 p-2 text-white shadow-2xl backdrop-blur-xl">
       <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={onOpenPanel}
-          className="flex min-w-0 flex-1 items-center gap-2 text-left"
-        >
+        <button type="button" onClick={onOpenPanel} className="flex min-w-0 flex-1 items-center gap-2 text-left">
           <Cover track={music.currentTrack} size="sm" />
           <span className="min-w-0">
-            <span className="block truncate text-xs font-black">
-              {music.currentTrack.title}
-            </span>
-            <span className="block truncate text-[10px] text-slate-400">
-              {music.currentTrack.artist}
-            </span>
+            <span className="block truncate text-xs font-black">{music.currentTrack.title}</span>
+            <span className="block truncate text-[10px] text-slate-400">{music.currentTrack.artist}</span>
           </span>
         </button>
         <IconButton onClick={music.prevTrack}>
@@ -990,48 +965,30 @@ function MiniBar({ onOpenPanel }: { onOpenPanel?: () => void }) {
 
 function CompactPanel({ onOpenPanel }: { onOpenPanel?: () => void }) {
   const music = useEduAIMusic();
-  const tracks =
-    music.view === "liked"
-      ? music.allTracks.filter((track) => music.liked.has(track.id))
-      : music.view === "queue"
-        ? music.queue
-        : music.visibleTracks;
+  const tracks = music.view === "liked" ? music.allTracks.filter((track) => music.liked.has(track.id)) : music.view === "queue" ? music.queue : music.visibleTracks;
   return (
     <div className="h-full overflow-hidden rounded-2xl border border-white/10 bg-[#0c0e14] text-white shadow-xl">
       <div className="flex h-full flex-col">
         <div className="border-b border-white/10 p-3">
           <div className="flex items-center justify-between gap-2">
-            <button
-              type="button"
-              onClick={onOpenPanel}
-              className="min-w-0 text-left"
-            >
+            <button type="button" onClick={onOpenPanel} className="min-w-0 text-left">
               <p className="text-sm font-black text-white">EduAI Music</p>
-              <p className="truncate text-[10px] text-slate-400">
-                {music.currentTrack.title}
-              </p>
+              <p className="truncate text-[10px] text-slate-400">{music.currentTrack.title}</p>
             </button>
-            <Link
-              href="/music"
-              className="rounded-full bg-emerald-400 px-3 py-1.5 text-[10px] font-black text-slate-950 hover:bg-emerald-300"
-            >
+            <Link href="/music" className="rounded-full bg-emerald-400 px-3 py-1.5 text-[10px] font-black text-slate-950 hover:bg-emerald-300">
               Abrir
             </Link>
           </div>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto p-3">
-          <TrackList tracks={tracks} variant="compact" limit={12} />
+          <SidebarTrackList tracks={tracks} limit={12} />
         </div>
         <div className="border-t border-white/10 p-3">
           <div className="flex items-center gap-2">
             <Cover track={music.currentTrack} size="sm" />
             <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-black text-white">
-                {music.currentTrack.title}
-              </p>
-              <p className="truncate text-[10px] text-slate-400">
-                {music.currentTrack.artist}
-              </p>
+              <p className="truncate text-xs font-black text-white">{music.currentTrack.title}</p>
+              <p className="truncate text-[10px] text-slate-400">{music.currentTrack.artist}</p>
             </div>
             <PlayButton size="sm" />
           </div>
@@ -1049,17 +1006,10 @@ export default function EduAIMusicPlayer({
 }: Props) {
   const music = useEduAIMusic();
   const tracksForMain = useMemo(() => {
-    if (music.view === "liked")
-      return music.allTracks.filter((track) => music.liked.has(track.id));
+    if (music.view === "liked") return music.allTracks.filter((track) => music.liked.has(track.id));
     if (music.view === "queue") return music.queue;
     return music.visibleTracks;
-  }, [
-    music.allTracks,
-    music.liked,
-    music.queue,
-    music.view,
-    music.visibleTracks,
-  ]);
+  }, [music.allTracks, music.liked, music.queue, music.view, music.visibleTracks]);
 
   if (mode === "mini") {
     if (!showMiniWhenStopped && !music.playing) return null;
