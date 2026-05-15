@@ -1,640 +1,1215 @@
 "use client";
 
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+  ArrowLeft,
+  ExternalLink,
+  Heart,
+  Home,
+  Library,
+  ListMusic,
+  Menu,
+  Music2,
+  Pause,
+  Play,
+  Plus,
+  Repeat,
+  Search,
+  Shuffle,
+  SkipBack,
+  SkipForward,
+  Volume2,
+} from "lucide-react";
 import {
-  EDU_MUSIC_TRACKS,
-  SYSTEM_PLAYLISTS,
-  getTracksForPlaylist,
+  EXTERNAL_MUSIC_COLLECTIONS,
+  MOOD_LABELS,
   type EduMusicMood,
   type EduMusicPlaylist,
   type EduMusicTrack,
 } from "@/lib/music/eduai-music-catalog";
+import { useEduAIMusic } from "@/components/music/MusicProvider";
 
-type MusicView =
-  | "home"
-  | "search"
-  | "library"
-  | "playlists"
-  | "liked"
-  | "queue";
-type RepeatMode = "off" | "one" | "all";
+type PlayerMode = "panel" | "mini" | "page";
 
-type OnlineProviderMode = "all" | "full" | "preview" | "youtube";
-
-type StoredState = {
-  trackId?: string;
-  playlistId?: string;
-  volume?: number;
-  likedTrackIds?: string[];
-  userPlaylists?: EduMusicPlaylist[];
-  onlineTracks?: EduMusicTrack[];
-  onlineProviderMode?: OnlineProviderMode;
-  queueIds?: string[];
-  view?: MusicView;
-  shuffle?: boolean;
-  repeat?: RepeatMode;
+type Props = {
+  mode?: PlayerMode;
+  showMiniWhenStopped?: boolean;
+  onOpenPanel?: () => void;
 };
 
-type MusicContextValue = {
-  view: MusicView;
-  setView: (value: MusicView) => void;
-  query: string;
-  setQuery: (value: string) => void;
-  onlineQuery: string;
-  setOnlineQuery: (value: string) => void;
-  onlineLoading: boolean;
-  onlineError: string;
-  onlineProviderMode: OnlineProviderMode;
-  setOnlineProviderMode: (value: OnlineProviderMode) => void;
-  selectedMood: EduMusicMood | "all";
-  setSelectedMood: (value: EduMusicMood | "all") => void;
-  volume: number;
-  setVolume: (value: number) => void;
-  playing: boolean;
-  setPlaying: (value: boolean | ((prev: boolean) => boolean)) => void;
-  currentTrack: EduMusicTrack;
-  selectedPlaylist: EduMusicPlaylist;
-  selectedPlaylistId: string;
-  setSelectedPlaylistId: (id: string) => void;
-  playlists: EduMusicPlaylist[];
-  userPlaylists: EduMusicPlaylist[];
-  onlineTracks: EduMusicTrack[];
-  visibleTracks: EduMusicTrack[];
-  baseTracks: EduMusicTrack[];
-  allTracks: EduMusicTrack[];
-  liked: Set<string>;
-  createOpen: boolean;
-  setCreateOpen: (value: boolean | ((prev: boolean) => boolean)) => void;
-  newPlaylistName: string;
-  setNewPlaylistName: (value: string) => void;
-  pendingTrackId: string | null;
-  setPendingTrackId: (id: string | null) => void;
-  queue: EduMusicTrack[];
-  queueIds: string[];
-  shuffle: boolean;
-  setShuffle: (value: boolean | ((prev: boolean) => boolean)) => void;
-  repeat: RepeatMode;
-  setRepeat: (value: RepeatMode) => void;
-  playTrack: (track: EduMusicTrack, queueFrom?: EduMusicTrack[]) => void;
-  playPlaylist: (playlistId?: string) => void;
-  nextTrack: () => void;
-  prevTrack: () => void;
-  toggleLike: (id: string) => void;
-  createPlaylist: () => void;
-  addToPlaylist: (playlistId: string, trackId: string) => void;
-  removeFromPlaylist: (playlistId: string, trackId: string) => void;
-  deletePlaylist: (playlistId: string) => void;
-  requestAddToPlaylist: (trackId: string) => void;
-  addToQueue: (trackId: string) => void;
-  clearQueue: () => void;
-  currentTime: number;
-  durationSeconds: number;
-  seekTo: (seconds: number) => void;
-  searchOnline: (term?: string, providerOverride?: OnlineProviderMode) => Promise<void>;
-};
+const NAV_ITEMS = [
+  { id: "home", label: "Inicio", icon: Home },
+  { id: "search", label: "Buscar", icon: Search },
+  { id: "library", label: "Biblioteca", icon: Library },
+  { id: "playlists", label: "Playlists", icon: ListMusic },
+  { id: "liked", label: "Me gusta", icon: Heart },
+  { id: "queue", label: "Cola", icon: Menu },
+] as const;
 
-const STORAGE_KEY = "eduai_music_player_v52";
-const MusicContext = createContext<MusicContextValue | null>(null);
+const MOODS: Array<EduMusicMood | "all"> = [
+  "all",
+  "focus",
+  "calm",
+  "classical",
+  "reading",
+  "creative",
+  "deep",
+  "nature",
+  "energy",
+];
 
-function safeReadState(): StoredState {
-  if (typeof window === "undefined") return {};
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-  } catch {
-    return {};
+const SPOTIFY_EMBEDS = [
+  {
+    id: "spotify-mix-1",
+    title: "Spotify playlist 1",
+    src: "https://open.spotify.com/embed/playlist/37i9dQZF1EIZna6YqhjeY0?utm_source=generator&theme=0",
+  },
+  {
+    id: "spotify-top-global",
+    title: "Spotify playlist 2",
+    src: "https://open.spotify.com/embed/playlist/37i9dQZEVXddk5AflVss6A?utm_source=generator",
+  },
+  {
+    id: "spotify-mix-2",
+    title: "Spotify playlist 3",
+    src: "https://open.spotify.com/embed/playlist/37i9dQZF1E8KVBYF00LoMc?utm_source=generator",
+  },
+  {
+    id: "spotify-custom-1",
+    title: "Spotify playlist 4",
+    src: "https://open.spotify.com/embed/playlist/3z0zQdiFbPdiZ1I7xRpqPx?utm_source=generator",
+  },
+  {
+    id: "spotify-custom-2",
+    title: "Spotify playlist 5",
+    src: "https://open.spotify.com/embed/playlist/6VjXyFH9Z5HlGPAjRBKR32?utm_source=generator&theme=0",
+  },
+  {
+    id: "spotify-focus",
+    title: "Spotify playlist 6",
+    src: "https://open.spotify.com/embed/playlist/37i9dQZF1DX6aTaZa0K6VA?utm_source=generator&theme=0",
+  },
+];
+
+function cn(...values: Array<string | false | null | undefined>) {
+  return values.filter(Boolean).join(" ");
+}
+
+function youtubeSearchUrl(query: string) {
+  return `https://www.youtube.com/results?search_query=${encodeURIComponent(
+    query || "study music playlist",
+  )}`;
+}
+
+function parseDuration(duration?: string) {
+  if (!duration) return 0;
+  const [m, s] = duration.split(":").map((part) => Number(part));
+  return Number.isFinite(m) && Number.isFinite(s) ? m * 60 + s : 0;
+}
+
+function formatSeconds(seconds: number) {
+  const safe = Math.max(0, Math.floor(seconds || 0));
+  const min = Math.floor(safe / 60);
+  const sec = safe % 60;
+  return `${min}:${String(sec).padStart(2, "0")}`;
+}
+
+function sourceLabel(source?: EduMusicTrack["source"]) {
+  if (source === "jamendo") return "Jamendo";
+  if (source === "audius") return "Audius";
+  if (source === "itunes") return "DJ 30s";
+  if (source === "youtube") return "YouTube video";
+  if (source === "external") return "Externo";
+  return "EduAI";
+}
+
+function playbackKind(track?: EduMusicTrack) {
+  if (track?.source === "itunes") return "Preview 30 segundos · modo DJ";
+  if (track?.source === "youtube") return "Video embebido · fallback YouTube";
+  if (track?.source === "jamendo" || track?.source === "audius")
+    return "Canción completa reproducible";
+  return "Pista completa EduAI";
+}
+
+function Cover({
+  track,
+  label,
+  cover,
+  size = "md",
+}: {
+  track?: EduMusicTrack;
+  label?: string;
+  cover?: string;
+  size?: "xs" | "sm" | "md" | "lg" | "hero";
+}) {
+  const cls =
+    size === "hero"
+      ? "h-20 w-20 rounded-2xl text-2xl"
+      : size === "lg"
+        ? "h-14 w-14 rounded-xl text-xl"
+        : size === "md"
+          ? "h-10 w-10 rounded-xl text-base"
+          : size === "sm"
+            ? "h-8 w-8 rounded-lg text-xs"
+            : "h-7 w-7 rounded-lg text-[10px]";
+  const title = track?.title || label || "Música";
+  const artwork =
+    track?.artworkUrl ||
+    (track?.cover?.startsWith("http") ? track.cover : undefined);
+
+  if (artwork) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={artwork}
+        alt={title}
+        className={`${cls} shrink-0 object-cover shadow-sm shadow-black/40`}
+      />
+    );
   }
-}
-
-function unique(ids: string[]) {
-  return Array.from(new Set(ids.filter(Boolean)));
-}
-
-export function MusicProvider({ children }: { children: React.ReactNode }) {
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const [hydrated, setHydrated] = useState(false);
-  const [view, setView] = useState<MusicView>("home");
-  const [query, setQuery] = useState("");
-  const [onlineQuery, setOnlineQuery] = useState("");
-  const [onlineLoading, setOnlineLoading] = useState(false);
-  const [onlineError, setOnlineError] = useState("");
-  const [onlineProviderMode, setOnlineProviderMode] = useState<OnlineProviderMode>("full");
-  const [selectedMood, setSelectedMood] = useState<EduMusicMood | "all">("all");
-  const [volume, setVolume] = useState(0.62);
-  const [playing, setPlaying] = useState(false);
-  const [currentId, setCurrentId] = useState(EDU_MUSIC_TRACKS[0]?.id);
-  const [selectedPlaylistId, setSelectedPlaylistId] = useState(
-    SYSTEM_PLAYLISTS[0]?.id,
-  );
-  const [likedTrackIds, setLikedTrackIds] = useState<string[]>([]);
-  const [userPlaylists, setUserPlaylists] = useState<EduMusicPlaylist[]>([]);
-  const [onlineTracks, setOnlineTracks] = useState<EduMusicTrack[]>([]);
-  const [newPlaylistName, setNewPlaylistName] = useState("");
-  const [pendingTrackId, setPendingTrackId] = useState<string | null>(null);
-  const [createOpen, setCreateOpen] = useState(false);
-  const [queueIds, setQueueIds] = useState<string[]>([]);
-  const [shuffle, setShuffle] = useState(false);
-  const [repeat, setRepeat] = useState<RepeatMode>("all");
-  const [currentTime, setCurrentTime] = useState(0);
-  const [durationSeconds, setDurationSeconds] = useState(0);
-
-  const allTracks = useMemo(() => {
-    const byId = new Map<string, EduMusicTrack>();
-    [...EDU_MUSIC_TRACKS, ...onlineTracks].forEach((track) =>
-      byId.set(track.id, track),
-    );
-    return Array.from(byId.values());
-  }, [onlineTracks]);
-
-  const getTrack = useCallback(
-    (id?: string) => allTracks.find((track) => track.id === id),
-    [allTracks],
-  );
-
-  useEffect(() => {
-    const stored = safeReadState();
-    if (stored.volume !== undefined) setVolume(stored.volume);
-    if (stored.onlineTracks) setOnlineTracks(stored.onlineTracks.slice(0, 60));
-    if (stored.trackId) setCurrentId(stored.trackId);
-    if (stored.playlistId) setSelectedPlaylistId(stored.playlistId);
-    if (stored.likedTrackIds) setLikedTrackIds(stored.likedTrackIds);
-    if (stored.userPlaylists) setUserPlaylists(stored.userPlaylists);
-    if (stored.queueIds) setQueueIds(stored.queueIds);
-    if (stored.onlineProviderMode) setOnlineProviderMode(stored.onlineProviderMode);
-    if (stored.view) setView(stored.view);
-    if (stored.shuffle !== undefined) setShuffle(stored.shuffle);
-    if (stored.repeat) setRepeat(stored.repeat);
-    setHydrated(true);
-  }, []);
-
-  const playlists = useMemo(() => {
-    const likedPlaylist: EduMusicPlaylist = {
-      id: "pl-liked",
-      name: "Tus me gusta",
-      description: "Canciones guardadas por ti.",
-      mood: "mixed",
-      cover: "linear-gradient(135deg,#fee2e2,#bfdbfe)",
-      trackIds: likedTrackIds,
-      system: true,
-    };
-    const onlinePlaylist: EduMusicPlaylist = {
-      id: "pl-online",
-      name: "Resultados online",
-      description: "Previews encontrados en la web mediante iTunes Search API.",
-      mood: "mixed",
-      cover: "linear-gradient(135deg,#e0f2fe,#ddd6fe)",
-      trackIds: onlineTracks.map((track) => track.id),
-      system: true,
-    };
-    return [
-      ...SYSTEM_PLAYLISTS,
-      onlinePlaylist,
-      likedPlaylist,
-      ...userPlaylists,
-    ];
-  }, [likedTrackIds, onlineTracks, userPlaylists]);
-
-  const selectedPlaylist = useMemo(
-    () =>
-      playlists.find((playlist) => playlist.id === selectedPlaylistId) ??
-      playlists[0],
-    [playlists, selectedPlaylistId],
-  );
-
-  const baseTracks = useMemo(
-    () => getTracksForPlaylist(selectedPlaylist, allTracks),
-    [allTracks, selectedPlaylist],
-  );
-  const currentTrack = useMemo(
-    () => getTrack(currentId) ?? allTracks[0] ?? EDU_MUSIC_TRACKS[0],
-    [allTracks, currentId, getTrack],
-  );
-  const liked = useMemo(() => new Set(likedTrackIds), [likedTrackIds]);
-  const queue = useMemo(
-    () => queueIds.map((id) => getTrack(id)).filter(Boolean) as EduMusicTrack[],
-    [getTrack, queueIds],
-  );
-
-  const visibleTracks = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const source = view === "search" || q ? allTracks : baseTracks;
-    return source.filter((track) => {
-      const moodOk = selectedMood === "all" || track.mood === selectedMood;
-      const queryOk =
-        !q ||
-        [
-          track.title,
-          track.artist,
-          track.album,
-          track.mood,
-          track.source || "",
-          ...track.tags,
-        ]
-          .join(" ")
-          .toLowerCase()
-          .includes(q);
-      return moodOk && queryOk;
-    });
-  }, [allTracks, baseTracks, query, selectedMood, view]);
-
-  useEffect(() => {
-    if (!hydrated || typeof window === "undefined") return;
-    const state: StoredState = {
-      trackId: currentId,
-      playlistId: selectedPlaylistId,
-      volume,
-      likedTrackIds,
-      userPlaylists,
-      onlineTracks: onlineTracks.slice(0, 60),
-      onlineProviderMode,
-      queueIds,
-      view,
-      shuffle,
-      repeat,
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [
-    hydrated,
-    currentId,
-    selectedPlaylistId,
-    volume,
-    likedTrackIds,
-    userPlaylists,
-    onlineTracks,
-    onlineProviderMode,
-    queueIds,
-    view,
-    shuffle,
-    repeat,
-  ]);
-
-  useEffect(() => {
-    if (audioRef.current) audioRef.current.volume = volume;
-  }, [volume]);
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    const updateTime = () => setCurrentTime(audio.currentTime || 0);
-    const updateDuration = () =>
-      setDurationSeconds(Number.isFinite(audio.duration) ? audio.duration : 0);
-    audio.addEventListener("timeupdate", updateTime);
-    audio.addEventListener("loadedmetadata", updateDuration);
-    audio.addEventListener("durationchange", updateDuration);
-    return () => {
-      audio.removeEventListener("timeupdate", updateTime);
-      audio.removeEventListener("loadedmetadata", updateDuration);
-      audio.removeEventListener("durationchange", updateDuration);
-    };
-  }, []);
-
-  useEffect(() => {
-    setCurrentTime(0);
-    setDurationSeconds(0);
-  }, [currentTrack?.src]);
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (currentTrack?.source === "youtube" || !currentTrack?.src) {
-      audio.pause();
-      if (playing) setPlaying(false);
-      return;
-    }
-    if (playing) audio.play().catch(() => setPlaying(false));
-    else audio.pause();
-  }, [playing, currentTrack?.src, currentTrack?.source]);
-
-  const playTrack = useCallback(
-    (track: EduMusicTrack, queueFrom?: EduMusicTrack[]) => {
-      if (queueFrom?.length) setQueueIds(queueFrom.map((t) => t.id));
-      if (track.id === currentId) {
-        setPlaying((value) => !value);
-        return;
-      }
-      setCurrentId(track.id);
-      setPlaying(true);
-    },
-    [currentId],
-  );
-
-  const playPlaylist = useCallback(
-    (playlistId?: string) => {
-      const playlist =
-        playlists.find((p) => p.id === (playlistId || selectedPlaylistId)) ??
-        selectedPlaylist;
-      const tracks = getTracksForPlaylist(playlist, allTracks);
-      if (!tracks.length) return;
-      setSelectedPlaylistId(playlist.id);
-      setQueueIds(tracks.map((track) => track.id));
-      setCurrentId(tracks[0].id);
-      setPlaying(true);
-    },
-    [allTracks, playlists, selectedPlaylist, selectedPlaylistId],
-  );
-
-  const nextTrack = useCallback(() => {
-    if (repeat === "one") {
-      const audio = audioRef.current;
-      if (audio) {
-        audio.currentTime = 0;
-        audio.play().catch(() => setPlaying(false));
-      }
-      setPlaying(true);
-      return;
-    }
-
-    const list = queue.length
-      ? queue
-      : visibleTracks.length
-        ? visibleTracks
-        : baseTracks.length
-          ? baseTracks
-          : allTracks;
-    if (!list.length) return;
-
-    if (shuffle && list.length > 1) {
-      const others = list.filter((track) => track.id !== currentId);
-      const random =
-        others[Math.floor(Math.random() * others.length)] ?? list[0];
-      setCurrentId(random.id);
-      setPlaying(true);
-      return;
-    }
-
-    const index = Math.max(
-      0,
-      list.findIndex((track) => track.id === currentId),
-    );
-    const next = list[index + 1] ?? (repeat === "all" ? list[0] : null);
-    if (next) {
-      setCurrentId(next.id);
-      setPlaying(true);
-    } else {
-      setPlaying(false);
-    }
-  }, [allTracks, baseTracks, currentId, queue, repeat, shuffle, visibleTracks]);
-
-  const prevTrack = useCallback(() => {
-    const list = queue.length
-      ? queue
-      : visibleTracks.length
-        ? visibleTracks
-        : baseTracks.length
-          ? baseTracks
-          : allTracks;
-    if (!list.length) return;
-    const index = Math.max(
-      0,
-      list.findIndex((track) => track.id === currentId),
-    );
-    const prev = list[(index - 1 + list.length) % list.length];
-    if (prev) {
-      setCurrentId(prev.id);
-      setPlaying(true);
-    }
-  }, [allTracks, baseTracks, currentId, queue, visibleTracks]);
-
-  const toggleLike = useCallback((id: string) => {
-    setLikedTrackIds((prev) =>
-      prev.includes(id)
-        ? prev.filter((trackId) => trackId !== id)
-        : [...prev, id],
-    );
-  }, []);
-
-  const createPlaylist = useCallback(() => {
-    const name = newPlaylistName.trim();
-    if (!name) return;
-    const playlist: EduMusicPlaylist = {
-      id: `user-${Date.now()}`,
-      name,
-      description: "Playlist creada en EduAI Music.",
-      mood: "mixed",
-      cover: "linear-gradient(135deg,#dbeafe,#bbf7d0)",
-      trackIds: pendingTrackId
-        ? [pendingTrackId]
-        : currentTrack
-          ? [currentTrack.id]
-          : [],
-    };
-    setUserPlaylists((prev) => [...prev, playlist]);
-    setSelectedPlaylistId(playlist.id);
-    setView("playlists");
-    setNewPlaylistName("");
-    setPendingTrackId(null);
-    setCreateOpen(false);
-  }, [currentTrack, newPlaylistName, pendingTrackId]);
-
-  const addToPlaylist = useCallback((playlistId: string, trackId: string) => {
-    if (playlistId === "pl-liked") {
-      setLikedTrackIds((prev) =>
-        prev.includes(trackId) ? prev : [...prev, trackId],
-      );
-      setPendingTrackId(null);
-      return;
-    }
-    setUserPlaylists((prev) =>
-      prev.map((playlist) =>
-        playlist.id === playlistId
-          ? { ...playlist, trackIds: unique([...playlist.trackIds, trackId]) }
-          : playlist,
-      ),
-    );
-    setPendingTrackId(null);
-  }, []);
-
-  const removeFromPlaylist = useCallback(
-    (playlistId: string, trackId: string) => {
-      if (playlistId === "pl-liked") {
-        setLikedTrackIds((prev) => prev.filter((id) => id !== trackId));
-        return;
-      }
-      setUserPlaylists((prev) =>
-        prev.map((playlist) =>
-          playlist.id === playlistId
-            ? {
-                ...playlist,
-                trackIds: playlist.trackIds.filter((id) => id !== trackId),
-              }
-            : playlist,
-        ),
-      );
-    },
-    [],
-  );
-
-  const deletePlaylist = useCallback(
-    (playlistId: string) => {
-      setUserPlaylists((prev) =>
-        prev.filter((playlist) => playlist.id !== playlistId),
-      );
-      if (selectedPlaylistId === playlistId)
-        setSelectedPlaylistId(SYSTEM_PLAYLISTS[0]?.id);
-    },
-    [selectedPlaylistId],
-  );
-
-  const requestAddToPlaylist = useCallback((trackId: string) => {
-    setPendingTrackId((prev) => (prev === trackId ? null : trackId));
-  }, []);
-
-  const addToQueue = useCallback((trackId: string) => {
-    setQueueIds((prev) => unique([...prev, trackId]));
-  }, []);
-
-  const clearQueue = useCallback(() => setQueueIds([]), []);
-
-  const seekTo = useCallback((seconds: number) => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    const safe = Math.max(
-      0,
-      Math.min(
-        seconds,
-        Number.isFinite(audio.duration) ? audio.duration : seconds,
-      ),
-    );
-    audio.currentTime = safe;
-    setCurrentTime(safe);
-  }, []);
-
-  const searchOnline = useCallback(
-    async (term?: string, providerOverride?: OnlineProviderMode) => {
-      const mode = providerOverride || onlineProviderMode;
-      if (providerOverride) setOnlineProviderMode(providerOverride);
-      const clean = (term || onlineQuery || query).trim();
-      if (!clean) return;
-      setOnlineLoading(true);
-      setOnlineError("");
-      try {
-        const res = await fetch("/api/music/search", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query: clean, provider: mode }),
-        });
-        const data = await res.json();
-        if (!res.ok || !data?.ok)
-          throw new Error(data?.error || "No se pudo buscar música online.");
-        const tracks = Array.isArray(data.tracks)
-          ? (data.tracks as EduMusicTrack[])
-          : [];
-        if (!tracks.length) {
-          setOnlineError(
-            mode === "full"
-              ? (data?.sources?.youtube
-                  ? "No encontré canciones completas en Jamendo/Audius ni videos embebibles de YouTube. Prueba otro término o cambia a DJ 30s."
-                  : "No encontré canciones completas en Jamendo/Audius. Para buscar videos de YouTube debes agregar YOUTUBE_API_KEY en Vercel o cambiar a DJ 30s.")
-              : mode === "youtube"
-                ? (data?.sources?.youtube
-                    ? "No encontré videos embebibles de YouTube para esa búsqueda."
-                    : "Falta configurar YOUTUBE_API_KEY en Vercel para buscar videos de YouTube.")
-                : "No encontré resultados reproducibles para esa búsqueda.",
-          );
-          return;
-        }
-        setOnlineTracks((prev) => {
-          const map = new Map<string, EduMusicTrack>();
-          [...tracks, ...prev].forEach((track) => map.set(track.id, track));
-          return Array.from(map.values()).slice(0, 60);
-        });
-        setSelectedPlaylistId("pl-online");
-        setView("search");
-        if (tracks[0]) playTrack(tracks[0], tracks);
-      } catch (error) {
-        setOnlineError(
-          error instanceof Error
-            ? error.message
-            : "Error buscando música online.",
-        );
-      } finally {
-        setOnlineLoading(false);
-      }
-    },
-    [onlineProviderMode, onlineQuery, playTrack, query],
-  );
-
-  const value: MusicContextValue = {
-    view,
-    setView,
-    query,
-    setQuery,
-    onlineQuery,
-    setOnlineQuery,
-    onlineLoading,
-    onlineError,
-    onlineProviderMode,
-    setOnlineProviderMode,
-    selectedMood,
-    setSelectedMood,
-    volume,
-    setVolume,
-    playing,
-    setPlaying,
-    currentTrack,
-    selectedPlaylist,
-    selectedPlaylistId,
-    setSelectedPlaylistId,
-    playlists,
-    userPlaylists,
-    onlineTracks,
-    visibleTracks,
-    baseTracks,
-    allTracks,
-    liked,
-    createOpen,
-    setCreateOpen,
-    newPlaylistName,
-    setNewPlaylistName,
-    pendingTrackId,
-    setPendingTrackId,
-    queue,
-    queueIds,
-    shuffle,
-    setShuffle,
-    repeat,
-    setRepeat,
-    playTrack,
-    playPlaylist,
-    nextTrack,
-    prevTrack,
-    toggleLike,
-    createPlaylist,
-    addToPlaylist,
-    removeFromPlaylist,
-    deletePlaylist,
-    requestAddToPlaylist,
-    addToQueue,
-    clearQueue,
-    currentTime,
-    durationSeconds,
-    seekTo,
-    searchOnline,
-  };
 
   return (
-    <MusicContext.Provider value={value}>
-      <audio
-        ref={audioRef}
-        src={currentTrack?.source === "youtube" ? undefined : currentTrack?.src}
-        preload="none"
-        onEnded={nextTrack}
-      />
-      {children}
-    </MusicContext.Provider>
+    <div
+      className={`${cls} flex shrink-0 items-center justify-center font-black text-slate-950 shadow-sm shadow-black/40 ring-1 ring-white/10`}
+      style={{
+        background:
+          cover || track?.cover || "linear-gradient(135deg,#34d399,#10b981)",
+      }}
+    >
+      {title.slice(0, 1).toUpperCase()}
+    </div>
   );
 }
 
-export function useEduAIMusic() {
-  const context = useContext(MusicContext);
-  if (!context)
-    throw new Error("useEduAIMusic must be used inside MusicProvider");
-  return context;
+function IconButton({
+  children,
+  onClick,
+  active,
+  title,
+  className,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  active?: boolean;
+  title?: string;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      title={title}
+      onClick={onClick}
+      className={cn(
+        "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-black transition",
+        active
+          ? "bg-emerald-400 text-slate-950 shadow-md shadow-emerald-500/25"
+          : "bg-white/8 text-slate-300 hover:bg-emerald-400/15 hover:text-emerald-200",
+        className,
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function PlayButton({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
+  const music = useEduAIMusic();
+  const cls =
+    size === "lg" ? "h-11 w-11" : size === "sm" ? "h-8 w-8" : "h-10 w-10";
+  const iconCls = size === "lg" ? "h-5 w-5" : "h-4 w-4";
+  const isYouTube = music.currentTrack.source === "youtube";
+  return (
+    <button
+      type="button"
+      disabled={isYouTube}
+      onClick={() => music.setPlaying((value) => !value)}
+      className={cn(
+        `${cls} inline-flex shrink-0 items-center justify-center rounded-full text-slate-950 shadow-lg shadow-emerald-500/25 transition`,
+        isYouTube
+          ? "cursor-not-allowed bg-slate-600 text-slate-300 shadow-none"
+          : "bg-emerald-400 hover:scale-105 hover:bg-emerald-300",
+      )}
+      aria-label={isYouTube ? "Usa el reproductor de YouTube" : music.playing ? "Pausar" : "Reproducir"}
+      title={isYouTube ? "Usa el reproductor de YouTube integrado" : undefined}
+    >
+      {music.playing ? (
+        <Pause className={iconCls} fill="currentColor" />
+      ) : (
+        <Play className={`${iconCls} translate-x-0.5`} fill="currentColor" />
+      )}
+    </button>
+  );
+}
+
+function SidebarTrackRow({
+  track,
+  index,
+  tracks,
+}: {
+  track: EduMusicTrack;
+  index: number;
+  tracks: EduMusicTrack[];
+}) {
+  const music = useEduAIMusic();
+  const active = track.id === music.currentTrack.id;
+  return (
+    <button
+      type="button"
+      onClick={() => music.playTrack(track, tracks)}
+      className={cn(
+        "flex h-12 w-full items-center gap-2 rounded-xl px-2 text-left transition",
+        active
+          ? "bg-emerald-400/14 text-white ring-1 ring-emerald-400/35"
+          : "text-slate-300 hover:bg-white/7 hover:text-white",
+      )}
+    >
+      <span
+        className={cn(
+          "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-black",
+          active ? "bg-emerald-400 text-slate-950" : "bg-white/8 text-slate-400",
+        )}
+      >
+        {active && music.playing ? (
+          <Pause className="h-3 w-3" fill="currentColor" />
+        ) : active ? (
+          <Play className="h-3 w-3" fill="currentColor" />
+        ) : (
+          index + 1
+        )}
+      </span>
+      <Cover track={track} size="xs" />
+      <span className="min-w-0 flex-1">
+        <span
+          className={cn(
+            "block truncate text-xs font-black",
+            active ? "text-emerald-300" : "text-current",
+          )}
+        >
+          {track.title}
+        </span>
+        <span className="block truncate text-[10px] text-slate-500">
+          {track.artist} · {sourceLabel(track.source)}
+        </span>
+      </span>
+    </button>
+  );
+}
+
+function TableTrackRow({
+  track,
+  index,
+  tracks,
+}: {
+  track: EduMusicTrack;
+  index: number;
+  tracks: EduMusicTrack[];
+}) {
+  const music = useEduAIMusic();
+  const active = track.id === music.currentTrack.id;
+  return (
+    <div
+      className={cn(
+        "group flex h-12 items-center gap-3 rounded-xl px-3 transition",
+        active
+          ? "bg-emerald-400/12 text-white ring-1 ring-emerald-400/25"
+          : "text-slate-300 hover:bg-white/7 hover:text-white",
+      )}
+    >
+      <button
+        type="button"
+        onClick={() => music.playTrack(track, tracks)}
+        className={cn(
+          "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-black transition",
+          active
+            ? "bg-emerald-400 text-slate-950"
+            : "bg-white/8 text-slate-400 group-hover:bg-emerald-400 group-hover:text-slate-950",
+        )}
+        aria-label={`Reproducir ${track.title}`}
+      >
+        {active && music.playing ? (
+          <Pause className="h-3.5 w-3.5" fill="currentColor" />
+        ) : active ? (
+          <Play className="h-3.5 w-3.5" fill="currentColor" />
+        ) : (
+          index + 1
+        )}
+      </button>
+      <Cover track={track} size="sm" />
+      <button
+        type="button"
+        onClick={() => music.playTrack(track, tracks)}
+        className="min-w-0 flex-[1.6] text-left"
+      >
+        <span
+          className={cn(
+            "block truncate text-sm font-black",
+            active ? "text-emerald-300" : "text-current",
+          )}
+        >
+          {track.title}
+        </span>
+        <span className="block truncate text-xs text-slate-500">
+          {track.artist}
+        </span>
+      </button>
+      <span className="hidden min-w-0 flex-1 truncate text-xs text-slate-400 md:block">
+        {track.album}
+      </span>
+      <span className="hidden w-20 shrink-0 rounded-full bg-white/7 px-2 py-1 text-center text-[10px] font-bold uppercase tracking-wide text-slate-400 lg:block">
+        {sourceLabel(track.source)}
+      </span>
+      <div className="ml-auto flex shrink-0 items-center gap-3">
+        <button
+          type="button"
+          onClick={() => music.toggleLike(track.id)}
+          className={cn(
+            "text-slate-500 hover:text-emerald-300",
+            music.liked.has(track.id) && "text-emerald-300",
+          )}
+          aria-label="Me gusta"
+        >
+          <Heart
+            className="h-3.5 w-3.5"
+            fill={music.liked.has(track.id) ? "currentColor" : "none"}
+          />
+        </button>
+        <button
+          type="button"
+          onClick={() => music.requestAddToPlaylist(track.id)}
+          className="text-slate-500 hover:text-emerald-300"
+          aria-label="Agregar a playlist"
+        >
+          <Plus className="h-3.5 w-3.5" />
+        </button>
+        <span className="w-9 text-right text-xs text-slate-500">
+          {track.duration}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function SidebarTrackList({ tracks, limit = 40 }: { tracks: EduMusicTrack[]; limit?: number }) {
+  const shown = tracks.slice(0, limit);
+  if (!shown.length) {
+    return (
+      <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-4 text-center text-xs text-slate-400">
+        No hay canciones en esta vista.
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-1">
+      {shown.map((track, index) => (
+        <SidebarTrackRow key={track.id} track={track} index={index} tracks={shown} />
+      ))}
+    </div>
+  );
+}
+
+function TableTrackList({ tracks }: { tracks: EduMusicTrack[] }) {
+  if (!tracks.length) {
+    return (
+      <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-8 text-center text-sm text-slate-400">
+        No hay canciones seleccionadas.
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center gap-3 px-3 pb-2 text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">
+        <span className="w-7">#</span>
+        <span className="w-8"></span>
+        <span className="min-w-0 flex-[1.6]">Título</span>
+        <span className="hidden min-w-0 flex-1 md:block">Álbum</span>
+        <span className="hidden w-20 text-center lg:block">Fuente</span>
+        <span className="ml-auto w-24 text-right">Acciones</span>
+      </div>
+      {tracks.map((track, index) => (
+        <TableTrackRow key={track.id} track={track} index={index} tracks={tracks} />
+      ))}
+    </div>
+  );
+}
+
+function TopBar() {
+  const music = useEduAIMusic();
+  return (
+    <header className="flex h-[58px] shrink-0 items-center gap-4 border-b border-white/10 bg-[#05070a] px-4 text-white">
+      <div className="flex w-[300px] shrink-0 items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-400 text-slate-950 shadow-md shadow-emerald-500/20">
+          <Music2 className="h-5 w-5" />
+        </div>
+        <div className="min-w-0">
+          <h1 className="truncate text-xl font-black tracking-tight text-white">
+            EduAI Music
+          </h1>
+          <p className="truncate text-[11px] font-semibold text-emerald-300">
+            Música, playlists y foco educativo
+          </p>
+        </div>
+      </div>
+
+      <div className="flex h-10 min-w-0 flex-1 items-center gap-3 rounded-full border border-white/10 bg-white/8 px-4 shadow-inner shadow-black/30 max-md:hidden">
+        <Search className="h-4 w-4 text-emerald-300" />
+        <input
+          value={music.query}
+          onChange={(e) => music.setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && music.query.trim())
+              void music.searchOnline(music.query);
+          }}
+          placeholder="Buscar en biblioteca o presiona Enter para buscar online"
+          className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
+        />
+      </div>
+
+      <Link
+        href="/agentes"
+        className="ml-auto inline-flex shrink-0 items-center gap-2 rounded-full border border-white/10 bg-white/8 px-4 py-2 text-xs font-bold text-slate-200 transition hover:bg-white/12 hover:text-white"
+      >
+        <ArrowLeft className="h-4 w-4" /> Volver
+      </Link>
+    </header>
+  );
+}
+
+function Sidebar({ tracks }: { tracks: EduMusicTrack[] }) {
+  const music = useEduAIMusic();
+  const [playlistFilter, setPlaylistFilter] = useState("");
+  const filteredPlaylists = music.playlists.filter((playlist) =>
+    playlist.name.toLowerCase().includes(playlistFilter.toLowerCase()),
+  );
+
+  return (
+    <aside className="flex min-h-0 min-w-0 flex-col border-r border-white/10 bg-[#0b0d12] p-2.5 text-white">
+      <div className="shrink-0 rounded-2xl border border-white/10 bg-[#14171f] p-3">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <p className="text-sm font-black text-white">Tu biblioteca</p>
+            <p className="text-[11px] text-slate-400">Canciones y grupos</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => music.setCreateOpen((value) => !value)}
+            className="inline-flex items-center gap-1 rounded-full bg-emerald-400 px-3 py-1.5 text-xs font-black text-slate-950 hover:bg-emerald-300"
+          >
+            <Plus className="h-3.5 w-3.5" /> Crear
+          </button>
+        </div>
+
+        <div className="mt-3 grid grid-cols-2 gap-1.5 text-xs font-bold text-slate-300">
+          {NAV_ITEMS.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                onClick={() => music.setView(item.id)}
+                className={cn(
+                  "inline-flex items-center gap-2 rounded-xl px-3 py-2 transition",
+                  music.view === item.id
+                    ? "bg-emerald-400 text-slate-950"
+                    : "bg-white/7 hover:bg-emerald-400/10 hover:text-emerald-200",
+                )}
+              >
+                <Icon className="h-3.5 w-3.5" /> {item.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {music.createOpen && (
+          <div className="mt-3 rounded-xl border border-emerald-400/20 bg-emerald-400/8 p-2">
+            <input
+              value={music.newPlaylistName}
+              onChange={(e) => music.setNewPlaylistName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && music.createPlaylist()}
+              placeholder="Nombre de playlist"
+              className="h-9 w-full rounded-lg border border-white/10 bg-black/25 px-3 text-xs text-white outline-none placeholder:text-slate-500"
+            />
+            <button
+              type="button"
+              onClick={music.createPlaylist}
+              className="mt-2 h-9 w-full rounded-lg bg-emerald-400 text-xs font-black text-slate-950 hover:bg-emerald-300"
+            >
+              Crear playlist
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="mt-3 flex min-h-0 flex-1 flex-col gap-3">
+        <section className="flex min-h-0 flex-[0.8] flex-col rounded-2xl border border-white/10 bg-[#14171f] p-3">
+          <div className="mb-2 flex h-9 items-center gap-2 rounded-xl bg-black/25 px-3">
+            <Search className="h-3.5 w-3.5 text-emerald-300" />
+            <input
+              value={playlistFilter}
+              onChange={(e) => setPlaylistFilter(e.target.value)}
+              placeholder="Filtrar grupos"
+              className="min-w-0 flex-1 bg-transparent text-xs text-white outline-none placeholder:text-slate-500"
+            />
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+            <div className="space-y-1">
+              {filteredPlaylists.map((playlist: EduMusicPlaylist) => (
+                <button
+                  key={playlist.id}
+                  onClick={() => {
+                    music.setSelectedPlaylistId(playlist.id);
+                    music.setView(
+                      playlist.id === "pl-liked"
+                        ? "liked"
+                        : playlist.id === "pl-online"
+                          ? "search"
+                          : "playlists",
+                    );
+                  }}
+                  className={cn(
+                    "flex h-[48px] w-full items-center gap-2 rounded-xl px-2 text-left transition",
+                    music.selectedPlaylistId === playlist.id
+                      ? "bg-white/12 ring-1 ring-emerald-400/25"
+                      : "hover:bg-white/7",
+                  )}
+                >
+                  <Cover label={playlist.name} cover={playlist.cover} size="xs" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-xs font-black text-white">
+                      {playlist.name}
+                    </span>
+                    <span className="block truncate text-[10px] text-slate-500">
+                      {playlist.trackIds.length} canciones
+                    </span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="flex min-h-0 flex-1 flex-col rounded-2xl border border-white/10 bg-[#14171f] p-3">
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-emerald-300">
+              Canciones
+            </p>
+            <span className="text-xs text-slate-500">{tracks.length}</span>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+            <SidebarTrackList tracks={tracks} limit={60} />
+          </div>
+        </section>
+      </div>
+    </aside>
+  );
+}
+
+function PlaylistHeader({ tracks }: { tracks: EduMusicTrack[] }) {
+  const music = useEduAIMusic();
+  const playlist = music.selectedPlaylist;
+  const totalSeconds = tracks.reduce(
+    (sum, track) => sum + parseDuration(track.duration),
+    0,
+  );
+
+  return (
+    <section className="shrink-0 rounded-2xl border border-emerald-400/20 bg-[linear-gradient(135deg,rgba(16,185,129,.22),rgba(17,24,39,.98)_50%,rgba(34,197,94,.12))] p-3 text-white shadow-md shadow-black/25">
+      <div className="flex min-w-0 items-center gap-3">
+        <Cover label={playlist.name} cover={playlist.cover} size="hero" />
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-300">
+            Playlist seleccionada
+          </p>
+          <h2 className="mt-1 truncate text-2xl font-black tracking-tight text-white max-xl:text-xl">
+            {playlist.name}
+          </h2>
+          <p className="mt-1 line-clamp-1 max-w-2xl text-xs leading-relaxed text-slate-300">
+            {playlist.description}
+          </p>
+          <p className="mt-2 text-xs font-semibold text-slate-400">
+            EduAI Music · {tracks.length} canciones · {formatSeconds(totalSeconds)} aprox.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => music.playPlaylist(playlist.id)}
+          className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full bg-emerald-400 px-4 text-xs font-black text-slate-950 shadow-md shadow-emerald-500/20 hover:bg-emerald-300"
+        >
+          <Play className="h-4 w-4" fill="currentColor" /> Reproducir
+        </button>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <IconButton onClick={() => music.setShuffle((value) => !value)} active={music.shuffle} title="Aleatorio">
+          <Shuffle className="h-4 w-4" />
+        </IconButton>
+        <IconButton onClick={() => music.toggleLike(music.currentTrack.id)} active={music.liked.has(music.currentTrack.id)} title="Me gusta">
+          <Heart className="h-4 w-4" fill={music.liked.has(music.currentTrack.id) ? "currentColor" : "none"} />
+        </IconButton>
+        <IconButton
+          onClick={() => music.setRepeat(music.repeat === "off" ? "all" : music.repeat === "all" ? "one" : "off")}
+          active={music.repeat !== "off"}
+          title="Repetir"
+        >
+          <Repeat className="h-4 w-4" />
+        </IconButton>
+        <div className="ml-1 flex min-w-0 flex-wrap gap-1.5">
+          {MOODS.map((mood) => (
+            <button
+              key={mood}
+              type="button"
+              onClick={() => music.setSelectedMood(mood)}
+              className={cn(
+                "rounded-full border px-2.5 py-1.5 text-[10px] font-bold transition",
+                music.selectedMood === mood
+                  ? "border-emerald-300 bg-emerald-400 text-slate-950"
+                  : "border-white/10 bg-white/7 text-slate-300 hover:bg-emerald-400/10 hover:text-emerald-200",
+              )}
+            >
+              {mood === "all" ? "Todo" : MOOD_LABELS[mood]}
+            </button>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function CurrentTrackArtwork({ track }: { track: EduMusicTrack }) {
+  const artwork = track.artworkUrl || track.videoThumbnail || (track.cover?.startsWith("http") ? track.cover : undefined);
+
+  if (track.source === "youtube" && track.videoEmbedUrl) {
+    return (
+      <div className="aspect-video w-full max-w-[460px] overflow-hidden rounded-2xl border border-emerald-400/20 bg-black shadow-xl shadow-black/30">
+        <iframe
+          title={track.title}
+          src={`${track.videoEmbedUrl}?rel=0&modestbranding=1`}
+          className="block h-full w-full"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          loading="lazy"
+        />
+      </div>
+    );
+  }
+
+  if (artwork) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={artwork}
+        alt={track.title}
+        className="h-44 w-44 rounded-3xl object-cover shadow-2xl shadow-black/35 ring-1 ring-white/10 max-xl:h-36 max-xl:w-36"
+      />
+    );
+  }
+
+  return (
+    <div
+      className="flex h-44 w-44 flex-col items-center justify-center rounded-3xl p-5 text-center shadow-2xl shadow-black/35 ring-1 ring-white/10 max-xl:h-36 max-xl:w-36"
+      style={{ background: track.cover || "linear-gradient(135deg,#34d399,#0f766e)" }}
+    >
+      <span className="text-4xl font-black text-slate-950 max-xl:text-3xl">
+        {track.title.slice(0, 1).toUpperCase()}
+      </span>
+      <span className="mt-3 line-clamp-2 text-xs font-black leading-tight text-slate-950">
+        {track.title}
+      </span>
+      <span className="mt-1 line-clamp-1 text-[10px] font-bold text-slate-800">
+        {track.artist}
+      </span>
+    </div>
+  );
+}
+
+function MainPanel({ tracks }: { tracks: EduMusicTrack[] }) {
+  const music = useEduAIMusic();
+  const track = music.currentTrack;
+  const playlist = music.selectedPlaylist;
+
+  return (
+    <main className="flex min-h-0 min-w-0 flex-col bg-[#101218] p-2.5 text-white">
+      <section className="flex min-h-0 flex-1 flex-col rounded-2xl border border-white/10 bg-[#151922] p-4 shadow-lg shadow-black/20">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-300">
+              Reproductor central
+            </p>
+            <h2 className="truncate text-xl font-black text-white">
+              {playlist.name}
+            </h2>
+            <p className="truncate text-xs text-slate-400">
+              Las listas quedan a los lados. Aquí se muestra solo la canción actual.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => music.playPlaylist(playlist.id)}
+            className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full bg-emerald-400 px-4 text-xs font-black text-slate-950 shadow-md shadow-emerald-500/20 hover:bg-emerald-300"
+          >
+            <Play className="h-4 w-4" fill="currentColor" /> Reproducir lista
+          </button>
+        </div>
+
+        <div className="flex min-h-0 flex-1 items-center justify-center rounded-3xl border border-emerald-400/15 bg-[radial-gradient(circle_at_center,rgba(16,185,129,.18),rgba(15,23,42,.78)_48%,rgba(5,7,10,.95))] p-5">
+          <div className="w-full max-w-xl rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-center shadow-xl shadow-black/25 backdrop-blur-xl max-xl:p-4">
+            <div className="flex justify-center">
+              <CurrentTrackArtwork track={track} />
+            </div>
+
+            <div className="mx-auto mt-4 max-w-lg">
+              <p className="mx-auto mb-2 w-fit rounded-full bg-emerald-400/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-300">
+                {playbackKind(track)}
+              </p>
+              <h3 className="line-clamp-2 text-xl font-black leading-tight text-white max-xl:text-lg">
+                {track.title}
+              </h3>
+              <p className="mt-1 truncate text-sm font-semibold text-slate-300">
+                {track.artist}
+              </p>
+              <p className="mt-1 truncate text-xs text-slate-500">
+                {track.album || "Sin álbum"} · {track.duration || "--:--"}
+              </p>
+            </div>
+
+            <div className="mt-4 flex items-center justify-center gap-2.5">
+              <IconButton onClick={() => music.setShuffle((value) => !value)} active={music.shuffle} title="Aleatorio">
+                <Shuffle className="h-4 w-4" />
+              </IconButton>
+              <IconButton onClick={music.prevTrack} title="Anterior">
+                <SkipBack className="h-4 w-4" fill="currentColor" />
+              </IconButton>
+              <PlayButton size="lg" />
+              <IconButton onClick={music.nextTrack} title="Siguiente">
+                <SkipForward className="h-4 w-4" fill="currentColor" />
+              </IconButton>
+              <IconButton
+                onClick={() => music.setRepeat(music.repeat === "off" ? "all" : music.repeat === "all" ? "one" : "off")}
+                active={music.repeat !== "off"}
+                title="Repetir"
+              >
+                <Repeat className="h-4 w-4" />
+              </IconButton>
+            </div>
+
+            {track.source === "youtube" && (
+              <p className="mt-3 text-xs font-semibold text-emerald-200/90">
+                No apareció audio completo en Jamendo/Audius para esta búsqueda; EduAI muestra el video embebido de YouTube como respaldo.
+              </p>
+            )}
+
+            <div className="mt-4 grid grid-cols-2 gap-2 max-sm:grid-cols-1">
+              <button
+                type="button"
+                onClick={() => music.toggleLike(track.id)}
+                className={cn(
+                  "rounded-full border px-3 py-2 text-xs font-black transition",
+                  music.liked.has(track.id)
+                    ? "border-emerald-400 bg-emerald-400 text-slate-950"
+                    : "border-white/10 bg-white/7 text-slate-300 hover:bg-emerald-400/10 hover:text-emerald-200",
+                )}
+              >
+                ♥ Me gusta
+              </button>
+              <button
+                type="button"
+                onClick={() => music.requestAddToPlaylist(track.id)}
+                className="rounded-full border border-white/10 bg-white/7 px-3 py-2 text-xs font-black text-slate-300 transition hover:bg-emerald-400/10 hover:text-emerald-200"
+              >
+                + Agregar a playlist
+              </button>
+            </div>
+
+            <p className="mt-3 text-[11px] text-slate-500">
+              {tracks.length} canciones disponibles en la lista lateral izquierda.
+            </p>
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function SpotifyEmbeds() {
+  return (
+    <section className="shrink-0 rounded-2xl border border-white/10 bg-[#14171f] p-3">
+      <div className="mb-2 flex items-center justify-between">
+        <div>
+          <p className="text-sm font-black text-white">Playlists Spotify</p>
+          <p className="text-[11px] text-slate-500">Embeds oficiales agregados.</p>
+        </div>
+      </div>
+      <div className="max-h-[320px] space-y-2 overflow-y-auto pr-1">
+        {SPOTIFY_EMBEDS.map((item) => (
+          <iframe
+            key={item.id}
+            data-testid="embed-iframe"
+            title={item.title}
+            style={{ borderRadius: 12 }}
+            src={item.src}
+            width="100%"
+            height="152"
+            frameBorder="0"
+            allowFullScreen
+            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+            loading="lazy"
+            className="block border-0"
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function RightPanel() {
+  const music = useEduAIMusic();
+  const [youtubeQuery, setYoutubeQuery] = useState("música para estudiar sin letra");
+  const related = music.allTracks
+    .filter((track) => track.mood === music.currentTrack.mood && track.id !== music.currentTrack.id)
+    .slice(0, 6);
+
+  return (
+    <aside className="flex min-h-0 min-w-0 flex-col gap-2.5 overflow-y-auto border-l border-white/10 bg-[#0b0d12] p-2.5 text-white">
+      <section className="shrink-0 rounded-2xl border border-emerald-400/20 bg-[#14171f] p-3">
+        <p className="text-sm font-black text-white">Buscar canciones</p>
+        <p className="mt-1 text-xs text-slate-400">
+          Busca canciones completas con Jamendo/Audius. Si no hay audio completo, EduAI usa YouTube embebido como respaldo.
+        </p>
+        <div className="mt-3 flex gap-2">
+          <input
+            value={music.onlineQuery}
+            onChange={(e) => music.setOnlineQuery(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && void music.searchOnline()}
+            placeholder="daddy, lofi, piano, estudio..."
+            className="min-w-0 flex-1 rounded-full border border-white/10 bg-black/25 px-3 py-2 text-xs text-white outline-none placeholder:text-slate-500 focus:border-emerald-400/60"
+          />
+          <button
+            type="button"
+            onClick={() => void music.searchOnline()}
+            disabled={music.onlineLoading}
+            className="rounded-full bg-emerald-400 px-4 py-2 text-xs font-black text-slate-950 disabled:opacity-50"
+          >
+            {music.onlineLoading ? "..." : "Buscar"}
+          </button>
+        </div>
+        {music.onlineError && <p className="mt-2 text-xs font-bold text-rose-300">{music.onlineError}</p>}
+        <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] font-black uppercase tracking-wide">
+          {[
+            { id: "full", label: "Completas" },
+            { id: "preview", label: "DJ 30s" },
+            { id: "all", label: "Todo" },
+            { id: "youtube", label: "YouTube" },
+          ].map((item) => {
+            const provider = item.id as "all" | "full" | "preview" | "youtube";
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => {
+                  music.setOnlineProviderMode(provider);
+                  if (music.onlineQuery.trim()) void music.searchOnline(undefined, provider);
+                }}
+                className={cn(
+                  "rounded-full px-2 py-1 transition",
+                  music.onlineProviderMode === item.id
+                    ? "bg-emerald-400 text-slate-950"
+                    : "bg-white/8 text-slate-300 hover:bg-emerald-400/12 hover:text-emerald-200",
+                )}
+              >
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
+          Por defecto se buscan canciones completas en Jamendo/Audius. Si no existe audio completo para tu búsqueda, EduAI muestra un video embebido de YouTube en el centro. DJ 30s usa previews iTunes.
+        </p>
+      </section>
+
+      <section className="flex min-h-0 flex-[0.65] flex-col rounded-2xl border border-white/10 bg-[#14171f] p-3">
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-sm font-black text-white">Resultados online</p>
+          <button
+            type="button"
+            onClick={() => {
+              music.setSelectedPlaylistId("pl-online");
+              music.setView("search");
+            }}
+            className="text-xs font-bold text-emerald-300 hover:underline"
+          >
+            ver todos
+          </button>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+          <SidebarTrackList tracks={music.onlineTracks.length ? music.onlineTracks : related} limit={12} />
+        </div>
+      </section>
+
+      <SpotifyEmbeds />
+
+      <section className="shrink-0 rounded-2xl border border-white/10 bg-[#14171f] p-3">
+        <p className="text-sm font-black text-white">Ahora suena</p>
+        <div className="mt-3 flex items-center gap-3">
+          <Cover track={music.currentTrack} size="lg" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-black text-emerald-300">{music.currentTrack.title}</p>
+            <p className="truncate text-xs text-slate-300">{music.currentTrack.artist}</p>
+            <p className="truncate text-[11px] text-slate-500">{music.currentTrack.album}</p>
+          </div>
+        </div>
+        {music.currentTrack.externalUrl && (
+          <a
+            href={music.currentTrack.externalUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-emerald-300 hover:underline"
+          >
+            Abrir fuente <ExternalLink className="h-3 w-3" />
+          </a>
+        )}
+      </section>
+
+      <section className="shrink-0 rounded-2xl border border-white/10 bg-[#14171f] p-3">
+        <p className="text-sm font-black text-white">Fuentes externas</p>
+        <div className="mt-2 flex gap-2">
+          <input
+            value={youtubeQuery}
+            onChange={(e) => setYoutubeQuery(e.target.value)}
+            placeholder="Buscar en YouTube"
+            className="min-w-0 flex-1 rounded-full border border-white/10 bg-black/25 px-3 py-2 text-xs text-white outline-none placeholder:text-slate-500"
+          />
+          <a
+            href={youtubeSearchUrl(youtubeQuery)}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-full bg-white/8 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-emerald-400/10 hover:text-emerald-200"
+          >
+            Abrir
+          </a>
+        </div>
+        <div className="mt-2 max-h-[88px] space-y-1 overflow-y-auto pr-1">
+          {EXTERNAL_MUSIC_COLLECTIONS.map((item) => (
+            <a
+              key={item.id}
+              href={item.url}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center justify-between gap-2 rounded-xl px-2 py-1.5 text-xs hover:bg-white/7"
+            >
+              <span className="min-w-0">
+                <span className="block truncate font-bold text-slate-200">{item.name}</span>
+                <span className="block truncate text-[10px] text-slate-500">{item.provider}</span>
+              </span>
+              <ExternalLink className="h-3.5 w-3.5 text-slate-500" />
+            </a>
+          ))}
+        </div>
+      </section>
+    </aside>
+  );
+}
+
+function BottomPlayer() {
+  const music = useEduAIMusic();
+  const duration = music.durationSeconds || parseDuration(music.currentTrack.duration);
+  const progress = duration ? Math.min(100, (music.currentTime / duration) * 100) : 0;
+
+  return (
+    <footer className="flex h-[76px] shrink-0 items-center gap-4 border-t border-white/10 bg-[#05070a] px-4 text-white">
+      <div className="flex min-w-0 items-center gap-3" style={{ width: 320 }}>
+        <Cover track={music.currentTrack} size="md" />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-black text-white">{music.currentTrack.title}</p>
+          <p className="truncate text-xs text-slate-400">{music.currentTrack.artist} · {sourceLabel(music.currentTrack.source)}</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => music.toggleLike(music.currentTrack.id)}
+          className={cn("text-slate-500 hover:text-emerald-300", music.liked.has(music.currentTrack.id) && "text-emerald-300")}
+        >
+          <Heart className="h-4 w-4" fill={music.liked.has(music.currentTrack.id) ? "currentColor" : "none"} />
+        </button>
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-center gap-3">
+          <IconButton onClick={() => music.setShuffle((value) => !value)} active={music.shuffle}>
+            <Shuffle className="h-4 w-4" />
+          </IconButton>
+          <IconButton onClick={music.prevTrack}>
+            <SkipBack className="h-4 w-4" fill="currentColor" />
+          </IconButton>
+          <PlayButton size="lg" />
+          <IconButton onClick={music.nextTrack}>
+            <SkipForward className="h-4 w-4" fill="currentColor" />
+          </IconButton>
+          <IconButton
+            onClick={() => music.setRepeat(music.repeat === "off" ? "all" : music.repeat === "all" ? "one" : "off")}
+            active={music.repeat !== "off"}
+          >
+            <Repeat className="h-4 w-4" />
+          </IconButton>
+        </div>
+        <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-500">
+          <span className="w-9 text-right">{formatSeconds(music.currentTime)}</span>
+          <input
+            type="range"
+            min="0"
+            max={Math.max(1, duration)}
+            step="1"
+            value={Math.min(music.currentTime, Math.max(1, duration))}
+            onChange={(e) => music.seekTo(Number(e.target.value))}
+            className="h-1 min-w-0 flex-1 accent-emerald-400"
+            style={{ background: `linear-gradient(90deg,#34d399 ${progress}%,rgba(255,255,255,.16) ${progress}%)` }}
+          />
+          <span className="w-9">{formatSeconds(duration)}</span>
+        </div>
+      </div>
+
+      <div className="hidden items-center justify-end gap-3 pr-14 xl:flex" style={{ width: 320 }}>
+        <ListMusic className="h-4 w-4 text-slate-500" />
+        <Volume2 className="h-4 w-4 text-slate-500" />
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          value={music.volume}
+          onChange={(e) => music.setVolume(Number(e.target.value))}
+          className="w-24 accent-emerald-400"
+        />
+      </div>
+    </footer>
+  );
+}
+
+function AddToPlaylistBar() {
+  const music = useEduAIMusic();
+  if (!music.pendingTrackId) return null;
+  const track = music.allTracks.find((item) => item.id === music.pendingTrackId);
+  return (
+    <div className="fixed bottom-24 left-1/2 z-50 w-[min(92vw,720px)] -translate-x-1/2 rounded-2xl border border-emerald-400/20 bg-[#11131a] p-3 text-white shadow-2xl">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-bold">Agregar {track?.title ?? "canción"} a playlist:</p>
+        <button type="button" onClick={() => music.setPendingTrackId(null)} className="rounded-full px-2 text-slate-400 hover:bg-white/10">
+          ×
+        </button>
+      </div>
+      <div className="mt-2 flex flex-wrap gap-2">
+        <button type="button" onClick={() => music.addToPlaylist("pl-liked", music.pendingTrackId!)} className="rounded-full bg-emerald-400 px-3 py-1.5 text-xs font-black text-slate-950">
+          ♥ Me gusta
+        </button>
+        {music.userPlaylists.map((playlist) => (
+          <button key={playlist.id} type="button" onClick={() => music.addToPlaylist(playlist.id, music.pendingTrackId!)} className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold hover:bg-white/15">
+            {playlist.name}
+          </button>
+        ))}
+        <button type="button" onClick={() => music.setCreateOpen(true)} className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold hover:bg-emerald-400/15 hover:text-emerald-200">
+          + Nueva
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function MiniBar({ onOpenPanel }: { onOpenPanel?: () => void }) {
+  const music = useEduAIMusic();
+  return (
+    <div className="fixed bottom-4 left-1/2 z-50 w-[min(92vw,540px)] -translate-x-1/2 rounded-2xl border border-white/10 bg-[#07080d]/95 p-2 text-white shadow-2xl backdrop-blur-xl">
+      <div className="flex items-center gap-2">
+        <button type="button" onClick={onOpenPanel} className="flex min-w-0 flex-1 items-center gap-2 text-left">
+          <Cover track={music.currentTrack} size="sm" />
+          <span className="min-w-0">
+            <span className="block truncate text-xs font-black">{music.currentTrack.title}</span>
+            <span className="block truncate text-[10px] text-slate-400">{music.currentTrack.artist}</span>
+          </span>
+        </button>
+        <IconButton onClick={music.prevTrack}>
+          <SkipBack className="h-3.5 w-3.5" />
+        </IconButton>
+        <PlayButton size="sm" />
+        <IconButton onClick={music.nextTrack}>
+          <SkipForward className="h-3.5 w-3.5" />
+        </IconButton>
+      </div>
+    </div>
+  );
+}
+
+function CompactPanel({ onOpenPanel }: { onOpenPanel?: () => void }) {
+  const music = useEduAIMusic();
+  const tracks = music.view === "liked" ? music.allTracks.filter((track) => music.liked.has(track.id)) : music.view === "queue" ? music.queue : music.visibleTracks;
+  return (
+    <div className="h-full overflow-hidden rounded-2xl border border-white/10 bg-[#0c0e14] text-white shadow-xl">
+      <div className="flex h-full flex-col">
+        <div className="border-b border-white/10 p-3">
+          <div className="flex items-center justify-between gap-2">
+            <button type="button" onClick={onOpenPanel} className="min-w-0 text-left">
+              <p className="text-sm font-black text-white">EduAI Music</p>
+              <p className="truncate text-[10px] text-slate-400">{music.currentTrack.title}</p>
+            </button>
+            <Link href="/music" className="rounded-full bg-emerald-400 px-3 py-1.5 text-[10px] font-black text-slate-950 hover:bg-emerald-300">
+              Abrir
+            </Link>
+          </div>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto p-3">
+          <SidebarTrackList tracks={tracks} limit={12} />
+        </div>
+        <div className="border-t border-white/10 p-3">
+          <div className="flex items-center gap-2">
+            <Cover track={music.currentTrack} size="sm" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs font-black text-white">{music.currentTrack.title}</p>
+              <p className="truncate text-[10px] text-slate-400">{music.currentTrack.artist}</p>
+            </div>
+            <PlayButton size="sm" />
+          </div>
+        </div>
+      </div>
+      <AddToPlaylistBar />
+    </div>
+  );
+}
+
+export default function EduAIMusicPlayer({
+  mode = "page",
+  showMiniWhenStopped = false,
+  onOpenPanel,
+}: Props) {
+  const music = useEduAIMusic();
+  const setPendingTrackId = music.setPendingTrackId;
+
+  useEffect(() => {
+    if (mode === "page") setPendingTrackId(null);
+  }, [mode, setPendingTrackId]);
+
+  const tracksForMain = useMemo(() => {
+    if (music.view === "liked") return music.allTracks.filter((track) => music.liked.has(track.id));
+    if (music.view === "queue") return music.queue;
+    return music.visibleTracks;
+  }, [music.allTracks, music.liked, music.queue, music.view, music.visibleTracks]);
+
+  if (mode === "mini") {
+    if (!showMiniWhenStopped && !music.playing) return null;
+    return <MiniBar onOpenPanel={onOpenPanel} />;
+  }
+  if (mode === "panel") return <CompactPanel onOpenPanel={onOpenPanel} />;
+
+  return (
+    <div className="h-screen min-h-[680px] overflow-hidden bg-[#05070a] text-white">
+      <div className="flex h-full flex-col">
+        <TopBar />
+        <div
+          className="grid min-h-0 flex-1 overflow-hidden"
+          style={{ gridTemplateColumns: "300px minmax(0, 1fr) 340px" }}
+        >
+          <Sidebar tracks={tracksForMain} />
+          <MainPanel tracks={tracksForMain} />
+          <RightPanel />
+        </div>
+        <BottomPlayer />
+      </div>
+      <AddToPlaylistBar />
+    </div>
+  );
 }
