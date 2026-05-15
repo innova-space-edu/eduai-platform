@@ -3,18 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import EduAIMusicPlayer from "@/components/music/EduAIMusicPlayer";
 
 type Msg = { role: "user" | "assistant"; content: string };
 type PanelTab = "tips" | "chat" | "music";
-type MusicTrack = {
-  id: string;
-  title: string;
-  artist: string;
-  mood: string;
-  duration: string;
-  src: string;
-  cover: string;
-};
 type Suggestion = { label: string; href: string; emoji: string };
 type Tip = {
   icon: string;
@@ -22,36 +14,6 @@ type Tip = {
   body: string;
   action?: { label: string; href: string };
 };
-
-const MUSIC_TRACKS: MusicTrack[] = [
-  {
-    id: "focus-01",
-    title: "Deep Focus Flow",
-    artist: "EduAI Focus",
-    mood: "Lo-fi / estudio",
-    duration: "∞",
-    src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-    cover: "linear-gradient(135deg,#1DB954,#0f172a)",
-  },
-  {
-    id: "focus-02",
-    title: "Math Calm Session",
-    artist: "EduAI Focus",
-    mood: "Clásica suave",
-    duration: "∞",
-    src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
-    cover: "linear-gradient(135deg,#22c55e,#2563eb)",
-  },
-  {
-    id: "focus-03",
-    title: "Science Ambient",
-    artist: "EduAI Focus",
-    mood: "Ambient / concentración",
-    duration: "∞",
-    src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
-    cover: "linear-gradient(135deg,#14b8a6,#7c3aed)",
-  },
-];
 
 // ── Context-aware tips per route ────────────────────────────────────────────
 function getTipsForPath(path: string): Tip[] {
@@ -348,11 +310,6 @@ export default function SuperAgentButton() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const prevPath = useRef(pathname);
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const [currentTrack, setCurrentTrack] = useState(0);
-  const [musicPlaying, setMusicPlaying] = useState(false);
-  const [musicVolume, setMusicVolume] = useState(0.65);
-  const track = MUSIC_TRACKS[currentTrack];
 
   const tips = getTipsForPath(pathname || "/");
 
@@ -369,34 +326,6 @@ export default function SuperAgentButton() {
       .then((r) => r.json())
       .then((d) => setIsOnline(d.ok))
       .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    if (audioRef.current) audioRef.current.volume = musicVolume;
-  }, [musicVolume]);
-
-  useEffect(() => {
-    const el = audioRef.current;
-    if (!el) return;
-    if (musicPlaying) {
-      el.play().catch(() => setMusicPlaying(false));
-    } else {
-      el.pause();
-    }
-  }, [musicPlaying, currentTrack]);
-
-  const toggleMusic = useCallback(() => {
-    setMusicPlaying((v) => !v);
-  }, []);
-
-  const nextTrack = useCallback(() => {
-    setCurrentTrack((i) => (i + 1) % MUSIC_TRACKS.length);
-    setMusicPlaying(true);
-  }, []);
-
-  const selectTrack = useCallback((idx: number) => {
-    setCurrentTrack(idx);
-    setMusicPlaying(true);
   }, []);
 
   useEffect(() => {
@@ -468,36 +397,13 @@ export default function SuperAgentButton() {
 
   return (
     <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-2">
-      <audio
-        ref={audioRef}
-        src={track.src}
-        loop
-        preload="none"
-        onEnded={nextTrack}
+      <EduAIMusicPlayer
+        mode="mini"
+        onOpenPanel={() => {
+          setOpen(true);
+          setTab("music");
+        }}
       />
-
-      {musicPlaying && (!open || tab !== "music") && (
-        <div className="w-[300px] rounded-2xl border border-emerald-400/20 bg-[#0b1510]/95 text-white shadow-2xl shadow-emerald-900/20 px-3 py-2 flex items-center gap-3 backdrop-blur-xl">
-          <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center text-lg shadow-inner"
-            style={{ background: track.cover }}
-          >
-            ♫
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold truncate">{track.title}</p>
-            <p className="text-[10px] text-emerald-200 truncate">
-              {track.mood}
-            </p>
-          </div>
-          <button
-            onClick={toggleMusic}
-            className="w-9 h-9 rounded-full bg-emerald-500 hover:bg-emerald-400 text-black text-sm font-black transition"
-          >
-            Ⅱ
-          </button>
-        </div>
-      )}
 
       {open && (
         <div
@@ -592,111 +498,8 @@ export default function SuperAgentButton() {
 
           {/* MUSIC TAB */}
           {tab === "music" && (
-            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-gradient-to-b from-emerald-500/[0.06] to-transparent">
-              <div className="rounded-3xl border border-emerald-400/20 bg-[#07130d] text-white p-4 shadow-inner">
-                <div className="flex items-center gap-4">
-                  <div
-                    className="w-20 h-20 rounded-3xl flex items-center justify-center text-3xl shadow-lg"
-                    style={{ background: track.cover }}
-                  >
-                    ♫
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[10px] uppercase tracking-[0.22em] text-emerald-300 font-bold">
-                      EduAI Music
-                    </p>
-                    <h3 className="text-lg font-black leading-tight truncate">
-                      {track.title}
-                    </h3>
-                    <p className="text-xs text-emerald-100/80 truncate">
-                      {track.artist} · {track.mood}
-                    </p>
-                    <p className="text-[10px] text-emerald-200/70 mt-1">
-                      Inspirado en experiencia tipo Spotify/OpenSpot. Sigue
-                      sonando al navegar.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-4 flex items-center justify-center gap-3">
-                  <button
-                    onClick={() =>
-                      selectTrack(
-                        (currentTrack + MUSIC_TRACKS.length - 1) %
-                          MUSIC_TRACKS.length,
-                      )
-                    }
-                    className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/15 transition"
-                  >
-                    ‹
-                  </button>
-                  <button
-                    onClick={toggleMusic}
-                    className="w-14 h-14 rounded-full bg-emerald-500 hover:bg-emerald-400 text-black font-black text-lg shadow-lg shadow-emerald-500/20 transition"
-                  >
-                    {musicPlaying ? "Ⅱ" : "▶"}
-                  </button>
-                  <button
-                    onClick={nextTrack}
-                    className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/15 transition"
-                  >
-                    ›
-                  </button>
-                </div>
-
-                <div className="mt-4">
-                  <div className="flex items-center justify-between text-[10px] text-emerald-100/70 mb-1">
-                    <span>Volumen</span>
-                    <span>{Math.round(musicVolume * 100)}%</span>
-                  </div>
-                  <input
-                    type="range"
-                    min={0}
-                    max={1}
-                    step={0.01}
-                    value={musicVolume}
-                    onChange={(e) => setMusicVolume(Number(e.target.value))}
-                    className="w-full accent-emerald-500"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-bold text-main">
-                    Biblioteca focus
-                  </p>
-                  <Link
-                    href="/exam-focus"
-                    onClick={() => setOpen(false)}
-                    className="text-[11px] text-emerald-700 font-semibold hover:underline"
-                  >
-                    Abrir Exam Focus →
-                  </Link>
-                </div>
-                {MUSIC_TRACKS.map((t, i) => (
-                  <button
-                    key={t.id}
-                    onClick={() => selectTrack(i)}
-                    className={`w-full rounded-2xl border px-3 py-2.5 flex items-center gap-3 text-left transition ${i === currentTrack ? "border-emerald-400 bg-emerald-50" : "border-soft bg-card-soft-theme hover:border-emerald-300"}`}
-                  >
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center text-white"
-                      style={{ background: t.cover }}
-                    >
-                      {i === currentTrack && musicPlaying ? "▶" : "♫"}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold text-main truncate">
-                        {t.title}
-                      </p>
-                      <p className="text-[11px] text-muted2 truncate">
-                        {t.mood} · {t.duration}
-                      </p>
-                    </div>
-                  </button>
-                ))}
-              </div>
+            <div className="flex-1 min-h-0 overflow-hidden p-2 bg-[#050b08]">
+              <EduAIMusicPlayer mode="panel" />
             </div>
           )}
 
