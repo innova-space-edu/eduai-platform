@@ -725,24 +725,24 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
   }
 
   return (
-    <div className="min-h-screen bg-app text-main">
-      <div className="max-w-6xl mx-auto px-4 py-8">
+    <div className="min-h-screen bg-[#f8fafc] text-slate-950">
+      <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <p className="text-blue-400 text-xs tracking-[0.25em] font-semibold mb-2">
-            EXAMEN DOCENTE
+          <p className="text-blue-600 text-xs tracking-[0.25em] font-black mb-2">
+            EXAMEN DOCENTE · CANVA + LATEX + PIE/NEE
           </p>
-          <h1 className="text-3xl md:text-4xl font-extrabold">
+          <h1 className="text-3xl md:text-5xl font-black tracking-tight">
             Crear nuevo examen
           </h1>
-          <p className="text-sub mt-2 text-sm md:text-base">
-            Diseña tu evaluación con un flujo guiado: datos, diseño, IA, preguntas y publicación.
+          <p className="text-slate-600 mt-2 text-sm md:text-base max-w-3xl">
+            Diseña una evaluación clara y visual: datos, diseño accesible, generación IA, preguntas con LaTeX y publicación segura.
           </p>
-          <div className="mt-5 grid gap-2 rounded-[28px] border border-soft bg-card-soft-theme p-2 text-xs font-bold text-sub md:grid-cols-5">
+          <div className="mt-5 grid gap-2 rounded-[28px] border border-slate-200 bg-white p-2 text-xs font-bold text-slate-600 shadow-sm md:grid-cols-5">
             {["1. Datos", "2. Diseño", "3. IA", "4. Preguntas", "5. Publicar"].map((step, index) => (
               <div
                 key={step}
-                className={`rounded-2xl px-3 py-2 text-center ${index === 0 ? "bg-blue-600 text-white" : "bg-card-theme"}`}
+                className={`rounded-2xl px-3 py-2 text-center ${index === 0 ? "bg-blue-600 text-white shadow-sm" : "bg-slate-50 text-slate-600"}`}
               >
                 {step}
               </div>
@@ -755,27 +755,27 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
             {/* ════════════════════════════════════════════════════════════
                 PERSONALIZACIÓN VISUAL — Tema, fuente y accesibilidad PIE
             ════════════════════════════════════════════════════════════ */}
-            <section className="rounded-[28px] border border-teal-500/25 bg-teal-500/[0.04] p-5 md:p-6 space-y-5 shadow-sm">
+            <section className="rounded-[30px] border border-slate-200 bg-white p-5 md:p-6 space-y-5 shadow-sm">
               <button
                 type="button"
                 onClick={() => setVisualOpen((v) => !v)}
                 className="w-full flex items-center justify-between gap-3 text-left"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-teal-600/20 border border-teal-500/30 flex items-center justify-center text-lg">
+                  <div className="w-10 h-10 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-lg">
                     🎨
                   </div>
                   <div>
                     <p className="font-bold text-sm text-main">
-                      Personalización visual
+                      Personalización visual estilo Canva
                     </p>
-                    <p className="text-xs text-teal-400">
-                      {examTheme.replace("_", " ")} · {examFont}{" "}
-                      {pieMode ? "· PIE activo" : ""}
+                    <p className="text-xs text-slate-500">
+                      Tema {examTheme.replace("_", " ")} · fuente {examFont}{" "}
+                      {pieMode ? "· accesibilidad activa" : ""}
                     </p>
                   </div>
                 </div>
-                <span className="rounded-full border border-teal-500/25 bg-teal-500/10 px-3 py-1 text-xs font-bold text-teal-700">
+                <span className="rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
                   {visualOpen ? "Ocultar" : "Configurar"}{" "}
                   {visualOpen ? "↑" : "↓"}
                 </span>
@@ -1092,30 +1092,31 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                       {[
                         {
                           label: "Alternativas",
-                          color: "blue",
+                          tone: "bg-blue-50 border-blue-100",
+                          labelClass: "text-blue-700",
                           val: aiMC,
                           set: setAiMC,
                         },
                         {
                           label: "Verdadero/Falso",
-                          color: "indigo",
+                          tone: "bg-indigo-50 border-indigo-100",
+                          labelClass: "text-indigo-700",
                           val: aiTF,
                           set: setAiTF,
                         },
                         {
                           label: "Desarrollo",
-                          color: "emerald",
+                          tone: "bg-emerald-50 border-emerald-100",
+                          labelClass: "text-emerald-700",
                           val: aiDev,
                           set: setAiDev,
                         },
-                      ].map(({ label, color, val, set }) => (
+                      ].map(({ label, tone, labelClass, val, set }) => (
                         <div
                           key={label}
-                          className={`rounded-2xl bg-${color}-500/[0.06] border border-${color}-500/20 p-3 text-center`}
+                          className={`rounded-2xl border p-3 text-center shadow-sm ${tone}`}
                         >
-                          <p
-                            className={`text-xs text-${color}-400 font-semibold mb-2`}
-                          >
+                          <p className={`text-xs font-semibold mb-2 ${labelClass}`}>
                             {label}
                           </p>
                           <input
