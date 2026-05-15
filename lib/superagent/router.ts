@@ -79,6 +79,47 @@ function detectTargetFromGoal(goal?: string): SuperAgentTarget {
 
   if (
     includesAny(text, [
+      "video",
+      "animación",
+      "animacion",
+      "text to video",
+      "imagen a video",
+      "video educativo",
+    ])
+  ) {
+    return "video"
+  }
+
+  if (
+    includesAny(text, [
+      "música",
+      "musica",
+      "focus",
+      "pomodoro",
+      "concentración",
+      "concentracion",
+    ])
+  ) {
+    return "music"
+  }
+
+  if (
+    includesAny(text, [
+      "código",
+      "codigo",
+      "typescript",
+      "react",
+      "next.js",
+      "supabase",
+      "bug",
+      "build failed",
+    ])
+  ) {
+    return "code"
+  }
+
+  if (
+    includesAny(text, [
       "imagen",
       "ilustración",
       "ilustracion",
@@ -270,7 +311,13 @@ export function buildSuperAgentSuggestion(
     case "matematico":
       return "Detecté trabajo matemático. Conviene usar explicaciones paso a paso, ejercicios o evaluación matemática."
     case "imagenes":
-      return "Detecté una necesidad visual. Conviene preparar un prompt optimizado para generación de imágenes."
+      return "Detecté una necesidad visual. Conviene usar Image Studio o preparar un prompt optimizado para generación de imágenes."
+    case "video":
+      return "Detecté una necesidad de video. Conviene abrir Video Studio o crear un job de video educativo."
+    case "music":
+      return "Detecté una necesidad de concentración. Conviene usar música focus o el módulo Exam Focus."
+    case "code":
+      return "Detecté una tarea de código. Conviene usar el modo coding de EduAI Claw para generar o reparar archivos."
     case "audio":
       return "Detecté una necesidad de voz o audio. Conviene activar una preparación de narración o podcast."
     case "examen":
