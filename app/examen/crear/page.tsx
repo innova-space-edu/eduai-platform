@@ -12,6 +12,11 @@ import { analyzeAccessibility } from "@/lib/agents/accessibility-agent";
 import ExamMathText from "@/components/ui/ExamMathText";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import {
+  getOAs,
+  type NivelKey,
+  type OA,
+} from "@/lib/mineduc-oa";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 type Difficulty = "facil" | "medio" | "dificil" | "mixto";
@@ -19,6 +24,42 @@ type QuestionType = "multiple_choice" | "true_false" | "development";
 type AIStatus = "idle" | "generating" | "done" | "error";
 
 const AI_TOTAL_LIMIT = 36;
+
+
+const EXAM_CREATOR_STEPS = [
+  { id: "datos", label: "1. Datos", icon: "📝" },
+  { id: "objetivos", label: "2. OA", icon: "🎯" },
+  { id: "diseno", label: "3. Diseño", icon: "🎨" },
+  { id: "ia", label: "4. IA", icon: "✨" },
+  { id: "preguntas", label: "5. Preguntas", icon: "📋" },
+  { id: "publicar", label: "6. Publicar", icon: "🚀" },
+] as const;
+
+const COURSE_OPTIONS: Record<NivelKey, string[]> = {
+  parvularia: ["Sala cuna menor", "Sala cuna mayor", "Medio menor", "Medio mayor", "NT1", "NT2"],
+  basica: ["1° básico", "2° básico", "3° básico", "4° básico", "5° básico", "6° básico", "7° básico", "8° básico"],
+  media: ["1° medio", "2° medio", "3° medio", "4° medio"],
+};
+
+function getExamCreatorStepIndex(): number {
+  if (typeof window === "undefined") return 0;
+  let active = 0;
+  const offset = 170;
+  EXAM_CREATOR_STEPS.forEach((step, index) => {
+    const el = document.getElementById(`exam-section-${step.id}`);
+    if (!el) return;
+    const top = el.getBoundingClientRect().top;
+    if (top <= offset) active = index;
+  });
+  return active;
+}
+
+function normalizeTextForSearch(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
 
 type MultipleChoiceQuestion = {
   id: string;
@@ -63,7 +104,11 @@ type ExamTheme =
   | "adhd_focus"
   | "high_contrast"
   | "stem"
-  | "kids";
+  | "kids"
+  | "blue_focus"
+  | "green_calm"
+  | "lavender_reading"
+  | "warm_attention";
 
 type ExamFont = "inter" | "lexend" | "atkinson" | "poppins";
 
@@ -272,9 +317,14 @@ export default function CrearExamenPage() {
   const [dyslexiaMode, setDyslexiaMode] = useState(false);
   const [adhdMode, setAdhdMode] = useState(false);
   const [lowVisionMode, setLowVisionMode] = useState(false);
-  const [visualOpen, setVisualOpen] = useState(false);
+  const [visualOpen, setVisualOpen] = useState(true);
   const [questionAddType, setQuestionAddType] =
     useState<QuestionType>("multiple_choice");
+  const [activeStep, setActiveStep] = useState(0);
+  const [curriculumNivel, setCurriculumNivel] = useState<NivelKey>("media");
+  const [curriculumCurso, setCurriculumCurso] = useState("1° medio");
+  const [oaQuery, setOaQuery] = useState("");
+  const [selectedOAIds, setSelectedOAIds] = useState<string[]>([]);
 
   // ── Auto-recomendación de diseño (DesignAgent) ────────────────────────────
   const designRec = useMemo(
@@ -301,12 +351,73 @@ export default function CrearExamenPage() {
 
   const subjectTips = useMemo(() => getSubjectSuggestions(subject), [subject]);
 
+  const availableOAs = useMemo<OA[]>(() => {
+    try {
+      return getOAs(curriculumNivel, curriculumCurso, subject);
+    } catch (error) {
+      return [];
+    }
+  }, [curriculumNivel, curriculumCurso, subject]);
+
+  const filteredOAs = useMemo(() => {
+    const query = normalizeTextForSearch(oaQuery.trim());
+    if (!query) return availableOAs.slice(0, 24);
+    return availableOAs
+      .filter((oa) =>
+        normalizeTextForSearch(
+          `${oa.codigoOficial || oa.id} ${oa.texto} ${oa.unidadNombre || ""} ${oa.ejes?.join(" ") || ""}`,
+        ).includes(query),
+      )
+      .slice(0, 30);
+  }, [availableOAs, oaQuery]);
+
+  const selectedOAs = useMemo(
+    () => availableOAs.filter((oa) => selectedOAIds.includes(oa.id)),
+    [availableOAs, selectedOAIds],
+  );
+
+  useEffect(() => {
+    setSelectedOAIds((prev) =>
+      prev.filter((id) => availableOAs.some((oa) => oa.id === id)),
+    );
+  }, [availableOAs]);
+
+  useEffect(() => {
+    const onScroll = () => setActiveStep(getExamCreatorStepIndex());
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, []);
+
+  const toggleOA = (oaId: string) => {
+    setSelectedOAIds((prev) =>
+      prev.includes(oaId) ? prev.filter((id) => id !== oaId) : [...prev, oaId],
+    );
+  };
+
+  const jumpToSection = (sectionId: string) => {
+    document
+      .getElementById(`exam-section-${sectionId}`)
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   // Auto-aplicar tema/fuente cuando cambia asignatura (solo si el docente no eligió manualmente)
   useEffect(() => {
     if (examTheme === "classic") setExamTheme(designRec.theme);
     if (examFont === "inter") setExamFont(designRec.font);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [subject, pieMode]);
+
+  useEffect(() => {
+    const options = COURSE_OPTIONS[curriculumNivel];
+    if (!options.includes(curriculumCurso)) {
+      setCurriculumCurso(options[0]);
+    }
+  }, [curriculumNivel, curriculumCurso]);
 
   // ── Preguntas manuales ────────────────────────────────────────────────────
   const [questions, setQuestions] = useState<Question[]>([
@@ -447,6 +558,17 @@ export default function CrearExamenPage() {
             theme: examTheme,
             font: examFont,
             subject,
+            curriculum: {
+              nivel: curriculumNivel,
+              curso: curriculumCurso,
+              selectedOAIds,
+              selectedOAs: selectedOAs.map((oa) => ({
+                id: oa.id,
+                codigoOficial: oa.codigoOficial,
+                texto: oa.texto,
+                unidadNombre: oa.unidadNombre,
+              })),
+            },
             accessibility: {
               pieMode,
               dyslexiaMode,
@@ -482,11 +604,19 @@ export default function CrearExamenPage() {
     };
     const diffTxt = diffMap[aiDiff];
     const subjectCtx = subject ? `\nAsignatura: ${subject}` : "";
+    const selectedOAContext = selectedOAs.length
+      ? `\nOBJETIVOS DE APRENDIZAJE MINEDUC A EVALUAR:\n${selectedOAs
+          .map(
+            (oa, index) =>
+              `${index + 1}. ${oa.codigoOficial || oa.id}: ${oa.texto}`,
+          )
+          .join("\n")}`
+      : "";
     const pieCtx = pieMode
       ? `\nIMPORTANTE — Este examen es para estudiantes con NEE/PIE:${dyslexiaMode ? " dislexia," : ""}${adhdMode ? " TDAH," : ""}${lowVisionMode ? " baja visión," : ""} usa lenguaje claro, frases cortas, instrucciones simples y evita exceso de texto.`
       : "";
     return `Genera un examen escolar en español sobre el siguiente tema:
-"${aiPrompt.trim() || topic.trim() || "tema del docente"}"${subjectCtx}${pieCtx}
+"${aiPrompt.trim() || topic.trim() || "tema del docente"}"${subjectCtx}${selectedOAContext}${pieCtx}
 
 Total de preguntas: ${totalQ}
 - ${aiMC} preguntas de ALTERNATIVAS (tipo multiple_choice, 4 opciones, una correcta)
@@ -725,7 +855,7 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
   }
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-950">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,#dbeafe_0,#f8fafc_28%,#fff7ed_68%,#f8fafc_100%)] text-slate-950">
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -738,24 +868,358 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
           <p className="text-slate-600 mt-2 text-sm md:text-base max-w-3xl">
             Diseña una evaluación clara y visual: datos, diseño accesible, generación IA, preguntas con LaTeX y publicación segura.
           </p>
-          <div className="mt-5 grid gap-2 rounded-[28px] border border-slate-200 bg-white p-2 text-xs font-bold text-slate-600 shadow-sm md:grid-cols-5">
-            {["1. Datos", "2. Diseño", "3. IA", "4. Preguntas", "5. Publicar"].map((step, index) => (
-              <div
-                key={step}
-                className={`rounded-2xl px-3 py-2 text-center ${index === 0 ? "bg-blue-600 text-white shadow-sm" : "bg-slate-50 text-slate-600"}`}
-              >
-                {step}
-              </div>
-            ))}
+          <div className="sticky top-0 z-40 mt-5 rounded-[30px] border border-slate-200 bg-white/90 p-2 text-xs font-bold text-slate-600 shadow-lg shadow-slate-200/60 backdrop-blur-xl">
+            <div className="grid gap-2 md:grid-cols-6">
+              {EXAM_CREATOR_STEPS.map((step, index) => (
+                <button
+                  key={step.id}
+                  type="button"
+                  onClick={() => jumpToSection(step.id)}
+                  className={`rounded-2xl px-3 py-2.5 text-center transition-all ${
+                    activeStep === index
+                      ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm"
+                      : "bg-slate-50 text-slate-600 hover:bg-blue-50 hover:text-blue-700"
+                  }`}
+                >
+                  <span className="mr-1">{step.icon}</span>
+                  {step.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
         <div className="grid xl:grid-cols-[1fr_330px] gap-6">
           <div className="space-y-6">
             {/* ════════════════════════════════════════════════════════════
+                INFORMACIÓN GENERAL
+            ════════════════════════════════════════════════════════════ */}
+            <section id="exam-section-datos" className="scroll-mt-32 rounded-[28px] border border-sky-200 bg-white/95 p-5 md:p-6 shadow-sm ring-1 ring-white/80">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-blue-500">Paso 1</p>
+                  <h2 className="text-lg font-black">Información general</h2>
+                </div>
+                <span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs font-bold text-blue-600">Obligatorio</span>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs text-sub font-semibold block mb-2">
+                    ASIGNATURA
+                  </label>
+                  <select
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    className="w-full rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main focus:outline-none focus:border-blue-500/40"
+                  >
+                    {[
+                      "Matemática",
+                      "Lenguaje",
+                      "Ciencias Naturales",
+                      "Física",
+                      "Química",
+                      "Biología",
+                      "Historia",
+                      "Educación Física",
+                      "Artes",
+                      "Inglés",
+                      "Tecnología",
+                      "Otra",
+                    ].map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-sub font-semibold block mb-2">
+                    TÍTULO
+                  </label>
+                  <input
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Ej: Prueba de porcentajes e interés"
+                    className="w-full rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main focus:outline-none focus:border-blue-500/40"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-sub font-semibold block mb-2">
+                    TEMA
+                  </label>
+                  <input
+                    value={topic}
+                    onChange={(e) => setTopic(e.target.value)}
+                    placeholder="Ej: Matemática financiera"
+                    className="w-full rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main focus:outline-none focus:border-blue-500/40"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-sub font-semibold block mb-2">
+                    DIFICULTAD
+                  </label>
+                  <select
+                    value={difficulty}
+                    onChange={(e) =>
+                      setDifficulty(e.target.value as Difficulty)
+                    }
+                    className="w-full rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main focus:outline-none focus:border-blue-500/40"
+                  >
+                    <option value="facil">Fácil</option>
+                    <option value="medio">Medio</option>
+                    <option value="dificil">Difícil</option>
+                    <option value="mixto">Mixto</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-sub font-semibold block mb-2">
+                    TIEMPO (MINUTOS)
+                  </label>
+                  <input
+                    type="number"
+                    min={5}
+                    value={timeLimit}
+                    onChange={(e) => setTimeLimit(Number(e.target.value || 60))}
+                    className="w-full rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main focus:outline-none focus:border-blue-500/40"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-sub font-semibold block mb-2">
+                    EXIGENCIA (%)
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={examPercentage}
+                    onChange={(e) =>
+                      setExamPercentage(Number(e.target.value || 60))
+                    }
+                    className="w-full rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main focus:outline-none focus:border-blue-500/40"
+                  />
+                </div>
+                <div className="flex flex-col justify-end">
+                  <div className="grid grid-cols-1 gap-2 text-sm">
+                    {[
+                      {
+                        label: "Mostrar resultado al estudiante",
+                        val: showResultToStudent,
+                        set: setShowResultToStudent,
+                      },
+                      {
+                        label: "Permitir revisión",
+                        val: allowReview,
+                        set: setAllowReview,
+                      },
+                      {
+                        label: "Hacer examen público",
+                        val: isPublic,
+                        set: setIsPublic,
+                      },
+                    ].map(({ label, val, set }) => (
+                      <label
+                        key={label}
+                        className="flex items-center gap-2 text-sub cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={val}
+                          onChange={(e) => set(e.target.checked)}
+                        />
+                        {label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Modo Seguro (nuevo sistema) ────────────────────────────── */}
+              <div className="mt-5 rounded-2xl border border-amber-500/20 bg-amber-500/[0.04] p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <span className="text-xl mt-0.5">🔒</span>
+                    <div>
+                      <p className="text-sm font-bold text-main">Modo Seguro</p>
+                      <p className="text-xs text-sub mt-0.5 leading-relaxed">
+                        Activa el sistema de seguridad avanzado: fullscreen
+                        forzado, bloqueo de teclado/clipboard, detección de
+                        cambio de pestaña, sesiones con heartbeat y panel de
+                        incidentes para el docente.
+                      </p>
+                      {securityMode && (
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {[
+                            "Fullscreen obligatorio",
+                            "Teclado bloqueado",
+                            "Sin copiar/pegar",
+                            "Detección de pestaña",
+                            "Registro de incidentes",
+                            "Panel admin",
+                          ].map((f) => (
+                            <span
+                              key={f}
+                              className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                            >
+                              {f}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSecurityMode((s) => !s)}
+                    className={`relative flex-shrink-0 w-12 h-6 rounded-full transition-colors ${securityMode ? "bg-amber-500" : "bg-card-soft-theme"}`}
+                  >
+                    <span
+                      className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${securityMode ? "translate-x-6" : "translate-x-0.5"}`}
+                    />
+                  </button>
+                </div>
+              </div>
+
+              {/* Instrucciones */}
+              <div className="mt-4">
+                <label className="text-xs text-sub font-semibold block mb-2">
+                  INSTRUCCIONES
+                </label>
+                <textarea
+                  value={instructions}
+                  onChange={(e) => setInstructions(e.target.value)}
+                  placeholder="Escribe instrucciones para tus estudiantes..."
+                  className="w-full min-h-[120px] rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main focus:outline-none focus:border-blue-500/40"
+                />
+              </div>
+            </section>
+
+            {/* ════════════════════════════════════════════════════════════
+                OBJETIVOS DE APRENDIZAJE MINEDUC
+            ════════════════════════════════════════════════════════════ */}
+            <section id="exam-section-objetivos" className="scroll-mt-32 rounded-[30px] border border-emerald-200 bg-gradient-to-br from-emerald-50 via-teal-50 to-white p-5 md:p-6 shadow-sm ring-1 ring-white/80">
+              <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.22em] text-emerald-600">Paso 2 · OA MINEDUC</p>
+                  <h2 className="text-xl font-black text-slate-950">Objetivos de aprendizaje a evaluar</h2>
+                  <p className="mt-1 max-w-2xl text-sm leading-relaxed text-slate-600">
+                    Selecciona los OA oficiales que el examen debe medir. La IA los usará como contexto para generar preguntas más alineadas al currículum chileno.
+                  </p>
+                </div>
+                <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
+                  {selectedOAs.length} OA seleccionado{selectedOAs.length !== 1 ? "s" : ""}
+                </span>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-[180px_180px_1fr]">
+                <div>
+                  <label className="mb-2 block text-xs font-bold text-slate-600">NIVEL</label>
+                  <select
+                    value={curriculumNivel}
+                    onChange={(e) => {
+                      const nextNivel = e.target.value as NivelKey;
+                      setCurriculumNivel(nextNivel);
+                      setCurriculumCurso(COURSE_OPTIONS[nextNivel][0]);
+                      setSelectedOAIds([]);
+                    }}
+                    className="w-full rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100"
+                  >
+                    <option value="parvularia">Parvularia</option>
+                    <option value="basica">Básica</option>
+                    <option value="media">Media</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-2 block text-xs font-bold text-slate-600">CURSO</label>
+                  <select
+                    value={curriculumCurso}
+                    onChange={(e) => {
+                      setCurriculumCurso(e.target.value);
+                      setSelectedOAIds([]);
+                    }}
+                    className="w-full rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100"
+                  >
+                    {COURSE_OPTIONS[curriculumNivel].map((curso) => (
+                      <option key={curso} value={curso}>{curso}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-2 block text-xs font-bold text-slate-600">BUSCAR OA</label>
+                  <input
+                    value={oaQuery}
+                    onChange={(e) => setOaQuery(e.target.value)}
+                    placeholder="Ej: fracciones, probabilidad, funciones, lectura..."
+                    className="w-full rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100"
+                  />
+                </div>
+              </div>
+
+              {availableOAs.length === 0 ? (
+                <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                  No encontré OA locales para <strong>{subject}</strong> en <strong>{curriculumCurso}</strong>. Puedes seguir usando el tema manual o cambiar asignatura/curso.
+                </div>
+              ) : (
+                <div className="mt-5 grid gap-3 lg:grid-cols-2">
+                  {filteredOAs.map((oa) => {
+                    const selected = selectedOAIds.includes(oa.id);
+                    return (
+                      <button
+                        key={oa.id}
+                        type="button"
+                        onClick={() => toggleOA(oa.id)}
+                        className={[
+                          "group min-h-[118px] rounded-2xl border p-4 text-left transition-all",
+                          selected
+                            ? "border-emerald-400 bg-emerald-100/80 shadow-sm ring-2 ring-emerald-200"
+                            : "border-slate-200 bg-white hover:border-emerald-300 hover:bg-emerald-50/60",
+                        ].join(" ")}
+                      >
+                        <div className="mb-2 flex items-center justify-between gap-3">
+                          <span className={[
+                            "rounded-full px-2.5 py-1 text-[11px] font-black",
+                            selected ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-700",
+                          ].join(" ")}>
+                            {oa.codigoOficial || oa.id}
+                          </span>
+                          <span className={selected ? "text-emerald-700" : "text-slate-300 group-hover:text-emerald-500"}>
+                            {selected ? "✓ seleccionado" : "+ agregar"}
+                          </span>
+                        </div>
+                        <p className="line-clamp-3 text-sm font-semibold leading-relaxed text-slate-900">{oa.texto}</p>
+                        {(oa.unidadNombre || oa.ejes?.length) && (
+                          <p className="mt-2 line-clamp-1 text-xs text-slate-500">
+                            {oa.unidadNombre || oa.ejes?.join(" · ")}
+                          </p>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {selectedOAs.length > 0 && (
+                <div className="mt-5 rounded-2xl border border-emerald-200 bg-white px-4 py-3">
+                  <p className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-emerald-600">OA que se enviarán a la IA</p>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedOAs.map((oa) => (
+                      <button
+                        key={oa.id}
+                        type="button"
+                        onClick={() => toggleOA(oa.id)}
+                        className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800 hover:bg-emerald-200"
+                      >
+                        {oa.codigoOficial || oa.id} ×
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </section>
+
+            {/* ════════════════════════════════════════════════════════════
                 PERSONALIZACIÓN VISUAL — Tema, fuente y accesibilidad PIE
             ════════════════════════════════════════════════════════════ */}
-            <section className="rounded-[30px] border border-slate-200 bg-white p-5 md:p-6 space-y-5 shadow-sm">
+            <section id="exam-section-diseno" className="scroll-mt-32 rounded-[30px] border border-violet-200 bg-white/95 p-5 md:p-6 space-y-5 shadow-sm ring-1 ring-white/80">
               <button
                 type="button"
                 onClick={() => setVisualOpen((v) => !v)}
@@ -814,69 +1278,35 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                       {(
                         [
-                          {
-                            value: "classic",
-                            label: "Classic",
-                            icon: "📄",
-                            desc: "Limpio y formal",
-                          },
-                          {
-                            value: "modern",
-                            label: "Modern",
-                            icon: "✦",
-                            desc: "Minimalista",
-                          },
-                          {
-                            value: "canva",
-                            label: "Canva",
-                            icon: "🃏",
-                            desc: "Tarjetas visuales",
-                          },
-                          {
-                            value: "pie_calm",
-                            label: "PIE Calm",
-                            icon: "🌿",
-                            desc: "Cálido, bajo estímulo",
-                          },
-                          {
-                            value: "adhd_focus",
-                            label: "ADHD Focus",
-                            icon: "🎯",
-                            desc: "Un bloque a la vez",
-                          },
-                          {
-                            value: "high_contrast",
-                            label: "Alto contraste",
-                            icon: "👁",
-                            desc: "Baja visión",
-                          },
-                          {
-                            value: "stem",
-                            label: "STEM",
-                            icon: "⚗️",
-                            desc: "Ciencias exactas",
-                          },
-                          {
-                            value: "kids",
-                            label: "Kids",
-                            icon: "🐣",
-                            desc: "Básica / PIE",
-                          },
+                          { value: "classic", label: "Classic", icon: "📄", desc: "Limpio y formal", tone: "from-slate-50 to-white border-slate-200" },
+                          { value: "modern", label: "Modern", icon: "✦", desc: "Azul institucional", tone: "from-blue-50 to-white border-blue-200" },
+                          { value: "canva", label: "Canva", icon: "🃏", desc: "Visual y colorido", tone: "from-indigo-50 to-pink-50 border-indigo-200" },
+                          { value: "pie_calm", label: "PIE Calm", icon: "🌿", desc: "Crema y verde suave", tone: "from-emerald-50 to-amber-50 border-emerald-200" },
+                          { value: "adhd_focus", label: "TDAH Focus", icon: "🎯", desc: "Azul/verde foco", tone: "from-sky-50 to-emerald-50 border-sky-200" },
+                          { value: "high_contrast", label: "Alto contraste", icon: "👁", desc: "Baja visión", tone: "from-yellow-50 to-white border-slate-800" },
+                          { value: "stem", label: "STEM", icon: "⚗️", desc: "Ciencia exacta", tone: "from-cyan-50 to-blue-50 border-cyan-200" },
+                          { value: "kids", label: "Kids", icon: "🐣", desc: "Básica / PIE", tone: "from-orange-50 to-rose-50 border-orange-200" },
+                          { value: "blue_focus", label: "Blue Focus", icon: "🧠", desc: "Concentración tranquila", tone: "from-blue-100 to-cyan-50 border-blue-300" },
+                          { value: "green_calm", label: "Green Calm", icon: "🍃", desc: "Baja ansiedad", tone: "from-green-100 to-emerald-50 border-green-300" },
+                          { value: "lavender_reading", label: "Lavender Reading", icon: "📚", desc: "Lectura amable", tone: "from-purple-100 to-violet-50 border-purple-300" },
+                          { value: "warm_attention", label: "Warm Attention", icon: "☀️", desc: "Energía sin saturar", tone: "from-amber-100 to-orange-50 border-amber-300" },
                         ] as {
                           value: ExamTheme;
                           label: string;
                           icon: string;
                           desc: string;
+                          tone: string;
                         }[]
-                      ).map(({ value, label, icon, desc }) => (
+                      ).map(({ value, label, icon, desc, tone }) => (
                         <button
                           key={value}
                           onClick={() => setExamTheme(value)}
                           className={[
-                            "rounded-2xl border p-3 text-left transition-all",
+                            "rounded-2xl border bg-gradient-to-br p-3 text-left transition-all",
+                            tone,
                             examTheme === value
-                              ? "border-teal-500/60 bg-teal-500/10"
-                              : "border-soft bg-card-soft-theme hover:border-teal-500/30",
+                              ? "ring-2 ring-teal-400 shadow-sm scale-[1.01]"
+                              : "hover:ring-2 hover:ring-teal-100",
                           ].join(" ")}
                         >
                           <span className="text-xl block mb-1">{icon}</span>
@@ -885,6 +1315,26 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                         </button>
                       ))}
                     </div>
+                  </div>
+
+                  <div className="rounded-3xl border border-cyan-200 bg-gradient-to-br from-cyan-50 via-emerald-50 to-amber-50 p-4">
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-700">Guía rápida de color para concentración</p>
+                    <div className="mt-3 grid gap-2 md:grid-cols-4">
+                      {[
+                        { label: "Azul suave", desc: "foco y calma", cls: "bg-blue-100 text-blue-900 border-blue-200" },
+                        { label: "Verde suave", desc: "regulación y seguridad", cls: "bg-emerald-100 text-emerald-900 border-emerald-200" },
+                        { label: "Crema", desc: "menos brillo que blanco", cls: "bg-amber-50 text-amber-900 border-amber-200" },
+                        { label: "Lavanda", desc: "lectura amable", cls: "bg-violet-100 text-violet-900 border-violet-200" },
+                      ].map((item) => (
+                        <div key={item.label} className={`rounded-2xl border px-3 py-2 ${item.cls}`}>
+                          <p className="text-xs font-black">{item.label}</p>
+                          <p className="text-[11px] opacity-80">{item.desc}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="mt-3 text-xs leading-relaxed text-slate-600">
+                      Para NEE se priorizan fondos claros no blancos puros, contraste suficiente, acentos suaves y baja saturación. El rojo/amarillo intenso se reserva solo para alertas puntuales.
+                    </p>
                   </div>
 
                   {/* Selector de fuente */}
@@ -1039,7 +1489,7 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
             {/* ════════════════════════════════════════════════════════════
                 PANEL IA — Generador de preguntas con OpenRouter / Groq
             ════════════════════════════════════════════════════════════ */}
-            <section className="rounded-2xl border border-violet-500/25 bg-violet-500/[0.04] p-5 md:p-6">
+            <section id="exam-section-ia" className="scroll-mt-32 rounded-[30px] border border-violet-200 bg-gradient-to-br from-violet-50 via-fuchsia-50 to-white p-5 md:p-6 shadow-sm">
               {/* Toggle header */}
               <button
                 onClick={() => setAiOpen((o) => !o)}
@@ -1341,211 +1791,9 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
             </section>
 
             {/* ════════════════════════════════════════════════════════════
-                INFORMACIÓN GENERAL
-            ════════════════════════════════════════════════════════════ */}
-            <section className="rounded-[28px] border border-medium bg-card-soft-theme p-5 md:p-6 shadow-sm">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs font-black uppercase tracking-[0.2em] text-blue-500">Paso 1</p>
-                  <h2 className="text-lg font-black">Información general</h2>
-                </div>
-                <span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs font-bold text-blue-600">Obligatorio</span>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs text-sub font-semibold block mb-2">
-                    ASIGNATURA
-                  </label>
-                  <select
-                    value={subject}
-                    onChange={(e) => setSubject(e.target.value)}
-                    className="w-full rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main focus:outline-none focus:border-blue-500/40"
-                  >
-                    {[
-                      "Matemática",
-                      "Lenguaje",
-                      "Ciencias Naturales",
-                      "Física",
-                      "Química",
-                      "Biología",
-                      "Historia",
-                      "Educación Física",
-                      "Artes",
-                      "Inglés",
-                      "Tecnología",
-                      "Otra",
-                    ].map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-sub font-semibold block mb-2">
-                    TÍTULO
-                  </label>
-                  <input
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Ej: Prueba de porcentajes e interés"
-                    className="w-full rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main focus:outline-none focus:border-blue-500/40"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-sub font-semibold block mb-2">
-                    TEMA
-                  </label>
-                  <input
-                    value={topic}
-                    onChange={(e) => setTopic(e.target.value)}
-                    placeholder="Ej: Matemática financiera"
-                    className="w-full rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main focus:outline-none focus:border-blue-500/40"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-sub font-semibold block mb-2">
-                    DIFICULTAD
-                  </label>
-                  <select
-                    value={difficulty}
-                    onChange={(e) =>
-                      setDifficulty(e.target.value as Difficulty)
-                    }
-                    className="w-full rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main focus:outline-none focus:border-blue-500/40"
-                  >
-                    <option value="facil">Fácil</option>
-                    <option value="medio">Medio</option>
-                    <option value="dificil">Difícil</option>
-                    <option value="mixto">Mixto</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-sub font-semibold block mb-2">
-                    TIEMPO (MINUTOS)
-                  </label>
-                  <input
-                    type="number"
-                    min={5}
-                    value={timeLimit}
-                    onChange={(e) => setTimeLimit(Number(e.target.value || 60))}
-                    className="w-full rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main focus:outline-none focus:border-blue-500/40"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-sub font-semibold block mb-2">
-                    EXIGENCIA (%)
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={100}
-                    value={examPercentage}
-                    onChange={(e) =>
-                      setExamPercentage(Number(e.target.value || 60))
-                    }
-                    className="w-full rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main focus:outline-none focus:border-blue-500/40"
-                  />
-                </div>
-                <div className="flex flex-col justify-end">
-                  <div className="grid grid-cols-1 gap-2 text-sm">
-                    {[
-                      {
-                        label: "Mostrar resultado al estudiante",
-                        val: showResultToStudent,
-                        set: setShowResultToStudent,
-                      },
-                      {
-                        label: "Permitir revisión",
-                        val: allowReview,
-                        set: setAllowReview,
-                      },
-                      {
-                        label: "Hacer examen público",
-                        val: isPublic,
-                        set: setIsPublic,
-                      },
-                    ].map(({ label, val, set }) => (
-                      <label
-                        key={label}
-                        className="flex items-center gap-2 text-sub cursor-pointer"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={val}
-                          onChange={(e) => set(e.target.checked)}
-                        />
-                        {label}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* ── Modo Seguro (nuevo sistema) ────────────────────────────── */}
-              <div className="mt-5 rounded-2xl border border-amber-500/20 bg-amber-500/[0.04] p-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-start gap-3">
-                    <span className="text-xl mt-0.5">🔒</span>
-                    <div>
-                      <p className="text-sm font-bold text-main">Modo Seguro</p>
-                      <p className="text-xs text-sub mt-0.5 leading-relaxed">
-                        Activa el sistema de seguridad avanzado: fullscreen
-                        forzado, bloqueo de teclado/clipboard, detección de
-                        cambio de pestaña, sesiones con heartbeat y panel de
-                        incidentes para el docente.
-                      </p>
-                      {securityMode && (
-                        <div className="mt-2 flex flex-wrap gap-1.5">
-                          {[
-                            "Fullscreen obligatorio",
-                            "Teclado bloqueado",
-                            "Sin copiar/pegar",
-                            "Detección de pestaña",
-                            "Registro de incidentes",
-                            "Panel admin",
-                          ].map((f) => (
-                            <span
-                              key={f}
-                              className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                            >
-                              {f}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setSecurityMode((s) => !s)}
-                    className={`relative flex-shrink-0 w-12 h-6 rounded-full transition-colors ${securityMode ? "bg-amber-500" : "bg-card-soft-theme"}`}
-                  >
-                    <span
-                      className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${securityMode ? "translate-x-6" : "translate-x-0.5"}`}
-                    />
-                  </button>
-                </div>
-              </div>
-
-              {/* Instrucciones */}
-              <div className="mt-4">
-                <label className="text-xs text-sub font-semibold block mb-2">
-                  INSTRUCCIONES
-                </label>
-                <textarea
-                  value={instructions}
-                  onChange={(e) => setInstructions(e.target.value)}
-                  placeholder="Escribe instrucciones para tus estudiantes..."
-                  className="w-full min-h-[120px] rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main focus:outline-none focus:border-blue-500/40"
-                />
-              </div>
-            </section>
-
-            {/* ════════════════════════════════════════════════════════════
                 PREGUNTAS DEL EXAMEN
             ════════════════════════════════════════════════════════════ */}
-            <section className="rounded-2xl border border-medium bg-card-soft-theme p-5 md:p-6">
+            <section id="exam-section-preguntas" className="scroll-mt-32 rounded-[30px] border border-emerald-200 bg-white/95 p-5 md:p-6 shadow-sm">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-5">
                 <h2 className="text-lg font-bold">Preguntas del examen</h2>
                 <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
@@ -1962,7 +2210,7 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
               SIDEBAR — Resumen + Guardar
           ════════════════════════════════════════════════════════════ */}
           <aside className="space-y-6">
-            <section className="rounded-2xl border border-medium bg-card-soft-theme p-5 sticky top-6">
+            <section id="exam-section-publicar" className="rounded-[28px] border border-blue-200 bg-white/95 p-5 sticky top-28 shadow-sm ring-1 ring-white/80">
               <h2 className="text-lg font-bold mb-4">Resumen</h2>
 
               <div className="space-y-3 text-sm">
@@ -1972,6 +2220,7 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                   { label: "Tiempo", value: `${timeLimit} min` },
                   { label: "Exigencia", value: `${examPercentage}%` },
                   { label: "Dificultad", value: difficulty },
+                  { label: "OA evaluados", value: selectedOAs.length },
                 ].map(({ label, value }) => (
                   <div key={label} className="flex justify-between gap-3">
                     <span className="text-sub">{label}</span>
