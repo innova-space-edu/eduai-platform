@@ -597,8 +597,25 @@ function RightPanel() {
       <div className="rounded-3xl border border-white/10 bg-white/[0.06] p-3">
         <p className="text-sm font-black">Buscar online</p>
         <p className="mt-1 text-xs text-slate-400">
-          Busca previews o música reproducible según proveedor disponible.
+          Primero busca música completa en Jamendo/Audius y deja iTunes como preview.
         </p>
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.12em]">
+          <span className="rounded-full bg-emerald-400/15 px-2 py-1 text-emerald-200">
+            Jamendo
+          </span>
+          <span className="rounded-full bg-violet-400/15 px-2 py-1 text-violet-200">
+            Audius
+          </span>
+          <span className="rounded-full bg-sky-400/15 px-2 py-1 text-sky-200">
+            iTunes preview
+          </span>
+          <a
+            href="/api/music/jamendo/connect"
+            className="rounded-full bg-white/10 px-2 py-1 text-slate-200 hover:bg-white/15"
+          >
+            Conectar Jamendo
+          </a>
+        </div>
         <div className="mt-3 flex gap-2">
           <input
             value={music.onlineQuery}
