@@ -119,12 +119,14 @@ function sourceLabel(source?: EduMusicTrack["source"]) {
   if (source === "jamendo") return "Jamendo";
   if (source === "audius") return "Audius";
   if (source === "itunes") return "DJ 30s";
+  if (source === "youtube") return "YouTube video";
   if (source === "external") return "Externo";
   return "EduAI";
 }
 
 function playbackKind(track?: EduMusicTrack) {
   if (track?.source === "itunes") return "Preview 30 segundos · modo DJ";
+  if (track?.source === "youtube") return "Video embebido · fallback YouTube";
   if (track?.source === "jamendo" || track?.source === "audius")
     return "Canción completa reproducible";
   return "Pista completa EduAI";
@@ -216,12 +218,20 @@ function PlayButton({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
   const cls =
     size === "lg" ? "h-11 w-11" : size === "sm" ? "h-8 w-8" : "h-10 w-10";
   const iconCls = size === "lg" ? "h-5 w-5" : "h-4 w-4";
+  const isYouTube = music.currentTrack.source === "youtube";
   return (
     <button
       type="button"
+      disabled={isYouTube}
       onClick={() => music.setPlaying((value) => !value)}
-      className={`${cls} inline-flex shrink-0 items-center justify-center rounded-full bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/25 transition hover:scale-105 hover:bg-emerald-300`}
-      aria-label={music.playing ? "Pausar" : "Reproducir"}
+      className={cn(
+        `${cls} inline-flex shrink-0 items-center justify-center rounded-full text-slate-950 shadow-lg shadow-emerald-500/25 transition`,
+        isYouTube
+          ? "cursor-not-allowed bg-slate-600 text-slate-300 shadow-none"
+          : "bg-emerald-400 hover:scale-105 hover:bg-emerald-300",
+      )}
+      aria-label={isYouTube ? "Usa el reproductor de YouTube" : music.playing ? "Pausar" : "Reproducir"}
+      title={isYouTube ? "Usa el reproductor de YouTube integrado" : undefined}
     >
       {music.playing ? (
         <Pause className={iconCls} fill="currentColor" />
@@ -665,7 +675,22 @@ function PlaylistHeader({ tracks }: { tracks: EduMusicTrack[] }) {
 }
 
 function CurrentTrackArtwork({ track }: { track: EduMusicTrack }) {
-  const artwork = track.artworkUrl || (track.cover?.startsWith("http") ? track.cover : undefined);
+  const artwork = track.artworkUrl || track.videoThumbnail || (track.cover?.startsWith("http") ? track.cover : undefined);
+
+  if (track.source === "youtube" && track.videoEmbedUrl) {
+    return (
+      <div className="aspect-video w-full max-w-xl overflow-hidden rounded-3xl border border-emerald-400/20 bg-black shadow-2xl shadow-black/35">
+        <iframe
+          title={track.title}
+          src={`${track.videoEmbedUrl}?rel=0&modestbranding=1`}
+          className="h-full w-full"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          loading="lazy"
+        />
+      </div>
+    );
+  }
 
   if (artwork) {
     return (
@@ -766,6 +791,12 @@ function MainPanel({ tracks }: { tracks: EduMusicTrack[] }) {
               </IconButton>
             </div>
 
+            {track.source === "youtube" && (
+              <p className="mt-3 text-xs font-semibold text-emerald-200/90">
+                Esta canción no apareció como audio completo en Jamendo/Audius. Usa el video embebido de YouTube como respaldo.
+              </p>
+            )}
+
             <div className="mt-5 grid grid-cols-2 gap-2 max-sm:grid-cols-1">
               <button
                 type="button"
@@ -841,7 +872,7 @@ function RightPanel() {
       <section className="shrink-0 rounded-2xl border border-emerald-400/20 bg-[#14171f] p-3">
         <p className="text-sm font-black text-white">Buscar canciones</p>
         <p className="mt-1 text-xs text-slate-400">
-          Busca canciones completas con Jamendo/Audius o previews para modo DJ.
+          Busca canciones completas con Jamendo/Audius. Si no hay audio completo, EduAI puede mostrar video de YouTube.
         </p>
         <div className="mt-3 flex gap-2">
           <input
@@ -866,11 +897,12 @@ function RightPanel() {
             { id: "full", label: "Completas" },
             { id: "preview", label: "DJ 30s" },
             { id: "all", label: "Todo" },
+            { id: "youtube", label: "YouTube" },
           ].map((item) => (
             <button
               key={item.id}
               type="button"
-              onClick={() => music.setOnlineProviderMode(item.id as "all" | "full" | "preview")}
+              onClick={() => music.setOnlineProviderMode(item.id as "all" | "full" | "preview" | "youtube")}
               className={cn(
                 "rounded-full px-2 py-1 transition",
                 music.onlineProviderMode === item.id
@@ -883,7 +915,7 @@ function RightPanel() {
           ))}
         </div>
         <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
-          Completas usa Jamendo/Audius. DJ 30s usa previews iTunes y avanza automáticamente al terminar cada pista.
+          Completas usa Jamendo/Audius. Si no encuentra audio completo, muestra video de YouTube. DJ 30s usa previews iTunes.
         </p>
       </section>
 
