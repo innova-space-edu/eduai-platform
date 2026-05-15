@@ -407,8 +407,11 @@ async function handle(req: NextRequest) {
   const previewResults = (await Promise.all(previewTasks)).flat();
   let youtubeFallback: NormalizedTrack[] = [];
 
-  if ((normalizedProvider === "all" || normalizedProvider === "full" || normalizedProvider === "youtube") &&
-      (fullResults.length < 3 || normalizedProvider === "youtube")) {
+  const shouldUseYouTubeFallback =
+    normalizedProvider === "youtube" ||
+    ((normalizedProvider === "full" || normalizedProvider === "all") && fullResults.length === 0);
+
+  if (shouldUseYouTubeFallback) {
     youtubeFallback = await searchYouTube(query, Math.min(8, limit)).catch(() => []);
     if (normalizedProvider === "youtube") fullResults = [];
   }
@@ -424,7 +427,7 @@ async function handle(req: NextRequest) {
     query,
     limit,
     fallbackUsed: Boolean(youtubeFallback.length),
-    fallbackReason: youtubeFallback.length ? "No hubo suficientes canciones completas en Jamendo/Audius; se muestran videos embebibles de YouTube." : null,
+    fallbackReason: youtubeFallback.length ? "No se encontró audio completo en Jamendo/Audius para esa búsqueda; se muestran videos embebibles de YouTube." : null,
     youtubeKeyMissing: !process.env.YOUTUBE_API_KEY && (normalizedProvider === "full" || normalizedProvider === "youtube"),
     youtubeSearchUrl: !process.env.YOUTUBE_API_KEY && (normalizedProvider === "full" || normalizedProvider === "youtube") ? `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}` : null,
     sources: {
