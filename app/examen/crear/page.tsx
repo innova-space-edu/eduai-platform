@@ -17,6 +17,7 @@ import {
   type NivelKey,
   type OA,
 } from "@/lib/mineduc-oa";
+import type { ExamTheme, ExamFont } from "@/lib/exam/theme-utils";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 type Difficulty = "facil" | "medio" | "dificil" | "mixto";
@@ -95,22 +96,6 @@ type DevelopmentQuestion = {
   maxPoints?: number;
   imageUrl?: string;
 };
-
-type ExamTheme =
-  | "classic"
-  | "modern"
-  | "canva"
-  | "pie_calm"
-  | "adhd_focus"
-  | "high_contrast"
-  | "stem"
-  | "kids"
-  | "blue_focus"
-  | "green_calm"
-  | "lavender_reading"
-  | "warm_attention";
-
-type ExamFont = "inter" | "lexend" | "atkinson" | "poppins";
 
 type Question =
   | MultipleChoiceQuestion
