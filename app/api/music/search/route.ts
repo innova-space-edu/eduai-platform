@@ -13,8 +13,11 @@ type NormalizedTrack = {
   cover: string;
   artworkUrl?: string;
   externalUrl?: string;
-  source: "itunes" | "jamendo" | "audius";
+  source: "itunes" | "jamendo" | "audius" | "youtube";
   tags: string[];
+  youtubeVideoId?: string;
+  videoEmbedUrl?: string;
+  videoThumbnail?: string;
 };
 
 type ItunesResult = {
@@ -46,6 +49,22 @@ type JamendoResult = {
     tags?: { genres?: string[]; instruments?: string[]; vartags?: string[] };
   };
   licenses?: Array<{ name?: string; url?: string }>;
+};
+
+
+
+type YouTubeSearchResult = {
+  id?: { videoId?: string };
+  snippet?: {
+    title?: string;
+    channelTitle?: string;
+    description?: string;
+    thumbnails?: {
+      default?: { url?: string };
+      medium?: { url?: string };
+      high?: { url?: string };
+    };
+  };
 };
 
 type AudiusResult = {
@@ -148,7 +167,7 @@ async function searchItunes(query: string, limit: number): Promise<NormalizedTra
       const title = item.trackName || "Canción";
       const artist = item.artistName || "Artista";
       const album = item.collectionName || "Resultado online";
-      const artwork = item.artworkUrl600 || item.artworkUrl100;
+      const artwork = (item.artworkUrl600 || item.artworkUrl100 || "").replace("100x100bb", "600x600bb");
       return {
         id: `itunes-${item.trackId || safeId(`${artist}-${title}`)}`,
         title,
@@ -184,7 +203,7 @@ async function jamendoRequest(
     limit: String(Math.min(limit, 50)),
     include: "musicinfo licenses",
     audioformat: "mp32",
-    imagesize: "300",
+    imagesize: "600",
     type: "single albumtrack",
     groupby: "artist_id",
     boost: "popularity_month",
@@ -267,9 +286,9 @@ async function searchAudius(query: string, limit: number): Promise<NormalizedTra
     .slice(0, Math.min(limit, 25))
     .map((item) => {
       const artwork =
+        item.artwork?.["1000x1000"] ||
         item.artwork?.["480x480"] ||
-        item.artwork?.["150x150"] ||
-        item.artwork?.["1000x1000"];
+        item.artwork?.["150x150"];
       return {
         id: `audius-${item.id}`,
         title: item.title || "Canción",
@@ -287,6 +306,57 @@ async function searchAudius(query: string, limit: number): Promise<NormalizedTra
           : undefined,
         source: "audius" as const,
         tags: ["audius", item.genre, item.mood].filter(Boolean) as string[],
+      };
+    });
+}
+
+async function searchYouTube(query: string, limit: number): Promise<NormalizedTrack[]> {
+  const key = process.env.YOUTUBE_API_KEY;
+  if (!key) return [];
+
+  const params = new URLSearchParams({
+    part: "snippet",
+    q: `${query} official audio OR official video`,
+    type: "video",
+    videoEmbeddable: "true",
+    maxResults: String(Math.min(limit, 10)),
+    key,
+    safeSearch: "moderate",
+  });
+
+  const res = await fetch(`https://www.googleapis.com/youtube/v3/search?${params.toString()}`, {
+    headers: { "User-Agent": "EduAI-Music/1.6" },
+    next: { revalidate: 1800 },
+  });
+  if (!res.ok) throw new Error(`YouTube Data API ${res.status}`);
+  const data = await res.json();
+
+  return ((data.items || []) as YouTubeSearchResult[])
+    .filter((item) => item.id?.videoId && item.snippet?.title)
+    .map((item) => {
+      const videoId = item.id!.videoId!;
+      const title = item.snippet?.title || "Video musical";
+      const artist = item.snippet?.channelTitle || "YouTube";
+      const thumbnail =
+        item.snippet?.thumbnails?.high?.url ||
+        item.snippet?.thumbnails?.medium?.url ||
+        item.snippet?.thumbnails?.default?.url;
+      return {
+        id: `youtube-${videoId}`,
+        title,
+        artist,
+        album: "YouTube video",
+        mood: moodFromText(`${title} ${artist} ${item.snippet?.description || ""}`),
+        duration: "Video",
+        src: "",
+        cover: thumbnail || "linear-gradient(135deg,#ef4444,#111827)",
+        artworkUrl: thumbnail,
+        externalUrl: `https://www.youtube.com/watch?v=${videoId}`,
+        source: "youtube" as const,
+        tags: ["youtube", "video", "fallback"],
+        youtubeVideoId: videoId,
+        videoEmbedUrl: `https://www.youtube.com/embed/${videoId}`,
+        videoThumbnail: thumbnail,
       };
     });
 }
@@ -318,18 +388,32 @@ async function handle(req: NextRequest) {
     );
   }
 
-  const tasks: Array<Promise<NormalizedTrack[]>> = [];
-  // Prefer legal playable full streams first. iTunes remains as 30s preview / DJ fallback.
-  if (normalizedProvider === "all" || normalizedProvider === "full" || normalizedProvider === "jamendo")
-    tasks.push(searchJamendo(query, limit).catch(() => []));
-  if (normalizedProvider === "all" || normalizedProvider === "full" || normalizedProvider === "audius")
-    tasks.push(searchAudius(query, limit).catch(() => []));
-  if (normalizedProvider === "all" || normalizedProvider === "preview" || normalizedProvider === "itunes")
-    tasks.push(searchItunes(query, limit).catch(() => []));
+  const fullTasks: Array<Promise<NormalizedTrack[]>> = [];
+  const previewTasks: Array<Promise<NormalizedTrack[]>> = [];
 
-  const results = await Promise.all(tasks);
+  // Prefer legal playable full streams first. YouTube is a video fallback, not MP3 extraction.
+  if (normalizedProvider === "all" || normalizedProvider === "full" || normalizedProvider === "jamendo") {
+    fullTasks.push(searchJamendo(query, limit).catch(() => []));
+  }
+  if (normalizedProvider === "all" || normalizedProvider === "full" || normalizedProvider === "audius") {
+    fullTasks.push(searchAudius(query, limit).catch(() => []));
+  }
+  if (normalizedProvider === "all" || normalizedProvider === "preview" || normalizedProvider === "itunes") {
+    previewTasks.push(searchItunes(query, limit).catch(() => []));
+  }
+
+  let fullResults = (await Promise.all(fullTasks)).flat();
+  const previewResults = (await Promise.all(previewTasks)).flat();
+  let youtubeFallback: NormalizedTrack[] = [];
+
+  if ((normalizedProvider === "all" || normalizedProvider === "full" || normalizedProvider === "youtube") &&
+      (!fullResults.length || normalizedProvider === "youtube")) {
+    youtubeFallback = await searchYouTube(query, Math.min(8, limit)).catch(() => []);
+    if (normalizedProvider === "youtube") fullResults = [];
+  }
+
   const map = new Map<string, NormalizedTrack>();
-  results.flat().forEach((track) => map.set(track.id, track));
+  [...fullResults, ...youtubeFallback, ...previewResults].forEach((track) => map.set(track.id, track));
   const tracks = Array.from(map.values()).slice(0, limit);
 
   return NextResponse.json({
@@ -338,11 +422,14 @@ async function handle(req: NextRequest) {
     requestedProvider: provider,
     query,
     limit,
+    fallbackUsed: Boolean(youtubeFallback.length),
+    fallbackReason: youtubeFallback.length ? "No hubo suficientes canciones completas en Jamendo/Audius; se muestran videos embebibles de YouTube." : null,
     sources: {
       jamendo: Boolean(process.env.JAMENDO_CLIENT_ID),
       jamendoOAuth: Boolean(process.env.JAMENDO_CLIENT_SECRET),
       audius: true,
       itunes: true,
+      youtube: Boolean(process.env.YOUTUBE_API_KEY),
     },
     tracks,
   });
