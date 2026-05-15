@@ -1307,15 +1307,17 @@ export default function ExamenPublicoPage() {
           />
         ) : null}
 
-        <div className="max-w-5xl mx-auto px-4 py-6 exam-root exam-content">
-          <div className="flex items-center justify-between gap-4 mb-6">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-extrabold">
-                {exam.title}
-              </h1>
-              <p className="text-sub text-sm mt-1">
-                {exam.topic || "Evaluación"}
-              </p>
+        <div className="max-w-7xl mx-auto px-4 py-6 exam-root exam-content">
+          <div className="mb-6 overflow-hidden rounded-[28px] border border-soft bg-card-theme shadow-sm">
+            <div className="flex flex-col gap-4 bg-gradient-to-br from-blue-500/10 via-violet-500/5 to-transparent px-5 py-5 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.24em] text-blue-500">Evaluación en curso</p>
+                <h1 className="mt-1 text-2xl md:text-3xl font-extrabold">
+                  {exam.title}
+                </h1>
+                <p className="text-sub text-sm mt-1">
+                  {exam.topic || "Evaluación"}
+                </p>
               {securitySessionId ? (
                 <p className="text-muted2 text-xs mt-2">
                   Seguridad activa · sesión {securitySessionId}
@@ -1328,19 +1330,32 @@ export default function ExamenPublicoPage() {
               ) : null}
             </div>
 
-            <div className="text-right">
-              <p className="text-muted2 text-xs">Tiempo restante</p>
-              <p className="text-2xl font-bold text-blue-400">
-                {fmt(timeLeft)}
-              </p>
-              <p className="text-muted2 text-xs mt-1">
-                {answeredCount}/{totalQ} respondidas
-              </p>
-              {isKiosk ? (
-                <p className="text-muted2 text-[11px] mt-1">
-                  Fullscreen: {isFullscreen ? "activo" : "inactivo"}
+              <div className="rounded-3xl border border-blue-500/15 bg-white/70 px-5 py-4 text-right shadow-sm backdrop-blur">
+                <p className="text-muted2 text-xs">Tiempo restante</p>
+                <p className="text-3xl font-black tabular-nums text-blue-500">
+                  {fmt(timeLeft)}
                 </p>
-              ) : null}
+                <p className="text-muted2 text-xs mt-1">
+                  {answeredCount}/{totalQ} respondidas
+                </p>
+                {isKiosk ? (
+                  <p className="text-muted2 text-[11px] mt-1">
+                    Fullscreen: {isFullscreen ? "activo" : "inactivo"}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+            <div className="border-t border-soft bg-card-soft-theme px-5 py-3">
+              <div className="flex items-center justify-between text-xs font-bold text-sub">
+                <span>Progreso</span>
+                <span>{Math.round((answeredCount / Math.max(1, totalQ)) * 100)}%</span>
+              </div>
+              <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-blue-500 to-violet-500 transition-all"
+                  style={{ width: `${(answeredCount / Math.max(1, totalQ)) * 100}%` }}
+                />
+              </div>
             </div>
           </div>
 
@@ -1356,7 +1371,7 @@ export default function ExamenPublicoPage() {
             </div>
           ) : null}
 
-          <div className="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start">
+          <div className="grid lg:grid-cols-[minmax(0,1fr)_340px] gap-6 items-start">
             <main className="space-y-3 min-w-0">
               {/* Botón narrar pregunta — PIE/accesibilidad */}
               {exam?.settings?.accessibility?.pieMode && (
@@ -1399,8 +1414,14 @@ export default function ExamenPublicoPage() {
               />
             </main>
 
-            <aside className="rounded-2xl border border-medium bg-card-soft-theme p-5 lg:sticky lg:top-6">
-              <h3 className="text-sm font-bold text-main mb-4">Navegación</h3>
+            <aside className="rounded-[28px] border border-medium bg-card-soft-theme p-5 shadow-sm lg:sticky lg:top-6">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-black text-main">Navegación</h3>
+                  <p className="text-xs text-muted2">Avanza a tu ritmo y revisa antes de entregar.</p>
+                </div>
+                <span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs font-black text-blue-600">{curQ + 1}/{totalQ}</span>
+              </div>
 
               <div className="grid grid-cols-5 gap-2 mb-6">
                 {qs.map((_: any, i: number) => {
