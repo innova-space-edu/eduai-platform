@@ -1,9 +1,8 @@
 /**
- * middleware.ts — EduAI Platform v3
+ * middleware.ts — EduAI Platform v4
  * ─────────────────────────────────────────────────────────────────────────────
- * FIX v3: supabase.auth.getUser() se ejecuta ANTES del early return de
- * rate limiting para /api/agents/*. Sin esto, el access token puede estar
- * vencido cuando el handler lo lee → 401 Unauthorized en el planificador.
+ * v4: Agrega rutas del SuperAgent, modo focus y exam-focus a protección.
+ *     Rate limiting específico para /api/superagent/* y /api/agents/tts.
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
@@ -13,10 +12,14 @@ import { NextResponse, type NextRequest } from "next/server"
 const PROTECTED_ROUTES = [
   "/dashboard", "/study", "/profile", "/admin",
   "/creator-hub", "/audio-lab", "/image-studio", "/workspace",
+  "/superagent",    // ← nuevo: todo el hub del superagente
+  "/exam-focus",    // ← nuevo: modo focus de estudio
 ]
+
 const AUTH_ROUTES = ["/login", "/register"]
 
 const RATE_LIMITS: Record<string, { limit: number; windowSecs: number }> = {
+  // APIs existentes — sin cambios
   "/api/agents/chat":          { limit: 30, windowSecs: 60 },
   "/api/agents/socratic":      { limit: 30, windowSecs: 60 },
   "/api/agents/theory":        { limit: 20, windowSecs: 60 },
@@ -29,6 +32,13 @@ const RATE_LIMITS: Record<string, { limit: number; windowSecs: number }> = {
   "/api/agents/gemini-image":  { limit: 10, windowSecs: 60 },
   "/api/agents/podcast-wav":   { limit: 5,  windowSecs: 60 },
   "/api/agents/transcription": { limit: 5,  windowSecs: 60 },
+  // TTS — límite generoso para PIE (narración de preguntas)
+  "/api/agents/tts":           { limit: 40, windowSecs: 60 },
+  // SuperAgent chat — límite moderado (usa múltiples providers gratis)
+  "/api/superagent/chat":      { limit: 25, windowSecs: 60 },
+  // Exam security — sin límite estricto (heartbeats frecuentes)
+  "/api/exam-security/event":  { limit: 60, windowSecs: 60 },
+  // Default
   "__default_agents__":        { limit: 20, windowSecs: 60 },
 }
 
@@ -43,17 +53,17 @@ async function checkRateLimit(
   try {
     const key = `rl:${identifier}`
     const res = await fetch(url, {
-      method: "POST",
+      method:  "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify(["INCR", key]),
+      body:    JSON.stringify(["INCR", key]),
     })
     if (!res.ok) return { allowed: true, remaining: limit }
     const { result: current } = await res.json()
     if (current === 1) {
       fetch(url, {
-        method: "POST",
+        method:  "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify(["EXPIRE", key, windowSecs]),
+        body:    JSON.stringify(["EXPIRE", key, windowSecs]),
       }).catch(() => {})
     }
     return { allowed: current <= limit, remaining: Math.max(0, limit - current) }
@@ -65,21 +75,22 @@ async function checkRateLimit(
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // ── 1. Refresh de sesión Supabase — SIEMPRE primero ───────────────────────
-  // Refresca el access token si está por vencer y escribe cookies actualizadas.
-  // DEBE ejecutarse antes de cualquier early return, incluyendo rutas /api/*.
+  // ── 1. Refresh de sesión Supabase — SIEMPRE primero ─────────────────────
   let response = NextResponse.next({ request })
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
       cookies: {
         getAll() { return request.cookies.getAll() },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => { request.cookies.set(name, value) })
           response = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) => { response.cookies.set(name, value, options) })
+          cookiesToSet.forEach(({ name, value, options }) => {
+            response.cookies.set(name, value, options)
+          })
         },
       },
     }
@@ -87,21 +98,40 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  // ── 2. Rate limiting para /api/agents/* ────────────────────────────────────
-  if (pathname.startsWith("/api/agents/")) {
-    const authCookie = request.cookies.getAll().find(c => c.name.includes("auth-token"))?.value
-    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown"
-    const identifier = authCookie
+  // ── 2. Rate limiting — /api/agents/* y /api/superagent/* ──────────────────
+  const isAgentAPI     = pathname.startsWith("/api/agents/")
+  const isSuperagentAPI = pathname.startsWith("/api/superagent/")
+
+  if (isAgentAPI || isSuperagentAPI) {
+    const authCookie  = request.cookies.getAll()
+      .find(c => c.name.includes("auth-token"))?.value
+    const ip          = request.headers.get("x-forwarded-for")
+      ?.split(",")[0]?.trim() || "unknown"
+    const identifier  = authCookie
       ? `user:${authCookie.slice(0, 32)}:${pathname}`
       : `ip:${ip}:${pathname}`
-    const config = RATE_LIMITS[pathname] || RATE_LIMITS["__default_agents__"]
+
+    const config        = RATE_LIMITS[pathname] || RATE_LIMITS["__default_agents__"]
     const effectiveLimit = authCookie ? config.limit : Math.floor(config.limit / 2)
-    const { allowed, remaining } = await checkRateLimit(identifier, effectiveLimit, config.windowSecs)
+    const { allowed, remaining } = await checkRateLimit(
+      identifier, effectiveLimit, config.windowSecs
+    )
 
     if (!allowed) {
       return new NextResponse(
-        JSON.stringify({ error: "Rate limit exceeded", message: "Demasiadas solicitudes. Espera un momento.", retryAfter: config.windowSecs }),
-        { status: 429, headers: { "Content-Type": "application/json", "Retry-After": String(config.windowSecs), "X-RateLimit-Remaining": "0" } }
+        JSON.stringify({
+          error:      "Rate limit exceeded",
+          message:    "Demasiadas solicitudes. Espera un momento.",
+          retryAfter: config.windowSecs,
+        }),
+        {
+          status:  429,
+          headers: {
+            "Content-Type":        "application/json",
+            "Retry-After":         String(config.windowSecs),
+            "X-RateLimit-Remaining": "0",
+          },
+        }
       )
     }
 
@@ -111,14 +141,20 @@ export async function middleware(request: NextRequest) {
 
   // ── 3. Protección de rutas de página ──────────────────────────────────────
   const isProtected = PROTECTED_ROUTES.some(r => pathname.startsWith(r))
-  const isAuth = AUTH_ROUTES.some(r => pathname === r)
+  const isAuth      = AUTH_ROUTES.some(r => pathname === r)
 
-  if (!user && isProtected) return NextResponse.redirect(new URL("/login", request.url))
-  if (user && isAuth)       return NextResponse.redirect(new URL("/dashboard", request.url))
+  if (!user && isProtected) {
+    return NextResponse.redirect(new URL("/login", request.url))
+  }
+  if (user && isAuth) {
+    return NextResponse.redirect(new URL("/dashboard", request.url))
+  }
 
   return response
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+  ],
 }
