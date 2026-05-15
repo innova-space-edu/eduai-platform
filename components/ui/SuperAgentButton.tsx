@@ -397,13 +397,15 @@ export default function SuperAgentButton() {
 
   return (
     <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-2">
-      <EduAIMusicPlayer
-        mode="mini"
-        onOpenPanel={() => {
-          setOpen(true);
-          setTab("music");
-        }}
-      />
+      {!pathname?.startsWith("/music") && (
+        <EduAIMusicPlayer
+          mode="mini"
+          onOpenPanel={() => {
+            setOpen(true);
+            setTab("music");
+          }}
+        />
+      )}
 
       {open && (
         <div
