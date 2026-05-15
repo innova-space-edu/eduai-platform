@@ -736,9 +736,18 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
             Crear nuevo examen
           </h1>
           <p className="text-sub mt-2 text-sm md:text-base">
-            Diseña tu evaluación manualmente o usa la IA para generar preguntas
-            automáticamente.
+            Diseña tu evaluación con un flujo guiado: datos, diseño, IA, preguntas y publicación.
           </p>
+          <div className="mt-5 grid gap-2 rounded-[28px] border border-soft bg-card-soft-theme p-2 text-xs font-bold text-sub md:grid-cols-5">
+            {["1. Datos", "2. Diseño", "3. IA", "4. Preguntas", "5. Publicar"].map((step, index) => (
+              <div
+                key={step}
+                className={`rounded-2xl px-3 py-2 text-center ${index === 0 ? "bg-blue-600 text-white" : "bg-card-theme"}`}
+              >
+                {step}
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="grid xl:grid-cols-[1fr_330px] gap-6">
@@ -746,7 +755,7 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
             {/* ════════════════════════════════════════════════════════════
                 PERSONALIZACIÓN VISUAL — Tema, fuente y accesibilidad PIE
             ════════════════════════════════════════════════════════════ */}
-            <section className="rounded-2xl border border-teal-500/25 bg-teal-500/[0.04] p-5 md:p-6 space-y-5">
+            <section className="rounded-[28px] border border-teal-500/25 bg-teal-500/[0.04] p-5 md:p-6 space-y-5 shadow-sm">
               <button
                 type="button"
                 onClick={() => setVisualOpen((v) => !v)}
@@ -1333,8 +1342,14 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
             {/* ════════════════════════════════════════════════════════════
                 INFORMACIÓN GENERAL
             ════════════════════════════════════════════════════════════ */}
-            <section className="rounded-2xl border border-medium bg-card-soft-theme p-5 md:p-6">
-              <h2 className="text-lg font-bold mb-4">Información general</h2>
+            <section className="rounded-[28px] border border-medium bg-card-soft-theme p-5 md:p-6 shadow-sm">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-blue-500">Paso 1</p>
+                  <h2 className="text-lg font-black">Información general</h2>
+                </div>
+                <span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs font-bold text-blue-600">Obligatorio</span>
+              </div>
 
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
