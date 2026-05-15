@@ -316,9 +316,10 @@ async function searchYouTube(query: string, limit: number): Promise<NormalizedTr
 
   const params = new URLSearchParams({
     part: "snippet",
-    q: `${query} official audio OR official video`,
+    q: `${query} official audio official video`,
     type: "video",
     videoEmbeddable: "true",
+    videoSyndicated: "true",
     maxResults: String(Math.min(limit, 10)),
     key,
     safeSearch: "moderate",
@@ -407,7 +408,7 @@ async function handle(req: NextRequest) {
   let youtubeFallback: NormalizedTrack[] = [];
 
   if ((normalizedProvider === "all" || normalizedProvider === "full" || normalizedProvider === "youtube") &&
-      (!fullResults.length || normalizedProvider === "youtube")) {
+      (fullResults.length < 3 || normalizedProvider === "youtube")) {
     youtubeFallback = await searchYouTube(query, Math.min(8, limit)).catch(() => []);
     if (normalizedProvider === "youtube") fullResults = [];
   }
@@ -424,6 +425,8 @@ async function handle(req: NextRequest) {
     limit,
     fallbackUsed: Boolean(youtubeFallback.length),
     fallbackReason: youtubeFallback.length ? "No hubo suficientes canciones completas en Jamendo/Audius; se muestran videos embebibles de YouTube." : null,
+    youtubeKeyMissing: !process.env.YOUTUBE_API_KEY && (normalizedProvider === "full" || normalizedProvider === "youtube"),
+    youtubeSearchUrl: !process.env.YOUTUBE_API_KEY && (normalizedProvider === "full" || normalizedProvider === "youtube") ? `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}` : null,
     sources: {
       jamendo: Boolean(process.env.JAMENDO_CLIENT_ID),
       jamendoOAuth: Boolean(process.env.JAMENDO_CLIENT_SECRET),
