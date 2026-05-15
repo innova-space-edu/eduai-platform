@@ -93,10 +93,23 @@ function StatusDot({ online }: { online: boolean }) {
 }
 
 function MsgContent({ text }: { text: string }) {
-  const parts = text.split(/(\[[^\]]+\]\([^)]+\))/g)
+  const parts = text.split(/(!\[[^\]]*\]\((?:data:image\/[^)]+|https?:\/\/[^)]+)\)|\[[^\]]+\]\([^)]+\)|<audio controls src="data:audio\/mpeg;base64,[^"]+"><\/audio>)/g)
   return (
     <span className="whitespace-pre-wrap text-sm leading-relaxed">
       {parts.map((p, i) => {
+        const img = p.match(/^!\[([^\]]*)\]\((data:image\/[^)]+|https?:\/\/[^)]+)\)$/)
+        if (img) return (
+          <img
+            key={i}
+            src={img[2]}
+            alt={img[1] || "Imagen generada"}
+            className="my-2 max-h-56 w-full rounded-xl border border-soft object-contain bg-white"
+          />
+        )
+
+        const audio = p.match(/^<audio controls src="(data:audio\/mpeg;base64,[^"]+)"><\/audio>$/)
+        if (audio) return <audio key={i} controls src={audio[1]} className="mt-2 w-full" />
+
         const m = p.match(/^\[([^\]]+)\]\(([^)]+)\)$/)
         if (m) return (
           <Link key={i} href={m[2]} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-violet-100 text-violet-700 hover:bg-violet-200 font-medium text-xs transition mx-0.5">
