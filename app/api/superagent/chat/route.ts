@@ -69,6 +69,7 @@ export async function POST(req: NextRequest) {
       systemPrompt,
       stream: wantStream = false,
       context,
+      skipTools = false,
     } = body as {
       messages: Message[]
       task?: AITaskType
@@ -81,6 +82,7 @@ export async function POST(req: NextRequest) {
         examTitle?: string
         studentCourse?: string
       }
+      skipTools?: boolean
     }
 
     if (!Array.isArray(messages) || messages.length === 0) {
@@ -100,6 +102,27 @@ export async function POST(req: NextRequest) {
     if (context?.page)    sysPrompt += `\nPágina actual: ${context.page}`
     if (context?.examTitle) sysPrompt += `\nExamen en edición: "${context.examTitle}"`
     if (context?.studentCourse) sysPrompt += `\nCurso: ${context.studentCourse}`
+
+    // ── Llamada interna sin tools: evita recursión cuando una herramienta usa IA ──
+    if (skipTools) {
+      const aiResult = await callAIv5(messages, {
+        task,
+        maxTokens,
+        systemPrompt: sysPrompt,
+      })
+
+      return Response.json(
+        {
+          success: true,
+          text: aiResult.text,
+          provider: aiResult.provider,
+          model: aiResult.model,
+          task,
+          wasToolCall: false,
+        },
+        { status: 200 }
+      )
+    }
 
     // ── Streaming (solo Groq, el más rápido) ──────────────────────────────
     if (wantStream) {
@@ -205,7 +228,9 @@ export async function POST(req: NextRequest) {
 
     const baseUrl = req.nextUrl.origin
 
-    const result = await runCoreCycle(messages, coreContext, baseUrl)
+    const result = await runCoreCycle(messages, coreContext, baseUrl, {
+      headers: req.headers,
+    })
 
     return Response.json(
       {
