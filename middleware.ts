@@ -2,7 +2,7 @@
  * middleware.ts — EduAI Platform v4
  * ─────────────────────────────────────────────────────────────────────────────
  * v4: Agrega rutas del SuperAgent, modo focus y exam-focus a protección.
- *     Rate limiting específico para /api/superagent/* y /api/agents/tts.
+ *     Rate limiting específico para /api/superagent/* y rutas TTS.
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
@@ -34,6 +34,7 @@ const RATE_LIMITS: Record<string, { limit: number; windowSecs: number }> = {
   "/api/agents/transcription": { limit: 5,  windowSecs: 60 },
   // TTS — límite generoso para PIE (narración de preguntas)
   "/api/agents/tts":           { limit: 40, windowSecs: 60 },
+  "/api/agents/tts-chunk":     { limit: 40, windowSecs: 60 },
   // SuperAgent chat — límite moderado (usa múltiples providers gratis)
   "/api/superagent/chat":      { limit: 25, windowSecs: 60 },
   // Exam security — sin límite estricto (heartbeats frecuentes)
