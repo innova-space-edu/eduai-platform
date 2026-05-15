@@ -27,7 +27,7 @@ type MusicView =
   | "queue";
 type RepeatMode = "off" | "one" | "all";
 
-type OnlineProviderMode = "all" | "full" | "preview";
+type OnlineProviderMode = "all" | "full" | "preview" | "youtube";
 
 type StoredState = {
   trackId?: string;
@@ -303,9 +303,14 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
+    if (currentTrack?.source === "youtube" || !currentTrack?.src) {
+      audio.pause();
+      if (playing) setPlaying(false);
+      return;
+    }
     if (playing) audio.play().catch(() => setPlaying(false));
     else audio.pause();
-  }, [playing, currentTrack?.src]);
+  }, [playing, currentTrack?.src, currentTrack?.source]);
 
   const playTrack = useCallback(
     (track: EduMusicTrack, queueFrom?: EduMusicTrack[]) => {
@@ -522,7 +527,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         if (!tracks.length) {
           setOnlineError(
             onlineProviderMode === "full"
-              ? "No encontré canciones completas en Jamendo/Audius para esa búsqueda. Prueba con otro término o cambia a DJ 30s."
+              ? "No encontré canciones completas en Jamendo/Audius ni videos embebibles de YouTube. Prueba otro término o cambia a DJ 30s."
               : "No encontré resultados reproducibles para esa búsqueda.",
           );
           return;
@@ -610,7 +615,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     <MusicContext.Provider value={value}>
       <audio
         ref={audioRef}
-        src={currentTrack?.src}
+        src={currentTrack?.source === "youtube" ? undefined : currentTrack?.src}
         preload="none"
         onEnded={nextTrack}
       />
