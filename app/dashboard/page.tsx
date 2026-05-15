@@ -8,7 +8,7 @@ import MissionsPanel from "./MissionsPanel"
 import {
   Bot, BookOpen, MessageCircle, Users,
   Sparkles, UserCircle2, LogOut,
-  Flame, Zap, BookMarked, BarChart3, Search, FolderKanban, ShieldCheck
+  Flame, Zap, BookMarked, BarChart3, Search, FolderKanban, ShieldCheck, Music2
 } from "lucide-react"
 
 const LEVELS = [
@@ -24,6 +24,7 @@ const NAV_LINKS = [
   { href: "/agentes", icon: Bot, label: "Agentes", color: "#2563eb" },
   { href: "/sessions", icon: BookOpen, label: "Sesiones", color: "#7c3aed" },
   { href: "/chat", icon: MessageCircle, label: "Chat", color: "#059669" },
+  { href: "/music", icon: Music2, label: "Música", color: "#10b981" },
   { href: "/collab", icon: Users, label: "Colaborar", color: "#0d9488" },
   { href: "/workspace", icon: FolderKanban, label: "Workspace", color: "#4338ca" },
   { href: "/profile", icon: UserCircle2, label: "Perfil", color: "var(--text-muted)" },
