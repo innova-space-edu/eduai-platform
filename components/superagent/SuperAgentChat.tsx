@@ -50,6 +50,7 @@ function uid() {
 
 function renderMd(text: string) {
   return text
+    .replace(/!\[([^\]]*)\]\((data:image\/[^)]+|https?:\/\/[^)]+)\)/g, "<img src=\"$2\" alt=\"$1\" class=\"mt-3 max-h-80 w-full rounded-xl border border-soft object-contain bg-white\" />")
     .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
     .replace(/\*(.*?)\*/g, "<em>$1</em>")
     .replace(/`([^`]+)`/g,
