@@ -1,66 +1,51 @@
-// components/exam/QuestionCard.tsx
-// ─────────────────────────────────────────────────────────────────────────────
-// Renderiza una pregunta del examen con:
-//  - Imagen opcional (imageUrl)
-//  - Los 3 tipos: multiple_choice, true_false, development
-//  - Clases exam-option / exam-question-image del sistema de temas
-//  - Compatible con ExamMathText para LaTeX
-// ─────────────────────────────────────────────────────────────────────────────
+"use client";
 
-"use client"
-
-import ExamMathText from "@/components/ui/ExamMathText"
-
-// ── Tipos ─────────────────────────────────────────────────────────────────────
+import ExamMathText from "@/components/ui/ExamMathText";
 
 interface RubricItem {
-  criteria: string
-  points: number
+  criteria: string;
+  points: number;
 }
 
 interface Question {
-  id?: string
-  type: "multiple_choice" | "true_false" | "development"
-  question?: string
-  statement?: string
-  options?: string[]
-  correctAnswer?: number
-  explanation?: string
-  maxPoints?: number
-  selectionPoints?: number
-  justificationMaxPoints?: number
-  rubric?: RubricItem[]
-  imageUrl?: string
+  id?: string;
+  type: "multiple_choice" | "true_false" | "development";
+  question?: string;
+  statement?: string;
+  options?: string[];
+  correctAnswer?: number;
+  explanation?: string;
+  maxPoints?: number;
+  selectionPoints?: number;
+  justificationMaxPoints?: number;
+  rubric?: RubricItem[];
+  imageUrl?: string;
 }
 
 interface QuestionCardProps {
-  question: Question
-  index: number    // 0-based
-  total: number
-
-  // Respuestas actuales
-  mcAnswer?:     number
-  tfAnswer?:     number
-  tfJustification?: string
-  devAnswer?:    string
-
-  // Callbacks
-  onMcChange:   (index: number) => void
-  onTfChange:   (index: number) => void
-  onTfJustificationChange: (value: string) => void
-  onDevChange:  (value: string) => void
-
-  // Puntos por pregunta
-  maxPoints: number
+  question: Question;
+  index: number;
+  total: number;
+  mcAnswer?: number;
+  tfAnswer?: number;
+  tfJustification?: string;
+  devAnswer?: string;
+  onMcChange: (index: number) => void;
+  onTfChange: (index: number) => void;
+  onTfJustificationChange: (value: string) => void;
+  onDevChange: (value: string) => void;
+  maxPoints: number;
 }
-
-// ── Helper ────────────────────────────────────────────────────────────────────
 
 function getQuestionText(q: Question) {
-  return q.question || q.statement || ""
+  return q.question || q.statement || "";
 }
 
-// ── Componente ────────────────────────────────────────────────────────────────
+function typeLabel(type: Question["type"]) {
+  if (type === "multiple_choice") return "Alternativas";
+  if (type === "true_false") return "Verdadero / Falso";
+  return "Desarrollo";
+}
 
 export default function QuestionCard({
   question: q,
@@ -77,146 +62,130 @@ export default function QuestionCard({
   maxPoints,
 }: QuestionCardProps) {
   return (
-    <div className="rounded-2xl border border-medium bg-card-soft-theme p-5 md:p-6 exam-question">
-      {/* ── Header ── */}
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-xs tracking-widest text-muted2 font-semibold">
-          PREGUNTA {index + 1} DE {total}
-        </p>
-        <p className="text-xs text-muted2">
-          Puntaje: {maxPoints} pts
-        </p>
+    <div className="exam-question">
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <span className="exam-badge inline-flex h-10 w-10 items-center justify-center rounded-2xl text-sm font-black">
+            {index + 1}
+          </span>
+          <div>
+            <p className="exam-question-meta text-xs font-black uppercase tracking-[0.18em]">
+              Pregunta {index + 1} de {total}
+            </p>
+            <p className="exam-question-meta text-xs font-semibold">
+              {typeLabel(q.type)} · {maxPoints} pts
+            </p>
+          </div>
+        </div>
+        <span className="exam-badge rounded-full px-3 py-1 text-xs font-bold">
+          Lee con calma
+        </span>
       </div>
 
-      {/* ── Imagen opcional ── */}
       {q.imageUrl && q.imageUrl.trim() !== "" && (
-        <div className="exam-question-image mb-4">
+        <div className="exam-question-image">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={q.imageUrl}
             alt={`Imagen de la pregunta ${index + 1}`}
-            className="w-full object-contain max-h-72"
+            className="max-h-72 w-full object-contain"
             onError={(e) => {
-              // Si la imagen falla, ocultar el contenedor
-              const parent = (e.target as HTMLImageElement).parentElement
-              if (parent) parent.style.display = "none"
+              const parent = (e.target as HTMLImageElement).parentElement;
+              if (parent) parent.style.display = "none";
             }}
           />
         </div>
       )}
 
-      {/* ── Enunciado ── */}
-      <div className="text-main text-base leading-relaxed mb-6">
+      <div className="exam-question-title mb-6 text-lg font-bold leading-relaxed md:text-xl">
         <ExamMathText text={getQuestionText(q)} />
       </div>
 
-      {/* ── Alternativas (multiple_choice) ── */}
       {q.type === "multiple_choice" && (
         <div className="space-y-3">
           {(q.options || []).map((option, i) => {
-            const active = mcAnswer === i
+            const active = mcAnswer === i;
             return (
               <button
                 key={i}
                 onClick={() => onMcChange(i)}
-                className={[
-                  "w-full text-left rounded-2xl px-4 py-3 border transition exam-option",
-                  active ? "selected border-blue-500 bg-blue-500/10 text-main"
-                         : "border-medium bg-card-soft-theme text-main hover:border-blue-500/30",
-                ].join(" ")}
+                className={`exam-option flex w-full items-start gap-3 px-4 py-3 text-left transition ${active ? "selected" : ""}`}
               >
-                <span className="inline-flex items-center gap-3">
-                  {/* Letra indicadora */}
-                  <span className={[
-                    "flex-shrink-0 w-6 h-6 rounded-full border text-xs font-bold flex items-center justify-center",
-                    active ? "border-blue-500 bg-blue-500 text-white"
-                           : "border-medium text-sub",
-                  ].join(" ")}>
-                    {String.fromCharCode(65 + i)}
-                  </span>
-                  <ExamMathText text={option} className="inline" />
+                <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-sm font-black ${active ? "border-[var(--exam-accent)] bg-[var(--exam-accent)] text-white" : "border-[var(--exam-border)] bg-[var(--exam-soft-bg)] text-[var(--exam-text-sub)]"}`}>
+                  {String.fromCharCode(65 + i)}
+                </span>
+                <span className="min-w-0 flex-1 pt-0.5">
+                  <ExamMathText text={option} />
                 </span>
               </button>
-            )
+            );
           })}
         </div>
       )}
 
-      {/* ── Verdadero / Falso ── */}
       {q.type === "true_false" && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-5">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {["Verdadero", "Falso"].map((label, i) => {
-              const active = tfAnswer === i
+              const active = tfAnswer === i;
               return (
                 <button
                   key={label}
                   onClick={() => onTfChange(i)}
-                  className={[
-                    "rounded-2xl px-4 py-3 border font-semibold transition exam-option",
-                    active ? "selected border-blue-500 bg-blue-500/10 text-main"
-                           : "border-medium bg-card-soft-theme text-main hover:border-blue-500/30",
-                  ].join(" ")}
+                  className={`exam-option flex items-center justify-center gap-3 px-4 py-4 font-bold transition ${active ? "selected" : ""}`}
                 >
-                  <span className="flex items-center justify-center gap-2">
-                    <span>{i === 0 ? "✓" : "✗"}</span>
-                    {label}
-                  </span>
+                  <span className="text-xl">{i === 0 ? "✓" : "×"}</span>
+                  {label}
                 </button>
-              )
+              );
             })}
           </div>
 
           <div>
-            <label className="text-sub text-xs font-semibold block mb-2">
-              Justificación
-              {q.justificationMaxPoints ? (
-                <span className="ml-2 text-muted2 font-normal">
-                  ({q.justificationMaxPoints} pts)
-                </span>
-              ) : null}
+            <label className="exam-question-meta mb-2 block text-xs font-bold uppercase tracking-[0.12em]">
+              Justificación {q.justificationMaxPoints ? `(${q.justificationMaxPoints} pts)` : ""}
             </label>
             <textarea
               value={tfJustification || ""}
               onChange={(e) => onTfJustificationChange(e.target.value)}
-              className="w-full min-h-[120px] rounded-2xl border border-medium bg-card-soft-theme px-4 py-3 text-main text-sm focus:outline-none focus:border-blue-500/30"
-              placeholder="Escribe tu justificación..."
+              className="exam-input min-h-[130px] w-full px-4 py-3 text-base outline-none focus:ring-2 focus:ring-[var(--exam-accent-soft)]"
+              placeholder="Escribe tu justificación con tus palabras..."
             />
           </div>
         </div>
       )}
 
-      {/* ── Desarrollo ── */}
       {q.type === "development" && (
-        <div>
-          {/* Mostrar rúbrica como guía al alumno */}
+        <div className="space-y-5">
           {Array.isArray(q.rubric) && q.rubric.length > 0 && (
-            <div className="mb-4 rounded-2xl border border-soft bg-card-soft-theme/50 p-4">
-              <p className="text-xs font-semibold text-sub uppercase tracking-wide mb-2">
+            <div className="rounded-[calc(var(--exam-radius)-6px)] border border-[var(--exam-border)] bg-[var(--exam-soft-bg)] p-4">
+              <p className="exam-question-meta mb-3 text-xs font-black uppercase tracking-[0.16em]">
                 Criterios de evaluación
               </p>
-              <div className="space-y-1">
+              <div className="grid gap-2">
                 {q.rubric.map((r, i) => (
-                  <div key={i} className="flex items-center justify-between text-xs">
-                    <span className="text-main">{r.criteria}</span>
-                    <span className="text-muted2 ml-3 shrink-0">{r.points} pts</span>
+                  <div key={i} className="flex items-start justify-between gap-3 rounded-2xl bg-[var(--exam-surface)] px-3 py-2 text-sm">
+                    <span className="text-[var(--exam-text)]">{r.criteria}</span>
+                    <span className="shrink-0 font-bold text-[var(--exam-text-sub)]">{r.points} pts</span>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          <label className="text-sub text-xs font-semibold block mb-2">
-            Respuesta de desarrollo
-          </label>
-          <textarea
-            value={devAnswer || ""}
-            onChange={(e) => onDevChange(e.target.value)}
-            className="w-full min-h-[220px] rounded-2xl border border-medium bg-card-soft-theme px-4 py-3 text-main text-sm focus:outline-none focus:border-blue-500/30 exam-option"
-            placeholder="Escribe tu respuesta..."
-          />
+          <div>
+            <label className="exam-question-meta mb-2 block text-xs font-bold uppercase tracking-[0.12em]">
+              Respuesta de desarrollo
+            </label>
+            <textarea
+              value={devAnswer || ""}
+              onChange={(e) => onDevChange(e.target.value)}
+              className="exam-input min-h-[230px] w-full px-4 py-3 text-base outline-none focus:ring-2 focus:ring-[var(--exam-accent-soft)]"
+              placeholder="Escribe tu respuesta. Puedes ordenar tus ideas en pasos."
+            />
+          </div>
         </div>
       )}
     </div>
-  )
+  );
 }
