@@ -83,14 +83,21 @@ export default function ExamAudioButton({
         options
       )
 
-      const res = await fetch("/api/agents/tts", {
+      // El examen del estudiante puede ser público/no autenticado.
+      // Por eso usa tts-chunk, que ya existe para audios educativos sin depender
+      // de la sesión del docente. Evita el error 401 que hacía fallar "Escuchar".
+      const res = await fetch("/api/agents/tts-chunk", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          text,
-          speaker:      "B",          // voz femenina (ElviraNeural)
-          rate:         pieMode ? "-25%" : "+0%",
-          motivational: false,
+          segments: [
+            {
+              speaker: "B", // voz femenina (ElviraNeural)
+              text: pieMode
+                ? `Lee lentamente. ${text}`
+                : text,
+            },
+          ],
         }),
       })
 
