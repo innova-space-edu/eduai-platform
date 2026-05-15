@@ -13,6 +13,7 @@ export type EduMusicTrackSource =
   | "itunes"
   | "jamendo"
   | "audius"
+  | "youtube"
   | "external";
 
 export type EduMusicTrack = {
@@ -28,6 +29,9 @@ export type EduMusicTrack = {
   source?: EduMusicTrackSource;
   externalUrl?: string;
   artworkUrl?: string;
+  youtubeVideoId?: string;
+  videoEmbedUrl?: string;
+  videoThumbnail?: string;
 };
 
 export type EduMusicPlaylist = {
