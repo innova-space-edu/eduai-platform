@@ -7,6 +7,7 @@ import ExamMathText from "@/components/ui/ExamMathText"
 import ExamSecurityExamBridge from "@/components/exam-security/ExamSecurityExamBridge"
 import ExamThemeProvider from "@/components/exam/ExamThemeProvider"
 import QuestionCard from "@/components/exam/QuestionCard"
+import ExamAudioButton from "@/components/exam/ExamAudioButton"
 
 // ── Supabase del PANEL DE CONTROL ────────────────────────────────────────────
 const PANEL_URL = process.env.NEXT_PUBLIC_PANEL_SUPABASE_URL || ""
@@ -1115,6 +1116,23 @@ export default function ExamenPublicoPage() {
         ) : null}
 
         <div className="grid lg:grid-cols-[1fr_320px] gap-6">
+          {/* Botón narrar pregunta — PIE/accesibilidad */}
+          {exam?.settings?.accessibility?.pieMode && (
+            <div className="mb-3 flex justify-end">
+              <ExamAudioButton
+                questionText={q?.question || q?.statement || ""}
+                questionNumber={curQ + 1}
+                questionType={q?.type || "multiple_choice"}
+                options={q?.options}
+                pieMode={
+                  exam?.settings?.accessibility?.dyslexiaMode ||
+                  exam?.settings?.accessibility?.adhdMode ||
+                  false
+                }
+              />
+            </div>
+          )}
+
           <QuestionCard
             question={q}
             index={curQ}
