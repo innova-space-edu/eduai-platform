@@ -1,22 +1,22 @@
-"use client"
+"use client";
 
-import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { ArrowLeft, ChevronRight, Wrench } from "lucide-react"
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { ArrowLeft, ChevronRight, Wrench } from "lucide-react";
 
 type AgentItem = {
-  id: string
-  icon: string
-  name: string
-  description: string
-  color: string
-  glow: string
-  border: string
-  href: string
-  tag: string
-  status?: "active" | "maintenance"
-  ctaLabel?: string
-}
+  id: string;
+  icon: string;
+  name: string;
+  description: string;
+  color: string;
+  glow: string;
+  border: string;
+  href: string;
+  tag: string;
+  status?: "active" | "maintenance";
+  ctaLabel?: string;
+};
 
 const AGENTS: AgentItem[] = [
   {
@@ -95,7 +95,8 @@ const AGENTS: AgentItem[] = [
     id: "examen",
     icon: "📝",
     name: "Examen",
-    description: "Simulacro completo con timer, corrección IA y retroalimentación",
+    description:
+      "Simulacro completo con timer, corrección IA y retroalimentación",
     color: "from-red-500 to-rose-600",
     glow: "rgba(239,68,68,0.15)",
     border: "rgba(239,68,68,0.2)",
@@ -107,7 +108,8 @@ const AGENTS: AgentItem[] = [
     id: "examen-docente",
     icon: "📋",
     name: "Exámenes Docente",
-    description: "Crea pruebas con IA, comparte el link y recibe notas automáticas",
+    description:
+      "Crea pruebas con IA, comparte el link y recibe notas automáticas",
     color: "from-red-500 to-orange-600",
     glow: "rgba(239,68,68,0.15)",
     border: "rgba(239,68,68,0.2)",
@@ -116,10 +118,39 @@ const AGENTS: AgentItem[] = [
     status: "active",
   },
   {
+    id: "superagent-chat",
+    icon: "🦅",
+    name: "Chat Global Claw",
+    description:
+      "Chat central tipo ChatGPT: accede a todos los agentes, código, imagen, video, música y evaluación",
+    color: "from-slate-900 to-blue-600",
+    glow: "rgba(37,99,235,0.16)",
+    border: "rgba(37,99,235,0.24)",
+    href: "/superagent/chat",
+    tag: "General",
+    status: "active",
+    ctaLabel: "Abrir chat global",
+  },
+  {
+    id: "music-focus",
+    icon: "♫",
+    name: "EduAI Music",
+    description:
+      "Reproductor estilo Spotify/OpenSpot integrado al panel flotante, con música focus persistente",
+    color: "from-emerald-500 to-green-700",
+    glow: "rgba(29,185,84,0.15)",
+    border: "rgba(29,185,84,0.25)",
+    href: "/exam-focus",
+    tag: "Creativo",
+    status: "active",
+    ctaLabel: "Abrir música focus",
+  },
+  {
     id: "creator-hub",
     icon: "🎨",
     name: "Creator Hub",
-    description: "8 sub-agentes: infografías, PPT, podcast, mapas mentales, flashcards y más",
+    description:
+      "8 sub-agentes: infografías, PPT, podcast, mapas mentales, flashcards y más",
     color: "from-violet-500 to-purple-600",
     glow: "rgba(139,92,246,0.15)",
     border: "rgba(139,92,246,0.2)",
@@ -131,7 +162,8 @@ const AGENTS: AgentItem[] = [
     id: "audio-lab",
     icon: "🎙️",
     name: "Audio Lab",
-    description: "Transcribe audio y video con IA, edita y exporta en TXT, SRT y más",
+    description:
+      "Transcribe audio y video con IA, edita y exporta en TXT, SRT y más",
     color: "from-purple-500 to-fuchsia-600",
     glow: "rgba(168,85,247,0.15)",
     border: "rgba(168,85,247,0.2)",
@@ -143,7 +175,8 @@ const AGENTS: AgentItem[] = [
     id: "image-studio",
     icon: "🖼️",
     name: "Image Studio",
-    description: "Genera imágenes con FLUX y SD, galería unificada con filtros y fullscreen",
+    description:
+      "Genera imágenes con FLUX y SD, galería unificada con filtros y fullscreen",
     color: "from-pink-500 to-rose-600",
     glow: "rgba(236,72,153,0.15)",
     border: "rgba(236,72,153,0.2)",
@@ -169,7 +202,8 @@ const AGENTS: AgentItem[] = [
     id: "galeria",
     icon: "🖼️",
     name: "Galería",
-    description: "Todas tus imágenes generadas, manuales y automáticas durante el estudio",
+    description:
+      "Todas tus imágenes generadas, manuales y automáticas durante el estudio",
     color: "from-fuchsia-500 to-pink-600",
     glow: "rgba(217,70,239,0.15)",
     border: "rgba(217,70,239,0.2)",
@@ -193,7 +227,8 @@ const AGENTS: AgentItem[] = [
     id: "workspace",
     icon: "📁",
     name: "Workspace",
-    description: "Organiza imágenes, transcripciones, presentaciones y más en proyectos",
+    description:
+      "Organiza imágenes, transcripciones, presentaciones y más en proyectos",
     color: "from-indigo-500 to-blue-600",
     glow: "rgba(67,56,202,0.15)",
     border: "rgba(67,56,202,0.2)",
@@ -201,41 +236,86 @@ const AGENTS: AgentItem[] = [
     tag: "Organización",
     status: "active",
   },
-]
+];
 
-const TAGS = Array.from(new Set(AGENTS.map((a) => a.tag)))
+const TAGS = Array.from(new Set(AGENTS.map((a) => a.tag)));
 
-const TAG_STYLES: Record<string, { bg: string; text: string; border: string }> = {
-  Docentes: { bg: "rgba(16,185,129,0.1)", text: "#6ee7b7", border: "rgba(16,185,129,0.2)" },
-  Investigación: { bg: "rgba(59,130,246,0.1)", text: "#93c5fd", border: "rgba(59,130,246,0.2)" },
-  Escritura: { bg: "rgba(139,92,246,0.1)", text: "#c4b5fd", border: "rgba(139,92,246,0.2)" },
-  Matemáticas: { bg: "rgba(245,158,11,0.1)", text: "#fcd34d", border: "rgba(245,158,11,0.2)" },
-  Idiomas: { bg: "rgba(6,182,212,0.1)", text: "#67e8f9", border: "rgba(6,182,212,0.2)" },
-  PDF: { bg: "rgba(99,102,241,0.1)", text: "#a5b4fc", border: "rgba(99,102,241,0.2)" },
-  Evaluación: { bg: "rgba(239,68,68,0.1)", text: "#fca5a5", border: "rgba(239,68,68,0.2)" },
-  Creativo: { bg: "rgba(236,72,153,0.1)", text: "#f9a8d4", border: "rgba(236,72,153,0.2)" },
-  Comunidad: { bg: "rgba(245,158,11,0.1)", text: "#fcd34d", border: "rgba(245,158,11,0.2)" },
-  Organización: { bg: "rgba(67,56,202,0.1)", text: "#a5b4fc", border: "rgba(67,56,202,0.2)" },
-}
+const TAG_STYLES: Record<string, { bg: string; text: string; border: string }> =
+  {
+    Docentes: {
+      bg: "rgba(16,185,129,0.1)",
+      text: "#6ee7b7",
+      border: "rgba(16,185,129,0.2)",
+    },
+    Investigación: {
+      bg: "rgba(59,130,246,0.1)",
+      text: "#93c5fd",
+      border: "rgba(59,130,246,0.2)",
+    },
+    Escritura: {
+      bg: "rgba(139,92,246,0.1)",
+      text: "#c4b5fd",
+      border: "rgba(139,92,246,0.2)",
+    },
+    Matemáticas: {
+      bg: "rgba(245,158,11,0.1)",
+      text: "#fcd34d",
+      border: "rgba(245,158,11,0.2)",
+    },
+    Idiomas: {
+      bg: "rgba(6,182,212,0.1)",
+      text: "#67e8f9",
+      border: "rgba(6,182,212,0.2)",
+    },
+    PDF: {
+      bg: "rgba(99,102,241,0.1)",
+      text: "#a5b4fc",
+      border: "rgba(99,102,241,0.2)",
+    },
+    Evaluación: {
+      bg: "rgba(239,68,68,0.1)",
+      text: "#fca5a5",
+      border: "rgba(239,68,68,0.2)",
+    },
+    Creativo: {
+      bg: "rgba(236,72,153,0.1)",
+      text: "#f9a8d4",
+      border: "rgba(236,72,153,0.2)",
+    },
+    Comunidad: {
+      bg: "rgba(245,158,11,0.1)",
+      text: "#fcd34d",
+      border: "rgba(245,158,11,0.2)",
+    },
+    Organización: {
+      bg: "rgba(67,56,202,0.1)",
+      text: "#a5b4fc",
+      border: "rgba(67,56,202,0.2)",
+    },
+    General: {
+      bg: "rgba(37,99,235,0.1)",
+      text: "#93c5fd",
+      border: "rgba(37,99,235,0.2)",
+    },
+  };
 
 function statusPill(status?: "active" | "maintenance") {
   if (status === "maintenance") {
     return {
       label: "En mantención",
-      className:
-        "bg-amber-500/10 text-amber-700 border border-amber-400/20",
-    }
+      className: "bg-amber-500/10 text-amber-700 border border-amber-400/20",
+    };
   }
 
   return {
     label: "Disponible",
     className:
       "bg-emerald-500/10 text-emerald-700 border border-emerald-400/20",
-  }
+  };
 }
 
 export default function AgentesPage() {
-  const router = useRouter()
+  const router = useRouter();
 
   return (
     <div className="min-h-screen bg-app">
@@ -254,7 +334,9 @@ export default function AgentesPage() {
 
           <div>
             <h1 className="text-sm font-semibold text-main">Agentes de IA</h1>
-            <p className="text-xs text-muted2">{AGENTS.length} agentes especializados</p>
+            <p className="text-xs text-muted2">
+              {AGENTS.length} agentes especializados
+            </p>
           </div>
         </div>
       </header>
@@ -262,8 +344,8 @@ export default function AgentesPage() {
       <div className="mx-auto max-w-5xl px-4 py-8">
         <div className="mb-8 flex flex-wrap gap-2">
           {TAGS.map((tag) => {
-            const style = TAG_STYLES[tag] || TAG_STYLES["Creativo"]
-            const count = AGENTS.filter((a) => a.tag === tag).length
+            const style = TAG_STYLES[tag] || TAG_STYLES["Creativo"];
+            const count = AGENTS.filter((a) => a.tag === tag).length;
 
             return (
               <div
@@ -278,14 +360,14 @@ export default function AgentesPage() {
                 <span>{tag}</span>
                 <span className="opacity-60">({count})</span>
               </div>
-            )
+            );
           })}
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 stagger">
           {AGENTS.map((a) => {
-            const tagStyle = TAG_STYLES[a.tag] || TAG_STYLES["Creativo"]
-            const state = statusPill(a.status)
+            const tagStyle = TAG_STYLES[a.tag] || TAG_STYLES["Creativo"];
+            const state = statusPill(a.status);
 
             return (
               <Link
@@ -297,14 +379,17 @@ export default function AgentesPage() {
                   borderColor: "var(--bg-card-soft)",
                 }}
                 onMouseEnter={(e) => {
-                  ;(e.currentTarget as HTMLElement).style.background = a.glow
-                  ;(e.currentTarget as HTMLElement).style.borderColor = a.border
-                  ;(e.currentTarget as HTMLElement).style.boxShadow = `0 8px 32px ${a.glow}`
+                  (e.currentTarget as HTMLElement).style.background = a.glow;
+                  (e.currentTarget as HTMLElement).style.borderColor = a.border;
+                  (e.currentTarget as HTMLElement).style.boxShadow =
+                    `0 8px 32px ${a.glow}`;
                 }}
                 onMouseLeave={(e) => {
-                  ;(e.currentTarget as HTMLElement).style.background = "var(--bg-card-soft)"
-                  ;(e.currentTarget as HTMLElement).style.borderColor = "var(--bg-card-soft)"
-                  ;(e.currentTarget as HTMLElement).style.boxShadow = "none"
+                  (e.currentTarget as HTMLElement).style.background =
+                    "var(--bg-card-soft)";
+                  (e.currentTarget as HTMLElement).style.borderColor =
+                    "var(--bg-card-soft)";
+                  (e.currentTarget as HTMLElement).style.boxShadow = "none";
                 }}
               >
                 <div className="flex items-start justify-between gap-3">
@@ -326,7 +411,9 @@ export default function AgentesPage() {
                       {a.tag}
                     </span>
 
-                    <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${state.className}`}>
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${state.className}`}
+                    >
                       {a.status === "maintenance" ? (
                         <span className="inline-flex items-center gap-1">
                           <Wrench size={10} />
@@ -343,7 +430,9 @@ export default function AgentesPage() {
                   <h3 className="mb-1.5 text-base font-semibold text-main transition-colors group-hover:text-main">
                     {a.name}
                   </h3>
-                  <p className="text-sm leading-relaxed text-muted2">{a.description}</p>
+                  <p className="text-sm leading-relaxed text-muted2">
+                    {a.description}
+                  </p>
                 </div>
 
                 <div
@@ -354,13 +443,16 @@ export default function AgentesPage() {
                   }`}
                 >
                   <span>{a.ctaLabel || "Abrir agente"}</span>
-                  <ChevronRight size={13} className="transition-transform group-hover:translate-x-1" />
+                  <ChevronRight
+                    size={13}
+                    className="transition-transform group-hover:translate-x-1"
+                  />
                 </div>
               </Link>
-            )
+            );
           })}
         </div>
       </div>
     </div>
-  )
+  );
 }
