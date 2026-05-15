@@ -303,6 +303,12 @@ async function handle(req: NextRequest) {
   const provider = String(
     body.provider || url.searchParams.get("provider") || "all",
   ).toLowerCase();
+  const normalizedProvider =
+    provider === "full" || provider === "completas"
+      ? "full"
+      : provider === "preview" || provider === "dj" || provider === "itunes"
+        ? "preview"
+        : provider;
   const limit = clampLimit(body.limit || url.searchParams.get("limit"));
 
   if (!query) {
@@ -313,12 +319,12 @@ async function handle(req: NextRequest) {
   }
 
   const tasks: Array<Promise<NormalizedTrack[]>> = [];
-  // Prefer legal playable full streams first. iTunes remains as preview fallback.
-  if (provider === "all" || provider === "jamendo")
+  // Prefer legal playable full streams first. iTunes remains as 30s preview / DJ fallback.
+  if (normalizedProvider === "all" || normalizedProvider === "full" || normalizedProvider === "jamendo")
     tasks.push(searchJamendo(query, limit).catch(() => []));
-  if (provider === "all" || provider === "audius")
+  if (normalizedProvider === "all" || normalizedProvider === "full" || normalizedProvider === "audius")
     tasks.push(searchAudius(query, limit).catch(() => []));
-  if (provider === "all" || provider === "itunes")
+  if (normalizedProvider === "all" || normalizedProvider === "preview" || normalizedProvider === "itunes")
     tasks.push(searchItunes(query, limit).catch(() => []));
 
   const results = await Promise.all(tasks);
@@ -328,7 +334,8 @@ async function handle(req: NextRequest) {
 
   return NextResponse.json({
     ok: true,
-    provider,
+    provider: normalizedProvider,
+    requestedProvider: provider,
     query,
     limit,
     sources: {
