@@ -1113,23 +1113,64 @@ function AddToPlaylistBar() {
 
 function MiniBar({ onOpenPanel }: { onOpenPanel?: () => void }) {
   const music = useEduAIMusic();
+  const duration = music.durationSeconds || parseDuration(music.currentTrack.duration);
+  const progress = duration ? Math.min(100, (music.currentTime / duration) * 100) : 0;
+
   return (
-    <div className="fixed bottom-4 left-1/2 z-50 w-[min(92vw,540px)] -translate-x-1/2 rounded-2xl border border-white/10 bg-[#07080d]/95 p-2 text-white shadow-2xl backdrop-blur-xl">
+    <div className="fixed bottom-4 left-1/2 z-50 w-[min(94vw,620px)] -translate-x-1/2 rounded-2xl border border-emerald-300/25 bg-[#06080d]/95 p-2.5 text-white shadow-2xl shadow-emerald-950/30 backdrop-blur-xl">
       <div className="flex items-center gap-2">
-        <button type="button" onClick={onOpenPanel} className="flex min-w-0 flex-1 items-center gap-2 text-left">
+        <button
+          type="button"
+          onClick={onOpenPanel}
+          className="flex min-w-0 flex-1 items-center gap-2 text-left"
+          title="Abrir reproductor"
+        >
           <Cover track={music.currentTrack} size="sm" />
           <span className="min-w-0">
-            <span className="block truncate text-xs font-black">{music.currentTrack.title}</span>
+            <span className="block truncate text-xs font-black text-white">{music.currentTrack.title}</span>
             <span className="block truncate text-[10px] text-slate-400">{music.currentTrack.artist}</span>
           </span>
         </button>
-        <IconButton onClick={music.prevTrack}>
-          <SkipBack className="h-3.5 w-3.5" />
-        </IconButton>
-        <PlayButton size="sm" />
-        <IconButton onClick={music.nextTrack}>
-          <SkipForward className="h-3.5 w-3.5" />
-        </IconButton>
+
+        <div className="flex items-center gap-1">
+          <IconButton onClick={music.prevTrack}>
+            <SkipBack className="h-3.5 w-3.5" fill="currentColor" />
+          </IconButton>
+          <PlayButton size="sm" />
+          <IconButton onClick={music.nextTrack}>
+            <SkipForward className="h-3.5 w-3.5" fill="currentColor" />
+          </IconButton>
+        </div>
+
+        <div className="hidden items-center gap-1 pl-1 sm:flex">
+          <Volume2 className="h-3.5 w-3.5 text-slate-400" />
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value={music.volume}
+            onChange={(e) => music.setVolume(Number(e.target.value))}
+            className="w-20 accent-emerald-400"
+            aria-label="Volumen"
+          />
+        </div>
+      </div>
+
+      <div className="mt-2 flex items-center gap-2 text-[10px] text-slate-500">
+        <span className="w-8 text-right">{formatSeconds(music.currentTime)}</span>
+        <input
+          type="range"
+          min="0"
+          max={Math.max(1, duration)}
+          step="1"
+          value={Math.min(music.currentTime, Math.max(1, duration))}
+          onChange={(e) => music.seekTo(Number(e.target.value))}
+          className="h-1 min-w-0 flex-1 accent-emerald-400"
+          style={{ background: `linear-gradient(90deg,#34d399 ${progress}%,rgba(255,255,255,.18) ${progress}%)` }}
+          aria-label="Progreso"
+        />
+        <span className="w-8">{formatSeconds(duration)}</span>
       </div>
     </div>
   );
@@ -1190,7 +1231,9 @@ export default function EduAIMusicPlayer({
   }, [music.allTracks, music.liked, music.queue, music.view, music.visibleTracks]);
 
   if (mode === "mini") {
-    if (!showMiniWhenStopped && !music.playing) return null;
+    const shouldShowMini =
+      music.playing || (showMiniWhenStopped && music.hasActiveSession);
+    if (!shouldShowMini) return null;
     return <MiniBar onOpenPanel={onOpenPanel} />;
   }
   if (mode === "panel") return <CompactPanel onOpenPanel={onOpenPanel} />;
