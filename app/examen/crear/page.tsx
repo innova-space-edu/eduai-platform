@@ -1,5 +1,5 @@
 // app/examen/crear/page.tsx
-// VERSIÓN FUSIONADA: Agente IA (OpenRouter/Groq) + Sistema de Seguridad Nuevo
+// VERSIÓN F: Agente IA (OpenRouter/Groq) + Sistema de Seguridad Nuevo
 "use client";
 
 import { useMemo, useState, useRef, useEffect } from "react";
