@@ -41,6 +41,7 @@ type StoredState = {
   view?: MusicView;
   shuffle?: boolean;
   repeat?: RepeatMode;
+  hasActiveSession?: boolean;
 };
 
 type MusicContextValue = {
@@ -60,6 +61,8 @@ type MusicContextValue = {
   setVolume: (value: number) => void;
   playing: boolean;
   setPlaying: (value: boolean | ((prev: boolean) => boolean)) => void;
+  hasActiveSession: boolean;
+  clearActiveSession: () => void;
   currentTrack: EduMusicTrack;
   selectedPlaylist: EduMusicPlaylist;
   selectedPlaylistId: string;
@@ -129,6 +132,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const [selectedMood, setSelectedMood] = useState<EduMusicMood | "all">("all");
   const [volume, setVolume] = useState(0.62);
   const [playing, setPlaying] = useState(false);
+  const [hasActiveSession, setHasActiveSession] = useState(false);
   const [currentId, setCurrentId] = useState(EDU_MUSIC_TRACKS[0]?.id);
   const [selectedPlaylistId, setSelectedPlaylistId] = useState(
     SYSTEM_PLAYLISTS[0]?.id,
@@ -172,6 +176,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     if (stored.view) setView(stored.view);
     if (stored.shuffle !== undefined) setShuffle(stored.shuffle);
     if (stored.repeat) setRepeat(stored.repeat);
+    if (stored.hasActiveSession) setHasActiveSession(true);
     setHydrated(true);
   }, []);
 
@@ -259,6 +264,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       view,
       shuffle,
       repeat,
+      hasActiveSession,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [
@@ -274,6 +280,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     view,
     shuffle,
     repeat,
+    hasActiveSession,
   ]);
 
   useEffect(() => {
@@ -315,6 +322,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
   const playTrack = useCallback(
     (track: EduMusicTrack, queueFrom?: EduMusicTrack[]) => {
+      setHasActiveSession(true);
       if (queueFrom?.length) setQueueIds(queueFrom.map((t) => t.id));
       if (track.id === currentId) {
         setPlaying((value) => !value);
@@ -333,6 +341,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         selectedPlaylist;
       const tracks = getTracksForPlaylist(playlist, allTracks);
       if (!tracks.length) return;
+      setHasActiveSession(true);
       setSelectedPlaylistId(playlist.id);
       setQueueIds(tracks.map((track) => track.id));
       setCurrentId(tracks[0].id);
@@ -342,6 +351,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   );
 
   const nextTrack = useCallback(() => {
+    setHasActiveSession(true);
     if (repeat === "one") {
       const audio = audioRef.current;
       if (audio) {
@@ -384,6 +394,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   }, [allTracks, baseTracks, currentId, queue, repeat, shuffle, visibleTracks]);
 
   const prevTrack = useCallback(() => {
+    setHasActiveSession(true);
     const list = queue.length
       ? queue
       : visibleTracks.length
@@ -507,6 +518,11 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     setCurrentTime(safe);
   }, []);
 
+  const clearActiveSession = useCallback(() => {
+    setPlaying(false);
+    setHasActiveSession(false);
+  }, []);
+
   const searchOnline = useCallback(
     async (term?: string, providerOverride?: OnlineProviderMode) => {
       const mode = providerOverride || onlineProviderMode;
@@ -583,6 +599,8 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     setVolume,
     playing,
     setPlaying,
+    hasActiveSession,
+    clearActiveSession,
     currentTrack,
     selectedPlaylist,
     selectedPlaylistId,
