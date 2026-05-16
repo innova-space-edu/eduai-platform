@@ -48,7 +48,7 @@ function normalizePlanning(item: SavedPlanning): SavedPlanning {
   }
 }
 
-function stripMarkdownPreview(text: string, max = 320) {
+function stripMarkdownPreview(text: string, max = 250) {
   const cleaned = text
     .replace(/```[\s\S]*?```/g, " ")
     .replace(/`([^`]+)`/g, "$1")
@@ -70,42 +70,33 @@ function stripMarkdownPreview(text: string, max = 320) {
 
 function getPlanningStats(item: SavedPlanning) {
   return [
-    {
-      label: "Nivel",
-      value: item.nivel || "—",
-      tone: "emerald",
-    },
-    {
-      label: "Horizonte",
-      value: item.tiempo_planificacion || "—",
-      tone: "cyan",
-    },
-    {
-      label: "Sesiones",
-      value: String(item.sesiones || 1),
-      tone: "violet",
-    },
-    {
-      label: "Duración",
-      value: `${item.duracion_minutos || 45} min`,
-      tone: "amber",
-    },
+    { label: "Nivel", value: item.nivel || "—", tone: "emerald" },
+    { label: "Horizonte", value: item.tiempo_planificacion || "—", tone: "sky" },
+    { label: "Sesiones", value: String(item.sesiones || 1), tone: "violet" },
+    { label: "Duración", value: `${item.duracion_minutos || 45} min`, tone: "amber" },
   ]
 }
 
 function badgeClass(tone: string) {
   switch (tone) {
     case "emerald":
-      return "border-emerald-500/30 bg-emerald-500/10 text-emerald-700"
-    case "cyan":
-      return "border-cyan-500/30 bg-cyan-500/10 text-cyan-700"
+      return "border-emerald-200 bg-emerald-50 text-emerald-800"
+    case "sky":
+      return "border-sky-200 bg-sky-50 text-sky-800"
     case "violet":
-      return "border-violet-500/30 bg-violet-500/10 text-violet-700"
+      return "border-violet-200 bg-violet-50 text-violet-800"
     case "amber":
-      return "border-amber-500/30 bg-amber-500/10 text-amber-700"
+      return "border-amber-200 bg-amber-50 text-amber-800"
     default:
-      return "border-medium bg-card-soft-theme text-sub"
+      return "border-slate-200 bg-slate-50 text-slate-700"
   }
+}
+
+function compactTitle(item: SavedPlanning) {
+  const course = item.curso || item.course || "Curso"
+  const subject = item.asignatura || item.subject || "Asignatura"
+  const date = new Date(item.created_at).toLocaleDateString("es-CL")
+  return `Planificación ${course} · ${subject} · ${date}`
 }
 
 export default function SavedPlanningsPage() {
@@ -163,15 +154,7 @@ export default function SavedPlanningsPage() {
     if (!q) return items
 
     return items.filter((item) =>
-      [
-        item.title,
-        item.curso,
-        item.asignatura,
-        item.nivel,
-        item.contexto,
-        item.content,
-        item.mes,
-      ]
+      [item.title, item.curso, item.asignatura, item.nivel, item.contexto, item.content, item.mes]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(q))
     )
@@ -182,9 +165,7 @@ export default function SavedPlanningsPage() {
     if (!ok) return
 
     setDeletingId(id)
-
     const { error } = await supabase.from("saved_plannings").delete().eq("id", id)
-
     setDeletingId(null)
 
     if (error) {
@@ -201,7 +182,7 @@ export default function SavedPlanningsPage() {
     try {
       await exportPlanningPdf(
         {
-          title: item.title,
+          title: compactTitle(item),
           subtitle: "Planificación guardada en EduAI Platform",
           curso: item.curso || undefined,
           asignatura: item.asignatura || undefined,
@@ -221,33 +202,36 @@ export default function SavedPlanningsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#020817] text-main">
-      <div className="sticky top-0 z-20 border-b border-soft bg-[#061127]/90 backdrop-blur">
+    <div className="min-h-screen bg-[#f8fafc] text-slate-950">
+      <div className="sticky top-0 z-20 border-b border-slate-200 bg-white/92 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-start gap-4">
             <button
               onClick={() => router.push("/educador")}
-              className="inline-flex items-center gap-2 rounded-2xl border border-medium bg-card-theme px-4 py-2 text-sm text-main transition hover:bg-card-soft-theme"
+              className="inline-flex h-11 items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800"
             >
               ← Volver
             </button>
 
             <div>
-              <h1 className="text-3xl font-semibold tracking-tight">
+              <p className="text-[11px] font-black uppercase tracking-[0.28em] text-emerald-700">
+                Planificador MINEDUC
+              </p>
+              <h1 className="mt-1 text-3xl font-black tracking-tight text-slate-950">
                 Planificaciones guardadas
               </h1>
-              <p className="mt-1 text-sm text-sub">
-                Ver, editar, exportar y eliminar planificaciones.
+              <p className="mt-1 text-sm font-medium text-slate-600">
+                Vista clara para revisar, editar, exportar y eliminar tus planificaciones.
               </p>
             </div>
           </div>
 
-          <div className="w-full lg:w-[420px]">
+          <div className="w-full lg:w-[430px]">
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar por título, curso o asignatura..."
-              className="w-full rounded-2xl border border-medium bg-card-theme px-4 py-3 text-sm text-main placeholder:text-muted2 outline-none transition focus:border-emerald-500/40"
+              placeholder="Buscar por título, curso, asignatura o contexto..."
+              className="w-full rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-900 placeholder:text-slate-400 shadow-sm outline-none transition focus:border-emerald-300 focus:ring-4 focus:ring-emerald-100"
             />
           </div>
         </div>
@@ -257,39 +241,36 @@ export default function SavedPlanningsPage() {
         {loading ? (
           <div className="grid gap-5">
             {Array.from({ length: 3 }).map((_, idx) => (
-              <div
-                key={idx}
-                className="animate-pulse rounded-2xl border border-soft bg-card-theme p-6"
-              >
+              <div key={idx} className="animate-pulse rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
                 <div className="mb-5 flex flex-wrap gap-2">
-                  <div className="h-7 w-20 rounded-full bg-card-soft-theme" />
-                  <div className="h-7 w-24 rounded-full bg-card-soft-theme" />
-                  <div className="h-7 w-40 rounded-full bg-card-soft-theme" />
+                  <div className="h-7 w-20 rounded-full bg-slate-100" />
+                  <div className="h-7 w-24 rounded-full bg-slate-100" />
+                  <div className="h-7 w-40 rounded-full bg-slate-100" />
                 </div>
-                <div className="h-8 w-2/3 rounded-xl bg-card-soft-theme" />
-                <div className="mt-4 h-5 w-40 rounded-xl bg-card-soft-theme" />
+                <div className="h-8 w-2/3 rounded-xl bg-slate-100" />
+                <div className="mt-4 h-5 w-40 rounded-xl bg-slate-100" />
                 <div className="mt-6 space-y-2">
-                  <div className="h-4 w-full rounded bg-card-soft-theme" />
-                  <div className="h-4 w-full rounded bg-card-soft-theme" />
-                  <div className="h-4 w-2/3 rounded bg-card-soft-theme" />
+                  <div className="h-4 w-full rounded bg-slate-100" />
+                  <div className="h-4 w-full rounded bg-slate-100" />
+                  <div className="h-4 w-2/3 rounded bg-slate-100" />
                 </div>
               </div>
             ))}
           </div>
         ) : error ? (
-          <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 p-8 text-center text-rose-700">
+          <div className="rounded-[28px] border border-rose-200 bg-rose-50 p-8 text-center font-semibold text-rose-800">
             No se pudieron cargar las planificaciones. {error}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-medium bg-card-theme p-12 text-center">
+          <div className="rounded-[28px] border border-dashed border-slate-300 bg-white p-12 text-center shadow-sm">
             <div className="mb-4 text-5xl">🗂️</div>
-            <h2 className="text-2xl font-semibold">Aún no hay planificaciones guardadas</h2>
-            <p className="mx-auto mt-3 max-w-xl text-sm text-sub">
+            <h2 className="text-2xl font-black text-slate-950">Aún no hay planificaciones guardadas</h2>
+            <p className="mx-auto mt-3 max-w-xl text-sm font-medium text-slate-600">
               Crea una planificación en el agente y guárdala para verla aquí.
             </p>
             <Link
               href="/educador"
-              className="mt-6 inline-flex rounded-2xl bg-blue-600 hover:bg-blue-700 px-5 py-3 text-sm font-medium text-white transition"
+              className="mt-6 inline-flex rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700"
             >
               Ir al planificador
             </Link>
@@ -303,100 +284,81 @@ export default function SavedPlanningsPage() {
               return (
                 <article
                   key={item.id}
-                  className="overflow-hidden rounded-2xl border border-soft bg-card-theme shadow-md hover:shadow-lg transition-shadow"
+                  className="overflow-hidden rounded-[30px] border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
                 >
-                  <div className="grid gap-0 xl:grid-cols-[minmax(0,1fr)_320px]">
+                  <div className="grid gap-0 xl:grid-cols-[minmax(0,1fr)_280px]">
                     <div className="p-6">
                       <div className="mb-4 flex flex-wrap items-center gap-2">
                         {stats.map((stat) => (
-                          <span
-                            key={stat.label}
-                            className={`rounded-full border px-3 py-1 text-xs ${badgeClass(stat.tone)}`}
-                          >
-                            <span className="mr-1 opacity-80">{stat.label}:</span>
-                            {stat.value}
+                          <span key={stat.label} className={`rounded-full border px-3 py-1 text-xs font-bold ${badgeClass(stat.tone)}`}>
+                            <span className="mr-1 opacity-80">{stat.label}:</span>{stat.value}
                           </span>
                         ))}
-
-                        <span className="rounded-full border border-medium bg-card-soft-theme px-3 py-1 text-xs text-sub">
+                        <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">
                           Creada: {formatDate(item.created_at)}
                         </span>
                       </div>
 
-                      <h2 className="text-2xl font-semibold leading-tight text-main">
-                        {item.title}
+                      <h2 className="line-clamp-2 text-2xl font-black leading-tight text-slate-950">
+                        {compactTitle(item)}
                       </h2>
 
-                      <p className="mt-3 text-base text-sub">
+                      <p className="mt-2 text-base font-semibold text-slate-700">
                         {item.curso || "Sin curso"} · {item.asignatura || "Sin asignatura"}
                       </p>
 
                       {item.contexto ? (
-                        <div className="mt-5 rounded-2xl border border-soft bg-app px-4 py-3">
-                          <p className="mb-1 text-[11px] uppercase tracking-[0.18em] text-muted2">
+                        <div className="mt-5 rounded-2xl border border-emerald-100 bg-emerald-50/70 px-4 py-3">
+                          <p className="mb-1 text-[11px] font-black uppercase tracking-[0.18em] text-emerald-800">
                             Contexto pedagógico
                           </p>
-                          <p className="line-clamp-2 text-sm leading-6 text-sub">
+                          <p className="line-clamp-2 text-sm font-medium leading-6 text-slate-800">
                             {item.contexto}
                           </p>
                         </div>
                       ) : null}
 
-                      <div className="mt-5 rounded-2xl border border-soft bg-app p-4">
-                        <p className="mb-2 text-[11px] uppercase tracking-[0.18em] text-muted2">
+                      <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <p className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
                           Vista previa del contenido
                         </p>
-                        <p className="text-sm leading-7 text-sub">
-                          {preview}
-                        </p>
+                        <p className="text-sm font-medium leading-7 text-slate-700">{preview}</p>
                       </div>
 
-                      <div className="mt-5 flex flex-wrap gap-3 text-xs text-muted2">
-                        <span>
-                          Última edición: <span className="text-sub">{formatDate(item.updated_at)}</span>
-                        </span>
-                        {item.mes ? (
-                          <span>
-                            Mes: <span className="text-sub">{item.mes}</span>
-                          </span>
-                        ) : null}
+                      <div className="mt-5 flex flex-wrap gap-3 text-xs font-semibold text-slate-500">
+                        <span>Última edición: <span className="text-slate-700">{formatDate(item.updated_at)}</span></span>
+                        {item.mes ? <span>Mes: <span className="text-slate-700">{item.mes}</span></span> : null}
                       </div>
                     </div>
 
-                    <div className="border-t border-soft bg-app p-6 xl:border-l xl:border-t-0">
+                    <div className="border-t border-slate-200 bg-slate-50 p-6 xl:border-l xl:border-t-0">
                       <div className="flex h-full flex-col justify-between">
                         <div>
-                          <p className="text-[11px] uppercase tracking-[0.18em] text-muted2">
-                            Acciones
-                          </p>
-                          <h3 className="mt-2 text-lg font-semibold text-main">
-                            Gestionar planificación
-                          </h3>
-                          <p className="mt-2 text-sm leading-6 text-sub">
-                            Abre la vista completa, edita el contenido, exporta el PDF o elimina este registro.
+                          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Acciones</p>
+                          <h3 className="mt-2 text-lg font-black text-slate-950">Gestionar planificación</h3>
+                          <p className="mt-2 text-sm font-medium leading-6 text-slate-600">
+                            Abre la vista completa, edita el contenido, exporta PDF o elimina el registro.
                           </p>
                         </div>
 
                         <div className="mt-6 grid gap-3">
                           <Link
                             href={`/educador/planificaciones/${item.id}`}
-                            className="inline-flex items-center justify-center rounded-2xl border border-cyan-500/25 bg-cyan-500/10 px-4 py-3 text-sm font-medium text-cyan-700 transition hover:bg-cyan-500/20"
+                            className="inline-flex items-center justify-center rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-bold text-sky-800 transition hover:bg-sky-100"
                           >
                             Ver y editar
                           </Link>
-
                           <button
                             onClick={() => handleExport(item)}
                             disabled={exportingId === item.id}
-                            className="rounded-2xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm font-medium text-amber-700 transition hover:bg-amber-500/20 disabled:opacity-50"
+                            className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800 transition hover:bg-amber-100 disabled:opacity-50"
                           >
                             {exportingId === item.id ? "Exportando..." : "Exportar PDF"}
                           </button>
-
                           <button
                             onClick={() => handleDelete(item.id, item.title)}
                             disabled={deletingId === item.id}
-                            className="rounded-2xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm font-medium text-rose-700 transition hover:bg-rose-500/20 disabled:opacity-50"
+                            className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-800 transition hover:bg-rose-100 disabled:opacity-50"
                           >
                             {deletingId === item.id ? "Eliminando..." : "Eliminar"}
                           </button>
