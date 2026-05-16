@@ -400,6 +400,7 @@ export default function SuperAgentButton() {
       {!pathname?.startsWith("/music") && (
         <EduAIMusicPlayer
           mode="mini"
+          showMiniWhenStopped
           onOpenPanel={() => {
             setOpen(true);
             setTab("music");
