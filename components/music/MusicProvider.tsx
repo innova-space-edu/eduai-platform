@@ -24,9 +24,9 @@ type MusicView =
   | "library"
   | "playlists"
   | "liked"
-  | "queue";
+  | "queue"
+  | "radio";
 type RepeatMode = "off" | "one" | "all";
-
 type OnlineProviderMode = "all" | "full" | "preview" | "youtube";
 
 type StoredState = {
@@ -55,6 +55,12 @@ type MusicContextValue = {
   onlineError: string;
   onlineProviderMode: OnlineProviderMode;
   setOnlineProviderMode: (value: OnlineProviderMode) => void;
+  radioQuery: string;
+  setRadioQuery: (value: string) => void;
+  radioLoading: boolean;
+  radioError: string;
+  radioTracks: EduMusicTrack[];
+  searchRadio: (term?: string, countryCode?: string) => Promise<void>;
   selectedMood: EduMusicMood | "all";
   setSelectedMood: (value: EduMusicMood | "all") => void;
   volume: number;
@@ -104,8 +110,20 @@ type MusicContextValue = {
   searchOnline: (term?: string, providerOverride?: OnlineProviderMode) => Promise<void>;
 };
 
-const STORAGE_KEY = "eduai_music_player_v52";
+declare global {
+  interface Window {
+    YT?: any;
+    onYouTubeIframeAPIReady?: () => void;
+    Hls?: any;
+  }
+}
+
+const STORAGE_KEY = "eduai_music_player_v60";
+const YOUTUBE_PLAYER_ID = "eduai-youtube-global-player";
 const MusicContext = createContext<MusicContextValue | null>(null);
+
+let youtubeApiPromise: Promise<void> | null = null;
+let hlsScriptPromise: Promise<void> | null = null;
 
 function safeReadState(): StoredState {
   if (typeof window === "undefined") return {};
@@ -120,8 +138,65 @@ function unique(ids: string[]) {
   return Array.from(new Set(ids.filter(Boolean)));
 }
 
+function isHlsUrl(src?: string) {
+  return Boolean(src && /\.m3u8(\?|$)/i.test(src));
+}
+
+function loadYouTubeApi() {
+  if (typeof window === "undefined") return Promise.resolve();
+  if (window.YT?.Player) return Promise.resolve();
+  if (youtubeApiPromise) return youtubeApiPromise;
+
+  youtubeApiPromise = new Promise<void>((resolve) => {
+    const existing = document.querySelector<HTMLScriptElement>(
+      'script[src="https://www.youtube.com/iframe_api"]',
+    );
+    window.onYouTubeIframeAPIReady = () => resolve();
+    if (existing) return;
+    const script = document.createElement("script");
+    script.src = "https://www.youtube.com/iframe_api";
+    script.async = true;
+    document.head.appendChild(script);
+  });
+
+  return youtubeApiPromise;
+}
+
+function loadHlsScript() {
+  if (typeof window === "undefined") return Promise.resolve();
+  if (window.Hls) return Promise.resolve();
+  if (hlsScriptPromise) return hlsScriptPromise;
+
+  hlsScriptPromise = new Promise<void>((resolve, reject) => {
+    const existing = document.querySelector<HTMLScriptElement>(
+      'script[src="https://cdn.jsdelivr.net/npm/hls.js@latest"]',
+    );
+    if (existing) {
+      existing.addEventListener("load", () => resolve(), { once: true });
+      existing.addEventListener("error", () => reject(new Error("No se pudo cargar hls.js")), { once: true });
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = "https://cdn.jsdelivr.net/npm/hls.js@latest";
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("No se pudo cargar hls.js"));
+    document.head.appendChild(script);
+  });
+
+  return hlsScriptPromise;
+}
+
+function trackArtwork(track: EduMusicTrack) {
+  return track.artworkUrl || track.videoThumbnail || (track.cover?.startsWith("http") ? track.cover : undefined);
+}
+
 export function MusicProvider({ children }: { children: React.ReactNode }) {
   const audioRef = useRef<HTMLAudioElement>(null);
+  const youtubePlayerRef = useRef<any>(null);
+  const youtubeReadyRef = useRef(false);
+  const hlsRef = useRef<any>(null);
+  const nextTrackRef = useRef<() => void>(() => {});
   const [hydrated, setHydrated] = useState(false);
   const [view, setView] = useState<MusicView>("home");
   const [query, setQuery] = useState("");
@@ -129,14 +204,15 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const [onlineLoading, setOnlineLoading] = useState(false);
   const [onlineError, setOnlineError] = useState("");
   const [onlineProviderMode, setOnlineProviderMode] = useState<OnlineProviderMode>("full");
+  const [radioQuery, setRadioQuery] = useState("Chile");
+  const [radioLoading, setRadioLoading] = useState(false);
+  const [radioError, setRadioError] = useState("");
   const [selectedMood, setSelectedMood] = useState<EduMusicMood | "all">("all");
   const [volume, setVolume] = useState(0.62);
   const [playing, setPlaying] = useState(false);
   const [hasActiveSession, setHasActiveSession] = useState(false);
   const [currentId, setCurrentId] = useState(EDU_MUSIC_TRACKS[0]?.id);
-  const [selectedPlaylistId, setSelectedPlaylistId] = useState(
-    SYSTEM_PLAYLISTS[0]?.id,
-  );
+  const [selectedPlaylistId, setSelectedPlaylistId] = useState(SYSTEM_PLAYLISTS[0]?.id);
   const [likedTrackIds, setLikedTrackIds] = useState<string[]>([]);
   const [userPlaylists, setUserPlaylists] = useState<EduMusicPlaylist[]>([]);
   const [onlineTracks, setOnlineTracks] = useState<EduMusicTrack[]>([]);
@@ -151,11 +227,14 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
   const allTracks = useMemo(() => {
     const byId = new Map<string, EduMusicTrack>();
-    [...EDU_MUSIC_TRACKS, ...onlineTracks].forEach((track) =>
-      byId.set(track.id, track),
-    );
+    [...EDU_MUSIC_TRACKS, ...onlineTracks].forEach((track) => byId.set(track.id, track));
     return Array.from(byId.values());
   }, [onlineTracks]);
+
+  const radioTracks = useMemo(
+    () => allTracks.filter((track) => track.source === "radio"),
+    [allTracks],
+  );
 
   const getTrack = useCallback(
     (id?: string) => allTracks.find((track) => track.id === id),
@@ -165,15 +244,14 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const stored = safeReadState();
     if (stored.volume !== undefined) setVolume(stored.volume);
-    if (stored.onlineTracks) setOnlineTracks(stored.onlineTracks.slice(0, 60));
-    if (stored.trackId && !stored.trackId.startsWith("youtube-")) setCurrentId(stored.trackId);
+    if (stored.onlineTracks) setOnlineTracks(stored.onlineTracks.slice(0, 80));
+    if (stored.trackId) setCurrentId(stored.trackId);
     if (stored.playlistId) setSelectedPlaylistId(stored.playlistId);
     if (stored.likedTrackIds) setLikedTrackIds(stored.likedTrackIds);
     if (stored.userPlaylists) setUserPlaylists(stored.userPlaylists);
-    if (stored.queueIds) setQueueIds(stored.queueIds.filter((id) => !id.startsWith("youtube-")));
-    // Always start searches in full-song mode. YouTube remains a fallback when no full audio is found.
+    if (stored.queueIds) setQueueIds(stored.queueIds);
     setOnlineProviderMode("full");
-    if (stored.view) setView(stored.view);
+    if (stored.view) setView(stored.view === "radio" ? "radio" : stored.view);
     if (stored.shuffle !== undefined) setShuffle(stored.shuffle);
     if (stored.repeat) setRepeat(stored.repeat);
     if (stored.hasActiveSession) setHasActiveSession(true);
@@ -193,24 +271,26 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     const onlinePlaylist: EduMusicPlaylist = {
       id: "pl-online",
       name: "Resultados online",
-      description: "Previews encontrados en la web mediante iTunes Search API.",
+      description: "Canciones, videos y radios encontrados desde fuentes externas.",
       mood: "mixed",
       cover: "linear-gradient(135deg,#e0f2fe,#ddd6fe)",
       trackIds: onlineTracks.map((track) => track.id),
       system: true,
     };
-    return [
-      ...SYSTEM_PLAYLISTS,
-      onlinePlaylist,
-      likedPlaylist,
-      ...userPlaylists,
-    ];
-  }, [likedTrackIds, onlineTracks, userPlaylists]);
+    const radioPlaylist: EduMusicPlaylist = {
+      id: "pl-radio",
+      name: "Radios online",
+      description: "Emisoras online reproducibles dentro de EduAI Music.",
+      mood: "mixed",
+      cover: "linear-gradient(135deg,#bbf7d0,#14b8a6)",
+      trackIds: radioTracks.map((track) => track.id),
+      system: true,
+    };
+    return [...SYSTEM_PLAYLISTS, radioPlaylist, onlinePlaylist, likedPlaylist, ...userPlaylists];
+  }, [likedTrackIds, onlineTracks, radioTracks, userPlaylists]);
 
   const selectedPlaylist = useMemo(
-    () =>
-      playlists.find((playlist) => playlist.id === selectedPlaylistId) ??
-      playlists[0],
+    () => playlists.find((playlist) => playlist.id === selectedPlaylistId) ?? playlists[0],
     [playlists, selectedPlaylistId],
   );
 
@@ -218,10 +298,12 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     () => getTracksForPlaylist(selectedPlaylist, allTracks),
     [allTracks, selectedPlaylist],
   );
+
   const currentTrack = useMemo(
     () => getTrack(currentId) ?? allTracks[0] ?? EDU_MUSIC_TRACKS[0],
     [allTracks, currentId, getTrack],
   );
+
   const liked = useMemo(() => new Set(likedTrackIds), [likedTrackIds]);
   const queue = useMemo(
     () => queueIds.map((id) => getTrack(id)).filter(Boolean) as EduMusicTrack[],
@@ -230,25 +312,22 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
   const visibleTracks = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const source = view === "search" || q ? allTracks : baseTracks;
+    const source = view === "radio"
+      ? radioTracks
+      : view === "search" || q
+        ? allTracks
+        : baseTracks;
     return source.filter((track) => {
-      const moodOk = selectedMood === "all" || track.mood === selectedMood;
+      const moodOk = view === "radio" || selectedMood === "all" || track.mood === selectedMood;
       const queryOk =
         !q ||
-        [
-          track.title,
-          track.artist,
-          track.album,
-          track.mood,
-          track.source || "",
-          ...track.tags,
-        ]
+        [track.title, track.artist, track.album, track.mood, track.source || "", ...track.tags]
           .join(" ")
           .toLowerCase()
           .includes(q);
       return moodOk && queryOk;
     });
-  }, [allTracks, baseTracks, query, selectedMood, view]);
+  }, [allTracks, baseTracks, query, radioTracks, selectedMood, view]);
 
   useEffect(() => {
     if (!hydrated || typeof window === "undefined") return;
@@ -258,7 +337,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       volume,
       likedTrackIds,
       userPlaylists,
-      onlineTracks: onlineTracks.slice(0, 60),
+      onlineTracks: onlineTracks.slice(0, 80),
       onlineProviderMode: onlineProviderMode === "youtube" ? "full" : onlineProviderMode,
       queueIds,
       view,
@@ -285,6 +364,11 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = volume;
+    if (youtubePlayerRef.current?.setVolume) {
+      try {
+        youtubePlayerRef.current.setVolume(Math.round(volume * 100));
+      } catch {}
+    }
   }, [volume]);
 
   useEffect(() => {
@@ -306,18 +390,79 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setCurrentTime(0);
     setDurationSeconds(0);
-  }, [currentTrack?.src]);
+  }, [currentTrack?.id, currentTrack?.src]);
 
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
-    if (currentTrack?.source === "youtube" || !currentTrack?.src) {
+
+    if (hlsRef.current) {
+      try {
+        hlsRef.current.destroy();
+      } catch {}
+      hlsRef.current = null;
+    }
+
+    audio.pause();
+    audio.removeAttribute("src");
+    audio.load();
+
+    if (currentTrack?.source === "youtube" || !currentTrack?.src) return;
+
+    if (isHlsUrl(currentTrack.src)) {
+      if (audio.canPlayType("application/vnd.apple.mpegurl")) {
+        audio.src = currentTrack.src;
+        audio.load();
+        return;
+      }
+      void loadHlsScript()
+        .then(() => {
+          if (!window.Hls?.isSupported?.()) {
+            audio.src = currentTrack.src;
+            audio.load();
+            return;
+          }
+          const hls = new window.Hls({ enableWorker: true, lowLatencyMode: true });
+          hlsRef.current = hls;
+          hls.loadSource(currentTrack.src);
+          hls.attachMedia(audio);
+        })
+        .catch(() => {
+          audio.src = currentTrack.src;
+          audio.load();
+        });
+      return;
+    }
+
+    audio.src = currentTrack.src;
+    audio.load();
+  }, [currentTrack?.id, currentTrack?.source, currentTrack?.src]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (currentTrack?.source === "youtube") {
+      audio.pause();
+      if (youtubeReadyRef.current && youtubePlayerRef.current) {
+        try {
+          if (playing) youtubePlayerRef.current.playVideo();
+          else youtubePlayerRef.current.pauseVideo();
+        } catch {}
+      }
+      return;
+    }
+
+    if (!currentTrack?.src) {
       audio.pause();
       if (playing) setPlaying(false);
       return;
     }
-    if (playing) audio.play().catch(() => setPlaying(false));
-    else audio.pause();
+
+    if (playing) {
+      audio.play().catch(() => setPlaying(false));
+    } else {
+      audio.pause();
+    }
   }, [playing, currentTrack?.src, currentTrack?.source]);
 
   const playTrack = useCallback(
@@ -336,9 +481,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
   const playPlaylist = useCallback(
     (playlistId?: string) => {
-      const playlist =
-        playlists.find((p) => p.id === (playlistId || selectedPlaylistId)) ??
-        selectedPlaylist;
+      const playlist = playlists.find((p) => p.id === (playlistId || selectedPlaylistId)) ?? selectedPlaylist;
       const tracks = getTracksForPlaylist(playlist, allTracks);
       if (!tracks.length) return;
       setHasActiveSession(true);
@@ -353,6 +496,14 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const nextTrack = useCallback(() => {
     setHasActiveSession(true);
     if (repeat === "one") {
+      if (currentTrack?.source === "youtube" && youtubePlayerRef.current?.seekTo) {
+        try {
+          youtubePlayerRef.current.seekTo(0, true);
+          youtubePlayerRef.current.playVideo();
+        } catch {}
+        setPlaying(true);
+        return;
+      }
       const audio = audioRef.current;
       if (audio) {
         audio.currentTime = 0;
@@ -373,17 +524,13 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
     if (shuffle && list.length > 1) {
       const others = list.filter((track) => track.id !== currentId);
-      const random =
-        others[Math.floor(Math.random() * others.length)] ?? list[0];
+      const random = others[Math.floor(Math.random() * others.length)] ?? list[0];
       setCurrentId(random.id);
       setPlaying(true);
       return;
     }
 
-    const index = Math.max(
-      0,
-      list.findIndex((track) => track.id === currentId),
-    );
+    const index = Math.max(0, list.findIndex((track) => track.id === currentId));
     const next = list[index + 1] ?? (repeat === "all" ? list[0] : null);
     if (next) {
       setCurrentId(next.id);
@@ -391,7 +538,11 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     } else {
       setPlaying(false);
     }
-  }, [allTracks, baseTracks, currentId, queue, repeat, shuffle, visibleTracks]);
+  }, [allTracks, baseTracks, currentId, currentTrack?.source, queue, repeat, shuffle, visibleTracks]);
+
+  useEffect(() => {
+    nextTrackRef.current = nextTrack;
+  }, [nextTrack]);
 
   const prevTrack = useCallback(() => {
     setHasActiveSession(true);
@@ -403,10 +554,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
           ? baseTracks
           : allTracks;
     if (!list.length) return;
-    const index = Math.max(
-      0,
-      list.findIndex((track) => track.id === currentId),
-    );
+    const index = Math.max(0, list.findIndex((track) => track.id === currentId));
     const prev = list[(index - 1 + list.length) % list.length];
     if (prev) {
       setCurrentId(prev.id);
@@ -414,11 +562,72 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     }
   }, [allTracks, baseTracks, currentId, queue, visibleTracks]);
 
+  useEffect(() => {
+    if (typeof window === "undefined" || currentTrack?.source !== "youtube") return;
+    const videoId = currentTrack.youtubeVideoId;
+    if (!videoId) return;
+
+    let cancelled = false;
+    void loadYouTubeApi().then(() => {
+      if (cancelled || !window.YT?.Player) return;
+      if (!youtubePlayerRef.current) {
+        youtubePlayerRef.current = new window.YT.Player(YOUTUBE_PLAYER_ID, {
+          height: "180",
+          width: "320",
+          videoId,
+          playerVars: {
+            autoplay: 0,
+            controls: 0,
+            rel: 0,
+            modestbranding: 1,
+            playsinline: 1,
+          },
+          events: {
+            onReady: (event: any) => {
+              youtubeReadyRef.current = true;
+              try {
+                event.target.setVolume(Math.round(volume * 100));
+                if (playing) event.target.playVideo();
+                else event.target.cueVideoById(videoId);
+              } catch {}
+            },
+            onStateChange: (event: any) => {
+              if (event.data === window.YT?.PlayerState?.ENDED) nextTrackRef.current();
+            },
+          },
+        });
+        return;
+      }
+
+      try {
+        if (playing) youtubePlayerRef.current.loadVideoById(videoId);
+        else youtubePlayerRef.current.cueVideoById(videoId);
+      } catch {}
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentTrack?.source, currentTrack?.youtubeVideoId, playing, volume]);
+
+  useEffect(() => {
+    if (currentTrack?.source !== "youtube") return;
+    const timer = window.setInterval(() => {
+      const player = youtubePlayerRef.current;
+      if (!player || !youtubeReadyRef.current) return;
+      try {
+        const time = Number(player.getCurrentTime?.() || 0);
+        const duration = Number(player.getDuration?.() || 0);
+        setCurrentTime(Number.isFinite(time) ? time : 0);
+        setDurationSeconds(Number.isFinite(duration) ? duration : 0);
+      } catch {}
+    }, 800);
+    return () => window.clearInterval(timer);
+  }, [currentTrack?.source, currentTrack?.youtubeVideoId]);
+
   const toggleLike = useCallback((id: string) => {
     setLikedTrackIds((prev) =>
-      prev.includes(id)
-        ? prev.filter((trackId) => trackId !== id)
-        : [...prev, id],
+      prev.includes(id) ? prev.filter((trackId) => trackId !== id) : [...prev, id],
     );
   }, []);
 
@@ -431,11 +640,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       description: "Playlist creada en EduAI Music.",
       mood: "mixed",
       cover: "linear-gradient(135deg,#dbeafe,#bbf7d0)",
-      trackIds: pendingTrackId
-        ? [pendingTrackId]
-        : currentTrack
-          ? [currentTrack.id]
-          : [],
+      trackIds: pendingTrackId ? [pendingTrackId] : currentTrack ? [currentTrack.id] : [],
     };
     setUserPlaylists((prev) => [...prev, playlist]);
     setSelectedPlaylistId(playlist.id);
@@ -447,9 +652,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
   const addToPlaylist = useCallback((playlistId: string, trackId: string) => {
     if (playlistId === "pl-liked") {
-      setLikedTrackIds((prev) =>
-        prev.includes(trackId) ? prev : [...prev, trackId],
-      );
+      setLikedTrackIds((prev) => (prev.includes(trackId) ? prev : [...prev, trackId]));
       setPendingTrackId(null);
       return;
     }
@@ -463,33 +666,24 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     setPendingTrackId(null);
   }, []);
 
-  const removeFromPlaylist = useCallback(
-    (playlistId: string, trackId: string) => {
-      if (playlistId === "pl-liked") {
-        setLikedTrackIds((prev) => prev.filter((id) => id !== trackId));
-        return;
-      }
-      setUserPlaylists((prev) =>
-        prev.map((playlist) =>
-          playlist.id === playlistId
-            ? {
-                ...playlist,
-                trackIds: playlist.trackIds.filter((id) => id !== trackId),
-              }
-            : playlist,
-        ),
-      );
-    },
-    [],
-  );
+  const removeFromPlaylist = useCallback((playlistId: string, trackId: string) => {
+    if (playlistId === "pl-liked") {
+      setLikedTrackIds((prev) => prev.filter((id) => id !== trackId));
+      return;
+    }
+    setUserPlaylists((prev) =>
+      prev.map((playlist) =>
+        playlist.id === playlistId
+          ? { ...playlist, trackIds: playlist.trackIds.filter((id) => id !== trackId) }
+          : playlist,
+      ),
+    );
+  }, []);
 
   const deletePlaylist = useCallback(
     (playlistId: string) => {
-      setUserPlaylists((prev) =>
-        prev.filter((playlist) => playlist.id !== playlistId),
-      );
-      if (selectedPlaylistId === playlistId)
-        setSelectedPlaylistId(SYSTEM_PLAYLISTS[0]?.id);
+      setUserPlaylists((prev) => prev.filter((playlist) => playlist.id !== playlistId));
+      if (selectedPlaylistId === playlistId) setSelectedPlaylistId(SYSTEM_PLAYLISTS[0]?.id);
     },
     [selectedPlaylistId],
   );
@@ -504,24 +698,52 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
   const clearQueue = useCallback(() => setQueueIds([]), []);
 
-  const seekTo = useCallback((seconds: number) => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    const safe = Math.max(
-      0,
-      Math.min(
-        seconds,
-        Number.isFinite(audio.duration) ? audio.duration : seconds,
-      ),
-    );
-    audio.currentTime = safe;
-    setCurrentTime(safe);
-  }, []);
+  const seekTo = useCallback(
+    (seconds: number) => {
+      if (currentTrack?.source === "youtube" && youtubePlayerRef.current?.seekTo) {
+        try {
+          youtubePlayerRef.current.seekTo(seconds, true);
+          setCurrentTime(seconds);
+        } catch {}
+        return;
+      }
+      const audio = audioRef.current;
+      if (!audio) return;
+      const safe = Math.max(
+        0,
+        Math.min(seconds, Number.isFinite(audio.duration) ? audio.duration : seconds),
+      );
+      audio.currentTime = safe;
+      setCurrentTime(safe);
+    },
+    [currentTrack?.source],
+  );
 
   const clearActiveSession = useCallback(() => {
     setPlaying(false);
     setHasActiveSession(false);
   }, []);
+
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
+    const artwork = trackArtwork(currentTrack);
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: currentTrack.title,
+        artist: currentTrack.artist,
+        album: currentTrack.album,
+        artwork: artwork ? [{ src: artwork, sizes: "512x512", type: "image/png" }] : undefined,
+      });
+      navigator.mediaSession.playbackState = playing ? "playing" : "paused";
+      navigator.mediaSession.setActionHandler("play", () => setPlaying(true));
+      navigator.mediaSession.setActionHandler("pause", () => setPlaying(false));
+      navigator.mediaSession.setActionHandler("previoustrack", prevTrack);
+      navigator.mediaSession.setActionHandler("nexttrack", nextTrack);
+      navigator.mediaSession.setActionHandler("seekto", (details) => {
+        if (typeof details.seekTime === "number") seekTo(details.seekTime);
+      });
+    } catch {}
+  }, [currentTrack, nextTrack, playing, prevTrack, seekTo]);
 
   const searchOnline = useCallback(
     async (term?: string, providerOverride?: OnlineProviderMode) => {
@@ -537,26 +759,23 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             query: clean,
-            // Full mode searches complete audio first and lets the API fall back to YouTube only if needed.
             provider: mode === "youtube" ? "youtube" : mode || "full",
+            limit: mode === "youtube" ? 12 : 24,
           }),
         });
         const data = await res.json();
-        if (!res.ok || !data?.ok)
-          throw new Error(data?.error || "No se pudo buscar música online.");
-        const tracks = Array.isArray(data.tracks)
-          ? (data.tracks as EduMusicTrack[])
-          : [];
+        if (!res.ok || !data?.ok) throw new Error(data?.error || "No se pudo buscar música online.");
+        const tracks = Array.isArray(data.tracks) ? (data.tracks as EduMusicTrack[]) : [];
         if (!tracks.length) {
           setOnlineError(
             mode === "full"
-              ? (data?.sources?.youtube
-                  ? "No encontré canciones completas en Jamendo/Audius ni videos embebibles de YouTube. Prueba con otro término o cambia a DJ 30s."
-                  : "No encontré canciones completas en Jamendo/Audius. Para buscar videos de YouTube debes agregar YOUTUBE_API_KEY en Vercel o cambiar a DJ 30s.")
+              ? data?.sources?.youtube
+                ? "No encontré canciones completas en Jamendo/Audius ni videos embebibles de YouTube. Prueba con otro término o cambia a DJ 30s."
+                : "No encontré canciones completas en Jamendo/Audius. Para buscar videos de YouTube debes agregar YOUTUBE_API_KEY en Vercel o cambiar a DJ 30s."
               : mode === "youtube"
-                ? (data?.sources?.youtube
-                    ? "No encontré videos embebibles de YouTube para esa búsqueda."
-                    : "Falta configurar YOUTUBE_API_KEY en Vercel para buscar videos de YouTube.")
+                ? data?.sources?.youtube
+                  ? "No encontré videos embebibles de YouTube para esa búsqueda."
+                  : "Falta configurar YOUTUBE_API_KEY en Vercel para buscar videos de YouTube."
                 : "No encontré resultados reproducibles para esa búsqueda.",
           );
           return;
@@ -564,22 +783,54 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         setOnlineTracks((prev) => {
           const map = new Map<string, EduMusicTrack>();
           [...tracks, ...prev].forEach((track) => map.set(track.id, track));
-          return Array.from(map.values()).slice(0, 60);
+          return Array.from(map.values()).slice(0, 80);
         });
         setSelectedPlaylistId("pl-online");
         setView("search");
         if (tracks[0]) playTrack(tracks[0], tracks);
       } catch (error) {
-        setOnlineError(
-          error instanceof Error
-            ? error.message
-            : "Error buscando música online.",
-        );
+        setOnlineError(error instanceof Error ? error.message : "Error buscando música online.");
       } finally {
         setOnlineLoading(false);
       }
     },
     [onlineProviderMode, onlineQuery, playTrack, query],
+  );
+
+  const searchRadio = useCallback(
+    async (term?: string, countryCode = "CL") => {
+      const clean = (term || radioQuery || "Chile").trim();
+      if (!clean) return;
+      setRadioLoading(true);
+      setRadioError("");
+      try {
+        const res = await fetch("/api/music/radio", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: clean, countryCode, limit: 24 }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data?.ok) throw new Error(data?.error || "No se pudieron buscar radios.");
+        const tracks = Array.isArray(data.tracks) ? (data.tracks as EduMusicTrack[]) : [];
+        if (!tracks.length) {
+          setRadioError("No encontré radios activas para esa búsqueda. Prueba con otra ciudad, país o nombre de radio.");
+          return;
+        }
+        setOnlineTracks((prev) => {
+          const map = new Map<string, EduMusicTrack>();
+          [...tracks, ...prev].forEach((track) => map.set(track.id, track));
+          return Array.from(map.values()).slice(0, 80);
+        });
+        setSelectedPlaylistId("pl-radio");
+        setView("radio");
+        playTrack(tracks[0], tracks);
+      } catch (error) {
+        setRadioError(error instanceof Error ? error.message : "Error buscando radios online.");
+      } finally {
+        setRadioLoading(false);
+      }
+    },
+    [playTrack, radioQuery],
   );
 
   const value: MusicContextValue = {
@@ -593,6 +844,12 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     onlineError,
     onlineProviderMode,
     setOnlineProviderMode,
+    radioQuery,
+    setRadioQuery,
+    radioLoading,
+    radioError,
+    radioTracks,
+    searchRadio,
     selectedMood,
     setSelectedMood,
     volume,
@@ -644,11 +901,11 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <MusicContext.Provider value={value}>
-      <audio
-        ref={audioRef}
-        src={currentTrack?.source === "youtube" ? undefined : currentTrack?.src}
-        preload="none"
-        onEnded={nextTrack}
+      <audio ref={audioRef} preload="none" onEnded={nextTrack} />
+      <div
+        id={YOUTUBE_PLAYER_ID}
+        aria-hidden="true"
+        className="pointer-events-none fixed -left-[9999px] top-0 h-px w-px overflow-hidden opacity-0"
       />
       {children}
     </MusicContext.Provider>
@@ -657,7 +914,6 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
 export function useEduAIMusic() {
   const context = useContext(MusicContext);
-  if (!context)
-    throw new Error("useEduAIMusic must be used inside MusicProvider");
+  if (!context) throw new Error("useEduAIMusic must be used inside MusicProvider");
   return context;
 }
