@@ -388,6 +388,30 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const handleMediaError = () => {
+      if (currentTrack?.source !== "radio") return;
+      setPlaying(false);
+      setRadioError(
+        `No se pudo reproducir ${currentTrack.title}. La emisora puede estar usando HTTP, un certificado inválido o una señal que el navegador bloquea. Usa “Abrir fuente” o prueba otra radio.`,
+      );
+    };
+
+    const handlePlaying = () => {
+      if (currentTrack?.source === "radio") setRadioError("");
+    };
+
+    audio.addEventListener("error", handleMediaError);
+    audio.addEventListener("playing", handlePlaying);
+    return () => {
+      audio.removeEventListener("error", handleMediaError);
+      audio.removeEventListener("playing", handlePlaying);
+    };
+  }, [currentTrack?.id, currentTrack?.source, currentTrack?.title]);
+
+  useEffect(() => {
     setCurrentTime(0);
     setDurationSeconds(0);
   }, [currentTrack?.id, currentTrack?.src]);
@@ -469,6 +493,19 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     (track: EduMusicTrack, queueFrom?: EduMusicTrack[]) => {
       setHasActiveSession(true);
       if (queueFrom?.length) setQueueIds(queueFrom.map((t) => t.id));
+
+      if (!track.src && track.externalUrl && (track.source === "radio" || track.source === "external")) {
+        setCurrentId(track.id);
+        setPlaying(false);
+        setRadioError(
+          `${track.title} no tiene una señal HTTPS reproducible directamente en el navegador. Se abrirá la fuente oficial.`,
+        );
+        if (typeof window !== "undefined") {
+          window.open(track.externalUrl, "_blank", "noopener,noreferrer");
+        }
+        return;
+      }
+
       if (track.id === currentId) {
         setPlaying((value) => !value);
         return;
