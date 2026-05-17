@@ -522,6 +522,147 @@ function isChatHistoryItem(msg: unknown): msg is ChatHistoryItem {
 }
 
 
+type EducadorOutputIntent =
+  | "planificacion"
+  | "rubrica"
+  | "indicadores"
+  | "tarea"
+  | "guia"
+  | "carta"
+  | "adaptacion"
+  | "interdisciplinario"
+  | "actividad"
+  | "secuencia"
+  | "efemeride"
+
+function truncateForPrompt(text: string, max = 2600): string {
+  if (!text) return ""
+  if (text.length <= max) return text
+  return `${text.slice(0, max)}\n...[texto resumido por longitud para evitar errores de límite]`
+}
+
+function getSelectedOASummary(oaContext: string): string {
+  const clean = oaContext.trim()
+  if (!clean) return "Sin OA locales seleccionados o disponibles."
+  return truncateForPrompt(clean, 2200)
+}
+
+function getOutputIntent(params: {
+  wantsRubrica: boolean
+  wantsIndicadores: boolean
+  wantsTarea: boolean
+  wantsGuia: boolean
+  wantsCarta: boolean
+  wantsAdaptacion: boolean
+  wantsInter: boolean
+  wantsActividad: boolean
+  wantsEfemeride: boolean
+  wantsSecuencia: boolean
+}): EducadorOutputIntent {
+  if (params.wantsRubrica) return "rubrica"
+  if (params.wantsIndicadores) return "indicadores"
+  if (params.wantsTarea) return "tarea"
+  if (params.wantsGuia) return "guia"
+  if (params.wantsCarta) return "carta"
+  if (params.wantsAdaptacion) return "adaptacion"
+  if (params.wantsInter) return "interdisciplinario"
+  if (params.wantsSecuencia) return "secuencia"
+  if (params.wantsEfemeride) return "efemeride"
+  if (params.wantsActividad) return "actividad"
+  return "planificacion"
+}
+
+function buildCompactEducadorSystemPrompt(params: {
+  intent: EducadorOutputIntent
+  nivel: NivelKey
+  curso: string
+  asignatura: string
+  mes: string
+  contexto: string
+  unidadLabel: string
+  tiempoPlanificacion: TiempoPlanificacion
+  sesiones: number
+  duracionMinutos: number
+  promptContext: ReturnType<typeof buildPromptContext>
+}): string {
+  const {
+    intent,
+    nivel,
+    curso,
+    asignatura,
+    mes,
+    contexto,
+    unidadLabel,
+    tiempoPlanificacion,
+    sesiones,
+    duracionMinutos,
+    promptContext,
+  } = params
+
+  const base = `Eres APl, Agente Planificador Curricular de EduAI para el curriculum chileno.\n\nCONTEXTO ACTIVO:\n- Nivel: ${nivel}\n- Curso/Subnivel: ${curso}\n- Asignatura/Núcleo: ${asignatura}\n- Unidad/Bloque: ${unidadLabel || "Sin unidad local seleccionada"}\n- Mes: ${mes}\n- Horizonte: ${tiempoPlanificacion}; ${sesiones} sesión(es); ${duracionMinutos} minutos por sesión\n- Contexto o idea del docente: ${truncateForPrompt(contexto || "El docente entregará la solicitud en el mensaje.", 1600)}\n${nivel === "parvularia" && promptContext.ambito ? `- Ámbito de experiencia: ${promptContext.ambito}\n` : ""}${nivel === "parvularia" && promptContext.stageContext ? `- Caracterización del subnivel: ${promptContext.stageContext}\n` : ""}\nMARCO CURRICULAR DISPONIBLE:\n${getSelectedOASummary(promptContext.oaContext)}\n${promptContext.oatContext ? `\n${truncateForPrompt(promptContext.oatContext, 1200)}\n` : ""}\nREGLAS GENERALES:\n1. Responde en español claro, formal y pedagógico.\n2. Usa el mensaje del docente como eje principal.\n3. No inventes OA oficiales si no aparecen en el marco curricular; si faltan, trabaja con criterios pedagógicos generales.\n4. Mantén la respuesta completa, útil y directamente aplicable en aula chilena.`
+
+  if (intent === "rubrica") {
+    return `${base}\n\nTAREA ESPECÍFICA:\nGenera SOLO una RÚBRICA ANALÍTICA COMPLETA. No generes una planificación completa.\nLa rúbrica debe evaluar exactamente la solicitud del docente.\n\nFORMATO OBLIGATORIO:\n# Rúbrica de evaluación\n\n## Datos generales\n| Campo | Detalle |\n|---|---|\n| Curso(s) | ... |\n| Tema | ... |\n| Producto evaluado | ... |\n| Duración mínima de presentación | ... |\n| Duración mínima de actividad/intervención | ... |\n| Puntaje sugerido | 100 puntos |\n\n## Criterios y niveles de logro\nCrea una tabla con 6 a 8 criterios. Debe tener estas columnas:\n| Criterio | Excelente 4 pts | Bueno 3 pts | Básico 2 pts | Inicial 1 pt | Ponderación |\n\nIncluye criterios sobre dominio del contenido, explicación del problema ambiental, propuesta/intervención, actividad práctica, manejo de preguntas, comunicación oral, uso de evidencias/recursos, conciencia y promoción del cuidado del entorno.\n\n## Escala sugerida\nIncluye una tabla para convertir puntaje a nivel de logro.\n\n## Observaciones para el docente\nAgrega recomendaciones breves para aplicar la rúbrica en cursos desde básica a media.`
+  }
+
+  if (intent === "indicadores") {
+    return `${base}\n\nTAREA ESPECÍFICA:\nGenera indicadores de evaluación observables y graduados. No hagas una planificación completa.\n\nFORMATO:\n# Indicadores de evaluación\n\n| N° | Indicador observable | Evidencia esperada | Nivel básico | Nivel intermedio | Nivel avanzado |\n|---|---|---|---|---|---|\n\nAgrega al final orientaciones de uso para el docente.`
+  }
+
+  if (intent === "guia") {
+    return `${base}\n\nTAREA ESPECÍFICA:\nCrea una guía de estudio para estudiantes. No hagas una planificación completa.\n\nFORMATO:\n# Guía de estudio\n## Propósito\n## Conceptos clave\n## Actividades paso a paso\n## Preguntas de reflexión\n## Evaluación rápida\n## Recomendaciones finales`
+  }
+
+  if (intent === "tarea") {
+    return `${base}\n\nTAREA ESPECÍFICA:\nDiseña una tarea para casa clara, realizable y alineada al contexto. No hagas una planificación completa.\n\nFORMATO:\n# Tarea para casa\n## Objetivo\n## Instrucciones para el estudiante\n## Materiales\n## Producto a entregar\n## Criterios de evaluación\n## Orientaciones para la familia`
+  }
+
+  if (intent === "carta") {
+    return `${base}\n\nTAREA ESPECÍFICA:\nRedacta una carta o comunicado formal y cálido para apoderados.\n\nFORMATO:\n# Comunicado a apoderados\nIncluye saludo, propósito, actividad, apoyo esperado en casa, fechas/tiempos si corresponde y cierre.`
+  }
+
+  if (intent === "adaptacion") {
+    return `${base}\n\nTAREA ESPECÍFICA:\nGenera adaptaciones concretas para diversidad, NEE, ritmos distintos y estudiantes aventajados.\n\nFORMATO:\n# Adaptaciones y diversificación\n## Barreras posibles\n## Apoyos visuales y concretos\n## Ajustes de instrucciones\n## Evaluación diferenciada\n## Desafíos para estudiantes aventajados`
+  }
+
+  if (intent === "interdisciplinario") {
+    return `${base}\n\nTAREA ESPECÍFICA:\nDiseña una actividad o proyecto interdisciplinario.\n\nFORMATO:\n# Proyecto interdisciplinario\n## Propósito\n## Asignaturas integradas\n## Producto final\n## Etapas de trabajo\n## Evaluación\n## Recursos`
+  }
+
+  return `${base}\n\nTAREA ESPECÍFICA:\nResponde exactamente lo pedido por el docente con una propuesta pedagógica concreta y completa. Ajusta el formato al tipo de solicitud. Evita extenderte con bloques innecesarios.`
+}
+
+function buildLocalRubricFallback(params: {
+  curso: string
+  asignatura: string
+  contexto: string
+  message: string
+  duracionMinutos: number
+}): string {
+  const tema = params.contexto || params.message
+  return `# Rúbrica de evaluación — Presentación y actividad ambiental\n\n> Respaldo local EduAI: se generó esta rúbrica aunque el proveedor de IA no respondió. Puedes editarla y exportarla igual.\n\n## Datos generales\n\n| Campo | Detalle |\n|---|---|\n| Curso(s) | Desde educación básica a enseñanza media |\n| Asignatura / Núcleo | ${params.asignatura} |\n| Tema | ${truncateForPrompt(tema, 350)} |\n| Producto evaluado | Presentación oral, propuesta de intervención y actividad de concientización ambiental |\n| Duración mínima de presentación | 10 minutos |\n| Duración mínima de actividad | 15 minutos |\n| Puntaje sugerido | 100 puntos |\n\n## Criterios y niveles de logro\n\n| Criterio | Excelente — 4 pts | Bueno — 3 pts | Básico — 2 pts | Inicial — 1 pt | Ponderación |\n|---|---|---|---|---|---|\n| Dominio del tema ambiental | Explica con seguridad el problema ambiental, sus causas, consecuencias y relación con la vida escolar o comunitaria. | Explica el tema con claridad, aunque puede faltar mayor profundidad en causas o consecuencias. | Presenta ideas generales, con información incompleta o poco conectada. | Muestra escaso dominio o entrega información confusa. | 15% |\n| Importancia del cuidado del medio ambiente | Argumenta con ejemplos claros por qué es importante cuidar el entorno y propone acciones responsables. | Explica la importancia del cuidado ambiental con algunos ejemplos. | Menciona la importancia, pero con poca justificación. | No logra explicar claramente la importancia del cuidado ambiental. | 15% |\n| Propuesta o intervención ambiental | Presenta una propuesta concreta, viable, creativa y pertinente para el curso o comunidad. | Presenta una propuesta clara, aunque requiere ajustes de viabilidad o detalle. | La propuesta es básica o poco desarrollada. | La propuesta es débil, poco clara o no se relaciona con el problema. | 15% |\n| Actividad práctica o de concientización | Diseña y ejecuta una actividad participativa de al menos 15 minutos, con instrucciones claras y propósito educativo. | Realiza una actividad adecuada, aunque puede mejorar la organización o participación. | La actividad existe, pero es breve, poco clara o con baja participación. | No realiza actividad o esta no cumple el propósito. | 15% |\n| Comunicación oral y organización | Se expresa con claridad, orden, vocabulario adecuado, buen uso del tiempo y participación equilibrada. | Comunica adecuadamente, con leves problemas de orden, tiempo o participación. | Presenta con dificultad, lectura excesiva o desorden en la exposición. | La comunicación impide comprender el mensaje principal. | 15% |\n| Respuesta a preguntas | Responde preguntas de estudiantes con seguridad, respeto y argumentos relacionados con el tema. | Responde la mayoría de las preguntas con claridad. | Responde parcialmente o necesita apoyo frecuente. | No logra responder o evita las preguntas. | 10% |\n| Recursos y evidencias | Usa afiches, imágenes, datos, demostraciones o materiales que fortalecen el mensaje ambiental. | Usa recursos adecuados, aunque no siempre los integra a la explicación. | Usa pocos recursos o estos aportan poco al contenido. | No usa recursos o son irrelevantes. | 10% |\n| Actitud, respeto e incentivo al cuidado del entorno | Motiva a sus compañeros a actuar responsablemente y demuestra respeto por el entorno y la audiencia. | Mantiene buena actitud y promueve el cuidado ambiental. | Muestra actitud adecuada, pero con baja motivación hacia los demás. | Presenta baja disposición, poco respeto o escasa conciencia ambiental. | 5% |\n\n## Escala sugerida\n\n| Puntaje total | Nivel de logro | Interpretación |\n|---|---|---|\n| 86 a 100 | Excelente | Cumple de forma sobresaliente y puede orientar a otros. |\n| 70 a 85 | Bueno | Cumple adecuadamente con aspectos menores por mejorar. |\n| 50 a 69 | Básico | Cumple parcialmente; requiere mayor profundidad y organización. |\n| 0 a 49 | Inicial | Requiere rehacer o reforzar partes esenciales del trabajo. |\n\n## Observaciones para el docente\n\n- Puedes aplicar la misma rúbrica en distintos cursos ajustando el nivel de profundidad esperado según edad.\n- Para cursos pequeños, prioriza claridad, participación y acciones concretas. Para media, exige mayor evidencia, argumentación e impacto.\n- Antes de presentar, entrega la rúbrica a los grupos para que sepan cómo serán evaluados.\n- Se recomienda complementar con coevaluación breve: “¿Qué aprendí?”, “¿Qué acción ambiental puedo aplicar?” y “¿Qué grupo logró concientizar mejor?”.`
+}
+
+function buildLocalEducadorFallback(params: {
+  intent: EducadorOutputIntent
+  curso: string
+  asignatura: string
+  contexto: string
+  message: string
+  tiempoPlanificacion: TiempoPlanificacion
+  sesiones: number
+  duracionMinutos: number
+  errorMessage: string
+}): string {
+  if (params.intent === "rubrica") {
+    return buildLocalRubricFallback(params)
+  }
+
+  const tema = params.contexto || params.message
+  return `# Propuesta pedagógica — Respaldo local EduAI\n\n> El proveedor de IA no respondió correctamente, por eso EduAI generó una versión local editable para que no pierdas el trabajo. Detalle técnico interno: ${params.errorMessage}\n\n## Datos generales\n\n| Campo | Detalle |\n|---|---|\n| Curso | ${params.curso} |\n| Asignatura / Núcleo | ${params.asignatura} |\n| Horizonte | ${params.tiempoPlanificacion} |\n| Sesiones | ${params.sesiones} |\n| Duración | ${params.duracionMinutos} minutos por sesión |\n| Solicitud docente | ${truncateForPrompt(tema, 500)} |\n\n## Objetivo de trabajo\n\nDesarrollar una experiencia pedagógica centrada en la solicitud del docente, promoviendo participación activa, comprensión del contenido, comunicación clara y evidencias observables de aprendizaje.\n\n## Secuencia sugerida\n\n| Momento | Acción docente | Acción de estudiantes | Evidencia |\n|---|---|---|---|\n| Inicio | Presenta el propósito, activa conocimientos previos y explica criterios de logro. | Responden preguntas iniciales y organizan roles. | Preguntas o lluvia de ideas. |\n| Desarrollo | Guía la investigación, construcción o actividad principal con apoyo y retroalimentación. | Elaboran el producto, practican, dialogan y registran evidencias. | Producto parcial, notas, recursos o presentación. |\n| Cierre | Facilita síntesis, reflexión y evaluación formativa. | Presentan avances, responden preguntas y proponen mejoras. | Ticket de salida, autoevaluación o pauta. |\n\n## Evaluación sugerida\n\n- Claridad del contenido trabajado.\n- Participación y colaboración.\n- Uso de evidencias o recursos.\n- Comunicación oral o escrita.\n- Reflexión final sobre lo aprendido.\n\n## Recomendación\n\nVuelve a presionar “Regenerar” cuando el proveedor de IA esté disponible para obtener una versión más extensa y personalizada.`
+}
+
+
 // ── Web search for topic ideas ────────────────────────────────────────────────
 async function searchTopicIdeas(nivel: NivelKey, curso: string, asignatura: string, mes: string): Promise<string> {
   const gKey = process.env.GEMINI_API_KEY
@@ -610,6 +751,19 @@ export async function POST(req: NextRequest) {
   const wantsActividad = messageLC.includes("actividad") && !messageLC.includes("planif")
   const wantsEfemeride = messageLC.includes("efeméride") || messageLC.includes("fecha") || messageLC.includes("mes")
   const wantsSecuencia = messageLC.includes("secuencia") || messageLC.includes("distribuye") || messageLC.includes("semana")
+
+  const outputIntent = getOutputIntent({
+    wantsRubrica,
+    wantsIndicadores,
+    wantsTarea,
+    wantsGuia,
+    wantsCarta,
+    wantsAdaptacion,
+    wantsInter,
+    wantsActividad,
+    wantsEfemeride,
+    wantsSecuencia,
+  })
 
   const wantsIdeas = !contexto && (
     messageLC.includes("idea") || messageLC.includes("suger") ||
@@ -925,21 +1079,48 @@ CRITERIOS DE CALIDAD - VERIFICAR ANTES DE RESPONDER:
 - Parvularia: lenguaje ludico, experiencial, afectivo y apropiado al subnivel
 - Sala Cuna: sin estructuras escolarizadas, experiencias sensoriales y breves`.trim()
 
+  const useCompactResourcePrompt = outputIntent !== "planificacion"
+  const selectedUnitForPrompt = getPlannerUnits({ nivel, curso, asignatura })
+    .find((unit) => unit.id === unidadId)
+
+  const activeSystemPrompt = useCompactResourcePrompt
+    ? buildCompactEducadorSystemPrompt({
+        intent: outputIntent,
+        nivel,
+        curso,
+        asignatura,
+        mes,
+        contexto: contexto || message,
+        unidadLabel: selectedUnitForPrompt?.label || "",
+        tiempoPlanificacion,
+        sesiones,
+        duracionMinutos,
+        promptContext,
+      })
+    : systemPrompt
+
+  const historyLimit = useCompactResourcePrompt || message.length > 700 ? 2 : 8
   const aiMessages = [
-    { role: "system" as const, content: systemPrompt },
-    ...history.slice(-8).filter(isChatHistoryItem).map((msg: ChatHistoryItem) => ({
+    { role: "system" as const, content: activeSystemPrompt },
+    ...history.slice(-historyLimit).filter(isChatHistoryItem).map((msg: ChatHistoryItem) => ({
       role: msg.role,
-      content: msg.content,
+      content: truncateForPrompt(msg.content, msg.role === "assistant" ? 1200 : 1600),
     })),
     { role: "user" as const, content: message },
   ]
 
   try {
-    const strategy = getEducadorModelStrategy(
-      sesiones > 1 || selectedOAIds.length > 1 || message.length > 500
-        ? "planning_full"
-        : "planning_short"
-    )
+    const strategy = useCompactResourcePrompt
+      ? {
+          maxTokens: outputIntent === "rubrica" ? 4200 : 3400,
+          preferProvider: "groq" as const,
+          openrouterModel: "openai/gpt-4o-mini",
+        }
+      : getEducadorModelStrategy(
+          sesiones > 1 || selectedOAIds.length > 1
+            ? "planning_full"
+            : "planning_short"
+        )
 
     const result = await callAI(aiMessages, {
       maxTokens: strategy.maxTokens,
@@ -957,9 +1138,35 @@ CRITERIOS DE CALIDAD - VERIFICAR ANTES DE RESPONDER:
       selectedOAIds,
       selectedOATIds,
       unidadId,
+      outputIntent,
+      compactPrompt: useCompactResourcePrompt,
     })
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "No fue posible generar la planificacion"
-    return NextResponse.json({ error: errorMessage }, { status: 500 })
+    const fallbackText = buildLocalEducadorFallback({
+      intent: outputIntent,
+      curso,
+      asignatura,
+      contexto,
+      message,
+      tiempoPlanificacion,
+      sesiones,
+      duracionMinutos,
+      errorMessage,
+    })
+
+    return NextResponse.json({
+      text: fallbackText,
+      provider: "EduAI respaldo local",
+      model: "fallback-template",
+      cursoKey: cursoToKey(curso),
+      localCoverage: promptContext.summary,
+      hasLocalCurriculum: promptContext.summary.oas > 0,
+      selectedOAIds,
+      selectedOATIds,
+      unidadId,
+      outputIntent,
+      aiFallback: true,
+    })
   }
 }
