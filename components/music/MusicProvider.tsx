@@ -29,6 +29,14 @@ type MusicView =
 type RepeatMode = "off" | "one" | "all";
 type OnlineProviderMode = "all" | "full" | "preview" | "youtube";
 
+type ExtendedEduMusicTrack = EduMusicTrack & {
+  playable?: boolean;
+  externalOnly?: boolean;
+  embedOnly?: boolean;
+  embedUrl?: string;
+  loaderUrl?: string;
+};
+
 type StoredState = {
   trackId?: string;
   playlistId?: string;
@@ -140,6 +148,18 @@ function unique(ids: string[]) {
 
 function isHlsUrl(src?: string) {
   return Boolean(src && /\.m3u8(\?|$)/i.test(src));
+}
+
+function asExtendedTrack(track?: EduMusicTrack | null): ExtendedEduMusicTrack | null {
+  return (track || null) as ExtendedEduMusicTrack | null;
+}
+
+function isEmbedTrack(track?: EduMusicTrack | null) {
+  return Boolean(asExtendedTrack(track)?.embedOnly);
+}
+
+function trackExternalUrl(track?: EduMusicTrack | null) {
+  return asExtendedTrack(track)?.externalUrl || asExtendedTrack(track)?.embedUrl || "";
 }
 
 function loadYouTubeApi() {
@@ -431,7 +451,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     audio.removeAttribute("src");
     audio.load();
 
-    if (currentTrack?.source === "youtube" || !currentTrack?.src) return;
+    if (currentTrack?.source === "youtube" || isEmbedTrack(currentTrack) || !currentTrack?.src) return;
 
     if (isHlsUrl(currentTrack.src)) {
       if (audio.canPlayType("application/vnd.apple.mpegurl")) {
@@ -476,7 +496,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if (!currentTrack?.src) {
+    if (isEmbedTrack(currentTrack) || !currentTrack?.src) {
       audio.pause();
       if (playing) setPlaying(false);
       return;
@@ -494,14 +514,22 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       setHasActiveSession(true);
       if (queueFrom?.length) setQueueIds(queueFrom.map((t) => t.id));
 
-      if (!track.src && track.externalUrl && (track.source === "radio" || track.source === "external")) {
+      if (isEmbedTrack(track)) {
+        setCurrentId(track.id);
+        setPlaying(false);
+        setRadioError("");
+        return;
+      }
+
+      const externalUrl = trackExternalUrl(track);
+      if (!track.src && externalUrl && (track.source === "radio" || track.source === "external")) {
         setCurrentId(track.id);
         setPlaying(false);
         setRadioError(
           `${track.title} no tiene una señal HTTPS reproducible directamente en el navegador. Se abrirá la fuente oficial.`,
         );
         if (typeof window !== "undefined") {
-          window.open(track.externalUrl, "_blank", "noopener,noreferrer");
+          window.open(externalUrl, "_blank", "noopener,noreferrer");
         }
         return;
       }
@@ -525,7 +553,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       setSelectedPlaylistId(playlist.id);
       setQueueIds(tracks.map((track) => track.id));
       setCurrentId(tracks[0].id);
-      setPlaying(true);
+      setPlaying(!isEmbedTrack(tracks[0]));
     },
     [allTracks, playlists, selectedPlaylist, selectedPlaylistId],
   );
@@ -533,6 +561,10 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const nextTrack = useCallback(() => {
     setHasActiveSession(true);
     if (repeat === "one") {
+      if (isEmbedTrack(currentTrack)) {
+        setPlaying(false);
+        return;
+      }
       if (currentTrack?.source === "youtube" && youtubePlayerRef.current?.seekTo) {
         try {
           youtubePlayerRef.current.seekTo(0, true);
