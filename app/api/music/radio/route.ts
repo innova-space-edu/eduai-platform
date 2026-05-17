@@ -67,20 +67,37 @@ const MANUAL_RADIOS: ManualRadioPreset[] = [
     countryCode: "CL",
   },
   {
+    id: "radio-preset-carolina",
+    title: "Radio Carolina",
+    artist: "Santiago · Chile",
+    album: "DPS · AAC",
+    mood: "energy",
+    duration: "En vivo",
+    // URL pública HTTPS que varios directorios M3U listan para Carolina 99.3 FM.
+    // Evita el modo pause provocado por fuentes http:// o dominios con SSL inválido.
+    src: "https://unlimited3-cl.dps.live/carolinafm/aac/icecast.audio",
+    cover: "linear-gradient(135deg,#22d3ee,#6366f1)",
+    externalUrl: "https://www.carolina.cl/senal-en-vivo/",
+    source: "radio",
+    tags: ["radio", "chile", "cl", "carolina", "juvenil", "pop", "urbana", "aac"],
+    aliases: ["carolina", "radio carolina", "carolina 99.3", "la mas prendida", "la más prendida"],
+    countryCode: "CL",
+  },
+  {
     id: "radio-preset-canal95",
     title: "Canal 95",
     artist: "Antofagasta · Chile",
-    album: "Señal online · preset manual",
+    album: "Requiere fuente oficial externa",
     mood: "energy",
     duration: "En vivo",
-    // Si este HTTPS no responde en algún navegador, usa el enlace oficial en externalUrl.
-    // El stream antiguo público aparece como http://sonando.us.digitalproserver.com/canal95_aac,
-    // pero una página HTTPS como Vercel necesita HTTPS para evitar mixed content.
-    src: "https://sonando.us.digitalproserver.com/canal95_aac",
+    // El stream público histórico es http://sonando.us.digitalproserver.com/canal95_aac.
+    // En Vercel/HTTPS el navegador lo auto-actualiza a HTTPS y falla por certificado
+    // NET::ERR_CERT_COMMON_NAME_INVALID. Por eso NO se usa como src directo.
+    src: "",
     cover: "linear-gradient(135deg,#fde047,#f97316)",
     externalUrl: "https://www.canal95.cl/",
     source: "radio",
-    tags: ["radio", "chile", "cl", "antofagasta", "canal 95", "top 40", "pop", "aac"],
+    tags: ["radio", "chile", "cl", "antofagasta", "canal 95", "top 40", "pop", "fuente externa"],
     aliases: ["canal 95", "canal95", "radio canal 95", "canal antogafasta", "canal antofagasta"],
     countryCode: "CL",
   },
@@ -122,13 +139,20 @@ function moodFromRadio(text: string): NormalizedRadioTrack["mood"] {
 }
 
 function normalizeStreamUrl(src: string) {
-  // No transformamos a ciegas todos los http:// a https:// porque algunas radios antiguas
-  // solo existen en HTTP. Para Vercel/HTTPS conviene priorizar URLs HTTPS desde el origen.
-  // Si Radio Browser trae HTTP y no existe HTTPS, el navegador puede bloquearlo.
   if (!src) return "";
-  if (/^https:\/\//i.test(src)) return src;
-  if (/^http:\/\//i.test(src)) return src.replace(/^http:/i, "https:");
-  return src;
+  const clean = src.trim();
+
+  // En producción la plataforma corre sobre HTTPS. Si entregamos http:// al <audio>,
+  // Chrome puede auto-actualizarlo a https:// y fallar con certificado inválido
+  // o bloquearlo como contenido mixto. Por eso solo devolvemos fuentes HTTPS reales.
+  if (/^http:\/\//i.test(clean)) return "";
+
+  // Este host sirve el Icecast por HTTP, pero su HTTPS no tiene certificado válido
+  // para el dominio solicitado; si se usa directo provoca NET::ERR_CERT_COMMON_NAME_INVALID.
+  if (/^https:\/\/sonando\.us\.digitalproserver\.com/i.test(clean)) return "";
+
+  if (/^https:\/\//i.test(clean)) return clean;
+  return "";
 }
 
 function normalizeStation(station: RadioBrowserStation): NormalizedRadioTrack | null {
