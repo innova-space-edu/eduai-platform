@@ -38,10 +38,18 @@ export async function GET(req: NextRequest) {
         notes: "iTunes se usa como fallback de previews promocionales.",
       },
       youtube: {
-        configured: false,
+        configured: Boolean(process.env.YOUTUBE_API_KEY),
         supportsFullStreaming: false,
+        supportsQueuePlayback: true,
         notes:
-          "YouTube debe integrarse con IFrame oficial; no se convierte a MP3.",
+          "YouTube se controla con IFrame Player API oficial y cola automática; no se convierte a MP3.",
+      },
+      radio: {
+        configured: true,
+        supportsFullStreaming: true,
+        apiHost: "https://de1.api.radio-browser.info",
+        notes:
+          "Radio online usa Radio Browser API para buscar emisoras por nombre, país o categoría.",
       },
     },
   });
