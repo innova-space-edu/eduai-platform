@@ -39,6 +39,26 @@ type Props = {
   onOpenPanel?: () => void;
 };
 
+type ExtendedMusicTrack = EduMusicTrack & {
+  playable?: boolean;
+  externalOnly?: boolean;
+  embedOnly?: boolean;
+  embedUrl?: string;
+  loaderUrl?: string;
+};
+
+function asExtendedTrack(track?: EduMusicTrack | null): ExtendedMusicTrack | null {
+  return (track || null) as ExtendedMusicTrack | null;
+}
+
+function isEmbedTrack(track?: EduMusicTrack | null) {
+  return Boolean(asExtendedTrack(track)?.embedOnly);
+}
+
+function getEmbedUrl(track?: EduMusicTrack | null) {
+  return asExtendedTrack(track)?.embedUrl || track?.externalUrl || track?.src || "";
+}
+
 const NAV_ITEMS = [
   { id: "home", label: "Inicio", icon: Home },
   { id: "search", label: "Buscar", icon: Search },
@@ -128,6 +148,7 @@ function sourceLabel(source?: EduMusicTrack["source"]) {
 }
 
 function playbackKind(track?: EduMusicTrack) {
+  if (isEmbedTrack(track)) return "Reproductor oficial ConectaAPP";
   if (track?.source === "itunes") return "Preview 30 segundos · modo DJ";
   if (track?.source === "youtube") return "YouTube · cola automática";
   if (track?.source === "radio") return "Radio online en vivo";
@@ -219,20 +240,26 @@ function IconButton({
 
 function PlayButton({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
   const music = useEduAIMusic();
+  const embedTrack = isEmbedTrack(music.currentTrack);
   const cls =
     size === "lg" ? "h-11 w-11" : size === "sm" ? "h-8 w-8" : "h-10 w-10";
   const iconCls = size === "lg" ? "h-5 w-5" : "h-4 w-4";
   return (
     <button
       type="button"
-      onClick={() => music.setPlaying((value) => !value)}
+      onClick={() => {
+        if (!embedTrack) music.setPlaying((value) => !value);
+      }}
       className={cn(
-        `${cls} inline-flex shrink-0 items-center justify-center rounded-full bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/25 transition hover:scale-105 hover:bg-emerald-300`,
+        `${cls} inline-flex shrink-0 items-center justify-center rounded-full bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/25 transition`,
+        embedTrack ? "cursor-default opacity-75" : "hover:scale-105 hover:bg-emerald-300",
       )}
-      aria-label={music.playing ? "Pausar" : "Reproducir"}
-      title={music.playing ? "Pausar" : "Reproducir"}
+      aria-label={embedTrack ? "Usa el reproductor oficial" : music.playing ? "Pausar" : "Reproducir"}
+      title={embedTrack ? "Usa el reproductor oficial de la radio" : music.playing ? "Pausar" : "Reproducir"}
     >
-      {music.playing ? (
+      {embedTrack ? (
+        <ExternalLink className={iconCls} />
+      ) : music.playing ? (
         <Pause className={iconCls} fill="currentColor" />
       ) : (
         <Play className={`${iconCls} translate-x-0.5`} fill="currentColor" />
@@ -823,6 +850,8 @@ function MainPanel({ tracks }: { tracks: EduMusicTrack[] }) {
   const music = useEduAIMusic();
   const track = music.currentTrack;
   const playlist = music.selectedPlaylist;
+  const embedTrack = isEmbedTrack(track);
+  const embedUrl = getEmbedUrl(track);
 
   return (
     <main className="flex min-h-0 min-w-0 flex-col bg-[#101218] p-2.5 text-white">
@@ -849,83 +878,142 @@ function MainPanel({ tracks }: { tracks: EduMusicTrack[] }) {
         </div>
 
         <div className="flex min-h-0 flex-1 items-center justify-center rounded-3xl border border-emerald-400/15 bg-[radial-gradient(circle_at_center,rgba(16,185,129,.18),rgba(15,23,42,.78)_48%,rgba(5,7,10,.95))] p-5">
-          <div className="w-full max-w-xl rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-center shadow-xl shadow-black/25 backdrop-blur-xl max-xl:p-4">
-            <div className="flex justify-center">
-              <CurrentTrackArtwork track={track} />
-            </div>
+          {embedTrack ? (
+            <div className="w-full max-w-4xl rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-center shadow-xl shadow-black/25 backdrop-blur-xl max-xl:p-4">
+              <div className="mx-auto max-w-xl">
+                <p className="mx-auto mb-2 w-fit rounded-full bg-emerald-400/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-300">
+                  {playbackKind(track)}
+                </p>
+                <h3 className="line-clamp-2 text-xl font-black leading-tight text-white max-xl:text-lg">
+                  {track.title}
+                </h3>
+                <p className="mt-1 truncate text-sm font-semibold text-slate-300">
+                  {track.artist}
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Canal 95 usa el reproductor oficial de ConectaAPP. No se reproduce con el audio global de EduAI porque no entrega un stream directo estable.
+                </p>
+              </div>
 
-            <div className="mx-auto mt-4 max-w-lg">
-              <p className="mx-auto mb-2 w-fit rounded-full bg-emerald-400/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-300">
-                {playbackKind(track)}
-              </p>
-              <h3 className="line-clamp-2 text-xl font-black leading-tight text-white max-xl:text-lg">
-                {track.title}
-              </h3>
-              <p className="mt-1 truncate text-sm font-semibold text-slate-300">
-                {track.artist}
-              </p>
-              <p className="mt-1 truncate text-xs text-slate-500">
-                {track.album || "Sin álbum"} · {track.duration || "--:--"}
-              </p>
-            </div>
-
-            <div className="mt-4 flex items-center justify-center gap-2.5">
-              <IconButton onClick={() => music.setShuffle((value) => !value)} active={music.shuffle} title="Aleatorio">
-                <Shuffle className="h-4 w-4" />
-              </IconButton>
-              <IconButton onClick={music.prevTrack} title="Anterior">
-                <SkipBack className="h-4 w-4" fill="currentColor" />
-              </IconButton>
-              <PlayButton size="lg" />
-              <IconButton onClick={music.nextTrack} title="Siguiente">
-                <SkipForward className="h-4 w-4" fill="currentColor" />
-              </IconButton>
-              <IconButton
-                onClick={() => music.setRepeat(music.repeat === "off" ? "all" : music.repeat === "all" ? "one" : "off")}
-                active={music.repeat !== "off"}
-                title="Repetir"
-              >
-                <Repeat className="h-4 w-4" />
-              </IconButton>
-            </div>
-
-            {track.source === "youtube" && (
-              <p className="mt-3 text-xs font-semibold text-emerald-200/90">
-                YouTube ahora funciona con cola automática: el botón central reproduce/pausa y al terminar avanza al siguiente video encontrado.
-              </p>
-            )}
-            {track.source === "radio" && (
-              <p className="mt-3 text-xs font-semibold text-emerald-200/90">
-                Radio online en vivo. Algunas emisoras pueden tardar unos segundos en iniciar según su servidor.
-              </p>
-            )}
-
-            <div className="mt-4 grid grid-cols-2 gap-2 max-sm:grid-cols-1">
-              <button
-                type="button"
-                onClick={() => music.toggleLike(track.id)}
-                className={cn(
-                  "rounded-full border px-3 py-2 text-xs font-black transition",
-                  music.liked.has(track.id)
-                    ? "border-emerald-400 bg-emerald-400 text-slate-950"
-                    : "border-white/10 bg-white/7 text-slate-300 hover:bg-emerald-400/10 hover:text-emerald-200",
+              <div className="mt-4 overflow-hidden rounded-3xl border border-emerald-400/20 bg-black/40 shadow-2xl shadow-black/40">
+                {embedUrl ? (
+                  <iframe
+                    src={embedUrl}
+                    title={`${track.title} - reproductor oficial`}
+                    className="h-[560px] w-full border-0 bg-black max-lg:h-[520px] max-sm:h-[480px]"
+                    allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+                    allowFullScreen
+                  />
+                ) : (
+                  <div className="flex min-h-[360px] flex-col items-center justify-center p-6 text-center">
+                    <CurrentTrackArtwork track={track} />
+                    <p className="mt-4 text-sm font-bold text-rose-200">No hay URL de reproductor oficial configurada.</p>
+                  </div>
                 )}
-              >
-                ♥ Me gusta
-              </button>
-              <button
-                type="button"
-                onClick={() => music.requestAddToPlaylist(track.id)}
-                className="rounded-full border border-white/10 bg-white/7 px-3 py-2 text-xs font-black text-slate-300 transition hover:bg-emerald-400/10 hover:text-emerald-200"
-              >
-                + Agregar a playlist
-              </button>
-            </div>
+              </div>
 
-            <p className="mt-3 text-[11px] text-slate-500">
-              {tracks.length} canciones disponibles en la lista lateral izquierda.
-            </p>
-          </div>
+              <div className="mt-4 grid grid-cols-2 gap-2 max-sm:grid-cols-1">
+                <button
+                  type="button"
+                  onClick={() => music.toggleLike(track.id)}
+                  className={cn(
+                    "rounded-full border px-3 py-2 text-xs font-black transition",
+                    music.liked.has(track.id)
+                      ? "border-emerald-400 bg-emerald-400 text-slate-950"
+                      : "border-white/10 bg-white/7 text-slate-300 hover:bg-emerald-400/10 hover:text-emerald-200",
+                  )}
+                >
+                  ♥ Me gusta
+                </button>
+                <a
+                  href={track.externalUrl || embedUrl || "https://www.canal95.cl/"}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-full border border-white/10 bg-white/7 px-3 py-2 text-xs font-black text-slate-300 transition hover:bg-emerald-400/10 hover:text-emerald-200"
+                >
+                  Abrir fuente oficial
+                </a>
+              </div>
+            </div>
+          ) : (
+            <div className="w-full max-w-xl rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-center shadow-xl shadow-black/25 backdrop-blur-xl max-xl:p-4">
+              <div className="flex justify-center">
+                <CurrentTrackArtwork track={track} />
+              </div>
+
+              <div className="mx-auto mt-4 max-w-lg">
+                <p className="mx-auto mb-2 w-fit rounded-full bg-emerald-400/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-300">
+                  {playbackKind(track)}
+                </p>
+                <h3 className="line-clamp-2 text-xl font-black leading-tight text-white max-xl:text-lg">
+                  {track.title}
+                </h3>
+                <p className="mt-1 truncate text-sm font-semibold text-slate-300">
+                  {track.artist}
+                </p>
+                <p className="mt-1 truncate text-xs text-slate-500">
+                  {track.album || "Sin álbum"} · {track.duration || "--:--"}
+                </p>
+              </div>
+
+              <div className="mt-4 flex items-center justify-center gap-2.5">
+                <IconButton onClick={() => music.setShuffle((value) => !value)} active={music.shuffle} title="Aleatorio">
+                  <Shuffle className="h-4 w-4" />
+                </IconButton>
+                <IconButton onClick={music.prevTrack} title="Anterior">
+                  <SkipBack className="h-4 w-4" fill="currentColor" />
+                </IconButton>
+                <PlayButton size="lg" />
+                <IconButton onClick={music.nextTrack} title="Siguiente">
+                  <SkipForward className="h-4 w-4" fill="currentColor" />
+                </IconButton>
+                <IconButton
+                  onClick={() => music.setRepeat(music.repeat === "off" ? "all" : music.repeat === "all" ? "one" : "off")}
+                  active={music.repeat !== "off"}
+                  title="Repetir"
+                >
+                  <Repeat className="h-4 w-4" />
+                </IconButton>
+              </div>
+
+              {track.source === "youtube" && (
+                <p className="mt-3 text-xs font-semibold text-emerald-200/90">
+                  YouTube ahora funciona con cola automática: el botón central reproduce/pausa y al terminar avanza al siguiente video encontrado.
+                </p>
+              )}
+              {track.source === "radio" && (
+                <p className="mt-3 text-xs font-semibold text-emerald-200/90">
+                  Radio online en vivo. Algunas emisoras pueden tardar unos segundos en iniciar según su servidor.
+                </p>
+              )}
+
+              <div className="mt-4 grid grid-cols-2 gap-2 max-sm:grid-cols-1">
+                <button
+                  type="button"
+                  onClick={() => music.toggleLike(track.id)}
+                  className={cn(
+                    "rounded-full border px-3 py-2 text-xs font-black transition",
+                    music.liked.has(track.id)
+                      ? "border-emerald-400 bg-emerald-400 text-slate-950"
+                      : "border-white/10 bg-white/7 text-slate-300 hover:bg-emerald-400/10 hover:text-emerald-200",
+                  )}
+                >
+                  ♥ Me gusta
+                </button>
+                <button
+                  type="button"
+                  onClick={() => music.requestAddToPlaylist(track.id)}
+                  className="rounded-full border border-white/10 bg-white/7 px-3 py-2 text-xs font-black text-slate-300 transition hover:bg-emerald-400/10 hover:text-emerald-200"
+                >
+                  + Agregar a playlist
+                </button>
+              </div>
+
+              <p className="mt-3 text-[11px] text-slate-500">
+                {tracks.length} canciones disponibles en la lista lateral izquierda.
+              </p>
+            </div>
+          )}
         </div>
       </section>
     </main>
