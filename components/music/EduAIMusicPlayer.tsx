@@ -14,6 +14,7 @@ import {
   Pause,
   Play,
   Plus,
+  Radio,
   Repeat,
   Search,
   Shuffle,
@@ -41,6 +42,7 @@ type Props = {
 const NAV_ITEMS = [
   { id: "home", label: "Inicio", icon: Home },
   { id: "search", label: "Buscar", icon: Search },
+  { id: "radio", label: "Radio", icon: Radio },
   { id: "library", label: "Biblioteca", icon: Library },
   { id: "playlists", label: "Playlists", icon: ListMusic },
   { id: "liked", label: "Me gusta", icon: Heart },
@@ -120,13 +122,15 @@ function sourceLabel(source?: EduMusicTrack["source"]) {
   if (source === "audius") return "Audius";
   if (source === "itunes") return "DJ 30s";
   if (source === "youtube") return "YouTube video";
+  if (source === "radio") return "Radio online";
   if (source === "external") return "Externo";
   return "EduAI";
 }
 
 function playbackKind(track?: EduMusicTrack) {
   if (track?.source === "itunes") return "Preview 30 segundos · modo DJ";
-  if (track?.source === "youtube") return "Video embebido · fallback YouTube";
+  if (track?.source === "youtube") return "YouTube · cola automática";
+  if (track?.source === "radio") return "Radio online en vivo";
   if (track?.source === "jamendo" || track?.source === "audius")
     return "Canción completa reproducible";
   return "Pista completa EduAI";
@@ -218,20 +222,15 @@ function PlayButton({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
   const cls =
     size === "lg" ? "h-11 w-11" : size === "sm" ? "h-8 w-8" : "h-10 w-10";
   const iconCls = size === "lg" ? "h-5 w-5" : "h-4 w-4";
-  const isYouTube = music.currentTrack.source === "youtube";
   return (
     <button
       type="button"
-      disabled={isYouTube}
       onClick={() => music.setPlaying((value) => !value)}
       className={cn(
-        `${cls} inline-flex shrink-0 items-center justify-center rounded-full text-slate-950 shadow-lg shadow-emerald-500/25 transition`,
-        isYouTube
-          ? "cursor-not-allowed bg-slate-600 text-slate-300 shadow-none"
-          : "bg-emerald-400 hover:scale-105 hover:bg-emerald-300",
+        `${cls} inline-flex shrink-0 items-center justify-center rounded-full bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/25 transition hover:scale-105 hover:bg-emerald-300`,
       )}
-      aria-label={isYouTube ? "Usa el reproductor de YouTube" : music.playing ? "Pausar" : "Reproducir"}
-      title={isYouTube ? "Usa el reproductor de YouTube integrado" : undefined}
+      aria-label={music.playing ? "Pausar" : "Reproducir"}
+      title={music.playing ? "Pausar" : "Reproducir"}
     >
       {music.playing ? (
         <Pause className={iconCls} fill="currentColor" />
@@ -475,6 +474,91 @@ function TopBar() {
   );
 }
 
+
+function RadioPanel() {
+  const music = useEduAIMusic();
+  const presets = [
+    { label: "Chile", term: "", countryCode: "CL" },
+    { label: "Noticias", term: "noticias", countryCode: "CL" },
+    { label: "Música", term: "music", countryCode: "CL" },
+    { label: "Mundo", term: "", countryCode: "" },
+  ];
+  const shown = music.radioTracks.slice(0, 8);
+
+  return (
+    <section className="shrink-0 rounded-2xl border border-emerald-400/20 bg-[linear-gradient(135deg,rgba(16,185,129,.16),rgba(20,23,31,.96))] p-3">
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <p className="inline-flex items-center gap-1.5 text-sm font-black text-white">
+            <Radio className="h-4 w-4 text-emerald-300" /> Radio online
+          </p>
+          <p className="text-[10px] text-slate-400">Sintoniza emisoras en vivo.</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => void music.searchRadio("", "CL")}
+          disabled={music.radioLoading}
+          className="rounded-full bg-emerald-400 px-3 py-1.5 text-[10px] font-black text-slate-950 disabled:opacity-50"
+        >
+          {music.radioLoading ? "..." : "Buscar"}
+        </button>
+      </div>
+
+      <div className="mt-2 flex gap-2">
+        <input
+          value={music.radioQuery}
+          onChange={(e) => music.setRadioQuery(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && void music.searchRadio()}
+          placeholder="Cooperativa, ADN, Bío-Bío, jazz..."
+          className="min-w-0 flex-1 rounded-full border border-white/10 bg-black/25 px-3 py-2 text-xs text-white outline-none placeholder:text-slate-500 focus:border-emerald-400/60"
+        />
+      </div>
+
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {presets.map((item) => (
+          <button
+            key={`${item.label}-${item.countryCode}`}
+            type="button"
+            onClick={() => void music.searchRadio(item.term, item.countryCode)}
+            className="rounded-full bg-white/8 px-2.5 py-1 text-[10px] font-black text-slate-300 transition hover:bg-emerald-400/15 hover:text-emerald-200"
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+
+      {music.radioError && <p className="mt-2 text-[10px] font-bold text-rose-300">{music.radioError}</p>}
+
+      {shown.length > 0 && (
+        <div className="mt-2 max-h-[180px] space-y-1 overflow-y-auto pr-1">
+          {shown.map((track, index) => {
+            const active = track.id === music.currentTrack.id;
+            return (
+              <button
+                key={track.id}
+                type="button"
+                onClick={() => music.playTrack(track, music.radioTracks)}
+                className={cn(
+                  "flex w-full items-center gap-2 rounded-xl px-2 py-1.5 text-left transition",
+                  active ? "bg-emerald-400/15 text-white ring-1 ring-emerald-400/30" : "hover:bg-white/7",
+                )}
+              >
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/8 text-[10px] font-black text-emerald-300">
+                  {active && music.playing ? <Pause className="h-3 w-3" fill="currentColor" /> : index + 1}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[11px] font-black text-white">{track.title}</span>
+                  <span className="block truncate text-[10px] text-slate-500">{track.artist}</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
 function Sidebar({ tracks }: { tracks: EduMusicTrack[] }) {
   const music = useEduAIMusic();
   const [playlistFilter, setPlaylistFilter] = useState("");
@@ -539,6 +623,10 @@ function Sidebar({ tracks }: { tracks: EduMusicTrack[] }) {
         )}
       </div>
 
+      <div className="mt-3">
+        <RadioPanel />
+      </div>
+
       <div className="mt-3 flex min-h-0 flex-1 flex-col gap-3">
         <section className="flex min-h-0 flex-[0.8] flex-col rounded-2xl border border-white/10 bg-[#14171f] p-3">
           <div className="mb-2 flex h-9 items-center gap-2 rounded-xl bg-black/25 px-3">
@@ -560,9 +648,11 @@ function Sidebar({ tracks }: { tracks: EduMusicTrack[] }) {
                     music.setView(
                       playlist.id === "pl-liked"
                         ? "liked"
-                        : playlist.id === "pl-online"
-                          ? "search"
-                          : "playlists",
+                        : playlist.id === "pl-radio"
+                          ? "radio"
+                          : playlist.id === "pl-online"
+                            ? "search"
+                            : "playlists",
                     );
                   }}
                   className={cn(
@@ -677,17 +767,22 @@ function PlaylistHeader({ tracks }: { tracks: EduMusicTrack[] }) {
 function CurrentTrackArtwork({ track }: { track: EduMusicTrack }) {
   const artwork = track.artworkUrl || track.videoThumbnail || (track.cover?.startsWith("http") ? track.cover : undefined);
 
-  if (track.source === "youtube" && track.videoEmbedUrl) {
+  if (track.source === "youtube") {
     return (
-      <div className="aspect-video w-full max-w-[460px] overflow-hidden rounded-2xl border border-emerald-400/20 bg-black shadow-xl shadow-black/30">
-        <iframe
-          title={track.title}
-          src={`${track.videoEmbedUrl}?rel=0&modestbranding=1`}
-          className="block h-full w-full"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          allowFullScreen
-          loading="lazy"
-        />
+      <div className="relative aspect-video w-full max-w-[460px] overflow-hidden rounded-2xl border border-emerald-400/20 bg-black shadow-xl shadow-black/30">
+        {artwork ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={artwork} alt={track.title} className="h-full w-full object-cover opacity-75" />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-red-500 to-slate-950" />
+        )}
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/35 p-4 text-center">
+          <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-red-500 text-white shadow-lg">
+            <Play className="h-5 w-5 translate-x-0.5" fill="currentColor" />
+          </div>
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-white">YouTube controlado por EduAI</p>
+          <p className="mt-1 max-w-sm text-[11px] font-semibold text-slate-200">Usa play, pausa, anterior y siguiente desde el reproductor central. Al terminar, pasa al siguiente resultado de la cola.</p>
+        </div>
       </div>
     );
   }
@@ -793,7 +888,12 @@ function MainPanel({ tracks }: { tracks: EduMusicTrack[] }) {
 
             {track.source === "youtube" && (
               <p className="mt-3 text-xs font-semibold text-emerald-200/90">
-                No apareció audio completo en Jamendo/Audius para esta búsqueda; EduAI muestra el video embebido de YouTube como respaldo.
+                YouTube ahora funciona con cola automática: el botón central reproduce/pausa y al terminar avanza al siguiente video encontrado.
+              </p>
+            )}
+            {track.source === "radio" && (
+              <p className="mt-3 text-xs font-semibold text-emerald-200/90">
+                Radio online en vivo. Algunas emisoras pueden tardar unos segundos en iniciar según su servidor.
               </p>
             )}
 
@@ -872,7 +972,7 @@ function RightPanel() {
       <section className="shrink-0 rounded-2xl border border-emerald-400/20 bg-[#14171f] p-3">
         <p className="text-sm font-black text-white">Buscar canciones</p>
         <p className="mt-1 text-xs text-slate-400">
-          Busca canciones completas con Jamendo/Audius. Si no hay audio completo, EduAI usa YouTube embebido como respaldo.
+          Busca canciones completas con Jamendo/Audius. En modo YouTube, EduAI crea una cola automática controlada por el botón central.
         </p>
         <div className="mt-3 flex gap-2">
           <input
@@ -921,7 +1021,7 @@ function RightPanel() {
           })}
         </div>
         <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
-          Por defecto se buscan canciones completas en Jamendo/Audius. Si no existe audio completo para tu búsqueda, EduAI muestra un video embebido de YouTube en el centro. DJ 30s usa previews iTunes.
+          Por defecto se buscan canciones completas en Jamendo/Audius. El modo YouTube usa cola automática con anterior/siguiente. DJ 30s usa previews iTunes.
         </p>
       </section>
 
@@ -944,7 +1044,6 @@ function RightPanel() {
         </div>
       </section>
 
-      <SpotifyEmbeds />
 
       <section className="shrink-0 rounded-2xl border border-white/10 bg-[#14171f] p-3">
         <p className="text-sm font-black text-white">Ahora suena</p>
