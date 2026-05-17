@@ -14,6 +14,7 @@ export type EduMusicTrackSource =
   | "jamendo"
   | "audius"
   | "youtube"
+  | "radio"
   | "external";
 
 export type EduMusicTrack = {
