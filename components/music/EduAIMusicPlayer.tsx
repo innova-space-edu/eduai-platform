@@ -478,6 +478,9 @@ function TopBar() {
 function RadioPanel() {
   const music = useEduAIMusic();
   const presets = [
+    { label: "FM Dos", term: "fm dos", countryCode: "CL" },
+    { label: "Canal 95", term: "canal 95", countryCode: "CL" },
+    { label: "Carolina", term: "carolina", countryCode: "CL" },
     { label: "Chile", term: "", countryCode: "CL" },
     { label: "Noticias", term: "noticias", countryCode: "CL" },
     { label: "Música", term: "music", countryCode: "CL" },
@@ -509,7 +512,7 @@ function RadioPanel() {
           value={music.radioQuery}
           onChange={(e) => music.setRadioQuery(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && void music.searchRadio()}
-          placeholder="Cooperativa, ADN, Bío-Bío, jazz..."
+          placeholder="FM Dos, Carolina, Canal 95, Bío-Bío..."
           className="min-w-0 flex-1 rounded-full border border-white/10 bg-black/25 px-3 py-2 text-xs text-white outline-none placeholder:text-slate-500 focus:border-emerald-400/60"
         />
       </div>
