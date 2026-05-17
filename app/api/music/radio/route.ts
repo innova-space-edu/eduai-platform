@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const maxDuration = 20;
 
+type RadioMood = "focus" | "calm" | "classical" | "nature" | "energy" | "deep" | "reading" | "creative";
+
 type RadioBrowserStation = {
   stationuuid?: string;
   name?: string;
@@ -25,7 +27,7 @@ type NormalizedRadioTrack = {
   title: string;
   artist: string;
   album: string;
-  mood: "focus" | "calm" | "classical" | "nature" | "energy" | "deep" | "reading" | "creative";
+  mood: RadioMood;
   duration: string;
   src: string;
   cover: string;
@@ -33,38 +35,50 @@ type NormalizedRadioTrack = {
   externalUrl?: string;
   source: "radio";
   tags: string[];
+  countryCode?: string;
+  playable?: boolean;
+  externalOnly?: boolean;
+  embedOnly?: boolean;
+  embedUrl?: string;
+  loaderUrl?: string;
 };
 
 type ManualRadioPreset = NormalizedRadioTrack & {
   aliases: string[];
-  countryCode?: string;
 };
 
 const API_BASE = "https://de1.api.radio-browser.info";
 const DEFAULT_LIMIT = 24;
 const MAX_LIMIT = 50;
+const RADIO_PROXY_BASE = (process.env.RADIO_PROXY_BASE || "").replace(/\/$/, "");
 
-// Presets manuales para radios chilenas que a veces no aparecen bien en Radio Browser
-// o que devuelven URLs temporales/difíciles de reproducir en navegador.
-// IMPORTANTE:
-// - FMDOS usa StreamTheWorld/Triton. Es mejor usar el endpoint livestream-redirect,
-//   no el host temporal tipo 27363.live.streamtheworld.com:3690.
-// - Canal 95 no siempre aparece en Radio Browser, por eso queda como preset manual.
+const fmdosUrl = RADIO_PROXY_BASE
+  ? `${RADIO_PROXY_BASE}/fmdos`
+  : "https://playerservices.streamtheworld.com/api/livestream-redirect/FMDOSAAC_SC";
+
+const canal95EmbedUrl = "https://player.conectaapp.cl/canal-95";
+const canal95LoaderUrl = "https://player.conectaapp.cl/embed/loader.js?id=canal-95";
+
+// Presets manuales para radios chilenas problemáticas o importantes.
+// Canal 95 no se entrega como audio directo: su señal funciona mediante
+// el reproductor oficial ConectaAPP, por eso va marcado como embedOnly.
 const MANUAL_RADIOS: ManualRadioPreset[] = [
   {
     id: "radio-preset-fmdos",
     title: "FM Dos",
     artist: "Chile · CL",
-    album: "StreamTheWorld · HLS/AAC estable",
+    album: RADIO_PROXY_BASE ? "EduAI Radio Proxy · StreamTheWorld" : "StreamTheWorld · AAC",
     mood: "calm",
     duration: "En vivo",
-    src: "https://playerservices.streamtheworld.com/api/livestream-redirect/FMDOSAAC.m3u8",
+    src: fmdosUrl,
     cover: "linear-gradient(135deg,#f9a8d4,#f43f5e)",
     externalUrl: "https://envivo.fmdos.cl/",
     source: "radio",
-    tags: ["radio", "chile", "cl", "fmdos", "fm dos", "fm2", "romantica", "hls"],
+    tags: ["radio", "chile", "cl", "fmdos", "fm dos", "fm2", "romantica", "streamtheworld"],
     aliases: ["fm dos", "fmdos", "fm2", "fm 2", "radio fm dos", "radio fmdos"],
     countryCode: "CL",
+    playable: true,
+    externalOnly: false,
   },
   {
     id: "radio-preset-carolina",
@@ -73,8 +87,6 @@ const MANUAL_RADIOS: ManualRadioPreset[] = [
     album: "DPS · AAC",
     mood: "energy",
     duration: "En vivo",
-    // URL pública HTTPS que varios directorios M3U listan para Carolina 99.3 FM.
-    // Evita el modo pause provocado por fuentes http:// o dominios con SSL inválido.
     src: "https://unlimited3-cl.dps.live/carolinafm/aac/icecast.audio",
     cover: "linear-gradient(135deg,#22d3ee,#6366f1)",
     externalUrl: "https://www.carolina.cl/senal-en-vivo/",
@@ -82,24 +94,28 @@ const MANUAL_RADIOS: ManualRadioPreset[] = [
     tags: ["radio", "chile", "cl", "carolina", "juvenil", "pop", "urbana", "aac"],
     aliases: ["carolina", "radio carolina", "carolina 99.3", "la mas prendida", "la más prendida"],
     countryCode: "CL",
+    playable: true,
+    externalOnly: false,
   },
   {
     id: "radio-preset-canal95",
     title: "Canal 95",
     artist: "Antofagasta · Chile",
-    album: "Requiere fuente oficial externa",
+    album: "Reproductor oficial ConectaAPP",
     mood: "energy",
     duration: "En vivo",
-    // El stream público histórico es http://sonando.us.digitalproserver.com/canal95_aac.
-    // En Vercel/HTTPS el navegador lo auto-actualiza a HTTPS y falla por certificado
-    // NET::ERR_CERT_COMMON_NAME_INVALID. Por eso NO se usa como src directo.
     src: "",
     cover: "linear-gradient(135deg,#fde047,#f97316)",
     externalUrl: "https://www.canal95.cl/",
     source: "radio",
-    tags: ["radio", "chile", "cl", "antofagasta", "canal 95", "top 40", "pop", "fuente externa"],
-    aliases: ["canal 95", "canal95", "radio canal 95", "canal antogafasta", "canal antofagasta"],
+    tags: ["radio", "chile", "cl", "antofagasta", "canal 95", "canal95", "conectaapp", "top 40", "pop"],
+    aliases: ["canal 95", "canal95", "radio canal 95", "canal antofagasta", "canal de antofagasta"],
     countryCode: "CL",
+    playable: false,
+    externalOnly: false,
+    embedOnly: true,
+    embedUrl: canal95EmbedUrl,
+    loaderUrl: canal95LoaderUrl,
   },
 ];
 
@@ -129,7 +145,22 @@ function normalizeText(value: string) {
     .trim();
 }
 
-function moodFromRadio(text: string): NormalizedRadioTrack["mood"] {
+function isFmdosQuery(query: string) {
+  const q = normalizeText(query);
+  return q.includes("fm dos") || q.includes("fmdos") || q === "fm2" || q.includes("fm 2");
+}
+
+function isCanal95Query(query: string) {
+  const q = normalizeText(query);
+  return q.includes("canal 95") || q.includes("canal95") || q === "95" || q.includes("radio canal 95");
+}
+
+function isCarolinaQuery(query: string) {
+  const q = normalizeText(query);
+  return q.includes("carolina") || q.includes("la mas prendida");
+}
+
+function moodFromRadio(text: string): RadioMood {
   const s = text.toLowerCase();
   if (/(news|noticias|talk|deportes|informaci[oó]n|actualidad)/.test(s)) return "reading";
   if (/(classical|cl[aá]sica|orchestra|piano|jazz)/.test(s)) return "classical";
@@ -142,14 +173,12 @@ function normalizeStreamUrl(src: string) {
   if (!src) return "";
   const clean = src.trim();
 
-  // En producción la plataforma corre sobre HTTPS. Si entregamos http:// al <audio>,
-  // Chrome puede auto-actualizarlo a https:// y fallar con certificado inválido
-  // o bloquearlo como contenido mixto. Por eso solo devolvemos fuentes HTTPS reales.
+  // La app corre por HTTPS. Si una radio solo entrega HTTP, el navegador puede bloquearla
+  // o forzar HTTPS y fallar por certificado. No devolvemos HTTP como audio directo.
   if (/^http:\/\//i.test(clean)) return "";
 
-  // Este host sirve el Icecast por HTTP, pero su HTTPS no tiene certificado válido
-  // para el dominio solicitado; si se usa directo provoca NET::ERR_CERT_COMMON_NAME_INVALID.
-  if (/^https:\/\/sonando\.us\.digitalproserver\.com/i.test(clean)) return "";
+  // Evita el host antiguo de Canal 95 que causa NET::ERR_CERT_COMMON_NAME_INVALID.
+  if (/sonando\.us\.digitalproserver\.com/i.test(clean)) return "";
 
   if (/^https:\/\//i.test(clean)) return clean;
   return "";
@@ -159,14 +188,20 @@ function normalizeStation(station: RadioBrowserStation): NormalizedRadioTrack | 
   const src = normalizeStreamUrl(station.url_resolved || station.url || "");
   const name = (station.name || "").trim();
   if (!src || !name) return null;
+
   const tags = [
     "radio",
     station.country,
     station.countrycode,
     station.language,
     station.codec,
-    ...(station.tags || "").split(",").map((item) => item.trim()).filter(Boolean).slice(0, 5),
+    ...(station.tags || "")
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .slice(0, 5),
   ].filter(Boolean) as string[];
+
   const country = [station.country, station.countrycode].filter(Boolean).join(" · ") || "Radio online";
   const codec = [station.codec, station.bitrate ? `${station.bitrate} kbps` : null, station.hls ? "HLS" : null]
     .filter(Boolean)
@@ -185,14 +220,15 @@ function normalizeStation(station: RadioBrowserStation): NormalizedRadioTrack | 
     externalUrl: station.homepage || undefined,
     source: "radio",
     tags,
+    countryCode: station.countrycode,
+    playable: true,
+    externalOnly: false,
   };
 }
 
 function manualMatches(query: string, countryCode: string, limit: number) {
   const q = normalizeText(query);
   const cc = countryCode.trim().toUpperCase();
-
-  // Cuando se pide "Chile" o búsqueda vacía, mostramos favoritos útiles primero.
   const wantsChile = !q || q === "chile" || q === "cl" || q === "radio chile" || q === "radios chile";
 
   return MANUAL_RADIOS.filter((station) => {
@@ -202,6 +238,19 @@ function manualMatches(query: string, countryCode: string, limit: number) {
     const haystack = normalizeText([station.title, station.artist, station.album, ...station.tags, ...station.aliases].join(" "));
     return station.aliases.some((alias) => normalizeText(alias) === q) || haystack.includes(q) || q.includes(normalizeText(station.title));
   }).slice(0, limit);
+}
+
+function presetOnlyResults(query: string, countryCode: string, limit: number) {
+  const results = manualMatches(query, countryCode, limit);
+  if (!results.length) return null;
+
+  // Para estas radios usamos siempre el preset, porque Radio Browser puede devolver
+  // URLs antiguas o no reproducibles.
+  if (isFmdosQuery(query) || isCanal95Query(query) || isCarolinaQuery(query)) {
+    return results;
+  }
+
+  return null;
 }
 
 async function searchRadio(query: string, countryCode: string, limit: number) {
@@ -238,6 +287,19 @@ async function handle(req: NextRequest) {
   const countryCode = String(body.countryCode || url.searchParams.get("countryCode") || "CL").trim();
   const limit = clampLimit(body.limit || url.searchParams.get("limit"));
 
+  const presetOnly = presetOnlyResults(query || "Chile", countryCode, limit);
+  if (presetOnly) {
+    return NextResponse.json({
+      ok: true,
+      query,
+      countryCode,
+      limit,
+      provider: "manual-presets",
+      radioProxyBase: RADIO_PROXY_BASE || null,
+      tracks: presetOnly,
+    });
+  }
+
   const manual = manualMatches(query || "Chile", countryCode, limit);
   const primary = await searchRadio(query || "Chile", countryCode, limit).catch(() => []);
   const fallback = primary.length || manual.length ? [] : await searchRadio(query || "", "", limit).catch(() => []);
@@ -251,6 +313,7 @@ async function handle(req: NextRequest) {
     countryCode,
     limit,
     provider: "radio-browser + manual-presets",
+    radioProxyBase: RADIO_PROXY_BASE || null,
     tracks: Array.from(map.values()).slice(0, limit),
   });
 }
