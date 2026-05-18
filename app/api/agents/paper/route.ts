@@ -8,6 +8,7 @@ import {
 import { semanticSearchPaperChunks, updateChunkEmbeddings } from "@/lib/papers/embeddings"
 
 export const runtime = "nodejs"
+export const maxDuration = 60
 
 type ChunkRecord = {
   id?: string
