@@ -377,7 +377,7 @@ function DropOverlay({ onDrop }: { onDrop: (file: File) => void }) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function PaperPage() {
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const [userReady, setUserReady] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -449,18 +449,63 @@ export default function PaperPage() {
         throw new Error("Por ahora solo se permiten archivos PDF.")
       }
 
-      const path = `${user.id}/${Date.now()}-${file.name}`
-      const { error: uploadError } = await supabase.storage
-        .from(STORAGE_BUCKET)
-        .upload(path, file, { cacheControl: "3600", upsert: false, contentType: file.type || "application/pdf" })
+      let uploadData: any = null
 
-      if (uploadError) throw uploadError
+      const signedRes = await fetch("/api/agents/paper/upload-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          filename: file.name,
+          mimeType: file.type || "application/pdf",
+          size: file.size,
+        }),
+      })
+
+      if (signedRes.ok) {
+        const signedData = await signedRes.json()
+        const signedBucket = signedData?.bucket || STORAGE_BUCKET
+        const signedPath = signedData?.filePath
+        const signedToken = signedData?.token
+
+        if (!signedPath || !signedToken) {
+          throw new Error("El servidor no devolvió la URL segura de subida.")
+        }
+
+        const { error: signedUploadError } = await supabase.storage
+          .from(signedBucket)
+          .uploadToSignedUrl(signedPath, signedToken, file, {
+            contentType: "application/pdf",
+          })
+
+        if (signedUploadError) throw signedUploadError
+        uploadData = signedData
+      } else if ([400, 401, 413].includes(signedRes.status)) {
+        throw new Error(await readErrorResponse(signedRes))
+      } else {
+        // Fallback: permite seguir funcionando aunque aún no esté configurada la service role key.
+        const formData = new FormData()
+        formData.append("file", file)
+
+        const uploadRes = await fetch("/api/agents/paper/upload", {
+          method: "POST",
+          body: formData,
+        })
+
+        if (!uploadRes.ok) throw new Error(await readErrorResponse(uploadRes))
+        uploadData = await uploadRes.json()
+      }
+
+      const bucket = uploadData?.bucket || STORAGE_BUCKET
+      const path = uploadData?.filePath
+      const filename = uploadData?.filename || file.name
+
+      if (!path) throw new Error("El servidor no devolvió la ruta del PDF subido.")
 
       setStoragePath(path)
-      setStorageBucket(STORAGE_BUCKET)
-      setPaperTitle(file.name.replace(/\.pdf$/i, ""))
+      setStorageBucket(bucket)
+      setPaperTitle(filename.replace(/\.pdf$/i, ""))
 
-      await runExtraction({ bucket: STORAGE_BUCKET, filePath: path, filename: file.name, forceRefresh: false })
+      await runExtraction({ bucket, filePath: path, filename, forceRefresh: false })
     } catch (e: any) {
       console.error("[Paper][upload]", e)
       setError(e?.message || "No se pudo subir el documento.")
