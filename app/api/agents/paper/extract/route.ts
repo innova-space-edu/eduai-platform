@@ -8,6 +8,7 @@ import {
 import { updateChunkEmbeddings } from "@/lib/papers/embeddings"
 
 export const runtime = "nodejs"
+export const maxDuration = 60
 
 function getString(value: unknown) {
   return typeof value === "string" ? value : ""
