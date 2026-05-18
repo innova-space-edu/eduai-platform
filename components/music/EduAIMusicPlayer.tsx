@@ -1303,8 +1303,33 @@ function AddToPlaylistBar() {
 
 function MiniBar({ onOpenPanel }: { onOpenPanel?: () => void }) {
   const music = useEduAIMusic();
+  const [collapsed, setCollapsed] = useState(false);
   const duration = music.durationSeconds || parseDuration(music.currentTrack.duration);
   const progress = duration ? Math.min(100, (music.currentTime / duration) * 100) : 0;
+
+  useEffect(() => {
+    setCollapsed(false);
+  }, [music.currentTrack.id]);
+
+  if (collapsed) {
+    return (
+      <div className="fixed bottom-20 right-5 z-50 flex items-center gap-1 rounded-full border border-emerald-300/25 bg-[#06080d]/95 p-1.5 text-white shadow-2xl shadow-emerald-950/30 backdrop-blur-xl">
+        <button
+          type="button"
+          onClick={() => setCollapsed(false)}
+          className="flex items-center gap-2 rounded-full px-2 py-1 text-left hover:bg-white/10"
+          title="Restaurar reproductor"
+          aria-label="Restaurar reproductor de música"
+        >
+          <Cover track={music.currentTrack} size="xs" />
+          <span className="hidden max-w-[150px] truncate text-[11px] font-black sm:block">
+            {music.currentTrack.title}
+          </span>
+        </button>
+        <PlayButton size="sm" />
+      </div>
+    );
+  }
 
   return (
     <div className="fixed bottom-4 left-1/2 z-50 w-[min(94vw,620px)] -translate-x-1/2 rounded-2xl border border-emerald-300/25 bg-[#06080d]/95 p-2.5 text-white shadow-2xl shadow-emerald-950/30 backdrop-blur-xl">
@@ -1345,6 +1370,16 @@ function MiniBar({ onOpenPanel }: { onOpenPanel?: () => void }) {
             aria-label="Volumen"
           />
         </div>
+
+        <button
+          type="button"
+          onClick={() => setCollapsed(true)}
+          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/8 text-base font-black leading-none text-slate-300 transition hover:bg-white/15 hover:text-white"
+          title="Minimizar reproductor"
+          aria-label="Minimizar reproductor de música"
+        >
+          −
+        </button>
       </div>
 
       <div className="mt-2 flex items-center gap-2 text-[10px] text-slate-500">
