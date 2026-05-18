@@ -150,6 +150,27 @@ function isHlsUrl(src?: string) {
   return Boolean(src && /\.m3u8(\?|$)/i.test(src));
 }
 
+function isBlockedBrowserAudioSrc(src?: string) {
+  const clean = String(src || "").trim();
+  if (!clean) return false;
+  // La app corre en HTTPS. Estos streams producen mixed content, certificados inválidos
+  // o errores como NET::ERR_CERT_COMMON_NAME_INVALID en el navegador.
+  return /^http:\/\//i.test(clean) || /sonando\.us\.digitalproserver\.com/i.test(clean);
+}
+
+function sanitizeStoredTrack(track: EduMusicTrack): EduMusicTrack {
+  if (track.source !== "radio" || !isBlockedBrowserAudioSrc(track.src)) return track;
+
+  return {
+    ...track,
+    src: "",
+    album: "Señal externa no reproducible directamente",
+    playable: false,
+    externalOnly: true,
+    externalUrl: track.externalUrl || "https://www.canal95.cl/",
+  } as EduMusicTrack;
+}
+
 function asExtendedTrack(track?: EduMusicTrack | null): ExtendedEduMusicTrack | null {
   return (track || null) as ExtendedEduMusicTrack | null;
 }
@@ -264,7 +285,9 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const stored = safeReadState();
     if (stored.volume !== undefined) setVolume(stored.volume);
-    if (stored.onlineTracks) setOnlineTracks(stored.onlineTracks.slice(0, 80));
+    if (stored.onlineTracks) {
+      setOnlineTracks(stored.onlineTracks.slice(0, 80).map(sanitizeStoredTrack));
+    }
     if (stored.trackId) setCurrentId(stored.trackId);
     if (stored.playlistId) setSelectedPlaylistId(stored.playlistId);
     if (stored.likedTrackIds) setLikedTrackIds(stored.likedTrackIds);
@@ -453,6 +476,14 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
     if (currentTrack?.source === "youtube" || isEmbedTrack(currentTrack) || !currentTrack?.src) return;
 
+    if (currentTrack.source === "radio" && isBlockedBrowserAudioSrc(currentTrack.src)) {
+      setPlaying(false);
+      setRadioError(
+        `${currentTrack.title} usa una señal bloqueada por el navegador por HTTP o certificado inválido. Busca otra radio o abre la fuente oficial.`,
+      );
+      return;
+    }
+
     if (isHlsUrl(currentTrack.src)) {
       if (audio.canPlayType("application/vnd.apple.mpegurl")) {
         audio.src = currentTrack.src;
@@ -522,6 +553,19 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       }
 
       const externalUrl = trackExternalUrl(track);
+
+      if (track.source === "radio" && isBlockedBrowserAudioSrc(track.src)) {
+        setCurrentId(track.id);
+        setPlaying(false);
+        setRadioError(
+          `${track.title} usa una señal bloqueada por el navegador por HTTP o certificado inválido. Se abrirá la fuente oficial si está disponible.`,
+        );
+        if (externalUrl && typeof window !== "undefined") {
+          window.open(externalUrl, "_blank", "noopener,noreferrer");
+        }
+        return;
+      }
+
       if (!track.src && externalUrl && (track.source === "radio" || track.source === "external")) {
         setCurrentId(track.id);
         setPlaying(false);
@@ -851,7 +895,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         }
         setOnlineTracks((prev) => {
           const map = new Map<string, EduMusicTrack>();
-          [...tracks, ...prev].forEach((track) => map.set(track.id, track));
+          [...tracks.map(sanitizeStoredTrack), ...prev.map(sanitizeStoredTrack)].forEach((track) => map.set(track.id, track));
           return Array.from(map.values()).slice(0, 80);
         });
         setSelectedPlaylistId("pl-online");
@@ -887,7 +931,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         }
         setOnlineTracks((prev) => {
           const map = new Map<string, EduMusicTrack>();
-          [...tracks, ...prev].forEach((track) => map.set(track.id, track));
+          [...tracks.map(sanitizeStoredTrack), ...prev.map(sanitizeStoredTrack)].forEach((track) => map.set(track.id, track));
           return Array.from(map.values()).slice(0, 80);
         });
         setSelectedPlaylistId("pl-radio");
