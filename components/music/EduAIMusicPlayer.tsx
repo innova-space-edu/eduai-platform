@@ -59,6 +59,22 @@ function getEmbedUrl(track?: EduMusicTrack | null) {
   return asExtendedTrack(track)?.embedUrl || track?.externalUrl || track?.src || "";
 }
 
+function getDjReelEmbedUrl(track?: EduMusicTrack | null) {
+  const videoId = track?.youtubeVideoId;
+  if (!videoId) return "";
+  const params = new URLSearchParams({
+    autoplay: "1",
+    mute: "1",
+    controls: "0",
+    loop: "1",
+    playlist: videoId,
+    playsinline: "1",
+    modestbranding: "1",
+    rel: "0",
+  });
+  return `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
+}
+
 const NAV_ITEMS = [
   { id: "home", label: "Inicio", icon: Home },
   { id: "search", label: "Buscar", icon: Search },
@@ -796,6 +812,34 @@ function PlaylistHeader({ tracks }: { tracks: EduMusicTrack[] }) {
 
 function CurrentTrackArtwork({ track }: { track: EduMusicTrack }) {
   const artwork = track.artworkUrl || track.videoThumbnail || (track.cover?.startsWith("http") ? track.cover : undefined);
+  const djReelUrl = track.source === "itunes" ? getDjReelEmbedUrl(track) : "";
+
+  if (track.source === "itunes") {
+    return (
+      <div className="relative aspect-[9/16] h-[360px] max-h-[48vh] w-[205px] overflow-hidden rounded-[2rem] border border-emerald-400/20 bg-black shadow-2xl shadow-black/40 ring-1 ring-white/10 max-xl:h-[310px] max-xl:w-[175px]">
+        {djReelUrl ? (
+          <iframe
+            src={djReelUrl}
+            title={`${track.title} - DJ reel visual`}
+            className="absolute inset-0 h-full w-full border-0"
+            allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+            allowFullScreen
+          />
+        ) : artwork ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={artwork} alt={track.title} className="h-full w-full object-cover scale-110 opacity-80" />
+        ) : (
+          <div className="h-full w-full bg-gradient-to-br from-emerald-400 via-cyan-500 to-slate-950" />
+        )}
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/70 to-transparent p-4 text-left">
+          <p className="mb-2 w-fit rounded-full bg-emerald-400 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-slate-950">DJ Reel · 30s</p>
+          <p className="line-clamp-2 text-sm font-black text-white">{track.title}</p>
+          <p className="mt-1 line-clamp-1 text-xs font-semibold text-slate-300">{track.artist}</p>
+          <p className="mt-2 text-[10px] leading-relaxed text-slate-400">El video es visual y va silenciado; el audio principal sigue siendo el preview legal de 30 segundos.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (track.source === "youtube") {
     return (
@@ -981,6 +1025,11 @@ function MainPanel({ tracks }: { tracks: EduMusicTrack[] }) {
                   YouTube ahora funciona con cola automática: el botón central reproduce/pausa y al terminar avanza al siguiente video encontrado.
                 </p>
               )}
+              {track.source === "itunes" && (
+                <p className="mt-3 text-xs font-semibold text-emerald-200/90">
+                  Modo DJ 30s: al terminar el preview avanza automáticamente. Si hay YouTube API Key, se muestra un video visual tipo reel silenciado.
+                </p>
+              )}
               {track.source === "radio" && (
                 <p className="mt-3 text-xs font-semibold text-emerald-200/90">
                   Radio online en vivo. Algunas emisoras pueden tardar unos segundos en iniciar según su servidor.
@@ -1112,7 +1161,7 @@ function RightPanel() {
           })}
         </div>
         <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
-          Por defecto se buscan canciones completas en Jamendo/Audius. El modo YouTube usa cola automática con anterior/siguiente. DJ 30s usa previews iTunes.
+          Por defecto se buscan canciones completas en Jamendo/Audius. DJ 30s usa previews iTunes y, si hay YouTube API Key, añade visuales tipo reel silenciados.
         </p>
       </section>
 
