@@ -362,6 +362,24 @@ async function searchYouTube(query: string, limit: number): Promise<NormalizedTr
     });
 }
 
+
+function withDjVisuals(previews: NormalizedTrack[], videos: NormalizedTrack[]): NormalizedTrack[] {
+  if (!previews.length || !videos.length) return previews;
+
+  return previews.map((track, index) => {
+    const video = videos[index % videos.length];
+    if (!video?.youtubeVideoId) return track;
+    return {
+      ...track,
+      album: `${track.album || "Preview"} · DJ Reel visual`,
+      tags: Array.from(new Set([...(track.tags || []), "dj-reel", "video-visual", "youtube-visual"])),
+      youtubeVideoId: video.youtubeVideoId,
+      videoEmbedUrl: video.videoEmbedUrl,
+      videoThumbnail: video.videoThumbnail || video.artworkUrl,
+    };
+  });
+}
+
 async function handle(req: NextRequest) {
   const url = new URL(req.url);
   const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
@@ -404,16 +422,25 @@ async function handle(req: NextRequest) {
   }
 
   let fullResults = (await Promise.all(fullTasks)).flat();
-  const previewResults = (await Promise.all(previewTasks)).flat();
+  let previewResults = (await Promise.all(previewTasks)).flat();
   let youtubeFallback: NormalizedTrack[] = [];
+  let djVisuals: NormalizedTrack[] = [];
 
   const shouldUseYouTubeFallback =
     normalizedProvider === "youtube" ||
+    normalizedProvider === "preview" ||
+    normalizedProvider === "itunes" ||
     ((normalizedProvider === "full" || normalizedProvider === "all") && fullResults.length === 0);
 
   if (shouldUseYouTubeFallback) {
     youtubeFallback = await searchYouTube(query, Math.min(8, limit)).catch(() => []);
     if (normalizedProvider === "youtube") fullResults = [];
+  }
+
+  if ((normalizedProvider === "preview" || normalizedProvider === "itunes" || normalizedProvider === "all") && previewResults.length) {
+    djVisuals = youtubeFallback;
+    previewResults = withDjVisuals(previewResults, djVisuals);
+    if (normalizedProvider === "preview" || normalizedProvider === "itunes") youtubeFallback = [];
   }
 
   const map = new Map<string, NormalizedTrack>();
@@ -426,10 +453,15 @@ async function handle(req: NextRequest) {
     requestedProvider: provider,
     query,
     limit,
-    fallbackUsed: Boolean(youtubeFallback.length),
-    fallbackReason: youtubeFallback.length ? "No se encontró audio completo en Jamendo/Audius para esa búsqueda; se muestran videos embebibles de YouTube." : null,
-    youtubeKeyMissing: !process.env.YOUTUBE_API_KEY && (normalizedProvider === "full" || normalizedProvider === "youtube"),
-    youtubeSearchUrl: !process.env.YOUTUBE_API_KEY && (normalizedProvider === "full" || normalizedProvider === "youtube") ? `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}` : null,
+    fallbackUsed: Boolean(youtubeFallback.length || djVisuals.length),
+    fallbackReason: youtubeFallback.length
+      ? "No se encontró audio completo en Jamendo/Audius para esa búsqueda; se muestran videos embebibles de YouTube."
+      : djVisuals.length
+        ? "Modo DJ: se agregaron videos visuales tipo reel a los previews de 30 segundos."
+        : null,
+    djVisuals: djVisuals.length,
+    youtubeKeyMissing: !process.env.YOUTUBE_API_KEY && (normalizedProvider === "full" || normalizedProvider === "youtube" || normalizedProvider === "preview"),
+    youtubeSearchUrl: !process.env.YOUTUBE_API_KEY && (normalizedProvider === "full" || normalizedProvider === "youtube" || normalizedProvider === "preview") ? `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}` : null,
     sources: {
       jamendo: Boolean(process.env.JAMENDO_CLIENT_ID),
       jamendoOAuth: Boolean(process.env.JAMENDO_CLIENT_SECRET),
