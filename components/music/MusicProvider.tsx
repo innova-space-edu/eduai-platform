@@ -158,6 +158,18 @@ function isBlockedBrowserAudioSrc(src?: string) {
   return /^http:\/\//i.test(clean) || /sonando\.us\.digitalproserver\.com/i.test(clean);
 }
 
+function parseDurationSeconds(duration?: string) {
+  if (!duration || /vivo|video/i.test(duration)) return 0;
+  const parts = duration.split(":").map((part) => Number(part));
+  if (parts.length !== 2 || parts.some((part) => !Number.isFinite(part))) return 0;
+  return Math.max(0, parts[0] * 60 + parts[1]);
+}
+
+function isFmdosTrack(track?: EduMusicTrack | null) {
+  const text = `${track?.id || ""} ${track?.title || ""} ${track?.artist || ""}`.toLowerCase();
+  return text.includes("fmdos") || text.includes("fm dos") || text.includes("fm2");
+}
+
 function sanitizeStoredTrack(track: EduMusicTrack): EduMusicTrack {
   if (track.source !== "radio" || !isBlockedBrowserAudioSrc(track.src)) return track;
 
@@ -436,6 +448,23 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
     const handleMediaError = () => {
       if (currentTrack?.source !== "radio") return;
+
+      if (isFmdosTrack(currentTrack)) {
+        const fallback = queue.find(
+          (track) =>
+            track.id !== currentTrack.id &&
+            isFmdosTrack(track) &&
+            Boolean(track.src) &&
+            !isBlockedBrowserAudioSrc(track.src),
+        );
+        if (fallback) {
+          setRadioError(`${currentTrack.title} falló. Probando señal alternativa de FM Dos...`);
+          setCurrentId(fallback.id);
+          setPlaying(true);
+          return;
+        }
+      }
+
       setPlaying(false);
       setRadioError(
         `No se pudo reproducir ${currentTrack.title}. La emisora puede estar usando HTTP, un certificado inválido o una señal que el navegador bloquea. Usa “Abrir fuente” o prueba otra radio.`,
@@ -452,7 +481,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       audio.removeEventListener("error", handleMediaError);
       audio.removeEventListener("playing", handlePlaying);
     };
-  }, [currentTrack?.id, currentTrack?.source, currentTrack?.title]);
+  }, [currentTrack?.id, currentTrack?.source, currentTrack?.title, queue]);
 
   useEffect(() => {
     setCurrentTime(0);
@@ -539,6 +568,19 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       audio.pause();
     }
   }, [playing, currentTrack?.src, currentTrack?.source]);
+
+
+  useEffect(() => {
+    if (!playing || currentTrack?.source !== "itunes") return;
+    const duration = parseDurationSeconds(currentTrack.duration) || 30;
+    const remainingMs = Math.max(1500, (duration - currentTime + 0.35) * 1000);
+    const timer = window.setTimeout(() => {
+      const audio = audioRef.current;
+      const endedOrNearEnd = !audio || audio.ended || !Number.isFinite(audio.duration) || audio.currentTime >= Math.max(0, duration - 1.2);
+      if (endedOrNearEnd) nextTrackRef.current();
+    }, remainingMs);
+    return () => window.clearTimeout(timer);
+  }, [playing, currentTrack?.id, currentTrack?.source, currentTrack?.duration, currentTime]);
 
   const playTrack = useCallback(
     (track: EduMusicTrack, queueFrom?: EduMusicTrack[]) => {
