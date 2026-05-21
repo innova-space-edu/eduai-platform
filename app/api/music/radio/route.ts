@@ -54,7 +54,11 @@ const RADIO_PROXY_BASE = (process.env.RADIO_PROXY_BASE || "").replace(/\/$/, "")
 
 const fmdosUrl = RADIO_PROXY_BASE
   ? `${RADIO_PROXY_BASE}/fmdos`
-  : "https://playerservices.streamtheworld.com/api/livestream-redirect/FMDOSAAC_SC";
+  : "https://playerservices.streamtheworld.com/api/livestream-redirect/FMDOSAAC_SC.aac";
+
+const fmdosHlsUrl = RADIO_PROXY_BASE
+  ? `${RADIO_PROXY_BASE}/fmdos.m3u8`
+  : "https://playerservices.streamtheworld.com/api/livestream-redirect/FMDOSAAC_SC.m3u8";
 
 const canal95EmbedUrl = "https://player.conectaapp.cl/canal-95";
 const canal95LoaderUrl = "https://player.conectaapp.cl/embed/loader.js?id=canal-95";
@@ -76,6 +80,23 @@ const MANUAL_RADIOS: ManualRadioPreset[] = [
     source: "radio",
     tags: ["radio", "chile", "cl", "fmdos", "fm dos", "fm2", "romantica", "streamtheworld"],
     aliases: ["fm dos", "fmdos", "fm2", "fm 2", "radio fm dos", "radio fmdos"],
+    countryCode: "CL",
+    playable: true,
+    externalOnly: false,
+  },
+  {
+    id: "radio-preset-fmdos-hls",
+    title: "FM Dos · respaldo HLS",
+    artist: "Chile · CL",
+    album: RADIO_PROXY_BASE ? "EduAI Radio Proxy · HLS" : "StreamTheWorld · HLS",
+    mood: "calm",
+    duration: "En vivo",
+    src: fmdosHlsUrl,
+    cover: "linear-gradient(135deg,#f0abfc,#ec4899)",
+    externalUrl: "https://envivo.fmdos.cl/",
+    source: "radio",
+    tags: ["radio", "chile", "cl", "fmdos", "fm dos", "fm2", "romantica", "streamtheworld", "hls", "backup"],
+    aliases: ["fm dos", "fmdos", "fm2", "fm 2", "radio fm dos", "radio fmdos", "fm dos hls"],
     countryCode: "CL",
     playable: true,
     externalOnly: false,
