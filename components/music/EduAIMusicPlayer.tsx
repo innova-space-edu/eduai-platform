@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -78,6 +78,41 @@ function getDjReelEmbedUrlById(videoId?: string) {
 
 function getDjReelEmbedUrl(track?: EduMusicTrack | null) {
   return getDjReelEmbedUrlById(track?.youtubeVideoId);
+}
+
+let djReelYouTubeApiPromise: Promise<void> | null = null;
+
+function loadDjReelYouTubeApi() {
+  if (typeof window === "undefined") return Promise.resolve();
+  const w = window as typeof window & { YT?: any; onYouTubeIframeAPIReady?: () => void };
+  if (w.YT?.Player) return Promise.resolve();
+  if (djReelYouTubeApiPromise) return djReelYouTubeApiPromise;
+
+  djReelYouTubeApiPromise = new Promise<void>((resolve) => {
+    const previousReady = w.onYouTubeIframeAPIReady;
+    w.onYouTubeIframeAPIReady = () => {
+      try {
+        previousReady?.();
+      } catch {}
+      resolve();
+    };
+
+    const existing = document.querySelector<HTMLScriptElement>(
+      'script[src="https://www.youtube.com/iframe_api"]',
+    );
+    if (existing) return;
+
+    const script = document.createElement("script");
+    script.src = "https://www.youtube.com/iframe_api";
+    script.async = true;
+    document.head.appendChild(script);
+  });
+
+  return djReelYouTubeApiPromise;
+}
+
+function safeDomId(value: string) {
+  return value.replace(/[^a-zA-Z0-9_-]+/g, "-").slice(0, 80) || "track";
 }
 
 const NAV_ITEMS = [
@@ -170,7 +205,8 @@ function sourceLabel(source?: EduMusicTrack["source"]) {
 
 function playbackKind(track?: EduMusicTrack) {
   if (isEmbedTrack(track)) return "Reproductor oficial ConectaAPP";
-  if (track?.source === "itunes") return "Preview 30 segundos · modo DJ";
+  if (track?.source === "itunes" && (track.youtubeVideoId || track.djReels?.length)) return "Video YouTube · 30 segundos · modo DJ";
+  if (track?.source === "itunes") return "Audio 30 segundos · imagen de fondo";
   if (track?.source === "youtube") return "YouTube · cola automática";
   if (track?.source === "radio") return "Radio online en vivo";
   if (track?.source === "jamendo" || track?.source === "audius")
@@ -856,50 +892,225 @@ function DjReelFallbackCard({ track, artwork }: { track: EduMusicTrack; artwork?
 
 function DjReelCarousel3D({ track, artwork }: { track: EduMusicTrack; artwork?: string }) {
   const reels = useMemo(() => getDjReels(track).slice(0, 5), [track]);
+  const music = useEduAIMusic();
+  const {
+    playing,
+    volume,
+    setPlaying,
+    nextTrack,
+    reportExternalPlayback,
+    registerExternalSeekHandler,
+  } = music;
+  const playerRef = useRef<any>(null);
+  const playerReadyRef = useRef(false);
+  const advanceLockedRef = useRef(false);
   const [active, setActive] = useState(0);
   const [hovered, setHovered] = useState(false);
+  const [playerError, setPlayerError] = useState(false);
+  const [spinDirection, setSpinDirection] = useState<1 | -1>(1);
   const [tilt, setTilt] = useState({ rotateX: 0, rotateY: 0, glowX: 50, glowY: 36 });
+  const playerId = useMemo(() => `eduai-dj-reel-player-${safeDomId(track.id)}`, [track.id]);
 
   useEffect(() => {
     setActive(0);
     setHovered(false);
+    setPlayerError(false);
+    setSpinDirection(1);
     setTilt({ rotateX: 0, rotateY: 0, glowX: 50, glowY: 36 });
+    advanceLockedRef.current = false;
   }, [track.id]);
 
   useEffect(() => {
+    return () => {
+      try {
+        playerRef.current?.destroy?.();
+      } catch {}
+      playerRef.current = null;
+      playerReadyRef.current = false;
+      reportExternalPlayback(0, 0);
+      registerExternalSeekHandler(null);
+    };
+  }, [registerExternalSeekHandler, reportExternalPlayback, track.id]);
+
+  const goClockwise = useCallback(() => {
+    if (reels.length < 2) return;
+    setSpinDirection(1);
+    setActive((value) => (value + 1) % reels.length);
+  }, [reels.length]);
+
+  const selectReel = useCallback(
+    (index: number) => {
+      if (reels.length < 2) return;
+      const activeIndex = active % reels.length;
+      const clockwiseDistance = (index - activeIndex + reels.length) % reels.length;
+      setSpinDirection(clockwiseDistance === reels.length - 1 ? -1 : 1);
+      setActive(index);
+    },
+    [active, reels.length],
+  );
+
+  useEffect(() => {
     if (reels.length < 2 || hovered) return;
-    const timer = window.setInterval(() => {
-      setActive((value) => (value + 1) % reels.length);
-    }, 6500);
+    const timer = window.setInterval(goClockwise, 6500);
     return () => window.clearInterval(timer);
-  }, [hovered, reels.length, track.id]);
+  }, [goClockwise, hovered, reels.length, track.id]);
 
-  if (!reels.length) return <DjReelFallbackCard track={track} artwork={artwork} />;
-
-  const activeIndex = active % reels.length;
+  const activeIndex = reels.length ? active % reels.length : 0;
   const activeReel = reels[activeIndex];
-  const sideOffsets = reels.length === 1 ? [-1, 1] : reels.length === 2 ? [-1, 1] : [-2, -1, 1, 2];
+  const previewLimit = activeReel ? Math.min(30, Math.max(8, activeReel.durationSeconds || 30)) : 30;
+  const sideOffsets = reels.length <= 1 ? [] : reels.length === 2 ? [1] : reels.length === 3 ? [-1, 1] : [-2, -1, 1, 2];
   const sideCards = sideOffsets.map((offset) => {
     const index = reels.length > 1 ? (activeIndex + offset + reels.length) % reels.length : activeIndex;
     return { reel: reels[index], index, offset };
   });
 
+  useEffect(() => {
+    try {
+      playerRef.current?.destroy?.();
+    } catch {}
+    playerRef.current = null;
+    playerReadyRef.current = false;
+    advanceLockedRef.current = false;
+  }, [activeReel?.videoId]);
+
+  useEffect(() => {
+    if (!activeReel?.videoId) return;
+    let cancelled = false;
+    advanceLockedRef.current = false;
+    setPlayerError(false);
+
+    void loadDjReelYouTubeApi().then(() => {
+      if (cancelled) return;
+      const w = window as typeof window & { YT?: any };
+      if (!w.YT?.Player) return;
+
+      const loadActiveVideo = (player: any) => {
+        try {
+          player.setVolume(Math.round(volume * 100));
+          player.unMute?.();
+          const payload = { videoId: activeReel.videoId, startSeconds: 0 };
+          if (playing) player.loadVideoById(payload);
+          else player.cueVideoById(payload);
+          reportExternalPlayback(0, previewLimit);
+        } catch {}
+      };
+
+      if (!playerRef.current) {
+        playerReadyRef.current = false;
+        playerRef.current = new w.YT.Player(playerId, {
+          width: "100%",
+          height: "100%",
+          videoId: activeReel.videoId,
+          playerVars: {
+            autoplay: playing ? 1 : 0,
+            controls: 0,
+            disablekb: 1,
+            fs: 0,
+            iv_load_policy: 3,
+            modestbranding: 1,
+            playsinline: 1,
+            rel: 0,
+            start: 0,
+            origin: window.location.origin,
+          },
+          events: {
+            onReady: (event: any) => {
+              playerReadyRef.current = true;
+              loadActiveVideo(event.target);
+            },
+            onStateChange: (event: any) => {
+              if (event.data === w.YT?.PlayerState?.ENDED && !advanceLockedRef.current) {
+                advanceLockedRef.current = true;
+                reportExternalPlayback(previewLimit, previewLimit);
+                nextTrack();
+              }
+            },
+            onError: () => {
+              setPlayerError(true);
+              setPlaying(false);
+            },
+          },
+        });
+        return;
+      }
+
+      if (playerReadyRef.current) loadActiveVideo(playerRef.current);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeReel?.videoId, nextTrack, playerId, previewLimit, reportExternalPlayback, setPlaying]);
+
+  useEffect(() => {
+    const handler = (seconds: number) => {
+      const safe = Math.max(0, Math.min(previewLimit, seconds));
+      try {
+        playerRef.current?.seekTo?.(safe, true);
+        reportExternalPlayback(safe, previewLimit);
+        if (playing) playerRef.current?.playVideo?.();
+      } catch {}
+    };
+    registerExternalSeekHandler(handler);
+    return () => registerExternalSeekHandler(null);
+  }, [activeReel?.videoId, playing, previewLimit, registerExternalSeekHandler, reportExternalPlayback]);
+
+  useEffect(() => {
+    const player = playerRef.current;
+    if (!player || !playerReadyRef.current) return;
+    try {
+      player.setVolume(Math.round(volume * 100));
+      if (playing) {
+        player.unMute?.();
+        player.playVideo?.();
+      } else {
+        player.pauseVideo?.();
+      }
+    } catch {}
+  }, [playing, volume, activeReel?.videoId]);
+
+  useEffect(() => {
+    if (!activeReel?.videoId) return;
+    const timer = window.setInterval(() => {
+      const player = playerRef.current;
+      if (!player || !playerReadyRef.current) return;
+      try {
+        const rawTime = Number(player.getCurrentTime?.() || 0);
+        const safeTime = Math.max(0, Math.min(previewLimit, Number.isFinite(rawTime) ? rawTime : 0));
+        reportExternalPlayback(safeTime, previewLimit);
+        if (playing && rawTime >= previewLimit && !advanceLockedRef.current) {
+          advanceLockedRef.current = true;
+          player.pauseVideo?.();
+          reportExternalPlayback(previewLimit, previewLimit);
+          nextTrack();
+        }
+      } catch {}
+    }, 500);
+    return () => window.clearInterval(timer);
+  }, [activeReel?.videoId, nextTrack, playing, previewLimit, reportExternalPlayback]);
+
+  if (!reels.length) return <DjReelFallbackCard track={track} artwork={artwork} />;
+
   return (
-    <div className="relative flex h-[520px] w-full max-w-[760px] items-center justify-center overflow-visible [perspective:1500px] max-xl:h-[440px] max-xl:max-w-[620px] max-lg:max-w-[520px] max-sm:h-[390px]">
-      <div className="pointer-events-none absolute inset-0 rounded-[3rem] bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.16),transparent_56%)] blur-2xl" />
+    <div className="relative flex h-[520px] w-full max-w-[800px] items-center justify-center overflow-visible [perspective:1600px] max-xl:h-[440px] max-xl:max-w-[660px] max-lg:max-w-[540px] max-sm:h-[390px]">
+      <motion.div
+        className="pointer-events-none absolute inset-0 rounded-[3rem] bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.18),transparent_58%)] blur-2xl"
+        animate={{ rotate: playing ? 360 : 0 }}
+        transition={{ duration: 18, repeat: playing ? Infinity : 0, ease: "linear" }}
+      />
 
       {sideCards.map(({ reel, index, offset }) => {
         const near = Math.abs(offset) === 1;
         const side = offset > 0 ? 1 : -1;
-        const x = side * (near ? 245 : 390) - 88;
-        const sideRotate = -side * (near ? 42 : 62);
-        const sideScale = near ? 0.82 : 0.66;
+        const x = side * (near ? 260 : 420) - 94;
+        const sideRotate = -side * (near ? 46 : 66);
+        const sideScale = near ? 0.82 : 0.64;
         const thumb = reel.thumbnail || artwork;
         return (
           <motion.button
             key={`${reel.videoId}-${offset}`}
             type="button"
-            onClick={() => setActive(index)}
+            onClick={() => selectReel(index)}
             className={cn(
               "absolute left-1/2 top-1/2 hidden aspect-[9/16] h-[325px] overflow-hidden rounded-[2rem] border border-white/10 bg-black/80 text-left shadow-2xl shadow-black/40 ring-1 ring-emerald-400/10 lg:block",
               near ? "xl:block" : "2xl:block",
@@ -908,20 +1119,20 @@ function DjReelCarousel3D({ track, artwork }: { track: EduMusicTrack; artwork?: 
             animate={{
               x,
               y: "-50%",
-              z: near ? -95 : -210,
+              z: near ? -90 : -230,
               rotateY: sideRotate,
-              rotateZ: side * (near ? -2.5 : -5),
+              rotateZ: side * (near ? -3 : -5.5),
               scale: sideScale,
-              opacity: near ? 0.78 : 0.34,
-              filter: near ? "blur(0px) saturate(1.02)" : "blur(1px) saturate(0.75)",
+              opacity: near ? 0.82 : 0.34,
+              filter: near ? "blur(0px) saturate(1.04)" : "blur(1px) saturate(0.72)",
             }}
             whileHover={{
-              z: near ? 35 : -60,
-              rotateY: sideRotate * 0.58,
+              z: near ? 45 : -70,
+              rotateY: sideRotate * 0.54,
               rotateZ: side * -1,
               scale: sideScale + 0.08,
-              opacity: near ? 0.95 : 0.55,
-              filter: "blur(0px) saturate(1.12)",
+              opacity: near ? 0.98 : 0.58,
+              filter: "blur(0px) saturate(1.16)",
             }}
             transition={{ type: "spring", stiffness: 190, damping: 24 }}
             style={{ transformStyle: "preserve-3d", zIndex: near ? 12 : 6 }}
@@ -942,7 +1153,7 @@ function DjReelCarousel3D({ track, artwork }: { track: EduMusicTrack; artwork?: 
         );
       })}
 
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="wait" custom={spinDirection}>
         <motion.div
           key={activeReel.videoId}
           role="button"
@@ -963,22 +1174,24 @@ function DjReelCarousel3D({ track, artwork }: { track: EduMusicTrack; artwork?: 
             setHovered(false);
             setTilt({ rotateX: 0, rotateY: 0, glowX: 50, glowY: 36 });
           }}
-          onClick={() => reels.length > 1 && setActive((value) => (value + 1) % reels.length)}
+          onClick={goClockwise}
           onKeyDown={(event) => {
             if ((event.key === "Enter" || event.key === " ") && reels.length > 1) {
               event.preventDefault();
-              setActive((value) => (value + 1) % reels.length);
+              goClockwise();
             }
           }}
-          initial={{ opacity: 0, rotateY: 34, scale: 0.9, z: -120 }}
+          custom={spinDirection}
+          initial={{ opacity: 0, rotateY: 58 * spinDirection, rotateZ: 8 * spinDirection, scale: 0.86, z: -160 }}
           animate={{
             opacity: 1,
             rotateX: tilt.rotateX,
             rotateY: tilt.rotateY,
+            rotateZ: 0,
             scale: hovered ? 1.035 : 1,
-            z: hovered ? 60 : 0,
+            z: hovered ? 70 : 0,
           }}
-          exit={{ opacity: 0, rotateY: -34, scale: 0.88, z: -120 }}
+          exit={{ opacity: 0, rotateY: -58 * spinDirection, rotateZ: -8 * spinDirection, scale: 0.86, z: -160 }}
           transition={{ type: "spring", stiffness: 210, damping: 24, mass: 0.75 }}
           className="group relative z-30 aspect-[9/16] h-[500px] max-h-[63vh] w-[282px] cursor-pointer overflow-hidden rounded-[2.6rem] border border-emerald-300/35 bg-black shadow-[0_34px_95px_rgba(0,0,0,0.62)] ring-1 ring-white/10 will-change-transform max-xl:h-[420px] max-xl:w-[236px] max-sm:h-[360px] max-sm:w-[203px]"
           style={{ transformStyle: "preserve-3d" }}
@@ -992,13 +1205,20 @@ function DjReelCarousel3D({ track, artwork }: { track: EduMusicTrack; artwork?: 
               className="absolute inset-0 h-full w-full scale-110 object-cover opacity-70 blur-xl"
             />
           ) : null}
-          <iframe
-            src={getDjReelEmbedUrlById(activeReel.videoId)}
-            title={`${track.title} - reel visual exacto`}
-            className="pointer-events-none absolute left-1/2 top-1/2 h-full w-[178%] -translate-x-1/2 -translate-y-1/2 border-0"
-            allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
-            allowFullScreen
-          />
+          <div className="absolute left-1/2 top-1/2 h-full w-[178%] -translate-x-1/2 -translate-y-1/2 overflow-hidden">
+            <div id={playerId} className="h-full w-full" />
+          </div>
+          {playerError && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/85 p-5 text-center text-white">
+              <p className="text-sm font-black">Video no disponible</p>
+              <p className="mt-2 text-xs text-slate-300">Este resultado no se pudo reproducir embebido. Prueba otro reel lateral o abre la fuente oficial.</p>
+              {activeReel.externalUrl && (
+                <a href={activeReel.externalUrl} target="_blank" rel="noreferrer" className="mt-3 rounded-full bg-emerald-400 px-3 py-1.5 text-xs font-black text-slate-950">
+                  Abrir YouTube
+                </a>
+              )}
+            </div>
+          )}
           <div
             className="pointer-events-none absolute inset-0 opacity-0 mix-blend-screen transition-opacity duration-200 group-hover:opacity-100"
             style={{
@@ -1010,7 +1230,7 @@ function DjReelCarousel3D({ track, artwork }: { track: EduMusicTrack; artwork?: 
           <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/50 to-transparent" />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/45 to-transparent p-4 text-left" style={{ transform: "translateZ(44px)" }}>
             <p className="mb-2 w-fit rounded-full bg-emerald-400 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-slate-950 shadow-lg shadow-emerald-500/25">
-              DJ Reel · 30s
+              YouTube · 30s
             </p>
             <p className="line-clamp-1 text-base font-black text-white drop-shadow">{track.title}</p>
             <p className="line-clamp-1 text-xs font-semibold text-slate-200">{track.artist}</p>
@@ -1024,7 +1244,7 @@ function DjReelCarousel3D({ track, artwork }: { track: EduMusicTrack; artwork?: 
             <button
               key={reel.videoId}
               type="button"
-              onClick={() => setActive(index)}
+              onClick={() => selectReel(index)}
               className={cn(
                 "h-1.5 rounded-full transition-all",
                 index === activeIndex ? "w-6 bg-emerald-300 shadow shadow-emerald-300/40" : "w-1.5 bg-white/35 hover:bg-white/75",
@@ -1236,7 +1456,7 @@ function MainPanel({ tracks }: { tracks: EduMusicTrack[] }) {
               )}
               {track.source === "itunes" && (
                 <p className="mt-3 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-200/80">
-                  Reel 3D interactivo
+                  Reel 3D con audio del video
                 </p>
               )}
               {track.source === "radio" && (
@@ -1370,7 +1590,7 @@ function RightPanel() {
           })}
         </div>
         <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
-          DJ 30s usa video exacto, carrusel 3D y preview legal de iTunes.
+          DJ 30s usa un solo medio: video/audio de YouTube si existe; si no, audio iTunes con imagen de fondo.
         </p>
       </section>
 
