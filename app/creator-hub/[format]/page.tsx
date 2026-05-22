@@ -5,6 +5,8 @@ import { useParams } from "next/navigation"
 import { RENDERERS } from "@/components/creator-hub/renderers"
 import DownloadBar from "@/components/ui/DownloadBar"
 import ColorPalette from "@/components/ui/ColorPalette"
+import TemplatePicker from "@/components/design/TemplatePicker"
+import { getDefaultDesignTemplateId } from "@/lib/design-templates/registry"
 
 // ── Metadata de cada formato ──────────────────────────────────────────────────
 const FORMAT_META: Record<string, {
@@ -40,6 +42,7 @@ export default function CreatorHubFormatPage() {
   const [content,      setContent]      = useState("")
   const [fileName,     setFileName]     = useState("")
   const [accentColor,  setAccentColor]  = useState(meta.color)
+  const [designTemplateId, setDesignTemplateId] = useState(() => getDefaultDesignTemplateId(format))
   const [processing,   setProcessing]   = useState(false)
   const [result,       setResult]       = useState<any>(null)
   const [error,        setError]        = useState<string | null>(null)
@@ -69,7 +72,7 @@ export default function CreatorHubFormatPage() {
       const res = await fetch("/api/process-content", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sourceType, content, fileName, outputFormat: format }),
+        body: JSON.stringify({ sourceType, content, fileName, outputFormat: format, designTemplateId }),
       })
       const data = await res.json()
       if (!data.success) throw new Error(data.error || "Error procesando")
@@ -89,6 +92,11 @@ export default function CreatorHubFormatPage() {
     setContent("")
     setFileName("")
     setError(null)
+  }
+
+  const handleTemplateChange = (templateId: string, nextAccentColor?: string) => {
+    setDesignTemplateId(templateId)
+    if (nextAccentColor) setAccentColor(nextAccentColor)
   }
 
   return (
@@ -186,6 +194,13 @@ export default function CreatorHubFormatPage() {
               </div>
             )}
 
+            {/* Plantilla visual */}
+            <TemplatePicker
+              format={format}
+              value={designTemplateId}
+              onChange={handleTemplateChange}
+            />
+
             {/* Color */}
             <ColorPalette value={accentColor} onChange={setAccentColor} />
 
@@ -247,13 +262,16 @@ export default function CreatorHubFormatPage() {
             <div
               id="creator-result-container"
               className="rounded-2xl p-5 border"
-              style={{ background: "var(--bg-card-soft)", borderColor: "var(--bg-card-soft)" }}
+              style={{
+                background: result?._design?.palette?.background || "var(--bg-card-soft)",
+                borderColor: result?._design?.palette?.primary ? `${result._design.palette.primary}22` : "var(--bg-card-soft)",
+              }}
             >
               {Renderer && <Renderer data={result} />}
             </div>
 
             {/* Descarga */}
-            <DownloadBar format={format} data={result} accentColor={accentColor} />
+            <DownloadBar format={format} data={result} accentColor={accentColor} designTemplateId={designTemplateId} />
           </>
         )}
 
