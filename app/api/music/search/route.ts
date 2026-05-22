@@ -543,11 +543,11 @@ async function searchExactDjReels(track: NormalizedTrack): Promise<DjReelVisual[
 
   const collected = new Map<string, YouTubeSearchResult>();
   for (const q of queries) {
-    const results = await fetchYoutubeSearchResults(q, key, 8);
+    const results = await fetchYoutubeSearchResults(q, key, 12);
     results.forEach((item) => {
       if (item.id?.videoId && !collected.has(item.id.videoId)) collected.set(item.id.videoId, item);
     });
-    if (collected.size >= 8) break;
+    if (collected.size >= 12) break;
   }
 
   const details = await fetchYoutubeVideoDetails(Array.from(collected.keys()), key);
@@ -570,7 +570,7 @@ async function searchExactDjReels(track: NormalizedTrack): Promise<DjReelVisual[
     })
     .filter((reel) => reel.score >= 42)
     .sort((a, b) => b.score - a.score)
-    .slice(0, 3);
+    .slice(0, 5);
 
   djReelCache.set(cacheKey, { expiresAt: Date.now() + DJ_REEL_CACHE_TTL_MS, reels });
   return reels;
