@@ -904,77 +904,115 @@ function DjReelCarousel3D({ track, artwork }: { track: EduMusicTrack; artwork?: 
   const playerRef = useRef<any>(null);
   const playerReadyRef = useRef(false);
   const advanceLockedRef = useRef(false);
+  const fallbackAudioRef = useRef<HTMLAudioElement | null>(null);
+  const erroredVideoIdsRef = useRef<Set<string>>(new Set());
   const [active, setActive] = useState(0);
   const [hovered, setHovered] = useState(false);
   const [playerError, setPlayerError] = useState(false);
+  const [youtubeFallbackAudio, setYoutubeFallbackAudio] = useState(false);
   const [spinDirection, setSpinDirection] = useState<1 | -1>(1);
   const [tilt, setTilt] = useState({ rotateX: 0, rotateY: 0, glowX: 50, glowY: 36 });
   const playerId = useMemo(() => `eduai-dj-reel-player-${safeDomId(track.id)}`, [track.id]);
 
-  useEffect(() => {
-    setActive(0);
-    setHovered(false);
-    setPlayerError(false);
-    setSpinDirection(1);
-    setTilt({ rotateX: 0, rotateY: 0, glowX: 50, glowY: 36 });
-    advanceLockedRef.current = false;
-  }, [track.id]);
-
-  useEffect(() => {
-    return () => {
-      try {
-        playerRef.current?.destroy?.();
-      } catch {}
-      playerRef.current = null;
-      playerReadyRef.current = false;
-      reportExternalPlayback(0, 0);
-      registerExternalSeekHandler(null);
-    };
-  }, [registerExternalSeekHandler, reportExternalPlayback, track.id]);
-
-  const goClockwise = useCallback(() => {
-    if (reels.length < 2) return;
-    setSpinDirection(1);
-    setActive((value) => (value + 1) % reels.length);
-  }, [reels.length]);
-
-  const selectReel = useCallback(
-    (index: number) => {
-      if (reels.length < 2) return;
-      const activeIndex = active % reels.length;
-      const clockwiseDistance = (index - activeIndex + reels.length) % reels.length;
-      setSpinDirection(clockwiseDistance === reels.length - 1 ? -1 : 1);
-      setActive(index);
-    },
-    [active, reels.length],
-  );
-
-  useEffect(() => {
-    if (reels.length < 2 || hovered) return;
-    const timer = window.setInterval(goClockwise, 6500);
-    return () => window.clearInterval(timer);
-  }, [goClockwise, hovered, reels.length, track.id]);
-
   const activeIndex = reels.length ? active % reels.length : 0;
   const activeReel = reels[activeIndex];
-  const previewLimit = activeReel ? Math.min(30, Math.max(8, activeReel.durationSeconds || 30)) : 30;
-  const sideOffsets = reels.length <= 1 ? [] : reels.length === 2 ? [1] : reels.length === 3 ? [-1, 1] : [-2, -1, 1, 2];
+  const youtubePreviewLimit = activeReel ? Math.min(30, Math.max(8, activeReel.durationSeconds || 30)) : 30;
+  const fallbackPreviewLimit = Math.min(30, Math.max(8, parseDuration(track.duration) || 30));
+  const previewLimit = youtubeFallbackAudio ? fallbackPreviewLimit : youtubePreviewLimit;
+  const sideOffsets = youtubeFallbackAudio || reels.length <= 1 ? [] : reels.length === 2 ? [1] : reels.length === 3 ? [-1, 1] : [-2, -1, 1, 2];
   const sideCards = sideOffsets.map((offset) => {
     const index = reels.length > 1 ? (activeIndex + offset + reels.length) % reels.length : activeIndex;
     return { reel: reels[index], index, offset };
   });
 
-  useEffect(() => {
+  const stopAndDestroyYouTubePlayer = useCallback(() => {
     try {
+      playerRef.current?.stopVideo?.();
       playerRef.current?.destroy?.();
     } catch {}
     playerRef.current = null;
     playerReadyRef.current = false;
     advanceLockedRef.current = false;
-  }, [activeReel?.videoId]);
+  }, []);
+
+  const activateAudioFallback = useCallback(() => {
+    stopAndDestroyYouTubePlayer();
+    setPlayerError(false);
+    setYoutubeFallbackAudio(true);
+    reportExternalPlayback(0, fallbackPreviewLimit);
+  }, [fallbackPreviewLimit, reportExternalPlayback, stopAndDestroyYouTubePlayer]);
+
+  const handleVideoFailure = useCallback(() => {
+    if (activeReel?.videoId) erroredVideoIdsRef.current.add(activeReel.videoId);
+    const nextPlayableIndex = reels.findIndex(
+      (reel, index) => index !== activeIndex && !erroredVideoIdsRef.current.has(reel.videoId),
+    );
+
+    if (nextPlayableIndex >= 0) {
+      setPlayerError(false);
+      setSpinDirection(1);
+      setActive(nextPlayableIndex);
+      return;
+    }
+
+    activateAudioFallback();
+  }, [activateAudioFallback, activeIndex, activeReel?.videoId, reels]);
 
   useEffect(() => {
-    if (!activeReel?.videoId) return;
+    setActive(0);
+    setHovered(false);
+    setPlayerError(false);
+    setYoutubeFallbackAudio(false);
+    setSpinDirection(1);
+    setTilt({ rotateX: 0, rotateY: 0, glowX: 50, glowY: 36 });
+    advanceLockedRef.current = false;
+    erroredVideoIdsRef.current = new Set();
+    stopAndDestroyYouTubePlayer();
+  }, [track.id, stopAndDestroyYouTubePlayer]);
+
+  useEffect(() => {
+    return () => {
+      stopAndDestroyYouTubePlayer();
+      try {
+        fallbackAudioRef.current?.pause();
+        fallbackAudioRef.current?.removeAttribute("src");
+      } catch {}
+      fallbackAudioRef.current = null;
+      reportExternalPlayback(0, 0);
+      registerExternalSeekHandler(null);
+    };
+  }, [registerExternalSeekHandler, reportExternalPlayback, stopAndDestroyYouTubePlayer, track.id]);
+
+  const goClockwise = useCallback(() => {
+    if (youtubeFallbackAudio || reels.length < 2) return;
+    setSpinDirection(1);
+    setActive((value) => (value + 1) % reels.length);
+  }, [reels.length, youtubeFallbackAudio]);
+
+  const selectReel = useCallback(
+    (index: number) => {
+      if (youtubeFallbackAudio || reels.length < 2) return;
+      const activeIndex = active % reels.length;
+      const clockwiseDistance = (index - activeIndex + reels.length) % reels.length;
+      setSpinDirection(clockwiseDistance === reels.length - 1 ? -1 : 1);
+      setActive(index);
+    },
+    [active, reels.length, youtubeFallbackAudio],
+  );
+
+  useEffect(() => {
+    if (youtubeFallbackAudio || reels.length < 2 || hovered) return;
+    const timer = window.setInterval(goClockwise, 6500);
+    return () => window.clearInterval(timer);
+  }, [goClockwise, hovered, reels.length, track.id, youtubeFallbackAudio]);
+
+  useEffect(() => {
+    if (youtubeFallbackAudio) return;
+    stopAndDestroyYouTubePlayer();
+  }, [activeReel?.videoId, stopAndDestroyYouTubePlayer, youtubeFallbackAudio]);
+
+  useEffect(() => {
+    if (youtubeFallbackAudio || !activeReel?.videoId) return;
     let cancelled = false;
     advanceLockedRef.current = false;
     setPlayerError(false);
@@ -982,7 +1020,10 @@ function DjReelCarousel3D({ track, artwork }: { track: EduMusicTrack; artwork?: 
     void loadDjReelYouTubeApi().then(() => {
       if (cancelled) return;
       const w = window as typeof window & { YT?: any };
-      if (!w.YT?.Player) return;
+      if (!w.YT?.Player) {
+        handleVideoFailure();
+        return;
+      }
 
       const loadActiveVideo = (player: any) => {
         try {
@@ -991,60 +1032,149 @@ function DjReelCarousel3D({ track, artwork }: { track: EduMusicTrack; artwork?: 
           const payload = { videoId: activeReel.videoId, startSeconds: 0 };
           if (playing) player.loadVideoById(payload);
           else player.cueVideoById(payload);
-          reportExternalPlayback(0, previewLimit);
-        } catch {}
+          reportExternalPlayback(0, youtubePreviewLimit);
+        } catch {
+          handleVideoFailure();
+        }
       };
 
-      if (!playerRef.current) {
-        playerReadyRef.current = false;
-        playerRef.current = new w.YT.Player(playerId, {
-          width: "100%",
-          height: "100%",
-          videoId: activeReel.videoId,
-          playerVars: {
-            autoplay: playing ? 1 : 0,
-            controls: 0,
-            disablekb: 1,
-            fs: 0,
-            iv_load_policy: 3,
-            modestbranding: 1,
-            playsinline: 1,
-            rel: 0,
-            start: 0,
-            origin: window.location.origin,
+      playerReadyRef.current = false;
+      playerRef.current = new w.YT.Player(playerId, {
+        width: "100%",
+        height: "100%",
+        videoId: activeReel.videoId,
+        playerVars: {
+          autoplay: playing ? 1 : 0,
+          controls: 0,
+          disablekb: 1,
+          fs: 0,
+          iv_load_policy: 3,
+          modestbranding: 1,
+          playsinline: 1,
+          rel: 0,
+          start: 0,
+          origin: window.location.origin,
+        },
+        events: {
+          onReady: (event: any) => {
+            playerReadyRef.current = true;
+            loadActiveVideo(event.target);
           },
-          events: {
-            onReady: (event: any) => {
-              playerReadyRef.current = true;
-              loadActiveVideo(event.target);
-            },
-            onStateChange: (event: any) => {
-              if (event.data === w.YT?.PlayerState?.ENDED && !advanceLockedRef.current) {
-                advanceLockedRef.current = true;
-                reportExternalPlayback(previewLimit, previewLimit);
-                nextTrack();
-              }
-            },
-            onError: () => {
-              setPlayerError(true);
-              setPlaying(false);
-            },
+          onStateChange: (event: any) => {
+            if (event.data === w.YT?.PlayerState?.PLAYING || event.data === w.YT?.PlayerState?.BUFFERING) {
+              setPlayerError(false);
+            }
+            if (event.data === w.YT?.PlayerState?.ENDED && !advanceLockedRef.current) {
+              advanceLockedRef.current = true;
+              reportExternalPlayback(youtubePreviewLimit, youtubePreviewLimit);
+              nextTrack();
+            }
           },
-        });
-        return;
-      }
-
-      if (playerReadyRef.current) loadActiveVideo(playerRef.current);
+          onError: () => {
+            setPlayerError(true);
+            handleVideoFailure();
+          },
+        },
+      });
     });
 
     return () => {
       cancelled = true;
     };
-  }, [activeReel?.videoId, nextTrack, playerId, previewLimit, reportExternalPlayback, setPlaying]);
+  }, [
+    activeReel?.videoId,
+    handleVideoFailure,
+    nextTrack,
+    playerId,
+    playing,
+    reportExternalPlayback,
+    volume,
+    youtubeFallbackAudio,
+    youtubePreviewLimit,
+  ]);
+
+  useEffect(() => {
+    if (youtubeFallbackAudio || !playing || !activeReel?.videoId) return;
+    const timer = window.setTimeout(() => {
+      const player = playerRef.current;
+      if (!player || !playerReadyRef.current) return;
+      try {
+        const state = Number(player.getPlayerState?.());
+        const time = Number(player.getCurrentTime?.() || 0);
+        const yt = (window as typeof window & { YT?: any }).YT;
+        const isMoving =
+          state === yt?.PlayerState?.PLAYING ||
+          state === yt?.PlayerState?.BUFFERING ||
+          (Number.isFinite(time) && time > 0.3);
+        if (!isMoving) handleVideoFailure();
+      } catch {
+        handleVideoFailure();
+      }
+    }, 6500);
+    return () => window.clearTimeout(timer);
+  }, [activeReel?.videoId, handleVideoFailure, playing, youtubeFallbackAudio]);
+
+  useEffect(() => {
+    if (!youtubeFallbackAudio || !track.src) return;
+    const audio = new Audio(track.src);
+    fallbackAudioRef.current = audio;
+    audio.preload = "auto";
+    audio.volume = volume;
+    audio.currentTime = 0;
+    advanceLockedRef.current = false;
+    reportExternalPlayback(0, fallbackPreviewLimit);
+
+    const updateTime = () => {
+      const time = Math.max(0, Math.min(fallbackPreviewLimit, audio.currentTime || 0));
+      reportExternalPlayback(time, fallbackPreviewLimit);
+      if (audio.currentTime >= fallbackPreviewLimit && !advanceLockedRef.current) {
+        advanceLockedRef.current = true;
+        audio.pause();
+        reportExternalPlayback(fallbackPreviewLimit, fallbackPreviewLimit);
+        nextTrack();
+      }
+    };
+    const endTrack = () => {
+      if (advanceLockedRef.current) return;
+      advanceLockedRef.current = true;
+      reportExternalPlayback(fallbackPreviewLimit, fallbackPreviewLimit);
+      nextTrack();
+    };
+
+    audio.addEventListener("timeupdate", updateTime);
+    audio.addEventListener("ended", endTrack);
+    audio.addEventListener("error", () => setPlaying(false), { once: true });
+
+
+    return () => {
+      audio.removeEventListener("timeupdate", updateTime);
+      audio.removeEventListener("ended", endTrack);
+      audio.pause();
+      audio.removeAttribute("src");
+      if (fallbackAudioRef.current === audio) fallbackAudioRef.current = null;
+    };
+  }, [fallbackPreviewLimit, nextTrack, reportExternalPlayback, setPlaying, track.id, track.src, youtubeFallbackAudio]);
+
+  useEffect(() => {
+    if (!youtubeFallbackAudio) return;
+    const audio = fallbackAudioRef.current;
+    if (!audio) return;
+    audio.volume = volume;
+    if (playing) audio.play().catch(() => setPlaying(false));
+    else audio.pause();
+  }, [playing, setPlaying, volume, youtubeFallbackAudio]);
 
   useEffect(() => {
     const handler = (seconds: number) => {
       const safe = Math.max(0, Math.min(previewLimit, seconds));
+      if (youtubeFallbackAudio) {
+        const audio = fallbackAudioRef.current;
+        if (!audio) return;
+        audio.currentTime = safe;
+        reportExternalPlayback(safe, previewLimit);
+        if (playing) audio.play().catch(() => setPlaying(false));
+        return;
+      }
       try {
         playerRef.current?.seekTo?.(safe, true);
         reportExternalPlayback(safe, previewLimit);
@@ -1053,9 +1183,10 @@ function DjReelCarousel3D({ track, artwork }: { track: EduMusicTrack; artwork?: 
     };
     registerExternalSeekHandler(handler);
     return () => registerExternalSeekHandler(null);
-  }, [activeReel?.videoId, playing, previewLimit, registerExternalSeekHandler, reportExternalPlayback]);
+  }, [activeReel?.videoId, playing, previewLimit, registerExternalSeekHandler, reportExternalPlayback, setPlaying, youtubeFallbackAudio]);
 
   useEffect(() => {
+    if (youtubeFallbackAudio) return;
     const player = playerRef.current;
     if (!player || !playerReadyRef.current) return;
     try {
@@ -1067,10 +1198,10 @@ function DjReelCarousel3D({ track, artwork }: { track: EduMusicTrack; artwork?: 
         player.pauseVideo?.();
       }
     } catch {}
-  }, [playing, volume, activeReel?.videoId]);
+  }, [playing, volume, activeReel?.videoId, youtubeFallbackAudio]);
 
   useEffect(() => {
-    if (!activeReel?.videoId) return;
+    if (youtubeFallbackAudio || !activeReel?.videoId) return;
     const timer = window.setInterval(() => {
       const player = playerRef.current;
       if (!player || !playerReadyRef.current) return;
@@ -1087,9 +1218,11 @@ function DjReelCarousel3D({ track, artwork }: { track: EduMusicTrack; artwork?: 
       } catch {}
     }, 500);
     return () => window.clearInterval(timer);
-  }, [activeReel?.videoId, nextTrack, playing, previewLimit, reportExternalPlayback]);
+  }, [activeReel?.videoId, nextTrack, playing, previewLimit, reportExternalPlayback, youtubeFallbackAudio]);
 
   if (!reels.length) return <DjReelFallbackCard track={track} artwork={artwork} />;
+
+  const fallbackArtwork = artwork || activeReel?.thumbnail;
 
   return (
     <div className="relative flex h-[520px] w-full max-w-[800px] items-center justify-center overflow-visible [perspective:1600px] max-xl:h-[440px] max-xl:max-w-[660px] max-lg:max-w-[540px] max-sm:h-[390px]">
@@ -1099,7 +1232,7 @@ function DjReelCarousel3D({ track, artwork }: { track: EduMusicTrack; artwork?: 
         transition={{ duration: 18, repeat: playing ? Infinity : 0, ease: "linear" }}
       />
 
-      {sideCards.map(({ reel, index, offset }) => {
+      {!youtubeFallbackAudio && sideCards.map(({ reel, index, offset }) => {
         const near = Math.abs(offset) === 1;
         const side = offset > 0 ? 1 : -1;
         const x = side * (near ? 260 : 420) - 94;
@@ -1155,7 +1288,7 @@ function DjReelCarousel3D({ track, artwork }: { track: EduMusicTrack; artwork?: 
 
       <AnimatePresence mode="wait" custom={spinDirection}>
         <motion.div
-          key={activeReel.videoId}
+          key={youtubeFallbackAudio ? `${track.id}-fallback-audio` : activeReel.videoId}
           role="button"
           tabIndex={0}
           onMouseEnter={() => setHovered(true)}
@@ -1174,11 +1307,12 @@ function DjReelCarousel3D({ track, artwork }: { track: EduMusicTrack; artwork?: 
             setHovered(false);
             setTilt({ rotateX: 0, rotateY: 0, glowX: 50, glowY: 36 });
           }}
-          onClick={goClockwise}
+          onClick={youtubeFallbackAudio ? () => setPlaying((value) => !value) : goClockwise}
           onKeyDown={(event) => {
-            if ((event.key === "Enter" || event.key === " ") && reels.length > 1) {
+            if (event.key === "Enter" || event.key === " ") {
               event.preventDefault();
-              goClockwise();
+              if (youtubeFallbackAudio) setPlaying((value) => !value);
+              else if (reels.length > 1) goClockwise();
             }
           }}
           custom={spinDirection}
@@ -1195,28 +1329,42 @@ function DjReelCarousel3D({ track, artwork }: { track: EduMusicTrack; artwork?: 
           transition={{ type: "spring", stiffness: 210, damping: 24, mass: 0.75 }}
           className="group relative z-30 aspect-[9/16] h-[500px] max-h-[63vh] w-[282px] cursor-pointer overflow-hidden rounded-[2.6rem] border border-emerald-300/35 bg-black shadow-[0_34px_95px_rgba(0,0,0,0.62)] ring-1 ring-white/10 will-change-transform max-xl:h-[420px] max-xl:w-[236px] max-sm:h-[360px] max-sm:w-[203px]"
           style={{ transformStyle: "preserve-3d" }}
-          aria-label="Reel 3D interactivo: mueve el mouse para inclinarlo"
+          aria-label={youtubeFallbackAudio ? "Audio iTunes 30 segundos con imagen de fondo" : "Reel 3D interactivo: mueve el mouse para inclinarlo"}
         >
-          {activeReel.thumbnail || artwork ? (
+          {fallbackArtwork ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={activeReel.thumbnail || artwork}
-              alt={activeReel.title}
+              src={fallbackArtwork}
+              alt={track.title}
               className="absolute inset-0 h-full w-full scale-110 object-cover opacity-70 blur-xl"
             />
           ) : null}
-          <div className="absolute left-1/2 top-1/2 h-full w-[178%] -translate-x-1/2 -translate-y-1/2 overflow-hidden">
-            <div id={playerId} className="h-full w-full" />
-          </div>
-          {playerError && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/85 p-5 text-center text-white">
-              <p className="text-sm font-black">Video no disponible</p>
-              <p className="mt-2 text-xs text-slate-300">Este resultado no se pudo reproducir embebido. Prueba otro reel lateral o abre la fuente oficial.</p>
-              {activeReel.externalUrl && (
-                <a href={activeReel.externalUrl} target="_blank" rel="noreferrer" className="mt-3 rounded-full bg-emerald-400 px-3 py-1.5 text-xs font-black text-slate-950">
-                  Abrir YouTube
-                </a>
+
+          {youtubeFallbackAudio ? (
+            <div className="absolute inset-0 overflow-hidden">
+              {fallbackArtwork ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={fallbackArtwork} alt={track.title} className="h-full w-full object-cover" />
+              ) : (
+                <div className="h-full w-full bg-gradient-to-br from-emerald-400 via-cyan-500 to-slate-950" />
               )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/25 to-black/15" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-400/95 text-slate-950 shadow-2xl shadow-emerald-500/25 ring-1 ring-white/40">
+                  {playing ? <Pause className="h-7 w-7" fill="currentColor" /> : <Play className="h-7 w-7 translate-x-0.5" fill="currentColor" />}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="absolute left-1/2 top-1/2 h-full w-[178%] -translate-x-1/2 -translate-y-1/2 overflow-hidden">
+              <div id={playerId} className="h-full w-full" />
+            </div>
+          )}
+
+          {playerError && !youtubeFallbackAudio && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/85 p-5 text-center text-white">
+              <p className="text-sm font-black">Probando otro reel...</p>
+              <p className="mt-2 text-xs text-slate-300">Si ningún video embebido funciona, EduAI usará solo el audio de 30 segundos.</p>
             </div>
           )}
           <div
@@ -1230,7 +1378,7 @@ function DjReelCarousel3D({ track, artwork }: { track: EduMusicTrack; artwork?: 
           <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/50 to-transparent" />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/45 to-transparent p-4 text-left" style={{ transform: "translateZ(44px)" }}>
             <p className="mb-2 w-fit rounded-full bg-emerald-400 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-slate-950 shadow-lg shadow-emerald-500/25">
-              YouTube · 30s
+              {youtubeFallbackAudio ? "Audio iTunes · 30s" : "YouTube · 30s"}
             </p>
             <p className="line-clamp-1 text-base font-black text-white drop-shadow">{track.title}</p>
             <p className="line-clamp-1 text-xs font-semibold text-slate-200">{track.artist}</p>
@@ -1238,7 +1386,7 @@ function DjReelCarousel3D({ track, artwork }: { track: EduMusicTrack; artwork?: 
         </motion.div>
       </AnimatePresence>
 
-      {reels.length > 1 && (
+      {!youtubeFallbackAudio && reels.length > 1 && (
         <div className="absolute bottom-2 left-1/2 z-40 flex -translate-x-1/2 gap-1.5 rounded-full border border-white/10 bg-black/55 px-2.5 py-1.5 backdrop-blur">
           {reels.map((reel, index) => (
             <button
