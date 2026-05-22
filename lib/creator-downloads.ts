@@ -1,4 +1,5 @@
 // src/lib/creator-downloads.ts
+import { getDesignTemplate } from "@/lib/design-templates/registry"
 // v2 — Fix encoding, better formatting, Canva-style PDFs
 
 // Strip emojis that jsPDF can't render
@@ -72,30 +73,55 @@ export async function downloadRenderedAsImage(
 // PDF Export — Canva-style formatting
 // ============================================================
 
-export async function downloadAsPDF(data: any, format: string, fileName: string, accentColor = "#3b82f6") {
+export async function downloadAsPDF(data: any, format: string, fileName: string, accentColor = "#3b82f6", designTemplateId?: string) {
   const { jsPDF } = await import("jspdf")
+  const designTemplate = getDesignTemplate(designTemplateId || data?._design?.templateId, format)
   const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" })
   const pageW = 210
   const pageH = 297
   const margin = 18
   const contentW = pageW - margin * 2
-  const accent = hexToRgb(accentColor)
+  const effectiveAccent = accentColor || designTemplate.accentColor
+  const accent = hexToRgb(effectiveAccent)
+  const pageBackground = hexToRgb(designTemplate.export.pageBackground || designTemplate.palette.background || "#ffffff")
   let y = 0
+
+  pdf.setFillColor(pageBackground[0], pageBackground[1], pageBackground[2])
+  pdf.rect(0, 0, pageW, pageH, "F")
 
   // ── Helpers ──
 
-  const newPage = () => { pdf.addPage(); y = margin }
+  const newPage = () => {
+    pdf.addPage()
+    pdf.setFillColor(pageBackground[0], pageBackground[1], pageBackground[2])
+    pdf.rect(0, 0, pageW, pageH, "F")
+    y = margin
+  }
   const checkPage = (need = 20) => { if (y + need > pageH - 20) newPage() }
 
   const drawHeader = (title: string, subtitle?: string) => {
     // Accent bar at top
-    pdf.setFillColor(accent[0], accent[1], accent[2])
-    pdf.rect(0, 0, pageW, 38, "F")
+    if (designTemplate.export.pdfHeader === "minimal") {
+      pdf.setFillColor(255, 255, 255)
+      pdf.rect(0, 0, pageW, 28, "F")
+      pdf.setDrawColor(accent[0], accent[1], accent[2])
+      pdf.setLineWidth(1.2)
+      pdf.line(margin, 28, pageW - margin, 28)
+    } else {
+      pdf.setFillColor(accent[0], accent[1], accent[2])
+      pdf.rect(0, 0, pageW, 38, "F")
+      if (designTemplate.export.useDecorations) {
+        pdf.setFillColor(255, 255, 255, 0.18)
+        pdf.circle(pageW - 24, 12, 18, "F")
+        pdf.circle(pageW - 48, 34, 9, "F")
+      }
+    }
 
     // Title
     pdf.setFontSize(22)
     pdf.setFont("helvetica", "bold")
-    pdf.setTextColor(255, 255, 255)
+    if (designTemplate.export.pdfHeader === "minimal") pdf.setTextColor(accent[0], accent[1], accent[2])
+    else pdf.setTextColor(255, 255, 255)
     const titleLines = pdf.splitTextToSize(clean(title), contentW)
     let ty = 16
     for (const line of titleLines) { pdf.text(line, margin, ty); ty += 9 }
@@ -104,7 +130,8 @@ export async function downloadAsPDF(data: any, format: string, fileName: string,
     if (subtitle) {
       pdf.setFontSize(11)
       pdf.setFont("helvetica", "normal")
-      pdf.setTextColor(255, 255, 255, 180)
+      if (designTemplate.export.pdfHeader === "minimal") pdf.setTextColor(90, 90, 90)
+      else pdf.setTextColor(255, 255, 255, 180)
       pdf.text(clean(subtitle), margin, ty + 1)
     }
 
@@ -474,10 +501,15 @@ export async function downloadAsPDF(data: any, format: string, fileName: string,
 // PPTX Export
 // ============================================================
 
-export async function downloadAsPPTX(data: any, fileName: string, accentColor = "#3b82f6") {
+export async function downloadAsPPTX(data: any, fileName: string, accentColor = "#3b82f6", designTemplateId?: string) {
   const PptxGenJS = (await import("pptxgenjs")).default
   const pptx = new PptxGenJS()
-  const accent = accentColor.replace("#", "")
+  const designTemplate = getDesignTemplate(designTemplateId || data?._design?.templateId, "ppt")
+  const accent = (accentColor || designTemplate.accentColor).replace("#", "")
+  const pptBg = designTemplate.export.pptTheme === "dark" ? "0F172A" : designTemplate.palette.background.replace("#", "")
+  const pptSurface = designTemplate.export.pptTheme === "dark" ? "111827" : designTemplate.palette.surface.replace("#", "")
+  const pptText = designTemplate.export.pptTheme === "dark" ? "FFFFFF" : designTemplate.palette.text.replace("#", "")
+  const pptMuted = designTemplate.export.pptTheme === "dark" ? "CBD5E1" : designTemplate.palette.muted.replace("#", "")
 
   pptx.author = "EduAI"
   pptx.title = data.title || "Presentacion"
@@ -502,15 +534,15 @@ export async function downloadAsPPTX(data: any, fileName: string, accentColor = 
       })
     } else if (i === slides.length - 1) {
       // Conclusion slide
-      slide.background = { fill: "0F172A" }
+      slide.background = { fill: pptBg }
       slide.addShape("rect", { x: 0, y: 0, w: 10, h: 0.08, fill: { color: accent } })
       slide.addText(clean(s.title), {
         x: 0.6, y: 0.4, w: 8.8, h: 0.7,
-        fontSize: 24, fontFace: "Arial", color: "FFFFFF", bold: true,
+        fontSize: 24, fontFace: "Arial", color: pptText, bold: true,
       })
       const bullets = (s.bullets || []).map((b: string) => ({
         text: clean(b),
-        options: { fontSize: 15, color: "94A3B8", bullet: { code: "2713", color: accent } },
+        options: { fontSize: 15, color: pptMuted, bullet: { code: "2713", color: accent } },
       }))
       if (bullets.length) {
         slide.addText(bullets, {
@@ -519,7 +551,7 @@ export async function downloadAsPPTX(data: any, fileName: string, accentColor = 
         })
       }
     } else {
-      slide.background = { fill: "0F172A" }
+      slide.background = { fill: pptBg }
       // Top accent bar
       slide.addShape("rect", { x: 0, y: 0, w: 10, h: 0.08, fill: { color: accent } })
       // Slide number
@@ -529,11 +561,11 @@ export async function downloadAsPPTX(data: any, fileName: string, accentColor = 
       })
       slide.addText(clean(s.title), {
         x: 0.6, y: 0.3, w: 8.8, h: 0.8,
-        fontSize: 22, fontFace: "Arial", color: "FFFFFF", bold: true,
+        fontSize: 22, fontFace: "Arial", color: pptText, bold: true,
       })
       const bullets = (s.bullets || []).map((b: string) => ({
         text: clean(b),
-        options: { fontSize: 14, color: "CBD5E1", bullet: { code: "25CF", color: accent }, lineSpacingMultiple: 1.5 },
+        options: { fontSize: 14, color: pptMuted, bullet: { code: "25CF", color: accent }, lineSpacingMultiple: 1.5 },
       }))
       if (bullets.length) {
         slide.addText(bullets, {
