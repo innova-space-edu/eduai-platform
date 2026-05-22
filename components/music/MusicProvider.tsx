@@ -513,7 +513,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     audio.removeAttribute("src");
     audio.load();
 
-    if (currentTrack?.source === "youtube" || hasDjReelVideo(currentTrack) || isEmbedTrack(currentTrack) || !currentTrack?.src) return;
+    if (currentTrack?.source === "youtube" || isEmbedTrack(currentTrack) || !currentTrack?.src) return;
 
     if (currentTrack.source === "radio" && isBlockedBrowserAudioSrc(currentTrack.src)) {
       setPlaying(false);
@@ -566,11 +566,6 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if (hasDjReelVideo(currentTrack)) {
-      audio.pause();
-      return;
-    }
-
     if (isEmbedTrack(currentTrack) || !currentTrack?.src) {
       audio.pause();
       if (playing) setPlaying(false);
@@ -586,7 +581,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
 
   useEffect(() => {
-    if (!playing || currentTrack?.source !== "itunes" || hasDjReelVideo(currentTrack)) return;
+    if (!playing || currentTrack?.source !== "itunes") return;
     const duration = parseDurationSeconds(currentTrack.duration) || 30;
     const remainingMs = Math.max(1500, (duration - currentTime + 0.35) * 1000);
     const timer = window.setTimeout(() => {
