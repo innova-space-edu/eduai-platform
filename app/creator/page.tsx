@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import ColorPalette from "@/components/ui/ColorPalette"
 import DownloadBar from "@/components/ui/DownloadBar"
+import TemplatePicker from "@/components/design/TemplatePicker"
+import { getDefaultDesignTemplateId } from "@/lib/design-templates/registry"
 
 const NAV_LINKS = [
   { href: "/dashboard", icon: "🏠", label: "Inicio" },
@@ -889,6 +891,7 @@ export default function CreatorStudioPage() {
   const [fileName, setFileName]     = useState("")
   const [outputFormat, setOutputFormat] = useState("infographic")
   const [accentColor, setAccentColor]   = useState("#3b82f6")
+  const [designTemplateId, setDesignTemplateId] = useState(() => getDefaultDesignTemplateId("infographic"))
   const [processing, setProcessing] = useState(false)
   const [result, setResult]         = useState<any>(null)
   const [error, setError]           = useState<string | null>(null)
@@ -917,6 +920,17 @@ export default function CreatorStudioPage() {
     reader.readAsDataURL(file)
   }, [])
 
+  const handleFormatChange = (formatId: string) => {
+    setOutputFormat(formatId)
+    const nextTemplateId = getDefaultDesignTemplateId(formatId)
+    setDesignTemplateId(nextTemplateId)
+  }
+
+  const handleTemplateChange = (templateId: string, nextAccentColor?: string) => {
+    setDesignTemplateId(templateId)
+    if (nextAccentColor) setAccentColor(nextAccentColor)
+  }
+
   const handleGenerate = async () => {
     if (!content.trim()) return
     setProcessing(true)
@@ -926,7 +940,7 @@ export default function CreatorStudioPage() {
       const res = await fetch("/api/process-content", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sourceType, content, fileName, outputFormat }),
+        body: JSON.stringify({ sourceType, content, fileName, outputFormat, designTemplateId }),
       })
       const data = await res.json()
       if (!data.success) throw new Error(data.error || "Error procesando")
@@ -1064,7 +1078,7 @@ export default function CreatorStudioPage() {
                 <label className="text-muted2 text-[11px] font-semibold tracking-widest block mb-2">¿QUÉ QUIERES CREAR?</label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {OUTPUT_FORMATS.map(f => (
-                    <button key={f.id} onClick={() => setOutputFormat(f.id)}
+                    <button key={f.id} onClick={() => handleFormatChange(f.id)}
                       className={`p-3 rounded-2xl border text-center transition-all ${
                         outputFormat === f.id
                           ? "bg-blue-500/10 border-blue-500/30"
@@ -1077,6 +1091,13 @@ export default function CreatorStudioPage() {
                   ))}
                 </div>
               </div>
+
+              <TemplatePicker
+                format={outputFormat}
+                value={designTemplateId}
+                onChange={handleTemplateChange}
+                compact
+              />
 
               <ColorPalette value={accentColor} onChange={setAccentColor} />
 
@@ -1122,10 +1143,17 @@ export default function CreatorStudioPage() {
                   📋 JSON
                 </button>
               </div>
-              <div id="creator-result-container" className="bg-card-theme border border-soft rounded-2xl p-5 backdrop-blur-sm">
+              <div
+                id="creator-result-container"
+                className="border rounded-2xl p-5 backdrop-blur-sm"
+                style={{
+                  background: result?._design?.palette?.background || "var(--bg-card)",
+                  borderColor: result?._design?.palette?.primary ? `${result._design.palette.primary}22` : "var(--border-soft)",
+                }}
+              >
                 {Renderer && <Renderer data={result} />}
               </div>
-              <DownloadBar format={outputFormat} data={result} accentColor={accentColor} />
+              <DownloadBar format={outputFormat} data={result} accentColor={accentColor} designTemplateId={designTemplateId} />
             </>
           )}
         </div>
