@@ -25,7 +25,7 @@ const VALID_FORMATS: OutputFormat[] = [
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { sourceType, content, fileName, outputFormat } = body
+    const { sourceType, content, fileName, outputFormat, designTemplateId } = body
 
     // ─────────────────────────────────────────────
     // Validación de campos obligatorios
@@ -100,6 +100,7 @@ export async function POST(request: NextRequest) {
       fileName,
       outputFormat,
       geminiKey,
+      designTemplateId,
     })
 
     if (!result.success) {
