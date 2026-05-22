@@ -855,89 +855,171 @@ function DjReelFallbackCard({ track, artwork }: { track: EduMusicTrack; artwork?
 }
 
 function DjReelCarousel3D({ track, artwork }: { track: EduMusicTrack; artwork?: string }) {
-  const reels = useMemo(() => getDjReels(track), [track]);
+  const reels = useMemo(() => getDjReels(track).slice(0, 5), [track]);
   const [active, setActive] = useState(0);
+  const [hovered, setHovered] = useState(false);
+  const [tilt, setTilt] = useState({ rotateX: 0, rotateY: 0, glowX: 50, glowY: 36 });
 
   useEffect(() => {
     setActive(0);
+    setHovered(false);
+    setTilt({ rotateX: 0, rotateY: 0, glowX: 50, glowY: 36 });
   }, [track.id]);
 
   useEffect(() => {
-    if (reels.length < 2) return;
+    if (reels.length < 2 || hovered) return;
     const timer = window.setInterval(() => {
       setActive((value) => (value + 1) % reels.length);
-    }, 8500);
+    }, 6500);
     return () => window.clearInterval(timer);
-  }, [reels.length, track.id]);
+  }, [hovered, reels.length, track.id]);
 
   if (!reels.length) return <DjReelFallbackCard track={track} artwork={artwork} />;
 
-  const activeReel = reels[active % reels.length];
-  const sideCards = reels
-    .map((reel, index) => {
-      const relative = (index - active + reels.length) % reels.length;
-      const side = relative === 1 ? 1 : relative === reels.length - 1 ? -1 : 0;
-      return { reel, index, side };
-    })
-    .filter((item) => item.side !== 0)
-    .slice(0, 2);
+  const activeIndex = active % reels.length;
+  const activeReel = reels[activeIndex];
+  const sideOffsets = reels.length === 1 ? [-1, 1] : reels.length === 2 ? [-1, 1] : [-2, -1, 1, 2];
+  const sideCards = sideOffsets.map((offset) => {
+    const index = reels.length > 1 ? (activeIndex + offset + reels.length) % reels.length : activeIndex;
+    return { reel: reels[index], index, offset };
+  });
 
   return (
-    <div className="relative flex h-[455px] w-full max-w-[680px] items-center justify-center overflow-visible [perspective:1200px] max-xl:h-[395px] max-xl:max-w-[560px] max-sm:h-[370px]">
-      {sideCards.map(({ reel, index, side }) => (
-        <button
-          key={`${reel.videoId}-${side}`}
-          type="button"
-          onClick={() => setActive(index)}
-          className="absolute top-1/2 hidden aspect-[9/16] h-[305px] -translate-y-1/2 overflow-hidden rounded-[1.75rem] border border-white/10 bg-black/70 text-left shadow-2xl shadow-black/35 ring-1 ring-emerald-400/10 transition hover:opacity-85 lg:block"
-          style={{
-            transform: `translateX(${side * 182}px) translateY(-50%) rotateY(${-side * 42}deg) scale(0.78)`,
-            transformStyle: "preserve-3d",
-            zIndex: 8,
-            opacity: 0.52,
-          }}
-          aria-label={`Ver reel ${reel.title}`}
-        >
-          {reel.thumbnail ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={reel.thumbnail} alt={reel.title} className="h-full w-full object-cover" />
-          ) : (
-            <div className="h-full w-full bg-gradient-to-br from-emerald-400/70 to-slate-950" />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent" />
-        </button>
-      ))}
+    <div className="relative flex h-[520px] w-full max-w-[760px] items-center justify-center overflow-visible [perspective:1500px] max-xl:h-[440px] max-xl:max-w-[620px] max-lg:max-w-[520px] max-sm:h-[390px]">
+      <div className="pointer-events-none absolute inset-0 rounded-[3rem] bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.16),transparent_56%)] blur-2xl" />
+
+      {sideCards.map(({ reel, index, offset }) => {
+        const near = Math.abs(offset) === 1;
+        const side = offset > 0 ? 1 : -1;
+        const x = side * (near ? 245 : 390) - 88;
+        const sideRotate = -side * (near ? 42 : 62);
+        const sideScale = near ? 0.82 : 0.66;
+        const thumb = reel.thumbnail || artwork;
+        return (
+          <motion.button
+            key={`${reel.videoId}-${offset}`}
+            type="button"
+            onClick={() => setActive(index)}
+            className={cn(
+              "absolute left-1/2 top-1/2 hidden aspect-[9/16] h-[325px] overflow-hidden rounded-[2rem] border border-white/10 bg-black/80 text-left shadow-2xl shadow-black/40 ring-1 ring-emerald-400/10 lg:block",
+              near ? "xl:block" : "2xl:block",
+            )}
+            initial={false}
+            animate={{
+              x,
+              y: "-50%",
+              z: near ? -95 : -210,
+              rotateY: sideRotate,
+              rotateZ: side * (near ? -2.5 : -5),
+              scale: sideScale,
+              opacity: near ? 0.78 : 0.34,
+              filter: near ? "blur(0px) saturate(1.02)" : "blur(1px) saturate(0.75)",
+            }}
+            whileHover={{
+              z: near ? 35 : -60,
+              rotateY: sideRotate * 0.58,
+              rotateZ: side * -1,
+              scale: sideScale + 0.08,
+              opacity: near ? 0.95 : 0.55,
+              filter: "blur(0px) saturate(1.12)",
+            }}
+            transition={{ type: "spring", stiffness: 190, damping: 24 }}
+            style={{ transformStyle: "preserve-3d", zIndex: near ? 12 : 6 }}
+            aria-label={`Ver reel ${reel.title}`}
+          >
+            {thumb ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={thumb} alt={reel.title} className="h-full w-full object-cover" />
+            ) : (
+              <div className="h-full w-full bg-gradient-to-br from-emerald-400/70 to-slate-950" />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/15 to-transparent" />
+            <div className="pointer-events-none absolute bottom-3 left-3 right-3 translate-z-8">
+              <p className="line-clamp-1 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-200">Reel</p>
+              <p className="line-clamp-1 text-xs font-black text-white/90">{track.title}</p>
+            </div>
+          </motion.button>
+        );
+      })}
 
       <AnimatePresence mode="wait">
         <motion.div
           key={activeReel.videoId}
-          initial={{ opacity: 0, rotateY: 26, scale: 0.9 }}
-          animate={{ opacity: 1, rotateY: 0, scale: 1 }}
-          exit={{ opacity: 0, rotateY: -26, scale: 0.9 }}
-          transition={{ duration: 0.45, ease: "easeOut" }}
-          className="relative z-20 aspect-[9/16] h-[445px] max-h-[58vh] w-[250px] overflow-hidden rounded-[2.35rem] border border-emerald-300/30 bg-black shadow-2xl shadow-emerald-950/40 ring-1 ring-white/10 max-xl:h-[380px] max-xl:w-[214px] max-sm:h-[350px] max-sm:w-[198px]"
+          role="button"
+          tabIndex={0}
+          onMouseEnter={() => setHovered(true)}
+          onMouseMove={(event) => {
+            const rect = event.currentTarget.getBoundingClientRect();
+            const px = (event.clientX - rect.left) / rect.width;
+            const py = (event.clientY - rect.top) / rect.height;
+            setTilt({
+              rotateX: (0.5 - py) * 13,
+              rotateY: (px - 0.5) * 18,
+              glowX: Math.max(0, Math.min(100, px * 100)),
+              glowY: Math.max(0, Math.min(100, py * 100)),
+            });
+          }}
+          onMouseLeave={() => {
+            setHovered(false);
+            setTilt({ rotateX: 0, rotateY: 0, glowX: 50, glowY: 36 });
+          }}
+          onClick={() => reels.length > 1 && setActive((value) => (value + 1) % reels.length)}
+          onKeyDown={(event) => {
+            if ((event.key === "Enter" || event.key === " ") && reels.length > 1) {
+              event.preventDefault();
+              setActive((value) => (value + 1) % reels.length);
+            }
+          }}
+          initial={{ opacity: 0, rotateY: 34, scale: 0.9, z: -120 }}
+          animate={{
+            opacity: 1,
+            rotateX: tilt.rotateX,
+            rotateY: tilt.rotateY,
+            scale: hovered ? 1.035 : 1,
+            z: hovered ? 60 : 0,
+          }}
+          exit={{ opacity: 0, rotateY: -34, scale: 0.88, z: -120 }}
+          transition={{ type: "spring", stiffness: 210, damping: 24, mass: 0.75 }}
+          className="group relative z-30 aspect-[9/16] h-[500px] max-h-[63vh] w-[282px] cursor-pointer overflow-hidden rounded-[2.6rem] border border-emerald-300/35 bg-black shadow-[0_34px_95px_rgba(0,0,0,0.62)] ring-1 ring-white/10 will-change-transform max-xl:h-[420px] max-xl:w-[236px] max-sm:h-[360px] max-sm:w-[203px]"
           style={{ transformStyle: "preserve-3d" }}
+          aria-label="Reel 3D interactivo: mueve el mouse para inclinarlo"
         >
+          {activeReel.thumbnail || artwork ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={activeReel.thumbnail || artwork}
+              alt={activeReel.title}
+              className="absolute inset-0 h-full w-full scale-110 object-cover opacity-70 blur-xl"
+            />
+          ) : null}
           <iframe
             src={getDjReelEmbedUrlById(activeReel.videoId)}
             title={`${track.title} - reel visual exacto`}
-            className="absolute inset-0 h-full w-full border-0"
+            className="pointer-events-none absolute left-1/2 top-1/2 h-full w-[178%] -translate-x-1/2 -translate-y-1/2 border-0"
             allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
             allowFullScreen
           />
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/45 to-transparent" />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/35 to-transparent p-3 text-left">
-            <p className="mb-2 w-fit rounded-full bg-emerald-400 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-slate-950">
+          <div
+            className="pointer-events-none absolute inset-0 opacity-0 mix-blend-screen transition-opacity duration-200 group-hover:opacity-100"
+            style={{
+              background: `radial-gradient(circle at ${tilt.glowX}% ${tilt.glowY}%, rgba(52, 211, 153, 0.38), rgba(14, 165, 233, 0.18) 24%, transparent 52%)`,
+              transform: "translateZ(36px)",
+            }}
+          />
+          <div className="pointer-events-none absolute inset-0 rounded-[2.6rem] border border-white/10 shadow-[inset_0_0_32px_rgba(16,185,129,0.12)]" />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/50 to-transparent" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/45 to-transparent p-4 text-left" style={{ transform: "translateZ(44px)" }}>
+            <p className="mb-2 w-fit rounded-full bg-emerald-400 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-slate-950 shadow-lg shadow-emerald-500/25">
               DJ Reel · 30s
             </p>
-            <p className="line-clamp-1 text-sm font-black text-white">{track.title}</p>
-            <p className="line-clamp-1 text-xs font-semibold text-slate-300">{track.artist}</p>
+            <p className="line-clamp-1 text-base font-black text-white drop-shadow">{track.title}</p>
+            <p className="line-clamp-1 text-xs font-semibold text-slate-200">{track.artist}</p>
           </div>
         </motion.div>
       </AnimatePresence>
 
       {reels.length > 1 && (
-        <div className="absolute bottom-1 left-1/2 z-30 flex -translate-x-1/2 gap-1.5 rounded-full border border-white/10 bg-black/45 px-2 py-1 backdrop-blur">
+        <div className="absolute bottom-2 left-1/2 z-40 flex -translate-x-1/2 gap-1.5 rounded-full border border-white/10 bg-black/55 px-2.5 py-1.5 backdrop-blur">
           {reels.map((reel, index) => (
             <button
               key={reel.videoId}
@@ -945,7 +1027,7 @@ function DjReelCarousel3D({ track, artwork }: { track: EduMusicTrack; artwork?: 
               onClick={() => setActive(index)}
               className={cn(
                 "h-1.5 rounded-full transition-all",
-                index === active ? "w-5 bg-emerald-300" : "w-1.5 bg-white/35 hover:bg-white/70",
+                index === activeIndex ? "w-6 bg-emerald-300 shadow shadow-emerald-300/40" : "w-1.5 bg-white/35 hover:bg-white/75",
               )}
               aria-label={`Cambiar al reel ${index + 1}`}
             />
@@ -1153,8 +1235,8 @@ function MainPanel({ tracks }: { tracks: EduMusicTrack[] }) {
                 </p>
               )}
               {track.source === "itunes" && (
-                <p className="mt-3 text-xs font-black uppercase tracking-[0.12em] text-emerald-200/90">
-                  Reel exacto silenciado + preview legal iTunes
+                <p className="mt-3 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-200/80">
+                  Reel 3D interactivo
                 </p>
               )}
               {track.source === "radio" && (
@@ -1288,7 +1370,7 @@ function RightPanel() {
           })}
         </div>
         <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
-          DJ 30s busca el video exacto por canción/artista y muestra un carrusel 3D silenciado; el audio sigue siendo el preview legal de iTunes.
+          DJ 30s usa video exacto, carrusel 3D y preview legal de iTunes.
         </p>
       </section>
 
