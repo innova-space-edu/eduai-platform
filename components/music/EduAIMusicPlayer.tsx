@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft,
   ExternalLink,
@@ -25,6 +26,7 @@ import {
 import {
   EXTERNAL_MUSIC_COLLECTIONS,
   MOOD_LABELS,
+  type EduMusicDjReel,
   type EduMusicMood,
   type EduMusicPlaylist,
   type EduMusicTrack,
@@ -59,8 +61,7 @@ function getEmbedUrl(track?: EduMusicTrack | null) {
   return asExtendedTrack(track)?.embedUrl || track?.externalUrl || track?.src || "";
 }
 
-function getDjReelEmbedUrl(track?: EduMusicTrack | null) {
-  const videoId = track?.youtubeVideoId;
+function getDjReelEmbedUrlById(videoId?: string) {
   if (!videoId) return "";
   const params = new URLSearchParams({
     autoplay: "1",
@@ -73,6 +74,10 @@ function getDjReelEmbedUrl(track?: EduMusicTrack | null) {
     rel: "0",
   });
   return `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
+}
+
+function getDjReelEmbedUrl(track?: EduMusicTrack | null) {
+  return getDjReelEmbedUrlById(track?.youtubeVideoId);
 }
 
 const NAV_ITEMS = [
@@ -810,35 +815,152 @@ function PlaylistHeader({ tracks }: { tracks: EduMusicTrack[] }) {
   );
 }
 
-function CurrentTrackArtwork({ track }: { track: EduMusicTrack }) {
-  const artwork = track.artworkUrl || track.videoThumbnail || (track.cover?.startsWith("http") ? track.cover : undefined);
-  const djReelUrl = track.source === "itunes" ? getDjReelEmbedUrl(track) : "";
+function getDjReels(track: EduMusicTrack): EduMusicDjReel[] {
+  const reels = Array.isArray(track.djReels) ? track.djReels.filter((reel) => reel.videoId) : [];
+  if (reels.length) return reels;
+  if (!track.youtubeVideoId) return [];
+  return [
+    {
+      videoId: track.youtubeVideoId,
+      title: track.title,
+      channelTitle: track.artist,
+      thumbnail: track.videoThumbnail || track.artworkUrl,
+      embedUrl: track.videoEmbedUrl || `https://www.youtube.com/embed/${track.youtubeVideoId}`,
+      externalUrl: `https://www.youtube.com/watch?v=${track.youtubeVideoId}`,
+      score: track.djReelMatchScore || 0,
+      matchReason: track.djReelMatchReason || "video visual asociado",
+    },
+  ];
+}
 
-  if (track.source === "itunes") {
-    return (
-      <div className="relative aspect-[9/16] h-[360px] max-h-[48vh] w-[205px] overflow-hidden rounded-[2rem] border border-emerald-400/20 bg-black shadow-2xl shadow-black/40 ring-1 ring-white/10 max-xl:h-[310px] max-xl:w-[175px]">
-        {djReelUrl ? (
+function DjReelFallbackCard({ track, artwork }: { track: EduMusicTrack; artwork?: string }) {
+  return (
+    <div className="relative aspect-[9/16] h-[420px] max-h-[56vh] w-[238px] overflow-hidden rounded-[2.2rem] border border-emerald-400/20 bg-black shadow-2xl shadow-black/45 ring-1 ring-white/10 max-xl:h-[360px] max-xl:w-[205px]">
+      {artwork ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={artwork} alt={track.title} className="h-full w-full scale-110 object-cover opacity-85" />
+      ) : (
+        <div className="h-full w-full bg-gradient-to-br from-emerald-400 via-cyan-500 to-slate-950" />
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/25 to-transparent" />
+      <div className="absolute inset-x-0 bottom-0 p-4 text-left">
+        <p className="mb-2 w-fit rounded-full bg-emerald-400 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-slate-950">
+          DJ 30s
+        </p>
+        <p className="line-clamp-2 text-sm font-black text-white">{track.title}</p>
+        <p className="mt-1 line-clamp-1 text-xs font-semibold text-slate-300">{track.artist}</p>
+      </div>
+    </div>
+  );
+}
+
+function DjReelCarousel3D({ track, artwork }: { track: EduMusicTrack; artwork?: string }) {
+  const reels = useMemo(() => getDjReels(track), [track]);
+  const [active, setActive] = useState(0);
+
+  useEffect(() => {
+    setActive(0);
+  }, [track.id]);
+
+  useEffect(() => {
+    if (reels.length < 2) return;
+    const timer = window.setInterval(() => {
+      setActive((value) => (value + 1) % reels.length);
+    }, 8500);
+    return () => window.clearInterval(timer);
+  }, [reels.length, track.id]);
+
+  if (!reels.length) return <DjReelFallbackCard track={track} artwork={artwork} />;
+
+  const activeReel = reels[active % reels.length];
+  const sideCards = reels
+    .map((reel, index) => {
+      const relative = (index - active + reels.length) % reels.length;
+      const side = relative === 1 ? 1 : relative === reels.length - 1 ? -1 : 0;
+      return { reel, index, side };
+    })
+    .filter((item) => item.side !== 0)
+    .slice(0, 2);
+
+  return (
+    <div className="relative flex h-[455px] w-full max-w-[680px] items-center justify-center overflow-visible [perspective:1200px] max-xl:h-[395px] max-xl:max-w-[560px] max-sm:h-[370px]">
+      {sideCards.map(({ reel, index, side }) => (
+        <button
+          key={`${reel.videoId}-${side}`}
+          type="button"
+          onClick={() => setActive(index)}
+          className="absolute top-1/2 hidden aspect-[9/16] h-[305px] -translate-y-1/2 overflow-hidden rounded-[1.75rem] border border-white/10 bg-black/70 text-left shadow-2xl shadow-black/35 ring-1 ring-emerald-400/10 transition hover:opacity-85 lg:block"
+          style={{
+            transform: `translateX(${side * 182}px) translateY(-50%) rotateY(${-side * 42}deg) scale(0.78)`,
+            transformStyle: "preserve-3d",
+            zIndex: 8,
+            opacity: 0.52,
+          }}
+          aria-label={`Ver reel ${reel.title}`}
+        >
+          {reel.thumbnail ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={reel.thumbnail} alt={reel.title} className="h-full w-full object-cover" />
+          ) : (
+            <div className="h-full w-full bg-gradient-to-br from-emerald-400/70 to-slate-950" />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent" />
+        </button>
+      ))}
+
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeReel.videoId}
+          initial={{ opacity: 0, rotateY: 26, scale: 0.9 }}
+          animate={{ opacity: 1, rotateY: 0, scale: 1 }}
+          exit={{ opacity: 0, rotateY: -26, scale: 0.9 }}
+          transition={{ duration: 0.45, ease: "easeOut" }}
+          className="relative z-20 aspect-[9/16] h-[445px] max-h-[58vh] w-[250px] overflow-hidden rounded-[2.35rem] border border-emerald-300/30 bg-black shadow-2xl shadow-emerald-950/40 ring-1 ring-white/10 max-xl:h-[380px] max-xl:w-[214px] max-sm:h-[350px] max-sm:w-[198px]"
+          style={{ transformStyle: "preserve-3d" }}
+        >
           <iframe
-            src={djReelUrl}
-            title={`${track.title} - DJ reel visual`}
+            src={getDjReelEmbedUrlById(activeReel.videoId)}
+            title={`${track.title} - reel visual exacto`}
             className="absolute inset-0 h-full w-full border-0"
             allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
             allowFullScreen
           />
-        ) : artwork ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={artwork} alt={track.title} className="h-full w-full object-cover scale-110 opacity-80" />
-        ) : (
-          <div className="h-full w-full bg-gradient-to-br from-emerald-400 via-cyan-500 to-slate-950" />
-        )}
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/70 to-transparent p-4 text-left">
-          <p className="mb-2 w-fit rounded-full bg-emerald-400 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-slate-950">DJ Reel · 30s</p>
-          <p className="line-clamp-2 text-sm font-black text-white">{track.title}</p>
-          <p className="mt-1 line-clamp-1 text-xs font-semibold text-slate-300">{track.artist}</p>
-          <p className="mt-2 text-[10px] leading-relaxed text-slate-400">El video es visual y va silenciado; el audio principal sigue siendo el preview legal de 30 segundos.</p>
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/45 to-transparent" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/35 to-transparent p-3 text-left">
+            <p className="mb-2 w-fit rounded-full bg-emerald-400 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-slate-950">
+              DJ Reel · 30s
+            </p>
+            <p className="line-clamp-1 text-sm font-black text-white">{track.title}</p>
+            <p className="line-clamp-1 text-xs font-semibold text-slate-300">{track.artist}</p>
+          </div>
+        </motion.div>
+      </AnimatePresence>
+
+      {reels.length > 1 && (
+        <div className="absolute bottom-1 left-1/2 z-30 flex -translate-x-1/2 gap-1.5 rounded-full border border-white/10 bg-black/45 px-2 py-1 backdrop-blur">
+          {reels.map((reel, index) => (
+            <button
+              key={reel.videoId}
+              type="button"
+              onClick={() => setActive(index)}
+              className={cn(
+                "h-1.5 rounded-full transition-all",
+                index === active ? "w-5 bg-emerald-300" : "w-1.5 bg-white/35 hover:bg-white/70",
+              )}
+              aria-label={`Cambiar al reel ${index + 1}`}
+            />
+          ))}
         </div>
-      </div>
-    );
+      )}
+    </div>
+  );
+}
+
+function CurrentTrackArtwork({ track }: { track: EduMusicTrack }) {
+  const artwork = track.artworkUrl || track.videoThumbnail || (track.cover?.startsWith("http") ? track.cover : undefined);
+
+  if (track.source === "itunes") {
+    return <DjReelCarousel3D track={track} artwork={artwork} />;
   }
 
   if (track.source === "youtube") {
@@ -980,7 +1102,12 @@ function MainPanel({ tracks }: { tracks: EduMusicTrack[] }) {
               </div>
             </div>
           ) : (
-            <div className="w-full max-w-xl rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-center shadow-xl shadow-black/25 backdrop-blur-xl max-xl:p-4">
+            <div
+              className={cn(
+                "w-full rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-center shadow-xl shadow-black/25 backdrop-blur-xl max-xl:p-4",
+                track.source === "itunes" ? "max-w-4xl" : "max-w-xl",
+              )}
+            >
               <div className="flex justify-center">
                 <CurrentTrackArtwork track={track} />
               </div>
@@ -1026,8 +1153,8 @@ function MainPanel({ tracks }: { tracks: EduMusicTrack[] }) {
                 </p>
               )}
               {track.source === "itunes" && (
-                <p className="mt-3 text-xs font-semibold text-emerald-200/90">
-                  Modo DJ 30s: al terminar el preview avanza automáticamente. Si hay YouTube API Key, se muestra un video visual tipo reel silenciado.
+                <p className="mt-3 text-xs font-black uppercase tracking-[0.12em] text-emerald-200/90">
+                  Reel exacto silenciado + preview legal iTunes
                 </p>
               )}
               {track.source === "radio" && (
@@ -1161,7 +1288,7 @@ function RightPanel() {
           })}
         </div>
         <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
-          Por defecto se buscan canciones completas en Jamendo/Audius. DJ 30s usa previews iTunes y, si hay YouTube API Key, añade visuales tipo reel silenciados.
+          DJ 30s busca el video exacto por canción/artista y muestra un carrusel 3D silenciado; el audio sigue siendo el preview legal de iTunes.
         </p>
       </section>
 
