@@ -1,4 +1,5 @@
 // src/lib/content-processor.ts
+import { buildDesignPromptDirective, getDesignTemplateSummary } from "@/lib/design-templates/registry"
 // v3 — Gemini 2.5 Flash + responseSchema + prompts potenciados + contexto extendido 12K
 
 // ============================================================
@@ -981,7 +982,8 @@ async function callGroqFallback(systemPrompt: string, userPrompt: string): Promi
 export async function structureWithAI(
   extractedContent: ExtractedContent,
   outputFormat: OutputFormat,
-  apiKey: string
+  apiKey: string,
+  designTemplateId?: string
 ) {
   const systemPrompt = `Eres un experto en educación, diseño instruccional y comunicación pedagógica.
 Tu tarea es estructurar contenido educativo en formatos visuales de alta calidad.
@@ -993,11 +995,13 @@ REGLAS CRÍTICAS:
 5. Todo el contenido debe estar en español (excepto términos técnicos internacionales)
 6. Razona sobre el contenido antes de estructurarlo para maximizar su valor pedagógico`
 
-  const userPrompt = getFormatPrompt(
+  const baseUserPrompt = getFormatPrompt(
     outputFormat,
     extractedContent.title || "Sin título",
     extractedContent.rawText || ""
   )
+
+  const userPrompt = `${baseUserPrompt}${buildDesignPromptDirective(designTemplateId, outputFormat)}`
 
   const schema = SCHEMAS[outputFormat]
 
@@ -1039,12 +1043,14 @@ export async function processContent({
   fileName,
   outputFormat,
   geminiKey,
+  designTemplateId,
 }: {
   sourceType: SourceType
   content: string
   fileName?: string
   outputFormat: OutputFormat
   geminiKey: string
+  designTemplateId?: string
 }): Promise<ProcessResult> {
   // Paso 1: Extraer contenido de la fuente
   let extracted: ExtractedContent
@@ -1072,10 +1078,15 @@ export async function processContent({
   if (!extracted.success) return { success: false, error: extracted.error }
 
   // Paso 2: Estructurar con IA (Gemini 2.5 Flash + cascada de fallbacks)
-  const structured = await structureWithAI(extracted, outputFormat, geminiKey)
+  const structured = await structureWithAI(extracted, outputFormat, geminiKey, designTemplateId)
   if (!structured.success) return { success: false, error: structured.error }
 
   // Paso 3: Resultado enriquecido
+  const structuredData =
+    structured.data && typeof structured.data === "object" && !Array.isArray(structured.data)
+      ? structured.data
+      : { value: structured.data }
+
   return {
     success: true,
     source: {
@@ -1086,7 +1097,10 @@ export async function processContent({
     },
     output: {
       format: outputFormat,
-      data: structured.data,
+      data: {
+        ...structuredData,
+        _design: getDesignTemplateSummary(designTemplateId, outputFormat),
+      },
     },
     processedAt: new Date().toISOString(),
   }
