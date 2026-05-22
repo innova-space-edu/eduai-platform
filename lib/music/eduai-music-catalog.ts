@@ -17,6 +17,18 @@ export type EduMusicTrackSource =
   | "radio"
   | "external";
 
+export type EduMusicDjReel = {
+  videoId: string;
+  title: string;
+  channelTitle: string;
+  thumbnail?: string;
+  embedUrl: string;
+  externalUrl: string;
+  durationSeconds?: number;
+  score: number;
+  matchReason: string;
+};
+
 export type EduMusicTrack = {
   id: string;
   title: string;
@@ -33,6 +45,9 @@ export type EduMusicTrack = {
   youtubeVideoId?: string;
   videoEmbedUrl?: string;
   videoThumbnail?: string;
+  djReels?: EduMusicDjReel[];
+  djReelMatchScore?: number;
+  djReelMatchReason?: string;
 };
 
 export type EduMusicPlaylist = {
