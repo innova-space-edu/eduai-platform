@@ -9,6 +9,7 @@ interface DownloadBarProps {
   data: any
   title?: string
   accentColor?: string
+  designTemplateId?: string
 }
 
 const FORMAT_DOWNLOADS: Record<string, { label: string; icon: string; action: string }[]> = {
@@ -48,7 +49,7 @@ const FORMAT_DOWNLOADS: Record<string, { label: string; icon: string; action: st
   ],
 }
 
-export default function DownloadBar({ format, data, title, accentColor = "#3b82f6" }: DownloadBarProps) {
+export default function DownloadBar({ format, data, title, accentColor = "#3b82f6", designTemplateId }: DownloadBarProps) {
   const [downloading, setDownloading] = useState<string | null>(null)
   const [success, setSuccess]         = useState<string | null>(null)
   const [playing, setPlaying]         = useState(false)
@@ -61,6 +62,8 @@ export default function DownloadBar({ format, data, title, accentColor = "#3b82f
     .replace(/\s+/g, "-")
     .toLowerCase()
     .substring(0, 50)
+
+  const effectiveTemplateId = designTemplateId || data?._design?.templateId
 
   const handleDownload = async (action: string) => {
     setDownloading(action)
@@ -77,10 +80,10 @@ export default function DownloadBar({ format, data, title, accentColor = "#3b82f
           await downloadRenderedAsImage("creator-result-container", baseName, "jpeg")
           break
         case "pdf":
-          await downloadAsPDF(data, format, baseName, accentColor)
+          await downloadAsPDF(data, format, baseName, accentColor, effectiveTemplateId)
           break
         case "pptx":
-          await downloadAsPPTX(data, baseName, accentColor)
+          await downloadAsPPTX(data, baseName, accentColor, effectiveTemplateId)
           break
         case "mp3":
           await generateAndDownloadPodcastMP3(data, baseName, setProgress, cancelRef)
