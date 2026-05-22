@@ -115,6 +115,8 @@ type MusicContextValue = {
   currentTime: number;
   durationSeconds: number;
   seekTo: (seconds: number) => void;
+  reportExternalPlayback: (seconds: number, durationSeconds?: number) => void;
+  registerExternalSeekHandler: (handler: ((seconds: number) => void) | null) => void;
   searchOnline: (term?: string, providerOverride?: OnlineProviderMode) => Promise<void>;
 };
 
@@ -191,6 +193,13 @@ function isEmbedTrack(track?: EduMusicTrack | null) {
   return Boolean(asExtendedTrack(track)?.embedOnly);
 }
 
+function hasDjReelVideo(track?: EduMusicTrack | null) {
+  return Boolean(
+    track?.source === "itunes" &&
+      (track.youtubeVideoId || (Array.isArray(track.djReels) && track.djReels.some((reel) => reel.videoId))),
+  );
+}
+
 function trackExternalUrl(track?: EduMusicTrack | null) {
   return asExtendedTrack(track)?.externalUrl || asExtendedTrack(track)?.embedUrl || "";
 }
@@ -250,6 +259,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const youtubeReadyRef = useRef(false);
   const hlsRef = useRef<any>(null);
   const nextTrackRef = useRef<() => void>(() => {});
+  const externalSeekHandlerRef = useRef<((seconds: number) => void) | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [view, setView] = useState<MusicView>("home");
   const [query, setQuery] = useState("");
@@ -503,7 +513,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     audio.removeAttribute("src");
     audio.load();
 
-    if (currentTrack?.source === "youtube" || isEmbedTrack(currentTrack) || !currentTrack?.src) return;
+    if (currentTrack?.source === "youtube" || hasDjReelVideo(currentTrack) || isEmbedTrack(currentTrack) || !currentTrack?.src) return;
 
     if (currentTrack.source === "radio" && isBlockedBrowserAudioSrc(currentTrack.src)) {
       setPlaying(false);
@@ -556,6 +566,11 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    if (hasDjReelVideo(currentTrack)) {
+      audio.pause();
+      return;
+    }
+
     if (isEmbedTrack(currentTrack) || !currentTrack?.src) {
       audio.pause();
       if (playing) setPlaying(false);
@@ -567,11 +582,11 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     } else {
       audio.pause();
     }
-  }, [playing, currentTrack?.src, currentTrack?.source]);
+  }, [playing, currentTrack]);
 
 
   useEffect(() => {
-    if (!playing || currentTrack?.source !== "itunes") return;
+    if (!playing || currentTrack?.source !== "itunes" || hasDjReelVideo(currentTrack)) return;
     const duration = parseDurationSeconds(currentTrack.duration) || 30;
     const remainingMs = Math.max(1500, (duration - currentTime + 0.35) * 1000);
     const timer = window.setTimeout(() => {
@@ -659,6 +674,12 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         setPlaying(true);
         return;
       }
+      if (hasDjReelVideo(currentTrack) && externalSeekHandlerRef.current) {
+        externalSeekHandlerRef.current(0);
+        setCurrentTime(0);
+        setPlaying(true);
+        return;
+      }
       const audio = audioRef.current;
       if (audio) {
         audio.currentTime = 0;
@@ -693,7 +714,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     } else {
       setPlaying(false);
     }
-  }, [allTracks, baseTracks, currentId, currentTrack?.source, queue, repeat, shuffle, visibleTracks]);
+  }, [allTracks, baseTracks, currentId, currentTrack, queue, repeat, shuffle, visibleTracks]);
 
   useEffect(() => {
     nextTrackRef.current = nextTrack;
@@ -862,6 +883,11 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         } catch {}
         return;
       }
+      if (hasDjReelVideo(currentTrack) && externalSeekHandlerRef.current) {
+        externalSeekHandlerRef.current(seconds);
+        setCurrentTime(Math.max(0, seconds));
+        return;
+      }
       const audio = audioRef.current;
       if (!audio) return;
       const safe = Math.max(
@@ -871,8 +897,19 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       audio.currentTime = safe;
       setCurrentTime(safe);
     },
-    [currentTrack?.source],
+    [currentTrack],
   );
+
+  const reportExternalPlayback = useCallback((seconds: number, externalDurationSeconds?: number) => {
+    const safeTime = Math.max(0, Number.isFinite(seconds) ? seconds : 0);
+    const safeDuration = Math.max(0, Number.isFinite(externalDurationSeconds || 0) ? externalDurationSeconds || 0 : 0);
+    setCurrentTime(safeTime);
+    if (safeDuration) setDurationSeconds(safeDuration);
+  }, []);
+
+  const registerExternalSeekHandler = useCallback((handler: ((seconds: number) => void) | null) => {
+    externalSeekHandlerRef.current = handler;
+  }, []);
 
   const clearActiveSession = useCallback(() => {
     setPlaying(false);
@@ -1051,6 +1088,8 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     currentTime,
     durationSeconds,
     seekTo,
+    reportExternalPlayback,
+    registerExternalSeekHandler,
     searchOnline,
   };
 
