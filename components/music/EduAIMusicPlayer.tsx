@@ -199,6 +199,210 @@ function cn(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(" ");
 }
 
+function NeonGamingSkin() {
+  return (
+    <style>{`
+      .eduai-music-neon {
+        position: relative;
+        isolation: isolate;
+        background:
+          radial-gradient(circle at 18% 12%, rgba(0, 255, 163, 0.16), transparent 28%),
+          radial-gradient(circle at 82% 18%, rgba(34, 211, 238, 0.15), transparent 30%),
+          radial-gradient(circle at 78% 78%, rgba(168, 85, 247, 0.12), transparent 34%),
+          linear-gradient(135deg, #020403 0%, #050b0a 42%, #070912 100%) !important;
+      }
+
+      .eduai-music-neon::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 0;
+        background-image:
+          linear-gradient(rgba(0, 255, 163, 0.055) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0, 255, 163, 0.045) 1px, transparent 1px),
+          radial-gradient(circle at 50% 50%, transparent 0%, rgba(0,0,0,.38) 78%);
+        background-size: 42px 42px, 42px 42px, 100% 100%;
+        mask-image: linear-gradient(to bottom, rgba(0,0,0,.75), rgba(0,0,0,.2) 58%, rgba(0,0,0,.7));
+      }
+
+      .eduai-music-neon::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 1;
+        background: repeating-linear-gradient(
+          to bottom,
+          rgba(255,255,255,0.035) 0px,
+          rgba(255,255,255,0.035) 1px,
+          transparent 2px,
+          transparent 6px
+        );
+        opacity: .22;
+        mix-blend-mode: screen;
+      }
+
+      .eduai-music-neon > div,
+      .eduai-music-neon header,
+      .eduai-music-neon footer,
+      .eduai-music-neon aside,
+      .eduai-music-neon main {
+        position: relative;
+        z-index: 2;
+      }
+
+      .eduai-music-neon header,
+      .eduai-music-neon footer {
+        background: rgba(3, 9, 10, 0.92) !important;
+        border-color: rgba(0, 255, 163, 0.22) !important;
+        box-shadow: 0 0 34px rgba(0, 255, 163, 0.12), inset 0 1px 0 rgba(255,255,255,.07);
+        backdrop-filter: blur(20px);
+      }
+
+      .eduai-music-neon aside {
+        background:
+          linear-gradient(180deg, rgba(3, 9, 10, 0.94), rgba(5, 8, 18, 0.96)) !important;
+        border-color: rgba(0, 255, 163, 0.16) !important;
+      }
+
+      .eduai-music-neon main {
+        background:
+          radial-gradient(circle at 50% 0%, rgba(0, 255, 163, 0.08), transparent 46%),
+          linear-gradient(180deg, rgba(6, 10, 17, 0.88), rgba(3, 6, 10, 0.96)) !important;
+      }
+
+      .eduai-music-neon .neon-panel {
+        position: relative;
+        overflow: hidden;
+        background:
+          linear-gradient(145deg, rgba(8, 14, 20, 0.86), rgba(5, 9, 13, 0.94)),
+          radial-gradient(circle at 22% 8%, rgba(0, 255, 163, 0.18), transparent 36%),
+          radial-gradient(circle at 84% 22%, rgba(34, 211, 238, 0.14), transparent 38%) !important;
+        border: 1px solid rgba(0, 255, 163, 0.22) !important;
+        box-shadow:
+          0 24px 60px rgba(0,0,0,.45),
+          0 0 36px rgba(0,255,163,.11),
+          inset 0 1px 0 rgba(255,255,255,.08) !important;
+        backdrop-filter: blur(18px) saturate(140%);
+      }
+
+      .eduai-music-neon .neon-panel::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background:
+          linear-gradient(115deg, transparent 0 24%, rgba(0,255,163,.12) 26%, transparent 32% 100%),
+          radial-gradient(circle at 50% 0%, rgba(255,255,255,.08), transparent 38%);
+        opacity: .6;
+      }
+
+      .eduai-music-neon .neon-panel > * {
+        position: relative;
+        z-index: 1;
+      }
+
+      .eduai-music-neon .neon-stage {
+        background:
+          radial-gradient(circle at 50% 32%, rgba(0, 255, 163, 0.22), transparent 32%),
+          radial-gradient(circle at 25% 70%, rgba(34, 211, 238, 0.12), transparent 38%),
+          radial-gradient(circle at 77% 64%, rgba(168, 85, 247, 0.13), transparent 40%),
+          linear-gradient(145deg, rgba(2, 8, 9, 0.92), rgba(5, 8, 16, 0.97)) !important;
+        border-color: rgba(0, 255, 163, 0.22) !important;
+        box-shadow:
+          inset 0 0 80px rgba(0, 255, 163, 0.06),
+          0 0 48px rgba(0, 255, 163, 0.08) !important;
+      }
+
+      .eduai-music-neon .neon-current-card {
+        background: linear-gradient(155deg, rgba(9, 16, 22, 0.78), rgba(0,0,0,.42)) !important;
+        border-color: rgba(0, 255, 163, 0.24) !important;
+        box-shadow:
+          0 22px 70px rgba(0,0,0,.52),
+          0 0 32px rgba(0,255,163,.12),
+          inset 0 1px 0 rgba(255,255,255,.08) !important;
+      }
+
+      .eduai-music-neon .neon-chip {
+        border: 1px solid rgba(0,255,163,.32) !important;
+        background: linear-gradient(90deg, rgba(0,255,163,.2), rgba(34,211,238,.12)) !important;
+        color: #adffdf !important;
+        text-shadow: 0 0 12px rgba(0,255,163,.45);
+        box-shadow: inset 0 0 18px rgba(0,255,163,.08), 0 0 18px rgba(0,255,163,.08);
+      }
+
+      .eduai-music-neon .neon-title {
+        color: #f7fff9;
+        text-shadow: 0 0 18px rgba(0,255,163,.28), 0 0 32px rgba(34,211,238,.12);
+      }
+
+      .eduai-music-neon .neon-accent-button {
+        color: #03100a !important;
+        background: linear-gradient(90deg, #00ffa3, #29e7ff) !important;
+        box-shadow: 0 0 24px rgba(0,255,163,.28), inset 0 1px 0 rgba(255,255,255,.52) !important;
+      }
+
+      .eduai-music-neon .neon-accent-button:hover {
+        transform: translateY(-1px) scale(1.02);
+        filter: saturate(1.15);
+      }
+
+      .eduai-music-neon .neon-playlist-shelf {
+        background:
+          linear-gradient(135deg, rgba(0,255,163,.1), rgba(5,10,18,.92) 42%, rgba(34,211,238,.07)) !important;
+        border-color: rgba(0,255,163,.18) !important;
+        box-shadow: 0 -8px 42px rgba(0,255,163,.07), inset 0 1px 0 rgba(255,255,255,.08) !important;
+      }
+
+      .eduai-music-neon .neon-spotify-card,
+      .eduai-music-neon .neon-playlist-card {
+        background:
+          linear-gradient(145deg, rgba(255,255,255,.075), rgba(255,255,255,.025)),
+          radial-gradient(circle at 18% 0%, rgba(0,255,163,.18), transparent 44%) !important;
+        border-color: rgba(0,255,163,.18) !important;
+        box-shadow: 0 16px 40px rgba(0,0,0,.34), 0 0 22px rgba(0,255,163,.06) !important;
+      }
+
+      .eduai-music-neon .neon-spotify-card:hover,
+      .eduai-music-neon .neon-playlist-card:hover {
+        border-color: rgba(0,255,163,.44) !important;
+        box-shadow: 0 20px 50px rgba(0,0,0,.42), 0 0 30px rgba(0,255,163,.16) !important;
+        transform: translateY(-2px);
+      }
+
+      .eduai-music-neon input[type="range"] {
+        filter: drop-shadow(0 0 7px rgba(0,255,163,.38));
+      }
+
+      .eduai-music-neon ::selection {
+        background: rgba(0,255,163,.35);
+        color: white;
+      }
+
+      @media (prefers-reduced-motion: no-preference) {
+        .eduai-music-neon .neon-pulse {
+          animation: eduai-neon-pulse 2.4s ease-in-out infinite;
+        }
+        .eduai-music-neon .neon-scan {
+          background-size: 220% 100%;
+          animation: eduai-neon-scan 6s linear infinite;
+        }
+      }
+
+      @keyframes eduai-neon-pulse {
+        0%, 100% { box-shadow: 0 0 18px rgba(0,255,163,.22), 0 0 0 rgba(34,211,238,0); }
+        50% { box-shadow: 0 0 34px rgba(0,255,163,.42), 0 0 24px rgba(34,211,238,.18); }
+      }
+
+      @keyframes eduai-neon-scan {
+        0% { background-position: 0% 0; }
+        100% { background-position: 220% 0; }
+      }
+    `}</style>
+  );
+}
+
 function youtubeSearchUrl(query: string) {
   return `https://www.youtube.com/results?search_query=${encodeURIComponent(
     query || "study music playlist",
@@ -546,9 +750,9 @@ function TableTrackList({ tracks }: { tracks: EduMusicTrack[] }) {
 function TopBar() {
   const music = useEduAIMusic();
   return (
-    <header className="flex h-[58px] shrink-0 items-center gap-4 border-b border-white/10 bg-[#05070a] px-4 text-white">
+    <header className="flex h-[58px] shrink-0 items-center gap-4 border-b border-emerald-400/20 bg-[#03090a]/95 px-4 text-white">
       <div className="flex w-[300px] shrink-0 items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-400 text-slate-950 shadow-md shadow-emerald-500/20">
+        <div className="neon-pulse flex h-10 w-10 items-center justify-center rounded-full bg-[linear-gradient(135deg,#00ffa3,#22d3ee)] text-slate-950 shadow-md shadow-emerald-500/20">
           <Music2 className="h-5 w-5" />
         </div>
         <div className="min-w-0">
@@ -561,7 +765,7 @@ function TopBar() {
         </div>
       </div>
 
-      <div className="flex h-10 min-w-0 flex-1 items-center gap-3 rounded-full border border-white/10 bg-white/8 px-4 shadow-inner shadow-black/30 max-md:hidden">
+      <div className="flex h-10 min-w-0 flex-1 items-center gap-3 rounded-full border border-emerald-400/20 bg-black/35 px-4 shadow-inner shadow-black/30 ring-1 ring-white/5 max-md:hidden">
         <Search className="h-4 w-4 text-emerald-300" />
         <input
           value={music.query}
@@ -612,7 +816,7 @@ function RadioPanel() {
           type="button"
           onClick={() => void music.searchRadio("", "CL")}
           disabled={music.radioLoading}
-          className="rounded-full bg-emerald-400 px-3 py-1.5 text-[10px] font-black text-slate-950 disabled:opacity-50"
+          className="neon-accent-button rounded-full px-3 py-1.5 text-[10px] font-black disabled:opacity-50"
         >
           {music.radioLoading ? "..." : "Buscar"}
         </button>
@@ -681,8 +885,8 @@ function Sidebar({ tracks }: { tracks: EduMusicTrack[] }) {
   );
 
   return (
-    <aside className="flex min-h-0 min-w-0 flex-col border-r border-white/10 bg-[#0b0d12] p-2.5 text-white">
-      <div className="shrink-0 rounded-2xl border border-white/10 bg-[#14171f] p-3">
+    <aside className="flex min-h-0 min-w-0 flex-col border-r border-emerald-400/15 bg-[#03090a]/90 p-2.5 text-white">
+      <div className="shrink-0 neon-panel rounded-2xl border border-emerald-400/20 bg-[#07100f]/90 p-3">
         <div className="flex items-center justify-between gap-2">
           <div>
             <p className="text-sm font-black text-white">Tu biblioteca</p>
@@ -742,7 +946,7 @@ function Sidebar({ tracks }: { tracks: EduMusicTrack[] }) {
       </div>
 
       <div className="mt-3 flex min-h-0 flex-1 flex-col gap-3">
-        <section className="flex min-h-0 flex-[0.8] flex-col rounded-2xl border border-white/10 bg-[#14171f] p-3">
+        <section className="flex min-h-0 flex-[0.8] flex-col neon-panel rounded-2xl border border-emerald-400/20 bg-[#07100f]/90 p-3">
           <div className="mb-2 flex h-9 items-center gap-2 rounded-xl bg-black/25 px-3">
             <Search className="h-3.5 w-3.5 text-emerald-300" />
             <input
@@ -791,7 +995,7 @@ function Sidebar({ tracks }: { tracks: EduMusicTrack[] }) {
           </div>
         </section>
 
-        <section className="flex min-h-0 flex-1 flex-col rounded-2xl border border-white/10 bg-[#14171f] p-3">
+        <section className="flex min-h-0 flex-1 flex-col neon-panel rounded-2xl border border-emerald-400/20 bg-[#07100f]/90 p-3">
           <div className="mb-2 flex items-center justify-between">
             <p className="text-[11px] font-black uppercase tracking-[0.16em] text-emerald-300">
               Canciones
@@ -836,7 +1040,7 @@ function PlaylistHeader({ tracks }: { tracks: EduMusicTrack[] }) {
         <button
           type="button"
           onClick={() => music.playPlaylist(playlist.id)}
-          className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full bg-emerald-400 px-4 text-xs font-black text-slate-950 shadow-md shadow-emerald-500/20 hover:bg-emerald-300"
+          className="neon-accent-button inline-flex h-9 shrink-0 items-center gap-2 rounded-full px-4 text-xs font-black transition hover:bg-emerald-300"
         >
           <Play className="h-4 w-4" fill="currentColor" /> Reproducir
         </button>
@@ -1286,8 +1490,8 @@ function MainPanel({ tracks }: { tracks: EduMusicTrack[] }) {
   const embedUrl = getEmbedUrl(track);
 
   return (
-    <main className="flex min-h-0 min-w-0 flex-col bg-[#101218] p-2.5 text-white">
-      <section className="flex min-h-0 flex-1 flex-col rounded-2xl border border-white/10 bg-[#151922] p-4 shadow-lg shadow-black/20">
+    <main className="flex min-h-0 min-w-0 flex-col bg-transparent p-2.5 text-white">
+      <section className="neon-panel flex min-h-0 flex-1 flex-col rounded-3xl border border-emerald-400/20 bg-[#07100f]/90 p-4 shadow-lg shadow-black/20">
         <div className="mb-3 flex items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-300">
@@ -1303,20 +1507,20 @@ function MainPanel({ tracks }: { tracks: EduMusicTrack[] }) {
           <button
             type="button"
             onClick={() => music.playPlaylist(playlist.id)}
-            className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full bg-emerald-400 px-4 text-xs font-black text-slate-950 shadow-md shadow-emerald-500/20 hover:bg-emerald-300"
+            className="neon-accent-button inline-flex h-9 shrink-0 items-center gap-2 rounded-full px-4 text-xs font-black transition hover:bg-emerald-300"
           >
             <Play className="h-4 w-4" fill="currentColor" /> Reproducir lista
           </button>
         </div>
 
-        <div className="flex min-h-0 flex-1 items-center justify-center rounded-3xl border border-emerald-400/15 bg-[radial-gradient(circle_at_center,rgba(16,185,129,.18),rgba(15,23,42,.78)_48%,rgba(5,7,10,.95))] p-5">
+        <div className="neon-stage flex min-h-0 flex-1 items-center justify-center rounded-[2rem] border border-emerald-400/20 p-5">
           {embedTrack ? (
             <div className="w-full max-w-4xl rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-center shadow-xl shadow-black/25 backdrop-blur-xl max-xl:p-4">
               <div className="mx-auto max-w-xl">
-                <p className="mx-auto mb-2 w-fit rounded-full bg-emerald-400/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-300">
+                <p className="neon-chip mx-auto mb-2 w-fit rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-300">
                   {playbackKind(track)}
                 </p>
-                <h3 className="line-clamp-2 text-xl font-black leading-tight text-white max-xl:text-lg">
+                <h3 className="neon-title line-clamp-2 text-xl font-black leading-tight text-white max-xl:text-lg">
                   {track.title}
                 </h3>
                 <p className="mt-1 truncate text-sm font-semibold text-slate-300">
@@ -1370,7 +1574,7 @@ function MainPanel({ tracks }: { tracks: EduMusicTrack[] }) {
           ) : (
             <div
               className={cn(
-                "w-full rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-center shadow-xl shadow-black/25 backdrop-blur-xl max-xl:p-4",
+                "neon-current-card w-full rounded-[1.8rem] border border-emerald-400/20 bg-black/20 p-4 text-center shadow-xl shadow-black/25 backdrop-blur-xl max-xl:p-4",
                 track.source === "itunes" ? "max-w-4xl" : "max-w-xl",
               )}
             >
@@ -1379,10 +1583,10 @@ function MainPanel({ tracks }: { tracks: EduMusicTrack[] }) {
               </div>
 
               <div className="mx-auto mt-4 max-w-lg">
-                <p className="mx-auto mb-2 w-fit rounded-full bg-emerald-400/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-300">
+                <p className="neon-chip mx-auto mb-2 w-fit rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-300">
                   {playbackKind(track)}
                 </p>
-                <h3 className="line-clamp-2 text-xl font-black leading-tight text-white max-xl:text-lg">
+                <h3 className="neon-title line-clamp-2 text-xl font-black leading-tight text-white max-xl:text-lg">
                   {track.title}
                 </h3>
                 <p className="mt-1 truncate text-sm font-semibold text-slate-300">
@@ -1469,7 +1673,7 @@ function CenterPlaylistShelf() {
   const currentArt = music.currentTrack.artworkUrl || music.currentTrack.videoThumbnail || (music.currentTrack.cover?.startsWith("http") ? music.currentTrack.cover : undefined);
 
   return (
-    <section className="mt-3 shrink-0 rounded-3xl border border-white/10 bg-[#11151d] p-3 shadow-lg shadow-black/20">
+    <section className="neon-playlist-shelf mt-3 shrink-0 rounded-3xl border border-emerald-400/20 bg-[#07100f]/90 p-3 shadow-lg shadow-black/20">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           {currentArt ? (
@@ -1490,7 +1694,7 @@ function CenterPlaylistShelf() {
         <div className="min-w-0 overflow-x-auto pb-1">
           <div className="flex min-w-max gap-3">
             {SPOTIFY_EMBEDS.slice(0, 4).map((item) => (
-              <div key={item.id} className="w-[300px] shrink-0 overflow-hidden rounded-2xl border border-emerald-400/15 bg-black/35 p-2 shadow-lg shadow-black/25">
+              <div key={item.id} className="neon-spotify-card w-[300px] shrink-0 overflow-hidden rounded-2xl border border-emerald-400/15 bg-black/35 p-2 shadow-lg shadow-black/25 transition">
                 <p className="mb-2 truncate px-1 text-[11px] font-black uppercase tracking-[0.12em] text-emerald-200">{item.title}</p>
                 <iframe
                   data-testid="embed-iframe"
@@ -1520,7 +1724,7 @@ function CenterPlaylistShelf() {
                 music.setView("playlists");
                 music.playPlaylist(playlist.id);
               }}
-              className="group flex items-center gap-3 rounded-2xl border border-white/10 bg-white/6 p-2 text-left transition hover:border-emerald-300/30 hover:bg-emerald-400/10"
+              className="neon-playlist-card group flex items-center gap-3 rounded-2xl border border-emerald-400/15 bg-white/6 p-2 text-left transition hover:border-emerald-300/40 hover:bg-emerald-400/10"
             >
               <Cover label={playlist.name} cover={playlist.cover} size="lg" />
               <span className="min-w-0 flex-1">
@@ -1546,8 +1750,8 @@ function RightPanel() {
     .slice(0, 6);
 
   return (
-    <aside className="flex min-h-0 min-w-0 flex-col gap-2.5 overflow-y-auto border-l border-white/10 bg-[#0b0d12] p-2.5 text-white">
-      <section className="shrink-0 rounded-2xl border border-emerald-400/20 bg-[#14171f] p-3">
+    <aside className="flex min-h-0 min-w-0 flex-col gap-2.5 overflow-y-auto border-l border-emerald-400/15 bg-[#03090a]/90 p-2.5 text-white">
+      <section className="shrink-0 neon-panel rounded-2xl border border-emerald-400/20 bg-[#07100f]/90 p-3">
         <p className="text-sm font-black text-white">Buscar canciones</p>
         <p className="mt-1 text-xs text-slate-400">
           Busca canciones completas, previews DJ o pega un link de YouTube/playlist/radio para reproducirlo al centro.
@@ -1564,7 +1768,7 @@ function RightPanel() {
             type="button"
             onClick={() => void music.searchOnline()}
             disabled={music.onlineLoading}
-            className="rounded-full bg-emerald-400 px-4 py-2 text-xs font-black text-slate-950 disabled:opacity-50"
+            className="neon-accent-button rounded-full px-4 py-2 text-xs font-black disabled:opacity-50"
           >
             {music.onlineLoading ? "..." : "Buscar"}
           </button>
@@ -1603,7 +1807,7 @@ function RightPanel() {
         </p>
       </section>
 
-      <section className="flex min-h-0 flex-[0.65] flex-col rounded-2xl border border-white/10 bg-[#14171f] p-3">
+      <section className="flex min-h-0 flex-[0.65] flex-col neon-panel rounded-2xl border border-emerald-400/20 bg-[#07100f]/90 p-3">
         <div className="mb-2 flex items-center justify-between">
           <p className="text-sm font-black text-white">Resultados online</p>
           <button
@@ -1623,7 +1827,7 @@ function RightPanel() {
       </section>
 
 
-      <section className="shrink-0 rounded-2xl border border-white/10 bg-[#14171f] p-3">
+      <section className="shrink-0 neon-panel rounded-2xl border border-emerald-400/20 bg-[#07100f]/90 p-3">
         <p className="text-sm font-black text-white">Ahora suena</p>
         <div className="mt-3 flex items-center gap-3">
           <Cover track={music.currentTrack} size="lg" />
@@ -1645,7 +1849,7 @@ function RightPanel() {
         )}
       </section>
 
-      <section className="shrink-0 rounded-2xl border border-white/10 bg-[#14171f] p-3">
+      <section className="shrink-0 neon-panel rounded-2xl border border-emerald-400/20 bg-[#07100f]/90 p-3">
         <p className="text-sm font-black text-white">Fuentes externas</p>
         <div className="mt-2 flex gap-2">
           <input
@@ -1691,7 +1895,7 @@ function BottomPlayer() {
   const progress = duration ? Math.min(100, (music.currentTime / duration) * 100) : 0;
 
   return (
-    <footer className="flex h-[76px] shrink-0 items-center gap-4 border-t border-white/10 bg-[#05070a] px-4 text-white">
+    <footer className="flex h-[76px] shrink-0 items-center gap-4 border-t border-emerald-400/20 bg-[#03090a]/95 px-4 text-white">
       <div className="flex min-w-0 items-center gap-3" style={{ width: 320 }}>
         <Cover track={music.currentTrack} size="md" />
         <div className="min-w-0 flex-1">
@@ -1951,7 +2155,8 @@ export default function EduAIMusicPlayer({
   if (mode === "panel") return <CompactPanel onOpenPanel={onOpenPanel} />;
 
   return (
-    <div className="h-screen min-h-[680px] overflow-hidden bg-[#05070a] text-white">
+    <div className="eduai-music-neon h-screen min-h-[680px] overflow-hidden bg-[#020403] text-white">
+      <NeonGamingSkin />
       <div className="flex h-full flex-col">
         <TopBar />
         <div
