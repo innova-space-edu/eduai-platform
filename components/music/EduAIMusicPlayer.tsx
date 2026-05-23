@@ -80,6 +80,31 @@ function getDjReelEmbedUrl(track?: EduMusicTrack | null) {
   return getDjReelEmbedUrlById(track?.youtubeVideoId);
 }
 
+function getYouTubeDirectEmbedUrl(track?: EduMusicTrack | null, autoplay = false) {
+  const videoId = track?.youtubeVideoId;
+  const playlistId = (track as (EduMusicTrack & { youtubePlaylistId?: string }) | null | undefined)?.youtubePlaylistId;
+  const params = new URLSearchParams({
+    autoplay: autoplay ? "1" : "0",
+    controls: "1",
+    rel: "0",
+    modestbranding: "1",
+    playsinline: "1",
+  });
+  if (playlistId) params.set("list", playlistId);
+  if (typeof window !== "undefined") params.set("origin", window.location.origin);
+
+  if (!videoId && playlistId) {
+    return `https://www.youtube-nocookie.com/embed/videoseries?${params.toString()}`;
+  }
+  if (!videoId) return "";
+  return `https://www.youtube-nocookie.com/embed/${videoId}?${params.toString()}`;
+}
+
+function getYouTubeThumb(track?: EduMusicTrack | null) {
+  return track?.videoThumbnail || track?.artworkUrl || (track?.youtubeVideoId ? `https://i.ytimg.com/vi/${track.youtubeVideoId}/hqdefault.jpg` : undefined);
+}
+
+
 let djReelYouTubeApiPromise: Promise<void> | null = null;
 
 function loadDjReelYouTubeApi() {
@@ -207,7 +232,7 @@ function playbackKind(track?: EduMusicTrack) {
   if (isEmbedTrack(track)) return "Reproductor oficial ConectaAPP";
   if (track?.source === "itunes" && (track.youtubeVideoId || track.djReels?.length)) return "Audio iTunes · visual YouTube silenciado · modo DJ";
   if (track?.source === "itunes") return "Audio 30 segundos · imagen de fondo";
-  if (track?.source === "youtube") return "YouTube · cola automática";
+  if (track?.source === "youtube") return "YouTube · video/playlist embebido";
   if (track?.source === "radio") return "Radio online en vivo";
   if (track?.source === "jamendo" || track?.source === "audius")
     return "Canción completa reproducible";
@@ -236,16 +261,18 @@ function Cover({
             ? "h-8 w-8 rounded-lg text-xs"
             : "h-7 w-7 rounded-lg text-[10px]";
   const title = track?.title || label || "Música";
+  const [imageFailed, setImageFailed] = useState(false);
   const artwork =
     track?.artworkUrl ||
     (track?.cover?.startsWith("http") ? track.cover : undefined);
 
-  if (artwork) {
+  if (artwork && !imageFailed) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={artwork}
         alt={title}
+        onError={() => setImageFailed(true)}
         className={`${cls} shrink-0 object-cover shadow-sm shadow-black/40`}
       />
     );
@@ -1149,6 +1176,68 @@ function DjReelCarousel3D({ track, artwork }: { track: EduMusicTrack; artwork?: 
   );
 }
 
+
+function YouTubeDirectPlayer({ track, artwork }: { track: EduMusicTrack; artwork?: string }) {
+  const music = useEduAIMusic();
+  const thumb = artwork || getYouTubeThumb(track);
+  const embedUrl = getYouTubeDirectEmbedUrl(track, music.playing);
+  const playlistId = (track as EduMusicTrack & { youtubePlaylistId?: string }).youtubePlaylistId;
+
+  if (!music.playing || !embedUrl) {
+    return (
+      <button
+        type="button"
+        onClick={() => music.setPlaying(true)}
+        className="group relative aspect-video w-full max-w-[680px] overflow-hidden rounded-3xl border border-emerald-400/25 bg-black text-left shadow-2xl shadow-black/35 transition hover:scale-[1.01] hover:border-emerald-300/50"
+      >
+        {thumb ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={thumb} alt={track.title} className="h-full w-full object-cover opacity-80 transition duration-500 group-hover:scale-105" />
+        ) : (
+          <div className="h-full w-full bg-gradient-to-br from-red-500 via-slate-950 to-emerald-500" />
+        )}
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,.10),rgba(0,0,0,.78))]" />
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-5 text-center">
+          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-red-500 text-white shadow-2xl shadow-red-500/30 transition group-hover:scale-110">
+            <Play className="h-7 w-7 translate-x-0.5" fill="currentColor" />
+          </span>
+          <p className="mt-4 text-[11px] font-black uppercase tracking-[0.18em] text-emerald-200">
+            Reproducir YouTube aquí
+          </p>
+          <h4 className="mt-1 line-clamp-2 max-w-xl text-xl font-black text-white">{track.title}</h4>
+          <p className="mt-1 max-w-xl truncate text-sm font-semibold text-slate-200">{track.artist}</p>
+          {playlistId && <p className="mt-2 rounded-full bg-white/10 px-3 py-1 text-[10px] font-bold text-slate-200">Incluye lista / radio de YouTube</p>}
+        </div>
+      </button>
+    );
+  }
+
+  return (
+    <div className="w-full max-w-[760px] overflow-hidden rounded-3xl border border-emerald-400/25 bg-black shadow-2xl shadow-black/35">
+      <iframe
+        key={`${track.id}-${music.playing ? "play" : "pause"}`}
+        src={embedUrl}
+        title={`${track.title} - YouTube`}
+        className="aspect-video w-full border-0 bg-black"
+        allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+        allowFullScreen
+        loading="eager"
+      />
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/10 bg-black/70 px-4 py-2 text-left">
+        <div className="min-w-0">
+          <p className="truncate text-xs font-black text-white">{track.title}</p>
+          <p className="truncate text-[11px] text-slate-400">{playlistId ? "YouTube playlist / radio" : "YouTube video"}</p>
+        </div>
+        {track.externalUrl && (
+          <a href={track.externalUrl} target="_blank" rel="noreferrer" className="rounded-full bg-white/10 px-3 py-1.5 text-[11px] font-black text-emerald-200 hover:bg-emerald-400/20">
+            Abrir YouTube
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function CurrentTrackArtwork({ track }: { track: EduMusicTrack }) {
   const artwork = track.artworkUrl || track.videoThumbnail || (track.cover?.startsWith("http") ? track.cover : undefined);
 
@@ -1157,23 +1246,7 @@ function CurrentTrackArtwork({ track }: { track: EduMusicTrack }) {
   }
 
   if (track.source === "youtube") {
-    return (
-      <div className="relative aspect-video w-full max-w-[460px] overflow-hidden rounded-2xl border border-emerald-400/20 bg-black shadow-xl shadow-black/30">
-        {artwork ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={artwork} alt={track.title} className="h-full w-full object-cover opacity-75" />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-red-500 to-slate-950" />
-        )}
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/35 p-4 text-center">
-          <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-red-500 text-white shadow-lg">
-            <Play className="h-5 w-5 translate-x-0.5" fill="currentColor" />
-          </div>
-          <p className="text-xs font-black uppercase tracking-[0.16em] text-white">YouTube controlado por EduAI</p>
-          <p className="mt-1 max-w-sm text-[11px] font-semibold text-slate-200">Usa play, pausa, anterior y siguiente desde el reproductor central. Al terminar, pasa al siguiente resultado de la cola.</p>
-        </div>
-      </div>
-    );
+    return <YouTubeDirectPlayer track={track} artwork={artwork} />;
   }
 
   if (artwork) {
@@ -1224,7 +1297,7 @@ function MainPanel({ tracks }: { tracks: EduMusicTrack[] }) {
               {playlist.name}
             </h2>
             <p className="truncate text-xs text-slate-400">
-              Las listas quedan a los lados. Aquí se muestra solo la canción actual.
+              El video/canción actual queda arriba y las playlists aparecen al centro.
             </p>
           </div>
           <button
@@ -1342,12 +1415,12 @@ function MainPanel({ tracks }: { tracks: EduMusicTrack[] }) {
 
               {track.source === "youtube" && (
                 <p className="mt-3 text-xs font-semibold text-emerald-200/90">
-                  YouTube ahora funciona con cola automática: el botón central reproduce/pausa y al terminar avanza al siguiente video encontrado.
+                  YouTube se reproduce en el reproductor central visible. Si el navegador bloquea autoplay, presiona play dentro del video.
                 </p>
               )}
               {track.source === "itunes" && (
                 <p className="mt-3 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-200/80">
-                  Reel 3D con audio del video
+                  Reel visual YouTube + audio iTunes estable
                 </p>
               )}
               {track.source === "radio" && (
@@ -1384,37 +1457,82 @@ function MainPanel({ tracks }: { tracks: EduMusicTrack[] }) {
             </div>
           )}
         </div>
+        <CenterPlaylistShelf />
       </section>
     </main>
   );
 }
 
-function SpotifyEmbeds() {
+function CenterPlaylistShelf() {
+  const music = useEduAIMusic();
+  const featuredPlaylists = music.playlists.filter((playlist) => playlist.trackIds.length > 0).slice(0, 4);
+  const currentArt = music.currentTrack.artworkUrl || music.currentTrack.videoThumbnail || (music.currentTrack.cover?.startsWith("http") ? music.currentTrack.cover : undefined);
+
   return (
-    <section className="shrink-0 rounded-2xl border border-white/10 bg-[#14171f] p-3">
-      <div className="mb-2 flex items-center justify-between">
-        <div>
-          <p className="text-sm font-black text-white">Playlists Spotify</p>
-          <p className="text-[11px] text-slate-500">Embeds oficiales agregados.</p>
+    <section className="mt-3 shrink-0 rounded-3xl border border-white/10 bg-[#11151d] p-3 shadow-lg shadow-black/20">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          {currentArt ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={currentArt} alt={music.currentTrack.title} className="h-12 w-12 shrink-0 rounded-2xl object-cover shadow-lg shadow-black/30" />
+          ) : (
+            <div className="h-12 w-12 shrink-0 rounded-2xl bg-gradient-to-br from-emerald-300 to-sky-500" />
+          )}
+          <div className="min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-300">Playlists al centro</p>
+            <h3 className="truncate text-sm font-black text-white">Spotify + tus listas mientras suena: {music.currentTrack.title}</h3>
+            <p className="truncate text-[11px] text-slate-500">Reproduce listas oficiales o abre tus listas guardadas sin perder el reproductor principal.</p>
+          </div>
         </div>
       </div>
-      <div className="max-h-[320px] space-y-2 overflow-y-auto pr-1">
-        {SPOTIFY_EMBEDS.map((item) => (
-          <iframe
-            key={item.id}
-            data-testid="embed-iframe"
-            title={item.title}
-            style={{ borderRadius: 12 }}
-            src={item.src}
-            width="100%"
-            height="152"
-            frameBorder="0"
-            allowFullScreen
-            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-            loading="lazy"
-            className="block border-0"
-          />
-        ))}
+
+      <div className="grid gap-3 lg:grid-cols-[1.1fr_.9fr]">
+        <div className="min-w-0 overflow-x-auto pb-1">
+          <div className="flex min-w-max gap-3">
+            {SPOTIFY_EMBEDS.slice(0, 4).map((item) => (
+              <div key={item.id} className="w-[300px] shrink-0 overflow-hidden rounded-2xl border border-emerald-400/15 bg-black/35 p-2 shadow-lg shadow-black/25">
+                <p className="mb-2 truncate px-1 text-[11px] font-black uppercase tracking-[0.12em] text-emerald-200">{item.title}</p>
+                <iframe
+                  data-testid="embed-iframe"
+                  title={item.title}
+                  style={{ borderRadius: 14 }}
+                  src={item.src}
+                  width="100%"
+                  height="152"
+                  frameBorder="0"
+                  allowFullScreen
+                  allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                  loading="lazy"
+                  className="block border-0"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid max-h-[210px] gap-2 overflow-y-auto pr-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+          {featuredPlaylists.map((playlist) => (
+            <button
+              key={playlist.id}
+              type="button"
+              onClick={() => {
+                music.setSelectedPlaylistId(playlist.id);
+                music.setView("playlists");
+                music.playPlaylist(playlist.id);
+              }}
+              className="group flex items-center gap-3 rounded-2xl border border-white/10 bg-white/6 p-2 text-left transition hover:border-emerald-300/30 hover:bg-emerald-400/10"
+            >
+              <Cover label={playlist.name} cover={playlist.cover} size="lg" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-xs font-black text-white">{playlist.name}</span>
+                <span className="block truncate text-[10px] text-slate-500">{playlist.trackIds.length} canciones · reproducir</span>
+              </span>
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-400 text-slate-950 opacity-90 transition group-hover:scale-105">
+                <Play className="h-3.5 w-3.5 translate-x-0.5" fill="currentColor" />
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -1432,14 +1550,14 @@ function RightPanel() {
       <section className="shrink-0 rounded-2xl border border-emerald-400/20 bg-[#14171f] p-3">
         <p className="text-sm font-black text-white">Buscar canciones</p>
         <p className="mt-1 text-xs text-slate-400">
-          Busca canciones completas con Jamendo/Audius. En modo YouTube, EduAI crea una cola automática controlada por el botón central.
+          Busca canciones completas, previews DJ o pega un link de YouTube/playlist/radio para reproducirlo al centro.
         </p>
         <div className="mt-3 flex gap-2">
           <input
             value={music.onlineQuery}
             onChange={(e) => music.setOnlineQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && void music.searchOnline()}
-            placeholder="daddy, lofi, piano, estudio..."
+            placeholder="daddy, link YouTube, playlist..."
             className="min-w-0 flex-1 rounded-full border border-white/10 bg-black/25 px-3 py-2 text-xs text-white outline-none placeholder:text-slate-500 focus:border-emerald-400/60"
           />
           <button
