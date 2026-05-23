@@ -43,6 +43,7 @@ export type EduMusicTrack = {
   externalUrl?: string;
   artworkUrl?: string;
   youtubeVideoId?: string;
+  youtubePlaylistId?: string;
   videoEmbedUrl?: string;
   videoThumbnail?: string;
   djReels?: EduMusicDjReel[];
