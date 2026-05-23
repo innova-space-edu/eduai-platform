@@ -28,6 +28,7 @@ type NormalizedTrack = {
   source: "itunes" | "jamendo" | "audius" | "youtube";
   tags: string[];
   youtubeVideoId?: string;
+  youtubePlaylistId?: string;
   videoEmbedUrl?: string;
   videoThumbnail?: string;
   djReels?: DjReelVisual[];
@@ -163,6 +164,118 @@ function safeId(value: string) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "")
     .slice(0, 70);
+}
+
+
+function parseYouTubeInput(raw: string) {
+  const value = String(raw || "").trim();
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    const host = url.hostname.replace(/^www\./, "").toLowerCase();
+    const isYouTube = host === "youtube.com" || host === "m.youtube.com" || host === "music.youtube.com" || host === "youtu.be";
+    if (!isYouTube) return null;
+
+    const videoId =
+      host === "youtu.be"
+        ? url.pathname.split("/").filter(Boolean)[0]
+        : url.searchParams.get("v") ||
+          (url.pathname.startsWith("/embed/") ? url.pathname.split("/").filter(Boolean)[1] : "") ||
+          (url.pathname.startsWith("/shorts/") ? url.pathname.split("/").filter(Boolean)[1] : "");
+    const playlistId = url.searchParams.get("list") || undefined;
+    if (!videoId && !playlistId) return null;
+    return { videoId: videoId || undefined, playlistId };
+  } catch {
+    return null;
+  }
+}
+
+function youtubeWatchUrl(videoId?: string, playlistId?: string) {
+  const params = new URLSearchParams();
+  if (videoId) params.set("v", videoId);
+  if (playlistId) params.set("list", playlistId);
+  if (playlistId?.startsWith("RD")) params.set("start_radio", "1");
+  return `https://www.youtube.com/watch?${params.toString()}`;
+}
+
+function youtubeEmbedUrl(videoId?: string, playlistId?: string) {
+  if (!videoId && playlistId) {
+    return `https://www.youtube.com/embed/videoseries?list=${encodeURIComponent(playlistId)}`;
+  }
+  if (!videoId) return "";
+  const params = new URLSearchParams({
+    controls: "1",
+    rel: "0",
+    modestbranding: "1",
+    playsinline: "1",
+  });
+  if (playlistId) params.set("list", playlistId);
+  return `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
+}
+
+function youtubeThumbUrl(videoId?: string) {
+  return videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : undefined;
+}
+
+function youtubeTrackFromDetails(video: YouTubeVideoDetails, playlistId?: string): NormalizedTrack | null {
+  const videoId = video.id;
+  if (!videoId) return null;
+  const title = video.snippet?.title || "Video musical de YouTube";
+  const artist = video.snippet?.channelTitle || "YouTube";
+  const thumbnail = youtubeThumbnail(video) || youtubeThumbUrl(videoId);
+  const durationSeconds = parseIsoDurationSeconds(video.contentDetails?.duration);
+  return {
+    id: `youtube-${videoId}${playlistId ? `-${safeId(playlistId)}` : ""}`,
+    title,
+    artist,
+    album: playlistId?.startsWith("RD") ? "YouTube radio / mix" : playlistId ? "YouTube playlist" : "YouTube video",
+    mood: moodFromText(`${title} ${artist} ${video.snippet?.description || ""}`),
+    duration: durationSeconds ? formatDuration(durationSeconds, "s") : "Video",
+    src: "",
+    cover: thumbnail || "linear-gradient(135deg,#ef4444,#111827)",
+    artworkUrl: thumbnail,
+    externalUrl: youtubeWatchUrl(videoId, playlistId),
+    source: "youtube" as const,
+    tags: ["youtube", playlistId ? "playlist" : "video", playlistId?.startsWith("RD") ? "radio-mix" : "embed"].filter(Boolean) as string[],
+    youtubeVideoId: videoId,
+    youtubePlaylistId: playlistId,
+    videoEmbedUrl: youtubeEmbedUrl(videoId, playlistId),
+    videoThumbnail: thumbnail,
+  };
+}
+
+async function youtubeDirectFromInput(query: string, key?: string): Promise<NormalizedTrack[]> {
+  const parsed = parseYouTubeInput(query);
+  if (!parsed?.videoId && !parsed?.playlistId) return [];
+
+  if (key && parsed.videoId) {
+    const details = await fetchYoutubeVideoDetails([parsed.videoId], key).catch(() => []);
+    const track = details[0] ? youtubeTrackFromDetails(details[0], parsed.playlistId) : null;
+    if (track) return [track];
+  }
+
+  const videoId = parsed.videoId;
+  const thumbnail = youtubeThumbUrl(videoId);
+  return [
+    {
+      id: `youtube-${videoId || safeId(parsed.playlistId || "playlist")}${parsed.playlistId ? `-${safeId(parsed.playlistId)}` : ""}`,
+      title: parsed.playlistId?.startsWith("RD") ? "YouTube Radio / Mix" : "Video o playlist de YouTube",
+      artist: "YouTube",
+      album: parsed.playlistId?.startsWith("RD") ? "Radio automática de YouTube" : "YouTube",
+      mood: "energy",
+      duration: "Video",
+      src: "",
+      cover: thumbnail || "linear-gradient(135deg,#ef4444,#111827)",
+      artworkUrl: thumbnail,
+      externalUrl: youtubeWatchUrl(videoId, parsed.playlistId),
+      source: "youtube" as const,
+      tags: ["youtube", "link", parsed.playlistId ? "playlist" : "video"],
+      youtubeVideoId: videoId,
+      youtubePlaylistId: parsed.playlistId,
+      videoEmbedUrl: youtubeEmbedUrl(videoId, parsed.playlistId),
+      videoThumbnail: thumbnail,
+    },
+  ];
 }
 
 function isStudyInstrumentalQuery(query: string) {
@@ -328,9 +441,9 @@ async function searchAudius(query: string, limit: number): Promise<NormalizedTra
     .slice(0, Math.min(limit, 25))
     .map((item) => {
       const artwork =
-        item.artwork?.["1000x1000"] ||
         item.artwork?.["480x480"] ||
-        item.artwork?.["150x150"];
+        item.artwork?.["150x150"] ||
+        item.artwork?.["1000x1000"];
       return {
         id: `audius-${item.id}`,
         title: item.title || "Canción",
@@ -608,7 +721,8 @@ async function withExactDjVisuals(previews: NormalizedTrack[]): Promise<Normaliz
 
 async function searchYouTube(query: string, limit: number): Promise<NormalizedTrack[]> {
   const key = process.env.YOUTUBE_API_KEY;
-  if (!key) return [];
+  const direct = await youtubeDirectFromInput(query, key).catch(() => []);
+  if (!key) return direct;
 
   const params = new URLSearchParams({
     part: "snippet",
@@ -616,46 +730,33 @@ async function searchYouTube(query: string, limit: number): Promise<NormalizedTr
     type: "video",
     videoEmbeddable: "true",
     videoSyndicated: "true",
+    videoCategoryId: "10",
+    regionCode: DJ_REEL_REGION,
     maxResults: String(Math.min(limit, 10)),
     key,
     safeSearch: "moderate",
   });
 
   const res = await fetch(`https://www.googleapis.com/youtube/v3/search?${params.toString()}`, {
-    headers: { "User-Agent": "EduAI-Music/1.6" },
+    headers: { "User-Agent": "EduAI-Music/1.8" },
     next: { revalidate: 1800 },
   });
-  if (!res.ok) throw new Error(`YouTube Data API ${res.status}`);
+  if (!res.ok) return direct;
   const data = await res.json();
 
-  return ((data.items || []) as YouTubeSearchResult[])
-    .filter((item) => item.id?.videoId && item.snippet?.title)
-    .map((item) => {
-      const videoId = item.id!.videoId!;
-      const title = item.snippet?.title || "Video musical";
-      const artist = item.snippet?.channelTitle || "YouTube";
-      const thumbnail =
-        item.snippet?.thumbnails?.high?.url ||
-        item.snippet?.thumbnails?.medium?.url ||
-        item.snippet?.thumbnails?.default?.url;
-      return {
-        id: `youtube-${videoId}`,
-        title,
-        artist,
-        album: "YouTube video",
-        mood: moodFromText(`${title} ${artist} ${item.snippet?.description || ""}`),
-        duration: "Video",
-        src: "",
-        cover: thumbnail || "linear-gradient(135deg,#ef4444,#111827)",
-        artworkUrl: thumbnail,
-        externalUrl: `https://www.youtube.com/watch?v=${videoId}`,
-        source: "youtube" as const,
-        tags: ["youtube", "video", "fallback"],
-        youtubeVideoId: videoId,
-        videoEmbedUrl: `https://www.youtube.com/embed/${videoId}`,
-        videoThumbnail: thumbnail,
-      };
-    });
+  const ids = ((data.items || []) as YouTubeSearchResult[])
+    .map((item) => item.id?.videoId)
+    .filter(Boolean) as string[];
+  const details = await fetchYoutubeVideoDetails(ids, key).catch(() => []);
+
+  const tracks = details
+    .filter((video) => video.id && isVideoPlayableInRegion(video))
+    .map((video) => youtubeTrackFromDetails(video))
+    .filter(Boolean) as NormalizedTrack[];
+
+  const map = new Map<string, NormalizedTrack>();
+  [...direct, ...tracks].forEach((track) => map.set(track.id, track));
+  return Array.from(map.values()).slice(0, limit);
 }
 
 
@@ -706,8 +807,10 @@ async function handle(req: NextRequest) {
   let youtubeFallback: NormalizedTrack[] = [];
   let djVisuals = 0;
 
+  const isDirectYouTubeInput = Boolean(parseYouTubeInput(query));
   const shouldUseYouTubeFallback =
     normalizedProvider === "youtube" ||
+    isDirectYouTubeInput ||
     ((normalizedProvider === "full" || normalizedProvider === "all") && fullResults.length === 0);
 
   if (shouldUseYouTubeFallback) {
