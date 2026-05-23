@@ -205,6 +205,14 @@ function normalizeStreamUrl(src: string) {
   return "";
 }
 
+function normalizeArtworkUrl(src?: string) {
+  const clean = String(src || "").trim();
+  if (!clean) return "";
+  // Evita mixed content: si el sitio no ofrece HTTPS estable, usamos el fallback visual local.
+  if (/^http:\/\//i.test(clean)) return "";
+  return /^https:\/\//i.test(clean) ? clean : "";
+}
+
 function normalizeStation(station: RadioBrowserStation): NormalizedRadioTrack | null {
   const src = normalizeStreamUrl(station.url_resolved || station.url || "");
   const name = (station.name || "").trim();
@@ -228,6 +236,8 @@ function normalizeStation(station: RadioBrowserStation): NormalizedRadioTrack | 
     .filter(Boolean)
     .join(" · ");
 
+  const favicon = normalizeArtworkUrl(station.favicon);
+
   return {
     id: `radio-${station.stationuuid || safeId(`${name}-${src}`)}`,
     title: name,
@@ -236,8 +246,8 @@ function normalizeStation(station: RadioBrowserStation): NormalizedRadioTrack | 
     mood: moodFromRadio(`${name} ${tags.join(" ")}`),
     duration: "En vivo",
     src,
-    cover: station.favicon || "linear-gradient(135deg,#34d399,#0f766e)",
-    artworkUrl: station.favicon || undefined,
+    cover: favicon || "linear-gradient(135deg,#34d399,#0f766e)",
+    artworkUrl: favicon || undefined,
     externalUrl: station.homepage || undefined,
     source: "radio",
     tags,
