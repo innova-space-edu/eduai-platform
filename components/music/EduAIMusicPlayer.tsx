@@ -203,27 +203,36 @@ function NeonGamingSkin() {
   return (
     <style>{`
       .eduai-music-neon {
+        --neon-green: #00ffa3;
+        --neon-cyan: #00e5ff;
+        --neon-blue: #2563ff;
+        --neon-purple: #a855f7;
+        --neon-pink: #ff2d75;
+        --neon-red: #ff314f;
         position: relative;
         isolation: isolate;
         background:
-          radial-gradient(circle at 18% 12%, rgba(0, 255, 163, 0.16), transparent 28%),
-          radial-gradient(circle at 82% 18%, rgba(34, 211, 238, 0.15), transparent 30%),
-          radial-gradient(circle at 78% 78%, rgba(168, 85, 247, 0.12), transparent 34%),
-          linear-gradient(135deg, #020403 0%, #050b0a 42%, #070912 100%) !important;
+          radial-gradient(circle at 12% 18%, rgba(0, 229, 255, 0.2), transparent 25%),
+          radial-gradient(circle at 88% 16%, rgba(168, 85, 247, 0.22), transparent 30%),
+          radial-gradient(circle at 50% 86%, rgba(255, 45, 117, 0.17), transparent 34%),
+          linear-gradient(120deg, #02030a 0%, #061015 34%, #120722 65%, #04050c 100%) !important;
       }
 
       .eduai-music-neon::before {
         content: "";
         position: fixed;
-        inset: 0;
+        inset: -25%;
         pointer-events: none;
         z-index: 0;
-        background-image:
-          linear-gradient(rgba(0, 255, 163, 0.055) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(0, 255, 163, 0.045) 1px, transparent 1px),
-          radial-gradient(circle at 50% 50%, transparent 0%, rgba(0,0,0,.38) 78%);
-        background-size: 42px 42px, 42px 42px, 100% 100%;
-        mask-image: linear-gradient(to bottom, rgba(0,0,0,.75), rgba(0,0,0,.2) 58%, rgba(0,0,0,.7));
+        background:
+          linear-gradient(115deg, transparent 0 10%, rgba(0,229,255,.12) 13%, transparent 18% 27%, rgba(168,85,247,.12) 31%, transparent 37% 52%, rgba(255,45,117,.13) 57%, transparent 63% 72%, rgba(0,255,163,.15) 78%, transparent 84% 100%),
+          repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 1px, transparent 1px 28px),
+          repeating-linear-gradient(0deg, rgba(255,255,255,.025) 0 1px, transparent 1px 24px);
+        filter: blur(.2px) saturate(1.35);
+        opacity: .88;
+        transform: translate3d(0,0,0);
+        animation: eduai-aurora-slide 18s linear infinite;
+        mask-image: radial-gradient(circle at 50% 42%, rgba(0,0,0,.96), rgba(0,0,0,.4) 60%, transparent 88%);
       }
 
       .eduai-music-neon::after {
@@ -232,13 +241,9 @@ function NeonGamingSkin() {
         inset: 0;
         pointer-events: none;
         z-index: 1;
-        background: repeating-linear-gradient(
-          to bottom,
-          rgba(255,255,255,0.035) 0px,
-          rgba(255,255,255,0.035) 1px,
-          transparent 2px,
-          transparent 6px
-        );
+        background:
+          repeating-linear-gradient(to bottom, rgba(255,255,255,0.055) 0px, rgba(255,255,255,0.055) 1px, transparent 2px, transparent 7px),
+          radial-gradient(circle at 50% 50%, transparent 0%, rgba(0,0,0,.36) 78%);
         opacity: .22;
         mix-blend-mode: screen;
       }
@@ -254,37 +259,56 @@ function NeonGamingSkin() {
 
       .eduai-music-neon header,
       .eduai-music-neon footer {
-        background: rgba(3, 9, 10, 0.92) !important;
-        border-color: rgba(0, 255, 163, 0.22) !important;
-        box-shadow: 0 0 34px rgba(0, 255, 163, 0.12), inset 0 1px 0 rgba(255,255,255,.07);
-        backdrop-filter: blur(20px);
+        background: rgba(2, 4, 12, 0.82) !important;
+        border-color: rgba(0, 255, 163, 0.28) !important;
+        box-shadow: 0 0 34px rgba(0, 229, 255, 0.11), 0 0 42px rgba(168,85,247,.1), inset 0 1px 0 rgba(255,255,255,.08);
+        backdrop-filter: blur(22px) saturate(160%);
       }
+
+      .eduai-music-neon header::after,
+      .eduai-music-neon footer::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 2px;
+        pointer-events: none;
+        background: linear-gradient(90deg, #00ffa3, #00e5ff, #2563ff, #a855f7, #ff2d75, #ff314f, #00ffa3);
+        background-size: 260% 100%;
+        filter: drop-shadow(0 0 10px rgba(0,255,163,.55));
+        animation: eduai-rainbow-flow 5.5s linear infinite;
+      }
+      .eduai-music-neon header::after { bottom: -1px; }
+      .eduai-music-neon footer::before { top: -1px; }
 
       .eduai-music-neon aside {
         background:
-          linear-gradient(180deg, rgba(3, 9, 10, 0.94), rgba(5, 8, 18, 0.96)) !important;
-        border-color: rgba(0, 255, 163, 0.16) !important;
+          linear-gradient(180deg, rgba(4, 7, 18, 0.9), rgba(5, 8, 15, 0.94)),
+          radial-gradient(circle at 10% 12%, rgba(0,229,255,.14), transparent 30%) !important;
+        border-color: rgba(0, 255, 163, 0.19) !important;
       }
 
       .eduai-music-neon main {
         background:
-          radial-gradient(circle at 50% 0%, rgba(0, 255, 163, 0.08), transparent 46%),
-          linear-gradient(180deg, rgba(6, 10, 17, 0.88), rgba(3, 6, 10, 0.96)) !important;
+          radial-gradient(circle at 50% 0%, rgba(0, 229, 255, 0.09), transparent 44%),
+          radial-gradient(circle at 80% 80%, rgba(255,45,117,.08), transparent 38%) !important;
       }
 
       .eduai-music-neon .neon-panel {
         position: relative;
         overflow: hidden;
         background:
-          linear-gradient(145deg, rgba(8, 14, 20, 0.86), rgba(5, 9, 13, 0.94)),
-          radial-gradient(circle at 22% 8%, rgba(0, 255, 163, 0.18), transparent 36%),
-          radial-gradient(circle at 84% 22%, rgba(34, 211, 238, 0.14), transparent 38%) !important;
-        border: 1px solid rgba(0, 255, 163, 0.22) !important;
+          linear-gradient(145deg, rgba(5, 11, 22, 0.82), rgba(4, 6, 13, 0.88)),
+          radial-gradient(circle at 14% 8%, rgba(0, 229, 255, 0.16), transparent 34%),
+          radial-gradient(circle at 88% 18%, rgba(168, 85, 247, 0.14), transparent 40%),
+          radial-gradient(circle at 64% 96%, rgba(255, 45, 117, 0.10), transparent 34%) !important;
+        border: 1px solid rgba(0, 255, 163, 0.26) !important;
         box-shadow:
-          0 24px 60px rgba(0,0,0,.45),
-          0 0 36px rgba(0,255,163,.11),
-          inset 0 1px 0 rgba(255,255,255,.08) !important;
-        backdrop-filter: blur(18px) saturate(140%);
+          0 24px 70px rgba(0,0,0,.54),
+          0 0 34px rgba(0,229,255,.09),
+          0 0 46px rgba(168,85,247,.08),
+          inset 0 1px 0 rgba(255,255,255,.09) !important;
+        backdrop-filter: blur(20px) saturate(160%);
       }
 
       .eduai-music-neon .neon-panel::before {
@@ -293,9 +317,9 @@ function NeonGamingSkin() {
         inset: 0;
         pointer-events: none;
         background:
-          linear-gradient(115deg, transparent 0 24%, rgba(0,255,163,.12) 26%, transparent 32% 100%),
-          radial-gradient(circle at 50% 0%, rgba(255,255,255,.08), transparent 38%);
-        opacity: .6;
+          linear-gradient(115deg, transparent 0 18%, rgba(0,255,163,.12) 21%, transparent 27% 100%),
+          linear-gradient(90deg, rgba(0,229,255,.08), transparent 30%, rgba(255,45,117,.08));
+        opacity: .55;
       }
 
       .eduai-music-neon .neon-panel > * {
@@ -304,75 +328,146 @@ function NeonGamingSkin() {
       }
 
       .eduai-music-neon .neon-stage {
+        position: relative;
+        overflow: hidden;
         background:
-          radial-gradient(circle at 50% 32%, rgba(0, 255, 163, 0.22), transparent 32%),
-          radial-gradient(circle at 25% 70%, rgba(34, 211, 238, 0.12), transparent 38%),
-          radial-gradient(circle at 77% 64%, rgba(168, 85, 247, 0.13), transparent 40%),
-          linear-gradient(145deg, rgba(2, 8, 9, 0.92), rgba(5, 8, 16, 0.97)) !important;
-        border-color: rgba(0, 255, 163, 0.22) !important;
+          radial-gradient(circle at 50% 38%, rgba(0, 229, 255, 0.19), transparent 28%),
+          radial-gradient(circle at 24% 74%, rgba(168, 85, 247, 0.14), transparent 34%),
+          radial-gradient(circle at 78% 70%, rgba(255, 45, 117, 0.13), transparent 36%),
+          linear-gradient(145deg, rgba(2, 8, 14, 0.76), rgba(6, 4, 16, 0.88)) !important;
+        border-color: rgba(0, 255, 163, 0.25) !important;
         box-shadow:
-          inset 0 0 80px rgba(0, 255, 163, 0.06),
-          0 0 48px rgba(0, 255, 163, 0.08) !important;
+          inset 0 0 90px rgba(0, 229, 255, 0.055),
+          0 0 38px rgba(0, 255, 163, 0.07),
+          0 0 48px rgba(168, 85, 247, 0.07) !important;
+      }
+
+      .eduai-music-neon .neon-stage::before {
+        content: "";
+        position: absolute;
+        inset: auto 8% 18px 8%;
+        height: 8px;
+        border-radius: 999px;
+        background: linear-gradient(90deg,#00ffa3,#00e5ff,#2563ff,#a855f7,#ff2d75,#ff314f,#00ffa3);
+        background-size: 260% 100%;
+        filter: blur(10px);
+        opacity: .48;
+        animation: eduai-rainbow-flow 6s linear infinite;
       }
 
       .eduai-music-neon .neon-current-card {
-        background: linear-gradient(155deg, rgba(9, 16, 22, 0.78), rgba(0,0,0,.42)) !important;
-        border-color: rgba(0, 255, 163, 0.24) !important;
+        background:
+          linear-gradient(155deg, rgba(9, 17, 31, 0.72), rgba(0,0,0,.36)),
+          radial-gradient(circle at 12% 8%, rgba(0,229,255,.14), transparent 38%),
+          radial-gradient(circle at 92% 0%, rgba(255,45,117,.10), transparent 44%) !important;
+        border-color: rgba(0, 255, 163, 0.28) !important;
         box-shadow:
-          0 22px 70px rgba(0,0,0,.52),
-          0 0 32px rgba(0,255,163,.12),
-          inset 0 1px 0 rgba(255,255,255,.08) !important;
+          0 22px 64px rgba(0,0,0,.48),
+          0 0 28px rgba(0,255,163,.13),
+          0 0 34px rgba(37,99,255,.09),
+          inset 0 1px 0 rgba(255,255,255,.09) !important;
       }
 
       .eduai-music-neon .neon-chip {
-        border: 1px solid rgba(0,255,163,.32) !important;
-        background: linear-gradient(90deg, rgba(0,255,163,.2), rgba(34,211,238,.12)) !important;
-        color: #adffdf !important;
-        text-shadow: 0 0 12px rgba(0,255,163,.45);
-        box-shadow: inset 0 0 18px rgba(0,255,163,.08), 0 0 18px rgba(0,255,163,.08);
+        border: 1px solid rgba(0,255,163,.46) !important;
+        background: linear-gradient(90deg, rgba(0,255,163,.28), rgba(0,229,255,.14), rgba(168,85,247,.14)) !important;
+        color: #d9ffef !important;
+        text-shadow: 0 0 12px rgba(0,255,163,.55);
+        box-shadow: inset 0 0 18px rgba(0,255,163,.10), 0 0 18px rgba(0,255,163,.11);
       }
 
       .eduai-music-neon .neon-title {
-        color: #f7fff9;
-        text-shadow: 0 0 18px rgba(0,255,163,.28), 0 0 32px rgba(34,211,238,.12);
+        color: #ffffff;
+        text-shadow: 0 0 18px rgba(0,255,163,.32), 0 0 32px rgba(0,229,255,.18), 0 0 46px rgba(168,85,247,.12);
       }
 
-      .eduai-music-neon .neon-accent-button {
-        color: #03100a !important;
-        background: linear-gradient(90deg, #00ffa3, #29e7ff) !important;
-        box-shadow: 0 0 24px rgba(0,255,163,.28), inset 0 1px 0 rgba(255,255,255,.52) !important;
+      .eduai-music-neon .neon-accent-button,
+      .eduai-music-neon .neon-metal-button {
+        color: #02120c !important;
+        background:
+          linear-gradient(180deg, rgba(255,255,255,.55), transparent 38%),
+          linear-gradient(90deg, #a7ffd3, #00ffa3 34%, #00d084 58%, #39ff88) !important;
+        border: 1px solid rgba(202,255,226,.72) !important;
+        box-shadow:
+          0 0 18px rgba(0,255,163,.38),
+          0 0 36px rgba(0,229,255,.16),
+          inset 0 1px 0 rgba(255,255,255,.74),
+          inset 0 -10px 18px rgba(0,74,52,.22) !important;
       }
 
-      .eduai-music-neon .neon-accent-button:hover {
-        transform: translateY(-1px) scale(1.02);
-        filter: saturate(1.15);
+      .eduai-music-neon .neon-accent-button:hover,
+      .eduai-music-neon .neon-metal-button:hover {
+        transform: translateY(-1px) scale(1.025);
+        filter: saturate(1.2) contrast(1.05);
+      }
+
+      .eduai-music-neon .rainbow-edge {
+        position: relative;
+      }
+      .eduai-music-neon .rainbow-edge::before {
+        content: "";
+        position: absolute;
+        inset: -1px;
+        z-index: -1;
+        border-radius: inherit;
+        background: linear-gradient(120deg,#00ffa3,#00e5ff,#2563ff,#a855f7,#ff2d75,#ff314f,#00ffa3);
+        background-size: 240% 100%;
+        opacity: .72;
+        animation: eduai-rainbow-flow 5.2s linear infinite;
       }
 
       .eduai-music-neon .neon-playlist-shelf {
         background:
-          linear-gradient(135deg, rgba(0,255,163,.1), rgba(5,10,18,.92) 42%, rgba(34,211,238,.07)) !important;
-        border-color: rgba(0,255,163,.18) !important;
-        box-shadow: 0 -8px 42px rgba(0,255,163,.07), inset 0 1px 0 rgba(255,255,255,.08) !important;
+          linear-gradient(135deg, rgba(0,229,255,.10), rgba(5,8,18,.88) 36%, rgba(168,85,247,.11) 70%, rgba(255,45,117,.08)) !important;
+        border-color: rgba(0,255,163,.22) !important;
+        box-shadow: 0 -8px 42px rgba(0,229,255,.08), inset 0 1px 0 rgba(255,255,255,.08) !important;
       }
 
       .eduai-music-neon .neon-spotify-card,
-      .eduai-music-neon .neon-playlist-card {
+      .eduai-music-neon .neon-playlist-card,
+      .eduai-music-neon .neon-instrumental-card {
         background:
           linear-gradient(145deg, rgba(255,255,255,.075), rgba(255,255,255,.025)),
-          radial-gradient(circle at 18% 0%, rgba(0,255,163,.18), transparent 44%) !important;
-        border-color: rgba(0,255,163,.18) !important;
-        box-shadow: 0 16px 40px rgba(0,0,0,.34), 0 0 22px rgba(0,255,163,.06) !important;
+          radial-gradient(circle at 16% 0%, rgba(0,229,255,.18), transparent 44%),
+          radial-gradient(circle at 88% 100%, rgba(255,45,117,.12), transparent 42%) !important;
+        border-color: rgba(0,255,163,.2) !important;
+        box-shadow: 0 16px 42px rgba(0,0,0,.36), 0 0 22px rgba(0,229,255,.06) !important;
       }
 
       .eduai-music-neon .neon-spotify-card:hover,
-      .eduai-music-neon .neon-playlist-card:hover {
-        border-color: rgba(0,255,163,.44) !important;
-        box-shadow: 0 20px 50px rgba(0,0,0,.42), 0 0 30px rgba(0,255,163,.16) !important;
+      .eduai-music-neon .neon-playlist-card:hover,
+      .eduai-music-neon .neon-instrumental-card:hover {
+        border-color: rgba(0,255,163,.5) !important;
+        box-shadow: 0 20px 54px rgba(0,0,0,.44), 0 0 28px rgba(0,255,163,.16), 0 0 40px rgba(255,45,117,.08) !important;
         transform: translateY(-2px);
       }
 
+      .eduai-music-neon .neon-eq {
+        display: inline-flex;
+        align-items: end;
+        gap: 3px;
+        height: 18px;
+      }
+      .eduai-music-neon .neon-eq span {
+        width: 3px;
+        min-height: 5px;
+        border-radius: 999px;
+        background: linear-gradient(180deg,#00e5ff,#a855f7,#ff2d75,#00ffa3);
+        box-shadow: 0 0 9px rgba(0,255,163,.42);
+        animation: eduai-eq 1.05s ease-in-out infinite;
+      }
+      .eduai-music-neon .neon-eq span:nth-child(2) { animation-delay: .12s; }
+      .eduai-music-neon .neon-eq span:nth-child(3) { animation-delay: .24s; }
+      .eduai-music-neon .neon-eq span:nth-child(4) { animation-delay: .36s; }
+      .eduai-music-neon .neon-eq span:nth-child(5) { animation-delay: .48s; }
+
       .eduai-music-neon input[type="range"] {
-        filter: drop-shadow(0 0 7px rgba(0,255,163,.38));
+        height: 6px;
+        border-radius: 999px;
+        filter: drop-shadow(0 0 9px rgba(0,255,163,.38)) drop-shadow(0 0 13px rgba(168,85,247,.18));
+      }
+      .eduai-music-neon input[type="range"]::-webkit-slider-thumb {
+        box-shadow: 0 0 0 4px rgba(0,255,163,.14), 0 0 18px rgba(0,255,163,.65);
       }
 
       .eduai-music-neon ::selection {
@@ -390,14 +485,30 @@ function NeonGamingSkin() {
         }
       }
 
+      @keyframes eduai-rainbow-flow {
+        0% { background-position: 0% 50%; }
+        100% { background-position: 240% 50%; }
+      }
+
+      @keyframes eduai-aurora-slide {
+        0% { transform: translate3d(-8%, -3%, 0) rotate(0deg); }
+        50% { transform: translate3d(7%, 4%, 0) rotate(1.6deg); }
+        100% { transform: translate3d(-8%, -3%, 0) rotate(0deg); }
+      }
+
       @keyframes eduai-neon-pulse {
-        0%, 100% { box-shadow: 0 0 18px rgba(0,255,163,.22), 0 0 0 rgba(34,211,238,0); }
-        50% { box-shadow: 0 0 34px rgba(0,255,163,.42), 0 0 24px rgba(34,211,238,.18); }
+        0%, 100% { box-shadow: 0 0 18px rgba(0,255,163,.24), 0 0 0 rgba(34,211,238,0); }
+        50% { box-shadow: 0 0 34px rgba(0,255,163,.48), 0 0 24px rgba(0,229,255,.2); }
       }
 
       @keyframes eduai-neon-scan {
         0% { background-position: 0% 0; }
         100% { background-position: 220% 0; }
+      }
+
+      @keyframes eduai-eq {
+        0%, 100% { height: 5px; opacity: .62; }
+        50% { height: 18px; opacity: 1; }
       }
     `}</style>
   );
@@ -539,7 +650,7 @@ function PlayButton({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
         if (!embedTrack) music.setPlaying((value) => !value);
       }}
       className={cn(
-        `${cls} inline-flex shrink-0 items-center justify-center rounded-full bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/25 transition`,
+        `${cls} neon-metal-button rainbow-edge inline-flex shrink-0 items-center justify-center rounded-full bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/25 transition`,
         embedTrack ? "cursor-default opacity-75" : "hover:scale-105 hover:bg-emerald-300",
       )}
       aria-label={embedTrack ? "Usa el reproductor oficial" : music.playing ? "Pausar" : "Reproducir"}
@@ -752,7 +863,7 @@ function TopBar() {
   return (
     <header className="flex h-[58px] shrink-0 items-center gap-4 border-b border-emerald-400/20 bg-[#03090a]/95 px-4 text-white">
       <div className="flex w-[300px] shrink-0 items-center gap-3">
-        <div className="neon-pulse flex h-10 w-10 items-center justify-center rounded-full bg-[linear-gradient(135deg,#00ffa3,#22d3ee)] text-slate-950 shadow-md shadow-emerald-500/20">
+        <div className="neon-pulse flex h-10 w-10 items-center justify-center rounded-full bg-[linear-gradient(135deg,#00ffa3,#00e5ff,#a855f7)] text-slate-950 shadow-md shadow-emerald-500/20">
           <Music2 className="h-5 w-5" />
         </div>
         <div className="min-w-0">
@@ -1040,7 +1151,7 @@ function PlaylistHeader({ tracks }: { tracks: EduMusicTrack[] }) {
         <button
           type="button"
           onClick={() => music.playPlaylist(playlist.id)}
-          className="neon-accent-button inline-flex h-9 shrink-0 items-center gap-2 rounded-full px-4 text-xs font-black transition hover:bg-emerald-300"
+          className="neon-accent-button rainbow-edge inline-flex h-9 shrink-0 items-center gap-2 rounded-full px-4 text-xs font-black transition hover:bg-emerald-300"
         >
           <Play className="h-4 w-4" fill="currentColor" /> Reproducir
         </button>
@@ -1507,13 +1618,13 @@ function MainPanel({ tracks }: { tracks: EduMusicTrack[] }) {
           <button
             type="button"
             onClick={() => music.playPlaylist(playlist.id)}
-            className="neon-accent-button inline-flex h-9 shrink-0 items-center gap-2 rounded-full px-4 text-xs font-black transition hover:bg-emerald-300"
+            className="neon-accent-button rainbow-edge inline-flex h-9 shrink-0 items-center gap-2 rounded-full px-4 text-xs font-black transition hover:bg-emerald-300"
           >
             <Play className="h-4 w-4" fill="currentColor" /> Reproducir lista
           </button>
         </div>
 
-        <div className="neon-stage flex min-h-0 flex-1 items-center justify-center rounded-[2rem] border border-emerald-400/20 p-5">
+        <div className={cn("neon-stage flex min-h-0 items-center justify-center rounded-[2rem] border border-emerald-400/20 p-4", track.source === "itunes" ? "flex-[0.95]" : "h-[min(40vh,380px)] min-h-[285px] shrink-0")}>
           {embedTrack ? (
             <div className="w-full max-w-4xl rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-center shadow-xl shadow-black/25 backdrop-blur-xl max-xl:p-4">
               <div className="mx-auto max-w-xl">
@@ -1575,7 +1686,7 @@ function MainPanel({ tracks }: { tracks: EduMusicTrack[] }) {
             <div
               className={cn(
                 "neon-current-card w-full rounded-[1.8rem] border border-emerald-400/20 bg-black/20 p-4 text-center shadow-xl shadow-black/25 backdrop-blur-xl max-xl:p-4",
-                track.source === "itunes" ? "max-w-4xl" : "max-w-xl",
+                track.source === "itunes" ? "max-w-4xl" : "max-w-2xl",
               )}
             >
               <div className="flex justify-center">
@@ -1671,38 +1782,84 @@ function CenterPlaylistShelf() {
   const music = useEduAIMusic();
   const featuredPlaylists = music.playlists.filter((playlist) => playlist.trackIds.length > 0).slice(0, 4);
   const currentArt = music.currentTrack.artworkUrl || music.currentTrack.videoThumbnail || (music.currentTrack.cover?.startsWith("http") ? music.currentTrack.cover : undefined);
+  const focusTracks = music.allTracks
+    .filter((track) => {
+      if (track.id === music.currentTrack.id) return false;
+      if (track.source === "radio" || track.source === "external") return false;
+      const text = `${track.title} ${track.artist} ${track.album || ""} ${track.mood || ""} ${track.tags?.join(" ") || ""}`.toLowerCase();
+      return (
+        ["focus", "calm", "reading", "deep", "creative", "classical"].includes(track.mood) ||
+        text.includes("focus") ||
+        text.includes("lofi") ||
+        text.includes("study") ||
+        text.includes("instrumental") ||
+        text.includes("aula") ||
+        text.includes("calm")
+      );
+    })
+    .slice(0, 6);
 
   return (
     <section className="neon-playlist-shelf mt-3 shrink-0 rounded-3xl border border-emerald-400/20 bg-[#07100f]/90 p-3 shadow-lg shadow-black/20">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
-          {currentArt ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={currentArt} alt={music.currentTrack.title} className="h-12 w-12 shrink-0 rounded-2xl object-cover shadow-lg shadow-black/30" />
-          ) : (
-            <div className="h-12 w-12 shrink-0 rounded-2xl bg-gradient-to-br from-emerald-300 to-sky-500" />
-          )}
+          <div className="rainbow-edge rounded-2xl p-[1px]">
+            {currentArt ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={currentArt} alt={music.currentTrack.title} className="h-12 w-12 shrink-0 rounded-2xl object-cover shadow-lg shadow-black/30" />
+            ) : (
+              <div className="h-12 w-12 shrink-0 rounded-2xl bg-gradient-to-br from-cyan-300 via-fuchsia-500 to-emerald-300" />
+            )}
+          </div>
           <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-300">Playlists al centro</p>
-            <h3 className="truncate text-sm font-black text-white">Spotify + tus listas mientras suena: {music.currentTrack.title}</h3>
-            <p className="truncate text-[11px] text-slate-500">Reproduce listas oficiales o abre tus listas guardadas sin perder el reproductor principal.</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-cyan-200">Centro neon · Spotify + instrumental</p>
+            <h3 className="truncate text-sm font-black text-white">{music.currentTrack.title}</h3>
+            <p className="truncate text-[11px] text-slate-400">Las listas quedan ordenadas abajo para no tapar el reproductor principal.</p>
           </div>
         </div>
+        <div className="neon-eq hidden sm:inline-flex" aria-hidden="true"><span /><span /><span /><span /><span /></div>
       </div>
 
-      <div className="grid gap-3 lg:grid-cols-[1.1fr_.9fr]">
-        <div className="min-w-0 overflow-x-auto pb-1">
-          <div className="flex min-w-max gap-3">
-            {SPOTIFY_EMBEDS.slice(0, 4).map((item) => (
-              <div key={item.id} className="neon-spotify-card w-[300px] shrink-0 overflow-hidden rounded-2xl border border-emerald-400/15 bg-black/35 p-2 shadow-lg shadow-black/25 transition">
-                <p className="mb-2 truncate px-1 text-[11px] font-black uppercase tracking-[0.12em] text-emerald-200">{item.title}</p>
+      <div className="grid gap-3 xl:grid-cols-[.82fr_1.18fr_.9fr]">
+        <div className="neon-current-card hidden overflow-hidden rounded-2xl border border-emerald-400/20 bg-black/35 p-3 md:block">
+          <div className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-black">
+            {currentArt ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={currentArt} alt={music.currentTrack.title} className="absolute inset-0 h-full w-full scale-105 object-cover opacity-76 blur-[1px]" />
+            ) : (
+              <div className="absolute inset-0 bg-gradient-to-br from-cyan-500 via-fuchsia-600 to-emerald-400" />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 p-3">
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-200">Ahora sonando</p>
+              <p className="mt-1 line-clamp-1 text-sm font-black text-white">{music.currentTrack.title}</p>
+              <p className="line-clamp-1 text-[11px] font-semibold text-slate-300">{music.currentTrack.artist}</p>
+            </div>
+          </div>
+          <div className="mt-3 flex items-center justify-between gap-2">
+            <div className="neon-eq" aria-hidden="true"><span /><span /><span /><span /><span /></div>
+            <button type="button" onClick={() => music.setPlaying((value) => !value)} className="neon-metal-button rainbow-edge rounded-full px-3 py-1.5 text-[10px] font-black text-slate-950">
+              {music.playing ? "Pausar" : "Reproducir"}
+            </button>
+          </div>
+        </div>
+
+        <div className="min-w-0 overflow-hidden rounded-2xl border border-cyan-300/15 bg-black/25 p-2">
+          <div className="mb-2 flex items-center justify-between px-1">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-200">Spotify visual</p>
+            <span className="rounded-full bg-white/8 px-2 py-1 text-[9px] font-bold text-slate-300">Embeds oficiales</span>
+          </div>
+          <div className="grid gap-2 md:grid-cols-2">
+            {SPOTIFY_EMBEDS.slice(0, 2).map((item) => (
+              <div key={item.id} className="neon-spotify-card overflow-hidden rounded-2xl border border-emerald-400/15 bg-black/35 p-2 shadow-lg shadow-black/25 transition">
+                <p className="mb-2 truncate px-1 text-[10px] font-black uppercase tracking-[0.12em] text-emerald-200">{item.title}</p>
                 <iframe
                   data-testid="embed-iframe"
                   title={item.title}
                   style={{ borderRadius: 14 }}
                   src={item.src}
                   width="100%"
-                  height="152"
+                  height="132"
                   frameBorder="0"
                   allowFullScreen
                   allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
@@ -1714,29 +1871,55 @@ function CenterPlaylistShelf() {
           </div>
         </div>
 
-        <div className="grid max-h-[210px] gap-2 overflow-y-auto pr-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-          {featuredPlaylists.map((playlist) => (
-            <button
-              key={playlist.id}
-              type="button"
-              onClick={() => {
-                music.setSelectedPlaylistId(playlist.id);
-                music.setView("playlists");
-                music.playPlaylist(playlist.id);
-              }}
-              className="neon-playlist-card group flex items-center gap-3 rounded-2xl border border-emerald-400/15 bg-white/6 p-2 text-left transition hover:border-emerald-300/40 hover:bg-emerald-400/10"
-            >
-              <Cover label={playlist.name} cover={playlist.cover} size="lg" />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-xs font-black text-white">{playlist.name}</span>
-                <span className="block truncate text-[10px] text-slate-500">{playlist.trackIds.length} canciones · reproducir</span>
-              </span>
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-400 text-slate-950 opacity-90 transition group-hover:scale-105">
-                <Play className="h-3.5 w-3.5 translate-x-0.5" fill="currentColor" />
-              </span>
-            </button>
-          ))}
+        <div className="min-w-0 rounded-2xl border border-fuchsia-300/15 bg-black/25 p-2">
+          <div className="mb-2 flex items-center justify-between px-1">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-fuchsia-200">Instrumental / foco</p>
+            <button type="button" onClick={() => music.setSelectedMood("focus")} className="rounded-full bg-white/8 px-2 py-1 text-[9px] font-bold text-slate-300 hover:bg-emerald-400/15 hover:text-emerald-200">Ver foco</button>
+          </div>
+          <div className="grid max-h-[180px] gap-2 overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-1">
+            {focusTracks.map((track) => (
+              <button
+                key={track.id}
+                type="button"
+                onClick={() => music.playTrack(track, focusTracks)}
+                className="neon-instrumental-card group flex items-center gap-2 rounded-2xl border border-emerald-400/15 bg-white/6 p-2 text-left transition"
+              >
+                <Cover track={track} size="sm" />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[11px] font-black text-white">{track.title}</span>
+                  <span className="block truncate text-[9px] text-slate-500">{track.artist}</span>
+                </span>
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-400 text-slate-950 transition group-hover:scale-105">
+                  <Play className="h-3 w-3 translate-x-0.5" fill="currentColor" />
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
+      </div>
+
+      <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        {featuredPlaylists.map((playlist) => (
+          <button
+            key={playlist.id}
+            type="button"
+            onClick={() => {
+              music.setSelectedPlaylistId(playlist.id);
+              music.setView("playlists");
+              music.playPlaylist(playlist.id);
+            }}
+            className="neon-playlist-card group flex items-center gap-3 rounded-2xl border border-emerald-400/15 bg-white/6 p-2 text-left transition hover:border-emerald-300/40 hover:bg-emerald-400/10"
+          >
+            <Cover label={playlist.name} cover={playlist.cover} size="md" />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[11px] font-black text-white">{playlist.name}</span>
+              <span className="block truncate text-[9px] text-slate-500">{playlist.trackIds.length} canciones</span>
+            </span>
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-400 text-slate-950 opacity-90 transition group-hover:scale-105">
+              <Play className="h-3 w-3 translate-x-0.5" fill="currentColor" />
+            </span>
+          </button>
+        ))}
       </div>
     </section>
   );
@@ -1940,7 +2123,7 @@ function BottomPlayer() {
             value={Math.min(music.currentTime, Math.max(1, duration))}
             onChange={(e) => music.seekTo(Number(e.target.value))}
             className="h-1 min-w-0 flex-1 accent-emerald-400"
-            style={{ background: `linear-gradient(90deg,#34d399 ${progress}%,rgba(255,255,255,.16) ${progress}%)` }}
+            style={{ background: `linear-gradient(90deg,#00e5ff 0%,#2563ff ${Math.max(6, progress * 0.28)}%,#a855f7 ${Math.max(8, progress * 0.55)}%,#ff2d75 ${Math.max(10, progress * 0.78)}%,#00ffa3 ${progress}%,rgba(255,255,255,.16) ${progress}%)` }}
           />
           <span className="w-9">{formatSeconds(duration)}</span>
         </div>
@@ -2083,7 +2266,7 @@ function MiniBar({ onOpenPanel }: { onOpenPanel?: () => void }) {
           value={Math.min(music.currentTime, Math.max(1, duration))}
           onChange={(e) => music.seekTo(Number(e.target.value))}
           className="h-1 min-w-0 flex-1 accent-emerald-400"
-          style={{ background: `linear-gradient(90deg,#34d399 ${progress}%,rgba(255,255,255,.18) ${progress}%)` }}
+          style={{ background: `linear-gradient(90deg,#00e5ff 0%,#2563ff ${Math.max(6, progress * 0.28)}%,#a855f7 ${Math.max(8, progress * 0.55)}%,#ff2d75 ${Math.max(10, progress * 0.78)}%,#00ffa3 ${progress}%,rgba(255,255,255,.18) ${progress}%)` }}
           aria-label="Progreso"
         />
         <span className="w-8">{formatSeconds(duration)}</span>
