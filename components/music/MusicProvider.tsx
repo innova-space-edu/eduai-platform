@@ -128,11 +128,9 @@ declare global {
   }
 }
 
-const STORAGE_KEY = "eduai_music_player_v60";
-const YOUTUBE_PLAYER_ID = "eduai-youtube-global-player";
+const STORAGE_KEY = "eduai_music_player_v61";
 const MusicContext = createContext<MusicContextValue | null>(null);
 
-let youtubeApiPromise: Promise<void> | null = null;
 let hlsScriptPromise: Promise<void> | null = null;
 
 function safeReadState(): StoredState {
@@ -204,25 +202,6 @@ function trackExternalUrl(track?: EduMusicTrack | null) {
   return asExtendedTrack(track)?.externalUrl || asExtendedTrack(track)?.embedUrl || "";
 }
 
-function loadYouTubeApi() {
-  if (typeof window === "undefined") return Promise.resolve();
-  if (window.YT?.Player) return Promise.resolve();
-  if (youtubeApiPromise) return youtubeApiPromise;
-
-  youtubeApiPromise = new Promise<void>((resolve) => {
-    const existing = document.querySelector<HTMLScriptElement>(
-      'script[src="https://www.youtube.com/iframe_api"]',
-    );
-    window.onYouTubeIframeAPIReady = () => resolve();
-    if (existing) return;
-    const script = document.createElement("script");
-    script.src = "https://www.youtube.com/iframe_api";
-    script.async = true;
-    document.head.appendChild(script);
-  });
-
-  return youtubeApiPromise;
-}
 
 function loadHlsScript() {
   if (typeof window === "undefined") return Promise.resolve();
@@ -255,8 +234,6 @@ function trackArtwork(track: EduMusicTrack) {
 
 export function MusicProvider({ children }: { children: React.ReactNode }) {
   const audioRef = useRef<HTMLAudioElement>(null);
-  const youtubePlayerRef = useRef<any>(null);
-  const youtubeReadyRef = useRef(false);
   const hlsRef = useRef<any>(null);
   const nextTrackRef = useRef<() => void>(() => {});
   const externalSeekHandlerRef = useRef<((seconds: number) => void) | null>(null);
@@ -429,11 +406,6 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = volume;
-    if (youtubePlayerRef.current?.setVolume) {
-      try {
-        youtubePlayerRef.current.setVolume(Math.round(volume * 100));
-      } catch {}
-    }
   }, [volume]);
 
   useEffect(() => {
@@ -556,13 +528,10 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     const audio = audioRef.current;
     if (!audio) return;
     if (currentTrack?.source === "youtube") {
+      // YouTube se reproduce con un iframe visible en el centro.
+      // No usamos la IFrame API global aquí para evitar errores de postMessage/origin
+      // y llamadas antes de onReady cuando React monta/desmonta vistas.
       audio.pause();
-      if (youtubeReadyRef.current && youtubePlayerRef.current) {
-        try {
-          if (playing) youtubePlayerRef.current.playVideo();
-          else youtubePlayerRef.current.pauseVideo();
-        } catch {}
-      }
       return;
     }
 
@@ -661,11 +630,8 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         setPlaying(false);
         return;
       }
-      if (currentTrack?.source === "youtube" && youtubePlayerRef.current?.seekTo) {
-        try {
-          youtubePlayerRef.current.seekTo(0, true);
-          youtubePlayerRef.current.playVideo();
-        } catch {}
+      if (currentTrack?.source === "youtube") {
+        setCurrentTime(0);
         setPlaying(true);
         return;
       }
@@ -734,67 +700,14 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   }, [allTracks, baseTracks, currentId, queue, visibleTracks]);
 
   useEffect(() => {
-    if (typeof window === "undefined" || currentTrack?.source !== "youtube") return;
-    const videoId = currentTrack.youtubeVideoId;
-    if (!videoId) return;
-
-    let cancelled = false;
-    void loadYouTubeApi().then(() => {
-      if (cancelled || !window.YT?.Player) return;
-      if (!youtubePlayerRef.current) {
-        youtubePlayerRef.current = new window.YT.Player(YOUTUBE_PLAYER_ID, {
-          height: "180",
-          width: "320",
-          videoId,
-          playerVars: {
-            autoplay: 0,
-            controls: 0,
-            rel: 0,
-            modestbranding: 1,
-            playsinline: 1,
-          },
-          events: {
-            onReady: (event: any) => {
-              youtubeReadyRef.current = true;
-              try {
-                event.target.setVolume(Math.round(volume * 100));
-                if (playing) event.target.playVideo();
-                else event.target.cueVideoById(videoId);
-              } catch {}
-            },
-            onStateChange: (event: any) => {
-              if (event.data === window.YT?.PlayerState?.ENDED) nextTrackRef.current();
-            },
-          },
-        });
-        return;
-      }
-
-      try {
-        if (playing) youtubePlayerRef.current.loadVideoById(videoId);
-        else youtubePlayerRef.current.cueVideoById(videoId);
-      } catch {}
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [currentTrack?.source, currentTrack?.youtubeVideoId, playing, volume]);
-
-  useEffect(() => {
     if (currentTrack?.source !== "youtube") return;
-    const timer = window.setInterval(() => {
-      const player = youtubePlayerRef.current;
-      if (!player || !youtubeReadyRef.current) return;
-      try {
-        const time = Number(player.getCurrentTime?.() || 0);
-        const duration = Number(player.getDuration?.() || 0);
-        setCurrentTime(Number.isFinite(time) ? time : 0);
-        setDurationSeconds(Number.isFinite(duration) ? duration : 0);
-      } catch {}
-    }, 800);
-    return () => window.clearInterval(timer);
-  }, [currentTrack?.source, currentTrack?.youtubeVideoId]);
+    const duration = parseDurationSeconds(currentTrack.duration);
+    setCurrentTime(0);
+    setDurationSeconds(duration || 0);
+    // El reproductor real de YouTube vive en el iframe visible del panel central.
+    // Esto evita el error "YouTube player is not attached to the DOM" cuando el div oculto no está listo.
+  }, [currentTrack?.id, currentTrack?.source, currentTrack?.duration]);
+
 
   const toggleLike = useCallback((id: string) => {
     setLikedTrackIds((prev) =>
@@ -871,11 +784,9 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
   const seekTo = useCallback(
     (seconds: number) => {
-      if (currentTrack?.source === "youtube" && youtubePlayerRef.current?.seekTo) {
-        try {
-          youtubePlayerRef.current.seekTo(seconds, true);
-          setCurrentTime(seconds);
-        } catch {}
+      if (currentTrack?.source === "youtube") {
+        // El iframe visible de YouTube mantiene su propio control de avance.
+        setCurrentTime(Math.max(0, seconds));
         return;
       }
       if (hasDjReelVideo(currentTrack) && externalSeekHandlerRef.current) {
@@ -1091,11 +1002,6 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   return (
     <MusicContext.Provider value={value}>
       <audio ref={audioRef} preload="none" onEnded={nextTrack} />
-      <div
-        id={YOUTUBE_PLAYER_ID}
-        aria-hidden="true"
-        className="pointer-events-none fixed -left-[9999px] top-0 h-px w-px overflow-hidden opacity-0"
-      />
       {children}
     </MusicContext.Provider>
   );
