@@ -911,113 +911,116 @@ function DjReelCarousel3D({ track, artwork }: { track: EduMusicTrack; artwork?: 
   const { playing, setPlaying } = useEduAIMusic();
   const [active, setActive] = useState(0);
   const [hovered, setHovered] = useState(false);
-  const [spinDirection, setSpinDirection] = useState<1 | -1>(1);
-  const [tilt, setTilt] = useState({ rotateX: 0, rotateY: 0, glowX: 50, glowY: 36 });
+  const [direction, setDirection] = useState<1 | -1>(1);
+  const [tilt, setTilt] = useState({ rotateX: 0, rotateY: 0, glowX: 50, glowY: 34 });
 
   const activeIndex = reels.length ? active % reels.length : 0;
   const activeReel = reels[activeIndex];
+  const previousIndex = reels.length > 2 ? (activeIndex - 1 + reels.length) % reels.length : null;
+  const nextIndex = reels.length > 1 ? (activeIndex + 1) % reels.length : null;
   const fallbackArtwork = artwork || activeReel?.thumbnail;
-  const sideOffsets = reels.length <= 1 ? [] : reels.length === 2 ? [1] : reels.length === 3 ? [-1, 1] : [-2, -1, 1, 2];
-  const sideCards = sideOffsets.map((offset) => {
-    const index = reels.length > 1 ? (activeIndex + offset + reels.length) % reels.length : activeIndex;
-    return { reel: reels[index], index, offset };
-  });
 
   const goClockwise = useCallback(() => {
     if (reels.length < 2) return;
-    setSpinDirection(1);
+    setDirection(1);
     setActive((value) => (value + 1) % reels.length);
+  }, [reels.length]);
+
+  const goCounterClockwise = useCallback(() => {
+    if (reels.length < 2) return;
+    setDirection(-1);
+    setActive((value) => (value - 1 + reels.length) % reels.length);
   }, [reels.length]);
 
   const selectReel = useCallback(
     (index: number) => {
-      if (reels.length < 2) return;
-      const current = active % reels.length;
-      const clockwiseDistance = (index - current + reels.length) % reels.length;
-      setSpinDirection(clockwiseDistance === reels.length - 1 ? -1 : 1);
+      if (reels.length < 2 || index === activeIndex) return;
+      const clockwiseDistance = (index - activeIndex + reels.length) % reels.length;
+      const counterDistance = (activeIndex - index + reels.length) % reels.length;
+      setDirection(clockwiseDistance <= counterDistance ? 1 : -1);
       setActive(index);
     },
-    [active, reels.length],
+    [activeIndex, reels.length],
   );
 
   useEffect(() => {
     setActive(0);
     setHovered(false);
-    setSpinDirection(1);
-    setTilt({ rotateX: 0, rotateY: 0, glowX: 50, glowY: 36 });
+    setDirection(1);
+    setTilt({ rotateX: 0, rotateY: 0, glowX: 50, glowY: 34 });
   }, [track.id]);
 
   useEffect(() => {
     if (!playing || reels.length < 2 || hovered) return;
-    const timer = window.setInterval(goClockwise, 6500);
+    const timer = window.setInterval(goClockwise, 7800);
     return () => window.clearInterval(timer);
-  }, [goClockwise, hovered, playing, reels.length, track.id]);
+  }, [goClockwise, hovered, playing, reels.length]);
 
   if (!reels.length) return <DjReelFallbackCard track={track} artwork={artwork} />;
 
+  const renderSideCard = (index: number | null, side: "left" | "right") => {
+    if (index === null) return null;
+    const reel = reels[index];
+    const thumb = reel.thumbnail || artwork;
+    const sideMultiplier = side === "right" ? 1 : -1;
+
+    return (
+      <motion.button
+        key={`${side}-${reel.videoId}-${index}`}
+        type="button"
+        onClick={() => (side === "right" ? selectReel(index) : goCounterClockwise())}
+        className="absolute left-1/2 top-1/2 hidden aspect-[9/16] h-[310px] w-[174px] overflow-hidden rounded-[1.9rem] border border-emerald-300/16 bg-black/85 text-left shadow-2xl shadow-black/40 ring-1 ring-white/10 lg:block max-xl:h-[268px] max-xl:w-[151px]"
+        initial={false}
+        animate={{
+          x: sideMultiplier * 205 - 87,
+          y: "-50%",
+          rotateY: sideMultiplier * -34,
+          rotateZ: sideMultiplier * -2.5,
+          scale: 0.82,
+          opacity: 0.72,
+          filter: "saturate(0.92) brightness(0.82)",
+        }}
+        whileHover={{
+          x: sideMultiplier * 218 - 87,
+          rotateY: sideMultiplier * -18,
+          rotateZ: sideMultiplier * -1,
+          scale: 0.9,
+          opacity: 0.95,
+          filter: "saturate(1.08) brightness(1)",
+        }}
+        transition={{ type: "spring", stiffness: 210, damping: 26 }}
+        style={{ transformStyle: "preserve-3d", zIndex: 12 }}
+        aria-label={side === "right" ? "Siguiente reel visual" : "Reel visual anterior"}
+      >
+        {thumb ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={thumb} alt={reel.title} className="h-full w-full object-cover" />
+        ) : (
+          <div className="h-full w-full bg-gradient-to-br from-emerald-400/70 to-slate-950" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/20 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 p-3">
+          <p className="text-[8px] font-black uppercase tracking-[0.16em] text-emerald-200">
+            {side === "right" ? "Siguiente" : "Anterior"}
+          </p>
+          <p className="mt-1 line-clamp-1 text-[11px] font-black text-white/90">{reel.title || track.title}</p>
+        </div>
+      </motion.button>
+    );
+  };
+
   return (
-    <div className="relative flex h-[520px] w-full max-w-[800px] items-center justify-center overflow-visible [perspective:1600px] max-xl:h-[440px] max-xl:max-w-[660px] max-lg:max-w-[540px] max-sm:h-[390px]">
+    <div className="relative flex h-[500px] w-full max-w-[660px] items-center justify-center overflow-visible [perspective:1150px] max-xl:h-[430px] max-xl:max-w-[560px] max-sm:h-[380px] max-sm:max-w-[330px]">
       <motion.div
-        className="pointer-events-none absolute inset-0 rounded-[3rem] bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.18),transparent_58%)] blur-2xl"
-        animate={{ rotate: playing ? 360 : 0 }}
-        transition={{ duration: 18, repeat: playing ? Infinity : 0, ease: "linear" }}
+        className="pointer-events-none absolute left-1/2 top-1/2 h-[390px] w-[390px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(16,185,129,0.2),transparent_64%)] blur-2xl max-xl:h-[320px] max-xl:w-[320px]"
+        animate={{ scale: playing ? [0.96, 1.04, 0.96] : 1, opacity: playing ? [0.62, 0.9, 0.62] : 0.55 }}
+        transition={{ duration: 4.8, repeat: playing ? Infinity : 0, ease: "easeInOut" }}
       />
 
-      {sideCards.map(({ reel, index, offset }) => {
-        const near = Math.abs(offset) === 1;
-        const side = offset > 0 ? 1 : -1;
-        const x = side * (near ? 260 : 420) - 94;
-        const sideRotate = -side * (near ? 46 : 66);
-        const sideScale = near ? 0.82 : 0.64;
-        const thumb = reel.thumbnail || artwork;
-        return (
-          <motion.button
-            key={`${reel.videoId}-${offset}`}
-            type="button"
-            onClick={() => selectReel(index)}
-            className={cn(
-              "absolute left-1/2 top-1/2 hidden aspect-[9/16] h-[325px] overflow-hidden rounded-[2rem] border border-white/10 bg-black/80 text-left shadow-2xl shadow-black/40 ring-1 ring-emerald-400/10 lg:block",
-              near ? "xl:block" : "2xl:block",
-            )}
-            initial={false}
-            animate={{
-              x,
-              y: "-50%",
-              z: near ? -90 : -230,
-              rotateY: sideRotate,
-              rotateZ: side * (near ? -3 : -5.5),
-              scale: sideScale,
-              opacity: near ? 0.82 : 0.34,
-              filter: near ? "blur(0px) saturate(1.04)" : "blur(1px) saturate(0.72)",
-            }}
-            whileHover={{
-              z: near ? 45 : -70,
-              rotateY: sideRotate * 0.54,
-              rotateZ: side * -1,
-              scale: sideScale + 0.08,
-              opacity: near ? 0.98 : 0.58,
-              filter: "blur(0px) saturate(1.16)",
-            }}
-            transition={{ type: "spring", stiffness: 190, damping: 24 }}
-            style={{ transformStyle: "preserve-3d", zIndex: near ? 12 : 6 }}
-            aria-label={`Ver reel ${reel.title}`}
-          >
-            {thumb ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={thumb} alt={reel.title} className="h-full w-full object-cover" />
-            ) : (
-              <div className="h-full w-full bg-gradient-to-br from-emerald-400/70 to-slate-950" />
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/15 to-transparent" />
-            <div className="pointer-events-none absolute bottom-3 left-3 right-3 translate-z-8">
-              <p className="line-clamp-1 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-200">Reel visual</p>
-              <p className="line-clamp-1 text-xs font-black text-white/90">{track.title}</p>
-            </div>
-          </motion.button>
-        );
-      })}
+      {renderSideCard(previousIndex, "left")}
+      {renderSideCard(nextIndex, "right")}
 
-      <AnimatePresence mode="wait" custom={spinDirection}>
+      <AnimatePresence mode="wait" custom={direction}>
         <motion.div
           key={activeReel.videoId}
           role="button"
@@ -1028,15 +1031,15 @@ function DjReelCarousel3D({ track, artwork }: { track: EduMusicTrack; artwork?: 
             const px = (event.clientX - rect.left) / rect.width;
             const py = (event.clientY - rect.top) / rect.height;
             setTilt({
-              rotateX: (0.5 - py) * 13,
-              rotateY: (px - 0.5) * 18,
+              rotateX: (0.5 - py) * 8,
+              rotateY: (px - 0.5) * 11,
               glowX: Math.max(0, Math.min(100, px * 100)),
               glowY: Math.max(0, Math.min(100, py * 100)),
             });
           }}
           onMouseLeave={() => {
             setHovered(false);
-            setTilt({ rotateX: 0, rotateY: 0, glowX: 50, glowY: 36 });
+            setTilt({ rotateX: 0, rotateY: 0, glowX: 50, glowY: 34 });
           }}
           onClick={() => {
             if (playing && reels.length > 1) goClockwise();
@@ -1049,21 +1052,20 @@ function DjReelCarousel3D({ track, artwork }: { track: EduMusicTrack; artwork?: 
               else setPlaying((value) => !value);
             }
           }}
-          custom={spinDirection}
-          initial={{ opacity: 0, rotateY: 58 * spinDirection, rotateZ: 8 * spinDirection, scale: 0.86, z: -160 }}
+          custom={direction}
+          initial={{ opacity: 0, x: 120 * direction, rotateY: -42 * direction, scale: 0.9 }}
           animate={{
             opacity: 1,
+            x: 0,
             rotateX: tilt.rotateX,
             rotateY: tilt.rotateY,
-            rotateZ: 0,
-            scale: hovered ? 1.035 : 1,
-            z: hovered ? 70 : 0,
+            scale: hovered ? 1.025 : 1,
           }}
-          exit={{ opacity: 0, rotateY: -58 * spinDirection, rotateZ: -8 * spinDirection, scale: 0.86, z: -160 }}
-          transition={{ type: "spring", stiffness: 210, damping: 24, mass: 0.75 }}
-          className="group relative z-30 aspect-[9/16] h-[500px] max-h-[63vh] w-[282px] cursor-pointer overflow-hidden rounded-[2.6rem] border border-emerald-300/35 bg-black shadow-[0_34px_95px_rgba(0,0,0,0.62)] ring-1 ring-white/10 will-change-transform max-xl:h-[420px] max-xl:w-[236px] max-sm:h-[360px] max-sm:w-[203px]"
+          exit={{ opacity: 0, x: -120 * direction, rotateY: 42 * direction, scale: 0.9 }}
+          transition={{ type: "spring", stiffness: 230, damping: 27, mass: 0.72 }}
+          className="group relative z-30 aspect-[9/16] h-[470px] max-h-[62vh] w-[264px] cursor-pointer overflow-hidden rounded-[2.4rem] border border-emerald-300/35 bg-black shadow-[0_32px_85px_rgba(0,0,0,0.62)] ring-1 ring-white/10 will-change-transform max-xl:h-[405px] max-xl:w-[228px] max-sm:h-[345px] max-sm:w-[194px]"
           style={{ transformStyle: "preserve-3d" }}
-          aria-label="Reel 3D visual: mueve el mouse para inclinarlo"
+          aria-label="Reel visual 3D: mueve el mouse para inclinarlo"
         >
           {fallbackArtwork ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -1087,21 +1089,22 @@ function DjReelCarousel3D({ track, artwork }: { track: EduMusicTrack; artwork?: 
           </div>
 
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-400/95 text-slate-950 shadow-2xl shadow-emerald-500/25 ring-1 ring-white/40">
-              {playing ? <Pause className="h-6 w-6" fill="currentColor" /> : <Play className="h-6 w-6 translate-x-0.5" fill="currentColor" />}
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-400/95 text-slate-950 shadow-2xl shadow-emerald-500/25 ring-1 ring-white/40">
+              {playing ? <Pause className="h-5 w-5" fill="currentColor" /> : <Play className="h-5 w-5 translate-x-0.5" fill="currentColor" />}
             </div>
           </div>
+
           <div
             className="pointer-events-none absolute inset-0 opacity-0 mix-blend-screen transition-opacity duration-200 group-hover:opacity-100"
             style={{
-              background: `radial-gradient(circle at ${tilt.glowX}% ${tilt.glowY}%, rgba(52, 211, 153, 0.38), rgba(14, 165, 233, 0.18) 24%, transparent 52%)`,
-              transform: "translateZ(36px)",
+              background: `radial-gradient(circle at ${tilt.glowX}% ${tilt.glowY}%, rgba(52,211,153,0.28), rgba(14,165,233,0.12) 26%, transparent 54%)`,
+              transform: "translateZ(30px)",
             }}
           />
-          <div className="pointer-events-none absolute inset-0 rounded-[2.6rem] border border-white/10 shadow-[inset_0_0_32px_rgba(16,185,129,0.12)]" />
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/50 to-transparent" />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/45 to-transparent p-4 text-left" style={{ transform: "translateZ(44px)" }}>
-            <p className="mb-2 w-fit rounded-full bg-emerald-400 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-slate-950 shadow-lg shadow-emerald-500/25">
+          <div className="pointer-events-none absolute inset-0 rounded-[2.4rem] border border-white/10 shadow-[inset_0_0_28px_rgba(16,185,129,0.12)]" />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/42 to-transparent" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/48 to-transparent p-4 text-left" style={{ transform: "translateZ(36px)" }}>
+            <p className="mb-2 w-fit rounded-full bg-emerald-400 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.16em] text-slate-950 shadow-lg shadow-emerald-500/25">
               Visual YouTube · Audio iTunes
             </p>
             <p className="line-clamp-1 text-base font-black text-white drop-shadow">{track.title}</p>
@@ -1111,7 +1114,16 @@ function DjReelCarousel3D({ track, artwork }: { track: EduMusicTrack; artwork?: 
       </AnimatePresence>
 
       {reels.length > 1 && (
-        <div className="absolute bottom-2 left-1/2 z-40 flex -translate-x-1/2 gap-1.5 rounded-full border border-white/10 bg-black/55 px-2.5 py-1.5 backdrop-blur">
+        <div className="absolute bottom-3 left-1/2 z-40 flex -translate-x-1/2 items-center gap-2 rounded-full border border-white/10 bg-black/60 px-3 py-1.5 backdrop-blur">
+          {reels.length > 2 && (
+            <button
+              type="button"
+              onClick={goCounterClockwise}
+              className="rounded-full px-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-slate-300 transition hover:text-emerald-200"
+            >
+              ←
+            </button>
+          )}
           {reels.map((reel, index) => (
             <button
               key={reel.videoId}
@@ -1119,11 +1131,18 @@ function DjReelCarousel3D({ track, artwork }: { track: EduMusicTrack; artwork?: 
               onClick={() => selectReel(index)}
               className={cn(
                 "h-1.5 rounded-full transition-all",
-                index === activeIndex ? "w-6 bg-emerald-300 shadow shadow-emerald-300/40" : "w-1.5 bg-white/35 hover:bg-white/75",
+                index === activeIndex ? "w-7 bg-emerald-300 shadow shadow-emerald-300/40" : "w-1.5 bg-white/35 hover:bg-white/75",
               )}
               aria-label={`Cambiar al reel ${index + 1}`}
             />
           ))}
+          <button
+            type="button"
+            onClick={goClockwise}
+            className="rounded-full px-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-slate-300 transition hover:text-emerald-200"
+          >
+            →
+          </button>
         </div>
       )}
     </div>
