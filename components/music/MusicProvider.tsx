@@ -266,7 +266,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const [currentTime, setCurrentTime] = useState(0);
   const [durationSeconds, setDurationSeconds] = useState(0);
   const [audioLevels, setAudioLevels] = useState<number[]>(() =>
-    Array.from({ length: 36 }, (_, index) => 0.08 + ((index * 7) % 13) / 100),
+    Array.from({ length: 28 }, (_, index) => 0.08 + ((index * 7) % 13) / 100),
   );
 
   const allTracks = useMemo(() => {
@@ -490,8 +490,8 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
       // Visualizador seguro: no redirige el audio por WebAudio para evitar silencios por CORS.
       // Se sincroniza con el tiempo real de reproducción/estado del reproductor y se apaga al pausar.
-      if (now - lastCommit > 84) {
-        const levels = Array.from({ length: 36 }, (_, index) => {
+      if (now - lastCommit > 110) {
+        const levels = Array.from({ length: 28 }, (_, index) => {
           const band = index + 1;
           const phase = sourceTime * (0.82 + (band % 7) * 0.12) + seed * 0.013 + band * 0.39;
           const waveA = Math.sin(phase);
