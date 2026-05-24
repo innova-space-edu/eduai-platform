@@ -1,6 +1,7 @@
 // app/api/agents/exam-generate/route.ts
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { buildDesignPromptDirective, getDesignTemplateSummary } from "@/lib/design-templates/registry"
 
 export const runtime = "nodejs"
 export const maxDuration = 120
@@ -631,7 +632,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Body inválido" }, { status: 400 })
   }
 
-  const { prompt, mode = "full", mc = 0, tf = 0, dev = 0 } = body
+  const { prompt, mode = "full", mc = 0, tf = 0, dev = 0, designTemplateId } = body
+  const designPrompt = buildDesignPromptDirective(designTemplateId, "exam")
+  const enhancedPrompt = `${prompt}${designPrompt}`
+  const designSummary = getDesignTemplateSummary(designTemplateId, "exam")
 
   if (!prompt) {
     return NextResponse.json({ error: "prompt requerido" }, { status: 400 })
@@ -643,10 +647,10 @@ export async function POST(req: NextRequest) {
     // Prioridad Groq: OpenRouter puede devolver 402 si no tiene créditos.
     if (GROQ_KEY) {
       try {
-        const parsed = await groqBatch(prompt, GROQ_KEY)
+        const parsed = await groqBatch(enhancedPrompt, GROQ_KEY)
         const q = repairQuestionStructure(sanitizeQuestionLatex(parsed?.question ?? parsed?.questions?.[0] ?? parsed))
 
-        return NextResponse.json({ success: true, question: q, provider: "groq" })
+        return NextResponse.json({ success: true, question: q, provider: "groq", _design: designSummary })
       } catch (e: any) {
         singleErrors.push(`Groq: ${e.message}`)
         console.warn("[exam-generate/single] Groq falló:", e.message)
@@ -655,10 +659,10 @@ export async function POST(req: NextRequest) {
 
     if (OR_KEY) {
       try {
-        const parsed = await openRouterBatch(prompt, OR_KEY)
+        const parsed = await openRouterBatch(enhancedPrompt, OR_KEY)
         const q = repairQuestionStructure(sanitizeQuestionLatex(parsed?.question ?? parsed?.questions?.[0] ?? parsed))
 
-        return NextResponse.json({ success: true, question: q, provider: "openrouter" })
+        return NextResponse.json({ success: true, question: q, provider: "openrouter", _design: designSummary })
       } catch (e: any) {
         singleErrors.push(`OpenRouter: ${e.message}`)
         console.warn("[exam-generate/single] OpenRouter falló:", e.message)
@@ -694,9 +698,9 @@ export async function POST(req: NextRequest) {
   // Prioridad Groq: OpenRouter puede devolver 402 si la cuenta no tiene créditos.
   if (GROQ_KEY) {
     try {
-      const { title, questions } = await groqFull(prompt, totalQ, Number(mc), Number(tf), Number(dev), GROQ_KEY)
+      const { title, questions } = await groqFull(enhancedPrompt, totalQ, Number(mc), Number(tf), Number(dev), GROQ_KEY)
       if (questions.length > 0) {
-        return NextResponse.json({ success: true, title, summary: null, questions, provider: "groq" })
+        return NextResponse.json({ success: true, title, summary: null, questions, provider: "groq", _design: designSummary })
       }
       providerErrors.push("Groq: no devolvió preguntas")
     } catch (e: any) {
@@ -707,9 +711,9 @@ export async function POST(req: NextRequest) {
 
   if (OR_KEY) {
     try {
-      const { title, questions } = await openRouterFull(prompt, totalQ, Number(mc), Number(tf), Number(dev), OR_KEY)
+      const { title, questions } = await openRouterFull(enhancedPrompt, totalQ, Number(mc), Number(tf), Number(dev), OR_KEY)
       if (questions.length > 0) {
-        return NextResponse.json({ success: true, title, summary: null, questions, provider: "openrouter" })
+        return NextResponse.json({ success: true, title, summary: null, questions, provider: "openrouter", _design: designSummary })
       }
       providerErrors.push("OpenRouter: no devolvió preguntas")
     } catch (e: any) {
