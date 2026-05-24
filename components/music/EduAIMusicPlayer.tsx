@@ -807,6 +807,177 @@ function NeonGamingSkin() {
         0%, 100% { height: 5px; opacity: .62; }
         50% { height: 18px; opacity: 1; }
       }
+
+
+      /* EduAI Music HyperX Keyboard Patch: RGB de borde, verde metálico, menos carga GPU */
+      .eduai-music-neon {
+        --metal-a: #eafff1;
+        --metal-b: #00f59a;
+        --metal-c: #00bd74;
+        --metal-d: #a7ff4f;
+        --kb-red: #ff2323;
+        --kb-orange: #ff8a00;
+        --kb-yellow: #fff000;
+        --kb-green: #35ff4f;
+        --kb-cyan: #00eaff;
+        --kb-blue: #2962ff;
+        --kb-purple: #a600ff;
+        --kb-pink: #ff1fbf;
+        background:
+          radial-gradient(circle at 15% 18%, rgba(0,140,255,.16), transparent 34%),
+          radial-gradient(circle at 78% 18%, rgba(166,0,255,.13), transparent 36%),
+          radial-gradient(circle at 72% 82%, rgba(255,35,35,.10), transparent 38%),
+          linear-gradient(120deg, #02040a, #06111a 32%, #10071f 58%, #16080b 78%, #02040a) !important;
+        animation: eduai-bg-shift 28s ease-in-out infinite !important;
+      }
+
+      .eduai-music-neon.youtube-active {
+        animation: none !important;
+        background:
+          radial-gradient(circle at 18% 16%, rgba(0,234,255,.11), transparent 34%),
+          radial-gradient(circle at 82% 80%, rgba(166,0,255,.10), transparent 38%),
+          linear-gradient(120deg, #02040a, #071018 44%, #0b0616 100%) !important;
+      }
+      .eduai-music-neon.youtube-active::before,
+      .eduai-music-neon.youtube-active::after,
+      .eduai-music-neon.youtube-active .neon-panel::before,
+      .eduai-music-neon.youtube-active .neon-stage::before {
+        animation: none !important;
+        opacity: 0.10 !important;
+        filter: none !important;
+      }
+      .eduai-music-neon.youtube-active .neon-panel,
+      .eduai-music-neon.youtube-active aside,
+      .eduai-music-neon.youtube-active header,
+      .eduai-music-neon.youtube-active footer {
+        backdrop-filter: none !important;
+      }
+
+      .eduai-music-neon .neon-panel,
+      .eduai-music-neon .neon-current-card,
+      .eduai-music-neon .neon-compact-card,
+      .eduai-music-neon .neon-side-hub,
+      .eduai-music-neon .neon-stage {
+        border: 1px solid transparent !important;
+        background:
+          linear-gradient(145deg, rgba(3,8,15,.92), rgba(7,8,20,.84)) padding-box,
+          linear-gradient(90deg, var(--kb-red), var(--kb-orange), var(--kb-yellow), var(--kb-green), var(--kb-cyan), var(--kb-blue), var(--kb-purple), var(--kb-pink), var(--kb-red)) border-box !important;
+        background-size: 100% 100%, 360% 100% !important;
+        animation: eduai-keyboard-border 12s linear infinite !important;
+        box-shadow: 0 16px 40px rgba(0,0,0,.46), inset 0 1px 0 rgba(255,255,255,.06) !important;
+      }
+
+      .eduai-music-neon.youtube-active .neon-panel,
+      .eduai-music-neon.youtube-active .neon-current-card,
+      .eduai-music-neon.youtube-active .neon-compact-card,
+      .eduai-music-neon.youtube-active .neon-side-hub,
+      .eduai-music-neon.youtube-active .neon-stage {
+        animation-duration: 20s !important;
+        box-shadow: 0 10px 26px rgba(0,0,0,.48), inset 0 1px 0 rgba(255,255,255,.05) !important;
+      }
+
+      .eduai-music-neon button,
+      .eduai-music-neon a.rounded-full,
+      .eduai-music-neon .neon-control-button,
+      .eduai-music-neon .neon-metal-button,
+      .eduai-music-neon .neon-accent-button {
+        border: 1px solid transparent !important;
+        background:
+          linear-gradient(180deg, rgba(255,255,255,.58), rgba(255,255,255,.12) 34%, rgba(0,90,54,.38) 100%) padding-box,
+          linear-gradient(90deg, var(--kb-red), var(--kb-orange), var(--kb-yellow), var(--kb-green), var(--kb-cyan), var(--kb-blue), var(--kb-purple), var(--kb-pink), var(--kb-red)) border-box !important;
+        background-size: 100% 100%, 420% 100% !important;
+        animation: eduai-keyboard-border 5.8s linear infinite !important;
+        box-shadow: 0 5px 14px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.55) !important;
+      }
+
+      .eduai-music-neon .neon-metal-button,
+      .eduai-music-neon .neon-accent-button,
+      .eduai-music-neon button[class*="bg-emerald-400"],
+      .eduai-music-neon a[class*="bg-emerald-400"] {
+        color: #06130b !important;
+        background:
+          linear-gradient(180deg, rgba(255,255,255,.82) 0%, rgba(185,255,216,.50) 23%, rgba(0,245,154,.95) 48%, rgba(0,156,94,.96) 72%, rgba(166,255,79,.88) 100%) padding-box,
+          linear-gradient(90deg, var(--kb-green), var(--kb-cyan), var(--kb-blue), var(--kb-purple), var(--kb-pink), var(--kb-red), var(--kb-yellow), var(--kb-green)) border-box !important;
+        background-size: 100% 100%, 420% 100% !important;
+        animation: eduai-keyboard-border 4.8s linear infinite, eduai-metal-soft 3.6s ease-in-out infinite !important;
+        box-shadow: 0 6px 14px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.88), inset 0 -10px 18px rgba(0,68,45,.28) !important;
+      }
+
+      .eduai-music-neon button:not(:disabled):hover,
+      .eduai-music-neon a.rounded-full:hover {
+        transform: translateY(-1px) !important;
+        filter: brightness(1.08) saturate(1.18) !important;
+      }
+      .eduai-music-neon button:not(:disabled):active,
+      .eduai-music-neon a.rounded-full:active {
+        transform: translateY(1px) scale(.965) !important;
+        filter: brightness(1.32) saturate(1.35) !important;
+        box-shadow: 0 2px 6px rgba(0,0,0,.5), inset 0 3px 10px rgba(0,35,22,.38), inset 0 1px 0 rgba(255,255,255,.64) !important;
+      }
+
+      .eduai-music-neon .neon-keyboard-line,
+      .eduai-music-neon header::after,
+      .eduai-music-neon footer::before {
+        background: linear-gradient(90deg, var(--kb-red), var(--kb-orange), var(--kb-yellow), var(--kb-green), var(--kb-cyan), var(--kb-blue), var(--kb-purple), var(--kb-pink), var(--kb-red)) !important;
+        background-size: 420% 100% !important;
+        animation: eduai-keyboard-border 6s linear infinite !important;
+        filter: none !important;
+      }
+
+      .eduai-music-neon.youtube-active .neon-stage {
+        align-items: stretch !important;
+        justify-content: stretch !important;
+        padding: 10px !important;
+      }
+      .eduai-music-neon.youtube-active .neon-current-card {
+        height: 100% !important;
+        max-width: none !important;
+        padding: 8px !important;
+      }
+      .eduai-music-neon.youtube-active .neon-player-frame,
+      .eduai-music-neon.youtube-active .neon-player-frame iframe {
+        height: 100% !important;
+        min-height: clamp(500px, 67vh, 760px) !important;
+        max-height: none !important;
+      }
+
+      .eduai-music-neon .neon-player-frame {
+        box-shadow: 0 18px 44px rgba(0,0,0,.54), inset 0 1px 0 rgba(255,255,255,.04) !important;
+      }
+      .eduai-music-neon.youtube-active .neon-player-frame {
+        box-shadow: 0 10px 26px rgba(0,0,0,.55) !important;
+      }
+
+      .eduai-music-neon .neon-single-eq-footer {
+        background: rgba(2,5,10,.96) !important;
+        min-height: 92px !important;
+      }
+      .eduai-music-neon .neon-visualizer-bars {
+        min-width: min(540px, 45vw) !important;
+        height: 54px !important;
+      }
+      .eduai-music-neon .neon-visualizer-bars span {
+        background: linear-gradient(180deg, #ffffff 0%, var(--eq-a,#00eaff) 28%, var(--eq-b,#a600ff) 64%, var(--eq-c,#ff2323) 100%) !important;
+        box-shadow: none !important;
+        filter: drop-shadow(0 0 4px var(--eq-a,#00eaff)) !important;
+      }
+
+      @keyframes eduai-keyboard-border {
+        0% { background-position: 0 0, 0% 50%; }
+        100% { background-position: 0 0, 420% 50%; }
+      }
+      @keyframes eduai-metal-soft {
+        0%, 100% { filter: brightness(1) saturate(1.08); }
+        50% { filter: brightness(1.12) saturate(1.22); }
+      }
+
+      @media (max-width: 1180px) {
+        .eduai-music-neon.youtube-active .neon-player-frame,
+        .eduai-music-neon.youtube-active .neon-player-frame iframe {
+          min-height: 440px !important;
+        }
+      }
+
     `}</style>
   );
 }
@@ -1855,7 +2026,7 @@ function YouTubeDirectPlayer({ track, artwork }: { track: EduMusicTrack; artwork
       >
         {thumb ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={thumb} alt={track.title} className="h-full w-full object-cover opacity-80 transition duration-500 group-hover:scale-105" />
+          <img src={thumb} alt={track.title} className="h-full w-full object-cover opacity-82" />
         ) : (
           <div className="h-full w-full bg-gradient-to-br from-red-500 via-slate-950 to-emerald-500" />
         )}
@@ -2439,7 +2610,7 @@ function BottomPlayer() {
   const music = useEduAIMusic();
   const duration = music.durationSeconds || parseDuration(music.currentTrack.duration);
   const progress = duration ? Math.min(100, (music.currentTime / duration) * 100) : 0;
-  const bars = music.audioLevels?.length ? music.audioLevels : Array.from({ length: 36 }, () => 0.1);
+  const bars = (music.audioLevels?.length ? music.audioLevels : Array.from({ length: 28 }, () => 0.1)).slice(0, 28);
 
   return (
     <footer className="neon-bottom-visualizer neon-single-eq-footer relative flex h-[96px] shrink-0 items-center gap-4 border-t border-emerald-400/20 bg-[#03090a]/95 px-4 text-white">
@@ -2697,7 +2868,7 @@ export default function EduAIMusicPlayer({
   if (mode === "panel") return <CompactPanel onOpenPanel={onOpenPanel} />;
 
   return (
-    <div className="eduai-music-neon h-screen min-h-[680px] overflow-hidden bg-[#020403] text-white">
+    <div className={cn("eduai-music-neon h-screen min-h-[680px] overflow-hidden bg-[#020403] text-white", music.currentTrack.source === "youtube" && "youtube-active")}>
       <NeonGamingSkin />
       <div className="flex h-full flex-col">
         <TopBar />
