@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { FileDown } from "lucide-react"
+import { getPdfDesignStyle, pdfDesignFooterLabel } from "@/lib/design-templates/pdf-style"
 
 type ExamQuestion = {
   type?: string
@@ -61,6 +62,8 @@ type Exam = {
   teacher_name?: string
   subject?: string
   logoUrl?: string
+  designTemplateId?: string
+  _design?: { templateId?: string }
 }
 
 type JsPdfWithRoundedRect = {
@@ -318,6 +321,7 @@ export default function StudentPdfExporter({
       const contentW = pageW - margin * 2
       let y = 0
       let pageNumber = 1
+      const design = getPdfDesignStyle(exam?.designTemplateId || exam?._design?.templateId, "report")
 
       const questions: ExamQuestion[] = exam?.questions || []
       const answers: SubmissionAnswer[] = submission?.answers || []
@@ -386,8 +390,9 @@ export default function StudentPdfExporter({
       }
 
       const addFooter = (): void => {
-        setFont(false, 7.2, PALETTE.muted)
-        doc.text(`EduAI Platform · Informe individual`, margin, pageH - 7)
+        fill(0, pageH - 11, pageW, 11, design.surface)
+        setFont(false, 7.2, design.muted)
+        doc.text(`${pdfDesignFooterLabel(design)} · Informe individual`, margin, pageH - 7)
         doc.text(`Página ${pageNumber}`, pageW - margin, pageH - 7, { align: "right" })
       }
 
@@ -395,6 +400,7 @@ export default function StudentPdfExporter({
         addFooter()
         doc.addPage()
         pageNumber += 1
+        fill(0, 0, pageW, pageH, design.background)
         y = 14
       }
 
@@ -541,10 +547,11 @@ export default function StudentPdfExporter({
       }
 
       // PORTADA
-      fill(0, 0, pageW, 44, PALETTE.navy)
-      fill(0, 0, pageW, 7, PALETTE.violet)
-      fill(0, 40, pageW, 4, PALETTE.cyan)
-      fill(0, 0, 6, 44, PALETTE.blue)
+      fill(0, 0, pageW, pageH, design.background)
+      fill(0, 0, pageW, 44, design.primary)
+      fill(0, 0, pageW, 7, design.accent)
+      fill(0, 40, pageW, 4, design.secondary)
+      fill(0, 0, 6, 44, design.accent)
 
       if (logoDataUrl) {
         try {
@@ -564,7 +571,7 @@ export default function StudentPdfExporter({
       })
 
       setFont(false, 9.5, [221, 226, 235])
-      doc.text("Reporte individual del estudiante", margin + 5, 34)
+      doc.text(`Reporte individual · ${design.template.shortName}`, margin + 5, 34)
 
       const headerMeta: string[] = [`Código: ${clean(exam?.code || "—")}`]
       if (clean(exam?.subject)) headerMeta.push(`Asignatura: ${clean(exam.subject)}`)
@@ -634,7 +641,7 @@ export default function StudentPdfExporter({
       y += 10
 
       const kpiW = (contentW - 9) / 4
-      drawKpiCard(margin, y, kpiW, 20, "Nota final", grade.toFixed(1), PALETTE.blue)
+      drawKpiCard(margin, y, kpiW, 20, "Nota final", grade.toFixed(1), design.primary)
       drawKpiCard(margin + kpiW + 3, y, kpiW, 20, "Logro", `${Math.round(score)}%`, level.color)
       drawKpiCard(
         margin + (kpiW + 3) * 2,
@@ -643,7 +650,7 @@ export default function StudentPdfExporter({
         20,
         "Correctas",
         `${correctCount}/${totalQuestions}`,
-        PALETTE.indigo,
+        design.secondary,
       )
       drawKpiCard(
         margin + (kpiW + 3) * 3,
@@ -652,7 +659,7 @@ export default function StudentPdfExporter({
         20,
         "Puntaje",
         `${earnedPoints}/${totalPoints}`,
-        PALETTE.cyan,
+        design.accent,
       )
 
       y += 24
