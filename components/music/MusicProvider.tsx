@@ -266,7 +266,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const [currentTime, setCurrentTime] = useState(0);
   const [durationSeconds, setDurationSeconds] = useState(0);
   const [audioLevels, setAudioLevels] = useState<number[]>(() =>
-    Array.from({ length: 28 }, (_, index) => 0.08 + ((index * 7) % 13) / 100),
+    Array.from({ length: 24 }, (_, index) => 0.08 + ((index * 7) % 13) / 100),
   );
 
   const allTracks = useMemo(() => {
@@ -476,41 +476,41 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
 
   useEffect(() => {
-    let frame = 0;
     let lastCommit = 0;
     const signature = `${currentTrack?.id || "track"}-${currentTrack?.title || ""}-${currentTrack?.artist || ""}`;
     const seed = Array.from(signature).reduce((acc, char) => acc + char.charCodeAt(0), 0) || 37;
 
-    const tick = (now: number) => {
+    const tick = () => {
+      const now = performance.now();
       const audio = audioRef.current;
       const sourceTime = audio && Number.isFinite(audio.currentTime) && audio.currentTime > 0
         ? audio.currentTime
         : now / 1000;
       const isActive = playing || currentTrack?.source === "youtube";
 
-      // Visualizador seguro: no redirige el audio por WebAudio para evitar silencios por CORS.
-      // Se sincroniza con el tiempo real de reproducción/estado del reproductor y se apaga al pausar.
-      if (now - lastCommit > 110) {
-        const levels = Array.from({ length: 28 }, (_, index) => {
+      // Visualizador liviano: se actualiza cada ~160 ms en vez de usar requestAnimationFrame continuo.
+      // Mantiene sincronía visual con tiempo/volumen sin forzar WebAudio, evitando bloqueos CORS y bajando carga del video.
+      if (now - lastCommit > 150) {
+        const levels = Array.from({ length: 24 }, (_, index) => {
           const band = index + 1;
           const phase = sourceTime * (0.82 + (band % 7) * 0.12) + seed * 0.013 + band * 0.39;
           const waveA = Math.sin(phase);
           const waveB = Math.sin(sourceTime * (1.55 + (band % 5) * 0.09) + band * 0.71);
           const waveC = Math.cos(sourceTime * 0.47 + band * 0.23 + seed * 0.02);
           const pulse = (Math.abs(waveA) * 0.55 + Math.abs(waveB) * 0.3 + Math.abs(waveC) * 0.15);
-          const bassBias = Math.max(0.74, 1.22 - index / 90);
+          const bassBias = Math.max(0.74, 1.18 - index / 90);
           const activeLevel = Math.min(1, Math.max(0.1, pulse * bassBias * (0.72 + volume * 0.42)));
-          const idleLevel = 0.06 + ((band * 11 + seed) % 10) / 180;
+          const idleLevel = 0.045 + ((band * 11 + seed) % 10) / 210;
           return isActive ? activeLevel : idleLevel;
         });
         setAudioLevels(levels);
         lastCommit = now;
       }
-      frame = window.requestAnimationFrame(tick);
     };
 
-    frame = window.requestAnimationFrame(tick);
-    return () => window.cancelAnimationFrame(frame);
+    tick();
+    const timer = window.setInterval(tick, 150);
+    return () => window.clearInterval(timer);
   }, [currentTrack?.artist, currentTrack?.id, currentTrack?.source, currentTrack?.title, playing, volume]);
 
   useEffect(() => {
