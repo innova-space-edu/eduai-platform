@@ -140,6 +140,200 @@ function safeDomId(value: string) {
   return value.replace(/[^a-zA-Z0-9_-]+/g, "-").slice(0, 80) || "track";
 }
 
+function CleanSpotifyGamingSkin() {
+  return (
+    <style>{`
+      .eduai-music-clean {
+        --bg: #050505;
+        --panel: rgba(18,18,18,.86);
+        --panel-2: rgba(24,24,24,.9);
+        --line: rgba(255,255,255,.08);
+        --soft: #b3b3b3;
+        --text: #ffffff;
+        --green: #1ed760;
+        --rgb-a: #00f5ff;
+        --rgb-b: #7c3cff;
+        --rgb-c: #ff3d9a;
+        --rgb-d: #1ed760;
+        color: var(--text);
+        background:
+          radial-gradient(circle at 18% 12%, rgba(0,245,255,.12), transparent 32%),
+          radial-gradient(circle at 78% 18%, rgba(124,60,255,.15), transparent 34%),
+          radial-gradient(circle at 56% 92%, rgba(255,61,154,.10), transparent 38%),
+          linear-gradient(120deg, #000 0%, #08080c 45%, #020406 100%) !important;
+        background-size: 170% 170%;
+        animation: eduai-clean-bg 24s ease-in-out infinite;
+      }
+      .eduai-music-clean.youtube-active {
+        animation: none;
+        background:
+          radial-gradient(circle at 18% 12%, rgba(0,245,255,.08), transparent 34%),
+          radial-gradient(circle at 78% 18%, rgba(124,60,255,.08), transparent 34%),
+          #050505 !important;
+      }
+      .eduai-music-clean::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 0;
+        background:
+          linear-gradient(90deg, rgba(0,245,255,.10), transparent 22%, rgba(124,60,255,.09) 50%, transparent 74%, rgba(255,61,154,.08)),
+          repeating-linear-gradient(90deg, rgba(255,255,255,.025) 0 1px, transparent 1px 72px);
+        opacity: .38;
+        transform: translate3d(0,0,0);
+      }
+      .eduai-music-clean.youtube-active::before { opacity: .14; }
+      .eduai-music-clean::after { display:none !important; }
+      .eduai-music-clean > div,
+      .eduai-music-clean header,
+      .eduai-music-clean aside,
+      .eduai-music-clean main,
+      .eduai-music-clean footer { position: relative; z-index: 2; }
+
+      .eduai-music-clean header,
+      .eduai-music-clean footer,
+      .eduai-music-clean aside,
+      .eduai-music-clean main {
+        background: transparent !important;
+        border-color: var(--line) !important;
+        box-shadow: none !important;
+        backdrop-filter: none !important;
+      }
+      .eduai-music-clean .spotify-panel {
+        background: var(--panel) !important;
+        border: 1px solid var(--line) !important;
+        box-shadow: none !important;
+        backdrop-filter: none !important;
+      }
+      .eduai-music-clean .spotify-card {
+        background: rgba(255,255,255,.055) !important;
+        border: 1px solid rgba(255,255,255,.075) !important;
+        box-shadow: none !important;
+      }
+      .eduai-music-clean .spotify-card:hover { background: rgba(255,255,255,.085) !important; }
+      .eduai-music-clean .soft-separator { border-color: rgba(255,255,255,.08) !important; }
+
+      .eduai-music-clean button,
+      .eduai-music-clean a.rounded-full,
+      .eduai-music-clean .sp-btn,
+      .eduai-music-clean .sp-icon-btn {
+        animation: none !important;
+        background: rgba(255,255,255,.08) !important;
+        border: 0 !important;
+        color: #f3f4f6 !important;
+        box-shadow: none !important;
+        text-shadow: none !important;
+        filter: none !important;
+        transition: transform .15s ease, background .15s ease, color .15s ease, opacity .15s ease !important;
+      }
+      .eduai-music-clean button:hover,
+      .eduai-music-clean a.rounded-full:hover,
+      .eduai-music-clean .sp-btn:hover,
+      .eduai-music-clean .sp-icon-btn:hover {
+        transform: translateY(-1px) !important;
+        background: rgba(255,255,255,.14) !important;
+        color: white !important;
+      }
+      .eduai-music-clean button:active,
+      .eduai-music-clean a.rounded-full:active,
+      .eduai-music-clean .sp-btn:active,
+      .eduai-music-clean .sp-icon-btn:active {
+        transform: scale(.96) !important;
+        background: rgba(255,255,255,.20) !important;
+      }
+      .eduai-music-clean .sp-primary,
+      .eduai-music-clean .neon-metal-button.sp-primary,
+      .eduai-music-clean .neon-accent-button.sp-primary {
+        color: #06130b !important;
+        background: linear-gradient(135deg, #1ed760, #37ff88) !important;
+        box-shadow: 0 8px 24px rgba(30,215,96,.24) !important;
+      }
+      .eduai-music-clean .sp-primary:hover { background: linear-gradient(135deg, #35eb76, #76ffac) !important; }
+      .eduai-music-clean .sp-pill-active,
+      .eduai-music-clean .sp-nav-active {
+        color: #fff !important;
+        background: rgba(255,255,255,.17) !important;
+      }
+      .eduai-music-clean .sp-playing {
+        color: var(--green) !important;
+      }
+
+      .eduai-music-clean .clean-top-search {
+        background: rgba(255,255,255,.08) !important;
+        border: 1px solid rgba(255,255,255,.10) !important;
+      }
+      .eduai-music-clean .clean-video-frame {
+        width: min(100%, 920px);
+        aspect-ratio: 16 / 9;
+        max-height: min(56vh, 560px);
+        overflow: hidden;
+        border-radius: 18px;
+        background: #000;
+      }
+      .eduai-music-clean .clean-video-frame iframe,
+      .eduai-music-clean .clean-video-frame > * {
+        width: 100% !important;
+        height: 100% !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        object-fit: contain;
+      }
+      .eduai-music-clean .clean-artwork-frame {
+        width: min(100%, 520px);
+        aspect-ratio: 1 / 1;
+        max-height: min(52vh, 520px);
+        margin-inline: auto;
+      }
+      .eduai-music-clean .neon-panel,
+      .eduai-music-clean .neon-stage,
+      .eduai-music-clean .neon-current-card,
+      .eduai-music-clean .neon-compact-card,
+      .eduai-music-clean .neon-side-hub {
+        animation: none !important;
+        background: transparent !important;
+        border: 0 !important;
+        box-shadow: none !important;
+        backdrop-filter: none !important;
+      }
+      .eduai-music-clean .neon-keyboard-line,
+      .eduai-music-clean .neon-panel::before,
+      .eduai-music-clean .neon-stage::before,
+      .eduai-music-clean header::after,
+      .eduai-music-clean footer::before { display: none !important; }
+
+      .eduai-music-clean .bottom-eq span {
+        width: 4px;
+        border-radius: 999px;
+        background: linear-gradient(180deg, var(--eq-a), var(--eq-b), var(--eq-c));
+        opacity: var(--eq-opacity, .85);
+        height: var(--eq-height, 18px);
+        box-shadow: 0 0 8px color-mix(in srgb, var(--eq-a), transparent 50%);
+        transform-origin: bottom center;
+        transition: height 110ms linear, opacity 110ms linear;
+      }
+      .eduai-music-clean .clean-progress {
+        height: 4px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, var(--green) var(--eduai-progress), rgba(255,255,255,.18) var(--eduai-progress));
+      }
+      .eduai-music-clean .clean-progress:hover { height: 6px; }
+      @keyframes eduai-clean-bg {
+        0%, 100% { background-position: 0% 45%; }
+        50% { background-position: 100% 55%; }
+      }
+      @media (max-width: 1180px) {
+        .eduai-clean-grid { grid-template-columns: 240px minmax(0, 1fr) 300px !important; }
+        .eduai-music-clean .clean-video-frame { max-height: 48vh; }
+      }
+      @media (max-width: 920px) {
+        .eduai-clean-grid { grid-template-columns: 1fr !important; }
+        .eduai-clean-left, .eduai-clean-right { display: none !important; }
+      }
+    `}</style>
+  );
+}
+
 const NAV_ITEMS = [
   { id: "home", label: "Inicio", icon: Home },
   { id: "search", label: "Buscar", icon: Search },
@@ -1630,23 +1824,23 @@ function TableTrackList({ tracks }: { tracks: EduMusicTrack[] }) {
 function TopBar() {
   const music = useEduAIMusic();
   return (
-    <header className="flex h-[58px] shrink-0 items-center gap-4 border-b border-emerald-400/20 bg-[#03090a]/95 px-4 text-white">
+    <header className="flex h-[64px] shrink-0 items-center gap-4 border-b border-white/10 bg-[#050505]/95 px-4 text-white">
       <div className="flex w-[300px] shrink-0 items-center gap-3">
-        <div className="neon-pulse flex h-10 w-10 items-center justify-center rounded-full bg-[linear-gradient(135deg,#00ffa3,#00e5ff,#a855f7)] text-slate-950 shadow-md shadow-emerald-500/20">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-black">
           <Music2 className="h-5 w-5" />
         </div>
         <div className="min-w-0">
           <h1 className="truncate text-xl font-black tracking-tight text-white">
             EduAI Music
           </h1>
-          <p className="truncate text-[11px] font-semibold text-emerald-300">
+          <p className="truncate text-[11px] font-semibold text-slate-400">
             Música, playlists y foco educativo
           </p>
         </div>
       </div>
 
-      <div className="flex h-10 min-w-0 flex-1 items-center gap-3 rounded-full border border-emerald-400/20 bg-black/35 px-4 shadow-inner shadow-black/30 ring-1 ring-white/5 max-md:hidden">
-        <Search className="h-4 w-4 text-emerald-300" />
+      <div className="clean-top-search flex h-11 min-w-0 flex-1 items-center gap-3 rounded-full px-4 max-md:hidden">
+        <Search className="h-4 w-4 text-slate-300" />
         <input
           value={music.query}
           onChange={(e) => music.setQuery(e.target.value)}
@@ -1661,7 +1855,7 @@ function TopBar() {
 
       <Link
         href="/agentes"
-        className="neon-metal-button ml-auto inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-xs font-black"
+        className="sp-btn ml-auto inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-xs font-black"
       >
         <ArrowLeft className="h-4 w-4" /> Volver
       </Link>
@@ -1757,93 +1951,56 @@ function RadioPanel() {
   );
 }
 
-function Sidebar({ tracks, collapsed, onToggleCollapsed }: { tracks: EduMusicTrack[]; collapsed: boolean; onToggleCollapsed: () => void }) {
+function Sidebar({ tracks }: { tracks: EduMusicTrack[]; collapsed?: boolean; onToggleCollapsed?: () => void }) {
   const music = useEduAIMusic();
   const [playlistFilter, setPlaylistFilter] = useState("");
-  const filteredPlaylists = music.playlists.filter((playlist) =>
-    playlist.name.toLowerCase().includes(playlistFilter.toLowerCase()),
-  );
-
-  if (collapsed) {
-    return (
-      <aside className="neon-collapsed-sidebar flex min-h-0 flex-col gap-2 border-r border-emerald-400/15 bg-[#03090a]/90 p-2 text-white">
-        <button
-          type="button"
-          onClick={onToggleCollapsed}
-          className="neon-metal-button collapsed-icon-button rainbow-edge inline-flex rounded-2xl text-slate-950"
-          title="Abrir biblioteca"
-          aria-label="Abrir biblioteca"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
-        <div className="mt-2 flex flex-col gap-2">
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => music.setView(item.id)}
-                className={cn(
-                  "collapsed-icon-button neon-control-button inline-flex rounded-2xl text-slate-300",
-                  music.view === item.id && "is-active",
-                )}
-                title={item.label}
-                aria-label={item.label}
-              >
-                <Icon className="h-5 w-5" />
-              </button>
-            );
-          })}
-        </div>
-        <div className="mt-auto flex flex-col items-center gap-2 rounded-2xl border border-emerald-400/15 bg-black/35 p-2">
-          <Cover track={music.currentTrack} size="sm" />
-          <PlayButton size="sm" />
-        </div>
-      </aside>
-    );
-  }
+  const filteredPlaylists = music.playlists
+    .filter((playlist) => playlist.name.toLowerCase().includes(playlistFilter.toLowerCase()))
+    .slice(0, 10);
+  const quickNav = NAV_ITEMS.filter((item) => ["home", "search", "playlists", "liked", "queue"].includes(item.id));
 
   return (
-    <aside className="flex min-h-0 min-w-0 flex-col border-r border-emerald-400/15 bg-[#03090a]/90 p-2.5 text-white">
-      <div className="shrink-0 neon-panel rounded-2xl border border-emerald-400/20 bg-[#07100f]/90 p-3">
-        <div className="flex items-center justify-between gap-2">
+    <aside className="eduai-clean-left flex min-h-0 min-w-0 flex-col bg-[#050505] p-3 text-white">
+      <section className="spotify-panel flex min-h-0 flex-1 flex-col rounded-2xl p-3">
+        <div className="mb-4 flex items-center justify-between gap-2">
           <div>
             <p className="text-sm font-black text-white">Tu biblioteca</p>
-            <p className="text-[11px] text-slate-400">Canciones y grupos</p>
+            <p className="text-[11px] text-slate-400">Playlists y canciones</p>
           </div>
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={onToggleCollapsed}
-              className="neon-control-button inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-200"
-              title="Contraer biblioteca"
-              aria-label="Contraer biblioteca"
-            >
-              <Menu className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => music.setCreateOpen((value) => !value)}
-              className="neon-metal-button inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-black text-slate-950"
-            >
-              <Plus className="h-3.5 w-3.5" /> Crear
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => music.setCreateOpen((value) => !value)}
+            className="sp-btn rounded-full px-3 py-1.5 text-xs font-black"
+          >
+            <Plus className="mr-1 inline h-3.5 w-3.5" /> Crear
+          </button>
         </div>
 
-        <div className="mt-3 grid grid-cols-2 gap-1.5 text-xs font-bold text-slate-300">
-          {NAV_ITEMS.map((item) => {
+        {music.createOpen && (
+          <div className="mb-3 rounded-xl bg-white/5 p-2">
+            <input
+              value={music.newPlaylistName}
+              onChange={(e) => music.setNewPlaylistName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && music.createPlaylist()}
+              placeholder="Nombre de playlist"
+              className="h-9 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-xs text-white outline-none placeholder:text-slate-500"
+            />
+            <button type="button" onClick={music.createPlaylist} className="sp-primary mt-2 h-9 w-full rounded-full text-xs font-black">
+              Crear playlist
+            </button>
+          </div>
+        )}
+
+        <div className="mb-4 flex flex-wrap gap-2 text-xs font-bold text-slate-300">
+          {quickNav.map((item) => {
             const Icon = item.icon;
             return (
               <button
                 key={item.id}
                 onClick={() => music.setView(item.id)}
                 className={cn(
-                  "inline-flex items-center gap-2 rounded-xl px-3 py-2 transition",
-                  music.view === item.id
-                    ? "bg-emerald-400 text-slate-950"
-                    : "bg-white/7 hover:bg-emerald-400/10 hover:text-emerald-200",
+                  "sp-btn inline-flex items-center gap-2 rounded-full px-3 py-2",
+                  music.view === item.id && "sp-nav-active",
                 )}
               >
                 <Icon className="h-3.5 w-3.5" /> {item.label}
@@ -1852,92 +2009,50 @@ function Sidebar({ tracks, collapsed, onToggleCollapsed }: { tracks: EduMusicTra
           })}
         </div>
 
-        {music.createOpen && (
-          <div className="mt-3 rounded-xl border border-emerald-400/20 bg-emerald-400/8 p-2">
-            <input
-              value={music.newPlaylistName}
-              onChange={(e) => music.setNewPlaylistName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && music.createPlaylist()}
-              placeholder="Nombre de playlist"
-              className="h-9 w-full rounded-lg border border-white/10 bg-black/25 px-3 text-xs text-white outline-none placeholder:text-slate-500"
-            />
-            <button
-              type="button"
-              onClick={music.createPlaylist}
-              className="mt-2 h-9 w-full rounded-lg bg-emerald-400 text-xs font-black text-slate-950 hover:bg-emerald-300"
-            >
-              Crear playlist
-            </button>
-          </div>
-        )}
-      </div>
+        <div className="mb-3 flex h-10 items-center gap-2 rounded-full bg-white/7 px-3">
+          <Search className="h-4 w-4 text-slate-400" />
+          <input
+            value={playlistFilter}
+            onChange={(e) => setPlaylistFilter(e.target.value)}
+            placeholder="Filtrar biblioteca"
+            className="min-w-0 flex-1 bg-transparent text-xs text-white outline-none placeholder:text-slate-500"
+          />
+        </div>
 
-      <div className="mt-3">
-        <RadioPanel />
-      </div>
-
-      <div className="mt-3 flex min-h-0 flex-1 flex-col gap-3">
-        <section className="flex min-h-0 flex-[0.8] flex-col neon-panel rounded-2xl border border-emerald-400/20 bg-[#07100f]/90 p-3">
-          <div className="mb-2 flex h-9 items-center gap-2 rounded-xl bg-black/25 px-3">
-            <Search className="h-3.5 w-3.5 text-emerald-300" />
-            <input
-              value={playlistFilter}
-              onChange={(e) => setPlaylistFilter(e.target.value)}
-              placeholder="Filtrar grupos"
-              className="min-w-0 flex-1 bg-transparent text-xs text-white outline-none placeholder:text-slate-500"
-            />
+        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+          <div className="mb-4 space-y-1">
+            {filteredPlaylists.map((playlist: EduMusicPlaylist) => (
+              <button
+                key={playlist.id}
+                onClick={() => {
+                  music.setSelectedPlaylistId(playlist.id);
+                  music.setView(
+                    playlist.id === "pl-liked" ? "liked" : playlist.id === "pl-online" ? "search" : "playlists",
+                  );
+                }}
+                className={cn(
+                  "group flex h-[54px] w-full items-center gap-3 rounded-md px-2 text-left hover:bg-white/8",
+                  music.selectedPlaylistId === playlist.id && "bg-white/12",
+                )}
+              >
+                <Cover label={playlist.name} cover={playlist.cover} size="sm" />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-bold text-white">{playlist.name}</span>
+                  <span className="block truncate text-xs text-slate-500">Playlist · {playlist.trackIds.length} canciones</span>
+                </span>
+              </button>
+            ))}
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-            <div className="space-y-1">
-              {filteredPlaylists.map((playlist: EduMusicPlaylist) => (
-                <button
-                  key={playlist.id}
-                  onClick={() => {
-                    music.setSelectedPlaylistId(playlist.id);
-                    music.setView(
-                      playlist.id === "pl-liked"
-                        ? "liked"
-                        : playlist.id === "pl-radio"
-                          ? "radio"
-                          : playlist.id === "pl-online"
-                            ? "search"
-                            : "playlists",
-                    );
-                  }}
-                  className={cn(
-                    "flex h-[48px] w-full items-center gap-2 rounded-xl px-2 text-left transition",
-                    music.selectedPlaylistId === playlist.id
-                      ? "bg-white/12 ring-1 ring-emerald-400/25"
-                      : "hover:bg-white/7",
-                  )}
-                >
-                  <Cover label={playlist.name} cover={playlist.cover} size="xs" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-xs font-black text-white">
-                      {playlist.name}
-                    </span>
-                    <span className="block truncate text-[10px] text-slate-500">
-                      {playlist.trackIds.length} canciones
-                    </span>
-                  </span>
-                </button>
-              ))}
+
+          <div className="border-t border-white/10 pt-3">
+            <div className="mb-2 flex items-center justify-between px-1">
+              <p className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">Canciones</p>
+              <span className="text-xs text-slate-500">{tracks.length}</span>
             </div>
+            <SidebarTrackList tracks={tracks} limit={18} />
           </div>
-        </section>
-
-        <section className="flex min-h-0 flex-1 flex-col neon-panel rounded-2xl border border-emerald-400/20 bg-[#07100f]/90 p-3">
-          <div className="mb-2 flex items-center justify-between">
-            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-emerald-300">
-              Canciones
-            </p>
-            <span className="text-xs text-slate-500">{tracks.length}</span>
-          </div>
-          <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-            <SidebarTrackList tracks={tracks} limit={60} />
-          </div>
-        </section>
-      </div>
+        </div>
+      </section>
     </aside>
   );
 }
@@ -2419,196 +2534,71 @@ function MainPanel({ tracks }: { tracks: EduMusicTrack[] }) {
   const playlist = music.selectedPlaylist;
   const embedTrack = isEmbedTrack(track);
   const embedUrl = getEmbedUrl(track);
+  const showVideo = track.source === "youtube" || embedTrack;
 
   return (
-    <main className="flex min-h-0 min-w-0 flex-col bg-transparent p-2.5 text-white">
-      <section className="neon-panel flex min-h-0 flex-1 flex-col rounded-3xl border border-emerald-400/20 bg-[#07100f]/90 p-3 shadow-lg shadow-black/20">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-300">
-              Reproductor central
-            </p>
-            <h2 className="truncate text-xl font-black text-white">
-              {playlist.name}
-            </h2>
-            <p className="truncate text-xs text-slate-400">
-              Vista limpia: el centro queda solo para video o imagen.
-            </p>
+    <main className="flex min-h-0 min-w-0 flex-col bg-[#050505] p-3 text-white">
+      <section className="spotify-panel flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl">
+        <div className="shrink-0 bg-gradient-to-b from-white/10 to-transparent p-6 pb-4">
+          <div className="flex items-end justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-300">{music.view === "search" ? "Resultados online" : "Playlist"}</p>
+              <h2 className="mt-1 truncate text-4xl font-black tracking-tight text-white max-xl:text-3xl">{music.view === "search" ? "Resultados online" : playlist.name}</h2>
+              <p className="mt-1 truncate text-sm text-slate-400">{tracks.length} canciones · reproductor limpio al centro</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => music.playPlaylist(playlist.id)}
+              className="sp-primary inline-flex h-12 shrink-0 items-center gap-2 rounded-full px-5 text-sm font-black"
+            >
+              <Play className="h-4 w-4" fill="currentColor" /> Reproducir
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => music.playPlaylist(playlist.id)}
-            className="neon-accent-button rainbow-edge inline-flex h-9 shrink-0 items-center gap-2 rounded-full px-4 text-xs font-black transition hover:bg-emerald-300"
-          >
-            <Play className="h-4 w-4" fill="currentColor" /> Reproducir lista
-          </button>
         </div>
 
-        <div className={cn("neon-stage flex min-h-0 flex-1 items-center justify-center rounded-[2rem] border border-emerald-400/20 p-3", track.source === "youtube" && "p-2")}>
-          {embedTrack ? (
-            <div className="w-full max-w-4xl rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-center shadow-xl shadow-black/25 backdrop-blur-xl max-xl:p-4">
-              <div className="mx-auto max-w-xl">
-                <p className="neon-chip mx-auto mb-2 w-fit rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-300">
-                  {playbackKind(track)}
-                </p>
-                <h3 className="neon-title line-clamp-2 text-xl font-black leading-tight text-white max-xl:text-lg">
-                  {track.title}
-                </h3>
-                <p className="mt-1 truncate text-sm font-semibold text-slate-300">
-                  {track.artist}
-                </p>
-                <p className="mt-1 text-xs text-slate-500">
-                  Canal 95 usa el reproductor oficial de ConectaAPP. No se reproduce con el audio global de EduAI porque no entrega un stream directo estable.
-                </p>
-              </div>
-
-              <div className="mt-4 overflow-hidden rounded-3xl border border-emerald-400/20 bg-black/40 shadow-2xl shadow-black/40">
-                {embedUrl ? (
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
+          <div className="mb-5 flex justify-center rounded-2xl bg-black/28 p-3">
+            {showVideo ? (
+              <div className="clean-video-frame">
+                {embedTrack && embedUrl ? (
                   <iframe
                     src={embedUrl}
                     title={`${track.title} - reproductor oficial`}
-                    className="h-[560px] w-full border-0 bg-black max-lg:h-[520px] max-sm:h-[480px]"
+                    className="border-0 bg-black"
                     allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
                     allowFullScreen
                   />
                 ) : (
-                  <div className="flex min-h-[360px] flex-col items-center justify-center p-6 text-center">
-                    <CurrentTrackArtwork track={track} />
-                    <p className="mt-4 text-sm font-bold text-rose-200">No hay URL de reproductor oficial configurada.</p>
-                  </div>
+                  <CurrentTrackArtwork track={track} />
                 )}
               </div>
-
-              {track.source !== "youtube" && (
-              <>
-              <div className="mt-4 grid grid-cols-2 gap-2 max-sm:grid-cols-1">
-                <button
-                  type="button"
-                  onClick={() => music.toggleLike(track.id)}
-                  className={cn(
-                    "rounded-full border px-3 py-2 text-xs font-black transition",
-                    music.liked.has(track.id)
-                      ? "border-emerald-400 bg-emerald-400 text-slate-950"
-                      : "border-white/10 bg-white/7 text-slate-300 hover:bg-emerald-400/10 hover:text-emerald-200",
-                  )}
-                >
-                  ♥ Me gusta
-                </button>
-                <a
-                  href={track.externalUrl || embedUrl || "https://www.canal95.cl/"}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="rounded-full border border-white/10 bg-white/7 px-3 py-2 text-xs font-black text-slate-300 transition hover:bg-emerald-400/10 hover:text-emerald-200"
-                >
-                  Abrir fuente oficial
-                </a>
-              </div>
-              </>
-              )}
-            </div>
-          ) : (
-            <div
-              className={cn(
-                "neon-current-card w-full rounded-[1.8rem] border border-emerald-400/20 bg-black/20 p-3 text-center shadow-xl shadow-black/25 max-xl:p-3",
-                track.source === "youtube" ? "h-full max-w-none" : track.source === "itunes" ? "max-w-4xl" : "max-w-2xl",
-              )}
-            >
-              <div className={cn("flex justify-center", track.source === "youtube" && "h-full min-h-[420px]")}>
+            ) : (
+              <div className="clean-artwork-frame">
                 <CurrentTrackArtwork track={track} />
               </div>
+            )}
+          </div>
 
-              {track.source !== "youtube" && (
-              <div className="mx-auto mt-4 max-w-lg">
-                <p className="neon-chip mx-auto mb-2 w-fit rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-300">
-                  {playbackKind(track)}
-                </p>
-                <h3 className="neon-title line-clamp-2 text-xl font-black leading-tight text-white max-xl:text-lg">
-                  {track.title}
-                </h3>
-                <p className="mt-1 truncate text-sm font-semibold text-slate-300">
-                  {track.artist}
-                </p>
-                <p className="mt-1 truncate text-xs text-slate-500">
-                  {track.album || "Sin álbum"} · {track.duration || "--:--"}
-                </p>
-              </div>
-              )}
-
-              {track.source !== "youtube" && (
-              <div className="mt-4 flex items-center justify-center gap-2.5">
-                <IconButton onClick={() => music.setShuffle((value) => !value)} active={music.shuffle} title="Aleatorio">
-                  <Shuffle className="h-4 w-4" />
-                </IconButton>
-                <IconButton onClick={music.prevTrack} title="Anterior">
-                  <SkipBack className="h-4 w-4" fill="currentColor" />
-                </IconButton>
-                <PlayButton size="lg" />
-                <IconButton onClick={music.nextTrack} title="Siguiente">
-                  <SkipForward className="h-4 w-4" fill="currentColor" />
-                </IconButton>
-                <IconButton
-                  onClick={() => music.setRepeat(music.repeat === "off" ? "all" : music.repeat === "all" ? "one" : "off")}
-                  active={music.repeat !== "off"}
-                  title="Repetir"
-                >
-                  <Repeat className="h-4 w-4" />
-                </IconButton>
-              </div>
-              )}
-
-              {track.source === "youtube" && (
-                <p className="mt-3 text-xs font-semibold text-emerald-200/90">
-                  YouTube se reproduce en el reproductor central visible. Si el navegador bloquea autoplay, presiona play dentro del video.
-                </p>
-              )}
-              {track.source === "itunes" && (
-                <p className="mt-3 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-200/80">
-                  Reel visual YouTube + audio iTunes estable
-                </p>
-              )}
-              {track.source === "radio" && (
-                <p className="mt-3 text-xs font-semibold text-emerald-200/90">
-                  Radio online en vivo. Algunas emisoras pueden tardar unos segundos en iniciar según su servidor.
-                </p>
-              )}
-
-              {track.source !== "youtube" && (
-              <>
-              <div className="mt-4 grid grid-cols-2 gap-2 max-sm:grid-cols-1">
-                <button
-                  type="button"
-                  onClick={() => music.toggleLike(track.id)}
-                  className={cn(
-                    "rounded-full border px-3 py-2 text-xs font-black transition",
-                    music.liked.has(track.id)
-                      ? "border-emerald-400 bg-emerald-400 text-slate-950"
-                      : "border-white/10 bg-white/7 text-slate-300 hover:bg-emerald-400/10 hover:text-emerald-200",
-                  )}
-                >
-                  ♥ Me gusta
-                </button>
-                <button
-                  type="button"
-                  onClick={() => music.requestAddToPlaylist(track.id)}
-                  className="rounded-full border border-white/10 bg-white/7 px-3 py-2 text-xs font-black text-slate-300 transition hover:bg-emerald-400/10 hover:text-emerald-200"
-                >
-                  + Agregar a playlist
-                </button>
-              </div>
-
-              <p className="mt-3 text-[11px] text-slate-500">
-                {tracks.length} canciones disponibles en la lista lateral izquierda.
-              </p>
-              </>
-              )}
+          <div className="mb-5 flex items-center gap-4">
+            <Cover track={track} size="lg" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xl font-black text-white">{track.title}</p>
+              <p className="truncate text-sm text-slate-400">{track.artist} · {track.album || sourceLabel(track.source)}</p>
             </div>
-          )}
+            <IconButton onClick={() => music.setShuffle((value) => !value)} active={music.shuffle} title="Aleatorio">
+              <Shuffle className="h-4 w-4" />
+            </IconButton>
+            <IconButton onClick={() => music.toggleLike(track.id)} active={music.liked.has(track.id)} title="Me gusta">
+              <Heart className="h-4 w-4" fill={music.liked.has(track.id) ? "currentColor" : "none"} />
+            </IconButton>
+          </div>
+
+          <TableTrackList tracks={tracks.slice(0, 36)} />
         </div>
       </section>
     </main>
   );
 }
-
 
 function SideMusicHub() {
   const music = useEduAIMusic();
@@ -2758,190 +2748,115 @@ function SideMusicHub() {
   );
 }
 
-function RightPanel({ collapsed, onToggleCollapsed }: { collapsed: boolean; onToggleCollapsed: () => void }) {
+function RightPanel({ collapsed, onToggleCollapsed }: { collapsed?: boolean; onToggleCollapsed?: () => void }) {
   const music = useEduAIMusic();
-  const [youtubeQuery, setYoutubeQuery] = useState("música para estudiar sin letra");
+  const [activeSpotify, setActiveSpotify] = useState(0);
   const related = music.allTracks
     .filter((track) => track.mood === music.currentTrack.mood && track.id !== music.currentTrack.id)
     .slice(0, 6);
-
-  if (collapsed) {
-    return (
-      <aside className="flex min-h-0 flex-col items-center gap-2 border-l border-emerald-400/15 bg-[#03090a]/92 p-2 text-white">
-        <button
-          type="button"
-          onClick={onToggleCollapsed}
-          className="simple-metal-button inline-flex h-12 w-12 items-center justify-center rounded-2xl"
-          title="Abrir búsqueda y playlists"
-          aria-label="Abrir búsqueda y playlists"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
-        <button
-          type="button"
-          onClick={onToggleCollapsed}
-          className="simple-metal-button inline-flex h-12 w-12 items-center justify-center rounded-2xl"
-          title="Buscar canciones"
-          aria-label="Buscar canciones"
-        >
-          <Search className="h-5 w-5" />
-        </button>
-        <button
-          type="button"
-          onClick={onToggleCollapsed}
-          className="simple-metal-button inline-flex h-12 w-12 items-center justify-center rounded-2xl"
-          title="Playlists"
-          aria-label="Playlists"
-        >
-          <ListMusic className="h-5 w-5" />
-        </button>
-        <div className="mt-auto flex flex-col items-center gap-2 rounded-2xl border border-emerald-400/15 bg-black/30 p-2">
-          <Cover track={music.currentTrack} size="sm" />
-          <span className="max-w-10 truncate text-center text-[9px] font-black text-emerald-200">Now</span>
-        </div>
-      </aside>
-    );
-  }
+  const activeEmbed = SPOTIFY_EMBEDS[activeSpotify] || SPOTIFY_EMBEDS[0];
 
   return (
-    <aside className="flex min-h-0 min-w-0 flex-col gap-2.5 overflow-y-auto border-l border-emerald-400/15 bg-[#03090a]/92 p-2.5 text-white">
-      <div className="sticky top-0 z-10 flex items-center justify-between rounded-2xl border border-emerald-400/15 bg-black/45 p-2 backdrop-blur-sm">
-        <span className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-200">Panel lateral</span>
-        <button
-          type="button"
-          onClick={onToggleCollapsed}
-          className="simple-metal-button inline-flex h-8 items-center gap-1 rounded-full px-3 text-[10px] font-black"
-          title="Cerrar panel lateral"
-        >
-          <Menu className="h-3.5 w-3.5" /> Cerrar
-        </button>
-      </div>
-
-      <section className="shrink-0 neon-panel rounded-2xl border border-emerald-400/20 bg-[#07100f]/90 p-3">
-        <p className="text-sm font-black text-white">Buscar canciones</p>
-        <p className="mt-1 text-xs text-slate-400">
-          Busca canciones, pega links de YouTube o carga una radio/lista al centro.
-        </p>
-        <div className="mt-3 flex gap-2">
-          <input
-            value={music.onlineQuery}
-            onChange={(e) => music.setOnlineQuery(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && void music.searchOnline()}
-            placeholder="daddy, link YouTube, playlist..."
-            className="min-w-0 flex-1 rounded-full border border-white/10 bg-black/25 px-3 py-2 text-xs text-white outline-none placeholder:text-slate-500 focus:border-emerald-400/60"
-          />
-          <button
-            type="button"
-            onClick={() => void music.searchOnline()}
-            disabled={music.onlineLoading}
-            className="simple-metal-button rounded-full px-4 py-2 text-xs font-black disabled:opacity-50"
-          >
-            {music.onlineLoading ? "..." : "Buscar"}
-          </button>
+    <aside className="eduai-clean-right flex min-h-0 min-w-0 flex-col bg-[#050505] p-3 text-white">
+      <section className="spotify-panel flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto rounded-2xl p-4">
+        <div>
+          <p className="text-sm font-black text-white">Buscar canciones</p>
+          <div className="mt-3 flex gap-2">
+            <input
+              value={music.onlineQuery}
+              onChange={(e) => music.setOnlineQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && void music.searchOnline()}
+              placeholder="Canción, artista o link de YouTube"
+              className="min-w-0 flex-1 rounded-full border border-white/10 bg-white/7 px-3 py-2 text-xs text-white outline-none placeholder:text-slate-500"
+            />
+            <button type="button" onClick={() => void music.searchOnline()} disabled={music.onlineLoading} className="sp-primary rounded-full px-4 py-2 text-xs font-black disabled:opacity-50">
+              {music.onlineLoading ? "..." : "Buscar"}
+            </button>
+          </div>
+          <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] font-black uppercase tracking-wide text-slate-300">
+            {[
+              { id: "full", label: "Completas" },
+              { id: "preview", label: "DJ 30s" },
+              { id: "all", label: "Todo" },
+              { id: "youtube", label: "YouTube" },
+            ].map((item) => {
+              const provider = item.id as "all" | "full" | "preview" | "youtube";
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => {
+                    music.setOnlineProviderMode(provider);
+                    if (music.onlineQuery.trim()) void music.searchOnline(undefined, provider);
+                  }}
+                  className={cn("sp-btn rounded-full px-2.5 py-1", music.onlineProviderMode === item.id && "sp-pill-active")}
+                >
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
-        {music.onlineError && <p className="mt-2 text-xs font-bold text-rose-300">{music.onlineError}</p>}
-        <div className="mt-2 grid grid-cols-2 gap-1.5 text-[10px] font-black uppercase tracking-wide">
-          {[
-            { id: "full", label: "Completas" },
-            { id: "preview", label: "DJ 30s" },
-            { id: "all", label: "Todo" },
-            { id: "youtube", label: "YouTube" },
-          ].map((item) => {
-            const provider = item.id as "all" | "full" | "preview" | "youtube";
-            return (
+
+        <div className="spotify-card rounded-xl p-3">
+          <p className="text-sm font-black text-white">Ahora suena</p>
+          <div className="mt-3 flex items-center gap-3">
+            <Cover track={music.currentTrack} size="lg" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-black text-white">{music.currentTrack.title}</p>
+              <p className="truncate text-xs text-slate-400">{music.currentTrack.artist}</p>
+              <p className="truncate text-[11px] text-slate-500">{sourceLabel(music.currentTrack.source)}</p>
+            </div>
+          </div>
+          {music.currentTrack.externalUrl && (
+            <a href={music.currentTrack.externalUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-slate-300 hover:text-white">
+              Abrir fuente <ExternalLink className="h-3 w-3" />
+            </a>
+          )}
+        </div>
+
+        <div className="spotify-card rounded-xl p-3">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-black text-white">Resultados</p>
+            <button type="button" onClick={() => { music.setSelectedPlaylistId("pl-online"); music.setView("search"); }} className="sp-btn rounded-full px-3 py-1 text-[10px] font-black">
+              Ver todos
+            </button>
+          </div>
+          <div className="mt-2 max-h-[220px] overflow-y-auto pr-1">
+            <SidebarTrackList tracks={music.onlineTracks.length ? music.onlineTracks : related} limit={6} />
+          </div>
+        </div>
+
+        <div className="spotify-card rounded-xl p-3">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-black text-white">Spotify visual</p>
+            <span className="text-[10px] text-slate-500">{SPOTIFY_EMBEDS.length} listas</span>
+          </div>
+          <div className="mt-2 grid grid-cols-2 gap-1.5">
+            {SPOTIFY_EMBEDS.map((item, index) => (
               <button
                 key={item.id}
                 type="button"
-                onClick={() => {
-                  music.setOnlineProviderMode(provider);
-                  if (music.onlineQuery.trim()) void music.searchOnline(undefined, provider);
-                }}
-                className={cn("simple-metal-button rounded-full px-2 py-1 transition", music.onlineProviderMode === item.id && "is-active")}
+                onClick={() => setActiveSpotify(index)}
+                className={cn("sp-btn rounded-md px-2 py-1.5 text-left text-[10px] font-bold", index === activeSpotify && "sp-pill-active")}
               >
-                {item.label}
+                <span className="block truncate">{item.title}</span>
               </button>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className="flex min-h-[150px] flex-col neon-panel rounded-2xl border border-emerald-400/20 bg-[#07100f]/90 p-3">
-        <div className="mb-2 flex items-center justify-between">
-          <p className="text-sm font-black text-white">Resultados online</p>
-          <button
-            type="button"
-            onClick={() => {
-              music.setSelectedPlaylistId("pl-online");
-              music.setView("search");
-            }}
-            className="simple-metal-button rounded-full px-3 py-1 text-[10px] font-black"
-          >
-            Ver todos
-          </button>
-        </div>
-        <div className="min-h-0 max-h-[210px] overflow-y-auto pr-1">
-          <SidebarTrackList tracks={music.onlineTracks.length ? music.onlineTracks : related} limit={8} />
-        </div>
-      </section>
-
-      <section className="shrink-0 neon-panel rounded-2xl border border-emerald-400/20 bg-[#07100f]/90 p-3">
-        <p className="text-sm font-black text-white">Ahora suena</p>
-        <div className="mt-3 flex items-center gap-3">
-          <Cover track={music.currentTrack} size="lg" />
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-black text-emerald-300">{music.currentTrack.title}</p>
-            <p className="truncate text-xs text-slate-300">{music.currentTrack.artist}</p>
-            <p className="truncate text-[11px] text-slate-500">{music.currentTrack.album}</p>
+            ))}
           </div>
-        </div>
-        {music.currentTrack.externalUrl && (
-          <a
-            href={music.currentTrack.externalUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="plain-link-button mt-3 inline-flex items-center gap-1 text-xs font-bold text-emerald-300 hover:underline"
-          >
-            Abrir fuente <ExternalLink className="h-3 w-3" />
-          </a>
-        )}
-      </section>
-
-      <SideMusicHub />
-
-      <section className="shrink-0 neon-panel rounded-2xl border border-emerald-400/20 bg-[#07100f]/90 p-3">
-        <p className="text-sm font-black text-white">Fuentes externas</p>
-        <div className="mt-2 flex gap-2">
-          <input
-            value={youtubeQuery}
-            onChange={(e) => setYoutubeQuery(e.target.value)}
-            placeholder="Buscar en YouTube"
-            className="min-w-0 flex-1 rounded-full border border-white/10 bg-black/25 px-3 py-2 text-xs text-white outline-none placeholder:text-slate-500"
+          <iframe
+            data-testid="embed-iframe"
+            title={activeEmbed.title}
+            style={{ borderRadius: 12 }}
+            src={activeEmbed.src}
+            width="100%"
+            height="96"
+            frameBorder="0"
+            allowFullScreen
+            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+            loading="lazy"
+            className="mt-3 block border-0"
           />
-          <a
-            href={youtubeSearchUrl(youtubeQuery)}
-            target="_blank"
-            rel="noreferrer"
-            className="neon-metal-button rounded-full px-3 py-2 text-xs font-bold"
-          >
-            Abrir
-          </a>
-        </div>
-        <div className="mt-2 max-h-[88px] space-y-1 overflow-y-auto pr-1">
-          {EXTERNAL_MUSIC_COLLECTIONS.map((item) => (
-            <a
-              key={item.id}
-              href={item.url}
-              target="_blank"
-              rel="noreferrer"
-              className="plain-link-button flex items-center justify-between gap-2 rounded-xl px-2 py-1.5 text-xs hover:bg-white/7"
-            >
-              <span className="min-w-0">
-                <span className="block truncate font-bold text-slate-200">{item.name}</span>
-                <span className="block truncate text-[10px] text-slate-500">{item.provider}</span>
-              </span>
-              <ExternalLink className="h-3.5 w-3.5 text-slate-500" />
-            </a>
-          ))}
         </div>
       </section>
     </aside>
@@ -2952,57 +2867,65 @@ function BottomPlayer() {
   const music = useEduAIMusic();
   const duration = music.durationSeconds || parseDuration(music.currentTrack.duration);
   const progress = duration ? Math.min(100, (music.currentTime / duration) * 100) : 0;
-  const bars = (music.audioLevels?.length ? music.audioLevels : Array.from({ length: 24 }, () => 0.1)).slice(0, 24);
+  const bars = (music.audioLevels?.length ? music.audioLevels : Array.from({ length: 32 }, () => 0.1)).slice(0, 32);
 
   return (
-    <footer className="simple-bottom-player neon-bottom-visualizer neon-single-eq-footer relative flex h-[88px] shrink-0 items-center gap-4 border-t border-emerald-400/20 bg-[#03090a]/95 px-4 text-white">
-      <div className="neon-keyboard-line top" aria-hidden="true" />
+    <footer className="relative flex h-[96px] shrink-0 items-center gap-5 border-t border-white/10 bg-[#050505]/95 px-4 text-white">
       <div className="flex min-w-0 items-center gap-3" style={{ width: 330 }}>
         <Cover track={music.currentTrack} size="md" />
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-black text-white">{music.currentTrack.title}</p>
-          <p className="truncate text-xs text-slate-400">{music.currentTrack.artist} · {sourceLabel(music.currentTrack.source)}</p>
+          <p className="truncate text-xs text-slate-400">{music.currentTrack.artist}</p>
         </div>
         <button
           type="button"
           onClick={() => music.toggleLike(music.currentTrack.id)}
-          className={cn("neon-control-button flex h-9 w-9 items-center justify-center rounded-full text-slate-500 hover:text-emerald-300", music.liked.has(music.currentTrack.id) && "is-active text-emerald-300")}
+          className={cn("sp-icon-btn flex h-9 w-9 items-center justify-center rounded-full text-slate-400", music.liked.has(music.currentTrack.id) && "sp-playing")}
+          aria-label="Me gusta"
         >
           <Heart className="h-4 w-4" fill={music.liked.has(music.currentTrack.id) ? "currentColor" : "none"} />
         </button>
       </div>
 
       <div className="min-w-0 flex-1">
-        <div className="neon-visualizer-bars mx-auto" aria-hidden="true">
+        <div className="mb-2 flex items-center justify-center gap-3">
+          <IconButton onClick={() => music.setShuffle((value) => !value)} active={music.shuffle} title="Aleatorio"><Shuffle className="h-4 w-4" /></IconButton>
+          <IconButton onClick={music.prevTrack} title="Anterior"><SkipBack className="h-4 w-4" fill="currentColor" /></IconButton>
+          <button type="button" onClick={() => music.setPlaying((value) => !value)} className="sp-primary inline-flex h-11 w-11 items-center justify-center rounded-full text-slate-950" aria-label={music.playing ? "Pausar" : "Reproducir"}>
+            {music.playing ? <Pause className="h-5 w-5" fill="currentColor" /> : <Play className="h-5 w-5 translate-x-0.5" fill="currentColor" />}
+          </button>
+          <IconButton onClick={music.nextTrack} title="Siguiente"><SkipForward className="h-4 w-4" fill="currentColor" /></IconButton>
+          <IconButton onClick={() => music.setRepeat(music.repeat === "off" ? "all" : music.repeat === "all" ? "one" : "off")} active={music.repeat !== "off"} title="Repetir"><Repeat className="h-4 w-4" /></IconButton>
+        </div>
+
+        <div className="mx-auto mb-2 flex h-9 max-w-[420px] items-end justify-center gap-1 bottom-eq" aria-hidden="true">
           {bars.map((level, index) => {
-            const height = Math.max(6, Math.min(52, Math.round(7 + level * 48)));
-            const hue = (index * 17 + Math.round((music.currentTime || 0) * 24)) % 360;
+            const height = Math.max(5, Math.min(36, Math.round(6 + level * 32)));
+            const hue = (index * 11 + Math.round((music.currentTime || 0) * 18)) % 360;
             return (
               <span
                 key={index}
                 style={{
                   "--eq-height": `${height}px`,
-                  "--eq-opacity": `${0.52 + Math.min(0.48, level * 0.5)}`,
+                  "--eq-opacity": `${0.46 + Math.min(0.54, level * 0.56)}`,
                   "--eq-a": `hsl(${hue} 100% 62%)`,
-                  "--eq-b": `hsl(${(hue + 82) % 360} 100% 64%)`,
+                  "--eq-b": `hsl(${(hue + 78) % 360} 100% 60%)`,
                   "--eq-c": `hsl(${(hue + 154) % 360} 100% 58%)`,
                 } as React.CSSProperties}
               />
             );
           })}
         </div>
-        <div className="mt-1 flex items-center gap-2 text-[10px] font-bold text-slate-500">
+
+        <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500">
           <span className="w-9 text-right">{formatSeconds(music.currentTime)}</span>
-          <button type="button" onClick={() => music.setPlaying((value) => !value)} className="neon-metal-button rainbow-edge inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-slate-950">
-            {music.playing ? <Pause className="h-3.5 w-3.5" fill="currentColor" /> : <Play className="h-3.5 w-3.5 translate-x-0.5" fill="currentColor" />}
-          </button>
-          <div className="neon-progress-track flex-1" style={{ "--eduai-progress": `${progress}%` } as React.CSSProperties} />
+          <div className="clean-progress flex-1" style={{ "--eduai-progress": `${progress}%` } as React.CSSProperties} />
           <span className="w-9">{formatSeconds(duration)}</span>
         </div>
       </div>
 
-      <div className="hidden items-center justify-end gap-3 pr-14 xl:flex" style={{ width: 300 }}>
-        <Volume2 className="h-4 w-4 text-cyan-200" />
+      <div className="hidden items-center justify-end gap-3 xl:flex" style={{ width: 260 }}>
+        <Volume2 className="h-4 w-4 text-slate-400" />
         <input
           type="range"
           min="0"
@@ -3010,7 +2933,7 @@ function BottomPlayer() {
           step="0.01"
           value={music.volume}
           onChange={(e) => music.setVolume(Number(e.target.value))}
-          className="w-24 accent-emerald-400"
+          className="w-28 accent-emerald-400"
         />
       </div>
     </footer>
@@ -3189,9 +3112,6 @@ export default function EduAIMusicPlayer({
 }: Props) {
   const music = useEduAIMusic();
   const setPendingTrackId = music.setPendingTrackId;
-  const [libraryOpen, setLibraryOpen] = useState(false);
-  const [rightPanelOpen, setRightPanelOpen] = useState(false);
-
   useEffect(() => {
     if (mode === "page") setPendingTrackId(null);
   }, [mode, setPendingTrackId]);
@@ -3211,17 +3131,15 @@ export default function EduAIMusicPlayer({
   if (mode === "panel") return <CompactPanel onOpenPanel={onOpenPanel} />;
 
   return (
-    <div className={cn("eduai-music-neon simple-metal-ui h-screen min-h-[680px] overflow-hidden bg-[#020403] text-white", music.currentTrack.source === "youtube" && "youtube-active")}>
+    <div className={cn("eduai-music-neon eduai-music-clean h-screen min-h-[680px] overflow-hidden bg-[#050505] text-white", music.currentTrack.source === "youtube" && "youtube-active")}>
       <NeonGamingSkin />
+      <CleanSpotifyGamingSkin />
       <div className="flex h-full flex-col">
         <TopBar />
-        <div
-          className="simple-main-grid grid min-h-0 flex-1 overflow-hidden"
-          style={{ gridTemplateColumns: `${libraryOpen ? "300px" : "74px"} minmax(0, 1fr) ${rightPanelOpen ? "340px" : "74px"}` }}
-        >
-          <Sidebar tracks={tracksForMain} collapsed={!libraryOpen} onToggleCollapsed={() => setLibraryOpen((value) => !value)} />
+        <div className="eduai-clean-grid grid min-h-0 flex-1 overflow-hidden" style={{ gridTemplateColumns: "300px minmax(0, 1fr) 360px" }}>
+          <Sidebar tracks={tracksForMain} />
           <MainPanel tracks={tracksForMain} />
-          <RightPanel collapsed={!rightPanelOpen} onToggleCollapsed={() => setRightPanelOpen((value) => !value)} />
+          <RightPanel />
         </div>
         <BottomPlayer />
       </div>
