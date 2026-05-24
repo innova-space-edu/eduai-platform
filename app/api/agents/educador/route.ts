@@ -16,6 +16,7 @@ import {
   getPlannerSummary,
   getPlannerUnits,
 } from "@/lib/planificador-curriculum"
+import { buildDesignPromptDirective, getDesignTemplateSummary } from "@/lib/design-templates/registry"
 
 export const runtime = "nodejs"
 export const maxDuration = 60
@@ -40,6 +41,15 @@ interface EducadorConfig {
   tiempoPlanificacion?: TiempoPlanificacion
   sesiones?: number
   duracionMinutos?: number
+  designTemplateId?: string
+}
+
+function educadorDesignFormat(intent: string) {
+  if (intent === "planificacion") return "planning"
+  if (intent === "rubrica") return "exam"
+  if (intent === "guia" || intent === "tarea") return "worksheet"
+  if (intent === "indicadores") return "report"
+  return "lessonplan"
 }
 
 const NIVEL_INFO: Record<NivelKey, string> = {
@@ -720,6 +730,8 @@ export async function POST(req: NextRequest) {
 
   const history = Array.isArray(body.history) ? body.history : []
   const cfg: EducadorConfig = body.config || {}
+  const rawDesignTemplateId = typeof body.designTemplateId === "string" ? body.designTemplateId : cfg.designTemplateId
+  const designTemplateId = typeof rawDesignTemplateId === "string" && rawDesignTemplateId.trim() ? rawDesignTemplateId.trim() : undefined
   const mode = cfg.mode === "sugerir_parvularia" ? "sugerir_parvularia" : "planificar"
 
   const nivel: NivelKey = cfg.nivel === "parvularia" || cfg.nivel === "basica" || cfg.nivel === "media"
@@ -764,6 +776,9 @@ export async function POST(req: NextRequest) {
     wantsEfemeride,
     wantsSecuencia,
   })
+  const designFormat = educadorDesignFormat(outputIntent)
+  const designDirective = buildDesignPromptDirective(designTemplateId, designFormat)
+  const designSummary = getDesignTemplateSummary(designTemplateId, designFormat)
 
   const wantsIdeas = !contexto && (
     messageLC.includes("idea") || messageLC.includes("suger") ||
@@ -1083,7 +1098,7 @@ CRITERIOS DE CALIDAD - VERIFICAR ANTES DE RESPONDER:
   const selectedUnitForPrompt = getPlannerUnits({ nivel, curso, asignatura })
     .find((unit) => unit.id === unidadId)
 
-  const activeSystemPrompt = useCompactResourcePrompt
+  const activeSystemPromptBase = useCompactResourcePrompt
     ? buildCompactEducadorSystemPrompt({
         intent: outputIntent,
         nivel,
@@ -1098,6 +1113,8 @@ CRITERIOS DE CALIDAD - VERIFICAR ANTES DE RESPONDER:
         promptContext,
       })
     : systemPrompt
+
+  const activeSystemPrompt = `${activeSystemPromptBase}${designDirective}`
 
   const historyLimit = useCompactResourcePrompt || message.length > 700 ? 2 : 8
   const aiMessages = [
@@ -1140,6 +1157,7 @@ CRITERIOS DE CALIDAD - VERIFICAR ANTES DE RESPONDER:
       unidadId,
       outputIntent,
       compactPrompt: useCompactResourcePrompt,
+      _design: designSummary,
     })
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "No fue posible generar la planificacion"
@@ -1167,6 +1185,7 @@ CRITERIOS DE CALIDAD - VERIFICAR ANTES DE RESPONDER:
       unidadId,
       outputIntent,
       aiFallback: true,
+      _design: designSummary,
     })
   }
 }
