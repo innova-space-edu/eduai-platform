@@ -8,6 +8,8 @@
 import { useState, useRef } from "react"
 import { Loader2, ChevronRight, ArrowLeft, Volume2, Image, Play, Pause } from "lucide-react"
 import { RENDERERS } from "@/components/creator-hub/renderers"
+import TemplatePicker from "@/components/design/TemplatePicker"
+import { getDefaultDesignTemplateId } from "@/lib/design-templates/registry"
 
 const FORMATS = [
   { id: "infographic",  icon: "📊", label: "Infografía",    color: "#3b82f6" },
@@ -30,6 +32,7 @@ export default function StudioPanel({ notebookId, hasContent }: StudioPanelProps
   const [activeOutput,  setActiveOutput]  = useState<{ format: string; data: Record<string, unknown> } | null>(null)
   const [error,         setError]         = useState<string | null>(null)
   const [topicHint,     setTopicHint]     = useState("")
+  const [designTemplateId, setDesignTemplateId] = useState(() => getDefaultDesignTemplateId("generic"))
 
   const generate = async (format: string) => {
     if (!hasContent) { setError("Procesa al menos una fuente para activar el Studio."); return }
@@ -37,7 +40,7 @@ export default function StudioPanel({ notebookId, hasContent }: StudioPanelProps
     try {
       const res  = await fetch(`/api/notebooks/${notebookId}/generate`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body:   JSON.stringify({ format, topicHint: topicHint.trim() || undefined }),
+        body:   JSON.stringify({ format, topicHint: topicHint.trim() || undefined, designTemplateId }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? "Error generando")
@@ -78,6 +81,15 @@ export default function StudioPanel({ notebookId, hasContent }: StudioPanelProps
             {error}
           </div>
         )}
+
+        <div className="mb-3 rounded-2xl border border-soft bg-card-soft-theme p-3">
+          <TemplatePicker
+            format="generic"
+            value={designTemplateId}
+            compact
+            onChange={(id) => setDesignTemplateId(id)}
+          />
+        </div>
 
         <div className="mb-3">
           <input type="text" placeholder="Enfoque específico (opcional)..."
@@ -147,6 +159,11 @@ function OutputView({ notebookId, format, data, onBack }: {
           Volver
         </button>
         <span className="text-xs font-semibold text-main flex-1 capitalize">{format}</span>
+        {!!(data as any)._design?.shortName && (
+          <span className="rounded-full border border-soft px-2 py-1 text-[10px] font-semibold text-muted2">
+            Plantilla: {(data as any)._design.shortName}
+          </span>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
