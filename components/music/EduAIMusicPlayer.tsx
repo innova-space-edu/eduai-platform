@@ -978,6 +978,171 @@ function NeonGamingSkin() {
         }
       }
 
+
+      /* EduAI Music RGB Metallic Button Patch — estilo tecla gamer, dinámico y liviano */
+      .eduai-music-neon {
+        --rgb-red: #ff3030;
+        --rgb-orange: #ff9f1c;
+        --rgb-yellow: #fff44f;
+        --rgb-green: #36ff75;
+        --rgb-mint: #00f5a0;
+        --rgb-cyan: #00d9ff;
+        --rgb-blue: #4f7dff;
+        --rgb-violet: #8957ff;
+        --rgb-magenta: #ff3fd4;
+        --metal-dark: #062016;
+        --metal-light: #d8ffe8;
+      }
+
+      .eduai-music-neon button,
+      .eduai-music-neon a.rounded-full,
+      .eduai-music-neon .neon-metal-button,
+      .eduai-music-neon .neon-accent-button,
+      .eduai-music-neon .neon-control-button {
+        isolation: isolate;
+        border: 1.5px solid transparent !important;
+        color: #05130d !important;
+        background:
+          linear-gradient(180deg, rgba(255,255,255,.76) 0%, rgba(255,255,255,.22) 28%, rgba(0,87,58,.34) 100%) padding-box,
+          linear-gradient(105deg,
+            var(--rgb-red), var(--rgb-orange), var(--rgb-yellow), var(--rgb-green),
+            var(--rgb-cyan), var(--rgb-blue), var(--rgb-violet), var(--rgb-magenta), var(--rgb-red)
+          ) border-box !important;
+        background-size: 100% 100%, 360% 100% !important;
+        animation: eduai-keyline-flow 6s linear infinite !important;
+        box-shadow:
+          inset 0 1px 0 rgba(255,255,255,.82),
+          inset 0 -12px 18px rgba(0,30,22,.30),
+          0 5px 14px rgba(0,0,0,.36) !important;
+        text-shadow: 0 1px 0 rgba(255,255,255,.20);
+      }
+
+      .eduai-music-neon .neon-metal-button,
+      .eduai-music-neon .neon-accent-button,
+      .eduai-music-neon button[class*="bg-emerald-400"],
+      .eduai-music-neon a[class*="bg-emerald-400"] {
+        background:
+          linear-gradient(180deg, rgba(255,255,255,.86) 0%, rgba(183,255,215,.52) 22%, rgba(0,245,160,.96) 46%, rgba(0,170,105,.98) 72%, rgba(97,255,139,.88) 100%) padding-box,
+          linear-gradient(105deg,
+            var(--rgb-green), var(--rgb-cyan), var(--rgb-blue), var(--rgb-violet),
+            var(--rgb-magenta), var(--rgb-red), var(--rgb-yellow), var(--rgb-green)
+          ) border-box !important;
+        background-size: 100% 100%, 360% 100% !important;
+        animation: eduai-keyline-flow 4.8s linear infinite, eduai-metal-shift 3.8s ease-in-out infinite !important;
+        box-shadow:
+          inset 0 1px 0 rgba(255,255,255,.92),
+          inset 0 -12px 20px rgba(0,55,36,.34),
+          0 7px 16px rgba(0,0,0,.42),
+          0 0 0 1px rgba(255,255,255,.06) !important;
+      }
+
+      .eduai-music-neon button::before,
+      .eduai-music-neon a.rounded-full::before {
+        content: "";
+        position: absolute;
+        inset: 1px;
+        border-radius: inherit;
+        pointer-events: none;
+        background: linear-gradient(180deg, rgba(255,255,255,.30), transparent 42%, rgba(0,0,0,.16));
+        opacity: .72;
+        z-index: 0;
+      }
+
+      .eduai-music-neon button > *,
+      .eduai-music-neon a.rounded-full > * {
+        position: relative;
+        z-index: 1;
+      }
+
+      .eduai-music-neon button:not(:disabled):hover,
+      .eduai-music-neon a.rounded-full:hover {
+        transform: translateY(-1px) scale(1.012) !important;
+        filter: brightness(1.08) saturate(1.20) !important;
+      }
+
+      .eduai-music-neon button:not(:disabled):active,
+      .eduai-music-neon a.rounded-full:active {
+        transform: translateY(2px) scale(.975) !important;
+        filter: brightness(.96) saturate(1.28) !important;
+        box-shadow:
+          inset 0 3px 10px rgba(0,30,22,.46),
+          inset 0 -4px 8px rgba(255,255,255,.18),
+          0 2px 7px rgba(0,0,0,.55) !important;
+      }
+
+      .eduai-music-neon .neon-panel,
+      .eduai-music-neon .neon-stage,
+      .eduai-music-neon .neon-current-card,
+      .eduai-music-neon .neon-side-hub,
+      .eduai-music-neon .neon-compact-card,
+      .eduai-music-neon .neon-player-frame {
+        border: 1.4px solid transparent !important;
+        background:
+          linear-gradient(145deg, rgba(3,8,15,.94), rgba(6,8,18,.88)) padding-box,
+          linear-gradient(105deg,
+            rgba(255,48,48,.88), rgba(255,159,28,.88), rgba(255,244,79,.88), rgba(54,255,117,.88),
+            rgba(0,217,255,.88), rgba(79,125,255,.88), rgba(137,87,255,.88), rgba(255,63,212,.88), rgba(255,48,48,.88)
+          ) border-box !important;
+        background-size: 100% 100%, 420% 100% !important;
+        animation: eduai-frame-flow 15s linear infinite !important;
+        box-shadow: 0 14px 34px rgba(0,0,0,.46), inset 0 1px 0 rgba(255,255,255,.055) !important;
+      }
+
+      .eduai-music-neon.youtube-active .neon-panel,
+      .eduai-music-neon.youtube-active .neon-stage,
+      .eduai-music-neon.youtube-active .neon-current-card,
+      .eduai-music-neon.youtube-active .neon-side-hub,
+      .eduai-music-neon.youtube-active .neon-compact-card,
+      .eduai-music-neon.youtube-active .neon-player-frame {
+        animation-duration: 28s !important;
+        box-shadow: 0 8px 22px rgba(0,0,0,.52), inset 0 1px 0 rgba(255,255,255,.04) !important;
+      }
+
+      .eduai-music-neon .neon-player-frame,
+      .eduai-music-neon .neon-player-frame iframe {
+        border-radius: 1.65rem !important;
+      }
+
+      .eduai-music-neon header::after,
+      .eduai-music-neon footer::before,
+      .eduai-music-neon .neon-keyboard-line {
+        background: linear-gradient(90deg,
+          var(--rgb-red), var(--rgb-orange), var(--rgb-yellow), var(--rgb-green),
+          var(--rgb-cyan), var(--rgb-blue), var(--rgb-violet), var(--rgb-magenta), var(--rgb-red)
+        ) !important;
+        background-size: 420% 100% !important;
+        animation: eduai-keyline-flow 6s linear infinite !important;
+        filter: none !important;
+      }
+
+      @keyframes eduai-keyline-flow {
+        0% { background-position: 0 0, 0% 50%; }
+        100% { background-position: 0 0, 360% 50%; }
+      }
+
+      @keyframes eduai-frame-flow {
+        0% { background-position: 0 0, 0% 50%; }
+        100% { background-position: 0 0, 420% 50%; }
+      }
+
+      @keyframes eduai-metal-shift {
+        0%, 100% { filter: brightness(1) saturate(1.08); }
+        50% { filter: brightness(1.10) saturate(1.20); }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .eduai-music-neon button,
+        .eduai-music-neon a.rounded-full,
+        .eduai-music-neon .neon-panel,
+        .eduai-music-neon .neon-stage,
+        .eduai-music-neon .neon-current-card,
+        .eduai-music-neon .neon-side-hub,
+        .eduai-music-neon .neon-compact-card,
+        .eduai-music-neon .neon-player-frame {
+          animation: none !important;
+        }
+      }
+
     `}</style>
   );
 }
