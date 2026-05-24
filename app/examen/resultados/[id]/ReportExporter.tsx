@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { getPdfDesignStyle, pdfDesignFooterLabel } from "@/lib/design-templates/pdf-style"
 
 const PALETTE = {
   navy: [20, 37, 84],
@@ -300,27 +301,34 @@ export default function ReportExporter({ exam, submissions }: { exam: any; submi
       const PR = 14
       const CW = W - PL - PR
       let y = 0
+      const design = getPdfDesignStyle(exam?.designTemplateId || exam?._design?.templateId, "report")
+      const setDocFill = (color: readonly number[]) => doc.setFillColor(color[0], color[1], color[2])
+      const paintPage = () => {
+        setDocFill(design.background)
+        doc.rect(0, 0, W, H, "F")
+      }
 
       const addFooter = (page: number, pageCount: number) => {
-        fillRect(doc, 0, H - 10, W, 10, PALETTE.navy)
-        setFont(doc, { size: 7, color: [191, 219, 254] })
-        doc.text(`${cleanPdfText(exam?.title || "Informe de evaluación")} · EduAI Platform · Generado el ${today}`, PL, H - 4)
+        fillRect(doc, 0, H - 10, W, 10, design.primary)
+        setFont(doc, { size: 7, color: design.headerText })
+        doc.text(`${cleanPdfText(exam?.title || "Informe de evaluación")} · ${pdfDesignFooterLabel(design)} · Generado el ${today}`, PL, H - 4)
         doc.text(`Página ${page} de ${pageCount}`, W - PR, H - 4, { align: "right" })
       }
 
       // Página 1
-      fillRect(doc, 0, 0, W, 54, PALETTE.navy)
-      fillRect(doc, 0, 0, 7, 54, PALETTE.cyan)
-      fillRect(doc, W - 30, 0, 30, 54, PALETTE.blue)
-      fillRect(doc, W - 12, 0, 12, 54, PALETTE.indigo)
+      paintPage()
+      fillRect(doc, 0, 0, W, 54, design.primary)
+      fillRect(doc, 0, 0, 7, 54, design.accent)
+      fillRect(doc, W - 30, 0, 30, 54, design.secondary)
+      fillRect(doc, W - 12, 0, 12, 54, design.accent)
 
       setFont(doc, { bold: true, size: 21, color: PALETTE.white })
       const titleLines = splitText(doc, exam?.title || "Informe general de evaluación", CW - 8)
       doc.text(titleLines, PL + 4, 18)
 
-      setFont(doc, { size: 9.5, color: [219, 234, 254] })
+      setFont(doc, { size: 9.5, color: design.headerText })
       doc.text(cleanPdfText(`${exam?.topic || "Evaluación docente"} · ${today} · Código: ${exam?.code || "-"}`), PL + 4, 34)
-      doc.text(cleanPdfText(`${total} estudiantes · ${questions.length} preguntas · Exigencia: ${examPct}%`), PL + 4, 41)
+      doc.text(cleanPdfText(`${total} estudiantes · ${questions.length} preguntas · Exigencia: ${examPct}% · Plantilla: ${design.template.shortName}`), PL + 4, 41)
 
       fillRect(doc, PL, 60, CW, 22, PALETTE.white, 4)
       strokeRect(doc, PL, 60, CW, 22, PALETTE.slate200, 4)
@@ -418,8 +426,9 @@ export default function ReportExporter({ exam, submissions }: { exam: any; submi
       // Página 2
       doc.addPage()
       y = 0
-      fillRect(doc, 0, 0, W, 18, PALETTE.navy)
-      fillRect(doc, 0, 18, W, 6, PALETTE.blue)
+      paintPage()
+      fillRect(doc, 0, 0, W, 18, design.primary)
+      fillRect(doc, 0, 18, W, 6, design.secondary)
       setFont(doc, { bold: true, size: 11, color: PALETTE.white })
       doc.text("ANÁLISIS PEDAGÓGICO DEL CURSO", PL, 11)
       y = 30
@@ -434,8 +443,9 @@ export default function ReportExporter({ exam, submissions }: { exam: any; submi
           const sectionHeight = Math.max(30, 16 + lines.length * 4.8)
           if (y + sectionHeight > 274) {
             doc.addPage()
-            fillRect(doc, 0, 0, W, 18, PALETTE.navy)
-            fillRect(doc, 0, 18, W, 6, PALETTE.blue)
+            paintPage()
+            fillRect(doc, 0, 0, W, 18, design.primary)
+            fillRect(doc, 0, 18, W, 6, design.secondary)
             setFont(doc, { bold: true, size: 11, color: PALETTE.white })
             doc.text("ANÁLISIS PEDAGÓGICO DEL CURSO", PL, 11)
             y = 30
@@ -484,8 +494,9 @@ export default function ReportExporter({ exam, submissions }: { exam: any; submi
       // Página 3
       doc.addPage()
       y = 0
-      fillRect(doc, 0, 0, W, 18, PALETTE.navy)
-      fillRect(doc, 0, 18, W, 6, PALETTE.blue)
+      paintPage()
+      fillRect(doc, 0, 0, W, 18, design.primary)
+      fillRect(doc, 0, 18, W, 6, design.secondary)
       setFont(doc, { bold: true, size: 11, color: PALETTE.white })
       doc.text("REGISTRO COMPLETO DE EVALUACIONES", PL, 11)
       y = 30
