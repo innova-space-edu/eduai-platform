@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { getPdfDesignStyle, pdfDesignFooterLabel } from "@/lib/design-templates/pdf-style"
 
 interface Message {
   role: "ai" | "user"
@@ -49,33 +50,43 @@ export default function SummaryDownload({ topic, messages, quizResults }: Props)
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" })
 
     const pageWidth = doc.internal.pageSize.getWidth()
+    const pageHeight = doc.internal.pageSize.getHeight()
     const margin = 20
     const maxWidth = pageWidth - margin * 2
+    const design = getPdfDesignStyle("eduai-canva-classroom", "report")
+    const setFill = (color: [number, number, number]) => doc.setFillColor(color[0], color[1], color[2])
+    const setText = (color: [number, number, number]) => doc.setTextColor(color[0], color[1], color[2])
     let y = margin
 
-    // Header
-    doc.setFillColor(15, 23, 42)
-    doc.rect(0, 0, pageWidth, 40, "F")
+    // Header con EduAI Design Engine
+    setFill(design.background)
+    doc.rect(0, 0, pageWidth, pageHeight, "F")
+    setFill(design.primary)
+    doc.rect(0, 0, pageWidth, 42, "F")
+    if (design.template.export.useDecorations) {
+      setFill(design.softAccent)
+      doc.circle(pageWidth - 26, 11, 17, "F")
+      setFill(design.softSecondary)
+      doc.circle(pageWidth - 50, 36, 8, "F")
+    }
 
-    doc.setTextColor(96, 165, 250)
+    setText(design.headerText)
     doc.setFontSize(22)
     doc.setFont("helvetica", "bold")
-    doc.text("EduAI Platform", margin, 18)
+    doc.text("EduAI Platform", margin, 17)
 
-    doc.setTextColor(148, 163, 184)
-    doc.setFontSize(10)
+    doc.setFontSize(9.5)
     doc.setFont("helvetica", "normal")
-    doc.text("Tu tutor personal con IA", margin, 26)
+    doc.text(`${pdfDesignFooterLabel(design)} · Tutor personal con IA`, margin, 26)
 
-    doc.setTextColor(255, 255, 255)
     doc.setFontSize(14)
     doc.setFont("helvetica", "bold")
-    doc.text(`Resumen: ${topic}`, margin, 35)
+    doc.text(`Resumen: ${topic}`, margin, 36)
 
-    y = 50
+    y = 52
 
     // Fecha
-    doc.setTextColor(100, 116, 139)
+    setText(design.muted)
     doc.setFontSize(9)
     doc.setFont("helvetica", "normal")
     doc.text(`Generado el ${new Date().toLocaleDateString("es-CL", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}`, margin, y)
@@ -85,7 +96,7 @@ export default function SummaryDownload({ topic, messages, quizResults }: Props)
     if (quizResults.length > 0) {
       const correct = quizResults.filter(r => r.isCorrect).length
       const score = Math.round((correct / quizResults.length) * 100)
-      doc.setFillColor(score >= 80 ? 34 : score >= 60 ? 245 : 239, score >= 80 ? 197 : score >= 60 ? 158 : 68, score >= 80 ? 94 : score >= 60 ? 11 : 68)
+      setFill(score >= 80 ? design.success : score >= 60 ? design.warning : design.danger)
       doc.roundedRect(margin, y, 60, 10, 2, 2, "F")
       doc.setTextColor(255, 255, 255)
       doc.setFontSize(9)
@@ -95,7 +106,7 @@ export default function SummaryDownload({ topic, messages, quizResults }: Props)
     }
 
     // Línea divisora
-    doc.setDrawColor(51, 65, 85)
+    doc.setDrawColor(design.line[0], design.line[1], design.line[2])
     doc.line(margin, y, pageWidth - margin, y)
     y += 8
 
@@ -109,13 +120,15 @@ export default function SummaryDownload({ topic, messages, quizResults }: Props)
 
     const lines = cleanSummary.split("\n")
 
-    doc.setTextColor(30, 41, 59)
+    setText(design.text)
     doc.setFontSize(10)
     doc.setFont("helvetica", "normal")
 
     for (const line of lines) {
       if (y > 270) {
         doc.addPage()
+        setFill(design.background)
+        doc.rect(0, 0, pageWidth, pageHeight, "F")
         y = margin
       }
 
@@ -130,17 +143,19 @@ export default function SummaryDownload({ topic, messages, quizResults }: Props)
         y += 2
         doc.setFont("helvetica", "bold")
         doc.setFontSize(11)
-        doc.setTextColor(15, 23, 42)
+        setText(design.primary)
         doc.text(trimmed, margin, y)
         y += 6
         doc.setFont("helvetica", "normal")
         doc.setFontSize(10)
-        doc.setTextColor(30, 41, 59)
+        setText(design.text)
       } else {
         const wrapped = doc.splitTextToSize(trimmed.startsWith("-") ? `  ${trimmed}` : trimmed, maxWidth)
         for (const wline of wrapped) {
           if (y > 270) {
             doc.addPage()
+            setFill(design.background)
+            doc.rect(0, 0, pageWidth, pageHeight, "F")
             y = margin
           }
           doc.text(wline, margin, y)
@@ -153,11 +168,11 @@ export default function SummaryDownload({ topic, messages, quizResults }: Props)
     const totalPages = doc.getNumberOfPages()
     for (let i = 1; i <= totalPages; i++) {
       doc.setPage(i)
-      doc.setFillColor(248, 250, 252)
+      setFill(design.surface)
       doc.rect(0, 285, pageWidth, 12, "F")
-      doc.setTextColor(148, 163, 184)
+      setText(design.muted)
       doc.setFontSize(8)
-      doc.text("EduAI Platform — eduai-pl.netlify.app", margin, 292)
+      doc.text(pdfDesignFooterLabel(design), margin, 292)
       doc.text(`Página ${i} de ${totalPages}`, pageWidth - margin - 20, 292)
     }
 
