@@ -1,6 +1,7 @@
 // src/app/api/agents/examen-docente/route.ts
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { getDesignTemplateSummary } from "@/lib/design-templates/registry"
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "",
@@ -461,7 +462,8 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === "create") {
-      const { teacherId, title, topic, instructions, questions, settings } = body
+      const { teacherId, title, topic, instructions, questions, settings, designTemplateId } = body
+      const examDesignTemplateId = designTemplateId || settings?.designTemplateId
 
       if (!teacherId || !title || !topic || !questions?.length) {
         return NextResponse.json(
@@ -494,7 +496,11 @@ export async function POST(request: NextRequest) {
           topic,
           instructions: instructions || null,
           questions: sanitizedQuestions,
-          settings: { ...settings },
+          settings: {
+            ...settings,
+            designTemplateId: examDesignTemplateId,
+            _design: getDesignTemplateSummary(examDesignTemplateId, "exam"),
+          },
           status: "active",
         })
         .select()
@@ -679,7 +685,7 @@ export async function POST(request: NextRequest) {
 
     // ── Actualizar preguntas y configuración de un examen existente ─────────
     if (action === "update") {
-      const { examId, teacherId, title, instructions, questions, settings } = body
+      const { examId, teacherId, title, instructions, questions, settings, designTemplateId } = body
 
       if (!examId || !teacherId) {
         return NextResponse.json(
@@ -696,7 +702,15 @@ export async function POST(request: NextRequest) {
       if (title)       patch.title       = title
       if (instructions !== undefined) patch.instructions = instructions
       if (sanitized)   patch.questions   = sanitized
-      if (settings)    patch.settings    = settings
+      if (settings || designTemplateId) {
+        const nextSettings = { ...(settings || {}) }
+        const examDesignTemplateId = designTemplateId || nextSettings.designTemplateId
+        if (examDesignTemplateId) {
+          nextSettings.designTemplateId = examDesignTemplateId
+          nextSettings._design = getDesignTemplateSummary(examDesignTemplateId, "exam")
+        }
+        patch.settings = nextSettings
+      }
 
       const { error } = await supabase
         .from("teacher_exams")
