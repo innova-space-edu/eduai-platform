@@ -165,32 +165,32 @@ const MOODS: Array<EduMusicMood | "all"> = [
 const SPOTIFY_EMBEDS = [
   {
     id: "spotify-mix-1",
-    title: "Spotify playlist 1",
+    title: "Calvin Harris Mix",
     src: "https://open.spotify.com/embed/playlist/37i9dQZF1EIZna6YqhjeY0?utm_source=generator&theme=0",
   },
   {
     id: "spotify-top-global",
-    title: "Spotify playlist 2",
+    title: "Top Global",
     src: "https://open.spotify.com/embed/playlist/37i9dQZEVXddk5AflVss6A?utm_source=generator",
   },
   {
     id: "spotify-mix-2",
-    title: "Spotify playlist 3",
+    title: "Mix electrónico",
     src: "https://open.spotify.com/embed/playlist/37i9dQZF1E8KVBYF00LoMc?utm_source=generator",
   },
   {
     id: "spotify-custom-1",
-    title: "Spotify playlist 4",
+    title: "Lista personal 1",
     src: "https://open.spotify.com/embed/playlist/3z0zQdiFbPdiZ1I7xRpqPx?utm_source=generator",
   },
   {
     id: "spotify-custom-2",
-    title: "Spotify playlist 5",
+    title: "Lista personal 2",
     src: "https://open.spotify.com/embed/playlist/6VjXyFH9Z5HlGPAjRBKR32?utm_source=generator&theme=0",
   },
   {
     id: "spotify-focus",
-    title: "Spotify playlist 6",
+    title: "Focus / estudio",
     src: "https://open.spotify.com/embed/playlist/37i9dQZF1DX6aTaZa0K6VA?utm_source=generator&theme=0",
   },
 ];
@@ -657,6 +657,108 @@ function NeonGamingSkin() {
       .eduai-music-neon .neon-compact-card:hover {
         border-color: rgba(0,255,163,.52) !important;
         box-shadow: 0 0 22px rgba(0,255,163,.14), 0 0 34px rgba(168,85,247,.08) !important;
+      }
+
+
+
+      /* EduAI Music Pro Gamer Patch: UI más ligera, RGB siempre activo y un solo visualizador */
+      .eduai-music-neon {
+        background:
+          radial-gradient(circle at var(--gx, 18%) var(--gy, 20%), rgba(0,229,255,.25), transparent 28%),
+          radial-gradient(circle at 88% 18%, rgba(139,92,246,.25), transparent 32%),
+          radial-gradient(circle at 68% 88%, rgba(255,45,117,.19), transparent 36%),
+          linear-gradient(125deg, #02030a 0%, #061221 26%, #17072a 52%, #2a0612 76%, #02030a 100%) !important;
+        background-size: 180% 180%, 160% 160%, 160% 160%, 260% 260% !important;
+        animation: eduai-bg-shift 16s ease-in-out infinite !important;
+      }
+
+      .eduai-music-neon .neon-accent-button,
+      .eduai-music-neon .neon-metal-button {
+        background:
+          linear-gradient(180deg, rgba(255,255,255,.66), rgba(255,255,255,0) 42%),
+          linear-gradient(105deg, #d6ffe7, #00ffa3 18%, #00d084 36%, #13f7ff 54%, #98ff72 72%, #00ffa3 100%) !important;
+        background-size: 100% 100%, 280% 100% !important;
+        animation: eduai-metal-rgb 3.4s linear infinite, eduai-button-breathe 2.8s ease-in-out infinite !important;
+        border-color: rgba(217,255,236,.82) !important;
+      }
+      .eduai-music-neon .neon-accent-button:active,
+      .eduai-music-neon .neon-metal-button:active,
+      .eduai-music-neon .neon-control-button:active {
+        transform: translateY(1px) scale(.965) !important;
+        filter: brightness(1.35) saturate(1.5) !important;
+        box-shadow: 0 0 10px rgba(0,255,163,.75), 0 0 36px rgba(0,229,255,.34), inset 0 0 22px rgba(255,255,255,.38) !important;
+      }
+      .eduai-music-neon .neon-control-button.is-active {
+        background-size: 240% 100% !important;
+        animation: eduai-metal-rgb 3.2s linear infinite !important;
+      }
+
+      .eduai-music-neon .neon-player-frame {
+        width: 100%;
+        height: 100%;
+        max-width: none !important;
+        border-radius: 2rem;
+        border: 1px solid rgba(0,255,163,.28);
+        box-shadow: 0 26px 82px rgba(0,0,0,.58), 0 0 38px rgba(0,229,255,.12), 0 0 46px rgba(168,85,247,.10);
+      }
+
+      .eduai-music-neon .neon-visualizer-bars span {
+        height: var(--eq-height, 14px) !important;
+        opacity: var(--eq-opacity, .86) !important;
+        animation: none !important;
+        background: linear-gradient(180deg, #ffffff 0%, var(--eq-a, #00e5ff) 20%, var(--eq-b, #a855f7) 55%, var(--eq-c, #ff2d75) 78%, #00ffa3 100%) !important;
+        box-shadow: 0 0 12px color-mix(in srgb, var(--eq-a, #00e5ff) 68%, transparent), 0 0 22px rgba(168,85,247,.28) !important;
+        transition: height .08s linear, opacity .08s linear, filter .12s ease;
+      }
+      .eduai-music-neon .neon-visualizer-bars {
+        filter: drop-shadow(0 0 12px rgba(0,229,255,.25));
+      }
+      .eduai-music-neon .neon-single-eq-footer {
+        min-height: 96px;
+      }
+
+      .eduai-music-neon .neon-collapsed-sidebar {
+        width: 74px;
+        align-items: center;
+      }
+      .eduai-music-neon .neon-collapsed-sidebar .collapsed-icon-button {
+        width: 48px;
+        height: 48px;
+        justify-content: center;
+      }
+
+
+      .eduai-music-neon button[class*="bg-emerald-400"],
+      .eduai-music-neon a[class*="bg-emerald-400"] {
+        background:
+          linear-gradient(180deg, rgba(255,255,255,.62), rgba(255,255,255,0) 42%),
+          linear-gradient(105deg, #d6ffe7, #00ffa3 18%, #00d084 36%, #13f7ff 54%, #98ff72 72%, #00ffa3 100%) !important;
+        background-size: 100% 100%, 280% 100% !important;
+        animation: eduai-metal-rgb 3.4s linear infinite, eduai-button-breathe 2.8s ease-in-out infinite !important;
+        color: #03130c !important;
+        border-color: rgba(217,255,236,.82) !important;
+      }
+
+
+      .eduai-music-neon::before {
+        filter: none !important;
+        opacity: .52 !important;
+        animation-duration: 28s !important;
+      }
+      .eduai-music-neon::after {
+        opacity: .15 !important;
+      }
+      .eduai-music-neon .neon-panel::before {
+        opacity: .32 !important;
+      }
+
+      @keyframes eduai-metal-rgb {
+        0% { background-position: 0 0, 0% 50%; }
+        100% { background-position: 0 0, 280% 50%; }
+      }
+      @keyframes eduai-button-breathe {
+        0%, 100% { box-shadow: 0 0 18px rgba(0,255,163,.42), 0 0 30px rgba(0,229,255,.18), inset 0 1px 0 rgba(255,255,255,.76); }
+        50% { box-shadow: 0 0 28px rgba(0,255,163,.70), 0 0 48px rgba(0,229,255,.32), 0 0 26px rgba(168,85,247,.25), inset 0 1px 0 rgba(255,255,255,.86); }
       }
 
       @keyframes eduai-bg-shift {
@@ -1183,12 +1285,52 @@ function RadioPanel() {
   );
 }
 
-function Sidebar({ tracks }: { tracks: EduMusicTrack[] }) {
+function Sidebar({ tracks, collapsed, onToggleCollapsed }: { tracks: EduMusicTrack[]; collapsed: boolean; onToggleCollapsed: () => void }) {
   const music = useEduAIMusic();
   const [playlistFilter, setPlaylistFilter] = useState("");
   const filteredPlaylists = music.playlists.filter((playlist) =>
     playlist.name.toLowerCase().includes(playlistFilter.toLowerCase()),
   );
+
+  if (collapsed) {
+    return (
+      <aside className="neon-collapsed-sidebar flex min-h-0 flex-col gap-2 border-r border-emerald-400/15 bg-[#03090a]/90 p-2 text-white">
+        <button
+          type="button"
+          onClick={onToggleCollapsed}
+          className="neon-metal-button collapsed-icon-button rainbow-edge inline-flex rounded-2xl text-slate-950"
+          title="Abrir biblioteca"
+          aria-label="Abrir biblioteca"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+        <div className="mt-2 flex flex-col gap-2">
+          {NAV_ITEMS.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => music.setView(item.id)}
+                className={cn(
+                  "collapsed-icon-button neon-control-button inline-flex rounded-2xl text-slate-300",
+                  music.view === item.id && "is-active",
+                )}
+                title={item.label}
+                aria-label={item.label}
+              >
+                <Icon className="h-5 w-5" />
+              </button>
+            );
+          })}
+        </div>
+        <div className="mt-auto flex flex-col items-center gap-2 rounded-2xl border border-emerald-400/15 bg-black/35 p-2">
+          <Cover track={music.currentTrack} size="sm" />
+          <PlayButton size="sm" />
+        </div>
+      </aside>
+    );
+  }
 
   return (
     <aside className="flex min-h-0 min-w-0 flex-col border-r border-emerald-400/15 bg-[#03090a]/90 p-2.5 text-white">
@@ -1198,13 +1340,24 @@ function Sidebar({ tracks }: { tracks: EduMusicTrack[] }) {
             <p className="text-sm font-black text-white">Tu biblioteca</p>
             <p className="text-[11px] text-slate-400">Canciones y grupos</p>
           </div>
-          <button
-            type="button"
-            onClick={() => music.setCreateOpen((value) => !value)}
-            className="inline-flex items-center gap-1 rounded-full bg-emerald-400 px-3 py-1.5 text-xs font-black text-slate-950 hover:bg-emerald-300"
-          >
-            <Plus className="h-3.5 w-3.5" /> Crear
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={onToggleCollapsed}
+              className="neon-control-button inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-200"
+              title="Contraer biblioteca"
+              aria-label="Contraer biblioteca"
+            >
+              <Menu className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => music.setCreateOpen((value) => !value)}
+              className="neon-metal-button inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-black text-slate-950"
+            >
+              <Plus className="h-3.5 w-3.5" /> Crear
+            </button>
+          </div>
         </div>
 
         <div className="mt-3 grid grid-cols-2 gap-1.5 text-xs font-bold text-slate-300">
@@ -1698,7 +1851,7 @@ function YouTubeDirectPlayer({ track, artwork }: { track: EduMusicTrack; artwork
       <button
         type="button"
         onClick={() => music.setPlaying(true)}
-        className="group relative aspect-video w-full max-w-[680px] overflow-hidden rounded-3xl border border-emerald-400/25 bg-black text-left shadow-2xl shadow-black/35 transition hover:scale-[1.01] hover:border-emerald-300/50"
+        className="neon-player-frame group relative h-full min-h-[420px] w-full overflow-hidden bg-black text-left transition hover:scale-[1.005] hover:border-emerald-300/50"
       >
         {thumb ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -1723,12 +1876,12 @@ function YouTubeDirectPlayer({ track, artwork }: { track: EduMusicTrack; artwork
   }
 
   return (
-    <div className="w-full max-w-[760px] overflow-hidden rounded-3xl border border-emerald-400/25 bg-black shadow-2xl shadow-black/35">
+    <div className="neon-player-frame overflow-hidden bg-black">
       <iframe
         key={`${track.id}-${music.playing ? "play" : "pause"}`}
         src={embedUrl}
         title={`${track.title} - YouTube`}
-        className="aspect-video w-full border-0 bg-black"
+        className="h-full min-h-[420px] w-full border-0 bg-black"
         allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
         allowFullScreen
         loading="eager"
@@ -1819,7 +1972,7 @@ function MainPanel({ tracks }: { tracks: EduMusicTrack[] }) {
           </button>
         </div>
 
-        <div className={cn("neon-stage flex min-h-0 items-center justify-center rounded-[2rem] border border-emerald-400/20 p-3", track.source === "itunes" ? "flex-[0.84]" : "h-[min(38vh,360px)] min-h-[245px] shrink-0")}>
+        <div className={cn("neon-stage flex min-h-0 flex-1 items-center justify-center rounded-[2rem] border border-emerald-400/20 p-3", track.source === "youtube" && "p-4")}>
           {embedTrack ? (
             <div className="w-full max-w-4xl rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-center shadow-xl shadow-black/25 backdrop-blur-xl max-xl:p-4">
               <div className="mx-auto max-w-xl">
@@ -1854,6 +2007,8 @@ function MainPanel({ tracks }: { tracks: EduMusicTrack[] }) {
                 )}
               </div>
 
+              {track.source !== "youtube" && (
+              <>
               <div className="mt-4 grid grid-cols-2 gap-2 max-sm:grid-cols-1">
                 <button
                   type="button"
@@ -1876,18 +2031,21 @@ function MainPanel({ tracks }: { tracks: EduMusicTrack[] }) {
                   Abrir fuente oficial
                 </a>
               </div>
+              </>
+              )}
             </div>
           ) : (
             <div
               className={cn(
                 "neon-current-card w-full rounded-[1.8rem] border border-emerald-400/20 bg-black/20 p-3 text-center shadow-xl shadow-black/25 backdrop-blur-xl max-xl:p-3",
-                track.source === "itunes" ? "max-w-4xl" : "max-w-2xl",
+                track.source === "youtube" ? "h-full max-w-none" : track.source === "itunes" ? "max-w-4xl" : "max-w-2xl",
               )}
             >
-              <div className="flex justify-center">
+              <div className={cn("flex justify-center", track.source === "youtube" && "h-full min-h-[420px]")}>
                 <CurrentTrackArtwork track={track} />
               </div>
 
+              {track.source !== "youtube" && (
               <div className="mx-auto mt-4 max-w-lg">
                 <p className="neon-chip mx-auto mb-2 w-fit rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-300">
                   {playbackKind(track)}
@@ -1902,7 +2060,9 @@ function MainPanel({ tracks }: { tracks: EduMusicTrack[] }) {
                   {track.album || "Sin álbum"} · {track.duration || "--:--"}
                 </p>
               </div>
+              )}
 
+              {track.source !== "youtube" && (
               <div className="mt-4 flex items-center justify-center gap-2.5">
                 <IconButton onClick={() => music.setShuffle((value) => !value)} active={music.shuffle} title="Aleatorio">
                   <Shuffle className="h-4 w-4" />
@@ -1922,6 +2082,7 @@ function MainPanel({ tracks }: { tracks: EduMusicTrack[] }) {
                   <Repeat className="h-4 w-4" />
                 </IconButton>
               </div>
+              )}
 
               {track.source === "youtube" && (
                 <p className="mt-3 text-xs font-semibold text-emerald-200/90">
@@ -1939,6 +2100,8 @@ function MainPanel({ tracks }: { tracks: EduMusicTrack[] }) {
                 </p>
               )}
 
+              {track.source !== "youtube" && (
+              <>
               <div className="mt-4 grid grid-cols-2 gap-2 max-sm:grid-cols-1">
                 <button
                   type="button"
@@ -1964,206 +2127,24 @@ function MainPanel({ tracks }: { tracks: EduMusicTrack[] }) {
               <p className="mt-3 text-[11px] text-slate-500">
                 {tracks.length} canciones disponibles en la lista lateral izquierda.
               </p>
+              </>
+              )}
             </div>
           )}
         </div>
-        <MainNeonEqualizer />
       </section>
     </main>
   );
 }
 
 
-function MainNeonEqualizer() {
-  const music = useEduAIMusic();
-  const duration = music.durationSeconds || parseDuration(music.currentTrack.duration);
-  const progress = duration ? Math.min(100, (music.currentTime / duration) * 100) : 0;
-  const bars = Array.from({ length: 28 });
-  const currentArt = music.currentTrack.artworkUrl || music.currentTrack.videoThumbnail || (music.currentTrack.cover?.startsWith("http") ? music.currentTrack.cover : undefined);
-
-  return (
-    <section className="neon-now-compact relative mt-3 shrink-0 overflow-hidden rounded-3xl border border-emerald-400/20 bg-black/30 px-4 py-3 shadow-lg shadow-black/25">
-      <div className="neon-keyboard-line top" aria-hidden="true" />
-      <div className="flex items-center gap-4">
-        <div className="hidden shrink-0 md:block">
-          {currentArt ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={currentArt} alt={music.currentTrack.title} className="h-14 w-14 rounded-2xl object-cover shadow-xl shadow-black/30 ring-1 ring-emerald-300/20" />
-          ) : (
-            <Cover track={music.currentTrack} size="lg" />
-          )}
-        </div>
-        <div className="min-w-0 flex-[.8]">
-          <p className="text-[9px] font-black uppercase tracking-[0.24em] text-cyan-200">Ecualizador activo</p>
-          <h3 className="truncate text-sm font-black text-white">{music.currentTrack.title}</h3>
-          <p className="truncate text-[11px] text-slate-400">{music.currentTrack.artist} · {sourceLabel(music.currentTrack.source)}</p>
-        </div>
-        <div className="neon-visualizer-bars flex-1" aria-hidden="true">
-          {bars.map((_, index) => <span key={index} />)}
-        </div>
-        <div className="hidden min-w-[160px] text-right text-[10px] font-bold text-slate-400 lg:block">
-          <span>{formatSeconds(music.currentTime)}</span>
-          <span className="px-2 text-emerald-300">/</span>
-          <span>{formatSeconds(duration)}</span>
-          <div className="neon-progress-track mt-2" style={{ "--eduai-progress": `${progress}%` } as React.CSSProperties} />
-        </div>
-      </div>
-      <div className="neon-keyboard-line bottom" aria-hidden="true" />
-    </section>
-  );
-}
-
-function CenterPlaylistShelf() {
-  const music = useEduAIMusic();
-  const featuredPlaylists = music.playlists.filter((playlist) => playlist.trackIds.length > 0).slice(0, 4);
-  const currentArt = music.currentTrack.artworkUrl || music.currentTrack.videoThumbnail || (music.currentTrack.cover?.startsWith("http") ? music.currentTrack.cover : undefined);
-  const focusTracks = music.allTracks
-    .filter((track) => {
-      if (track.id === music.currentTrack.id) return false;
-      if (track.source === "radio" || track.source === "external") return false;
-      const text = `${track.title} ${track.artist} ${track.album || ""} ${track.mood || ""} ${track.tags?.join(" ") || ""}`.toLowerCase();
-      return (
-        ["focus", "calm", "reading", "deep", "creative", "classical"].includes(track.mood) ||
-        text.includes("focus") ||
-        text.includes("lofi") ||
-        text.includes("study") ||
-        text.includes("instrumental") ||
-        text.includes("aula") ||
-        text.includes("calm")
-      );
-    })
-    .slice(0, 6);
-
-  return (
-    <section className="neon-playlist-shelf mt-3 shrink-0 rounded-3xl border border-emerald-400/20 bg-[#07100f]/90 p-3 shadow-lg shadow-black/20">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="rainbow-edge rounded-2xl p-[1px]">
-            {currentArt ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={currentArt} alt={music.currentTrack.title} className="h-12 w-12 shrink-0 rounded-2xl object-cover shadow-lg shadow-black/30" />
-            ) : (
-              <div className="h-12 w-12 shrink-0 rounded-2xl bg-gradient-to-br from-cyan-300 via-fuchsia-500 to-emerald-300" />
-            )}
-          </div>
-          <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-cyan-200">Centro neon · Spotify + instrumental</p>
-            <h3 className="truncate text-sm font-black text-white">{music.currentTrack.title}</h3>
-            <p className="truncate text-[11px] text-slate-400">Las listas quedan ordenadas abajo para no tapar el reproductor principal.</p>
-          </div>
-        </div>
-        <div className="neon-eq hidden sm:inline-flex" aria-hidden="true"><span /><span /><span /><span /><span /></div>
-      </div>
-
-      <div className="grid gap-3 xl:grid-cols-[.82fr_1.18fr_.9fr]">
-        <div className="neon-current-card hidden overflow-hidden rounded-2xl border border-emerald-400/20 bg-black/35 p-3 md:block">
-          <div className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-black">
-            {currentArt ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={currentArt} alt={music.currentTrack.title} className="absolute inset-0 h-full w-full scale-105 object-cover opacity-76 blur-[1px]" />
-            ) : (
-              <div className="absolute inset-0 bg-gradient-to-br from-cyan-500 via-fuchsia-600 to-emerald-400" />
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
-            <div className="absolute inset-x-0 bottom-0 p-3">
-              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-200">Ahora sonando</p>
-              <p className="mt-1 line-clamp-1 text-sm font-black text-white">{music.currentTrack.title}</p>
-              <p className="line-clamp-1 text-[11px] font-semibold text-slate-300">{music.currentTrack.artist}</p>
-            </div>
-          </div>
-          <div className="mt-3 flex items-center justify-between gap-2">
-            <div className="neon-eq" aria-hidden="true"><span /><span /><span /><span /><span /></div>
-            <button type="button" onClick={() => music.setPlaying((value) => !value)} className="neon-metal-button rainbow-edge rounded-full px-3 py-1.5 text-[10px] font-black text-slate-950">
-              {music.playing ? "Pausar" : "Reproducir"}
-            </button>
-          </div>
-        </div>
-
-        <div className="min-w-0 overflow-hidden rounded-2xl border border-cyan-300/15 bg-black/25 p-2">
-          <div className="mb-2 flex items-center justify-between px-1">
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-200">Spotify visual</p>
-            <span className="rounded-full bg-white/8 px-2 py-1 text-[9px] font-bold text-slate-300">Embeds oficiales</span>
-          </div>
-          <div className="grid gap-2 md:grid-cols-2">
-            {SPOTIFY_EMBEDS.slice(0, 2).map((item) => (
-              <div key={item.id} className="neon-spotify-card overflow-hidden rounded-2xl border border-emerald-400/15 bg-black/35 p-2 shadow-lg shadow-black/25 transition">
-                <p className="mb-2 truncate px-1 text-[10px] font-black uppercase tracking-[0.12em] text-emerald-200">{item.title}</p>
-                <iframe
-                  data-testid="embed-iframe"
-                  title={item.title}
-                  style={{ borderRadius: 14 }}
-                  src={item.src}
-                  width="100%"
-                  height="132"
-                  frameBorder="0"
-                  allowFullScreen
-                  allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                  loading="lazy"
-                  className="block border-0"
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="min-w-0 rounded-2xl border border-fuchsia-300/15 bg-black/25 p-2">
-          <div className="mb-2 flex items-center justify-between px-1">
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-fuchsia-200">Instrumental / foco</p>
-            <button type="button" onClick={() => music.setSelectedMood("focus")} className="rounded-full bg-white/8 px-2 py-1 text-[9px] font-bold text-slate-300 hover:bg-emerald-400/15 hover:text-emerald-200">Ver foco</button>
-          </div>
-          <div className="grid max-h-[180px] gap-2 overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-1">
-            {focusTracks.map((track) => (
-              <button
-                key={track.id}
-                type="button"
-                onClick={() => music.playTrack(track, focusTracks)}
-                className="neon-instrumental-card group flex items-center gap-2 rounded-2xl border border-emerald-400/15 bg-white/6 p-2 text-left transition"
-              >
-                <Cover track={track} size="sm" />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[11px] font-black text-white">{track.title}</span>
-                  <span className="block truncate text-[9px] text-slate-500">{track.artist}</span>
-                </span>
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-400 text-slate-950 transition group-hover:scale-105">
-                  <Play className="h-3 w-3 translate-x-0.5" fill="currentColor" />
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-        {featuredPlaylists.map((playlist) => (
-          <button
-            key={playlist.id}
-            type="button"
-            onClick={() => {
-              music.setSelectedPlaylistId(playlist.id);
-              music.setView("playlists");
-              music.playPlaylist(playlist.id);
-            }}
-            className="neon-playlist-card group flex items-center gap-3 rounded-2xl border border-emerald-400/15 bg-white/6 p-2 text-left transition hover:border-emerald-300/40 hover:bg-emerald-400/10"
-          >
-            <Cover label={playlist.name} cover={playlist.cover} size="md" />
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-[11px] font-black text-white">{playlist.name}</span>
-              <span className="block truncate text-[9px] text-slate-500">{playlist.trackIds.length} canciones</span>
-            </span>
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-400 text-slate-950 opacity-90 transition group-hover:scale-105">
-              <Play className="h-3 w-3 translate-x-0.5" fill="currentColor" />
-            </span>
-          </button>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-
 function SideMusicHub() {
   const music = useEduAIMusic();
-  const featuredPlaylists = music.playlists.filter((playlist) => playlist.trackIds.length > 0).slice(0, 4);
+  const [spotifyOpen, setSpotifyOpen] = useState(true);
+  const [playlistsOpen, setPlaylistsOpen] = useState(false);
+  const [focusOpen, setFocusOpen] = useState(false);
+  const [activeSpotify, setActiveSpotify] = useState(0);
+  const featuredPlaylists = music.playlists.filter((playlist) => playlist.trackIds.length > 0).slice(0, 8);
   const focusTracks = music.allTracks
     .filter((track) => {
       if (track.id === music.currentTrack.id) return false;
@@ -2179,84 +2160,126 @@ function SideMusicHub() {
         text.includes("calm")
       );
     })
-    .slice(0, 6);
+    .slice(0, 8);
+
+  const activeEmbed = SPOTIFY_EMBEDS[activeSpotify] || SPOTIFY_EMBEDS[0];
 
   return (
     <section className="neon-panel neon-side-hub shrink-0 rounded-2xl border border-emerald-400/20 bg-[#07100f]/90 p-3">
       <div className="mb-3 flex items-center justify-between gap-2">
         <div className="min-w-0">
           <p className="text-sm font-black text-white">Playlists / foco</p>
-          <p className="truncate text-[10px] text-slate-400">Spotify, listas e instrumental quedan en panel lateral.</p>
+          <p className="truncate text-[10px] text-slate-400">Todo queda plegable para no tapar el video central.</p>
         </div>
-        <div className="neon-eq" aria-hidden="true"><span /><span /><span /><span /><span /></div>
       </div>
 
       <div className="space-y-2">
         <div className="neon-compact-card overflow-hidden rounded-2xl border border-emerald-400/15 bg-black/35 p-2">
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <p className="truncate text-[10px] font-black uppercase tracking-[0.18em] text-cyan-200">Spotify visual</p>
-            <span className="rounded-full bg-white/8 px-2 py-0.5 text-[9px] font-bold text-slate-300">embed</span>
-          </div>
-          <iframe
-            data-testid="embed-iframe"
-            title={SPOTIFY_EMBEDS[0].title}
-            style={{ borderRadius: 14 }}
-            src={SPOTIFY_EMBEDS[0].src}
-            width="100%"
-            height="92"
-            frameBorder="0"
-            allowFullScreen
-            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-            loading="lazy"
-            className="block border-0"
-          />
+          <button
+            type="button"
+            onClick={() => setSpotifyOpen((value) => !value)}
+            className="flex w-full items-center justify-between gap-2 text-left"
+          >
+            <span className="truncate text-[10px] font-black uppercase tracking-[0.18em] text-cyan-200">Spotify visual · {SPOTIFY_EMBEDS.length} listas</span>
+            <span className="neon-metal-button rounded-full px-2 py-0.5 text-[9px] font-black text-slate-950">{spotifyOpen ? "cerrar" : "abrir"}</span>
+          </button>
+          {spotifyOpen && (
+            <div className="mt-2 space-y-2">
+              <div className="grid grid-cols-2 gap-1.5">
+                {SPOTIFY_EMBEDS.map((item, index) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setActiveSpotify(index)}
+                    className={cn(
+                      "neon-control-button rounded-xl px-2 py-1.5 text-left text-[9px] font-black text-slate-200",
+                      index === activeSpotify && "is-active",
+                    )}
+                  >
+                    <span className="block truncate">{item.title}</span>
+                  </button>
+                ))}
+              </div>
+              <iframe
+                data-testid="embed-iframe"
+                title={activeEmbed.title}
+                style={{ borderRadius: 14 }}
+                src={activeEmbed.src}
+                width="100%"
+                height="96"
+                frameBorder="0"
+                allowFullScreen
+                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                loading="lazy"
+                className="block border-0"
+              />
+            </div>
+          )}
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          {featuredPlaylists.slice(0, 2).map((playlist) => (
-            <button
-              key={playlist.id}
-              type="button"
-              onClick={() => {
-                music.setSelectedPlaylistId(playlist.id);
-                music.setView("playlists");
-                music.playPlaylist(playlist.id);
-              }}
-              className="neon-compact-card group flex min-w-0 items-center gap-2 rounded-2xl border border-emerald-400/15 bg-white/6 p-2 text-left"
-            >
-              <Cover label={playlist.name} cover={playlist.cover} size="sm" />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-[10px] font-black text-white">{playlist.name}</span>
-                <span className="block truncate text-[8px] text-slate-500">{playlist.trackIds.length} canciones</span>
-              </span>
-            </button>
-          ))}
+        <div className="neon-compact-card rounded-2xl border border-emerald-400/15 bg-black/25 p-2">
+          <button
+            type="button"
+            onClick={() => setPlaylistsOpen((value) => !value)}
+            className="flex w-full items-center justify-between gap-2 text-left"
+          >
+            <span className="text-[10px] font-black uppercase tracking-[0.16em] text-emerald-200">Listas EduAI · {featuredPlaylists.length}</span>
+            <span className="neon-control-button rounded-full px-2 py-1 text-[9px] font-black text-slate-200">{playlistsOpen ? "ocultar" : "ver"}</span>
+          </button>
+          {playlistsOpen && (
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              {featuredPlaylists.map((playlist) => (
+                <button
+                  key={playlist.id}
+                  type="button"
+                  onClick={() => {
+                    music.setSelectedPlaylistId(playlist.id);
+                    music.setView("playlists");
+                    music.playPlaylist(playlist.id);
+                  }}
+                  className="neon-compact-card group flex min-w-0 items-center gap-2 rounded-2xl border border-emerald-400/15 bg-white/6 p-2 text-left"
+                >
+                  <Cover label={playlist.name} cover={playlist.cover} size="sm" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[10px] font-black text-white">{playlist.name}</span>
+                    <span className="block truncate text-[8px] text-slate-500">{playlist.trackIds.length} canciones</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="rounded-2xl border border-fuchsia-300/15 bg-black/25 p-2">
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-fuchsia-200">Instrumental</p>
-            <button type="button" onClick={() => music.setSelectedMood("focus")} className="neon-control-button rounded-full px-2 py-1 text-[9px] font-black text-slate-200">Ver foco</button>
-          </div>
-          <div className="max-h-[170px] space-y-1.5 overflow-y-auto pr-1">
-            {focusTracks.map((track) => (
-              <button
-                key={track.id}
-                type="button"
-                onClick={() => music.playTrack(track, focusTracks)}
-                className="neon-compact-card group flex w-full items-center gap-2 rounded-xl border border-emerald-400/15 bg-white/6 p-1.5 text-left"
-              >
-                <Cover track={track} size="xs" />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[10px] font-black text-white">{track.title}</span>
-                  <span className="block truncate text-[8px] text-slate-500">{track.artist}</span>
-                </span>
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-400 text-slate-950">
-                  <Play className="h-3 w-3 translate-x-0.5" fill="currentColor" />
-                </span>
-              </button>
-            ))}
-          </div>
+          <button
+            type="button"
+            onClick={() => setFocusOpen((value) => !value)}
+            className="flex w-full items-center justify-between gap-2 text-left"
+          >
+            <span className="text-[10px] font-black uppercase tracking-[0.16em] text-fuchsia-200">Instrumental / foco · {focusTracks.length}</span>
+            <span className="neon-control-button rounded-full px-2 py-1 text-[9px] font-black text-slate-200">{focusOpen ? "cerrar" : "abrir"}</span>
+          </button>
+          {focusOpen && (
+            <div className="mt-2 max-h-[220px] space-y-1.5 overflow-y-auto pr-1">
+              {focusTracks.map((track) => (
+                <button
+                  key={track.id}
+                  type="button"
+                  onClick={() => music.playTrack(track, focusTracks)}
+                  className="neon-compact-card group flex w-full items-center gap-2 rounded-xl border border-emerald-400/15 bg-white/6 p-1.5 text-left"
+                >
+                  <Cover track={track} size="xs" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[10px] font-black text-white">{track.title}</span>
+                    <span className="block truncate text-[8px] text-slate-500">{track.artist}</span>
+                  </span>
+                  <span className="neon-metal-button flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-slate-950">
+                    <Play className="h-3 w-3 translate-x-0.5" fill="currentColor" />
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </section>
@@ -2416,10 +2439,10 @@ function BottomPlayer() {
   const music = useEduAIMusic();
   const duration = music.durationSeconds || parseDuration(music.currentTrack.duration);
   const progress = duration ? Math.min(100, (music.currentTime / duration) * 100) : 0;
-  const bars = Array.from({ length: 44 });
+  const bars = music.audioLevels?.length ? music.audioLevels : Array.from({ length: 36 }, () => 0.1);
 
   return (
-    <footer className="neon-bottom-visualizer relative flex h-[82px] shrink-0 items-center gap-4 border-t border-emerald-400/20 bg-[#03090a]/95 px-4 text-white">
+    <footer className="neon-bottom-visualizer neon-single-eq-footer relative flex h-[96px] shrink-0 items-center gap-4 border-t border-emerald-400/20 bg-[#03090a]/95 px-4 text-white">
       <div className="neon-keyboard-line top" aria-hidden="true" />
       <div className="flex min-w-0 items-center gap-3" style={{ width: 330 }}>
         <Cover track={music.currentTrack} size="md" />
@@ -2438,7 +2461,22 @@ function BottomPlayer() {
 
       <div className="min-w-0 flex-1">
         <div className="neon-visualizer-bars mx-auto" aria-hidden="true">
-          {bars.map((_, index) => <span key={index} />)}
+          {bars.map((level, index) => {
+            const height = Math.max(6, Math.min(52, Math.round(7 + level * 48)));
+            const hue = (index * 17 + Math.round((music.currentTime || 0) * 24)) % 360;
+            return (
+              <span
+                key={index}
+                style={{
+                  "--eq-height": `${height}px`,
+                  "--eq-opacity": `${0.52 + Math.min(0.48, level * 0.5)}`,
+                  "--eq-a": `hsl(${hue} 100% 62%)`,
+                  "--eq-b": `hsl(${(hue + 82) % 360} 100% 64%)`,
+                  "--eq-c": `hsl(${(hue + 154) % 360} 100% 58%)`,
+                } as React.CSSProperties}
+              />
+            );
+          })}
         </div>
         <div className="mt-1 flex items-center gap-2 text-[10px] font-bold text-slate-500">
           <span className="w-9 text-right">{formatSeconds(music.currentTime)}</span>
@@ -2638,6 +2676,7 @@ export default function EduAIMusicPlayer({
 }: Props) {
   const music = useEduAIMusic();
   const setPendingTrackId = music.setPendingTrackId;
+  const [libraryOpen, setLibraryOpen] = useState(true);
 
   useEffect(() => {
     if (mode === "page") setPendingTrackId(null);
@@ -2664,9 +2703,9 @@ export default function EduAIMusicPlayer({
         <TopBar />
         <div
           className="grid min-h-0 flex-1 overflow-hidden"
-          style={{ gridTemplateColumns: "300px minmax(0, 1fr) 340px" }}
+          style={{ gridTemplateColumns: libraryOpen ? "300px minmax(0, 1fr) 340px" : "74px minmax(0, 1fr) 340px" }}
         >
-          <Sidebar tracks={tracksForMain} />
+          <Sidebar tracks={tracksForMain} collapsed={!libraryOpen} onToggleCollapsed={() => setLibraryOpen((value) => !value)} />
           <MainPanel tracks={tracksForMain} />
           <RightPanel />
         </div>
