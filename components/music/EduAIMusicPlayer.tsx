@@ -1130,6 +1130,142 @@ function NeonGamingSkin() {
         50% { filter: brightness(1.10) saturate(1.20); }
       }
 
+
+      /* === EduAI Music vNext: interfaz simple + botones verde metálico homogéneos === */
+      .eduai-music-neon.simple-metal-ui {
+        --metal-green-1: #eaffd8;
+        --metal-green-2: #83ff9f;
+        --metal-green-3: #00d978;
+        --metal-green-4: #007a46;
+        --rgb-flow: linear-gradient(90deg,#39ff72,#00e7ff,#6d7cff,#c05cff,#ff5578,#ffe66d,#39ff72);
+        background:
+          radial-gradient(circle at 18% 12%, rgba(0, 225, 255, .14), transparent 30%),
+          radial-gradient(circle at 82% 18%, rgba(139, 92, 246, .15), transparent 34%),
+          radial-gradient(circle at 48% 92%, rgba(0, 217, 120, .12), transparent 38%),
+          linear-gradient(135deg, #020705 0%, #07100d 40%, #060715 72%, #020403 100%) !important;
+      }
+
+      .eduai-music-neon.simple-metal-ui::before {
+        opacity: .34 !important;
+        filter: none !important;
+        animation-duration: 42s !important;
+        background:
+          linear-gradient(115deg, transparent 0 18%, rgba(0,231,255,.09) 24%, transparent 35%, rgba(192,92,255,.08) 46%, transparent 60%, rgba(57,255,114,.09) 72%, transparent 86%),
+          repeating-linear-gradient(90deg, rgba(255,255,255,.018) 0 1px, transparent 1px 34px) !important;
+      }
+
+      .eduai-music-neon.simple-metal-ui::after { opacity: .08 !important; animation: none !important; }
+      .eduai-music-neon.simple-metal-ui.youtube-active::before,
+      .eduai-music-neon.simple-metal-ui.youtube-active::after { opacity: .10 !important; }
+
+      .eduai-music-neon.simple-metal-ui .simple-shell-panel,
+      .eduai-music-neon.simple-metal-ui .neon-panel,
+      .eduai-music-neon.simple-metal-ui .neon-stage,
+      .eduai-music-neon.simple-metal-ui .neon-player-frame,
+      .eduai-music-neon.simple-metal-ui .simple-metal-frame {
+        border: 1px solid transparent !important;
+        background:
+          linear-gradient(145deg, rgba(2,8,8,.94), rgba(6,8,18,.88)) padding-box,
+          linear-gradient(105deg, rgba(57,255,114,.78), rgba(0,231,255,.62), rgba(109,124,255,.56), rgba(192,92,255,.50), rgba(57,255,114,.78)) border-box !important;
+        background-size: 100% 100%, 320% 100% !important;
+        animation: eduai-rgb-slow-border 18s linear infinite !important;
+        box-shadow: 0 16px 36px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.055) !important;
+      }
+
+      .eduai-music-neon.simple-metal-ui button:not(.plain-link-button):not(.simple-track-button),
+      .eduai-music-neon.simple-metal-ui a.neon-metal-button,
+      .eduai-music-neon.simple-metal-ui .neon-metal-button,
+      .eduai-music-neon.simple-metal-ui .neon-accent-button,
+      .eduai-music-neon.simple-metal-ui .neon-control-button,
+      .eduai-music-neon.simple-metal-ui .simple-metal-button {
+        border: 1px solid transparent !important;
+        color: #03130b !important;
+        background:
+          linear-gradient(145deg, rgba(235,255,222,.98) 0%, rgba(100,255,143,.98) 18%, rgba(0,213,117,.98) 45%, rgba(0,122,70,.98) 78%, rgba(226,255,236,.98) 100%) padding-box,
+          var(--rgb-flow) border-box !important;
+        background-size: 100% 100%, 420% 100% !important;
+        animation: eduai-metal-button-flow 8s linear infinite !important;
+        box-shadow:
+          inset 0 1px 0 rgba(255,255,255,.75),
+          inset 0 -10px 18px rgba(0,74,36,.22),
+          0 8px 18px rgba(0,0,0,.32),
+          0 0 12px rgba(57,255,114,.18) !important;
+        text-shadow: 0 1px 0 rgba(255,255,255,.35) !important;
+      }
+
+      .eduai-music-neon.simple-metal-ui button:not(.plain-link-button):not(.simple-track-button):hover,
+      .eduai-music-neon.simple-metal-ui .simple-metal-button:hover,
+      .eduai-music-neon.simple-metal-ui .neon-metal-button:hover,
+      .eduai-music-neon.simple-metal-ui .neon-accent-button:hover,
+      .eduai-music-neon.simple-metal-ui .neon-control-button:hover {
+        transform: translateY(-1px) !important;
+        filter: brightness(1.07) saturate(1.08) !important;
+        box-shadow:
+          inset 0 1px 0 rgba(255,255,255,.82),
+          inset 0 -10px 18px rgba(0,74,36,.18),
+          0 10px 22px rgba(0,0,0,.34),
+          0 0 18px rgba(57,255,114,.24) !important;
+      }
+
+      .eduai-music-neon.simple-metal-ui button:not(.plain-link-button):not(.simple-track-button):active,
+      .eduai-music-neon.simple-metal-ui .simple-metal-button:active,
+      .eduai-music-neon.simple-metal-ui .neon-metal-button:active,
+      .eduai-music-neon.simple-metal-ui .neon-accent-button:active,
+      .eduai-music-neon.simple-metal-ui .neon-control-button:active {
+        transform: translateY(1px) scale(.985) !important;
+        filter: brightness(.9) saturate(1.1) !important;
+        box-shadow:
+          inset 0 8px 18px rgba(0,42,24,.36),
+          inset 0 1px 0 rgba(255,255,255,.35),
+          0 4px 10px rgba(0,0,0,.36) !important;
+      }
+
+      .eduai-music-neon.simple-metal-ui .simple-track-button {
+        border: 1px solid rgba(57,255,114,.14) !important;
+        background: rgba(0,0,0,.22) !important;
+        color: rgba(226,232,240,.95) !important;
+        box-shadow: none !important;
+      }
+      .eduai-music-neon.simple-metal-ui .simple-track-button.is-active {
+        border-color: rgba(57,255,114,.38) !important;
+        background: rgba(57,255,114,.12) !important;
+      }
+
+      .eduai-music-neon.simple-metal-ui .simple-main-grid {
+        transition: grid-template-columns .28s ease;
+      }
+
+      .eduai-music-neon.simple-metal-ui .simple-video-box {
+        width: min(100%, 980px);
+        margin-inline: auto;
+      }
+
+      .eduai-music-neon.simple-metal-ui .simple-video-box iframe,
+      .eduai-music-neon.simple-metal-ui .simple-video-box img {
+        transform: translateZ(0);
+        will-change: auto;
+      }
+
+      .eduai-music-neon.simple-metal-ui .simple-bottom-player {
+        height: 88px !important;
+        background: rgba(1,5,7,.96) !important;
+        backdrop-filter: none !important;
+      }
+
+      .eduai-music-neon.simple-metal-ui .neon-visualizer-bars span {
+        animation-duration: .72s !important;
+        box-shadow: 0 0 6px rgba(0,231,255,.18) !important;
+      }
+
+      @keyframes eduai-rgb-slow-border {
+        0% { background-position: 0 0, 0% 50%; }
+        100% { background-position: 0 0, 320% 50%; }
+      }
+      @keyframes eduai-metal-button-flow {
+        0% { background-position: 0 0, 0% 50%; }
+        100% { background-position: 0 0, 420% 50%; }
+      }
+
       @media (prefers-reduced-motion: reduce) {
         .eduai-music-neon button,
         .eduai-music-neon a.rounded-full,
@@ -1316,7 +1452,7 @@ function SidebarTrackRow({
       type="button"
       onClick={() => music.playTrack(track, tracks)}
       className={cn(
-        "flex h-12 w-full items-center gap-2 rounded-xl px-2 text-left transition",
+        "simple-track-button flex h-12 w-full items-center gap-2 rounded-xl px-2 text-left transition",
         active
           ? "bg-emerald-400/14 text-white ring-1 ring-emerald-400/35"
           : "text-slate-300 hover:bg-white/7 hover:text-white",
@@ -1368,7 +1504,7 @@ function TableTrackRow({
   return (
     <div
       className={cn(
-        "group flex h-12 items-center gap-3 rounded-xl px-3 transition",
+        "simple-track-button group flex h-12 items-center gap-3 rounded-xl px-3 transition",
         active
           ? "bg-emerald-400/12 text-white ring-1 ring-emerald-400/25"
           : "text-slate-300 hover:bg-white/7 hover:text-white",
@@ -1525,7 +1661,7 @@ function TopBar() {
 
       <Link
         href="/agentes"
-        className="ml-auto inline-flex shrink-0 items-center gap-2 rounded-full border border-white/10 bg-white/8 px-4 py-2 text-xs font-bold text-slate-200 transition hover:bg-white/12 hover:text-white"
+        className="neon-metal-button ml-auto inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-xs font-black"
       >
         <ArrowLeft className="h-4 w-4" /> Volver
       </Link>
@@ -1601,7 +1737,7 @@ function RadioPanel() {
                 type="button"
                 onClick={() => music.playTrack(track, music.radioTracks)}
                 className={cn(
-                  "flex w-full items-center gap-2 rounded-xl px-2 py-1.5 text-left transition",
+                  "simple-track-button flex w-full items-center gap-2 rounded-xl px-2 py-1.5 text-left transition",
                   active ? "bg-emerald-400/15 text-white ring-1 ring-emerald-400/30" : "hover:bg-white/7",
                 )}
               >
@@ -2187,11 +2323,11 @@ function YouTubeDirectPlayer({ track, artwork }: { track: EduMusicTrack; artwork
       <button
         type="button"
         onClick={() => music.setPlaying(true)}
-        className="neon-player-frame group relative h-full min-h-[420px] w-full overflow-hidden bg-black text-left transition hover:scale-[1.005] hover:border-emerald-300/50"
+        className="simple-video-box neon-player-frame group relative aspect-video w-full overflow-hidden bg-black text-left transition hover:scale-[1.002] hover:border-emerald-300/50"
       >
         {thumb ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={thumb} alt={track.title} className="h-full w-full object-cover opacity-82" />
+          <img src={thumb} alt={track.title} className="h-full w-full object-contain bg-black opacity-90" />
         ) : (
           <div className="h-full w-full bg-gradient-to-br from-red-500 via-slate-950 to-emerald-500" />
         )}
@@ -2212,12 +2348,12 @@ function YouTubeDirectPlayer({ track, artwork }: { track: EduMusicTrack; artwork
   }
 
   return (
-    <div className="neon-player-frame overflow-hidden bg-black">
+    <div className="simple-video-box neon-player-frame overflow-hidden bg-black">
       <iframe
         key={`${track.id}-${music.playing ? "play" : "pause"}`}
         src={embedUrl}
         title={`${track.title} - YouTube`}
-        className="h-full min-h-[420px] w-full border-0 bg-black"
+        className="aspect-video w-full border-0 bg-black"
         allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
         allowFullScreen
         loading="eager"
@@ -2254,14 +2390,14 @@ function CurrentTrackArtwork({ track }: { track: EduMusicTrack }) {
       <img
         src={artwork}
         alt={track.title}
-        className="h-44 w-44 rounded-3xl object-cover shadow-2xl shadow-black/35 ring-1 ring-white/10 max-xl:h-36 max-xl:w-36"
+        className="h-40 w-40 rounded-3xl object-cover shadow-xl shadow-black/30 ring-1 ring-white/10 max-xl:h-32 max-xl:w-32"
       />
     );
   }
 
   return (
     <div
-      className="flex h-44 w-44 flex-col items-center justify-center rounded-3xl p-5 text-center shadow-2xl shadow-black/35 ring-1 ring-white/10 max-xl:h-36 max-xl:w-36"
+      className="flex h-40 w-40 flex-col items-center justify-center rounded-3xl p-5 text-center shadow-xl shadow-black/30 ring-1 ring-white/10 max-xl:h-32 max-xl:w-32"
       style={{ background: track.cover || "linear-gradient(135deg,#34d399,#0f766e)" }}
     >
       <span className="text-4xl font-black text-slate-950 max-xl:text-3xl">
@@ -2286,7 +2422,7 @@ function MainPanel({ tracks }: { tracks: EduMusicTrack[] }) {
 
   return (
     <main className="flex min-h-0 min-w-0 flex-col bg-transparent p-2.5 text-white">
-      <section className="neon-panel flex min-h-0 flex-1 flex-col rounded-3xl border border-emerald-400/20 bg-[#07100f]/90 p-4 shadow-lg shadow-black/20">
+      <section className="neon-panel flex min-h-0 flex-1 flex-col rounded-3xl border border-emerald-400/20 bg-[#07100f]/90 p-3 shadow-lg shadow-black/20">
         <div className="mb-3 flex items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-300">
@@ -2296,7 +2432,7 @@ function MainPanel({ tracks }: { tracks: EduMusicTrack[] }) {
               {playlist.name}
             </h2>
             <p className="truncate text-xs text-slate-400">
-              El video/canción actual queda arriba y las playlists aparecen al centro.
+              Vista limpia: el centro queda solo para video o imagen.
             </p>
           </div>
           <button
@@ -2308,7 +2444,7 @@ function MainPanel({ tracks }: { tracks: EduMusicTrack[] }) {
           </button>
         </div>
 
-        <div className={cn("neon-stage flex min-h-0 flex-1 items-center justify-center rounded-[2rem] border border-emerald-400/20 p-3", track.source === "youtube" && "p-4")}>
+        <div className={cn("neon-stage flex min-h-0 flex-1 items-center justify-center rounded-[2rem] border border-emerald-400/20 p-3", track.source === "youtube" && "p-2")}>
           {embedTrack ? (
             <div className="w-full max-w-4xl rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-center shadow-xl shadow-black/25 backdrop-blur-xl max-xl:p-4">
               <div className="mx-auto max-w-xl">
@@ -2373,7 +2509,7 @@ function MainPanel({ tracks }: { tracks: EduMusicTrack[] }) {
           ) : (
             <div
               className={cn(
-                "neon-current-card w-full rounded-[1.8rem] border border-emerald-400/20 bg-black/20 p-3 text-center shadow-xl shadow-black/25 backdrop-blur-xl max-xl:p-3",
+                "neon-current-card w-full rounded-[1.8rem] border border-emerald-400/20 bg-black/20 p-3 text-center shadow-xl shadow-black/25 max-xl:p-3",
                 track.source === "youtube" ? "h-full max-w-none" : track.source === "itunes" ? "max-w-4xl" : "max-w-2xl",
               )}
             >
@@ -2514,7 +2650,7 @@ function SideMusicHub() {
           <button
             type="button"
             onClick={() => setSpotifyOpen((value) => !value)}
-            className="flex w-full items-center justify-between gap-2 text-left"
+            className="plain-link-button flex w-full items-center justify-between gap-2 text-left"
           >
             <span className="truncate text-[10px] font-black uppercase tracking-[0.18em] text-cyan-200">Spotify visual · {SPOTIFY_EMBEDS.length} listas</span>
             <span className="neon-metal-button rounded-full px-2 py-0.5 text-[9px] font-black text-slate-950">{spotifyOpen ? "cerrar" : "abrir"}</span>
@@ -2557,7 +2693,7 @@ function SideMusicHub() {
           <button
             type="button"
             onClick={() => setPlaylistsOpen((value) => !value)}
-            className="flex w-full items-center justify-between gap-2 text-left"
+            className="plain-link-button flex w-full items-center justify-between gap-2 text-left"
           >
             <span className="text-[10px] font-black uppercase tracking-[0.16em] text-emerald-200">Listas EduAI · {featuredPlaylists.length}</span>
             <span className="neon-control-button rounded-full px-2 py-1 text-[9px] font-black text-slate-200">{playlistsOpen ? "ocultar" : "ver"}</span>
@@ -2590,7 +2726,7 @@ function SideMusicHub() {
           <button
             type="button"
             onClick={() => setFocusOpen((value) => !value)}
-            className="flex w-full items-center justify-between gap-2 text-left"
+            className="plain-link-button flex w-full items-center justify-between gap-2 text-left"
           >
             <span className="text-[10px] font-black uppercase tracking-[0.16em] text-fuchsia-200">Instrumental / foco · {focusTracks.length}</span>
             <span className="neon-control-button rounded-full px-2 py-1 text-[9px] font-black text-slate-200">{focusOpen ? "cerrar" : "abrir"}</span>
@@ -2622,19 +2758,69 @@ function SideMusicHub() {
   );
 }
 
-function RightPanel() {
+function RightPanel({ collapsed, onToggleCollapsed }: { collapsed: boolean; onToggleCollapsed: () => void }) {
   const music = useEduAIMusic();
   const [youtubeQuery, setYoutubeQuery] = useState("música para estudiar sin letra");
   const related = music.allTracks
     .filter((track) => track.mood === music.currentTrack.mood && track.id !== music.currentTrack.id)
     .slice(0, 6);
 
+  if (collapsed) {
+    return (
+      <aside className="flex min-h-0 flex-col items-center gap-2 border-l border-emerald-400/15 bg-[#03090a]/92 p-2 text-white">
+        <button
+          type="button"
+          onClick={onToggleCollapsed}
+          className="simple-metal-button inline-flex h-12 w-12 items-center justify-center rounded-2xl"
+          title="Abrir búsqueda y playlists"
+          aria-label="Abrir búsqueda y playlists"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+        <button
+          type="button"
+          onClick={onToggleCollapsed}
+          className="simple-metal-button inline-flex h-12 w-12 items-center justify-center rounded-2xl"
+          title="Buscar canciones"
+          aria-label="Buscar canciones"
+        >
+          <Search className="h-5 w-5" />
+        </button>
+        <button
+          type="button"
+          onClick={onToggleCollapsed}
+          className="simple-metal-button inline-flex h-12 w-12 items-center justify-center rounded-2xl"
+          title="Playlists"
+          aria-label="Playlists"
+        >
+          <ListMusic className="h-5 w-5" />
+        </button>
+        <div className="mt-auto flex flex-col items-center gap-2 rounded-2xl border border-emerald-400/15 bg-black/30 p-2">
+          <Cover track={music.currentTrack} size="sm" />
+          <span className="max-w-10 truncate text-center text-[9px] font-black text-emerald-200">Now</span>
+        </div>
+      </aside>
+    );
+  }
+
   return (
-    <aside className="flex min-h-0 min-w-0 flex-col gap-2.5 overflow-y-auto border-l border-emerald-400/15 bg-[#03090a]/90 p-2.5 text-white">
+    <aside className="flex min-h-0 min-w-0 flex-col gap-2.5 overflow-y-auto border-l border-emerald-400/15 bg-[#03090a]/92 p-2.5 text-white">
+      <div className="sticky top-0 z-10 flex items-center justify-between rounded-2xl border border-emerald-400/15 bg-black/45 p-2 backdrop-blur-sm">
+        <span className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-200">Panel lateral</span>
+        <button
+          type="button"
+          onClick={onToggleCollapsed}
+          className="simple-metal-button inline-flex h-8 items-center gap-1 rounded-full px-3 text-[10px] font-black"
+          title="Cerrar panel lateral"
+        >
+          <Menu className="h-3.5 w-3.5" /> Cerrar
+        </button>
+      </div>
+
       <section className="shrink-0 neon-panel rounded-2xl border border-emerald-400/20 bg-[#07100f]/90 p-3">
         <p className="text-sm font-black text-white">Buscar canciones</p>
         <p className="mt-1 text-xs text-slate-400">
-          Busca canciones completas, previews DJ o pega un link de YouTube/playlist/radio para reproducirlo al centro.
+          Busca canciones, pega links de YouTube o carga una radio/lista al centro.
         </p>
         <div className="mt-3 flex gap-2">
           <input
@@ -2648,13 +2834,13 @@ function RightPanel() {
             type="button"
             onClick={() => void music.searchOnline()}
             disabled={music.onlineLoading}
-            className="neon-accent-button rounded-full px-4 py-2 text-xs font-black disabled:opacity-50"
+            className="simple-metal-button rounded-full px-4 py-2 text-xs font-black disabled:opacity-50"
           >
             {music.onlineLoading ? "..." : "Buscar"}
           </button>
         </div>
         {music.onlineError && <p className="mt-2 text-xs font-bold text-rose-300">{music.onlineError}</p>}
-        <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] font-black uppercase tracking-wide">
+        <div className="mt-2 grid grid-cols-2 gap-1.5 text-[10px] font-black uppercase tracking-wide">
           {[
             { id: "full", label: "Completas" },
             { id: "preview", label: "DJ 30s" },
@@ -2670,24 +2856,16 @@ function RightPanel() {
                   music.setOnlineProviderMode(provider);
                   if (music.onlineQuery.trim()) void music.searchOnline(undefined, provider);
                 }}
-                className={cn(
-                  "rounded-full px-2 py-1 transition",
-                  music.onlineProviderMode === item.id
-                    ? "bg-emerald-400 text-slate-950"
-                    : "bg-white/8 text-slate-300 hover:bg-emerald-400/12 hover:text-emerald-200",
-                )}
+                className={cn("simple-metal-button rounded-full px-2 py-1 transition", music.onlineProviderMode === item.id && "is-active")}
               >
                 {item.label}
               </button>
             );
           })}
         </div>
-        <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
-          DJ 30s usa un solo audio estable: iTunes preview. Si hay video, se muestra como visual silenciado; si falla o no existe, queda la imagen de fondo con audio.
-        </p>
       </section>
 
-      <section className="flex min-h-0 flex-[0.65] flex-col neon-panel rounded-2xl border border-emerald-400/20 bg-[#07100f]/90 p-3">
+      <section className="flex min-h-[150px] flex-col neon-panel rounded-2xl border border-emerald-400/20 bg-[#07100f]/90 p-3">
         <div className="mb-2 flex items-center justify-between">
           <p className="text-sm font-black text-white">Resultados online</p>
           <button
@@ -2696,16 +2874,15 @@ function RightPanel() {
               music.setSelectedPlaylistId("pl-online");
               music.setView("search");
             }}
-            className="text-xs font-bold text-emerald-300 hover:underline"
+            className="simple-metal-button rounded-full px-3 py-1 text-[10px] font-black"
           >
-            ver todos
+            Ver todos
           </button>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-          <SidebarTrackList tracks={music.onlineTracks.length ? music.onlineTracks : related} limit={12} />
+        <div className="min-h-0 max-h-[210px] overflow-y-auto pr-1">
+          <SidebarTrackList tracks={music.onlineTracks.length ? music.onlineTracks : related} limit={8} />
         </div>
       </section>
-
 
       <section className="shrink-0 neon-panel rounded-2xl border border-emerald-400/20 bg-[#07100f]/90 p-3">
         <p className="text-sm font-black text-white">Ahora suena</p>
@@ -2722,7 +2899,7 @@ function RightPanel() {
             href={music.currentTrack.externalUrl}
             target="_blank"
             rel="noreferrer"
-            className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-emerald-300 hover:underline"
+            className="plain-link-button mt-3 inline-flex items-center gap-1 text-xs font-bold text-emerald-300 hover:underline"
           >
             Abrir fuente <ExternalLink className="h-3 w-3" />
           </a>
@@ -2744,7 +2921,7 @@ function RightPanel() {
             href={youtubeSearchUrl(youtubeQuery)}
             target="_blank"
             rel="noreferrer"
-            className="rounded-full bg-white/8 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-emerald-400/10 hover:text-emerald-200"
+            className="neon-metal-button rounded-full px-3 py-2 text-xs font-bold"
           >
             Abrir
           </a>
@@ -2756,7 +2933,7 @@ function RightPanel() {
               href={item.url}
               target="_blank"
               rel="noreferrer"
-              className="flex items-center justify-between gap-2 rounded-xl px-2 py-1.5 text-xs hover:bg-white/7"
+              className="plain-link-button flex items-center justify-between gap-2 rounded-xl px-2 py-1.5 text-xs hover:bg-white/7"
             >
               <span className="min-w-0">
                 <span className="block truncate font-bold text-slate-200">{item.name}</span>
@@ -2775,10 +2952,10 @@ function BottomPlayer() {
   const music = useEduAIMusic();
   const duration = music.durationSeconds || parseDuration(music.currentTrack.duration);
   const progress = duration ? Math.min(100, (music.currentTime / duration) * 100) : 0;
-  const bars = (music.audioLevels?.length ? music.audioLevels : Array.from({ length: 28 }, () => 0.1)).slice(0, 28);
+  const bars = (music.audioLevels?.length ? music.audioLevels : Array.from({ length: 24 }, () => 0.1)).slice(0, 24);
 
   return (
-    <footer className="neon-bottom-visualizer neon-single-eq-footer relative flex h-[96px] shrink-0 items-center gap-4 border-t border-emerald-400/20 bg-[#03090a]/95 px-4 text-white">
+    <footer className="simple-bottom-player neon-bottom-visualizer neon-single-eq-footer relative flex h-[88px] shrink-0 items-center gap-4 border-t border-emerald-400/20 bg-[#03090a]/95 px-4 text-white">
       <div className="neon-keyboard-line top" aria-hidden="true" />
       <div className="flex min-w-0 items-center gap-3" style={{ width: 330 }}>
         <Cover track={music.currentTrack} size="md" />
@@ -3012,7 +3189,8 @@ export default function EduAIMusicPlayer({
 }: Props) {
   const music = useEduAIMusic();
   const setPendingTrackId = music.setPendingTrackId;
-  const [libraryOpen, setLibraryOpen] = useState(true);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const [rightPanelOpen, setRightPanelOpen] = useState(false);
 
   useEffect(() => {
     if (mode === "page") setPendingTrackId(null);
@@ -3033,17 +3211,17 @@ export default function EduAIMusicPlayer({
   if (mode === "panel") return <CompactPanel onOpenPanel={onOpenPanel} />;
 
   return (
-    <div className={cn("eduai-music-neon h-screen min-h-[680px] overflow-hidden bg-[#020403] text-white", music.currentTrack.source === "youtube" && "youtube-active")}>
+    <div className={cn("eduai-music-neon simple-metal-ui h-screen min-h-[680px] overflow-hidden bg-[#020403] text-white", music.currentTrack.source === "youtube" && "youtube-active")}>
       <NeonGamingSkin />
       <div className="flex h-full flex-col">
         <TopBar />
         <div
-          className="grid min-h-0 flex-1 overflow-hidden"
-          style={{ gridTemplateColumns: libraryOpen ? "300px minmax(0, 1fr) 340px" : "74px minmax(0, 1fr) 340px" }}
+          className="simple-main-grid grid min-h-0 flex-1 overflow-hidden"
+          style={{ gridTemplateColumns: `${libraryOpen ? "300px" : "74px"} minmax(0, 1fr) ${rightPanelOpen ? "340px" : "74px"}` }}
         >
           <Sidebar tracks={tracksForMain} collapsed={!libraryOpen} onToggleCollapsed={() => setLibraryOpen((value) => !value)} />
           <MainPanel tracks={tracksForMain} />
-          <RightPanel />
+          <RightPanel collapsed={!rightPanelOpen} onToggleCollapsed={() => setRightPanelOpen((value) => !value)} />
         </div>
         <BottomPlayer />
       </div>
