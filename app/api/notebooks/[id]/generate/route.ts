@@ -13,6 +13,7 @@ import {
   buildPodcastPrompt, buildFlashcardsPrompt, buildTimelinePrompt,
 } from "@/lib/notebook/prompts"
 import type { NotebookOutputFormat } from "@/lib/notebook/types"
+import { buildDesignPromptDirective, getDesignTemplateSummary } from "@/lib/design-templates/registry"
 
 export const maxDuration = 90
 
@@ -80,7 +81,8 @@ export async function POST(request: NextRequest, { params }: Params) {
     if (!nb) return NextResponse.json({ error: "No encontrado" }, { status: 404 })
 
     const body = await request.json().catch(() => ({}))
-    const { format, topicHint } = body as { format: NotebookOutputFormat; topicHint?: string }
+    const { format, topicHint, designTemplateId } = body as { format: NotebookOutputFormat; topicHint?: string; designTemplateId?: string }
+    const designFormat = format === "presentation" ? "ppt" : format
 
     const VALID: NotebookOutputFormat[] = [
       "infographic","mindmap","quiz","podcast","flashcards","timeline",
@@ -137,6 +139,8 @@ CONTENIDO: ${contentBase.slice(0, 5000)}
 Responde SOLO en JSON bien estructurado.`
     }
 
+    prompt += buildDesignPromptDirective(designTemplateId, designFormat)
+
     // ─── Llamar AI ────────────────────────────────────────────────────────────
 
     let outputJson: Record<string, unknown>
@@ -173,6 +177,8 @@ Responde SOLO en JSON bien estructurado.`
         outputJson._hasImageSuggestion = true
       }
     }
+
+    outputJson._design = getDesignTemplateSummary(designTemplateId, designFormat)
 
     // ─── Guardar output ────────────────────────────────────────────────────────
 
