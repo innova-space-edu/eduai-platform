@@ -29,7 +29,7 @@ import {
   type EduMusicPlaylist,
   type EduMusicTrack,
 } from "@/lib/music/eduai-music-catalog";
-import { useEduAIMusic } from "@/components/music/MusicProvider";
+import { YOUTUBE_PLAYER_ID, useEduAIMusic } from "@/components/music/MusicProvider";
 
 type PlayerMode = "panel" | "mini" | "page";
 
@@ -882,19 +882,22 @@ function CurrentTrackArtwork({ track }: { track: EduMusicTrack }) {
 
   if (track.source === "youtube") {
     return (
-      <div className="relative aspect-video w-full max-w-[460px] overflow-hidden rounded-2xl border border-emerald-400/20 bg-black shadow-xl shadow-black/30">
-        {artwork ? (
+      <div className="relative aspect-video w-full max-w-[620px] overflow-hidden rounded-3xl border border-red-400/25 bg-black shadow-2xl shadow-black/40 ring-1 ring-white/10">
+        <div id={YOUTUBE_PLAYER_ID} className="absolute inset-0 h-full w-full bg-black" />
+        {artwork && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={artwork} alt={track.title} className="h-full w-full object-cover opacity-75" />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-red-500 to-slate-950" />
+          <img
+            src={artwork}
+            alt={track.title}
+            className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-500"
+          />
         )}
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/35 p-4 text-center">
-          <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-red-500 text-white shadow-lg">
-            <Play className="h-5 w-5 translate-x-0.5" fill="currentColor" />
-          </div>
-          <p className="text-xs font-black uppercase tracking-[0.16em] text-white">YouTube controlado por EduAI</p>
-          <p className="mt-1 max-w-sm text-[11px] font-semibold text-slate-200">Usa play, pausa, anterior y siguiente desde el reproductor central. Al terminar, pasa al siguiente resultado de la cola.</p>
+        <div className="pointer-events-none absolute left-3 top-3 rounded-full bg-red-500/90 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-white shadow-lg shadow-red-950/30">
+          YouTube · cola automática
+        </div>
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent p-4 text-left">
+          <p className="line-clamp-1 text-sm font-black text-white drop-shadow">{track.title}</p>
+          <p className="mt-0.5 line-clamp-1 text-xs font-semibold text-slate-200">{track.artist}</p>
         </div>
       </div>
     );
@@ -1077,7 +1080,7 @@ function MainPanel({
               </div>
             </div>
           ) : (
-            <div className="w-full max-w-xl rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-center shadow-xl shadow-black/25 backdrop-blur-xl max-xl:p-4">
+            <div className={cn("w-full rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-center shadow-xl shadow-black/25 backdrop-blur-xl max-xl:p-4", track.source === "youtube" ? "max-w-4xl" : "max-w-xl")}>
               <div className="flex justify-center">
                 <CurrentTrackArtwork track={track} />
               </div>
@@ -1119,7 +1122,7 @@ function MainPanel({
 
               {track.source === "youtube" && (
                 <p className="mt-3 text-xs font-semibold text-emerald-200/90">
-                  YouTube ahora funciona con cola automática: el botón central reproduce/pausa y al terminar avanza al siguiente video encontrado.
+                  YouTube usa el reproductor real al centro: reproduce/pausa con los controles de EduAI y avanza automáticamente al terminar cada video de la cola.
                 </p>
               )}
               {track.source === "itunes" && (
