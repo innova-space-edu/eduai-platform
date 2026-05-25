@@ -42,6 +42,9 @@ interface EducadorConfig {
   sesiones?: number
   duracionMinutos?: number
   designTemplateId?: string
+  parvulariaHeterogenea?: boolean
+  parvulariaSegundoCurso?: string
+  parvulariaMotivoFusion?: string
 }
 
 function educadorDesignFormat(intent: string) {
@@ -142,6 +145,40 @@ function inferParvulariaStage(curso: string): string {
   return "Subnivel de parvularia no identificado con precision."
 }
 
+function buildParvulariaSessionBlocks(sesiones: number, duracionMinutos: number, heterogenea = false): string {
+  const acogida = Math.max(3, Math.round(duracionMinutos * 0.18))
+  const exploracion = Math.max(8, Math.round(duracionMinutos * 0.54))
+  const cierre = Math.max(4, duracionMinutos - acogida - exploracion)
+  const maxSes = Math.min(sesiones, 5)
+  const adecuacion = heterogenea
+    ? `
+
+**Adecuación por edad dentro de la misma experiencia**
+- Rango menor: participación breve, sensorial, vínculo afectivo, exploración asistida y respuesta corporal/gestual.
+- Rango mayor: mayor autonomía, elección de materiales, imitación, lenguaje emergente, desplazamiento y colaboración simple.
+- Mantener el mismo ambiente y propósito, variando complejidad, tiempo de atención, material y mediación.`
+    : ""
+
+  return Array.from({ length: maxSes }, (_, i) => {
+    const n = i + 1
+    return `### Experiencia ${n} de ${sesiones} - ${duracionMinutos} min
+
+**Acogida y vínculo (${acogida} min)**
+- Recibir a los párvulos con tono cercano, contacto visual, canción breve, objeto motivador o rutina conocida.
+- Observar disposición emocional, señales de cansancio, apego, interés y necesidad de contención.
+
+**Exploración lúdica y sensorial (${exploracion} min)**
+- Presentar una provocación concreta: objeto, sonido, textura, imagen, elemento natural, mini estación o juego guiado.
+- Permitir exploración libre y segura, con mediación verbal breve, preguntas simples, modelamiento y acompañamiento corporal.
+- Registrar evidencias observables: mirada, gestos, vocalizaciones, desplazamiento, manipulación, imitación, elección o interacción.${adecuacion}
+
+**Cierre afectivo y registro (${cierre} min)**
+- Reunir al grupo con canción, gesto de cierre o verbalización breve de lo vivido.
+- Nombrar emociones, acciones y descubrimientos observados.
+- Registrar 2 a 3 evidencias para retroalimentar a familia/equipo y ajustar la próxima experiencia.`
+  }).join("\n\n") + (sesiones > 5 ? `\n\n> **Continuidad:** Las experiencias 6 a ${sesiones} mantienen la misma estructura, aumentando progresivamente exploración, participación, lenguaje, autonomía y complejidad del material.` : "")
+}
+
 function buildSessionBlocks(sesiones: number, duracionMinutos: number): string {
   const inicio = Math.round(duracionMinutos * 0.2)
   const desarrollo = Math.round(duracionMinutos * 0.6)
@@ -207,8 +244,11 @@ function buildPromptContext(params: {
   mes: string; unidadId: string; selectedOAIds: string[]; selectedOATIds: string[]
   tiempoPlanificacion: TiempoPlanificacion; sesiones: number; duracionMinutos: number
   userMessage: string
+  parvulariaHeterogenea?: boolean
+  parvulariaSegundoCurso?: string
+  parvulariaMotivoFusion?: string
 }) {
-  const { nivel, curso, asignatura, mes, unidadId, selectedOAIds, selectedOATIds, tiempoPlanificacion, sesiones, duracionMinutos, userMessage } = params
+  const { nivel, curso, asignatura, mes, unidadId, selectedOAIds, selectedOATIds, tiempoPlanificacion, sesiones, duracionMinutos, userMessage, parvulariaHeterogenea, parvulariaSegundoCurso, parvulariaMotivoFusion } = params
   const summary = getPlannerSummary({ nivel, curso, asignatura })
   const seasonText = SEASONS[mes] || ""
   const horizonText = buildPlanningHorizonText(tiempoPlanificacion, sesiones, duracionMinutos)
@@ -228,8 +268,21 @@ function buildPromptContext(params: {
   const ambito = nivel === "parvularia" ? getParvulariaAmbito(curso, asignatura) : ""
   const oatContext = nivel === "parvularia" ? buildSelectedOATContext(curso, asignatura, selectedOATIds) : ""
   const stageContext = nivel === "parvularia" ? inferParvulariaStage(curso) : ""
+  const secondStageContext = nivel === "parvularia" && parvulariaHeterogenea && parvulariaSegundoCurso
+    ? inferParvulariaStage(parvulariaSegundoCurso)
+    : ""
+  const heteroContext = nivel === "parvularia" && parvulariaHeterogenea
+    ? [
+        "PLANIFICACIÓN PARVULARIA HETEROGÉNEA / NIVELES UNIDOS:",
+        `- Nivel base: ${curso}`,
+        parvulariaSegundoCurso ? `- Segundo rango/subnivel integrado: ${parvulariaSegundoCurso}` : "",
+        secondStageContext ? `- Caracterización segundo rango: ${secondStageContext}` : "",
+        parvulariaMotivoFusion ? `- Motivo/contexto de unión: ${parvulariaMotivoFusion}` : "",
+        "- Diseñar una experiencia común con adecuación diferenciada por edad, complejidad, tiempo de atención, materiales, apoyo adulto, seguridad, NEE y evaluación formativa.",
+      ].filter(Boolean).join("\n")
+    : ""
 
-  return { seasonText, horizonText, oaContext, unitContext, localCoverage, ambito, oatContext, stageContext, summary, selectedCount: selectedOAIds.length }
+  return { seasonText, horizonText, oaContext, unitContext, localCoverage, ambito, oatContext, stageContext, secondStageContext, heteroContext, summary, selectedCount: selectedOAIds.length }
 }
 
 
@@ -779,6 +832,11 @@ export async function POST(req: NextRequest) {
   const designFormat = educadorDesignFormat(outputIntent)
   const designDirective = buildDesignPromptDirective(designTemplateId, designFormat)
   const designSummary = getDesignTemplateSummary(designTemplateId, designFormat)
+  const parvulariaHeterogenea = nivel === "parvularia" && cfg.parvulariaHeterogenea === true
+  const parvulariaSegundoCurso = typeof cfg.parvulariaSegundoCurso === "string" && cfg.parvulariaSegundoCurso.trim()
+    ? cfg.parvulariaSegundoCurso.trim()
+    : ""
+  const parvulariaMotivoFusion = typeof cfg.parvulariaMotivoFusion === "string" ? cfg.parvulariaMotivoFusion.trim() : ""
 
   const wantsIdeas = !contexto && (
     messageLC.includes("idea") || messageLC.includes("suger") ||
@@ -911,12 +969,15 @@ REGLAS:
     nivel, curso, asignatura, contexto, mes, unidadId,
     selectedOAIds, selectedOATIds, tiempoPlanificacion,
     sesiones, duracionMinutos, userMessage: message,
+    parvulariaHeterogenea, parvulariaSegundoCurso, parvulariaMotivoFusion,
   })
 
   const isBasicaMedia = nivel === "basica" || nivel === "media"
   const isParv = nivel === "parvularia"
   const sessionWord = sesiones === 1 ? "1 sesion" : `${sesiones} sesiones`
-  const sessionBlocks = buildSessionBlocks(sesiones, duracionMinutos)
+  const sessionBlocks = isParv
+    ? buildParvulariaSessionBlocks(sesiones, duracionMinutos, parvulariaHeterogenea)
+    : buildSessionBlocks(sesiones, duracionMinutos)
   const claseObjectives = isBasicaMedia ? buildClaseObjectives(sesiones) : ""
 
 
@@ -932,7 +993,9 @@ REGLAS DE PLANIFICACION:
 3. Si el docente NO entregó contexto propio, los OA son el eje principal.
 4. Si hay OA seleccionados, menciónales en la planificación — no los ignores, pero tampoco los conviertas en una jaula.
 5. En Parvularia integra siempre: subnivel, ámbito, núcleo, OA y OAT disponibles.
-6. NUNCA cortes la respuesta. SIEMPRE completa TODOS los bloques del formato.
+6. En Parvularia evita una estructura escolarizada: prioriza juego, exploración, vínculo, rutinas, bienestar, mediación breve, observación y registro cualitativo.
+7. Si es grupo heterogéneo o niveles unidos, crea una experiencia común y diferencia por edad: materiales, complejidad, lenguaje esperado, rol adulto, apoyos NEE, seguridad y evidencias.
+8. NUNCA cortes la respuesta. SIEMPRE completa TODOS los bloques del formato.
 7. Los indicadores deben reflejar tanto el OA como el contexto real descrito por el docente.
 8. Los objetivos de clase deben ser concretos, útiles en el aula real y coherentes con la propuesta del docente.
 9. Escribe en español formal, claro y pedagógico.
@@ -951,6 +1014,7 @@ Nivel: ${nivel}
 Curso/Subnivel: ${curso}
 Asignatura/Nucleo: ${asignatura}
 ${isParv ? `Contexto del subnivel: ${promptContext.stageContext}` : ""}
+${isParv && promptContext.heteroContext ? promptContext.heteroContext : ""}
 Referencia curricular: ${NIVEL_INFO[nivel]}
 Cobertura local: ${promptContext.localCoverage}
 ${promptContext.unitContext || "Sin unidad o modulo local seleccionado."}
@@ -996,11 +1060,12 @@ Como el docente entregó un contexto propio rico, ajusta el formato así:
 
 ## Objetivo(s) de Aprendizaje
 
-${isParv ? `**Subnivel:** (segun configuracion)
-**Ambito:** (segun contexto)
-**Nucleo:** ${asignatura}
+${isParv ? `**Subnivel base:** ${curso}
+${parvulariaHeterogenea && parvulariaSegundoCurso ? `**Subnivel/rango integrado:** ${parvulariaSegundoCurso}` : ""}
+**Ámbito:** (según contexto curricular)
+**Núcleo:** ${asignatura}
 **OA oficial:** (texto oficial completo del OA o de cada OA seleccionado)
-**OAT seleccionados:** (listar OAT o indicar "Sin OAT seleccionados")` : `- **OA [codigo]:** (texto oficial completo)
+**OAT seleccionados:** (listar OAT o indicar "Sin OAT seleccionado")` : `- **OA [codigo]:** (texto oficial completo)
 - **OA [codigo]:** (si hay mas de uno, continuar - uno por linea)`}
 
 ---
@@ -1037,6 +1102,30 @@ ${claseObjectives}
 
 ${sessionBlocks}
 
+${isParv ? `---
+
+## Organización del ambiente y rol del equipo
+
+| Elemento | Orientación concreta |
+|---|---|
+| Ambiente | (espacios, estaciones, seguridad, tránsito, materiales al alcance) |
+| Rol educadora | (mediación, preguntas breves, observación, contención, lenguaje) |
+| Rol técnico/asistente | (apoyo individual, seguridad, registro, preparación de materiales) |
+| Participación familiar | (sugerencia breve para continuidad en hogar) |
+
+${parvulariaHeterogenea ? `---
+
+## Adecuación para grupo heterogéneo
+
+| Dimensión | ${curso} | ${parvulariaSegundoCurso || "Segundo rango"} |
+|---|---|---|
+| Participación esperada | (observable según edad) | (observable según edad) |
+| Materiales | (materiales seguros y simples) | (materiales con mayor complejidad) |
+| Mediación adulta | (apoyo más cercano) | (mayor autonomía guiada) |
+| Tiempo de atención | (micro momentos) | (bloques un poco más extensos) |
+| Evidencia de aprendizaje | (gestos, mirada, vocalización, exploración) | (acciones, palabras, imitación, elección, interacción) |
+| Apoyos NEE | (ajuste concreto) | (ajuste concreto) |` : ""}
+` : ""}
 ---
 
 ## Evaluacion
@@ -1092,7 +1181,8 @@ CRITERIOS DE CALIDAD - VERIFICAR ANTES DE RESPONDER:
 - Adaptaciones son concretas, no frases genericas
 - Respuesta COMPLETA - sin cortar ningun bloque bajo ninguna circunstancia
 - Parvularia: lenguaje ludico, experiencial, afectivo y apropiado al subnivel
-- Sala Cuna: sin estructuras escolarizadas, experiencias sensoriales y breves`.trim()
+- Sala Cuna: sin estructuras escolarizadas, experiencias sensoriales, breves y centradas en vínculo
+- Parvularia heterogénea: siempre incluye adecuaciones por edad/rango, seguridad, materiales diferenciados y registro cualitativo`.trim()
 
   const useCompactResourcePrompt = outputIntent !== "planificacion"
   const selectedUnitForPrompt = getPlannerUnits({ nivel, curso, asignatura })
@@ -1155,6 +1245,9 @@ CRITERIOS DE CALIDAD - VERIFICAR ANTES DE RESPONDER:
       selectedOAIds,
       selectedOATIds,
       unidadId,
+      parvulariaHeterogenea,
+      parvulariaSegundoCurso,
+      parvulariaMotivoFusion,
       outputIntent,
       compactPrompt: useCompactResourcePrompt,
       _design: designSummary,
@@ -1183,6 +1276,9 @@ CRITERIOS DE CALIDAD - VERIFICAR ANTES DE RESPONDER:
       selectedOAIds,
       selectedOATIds,
       unidadId,
+      parvulariaHeterogenea,
+      parvulariaSegundoCurso,
+      parvulariaMotivoFusion,
       outputIntent,
       aiFallback: true,
       _design: designSummary,
