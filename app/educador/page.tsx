@@ -130,6 +130,12 @@ const QUICK_PROMPTS = [
     prompt: "Distribuye las actividades en una secuencia semanal progresiva, indicando el trabajo de cada sesión, los recursos y cómo se conecta una clase con la siguiente.",
   },
   {
+    icon: "👥",
+    label: "Sala heterogénea",
+    color: "cyan",
+    prompt: "Crea una planificación para sala heterogénea o niveles unidos. Incluye experiencia común, adecuaciones por edad, materiales diferenciados, apoyos para NEE, rol de educadora/técnico y evaluación formativa por tramo etario.",
+  },
+  {
     icon: "🌸",
     label: "Experiencia parvularia",
     color: "rose",
@@ -138,18 +144,18 @@ const QUICK_PROMPTS = [
 ]
 
 const PROMPT_COLORS: Record<string, { bg: string; border: string; text: string }> = {
-  emerald: { bg: "bg-emerald-50 hover:bg-emerald-100", border: "border-emerald-200 hover:border-emerald-400", text: "text-emerald-800" },
-  violet:  { bg: "bg-violet-50  hover:bg-violet-100",  border: "border-violet-200  hover:border-violet-400",  text: "text-violet-800"  },
-  blue:    { bg: "bg-blue-50    hover:bg-blue-100",    border: "border-blue-200    hover:border-blue-400",    text: "text-blue-800"    },
-  amber:   { bg: "bg-amber-50   hover:bg-amber-100",   border: "border-amber-200   hover:border-amber-400",   text: "text-amber-800"   },
-  pink:    { bg: "bg-pink-50    hover:bg-pink-100",    border: "border-pink-200    hover:border-pink-400",    text: "text-pink-800"    },
-  teal:    { bg: "bg-teal-50    hover:bg-teal-100",    border: "border-teal-200    hover:border-teal-400",    text: "text-teal-800"    },
-  indigo:  { bg: "bg-indigo-50  hover:bg-indigo-100",  border: "border-indigo-200  hover:border-indigo-400",  text: "text-indigo-800"  },
-  orange:  { bg: "bg-orange-50  hover:bg-orange-100",  border: "border-orange-200  hover:border-orange-400",  text: "text-orange-800"  },
-  green:   { bg: "bg-green-50   hover:bg-green-100",   border: "border-green-200   hover:border-green-400",   text: "text-green-800"   },
-  purple:  { bg: "bg-purple-50  hover:bg-purple-100",  border: "border-purple-200  hover:border-purple-400",  text: "text-purple-800"  },
-  cyan:    { bg: "bg-cyan-50    hover:bg-cyan-100",    border: "border-cyan-200    hover:border-cyan-400",    text: "text-cyan-800"    },
-  rose:    { bg: "bg-rose-50    hover:bg-rose-100",    border: "border-rose-200    hover:border-rose-400",    text: "text-rose-800"    },
+  emerald: { bg: "bg-emerald-700 hover:bg-emerald-800 shadow-sm", border: "border-emerald-800", text: "text-white" },
+  violet:  { bg: "bg-violet-700 hover:bg-violet-800 shadow-sm",  border: "border-violet-800",  text: "text-white"  },
+  blue:    { bg: "bg-blue-700 hover:bg-blue-800 shadow-sm",      border: "border-blue-800",    text: "text-white"    },
+  amber:   { bg: "bg-amber-700 hover:bg-amber-800 shadow-sm",    border: "border-amber-800",   text: "text-white"   },
+  pink:    { bg: "bg-pink-700 hover:bg-pink-800 shadow-sm",      border: "border-pink-800",    text: "text-white"    },
+  teal:    { bg: "bg-teal-700 hover:bg-teal-800 shadow-sm",      border: "border-teal-800",    text: "text-white"    },
+  indigo:  { bg: "bg-indigo-700 hover:bg-indigo-800 shadow-sm",  border: "border-indigo-800",  text: "text-white"  },
+  orange:  { bg: "bg-orange-700 hover:bg-orange-800 shadow-sm",  border: "border-orange-800",  text: "text-white"  },
+  green:   { bg: "bg-green-700 hover:bg-green-800 shadow-sm",    border: "border-green-800",   text: "text-white"   },
+  purple:  { bg: "bg-purple-700 hover:bg-purple-800 shadow-sm",  border: "border-purple-800",  text: "text-white"  },
+  cyan:    { bg: "bg-cyan-700 hover:bg-cyan-800 shadow-sm",      border: "border-cyan-800",    text: "text-white"    },
+  rose:    { bg: "bg-rose-700 hover:bg-rose-800 shadow-sm",      border: "border-rose-800",    text: "text-white"    },
 }
 
 interface Message {
@@ -170,6 +176,9 @@ interface Config {
   tiempoPlanificacion: TiempoPlanificacion
   sesiones: number
   duracionMinutos: number
+  parvulariaHeterogenea: boolean
+  parvulariaSegundoCurso: string
+  parvulariaMotivoFusion: string
 }
 
 interface AsignaturaOption {
@@ -230,6 +239,9 @@ export default function EducadorPage() {
     tiempoPlanificacion: "diaria",
     sesiones: 1,
     duracionMinutos: 30,
+    parvulariaHeterogenea: false,
+    parvulariaSegundoCurso: "Sala Cuna Mayor (1 a 2 años)",
+    parvulariaMotivoFusion: "",
   })
 
   const [messages, setMessages] = useState<Message[]>([])
@@ -309,6 +321,10 @@ export default function EducadorPage() {
   })
 
   const planningBadge = `${config.tiempoPlanificacion} · ${config.sesiones} ses. · ${config.duracionMinutos} min`
+  const parvulariaHeteroActive = config.nivel === "parvularia" && config.parvulariaHeterogenea
+  const parvulariaHeteroText = parvulariaHeteroActive
+    ? `Grupo heterogéneo: ${config.curso} + ${config.parvulariaSegundoCurso}${config.parvulariaMotivoFusion ? ` · ${config.parvulariaMotivoFusion}` : ""}`
+    : ""
   const selectedUnit = units.find((u) => u.id === config.unidadId)
   const selectedOAObjects = oaOptions.filter((oa) => config.selectedOAIds.includes(oa.id))
   const horizonText = buildPlanningHorizonText(
@@ -569,6 +585,9 @@ export default function EducadorPage() {
         tiempo_planificacion: config.tiempoPlanificacion,
         sesiones: config.sesiones,
         duracion_minutos: config.duracionMinutos,
+        parvularia_heterogenea: config.parvulariaHeterogenea,
+        parvularia_segundo_curso: config.parvulariaSegundoCurso,
+        parvularia_motivo_fusion: config.parvulariaMotivoFusion,
         title: buildPlanningTitle(),
         content,
         created_at: new Date().toISOString(),
@@ -635,7 +654,8 @@ export default function EducadorPage() {
         sesiones: config.sesiones,
         duracionMinutos: config.duracionMinutos,
         fechaCreacion: new Date().toLocaleString("es-CL"),
-        contexto: config.contexto,
+        contexto: [config.contexto, parvulariaHeteroText].filter(Boolean).join("\n"),
+        designTemplateId: config.nivel === "parvularia" ? "eduai-canva-classroom" : "presenton-pro-slides",
       },
       latestAssistantMessage.content
     )
@@ -663,7 +683,7 @@ export default function EducadorPage() {
   }
 
     return (
-    <div className="min-h-screen bg-app flex flex-col">
+    <div className="min-h-screen flex flex-col bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.16),transparent_32%),radial-gradient(circle_at_top_right,rgba(59,130,246,0.12),transparent_28%),#f8fafc] text-slate-900">
       <div className="border-b border-soft bg-header-theme backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -689,35 +709,35 @@ export default function EducadorPage() {
           <div className="flex flex-wrap items-center justify-end gap-2">
             <Link
               href="/educador/planificaciones"
-              className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-3 py-1.5 text-xs text-cyan-700 transition-all hover:bg-cyan-500/20"
+              className="rounded-xl border border-cyan-800 bg-cyan-700 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-cyan-800"
             >
               🗂️ Ver guardadas
             </Link>
             <button
               onClick={handleCopyPlanning}
               disabled={!latestAssistantMessage}
-              className="rounded-xl border border-blue-500/20 bg-blue-500/10 px-3 py-1.5 text-xs text-blue-700 transition-all hover:bg-blue-500/20 disabled:opacity-40"
+              className="rounded-xl border border-blue-800 bg-blue-700 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-blue-800 disabled:opacity-40"
             >
               {copied ? "✓ Copiado" : "📋 Copiar"}
             </button>
             <button
               onClick={handleRegenerate}
               disabled={!latestAssistantMessage || loading}
-              className="rounded-xl border border-violet-500/20 bg-violet-500/10 px-3 py-1.5 text-xs text-violet-700 transition-all hover:bg-violet-500/20 disabled:opacity-40"
+              className="rounded-xl border border-violet-800 bg-violet-700 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-violet-800 disabled:opacity-40"
             >
               {regenerating ? "..." : "🔄 Regenerar"}
             </button>
             <button
               onClick={handleSavePlanning}
               disabled={!latestAssistantMessage || savingPlanning}
-              className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-700 transition-all hover:bg-emerald-500/20 disabled:opacity-40"
+              className="rounded-xl border border-emerald-800 bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-emerald-800 disabled:opacity-40"
             >
               {savingPlanning ? "Guardando..." : "💾 Guardar"}
             </button>
             <button
               onClick={handleExportPlanning}
               disabled={!latestAssistantMessage || exportingPlanning}
-              className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-700 transition-all hover:bg-amber-500/20 disabled:opacity-40"
+              className="rounded-xl border border-amber-800 bg-amber-700 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-amber-800 disabled:opacity-40"
             >
               {exportingPlanning ? "Exportando..." : "📄 Exportar PDF"}
             </button>
@@ -743,7 +763,7 @@ export default function EducadorPage() {
         )}
         {configOpen && (
           <div className="grid xl:grid-cols-[1.2fr_0.8fr] gap-4">
-            <div className="bg-card-theme border border-soft rounded-2xl p-5">
+            <div className="bg-white/95 border border-slate-200 rounded-3xl p-5 shadow-sm">
               <h2 className="text-main font-medium text-sm mb-4">
                 📐 Configurar contexto pedagógico
               </h2>
@@ -870,6 +890,79 @@ export default function EducadorPage() {
                   <p className="text-sub text-xs mt-1">
                     Núcleo activo: {config.asignatura}
                   </p>
+                </div>
+              )}
+
+              {config.nivel === "parvularia" && (
+                <div className="mb-4 rounded-3xl border border-cyan-500/30 bg-cyan-50/90 p-4 shadow-sm">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wide text-cyan-800 mb-1 font-semibold">
+                        Sala heterogénea / niveles unidos
+                      </p>
+                      <p className="text-sm text-slate-700 leading-relaxed">
+                        Activa esta opción si por organización, falta de personal o apoyo temporal se deben unir dos rangos de edad. El agente generará una experiencia común con adecuaciones diferenciadas por edad.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() =>
+                        setConfig((prev) => ({
+                          ...prev,
+                          parvulariaHeterogenea: !prev.parvulariaHeterogenea,
+                        }))
+                      }
+                      className={`shrink-0 rounded-2xl border px-4 py-2 text-xs font-bold transition-all ${
+                        config.parvulariaHeterogenea
+                          ? "border-cyan-900 bg-cyan-800 text-white shadow-sm"
+                          : "border-cyan-300 bg-white text-cyan-800 hover:bg-cyan-100"
+                      }`}
+                    >
+                      {config.parvulariaHeterogenea ? "Activada" : "Activar"}
+                    </button>
+                  </div>
+
+                  {config.parvulariaHeterogenea && (
+                    <div className="mt-4 grid gap-3 md:grid-cols-2">
+                      <div>
+                        <label className="text-cyan-900 text-xs mb-1.5 block font-semibold">
+                          Segundo rango o subnivel
+                        </label>
+                        <select
+                          value={config.parvulariaSegundoCurso}
+                          onChange={(e) =>
+                            setConfig((prev) => ({
+                              ...prev,
+                              parvulariaSegundoCurso: e.target.value,
+                            }))
+                          }
+                          className="w-full rounded-2xl border border-cyan-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-cyan-600"
+                        >
+                          {CURSOS.parvularia
+                            .filter((curso) => curso !== config.curso)
+                            .map((curso) => (
+                              <option key={curso} value={curso}>{curso}</option>
+                            ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-cyan-900 text-xs mb-1.5 block font-semibold">
+                          Motivo o contexto de unión
+                        </label>
+                        <input
+                          value={config.parvulariaMotivoFusion}
+                          onChange={(e) =>
+                            setConfig((prev) => ({
+                              ...prev,
+                              parvulariaMotivoFusion: e.target.value,
+                            }))
+                          }
+                          placeholder="Ej: falta personal, apoyo en patio, jornada especial, baja asistencia..."
+                          className="w-full rounded-2xl border border-cyan-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-cyan-600 placeholder-slate-400"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1151,7 +1244,7 @@ export default function EducadorPage() {
               </div>
             </div>
 
-            <div className="bg-card-theme border border-soft rounded-2xl p-5">
+            <div className="bg-white/95 border border-slate-200 rounded-3xl p-5 shadow-sm">
               <h2 className="text-main font-medium text-sm mb-4">
                 🧭 Resumen de planificación
               </h2>
@@ -1166,9 +1259,16 @@ export default function EducadorPage() {
                   </p>
 
                   {config.nivel === "parvularia" && (
-                    <p className="text-emerald-700 text-xs mt-2 text-justify">
-                      Ámbito: {ambito || "No detectado"} · Núcleo: {config.asignatura}
-                    </p>
+                    <>
+                      <p className="text-emerald-700 text-xs mt-2 text-justify">
+                        Ámbito: {ambito || "No detectado"} · Núcleo: {config.asignatura}
+                      </p>
+                      {parvulariaHeteroText && (
+                        <p className="mt-2 rounded-xl border border-cyan-300 bg-cyan-50 px-3 py-2 text-xs font-semibold text-cyan-800">
+                          {parvulariaHeteroText}
+                        </p>
+                      )}
+                    </>
                   )}
                 </div>
 
@@ -1277,8 +1377,9 @@ export default function EducadorPage() {
                   </p>
                   <p className="text-sub text-sm">
                     En Parvularia, selecciona primero el subnivel. Luego puedes combinar hasta 3 OA
-                    de distintos núcleos o ámbitos y sumar hasta 2 OAT transversales. Así la planificación
-                    queda integrada y mucho más realista para educación parvularia.
+                    de distintos núcleos o ámbitos y sumar hasta 2 OAT transversales. Si el jardín une niveles,
+                    activa “Sala heterogénea” para que la experiencia tenga adecuación por edad, apoyos diferenciados,
+                    recursos concretos, evaluación formativa y orientaciones para educadora/técnico.
                   </p>
                 </div>
 
@@ -1289,7 +1390,7 @@ export default function EducadorPage() {
                       <button
                         key={qp.label}
                         onClick={() => sendMessage(qp.prompt)}
-                        className={`${clr.bg} ${clr.border} border rounded-2xl p-3 text-left transition-all`}
+                        className={`${clr.bg} ${clr.border} border rounded-2xl p-3 text-left transition-all hover:-translate-y-0.5`}
                       >
                         <div className="text-base mb-1">{qp.icon}</div>
                         <div className={`${clr.text} text-xs font-medium leading-tight`}>
@@ -1334,7 +1435,7 @@ export default function EducadorPage() {
               <div
                 className={`max-w-[90%] rounded-2xl px-4 py-3 ${
                   msg.role === "user"
-                    ? "bg-emerald-600 text-main"
+                    ? "bg-emerald-700 text-white shadow-sm"
                     : "bg-card-theme border border-soft text-main"
                 }`}
               >
@@ -1414,7 +1515,7 @@ export default function EducadorPage() {
         </div>
       </div>
 
-      <div className="sticky bottom-0 bg-app backdrop-blur-sm border-t border-soft px-4 py-3">
+      <div className="sticky bottom-0 bg-white/90 backdrop-blur-xl border-t border-slate-200 px-4 py-3 shadow-[0_-8px_24px_rgba(15,23,42,0.04)]">
         <div className="max-w-7xl mx-auto">
           <div className="flex gap-2">
             <textarea
@@ -1426,7 +1527,7 @@ export default function EducadorPage() {
                   sendMessage(input)
                 }
               }}
-              placeholder={`Pide una planificación ${config.tiempoPlanificacion} para ${config.curso} · ${config.asignatura}...`}
+              placeholder={parvulariaHeteroActive ? `Pide una planificación heterogénea para ${config.curso} + ${config.parvulariaSegundoCurso}...` : `Pide una planificación ${config.tiempoPlanificacion} para ${config.curso} · ${config.asignatura}...`}
               className="flex-1 min-h-[60px] max-h-40 bg-card-theme border border-medium rounded-2xl px-4 py-3 text-main placeholder-gray-400 text-sm focus:outline-none focus:border-emerald-500/50"
             />
 
