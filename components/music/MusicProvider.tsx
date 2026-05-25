@@ -127,7 +127,7 @@ declare global {
 }
 
 const STORAGE_KEY = "eduai_music_player_v60";
-const YOUTUBE_PLAYER_ID = "eduai-youtube-global-player";
+export const YOUTUBE_PLAYER_ID = "eduai-youtube-global-player";
 const MusicContext = createContext<MusicContextValue | null>(null);
 
 let youtubeApiPromise: Promise<void> | null = null;
@@ -248,6 +248,9 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const youtubePlayerRef = useRef<any>(null);
   const youtubeReadyRef = useRef(false);
+  const youtubeVideoIdRef = useRef<string>("");
+  const youtubeRetryRef = useRef(0);
+  const playingRef = useRef(false);
   const hlsRef = useRef<any>(null);
   const nextTrackRef = useRef<() => void>(() => {});
   const [hydrated, setHydrated] = useState(false);
@@ -427,6 +430,10 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   }, [volume]);
 
   useEffect(() => {
+    playingRef.current = playing;
+  }, [playing]);
+
+  useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
     const updateTime = () => setCurrentTime(audio.currentTime || 0);
@@ -549,8 +556,12 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       audio.pause();
       if (youtubeReadyRef.current && youtubePlayerRef.current) {
         try {
-          if (playing) youtubePlayerRef.current.playVideo();
-          else youtubePlayerRef.current.pauseVideo();
+          if (playing) {
+            youtubeRetryRef.current = 0;
+            youtubePlayerRef.current.playVideo();
+          } else {
+            youtubePlayerRef.current.pauseVideo();
+          }
         } catch {}
       }
       return;
@@ -720,51 +731,92 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (typeof window === "undefined" || currentTrack?.source !== "youtube") return;
+
     const videoId = currentTrack.youtubeVideoId;
     if (!videoId) return;
 
     let cancelled = false;
-    void loadYouTubeApi().then(() => {
+    let mountRetry: number | null = null;
+
+    const mountPlayer = async () => {
+      await loadYouTubeApi();
       if (cancelled || !window.YT?.Player) return;
+
+      const target = document.getElementById(YOUTUBE_PLAYER_ID);
+      if (!target) {
+        mountRetry = window.setTimeout(mountPlayer, 120);
+        return;
+      }
+
+      const playerVars = {
+        autoplay: 1,
+        controls: 1,
+        rel: 0,
+        modestbranding: 1,
+        playsinline: 1,
+        enablejsapi: 1,
+        origin: window.location.origin,
+      };
+
+      const startVideo = (player: any, forceLoad = false) => {
+        try {
+          player.setVolume?.(Math.round(volume * 100));
+          player.unMute?.();
+          const loadedId = youtubeVideoIdRef.current;
+          if (forceLoad || loadedId !== videoId) {
+            youtubeVideoIdRef.current = videoId;
+            player.loadVideoById?.(videoId);
+          }
+          if (playingRef.current) player.playVideo?.();
+        } catch {}
+      };
+
       if (!youtubePlayerRef.current) {
+        youtubeReadyRef.current = false;
         youtubePlayerRef.current = new window.YT.Player(YOUTUBE_PLAYER_ID, {
-          height: "180",
-          width: "320",
+          height: "100%",
+          width: "100%",
           videoId,
-          playerVars: {
-            autoplay: 0,
-            controls: 0,
-            rel: 0,
-            modestbranding: 1,
-            playsinline: 1,
-          },
+          playerVars,
           events: {
             onReady: (event: any) => {
               youtubeReadyRef.current = true;
-              try {
-                event.target.setVolume(Math.round(volume * 100));
-                if (playing) event.target.playVideo();
-                else event.target.cueVideoById(videoId);
-              } catch {}
+              youtubeRetryRef.current = 0;
+              startVideo(event.target, true);
             },
             onStateChange: (event: any) => {
-              if (event.data === window.YT?.PlayerState?.ENDED) nextTrackRef.current();
+              const state = event.data;
+              if (state === window.YT?.PlayerState?.PLAYING) {
+                setPlaying(true);
+                youtubeRetryRef.current = 0;
+                return;
+              }
+              if (state === window.YT?.PlayerState?.PAUSED) {
+                setPlaying(false);
+                return;
+              }
+              if (state === window.YT?.PlayerState?.ENDED) {
+                nextTrackRef.current();
+              }
+            },
+            onError: () => {
+              nextTrackRef.current();
             },
           },
         });
         return;
       }
 
-      try {
-        if (playing) youtubePlayerRef.current.loadVideoById(videoId);
-        else youtubePlayerRef.current.cueVideoById(videoId);
-      } catch {}
-    });
+      if (youtubeReadyRef.current) startVideo(youtubePlayerRef.current, true);
+    };
+
+    void mountPlayer();
 
     return () => {
       cancelled = true;
+      if (mountRetry !== null) window.clearTimeout(mountRetry);
     };
-  }, [currentTrack?.source, currentTrack?.youtubeVideoId, playing, volume]);
+  }, [currentTrack?.id, currentTrack?.source, currentTrack?.youtubeVideoId, volume]);
 
   useEffect(() => {
     if (currentTrack?.source !== "youtube") return;
@@ -774,10 +826,26 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       try {
         const time = Number(player.getCurrentTime?.() || 0);
         const duration = Number(player.getDuration?.() || 0);
-        setCurrentTime(Number.isFinite(time) ? time : 0);
-        setDurationSeconds(Number.isFinite(duration) ? duration : 0);
+        const state = Number(player.getPlayerState?.());
+        const safeTime = Number.isFinite(time) ? time : 0;
+        const safeDuration = Number.isFinite(duration) ? duration : 0;
+        setCurrentTime(safeTime);
+        setDurationSeconds(safeDuration);
+
+        if (playingRef.current) {
+          const PlayerState = window.YT?.PlayerState || {};
+          const isStuck = state === PlayerState.UNSTARTED || state === PlayerState.CUED;
+          if (isStuck && youtubeRetryRef.current < 6) {
+            youtubeRetryRef.current += 1;
+            player.playVideo?.();
+          }
+        }
+
+        if (safeDuration > 0 && safeTime >= safeDuration - 0.8) {
+          nextTrackRef.current();
+        }
       } catch {}
-    }, 800);
+    }, 700);
     return () => window.clearInterval(timer);
   }, [currentTrack?.source, currentTrack?.youtubeVideoId]);
 
@@ -916,7 +984,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
           body: JSON.stringify({
             query: clean,
             provider: mode === "youtube" ? "youtube" : mode || "full",
-            limit: mode === "youtube" ? 12 : 24,
+            limit: mode === "youtube" ? 24 : 24,
           }),
         });
         const data = await res.json();
@@ -1058,11 +1126,6 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   return (
     <MusicContext.Provider value={value}>
       <audio ref={audioRef} preload="none" onEnded={nextTrack} />
-      <div
-        id={YOUTUBE_PLAYER_ID}
-        aria-hidden="true"
-        className="pointer-events-none fixed -left-[9999px] top-0 h-px w-px overflow-hidden opacity-0"
-      />
       {children}
     </MusicContext.Provider>
   );
