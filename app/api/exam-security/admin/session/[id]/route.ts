@@ -5,6 +5,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { createClient as createAdminClient } from "@supabase/supabase-js"
+import { createClient as createServerClient } from "@/lib/supabase/server"
 
 type SessionRow = {
   id: string
@@ -117,6 +118,21 @@ function getAdmin() {
   })
 }
 
+async function requireAdmin() {
+  const supabase = await createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { user: null, error: "No autenticado" }
+
+  const { data: isAdmin } = await supabase
+    .from("admin_emails")
+    .select("email")
+    .eq("email", user.email)
+    .maybeSingle()
+
+  if (!isAdmin) return { user: null, error: "Acceso denegado" }
+  return { user, error: null }
+}
+
 // ── GET ────────────────────────────────────────────────────────────────────────
 
 export async function GET(
@@ -124,6 +140,11 @@ export async function GET(
   ctx: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { user, error } = await requireAdmin()
+    if (!user) {
+      return Response.json({ success: false, error }, { status: error === "No autenticado" ? 401 : 403 })
+    }
+
     const admin = getAdmin()
     const { id } = await ctx.params
     const sessionId = String(id || "").trim()
@@ -223,6 +244,11 @@ export async function POST(
   ctx: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { user, error } = await requireAdmin()
+    if (!user) {
+      return Response.json({ success: false, error }, { status: error === "No autenticado" ? 401 : 403 })
+    }
+
     const admin = getAdmin()
     const { id } = await ctx.params
     const sessionId = String(id || "").trim()
