@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   ExternalLink,
@@ -26,7 +25,6 @@ import {
 import {
   EXTERNAL_MUSIC_COLLECTIONS,
   MOOD_LABELS,
-  type EduMusicDjReel,
   type EduMusicMood,
   type EduMusicPlaylist,
   type EduMusicTrack,
@@ -49,6 +47,14 @@ type ExtendedMusicTrack = EduMusicTrack & {
   loaderUrl?: string;
 };
 
+type SpotifyEmbedItem = {
+  id: string;
+  title: string;
+  subtitle: string;
+  src: string;
+  accent: string;
+};
+
 function asExtendedTrack(track?: EduMusicTrack | null): ExtendedMusicTrack | null {
   return (track || null) as ExtendedMusicTrack | null;
 }
@@ -61,12 +67,14 @@ function getEmbedUrl(track?: EduMusicTrack | null) {
   return asExtendedTrack(track)?.embedUrl || track?.externalUrl || track?.src || "";
 }
 
-function getDjReelEmbedUrlById(videoId?: string) {
+function getDjReelEmbedUrl(track?: EduMusicTrack | null) {
+  const videoId = track?.youtubeVideoId;
   if (!videoId) return "";
   const params = new URLSearchParams({
     autoplay: "1",
     mute: "1",
     controls: "0",
+    disablekb: "1",
     loop: "1",
     playlist: videoId,
     playsinline: "1",
@@ -74,264 +82,6 @@ function getDjReelEmbedUrlById(videoId?: string) {
     rel: "0",
   });
   return `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
-}
-
-function getDjReelEmbedUrl(track?: EduMusicTrack | null) {
-  return getDjReelEmbedUrlById(track?.youtubeVideoId);
-}
-
-function getYouTubeDirectEmbedUrl(track?: EduMusicTrack | null, autoplay = false) {
-  const videoId = track?.youtubeVideoId;
-  const playlistId = (track as (EduMusicTrack & { youtubePlaylistId?: string }) | null | undefined)?.youtubePlaylistId;
-  const params = new URLSearchParams({
-    autoplay: autoplay ? "1" : "0",
-    controls: "1",
-    rel: "0",
-    modestbranding: "1",
-    playsinline: "1",
-  });
-  if (playlistId) params.set("list", playlistId);
-  if (typeof window !== "undefined") params.set("origin", window.location.origin);
-
-  if (!videoId && playlistId) {
-    return `https://www.youtube-nocookie.com/embed/videoseries?${params.toString()}`;
-  }
-  if (!videoId) return "";
-  return `https://www.youtube-nocookie.com/embed/${videoId}?${params.toString()}`;
-}
-
-function getYouTubeThumb(track?: EduMusicTrack | null) {
-  return track?.videoThumbnail || track?.artworkUrl || (track?.youtubeVideoId ? `https://i.ytimg.com/vi/${track.youtubeVideoId}/hqdefault.jpg` : undefined);
-}
-
-
-let djReelYouTubeApiPromise: Promise<void> | null = null;
-
-function loadDjReelYouTubeApi() {
-  if (typeof window === "undefined") return Promise.resolve();
-  const w = window as typeof window & { YT?: any; onYouTubeIframeAPIReady?: () => void };
-  if (w.YT?.Player) return Promise.resolve();
-  if (djReelYouTubeApiPromise) return djReelYouTubeApiPromise;
-
-  djReelYouTubeApiPromise = new Promise<void>((resolve) => {
-    const previousReady = w.onYouTubeIframeAPIReady;
-    w.onYouTubeIframeAPIReady = () => {
-      try {
-        previousReady?.();
-      } catch {}
-      resolve();
-    };
-
-    const existing = document.querySelector<HTMLScriptElement>(
-      'script[src="https://www.youtube.com/iframe_api"]',
-    );
-    if (existing) return;
-
-    const script = document.createElement("script");
-    script.src = "https://www.youtube.com/iframe_api";
-    script.async = true;
-    document.head.appendChild(script);
-  });
-
-  return djReelYouTubeApiPromise;
-}
-
-function safeDomId(value: string) {
-  return value.replace(/[^a-zA-Z0-9_-]+/g, "-").slice(0, 80) || "track";
-}
-
-function CleanSpotifyGamingSkin() {
-  return (
-    <style>{`
-      .eduai-music-clean {
-        --bg: #050505;
-        --panel: rgba(18,18,18,.86);
-        --panel-2: rgba(24,24,24,.9);
-        --line: rgba(255,255,255,.08);
-        --soft: #b3b3b3;
-        --text: #ffffff;
-        --green: #1ed760;
-        --rgb-a: #00f5ff;
-        --rgb-b: #7c3cff;
-        --rgb-c: #ff3d9a;
-        --rgb-d: #1ed760;
-        color: var(--text);
-        background:
-          radial-gradient(circle at 18% 12%, rgba(0,245,255,.12), transparent 32%),
-          radial-gradient(circle at 78% 18%, rgba(124,60,255,.15), transparent 34%),
-          radial-gradient(circle at 56% 92%, rgba(255,61,154,.10), transparent 38%),
-          linear-gradient(120deg, #000 0%, #08080c 45%, #020406 100%) !important;
-        background-size: 170% 170%;
-        animation: eduai-clean-bg 24s ease-in-out infinite;
-      }
-      .eduai-music-clean.youtube-active {
-        animation: none;
-        background:
-          radial-gradient(circle at 18% 12%, rgba(0,245,255,.08), transparent 34%),
-          radial-gradient(circle at 78% 18%, rgba(124,60,255,.08), transparent 34%),
-          #050505 !important;
-      }
-      .eduai-music-clean::before {
-        content: "";
-        position: fixed;
-        inset: 0;
-        pointer-events: none;
-        z-index: 0;
-        background:
-          linear-gradient(90deg, rgba(0,245,255,.10), transparent 22%, rgba(124,60,255,.09) 50%, transparent 74%, rgba(255,61,154,.08)),
-          repeating-linear-gradient(90deg, rgba(255,255,255,.025) 0 1px, transparent 1px 72px);
-        opacity: .38;
-        transform: translate3d(0,0,0);
-      }
-      .eduai-music-clean.youtube-active::before { opacity: .14; }
-      .eduai-music-clean::after { display:none !important; }
-      .eduai-music-clean > div,
-      .eduai-music-clean header,
-      .eduai-music-clean aside,
-      .eduai-music-clean main,
-      .eduai-music-clean footer { position: relative; z-index: 2; }
-
-      .eduai-music-clean header,
-      .eduai-music-clean footer,
-      .eduai-music-clean aside,
-      .eduai-music-clean main {
-        background: transparent !important;
-        border-color: var(--line) !important;
-        box-shadow: none !important;
-        backdrop-filter: none !important;
-      }
-      .eduai-music-clean .spotify-panel {
-        background: var(--panel) !important;
-        border: 1px solid var(--line) !important;
-        box-shadow: none !important;
-        backdrop-filter: none !important;
-      }
-      .eduai-music-clean .spotify-card {
-        background: rgba(255,255,255,.055) !important;
-        border: 1px solid rgba(255,255,255,.075) !important;
-        box-shadow: none !important;
-      }
-      .eduai-music-clean .spotify-card:hover { background: rgba(255,255,255,.085) !important; }
-      .eduai-music-clean .soft-separator { border-color: rgba(255,255,255,.08) !important; }
-
-      .eduai-music-clean button,
-      .eduai-music-clean a.rounded-full,
-      .eduai-music-clean .sp-btn,
-      .eduai-music-clean .sp-icon-btn {
-        animation: none !important;
-        background: rgba(255,255,255,.08) !important;
-        border: 0 !important;
-        color: #f3f4f6 !important;
-        box-shadow: none !important;
-        text-shadow: none !important;
-        filter: none !important;
-        transition: transform .15s ease, background .15s ease, color .15s ease, opacity .15s ease !important;
-      }
-      .eduai-music-clean button:hover,
-      .eduai-music-clean a.rounded-full:hover,
-      .eduai-music-clean .sp-btn:hover,
-      .eduai-music-clean .sp-icon-btn:hover {
-        transform: translateY(-1px) !important;
-        background: rgba(255,255,255,.14) !important;
-        color: white !important;
-      }
-      .eduai-music-clean button:active,
-      .eduai-music-clean a.rounded-full:active,
-      .eduai-music-clean .sp-btn:active,
-      .eduai-music-clean .sp-icon-btn:active {
-        transform: scale(.96) !important;
-        background: rgba(255,255,255,.20) !important;
-      }
-      .eduai-music-clean .sp-primary,
-      .eduai-music-clean .neon-metal-button.sp-primary,
-      .eduai-music-clean .neon-accent-button.sp-primary {
-        color: #06130b !important;
-        background: linear-gradient(135deg, #1ed760, #37ff88) !important;
-        box-shadow: 0 8px 24px rgba(30,215,96,.24) !important;
-      }
-      .eduai-music-clean .sp-primary:hover { background: linear-gradient(135deg, #35eb76, #76ffac) !important; }
-      .eduai-music-clean .sp-pill-active,
-      .eduai-music-clean .sp-nav-active {
-        color: #fff !important;
-        background: rgba(255,255,255,.17) !important;
-      }
-      .eduai-music-clean .sp-playing {
-        color: var(--green) !important;
-      }
-
-      .eduai-music-clean .clean-top-search {
-        background: rgba(255,255,255,.08) !important;
-        border: 1px solid rgba(255,255,255,.10) !important;
-      }
-      .eduai-music-clean .clean-video-frame {
-        width: min(100%, 920px);
-        aspect-ratio: 16 / 9;
-        max-height: min(56vh, 560px);
-        overflow: hidden;
-        border-radius: 18px;
-        background: #000;
-      }
-      .eduai-music-clean .clean-video-frame iframe,
-      .eduai-music-clean .clean-video-frame > * {
-        width: 100% !important;
-        height: 100% !important;
-        min-height: 0 !important;
-        max-height: none !important;
-        object-fit: contain;
-      }
-      .eduai-music-clean .clean-artwork-frame {
-        width: min(100%, 520px);
-        aspect-ratio: 1 / 1;
-        max-height: min(52vh, 520px);
-        margin-inline: auto;
-      }
-      .eduai-music-clean .neon-panel,
-      .eduai-music-clean .neon-stage,
-      .eduai-music-clean .neon-current-card,
-      .eduai-music-clean .neon-compact-card,
-      .eduai-music-clean .neon-side-hub {
-        animation: none !important;
-        background: transparent !important;
-        border: 0 !important;
-        box-shadow: none !important;
-        backdrop-filter: none !important;
-      }
-      .eduai-music-clean .neon-keyboard-line,
-      .eduai-music-clean .neon-panel::before,
-      .eduai-music-clean .neon-stage::before,
-      .eduai-music-clean header::after,
-      .eduai-music-clean footer::before { display: none !important; }
-
-      .eduai-music-clean .bottom-eq span {
-        width: 4px;
-        border-radius: 999px;
-        background: linear-gradient(180deg, var(--eq-a), var(--eq-b), var(--eq-c));
-        opacity: var(--eq-opacity, .85);
-        height: var(--eq-height, 18px);
-        box-shadow: 0 0 8px color-mix(in srgb, var(--eq-a), transparent 50%);
-        transform-origin: bottom center;
-        transition: height 110ms linear, opacity 110ms linear;
-      }
-      .eduai-music-clean .clean-progress {
-        height: 4px;
-        border-radius: 999px;
-        background: linear-gradient(90deg, var(--green) var(--eduai-progress), rgba(255,255,255,.18) var(--eduai-progress));
-      }
-      .eduai-music-clean .clean-progress:hover { height: 6px; }
-      @keyframes eduai-clean-bg {
-        0%, 100% { background-position: 0% 45%; }
-        50% { background-position: 100% 55%; }
-      }
-      @media (max-width: 1180px) {
-        .eduai-clean-grid { grid-template-columns: 240px minmax(0, 1fr) 300px !important; }
-        .eduai-music-clean .clean-video-frame { max-height: 48vh; }
-      }
-      @media (max-width: 920px) {
-        .eduai-clean-grid { grid-template-columns: 1fr !important; }
-        .eduai-clean-left, .eduai-clean-right { display: none !important; }
-      }
-    `}</style>
-  );
 }
 
 const NAV_ITEMS = [
@@ -356,1125 +106,53 @@ const MOODS: Array<EduMusicMood | "all"> = [
   "energy",
 ];
 
-const SPOTIFY_EMBEDS = [
+const SPOTIFY_EMBEDS: SpotifyEmbedItem[] = [
   {
-    id: "spotify-mix-1",
+    id: "spotify-calvin-mix",
     title: "Calvin Harris Mix",
+    subtitle: "Electrónica y energía para modo DJ visual",
     src: "https://open.spotify.com/embed/playlist/37i9dQZF1EIZna6YqhjeY0?utm_source=generator&theme=0",
+    accent: "from-emerald-400 to-cyan-400",
   },
   {
     id: "spotify-top-global",
     title: "Top Global",
-    src: "https://open.spotify.com/embed/playlist/37i9dQZEVXddk5AflVss6A?utm_source=generator",
+    subtitle: "Tendencias globales desde Spotify",
+    src: "https://open.spotify.com/embed/playlist/37i9dQZEVXddk5AflVss6A?utm_source=generator&theme=0",
+    accent: "from-violet-400 to-fuchsia-400",
   },
   {
-    id: "spotify-mix-2",
+    id: "spotify-electro-mix",
     title: "Mix electrónico",
-    src: "https://open.spotify.com/embed/playlist/37i9dQZF1E8KVBYF00LoMc?utm_source=generator",
+    subtitle: "Visual tipo club, ideal para reels de fondo",
+    src: "https://open.spotify.com/embed/playlist/37i9dQZF1E8KVBYF00LoMc?utm_source=generator&theme=0",
+    accent: "from-lime-300 to-emerald-400",
   },
   {
-    id: "spotify-custom-1",
+    id: "spotify-personal-1",
     title: "Lista personal 1",
-    src: "https://open.spotify.com/embed/playlist/3z0zQdiFbPdiZ1I7xRpqPx?utm_source=generator",
+    subtitle: "Playlist guardada para pruebas en EduAI Music",
+    src: "https://open.spotify.com/embed/playlist/3z0zQdiFbPdiZ1I7xRpqPx?utm_source=generator&theme=0",
+    accent: "from-sky-400 to-blue-500",
   },
   {
-    id: "spotify-custom-2",
+    id: "spotify-personal-2",
     title: "Lista personal 2",
+    subtitle: "Otra lista visual para abrir en el centro",
     src: "https://open.spotify.com/embed/playlist/6VjXyFH9Z5HlGPAjRBKR32?utm_source=generator&theme=0",
+    accent: "from-amber-300 to-orange-400",
   },
   {
     id: "spotify-focus",
-    title: "Focus / estudio",
+    title: "Focus profundo",
+    subtitle: "Música para estudiar y trabajar",
     src: "https://open.spotify.com/embed/playlist/37i9dQZF1DX6aTaZa0K6VA?utm_source=generator&theme=0",
+    accent: "from-teal-300 to-emerald-500",
   },
 ];
 
 function cn(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(" ");
-}
-
-function NeonGamingSkin() {
-  return (
-    <style>{`
-      .eduai-music-neon {
-        --neon-green: #00ffa3;
-        --neon-cyan: #00e5ff;
-        --neon-blue: #2563ff;
-        --neon-purple: #a855f7;
-        --neon-pink: #ff2d75;
-        --neon-red: #ff314f;
-        position: relative;
-        isolation: isolate;
-        background:
-          radial-gradient(circle at 12% 18%, rgba(0, 229, 255, 0.2), transparent 25%),
-          radial-gradient(circle at 88% 16%, rgba(168, 85, 247, 0.22), transparent 30%),
-          radial-gradient(circle at 50% 86%, rgba(255, 45, 117, 0.17), transparent 34%),
-          linear-gradient(120deg, #02030a 0%, #061015 34%, #120722 65%, #04050c 100%) !important;
-      }
-
-      .eduai-music-neon::before {
-        content: "";
-        position: fixed;
-        inset: -25%;
-        pointer-events: none;
-        z-index: 0;
-        background:
-          linear-gradient(115deg, transparent 0 10%, rgba(0,229,255,.12) 13%, transparent 18% 27%, rgba(168,85,247,.12) 31%, transparent 37% 52%, rgba(255,45,117,.13) 57%, transparent 63% 72%, rgba(0,255,163,.15) 78%, transparent 84% 100%),
-          repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 1px, transparent 1px 28px),
-          repeating-linear-gradient(0deg, rgba(255,255,255,.025) 0 1px, transparent 1px 24px);
-        filter: blur(.2px) saturate(1.35);
-        opacity: .88;
-        transform: translate3d(0,0,0);
-        animation: eduai-aurora-slide 18s linear infinite;
-        mask-image: radial-gradient(circle at 50% 42%, rgba(0,0,0,.96), rgba(0,0,0,.4) 60%, transparent 88%);
-      }
-
-      .eduai-music-neon::after {
-        content: "";
-        position: fixed;
-        inset: 0;
-        pointer-events: none;
-        z-index: 1;
-        background:
-          repeating-linear-gradient(to bottom, rgba(255,255,255,0.055) 0px, rgba(255,255,255,0.055) 1px, transparent 2px, transparent 7px),
-          radial-gradient(circle at 50% 50%, transparent 0%, rgba(0,0,0,.36) 78%);
-        opacity: .22;
-        mix-blend-mode: screen;
-      }
-
-      .eduai-music-neon > div,
-      .eduai-music-neon header,
-      .eduai-music-neon footer,
-      .eduai-music-neon aside,
-      .eduai-music-neon main {
-        position: relative;
-        z-index: 2;
-      }
-
-      .eduai-music-neon header,
-      .eduai-music-neon footer {
-        background: rgba(2, 4, 12, 0.82) !important;
-        border-color: rgba(0, 255, 163, 0.28) !important;
-        box-shadow: 0 0 34px rgba(0, 229, 255, 0.11), 0 0 42px rgba(168,85,247,.1), inset 0 1px 0 rgba(255,255,255,.08);
-        backdrop-filter: blur(22px) saturate(160%);
-      }
-
-      .eduai-music-neon header::after,
-      .eduai-music-neon footer::before {
-        content: "";
-        position: absolute;
-        left: 0;
-        right: 0;
-        height: 2px;
-        pointer-events: none;
-        background: linear-gradient(90deg, #00ffa3, #00e5ff, #2563ff, #a855f7, #ff2d75, #ff314f, #00ffa3);
-        background-size: 260% 100%;
-        filter: drop-shadow(0 0 10px rgba(0,255,163,.55));
-        animation: eduai-rainbow-flow 5.5s linear infinite;
-      }
-      .eduai-music-neon header::after { bottom: -1px; }
-      .eduai-music-neon footer::before { top: -1px; }
-
-      .eduai-music-neon aside {
-        background:
-          linear-gradient(180deg, rgba(4, 7, 18, 0.9), rgba(5, 8, 15, 0.94)),
-          radial-gradient(circle at 10% 12%, rgba(0,229,255,.14), transparent 30%) !important;
-        border-color: rgba(0, 255, 163, 0.19) !important;
-      }
-
-      .eduai-music-neon main {
-        background:
-          radial-gradient(circle at 50% 0%, rgba(0, 229, 255, 0.09), transparent 44%),
-          radial-gradient(circle at 80% 80%, rgba(255,45,117,.08), transparent 38%) !important;
-      }
-
-      .eduai-music-neon .neon-panel {
-        position: relative;
-        overflow: hidden;
-        background:
-          linear-gradient(145deg, rgba(5, 11, 22, 0.82), rgba(4, 6, 13, 0.88)),
-          radial-gradient(circle at 14% 8%, rgba(0, 229, 255, 0.16), transparent 34%),
-          radial-gradient(circle at 88% 18%, rgba(168, 85, 247, 0.14), transparent 40%),
-          radial-gradient(circle at 64% 96%, rgba(255, 45, 117, 0.10), transparent 34%) !important;
-        border: 1px solid rgba(0, 255, 163, 0.26) !important;
-        box-shadow:
-          0 24px 70px rgba(0,0,0,.54),
-          0 0 34px rgba(0,229,255,.09),
-          0 0 46px rgba(168,85,247,.08),
-          inset 0 1px 0 rgba(255,255,255,.09) !important;
-        backdrop-filter: blur(20px) saturate(160%);
-      }
-
-      .eduai-music-neon .neon-panel::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-        background:
-          linear-gradient(115deg, transparent 0 18%, rgba(0,255,163,.12) 21%, transparent 27% 100%),
-          linear-gradient(90deg, rgba(0,229,255,.08), transparent 30%, rgba(255,45,117,.08));
-        opacity: .55;
-      }
-
-      .eduai-music-neon .neon-panel > * {
-        position: relative;
-        z-index: 1;
-      }
-
-      .eduai-music-neon .neon-stage {
-        position: relative;
-        overflow: hidden;
-        background:
-          radial-gradient(circle at 50% 38%, rgba(0, 229, 255, 0.19), transparent 28%),
-          radial-gradient(circle at 24% 74%, rgba(168, 85, 247, 0.14), transparent 34%),
-          radial-gradient(circle at 78% 70%, rgba(255, 45, 117, 0.13), transparent 36%),
-          linear-gradient(145deg, rgba(2, 8, 14, 0.76), rgba(6, 4, 16, 0.88)) !important;
-        border-color: rgba(0, 255, 163, 0.25) !important;
-        box-shadow:
-          inset 0 0 90px rgba(0, 229, 255, 0.055),
-          0 0 38px rgba(0, 255, 163, 0.07),
-          0 0 48px rgba(168, 85, 247, 0.07) !important;
-      }
-
-      .eduai-music-neon .neon-stage::before {
-        content: "";
-        position: absolute;
-        inset: auto 8% 18px 8%;
-        height: 8px;
-        border-radius: 999px;
-        background: linear-gradient(90deg,#00ffa3,#00e5ff,#2563ff,#a855f7,#ff2d75,#ff314f,#00ffa3);
-        background-size: 260% 100%;
-        filter: blur(10px);
-        opacity: .48;
-        animation: eduai-rainbow-flow 6s linear infinite;
-      }
-
-      .eduai-music-neon .neon-current-card {
-        background:
-          linear-gradient(155deg, rgba(9, 17, 31, 0.72), rgba(0,0,0,.36)),
-          radial-gradient(circle at 12% 8%, rgba(0,229,255,.14), transparent 38%),
-          radial-gradient(circle at 92% 0%, rgba(255,45,117,.10), transparent 44%) !important;
-        border-color: rgba(0, 255, 163, 0.28) !important;
-        box-shadow:
-          0 22px 64px rgba(0,0,0,.48),
-          0 0 28px rgba(0,255,163,.13),
-          0 0 34px rgba(37,99,255,.09),
-          inset 0 1px 0 rgba(255,255,255,.09) !important;
-      }
-
-      .eduai-music-neon .neon-chip {
-        border: 1px solid rgba(0,255,163,.46) !important;
-        background: linear-gradient(90deg, rgba(0,255,163,.28), rgba(0,229,255,.14), rgba(168,85,247,.14)) !important;
-        color: #d9ffef !important;
-        text-shadow: 0 0 12px rgba(0,255,163,.55);
-        box-shadow: inset 0 0 18px rgba(0,255,163,.10), 0 0 18px rgba(0,255,163,.11);
-      }
-
-      .eduai-music-neon .neon-title {
-        color: #ffffff;
-        text-shadow: 0 0 18px rgba(0,255,163,.32), 0 0 32px rgba(0,229,255,.18), 0 0 46px rgba(168,85,247,.12);
-      }
-
-      .eduai-music-neon .neon-accent-button,
-      .eduai-music-neon .neon-metal-button {
-        color: #02120c !important;
-        background:
-          linear-gradient(180deg, rgba(255,255,255,.55), transparent 38%),
-          linear-gradient(90deg, #a7ffd3, #00ffa3 34%, #00d084 58%, #39ff88) !important;
-        border: 1px solid rgba(202,255,226,.72) !important;
-        box-shadow:
-          0 0 18px rgba(0,255,163,.38),
-          0 0 36px rgba(0,229,255,.16),
-          inset 0 1px 0 rgba(255,255,255,.74),
-          inset 0 -10px 18px rgba(0,74,52,.22) !important;
-      }
-
-      .eduai-music-neon .neon-accent-button:hover,
-      .eduai-music-neon .neon-metal-button:hover {
-        transform: translateY(-1px) scale(1.025);
-        filter: saturate(1.2) contrast(1.05);
-      }
-
-      .eduai-music-neon .rainbow-edge {
-        position: relative;
-      }
-      .eduai-music-neon .rainbow-edge::before {
-        content: "";
-        position: absolute;
-        inset: -1px;
-        z-index: -1;
-        border-radius: inherit;
-        background: linear-gradient(120deg,#00ffa3,#00e5ff,#2563ff,#a855f7,#ff2d75,#ff314f,#00ffa3);
-        background-size: 240% 100%;
-        opacity: .72;
-        animation: eduai-rainbow-flow 5.2s linear infinite;
-      }
-
-      .eduai-music-neon .neon-playlist-shelf {
-        background:
-          linear-gradient(135deg, rgba(0,229,255,.10), rgba(5,8,18,.88) 36%, rgba(168,85,247,.11) 70%, rgba(255,45,117,.08)) !important;
-        border-color: rgba(0,255,163,.22) !important;
-        box-shadow: 0 -8px 42px rgba(0,229,255,.08), inset 0 1px 0 rgba(255,255,255,.08) !important;
-      }
-
-      .eduai-music-neon .neon-spotify-card,
-      .eduai-music-neon .neon-playlist-card,
-      .eduai-music-neon .neon-instrumental-card {
-        background:
-          linear-gradient(145deg, rgba(255,255,255,.075), rgba(255,255,255,.025)),
-          radial-gradient(circle at 16% 0%, rgba(0,229,255,.18), transparent 44%),
-          radial-gradient(circle at 88% 100%, rgba(255,45,117,.12), transparent 42%) !important;
-        border-color: rgba(0,255,163,.2) !important;
-        box-shadow: 0 16px 42px rgba(0,0,0,.36), 0 0 22px rgba(0,229,255,.06) !important;
-      }
-
-      .eduai-music-neon .neon-spotify-card:hover,
-      .eduai-music-neon .neon-playlist-card:hover,
-      .eduai-music-neon .neon-instrumental-card:hover {
-        border-color: rgba(0,255,163,.5) !important;
-        box-shadow: 0 20px 54px rgba(0,0,0,.44), 0 0 28px rgba(0,255,163,.16), 0 0 40px rgba(255,45,117,.08) !important;
-        transform: translateY(-2px);
-      }
-
-      .eduai-music-neon .neon-eq {
-        display: inline-flex;
-        align-items: end;
-        gap: 3px;
-        height: 18px;
-      }
-      .eduai-music-neon .neon-eq span {
-        width: 3px;
-        min-height: 5px;
-        border-radius: 999px;
-        background: linear-gradient(180deg,#00e5ff,#a855f7,#ff2d75,#00ffa3);
-        box-shadow: 0 0 9px rgba(0,255,163,.42);
-        animation: eduai-eq 1.05s ease-in-out infinite;
-      }
-      .eduai-music-neon .neon-eq span:nth-child(2) { animation-delay: .12s; }
-      .eduai-music-neon .neon-eq span:nth-child(3) { animation-delay: .24s; }
-      .eduai-music-neon .neon-eq span:nth-child(4) { animation-delay: .36s; }
-      .eduai-music-neon .neon-eq span:nth-child(5) { animation-delay: .48s; }
-
-      .eduai-music-neon input[type="range"] {
-        height: 6px;
-        border-radius: 999px;
-        filter: drop-shadow(0 0 9px rgba(0,255,163,.38)) drop-shadow(0 0 13px rgba(168,85,247,.18));
-      }
-      .eduai-music-neon input[type="range"]::-webkit-slider-thumb {
-        box-shadow: 0 0 0 4px rgba(0,255,163,.14), 0 0 18px rgba(0,255,163,.65);
-      }
-
-      .eduai-music-neon ::selection {
-        background: rgba(0,255,163,.35);
-        color: white;
-      }
-
-      .eduai-music-neon {
-        background-size: 180% 180% !important;
-        animation: eduai-bg-shift 22s ease-in-out infinite;
-      }
-
-      .eduai-music-neon button,
-      .eduai-music-neon a {
-        -webkit-tap-highlight-color: transparent;
-      }
-
-      .eduai-music-neon button {
-        position: relative;
-        overflow: hidden;
-        transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease, filter .18s ease;
-      }
-
-      .eduai-music-neon button:not(:disabled):hover {
-        transform: translateY(-1px);
-        filter: brightness(1.12) saturate(1.25);
-      }
-
-      .eduai-music-neon button:not(:disabled):active {
-        transform: translateY(0) scale(.98);
-      }
-
-      .eduai-music-neon .neon-control-button {
-        border: 1px solid rgba(0,255,163,.22) !important;
-        background:
-          radial-gradient(circle at 32% 18%, rgba(255,255,255,.20), transparent 28%),
-          linear-gradient(145deg, rgba(17,24,39,.86), rgba(5,8,16,.92)) !important;
-        box-shadow:
-          inset 0 1px 0 rgba(255,255,255,.12),
-          0 0 0 1px rgba(0,229,255,.05),
-          0 0 20px rgba(0,255,163,.10) !important;
-      }
-
-      .eduai-music-neon .neon-control-button:hover {
-        border-color: rgba(0,255,163,.55) !important;
-        box-shadow:
-          inset 0 1px 0 rgba(255,255,255,.18),
-          0 0 22px rgba(0,255,163,.22),
-          0 0 30px rgba(168,85,247,.10) !important;
-      }
-
-      .eduai-music-neon .neon-control-button.is-active {
-        color: #03130c !important;
-        background:
-          linear-gradient(180deg, rgba(255,255,255,.42), transparent 42%),
-          linear-gradient(100deg, #93ffcb, #00ffa3 38%, #00d084 64%, #58ff8a) !important;
-        border-color: rgba(217,255,236,.76) !important;
-        box-shadow:
-          0 0 18px rgba(0,255,163,.42),
-          0 0 32px rgba(0,229,255,.18),
-          inset 0 1px 0 rgba(255,255,255,.72),
-          inset 0 -8px 18px rgba(0,88,58,.24) !important;
-      }
-
-      .eduai-music-neon .neon-metal-button::after,
-      .eduai-music-neon .neon-accent-button::after,
-      .eduai-music-neon .neon-control-button::after {
-        content: "";
-        position: absolute;
-        inset: -80% auto -80% -45%;
-        width: 42%;
-        transform: rotate(18deg);
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,.52), transparent);
-        opacity: .0;
-        transition: opacity .18s ease, left .55s ease;
-        pointer-events: none;
-      }
-
-      .eduai-music-neon .neon-metal-button:hover::after,
-      .eduai-music-neon .neon-accent-button:hover::after,
-      .eduai-music-neon .neon-control-button:hover::after {
-        left: 118%;
-        opacity: .55;
-      }
-
-      .eduai-music-neon .neon-keyboard-line {
-        position: absolute;
-        left: 16px;
-        right: 16px;
-        height: 2px;
-        pointer-events: none;
-        border-radius: 999px;
-        background: linear-gradient(90deg,#00ffa3,#00e5ff,#2563ff,#a855f7,#ff2d75,#ff314f,#ffcc00,#00ffa3);
-        background-size: 300% 100%;
-        filter: drop-shadow(0 0 9px rgba(0,255,163,.5)) drop-shadow(0 0 12px rgba(168,85,247,.35));
-        animation: eduai-rainbow-flow 4.2s linear infinite;
-        opacity: .85;
-      }
-
-      .eduai-music-neon .neon-keyboard-line.top { top: 0; }
-      .eduai-music-neon .neon-keyboard-line.bottom { bottom: 0; }
-
-      .eduai-music-neon .neon-stage {
-        min-height: 0;
-      }
-
-      .eduai-music-neon .neon-current-card {
-        max-height: 100%;
-      }
-
-      .eduai-music-neon .neon-now-compact {
-        background:
-          linear-gradient(135deg, rgba(0,255,163,.10), rgba(0,0,0,.34) 36%, rgba(168,85,247,.12) 70%, rgba(255,45,117,.10)),
-          rgba(1,4,10,.68) !important;
-        border-color: rgba(0,255,163,.30) !important;
-      }
-
-      .eduai-music-neon .neon-bottom-visualizer {
-        background:
-          linear-gradient(180deg, rgba(2,3,10,.74), rgba(3,6,12,.94)),
-          radial-gradient(circle at 22% 50%, rgba(0,229,255,.18), transparent 38%),
-          radial-gradient(circle at 72% 70%, rgba(255,45,117,.14), transparent 42%) !important;
-        box-shadow:
-          0 -18px 54px rgba(0,0,0,.55),
-          inset 0 1px 0 rgba(255,255,255,.08),
-          0 0 28px rgba(0,255,163,.08) !important;
-      }
-
-      .eduai-music-neon .neon-visualizer-bars {
-        display: flex;
-        align-items: end;
-        justify-content: center;
-        gap: 4px;
-        height: 42px;
-        min-width: 190px;
-      }
-
-      .eduai-music-neon .neon-visualizer-bars span {
-        width: clamp(4px, .42vw, 7px);
-        min-height: 7px;
-        border-radius: 999px 999px 4px 4px;
-        background: linear-gradient(180deg,#fff 0%,#00e5ff 18%,#2563ff 42%,#a855f7 62%,#ff2d75 80%,#00ffa3 100%);
-        box-shadow: 0 0 10px rgba(0,255,163,.4), 0 0 16px rgba(168,85,247,.22);
-        animation: eduai-eq-big 1.05s ease-in-out infinite;
-      }
-
-      .eduai-music-neon .neon-visualizer-bars span:nth-child(2n) { animation-duration: .82s; animation-delay: -.12s; }
-      .eduai-music-neon .neon-visualizer-bars span:nth-child(3n) { animation-duration: 1.24s; animation-delay: -.28s; }
-      .eduai-music-neon .neon-visualizer-bars span:nth-child(4n) { animation-duration: .96s; animation-delay: -.38s; }
-      .eduai-music-neon .neon-visualizer-bars span:nth-child(5n) { animation-duration: 1.36s; animation-delay: -.52s; }
-
-      .eduai-music-neon .neon-progress-track {
-        position: relative;
-        height: 7px;
-        overflow: hidden;
-        border-radius: 999px;
-        background: rgba(255,255,255,.10);
-        box-shadow: inset 0 0 0 1px rgba(255,255,255,.08), 0 0 16px rgba(0,255,163,.16);
-      }
-
-      .eduai-music-neon .neon-progress-track::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        width: var(--eduai-progress, 0%);
-        border-radius: inherit;
-        background: linear-gradient(90deg,#00ffa3,#00e5ff,#2563ff,#a855f7,#ff2d75,#ff314f,#00ffa3);
-        background-size: 260% 100%;
-        box-shadow: 0 0 18px rgba(0,255,163,.42), 0 0 28px rgba(168,85,247,.22);
-        animation: eduai-rainbow-flow 4.6s linear infinite;
-      }
-
-      .eduai-music-neon .neon-side-hub {
-        background:
-          linear-gradient(145deg, rgba(6,10,22,.86), rgba(3,5,10,.94)),
-          radial-gradient(circle at 0% 0%, rgba(0,229,255,.18), transparent 42%),
-          radial-gradient(circle at 100% 40%, rgba(255,45,117,.13), transparent 44%) !important;
-      }
-
-      .eduai-music-neon .neon-compact-card {
-        background:
-          linear-gradient(135deg, rgba(255,255,255,.075), rgba(255,255,255,.025)),
-          radial-gradient(circle at 16% 18%, rgba(0,255,163,.14), transparent 44%) !important;
-        border-color: rgba(0,255,163,.19) !important;
-      }
-
-      .eduai-music-neon .neon-compact-card:hover {
-        border-color: rgba(0,255,163,.52) !important;
-        box-shadow: 0 0 22px rgba(0,255,163,.14), 0 0 34px rgba(168,85,247,.08) !important;
-      }
-
-
-
-      /* EduAI Music Pro Gamer Patch: UI más ligera, RGB siempre activo y un solo visualizador */
-      .eduai-music-neon {
-        background:
-          radial-gradient(circle at var(--gx, 18%) var(--gy, 20%), rgba(0,229,255,.25), transparent 28%),
-          radial-gradient(circle at 88% 18%, rgba(139,92,246,.25), transparent 32%),
-          radial-gradient(circle at 68% 88%, rgba(255,45,117,.19), transparent 36%),
-          linear-gradient(125deg, #02030a 0%, #061221 26%, #17072a 52%, #2a0612 76%, #02030a 100%) !important;
-        background-size: 180% 180%, 160% 160%, 160% 160%, 260% 260% !important;
-        animation: eduai-bg-shift 16s ease-in-out infinite !important;
-      }
-
-      .eduai-music-neon .neon-accent-button,
-      .eduai-music-neon .neon-metal-button {
-        background:
-          linear-gradient(180deg, rgba(255,255,255,.66), rgba(255,255,255,0) 42%),
-          linear-gradient(105deg, #d6ffe7, #00ffa3 18%, #00d084 36%, #13f7ff 54%, #98ff72 72%, #00ffa3 100%) !important;
-        background-size: 100% 100%, 280% 100% !important;
-        animation: eduai-metal-rgb 3.4s linear infinite, eduai-button-breathe 2.8s ease-in-out infinite !important;
-        border-color: rgba(217,255,236,.82) !important;
-      }
-      .eduai-music-neon .neon-accent-button:active,
-      .eduai-music-neon .neon-metal-button:active,
-      .eduai-music-neon .neon-control-button:active {
-        transform: translateY(1px) scale(.965) !important;
-        filter: brightness(1.35) saturate(1.5) !important;
-        box-shadow: 0 0 10px rgba(0,255,163,.75), 0 0 36px rgba(0,229,255,.34), inset 0 0 22px rgba(255,255,255,.38) !important;
-      }
-      .eduai-music-neon .neon-control-button.is-active {
-        background-size: 240% 100% !important;
-        animation: eduai-metal-rgb 3.2s linear infinite !important;
-      }
-
-      .eduai-music-neon .neon-player-frame {
-        width: 100%;
-        height: 100%;
-        max-width: none !important;
-        border-radius: 2rem;
-        border: 1px solid rgba(0,255,163,.28);
-        box-shadow: 0 26px 82px rgba(0,0,0,.58), 0 0 38px rgba(0,229,255,.12), 0 0 46px rgba(168,85,247,.10);
-      }
-
-      .eduai-music-neon .neon-visualizer-bars span {
-        height: var(--eq-height, 14px) !important;
-        opacity: var(--eq-opacity, .86) !important;
-        animation: none !important;
-        background: linear-gradient(180deg, #ffffff 0%, var(--eq-a, #00e5ff) 20%, var(--eq-b, #a855f7) 55%, var(--eq-c, #ff2d75) 78%, #00ffa3 100%) !important;
-        box-shadow: 0 0 12px color-mix(in srgb, var(--eq-a, #00e5ff) 68%, transparent), 0 0 22px rgba(168,85,247,.28) !important;
-        transition: height .08s linear, opacity .08s linear, filter .12s ease;
-      }
-      .eduai-music-neon .neon-visualizer-bars {
-        filter: drop-shadow(0 0 12px rgba(0,229,255,.25));
-      }
-      .eduai-music-neon .neon-single-eq-footer {
-        min-height: 96px;
-      }
-
-      .eduai-music-neon .neon-collapsed-sidebar {
-        width: 74px;
-        align-items: center;
-      }
-      .eduai-music-neon .neon-collapsed-sidebar .collapsed-icon-button {
-        width: 48px;
-        height: 48px;
-        justify-content: center;
-      }
-
-
-      .eduai-music-neon button[class*="bg-emerald-400"],
-      .eduai-music-neon a[class*="bg-emerald-400"] {
-        background:
-          linear-gradient(180deg, rgba(255,255,255,.62), rgba(255,255,255,0) 42%),
-          linear-gradient(105deg, #d6ffe7, #00ffa3 18%, #00d084 36%, #13f7ff 54%, #98ff72 72%, #00ffa3 100%) !important;
-        background-size: 100% 100%, 280% 100% !important;
-        animation: eduai-metal-rgb 3.4s linear infinite, eduai-button-breathe 2.8s ease-in-out infinite !important;
-        color: #03130c !important;
-        border-color: rgba(217,255,236,.82) !important;
-      }
-
-
-      .eduai-music-neon::before {
-        filter: none !important;
-        opacity: .52 !important;
-        animation-duration: 28s !important;
-      }
-      .eduai-music-neon::after {
-        opacity: .15 !important;
-      }
-      .eduai-music-neon .neon-panel::before {
-        opacity: .32 !important;
-      }
-
-      @keyframes eduai-metal-rgb {
-        0% { background-position: 0 0, 0% 50%; }
-        100% { background-position: 0 0, 280% 50%; }
-      }
-      @keyframes eduai-button-breathe {
-        0%, 100% { box-shadow: 0 0 18px rgba(0,255,163,.42), 0 0 30px rgba(0,229,255,.18), inset 0 1px 0 rgba(255,255,255,.76); }
-        50% { box-shadow: 0 0 28px rgba(0,255,163,.70), 0 0 48px rgba(0,229,255,.32), 0 0 26px rgba(168,85,247,.25), inset 0 1px 0 rgba(255,255,255,.86); }
-      }
-
-      @keyframes eduai-bg-shift {
-        0%, 100% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-      }
-
-      @keyframes eduai-eq-big {
-        0%, 100% { height: 9px; opacity: .58; transform: scaleY(.72); }
-        38% { height: 38px; opacity: 1; transform: scaleY(1); }
-        62% { height: 18px; opacity: .82; transform: scaleY(.86); }
-      }
-
-      @media (prefers-reduced-motion: no-preference) {
-        .eduai-music-neon .neon-pulse {
-          animation: eduai-neon-pulse 2.4s ease-in-out infinite;
-        }
-        .eduai-music-neon .neon-scan {
-          background-size: 220% 100%;
-          animation: eduai-neon-scan 6s linear infinite;
-        }
-      }
-
-      @keyframes eduai-rainbow-flow {
-        0% { background-position: 0% 50%; }
-        100% { background-position: 240% 50%; }
-      }
-
-      @keyframes eduai-aurora-slide {
-        0% { transform: translate3d(-8%, -3%, 0) rotate(0deg); }
-        50% { transform: translate3d(7%, 4%, 0) rotate(1.6deg); }
-        100% { transform: translate3d(-8%, -3%, 0) rotate(0deg); }
-      }
-
-      @keyframes eduai-neon-pulse {
-        0%, 100% { box-shadow: 0 0 18px rgba(0,255,163,.24), 0 0 0 rgba(34,211,238,0); }
-        50% { box-shadow: 0 0 34px rgba(0,255,163,.48), 0 0 24px rgba(0,229,255,.2); }
-      }
-
-      @keyframes eduai-neon-scan {
-        0% { background-position: 0% 0; }
-        100% { background-position: 220% 0; }
-      }
-
-      @keyframes eduai-eq {
-        0%, 100% { height: 5px; opacity: .62; }
-        50% { height: 18px; opacity: 1; }
-      }
-
-
-      /* EduAI Music HyperX Keyboard Patch: RGB de borde, verde metálico, menos carga GPU */
-      .eduai-music-neon {
-        --metal-a: #eafff1;
-        --metal-b: #00f59a;
-        --metal-c: #00bd74;
-        --metal-d: #a7ff4f;
-        --kb-red: #ff2323;
-        --kb-orange: #ff8a00;
-        --kb-yellow: #fff000;
-        --kb-green: #35ff4f;
-        --kb-cyan: #00eaff;
-        --kb-blue: #2962ff;
-        --kb-purple: #a600ff;
-        --kb-pink: #ff1fbf;
-        background:
-          radial-gradient(circle at 15% 18%, rgba(0,140,255,.16), transparent 34%),
-          radial-gradient(circle at 78% 18%, rgba(166,0,255,.13), transparent 36%),
-          radial-gradient(circle at 72% 82%, rgba(255,35,35,.10), transparent 38%),
-          linear-gradient(120deg, #02040a, #06111a 32%, #10071f 58%, #16080b 78%, #02040a) !important;
-        animation: eduai-bg-shift 28s ease-in-out infinite !important;
-      }
-
-      .eduai-music-neon.youtube-active {
-        animation: none !important;
-        background:
-          radial-gradient(circle at 18% 16%, rgba(0,234,255,.11), transparent 34%),
-          radial-gradient(circle at 82% 80%, rgba(166,0,255,.10), transparent 38%),
-          linear-gradient(120deg, #02040a, #071018 44%, #0b0616 100%) !important;
-      }
-      .eduai-music-neon.youtube-active::before,
-      .eduai-music-neon.youtube-active::after,
-      .eduai-music-neon.youtube-active .neon-panel::before,
-      .eduai-music-neon.youtube-active .neon-stage::before {
-        animation: none !important;
-        opacity: 0.10 !important;
-        filter: none !important;
-      }
-      .eduai-music-neon.youtube-active .neon-panel,
-      .eduai-music-neon.youtube-active aside,
-      .eduai-music-neon.youtube-active header,
-      .eduai-music-neon.youtube-active footer {
-        backdrop-filter: none !important;
-      }
-
-      .eduai-music-neon .neon-panel,
-      .eduai-music-neon .neon-current-card,
-      .eduai-music-neon .neon-compact-card,
-      .eduai-music-neon .neon-side-hub,
-      .eduai-music-neon .neon-stage {
-        border: 1px solid transparent !important;
-        background:
-          linear-gradient(145deg, rgba(3,8,15,.92), rgba(7,8,20,.84)) padding-box,
-          linear-gradient(90deg, var(--kb-red), var(--kb-orange), var(--kb-yellow), var(--kb-green), var(--kb-cyan), var(--kb-blue), var(--kb-purple), var(--kb-pink), var(--kb-red)) border-box !important;
-        background-size: 100% 100%, 360% 100% !important;
-        animation: eduai-keyboard-border 12s linear infinite !important;
-        box-shadow: 0 16px 40px rgba(0,0,0,.46), inset 0 1px 0 rgba(255,255,255,.06) !important;
-      }
-
-      .eduai-music-neon.youtube-active .neon-panel,
-      .eduai-music-neon.youtube-active .neon-current-card,
-      .eduai-music-neon.youtube-active .neon-compact-card,
-      .eduai-music-neon.youtube-active .neon-side-hub,
-      .eduai-music-neon.youtube-active .neon-stage {
-        animation-duration: 20s !important;
-        box-shadow: 0 10px 26px rgba(0,0,0,.48), inset 0 1px 0 rgba(255,255,255,.05) !important;
-      }
-
-      .eduai-music-neon button,
-      .eduai-music-neon a.rounded-full,
-      .eduai-music-neon .neon-control-button,
-      .eduai-music-neon .neon-metal-button,
-      .eduai-music-neon .neon-accent-button {
-        border: 1px solid transparent !important;
-        background:
-          linear-gradient(180deg, rgba(255,255,255,.58), rgba(255,255,255,.12) 34%, rgba(0,90,54,.38) 100%) padding-box,
-          linear-gradient(90deg, var(--kb-red), var(--kb-orange), var(--kb-yellow), var(--kb-green), var(--kb-cyan), var(--kb-blue), var(--kb-purple), var(--kb-pink), var(--kb-red)) border-box !important;
-        background-size: 100% 100%, 420% 100% !important;
-        animation: eduai-keyboard-border 5.8s linear infinite !important;
-        box-shadow: 0 5px 14px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.55) !important;
-      }
-
-      .eduai-music-neon .neon-metal-button,
-      .eduai-music-neon .neon-accent-button,
-      .eduai-music-neon button[class*="bg-emerald-400"],
-      .eduai-music-neon a[class*="bg-emerald-400"] {
-        color: #06130b !important;
-        background:
-          linear-gradient(180deg, rgba(255,255,255,.82) 0%, rgba(185,255,216,.50) 23%, rgba(0,245,154,.95) 48%, rgba(0,156,94,.96) 72%, rgba(166,255,79,.88) 100%) padding-box,
-          linear-gradient(90deg, var(--kb-green), var(--kb-cyan), var(--kb-blue), var(--kb-purple), var(--kb-pink), var(--kb-red), var(--kb-yellow), var(--kb-green)) border-box !important;
-        background-size: 100% 100%, 420% 100% !important;
-        animation: eduai-keyboard-border 4.8s linear infinite, eduai-metal-soft 3.6s ease-in-out infinite !important;
-        box-shadow: 0 6px 14px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.88), inset 0 -10px 18px rgba(0,68,45,.28) !important;
-      }
-
-      .eduai-music-neon button:not(:disabled):hover,
-      .eduai-music-neon a.rounded-full:hover {
-        transform: translateY(-1px) !important;
-        filter: brightness(1.08) saturate(1.18) !important;
-      }
-      .eduai-music-neon button:not(:disabled):active,
-      .eduai-music-neon a.rounded-full:active {
-        transform: translateY(1px) scale(.965) !important;
-        filter: brightness(1.32) saturate(1.35) !important;
-        box-shadow: 0 2px 6px rgba(0,0,0,.5), inset 0 3px 10px rgba(0,35,22,.38), inset 0 1px 0 rgba(255,255,255,.64) !important;
-      }
-
-      .eduai-music-neon .neon-keyboard-line,
-      .eduai-music-neon header::after,
-      .eduai-music-neon footer::before {
-        background: linear-gradient(90deg, var(--kb-red), var(--kb-orange), var(--kb-yellow), var(--kb-green), var(--kb-cyan), var(--kb-blue), var(--kb-purple), var(--kb-pink), var(--kb-red)) !important;
-        background-size: 420% 100% !important;
-        animation: eduai-keyboard-border 6s linear infinite !important;
-        filter: none !important;
-      }
-
-      .eduai-music-neon.youtube-active .neon-stage {
-        align-items: stretch !important;
-        justify-content: stretch !important;
-        padding: 10px !important;
-      }
-      .eduai-music-neon.youtube-active .neon-current-card {
-        height: 100% !important;
-        max-width: none !important;
-        padding: 8px !important;
-      }
-      .eduai-music-neon.youtube-active .neon-player-frame,
-      .eduai-music-neon.youtube-active .neon-player-frame iframe {
-        height: 100% !important;
-        min-height: clamp(500px, 67vh, 760px) !important;
-        max-height: none !important;
-      }
-
-      .eduai-music-neon .neon-player-frame {
-        box-shadow: 0 18px 44px rgba(0,0,0,.54), inset 0 1px 0 rgba(255,255,255,.04) !important;
-      }
-      .eduai-music-neon.youtube-active .neon-player-frame {
-        box-shadow: 0 10px 26px rgba(0,0,0,.55) !important;
-      }
-
-      .eduai-music-neon .neon-single-eq-footer {
-        background: rgba(2,5,10,.96) !important;
-        min-height: 92px !important;
-      }
-      .eduai-music-neon .neon-visualizer-bars {
-        min-width: min(540px, 45vw) !important;
-        height: 54px !important;
-      }
-      .eduai-music-neon .neon-visualizer-bars span {
-        background: linear-gradient(180deg, #ffffff 0%, var(--eq-a,#00eaff) 28%, var(--eq-b,#a600ff) 64%, var(--eq-c,#ff2323) 100%) !important;
-        box-shadow: none !important;
-        filter: drop-shadow(0 0 4px var(--eq-a,#00eaff)) !important;
-      }
-
-      @keyframes eduai-keyboard-border {
-        0% { background-position: 0 0, 0% 50%; }
-        100% { background-position: 0 0, 420% 50%; }
-      }
-      @keyframes eduai-metal-soft {
-        0%, 100% { filter: brightness(1) saturate(1.08); }
-        50% { filter: brightness(1.12) saturate(1.22); }
-      }
-
-      @media (max-width: 1180px) {
-        .eduai-music-neon.youtube-active .neon-player-frame,
-        .eduai-music-neon.youtube-active .neon-player-frame iframe {
-          min-height: 440px !important;
-        }
-      }
-
-
-      /* EduAI Music RGB Metallic Button Patch — estilo tecla gamer, dinámico y liviano */
-      .eduai-music-neon {
-        --rgb-red: #ff3030;
-        --rgb-orange: #ff9f1c;
-        --rgb-yellow: #fff44f;
-        --rgb-green: #36ff75;
-        --rgb-mint: #00f5a0;
-        --rgb-cyan: #00d9ff;
-        --rgb-blue: #4f7dff;
-        --rgb-violet: #8957ff;
-        --rgb-magenta: #ff3fd4;
-        --metal-dark: #062016;
-        --metal-light: #d8ffe8;
-      }
-
-      .eduai-music-neon button,
-      .eduai-music-neon a.rounded-full,
-      .eduai-music-neon .neon-metal-button,
-      .eduai-music-neon .neon-accent-button,
-      .eduai-music-neon .neon-control-button {
-        isolation: isolate;
-        border: 1.5px solid transparent !important;
-        color: #05130d !important;
-        background:
-          linear-gradient(180deg, rgba(255,255,255,.76) 0%, rgba(255,255,255,.22) 28%, rgba(0,87,58,.34) 100%) padding-box,
-          linear-gradient(105deg,
-            var(--rgb-red), var(--rgb-orange), var(--rgb-yellow), var(--rgb-green),
-            var(--rgb-cyan), var(--rgb-blue), var(--rgb-violet), var(--rgb-magenta), var(--rgb-red)
-          ) border-box !important;
-        background-size: 100% 100%, 360% 100% !important;
-        animation: eduai-keyline-flow 6s linear infinite !important;
-        box-shadow:
-          inset 0 1px 0 rgba(255,255,255,.82),
-          inset 0 -12px 18px rgba(0,30,22,.30),
-          0 5px 14px rgba(0,0,0,.36) !important;
-        text-shadow: 0 1px 0 rgba(255,255,255,.20);
-      }
-
-      .eduai-music-neon .neon-metal-button,
-      .eduai-music-neon .neon-accent-button,
-      .eduai-music-neon button[class*="bg-emerald-400"],
-      .eduai-music-neon a[class*="bg-emerald-400"] {
-        background:
-          linear-gradient(180deg, rgba(255,255,255,.86) 0%, rgba(183,255,215,.52) 22%, rgba(0,245,160,.96) 46%, rgba(0,170,105,.98) 72%, rgba(97,255,139,.88) 100%) padding-box,
-          linear-gradient(105deg,
-            var(--rgb-green), var(--rgb-cyan), var(--rgb-blue), var(--rgb-violet),
-            var(--rgb-magenta), var(--rgb-red), var(--rgb-yellow), var(--rgb-green)
-          ) border-box !important;
-        background-size: 100% 100%, 360% 100% !important;
-        animation: eduai-keyline-flow 4.8s linear infinite, eduai-metal-shift 3.8s ease-in-out infinite !important;
-        box-shadow:
-          inset 0 1px 0 rgba(255,255,255,.92),
-          inset 0 -12px 20px rgba(0,55,36,.34),
-          0 7px 16px rgba(0,0,0,.42),
-          0 0 0 1px rgba(255,255,255,.06) !important;
-      }
-
-      .eduai-music-neon button::before,
-      .eduai-music-neon a.rounded-full::before {
-        content: "";
-        position: absolute;
-        inset: 1px;
-        border-radius: inherit;
-        pointer-events: none;
-        background: linear-gradient(180deg, rgba(255,255,255,.30), transparent 42%, rgba(0,0,0,.16));
-        opacity: .72;
-        z-index: 0;
-      }
-
-      .eduai-music-neon button > *,
-      .eduai-music-neon a.rounded-full > * {
-        position: relative;
-        z-index: 1;
-      }
-
-      .eduai-music-neon button:not(:disabled):hover,
-      .eduai-music-neon a.rounded-full:hover {
-        transform: translateY(-1px) scale(1.012) !important;
-        filter: brightness(1.08) saturate(1.20) !important;
-      }
-
-      .eduai-music-neon button:not(:disabled):active,
-      .eduai-music-neon a.rounded-full:active {
-        transform: translateY(2px) scale(.975) !important;
-        filter: brightness(.96) saturate(1.28) !important;
-        box-shadow:
-          inset 0 3px 10px rgba(0,30,22,.46),
-          inset 0 -4px 8px rgba(255,255,255,.18),
-          0 2px 7px rgba(0,0,0,.55) !important;
-      }
-
-      .eduai-music-neon .neon-panel,
-      .eduai-music-neon .neon-stage,
-      .eduai-music-neon .neon-current-card,
-      .eduai-music-neon .neon-side-hub,
-      .eduai-music-neon .neon-compact-card,
-      .eduai-music-neon .neon-player-frame {
-        border: 1.4px solid transparent !important;
-        background:
-          linear-gradient(145deg, rgba(3,8,15,.94), rgba(6,8,18,.88)) padding-box,
-          linear-gradient(105deg,
-            rgba(255,48,48,.88), rgba(255,159,28,.88), rgba(255,244,79,.88), rgba(54,255,117,.88),
-            rgba(0,217,255,.88), rgba(79,125,255,.88), rgba(137,87,255,.88), rgba(255,63,212,.88), rgba(255,48,48,.88)
-          ) border-box !important;
-        background-size: 100% 100%, 420% 100% !important;
-        animation: eduai-frame-flow 15s linear infinite !important;
-        box-shadow: 0 14px 34px rgba(0,0,0,.46), inset 0 1px 0 rgba(255,255,255,.055) !important;
-      }
-
-      .eduai-music-neon.youtube-active .neon-panel,
-      .eduai-music-neon.youtube-active .neon-stage,
-      .eduai-music-neon.youtube-active .neon-current-card,
-      .eduai-music-neon.youtube-active .neon-side-hub,
-      .eduai-music-neon.youtube-active .neon-compact-card,
-      .eduai-music-neon.youtube-active .neon-player-frame {
-        animation-duration: 28s !important;
-        box-shadow: 0 8px 22px rgba(0,0,0,.52), inset 0 1px 0 rgba(255,255,255,.04) !important;
-      }
-
-      .eduai-music-neon .neon-player-frame,
-      .eduai-music-neon .neon-player-frame iframe {
-        border-radius: 1.65rem !important;
-      }
-
-      .eduai-music-neon header::after,
-      .eduai-music-neon footer::before,
-      .eduai-music-neon .neon-keyboard-line {
-        background: linear-gradient(90deg,
-          var(--rgb-red), var(--rgb-orange), var(--rgb-yellow), var(--rgb-green),
-          var(--rgb-cyan), var(--rgb-blue), var(--rgb-violet), var(--rgb-magenta), var(--rgb-red)
-        ) !important;
-        background-size: 420% 100% !important;
-        animation: eduai-keyline-flow 6s linear infinite !important;
-        filter: none !important;
-      }
-
-      @keyframes eduai-keyline-flow {
-        0% { background-position: 0 0, 0% 50%; }
-        100% { background-position: 0 0, 360% 50%; }
-      }
-
-      @keyframes eduai-frame-flow {
-        0% { background-position: 0 0, 0% 50%; }
-        100% { background-position: 0 0, 420% 50%; }
-      }
-
-      @keyframes eduai-metal-shift {
-        0%, 100% { filter: brightness(1) saturate(1.08); }
-        50% { filter: brightness(1.10) saturate(1.20); }
-      }
-
-
-      /* === EduAI Music vNext: interfaz simple + botones verde metálico homogéneos === */
-      .eduai-music-neon.simple-metal-ui {
-        --metal-green-1: #eaffd8;
-        --metal-green-2: #83ff9f;
-        --metal-green-3: #00d978;
-        --metal-green-4: #007a46;
-        --rgb-flow: linear-gradient(90deg,#39ff72,#00e7ff,#6d7cff,#c05cff,#ff5578,#ffe66d,#39ff72);
-        background:
-          radial-gradient(circle at 18% 12%, rgba(0, 225, 255, .14), transparent 30%),
-          radial-gradient(circle at 82% 18%, rgba(139, 92, 246, .15), transparent 34%),
-          radial-gradient(circle at 48% 92%, rgba(0, 217, 120, .12), transparent 38%),
-          linear-gradient(135deg, #020705 0%, #07100d 40%, #060715 72%, #020403 100%) !important;
-      }
-
-      .eduai-music-neon.simple-metal-ui::before {
-        opacity: .34 !important;
-        filter: none !important;
-        animation-duration: 42s !important;
-        background:
-          linear-gradient(115deg, transparent 0 18%, rgba(0,231,255,.09) 24%, transparent 35%, rgba(192,92,255,.08) 46%, transparent 60%, rgba(57,255,114,.09) 72%, transparent 86%),
-          repeating-linear-gradient(90deg, rgba(255,255,255,.018) 0 1px, transparent 1px 34px) !important;
-      }
-
-      .eduai-music-neon.simple-metal-ui::after { opacity: .08 !important; animation: none !important; }
-      .eduai-music-neon.simple-metal-ui.youtube-active::before,
-      .eduai-music-neon.simple-metal-ui.youtube-active::after { opacity: .10 !important; }
-
-      .eduai-music-neon.simple-metal-ui .simple-shell-panel,
-      .eduai-music-neon.simple-metal-ui .neon-panel,
-      .eduai-music-neon.simple-metal-ui .neon-stage,
-      .eduai-music-neon.simple-metal-ui .neon-player-frame,
-      .eduai-music-neon.simple-metal-ui .simple-metal-frame {
-        border: 1px solid transparent !important;
-        background:
-          linear-gradient(145deg, rgba(2,8,8,.94), rgba(6,8,18,.88)) padding-box,
-          linear-gradient(105deg, rgba(57,255,114,.78), rgba(0,231,255,.62), rgba(109,124,255,.56), rgba(192,92,255,.50), rgba(57,255,114,.78)) border-box !important;
-        background-size: 100% 100%, 320% 100% !important;
-        animation: eduai-rgb-slow-border 18s linear infinite !important;
-        box-shadow: 0 16px 36px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.055) !important;
-      }
-
-      .eduai-music-neon.simple-metal-ui button:not(.plain-link-button):not(.simple-track-button),
-      .eduai-music-neon.simple-metal-ui a.neon-metal-button,
-      .eduai-music-neon.simple-metal-ui .neon-metal-button,
-      .eduai-music-neon.simple-metal-ui .neon-accent-button,
-      .eduai-music-neon.simple-metal-ui .neon-control-button,
-      .eduai-music-neon.simple-metal-ui .simple-metal-button {
-        border: 1px solid transparent !important;
-        color: #03130b !important;
-        background:
-          linear-gradient(145deg, rgba(235,255,222,.98) 0%, rgba(100,255,143,.98) 18%, rgba(0,213,117,.98) 45%, rgba(0,122,70,.98) 78%, rgba(226,255,236,.98) 100%) padding-box,
-          var(--rgb-flow) border-box !important;
-        background-size: 100% 100%, 420% 100% !important;
-        animation: eduai-metal-button-flow 8s linear infinite !important;
-        box-shadow:
-          inset 0 1px 0 rgba(255,255,255,.75),
-          inset 0 -10px 18px rgba(0,74,36,.22),
-          0 8px 18px rgba(0,0,0,.32),
-          0 0 12px rgba(57,255,114,.18) !important;
-        text-shadow: 0 1px 0 rgba(255,255,255,.35) !important;
-      }
-
-      .eduai-music-neon.simple-metal-ui button:not(.plain-link-button):not(.simple-track-button):hover,
-      .eduai-music-neon.simple-metal-ui .simple-metal-button:hover,
-      .eduai-music-neon.simple-metal-ui .neon-metal-button:hover,
-      .eduai-music-neon.simple-metal-ui .neon-accent-button:hover,
-      .eduai-music-neon.simple-metal-ui .neon-control-button:hover {
-        transform: translateY(-1px) !important;
-        filter: brightness(1.07) saturate(1.08) !important;
-        box-shadow:
-          inset 0 1px 0 rgba(255,255,255,.82),
-          inset 0 -10px 18px rgba(0,74,36,.18),
-          0 10px 22px rgba(0,0,0,.34),
-          0 0 18px rgba(57,255,114,.24) !important;
-      }
-
-      .eduai-music-neon.simple-metal-ui button:not(.plain-link-button):not(.simple-track-button):active,
-      .eduai-music-neon.simple-metal-ui .simple-metal-button:active,
-      .eduai-music-neon.simple-metal-ui .neon-metal-button:active,
-      .eduai-music-neon.simple-metal-ui .neon-accent-button:active,
-      .eduai-music-neon.simple-metal-ui .neon-control-button:active {
-        transform: translateY(1px) scale(.985) !important;
-        filter: brightness(.9) saturate(1.1) !important;
-        box-shadow:
-          inset 0 8px 18px rgba(0,42,24,.36),
-          inset 0 1px 0 rgba(255,255,255,.35),
-          0 4px 10px rgba(0,0,0,.36) !important;
-      }
-
-      .eduai-music-neon.simple-metal-ui .simple-track-button {
-        border: 1px solid rgba(57,255,114,.14) !important;
-        background: rgba(0,0,0,.22) !important;
-        color: rgba(226,232,240,.95) !important;
-        box-shadow: none !important;
-      }
-      .eduai-music-neon.simple-metal-ui .simple-track-button.is-active {
-        border-color: rgba(57,255,114,.38) !important;
-        background: rgba(57,255,114,.12) !important;
-      }
-
-      .eduai-music-neon.simple-metal-ui .simple-main-grid {
-        transition: grid-template-columns .28s ease;
-      }
-
-      .eduai-music-neon.simple-metal-ui .simple-video-box {
-        width: min(100%, 980px);
-        margin-inline: auto;
-      }
-
-      .eduai-music-neon.simple-metal-ui .simple-video-box iframe,
-      .eduai-music-neon.simple-metal-ui .simple-video-box img {
-        transform: translateZ(0);
-        will-change: auto;
-      }
-
-      .eduai-music-neon.simple-metal-ui .simple-bottom-player {
-        height: 88px !important;
-        background: rgba(1,5,7,.96) !important;
-        backdrop-filter: none !important;
-      }
-
-      .eduai-music-neon.simple-metal-ui .neon-visualizer-bars span {
-        animation-duration: .72s !important;
-        box-shadow: 0 0 6px rgba(0,231,255,.18) !important;
-      }
-
-      @keyframes eduai-rgb-slow-border {
-        0% { background-position: 0 0, 0% 50%; }
-        100% { background-position: 0 0, 320% 50%; }
-      }
-      @keyframes eduai-metal-button-flow {
-        0% { background-position: 0 0, 0% 50%; }
-        100% { background-position: 0 0, 420% 50%; }
-      }
-
-      @media (prefers-reduced-motion: reduce) {
-        .eduai-music-neon button,
-        .eduai-music-neon a.rounded-full,
-        .eduai-music-neon .neon-panel,
-        .eduai-music-neon .neon-stage,
-        .eduai-music-neon .neon-current-card,
-        .eduai-music-neon .neon-side-hub,
-        .eduai-music-neon .neon-compact-card,
-        .eduai-music-neon .neon-player-frame {
-          animation: none !important;
-        }
-      }
-
-    `}</style>
-  );
 }
 
 function youtubeSearchUrl(query: string) {
@@ -1496,6 +174,17 @@ function formatSeconds(seconds: number) {
   return `${min}:${String(sec).padStart(2, "0")}`;
 }
 
+function durationForPlayer(track: EduMusicTrack, reportedDuration = 0) {
+  if (track.source === "itunes") return 30;
+  return reportedDuration || parseDuration(track.duration);
+}
+
+function spotifyOpenUrl(embedSrc: string) {
+  return embedSrc
+    .replace("https://open.spotify.com/embed/", "https://open.spotify.com/")
+    .replace(/\?.*$/, "");
+}
+
 function sourceLabel(source?: EduMusicTrack["source"]) {
   if (source === "jamendo") return "Jamendo";
   if (source === "audius") return "Audius";
@@ -1508,9 +197,8 @@ function sourceLabel(source?: EduMusicTrack["source"]) {
 
 function playbackKind(track?: EduMusicTrack) {
   if (isEmbedTrack(track)) return "Reproductor oficial ConectaAPP";
-  if (track?.source === "itunes" && (track.youtubeVideoId || track.djReels?.length)) return "Audio iTunes · visual YouTube silenciado · modo DJ";
-  if (track?.source === "itunes") return "Audio 30 segundos · imagen de fondo";
-  if (track?.source === "youtube") return "YouTube · video/playlist embebido";
+  if (track?.source === "itunes") return "Preview 30 segundos · modo DJ";
+  if (track?.source === "youtube") return "YouTube · cola automática";
   if (track?.source === "radio") return "Radio online en vivo";
   if (track?.source === "jamendo" || track?.source === "audius")
     return "Canción completa reproducible";
@@ -1539,18 +227,16 @@ function Cover({
             ? "h-8 w-8 rounded-lg text-xs"
             : "h-7 w-7 rounded-lg text-[10px]";
   const title = track?.title || label || "Música";
-  const [imageFailed, setImageFailed] = useState(false);
   const artwork =
     track?.artworkUrl ||
     (track?.cover?.startsWith("http") ? track.cover : undefined);
 
-  if (artwork && !imageFailed) {
+  if (artwork) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={artwork}
         alt={title}
-        onError={() => setImageFailed(true)}
         className={`${cls} shrink-0 object-cover shadow-sm shadow-black/40`}
       />
     );
@@ -1588,9 +274,9 @@ function IconButton({
       title={title}
       onClick={onClick}
       className={cn(
-        "neon-control-button inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-black transition",
+        "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-black transition",
         active
-          ? "is-active bg-emerald-400 text-slate-950 shadow-md shadow-emerald-500/25"
+          ? "bg-emerald-400 text-slate-950 shadow-md shadow-emerald-500/25"
           : "bg-white/8 text-slate-300 hover:bg-emerald-400/15 hover:text-emerald-200",
         className,
       )}
@@ -1613,7 +299,7 @@ function PlayButton({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
         if (!embedTrack) music.setPlaying((value) => !value);
       }}
       className={cn(
-        `${cls} neon-metal-button rainbow-edge inline-flex shrink-0 items-center justify-center rounded-full bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/25 transition`,
+        `${cls} inline-flex shrink-0 items-center justify-center rounded-full bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/25 transition`,
         embedTrack ? "cursor-default opacity-75" : "hover:scale-105 hover:bg-emerald-300",
       )}
       aria-label={embedTrack ? "Usa el reproductor oficial" : music.playing ? "Pausar" : "Reproducir"}
@@ -1646,7 +332,7 @@ function SidebarTrackRow({
       type="button"
       onClick={() => music.playTrack(track, tracks)}
       className={cn(
-        "simple-track-button flex h-12 w-full items-center gap-2 rounded-xl px-2 text-left transition",
+        "flex h-12 w-full items-center gap-2 rounded-xl px-2 text-left transition",
         active
           ? "bg-emerald-400/14 text-white ring-1 ring-emerald-400/35"
           : "text-slate-300 hover:bg-white/7 hover:text-white",
@@ -1698,7 +384,7 @@ function TableTrackRow({
   return (
     <div
       className={cn(
-        "simple-track-button group flex h-12 items-center gap-3 rounded-xl px-3 transition",
+        "group flex h-12 items-center gap-3 rounded-xl px-3 transition",
         active
           ? "bg-emerald-400/12 text-white ring-1 ring-emerald-400/25"
           : "text-slate-300 hover:bg-white/7 hover:text-white",
@@ -1824,23 +510,23 @@ function TableTrackList({ tracks }: { tracks: EduMusicTrack[] }) {
 function TopBar() {
   const music = useEduAIMusic();
   return (
-    <header className="flex h-[64px] shrink-0 items-center gap-4 border-b border-white/10 bg-[#050505]/95 px-4 text-white">
+    <header className="flex h-[58px] shrink-0 items-center gap-4 border-b border-white/10 bg-[#05070a] px-4 text-white">
       <div className="flex w-[300px] shrink-0 items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-black">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-400 text-slate-950 shadow-md shadow-emerald-500/20">
           <Music2 className="h-5 w-5" />
         </div>
         <div className="min-w-0">
           <h1 className="truncate text-xl font-black tracking-tight text-white">
             EduAI Music
           </h1>
-          <p className="truncate text-[11px] font-semibold text-slate-400">
+          <p className="truncate text-[11px] font-semibold text-emerald-300">
             Música, playlists y foco educativo
           </p>
         </div>
       </div>
 
-      <div className="clean-top-search flex h-11 min-w-0 flex-1 items-center gap-3 rounded-full px-4 max-md:hidden">
-        <Search className="h-4 w-4 text-slate-300" />
+      <div className="flex h-10 min-w-0 flex-1 items-center gap-3 rounded-full border border-white/10 bg-white/8 px-4 shadow-inner shadow-black/30 max-md:hidden">
+        <Search className="h-4 w-4 text-emerald-300" />
         <input
           value={music.query}
           onChange={(e) => music.setQuery(e.target.value)}
@@ -1855,7 +541,7 @@ function TopBar() {
 
       <Link
         href="/agentes"
-        className="sp-btn ml-auto inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-xs font-black"
+        className="ml-auto inline-flex shrink-0 items-center gap-2 rounded-full border border-white/10 bg-white/8 px-4 py-2 text-xs font-bold text-slate-200 transition hover:bg-white/12 hover:text-white"
       >
         <ArrowLeft className="h-4 w-4" /> Volver
       </Link>
@@ -1890,7 +576,7 @@ function RadioPanel() {
           type="button"
           onClick={() => void music.searchRadio("", "CL")}
           disabled={music.radioLoading}
-          className="neon-accent-button rounded-full px-3 py-1.5 text-[10px] font-black disabled:opacity-50"
+          className="rounded-full bg-emerald-400 px-3 py-1.5 text-[10px] font-black text-slate-950 disabled:opacity-50"
         >
           {music.radioLoading ? "..." : "Buscar"}
         </button>
@@ -1931,7 +617,7 @@ function RadioPanel() {
                 type="button"
                 onClick={() => music.playTrack(track, music.radioTracks)}
                 className={cn(
-                  "simple-track-button flex w-full items-center gap-2 rounded-xl px-2 py-1.5 text-left transition",
+                  "flex w-full items-center gap-2 rounded-xl px-2 py-1.5 text-left transition",
                   active ? "bg-emerald-400/15 text-white ring-1 ring-emerald-400/30" : "hover:bg-white/7",
                 )}
               >
@@ -1951,56 +637,42 @@ function RadioPanel() {
   );
 }
 
-function Sidebar({ tracks }: { tracks: EduMusicTrack[]; collapsed?: boolean; onToggleCollapsed?: () => void }) {
+function Sidebar({ tracks }: { tracks: EduMusicTrack[] }) {
   const music = useEduAIMusic();
   const [playlistFilter, setPlaylistFilter] = useState("");
-  const filteredPlaylists = music.playlists
-    .filter((playlist) => playlist.name.toLowerCase().includes(playlistFilter.toLowerCase()))
-    .slice(0, 10);
-  const quickNav = NAV_ITEMS.filter((item) => ["home", "search", "playlists", "liked", "queue"].includes(item.id));
+  const filteredPlaylists = music.playlists.filter((playlist) =>
+    playlist.name.toLowerCase().includes(playlistFilter.toLowerCase()),
+  );
 
   return (
-    <aside className="eduai-clean-left flex min-h-0 min-w-0 flex-col bg-[#050505] p-3 text-white">
-      <section className="spotify-panel flex min-h-0 flex-1 flex-col rounded-2xl p-3">
-        <div className="mb-4 flex items-center justify-between gap-2">
+    <aside className="flex min-h-0 min-w-0 flex-col border-r border-white/10 bg-[#0b0d12] p-2.5 text-white">
+      <div className="shrink-0 rounded-2xl border border-white/10 bg-[#14171f] p-3">
+        <div className="flex items-center justify-between gap-2">
           <div>
             <p className="text-sm font-black text-white">Tu biblioteca</p>
-            <p className="text-[11px] text-slate-400">Playlists y canciones</p>
+            <p className="text-[11px] text-slate-400">Canciones y grupos</p>
           </div>
           <button
             type="button"
             onClick={() => music.setCreateOpen((value) => !value)}
-            className="sp-btn rounded-full px-3 py-1.5 text-xs font-black"
+            className="inline-flex items-center gap-1 rounded-full bg-emerald-400 px-3 py-1.5 text-xs font-black text-slate-950 hover:bg-emerald-300"
           >
-            <Plus className="mr-1 inline h-3.5 w-3.5" /> Crear
+            <Plus className="h-3.5 w-3.5" /> Crear
           </button>
         </div>
 
-        {music.createOpen && (
-          <div className="mb-3 rounded-xl bg-white/5 p-2">
-            <input
-              value={music.newPlaylistName}
-              onChange={(e) => music.setNewPlaylistName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && music.createPlaylist()}
-              placeholder="Nombre de playlist"
-              className="h-9 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-xs text-white outline-none placeholder:text-slate-500"
-            />
-            <button type="button" onClick={music.createPlaylist} className="sp-primary mt-2 h-9 w-full rounded-full text-xs font-black">
-              Crear playlist
-            </button>
-          </div>
-        )}
-
-        <div className="mb-4 flex flex-wrap gap-2 text-xs font-bold text-slate-300">
-          {quickNav.map((item) => {
+        <div className="mt-3 grid grid-cols-2 gap-1.5 text-xs font-bold text-slate-300">
+          {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             return (
               <button
                 key={item.id}
                 onClick={() => music.setView(item.id)}
                 className={cn(
-                  "sp-btn inline-flex items-center gap-2 rounded-full px-3 py-2",
-                  music.view === item.id && "sp-nav-active",
+                  "inline-flex items-center gap-2 rounded-xl px-3 py-2 transition",
+                  music.view === item.id
+                    ? "bg-emerald-400 text-slate-950"
+                    : "bg-white/7 hover:bg-emerald-400/10 hover:text-emerald-200",
                 )}
               >
                 <Icon className="h-3.5 w-3.5" /> {item.label}
@@ -2009,50 +681,92 @@ function Sidebar({ tracks }: { tracks: EduMusicTrack[]; collapsed?: boolean; onT
           })}
         </div>
 
-        <div className="mb-3 flex h-10 items-center gap-2 rounded-full bg-white/7 px-3">
-          <Search className="h-4 w-4 text-slate-400" />
-          <input
-            value={playlistFilter}
-            onChange={(e) => setPlaylistFilter(e.target.value)}
-            placeholder="Filtrar biblioteca"
-            className="min-w-0 flex-1 bg-transparent text-xs text-white outline-none placeholder:text-slate-500"
-          />
-        </div>
-
-        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-          <div className="mb-4 space-y-1">
-            {filteredPlaylists.map((playlist: EduMusicPlaylist) => (
-              <button
-                key={playlist.id}
-                onClick={() => {
-                  music.setSelectedPlaylistId(playlist.id);
-                  music.setView(
-                    playlist.id === "pl-liked" ? "liked" : playlist.id === "pl-online" ? "search" : "playlists",
-                  );
-                }}
-                className={cn(
-                  "group flex h-[54px] w-full items-center gap-3 rounded-md px-2 text-left hover:bg-white/8",
-                  music.selectedPlaylistId === playlist.id && "bg-white/12",
-                )}
-              >
-                <Cover label={playlist.name} cover={playlist.cover} size="sm" />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-bold text-white">{playlist.name}</span>
-                  <span className="block truncate text-xs text-slate-500">Playlist · {playlist.trackIds.length} canciones</span>
-                </span>
-              </button>
-            ))}
+        {music.createOpen && (
+          <div className="mt-3 rounded-xl border border-emerald-400/20 bg-emerald-400/8 p-2">
+            <input
+              value={music.newPlaylistName}
+              onChange={(e) => music.setNewPlaylistName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && music.createPlaylist()}
+              placeholder="Nombre de playlist"
+              className="h-9 w-full rounded-lg border border-white/10 bg-black/25 px-3 text-xs text-white outline-none placeholder:text-slate-500"
+            />
+            <button
+              type="button"
+              onClick={music.createPlaylist}
+              className="mt-2 h-9 w-full rounded-lg bg-emerald-400 text-xs font-black text-slate-950 hover:bg-emerald-300"
+            >
+              Crear playlist
+            </button>
           </div>
+        )}
+      </div>
 
-          <div className="border-t border-white/10 pt-3">
-            <div className="mb-2 flex items-center justify-between px-1">
-              <p className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">Canciones</p>
-              <span className="text-xs text-slate-500">{tracks.length}</span>
+      <div className="mt-3">
+        <RadioPanel />
+      </div>
+
+      <div className="mt-3 flex min-h-0 flex-1 flex-col gap-3">
+        <section className="flex min-h-0 flex-[0.8] flex-col rounded-2xl border border-white/10 bg-[#14171f] p-3">
+          <div className="mb-2 flex h-9 items-center gap-2 rounded-xl bg-black/25 px-3">
+            <Search className="h-3.5 w-3.5 text-emerald-300" />
+            <input
+              value={playlistFilter}
+              onChange={(e) => setPlaylistFilter(e.target.value)}
+              placeholder="Filtrar grupos"
+              className="min-w-0 flex-1 bg-transparent text-xs text-white outline-none placeholder:text-slate-500"
+            />
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+            <div className="space-y-1">
+              {filteredPlaylists.map((playlist: EduMusicPlaylist) => (
+                <button
+                  key={playlist.id}
+                  onClick={() => {
+                    music.setSelectedPlaylistId(playlist.id);
+                    music.setView(
+                      playlist.id === "pl-liked"
+                        ? "liked"
+                        : playlist.id === "pl-radio"
+                          ? "radio"
+                          : playlist.id === "pl-online"
+                            ? "search"
+                            : "playlists",
+                    );
+                  }}
+                  className={cn(
+                    "flex h-[48px] w-full items-center gap-2 rounded-xl px-2 text-left transition",
+                    music.selectedPlaylistId === playlist.id
+                      ? "bg-white/12 ring-1 ring-emerald-400/25"
+                      : "hover:bg-white/7",
+                  )}
+                >
+                  <Cover label={playlist.name} cover={playlist.cover} size="xs" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-xs font-black text-white">
+                      {playlist.name}
+                    </span>
+                    <span className="block truncate text-[10px] text-slate-500">
+                      {playlist.trackIds.length} canciones
+                    </span>
+                  </span>
+                </button>
+              ))}
             </div>
-            <SidebarTrackList tracks={tracks} limit={18} />
           </div>
-        </div>
-      </section>
+        </section>
+
+        <section className="flex min-h-0 flex-1 flex-col rounded-2xl border border-white/10 bg-[#14171f] p-3">
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-emerald-300">
+              Canciones
+            </p>
+            <span className="text-xs text-slate-500">{tracks.length}</span>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+            <SidebarTrackList tracks={tracks} limit={60} />
+          </div>
+        </section>
+      </div>
     </aside>
   );
 }
@@ -2086,7 +800,7 @@ function PlaylistHeader({ tracks }: { tracks: EduMusicTrack[] }) {
         <button
           type="button"
           onClick={() => music.playPlaylist(playlist.id)}
-          className="neon-accent-button rainbow-edge inline-flex h-9 shrink-0 items-center gap-2 rounded-full px-4 text-xs font-black transition hover:bg-emerald-300"
+          className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full bg-emerald-400 px-4 text-xs font-black text-slate-950 shadow-md shadow-emerald-500/20 hover:bg-emerald-300"
         >
           <Play className="h-4 w-4" fill="currentColor" /> Reproducir
         </button>
@@ -2128,375 +842,62 @@ function PlaylistHeader({ tracks }: { tracks: EduMusicTrack[] }) {
   );
 }
 
-function getDjReels(track: EduMusicTrack): EduMusicDjReel[] {
-  const reels = Array.isArray(track.djReels) ? track.djReels.filter((reel) => reel.videoId) : [];
-  if (reels.length) return reels;
-  if (!track.youtubeVideoId) return [];
-  return [
-    {
-      videoId: track.youtubeVideoId,
-      title: track.title,
-      channelTitle: track.artist,
-      thumbnail: track.videoThumbnail || track.artworkUrl,
-      embedUrl: track.videoEmbedUrl || `https://www.youtube.com/embed/${track.youtubeVideoId}`,
-      externalUrl: `https://www.youtube.com/watch?v=${track.youtubeVideoId}`,
-      score: track.djReelMatchScore || 0,
-      matchReason: track.djReelMatchReason || "video visual asociado",
-    },
-  ];
-}
-
-function DjReelFallbackCard({ track, artwork }: { track: EduMusicTrack; artwork?: string }) {
-  return (
-    <div className="relative aspect-[9/16] h-[420px] max-h-[56vh] w-[238px] overflow-hidden rounded-[2.2rem] border border-emerald-400/20 bg-black shadow-2xl shadow-black/45 ring-1 ring-white/10 max-xl:h-[360px] max-xl:w-[205px]">
-      {artwork ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={artwork} alt={track.title} className="h-full w-full scale-110 object-cover opacity-85" />
-      ) : (
-        <div className="h-full w-full bg-gradient-to-br from-emerald-400 via-cyan-500 to-slate-950" />
-      )}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/25 to-transparent" />
-      <div className="absolute inset-x-0 bottom-0 p-4 text-left">
-        <p className="mb-2 w-fit rounded-full bg-emerald-400 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-slate-950">
-          DJ 30s
-        </p>
-        <p className="line-clamp-2 text-sm font-black text-white">{track.title}</p>
-        <p className="mt-1 line-clamp-1 text-xs font-semibold text-slate-300">{track.artist}</p>
-      </div>
-    </div>
-  );
-}
-
-function getDjReelVisualUrl(videoId?: string) {
-  if (!videoId) return "";
-  const params = new URLSearchParams({
-    autoplay: "1",
-    mute: "1",
-    controls: "0",
-    loop: "1",
-    playlist: videoId,
-    playsinline: "1",
-    modestbranding: "1",
-    rel: "0",
-    iv_load_policy: "3",
-  });
-  return `https://www.youtube-nocookie.com/embed/${videoId}?${params.toString()}`;
-}
-
-function DjReelCarousel3D({ track, artwork }: { track: EduMusicTrack; artwork?: string }) {
-  const reels = useMemo(() => getDjReels(track).slice(0, 5), [track]);
-  const { playing, setPlaying } = useEduAIMusic();
-  const [active, setActive] = useState(0);
-  const [hovered, setHovered] = useState(false);
-  const [direction, setDirection] = useState<1 | -1>(1);
-  const [tilt, setTilt] = useState({ rotateX: 0, rotateY: 0, glowX: 50, glowY: 34 });
-
-  const activeIndex = reels.length ? active % reels.length : 0;
-  const activeReel = reels[activeIndex];
-  const previousIndex = reels.length > 2 ? (activeIndex - 1 + reels.length) % reels.length : null;
-  const nextIndex = reels.length > 1 ? (activeIndex + 1) % reels.length : null;
-  const fallbackArtwork = artwork || activeReel?.thumbnail;
-
-  const goClockwise = useCallback(() => {
-    if (reels.length < 2) return;
-    setDirection(1);
-    setActive((value) => (value + 1) % reels.length);
-  }, [reels.length]);
-
-  const goCounterClockwise = useCallback(() => {
-    if (reels.length < 2) return;
-    setDirection(-1);
-    setActive((value) => (value - 1 + reels.length) % reels.length);
-  }, [reels.length]);
-
-  const selectReel = useCallback(
-    (index: number) => {
-      if (reels.length < 2 || index === activeIndex) return;
-      const clockwiseDistance = (index - activeIndex + reels.length) % reels.length;
-      const counterDistance = (activeIndex - index + reels.length) % reels.length;
-      setDirection(clockwiseDistance <= counterDistance ? 1 : -1);
-      setActive(index);
-    },
-    [activeIndex, reels.length],
-  );
-
-  useEffect(() => {
-    setActive(0);
-    setHovered(false);
-    setDirection(1);
-    setTilt({ rotateX: 0, rotateY: 0, glowX: 50, glowY: 34 });
-  }, [track.id]);
-
-  useEffect(() => {
-    if (!playing || reels.length < 2 || hovered) return;
-    const timer = window.setInterval(goClockwise, 7800);
-    return () => window.clearInterval(timer);
-  }, [goClockwise, hovered, playing, reels.length]);
-
-  if (!reels.length) return <DjReelFallbackCard track={track} artwork={artwork} />;
-
-  const renderSideCard = (index: number | null, side: "left" | "right") => {
-    if (index === null) return null;
-    const reel = reels[index];
-    const thumb = reel.thumbnail || artwork;
-    const sideMultiplier = side === "right" ? 1 : -1;
-
-    return (
-      <motion.button
-        key={`${side}-${reel.videoId}-${index}`}
-        type="button"
-        onClick={() => (side === "right" ? selectReel(index) : goCounterClockwise())}
-        className="absolute left-1/2 top-1/2 hidden aspect-[9/16] h-[310px] w-[174px] overflow-hidden rounded-[1.9rem] border border-emerald-300/16 bg-black/85 text-left shadow-2xl shadow-black/40 ring-1 ring-white/10 lg:block max-xl:h-[268px] max-xl:w-[151px]"
-        initial={false}
-        animate={{
-          x: sideMultiplier * 205 - 87,
-          y: "-50%",
-          rotateY: sideMultiplier * -34,
-          rotateZ: sideMultiplier * -2.5,
-          scale: 0.82,
-          opacity: 0.72,
-          filter: "saturate(0.92) brightness(0.82)",
-        }}
-        whileHover={{
-          x: sideMultiplier * 218 - 87,
-          rotateY: sideMultiplier * -18,
-          rotateZ: sideMultiplier * -1,
-          scale: 0.9,
-          opacity: 0.95,
-          filter: "saturate(1.08) brightness(1)",
-        }}
-        transition={{ type: "spring", stiffness: 210, damping: 26 }}
-        style={{ transformStyle: "preserve-3d", zIndex: 12 }}
-        aria-label={side === "right" ? "Siguiente reel visual" : "Reel visual anterior"}
-      >
-        {thumb ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={thumb} alt={reel.title} className="h-full w-full object-cover" />
-        ) : (
-          <div className="h-full w-full bg-gradient-to-br from-emerald-400/70 to-slate-950" />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/20 to-transparent" />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 p-3">
-          <p className="text-[8px] font-black uppercase tracking-[0.16em] text-emerald-200">
-            {side === "right" ? "Siguiente" : "Anterior"}
-          </p>
-          <p className="mt-1 line-clamp-1 text-[11px] font-black text-white/90">{reel.title || track.title}</p>
-        </div>
-      </motion.button>
-    );
-  };
-
-  return (
-    <div className="relative flex h-[500px] w-full max-w-[660px] items-center justify-center overflow-visible [perspective:1150px] max-xl:h-[430px] max-xl:max-w-[560px] max-sm:h-[380px] max-sm:max-w-[330px]">
-      <motion.div
-        className="pointer-events-none absolute left-1/2 top-1/2 h-[390px] w-[390px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(16,185,129,0.2),transparent_64%)] blur-2xl max-xl:h-[320px] max-xl:w-[320px]"
-        animate={{ scale: playing ? [0.96, 1.04, 0.96] : 1, opacity: playing ? [0.62, 0.9, 0.62] : 0.55 }}
-        transition={{ duration: 4.8, repeat: playing ? Infinity : 0, ease: "easeInOut" }}
-      />
-
-      {renderSideCard(previousIndex, "left")}
-      {renderSideCard(nextIndex, "right")}
-
-      <AnimatePresence mode="wait" custom={direction}>
-        <motion.div
-          key={activeReel.videoId}
-          role="button"
-          tabIndex={0}
-          onMouseEnter={() => setHovered(true)}
-          onMouseMove={(event) => {
-            const rect = event.currentTarget.getBoundingClientRect();
-            const px = (event.clientX - rect.left) / rect.width;
-            const py = (event.clientY - rect.top) / rect.height;
-            setTilt({
-              rotateX: (0.5 - py) * 8,
-              rotateY: (px - 0.5) * 11,
-              glowX: Math.max(0, Math.min(100, px * 100)),
-              glowY: Math.max(0, Math.min(100, py * 100)),
-            });
-          }}
-          onMouseLeave={() => {
-            setHovered(false);
-            setTilt({ rotateX: 0, rotateY: 0, glowX: 50, glowY: 34 });
-          }}
-          onClick={() => {
-            if (playing && reels.length > 1) goClockwise();
-            else setPlaying((value) => !value);
-          }}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" || event.key === " ") {
-              event.preventDefault();
-              if (playing && reels.length > 1) goClockwise();
-              else setPlaying((value) => !value);
-            }
-          }}
-          custom={direction}
-          initial={{ opacity: 0, x: 120 * direction, rotateY: -42 * direction, scale: 0.9 }}
-          animate={{
-            opacity: 1,
-            x: 0,
-            rotateX: tilt.rotateX,
-            rotateY: tilt.rotateY,
-            scale: hovered ? 1.025 : 1,
-          }}
-          exit={{ opacity: 0, x: -120 * direction, rotateY: 42 * direction, scale: 0.9 }}
-          transition={{ type: "spring", stiffness: 230, damping: 27, mass: 0.72 }}
-          className="group relative z-30 aspect-[9/16] h-[470px] max-h-[62vh] w-[264px] cursor-pointer overflow-hidden rounded-[2.4rem] border border-emerald-300/35 bg-black shadow-[0_32px_85px_rgba(0,0,0,0.62)] ring-1 ring-white/10 will-change-transform max-xl:h-[405px] max-xl:w-[228px] max-sm:h-[345px] max-sm:w-[194px]"
-          style={{ transformStyle: "preserve-3d" }}
-          aria-label="Reel visual 3D: mueve el mouse para inclinarlo"
-        >
-          {fallbackArtwork ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={fallbackArtwork}
-              alt={track.title}
-              className="absolute inset-0 h-full w-full scale-110 object-cover opacity-70 blur-xl"
-            />
-          ) : null}
-
-          <div className="absolute inset-0 overflow-hidden bg-black">
-            <iframe
-              key={activeReel.videoId}
-              title={`Visual DJ 30s ${track.title}`}
-              src={getDjReelVisualUrl(activeReel.videoId)}
-              className="pointer-events-none absolute left-1/2 top-1/2 h-full w-[178%] -translate-x-1/2 -translate-y-1/2 border-0"
-              allow="autoplay; encrypted-media; picture-in-picture"
-              referrerPolicy="strict-origin-when-cross-origin"
-              loading="lazy"
-            />
-          </div>
-
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-400/95 text-slate-950 shadow-2xl shadow-emerald-500/25 ring-1 ring-white/40">
-              {playing ? <Pause className="h-5 w-5" fill="currentColor" /> : <Play className="h-5 w-5 translate-x-0.5" fill="currentColor" />}
-            </div>
-          </div>
-
-          <div
-            className="pointer-events-none absolute inset-0 opacity-0 mix-blend-screen transition-opacity duration-200 group-hover:opacity-100"
-            style={{
-              background: `radial-gradient(circle at ${tilt.glowX}% ${tilt.glowY}%, rgba(52,211,153,0.28), rgba(14,165,233,0.12) 26%, transparent 54%)`,
-              transform: "translateZ(30px)",
-            }}
-          />
-          <div className="pointer-events-none absolute inset-0 rounded-[2.4rem] border border-white/10 shadow-[inset_0_0_28px_rgba(16,185,129,0.12)]" />
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/42 to-transparent" />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/48 to-transparent p-4 text-left" style={{ transform: "translateZ(36px)" }}>
-            <p className="mb-2 w-fit rounded-full bg-emerald-400 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.16em] text-slate-950 shadow-lg shadow-emerald-500/25">
-              Visual YouTube · Audio iTunes
-            </p>
-            <p className="line-clamp-1 text-base font-black text-white drop-shadow">{track.title}</p>
-            <p className="line-clamp-1 text-xs font-semibold text-slate-200">{track.artist}</p>
-          </div>
-        </motion.div>
-      </AnimatePresence>
-
-      {reels.length > 1 && (
-        <div className="absolute bottom-3 left-1/2 z-40 flex -translate-x-1/2 items-center gap-2 rounded-full border border-white/10 bg-black/60 px-3 py-1.5 backdrop-blur">
-          {reels.length > 2 && (
-            <button
-              type="button"
-              onClick={goCounterClockwise}
-              className="rounded-full px-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-slate-300 transition hover:text-emerald-200"
-            >
-              ←
-            </button>
-          )}
-          {reels.map((reel, index) => (
-            <button
-              key={reel.videoId}
-              type="button"
-              onClick={() => selectReel(index)}
-              className={cn(
-                "h-1.5 rounded-full transition-all",
-                index === activeIndex ? "w-7 bg-emerald-300 shadow shadow-emerald-300/40" : "w-1.5 bg-white/35 hover:bg-white/75",
-              )}
-              aria-label={`Cambiar al reel ${index + 1}`}
-            />
-          ))}
-          <button
-            type="button"
-            onClick={goClockwise}
-            className="rounded-full px-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-slate-300 transition hover:text-emerald-200"
-          >
-            →
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-
-function YouTubeDirectPlayer({ track, artwork }: { track: EduMusicTrack; artwork?: string }) {
-  const music = useEduAIMusic();
-  const thumb = artwork || getYouTubeThumb(track);
-  const embedUrl = getYouTubeDirectEmbedUrl(track, music.playing);
-  const playlistId = (track as EduMusicTrack & { youtubePlaylistId?: string }).youtubePlaylistId;
-
-  if (!music.playing || !embedUrl) {
-    return (
-      <button
-        type="button"
-        onClick={() => music.setPlaying(true)}
-        className="simple-video-box neon-player-frame group relative aspect-video w-full overflow-hidden bg-black text-left transition hover:scale-[1.002] hover:border-emerald-300/50"
-      >
-        {thumb ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={thumb} alt={track.title} className="h-full w-full object-contain bg-black opacity-90" />
-        ) : (
-          <div className="h-full w-full bg-gradient-to-br from-red-500 via-slate-950 to-emerald-500" />
-        )}
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,.10),rgba(0,0,0,.78))]" />
-        <div className="absolute inset-0 flex flex-col items-center justify-center p-5 text-center">
-          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-red-500 text-white shadow-2xl shadow-red-500/30 transition group-hover:scale-110">
-            <Play className="h-7 w-7 translate-x-0.5" fill="currentColor" />
-          </span>
-          <p className="mt-4 text-[11px] font-black uppercase tracking-[0.18em] text-emerald-200">
-            Reproducir YouTube aquí
-          </p>
-          <h4 className="mt-1 line-clamp-2 max-w-xl text-xl font-black text-white">{track.title}</h4>
-          <p className="mt-1 max-w-xl truncate text-sm font-semibold text-slate-200">{track.artist}</p>
-          {playlistId && <p className="mt-2 rounded-full bg-white/10 px-3 py-1 text-[10px] font-bold text-slate-200">Incluye lista / radio de YouTube</p>}
-        </div>
-      </button>
-    );
-  }
-
-  return (
-    <div className="simple-video-box neon-player-frame overflow-hidden bg-black">
-      <iframe
-        key={`${track.id}-${music.playing ? "play" : "pause"}`}
-        src={embedUrl}
-        title={`${track.title} - YouTube`}
-        className="aspect-video w-full border-0 bg-black"
-        allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
-        allowFullScreen
-        loading="eager"
-      />
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/10 bg-black/70 px-4 py-2 text-left">
-        <div className="min-w-0">
-          <p className="truncate text-xs font-black text-white">{track.title}</p>
-          <p className="truncate text-[11px] text-slate-400">{playlistId ? "YouTube playlist / radio" : "YouTube video"}</p>
-        </div>
-        {track.externalUrl && (
-          <a href={track.externalUrl} target="_blank" rel="noreferrer" className="rounded-full bg-white/10 px-3 py-1.5 text-[11px] font-black text-emerald-200 hover:bg-emerald-400/20">
-            Abrir YouTube
-          </a>
-        )}
-      </div>
-    </div>
-  );
-}
-
 function CurrentTrackArtwork({ track }: { track: EduMusicTrack }) {
   const artwork = track.artworkUrl || track.videoThumbnail || (track.cover?.startsWith("http") ? track.cover : undefined);
+  const djReelUrl = track.source === "itunes" ? getDjReelEmbedUrl(track) : "";
 
   if (track.source === "itunes") {
-    return <DjReelCarousel3D track={track} artwork={artwork} />;
+    return (
+      <div className="relative aspect-[9/16] h-[410px] max-h-[58vh] w-[232px] overflow-hidden rounded-[2.1rem] border border-emerald-300/25 bg-black shadow-2xl shadow-emerald-950/40 ring-1 ring-white/10 max-xl:h-[360px] max-xl:w-[204px]">
+        {djReelUrl ? (
+          <iframe
+            src={djReelUrl}
+            title={`${track.title} - DJ reel visual`}
+            className="absolute inset-0 h-full w-full border-0"
+            allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+            allowFullScreen
+          />
+        ) : artwork ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={artwork} alt={track.title} className="h-full w-full object-cover scale-105 opacity-85" />
+        ) : (
+          <div className="h-full w-full bg-gradient-to-br from-emerald-400 via-cyan-500 to-slate-950" />
+        )}
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.2)_45%,rgba(0,0,0,.92))]" />
+        <div className="absolute left-4 right-4 top-4 flex items-center justify-between gap-2">
+          <span className="rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-200 ring-1 ring-white/10 backdrop-blur-md">Reel único</span>
+          <span className="rounded-full bg-emerald-400 px-2.5 py-1 text-[10px] font-black text-slate-950">30s</span>
+        </div>
+        <div className="absolute inset-x-0 bottom-0 p-4 text-left">
+          <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-white/18">
+            <div className="h-full w-full origin-left animate-[eduai-dj-progress_30s_linear_infinite] rounded-full bg-emerald-400" />
+          </div>
+          <p className="line-clamp-2 text-base font-black leading-tight text-white drop-shadow">{track.title}</p>
+          <p className="mt-1 line-clamp-1 text-xs font-semibold text-slate-200">{track.artist}</p>
+          <p className="mt-2 text-[10px] leading-relaxed text-slate-300">Visual silenciado. El audio principal usa el preview legal de 30 segundos.</p>
+        </div>
+      </div>
+    );
   }
 
   if (track.source === "youtube") {
-    return <YouTubeDirectPlayer track={track} artwork={artwork} />;
+    return (
+      <div className="relative aspect-video w-full max-w-[460px] overflow-hidden rounded-2xl border border-emerald-400/20 bg-black shadow-xl shadow-black/30">
+        {artwork ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={artwork} alt={track.title} className="h-full w-full object-cover opacity-75" />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-red-500 to-slate-950" />
+        )}
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/35 p-4 text-center">
+          <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-red-500 text-white shadow-lg">
+            <Play className="h-5 w-5 translate-x-0.5" fill="currentColor" />
+          </div>
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-white">YouTube controlado por EduAI</p>
+          <p className="mt-1 max-w-sm text-[11px] font-semibold text-slate-200">Usa play, pausa, anterior y siguiente desde el reproductor central. Al terminar, pasa al siguiente resultado de la cola.</p>
+        </div>
+      </div>
+    );
   }
 
   if (artwork) {
@@ -2505,14 +906,14 @@ function CurrentTrackArtwork({ track }: { track: EduMusicTrack }) {
       <img
         src={artwork}
         alt={track.title}
-        className="h-40 w-40 rounded-3xl object-cover shadow-xl shadow-black/30 ring-1 ring-white/10 max-xl:h-32 max-xl:w-32"
+        className="h-44 w-44 rounded-3xl object-cover shadow-2xl shadow-black/35 ring-1 ring-white/10 max-xl:h-36 max-xl:w-36"
       />
     );
   }
 
   return (
     <div
-      className="flex h-40 w-40 flex-col items-center justify-center rounded-3xl p-5 text-center shadow-xl shadow-black/30 ring-1 ring-white/10 max-xl:h-32 max-xl:w-32"
+      className="flex h-44 w-44 flex-col items-center justify-center rounded-3xl p-5 text-center shadow-2xl shadow-black/35 ring-1 ring-white/10 max-xl:h-36 max-xl:w-36"
       style={{ background: track.cover || "linear-gradient(135deg,#34d399,#0f766e)" }}
     >
       <span className="text-4xl font-black text-slate-950 max-xl:text-3xl">
@@ -2528,404 +929,531 @@ function CurrentTrackArtwork({ track }: { track: EduMusicTrack }) {
   );
 }
 
-function MainPanel({ tracks }: { tracks: EduMusicTrack[] }) {
+function MainPanel({
+  tracks,
+  spotifyEmbed,
+  onClearSpotify,
+}: {
+  tracks: EduMusicTrack[];
+  spotifyEmbed: SpotifyEmbedItem | null;
+  onClearSpotify: () => void;
+}) {
   const music = useEduAIMusic();
   const track = music.currentTrack;
   const playlist = music.selectedPlaylist;
   const embedTrack = isEmbedTrack(track);
   const embedUrl = getEmbedUrl(track);
-  const showVideo = track.source === "youtube" || embedTrack;
 
   return (
-    <main className="flex min-h-0 min-w-0 flex-col bg-[#050505] p-3 text-white">
-      <section className="spotify-panel flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl">
-        <div className="shrink-0 bg-gradient-to-b from-white/10 to-transparent p-6 pb-4">
-          <div className="flex items-end justify-between gap-4">
-            <div className="min-w-0">
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-300">{music.view === "search" ? "Resultados online" : "Playlist"}</p>
-              <h2 className="mt-1 truncate text-4xl font-black tracking-tight text-white max-xl:text-3xl">{music.view === "search" ? "Resultados online" : playlist.name}</h2>
-              <p className="mt-1 truncate text-sm text-slate-400">{tracks.length} canciones · reproductor limpio al centro</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => music.playPlaylist(playlist.id)}
-              className="sp-primary inline-flex h-12 shrink-0 items-center gap-2 rounded-full px-5 text-sm font-black"
-            >
-              <Play className="h-4 w-4" fill="currentColor" /> Reproducir
-            </button>
+    <main className="flex min-h-0 min-w-0 flex-col bg-[#101218] p-2.5 text-white">
+      <section className="flex min-h-0 flex-1 flex-col rounded-2xl border border-white/10 bg-[#151922] p-4 shadow-lg shadow-black/20">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-300">
+              Reproductor central
+            </p>
+            <h2 className="truncate text-xl font-black text-white">
+              {playlist.name}
+            </h2>
+            <p className="truncate text-xs text-slate-400">
+              Las listas quedan a los lados. Aquí se muestra solo la canción actual.
+            </p>
           </div>
+          <button
+            type="button"
+            onClick={() => music.playPlaylist(playlist.id)}
+            className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full bg-emerald-400 px-4 text-xs font-black text-slate-950 shadow-md shadow-emerald-500/20 hover:bg-emerald-300"
+          >
+            <Play className="h-4 w-4" fill="currentColor" /> Reproducir lista
+          </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
-          <div className="mb-5 flex justify-center rounded-2xl bg-black/28 p-3">
-            {showVideo ? (
-              <div className="clean-video-frame">
-                {embedTrack && embedUrl ? (
+        <div className="flex min-h-0 flex-1 items-center justify-center rounded-3xl border border-emerald-400/15 bg-[radial-gradient(circle_at_center,rgba(16,185,129,.18),rgba(15,23,42,.78)_48%,rgba(5,7,10,.95))] p-5">
+          {spotifyEmbed ? (
+            <div className="w-full max-w-3xl rounded-[1.75rem] border border-emerald-300/20 bg-black/25 p-4 text-center shadow-xl shadow-black/25 backdrop-blur-xl max-xl:p-4">
+              <div className="mx-auto max-w-xl">
+                <p className="mx-auto mb-2 w-fit rounded-full bg-emerald-400/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-300">
+                  Spotify visual · reproductor oficial
+                </p>
+                <h3 className="line-clamp-2 text-2xl font-black leading-tight text-white max-xl:text-xl">
+                  {spotifyEmbed.title}
+                </h3>
+                <p className="mt-1 text-sm font-semibold text-slate-300">
+                  {spotifyEmbed.subtitle}
+                </p>
+                <p className="mt-2 text-xs text-slate-500">
+                  Haz clic en play dentro del embed oficial. EduAI no controla Spotify directamente sin OAuth/Spotify Premium.
+                </p>
+              </div>
+
+              <div className="mt-4 overflow-hidden rounded-3xl border border-emerald-400/20 bg-black/50 shadow-2xl shadow-black/40">
+                <iframe
+                  data-testid="embed-iframe"
+                  title={spotifyEmbed.title}
+                  src={spotifyEmbed.src}
+                  width="100%"
+                  height="420"
+                  frameBorder="0"
+                  allowFullScreen
+                  allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                  loading="lazy"
+                  className="block border-0 bg-black"
+                />
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 gap-2 max-sm:grid-cols-1">
+                <button
+                  type="button"
+                  onClick={onClearSpotify}
+                  className="rounded-full border border-white/10 bg-white/7 px-3 py-2 text-xs font-black text-slate-300 transition hover:bg-emerald-400/10 hover:text-emerald-200"
+                >
+                  Volver a EduAI Player
+                </button>
+                <a
+                  href={spotifyOpenUrl(spotifyEmbed.src)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-full border border-emerald-400/25 bg-emerald-400 px-3 py-2 text-xs font-black text-slate-950 transition hover:bg-emerald-300"
+                >
+                  Abrir en Spotify
+                </a>
+              </div>
+            </div>
+          ) : embedTrack ? (
+            <div className="w-full max-w-4xl rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-center shadow-xl shadow-black/25 backdrop-blur-xl max-xl:p-4">
+              <div className="mx-auto max-w-xl">
+                <p className="mx-auto mb-2 w-fit rounded-full bg-emerald-400/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-300">
+                  {playbackKind(track)}
+                </p>
+                <h3 className="line-clamp-2 text-xl font-black leading-tight text-white max-xl:text-lg">
+                  {track.title}
+                </h3>
+                <p className="mt-1 truncate text-sm font-semibold text-slate-300">
+                  {track.artist}
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Canal 95 usa el reproductor oficial de ConectaAPP. No se reproduce con el audio global de EduAI porque no entrega un stream directo estable.
+                </p>
+              </div>
+
+              <div className="mt-4 overflow-hidden rounded-3xl border border-emerald-400/20 bg-black/40 shadow-2xl shadow-black/40">
+                {embedUrl ? (
                   <iframe
                     src={embedUrl}
                     title={`${track.title} - reproductor oficial`}
-                    className="border-0 bg-black"
+                    className="h-[560px] w-full border-0 bg-black max-lg:h-[520px] max-sm:h-[480px]"
                     allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
                     allowFullScreen
                   />
                 ) : (
-                  <CurrentTrackArtwork track={track} />
+                  <div className="flex min-h-[360px] flex-col items-center justify-center p-6 text-center">
+                    <CurrentTrackArtwork track={track} />
+                    <p className="mt-4 text-sm font-bold text-rose-200">No hay URL de reproductor oficial configurada.</p>
+                  </div>
                 )}
               </div>
-            ) : (
-              <div className="clean-artwork-frame">
+
+              <div className="mt-4 grid grid-cols-2 gap-2 max-sm:grid-cols-1">
+                <button
+                  type="button"
+                  onClick={() => music.toggleLike(track.id)}
+                  className={cn(
+                    "rounded-full border px-3 py-2 text-xs font-black transition",
+                    music.liked.has(track.id)
+                      ? "border-emerald-400 bg-emerald-400 text-slate-950"
+                      : "border-white/10 bg-white/7 text-slate-300 hover:bg-emerald-400/10 hover:text-emerald-200",
+                  )}
+                >
+                  ♥ Me gusta
+                </button>
+                <a
+                  href={track.externalUrl || embedUrl || "https://www.canal95.cl/"}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-full border border-white/10 bg-white/7 px-3 py-2 text-xs font-black text-slate-300 transition hover:bg-emerald-400/10 hover:text-emerald-200"
+                >
+                  Abrir fuente oficial
+                </a>
+              </div>
+            </div>
+          ) : (
+            <div className="w-full max-w-xl rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-center shadow-xl shadow-black/25 backdrop-blur-xl max-xl:p-4">
+              <div className="flex justify-center">
                 <CurrentTrackArtwork track={track} />
               </div>
-            )}
-          </div>
 
-          <div className="mb-5 flex items-center gap-4">
-            <Cover track={track} size="lg" />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-xl font-black text-white">{track.title}</p>
-              <p className="truncate text-sm text-slate-400">{track.artist} · {track.album || sourceLabel(track.source)}</p>
+              <div className="mx-auto mt-4 max-w-lg">
+                <p className="mx-auto mb-2 w-fit rounded-full bg-emerald-400/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-300">
+                  {playbackKind(track)}
+                </p>
+                <h3 className="line-clamp-2 text-xl font-black leading-tight text-white max-xl:text-lg">
+                  {track.title}
+                </h3>
+                <p className="mt-1 truncate text-sm font-semibold text-slate-300">
+                  {track.artist}
+                </p>
+                <p className="mt-1 truncate text-xs text-slate-500">
+                  {track.album || "Sin álbum"} · {track.duration || "--:--"}
+                </p>
+              </div>
+
+              <div className="mt-4 flex items-center justify-center gap-2.5">
+                <IconButton onClick={() => music.setShuffle((value) => !value)} active={music.shuffle} title="Aleatorio">
+                  <Shuffle className="h-4 w-4" />
+                </IconButton>
+                <IconButton onClick={music.prevTrack} title="Anterior">
+                  <SkipBack className="h-4 w-4" fill="currentColor" />
+                </IconButton>
+                <PlayButton size="lg" />
+                <IconButton onClick={music.nextTrack} title="Siguiente">
+                  <SkipForward className="h-4 w-4" fill="currentColor" />
+                </IconButton>
+                <IconButton
+                  onClick={() => music.setRepeat(music.repeat === "off" ? "all" : music.repeat === "all" ? "one" : "off")}
+                  active={music.repeat !== "off"}
+                  title="Repetir"
+                >
+                  <Repeat className="h-4 w-4" />
+                </IconButton>
+              </div>
+
+              {track.source === "youtube" && (
+                <p className="mt-3 text-xs font-semibold text-emerald-200/90">
+                  YouTube ahora funciona con cola automática: el botón central reproduce/pausa y al terminar avanza al siguiente video encontrado.
+                </p>
+              )}
+              {track.source === "itunes" && (
+                <p className="mt-3 text-xs font-semibold text-emerald-200/90">
+                  Modo DJ 30s: al terminar el preview avanza automáticamente. Si hay YouTube API Key, se muestra un video visual tipo reel silenciado.
+                </p>
+              )}
+              {track.source === "radio" && (
+                <p className="mt-3 text-xs font-semibold text-emerald-200/90">
+                  Radio online en vivo. Algunas emisoras pueden tardar unos segundos en iniciar según su servidor.
+                </p>
+              )}
+
+              <div className="mt-4 grid grid-cols-2 gap-2 max-sm:grid-cols-1">
+                <button
+                  type="button"
+                  onClick={() => music.toggleLike(track.id)}
+                  className={cn(
+                    "rounded-full border px-3 py-2 text-xs font-black transition",
+                    music.liked.has(track.id)
+                      ? "border-emerald-400 bg-emerald-400 text-slate-950"
+                      : "border-white/10 bg-white/7 text-slate-300 hover:bg-emerald-400/10 hover:text-emerald-200",
+                  )}
+                >
+                  ♥ Me gusta
+                </button>
+                <button
+                  type="button"
+                  onClick={() => music.requestAddToPlaylist(track.id)}
+                  className="rounded-full border border-white/10 bg-white/7 px-3 py-2 text-xs font-black text-slate-300 transition hover:bg-emerald-400/10 hover:text-emerald-200"
+                >
+                  + Agregar a playlist
+                </button>
+              </div>
+
+              <p className="mt-3 text-[11px] text-slate-500">
+                {tracks.length} canciones disponibles en la lista lateral izquierda.
+              </p>
             </div>
-            <IconButton onClick={() => music.setShuffle((value) => !value)} active={music.shuffle} title="Aleatorio">
-              <Shuffle className="h-4 w-4" />
-            </IconButton>
-            <IconButton onClick={() => music.toggleLike(track.id)} active={music.liked.has(track.id)} title="Me gusta">
-              <Heart className="h-4 w-4" fill={music.liked.has(track.id) ? "currentColor" : "none"} />
-            </IconButton>
-          </div>
-
-          <TableTrackList tracks={tracks.slice(0, 36)} />
+          )}
         </div>
       </section>
     </main>
   );
 }
 
-function SideMusicHub() {
-  const music = useEduAIMusic();
-  const [spotifyOpen, setSpotifyOpen] = useState(true);
-  const [playlistsOpen, setPlaylistsOpen] = useState(false);
-  const [focusOpen, setFocusOpen] = useState(false);
-  const [activeSpotify, setActiveSpotify] = useState(0);
-  const featuredPlaylists = music.playlists.filter((playlist) => playlist.trackIds.length > 0).slice(0, 8);
-  const focusTracks = music.allTracks
-    .filter((track) => {
-      if (track.id === music.currentTrack.id) return false;
-      if (track.source === "radio" || track.source === "external") return false;
-      const text = `${track.title} ${track.artist} ${track.album || ""} ${track.mood || ""} ${track.tags?.join(" ") || ""}`.toLowerCase();
-      return (
-        ["focus", "calm", "reading", "deep", "creative", "classical"].includes(track.mood) ||
-        text.includes("focus") ||
-        text.includes("lofi") ||
-        text.includes("study") ||
-        text.includes("instrumental") ||
-        text.includes("aula") ||
-        text.includes("calm")
-      );
-    })
-    .slice(0, 8);
-
-  const activeEmbed = SPOTIFY_EMBEDS[activeSpotify] || SPOTIFY_EMBEDS[0];
-
+function SpotifyEmbeds({
+  selectedId,
+  onSelect,
+}: {
+  selectedId?: string;
+  onSelect: (item: SpotifyEmbedItem) => void;
+}) {
   return (
-    <section className="neon-panel neon-side-hub shrink-0 rounded-2xl border border-emerald-400/20 bg-[#07100f]/90 p-3">
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <div className="min-w-0">
-          <p className="text-sm font-black text-white">Playlists / foco</p>
-          <p className="truncate text-[10px] text-slate-400">Todo queda plegable para no tapar el video central.</p>
+    <section className="shrink-0 rounded-2xl border border-white/10 bg-[#14171f] p-3">
+      <div className="mb-2 flex items-center justify-between">
+        <div>
+          <p className="text-sm font-black text-white">Spotify visual</p>
+          <p className="text-[11px] text-slate-500">Toca una lista para abrirla al centro.</p>
         </div>
+        <span className="rounded-full bg-white/8 px-2 py-1 text-[10px] font-black text-slate-400">
+          {SPOTIFY_EMBEDS.length} listas
+        </span>
       </div>
-
-      <div className="space-y-2">
-        <div className="neon-compact-card overflow-hidden rounded-2xl border border-emerald-400/15 bg-black/35 p-2">
-          <button
-            type="button"
-            onClick={() => setSpotifyOpen((value) => !value)}
-            className="plain-link-button flex w-full items-center justify-between gap-2 text-left"
-          >
-            <span className="truncate text-[10px] font-black uppercase tracking-[0.18em] text-cyan-200">Spotify visual · {SPOTIFY_EMBEDS.length} listas</span>
-            <span className="neon-metal-button rounded-full px-2 py-0.5 text-[9px] font-black text-slate-950">{spotifyOpen ? "cerrar" : "abrir"}</span>
-          </button>
-          {spotifyOpen && (
-            <div className="mt-2 space-y-2">
-              <div className="grid grid-cols-2 gap-1.5">
-                {SPOTIFY_EMBEDS.map((item, index) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => setActiveSpotify(index)}
-                    className={cn(
-                      "neon-control-button rounded-xl px-2 py-1.5 text-left text-[9px] font-black text-slate-200",
-                      index === activeSpotify && "is-active",
-                    )}
-                  >
-                    <span className="block truncate">{item.title}</span>
-                  </button>
-                ))}
-              </div>
-              <iframe
-                data-testid="embed-iframe"
-                title={activeEmbed.title}
-                style={{ borderRadius: 14 }}
-                src={activeEmbed.src}
-                width="100%"
-                height="96"
-                frameBorder="0"
-                allowFullScreen
-                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                loading="lazy"
-                className="block border-0"
-              />
-            </div>
-          )}
-        </div>
-
-        <div className="neon-compact-card rounded-2xl border border-emerald-400/15 bg-black/25 p-2">
-          <button
-            type="button"
-            onClick={() => setPlaylistsOpen((value) => !value)}
-            className="plain-link-button flex w-full items-center justify-between gap-2 text-left"
-          >
-            <span className="text-[10px] font-black uppercase tracking-[0.16em] text-emerald-200">Listas EduAI · {featuredPlaylists.length}</span>
-            <span className="neon-control-button rounded-full px-2 py-1 text-[9px] font-black text-slate-200">{playlistsOpen ? "ocultar" : "ver"}</span>
-          </button>
-          {playlistsOpen && (
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              {featuredPlaylists.map((playlist) => (
-                <button
-                  key={playlist.id}
-                  type="button"
-                  onClick={() => {
-                    music.setSelectedPlaylistId(playlist.id);
-                    music.setView("playlists");
-                    music.playPlaylist(playlist.id);
-                  }}
-                  className="neon-compact-card group flex min-w-0 items-center gap-2 rounded-2xl border border-emerald-400/15 bg-white/6 p-2 text-left"
-                >
-                  <Cover label={playlist.name} cover={playlist.cover} size="sm" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[10px] font-black text-white">{playlist.name}</span>
-                    <span className="block truncate text-[8px] text-slate-500">{playlist.trackIds.length} canciones</span>
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="rounded-2xl border border-fuchsia-300/15 bg-black/25 p-2">
-          <button
-            type="button"
-            onClick={() => setFocusOpen((value) => !value)}
-            className="plain-link-button flex w-full items-center justify-between gap-2 text-left"
-          >
-            <span className="text-[10px] font-black uppercase tracking-[0.16em] text-fuchsia-200">Instrumental / foco · {focusTracks.length}</span>
-            <span className="neon-control-button rounded-full px-2 py-1 text-[9px] font-black text-slate-200">{focusOpen ? "cerrar" : "abrir"}</span>
-          </button>
-          {focusOpen && (
-            <div className="mt-2 max-h-[220px] space-y-1.5 overflow-y-auto pr-1">
-              {focusTracks.map((track) => (
-                <button
-                  key={track.id}
-                  type="button"
-                  onClick={() => music.playTrack(track, focusTracks)}
-                  className="neon-compact-card group flex w-full items-center gap-2 rounded-xl border border-emerald-400/15 bg-white/6 p-1.5 text-left"
-                >
-                  <Cover track={track} size="xs" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[10px] font-black text-white">{track.title}</span>
-                    <span className="block truncate text-[8px] text-slate-500">{track.artist}</span>
-                  </span>
-                  <span className="neon-metal-button flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-slate-950">
-                    <Play className="h-3 w-3 translate-x-0.5" fill="currentColor" />
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+      <div className="grid grid-cols-2 gap-2">
+        {SPOTIFY_EMBEDS.map((item) => {
+          const active = selectedId === item.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => onSelect(item)}
+              className={cn(
+                "rounded-2xl border p-2 text-left transition",
+                active
+                  ? "border-emerald-300/45 bg-emerald-400/14 shadow-lg shadow-emerald-950/20"
+                  : "border-white/10 bg-white/6 hover:border-emerald-300/25 hover:bg-emerald-400/10",
+              )}
+            >
+              <span className={`mb-2 block h-1.5 rounded-full bg-gradient-to-r ${item.accent}`} />
+              <span className="block truncate text-[11px] font-black text-white">
+                {item.title}
+              </span>
+              <span className="mt-0.5 block line-clamp-2 text-[9px] leading-tight text-slate-500">
+                {item.subtitle}
+              </span>
+            </button>
+          );
+        })}
       </div>
     </section>
   );
 }
-
-function RightPanel({ collapsed, onToggleCollapsed }: { collapsed?: boolean; onToggleCollapsed?: () => void }) {
+function RightPanel({
+  selectedSpotifyId,
+  onSelectSpotify,
+}: {
+  selectedSpotifyId?: string;
+  onSelectSpotify: (item: SpotifyEmbedItem) => void;
+}) {
   const music = useEduAIMusic();
-  const [activeSpotify, setActiveSpotify] = useState(0);
+  const [youtubeQuery, setYoutubeQuery] = useState("música para estudiar sin letra");
   const related = music.allTracks
     .filter((track) => track.mood === music.currentTrack.mood && track.id !== music.currentTrack.id)
     .slice(0, 6);
-  const activeEmbed = SPOTIFY_EMBEDS[activeSpotify] || SPOTIFY_EMBEDS[0];
 
   return (
-    <aside className="eduai-clean-right flex min-h-0 min-w-0 flex-col bg-[#050505] p-3 text-white">
-      <section className="spotify-panel flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto rounded-2xl p-4">
-        <div>
-          <p className="text-sm font-black text-white">Buscar canciones</p>
-          <div className="mt-3 flex gap-2">
-            <input
-              value={music.onlineQuery}
-              onChange={(e) => music.setOnlineQuery(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && void music.searchOnline()}
-              placeholder="Canción, artista o link de YouTube"
-              className="min-w-0 flex-1 rounded-full border border-white/10 bg-white/7 px-3 py-2 text-xs text-white outline-none placeholder:text-slate-500"
-            />
-            <button type="button" onClick={() => void music.searchOnline()} disabled={music.onlineLoading} className="sp-primary rounded-full px-4 py-2 text-xs font-black disabled:opacity-50">
-              {music.onlineLoading ? "..." : "Buscar"}
-            </button>
-          </div>
-          <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] font-black uppercase tracking-wide text-slate-300">
-            {[
-              { id: "full", label: "Completas" },
-              { id: "preview", label: "DJ 30s" },
-              { id: "all", label: "Todo" },
-              { id: "youtube", label: "YouTube" },
-            ].map((item) => {
-              const provider = item.id as "all" | "full" | "preview" | "youtube";
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => {
-                    music.setOnlineProviderMode(provider);
-                    if (music.onlineQuery.trim()) void music.searchOnline(undefined, provider);
-                  }}
-                  className={cn("sp-btn rounded-full px-2.5 py-1", music.onlineProviderMode === item.id && "sp-pill-active")}
-                >
-                  {item.label}
-                </button>
-              );
-            })}
-          </div>
+    <aside className="flex min-h-0 min-w-0 flex-col gap-2.5 overflow-y-auto border-l border-white/10 bg-[#0b0d12] p-2.5 text-white">
+      <section className="shrink-0 rounded-2xl border border-emerald-400/20 bg-[#14171f] p-3">
+        <p className="text-sm font-black text-white">Buscar canciones</p>
+        <p className="mt-1 text-xs text-slate-400">
+          Busca canciones completas con Jamendo/Audius. En modo YouTube, EduAI crea una cola automática controlada por el botón central.
+        </p>
+        <div className="mt-3 flex gap-2">
+          <input
+            value={music.onlineQuery}
+            onChange={(e) => music.setOnlineQuery(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && void music.searchOnline()}
+            placeholder="daddy, lofi, piano, estudio..."
+            className="min-w-0 flex-1 rounded-full border border-white/10 bg-black/25 px-3 py-2 text-xs text-white outline-none placeholder:text-slate-500 focus:border-emerald-400/60"
+          />
+          <button
+            type="button"
+            onClick={() => void music.searchOnline()}
+            disabled={music.onlineLoading}
+            className="rounded-full bg-emerald-400 px-4 py-2 text-xs font-black text-slate-950 disabled:opacity-50"
+          >
+            {music.onlineLoading ? "..." : "Buscar"}
+          </button>
         </div>
-
-        <div className="spotify-card rounded-xl p-3">
-          <p className="text-sm font-black text-white">Ahora suena</p>
-          <div className="mt-3 flex items-center gap-3">
-            <Cover track={music.currentTrack} size="lg" />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-black text-white">{music.currentTrack.title}</p>
-              <p className="truncate text-xs text-slate-400">{music.currentTrack.artist}</p>
-              <p className="truncate text-[11px] text-slate-500">{sourceLabel(music.currentTrack.source)}</p>
-            </div>
-          </div>
-          {music.currentTrack.externalUrl && (
-            <a href={music.currentTrack.externalUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-slate-300 hover:text-white">
-              Abrir fuente <ExternalLink className="h-3 w-3" />
-            </a>
-          )}
-        </div>
-
-        <div className="spotify-card rounded-xl p-3">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-sm font-black text-white">Resultados</p>
-            <button type="button" onClick={() => { music.setSelectedPlaylistId("pl-online"); music.setView("search"); }} className="sp-btn rounded-full px-3 py-1 text-[10px] font-black">
-              Ver todos
-            </button>
-          </div>
-          <div className="mt-2 max-h-[220px] overflow-y-auto pr-1">
-            <SidebarTrackList tracks={music.onlineTracks.length ? music.onlineTracks : related} limit={6} />
-          </div>
-        </div>
-
-        <div className="spotify-card rounded-xl p-3">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-sm font-black text-white">Spotify visual</p>
-            <span className="text-[10px] text-slate-500">{SPOTIFY_EMBEDS.length} listas</span>
-          </div>
-          <div className="mt-2 grid grid-cols-2 gap-1.5">
-            {SPOTIFY_EMBEDS.map((item, index) => (
+        {music.onlineError && <p className="mt-2 text-xs font-bold text-rose-300">{music.onlineError}</p>}
+        <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] font-black uppercase tracking-wide">
+          {[
+            { id: "full", label: "Completas" },
+            { id: "preview", label: "DJ 30s" },
+            { id: "all", label: "Todo" },
+            { id: "youtube", label: "YouTube" },
+          ].map((item) => {
+            const provider = item.id as "all" | "full" | "preview" | "youtube";
+            return (
               <button
                 key={item.id}
                 type="button"
-                onClick={() => setActiveSpotify(index)}
-                className={cn("sp-btn rounded-md px-2 py-1.5 text-left text-[10px] font-bold", index === activeSpotify && "sp-pill-active")}
+                onClick={() => {
+                  music.setOnlineProviderMode(provider);
+                  if (music.onlineQuery.trim()) void music.searchOnline(undefined, provider);
+                }}
+                className={cn(
+                  "rounded-full px-2 py-1 transition",
+                  music.onlineProviderMode === item.id
+                    ? "bg-emerald-400 text-slate-950"
+                    : "bg-white/8 text-slate-300 hover:bg-emerald-400/12 hover:text-emerald-200",
+                )}
               >
-                <span className="block truncate">{item.title}</span>
+                {item.label}
               </button>
-            ))}
+            );
+          })}
+        </div>
+        <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
+          Por defecto se buscan canciones completas en Jamendo/Audius. DJ 30s usa previews iTunes y, si hay YouTube API Key, añade visuales tipo reel silenciados.
+        </p>
+      </section>
+
+      <section className="flex min-h-0 flex-[0.65] flex-col rounded-2xl border border-white/10 bg-[#14171f] p-3">
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-sm font-black text-white">Resultados online</p>
+          <button
+            type="button"
+            onClick={() => {
+              music.setSelectedPlaylistId("pl-online");
+              music.setView("search");
+            }}
+            className="text-xs font-bold text-emerald-300 hover:underline"
+          >
+            ver todos
+          </button>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+          <SidebarTrackList tracks={music.onlineTracks.length ? music.onlineTracks : related} limit={12} />
+        </div>
+      </section>
+
+      <SpotifyEmbeds selectedId={selectedSpotifyId} onSelect={onSelectSpotify} />
+
+      <section className="shrink-0 rounded-2xl border border-white/10 bg-[#14171f] p-3">
+        <p className="text-sm font-black text-white">Ahora suena</p>
+        <div className="mt-3 flex items-center gap-3">
+          <Cover track={music.currentTrack} size="lg" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-black text-emerald-300">{music.currentTrack.title}</p>
+            <p className="truncate text-xs text-slate-300">{music.currentTrack.artist}</p>
+            <p className="truncate text-[11px] text-slate-500">{music.currentTrack.album}</p>
           </div>
-          <iframe
-            data-testid="embed-iframe"
-            title={activeEmbed.title}
-            style={{ borderRadius: 12 }}
-            src={activeEmbed.src}
-            width="100%"
-            height="96"
-            frameBorder="0"
-            allowFullScreen
-            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-            loading="lazy"
-            className="mt-3 block border-0"
+        </div>
+        {music.currentTrack.externalUrl && (
+          <a
+            href={music.currentTrack.externalUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-emerald-300 hover:underline"
+          >
+            Abrir fuente <ExternalLink className="h-3 w-3" />
+          </a>
+        )}
+      </section>
+
+      <section className="shrink-0 rounded-2xl border border-white/10 bg-[#14171f] p-3">
+        <p className="text-sm font-black text-white">Fuentes externas</p>
+        <div className="mt-2 flex gap-2">
+          <input
+            value={youtubeQuery}
+            onChange={(e) => setYoutubeQuery(e.target.value)}
+            placeholder="Buscar en YouTube"
+            className="min-w-0 flex-1 rounded-full border border-white/10 bg-black/25 px-3 py-2 text-xs text-white outline-none placeholder:text-slate-500"
           />
+          <a
+            href={youtubeSearchUrl(youtubeQuery)}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-full bg-white/8 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-emerald-400/10 hover:text-emerald-200"
+          >
+            Abrir
+          </a>
+        </div>
+        <div className="mt-2 max-h-[88px] space-y-1 overflow-y-auto pr-1">
+          {EXTERNAL_MUSIC_COLLECTIONS.map((item) => (
+            <a
+              key={item.id}
+              href={item.url}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center justify-between gap-2 rounded-xl px-2 py-1.5 text-xs hover:bg-white/7"
+            >
+              <span className="min-w-0">
+                <span className="block truncate font-bold text-slate-200">{item.name}</span>
+                <span className="block truncate text-[10px] text-slate-500">{item.provider}</span>
+              </span>
+              <ExternalLink className="h-3.5 w-3.5 text-slate-500" />
+            </a>
+          ))}
         </div>
       </section>
     </aside>
   );
 }
 
-function BottomPlayer() {
-  const music = useEduAIMusic();
-  const duration = music.durationSeconds || parseDuration(music.currentTrack.duration);
-  const progress = duration ? Math.min(100, (music.currentTime / duration) * 100) : 0;
-  const bars = (music.audioLevels?.length ? music.audioLevels : Array.from({ length: 32 }, () => 0.1)).slice(0, 32);
+function ProgressRange({
+  currentTime,
+  duration,
+  onSeek,
+  compact = false,
+}: {
+  currentTime: number;
+  duration: number;
+  onSeek: (seconds: number) => void;
+  compact?: boolean;
+}) {
+  const safeDuration = Math.max(1, duration || 1);
+  const value = Math.min(currentTime || 0, safeDuration);
+  const progress = Math.min(100, (value / safeDuration) * 100);
 
   return (
-    <footer className="relative flex h-[96px] shrink-0 items-center gap-5 border-t border-white/10 bg-[#050505]/95 px-4 text-white">
-      <div className="flex min-w-0 items-center gap-3" style={{ width: 330 }}>
+    <div className="relative min-w-0 flex-1">
+      <div className={cn("absolute left-0 right-0 top-1/2 -translate-y-1/2 overflow-hidden rounded-full bg-white/16", compact ? "h-1.5" : "h-2")}> 
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-cyan-300 to-violet-400 shadow-[0_0_14px_rgba(52,211,153,.45)]"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+      <input
+        type="range"
+        min="0"
+        max={safeDuration}
+        step="1"
+        value={value}
+        onChange={(e) => onSeek(Number(e.target.value))}
+        className={cn("relative z-10 w-full cursor-pointer opacity-0", compact ? "h-4" : "h-5")}
+        aria-label="Progreso"
+      />
+    </div>
+  );
+}
+
+function BottomPlayer() {
+  const music = useEduAIMusic();
+  const duration = durationForPlayer(music.currentTrack, music.durationSeconds);
+
+  return (
+    <footer className="flex h-[76px] shrink-0 items-center gap-4 border-t border-white/10 bg-[#05070a] px-4 text-white">
+      <div className="flex min-w-0 items-center gap-3" style={{ width: 320 }}>
         <Cover track={music.currentTrack} size="md" />
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-black text-white">{music.currentTrack.title}</p>
-          <p className="truncate text-xs text-slate-400">{music.currentTrack.artist}</p>
+          <p className="truncate text-xs text-slate-400">{music.currentTrack.artist} · {sourceLabel(music.currentTrack.source)}</p>
         </div>
         <button
           type="button"
           onClick={() => music.toggleLike(music.currentTrack.id)}
-          className={cn("sp-icon-btn flex h-9 w-9 items-center justify-center rounded-full text-slate-400", music.liked.has(music.currentTrack.id) && "sp-playing")}
-          aria-label="Me gusta"
+          className={cn("text-slate-500 hover:text-emerald-300", music.liked.has(music.currentTrack.id) && "text-emerald-300")}
         >
           <Heart className="h-4 w-4" fill={music.liked.has(music.currentTrack.id) ? "currentColor" : "none"} />
         </button>
       </div>
 
       <div className="min-w-0 flex-1">
-        <div className="mb-2 flex items-center justify-center gap-3">
-          <IconButton onClick={() => music.setShuffle((value) => !value)} active={music.shuffle} title="Aleatorio"><Shuffle className="h-4 w-4" /></IconButton>
-          <IconButton onClick={music.prevTrack} title="Anterior"><SkipBack className="h-4 w-4" fill="currentColor" /></IconButton>
-          <button type="button" onClick={() => music.setPlaying((value) => !value)} className="sp-primary inline-flex h-11 w-11 items-center justify-center rounded-full text-slate-950" aria-label={music.playing ? "Pausar" : "Reproducir"}>
-            {music.playing ? <Pause className="h-5 w-5" fill="currentColor" /> : <Play className="h-5 w-5 translate-x-0.5" fill="currentColor" />}
-          </button>
-          <IconButton onClick={music.nextTrack} title="Siguiente"><SkipForward className="h-4 w-4" fill="currentColor" /></IconButton>
-          <IconButton onClick={() => music.setRepeat(music.repeat === "off" ? "all" : music.repeat === "all" ? "one" : "off")} active={music.repeat !== "off"} title="Repetir"><Repeat className="h-4 w-4" /></IconButton>
+        <div className="flex items-center justify-center gap-3">
+          <IconButton onClick={() => music.setShuffle((value) => !value)} active={music.shuffle}>
+            <Shuffle className="h-4 w-4" />
+          </IconButton>
+          <IconButton onClick={music.prevTrack}>
+            <SkipBack className="h-4 w-4" fill="currentColor" />
+          </IconButton>
+          <PlayButton size="lg" />
+          <IconButton onClick={music.nextTrack}>
+            <SkipForward className="h-4 w-4" fill="currentColor" />
+          </IconButton>
+          <IconButton
+            onClick={() => music.setRepeat(music.repeat === "off" ? "all" : music.repeat === "all" ? "one" : "off")}
+            active={music.repeat !== "off"}
+          >
+            <Repeat className="h-4 w-4" />
+          </IconButton>
         </div>
-
-        <div className="mx-auto mb-2 flex h-9 max-w-[420px] items-end justify-center gap-1 bottom-eq" aria-hidden="true">
-          {bars.map((level, index) => {
-            const height = Math.max(5, Math.min(36, Math.round(6 + level * 32)));
-            const hue = (index * 11 + Math.round((music.currentTime || 0) * 18)) % 360;
-            return (
-              <span
-                key={index}
-                style={{
-                  "--eq-height": `${height}px`,
-                  "--eq-opacity": `${0.46 + Math.min(0.54, level * 0.56)}`,
-                  "--eq-a": `hsl(${hue} 100% 62%)`,
-                  "--eq-b": `hsl(${(hue + 78) % 360} 100% 60%)`,
-                  "--eq-c": `hsl(${(hue + 154) % 360} 100% 58%)`,
-                } as React.CSSProperties}
-              />
-            );
-          })}
-        </div>
-
-        <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500">
+        <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-500">
           <span className="w-9 text-right">{formatSeconds(music.currentTime)}</span>
-          <div className="clean-progress flex-1" style={{ "--eduai-progress": `${progress}%` } as React.CSSProperties} />
+          <ProgressRange currentTime={music.currentTime} duration={duration} onSeek={music.seekTo} />
           <span className="w-9">{formatSeconds(duration)}</span>
         </div>
       </div>
 
-      <div className="hidden items-center justify-end gap-3 xl:flex" style={{ width: 260 }}>
-        <Volume2 className="h-4 w-4 text-slate-400" />
+      <div className="hidden items-center justify-end gap-3 pr-14 xl:flex" style={{ width: 320 }}>
+        <ListMusic className="h-4 w-4 text-slate-500" />
+        <Volume2 className="h-4 w-4 text-slate-500" />
         <input
           type="range"
           min="0"
@@ -2933,7 +1461,7 @@ function BottomPlayer() {
           step="0.01"
           value={music.volume}
           onChange={(e) => music.setVolume(Number(e.target.value))}
-          className="w-28 accent-emerald-400"
+          className="w-24 accent-emerald-400"
         />
       </div>
     </footer>
@@ -2972,8 +1500,7 @@ function AddToPlaylistBar() {
 function MiniBar({ onOpenPanel }: { onOpenPanel?: () => void }) {
   const music = useEduAIMusic();
   const [collapsed, setCollapsed] = useState(false);
-  const duration = music.durationSeconds || parseDuration(music.currentTrack.duration);
-  const progress = duration ? Math.min(100, (music.currentTime / duration) * 100) : 0;
+  const duration = durationForPlayer(music.currentTrack, music.durationSeconds);
 
   useEffect(() => {
     setCollapsed(false);
@@ -3052,17 +1579,7 @@ function MiniBar({ onOpenPanel }: { onOpenPanel?: () => void }) {
 
       <div className="mt-2 flex items-center gap-2 text-[10px] text-slate-500">
         <span className="w-8 text-right">{formatSeconds(music.currentTime)}</span>
-        <input
-          type="range"
-          min="0"
-          max={Math.max(1, duration)}
-          step="1"
-          value={Math.min(music.currentTime, Math.max(1, duration))}
-          onChange={(e) => music.seekTo(Number(e.target.value))}
-          className="h-1 min-w-0 flex-1 accent-emerald-400"
-          style={{ background: `linear-gradient(90deg,#00e5ff 0%,#2563ff ${Math.max(6, progress * 0.28)}%,#a855f7 ${Math.max(8, progress * 0.55)}%,#ff2d75 ${Math.max(10, progress * 0.78)}%,#00ffa3 ${progress}%,rgba(255,255,255,.18) ${progress}%)` }}
-          aria-label="Progreso"
-        />
+        <ProgressRange currentTime={music.currentTime} duration={duration} onSeek={music.seekTo} compact />
         <span className="w-8">{formatSeconds(duration)}</span>
       </div>
     </div>
@@ -3111,7 +1628,9 @@ export default function EduAIMusicPlayer({
   onOpenPanel,
 }: Props) {
   const music = useEduAIMusic();
+  const [selectedSpotifyEmbed, setSelectedSpotifyEmbed] = useState<SpotifyEmbedItem | null>(null);
   const setPendingTrackId = music.setPendingTrackId;
+
   useEffect(() => {
     if (mode === "page") setPendingTrackId(null);
   }, [mode, setPendingTrackId]);
@@ -3131,15 +1650,29 @@ export default function EduAIMusicPlayer({
   if (mode === "panel") return <CompactPanel onOpenPanel={onOpenPanel} />;
 
   return (
-    <div className={cn("eduai-music-neon eduai-music-clean h-screen min-h-[680px] overflow-hidden bg-[#050505] text-white", music.currentTrack.source === "youtube" && "youtube-active")}>
-      <NeonGamingSkin />
-      <CleanSpotifyGamingSkin />
+    <div className="h-screen min-h-[680px] overflow-hidden bg-[#05070a] text-white">
+      <style jsx global>{`
+        @keyframes eduai-dj-progress {
+          from { transform: scaleX(0); }
+          to { transform: scaleX(1); }
+        }
+      `}</style>
       <div className="flex h-full flex-col">
         <TopBar />
-        <div className="eduai-clean-grid grid min-h-0 flex-1 overflow-hidden" style={{ gridTemplateColumns: "300px minmax(0, 1fr) 360px" }}>
+        <div
+          className="grid min-h-0 flex-1 overflow-hidden"
+          style={{ gridTemplateColumns: "280px minmax(0, 1fr) 320px" }}
+        >
           <Sidebar tracks={tracksForMain} />
-          <MainPanel tracks={tracksForMain} />
-          <RightPanel />
+          <MainPanel
+            tracks={tracksForMain}
+            spotifyEmbed={selectedSpotifyEmbed}
+            onClearSpotify={() => setSelectedSpotifyEmbed(null)}
+          />
+          <RightPanel
+            selectedSpotifyId={selectedSpotifyEmbed?.id}
+            onSelectSpotify={setSelectedSpotifyEmbed}
+          />
         </div>
         <BottomPlayer />
       </div>
