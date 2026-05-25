@@ -12,11 +12,7 @@ import { analyzeAccessibility } from "@/lib/agents/accessibility-agent";
 import ExamMathText from "@/components/ui/ExamMathText";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import {
-  getOAs,
-  type NivelKey,
-  type OA,
-} from "@/lib/mineduc-oa";
+import { getOAs, type NivelKey, type OA } from "@/lib/mineduc-oa";
 import type { ExamTheme, ExamFont } from "@/lib/exam/theme-utils";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
@@ -25,7 +21,6 @@ type QuestionType = "multiple_choice" | "true_false" | "development";
 type AIStatus = "idle" | "generating" | "done" | "error";
 
 const AI_TOTAL_LIMIT = 36;
-
 
 const EXAM_CREATOR_STEPS = [
   { id: "datos", label: "1. Datos", icon: "📝" },
@@ -37,8 +32,24 @@ const EXAM_CREATOR_STEPS = [
 ] as const;
 
 const COURSE_OPTIONS: Record<NivelKey, string[]> = {
-  parvularia: ["Sala cuna menor", "Sala cuna mayor", "Medio menor", "Medio mayor", "NT1", "NT2"],
-  basica: ["1° básico", "2° básico", "3° básico", "4° básico", "5° básico", "6° básico", "7° básico", "8° básico"],
+  parvularia: [
+    "Sala cuna menor",
+    "Sala cuna mayor",
+    "Medio menor",
+    "Medio mayor",
+    "NT1",
+    "NT2",
+  ],
+  basica: [
+    "1° básico",
+    "2° básico",
+    "3° básico",
+    "4° básico",
+    "5° básico",
+    "6° básico",
+    "7° básico",
+    "8° básico",
+  ],
   media: ["1° medio", "2° medio", "3° medio", "4° medio"],
 };
 
@@ -60,6 +71,40 @@ function normalizeTextForSearch(value: string): string {
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
+}
+
+function getOASelectionKey(oa: OA): string {
+  return String(oa.codigoOficial || oa.id).trim();
+}
+
+function mergeDuplicateOAs(oas: OA[]): OA[] {
+  const map = new Map<string, OA>();
+
+  for (const oa of oas) {
+    const key = getOASelectionKey(oa);
+    const existing = map.get(key);
+
+    if (!existing) {
+      map.set(key, { ...oa, id: key });
+      continue;
+    }
+
+    const unidades = [existing.unidadNombre, oa.unidadNombre]
+      .filter(Boolean)
+      .map(String);
+    const ejes = [...(existing.ejes || []), ...(oa.ejes || [])]
+      .filter(Boolean)
+      .map(String);
+
+    map.set(key, {
+      ...existing,
+      id: key,
+      unidadNombre: Array.from(new Set(unidades)).join(" · "),
+      ejes: Array.from(new Set(ejes)),
+    });
+  }
+
+  return Array.from(map.values());
 }
 
 type MultipleChoiceQuestion = {
@@ -167,6 +212,7 @@ function normalizeAIQuestion(raw: any): Question {
   const base = {
     id: uid(),
     question: (raw.question ?? raw.enunciado ?? "").trim(),
+    imageUrl: String(raw.imageUrl ?? raw.image_url ?? raw.image ?? "").trim(),
   };
 
   if (raw.type === "true_false" || raw.type === "verdadero_falso") {
@@ -302,7 +348,9 @@ export default function CrearExamenPage() {
   const [dyslexiaMode, setDyslexiaMode] = useState(false);
   const [adhdMode, setAdhdMode] = useState(false);
   const [lowVisionMode, setLowVisionMode] = useState(false);
+  const [individualAdaptations, setIndividualAdaptations] = useState("");
   const [visualOpen, setVisualOpen] = useState(true);
+  const [oaOpen, setOaOpen] = useState(false);
   const [questionAddType, setQuestionAddType] =
     useState<QuestionType>("multiple_choice");
   const [activeStep, setActiveStep] = useState(0);
@@ -322,12 +370,16 @@ export default function CrearExamenPage() {
         lowVision: lowVisionMode,
         // Compatibilidad estricta: si recommendDesign tiene un tipo ExamTheme más antiguo
         // en otra rama/archivo, el cast evita que Vercel corte el build por la unión de temas.
-        manualTheme: examTheme !== "classic"
-          ? (examTheme as Parameters<typeof recommendDesign>[0]["manualTheme"])
-          : undefined,
-        manualFont: examFont !== "inter"
-          ? (examFont as Parameters<typeof recommendDesign>[0]["manualFont"])
-          : undefined,
+        manualTheme:
+          examTheme !== "classic"
+            ? (examTheme as Parameters<
+                typeof recommendDesign
+              >[0]["manualTheme"])
+            : undefined,
+        manualFont:
+          examFont !== "inter"
+            ? (examFont as Parameters<typeof recommendDesign>[0]["manualFont"])
+            : undefined,
       }),
     [
       subject,
@@ -344,7 +396,7 @@ export default function CrearExamenPage() {
 
   const availableOAs = useMemo<OA[]>(() => {
     try {
-      return getOAs(curriculumNivel, curriculumCurso, subject);
+      return mergeDuplicateOAs(getOAs(curriculumNivel, curriculumCurso, subject));
     } catch (error) {
       return [];
     }
@@ -363,13 +415,13 @@ export default function CrearExamenPage() {
   }, [availableOAs, oaQuery]);
 
   const selectedOAs = useMemo(
-    () => availableOAs.filter((oa) => selectedOAIds.includes(oa.id)),
+    () => availableOAs.filter((oa) => selectedOAIds.includes(getOASelectionKey(oa))),
     [availableOAs, selectedOAIds],
   );
 
   useEffect(() => {
     setSelectedOAIds((prev) =>
-      prev.filter((id) => availableOAs.some((oa) => oa.id === id)),
+      prev.filter((id) => availableOAs.some((oa) => getOASelectionKey(oa) === id)),
     );
   }, [availableOAs]);
 
@@ -500,6 +552,7 @@ export default function CrearExamenPage() {
           return {
             type: q.type,
             question: q.question,
+            imageUrl: q.imageUrl || "",
             options: q.options,
             correctAnswer: q.correctAnswer,
             explanation: q.explanation || "",
@@ -509,6 +562,7 @@ export default function CrearExamenPage() {
           return {
             type: q.type,
             question: q.question,
+            imageUrl: q.imageUrl || "",
             correctAnswer: q.correctAnswer,
             explanation: q.explanation || "",
             selectionPoints: Number(q.selectionPoints || 1),
@@ -518,6 +572,7 @@ export default function CrearExamenPage() {
         return {
           type: q.type,
           question: q.question,
+          imageUrl: q.imageUrl || "",
           modelAnswer: (q as DevelopmentQuestion).modelAnswer || "",
           rubric: (q as DevelopmentQuestion).rubric.map((r) => ({
             criteria: r.criteria,
@@ -554,7 +609,7 @@ export default function CrearExamenPage() {
               curso: curriculumCurso,
               selectedOAIds,
               selectedOAs: selectedOAs.map((oa) => ({
-                id: oa.id,
+                id: getOASelectionKey(oa),
                 codigoOficial: oa.codigoOficial,
                 texto: oa.texto,
                 unidadNombre: oa.unidadNombre,
@@ -565,6 +620,7 @@ export default function CrearExamenPage() {
               dyslexiaMode,
               adhdMode,
               lowVisionMode,
+              individualAdaptations: individualAdaptations.trim(),
             },
           },
         }),
@@ -603,8 +659,15 @@ export default function CrearExamenPage() {
           )
           .join("\n")}`
       : "";
+    const activeAdaptations = [
+      dyslexiaMode ? "dislexia" : "",
+      adhdMode ? "TDAH" : "",
+      lowVisionMode ? "baja visión" : "",
+    ].filter(Boolean);
     const pieCtx = pieMode
-      ? `\nIMPORTANTE — Este examen es para estudiantes con NEE/PIE:${dyslexiaMode ? " dislexia," : ""}${adhdMode ? " TDAH," : ""}${lowVisionMode ? " baja visión," : ""} usa lenguaje claro, frases cortas, instrucciones simples y evita exceso de texto.`
+      ? `
+IMPORTANTE — Adaptaciones PIE/NEE activas: ${activeAdaptations.length ? activeAdaptations.join(", ") : "ajustes generales de accesibilidad"}. Usa lenguaje claro, frases cortas, instrucciones simples, bajo ruido visual y evita exceso de texto.${individualAdaptations.trim() ? `
+Adaptaciones individuales solicitadas por el docente: ${individualAdaptations.trim()}` : ""}`
       : "";
     return `Genera un examen escolar en español sobre el siguiente tema:
 "${aiPrompt.trim() || topic.trim() || "tema del docente"}"${subjectCtx}${selectedOAContext}${pieCtx}
@@ -632,7 +695,8 @@ REGLAS ESTRICTAS:
 6. development: modelAnswer, rubric:[{criteria,points}], maxPoints:suma
 7. LaTeX inline con $...$ y bloque con $$...$$. Usa backslash real (\\).
 8. Si ${aiTF}===0 y ${aiDev}===0 → genera SOLO multiple_choice.
-9. NUNCA correctAnswer=0 por defecto. Verifica que options[correctAnswer] sea correcto.`;
+9. NUNCA correctAnswer=0 por defecto. Verifica que options[correctAnswer] sea correcto.
+10. Si una pregunta requiere apoyo visual, puedes devolver imageUrl; si no, usa imageUrl:"".`;
   };
 
   const generateAI = async () => {
@@ -857,26 +921,28 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
             Crear nuevo examen
           </h1>
           <p className="text-slate-600 mt-2 text-sm md:text-base max-w-3xl">
-            Diseña una evaluación clara y visual: datos, diseño accesible, generación IA, preguntas con LaTeX y publicación segura.
+            Diseña una evaluación clara y visual: datos, diseño accesible,
+            generación IA, preguntas con LaTeX y publicación segura.
           </p>
-          <div className="sticky top-0 z-40 mt-5 rounded-[30px] border border-slate-200 bg-white/90 p-2 text-xs font-bold text-slate-600 shadow-lg shadow-slate-200/60 backdrop-blur-xl">
-            <div className="grid gap-2 md:grid-cols-6">
-              {EXAM_CREATOR_STEPS.map((step, index) => (
-                <button
-                  key={step.id}
-                  type="button"
-                  onClick={() => jumpToSection(step.id)}
-                  className={`rounded-2xl px-3 py-2.5 text-center transition-all ${
-                    activeStep === index
-                      ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm"
-                      : "bg-slate-50 text-slate-600 hover:bg-blue-50 hover:text-blue-700"
-                  }`}
-                >
-                  <span className="mr-1">{step.icon}</span>
-                  {step.label}
-                </button>
-              ))}
-            </div>
+        </div>
+
+        <div className="sticky top-3 z-40 mb-6 rounded-[30px] border border-slate-200 bg-white/95 p-2 text-xs font-bold text-slate-600 shadow-xl shadow-slate-200/70 backdrop-blur-xl">
+          <div className="grid gap-2 md:grid-cols-6">
+            {EXAM_CREATOR_STEPS.map((step, index) => (
+              <button
+                key={step.id}
+                type="button"
+                onClick={() => jumpToSection(step.id)}
+                className={`rounded-2xl px-3 py-2.5 text-center transition-all ${
+                  activeStep === index
+                    ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm"
+                    : "bg-slate-50 text-slate-600 hover:bg-blue-50 hover:text-blue-700"
+                }`}
+              >
+                <span className="mr-1">{step.icon}</span>
+                {step.label}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -885,13 +951,20 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
             {/* ════════════════════════════════════════════════════════════
                 INFORMACIÓN GENERAL
             ════════════════════════════════════════════════════════════ */}
-            <section id="exam-section-datos" className="scroll-mt-32 rounded-[28px] border border-sky-200 bg-white/95 p-5 md:p-6 shadow-sm ring-1 ring-white/80">
+            <section
+              id="exam-section-datos"
+              className="scroll-mt-32 rounded-[28px] border border-sky-200 bg-white/95 p-5 md:p-6 shadow-sm ring-1 ring-white/80"
+            >
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-xs font-black uppercase tracking-[0.2em] text-blue-500">Paso 1</p>
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-blue-500">
+                    Paso 1
+                  </p>
                   <h2 className="text-lg font-black">Información general</h2>
                 </div>
-                <span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs font-bold text-blue-600">Obligatorio</span>
+                <span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs font-bold text-blue-600">
+                  Obligatorio
+                </span>
               </div>
 
               <div className="grid md:grid-cols-2 gap-4">
@@ -1087,122 +1160,173 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
             {/* ════════════════════════════════════════════════════════════
                 OBJETIVOS DE APRENDIZAJE MINEDUC
             ════════════════════════════════════════════════════════════ */}
-            <section id="exam-section-objetivos" className="scroll-mt-32 rounded-[30px] border border-emerald-200 bg-gradient-to-br from-emerald-50 via-teal-50 to-white p-5 md:p-6 shadow-sm ring-1 ring-white/80">
-              <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <section
+              id="exam-section-objetivos"
+              className="scroll-mt-32 rounded-[30px] border border-emerald-200 bg-gradient-to-br from-emerald-50 via-teal-50 to-white p-5 md:p-6 shadow-sm ring-1 ring-white/80"
+            >
+              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div>
-                  <p className="text-xs font-black uppercase tracking-[0.22em] text-emerald-600">Paso 2 · OA MINEDUC</p>
-                  <h2 className="text-xl font-black text-slate-950">Objetivos de aprendizaje a evaluar</h2>
+                  <p className="text-xs font-black uppercase tracking-[0.22em] text-emerald-600">
+                    Paso 2 · OA MINEDUC
+                  </p>
+                  <h2 className="text-xl font-black text-slate-950">
+                    Objetivos de aprendizaje a evaluar
+                  </h2>
                   <p className="mt-1 max-w-2xl text-sm leading-relaxed text-slate-600">
-                    Selecciona los OA oficiales que el examen debe medir. La IA los usará como contexto para generar preguntas más alineadas al currículum chileno.
+                    Para no saturar la pantalla, los OA quedan plegados. Abre el panel,
+                    busca por tema y selecciona solo los objetivos que evaluará el examen.
                   </p>
                 </div>
-                <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
-                  {selectedOAs.length} OA seleccionado{selectedOAs.length !== 1 ? "s" : ""}
-                </span>
-              </div>
-
-              <div className="grid gap-3 md:grid-cols-[180px_180px_1fr]">
-                <div>
-                  <label className="mb-2 block text-xs font-bold text-slate-600">NIVEL</label>
-                  <select
-                    value={curriculumNivel}
-                    onChange={(e) => {
-                      const nextNivel = e.target.value as NivelKey;
-                      setCurriculumNivel(nextNivel);
-                      setCurriculumCurso(COURSE_OPTIONS[nextNivel][0]);
-                      setSelectedOAIds([]);
-                    }}
-                    className="w-full rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100"
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
+                    {selectedOAs.length} OA seleccionado{selectedOAs.length !== 1 ? "s" : ""}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setOaOpen((v) => !v)}
+                    className="rounded-full border border-emerald-300 bg-white px-4 py-2 text-xs font-black text-emerald-700 shadow-sm transition-all hover:bg-emerald-50"
                   >
-                    <option value="parvularia">Parvularia</option>
-                    <option value="basica">Básica</option>
-                    <option value="media">Media</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="mb-2 block text-xs font-bold text-slate-600">CURSO</label>
-                  <select
-                    value={curriculumCurso}
-                    onChange={(e) => {
-                      setCurriculumCurso(e.target.value);
-                      setSelectedOAIds([]);
-                    }}
-                    className="w-full rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100"
-                  >
-                    {COURSE_OPTIONS[curriculumNivel].map((curso) => (
-                      <option key={curso} value={curso}>{curso}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="mb-2 block text-xs font-bold text-slate-600">BUSCAR OA</label>
-                  <input
-                    value={oaQuery}
-                    onChange={(e) => setOaQuery(e.target.value)}
-                    placeholder="Ej: fracciones, probabilidad, funciones, lectura..."
-                    className="w-full rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100"
-                  />
+                    {oaOpen ? "Ocultar OA ↑" : "Seleccionar OA ↓"}
+                  </button>
                 </div>
               </div>
 
-              {availableOAs.length === 0 ? (
-                <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                  No encontré OA locales para <strong>{subject}</strong> en <strong>{curriculumCurso}</strong>. Puedes seguir usando el tema manual o cambiar asignatura/curso.
-                </div>
-              ) : (
-                <div className="mt-5 grid gap-3 lg:grid-cols-2">
-                  {filteredOAs.map((oa) => {
-                    const selected = selectedOAIds.includes(oa.id);
-                    return (
-                      <button
-                        key={oa.id}
-                        type="button"
-                        onClick={() => toggleOA(oa.id)}
-                        className={[
-                          "group min-h-[118px] rounded-2xl border p-4 text-left transition-all",
-                          selected
-                            ? "border-emerald-400 bg-emerald-100/80 shadow-sm ring-2 ring-emerald-200"
-                            : "border-slate-200 bg-white hover:border-emerald-300 hover:bg-emerald-50/60",
-                        ].join(" ")}
-                      >
-                        <div className="mb-2 flex items-center justify-between gap-3">
-                          <span className={[
-                            "rounded-full px-2.5 py-1 text-[11px] font-black",
-                            selected ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-700",
-                          ].join(" ")}>
-                            {oa.codigoOficial || oa.id}
-                          </span>
-                          <span className={selected ? "text-emerald-700" : "text-slate-300 group-hover:text-emerald-500"}>
-                            {selected ? "✓ seleccionado" : "+ agregar"}
-                          </span>
-                        </div>
-                        <p className="line-clamp-3 text-sm font-semibold leading-relaxed text-slate-900">{oa.texto}</p>
-                        {(oa.unidadNombre || oa.ejes?.length) && (
-                          <p className="mt-2 line-clamp-1 text-xs text-slate-500">
-                            {oa.unidadNombre || oa.ejes?.join(" · ")}
-                          </p>
-                        )}
-                      </button>
-                    );
-                  })}
+              {selectedOAs.length > 0 && (
+                <div className="mt-4 rounded-2xl border border-emerald-200 bg-white px-4 py-3">
+                  <p className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-emerald-600">
+                    OA que se enviarán a la IA
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedOAs.map((oa) => {
+                      const oaKey = getOASelectionKey(oa);
+                      return (
+                        <button
+                          key={oaKey}
+                          type="button"
+                          onClick={() => toggleOA(oaKey)}
+                          className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800 hover:bg-emerald-200"
+                        >
+                          {oa.codigoOficial || oa.id} ×
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 
-              {selectedOAs.length > 0 && (
-                <div className="mt-5 rounded-2xl border border-emerald-200 bg-white px-4 py-3">
-                  <p className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-emerald-600">OA que se enviarán a la IA</p>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedOAs.map((oa) => (
-                      <button
-                        key={oa.id}
-                        type="button"
-                        onClick={() => toggleOA(oa.id)}
-                        className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800 hover:bg-emerald-200"
+              {oaOpen && (
+                <div className="mt-5 space-y-5">
+                  <div className="grid gap-3 md:grid-cols-[180px_180px_1fr]">
+                    <div>
+                      <label className="mb-2 block text-xs font-bold text-slate-600">
+                        NIVEL
+                      </label>
+                      <select
+                        value={curriculumNivel}
+                        onChange={(e) => {
+                          const nextNivel = e.target.value as NivelKey;
+                          setCurriculumNivel(nextNivel);
+                          setCurriculumCurso(COURSE_OPTIONS[nextNivel][0]);
+                          setSelectedOAIds([]);
+                        }}
+                        className="w-full rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100"
                       >
-                        {oa.codigoOficial || oa.id} ×
-                      </button>
-                    ))}
+                        <option value="parvularia">Parvularia</option>
+                        <option value="basica">Básica</option>
+                        <option value="media">Media</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-xs font-bold text-slate-600">
+                        CURSO
+                      </label>
+                      <select
+                        value={curriculumCurso}
+                        onChange={(e) => {
+                          setCurriculumCurso(e.target.value);
+                          setSelectedOAIds([]);
+                        }}
+                        className="w-full rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100"
+                      >
+                        {COURSE_OPTIONS[curriculumNivel].map((curso) => (
+                          <option key={curso} value={curso}>
+                            {curso}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-xs font-bold text-slate-600">
+                        BUSCAR OA
+                      </label>
+                      <input
+                        value={oaQuery}
+                        onChange={(e) => setOaQuery(e.target.value)}
+                        placeholder="Ej: fracciones, probabilidad, funciones, lectura..."
+                        className="w-full rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100"
+                      />
+                    </div>
                   </div>
+
+                  {availableOAs.length === 0 ? (
+                    <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                      No encontré OA locales para <strong>{subject}</strong> en{" "}
+                      <strong>{curriculumCurso}</strong>. Puedes seguir usando el
+                      tema manual o cambiar asignatura/curso.
+                    </div>
+                  ) : (
+                    <div className="max-h-[520px] overflow-y-auto pr-1">
+                      <div className="grid gap-3 lg:grid-cols-2">
+                        {filteredOAs.map((oa) => {
+                          const oaKey = getOASelectionKey(oa);
+                          const selected = selectedOAIds.includes(oaKey);
+                          return (
+                            <button
+                              key={oaKey}
+                              type="button"
+                              onClick={() => toggleOA(oaKey)}
+                              className={[
+                                "group min-h-[118px] rounded-2xl border p-4 text-left transition-all",
+                                selected
+                                  ? "border-emerald-400 bg-emerald-100/80 shadow-sm ring-2 ring-emerald-200"
+                                  : "border-slate-200 bg-white hover:border-emerald-300 hover:bg-emerald-50/60",
+                              ].join(" ")}
+                            >
+                              <div className="mb-2 flex items-center justify-between gap-3">
+                                <span
+                                  className={[
+                                    "rounded-full px-2.5 py-1 text-[11px] font-black",
+                                    selected
+                                      ? "bg-emerald-600 text-white"
+                                      : "bg-slate-100 text-slate-700",
+                                  ].join(" ")}
+                                >
+                                  {oa.codigoOficial || oa.id}
+                                </span>
+                                <span
+                                  className={
+                                    selected
+                                      ? "text-emerald-700"
+                                      : "text-slate-300 group-hover:text-emerald-500"
+                                  }
+                                >
+                                  {selected ? "✓ seleccionado" : "+ agregar"}
+                                </span>
+                              </div>
+                              <p className="line-clamp-3 text-sm font-semibold leading-relaxed text-slate-900">
+                                {oa.texto}
+                              </p>
+                              {(oa.unidadNombre || oa.ejes?.length) && (
+                                <p className="mt-2 line-clamp-1 text-xs text-slate-500">
+                                  {oa.unidadNombre || oa.ejes?.join(" · ")}
+                                </p>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </section>
@@ -1210,7 +1334,10 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
             {/* ════════════════════════════════════════════════════════════
                 PERSONALIZACIÓN VISUAL — Tema, fuente y accesibilidad PIE
             ════════════════════════════════════════════════════════════ */}
-            <section id="exam-section-diseno" className="scroll-mt-32 rounded-[30px] border border-violet-200 bg-white/95 p-5 md:p-6 space-y-5 shadow-sm ring-1 ring-white/80">
+            <section
+              id="exam-section-diseno"
+              className="scroll-mt-32 rounded-[30px] border border-violet-200 bg-white/95 p-5 md:p-6 space-y-5 shadow-sm ring-1 ring-white/80"
+            >
               <button
                 type="button"
                 onClick={() => setVisualOpen((v) => !v)}
@@ -1269,18 +1396,90 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                       {(
                         [
-                          { value: "classic", label: "Classic", icon: "📄", desc: "Limpio y formal", tone: "from-slate-50 to-white border-slate-200" },
-                          { value: "modern", label: "Modern", icon: "✦", desc: "Azul institucional", tone: "from-blue-50 to-white border-blue-200" },
-                          { value: "canva", label: "Canva", icon: "🃏", desc: "Visual y colorido", tone: "from-indigo-50 to-pink-50 border-indigo-200" },
-                          { value: "pie_calm", label: "PIE Calm", icon: "🌿", desc: "Crema y verde suave", tone: "from-emerald-50 to-amber-50 border-emerald-200" },
-                          { value: "adhd_focus", label: "TDAH Focus", icon: "🎯", desc: "Azul/verde foco", tone: "from-sky-50 to-emerald-50 border-sky-200" },
-                          { value: "high_contrast", label: "Alto contraste", icon: "👁", desc: "Baja visión", tone: "from-yellow-50 to-white border-slate-800" },
-                          { value: "stem", label: "STEM", icon: "⚗️", desc: "Ciencia exacta", tone: "from-cyan-50 to-blue-50 border-cyan-200" },
-                          { value: "kids", label: "Kids", icon: "🐣", desc: "Básica / PIE", tone: "from-orange-50 to-rose-50 border-orange-200" },
-                          { value: "blue_focus", label: "Blue Focus", icon: "🧠", desc: "Concentración tranquila", tone: "from-blue-100 to-cyan-50 border-blue-300" },
-                          { value: "green_calm", label: "Green Calm", icon: "🍃", desc: "Baja ansiedad", tone: "from-green-100 to-emerald-50 border-green-300" },
-                          { value: "lavender_reading", label: "Lavender Reading", icon: "📚", desc: "Lectura amable", tone: "from-purple-100 to-violet-50 border-purple-300" },
-                          { value: "warm_attention", label: "Warm Attention", icon: "☀️", desc: "Energía sin saturar", tone: "from-amber-100 to-orange-50 border-amber-300" },
+                          {
+                            value: "classic",
+                            label: "Classic",
+                            icon: "📄",
+                            desc: "Limpio y formal",
+                            tone: "from-slate-50 to-white border-slate-200",
+                          },
+                          {
+                            value: "modern",
+                            label: "Modern",
+                            icon: "✦",
+                            desc: "Azul institucional",
+                            tone: "from-blue-50 to-white border-blue-200",
+                          },
+                          {
+                            value: "canva",
+                            label: "Canva",
+                            icon: "🃏",
+                            desc: "Visual y colorido",
+                            tone: "from-indigo-50 to-pink-50 border-indigo-200",
+                          },
+                          {
+                            value: "pie_calm",
+                            label: "PIE Calm",
+                            icon: "🌿",
+                            desc: "Crema y verde suave",
+                            tone: "from-emerald-50 to-amber-50 border-emerald-200",
+                          },
+                          {
+                            value: "adhd_focus",
+                            label: "TDAH Focus",
+                            icon: "🎯",
+                            desc: "Azul/verde foco",
+                            tone: "from-sky-50 to-emerald-50 border-sky-200",
+                          },
+                          {
+                            value: "high_contrast",
+                            label: "Alto contraste",
+                            icon: "👁",
+                            desc: "Baja visión",
+                            tone: "from-yellow-50 to-white border-slate-800",
+                          },
+                          {
+                            value: "stem",
+                            label: "STEM",
+                            icon: "⚗️",
+                            desc: "Ciencia exacta",
+                            tone: "from-cyan-50 to-blue-50 border-cyan-200",
+                          },
+                          {
+                            value: "kids",
+                            label: "Kids",
+                            icon: "🐣",
+                            desc: "Básica / PIE",
+                            tone: "from-orange-50 to-rose-50 border-orange-200",
+                          },
+                          {
+                            value: "blue_focus",
+                            label: "Blue Focus",
+                            icon: "🧠",
+                            desc: "Concentración tranquila",
+                            tone: "from-blue-100 to-cyan-50 border-blue-300",
+                          },
+                          {
+                            value: "green_calm",
+                            label: "Green Calm",
+                            icon: "🍃",
+                            desc: "Baja ansiedad",
+                            tone: "from-green-100 to-emerald-50 border-green-300",
+                          },
+                          {
+                            value: "lavender_reading",
+                            label: "Lavender Reading",
+                            icon: "📚",
+                            desc: "Lectura amable",
+                            tone: "from-purple-100 to-violet-50 border-purple-300",
+                          },
+                          {
+                            value: "warm_attention",
+                            label: "Warm Attention",
+                            icon: "☀️",
+                            desc: "Energía sin saturar",
+                            tone: "from-amber-100 to-orange-50 border-amber-300",
+                          },
                         ] as {
                           value: ExamTheme;
                           label: string;
@@ -1309,22 +1508,46 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                   </div>
 
                   <div className="rounded-3xl border border-cyan-200 bg-gradient-to-br from-cyan-50 via-emerald-50 to-amber-50 p-4">
-                    <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-700">Guía rápida de color para concentración</p>
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-700">
+                      Guía rápida de color para concentración
+                    </p>
                     <div className="mt-3 grid gap-2 md:grid-cols-4">
                       {[
-                        { label: "Azul suave", desc: "foco y calma", cls: "bg-blue-100 text-blue-900 border-blue-200" },
-                        { label: "Verde suave", desc: "regulación y seguridad", cls: "bg-emerald-100 text-emerald-900 border-emerald-200" },
-                        { label: "Crema", desc: "menos brillo que blanco", cls: "bg-amber-50 text-amber-900 border-amber-200" },
-                        { label: "Lavanda", desc: "lectura amable", cls: "bg-violet-100 text-violet-900 border-violet-200" },
+                        {
+                          label: "Azul suave",
+                          desc: "foco y calma",
+                          cls: "bg-blue-100 text-blue-900 border-blue-200",
+                        },
+                        {
+                          label: "Verde suave",
+                          desc: "regulación y seguridad",
+                          cls: "bg-emerald-100 text-emerald-900 border-emerald-200",
+                        },
+                        {
+                          label: "Crema",
+                          desc: "menos brillo que blanco",
+                          cls: "bg-amber-50 text-amber-900 border-amber-200",
+                        },
+                        {
+                          label: "Lavanda",
+                          desc: "lectura amable",
+                          cls: "bg-violet-100 text-violet-900 border-violet-200",
+                        },
                       ].map((item) => (
-                        <div key={item.label} className={`rounded-2xl border px-3 py-2 ${item.cls}`}>
+                        <div
+                          key={item.label}
+                          className={`rounded-2xl border px-3 py-2 ${item.cls}`}
+                        >
                           <p className="text-xs font-black">{item.label}</p>
                           <p className="text-[11px] opacity-80">{item.desc}</p>
                         </div>
                       ))}
                     </div>
                     <p className="mt-3 text-xs leading-relaxed text-slate-600">
-                      Para NEE se priorizan fondos claros no blancos puros, contraste suficiente, acentos suaves y baja saturación. El rojo/amarillo intenso se reserva solo para alertas puntuales.
+                      Para NEE se priorizan fondos claros no blancos puros,
+                      contraste suficiente, acentos suaves y baja saturación. El
+                      rojo/amarillo intenso se reserva solo para alertas
+                      puntuales.
                     </p>
                   </div>
 
@@ -1380,21 +1603,21 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                   </div>
 
                   {/* Modo PIE/NEE */}
-                  <div className="rounded-2xl border border-purple-500/20 bg-purple-500/[0.04] p-4 space-y-4">
+                  <div className="rounded-3xl border border-purple-200 bg-gradient-to-br from-purple-50 via-white to-blue-50 p-4 space-y-4">
                     <div className="flex items-center justify-between gap-4">
                       <div className="flex items-center gap-3">
                         <span className="text-xl">♿</span>
                         <div>
                           <p className="text-sm font-bold text-main">
-                            Modo PIE / NEE
+                            Adaptaciones PIE / NEE
                           </p>
                           <p className="text-xs text-sub">
-                            Activa ajustes para estudiantes con necesidades
-                            educativas especiales
+                            Puedes combinar varias adaptaciones generales y agregar ajustes individuales para un estudiante o grupo.
                           </p>
                         </div>
                       </div>
                       <button
+                        type="button"
                         onClick={() => setPieMode((s) => !s)}
                         className={`relative flex-shrink-0 w-12 h-6 rounded-full transition-colors ${pieMode ? "bg-purple-500" : "bg-card-soft-theme"}`}
                       >
@@ -1405,49 +1628,67 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                     </div>
 
                     {pieMode && (
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        {[
-                          {
-                            label: "Dislexia",
-                            desc: "Fuente Lexend + espaciado amplio",
-                            val: dyslexiaMode,
-                            set: setDyslexiaMode,
-                            icon: "📖",
-                          },
-                          {
-                            label: "TDAH",
-                            desc: "Bloques cortos, foco secuencial",
-                            val: adhdMode,
-                            set: setAdhdMode,
-                            icon: "🎯",
-                          },
-                          {
-                            label: "Baja visión",
-                            desc: "Alto contraste, texto grande",
-                            val: lowVisionMode,
-                            set: setLowVisionMode,
-                            icon: "👁",
-                          },
-                        ].map(({ label, desc, val, set, icon }) => (
-                          <button
-                            key={label}
-                            onClick={() => set((v) => !v)}
-                            className={[
-                              "rounded-2xl border p-3 text-left transition-all",
-                              val
-                                ? "border-purple-500/50 bg-purple-500/10"
-                                : "border-soft bg-card-soft-theme hover:border-purple-500/20",
-                            ].join(" ")}
-                          >
-                            <span className="text-lg block mb-1">{icon}</span>
-                            <p className="text-xs font-bold text-main">
-                              {label}
-                            </p>
-                            <p className="text-[10px] text-sub mt-0.5">
-                              {desc}
-                            </p>
-                          </button>
-                        ))}
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          {[
+                            {
+                              label: "Dislexia",
+                              desc: "Fuente legible, más espacio y lectura clara",
+                              val: dyslexiaMode,
+                              set: setDyslexiaMode,
+                              icon: "📖",
+                            },
+                            {
+                              label: "TDAH",
+                              desc: "Bloques cortos, foco secuencial y menos distractores",
+                              val: adhdMode,
+                              set: setAdhdMode,
+                              icon: "🎯",
+                            },
+                            {
+                              label: "Baja visión",
+                              desc: "Contraste alto, texto grande e instrucciones visibles",
+                              val: lowVisionMode,
+                              set: setLowVisionMode,
+                              icon: "👁",
+                            },
+                          ].map(({ label, desc, val, set, icon }) => (
+                            <button
+                              key={label}
+                              type="button"
+                              onClick={() => set((v) => !v)}
+                              className={[
+                                "rounded-2xl border p-3 text-left transition-all",
+                                val
+                                  ? "border-purple-500/50 bg-purple-100 shadow-sm ring-2 ring-purple-100"
+                                  : "border-purple-100 bg-white hover:border-purple-300 hover:bg-purple-50",
+                              ].join(" ")}
+                            >
+                              <span className="text-lg block mb-1">{icon}</span>
+                              <p className="text-xs font-bold text-main">
+                                {val ? "✓ " : ""}{label}
+                              </p>
+                              <p className="text-[10px] text-sub mt-0.5">
+                                {desc}
+                              </p>
+                            </button>
+                          ))}
+                        </div>
+
+                        <div>
+                          <label className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-purple-700">
+                            Adaptaciones individuales opcionales
+                          </label>
+                          <textarea
+                            value={individualAdaptations}
+                            onChange={(e) => setIndividualAdaptations(e.target.value)}
+                            placeholder="Ej: estudiante con ansiedad evaluativa: menos preguntas por pantalla, instrucciones más breves, permitir pausa guiada, lectura calmada..."
+                            className="w-full min-h-[96px] rounded-2xl border border-purple-100 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-100"
+                          />
+                          <p className="mt-2 text-xs leading-relaxed text-slate-500">
+                            Estas indicaciones se guardan en la configuración del examen y se envían a la IA al generar preguntas.
+                          </p>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -1480,7 +1721,10 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
             {/* ════════════════════════════════════════════════════════════
                 PANEL IA — Generador de preguntas con OpenRouter / Groq
             ════════════════════════════════════════════════════════════ */}
-            <section id="exam-section-ia" className="scroll-mt-32 rounded-[30px] border border-violet-200 bg-gradient-to-br from-violet-50 via-fuchsia-50 to-white p-5 md:p-6 shadow-sm">
+            <section
+              id="exam-section-ia"
+              className="scroll-mt-32 rounded-[30px] border border-violet-200 bg-gradient-to-br from-violet-50 via-fuchsia-50 to-white p-5 md:p-6 shadow-sm"
+            >
               {/* Toggle header */}
               <button
                 onClick={() => setAiOpen((o) => !o)}
@@ -1557,7 +1801,9 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                           key={label}
                           className={`rounded-2xl border p-3 text-center shadow-sm ${tone}`}
                         >
-                          <p className={`text-xs font-semibold mb-2 ${labelClass}`}>
+                          <p
+                            className={`text-xs font-semibold mb-2 ${labelClass}`}
+                          >
                             {label}
                           </p>
                           <input
@@ -1784,7 +2030,10 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
             {/* ════════════════════════════════════════════════════════════
                 PREGUNTAS DEL EXAMEN
             ════════════════════════════════════════════════════════════ */}
-            <section id="exam-section-preguntas" className="scroll-mt-32 rounded-[30px] border border-emerald-200 bg-white/95 p-5 md:p-6 shadow-sm">
+            <section
+              id="exam-section-preguntas"
+              className="scroll-mt-32 rounded-[30px] border border-emerald-200 bg-white/95 p-5 md:p-6 shadow-sm"
+            >
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-5">
                 <h2 className="text-lg font-bold">Preguntas del examen</h2>
                 <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
@@ -2201,7 +2450,10 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
               SIDEBAR — Resumen + Guardar
           ════════════════════════════════════════════════════════════ */}
           <aside className="space-y-6">
-            <section id="exam-section-publicar" className="rounded-[28px] border border-blue-200 bg-white/95 p-5 sticky top-28 shadow-sm ring-1 ring-white/80">
+            <section
+              id="exam-section-publicar"
+              className="rounded-[28px] border border-blue-200 bg-white/95 p-5 sticky top-28 shadow-sm ring-1 ring-white/80"
+            >
               <h2 className="text-lg font-bold mb-4">Resumen</h2>
 
               <div className="space-y-3 text-sm">
