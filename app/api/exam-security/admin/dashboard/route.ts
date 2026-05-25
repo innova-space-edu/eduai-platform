@@ -2,6 +2,7 @@
 
 import { NextRequest } from "next/server"
 import { createClient as createAdminClient } from "@supabase/supabase-js"
+import { createClient as createServerClient } from "@/lib/supabase/server"
 
 type SessionRow = {
   id: string
@@ -70,8 +71,28 @@ function hoursAgoToIso(hours: number) {
   return new Date(Date.now() - hours * 60 * 60 * 1000).toISOString()
 }
 
+async function requireAdmin() {
+  const supabase = await createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { user: null, error: "No autenticado" }
+
+  const { data: isAdmin } = await supabase
+    .from("admin_emails")
+    .select("email")
+    .eq("email", user.email)
+    .maybeSingle()
+
+  if (!isAdmin) return { user: null, error: "Acceso denegado" }
+  return { user, error: null }
+}
+
 export async function GET(req: NextRequest) {
   try {
+    const { user, error } = await requireAdmin()
+    if (!user) {
+      return Response.json({ success: false, error }, { status: error === "No autenticado" ? 401 : 403 })
+    }
+
     const admin = getAdmin()
     const { searchParams } = new URL(req.url)
 
