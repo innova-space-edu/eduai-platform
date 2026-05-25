@@ -114,10 +114,7 @@ type MusicContextValue = {
   clearQueue: () => void;
   currentTime: number;
   durationSeconds: number;
-  audioLevels: number[];
   seekTo: (seconds: number) => void;
-  reportExternalPlayback: (seconds: number, durationSeconds?: number) => void;
-  registerExternalSeekHandler: (handler: ((seconds: number) => void) | null) => void;
   searchOnline: (term?: string, providerOverride?: OnlineProviderMode) => Promise<void>;
 };
 
@@ -129,9 +126,11 @@ declare global {
   }
 }
 
-const STORAGE_KEY = "eduai_music_player_v61";
+const STORAGE_KEY = "eduai_music_player_v60";
+const YOUTUBE_PLAYER_ID = "eduai-youtube-global-player";
 const MusicContext = createContext<MusicContextValue | null>(null);
 
+let youtubeApiPromise: Promise<void> | null = null;
 let hlsScriptPromise: Promise<void> | null = null;
 
 function safeReadState(): StoredState {
@@ -192,17 +191,29 @@ function isEmbedTrack(track?: EduMusicTrack | null) {
   return Boolean(asExtendedTrack(track)?.embedOnly);
 }
 
-function hasDjReelVideo(track?: EduMusicTrack | null) {
-  return Boolean(
-    track?.source === "itunes" &&
-      (track.youtubeVideoId || (Array.isArray(track.djReels) && track.djReels.some((reel) => reel.videoId))),
-  );
-}
-
 function trackExternalUrl(track?: EduMusicTrack | null) {
   return asExtendedTrack(track)?.externalUrl || asExtendedTrack(track)?.embedUrl || "";
 }
 
+function loadYouTubeApi() {
+  if (typeof window === "undefined") return Promise.resolve();
+  if (window.YT?.Player) return Promise.resolve();
+  if (youtubeApiPromise) return youtubeApiPromise;
+
+  youtubeApiPromise = new Promise<void>((resolve) => {
+    const existing = document.querySelector<HTMLScriptElement>(
+      'script[src="https://www.youtube.com/iframe_api"]',
+    );
+    window.onYouTubeIframeAPIReady = () => resolve();
+    if (existing) return;
+    const script = document.createElement("script");
+    script.src = "https://www.youtube.com/iframe_api";
+    script.async = true;
+    document.head.appendChild(script);
+  });
+
+  return youtubeApiPromise;
+}
 
 function loadHlsScript() {
   if (typeof window === "undefined") return Promise.resolve();
@@ -235,9 +246,10 @@ function trackArtwork(track: EduMusicTrack) {
 
 export function MusicProvider({ children }: { children: React.ReactNode }) {
   const audioRef = useRef<HTMLAudioElement>(null);
+  const youtubePlayerRef = useRef<any>(null);
+  const youtubeReadyRef = useRef(false);
   const hlsRef = useRef<any>(null);
   const nextTrackRef = useRef<() => void>(() => {});
-  const externalSeekHandlerRef = useRef<((seconds: number) => void) | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [view, setView] = useState<MusicView>("home");
   const [query, setQuery] = useState("");
@@ -265,9 +277,6 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const [repeat, setRepeat] = useState<RepeatMode>("all");
   const [currentTime, setCurrentTime] = useState(0);
   const [durationSeconds, setDurationSeconds] = useState(0);
-  const [audioLevels, setAudioLevels] = useState<number[]>(() =>
-    Array.from({ length: 24 }, (_, index) => 0.08 + ((index * 7) % 13) / 100),
-  );
 
   const allTracks = useMemo(() => {
     const byId = new Map<string, EduMusicTrack>();
@@ -410,6 +419,11 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = volume;
+    if (youtubePlayerRef.current?.setVolume) {
+      try {
+        youtubePlayerRef.current.setVolume(Math.round(volume * 100));
+      } catch {}
+    }
   }, [volume]);
 
   useEffect(() => {
@@ -471,47 +485,8 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setCurrentTime(0);
-    setDurationSeconds(0);
-  }, [currentTrack?.id, currentTrack?.src]);
-
-
-  useEffect(() => {
-    let lastCommit = 0;
-    const signature = `${currentTrack?.id || "track"}-${currentTrack?.title || ""}-${currentTrack?.artist || ""}`;
-    const seed = Array.from(signature).reduce((acc, char) => acc + char.charCodeAt(0), 0) || 37;
-
-    const tick = () => {
-      const now = performance.now();
-      const audio = audioRef.current;
-      const sourceTime = audio && Number.isFinite(audio.currentTime) && audio.currentTime > 0
-        ? audio.currentTime
-        : now / 1000;
-      const isActive = playing || currentTrack?.source === "youtube";
-
-      // Visualizador liviano: se actualiza cada ~160 ms en vez de usar requestAnimationFrame continuo.
-      // Mantiene sincronía visual con tiempo/volumen sin forzar WebAudio, evitando bloqueos CORS y bajando carga del video.
-      if (now - lastCommit > 150) {
-        const levels = Array.from({ length: 24 }, (_, index) => {
-          const band = index + 1;
-          const phase = sourceTime * (0.82 + (band % 7) * 0.12) + seed * 0.013 + band * 0.39;
-          const waveA = Math.sin(phase);
-          const waveB = Math.sin(sourceTime * (1.55 + (band % 5) * 0.09) + band * 0.71);
-          const waveC = Math.cos(sourceTime * 0.47 + band * 0.23 + seed * 0.02);
-          const pulse = (Math.abs(waveA) * 0.55 + Math.abs(waveB) * 0.3 + Math.abs(waveC) * 0.15);
-          const bassBias = Math.max(0.74, 1.18 - index / 90);
-          const activeLevel = Math.min(1, Math.max(0.1, pulse * bassBias * (0.72 + volume * 0.42)));
-          const idleLevel = 0.045 + ((band * 11 + seed) % 10) / 210;
-          return isActive ? activeLevel : idleLevel;
-        });
-        setAudioLevels(levels);
-        lastCommit = now;
-      }
-    };
-
-    tick();
-    const timer = window.setInterval(tick, 150);
-    return () => window.clearInterval(timer);
-  }, [currentTrack?.artist, currentTrack?.id, currentTrack?.source, currentTrack?.title, playing, volume]);
+    setDurationSeconds(currentTrack?.source === "itunes" ? 30 : 0);
+  }, [currentTrack?.id, currentTrack?.src, currentTrack?.source]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -571,10 +546,13 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     const audio = audioRef.current;
     if (!audio) return;
     if (currentTrack?.source === "youtube") {
-      // YouTube se reproduce con un iframe visible en el centro.
-      // No usamos la IFrame API global aquí para evitar errores de postMessage/origin
-      // y llamadas antes de onReady cuando React monta/desmonta vistas.
       audio.pause();
+      if (youtubeReadyRef.current && youtubePlayerRef.current) {
+        try {
+          if (playing) youtubePlayerRef.current.playVideo();
+          else youtubePlayerRef.current.pauseVideo();
+        } catch {}
+      }
       return;
     }
 
@@ -589,20 +567,21 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     } else {
       audio.pause();
     }
-  }, [playing, currentTrack]);
+  }, [playing, currentTrack?.src, currentTrack?.source]);
 
 
   useEffect(() => {
     if (!playing || currentTrack?.source !== "itunes") return;
-    const duration = parseDurationSeconds(currentTrack.duration) || 30;
-    const remainingMs = Math.max(1500, (duration - currentTime + 0.35) * 1000);
+    const previewSeconds = 30;
+    setDurationSeconds(previewSeconds);
+    const remainingMs = Math.max(1200, (previewSeconds - Math.min(currentTime || 0, previewSeconds) + 0.25) * 1000);
     const timer = window.setTimeout(() => {
       const audio = audioRef.current;
-      const endedOrNearEnd = !audio || audio.ended || !Number.isFinite(audio.duration) || audio.currentTime >= Math.max(0, duration - 1.2);
-      if (endedOrNearEnd) nextTrackRef.current();
+      const nearEnd = !audio || audio.ended || audio.currentTime >= previewSeconds - 0.8;
+      if (nearEnd || !Number.isFinite(audio?.duration || Number.NaN)) nextTrackRef.current();
     }, remainingMs);
     return () => window.clearTimeout(timer);
-  }, [playing, currentTrack?.id, currentTrack?.source, currentTrack?.duration, currentTime]);
+  }, [playing, currentTrack?.id, currentTrack?.source, currentTime]);
 
   const playTrack = useCallback(
     (track: EduMusicTrack, queueFrom?: EduMusicTrack[]) => {
@@ -673,14 +652,11 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         setPlaying(false);
         return;
       }
-      if (currentTrack?.source === "youtube") {
-        setCurrentTime(0);
-        setPlaying(true);
-        return;
-      }
-      if (hasDjReelVideo(currentTrack) && externalSeekHandlerRef.current) {
-        externalSeekHandlerRef.current(0);
-        setCurrentTime(0);
+      if (currentTrack?.source === "youtube" && youtubePlayerRef.current?.seekTo) {
+        try {
+          youtubePlayerRef.current.seekTo(0, true);
+          youtubePlayerRef.current.playVideo();
+        } catch {}
         setPlaying(true);
         return;
       }
@@ -718,7 +694,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     } else {
       setPlaying(false);
     }
-  }, [allTracks, baseTracks, currentId, currentTrack, queue, repeat, shuffle, visibleTracks]);
+  }, [allTracks, baseTracks, currentId, currentTrack?.source, queue, repeat, shuffle, visibleTracks]);
 
   useEffect(() => {
     nextTrackRef.current = nextTrack;
@@ -743,14 +719,67 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   }, [allTracks, baseTracks, currentId, queue, visibleTracks]);
 
   useEffect(() => {
-    if (currentTrack?.source !== "youtube") return;
-    const duration = parseDurationSeconds(currentTrack.duration);
-    setCurrentTime(0);
-    setDurationSeconds(duration || 0);
-    // El reproductor real de YouTube vive en el iframe visible del panel central.
-    // Esto evita el error "YouTube player is not attached to the DOM" cuando el div oculto no está listo.
-  }, [currentTrack?.id, currentTrack?.source, currentTrack?.duration]);
+    if (typeof window === "undefined" || currentTrack?.source !== "youtube") return;
+    const videoId = currentTrack.youtubeVideoId;
+    if (!videoId) return;
 
+    let cancelled = false;
+    void loadYouTubeApi().then(() => {
+      if (cancelled || !window.YT?.Player) return;
+      if (!youtubePlayerRef.current) {
+        youtubePlayerRef.current = new window.YT.Player(YOUTUBE_PLAYER_ID, {
+          height: "180",
+          width: "320",
+          videoId,
+          playerVars: {
+            autoplay: 0,
+            controls: 0,
+            rel: 0,
+            modestbranding: 1,
+            playsinline: 1,
+          },
+          events: {
+            onReady: (event: any) => {
+              youtubeReadyRef.current = true;
+              try {
+                event.target.setVolume(Math.round(volume * 100));
+                if (playing) event.target.playVideo();
+                else event.target.cueVideoById(videoId);
+              } catch {}
+            },
+            onStateChange: (event: any) => {
+              if (event.data === window.YT?.PlayerState?.ENDED) nextTrackRef.current();
+            },
+          },
+        });
+        return;
+      }
+
+      try {
+        if (playing) youtubePlayerRef.current.loadVideoById(videoId);
+        else youtubePlayerRef.current.cueVideoById(videoId);
+      } catch {}
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentTrack?.source, currentTrack?.youtubeVideoId, playing, volume]);
+
+  useEffect(() => {
+    if (currentTrack?.source !== "youtube") return;
+    const timer = window.setInterval(() => {
+      const player = youtubePlayerRef.current;
+      if (!player || !youtubeReadyRef.current) return;
+      try {
+        const time = Number(player.getCurrentTime?.() || 0);
+        const duration = Number(player.getDuration?.() || 0);
+        setCurrentTime(Number.isFinite(time) ? time : 0);
+        setDurationSeconds(Number.isFinite(duration) ? duration : 0);
+      } catch {}
+    }, 800);
+    return () => window.clearInterval(timer);
+  }, [currentTrack?.source, currentTrack?.youtubeVideoId]);
 
   const toggleLike = useCallback((id: string) => {
     setLikedTrackIds((prev) =>
@@ -827,14 +856,11 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
   const seekTo = useCallback(
     (seconds: number) => {
-      if (currentTrack?.source === "youtube") {
-        // El iframe visible de YouTube mantiene su propio control de avance.
-        setCurrentTime(Math.max(0, seconds));
-        return;
-      }
-      if (hasDjReelVideo(currentTrack) && externalSeekHandlerRef.current) {
-        externalSeekHandlerRef.current(seconds);
-        setCurrentTime(Math.max(0, seconds));
+      if (currentTrack?.source === "youtube" && youtubePlayerRef.current?.seekTo) {
+        try {
+          youtubePlayerRef.current.seekTo(seconds, true);
+          setCurrentTime(seconds);
+        } catch {}
         return;
       }
       const audio = audioRef.current;
@@ -846,19 +872,8 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       audio.currentTime = safe;
       setCurrentTime(safe);
     },
-    [currentTrack],
+    [currentTrack?.source],
   );
-
-  const reportExternalPlayback = useCallback((seconds: number, externalDurationSeconds?: number) => {
-    const safeTime = Math.max(0, Number.isFinite(seconds) ? seconds : 0);
-    const safeDuration = Math.max(0, Number.isFinite(externalDurationSeconds || 0) ? externalDurationSeconds || 0 : 0);
-    setCurrentTime(safeTime);
-    if (safeDuration) setDurationSeconds(safeDuration);
-  }, []);
-
-  const registerExternalSeekHandler = useCallback((handler: ((seconds: number) => void) | null) => {
-    externalSeekHandlerRef.current = handler;
-  }, []);
 
   const clearActiveSession = useCallback(() => {
     setPlaying(false);
@@ -1036,16 +1051,18 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     clearQueue,
     currentTime,
     durationSeconds,
-    audioLevels,
     seekTo,
-    reportExternalPlayback,
-    registerExternalSeekHandler,
     searchOnline,
   };
 
   return (
     <MusicContext.Provider value={value}>
       <audio ref={audioRef} preload="none" onEnded={nextTrack} />
+      <div
+        id={YOUTUBE_PLAYER_ID}
+        aria-hidden="true"
+        className="pointer-events-none fixed -left-[9999px] top-0 h-px w-px overflow-hidden opacity-0"
+      />
       {children}
     </MusicContext.Provider>
   );
