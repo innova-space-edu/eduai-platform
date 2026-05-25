@@ -320,7 +320,7 @@ async function searchYouTube(query: string, limit: number): Promise<NormalizedTr
     type: "video",
     videoEmbeddable: "true",
     videoSyndicated: "true",
-    maxResults: String(Math.min(limit, 10)),
+    maxResults: String(Math.min(limit, 24)),
     key,
     safeSearch: "moderate",
   });
