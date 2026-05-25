@@ -39,6 +39,16 @@ const COLORS = {
   softViolet: [245, 243, 255] as RGB,
 } satisfies Record<string, RGB>
 
+const SECTION_THEMES: Array<{ name: string; primary: RGB; soft: RGB; accent: RGB }> = [
+  { name: "Contexto", primary: [5, 150, 105], soft: [236, 253, 245], accent: [20, 184, 166] },
+  { name: "Currículum", primary: [37, 99, 235], soft: [239, 246, 255], accent: [14, 165, 233] },
+  { name: "Experiencia", primary: [124, 58, 237], soft: [245, 243, 255], accent: [168, 85, 247] },
+  { name: "Evaluación", primary: [217, 119, 6], soft: [255, 251, 235], accent: [245, 158, 11] },
+  { name: "Diversidad", primary: [219, 39, 119], soft: [253, 242, 248], accent: [244, 114, 182] },
+  { name: "Recursos", primary: [8, 145, 178], soft: [236, 254, 255], accent: [34, 211, 238] },
+]
+
+
 function setFill(doc: jsPDF, color: RGB) {
   doc.setFillColor(color[0], color[1], color[2])
 }
@@ -218,6 +228,114 @@ function drawMetaCard(doc: jsPDF, x: number, y: number, w: number, label: string
   doc.text(lines.slice(0, 2), x + 3, y + 11)
 }
 
+function getSectionTheme(index: number, design: ReturnType<typeof getPdfDesignStyle>) {
+  const base = SECTION_THEMES[index % SECTION_THEMES.length]
+  return {
+    ...base,
+    primary: index === 0 ? design.primary : base.primary,
+    soft: index === 0 ? design.softPrimary : base.soft,
+  }
+}
+
+function drawSectionHeader(
+  doc: jsPDF,
+  text: string,
+  x: number,
+  y: number,
+  width: number,
+  index: number,
+  design: ReturnType<typeof getPdfDesignStyle>
+) {
+  const theme = getSectionTheme(index, design)
+  const lines = doc.splitTextToSize(stripMarkdown(text), width - 28) as string[]
+  const h = Math.max(16, lines.slice(0, 3).length * 5.2 + 10)
+  y = ensurePage(doc, y, h + 6)
+
+  drawRoundedBox(doc, x, y, width, h, theme.primary, theme.primary, 6)
+  setFill(doc, theme.accent)
+  doc.roundedRect(x + width - 26, y + 3, 18, h - 6, 4, 4, "F")
+  setFill(doc, [255, 255, 255])
+  doc.circle(x + width - 17, y + h / 2, 3.6, "F")
+
+  doc.setFont("helvetica", "bold")
+  doc.setFontSize(7.4)
+  setText(doc, [224, 242, 254])
+  doc.text(`SECCIÓN ${String(index + 1).padStart(2, "0")}`, x + 5, y + 5.3)
+
+  doc.setFontSize(12.8)
+  setText(doc, COLORS.white)
+  doc.text(lines.slice(0, 3), x + 5, y + 11.6)
+
+  return y + h + 4
+}
+
+function drawSubSectionHeader(doc: jsPDF, text: string, x: number, y: number, width: number, index: number, design: ReturnType<typeof getPdfDesignStyle>) {
+  const theme = getSectionTheme(index, design)
+  const lines = doc.splitTextToSize(stripMarkdown(text), width - 12) as string[]
+  const h = Math.max(10, lines.length * 4.8 + 5)
+  y = ensurePage(doc, y, h + 4)
+  drawRoundedBox(doc, x, y, width, h, theme.soft, theme.accent, 4)
+  setFill(doc, theme.primary)
+  doc.roundedRect(x, y, 3.2, h, 2, 2, "F")
+  doc.setFont("helvetica", "bold")
+  doc.setFontSize(10)
+  setText(doc, theme.primary)
+  doc.text(lines, x + 6, y + 6.2)
+  return y + h + 3
+}
+
+function drawTextPanel(
+  doc: jsPDF,
+  text: string,
+  x: number,
+  y: number,
+  width: number,
+  index: number,
+  design: ReturnType<typeof getPdfDesignStyle>,
+  options?: { compact?: boolean }
+) {
+  const theme = getSectionTheme(index, design)
+  doc.setFont("helvetica", "normal")
+  doc.setFontSize(options?.compact ? 8.8 : 9.4)
+  const lines = doc.splitTextToSize(stripMarkdown(text), width - 12) as string[]
+  const maxLines = options?.compact ? 18 : 24
+  let cursor = 0
+
+  while (cursor < lines.length) {
+    const chunk = lines.slice(cursor, cursor + maxLines)
+    const h = Math.max(13, chunk.length * (options?.compact ? 4.2 : 4.8) + 8)
+    y = ensurePage(doc, y, h + 5)
+    drawRoundedBox(doc, x, y, width, h, COLORS.white, theme.soft, 4)
+    setFill(doc, theme.accent)
+    doc.roundedRect(x, y, 2.2, h, 1.6, 1.6, "F")
+    setText(doc, COLORS.body)
+    doc.text(chunk, x + 6, y + 7)
+    y += h + 3
+    cursor += maxLines
+  }
+
+  return y
+}
+
+function drawListPanel(doc: jsPDF, rows: string[][], x: number, y: number, width: number, index: number, design: ReturnType<typeof getPdfDesignStyle>) {
+  const theme = getSectionTheme(index, design)
+  for (const row of rows) {
+    const text = stripMarkdown(row[0] || "")
+    doc.setFont("helvetica", "normal")
+    doc.setFontSize(9.2)
+    const lines = doc.splitTextToSize(text, width - 15) as string[]
+    const h = Math.max(10, lines.length * 4.5 + 6)
+    y = ensurePage(doc, y, h + 4)
+    drawRoundedBox(doc, x, y, width, h, theme.soft, theme.accent, 4)
+    setFill(doc, theme.primary)
+    doc.circle(x + 5, y + 6, 1.35, "F")
+    setText(doc, COLORS.body)
+    doc.text(lines, x + 10, y + 6.7)
+    y += h + 2.5
+  }
+  return y + 1
+}
+
 function drawTable(doc: jsPDF, rows: string[][], x: number, y: number, width: number) {
   if (!rows.length) return y
   const colCount = Math.min(Math.max(...rows.map((row) => row.length)), 5)
@@ -329,11 +447,13 @@ export async function exportPlanningPdf(meta: PlanningPdfMeta, content: string) 
   if (meta.contexto) {
     const contextLines = doc.splitTextToSize(stripMarkdown(meta.contexto), contentWidth - 8) as string[]
     const boxHeight = Math.min(32, Math.max(18, 11 + contextLines.slice(0, 4).length * 4.8))
-    drawRoundedBox(doc, margin, y, contentWidth, boxHeight, COLORS.white, COLORS.line, 5)
+    drawRoundedBox(doc, margin, y, contentWidth, boxHeight, design.softAccent, design.accent, 6)
+    setFill(doc, design.accent)
+    doc.roundedRect(margin, y, 3, boxHeight, 2, 2, "F")
     doc.setFont("helvetica", "bold")
     doc.setFontSize(9.6)
     setText(doc, design.primary)
-    doc.text("CONTEXTO PEDAGOGICO", margin + 4, y + 6)
+    doc.text("CONTEXTO PEDAGÓGICO", margin + 5, y + 6)
     doc.setFont("helvetica", "normal")
     doc.setFontSize(9.4)
     setText(doc, COLORS.body)
@@ -342,6 +462,7 @@ export async function exportPlanningPdf(meta: PlanningPdfMeta, content: string) 
   }
 
   const blocks = parseBlocks(content)
+  let sectionIndex = 0
 
   blocks.forEach((block, index) => {
     if (shouldSkipDuplicate(block.text, meta, index)) return
@@ -349,42 +470,23 @@ export async function exportPlanningPdf(meta: PlanningPdfMeta, content: string) 
 
     if (block.type === "heading") {
       const level = block.level || 2
-      const isMajor = level <= 2
-      const fill = isMajor ? COLORS.softGreen : COLORS.softBlue
-      const accent = isMajor ? COLORS.emeraldDark : COLORS.blue
       const text = stripMarkdown(block.text || "")
-      const lines = doc.splitTextToSize(text, contentWidth - 8) as string[]
-      const h = Math.max(isMajor ? 11 : 9, lines.length * 5 + 6)
-      y = ensurePage(doc, y, h + 5)
-      drawRoundedBox(doc, margin, y, contentWidth, h, fill, COLORS.line, 4)
-      doc.setFont("helvetica", "bold")
-      doc.setFontSize(isMajor ? 12.5 : 10.5)
-      setText(doc, isMajor ? COLORS.ink : accent)
-      doc.text(lines, margin + 4, y + 6)
-      y += h + 4
+      if (level <= 2) {
+        y = drawSectionHeader(doc, text, margin, y, contentWidth, sectionIndex, design)
+        sectionIndex += 1
+      } else {
+        y = drawSubSectionHeader(doc, text, margin, y, contentWidth, Math.max(0, sectionIndex - 1), design)
+      }
       return
     }
 
     if (block.type === "paragraph") {
-      doc.setFont("helvetica", "normal")
-      doc.setFontSize(9.8)
-      setText(doc, COLORS.body)
-      y = writeJustified(doc, block.text || "", margin, y, contentWidth, 5.1)
-      y += 2
+      y = drawTextPanel(doc, block.text || "", margin, y, contentWidth, Math.max(0, sectionIndex - 1), design)
       return
     }
 
     if (block.type === "list") {
-      doc.setFont("helvetica", "normal")
-      doc.setFontSize(9.8)
-      setText(doc, COLORS.body)
-      ;(block.rows || []).forEach((row) => {
-        y = ensurePage(doc, y, 10)
-        setFill(doc, design.primary)
-        doc.circle(margin + 2.2, y - 1.6, 0.85, "F")
-        y = writeWrapped(doc, stripMarkdown(row[0] || ""), margin + 6, y, contentWidth - 6, 5.1, { size: 9.8, color: COLORS.body })
-      })
-      y += 1
+      y = drawListPanel(doc, block.rows || [], margin, y, contentWidth, Math.max(0, sectionIndex - 1), design)
       return
     }
 
