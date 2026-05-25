@@ -221,7 +221,7 @@ export default function AdminPage() {
             </div>
 
             {/* Accesos rápidos */}
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid md:grid-cols-3 gap-4">
               <button onClick={() => setActiveTab("reportes")}
                 className="flex items-center gap-4 p-5 rounded-2xl border text-left transition-all"
                 style={{ background: "rgba(248,113,113,0.06)", borderColor: "rgba(248,113,113,0.2)" }}>
@@ -243,6 +243,17 @@ export default function AdminPage() {
                 </div>
                 <ChevronRight size={18} className="text-muted2 ml-auto" />
               </button>
+
+              <Link href="/admin/examenes"
+                className="flex items-center gap-4 p-5 rounded-2xl border text-left transition-all"
+                style={{ background: "rgba(16,185,129,0.06)", borderColor: "rgba(16,185,129,0.2)" }}>
+                <ClipboardList size={24} className="text-emerald-400 flex-shrink-0" />
+                <div>
+                  <p className="text-main font-semibold">Exámenes y seguridad</p>
+                  <p className="text-sub text-sm">Incidencias, bloqueos y sesiones vigiladas</p>
+                </div>
+                <ChevronRight size={18} className="text-muted2 ml-auto" />
+              </Link>
             </div>
           </div>
         )}
