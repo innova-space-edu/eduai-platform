@@ -189,6 +189,8 @@ export default function ExamSecurityAdminPage() {
   const [recentEvents,  setRecentEvents]  = useState<EventRow[]>([])
   const [recentActions, setRecentActions] = useState<ActionRow[]>([])
   const [lastUpdated,   setLastUpdated]   = useState<Date | null>(null)
+  const [unlockingIds,  setUnlockingIds]  = useState<Set<string>>(() => new Set())
+  const [actionFeedback,setActionFeedback]= useState<{ ok: boolean; msg: string } | null>(null)
 
   // Filtros
   const [hoursWindow,   setHoursWindow]   = useState(24)
@@ -229,6 +231,49 @@ export default function ExamSecurityAdminPage() {
       }
     },
     [hoursWindow]
+  )
+
+  const unlockSession = useCallback(
+    async (session: SessionRow) => {
+      const student = session.student_name || "este usuario"
+      const ok = window.confirm(`¿Desbloquear a ${student} y permitir que continúe el examen?`)
+      if (!ok) return
+
+      setUnlockingIds((prev) => new Set(prev).add(session.id))
+      setActionFeedback(null)
+
+      try {
+        const res = await fetch(`/api/exam-security/admin/session/${session.id}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "unlock",
+            reason: "Desbloqueo manual desde dashboard de administrador",
+            adminId: "admin",
+          }),
+        })
+
+        const json = await res.json()
+
+        if (!json.success) {
+          setActionFeedback({ ok: false, msg: json.error || "No se pudo desbloquear la sesión." })
+          return
+        }
+
+        setActionFeedback({ ok: true, msg: `Usuario desbloqueado: ${student}.` })
+        await fetchDashboard(true)
+      } catch (err) {
+        console.error("[ExamSecurityAdminPage] unlock error", err)
+        setActionFeedback({ ok: false, msg: "Error de conexión al desbloquear." })
+      } finally {
+        setUnlockingIds((prev) => {
+          const next = new Set(prev)
+          next.delete(session.id)
+          return next
+        })
+      }
+    },
+    [fetchDashboard]
   )
 
   // Primer fetch + auto-refresh
@@ -493,6 +538,19 @@ export default function ExamSecurityAdminPage() {
             </div>
           </div>
 
+          {actionFeedback ? (
+            <div
+              className={[
+                "mt-4 rounded-2xl border px-4 py-3 text-sm font-semibold",
+                actionFeedback.ok
+                  ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-700"
+                  : "border-red-400/30 bg-red-500/10 text-red-700",
+              ].join(" ")}
+            >
+              {actionFeedback.msg}
+            </div>
+          ) : null}
+
           <div className="mt-5 overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
@@ -564,12 +622,25 @@ export default function ExamSecurityAdminPage() {
                       {formatDateTime(session.started_at)}
                     </td>
                     <td className="px-3 py-3">
-                      <Link
-                        href={`/admin/exam-security/session/${session.id}`}
-                        className="rounded-lg border border-soft bg-card-soft-theme px-3 py-1 text-xs text-sub hover:text-main hover:border-main/30 transition-colors"
-                      >
-                        Ver →
-                      </Link>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {session.status === "blocked" ? (
+                          <button
+                            type="button"
+                            onClick={() => unlockSession(session)}
+                            disabled={unlockingIds.has(session.id)}
+                            className="rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-700 transition-colors hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {unlockingIds.has(session.id) ? "Desbloqueando…" : "🔓 Desbloquear"}
+                          </button>
+                        ) : null}
+
+                        <Link
+                          href={`/admin/exam-security/session/${session.id}`}
+                          className="rounded-lg border border-soft bg-card-soft-theme px-3 py-1 text-xs text-sub hover:text-main hover:border-main/30 transition-colors"
+                        >
+                          Ver →
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}
