@@ -92,7 +92,7 @@ type ApiResponse = {
   }
 }
 
-type AdminActionType = "freeze" | "block" | "terminate" | "clear_state" | "warn" | "flag_review" | "reopen"
+type AdminActionType = "freeze" | "block" | "terminate" | "clear_state" | "warn" | "flag_review" | "reopen" | "unlock"
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -176,11 +176,19 @@ const ADMIN_ACTIONS: {
     disabled: (s) => ["terminated", "finished"].includes(s),
   },
   {
+    action: "unlock",
+    label:  "Desbloquear",
+    confirm: "¿Desbloquear al estudiante y permitir que continúe el examen?",
+    style:  "border-emerald-400/30 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20",
+    icon:   "🔓",
+    disabled: (s) => s !== "blocked",
+  },
+  {
     action: "reopen",
     label:  "Reabrir",
     confirm: "¿Reabrir la sesión y volver a estado activo?",
     style:  "border-emerald-400/30 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20",
-    icon:   "🔓",
+    icon:   "↩️",
     disabled: (s) => s === "active",
   },
   {
