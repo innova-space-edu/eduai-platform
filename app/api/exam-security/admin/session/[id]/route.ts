@@ -1,7 +1,7 @@
 // app/api/exam-security/admin/session/[id]/route.ts
 // ──────────────────────────────────────────────────────────────────────────────
 // GET  → Detalle completo de sesión (sin cambios)
-// POST → Acciones de administrador: freeze, block, terminate, clear_state, add_note
+// POST → Acciones de administrador: freeze, block, terminate, clear_state, add_note, unlock
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { createClient as createAdminClient } from "@supabase/supabase-js"
@@ -83,6 +83,7 @@ type AdminAction =
   | "warn"
   | "flag_review"
   | "reopen"
+  | "unlock"
 
 // Mapeo de acción admin → status de sesión
 const ACTION_TO_STATUS: Partial<Record<AdminAction, string>> = {
@@ -92,6 +93,7 @@ const ACTION_TO_STATUS: Partial<Record<AdminAction, string>> = {
   warn:        "warned",
   flag_review: "flagged",
   reopen:      "active",
+  unlock:      "active",
 }
 
 // Mapeo de acción admin → action_type en la tabla exam_security_actions
@@ -104,6 +106,7 @@ const ACTION_TO_TYPE: Record<AdminAction, string> = {
   warn:        "warn",
   flag_review: "flag_review",
   reopen:      "teacher_override",
+  unlock:      "teacher_override",
 }
 
 function getAdmin() {
@@ -233,7 +236,7 @@ export async function GET(
 // ── POST ───────────────────────────────────────────────────────────────────────
 // Body esperado:
 // {
-//   "action":   "freeze" | "block" | "terminate" | "clear_state" | "add_note" | "warn" | "flag_review" | "reopen",
+//   "action":   "freeze" | "block" | "terminate" | "clear_state" | "add_note" | "warn" | "flag_review" | "reopen" | "unlock",
 //   "reason":   "Motivo (opcional para la mayoría, requerido para terminate)",
 //   "note":     "Texto de la nota (solo para add_note)",
 //   "adminId":  "email o id del administrador que ejecuta la acción"
@@ -277,7 +280,7 @@ export async function POST(
 
     const validActions: AdminAction[] = [
       "freeze", "block", "terminate", "clear_state",
-      "add_note", "warn", "flag_review", "reopen",
+      "add_note", "warn", "flag_review", "reopen", "unlock",
     ]
 
     if (!validActions.includes(action)) {
@@ -328,6 +331,58 @@ export async function POST(
       }
 
       return Response.json({ success: true, message: "Nota agregada correctamente." }, { status: 200 })
+    }
+
+    if (action === "unlock") {
+      // Desbloquear sesión bloqueada por el sistema y limpiar riesgo para permitir continuar.
+      const { error: updateError } = await admin
+        .from("exam_security_sessions")
+        .update({
+          status:        "active",
+          risk_score:    0,
+          risk_level:    "clean",
+          warning_count: 0,
+          freeze_count:  0,
+          block_count:   0,
+          ended_at:      null,
+          updated_at:    now,
+        })
+        .eq("id", sessionId)
+
+      if (updateError) {
+        console.error("[exam-security/admin/session:POST:unlock]", updateError.message)
+        return Response.json({ success: false, error: "No se pudo desbloquear la sesión." }, { status: 500 })
+      }
+
+      const { error: actionError } = await admin.from("exam_security_actions").insert({
+        session_id:    sessionId,
+        exam_id:       session.exam_id,
+        submission_id: session.submission_id,
+        action_type:   "teacher_override",
+        reason:        reason ?? "Desbloqueo manual por administrador",
+        applied_by:    adminId,
+        payload: {
+          admin_action:    true,
+          action:          "unlock",
+          previous_status: session.status,
+          new_status:      "active",
+          unlocked_at:     now,
+        },
+        created_at: now,
+      })
+
+      if (actionError) {
+        console.warn("[exam-security/admin/session:POST:unlock:insertAction]", actionError.message)
+      }
+
+      return Response.json(
+        {
+          success: true,
+          message: "Sesión desbloqueada. El estudiante puede continuar el examen.",
+          data: { sessionId, newStatus: "active", action: "unlock" },
+        },
+        { status: 200 }
+      )
     }
 
     if (action === "clear_state") {
