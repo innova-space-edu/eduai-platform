@@ -7,7 +7,6 @@ import { getResolvedSecurityPolicy } from "@/lib/exam-security/policy"
 import {
   getSecuritySessionById,
   updateSecurityHeartbeat,
-  updateSecuritySession,
 } from "@/lib/exam-security/session"
 import type {
   SecurityApiResponse,
@@ -52,6 +51,46 @@ async function saveHeartbeatAudit(params: {
       error.message
     )
   }
+}
+
+async function getRecentAdminMessages(sessionId: string) {
+  const admin = getAdmin()
+
+  const { data, error } = await admin
+    .from("exam_security_actions")
+    .select("id, action_type, reason, payload, created_at")
+    .eq("session_id", sessionId)
+    .order("created_at", { ascending: false })
+    .limit(12)
+
+  if (error) {
+    console.error(
+      "[exam-security/session/heartbeat:getRecentAdminMessages]",
+      error.message
+    )
+    return []
+  }
+
+  return (data ?? [])
+    .filter((row) => {
+      const payload = row.payload as Record<string, unknown> | null
+      return payload?.message_channel === "exam_admin_message"
+    })
+    .map((row) => {
+      const payload = (row.payload ?? {}) as Record<string, unknown>
+      const kind = String(payload.message_kind || "message")
+      const action = String(payload.action || "message")
+
+      return {
+        id: String(row.id),
+        action,
+        kind: kind === "notification" ? "notification" : "message",
+        title: String(payload.title || (kind === "notification" ? "Notificación del docente" : "Mensaje del docente")),
+        message: String(payload.message || row.reason || ""),
+        created_at: row.created_at,
+      }
+    })
+    .filter((item) => item.message.trim().length > 0)
 }
 
 export async function POST(req: NextRequest) {
@@ -156,16 +195,27 @@ export async function POST(req: NextRequest) {
       payload,
     })
 
+    const adminMessages = await getRecentAdminMessages(sessionId)
+
     return Response.json(
       {
         success: true,
         data: {
           session: updatedSession,
           heartbeatAt: updatedSession.last_heartbeat_at,
+          adminMessages,
         },
       } satisfies SecurityApiResponse<{
         session: SecuritySessionRecord
         heartbeatAt: string | null
+        adminMessages: Array<{
+          id: string
+          action: string
+          kind: "notification" | "message"
+          title: string
+          message: string
+          created_at: string
+        }>
       }>,
       { status: 200 }
     )
