@@ -221,7 +221,7 @@ export default function AdminPage() {
             </div>
 
             {/* Accesos rápidos */}
-            <div className="grid md:grid-cols-3 gap-4">
+            <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
               <button onClick={() => setActiveTab("reportes")}
                 className="flex items-center gap-4 p-5 rounded-2xl border text-left transition-all"
                 style={{ background: "rgba(248,113,113,0.06)", borderColor: "rgba(248,113,113,0.2)" }}>
@@ -251,6 +251,17 @@ export default function AdminPage() {
                 <div>
                   <p className="text-main font-semibold">Exámenes y seguridad</p>
                   <p className="text-sub text-sm">Incidencias, bloqueos y sesiones vigiladas</p>
+                </div>
+                <ChevronRight size={18} className="text-muted2 ml-auto" />
+              </Link>
+
+              <Link href="/admin/exam-security/users"
+                className="flex items-center gap-4 p-5 rounded-2xl border text-left transition-all"
+                style={{ background: "rgba(14,165,233,0.06)", borderColor: "rgba(14,165,233,0.2)" }}>
+                <Users size={24} className="text-sky-400 flex-shrink-0" />
+                <div>
+                  <p className="text-main font-semibold">Control examen en vivo</p>
+                  <p className="text-sub text-sm">Desbloquear, notificar y enviar mensajes</p>
                 </div>
                 <ChevronRight size={18} className="text-muted2 ml-auto" />
               </Link>
