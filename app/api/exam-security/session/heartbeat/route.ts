@@ -213,7 +213,7 @@ export async function POST(req: NextRequest) {
       payload,
     })
 
-    const adminMessages = await getRecentAdminMessages(sessionId)
+    const adminMessages: AdminHeartbeatMessage[] = await getRecentAdminMessages(sessionId)
 
     return Response.json(
       {
