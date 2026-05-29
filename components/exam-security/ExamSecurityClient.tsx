@@ -359,13 +359,106 @@ export default function ExamSecurityClient({
     [sendSecurityEvent]
   )
 
+  const syncRemoteSessionStatus = useCallback(
+    (remoteSession?: SecuritySessionRecord | null) => {
+      if (!remoteSession) return
+
+      setSession(remoteSession)
+
+      if (remoteSession.status === "active") {
+        clearFreezeTimer()
+        setOverlay((prev) => {
+          if (
+            prev.actionType === "block" ||
+            prev.actionType === "freeze" ||
+            prev.actionType === "flag_review" ||
+            prev.actionType === "warn" ||
+            prev.actionType === "terminate_attempt"
+          ) {
+            return { visible: false, actionType: "none" }
+          }
+          return prev
+        })
+        return
+      }
+
+      if (remoteSession.status === "blocked") {
+        clearFreezeTimer()
+        setOverlay((prev) =>
+          prev.actionType === "block"
+            ? prev
+            : {
+                visible: true,
+                actionType: "block",
+                title: "Sesión bloqueada",
+                message:
+                  "Tu sesión fue bloqueada por el sistema. Espera la revisión del docente o administrador.",
+              }
+        )
+        return
+      }
+
+      if (remoteSession.status === "frozen") {
+        setOverlay((prev) =>
+          prev.actionType === "freeze"
+            ? prev
+            : {
+                visible: true,
+                actionType: "freeze",
+                title: "Examen congelado por el docente",
+                message:
+                  "Tu examen está pausado temporalmente. Espera indicaciones del docente o administrador.",
+              }
+        )
+        return
+      }
+
+      if (remoteSession.status === "flagged") {
+        setOverlay((prev) =>
+          prev.actionType === "flag_review"
+            ? prev
+            : {
+                visible: true,
+                actionType: "flag_review",
+                title: "Sesión marcada para revisión",
+                message:
+                  "Tu intento fue marcado para revisión. Puedes continuar mientras el docente analiza la situación.",
+              }
+        )
+        window.setTimeout(() => {
+          setOverlay((prev) =>
+            prev.actionType === "flag_review"
+              ? { visible: false, actionType: "none" }
+              : prev
+          )
+        }, 3200)
+        return
+      }
+
+      if (remoteSession.status === "terminated") {
+        const action: SecurityActionPayload = {
+          type: "terminate_attempt",
+          message: "Tu intento fue finalizado por el administrador.",
+        }
+        setOverlay({
+          visible: true,
+          actionType: "terminate_attempt",
+          title: "Intento finalizado",
+          message: action.message,
+        })
+        onTerminated?.({ sessionId, action })
+      }
+    },
+    [clearFreezeTimer, onTerminated, sessionId]
+  )
+
   const sendHeartbeat = useCallback(async () => {
     if (!sessionId || !enabled || overlay.actionType === "terminate_attempt") {
       return
     }
 
     try {
-      await fetch("/api/exam-security/session/heartbeat", {
+      const res = await fetch("/api/exam-security/session/heartbeat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -375,6 +468,11 @@ export default function ExamSecurityClient({
           payload: getClientMetadata(),
         }),
       })
+
+      const json = await res.json().catch(() => null)
+      if (json?.data?.session) {
+        syncRemoteSessionStatus(json.data.session)
+      }
     } catch {}
   }, [
     sessionId,
@@ -383,6 +481,7 @@ export default function ExamSecurityClient({
     examId,
     submissionId,
     getClientMetadata,
+    syncRemoteSessionStatus,
   ])
 
   // ── Session start ──────────────────────────────────────────
