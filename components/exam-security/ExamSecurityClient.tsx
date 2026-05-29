@@ -133,7 +133,20 @@ export default function ExamSecurityClient({
 
   const getClientMetadata = useCallback(() => {
     if (typeof window === "undefined") return {}
+
+    const storageKey = `eduai_exam_security_runtime_${examId}`
+    let examSecurityRuntimeId = window.sessionStorage.getItem(storageKey)
+
+    if (!examSecurityRuntimeId) {
+      examSecurityRuntimeId =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(16).slice(2)}`
+      window.sessionStorage.setItem(storageKey, examSecurityRuntimeId)
+    }
+
     return {
+      examSecurityRuntimeId,
       userAgent: navigator.userAgent,
       language: navigator.language,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -143,7 +156,7 @@ export default function ExamSecurityClient({
       screenWidth: window.screen.width,
       screenHeight: window.screen.height,
     }
-  }, [])
+  }, [examId])
 
   const getPayloadBase = useCallback(() => {
     const questionIndex =
