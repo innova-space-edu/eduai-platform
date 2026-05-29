@@ -255,9 +255,18 @@ export async function createSecuritySession(
 export async function startOrReuseSecuritySession(
   input: SecuritySessionStartInput
 ): Promise<SecuritySessionRecord> {
+  // Antes se reutilizaba cualquier sesión activa con submissionId = null.
+  // Eso hacía que todos los estudiantes de un mismo examen compartieran una
+  // sola sesión hasta entregar la prueba, sobrescribiendo nombre/RUT/curso y
+  // dejando el panel admin sin presencia confiable por estudiante.
+  // Mientras no exista submissionId, cada ingreso debe crear su propia sesión.
+  if (!input.submissionId) {
+    return createSecuritySession(input)
+  }
+
   const existing = await findActiveSession({
     examId: input.examId,
-    submissionId: input.submissionId ?? null,
+    submissionId: input.submissionId,
   })
 
   if (!existing) {
