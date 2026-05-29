@@ -64,7 +64,7 @@ type ComposerTarget =
 type Feedback = { ok: boolean; msg: string } | null
 
 const HOURS_OPTIONS = [6, 12, 24, 48, 72]
-const REFRESH_INTERVAL_MS = 10_000
+const REFRESH_INTERVAL_MS = 3_000
 
 function formatDateTime(iso: string | null | undefined) {
   if (!iso) return "—"
@@ -178,10 +178,14 @@ export default function ExamSecurityUsersPage() {
       try {
         const params = new URLSearchParams()
         params.set("hours", String(hoursWindow))
+        params.set("_ts", String(Date.now()))
         if (examFilter.trim()) params.set("examId", examFilter.trim())
 
         const res = await fetch(`/api/exam-security/admin/dashboard?${params.toString()}`, {
           cache: "no-store",
+          headers: {
+            "Cache-Control": "no-store",
+          },
         })
         const json = (await res.json()) as DashboardResponse
 
@@ -213,8 +217,19 @@ export default function ExamSecurityUsersPage() {
       void fetchStudents()
     }, REFRESH_INTERVAL_MS)
 
+    const refreshOnFocus = () => {
+      if (document.visibilityState === "visible") {
+        void fetchStudents()
+      }
+    }
+
+    window.addEventListener("focus", refreshOnFocus)
+    document.addEventListener("visibilitychange", refreshOnFocus)
+
     return () => {
       if (timerRef.current) clearInterval(timerRef.current)
+      window.removeEventListener("focus", refreshOnFocus)
+      document.removeEventListener("visibilitychange", refreshOnFocus)
     }
   }, [fetchStudents])
 
