@@ -8,6 +8,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
+import { createClient } from "@supabase/supabase-js"
 
 type DashboardSummary = {
   totalSessions: number
@@ -65,6 +66,11 @@ type Feedback = { ok: boolean; msg: string } | null
 
 const HOURS_OPTIONS = [6, 12, 24, 48, 72]
 const REFRESH_INTERVAL_MS = 3_000
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
+const SUPABASE_ANON_KEY =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+  ""
 
 function formatDateTime(iso: string | null | undefined) {
   if (!iso) return "—"
@@ -170,6 +176,7 @@ export default function ExamSecurityUsersPage() {
   const [composerMessage, setComposerMessage] = useState("")
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const realtimeRef = useRef<any>(null)
 
   const fetchStudents = useCallback(
     async (manual = false) => {
@@ -230,6 +237,36 @@ export default function ExamSecurityUsersPage() {
       if (timerRef.current) clearInterval(timerRef.current)
       window.removeEventListener("focus", refreshOnFocus)
       document.removeEventListener("visibilitychange", refreshOnFocus)
+    }
+  }, [fetchStudents])
+
+  useEffect(() => {
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return
+
+    const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+    realtimeRef.current = client
+
+    const channel = client
+      .channel("exam-security-sessions-admin-live")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "exam_security_sessions" },
+        () => {
+          void fetchStudents(true)
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "exam_security_actions" },
+        () => {
+          void fetchStudents(true)
+        }
+      )
+      .subscribe()
+
+    return () => {
+      void client.removeChannel(channel)
+      realtimeRef.current = null
     }
   }, [fetchStudents])
 
@@ -557,6 +594,7 @@ export default function ExamSecurityUsersPage() {
           {lastUpdated ? (
             <p className="mt-4 text-xs text-sub">
               Última actualización: {lastUpdated.toLocaleTimeString("es-CL")} · actualización automática cada {REFRESH_INTERVAL_MS / 1000}s
+              {SUPABASE_URL && SUPABASE_ANON_KEY ? " · canal online activado" : " · canal online no configurado"}
             </p>
           ) : null}
         </header>
