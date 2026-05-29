@@ -1,4 +1,4 @@
-// app/admin/exam-security/session/[id]/page.tsx
+// app/admin/exam-security/session/[id]/page.tsx  
 // ──────────────────────────────────────────────────────────────────────────────
 // Detalle de sesión con panel de acciones de administrador:
 // freeze, block, terminate, clear_state, add_note, reopen
