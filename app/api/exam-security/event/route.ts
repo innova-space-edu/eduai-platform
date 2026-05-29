@@ -223,6 +223,9 @@ function buildEvaluationResult(params: {
   }
 }
 
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
 export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as SecurityEventInput
@@ -262,12 +265,27 @@ export async function POST(req: NextRequest) {
     const policy = await getResolvedSecurityPolicy(examId)
 
     if (!policy.enabled) {
+      // Si la política está deshabilitada, mantenemos la sesión viva pero no
+      // escalamos incidentes. Esto permite que el panel admin siga mostrando
+      // quién está rindiendo, sin bloquear ni sancionar al estudiante.
+      await updateSecuritySession(sessionId, {
+        last_heartbeat_at: new Date().toISOString(),
+        last_event_at: new Date().toISOString(),
+      })
+
       return Response.json(
         {
-          success: false,
-          error: "La política de seguridad está deshabilitada.",
-        },
-        { status: 403 }
+          success: true,
+          data: {
+            success: true,
+            riskScore: session.risk_score ?? 0,
+            riskLevel: session.risk_level ?? "clean",
+            severity: "low",
+            scoreDelta: 0,
+            action: { type: "none" },
+          },
+        } satisfies SecurityApiResponse<SecurityEvaluationResult>,
+        { status: 200 }
       )
     }
 
