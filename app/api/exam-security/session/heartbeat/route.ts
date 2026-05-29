@@ -3,7 +3,6 @@
 import { NextRequest } from "next/server"
 import { createClient as createAdminClient } from "@supabase/supabase-js"
 
-import { getResolvedSecurityPolicy } from "@/lib/exam-security/policy"
 import {
   getSecuritySessionById,
   updateSecurityHeartbeat,
@@ -111,6 +110,9 @@ async function getRecentAdminMessages(
     .filter((item) => item.message.trim().length > 0)
 }
 
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
 export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as SecurityHeartbeatInput
@@ -166,18 +168,6 @@ export async function POST(req: NextRequest) {
           error: "El submissionId no coincide con la sesión.",
         } satisfies SecurityApiResponse,
         { status: 400 }
-      )
-    }
-
-    const policy = await getResolvedSecurityPolicy(examId)
-
-    if (!policy.enabled) {
-      return Response.json(
-        {
-          success: false,
-          error: "La seguridad está deshabilitada para este examen.",
-        } satisfies SecurityApiResponse,
-        { status: 403 }
       )
     }
 
