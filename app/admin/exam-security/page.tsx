@@ -393,6 +393,13 @@ export default function ExamSecurityAdminPage() {
               ))}
             </select>
 
+            <Link
+              href="/admin/exam-security/users"
+              className="flex items-center gap-2 rounded-xl border border-sky-400/30 bg-sky-500/10 px-4 py-1.5 text-sm font-bold text-sky-700 hover:bg-sky-500/20"
+            >
+              👥 Control usuarios
+            </Link>
+
             {/* Botón actualizar */}
             <button
               onClick={() => fetchDashboard(true)}
