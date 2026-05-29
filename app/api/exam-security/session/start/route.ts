@@ -2,6 +2,7 @@
 
 import { NextRequest } from "next/server"
 import {
+  DEFAULT_SECURITY_POLICY,
   getResolvedSecurityPolicy,
 } from "@/lib/exam-security/policy"
 import {
@@ -11,6 +12,9 @@ import type {
   SecuritySessionStartInput,
   SecuritySessionStartResponse,
 } from "@/lib/exam-security/types"
+
+export const dynamic = "force-dynamic"
+export const revalidate = 0
 
 export async function POST(req: NextRequest) {
   try {
@@ -36,18 +40,22 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const policy = await getResolvedSecurityPolicy(examId)
+    let policy = DEFAULT_SECURITY_POLICY
 
-    if (!policy.enabled) {
-      return Response.json(
-        {
-          success: false,
-          error: "La seguridad del examen está deshabilitada para este examen.",
-        },
-        { status: 403 }
+    try {
+      policy = await getResolvedSecurityPolicy(examId)
+    } catch (policyError) {
+      console.error(
+        "[exam-security/session/start:policy] Se usará política por defecto para registrar presencia",
+        policyError
       )
+      policy = DEFAULT_SECURITY_POLICY
     }
 
+    // IMPORTANTE:
+    // La sesión se crea siempre para que el panel admin pueda ver quién ingresó
+    // al examen, aunque el monitoreo estricto esté deshabilitado o la tabla de
+    // políticas aún no tenga configuración para ese examen.
     const session = await startOrReuseSecuritySession({
       examId,
       submissionId,
@@ -57,10 +65,22 @@ export async function POST(req: NextRequest) {
       clientMetadata,
     })
 
+    const clientPolicy = policy.enabled
+      ? policy
+      : {
+          ...policy,
+          requireFullscreen: false,
+          blockCopyPaste: false,
+          blockContextMenu: false,
+          blockShortcuts: false,
+          preventTextSelection: false,
+          heartbeatIntervalSec: Math.max(3, Math.min(policy.heartbeatIntervalSec || 5, 10)),
+        }
+
     const response: SecuritySessionStartResponse = {
       success: true,
       sessionId: session.id,
-      policy,
+      policy: clientPolicy,
       session,
     }
 
