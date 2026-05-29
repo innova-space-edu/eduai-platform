@@ -109,6 +109,10 @@ export default function EditarExamenPage() {
     }
   }
 
+  function updateSetting(key: string, value: unknown) {
+    setSettings((prev: any) => ({ ...(prev || {}), [key]: value }))
+  }
+
   // ── Guardar cambios ───────────────────────────────────────────────────────
   async function saveChanges() {
     if (!user) return
@@ -366,6 +370,27 @@ Formato exacto:
             placeholder="Ej: Justifica tus respuestas y muestra procedimiento..."
             className="w-full bg-card-soft-theme border border-soft rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500/30"
           />
+        </div>
+
+        {/* Configuración del examen */}
+        <div className="rounded-2xl p-4 border" style={{ background: "var(--bg-card-soft)", borderColor: "var(--bg-card-soft)" }}>
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-main text-sm font-bold">🧮 Calculadora científica de la página</p>
+              <p className="text-muted2 text-xs mt-1 leading-relaxed">
+                Actívala solo cuando el docente autorice que los estudiantes usen la calculadora interna del examen.
+                Si queda apagada, el botón de calculadora no aparecerá durante la prueba.
+              </p>
+            </div>
+            <label className="flex items-center gap-3 rounded-2xl border border-soft bg-card-soft-theme px-4 py-3 text-sm font-semibold text-sub cursor-pointer">
+              <input
+                type="checkbox"
+                checked={settings?.allowCalculator === true}
+                onChange={(e) => updateSetting("allowCalculator", e.target.checked)}
+              />
+              {settings?.allowCalculator === true ? "Calculadora autorizada" : "Calculadora no autorizada"}
+            </label>
+          </div>
         </div>
 
         {/* Error global */}
