@@ -53,7 +53,18 @@ async function saveHeartbeatAudit(params: {
   }
 }
 
-async function getRecentAdminMessages(sessionId: string) {
+type AdminHeartbeatMessage = {
+  id: string
+  action: string
+  kind: "notification" | "message"
+  title: string
+  message: string
+  created_at: string
+}
+
+async function getRecentAdminMessages(
+  sessionId: string
+): Promise<AdminHeartbeatMessage[]> {
   const admin = getAdmin()
 
   const { data, error } = await admin
@@ -76,18 +87,25 @@ async function getRecentAdminMessages(sessionId: string) {
       const payload = row.payload as Record<string, unknown> | null
       return payload?.message_channel === "exam_admin_message"
     })
-    .map((row) => {
+    .map((row): AdminHeartbeatMessage => {
       const payload = (row.payload ?? {}) as Record<string, unknown>
-      const kind = String(payload.message_kind || "message")
+      const rawKind = String(payload.message_kind || "message")
+      const kind: AdminHeartbeatMessage["kind"] =
+        rawKind === "notification" ? "notification" : "message"
       const action = String(payload.action || "message")
 
       return {
         id: String(row.id),
         action,
-        kind: kind === "notification" ? "notification" : "message",
-        title: String(payload.title || (kind === "notification" ? "Notificación del docente" : "Mensaje del docente")),
+        kind,
+        title: String(
+          payload.title ||
+            (kind === "notification"
+              ? "Notificación del docente"
+              : "Mensaje del docente")
+        ),
         message: String(payload.message || row.reason || ""),
-        created_at: row.created_at,
+        created_at: String(row.created_at || ""),
       }
     })
     .filter((item) => item.message.trim().length > 0)
@@ -208,14 +226,7 @@ export async function POST(req: NextRequest) {
       } satisfies SecurityApiResponse<{
         session: SecuritySessionRecord
         heartbeatAt: string | null
-        adminMessages: Array<{
-          id: string
-          action: string
-          kind: "notification" | "message"
-          title: string
-          message: string
-          created_at: string
-        }>
+        adminMessages: AdminHeartbeatMessage[]
       }>,
       { status: 200 }
     )
