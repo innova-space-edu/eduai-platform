@@ -220,6 +220,7 @@ export default function ExamenPublicoPage() {
   }, [qs, mcAnswers, devAnswers, tfJustifications]);
 
   const showRes = exam?.settings?.showResultToStudent !== false;
+  const allowCalculator = exam?.settings?.allowCalculator === true;
 
   // ── Detectar kiosk ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -1311,7 +1312,7 @@ export default function ExamenPublicoPage() {
 
         {phase === "exam" ? (
           <>
-            <ExamScientificCalculator />
+            {allowCalculator ? <ExamScientificCalculator /> : null}
             <ExamDigitalClock />
           </>
         ) : null}
