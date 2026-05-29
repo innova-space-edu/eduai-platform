@@ -8,6 +8,8 @@ import ExamSecurityExamBridge from "@/components/exam-security/ExamSecurityExamB
 import ExamThemeProvider from "@/components/exam/ExamThemeProvider";
 import QuestionCard from "@/components/exam/QuestionCard";
 import ExamAudioButton from "@/components/exam/ExamAudioButton";
+import ExamScientificCalculator from "@/components/exam/ExamScientificCalculator";
+import ExamDigitalClock from "@/components/exam/ExamDigitalClock";
 
 // ── Supabase del PANEL DE CONTROL ────────────────────────────────────────────
 const PANEL_URL = process.env.NEXT_PUBLIC_PANEL_SUPABASE_URL || "";
@@ -1305,6 +1307,13 @@ export default function ExamenPublicoPage() {
               requestFullscreen();
             }}
           />
+        ) : null}
+
+        {phase === "exam" ? (
+          <>
+            <ExamScientificCalculator />
+            <ExamDigitalClock />
+          </>
         ) : null}
 
         <div className="max-w-7xl mx-auto px-4 py-6 exam-root exam-content">
