@@ -336,6 +336,7 @@ export default function CrearExamenPage() {
   const [showResultToStudent, setShowResultToStudent] = useState(true);
   const [allowReview, setAllowReview] = useState(true);
   const [isPublic, setIsPublic] = useState(true);
+  const [allowCalculator, setAllowCalculator] = useState(false);
 
   // ── Seguridad (nuevo sistema) ─────────────────────────────────────────────
   const [securityMode, setSecurityMode] = useState(false);
@@ -600,6 +601,7 @@ export default function CrearExamenPage() {
             showResultToStudent,
             allowReview,
             isPublic,
+            allowCalculator,
             securityMode,
             theme: examTheme,
             font: examFont,
@@ -1081,6 +1083,11 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                         val: isPublic,
                         set: setIsPublic,
                       },
+                      {
+                        label: "Autorizar calculadora científica de la página",
+                        val: allowCalculator,
+                        set: setAllowCalculator,
+                      },
                     ].map(({ label, val, set }) => (
                       <label
                         key={label}
@@ -1095,6 +1102,36 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                       </label>
                     ))}
                   </div>
+                </div>
+              </div>
+
+              {/* ── Calculadora autorizada por docente ─────────────────────── */}
+              <div className="mt-5 rounded-2xl border border-cyan-500/20 bg-cyan-500/[0.04] p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <span className="text-xl mt-0.5">🧮</span>
+                    <div>
+                      <p className="text-sm font-bold text-main">Calculadora científica del examen</p>
+                      <p className="text-xs text-sub mt-0.5 leading-relaxed">
+                        Si activas esta opción, el estudiante verá un botón lateral llamado
+                        <strong> Calculadora</strong> durante la prueba. Si queda apagada,
+                        la calculadora no aparecerá en el examen público.
+                      </p>
+                      <p className="mt-2 text-[11px] font-semibold text-cyan-700">
+                        Estado: {allowCalculator ? "Autorizada por el docente" : "No autorizada"}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setAllowCalculator((value) => !value)}
+                    aria-pressed={allowCalculator}
+                    className={`relative flex-shrink-0 w-12 h-6 rounded-full transition-colors ${allowCalculator ? "bg-cyan-500" : "bg-card-soft-theme"}`}
+                  >
+                    <span
+                      className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${allowCalculator ? "translate-x-6" : "translate-x-0.5"}`}
+                    />
+                  </button>
                 </div>
               </div>
 
@@ -2461,6 +2498,7 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                   { label: "Preguntas", value: questions.length },
                   { label: "Puntaje total", value: totalPoints },
                   { label: "Tiempo", value: `${timeLimit} min` },
+                  { label: "Calculadora", value: allowCalculator ? "Autorizada" : "No autorizada" },
                   { label: "Exigencia", value: `${examPercentage}%` },
                   { label: "Dificultad", value: difficulty },
                   { label: "OA evaluados", value: selectedOAs.length },
