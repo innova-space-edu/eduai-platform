@@ -211,6 +211,23 @@ function safeParseJson(text: string): any {
   }
 }
 
+function normalizeExamSettings(settings: any, designTemplateId?: string) {
+  const safeSettings = settings && typeof settings === "object" ? settings : {}
+  const examDesignTemplateId = designTemplateId || safeSettings.designTemplateId
+
+  const nextSettings: Record<string, any> = {
+    ...safeSettings,
+    allowCalculator: safeSettings.allowCalculator === true,
+  }
+
+  if (examDesignTemplateId) {
+    nextSettings.designTemplateId = examDesignTemplateId
+    nextSettings._design = getDesignTemplateSummary(examDesignTemplateId, "exam")
+  }
+
+  return nextSettings
+}
+
 // ── Helper compartido para aplicar evaluaciones de IA ────────────────────────
 function applyEvaluations(
   evals: any[], toEvaluate: any[], answers: any[], questions: any[]
@@ -463,7 +480,6 @@ export async function POST(request: NextRequest) {
 
     if (action === "create") {
       const { teacherId, title, topic, instructions, questions, settings, designTemplateId } = body
-      const examDesignTemplateId = designTemplateId || settings?.designTemplateId
 
       if (!teacherId || !title || !topic || !questions?.length) {
         return NextResponse.json(
@@ -496,11 +512,7 @@ export async function POST(request: NextRequest) {
           topic,
           instructions: instructions || null,
           questions: sanitizedQuestions,
-          settings: {
-            ...settings,
-            designTemplateId: examDesignTemplateId,
-            _design: getDesignTemplateSummary(examDesignTemplateId, "exam"),
-          },
+          settings: normalizeExamSettings(settings, designTemplateId),
           status: "active",
         })
         .select()
@@ -703,13 +715,7 @@ export async function POST(request: NextRequest) {
       if (instructions !== undefined) patch.instructions = instructions
       if (sanitized)   patch.questions   = sanitized
       if (settings || designTemplateId) {
-        const nextSettings = { ...(settings || {}) }
-        const examDesignTemplateId = designTemplateId || nextSettings.designTemplateId
-        if (examDesignTemplateId) {
-          nextSettings.designTemplateId = examDesignTemplateId
-          nextSettings._design = getDesignTemplateSummary(examDesignTemplateId, "exam")
-        }
-        patch.settings = nextSettings
+        patch.settings = normalizeExamSettings(settings, designTemplateId)
       }
 
       const { error } = await supabase
