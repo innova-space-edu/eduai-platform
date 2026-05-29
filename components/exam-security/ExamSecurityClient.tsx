@@ -19,6 +19,15 @@ type SecurityActionPayload = {
   durationSeconds?: number
 }
 
+type AdminExamMessage = {
+  id: string
+  action?: string
+  kind?: "notification" | "message"
+  title?: string
+  message?: string
+  created_at?: string
+}
+
 type Props = {
   examId: string
   submissionId?: string | null
@@ -109,6 +118,7 @@ export default function ExamSecurityClient({
   const freezeIntervalRef = useRef<number | null>(null)
   const isSendingRef = useRef(false)
   const mountedRef = useRef(false)
+  const seenAdminMessageIdsRef = useRef<Set<string>>(new Set())
   const devtoolsOpenRef = useRef(false)
   const prevInnerSize = useRef({ w: 0, h: 0 })
 
@@ -359,6 +369,46 @@ export default function ExamSecurityClient({
     [sendSecurityEvent]
   )
 
+  const showAdminMessage = useCallback((adminMessage: AdminExamMessage) => {
+    if (!adminMessage?.id || !adminMessage.message?.trim()) return
+    if (seenAdminMessageIdsRef.current.has(adminMessage.id)) return
+
+    seenAdminMessageIdsRef.current.add(adminMessage.id)
+
+    const title = adminMessage.title ||
+      (adminMessage.kind === "notification" ? "Notificación del docente" : "Mensaje del docente")
+    const message = adminMessage.message.trim()
+
+    setOverlay((prev) => {
+      if (
+        prev.actionType === "block" ||
+        prev.actionType === "freeze" ||
+        prev.actionType === "terminate_attempt"
+      ) {
+        return {
+          ...prev,
+          visible: true,
+          title,
+          message,
+        }
+      }
+
+      return {
+        visible: true,
+        actionType: "warn",
+        title,
+        message,
+      }
+    })
+
+    window.setTimeout(() => {
+      setOverlay((prev) => {
+        if (prev.actionType !== "warn") return prev
+        return { visible: false, actionType: "none" }
+      })
+    }, adminMessage.kind === "notification" ? 4500 : 6500)
+  }, [])
+
   const syncRemoteSessionStatus = useCallback(
     (remoteSession?: SecuritySessionRecord | null) => {
       if (!remoteSession) return
@@ -473,6 +523,11 @@ export default function ExamSecurityClient({
       if (json?.data?.session) {
         syncRemoteSessionStatus(json.data.session)
       }
+      if (Array.isArray(json?.data?.adminMessages)) {
+        ;[...json.data.adminMessages]
+          .reverse()
+          .forEach((adminMessage: AdminExamMessage) => showAdminMessage(adminMessage))
+      }
     } catch {}
   }, [
     sessionId,
@@ -482,6 +537,7 @@ export default function ExamSecurityClient({
     submissionId,
     getClientMetadata,
     syncRemoteSessionStatus,
+    showAdminMessage,
   ])
 
   // ── Session start ──────────────────────────────────────────
