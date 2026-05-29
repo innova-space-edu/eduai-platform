@@ -4,6 +4,9 @@ import { NextRequest } from "next/server"
 import { createClient as createAdminClient } from "@supabase/supabase-js"
 import { createClient as createServerClient } from "@/lib/supabase/server"
 
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
 type SessionRow = {
   id: string
   exam_id: string
@@ -255,7 +258,14 @@ export async function GET(req: NextRequest) {
           recentActions: safeActions,
         },
       },
-      { status: 200 }
+      {
+        status: 200,
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          Pragma: "no-cache",
+          Expires: "0",
+        },
+      }
     )
   } catch (error) {
     console.error("[exam-security/admin/dashboard:GET]", error)
