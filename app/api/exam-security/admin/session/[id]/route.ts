@@ -7,6 +7,9 @@
 import { createClient as createAdminClient } from "@supabase/supabase-js"
 import { createClient as createServerClient } from "@/lib/supabase/server"
 
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
 type SessionRow = {
   id: string
   exam_id: string
@@ -136,6 +139,27 @@ async function requireAdmin() {
   return { user, error: null }
 }
 
+function getFallbackNotes(actions: ActionRow[] | null | undefined): NoteRow[] {
+  return (actions ?? []).flatMap((action) => {
+    const payload = action.payload ?? {}
+
+    if (payload.admin_note !== true || typeof payload.note !== "string") {
+      return []
+    }
+
+    return [
+      {
+        id: `action-note-${action.id}`,
+        session_id: action.session_id,
+        submission_id: action.submission_id,
+        author_id: String(payload.author_id || action.applied_by || "admin"),
+        note: payload.note,
+        created_at: action.created_at,
+      },
+    ]
+  })
+}
+
 // ── GET ────────────────────────────────────────────────────────────────────────
 
 export async function GET(
@@ -213,7 +237,12 @@ export async function GET(
 
     if (eventsError)  console.error("[exam-security/admin/session:GET:events]",  eventsError.message)
     if (actionsError) console.error("[exam-security/admin/session:GET:actions]", actionsError.message)
-    if (notesError)   console.error("[exam-security/admin/session:GET:notes]",   notesError.message)
+    if (notesError)   console.warn("[exam-security/admin/session:GET:notes]",   notesError.message)
+
+    const fallbackNotes = getFallbackNotes(actions)
+    const resolvedNotes = [...(notes ?? []), ...fallbackNotes].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )
 
     return Response.json(
       {
@@ -222,7 +251,7 @@ export async function GET(
           session,
           events:  events  ?? [],
           actions: actions ?? [],
-          notes:   notes   ?? [],
+          notes:   resolvedNotes,
         },
       },
       { status: 200 }
@@ -276,7 +305,8 @@ export async function POST(
     const action  = (body.action  ?? "").trim() as AdminAction
     const reason  = (body.reason  ?? "").trim() || null
     const noteText= (body.note    ?? "").trim()
-    const adminId = (body.adminId ?? "admin").trim()
+    const requestedAdminId = (body.adminId ?? "admin").trim()
+    const appliedBy = user.email || user.id || requestedAdminId || "admin"
 
     const validActions: AdminAction[] = [
       "freeze", "block", "terminate", "clear_state",
@@ -314,23 +344,50 @@ export async function POST(
 
     // 2. Ejecutar acción
     if (action === "add_note") {
-      // Solo insertar nota
+      // Guardado principal en la tabla de notas. Si la migración todavía no fue
+      // ejecutada, usar exam_security_actions como respaldo para no perder la nota.
       const { error: noteError } = await admin
         .from("exam_security_admin_notes")
         .insert({
           session_id:    sessionId,
           submission_id: session.submission_id,
-          author_id:     adminId,
+          author_id:     appliedBy,
           note:          noteText,
           created_at:    now,
         })
 
-      if (noteError) {
-        console.error("[exam-security/admin/session:POST:addNote]", noteError.message)
-        return Response.json({ success: false, error: "No se pudo guardar la nota." }, { status: 500 })
+      if (!noteError) {
+        return Response.json({ success: true, message: "Nota administrativa guardada correctamente." }, { status: 200 })
       }
 
-      return Response.json({ success: true, message: "Nota agregada correctamente." }, { status: 200 })
+      console.warn("[exam-security/admin/session:POST:addNote:fallback]", noteError.message)
+
+      const { error: fallbackError } = await admin.from("exam_security_actions").insert({
+        session_id:    sessionId,
+        exam_id:       session.exam_id,
+        submission_id: session.submission_id,
+        action_type:   "teacher_override",
+        reason:        "Nota administrativa interna",
+        applied_by:    appliedBy,
+        payload: {
+          admin_action: true,
+          admin_note:   true,
+          author_id:    appliedBy,
+          note:         noteText,
+          saved_at:     now,
+        },
+        created_at: now,
+      })
+
+      if (fallbackError) {
+        console.error("[exam-security/admin/session:POST:addNote:fallback:error]", fallbackError.message)
+        return Response.json({ success: false, error: "No se pudo guardar la nota administrativa." }, { status: 500 })
+      }
+
+      return Response.json(
+        { success: true, message: "Nota administrativa guardada en el registro de respaldo." },
+        { status: 200 }
+      )
     }
 
     if (action === "unlock") {
@@ -360,7 +417,7 @@ export async function POST(
         submission_id: session.submission_id,
         action_type:   "teacher_override",
         reason:        reason ?? "Desbloqueo manual por administrador",
-        applied_by:    adminId,
+        applied_by:    appliedBy,
         payload: {
           admin_action:    true,
           action:          "unlock",
@@ -412,7 +469,7 @@ export async function POST(
         submission_id: session.submission_id,
         action_type:   "clear_state",
         reason:        reason ?? "Limpieza de estado por administrador",
-        applied_by:    adminId,
+        applied_by:    appliedBy,
         payload:       { admin_action: true, previous_status: session.status },
         created_at:    now,
       })
@@ -453,7 +510,7 @@ export async function POST(
       submission_id: session.submission_id,
       action_type:   ACTION_TO_TYPE[action],
       reason:        reason ?? `Acción manual: ${action} por administrador`,
-      applied_by:    adminId,
+      applied_by:    appliedBy,
       payload: {
         admin_action:    true,
         previous_status: session.status,
