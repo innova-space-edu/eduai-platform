@@ -5,6 +5,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import SecurityOverlay from "./SecurityOverlay"
+import AdminExamMessageBubble, { type AdminExamBubbleMessage } from "./AdminExamMessageBubble"
 import type {
   SecurityActionType,
   SecurityEventInput,
@@ -113,8 +114,10 @@ export default function ExamSecurityClient({
     visible: false,
     actionType: "none",
   })
+  const [adminMessageQueue, setAdminMessageQueue] = useState<AdminExamBubbleMessage[]>([])
 
   const heartbeatRef = useRef<number | null>(null)
+  const adminMessagePollRef = useRef<number | null>(null)
   const freezeIntervalRef = useRef<number | null>(null)
   const isSendingRef = useRef(false)
   const mountedRef = useRef(false)
@@ -382,45 +385,82 @@ export default function ExamSecurityClient({
     [sendSecurityEvent]
   )
 
-  const showAdminMessage = useCallback((adminMessage: AdminExamMessage) => {
-    if (!adminMessage?.id || !adminMessage.message?.trim()) return
-    if (seenAdminMessageIdsRef.current.has(adminMessage.id)) return
+  const seenAdminMessagesStorageKey = useMemo(
+    () => `eduai_exam_admin_messages_seen_${examId}_${sessionId || "pending"}`,
+    [examId, sessionId]
+  )
 
-    seenAdminMessageIdsRef.current.add(adminMessage.id)
+  useEffect(() => {
+    if (!sessionId) return
 
-    const title = adminMessage.title ||
-      (adminMessage.kind === "notification" ? "Notificación del docente" : "Mensaje del docente")
-    const message = adminMessage.message.trim()
+    try {
+      const stored = window.sessionStorage.getItem(seenAdminMessagesStorageKey)
+      const parsed = stored ? JSON.parse(stored) : []
+      seenAdminMessageIdsRef.current = new Set(
+        Array.isArray(parsed) ? parsed.map((item) => String(item)).filter(Boolean) : []
+      )
+    } catch {
+      seenAdminMessageIdsRef.current = new Set()
+    }
+  }, [sessionId, seenAdminMessagesStorageKey])
 
-    setOverlay((prev) => {
-      if (
-        prev.actionType === "block" ||
-        prev.actionType === "freeze" ||
-        prev.actionType === "terminate_attempt"
-      ) {
-        return {
-          ...prev,
-          visible: true,
-          title,
-          message,
-        }
+  const rememberSeenAdminMessage = useCallback(
+    (id: string) => {
+      seenAdminMessageIdsRef.current.add(id)
+
+      try {
+        const recentIds = Array.from(seenAdminMessageIdsRef.current).slice(-120)
+        window.sessionStorage.setItem(
+          seenAdminMessagesStorageKey,
+          JSON.stringify(recentIds)
+        )
+      } catch {
+        // El mensaje igualmente se muestra aunque sessionStorage no esté disponible.
       }
+    },
+    [seenAdminMessagesStorageKey]
+  )
 
-      return {
-        visible: true,
-        actionType: "warn",
-        title,
-        message,
-      }
-    })
-
-    window.setTimeout(() => {
-      setOverlay((prev) => {
-        if (prev.actionType !== "warn") return prev
-        return { visible: false, actionType: "none" }
-      })
-    }, adminMessage.kind === "notification" ? 4500 : 6500)
+  const dismissAdminMessage = useCallback(() => {
+    setAdminMessageQueue((prev) => prev.slice(1))
   }, [])
+
+  const showAdminMessage = useCallback(
+    (adminMessage: AdminExamMessage) => {
+      const id = String(adminMessage?.id || "").trim()
+      const message = String(adminMessage?.message || "").trim()
+
+      if (!id || !message) return
+      if (seenAdminMessageIdsRef.current.has(id)) return
+
+      rememberSeenAdminMessage(id)
+
+      setAdminMessageQueue((prev) => {
+        if (prev.some((item) => item.id === id)) return prev
+
+        return [
+          ...prev,
+          {
+            id,
+            action: adminMessage.action,
+            kind:
+              adminMessage.kind === "notification"
+                ? "notification"
+                : "message",
+            title:
+              adminMessage.title ||
+              (adminMessage.kind === "notification"
+                ? "Notificación del administrador"
+                : "Mensaje del administrador"),
+            message,
+            created_at: adminMessage.created_at,
+          },
+        ]
+      })
+    },
+    [rememberSeenAdminMessage]
+  )
+
 
   const syncRemoteSessionStatus = useCallback(
     (remoteSession?: SecuritySessionRecord | null) => {
@@ -553,6 +593,36 @@ export default function ExamSecurityClient({
     showAdminMessage,
   ])
 
+  const fetchAdminMessages = useCallback(async () => {
+    if (!sessionId || !enabled) return
+
+    try {
+      const metadata = getClientMetadata() as Record<string, unknown>
+      const params = new URLSearchParams({
+        sessionId,
+        examId,
+        _ts: String(Date.now()),
+      })
+
+      const res = await fetch(`/api/exam-security/session/messages?${params.toString()}`, {
+        cache: "no-store",
+        headers: {
+          "Cache-Control": "no-store",
+          "X-Exam-Runtime-Id": String(metadata.examSecurityRuntimeId || ""),
+        },
+      })
+
+      const json = await res.json().catch(() => null)
+      if (!json?.success || !Array.isArray(json?.data?.messages)) return
+
+      json.data.messages.forEach((adminMessage: AdminExamMessage) => {
+        showAdminMessage(adminMessage)
+      })
+    } catch {
+      // El heartbeat conserva una segunda vía de entrega como respaldo.
+    }
+  }, [sessionId, enabled, examId, getClientMetadata, showAdminMessage])
+
   // ── Session start ──────────────────────────────────────────
   useEffect(() => {
     if (!enabled || !examId || mountedRef.current) return
@@ -626,6 +696,39 @@ export default function ExamSecurityClient({
       if (heartbeatRef.current) window.clearInterval(heartbeatRef.current)
     }
   }, [sessionId, enabled, policy.heartbeatIntervalSec, sendHeartbeat])
+
+  // ── Mensajes/notificaciones del administrador ──────────────
+  // Polling corto y sin caché. Funciona aunque Realtime no esté publicado para
+  // el navegador del estudiante. El heartbeat mantiene una entrega de respaldo.
+  useEffect(() => {
+    if (!sessionId || !enabled) return
+
+    void fetchAdminMessages()
+
+    adminMessagePollRef.current = window.setInterval(() => {
+      void fetchAdminMessages()
+    }, 2500)
+
+    const refreshAdminMessages = () => {
+      if (document.visibilityState === "visible") {
+        void fetchAdminMessages()
+      }
+    }
+
+    window.addEventListener("focus", refreshAdminMessages)
+    window.addEventListener("online", refreshAdminMessages)
+    document.addEventListener("visibilitychange", refreshAdminMessages)
+
+    return () => {
+      if (adminMessagePollRef.current) {
+        window.clearInterval(adminMessagePollRef.current)
+        adminMessagePollRef.current = null
+      }
+      window.removeEventListener("focus", refreshAdminMessages)
+      window.removeEventListener("online", refreshAdminMessages)
+      document.removeEventListener("visibilitychange", refreshAdminMessages)
+    }
+  }, [sessionId, enabled, fetchAdminMessages])
 
   // ── DOM event listeners ────────────────────────────────────
   useEffect(() => {
@@ -887,11 +990,18 @@ export default function ExamSecurityClient({
     return () => {
       clearFreezeTimer()
       if (heartbeatRef.current) window.clearInterval(heartbeatRef.current)
+      if (adminMessagePollRef.current) window.clearInterval(adminMessagePollRef.current)
     }
   }, [clearFreezeTimer])
 
   return (
     <>
+      <AdminExamMessageBubble
+        item={adminMessageQueue[0] ?? null}
+        pendingCount={Math.max(0, adminMessageQueue.length - 1)}
+        onDismiss={dismissAdminMessage}
+      />
+
       <SecurityOverlay
         visible={overlay.visible}
         actionType={overlay.actionType}
