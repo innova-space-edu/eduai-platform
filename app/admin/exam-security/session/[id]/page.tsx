@@ -1,4 +1,4 @@
-// app/admin/exam-security/session/[id]/page.tsx  
+// app/admin/exam-security/session/[id]/page.tsx
 // ──────────────────────────────────────────────────────────────────────────────
 // Detalle de sesión con panel de acciones de administrador:
 // freeze, block, terminate, clear_state, add_note, reopen
@@ -6,7 +6,7 @@
 
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react"
 import Link from "next/link"
 import RiskBadgeV2 from "@/app/examen/resultados/[id]/RiskBadgeV2"
 import SessionActionTimeline from "@/app/examen/resultados/[id]/SessionActionTimeline"
@@ -204,10 +204,12 @@ const ADMIN_ACTIONS: {
 
 function AdminActionPanel({
   sessionId,
+  studentName,
   currentStatus,
   onActionSuccess,
 }: {
   sessionId: string
+  studentName: string | null
   currentStatus: string
   onActionSuccess: () => void
 }) {
@@ -217,6 +219,11 @@ function AdminActionPanel({
   const [noteText,   setNoteText]   = useState("")
   const [noteLoading,setNoteLoading]= useState(false)
   const [noteFeedback, setNoteFeedback] = useState<{ ok: boolean; msg: string } | null>(null)
+  const [communicationKind, setCommunicationKind] = useState<"notify" | "message" | null>(null)
+  const [communicationTitle, setCommunicationTitle] = useState("")
+  const [communicationText, setCommunicationText] = useState("")
+  const [communicationLoading, setCommunicationLoading] = useState(false)
+  const [communicationFeedback, setCommunicationFeedback] = useState<{ ok: boolean; msg: string } | null>(null)
 
   async function handleAction(action: AdminActionType, confirmMsg: string) {
     if (!window.confirm(confirmMsg)) return
@@ -265,14 +272,13 @@ function AdminActionPanel({
         body: JSON.stringify({
           action: "add_note",
           note: noteText.trim(),
-          adminId: "admin",
         }),
       })
 
       const json = await res.json()
 
       if (json.success) {
-        setNoteFeedback({ ok: true, msg: "Nota agregada." })
+        setNoteFeedback({ ok: true, msg: json.message ?? "Nota agregada." })
         setNoteText("")
         onActionSuccess()
       } else {
@@ -282,6 +288,64 @@ function AdminActionPanel({
       setNoteFeedback({ ok: false, msg: "Error de conexión." })
     } finally {
       setNoteLoading(false)
+    }
+  }
+
+  function openCommunication(kind: "notify" | "message") {
+    setCommunicationKind(kind)
+    setCommunicationTitle(kind === "notify" ? "Notificación del docente" : "Mensaje del docente")
+    setCommunicationText("")
+    setCommunicationFeedback(null)
+  }
+
+  function closeCommunication() {
+    setCommunicationKind(null)
+    setCommunicationTitle("")
+    setCommunicationText("")
+  }
+
+  async function handleSendCommunication(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    if (!communicationKind) return
+
+    const message = communicationText.trim()
+    if (!message) {
+      setCommunicationFeedback({ ok: false, msg: "Escribe el texto antes de enviarlo." })
+      return
+    }
+
+    setCommunicationLoading(true)
+    setCommunicationFeedback(null)
+
+    try {
+      const res = await fetch("/api/exam-security/admin/sessions/action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: communicationKind,
+          target: "selected",
+          sessionIds: [sessionId],
+          title: communicationTitle.trim(),
+          message,
+        }),
+      })
+
+      const json = await res.json().catch(() => null)
+
+      if (!json?.success) {
+        setCommunicationFeedback({ ok: false, msg: json?.error || "No se pudo enviar la comunicación." })
+        return
+      }
+
+      setCommunicationFeedback({ ok: true, msg: json.message || "Comunicación enviada correctamente." })
+      closeCommunication()
+      onActionSuccess()
+    } catch (error) {
+      console.error("[AdminActionPanel:handleSendCommunication]", error)
+      setCommunicationFeedback({ ok: false, msg: "Error de conexión al enviar la comunicación." })
+    } finally {
+      setCommunicationLoading(false)
     }
   }
 
@@ -310,6 +374,7 @@ function AdminActionPanel({
           const isDisabled = busy || (disabled?.(currentStatus) ?? false)
           return (
             <button
+              type="button"
               key={action}
               onClick={() => handleAction(action, confirm)}
               disabled={isDisabled}
@@ -339,6 +404,101 @@ function AdminActionPanel({
         </p>
       )}
 
+      {/* Comunicación directa con el estudiante */}
+      <hr className="border-soft" />
+
+      <div className="space-y-3 rounded-2xl border border-sky-400/20 bg-sky-500/5 p-4">
+        <div>
+          <h3 className="text-base font-black text-main">📨 Comunicación directa con el estudiante</h3>
+          <p className="mt-1 text-sm text-sub">
+            Envía una notificación visible o un mensaje individual a {studentName || "este estudiante"}.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => openCommunication("notify")}
+            disabled={communicationLoading}
+            className="rounded-xl border border-yellow-500 bg-yellow-500 px-4 py-2 text-sm font-black text-white shadow-md transition hover:bg-yellow-600 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            🔔 Crear notificación
+          </button>
+          <button
+            type="button"
+            onClick={() => openCommunication("message")}
+            disabled={communicationLoading}
+            className="rounded-xl border border-blue-700 bg-blue-600 px-4 py-2 text-sm font-black text-white shadow-md transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            💬 Crear mensaje
+          </button>
+        </div>
+
+        {communicationKind ? (
+          <form onSubmit={handleSendCommunication} className="space-y-3 rounded-2xl border border-soft bg-card-theme p-4">
+            <p className="text-sm font-black text-main">
+              {communicationKind === "notify" ? "🔔 Enviar notificación" : "💬 Enviar mensaje"}
+            </p>
+            <label className="block text-sm font-bold text-main">
+              Título
+              <input
+                value={communicationTitle}
+                onChange={(event) => setCommunicationTitle(event.target.value)}
+                className="mt-2 w-full rounded-xl border border-soft bg-card-soft-theme px-3 py-2 text-sm text-main"
+                placeholder="Ej.: Aviso importante"
+              />
+            </label>
+            <label className="block text-sm font-bold text-main">
+              Texto
+              <textarea
+                value={communicationText}
+                onChange={(event) => setCommunicationText(event.target.value)}
+                rows={4}
+                className="mt-2 w-full resize-none rounded-xl border border-soft bg-card-soft-theme px-3 py-2 text-sm text-main"
+                placeholder={
+                  communicationKind === "notify"
+                    ? "Ej.: Mantén la pantalla completa y continúa con tu evaluación."
+                    : "Ej.: Tu sesión fue revisada. Continúa desde la pregunta donde quedaste."
+                }
+              />
+            </label>
+            <div className="flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeCommunication}
+                className="rounded-xl border border-soft bg-card-soft-theme px-4 py-2 text-sm font-bold text-sub hover:text-main"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={communicationLoading || communicationText.trim().length === 0}
+                className="inline-flex min-w-[12rem] items-center justify-center gap-2 rounded-xl border border-blue-700 bg-blue-600 px-5 py-2 text-sm font-black text-white shadow-lg transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none"
+              >
+                {communicationLoading
+                  ? "Enviando…"
+                  : communicationKind === "notify"
+                    ? "📨 Enviar notificación"
+                    : "📨 Enviar mensaje"}
+              </button>
+            </div>
+          </form>
+        ) : null}
+
+        {communicationFeedback ? (
+          <p
+            className={[
+              "rounded-xl border px-4 py-2 text-sm font-semibold",
+              communicationFeedback.ok
+                ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-700"
+                : "border-red-400/30 bg-red-500/10 text-red-700",
+            ].join(" ")}
+          >
+            {communicationFeedback.msg}
+          </p>
+        ) : null}
+      </div>
+
       {/* Separador */}
       <hr className="border-soft" />
 
@@ -347,6 +507,9 @@ function AdminActionPanel({
         <label className="text-xs uppercase tracking-[0.15em] text-sub block">
           📝 Agregar nota administrativa
         </label>
+        <p className="text-xs leading-5 text-sub">
+          Esta nota queda en el registro interno del administrador. No se envía al estudiante.
+        </p>
         <textarea
           value={noteText}
           onChange={(e) => setNoteText(e.target.value)}
@@ -356,11 +519,12 @@ function AdminActionPanel({
           className="w-full rounded-xl border border-soft bg-card-soft-theme px-3 py-2 text-sm text-main placeholder:text-sub resize-none disabled:opacity-50"
         />
         <button
+          type="button"
           onClick={handleAddNote}
           disabled={noteLoading || !noteText.trim()}
-          className="rounded-xl border border-soft bg-card-soft-theme px-4 py-2 text-sm text-main hover:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed"
+          className="rounded-xl border border-slate-800 bg-slate-800 px-4 py-2 text-sm font-black text-white shadow-md transition hover:bg-slate-900 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none"
         >
-          {noteLoading ? "Guardando…" : "Guardar nota"}
+          {noteLoading ? "Guardando…" : "💾 Guardar nota interna"}
         </button>
         {noteFeedback && (
           <p
@@ -591,6 +755,7 @@ export default function ExamSecuritySessionDetailPage({
         {/* ── Panel de acciones admin ── */}
         <AdminActionPanel
           sessionId={session.id}
+          studentName={session.student_name}
           currentStatus={session.status}
           onActionSuccess={() => fetchData()}
         />
