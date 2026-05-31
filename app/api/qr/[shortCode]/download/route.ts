@@ -21,7 +21,7 @@ export async function GET(request: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "El recurso QR ha vencido" }, { status: 410 })
   }
 
-  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin).replace(/\/$/, "")
+  const baseUrl = request.nextUrl.origin.replace(/\/$/, "")
   const shareUrl = `${baseUrl}/q/${normalizedCode}`
   const imageUrl = buildQrImageUrl(shareUrl, { size: 640 })
 
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest, { params }: Params) {
     headers: {
       "Content-Type": "image/png",
       "Content-Disposition": `attachment; filename="eduai-qr-${normalizedCode}.png"`,
-      "Cache-Control": "public, max-age=3600",
+      "Cache-Control": "private, no-store",
     },
   })
 }
