@@ -1,4 +1,4 @@
-FROM python:3.9-slim
+FROM python:3.9-slim-bookworm
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
@@ -30,8 +30,10 @@ WORKDIR $HOME/app
 COPY --chown=user requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel \
   && pip install --no-cache-dir -r requirements.txt \
+  && pip install --no-cache-dir "Cython==0.29.37" \
+  && pip install --no-cache-dir --no-build-isolation "av==10.0.0" \
   && git clone --depth 1 https://github.com/myshell-ai/OpenVoice.git /home/user/OpenVoice \
-  && pip install --no-cache-dir -e /home/user/OpenVoice \
+  && pip install --no-cache-dir --no-build-isolation -e /home/user/OpenVoice \
   && pip install --no-cache-dir git+https://github.com/myshell-ai/MeloTTS.git \
   && python -m unidic download \
   && wget -q https://myshell-public-repo-host.s3.amazonaws.com/openvoice/checkpoints_v2_0417.zip -O /tmp/checkpoints_v2.zip \
