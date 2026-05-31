@@ -3,10 +3,10 @@ import { createClient } from "@/lib/supabase/server"
 import { createShortCode } from "@/lib/qr/short-code"
 import { buildQrImageUrl } from "@/lib/qr/quickchart"
 
-type ResourceType = "url" | "text" | "notebook" | "creator_project" | "asset"
+type ResourceType = "url" | "text" | "notebook"
 type Visibility = "public" | "authenticated"
 
-const ALLOWED_TYPES = new Set<ResourceType>(["url", "text", "notebook", "creator_project", "asset"])
+const ALLOWED_TYPES = new Set<ResourceType>(["url", "text", "notebook"])
 const ALLOWED_VISIBILITY = new Set<Visibility>(["public", "authenticated"])
 
 function publicBaseUrl(request: NextRequest): string {
@@ -29,7 +29,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("qr_resources")
-    .select("id, short_code, title, description, resource_type, target_url, text_content, notebook_id, creator_project_id, asset_id, visibility, expires_at, scan_count, created_at")
+    .select("id, short_code, title, description, resource_type, target_url, text_content, notebook_id, visibility, expires_at, scan_count, created_at")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
 
@@ -50,8 +50,6 @@ export async function POST(request: NextRequest) {
   const targetUrl = String(body.target_url ?? "").trim() || null
   const textContent = String(body.text_content ?? "").trim() || null
   const notebookId = body.notebook_id ? String(body.notebook_id) : null
-  const creatorProjectId = body.creator_project_id ? String(body.creator_project_id) : null
-  const assetId = body.asset_id ? String(body.asset_id) : null
   const expiresAt = body.expires_at ? String(body.expires_at) : null
 
   if (!title) return NextResponse.json({ error: "title requerido" }, { status: 400 })
@@ -69,8 +67,6 @@ export async function POST(request: NextRequest) {
   }
   if (resourceType === "text" && !textContent) return NextResponse.json({ error: "text_content requerido" }, { status: 400 })
   if (resourceType === "notebook" && !notebookId) return NextResponse.json({ error: "notebook_id requerido" }, { status: 400 })
-  if (resourceType === "creator_project" && !creatorProjectId) return NextResponse.json({ error: "creator_project_id requerido" }, { status: 400 })
-  if (resourceType === "asset" && !assetId) return NextResponse.json({ error: "asset_id requerido" }, { status: 400 })
 
   if (notebookId) {
     const { data: notebook } = await supabase.from("notebooks").select("id").eq("id", notebookId).eq("user_id", user.id).maybeSingle()
@@ -89,12 +85,10 @@ export async function POST(request: NextRequest) {
       target_url: targetUrl,
       text_content: textContent,
       notebook_id: notebookId,
-      creator_project_id: creatorProjectId,
-      asset_id: assetId,
       visibility,
       expires_at: expiresAt,
     })
-    .select("id, short_code, title, description, resource_type, target_url, text_content, notebook_id, creator_project_id, asset_id, visibility, expires_at, scan_count, created_at")
+    .select("id, short_code, title, description, resource_type, target_url, text_content, notebook_id, visibility, expires_at, scan_count, created_at")
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
