@@ -2,7 +2,7 @@ import { cookies } from "next/headers"
 import { createClient } from "@/lib/supabase/server"
 
 export const VOICE_SECURITY_COOKIE = "eduai_voice_cloning_session"
-export const VOICE_SECURITY_TTL_SECONDS = 3 * 60
+export const VOICE_SECURITY_TTL_SECONDS = 30 * 24 * 60 * 60
 
 export async function getVoiceSecurityToken() {
   const cookieStore = await cookies()
