@@ -1,3 +1,12 @@
+---
+title: EduAI Paper Parser
+emoji: 📄
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 7860
+---
+
 # EduAI Paper Parser
 
 Microservicio Python para mejorar la lectura de PDF en Chat Paper.
