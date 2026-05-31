@@ -50,11 +50,23 @@ export async function POST(request: NextRequest) {
   const targetUrl = String(body.target_url ?? "").trim() || null
   const textContent = String(body.text_content ?? "").trim() || null
   const notebookId = body.notebook_id ? String(body.notebook_id) : null
-  const expiresAt = body.expires_at ? String(body.expires_at) : null
+  const expiresAtRaw = body.expires_at ? String(body.expires_at).trim() : ""
+  let expiresAt: string | null = null
 
   if (!title) return NextResponse.json({ error: "title requerido" }, { status: 400 })
   if (!ALLOWED_TYPES.has(resourceType)) return NextResponse.json({ error: "resource_type inválido" }, { status: 400 })
   if (!ALLOWED_VISIBILITY.has(visibility)) return NextResponse.json({ error: "visibility inválida" }, { status: 400 })
+
+  if (expiresAtRaw) {
+    const parsedExpiration = new Date(expiresAtRaw)
+    if (Number.isNaN(parsedExpiration.getTime())) {
+      return NextResponse.json({ error: "La fecha de vencimiento no es válida" }, { status: 400 })
+    }
+    if (parsedExpiration <= new Date()) {
+      return NextResponse.json({ error: "La fecha de vencimiento debe ser posterior a la hora actual" }, { status: 400 })
+    }
+    expiresAt = parsedExpiration.toISOString()
+  }
 
   if (resourceType === "url") {
     if (!targetUrl) return NextResponse.json({ error: "target_url requerido" }, { status: 400 })
