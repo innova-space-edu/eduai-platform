@@ -9,6 +9,7 @@ import shutil
 import tempfile
 from pathlib import Path
 from threading import Lock
+from typing import Dict, Optional
 
 import torch
 from fastapi import Depends, FastAPI, Header, HTTPException
@@ -30,8 +31,8 @@ DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 STORE_DIR.mkdir(parents=True, exist_ok=True)
 
 app = FastAPI(title="EduAI OpenVoice Private Service", version="1.0.0")
-_converter: ToneColorConverter | None = None
-_models: dict[str, TTS] = {}
+_converter: Optional[ToneColorConverter] = None
+_models: Dict[str, TTS] = {}
 _model_lock = Lock()
 
 
@@ -46,10 +47,10 @@ class VoiceSynthesisRequest(BaseModel):
     text: str = Field(min_length=1, max_length=4000)
     language: str = "ES"
     speed: float = Field(default=1.0, ge=0.65, le=1.35)
-    speaker_key: str | None = None
+    speaker_key: Optional[str] = None
 
 
-def require_internal_token(x_eduai_audio_token: str | None = Header(default=None)) -> None:
+def require_internal_token(x_eduai_audio_token: Optional[str] = Header(default=None)) -> None:
     if not SERVICE_TOKEN:
         raise HTTPException(status_code=503, detail="VOICE_CLONING_SERVICE_TOKEN is not configured")
     if not x_eduai_audio_token or not hmac.compare_digest(x_eduai_audio_token, SERVICE_TOKEN):
