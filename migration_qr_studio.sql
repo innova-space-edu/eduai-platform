@@ -70,3 +70,24 @@ using (
   visibility = 'authenticated'
   and (expires_at is null or expires_at > now())
 );
+
+create or replace function public.record_qr_scan(p_short_code text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  update public.qr_resources
+  set scan_count = scan_count + 1,
+      updated_at = now()
+  where short_code = p_short_code
+    and (expires_at is null or expires_at > now())
+    and (
+      visibility = 'public'
+      or (visibility = 'authenticated' and auth.uid() is not null)
+    );
+end;
+$$;
+
+grant execute on function public.record_qr_scan(text) to anon, authenticated;
