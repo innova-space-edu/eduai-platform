@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import { useSearchParams } from "next/navigation"
 import { Copy, Download, ExternalLink, Loader2, Plus, QrCode, RefreshCw } from "lucide-react"
 
 type ResourceType = "url" | "text" | "notebook"
@@ -30,16 +29,14 @@ type CreateResponse = {
 }
 
 export default function QrStudioPage() {
-  const searchParams = useSearchParams()
-  const notebookFromUrl = searchParams.get("notebookId") ?? ""
-
   const [resources, setResources] = useState<QrResource[]>([])
-  const [resourceType, setResourceType] = useState<ResourceType>(notebookFromUrl ? "notebook" : "url")
+  const [resourceType, setResourceType] = useState<ResourceType>("url")
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [targetUrl, setTargetUrl] = useState("")
   const [textContent, setTextContent] = useState("")
-  const [notebookId, setNotebookId] = useState(notebookFromUrl)
+  const [notebookId, setNotebookId] = useState("")
+  const [notebookFromUrl, setNotebookFromUrl] = useState("")
   const [visibility, setVisibility] = useState<Visibility>("public")
   const [expiresAt, setExpiresAt] = useState("")
   const [loading, setLoading] = useState(false)
@@ -64,6 +61,12 @@ export default function QrStudioPage() {
   }
 
   useEffect(() => {
+    const notebookParam = new URLSearchParams(window.location.search).get("notebookId") ?? ""
+    if (notebookParam) {
+      setNotebookFromUrl(notebookParam)
+      setNotebookId(notebookParam)
+      setResourceType("notebook")
+    }
     refreshResources()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
