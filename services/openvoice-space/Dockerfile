@@ -23,6 +23,11 @@ USER user
 ENV HOME=/home/user \
     PATH=/home/user/.local/bin:$PATH \
     PYTHONUNBUFFERED=1 \
+    XDG_CACHE_HOME=/home/user/.cache \
+    HF_HOME=/home/user/.cache/huggingface \
+    HF_HUB_CACHE=/home/user/.cache/huggingface/hub \
+    TRANSFORMERS_CACHE=/home/user/.cache/huggingface/transformers \
+    TORCH_HOME=/home/user/.cache/torch \
     VOICE_STORE_DIR=/data/voices \
     OPENVOICE_CHECKPOINT_DIR=/home/user/app/checkpoints_v2
 WORKDIR $HOME/app
@@ -43,7 +48,9 @@ RUN pip install --no-cache-dir --upgrade pip setuptools wheel \
 COPY --chown=user app.py ./app.py
 
 USER root
-RUN mkdir -p /data/voices && chmod 777 /data/voices
+RUN mkdir -p /data/voices /home/user/.cache/huggingface/hub /home/user/.cache/huggingface/transformers /home/user/.cache/torch \
+  && chmod 777 /data/voices \
+  && chown -R user:user /home/user/.cache
 USER user
 
 EXPOSE 7860
