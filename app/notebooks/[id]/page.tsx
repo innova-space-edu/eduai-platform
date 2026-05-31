@@ -1,9 +1,9 @@
 "use client"
-// app/notebooks/[id]/page.tsx  v4 — EduAI Notebooks
+// app/notebooks/[id]/page.tsx  v5 — EduAI Notebooks
 
 import { useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, PanelLeftClose, PanelRightClose, Loader2 } from "lucide-react"
+import { ArrowLeft, PanelLeftClose, PanelRightClose, QrCode } from "lucide-react"
 import { useNotebook }       from "@/hooks/useNotebook"
 import SourcePanel           from "@/components/notebook/SourcePanel"
 import NotebookChat          from "@/components/notebook/NotebookChat"
@@ -75,12 +75,8 @@ export default function NotebookPage() {
 
   return (
     <div className="flex flex-col h-screen bg-app overflow-hidden">
-
-      {/* ── Topbar ─────────────────────────────────────────────────────────── */}
       <div className="flex items-center gap-2 px-3 py-2 border-b border-soft flex-shrink-0 z-10"
         style={{ background: "var(--bg-header)", backdropFilter: "blur(12px)" }}>
-
-        {/* Volver a Creator Hub */}
         <button
           onClick={() => router.push("/creator-hub")}
           className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium flex-shrink-0 transition-all"
@@ -101,7 +97,6 @@ export default function NotebookPage() {
         <span className="text-muted2 text-xs flex-shrink-0">/</span>
         <span className="text-base flex-shrink-0">📓</span>
 
-        {/* Título editable */}
         {editingTitle ? (
           <input autoFocus value={titleDraft}
             onChange={(e) => setTitleDraft(e.target.value)}
@@ -121,7 +116,6 @@ export default function NotebookPage() {
           </button>
         )}
 
-        {/* Procesando */}
         {processingCount > 0 && (
           <ProcessingIndicator count={processingCount} total={sources.length} size="sm" />
         )}
@@ -130,6 +124,14 @@ export default function NotebookPage() {
           value={notebook.specialist_role}
           onChange={async (role) => { await updateNotebook({ specialist_role: role }) }}
         />
+
+        <button
+          onClick={() => router.push(`/qr-studio?notebookId=${encodeURIComponent(id)}`)}
+          className="p-1.5 rounded-lg transition-all text-blue-400 hover:bg-blue-500/10"
+          title="Compartir mediante QR"
+        >
+          <QrCode size={15} />
+        </button>
 
         <div className="flex items-center gap-1 flex-shrink-0">
           <button onClick={() => setLeftOpen(!leftOpen)} className="p-1.5 rounded-lg transition-all"
@@ -143,7 +145,6 @@ export default function NotebookPage() {
         </div>
       </div>
 
-      {/* ── 3-panel workspace ─────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">
         {leftOpen && (
           <div className="flex-shrink-0 border-r border-soft overflow-hidden flex flex-col" style={{ width: "260px" }}>
