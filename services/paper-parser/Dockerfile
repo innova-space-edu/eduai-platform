@@ -12,12 +12,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app
+RUN useradd -m -u 1000 user
+USER user
+ENV HOME=/home/user
+ENV PATH=/home/user/.local/bin:$PATH
+WORKDIR /home/user/app
 
-COPY requirements.txt ./requirements.txt
+COPY --chown=user requirements.txt ./requirements.txt
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
-COPY app.py ./app.py
+COPY --chown=user app.py ./app.py
 
 EXPOSE 7860
 
