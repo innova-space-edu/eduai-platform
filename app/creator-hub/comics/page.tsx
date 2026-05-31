@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react"
 import Link from "next/link"
 import { ArrowLeft, Copy, Plus, QrCode, Sparkles, Trash2 } from "lucide-react"
+import ComicPanelImage from "@/components/creator-hub/comics/ComicPanelImage"
 
 type ComicStyle = "manga" | "western" | "webtoon" | "child"
 
@@ -53,7 +54,7 @@ export default function ComicsCreatorPage() {
   const [copied, setCopied] = useState(false)
 
   const project = useMemo(() => ({
-    version: "comics-beta-1",
+    version: "comics-beta-2-images",
     topic,
     audience,
     educationalGoal,
@@ -109,7 +110,7 @@ export default function ComicsCreatorPage() {
                 <h1 className="text-main font-bold">Mangas e historietas</h1>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ background: "rgba(236,72,153,0.12)", color: "#ec4899" }}>BETA</span>
               </div>
-              <p className="text-muted2 text-xs">Crea un storyboard educativo editable antes de generar imágenes.</p>
+              <p className="text-muted2 text-xs">Crea el storyboard y genera imágenes reales para cada viñeta.</p>
             </div>
           </div>
           <Link href="/qr-studio" className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-soft text-xs text-sub">
@@ -175,8 +176,8 @@ export default function ComicsCreatorPage() {
         <section className="rounded-3xl border border-soft p-5" style={{ background: "var(--bg-card-soft)" }}>
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <div>
-              <h2 className="text-main font-semibold">Storyboard editable</h2>
-              <p className="text-muted2 text-xs mt-1">Primera versión: organiza escenas y diálogos antes de generar imágenes.</p>
+              <h2 className="text-main font-semibold">Storyboard visual editable</h2>
+              <p className="text-muted2 text-xs mt-1">Edita escenas, genera imágenes individuales y descarga cada viñeta.</p>
             </div>
             <div className="flex gap-2">
               <button onClick={addPanel} className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-soft text-xs text-sub"><Plus size={13} /> Viñeta</button>
@@ -188,17 +189,29 @@ export default function ComicsCreatorPage() {
             <div className="min-h-96 flex flex-col items-center justify-center text-center gap-3 border border-dashed border-soft rounded-2xl p-8">
               <span className="text-5xl">💬</span>
               <p className="text-main font-semibold">Todavía no hay viñetas</p>
-              <p className="text-muted2 text-sm max-w-sm">Describe el tema y crea un storyboard inicial. Luego podrás editar escenas y diálogos.</p>
+              <p className="text-muted2 text-sm max-w-sm">Describe el tema y crea un storyboard inicial. Luego podrás generar una imagen para cada escena.</p>
             </div>
           ) : (
             <div className="grid md:grid-cols-2 gap-3">
               {panels.map((panel, index) => (
-                <article key={panel.id} className="rounded-2xl border border-soft p-3 min-h-56">
+                <article key={panel.id} className="rounded-2xl border border-soft p-3">
                   <div className="flex items-center gap-2 mb-3">
                     <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: "rgba(236,72,153,0.12)", color: "#ec4899" }}>{index + 1}</span>
                     <input value={panel.title} onChange={(event) => updatePanel(panel.id, "title", event.target.value)} className="flex-1 bg-transparent text-main text-sm font-semibold outline-none" />
                     <button onClick={() => removePanel(panel.id)} className="text-muted2 hover:text-red-400"><Trash2 size={14} /></button>
                   </div>
+
+                  <ComicPanelImage
+                    panelIndex={index}
+                    title={panel.title}
+                    scene={panel.scene}
+                    topic={topic}
+                    audience={audience}
+                    educationalGoal={educationalGoal}
+                    style={style}
+                    characters={characters}
+                  />
+
                   <label className="text-[10px] text-muted2 font-bold tracking-wider">ESCENA</label>
                   <textarea value={panel.scene} onChange={(event) => updatePanel(panel.id, "scene", event.target.value)} rows={4}
                     className="w-full mt-1 rounded-xl border border-soft bg-transparent px-2.5 py-2 text-xs text-sub outline-none resize-y" />
