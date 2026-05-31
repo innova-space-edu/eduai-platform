@@ -111,7 +111,12 @@ export async function parseDocumentWithExternalService(params: {
 
   if (!baseUrl) return null
 
-  const timeoutMs = Number(process.env.DOCLING_PARSER_TIMEOUT_MS || 120000)
+  // El endpoint /api/agents/paper/extract dispone de 60 s. Docling no puede
+  // consumir todo ese tiempo porque después deben ejecutarse los fallbacks.
+  const requestedTimeout = Number(process.env.DOCLING_PARSER_TIMEOUT_MS || 12000)
+  const timeoutMs = Number.isFinite(requestedTimeout)
+    ? Math.min(Math.max(requestedTimeout, 3000), 20000)
+    : 12000
 
   try {
     const formData = new FormData()
