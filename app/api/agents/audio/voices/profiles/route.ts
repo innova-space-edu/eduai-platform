@@ -69,3 +69,56 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: error?.message || "No se pudo crear el perfil vocal" }, { status: 500 })
   }
 }
+
+export async function DELETE(req: Request) {
+  const { valid, supabase } = await validateVoiceSecuritySession()
+  if (!valid) return NextResponse.json({ error: "Sesión protegida vencida" }, { status: 401 })
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 })
+
+  try {
+    const body = await req.json().catch(() => ({}))
+    const profileId = typeof body?.profileId === "string" ? body.profileId : ""
+    if (!profileId) return NextResponse.json({ error: "profileId requerido" }, { status: 400 })
+
+    const { data: profile } = await supabase
+      .from("audio_voice_profiles")
+      .select("id, sample_path")
+      .eq("id", profileId)
+      .eq("user_id", user.id)
+      .is("deleted_at", null)
+      .maybeSingle()
+
+    if (!profile) return NextResponse.json({ error: "Perfil vocal no encontrado" }, { status: 404 })
+
+    if (profile.sample_path) {
+      await supabase.storage.from("voice-clones").remove([profile.sample_path])
+    }
+
+    const { error } = await supabase
+      .from("audio_voice_profiles")
+      .update({
+        status: "deleted",
+        deleted_at: new Date().toISOString(),
+        internal_use_enabled: false,
+        default_voice: false,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", profileId)
+      .eq("user_id", user.id)
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    await supabase.from("audio_voice_events").insert({
+      user_id: user.id,
+      voice_profile_id: profileId,
+      event_type: "deleted",
+      metadata: { sample_removed: !!profile.sample_path },
+    })
+
+    return NextResponse.json({ ok: true })
+  } catch (error: any) {
+    return NextResponse.json({ error: error?.message || "No se pudo eliminar el perfil vocal" }, { status: 500 })
+  }
+}
