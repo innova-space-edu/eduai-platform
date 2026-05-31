@@ -10,7 +10,7 @@ const ALLOWED_TYPES = new Set<ResourceType>(["url", "text", "notebook"])
 const ALLOWED_VISIBILITY = new Set<Visibility>(["public", "authenticated"])
 
 function publicBaseUrl(request: NextRequest): string {
-  return (process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin).replace(/\/$/, "")
+  return request.nextUrl.origin.replace(/\/$/, "")
 }
 
 async function uniqueShortCode(supabase: Awaited<ReturnType<typeof createClient>>): Promise<string> {
