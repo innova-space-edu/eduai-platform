@@ -56,6 +56,20 @@ export async function POST(req: Request) {
       forceRefresh,
     })
 
+    if (result.error || !result.text?.trim()) {
+      return Response.json(
+        {
+          error:
+            result.summary ||
+            "No se pudo extraer texto útil del PDF. Prueba con un PDF que contenga texto seleccionable o revisa la configuración OCR.",
+          extractionMethod: result.extractionMethod,
+          parserUsed: result.parserUsed,
+          ocrUsed: result.ocrUsed,
+        },
+        { status: 422 }
+      )
+    }
+
     if (result.documentId) {
       try {
         await updateChunkEmbeddings({
@@ -84,17 +98,14 @@ export async function POST(req: Request) {
       filePath,
       documentId: result.documentId || null,
       chunkCount: result.chunks?.length || 0,
-      error: result.error || false,
+      error: false,
     })
   } catch (error: any) {
     console.error("[Paper][extract] error:", error)
 
     return Response.json(
       {
-        title: "Documento",
-        text: "",
-        summary: error?.message || "No se pudo extraer el texto automáticamente.",
-        error: true,
+        error: error?.message || "No se pudo extraer el texto automáticamente.",
       },
       { status: 500 }
     )
