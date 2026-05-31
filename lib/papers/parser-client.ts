@@ -79,8 +79,8 @@ function parseDoclingResponse(data: any): ExternalParserResult {
 
   return {
     success: !!clean,
-    parser: "docling",
-    method: "docling-api",
+    parser: typeof data?.parser === "string" ? data.parser : "external-parser",
+    method: typeof data?.method === "string" ? data.method : "external-parser",
     title:
       typeof data?.title === "string" ? data.title :
       typeof data?.document?.title === "string" ? data.document.title :
@@ -105,14 +105,13 @@ export async function parseDocumentWithExternalService(params: {
   buffer: Buffer
   filename: string
   mimeType?: string
+  forceOCR?: boolean
 }): Promise<ExternalParserResult | null> {
-  const { buffer, filename, mimeType = "application/pdf" } = params
+  const { buffer, filename, mimeType = "application/pdf", forceOCR = false } = params
   const baseUrl = process.env.DOCLING_PARSER_URL?.trim()
 
   if (!baseUrl) return null
 
-  // El endpoint /api/agents/paper/extract dispone de 60 s. Docling no puede
-  // consumir todo ese tiempo porque después deben ejecutarse los fallbacks.
   const requestedTimeout = Number(process.env.DOCLING_PARSER_TIMEOUT_MS || 12000)
   const timeoutMs = Number.isFinite(requestedTimeout)
     ? Math.min(Math.max(requestedTimeout, 3000), 20000)
@@ -125,11 +124,14 @@ export async function parseDocumentWithExternalService(params: {
       new Blob([new Uint8Array(buffer)], { type: mimeType }),
       filename || "document.pdf"
     )
+    formData.append("force_ocr", forceOCR ? "true" : "false")
 
     const endpoint = `${baseUrl.replace(/\/$/, "")}/parse`
+    const parserToken = process.env.PAPER_PARSER_TOKEN?.trim()
 
     const res = await fetch(endpoint, {
       method: "POST",
+      headers: parserToken ? { "x-parser-token": parserToken } : undefined,
       body: formData,
       signal: AbortSignal.timeout(timeoutMs),
     })
@@ -137,11 +139,11 @@ export async function parseDocumentWithExternalService(params: {
     const raw = await res.text()
 
     if (!res.ok) {
-      console.error("[Docling parser] HTTP", res.status, raw)
+      console.error("[Paper parser] HTTP", res.status, raw)
       return {
         success: false,
-        parser: "docling",
-        method: "docling-api",
+        parser: "external-parser",
+        method: "external-parser",
         text: "",
         pageCount: 0,
         pages: [],
@@ -153,11 +155,11 @@ export async function parseDocumentWithExternalService(params: {
     try {
       data = JSON.parse(raw)
     } catch {
-      console.error("[Docling parser] respuesta no JSON:", raw)
+      console.error("[Paper parser] respuesta no JSON:", raw)
       return {
         success: false,
-        parser: "docling",
-        method: "docling-api",
+        parser: "external-parser",
+        method: "external-parser",
         text: "",
         pageCount: 0,
         pages: [],
@@ -167,11 +169,11 @@ export async function parseDocumentWithExternalService(params: {
 
     return parseDoclingResponse(data)
   } catch (error: any) {
-    console.error("[Docling parser] error:", error?.message || error)
+    console.error("[Paper parser] error:", error?.message || error)
     return {
       success: false,
-      parser: "docling",
-      method: "docling-api",
+      parser: "external-parser",
+      method: "external-parser",
       text: "",
       pageCount: 0,
       pages: [],
