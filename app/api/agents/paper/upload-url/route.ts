@@ -60,14 +60,6 @@ export async function POST(req: Request) {
     return Response.json({ error: "Sesión no válida. Vuelve a iniciar sesión." }, { status: 401 })
   }
 
-  const adminClient = getAdminClient()
-  if (!adminClient) {
-    return Response.json(
-      { error: "Falta SUPABASE_SERVICE_ROLE_KEY para crear una URL de subida directa." },
-      { status: 501 },
-    )
-  }
-
   try {
     const body = await req.json().catch(() => ({}))
     const filename = safeFilename(String(body?.filename || "documento.pdf"))
@@ -78,6 +70,10 @@ export async function POST(req: Request) {
       return Response.json({ error: "Por ahora Chat Paper solo acepta archivos PDF." }, { status: 400 })
     }
 
+    if (!Number.isFinite(size) || size <= 0) {
+      return Response.json({ error: "El archivo PDF está vacío o tiene un tamaño inválido." }, { status: 400 })
+    }
+
     if (size > MAX_PDF_SIZE_BYTES) {
       return Response.json(
         { error: `El PDF pesa ${(size / 1024 / 1024).toFixed(1)} MB. El límite actual es ${MAX_PDF_SIZE_MB} MB.` },
@@ -85,27 +81,37 @@ export async function POST(req: Request) {
       )
     }
 
-    await ensurePapersBucket(adminClient.storage)
+    const adminClient = getAdminClient()
+    if (adminClient) {
+      await ensurePapersBucket(adminClient.storage)
+    }
 
+    const signingClient = adminClient || userClient
     const filePath = `${user.id}/${Date.now()}-${filename}`
-    const { data, error } = await adminClient.storage
+    const { data, error } = await signingClient.storage
       .from(STORAGE_BUCKET)
       .createSignedUploadUrl(filePath)
 
     if (error || !data?.token) {
       return Response.json(
-        { error: error?.message || "No se pudo crear la URL segura de subida." },
+        {
+          error:
+            error?.message ||
+            "No se pudo crear la URL segura de subida. Revisa el bucket papers y sus políticas de Storage.",
+        },
         { status: 500 },
       )
     }
 
     return Response.json({
       ok: true,
+      directUpload: true,
       bucket: STORAGE_BUCKET,
       filePath,
       filename,
       token: data.token,
       signedUrl: data.signedUrl,
+      maxSizeMB: MAX_PDF_SIZE_MB,
     })
   } catch (error: any) {
     console.error("[Paper][upload-url] error:", error)
