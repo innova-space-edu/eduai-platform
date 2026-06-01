@@ -29,6 +29,12 @@ type FluxResult = {
   };
 };
 
+type FalSubscribeClient = {
+  subscribe: (modelId: string, args: { input: Record<string, unknown> }) => Promise<unknown>;
+};
+
+const falClient = fal as unknown as FalSubscribeClient;
+
 export async function POST(request: Request) {
   const access = await getModelLabAccess();
   if (access.status !== "ok" || !access.user) {
@@ -44,7 +50,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Prompt inválido" }, { status: 400 });
     }
 
-    const result = await fal.subscribe("fal-ai/flux/schnell", {
+    const result = await falClient.subscribe("fal-ai/flux/schnell", {
       input: {
         prompt,
         image_size: imageSize,
