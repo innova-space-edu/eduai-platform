@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation"
 import { getModelLabAccess } from "@/lib/auth/model-lab-access"
+import ProvidersStatusClient from "./ProvidersStatusClient"
 import ImageGeneratorClient from "./ImageGeneratorClient"
 import VideoGeneratorClient from "./VideoGeneratorClient"
 import JobsHistoryClient from "./JobsHistoryClient"
@@ -18,6 +19,7 @@ export default async function ModelLabLayout({ children }: Readonly<{ children: 
       {children}
       <main className="bg-slate-950 px-4 pb-10 text-white">
         <div className="mx-auto max-w-6xl space-y-6">
+          <ProvidersStatusClient />
           <ImageGeneratorClient />
           <VideoGeneratorClient />
           <JobsHistoryClient />
