@@ -48,8 +48,8 @@ function ModelCard({ model }: { model: ModelLabCatalogItem }) {
 
 function Section({ title, description, models }: { title: string; description: string; models: ModelLabCatalogItem[] }) {
   return (
-    <section className="rounded-[28px] border border-white/10 bg-white/[0.025] p-5">
-      <h2 className="text-xl font-black">{title}</h2>
+    <section className="rounded-[24px] border border-white/10 bg-white/[0.025] p-4">
+      <h3 className="text-lg font-black">{title}</h3>
       <p className="mt-2 text-sm leading-relaxed text-slate-400">{description}</p>
       <div className="mt-5 grid gap-4 lg:grid-cols-2">
         {models.map((model) => <ModelCard key={model.id} model={model} />)}
@@ -60,22 +60,18 @@ function Section({ title, description, models }: { title: string; description: s
 
 export default function ModelCatalog() {
   return (
-    <div className="space-y-5">
-      <Section
-        title="Chat experimental"
-        description="Modelos online para comparar respuestas y preparar prompts visuales."
-        models={MODEL_LAB_CHAT_MODELS}
-      />
-      <Section
-        title="Creación y edición de imágenes"
-        description="Afiches, texto dentro de imágenes, edición guiada, múltiples referencias y capas editables."
-        models={MODEL_LAB_IMAGE_MODELS}
-      />
-      <Section
-        title="Creación y transformación de videos"
-        description="Texto a video, imagen a video, video a video, audio sincronizado y animación avanzada."
-        models={MODEL_LAB_VIDEO_MODELS}
-      />
-    </div>
+    <section className="rounded-[28px] border border-white/10 bg-white/[0.02] p-5">
+      <details>
+        <summary className="cursor-pointer text-lg font-black text-slate-200">Ver catálogo técnico y modelos planificados</summary>
+        <p className="mt-3 text-sm leading-relaxed text-slate-400">
+          Esta sección reúne modelos evaluados o considerados para próximas fases. Se mantiene plegada para no sobrecargar la operación diaria.
+        </p>
+        <div className="mt-5 space-y-5">
+          <Section title="Chat experimental" description="Modelos online para comparar respuestas y preparar prompts visuales." models={MODEL_LAB_CHAT_MODELS} />
+          <Section title="Creación y edición de imágenes" description="Afiches, texto dentro de imágenes, edición guiada, múltiples referencias y capas editables." models={MODEL_LAB_IMAGE_MODELS} />
+          <Section title="Creación y transformación de videos" description="Texto a video, imagen a video, video a video, audio sincronizado y animación avanzada." models={MODEL_LAB_VIDEO_MODELS} />
+        </div>
+      </details>
+    </section>
   );
 }
