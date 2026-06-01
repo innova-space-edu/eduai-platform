@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { fal } from "@fal-ai/client";
 import { getModelLabAccess } from "@/lib/auth/model-lab-access";
+import { updateJobByExternalId } from "@/lib/ai/model-lab-job-store";
 
 const MODEL_ID = "fal-ai/hunyuan-video";
 
@@ -39,12 +40,32 @@ export async function GET(request: Request) {
 
     if (searchParams.get("result") === "1") {
       const result = await falClient.queue.result(MODEL_ID, { requestId }) as VideoResult;
+      const outputUrl = result.data.video?.url || null;
+
+      await updateJobByExternalId(access.supabase, requestId, {
+        status: "completed",
+        output_path: outputUrl,
+        completed_at: new Date().toISOString(),
+        metadata: { seed: result.data.seed || null },
+      });
+
       return NextResponse.json({ requestId, data: result.data });
     }
 
     const status = await falClient.queue.status(MODEL_ID, { requestId, logs: false }) as QueueStatus;
+
     if (status.status === "COMPLETED" && status.error) {
+      await updateJobByExternalId(access.supabase, requestId, {
+        status: "failed",
+        completed_at: new Date().toISOString(),
+        metadata: { error: status.error, error_type: status.error_type || "provider_error" },
+      });
+
       return NextResponse.json({ error: status.error, errorType: status.error_type || "provider_error" }, { status: 502 });
+    }
+
+    if (status.status === "IN_PROGRESS") {
+      await updateJobByExternalId(access.supabase, requestId, { status: "running" });
     }
 
     return NextResponse.json({ requestId, status });
