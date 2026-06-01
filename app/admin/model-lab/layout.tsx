@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation"
 import { getModelLabAccess } from "@/lib/auth/model-lab-access"
+import ImageGeneratorClient from "./ImageGeneratorClient"
 import ModelCatalog from "./ModelCatalog"
 
 export default async function ModelLabLayout({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -13,7 +14,8 @@ export default async function ModelLabLayout({ children }: Readonly<{ children: 
     <>
       {children}
       <main className="bg-slate-950 px-4 pb-10 text-white">
-        <div className="mx-auto max-w-6xl">
+        <div className="mx-auto max-w-6xl space-y-6">
+          <ImageGeneratorClient />
           <ModelCatalog />
         </div>
       </main>
