@@ -3,6 +3,7 @@ import { getModelLabAccess } from "@/lib/auth/model-lab-access"
 import ImageGeneratorClient from "./ImageGeneratorClient"
 import VideoGeneratorClient from "./VideoGeneratorClient"
 import JobsHistoryClient from "./JobsHistoryClient"
+import OpenRouterModelsClient from "./OpenRouterModelsClient"
 import ModelCatalog from "./ModelCatalog"
 
 export default async function ModelLabLayout({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -20,6 +21,7 @@ export default async function ModelLabLayout({ children }: Readonly<{ children: 
           <ImageGeneratorClient />
           <VideoGeneratorClient />
           <JobsHistoryClient />
+          <OpenRouterModelsClient />
           <ModelCatalog />
         </div>
       </main>
