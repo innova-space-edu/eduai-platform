@@ -42,20 +42,23 @@ export default function JobsHistoryClient() {
   }
 
   return (
-    <section className="rounded-[28px] border border-white/10 bg-white/[0.025] p-5">
+    <section id="historial" className="scroll-mt-6 rounded-[28px] border border-white/10 bg-white/[0.025] p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-400">Historial privado</p>
           <h2 className="mt-2 text-2xl font-black">Últimas ejecuciones</h2>
+          <p className="mt-2 text-sm text-slate-400">Se actualiza automáticamente cada ocho segundos.</p>
         </div>
         <button onClick={() => void loadJobs()} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold hover:bg-white/10">
-          Recargar
+          Recargar ahora
         </button>
       </div>
 
-      {loading && <p className="mt-4 text-sm text-slate-400">Cargando historial...</p>}
-      {error && <p className="mt-4 rounded-2xl border border-red-400/25 bg-red-500/10 p-3 text-sm text-red-100">{error}</p>}
-      {!loading && !error && jobs.length === 0 && <p className="mt-4 text-sm text-slate-400">Todavía no hay ejecuciones registradas.</p>}
+      <div aria-live="polite" aria-atomic="true">
+        {loading && <p className="mt-4 text-sm text-slate-400">Cargando historial...</p>}
+        {error && <p className="mt-4 rounded-2xl border border-red-400/25 bg-red-500/10 p-3 text-sm text-red-100">{error}</p>}
+        {!loading && !error && jobs.length === 0 && <p className="mt-4 text-sm text-slate-400">Todavía no hay ejecuciones registradas.</p>}
+      </div>
 
       {jobs.length > 0 && (
         <div className="mt-5 space-y-3">
