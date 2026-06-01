@@ -5,6 +5,14 @@ import { getModelLabAccess } from "@/lib/auth/model-lab-access";
 const MODEL_ID = "fal-ai/hunyuan-video";
 type SubmitResult = { request_id: string };
 
+type FalQueueSubmitClient = {
+  queue: {
+    submit: (modelId: string, args: { input: Record<string, unknown> }) => Promise<unknown>;
+  };
+};
+
+const falClient = fal as unknown as FalQueueSubmitClient;
+
 export async function POST(request: Request) {
   const access = await getModelLabAccess();
   if (access.status !== "ok" || !access.user) return NextResponse.json({ error: "Acceso denegado" }, { status: 403 });
@@ -16,7 +24,7 @@ export async function POST(request: Request) {
     const resolution = ["480p", "580p", "720p"].includes(body.resolution) ? body.resolution : "720p";
     if (prompt.length < 3 || prompt.length > 3000) return NextResponse.json({ error: "Prompt inválido" }, { status: 400 });
 
-    const result = await fal.queue.submit(MODEL_ID, {
+    const result = await falClient.queue.submit(MODEL_ID, {
       input: { prompt, aspect_ratio: aspectRatio, resolution, num_frames: 85, enable_safety_checker: true },
     }) as SubmitResult;
 
