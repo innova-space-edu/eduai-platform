@@ -13,6 +13,22 @@ const IMAGE_SIZES = new Set([
   "landscape_16_9",
 ]);
 
+type FluxImage = {
+  url?: string;
+  width?: number;
+  height?: number;
+  content_type?: string;
+};
+
+type FluxResult = {
+  requestId: string;
+  data: {
+    images?: FluxImage[];
+    seed?: number;
+    prompt?: string;
+  };
+};
+
 export async function POST(request: Request) {
   const access = await getModelLabAccess();
   if (access.status !== "ok" || !access.user) {
@@ -36,7 +52,7 @@ export async function POST(request: Request) {
         enable_safety_checker: true,
         output_format: "jpeg",
       },
-    });
+    }) as FluxResult;
 
     await access.supabase.from("model_lab_audit_logs").insert({
       user_id: access.user.id,
