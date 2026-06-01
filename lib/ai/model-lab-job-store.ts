@@ -8,3 +8,7 @@ export async function saveQueuedVideoJob(db: DbClient, values: Record<string, un
 export async function updateJob(db: DbClient, jobId: string, values: Record<string, unknown>) {
   await db.from("model_lab_jobs").update(values).eq("id", jobId);
 }
+
+export async function updateJobByExternalId(db: DbClient, externalJobId: string, values: Record<string, unknown>) {
+  await db.from("model_lab_jobs").update(values).eq("external_job_id", externalJobId);
+}
