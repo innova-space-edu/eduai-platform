@@ -8,6 +8,7 @@ export async function GET() {
   return NextResponse.json({
     providers: {
       fal: { configured: Boolean(process.env.FAL_KEY) },
+      openrouter: { configured: Boolean(process.env.OPENROUTER_API_KEY) },
     },
   });
 }
