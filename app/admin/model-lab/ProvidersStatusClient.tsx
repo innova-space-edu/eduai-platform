@@ -43,7 +43,7 @@ export default function ProvidersStatusClient() {
   ] as const;
 
   return (
-    <section className="rounded-[28px] border border-emerald-400/25 bg-emerald-500/10 p-5">
+    <section id="proveedores" className="scroll-mt-6 rounded-[28px] border border-emerald-400/25 bg-emerald-500/10 p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.22em] text-emerald-200">Estado de conexiones</p>
@@ -54,8 +54,10 @@ export default function ProvidersStatusClient() {
         </button>
       </div>
 
-      {loading && <p className="mt-4 text-sm text-emerald-100/70">Comprobando proveedores...</p>}
-      {error && <p className="mt-4 rounded-2xl border border-red-400/25 bg-red-500/10 p-3 text-sm text-red-100">{error}</p>}
+      <div aria-live="polite" aria-atomic="true">
+        {loading && <p className="mt-4 text-sm text-emerald-100/70">Comprobando proveedores...</p>}
+        {error && <p className="mt-4 rounded-2xl border border-red-400/25 bg-red-500/10 p-3 text-sm text-red-100">{error}</p>}
+      </div>
 
       {!loading && !error && (
         <div className="mt-5 grid gap-3 md:grid-cols-2">
