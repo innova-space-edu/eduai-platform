@@ -2,6 +2,15 @@
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 
+const statusLabels: Record<string, string> = {
+  idle: "Listo para crear",
+  submitting: "Enviando solicitud...",
+  IN_QUEUE: "En cola de procesamiento",
+  IN_PROGRESS: "Generando video...",
+  completed: "Video listo",
+  failed: "No fue posible completar el video",
+};
+
 export default function VideoGeneratorClient() {
   const [prompt, setPrompt] = useState("");
   const [aspectRatio, setAspectRatio] = useState("16:9");
@@ -85,21 +94,40 @@ export default function VideoGeneratorClient() {
   const running = status === "submitting" || status === "IN_QUEUE" || status === "IN_PROGRESS";
 
   return (
-    <section className="rounded-[28px] border border-cyan-400/25 bg-cyan-500/10 p-5">
-      <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-200">Video online experimental</p>
-      <h2 className="mt-2 text-2xl font-black">Generador de video con cola asíncrona</h2>
+    <section id="videos" className="scroll-mt-6 rounded-[28px] border border-cyan-400/25 bg-cyan-500/10 p-5">
+      <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-200">Videos</p>
+      <h2 className="mt-2 text-2xl font-black">Crear un video</h2>
+      <p className="mt-2 max-w-3xl text-sm leading-relaxed text-cyan-100/80">
+        Describe la escena, define el formato y sigue el progreso mientras el proveedor procesa el MP4.
+      </p>
+
       {providerReady === false && <p className="mt-4 rounded-2xl border border-amber-300/25 bg-amber-500/10 p-3 text-sm text-amber-100">Fal todavía no está configurado en Vercel.</p>}
+
       <form onSubmit={generate} className="mt-5 grid gap-4">
-        <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder="Describe el video..." rows={4} minLength={3} maxLength={3000} required className="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm" />
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <select value={aspectRatio} onChange={(event) => setAspectRatio(event.target.value)} className="rounded-2xl bg-slate-950 px-4 py-3 text-sm"><option>16:9</option><option>9:16</option></select>
-          <select value={resolution} onChange={(event) => setResolution(event.target.value)} className="rounded-2xl bg-slate-950 px-4 py-3 text-sm"><option>480p</option><option>580p</option><option>720p</option></select>
-          <button type="submit" disabled={running || providerReady !== true || prompt.trim().length < 3} className="rounded-2xl bg-cyan-300 px-5 py-3 text-sm font-black text-slate-950 disabled:opacity-50">{running ? "Procesando..." : providerReady === null ? "Comprobando proveedor..." : "Crear video"}</button>
+        <div>
+          <label htmlFor="video-prompt" className="mb-2 block text-sm font-bold text-cyan-100">Descripción del video</label>
+          <textarea id="video-prompt" value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder="Ejemplo: cámara recorriendo una ciudad futurista al atardecer..." rows={4} minLength={3} maxLength={3000} required className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm outline-none transition placeholder:text-slate-500 focus:border-cyan-300/70" />
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-[180px_180px_1fr] sm:items-end">
+          <div>
+            <label htmlFor="video-ratio" className="mb-2 block text-sm font-bold text-cyan-100">Formato</label>
+            <select id="video-ratio" value={aspectRatio} onChange={(event) => setAspectRatio(event.target.value)} className="w-full rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 text-sm"><option>16:9</option><option>9:16</option></select>
+          </div>
+          <div>
+            <label htmlFor="video-resolution" className="mb-2 block text-sm font-bold text-cyan-100">Resolución</label>
+            <select id="video-resolution" value={resolution} onChange={(event) => setResolution(event.target.value)} className="w-full rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 text-sm"><option>480p</option><option>580p</option><option>720p</option></select>
+          </div>
+          <button type="submit" disabled={running || providerReady !== true || prompt.trim().length < 3} className="rounded-2xl bg-cyan-300 px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-50">{running ? "Procesando video..." : providerReady === null ? "Comprobando proveedor..." : "Crear video"}</button>
         </div>
       </form>
-      {status !== "idle" && <p className="mt-4 text-sm font-bold text-cyan-100">Estado: {status}</p>}
-      {error && <p className="mt-4 text-sm text-red-100">{error}</p>}
-      {videoUrl && <video src={videoUrl} controls className="mt-5 w-full rounded-2xl" />}
+
+      <div aria-live="polite" aria-atomic="true">
+        {status !== "idle" && <p className="mt-4 rounded-2xl border border-cyan-300/20 bg-cyan-400/10 p-3 text-sm font-bold text-cyan-100">{statusLabels[status] || status}</p>}
+        {error && <p className="mt-4 rounded-2xl border border-red-400/25 bg-red-500/10 p-3 text-sm text-red-100">{error}</p>}
+      </div>
+
+      {videoUrl && <video src={videoUrl} controls className="mt-5 w-full rounded-2xl border border-white/10 bg-black" />}
     </section>
   );
 }
