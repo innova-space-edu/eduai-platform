@@ -22,7 +22,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const model = typeof body.model === "string" ? body.model.trim() : "";
-    const rawMessages = Array.isArray(body.messages) ? body.messages : [];
+    const rawMessages: unknown[] = Array.isArray(body.messages) ? body.messages : [];
     const temperature = typeof body.temperature === "number" && body.temperature >= 0 && body.temperature <= 2 ? body.temperature : 0.7;
 
     const messages: ChatMessage[] = rawMessages
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
         return ["user", "assistant"].includes(String(value.role)) && typeof value.content === "string";
       })
       .slice(-12)
-      .map((item) => ({ role: item.role, content: item.content.trim().slice(0, 6000) }));
+      .map((item: ChatMessage) => ({ role: item.role, content: item.content.trim().slice(0, 6000) }));
 
     if (!model || model.length > 300) return NextResponse.json({ error: "Modelo inválido" }, { status: 400 });
     if (!messages.length || !messages[messages.length - 1]?.content) return NextResponse.json({ error: "Mensaje inválido" }, { status: 400 });
