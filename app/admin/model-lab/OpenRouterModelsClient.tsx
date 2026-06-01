@@ -41,23 +41,28 @@ export default function OpenRouterModelsClient() {
   }, [models, query]);
 
   return (
-    <section className="rounded-[28px] border border-fuchsia-400/25 bg-fuchsia-500/10 p-5">
+    <section id="modelos" className="scroll-mt-6 rounded-[28px] border border-fuchsia-400/25 bg-fuchsia-500/10 p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.22em] text-fuchsia-200">Chat experimental online</p>
-          <h2 className="mt-2 text-2xl font-black">Catálogo de modelos OpenRouter</h2>
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-fuchsia-200">Modelos IA</p>
+          <h2 className="mt-2 text-2xl font-black">Explorar catálogo OpenRouter</h2>
         </div>
-        <button onClick={() => void loadModels()} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold hover:bg-white/10">Recargar</button>
+        <button onClick={() => void loadModels()} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold hover:bg-white/10">Recargar catálogo</button>
       </div>
 
       <p className="mt-2 max-w-3xl text-sm leading-relaxed text-fuchsia-100/80">
-        Este panel lista modelos disponibles mediante OpenRouter. La ejecución de chat se habilitará en una etapa separada.
+        Consulta modelos disponibles y filtra por nombre o identificador. La ejecución de chat se habilitará en una etapa separada.
       </p>
 
-      <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar modelo..." className="mt-5 w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm" />
+      <div className="mt-5">
+        <label htmlFor="openrouter-search" className="mb-2 block text-sm font-bold text-fuchsia-100">Buscar modelo</label>
+        <input id="openrouter-search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Ejemplo: qwen, llama, mistral..." className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm outline-none transition placeholder:text-slate-500 focus:border-fuchsia-300/70" />
+      </div>
 
-      {loading && <p className="mt-4 text-sm text-fuchsia-100/70">Cargando modelos...</p>}
-      {error && <p className="mt-4 rounded-2xl border border-amber-300/25 bg-amber-500/10 p-3 text-sm text-amber-100">{error}</p>}
+      <div aria-live="polite" aria-atomic="true">
+        {loading && <p className="mt-4 text-sm text-fuchsia-100/70">Cargando modelos...</p>}
+        {error && <p className="mt-4 rounded-2xl border border-amber-300/25 bg-amber-500/10 p-3 text-sm text-amber-100">{error}</p>}
+      </div>
 
       {!loading && !error && (
         <div className="mt-5 grid gap-3 md:grid-cols-2">
