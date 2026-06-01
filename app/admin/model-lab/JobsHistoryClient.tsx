@@ -22,10 +22,12 @@ export default function JobsHistoryClient() {
 
   useEffect(() => {
     void loadJobs();
+    const interval = setInterval(() => void loadJobs(false), 8000);
+    return () => clearInterval(interval);
   }, []);
 
-  async function loadJobs() {
-    setLoading(true);
+  async function loadJobs(showSpinner = true) {
+    if (showSpinner) setLoading(true);
     setError("");
     try {
       const response = await fetch("/api/admin/model-lab/jobs", { cache: "no-store" });
@@ -35,7 +37,7 @@ export default function JobsHistoryClient() {
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Error desconocido");
     } finally {
-      setLoading(false);
+      if (showSpinner) setLoading(false);
     }
   }
 
