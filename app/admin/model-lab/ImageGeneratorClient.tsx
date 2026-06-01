@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 type GeneratedImage = {
   url?: string;
@@ -24,6 +24,21 @@ export default function ImageGeneratorClient() {
   const [error, setError] = useState("");
   const [image, setImage] = useState<GeneratedImage | null>(null);
   const [requestId, setRequestId] = useState("");
+  const [providerReady, setProviderReady] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    void loadProviderStatus();
+  }, []);
+
+  async function loadProviderStatus() {
+    try {
+      const response = await fetch("/api/admin/model-lab/providers/status", { cache: "no-store" });
+      const payload = await response.json();
+      setProviderReady(response.ok && payload.providers?.fal?.configured === true);
+    } catch {
+      setProviderReady(false);
+    }
+  }
 
   async function generate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -61,6 +76,12 @@ export default function ImageGeneratorClient() {
         Prueba privada con FLUX Schnell mediante fal. La solicitud pasa por MFA, filtro de seguridad y auditoría administrativa.
       </p>
 
+      {providerReady === false && (
+        <p className="mt-4 rounded-2xl border border-amber-300/25 bg-amber-500/10 p-3 text-sm text-amber-100">
+          Fal todavía no está configurado en Vercel. Agrega la variable segura del proveedor para habilitar la generación.
+        </p>
+      )}
+
       <form onSubmit={generate} className="mt-5 grid gap-4">
         <textarea
           value={prompt}
@@ -83,10 +104,10 @@ export default function ImageGeneratorClient() {
           </select>
           <button
             type="submit"
-            disabled={loading || prompt.trim().length < 3}
+            disabled={loading || prompt.trim().length < 3 || providerReady !== true}
             className="rounded-2xl bg-violet-300 px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-violet-200 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {loading ? "Generando..." : "Crear imagen"}
+            {loading ? "Generando..." : providerReady === null ? "Comprobando proveedor..." : "Crear imagen"}
           </button>
         </div>
       </form>
