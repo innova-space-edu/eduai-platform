@@ -7,6 +7,7 @@ const statusLabels: Record<string, string> = {
   submitting: "Enviando solicitud...",
   IN_QUEUE: "En cola de procesamiento",
   IN_PROGRESS: "Generando video...",
+  COMPLETED: "Recuperando resultado...",
   completed: "Video listo",
   failed: "No fue posible completar el video",
 };
@@ -58,7 +59,7 @@ export default function VideoGeneratorClient() {
         body: JSON.stringify({ prompt, aspectRatio, resolution }),
       });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || "No fue posible iniciar el video");
+      if (!response.ok) throw new Error(payload.detail || payload.error || "No fue posible iniciar el video");
       setStatus("IN_QUEUE");
       await checkStatus(payload.requestId);
     } catch (cause) {
@@ -70,7 +71,7 @@ export default function VideoGeneratorClient() {
     try {
       const response = await fetch(`/api/admin/model-lab/video-status?requestId=${encodeURIComponent(requestId)}`, { cache: "no-store" });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || "No fue posible consultar el estado");
+      if (!response.ok) throw new Error(payload.detail || payload.error || "No fue posible consultar el estado");
 
       const nextStatus = payload.status?.status || "IN_PROGRESS";
       setStatus(nextStatus);
@@ -84,24 +85,24 @@ export default function VideoGeneratorClient() {
   async function loadResult(requestId: string) {
     const response = await fetch(`/api/admin/model-lab/video-status?requestId=${encodeURIComponent(requestId)}&result=1`, { cache: "no-store" });
     const payload = await response.json();
-    if (!response.ok) throw new Error(payload.error || "No fue posible recuperar el video");
+    if (!response.ok) throw new Error(payload.detail || payload.error || "No fue posible recuperar el video");
     const url = payload.data?.video?.url || "";
     if (!url) throw new Error("El proveedor no devolvió un MP4 utilizable");
     setVideoUrl(url);
     setStatus("completed");
   }
 
-  const running = status === "submitting" || status === "IN_QUEUE" || status === "IN_PROGRESS";
+  const running = status === "submitting" || status === "IN_QUEUE" || status === "IN_PROGRESS" || status === "COMPLETED";
 
   return (
     <section id="videos" className="scroll-mt-6 rounded-[28px] border border-cyan-400/25 bg-cyan-500/10 p-5">
       <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-200">Videos</p>
       <h2 className="mt-2 text-2xl font-black">Crear un video</h2>
       <p className="mt-2 max-w-3xl text-sm leading-relaxed text-cyan-100/80">
-        Describe la escena, define el formato y sigue el progreso mientras el proveedor procesa el MP4.
+        Describe la escena, define el formato y sigue el progreso mientras fal procesa el MP4 mediante una cola asíncrona.
       </p>
 
-      {providerReady === false && <p className="mt-4 rounded-2xl border border-amber-300/25 bg-amber-500/10 p-3 text-sm text-amber-100">Fal todavía no está configurado en Vercel.</p>}
+      {providerReady === false && <p className="mt-4 rounded-2xl border border-amber-300/25 bg-amber-500/10 p-3 text-sm text-amber-100">El proveedor de video todavía no está configurado en Vercel Preview.</p>}
 
       <form onSubmit={generate} className="mt-5 grid gap-4">
         <div>
