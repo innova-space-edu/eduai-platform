@@ -38,8 +38,24 @@ export default function ProvidersStatusClient() {
   }
 
   const providers = [
-    { key: "fal", label: "fal", description: "Generación de imágenes y video" },
-    { key: "openrouter", label: "OpenRouter", description: "Catálogo y futura ejecución de chat" },
+    {
+      key: "imageStudio",
+      label: "Image Studio EduAI",
+      description: "Generación de imágenes mediante la ruta estable de EduAI con respaldos automáticos.",
+      configured: true,
+    },
+    {
+      key: "openrouter",
+      label: "OpenRouter",
+      description: "Catálogo y ejecución de chat experimental privado.",
+      configured: payload?.providers?.openrouter?.configured === true,
+    },
+    {
+      key: "falVideo",
+      label: "fal Video",
+      description: "Generación asíncrona de videos mediante fal-ai/hunyuan-video.",
+      configured: payload?.providers?.fal?.configured === true,
+    },
   ] as const;
 
   return (
@@ -60,23 +76,20 @@ export default function ProvidersStatusClient() {
       </div>
 
       {!loading && !error && (
-        <div className="mt-5 grid gap-3 md:grid-cols-2">
-          {providers.map((provider) => {
-            const configured = payload?.providers?.[provider.key]?.configured === true;
-            return (
-              <article key={provider.key} className="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="text-sm font-black text-white">{provider.label}</h3>
-                    <p className="mt-1 text-xs text-slate-400">{provider.description}</p>
-                  </div>
-                  <span className={`rounded-full px-3 py-1 text-xs font-black ${configured ? "bg-emerald-400/15 text-emerald-200" : "bg-amber-400/15 text-amber-200"}`}>
-                    {configured ? "Configurado" : "Pendiente"}
-                  </span>
+        <div className="mt-5 grid gap-3 md:grid-cols-3">
+          {providers.map((provider) => (
+            <article key={provider.key} className="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-black text-white">{provider.label}</h3>
+                  <p className="mt-1 text-xs text-slate-400">{provider.description}</p>
                 </div>
-              </article>
-            );
-          })}
+                <span className={`rounded-full px-3 py-1 text-xs font-black ${provider.configured ? "bg-emerald-400/15 text-emerald-200" : "bg-amber-400/15 text-amber-200"}`}>
+                  {provider.configured ? "Configurado" : "Pendiente"}
+                </span>
+              </div>
+            </article>
+          ))}
         </div>
       )}
     </section>
