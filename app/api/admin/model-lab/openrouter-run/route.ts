@@ -8,7 +8,14 @@ type OpenRouterPayload = {
   id?: string;
   choices?: Array<{ message?: { content?: string } }>;
   usage?: Record<string, unknown>;
+  error?: { code?: number | string; message?: string };
 };
+
+function getProviderDetail(payload: OpenRouterPayload, status: number) {
+  const message = typeof payload.error?.message === "string" ? payload.error.message.slice(0, 500) : "Error no especificado";
+  const code = payload.error?.code ? String(payload.error.code).slice(0, 80) : String(status);
+  return `OpenRouter ${code}: ${message}`;
+}
 
 export async function POST(request: Request) {
   const access = await getModelLabAccess();
@@ -19,9 +26,12 @@ export async function POST(request: Request) {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) return NextResponse.json({ error: "OpenRouter no configurado" }, { status: 503 });
 
+  let selectedModel = "";
+
   try {
     const body = await request.json();
     const model = typeof body.model === "string" ? body.model.trim() : "";
+    selectedModel = model;
     const rawMessages: unknown[] = Array.isArray(body.messages) ? body.messages : [];
     const temperature = typeof body.temperature === "number" && body.temperature >= 0 && body.temperature <= 2 ? body.temperature : 0.7;
 
@@ -48,7 +58,7 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         model,
         temperature,
-        max_completion_tokens: 1200,
+        max_tokens: 1200,
         messages: [
           { role: "system", content: "Laboratorio privado de evaluación EduAI. Sigue las políticas mínimas de seguridad de la plataforma y responde con claridad." },
           ...messages,
@@ -58,7 +68,18 @@ export async function POST(request: Request) {
     });
 
     const payload = await response.json() as OpenRouterPayload;
-    if (!response.ok) return NextResponse.json({ error: "OpenRouter rechazó la solicitud" }, { status: 502 });
+    if (!response.ok) {
+      const detail = getProviderDetail(payload, response.status);
+      await access.supabase.from("model_lab_audit_logs").insert({
+        user_id: access.user.id,
+        action: "chat_completion",
+        provider: "openrouter",
+        model_id: model,
+        decision: "failed",
+        metadata: { status: response.status, detail },
+      });
+      return NextResponse.json({ error: "OpenRouter rechazó la solicitud", detail }, { status: 502 });
+    }
 
     const answer = payload.choices?.[0]?.message?.content || "";
     const prompt = messages[messages.length - 1]?.content || "";
@@ -90,7 +111,15 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ answer, model, requestId: payload.id || null, usage: payload.usage || null });
   } catch (error) {
-    const detail = error instanceof Error ? error.message : "Error desconocido";
+    const detail = error instanceof Error ? error.message.slice(0, 500) : "Error desconocido";
+    await access.supabase.from("model_lab_audit_logs").insert({
+      user_id: access.user.id,
+      action: "chat_completion",
+      provider: "openrouter",
+      model_id: selectedModel || null,
+      decision: "failed",
+      metadata: { detail },
+    });
     return NextResponse.json({ error: "No fue posible completar el chat", detail }, { status: 502 });
   }
 }
