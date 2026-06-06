@@ -19,6 +19,7 @@ import MathRenderer from "@/components/ui/MathRenderer";
 type Point = { x: number; y: number };
 type Stroke = { id: string; points: Point[] };
 type Tool = "pen" | "eraser";
+type ChatMessage = { role: "user" | "assistant"; content: string };
 
 const ERASER_RADIUS = 18;
 
@@ -54,6 +55,8 @@ export default function PizarraInteractivaPage() {
   const [feedback, setFeedback] = useState("Escribe una expresión matemática. El resultado LaTeX aparecerá a la derecha.");
   const [expanded, setExpanded] = useState(false);
   const [chatInput, setChatInput] = useState("");
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatLoading, setChatLoading] = useState(false);
 
   const allStrokes = useMemo(() => (activeStroke ? [...strokes, activeStroke] : strokes), [activeStroke, strokes]);
 
@@ -156,6 +159,35 @@ export default function PizarraInteractivaPage() {
     setFeedback("La pizarra quedó vacía. Puedes escribir una nueva expresión.");
   }
 
+  async function sendChat() {
+    const question = chatInput.trim();
+    if (!question || chatLoading) return;
+
+    const context = latex
+      ? `${question}\n\nExpresión escrita actualmente en la pizarra: $$${latex}$$`
+      : question;
+
+    const history = chatMessages.slice(-6);
+    setChatMessages((current) => [...current, { role: "user", content: question }]);
+    setChatInput("");
+    setChatLoading(true);
+
+    try {
+      const response = await fetch("/api/agents/matematico", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: context, history }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.error || "No fue posible consultar al agente matemático.");
+      setChatMessages((current) => [...current, { role: "assistant", content: data.text || "No recibí una respuesta." }]);
+    } catch (error) {
+      setChatMessages((current) => [...current, { role: "assistant", content: error instanceof Error ? `⚠️ ${error.message}` : "⚠️ No fue posible consultar al agente matemático." }]);
+    } finally {
+      setChatLoading(false);
+    }
+  }
+
   return (
     <div className={`min-h-screen bg-white text-slate-900 ${expanded ? "overflow-hidden" : ""}`}>
       <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
@@ -182,9 +214,18 @@ export default function PizarraInteractivaPage() {
           <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-800"><Sparkles size={16} className="text-blue-600" /> Chat con IA</div>
             <div className="flex gap-2">
-              <input value={chatInput} onChange={(event) => setChatInput(event.target.value)} placeholder="Pregunta algo sobre el ejercicio o solicita una pista..." className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-blue-400 focus:bg-white" />
-              <button className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-500">Enviar</button>
+              <input value={chatInput} onChange={(event) => setChatInput(event.target.value)} onKeyDown={(event) => event.key === "Enter" && void sendChat()} placeholder="Pregunta algo sobre el ejercicio o solicita una pista..." className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-blue-400 focus:bg-white" />
+              <button onClick={() => void sendChat()} disabled={!chatInput.trim() || chatLoading} className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:opacity-40">{chatLoading ? "Consultando..." : "Enviar"}</button>
             </div>
+            {chatMessages.length > 0 && (
+              <div className="mt-3 max-h-56 space-y-2 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-3">
+                {chatMessages.slice(-4).map((message, index) => (
+                  <div key={`${message.role}-${index}`} className={`rounded-xl px-3 py-2 text-sm ${message.role === "user" ? "ml-auto max-w-[85%] bg-blue-600 text-white" : "mr-auto max-w-[95%] border border-slate-200 bg-white text-slate-700"}`}>
+                    {message.role === "assistant" ? <MathRenderer content={message.content} /> : message.content}
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
         )}
 
