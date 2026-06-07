@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { getOAs, type NivelKey, type OA } from "@/lib/mineduc-oa";
 import type { ExamTheme, ExamFont } from "@/lib/exam/theme-utils";
+import { enrichQuestionAnswerKey } from "@/lib/exam/question-quality";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 type Difficulty = "facil" | "medio" | "dificil" | "mixto";
@@ -113,7 +114,12 @@ type MultipleChoiceQuestion = {
   question: string;
   options: string[];
   correctAnswer: number;
+  answerText?: string;
   explanation?: string;
+  solutionSteps?: string[];
+  distractorRationales?: string[];
+  qualityStatus?: "ready" | "review";
+  qualityWarnings?: string[];
   maxPoints?: number;
   imageUrl?: string;
 };
@@ -123,7 +129,11 @@ type TrueFalseQuestion = {
   type: "true_false";
   question: string;
   correctAnswer: number;
+  answerText?: string;
   explanation?: string;
+  solutionSteps?: string[];
+  qualityStatus?: "ready" | "review";
+  qualityWarnings?: string[];
   selectionPoints?: number;
   justificationMaxPoints?: number;
   maxPoints?: number;
@@ -137,6 +147,11 @@ type DevelopmentQuestion = {
   type: "development";
   question: string;
   modelAnswer?: string;
+  expectedLatex?: string;
+  explanation?: string;
+  solutionSteps?: string[];
+  qualityStatus?: "ready" | "review";
+  qualityWarnings?: string[];
   rubric: DevelopmentRubricItem[];
   maxPoints?: number;
   imageUrl?: string;
@@ -160,7 +175,10 @@ function defaultQuestion(type: QuestionType): Question {
       question: "",
       options: ["", "", "", ""],
       correctAnswer: 0,
+      answerText: "",
       explanation: "",
+      solutionSteps: [],
+      distractorRationales: ["", "", "", ""],
       maxPoints: 1,
       imageUrl: "",
     };
@@ -171,7 +189,9 @@ function defaultQuestion(type: QuestionType): Question {
       type: "true_false",
       question: "",
       correctAnswer: 0,
+      answerText: "Verdadero",
       explanation: "",
+      solutionSteps: [],
       selectionPoints: 1,
       justificationMaxPoints: 2,
       maxPoints: 3,
@@ -183,6 +203,9 @@ function defaultQuestion(type: QuestionType): Question {
     type: "development",
     question: "",
     modelAnswer: "",
+    expectedLatex: "",
+    explanation: "",
+    solutionSteps: [],
     rubric: [
       { criteria: "Comprensión del contenido", points: 2 },
       { criteria: "Desarrollo y fundamentación", points: 2 },
@@ -231,11 +254,13 @@ function normalizeAIQuestion(raw: any): Question {
         correct = Number.isFinite(numeric) ? Math.round(numeric) : 0;
       }
     }
-    return {
+    return enrichQuestionAnswerKey({
       ...base,
       type: "true_false",
       correctAnswer: Math.max(0, Math.min(correct, 1)),
+      answerText: raw.answerText ?? raw.correctAnswerText ?? "",
       explanation: raw.explanation ?? raw.explicacion ?? "",
+      solutionSteps: raw.solutionSteps ?? raw.steps ?? [],
       selectionPoints: Number(raw.selectionPoints ?? raw.puntosSeleccion ?? 1),
       justificationMaxPoints: Number(
         raw.justificationMaxPoints ?? raw.puntosJustificacion ?? 2,
@@ -243,7 +268,7 @@ function normalizeAIQuestion(raw: any): Question {
       maxPoints:
         Number(raw.selectionPoints ?? 1) +
         Number(raw.justificationMaxPoints ?? 2),
-    };
+    }) as TrueFalseQuestion;
   }
 
   if (raw.type === "development" || raw.type === "desarrollo") {
@@ -258,14 +283,17 @@ function normalizeAIQuestion(raw: any): Question {
           { criteria: "Claridad", points: 1 },
         ];
     const maxPoints = rubric.reduce((a, r) => a + r.points, 0);
-    return {
+    return enrichQuestionAnswerKey({
       ...base,
       type: "development",
       modelAnswer:
         raw.modelAnswer ?? raw.expectedAnswer ?? raw.respuestaModelo ?? "",
+      expectedLatex: raw.expectedLatex ?? raw.expected_latex ?? "",
+      explanation: raw.explanation ?? raw.explicacion ?? "",
+      solutionSteps: raw.solutionSteps ?? raw.steps ?? [],
       rubric,
       maxPoints,
-    };
+    }) as DevelopmentQuestion;
   }
 
   // multiple_choice (default)
@@ -298,14 +326,17 @@ function normalizeAIQuestion(raw: any): Question {
       }
     }
   }
-  return {
+  return enrichQuestionAnswerKey({
     ...base,
     type: "multiple_choice",
     options,
     correctAnswer: Math.max(0, Math.min(correct, options.length - 1)),
+    answerText: raw.answerText ?? raw.correctAnswerText ?? "",
     explanation: raw.explanation ?? raw.explicacion ?? "",
+    solutionSteps: raw.solutionSteps ?? raw.steps ?? [],
+    distractorRationales: raw.distractorRationales ?? raw.distractor_reasons ?? [],
     maxPoints: Number(raw.maxPoints ?? raw.puntos ?? 1),
-  };
+  }) as MultipleChoiceQuestion;
 }
 
 // ─── Componente ───────────────────────────────────────────────────────────────
@@ -519,6 +550,10 @@ export default function CrearExamenPage() {
     for (let i = 0; i < questions.length; i++) {
       const q = questions[i];
       if (!q.question.trim()) return `La pregunta ${i + 1} no tiene enunciado.`;
+      const quality = enrichQuestionAnswerKey(q);
+      if (quality.qualityStatus === "review") {
+        return `La pregunta ${i + 1} requiere revisión: ${(quality.qualityWarnings || []).join(" · ")}`;
+      }
       if (q.type === "multiple_choice") {
         if (q.options.some((o) => !o.trim()))
           return `La pregunta ${i + 1} tiene alternativas vacías.`;
@@ -558,7 +593,10 @@ export default function CrearExamenPage() {
             imageUrl: q.imageUrl || "",
             options: q.options,
             correctAnswer: q.correctAnswer,
+            answerText: q.options[q.correctAnswer] || q.answerText || "",
             explanation: q.explanation || "",
+            solutionSteps: q.solutionSteps || [],
+            distractorRationales: q.distractorRationales || [],
             maxPoints: Number(q.maxPoints || 1),
           };
         if (q.type === "true_false")
@@ -567,7 +605,9 @@ export default function CrearExamenPage() {
             question: q.question,
             imageUrl: q.imageUrl || "",
             correctAnswer: q.correctAnswer,
+            answerText: q.correctAnswer === 0 ? "Verdadero" : "Falso",
             explanation: q.explanation || "",
+            solutionSteps: q.solutionSteps || [],
             selectionPoints: Number(q.selectionPoints || 1),
             justificationMaxPoints: Number(q.justificationMaxPoints || 2),
             maxPoints: getQuestionPoints(q),
@@ -577,6 +617,9 @@ export default function CrearExamenPage() {
           question: q.question,
           imageUrl: q.imageUrl || "",
           modelAnswer: (q as DevelopmentQuestion).modelAnswer || "",
+          expectedLatex: (q as DevelopmentQuestion).expectedLatex || "",
+          explanation: (q as DevelopmentQuestion).explanation || "",
+          solutionSteps: (q as DevelopmentQuestion).solutionSteps || [],
           rubric: (q as DevelopmentQuestion).rubric.map((r) => ({
             criteria: r.criteria,
             points: Number(r.points || 0),
@@ -694,17 +737,20 @@ ${title ? `Título sugerido: "${title}"` : ""}
 REGLAS ESTRICTAS:
 1. Responde ÚNICAMENTE con JSON válido, sin texto adicional, sin backticks.
 2. Estructura: { "title": "...", "questions": [...] }
-3. Cada pregunta: { "type", "question", ...campos propios }
+3. Genera CADA pregunta junto con su pauta dentro del mismo objeto JSON.
 4. PROCESO PARA ALTERNATIVAS (OBLIGATORIO):
-   a) CALCULA tú mismo la respuesta correcta
+   a) CALCULA primero la respuesta correcta
    b) Crea la opción correcta con ESE valor exacto
-   c) Crea 3 distractores (errores comunes, NO inventados)
-   d) Mezcla las 4 en orden aleatorio
+   c) Crea 3 distractores plausibles basados en errores comunes
+   d) Mezcla las 4 opciones en orden aleatorio
    e) correctAnswer = ÍNDICE donde quedó la respuesta correcta
-   f) explanation menciona el MISMO resultado que options[correctAnswer]
-5. true_false: correctAnswer:0(Verdadero) o 1(Falso), explanation, selectionPoints:1, justificationMaxPoints:2
-6. development: modelAnswer, rubric:[{criteria,points}], maxPoints:suma
-7. LaTeX inline con $...$ y bloque con $$...$$. Usa backslash real (\\).
+   f) answerText = texto IDÉNTICO a options[correctAnswer]
+   g) explanation explica por qué esa respuesta es correcta
+   h) solutionSteps contiene el procedimiento o fundamento
+   i) distractorRationales contiene 4 textos, uno por opción
+5. true_false: correctAnswer:0(Verdadero) o 1(Falso), answerText, explanation, solutionSteps, selectionPoints:1, justificationMaxPoints:2
+6. development: modelAnswer, expectedLatex si corresponde, explanation, solutionSteps, rubric:[{criteria,points}], maxPoints:suma
+7. LaTeX inline con $...$ y bloque con $$...$$. Usa backslash real (\).
 8. Si ${aiTF}===0 y ${aiDev}===0 → genera SOLO multiple_choice.
 9. NUNCA correctAnswer=0 por defecto. Verifica que options[correctAnswer] sea correcto.
 10. Si una pregunta requiere apoyo visual, puedes devolver imageUrl; si no, usa imageUrl:"".`;
@@ -800,7 +846,10 @@ Detalle técnico: ${data.details}`
       const singlePrompt = `Regenera UNA pregunta de tipo "${q.type}" sobre: "${aiPrompt.trim() || topic.trim()}". 
 Dificultad: ${aiDiff}. 
 Responde ÚNICAMENTE con JSON: { "question": {...} }
-Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer, explanation/rubric, etc.).`;
+Genera la pregunta y su pauta juntas. Incluye answerText, explanation y solutionSteps.
+Si es multiple_choice: 4 options coherentes, correctAnswer, answerText idéntico a options[correctAnswer] y distractorRationales con 4 elementos.
+Si es development: modelAnswer, expectedLatex si corresponde, explanation, solutionSteps y rubric.
+Usa el mismo esquema de calidad que antes.`;
 
       const res = await fetch("/api/agents/exam-generate", {
         method: "POST",
@@ -2104,6 +2153,22 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                                   .join(" · ")}
                               </p>
                             )}
+                            <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50/70 px-3 py-2">
+                              <p className="text-[10px] font-bold tracking-widest text-emerald-700">PAUTA GENERADA</p>
+                              <ExamMathText
+                                text={
+                                  q.type === "multiple_choice"
+                                    ? q.options[q.correctAnswer] || q.answerText || ""
+                                    : q.type === "true_false"
+                                      ? q.correctAnswer === 0 ? "Verdadero" : "Falso"
+                                      : q.modelAnswer || ""
+                                }
+                                className="mt-1 text-xs text-emerald-900"
+                              />
+                              {q.explanation && (
+                                <ExamMathText text={q.explanation} className="mt-1 text-[11px] text-emerald-800" />
+                              )}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -2438,6 +2503,41 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                             className="w-full min-h-[90px] rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main"
                           />
                         </div>
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div>
+                            <label className="text-xs text-sub font-semibold block mb-2">
+                              RESULTADO FINAL EN LATEX (OPCIONAL)
+                            </label>
+                            <textarea
+                              value={(q as DevelopmentQuestion).expectedLatex || ""}
+                              onChange={(e) =>
+                                updateQuestion(q.id, (prev) =>
+                                  prev.type === "development"
+                                    ? { ...prev, expectedLatex: e.target.value }
+                                    : prev,
+                                )
+                              }
+                              className="w-full min-h-[80px] rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main"
+                              placeholder="Ejemplo: $$x=4$$"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs text-sub font-semibold block mb-2">
+                              EXPLICACIÓN DE LA PAUTA
+                            </label>
+                            <textarea
+                              value={(q as DevelopmentQuestion).explanation || ""}
+                              onChange={(e) =>
+                                updateQuestion(q.id, (prev) =>
+                                  prev.type === "development"
+                                    ? { ...prev, explanation: e.target.value }
+                                    : prev,
+                                )
+                              }
+                              className="w-full min-h-[80px] rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main"
+                            />
+                          </div>
+                        </div>
                         <div>
                           <label className="text-xs text-sub font-semibold block mb-2">
                             RÚBRICA
@@ -2537,6 +2637,60 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                     )}
                   </div>
                 ))}
+              </div>
+
+              <div className="mt-8 rounded-3xl border border-emerald-200 bg-emerald-50/70 p-4 md:p-5">
+                <div className="mb-4">
+                  <p className="text-xs font-bold tracking-[0.2em] text-emerald-700">CLAVE DE RESPUESTAS</p>
+                  <h3 className="mt-1 text-lg font-bold text-emerald-950">Respuestas esperadas y explicaciones</h3>
+                  <p className="mt-1 text-xs text-emerald-800">
+                    Esta pauta queda guardada separadamente para corregir con mayor precisión. Revisa cada respuesta antes de publicar.
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  {questions.map((q, index) => {
+                    const answer = q.type === "multiple_choice"
+                      ? q.options[q.correctAnswer] || q.answerText || ""
+                      : q.type === "true_false"
+                        ? q.correctAnswer === 0 ? "Verdadero" : "Falso"
+                        : q.modelAnswer || "";
+                    return (
+                      <details key={`answer-key-${q.id}`} className="rounded-2xl border border-emerald-200 bg-white p-3">
+                        <summary className="cursor-pointer list-none text-sm font-bold text-emerald-950">
+                          Pregunta {index + 1} · {q.type === "multiple_choice" ? "Alternativas" : q.type === "true_false" ? "Verdadero/Falso" : "Desarrollo"}
+                        </summary>
+                        <div className="mt-3 space-y-2 text-sm">
+                          <div>
+                            <p className="text-[11px] font-bold tracking-widest text-emerald-700">RESPUESTA CORRECTA</p>
+                            <ExamMathText text={answer} className="mt-1 text-emerald-950" />
+                          </div>
+                          {q.explanation && (
+                            <div>
+                              <p className="text-[11px] font-bold tracking-widest text-emerald-700">EXPLICACIÓN</p>
+                              <ExamMathText text={q.explanation} className="mt-1 text-emerald-900" />
+                            </div>
+                          )}
+                          {Array.isArray(q.solutionSteps) && q.solutionSteps.length > 0 && (
+                            <div>
+                              <p className="text-[11px] font-bold tracking-widest text-emerald-700">PROCEDIMIENTO ESPERADO</p>
+                              <ol className="mt-1 list-decimal space-y-1 pl-5 text-emerald-900">
+                                {q.solutionSteps.map((step, stepIndex) => (
+                                  <li key={stepIndex}><ExamMathText text={step} /></li>
+                                ))}
+                              </ol>
+                            </div>
+                          )}
+                          {Array.isArray(q.qualityWarnings) && q.qualityWarnings.length > 0 && (
+                            <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                              Revisar: {q.qualityWarnings.join(" · ")}
+                            </div>
+                          )}
+                        </div>
+                      </details>
+                    );
+                  })}
+                </div>
               </div>
             </section>
           </div>
