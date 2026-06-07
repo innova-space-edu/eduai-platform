@@ -6,6 +6,7 @@ import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
 import ExamMathText from "@/components/ui/ExamMathText"
 import { ArrowLeft, Save, RefreshCw, Loader2, Copy, Check, Trash2, Plus } from "lucide-react"
+import { enrichQuestionAnswerKey } from "@/lib/exam/question-quality"
 
 // ── Tipos (mismos que crear/page.tsx) ────────────────────────────────────────
 type ScoreMode = "auto" | "manual"
@@ -16,10 +17,16 @@ type ExamQuestion = {
   question: string
   options?: string[]
   correctAnswer?: number
+  answerText?: string
   explanation?: string
+  solutionSteps?: string[]
+  distractorRationales?: string[]
+  qualityStatus?: "ready" | "review"
+  qualityWarnings?: string[]
   difficulty?: 1 | 2 | 3
   ability?: Ability
   modelAnswer?: string
+  expectedLatex?: string
   rubric?: { criteria: string; points: number }[]
   maxPoints?: number
   selectionPoints?: number
@@ -98,7 +105,7 @@ export default function EditarExamenPage() {
       setTitle(exam.title || "")
       setTopic(exam.topic || "")
       setInstructions(exam.instructions || "")
-      setQuestions(Array.isArray(exam.questions) ? exam.questions : [])
+      setQuestions(Array.isArray(exam.questions) ? exam.questions.map((q: any) => enrichQuestionAnswerKey(q) as ExamQuestion) : [])
       setSettings(exam.settings || {})
       setExamCode(exam.code || "")
       setStatus(exam.status || "active")
@@ -151,16 +158,16 @@ export default function EditarExamenPage() {
       if (merged.type === "true_false") {
         const sel = clampPositive(Number(merged.selectionPoints), 1) || 1
         const max = clampPositive(Number(merged.maxPoints), sel)
-        return { ...merged, selectionPoints: sel, maxPoints: max, justificationMaxPoints: Math.max(0, max - sel) }
+        return enrichQuestionAnswerKey({ ...merged, selectionPoints: sel, maxPoints: max, justificationMaxPoints: Math.max(0, max - sel) }) as ExamQuestion
       }
       if (merged.type === "development") {
         const rubric = Array.isArray(merged.rubric) ? merged.rubric : []
         if (rubric.length > 0) {
           const sum = rubric.reduce((acc, r) => acc + clampPositive(Number(r.points), 0), 0)
-          return { ...merged, rubric, maxPoints: sum || clampPositive(Number(merged.maxPoints), 1) }
+          return enrichQuestionAnswerKey({ ...merged, rubric, maxPoints: sum || clampPositive(Number(merged.maxPoints), 1) }) as ExamQuestion
         }
       }
-      return { ...merged, maxPoints: clampPositive(Number(merged.maxPoints), 1) }
+      return enrichQuestionAnswerKey({ ...merged, maxPoints: clampPositive(Number(merged.maxPoints), 1) }) as ExamQuestion
     }))
   }
 
@@ -178,7 +185,7 @@ export default function EditarExamenPage() {
     const nextAbility = overrides?.ability    || current.ability    || "comprension"
     const scoreMode: ScoreMode = settings?.scoreMode || "auto"
 
-    const prompt = `Genera SOLO una pregunta de examen en JSON válido.
+    const prompt = `Regenera SOLO una pregunta de examen junto con su pauta completa en JSON válido.
 
 Tema: ${topic}
 Contexto: ${settings?.teachingContext || "No especificado"}
@@ -188,45 +195,29 @@ Habilidad: ${abilityOptions.find(a => a.id === nextAbility)?.label}
 Pregunta anterior (NO repetir): ${current.question}
 
 Reglas:
-- Si es multiple_choice: 4 opciones A-D, una correcta, correctAnswer como índice 0-3.
-- Si es true_false: opciones ["Verdadero","Falso"], selectionPoints=1, justificationMaxPoints, maxPoints.
-- Si es development: modelAnswer, rubric con criteria y points, maxPoints.
-- LaTeX solo entre $...$ (inline) o $$...$$ (bloque). Sin \\( \\) ni \\[ \\].
-- Devuelve SOLO JSON, sin texto adicional.
-
-Formato exacto:
-{
-  "question": {
-    "type": "${current.type}",
-    "question": "texto de la pregunta",
-    "options": ["A","B","C","D"],
-    "correctAnswer": 0,
-    "explanation": "explicación",
-    "difficulty": ${nextDiff},
-    "ability": "${nextAbility}",
-    "maxPoints": ${current.maxPoints || 1},
-    "selectionPoints": 1,
-    "justificationMaxPoints": 2,
-    "modelAnswer": "",
-    "rubric": []
-  }
-}`
+- Devuelve SOLO JSON con {"question": {...}}.
+- Genera pregunta y respuesta dentro del mismo objeto para conservar coherencia.
+- Si es multiple_choice: 4 options diferentes y plausibles, correctAnswer como índice 0-3, answerText idéntico a options[correctAnswer], explanation, solutionSteps y distractorRationales con 4 elementos.
+- Si es true_false: options ["Verdadero","Falso"], correctAnswer 0 o 1, answerText, explanation, solutionSteps, selectionPoints=1 y justificationMaxPoints.
+- Si es development: modelAnswer completo, expectedLatex si corresponde, explanation, solutionSteps, rubric con criteria y points, maxPoints.
+- LaTeX solo entre $...$ (inline) o $$...$$ (bloque). Sin \( \) ni \[ \].
+- Revisa antes de responder que la alternativa correcta tenga sentido con el ejercicio.`
 
     try {
-      const res  = await fetch("/api/process-content", {
+      const res  = await fetch("/api/agents/exam-generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sourceType: "text", content: prompt, outputFormat: "quiz" }),
+        body: JSON.stringify({ prompt, mode: "single" }),
       })
       const data = await res.json()
       if (!data.success) throw new Error(data.error || "No se pudo regenerar")
 
-      const raw = data.output?.data
+      const raw = data.question ?? data.output?.data
       const rawQ =
         (raw?.question && typeof raw.question === "object") ? raw.question
         : Array.isArray(raw?.questions) ? raw.questions[0]
         : typeof raw === "object" && raw?.type ? raw
-        : null
+        : raw
 
       if (!rawQ) throw new Error("La IA no devolvió una pregunta válida")
 
@@ -234,7 +225,10 @@ Formato exacto:
       const normalizedQ: ExamQuestion = {
         type:        rawQ.type        || current.type,
         question:    rawQ.question    || current.question,
+        answerText:   rawQ.answerText || rawQ.correctAnswerText || "",
         explanation: rawQ.explanation || "",
+        solutionSteps: Array.isArray(rawQ.solutionSteps) ? rawQ.solutionSteps : [],
+        distractorRationales: Array.isArray(rawQ.distractorRationales) ? rawQ.distractorRationales : [],
         difficulty:  rawQ.difficulty  || nextDiff,
         ability:     rawQ.ability     || nextAbility,
         maxPoints:   current.maxPoints,
@@ -266,10 +260,11 @@ Formato exacto:
 
       if (normalizedQ.type === "development") {
         normalizedQ.modelAnswer = rawQ.modelAnswer || ""
+        normalizedQ.expectedLatex = rawQ.expectedLatex || rawQ.expected_latex || ""
         normalizedQ.rubric      = Array.isArray(rawQ.rubric) ? rawQ.rubric : []
       }
 
-      updateQuestion(idx, normalizedQ)
+      updateQuestion(idx, enrichQuestionAnswerKey(normalizedQ) as ExamQuestion)
     } catch (e: any) {
       setError(e.message || "Error al regenerar la pregunta")
     } finally {
@@ -502,15 +497,36 @@ Formato exacto:
 
             {/* Desarrollo: respuesta modelo */}
             {q.type === "development" && (
-              <div>
-                <label className="text-muted2 text-[10px] font-semibold uppercase tracking-widest block mb-1">Respuesta modelo</label>
-                <textarea
-                  value={q.modelAnswer || ""}
-                  onChange={e => updateQuestion(i, { modelAnswer: e.target.value })}
-                  rows={3}
-                  className="w-full bg-orange-500/[0.04] border border-orange-500/20 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-orange-500/40 resize-vertical"
-                  placeholder="Respuesta modelo para que la IA evalúe..."
-                />
+              <div className="space-y-3">
+                <div>
+                  <label className="text-muted2 text-[10px] font-semibold uppercase tracking-widest block mb-1">Respuesta modelo</label>
+                  <textarea
+                    value={q.modelAnswer || ""}
+                    onChange={e => updateQuestion(i, { modelAnswer: e.target.value })}
+                    rows={3}
+                    className="w-full bg-orange-500/[0.04] border border-orange-500/20 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-orange-500/40 resize-vertical"
+                    placeholder="Respuesta modelo para que la IA evalúe..."
+                  />
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="text-muted2 text-[10px] font-semibold uppercase tracking-widest block mb-1">Resultado final LaTeX</label>
+                    <input
+                      value={q.expectedLatex || ""}
+                      onChange={e => updateQuestion(i, { expectedLatex: e.target.value })}
+                      className="w-full bg-card-soft-theme border border-soft rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-blue-500/30"
+                      placeholder="$$x=4$$"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-muted2 text-[10px] font-semibold uppercase tracking-widest block mb-1">Explicación de pauta</label>
+                    <input
+                      value={q.explanation || ""}
+                      onChange={e => updateQuestion(i, { explanation: e.target.value })}
+                      className="w-full bg-card-soft-theme border border-soft rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-blue-500/30"
+                    />
+                  </div>
+                </div>
               </div>
             )}
 
@@ -606,6 +622,34 @@ Formato exacto:
             )}
           </div>
         ))}
+
+        <section className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4">
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-700">Clave de respuestas</p>
+          <h2 className="mt-1 text-base font-bold text-emerald-950">Pauta separada para corrección</h2>
+          <div className="mt-3 space-y-2">
+            {questions.map((q, index) => {
+              const answer = q.type === "multiple_choice"
+                ? q.options?.[q.correctAnswer ?? 0] || q.answerText || ""
+                : q.type === "true_false"
+                  ? (q.correctAnswer ?? 0) === 0 ? "Verdadero" : "Falso"
+                  : q.modelAnswer || ""
+              return (
+                <details key={`edit-key-${index}`} className="rounded-xl border border-emerald-200 bg-white px-3 py-2">
+                  <summary className="cursor-pointer text-xs font-bold text-emerald-950">Pregunta {index + 1} · {questionTypeLabel(q.type)}</summary>
+                  <div className="mt-2 space-y-1.5 text-xs text-emerald-900">
+                    <ExamMathText text={answer} />
+                    {q.explanation && <ExamMathText text={q.explanation} className="text-emerald-800" />}
+                    {Array.isArray(q.solutionSteps) && q.solutionSteps.length > 0 && (
+                      <ol className="list-decimal space-y-1 pl-5">
+                        {q.solutionSteps.map((step, stepIndex) => <li key={stepIndex}><ExamMathText text={step} /></li>)}
+                      </ol>
+                    )}
+                  </div>
+                </details>
+              )
+            })}
+          </div>
+        </section>
 
         {/* Botón guardar flotante al fondo */}
         <div className="sticky bottom-4 flex justify-center pt-2">
