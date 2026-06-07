@@ -1397,7 +1397,7 @@ export default function ExamenPublicoPage() {
           </>
         ) : null}
 
-        <div className="max-w-7xl mx-auto px-4 py-6 exam-root exam-content">
+        <div className="mx-auto w-full max-w-[1800px] px-4 py-5 exam-root exam-content sm:px-5 lg:px-6">
           <div className="mb-6 overflow-hidden rounded-[28px] border border-soft bg-card-theme shadow-sm">
             <div className="flex flex-col gap-4 bg-gradient-to-br from-blue-500/10 via-violet-500/5 to-transparent px-5 py-5 md:flex-row md:items-center md:justify-between">
               <div>
@@ -1461,7 +1461,13 @@ export default function ExamenPublicoPage() {
             </div>
           ) : null}
 
-          <div className="grid lg:grid-cols-[minmax(0,1fr)_340px] gap-6 items-start">
+          <div
+            className={`grid items-start gap-5 ${
+              currentNotebookEnabled
+                ? "xl:grid-cols-[minmax(360px,0.88fr)_minmax(500px,1.2fr)_280px]"
+                : "lg:grid-cols-[minmax(0,1fr)_340px]"
+            }`}
+          >
             <main className="space-y-3 min-w-0">
               {/* Botón narrar pregunta — PIE/accesibilidad */}
               {exam?.settings?.accessibility?.pieMode && (
@@ -1501,8 +1507,12 @@ export default function ExamenPublicoPage() {
                 onDevChange={(v) =>
                   setDevAnswers((prev) => ({ ...prev, [curQ]: v }))
                 }
+                useNotebookForDevelopment={currentNotebookEnabled}
               />
-              {currentNotebookEnabled && (
+            </main>
+
+            {currentNotebookEnabled ? (
+              <div className="min-w-0 xl:sticky xl:top-5">
                 <ExamQuestionNotebook
                   key={`${exam.id}-${curQ}`}
                   ref={notebookRef}
@@ -1514,10 +1524,10 @@ export default function ExamenPublicoPage() {
                     setDevelopmentArtifacts((current) => ({ ...current, [curQ]: artifact }))
                   }
                 />
-              )}
-            </main>
+              </div>
+            ) : null}
 
-            <aside className="rounded-[28px] border border-medium bg-card-soft-theme p-5 shadow-sm lg:sticky lg:top-6">
+            <aside className="rounded-[28px] border border-medium bg-card-soft-theme p-5 shadow-sm xl:sticky xl:top-5">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
                   <h3 className="text-sm font-black text-main">Navegación</h3>
