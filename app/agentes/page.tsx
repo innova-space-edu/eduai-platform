@@ -67,6 +67,20 @@ const AGENTS: AgentItem[] = [
     status: "active",
   },
   {
+    id: "pizarra-interactiva",
+    icon: "✍️",
+    name: "Pizarra interactiva",
+    description:
+      "Escribe a mano, borra trazos y convierte el procedimiento matemático a LaTeX con retroalimentación.",
+    color: "from-sky-500 to-blue-600",
+    glow: "rgba(14,165,233,0.15)",
+    border: "rgba(14,165,233,0.24)",
+    href: "/pizarra-interactiva",
+    tag: "Matemáticas",
+    status: "active",
+    ctaLabel: "Abrir pizarra",
+  },
+  {
     id: "traductor",
     icon: "🌐",
     name: "Traductor",
@@ -183,7 +197,6 @@ const AGENTS: AgentItem[] = [
     tag: "Creativo",
     status: "active",
   },
-
   {
     id: "admin-model-lab",
     icon: "🛡️",
