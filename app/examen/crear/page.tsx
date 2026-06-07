@@ -337,6 +337,8 @@ export default function CrearExamenPage() {
   const [allowReview, setAllowReview] = useState(true);
   const [isPublic, setIsPublic] = useState(true);
   const [allowCalculator, setAllowCalculator] = useState(false);
+  const [developmentNotebookEnabled, setDevelopmentNotebookEnabled] = useState(false);
+  const [developmentNotebookMode, setDevelopmentNotebookMode] = useState<"development_only" | "all_questions">("development_only");
 
   // ── Seguridad (nuevo sistema) ─────────────────────────────────────────────
   const [securityMode, setSecurityMode] = useState(false);
@@ -602,6 +604,13 @@ export default function CrearExamenPage() {
             allowReview,
             isPublic,
             allowCalculator,
+            developmentNotebook: {
+              enabled: developmentNotebookEnabled,
+              mode: developmentNotebookMode,
+              requireArtifactBeforeNext: developmentNotebookEnabled,
+              generateFinalPdf: true,
+              maxPagesPerQuestion: 5,
+            },
             securityMode,
             theme: examTheme,
             font: examFont,
@@ -1133,6 +1142,55 @@ Usa el mismo esquema que antes (type, question, options si aplica, correctAnswer
                     />
                   </button>
                 </div>
+              </div>
+
+              {/* ── Cuaderno de desarrollo matemático ─────────────────────── */}
+              <div className="mt-5 rounded-2xl border border-blue-500/20 bg-blue-500/[0.04] p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <span className="text-xl mt-0.5">✍️</span>
+                    <div>
+                      <p className="text-sm font-bold text-main">Examen con cuaderno de desarrollo</p>
+                      <p className="text-xs text-sub mt-0.5 leading-relaxed">
+                        Opción voluntaria. Cada pregunta seleccionada mostrará una hoja para escribir a mano.
+                        La pizarra convertirá los trazos a LaTeX y guardará el desarrollo oficial cuando el
+                        estudiante avance. La corrección automática revisará el LaTeX renderizado, no los trazos.
+                      </p>
+                      <p className="mt-2 text-[11px] font-semibold text-blue-700">
+                        Estado: {developmentNotebookEnabled ? "Activado" : "Desactivado"}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setDevelopmentNotebookEnabled((value) => !value)}
+                    aria-pressed={developmentNotebookEnabled}
+                    className={`relative flex-shrink-0 w-12 h-6 rounded-full transition-colors ${developmentNotebookEnabled ? "bg-blue-600" : "bg-card-soft-theme"}`}
+                  >
+                    <span
+                      className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${developmentNotebookEnabled ? "translate-x-6" : "translate-x-0.5"}`}
+                    />
+                  </button>
+                </div>
+
+                {developmentNotebookEnabled && (
+                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => setDevelopmentNotebookMode("development_only")}
+                      className={`rounded-xl border px-3 py-2 text-left text-xs font-bold transition ${developmentNotebookMode === "development_only" ? "border-blue-500 bg-blue-500/10 text-blue-700" : "border-soft bg-card-soft-theme text-sub"}`}
+                    >
+                      Solo preguntas de desarrollo
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDevelopmentNotebookMode("all_questions")}
+                      className={`rounded-xl border px-3 py-2 text-left text-xs font-bold transition ${developmentNotebookMode === "all_questions" ? "border-blue-500 bg-blue-500/10 text-blue-700" : "border-soft bg-card-soft-theme text-sub"}`}
+                    >
+                      Todas las preguntas
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* ── Modo Seguro (nuevo sistema) ────────────────────────────── */}
