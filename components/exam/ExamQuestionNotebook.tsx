@@ -9,7 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { ArrowDown, ArrowUp, Brush, Eraser, Plus, Redo2, Trash2, Undo2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Brush, Eraser, Expand, Minimize2, Plus, Redo2, Trash2, Undo2 } from "lucide-react";
 import MathRenderer from "@/components/ui/MathRenderer";
 
 type Point = { x: number; y: number };
@@ -129,6 +129,7 @@ const ExamQuestionNotebook = forwardRef<ExamQuestionNotebookHandle, Props>(funct
   const [redoStack, setRedoStack] = useState<Stroke[][]>([]);
   const [tool, setTool] = useState<Tool>("pen");
   const [recognizing, setRecognizing] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [feedback, setFeedback] = useState("Escribe tu desarrollo. El LaTeX se actualizará automáticamente.");
 
   useEffect(() => {
@@ -217,6 +218,15 @@ const ExamQuestionNotebook = forwardRef<ExamQuestionNotebookHandle, Props>(funct
   useEffect(() => () => {
     if (recognitionTimer.current) clearTimeout(recognitionTimer.current);
   }, []);
+
+  useEffect(() => {
+    if (!expanded) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [expanded]);
 
   const commit = useCallback((nextStrokes: Stroke[]) => {
     if (!activePage) return;
@@ -335,15 +345,29 @@ const ExamQuestionNotebook = forwardRef<ExamQuestionNotebookHandle, Props>(funct
   const allStrokes = activeStroke ? [...activePage.strokes, activeStroke] : activePage.strokes;
 
   return (
-    <section className="mt-6 overflow-hidden rounded-[24px] border border-blue-200 bg-white shadow-sm">
+    <section
+      className={`flex min-h-0 flex-col overflow-hidden rounded-[24px] border border-blue-200 bg-white shadow-sm ${
+        expanded ? "fixed inset-3 z-[9998] shadow-2xl" : ""
+      }`}
+    >
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-blue-100 bg-blue-50/60 px-3 py-3">
         <div>
           <p className="text-sm font-black text-slate-900">✍️ Cuaderno de desarrollo</p>
-          <p className="text-xs text-slate-600">Se guarda al instante. Al avanzar se registra el LaTeX oficial de esta pregunta.</p>
+          <p className="text-xs text-slate-600">Siempre visible. Se guarda al instante y registra el LaTeX oficial al avanzar.</p>
         </div>
-        <span className={`rounded-full px-3 py-1 text-[11px] font-bold ${recognizing ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>
-          {recognizing ? "Reconociendo..." : "Guardado automático"}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className={`rounded-full px-3 py-1 text-[11px] font-bold ${recognizing ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>
+            {recognizing ? "Reconociendo..." : "Guardado automático"}
+          </span>
+          <button
+            type="button"
+            onClick={() => setExpanded((current) => !current)}
+            className="flex items-center gap-1 rounded-lg bg-white px-3 py-2 text-xs font-bold text-blue-700 shadow-sm"
+          >
+            {expanded ? <Minimize2 size={14} /> : <Expand size={14} />}
+            {expanded ? "Reducir" : "Ampliar"}
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 bg-slate-50 px-3 py-2">
@@ -352,8 +376,8 @@ const ExamQuestionNotebook = forwardRef<ExamQuestionNotebookHandle, Props>(funct
         <button type="button" onClick={undo} className="rounded-lg bg-white p-2 text-slate-700" aria-label="Deshacer"><Undo2 size={15} /></button>
         <button type="button" onClick={redo} className="rounded-lg bg-white p-2 text-slate-700" aria-label="Rehacer"><Redo2 size={15} /></button>
         <button type="button" onClick={addPage} className="flex items-center gap-1 rounded-lg bg-white px-3 py-2 text-xs font-bold text-blue-700"><Plus size={14} /> Página</button>
-        <button type="button" onClick={() => scrollRef.current?.scrollBy({ top: -380, behavior: "smooth" })} className="rounded-lg bg-white p-2 text-slate-700" aria-label="Subir"><ArrowUp size={15} /></button>
-        <button type="button" onClick={() => scrollRef.current?.scrollBy({ top: 380, behavior: "smooth" })} className="rounded-lg bg-white p-2 text-slate-700" aria-label="Bajar"><ArrowDown size={15} /></button>
+        <button type="button" onClick={() => scrollRef.current?.scrollBy({ top: -420, behavior: "smooth" })} className="rounded-lg bg-white p-2 text-slate-700" aria-label="Subir"><ArrowUp size={15} /></button>
+        <button type="button" onClick={() => scrollRef.current?.scrollBy({ top: 420, behavior: "smooth" })} className="rounded-lg bg-white p-2 text-slate-700" aria-label="Bajar"><ArrowDown size={15} /></button>
         <button type="button" onClick={clearPage} className="ml-auto flex items-center gap-1 rounded-lg bg-white px-3 py-2 text-xs font-bold text-rose-600"><Trash2 size={14} /> Limpiar página</button>
       </div>
 
@@ -365,8 +389,20 @@ const ExamQuestionNotebook = forwardRef<ExamQuestionNotebookHandle, Props>(funct
         ))}
       </div>
 
-      <div className="grid gap-3 lg:grid-cols-[1fr_0.62fr]">
-        <div ref={scrollRef} className="h-[480px] overflow-y-scroll border-r border-slate-200 bg-white">
+      <div className={`grid min-h-0 flex-1 ${expanded ? "lg:grid-cols-[minmax(0,1fr)_300px]" : "grid-rows-[auto_1fr]"}`}>
+        <aside className={`space-y-2 bg-white p-3 ${expanded ? "lg:order-2 lg:border-l lg:border-slate-200" : "border-b border-slate-200"}`}>
+          <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-3">
+            <p className="mb-2 text-xs font-black uppercase tracking-[0.12em] text-blue-700">LaTeX reconocido</p>
+            {activePage.latex ? <MathRenderer content={`$$${activePage.latex}$$`} /> : <p className="text-sm text-slate-500">Escribe en la hoja para generar el desarrollo digital.</p>}
+          </div>
+          <p className="rounded-2xl bg-slate-50 p-3 text-xs text-slate-600">{feedback}</p>
+          <p className="text-[11px] text-slate-500">Página {pages.findIndex((page) => page.id === activePage.id) + 1} de {pages.length}. Se evaluará el LaTeX renderizado; los trazos quedan solo como evidencia.</p>
+        </aside>
+
+        <div
+          ref={scrollRef}
+          className={`${expanded ? "lg:order-1 h-full" : "h-[560px] xl:h-[calc(100vh-300px)] xl:min-h-[520px] xl:max-h-[720px]"} overflow-y-scroll bg-white`}
+        >
           <svg
             ref={svgRef}
             xmlns="http://www.w3.org/2000/svg"
@@ -382,15 +418,6 @@ const ExamQuestionNotebook = forwardRef<ExamQuestionNotebookHandle, Props>(funct
             {allStrokes.map((stroke) => <polyline key={stroke.id} points={stroke.points.map((point) => `${point.x},${point.y}`).join(" ")} fill="none" stroke="#0f172a" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />)}
           </svg>
         </div>
-
-        <aside className="space-y-3 p-3">
-          <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-3">
-            <p className="mb-2 text-xs font-black uppercase tracking-[0.12em] text-blue-700">LaTeX reconocido</p>
-            {activePage.latex ? <MathRenderer content={`$$${activePage.latex}$$`} /> : <p className="text-sm text-slate-500">Escribe en la hoja para generar el desarrollo digital.</p>}
-          </div>
-          <p className="rounded-2xl bg-slate-50 p-3 text-xs text-slate-600">{feedback}</p>
-          <p className="text-[11px] text-slate-500">Página {pages.findIndex((page) => page.id === activePage.id) + 1} de {pages.length}. El sistema evaluará el LaTeX renderizado; los trazos quedan solo como evidencia.</p>
-        </aside>
       </div>
     </section>
   );
