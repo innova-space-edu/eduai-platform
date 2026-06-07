@@ -35,6 +35,7 @@ interface QuestionCardProps {
   onTfJustificationChange: (value: string) => void;
   onDevChange: (value: string) => void;
   maxPoints: number;
+  useNotebookForDevelopment?: boolean;
 }
 
 function getQuestionText(q: Question) {
@@ -60,6 +61,7 @@ export default function QuestionCard({
   onTfJustificationChange,
   onDevChange,
   maxPoints,
+  useNotebookForDevelopment = false,
 }: QuestionCardProps) {
   return (
     <div className="exam-question">
@@ -173,17 +175,26 @@ export default function QuestionCard({
             </div>
           )}
 
-          <div>
-            <label className="exam-question-meta mb-2 block text-xs font-bold uppercase tracking-[0.12em]">
-              Respuesta de desarrollo
-            </label>
-            <textarea
-              value={devAnswer || ""}
-              onChange={(e) => onDevChange(e.target.value)}
-              className="exam-input min-h-[230px] w-full px-4 py-3 text-base outline-none focus:ring-2 focus:ring-[var(--exam-accent-soft)]"
-              placeholder="Escribe tu respuesta. Puedes ordenar tus ideas en pasos."
-            />
-          </div>
+          {useNotebookForDevelopment ? (
+            <div className="rounded-[calc(var(--exam-radius)-6px)] border border-blue-200 bg-blue-50/70 px-4 py-3">
+              <p className="text-sm font-black text-blue-800">✍️ Responde en el cuaderno digital</p>
+              <p className="mt-1 text-xs leading-relaxed text-blue-700">
+                El cuaderno está visible al costado. Escribe tu procedimiento con el lápiz; el sistema guardará el LaTeX reconocido al avanzar.
+              </p>
+            </div>
+          ) : (
+            <div>
+              <label className="exam-question-meta mb-2 block text-xs font-bold uppercase tracking-[0.12em]">
+                Respuesta de desarrollo
+              </label>
+              <textarea
+                value={devAnswer || ""}
+                onChange={(e) => onDevChange(e.target.value)}
+                className="exam-input min-h-[230px] w-full px-4 py-3 text-base outline-none focus:ring-2 focus:ring-[var(--exam-accent-soft)]"
+                placeholder="Escribe tu respuesta. Puedes ordenar tus ideas en pasos."
+              />
+            </div>
+          )}
         </div>
       )}
     </div>
