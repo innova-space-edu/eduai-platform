@@ -280,12 +280,14 @@ async function evaluateWithAI(questions: any[], answers: any[]): Promise<any[]> 
     const q = questions[i]
     if (!q) return
 
-    if (q.type === "development" && a.devText && String(a.devText).trim()) {
+    const renderedLatex = String(a.developmentLatex || "").trim()
+    const developmentText = renderedLatex || String(a.devText || "").trim()
+    if (q.type === "development" && developmentText) {
       toEvaluate.push({
         index: i,
         question: q.question,
         type: "development",
-        studentAnswer: String(a.devText),
+        studentAnswer: renderedLatex ? `LaTeX renderizado del desarrollo: ${renderedLatex}` : developmentText,
         modelAnswer: q.modelAnswer || "",
         rubric: q.rubric || [],
         maxPoints: getQuestionMaxPoints(q),
@@ -533,6 +535,7 @@ export async function POST(request: NextRequest) {
         questions,
         timeSpent,
         examPercentage,
+        clientAttemptId,
       } = body
 
       if (!examId || !studentName || !studentCourse || !answers || !questions) {
@@ -550,6 +553,7 @@ export async function POST(request: NextRequest) {
             questionIndex: i,
             type: "development",
             devText: a.devText || "",
+            developmentLatex: a.developmentLatex || "",
             isCorrect: false,
             maxPoints: getQuestionMaxPoints(q),
           }
@@ -661,6 +665,18 @@ export async function POST(request: NextRequest) {
         .single()
 
       if (error) throw error
+
+      if (clientAttemptId) {
+        const { error: linkError } = await supabase
+          .from("exam_question_developments")
+          .update({ submission_id: data.id, updated_at: new Date().toISOString() })
+          .eq("exam_id", examId)
+          .eq("client_attempt_id", String(clientAttemptId))
+
+        if (linkError) {
+          console.error("[exam-submit/link-developments]", linkError)
+        }
+      }
 
       return NextResponse.json({ success: true, submission: data })
     }
