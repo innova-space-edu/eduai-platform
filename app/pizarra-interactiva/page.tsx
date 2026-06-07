@@ -21,7 +21,21 @@ type Stroke = { id: string; points: Point[] };
 type Tool = "pen" | "eraser";
 type ChatMessage = { role: "user" | "assistant"; content: string };
 
+type NotebookSession = {
+  id: string;
+  title: string;
+  strokes: Stroke[];
+  latex: string;
+  canvasHeight: number;
+  updatedAt: string;
+  createdAt: string;
+};
+
 const ERASER_RADIUS = 18;
+const NOTEBOOK_STORAGE_KEY = "eduai-whiteboard-current-notebook";
+const DEFAULT_CANVAS_HEIGHT = 1200;
+const CANVAS_GROWTH_STEP = 700;
+const CANVAS_BOTTOM_MARGIN = 220;
 
 function pointToSegmentDistance(point: Point, start: Point, end: Point) {
   const dx = end.x - start.x;
@@ -42,6 +56,10 @@ function strokeTouchesPoint(stroke: Stroke, point: Point) {
   });
 }
 
+function createId() {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
+}
+
 export default function PizarraInteractivaPage() {
   const router = useRouter();
   const svgRef = useRef<SVGSVGElement>(null);
@@ -51,6 +69,11 @@ export default function PizarraInteractivaPage() {
   const [redoStack, setRedoStack] = useState<Stroke[][]>([]);
   const [activeStroke, setActiveStroke] = useState<Stroke | null>(null);
   const [latex, setLatex] = useState("");
+  const [canvasHeight, setCanvasHeight] = useState(DEFAULT_CANVAS_HEIGHT);
+  const [notebookId, setNotebookId] = useState(() => createId());
+  const [notebookTitle, setNotebookTitle] = useState("Cuaderno sin título");
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState("Sin guardar");
   const [recognizing, setRecognizing] = useState(false);
   const [feedback, setFeedback] = useState("Escribe una expresión matemática. El resultado LaTeX aparecerá a la derecha.");
   const [expanded, setExpanded] = useState(false);
@@ -99,6 +122,89 @@ export default function PizarraInteractivaPage() {
     if (recognitionTimer.current) clearTimeout(recognitionTimer.current);
   }, []);
 
+  function buildNotebookSession(): NotebookSession {
+    const now = new Date().toISOString();
+    return {
+      id: notebookId,
+      title: notebookTitle.trim() || "Cuaderno sin título",
+      strokes,
+      latex,
+      canvasHeight,
+      createdAt: localStorage.getItem(`${NOTEBOOK_STORAGE_KEY}:createdAt`) || now,
+      updatedAt: now,
+    };
+  }
+
+  function saveNotebookToLocalStorage() {
+    try {
+      const session = buildNotebookSession();
+      localStorage.setItem(NOTEBOOK_STORAGE_KEY, JSON.stringify(session));
+      localStorage.setItem(`${NOTEBOOK_STORAGE_KEY}:createdAt`, session.createdAt);
+      setLastSavedAt(session.updatedAt);
+      setSaveStatus("Guardado automáticamente");
+    } catch (error) {
+      console.error("[whiteboard/save]", error);
+      setSaveStatus("No se pudo guardar");
+    }
+  }
+
+  function loadNotebookFromLocalStorage() {
+    try {
+      const saved = localStorage.getItem(NOTEBOOK_STORAGE_KEY);
+      if (!saved) {
+        setSaveStatus("No hay cuaderno guardado en este navegador");
+        return;
+      }
+      const parsed = JSON.parse(saved) as Partial<NotebookSession>;
+      setNotebookId(parsed.id || createId());
+      setNotebookTitle(parsed.title || "Cuaderno sin título");
+      setStrokes(Array.isArray(parsed.strokes) ? parsed.strokes : []);
+      setRedoStack([]);
+      setActiveStroke(null);
+      setLatex(typeof parsed.latex === "string" ? parsed.latex : "");
+      setCanvasHeight(typeof parsed.canvasHeight === "number" ? Math.max(parsed.canvasHeight, DEFAULT_CANVAS_HEIGHT) : DEFAULT_CANVAS_HEIGHT);
+      setLastSavedAt(parsed.updatedAt || null);
+      setSaveStatus("Cuaderno recuperado");
+    } catch (error) {
+      console.error("[whiteboard/load]", error);
+      setSaveStatus("No se pudo recuperar el cuaderno");
+    }
+  }
+
+  function createNewNotebook() {
+    const confirmed = strokes.length === 0 || window.confirm("¿Crear un cuaderno nuevo? El cuaderno actual seguirá guardado localmente.");
+    if (!confirmed) return;
+    setNotebookId(createId());
+    setNotebookTitle("Cuaderno sin título");
+    setStrokes([]);
+    setRedoStack([]);
+    setActiveStroke(null);
+    setLatex("");
+    setCanvasHeight(DEFAULT_CANVAS_HEIGHT);
+    setLastSavedAt(null);
+    setSaveStatus("Nuevo cuaderno creado");
+    setFeedback("Nuevo cuaderno creado. Puedes comenzar a escribir.");
+  }
+
+  function growCanvasIfNeeded(point: Point) {
+    if (point.y > canvasHeight - CANVAS_BOTTOM_MARGIN) {
+      setCanvasHeight((current) => current + CANVAS_GROWTH_STEP);
+    }
+  }
+
+  useEffect(() => {
+    loadNotebookFromLocalStorage();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const saveTimer = setTimeout(() => {
+      saveNotebookToLocalStorage();
+    }, 500);
+    return () => clearTimeout(saveTimer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [strokes, latex, canvasHeight, notebookTitle]);
+
   function commit(nextStrokes: Stroke[]) {
     setStrokes(nextStrokes);
     setRedoStack([]);
@@ -113,16 +219,18 @@ export default function PizarraInteractivaPage() {
   function onPointerDown(event: React.PointerEvent<SVGSVGElement>) {
     event.currentTarget.setPointerCapture(event.pointerId);
     const point = getPoint(event);
+    growCanvasIfNeeded(point);
     if (tool === "eraser") {
       eraseAt(point);
       return;
     }
-    setActiveStroke({ id: crypto.randomUUID(), points: [point] });
+    setActiveStroke({ id: createId(), points: [point] });
   }
 
   function onPointerMove(event: React.PointerEvent<SVGSVGElement>) {
     if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
     const point = getPoint(event);
+    growCanvasIfNeeded(point);
     if (tool === "eraser") {
       eraseAt(point);
       return;
@@ -162,16 +270,11 @@ export default function PizarraInteractivaPage() {
   async function sendChat() {
     const question = chatInput.trim();
     if (!question || chatLoading) return;
-
-    const context = latex
-      ? `${question}\n\nExpresión escrita actualmente en la pizarra: $$${latex}$$`
-      : question;
-
+    const context = latex ? `${question}\n\nExpresión escrita actualmente en la pizarra: $$${latex}$$` : question;
     const history = chatMessages.slice(-6);
     setChatMessages((current) => [...current, { role: "user", content: question }]);
     setChatInput("");
     setChatLoading(true);
-
     try {
       const response = await fetch("/api/agents/matematico", {
         method: "POST",
@@ -229,22 +332,34 @@ export default function PizarraInteractivaPage() {
           </section>
         )}
 
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Cuaderno</span>
+          <input value={notebookTitle} onChange={(event) => setNotebookTitle(event.target.value)} className="min-w-[240px] flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-400 focus:bg-white" placeholder="Nombre del cuaderno" />
+          <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">💾 {saveStatus}</span>
+          {lastSavedAt && <span className="text-xs text-slate-500">Último guardado: {new Date(lastSavedAt).toLocaleTimeString()}</span>}
+        </div>
+
         <section className={`grid min-h-0 flex-1 gap-4 ${expanded ? "grid-cols-1 lg:grid-cols-[1.2fr_0.8fr]" : "grid-cols-1 lg:grid-cols-2"}`}>
-          <div className="flex min-h-[520px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex min-h-[620px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-50 px-3 py-2">
               <div className="flex flex-wrap gap-2">
                 <button onClick={() => setTool("pen")} className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold ${tool === "pen" ? "bg-blue-600 text-white" : "bg-white text-slate-700"}`}><Brush size={14} /> Lápiz</button>
                 <button onClick={() => setTool("eraser")} className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold ${tool === "eraser" ? "bg-rose-500 text-white" : "bg-white text-slate-700"}`}><Eraser size={14} /> Borrador</button>
                 <button onClick={undo} disabled={strokes.length === 0} className="rounded-lg bg-white p-2 text-slate-700 disabled:opacity-35" aria-label="Deshacer"><Undo2 size={16} /></button>
                 <button onClick={redo} disabled={redoStack.length === 0} className="rounded-lg bg-white p-2 text-slate-700 disabled:opacity-35" aria-label="Rehacer"><Redo2 size={16} /></button>
+                <button onClick={createNewNotebook} className="rounded-lg bg-white px-3 py-2 text-xs font-semibold text-slate-700">Nuevo cuaderno</button>
+                <button onClick={saveNotebookToLocalStorage} className="rounded-lg bg-white px-3 py-2 text-xs font-semibold text-emerald-700">Guardar cuaderno</button>
+                <button onClick={loadNotebookFromLocalStorage} className="rounded-lg bg-white px-3 py-2 text-xs font-semibold text-blue-700">Recuperar</button>
               </div>
               <button onClick={clearBoard} className="flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-xs font-semibold text-rose-600"><Trash2 size={14} /> Limpiar</button>
             </div>
-            <svg ref={svgRef} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp} className={`min-h-0 flex-1 touch-none bg-white ${tool === "eraser" ? "cursor-cell" : "cursor-crosshair"}`}>
-              <defs><pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse"><path d="M 24 0 L 0 0 0 24" fill="none" stroke="#e2e8f0" strokeWidth="0.7" /></pattern></defs>
-              <rect width="100%" height="100%" fill="url(#grid)" />
-              {allStrokes.map((stroke) => <polyline key={stroke.id} points={stroke.points.map((point) => `${point.x},${point.y}`).join(" ")} fill="none" stroke="#0f172a" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />)}
-            </svg>
+            <div className="min-h-0 flex-1 overflow-y-auto bg-white">
+              <svg ref={svgRef} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp} style={{ height: canvasHeight }} className={`w-full touch-none bg-white ${tool === "eraser" ? "cursor-cell" : "cursor-crosshair"}`}>
+                <defs><pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse"><path d="M 24 0 L 0 0 0 24" fill="none" stroke="#e2e8f0" strokeWidth="0.7" /></pattern></defs>
+                <rect width="100%" height="100%" fill="url(#grid)" />
+                {allStrokes.map((stroke) => <polyline key={stroke.id} points={stroke.points.map((point) => `${point.x},${point.y}`).join(" ")} fill="none" stroke="#0f172a" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />)}
+              </svg>
+            </div>
           </div>
 
           <aside className="flex min-h-[520px] flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -256,14 +371,10 @@ export default function PizarraInteractivaPage() {
               <span className={`rounded-full px-3 py-1 text-[11px] font-semibold ${recognizing ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>{recognizing ? "Reconociendo..." : "Actualizado"}</span>
             </div>
             <div className="min-h-36 rounded-2xl border border-blue-100 bg-blue-50/60 p-4">
-              {latex ? <MathRenderer content={`$$${latex}$$`} /> : <p className="text-sm text-slate-500">Aquí aparecerá la expresión matemática en formato LaTeX.</p>}
+              {latex ? <MathRenderer content={`$$${latex}$$`} /> : <p className="text-sm text-slate-500">Escribe en la pizarra para generar LaTeX automáticamente.</p>}
             </div>
-            <div>
-              <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500">Código LaTeX editable</label>
-              <textarea value={latex} onChange={(event) => setLatex(event.target.value)} rows={5} placeholder="El código LaTeX aparecerá aquí..." className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 p-3 font-mono text-sm text-slate-800 outline-none transition focus:border-blue-400 focus:bg-white" />
-            </div>
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">{feedback}</div>
-            <div className="mt-auto flex items-center justify-between gap-2 text-xs text-slate-500"><span>{strokes.length} trazos activos</span><button onClick={() => void recognize(strokes)} className="flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 font-semibold text-white"><RotateCcw size={14} /> Reconocer ahora</button></div>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">{feedback}</div>
+            <button onClick={() => void recognize(strokes)} disabled={strokes.length === 0 || recognizing} className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:opacity-40"><RotateCcw size={16} /> Reprocesar OCR</button>
           </aside>
         </section>
       </main>
