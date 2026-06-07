@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { buildDesignPromptDirective, getDesignTemplateSummary } from "@/lib/design-templates/registry"
+import { buildAnswerKey, enrichQuestionAnswerKey, findBlockingQualityIssues } from "@/lib/exam/question-quality"
 
 export const runtime = "nodejs"
 export const maxDuration = 120
@@ -136,6 +137,8 @@ function sanitizeQuestionLatex(q: any) {
     explanation: sanitizeLatexText(q.explanation),
     modelAnswer: sanitizeLatexText(q.modelAnswer),
     expectedAnswer: sanitizeLatexText(q.expectedAnswer),
+    expectedLatex: sanitizeLatexText(q.expectedLatex ?? q.expected_latex),
+    answerText: sanitizeLatexText(q.answerText ?? q.correctAnswerText),
     statement: sanitizeLatexText(q.statement),
     prompt: sanitizeLatexText(q.prompt),
   }
@@ -156,6 +159,14 @@ function sanitizeQuestionLatex(q: any) {
     cleaned.answers = q.answers.map((opt: any) =>
       typeof opt === "string" ? sanitizeLatexText(opt) : opt
     )
+  }
+
+  if (Array.isArray(q.solutionSteps ?? q.steps)) {
+    cleaned.solutionSteps = (q.solutionSteps ?? q.steps).map((step: any) => sanitizeLatexText(step))
+  }
+
+  if (Array.isArray(q.distractorRationales ?? q.distractor_reasons)) {
+    cleaned.distractorRationales = (q.distractorRationales ?? q.distractor_reasons).map((item: any) => sanitizeLatexText(item))
   }
 
   if (q.correctAnswer != null && typeof q.correctAnswer === "string") {
@@ -259,7 +270,11 @@ function repairQuestionStructure(q: any): any {
 
 function sanitizeQuestionsArray(questions: any[]): any[] {
   if (!Array.isArray(questions)) return []
-  return questions.map(q => validateQuestionConsistency(repairQuestionStructure(sanitizeQuestionLatex(q))))
+  return questions.map(q =>
+    enrichQuestionAnswerKey(
+      validateQuestionConsistency(repairQuestionStructure(sanitizeQuestionLatex(q)))
+    )
+  )
 }
 
 function validateQuestionConsistency(q: any): any {
@@ -310,17 +325,56 @@ function parseResponse(raw: string): any {
   return JSON.parse(clean)
 }
 
-const SYSTEM = `Eres experto en evaluaciones escolares en español.
-Devuelve SOLO JSON válido, sin markdown.
-Formato: {"title":"...","questions":[...]}.
+const SYSTEM = `Eres un especialista en diseño y corrección de evaluaciones escolares en español.
+Devuelve SOLO JSON válido, sin markdown ni texto fuera del objeto.
+Formato principal: {"title":"...","questions":[...]}.
 Tipos permitidos: multiple_choice, true_false, development.
 Respeta EXACTAMENTE las cantidades pedidas y no generes tipos con cantidad 0.
-Alternativas: 4 options, correctAnswer = índice 0-3 de la opción correcta. Calcula antes de elegir. La explicación debe coincidir con options[correctAnswer]. Nunca uses correctAnswer=0 por defecto.
-V/F: options ["Verdadero","Falso"], correctAnswer 0 o 1, incluye explicación.
-Desarrollo: incluye modelAnswer, rubric [{criteria,points}], maxPoints.
-Matemática: usa LaTeX solo dentro de $...$ o $$...$$; comandos con backslash real: \\frac, \\sqrt, \\times.
-`
 
+Cada pregunta y su pauta deben generarse juntas, dentro del mismo objeto, para conservar coherencia pedagógica.
+
+ESQUEMA OBLIGATORIO PARA multiple_choice:
+{
+  "type":"multiple_choice",
+  "question":"...",
+  "options":["...","...","...","..."],
+  "correctAnswer":0,
+  "answerText":"texto idéntico a options[correctAnswer]",
+  "explanation":"explicación clara de por qué esa opción es correcta",
+  "solutionSteps":["paso o fundamento 1","paso o fundamento 2"],
+  "distractorRationales":["motivo opción A","motivo opción B","motivo opción C","motivo opción D"],
+  "maxPoints":1
+}
+REGLAS multiple_choice: calcula primero la respuesta; crea una opción correcta exacta; crea tres distractores plausibles basados en errores comunes; mezcla las cuatro opciones; correctAnswer debe indicar la posición final; answerText DEBE ser exactamente options[correctAnswer]; las cuatro alternativas deben ser distintas, pertinentes y del mismo tipo de respuesta.
+
+ESQUEMA OBLIGATORIO PARA true_false:
+{
+  "type":"true_false",
+  "question":"...",
+  "options":["Verdadero","Falso"],
+  "correctAnswer":0,
+  "answerText":"Verdadero",
+  "explanation":"justificación completa",
+  "solutionSteps":["fundamento"],
+  "selectionPoints":1,
+  "justificationMaxPoints":2
+}
+
+ESQUEMA OBLIGATORIO PARA development:
+{
+  "type":"development",
+  "question":"...",
+  "modelAnswer":"respuesta esperada completa",
+  "expectedLatex":"resultado matemático final en LaTeX cuando corresponda",
+  "explanation":"explicación pedagógica",
+  "solutionSteps":["paso 1","paso 2"],
+  "rubric":[{"criteria":"...","points":1}],
+  "maxPoints":5
+}
+
+Matemática: usa LaTeX solo dentro de $...$ o $$...$$; comandos con backslash real: \frac, \sqrt, \times.
+Antes de responder, revisa internamente que cada respuesta sea coherente con su pregunta y que las alternativas no sean absurdas ni ambiguas.
+`
 const PROVIDER_BATCH = Number(process.env.EXAM_GENERATE_BATCH_SIZE || 3)
 const MAX_AI_QUESTIONS_PER_CALL = Number(process.env.EXAM_GENERATE_MAX_QUESTIONS || 30)
 const GROQ_TOKEN_BUDGET_PER_BATCH = Number(process.env.EXAM_GENERATE_GROQ_MAX_TOKENS || 3200)
@@ -451,6 +505,8 @@ Genera EXACTAMENTE ${batch.total} preguntas:
 - ${batch.mc} multiple_choice
 - ${batch.tf} true_false
 - ${batch.dev} development
+Cada objeto debe incluir su respuesta esperada y explicación en el MISMO contexto de generación.
+Para alternativas, answerText debe coincidir exactamente con options[correctAnswer] y los cuatro distractorRationales deben explicar la calidad de cada opción.
 Salida obligatoria: {"title":"...","questions":[...]}
 No agregues texto fuera del JSON.`
 }
@@ -458,6 +514,46 @@ No agregues texto fuera del JSON.`
 function tokenBudgetForBatch(questionCount: number): number {
   const dynamic = 900 + Math.max(1, questionCount) * 650
   return Math.min(GROQ_MAX_TOKENS, GROQ_TOKEN_BUDGET_PER_BATCH, dynamic)
+}
+
+function buildRepairPrompt(questions: any[], context: string): string {
+  const issues = findBlockingQualityIssues(questions)
+  return `Actúa como agente revisor de calidad de preguntas. Corrige las preguntas sin cambiar su cantidad ni su tipo.
+Contexto del examen: ${context.slice(0, 1200)}
+
+Problemas detectados:
+${JSON.stringify(issues)}
+
+Preguntas a corregir:
+${JSON.stringify(questions)}
+
+Devuelve SOLO este JSON: {"questions":[...]}
+Mantén cada pregunta junto a su respuesta, explanation, solutionSteps y pauta.
+En multiple_choice: 4 alternativas distintas y pertinentes; answerText idéntico a options[correctAnswer]; distractorRationales con 4 elementos.`
+}
+
+async function validateAndRepairWithProvider(
+  questions: any[],
+  context: string,
+  askProvider: (prompt: string) => Promise<any>
+): Promise<any[]> {
+  let prepared = sanitizeQuestionsArray(questions)
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const blocking = findBlockingQualityIssues(prepared)
+    if (blocking.length === 0) return prepared
+
+    try {
+      const parsed = await askProvider(buildRepairPrompt(prepared, context))
+      const repaired = sanitizeQuestionsArray(parsed?.questions ?? parsed?.items ?? [])
+      if (repaired.length === prepared.length) prepared = repaired
+    } catch (error: any) {
+      console.warn(`[exam-generate/quality] intento ${attempt + 1} falló:`, error?.message || error)
+      break
+    }
+  }
+
+  return prepared
 }
 
 async function groqBatch(prompt: string, key: string): Promise<any> {
@@ -511,7 +607,11 @@ async function groqFull(
   for (let i = 0; i < batches.length; i++) {
     const prompt = promptForBatch(basePrompt, batches[i], i, batches.length)
     const parsed = await groqBatch(prompt, key)
-    const qs = sanitizeQuestionsArray(parsed?.questions ?? parsed?.items ?? [])
+    const qs = await validateAndRepairWithProvider(
+      parsed?.questions ?? parsed?.items ?? [],
+      prompt,
+      (repairPrompt) => groqBatch(repairPrompt, key)
+    )
 
     allQ.push(...qs)
     if (!title && parsed?.title) title = sanitizeLatexText(parsed.title)
@@ -595,7 +695,11 @@ async function openRouterFull(
   for (let i = 0; i < batches.length; i++) {
     const prompt = promptForBatch(basePrompt, batches[i], i, batches.length)
     const parsed = await openRouterBatch(prompt, key)
-    const qs = sanitizeQuestionsArray(parsed?.questions ?? parsed?.items ?? [])
+    const qs = await validateAndRepairWithProvider(
+      parsed?.questions ?? parsed?.items ?? [],
+      prompt,
+      (repairPrompt) => openRouterBatch(repairPrompt, key)
+    )
 
     allQ.push(...qs)
     if (!title && parsed?.title) title = sanitizeLatexText(parsed.title)
@@ -648,9 +752,13 @@ export async function POST(req: NextRequest) {
     if (GROQ_KEY) {
       try {
         const parsed = await groqBatch(enhancedPrompt, GROQ_KEY)
-        const q = repairQuestionStructure(sanitizeQuestionLatex(parsed?.question ?? parsed?.questions?.[0] ?? parsed))
+        const [q] = await validateAndRepairWithProvider(
+          [parsed?.question ?? parsed?.questions?.[0] ?? parsed],
+          enhancedPrompt,
+          (repairPrompt) => groqBatch(repairPrompt, GROQ_KEY)
+        )
 
-        return NextResponse.json({ success: true, question: q, provider: "groq", _design: designSummary })
+        return NextResponse.json({ success: true, question: q, answerKeyEntry: buildAnswerKey([q])[0], provider: "groq", _design: designSummary })
       } catch (e: any) {
         singleErrors.push(`Groq: ${e.message}`)
         console.warn("[exam-generate/single] Groq falló:", e.message)
@@ -660,9 +768,13 @@ export async function POST(req: NextRequest) {
     if (OR_KEY) {
       try {
         const parsed = await openRouterBatch(enhancedPrompt, OR_KEY)
-        const q = repairQuestionStructure(sanitizeQuestionLatex(parsed?.question ?? parsed?.questions?.[0] ?? parsed))
+        const [q] = await validateAndRepairWithProvider(
+          [parsed?.question ?? parsed?.questions?.[0] ?? parsed],
+          enhancedPrompt,
+          (repairPrompt) => openRouterBatch(repairPrompt, OR_KEY)
+        )
 
-        return NextResponse.json({ success: true, question: q, provider: "openrouter", _design: designSummary })
+        return NextResponse.json({ success: true, question: q, answerKeyEntry: buildAnswerKey([q])[0], provider: "openrouter", _design: designSummary })
       } catch (e: any) {
         singleErrors.push(`OpenRouter: ${e.message}`)
         console.warn("[exam-generate/single] OpenRouter falló:", e.message)
@@ -700,7 +812,7 @@ export async function POST(req: NextRequest) {
     try {
       const { title, questions } = await groqFull(enhancedPrompt, totalQ, Number(mc), Number(tf), Number(dev), GROQ_KEY)
       if (questions.length > 0) {
-        return NextResponse.json({ success: true, title, summary: null, questions, provider: "groq", _design: designSummary })
+        return NextResponse.json({ success: true, title, summary: null, questions, answerKey: buildAnswerKey(questions), qualityReviewRequired: findBlockingQualityIssues(questions), provider: "groq", _design: designSummary })
       }
       providerErrors.push("Groq: no devolvió preguntas")
     } catch (e: any) {
@@ -713,7 +825,7 @@ export async function POST(req: NextRequest) {
     try {
       const { title, questions } = await openRouterFull(enhancedPrompt, totalQ, Number(mc), Number(tf), Number(dev), OR_KEY)
       if (questions.length > 0) {
-        return NextResponse.json({ success: true, title, summary: null, questions, provider: "openrouter", _design: designSummary })
+        return NextResponse.json({ success: true, title, summary: null, questions, answerKey: buildAnswerKey(questions), qualityReviewRequired: findBlockingQualityIssues(questions), provider: "openrouter", _design: designSummary })
       }
       providerErrors.push("OpenRouter: no devolvió preguntas")
     } catch (e: any) {
