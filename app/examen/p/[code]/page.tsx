@@ -10,6 +10,10 @@ import QuestionCard from "@/components/exam/QuestionCard";
 import ExamAudioButton from "@/components/exam/ExamAudioButton";
 import ExamScientificCalculator from "@/components/exam/ExamScientificCalculator";
 import ExamDigitalClock from "@/components/exam/ExamDigitalClock";
+import ExamQuestionNotebook, {
+  type ExamNotebookArtifact,
+  type ExamQuestionNotebookHandle,
+} from "@/components/exam/ExamQuestionNotebook";
 
 // ── Supabase del PANEL DE CONTROL ────────────────────────────────────────────
 const PANEL_URL = process.env.NEXT_PUBLIC_PANEL_SUPABASE_URL || "";
@@ -34,6 +38,12 @@ function calcGrade(scorePercent: number, exigencia = 60) {
 
 function fmt(seconds: number) {
   return `${Math.floor(seconds / 60)}:${(seconds % 60).toString().padStart(2, "0")}`;
+}
+
+function createAttemptId() {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 // ── Cursos indexados ─────────────────────────────────────────────────────────
@@ -164,6 +174,11 @@ export default function ExamenPublicoPage() {
   const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [feedbackDone, setFeedbackDone] = useState(false);
   const [confirmSubmit, setConfirmSubmit] = useState(false);
+  const attemptIdRef = useRef(createAttemptId());
+  const notebookRef = useRef<ExamQuestionNotebookHandle>(null);
+  const [developmentArtifacts, setDevelopmentArtifacts] = useState<Record<number, ExamNotebookArtifact>>({});
+  const [developmentSaveStatus, setDevelopmentSaveStatus] = useState("");
+  const [developmentSaving, setDevelopmentSaving] = useState(false);
 
   // kiosk
   const [isKiosk, setIsKiosk] = useState(false);
@@ -205,7 +220,10 @@ export default function ExamenPublicoPage() {
   const answeredCount = useMemo(() => {
     return qs.filter((item: any, i: number) => {
       if (item.type === "development") {
-        return Boolean(devAnswers[i] && devAnswers[i].trim().length > 0);
+        return Boolean(
+          (devAnswers[i] && devAnswers[i].trim().length > 0) ||
+          developmentArtifacts[i]?.latex?.trim(),
+        );
       }
 
       if (item.type === "true_false") {
@@ -217,10 +235,14 @@ export default function ExamenPublicoPage() {
 
       return mcAnswers[i] !== undefined;
     }).length;
-  }, [qs, mcAnswers, devAnswers, tfJustifications]);
+  }, [qs, mcAnswers, devAnswers, tfJustifications, developmentArtifacts]);
 
   const showRes = exam?.settings?.showResultToStudent !== false;
   const allowCalculator = exam?.settings?.allowCalculator === true;
+  const developmentNotebookConfig = exam?.settings?.developmentNotebook;
+  const currentNotebookEnabled =
+    developmentNotebookConfig?.enabled === true &&
+    (developmentNotebookConfig?.mode === "all_questions" || q?.type === "development");
 
   // ── Detectar kiosk ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -467,10 +489,66 @@ export default function ExamenPublicoPage() {
     setFeedbackDone(true);
   }, []);
 
+  const saveCurrentDevelopment = useCallback(async (finalized = true) => {
+    if (!exam || !currentNotebookEnabled || !notebookRef.current) return true;
+
+    setDevelopmentSaving(true);
+    setDevelopmentSaveStatus("Guardando desarrollo...");
+    try {
+      const artifact = finalized
+        ? await notebookRef.current.finalizeArtifact()
+        : notebookRef.current.getArtifact();
+      const question = exam.questions?.[curQ] || {};
+      const response = await fetch("/api/examen/developments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          examId: exam.id,
+          clientAttemptId: attemptIdRef.current,
+          questionIndex: curQ,
+          questionId: question.id || `question-${curQ + 1}`,
+          artifactVersion: 1,
+          pages: artifact.pages,
+          latex: artifact.latex,
+          ocrText: artifact.ocrText,
+          ocrConfidence: artifact.ocrConfidence,
+          previewPngDataUrl: artifact.previewPngDataUrl,
+          finalized,
+          questionText: question.question || question.statement || "",
+          expectedLatex: question.modelAnswer || question.expectedAnswer || "",
+          rubric: question.rubric || [],
+          maxPoints: getQuestionMaxPoints(question),
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data?.success) {
+        throw new Error(data?.error || "No fue posible guardar el desarrollo.");
+      }
+      setDevelopmentArtifacts((current) => ({ ...current, [curQ]: artifact }));
+      setDevelopmentSaveStatus("✅ Desarrollo guardado");
+      return true;
+    } catch (error) {
+      setDevelopmentSaveStatus(error instanceof Error ? `⚠️ ${error.message}` : "⚠️ No fue posible guardar el desarrollo.");
+      return false;
+    } finally {
+      setDevelopmentSaving(false);
+    }
+  }, [curQ, currentNotebookEnabled, exam]);
+
+  const goToQuestion = useCallback(async (nextIndex: number) => {
+    if (nextIndex < 0 || nextIndex >= totalQ || nextIndex === curQ) return;
+    const saved = await saveCurrentDevelopment(true);
+    if (!saved) return;
+    setCurQ(nextIndex);
+  }, [curQ, saveCurrentDevelopment, totalQ]);
+
   const doSubmit = useCallback(
     async (_reason: "manual" | "forced" | "time_up" = "manual") => {
       if (!exam) return;
       if (phase === "submitting" || phase === "review") return;
+
+      const notebookSaved = await saveCurrentDevelopment(true);
+      if (!notebookSaved) return;
 
       if (timerRef.current) clearInterval(timerRef.current);
 
@@ -481,6 +559,7 @@ export default function ExamenPublicoPage() {
         if (question.type === "development") {
           return {
             devText: devAnswers[i] || "",
+            developmentLatex: developmentArtifacts[i]?.latex || "",
             selectedAnswer: -1,
           };
         }
@@ -511,6 +590,7 @@ export default function ExamenPublicoPage() {
             questions: exam.questions || [],
             timeSpent: Math.round((Date.now() - startRef.current) / 1000),
             examPercentage: exam.settings?.examPercentage || 60,
+            clientAttemptId: attemptIdRef.current,
           }),
         });
 
@@ -533,7 +613,7 @@ export default function ExamenPublicoPage() {
         setPhase("error");
       }
     },
-    [exam, phase, devAnswers, mcAnswers, tfJustifications, name, course, rut],
+    [exam, phase, devAnswers, developmentArtifacts, mcAnswers, tfJustifications, name, course, rut, saveCurrentDevelopment],
   );
 
   // ── Auto submit por tiempo ────────────────────────────────────────────────
@@ -1422,6 +1502,19 @@ export default function ExamenPublicoPage() {
                   setDevAnswers((prev) => ({ ...prev, [curQ]: v }))
                 }
               />
+              {currentNotebookEnabled && (
+                <ExamQuestionNotebook
+                  key={`${exam.id}-${curQ}`}
+                  ref={notebookRef}
+                  examId={exam.id}
+                  attemptId={attemptIdRef.current}
+                  questionIndex={curQ}
+                  questionId={q?.id || `question-${curQ + 1}`}
+                  onArtifactChange={(artifact) =>
+                    setDevelopmentArtifacts((current) => ({ ...current, [curQ]: artifact }))
+                  }
+                />
+              )}
             </main>
 
             <aside className="rounded-[28px] border border-medium bg-card-soft-theme p-5 shadow-sm lg:sticky lg:top-6">
@@ -1437,7 +1530,7 @@ export default function ExamenPublicoPage() {
                 {qs.map((_: any, i: number) => {
                   const answered =
                     qs[i]?.type === "development"
-                      ? Boolean(devAnswers[i]?.trim())
+                      ? Boolean(devAnswers[i]?.trim() || developmentArtifacts[i]?.latex?.trim())
                       : qs[i]?.type === "true_false"
                         ? mcAnswers[i] !== undefined ||
                           Boolean(tfJustifications[i]?.trim())
@@ -1446,7 +1539,7 @@ export default function ExamenPublicoPage() {
                   return (
                     <button
                       key={i}
-                      onClick={() => setCurQ(i)}
+                      onClick={() => void goToQuestion(i)}
                       className={`h-10 rounded-xl text-sm font-bold border transition ${
                         curQ === i
                           ? "border-blue-500 bg-blue-500/15 text-blue-700"
@@ -1461,19 +1554,23 @@ export default function ExamenPublicoPage() {
                 })}
               </div>
 
+              {developmentSaveStatus && (
+                <p className={`mb-3 rounded-xl px-3 py-2 text-xs font-semibold ${developmentSaveStatus.startsWith("⚠️") ? "bg-rose-50 text-rose-700" : "bg-emerald-50 text-emerald-700"}`}>
+                  {developmentSaving ? "💾 " : ""}{developmentSaveStatus}
+                </p>
+              )}
+
               <div className="space-y-3">
                 <div className="flex gap-2">
                   <button
-                    onClick={() => setCurQ((prev) => Math.max(0, prev - 1))}
+                    onClick={() => void goToQuestion(Math.max(0, curQ - 1))}
                     disabled={curQ === 0}
                     className="flex-1 py-2.5 rounded-2xl bg-card-soft-theme border border-soft text-main text-sm disabled:opacity-30 transition-all"
                   >
                     ← Anterior
                   </button>
                   <button
-                    onClick={() =>
-                      setCurQ((prev) => Math.min(totalQ - 1, prev + 1))
-                    }
+                    onClick={() => void goToQuestion(Math.min(totalQ - 1, curQ + 1))}
                     disabled={curQ === totalQ - 1}
                     className="flex-1 py-2.5 rounded-2xl text-white font-bold text-sm transition-all disabled:opacity-30"
                     style={{
