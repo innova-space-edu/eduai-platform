@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { getDesignTemplateSummary } from "@/lib/design-templates/registry"
+import { enrichQuestionAnswerKey } from "@/lib/exam/question-quality"
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "",
@@ -158,12 +159,40 @@ function sanitizeQuestion(question: any) {
         : clampPositive(Number(question?.maxPoints), 5) || 5
   }
 
-  return sanitized
+  return enrichQuestionAnswerKey(sanitized)
 }
 
 function sanitizeQuestions(questions: any[]): any[] {
   if (!Array.isArray(questions)) return []
   return questions.map(sanitizeQuestion)
+}
+
+function stripTeacherAnswerKey(question: any) {
+  const q = sanitizeQuestion(question)
+  const base: Record<string, any> = {
+    type: q.type,
+    question: q.question,
+    imageUrl: q.imageUrl || "",
+    maxPoints: getQuestionMaxPoints(q),
+  }
+
+  if (q.type === "multiple_choice") {
+    return { ...base, options: Array.isArray(q.options) ? q.options : [] }
+  }
+
+  if (q.type === "true_false") {
+    return {
+      ...base,
+      options: ["Verdadero", "Falso"],
+      selectionPoints: q.selectionPoints,
+      justificationMaxPoints: q.justificationMaxPoints,
+    }
+  }
+
+  return {
+    ...base,
+    rubric: Array.isArray(q.rubric) ? q.rubric : [],
+  }
 }
 
 function getQuestionMaxPoints(question: any): number {
@@ -288,7 +317,7 @@ async function evaluateWithAI(questions: any[], answers: any[]): Promise<any[]> 
         question: q.question,
         type: "development",
         studentAnswer: renderedLatex ? `LaTeX renderizado del desarrollo: ${renderedLatex}` : developmentText,
-        modelAnswer: q.modelAnswer || "",
+        modelAnswer: q.modelAnswer || q.expectedLatex || "",
         rubric: q.rubric || [],
         maxPoints: getQuestionMaxPoints(q),
       })
@@ -473,11 +502,16 @@ export async function POST(request: NextRequest) {
       // Include prior submissions summary (name, course, rut) for re-entry flow
       const { data: subs } = await supabase
         .from("exam_submissions")
-        .select("id, student_name, student_course, student_rut, answers, score, grade, submitted_at")
+        .select("id, student_name, student_course, student_rut, score, grade, submitted_at")
         .eq("exam_id", data.id)
         .order("submitted_at", { ascending: false })
 
-      return NextResponse.json({ success: true, exam: data, priorSubmissions: subs || [] })
+      const publicExam = {
+        ...data,
+        questions: sanitizeQuestions(data.questions || []).map(stripTeacherAnswerKey),
+      }
+
+      return NextResponse.json({ success: true, exam: publicExam, priorSubmissions: subs || [] })
     }
 
     if (action === "create") {
@@ -532,17 +566,30 @@ export async function POST(request: NextRequest) {
         studentCourse,
         studentRut,
         answers,
-        questions,
         timeSpent,
         examPercentage,
         clientAttemptId,
       } = body
 
-      if (!examId || !studentName || !studentCourse || !answers || !questions) {
+      if (!examId || !studentName || !studentCourse || !answers) {
         return NextResponse.json({ error: "Faltan datos" }, { status: 400 })
       }
 
-      const sanitizedQuestions = sanitizeQuestions(questions)
+      const { data: officialExam, error: officialExamError } = await supabase
+        .from("teacher_exams")
+        .select("id, questions, settings, status")
+        .eq("id", examId)
+        .maybeSingle()
+
+      if (officialExamError || !officialExam) {
+        return NextResponse.json({ error: "Examen no encontrado" }, { status: 404 })
+      }
+
+      if (officialExam.status !== "active") {
+        return NextResponse.json({ error: "Este examen está cerrado" }, { status: 403 })
+      }
+
+      const sanitizedQuestions = sanitizeQuestions(officialExam.questions || [])
 
       let gradedAnswers = answers.map((a: any, i: number) => {
         const q = sanitizedQuestions[i]
@@ -643,7 +690,8 @@ export async function POST(request: NextRequest) {
       })
 
       const score = totalPoints > 0 ? (earnedPoints / totalPoints) * 100 : 0
-      const grade = calcGrade(score, examPercentage || 60)
+      const officialExamPercentage = Number(officialExam.settings?.examPercentage ?? examPercentage ?? 60)
+      const grade = calcGrade(score, officialExamPercentage)
 
       const { data, error } = await supabase
         .from("exam_submissions")
