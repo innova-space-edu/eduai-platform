@@ -55,7 +55,7 @@ function normalizeAnswerIndex(value: unknown, options: string[]): number {
     const letters = ["a", "b", "c", "d", "e", "f"]
     const byLetter = letters.indexOf(trimmed)
     if (byLetter >= 0) return Math.max(0, Math.min(max, byLetter))
-    const byText = options.findIndex((item) => cleanForCompare(item) === cleanForCompare(trimmed))
+    const byText = options.findIndex((item: string) => cleanForCompare(item) === cleanForCompare(trimmed))
     if (byText >= 0) return byText
   }
   return 0
@@ -70,15 +70,17 @@ export function assessQuestionQuality(question: any): QuestionQualityIssue[] {
   }
 
   if (type === "multiple_choice") {
-    const options = Array.isArray(question?.options) ? question.options.map(asText) : []
+    const options: string[] = Array.isArray(question?.options)
+      ? question.options.map((item: unknown) => asText(item))
+      : []
     if (options.length !== 4) {
       issues.push({ code: "mc_option_count", message: "Debe contener exactamente 4 alternativas.", severity: "error" })
     }
-    if (options.some((item) => !item)) {
+    if (options.some((item: string) => !item)) {
       issues.push({ code: "mc_empty_option", message: "Hay alternativas vacías.", severity: "error" })
     }
-    const unique = new Set(options.map(cleanForCompare).filter(Boolean))
-    if (unique.size !== options.filter(Boolean).length) {
+    const unique = new Set(options.map((item: string) => cleanForCompare(item)).filter(Boolean))
+    if (unique.size !== options.filter((item: string) => Boolean(item)).length) {
       issues.push({ code: "mc_duplicate_option", message: "Hay alternativas repetidas o equivalentes en texto.", severity: "error" })
     }
     const idx = normalizeAnswerIndex(question?.correctAnswer, options)
@@ -131,7 +133,9 @@ export function enrichQuestionAnswerKey(rawQuestion: any): any {
   q.type = type
 
   if (type === "multiple_choice") {
-    q.options = Array.isArray(q.options) ? q.options.map(asText) : []
+    q.options = Array.isArray(q.options)
+      ? q.options.map((item: unknown) => asText(item))
+      : []
     q.correctAnswer = normalizeAnswerIndex(q.correctAnswer, q.options)
     const correctOption = asText(q.options[q.correctAnswer])
     q.answerText = correctOption
@@ -139,9 +143,9 @@ export function enrichQuestionAnswerKey(rawQuestion: any): any {
     q.explanation = asText(q.explanation)
     q.solutionSteps = asSteps(q.solutionSteps ?? q.steps, q.explanation)
     q.distractorRationales = Array.isArray(q.distractorRationales)
-      ? q.distractorRationales.map(asText)
+      ? q.distractorRationales.map((item: unknown) => asText(item))
       : Array.isArray(q.distractor_reasons)
-        ? q.distractor_reasons.map(asText)
+        ? q.distractor_reasons.map((item: unknown) => asText(item))
         : []
   }
 
@@ -164,15 +168,15 @@ export function enrichQuestionAnswerKey(rawQuestion: any): any {
   }
 
   const issues = assessQuestionQuality(q)
-  q.qualityStatus = issues.some((issue) => issue.severity === "error") ? "review" : "ready"
-  q.qualityWarnings = issues.map((issue) => issue.message)
+  q.qualityStatus = issues.some((issue: QuestionQualityIssue) => issue.severity === "error") ? "review" : "ready"
+  q.qualityWarnings = issues.map((issue: QuestionQualityIssue) => issue.message)
   return q
 }
 
 export function findBlockingQualityIssues(questions: any[]): Array<{ index: number; issues: QuestionQualityIssue[] }> {
   return (Array.isArray(questions) ? questions : [])
-    .map((question, index) => ({ index, issues: assessQuestionQuality(question) }))
-    .filter((item) => item.issues.some((issue) => issue.severity === "error"))
+    .map((question: any, index: number) => ({ index, issues: assessQuestionQuality(question) }))
+    .filter((item: { index: number; issues: QuestionQualityIssue[] }) => item.issues.some((issue: QuestionQualityIssue) => issue.severity === "error"))
 }
 
 export function buildAnswerKey(questions: any[]): AnswerKeyEntry[] {
@@ -186,7 +190,9 @@ export function buildAnswerKey(questions: any[]): AnswerKeyEntry[] {
       explanation: asText(q.explanation),
       solutionSteps: asSteps(q.solutionSteps),
       correctAnswer: typeof q.correctAnswer === "number" ? q.correctAnswer : undefined,
-      options: Array.isArray(q.options) ? q.options.map(asText) : undefined,
+      options: Array.isArray(q.options)
+        ? q.options.map((item: unknown) => asText(item))
+        : undefined,
       expectedLatex: asText(q.expectedLatex) || undefined,
       rubric: Array.isArray(q.rubric) ? q.rubric : undefined,
       qualityStatus: q.qualityStatus,
