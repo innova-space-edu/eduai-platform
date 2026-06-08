@@ -12,6 +12,7 @@ import { NextResponse, type NextRequest } from "next/server"
 const PROTECTED_ROUTES = [
   "/dashboard", "/study", "/profile", "/admin",
   "/creator-hub", "/audio-lab", "/image-studio", "/workspace",
+  "/educador",      // ← planificador MINEDUC y planificaciones guardadas
   "/superagent",    // ← todo el hub del superagente
   "/chat-global",   // ← chat global tipo ChatGPT
   "/music",         // ← música persistente y playlists
