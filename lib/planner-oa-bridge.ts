@@ -1,5 +1,6 @@
 import { getPlannerOAOptions, getPlannerSummary } from "@/lib/planificador-curriculum"
 import type { NivelKey, OA } from "@/lib/mineduc-oa"
+import { OA_SYNONYMS } from "@/lib/planner-oa-synonyms"
 
 interface CurriculumState {
   nivel: NivelKey
@@ -17,11 +18,23 @@ function normalize(value: string) {
 }
 
 function keywords(value: string) {
-  return new Set(normalize(value).split(/\s+/).filter((token) => token.length >= 4))
+  const source = normalize(value).split(/\s+/).filter((token) => token.length >= 4)
+  const expanded = new Set(source)
+  for (const token of source) {
+    if (token.endsWith("es") && token.length > 5) expanded.add(token.slice(0, -2))
+    if (token.endsWith("s") && token.length > 4) expanded.add(token.slice(0, -1))
+    for (const [root, related] of Object.entries(OA_SYNONYMS)) {
+      if (token === root || related.includes(token)) {
+        expanded.add(root)
+        related.forEach((item) => expanded.add(item))
+      }
+    }
+  }
+  return expanded
 }
 
 function relevance(oa: OA, query: Set<string>) {
-  const corpus = keywords(`${oa.codigoOficial || ""} ${oa.texto} ${(oa.ejes || []).join(" ")} ${(oa.habilidades || []).join(" ")}`)
+  const corpus = keywords(`${oa.codigoOficial || ""} ${oa.texto} ${(oa.ejes || []).join(" ")} ${(oa.habilidades || []).join(" ")} ${oa.unidadNombre || ""} ${oa.ambito || ""} ${oa.nucleo || ""}`)
   let score = 0
   for (const token of query) if (corpus.has(token)) score += token.length >= 7 ? 3 : 1
   return score
