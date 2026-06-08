@@ -21,6 +21,9 @@ jobs:
       - name: Normalize lockfile registry
         run: node scripts/normalize-npm-lockfile.mjs
 
+      - name: Verify public npm registry
+        run: node -e "const fs=require('fs'); const lock=fs.readFileSync('package-lock.json','utf8'); if(lock.includes('packages.applied-caas-gateway1.internal.api.openai.org')) throw new Error('El lockfile aún contiene URLs privadas'); console.log('Public npm registry verified')"
+
       - name: Install dependencies
         run: npm install --registry=https://registry.npmjs.org/
 
