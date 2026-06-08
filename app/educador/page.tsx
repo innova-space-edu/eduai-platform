@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { useRouter } from "next/navigation"
@@ -14,6 +14,7 @@ import {
   getPlannerUnits,
   type TiempoPlanificacion,
 } from "@/lib/planificador-curriculum"
+import { PLANNING_PROFILE_OPTIONS, type PlanningProfileId } from "@/lib/school-planning-profiles"
 import {
   getAvailableAsignaturas,
   getParvulariaAmbitoForCurso,
@@ -68,6 +69,18 @@ const QUICK_PROMPTS = [
     label: "Planificación completa",
     color: "emerald",
     prompt: "Crea una planificación docente completa con todos los bloques: OA, indicadores, objetivos de clase, desarrollo de sesiones, evaluación, recursos y adaptaciones.",
+  },
+  {
+    icon: "🔬",
+    label: "Feria científica",
+    color: "blue",
+    prompt: "Crea una planificación integral para una feria científica escolar. Incluye objetivos y OA vinculados, etapas de investigación, equipos, experimentos o prototipos, bitácora, cronograma, stands, seguridad, presentación pública, evidencias y rúbrica.",
+  },
+  {
+    icon: "🎪",
+    label: "Evento escolar",
+    color: "orange",
+    prompt: "Crea una planificación integral para un evento escolar. Incluye propósito, programa, comisiones, responsables, tiempos, espacios, recursos, comunicación, seguridad, plan de contingencia, evidencias y evaluación final.",
   },
   {
     icon: "💡",
@@ -179,6 +192,7 @@ interface Config {
   parvulariaHeterogenea: boolean
   parvulariaSegundoCurso: string
   parvulariaMotivoFusion: string
+  planningProfile: PlanningProfileId
 }
 
 interface AsignaturaOption {
@@ -220,12 +234,12 @@ export default function EducadorPage() {
   const bottomRef = useRef<HTMLDivElement>(null)
   const supabase = useMemo(() => createClient(), [])
 
-  async function forceRecoverSession() {
+  const forceRecoverSession = useCallback(async () => {
     try {
       await supabase.auth.signOut({ scope: "local" })
     } catch {}
     router.replace("/login?next=/educador")
-  }
+  }, [router, supabase])
 
   const [config, setConfig] = useState<Config>({
     nivel: "parvularia",
@@ -242,6 +256,7 @@ export default function EducadorPage() {
     parvulariaHeterogenea: false,
     parvulariaSegundoCurso: "Sala Cuna Mayor (1 a 2 años)",
     parvulariaMotivoFusion: "",
+    planningProfile: "auto",
   })
 
   const [messages, setMessages] = useState<Message[]>([])
@@ -320,7 +335,8 @@ export default function EducadorPage() {
     year: "numeric",
   })
 
-  const planningBadge = `${config.tiempoPlanificacion} · ${config.sesiones} ses. · ${config.duracionMinutos} min`
+  const planningProfileOption = PLANNING_PROFILE_OPTIONS.find((item) => item.id === config.planningProfile) || PLANNING_PROFILE_OPTIONS[0]
+  const planningBadge = `${planningProfileOption.icon} ${planningProfileOption.label} · ${config.tiempoPlanificacion} · ${config.sesiones} ses. · ${config.duracionMinutos} min`
   const parvulariaHeteroActive = config.nivel === "parvularia" && config.parvulariaHeterogenea
   const parvulariaHeteroText = parvulariaHeteroActive
     ? `Grupo heterogéneo: ${config.curso} + ${config.parvulariaSegundoCurso}${config.parvulariaMotivoFusion ? ` · ${config.parvulariaMotivoFusion}` : ""}`
@@ -368,7 +384,7 @@ export default function EducadorPage() {
       cancelled = true
       authListener.subscription.unsubscribe()
     }
-  }, [router, supabase])
+  }, [router, supabase, forceRecoverSession])
 
   // Scroll al fondo solo cuando hay mensajes activos en el chat
   useEffect(() => {
@@ -533,6 +549,11 @@ export default function EducadorPage() {
 
       const data = await res.json()
 
+      if (data?.oaConnection?.autoSelected && Array.isArray(data.selectedOAIds) && data.selectedOAIds.length) {
+        setConfig((prev) => prev.selectedOAIds.length ? prev : { ...prev, selectedOAIds: data.selectedOAIds })
+        setSaveStatus(`OA conectados automáticamente desde la base curricular: ${data.selectedOAIds.length}.`)
+      }
+
       setMessages((prev) => [
         ...prev,
         {
@@ -588,6 +609,7 @@ export default function EducadorPage() {
         parvularia_heterogenea: config.parvulariaHeterogenea,
         parvularia_segundo_curso: config.parvulariaSegundoCurso,
         parvularia_motivo_fusion: config.parvulariaMotivoFusion,
+        planning_profile: config.planningProfile,
         title: buildPlanningTitle(),
         content,
         created_at: new Date().toISOString(),
@@ -967,6 +989,24 @@ export default function EducadorPage() {
               )}
 
               <div className="grid md:grid-cols-3 gap-3 mb-4">
+                <div className="md:col-span-2">
+                  <label className="text-slate-700 text-xs font-semibold mb-1.5 block">Tipo de planificación escolar</label>
+                  <select
+                    value={config.planningProfile}
+                    onChange={(e) => setConfig((prev) => ({ ...prev, planningProfile: e.target.value as PlanningProfileId }))}
+                    className="w-full rounded-2xl border border-sky-200 bg-sky-50 px-3 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:border-sky-500"
+                  >
+                    {PLANNING_PROFILE_OPTIONS.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.icon} {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-1.5 text-[11px] leading-relaxed text-slate-600">
+                    {planningProfileOption.summary} La selección queda conectada con los OA disponibles y con la estructura que usará el agente.
+                  </p>
+                </div>
+
                 <div>
                   <label className="text-muted2 text-xs mb-1.5 block">Horizonte</label>
                   <select
@@ -1578,7 +1618,7 @@ export default function EducadorPage() {
           </div>
 
           <p className="text-muted2 text-xs mt-2 text-center">
-            APl · Parvularia completa · OA múltiples · OAT · ámbitos y núcleos · horizonte temporal
+            APl · Planificador escolar integral · OA oficiales conectados · clases · proyectos · ferias · eventos · parvularia
           </p>
         </div>
       </div>
