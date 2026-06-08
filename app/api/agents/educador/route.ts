@@ -17,6 +17,16 @@ import {
   getPlannerUnits,
 } from "@/lib/planificador-curriculum"
 import { buildDesignPromptDirective, getDesignTemplateSummary } from "@/lib/design-templates/registry"
+import {
+  auditPlanningOutput,
+  buildPlanningProfilePrompt,
+  buildRepairInstruction,
+  inferPlanningProfile,
+  isPlanningProfileId,
+  type PlanningProfile,
+  type PlanningProfileId,
+} from "@/lib/school-planning-profiles"
+import { buildConnectedOAContext, resolveOAConnection } from "@/lib/planner-oa-bridge"
 
 export const runtime = "nodejs"
 export const maxDuration = 60
@@ -45,6 +55,7 @@ interface EducadorConfig {
   parvulariaHeterogenea?: boolean
   parvulariaSegundoCurso?: string
   parvulariaMotivoFusion?: string
+  planningProfile?: PlanningProfileId
 }
 
 function educadorDesignFormat(intent: string) {
@@ -247,6 +258,7 @@ function buildPromptContext(params: {
   parvulariaHeterogenea?: boolean
   parvulariaSegundoCurso?: string
   parvulariaMotivoFusion?: string
+  planningProfile?: PlanningProfileId
 }) {
   const { nivel, curso, asignatura, mes, unidadId, selectedOAIds, selectedOATIds, tiempoPlanificacion, sesiones, duracionMinutos, userMessage, parvulariaHeterogenea, parvulariaSegundoCurso, parvulariaMotivoFusion } = params
   const summary = getPlannerSummary({ nivel, curso, asignatura })
@@ -703,7 +715,46 @@ function buildLocalRubricFallback(params: {
   duracionMinutos: number
 }): string {
   const tema = params.contexto || params.message
-  return `# Rúbrica de evaluación — Presentación y actividad ambiental\n\n> Respaldo local EduAI: se generó esta rúbrica aunque el proveedor de IA no respondió. Puedes editarla y exportarla igual.\n\n## Datos generales\n\n| Campo | Detalle |\n|---|---|\n| Curso(s) | Desde educación básica a enseñanza media |\n| Asignatura / Núcleo | ${params.asignatura} |\n| Tema | ${truncateForPrompt(tema, 350)} |\n| Producto evaluado | Presentación oral, propuesta de intervención y actividad de concientización ambiental |\n| Duración mínima de presentación | 10 minutos |\n| Duración mínima de actividad | 15 minutos |\n| Puntaje sugerido | 100 puntos |\n\n## Criterios y niveles de logro\n\n| Criterio | Excelente — 4 pts | Bueno — 3 pts | Básico — 2 pts | Inicial — 1 pt | Ponderación |\n|---|---|---|---|---|---|\n| Dominio del tema ambiental | Explica con seguridad el problema ambiental, sus causas, consecuencias y relación con la vida escolar o comunitaria. | Explica el tema con claridad, aunque puede faltar mayor profundidad en causas o consecuencias. | Presenta ideas generales, con información incompleta o poco conectada. | Muestra escaso dominio o entrega información confusa. | 15% |\n| Importancia del cuidado del medio ambiente | Argumenta con ejemplos claros por qué es importante cuidar el entorno y propone acciones responsables. | Explica la importancia del cuidado ambiental con algunos ejemplos. | Menciona la importancia, pero con poca justificación. | No logra explicar claramente la importancia del cuidado ambiental. | 15% |\n| Propuesta o intervención ambiental | Presenta una propuesta concreta, viable, creativa y pertinente para el curso o comunidad. | Presenta una propuesta clara, aunque requiere ajustes de viabilidad o detalle. | La propuesta es básica o poco desarrollada. | La propuesta es débil, poco clara o no se relaciona con el problema. | 15% |\n| Actividad práctica o de concientización | Diseña y ejecuta una actividad participativa de al menos 15 minutos, con instrucciones claras y propósito educativo. | Realiza una actividad adecuada, aunque puede mejorar la organización o participación. | La actividad existe, pero es breve, poco clara o con baja participación. | No realiza actividad o esta no cumple el propósito. | 15% |\n| Comunicación oral y organización | Se expresa con claridad, orden, vocabulario adecuado, buen uso del tiempo y participación equilibrada. | Comunica adecuadamente, con leves problemas de orden, tiempo o participación. | Presenta con dificultad, lectura excesiva o desorden en la exposición. | La comunicación impide comprender el mensaje principal. | 15% |\n| Respuesta a preguntas | Responde preguntas de estudiantes con seguridad, respeto y argumentos relacionados con el tema. | Responde la mayoría de las preguntas con claridad. | Responde parcialmente o necesita apoyo frecuente. | No logra responder o evita las preguntas. | 10% |\n| Recursos y evidencias | Usa afiches, imágenes, datos, demostraciones o materiales que fortalecen el mensaje ambiental. | Usa recursos adecuados, aunque no siempre los integra a la explicación. | Usa pocos recursos o estos aportan poco al contenido. | No usa recursos o son irrelevantes. | 10% |\n| Actitud, respeto e incentivo al cuidado del entorno | Motiva a sus compañeros a actuar responsablemente y demuestra respeto por el entorno y la audiencia. | Mantiene buena actitud y promueve el cuidado ambiental. | Muestra actitud adecuada, pero con baja motivación hacia los demás. | Presenta baja disposición, poco respeto o escasa conciencia ambiental. | 5% |\n\n## Escala sugerida\n\n| Puntaje total | Nivel de logro | Interpretación |\n|---|---|---|\n| 86 a 100 | Excelente | Cumple de forma sobresaliente y puede orientar a otros. |\n| 70 a 85 | Bueno | Cumple adecuadamente con aspectos menores por mejorar. |\n| 50 a 69 | Básico | Cumple parcialmente; requiere mayor profundidad y organización. |\n| 0 a 49 | Inicial | Requiere rehacer o reforzar partes esenciales del trabajo. |\n\n## Observaciones para el docente\n\n- Puedes aplicar la misma rúbrica en distintos cursos ajustando el nivel de profundidad esperado según edad.\n- Para cursos pequeños, prioriza claridad, participación y acciones concretas. Para media, exige mayor evidencia, argumentación e impacto.\n- Antes de presentar, entrega la rúbrica a los grupos para que sepan cómo serán evaluados.\n- Se recomienda complementar con coevaluación breve: “¿Qué aprendí?”, “¿Qué acción ambiental puedo aplicar?” y “¿Qué grupo logró concientizar mejor?”.`
+  return `# Rúbrica de evaluación — Actividad escolar
+
+> EduAI activó un respaldo local editable para que puedas continuar trabajando sin perder tu solicitud.
+
+## Datos generales
+
+| Campo | Detalle |
+|---|---|
+| Curso | ${params.curso} |
+| Asignatura / Núcleo | ${params.asignatura} |
+| Tema o actividad | ${truncateForPrompt(tema, 350)} |
+| Producto evaluado | Evidencia, producto, presentación o desempeño definido por el docente |
+| Puntaje sugerido | 100 puntos |
+
+## Criterios y niveles de logro
+
+| Criterio | Excelente — 4 pts | Logrado — 3 pts | En desarrollo — 2 pts | Inicial — 1 pt | Ponderación |
+|---|---|---|---|---|---|
+| Comprensión del tema | Explica y aplica el contenido con profundidad y precisión. | Explica adecuadamente los aspectos centrales. | Presenta comprensión parcial o con vacíos. | Requiere apoyo para reconocer los elementos esenciales. | 20% |
+| Calidad del producto o evidencia | Entrega un producto completo, pertinente, claro y bien desarrollado. | Cumple el propósito con detalles menores por mejorar. | Cumple parcialmente o presenta desarrollo insuficiente. | El producto es incompleto o no responde al propósito. | 20% |
+| Proceso de trabajo | Planifica, registra avances y mejora a partir de retroalimentación. | Organiza el trabajo y registra los avances principales. | Requiere apoyo frecuente para organizarse. | Presenta escasa organización o evidencia del proceso. | 15% |
+| Comunicación | Comunica ideas con claridad, argumentos y recursos pertinentes. | Comunica las ideas principales de forma comprensible. | La comunicación es parcial o poco organizada. | La comunicación no permite comprender el trabajo. | 15% |
+| Colaboración y responsabilidad | Cumple su rol, coopera y aporta soluciones al equipo. | Participa responsablemente en la mayoría de las tareas. | Participa de manera irregular o necesita recordatorios. | No cumple su rol o dificulta el trabajo colaborativo. | 15% |
+| Uso de recursos y seguridad | Usa materiales responsablemente y aplica medidas de seguridad. | Usa los recursos de forma adecuada con pocas observaciones. | Requiere apoyo para cuidar materiales o cumplir medidas. | Usa recursos de forma insegura o poco responsable. | 15% |
+
+## Escala sugerida
+
+| Puntaje total | Nivel de logro |
+|---|---|
+| 86 a 100 | Excelente |
+| 70 a 85 | Logrado |
+| 50 a 69 | En desarrollo |
+| 0 a 49 | Inicial |
+
+## Orientaciones
+
+- Ajusta la profundidad esperada según nivel, edad y contexto.
+- Comparte la rúbrica antes de comenzar para orientar el proceso.
+- Complementa con autoevaluación y retroalimentación breve.
+- Personaliza los criterios específicos cuando la actividad sea una feria, campaña, taller, salida o evento.`
 }
 
 function buildLocalEducadorFallback(params: {
@@ -716,13 +767,15 @@ function buildLocalEducadorFallback(params: {
   sesiones: number
   duracionMinutos: number
   errorMessage: string
+  planningProfile?: PlanningProfile
 }): string {
   if (params.intent === "rubrica") {
     return buildLocalRubricFallback(params)
   }
 
   const tema = params.contexto || params.message
-  return `# Propuesta pedagógica — Respaldo local EduAI\n\n> El proveedor de IA no respondió correctamente, por eso EduAI generó una versión local editable para que no pierdas el trabajo. Detalle técnico interno: ${params.errorMessage}\n\n## Datos generales\n\n| Campo | Detalle |\n|---|---|\n| Curso | ${params.curso} |\n| Asignatura / Núcleo | ${params.asignatura} |\n| Horizonte | ${params.tiempoPlanificacion} |\n| Sesiones | ${params.sesiones} |\n| Duración | ${params.duracionMinutos} minutos por sesión |\n| Solicitud docente | ${truncateForPrompt(tema, 500)} |\n\n## Objetivo de trabajo\n\nDesarrollar una experiencia pedagógica centrada en la solicitud del docente, promoviendo participación activa, comprensión del contenido, comunicación clara y evidencias observables de aprendizaje.\n\n## Secuencia sugerida\n\n| Momento | Acción docente | Acción de estudiantes | Evidencia |\n|---|---|---|---|\n| Inicio | Presenta el propósito, activa conocimientos previos y explica criterios de logro. | Responden preguntas iniciales y organizan roles. | Preguntas o lluvia de ideas. |\n| Desarrollo | Guía la investigación, construcción o actividad principal con apoyo y retroalimentación. | Elaboran el producto, practican, dialogan y registran evidencias. | Producto parcial, notas, recursos o presentación. |\n| Cierre | Facilita síntesis, reflexión y evaluación formativa. | Presentan avances, responden preguntas y proponen mejoras. | Ticket de salida, autoevaluación o pauta. |\n\n## Evaluación sugerida\n\n- Claridad del contenido trabajado.\n- Participación y colaboración.\n- Uso de evidencias o recursos.\n- Comunicación oral o escrita.\n- Reflexión final sobre lo aprendido.\n\n## Recomendación\n\nVuelve a presionar “Regenerar” cuando el proveedor de IA esté disponible para obtener una versión más extensa y personalizada.`
+  return `# Propuesta pedagógica — Respaldo local EduAI\n\n> EduAI activó un respaldo local editable para que puedas continuar trabajando sin perder tu solicitud.\n\n## Datos generales\n\n| Campo | Detalle |\n|---|---|\n| Curso | ${params.curso} |\n| Asignatura / Núcleo | ${params.asignatura} |\n| Horizonte | ${params.tiempoPlanificacion} |\n| Sesiones | ${params.sesiones} |\n| Duración | ${params.duracionMinutos} minutos por sesión |\n| Solicitud docente | ${truncateForPrompt(tema, 500)} |
+| Tipo de planificación | ${params.planningProfile ? `${params.planningProfile.icon} ${params.planningProfile.label}` : "Propuesta pedagógica"} |\n\n## Objetivo de trabajo\n\nDesarrollar una experiencia pedagógica centrada en la solicitud del docente, promoviendo participación activa, comprensión del contenido, comunicación clara y evidencias observables de aprendizaje.\n\n## Secuencia sugerida\n\n| Momento | Acción docente | Acción de estudiantes | Evidencia |\n|---|---|---|---|\n| Inicio | Presenta el propósito, activa conocimientos previos y explica criterios de logro. | Responden preguntas iniciales y organizan roles. | Preguntas o lluvia de ideas. |\n| Desarrollo | Guía la investigación, construcción o actividad principal con apoyo y retroalimentación. | Elaboran el producto, practican, dialogan y registran evidencias. | Producto parcial, notas, recursos o presentación. |\n| Cierre | Facilita síntesis, reflexión y evaluación formativa. | Presentan avances, responden preguntas y proponen mejoras. | Ticket de salida, autoevaluación o pauta. |\n\n## Evaluación sugerida\n\n- Claridad del contenido trabajado.\n- Participación y colaboración.\n- Uso de evidencias o recursos.\n- Comunicación oral o escrita.\n- Reflexión final sobre lo aprendido.\n\n## Recomendación\n\nVuelve a presionar “Regenerar” cuando el proveedor de IA esté disponible para obtener una versión más extensa y personalizada.`
 }
 
 
@@ -762,7 +815,11 @@ Sé específico, nombra contenidos concretos del currículum y da al menos 7 ide
     )
     if (!res.ok) return ""
     const data = await res.json()
-    const text = data.candidates?.[0]?.content?.parts?.map((p: any) => p.text || "").join("") || ""
+    const text = Array.isArray(data.candidates?.[0]?.content?.parts)
+      ? data.candidates[0].content.parts
+          .map((part: unknown) => typeof part === "object" && part !== null && "text" in part ? String((part as { text?: unknown }).text || "") : "")
+          .join("")
+      : ""
     return text.slice(0, 1800)
   } catch {
     return ""
@@ -799,7 +856,7 @@ export async function POST(req: NextRequest) {
   const contexto = typeof cfg.contexto === "string" ? cfg.contexto.trim() : ""
   const mes = normalizeMonth(cfg.mes)
   const unidadId = typeof cfg.unidadId === "string" ? cfg.unidadId.trim() : ""
-  const selectedOAIds = ensureArray(cfg.selectedOAIds)
+  let selectedOAIds = ensureArray(cfg.selectedOAIds)
   const selectedOATIds = ensureArray(cfg.selectedOATIds)
 
   // ── Detect intent from message ────────────────────────────────────────────
@@ -964,6 +1021,16 @@ REGLAS:
 
   const sesiones = clampNumber(cfg.sesiones, 1, 1, 40)
   const duracionMinutos = clampNumber(cfg.duracionMinutos, nivel === "parvularia" ? 30 : 90, 15, 300)
+  const requestedPlanningProfile: PlanningProfileId = isPlanningProfileId(cfg.planningProfile) ? cfg.planningProfile : "auto"
+  const planningProfile = inferPlanningProfile(`${contexto}\n${message}`, nivel, requestedPlanningProfile)
+  const oaConnection = resolveOAConnection({
+    state: { nivel, curso, asignatura },
+    unidadId,
+    selectedOAIds,
+    userText: `${contexto}\n${message}`,
+  })
+  if (!selectedOAIds.length && oaConnection.resolvedOAIds.length) selectedOAIds = oaConnection.resolvedOAIds
+  const connectedOAContext = buildConnectedOAContext(oaConnection)
 
   const promptContext = buildPromptContext({
     nivel, curso, asignatura, contexto, mes, unidadId,
@@ -986,7 +1053,7 @@ REGLAS:
 Tu mision: generar planificaciones docentes completas, rigurosas, detalladas y directamente usables en el aula chilena real.
 
 ${topicInstruction}
-
+${buildPlanningProfilePrompt(planningProfile)}
 REGLAS DE PLANIFICACION:
 1. Los OA son MARCO CURRICULAR de referencia — el docente puede ir más allá si su contexto lo requiere.
 2. Si el docente entregó un contexto rico (proyecto, idea, metodología), ESO es el eje. Los OA lo respaldan.
@@ -1020,6 +1087,8 @@ Cobertura local: ${promptContext.localCoverage}
 ${promptContext.unitContext || "Sin unidad o modulo local seleccionado."}
 OA como referencia curricular (no como restricción):
 ${promptContext.oaContext || "Sin OA locales — planifica centrado en el contexto del docente."}
+
+${connectedOAContext}
 ${isParv && promptContext.ambito ? `Ambito de experiencia: ${promptContext.ambito}` : ""}
 ${isParv && promptContext.oatContext ? promptContext.oatContext : ""}
 
@@ -1055,6 +1124,7 @@ Como el docente entregó un contexto propio rico, ajusta el formato así:
 | Sesiones | ${sesiones} |
 | Duracion por sesion | ${duracionMinutos} min |
 | Mes | ${mes} |
+| Tipo de planificación | ${planningProfile.icon} ${planningProfile.label} |
 
 ---
 
@@ -1204,7 +1274,9 @@ CRITERIOS DE CALIDAD - VERIFICAR ANTES DE RESPONDER:
       })
     : systemPrompt
 
-  const activeSystemPrompt = `${activeSystemPromptBase}${designDirective}`
+  const activeSystemPrompt = useCompactResourcePrompt
+    ? `${activeSystemPromptBase}${buildPlanningProfilePrompt(planningProfile)}\n${connectedOAContext}${designDirective}`
+    : `${activeSystemPromptBase}${designDirective}`
 
   const historyLimit = useCompactResourcePrompt || message.length > 700 ? 2 : 8
   const aiMessages = [
@@ -1229,11 +1301,29 @@ CRITERIOS DE CALIDAD - VERIFICAR ANTES DE RESPONDER:
             : "planning_short"
         )
 
-    const result = await callAI(aiMessages, {
+    let result = await callAI(aiMessages, {
       maxTokens: strategy.maxTokens,
       preferProvider: strategy.preferProvider,
       openrouterModel: strategy.openrouterModel,
     })
+
+    let qualityAudit = outputIntent === "planificacion" ? auditPlanningOutput(result.text, planningProfile) : null
+    if (qualityAudit && !qualityAudit.passed) {
+      const repaired = await callAI([
+        ...aiMessages,
+        { role: "assistant" as const, content: truncateForPrompt(result.text, 2400) },
+        { role: "user" as const, content: buildRepairInstruction(planningProfile, qualityAudit) },
+      ], {
+        maxTokens: strategy.maxTokens,
+        preferProvider: strategy.preferProvider,
+        openrouterModel: strategy.openrouterModel,
+      })
+      const repairedAudit = auditPlanningOutput(repaired.text, planningProfile)
+      if (repairedAudit.score >= qualityAudit.score) {
+        result = repaired
+        qualityAudit = repairedAudit
+      }
+    }
 
     return NextResponse.json({
       text: result.text,
@@ -1243,6 +1333,10 @@ CRITERIOS DE CALIDAD - VERIFICAR ANTES DE RESPONDER:
       localCoverage: promptContext.summary,
       hasLocalCurriculum: promptContext.summary.oas > 0,
       selectedOAIds,
+      oaConnection: { autoSelected: oaConnection.autoSelected, manuallySelected: oaConnection.manuallySelected, resolvedOAIds: oaConnection.resolvedOAIds },
+      planningProfile: planningProfile.id,
+      planningProfileLabel: planningProfile.label,
+      qualityAudit,
       selectedOATIds,
       unidadId,
       parvulariaHeterogenea,
@@ -1264,6 +1358,7 @@ CRITERIOS DE CALIDAD - VERIFICAR ANTES DE RESPONDER:
       sesiones,
       duracionMinutos,
       errorMessage,
+      planningProfile,
     })
 
     return NextResponse.json({
@@ -1274,6 +1369,9 @@ CRITERIOS DE CALIDAD - VERIFICAR ANTES DE RESPONDER:
       localCoverage: promptContext.summary,
       hasLocalCurriculum: promptContext.summary.oas > 0,
       selectedOAIds,
+      oaConnection: { autoSelected: oaConnection.autoSelected, manuallySelected: oaConnection.manuallySelected, resolvedOAIds: oaConnection.resolvedOAIds },
+      planningProfile: planningProfile.id,
+      planningProfileLabel: planningProfile.label,
       selectedOATIds,
       unidadId,
       parvulariaHeterogenea,
