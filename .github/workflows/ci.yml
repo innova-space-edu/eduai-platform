@@ -27,6 +27,9 @@ jobs:
       - name: Apply planner maintenance
         run: npm run planner:maintain
 
+      - name: Verify planner maintenance
+        run: node -e "const fs=require('fs'); const route=fs.readFileSync('app/api/agents/educador/route.ts','utf8'); if(route.includes('explicación del problema ambiental')) throw new Error('La rúbrica ambiental fija sigue presente'); for(const file of ['fix-exam-generate.diff','fix-exam-create-page.diff']) if(fs.existsSync(file)) throw new Error('Parche temporal aún presente: '+file); console.log('Planner maintenance verified')"
+
       - name: TypeScript
         run: npx tsc --noEmit
 
