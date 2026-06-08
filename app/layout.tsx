@@ -1,29 +1,23 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import SupportButton from "@/components/ui/SupportButton";
-import SuperAgentButton from "@/components/ui/SuperAgentButton";
-import { ThemeProvider } from "@/components/theme-provider";
-import { MusicProvider } from "@/components/music/MusicProvider";
-
-const inter = Inter({
-  subsets: ["latin"],
-  display: "swap",
-});
+import type { Metadata } from "next"
+import "./globals.css"
+import SupportButton from "@/components/ui/SupportButton"
+import SuperAgentButton from "@/components/ui/SuperAgentButton"
+import { ThemeProvider } from "@/components/theme-provider"
+import { MusicProvider } from "@/components/music/MusicProvider"
 
 export const metadata: Metadata = {
   title: "EduAI Platform",
   description: "Tu tutor personal con inteligencia artificial",
-};
+}
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
   return (
     <html lang="es" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body className="font-sans antialiased">
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
@@ -37,5 +31,5 @@ export default function RootLayout({
         </ThemeProvider>
       </body>
     </html>
-  );
+  )
 }
