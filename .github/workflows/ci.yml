@@ -27,6 +27,9 @@ jobs:
       - name: TypeScript
         run: npx tsc --noEmit
 
+      - name: Focused lint
+        run: npx eslint proxy.ts lib/planning-quality-audit.ts lib/school-planning-profiles.ts lib/planner-oa-bridge.ts scripts/test-planner-integral.ts app/api/agents/educador/route.ts app/api/agents/educador/curriculum/route.ts app/educador/page.tsx
+
       - name: Planner tests
         run: npm run test:planner
 
