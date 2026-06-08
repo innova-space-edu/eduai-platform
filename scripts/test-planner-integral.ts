@@ -32,6 +32,15 @@ assert(automatic.autoSelected, "La búsqueda contextual debe sugerir OA automát
 assert(automatic.resolvedOAIds.length > 0, "Debe recuperar al menos un OA")
 console.log(`✓ OA automáticos conectados: ${automatic.resolvedOAIds.join(", ")}`)
 
+const synonymAutomatic = resolveOAConnection({
+  state: { nivel: "media", curso: "2° Medio", asignatura: "Matemática" },
+  selectedOAIds: [],
+  userText: "Analizar situaciones de azar e incertidumbre mediante experimentos",
+})
+assert(synonymAutomatic.autoSelected, "Los sinónimos de probabilidad deben sugerir OA automáticamente")
+assert(synonymAutomatic.resolvedOAIds.length > 0, "La expansión semántica debe recuperar al menos un OA")
+console.log(`✓ OA conectados mediante sinónimos: ${synonymAutomatic.resolvedOAIds.join(", ")}`)
+
 const manualId = automatic.all[0]?.id
 assert(manualId, "Debe existir al menos un OA disponible")
 const manual = resolveOAConnection({
