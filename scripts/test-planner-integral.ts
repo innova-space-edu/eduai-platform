@@ -44,8 +44,30 @@ assert.deepEqual(manual.resolvedOAIds, [manualId], "No se debe reemplazar el OA 
 console.log(`✓ Selección manual respetada: ${manualId}`)
 
 const feriaProfile = inferPlanningProfile("feria científica", "media")
-const audit = auditPlanningOutput("Feria con etapas, roles, stands, seguridad, cronograma, rúbrica y OA oficiales", feriaProfile)
-assert.equal(audit.score, 100, "El auditor de feria debe reconocer una salida completa")
-console.log("✓ Auditor integral de feria científica: 100/100")
+const shallowAudit = auditPlanningOutput("Feria con etapas, roles, stands, seguridad, cronograma, rúbrica y OA oficiales", feriaProfile)
+assert.equal(shallowAudit.passed, false, "Una frase con palabras clave no debe aprobar el auditor")
+
+const structuredFair = `# Feria científica escolar
+## OA oficiales
+- OA 1: analizar evidencias científicas.
+## Etapas y cronograma
+| Semana | Etapa | Evidencia |
+|---|---|---|
+| 1 | Investigación y formulación del problema | Bitácora inicial |
+| 2 | Diseño experimental y ensayo | Registro de resultados |
+## Roles y stands
+- Cada equipo define roles de coordinación, investigación y comunicación.
+- Cada stand presenta experimento, resultados y conclusiones.
+## Seguridad
+- Aplicar protocolo de riesgos, manejo de residuos y plan de contingencia.
+## Rúbrica
+| Criterio | Nivel esperado |
+|---|---|
+| Investigación | Usa evidencias claras |
+| Comunicación | Explica con precisión |
+`
+const structuredAudit = auditPlanningOutput(structuredFair, feriaProfile)
+assert(structuredAudit.passed, "Una feria desarrollada debe aprobar el auditor")
+console.log(`✓ Auditor estructural de feria científica: ${structuredAudit.score}/100`)
 
 console.log("\nPlanificador escolar integral: todas las pruebas pasaron.")
