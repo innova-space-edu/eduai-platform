@@ -24,6 +24,9 @@ jobs:
       - name: Install dependencies
         run: npm install --registry=https://registry.npmjs.org/
 
+      - name: Apply planner maintenance
+        run: npm run planner:maintain
+
       - name: TypeScript
         run: npx tsc --noEmit
 
