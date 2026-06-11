@@ -10,6 +10,7 @@ import QuestionCard from "@/components/exam/QuestionCard";
 import ExamAudioButton from "@/components/exam/ExamAudioButton";
 import ExamScientificCalculator from "@/components/exam/ExamScientificCalculator";
 import ExamDigitalClock from "@/components/exam/ExamDigitalClock";
+import { calculateGradeFromPercentage, calculateScoreSummary, formatPoints, getQuestionMaxPoints } from "@/lib/exam/grading";
 import ExamQuestionNotebook, {
   type ExamNotebookArtifact,
   type ExamQuestionNotebookHandle,
@@ -25,17 +26,6 @@ function getPanelClient() {
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-function calcGrade(scorePercent: number, exigencia = 60) {
-  const p = Math.max(0, Math.min(100, scorePercent));
-  return (
-    Math.round(
-      (p >= exigencia
-        ? 4 + ((p - exigencia) * 3) / (100 - exigencia)
-        : 1 + (p * 3) / exigencia) * 10,
-    ) / 10
-  );
-}
-
 function fmt(seconds: number) {
   return `${Math.floor(seconds / 60)}:${(seconds % 60).toString().padStart(2, "0")}`;
 }
@@ -76,32 +66,6 @@ const CURSOS_MEDIA = [
   "4° Medio B",
 ];
 const TODOS_LOS_CURSOS = [...CURSOS_BASICA, ...CURSOS_MEDIA];
-
-function getQuestionMaxPoints(q: any) {
-  if (!q) return 1;
-  if (typeof q.maxPoints === "number" && q.maxPoints > 0) return q.maxPoints;
-
-  if (q.type === "true_false") {
-    return (
-      (typeof q.selectionPoints === "number" ? q.selectionPoints : 1) +
-      (typeof q.justificationMaxPoints === "number"
-        ? q.justificationMaxPoints
-        : 2)
-    );
-  }
-
-  if (q.type === "development") {
-    if (Array.isArray(q.rubric) && q.rubric.length > 0) {
-      return q.rubric.reduce(
-        (acc: number, item: any) => acc + (Number(item?.points) || 0),
-        0,
-      );
-    }
-    return 5;
-  }
-
-  return 1;
-}
 
 type Phase =
   | "loading"
@@ -462,17 +426,15 @@ export default function ExamenPublicoPage() {
     if (!ex?.questions?.length) return;
     setFeedbackLoading(true);
     setFeedbackDone(false);
-    const questions = ex.questions || [];
-    const answers = sub.answers || [];
     const feedbackMap: Record<number, string> = {};
 
     try {
-      const gKey = process.env.NEXT_PUBLIC_GEMINI_KEY; // not available client-side
-      // Call our own API endpoint for feedback
+      // La API carga la pauta oficial desde la base de datos. No recibe la
+      // clave de respuestas desde el navegador.
       const res = await fetch("/api/agents/exam-feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ questions, answers }),
+        body: JSON.stringify({ submissionId: sub.id }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -599,7 +561,12 @@ export default function ExamenPublicoPage() {
           throw new Error(data?.error || "No se pudo enviar el examen.");
         }
 
-        setSubmission(data.submission);
+        setSubmission({
+          ...data.submission,
+          review_questions: Array.isArray(data.reviewQuestions)
+            ? data.reviewQuestions
+            : [],
+        });
         setPhase("review");
 
         if (document.fullscreenElement) {
@@ -1072,12 +1039,18 @@ export default function ExamenPublicoPage() {
   if ((phase === "review" || phase === "submitting") && submission) {
     const nota =
       submission.grade ??
-      calcGrade(
+      calculateGradeFromPercentage(
         Number(submission.score || 0),
         exam?.settings?.examPercentage || 60,
       );
     const pct = Number(submission.score || 0);
     const graded = submission.answers || [];
+    const reviewQs = Array.isArray(submission.review_questions) && submission.review_questions.length > 0
+      ? submission.review_questions
+      : qs;
+    const fallbackSummary = calculateScoreSummary(reviewQs, graded);
+    const earnedPoints = Number(submission.earned_points ?? fallbackSummary.earnedPoints);
+    const totalPoints = Number(submission.total_points ?? fallbackSummary.totalPoints ?? examTotalPoints ?? 0);
 
     return (
       <div className="min-h-screen bg-app px-4 py-8">
@@ -1103,8 +1076,8 @@ export default function ExamenPublicoPage() {
                   <div>
                     <p className="text-muted2 text-xs">Puntaje</p>
                     <p className="text-blue-600 font-bold text-xl">
-                      {submission.correct_count}/
-                      {examTotalPoints > 0 ? examTotalPoints : "?"} pts
+                      {formatPoints(earnedPoints)}/
+                      {totalPoints > 0 ? formatPoints(totalPoints) : "?"} pts
                     </p>
                   </div>
                   <div>
@@ -1141,23 +1114,23 @@ export default function ExamenPublicoPage() {
               <div className="w-5 h-5 rounded-full border-2 border-violet-400 border-t-transparent animate-spin flex-shrink-0" />
               <div>
                 <p className="text-sm font-semibold text-violet-800">
-                  Claw está analizando tu examen...
+                  Preparando la retroalimentación desde la pauta...
                 </p>
                 <p className="text-xs text-violet-600 mt-0.5">
-                  Preparando retroalimentación personalizada para cada pregunta
+                  Cargando las explicaciones registradas al crear el examen
                 </p>
               </div>
             </div>
           )}
 
-          {/* ── Detailed review with AI feedback ── */}
-          {showRes && qs.length > 0 && (
+          {/* ── Revisión detallada basada en la pauta oficial ── */}
+          {showRes && reviewQs.length > 0 && (
             <div className="space-y-4">
               <h3 className="text-xs font-semibold text-muted2 uppercase tracking-widest px-1">
                 Retroalimentación por pregunta
               </h3>
 
-              {qs.map((item: any, i: number) => {
+              {reviewQs.map((item: any, i: number) => {
                 const g = graded[i] || {};
                 const isDev = item.type === "development";
                 const isTF = item.type === "true_false";
@@ -1216,8 +1189,8 @@ export default function ExamenPublicoPage() {
                     ? item.options?.[g.selectedAnswer] || "—"
                     : item.options?.[g.selectedAnswer] || "—";
                 const correctAnswer = isDev
-                  ? item.modelAnswer || item.expectedAnswer || "Ver rúbrica"
-                  : (item.options?.[item.correctAnswer] ?? "—");
+                  ? item.modelAnswer || item.expectedLatex || item.expectedAnswer || "Ver rúbrica"
+                  : item.answerText || item.correctAnswerText || item.options?.[item.correctAnswer] || "—";
                 const aiFeedback = feedback[i];
 
                 return (
@@ -1229,7 +1202,7 @@ export default function ExamenPublicoPage() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1">
                         <p className="text-[11px] text-muted2 mb-1">
-                          Pregunta {i + 1} · {item.maxPoints || 1} pts
+                          Pregunta {i + 1} · {formatPoints(getQuestionMaxPoints(item))} pts
                         </p>
                         <div className="text-main text-sm font-medium leading-relaxed">
                           <ExamMathText
@@ -1254,23 +1227,21 @@ export default function ExamenPublicoPage() {
                           <ExamMathText text={studentAnswer} />
                         </p>
                       </div>
-                      {!isDev && (
-                        <div className="rounded-xl bg-white/80 border border-soft px-3 py-2">
-                          <p className="text-muted2 mb-0.5">
-                            Respuesta correcta
-                          </p>
-                          <p className="font-medium text-green-700">
-                            <ExamMathText text={correctAnswer} />
-                          </p>
-                        </div>
-                      )}
+                      <div className="rounded-xl bg-white/80 border border-soft px-3 py-2">
+                        <p className="text-muted2 mb-0.5">
+                          {isDev ? "Respuesta modelo registrada" : "Respuesta correcta registrada"}
+                        </p>
+                        <p className="font-medium text-green-700">
+                          <ExamMathText text={correctAnswer} />
+                        </p>
+                      </div>
                     </div>
 
-                    {/* AI Feedback */}
+                    {/* Retroalimentación basada en la explicación registrada */}
                     {aiFeedback ? (
                       <div className="rounded-xl bg-white/90 border border-violet-200 px-3 py-2.5">
                         <p className="text-[10px] font-semibold text-violet-600 uppercase tracking-wide mb-1">
-                          ✦ Retroalimentación de Claw
+                          ✦ Retroalimentación basada en la pauta
                         </p>
                         <div className="text-xs text-main leading-relaxed">
                           <ExamMathText text={aiFeedback} />
@@ -1286,9 +1257,9 @@ export default function ExamenPublicoPage() {
                         <p className="text-[10px] font-semibold text-blue-600 uppercase tracking-wide mb-1">
                           💡 Explicación
                         </p>
-                        <p className="text-xs text-main leading-relaxed">
-                          {item.explanation}
-                        </p>
+                        <div className="text-xs text-main leading-relaxed">
+                          <ExamMathText text={item.explanation} />
+                        </div>
                       </div>
                     ) : null}
                   </div>
