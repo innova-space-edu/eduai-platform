@@ -43,10 +43,13 @@ function asSteps(value: unknown, fallback = ""): string[] {
   return fallback ? [fallback] : []
 }
 
-function normalizeAnswerIndex(value: unknown, options: string[]): number {
+export function normalizeAnswerIndex(value: unknown, options: string[]): number {
   const max = Math.max(0, options.length - 1)
   if (typeof value === "number" && Number.isFinite(value)) {
     return Math.max(0, Math.min(max, Math.round(value)))
+  }
+  if (typeof value === "boolean" && options.length === 2) {
+    return value ? 0 : 1
   }
   if (typeof value === "string") {
     const trimmed = value.trim().toLowerCase()
