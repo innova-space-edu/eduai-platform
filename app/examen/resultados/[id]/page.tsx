@@ -19,6 +19,7 @@ import {
 import ReportExporter from "./ReportExporter"
 import ExamMathText from "@/components/ui/ExamMathText"
 import StudentPdfExporter from "./StudentPdfExporter"
+import { calculateGradeFromPercentage, getQuestionMaxPoints } from "@/lib/exam/grading"
 
 function RiskBadge({ level, count }: { level: string; count: number }) {
   if (count === 0 || level === "clean") {
@@ -375,7 +376,7 @@ function ReviewModal({
 
     answers.forEach((a: any, i: number) => {
       const q = questions[i]
-      const max = Number(a.maxPoints || q?.maxPoints || 0)
+      const max = getQuestionMaxPoints(q)
       total += max
 
       const live = getLiveQuestionState(a, q, i)
@@ -384,13 +385,12 @@ function ReviewModal({
 
     const pct = total > 0 ? (earned / total) * 100 : 0
     const ex = exam?.settings?.examPercentage || 60
-    const g = pct >= ex ? 4 + ((pct - ex) * 3) / (100 - ex) : 1 + (pct * 3) / ex
 
     return {
       earned: Math.round(earned * 10) / 10,
       total: Math.round(total * 10) / 10,
       pct: Math.round(pct),
-      grade: Math.round(g * 10) / 10,
+      grade: calculateGradeFromPercentage(pct, ex),
     }
   })()
 
@@ -449,7 +449,7 @@ function ReviewModal({
 
       const updatedSubmission = {
         ...submission,
-        answers: updatedAnswers,
+        answers: Array.isArray(data.answers) ? data.answers : updatedAnswers,
         score: data.score,
         grade: data.grade,
         correct_count: data.correct_count,
