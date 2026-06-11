@@ -6,7 +6,8 @@ import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
 import ExamMathText from "@/components/ui/ExamMathText"
 import { ArrowLeft, Save, RefreshCw, Loader2, Copy, Check, Trash2, Plus } from "lucide-react"
-import { enrichQuestionAnswerKey } from "@/lib/exam/question-quality"
+import { enrichQuestionAnswerKey, normalizeAnswerIndex } from "@/lib/exam/question-quality"
+import { getQuestionMaxPoints } from "@/lib/exam/grading"
 
 // ── Tipos (mismos que crear/page.tsx) ────────────────────────────────────────
 type ScoreMode = "auto" | "manual"
@@ -244,13 +245,9 @@ Reglas:
         
         normalizedQ.options = options
         
-        const max = Math.max(0, options.length - 1)
         const ca  = rawQ.correctAnswer
         
-        normalizedQ.correctAnswer =
-          typeof ca === "number" && Number.isFinite(ca)
-            ? Math.max(0, Math.min(max, Math.round(ca)))
-            : 0
+        normalizedQ.correctAnswer = normalizeAnswerIndex(ca, options)
       }
 
       if (normalizedQ.type === "true_false") {
@@ -281,7 +278,7 @@ Reglas:
   }
 
   const totalPoints = useMemo(
-    () => questions.reduce((acc, q) => acc + (q.maxPoints || 0), 0),
+    () => questions.reduce((acc, q) => acc + getQuestionMaxPoints(q), 0),
     [questions]
   )
 
