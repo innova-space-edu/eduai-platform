@@ -3,6 +3,14 @@ import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { getDesignTemplateSummary } from "@/lib/design-templates/registry"
 import { enrichQuestionAnswerKey } from "@/lib/exam/question-quality"
+import {
+  calculateGradeFromPercentage,
+  calculateScoreSummary,
+  clampPoints,
+  getQuestionMaxPoints,
+  getTrueFalsePointBreakdown,
+  normalizeExamPercentage,
+} from "@/lib/exam/grading"
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "",
@@ -14,19 +22,6 @@ function generateCode(): string {
   let code = ""
   for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)]
   return code
-}
-
-function calcGrade(score: number, exigencia = 60): number {
-  const pct = Math.max(0, Math.min(100, score))
-  let nota: number
-
-  if (pct >= exigencia) {
-    nota = 4.0 + ((pct - exigencia) * 3.0) / (100 - exigencia)
-  } else {
-    nota = 1.0 + (pct * 3.0) / exigencia
-  }
-
-  return Math.round(nota * 10) / 10
 }
 
 function clampPositive(n: number, fallback = 1): number {
@@ -119,22 +114,12 @@ function sanitizeQuestion(question: any) {
   }
 
   if (type === "true_false") {
-    const selectionPoints = clampPositive(Number(question?.selectionPoints), 1) || 1
-    const requestedMaxPoints = clampPositive(Number(question?.maxPoints), selectionPoints)
-    const providedJustification = clampPositive(
-      Number(question?.justificationMaxPoints),
-      Math.max(0, requestedMaxPoints - selectionPoints)
-    )
-
-    const finalMaxPoints =
-      requestedMaxPoints > 0 ? requestedMaxPoints : selectionPoints + providedJustification
+    const { selectionPoints, justificationMaxPoints, maxPoints } =
+      getTrueFalsePointBreakdown(question)
 
     sanitized.selectionPoints = selectionPoints
-    sanitized.maxPoints = Math.max(selectionPoints, finalMaxPoints)
-    sanitized.justificationMaxPoints = Math.max(
-      0,
-      sanitized.maxPoints - selectionPoints
-    )
+    sanitized.justificationMaxPoints = justificationMaxPoints
+    sanitized.maxPoints = maxPoints
   }
 
   if (type === "development") {
@@ -167,6 +152,45 @@ function sanitizeQuestions(questions: any[]): any[] {
   return questions.map(sanitizeQuestion)
 }
 
+function buildStudentReviewQuestion(question: any) {
+  const q = sanitizeQuestion(question)
+  const base: Record<string, any> = {
+    type: q.type,
+    question: q.question,
+    imageUrl: q.imageUrl || "",
+    maxPoints: getQuestionMaxPoints(q),
+    answerText: q.answerText || "",
+    correctAnswerText: q.correctAnswerText || q.answerText || "",
+    explanation: q.explanation || "",
+    solutionSteps: Array.isArray(q.solutionSteps) ? q.solutionSteps : [],
+  }
+
+  if (q.type === "multiple_choice") {
+    return {
+      ...base,
+      options: Array.isArray(q.options) ? q.options : [],
+      correctAnswer: q.correctAnswer,
+    }
+  }
+
+  if (q.type === "true_false") {
+    return {
+      ...base,
+      options: ["Verdadero", "Falso"],
+      correctAnswer: q.correctAnswer,
+      selectionPoints: q.selectionPoints,
+      justificationMaxPoints: q.justificationMaxPoints,
+    }
+  }
+
+  return {
+    ...base,
+    modelAnswer: q.modelAnswer || "",
+    expectedLatex: q.expectedLatex || "",
+    rubric: Array.isArray(q.rubric) ? q.rubric : [],
+  }
+}
+
 function stripTeacherAnswerKey(question: any) {
   const q = sanitizeQuestion(question)
   const base: Record<string, any> = {
@@ -193,37 +217,6 @@ function stripTeacherAnswerKey(question: any) {
     ...base,
     rubric: Array.isArray(q.rubric) ? q.rubric : [],
   }
-}
-
-function getQuestionMaxPoints(question: any): number {
-  if (!question) return 1
-
-  if (typeof question.maxPoints === "number" && question.maxPoints > 0) {
-    return question.maxPoints
-  }
-
-  if (question.type === "true_false") {
-    const selectionPoints =
-      typeof question.selectionPoints === "number" ? question.selectionPoints : 1
-    const justificationMaxPoints =
-      typeof question.justificationMaxPoints === "number"
-        ? question.justificationMaxPoints
-        : 2
-    return selectionPoints + justificationMaxPoints
-  }
-
-  if (question.type === "development") {
-    if (Array.isArray(question.rubric) && question.rubric.length > 0) {
-      const sum = question.rubric.reduce(
-        (acc: number, item: any) => acc + (Number(item?.points) || 0),
-        0
-      )
-      if (sum > 0) return sum
-    }
-    return 5
-  }
-
-  return 1
 }
 
 function safeParseJson(text: string): any {
@@ -499,19 +492,14 @@ export async function POST(request: NextRequest) {
       if (error || !data) return NextResponse.json({ error: "Examen no encontrado" }, { status: 404 })
       if (data.status !== "active") return NextResponse.json({ error: "Este examen está cerrado" }, { status: 403 })
 
-      // Include prior submissions summary (name, course, rut) for re-entry flow
-      const { data: subs } = await supabase
-        .from("exam_submissions")
-        .select("id, student_name, student_course, student_rut, score, grade, submitted_at")
-        .eq("exam_id", data.id)
-        .order("submitted_at", { ascending: false })
-
       const publicExam = {
         ...data,
+        // La clave, la explicación y la respuesta modelo solo se liberan después
+        // de enviar el examen, cuando la configuración lo permite.
         questions: sanitizeQuestions(data.questions || []).map(stripTeacherAnswerKey),
       }
 
-      return NextResponse.json({ success: true, exam: publicExam, priorSubmissions: subs || [] })
+      return NextResponse.json({ success: true, exam: publicExam })
     }
 
     if (action === "create") {
@@ -641,57 +629,11 @@ export async function POST(request: NextRequest) {
 
       gradedAnswers = await evaluateWithAI(sanitizedQuestions, gradedAnswers)
 
-      let totalPoints   = 0
-      let earnedPoints  = 0
-      let correctCount  = 0   // Preguntas correctas (para la columna "Correctas")
-
-      gradedAnswers.forEach((a: any, i: number) => {
-        const q = sanitizedQuestions[i]
-        if (!q) return
-
-        if (q.type === "multiple_choice") {
-          const maxP = getQuestionMaxPoints(q)
-          totalPoints += maxP
-          if (a.isCorrect) {
-            earnedPoints += maxP
-            correctCount  += 1
-          }
-        }
-
-        if (q.type === "true_false") {
-          const selectionPoints =
-            typeof q.selectionPoints === "number" ? q.selectionPoints : 1
-          const justificationMaxPoints =
-            typeof q.justificationMaxPoints === "number"
-              ? q.justificationMaxPoints
-              : Math.max(0, getQuestionMaxPoints(q) - selectionPoints)
-
-          totalPoints += selectionPoints + justificationMaxPoints
-
-          if (a.selectionCorrect || a.isCorrect) {
-            earnedPoints += selectionPoints
-            correctCount  += 1
-          }
-
-          earnedPoints += Math.min(
-            justificationMaxPoints,
-            Math.max(0, Number(a.justificationScore) || 0)
-          )
-        }
-
-        if (q.type === "development") {
-          const maxP   = getQuestionMaxPoints(q)
-          const scored = Math.min(maxP, Math.max(0, Number(a.aiScore) || 0))
-          totalPoints  += maxP
-          earnedPoints += scored
-          // Contar desarrollo como correcta si obtuvo ≥ 60% de sus puntos
-          if (maxP > 0 && scored / maxP >= 0.6) correctCount += 1
-        }
-      })
-
-      const score = totalPoints > 0 ? (earnedPoints / totalPoints) * 100 : 0
-      const officialExamPercentage = Number(officialExam.settings?.examPercentage ?? examPercentage ?? 60)
-      const grade = calcGrade(score, officialExamPercentage)
+      const scoreSummary = calculateScoreSummary(sanitizedQuestions, gradedAnswers)
+      const officialExamPercentage = normalizeExamPercentage(
+        officialExam.settings?.examPercentage ?? examPercentage ?? 60
+      )
+      const grade = calculateGradeFromPercentage(scoreSummary.percentage, officialExamPercentage)
 
       const { data, error } = await supabase
         .from("exam_submissions")
@@ -701,12 +643,12 @@ export async function POST(request: NextRequest) {
           student_course:  studentCourse,
           student_rut:     studentRut || null,
           answers:         gradedAnswers,
-          score:           Math.round(score * 10) / 10,
+          score:           scoreSummary.percentage,
           grade,
-          correct_count:   correctCount,                          // N° preguntas correctas
-          total_questions: sanitizedQuestions.length,             // N° total preguntas
-          earned_points:   Math.round(earnedPoints * 10) / 10,    // Puntaje obtenido
-          total_points:    Math.round(totalPoints * 10) / 10,     // Puntaje máximo
+          correct_count:   scoreSummary.correctCount,              // N° preguntas completamente correctas
+          total_questions: sanitizedQuestions.length,              // N° total preguntas
+          earned_points:   scoreSummary.earnedPoints,               // Puntaje obtenido
+          total_points:    scoreSummary.totalPoints,                // Puntaje máximo
           time_spent:      timeSpent || null,
         })
         .select()
@@ -726,7 +668,16 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      return NextResponse.json({ success: true, submission: data })
+      const showResultToStudent = officialExam.settings?.showResultToStudent !== false
+      const reviewQuestions = showResultToStudent
+        ? sanitizedQuestions.map(buildStudentReviewQuestion)
+        : []
+
+      return NextResponse.json({
+        success: true,
+        submission: data,
+        reviewQuestions,
+      })
     }
 
     if (action === "close") {
@@ -810,50 +761,103 @@ export async function POST(request: NextRequest) {
 
     // ── Actualizar submission con puntajes manuales del docente ──────────
     if (action === "update_submission") {
-      const { submissionId, updatedAnswers, examPercentage } = body
+      const { submissionId, updatedAnswers } = body
 
       if (!submissionId || !Array.isArray(updatedAnswers)) {
         return NextResponse.json({ error: "submissionId y updatedAnswers son requeridos" }, { status: 400 })
       }
 
-      // Recalcular puntaje y nota con los valores manuales
-      let totalPoints  = 0
-      let earnedPoints = 0
-      let correctCount = 0
+      const { data: originalSubmission, error: submissionError } = await supabase
+        .from("exam_submissions")
+        .select("id, exam_id")
+        .eq("id", submissionId)
+        .maybeSingle()
 
-      for (const a of updatedAnswers) {
-        const max = Number(a.maxPoints) || 0
-        totalPoints += max
-
-        if (a.type === "multiple_choice") {
-          if (a.isCorrect) { earnedPoints += max; correctCount++ }
-
-        } else if (a.type === "true_false") {
-          const selPts  = Number(a.selectionPoints)  || 1
-          const justPts = Number(a.justificationMaxPoints) || Math.max(0, max - selPts)
-          if (a.selectionCorrect || a.isCorrect) { earnedPoints += selPts; correctCount++ }
-          earnedPoints += Math.min(justPts, Math.max(0, Number(a.justificationScore) || 0))
-
-        } else if (a.type === "development") {
-          const scored = Math.min(max, Math.max(0, Number(a.manualScore ?? a.aiScore) || 0))
-          earnedPoints += scored
-          if (max > 0 && scored / max >= 0.6) correctCount++
-        }
+      if (submissionError || !originalSubmission) {
+        return NextResponse.json({ error: "Entrega no encontrada" }, { status: 404 })
       }
 
-      const pct   = totalPoints > 0 ? (earnedPoints / totalPoints) * 100 : 0
-      const grade = calcGrade(pct, examPercentage || 60)
+      const { data: officialExam, error: officialExamError } = await supabase
+        .from("teacher_exams")
+        .select("id, questions, settings")
+        .eq("id", originalSubmission.exam_id)
+        .maybeSingle()
 
-      const finalGrade = body.bonusGrade != null ? Math.min(7.0, Number(body.bonusGrade)) : grade
+      if (officialExamError || !officialExam) {
+        return NextResponse.json({ error: "Examen no encontrado" }, { status: 404 })
+      }
+
+      const sanitizedQuestions = sanitizeQuestions(officialExam.questions || [])
+      const normalizedAnswers = sanitizedQuestions.map((q: any, index: number) => {
+        const answer = { ...(updatedAnswers[index] || {}) }
+        const maxPoints = getQuestionMaxPoints(q)
+
+        if (q.type === "multiple_choice") {
+          const selectedAnswer = Number.isFinite(Number(answer.selectedAnswer))
+            ? Number(answer.selectedAnswer)
+            : -1
+          return {
+            ...answer,
+            questionIndex: index,
+            type: "multiple_choice",
+            selectedAnswer,
+            // La revisión manual del docente puede corregir casos excepcionales.
+            isCorrect:
+              typeof answer.isCorrect === "boolean"
+                ? answer.isCorrect
+                : selectedAnswer === q.correctAnswer,
+            maxPoints,
+          }
+        }
+
+        if (q.type === "true_false") {
+          const selectedAnswer = Number.isFinite(Number(answer.selectedAnswer))
+            ? Number(answer.selectedAnswer)
+            : -1
+          const { selectionPoints, justificationMaxPoints } = getTrueFalsePointBreakdown(q)
+          const selectionCorrect = selectedAnswer === q.correctAnswer
+          return {
+            ...answer,
+            questionIndex: index,
+            type: "true_false",
+            selectedAnswer,
+            selectionCorrect,
+            isCorrect: selectionCorrect,
+            selectionPoints,
+            justificationMaxPoints,
+            justificationScore: clampPoints(answer.justificationScore ?? 0, 0, justificationMaxPoints),
+            maxPoints,
+          }
+        }
+
+        return {
+          ...answer,
+          questionIndex: index,
+          type: "development",
+          manualScore: clampPoints(answer.manualScore ?? answer.aiScore ?? 0, 0, maxPoints),
+          aiScore: clampPoints(answer.manualScore ?? answer.aiScore ?? 0, 0, maxPoints),
+          maxPoints,
+        }
+      })
+
+      const scoreSummary = calculateScoreSummary(sanitizedQuestions, normalizedAnswers)
+      const grade = calculateGradeFromPercentage(
+        scoreSummary.percentage,
+        officialExam.settings?.examPercentage ?? 60
+      )
+      const finalGrade = body.bonusGrade != null
+        ? Math.min(7.0, Math.max(1.0, Number(body.bonusGrade)))
+        : grade
+
       const { error: upErr } = await supabase
         .from("exam_submissions")
         .update({
-          answers:          updatedAnswers,
-          score:            Math.round(pct * 10) / 10,
-          grade:            finalGrade,
-          correct_count:    correctCount,
-          earned_points:    Math.round(earnedPoints * 10) / 10,
-          total_points:     Math.round(totalPoints  * 10) / 10,
+          answers:           normalizedAnswers,
+          score:             scoreSummary.percentage,
+          grade:             finalGrade,
+          correct_count:     scoreSummary.correctCount,
+          earned_points:     scoreSummary.earnedPoints,
+          total_points:      scoreSummary.totalPoints,
           manually_reviewed: true,
         })
         .eq("id", submissionId)
@@ -862,11 +866,12 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        score:   Math.round(pct * 10) / 10,
-        grade,
-        correct_count:  correctCount,
-        earned_points:  Math.round(earnedPoints * 10) / 10,
-        total_points:   Math.round(totalPoints  * 10) / 10,
+        score:          scoreSummary.percentage,
+        grade:          finalGrade,
+        correct_count:  scoreSummary.correctCount,
+        earned_points:  scoreSummary.earnedPoints,
+        total_points:   scoreSummary.totalPoints,
+        answers:        normalizedAnswers,
       })
     }
 
@@ -972,7 +977,12 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: "Examen cerrado" }, { status: 403 })
       }
 
-      return NextResponse.json({ exam: data })
+      return NextResponse.json({
+        exam: {
+          ...data,
+          questions: sanitizeQuestions(data.questions || []).map(stripTeacherAnswerKey),
+        },
+      })
     }
 
     if (examId) {
