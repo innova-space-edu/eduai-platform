@@ -1,97 +1,107 @@
 // app/api/agents/exam-feedback/route.ts
+// Retroalimentación determinística basada en la pauta creada por el docente.
+// No se confía en una clave de respuestas enviada desde el navegador.
 import { NextRequest, NextResponse } from "next/server"
+import { createClient } from "@supabase/supabase-js"
+import { enrichQuestionAnswerKey } from "@/lib/exam/question-quality"
+import { formatPoints, getQuestionMaxPoints, getTrueFalsePointBreakdown } from "@/lib/exam/grading"
 
-async function callAI(prompt: string): Promise<string> {
-  const gKey = process.env.GEMINI_API_KEY
-  if (gKey) {
-    try {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${gKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.3, maxOutputTokens: 2000, responseMimeType: "application/json" },
-          }),
-          signal: AbortSignal.timeout(25000),
-        }
-      )
-      if (res.ok) {
-        const d = await res.json()
-        return d.candidates?.[0]?.content?.parts?.[0]?.text || ""
-      }
-    } catch {}
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
+)
+
+function cleanText(value: unknown): string {
+  return String(value ?? "").trim()
+}
+
+function joinConfiguredExplanation(question: any): string {
+  const explanation = cleanText(question?.explanation)
+  if (explanation) return explanation
+
+  const steps = Array.isArray(question?.solutionSteps)
+    ? question.solutionSteps.map(cleanText).filter(Boolean)
+    : []
+  if (steps.length > 0) return steps.join(" ")
+
+  if (question?.type === "development") {
+    return cleanText(question?.modelAnswer || question?.expectedLatex)
   }
 
-  const gqKey = process.env.GROQ_API_KEY
-  if (!gqKey) throw new Error("Sin API key")
-  const Groq = (await import("groq-sdk")).default
-  const groq = new Groq({ apiKey: gqKey })
-  const res = await groq.chat.completions.create({
-    model: "llama-3.3-70b-versatile",
-    temperature: 0.3, max_tokens: 2000,
-    response_format: { type: "json_object" },
-    messages: [
-      { role: "system", content: "Eres un tutor educativo. Responde SOLO con JSON válido." },
-      { role: "user", content: prompt },
-    ],
-  })
-  return res.choices[0]?.message?.content || ""
+  return "Revisa la pauta entregada por tu docente."
+}
+
+function buildConfiguredFeedback(question: any, answer: any): string {
+  const q = enrichQuestionAnswerKey(question)
+  const explanation = joinConfiguredExplanation(q)
+
+  if (q.type === "multiple_choice") {
+    const correct = answer?.selectedAnswer === q.correctAnswer
+    const correctAnswer = cleanText(q.answerText || q.options?.[q.correctAnswer]) || "la alternativa indicada en la pauta"
+    return correct
+      ? `Respuesta correcta. ${explanation}`
+      : `Tu respuesta no coincide con la pauta. La respuesta correcta es: ${correctAnswer}. ${explanation}`
+  }
+
+  if (q.type === "true_false") {
+    const correct = answer?.selectedAnswer === q.correctAnswer
+    const answerLabel = cleanText(q.answerText) || (q.correctAnswer === 0 ? "Verdadero" : "Falso")
+    const { selectionPoints, justificationMaxPoints } = getTrueFalsePointBreakdown(q)
+    const justificationScore = Math.max(0, Math.min(justificationMaxPoints, Number(answer?.justificationScore) || 0))
+    const pointsText = `${formatPoints((correct ? selectionPoints : 0) + justificationScore)}/${formatPoints(selectionPoints + justificationMaxPoints)} pts`
+    return correct
+      ? `La selección ${answerLabel} es correcta (${pointsText}). ${explanation}`
+      : `La selección no coincide con la pauta (${pointsText}). La respuesta correcta es ${answerLabel}. ${explanation}`
+  }
+
+  const maxPoints = getQuestionMaxPoints(q)
+  const score = Math.max(0, Math.min(maxPoints, Number(answer?.manualScore ?? answer?.aiScore) || 0))
+  const modelAnswer = cleanText(q.modelAnswer || q.expectedLatex)
+  const reference = modelAnswer ? ` Respuesta modelo: ${modelAnswer}` : ""
+  return `Puntaje registrado: ${formatPoints(score)}/${formatPoints(maxPoints)} pts. ${explanation}${reference}`
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const { questions, answers } = await req.json()
-    if (!Array.isArray(questions) || !questions.length) {
+    const { submissionId } = await req.json()
+    if (!submissionId) {
+      return NextResponse.json({ error: "submissionId requerido", feedback: [] }, { status: 400 })
+    }
+
+    const { data: submission, error: submissionError } = await supabase
+      .from("exam_submissions")
+      .select("id, exam_id, answers")
+      .eq("id", submissionId)
+      .maybeSingle()
+
+    if (submissionError || !submission) {
+      return NextResponse.json({ error: "Entrega no encontrada", feedback: [] }, { status: 404 })
+    }
+
+    const { data: exam, error: examError } = await supabase
+      .from("teacher_exams")
+      .select("id, questions, settings")
+      .eq("id", submission.exam_id)
+      .maybeSingle()
+
+    if (examError || !exam) {
+      return NextResponse.json({ error: "Examen no encontrado", feedback: [] }, { status: 404 })
+    }
+
+    if (exam.settings?.showResultToStudent === false) {
       return NextResponse.json({ feedback: [] })
     }
 
-    const questionBlock = questions.map((q: any, i: number) => {
-      const a = answers?.[i] || {}
-      const isCorrect = a.isCorrect === true || a.selectionCorrect === true
-      const studentAns = q.type === "development"
-        ? (a.devText || "Sin respuesta")
-        : (q.options?.[a.selectedAnswer] !== undefined ? q.options[a.selectedAnswer] : "Sin respuesta")
-      const correctIdx = typeof q.correctAnswer === "number" ? q.correctAnswer : 0
-      const correctAns = q.type === "development"
-        ? (q.modelAnswer || q.expectedAnswer || "Ver rúbrica")
-        : (q.options?.[correctIdx] || "—")
-      const allOptions = Array.isArray(q.options) ? q.options.map((o: string, j: number) => `  ${j===correctIdx?"✓":"-"} ${o}`).join("\n") : ""
+    const questions = Array.isArray(exam.questions) ? exam.questions : []
+    const answers = Array.isArray(submission.answers) ? submission.answers : []
+    const feedback = questions.map((question: any, index: number) => ({
+      index,
+      text: buildConfiguredFeedback(question, answers[index] || {}),
+    }))
 
-      return `[${i}] Tipo: ${q.type}
-Pregunta: ${q.question}
-Opciones:\n${allOptions}
-Respuesta del estudiante: "${studentAns}" → ${isCorrect ? "✓ CORRECTA" : "✗ INCORRECTA"}
-Respuesta correcta: "${correctAns}"
-Explicación oficial: ${q.explanation || "—"}
-Puntaje obtenido: ${a.aiScore !== undefined ? a.aiScore : (isCorrect ? (q.maxPoints||1) : 0)} / ${q.maxPoints || 1}`
-    }).join("\n\n")
-
-    const prompt = `Eres un tutor educativo amigable, empático y PRECISO. Genera retroalimentación para cada pregunta.
-
-REGLAS IMPORTANTES:
-- Basa tu retroalimentación ÚNICAMENTE en la respuesta correcta indicada — no inventes ni cambies la respuesta correcta
-- Para alternativas: la opción marcada con ✓ es la ÚNICA correcta — comenta por qué esa opción es la correcta
-- Si el estudiante erró: explica el concepto clave que lleva a la respuesta correcta, de forma positiva
-- Si fue correcta: refuerza brevemente por qué esa respuesta demuestra comprensión del concepto
-- Extensión: 2-3 oraciones por pregunta, lenguaje cercano y constructivo
-
-PREGUNTAS:
-${questionBlock}
-
-Responde SOLO con este JSON, sin texto adicional:
-{
-  "feedback": [
-    { "index": 0, "text": "retroalimentación aquí" },
-    { "index": 1, "text": "retroalimentación aquí" }
-  ]
-}`
-
-    const raw = await callAI(prompt)
-    const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim())
-    return NextResponse.json({ feedback: parsed.feedback || [] })
-  } catch (err: any) {
+    return NextResponse.json({ feedback })
+  } catch (error) {
+    console.error("[exam-feedback]", error)
     return NextResponse.json({ feedback: [] })
   }
 }
