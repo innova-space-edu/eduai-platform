@@ -18,7 +18,7 @@ import { enrichQuestionAnswerKey } from "@/lib/exam/question-quality";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 type Difficulty = "facil" | "medio" | "dificil" | "mixto";
-type QuestionType = "multiple_choice" | "true_false" | "development";
+type QuestionType = "multiple_choice" | "true_false" | "development" | "mixed_choice_development";
 type AIStatus = "idle" | "generating" | "done" | "error";
 
 const AI_TOTAL_LIMIT = 36;
@@ -157,10 +157,31 @@ type DevelopmentQuestion = {
   imageUrl?: string;
 };
 
+type MixedChoiceDevelopmentQuestion = {
+  id: string;
+  type: "mixed_choice_development";
+  question: string;
+  options: string[];
+  correctAnswer: number;
+  answerText?: string;
+  explanation?: string;
+  solutionSteps?: string[];
+  distractorRationales?: string[];
+  selectionPoints?: number;
+  developmentMaxPoints?: number;
+  modelAnswer?: string;
+  expectedLatex?: string;
+  rubric: DevelopmentRubricItem[];
+  showRubricToStudent?: boolean;
+  maxPoints?: number;
+  imageUrl?: string;
+};
+
 type Question =
   | MultipleChoiceQuestion
   | TrueFalseQuestion
-  | DevelopmentQuestion;
+  | DevelopmentQuestion
+  | MixedChoiceDevelopmentQuestion;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function uid() {
@@ -180,6 +201,30 @@ function defaultQuestion(type: QuestionType): Question {
       solutionSteps: [],
       distractorRationales: ["", "", "", ""],
       maxPoints: 1,
+      imageUrl: "",
+    };
+  }
+  if (type === "mixed_choice_development") {
+    return {
+      id: uid(),
+      type: "mixed_choice_development",
+      question: "",
+      options: ["", "", "", ""],
+      correctAnswer: 0,
+      answerText: "",
+      explanation: "",
+      solutionSteps: [],
+      distractorRationales: ["", "", "", ""],
+      selectionPoints: 3,
+      developmentMaxPoints: 2,
+      modelAnswer: "",
+      expectedLatex: "",
+      rubric: [
+        { criteria: "Procedimiento correcto", points: 1 },
+        { criteria: "Presentación clara del desarrollo", points: 1 },
+      ],
+      showRubricToStudent: false,
+      maxPoints: 5,
       imageUrl: "",
     };
   }
@@ -223,6 +268,12 @@ function getQuestionPoints(q: Question): number {
     return (
       Math.max(0, Number(q.selectionPoints || 1)) +
       Math.max(0, Number(q.justificationMaxPoints || 2))
+    );
+  }
+  if (q.type === "mixed_choice_development") {
+    return (
+      Math.max(0, Number(q.selectionPoints || 3)) +
+      Math.max(0, Number(q.developmentMaxPoints || 2))
     );
   }
   if (Array.isArray(q.rubric) && q.rubric.length > 0)
@@ -535,8 +586,13 @@ export default function CrearExamenPage() {
   );
 
   // ── CRUD preguntas ────────────────────────────────────────────────────────
-  const addQuestion = (type: QuestionType) =>
+  const addQuestion = (type: QuestionType) => {
+    if (type === "development" || type === "mixed_choice_development") {
+      setDevelopmentNotebookEnabled(true);
+      setDevelopmentNotebookMode("development_only");
+    }
     setQuestions((p) => [...p, defaultQuestion(type)]);
+  };
   const removeQuestion = (id: string) =>
     setQuestions((p) => p.filter((q) => q.id !== id));
   const updateQuestion = (id: string, updater: (q: Question) => Question) =>
@@ -554,11 +610,17 @@ export default function CrearExamenPage() {
       if (quality.qualityStatus === "review") {
         return `La pregunta ${i + 1} requiere revisión: ${(quality.qualityWarnings || []).join(" · ")}`;
       }
-      if (q.type === "multiple_choice") {
+      if (q.type === "multiple_choice" || q.type === "mixed_choice_development") {
         if (q.options.some((o) => !o.trim()))
           return `La pregunta ${i + 1} tiene alternativas vacías.`;
         if (q.correctAnswer < 0 || q.correctAnswer >= q.options.length)
           return `La pregunta ${i + 1} tiene una alternativa correcta inválida.`;
+      }
+      if (q.type === "mixed_choice_development") {
+        if (Number(q.selectionPoints || 0) <= 0)
+          return `La pregunta ${i + 1} necesita puntaje para alternativa.`;
+        if (Number(q.developmentMaxPoints || 0) < 0)
+          return `La pregunta ${i + 1} tiene puntaje de desarrollo inválido.`;
       }
       if (q.type === "development") {
         if (!q.rubric.length)
@@ -598,6 +660,25 @@ export default function CrearExamenPage() {
             solutionSteps: q.solutionSteps || [],
             distractorRationales: q.distractorRationales || [],
             maxPoints: Number(q.maxPoints || 1),
+          };
+        if (q.type === "mixed_choice_development")
+          return {
+            type: q.type,
+            question: q.question,
+            imageUrl: q.imageUrl || "",
+            options: q.options,
+            correctAnswer: q.correctAnswer,
+            answerText: q.options[q.correctAnswer] || q.answerText || "",
+            explanation: q.explanation || "",
+            solutionSteps: q.solutionSteps || [],
+            distractorRationales: q.distractorRationales || [],
+            selectionPoints: Number(q.selectionPoints || 3),
+            developmentMaxPoints: Number(q.developmentMaxPoints || 2),
+            modelAnswer: q.modelAnswer || "",
+            expectedLatex: q.expectedLatex || "",
+            rubric: q.rubric.map((r) => ({ criteria: r.criteria, points: Number(r.points || 0) })),
+            showRubricToStudent: q.showRubricToStudent === true,
+            maxPoints: getQuestionPoints(q),
           };
         if (q.type === "true_false")
           return {
@@ -2205,6 +2286,7 @@ Usa el mismo esquema de calidad que antes.`;
                     className="rounded-2xl bg-card-soft-theme border border-soft px-4 py-2 text-sm text-main focus:outline-none focus:border-blue-500/40"
                   >
                     <option value="multiple_choice">Alternativas</option>
+                    <option value="mixed_choice_development">Alternativa + desarrollo</option>
                     <option value="true_false">Verdadero/Falso</option>
                     <option value="development">Desarrollo</option>
                   </select>
@@ -2233,9 +2315,11 @@ Usa el mismo esquema de calidad que antes.`;
                           <span className="font-semibold text-main">
                             {q.type === "multiple_choice"
                               ? "Alternativas"
-                              : q.type === "true_false"
-                                ? "Verdadero/Falso"
-                                : "Desarrollo"}
+                              : q.type === "mixed_choice_development"
+                                ? "Alternativa + desarrollo"
+                                : q.type === "true_false"
+                                  ? "Verdadero/Falso"
+                                  : "Desarrollo"}
                           </span>
                           <span className="ml-2 text-xs text-muted2">
                             · {getQuestionPoints(q)} pts
@@ -2380,6 +2464,138 @@ Usa el mismo esquema de calidad que antes.`;
                               className="w-full rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main focus:outline-none focus:border-blue-500/40"
                             />
                           </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ── Alternativa + desarrollo ───────────────────────── */}
+                    {q.type === "mixed_choice_development" && (
+                      <div className="space-y-4">
+                        <div className="rounded-2xl border border-blue-200 bg-blue-50/70 px-4 py-3 text-xs text-blue-800">
+                          La alternativa entrega puntaje automático. El lienzo se revisa después como puntaje adicional docente.
+                        </div>
+                        <div className="space-y-3">
+                          {q.options.map((option, optIndex) => (
+                            <div key={optIndex} className="grid grid-cols-[1fr_auto] gap-3 items-center">
+                              <input
+                                value={option}
+                                onChange={(e) =>
+                                  updateQuestion(q.id, (prev) => {
+                                    if (prev.type !== "mixed_choice_development") return prev;
+                                    const next = [...prev.options];
+                                    next[optIndex] = e.target.value;
+                                    return { ...prev, options: next };
+                                  })
+                                }
+                                className="w-full rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main"
+                                placeholder={`Alternativa ${optIndex + 1}`}
+                              />
+                              <label className="flex items-center gap-2 text-sm text-sub whitespace-nowrap">
+                                <input
+                                  type="radio"
+                                  name={`mixed-correct-${q.id}`}
+                                  checked={q.correctAnswer === optIndex}
+                                  onChange={() =>
+                                    updateQuestion(q.id, (prev) =>
+                                      prev.type === "mixed_choice_development"
+                                        ? { ...prev, correctAnswer: optIndex }
+                                        : prev,
+                                    )
+                                  }
+                                />
+                                Correcta
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="grid gap-4 md:grid-cols-3">
+                          <div>
+                            <label className="text-xs text-sub font-semibold block mb-2">PTS ALTERNATIVA</label>
+                            <input
+                              type="number"
+                              min={0}
+                              value={q.selectionPoints || 3}
+                              onChange={(e) => updateQuestion(q.id, (prev) => prev.type === "mixed_choice_development" ? { ...prev, selectionPoints: Number(e.target.value || 0) } : prev)}
+                              className="w-full rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs text-sub font-semibold block mb-2">PTS DESARROLLO</label>
+                            <input
+                              type="number"
+                              min={0}
+                              value={q.developmentMaxPoints || 2}
+                              onChange={(e) => updateQuestion(q.id, (prev) => prev.type === "mixed_choice_development" ? { ...prev, developmentMaxPoints: Number(e.target.value || 0) } : prev)}
+                              className="w-full rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs text-sub font-semibold block mb-2">TOTAL</label>
+                            <div className="rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main">{getQuestionPoints(q)}</div>
+                          </div>
+                        </div>
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div>
+                            <label className="text-xs text-sub font-semibold block mb-2">RESPUESTA MODELO / DESARROLLO ESPERADO</label>
+                            <textarea
+                              value={q.modelAnswer || ""}
+                              onChange={(e) => updateQuestion(q.id, (prev) => prev.type === "mixed_choice_development" ? { ...prev, modelAnswer: e.target.value } : prev)}
+                              className="w-full min-h-[90px] rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs text-sub font-semibold block mb-2">EXPLICACIÓN DE LA ALTERNATIVA</label>
+                            <textarea
+                              value={q.explanation || ""}
+                              onChange={(e) => updateQuestion(q.id, (prev) => prev.type === "mixed_choice_development" ? { ...prev, explanation: e.target.value } : prev)}
+                              className="w-full min-h-[90px] rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-xs text-sub font-semibold block mb-2">RÚBRICA DOCENTE DEL DESARROLLO</label>
+                          <div className="space-y-3">
+                            {q.rubric.map((item, rubricIndex) => (
+                              <div key={rubricIndex} className="grid grid-cols-[1fr_120px_auto] gap-3 items-center">
+                                <input
+                                  value={item.criteria}
+                                  onChange={(e) => updateQuestion(q.id, (prev) => {
+                                    if (prev.type !== "mixed_choice_development") return prev;
+                                    const next = [...prev.rubric];
+                                    next[rubricIndex] = { ...next[rubricIndex], criteria: e.target.value };
+                                    return { ...prev, rubric: next };
+                                  })}
+                                  className="w-full rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main"
+                                  placeholder="Criterio"
+                                />
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={item.points}
+                                  onChange={(e) => updateQuestion(q.id, (prev) => {
+                                    if (prev.type !== "mixed_choice_development") return prev;
+                                    const next = [...prev.rubric];
+                                    next[rubricIndex] = { ...next[rubricIndex], points: Number(e.target.value || 0) };
+                                    return { ...prev, rubric: next };
+                                  })}
+                                  className="w-full rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main"
+                                />
+                                <button
+                                  onClick={() => updateQuestion(q.id, (prev) => prev.type === "mixed_choice_development" ? { ...prev, rubric: prev.rubric.filter((_, idx) => idx !== rubricIndex) } : prev)}
+                                  disabled={q.rubric.length === 1}
+                                  className="px-3 py-2 rounded-xl bg-red-500/15 text-red-700 hover:bg-red-500/25 disabled:opacity-40 text-sm"
+                                >
+                                  Quitar
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                          <button
+                            onClick={() => updateQuestion(q.id, (prev) => prev.type === "mixed_choice_development" ? { ...prev, rubric: [...prev.rubric, { criteria: "", points: 1 }] } : prev)}
+                            className="mt-3 px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-main text-sm font-semibold"
+                          >
+                            + Agregar criterio
+                          </button>
                         </div>
                       </div>
                     )}
