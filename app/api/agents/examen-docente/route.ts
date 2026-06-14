@@ -7,6 +7,7 @@ import {
   calculateGradeFromPercentage,
   calculateScoreSummary,
   clampPoints,
+  getMixedChoiceDevelopmentPointBreakdown,
   getQuestionMaxPoints,
   getTrueFalsePointBreakdown,
   normalizeExamPercentage,
@@ -32,7 +33,7 @@ function clampPositive(n: number, fallback = 1): number {
 function normalizeCorrectAnswer(
   rawCorrectAnswer: any,
   options: string[],
-  type: "multiple_choice" | "true_false" | "development"
+  type: "multiple_choice" | "true_false" | "development" | "mixed_choice_development"
 ): number {
   const maxIndex = Math.max(0, options.length - 1)
 
@@ -81,8 +82,8 @@ function normalizeCorrectAnswer(
 }
 
 function sanitizeQuestion(question: any) {
-  const type: "multiple_choice" | "true_false" | "development" =
-    question?.type === "true_false" || question?.type === "development"
+  const type: "multiple_choice" | "true_false" | "development" | "mixed_choice_development" =
+    question?.type === "true_false" || question?.type === "development" || question?.type === "mixed_choice_development"
       ? question.type
       : "multiple_choice"
 
@@ -111,6 +112,26 @@ function sanitizeQuestion(question: any) {
 
   if (type === "multiple_choice") {
     sanitized.maxPoints = clampPositive(Number(question?.maxPoints), 1) || 1
+  }
+
+  if (type === "mixed_choice_development") {
+    const { selectionPoints, developmentMaxPoints, maxPoints } =
+      getMixedChoiceDevelopmentPointBreakdown(question)
+
+    sanitized.selectionPoints = selectionPoints
+    sanitized.developmentMaxPoints = developmentMaxPoints
+    sanitized.maxPoints = maxPoints
+    sanitized.modelAnswer = String(
+      question?.modelAnswer || question?.expectedAnswer || question?.respuestaModelo || ""
+    )
+    sanitized.expectedLatex = String(question?.expectedLatex || "")
+    sanitized.rubric = Array.isArray(question?.rubric)
+      ? question.rubric.map((r: any) => ({
+          criteria: String(r?.criteria || r?.criterion || r?.criterio || "Criterio"),
+          points: clampPositive(Number(r?.points ?? r?.puntos), 1),
+        }))
+      : []
+    sanitized.showRubricToStudent = question?.showRubricToStudent === true
   }
 
   if (type === "true_false") {
@@ -173,6 +194,19 @@ function buildStudentReviewQuestion(question: any) {
     }
   }
 
+  if (q.type === "mixed_choice_development") {
+    return {
+      ...base,
+      options: Array.isArray(q.options) ? q.options : [],
+      correctAnswer: q.correctAnswer,
+      selectionPoints: q.selectionPoints,
+      developmentMaxPoints: q.developmentMaxPoints,
+      modelAnswer: q.modelAnswer || "",
+      expectedLatex: q.expectedLatex || "",
+      rubric: Array.isArray(q.rubric) ? q.rubric : [],
+    }
+  }
+
   if (q.type === "true_false") {
     return {
       ...base,
@@ -204,6 +238,15 @@ function stripTeacherAnswerKey(question: any) {
     return { ...base, options: Array.isArray(q.options) ? q.options : [] }
   }
 
+  if (q.type === "mixed_choice_development") {
+    return {
+      ...base,
+      options: Array.isArray(q.options) ? q.options : [],
+      selectionPoints: q.selectionPoints,
+      developmentMaxPoints: q.developmentMaxPoints,
+    }
+  }
+
   if (q.type === "true_false") {
     return {
       ...base,
@@ -215,7 +258,8 @@ function stripTeacherAnswerKey(question: any) {
 
   return {
     ...base,
-    rubric: Array.isArray(q.rubric) ? q.rubric : [],
+    showRubricToStudent: q.showRubricToStudent === true,
+    rubric: q.showRubricToStudent === true && Array.isArray(q.rubric) ? q.rubric : [],
   }
 }
 
@@ -275,6 +319,11 @@ function applyEvaluations(
     if (questions[origIndex]?.type === "development") {
       answers[origIndex].isCorrect = normalizedScore >= ((normalizedMax > 0 ? normalizedMax : maxAllowed) * 0.5)
     }
+    if (questions[origIndex]?.type === "mixed_choice_development") {
+      answers[origIndex].developmentScore = normalizedScore
+      answers[origIndex].developmentFeedback = String(ev?.feedback || "")
+      answers[origIndex].developmentReviewed = true
+    }
     if (questions[origIndex]?.type === "true_false") {
       answers[origIndex].justificationScore    = normalizedScore
       answers[origIndex].justificationFeedback = String(ev?.feedback || "")
@@ -289,7 +338,7 @@ async function evaluateWithAI(questions: any[], answers: any[]): Promise<any[]> 
   const toEvaluate: {
     index: number
     question: string
-    type: "development" | "true_false"
+    type: "development" | "true_false" | "mixed_choice_development"
     studentAnswer: string
     modelAnswer?: string
     rubric?: any[]
@@ -313,6 +362,22 @@ async function evaluateWithAI(questions: any[], answers: any[]): Promise<any[]> 
         modelAnswer: q.modelAnswer || q.expectedLatex || "",
         rubric: q.rubric || [],
         maxPoints: getQuestionMaxPoints(q),
+      })
+    }
+
+    if (q.type === "mixed_choice_development" && developmentText) {
+      const { developmentMaxPoints } = getMixedChoiceDevelopmentPointBreakdown(q)
+      const selected = Number.isFinite(Number(a.selectedAnswer)) ? Number(a.selectedAnswer) : -1
+      toEvaluate.push({
+        index: i,
+        question: q.question,
+        type: "mixed_choice_development",
+        studentAnswer: renderedLatex ? `LaTeX renderizado del desarrollo: ${renderedLatex}` : developmentText,
+        selectedOption: q.options?.[selected] || "",
+        correctAnswerLabel: q.options?.[q.correctAnswer] || "",
+        modelAnswer: q.modelAnswer || q.expectedLatex || "",
+        rubric: q.rubric || [],
+        maxPoints: developmentMaxPoints,
       })
     }
 
@@ -344,12 +409,14 @@ async function evaluateWithAI(questions: any[], answers: any[]): Promise<any[]> 
     .map((e, idx) => {
       const header = `[${idx}] Tipo: ${e.type}\nPregunta: ${e.question}`
 
-      if (e.type === "development") {
+      if (e.type === "development" || e.type === "mixed_choice_development") {
         return `${header}
+Alternativa seleccionada: ${e.selectedOption || ""}
+Alternativa correcta: ${e.correctAnswerLabel || ""}
 Respuesta modelo: ${e.modelAnswer || ""}
 Rúbrica: ${JSON.stringify(e.rubric || [])}
-Puntaje máximo: ${e.maxPoints ?? 0}
-Respuesta del estudiante: ${e.studentAnswer}`
+Puntaje máximo del desarrollo: ${e.maxPoints ?? 0}
+Desarrollo del estudiante: ${e.studentAnswer}`
       }
 
       return `${header}
@@ -365,6 +432,7 @@ Justificación del estudiante: ${e.studentAnswer}`
 
 REGLAS:
 - Para DESARROLLO: evalúa de 0 a maxPoints según la rúbrica y la respuesta modelo. Da puntaje parcial si hay aciertos parciales.
+- Para ALTERNATIVA + DESARROLLO: evalúa SOLO el desarrollo manuscrito de 0 a maxPoints. La alternativa ya se evalúa aparte.
 - Para VERDADERO/FALSO con justificación: evalúa SOLO la calidad de la justificación de 0 a maxPoints. La selección V/F ya se evaluó aparte.
 - En V/F, sé consistente con la opción marcada por el estudiante. Si la justificación contradice su propia selección o muestra confusión, menciónalo y baja el puntaje.
 - Sé justo: si el estudiante demuestra comprensión aunque use otras palabras, dale crédito.
@@ -594,6 +662,25 @@ export async function POST(request: NextRequest) {
           }
         }
 
+        if (q.type === "mixed_choice_development") {
+          const selectedAnswer = Number.isFinite(Number(a.selectedAnswer)) ? Number(a.selectedAnswer) : -1
+          const selectionCorrect = selectedAnswer === q.correctAnswer
+          const { selectionPoints, developmentMaxPoints, maxPoints } = getMixedChoiceDevelopmentPointBreakdown(q)
+          return {
+            questionIndex: i,
+            type: "mixed_choice_development",
+            selectedAnswer,
+            selectionCorrect,
+            isCorrect: selectionCorrect,
+            devText: a.devText || "",
+            developmentLatex: a.developmentLatex || "",
+            selectionPoints,
+            developmentMaxPoints,
+            developmentScore: 0,
+            maxPoints,
+          }
+        }
+
         if (q.type === "true_false") {
           const tfCorrect = a.selectedAnswer === q.correctAnswer
           const selectionPoints =
@@ -806,6 +893,27 @@ export async function POST(request: NextRequest) {
               typeof answer.isCorrect === "boolean"
                 ? answer.isCorrect
                 : selectedAnswer === q.correctAnswer,
+            maxPoints,
+          }
+        }
+
+        if (q.type === "mixed_choice_development") {
+          const selectedAnswer = Number.isFinite(Number(answer.selectedAnswer))
+            ? Number(answer.selectedAnswer)
+            : -1
+          const { selectionPoints, developmentMaxPoints, maxPoints } = getMixedChoiceDevelopmentPointBreakdown(q)
+          const selectionCorrect = selectedAnswer === q.correctAnswer
+          return {
+            ...answer,
+            questionIndex: index,
+            type: "mixed_choice_development",
+            selectedAnswer,
+            selectionCorrect,
+            isCorrect: selectionCorrect,
+            selectionPoints,
+            developmentMaxPoints,
+            developmentScore: clampPoints(answer.manualDevelopmentScore ?? answer.developmentScore ?? answer.aiScore ?? 0, 0, developmentMaxPoints),
+            manualDevelopmentScore: clampPoints(answer.manualDevelopmentScore ?? answer.developmentScore ?? answer.aiScore ?? 0, 0, developmentMaxPoints),
             maxPoints,
           }
         }
