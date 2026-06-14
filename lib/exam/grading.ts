@@ -57,11 +57,37 @@ export function getTrueFalsePointBreakdown(question: any): {
   }
 }
 
+
+export function getMixedChoiceDevelopmentPointBreakdown(question: any): {
+  selectionPoints: number
+  developmentMaxPoints: number
+  maxPoints: number
+} {
+  const explicitMaxPoints = Number(question?.maxPoints)
+  const selectionPoints = clampPoints(question?.selectionPoints ?? 3)
+  const fallbackDevelopment = Number.isFinite(explicitMaxPoints)
+    ? Math.max(0, explicitMaxPoints - selectionPoints)
+    : 2
+  const developmentMaxPoints = clampPoints(
+    question?.developmentMaxPoints ?? fallbackDevelopment,
+  )
+
+  return {
+    selectionPoints,
+    developmentMaxPoints,
+    maxPoints: roundToOneDecimal(selectionPoints + developmentMaxPoints),
+  }
+}
+
 export function getQuestionMaxPoints(question: any): number {
   if (!question) return 1
 
   if (question.type === "true_false") {
     return getTrueFalsePointBreakdown(question).maxPoints
+  }
+
+  if (question.type === "mixed_choice_development") {
+    return getMixedChoiceDevelopmentPointBreakdown(question).maxPoints
   }
 
   if (question.type === "development") {
@@ -92,6 +118,20 @@ export function calculateScoreSummary(questions: any[], answers: any[]): ExamSco
     if (question?.type === "multiple_choice") {
       if (answer?.isCorrect === true) {
         earnedPoints += maxPoints
+        correctCount += 1
+      }
+      return
+    }
+
+    if (question?.type === "mixed_choice_development") {
+      const { selectionPoints, developmentMaxPoints } = getMixedChoiceDevelopmentPointBreakdown(question)
+      const selectionCorrect = answer?.selectionCorrect === true || answer?.isCorrect === true
+      const developmentScore = clampPoints(answer?.manualDevelopmentScore ?? answer?.developmentScore ?? answer?.aiScore ?? 0, 0, developmentMaxPoints)
+
+      if (selectionCorrect) earnedPoints += selectionPoints
+      earnedPoints += developmentScore
+
+      if (selectionCorrect && developmentScore >= developmentMaxPoints) {
         correctCount += 1
       }
       return
