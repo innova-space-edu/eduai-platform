@@ -167,6 +167,8 @@ type MixedChoiceDevelopmentQuestion = {
   explanation?: string;
   solutionSteps?: string[];
   distractorRationales?: string[];
+  qualityStatus?: "ready" | "review";
+  qualityWarnings?: string[];
   selectionPoints?: number;
   developmentMaxPoints?: number;
   modelAnswer?: string;
