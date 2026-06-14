@@ -1454,7 +1454,7 @@ export default function ExamenPublicoPage() {
 
           <div className="grid w-full grid-cols-1 gap-6 2xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
             <main className="w-full min-w-0">
-              <div className="flex w-full max-w-none flex-col items-stretch space-y-4">
+              <div className="mx-auto flex w-full max-w-[1120px] flex-col items-stretch space-y-4">
               {/* Botón narrar pregunta — PIE/accesibilidad */}
               {exam?.settings?.accessibility?.pieMode && (
                 <div className="flex w-full justify-end">
@@ -1472,7 +1472,7 @@ export default function ExamenPublicoPage() {
                 </div>
               )}
 
-              <div className="w-full max-w-none [&>div]:!w-full [&>div]:!max-w-none [&_.exam-question]:!w-full [&_.exam-question]:!max-w-none">
+              <div className="mx-auto w-full max-w-[1120px] [&>div]:!w-full [&>div]:!max-w-none [&_.exam-question]:!w-full [&_.exam-question]:!max-w-none">
                 <QuestionCard
                   question={q}
                 index={curQ}
@@ -1499,7 +1499,7 @@ export default function ExamenPublicoPage() {
               </div>
 
               {currentNotebookEnabled ? (
-                <div className="w-full max-w-none min-w-0 [&>section]:!w-full [&>section]:!max-w-none">
+                <div className="mx-auto w-full max-w-[1120px] min-w-0 [&>section]:!w-full [&>section]:!max-w-none">
                   <ExamQuestionNotebook
                     key={`${exam.id}-${curQ}`}
                     ref={notebookRef}
