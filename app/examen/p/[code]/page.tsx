@@ -1389,8 +1389,8 @@ export default function ExamenPublicoPage() {
         ) : null}
 
         <div className="mx-auto w-full max-w-[1760px] px-4 py-5 exam-root sm:px-5 lg:px-6 xl:pl-8 xl:pr-6">
-          <div className="mb-6 overflow-hidden rounded-[28px] border border-soft bg-card-theme shadow-sm">
-            <div className="flex flex-col gap-4 bg-gradient-to-br from-blue-500/10 via-violet-500/5 to-transparent px-5 py-5 md:flex-row md:items-center md:justify-between">
+          <div className="mb-6 mx-auto w-full max-w-[1040px] overflow-hidden rounded-[28px] border border-soft bg-card-theme shadow-sm">
+            <div className="flex flex-col items-center gap-3 bg-gradient-to-br from-blue-500/10 via-violet-500/5 to-transparent px-5 py-5 text-center">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.24em] text-blue-500">Evaluación en curso</p>
                 <h1 className="mt-1 text-2xl md:text-3xl font-extrabold">
@@ -1410,21 +1410,6 @@ export default function ExamenPublicoPage() {
                 </p>
               ) : null}
             </div>
-
-              <div className="rounded-3xl border border-blue-500/15 bg-white/70 px-5 py-4 text-right shadow-sm backdrop-blur">
-                <p className="text-muted2 text-xs">Tiempo restante</p>
-                <p className="text-3xl font-black tabular-nums text-blue-500">
-                  {fmt(timeLeft)}
-                </p>
-                <p className="text-muted2 text-xs mt-1">
-                  {answeredCount}/{totalQ} respondidas
-                </p>
-                {isKiosk ? (
-                  <p className="text-muted2 text-[11px] mt-1">
-                    Fullscreen: {isFullscreen ? "activo" : "inactivo"}
-                  </p>
-                ) : null}
-              </div>
             </div>
             <div className="border-t border-soft bg-card-soft-theme px-5 py-3">
               <div className="flex items-center justify-between text-xs font-bold text-sub">
@@ -1452,9 +1437,9 @@ export default function ExamenPublicoPage() {
             </div>
           ) : null}
 
-          <div className="grid w-full grid-cols-1 gap-6 2xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
+          <div className="mx-auto grid w-full grid-cols-1 gap-6 2xl:ml-[320px] 2xl:w-[calc(100%-320px)] 2xl:grid-cols-[minmax(0,1040px)_320px] xl:items-start">
             <main className="w-full min-w-0">
-              <div className="mx-auto flex w-full max-w-[1120px] flex-col items-stretch space-y-4">
+              <div className="mx-auto flex w-full max-w-[1040px] flex-col items-stretch space-y-4">
               {/* Botón narrar pregunta — PIE/accesibilidad */}
               {exam?.settings?.accessibility?.pieMode && (
                 <div className="flex w-full justify-end">
@@ -1472,7 +1457,7 @@ export default function ExamenPublicoPage() {
                 </div>
               )}
 
-              <div className="mx-auto w-full max-w-[1120px] [&>div]:!w-full [&>div]:!max-w-none [&_.exam-question]:!w-full [&_.exam-question]:!max-w-none">
+              <div className="mx-auto w-full max-w-[1040px] [&>div]:!w-full [&>div]:!max-w-none [&_.exam-question]:!w-full [&_.exam-question]:!max-w-none">
                 <QuestionCard
                   question={q}
                 index={curQ}
@@ -1499,7 +1484,7 @@ export default function ExamenPublicoPage() {
               </div>
 
               {currentNotebookEnabled ? (
-                <div className="mx-auto w-full max-w-[1120px] min-w-0 [&>section]:!w-full [&>section]:!max-w-none">
+                <div className="mx-auto w-full max-w-[1040px] min-w-0 [&>section]:!w-full [&>section]:!max-w-none">
                   <ExamQuestionNotebook
                     key={`${exam.id}-${curQ}`}
                     ref={notebookRef}
@@ -1516,7 +1501,23 @@ export default function ExamenPublicoPage() {
               </div>
             </main>
 
-            <aside className="mt-5 rounded-[28px] border border-medium bg-card-soft-theme p-5 shadow-sm 2xl:sticky 2xl:top-24 2xl:z-40 2xl:mt-0 2xl:max-h-[calc(100vh-7rem)] 2xl:w-[320px] 2xl:overflow-y-auto">
+            <aside className="mt-5 space-y-4 2xl:sticky 2xl:top-24 2xl:z-40 2xl:mt-0 2xl:max-h-[calc(100vh-7rem)] 2xl:w-[320px] 2xl:overflow-y-auto">
+              <div className="rounded-[24px] border border-blue-500/15 bg-white/80 px-5 py-4 text-center shadow-sm backdrop-blur">
+                <p className="text-muted2 text-xs">Tiempo restante</p>
+                <p className="text-3xl font-black tabular-nums text-blue-500">
+                  {fmt(timeLeft)}
+                </p>
+                <p className="text-muted2 text-xs mt-1">
+                  {answeredCount}/{totalQ} respondidas
+                </p>
+                {isKiosk ? (
+                  <p className="text-muted2 text-[11px] mt-1">
+                    Fullscreen: {isFullscreen ? "activo" : "inactivo"}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="rounded-[28px] border border-medium bg-card-soft-theme p-5 shadow-sm">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
                   <h3 className="text-sm font-black text-main">Navegación</h3>
@@ -1660,6 +1661,7 @@ export default function ExamenPublicoPage() {
                 <p className="mt-1">
                   RUT: <span className="text-sub">{rut || "—"}</span>
                 </p>
+              </div>
               </div>
             </aside>
           </div>
