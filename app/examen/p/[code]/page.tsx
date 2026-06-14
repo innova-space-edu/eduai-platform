@@ -1388,7 +1388,7 @@ export default function ExamenPublicoPage() {
           </>
         ) : null}
 
-        <div className="mx-auto w-full max-w-[1800px] px-4 py-5 exam-root exam-content sm:px-5 lg:px-6 xl:pl-8 xl:pr-6">
+        <div className="mx-auto w-full max-w-[1760px] px-4 py-5 exam-root sm:px-5 lg:px-6 xl:pl-8 xl:pr-6">
           <div className="mb-6 overflow-hidden rounded-[28px] border border-soft bg-card-theme shadow-sm">
             <div className="flex flex-col gap-4 bg-gradient-to-br from-blue-500/10 via-violet-500/5 to-transparent px-5 py-5 md:flex-row md:items-center md:justify-between">
               <div>
@@ -1452,11 +1452,12 @@ export default function ExamenPublicoPage() {
             </div>
           ) : null}
 
-          <div className="relative xl:pr-[340px]">
-            <main className="space-y-3 min-w-0">
+          <div className="grid w-full grid-cols-1 gap-6 2xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
+            <main className="w-full min-w-0">
+              <div className="flex w-full max-w-none flex-col items-stretch space-y-4">
               {/* Botón narrar pregunta — PIE/accesibilidad */}
               {exam?.settings?.accessibility?.pieMode && (
-                <div className="flex justify-end">
+                <div className="flex w-full justify-end">
                   <ExamAudioButton
                     questionText={q?.question || q?.statement || ""}
                     questionNumber={curQ + 1}
@@ -1471,8 +1472,9 @@ export default function ExamenPublicoPage() {
                 </div>
               )}
 
-              <QuestionCard
-                question={q}
+              <div className="w-full max-w-none [&>div]:!w-full [&>div]:!max-w-none [&_.exam-question]:!w-full [&_.exam-question]:!max-w-none">
+                <QuestionCard
+                  question={q}
                 index={curQ}
                 total={totalQ}
                 maxPoints={getQuestionMaxPoints(q)}
@@ -1492,11 +1494,12 @@ export default function ExamenPublicoPage() {
                 onDevChange={(v) =>
                   setDevAnswers((prev) => ({ ...prev, [curQ]: v }))
                 }
-                useNotebookForDevelopment={currentNotebookEnabled}
-              />
+                  useNotebookForDevelopment={currentNotebookEnabled}
+                />
+              </div>
 
               {currentNotebookEnabled ? (
-                <div className="min-w-0">
+                <div className="w-full max-w-none min-w-0 [&>section]:!w-full [&>section]:!max-w-none">
                   <ExamQuestionNotebook
                     key={`${exam.id}-${curQ}`}
                     ref={notebookRef}
@@ -1510,9 +1513,10 @@ export default function ExamenPublicoPage() {
                   />
                 </div>
               ) : null}
+              </div>
             </main>
 
-            <aside className="mt-5 rounded-[28px] border border-medium bg-card-soft-theme p-5 shadow-sm xl:fixed xl:right-6 xl:top-24 xl:z-50 xl:mt-0 xl:max-h-[calc(100vh-7rem)] xl:w-[300px] xl:overflow-y-auto">
+            <aside className="mt-5 rounded-[28px] border border-medium bg-card-soft-theme p-5 shadow-sm 2xl:sticky 2xl:top-24 2xl:z-40 2xl:mt-0 2xl:max-h-[calc(100vh-7rem)] 2xl:w-[320px] 2xl:overflow-y-auto">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
                   <h3 className="text-sm font-black text-main">Navegación</h3>
