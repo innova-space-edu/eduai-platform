@@ -104,13 +104,6 @@ export function assessQuestionQuality(question: any): QuestionQualityIssue[] {
     }
   }
 
-  if (type === "mixed_choice_development") {
-    q.modelAnswer = asText(q.modelAnswer ?? q.expectedAnswer ?? q.respuestaModelo)
-    q.expectedLatex = asText(q.expectedLatex ?? q.expected_latex)
-    q.rubric = Array.isArray(q.rubric) ? q.rubric : []
-    q.showRubricToStudent = q.showRubricToStudent === true
-  }
-
   if (type === "true_false") {
     const answerText = asText(question?.answerText)
     if (!["Verdadero", "Falso"].includes(answerText)) {
@@ -122,10 +115,13 @@ export function assessQuestionQuality(question: any): QuestionQualityIssue[] {
   }
 
   if (type === "mixed_choice_development") {
-    if (!asText(question?.modelAnswer)) {
+    const modelAnswer = asText(question?.modelAnswer ?? question?.expectedAnswer ?? question?.respuestaModelo)
+    const rubric = Array.isArray(question?.rubric) ? question.rubric : []
+
+    if (!modelAnswer) {
       issues.push({ code: "missing_model_answer", message: "Falta la respuesta modelo para revisar el desarrollo.", severity: "warning" })
     }
-    if (!Array.isArray(question?.rubric) || question.rubric.length === 0) {
+    if (rubric.length === 0) {
       issues.push({ code: "missing_rubric", message: "Falta la rúbrica del desarrollo adicional.", severity: "warning" })
     }
   }
