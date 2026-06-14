@@ -1389,7 +1389,7 @@ export default function ExamenPublicoPage() {
         ) : null}
 
         <div className="mx-auto w-full max-w-[1760px] px-4 py-5 exam-root sm:px-5 lg:px-6 xl:pl-8 xl:pr-6">
-          <div className="mb-6 mx-auto w-full max-w-[1040px] overflow-hidden rounded-[28px] border border-soft bg-card-theme shadow-sm">
+          <div className="mb-6 mx-auto w-full max-w-[980px] overflow-hidden rounded-[28px] border border-soft bg-card-theme shadow-sm">
             <div className="flex flex-col items-center gap-3 bg-gradient-to-br from-blue-500/10 via-violet-500/5 to-transparent px-5 py-5 text-center">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.24em] text-blue-500">Evaluación en curso</p>
@@ -1507,7 +1507,7 @@ export default function ExamenPublicoPage() {
                 <p className="text-3xl font-black tabular-nums text-blue-500">
                   {fmt(timeLeft)}
                 </p>
-                <p className="text-muted2 text-xs mt-1">
+                <p className="mt-1 block text-xs font-semibold text-muted2">
                   {answeredCount}/{totalQ} respondidas
                 </p>
                 {isKiosk ? (
