@@ -36,6 +36,14 @@ function createAttemptId() {
     : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+function isNotebookQuestion(question: any) {
+  return question?.type === "development" || question?.type === "mixed_choice_development";
+}
+
+function isSelectableQuestion(question: any) {
+  return question?.type === "multiple_choice" || question?.type === "mixed_choice_development";
+}
+
 // ── Cursos indexados ─────────────────────────────────────────────────────────
 const CURSOS_BASICA = [
   "1° Básico A",
@@ -183,8 +191,9 @@ export default function ExamenPublicoPage() {
 
   const answeredCount = useMemo(() => {
     return qs.filter((item: any, i: number) => {
-      if (item.type === "development") {
+      if (isNotebookQuestion(item)) {
         return Boolean(
+          mcAnswers[i] !== undefined ||
           (devAnswers[i] && devAnswers[i].trim().length > 0) ||
           developmentArtifacts[i]?.latex?.trim(),
         );
@@ -206,7 +215,7 @@ export default function ExamenPublicoPage() {
   const developmentNotebookConfig = exam?.settings?.developmentNotebook;
   const currentNotebookEnabled =
     developmentNotebookConfig?.enabled === true &&
-    (developmentNotebookConfig?.mode === "all_questions" || q?.type === "development");
+    (developmentNotebookConfig?.mode === "all_questions" || isNotebookQuestion(q));
 
   // ── Detectar kiosk ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -451,8 +460,8 @@ export default function ExamenPublicoPage() {
     setFeedbackDone(true);
   }, []);
 
-  const saveCurrentDevelopment = useCallback(async (finalized = true) => {
-    if (!exam || !currentNotebookEnabled || !notebookRef.current) return true;
+  const saveCurrentDevelopment = useCallback(async (finalized = true): Promise<ExamNotebookArtifact | null> => {
+    if (!exam || !currentNotebookEnabled || !notebookRef.current) return null;
 
     setDevelopmentSaving(true);
     setDevelopmentSaveStatus("Guardando desarrollo...");
@@ -488,10 +497,10 @@ export default function ExamenPublicoPage() {
       }
       setDevelopmentArtifacts((current) => ({ ...current, [curQ]: artifact }));
       setDevelopmentSaveStatus("✅ Desarrollo guardado");
-      return true;
+      return artifact;
     } catch (error) {
       setDevelopmentSaveStatus(error instanceof Error ? `⚠️ ${error.message}` : "⚠️ No fue posible guardar el desarrollo.");
-      return false;
+      return null;
     } finally {
       setDevelopmentSaving(false);
     }
@@ -500,17 +509,20 @@ export default function ExamenPublicoPage() {
   const goToQuestion = useCallback(async (nextIndex: number) => {
     if (nextIndex < 0 || nextIndex >= totalQ || nextIndex === curQ) return;
     const saved = await saveCurrentDevelopment(true);
-    if (!saved) return;
+    if (currentNotebookEnabled && !saved) return;
     setCurQ(nextIndex);
-  }, [curQ, saveCurrentDevelopment, totalQ]);
+  }, [curQ, currentNotebookEnabled, saveCurrentDevelopment, totalQ]);
 
   const doSubmit = useCallback(
     async (_reason: "manual" | "forced" | "time_up" = "manual") => {
       if (!exam) return;
       if (phase === "submitting" || phase === "review") return;
 
-      const notebookSaved = await saveCurrentDevelopment(true);
-      if (!notebookSaved) return;
+      const latestArtifact = await saveCurrentDevelopment(true);
+      if (currentNotebookEnabled && !latestArtifact) return;
+      const latestDevelopmentArtifacts = latestArtifact
+        ? { ...developmentArtifacts, [curQ]: latestArtifact }
+        : developmentArtifacts;
 
       if (timerRef.current) clearInterval(timerRef.current);
 
@@ -520,9 +532,17 @@ export default function ExamenPublicoPage() {
       const ansArr = (exam.questions || []).map((question: any, i: number) => {
         if (question.type === "development") {
           return {
-            devText: devAnswers[i] || "",
-            developmentLatex: developmentArtifacts[i]?.latex || "",
+            devText: devAnswers[i] || latestDevelopmentArtifacts[i]?.ocrText || "",
+            developmentLatex: latestDevelopmentArtifacts[i]?.latex || "",
             selectedAnswer: -1,
+          };
+        }
+
+        if (question.type === "mixed_choice_development") {
+          return {
+            selectedAnswer: mcAnswers[i] ?? -1,
+            devText: devAnswers[i] || latestDevelopmentArtifacts[i]?.ocrText || "",
+            developmentLatex: latestDevelopmentArtifacts[i]?.latex || "",
           };
         }
 
@@ -580,7 +600,7 @@ export default function ExamenPublicoPage() {
         setPhase("error");
       }
     },
-    [exam, phase, devAnswers, developmentArtifacts, mcAnswers, tfJustifications, name, course, rut, saveCurrentDevelopment],
+    [exam, phase, curQ, currentNotebookEnabled, devAnswers, developmentArtifacts, mcAnswers, tfJustifications, name, course, rut, saveCurrentDevelopment],
   );
 
   // ── Auto submit por tiempo ────────────────────────────────────────────────
@@ -1435,7 +1455,7 @@ export default function ExamenPublicoPage() {
           <div
             className={`grid items-start gap-5 ${
               currentNotebookEnabled
-                ? "xl:grid-cols-[minmax(360px,0.88fr)_minmax(500px,1.2fr)_280px]"
+                ? "xl:grid-cols-[minmax(0,1fr)_300px]"
                 : "lg:grid-cols-[minmax(0,1fr)_340px]"
             }`}
           >
@@ -1480,23 +1500,23 @@ export default function ExamenPublicoPage() {
                 }
                 useNotebookForDevelopment={currentNotebookEnabled}
               />
-            </main>
 
-            {currentNotebookEnabled ? (
-              <div className="min-w-0 xl:sticky xl:top-5">
-                <ExamQuestionNotebook
-                  key={`${exam.id}-${curQ}`}
-                  ref={notebookRef}
-                  examId={exam.id}
-                  attemptId={attemptIdRef.current}
-                  questionIndex={curQ}
-                  questionId={q?.id || `question-${curQ + 1}`}
-                  onArtifactChange={(artifact) =>
-                    setDevelopmentArtifacts((current) => ({ ...current, [curQ]: artifact }))
-                  }
-                />
-              </div>
-            ) : null}
+              {currentNotebookEnabled ? (
+                <div className="min-w-0">
+                  <ExamQuestionNotebook
+                    key={`${exam.id}-${curQ}`}
+                    ref={notebookRef}
+                    examId={exam.id}
+                    attemptId={attemptIdRef.current}
+                    questionIndex={curQ}
+                    questionId={q?.id || `question-${curQ + 1}`}
+                    onArtifactChange={(artifact) =>
+                      setDevelopmentArtifacts((current) => ({ ...current, [curQ]: artifact }))
+                    }
+                  />
+                </div>
+              ) : null}
+            </main>
 
             <aside className="rounded-[28px] border border-medium bg-card-soft-theme p-5 shadow-sm xl:sticky xl:top-5">
               <div className="mb-4 flex items-center justify-between gap-3">
@@ -1510,8 +1530,8 @@ export default function ExamenPublicoPage() {
               <div className="grid grid-cols-5 gap-2 mb-6">
                 {qs.map((_: any, i: number) => {
                   const answered =
-                    qs[i]?.type === "development"
-                      ? Boolean(devAnswers[i]?.trim() || developmentArtifacts[i]?.latex?.trim())
+                    isNotebookQuestion(qs[i])
+                      ? Boolean(mcAnswers[i] !== undefined || devAnswers[i]?.trim() || developmentArtifacts[i]?.latex?.trim())
                       : qs[i]?.type === "true_false"
                         ? mcAnswers[i] !== undefined ||
                           Boolean(tfJustifications[i]?.trim())
