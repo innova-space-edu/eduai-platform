@@ -1388,7 +1388,7 @@ export default function ExamenPublicoPage() {
           </>
         ) : null}
 
-        <div className="mx-auto w-full max-w-[1800px] px-4 py-5 exam-root exam-content sm:px-5 lg:px-6">
+        <div className="mx-auto w-full max-w-[1800px] px-4 py-5 exam-root exam-content sm:px-5 lg:px-6 xl:pl-8 xl:pr-6">
           <div className="mb-6 overflow-hidden rounded-[28px] border border-soft bg-card-theme shadow-sm">
             <div className="flex flex-col gap-4 bg-gradient-to-br from-blue-500/10 via-violet-500/5 to-transparent px-5 py-5 md:flex-row md:items-center md:justify-between">
               <div>
@@ -1452,13 +1452,7 @@ export default function ExamenPublicoPage() {
             </div>
           ) : null}
 
-          <div
-            className={`grid items-start gap-5 ${
-              currentNotebookEnabled
-                ? "xl:grid-cols-[minmax(0,1fr)_300px]"
-                : "lg:grid-cols-[minmax(0,1fr)_340px]"
-            }`}
-          >
+          <div className="relative xl:pr-[340px]">
             <main className="space-y-3 min-w-0">
               {/* Botón narrar pregunta — PIE/accesibilidad */}
               {exam?.settings?.accessibility?.pieMode && (
@@ -1518,7 +1512,7 @@ export default function ExamenPublicoPage() {
               ) : null}
             </main>
 
-            <aside className="rounded-[28px] border border-medium bg-card-soft-theme p-5 shadow-sm xl:sticky xl:top-5">
+            <aside className="mt-5 rounded-[28px] border border-medium bg-card-soft-theme p-5 shadow-sm xl:fixed xl:right-6 xl:top-24 xl:z-50 xl:mt-0 xl:max-h-[calc(100vh-7rem)] xl:w-[300px] xl:overflow-y-auto">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
                   <h3 className="text-sm font-black text-main">Navegación</h3>
