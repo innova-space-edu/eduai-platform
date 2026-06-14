@@ -1452,12 +1452,11 @@ export default function ExamenPublicoPage() {
             </div>
           ) : null}
 
-          <div className="grid w-full grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_300px] xl:items-start">
-            <main className="flex w-full min-w-0 justify-center">
-              <div className="flex w-full max-w-[820px] flex-col items-center space-y-3">
+          <div className="relative xl:pr-[340px]">
+            <main className="space-y-3 min-w-0">
               {/* Botón narrar pregunta — PIE/accesibilidad */}
               {exam?.settings?.accessibility?.pieMode && (
-                <div className="flex w-full max-w-[820px] justify-end">
+                <div className="flex justify-end">
                   <ExamAudioButton
                     questionText={q?.question || q?.statement || ""}
                     questionNumber={curQ + 1}
@@ -1472,9 +1471,8 @@ export default function ExamenPublicoPage() {
                 </div>
               )}
 
-              <div className="flex w-full justify-center [&_.exam-question]:mx-auto [&_.exam-question]:w-full">
-                <QuestionCard
-                  question={q}
+              <QuestionCard
+                question={q}
                 index={curQ}
                 total={totalQ}
                 maxPoints={getQuestionMaxPoints(q)}
@@ -1494,12 +1492,11 @@ export default function ExamenPublicoPage() {
                 onDevChange={(v) =>
                   setDevAnswers((prev) => ({ ...prev, [curQ]: v }))
                 }
-                  useNotebookForDevelopment={currentNotebookEnabled}
-                />
-              </div>
+                useNotebookForDevelopment={currentNotebookEnabled}
+              />
 
               {currentNotebookEnabled ? (
-                <div className="w-full max-w-[820px] min-w-0">
+                <div className="min-w-0">
                   <ExamQuestionNotebook
                     key={`${exam.id}-${curQ}`}
                     ref={notebookRef}
@@ -1513,10 +1510,9 @@ export default function ExamenPublicoPage() {
                   />
                 </div>
               ) : null}
-              </div>
             </main>
 
-            <aside className="mt-5 rounded-[28px] border border-medium bg-card-soft-theme p-5 shadow-sm xl:sticky xl:top-24 xl:z-40 xl:mt-0 xl:max-h-[calc(100vh-7rem)] xl:w-[300px] xl:overflow-y-auto">
+            <aside className="mt-5 rounded-[28px] border border-medium bg-card-soft-theme p-5 shadow-sm xl:fixed xl:right-6 xl:top-24 xl:z-50 xl:mt-0 xl:max-h-[calc(100vh-7rem)] xl:w-[300px] xl:overflow-y-auto">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
                   <h3 className="text-sm font-black text-main">Navegación</h3>
