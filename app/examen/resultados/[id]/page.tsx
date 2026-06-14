@@ -21,6 +21,29 @@ import ExamMathText from "@/components/ui/ExamMathText"
 import StudentPdfExporter from "./StudentPdfExporter"
 import { calculateGradeFromPercentage, getQuestionMaxPoints } from "@/lib/exam/grading"
 
+type DevelopmentEvidence = {
+  id: string
+  questionIndex: number
+  questionId?: string
+  latexSource?: string
+  normalizedLatex?: string
+  renderedText?: string
+  ocrConfidence?: number | null
+  pages?: any[]
+  previewPngUrl?: string | null
+  artifactJsonUrl?: string | null
+  evaluatorStatus?: string | null
+  evaluatorResult?: any
+  finalizedAt?: string | null
+  updatedAt?: string | null
+}
+
+function formatOcrConfidence(value?: number | null) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "—"
+  const normalized = value <= 1 ? value * 100 : value
+  return `${Math.round(normalized)}%`
+}
+
 function RiskBadge({ level, count }: { level: string; count: number }) {
   if (count === 0 || level === "clean") {
     return <span className="text-muted2 text-xs">—</span>
@@ -335,6 +358,53 @@ function ReviewModal({
 
   const [saving, setSaving] = useState(false)
   const [activeQ, setActiveQ] = useState(0)
+  const [developmentEvidence, setDevelopmentEvidence] = useState<Record<number, DevelopmentEvidence>>({})
+  const [evidenceLoading, setEvidenceLoading] = useState(false)
+  const [evidenceError, setEvidenceError] = useState("")
+  const [openEvidence, setOpenEvidence] = useState<Record<number, boolean>>({})
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadDevelopmentEvidence() {
+      if (!submission?.id || !exam?.id) return
+      setEvidenceLoading(true)
+      setEvidenceError("")
+
+      try {
+        const params = new URLSearchParams({
+          submissionId: String(submission.id),
+          examId: String(exam.id),
+        })
+        const response = await fetch(`/api/examen/developments/by-submission?${params.toString()}`)
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data?.error || "No se pudieron cargar los lienzos del estudiante.")
+        }
+
+        const mapped: Record<number, DevelopmentEvidence> = {}
+        if (Array.isArray(data?.developments)) {
+          data.developments.forEach((item: DevelopmentEvidence) => {
+            const index = Number(item.questionIndex)
+            if (Number.isInteger(index)) mapped[index] = item
+          })
+        }
+
+        if (!cancelled) setDevelopmentEvidence(mapped)
+      } catch (error: any) {
+        if (!cancelled) setEvidenceError(error?.message || "No se pudieron cargar los lienzos.")
+      } finally {
+        if (!cancelled) setEvidenceLoading(false)
+      }
+    }
+
+    void loadDevelopmentEvidence()
+
+    return () => {
+      cancelled = true
+    }
+  }, [exam?.id, submission?.id])
 
   const getLiveQuestionState = (answer: any, question: any, index: number) => {
     if (answer?.type === "multiple_choice") {
@@ -469,6 +539,10 @@ function ReviewModal({
 
   const q = questions[activeQ]
   const a = answers[activeQ]
+  const currentEvidence = developmentEvidence[activeQ]
+  const currentLatex = String(currentEvidence?.latexSource || currentEvidence?.normalizedLatex || a?.developmentLatex || "").trim()
+  const currentPages = Array.isArray(currentEvidence?.pages) ? currentEvidence.pages : []
+  const evidenceIsOpen = openEvidence[activeQ] === true
 
   const typeLabel = (t: string) =>
     t === "multiple_choice" ? "Alternativas" : t === "true_false" ? "V/F" : "Desarrollo"
@@ -890,6 +964,131 @@ function ReviewModal({
                       <p className="text-main text-sm leading-relaxed whitespace-pre-wrap">
                         {a.devText || <span className="text-muted2 italic">Sin respuesta</span>}
                       </p>
+                    </div>
+
+                    <div
+                      className="rounded-xl overflow-hidden"
+                      style={{
+                        background: "var(--bg-card)",
+                        border: "1px solid var(--border-soft)",
+                      }}
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-soft px-4 py-3">
+                        <div>
+                          <p className="text-sm font-bold text-main">🖊️ Lienzo del desarrollo</p>
+                          <p className="text-xs text-muted2">Imagen guardada, LaTeX reconocido y evidencia OCR por pregunta.</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setOpenEvidence((current) => ({ ...current, [activeQ]: !current[activeQ] }))}
+                          className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold transition-all"
+                          style={{
+                            background: currentEvidence || currentLatex ? "rgba(59,130,246,0.16)" : "var(--bg-input)",
+                            border: "1px solid var(--border-soft)",
+                            color: currentEvidence || currentLatex ? "#2563eb" : "var(--text-muted)",
+                          }}
+                        >
+                          <Eye size={14} />
+                          {evidenceIsOpen ? "Ocultar lienzo" : "Ver lienzo"}
+                        </button>
+                      </div>
+
+                      {evidenceLoading ? (
+                        <div className="flex items-center gap-2 px-4 py-3 text-xs text-muted2">
+                          <Loader2 size={14} className="animate-spin" />
+                          Cargando evidencia del lienzo...
+                        </div>
+                      ) : evidenceError ? (
+                        <div className="px-4 py-3 text-xs text-red-700">{evidenceError}</div>
+                      ) : evidenceIsOpen ? (
+                        <div className="space-y-4 px-4 py-4">
+                          {currentEvidence?.previewPngUrl ? (
+                            <div className="rounded-xl overflow-hidden bg-white" style={{ border: "1px solid var(--border-soft)" }}>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={currentEvidence.previewPngUrl}
+                                alt={`Lienzo de la pregunta ${activeQ + 1}`}
+                                className="max-h-[520px] w-full object-contain"
+                              />
+                            </div>
+                          ) : (
+                            <div
+                              className="rounded-xl px-4 py-6 text-center text-sm text-muted2"
+                              style={{ background: "var(--bg-input)", border: "1px dashed var(--border-medium)" }}
+                            >
+                              No hay imagen del lienzo disponible para esta pregunta.
+                            </div>
+                          )}
+
+                          <div className="grid gap-3 md:grid-cols-2">
+                            <div
+                              className="rounded-xl px-4 py-3"
+                              style={{ background: "var(--bg-input)", border: "1px solid var(--border-soft)" }}
+                            >
+                              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted2">LaTeX reconocido</p>
+                              {currentLatex ? (
+                                <div className="text-main text-sm leading-relaxed">
+                                  <ExamMathText text={`$$${currentLatex}$$`} />
+                                </div>
+                              ) : (
+                                <p className="text-xs text-muted2">Sin LaTeX reconocido.</p>
+                              )}
+                            </div>
+
+                            <div
+                              className="rounded-xl px-4 py-3"
+                              style={{ background: "var(--bg-input)", border: "1px solid var(--border-soft)" }}
+                            >
+                              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted2">Datos OCR</p>
+                              <div className="space-y-1 text-xs text-sub">
+                                <p>Confianza: <span className="font-semibold text-main">{formatOcrConfidence(currentEvidence?.ocrConfidence)}</span></p>
+                                <p>Páginas guardadas: <span className="font-semibold text-main">{currentPages.length || "—"}</span></p>
+                                {currentEvidence?.updatedAt ? (
+                                  <p>Actualizado: <span className="font-semibold text-main">{new Date(currentEvidence.updatedAt).toLocaleString("es-CL")}</span></p>
+                                ) : null}
+                              </div>
+                            </div>
+                          </div>
+
+                          {currentEvidence?.renderedText ? (
+                            <div
+                              className="rounded-xl px-4 py-3"
+                              style={{ background: "var(--bg-input)", border: "1px solid var(--border-soft)" }}
+                            >
+                              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted2">Texto OCR</p>
+                              <p className="whitespace-pre-wrap text-sm text-sub">{currentEvidence.renderedText}</p>
+                            </div>
+                          ) : null}
+
+                          <div className="flex flex-wrap gap-2">
+                            {currentEvidence?.artifactJsonUrl ? (
+                              <a
+                                href={currentEvidence.artifactJsonUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="rounded-xl px-3 py-2 text-xs font-bold"
+                                style={{ background: "var(--bg-input)", border: "1px solid var(--border-soft)", color: "var(--text-muted)" }}
+                              >
+                                Abrir JSON de trazos
+                              </a>
+                            ) : null}
+                            {currentEvidence?.evaluatorStatus ? (
+                              <span
+                                className="rounded-xl px-3 py-2 text-xs font-bold"
+                                style={{ background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.18)", color: "#7c3aed" }}
+                              >
+                                Evaluador LaTeX: {currentEvidence.evaluatorStatus}
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="px-4 py-3 text-xs text-muted2">
+                          {currentEvidence || currentLatex
+                            ? "Hay evidencia guardada para revisar el desarrollo escrito por el estudiante."
+                            : "No se encontró evidencia de lienzo guardada para esta pregunta."}
+                        </div>
+                      )}
                     </div>
 
                     {q.modelAnswer && (
