@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { enrichQuestionAnswerKey } from "@/lib/exam/question-quality"
-import { formatPoints, getQuestionMaxPoints, getTrueFalsePointBreakdown } from "@/lib/exam/grading"
+import { formatPoints, getMixedChoiceDevelopmentPointBreakdown, getQuestionMaxPoints, getTrueFalsePointBreakdown } from "@/lib/exam/grading"
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "",
@@ -41,6 +41,17 @@ function buildConfiguredFeedback(question: any, answer: any): string {
     return correct
       ? `Respuesta correcta. ${explanation}`
       : `Tu respuesta no coincide con la pauta. La respuesta correcta es: ${correctAnswer}. ${explanation}`
+  }
+
+  if (q.type === "mixed_choice_development") {
+    const selectedCorrect = answer?.selectedAnswer === q.correctAnswer
+    const correctAnswer = cleanText(q.answerText || q.options?.[q.correctAnswer]) || "la alternativa indicada en la pauta"
+    const { selectionPoints, developmentMaxPoints } = getMixedChoiceDevelopmentPointBreakdown(q)
+    const developmentScore = Math.max(0, Math.min(developmentMaxPoints, Number(answer?.manualDevelopmentScore ?? answer?.developmentScore ?? answer?.aiScore) || 0))
+    const pointsText = `${formatPoints((selectedCorrect ? selectionPoints : 0) + developmentScore)}/${formatPoints(selectionPoints + developmentMaxPoints)} pts`
+    return selectedCorrect
+      ? `Alternativa correcta (${pointsText}). El desarrollo queda como evidencia para revisión docente. ${explanation}`
+      : `La alternativa no coincide con la pauta (${pointsText}). La respuesta correcta es: ${correctAnswer}. El desarrollo queda como evidencia para revisión docente. ${explanation}`
   }
 
   if (q.type === "true_false") {
