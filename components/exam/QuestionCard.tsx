@@ -9,7 +9,7 @@ interface RubricItem {
 
 interface Question {
   id?: string;
-  type: "multiple_choice" | "true_false" | "development";
+  type: "multiple_choice" | "true_false" | "development" | "mixed_choice_development";
   question?: string;
   statement?: string;
   options?: string[];
@@ -18,6 +18,8 @@ interface Question {
   maxPoints?: number;
   selectionPoints?: number;
   justificationMaxPoints?: number;
+  developmentMaxPoints?: number;
+  showRubricToStudent?: boolean;
   rubric?: RubricItem[];
   imageUrl?: string;
 }
@@ -44,6 +46,7 @@ function getQuestionText(q: Question) {
 
 function typeLabel(type: Question["type"]) {
   if (type === "multiple_choice") return "Alternativas";
+  if (type === "mixed_choice_development") return "Alternativa + desarrollo";
   if (type === "true_false") return "Verdadero / Falso";
   return "Desarrollo";
 }
@@ -63,9 +66,13 @@ export default function QuestionCard({
   maxPoints,
   useNotebookForDevelopment = false,
 }: QuestionCardProps) {
+  const isChoiceLike = q.type === "multiple_choice" || q.type === "mixed_choice_development";
+  const isNotebookType = q.type === "development" || q.type === "mixed_choice_development";
+  const shouldShowRubric = q.type === "development" && q.showRubricToStudent === true;
+
   return (
     <div className="exam-question">
-      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <span className="exam-badge inline-flex h-10 w-10 items-center justify-center rounded-2xl text-sm font-black">
             {index + 1}
@@ -99,12 +106,12 @@ export default function QuestionCard({
         </div>
       )}
 
-      <div className="exam-question-title mb-6 text-lg font-bold leading-relaxed md:text-xl">
+      <div className="exam-question-title mb-4 text-lg font-bold leading-relaxed md:text-xl">
         <ExamMathText text={getQuestionText(q)} />
       </div>
 
-      {q.type === "multiple_choice" && (
-        <div className="space-y-3">
+      {isChoiceLike && (
+        <div className="grid gap-2 sm:grid-cols-2">
           {(q.options || []).map((option, i) => {
             const active = mcAnswer === i;
             return (
@@ -157,9 +164,9 @@ export default function QuestionCard({
         </div>
       )}
 
-      {q.type === "development" && (
-        <div className="space-y-5">
-          {Array.isArray(q.rubric) && q.rubric.length > 0 && (
+      {isNotebookType && (
+        <div className="mt-4 space-y-4">
+          {shouldShowRubric && Array.isArray(q.rubric) && q.rubric.length > 0 && (
             <div className="rounded-[calc(var(--exam-radius)-6px)] border border-[var(--exam-border)] bg-[var(--exam-soft-bg)] p-4">
               <p className="exam-question-meta mb-3 text-xs font-black uppercase tracking-[0.16em]">
                 Criterios de evaluación
@@ -177,12 +184,14 @@ export default function QuestionCard({
 
           {useNotebookForDevelopment ? (
             <div className="rounded-[calc(var(--exam-radius)-6px)] border border-blue-200 bg-blue-50/70 px-4 py-3">
-              <p className="text-sm font-black text-blue-800">✍️ Responde en el cuaderno digital</p>
+              <p className="text-sm font-black text-blue-800">
+                ✍️ {q.type === "mixed_choice_development" ? "Marca una alternativa y desarrolla en el cuaderno" : "Responde en el cuaderno digital"}
+              </p>
               <p className="mt-1 text-xs leading-relaxed text-blue-700">
-                El cuaderno está visible al costado. Escribe tu procedimiento con el lápiz; el sistema guardará el LaTeX reconocido al avanzar.
+                El desarrollo se guardará como imagen, trazos JSON y LaTeX reconocido. La rúbrica queda para revisión del docente.
               </p>
             </div>
-          ) : (
+          ) : q.type === "development" ? (
             <div>
               <label className="exam-question-meta mb-2 block text-xs font-bold uppercase tracking-[0.12em]">
                 Respuesta de desarrollo
@@ -190,11 +199,11 @@ export default function QuestionCard({
               <textarea
                 value={devAnswer || ""}
                 onChange={(e) => onDevChange(e.target.value)}
-                className="exam-input min-h-[230px] w-full px-4 py-3 text-base outline-none focus:ring-2 focus:ring-[var(--exam-accent-soft)]"
+                className="exam-input min-h-[180px] w-full px-4 py-3 text-base outline-none focus:ring-2 focus:ring-[var(--exam-accent-soft)]"
                 placeholder="Escribe tu respuesta. Puedes ordenar tus ideas en pasos."
               />
             </div>
-          )}
+          ) : null}
         </div>
       )}
     </div>
