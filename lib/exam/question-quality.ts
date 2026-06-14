@@ -8,7 +8,7 @@ export type QuestionQualityIssue = {
 
 export type AnswerKeyEntry = {
   index: number
-  type: "multiple_choice" | "true_false" | "development"
+  type: "multiple_choice" | "true_false" | "development" | "mixed_choice_development"
   question: string
   answerText: string
   explanation: string
@@ -72,7 +72,7 @@ export function assessQuestionQuality(question: any): QuestionQualityIssue[] {
     issues.push({ code: "missing_question", message: "Falta el enunciado.", severity: "error" })
   }
 
-  if (type === "multiple_choice") {
+  if (type === "multiple_choice" || type === "mixed_choice_development") {
     const options: string[] = Array.isArray(question?.options)
       ? question.options.map((item: unknown) => asText(item))
       : []
@@ -104,6 +104,13 @@ export function assessQuestionQuality(question: any): QuestionQualityIssue[] {
     }
   }
 
+  if (type === "mixed_choice_development") {
+    q.modelAnswer = asText(q.modelAnswer ?? q.expectedAnswer ?? q.respuestaModelo)
+    q.expectedLatex = asText(q.expectedLatex ?? q.expected_latex)
+    q.rubric = Array.isArray(q.rubric) ? q.rubric : []
+    q.showRubricToStudent = q.showRubricToStudent === true
+  }
+
   if (type === "true_false") {
     const answerText = asText(question?.answerText)
     if (!["Verdadero", "Falso"].includes(answerText)) {
@@ -111,6 +118,15 @@ export function assessQuestionQuality(question: any): QuestionQualityIssue[] {
     }
     if (!asText(question?.explanation)) {
       issues.push({ code: "missing_explanation", message: "Falta justificar por qué la afirmación es verdadera o falsa.", severity: "warning" })
+    }
+  }
+
+  if (type === "mixed_choice_development") {
+    if (!asText(question?.modelAnswer)) {
+      issues.push({ code: "missing_model_answer", message: "Falta la respuesta modelo para revisar el desarrollo.", severity: "warning" })
+    }
+    if (!Array.isArray(question?.rubric) || question.rubric.length === 0) {
+      issues.push({ code: "missing_rubric", message: "Falta la rúbrica del desarrollo adicional.", severity: "warning" })
     }
   }
 
@@ -131,11 +147,11 @@ export function assessQuestionQuality(question: any): QuestionQualityIssue[] {
 
 export function enrichQuestionAnswerKey(rawQuestion: any): any {
   const q = { ...(rawQuestion || {}) }
-  const type: "multiple_choice" | "true_false" | "development" =
-    q.type === "true_false" || q.type === "development" ? q.type : "multiple_choice"
+  const type: "multiple_choice" | "true_false" | "development" | "mixed_choice_development" =
+    q.type === "true_false" || q.type === "development" || q.type === "mixed_choice_development" ? q.type : "multiple_choice"
   q.type = type
 
-  if (type === "multiple_choice") {
+  if (type === "multiple_choice" || type === "mixed_choice_development") {
     q.options = Array.isArray(q.options)
       ? q.options.map((item: unknown) => asText(item))
       : []
@@ -150,6 +166,13 @@ export function enrichQuestionAnswerKey(rawQuestion: any): any {
       : Array.isArray(q.distractor_reasons)
         ? q.distractor_reasons.map((item: unknown) => asText(item))
         : []
+  }
+
+  if (type === "mixed_choice_development") {
+    q.modelAnswer = asText(q.modelAnswer ?? q.expectedAnswer ?? q.respuestaModelo)
+    q.expectedLatex = asText(q.expectedLatex ?? q.expected_latex)
+    q.rubric = Array.isArray(q.rubric) ? q.rubric : []
+    q.showRubricToStudent = q.showRubricToStudent === true
   }
 
   if (type === "true_false") {
