@@ -33,26 +33,21 @@ export default function ExamDigitalClock() {
   });
 
   return (
-    <aside className="fixed right-3 top-28 z-[60] hidden w-[8.5rem] rounded-[24px] border border-cyan-400/25 bg-slate-950/90 px-3 py-3 text-white shadow-2xl shadow-cyan-900/20 backdrop-blur-xl print:hidden lg:block">
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <span className="rounded-full bg-cyan-400/15 px-2 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-cyan-200">
-          Hora
+    <aside className="fixed right-3 top-3 z-[60] hidden rounded-2xl border border-blue-200/70 bg-white/85 px-4 py-2 text-slate-700 shadow-lg backdrop-blur-xl print:hidden lg:flex lg:items-center lg:gap-3">
+      <span className="rounded-full bg-blue-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-blue-700">
+        Hora
+      </span>
+      <div className="flex items-baseline gap-1 font-mono tabular-nums">
+        <span className="text-xl font-black text-blue-700">{hour}</span>
+        <span className="text-blue-400">:</span>
+        <span className="text-xl font-black text-blue-700">{minute}</span>
+        <span className="ml-2 rounded-full bg-emerald-50 px-2 py-0.5 text-sm font-black text-emerald-600">
+          {second}s
         </span>
-        <span className="text-lg">⏱️</span>
       </div>
-
-      <div className="rounded-2xl border border-cyan-300/15 bg-cyan-300/10 px-2 py-3 text-center font-mono shadow-inner">
-        <div className="flex items-baseline justify-center gap-1 tabular-nums">
-          <span className="text-2xl font-black text-cyan-200">{hour}</span>
-          <span className="text-cyan-300/80">:</span>
-          <span className="text-2xl font-black text-cyan-200">{minute}</span>
-        </div>
-        <div className="mt-1 text-lg font-black tabular-nums text-emerald-300">{second}s</div>
-      </div>
-
-      <p className="mt-2 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+      <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
         {dateLabel}
-      </p>
+      </span>
     </aside>
   );
 }
