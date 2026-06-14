@@ -332,6 +332,8 @@ function ReviewModal({
     answers.forEach((a: any, i: number) => {
       if (a.type === "development") {
         init[i] = Number(a.manualScore ?? a.aiScore ?? 0)
+      } else if (a.type === "mixed_choice_development") {
+        init[i] = Number(a.manualDevelopmentScore ?? a.developmentScore ?? a.aiScore ?? 0)
       } else if (a.type === "true_false") {
         init[i] = Number(a.justificationScore ?? 0)
       }
@@ -343,6 +345,7 @@ function ReviewModal({
     const init: Record<number, string> = {}
     answers.forEach((a: any, i: number) => {
       if (a.type === "development") init[i] = a.manualFeedback || a.aiFeedback || ""
+      if (a.type === "mixed_choice_development") init[i] = a.developmentFeedback || a.manualFeedback || a.aiFeedback || ""
       if (a.type === "true_false") init[i] = a.justificationFeedback || ""
     })
     return init
@@ -351,7 +354,7 @@ function ReviewModal({
   const [mcOverrides, setMcOverrides] = useState<Record<number, boolean>>(() => {
     const init: Record<number, boolean> = {}
     answers.forEach((a: any, i: number) => {
-      if (a.type === "multiple_choice") init[i] = a.isCorrect
+      if (a.type === "multiple_choice" || a.type === "mixed_choice_development") init[i] = a.isCorrect
     })
     return init
   })
@@ -416,6 +419,18 @@ function ReviewModal({
       }
     }
 
+    if (answer?.type === "mixed_choice_development") {
+      const selectionCorrect = mcOverrides[index] ?? answer?.selectionCorrect ?? answer?.isCorrect
+      const selectionPoints = selectionCorrect ? Number(answer?.selectionPoints || question?.selectionPoints || 0) : 0
+      const hasScore = scores[index] != null
+      const developmentScore = Number(hasScore ? scores[index] : answer?.manualDevelopmentScore ?? answer?.developmentScore ?? answer?.aiScore ?? 0)
+      return {
+        reviewed: hasScore || answer?.developmentReviewed || answer?.manualDevelopmentScore != null || answer?.developmentScore != null,
+        correct: !!selectionCorrect,
+        score: selectionPoints + developmentScore,
+      }
+    }
+
     if (answer?.type === "true_false") {
       const hasScore = scores[index] != null
       const liveScore = Number(hasScore ? scores[index] : answer?.justificationScore ?? 0)
@@ -467,6 +482,7 @@ function ReviewModal({
   const needsReview = (ans: any, idx: number) => {
     const live = getLiveQuestionState(ans, questions[idx], idx)
     if (ans?.type === "development") return !live.reviewed
+    if (ans?.type === "mixed_choice_development") return !live.reviewed
     if (ans?.type === "true_false") return !live.reviewed
     return false
   }
@@ -480,6 +496,17 @@ function ReviewModal({
       const updatedAnswers = answers.map((a: any, i: number) => {
         if (a.type === "multiple_choice") {
           return { ...a, isCorrect: mcOverrides[i] ?? a.isCorrect }
+        }
+        if (a.type === "mixed_choice_development") {
+          return {
+            ...a,
+            isCorrect: mcOverrides[i] ?? a.isCorrect,
+            selectionCorrect: mcOverrides[i] ?? a.selectionCorrect,
+            manualDevelopmentScore: scores[i] ?? a.developmentScore ?? a.aiScore ?? 0,
+            developmentScore: scores[i] ?? a.developmentScore ?? a.aiScore ?? 0,
+            developmentFeedback: feedbacks[i] ?? a.developmentFeedback ?? a.aiFeedback,
+            developmentReviewed: true,
+          }
         }
         if (a.type === "true_false") {
           return {
@@ -545,7 +572,13 @@ function ReviewModal({
   const evidenceIsOpen = openEvidence[activeQ] === true
 
   const typeLabel = (t: string) =>
-    t === "multiple_choice" ? "Alternativas" : t === "true_false" ? "V/F" : "Desarrollo"
+    t === "multiple_choice"
+      ? "Alternativas"
+      : t === "mixed_choice_development"
+        ? "Alt. + desarrollo"
+        : t === "true_false"
+          ? "V/F"
+          : "Desarrollo"
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 md:p-4">
@@ -639,7 +672,7 @@ function ReviewModal({
                         <XCircle size={12} className="text-red-700" />
                       ))}
 
-                    {(aa?.type === "development" || aa?.type === "true_false") &&
+                    {(aa?.type === "development" || aa?.type === "mixed_choice_development" || aa?.type === "true_false") &&
                       (live.reviewed ? (
                         <CheckCircle2 size={12} className="text-blue-700" />
                       ) : (
@@ -652,7 +685,7 @@ function ReviewModal({
                     className="text-[10px] font-semibold"
                     style={{
                       color:
-                        aa?.type === "development" || aa?.type === "true_false"
+                        aa?.type === "development" || aa?.type === "mixed_choice_development" || aa?.type === "true_false"
                           ? live.reviewed
                             ? "#60a5fa"
                             : "#fbbf24"
@@ -951,8 +984,40 @@ function ReviewModal({
                   </div>
                 )}
 
-                {a.type === "development" && (
+                {(a.type === "development" || a.type === "mixed_choice_development") && (
                   <div className="space-y-3">
+                    {a.type === "mixed_choice_development" && (
+                      <div
+                        className="rounded-xl px-4 py-3"
+                        style={{ background: "rgba(59,130,246,0.06)", border: "1px solid rgba(59,130,246,0.15)" }}
+                      >
+                        <p className="text-blue-700 text-xs font-semibold mb-2">Alternativa seleccionada</p>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          {(q.options || []).map((opt: string, optIndex: number) => {
+                            const selected = a.selectedAnswer === optIndex
+                            const correct = q.correctAnswer === optIndex
+                            return (
+                              <div
+                                key={optIndex}
+                                className="rounded-xl px-3 py-2 text-sm"
+                                style={{
+                                  background: correct ? "rgba(34,197,94,0.10)" : selected ? "rgba(239,68,68,0.08)" : "var(--bg-input)",
+                                  border: `1px solid ${correct ? "rgba(34,197,94,0.30)" : selected ? "rgba(239,68,68,0.25)" : "var(--border-soft)"}`,
+                                }}
+                              >
+                                <span className="font-bold">{String.fromCharCode(65 + optIndex)}.</span> <ExamMathText text={opt} />
+                                {selected ? <span className="ml-2 text-xs font-bold text-blue-700">← estudiante</span> : null}
+                                {correct ? <span className="ml-2 text-xs font-bold text-green-700">✓ correcta</span> : null}
+                              </div>
+                            )
+                          })}
+                        </div>
+                        <p className="mt-2 text-xs text-sub">
+                          Puntaje automático alternativa: <span className="font-bold text-main">{(mcOverrides[activeQ] ?? a.selectionCorrect ?? a.isCorrect) ? Number(a.selectionPoints || q.selectionPoints || 0) : 0}/{a.selectionPoints || q.selectionPoints || 0} pts</span>
+                        </p>
+                      </div>
+                    )}
+
                     <div
                       className="rounded-xl px-4 py-3"
                       style={{
@@ -1158,21 +1223,21 @@ function ReviewModal({
                     >
                       <div className="flex items-center gap-3">
                         <label className="text-sub text-xs font-semibold whitespace-nowrap">
-                          Puntaje:
+                          {a.type === "mixed_choice_development" ? "Puntaje desarrollo:" : "Puntaje:"}
                         </label>
 
                         <input
                           type="number"
                           min={0}
-                          max={a.maxPoints || q.maxPoints || 0}
+                          max={a.type === "mixed_choice_development" ? (a.developmentMaxPoints || q.developmentMaxPoints || 0) : (a.maxPoints || q.maxPoints || 0)}
                           step={0.5}
-                          value={scores[activeQ] ?? a.manualScore ?? a.aiScore ?? 0}
+                          value={scores[activeQ] ?? (a.type === "mixed_choice_development" ? (a.manualDevelopmentScore ?? a.developmentScore ?? a.aiScore ?? 0) : (a.manualScore ?? a.aiScore ?? 0))}
                           onChange={(e) =>
                             setScores((p) => ({
                               ...p,
                               [activeQ]: Math.max(
                                 0,
-                                Math.min(a.maxPoints || q.maxPoints || 0, Number(e.target.value)),
+                                Math.min(a.type === "mixed_choice_development" ? (a.developmentMaxPoints || q.developmentMaxPoints || 0) : (a.maxPoints || q.maxPoints || 0), Number(e.target.value)),
                               ),
                             }))
                           }
@@ -1183,7 +1248,7 @@ function ReviewModal({
                           }}
                         />
 
-                        <span className="text-muted2 text-xs">/ {a.maxPoints || q.maxPoints || 0} pts</span>
+                        <span className="text-muted2 text-xs">/ {a.type === "mixed_choice_development" ? (a.developmentMaxPoints || q.developmentMaxPoints || 0) : (a.maxPoints || q.maxPoints || 0)} pts</span>
                       </div>
 
                       <textarea
@@ -1387,7 +1452,7 @@ export default function ResultadosExamenPage() {
   const pendingReview = submissions.filter(
     (s) =>
       !s.manually_reviewed &&
-      (exam?.questions || []).some((q: any) => q.type === "development" || q.type === "true_false"),
+      (exam?.questions || []).some((q: any) => q.type === "development" || q.type === "mixed_choice_development" || q.type === "true_false"),
   ).length
 
   const riskTotals = useMemo(() => {
