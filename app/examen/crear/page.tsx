@@ -17,9 +17,26 @@ import {
   THEME_VARS,
   type ExamTheme,
   type ExamFont,
-  type ExamCustomColors,
 } from "@/lib/exam/theme-utils";
 import { enrichQuestionAnswerKey } from "@/lib/exam/question-quality";
+
+// Tipo local para el editor de colores del creador.
+// No depende de lib/exam/theme-utils para evitar romper el build si el tema público
+// se restaura sin soporte de colores personalizados.
+type ExamCustomColors = {
+  background?: string;
+  surface?: string;
+  card?: string;
+  soft?: string;
+  border?: string;
+  text?: string;
+  textSub?: string;
+  muted?: string;
+  accent?: string;
+  accentSoft?: string;
+  success?: string;
+  warning?: string;
+};
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 type Difficulty = "facil" | "medio" | "dificil" | "mixto";
