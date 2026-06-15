@@ -9,7 +9,11 @@ interface RubricItem {
 
 interface Question {
   id?: string;
-  type: "multiple_choice" | "true_false" | "development" | "mixed_choice_development";
+  type:
+    | "multiple_choice"
+    | "true_false"
+    | "development"
+    | "mixed_choice_development";
   question?: string;
   statement?: string;
   options?: string[];
@@ -66,9 +70,12 @@ export default function QuestionCard({
   maxPoints,
   useNotebookForDevelopment = false,
 }: QuestionCardProps) {
-  const isChoiceLike = q.type === "multiple_choice" || q.type === "mixed_choice_development";
-  const isNotebookType = q.type === "development" || q.type === "mixed_choice_development";
-  const shouldShowRubric = q.type === "development" && q.showRubricToStudent === true;
+  const isChoiceLike =
+    q.type === "multiple_choice" || q.type === "mixed_choice_development";
+  const isNotebookType =
+    q.type === "development" || q.type === "mixed_choice_development";
+  const shouldShowRubric =
+    q.type === "development" && q.showRubricToStudent === true;
 
   return (
     <div className="exam-question">
@@ -120,7 +127,9 @@ export default function QuestionCard({
                 onClick={() => onMcChange(i)}
                 className={`exam-option flex w-full items-start gap-3 px-4 py-3 text-left transition ${active ? "selected" : ""}`}
               >
-                <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-sm font-black ${active ? "border-[var(--exam-accent)] bg-[var(--exam-accent)] text-white" : "border-[var(--exam-border)] bg-[var(--exam-soft-bg)] text-[var(--exam-text-sub)]"}`}>
+                <span
+                  className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-sm font-black ${active ? "border-[var(--exam-accent)] bg-[var(--exam-accent)] text-white" : "border-[var(--exam-border)] bg-[var(--exam-soft-bg)] text-[var(--exam-text-sub)]"}`}
+                >
                   {String.fromCharCode(65 + i)}
                 </span>
                 <span className="min-w-0 flex-1 pt-0.5">
@@ -152,7 +161,10 @@ export default function QuestionCard({
 
           <div>
             <label className="exam-question-meta mb-2 block text-xs font-bold uppercase tracking-[0.12em]">
-              Justificación {q.justificationMaxPoints ? `(${q.justificationMaxPoints} pts)` : ""}
+              Justificación{" "}
+              {q.justificationMaxPoints
+                ? `(${q.justificationMaxPoints} pts)`
+                : ""}
             </label>
             <textarea
               value={tfJustification || ""}
@@ -166,29 +178,55 @@ export default function QuestionCard({
 
       {isNotebookType && (
         <div className="mt-4 space-y-4">
-          {shouldShowRubric && Array.isArray(q.rubric) && q.rubric.length > 0 && (
-            <div className="rounded-[calc(var(--exam-radius)-6px)] border border-[var(--exam-border)] bg-[var(--exam-soft-bg)] p-4">
-              <p className="exam-question-meta mb-3 text-xs font-black uppercase tracking-[0.16em]">
-                Criterios de evaluación
-              </p>
-              <div className="grid gap-2">
-                {q.rubric.map((r, i) => (
-                  <div key={i} className="flex items-start justify-between gap-3 rounded-2xl bg-[var(--exam-surface)] px-3 py-2 text-sm">
-                    <span className="text-[var(--exam-text)]">{r.criteria}</span>
-                    <span className="shrink-0 font-bold text-[var(--exam-text-sub)]">{r.points} pts</span>
-                  </div>
-                ))}
+          {shouldShowRubric &&
+            Array.isArray(q.rubric) &&
+            q.rubric.length > 0 && (
+              <div className="rounded-[calc(var(--exam-radius)-6px)] border border-[var(--exam-border)] bg-[var(--exam-soft-bg)] p-4">
+                <p className="exam-question-meta mb-3 text-xs font-black uppercase tracking-[0.16em]">
+                  Criterios de evaluación
+                </p>
+                <div className="grid gap-2">
+                  {q.rubric.map((r, i) => (
+                    <div
+                      key={i}
+                      className="flex items-start justify-between gap-3 rounded-2xl bg-[var(--exam-surface)] px-3 py-2 text-sm"
+                    >
+                      <span className="text-[var(--exam-text)]">
+                        {r.criteria}
+                      </span>
+                      <span className="shrink-0 font-bold text-[var(--exam-text-sub)]">
+                        {r.points} pts
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
           {useNotebookForDevelopment ? (
-            <div className="rounded-[calc(var(--exam-radius)-6px)] border border-blue-200 bg-blue-50/70 px-4 py-3">
-              <p className="text-sm font-black text-blue-800">
-                ✍️ {q.type === "mixed_choice_development" ? "Marca una alternativa y desarrolla en el cuaderno" : "Responde en el cuaderno digital"}
+            <div
+              className="rounded-[calc(var(--exam-radius)-6px)] border px-4 py-3"
+              style={{
+                borderColor:
+                  "color-mix(in srgb, var(--exam-accent) 24%, transparent)",
+                backgroundColor: "var(--exam-accent-soft)",
+              }}
+            >
+              <p
+                className="text-sm font-black"
+                style={{ color: "var(--exam-accent)" }}
+              >
+                ✍️{" "}
+                {q.type === "mixed_choice_development"
+                  ? "Marca una alternativa y desarrolla en el cuaderno"
+                  : "Responde en el cuaderno digital"}
               </p>
-              <p className="mt-1 text-xs leading-relaxed text-blue-700">
-                El desarrollo se guardará como imagen, trazos JSON y LaTeX reconocido. La rúbrica queda para revisión del docente.
+              <p
+                className="mt-1 text-xs leading-relaxed"
+                style={{ color: "var(--exam-text-sub)" }}
+              >
+                El desarrollo se guardará como imagen, trazos JSON y LaTeX
+                reconocido. La rúbrica queda para revisión del docente.
               </p>
             </div>
           ) : q.type === "development" ? (
