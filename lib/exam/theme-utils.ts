@@ -24,10 +24,27 @@ export interface ExamAccessibility {
   lowVisionMode?: boolean;
 }
 
+export interface ExamCustomColors {
+  background?: string;
+  surface?: string;
+  card?: string;
+  soft?: string;
+  border?: string;
+  text?: string;
+  textSub?: string;
+  muted?: string;
+  accent?: string;
+  accentSoft?: string;
+  success?: string;
+  warning?: string;
+}
+
 export interface ExamStyleSettings {
   theme?: ExamTheme;
   font?: ExamFont;
   accessibility?: ExamAccessibility;
+  customColorsEnabled?: boolean;
+  customColors?: ExamCustomColors;
 }
 
 export const THEME_LABELS: Record<ExamTheme, string> = {
@@ -55,8 +72,10 @@ export const THEME_DESCRIPTIONS: Record<ExamTheme, string> = {
   stem: "Azules claros para matemática, ciencia y tecnología.",
   kids: "Tonos cálidos, amigables y alto apoyo visual.",
   blue_focus: "Azules suaves para foco sostenido y baja ansiedad.",
-  green_calm: "Verdes suaves para regulación emocional y concentración calmada.",
-  lavender_reading: "Lavanda suave para lectura extendida y menor fatiga visual.",
+  green_calm:
+    "Verdes suaves para regulación emocional y concentración calmada.",
+  lavender_reading:
+    "Lavanda suave para lectura extendida y menor fatiga visual.",
   warm_attention: "Ámbar suave como acento para orientar sin saturar.",
 };
 
@@ -281,10 +300,14 @@ export const THEME_VARS: Record<ExamTheme, Record<string, string>> = {
 };
 
 export const FONT_URLS: Record<ExamFont, string | null> = {
-  inter: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap",
-  lexend: "https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700;800&display=swap",
-  atkinson: "https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap",
-  poppins: "https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap",
+  inter:
+    "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap",
+  lexend:
+    "https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700;800&display=swap",
+  atkinson:
+    "https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap",
+  poppins:
+    "https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap",
 };
 
 export const FONT_FAMILIES: Record<ExamFont, string> = {
@@ -294,6 +317,43 @@ export const FONT_FAMILIES: Record<ExamFont, string> = {
   poppins: "'Poppins', system-ui, sans-serif",
 };
 
+const CUSTOM_COLOR_VAR_MAP: Record<keyof ExamCustomColors, string> = {
+  background: "--exam-bg",
+  surface: "--exam-surface",
+  card: "--exam-card-bg",
+  soft: "--exam-soft-bg",
+  border: "--exam-border",
+  text: "--exam-text",
+  textSub: "--exam-text-sub",
+  muted: "--exam-muted",
+  accent: "--exam-accent",
+  accentSoft: "--exam-accent-soft",
+  success: "--exam-success",
+  warning: "--exam-warning",
+};
+
+function isSafeExamColor(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  const color = value.trim();
+  return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(color);
+}
+
+function resolveCustomColorVars(
+  settings?: ExamStyleSettings,
+): Record<string, string> {
+  if (!settings?.customColorsEnabled || !settings.customColors) return {};
+
+  const vars: Record<string, string> = {};
+  for (const [key, cssVar] of Object.entries(CUSTOM_COLOR_VAR_MAP) as [
+    keyof ExamCustomColors,
+    string,
+  ][]) {
+    const value = settings.customColors[key];
+    if (isSafeExamColor(value)) vars[cssVar] = value.trim();
+  }
+  return vars;
+}
+
 export interface ResolvedExamStyle {
   cssVars: Record<string, string>;
   fontUrl: string | null;
@@ -302,7 +362,9 @@ export interface ResolvedExamStyle {
   maxWidth: string;
 }
 
-export function resolveExamStyle(settings?: ExamStyleSettings): ResolvedExamStyle {
+export function resolveExamStyle(
+  settings?: ExamStyleSettings,
+): ResolvedExamStyle {
   const theme = settings?.theme || "classic";
   const font = settings?.font || "inter";
   const access = settings?.accessibility || {};
@@ -314,7 +376,8 @@ export function resolveExamStyle(settings?: ExamStyleSettings): ResolvedExamStyl
   const baseVars = THEME_VARS[theme] || THEME_VARS.classic;
   const extraVars: Record<string, string> = {};
 
-  if (access.pieMode && theme === "classic") Object.assign(extraVars, THEME_VARS.pie_calm);
+  if (access.pieMode && theme === "classic")
+    Object.assign(extraVars, THEME_VARS.pie_calm);
   if (access.dyslexiaMode) {
     extraVars["--exam-bg"] = extraVars["--exam-bg"] || "#fbf7ed";
     extraVars["--exam-line-height"] = "1.95";
@@ -332,7 +395,8 @@ export function resolveExamStyle(settings?: ExamStyleSettings): ResolvedExamStyl
     extraVars["--exam-border"] = "#111827";
   }
 
-  const cssVars = { ...baseVars, ...extraVars };
+  const customVars = resolveCustomColorVars(settings);
+  const cssVars = { ...baseVars, ...extraVars, ...customVars };
   const bodyClasses: string[] = [];
   if (access.dyslexiaMode) bodyClasses.push("exam-dyslexia");
   if (access.adhdMode) bodyClasses.push("exam-adhd");
@@ -340,7 +404,8 @@ export function resolveExamStyle(settings?: ExamStyleSettings): ResolvedExamStyl
   if (theme === "canva") bodyClasses.push("exam-canva-theme");
   if (theme === "adhd_focus") bodyClasses.push("exam-adhd-theme");
 
-  const maxWidth = access.adhdMode || theme === "adhd_focus" ? "760px" : "980px";
+  const maxWidth =
+    access.adhdMode || theme === "adhd_focus" ? "760px" : "980px";
 
   return {
     cssVars,
@@ -410,6 +475,29 @@ ${vars}
 }
 .exam-progress-track { background: var(--exam-soft-bg); border: 1px solid var(--exam-border); }
 .exam-progress-fill { background: var(--exam-accent); }
+.exam-themed-card {
+  background: var(--exam-surface) !important;
+  border-color: var(--exam-border) !important;
+  color: var(--exam-text) !important;
+}
+.exam-themed-soft {
+  background: var(--exam-soft-bg) !important;
+  border-color: var(--exam-border) !important;
+  color: var(--exam-text-sub) !important;
+}
+.exam-themed-accent {
+  background: var(--exam-accent) !important;
+  color: #fff !important;
+}
+.exam-themed-accent-soft {
+  background: var(--exam-accent-soft) !important;
+  border-color: color-mix(in srgb, var(--exam-accent) 24%, transparent) !important;
+  color: var(--exam-accent) !important;
+}
+.exam-themed-border { border-color: var(--exam-border) !important; }
+.exam-themed-muted { color: var(--exam-muted) !important; }
+.exam-themed-sub { color: var(--exam-text-sub) !important; }
+.exam-themed-title { color: var(--exam-text) !important; }
 .exam-dyslexia .exam-question,
 .exam-dyslexia .exam-option,
 .exam-dyslexia .exam-input { letter-spacing: 0.025em; word-spacing: 0.12em; }
