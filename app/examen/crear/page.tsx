@@ -36,6 +36,8 @@ type ExamCustomColors = {
   accentSoft?: string;
   success?: string;
   warning?: string;
+  progress?: string;
+  progressTrack?: string;
 };
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
@@ -267,8 +269,20 @@ const CUSTOM_COLOR_FIELDS: {
   {
     key: "accent",
     label: "Color principal",
-    desc: "Botones, progreso y selección",
+    desc: "Botones y selección principal",
     fallbackVar: "--exam-accent",
+  },
+  {
+    key: "progress",
+    label: "Barra de progreso",
+    desc: "Color de avance de la barra superior",
+    fallbackVar: "--exam-accent",
+  },
+  {
+    key: "progressTrack",
+    label: "Fondo de progreso",
+    desc: "Color suave detrás de la barra de avance",
+    fallbackVar: "--exam-soft-bg",
   },
   {
     key: "accentSoft",
