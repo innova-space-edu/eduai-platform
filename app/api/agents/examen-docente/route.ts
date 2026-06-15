@@ -1,5 +1,6 @@
 // src/app/api/agents/examen-docente/route.ts
 import { NextRequest, NextResponse } from "next/server"
+import { randomUUID } from "crypto"
 import { createClient } from "@supabase/supabase-js"
 import { getDesignTemplateSummary } from "@/lib/design-templates/registry"
 import { enrichQuestionAnswerKey } from "@/lib/exam/question-quality"
@@ -15,8 +16,83 @@ import {
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
+  { auth: { persistSession: false } }
 )
+
+function assertServerSupabaseAdmin() {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error(
+      "Falta SUPABASE_SERVICE_ROLE_KEY en el servidor. Es necesaria para guardar y reanudar intentos con RLS activo."
+    )
+  }
+}
+
+function createServerAttemptId(): string {
+  try {
+    return randomUUID()
+  } catch {
+    return `${Date.now()}-${Math.random().toString(36).slice(2, 12)}`
+  }
+}
+
+function normalizeRutClean(value: unknown): string {
+  return String(value || "")
+    .toUpperCase()
+    .replace(/[^0-9K]/g, "")
+    .slice(0, 9)
+}
+
+function formatRut(value: unknown): string {
+  const clean = normalizeRutClean(value)
+  if (clean.length < 2) return clean
+
+  const body = clean.slice(0, -1)
+  const dv = clean.slice(-1)
+  const bodyWithDots = body.replace(/\B(?=(\d{3})+(?!\d))/g, ".")
+  return `${bodyWithDots}-${dv}`
+}
+
+function isValidRut(value: unknown): boolean {
+  const clean = normalizeRutClean(value)
+  if (!/^[0-9]{6,8}[0-9K]$/.test(clean)) return false
+
+  const body = clean.slice(0, -1)
+  const dv = clean.slice(-1)
+  let multiplier = 2
+  let sum = 0
+
+  for (let i = body.length - 1; i >= 0; i--) {
+    sum += Number(body[i]) * multiplier
+    multiplier = multiplier === 7 ? 2 : multiplier + 1
+  }
+
+  const rest = 11 - (sum % 11)
+  const expected = rest === 11 ? "0" : rest === 10 ? "K" : String(rest)
+  return expected === dv
+}
+
+function normalizeSavedAnswerBundle(value: any) {
+  const source = value && typeof value === "object" ? value : {}
+  return {
+    mcAnswers: source.mcAnswers && typeof source.mcAnswers === "object" ? source.mcAnswers : {},
+    devAnswers: source.devAnswers && typeof source.devAnswers === "object" ? source.devAnswers : {},
+    tfJustifications:
+      source.tfJustifications && typeof source.tfJustifications === "object"
+        ? source.tfJustifications
+        : {},
+    developmentArtifacts:
+      source.developmentArtifacts && typeof source.developmentArtifacts === "object"
+        ? source.developmentArtifacts
+        : {},
+  }
+}
+
+function getExamTimeLimitSeconds(settings: any): number {
+  const minutes = Number(settings?.timeLimit)
+  const safeMinutes = Number.isFinite(minutes) && minutes > 0 ? minutes : 30
+  return Math.max(60, Math.round(safeMinutes * 60))
+}
 
 function generateCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789"
@@ -570,6 +646,227 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, exam: publicExam })
     }
 
+    // ── Iniciar o reanudar intento del estudiante ───────────────────────────
+    // Guarda el avance por RUT limpio + curso + examen. Esto permite que el
+    // estudiante cierre la pestaña por error y vuelva al mismo punto.
+    if (action === "start_or_resume_attempt") {
+      assertServerSupabaseAdmin()
+      const { examId, studentName, studentCourse, studentRut } = body
+      const rutClean = normalizeRutClean(studentRut)
+
+      if (!examId || !String(studentName || "").trim() || !String(studentCourse || "").trim()) {
+        return NextResponse.json({ error: "Nombre, curso y examen son requeridos" }, { status: 400 })
+      }
+
+      if (!isValidRut(rutClean)) {
+        return NextResponse.json(
+          { error: "RUT inválido. Escríbelo sin puntos ni guion, incluyendo el dígito verificador o K." },
+          { status: 400 }
+        )
+      }
+
+      const { data: officialExam, error: examError } = await supabase
+        .from("teacher_exams")
+        .select("id, questions, settings, status")
+        .eq("id", examId)
+        .maybeSingle()
+
+      if (examError || !officialExam) {
+        return NextResponse.json({ error: "Examen no encontrado" }, { status: 404 })
+      }
+
+      if (officialExam.status !== "active") {
+        return NextResponse.json({ error: "Este examen está cerrado" }, { status: 403 })
+      }
+
+      const formattedRut = formatRut(rutClean)
+      const totalQuestions = Array.isArray(officialExam.questions) ? officialExam.questions.length : 0
+      const maxTimeLeft = getExamTimeLimitSeconds(officialExam.settings)
+
+      const { data: existing, error: existingError } = await supabase
+        .from("exam_attempt_drafts")
+        .select("id, client_attempt_id, answers, current_question_index, time_left, status, submission_id, started_at, last_saved_at")
+        .eq("exam_id", examId)
+        .eq("student_rut_clean", rutClean)
+        .eq("student_course", String(studentCourse).trim())
+        .maybeSingle()
+
+      if (existingError) throw existingError
+
+      if (existing?.status === "submitted") {
+        return NextResponse.json(
+          {
+            error: "Este RUT ya tiene una entrega registrada para este examen.",
+            alreadySubmitted: true,
+            submissionId: existing.submission_id || null,
+          },
+          { status: 409 }
+        )
+      }
+
+      if (existing) {
+        const nextIndex = Math.max(
+          0,
+          Math.min(totalQuestions > 0 ? totalQuestions - 1 : 0, Number(existing.current_question_index) || 0)
+        )
+        const savedTimeLeft = Number(existing.time_left)
+        return NextResponse.json({
+          success: true,
+          resumed: true,
+          attempt: {
+            clientAttemptId: existing.client_attempt_id,
+            answers: normalizeSavedAnswerBundle(existing.answers),
+            currentQuestionIndex: nextIndex,
+            timeLeft:
+              Number.isFinite(savedTimeLeft) && savedTimeLeft > 0
+                ? Math.min(maxTimeLeft, Math.round(savedTimeLeft))
+                : maxTimeLeft,
+            startedAt: existing.started_at || null,
+            lastSavedAt: existing.last_saved_at || null,
+            studentRut: formattedRut,
+            studentRutClean: rutClean,
+          },
+        })
+      }
+
+      const clientAttemptId = createServerAttemptId()
+      const defaultAnswers = normalizeSavedAnswerBundle(null)
+      const { data: created, error: createError } = await supabase
+        .from("exam_attempt_drafts")
+        .insert({
+          exam_id: examId,
+          student_name: String(studentName).trim(),
+          student_course: String(studentCourse).trim(),
+          student_rut: formattedRut,
+          student_rut_clean: rutClean,
+          client_attempt_id: clientAttemptId,
+          answers: defaultAnswers,
+          current_question_index: 0,
+          time_left: maxTimeLeft,
+          status: "in_progress",
+          last_saved_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .select("id, client_attempt_id, answers, current_question_index, time_left, started_at, last_saved_at")
+        .single()
+
+      if (createError) throw createError
+
+      return NextResponse.json({
+        success: true,
+        resumed: false,
+        attempt: {
+          clientAttemptId: created.client_attempt_id,
+          answers: normalizeSavedAnswerBundle(created.answers),
+          currentQuestionIndex: 0,
+          timeLeft: maxTimeLeft,
+          startedAt: created.started_at || null,
+          lastSavedAt: created.last_saved_at || null,
+          studentRut: formattedRut,
+          studentRutClean: rutClean,
+        },
+      })
+    }
+
+    // ── Guardado automático del avance ───────────────────────────────────────
+    if (action === "autosave_attempt") {
+      assertServerSupabaseAdmin()
+      const {
+        examId,
+        studentName,
+        studentCourse,
+        studentRut,
+        clientAttemptId,
+        answers,
+        currentQuestionIndex,
+        timeLeft,
+      } = body
+      const rutClean = normalizeRutClean(studentRut)
+
+      if (!examId || !String(studentName || "").trim() || !String(studentCourse || "").trim() || !clientAttemptId) {
+        return NextResponse.json({ error: "Faltan datos para guardar el avance" }, { status: 400 })
+      }
+
+      if (!isValidRut(rutClean)) {
+        return NextResponse.json({ error: "RUT inválido" }, { status: 400 })
+      }
+
+      const { data: officialExam, error: examError } = await supabase
+        .from("teacher_exams")
+        .select("id, questions, settings, status")
+        .eq("id", examId)
+        .maybeSingle()
+
+      if (examError || !officialExam) {
+        return NextResponse.json({ error: "Examen no encontrado" }, { status: 404 })
+      }
+
+      if (officialExam.status !== "active") {
+        return NextResponse.json({ error: "Este examen está cerrado" }, { status: 403 })
+      }
+
+      const formattedRut = formatRut(rutClean)
+      const totalQuestions = Array.isArray(officialExam.questions) ? officialExam.questions.length : 0
+      const maxIndex = Math.max(0, totalQuestions - 1)
+      const nextIndex = Math.max(0, Math.min(maxIndex, Number(currentQuestionIndex) || 0))
+      const maxTimeLeft = getExamTimeLimitSeconds(officialExam.settings)
+      const nextTimeLeft = Math.max(
+        0,
+        Math.min(maxTimeLeft, Math.round(Number(timeLeft) || 0))
+      )
+
+      const { data: existing, error: existingError } = await supabase
+        .from("exam_attempt_drafts")
+        .select("id, status, submission_id")
+        .eq("exam_id", examId)
+        .eq("student_rut_clean", rutClean)
+        .eq("student_course", String(studentCourse).trim())
+        .maybeSingle()
+
+      if (existingError) throw existingError
+
+      if (existing?.status === "submitted") {
+        return NextResponse.json(
+          { error: "El examen ya fue entregado. No se puede modificar el avance.", alreadySubmitted: true },
+          { status: 409 }
+        )
+      }
+
+      const row = {
+        exam_id: examId,
+        student_name: String(studentName).trim(),
+        student_course: String(studentCourse).trim(),
+        student_rut: formattedRut,
+        student_rut_clean: rutClean,
+        client_attempt_id: String(clientAttemptId),
+        answers: normalizeSavedAnswerBundle(answers),
+        current_question_index: nextIndex,
+        time_left: nextTimeLeft,
+        last_saved_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }
+
+      const query = existing?.id
+        ? supabase.from("exam_attempt_drafts").update(row).eq("id", existing.id)
+        : supabase.from("exam_attempt_drafts").insert({ ...row, status: "in_progress" })
+
+      const { data: saved, error: saveError } = await query
+        .select("id, client_attempt_id, current_question_index, time_left, last_saved_at")
+        .single()
+
+      if (saveError) throw saveError
+
+      return NextResponse.json({
+        success: true,
+        attempt: {
+          clientAttemptId: saved.client_attempt_id,
+          currentQuestionIndex: saved.current_question_index,
+          timeLeft: saved.time_left,
+          lastSavedAt: saved.last_saved_at,
+        },
+      })
+    }
+
     if (action === "create") {
       const { teacherId, title, topic, instructions, questions, settings, designTemplateId } = body
 
@@ -616,6 +913,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === "submit") {
+      assertServerSupabaseAdmin()
       const {
         examId,
         studentName,
@@ -626,9 +924,18 @@ export async function POST(request: NextRequest) {
         examPercentage,
         clientAttemptId,
       } = body
+      const rutClean = normalizeRutClean(studentRut)
+      const effectiveClientAttemptId = String(clientAttemptId || createServerAttemptId())
 
       if (!examId || !studentName || !studentCourse || !answers) {
         return NextResponse.json({ error: "Faltan datos" }, { status: 400 })
+      }
+
+      if (!isValidRut(rutClean)) {
+        return NextResponse.json(
+          { error: "RUT inválido. Escríbelo sin puntos ni guion, incluyendo el dígito verificador o K." },
+          { status: 400 }
+        )
       }
 
       const { data: officialExam, error: officialExamError } = await supabase
@@ -721,14 +1028,17 @@ export async function POST(request: NextRequest) {
         officialExam.settings?.examPercentage ?? examPercentage ?? 60
       )
       const grade = calculateGradeFromPercentage(scoreSummary.percentage, officialExamPercentage)
+      const formattedRut = formatRut(rutClean)
 
       const { data, error } = await supabase
         .from("exam_submissions")
-        .insert({
+        .upsert({
           exam_id:         examId,
+          client_attempt_id: effectiveClientAttemptId,
           student_name:    studentName,
           student_course:  studentCourse,
-          student_rut:     studentRut || null,
+          student_rut:     formattedRut,
+          student_rut_clean: rutClean,
           answers:         gradedAnswers,
           score:           scoreSummary.percentage,
           grade,
@@ -737,21 +1047,36 @@ export async function POST(request: NextRequest) {
           earned_points:   scoreSummary.earnedPoints,               // Puntaje obtenido
           total_points:    scoreSummary.totalPoints,                // Puntaje máximo
           time_spent:      timeSpent || null,
-        })
+        }, { onConflict: "exam_id,client_attempt_id" })
         .select()
         .single()
 
       if (error) throw error
 
-      if (clientAttemptId) {
+      if (effectiveClientAttemptId) {
         const { error: linkError } = await supabase
           .from("exam_question_developments")
           .update({ submission_id: data.id, updated_at: new Date().toISOString() })
           .eq("exam_id", examId)
-          .eq("client_attempt_id", String(clientAttemptId))
+          .eq("client_attempt_id", effectiveClientAttemptId)
 
         if (linkError) {
           console.error("[exam-submit/link-developments]", linkError)
+        }
+
+        const { error: draftError } = await supabase
+          .from("exam_attempt_drafts")
+          .update({
+            status: "submitted",
+            submission_id: data.id,
+            submitted_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("exam_id", examId)
+          .eq("client_attempt_id", effectiveClientAttemptId)
+
+        if (draftError) {
+          console.error("[exam-submit/mark-draft-submitted]", draftError)
         }
       }
 
@@ -1122,7 +1447,7 @@ export async function GET(request: NextRequest) {
         : await query.is("deleted_at", null)
 
       const examsWithCount = await Promise.all(
-        (data || []).map(async (exam) => {
+        (data || []).map(async (exam: any) => {
           const { count } = await supabase
             .from("exam_submissions")
             .select("*", { count: "exact", head: true })
