@@ -1499,8 +1499,7 @@ export default function ExamenPublicoPage() {
               <div
                 className="mt-2 h-2 overflow-hidden rounded-full"
                 style={{
-                  backgroundColor:
-                    "color-mix(in srgb, var(--exam-border) 60%, white)",
+                  backgroundColor: "var(--exam-progress-track)",
                 }}
               >
                 <div
@@ -1508,7 +1507,7 @@ export default function ExamenPublicoPage() {
                   style={{
                     width: `${(answeredCount / Math.max(1, totalQ)) * 100}%`,
                     background:
-                      "linear-gradient(90deg, var(--exam-accent), color-mix(in srgb, var(--exam-accent) 72%, white))",
+                      "linear-gradient(90deg, var(--exam-progress), color-mix(in srgb, var(--exam-progress) 72%, white))",
                   }}
                 />
               </div>
