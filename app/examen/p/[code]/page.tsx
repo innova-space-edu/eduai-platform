@@ -41,6 +41,83 @@ function createAttemptId() {
     : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+function normalizeRutInput(value: string) {
+  return value.toUpperCase().replace(/[^0-9K]/g, "").slice(0, 9);
+}
+
+function formatRut(value: string) {
+  const clean = normalizeRutInput(value);
+  if (clean.length < 2) return clean;
+
+  const body = clean.slice(0, -1);
+  const dv = clean.slice(-1);
+  const bodyWithDots = body.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return `${bodyWithDots}-${dv}`;
+}
+
+function isValidRut(value: string) {
+  const clean = normalizeRutInput(value);
+  if (!/^[0-9]{6,8}[0-9K]$/.test(clean)) return false;
+
+  const body = clean.slice(0, -1);
+  const dv = clean.slice(-1);
+  let multiplier = 2;
+  let sum = 0;
+
+  for (let i = body.length - 1; i >= 0; i--) {
+    sum += Number(body[i]) * multiplier;
+    multiplier = multiplier === 7 ? 2 : multiplier + 1;
+  }
+
+  const rest = 11 - (sum % 11);
+  const expected = rest === 11 ? "0" : rest === 10 ? "K" : String(rest);
+  return expected === dv;
+}
+
+function normalizeNumberRecord(value: any): Record<number, number> {
+  if (!value || typeof value !== "object") return {};
+  const normalized: Record<number, number> = {};
+  Object.entries(value).forEach(([key, answer]) => {
+    const numericKey = Number(key);
+    const numericAnswer = Number(answer);
+    if (Number.isInteger(numericKey) && Number.isFinite(numericAnswer)) {
+      normalized[numericKey] = numericAnswer;
+    }
+  });
+  return normalized;
+}
+
+function normalizeTextRecord(value: any): Record<number, string> {
+  if (!value || typeof value !== "object") return {};
+  const normalized: Record<number, string> = {};
+  Object.entries(value).forEach(([key, answer]) => {
+    const numericKey = Number(key);
+    if (Number.isInteger(numericKey)) {
+      normalized[numericKey] = String(answer || "");
+    }
+  });
+  return normalized;
+}
+
+function serializeDevelopmentArtifacts(
+  artifacts: Record<number, ExamNotebookArtifact>,
+) {
+  return Object.fromEntries(
+    Object.entries(artifacts).map(([index, artifact]) => [
+      index,
+      {
+        artifactId: artifact.artifactId,
+        questionIndex: artifact.questionIndex,
+        questionId: artifact.questionId,
+        latex: artifact.latex || "",
+        ocrText: artifact.ocrText || "",
+        ocrConfidence: artifact.ocrConfidence ?? null,
+        updatedAt: artifact.updatedAt,
+      },
+    ]),
+  );
+}
+
 function isNotebookQuestion(question: any) {
   return (
     question?.type === "development" ||
@@ -164,6 +241,11 @@ export default function ExamenPublicoPage() {
   >({});
   const [developmentSaveStatus, setDevelopmentSaveStatus] = useState("");
   const [developmentSaving, setDevelopmentSaving] = useState(false);
+  const [autosaveStatus, setAutosaveStatus] = useState<
+    "idle" | "saving" | "saved" | "error"
+  >("idle");
+  const [autosaveMessage, setAutosaveMessage] = useState("");
+  const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // kiosk
   const [isKiosk, setIsKiosk] = useState(false);
@@ -188,6 +270,19 @@ export default function ExamenPublicoPage() {
   const panelPollRef = useRef<NodeJS.Timeout | null>(null);
   const realtimeRef = useRef<any>(null);
   const fullscreenGuard = useRef(false);
+  const latestExamStateRef = useRef({
+    phase: "loading" as Phase,
+    exam: null as any,
+    name: "",
+    course: "",
+    rut: "",
+    curQ: 0,
+    timeLeft: 0,
+    mcAnswers: {} as Record<number, number>,
+    devAnswers: {} as Record<number, string>,
+    tfJustifications: {} as Record<number, string>,
+    developmentArtifacts: {} as Record<number, ExamNotebookArtifact>,
+  });
 
   const qs = exam?.questions || [];
   const q = qs[curQ];
@@ -230,6 +325,34 @@ export default function ExamenPublicoPage() {
     developmentNotebookConfig?.enabled === true &&
     (developmentNotebookConfig?.mode === "all_questions" ||
       isNotebookQuestion(q));
+
+  useEffect(() => {
+    latestExamStateRef.current = {
+      phase,
+      exam,
+      name,
+      course,
+      rut,
+      curQ,
+      timeLeft,
+      mcAnswers,
+      devAnswers,
+      tfJustifications,
+      developmentArtifacts,
+    };
+  }, [
+    phase,
+    exam,
+    name,
+    course,
+    rut,
+    curQ,
+    timeLeft,
+    mcAnswers,
+    devAnswers,
+    tfJustifications,
+    developmentArtifacts,
+  ]);
 
   // ── Detectar kiosk ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -421,27 +544,214 @@ export default function ExamenPublicoPage() {
     };
   }, [phase]);
 
-  // ── Inicio examen ──────────────────────────────────────────────────────────
-  const startExam = useCallback(() => {
-    if (!name.trim() || !course.trim()) return;
+  // ── Guardado automático del intento ───────────────────────────────────────
+  const autosaveAttempt = useCallback(
+    async (
+      overrides: {
+        mcAnswers?: Record<number, number>;
+        devAnswers?: Record<number, string>;
+        tfJustifications?: Record<number, string>;
+        developmentArtifacts?: Record<number, ExamNotebookArtifact>;
+        currentQuestionIndex?: number;
+        timeLeft?: number;
+      } = {},
+      options: { silent?: boolean } = {},
+    ): Promise<boolean> => {
+      const snapshot = latestExamStateRef.current;
+      if (!snapshot.exam?.id || !attemptIdRef.current) return false;
+      if (!snapshot.name.trim() || !snapshot.course.trim() || !isValidRut(snapshot.rut)) return false;
 
-    startRef.current = Date.now();
+      const nextMcAnswers = overrides.mcAnswers ?? snapshot.mcAnswers;
+      const nextDevAnswers = overrides.devAnswers ?? snapshot.devAnswers;
+      const nextTfJustifications =
+        overrides.tfJustifications ?? snapshot.tfJustifications;
+      const nextDevelopmentArtifacts =
+        overrides.developmentArtifacts ?? snapshot.developmentArtifacts;
+      const nextQuestionIndex =
+        overrides.currentQuestionIndex ?? snapshot.curQ;
+      const nextTimeLeft = overrides.timeLeft ?? snapshot.timeLeft;
+
+      if (!options.silent) {
+        setAutosaveStatus("saving");
+        setAutosaveMessage("Guardando avance...");
+      }
+
+      try {
+        const res = await fetch("/api/agents/examen-docente", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "autosave_attempt",
+            examId: snapshot.exam.id,
+            studentName: snapshot.name,
+            studentCourse: snapshot.course,
+            studentRut: snapshot.rut,
+            clientAttemptId: attemptIdRef.current,
+            answers: {
+              mcAnswers: nextMcAnswers,
+              devAnswers: nextDevAnswers,
+              tfJustifications: nextTfJustifications,
+              developmentArtifacts: serializeDevelopmentArtifacts(
+                nextDevelopmentArtifacts,
+              ),
+            },
+            currentQuestionIndex: nextQuestionIndex,
+            timeLeft: nextTimeLeft,
+          }),
+        });
+
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data?.success) {
+          throw new Error(data?.error || "No se pudo guardar el avance.");
+        }
+
+        setAutosaveStatus("saved");
+        setAutosaveMessage("Avance guardado automáticamente");
+        return true;
+      } catch (error: any) {
+        if (!options.silent) {
+          setAutosaveStatus("error");
+          setAutosaveMessage(
+            error?.message || "No se pudo guardar el avance.",
+          );
+        }
+        return false;
+      }
+    },
+    [],
+  );
+
+  const scheduleAutosave = useCallback(
+    (
+      overrides: {
+        mcAnswers?: Record<number, number>;
+        devAnswers?: Record<number, string>;
+        tfJustifications?: Record<number, string>;
+        developmentArtifacts?: Record<number, ExamNotebookArtifact>;
+        currentQuestionIndex?: number;
+        timeLeft?: number;
+      } = {},
+    ) => {
+      if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+      setAutosaveStatus("saving");
+      setAutosaveMessage("Guardando avance...");
+      autosaveTimerRef.current = setTimeout(() => {
+        void autosaveAttempt(overrides);
+      }, 350);
+    },
+    [autosaveAttempt],
+  );
+
+  useEffect(() => {
+    if (phase !== "exam") return;
+
+    const interval = setInterval(() => {
+      void autosaveAttempt({}, { silent: true });
+    }, 15000);
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        void autosaveAttempt({}, { silent: true });
+      }
+    };
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [autosaveAttempt, phase]);
+
+  // ── Inicio examen ──────────────────────────────────────────────────────────
+  const startExam = useCallback(async () => {
+    const cleanRut = normalizeRutInput(rut);
+    if (!name.trim() || !course.trim() || !isValidRut(cleanRut) || !exam?.id) {
+      setAutosaveStatus("error");
+      setAutosaveMessage(
+        "Completa nombre, curso y un RUT válido sin puntos ni guion.",
+      );
+      return;
+    }
+
     setSubmittedForSecurity(false);
     setSecurityBlocked(false);
     setSecurityTerminateReason("");
-    // Always request fullscreen when exam starts
-    setTimeout(() => requestFullscreen(), 200);
+    setAutosaveStatus("saving");
+    setAutosaveMessage("Preparando intento...");
 
-    const doStart = () => {
-      setPhase("exam");
-      if (isKiosk) setTimeout(requestFullscreen, 300);
-    };
-
-    document.documentElement
+    const fullscreenPromise = document.documentElement
       .requestFullscreen({ navigationUI: "hide" } as any)
-      .catch(() => {})
-      .finally(doStart);
-  }, [name, course, isKiosk, requestFullscreen]);
+      .catch(() => {});
+
+    try {
+      const res = await fetch("/api/agents/examen-docente", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "start_or_resume_attempt",
+          examId: exam.id,
+          studentName: name,
+          studentCourse: course,
+          studentRut: cleanRut,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.error || "No se pudo iniciar el examen.");
+      }
+
+      const attempt = data.attempt || {};
+      const savedAnswers = attempt.answers || {};
+      const nextAttemptId = String(attempt.clientAttemptId || createAttemptId());
+      attemptIdRef.current = nextAttemptId;
+
+      setRut(cleanRut);
+      setMcAnswers(normalizeNumberRecord(savedAnswers.mcAnswers));
+      setDevAnswers(normalizeTextRecord(savedAnswers.devAnswers));
+      setTfJustifications(normalizeTextRecord(savedAnswers.tfJustifications));
+      setDevelopmentArtifacts(
+        (savedAnswers.developmentArtifacts || {}) as Record<
+          number,
+          ExamNotebookArtifact
+        >,
+      );
+
+      const totalSeconds = Math.max(
+        60,
+        Number(exam?.settings?.timeLimit || 30) * 60,
+      );
+      const restoredTimeLeft = Number(attempt.timeLeft);
+      const safeTimeLeft =
+        Number.isFinite(restoredTimeLeft) && restoredTimeLeft > 0
+          ? Math.min(totalSeconds, Math.round(restoredTimeLeft))
+          : totalSeconds;
+      const restoredIndex = Math.max(
+        0,
+        Math.min(totalQ > 0 ? totalQ - 1 : 0, Number(attempt.currentQuestionIndex) || 0),
+      );
+
+      startRef.current = Date.now() - Math.max(0, totalSeconds - safeTimeLeft) * 1000;
+      setTimeLeft(safeTimeLeft);
+      setCurQ(restoredIndex);
+      setAutosaveStatus(data.resumed ? "saved" : "idle");
+      setAutosaveMessage(
+        data.resumed
+          ? "Avance anterior recuperado"
+          : "Intento iniciado. Tus respuestas se guardarán automáticamente.",
+      );
+
+      await fullscreenPromise;
+      setPhase("exam");
+      setTimeout(() => requestFullscreen(), isKiosk ? 300 : 200);
+    } catch (error: any) {
+      setAutosaveStatus("error");
+      setAutosaveMessage(error?.message || "No se pudo iniciar el examen.");
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+  }, [course, exam, isKiosk, name, requestFullscreen, rut, totalQ]);
 
   // ── Submit examen ──────────────────────────────────────────────────────────
   // ── Generate AI feedback per question ────────────────────────────────────
@@ -538,9 +848,19 @@ export default function ExamenPublicoPage() {
       if (nextIndex < 0 || nextIndex >= totalQ || nextIndex === curQ) return;
       const saved = await saveCurrentDevelopment(true);
       if (currentNotebookEnabled && !saved) return;
+
+      const nextDevelopmentArtifacts = saved
+        ? { ...latestExamStateRef.current.developmentArtifacts, [curQ]: saved }
+        : latestExamStateRef.current.developmentArtifacts;
+      const autosaved = await autosaveAttempt({
+        developmentArtifacts: nextDevelopmentArtifacts,
+        currentQuestionIndex: nextIndex,
+      });
+      if (!autosaved) return;
+
       setCurQ(nextIndex);
     },
-    [curQ, currentNotebookEnabled, saveCurrentDevelopment, totalQ],
+    [autosaveAttempt, curQ, currentNotebookEnabled, saveCurrentDevelopment, totalQ],
   );
 
   const doSubmit = useCallback(
@@ -553,6 +873,15 @@ export default function ExamenPublicoPage() {
       const latestDevelopmentArtifacts = latestArtifact
         ? { ...developmentArtifacts, [curQ]: latestArtifact }
         : developmentArtifacts;
+
+      await autosaveAttempt(
+        {
+          developmentArtifacts: latestDevelopmentArtifacts,
+          currentQuestionIndex: curQ,
+          timeLeft: latestExamStateRef.current.timeLeft,
+        },
+        { silent: true },
+      );
 
       if (timerRef.current) clearInterval(timerRef.current);
 
@@ -599,7 +928,7 @@ export default function ExamenPublicoPage() {
             examId: exam.id,
             studentName: name,
             studentCourse: course,
-            studentRut: rut || null,
+            studentRut: normalizeRutInput(rut),
             answers: ansArr,
             questions: exam.questions || [],
             timeSpent: Math.round((Date.now() - startRef.current) / 1000),
@@ -644,6 +973,7 @@ export default function ExamenPublicoPage() {
       name,
       course,
       rut,
+      autosaveAttempt,
       saveCurrentDevelopment,
     ],
   );
@@ -855,6 +1185,7 @@ export default function ExamenPublicoPage() {
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
       if (panelPollRef.current) clearInterval(panelPollRef.current);
       if (realtimeRef.current?.unsubscribe) {
         realtimeRef.current.unsubscribe();
@@ -1045,14 +1376,31 @@ export default function ExamenPublicoPage() {
 
             <div>
               <label className="text-sub text-xs font-semibold block mb-1">
-                RUT (opcional)
+                RUT * <span className="text-muted2">(sin puntos ni guion)</span>
               </label>
               <input
                 value={rut}
-                onChange={(e) => setRut(e.target.value)}
-                placeholder="12.345.678-9"
+                onChange={(e) => setRut(normalizeRutInput(e.target.value))}
+                placeholder="Ej: 123456789 o 12345678K"
+                autoComplete="off"
+                inputMode="text"
+                maxLength={9}
                 className="w-full bg-card-soft-theme border border-soft rounded-2xl px-4 py-3 text-main text-sm focus:outline-none focus:border-blue-500/30"
               />
+              <div className="mt-1 flex flex-col gap-1 text-xs">
+                {rut ? (
+                  <p className="text-muted2">
+                    Se guardará como: <span className="font-semibold text-sub">{formatRut(rut)}</span>
+                  </p>
+                ) : (
+                  <p className="text-muted2">Acepta números y K como dígito verificador.</p>
+                )}
+                {rut && !isValidRut(rut) ? (
+                  <p className="font-semibold text-red-600">
+                    RUT inválido. Revisa el dígito verificador.
+                  </p>
+                ) : null}
+              </div>
             </div>
           </div>
 
@@ -1091,11 +1439,19 @@ export default function ExamenPublicoPage() {
 
           <button
             onClick={startExam}
-            disabled={!name.trim() || !course.trim()}
+            disabled={!name.trim() || !course.trim() || !isValidRut(rut)}
             className="w-full mt-4 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm disabled:opacity-30 transition-all"
           >
             Entiendo y acepto — Iniciar examen →
           </button>
+          {autosaveMessage ? (
+            <p
+              className={`mt-3 rounded-xl px-3 py-2 text-xs font-semibold ${autosaveStatus === "error" ? "bg-red-50 text-red-700" : autosaveStatus === "saving" ? "bg-blue-50 text-blue-700" : "bg-emerald-50 text-emerald-700"}`}
+            >
+              {autosaveStatus === "saving" ? "💾 " : autosaveStatus === "saved" ? "✅ " : autosaveStatus === "error" ? "⚠️ " : ""}
+              {autosaveMessage}
+            </p>
+          ) : null}
         </div>
       </div>
     );
@@ -1417,7 +1773,7 @@ export default function ExamenPublicoPage() {
             submissionId={submission?.id ?? null}
             studentName={name}
             studentCourse={course}
-            studentRut={rut || null}
+            studentRut={rut ? formatRut(rut) : null}
             currentQuestionIndex={curQ}
             timeLeft={timeLeft}
             enabled={!securityBlocked}
@@ -1556,18 +1912,29 @@ export default function ExamenPublicoPage() {
                     tfAnswer={mcAnswers[curQ]}
                     tfJustification={tfJustifications[curQ]}
                     devAnswer={devAnswers[curQ]}
-                    onMcChange={(i) =>
-                      setMcAnswers((prev) => ({ ...prev, [curQ]: i }))
-                    }
-                    onTfChange={(i) =>
-                      setMcAnswers((prev) => ({ ...prev, [curQ]: i }))
-                    }
-                    onTfJustificationChange={(v) =>
-                      setTfJustifications((prev) => ({ ...prev, [curQ]: v }))
-                    }
-                    onDevChange={(v) =>
-                      setDevAnswers((prev) => ({ ...prev, [curQ]: v }))
-                    }
+                    onMcChange={(i) => {
+                      const next = { ...latestExamStateRef.current.mcAnswers, [curQ]: i };
+                      setMcAnswers(next);
+                      void autosaveAttempt({ mcAnswers: next });
+                    }}
+                    onTfChange={(i) => {
+                      const next = { ...latestExamStateRef.current.mcAnswers, [curQ]: i };
+                      setMcAnswers(next);
+                      void autosaveAttempt({ mcAnswers: next });
+                    }}
+                    onTfJustificationChange={(v) => {
+                      const next = {
+                        ...latestExamStateRef.current.tfJustifications,
+                        [curQ]: v,
+                      };
+                      setTfJustifications(next);
+                      scheduleAutosave({ tfJustifications: next });
+                    }}
+                    onDevChange={(v) => {
+                      const next = { ...latestExamStateRef.current.devAnswers, [curQ]: v };
+                      setDevAnswers(next);
+                      scheduleAutosave({ devAnswers: next });
+                    }}
                     useNotebookForDevelopment={currentNotebookEnabled}
                   />
                 </div>
@@ -1581,12 +1948,14 @@ export default function ExamenPublicoPage() {
                       attemptId={attemptIdRef.current}
                       questionIndex={curQ}
                       questionId={q?.id || `question-${curQ + 1}`}
-                      onArtifactChange={(artifact) =>
-                        setDevelopmentArtifacts((current) => ({
-                          ...current,
+                      onArtifactChange={(artifact) => {
+                        const next = {
+                          ...latestExamStateRef.current.developmentArtifacts,
                           [curQ]: artifact,
-                        }))
-                      }
+                        };
+                        setDevelopmentArtifacts(next);
+                        scheduleAutosave({ developmentArtifacts: next });
+                      }}
                     />
                   </div>
                 ) : null}
@@ -1649,6 +2018,19 @@ export default function ExamenPublicoPage() {
                   <p className="text-xs font-black text-muted2">
                     {answeredCount}/{totalQ} respondidas
                   </p>
+                  {autosaveMessage ? (
+                    <p
+                      className={`mt-1 text-[11px] font-semibold ${autosaveStatus === "error" ? "text-red-600" : autosaveStatus === "saving" ? "text-blue-600" : "text-emerald-600"}`}
+                    >
+                      {autosaveStatus === "saving"
+                        ? "💾 Guardando..."
+                        : autosaveStatus === "saved"
+                          ? "✅ Guardado"
+                          : autosaveStatus === "error"
+                            ? `⚠️ ${autosaveMessage}`
+                            : autosaveMessage}
+                    </p>
+                  ) : null}
                   {isKiosk ? (
                     <p className="text-muted2 text-[11px] mt-1">
                       Fullscreen: {isFullscreen ? "activo" : "inactivo"}
@@ -1818,7 +2200,7 @@ export default function ExamenPublicoPage() {
                     Curso: <span className="text-sub">{course || "—"}</span>
                   </p>
                   <p className="mt-1">
-                    RUT: <span className="text-sub">{rut || "—"}</span>
+                    RUT: <span className="text-sub">{rut ? formatRut(rut) : "—"}</span>
                   </p>
                 </div>
               </div>
