@@ -65,6 +65,36 @@ function difficultyColor(d?: number) {
   return "text-green-400"
 }
 
+
+const CALM_GREEN_COLORS = {
+  background: "#ffffff",
+  surface: "#ffffff",
+  card: "#ffffff",
+  soft: "#eafaf4",
+  border: "#bfe7da",
+  text: "#102a2a",
+  textSub: "#2f5957",
+  muted: "#6b7d7c",
+  accent: "#2f7f7b",
+  accentSoft: "#d9f3ec",
+  progress: "#5fb3a8",
+  progressTrack: "#dfeeea",
+  success: "#2f9e74",
+  warning: "#c58a24",
+}
+
+const EDIT_COLOR_FIELDS = [
+  { key: "background", label: "Fondo general", desc: "Base blanca del examen" },
+  { key: "surface", label: "Paneles", desc: "Tarjetas superiores y laterales" },
+  { key: "card", label: "Pregunta", desc: "Cuadro principal de pregunta" },
+  { key: "soft", label: "Fondo suave", desc: "Franjas y avisos internos" },
+  { key: "border", label: "Bordes", desc: "Contornos suaves" },
+  { key: "accent", label: "Color principal", desc: "Selección y botones tranquilos" },
+  { key: "accentSoft", label: "Selección suave", desc: "Fondo de alternativa marcada" },
+  { key: "progress", label: "Barra de progreso", desc: "Color del avance superior" },
+  { key: "progressTrack", label: "Fondo progreso", desc: "Base detrás de la barra" },
+] as const
+
 // ─────────────────────────────────────────────────────────────────────────────
 export default function EditarExamenPage() {
   const params    = useParams()
@@ -119,6 +149,40 @@ export default function EditarExamenPage() {
 
   function updateSetting(key: string, value: unknown) {
     setSettings((prev: any) => ({ ...(prev || {}), [key]: value }))
+  }
+
+
+  const activeColors = useMemo(() => {
+    return { ...CALM_GREEN_COLORS, ...(settings?.customColors || {}) }
+  }, [settings?.customColors])
+
+  function applyCalmGreenPalette() {
+    setSettings((prev: any) => ({
+      ...(prev || {}),
+      theme: "green_calm",
+      customColorsEnabled: true,
+      customColors: { ...CALM_GREEN_COLORS },
+    }))
+  }
+
+  function updateExamColor(key: keyof typeof CALM_GREEN_COLORS, value: string) {
+    setSettings((prev: any) => ({
+      ...(prev || {}),
+      theme: prev?.theme || "green_calm",
+      customColorsEnabled: true,
+      customColors: {
+        ...CALM_GREEN_COLORS,
+        ...(prev?.customColors || {}),
+        [key]: value,
+      },
+    }))
+  }
+
+  function disableCustomPalette() {
+    setSettings((prev: any) => ({
+      ...(prev || {}),
+      customColorsEnabled: false,
+    }))
   }
 
   // ── Guardar cambios ───────────────────────────────────────────────────────
@@ -382,6 +446,85 @@ Reglas:
               />
               {settings?.allowCalculator === true ? "Calculadora autorizada" : "Calculadora no autorizada"}
             </label>
+          </div>
+        </div>
+
+
+        {/* Colores solo para esta prueba */}
+        <div className="rounded-2xl border border-emerald-200 bg-white p-4 shadow-sm">
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p className="text-sm font-bold text-emerald-950">🎨 Diseño y colores de esta prueba</p>
+              <p className="mt-1 text-xs leading-relaxed text-slate-600">
+                Estos colores se guardan dentro de este examen. No cambian las demás pruebas creadas.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={applyCalmGreenPalette}
+                className="rounded-xl bg-emerald-100 px-3 py-2 text-xs font-black text-emerald-800 hover:bg-emerald-200"
+              >
+                Aplicar calma verde
+              </button>
+              <button
+                type="button"
+                onClick={disableCustomPalette}
+                className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100"
+              >
+                Desactivar personalizados
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            {EDIT_COLOR_FIELDS.map((field) => {
+              const value = activeColors[field.key]
+              return (
+                <label key={field.key} className="rounded-2xl border border-emerald-100 bg-emerald-50/40 p-3">
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-slate-800">{field.label}</span>
+                    <span className="h-7 w-7 rounded-full border border-white shadow-inner" style={{ backgroundColor: value }} />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={value}
+                      onChange={(event) => updateExamColor(field.key, event.target.value)}
+                      className="h-10 w-12 cursor-pointer rounded-lg border border-emerald-100 bg-white p-1"
+                    />
+                    <input
+                      value={value}
+                      onChange={(event) => updateExamColor(field.key, event.target.value)}
+                      className="min-w-0 flex-1 rounded-xl border border-emerald-100 bg-white px-3 py-2 font-mono text-xs text-slate-700 outline-none focus:border-emerald-400"
+                    />
+                  </div>
+                  <p className="mt-2 text-[10px] leading-relaxed text-slate-500">{field.desc}</p>
+                </label>
+              )
+            })}
+          </div>
+
+          <div
+            className="mt-4 rounded-2xl border p-4"
+            style={{
+              background: `linear-gradient(135deg, ${activeColors.background}, ${activeColors.soft})`,
+              borderColor: activeColors.border,
+              color: activeColors.text,
+            }}
+          >
+            <div className="rounded-2xl border bg-white p-4" style={{ borderColor: activeColors.border }}>
+              <p className="text-xs font-black uppercase tracking-[0.18em]" style={{ color: activeColors.accent }}>
+                Vista previa tranquila
+              </p>
+              <p className="mt-2 text-sm font-bold">Pregunta con fondo blanco y tonos verdes suaves</p>
+              <div className="mt-3 h-2 overflow-hidden rounded-full" style={{ backgroundColor: activeColors.progressTrack }}>
+                <div className="h-full w-2/5 rounded-full" style={{ backgroundColor: activeColors.progress }} />
+              </div>
+              <div className="mt-3 rounded-xl border px-3 py-2 text-xs font-bold" style={{ backgroundColor: activeColors.accentSoft, borderColor: activeColors.accent, color: activeColors.accent }}>
+                Alternativa seleccionada sin color crema
+              </div>
+            </div>
           </div>
         </div>
 
