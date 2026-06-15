@@ -33,25 +33,27 @@ export default function ExamDigitalClock() {
   });
 
   return (
-    <aside className="fixed right-3 top-28 z-[60] hidden w-[8.5rem] rounded-[24px] border border-cyan-400/25 bg-slate-950/90 px-3 py-3 text-white shadow-2xl shadow-cyan-900/20 backdrop-blur-xl print:hidden lg:block">
+    <aside className="fixed right-3 top-28 z-[60] hidden w-[8.5rem] rounded-[24px] border border-[var(--exam-border)] bg-[var(--exam-surface)] px-3 py-3 text-[var(--exam-text)] shadow-xl shadow-slate-900/10 backdrop-blur-xl print:hidden lg:block">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <span className="rounded-full bg-cyan-400/15 px-2 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-cyan-200">
+        <span className="rounded-full border border-[color-mix(in_srgb,var(--exam-accent)_18%,transparent)] bg-[var(--exam-accent-soft)] px-2 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--exam-accent)]">
           Hora
         </span>
         <span className="text-lg">⏱️</span>
       </div>
 
-      <div className="rounded-2xl border border-cyan-300/15 bg-cyan-300/10 px-2 py-3 text-center font-mono shadow-inner">
+      <div className="rounded-2xl border border-[var(--exam-border)] bg-white/70 px-2 py-3 text-center font-mono shadow-inner shadow-slate-900/5">
         <div className="flex items-baseline justify-center gap-1 tabular-nums">
-          <span className="text-2xl font-black text-cyan-200">{hour}</span>
-          <span className="text-cyan-300/80">:</span>
-          <span className="text-2xl font-black text-cyan-200">{minute}</span>
+          <span className="text-2xl font-black text-[var(--exam-accent)]">{hour}</span>
+          <span className="text-[var(--exam-text-sub)]">:</span>
+          <span className="text-2xl font-black text-[var(--exam-accent)]">{minute}</span>
         </div>
-        <div className="mt-1 text-lg font-black tabular-nums text-emerald-300">{second}s</div>
+        <div className="mt-1 rounded-full bg-[var(--exam-accent-soft)] px-2 py-0.5 text-lg font-black tabular-nums text-[var(--exam-accent)]">
+          {second}s
+        </div>
       </div>
 
-      <p className="mt-2 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
-        {dateLabel}
+      <p className="mt-2 text-center text-[10px] font-black uppercase tracking-[0.12em] text-[var(--exam-text-sub)]">
+        {dateLabel.replace(".", "")}
       </p>
     </aside>
   );
