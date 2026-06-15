@@ -33,59 +33,26 @@ export default function ExamDigitalClock() {
   });
 
   return (
-    <aside
-      className="fixed right-3 top-3 z-[60] hidden rounded-2xl border px-4 py-2 shadow-lg backdrop-blur-xl print:hidden lg:flex lg:items-center lg:gap-3"
-      style={{
-        borderColor: "color-mix(in srgb, var(--exam-accent) 24%, transparent)",
-        backgroundColor:
-          "color-mix(in srgb, var(--exam-surface) 88%, transparent)",
-        color: "var(--exam-text-sub)",
-      }}
-    >
-      <span
-        className="rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em]"
-        style={{
-          backgroundColor: "var(--exam-accent-soft)",
-          color: "var(--exam-accent)",
-        }}
-      >
-        Hora
-      </span>
-      <div className="flex items-baseline gap-1 font-mono tabular-nums">
-        <span
-          className="text-xl font-black"
-          style={{ color: "var(--exam-accent)" }}
-        >
-          {hour}
+    <aside className="fixed right-3 top-28 z-[60] hidden w-[8.5rem] rounded-[24px] border border-cyan-400/25 bg-slate-950/90 px-3 py-3 text-white shadow-2xl shadow-cyan-900/20 backdrop-blur-xl print:hidden lg:block">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <span className="rounded-full bg-cyan-400/15 px-2 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-cyan-200">
+          Hora
         </span>
-        <span
-          style={{ color: "color-mix(in srgb, var(--exam-accent) 55%, white)" }}
-        >
-          :
-        </span>
-        <span
-          className="text-xl font-black"
-          style={{ color: "var(--exam-accent)" }}
-        >
-          {minute}
-        </span>
-        <span
-          className="ml-2 rounded-full px-2 py-0.5 text-sm font-black"
-          style={{
-            backgroundColor:
-              "color-mix(in srgb, var(--exam-success) 12%, white)",
-            color: "var(--exam-success)",
-          }}
-        >
-          {second}s
-        </span>
+        <span className="text-lg">⏱️</span>
       </div>
-      <span
-        className="text-[10px] font-semibold uppercase tracking-[0.12em]"
-        style={{ color: "var(--exam-muted)" }}
-      >
+
+      <div className="rounded-2xl border border-cyan-300/15 bg-cyan-300/10 px-2 py-3 text-center font-mono shadow-inner">
+        <div className="flex items-baseline justify-center gap-1 tabular-nums">
+          <span className="text-2xl font-black text-cyan-200">{hour}</span>
+          <span className="text-cyan-300/80">:</span>
+          <span className="text-2xl font-black text-cyan-200">{minute}</span>
+        </div>
+        <div className="mt-1 text-lg font-black tabular-nums text-emerald-300">{second}s</div>
+      </div>
+
+      <p className="mt-2 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
         {dateLabel}
-      </span>
+      </p>
     </aside>
   );
 }
