@@ -32,9 +32,65 @@ function parseSegments(text: string): { type: "text" | "block" | "inline"; conte
   return segments
 }
 
+function escapeHtml(value: string): string {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;")
+}
+
+function looksLikeEquation(value: string): boolean {
+  const s = value.trim()
+  if (!s.includes("=")) return false
+  return /[a-zA-Z]\s*[+\-]?|\d/.test(s)
+}
+
+function autoFormatEquationList(raw: string): string {
+  let text = String(raw || "").replace(/\r\n/g, "\n")
+
+  // Si el docente ya usó saltos de línea, se respetan tal cual.
+  if (text.includes("\n")) return text
+
+  const lower = text.toLowerCase()
+  const isLikelySystem =
+    lower.includes("sistema") ||
+    lower.includes("ecuacion") ||
+    lower.includes("ecuación") ||
+    lower.includes("igualación") ||
+    lower.includes("sustitución")
+
+  if (!isLikelySystem || !text.includes(":") || !text.includes("=")) return text
+
+  const colonIndex = text.indexOf(":")
+  const intro = text.slice(0, colonIndex + 1).trim()
+  let rest = text.slice(colonIndex + 1).trim()
+
+  if (!rest.includes(",")) return text
+
+  let finalQuestion = ""
+  const questionStart = rest.search(/[¿?]/)
+  if (questionStart > 0) {
+    finalQuestion = rest.slice(questionStart).trim()
+    rest = rest.slice(0, questionStart).trim()
+  }
+
+  rest = rest.replace(/[.;:]\s*$/, "").trim()
+
+  const equations = rest
+    .split(/\s*,\s*/)
+    .map((part) => part.trim().replace(/[.;:]\s*$/, ""))
+    .filter(Boolean)
+
+  if (equations.length < 2 || !equations.every(looksLikeEquation)) return text
+
+  return [intro, ...equations, finalQuestion].filter(Boolean).join("\n")
+}
+
 // Normalize common LaTeX issues: unescaped commands, unicode arrows as backslash, etc.
 function normalizeLatex(raw: string): string {
-  let s = String(raw || "")
+  let s = autoFormatEquationList(String(raw || ""))
   // Unicode fake backslashes
   s = s.replace(/[↑↗⬆▲∧⇒⁄∖⧵]/g, "\\")
   // \( \) → $  $
@@ -53,7 +109,7 @@ function renderMath(latex: string, display: boolean): string {
       trust: false,
     })
   } catch {
-    return latex
+    return escapeHtml(latex)
   }
 }
 
@@ -73,11 +129,11 @@ export default function ExamMathText({
 
     ref.current.innerHTML = segments
       .map((seg) => {
-        if (seg.type === "text") return seg.content
+        if (seg.type === "text") return escapeHtml(seg.content)
         return renderMath(seg.content, seg.type === "block")
       })
       .join("")
   }, [text])
 
-  return <span ref={ref} className={className} />
+  return <span ref={ref} className={`whitespace-pre-wrap ${className}`.trim()} />
 }
