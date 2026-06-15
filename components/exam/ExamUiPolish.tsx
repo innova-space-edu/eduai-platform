@@ -64,6 +64,10 @@ function autoCollapseEditColors() {
 async function showPublicInstructions() {
   const match = path().match(/^\/examen\/p\/([^/?#]+)/);
   if (!match) return;
+
+  // La página pública ya puede renderizar las instrucciones desde React.
+  // Si existe cualquier cuadro/título de instrucciones, no insertamos otro.
+  if (findByText("p,h1,h2,h3,strong,span", "Instrucciones del docente")) return;
   if (document.querySelector("[data-eduai-student-instructions='true']")) return;
 
   const warning = findByText("p,strong,span", "Advertencia de monitoreo académico");
@@ -79,6 +83,9 @@ async function showPublicInstructions() {
     const data = await res.json().catch(() => ({}));
     const instructions = String(data?.exam?.instructions || "").trim();
     if (!instructions) return;
+
+    // Revalidamos después del fetch por si React ya renderizó el cuadro mientras esperábamos.
+    if (findByText("p,h1,h2,h3,strong,span", "Instrucciones del docente")) return;
 
     const box = document.createElement("div");
     box.dataset.eduaiStudentInstructions = "true";
