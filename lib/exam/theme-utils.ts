@@ -24,10 +24,27 @@ export interface ExamAccessibility {
   lowVisionMode?: boolean;
 }
 
+export interface ExamCustomColors {
+  background?: string;
+  surface?: string;
+  card?: string;
+  soft?: string;
+  border?: string;
+  text?: string;
+  textSub?: string;
+  muted?: string;
+  accent?: string;
+  accentSoft?: string;
+  success?: string;
+  warning?: string;
+}
+
 export interface ExamStyleSettings {
   theme?: ExamTheme;
   font?: ExamFont;
   accessibility?: ExamAccessibility;
+  customColorsEnabled?: boolean;
+  customColors?: ExamCustomColors;
 }
 
 export const THEME_LABELS: Record<ExamTheme, string> = {
@@ -49,7 +66,7 @@ export const THEME_DESCRIPTIONS: Record<ExamTheme, string> = {
   classic: "Blanco cálido, texto oscuro y estructura formal.",
   modern: "Minimalista, tarjetas limpias y azul institucional.",
   canva: "Colores pastel, tarjetas grandes y estilo guía visual.",
-  pie_calm: "Verde amarillo suave, baja carga visual y lectura cómoda.",
+  pie_calm: "Blanco suave con verde, baja carga visual y lectura cómoda.",
   adhd_focus: "Una tarea a la vez, foco marcado y poco ruido.",
   high_contrast: "Texto muy oscuro, fondo claro cálido y bordes definidos.",
   stem: "Azules claros para matemática, ciencia y tecnología.",
@@ -62,7 +79,7 @@ export const THEME_DESCRIPTIONS: Record<ExamTheme, string> = {
 
 export const THEME_VARS: Record<ExamTheme, Record<string, string>> = {
   classic: {
-    "--exam-bg": "#f8fafc",
+    "--exam-bg": "#ffffff",
     "--exam-surface": "#ffffff",
     "--exam-card-bg": "#ffffff",
     "--exam-soft-bg": "#f1f5f9",
@@ -80,7 +97,7 @@ export const THEME_VARS: Record<ExamTheme, Record<string, string>> = {
     "--exam-line-height": "1.75",
   },
   modern: {
-    "--exam-bg": "#f7f9fc",
+    "--exam-bg": "#ffffff",
     "--exam-surface": "#ffffff",
     "--exam-card-bg": "#ffffff",
     "--exam-soft-bg": "#eef4ff",
@@ -98,7 +115,7 @@ export const THEME_VARS: Record<ExamTheme, Record<string, string>> = {
     "--exam-line-height": "1.75",
   },
   canva: {
-    "--exam-bg": "#f5f7ff",
+    "--exam-bg": "#ffffff",
     "--exam-surface": "#ffffff",
     "--exam-card-bg": "#ffffff",
     "--exam-soft-bg": "#eef2ff",
@@ -116,25 +133,25 @@ export const THEME_VARS: Record<ExamTheme, Record<string, string>> = {
     "--exam-line-height": "1.8",
   },
   pie_calm: {
-    "--exam-bg": "#f6fbe8",
-    "--exam-surface": "#fefff7",
-    "--exam-card-bg": "#ffffff",
-    "--exam-soft-bg": "#edf7d2",
-    "--exam-border": "#c8dfa0",
-    "--exam-text": "#14241c",
-    "--exam-text-sub": "#3f5f46",
-    "--exam-muted": "#5f775d",
-    "--exam-accent": "#3f8b57",
-    "--exam-accent-soft": "#e2f3c9",
+    "--exam-bg": "#ffffff",
+    "--exam-surface": "#fffdf7",
+    "--exam-card-bg": "#fffdf7",
+    "--exam-soft-bg": "#f4ecd9",
+    "--exam-border": "#ded0ad",
+    "--exam-text": "#1f2933",
+    "--exam-text-sub": "#5f5a4e",
+    "--exam-muted": "#746d5d",
+    "--exam-accent": "#2f6f73",
+    "--exam-accent-soft": "#d9f0eb",
     "--exam-success": "#047857",
-    "--exam-warning": "#8a5a00",
+    "--exam-warning": "#92400e",
     "--exam-radius": "26px",
     "--exam-spacing": "1.85rem",
     "--exam-font-size": "17px",
     "--exam-line-height": "1.95",
   },
   adhd_focus: {
-    "--exam-bg": "#f8fafc",
+    "--exam-bg": "#ffffff",
     "--exam-surface": "#ffffff",
     "--exam-card-bg": "#ffffff",
     "--exam-soft-bg": "#e0f2fe",
@@ -152,7 +169,7 @@ export const THEME_VARS: Record<ExamTheme, Record<string, string>> = {
     "--exam-line-height": "2.0",
   },
   high_contrast: {
-    "--exam-bg": "#fffbea",
+    "--exam-bg": "#ffffff",
     "--exam-surface": "#ffffff",
     "--exam-card-bg": "#ffffff",
     "--exam-soft-bg": "#fef3c7",
@@ -170,7 +187,7 @@ export const THEME_VARS: Record<ExamTheme, Record<string, string>> = {
     "--exam-line-height": "1.95",
   },
   stem: {
-    "--exam-bg": "#eef7ff",
+    "--exam-bg": "#ffffff",
     "--exam-surface": "#ffffff",
     "--exam-card-bg": "#ffffff",
     "--exam-soft-bg": "#dff3ff",
@@ -188,7 +205,7 @@ export const THEME_VARS: Record<ExamTheme, Record<string, string>> = {
     "--exam-line-height": "1.75",
   },
   kids: {
-    "--exam-bg": "#fff8ed",
+    "--exam-bg": "#ffffff",
     "--exam-surface": "#ffffff",
     "--exam-card-bg": "#ffffff",
     "--exam-soft-bg": "#ffedd5",
@@ -207,7 +224,7 @@ export const THEME_VARS: Record<ExamTheme, Record<string, string>> = {
   },
 
   blue_focus: {
-    "--exam-bg": "#eff6ff",
+    "--exam-bg": "#ffffff",
     "--exam-surface": "#ffffff",
     "--exam-card-bg": "#ffffff",
     "--exam-soft-bg": "#dbeafe",
@@ -225,7 +242,7 @@ export const THEME_VARS: Record<ExamTheme, Record<string, string>> = {
     "--exam-line-height": "1.9",
   },
   green_calm: {
-    "--exam-bg": "#f0fdf4",
+    "--exam-bg": "#ffffff",
     "--exam-surface": "#ffffff",
     "--exam-card-bg": "#ffffff",
     "--exam-soft-bg": "#dcfce7",
@@ -243,7 +260,7 @@ export const THEME_VARS: Record<ExamTheme, Record<string, string>> = {
     "--exam-line-height": "1.9",
   },
   lavender_reading: {
-    "--exam-bg": "#faf5ff",
+    "--exam-bg": "#ffffff",
     "--exam-surface": "#ffffff",
     "--exam-card-bg": "#ffffff",
     "--exam-soft-bg": "#f3e8ff",
@@ -261,7 +278,7 @@ export const THEME_VARS: Record<ExamTheme, Record<string, string>> = {
     "--exam-line-height": "1.95",
   },
   warm_attention: {
-    "--exam-bg": "#fffbeb",
+    "--exam-bg": "#ffffff",
     "--exam-surface": "#ffffff",
     "--exam-card-bg": "#ffffff",
     "--exam-soft-bg": "#fef3c7",
@@ -302,6 +319,46 @@ export interface ResolvedExamStyle {
   maxWidth: string;
 }
 
+const CUSTOM_COLOR_VAR_MAP: Record<keyof ExamCustomColors, string> = {
+  background: "--exam-bg",
+  surface: "--exam-surface",
+  card: "--exam-card-bg",
+  soft: "--exam-soft-bg",
+  border: "--exam-border",
+  text: "--exam-text",
+  textSub: "--exam-text-sub",
+  muted: "--exam-muted",
+  accent: "--exam-accent",
+  accentSoft: "--exam-accent-soft",
+  success: "--exam-success",
+  warning: "--exam-warning",
+};
+
+function normalizeSafeColor(value?: string) {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+  if (/^#[0-9a-fA-F]{3}$/.test(trimmed)) {
+    return `#${trimmed[1]}${trimmed[1]}${trimmed[2]}${trimmed[2]}${trimmed[3]}${trimmed[3]}`;
+  }
+  if (/^#[0-9a-fA-F]{6}$/.test(trimmed)) return trimmed;
+  return null;
+}
+
+function resolveCustomColorVars(settings?: ExamStyleSettings) {
+  if (!settings?.customColorsEnabled || !settings.customColors) return {};
+
+  return Object.entries(CUSTOM_COLOR_VAR_MAP).reduce<Record<string, string>>(
+    (acc, [settingKey, cssVar]) => {
+      const color = normalizeSafeColor(
+        settings.customColors?.[settingKey as keyof ExamCustomColors],
+      );
+      if (color) acc[cssVar] = color;
+      return acc;
+    },
+    {},
+  );
+}
+
 export function resolveExamStyle(settings?: ExamStyleSettings): ResolvedExamStyle {
   const theme = settings?.theme || "classic";
   const font = settings?.font || "inter";
@@ -316,7 +373,7 @@ export function resolveExamStyle(settings?: ExamStyleSettings): ResolvedExamStyl
 
   if (access.pieMode && theme === "classic") Object.assign(extraVars, THEME_VARS.pie_calm);
   if (access.dyslexiaMode) {
-    extraVars["--exam-bg"] = extraVars["--exam-bg"] || "#fbf7ed";
+    extraVars["--exam-bg"] = extraVars["--exam-bg"] || "#ffffff";
     extraVars["--exam-line-height"] = "1.95";
     extraVars["--exam-font-size"] = "17px";
   }
@@ -332,7 +389,8 @@ export function resolveExamStyle(settings?: ExamStyleSettings): ResolvedExamStyl
     extraVars["--exam-border"] = "#111827";
   }
 
-  const cssVars = { ...baseVars, ...extraVars };
+  const customVars = resolveCustomColorVars(settings);
+  const cssVars = { ...baseVars, ...extraVars, ...customVars };
   const bodyClasses: string[] = [];
   if (access.dyslexiaMode) bodyClasses.push("exam-dyslexia");
   if (access.adhdMode) bodyClasses.push("exam-adhd");
@@ -364,7 +422,10 @@ ${vars}
   font-size: var(--exam-font-size);
   line-height: var(--exam-line-height);
   color: var(--exam-text);
-  background: radial-gradient(circle at top left, color-mix(in srgb, var(--exam-accent) 10%, transparent), transparent 30%), var(--exam-bg);
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--exam-accent) 8%, transparent), transparent 34%),
+    radial-gradient(circle at bottom right, color-mix(in srgb, var(--exam-accent-soft) 28%, transparent), transparent 38%),
+    linear-gradient(135deg, var(--exam-bg) 0%, color-mix(in srgb, var(--exam-accent) 4%, var(--exam-bg)) 48%, var(--exam-bg) 100%);
 }
 .exam-content { max-width: ${resolved.maxWidth}; margin: 0 auto; }
 .exam-shell-card {
