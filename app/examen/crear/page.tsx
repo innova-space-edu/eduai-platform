@@ -13,12 +13,21 @@ import ExamMathText from "@/components/ui/ExamMathText";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { getOAs, type NivelKey, type OA } from "@/lib/mineduc-oa";
-import type { ExamTheme, ExamFont } from "@/lib/exam/theme-utils";
+import {
+  THEME_VARS,
+  type ExamTheme,
+  type ExamFont,
+  type ExamCustomColors,
+} from "@/lib/exam/theme-utils";
 import { enrichQuestionAnswerKey } from "@/lib/exam/question-quality";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 type Difficulty = "facil" | "medio" | "dificil" | "mixto";
-type QuestionType = "multiple_choice" | "true_false" | "development" | "mixed_choice_development";
+type QuestionType =
+  | "multiple_choice"
+  | "true_false"
+  | "development"
+  | "mixed_choice_development";
 type AIStatus = "idle" | "generating" | "done" | "error";
 
 const AI_TOTAL_LIMIT = 36;
@@ -167,8 +176,6 @@ type MixedChoiceDevelopmentQuestion = {
   explanation?: string;
   solutionSteps?: string[];
   distractorRationales?: string[];
-  qualityStatus?: "ready" | "review";
-  qualityWarnings?: string[];
   selectionPoints?: number;
   developmentMaxPoints?: number;
   modelAnswer?: string;
@@ -188,6 +195,76 @@ type Question =
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function uid() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+const CUSTOM_COLOR_FIELDS: {
+  key: keyof ExamCustomColors;
+  label: string;
+  desc: string;
+  fallbackVar: string;
+}[] = [
+  {
+    key: "background",
+    label: "Fondo general",
+    desc: "Color de fondo de toda la página del examen",
+    fallbackVar: "--exam-bg",
+  },
+  {
+    key: "surface",
+    label: "Tarjetas",
+    desc: "Fondo de tarjetas grandes y paneles",
+    fallbackVar: "--exam-surface",
+  },
+  {
+    key: "card",
+    label: "Preguntas",
+    desc: "Fondo del cuadro de cada pregunta",
+    fallbackVar: "--exam-card-bg",
+  },
+  {
+    key: "soft",
+    label: "Fondo suave",
+    desc: "Zonas internas, progreso y avisos",
+    fallbackVar: "--exam-soft-bg",
+  },
+  {
+    key: "border",
+    label: "Bordes",
+    desc: "Líneas de tarjetas, alternativas y paneles",
+    fallbackVar: "--exam-border",
+  },
+  {
+    key: "text",
+    label: "Texto principal",
+    desc: "Enunciados y títulos",
+    fallbackVar: "--exam-text",
+  },
+  {
+    key: "textSub",
+    label: "Texto secundario",
+    desc: "Subtítulos, instrucciones y metadatos",
+    fallbackVar: "--exam-text-sub",
+  },
+  {
+    key: "accent",
+    label: "Color principal",
+    desc: "Botones, progreso y selección",
+    fallbackVar: "--exam-accent",
+  },
+  {
+    key: "accentSoft",
+    label: "Color suave principal",
+    desc: "Fondo de badges y alternativa seleccionada",
+    fallbackVar: "--exam-accent-soft",
+  },
+];
+
+function getThemeDefaultColor(theme: ExamTheme, fallbackVar: string): string {
+  return (
+    THEME_VARS[theme]?.[fallbackVar] ||
+    THEME_VARS.classic[fallbackVar] ||
+    "#ffffff"
+  );
 }
 
 function defaultQuestion(type: QuestionType): Question {
@@ -387,7 +464,8 @@ function normalizeAIQuestion(raw: any): Question {
     answerText: raw.answerText ?? raw.correctAnswerText ?? "",
     explanation: raw.explanation ?? raw.explicacion ?? "",
     solutionSteps: raw.solutionSteps ?? raw.steps ?? [],
-    distractorRationales: raw.distractorRationales ?? raw.distractor_reasons ?? [],
+    distractorRationales:
+      raw.distractorRationales ?? raw.distractor_reasons ?? [],
     maxPoints: Number(raw.maxPoints ?? raw.puntos ?? 1),
   }) as MultipleChoiceQuestion;
 }
@@ -421,8 +499,11 @@ export default function CrearExamenPage() {
   const [allowReview, setAllowReview] = useState(true);
   const [isPublic, setIsPublic] = useState(true);
   const [allowCalculator, setAllowCalculator] = useState(false);
-  const [developmentNotebookEnabled, setDevelopmentNotebookEnabled] = useState(false);
-  const [developmentNotebookMode, setDevelopmentNotebookMode] = useState<"development_only" | "all_questions">("development_only");
+  const [developmentNotebookEnabled, setDevelopmentNotebookEnabled] =
+    useState(false);
+  const [developmentNotebookMode, setDevelopmentNotebookMode] = useState<
+    "development_only" | "all_questions"
+  >("development_only");
 
   // ── Seguridad (nuevo sistema) ─────────────────────────────────────────────
   const [securityMode, setSecurityMode] = useState(false);
@@ -431,6 +512,10 @@ export default function CrearExamenPage() {
   const [subject, setSubject] = useState("Matemática");
   const [examTheme, setExamTheme] = useState<ExamTheme>("classic");
   const [examFont, setExamFont] = useState<ExamFont>("inter");
+  const [customColorsEnabled, setCustomColorsEnabled] = useState(false);
+  const [examCustomColors, setExamCustomColors] = useState<ExamCustomColors>(
+    {},
+  );
   const [pieMode, setPieMode] = useState(false);
   const [dyslexiaMode, setDyslexiaMode] = useState(false);
   const [adhdMode, setAdhdMode] = useState(false);
@@ -481,9 +566,36 @@ export default function CrearExamenPage() {
 
   const subjectTips = useMemo(() => getSubjectSuggestions(subject), [subject]);
 
+  const resolvedColorPreview = useMemo(() => {
+    const base = THEME_VARS[examTheme] || THEME_VARS.classic;
+    return CUSTOM_COLOR_FIELDS.reduce<Record<string, string>>((acc, field) => {
+      acc[field.key] =
+        examCustomColors[field.key] || base[field.fallbackVar] || "#ffffff";
+      return acc;
+    }, {});
+  }, [examTheme, examCustomColors]);
+
+  const updateCustomColor = (key: keyof ExamCustomColors, value: string) => {
+    setCustomColorsEnabled(true);
+    setExamCustomColors((current) => ({ ...current, [key]: value }));
+  };
+
+  const resetCustomColorsToTheme = () => {
+    const base = THEME_VARS[examTheme] || THEME_VARS.classic;
+    setExamCustomColors(
+      CUSTOM_COLOR_FIELDS.reduce<ExamCustomColors>((acc, field) => {
+        acc[field.key] = base[field.fallbackVar] || "#ffffff";
+        return acc;
+      }, {}),
+    );
+    setCustomColorsEnabled(true);
+  };
+
   const availableOAs = useMemo<OA[]>(() => {
     try {
-      return mergeDuplicateOAs(getOAs(curriculumNivel, curriculumCurso, subject));
+      return mergeDuplicateOAs(
+        getOAs(curriculumNivel, curriculumCurso, subject),
+      );
     } catch (error) {
       return [];
     }
@@ -502,13 +614,18 @@ export default function CrearExamenPage() {
   }, [availableOAs, oaQuery]);
 
   const selectedOAs = useMemo(
-    () => availableOAs.filter((oa) => selectedOAIds.includes(getOASelectionKey(oa))),
+    () =>
+      availableOAs.filter((oa) =>
+        selectedOAIds.includes(getOASelectionKey(oa)),
+      ),
     [availableOAs, selectedOAIds],
   );
 
   useEffect(() => {
     setSelectedOAIds((prev) =>
-      prev.filter((id) => availableOAs.some((oa) => getOASelectionKey(oa) === id)),
+      prev.filter((id) =>
+        availableOAs.some((oa) => getOASelectionKey(oa) === id),
+      ),
     );
   }, [availableOAs]);
 
@@ -612,7 +729,10 @@ export default function CrearExamenPage() {
       if (quality.qualityStatus === "review") {
         return `La pregunta ${i + 1} requiere revisión: ${(quality.qualityWarnings || []).join(" · ")}`;
       }
-      if (q.type === "multiple_choice" || q.type === "mixed_choice_development") {
+      if (
+        q.type === "multiple_choice" ||
+        q.type === "mixed_choice_development"
+      ) {
         if (q.options.some((o) => !o.trim()))
           return `La pregunta ${i + 1} tiene alternativas vacías.`;
         if (q.correctAnswer < 0 || q.correctAnswer >= q.options.length)
@@ -678,7 +798,10 @@ export default function CrearExamenPage() {
             developmentMaxPoints: Number(q.developmentMaxPoints || 2),
             modelAnswer: q.modelAnswer || "",
             expectedLatex: q.expectedLatex || "",
-            rubric: q.rubric.map((r) => ({ criteria: r.criteria, points: Number(r.points || 0) })),
+            rubric: q.rubric.map((r) => ({
+              criteria: r.criteria,
+              points: Number(r.points || 0),
+            })),
             showRubricToStudent: q.showRubricToStudent === true,
             maxPoints: getQuestionPoints(q),
           };
@@ -740,6 +863,8 @@ export default function CrearExamenPage() {
             securityMode,
             theme: examTheme,
             font: examFont,
+            customColorsEnabled,
+            customColors: customColorsEnabled ? examCustomColors : undefined,
             subject,
             curriculum: {
               nivel: curriculumNivel,
@@ -803,8 +928,12 @@ export default function CrearExamenPage() {
     ].filter(Boolean);
     const pieCtx = pieMode
       ? `
-IMPORTANTE — Adaptaciones PIE/NEE activas: ${activeAdaptations.length ? activeAdaptations.join(", ") : "ajustes generales de accesibilidad"}. Usa lenguaje claro, frases cortas, instrucciones simples, bajo ruido visual y evita exceso de texto.${individualAdaptations.trim() ? `
-Adaptaciones individuales solicitadas por el docente: ${individualAdaptations.trim()}` : ""}`
+IMPORTANTE — Adaptaciones PIE/NEE activas: ${activeAdaptations.length ? activeAdaptations.join(", ") : "ajustes generales de accesibilidad"}. Usa lenguaje claro, frases cortas, instrucciones simples, bajo ruido visual y evita exceso de texto.${
+          individualAdaptations.trim()
+            ? `
+Adaptaciones individuales solicitadas por el docente: ${individualAdaptations.trim()}`
+            : ""
+        }`
       : "";
     return `Genera un examen escolar en español sobre el siguiente tema:
 "${aiPrompt.trim() || topic.trim() || "tema del docente"}"${subjectCtx}${selectedOAContext}${pieCtx}
@@ -1252,14 +1381,21 @@ Usa el mismo esquema de calidad que antes.`;
                   <div className="flex items-start gap-3">
                     <span className="text-xl mt-0.5">🧮</span>
                     <div>
-                      <p className="text-sm font-bold text-main">Calculadora científica del examen</p>
+                      <p className="text-sm font-bold text-main">
+                        Calculadora científica del examen
+                      </p>
                       <p className="text-xs text-sub mt-0.5 leading-relaxed">
-                        Si activas esta opción, el estudiante verá un botón lateral llamado
-                        <strong> Calculadora</strong> durante la prueba. Si queda apagada,
-                        la calculadora no aparecerá en el examen público.
+                        Si activas esta opción, el estudiante verá un botón
+                        lateral llamado
+                        <strong> Calculadora</strong> durante la prueba. Si
+                        queda apagada, la calculadora no aparecerá en el examen
+                        público.
                       </p>
                       <p className="mt-2 text-[11px] font-semibold text-cyan-700">
-                        Estado: {allowCalculator ? "Autorizada por el docente" : "No autorizada"}
+                        Estado:{" "}
+                        {allowCalculator
+                          ? "Autorizada por el docente"
+                          : "No autorizada"}
                       </p>
                     </div>
                   </div>
@@ -1282,20 +1418,29 @@ Usa el mismo esquema de calidad que antes.`;
                   <div className="flex items-start gap-3">
                     <span className="text-xl mt-0.5">✍️</span>
                     <div>
-                      <p className="text-sm font-bold text-main">Examen con cuaderno de desarrollo</p>
+                      <p className="text-sm font-bold text-main">
+                        Examen con cuaderno de desarrollo
+                      </p>
                       <p className="text-xs text-sub mt-0.5 leading-relaxed">
-                        Opción voluntaria. Cada pregunta seleccionada mostrará una hoja para escribir a mano.
-                        La pizarra convertirá los trazos a LaTeX y guardará el desarrollo oficial cuando el
-                        estudiante avance. La corrección automática revisará el LaTeX renderizado, no los trazos.
+                        Opción voluntaria. Cada pregunta seleccionada mostrará
+                        una hoja para escribir a mano. La pizarra convertirá los
+                        trazos a LaTeX y guardará el desarrollo oficial cuando
+                        el estudiante avance. La corrección automática revisará
+                        el LaTeX renderizado, no los trazos.
                       </p>
                       <p className="mt-2 text-[11px] font-semibold text-blue-700">
-                        Estado: {developmentNotebookEnabled ? "Activado" : "Desactivado"}
+                        Estado:{" "}
+                        {developmentNotebookEnabled
+                          ? "Activado"
+                          : "Desactivado"}
                       </p>
                     </div>
                   </div>
                   <button
                     type="button"
-                    onClick={() => setDevelopmentNotebookEnabled((value) => !value)}
+                    onClick={() =>
+                      setDevelopmentNotebookEnabled((value) => !value)
+                    }
                     aria-pressed={developmentNotebookEnabled}
                     className={`relative flex-shrink-0 w-12 h-6 rounded-full transition-colors ${developmentNotebookEnabled ? "bg-blue-600" : "bg-card-soft-theme"}`}
                   >
@@ -1309,14 +1454,18 @@ Usa el mismo esquema de calidad que antes.`;
                   <div className="mt-4 grid gap-2 sm:grid-cols-2">
                     <button
                       type="button"
-                      onClick={() => setDevelopmentNotebookMode("development_only")}
+                      onClick={() =>
+                        setDevelopmentNotebookMode("development_only")
+                      }
                       className={`rounded-xl border px-3 py-2 text-left text-xs font-bold transition ${developmentNotebookMode === "development_only" ? "border-blue-500 bg-blue-500/10 text-blue-700" : "border-soft bg-card-soft-theme text-sub"}`}
                     >
                       Solo preguntas de desarrollo
                     </button>
                     <button
                       type="button"
-                      onClick={() => setDevelopmentNotebookMode("all_questions")}
+                      onClick={() =>
+                        setDevelopmentNotebookMode("all_questions")
+                      }
                       className={`rounded-xl border px-3 py-2 text-left text-xs font-bold transition ${developmentNotebookMode === "all_questions" ? "border-blue-500 bg-blue-500/10 text-blue-700" : "border-soft bg-card-soft-theme text-sub"}`}
                     >
                       Todas las preguntas
@@ -1400,13 +1549,15 @@ Usa el mismo esquema de calidad que antes.`;
                     Objetivos de aprendizaje a evaluar
                   </h2>
                   <p className="mt-1 max-w-2xl text-sm leading-relaxed text-slate-600">
-                    Para no saturar la pantalla, los OA quedan plegados. Abre el panel,
-                    busca por tema y selecciona solo los objetivos que evaluará el examen.
+                    Para no saturar la pantalla, los OA quedan plegados. Abre el
+                    panel, busca por tema y selecciona solo los objetivos que
+                    evaluará el examen.
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
-                    {selectedOAs.length} OA seleccionado{selectedOAs.length !== 1 ? "s" : ""}
+                    {selectedOAs.length} OA seleccionado
+                    {selectedOAs.length !== 1 ? "s" : ""}
                   </span>
                   <button
                     type="button"
@@ -1498,8 +1649,8 @@ Usa el mismo esquema de calidad que antes.`;
                   {availableOAs.length === 0 ? (
                     <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                       No encontré OA locales para <strong>{subject}</strong> en{" "}
-                      <strong>{curriculumCurso}</strong>. Puedes seguir usando el
-                      tema manual o cambiar asignatura/curso.
+                      <strong>{curriculumCurso}</strong>. Puedes seguir usando
+                      el tema manual o cambiar asignatura/curso.
                     </div>
                   ) : (
                     <div className="max-h-[520px] overflow-y-auto pr-1">
@@ -1778,6 +1929,143 @@ Usa el mismo esquema de calidad que antes.`;
                     </p>
                   </div>
 
+                  {/* Editor de colores personalizados */}
+                  <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-700">
+                          Colores personalizados del examen
+                        </p>
+                        <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                          Puedes ajustar fondo general, cuadro de preguntas,
+                          alternativas, bordes, textos y color principal.
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={resetCustomColorsToTheme}
+                          className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
+                        >
+                          Usar base del tema
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setCustomColorsEnabled((current) => !current)
+                          }
+                          className={`rounded-full px-3 py-2 text-xs font-black ${customColorsEnabled ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}
+                        >
+                          {customColorsEnabled ? "Activo" : "Desactivado"}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 grid gap-3 md:grid-cols-3">
+                      {CUSTOM_COLOR_FIELDS.map((field) => {
+                        const value =
+                          resolvedColorPreview[field.key] ||
+                          getThemeDefaultColor(examTheme, field.fallbackVar);
+                        return (
+                          <label
+                            key={field.key}
+                            className="rounded-2xl border border-slate-100 bg-slate-50 px-3 py-3"
+                          >
+                            <div className="mb-2 flex items-center justify-between gap-2">
+                              <span className="text-xs font-bold text-slate-800">
+                                {field.label}
+                              </span>
+                              <span
+                                className="h-7 w-7 rounded-full border border-slate-200 shadow-inner"
+                                style={{ backgroundColor: value }}
+                              />
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="color"
+                                value={value}
+                                onChange={(event) =>
+                                  updateCustomColor(
+                                    field.key,
+                                    event.target.value,
+                                  )
+                                }
+                                className="h-10 w-12 cursor-pointer rounded-lg border border-slate-200 bg-white p-1"
+                              />
+                              <input
+                                value={value}
+                                onChange={(event) =>
+                                  updateCustomColor(
+                                    field.key,
+                                    event.target.value,
+                                  )
+                                }
+                                className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-mono text-slate-700 outline-none focus:border-teal-400"
+                                placeholder="#ffffff"
+                              />
+                            </div>
+                            <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
+                              {field.desc}
+                            </p>
+                          </label>
+                        );
+                      })}
+                    </div>
+
+                    <div
+                      className="mt-4 rounded-2xl border p-4"
+                      style={{
+                        backgroundColor: resolvedColorPreview.background,
+                        borderColor: resolvedColorPreview.border,
+                        color: resolvedColorPreview.text,
+                      }}
+                    >
+                      <div
+                        className="rounded-2xl border p-4"
+                        style={{
+                          backgroundColor: resolvedColorPreview.card,
+                          borderColor: resolvedColorPreview.border,
+                        }}
+                      >
+                        <p
+                          className="text-xs font-black uppercase tracking-[0.18em]"
+                          style={{ color: resolvedColorPreview.accent }}
+                        >
+                          Vista previa
+                        </p>
+                        <p className="mt-2 text-sm font-bold">
+                          Pregunta de ejemplo con alternativas
+                        </p>
+                        <div className="mt-3 grid gap-2 md:grid-cols-2">
+                          {["Alternativa A", "Alternativa B"].map(
+                            (label, index) => (
+                              <div
+                                key={label}
+                                className="rounded-xl border px-3 py-2 text-xs font-semibold"
+                                style={{
+                                  backgroundColor:
+                                    index === 0
+                                      ? resolvedColorPreview.accentSoft
+                                      : resolvedColorPreview.surface,
+                                  borderColor:
+                                    index === 0
+                                      ? resolvedColorPreview.accent
+                                      : resolvedColorPreview.border,
+                                  color:
+                                    index === 0
+                                      ? resolvedColorPreview.accent
+                                      : resolvedColorPreview.text,
+                                }}
+                              >
+                                {label}
+                              </div>
+                            ),
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Selector de fuente */}
                   <div>
                     <label className="text-xs text-sub font-semibold block mb-2">
@@ -1839,7 +2127,9 @@ Usa el mismo esquema de calidad que antes.`;
                             Adaptaciones PIE / NEE
                           </p>
                           <p className="text-xs text-sub">
-                            Puedes combinar varias adaptaciones generales y agregar ajustes individuales para un estudiante o grupo.
+                            Puedes combinar varias adaptaciones generales y
+                            agregar ajustes individuales para un estudiante o
+                            grupo.
                           </p>
                         </div>
                       </div>
@@ -1893,7 +2183,8 @@ Usa el mismo esquema de calidad que antes.`;
                             >
                               <span className="text-lg block mb-1">{icon}</span>
                               <p className="text-xs font-bold text-main">
-                                {val ? "✓ " : ""}{label}
+                                {val ? "✓ " : ""}
+                                {label}
                               </p>
                               <p className="text-[10px] text-sub mt-0.5">
                                 {desc}
@@ -1908,12 +2199,15 @@ Usa el mismo esquema de calidad que antes.`;
                           </label>
                           <textarea
                             value={individualAdaptations}
-                            onChange={(e) => setIndividualAdaptations(e.target.value)}
+                            onChange={(e) =>
+                              setIndividualAdaptations(e.target.value)
+                            }
                             placeholder="Ej: estudiante con ansiedad evaluativa: menos preguntas por pantalla, instrucciones más breves, permitir pausa guiada, lectura calmada..."
                             className="w-full min-h-[96px] rounded-2xl border border-purple-100 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-100"
                           />
                           <p className="mt-2 text-xs leading-relaxed text-slate-500">
-                            Estas indicaciones se guardan en la configuración del examen y se envían a la IA al generar preguntas.
+                            Estas indicaciones se guardan en la configuración
+                            del examen y se envían a la IA al generar preguntas.
                           </p>
                         </div>
                       </div>
@@ -2237,19 +2531,28 @@ Usa el mismo esquema de calidad que antes.`;
                               </p>
                             )}
                             <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50/70 px-3 py-2">
-                              <p className="text-[10px] font-bold tracking-widest text-emerald-700">PAUTA GENERADA</p>
+                              <p className="text-[10px] font-bold tracking-widest text-emerald-700">
+                                PAUTA GENERADA
+                              </p>
                               <ExamMathText
                                 text={
                                   q.type === "multiple_choice"
-                                    ? q.options[q.correctAnswer] || q.answerText || ""
+                                    ? q.options[q.correctAnswer] ||
+                                      q.answerText ||
+                                      ""
                                     : q.type === "true_false"
-                                      ? q.correctAnswer === 0 ? "Verdadero" : "Falso"
+                                      ? q.correctAnswer === 0
+                                        ? "Verdadero"
+                                        : "Falso"
                                       : q.modelAnswer || ""
                                 }
                                 className="mt-1 text-xs text-emerald-900"
                               />
                               {q.explanation && (
-                                <ExamMathText text={q.explanation} className="mt-1 text-[11px] text-emerald-800" />
+                                <ExamMathText
+                                  text={q.explanation}
+                                  className="mt-1 text-[11px] text-emerald-800"
+                                />
                               )}
                             </div>
                           </div>
@@ -2288,7 +2591,9 @@ Usa el mismo esquema de calidad que antes.`;
                     className="rounded-2xl bg-card-soft-theme border border-soft px-4 py-2 text-sm text-main focus:outline-none focus:border-blue-500/40"
                   >
                     <option value="multiple_choice">Alternativas</option>
-                    <option value="mixed_choice_development">Alternativa + desarrollo</option>
+                    <option value="mixed_choice_development">
+                      Alternativa + desarrollo
+                    </option>
                     <option value="true_false">Verdadero/Falso</option>
                     <option value="development">Desarrollo</option>
                   </select>
@@ -2474,16 +2779,23 @@ Usa el mismo esquema de calidad que antes.`;
                     {q.type === "mixed_choice_development" && (
                       <div className="space-y-4">
                         <div className="rounded-2xl border border-blue-200 bg-blue-50/70 px-4 py-3 text-xs text-blue-800">
-                          La alternativa entrega puntaje automático. El lienzo se revisa después como puntaje adicional docente.
+                          La alternativa entrega puntaje automático. El lienzo
+                          se revisa después como puntaje adicional docente.
                         </div>
                         <div className="space-y-3">
                           {q.options.map((option, optIndex) => (
-                            <div key={optIndex} className="grid grid-cols-[1fr_auto] gap-3 items-center">
+                            <div
+                              key={optIndex}
+                              className="grid grid-cols-[1fr_auto] gap-3 items-center"
+                            >
                               <input
                                 value={option}
                                 onChange={(e) =>
                                   updateQuestion(q.id, (prev) => {
-                                    if (prev.type !== "mixed_choice_development") return prev;
+                                    if (
+                                      prev.type !== "mixed_choice_development"
+                                    )
+                                      return prev;
                                     const next = [...prev.options];
                                     next[optIndex] = e.target.value;
                                     return { ...prev, options: next };
@@ -2512,61 +2824,120 @@ Usa el mismo esquema de calidad que antes.`;
                         </div>
                         <div className="grid gap-4 md:grid-cols-3">
                           <div>
-                            <label className="text-xs text-sub font-semibold block mb-2">PTS ALTERNATIVA</label>
+                            <label className="text-xs text-sub font-semibold block mb-2">
+                              PTS ALTERNATIVA
+                            </label>
                             <input
                               type="number"
                               min={0}
                               value={q.selectionPoints || 3}
-                              onChange={(e) => updateQuestion(q.id, (prev) => prev.type === "mixed_choice_development" ? { ...prev, selectionPoints: Number(e.target.value || 0) } : prev)}
+                              onChange={(e) =>
+                                updateQuestion(q.id, (prev) =>
+                                  prev.type === "mixed_choice_development"
+                                    ? {
+                                        ...prev,
+                                        selectionPoints: Number(
+                                          e.target.value || 0,
+                                        ),
+                                      }
+                                    : prev,
+                                )
+                              }
                               className="w-full rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main"
                             />
                           </div>
                           <div>
-                            <label className="text-xs text-sub font-semibold block mb-2">PTS DESARROLLO</label>
+                            <label className="text-xs text-sub font-semibold block mb-2">
+                              PTS DESARROLLO
+                            </label>
                             <input
                               type="number"
                               min={0}
                               value={q.developmentMaxPoints || 2}
-                              onChange={(e) => updateQuestion(q.id, (prev) => prev.type === "mixed_choice_development" ? { ...prev, developmentMaxPoints: Number(e.target.value || 0) } : prev)}
+                              onChange={(e) =>
+                                updateQuestion(q.id, (prev) =>
+                                  prev.type === "mixed_choice_development"
+                                    ? {
+                                        ...prev,
+                                        developmentMaxPoints: Number(
+                                          e.target.value || 0,
+                                        ),
+                                      }
+                                    : prev,
+                                )
+                              }
                               className="w-full rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main"
                             />
                           </div>
                           <div>
-                            <label className="text-xs text-sub font-semibold block mb-2">TOTAL</label>
-                            <div className="rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main">{getQuestionPoints(q)}</div>
+                            <label className="text-xs text-sub font-semibold block mb-2">
+                              TOTAL
+                            </label>
+                            <div className="rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main">
+                              {getQuestionPoints(q)}
+                            </div>
                           </div>
                         </div>
                         <div className="grid gap-4 md:grid-cols-2">
                           <div>
-                            <label className="text-xs text-sub font-semibold block mb-2">RESPUESTA MODELO / DESARROLLO ESPERADO</label>
+                            <label className="text-xs text-sub font-semibold block mb-2">
+                              RESPUESTA MODELO / DESARROLLO ESPERADO
+                            </label>
                             <textarea
                               value={q.modelAnswer || ""}
-                              onChange={(e) => updateQuestion(q.id, (prev) => prev.type === "mixed_choice_development" ? { ...prev, modelAnswer: e.target.value } : prev)}
+                              onChange={(e) =>
+                                updateQuestion(q.id, (prev) =>
+                                  prev.type === "mixed_choice_development"
+                                    ? { ...prev, modelAnswer: e.target.value }
+                                    : prev,
+                                )
+                              }
                               className="w-full min-h-[90px] rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main"
                             />
                           </div>
                           <div>
-                            <label className="text-xs text-sub font-semibold block mb-2">EXPLICACIÓN DE LA ALTERNATIVA</label>
+                            <label className="text-xs text-sub font-semibold block mb-2">
+                              EXPLICACIÓN DE LA ALTERNATIVA
+                            </label>
                             <textarea
                               value={q.explanation || ""}
-                              onChange={(e) => updateQuestion(q.id, (prev) => prev.type === "mixed_choice_development" ? { ...prev, explanation: e.target.value } : prev)}
+                              onChange={(e) =>
+                                updateQuestion(q.id, (prev) =>
+                                  prev.type === "mixed_choice_development"
+                                    ? { ...prev, explanation: e.target.value }
+                                    : prev,
+                                )
+                              }
                               className="w-full min-h-[90px] rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main"
                             />
                           </div>
                         </div>
                         <div>
-                          <label className="text-xs text-sub font-semibold block mb-2">RÚBRICA DOCENTE DEL DESARROLLO</label>
+                          <label className="text-xs text-sub font-semibold block mb-2">
+                            RÚBRICA DOCENTE DEL DESARROLLO
+                          </label>
                           <div className="space-y-3">
                             {q.rubric.map((item, rubricIndex) => (
-                              <div key={rubricIndex} className="grid grid-cols-[1fr_120px_auto] gap-3 items-center">
+                              <div
+                                key={rubricIndex}
+                                className="grid grid-cols-[1fr_120px_auto] gap-3 items-center"
+                              >
                                 <input
                                   value={item.criteria}
-                                  onChange={(e) => updateQuestion(q.id, (prev) => {
-                                    if (prev.type !== "mixed_choice_development") return prev;
-                                    const next = [...prev.rubric];
-                                    next[rubricIndex] = { ...next[rubricIndex], criteria: e.target.value };
-                                    return { ...prev, rubric: next };
-                                  })}
+                                  onChange={(e) =>
+                                    updateQuestion(q.id, (prev) => {
+                                      if (
+                                        prev.type !== "mixed_choice_development"
+                                      )
+                                        return prev;
+                                      const next = [...prev.rubric];
+                                      next[rubricIndex] = {
+                                        ...next[rubricIndex],
+                                        criteria: e.target.value,
+                                      };
+                                      return { ...prev, rubric: next };
+                                    })
+                                  }
                                   className="w-full rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main"
                                   placeholder="Criterio"
                                 />
@@ -2574,16 +2945,35 @@ Usa el mismo esquema de calidad que antes.`;
                                   type="number"
                                   min={0}
                                   value={item.points}
-                                  onChange={(e) => updateQuestion(q.id, (prev) => {
-                                    if (prev.type !== "mixed_choice_development") return prev;
-                                    const next = [...prev.rubric];
-                                    next[rubricIndex] = { ...next[rubricIndex], points: Number(e.target.value || 0) };
-                                    return { ...prev, rubric: next };
-                                  })}
+                                  onChange={(e) =>
+                                    updateQuestion(q.id, (prev) => {
+                                      if (
+                                        prev.type !== "mixed_choice_development"
+                                      )
+                                        return prev;
+                                      const next = [...prev.rubric];
+                                      next[rubricIndex] = {
+                                        ...next[rubricIndex],
+                                        points: Number(e.target.value || 0),
+                                      };
+                                      return { ...prev, rubric: next };
+                                    })
+                                  }
                                   className="w-full rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main"
                                 />
                                 <button
-                                  onClick={() => updateQuestion(q.id, (prev) => prev.type === "mixed_choice_development" ? { ...prev, rubric: prev.rubric.filter((_, idx) => idx !== rubricIndex) } : prev)}
+                                  onClick={() =>
+                                    updateQuestion(q.id, (prev) =>
+                                      prev.type === "mixed_choice_development"
+                                        ? {
+                                            ...prev,
+                                            rubric: prev.rubric.filter(
+                                              (_, idx) => idx !== rubricIndex,
+                                            ),
+                                          }
+                                        : prev,
+                                    )
+                                  }
                                   disabled={q.rubric.length === 1}
                                   className="px-3 py-2 rounded-xl bg-red-500/15 text-red-700 hover:bg-red-500/25 disabled:opacity-40 text-sm"
                                 >
@@ -2593,7 +2983,19 @@ Usa el mismo esquema de calidad que antes.`;
                             ))}
                           </div>
                           <button
-                            onClick={() => updateQuestion(q.id, (prev) => prev.type === "mixed_choice_development" ? { ...prev, rubric: [...prev.rubric, { criteria: "", points: 1 }] } : prev)}
+                            onClick={() =>
+                              updateQuestion(q.id, (prev) =>
+                                prev.type === "mixed_choice_development"
+                                  ? {
+                                      ...prev,
+                                      rubric: [
+                                        ...prev.rubric,
+                                        { criteria: "", points: 1 },
+                                      ],
+                                    }
+                                  : prev,
+                              )
+                            }
                             className="mt-3 px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-main text-sm font-semibold"
                           >
                             + Agregar criterio
@@ -2727,7 +3129,9 @@ Usa el mismo esquema de calidad que antes.`;
                               RESULTADO FINAL EN LATEX (OPCIONAL)
                             </label>
                             <textarea
-                              value={(q as DevelopmentQuestion).expectedLatex || ""}
+                              value={
+                                (q as DevelopmentQuestion).expectedLatex || ""
+                              }
                               onChange={(e) =>
                                 updateQuestion(q.id, (prev) =>
                                   prev.type === "development"
@@ -2744,7 +3148,9 @@ Usa el mismo esquema de calidad que antes.`;
                               EXPLICACIÓN DE LA PAUTA
                             </label>
                             <textarea
-                              value={(q as DevelopmentQuestion).explanation || ""}
+                              value={
+                                (q as DevelopmentQuestion).explanation || ""
+                              }
                               onChange={(e) =>
                                 updateQuestion(q.id, (prev) =>
                                   prev.type === "development"
@@ -2859,51 +3265,83 @@ Usa el mismo esquema de calidad que antes.`;
 
               <div className="mt-8 rounded-3xl border border-emerald-200 bg-emerald-50/70 p-4 md:p-5">
                 <div className="mb-4">
-                  <p className="text-xs font-bold tracking-[0.2em] text-emerald-700">CLAVE DE RESPUESTAS</p>
-                  <h3 className="mt-1 text-lg font-bold text-emerald-950">Respuestas esperadas y explicaciones</h3>
+                  <p className="text-xs font-bold tracking-[0.2em] text-emerald-700">
+                    CLAVE DE RESPUESTAS
+                  </p>
+                  <h3 className="mt-1 text-lg font-bold text-emerald-950">
+                    Respuestas esperadas y explicaciones
+                  </h3>
                   <p className="mt-1 text-xs text-emerald-800">
-                    Esta pauta queda guardada separadamente para corregir con mayor precisión. Revisa cada respuesta antes de publicar.
+                    Esta pauta queda guardada separadamente para corregir con
+                    mayor precisión. Revisa cada respuesta antes de publicar.
                   </p>
                 </div>
 
                 <div className="space-y-3">
                   {questions.map((q, index) => {
-                    const answer = q.type === "multiple_choice"
-                      ? q.options[q.correctAnswer] || q.answerText || ""
-                      : q.type === "true_false"
-                        ? q.correctAnswer === 0 ? "Verdadero" : "Falso"
-                        : q.modelAnswer || "";
+                    const answer =
+                      q.type === "multiple_choice"
+                        ? q.options[q.correctAnswer] || q.answerText || ""
+                        : q.type === "true_false"
+                          ? q.correctAnswer === 0
+                            ? "Verdadero"
+                            : "Falso"
+                          : q.modelAnswer || "";
                     return (
-                      <details key={`answer-key-${q.id}`} className="rounded-2xl border border-emerald-200 bg-white p-3">
+                      <details
+                        key={`answer-key-${q.id}`}
+                        className="rounded-2xl border border-emerald-200 bg-white p-3"
+                      >
                         <summary className="cursor-pointer list-none text-sm font-bold text-emerald-950">
-                          Pregunta {index + 1} · {q.type === "multiple_choice" ? "Alternativas" : q.type === "true_false" ? "Verdadero/Falso" : "Desarrollo"}
+                          Pregunta {index + 1} ·{" "}
+                          {q.type === "multiple_choice"
+                            ? "Alternativas"
+                            : q.type === "true_false"
+                              ? "Verdadero/Falso"
+                              : "Desarrollo"}
                         </summary>
                         <div className="mt-3 space-y-2 text-sm">
                           <div>
-                            <p className="text-[11px] font-bold tracking-widest text-emerald-700">RESPUESTA CORRECTA</p>
-                            <ExamMathText text={answer} className="mt-1 text-emerald-950" />
+                            <p className="text-[11px] font-bold tracking-widest text-emerald-700">
+                              RESPUESTA CORRECTA
+                            </p>
+                            <ExamMathText
+                              text={answer}
+                              className="mt-1 text-emerald-950"
+                            />
                           </div>
                           {q.explanation && (
                             <div>
-                              <p className="text-[11px] font-bold tracking-widest text-emerald-700">EXPLICACIÓN</p>
-                              <ExamMathText text={q.explanation} className="mt-1 text-emerald-900" />
+                              <p className="text-[11px] font-bold tracking-widest text-emerald-700">
+                                EXPLICACIÓN
+                              </p>
+                              <ExamMathText
+                                text={q.explanation}
+                                className="mt-1 text-emerald-900"
+                              />
                             </div>
                           )}
-                          {Array.isArray(q.solutionSteps) && q.solutionSteps.length > 0 && (
-                            <div>
-                              <p className="text-[11px] font-bold tracking-widest text-emerald-700">PROCEDIMIENTO ESPERADO</p>
-                              <ol className="mt-1 list-decimal space-y-1 pl-5 text-emerald-900">
-                                {q.solutionSteps.map((step, stepIndex) => (
-                                  <li key={stepIndex}><ExamMathText text={step} /></li>
-                                ))}
-                              </ol>
-                            </div>
-                          )}
-                          {Array.isArray(q.qualityWarnings) && q.qualityWarnings.length > 0 && (
-                            <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                              Revisar: {q.qualityWarnings.join(" · ")}
-                            </div>
-                          )}
+                          {Array.isArray(q.solutionSteps) &&
+                            q.solutionSteps.length > 0 && (
+                              <div>
+                                <p className="text-[11px] font-bold tracking-widest text-emerald-700">
+                                  PROCEDIMIENTO ESPERADO
+                                </p>
+                                <ol className="mt-1 list-decimal space-y-1 pl-5 text-emerald-900">
+                                  {q.solutionSteps.map((step, stepIndex) => (
+                                    <li key={stepIndex}>
+                                      <ExamMathText text={step} />
+                                    </li>
+                                  ))}
+                                </ol>
+                              </div>
+                            )}
+                          {Array.isArray(q.qualityWarnings) &&
+                            q.qualityWarnings.length > 0 && (
+                              <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                                Revisar: {q.qualityWarnings.join(" · ")}
+                              </div>
+                            )}
                         </div>
                       </details>
                     );
@@ -2928,7 +3366,10 @@ Usa el mismo esquema de calidad que antes.`;
                   { label: "Preguntas", value: questions.length },
                   { label: "Puntaje total", value: totalPoints },
                   { label: "Tiempo", value: `${timeLimit} min` },
-                  { label: "Calculadora", value: allowCalculator ? "Autorizada" : "No autorizada" },
+                  {
+                    label: "Calculadora",
+                    value: allowCalculator ? "Autorizada" : "No autorizada",
+                  },
                   { label: "Exigencia", value: `${examPercentage}%` },
                   { label: "Dificultad", value: difficulty },
                   { label: "OA evaluados", value: selectedOAs.length },
