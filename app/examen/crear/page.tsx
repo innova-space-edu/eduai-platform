@@ -1818,8 +1818,8 @@ Usa el mismo esquema de calidad que antes.`;
                             value: "pie_calm",
                             label: "PIE Calm",
                             icon: "🌿",
-                            desc: "Crema y verde suave",
-                            tone: "from-emerald-50 to-amber-50 border-emerald-200",
+                            desc: "Blanco y verde suave",
+                            tone: "from-emerald-50 to-white border-emerald-200",
                           },
                           {
                             value: "adhd_focus",
@@ -1921,9 +1921,9 @@ Usa el mismo esquema de calidad que antes.`;
                           cls: "bg-emerald-100 text-emerald-900 border-emerald-200",
                         },
                         {
-                          label: "Crema",
-                          desc: "menos brillo que blanco",
-                          cls: "bg-amber-50 text-amber-900 border-amber-200",
+                          label: "Blanco cálido",
+                          desc: "base clara con tinte suave",
+                          cls: "bg-white text-amber-900 border-amber-200",
                         },
                         {
                           label: "Lavanda",
@@ -1941,7 +1941,7 @@ Usa el mismo esquema de calidad que antes.`;
                       ))}
                     </div>
                     <p className="mt-3 text-xs leading-relaxed text-slate-600">
-                      Para NEE se priorizan fondos claros no blancos puros,
+                      Para NEE se prioriza base blanca con tinte suave del tema,
                       contraste suficiente, acentos suaves y baja saturación. El
                       rojo/amarillo intenso se reserva solo para alertas
                       puntuales.
