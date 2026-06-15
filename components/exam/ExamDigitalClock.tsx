@@ -33,19 +33,57 @@ export default function ExamDigitalClock() {
   });
 
   return (
-    <aside className="fixed right-3 top-3 z-[60] hidden rounded-2xl border border-blue-200/70 bg-white/85 px-4 py-2 text-slate-700 shadow-lg backdrop-blur-xl print:hidden lg:flex lg:items-center lg:gap-3">
-      <span className="rounded-full bg-blue-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-blue-700">
+    <aside
+      className="fixed right-3 top-3 z-[60] hidden rounded-2xl border px-4 py-2 shadow-lg backdrop-blur-xl print:hidden lg:flex lg:items-center lg:gap-3"
+      style={{
+        borderColor: "color-mix(in srgb, var(--exam-accent) 24%, transparent)",
+        backgroundColor:
+          "color-mix(in srgb, var(--exam-surface) 88%, transparent)",
+        color: "var(--exam-text-sub)",
+      }}
+    >
+      <span
+        className="rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em]"
+        style={{
+          backgroundColor: "var(--exam-accent-soft)",
+          color: "var(--exam-accent)",
+        }}
+      >
         Hora
       </span>
       <div className="flex items-baseline gap-1 font-mono tabular-nums">
-        <span className="text-xl font-black text-blue-700">{hour}</span>
-        <span className="text-blue-400">:</span>
-        <span className="text-xl font-black text-blue-700">{minute}</span>
-        <span className="ml-2 rounded-full bg-emerald-50 px-2 py-0.5 text-sm font-black text-emerald-600">
+        <span
+          className="text-xl font-black"
+          style={{ color: "var(--exam-accent)" }}
+        >
+          {hour}
+        </span>
+        <span
+          style={{ color: "color-mix(in srgb, var(--exam-accent) 55%, white)" }}
+        >
+          :
+        </span>
+        <span
+          className="text-xl font-black"
+          style={{ color: "var(--exam-accent)" }}
+        >
+          {minute}
+        </span>
+        <span
+          className="ml-2 rounded-full px-2 py-0.5 text-sm font-black"
+          style={{
+            backgroundColor:
+              "color-mix(in srgb, var(--exam-success) 12%, white)",
+            color: "var(--exam-success)",
+          }}
+        >
           {second}s
         </span>
       </div>
-      <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+      <span
+        className="text-[10px] font-semibold uppercase tracking-[0.12em]"
+        style={{ color: "var(--exam-muted)" }}
+      >
         {dateLabel}
       </span>
     </aside>
