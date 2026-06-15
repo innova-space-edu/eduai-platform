@@ -1444,12 +1444,7 @@ export default function ExamenPublicoPage() {
           />
         ) : null}
 
-        {phase === "exam" ? (
-          <>
-            {allowCalculator ? <ExamScientificCalculator /> : null}
-            <ExamDigitalClock />
-          </>
-        ) : null}
+        {phase === "exam" && allowCalculator ? <ExamScientificCalculator /> : null}
 
         <div className="mx-auto w-full max-w-[1760px] px-4 py-5 sm:px-5 lg:px-6 xl:pl-8 xl:pr-6">
           <div className="exam-themed-card mb-6 mx-auto w-full max-w-[900px] overflow-hidden rounded-[28px] border shadow-sm">
@@ -1601,29 +1596,66 @@ export default function ExamenPublicoPage() {
 
             <aside className="mt-5 space-y-4 2xl:sticky 2xl:top-24 2xl:z-40 2xl:mt-0 2xl:max-h-[calc(100vh-7rem)] 2xl:w-[320px] 2xl:overflow-y-auto">
               <div
-                className="rounded-[24px] border px-5 py-4 text-center shadow-sm backdrop-blur"
+                className="rounded-[24px] border p-3 shadow-sm backdrop-blur"
                 style={{
                   borderColor:
-                    "color-mix(in srgb, var(--exam-accent) 20%, transparent)",
+                    "color-mix(in srgb, var(--exam-accent) 18%, white)",
                   backgroundColor:
-                    "color-mix(in srgb, var(--exam-surface) 88%, transparent)",
+                    "color-mix(in srgb, var(--exam-surface) 92%, transparent)",
                 }}
               >
-                <p className="text-muted2 text-xs">Tiempo restante</p>
-                <p
-                  className="text-3xl font-black tabular-nums"
-                  style={{ color: "var(--exam-accent)" }}
+                <div className="grid grid-cols-2 gap-3">
+                  <div
+                    className="min-w-0 rounded-2xl border px-3 py-3 text-center shadow-sm"
+                    style={{
+                      borderColor:
+                        "color-mix(in srgb, var(--exam-accent) 18%, white)",
+                      background:
+                        "linear-gradient(135deg, color-mix(in srgb, var(--exam-accent) 7%, white), color-mix(in srgb, var(--exam-accent-soft) 35%, white))",
+                    }}
+                  >
+                    <p
+                      className="mb-2 inline-flex rounded-full px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em]"
+                      style={{
+                        backgroundColor:
+                          "color-mix(in srgb, var(--exam-accent) 12%, white)",
+                        color: "var(--exam-accent)",
+                      }}
+                    >
+                      Tiempo
+                    </p>
+                    <p
+                      className="font-mono text-2xl font-black tabular-nums leading-none"
+                      style={{ color: "var(--exam-accent)" }}
+                    >
+                      {fmt(timeLeft)}
+                    </p>
+                    <p className="mt-2 truncate text-[10px] font-bold uppercase tracking-[0.08em] text-muted2">
+                      Restante
+                    </p>
+                  </div>
+
+                  <ExamDigitalClock />
+                </div>
+
+                <div
+                  className="mt-3 rounded-2xl border px-3 py-2 text-center"
+                  style={{
+                    borderColor:
+                      "color-mix(in srgb, var(--exam-accent) 15%, white)",
+                    backgroundColor:
+                      "color-mix(in srgb, var(--exam-accent-soft) 26%, white)",
+                  }}
                 >
-                  {fmt(timeLeft)}
-                </p>
-                <p className="mt-1 block text-xs font-semibold text-muted2">
-                  {answeredCount}/{totalQ} respondidas
-                </p>
-                {isKiosk ? (
-                  <p className="text-muted2 text-[11px] mt-1">
-                    Fullscreen: {isFullscreen ? "activo" : "inactivo"}
+                  <p className="text-xs font-black text-muted2">
+                    {answeredCount}/{totalQ} respondidas
                   </p>
-                ) : null}
+                  {isKiosk ? (
+                    <p className="text-muted2 text-[11px] mt-1">
+                      Fullscreen: {isFullscreen ? "activo" : "inactivo"}
+                    </p>
+                  ) : null}
+                </div>
               </div>
 
               <div className="exam-themed-soft rounded-[28px] border p-5 shadow-sm">
