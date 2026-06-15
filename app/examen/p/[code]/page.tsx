@@ -10,7 +10,12 @@ import QuestionCard from "@/components/exam/QuestionCard";
 import ExamAudioButton from "@/components/exam/ExamAudioButton";
 import ExamScientificCalculator from "@/components/exam/ExamScientificCalculator";
 import ExamDigitalClock from "@/components/exam/ExamDigitalClock";
-import { calculateGradeFromPercentage, calculateScoreSummary, formatPoints, getQuestionMaxPoints } from "@/lib/exam/grading";
+import {
+  calculateGradeFromPercentage,
+  calculateScoreSummary,
+  formatPoints,
+  getQuestionMaxPoints,
+} from "@/lib/exam/grading";
 import ExamQuestionNotebook, {
   type ExamNotebookArtifact,
   type ExamQuestionNotebookHandle,
@@ -37,11 +42,17 @@ function createAttemptId() {
 }
 
 function isNotebookQuestion(question: any) {
-  return question?.type === "development" || question?.type === "mixed_choice_development";
+  return (
+    question?.type === "development" ||
+    question?.type === "mixed_choice_development"
+  );
 }
 
 function isSelectableQuestion(question: any) {
-  return question?.type === "multiple_choice" || question?.type === "mixed_choice_development";
+  return (
+    question?.type === "multiple_choice" ||
+    question?.type === "mixed_choice_development"
+  );
 }
 
 // ── Cursos indexados ─────────────────────────────────────────────────────────
@@ -148,7 +159,9 @@ export default function ExamenPublicoPage() {
   const [confirmSubmit, setConfirmSubmit] = useState(false);
   const attemptIdRef = useRef(createAttemptId());
   const notebookRef = useRef<ExamQuestionNotebookHandle>(null);
-  const [developmentArtifacts, setDevelopmentArtifacts] = useState<Record<number, ExamNotebookArtifact>>({});
+  const [developmentArtifacts, setDevelopmentArtifacts] = useState<
+    Record<number, ExamNotebookArtifact>
+  >({});
   const [developmentSaveStatus, setDevelopmentSaveStatus] = useState("");
   const [developmentSaving, setDevelopmentSaving] = useState(false);
 
@@ -215,7 +228,8 @@ export default function ExamenPublicoPage() {
   const developmentNotebookConfig = exam?.settings?.developmentNotebook;
   const currentNotebookEnabled =
     developmentNotebookConfig?.enabled === true &&
-    (developmentNotebookConfig?.mode === "all_questions" || isNotebookQuestion(q));
+    (developmentNotebookConfig?.mode === "all_questions" ||
+      isNotebookQuestion(q));
 
   // ── Detectar kiosk ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -460,58 +474,74 @@ export default function ExamenPublicoPage() {
     setFeedbackDone(true);
   }, []);
 
-  const saveCurrentDevelopment = useCallback(async (finalized = true): Promise<ExamNotebookArtifact | null> => {
-    if (!exam || !currentNotebookEnabled || !notebookRef.current) return null;
+  const saveCurrentDevelopment = useCallback(
+    async (finalized = true): Promise<ExamNotebookArtifact | null> => {
+      if (!exam || !currentNotebookEnabled || !notebookRef.current) return null;
 
-    setDevelopmentSaving(true);
-    setDevelopmentSaveStatus("Guardando desarrollo...");
-    try {
-      const artifact = finalized
-        ? await notebookRef.current.finalizeArtifact()
-        : notebookRef.current.getArtifact();
-      const question = exam.questions?.[curQ] || {};
-      const response = await fetch("/api/examen/developments", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          examId: exam.id,
-          clientAttemptId: attemptIdRef.current,
-          questionIndex: curQ,
-          questionId: question.id || `question-${curQ + 1}`,
-          artifactVersion: 1,
-          pages: artifact.pages,
-          latex: artifact.latex,
-          ocrText: artifact.ocrText,
-          ocrConfidence: artifact.ocrConfidence,
-          previewPngDataUrl: artifact.previewPngDataUrl,
-          finalized,
-          questionText: question.question || question.statement || "",
-          expectedLatex: question.modelAnswer || question.expectedAnswer || "",
-          rubric: question.rubric || [],
-          maxPoints: getQuestionMaxPoints(question),
-        }),
-      });
-      const data = await response.json();
-      if (!response.ok || !data?.success) {
-        throw new Error(data?.error || "No fue posible guardar el desarrollo.");
+      setDevelopmentSaving(true);
+      setDevelopmentSaveStatus("Guardando desarrollo...");
+      try {
+        const artifact = finalized
+          ? await notebookRef.current.finalizeArtifact()
+          : notebookRef.current.getArtifact();
+        const question = exam.questions?.[curQ] || {};
+        const response = await fetch("/api/examen/developments", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            examId: exam.id,
+            clientAttemptId: attemptIdRef.current,
+            questionIndex: curQ,
+            questionId: question.id || `question-${curQ + 1}`,
+            artifactVersion: 1,
+            pages: artifact.pages,
+            latex: artifact.latex,
+            ocrText: artifact.ocrText,
+            ocrConfidence: artifact.ocrConfidence,
+            previewPngDataUrl: artifact.previewPngDataUrl,
+            finalized,
+            questionText: question.question || question.statement || "",
+            expectedLatex:
+              question.modelAnswer || question.expectedAnswer || "",
+            rubric: question.rubric || [],
+            maxPoints: getQuestionMaxPoints(question),
+          }),
+        });
+        const data = await response.json();
+        if (!response.ok || !data?.success) {
+          throw new Error(
+            data?.error || "No fue posible guardar el desarrollo.",
+          );
+        }
+        setDevelopmentArtifacts((current) => ({
+          ...current,
+          [curQ]: artifact,
+        }));
+        setDevelopmentSaveStatus("✅ Desarrollo guardado");
+        return artifact;
+      } catch (error) {
+        setDevelopmentSaveStatus(
+          error instanceof Error
+            ? `⚠️ ${error.message}`
+            : "⚠️ No fue posible guardar el desarrollo.",
+        );
+        return null;
+      } finally {
+        setDevelopmentSaving(false);
       }
-      setDevelopmentArtifacts((current) => ({ ...current, [curQ]: artifact }));
-      setDevelopmentSaveStatus("✅ Desarrollo guardado");
-      return artifact;
-    } catch (error) {
-      setDevelopmentSaveStatus(error instanceof Error ? `⚠️ ${error.message}` : "⚠️ No fue posible guardar el desarrollo.");
-      return null;
-    } finally {
-      setDevelopmentSaving(false);
-    }
-  }, [curQ, currentNotebookEnabled, exam]);
+    },
+    [curQ, currentNotebookEnabled, exam],
+  );
 
-  const goToQuestion = useCallback(async (nextIndex: number) => {
-    if (nextIndex < 0 || nextIndex >= totalQ || nextIndex === curQ) return;
-    const saved = await saveCurrentDevelopment(true);
-    if (currentNotebookEnabled && !saved) return;
-    setCurQ(nextIndex);
-  }, [curQ, currentNotebookEnabled, saveCurrentDevelopment, totalQ]);
+  const goToQuestion = useCallback(
+    async (nextIndex: number) => {
+      if (nextIndex < 0 || nextIndex >= totalQ || nextIndex === curQ) return;
+      const saved = await saveCurrentDevelopment(true);
+      if (currentNotebookEnabled && !saved) return;
+      setCurQ(nextIndex);
+    },
+    [curQ, currentNotebookEnabled, saveCurrentDevelopment, totalQ],
+  );
 
   const doSubmit = useCallback(
     async (_reason: "manual" | "forced" | "time_up" = "manual") => {
@@ -532,7 +562,8 @@ export default function ExamenPublicoPage() {
       const ansArr = (exam.questions || []).map((question: any, i: number) => {
         if (question.type === "development") {
           return {
-            devText: devAnswers[i] || latestDevelopmentArtifacts[i]?.ocrText || "",
+            devText:
+              devAnswers[i] || latestDevelopmentArtifacts[i]?.ocrText || "",
             developmentLatex: latestDevelopmentArtifacts[i]?.latex || "",
             selectedAnswer: -1,
           };
@@ -541,7 +572,8 @@ export default function ExamenPublicoPage() {
         if (question.type === "mixed_choice_development") {
           return {
             selectedAnswer: mcAnswers[i] ?? -1,
-            devText: devAnswers[i] || latestDevelopmentArtifacts[i]?.ocrText || "",
+            devText:
+              devAnswers[i] || latestDevelopmentArtifacts[i]?.ocrText || "",
             developmentLatex: latestDevelopmentArtifacts[i]?.latex || "",
           };
         }
@@ -600,7 +632,20 @@ export default function ExamenPublicoPage() {
         setPhase("error");
       }
     },
-    [exam, phase, curQ, currentNotebookEnabled, devAnswers, developmentArtifacts, mcAnswers, tfJustifications, name, course, rut, saveCurrentDevelopment],
+    [
+      exam,
+      phase,
+      curQ,
+      currentNotebookEnabled,
+      devAnswers,
+      developmentArtifacts,
+      mcAnswers,
+      tfJustifications,
+      name,
+      course,
+      rut,
+      saveCurrentDevelopment,
+    ],
   );
 
   // ── Auto submit por tiempo ────────────────────────────────────────────────
@@ -882,8 +927,8 @@ export default function ExamenPublicoPage() {
           <div
             className="flex justify-center gap-0 mb-10 rounded-2xl overflow-hidden"
             style={{
-              border: "1px solid var(--border-soft)",
-              background: "var(--bg-card-soft)",
+              border: "1px solid var(--exam-border)",
+              background: "var(--exam-soft-bg)",
             }}
           >
             {[
@@ -897,7 +942,7 @@ export default function ExamenPublicoPage() {
                 style={{
                   borderRight:
                     i < arr.length - 1
-                      ? "1px solid var(--border-soft)"
+                      ? "1px solid var(--exam-border)"
                       : "none",
                 }}
               >
@@ -1065,12 +1110,21 @@ export default function ExamenPublicoPage() {
       );
     const pct = Number(submission.score || 0);
     const graded = submission.answers || [];
-    const reviewQs = Array.isArray(submission.review_questions) && submission.review_questions.length > 0
-      ? submission.review_questions
-      : qs;
+    const reviewQs =
+      Array.isArray(submission.review_questions) &&
+      submission.review_questions.length > 0
+        ? submission.review_questions
+        : qs;
     const fallbackSummary = calculateScoreSummary(reviewQs, graded);
-    const earnedPoints = Number(submission.earned_points ?? fallbackSummary.earnedPoints);
-    const totalPoints = Number(submission.total_points ?? fallbackSummary.totalPoints ?? examTotalPoints ?? 0);
+    const earnedPoints = Number(
+      submission.earned_points ?? fallbackSummary.earnedPoints,
+    );
+    const totalPoints = Number(
+      submission.total_points ??
+        fallbackSummary.totalPoints ??
+        examTotalPoints ??
+        0,
+    );
 
     return (
       <div className="min-h-screen bg-app px-4 py-8">
@@ -1209,8 +1263,14 @@ export default function ExamenPublicoPage() {
                     ? item.options?.[g.selectedAnswer] || "—"
                     : item.options?.[g.selectedAnswer] || "—";
                 const correctAnswer = isDev
-                  ? item.modelAnswer || item.expectedLatex || item.expectedAnswer || "Ver rúbrica"
-                  : item.answerText || item.correctAnswerText || item.options?.[item.correctAnswer] || "—";
+                  ? item.modelAnswer ||
+                    item.expectedLatex ||
+                    item.expectedAnswer ||
+                    "Ver rúbrica"
+                  : item.answerText ||
+                    item.correctAnswerText ||
+                    item.options?.[item.correctAnswer] ||
+                    "—";
                 const aiFeedback = feedback[i];
 
                 return (
@@ -1222,7 +1282,8 @@ export default function ExamenPublicoPage() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1">
                         <p className="text-[11px] text-muted2 mb-1">
-                          Pregunta {i + 1} · {formatPoints(getQuestionMaxPoints(item))} pts
+                          Pregunta {i + 1} ·{" "}
+                          {formatPoints(getQuestionMaxPoints(item))} pts
                         </p>
                         <div className="text-main text-sm font-medium leading-relaxed">
                           <ExamMathText
@@ -1249,7 +1310,9 @@ export default function ExamenPublicoPage() {
                       </div>
                       <div className="rounded-xl bg-white/80 border border-soft px-3 py-2">
                         <p className="text-muted2 mb-0.5">
-                          {isDev ? "Respuesta modelo registrada" : "Respuesta correcta registrada"}
+                          {isDev
+                            ? "Respuesta modelo registrada"
+                            : "Respuesta correcta registrada"}
                         </p>
                         <p className="font-medium text-green-700">
                           <ExamMathText text={correctAnswer} />
@@ -1347,7 +1410,7 @@ export default function ExamenPublicoPage() {
 
   return (
     <ExamThemeProvider settings={exam?.settings}>
-      <div className="min-h-screen bg-app text-main">
+      <div className="exam-root min-h-screen text-main">
         {phase === "exam" && exam?.id ? (
           <ExamSecurityExamBridge
             examId={exam.id}
@@ -1388,38 +1451,70 @@ export default function ExamenPublicoPage() {
           </>
         ) : null}
 
-        <div className="mx-auto w-full max-w-[1760px] px-4 py-5 exam-root sm:px-5 lg:px-6 xl:pl-8 xl:pr-6">
-          <div className="mb-6 mx-auto w-full max-w-[900px] overflow-hidden rounded-[28px] border border-soft bg-card-theme shadow-sm">
-            <div className="flex flex-col items-center gap-3 bg-gradient-to-br from-blue-500/10 via-violet-500/5 to-transparent px-5 py-5 text-center">
+        <div className="mx-auto w-full max-w-[1760px] px-4 py-5 sm:px-5 lg:px-6 xl:pl-8 xl:pr-6">
+          <div className="exam-themed-card mb-6 mx-auto w-full max-w-[900px] overflow-hidden rounded-[28px] border shadow-sm">
+            <div
+              className="flex flex-col items-center gap-3 px-5 py-5 text-center"
+              style={{
+                background:
+                  "linear-gradient(135deg, color-mix(in srgb, var(--exam-accent) 12%, transparent), color-mix(in srgb, var(--exam-accent-soft) 48%, transparent), transparent)",
+              }}
+            >
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.24em] text-blue-500">Evaluación en curso</p>
+                <p
+                  className="text-xs font-black uppercase tracking-[0.24em]"
+                  style={{ color: "var(--exam-accent)" }}
+                >
+                  Evaluación en curso
+                </p>
                 <h1 className="mt-1 text-2xl md:text-3xl font-extrabold">
                   {exam.title}
                 </h1>
                 <p className="text-sub text-sm mt-1">
                   {exam.topic || "Evaluación"}
                 </p>
-              {securitySessionId ? (
-                <p className="text-muted2 text-xs mt-2">
-                  Seguridad activa · sesión {securitySessionId}
-                </p>
-              ) : null}
-              {kioskExamId ? (
-                <p className="text-muted2 text-xs mt-1">
-                  Kiosk exam id: {kioskExamId}
-                </p>
-              ) : null}
-            </div>
-            </div>
-            <div className="border-t border-soft bg-card-soft-theme px-5 py-3">
-              <div className="flex items-center justify-between text-xs font-bold text-sub">
-                <span>Progreso</span>
-                <span>{Math.round((answeredCount / Math.max(1, totalQ)) * 100)}%</span>
+                {securitySessionId ? (
+                  <p className="text-muted2 text-xs mt-2">
+                    Seguridad activa · sesión {securitySessionId}
+                  </p>
+                ) : null}
+                {kioskExamId ? (
+                  <p className="text-muted2 text-xs mt-1">
+                    Kiosk exam id: {kioskExamId}
+                  </p>
+                ) : null}
               </div>
-              <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200">
+            </div>
+            <div
+              className="border-t px-5 py-3"
+              style={{
+                borderColor: "var(--exam-border)",
+                backgroundColor: "var(--exam-soft-bg)",
+              }}
+            >
+              <div
+                className="flex items-center justify-between text-xs font-bold"
+                style={{ color: "var(--exam-text-sub)" }}
+              >
+                <span>Progreso</span>
+                <span>
+                  {Math.round((answeredCount / Math.max(1, totalQ)) * 100)}%
+                </span>
+              </div>
+              <div
+                className="mt-2 h-2 overflow-hidden rounded-full"
+                style={{
+                  backgroundColor:
+                    "color-mix(in srgb, var(--exam-border) 60%, white)",
+                }}
+              >
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-blue-500 to-violet-500 transition-all"
-                  style={{ width: `${(answeredCount / Math.max(1, totalQ)) * 100}%` }}
+                  className="h-full rounded-full transition-all"
+                  style={{
+                    width: `${(answeredCount / Math.max(1, totalQ)) * 100}%`,
+                    background:
+                      "linear-gradient(90deg, var(--exam-accent), color-mix(in srgb, var(--exam-accent) 72%, white))",
+                  }}
                 />
               </div>
             </div>
@@ -1440,71 +1535,85 @@ export default function ExamenPublicoPage() {
           <div className="mx-auto grid w-full grid-cols-1 gap-6 2xl:ml-[320px] 2xl:w-[calc(100%-320px)] 2xl:grid-cols-[minmax(0,1040px)_320px] xl:items-start">
             <main className="w-full min-w-0">
               <div className="mx-auto flex w-full max-w-[1040px] flex-col items-stretch space-y-4">
-              {/* Botón narrar pregunta — PIE/accesibilidad */}
-              {exam?.settings?.accessibility?.pieMode && (
-                <div className="flex w-full justify-end">
-                  <ExamAudioButton
-                    questionText={q?.question || q?.statement || ""}
-                    questionNumber={curQ + 1}
-                    questionType={q?.type || "multiple_choice"}
-                    options={q?.options}
-                    pieMode={
-                      exam?.settings?.accessibility?.dyslexiaMode ||
-                      exam?.settings?.accessibility?.adhdMode ||
-                      false
+                {/* Botón narrar pregunta — PIE/accesibilidad */}
+                {exam?.settings?.accessibility?.pieMode && (
+                  <div className="flex w-full justify-end">
+                    <ExamAudioButton
+                      questionText={q?.question || q?.statement || ""}
+                      questionNumber={curQ + 1}
+                      questionType={q?.type || "multiple_choice"}
+                      options={q?.options}
+                      pieMode={
+                        exam?.settings?.accessibility?.dyslexiaMode ||
+                        exam?.settings?.accessibility?.adhdMode ||
+                        false
+                      }
+                    />
+                  </div>
+                )}
+
+                <div className="mx-auto w-full max-w-[1040px] [&>div]:!w-full [&>div]:!max-w-none [&_.exam-question]:!w-full [&_.exam-question]:!max-w-none">
+                  <QuestionCard
+                    question={q}
+                    index={curQ}
+                    total={totalQ}
+                    maxPoints={getQuestionMaxPoints(q)}
+                    mcAnswer={mcAnswers[curQ]}
+                    tfAnswer={mcAnswers[curQ]}
+                    tfJustification={tfJustifications[curQ]}
+                    devAnswer={devAnswers[curQ]}
+                    onMcChange={(i) =>
+                      setMcAnswers((prev) => ({ ...prev, [curQ]: i }))
                     }
+                    onTfChange={(i) =>
+                      setMcAnswers((prev) => ({ ...prev, [curQ]: i }))
+                    }
+                    onTfJustificationChange={(v) =>
+                      setTfJustifications((prev) => ({ ...prev, [curQ]: v }))
+                    }
+                    onDevChange={(v) =>
+                      setDevAnswers((prev) => ({ ...prev, [curQ]: v }))
+                    }
+                    useNotebookForDevelopment={currentNotebookEnabled}
                   />
                 </div>
-              )}
 
-              <div className="mx-auto w-full max-w-[1040px] [&>div]:!w-full [&>div]:!max-w-none [&_.exam-question]:!w-full [&_.exam-question]:!max-w-none">
-                <QuestionCard
-                  question={q}
-                index={curQ}
-                total={totalQ}
-                maxPoints={getQuestionMaxPoints(q)}
-                mcAnswer={mcAnswers[curQ]}
-                tfAnswer={mcAnswers[curQ]}
-                tfJustification={tfJustifications[curQ]}
-                devAnswer={devAnswers[curQ]}
-                onMcChange={(i) =>
-                  setMcAnswers((prev) => ({ ...prev, [curQ]: i }))
-                }
-                onTfChange={(i) =>
-                  setMcAnswers((prev) => ({ ...prev, [curQ]: i }))
-                }
-                onTfJustificationChange={(v) =>
-                  setTfJustifications((prev) => ({ ...prev, [curQ]: v }))
-                }
-                onDevChange={(v) =>
-                  setDevAnswers((prev) => ({ ...prev, [curQ]: v }))
-                }
-                  useNotebookForDevelopment={currentNotebookEnabled}
-                />
-              </div>
-
-              {currentNotebookEnabled ? (
-                <div className="mx-auto w-full max-w-[1040px] min-w-0 [&>section]:!w-full [&>section]:!max-w-none">
-                  <ExamQuestionNotebook
-                    key={`${exam.id}-${curQ}`}
-                    ref={notebookRef}
-                    examId={exam.id}
-                    attemptId={attemptIdRef.current}
-                    questionIndex={curQ}
-                    questionId={q?.id || `question-${curQ + 1}`}
-                    onArtifactChange={(artifact) =>
-                      setDevelopmentArtifacts((current) => ({ ...current, [curQ]: artifact }))
-                    }
-                  />
-                </div>
-              ) : null}
+                {currentNotebookEnabled ? (
+                  <div className="mx-auto w-full max-w-[1040px] min-w-0 [&>section]:!w-full [&>section]:!max-w-none">
+                    <ExamQuestionNotebook
+                      key={`${exam.id}-${curQ}`}
+                      ref={notebookRef}
+                      examId={exam.id}
+                      attemptId={attemptIdRef.current}
+                      questionIndex={curQ}
+                      questionId={q?.id || `question-${curQ + 1}`}
+                      onArtifactChange={(artifact) =>
+                        setDevelopmentArtifacts((current) => ({
+                          ...current,
+                          [curQ]: artifact,
+                        }))
+                      }
+                    />
+                  </div>
+                ) : null}
               </div>
             </main>
 
             <aside className="mt-5 space-y-4 2xl:sticky 2xl:top-24 2xl:z-40 2xl:mt-0 2xl:max-h-[calc(100vh-7rem)] 2xl:w-[320px] 2xl:overflow-y-auto">
-              <div className="rounded-[24px] border border-blue-500/15 bg-white/80 px-5 py-4 text-center shadow-sm backdrop-blur">
+              <div
+                className="rounded-[24px] border px-5 py-4 text-center shadow-sm backdrop-blur"
+                style={{
+                  borderColor:
+                    "color-mix(in srgb, var(--exam-accent) 20%, transparent)",
+                  backgroundColor:
+                    "color-mix(in srgb, var(--exam-surface) 88%, transparent)",
+                }}
+              >
                 <p className="text-muted2 text-xs">Tiempo restante</p>
-                <p className="text-3xl font-black tabular-nums text-blue-500">
+                <p
+                  className="text-3xl font-black tabular-nums"
+                  style={{ color: "var(--exam-accent)" }}
+                >
                   {fmt(timeLeft)}
                 </p>
                 <p className="mt-1 block text-xs font-semibold text-muted2">
@@ -1517,151 +1626,170 @@ export default function ExamenPublicoPage() {
                 ) : null}
               </div>
 
-              <div className="rounded-[28px] border border-medium bg-card-soft-theme p-5 shadow-sm">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <div>
-                  <h3 className="text-sm font-black text-main">Navegación</h3>
-                  <p className="text-xs text-muted2">Avanza a tu ritmo y revisa antes de entregar.</p>
+              <div className="exam-themed-soft rounded-[28px] border p-5 shadow-sm">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-black text-main">Navegación</h3>
+                    <p className="text-xs text-muted2">
+                      Avanza a tu ritmo y revisa antes de entregar.
+                    </p>
+                  </div>
+                  <span
+                    className="rounded-full px-3 py-1 text-xs font-black"
+                    style={{
+                      backgroundColor: "var(--exam-accent-soft)",
+                      color: "var(--exam-accent)",
+                    }}
+                  >
+                    {curQ + 1}/{totalQ}
+                  </span>
                 </div>
-                <span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs font-black text-blue-600">{curQ + 1}/{totalQ}</span>
-              </div>
 
-              <div className="grid grid-cols-5 gap-2 mb-6">
-                {qs.map((_: any, i: number) => {
-                  const answered =
-                    isNotebookQuestion(qs[i])
-                      ? Boolean(mcAnswers[i] !== undefined || devAnswers[i]?.trim() || developmentArtifacts[i]?.latex?.trim())
+                <div className="grid grid-cols-5 gap-2 mb-6">
+                  {qs.map((_: any, i: number) => {
+                    const answered = isNotebookQuestion(qs[i])
+                      ? Boolean(
+                          mcAnswers[i] !== undefined ||
+                          devAnswers[i]?.trim() ||
+                          developmentArtifacts[i]?.latex?.trim(),
+                        )
                       : qs[i]?.type === "true_false"
                         ? mcAnswers[i] !== undefined ||
                           Boolean(tfJustifications[i]?.trim())
                         : mcAnswers[i] !== undefined;
 
-                  return (
-                    <button
-                      key={i}
-                      onClick={() => void goToQuestion(i)}
-                      className={`h-10 rounded-xl text-sm font-bold border transition ${
-                        curQ === i
-                          ? "border-blue-500 bg-blue-500/15 text-blue-700"
-                          : answered
-                            ? "border-green-500/30 bg-green-500/10 text-green-700"
-                            : "border-medium bg-card-soft-theme text-sub"
-                      }`}
-                    >
-                      {i + 1}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {developmentSaveStatus && (
-                <p className={`mb-3 rounded-xl px-3 py-2 text-xs font-semibold ${developmentSaveStatus.startsWith("⚠️") ? "bg-rose-50 text-rose-700" : "bg-emerald-50 text-emerald-700"}`}>
-                  {developmentSaving ? "💾 " : ""}{developmentSaveStatus}
-                </p>
-              )}
-
-              <div className="space-y-3">
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => void goToQuestion(Math.max(0, curQ - 1))}
-                    disabled={curQ === 0}
-                    className="flex-1 py-2.5 rounded-2xl bg-card-soft-theme border border-soft text-main text-sm disabled:opacity-30 transition-all"
-                  >
-                    ← Anterior
-                  </button>
-                  <button
-                    onClick={() => void goToQuestion(Math.min(totalQ - 1, curQ + 1))}
-                    disabled={curQ === totalQ - 1}
-                    className="flex-1 py-2.5 rounded-2xl text-white font-bold text-sm transition-all disabled:opacity-30"
-                    style={{
-                      background:
-                        curQ === totalQ - 1
-                          ? undefined
-                          : "linear-gradient(135deg,#2563eb,#3b82f6)",
-                      boxShadow:
-                        curQ === totalQ - 1
-                          ? undefined
-                          : "0 2px 12px rgba(37,99,235,0.35)",
-                    }}
-                  >
-                    Siguiente →
-                  </button>
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => void goToQuestion(i)}
+                        className={`h-10 rounded-xl text-sm font-bold border transition ${
+                          curQ === i
+                            ? "border-[var(--exam-accent)] bg-[var(--exam-accent-soft)] text-[var(--exam-accent)]"
+                            : answered
+                              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700"
+                              : "border-[var(--exam-border)] bg-[var(--exam-surface)] text-[var(--exam-text-sub)]"
+                        }`}
+                      >
+                        {i + 1}
+                      </button>
+                    );
+                  })}
                 </div>
 
-                {/* Confirm submit overlay */}
-                {confirmSubmit ? (
-                  <div className="rounded-2xl border border-amber-300 bg-amber-50 p-3 space-y-2">
-                    <p className="text-xs font-bold text-amber-800 text-center">
-                      ¿Seguro que quieres entregar?
-                    </p>
-                    <p className="text-[11px] text-amber-700 text-center">
-                      {answeredCount < totalQ
-                        ? `⚠️ Te faltan ${totalQ - answeredCount} preguntas sin responder.`
-                        : "✓ Todas las preguntas respondidas."}
-                    </p>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setConfirmSubmit(false)}
-                        className="flex-1 py-2 rounded-xl border border-amber-300 text-amber-800 text-xs font-semibold transition-all hover:bg-amber-100"
-                      >
-                        Seguir revisando
-                      </button>
-                      <button
-                        onClick={() => {
-                          setConfirmSubmit(false);
-                          void doSubmit("manual");
-                        }}
-                        className="flex-1 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-all"
-                      >
-                        Sí, entregar
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setConfirmSubmit(true)}
-                    disabled={curQ < totalQ - 1}
-                    className="w-full py-3 rounded-2xl font-bold text-sm transition-all"
-                    style={{
-                      background:
-                        curQ < totalQ - 1
-                          ? "var(--bg-card-soft)"
-                          : "linear-gradient(135deg,#dc2626,#ef4444)",
-                      border:
-                        curQ < totalQ - 1
-                          ? "1px solid var(--border-soft)"
-                          : "none",
-                      color: curQ < totalQ - 1 ? "var(--text-muted)" : "white",
-                      boxShadow:
-                        curQ < totalQ - 1
-                          ? "none"
-                          : "0 4px 16px rgba(220,38,38,0.4)",
-                      cursor: curQ < totalQ - 1 ? "not-allowed" : "pointer",
-                    }}
-                    title={
-                      curQ < totalQ - 1
-                        ? "Llega a la última pregunta para poder entregar"
-                        : ""
-                    }
+                {developmentSaveStatus && (
+                  <p
+                    className={`mb-3 rounded-xl px-3 py-2 text-xs font-semibold ${developmentSaveStatus.startsWith("⚠️") ? "bg-rose-50 text-rose-700" : "bg-emerald-50 text-emerald-700"}`}
                   >
-                    {curQ < totalQ - 1
-                      ? `📋 Llega a la pregunta ${totalQ} para entregar`
-                      : "🔴 Entregar examen"}
-                  </button>
+                    {developmentSaving ? "💾 " : ""}
+                    {developmentSaveStatus}
+                  </p>
                 )}
-              </div>
 
-              <div className="mt-6 text-xs text-muted2">
-                <p>
-                  Alumno: <span className="text-sub">{name || "—"}</span>
-                </p>
-                <p className="mt-1">
-                  Curso: <span className="text-sub">{course || "—"}</span>
-                </p>
-                <p className="mt-1">
-                  RUT: <span className="text-sub">{rut || "—"}</span>
-                </p>
-              </div>
+                <div className="space-y-3">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => void goToQuestion(Math.max(0, curQ - 1))}
+                      disabled={curQ === 0}
+                      className="flex-1 py-2.5 rounded-2xl bg-card-soft-theme border border-soft text-main text-sm disabled:opacity-30 transition-all"
+                    >
+                      ← Anterior
+                    </button>
+                    <button
+                      onClick={() =>
+                        void goToQuestion(Math.min(totalQ - 1, curQ + 1))
+                      }
+                      disabled={curQ === totalQ - 1}
+                      className="flex-1 py-2.5 rounded-2xl text-white font-bold text-sm transition-all disabled:opacity-30"
+                      style={{
+                        background:
+                          curQ === totalQ - 1
+                            ? undefined
+                            : "linear-gradient(135deg,var(--exam-accent),color-mix(in srgb, var(--exam-accent) 72%, white))",
+                        boxShadow:
+                          curQ === totalQ - 1
+                            ? undefined
+                            : "0 2px 12px color-mix(in srgb, var(--exam-accent) 28%, transparent)",
+                      }}
+                    >
+                      Siguiente →
+                    </button>
+                  </div>
+
+                  {/* Confirm submit overlay */}
+                  {confirmSubmit ? (
+                    <div className="rounded-2xl border border-amber-300 bg-amber-50 p-3 space-y-2">
+                      <p className="text-xs font-bold text-amber-800 text-center">
+                        ¿Seguro que quieres entregar?
+                      </p>
+                      <p className="text-[11px] text-amber-700 text-center">
+                        {answeredCount < totalQ
+                          ? `⚠️ Te faltan ${totalQ - answeredCount} preguntas sin responder.`
+                          : "✓ Todas las preguntas respondidas."}
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setConfirmSubmit(false)}
+                          className="flex-1 py-2 rounded-xl border border-amber-300 text-amber-800 text-xs font-semibold transition-all hover:bg-amber-100"
+                        >
+                          Seguir revisando
+                        </button>
+                        <button
+                          onClick={() => {
+                            setConfirmSubmit(false);
+                            void doSubmit("manual");
+                          }}
+                          className="flex-1 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-all"
+                        >
+                          Sí, entregar
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setConfirmSubmit(true)}
+                      disabled={curQ < totalQ - 1}
+                      className="w-full py-3 rounded-2xl font-bold text-sm transition-all"
+                      style={{
+                        background:
+                          curQ < totalQ - 1
+                            ? "var(--exam-soft-bg)"
+                            : "linear-gradient(135deg,#dc2626,#ef4444)",
+                        border:
+                          curQ < totalQ - 1
+                            ? "1px solid var(--exam-border)"
+                            : "none",
+                        color:
+                          curQ < totalQ - 1 ? "var(--exam-muted)" : "white",
+                        boxShadow:
+                          curQ < totalQ - 1
+                            ? "none"
+                            : "0 4px 16px rgba(220,38,38,0.4)",
+                        cursor: curQ < totalQ - 1 ? "not-allowed" : "pointer",
+                      }}
+                      title={
+                        curQ < totalQ - 1
+                          ? "Llega a la última pregunta para poder entregar"
+                          : ""
+                      }
+                    >
+                      {curQ < totalQ - 1
+                        ? `📋 Llega a la pregunta ${totalQ} para entregar`
+                        : "🔴 Entregar examen"}
+                    </button>
+                  )}
+                </div>
+
+                <div className="mt-6 text-xs text-muted2">
+                  <p>
+                    Alumno: <span className="text-sub">{name || "—"}</span>
+                  </p>
+                  <p className="mt-1">
+                    Curso: <span className="text-sub">{course || "—"}</span>
+                  </p>
+                  <p className="mt-1">
+                    RUT: <span className="text-sub">{rut || "—"}</span>
+                  </p>
+                </div>
               </div>
             </aside>
           </div>
