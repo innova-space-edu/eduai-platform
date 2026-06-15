@@ -2,12 +2,20 @@
 
 import { useEffect } from "react";
 
+const INSTRUCTIONS_TEXTAREA_ATTR = "data-eduai-edit-instructions-textarea";
+const FETCH_PATCH_ATTR = "__eduaiExamInstructionsFetchPatched";
+
 function text(el: Element | null) {
   return (el?.textContent || "").replace(/\s+/g, " ").trim();
 }
 
 function path() {
   return typeof window === "undefined" ? "" : window.location.pathname;
+}
+
+function currentEditExamId() {
+  const match = path().match(/^\/examen\/editar\/([^/?#]+)/);
+  return match ? decodeURIComponent(match[1]) : "";
 }
 
 function autoCloseCreateDesign() {
@@ -59,6 +67,87 @@ function autoCollapseEditColors() {
     toggle.textContent = open ? "Cerrar colores ↑" : "Abrir colores ↓";
   });
   row.appendChild(toggle);
+}
+
+function installInstructionsSavePatch() {
+  if (typeof window === "undefined") return;
+  const w = window as typeof window & Record<string, unknown>;
+  if (w[FETCH_PATCH_ATTR]) return;
+
+  const originalFetch = window.fetch.bind(window);
+  w[FETCH_PATCH_ATTR] = true;
+
+  window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    try {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+      const method = String(init?.method || "GET").toUpperCase();
+      const body = init?.body;
+
+      if (
+        path().startsWith("/examen/editar/") &&
+        method === "POST" &&
+        url.includes("/api/agents/examen-docente") &&
+        typeof body === "string"
+      ) {
+        const payload = JSON.parse(body);
+        if (payload?.action === "update") {
+          const textarea = document.querySelector(
+            `[${INSTRUCTIONS_TEXTAREA_ATTR}="true"]`,
+          ) as HTMLTextAreaElement | null;
+          if (textarea) {
+            init = {
+              ...init,
+              body: JSON.stringify({ ...payload, instructions: textarea.value }),
+            };
+          }
+        }
+      }
+    } catch {
+      // Si no es JSON o no corresponde a guardar examen, se envía sin cambios.
+    }
+
+    return originalFetch(input, init);
+  };
+}
+
+async function enhanceEditInstructionsTextarea() {
+  const examId = currentEditExamId();
+  if (!examId) return;
+  installInstructionsSavePatch();
+
+  const label = findByText("label", "Instrucciones para los estudiantes");
+  const container = label?.parentElement as HTMLElement | null;
+  if (!container || container.dataset.eduaiInstructionsReady === "true") return;
+
+  const originalInput = container.querySelector("input") as HTMLInputElement | null;
+  if (!originalInput) return;
+
+  container.dataset.eduaiInstructionsReady = "true";
+  originalInput.style.display = "none";
+
+  const textarea = document.createElement("textarea");
+  textarea.setAttribute(INSTRUCTIONS_TEXTAREA_ATTR, "true");
+  textarea.value = originalInput.value || "";
+  textarea.placeholder = "Ej: Lee atentamente y responde.\nNo puedes usar apuntes.\nNo uses otras páginas web.";
+  textarea.rows = 5;
+  textarea.className =
+    "w-full min-h-[120px] bg-card-soft-theme border border-soft rounded-xl px-3 py-2 text-sm leading-relaxed focus:outline-none focus:border-blue-500/30 resize-y";
+
+  const help = document.createElement("p");
+  help.className = "mt-2 text-[11px] text-muted2";
+  help.textContent = "Usa Enter para separar instrucciones en líneas. Se guardarán con esos saltos de línea.";
+
+  originalInput.insertAdjacentElement("afterend", textarea);
+  textarea.insertAdjacentElement("afterend", help);
+
+  try {
+    const response = await fetch(`/api/agents/examen-docente?examId=${encodeURIComponent(examId)}`);
+    const data = await response.json().catch(() => ({}));
+    const instructions = String(data?.exam?.instructions || "");
+    if (instructions) textarea.value = instructions;
+  } catch {
+    // Si falla la carga secundaria, se mantiene el valor visible actual.
+  }
 }
 
 async function showPublicInstructions() {
@@ -113,6 +202,7 @@ export default function ExamUiPolish() {
     const run = () => {
       autoCloseCreateDesign();
       autoCollapseEditColors();
+      void enhanceEditInstructionsTextarea();
       void showPublicInstructions();
     };
     const schedule = () => {
