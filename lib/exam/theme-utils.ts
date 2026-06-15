@@ -37,6 +37,8 @@ export interface ExamCustomColors {
   accentSoft?: string;
   success?: string;
   warning?: string;
+  progress?: string;
+  progressTrack?: string;
 }
 
 export interface ExamStyleSettings {
@@ -332,6 +334,8 @@ const CUSTOM_COLOR_VAR_MAP: Record<keyof ExamCustomColors, string> = {
   accentSoft: "--exam-accent-soft",
   success: "--exam-success",
   warning: "--exam-warning",
+  progress: "--exam-progress",
+  progressTrack: "--exam-progress-track",
 };
 
 function normalizeSafeColor(value?: string) {
@@ -391,6 +395,8 @@ export function resolveExamStyle(settings?: ExamStyleSettings): ResolvedExamStyl
 
   const customVars = resolveCustomColorVars(settings);
   const cssVars = { ...baseVars, ...extraVars, ...customVars };
+  cssVars["--exam-progress"] = cssVars["--exam-progress"] || cssVars["--exam-accent"] || "#2f7f7b";
+  cssVars["--exam-progress-track"] = cssVars["--exam-progress-track"] || cssVars["--exam-soft-bg"] || "#eafaf4";
   const bodyClasses: string[] = [];
   if (access.dyslexiaMode) bodyClasses.push("exam-dyslexia");
   if (access.adhdMode) bodyClasses.push("exam-adhd");
