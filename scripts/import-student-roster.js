@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /*
-  Importa un listado exportado como .xls HTML desde el libro de clases.
+  Importa un listado de alumnos exportado como .xls HTML desde el libro de clases.
   Uso:
     node scripts/import-student-roster.js ./listado_alumnos.xls "1° Medio A" 2026
 
-  Requiere:
+  Requiere variables:
     NEXT_PUBLIC_SUPABASE_URL
     SUPABASE_SERVICE_ROLE_KEY
 */
@@ -30,9 +30,19 @@ if (!supabaseUrl || !serviceKey) {
 function decodeHtml(value) {
   return String(value || '')
     .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
+    .replace(/&aacute;/g, 'á')
+    .replace(/&eacute;/g, 'é')
+    .replace(/&iacute;/g, 'í')
+    .replace(/&oacute;/g, 'ó')
+    .replace(/&uacute;/g, 'ú')
+    .replace(/&Aacute;/g, 'Á')
+    .replace(/&Eacute;/g, 'É')
+    .replace(/&Iacute;/g, 'Í')
+    .replace(/&Oacute;/g, 'Ó')
+    .replace(/&Uacute;/g, 'Ú')
     .replace(/&ntilde;/g, 'ñ')
     .replace(/&Ntilde;/g, 'Ñ')
+    .replace(/&amp;/g, '&')
     .replace(/<[^>]+>/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
@@ -87,7 +97,9 @@ async function main() {
   const raw = fs.readFileSync(file)
   const html = raw.toString('latin1')
   const rows = parseRows(html)
-  if (!rows.length) throw new Error('No se encontraron estudiantes en el archivo')
+  if (!rows.length) {
+    throw new Error('No se encontraron estudiantes en el archivo')
+  }
 
   const supabase = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } })
   const { error } = await supabase
