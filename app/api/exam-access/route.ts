@@ -26,15 +26,6 @@ function normalizeRutClean(value: unknown) {
   return String(value || "").toUpperCase().replace(/[^0-9K]/g, "").slice(0, 9)
 }
 
-function normalizeName(value: unknown) {
-  return String(value || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toUpperCase()
-    .replace(/[^A-Z0-9]+/g, " ")
-    .trim()
-}
-
 function hashCode(value: unknown) {
   return createHash("sha256")
     .update("eduai-exam-access:")
@@ -58,6 +49,15 @@ function maskRut(value: unknown) {
   return `••.•••.${clean.slice(-4, -1)}-${clean.slice(-1)}`
 }
 
+function isStillValid(expiresAt: unknown) {
+  return new Date(String(expiresAt || "")).getTime() > Date.now()
+}
+
+function secondsLeft(expiresAt: unknown) {
+  const ms = new Date(String(expiresAt || "")).getTime() - Date.now()
+  return Math.max(0, Math.floor(ms / 1000))
+}
+
 async function getUser(req: NextRequest) {
   const header = req.headers.get("authorization") || ""
   const token = header.startsWith("Bearer ") ? header.slice(7) : ""
@@ -78,10 +78,40 @@ async function proxyToExamRoute(req: NextRequest, payload: any) {
   })
 }
 
+async function expireElapsedCodes(examId?: string, studentId?: string) {
+  const now = new Date().toISOString()
+  let query = admin
+    .from("exam_access_codes")
+    .update({ status: "expired", code_value: null })
+    .in("status", ["active", "used"])
+    .lt("expires_at", now)
+
+  if (examId) query = query.eq("exam_id", examId)
+  if (studentId) query = query.eq("student_id", studentId)
+
+  const { error } = await query
+  if (error) throw error
+}
+
+function codeForTeacher(row: any) {
+  const valid = isStillValid(row?.expires_at)
+  const status = valid ? row.status : "expired"
+  const canReveal = valid && ["active", "used"].includes(String(row.status)) && Boolean(row.code_value)
+  const { code_value, ...safeRow } = row
+
+  return {
+    ...safeRow,
+    status,
+    code: canReveal ? code_value : null,
+    remainingSeconds: valid ? secondsLeft(row.expires_at) : 0,
+    expired: !valid,
+  }
+}
+
 async function getAccessRow(examId: string, accessCode: string) {
   const { data: row, error } = await admin
     .from("exam_access_codes")
-    .select("id, exam_id, student_id, course, student_name, status, expires_at, used_at, used_client_attempt_id")
+    .select("id, exam_id, student_id, course, student_name, status, expires_at, used_at, used_client_attempt_id, code_value")
     .eq("exam_id", examId)
     .eq("code_hash", hashCode(accessCode))
     .maybeSingle()
@@ -93,8 +123,8 @@ async function getAccessRow(examId: string, accessCode: string) {
     return { error: "Este código ya no está activo", status: 403 as const }
   }
 
-  if (new Date(row.expires_at).getTime() < Date.now()) {
-    await admin.from("exam_access_codes").update({ status: "expired" }).eq("id", row.id)
+  if (!isStillValid(row.expires_at)) {
+    await admin.from("exam_access_codes").update({ status: "expired", code_value: null }).eq("id", row.id)
     return { error: "Este código venció. Solicita uno nuevo al docente", status: 403 as const }
   }
 
@@ -161,6 +191,8 @@ export async function POST(req: NextRequest) {
         const expiresMinutes = Math.min(180, Math.max(10, Number(body.expiresMinutes || 45)))
         if (!examId || !studentId) return respond({ success: false, error: "Falta examen o estudiante" }, 400)
 
+        await expireElapsedCodes(examId, studentId)
+
         const { data: exam, error: examError } = await admin
           .from("teacher_exams")
           .select("id, teacher_id, title, status")
@@ -177,9 +209,47 @@ export async function POST(req: NextRequest) {
         if (participantError) throw participantError
         if (!participant || participant.active !== true) return respond({ success: false, error: "Estudiante no disponible" }, 404)
 
+        const { data: reusable, error: reusableError } = await admin
+          .from("exam_access_codes")
+          .select("id, code_value, code_hint, status, expires_at, used_at, created_at")
+          .eq("exam_id", examId)
+          .eq("student_id", studentId)
+          .in("status", ["active", "used"])
+          .gt("expires_at", new Date().toISOString())
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        if (reusableError) throw reusableError
+
+        if (reusable?.code_value) {
+          await admin.from("exam_access_code_audit").insert({
+            exam_id: examId,
+            student_id: studentId,
+            access_code_id: reusable.id,
+            event_type: "viewed_existing",
+            event_detail: { status: reusable.status, remainingSeconds: secondsLeft(reusable.expires_at) },
+            created_by: user.id,
+          })
+
+          return respond({
+            success: true,
+            reused: true,
+            code: reusable.code_value,
+            expiresAt: reusable.expires_at,
+            remainingSeconds: secondsLeft(reusable.expires_at),
+            status: reusable.status,
+            student: {
+              id: participant.id,
+              studentName: participant.student_name,
+              course: participant.course,
+              rutMasked: maskRut(participant.rut),
+            },
+          })
+        }
+
         await admin
           .from("exam_access_codes")
-          .update({ status: "revoked" })
+          .update({ status: "revoked", code_value: null })
           .eq("exam_id", examId)
           .eq("student_id", studentId)
           .eq("status", "active")
@@ -206,6 +276,7 @@ export async function POST(req: NextRequest) {
             course: participant.course,
             student_name: participant.student_name,
             code_hash: codeHash,
+            code_value: code,
             code_hint: code.slice(-4),
             expires_at: expiresAt,
             created_by: user.id,
@@ -225,8 +296,11 @@ export async function POST(req: NextRequest) {
 
         return respond({
           success: true,
+          reused: false,
           code,
           expiresAt: created.expires_at,
+          remainingSeconds: secondsLeft(created.expires_at),
+          status: "active",
           student: {
             id: participant.id,
             studentName: participant.student_name,
@@ -246,20 +320,22 @@ export async function POST(req: NextRequest) {
         if (examError) throw examError
         if (!exam || exam.teacher_id !== user.id) return respond({ success: false, error: "No autorizado" }, 403)
 
+        await expireElapsedCodes(examId)
+
         const { data, error } = await admin
           .from("exam_access_codes")
-          .select("id, student_name, course, code_hint, status, expires_at, used_at, created_at")
+          .select("id, student_name, course, code_hint, code_value, status, expires_at, used_at, created_at")
           .eq("exam_id", examId)
           .order("created_at", { ascending: false })
           .limit(50)
         if (error) throw error
-        return respond({ success: true, codes: data || [] })
+        return respond({ success: true, codes: (data || []).map(codeForTeacher) })
       }
 
       if (action === "revoke_code") {
         const codeId = String(body.codeId || "")
         if (!codeId) return respond({ success: false, error: "Falta código" }, 400)
-        await admin.from("exam_access_codes").update({ status: "revoked" }).eq("id", codeId)
+        await admin.from("exam_access_codes").update({ status: "revoked", code_value: null }).eq("id", codeId)
         return respond({ success: true })
       }
     }
