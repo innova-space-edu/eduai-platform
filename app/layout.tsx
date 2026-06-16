@@ -5,6 +5,7 @@ import SuperAgentButton from "@/components/ui/SuperAgentButton"
 import { ThemeProvider } from "@/components/theme-provider"
 import { MusicProvider } from "@/components/music/MusicProvider"
 import ExamUiPolish from "@/components/exam/ExamUiPolish"
+import EditExamTimeButton from "@/components/exam/EditExamTimeButton"
 
 export const metadata: Metadata = {
   title: "EduAI Platform",
@@ -27,6 +28,7 @@ export default function RootLayout({
           <MusicProvider>
             {children}
             <ExamUiPolish />
+            <EditExamTimeButton />
             <SupportButton />
             <SuperAgentButton />
           </MusicProvider>
