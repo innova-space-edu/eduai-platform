@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const BASIC_BUTTONS = [
   "7", "8", "9", "÷", "DEL",
@@ -12,17 +12,59 @@ const BASIC_BUTTONS = [
 const SCIENCE_BUTTONS = [
   "sin", "cos", "tan", "√",
   "log", "ln", "x²", "^",
-  "ANS", "%", "e", "=",
+  "!", "ANS", "%", "e",
+  "=",
 ];
 
+function transformFactorials(input: string) {
+  let expression = input;
+
+  while (expression.includes("!")) {
+    const bangIndex = expression.indexOf("!");
+    const left = expression.slice(0, bangIndex);
+    const right = expression.slice(bangIndex + 1);
+
+    let end = left.length - 1;
+    while (end >= 0 && /\s/.test(left[end])) end--;
+    if (end < 0) throw new Error("Factorial incompleto");
+
+    let start = end;
+
+    if (left[end] === ")") {
+      let depth = 0;
+      for (let i = end; i >= 0; i--) {
+        if (left[i] === ")") depth++;
+        if (left[i] === "(") depth--;
+        if (depth === 0) {
+          start = i;
+          break;
+        }
+      }
+      if (depth !== 0) throw new Error("Paréntesis incompletos en factorial");
+    } else {
+      while (start >= 0 && /[0-9.]/.test(left[start])) start--;
+      start++;
+      if (start > end) throw new Error("Factorial requiere un número o paréntesis");
+    }
+
+    const before = left.slice(0, start);
+    const operand = left.slice(start, end + 1);
+    expression = `${before}fact(${operand})${right}`;
+  }
+
+  return expression;
+}
+
 function normalizeExpression(input: string) {
-  const expression = input
-    .replace(/×/g, "*")
-    .replace(/÷/g, "/")
-    .replace(/π/g, "PI")
-    .replace(/√\s*\(/g, "sqrt(")
-    .replace(/√\s*([0-9.]+)/g, "sqrt($1)")
-    .replace(/\^/g, "**");
+  const expression = transformFactorials(
+    input
+      .replace(/×/g, "*")
+      .replace(/÷/g, "/")
+      .replace(/π/g, "PI")
+      .replace(/√\s*\(/g, "sqrt(")
+      .replace(/√\s*([0-9.]+)/g, "sqrt($1)")
+      .replace(/\^/g, "**")
+  );
 
   if (!expression.trim()) return "0";
 
@@ -33,7 +75,7 @@ function normalizeExpression(input: string) {
   const allowedNames = new Set([
     "sin", "cos", "tan", "asin", "acos", "atan",
     "sqrt", "log", "ln", "abs", "floor", "ceil", "round",
-    "PI", "E",
+    "fact", "PI", "E",
   ]);
 
   const names = expression.match(/[A-Za-z_][A-Za-z0-9_]*/g) ?? [];
@@ -44,6 +86,20 @@ function normalizeExpression(input: string) {
   }
 
   return expression;
+}
+
+function factorial(value: number) {
+  if (!Number.isInteger(value) || value < 0) {
+    throw new Error("El factorial solo acepta enteros positivos");
+  }
+
+  if (value > 170) {
+    throw new Error("Factorial demasiado grande");
+  }
+
+  let result = 1;
+  for (let i = 2; i <= value; i++) result *= i;
+  return result;
 }
 
 function safeCalculate(input: string): number {
@@ -62,6 +118,7 @@ function safeCalculate(input: string): number {
     floor: Math.floor,
     ceil: Math.ceil,
     round: Math.round,
+    fact: factorial,
     PI: Math.PI,
     E: Math.E,
   };
@@ -114,7 +171,7 @@ export default function ExamScientificCalculator() {
         setDisplay(result);
         setLastResult(result);
       } catch {
-        setError("No se pudo calcular. Revisa paréntesis o símbolos.");
+        setError("No se pudo calcular. Revisa paréntesis, factorial o símbolos.");
       }
       return;
     }
@@ -137,6 +194,42 @@ export default function ExamScientificCalculator() {
       return replaceInitialZero ? next : prev + next;
     });
   }
+
+  useEffect(() => {
+    if (!open) return;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      const target = event.target as HTMLElement | null;
+      const tag = target?.tagName?.toLowerCase();
+
+      if (tag === "input" || tag === "textarea" || tag === "select" || target?.isContentEditable) {
+        return;
+      }
+
+      const key = event.key;
+      let buttonValue = "";
+
+      if (/^[0-9]$/.test(key)) buttonValue = key;
+      else if (key === "." || key === ",") buttonValue = ".";
+      else if (["+", "-", "^", "%", "!", "(", ")"].includes(key)) buttonValue = key;
+      else if (key === "*" || key.toLowerCase() === "x") buttonValue = "×";
+      else if (key === "/") buttonValue = "÷";
+      else if (key === "Backspace") buttonValue = "DEL";
+      else if (key === "Delete") buttonValue = "AC";
+      else if (key === "Enter" || key === "=") buttonValue = "=";
+      else if (key === "Escape") {
+        setOpen(false);
+        return;
+      }
+
+      if (!buttonValue) return;
+      event.preventDefault();
+      append(buttonValue);
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open, lastResult, display]);
 
   return (
     <div className="fixed left-3 top-28 z-[70] print:hidden md:left-5">
@@ -175,7 +268,9 @@ export default function ExamScientificCalculator() {
             <p className="min-h-8 break-all font-mono text-2xl font-black tabular-nums text-emerald-300">
               {display}
             </p>
-            <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">RAD · científica</p>
+            <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+              RAD · teclado numérico activo · factorial !
+            </p>
           </div>
 
           {error ? (
@@ -212,7 +307,9 @@ export default function ExamScientificCalculator() {
                 className={`rounded-2xl px-2 py-2.5 text-xs font-black transition active:scale-95 ${
                   btn === "="
                     ? "bg-emerald-600 text-white hover:bg-emerald-500"
-                    : "bg-violet-50 text-violet-700 hover:bg-violet-100"
+                    : btn === "!"
+                      ? "bg-amber-50 text-amber-700 hover:bg-amber-100"
+                      : "bg-violet-50 text-violet-700 hover:bg-violet-100"
                 }`}
               >
                 {btn}
@@ -221,7 +318,7 @@ export default function ExamScientificCalculator() {
           </div>
 
           <p className="text-[10px] leading-relaxed text-slate-500">
-            Funciones trigonométricas en radianes. Usa paréntesis para operaciones largas.
+            Puedes escribir con teclado físico: números, +, -, *, /, ^, %, !, paréntesis, Enter, Backspace y Delete. Ejemplo: 2! = 2.
           </p>
         </div>
       </div>
