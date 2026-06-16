@@ -537,11 +537,50 @@ OpenRouter
 Gemini 2.5 Flash
 ```
 
-**Características:** alternativas · verdadero/falso · desarrollo · LaTeX con KaTeX · escala MINEDUC 1.0–7.0 · timer configurable · evaluación IA con puntaje parcial · PDF del estudiante · dashboard docente con análisis pedagógico · temas visuales tipo Canva · modo PIE/NEE · narración de preguntas.
+**Características:** alternativas · verdadero/falso · desarrollo · LaTeX con KaTeX · escala MINEDUC 1.0–7.0 · timer configurable · evaluación IA con puntaje parcial · PDF del estudiante · dashboard docente con análisis pedagógico · temas visuales tipo Canva · modo PIE/NEE · narración de preguntas · RUT obligatorio con validación chilena · autoguardado de avance · reanudación de intento por examen + curso + RUT.
 
 ### Sistema antifraude
 
 Fullscreen obligatorio · bloqueo de teclas/clipboard · eventos de seguridad · sesiones con heartbeat · rutas admin de seguridad · semáforo de riesgo · incidencias.
+
+### Autoguardado y continuidad del examen
+
+El flujo público `/examen/p/[code]` ahora exige **nombre, curso y RUT válido** antes de iniciar. El RUT se ingresa sin puntos ni guion, acepta dígito verificador `K`, se normaliza como `student_rut_clean` para consultas y se puede mostrar formateado como `12.345.678-K`.
+
+```
+Estudiante inicia examen
+    ↓
+/api/agents/examen-docente → action: start_or_resume_attempt
+    ↓
+Busca borrador por exam_id + student_course + student_rut_clean
+    ├── Si existe: recupera respuestas, pregunta actual y tiempo restante
+    └── Si no existe: crea client_attempt_id y borrador en exam_attempt_drafts
+    ↓
+Durante el examen
+    ├── Al marcar alternativa/desarrollo: autosave_attempt
+    ├── Cada 15 segundos: autosave silencioso
+    └── Al ocultar/cerrar pestaña: autosave silencioso
+    ↓
+Al entregar
+    ├── upsert en exam_submissions por exam_id + client_attempt_id
+    ├── marca exam_attempt_drafts como submitted
+    └── enlaza exam_question_developments con submission_id
+```
+
+**Tablas involucradas:** `exam_attempt_drafts`, `exam_submissions`, `exam_question_developments`.
+
+**Garantía funcional:** si el estudiante sale por error, puede volver a ingresar con el mismo nombre, curso y RUT para continuar desde el último avance guardado. Si el intento ya fue entregado, la API bloquea nuevas modificaciones para evitar duplicados.
+
+### Acceso seguro con códigos temporales
+
+Se agregó una ruta administrativa para estudiantes que no recuerdan su RUT:
+
+```
+/admin/exam-access
+/api/exam-access
+```
+
+El docente puede seleccionar examen, curso y estudiante desde `student_roster`, generar un código temporal de un solo uso y entregarlo al estudiante. El código real no se guarda en texto plano: se almacena como `code_hash` y se audita en `exam_access_code_audit`.
 
 ### Rutas principales
 
@@ -626,6 +665,8 @@ superagent_tasks · superagent_tool_calls · superagent_skills
 music_playlists · music_playlist_tracks · music_liked_tracks
 music_recently_played · music_user_settings
 exam_admin_logs · exam_alerts · exam_device_status · exam_lockouts
+exam_attempt_drafts · exam_question_developments
+student_roster · exam_access_codes · exam_access_code_audit
 ```
 
 > Nota: algunas tablas recientes están preparadas a nivel de código/roadmap y deben crearse con SQL adicional antes de usarlas en producción completa.
@@ -639,15 +680,56 @@ chat-files       → Público (chat social)
 workspace-files  → Privado (Workspace)
 generated-images → Público (Image Studio)
 video-images     → Privado/Público según política del Video Studio
+exam-development-artifacts → Privado (desarrollos manuscritos/LaTeX de exámenes)
 ```
 
 ### Migraciones SQL verificadas en el repositorio actual
 
 ```
 supabase/migrations/20260226000000_create_spaced_repetition.sql
+supabase/migrations/20260531_complete_audio_voice_security_and_lifecycle.sql
+supabase/migrations/20260616000000_secure_student_roster_access_codes.sql
+supabase/migrations/20260616010000_exam_autosave_attempt_drafts.sql
 migration.sql       → EduAI Notebooks: 6 tablas + pgvector + RLS
 migration_bm25.sql  → EduAI Notebooks: índices GIN + BM25 RPC
+migration_qr_studio.sql → QR Studio + workspace_assets
 ```
+
+### Última actualización Supabase — exámenes con RUT y autoguardado
+
+Esta actualización deja registrada la base necesaria para que los estudiantes rindan con **RUT obligatorio**, autoguardado instantáneo y recuperación de avance. La base ya está preparada a nivel de SQL y debe ejecutarse en Supabase antes de producción si todavía no se aplicó manualmente.
+
+| Elemento | Estado | Uso |
+|----------|--------|-----|
+| `exam_attempt_drafts` | Listo en migración | Guarda respuestas parciales, pregunta actual, tiempo restante y estado del intento |
+| `exam_submissions.client_attempt_id` | Listo en migración | Evita entregas duplicadas con `upsert` por examen + intento |
+| `exam_submissions.student_rut_clean` | Listo en migración | Permite buscar/validar por RUT normalizado sin puntos ni guion |
+| `exam_question_developments` | Listo en migración | Guarda desarrollo manuscrito/LaTeX por pregunta y luego lo enlaza a la entrega |
+| `exam-development-artifacts` | Listo como bucket privado | Almacena JSON y PNG de desarrollos de estudiantes |
+| `student_roster` | Listo en migración | Nómina por año, curso, nombre y RUT limpio |
+| `exam_access_codes` | Listo en migración | Códigos temporales hash para estudiantes que no recuerdan su RUT |
+| `exam_access_code_audit` | Listo en migración | Auditoría de generación, uso y entrega con código |
+
+**Orden recomendado en Supabase SQL Editor:**
+
+```bash
+# 1. Sistema base de exámenes ya existente en producción
+#    Debe contener teacher_exams y exam_submissions.
+
+# 2. Seguridad y acceso por nómina/código
+supabase/migrations/20260616000000_secure_student_roster_access_codes.sql
+
+# 3. Autoguardado, reanudación y desarrollos manuscritos/LaTeX
+supabase/migrations/20260616010000_exam_autosave_attempt_drafts.sql
+```
+
+**Variables nuevas/recomendadas:**
+
+```env
+EXAM_ACCESS_CODE_SECRET=pon_un_secreto_largo_para_hashear_codigos
+```
+
+> Importante: las tablas nuevas se dejan con RLS activado y sin políticas públicas porque el estudiante no escribe directo en Supabase; todas las escrituras pasan por API routes con `SUPABASE_SERVICE_ROLE_KEY`.
 
 ---
 
@@ -827,10 +909,16 @@ Ejecutar en **Supabase → SQL Editor**:
 ```bash
 # Sistema base disponible en el repo actual
 supabase/migrations/20260226000000_create_spaced_repetition.sql
+supabase/migrations/20260531_complete_audio_voice_security_and_lifecycle.sql
+supabase/migrations/20260616000000_secure_student_roster_access_codes.sql
+supabase/migrations/20260616010000_exam_autosave_attempt_drafts.sql
 
 # EduAI Notebooks
 migration.sql
 migration_bm25.sql
+
+# QR Studio
+migration_qr_studio.sql
 ```
 
 Crear buckets de Storage:
@@ -842,6 +930,7 @@ generated-images → Público
 chat-files       → Público
 workspace-files  → Privado + RLS
 video-images     → Según política del Video Studio
+exam-development-artifacts → Privado
 ```
 
 Agregar admins:
@@ -960,6 +1049,10 @@ Principiante → Aprendiz → Practicante → Avanzado → Experto → Maestro
 - [x] 💬 **Chat Social de agentes** — pantalla temática y salas
 - [x] ⚡ **execute-suggested-action** — EduAI Claw ejecuta acciones detectadas
 - [x] 📋 **Examen Groq Primario** — Llama 3.3 70B primario con fallback
+- [x] 📋 **Exámenes con RUT obligatorio** — validación chilena, acepta K y normaliza RUT limpio para Supabase
+- [x] 💾 **Autoguardado de exámenes** — `start_or_resume_attempt` + `autosave_attempt` + recuperación por examen/curso/RUT
+- [x] 🗄️ **Migración Supabase de intentos** — `exam_attempt_drafts`, `exam_question_developments` y bucket privado de artefactos
+- [x] 🔐 **Códigos temporales de examen** — `student_roster`, `exam_access_codes` y auditoría con hash
 - [x] 🎨 **Sistema visual de exámenes** — temas claros, Canva, PIE/NEE y LaTeX
 - [x] 🔊 **Narración de preguntas** — `ExamAudioButton` + `tts-chunk`
 - [x] 🎨 **Image Studio v8** — cadena multi-proveedor + galería
