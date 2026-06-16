@@ -6,9 +6,49 @@ import Link from "next/link"
 
 type Exam = { id: string; title: string; topic?: string; code?: string; status?: string; created_at?: string }
 type Student = { id: string; studentName: string; course: string; rutMasked: string }
-type AccessCode = { id: string; student_name: string; course: string; code_hint: string; status: string; expires_at: string; used_at?: string; created_at: string }
+type AccessCode = {
+  id: string
+  student_name: string
+  course: string
+  code_hint: string
+  code?: string | null
+  status: string
+  expires_at: string
+  used_at?: string
+  created_at: string
+  remainingSeconds?: number
+  expired?: boolean
+}
 
 const COURSE_OPTIONS = ["1° Medio A", "1° Medio B", "2° Medio A", "2° Medio B", "3° Medio A", "3° Medio B", "4° Medio A", "4° Medio B"]
+
+function formatRemaining(seconds?: number) {
+  const safe = Math.max(0, Number(seconds || 0))
+  const min = Math.floor(safe / 60)
+  const sec = safe % 60
+  return `${min}:${String(sec).padStart(2, "0")}`
+}
+
+function statusLabel(status: string) {
+  if (status === "active") return "vigente"
+  if (status === "used") return "usado"
+  if (status === "expired") return "vencido"
+  if (status === "revoked") return "revocado"
+  return status
+}
+
+function statusClass(status: string) {
+  if (status === "active") return "bg-emerald-100 text-emerald-700"
+  if (status === "used") return "bg-blue-100 text-blue-700"
+  if (status === "expired") return "bg-amber-100 text-amber-700"
+  if (status === "revoked") return "bg-red-100 text-red-700"
+  return "bg-white text-slate-600"
+}
+
+function isGeneratedExpired(generated: any) {
+  if (!generated?.expiresAt) return false
+  return new Date(generated.expiresAt).getTime() <= Date.now()
+}
 
 export default function ExamAccessPage() {
   const supabase = createClient()
@@ -25,6 +65,7 @@ export default function ExamAccessPage() {
   const [minutes, setMinutes] = useState(45)
   const [generated, setGenerated] = useState<any>(null)
   const [busy, setBusy] = useState(false)
+  const [tick, setTick] = useState(0)
 
   async function api(body: any) {
     const res = await fetch("/api/exam-access", {
@@ -77,6 +118,18 @@ export default function ExamAccessPage() {
     void loadCodes()
   }, [sessionToken, examId])
 
+  useEffect(() => {
+    const interval = window.setInterval(() => setTick((value) => value + 1), 1000)
+    return () => window.clearInterval(interval)
+  }, [])
+
+  useEffect(() => {
+    if (!generated?.expiresAt) return
+    if (!isGeneratedExpired(generated)) return
+    setGenerated(null)
+    if (examId) void loadCodes()
+  }, [tick, generated?.expiresAt, examId])
+
   async function loadExams() {
     try {
       const data = await api({ action: "list_exams" })
@@ -124,6 +177,10 @@ export default function ExamAccessPage() {
     }
   }
 
+  const generatedRemaining = generated?.expiresAt
+    ? Math.max(0, Math.floor((new Date(generated.expiresAt).getTime() - Date.now()) / 1000))
+    : 0
+
   const filteredStudents = useMemo(() => {
     const needle = query.trim().toLowerCase()
     if (!needle) return students
@@ -142,7 +199,7 @@ export default function ExamAccessPage() {
             <p className="text-xs font-black uppercase tracking-[0.3em] text-emerald-600">Acceso seguro</p>
             <h1 className="text-3xl font-black">Códigos de examen por estudiante</h1>
             <p className="mt-2 max-w-2xl text-sm text-slate-600">
-              Usa esta pantalla cuando un estudiante no sabe su RUT. El código es temporal, se guarda como hash y no muestra el RUT al estudiante.
+              Si el código sigue vigente, se vuelve a mostrar el mismo. Cuando vence, se oculta y puedes generar uno nuevo.
             </p>
           </div>
           <Link href="/admin/exam-security" className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm">
@@ -154,7 +211,10 @@ export default function ExamAccessPage() {
 
         <section className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="text-lg font-black">Generar código de un solo uso</h2>
+            <h2 className="text-lg font-black">Ver o generar código de acceso</h2>
+            <p className="mt-1 text-xs text-slate-500">
+              Al presionar el botón, si el estudiante ya tiene un código vigente, se recupera el mismo código. Solo se crea uno nuevo si no existe o si ya venció.
+            </p>
             <div className="mt-5 grid gap-4 md:grid-cols-2">
               <label className="block">
                 <span className="mb-1 block text-xs font-black uppercase tracking-widest text-slate-500">Examen</span>
@@ -187,7 +247,7 @@ export default function ExamAccessPage() {
               </label>
 
               <label className="block">
-                <span className="mb-1 block text-xs font-black uppercase tracking-widest text-slate-500">Vigencia</span>
+                <span className="mb-1 block text-xs font-black uppercase tracking-widest text-slate-500">Vigencia si se crea uno nuevo</span>
                 <select value={minutes} onChange={(e) => setMinutes(Number(e.target.value))} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm">
                   <option value={30}>30 minutos</option>
                   <option value={45}>45 minutos</option>
@@ -197,18 +257,25 @@ export default function ExamAccessPage() {
               </label>
 
               <button onClick={generateCode} disabled={busy || !examId || !studentId} className="self-end rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-black text-white shadow-sm disabled:opacity-40">
-                {busy ? "Generando..." : "Generar código"}
+                {busy ? "Revisando..." : "Ver / generar código"}
               </button>
             </div>
 
             {generated?.code ? (
               <div className="mt-5 rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
-                <p className="text-xs font-black uppercase tracking-widest text-emerald-700">Código para entregar al estudiante</p>
+                <p className="text-xs font-black uppercase tracking-widest text-emerald-700">
+                  {generated.reused ? "Código vigente recuperado" : "Código nuevo para entregar al estudiante"}
+                </p>
                 <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <p className="font-mono text-4xl font-black tracking-widest text-emerald-950">{generated.code}</p>
                   <button onClick={() => navigator.clipboard?.writeText(generated.code)} className="rounded-2xl bg-white px-4 py-3 text-sm font-bold text-emerald-700 shadow-sm">Copiar</button>
                 </div>
-                <p className="mt-2 text-sm text-emerald-800">{generated.student?.studentName} · {generated.student?.course} · vence {new Date(generated.expiresAt).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })}</p>
+                <p className="mt-2 text-sm text-emerald-800">
+                  {generated.student?.studentName} · {generated.student?.course} · queda {formatRemaining(generatedRemaining)}
+                </p>
+                <p className="mt-1 text-xs text-emerald-700">
+                  Cuando llegue a 0:00, este cuadro se limpiará y podrás generar otro código.
+                </p>
               </div>
             ) : null}
           </div>
@@ -224,10 +291,28 @@ export default function ExamAccessPage() {
                 <div key={code.id} className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm">
                   <div className="flex items-center justify-between gap-2">
                     <p className="font-bold text-slate-900">{code.student_name}</p>
-                    <span className="rounded-full bg-white px-2 py-1 text-[11px] font-black uppercase text-slate-600">{code.status}</span>
+                    <span className={`rounded-full px-2 py-1 text-[11px] font-black uppercase ${statusClass(code.status)}`}>
+                      {statusLabel(code.status)}
+                    </span>
                   </div>
-                  <p className="mt-1 text-xs text-slate-500">Curso: {code.course} · Código termina en {code.code_hint || "----"}</p>
-                  <p className="mt-1 text-xs text-slate-500">Vence: {new Date(code.expires_at).toLocaleString("es-CL")}</p>
+                  <p className="mt-1 text-xs text-slate-500">Curso: {code.course}</p>
+                  {code.code ? (
+                    <div className="mt-2 flex flex-col gap-2 rounded-2xl border border-emerald-100 bg-white px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Código visible mientras esté vigente</p>
+                        <p className="font-mono text-lg font-black tracking-widest text-emerald-950">{code.code}</p>
+                      </div>
+                      <button onClick={() => navigator.clipboard?.writeText(code.code || "")} className="rounded-xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700">
+                        Copiar
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="mt-1 text-xs text-slate-500">Código oculto · termina en {code.code_hint || "----"}</p>
+                  )}
+                  <p className="mt-1 text-xs text-slate-500">
+                    {code.status === "expired" ? "Venció" : "Vence"}: {new Date(code.expires_at).toLocaleString("es-CL")}
+                    {code.remainingSeconds ? ` · queda ${formatRemaining(code.remainingSeconds)}` : ""}
+                  </p>
                 </div>
               ))}
             </div>
