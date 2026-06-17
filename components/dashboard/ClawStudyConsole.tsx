@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowRight, Bot, BookOpen, FileQuestion, ImageIcon, Loader2, MapPinned, PenLine, Search, Send, Sparkles } from "lucide-react"
+import { ArrowRight, Bot, BookOpen, FileQuestion, ImageIcon, Loader2, PenLine, Search, Send, Sparkles } from "lucide-react"
 
 type Role = "user" | "assistant"
 type Message = { role: Role; content: string }
