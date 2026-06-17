@@ -23,12 +23,36 @@ function normalizeAnswer(answer: any) {
   return {
     ...answer,
     // Para la evaluación automática se envía una lectura humana. El LaTeX original
-    // ya queda guardado en el artefacto del cuaderno y se puede revisar desde resultados.
+    // queda guardado como fuente para revisión docente, pero no se envía como código crudo.
     devText: readable || answer.devText || displayLatex,
     developmentLatex: "",
     developmentLatexSource: latex,
     developmentRenderedText: displayLatex,
   }
+}
+
+async function tryRescoreSubmission(originalFetch: typeof fetch, data: any) {
+  const submissionId = data?.submission?.id
+  if (!submissionId) return data
+
+  try {
+    const res = await originalFetch("/api/agents/exam-math-rescore", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ submissionId }),
+    })
+    const rescored = await res.json().catch(() => ({}))
+    if (res.ok && rescored?.success && rescored?.submission) {
+      return {
+        ...data,
+        submission: rescored.submission,
+      }
+    }
+  } catch {
+    // Si el recalculo no está disponible, se usa la respuesta original.
+  }
+
+  return data
 }
 
 export default function ExamLatexAnswerFix() {
@@ -78,7 +102,16 @@ export default function ExamLatexAnswerFix() {
               ...body,
               answers: body.answers.map(normalizeAnswer),
             }
-            return originalFetch(input, { ...init, body: JSON.stringify(nextBody) })
+            const response = await originalFetch(input, { ...init, body: JSON.stringify(nextBody) })
+            const data = await response.clone().json().catch(() => null)
+            if (!response.ok || !data?.success) return response
+
+            const finalData = await tryRescoreSubmission(originalFetch, data)
+            return new Response(JSON.stringify(finalData), {
+              status: response.status,
+              statusText: response.statusText,
+              headers: { "Content-Type": "application/json" },
+            })
           }
         }
       } catch {
