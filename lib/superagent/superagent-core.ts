@@ -7,11 +7,7 @@
 
 import { callAIv5 } from "@/lib/ai-router-v5"
 import type { Message, AITaskType } from "@/lib/ai-router-v5"
-import {
-  detectToolFromMessage,
-  getToolByName,
-  getEnabledTools,
-} from "./tool-registry"
+import { detectToolFromMessage, getToolByName, getEnabledTools } from "./tool-registry"
 import type { ToolExecutionOptions, ToolName, ToolResult } from "./tool-registry"
 
 export interface CoreMessage {
@@ -81,7 +77,7 @@ CAPACIDADES DE EDUAI QUE DEBES CONOCER:
 
 REGLAS DE RESPUESTA:
 - Responde siempre en español chileno, claro y directo.
-- Si el usuario pide abrir, ir, navegar o acceder a una herramienta, entrega un enlace interno Markdown y usa tool de navegación si corresponde.
+- Si el usuario pide abrir, ir, navegar o acceder a una herramienta, entrega un enlace interno Markdown exacto.
 - Si pide estudiar, sugiere o inicia ruta /study/[tema] con link exacto.
 - Si pide crear algo educativo, estructura la respuesta como producto usable: objetivo, pasos, ejemplo y siguiente acción.
 - Para Matemática usa LaTeX: $formula$ inline, $$formula$$ en bloque.
@@ -103,32 +99,6 @@ function extractToolArgs(toolName: ToolName, message: string): Record<string, un
   const args: Record<string, unknown> = {}
 
   switch (toolName) {
-    case "navigate_to_page":
-      args.request = message
-      break
-
-    case "start_study_session":
-      args.topic = message
-        .replace(/^(quiero|necesito|ay[uú]dame a|puedes)?\s*(estudiar|aprender|repasar|ver)\s*/i, "")
-        .replace(/^(sobre|de|el|la|los|las)\s*/i, "")
-        .trim() || message
-      break
-
-    case "generate_study_plan":
-      args.topic = message
-      args.sessions = 3
-      break
-
-    case "generate_flashcards":
-      args.topic = message
-      args.count = 8
-      break
-
-    case "generate_practice_quiz":
-      args.topic = message
-      args.count = 5
-      break
-
     case "generate_exam_questions":
       args.topic = message.replace(/genera(r)?.*preguntas?(.*de|.*sobre)?/i, "").trim() || message
       args.count = 5
@@ -190,7 +160,6 @@ export async function runCoreCycle(
   const t0 = Date.now()
   const lastUser = [...messages].reverse().find((message) => message.role === "user")
   const userText = lastUser?.content ?? ""
-
   const toolName = detectToolFromMessage(userText)
 
   if (toolName) {
