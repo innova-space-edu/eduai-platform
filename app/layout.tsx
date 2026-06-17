@@ -8,6 +8,7 @@ import ExamUiPolish from "@/components/exam/ExamUiPolish"
 import EditExamTimeButton from "@/components/exam/EditExamTimeButton"
 import ResultCourseGroups from "@/components/exam/ResultCourseGroups"
 import CreateExamMixedAI from "@/components/exam/CreateExamMixedAI"
+import ExamLatexAnswerFix from "@/components/exam/ExamLatexAnswerFix"
 
 export const metadata: Metadata = {
   title: "EduAI Platform",
@@ -33,6 +34,7 @@ export default function RootLayout({
             <EditExamTimeButton />
             <ResultCourseGroups />
             <CreateExamMixedAI />
+            <ExamLatexAnswerFix />
             <SupportButton />
             <SuperAgentButton />
           </MusicProvider>
