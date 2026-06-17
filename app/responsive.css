@@ -1,0 +1,82 @@
+/* EduAI responsive safety layer.
+   This file only prevents layout overflow and improves medium/small screens. */
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+img,
+video,
+canvas,
+svg {
+  max-width: 100%;
+  height: auto;
+}
+
+table {
+  max-width: 100%;
+}
+
+pre,
+code,
+.katex-display {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.eduai-responsive-shell {
+  width: min(100%, 72rem);
+  margin-inline: auto;
+  padding-inline: clamp(1rem, 3vw, 1.5rem);
+}
+
+.eduai-responsive-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+  gap: clamp(.75rem, 2vw, 1.25rem);
+}
+
+.eduai-scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 640px) {
+  .prose { font-size: 0.95rem; }
+  .prose h2 { font-size: 1.2rem; }
+  .agents-grid { grid-template-columns: 1fr; }
+  .chat-bubble-ai,
+  .chat-bubble-user {
+    max-width: 94%;
+    padding: .75rem .9rem;
+  }
+  .card-glass,
+  .card-solid {
+    border-radius: var(--radius-lg);
+  }
+  .eduai-mobile-stack {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  .eduai-mobile-full {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+@media (max-width: 420px) {
+  :root {
+    --radius-xl: 16px;
+    --radius-2xl: 20px;
+  }
+  .btn-primary,
+  .btn-ghost {
+    width: 100%;
+    justify-content: center;
+  }
+}
