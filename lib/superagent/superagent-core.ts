@@ -14,99 +14,137 @@ import {
 } from "./tool-registry"
 import type { ToolExecutionOptions, ToolName, ToolResult } from "./tool-registry"
 
-// ── Tipos de respuesta del core ───────────────────────────────────────────────
-
 export interface CoreMessage {
-  role:    "user" | "assistant" | "system"
+  role: "user" | "assistant" | "system"
   content: string
 }
 
 export interface CoreContext {
-  userId?:        string
-  currentPage?:   string
-  subject?:       string
-  examTitle?:     string
+  userId?: string
+  currentPage?: string
+  subject?: string
+  examTitle?: string
   studentCourse?: string
-  pieMode?:       boolean
+  pieMode?: boolean
+  pageMode?: string
+  availableActions?: string[]
 }
 
 export interface CoreResponse {
-  text:        string
-  provider:    string
-  model:       string
-  task:        AITaskType
-  latencyMs?:  number
-  toolUsed?:   ToolName
+  text: string
+  provider: string
+  model: string
+  task: AITaskType
+  latencyMs?: number
+  toolUsed?: ToolName
   toolResult?: ToolResult
   wasToolCall: boolean
 }
 
-// ── System prompt del superagente ────────────────────────────────────────────
-
 function buildSystemPrompt(context: CoreContext): string {
   const tools = getEnabledTools()
-    .map(t => `• ${t.icon} **${t.label}** (\`${t.name}\`): ${t.description}`)
+    .map((tool) => `• ${tool.icon} **${tool.label}** (\`${tool.name}\`): ${tool.description}`)
     .join("\n")
 
-  let base = `Eres **EduAI Claw** 🦅, el superagente educativo de EduAI Platform para el Colegio Providencia, Chile.
+  const activeContext = [
+    context.currentPage ? `Página actual: ${context.currentPage}` : "",
+    context.pageMode ? `Modo de página/usuario: ${context.pageMode}` : "",
+    context.subject ? `Tema o asignatura activa: ${context.subject}` : "",
+    context.examTitle ? `Contexto/título activo: ${context.examTitle}` : "",
+    context.studentCourse ? `Subtema/curso activo: ${context.studentCourse}` : "",
+    context.availableActions?.length ? `Acciones internas disponibles: ${context.availableActions.join(", ")}` : "",
+    context.pieMode ? "Modo PIE activo: adapta respuestas para estudiantes NEE." : "",
+  ].filter(Boolean).join("\n")
 
-Tienes acceso a las siguientes herramientas especializadas:
+  return `Eres **EduAI Claw** 🦅, el superagente educativo de EduAI Platform para el Colegio Providencia, Chile.
+
+Tienes dos misiones:
+1. Ayudar como tutor educativo claro, interactivo y motivador.
+2. Operar como agente de navegación y herramientas internas de EduAI.
+
+CONTEXTO ACTIVO:
+${activeContext || "No hay contexto específico de página."}
+
+HERRAMIENTAS DISPONIBLES:
 ${tools}
 
-INSTRUCCIONES:
-- Responde siempre en español chileno, de forma directa y útil.
-- Si el usuario pide algo que corresponde a una herramienta, úsala.
-- Para Matemática usa LaTeX: $formula$ para inline, $$formula$$ para bloques.
-- Sé concreto: evita respuestas genéricas, da ejemplos reales del contexto escolar chileno.
-- Si el usuario comparte texto para adaptar o resumir, procésalo directamente.`
+CAPACIDADES DE EDUAI QUE DEBES CONOCER:
+- Dashboard /dashboard: inicio, sesiones de estudio y consola Claw.
+- Study /study/[tema]: aprendizaje autónomo con teoría, ejemplos, ejercicios, resumen y Sócrates.
+- Crear examen /examen/crear: evaluaciones, rúbricas, preguntas de alternativas y desarrollo.
+- Resultados /examen/docente y /examen/resultados: revisión de notas y respuestas.
+- Creator Hub /creator-hub: materiales, generación, notebooks, media.
+- QR Studio /qr-studio: crear, descargar y administrar QR.
+- Image Studio /image-studio: crear imágenes educativas.
+- Audio Lab /audio-lab: narración, transcripción y audio.
+- Paper /paper: lectura y trabajo con documentos/papers.
 
-  if (context.subject)       base += `\nAsignatura activa: ${context.subject}`
-  if (context.currentPage)   base += `\nPágina actual: ${context.currentPage}`
-  if (context.examTitle)     base += `\nExamen en edición: "${context.examTitle}"`
-  if (context.studentCourse) base += `\nCurso: ${context.studentCourse}`
-  if (context.pieMode)       base += `\nModo PIE activo: adapta respuestas para estudiantes NEE.`
-
-  return base
+REGLAS DE RESPUESTA:
+- Responde siempre en español chileno, claro y directo.
+- Si el usuario pide abrir, ir, navegar o acceder a una herramienta, entrega un enlace interno Markdown y usa tool de navegación si corresponde.
+- Si pide estudiar, sugiere o inicia ruta /study/[tema] con link exacto.
+- Si pide crear algo educativo, estructura la respuesta como producto usable: objetivo, pasos, ejemplo y siguiente acción.
+- Para Matemática usa LaTeX: $formula$ inline, $$formula$$ en bloque.
+- Para estudio autónomo usa andamiaje: diagnóstico breve, explicación, ejemplo, práctica guiada y pregunta final.
+- Para imágenes educativas, pide o genera prompt con objetivo de aprendizaje, etiquetas, estilo Canva educativo y restricciones científicas.
+- No inventes que ya hiciste cambios dentro de la app si solo estás dando instrucciones; diferencia entre enlace, sugerencia y acción ejecutada.
+- Mantén respuestas compactas, con botones/enlaces útiles cuando corresponda.`
 }
-
-// ── Detectar tarea IA según mensaje ──────────────────────────────────────────
 
 function detectAITask(message: string): AITaskType {
   const m = message.toLowerCase()
-  if (/código|code|typescript|react|bug|función|api/.test(m))  return "coding"
-  if (/analiza|razona|deduce|compara|demuestra/.test(m))        return "reasoning"
-  if (message.length > 3000)                                    return "long_context"
+  if (/código|code|typescript|react|bug|función|api/.test(m)) return "coding"
+  if (/analiza|razona|deduce|compara|demuestra|planifica/.test(m)) return "reasoning"
+  if (message.length > 3000) return "long_context"
   return "general"
 }
 
-// ── Extraer argumentos de herramienta desde el mensaje ───────────────────────
-// Extracción simple — si se necesita más precisión, la IA decide los args.
-
-function extractToolArgs(
-  toolName: ToolName,
-  message:  string
-): Record<string, unknown> {
-  // Para la mayoría de tools, el contenido principal es el mensaje mismo.
-  // La IA puede refinar esto, pero como base funciona bien.
+function extractToolArgs(toolName: ToolName, message: string): Record<string, unknown> {
   const args: Record<string, unknown> = {}
 
   switch (toolName) {
+    case "navigate_to_page":
+      args.request = message
+      break
+
+    case "start_study_session":
+      args.topic = message
+        .replace(/^(quiero|necesito|ay[uú]dame a|puedes)?\s*(estudiar|aprender|repasar|ver)\s*/i, "")
+        .replace(/^(sobre|de|el|la|los|las)\s*/i, "")
+        .trim() || message
+      break
+
+    case "generate_study_plan":
+      args.topic = message
+      args.sessions = 3
+      break
+
+    case "generate_flashcards":
+      args.topic = message
+      args.count = 8
+      break
+
+    case "generate_practice_quiz":
+      args.topic = message
+      args.count = 5
+      break
+
     case "generate_exam_questions":
       args.topic = message.replace(/genera(r)?.*preguntas?(.*de|.*sobre)?/i, "").trim() || message
       args.count = 5
       break
 
     case "adapt_for_pie":
-      args.content  = message.replace(/adapt(a|ar)?\s*(para|el)?\s*(pie|nee|dislexia|tdah)?/i, "").trim() || message
+      args.content = message.replace(/adapt(a|ar)?\s*(para|el)?\s*(pie|nee|dislexia|tdah)?/i, "").trim() || message
       args.dyslexia = /dislexia/i.test(message)
-      args.adhd     = /tdah/i.test(message)
-      args.tea      = /tea/i.test(message)
-      args.tel      = /tel\b/i.test(message)
+      args.adhd = /tdah/i.test(message)
+      args.tea = /tea/i.test(message)
+      args.tel = /tel\b/i.test(message)
       args.low_vision = /baja\s*visión/i.test(message)
       break
 
     case "plan_curriculum":
-      args.topic    = message
+      args.topic = message
       args.sessions = 3
       break
 
@@ -115,21 +153,21 @@ function extractToolArgs(
       break
 
     case "generate_rubric":
-      args.task   = message.replace(/rubric(a|)?\s*(de|para)?/i, "").trim() || message
+      args.task = message.replace(/rubric(a|)?\s*(de|para)?/i, "").trim() || message
       args.points = 20
       break
 
     case "summarize_text":
-      args.text  = message.replace(/resum(e|ir|en)?\s*(este|el|texto)?/i, "").trim() || message
+      args.text = message.replace(/resum(e|ir|en)?\s*(este|el|texto)?/i, "").trim() || message
       args.lines = 5
       break
 
     case "translate_text":
-      args.text   = message.replace(/traduc(e|ir|ción)?\s*(al?\s*\w+)?/i, "").trim() || message
+      args.text = message.replace(/traduc(e|ir|ción)?\s*(al?\s*\w+)?/i, "").trim() || message
       args.target = /inglés/i.test(message) ? "Inglés"
-                  : /francés/i.test(message) ? "Francés"
-                  : /portugués/i.test(message) ? "Portugués"
-                  : "Español"
+        : /francés/i.test(message) ? "Francés"
+        : /portugués/i.test(message) ? "Portugués"
+        : "Español"
       break
 
     case "generate_image_prompt":
@@ -143,93 +181,70 @@ function extractToolArgs(
   return args
 }
 
-// ── Función principal del core ────────────────────────────────────────────────
-
-/**
- * runCoreCycle — procesa un mensaje del chat con el superagente.
- *
- * Flujo:
- * 1. Detectar si el mensaje activa una herramienta
- * 2. Si hay tool → ejecutarla y devolver el resultado
- * 3. Si no hay tool → responder con IA directamente
- *
- * @param messages  Historial de mensajes del chat
- * @param context   Contexto de la sesión (página, asignatura, etc.)
- * @param baseUrl   URL base de la app (para llamadas internas de tools)
- */
 export async function runCoreCycle(
-  messages:  CoreMessage[],
-  context:   CoreContext = {},
-  baseUrl:   string = "",
-  options:   ToolExecutionOptions = {}
+  messages: CoreMessage[],
+  context: CoreContext = {},
+  baseUrl: string = "",
+  options: ToolExecutionOptions = {},
 ): Promise<CoreResponse> {
   const t0 = Date.now()
-
-  // Último mensaje del usuario
-  const lastUser = [...messages].reverse().find(m => m.role === "user")
+  const lastUser = [...messages].reverse().find((message) => message.role === "user")
   const userText = lastUser?.content ?? ""
 
-  // ── Intentar detectar herramienta ────────────────────────────────────────
   const toolName = detectToolFromMessage(userText)
 
   if (toolName) {
     const tool = getToolByName(toolName)
-
     if (tool?.enabled) {
-      const args   = extractToolArgs(toolName, userText)
+      const args = extractToolArgs(toolName, userText)
       const result = await tool.execute(args, baseUrl, options)
 
       if (result.success) {
         return {
-          text:        result.output,
-          provider:    "EduAI Tools",
-          model:       tool.label,
-          task:        "general",
-          latencyMs:   Date.now() - t0,
-          toolUsed:    toolName,
-          toolResult:  result,
+          text: result.output,
+          provider: "EduAI Tools",
+          model: tool.label,
+          task: "general",
+          latencyMs: Date.now() - t0,
+          toolUsed: toolName,
+          toolResult: result,
           wasToolCall: true,
         }
       }
-      // Si la tool falla, caer al flujo normal de IA
     }
   }
 
-  // ── Respuesta directa con IA ─────────────────────────────────────────────
   const systemPrompt = buildSystemPrompt(context)
-  const task         = detectAITask(userText)
-
-  // Preparar mensajes (sin duplicar system prompt)
+  const task = detectAITask(userText)
   const aiMessages: Message[] = messages
-    .filter(m => m.role !== "system")
-    .map(m => ({ role: m.role, content: m.content }))
+    .filter((message) => message.role !== "system")
+    .map((message) => ({ role: message.role, content: message.content }))
 
   const result = await callAIv5(aiMessages, {
     task,
-    maxTokens:    task === "long_context" ? 4000 : 2000,
+    maxTokens: task === "long_context" ? 4000 : 2200,
     systemPrompt,
   })
 
   return {
-    text:        result.text,
-    provider:    result.provider,
-    model:       result.model,
+    text: result.text,
+    provider: result.provider,
+    model: result.model,
     task,
-    latencyMs:   Date.now() - t0,
+    latencyMs: Date.now() - t0,
     wasToolCall: false,
   }
 }
-
-// ── Función para obtener sugerencias rápidas según contexto ──────────────────
 
 export function getQuickSuggestions(context: CoreContext): string[] {
   const suggestions: string[] = []
   const subject = context.subject
 
   if (subject) {
+    suggestions.push(`Inicia una sesión de estudio sobre ${subject}`)
     suggestions.push(`Genera 5 preguntas de ${subject} para ${context.studentCourse || "enseñanza media"}`)
-    suggestions.push(`Explica el concepto central de la unidad de ${subject}`)
-    suggestions.push(`Crea una rúbrica para evaluar un trabajo de ${subject}`)
+    suggestions.push(`Explica el concepto central de ${subject} con ejemplo y práctica`)
+    suggestions.push(`Genera una imagen educativa estilo Canva sobre ${subject}`)
   }
 
   if (context.pieMode) {
@@ -239,9 +254,8 @@ export function getQuickSuggestions(context: CoreContext): string[] {
 
   suggestions.push("Planificación de clase para 3 sesiones")
   suggestions.push("Crea preguntas de desarrollo con rúbrica")
-  suggestions.push("Genera una imagen educativa sobre el tema")
-  suggestions.push("Genera un video educativo corto sobre el tema")
-  suggestions.push("Resume este texto en 5 puntos clave")
+  suggestions.push("Abre Creator Hub")
+  suggestions.push("Crea un QR para compartir un recurso")
 
   return suggestions.slice(0, 8)
 }
