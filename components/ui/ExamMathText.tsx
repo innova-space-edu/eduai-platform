@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react"
 import katex from "katex"
 import "katex/dist/katex.min.css"
+import { normalizeMathTextForDisplay } from "@/lib/exam/latex-response"
 
 // Split text into math and non-math segments
 function parseSegments(text: string): { type: "text" | "block" | "inline"; content: string }[] {
@@ -90,14 +91,8 @@ function autoFormatEquationList(raw: string): string {
 
 // Normalize common LaTeX issues: unescaped commands, unicode arrows as backslash, etc.
 function normalizeLatex(raw: string): string {
-  let s = autoFormatEquationList(String(raw || ""))
-  // Unicode fake backslashes
-  s = s.replace(/[↑↗⬆▲∧⇒⁄∖⧵]/g, "\\")
-  // \( \) → $  $
-  s = s.replace(/\\\(([^)]*?)\\\)/g, (_, e) => `$${e}$`)
-  // \[ \] → $$ $$
-  s = s.replace(/\\\[([^\]]*?)\\\]/g, (_, e) => `$$${e}$$`)
-  return s
+  const text = autoFormatEquationList(String(raw || ""))
+  return normalizeMathTextForDisplay(text)
 }
 
 function renderMath(latex: string, display: boolean): string {
