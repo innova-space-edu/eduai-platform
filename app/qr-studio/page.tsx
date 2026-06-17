@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import { Copy, Download, ExternalLink, Loader2, Plus, QrCode, RefreshCw } from "lucide-react"
+import { AlertCircle, CheckCircle2, Copy, Download, ExternalLink, Loader2, Plus, QrCode, RefreshCw, Trash2 } from "lucide-react"
 
 type ResourceType = "url" | "text" | "notebook"
 type Visibility = "public" | "authenticated"
@@ -28,6 +28,27 @@ type CreateResponse = {
   qr_image_url: string
 }
 
+function isExpired(resource: QrResource) {
+  return Boolean(resource.expires_at && new Date(resource.expires_at).getTime() <= Date.now())
+}
+
+function formatDateTime(value?: string | null) {
+  if (!value) return "Sin caducidad"
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return "Fecha no válida"
+  return date.toLocaleString("es-CL", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  })
+}
+
+function formatVisibility(value: Visibility) {
+  return value === "authenticated" ? "solo usuarios registrados" : "público"
+}
+
 export default function QrStudioPage() {
   const [resources, setResources] = useState<QrResource[]>([])
   const [resourceType, setResourceType] = useState<ResourceType>("url")
@@ -41,6 +62,7 @@ export default function QrStudioPage() {
   const [expiresAt, setExpiresAt] = useState("")
   const [loading, setLoading] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
   const [error, setError] = useState("")
   const [created, setCreated] = useState<CreateResponse | null>(null)
 
@@ -106,12 +128,36 @@ export default function QrStudioPage() {
       setDescription("")
       setTargetUrl("")
       setTextContent("")
+      setExpiresAt("")
       if (!notebookFromUrl) setNotebookId("")
       await refreshResources()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al generar el QR")
     } finally {
       setLoading(false)
+    }
+  }
+
+  const deleteResource = async (resource: QrResource) => {
+    const ok = window.confirm(`¿Eliminar el código QR "${resource.title}"? Esta acción no se puede deshacer.`)
+    if (!ok) return
+
+    setDeletingId(resource.id)
+    setError("")
+    try {
+      const response = await fetch("/api/qr", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: resource.id }),
+      })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.error || "No se pudo eliminar el código QR")
+      setResources((current) => current.filter((item) => item.id !== resource.id))
+      if (created?.resource?.id === resource.id) setCreated(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al eliminar el QR")
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -210,6 +256,9 @@ export default function QrStudioPage() {
                 <img src={created.qr_image_url} alt={`QR ${created.resource.title}`} className="w-52 h-52 rounded-2xl bg-white p-2" />
                 <p className="text-main font-semibold text-sm">{created.resource.title}</p>
                 <p className="text-muted2 text-xs break-all">{created.share_url}</p>
+                <p className="text-muted2 text-[11px]">
+                  Caduca: <span className="text-main font-semibold">{formatDateTime(created.resource.expires_at)}</span>
+                </p>
                 <div className="flex flex-wrap items-center justify-center gap-2">
                   <button onClick={() => copy(created.share_url)} className="px-3 py-2 rounded-xl border border-soft text-xs text-sub flex items-center gap-1.5">
                     <Copy size={13} /> Copiar enlace
@@ -237,21 +286,51 @@ export default function QrStudioPage() {
                 <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
               </button>
             </div>
-            <div className="space-y-2 max-h-80 overflow-y-auto">
+            <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
               {resources.length === 0 && <p className="text-muted2 text-xs">Todavía no has creado códigos QR.</p>}
               {resources.map((resource) => {
                 const shareUrl = `${origin}/q/${resource.short_code}`
+                const expired = isExpired(resource)
                 return (
                   <div key={resource.id} className="rounded-2xl border border-soft p-3">
                     <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-main text-sm font-semibold truncate">{resource.title}</p>
-                        <p className="text-muted2 text-[11px] mt-1">{resource.resource_type} · {resource.scan_count} escaneos · {resource.visibility}</p>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-main text-sm font-semibold truncate">{resource.title}</p>
+                          <span
+                            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-black"
+                            style={{
+                              background: expired ? "rgba(239,68,68,0.10)" : "rgba(34,197,94,0.12)",
+                              border: `1px solid ${expired ? "rgba(239,68,68,0.25)" : "rgba(34,197,94,0.25)"}`,
+                              color: expired ? "#dc2626" : "#15803d",
+                            }}
+                          >
+                            {expired ? <AlertCircle size={10} /> : <CheckCircle2 size={10} />}
+                            {expired ? "Caducado" : "Activo"}
+                          </span>
+                        </div>
+                        <p className="text-muted2 text-[11px] mt-1">
+                          {resource.resource_type} · {resource.scan_count} escaneos · {formatVisibility(resource.visibility)}
+                        </p>
+                        <p className="text-muted2 text-[11px] mt-1">
+                          Caduca: <span className="text-main font-semibold">{formatDateTime(resource.expires_at)}</span>
+                        </p>
+                        <p className="text-muted2 text-[11px] mt-1">
+                          Creado: {formatDateTime(resource.created_at)}
+                        </p>
                       </div>
                       <div className="flex items-center gap-1">
                         <button onClick={() => copy(shareUrl)} className="p-1.5 rounded-lg text-muted2 hover:text-main" title="Copiar enlace"><Copy size={13} /></button>
                         <a href={`/api/qr/${resource.short_code}/download`} className="p-1.5 rounded-lg text-muted2 hover:text-main" title="Descargar PNG"><Download size={13} /></a>
                         <a href={shareUrl} target="_blank" rel="noreferrer" className="p-1.5 rounded-lg text-muted2 hover:text-main" title="Abrir"><ExternalLink size={13} /></a>
+                        <button
+                          onClick={() => deleteResource(resource)}
+                          disabled={deletingId === resource.id}
+                          className="p-1.5 rounded-lg text-red-500 hover:text-red-400 disabled:opacity-40"
+                          title="Eliminar QR"
+                        >
+                          {deletingId === resource.id ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                        </button>
                       </div>
                     </div>
                   </div>
