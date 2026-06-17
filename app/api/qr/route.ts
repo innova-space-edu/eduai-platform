@@ -22,6 +22,8 @@ async function uniqueShortCode(supabase: Awaited<ReturnType<typeof createClient>
   throw new Error("No se pudo crear un código único")
 }
 
+const QR_SELECT = "id, short_code, title, description, resource_type, target_url, text_content, notebook_id, visibility, expires_at, scan_count, created_at"
+
 export async function GET() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -29,7 +31,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("qr_resources")
-    .select("id, short_code, title, description, resource_type, target_url, text_content, notebook_id, visibility, expires_at, scan_count, created_at")
+    .select(QR_SELECT)
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
 
@@ -100,11 +102,34 @@ export async function POST(request: NextRequest) {
       visibility,
       expires_at: expiresAt,
     })
-    .select("id, short_code, title, description, resource_type, target_url, text_content, notebook_id, visibility, expires_at, scan_count, created_at")
+    .select(QR_SELECT)
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   const shareUrl = `${publicBaseUrl(request)}/q/${shortCode}`
   return NextResponse.json({ resource: data, share_url: shareUrl, qr_image_url: buildQrImageUrl(shareUrl) }, { status: 201 })
+}
+
+export async function DELETE(request: NextRequest) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 })
+
+  const body = await request.json().catch(() => ({}))
+  const id = String(body?.id || request.nextUrl.searchParams.get("id") || "").trim()
+  if (!id) return NextResponse.json({ error: "id requerido" }, { status: 400 })
+
+  const { data, error } = await supabase
+    .from("qr_resources")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .select("id")
+    .maybeSingle()
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (!data) return NextResponse.json({ error: "QR no encontrado o sin permisos" }, { status: 404 })
+
+  return NextResponse.json({ success: true, id: data.id })
 }
