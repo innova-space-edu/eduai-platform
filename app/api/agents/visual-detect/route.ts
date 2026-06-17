@@ -1,28 +1,31 @@
-// src/app/api/agents/visual-detect/route.ts
-// AGT-AIm v2 — Gemini 2.5 Flash-Lite + análisis contextual más profundo
+// app/api/agents/visual-detect/route.ts
+// AGT-AIm v3 — detección visual pedagógica con especificación de aprendizaje
 
 import { createClient } from "@/lib/supabase/server"
 
-// Temas con alta probabilidad de beneficiarse de un visual
 const VISUAL_TOPICS = [
   "anatomía", "biología", "célula", "órgano", "cuerpo humano", "tejido",
   "geografía", "mapa", "continente", "país", "ciudad", "río", "montaña", "relieve",
   "física", "fuerza", "movimiento", "óptica", "circuito", "onda", "energía", "campo",
-  "química", "molécula", "átomo", "reacción", "elemento", "tabla periódica", "enlace",
+  "química", "molécula", "átomo", "reacción", "elemento", "tabla periódica", "enlace", "orgánica", "carbono", "grupo funcional",
   "astronomía", "planeta", "estrella", "galaxia", "sistema solar", "universo", "órbita",
   "arquitectura", "construcción", "estructura", "edificio", "plano",
-  "historia", "batalla", "guerra", "civilización", "artefacto", "mapa histórico",
-  "matemáticas", "geometría", "función", "gráfico", "diagrama", "derivada", "integral",
+  "historia", "batalla", "guerra", "civilización", "artefacto", "mapa histórico", "línea de tiempo",
+  "matemáticas", "geometría", "función", "gráfico", "diagrama", "derivada", "integral", "probabilidad", "estadística",
   "animales", "especie", "ecosistema", "hábitat", "cadena alimentaria",
   "tecnología", "máquina", "motor", "dispositivo", "circuito eléctrico", "red",
-  "estadística", "distribución", "porcentaje", "comparación", "datos", "tendencia",
   "proceso", "ciclo", "etapas", "flujo", "diagrama de flujo", "algoritmo",
-  "evolución", "línea de tiempo", "cronología", "hitos",
+  "evolución", "cronología", "hitos",
 ]
 
 function quickCheck(topic: string, context: string): boolean {
-  const text = (topic + " " + context).toLowerCase()
-  return VISUAL_TOPICS.some(kw => text.includes(kw))
+  const text = `${topic} ${context}`.toLowerCase()
+  return VISUAL_TOPICS.some((keyword) => text.includes(keyword))
+}
+
+function safeJsonParse(text: string) {
+  const clean = text.replace(/```json|```/g, "").trim()
+  return JSON.parse(clean)
 }
 
 export async function POST(req: Request) {
@@ -31,9 +34,10 @@ export async function POST(req: Request) {
   if (!user) return new Response("Unauthorized", { status: 401 })
 
   const { topic, context } = await req.json()
+  const topicText = String(topic || "")
+  const contextText = String(context || "")
 
-  // Quick check — evitar llamada a IA innecesaria
-  if (!quickCheck(topic, context)) {
+  if (!quickCheck(topicText, contextText)) {
     return Response.json({ shouldGenerate: false })
   }
 
@@ -41,31 +45,40 @@ export async function POST(req: Request) {
   if (!apiKey) return Response.json({ shouldGenerate: false })
 
   const systemPrompt = `You are AGT-AIm, the visual intelligence agent for EduAI.
-Analyze educational content and decide what visual would most help understanding.
+Your task is to decide the most useful visual for an autonomous learning session.
 
-DECISION RULES:
-- Generate image: physical concepts, organisms, historical events, places, objects
-- Generate chart: numerical data, statistics, comparisons, trends, percentages
-- Generate mermaid: processes, flows, cause-effect, algorithms, cycles
-- Generate table: comparisons, properties, specifications, structured data
-- Generate none: pure conversational, math without graphs, simple Q&A
+PEDAGOGICAL PRIORITY:
+- Choose the visual that reduces cognitive load and clarifies the concept.
+- Prefer mermaid for processes, cycles, cause-effect and steps.
+- Prefer chart for numerical data, comparison, probability, statistics and trends.
+- Prefer table for classification, properties, examples vs non-examples.
+- Prefer image for physical/scientific objects, molecules, anatomy, maps, historical scenes and concrete visual concepts.
+- Return none for casual conversation or when a visual would distract.
 
-Respond ONLY with valid JSON (no markdown, no extra text):
+IMAGE PROMPT RULES:
+- Prompt must be in English.
+- Use educational Canva-style, clean labels, soft colors, high contrast, no tiny text.
+- Include age/level if inferable.
+- For science, avoid scientifically incorrect decorations.
+- For chemistry, choose molecular model, reaction diagram, or labeled infographic when useful.
+
+Respond ONLY with valid JSON:
 {
-  "shouldGenerate": true/false,
+  "shouldGenerate": true,
   "type": "image|chart|mermaid|table|none",
+  "learningGoal": "what the student should understand",
   "imagePrompt": "English prompt if type=image, else empty string",
   "mermaidCode": "flowchart code if type=mermaid, else empty string",
-  "chartSpec": "JSON string of chart.js config if type=chart, else empty string",
-  "caption": "Brief Spanish description of what the visual shows",
-  "confidence": 0.0-1.0
+  "chartSpec": "JSON string for Chart.js or table {headers, rows}, else empty string",
+  "caption": "Spanish caption explaining the visual",
+  "confidence": 0.0
 }`
 
-  const userPrompt = `Topic: "${topic}"
-Educational content (first 800 chars):
-"${context.substring(0, 800)}"
+  const userPrompt = `Topic: "${topicText}"
+Educational content:
+"${contextText.substring(0, 1400)}"
 
-Analyze and decide what visual (if any) would most help a student understand this content:`
+Select the best visual support for this learning moment.`
 
   try {
     const res = await fetch(
@@ -77,13 +90,13 @@ Analyze and decide what visual (if any) would most help a student understand thi
           system_instruction: { parts: [{ text: systemPrompt }] },
           contents: [{ parts: [{ text: userPrompt }] }],
           generationConfig: {
-            temperature: 0.3,
-            maxOutputTokens: 600,
+            temperature: 0.25,
+            maxOutputTokens: 900,
             responseMimeType: "application/json",
           },
         }),
         signal: AbortSignal.timeout(8000),
-      }
+      },
     )
 
     if (!res.ok) return Response.json({ shouldGenerate: false })
@@ -92,23 +105,22 @@ Analyze and decide what visual (if any) would most help a student understand thi
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim()
     if (!text) return Response.json({ shouldGenerate: false })
 
-    const parsed = JSON.parse(text.replace(/```json|```/g, "").trim())
-
-    // Solo generar si la confianza es alta
-    if (!parsed.shouldGenerate || (parsed.confidence && parsed.confidence < 0.65)) {
+    const parsed = safeJsonParse(text)
+    if (!parsed.shouldGenerate || parsed.type === "none" || (parsed.confidence && parsed.confidence < 0.62)) {
       return Response.json({ shouldGenerate: false })
     }
 
     return Response.json({
       shouldGenerate: true,
       type: parsed.type || "image",
+      learningGoal: parsed.learningGoal || "",
       imagePrompt: parsed.imagePrompt || "",
       mermaidCode: parsed.mermaidCode || "",
       chartSpec: parsed.chartSpec || "",
-      caption: parsed.caption || "",
+      caption: parsed.caption || parsed.learningGoal || "Visual educativo sugerido",
     })
-  } catch (e: any) {
-    console.warn("[AGT-AIm] Error:", e.message)
+  } catch (error: any) {
+    console.warn("[AGT-AIm] Error:", error.message)
     return Response.json({ shouldGenerate: false })
   }
 }
