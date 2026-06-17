@@ -7,6 +7,7 @@ import { MusicProvider } from "@/components/music/MusicProvider"
 import ExamUiPolish from "@/components/exam/ExamUiPolish"
 import EditExamTimeButton from "@/components/exam/EditExamTimeButton"
 import ResultCourseGroups from "@/components/exam/ResultCourseGroups"
+import CreateExamMixedAI from "@/components/exam/CreateExamMixedAI"
 
 export const metadata: Metadata = {
   title: "EduAI Platform",
@@ -31,6 +32,7 @@ export default function RootLayout({
             <ExamUiPolish />
             <EditExamTimeButton />
             <ResultCourseGroups />
+            <CreateExamMixedAI />
             <SupportButton />
             <SuperAgentButton />
           </MusicProvider>
