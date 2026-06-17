@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
+import { latexToReadableText, normalizeLatexSource } from "@/lib/exam/latex-response";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+const RECOGNITION_TIMEOUT_MS = Number(process.env.WHITEBOARD_RECOGNITION_TIMEOUT_MS || 6500);
 
 type Point = { x: number; y: number };
 type Stroke = { points: Point[] };
@@ -21,8 +24,16 @@ function normalize(strokes: Stroke[]) {
       (point) => point && isNumber(point.x) && isNumber(point.y),
     );
     if (points.length < 2) continue;
-    x.push(points.map((point) => Math.round(point.x)));
-    y.push(points.map((point) => Math.round(point.y)));
+
+    // Reduce puntos casi repetidos para bajar payload/latencia sin perder la forma.
+    const simplified = points.filter((point, index) => {
+      if (index === 0 || index === points.length - 1) return true;
+      const prev = points[index - 1];
+      return Math.hypot(point.x - prev.x, point.y - prev.y) >= 1.8;
+    });
+
+    x.push(simplified.map((point) => Math.round(point.x)));
+    y.push(simplified.map((point) => Math.round(point.y)));
   }
 
   return { x, y };
@@ -46,7 +57,7 @@ export async function POST(request: Request) {
     const normalized = normalize(strokes);
 
     if (normalized.x.length === 0) {
-      return NextResponse.json({ latex: "", confidence: null });
+      return NextResponse.json({ latex: "", text: "", confidence: null });
     }
 
     const endpoint = process.env.WHITEBOARD_RECOGNITION_URL;
@@ -61,6 +72,9 @@ export async function POST(request: Request) {
       );
     }
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), RECOGNITION_TIMEOUT_MS);
+
     const response = await fetch(endpoint, {
       method: "POST",
       headers: {
@@ -69,9 +83,10 @@ export async function POST(request: Request) {
       },
       body: JSON.stringify({ strokes: { strokes: normalized } }),
       cache: "no-store",
-    });
+      signal: controller.signal,
+    }).finally(() => clearTimeout(timeout));
 
-    const data = await response.json();
+    const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
       return NextResponse.json(
@@ -80,16 +95,23 @@ export async function POST(request: Request) {
       );
     }
 
+    const rawLatex =
+      typeof data?.latex_styled === "string"
+        ? data.latex_styled
+        : typeof data?.latex === "string"
+          ? data.latex
+          : "";
+    const latex = normalizeLatexSource(rawLatex);
+    const readable = latexToReadableText(latex);
+    const providerText = typeof data?.text === "string" ? data.text.trim() : "";
+
     return NextResponse.json({
-      latex:
-        typeof data?.latex_styled === "string"
-          ? data.latex_styled
-          : typeof data?.latex === "string"
-            ? data.latex
-            : "",
-      text: typeof data?.text === "string" ? data.text : "",
+      latex,
+      text: providerText || readable,
+      renderedText: readable,
       confidence: typeof data?.confidence === "number" ? data.confidence : null,
       requestId: typeof data?.request_id === "string" ? data.request_id : null,
+      strokeCount: normalized.x.length,
     });
   } catch (error) {
     console.error("[whiteboard/recognize]", error);
