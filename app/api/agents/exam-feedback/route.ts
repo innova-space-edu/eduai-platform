@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { enrichQuestionAnswerKey } from "@/lib/exam/question-quality"
 import { formatPoints, getMixedChoiceDevelopmentPointBreakdown, getQuestionMaxPoints, getTrueFalsePointBreakdown } from "@/lib/exam/grading"
+import { buildReadableDevelopmentAnswer, normalizeMathTextForDisplay } from "@/lib/exam/latex-response"
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "",
@@ -12,7 +13,7 @@ const supabase = createClient(
 )
 
 function cleanText(value: unknown): string {
-  return String(value ?? "").trim()
+  return normalizeMathTextForDisplay(String(value ?? "").trim())
 }
 
 function joinConfiguredExplanation(question: any): string {
@@ -24,7 +25,7 @@ function joinConfiguredExplanation(question: any): string {
     : []
   if (steps.length > 0) return steps.join(" ")
 
-  if (question?.type === "development") {
+  if (question?.type === "development" || question?.type === "mixed_choice_development") {
     return cleanText(question?.modelAnswer || question?.expectedLatex)
   }
 
@@ -49,9 +50,11 @@ function buildConfiguredFeedback(question: any, answer: any): string {
     const { selectionPoints, developmentMaxPoints } = getMixedChoiceDevelopmentPointBreakdown(q)
     const developmentScore = Math.max(0, Math.min(developmentMaxPoints, Number(answer?.manualDevelopmentScore ?? answer?.developmentScore ?? answer?.aiScore) || 0))
     const pointsText = `${formatPoints((selectedCorrect ? selectionPoints : 0) + developmentScore)}/${formatPoints(selectionPoints + developmentMaxPoints)} pts`
+    const readableDevelopment = buildReadableDevelopmentAnswer(answer)
+    const studentEvidence = readableDevelopment ? ` Desarrollo reconocido: ${readableDevelopment}.` : ""
     return selectedCorrect
-      ? `Alternativa correcta (${pointsText}). El desarrollo queda como evidencia para revisión docente. ${explanation}`
-      : `La alternativa no coincide con la pauta (${pointsText}). La respuesta correcta es: ${correctAnswer}. El desarrollo queda como evidencia para revisión docente. ${explanation}`
+      ? `Alternativa correcta (${pointsText}).${studentEvidence} ${explanation}`
+      : `La alternativa no coincide con la pauta (${pointsText}). La respuesta correcta es: ${correctAnswer}.${studentEvidence} ${explanation}`
   }
 
   if (q.type === "true_false") {
@@ -68,8 +71,10 @@ function buildConfiguredFeedback(question: any, answer: any): string {
   const maxPoints = getQuestionMaxPoints(q)
   const score = Math.max(0, Math.min(maxPoints, Number(answer?.manualScore ?? answer?.aiScore) || 0))
   const modelAnswer = cleanText(q.modelAnswer || q.expectedLatex)
+  const readableDevelopment = buildReadableDevelopmentAnswer(answer)
+  const studentEvidence = readableDevelopment ? ` Desarrollo reconocido: ${readableDevelopment}.` : ""
   const reference = modelAnswer ? ` Respuesta modelo: ${modelAnswer}` : ""
-  return `Puntaje registrado: ${formatPoints(score)}/${formatPoints(maxPoints)} pts. ${explanation}${reference}`
+  return `Puntaje registrado: ${formatPoints(score)}/${formatPoints(maxPoints)} pts.${studentEvidence} ${explanation}${reference}`
 }
 
 export async function POST(req: NextRequest) {
