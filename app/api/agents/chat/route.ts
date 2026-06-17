@@ -9,9 +9,8 @@ export async function POST(req: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new Response("Unauthorized", { status: 401 })
 
-  const { topic, studyType, userMessage, history, level } = await req.json()
-
-  const recentHistory = history.slice(-2)
+  const { topic, studyType, userMessage, history = [], level } = await req.json()
+  const recentHistory = Array.isArray(history) ? history.slice(-4) : []
 
   const { data: memory } = await supabase
     .from("long_memory")
@@ -21,17 +20,36 @@ export async function POST(req: Request) {
     .single()
 
   const typeInstructions: Record<string, string> = {
-    theory: "Explica la teoría con estructura didáctica, conectando idea principal, desarrollo, ejemplo y cierre.",
-    examples: "Muestra ejemplos resueltos paso a paso, numerados y detallados, explicando por qué se hace cada paso.",
-    exercises: "Propón un ejercicio, orienta el razonamiento y entrega una guía gradual sin resolver todo de inmediato.",
-    summary: "Entrega un resumen útil, breve pero completo, con ideas clave y una mini conclusión.",
+    theory: `Modo Teoría: enseña con estructura de tutoría autónoma.
+- Activa conocimiento previo con 1 pregunta breve.
+- Explica la idea central en lenguaje simple.
+- Agrega ejemplo cotidiano o escolar chileno.
+- Incluye un error común y cómo evitarlo.
+- Cierra con micropráctica o pregunta de comprobación.`,
+    examples: `Modo Ejemplos: usa práctica guiada progresiva.
+- Ejemplo 1: resuelto paso a paso.
+- Ejemplo 2: explica el porqué de cada paso.
+- Ejemplo 3: deja una parte para que el estudiante complete.
+- Cierra preguntando qué paso quiere practicar.`,
+    exercises: `Modo Ejercicios: no entregues todo resuelto de inmediato.
+- Presenta 1 ejercicio principal.
+- Da pista 1 antes de la solución.
+- Si corresponde, muestra solución paso a paso.
+- Agrega un ejercicio similar para intentar solo.
+- Pregunta si quiere pista, corrección o más práctica.`,
+    summary: `Modo Resumen: sintetiza para repasar rápido.
+- 5 ideas clave.
+- mini mapa mental textual.
+- 3 tarjetas de memoria tipo pregunta/respuesta.
+- 2 preguntas de repaso.
+- siguiente paso recomendado.`,
   }
 
   const responseLengthByType: Record<string, string> = {
-    theory: "Entre 320 y 420 palabras.",
-    examples: "Entre 300 y 420 palabras.",
-    exercises: "Entre 260 y 360 palabras.",
-    summary: "Entre 180 y 260 palabras.",
+    theory: "Entre 380 y 520 palabras.",
+    examples: "Entre 360 y 520 palabras.",
+    exercises: "Entre 300 y 460 palabras.",
+    summary: "Entre 220 y 340 palabras.",
   }
 
   const levelDesc: Record<number, string> = {
@@ -51,22 +69,21 @@ HISTORIAL DEL ESTUDIANTE CON ESTE TEMA:
 - Sus puntos débiles: ${memory.weak_points?.join(", ") || "en evaluación"}
 - Resumen de conocimiento: ${memory.summary || "primera sesión"}
 
-Usa este contexto para personalizar tu explicación. Si tiene puntos débiles, enfócate en ellos. Si ya domina algo, no lo repitas.` : ""
+Usa este contexto como andamiaje. Si hay puntos débiles, enfócate en ellos. Si ya domina algo, avanza de nivel.` : ""
 
   let orchestratorContext = ""
   try {
     const orch = await orchestrate(topic, userMessage)
     if (orch.shouldEnrich) {
       orchestratorContext = `
-
 CONTEXTO ENRIQUECIDO POR AGENTES ESPECIALIZADOS:
 ${orch.enrichedContext}
 
-Usa este contexto para dar una respuesta más profunda, clara y memorable.`
+Úsalo para responder con mayor precisión y evitar explicaciones genéricas.`
     }
   } catch {}
 
-  const systemPrompt = `Eres AGT, un tutor educativo experto y conversacional.
+  const systemPrompt = `Eres AGT, tutor educativo experto de EduAI.
 
 CONTEXTO:
 - Tema: ${topic}
@@ -75,23 +92,26 @@ CONTEXTO:
 ${memoryContext}
 ${orchestratorContext}
 
+MODELO PEDAGÓGICO:
+- Enseña con aprendizaje autónomo: planificar, comprender, practicar, monitorear y reflexionar.
+- Usa andamiaje: primero pista o guía, luego explicación si hace falta.
+- Conecta el contenido con ejemplos reales, cotidianos o escolares de Chile.
+- Si el estudiante pregunta algo corto, responde corto; si pide profundidad, desarrolla más.
+- En ciencias, matemáticas o procesos, sugiere una visualización útil: diagrama, tabla, gráfico o imagen.
+
 REGLAS DE RESPUESTA:
 - Responde SIEMPRE en español.
 - ${responseLengthByType[studyType] || responseLengthByType.theory}
-- Usa markdown: ## títulos, **negrita**, listas cuando ayuden.
+- Usa markdown con títulos breves y listas claras.
 - Para fórmulas usa LaTeX: $formula$ inline, $$formula$$ bloque.
-- La respuesta debe sentirse un poco más desarrollada que antes, pero sin volverse extensa ni redundante.
-- Prioriza este orden: idea principal, desarrollo, ejemplo concreto, mini cierre.
-- Incluye al menos un ejemplo sencillo o analogía cuando el tema lo permita.
-- Evita párrafos excesivamente largos.
-- Al final incluye SIEMPRE una pregunta breve para continuar.
-- Sé motivador, claro y didáctico.
-- Si el estudiante ya estudió este tema antes, reconócelo y construye sobre ese conocimiento.
+- Evita párrafos largos.
+- Incluye una microactividad o pregunta final para continuar.
+- No inventes datos curriculares específicos si no están en el contexto.
 
 FORMATO EXACTO:
-[explicación]
+[respuesta didáctica]
 
-[pregunta final]
+**Para seguir:** [pregunta breve o acción]
 
 ---FOLLOWUPS---
 ["opción 1", "opción 2", "opción 3"]`
@@ -110,8 +130,8 @@ FORMATO EXACTO:
       model: "llama-3.3-70b-versatile",
       messages,
       stream: true,
-      temperature: 0.7,
-      max_tokens: studyType === "summary" ? 700 : 1000,
+      temperature: studyType === "exercises" ? 0.55 : 0.65,
+      max_tokens: studyType === "summary" ? 850 : 1300,
     })
 
     const encoder = new TextEncoder()
