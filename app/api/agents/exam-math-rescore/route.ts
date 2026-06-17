@@ -115,11 +115,68 @@ function rescore(questions: any[], answers: any[]) {
   return { answers: next, changed }
 }
 
+async function rescoreSubmission(submission: any, exam: any) {
+  const questions = Array.isArray(exam.questions) ? exam.questions : []
+  const answers = Array.isArray(submission.answers) ? submission.answers : []
+  const result = rescore(questions, answers)
+
+  if (!result.changed) return { changed: false, submission }
+
+  const summary = calculateScoreSummary(questions, result.answers)
+  const grade = calculateGradeFromPercentage(summary.percentage, normalizeExamPercentage(exam.settings?.examPercentage ?? 60))
+
+  const { data: updated, error: updateError } = await supabase
+    .from("exam_submissions")
+    .update({
+      answers: result.answers,
+      score: summary.percentage,
+      grade,
+      correct_count: summary.correctCount,
+      earned_points: summary.earnedPoints,
+      total_points: summary.totalPoints,
+    })
+    .eq("id", submission.id)
+    .select()
+    .single()
+
+  if (updateError) throw updateError
+  return { changed: true, submission: updated }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}))
     const submissionId = String(body?.submissionId || "")
-    if (!submissionId) return NextResponse.json({ success: false, error: "submissionId requerido" }, { status: 400 })
+    const examId = String(body?.examId || "")
+
+    if (!submissionId && !examId) {
+      return NextResponse.json({ success: false, error: "submissionId o examId requerido" }, { status: 400 })
+    }
+
+    if (examId) {
+      const { data: exam, error: examError } = await supabase
+        .from("teacher_exams")
+        .select("id, questions, settings")
+        .eq("id", examId)
+        .maybeSingle()
+
+      if (examError || !exam) return NextResponse.json({ success: false, error: "Examen no encontrado" }, { status: 404 })
+
+      const { data: submissions, error: submissionsError } = await supabase
+        .from("exam_submissions")
+        .select("id, exam_id, answers")
+        .eq("exam_id", examId)
+
+      if (submissionsError) throw submissionsError
+
+      let changedCount = 0
+      for (const submission of submissions || []) {
+        const result = await rescoreSubmission(submission, exam)
+        if (result.changed) changedCount++
+      }
+
+      return NextResponse.json({ success: true, changed: changedCount > 0, changedCount })
+    }
 
     const { data: submission, error: submissionError } = await supabase
       .from("exam_submissions")
@@ -137,31 +194,8 @@ export async function POST(request: NextRequest) {
 
     if (examError || !exam) return NextResponse.json({ success: false, error: "Examen no encontrado" }, { status: 404 })
 
-    const questions = Array.isArray(exam.questions) ? exam.questions : []
-    const answers = Array.isArray(submission.answers) ? submission.answers : []
-    const result = rescore(questions, answers)
-
-    if (!result.changed) return NextResponse.json({ success: true, changed: false, submission })
-
-    const summary = calculateScoreSummary(questions, result.answers)
-    const grade = calculateGradeFromPercentage(summary.percentage, normalizeExamPercentage(exam.settings?.examPercentage ?? 60))
-
-    const { data: updated, error: updateError } = await supabase
-      .from("exam_submissions")
-      .update({
-        answers: result.answers,
-        score: summary.percentage,
-        grade,
-        correct_count: summary.correctCount,
-        earned_points: summary.earnedPoints,
-        total_points: summary.totalPoints,
-      })
-      .eq("id", submissionId)
-      .select()
-      .single()
-
-    if (updateError) throw updateError
-    return NextResponse.json({ success: true, changed: true, submission: updated })
+    const result = await rescoreSubmission(submission, exam)
+    return NextResponse.json({ success: true, changed: result.changed, submission: result.submission })
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error?.message || "No se pudo recalcular" }, { status: 500 })
   }
