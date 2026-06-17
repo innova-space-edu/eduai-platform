@@ -90,11 +90,6 @@ function buildSuggestions(reply: string, message: string, toolUsed?: string) {
   const suggestions = inferRouteSuggestions(reply, message);
 
   const toolMap: Record<string, keyof typeof AGENT_ROUTES> = {
-    navigate_to_page: "dashboard",
-    start_study_session: "study",
-    generate_study_plan: "study",
-    generate_flashcards: "study",
-    generate_practice_quiz: "study",
     generate_image: "imagenes",
     generate_image_prompt: "imagenes",
     generate_edu_video: "videostudio",
@@ -130,6 +125,27 @@ function safePageContext(value: unknown): PageContext {
   };
 }
 
+function inferPathnameFromReferrer(req: NextRequest): string | undefined {
+  const ref = req.headers.get("referer") || req.headers.get("referrer");
+  if (!ref) return undefined;
+  try {
+    return new URL(ref).pathname.slice(0, 180);
+  } catch {
+    return undefined;
+  }
+}
+
+function inferTopicFromPath(pathname?: string): string | undefined {
+  if (!pathname) return undefined;
+  const match = pathname.match(/^\/study\/([^/?#]+)/);
+  if (!match) return undefined;
+  try {
+    return decodeURIComponent(match[1]).slice(0, 120);
+  } catch {
+    return match[1];
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { message, history = [], userName, pageContext } = await req.json();
@@ -138,12 +154,15 @@ export async function POST(req: NextRequest) {
     if (!cleanMessage) return NextResponse.json({ error: "Mensaje vacío" }, { status: 400 });
 
     const context = safePageContext(pageContext);
+    const inferredPath = context.pathname || inferPathnameFromReferrer(req) || "floating-claw";
+    const inferredTopic = context.subject || context.selectedTopic || inferTopicFromPath(inferredPath);
     const messages = normalizeHistory(history, cleanMessage);
+
     const result = await runCoreCycle(
       messages,
       {
-        currentPage: context.pathname || "floating-claw",
-        subject: context.subject || context.selectedTopic,
+        currentPage: inferredPath,
+        subject: inferredTopic,
         examTitle: context.pageTitle,
         studentCourse: context.selectedSubtopic,
         userId: typeof userName === "string" ? userName : undefined,
