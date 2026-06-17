@@ -1,1 +1,0 @@
-html{max-width:100vw}body{max-width:100vw;overflow-x:hidden}img,video,canvas,svg{max-width:100%;height:auto}pre,code,.katex-display{max-width:100%;overflow-x:auto}@media(max-width:640px){.agents-grid{grid-template-columns:1fr}.chat-bubble-ai,.chat-bubble-user{max-width:94%}}
