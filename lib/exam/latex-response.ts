@@ -12,6 +12,7 @@ export function normalizeLatexSource(value: unknown): string {
     .replace(/\\,/g, " ")
     .replace(/\\;/g, " ")
     .replace(/\\!/g, "")
+    .replace(/\\protect\s*/g, "")
 
   // El OCR de escritura suele devolver {1 2} en vez de {12}. Se compactan
   // solo grupos formados por dígitos/espacios para no tocar texto normal.
@@ -22,18 +23,35 @@ export function normalizeLatexSource(value: unknown): string {
   return text.replace(/[ \t]+/g, " ").trim()
 }
 
+function hasLatexCommand(value: string): boolean {
+  return /\\(frac|sqrt|sum|int|prod|lim|pi|times|cdot|div|leq|geq|neq|approx|begin|end|text|sin|cos|tan|log|ln)\b/.test(value)
+}
+
+function isMostlyMathLine(value: string): boolean {
+  if (!hasLatexCommand(value)) return false
+  const withoutCommands = value.replace(/\\[A-Za-z]+/g, "")
+  const words = withoutCommands.match(/[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]{2,}/g) || []
+  return words.length === 0
+}
+
+function wrapLatexFragmentsInProse(value: string): string {
+  return value
+    .replace(/(\\frac\s*\{[^{}]+\}\s*\{[^{}]+\})/g, "$$$1$")
+    .replace(/(\\sqrt\s*\{[^{}]+\})/g, "$$$1$")
+    .replace(/(\\(?:pi|times|cdot|div|leq|geq|neq|approx)\b)/g, "$$$1$")
+}
+
 export function normalizeMathTextForDisplay(value: unknown): string {
   const text = normalizeLatexSource(value)
   if (!text) return ""
   if (/\$[^$]+\$|\$\$[\s\S]*?\$\$/.test(text)) return text
 
-  const latexCommand = /\\(frac|sqrt|sum|int|prod|lim|pi|times|cdot|div|leq|geq|neq|approx|left|right|begin|end|text|sin|cos|tan|log|ln)\b/
-  if (latexCommand.test(text)) {
-    const lines = text.split(/\n+/).map((line) => line.trim()).filter(Boolean)
-    return lines.map((line) => `$${line}$`).join("\n")
-  }
+  if (!hasLatexCommand(text)) return text
 
-  return text
+  const lines = text.split(/\n+/).map((line) => line.trim()).filter(Boolean)
+  return lines
+    .map((line) => (isMostlyMathLine(line) ? `$${line}$` : wrapLatexFragmentsInProse(line)))
+    .join("\n")
 }
 
 export function latexToReadableText(value: unknown): string {
@@ -66,7 +84,7 @@ export function latexToReadableText(value: unknown): string {
 
 export function buildReadableDevelopmentAnswer(answer: any): string {
   const explicit = String(answer?.devText || "").trim()
-  const latex = normalizeLatexSource(answer?.developmentLatex || answer?.latex || "")
+  const latex = normalizeLatexSource(answer?.developmentLatex || answer?.latex || answer?.developmentLatexSource || "")
   const display = normalizeMathTextForDisplay(latex)
   const readable = latexToReadableText(latex)
 
