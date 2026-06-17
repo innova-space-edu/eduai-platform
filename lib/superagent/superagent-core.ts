@@ -9,6 +9,14 @@ import { callAIv5 } from "@/lib/ai-router-v5"
 import type { Message, AITaskType } from "@/lib/ai-router-v5"
 import { detectToolFromMessage, getToolByName, getEnabledTools } from "./tool-registry"
 import type { ToolExecutionOptions, ToolName, ToolResult } from "./tool-registry"
+import {
+  buildStudyHref,
+  extractStudyTopicFromMessage,
+  findBestEduAIPage,
+  isNavigationIntent,
+  isStudyIntent,
+  searchEduAIPages,
+} from "./eduai-map"
 
 export interface CoreMessage {
   role: "user" | "assistant" | "system"
@@ -151,6 +159,71 @@ function extractToolArgs(toolName: ToolName, message: string): Record<string, un
   return args
 }
 
+function markdownPageList(query: string) {
+  const matches = searchEduAIPages(query, 5)
+  if (matches.length === 0) {
+    return "No encontré una herramienta exacta, pero puedes abrir [Creator Hub](/creator-hub) o [Agentes EduAI](/agentes)."
+  }
+
+  return matches
+    .map((page) => `- ${page.emoji} [${page.label}](${page.href}) — ${page.description}`)
+    .join("\n")
+}
+
+function buildStudyAction(userText: string, context: CoreContext, t0: number): CoreResponse {
+  const topic = extractStudyTopicFromMessage(userText) || context.subject || "tema general"
+  const href = buildStudyHref(topic)
+  return {
+    text: `📚 **Sesión de estudio lista**\n\nPuedes iniciar una sesión autónoma sobre **${topic}** aquí: [Abrir sesión de estudio](${href}).\n\nSugerencia de uso:\n1. Parte por **Teoría** para entender la idea central.\n2. Sigue con **Ejemplos** para ver procedimientos.\n3. Termina con **Ejercicios** o **Sócrates** para practicar sin que te dé la respuesta al tiro.`,
+    provider: "EduAI Router",
+    model: "Study Navigator",
+    task: "general",
+    latencyMs: Date.now() - t0,
+    wasToolCall: true,
+  }
+}
+
+function buildNavigationAction(userText: string, t0: number): CoreResponse | null {
+  const page = findBestEduAIPage(userText)
+  if (!page) return null
+
+  return {
+    text: `${page.emoji} **${page.label}**\n\n${page.description}\n\nAbrir ahora: [${page.label}](${page.href}).`,
+    provider: "EduAI Router",
+    model: "Internal Page Map",
+    task: "general",
+    latencyMs: Date.now() - t0,
+    wasToolCall: true,
+  }
+}
+
+function buildSearchAction(userText: string, t0: number): CoreResponse {
+  return {
+    text: `🔎 **Herramientas relacionadas dentro de EduAI**\n\n${markdownPageList(userText)}`,
+    provider: "EduAI Router",
+    model: "Internal Page Search",
+    task: "general",
+    latencyMs: Date.now() - t0,
+    wasToolCall: true,
+  }
+}
+
+function trySafeInternalAction(userText: string, context: CoreContext, t0: number): CoreResponse | null {
+  const text = userText.toLowerCase()
+
+  if (isStudyIntent(userText)) return buildStudyAction(userText, context, t0)
+
+  if (/buscar\s+(herramienta|pagina|página|en eduai)|que herramientas|qué herramientas|donde esta|dónde está/i.test(userText)) {
+    return buildSearchAction(userText, t0)
+  }
+
+  if (isNavigationIntent(userText) || /\b(qr studio|creator hub|image studio|audio lab|chat paper|crear examen|mis examenes|mis exámenes)\b/i.test(text)) {
+    return buildNavigationAction(userText, t0)
+  }
+
+  return null
+}
+
 export async function runCoreCycle(
   messages: CoreMessage[],
   context: CoreContext = {},
@@ -160,6 +233,10 @@ export async function runCoreCycle(
   const t0 = Date.now()
   const lastUser = [...messages].reverse().find((message) => message.role === "user")
   const userText = lastUser?.content ?? ""
+
+  const safeAction = trySafeInternalAction(userText, context, t0)
+  if (safeAction) return safeAction
+
   const toolName = detectToolFromMessage(userText)
 
   if (toolName) {
