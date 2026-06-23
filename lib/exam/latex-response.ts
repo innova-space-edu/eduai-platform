@@ -1,3 +1,5 @@
+const MATH_ENVIRONMENTS = "matrix|bmatrix|pmatrix|aligned|array"
+
 export function normalizeLatexSource(value: unknown): string {
   let text = String(value ?? "")
     .replace(/\r\n/g, "\n")
@@ -29,9 +31,19 @@ function hasLatexCommand(value: string): boolean {
 
 function isMostlyMathLine(value: string): boolean {
   if (!hasLatexCommand(value)) return false
-  const withoutCommands = value.replace(/\\[A-Za-z]+/g, "")
+  const withoutCommands = value
+    .replace(new RegExp(`\\\\(?:begin|end)\\{(?:${MATH_ENVIRONMENTS})\\}`, "g"), "")
+    .replace(/\\[A-Za-z]+/g, "")
+    .replace(/\{[^{}]*\}/g, "")
   const words = withoutCommands.match(/[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]{2,}/g) || []
   return words.length === 0
+}
+
+function wrapLatexEnvironments(value: string): string {
+  return value.replace(
+    new RegExp(`(\\\\begin\\{(${MATH_ENVIRONMENTS})\\}[\\s\\S]*?\\\\end\\{\\2\\})`, "g"),
+    (_match, block) => `\n$$${block}$$\n`,
+  )
 }
 
 function wrapLatexFragmentsInProse(value: string): string {
@@ -42,10 +54,14 @@ function wrapLatexFragmentsInProse(value: string): string {
 }
 
 export function normalizeMathTextForDisplay(value: unknown): string {
-  const text = normalizeLatexSource(value)
+  let text = normalizeLatexSource(value)
   if (!text) return ""
-  if (/\$[^$]+\$|\$\$[\s\S]*?\$\$/.test(text)) return text
 
+  // Evita que aparezcan comandos crudos como \begin{matrix} en la interfaz.
+  // Si el OCR devuelve una matriz o desarrollo en LaTeX, se envuelve como bloque matemático.
+  text = wrapLatexEnvironments(text)
+
+  if (/\$[^$]+\$|\$\$[\s\S]*?\$\$/.test(text)) return text
   if (!hasLatexCommand(text)) return text
 
   const lines = text.split(/\n+/).map((line) => line.trim()).filter(Boolean)
@@ -60,8 +76,8 @@ export function latexToReadableText(value: unknown): string {
 
   text = text
     .replace(/\$\$?/g, "")
-    .replace(/\\begin\{(?:matrix|bmatrix|pmatrix|aligned|array)\}/g, "")
-    .replace(/\\end\{(?:matrix|bmatrix|pmatrix|aligned|array)\}/g, "")
+    .replace(new RegExp(`\\\\begin\\{(?:${MATH_ENVIRONMENTS})\\}`, "g"), "")
+    .replace(new RegExp(`\\\\end\\{(?:${MATH_ENVIRONMENTS})\\}`, "g"), "")
     .replace(/\s*\\\\\s*/g, "\n")
     .replace(/\\frac\s*\{([^{}]+)\}\s*\{([^{}]+)\}/g, "$1/$2")
     .replace(/\\sqrt\s*\{([^{}]+)\}/g, "raíz($1)")
@@ -77,18 +93,26 @@ export function latexToReadableText(value: unknown): string {
     .replace(/\s*&\s*/g, " ")
     .replace(/\{([^{}]+)\}/g, "$1")
     .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
     .trim()
 
   return text
 }
 
-export function buildReadableDevelopmentAnswer(answer: any): string {
-  const explicit = String(answer?.devText || "").trim()
-  const latex = normalizeLatexSource(answer?.developmentLatex || answer?.latex || answer?.developmentLatexSource || "")
-  const display = normalizeMathTextForDisplay(latex)
-  const readable = latexToReadableText(latex)
+function normalizePlainDevelopmentText(value: unknown): string {
+  const source = String(value ?? "").trim()
+  if (!source) return ""
+  return hasLatexCommand(source) || /\$/.test(source)
+    ? latexToReadableText(source)
+    : source
+}
 
-  const parts = [readable, display, explicit]
+export function buildReadableDevelopmentAnswer(answer: any): string {
+  const latex = normalizeLatexSource(answer?.developmentLatex || answer?.latex || answer?.developmentLatexSource || "")
+  const readableLatex = latexToReadableText(latex)
+  const explicit = normalizePlainDevelopmentText(answer?.devText || "")
+
+  const parts = [readableLatex, explicit]
     .map((part) => String(part || "").trim())
     .filter(Boolean)
 
