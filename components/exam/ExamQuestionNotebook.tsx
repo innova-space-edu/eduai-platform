@@ -9,7 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { ArrowDown, ArrowUp, Brush, Eraser, Expand, Minimize2, Plus, Redo2, Trash2, Undo2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Brush, Eraser, Expand, Minimize2, Plus, Redo2, RefreshCw, Trash2, Undo2 } from "lucide-react";
 import MathRenderer from "@/components/ui/MathRenderer";
 
 type Point = { x: number; y: number };
@@ -56,6 +56,7 @@ const DEFAULT_CANVAS_HEIGHT = 1050;
 const CANVAS_GROWTH_STEP = 520;
 const CANVAS_BOTTOM_MARGIN = 160;
 const ERASER_RADIUS = 18;
+const RECOGNITION_DEBOUNCE_MS = 700;
 
 function createId() {
   return typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -121,6 +122,8 @@ const ExamQuestionNotebook = forwardRef<ExamQuestionNotebookHandle, Props>(funct
   const svgRef = useRef<SVGSVGElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const recognitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const recognitionAbortRef = useRef<AbortController | null>(null);
+  const recognitionRequestIdRef = useRef(0);
   const hydratedRef = useRef(false);
 
   const [pages, setPages] = useState<ExamNotebookPage[]>([createPage(0)]);
@@ -129,8 +132,9 @@ const ExamQuestionNotebook = forwardRef<ExamQuestionNotebookHandle, Props>(funct
   const [redoStack, setRedoStack] = useState<Stroke[][]>([]);
   const [tool, setTool] = useState<Tool>("pen");
   const [recognizing, setRecognizing] = useState(false);
+  const [recognitionQueued, setRecognitionQueued] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const [feedback, setFeedback] = useState("Escribe tu desarrollo. El LaTeX se actualizará automáticamente.");
+  const [feedback, setFeedback] = useState("Escribe tu desarrollo. El LaTeX se actualizará después de una pausa breve.");
 
   useEffect(() => {
     setActivePageId((current) => current || pages[0]?.id || "");
@@ -182,41 +186,71 @@ const ExamQuestionNotebook = forwardRef<ExamQuestionNotebookHandle, Props>(funct
   }, [getArtifact, onArtifactChange, storageKey]);
 
   const recognize = useCallback(async (nextStrokes: Stroke[], pageId: string) => {
+    if (recognitionTimer.current) {
+      clearTimeout(recognitionTimer.current);
+      recognitionTimer.current = null;
+    }
+
+    const requestId = recognitionRequestIdRef.current + 1;
+    recognitionRequestIdRef.current = requestId;
+    recognitionAbortRef.current?.abort();
+
     if (!nextStrokes.length) {
+      setRecognitionQueued(false);
+      setRecognizing(false);
       updatePage(pageId, (page) => ({ ...page, latex: "", ocrText: "", ocrConfidence: null, updatedAt: new Date().toISOString() }));
+      setFeedback("Escribe en la hoja para generar el desarrollo en formato matemático.");
       return;
     }
+
+    const controller = new AbortController();
+    recognitionAbortRef.current = controller;
+    setRecognitionQueued(false);
     setRecognizing(true);
+    setFeedback("Reconociendo la última versión del desarrollo...");
+
     try {
       const response = await fetch("/api/whiteboard/recognize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ strokes: nextStrokes }),
+        signal: controller.signal,
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data?.error || "No fue posible reconocer el desarrollo.");
+      if (controller.signal.aborted || requestId !== recognitionRequestIdRef.current) return;
+
+      const latex = typeof data?.latex === "string" ? data.latex : "";
       updatePage(pageId, (page) => ({
         ...page,
-        latex: typeof data?.latex === "string" ? data.latex : "",
+        latex,
         ocrText: typeof data?.text === "string" ? data.text : "",
         ocrConfidence: typeof data?.confidence === "number" ? data.confidence : null,
         updatedAt: new Date().toISOString(),
       }));
-      setFeedback("✅ Desarrollo actualizado y guardado localmente.");
-    } catch (error) {
+      setFeedback(latex ? "✅ Desarrollo actualizado en formato LaTeX." : "✅ Desarrollo guardado. Escribe con más claridad para mejorar el reconocimiento.");
+    } catch (error: any) {
+      if (error?.name === "AbortError") return;
+      if (requestId !== recognitionRequestIdRef.current) return;
       setFeedback(error instanceof Error ? `⚠️ ${error.message}` : "⚠️ No fue posible reconocer el desarrollo.");
     } finally {
-      setRecognizing(false);
+      if (requestId === recognitionRequestIdRef.current) {
+        setRecognizing(false);
+        recognitionAbortRef.current = null;
+      }
     }
   }, [updatePage]);
 
   const scheduleRecognition = useCallback((nextStrokes: Stroke[], pageId: string) => {
     if (recognitionTimer.current) clearTimeout(recognitionTimer.current);
-    recognitionTimer.current = setTimeout(() => void recognize(nextStrokes, pageId), 380);
+    setRecognitionQueued(true);
+    setFeedback("Se actualizará el LaTeX cuando hagas una pausa breve...");
+    recognitionTimer.current = setTimeout(() => void recognize(nextStrokes, pageId), RECOGNITION_DEBOUNCE_MS);
   }, [recognize]);
 
   useEffect(() => () => {
     if (recognitionTimer.current) clearTimeout(recognitionTimer.current);
+    recognitionAbortRef.current?.abort();
   }, []);
 
   useEffect(() => {
@@ -294,9 +328,19 @@ const ExamQuestionNotebook = forwardRef<ExamQuestionNotebookHandle, Props>(funct
 
   function clearPage() {
     if (!activePage) return;
+    if (recognitionTimer.current) clearTimeout(recognitionTimer.current);
+    recognitionAbortRef.current?.abort();
     updatePage(activePage.id, (page) => ({ ...page, strokes: [], latex: "", ocrText: "", ocrConfidence: null, updatedAt: new Date().toISOString() }));
     setRedoStack([]);
     setActiveStroke(null);
+    setRecognitionQueued(false);
+    setRecognizing(false);
+    setFeedback("Página limpia. Escribe de nuevo para generar el LaTeX.");
+  }
+
+  function recognizeNow() {
+    if (!activePage) return;
+    void recognize(activePage.strokes, activePage.id);
   }
 
   function addPage() {
@@ -343,6 +387,12 @@ const ExamQuestionNotebook = forwardRef<ExamQuestionNotebookHandle, Props>(funct
 
   if (!activePage) return null;
   const allStrokes = activeStroke ? [...activePage.strokes, activeStroke] : activePage.strokes;
+  const recognitionStatusLabel = recognizing ? "Reconociendo..." : recognitionQueued ? "Actualización pendiente" : "Guardado automático";
+  const recognitionStatusClass = recognizing
+    ? "bg-amber-100 text-amber-700"
+    : recognitionQueued
+      ? "bg-blue-100 text-blue-700"
+      : "bg-emerald-100 text-emerald-700";
 
   return (
     <section
@@ -353,11 +403,11 @@ const ExamQuestionNotebook = forwardRef<ExamQuestionNotebookHandle, Props>(funct
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-blue-100 bg-blue-50/60 px-3 py-3">
         <div>
           <p className="text-sm font-black text-slate-900">✍️ Cuaderno de desarrollo</p>
-          <p className="text-xs text-slate-600">Siempre visible. Se guarda al instante y registra el LaTeX oficial al avanzar.</p>
+          <p className="text-xs text-slate-600">Se guarda al instante. El formato matemático se actualiza al pausar o al presionar actualizar.</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className={`rounded-full px-3 py-1 text-[11px] font-bold ${recognizing ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>
-            {recognizing ? "Reconociendo..." : "Guardado automático"}
+          <span className={`rounded-full px-3 py-1 text-[11px] font-bold ${recognitionStatusClass}`}>
+            {recognitionStatusLabel}
           </span>
           <button
             type="button"
@@ -376,6 +426,7 @@ const ExamQuestionNotebook = forwardRef<ExamQuestionNotebookHandle, Props>(funct
         <button type="button" onClick={undo} className="rounded-lg bg-white p-2 text-slate-700" aria-label="Deshacer"><Undo2 size={15} /></button>
         <button type="button" onClick={redo} className="rounded-lg bg-white p-2 text-slate-700" aria-label="Rehacer"><Redo2 size={15} /></button>
         <button type="button" onClick={addPage} className="flex items-center gap-1 rounded-lg bg-white px-3 py-2 text-xs font-bold text-blue-700"><Plus size={14} /> Página</button>
+        <button type="button" onClick={recognizeNow} disabled={recognizing || !activePage.strokes.length} className="flex items-center gap-1 rounded-lg bg-white px-3 py-2 text-xs font-bold text-emerald-700 disabled:opacity-40"><RefreshCw size={14} /> Actualizar LaTeX</button>
         <button type="button" onClick={() => scrollRef.current?.scrollBy({ top: -420, behavior: "smooth" })} className="rounded-lg bg-white p-2 text-slate-700" aria-label="Subir"><ArrowUp size={15} /></button>
         <button type="button" onClick={() => scrollRef.current?.scrollBy({ top: 420, behavior: "smooth" })} className="rounded-lg bg-white p-2 text-slate-700" aria-label="Bajar"><ArrowDown size={15} /></button>
         <button type="button" onClick={clearPage} className="ml-auto flex items-center gap-1 rounded-lg bg-white px-3 py-2 text-xs font-bold text-rose-600"><Trash2 size={14} /> Limpiar página</button>
@@ -389,14 +440,23 @@ const ExamQuestionNotebook = forwardRef<ExamQuestionNotebookHandle, Props>(funct
         ))}
       </div>
 
-      <div className={`grid min-h-0 flex-1 ${expanded ? "lg:grid-cols-[minmax(0,1fr)_300px]" : "grid-rows-[auto_1fr]"}`}>
+      <div className={`grid min-h-0 flex-1 ${expanded ? "lg:grid-cols-[minmax(0,1fr)_320px]" : "grid-rows-[auto_1fr]"}`}>
         <aside className={`space-y-2 bg-white p-3 ${expanded ? "lg:order-2 lg:border-l lg:border-slate-200" : "border-b border-slate-200"}`}>
           <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-3">
-            <p className="mb-2 text-xs font-black uppercase tracking-[0.12em] text-blue-700">LaTeX reconocido</p>
-            {activePage.latex ? <MathRenderer content={`$$${activePage.latex}$$`} /> : <p className="text-sm text-slate-500">Escribe en la hoja para generar el desarrollo digital.</p>}
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <p className="text-xs font-black uppercase tracking-[0.12em] text-blue-700">Vista matemática</p>
+              {recognizing ? <span className="text-[10px] font-bold text-amber-600">Actualizando...</span> : null}
+            </div>
+            {activePage.latex ? (
+              <div className="rounded-xl border border-white/70 bg-white px-2 py-2 text-slate-900">
+                <MathRenderer content={`$$${activePage.latex}$$`} />
+              </div>
+            ) : (
+              <p className="text-sm text-slate-500">Escribe en la hoja para generar el desarrollo digital en formato matemático.</p>
+            )}
           </div>
           <p className="rounded-2xl bg-slate-50 p-3 text-xs text-slate-600">{feedback}</p>
-          <p className="text-[11px] text-slate-500">Página {pages.findIndex((page) => page.id === activePage.id) + 1} de {pages.length}. Se evaluará el LaTeX renderizado; los trazos quedan solo como evidencia.</p>
+          <p className="text-[11px] text-slate-500">Página {pages.findIndex((page) => page.id === activePage.id) + 1} de {pages.length}. Se evaluará la vista matemática reconocida; los trazos quedan como evidencia.</p>
         </aside>
 
         <div
