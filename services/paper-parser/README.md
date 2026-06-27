@@ -24,6 +24,9 @@ Microservicio Python para mejorar la lectura de PDF en Chat Paper.
 - `PAPER_PARSER_MAX_MB=50`
 - `PAPER_PARSER_OCR_LANGUAGES=spa+eng`
 - `PAPER_PARSER_TOKEN=`
+- `PAPER_PARSER_MIN_TEXT_CHARS=700`
+- `PAPER_PARSER_MIN_TEXT_WORDS=120`
+- `PAPER_PARSER_FORCE_OCR_IF_LOW_TEXT=true`
 
 ## Variables requeridas en Vercel
 
@@ -33,6 +36,10 @@ Microservicio Python para mejorar la lectura de PDF en Chat Paper.
 ## Arquitectura
 
 Chat Paper descarga el PDF desde Supabase Storage, lo envía al parser externo y guarda los fragmentos procesados en `paper_documents` y `paper_chunks`.
+
+## Mejora recomendada
+
+El parser debe usar OCR adaptativo: primero texto nativo para PDFs normales y OCR forzado solo cuando el texto extraído es bajo o el usuario lo solicita. Esto reduce latencia sin perder capacidad para PDFs escaneados.
 
 ## Próximas mejoras
 
