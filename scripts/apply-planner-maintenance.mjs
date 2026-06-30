@@ -60,6 +60,65 @@ if (fs.existsSync(curricularRoutePath)) {
   console.log("[planner-maintenance] curricular macro guard connected")
 }
 
+const educatorPagePath = path.join(root, "app/educador/page.tsx")
+if (fs.existsSync(educatorPagePath)) {
+  let educatorPage = fs.readFileSync(educatorPagePath, "utf8")
+
+  if (!educatorPage.includes("function buildPromptWithContext")) {
+    educatorPage = educatorPage.replace(
+      "  async function handleRegenerate() {",
+      `  function buildPromptWithContext(basePrompt: string) {
+    const docenteIdea = config.contexto.trim()
+    const unidadTexto = selectedUnit?.label || "Sin bloque/unidad local seleccionada"
+    const oaTexto = selectedOAObjects.length
+      ? selectedOAObjects.map((oa) => `${oa.codigoOficial || oa.id}: ${oa.texto}`).join("\\n")
+      : "Sin OA seleccionado manualmente"
+    const oatTexto = config.nivel === "parvularia" && config.selectedOATIds.length
+      ? config.selectedOATIds.join(", ")
+      : "Sin OAT seleccionado"
+
+    return [
+      basePrompt,
+      "",
+      "IMPORTANTE: usa como eje central la información que escribió el docente en el cuadro 'Tu proyecto o idea'. No la ignores.",
+      "",
+      "CONTEXTO ESCRITO POR EL DOCENTE:",
+      docenteIdea || "El docente no escribió contexto adicional.",
+      "",
+      "CONFIGURACIÓN ACTIVA:",
+      ` + "`" + `- Nivel: ${config.nivel}` + "`" + `,
+      ` + "`" + `- Curso/Subnivel: ${config.curso}` + "`" + `,
+      ` + "`" + `- Asignatura/Núcleo: ${config.asignatura}` + "`" + `,
+      ` + "`" + `- Tipo de planificación: ${config.tiempoPlanificacion}` + "`" + `,
+      ` + "`" + `- Mes: ${config.mes}` + "`" + `,
+      ` + "`" + `- Sesiones: ${config.sesiones}` + "`" + `,
+      ` + "`" + `- Duración: ${config.duracionMinutos} min` + "`" + `,
+      "",
+      "UNIDAD/BLOQUE SELECCIONADO:",
+      unidadTexto,
+      "",
+      "OA SELECCIONADOS:",
+      oaTexto,
+      "",
+      config.nivel === "parvularia" ? "OAT SELECCIONADOS:" : "",
+      config.nivel === "parvularia" ? oatTexto : "",
+    ].filter(Boolean).join("\\n")
+  }
+
+  async function handleRegenerate() {`
+    )
+  }
+
+  educatorPage = educatorPage.replace(
+    "onClick={() => sendMessage(qp.prompt)}",
+    "onClick={() => sendMessage(buildPromptWithContext(qp.prompt))}"
+  )
+
+  fs.writeFileSync(educatorPagePath, educatorPage, "utf8")
+  changed = true
+  console.log("[planner-maintenance] quick prompts include teacher context")
+}
+
 for (const file of ["fix-exam-generate.diff", "fix-exam-create-page.diff"]) {
   const target = path.join(root, file)
   if (fs.existsSync(target)) {
