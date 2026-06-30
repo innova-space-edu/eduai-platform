@@ -32,9 +32,12 @@ patch("app/examen/crear/page.tsx", [
 ]);
 
 patch("app/api/agents/exam-generate/route.ts", [
+  ['import { buildAnswerKey, enrichQuestionAnswerKey, findBlockingQualityIssues } from "@/lib/exam/question-quality"', 'import { buildAnswerKey, enrichQuestionAnswerKey, findBlockingQualityIssues } from "@/lib/exam/question-quality"\nimport { autoFixQuestionMath } from "@/lib/exam/math-autofix"'],
   ['type: "multiple_choice" | "true_false" | "development"', 'type: "multiple_choice" | "true_false" | "development" | "mixed_choice_development"'],
   ['q.type === "true_false" || q.type === "development" ? q.type : "multiple_choice"', 'q.type === "true_false" || q.type === "development" || q.type === "mixed_choice_development" ? q.type : "multiple_choice"'],
+  ['Types permitidos: multiple_choice, true_false, development.', 'Tipos permitidos: multiple_choice, true_false, development, mixed_choice_development.'],
   ['Tipos permitidos: multiple_choice, true_false, development.', 'Tipos permitidos: multiple_choice, true_false, development, mixed_choice_development.'],
+  ['validateQuestionConsistency(repairQuestionStructure(sanitizeQuestionLatex(q)))', 'autoFixQuestionMath(validateQuestionConsistency(repairQuestionStructure(sanitizeQuestionLatex(q))))'],
   ['type BatchPlan = { total: number; mc: number; tf: number; dev: number }', 'type BatchPlan = { total: number; mc: number; tf: number; dev: number; mixed: number }'],
   ['function makeBatchPlans(totalQ: number, mc: number, tf: number, dev: number): BatchPlan[] {', 'function makeBatchPlans(totalQ: number, mc: number, tf: number, dev: number, mixed = 0): BatchPlan[] {'],
   ['const explicit = mc > 0 || tf > 0 || dev > 0', 'const explicit = mc > 0 || tf > 0 || dev > 0 || mixed > 0'],
