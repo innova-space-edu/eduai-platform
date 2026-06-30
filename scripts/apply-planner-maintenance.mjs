@@ -65,48 +65,49 @@ if (fs.existsSync(educatorPagePath)) {
   let educatorPage = fs.readFileSync(educatorPagePath, "utf8")
 
   if (!educatorPage.includes("function buildPromptWithContext")) {
-    educatorPage = educatorPage.replace(
+    const helper = [
+      "  function buildPromptWithContext(basePrompt: string) {",
+      "    const docenteIdea = config.contexto.trim()",
+      "    const unidadTexto = selectedUnit?.label || \"Sin bloque/unidad local seleccionada\"",
+      "    const oaTexto = selectedOAObjects.length",
+      "      ? selectedOAObjects.map((oa) => `${oa.codigoOficial || oa.id}: ${oa.texto}`).join(\"\\n\")",
+      "      : \"Sin OA seleccionado manualmente\"",
+      "    const oatTexto = config.nivel === \"parvularia\" && config.selectedOATIds.length",
+      "      ? config.selectedOATIds.join(\", \")",
+      "      : \"Sin OAT seleccionado\"",
+      "",
+      "    return [",
+      "      basePrompt,",
+      "      \"\",",
+      "      \"IMPORTANTE: usa como eje central la información que escribió el docente en el cuadro 'Tu proyecto o idea'. No la ignores.\",",
+      "      \"\",",
+      "      \"CONTEXTO ESCRITO POR EL DOCENTE:\",",
+      "      docenteIdea || \"El docente no escribió contexto adicional.\",",
+      "      \"\",",
+      "      \"CONFIGURACIÓN ACTIVA:\",",
+      "      `- Nivel: ${config.nivel}`,",
+      "      `- Curso/Subnivel: ${config.curso}`,",
+      "      `- Asignatura/Núcleo: ${config.asignatura}`,",
+      "      `- Tipo de planificación: ${config.tiempoPlanificacion}`,",
+      "      `- Mes: ${config.mes}`,",
+      "      `- Sesiones: ${config.sesiones}`,",
+      "      `- Duración: ${config.duracionMinutos} min`,",
+      "      \"\",",
+      "      \"UNIDAD/BLOQUE SELECCIONADO:\",",
+      "      unidadTexto,",
+      "      \"\",",
+      "      \"OA SELECCIONADOS:\",",
+      "      oaTexto,",
+      "      \"\",",
+      "      config.nivel === \"parvularia\" ? \"OAT SELECCIONADOS:\" : \"\",",
+      "      config.nivel === \"parvularia\" ? oatTexto : \"\",",
+      "    ].filter(Boolean).join(\"\\n\")",
+      "  }",
+      "",
       "  async function handleRegenerate() {",
-      `  function buildPromptWithContext(basePrompt: string) {
-    const docenteIdea = config.contexto.trim()
-    const unidadTexto = selectedUnit?.label || "Sin bloque/unidad local seleccionada"
-    const oaTexto = selectedOAObjects.length
-      ? selectedOAObjects.map((oa) => `${oa.codigoOficial || oa.id}: ${oa.texto}`).join("\\n")
-      : "Sin OA seleccionado manualmente"
-    const oatTexto = config.nivel === "parvularia" && config.selectedOATIds.length
-      ? config.selectedOATIds.join(", ")
-      : "Sin OAT seleccionado"
+    ].join("\n")
 
-    return [
-      basePrompt,
-      "",
-      "IMPORTANTE: usa como eje central la información que escribió el docente en el cuadro 'Tu proyecto o idea'. No la ignores.",
-      "",
-      "CONTEXTO ESCRITO POR EL DOCENTE:",
-      docenteIdea || "El docente no escribió contexto adicional.",
-      "",
-      "CONFIGURACIÓN ACTIVA:",
-      ` + "`" + `- Nivel: ${config.nivel}` + "`" + `,
-      ` + "`" + `- Curso/Subnivel: ${config.curso}` + "`" + `,
-      ` + "`" + `- Asignatura/Núcleo: ${config.asignatura}` + "`" + `,
-      ` + "`" + `- Tipo de planificación: ${config.tiempoPlanificacion}` + "`" + `,
-      ` + "`" + `- Mes: ${config.mes}` + "`" + `,
-      ` + "`" + `- Sesiones: ${config.sesiones}` + "`" + `,
-      ` + "`" + `- Duración: ${config.duracionMinutos} min` + "`" + `,
-      "",
-      "UNIDAD/BLOQUE SELECCIONADO:",
-      unidadTexto,
-      "",
-      "OA SELECCIONADOS:",
-      oaTexto,
-      "",
-      config.nivel === "parvularia" ? "OAT SELECCIONADOS:" : "",
-      config.nivel === "parvularia" ? oatTexto : "",
-    ].filter(Boolean).join("\\n")
-  }
-
-  async function handleRegenerate() {`
-    )
+    educatorPage = educatorPage.replace("  async function handleRegenerate() {", helper)
   }
 
   educatorPage = educatorPage.replace(
