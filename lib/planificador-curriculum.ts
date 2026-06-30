@@ -9,7 +9,109 @@ import {
   type OA,
 } from "@/lib/mineduc-oa"
 
-export type TiempoPlanificacion = "diaria" | "semanal" | "mensual"
+export type TiempoPlanificacion = "diaria" | "semanal" | "mensual" | "semestral" | "anual"
+
+export interface PlanningHorizonConfig {
+  id: TiempoPlanificacion
+  label: string
+  shortLabel: string
+  description: string
+  defaultSesiones: number
+  minSesiones: number
+  maxSesiones: number
+  defaultDuracionMinutos: number
+  periodOptions: Array<{ id: string; label: string; inicio?: string; fin?: string }>
+  expectedStructure: string[]
+}
+
+export const PLANNING_HORIZONS: PlanningHorizonConfig[] = [
+  {
+    id: "diaria",
+    label: "Planificación diaria",
+    shortLabel: "Diaria",
+    description: "Clase específica con inicio, desarrollo, cierre, evaluación y materiales.",
+    defaultSesiones: 1,
+    minSesiones: 1,
+    maxSesiones: 3,
+    defaultDuracionMinutos: 90,
+    periodOptions: [{ id: "clase", label: "Clase única" }],
+    expectedStructure: ["datos generales", "OA", "objetivo de clase", "inicio", "desarrollo", "cierre", "evaluación", "materiales"],
+  },
+  {
+    id: "semanal",
+    label: "Planificación semanal",
+    shortLabel: "Semanal",
+    description: "Secuencia de una semana, distribuida por sesiones y evidencias de avance.",
+    defaultSesiones: 3,
+    minSesiones: 1,
+    maxSesiones: 8,
+    defaultDuracionMinutos: 90,
+    periodOptions: [{ id: "semana", label: "Semana lectiva" }],
+    expectedStructure: ["propósito semanal", "progresión por sesión", "evaluación formativa", "recursos", "evidencias"],
+  },
+  {
+    id: "mensual",
+    label: "Planificación mensual",
+    shortLabel: "Mensual",
+    description: "Organización de una unidad o subunidad durante varias semanas.",
+    defaultSesiones: 8,
+    minSesiones: 4,
+    maxSesiones: 24,
+    defaultDuracionMinutos: 90,
+    periodOptions: [
+      { id: "marzo", label: "Marzo" },
+      { id: "abril", label: "Abril" },
+      { id: "mayo", label: "Mayo" },
+      { id: "junio", label: "Junio" },
+      { id: "julio", label: "Julio" },
+      { id: "agosto", label: "Agosto" },
+      { id: "septiembre", label: "Septiembre" },
+      { id: "octubre", label: "Octubre" },
+      { id: "noviembre", label: "Noviembre" },
+      { id: "diciembre", label: "Diciembre" },
+    ],
+    expectedStructure: ["objetivos del mes", "semanas", "actividades centrales", "evaluaciones", "recursos", "ajustes"],
+  },
+  {
+    id: "semestral",
+    label: "Planificación semestral",
+    shortLabel: "Semestral",
+    description: "Distribución macro del semestre con unidades, OA, semanas, evaluaciones y productos.",
+    defaultSesiones: 18,
+    minSesiones: 8,
+    maxSesiones: 60,
+    defaultDuracionMinutos: 90,
+    periodOptions: [
+      { id: "primer-semestre", label: "Primer semestre · marzo a junio", inicio: "marzo", fin: "junio" },
+      { id: "segundo-semestre", label: "Segundo semestre · julio a diciembre", inicio: "julio", fin: "diciembre" },
+    ],
+    expectedStructure: ["marco semestral", "distribución mensual", "semanas", "OA por tramo", "evaluaciones", "productos", "seguimiento"],
+  },
+  {
+    id: "anual",
+    label: "Planificación anual",
+    shortLabel: "Anual",
+    description: "Vista completa marzo-diciembre con semestres, unidades, OA, hitos y evaluaciones.",
+    defaultSesiones: 36,
+    minSesiones: 16,
+    maxSesiones: 120,
+    defaultDuracionMinutos: 90,
+    periodOptions: [{ id: "anio-escolar", label: "Año escolar · marzo a diciembre", inicio: "marzo", fin: "diciembre" }],
+    expectedStructure: ["visión anual", "primer semestre", "segundo semestre", "unidades", "OA", "evaluaciones", "hitos", "cierre"],
+  },
+]
+
+export function getPlanningHorizonConfig(tiempo: TiempoPlanificacion): PlanningHorizonConfig {
+  return PLANNING_HORIZONS.find((item) => item.id === tiempo) || PLANNING_HORIZONS[0]
+}
+
+export function isTiempoPlanificacion(value: unknown): value is TiempoPlanificacion {
+  return typeof value === "string" && PLANNING_HORIZONS.some((item) => item.id === value)
+}
+
+export function getPlanningPeriodOptions(tiempo: TiempoPlanificacion) {
+  return getPlanningHorizonConfig(tiempo).periodOptions
+}
 
 export interface PlannerUnit {
   id: string
@@ -234,26 +336,23 @@ export function buildSelectedOAContext(
 export function buildPlanningHorizonText(
   tiempo: TiempoPlanificacion,
   sesiones?: number | string,
-  duracion?: number | string
+  duracion?: number | string,
+  periodoLabel?: string
 ) {
   const sesionesNum = Number(sesiones || 0)
   const duracionNum = Number(duracion || 0)
-
-  const base =
-    tiempo === "diaria"
-      ? "Planificación diaria: diseña una secuencia completa para una clase."
-      : tiempo === "semanal"
-        ? "Planificación semanal: distribuye objetivos y actividades por sesión durante la semana."
-        : "Planificación mensual: organiza una progresión de aprendizajes por varias semanas."
+  const config = getPlanningHorizonConfig(tiempo)
 
   const extra = [
+    periodoLabel ? `Periodo: ${periodoLabel}.` : "",
     sesionesNum > 0 ? `Cantidad de sesiones estimadas: ${sesionesNum}.` : "",
     duracionNum > 0 ? `Duración referencial por sesión: ${duracionNum} minutos.` : "",
+    config.expectedStructure.length ? `Debe incluir: ${config.expectedStructure.join(", ")}.` : "",
   ]
     .filter(Boolean)
     .join(" ")
 
-  return `${base}${extra ? ` ${extra}` : ""}`
+  return `${config.label}: ${config.description}${extra ? ` ${extra}` : ""}`
 }
 
 export function hasLocalCurriculum(state: PlannerCurriculumState) {
