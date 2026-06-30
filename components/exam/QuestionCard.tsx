@@ -9,7 +9,7 @@ interface RubricItem {
 
 interface Question {
   id?: string;
-  type: "multiple_choice" | "true_false" | "development";
+  type: "multiple_choice" | "true_false" | "development" | "mixed_choice_development";
   question?: string;
   statement?: string;
   options?: string[];
@@ -18,6 +18,8 @@ interface Question {
   maxPoints?: number;
   selectionPoints?: number;
   justificationMaxPoints?: number;
+  developmentMaxPoints?: number;
+  showRubricToStudent?: boolean;
   rubric?: RubricItem[];
   imageUrl?: string;
 }
@@ -45,6 +47,7 @@ function getQuestionText(q: Question) {
 function typeLabel(type: Question["type"]) {
   if (type === "multiple_choice") return "Alternativas";
   if (type === "true_false") return "Verdadero / Falso";
+  if (type === "mixed_choice_development") return "Alternativa + desarrollo";
   return "Desarrollo";
 }
 
@@ -63,6 +66,10 @@ export default function QuestionCard({
   maxPoints,
   useNotebookForDevelopment = false,
 }: QuestionCardProps) {
+  const isMixed = q.type === "mixed_choice_development";
+  const showOptions = q.type === "multiple_choice" || isMixed;
+  const showDevelopment = q.type === "development" || isMixed;
+
   return (
     <div className="exam-question">
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -103,8 +110,13 @@ export default function QuestionCard({
         <ExamMathText text={getQuestionText(q)} />
       </div>
 
-      {q.type === "multiple_choice" && (
+      {showOptions && (
         <div className="space-y-3">
+          {isMixed ? (
+            <p className="exam-question-meta text-xs font-black uppercase tracking-[0.16em]">
+              Selecciona una alternativa {q.selectionPoints ? `(${q.selectionPoints} pts)` : ""}
+            </p>
+          ) : null}
           {(q.options || []).map((option, i) => {
             const active = mcAnswer === i;
             return (
@@ -157,9 +169,15 @@ export default function QuestionCard({
         </div>
       )}
 
-      {q.type === "development" && (
-        <div className="space-y-5">
-          {Array.isArray(q.rubric) && q.rubric.length > 0 && (
+      {showDevelopment && (
+        <div className={isMixed ? "mt-6 space-y-5" : "space-y-5"}>
+          {isMixed ? (
+            <p className="exam-question-meta text-xs font-black uppercase tracking-[0.16em]">
+              Desarrollo {q.developmentMaxPoints ? `(${q.developmentMaxPoints} pts)` : ""}
+            </p>
+          ) : null}
+
+          {Array.isArray(q.rubric) && q.rubric.length > 0 && (q.type === "development" || q.showRubricToStudent === true) && (
             <div className="rounded-[calc(var(--exam-radius)-6px)] border border-[var(--exam-border)] bg-[var(--exam-soft-bg)] p-4">
               <p className="exam-question-meta mb-3 text-xs font-black uppercase tracking-[0.16em]">
                 Criterios de evaluación
@@ -179,7 +197,7 @@ export default function QuestionCard({
             <div className="rounded-[calc(var(--exam-radius)-6px)] border border-blue-200 bg-blue-50/70 px-4 py-3">
               <p className="text-sm font-black text-blue-800">✍️ Responde en el cuaderno digital</p>
               <p className="mt-1 text-xs leading-relaxed text-blue-700">
-                El cuaderno está visible al costado. Escribe tu procedimiento con el lápiz; el sistema guardará el LaTeX reconocido al avanzar.
+                El cuaderno está visible abajo. Escribe tu procedimiento con el lápiz; el sistema guardará el lienzo y el LaTeX reconocido al avanzar o entregar.
               </p>
             </div>
           ) : (
