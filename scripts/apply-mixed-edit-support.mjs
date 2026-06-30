@@ -90,3 +90,5 @@ patch("app/examen/p/[code]/page.tsx", [
 regexPatch("app/examen/p/[code]/page.tsx", [
   [/\n\s*\{\/\* Botón narrar pregunta — PIE\/accesibilidad \*\/\}\s*\n\s*\{exam\?\.settings\?\.accessibility\?\.pieMode && \(\s*\n\s*<div className="flex w-full justify-end">\s*\n\s*<ExamAudioButton[\s\S]*?<\/div>\s*\n\s*\)\}/, ""],
 ]);
+
+await import("./apply-pdf-export.mjs");
