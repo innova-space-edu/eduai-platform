@@ -48,7 +48,7 @@ if (page.includes("function buildPromptWithContext") && !page.includes("effectiv
   changed = true
 }
 
-if (!page.includes("Generar con formato")) {
+if (!page.includes("Generar con estilo")) {
   const dropdownUi = [
     "                {config.nivel !== \"parvularia\" && (",
     "                  <div className=\"rounded-2xl border border-emerald-200 bg-emerald-50/80 p-4\">",
@@ -74,7 +74,7 @@ if (!page.includes("Generar con formato")) {
 
   page = page.replace(
     "                <div className=\"grid grid-cols-2 sm:grid-cols-3 gap-2 pt-2\">",
-    `${dropdownUi}                <div className=\"grid grid-cols-2 sm:grid-cols-3 gap-2 pt-2">`
+    `${dropdownUi}                <div className=\"grid grid-cols-2 sm:grid-cols-3 gap-2 pt-2\">`
   )
   changed = true
 }
