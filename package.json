@@ -8,7 +8,8 @@
   "scripts": {
     "dev": "next dev",
     "planner:maintain": "node scripts/apply-planner-maintenance.mjs",
-    "build": "node scripts/apply-planner-maintenance.mjs && next build",
+    "whiteboard:finalize": "node scripts/apply-whiteboard-finalization.mjs",
+    "build": "node scripts/apply-planner-maintenance.mjs && node scripts/apply-whiteboard-finalization.mjs && next build",
     "start": "next start",
     "lint": "eslint",
     "test:planner": "tsx scripts/test-planner-integral.ts",
