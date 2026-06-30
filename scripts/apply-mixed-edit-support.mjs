@@ -10,6 +10,16 @@ function patch(path, edits) {
   writeFileSync(path, s);
 }
 
+function regexPatch(path, edits) {
+  if (!existsSync(path)) return;
+  let s = readFileSync(path, "utf8");
+  for (const edit of edits) {
+    const [from, to] = edit;
+    s = s.replace(from, to);
+  }
+  writeFileSync(path, s);
+}
+
 patch("app/examen/crear/page.tsx", [
   ['  const [aiDev, setAiDev] = useState(2);', '  const [aiDev, setAiDev] = useState(2);\n  const [aiMixed, setAiMixed] = useState(0);'],
   ['const totalQ = aiMC + aiTF + aiDev;', 'const totalQ = aiMC + aiTF + aiDev + aiMixed;'],
@@ -67,6 +77,7 @@ patch("app/api/agents/examen-docente/route.ts", [
 ]);
 
 patch("app/examen/p/[code]/page.tsx", [
+  ['import ExamAudioButton from "@/components/exam/ExamAudioButton";\n', ''],
   ['const showRes = exam?.settings?.showResultToStudent !== false;\n  const allowCalculator', 'const showRes = exam?.settings?.showResultToStudent !== false;\n  const showFeedback = showRes && exam?.settings?.allowReview !== false && exam?.settings?.feedbackEnabled !== false;\n  const allowCalculator'],
   ['// Generate AI feedback for each question\n        generateFeedback(data.submission, exam);', '// Generate AI feedback only when the teacher enabled detailed review\n        if (showFeedback) generateFeedback(data.submission, exam);\n        else setFeedbackDone(true);'],
   ['{feedbackLoading && (', '{showFeedback && feedbackLoading && ('],
@@ -74,4 +85,8 @@ patch("app/examen/p/[code]/page.tsx", [
   ['{feedbackDone && (', '{(feedbackDone || (showRes && !showFeedback)) && ('],
   ['Retroalimentación completa', '{showFeedback ? "Retroalimentación completa" : "Nota entregada"}'],
   ['Has revisado todas tus preguntas. Puedes cerrar esta página.', '{showFeedback ? "Has revisado todas tus preguntas. Puedes cerrar esta página." : "La retroalimentación detallada fue desactivada por el docente."}'],
+]);
+
+regexPatch("app/examen/p/[code]/page.tsx", [
+  [/\n\s*\{\/\* Botón narrar pregunta — PIE\/accesibilidad \*\/\}\s*\n\s*\{exam\?\.settings\?\.accessibility\?\.pieMode && \(\s*\n\s*<div className="flex w-full justify-end">\s*\n\s*<ExamAudioButton[\s\S]*?<\/div>\s*\n\s*\)\}/, ""],
 ]);
