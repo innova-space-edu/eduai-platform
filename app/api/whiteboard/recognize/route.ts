@@ -4,17 +4,18 @@ import { latexToReadableText, normalizeLatexSource } from "@/lib/exam/latex-resp
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 10;
 
 const RECOGNITION_TIMEOUT_MS = clampNumber(
-  Number(process.env.WHITEBOARD_RECOGNITION_TIMEOUT_MS || 6500),
-  2500,
-  15000,
+  Number(process.env.WHITEBOARD_RECOGNITION_TIMEOUT_MS || 4200),
+  1800,
+  9000,
 );
 const CACHE_TTL_MS = clampNumber(Number(process.env.WHITEBOARD_RECOGNITION_CACHE_TTL_MS || 12000), 0, 60000);
 const MAX_CACHE_ITEMS = clampNumber(Number(process.env.WHITEBOARD_RECOGNITION_CACHE_ITEMS || 200), 20, 1000);
-const MAX_STROKES = clampNumber(Number(process.env.WHITEBOARD_RECOGNITION_MAX_STROKES || 240), 10, 600);
-const MAX_POINTS_PER_STROKE = clampNumber(Number(process.env.WHITEBOARD_RECOGNITION_MAX_POINTS_PER_STROKE || 120), 12, 400);
-const MIN_POINT_DISTANCE = clampNumber(Number(process.env.WHITEBOARD_RECOGNITION_MIN_POINT_DISTANCE || 2.4), 0.5, 12);
+const MAX_STROKES = clampNumber(Number(process.env.WHITEBOARD_RECOGNITION_MAX_STROKES || 180), 10, 600);
+const MAX_POINTS_PER_STROKE = clampNumber(Number(process.env.WHITEBOARD_RECOGNITION_MAX_POINTS_PER_STROKE || 90), 12, 400);
+const MIN_POINT_DISTANCE = clampNumber(Number(process.env.WHITEBOARD_RECOGNITION_MIN_POINT_DISTANCE || 3.2), 0.5, 12);
 
 type Point = { x: number; y: number };
 type Stroke = { points: Point[] };
@@ -83,7 +84,7 @@ function readProviderHeaders() {
 
 function buildProviderPayload(strokes: NormalizedStrokes) {
   const mode = String(process.env.WHITEBOARD_RECOGNITION_PAYLOAD_MODE || "mathpix").trim().toLowerCase();
-  const formats = String(process.env.WHITEBOARD_RECOGNITION_FORMATS || "")
+  const formats = String(process.env.WHITEBOARD_RECOGNITION_FORMATS || "latex_styled,text")
     .split(",")
     .map((format) => format.trim())
     .filter(Boolean);
@@ -96,7 +97,6 @@ function buildProviderPayload(strokes: NormalizedStrokes) {
     return strokes;
   }
 
-  // Formato recomendado para proveedores tipo Mathpix /v3/strokes.
   return { strokes, ...(formats.length ? { formats } : {}) };
 }
 
@@ -168,17 +168,41 @@ function writeCache(key: string, payload: Record<string, unknown>) {
   }
 }
 
+function pointCount(strokes: NormalizedStrokes) {
+  return strokes.x.reduce((sum, points) => sum + points.length, 0);
+}
+
+function softFailure(message: string, strokes: NormalizedStrokes, extra: Record<string, unknown> = {}) {
+  return {
+    latex: "",
+    text: "",
+    renderedText: "",
+    confidence: null,
+    strokeCount: strokes.x.length,
+    pointCount: pointCount(strokes),
+    cacheHit: false,
+    recognitionAvailable: false,
+    warning: message,
+    ...extra,
+  };
+}
+
 export async function POST(request: Request) {
+  let normalizedForCatch: NormalizedStrokes | null = null;
+  let keyForCatch = "";
+
   try {
     const body = (await request.json()) as RecognizeBody;
     const strokes = Array.isArray(body.strokes) ? body.strokes : [];
     const normalized = normalize(strokes);
+    normalizedForCatch = normalized;
 
     if (normalized.x.length === 0) {
-      return NextResponse.json({ latex: "", text: "", confidence: null, strokeCount: 0 });
+      return NextResponse.json({ latex: "", text: "", confidence: null, strokeCount: 0, recognitionAvailable: true });
     }
 
     const key = cacheKeyFor(normalized);
+    keyForCatch = key;
     const cached = readCache(key);
     if (cached) {
       return NextResponse.json({ ...cached, cacheHit: true });
@@ -186,14 +210,7 @@ export async function POST(request: Request) {
 
     const endpoint = process.env.WHITEBOARD_RECOGNITION_URL;
     if (!endpoint) {
-      return NextResponse.json(
-        {
-          error: "El proveedor de reconocimiento aún no está configurado.",
-          setupRequired: true,
-          strokeCount: normalized.x.length,
-        },
-        { status: 503 },
-      );
+      return NextResponse.json(softFailure("El reconocimiento automático aún no está configurado. Los trazos se guardaron como evidencia.", normalized, { setupRequired: true }));
     }
 
     const response = await fetch(endpoint, {
@@ -210,34 +227,38 @@ export async function POST(request: Request) {
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      return NextResponse.json(
-        { error: data?.error || data?.message || "No fue posible reconocer los trazos." },
-        { status: response.status },
-      );
+      const message = firstString(data?.error, data?.message, data?.result?.error, data?.data?.error) || "No fue posible reconocer los trazos.";
+      const payload = softFailure(message, normalized, { providerStatus: response.status });
+      writeCache(key, payload);
+      return NextResponse.json(payload);
     }
 
     const normalizedResponse = normalizeProviderLatex(data);
     const payload = {
       ...normalizedResponse,
       strokeCount: normalized.x.length,
-      pointCount: normalized.x.reduce((sum, points) => sum + points.length, 0),
+      pointCount: pointCount(normalized),
       cacheHit: false,
+      recognitionAvailable: true,
     };
 
     writeCache(key, payload);
     return NextResponse.json(payload);
   } catch (error) {
     console.error("[whiteboard/recognize]", error);
-    const isTimeout = error instanceof Error && error.name === "TimeoutError";
-    return NextResponse.json(
-      {
-        error: isTimeout
-          ? "El reconocimiento tardó demasiado. Intenta presionar Actualizar LaTeX nuevamente."
-          : error instanceof Error
-            ? error.message
-            : "No fue posible procesar la escritura matemática.",
-      },
-      { status: isTimeout ? 504 : 500 },
-    );
+    const isTimeout = error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError");
+    const message = isTimeout
+      ? "El reconocimiento tardó demasiado. Los trazos quedaron guardados; intenta Actualizar LaTeX nuevamente."
+      : error instanceof Error
+        ? error.message
+        : "No fue posible procesar la escritura matemática.";
+
+    if (normalizedForCatch) {
+      const payload = softFailure(message, normalizedForCatch, { providerTimeout: isTimeout });
+      if (keyForCatch) writeCache(keyForCatch, payload);
+      return NextResponse.json(payload);
+    }
+
+    return NextResponse.json({ error: message }, { status: isTimeout ? 504 : 500 });
   }
 }
