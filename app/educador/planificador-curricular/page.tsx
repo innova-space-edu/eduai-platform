@@ -215,7 +215,7 @@ export default function PlanificadorCurricularPage() {
     const period = periodOptions.find((item) => item.id === periodId)
     setConfig((prev) => ({
       ...prev,
-      periodoId,
+      periodoId: periodId,
       periodoLabel: period?.label || periodId,
     }))
   }
