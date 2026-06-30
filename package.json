@@ -2,14 +2,12 @@
   "name": "eduai-platform",
   "version": "0.1.0",
   "private": true,
-  "engines": {
-    "node": "22.x"
-  },
+  "engines": { "node": "22.x" },
   "scripts": {
     "dev": "next dev",
     "planner:maintain": "node scripts/apply-planner-maintenance.mjs",
     "whiteboard:finalize": "node scripts/apply-whiteboard-finalization.mjs",
-    "build": "node scripts/apply-planner-maintenance.mjs && node scripts/apply-whiteboard-finalization.mjs && next build",
+    "build": "node scripts/apply-planner-maintenance.mjs && node scripts/apply-whiteboard-finalization.mjs && node scripts/apply-mixed-edit-support.mjs && next build",
     "start": "next start",
     "lint": "eslint",
     "test:planner": "tsx scripts/test-planner-integral.ts",
