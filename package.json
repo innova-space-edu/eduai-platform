@@ -7,7 +7,7 @@
     "dev": "next dev",
     "planner:maintain": "node scripts/apply-planner-maintenance.mjs",
     "whiteboard:finalize": "node scripts/apply-whiteboard-finalization.mjs",
-    "build": "node scripts/apply-planner-maintenance.mjs && node scripts/apply-whiteboard-finalization.mjs && node scripts/apply-mixed-edit-support.mjs && next build",
+    "build": "node scripts/apply-planner-maintenance.mjs && node scripts/apply-planning-format-dropdown.mjs && node scripts/apply-whiteboard-finalization.mjs && node scripts/apply-mixed-edit-support.mjs && next build",
     "start": "next start",
     "lint": "eslint",
     "test:planner": "tsx scripts/test-planner-integral.ts",
