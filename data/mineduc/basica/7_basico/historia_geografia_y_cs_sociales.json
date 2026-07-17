@@ -1,62 +1,66 @@
 {
-  "estado": "base_verificada_mineduc",
-  "curso": "7_basico",
-  "asignatura": "historia_geografia_y_cs_sociales",
-  "nombre_asignatura": "Historia, Geografía y Ciencias Sociales",
-  "fuente": "Currículum Nacional MINEDUC",
+  "metadata": {
+    "nivel": "Básica",
+    "curso": "7° Básico",
+    "asignatura": "Historia, Geografía y Ciencias Sociales",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/historia-geografia-ciencias-sociales/7-basico",
+    "base_curricular": "Bases Curriculares 7º Básico a 2º Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-07-17",
+    "nota": "Los OA de contenido fueron cotejados con la página oficial vigente de Currículum Nacional. La agrupación corresponde a ejes curriculares, no a unidades inventadas."
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
   "unidades": [
     {
-      "unidad": 1,
-      "titulo": "Historia",
+      "numero": 1,
+      "id": "eje-historia",
+      "nombre": "Historia",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
-        {
-          "id": "OA1",
-          "descripcion": "Analizar las principales características de las civilizaciones antiguas.",
-          "eje": "Historia",
-          "indicadores": [
-            "Describen organización política, social y cultural.",
-            "Comparan distintas civilizaciones."
-          ]
-        },
-        {
-          "id": "OA2",
-          "descripcion": "Explicar el legado cultural, político y social de la Antigüedad.",
-          "eje": "Historia",
-          "indicadores": [
-            "Reconocen aportes de Grecia y Roma.",
-            "Relacionan esos legados con el presente."
-          ]
-        }
+        {"id":"HI7B-OA-01","codigo_oficial":"HI07 OA 01","descripcion":"Explicar el proceso de hominización, reconociendo las principales etapas de la evolución de la especie humana, la influencia de factores geográficos, su dispersión en el planeta y las distintas teorías del poblamiento americano.","eje":"Historia"},
+        {"id":"HI7B-OA-02","codigo_oficial":"HI07 OA 02","descripcion":"Explicar que el surgimiento de la agricultura, la domesticación de animales, la sedentarización, la acumulación de bienes y el desarrollo del comercio, fueron procesos de larga duración que revolucionaron la forma en que los seres humanos se relacionaron con el espacio geográfico.","eje":"Historia"},
+        {"id":"HI7B-OA-03","codigo_oficial":"HI07 OA 03","descripcion":"Explicar que en las primeras civilizaciones la formación de estados organizados y el ejercicio del poder estuvieron marcados por la centralización de la administración, la organización en torno a ciudades, la estratificación social, la formación de sistemas religiosos y el desarrollo de técnicas de contabilidad y escritura.","eje":"Historia"},
+        {"id":"HI7B-OA-04","codigo_oficial":"HI07 OA 04","descripcion":"Caracterizar el surgimiento de las primeras civilizaciones (por ejemplo, sumeria, egipcia, china, india, minoica, fenicia, olmeca y chavín, entre otras), reconociendo que procesos similares se desarrollaron en distintos lugares y tiempos.","eje":"Historia"},
+        {"id":"HI7B-OA-05","codigo_oficial":"HI07 OA 05","descripcion":"Caracterizar el mar Mediterráneo como ecúmene y como espacio de circulación e intercambio, e inferir cómo sus características geográficas (por ejemplo, clima, relieve, recursos naturales, entre otros) influyeron en el desarrollo de la ciudad-estado griega y de la república romana.","eje":"Historia"},
+        {"id":"HI7B-OA-06","codigo_oficial":"HI07 OA 06","descripcion":"Analizar las principales características de la democracia en Atenas, considerando el contraste con otras formas de gobierno del mundo antiguo, y su importancia para el desarrollo de la vida política actual y el reconocimiento de los derechos de los ciudadanos.","eje":"Historia"},
+        {"id":"HI7B-OA-07","codigo_oficial":"HI07 OA 07","descripcion":"Relacionar las principales características de la civilización romana (derecho, organización burocrática y militar, infraestructura, esclavitud, entre otros) con la extensión territorial de su Imperio, la relación con los pueblos conquistados, el proceso de romanización y la posterior expansión del cristianismo.","eje":"Historia"},
+        {"id":"HI7B-OA-08","codigo_oficial":"HI07 OA 08","descripcion":"Analizar, apoyándose en fuentes, el canon cultural que se constituyó en la Antigüedad clásica, considerando la centralidad del ser humano y la influencia de esta cultura en diversos aspectos de las sociedades del presente (por ejemplo, escritura alfabética, filosofía, ciencias, historia, noción de sujeto de derecho, relaciones de género, ideal de belleza, deporte, teatro, poesía y artes, entre otros).","eje":"Historia"},
+        {"id":"HI7B-OA-09","codigo_oficial":"HI07 OA 09","descripcion":"Explicar que la civilización europea se conforma a partir de la fragmentación de la unidad imperial de occidente y la confluencia de las tradiciones grecorromana, judeocristiana y germana, e identificar a la Iglesia Católica como el elemento que articuló esta síntesis y que legitimó el poder político.","eje":"Historia"},
+        {"id":"HI7B-OA-10","codigo_oficial":"HI07 OA 10","descripcion":"Caracterizar algunos rasgos distintivos de la sociedad medieval, como la visión cristiana del mundo, el orden estamental, las relaciones de fidelidad, los roles de género, la vida rural y el declive de la vida urbana.","eje":"Historia"},
+        {"id":"HI7B-OA-11","codigo_oficial":"HI07 OA 11","descripcion":"Analizar ejemplos de relaciones de influencia, convivencia y conflicto entre el mundo europeo, el bizantino y el islámico durante la Edad Media, considerando la división del cristianismo y las relaciones de frontera entre la cristiandad y el islam en la península ibérica, entre otros.","eje":"Historia"},
+        {"id":"HI7B-OA-12","codigo_oficial":"HI07 OA 12","descripcion":"Analizar las transformaciones que se producen en Europa a partir del siglo XII, considerando el renacimiento de la vida urbana, los cambios demográficos, las innovaciones tecnológicas, el desarrollo del comercio y el surgimiento de las universidades.","eje":"Historia"},
+        {"id":"HI7B-OA-13","codigo_oficial":"HI07 OA 13","descripcion":"Identificar las principales características de las civilizaciones maya y azteca, considerando las tecnologías utilizadas para transformar el territorio que habitaban (urbanización, canales, acueductos y calzadas, formas de cultivo, entre otros) y el desarrollo de una red comercial que vinculaba al área mesoamericana.","eje":"Historia"},
+        {"id":"HI7B-OA-14","codigo_oficial":"HI07 OA 14","descripcion":"Caracterizar el Imperio Inca, y analizar los factores que posibilitaron la dominación y unidad del Imperio (por ejemplo, red de caminos y sistema de comunicaciones, sistemas de cultivo, organización social, administración, ejército, mita y yanaconaje, sometimiento de pueblos y lengua oficial, entre otros).","eje":"Historia"},
+        {"id":"HI7B-OA-15","codigo_oficial":"HI07 OA 15","descripcion":"Describir las principales características culturales de las civilizaciones maya, azteca e inca (por ejemplo, arte, lengua, tradiciones, relaciones de género, sistemas de medición del tiempo, ritos funerarios y creencias religiosas), e identificar aquellos elementos que persisten hasta el presente.","eje":"Historia"},
+        {"id":"HI7B-OA-16","codigo_oficial":"HI07 OA 16","descripcion":"Reconocer en expresiones culturales latinoamericanas del presente la confluencia del legado de múltiples civilizaciones como la maya, azteca, inca, griega, romana y europea.","eje":"Historia"}
       ]
     },
     {
-      "unidad": 2,
-      "titulo": "Geografía",
+      "numero": 2,
+      "id": "eje-formacion-ciudadana",
+      "nombre": "Formación ciudadana",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
-        {
-          "id": "OA3",
-          "descripcion": "Analizar el espacio geográfico y su relación con la vida humana.",
-          "eje": "Geografía",
-          "indicadores": [
-            "Interpretan mapas y recursos geográficos.",
-            "Relacionan territorio y actividades humanas."
-          ]
-        }
+        {"id":"HI7B-OA-17","codigo_oficial":"HI07 OA 17","descripcion":"Identificar los principios, mecanismos e instituciones que permitieron que en Atenas y en Roma se limitara el ejercicio del poder y se respetaran los derechos ciudadanos (por ejemplo, a través del equilibrio de poderes, del principio de elegibilidad, de la temporalidad de los cargos, de la ley y una cultura de la legalidad, de las magistraturas y del Senado romano, entre otros), reconociendo elementos de continuidad y de cambio con la actualidad.","eje":"Formación ciudadana"},
+        {"id":"HI7B-OA-18","codigo_oficial":"HI07 OA 18","descripcion":"Comparar los conceptos de ciudadanía, democracia, derecho, república, municipio y gremio del mundo clásico y medieval, con la sociedad contemporánea.","eje":"Formación ciudadana"},
+        {"id":"HI7B-OA-19","codigo_oficial":"HI07 OA 19","descripcion":"Reconocer el valor de la diversidad como una forma de enriquecer culturalmente a las sociedades, identificando, a modo de ejemplo, los aportes que las distintas culturas existentes en el mundo antiguo y medieval (árabes, judeocristianos, germanos, eslavos, etc.) hicieron a las sociedades europeas, considerando el lenguaje, la religión y las ciencias, entre otros.","eje":"Formación ciudadana"},
+        {"id":"HI7B-OA-20","codigo_oficial":"HI07 OA 20","descripcion":"Reconocer distintas formas de convivencia y conflicto entre culturas en las civilizaciones estudiadas, y debatir sobre la importancia que tienen el respeto, la tolerancia y las estrategias de resolución pacífica de conflictos, entre otros, para la convivencia entre distintos pueblos y culturas.","eje":"Formación ciudadana"}
       ]
     },
     {
-      "unidad": 3,
-      "titulo": "Formación ciudadana",
+      "numero": 3,
+      "id": "eje-geografia",
+      "nombre": "Geografía",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
-        {
-          "id": "OA4",
-          "descripcion": "Reflexionar sobre convivencia, derechos y deberes ciudadanos.",
-          "eje": "Formación ciudadana",
-          "indicadores": [
-            "Reconocen principios de convivencia democrática.",
-            "Relacionan derechos y deberes con la vida escolar y social."
-          ]
-        }
+        {"id":"HI7B-OA-21","codigo_oficial":"HI07 OA 21","descripcion":"Reconocer procesos de adaptación y transformación que se derivan de la relación entre el ser humano y el medio, e identificar factores que inciden en el asentamiento de las sociedades humanas (por ejemplo, disponibilidad de recursos, cercanía a zonas fértiles, fragilidad del medio ante la acción humana, o la vulnerabilidad de la población ante las amenazas del entorno).","eje":"Geografía"},
+        {"id":"HI7B-OA-22","codigo_oficial":"HI07 OA 22","descripcion":"Reconocer y explicar formas en que la acción humana genera impactos en el medio y formas en las que el medio afecta a la población, y evaluar distintas medidas para propiciar efectos positivos y mitigar efectos negativos sobre ambos.","eje":"Geografía"},
+        {"id":"HI7B-OA-23","codigo_oficial":"HI07 OA 23","descripcion":"Investigar sobre problemáticas medioambientales relacionadas con fenómenos como el calentamiento global, los recursos energéticos, la sobrepoblación, entre otros, y analizar y evaluar su impacto a escala local.","eje":"Geografía"}
       ]
     }
   ]
