@@ -1,0 +1,35 @@
+name: Finalizar 3° básico una vez
+
+on:
+  push:
+    branches:
+      - fix/mineduc-curriculum-official-2026
+    paths:
+      - .github/workflows/finalize-3-basico-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/mineduc-curriculum-official-2026
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Actualizar fuentes, avance e índice
+        run: |
+          node scripts/finalize-3-basico.mjs
+          node scripts/generate-mineduc-index.mjs
+          rm -f scripts/finalize-3-basico.mjs .github/workflows/finalize-3-basico-once.yml
+      - name: Publicar cierre de 3° básico
+        run: |
+          git config user.name "Innova Space"
+          git config user.email "contacto@innova-space-edu.cl"
+          git add -A data/mineduc/sources.json data/mineduc/meta/verification-progress.json data/mineduc/index.json scripts/finalize-3-basico.mjs .github/workflows/finalize-3-basico-once.yml
+          git commit -m "chore(curriculum): cerrar verificación de 3° básico"
+          git push origin HEAD:fix/mineduc-curriculum-official-2026
