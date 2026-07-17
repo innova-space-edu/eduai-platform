@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react"
+import { useEffect, useMemo, useState, type CSSProperties, type Dispatch, type SetStateAction } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import {
@@ -291,6 +291,7 @@ export default function CreatorHubLayout({ children }: { children: React.ReactNo
   }
 
   const desktopWidth = desktopCompact ? 72 : 240
+  const sidebarStyle = { "--creator-sidebar-width": `${desktopWidth}px` } as CSSProperties
 
   return (
     <div className="min-h-screen bg-app">
@@ -329,7 +330,10 @@ export default function CreatorHubLayout({ children }: { children: React.ReactNo
         </div>
       )}
 
-      <div className="min-h-screen transition-[margin] duration-200" style={{ marginLeft: desktopWidth }}>
+      <div
+        className="min-h-screen transition-[margin] duration-200 lg:ml-[var(--creator-sidebar-width)]"
+        style={sidebarStyle}
+      >
         <div className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-soft bg-header-theme px-4 backdrop-blur-xl lg:hidden">
           <button
             onClick={() => setMobileOpen(true)}
@@ -345,14 +349,6 @@ export default function CreatorHubLayout({ children }: { children: React.ReactNo
         </div>
         <main className="min-h-screen">{children}</main>
       </div>
-
-      <style jsx global>{`
-        @media (max-width: 1023px) {
-          body > div > div[style*="margin-left"] {
-            margin-left: 0 !important;
-          }
-        }
-      `}</style>
     </div>
   )
 }
