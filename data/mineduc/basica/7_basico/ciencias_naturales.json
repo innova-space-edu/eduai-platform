@@ -1,61 +1,132 @@
 {
-  "estado": "base_verificada_mineduc",
-  "curso": "7_basico",
-  "asignatura": "ciencias_naturales",
-  "nombre_asignatura": "Ciencias Naturales",
-  "fuente": "Currículum Nacional MINEDUC",
+  "metadata": {
+    "nivel": "Básica",
+    "curso": "7° Básico",
+    "asignatura": "Ciencias Naturales",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/ciencias-naturales/7-basico",
+    "base_curricular": "Bases Curriculares 7º Básico a 2º Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-07-17",
+    "nota": "Los OA de contenido fueron cotejados con la página oficial vigente de Currículum Nacional. La agrupación corresponde a ejes curriculares, no a unidades inventadas."
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
   "unidades": [
     {
-      "unidad": 1,
-      "titulo": "Biología",
+      "numero": 1,
+      "id": "eje-biologia",
+      "nombre": "Biología",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
-          "id": "OA1",
-          "descripcion": "Explicar la organización de los seres vivos y el funcionamiento de sus sistemas.",
-          "eje": "Biología",
-          "indicadores": [
-            "Describen niveles de organización biológica.",
-            "Relacionan estructura y función en organismos."
-          ]
+          "id": "CN7B-OA-01",
+          "codigo_oficial": "CN07 OA 01",
+          "descripcion": "Explicar los aspectos biológicos, afectivos y sociales que se integran en la sexualidad, considerando:\n- Los cambios físicos que ocurren durante la pubertad.\n- La relación afectiva entre dos personas en la intimidad y el respeto mutuo.\n- La responsabilidad individual.",
+          "eje": "Biología"
         },
         {
-          "id": "OA2",
-          "descripcion": "Analizar el funcionamiento del sistema digestivo, respiratorio y circulatorio.",
-          "eje": "Biología",
-          "indicadores": [
-            "Explican funciones de cada sistema.",
-            "Relacionan hábitos saludables con el funcionamiento corporal."
-          ]
+          "id": "CN7B-OA-02",
+          "codigo_oficial": "CN07 OA 02",
+          "descripcion": "Explicar la formación de un nuevo individuo, considerando:\n- El ciclo menstrual (días fértiles, menstruación y ovulación).\n- La participación de espermatozoides y ovocitos.\n- Métodos de control de la natalidad.\n- La paternidad y la maternidad responsables.",
+          "eje": "Biología"
+        },
+        {
+          "id": "CN7B-OA-03",
+          "codigo_oficial": "CN07 OA 03",
+          "descripcion": "Describir, por medio de la investigación, las características de infecciones de transmisión sexual (ITS), como sida y herpes, entre otros, considerando sus:\n- Mecanismos de transmisión.\n- Medidas de prevención.\n- Síntomas generales.\n- Consecuencias y posibles secuelas.",
+          "eje": "Biología"
+        },
+        {
+          "id": "CN7B-OA-04",
+          "codigo_oficial": "CN07 OA 04",
+          "descripcion": "Desarrollar modelos que expliquen las barreras defensivas (primaria, secundaria y terciaria) del cuerpo humano, considerando:\n- Agentes patógenos como escherichia coli y el virus de la gripe.\n- Uso de vacunas contra infecciones comunes (influenza y meningitis, entre otras).\n- Alteraciones en sus respuestas como en las alergias, las enfermedades autoinmunes y los rechazos a trasplantes de órganos.",
+          "eje": "Biología"
+        },
+        {
+          "id": "CN7B-OA-05",
+          "codigo_oficial": "CN07 OA 05",
+          "descripcion": "Comparar, usando modelos, microorganismos como virus, bacterias y hongos, en relación con:\n- Características estructurales (tamaño, forma y estructuras).\n- Características comunes de los seres vivos (alimentación, reproducción, respiración, etc.).\n- Efectos sobre la salud humana (positivos y negativos).",
+          "eje": "Biología"
+        },
+        {
+          "id": "CN7B-OA-06",
+          "codigo_oficial": "CN07 OA 06",
+          "descripcion": "Investigar y explicar el rol de microorganismos (bacterias y hongos) en la biotecnología, como en la:\n- Descontaminación ambiental.\n- Producción de alimentos y fármacos.\n- Obtención del cobre.\n- Generación de metano.",
+          "eje": "Biología"
         }
       ]
     },
     {
-      "unidad": 2,
-      "titulo": "Física",
+      "numero": 2,
+      "id": "eje-fisica",
+      "nombre": "Física",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
-          "id": "OA3",
-          "descripcion": "Describir y analizar el movimiento y las fuerzas en situaciones cotidianas.",
-          "eje": "Física",
-          "indicadores": [
-            "Describen trayectorias y tipos de movimiento.",
-            "Explican efectos de fuerzas en objetos."
-          ]
+          "id": "CN7B-OA-07",
+          "codigo_oficial": "CN07 OA 07",
+          "descripcion": "Planificar y conducir una investigación experimental para proveer evidencias que expliquen los efectos de las fuerzas gravitacional, de roce y elástica, entre otras, en situaciones cotidianas.",
+          "eje": "Física"
+        },
+        {
+          "id": "CN7B-OA-08",
+          "codigo_oficial": "CN07 OA 08",
+          "descripcion": "Explorar y describir cualitativamente la presión, considerando sus efectos en:\n- Sólidos, como en herramientas mecánicas.\n- Líquidos, como en máquinas hidráulicas.\n- Gases, como en la atmósfera.",
+          "eje": "Física"
+        },
+        {
+          "id": "CN7B-OA-09",
+          "codigo_oficial": "CN07 OA 09",
+          "descripcion": "Explicar, con el modelo de la tectónica de placas, los patrones de distribución de la actividad geológica (volcanes y sismos), los tipos de interacción entre las placas (convergente, divergente y transformante) y su importancia en la teoría de la deriva continental.",
+          "eje": "Física"
+        },
+        {
+          "id": "CN7B-OA-10",
+          "codigo_oficial": "CN07 OA 10",
+          "descripcion": "Explicar, sobre la base de evidencias y por medio de modelos, la actividad volcánica y sus consecuencias en la naturaleza y la sociedad.",
+          "eje": "Física"
+        },
+        {
+          "id": "CN7B-OA-11",
+          "codigo_oficial": "CN07 OA 11",
+          "descripcion": "Crear modelos que expliquen el ciclo de las rocas, la formación y modificación de las rocas ígneas, metamórficas y sedimentarias, en función de la temperatura, la presión y la erosión.",
+          "eje": "Física"
+        },
+        {
+          "id": "CN7B-OA-12",
+          "codigo_oficial": "CN07 OA 12",
+          "descripcion": "Demostrar, por medio de modelos, que comprenden que el clima en la Tierra, tanto local como global, es dinámico y se produce por la interacción de múltiples variables, como la presión, la temperatura y la humedad atmosférica, la circulación de la atmósfera y del agua, la posición geográfica, la rotación y la traslación de la Tierra.",
+          "eje": "Física"
         }
       ]
     },
     {
-      "unidad": 3,
-      "titulo": "Química",
+      "numero": 3,
+      "id": "eje-quimica",
+      "nombre": "Química",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
-          "id": "OA4",
-          "descripcion": "Distinguir entre cambios físicos y químicos en la materia.",
-          "eje": "Química",
-          "indicadores": [
-            "Identifican propiedades de la materia.",
-            "Clasifican transformaciones como físicas o químicas."
-          ]
+          "id": "CN7B-OA-13",
+          "codigo_oficial": "CN07 OA 13",
+          "descripcion": "Investigar experimentalmente y explicar el comportamiento de gases ideales en situaciones cotidianas, considerando:\n- Factores como presión, volumen y temperatura.\n- Las leyes que los modelan.\n- La teoría cinético-molecular.",
+          "eje": "Química"
+        },
+        {
+          "id": "CN7B-OA-14",
+          "codigo_oficial": "CN07 OA 14",
+          "descripcion": "Investigar experimentalmente y explicar la clasificación de la materia en sustancias puras y mezclas (homogéneas y heterogéneas), los procedimientos de separación de mezclas (decantación, filtración, tamizado y destilación), considerando su aplicación industrial en la metalurgia, la minería y el tratamiento de aguas servidas, entre otros.",
+          "eje": "Química"
+        },
+        {
+          "id": "CN7B-OA-15",
+          "codigo_oficial": "CN07 OA 15",
+          "descripcion": "Investigar experimentalmente los cambios de la materia y argumentar con evidencia empírica que estos pueden ser físicos o químicos.",
+          "eje": "Química"
         }
       ]
     }
