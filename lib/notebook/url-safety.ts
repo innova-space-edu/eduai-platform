@@ -25,7 +25,14 @@ function isPrivateIpv4(address: string): boolean {
 function isPrivateIpv6(address: string): boolean {
   const value = address.toLowerCase().split("%")[0]
   if (value === "::" || value === "::1") return true
-  if (value.startsWith("fc") || value.startsWith("fd") || value.startsWith("fe8") || value.startsWith("fe9") || value.startsWith("fea") || value.startsWith("feb")) {
+  if (
+    value.startsWith("fc") ||
+    value.startsWith("fd") ||
+    value.startsWith("fe8") ||
+    value.startsWith("fe9") ||
+    value.startsWith("fea") ||
+    value.startsWith("feb")
+  ) {
     return true
   }
   if (value.startsWith("::ffff:")) {
@@ -61,7 +68,7 @@ export async function assertPublicHttpUrl(input: string): Promise<URL> {
     throw new Error("URL inválida")
   }
 
-  if (!['http:', 'https:'].includes(url.protocol)) {
+  if (!["http:", "https:"].includes(url.protocol)) {
     throw new Error("Solo se permiten enlaces HTTP o HTTPS")
   }
   if (url.username || url.password) {
@@ -88,4 +95,25 @@ export async function assertPublicHttpUrl(input: string): Promise<URL> {
   }
 
   return url
+}
+
+export async function fetchPublicUrl(
+  input: string | URL,
+  init: RequestInit = {},
+  maxRedirects = 5,
+): Promise<Response> {
+  let current = await assertPublicHttpUrl(input instanceof URL ? input.toString() : input)
+
+  for (let redirectCount = 0; redirectCount <= maxRedirects; redirectCount += 1) {
+    const response = await fetch(current, { ...init, redirect: "manual" })
+    if (![301, 302, 303, 307, 308].includes(response.status)) return response
+
+    const location = response.headers.get("location")
+    if (!location) return response
+    if (redirectCount === maxRedirects) throw new Error("El enlace tiene demasiadas redirecciones")
+
+    current = await assertPublicHttpUrl(new URL(location, current).toString())
+  }
+
+  throw new Error("No fue posible abrir el enlace")
 }
