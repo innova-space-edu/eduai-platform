@@ -1,17 +1,18 @@
 {
   "fecha_actualizacion": "2026-07-17",
-  "fase": "1_basico_completo",
+  "fase": "2_basico_completo",
   "archivos_curriculares_totales": 105,
-  "asignaturas_verificadas_oficialmente": 29,
-  "propuestas_oficiales_verificadas": 1,
-  "archivos_pendientes": 75,
-  "oa_contenido_verificados": 386,
+  "asignaturas_verificadas_oficialmente": 38,
+  "propuestas_oficiales_verificadas": 2,
+  "archivos_pendientes": 65,
+  "oa_contenido_verificados": 520,
   "cursos_completos": [
     "1_basico",
+    "2_basico",
     "7_basico",
     "8_basico"
   ],
-  "siguiente_bloque": "2_basico",
-  "ultima_validacion": "success",
-  "nota": "Contabiliza OA cotejados con una página oficial específica. Inglés de 1° básico se registra por separado como propuesta curricular oficial, no como base obligatoria. El índice fue regenerado después de completar el curso."
+  "siguiente_bloque": "3_basico",
+  "ultima_validacion": "pendiente",
+  "nota": "Contabiliza OA cotejados con páginas oficiales específicas. Inglés de 1° y 2° básico se registra como propuesta curricular oficial, no como base obligatoria."
 }
