@@ -18,4 +18,4 @@ jobs:
         with:
           node-version: 22
       - name: Comparar OA locales con Currículum Nacional
-        run: node scripts/audit-mineduc-official-node-temp.mjs
+        run: node scripts/audit-mineduc-official-fast-temp.mjs
