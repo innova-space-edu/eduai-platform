@@ -126,6 +126,22 @@ import asignaturasPorCurso from "../data/mineduc/meta/asignaturas_por_curso.json
 
 export type NivelKey = "parvularia" | "basica" | "media"
 
+export type CurriculumVerificationStatus =
+  | "verificado_oficial"
+  | "pendiente_verificacion"
+  | "incompleto"
+  | "no_utilizar"
+
+export interface CurriculumVerification {
+  status: CurriculumVerificationStatus
+  label: string
+  isOfficiallyVerified: boolean
+  sourceUrl?: string
+  verifiedAt?: string
+  baseCurricular?: string
+  sourceFile: string
+}
+
 export interface OA {
   id: string
   texto: string
@@ -139,6 +155,10 @@ export interface OA {
   nucleo?: string
   tipo?: "oa" | "oat"
   sourceFile?: string
+  verificationStatus?: CurriculumVerificationStatus
+  verificationLabel?: string
+  sourceUrl?: string
+  verifiedAt?: string
 }
 
 interface RawOAItem {
@@ -176,8 +196,18 @@ interface RawParvAmbito {
   nucleos: RawParvNucleo[]
 }
 
+interface CurriculumMetadata extends Record<string, unknown> {
+  estado_verificacion?: CurriculumVerificationStatus
+  estado?: string
+  source_url?: string
+  fecha_consulta?: string
+  base_curricular?: string
+}
+
 interface StandardCurriculumFile {
-  metadata?: Record<string, unknown>
+  metadata?: CurriculumMetadata
+  estado?: string
+  fuente?: string
   objetivos_habilidad?: unknown[]
   objetivos_actitud?: unknown[]
   unidades?: RawUnidad[]
@@ -191,7 +221,9 @@ interface StandardCurriculumFile {
 }
 
 interface ParvulariaCurriculumFile {
-  metadata?: Record<string, unknown>
+  metadata?: CurriculumMetadata
+  estado?: string
+  fuente?: string
   ambitos: RawParvAmbito[]
 }
 
@@ -207,6 +239,7 @@ export interface CurriculumRecord {
   raw: CurriculumRaw
   sourceFile: string
   sharedBaseKey?: string
+  verification: CurriculumVerification
 }
 
 type MetaAsignaturas = Record<string, Record<string, string[]>>
@@ -299,8 +332,41 @@ function buildRegistryKey(nivel: NivelKey, cursoKey: string, asignaturaNormaliza
 
 const REGISTRY: Record<string, CurriculumRecord> = {}
 
-function registerRecord(record: CurriculumRecord) {
-  REGISTRY[buildRegistryKey(record.nivel, record.cursoKey, record.asignaturaNormalizada)] = record
+function resolveVerification(
+  raw: CurriculumRaw,
+  sourceFile: string
+): CurriculumVerification {
+  const metadata = raw.metadata || {}
+  const declared = String(metadata.estado_verificacion || metadata.estado || raw.estado || "").trim()
+
+  let status: CurriculumVerificationStatus = "pendiente_verificacion"
+  if (declared === "verificado_oficial") status = "verificado_oficial"
+  else if (/no[_\s-]?utilizar/i.test(declared)) status = "no_utilizar"
+  else if (/incomplet/i.test(declared)) status = "incompleto"
+
+  const labels: Record<CurriculumVerificationStatus, string> = {
+    verificado_oficial: "Verificado con fuente oficial",
+    pendiente_verificacion: "Pendiente de verificación oficial",
+    incompleto: "Base curricular incompleta",
+    no_utilizar: "No utilizar",
+  }
+
+  return {
+    status,
+    label: labels[status],
+    isOfficiallyVerified: status === "verificado_oficial",
+    sourceUrl: typeof metadata.source_url === "string" ? metadata.source_url : undefined,
+    verifiedAt: typeof metadata.fecha_consulta === "string" ? metadata.fecha_consulta : undefined,
+    baseCurricular: typeof metadata.base_curricular === "string" ? metadata.base_curricular : undefined,
+    sourceFile,
+  }
+}
+
+function registerRecord(record: Omit<CurriculumRecord, "verification">) {
+  REGISTRY[buildRegistryKey(record.nivel, record.cursoKey, record.asignaturaNormalizada)] = {
+    ...record,
+    verification: resolveVerification(record.raw, record.sourceFile),
+  }
 }
 
 function registerStandardFile(
@@ -584,6 +650,14 @@ export function getCurriculumRecord(
   return REGISTRY[buildRegistryKey(nivel, cursoKey, asignaturaNormalizada)] || null
 }
 
+export function getCurriculumVerification(
+  nivel: NivelKey,
+  curso: string,
+  asignatura: string
+): CurriculumVerification | null {
+  return getCurriculumRecord(nivel, curso, asignatura)?.verification || null
+}
+
 function getUnidadNumero(unidad: RawUnidad): number | string | undefined {
   return unidad.numero ?? unidad.unidad
 }
@@ -598,6 +672,7 @@ function getUnidadId(unidad: RawUnidad): string {
 
 function flattenStandardUnits(raw: StandardCurriculumFile, sourceFile: string): OA[] {
   const result: OA[] = []
+  const verification = resolveVerification(raw, sourceFile)
 
   for (const unidad of raw.unidades || []) {
     const unidadId = getUnidadId(unidad)
@@ -615,6 +690,10 @@ function flattenStandardUnits(raw: StandardCurriculumFile, sourceFile: string): 
         ejes: oa.eje ? [oa.eje] : unidadNombre ? [unidadNombre] : [],
         tipo: "oa",
         sourceFile,
+        verificationStatus: verification.status,
+        verificationLabel: verification.label,
+        sourceUrl: verification.sourceUrl,
+        verifiedAt: verification.verifiedAt,
       })
     }
   }
@@ -625,6 +704,7 @@ function flattenStandardUnits(raw: StandardCurriculumFile, sourceFile: string): 
 function flattenSharedModules(raw: StandardCurriculumFile, sourceFile: string): OA[] {
   const modules = raw.modulos || []
   const result: OA[] = []
+  const verification = resolveVerification(raw, sourceFile)
 
   for (const modulo of modules) {
     for (const oa of modulo.oa || []) {
@@ -638,6 +718,10 @@ function flattenSharedModules(raw: StandardCurriculumFile, sourceFile: string): 
         ejes: modulo.nombre ? [modulo.nombre] : [],
         tipo: "oa",
         sourceFile,
+        verificationStatus: verification.status,
+        verificationLabel: verification.label,
+        sourceUrl: verification.sourceUrl,
+        verifiedAt: verification.verifiedAt,
       })
     }
   }
@@ -652,6 +736,7 @@ function flattenParvulariaNucleo(
 ): OA[] {
   const normalized = normalizeAsignatura(asignatura, "parvularia")
   const result: OA[] = []
+  const verification = resolveVerification(raw, sourceFile)
 
   for (const ambito of raw.ambitos || []) {
     for (const nucleo of ambito.nucleos || []) {
@@ -667,6 +752,10 @@ function flattenParvulariaNucleo(
           ejes: [ambito.nombre, nucleo.nombre],
           tipo: "oa",
           sourceFile,
+          verificationStatus: verification.status,
+          verificationLabel: verification.label,
+          sourceUrl: verification.sourceUrl,
+          verifiedAt: verification.verifiedAt,
         })
       }
     }
@@ -680,6 +769,7 @@ function flattenParvulariaAll(
   sourceFile: string
 ): OA[] {
   const result: OA[] = []
+  const verification = resolveVerification(raw, sourceFile)
 
   for (const ambito of raw.ambitos || []) {
     for (const nucleo of ambito.nucleos || []) {
@@ -693,6 +783,10 @@ function flattenParvulariaAll(
           ejes: [ambito.nombre, nucleo.nombre],
           tipo: "oa",
           sourceFile,
+          verificationStatus: verification.status,
+          verificationLabel: verification.label,
+          sourceUrl: verification.sourceUrl,
+          verifiedAt: verification.verifiedAt,
         })
       }
 
@@ -706,6 +800,10 @@ function flattenParvulariaAll(
           ejes: [ambito.nombre, nucleo.nombre],
           tipo: "oat",
           sourceFile,
+          verificationStatus: verification.status,
+          verificationLabel: verification.label,
+          sourceUrl: verification.sourceUrl,
+          verifiedAt: verification.verifiedAt,
         })
       }
     }
@@ -774,7 +872,12 @@ export function buildOAContext(
 
   if (!filtered.length) return ""
 
-  const header = `\nOBJETIVOS DE APRENDIZAJE OFICIALES MINEDUC — ${asignatura} ${curso}:\n`
+  const officiallyVerified = filtered.every(
+    (oa) => oa.verificationStatus === "verificado_oficial"
+  )
+  const header = officiallyVerified
+    ? `\nOBJETIVOS DE APRENDIZAJE VERIFICADOS CON FUENTE OFICIAL MINEDUC — ${asignatura} ${curso}:\n`
+    : `\nBASE CURRICULAR LOCAL PENDIENTE DE VERIFICACIÓN OFICIAL — ${asignatura} ${curso}:\nNo presentes estos textos como citas literales definitivas de MINEDUC.\n`
 
   return (
     header +
@@ -786,6 +889,9 @@ export function buildOAContext(
           oa.unidadNombre ? `(Unidad/Módulo: ${oa.unidadNombre})` : "",
           oa.ambito ? `(Ámbito: ${oa.ambito})` : "",
           oa.nucleo ? `(Núcleo: ${oa.nucleo})` : "",
+          oa.verificationStatus !== "verificado_oficial"
+            ? `(Estado: ${oa.verificationLabel || "Pendiente de verificación"})`
+            : "",
         ].filter(Boolean)
 
         return pieces.join(" ")

@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "fecha_actualizacion": "2026-07-17",
+  "politica": {
+    "estado_verificado": "Solo se usa verificado_oficial cuando código y texto fueron cotejados con una fuente oficial específica.",
+    "estados_permitidos": [
+      "verificado_oficial",
+      "pendiente_verificacion",
+      "incompleto",
+      "no_utilizar"
+    ]
+  },
+  "bases_curriculares": [
+    {
+      "id": "parvularia",
+      "nombre": "Bases Curriculares de Educación Parvularia",
+      "url": "https://www.curriculumnacional.cl/Curriculum/Bases_Curriculares",
+      "nivel": "parvularia"
+    },
+    {
+      "id": "basica-1-6",
+      "nombre": "Bases Curriculares 1° a 6° Básico",
+      "url": "https://www.curriculumnacional.cl/Curriculum/Bases_Curriculares",
+      "nivel": "basica",
+      "cursos": [
+        "1° Básico",
+        "2° Básico",
+        "3° Básico",
+        "4° Básico",
+        "5° Básico",
+        "6° Básico"
+      ]
+    },
+    {
+      "id": "basica-7-media-2",
+      "nombre": "Bases Curriculares 7º Básico a 2º Medio",
+      "url": "https://www.curriculumnacional.cl/node/3670",
+      "nivel": "basica-media",
+      "cursos": [
+        "7° Básico",
+        "8° Básico",
+        "1° Medio",
+        "2° Medio"
+      ]
+    },
+    {
+      "id": "media-3-4",
+      "nombre": "Bases Curriculares 3° y 4° Medio",
+      "url": "https://www.curriculumnacional.cl/Curriculum/Bases_Curriculares",
+      "nivel": "media",
+      "cursos": [
+        "3° Medio",
+        "4° Medio"
+      ]
+    }
+  ],
+  "asignaturas_verificadas": {
+    "basica/7_basico/matematica": {
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/matematica/7-basico",
+      "base_curricular_id": "basica-7-media-2",
+      "fecha_consulta": "2026-07-17",
+      "alcance": [
+        "MA07 OA 01",
+        "MA07 OA 19"
+      ],
+      "cantidad_oa_contenido": 19
+    }
+  }
+}

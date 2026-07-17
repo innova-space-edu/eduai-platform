@@ -320,6 +320,9 @@ export function buildSelectedOAContext(
     if (oa.unidadNombre) extra.push(`Unidad/Módulo: ${oa.unidadNombre}`)
     if (oa.ambito) extra.push(`Ámbito: ${oa.ambito}`)
     if (oa.nucleo) extra.push(`Núcleo: ${oa.nucleo}`)
+    if (oa.verificationStatus !== "verificado_oficial") {
+      extra.push(oa.verificationLabel || "Pendiente de verificación oficial")
+    }
 
     return `- ${oa.id}: ${oa.texto}${extra.length ? ` [${extra.join(" · ")}]` : ""}`
   })

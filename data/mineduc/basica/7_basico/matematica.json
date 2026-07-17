@@ -1,112 +1,164 @@
 {
-  "estado": "base_verificada_mineduc",
-  "curso": "7_basico",
-  "asignatura": "matematica",
-  "nombre_asignatura": "Matemática",
-  "fuente": "Currículum Nacional MINEDUC",
+  "metadata": {
+    "nivel": "Básica",
+    "curso": "7° Básico",
+    "asignatura": "Matemática",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/matematica/7-basico",
+    "base_curricular": "Bases Curriculares 7º Básico a 2º Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-07-17",
+    "nota": "Los OA de contenido fueron transcritos desde la página oficial vigente de Currículum Nacional. La agrupación siguiente corresponde a ejes curriculares y no inventa unidades del programa de estudio."
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
   "unidades": [
     {
-      "unidad": 1,
-      "titulo": "Números y operaciones",
+      "numero": 1,
+      "id": "eje-numeros",
+      "nombre": "Números",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
-          "id": "OA1",
-          "descripcion": "Mostrar que comprenden la adición y la sustracción de números enteros.",
-          "eje": "Números",
-          "indicadores": [
-            "Representan situaciones con números enteros.",
-            "Resuelven problemas con adición y sustracción de enteros."
-          ]
+          "id": "MA7B-OA-01",
+          "codigo_oficial": "MA07 OA 01",
+          "descripcion": "Mostrar que comprenden la adición y la sustracción de números enteros:\n- Representando los números enteros en la recta numérica.\n- Representándolas de manera concreta, pictórica y simbólica.\n- Dándole significado a los símbolos + y - según el contexto (por ejemplo: un movimiento en una dirección seguido de un movimiento equivalente en la posición opuesta no representa ningún cambio de posición).\n- Resolviendo problemas en contextos cotidianos.",
+          "eje": "Números"
         },
         {
-          "id": "OA2",
-          "descripcion": "Explicar la multiplicación y la división de fracciones positivas.",
-          "eje": "Números",
-          "indicadores": [
-            "Calculan multiplicaciones de fracciones.",
-            "Resuelven divisiones de fracciones en contexto."
-          ]
+          "id": "MA7B-OA-02",
+          "codigo_oficial": "MA07 OA 02",
+          "descripcion": "Explicar la multiplicación y la división de fracciones positivas:\n- Utilizando representaciones concretas, pictóricas y simbólicas.\n- Relacionándolas con la multiplicación y la división de números decimales.",
+          "eje": "Números"
         },
         {
-          "id": "OA3",
-          "descripcion": "Resolver problemas que involucren operaciones combinadas con números racionales.",
-          "eje": "Números",
-          "indicadores": [
-            "Aplican jerarquía de operaciones.",
-            "Resuelven problemas contextualizados."
-          ]
+          "id": "MA7B-OA-03",
+          "codigo_oficial": "MA07 OA 03",
+          "descripcion": "Resolver problemas que involucren la multiplicación y la división de fracciones y de decimales positivos de manera concreta, pictórica y simbólica (de forma manual y/o con software educativo).",
+          "eje": "Números"
+        },
+        {
+          "id": "MA7B-OA-04",
+          "codigo_oficial": "MA07 OA 04",
+          "descripcion": "Mostrar que comprenden el concepto de porcentaje:\n- Representándolo de manera pictórica.\n- Calculando de varias maneras.\n- Aplicándolo a situaciones sencillas.",
+          "eje": "Números"
+        },
+        {
+          "id": "MA7B-OA-05",
+          "codigo_oficial": "MA07 OA 05",
+          "descripcion": "Utilizar potencias de base 10 con exponente natural:\n- Usando los términos potencia, base, exponente, elevado.\n- Definiendo y usando el exponente 0 en el sistema decimal.\n- Expresando números naturales en notación científica (sistema decimal).\n- Resolviendo problemas, usando la notación científica.",
+          "eje": "Números"
         }
       ]
     },
     {
-      "unidad": 2,
-      "titulo": "Álgebra y funciones",
+      "numero": 2,
+      "id": "eje-algebra-funciones",
+      "nombre": "Álgebra y funciones",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
-          "id": "OA4",
-          "descripcion": "Modelar y resolver problemas usando expresiones algebraicas.",
-          "eje": "Álgebra",
-          "indicadores": [
-            "Traducen situaciones a lenguaje algebraico.",
-            "Simplifican expresiones algebraicas."
-          ]
+          "id": "MA7B-OA-06",
+          "codigo_oficial": "MA07 OA 06",
+          "descripcion": "Utilizar el lenguaje algebraico para generalizar relaciones entre números, para establecer y formular reglas y propiedades y construir ecuaciones.",
+          "eje": "Álgebra y funciones"
         },
         {
-          "id": "OA5",
-          "descripcion": "Resolver ecuaciones de primer grado con una incógnita.",
-          "eje": "Álgebra",
-          "indicadores": [
-            "Plantean ecuaciones desde problemas.",
-            "Resuelven ecuaciones lineales simples."
-          ]
+          "id": "MA7B-OA-07",
+          "codigo_oficial": "MA07 OA 07",
+          "descripcion": "Reducir expresiones algebraicas, reuniendo términos semejantes para obtener expresiones de la forma ax + by + cz (a, b, c ∈ Z).",
+          "eje": "Álgebra y funciones"
+        },
+        {
+          "id": "MA7B-OA-08",
+          "codigo_oficial": "MA07 OA 08",
+          "descripcion": "Mostrar que comprenden las proporciones directas e inversas:\n- Realizando tablas de valores para relaciones proporcionales.\n- Graficando los valores de la tabla.\n- Explicando las características de la gráfica.\n- Resolviendo problemas de la vida diaria y de otras asignaturas.",
+          "eje": "Álgebra y funciones"
+        },
+        {
+          "id": "MA7B-OA-09",
+          "codigo_oficial": "MA07 OA 09",
+          "descripcion": "Modelar y resolver problemas diversos de la vida diaria y de otras asignaturas, que involucran ecuaciones e inecuaciones lineales de la forma:\n- ax = b; x/a = b (a, b y c ∈ N; a ≠ 0).\n- ax < b; ax > b; x/a < b; x/a > b (a, b y c ∈ N; a ≠ 0).",
+          "eje": "Álgebra y funciones"
         }
       ]
     },
     {
-      "unidad": 3,
-      "titulo": "Geometría",
+      "numero": 3,
+      "id": "eje-geometria",
+      "nombre": "Geometría",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
-          "id": "OA6",
-          "descripcion": "Desarrollar y aplicar la relación entre ángulos formados por rectas paralelas y una secante.",
-          "eje": "Geometría",
-          "indicadores": [
-            "Identifican ángulos correspondientes, alternos y colaterales.",
-            "Resuelven problemas geométricos usando propiedades de ángulos."
-          ]
+          "id": "MA7B-OA-10",
+          "codigo_oficial": "MA07 OA 10",
+          "descripcion": "Descubrir relaciones que involucran ángulos exteriores o interiores de diferentes polígonos.",
+          "eje": "Geometría"
         },
         {
-          "id": "OA7",
-          "descripcion": "Calcular perímetros y áreas de figuras planas.",
-          "eje": "Geometría",
-          "indicadores": [
-            "Calculan áreas de triángulos y cuadriláteros.",
-            "Resuelven problemas aplicados."
-          ]
+          "id": "MA7B-OA-11",
+          "codigo_oficial": "MA07 OA 11",
+          "descripcion": "Mostrar que comprenden el círculo:\n- Describiendo las relaciones entre el radio, el diámetro y el perímetro del círculo.\n- Estimando de manera intuitiva el perímetro y el área de un círculo.\n- Aplicando las aproximaciones del perímetro y del área en la resolución de problemas geométricos de otras asignaturas y de la vida diaria.\n- Identificándolo como lugar geométrico.",
+          "eje": "Geometría"
+        },
+        {
+          "id": "MA7B-OA-12",
+          "codigo_oficial": "MA07 OA 12",
+          "descripcion": "Construir objetos geométricos de manera manual y/o con software educativo:\n- Líneas, como las perpendiculares, las paralelas, las bisectrices y alturas en triángulos y cuadriláteros.\n- Puntos, como el punto medio de un segmento, el centro de gravedad, el centro del círculo inscrito y del circunscrito de un triángulo.\n- Triángulos y cuadriláteros congruentes.",
+          "eje": "Geometría"
+        },
+        {
+          "id": "MA7B-OA-13",
+          "codigo_oficial": "MA07 OA 13",
+          "descripcion": "Desarrollar y aplicar la fórmula del área de triángulos, paralelogramos y trapecios.",
+          "eje": "Geometría"
+        },
+        {
+          "id": "MA7B-OA-14",
+          "codigo_oficial": "MA07 OA 14",
+          "descripcion": "Identificar puntos en el plano cartesiano, usando pares ordenados y vectores de forma concreta (juegos) y pictórica.",
+          "eje": "Geometría"
         }
       ]
     },
     {
-      "unidad": 4,
-      "titulo": "Probabilidad y estadística",
+      "numero": 4,
+      "id": "eje-probabilidad-estadistica",
+      "nombre": "Probabilidad y estadística",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
-          "id": "OA8",
-          "descripcion": "Analizar datos presentados en tablas y gráficos.",
-          "eje": "Datos y azar",
-          "indicadores": [
-            "Interpretan gráficos de barras, líneas y circulares.",
-            "Extraen conclusiones desde datos."
-          ]
+          "id": "MA7B-OA-15",
+          "codigo_oficial": "MA07 OA 15",
+          "descripcion": "Estimar el porcentaje de algunas características de una población desconocida por medio del muestreo.",
+          "eje": "Probabilidad y estadística"
         },
         {
-          "id": "OA9",
-          "descripcion": "Calcular probabilidades simples en experimentos aleatorios.",
-          "eje": "Datos y azar",
-          "indicadores": [
-            "Identifican eventos equiprobables.",
-            "Calculan probabilidades simples."
-          ]
+          "id": "MA7B-OA-16",
+          "codigo_oficial": "MA07 OA 16",
+          "descripcion": "Representar datos obtenidos en una muestra mediante tablas de frecuencias absolutas y relativas, utilizando gráficos apropiados, de manera manual y/o con software educativo.",
+          "eje": "Probabilidad y estadística"
+        },
+        {
+          "id": "MA7B-OA-17",
+          "codigo_oficial": "MA07 OA 17",
+          "descripcion": "Mostrar que comprenden las medidas de tendencia central y el rango:\n- Determinando las medidas de tendencia central para realizar inferencias sobre la población.\n- Determinando la medida de tendencia central adecuada para responder un problema planteado.\n- Utilizándolos para comparar dos poblaciones.\n- Determinando el efecto de un dato que es muy diferente a los otros.",
+          "eje": "Probabilidad y estadística"
+        },
+        {
+          "id": "MA7B-OA-18",
+          "codigo_oficial": "MA07 OA 18",
+          "descripcion": "Explicar las probabilidades de eventos obtenidos por medio de experimentos de manera manual y/o con software educativo:\n- Estimándolas de manera intuitiva.\n- Utilizando frecuencias relativas.\n- Relacionándolas con razones, fracciones o porcentaje.",
+          "eje": "Probabilidad y estadística"
+        },
+        {
+          "id": "MA7B-OA-19",
+          "codigo_oficial": "MA07 OA 19",
+          "descripcion": "Comparar las frecuencias relativas de un evento obtenidas al repetir un experimento de forma manual y/o con software educativo, con la probabilidad obtenida de manera teórica, usando diagramas de árbol, tablas o gráficos.",
+          "eje": "Probabilidad y estadística"
         }
       ]
     }

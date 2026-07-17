@@ -6,6 +6,7 @@ import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import {
   getAvailableAsignaturas,
+  getCurriculumVerification,
   hasLocalCurriculumForAsignatura,
   type NivelKey,
 } from "@/lib/mineduc-oa"
@@ -154,6 +155,11 @@ export default function PlanificadorCurricularPage() {
   const summary = useMemo(
     () => getPlannerSummary(curriculumState),
     [curriculumState]
+  )
+
+  const curriculumVerification = useMemo(
+    () => getCurriculumVerification(config.nivel, config.curso, config.asignatura),
+    [config.nivel, config.curso, config.asignatura]
   )
 
   const selectedUnit = units.find((unit) => unit.id === config.unidadId)
@@ -464,8 +470,16 @@ export default function PlanificadorCurricularPage() {
 
             <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
               <div className="flex flex-wrap items-center gap-2 text-xs">
-                <span className={`rounded-full border px-3 py-1 font-bold ${currentAsignaturaHasLocal ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-amber-200 bg-amber-50 text-amber-700"}`}>
-                  {currentAsignaturaHasLocal ? "✅ Base curricular local cargada" : "🟡 Base curricular parcial"}
+                <span className={`rounded-full border px-3 py-1 font-bold ${
+                  curriculumVerification?.isOfficiallyVerified
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                    : "border-amber-200 bg-amber-50 text-amber-700"
+                }`}>
+                  {curriculumVerification?.isOfficiallyVerified
+                    ? "✅ Verificado con fuente oficial"
+                    : currentAsignaturaHasLocal
+                      ? "⚠️ Pendiente de verificación oficial"
+                      : "🟡 Base curricular parcial"}
                 </span>
                 <span className="rounded-full border border-slate-200 bg-white px-3 py-1 font-semibold text-slate-600">{summary.units} unidades/módulos</span>
                 <span className="rounded-full border border-slate-200 bg-white px-3 py-1 font-semibold text-slate-600">{summary.oas} OA cargados</span>
@@ -519,7 +533,16 @@ export default function PlanificadorCurricularPage() {
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <div className="text-xs font-bold text-slate-900">{oa.codigoOficial || oa.id}</div>
-                        <p className="mt-1 text-xs leading-relaxed text-slate-600">{oa.texto}</p>
+                        {oa.verificationLabel && (
+                          <span className={`mt-1 inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
+                            oa.verificationStatus === "verificado_oficial"
+                              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                              : "border-amber-200 bg-amber-50 text-amber-700"
+                          }`}>
+                            {oa.verificationLabel}
+                          </span>
+                        )}
+                        <p className="mt-1 whitespace-pre-line text-xs leading-relaxed text-slate-600">{oa.texto}</p>
                       </div>
                       <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] ${selected ? "border-emerald-500 text-emerald-700" : "border-slate-300 text-slate-300"}`}>
                         {selected ? "✓" : ""}
