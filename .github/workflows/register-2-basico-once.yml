@@ -1,0 +1,35 @@
+name: Registrar 2° básico una vez
+
+on:
+  push:
+    branches:
+      - fix/mineduc-curriculum-official-2026
+    paths:
+      - .github/workflows/register-2-basico-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  register:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/mineduc-curriculum-official-2026
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Registrar fuentes, avance e índice
+        run: |
+          node scripts/register-mineduc-2-basico.mjs
+          node scripts/generate-mineduc-index.mjs
+          rm -f scripts/register-mineduc-2-basico.mjs .github/workflows/register-2-basico-once.yml
+      - name: Publicar cambios
+        run: |
+          git config user.name "Innova Space"
+          git config user.email "contacto@innova-space-edu.cl"
+          git add -A data/mineduc/sources.json data/mineduc/meta/verification-progress.json data/mineduc/index.json scripts/register-mineduc-2-basico.mjs .github/workflows/register-2-basico-once.yml
+          git commit -m "chore(curriculum): registrar 2° básico completo"
+          git push origin HEAD:fix/mineduc-curriculum-official-2026
