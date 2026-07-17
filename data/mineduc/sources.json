@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "revision": "fase_5_2_basico_completo_verificado",
+  "revision": "fase_6_3_basico_completo_verificado",
   "fecha_actualizacion": "2026-07-17",
   "politica": {
     "estado_verificado": "Solo se usa verificado_oficial cuando código y texto fueron cotejados con una base curricular oficial específica.",
@@ -448,6 +448,96 @@
         "TE02 OA 07"
       ],
       "cantidad_oa_contenido": 7
+    },
+    "basica/3_basico/matematica": {
+      "url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/matematica/3-basico",
+      "base_curricular_id": "basica-1-6",
+      "fecha_consulta": "2026-07-17",
+      "alcance": [
+        "MA03 OA 01",
+        "MA03 OA 26"
+      ],
+      "cantidad_oa_contenido": 26
+    },
+    "basica/3_basico/lenguaje": {
+      "url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/lenguaje-comunicacion/3-basico",
+      "base_curricular_id": "basica-1-6",
+      "fecha_consulta": "2026-07-17",
+      "alcance": [
+        "LE03 OA 01",
+        "LE03 OA 31"
+      ],
+      "cantidad_oa_contenido": 31
+    },
+    "basica/3_basico/ciencias_naturales": {
+      "url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/ciencias-naturales/3-basico",
+      "base_curricular_id": "basica-1-6",
+      "fecha_consulta": "2026-07-17",
+      "alcance": [
+        "CN03 OA 01",
+        "CN03 OA 13"
+      ],
+      "cantidad_oa_contenido": 13
+    },
+    "basica/3_basico/historia_geografia_y_cs_sociales": {
+      "url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/historia-geografia-ciencias-sociales/3-basico",
+      "base_curricular_id": "basica-1-6",
+      "fecha_consulta": "2026-07-17",
+      "alcance": [
+        "HI03 OA 01",
+        "HI03 OA 16"
+      ],
+      "cantidad_oa_contenido": 16
+    },
+    "basica/3_basico/artes_visuales": {
+      "url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/artes-visuales/3-basico",
+      "base_curricular_id": "basica-1-6",
+      "fecha_consulta": "2026-07-17",
+      "alcance": [
+        "AR03 OA 01",
+        "AR03 OA 05"
+      ],
+      "cantidad_oa_contenido": 5
+    },
+    "basica/3_basico/educacion_fisica_y_salud": {
+      "url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/educacion-fisica-salud/3-basico",
+      "base_curricular_id": "basica-1-6",
+      "fecha_consulta": "2026-07-17",
+      "alcance": [
+        "EF03 OA 01",
+        "EF03 OA 11"
+      ],
+      "cantidad_oa_contenido": 11
+    },
+    "basica/3_basico/musica": {
+      "url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/musica/3-basico",
+      "base_curricular_id": "basica-1-6",
+      "fecha_consulta": "2026-07-17",
+      "alcance": [
+        "MU03 OA 01",
+        "MU03 OA 08"
+      ],
+      "cantidad_oa_contenido": 8
+    },
+    "basica/3_basico/orientacion": {
+      "url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/orientacion/3-basico",
+      "base_curricular_id": "basica-1-6",
+      "fecha_consulta": "2026-07-17",
+      "alcance": [
+        "OR03 OA 01",
+        "OR03 OA 08"
+      ],
+      "cantidad_oa_contenido": 8
+    },
+    "basica/3_basico/tecnologia": {
+      "url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/tecnologia/3-basico",
+      "base_curricular_id": "basica-1-6",
+      "fecha_consulta": "2026-07-17",
+      "alcance": [
+        "TE03 OA 01",
+        "TE03 OA 07"
+      ],
+      "cantidad_oa_contenido": 7
     }
   },
   "propuestas_oficiales_verificadas": {
@@ -457,6 +547,16 @@
       "alcance": [
         "EN02 OA 01",
         "EN02 OA 14"
+      ],
+      "cantidad_oa_contenido": 14,
+      "caracter": "propuesta_curricular_no_obligatoria"
+    },
+    "basica/3_basico/ingles": {
+      "url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/ingles-propuesta/3-basico",
+      "fecha_consulta": "2026-07-17",
+      "alcance": [
+        "EN03 OA 01",
+        "EN03 OA 14"
       ],
       "cantidad_oa_contenido": 14,
       "caracter": "propuesta_curricular_no_obligatoria"
