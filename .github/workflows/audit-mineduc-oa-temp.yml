@@ -17,7 +17,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-      - run: npm ci --ignore-scripts
       - name: Comparar OA locales con Currículum Nacional
-        run: node scripts/audit-mineduc-official-temp.mjs
+        run: node scripts/audit-mineduc-official-node-temp.mjs
