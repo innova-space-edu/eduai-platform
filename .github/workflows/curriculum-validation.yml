@@ -1,0 +1,47 @@
+name: Validación curricular MINEDUC
+
+on:
+  pull_request:
+    paths:
+      - "data/mineduc/**"
+      - "lib/mineduc-oa.ts"
+      - "lib/planificador-curriculum.ts"
+      - "app/educador/**"
+      - "app/api/agents/educador/curriculum/**"
+      - "scripts/generate-mineduc-index.mjs"
+      - "scripts/validate-mineduc-curriculum.mjs"
+      - "package.json"
+      - ".github/workflows/curriculum-validation.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "data/mineduc/**"
+      - "lib/mineduc-oa.ts"
+      - "lib/planificador-curriculum.ts"
+      - "app/educador/**"
+      - "app/api/agents/educador/curriculum/**"
+      - "scripts/generate-mineduc-index.mjs"
+      - "scripts/validate-mineduc-curriculum.mjs"
+      - "package.json"
+      - ".github/workflows/curriculum-validation.yml"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Instalar dependencias
+        run: npm ci --ignore-scripts
+      - name: Verificar índice y OA oficiales
+        run: |
+          npm run curriculum:index
+          git diff --exit-code -- data/mineduc/index.json
+          npm run curriculum:validate
+      - name: Compilar plataforma
+        run: npm run build
