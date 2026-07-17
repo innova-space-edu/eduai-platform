@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "revision": "fase_1_infraestructura_y_matematica_7_basico_verificada",
+  "revision": "fase_2_correccion_7_basico_matematica_ciencias_historia_tecnologia",
   "fecha_actualizacion": "2026-07-17",
   "politica": {
     "estado_verificado": "Solo se usa verificado_oficial cuando código y texto fueron cotejados con una fuente oficial específica.",
@@ -65,6 +65,36 @@
         "MA07 OA 19"
       ],
       "cantidad_oa_contenido": 19
+    },
+    "basica/7_basico/ciencias_naturales": {
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/ciencias-naturales/7-basico",
+      "base_curricular_id": "basica-7-media-2",
+      "fecha_consulta": "2026-07-17",
+      "alcance": [
+        "CN07 OA 01",
+        "CN07 OA 15"
+      ],
+      "cantidad_oa_contenido": 15
+    },
+    "basica/7_basico/historia_geografia_y_cs_sociales": {
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/historia-geografia-ciencias-sociales/7-basico",
+      "base_curricular_id": "basica-7-media-2",
+      "fecha_consulta": "2026-07-17",
+      "alcance": [
+        "HI07 OA 01",
+        "HI07 OA 23"
+      ],
+      "cantidad_oa_contenido": 23
+    },
+    "basica/7_basico/tecnologia": {
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/tecnologia/7-basico",
+      "base_curricular_id": "basica-7-media-2",
+      "fecha_consulta": "2026-07-17",
+      "alcance": [
+        "TE07 OA 01",
+        "TE07 OA 06"
+      ],
+      "cantidad_oa_contenido": 6
     }
   }
 }
