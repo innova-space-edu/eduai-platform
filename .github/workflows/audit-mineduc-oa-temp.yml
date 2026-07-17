@@ -18,4 +18,10 @@ jobs:
         with:
           node-version: 22
       - name: Comparar OA locales con Currículum Nacional
-        run: node scripts/audit-mineduc-official-fast-temp.mjs
+        run: node scripts/audit-mineduc-official-artifact-temp.mjs
+      - name: Publicar reporte
+        uses: actions/upload-artifact@v4
+        with:
+          name: oa-audit-report
+          path: oa-audit-report.json
+          if-no-files-found: error
