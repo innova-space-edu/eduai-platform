@@ -3,7 +3,8 @@ import { join, relative } from "node:path"
 
 const ROOT = join(process.cwd(), "data", "mineduc")
 const STRICT = process.argv.includes("--strict")
-const ALLOWED = new Set(["verificado_oficial", "pendiente_verificacion", "incompleto", "no_utilizar"])
+const VERIFIED = new Set(["verificado_oficial", "verificado_propuesta_oficial"])
+const ALLOWED = new Set(["verificado_oficial", "verificado_propuesta_oficial", "pendiente_verificacion", "incompleto", "no_utilizar"])
 const OFFICIAL_CODE = /^(?:[A-Z]{2,5}\d{2}|[A-Z]{2,5}\dM) OA \d{2}$/
 const GENERIC_CODE = /^OA\s*0*\d+$/i
 
@@ -58,6 +59,7 @@ for (const path of courseFiles) {
   if (!data) continue
   const metadata = data.metadata || {}
   const status = metadata.estado_verificacion || "pendiente_verificacion"
+  const isVerified = VERIFIED.has(status)
 
   if (!ALLOWED.has(status)) errors.push(`${rel}: estado_verificacion no permitido: ${status}`)
 
@@ -68,29 +70,32 @@ for (const path of courseFiles) {
     const description = String(item?.descripcion || "").trim()
     if (!description) {
       const message = `${rel}: OA sin descripción`
-      if (status === "verificado_oficial") errors.push(message)
+      if (isVerified) errors.push(message)
       else warnings.push(message)
     }
     if (codes.has(code)) {
       const message = `${rel}: código duplicado ${code}`
-      if (status === "verificado_oficial") errors.push(message)
+      if (isVerified) errors.push(message)
       else warnings.push(message)
     }
     codes.add(code)
 
-    if (status === "verificado_oficial") {
+    if (isVerified) {
       if (!OFFICIAL_CODE.test(code)) errors.push(`${rel}: código oficial inválido en archivo verificado: ${code}`)
       if (GENERIC_CODE.test(code)) errors.push(`${rel}: código genérico prohibido en archivo verificado: ${code}`)
     }
   }
 
-  if (status === "verificado_oficial") {
+  if (isVerified) {
     if (!metadata.source_url || !String(metadata.source_url).startsWith("https://www.curriculumnacional.cl/")) {
       errors.push(`${rel}: archivo verificado sin source_url oficial específico`)
     }
     if (!metadata.fecha_consulta) errors.push(`${rel}: archivo verificado sin fecha_consulta`)
     if (!metadata.base_curricular) errors.push(`${rel}: archivo verificado sin base_curricular`)
     if (!oas.length) errors.push(`${rel}: archivo verificado sin OA de contenido`)
+    if (status === "verificado_propuesta_oficial" && metadata.caracter_documento !== "propuesta_curricular") {
+      errors.push(`${rel}: propuesta oficial verificada sin caracter_documento=propuesta_curricular`)
+    }
   } else {
     pendingFiles++
     warnings.push(`${rel}: ${status}`)
