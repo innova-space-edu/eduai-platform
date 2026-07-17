@@ -5,244 +5,68 @@
     "asignatura": "Lenguaje y Comunicación",
     "fuente": "Currículum Nacional - MINEDUC Chile",
     "source_url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/lenguaje-comunicacion/3-basico",
-    "estado": "base_completa_web_mineduc_en_revision_fina",
-    "ultima_actualizacion_manual": "2026-03-29",
-    "nota": "Archivo construido con la base curricular oficial del sitio Currículum Nacional de MINEDUC. Contiene todos los OA base del nivel; se recomienda una revisión fina final de redacción OA por OA antes de marcarlo como verificado final."
+    "base_curricular": "Bases Curriculares 1° a 6° Básico",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": ["oa_contenido"],
+    "fecha_consulta": "2026-07-17",
+    "nota": "Los treinta y un OA de contenido fueron cotejados con la página oficial vigente. La agrupación corresponde a ejes curriculares y no inventa unidades del programa de estudio."
   },
   "objetivos_habilidad": [],
-  "objetivos_actitud": [
-    {
-      "id": "LE03 OAA A",
-      "descripcion": "Demostrar interés y una actitud activa frente a la lectura, orientada al disfrute de la misma y a la valoración del conocimiento que se puede obtener a partir de ella."
-    },
-    {
-      "id": "LE03 OAA B",
-      "descripcion": "Demostrar disposición e interés por compartir ideas, experiencias y opiniones con otros."
-    },
-    {
-      "id": "LE03 OAA C",
-      "descripcion": "Demostrar disposición e interés por expresarse de manera creativa por medio de la comunicación oral y escrita."
-    },
-    {
-      "id": "LE03 OAA D",
-      "descripcion": "Realizar tareas y trabajos de forma rigurosa y perseverante, con el fin de desarrollarlos de manera adecuada a los propósitos de la asignatura."
-    },
-    {
-      "id": "LE03 OAA E",
-      "descripcion": "Reflexionar sobre sí mismo, sus ideas y sus intereses para comprenderse y valorarse."
-    },
-    {
-      "id": "LE03 OAA F",
-      "descripcion": "Demostrar empatía hacia los demás, comprendiendo el contexto en el que se sitúan."
-    },
-    {
-      "id": "LE03 OAA G",
-      "descripcion": "Demostrar respeto por las diversas opiniones y puntos de vista, reconociendo el diálogo como una herramienta de enriquecimiento personal y social."
-    }
-  ],
+  "objetivos_actitud": [],
   "unidades": [
     {
       "numero": 1,
+      "id": "eje-lectura-comprension",
       "nombre": "Lectura - Comprensión",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
-        {
-          "id": "LE03-OA-01",
-          "codigo_oficial": "LE03 OA 01",
-          "eje": "Lectura - Comprensión",
-          "descripcion": "Leer en voz alta de manera fluida variados textos apropiados a su edad."
-        },
-        {
-          "id": "LE03-OA-02",
-          "codigo_oficial": "LE03 OA 02",
-          "eje": "Lectura - Comprensión",
-          "descripcion": "Comprender textos aplicando estrategias de comprensión lectora; por ejemplo: relacionar la información del texto con sus experiencias y conocimientos, releer lo que no fue comprendido, visualizar lo que describe el texto, recapitular, formular preguntas y subrayar información relevante."
-        },
-        {
-          "id": "LE03-OA-03",
-          "codigo_oficial": "LE03 OA 03",
-          "eje": "Lectura - Comprensión",
-          "descripcion": "Leer y familiarizarse con un amplio repertorio de literatura para aumentar su conocimiento del mundo y desarrollar su imaginación."
-        },
-        {
-          "id": "LE03-OA-04",
-          "codigo_oficial": "LE03 OA 04",
-          "eje": "Lectura - Comprensión",
-          "descripcion": "Profundizar su comprensión de las narraciones leídas."
-        },
-        {
-          "id": "LE03-OA-05",
-          "codigo_oficial": "LE03 OA 05",
-          "eje": "Lectura - Comprensión",
-          "descripcion": "Comprender poemas adecuados al nivel e interpretar el lenguaje figurado presente en ellos."
-        },
-        {
-          "id": "LE03-OA-06",
-          "codigo_oficial": "LE03 OA 06",
-          "eje": "Lectura - Comprensión",
-          "descripcion": "Leer independientemente y comprender textos no literarios para ampliar su conocimiento del mundo y formarse una opinión."
-        },
-        {
-          "id": "LE03-OA-07",
-          "codigo_oficial": "LE03 OA 07",
-          "eje": "Lectura - Comprensión",
-          "descripcion": "Desarrollar el gusto por la lectura, leyendo habitualmente diversos textos."
-        },
-        {
-          "id": "LE03-OA-08",
-          "codigo_oficial": "LE03 OA 08",
-          "eje": "Lectura - Comprensión",
-          "descripcion": "Asistir habitualmente a la biblioteca para buscar información y elegir libros, cuidando el material en favor del uso común."
-        },
-        {
-          "id": "LE03-OA-09",
-          "codigo_oficial": "LE03 OA 09",
-          "eje": "Lectura - Comprensión",
-          "descripcion": "Buscar información sobre un tema en libros, internet, diarios, revistas, enciclopedias u otras fuentes, para llevar a cabo una investigación."
-        },
-        {
-          "id": "LE03-OA-10",
-          "codigo_oficial": "LE03 OA 10",
-          "eje": "Lectura - Comprensión",
-          "descripcion": "Aplicar estrategias para determinar el significado de palabras nuevas."
-        },
-        {
-          "id": "LE03-OA-11",
-          "codigo_oficial": "LE03 OA 11",
-          "eje": "Lectura - Comprensión",
-          "descripcion": "Determinar el significado de palabras desconocidas, usando el orden alfabético para encontrarlas en un diccionario infantil o ilustrado."
-        }
+        {"id":"LE03-OA-01","codigo_oficial":"LE03 OA 01","descripcion":"Leer en voz alta de manera fluida variados textos apropiados a su edad:\n- pronunciando cada palabra con precisión\n- respetando la coma, el punto y los signos de exclamación e interrogación\n- leyendo con velocidad adecuada para el nivel.","eje":"Lectura - Comprensión"},
+        {"id":"LE03-OA-02","codigo_oficial":"LE03 OA 02","descripcion":"Comprender textos aplicando estrategias de comprensión lectora; por ejemplo:\n- relacionar la información del texto con sus experiencias y conocimientos\n- releer lo que no fue comprendido\n- visualizar lo que describe el texto\n- recapitular\n- formular preguntas sobre lo leído y responderlas\n- subrayar información relevante en un texto.","eje":"Lectura - Comprensión"},
+        {"id":"LE03-OA-03","codigo_oficial":"LE03 OA 03","descripcion":"Leer y familiarizarse con un amplio repertorio de literatura para aumentar su conocimiento del mundo y desarrollar su imaginación; por ejemplo: poemas (Unidad 2 y 3), cuentos folclóricos y de autor (Unidad 1, 3 y 4), fábulas (Unidad 2), leyendas (Unidad 1), mitos, novelas (Unidad 4), historietas (Unidad 1), otros.","eje":"Lectura - Comprensión"},
+        {"id":"LE03-OA-04","codigo_oficial":"LE03 OA 04","descripcion":"Profundizar su comprensión de las narraciones leídas:\n- extrayendo información explícita e implícita\n- reconstruyendo la secuencia de las acciones en la historia; describiendo a los personajes\n- describiendo el ambiente en que ocurre la acción\n- expresando opiniones fundamentadas sobre hechos y situaciones del texto\n- emitiendo una opinión sobre los personajes.","eje":"Lectura - Comprensión"},
+        {"id":"LE03-OA-05","codigo_oficial":"LE03 OA 05","descripcion":"Comprender poemas adecuados al nivel e interpretar el lenguaje figurado presente en ellos.","eje":"Lectura - Comprensión"},
+        {"id":"LE03-OA-06","codigo_oficial":"LE03 OA 06","descripcion":"Leer independientemente y comprender textos no literarios (cartas, biografías, relatos históricos, instrucciones, libros y artículos informativos, noticias, etc.) para ampliar su conocimiento del mundo y formarse una opinión:\n- extrayendo información explícita e implícita\n- utilizando los organizadores de textos expositivos (títulos, subtítulos, índice y glosario) para encontrar información específica\n- comprendiendo la información que aportan las ilustraciones, símbolos y pictogramas a un texto\n- formulando una opinión sobre algún aspecto de la lectura\n- fundamentando su opinión con información del texto o sus conocimientos previos.","eje":"Lectura - Comprensión"},
+        {"id":"LE03-OA-07","codigo_oficial":"LE03 OA 07","descripcion":"Desarrollar el gusto por la lectura, leyendo habitualmente diversos textos.","eje":"Lectura - Comprensión"},
+        {"id":"LE03-OA-08","codigo_oficial":"LE03 OA 08","descripcion":"Asistir habitualmente a la biblioteca para satisfacer diversos propósitos (encontrar información, elegir libros, estudiar o trabajar), cuidando el material en favor del uso común.","eje":"Lectura - Comprensión"},
+        {"id":"LE03-OA-09","codigo_oficial":"LE03 OA 09","descripcion":"Buscar información sobre un tema en libros, internet, diarios, revistas, enciclopedias, atlas, etc., para llevar a cabo una investigación.","eje":"Lectura - Comprensión"},
+        {"id":"LE03-OA-10","codigo_oficial":"LE03 OA 10","descripcion":"Determinar el significado de palabras desconocidas, usando claves contextuales o el conocimiento de raíces (morfemas de base), prefijos y sufijos.","eje":"Lectura - Comprensión"},
+        {"id":"LE03-OA-11","codigo_oficial":"LE03 OA 11","descripcion":"Determinar el significado de palabras desconocidas, usando el orden alfabético para encontrarlas en un diccionario infantil o ilustrado.","eje":"Lectura - Comprensión"}
       ]
     },
     {
       "numero": 2,
+      "id": "eje-escritura-produccion",
       "nombre": "Escritura - Producción",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
-        {
-          "id": "LE03-OA-12",
-          "codigo_oficial": "LE03 OA 12",
-          "eje": "Escritura - Producción",
-          "descripcion": "Escribir frecuentemente, para desarrollar la creatividad y expresar sus ideas, textos como poemas, diarios de vida, cuentos, anécdotas, cartas y comentarios sobre sus lecturas."
-        },
-        {
-          "id": "LE03-OA-13",
-          "codigo_oficial": "LE03 OA 13",
-          "eje": "Escritura - Producción",
-          "descripcion": "Escribir creativamente narraciones (experiencias personales, relatos de hechos, cuentos, etc.) que incluyan una secuencia lógica de eventos, inicio, desarrollo y desenlace."
-        },
-        {
-          "id": "LE03-OA-14",
-          "codigo_oficial": "LE03 OA 14",
-          "eje": "Escritura - Producción",
-          "descripcion": "Escribir artículos informativos para comunicar información sobre un tema."
-        },
-        {
-          "id": "LE03-OA-15",
-          "codigo_oficial": "LE03 OA 15",
-          "eje": "Escritura - Producción",
-          "descripcion": "Escribir cartas, instrucciones, afiches, reportes de una experiencia, entre otros, para lograr diferentes propósitos."
-        },
-        {
-          "id": "LE03-OA-16",
-          "codigo_oficial": "LE03 OA 16",
-          "eje": "Escritura - Producción",
-          "descripcion": "Escribir con letra clara para que pueda ser leída por otros con facilidad."
-        },
-        {
-          "id": "LE03-OA-17",
-          "codigo_oficial": "LE03 OA 17",
-          "eje": "Escritura - Producción",
-          "descripcion": "Planificar la escritura: estableciendo propósito y destinatario, y generando ideas a partir de conversaciones, investigaciones, lluvia de ideas u otra estrategia."
-        },
-        {
-          "id": "LE03-OA-18",
-          "codigo_oficial": "LE03 OA 18",
-          "eje": "Escritura - Producción",
-          "descripcion": "Escribir, revisar y editar sus textos para satisfacer un propósito y transmitir sus ideas con claridad."
-        },
-        {
-          "id": "LE03-OA-19",
-          "codigo_oficial": "LE03 OA 19",
-          "eje": "Escritura - Producción",
-          "descripcion": "Incorporar de manera pertinente en la escritura el vocabulario nuevo extraído de textos escuchados o leídos."
-        },
-        {
-          "id": "LE03-OA-20",
-          "codigo_oficial": "LE03 OA 20",
-          "eje": "Escritura - Producción",
-          "descripcion": "Comprender la función de los artículos, sustantivos y adjetivos en textos orales y escritos, y reemplazarlos o combinarlos de diversas maneras para enriquecer o precisar sus producciones."
-        },
-        {
-          "id": "LE03-OA-21",
-          "codigo_oficial": "LE03 OA 21",
-          "eje": "Escritura - Producción",
-          "descripcion": "Escribir correctamente para facilitar la comprensión por parte del lector, usando de manera apropiada reglas ortográficas y signos de puntuación aprendidos en el nivel."
-        },
-        {
-          "id": "LE03-OA-22",
-          "codigo_oficial": "LE03 OA 22",
-          "eje": "Escritura - Producción",
-          "descripcion": "Comprender la función de los pronombres personales en textos orales y escritos, y usarlos para ampliar o precisar las ideas."
-        }
+        {"id":"LE03-OA-12","codigo_oficial":"LE03 OA 12","descripcion":"Escribir frecuentemente, para desarrollar la creatividad y expresar sus ideas, textos como poemas, diarios de vida, cuentos, anécdotas, cartas, comentarios sobre sus lecturas, etc.","eje":"Escritura - Producción"},
+        {"id":"LE03-OA-13","codigo_oficial":"LE03 OA 13","descripcion":"Escribir creativamente narraciones (experiencias personales, relatos de hechos, cuentos, etc.) que incluyan:\n- una secuencia lógica de eventos\n- inicio, desarrollo y desenlace\n- conectores adecuados.","eje":"Escritura - Producción"},
+        {"id":"LE03-OA-14","codigo_oficial":"LE03 OA 14","descripcion":"Escribir artículos informativos para comunicar información sobre un tema:\n- organizando las ideas en párrafos\n- desarrollando las ideas mediante información que explica el tema.","eje":"Escritura - Producción"},
+        {"id":"LE03-OA-15","codigo_oficial":"LE03 OA 15","descripcion":"Escribir cartas, instrucciones, afiches, reportes de una experiencia, entre otros, para lograr diferentes propósitos:\n- usando un formato adecuado\n- transmitiendo el mensaje con claridad.","eje":"Escritura - Producción"},
+        {"id":"LE03-OA-16","codigo_oficial":"LE03 OA 16","descripcion":"Escribir con letra clara para que pueda ser leída por otros con facilidad.","eje":"Escritura - Producción"},
+        {"id":"LE03-OA-17","codigo_oficial":"LE03 OA 17","descripcion":"Planificar la escritura:\n- estableciendo propósito y destinatario\n- generando ideas a partir de conversaciones, investigaciones, lluvia de ideas u otra estrategia.","eje":"Escritura - Producción"},
+        {"id":"LE03-OA-18","codigo_oficial":"LE03 OA 18","descripcion":"Escribir, revisar y editar sus textos para satisfacer un propósito y transmitir sus ideas con claridad. Durante este proceso:\n- organizan las ideas en párrafos separados con punto aparte\n- utilizan conectores apropiados\n- utilizan un vocabulario variado\n- mejoran la redacción del texto a partir de sugerencias de los pares y el docente\n- corrigen la ortografía y la presentación.","eje":"Escritura - Producción"},
+        {"id":"LE03-OA-19","codigo_oficial":"LE03 OA 19","descripcion":"Incorporar de manera pertinente en la escritura el vocabulario nuevo extraído de textos escuchados o leídos.","eje":"Escritura - Producción"},
+        {"id":"LE03-OA-20","codigo_oficial":"LE03 OA 20","descripcion":"Comprender la función de los artículos, sustantivos y adjetivos en textos orales y escritos, y reemplazarlos o combinarlos de diversas maneras para enriquecer o precisar sus producciones.","eje":"Escritura - Producción"},
+        {"id":"LE03-OA-21","codigo_oficial":"LE03 OA 21","descripcion":"Comprender la función de los pronombres en textos orales y escritos, y usarlos para ampliar las posibilidades de referirse a un sustantivo en sus producciones.","eje":"Escritura - Producción"},
+        {"id":"LE03-OA-22","codigo_oficial":"LE03 OA 22","descripcion":"Escribir correctamente para facilitar la comprensión por parte del lector, aplicando lo aprendido en años anteriores y usando de manera apropiada:\n- mayúsculas al iniciar una oración y al escribir sustantivos propios\n- punto al finalizar una oración y punto aparte al finalizar un párrafo\n- plurales de palabras terminadas en z\n- palabras con ge-gi, je-ji\n- palabras terminadas en cito-cita\n- coma en enumeración.","eje":"Escritura - Producción"}
       ]
     },
     {
       "numero": 3,
+      "id": "eje-comunicacion-oral",
       "nombre": "Comunicación oral",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
-        {
-          "id": "LE03-OA-23",
-          "codigo_oficial": "LE03 OA 23",
-          "eje": "Comunicación oral",
-          "descripcion": "Comprender y disfrutar versiones completas de obras de la literatura, narradas o leídas por un adulto, como cuentos folclóricos y de autor, poemas, fábulas, mitos y leyendas."
-        },
-        {
-          "id": "LE03-OA-24",
-          "codigo_oficial": "LE03 OA 24",
-          "eje": "Comunicación oral",
-          "descripcion": "Comprender textos orales para obtener información y desarrollar su curiosidad por el mundo."
-        },
-        {
-          "id": "LE03-OA-25",
-          "codigo_oficial": "LE03 OA 25",
-          "eje": "Comunicación oral",
-          "descripcion": "Disfrutar de la experiencia de asistir a obras de teatro infantiles o representaciones para ampliar sus posibilidades de expresión, desarrollar su creatividad y familiarizarse con el género."
-        },
-        {
-          "id": "LE03-OA-26",
-          "codigo_oficial": "LE03 OA 26",
-          "eje": "Comunicación oral",
-          "descripcion": "Participar activamente en conversaciones grupales sobre textos leídos o escuchados en clases o temas de su interés."
-        },
-        {
-          "id": "LE03-OA-27",
-          "codigo_oficial": "LE03 OA 27",
-          "eje": "Comunicación oral",
-          "descripcion": "Interactuar de acuerdo con las convenciones sociales en diferentes situaciones."
-        },
-        {
-          "id": "LE03-OA-28",
-          "codigo_oficial": "LE03 OA 28",
-          "eje": "Comunicación oral",
-          "descripcion": "Expresarse de manera coherente y articulada sobre temas de su interés."
-        },
-        {
-          "id": "LE03-OA-29",
-          "codigo_oficial": "LE03 OA 29",
-          "eje": "Comunicación oral",
-          "descripcion": "Incorporar de manera pertinente en sus intervenciones orales el vocabulario nuevo extraído de textos escuchados o leídos."
-        },
-        {
-          "id": "LE03-OA-30",
-          "codigo_oficial": "LE03 OA 30",
-          "eje": "Comunicación oral",
-          "descripcion": "Representar narraciones, poemas u obras dramáticas leídas o escuchadas mediante dramatizaciones, dibujos, títeres u otras expresiones artísticas."
-        },
-        {
-          "id": "LE03-OA-31",
-          "codigo_oficial": "LE03 OA 31",
-          "eje": "Comunicación oral",
-          "descripcion": "Recitar poemas con entonación y expresión para fortalecer la confianza en sí mismos, aumentar el vocabulario y desarrollar su capacidad expresiva."
-        }
+        {"id":"LE03-OA-23","codigo_oficial":"LE03 OA 23","descripcion":"Comprender y disfrutar versiones completas de obras de la literatura, narradas o leídas por un adulto, como:\n- cuentos folclóricos y de autor\n- poemas\n- fábulas\n- mitos y leyendas.","eje":"Comunicación oral"},
+        {"id":"LE03-OA-24","codigo_oficial":"LE03 OA 24","descripcion":"Comprender textos orales (explicaciones, instrucciones, noticias, documentales, películas, relatos, anécdotas, etc.) para obtener información y desarrollar su curiosidad por el mundo:\n- estableciendo conexiones con sus propias experiencias\n- identificando el propósito\n- formulando preguntas para obtener información adicional, aclarar dudas y profundizar la comprensión\n- estableciendo relaciones entre distintos textos\n- respondiendo preguntas sobre información explícita e implícita\n- formulando una opinión sobre lo escuchado.","eje":"Comunicación oral"},
+        {"id":"LE03-OA-25","codigo_oficial":"LE03 OA 25","descripcion":"Disfrutar de la experiencia de asistir a obras de teatro infantiles o representaciones para ampliar sus posibilidades de expresión, desarrollar su creatividad y familiarizarse con el género.","eje":"Comunicación oral"},
+        {"id":"LE03-OA-26","codigo_oficial":"LE03 OA 26","descripcion":"Participar activamente en conversaciones grupales sobre textos leídos o escuchados en clases o temas de su interés:\n- manteniendo el foco de la conversación\n- expresando sus ideas u opiniones\n- formulando preguntas para aclarar dudas\n- demostrando interés ante lo escuchado\n- mostrando empatía frente a situaciones expresadas por otros\n- respetando turnos.","eje":"Comunicación oral"},
+        {"id":"LE03-OA-27","codigo_oficial":"LE03 OA 27","descripcion":"Interactuar de acuerdo con las convenciones sociales en diferentes situaciones:\n- presentarse a sí mismo y a otros\n- saludar\n- preguntar\n- expresar opiniones, sentimientos e ideas\n- situaciones que requieren el uso de fórmulas de cortesía como por favor, gracias, perdón, permiso.","eje":"Comunicación oral"},
+        {"id":"LE03-OA-28","codigo_oficial":"LE03 OA 28","descripcion":"Expresarse de manera coherente y articulada sobre temas de su interés:\n- organizando las ideas en introducción y desarrollo\n- incorporando descripciones y ejemplos que ilustren las ideas\n- utilizando un vocabulario variado\n- reemplazando los pronombres por construcciones sintácticas que expliciten o describan al referente\n- usando gestos y posturas acordes a la situación\n- usando material de apoyo (power point, papelógrafo, objetos, etc.) si es pertinente.","eje":"Comunicación oral"},
+        {"id":"LE03-OA-29","codigo_oficial":"LE03 OA 29","descripcion":"Incorporar de manera pertinente en sus intervenciones orales el vocabulario nuevo extraído de textos escuchados o leídos.","eje":"Comunicación oral"},
+        {"id":"LE03-OA-30","codigo_oficial":"LE03 OA 30","descripcion":"Caracterizar distintos personajes para desarrollar su lenguaje y autoestima, y aprender a trabajar en equipo.","eje":"Comunicación oral"},
+        {"id":"LE03-OA-31","codigo_oficial":"LE03 OA 31","descripcion":"Recitar poemas con entonación y expresión para fortalecer la confianza en sí mismos, aumentar el vocabulario y desarrollar su capacidad expresiva.","eje":"Comunicación oral"}
       ]
     }
   ]
