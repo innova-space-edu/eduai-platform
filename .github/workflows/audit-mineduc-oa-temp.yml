@@ -1,0 +1,20 @@
+name: Auditoría temporal OA MINEDUC
+
+on:
+  push:
+    branches:
+      - audit/mineduc-oa-2026
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Comparar OA locales con Currículum Nacional
+        run: node scripts/audit-mineduc-official-temp.mjs
