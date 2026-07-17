@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import { assertPublicHttpUrl } from "@/lib/notebook/url-safety"
+import { assertPublicHttpUrl, fetchPublicUrl } from "@/lib/notebook/url-safety"
 
 export const runtime = "nodejs"
 export const maxDuration = 20
@@ -52,9 +52,8 @@ export async function POST(request: NextRequest, { params }: Params) {
 
     const safeUrl = await assertPublicHttpUrl(requestedUrl)
     const startedAt = Date.now()
-    const response = await fetch(safeUrl, {
+    const response = await fetchPublicUrl(safeUrl, {
       method: "GET",
-      redirect: "follow",
       headers: {
         "User-Agent": "EduAI-Notebook/1.0 (+https://innova-space-edu.cl)",
         Accept: "text/html,application/xhtml+xml,application/pdf,text/plain;q=0.9,*/*;q=0.5",
