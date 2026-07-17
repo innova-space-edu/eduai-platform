@@ -1,10 +1,11 @@
 {
   "version": 1,
-  "revision": "fase_3_8_basico_completo_verificado",
+  "revision": "fase_4_1_basico_completo_verificado",
   "fecha_actualizacion": "2026-07-17",
   "politica": {
-    "estado_verificado": "Solo se usa verificado_oficial cuando código y texto fueron cotejados con una fuente oficial específica.",
-    "estados_permitidos": ["verificado_oficial", "pendiente_verificacion", "incompleto", "no_utilizar"]
+    "estado_verificado": "Solo se usa verificado_oficial cuando código y texto fueron cotejados con una base curricular oficial específica.",
+    "estado_propuesta": "verificado_propuesta_oficial identifica propuestas curriculares oficiales cotejadas, sin presentarlas como bases obligatorias.",
+    "estados_permitidos": ["verificado_oficial", "verificado_propuesta_oficial", "pendiente_verificacion", "incompleto", "no_utilizar"]
   },
   "bases_curriculares": [
     {"id":"parvularia","nombre":"Bases Curriculares de Educación Parvularia","url":"https://www.curriculumnacional.cl/Curriculum/Bases_Curriculares","nivel":"parvularia"},
@@ -13,6 +14,16 @@
     {"id":"media-3-4","nombre":"Bases Curriculares 3° y 4° Medio","url":"https://www.curriculumnacional.cl/Curriculum/Bases_Curriculares","nivel":"media","cursos":["3° Medio","4° Medio"]}
   ],
   "asignaturas_verificadas": {
+    "basica/1_basico/artes_visuales":{"url":"https://www.curriculumnacional.cl/curriculum/1o-6o-basico/artes-visuales/1-basico","base_curricular_id":"basica-1-6","fecha_consulta":"2026-07-17","alcance":["AR01 OA 01","AR01 OA 05"],"cantidad_oa_contenido":5},
+    "basica/1_basico/ciencias_naturales":{"url":"https://www.curriculumnacional.cl/curriculum/1o-6o-basico/ciencias-naturales/1-basico","base_curricular_id":"basica-1-6","fecha_consulta":"2026-07-17","alcance":["CN01 OA 01","CN01 OA 12"],"cantidad_oa_contenido":12},
+    "basica/1_basico/educacion_fisica_y_salud":{"url":"https://www.curriculumnacional.cl/curriculum/1o-6o-basico/educacion-fisica-salud/1-basico","base_curricular_id":"basica-1-6","fecha_consulta":"2026-07-17","alcance":["EF01 OA 01","EF01 OA 11"],"cantidad_oa_contenido":11},
+    "basica/1_basico/historia_geografia_y_cs_sociales":{"url":"https://www.curriculumnacional.cl/curriculum/1o-6o-basico/historia-geografia-ciencias-sociales/1-basico","base_curricular_id":"basica-1-6","fecha_consulta":"2026-07-17","alcance":["HI01 OA 01","HI01 OA 15"],"cantidad_oa_contenido":15},
+    "basica/1_basico/lenguaje":{"url":"https://www.curriculumnacional.cl/curriculum/1o-6o-basico/lenguaje-comunicacion/1-basico","base_curricular_id":"basica-1-6","fecha_consulta":"2026-07-17","alcance":["LE01 OA 01","LE01 OA 26"],"cantidad_oa_contenido":26},
+    "basica/1_basico/matematica":{"url":"https://www.curriculumnacional.cl/curriculum/1o-6o-basico/matematica/1-basico","base_curricular_id":"basica-1-6","fecha_consulta":"2026-07-17","alcance":["MA01 OA 01","MA01 OA 20"],"cantidad_oa_contenido":20},
+    "basica/1_basico/musica":{"url":"https://www.curriculumnacional.cl/curriculum/1o-6o-basico/musica/1-basico","base_curricular_id":"basica-1-6","fecha_consulta":"2026-07-17","alcance":["MU01 OA 01","MU01 OA 07"],"cantidad_oa_contenido":7},
+    "basica/1_basico/orientacion":{"url":"https://www.curriculumnacional.cl/curriculum/1o-6o-basico/orientacion/1-basico","base_curricular_id":"basica-1-6","fecha_consulta":"2026-07-17","alcance":["OR01 OA 01","OR01 OA 08"],"cantidad_oa_contenido":8},
+    "basica/1_basico/tecnologia":{"url":"https://www.curriculumnacional.cl/curriculum/1o-6o-basico/tecnologia/1-basico","base_curricular_id":"basica-1-6","fecha_consulta":"2026-07-17","alcance":["TE01 OA 01","TE01 OA 06"],"cantidad_oa_contenido":6},
+    "basica/1_basico/ingles":{"url":"https://www.curriculumnacional.cl/curriculum/1o-6o-basico/ingles-propuesta/1-basico","base_curricular_id":"propuesta-ingles-1","fecha_consulta":"2026-07-17","alcance":["EN01 OA 01","EN01 OA 14"],"cantidad_oa_contenido":14,"caracter_documento":"propuesta_curricular"},
     "basica/7_basico/matematica":{"url":"https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/matematica/7-basico","base_curricular_id":"basica-7-media-2","fecha_consulta":"2026-07-17","alcance":["MA07 OA 01","MA07 OA 19"],"cantidad_oa_contenido":19},
     "basica/7_basico/ciencias_naturales":{"url":"https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/ciencias-naturales/7-basico","base_curricular_id":"basica-7-media-2","fecha_consulta":"2026-07-17","alcance":["CN07 OA 01","CN07 OA 15"],"cantidad_oa_contenido":15},
     "basica/7_basico/historia_geografia_y_cs_sociales":{"url":"https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/historia-geografia-ciencias-sociales/7-basico","base_curricular_id":"basica-7-media-2","fecha_consulta":"2026-07-17","alcance":["HI07 OA 01","HI07 OA 23"],"cantidad_oa_contenido":23},
