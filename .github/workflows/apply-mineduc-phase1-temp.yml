@@ -1,0 +1,42 @@
+name: Aplicar fase 1 curricular
+
+on:
+  push:
+    branches:
+      - fix/mineduc-curriculum-official-2026
+    paths:
+      - scripts/apply-mineduc-phase1-temp.py
+      - .github/workflows/apply-mineduc-phase1-temp.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/mineduc-curriculum-official-2026
+          fetch-depth: 0
+      - name: Aplicar corrección curricular
+        run: python scripts/apply-mineduc-phase1-temp.py
+      - name: Regenerar índice oficial
+        run: node scripts/generate-mineduc-index.mjs
+      - name: Validar base curricular
+        run: |
+          node --check scripts/generate-mineduc-index.mjs
+          node --check scripts/validate-mineduc-curriculum.mjs
+          node scripts/validate-mineduc-curriculum.mjs --strict
+      - name: Eliminar automatizaciones temporales
+        run: |
+          rm -f scripts/apply-mineduc-phase1-temp.py
+          rm -f .github/workflows/apply-mineduc-phase1-temp.yml
+          rm -f .github/workflows/export-repo-temp.yml
+      - name: Publicar cambios en la rama
+        run: |
+          git config user.name "Innova Space"
+          git config user.email "contacto@innova-space-edu.cl"
+          git add -A
+          git commit -m "fix: normalizar infraestructura curricular y Matemática 7° básico"
+          git push origin HEAD:fix/mineduc-curriculum-official-2026
