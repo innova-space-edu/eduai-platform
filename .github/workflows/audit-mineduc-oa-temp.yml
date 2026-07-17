@@ -11,41 +11,34 @@ on:
 jobs:
   audit:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - name: Comparar OA locales con Currículum Nacional
-        run: node scripts/audit-mineduc-official-artifact-temp.mjs
-      - name: Publicar reporte preliminar
-        uses: actions/upload-artifact@v4
-        with:
-          name: oa-audit-report
-          path: oa-audit-report.json
-          if-no-files-found: error
-      - name: Publicar base local MINEDUC
-        uses: actions/upload-artifact@v4
-        with:
-          name: mineduc-local-data
-          path: data/mineduc
-          if-no-files-found: error
-      - name: Descargar PDFs oficiales MINEDUC
+      - name: Probar fuentes oficiales
         shell: bash
         run: |
-          set -euo pipefail
-          mkdir -p official-bases
-          curl -L --fail --retry 3 'https://bibliotecadigital.mineduc.cl/bitstream/handle/20.500.12365/2342/mono-1003.pdf?isAllowed=y&sequence=1' -o official-bases/bases_1_6.pdf
-          curl -L --fail --retry 3 'https://bibliotecadigital.mineduc.cl/bitstream/handle/20.500.12365/654/MONO-46.pdf?isAllowed=y&sequence=1' -o official-bases/bases_7_2.pdf
-          curl -L --fail --retry 3 'https://bibliotecadigital.mineduc.cl/bitstream/handle/20.500.12365/14364/bases%203%C2%B0%204%C2%B0.pdf?isAllowed=y&sequence=1' -o official-bases/bases_3_4.pdf
-          curl -L --fail --retry 3 'https://bibliotecadigital.mineduc.cl/bitstream/handle/20.500.12365/432/MONO-360.pdf?isAllowed=y&sequence=1' -o official-bases/bases_parvularia.pdf
-          command -v pdftotext >/dev/null || (sudo apt-get update && sudo apt-get install -y poppler-utils)
-          for pdf in official-bases/*.pdf; do pdftotext -layout "$pdf" "${pdf%.pdf}.txt"; done
-          ls -lh official-bases
-      - name: Publicar bases oficiales
+          set +e
+          cat > urls.txt <<'EOF'
+          https://www.curriculumnacional.cl/614/articles-22394_bases.pdf
+          https://bibliotecadigital.mineduc.cl/bitstream/handle/20.500.12365/2342/mono-1003.pdf?isAllowed=y&sequence=1
+          https://media.mineduc.cl/wp-content/uploads/sites/28/2017/07/Bases-Curriculares7%C2%BA-b%C3%A1sico-a-2%C2%BA-medio.pdf
+          https://parvularia.mineduc.cl/wp-content/uploads/sites/34/2018/03/Bases_Curriculares_Ed_Parvularia_2018.pdf
+          https://r.jina.ai/http://www.curriculumnacional.cl/614/articles-22394_bases.pdf
+          https://r.jina.ai/http://www.curriculumnacional.cl/614/articles-37136_bases.pdf
+          https://r.jina.ai/http://www.curriculumnacional.cl/614/articles-91414_bases.pdf
+          https://r.jina.ai/http://www.curriculumnacional.cl/614/articles-69957_bases.pdf
+          EOF
+          : > url-status.txt
+          while IFS= read -r url; do
+            echo "URL=$url" >> url-status.txt
+            curl -L -I --max-time 25 --connect-timeout 10 -sS -o /tmp/headers -w 'HTTP=%{http_code} SIZE=%{size_download} FINAL=%{url_effective}\n' "$url" >> url-status.txt 2>&1
+            sed -n '1,8p' /tmp/headers >> url-status.txt 2>/dev/null
+            echo '---' >> url-status.txt
+          done < urls.txt
+          cat url-status.txt
+      - name: Publicar prueba de URLs
         uses: actions/upload-artifact@v4
         with:
-          name: mineduc-official-bases
-          path: official-bases
+          name: mineduc-url-status
+          path: url-status.txt
           if-no-files-found: error
