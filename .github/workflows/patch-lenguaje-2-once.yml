@@ -1,0 +1,35 @@
+name: Corregir Lenguaje de 2° básico una vez
+
+on:
+  push:
+    branches:
+      - fix/mineduc-curriculum-official-2026
+    paths:
+      - .github/workflows/patch-lenguaje-2-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/mineduc-curriculum-official-2026
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Aplicar corrección y regenerar índice
+        run: |
+          node scripts/patch-lenguaje-2-basico.mjs
+          node scripts/generate-mineduc-index.mjs
+          rm -f scripts/patch-lenguaje-2-basico.mjs .github/workflows/patch-lenguaje-2-once.yml
+      - name: Publicar cambios
+        run: |
+          git config user.name "Innova Space"
+          git config user.email "contacto@innova-space-edu.cl"
+          git add -A data/mineduc/basica/2_basico/lenguaje.json data/mineduc/index.json scripts/patch-lenguaje-2-basico.mjs .github/workflows/patch-lenguaje-2-once.yml
+          git commit -m "fix(curriculum): verificar Lenguaje de 2° básico"
+          git push origin HEAD:fix/mineduc-curriculum-official-2026
