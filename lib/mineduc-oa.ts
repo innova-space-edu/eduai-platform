@@ -128,6 +128,7 @@ export type NivelKey = "parvularia" | "basica" | "media"
 
 export type CurriculumVerificationStatus =
   | "verificado_oficial"
+  | "verificado_propuesta_oficial"
   | "pendiente_verificacion"
   | "incompleto"
   | "no_utilizar"
@@ -341,11 +342,13 @@ function resolveVerification(
 
   let status: CurriculumVerificationStatus = "pendiente_verificacion"
   if (declared === "verificado_oficial") status = "verificado_oficial"
+  else if (declared === "verificado_propuesta_oficial") status = "verificado_propuesta_oficial"
   else if (/no[_\s-]?utilizar/i.test(declared)) status = "no_utilizar"
   else if (/incomplet/i.test(declared)) status = "incompleto"
 
   const labels: Record<CurriculumVerificationStatus, string> = {
     verificado_oficial: "Verificado con fuente oficial",
+    verificado_propuesta_oficial: "Propuesta oficial MINEDUC verificada",
     pendiente_verificacion: "Pendiente de verificación oficial",
     incompleto: "Base curricular incompleta",
     no_utilizar: "No utilizar",
@@ -354,7 +357,7 @@ function resolveVerification(
   return {
     status,
     label: labels[status],
-    isOfficiallyVerified: status === "verificado_oficial",
+    isOfficiallyVerified: status === "verificado_oficial" || status === "verificado_propuesta_oficial",
     sourceUrl: typeof metadata.source_url === "string" ? metadata.source_url : undefined,
     verifiedAt: typeof metadata.fecha_consulta === "string" ? metadata.fecha_consulta : undefined,
     baseCurricular: typeof metadata.base_curricular === "string" ? metadata.base_curricular : undefined,
