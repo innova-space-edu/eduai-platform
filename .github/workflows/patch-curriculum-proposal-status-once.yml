@@ -1,0 +1,55 @@
+name: Incorporar estado de propuesta curricular una vez
+
+on:
+  push:
+    branches:
+      - fix/mineduc-curriculum-official-2026
+    paths:
+      - .github/workflows/patch-curriculum-proposal-status-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/mineduc-curriculum-official-2026
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Actualizar tipos y etiquetas
+        run: |
+          node <<'NODE'
+          const fs = require('fs')
+          const path = 'lib/mineduc-oa.ts'
+          let text = fs.readFileSync(path, 'utf8')
+          text = text.replace(
+            '  | "verificado_oficial"\n  | "pendiente_verificacion"',
+            '  | "verificado_oficial"\n  | "verificado_propuesta_oficial"\n  | "pendiente_verificacion"'
+          )
+          text = text.replace(
+            '  if (declared === "verificado_oficial") status = "verificado_oficial"\n  else if (/no[_\\s-]?utilizar/i.test(declared))',
+            '  if (declared === "verificado_oficial") status = "verificado_oficial"\n  else if (declared === "verificado_propuesta_oficial") status = "verificado_propuesta_oficial"\n  else if (/no[_\\s-]?utilizar/i.test(declared))'
+          )
+          text = text.replace(
+            '    verificado_oficial: "Verificado con fuente oficial",\n    pendiente_verificacion:',
+            '    verificado_oficial: "Verificado con fuente oficial",\n    verificado_propuesta_oficial: "Propuesta oficial MINEDUC verificada",\n    pendiente_verificacion:'
+          )
+          text = text.replace(
+            '    isOfficiallyVerified: status === "verificado_oficial",',
+            '    isOfficiallyVerified: status === "verificado_oficial" || status === "verificado_propuesta_oficial",'
+          )
+          fs.writeFileSync(path, text)
+          NODE
+          rm -f .github/workflows/patch-curriculum-proposal-status-once.yml
+      - name: Publicar cambios
+        run: |
+          git config user.name "Innova Space"
+          git config user.email "contacto@innova-space-edu.cl"
+          git add -A lib/mineduc-oa.ts .github/workflows/patch-curriculum-proposal-status-once.yml
+          git commit -m "feat(curriculum): mostrar propuestas oficiales diferenciadas"
+          git push origin HEAD:fix/mineduc-curriculum-official-2026
