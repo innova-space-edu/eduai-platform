@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - fix/mineduc-curriculum-official-2026
+  pull_request:
+    branches:
+      - main
 
 jobs:
   export:
