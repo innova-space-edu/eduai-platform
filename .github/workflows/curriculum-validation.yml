@@ -46,4 +46,14 @@ jobs:
           git diff --exit-code -- data/mineduc/index.json
           npm run curriculum:validate
       - name: Compilar plataforma
-        run: npm run build
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee curriculum-build.log
+      - name: Publicar registro de compilación
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: curriculum-build-log
+          path: curriculum-build.log
+          if-no-files-found: warn
