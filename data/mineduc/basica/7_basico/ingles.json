@@ -1,56 +1,59 @@
 {
-  "estado": "base_verificada_mineduc",
-  "curso": "7_basico",
-  "asignatura": "ingles",
-  "nombre_asignatura": "Inglés",
-  "fuente": "Currículum Nacional MINEDUC",
+  "metadata": {
+    "nivel": "Básica",
+    "curso": "7° Básico",
+    "asignatura": "Inglés",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/ingles/7-basico",
+    "base_curricular": "Bases Curriculares 7º Básico a 2º Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-07-17",
+    "nota": "Los OA de contenido fueron cotejados con la página oficial vigente de Currículum Nacional. La agrupación corresponde a ejes curriculares, no a unidades inventadas."
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
   "unidades": [
     {
-      "unidad": 1,
-      "titulo": "Comprensión y producción oral",
+      "numero": 1,
+      "id": "eje-comunicacion-oral",
+      "nombre": "Comunicación oral",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
-        {
-          "id": "OA1",
-          "descripcion": "Comprender ideas generales y detalles en textos orales breves y claros.",
-          "eje": "Listening & Speaking",
-          "indicadores": [
-            "Reconocen información principal en audios.",
-            "Responden oralmente usando vocabulario conocido."
-          ]
-        },
-        {
-          "id": "OA2",
-          "descripcion": "Expresarse oralmente en situaciones cotidianas con pronunciación comprensible.",
-          "eje": "Listening & Speaking",
-          "indicadores": [
-            "Participan en diálogos simples.",
-            "Utilizan expresiones frecuentes del idioma."
-          ]
-        }
+        {"id":"IN7B-OA-01","codigo_oficial":"IN07 OA 01","descripcion":"Demostrar comprensión de ideas generales e información explícita en textos orales adaptados y auténticos simples, literarios y no literarios, en diversos formatos audiovisuales (como exposiciones orales, conversaciones, descripciones, instrucciones, procedimientos, narraciones, rimas y juegos de palabras, canciones), acerca de temas variados (experiencias personales, temas de otras asignaturas, del contexto inmediato, de actualidad e interés global o de otras culturas) y que contienen las funciones del año.\nNota: Las funciones del idioma correspondientes a cada año se encuentran descritas detalladamente en el OA 8 de comunicación oral y en el OA 16 de expresión escrita.","eje":"Comunicación oral"},
+        {"id":"IN7B-OA-02","codigo_oficial":"IN07 OA 02","descripcion":"Identificar palabras y frases clave, expresiones de uso frecuente, vocabulario temático, conectores (first, second, next, finally, or, because, before, after, too when, while), sonidos /z/, /s/ (zoo/sad), sonido inicial /h/ (hot/hour) y los sonidos /g/ (go/ago/egg) y /d3/ (jacket/general/age) en textos orales en diversos formatos o al participar en interacciones cotidianas y conversaciones en la clase.","eje":"Comunicación oral"},
+        {"id":"IN7B-OA-03","codigo_oficial":"IN07 OA 03","descripcion":"Identificar en los textos escuchados:\n- Tema e ideas generales.\n- Información específica y detalles relevantes asociados a personas y sus acciones, lugares, tiempo, hablantes y situaciones.\n- Pasos en instrucciones y procedimientos, secuencia de eventos, diferencia entre hecho y opinión y relaciones de causa-efecto.","eje":"Comunicación oral"},
+        {"id":"IN7B-OA-04","codigo_oficial":"IN07 OA 04","descripcion":"Identificar y usar estrategias para apoyar la comprensión de los textos escuchados:\n- Hacer predicciones.\n- Escuchar con un propósito.\n- Usar conocimientos previos.\n- Focalizar la atención en palabras y/o expresiones clave.\n- Utilizar apoyos como imágenes y gestos del hablante.\n- Preguntar para clarificar o corroborar información en interacciones.\n- Confirmar predicciones.\n- Resumir alguna idea con apoyo.","eje":"Comunicación oral"},
+        {"id":"IN7B-OA-05","codigo_oficial":"IN07 OA 05","descripcion":"Presentar información en forma oral, usando recursos multimodales que refuercen el mensaje en forma creativa, acerca de temas variados (como experiencias personales, temas de otras asignaturas, otras culturas, problemas globales y textos leídos o escuchados), demostrando:\n- Conocimiento del contenido y coherencia en la organización de ideas.\n- Uso apropiado de las funciones del lenguaje y de vocabulario del nivel.\n- Uso apropiado de sonidos del idioma como /z//s/ (zoo/sad), sonido inicial /h/ (hot/hour) y los sonidos /g/ (go/ago/egg) y /d3/ (jacket/general/age).\n- Tener conciencia de audiencia, contexto y propósito.","eje":"Comunicación oral"},
+        {"id":"IN7B-OA-06","codigo_oficial":"IN07 OA 06","descripcion":"Participar en interacciones y exposiciones, recurriendo a las siguientes estrategias para expresarse con claridad y fluidez:\n- Antes de hablar: practicar presentación, repetir, predecir vocabulario clave y expresiones de uso común (chunks), preparar apoyo organizacional y visual.\n- Al hablar: usar gestos y rellenos temporales (por ejemplo: well...; okay; so...), parafrasear y usar sinónimos, activar uso de conectores, solicitar ayuda.\n- Después de hablar: registrar errores y corregirlos con ayuda del docente y recursos.","eje":"Comunicación oral"},
+        {"id":"IN7B-OA-07","codigo_oficial":"IN07 OA 07","descripcion":"Reaccionar a los textos leídos o escuchados por medio de exposiciones orales o en discusiones y conversaciones grupales en las que:\n- Hacen conexiones con otras asignaturas, la lengua materna y su cultura, la vida cotidiana, experiencias personales y otras culturas con apoyo del docente; por ejemplo: I learned/read about... in/when...\n- Expresan opiniones, sentimientos y los justifican de manera simple; por ejemplo: I like skating because it's fun; I'm/I feel happy/angry/afraid; I think that...; for example...\n- Resumen y sintetizan información con apoyo.\n- Generan preguntas con apoyo; por ejemplo: why do/does...; do/does/did he/she...","eje":"Comunicación oral"},
+        {"id":"IN7B-OA-08","codigo_oficial":"IN07 OA 08","descripcion":"Demostrar conocimiento y uso del lenguaje en conversaciones, discusiones y exposiciones por medio de las siguientes funciones:\n- Expresar cantidades, contar y enumerar; por ejemplo: there is /are many/ much/eighty/a hundred/some people/water; too.\n- Identificar y describir objetos, deportes y hobbies; por ejemplo: these/those cars are fast; it's a plastic bottle.\n- Expresarse sobre actividades; por ejemplo: riding/skating is cool/boring.\n- Describir estado de ánimo; por ejemplo: he looks tired/hungry/nervous/good; I'm angry about/with...\n- Expresar sugerencias, obligación y prohibición; por ejemplo: I must practice; you mustn't ride without a helmet; we could..; Don't ...\n- Expresar intenciones y necesidades; por ejemplo: we need/want/forget to recycle.\n- Demostrar posesión; por ejemplo: they are the students' instruments.\n- Expresarse con claridad, usando palabras y expresiones de uso común, sinónimos, palabras compuestas; por ejemplo: afraid of flying, give advice on...; laugh at..; ask for....; take a break; have fun/a good time; I want/don't want...; see you later/soon; make a mistake/plans/friends; for example; outdoor.\n- Señalar tiempo, el grado y el modo en que ocurren las acciones; por ejemplo: he won the race yesterday; she sings quietly; they run very fast; every week; a bit/little, very...; suddenly.\n- Formular preguntas y justificar una opinión; por ejemplo: why do you like football? I like football because it's a team sport.\n- Explicar causa y efecto; por ejemplo: ice melts if you heat it.\n- Formular y responder preguntas sobre rutinas y acciones presentes y pasadas; por ejemplo: does/did he cook? Yes/no, he does/doesn't/did/didn't.\n- Unir ideas; por ejemplo: I like that film too; do you want the book or the magazine?; First, second, next, finally; he felt nervous before/after the test.\n- Describir acciones que interrumpen u ocurren simultáneamente en el pasado; por ejemplo: I was playing football in the yard, when it started to rain; while he was cycling, she was listening to music.","eje":"Comunicación oral"}
       ]
     },
     {
-      "unidad": 2,
-      "titulo": "Comprensión y producción escrita",
+      "numero": 2,
+      "id": "eje-comprension-de-lectura",
+      "nombre": "Comprensión de lectura",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
-        {
-          "id": "OA3",
-          "descripcion": "Leer y comprender textos breves relacionados con temas conocidos.",
-          "eje": "Reading & Writing",
-          "indicadores": [
-            "Extraen información explícita de textos.",
-            "Relacionan vocabulario con contexto."
-          ]
-        },
-        {
-          "id": "OA4",
-          "descripcion": "Escribir textos breves y coherentes usando estructuras básicas.",
-          "eje": "Reading & Writing",
-          "indicadores": [
-            "Escriben descripciones, diálogos o mensajes.",
-            "Aplican vocabulario y gramática básica."
-          ]
-        }
+        {"id":"IN7B-OA-09","codigo_oficial":"IN07 OA 09","descripcion":"Demostrar comprensión de ideas generales e información explícita en textos adaptados y auténticos simples, en formato impreso o digital, acerca de temas variados (como experiencias personales, temas de otras asignaturas, del contexto inmediato, de actualidad e interés global o de otras culturas) y que contienen las funciones del año.","eje":"Comprensión de lectura"},
+        {"id":"IN7B-OA-10","codigo_oficial":"IN07 OA 10","descripcion":"Demostrar comprensión de textos no literarios (como descripciones, instrucciones, procedimientos, avisos publicitarios, emails, diálogos, páginas web, biografías, gráficos) al identificar:\n- Ideas generales, información específica y detalles.\n- Relaciones de adición y secuencia entre ideas, diferencia hecho-opinión y causa-efecto.\n- Palabras y frases clave, expresiones de uso frecuente y vocabulario temático.\n- Conectores (first, second, finally, next, or, when, while, before, after, too, because) y palabras derivadas de otras por medio del prefijo un- y de los sufijos -ing, -ly.","eje":"Comprensión de lectura"},
+        {"id":"IN7B-OA-11","codigo_oficial":"IN07 OA 11","descripcion":"Demostrar comprensión de textos literarios (como canciones o poemas, tiras cómicas, cuentos breves y simples y novelas adaptadas) al identificar:\n- El tema como idea general, personajes y sus acciones, entorno (tiempo, lugar), trama (inicio, desarrollo, final).\n- Palabras y frases clave, expresiones de uso frecuente, vocabulario temático.","eje":"Comprensión de lectura"},
+        {"id":"IN7B-OA-12","codigo_oficial":"IN07 OA 12","descripcion":"Identificar y usar estrategias para apoyar la comprensión de los textos leídos:\n- Prelectura: leer con un propósito, hacer predicciones, usar conocimientos previos.\n- Lectura: hacer lectura rápida y lectura focalizada, visualizar, identificar elementos organizacionales del texto (título, subtítulo, imágenes).\n- Poslectura: confirmar predicciones, usar organizadores gráficos, releer, recontar con apoyo, preguntar para confirmar información.","eje":"Comprensión de lectura"}
+      ]
+    },
+    {
+      "numero": 3,
+      "id": "eje-expresion-escrita",
+      "nombre": "Expresión escrita",
+      "tipo_agrupacion": "eje_curricular",
+      "oa": [
+        {"id":"IN7B-OA-13","codigo_oficial":"IN07 OA 13","descripcion":"Escribir historias e información relevante, usando recursos multimodales que refuercen el mensaje en forma creativa en textos variados acerca de temas como:\n- Experiencias personales.\n- Contenidos interdisciplinarios.\n- Problemas globales.\n- Cultura de otros países.\n- Textos leídos.","eje":"Expresión escrita"},
+        {"id":"IN7B-OA-14","codigo_oficial":"IN07 OA 14","descripcion":"Escribir una variedad de textos breves, como cuentos, correos electrónicos, folletos, rimas, descripciones, utilizando los pasos del proceso de escritura (organizar ideas, redactar, revisar, editar, publicar), con ayuda del docente, de acuerdo a un modelo y a un criterio de evaluación, recurriendo a herramientas como el procesador de textos y diccionario en línea.","eje":"Expresión escrita"},
+        {"id":"IN7B-OA-15","codigo_oficial":"IN07 OA 15","descripcion":"Escribir para informar, expresar opiniones y narrar, usando:\n- Palabras, oraciones y estructuras aprendidas.\n- Conectores aprendidos.\n- Correcta ortografía de mayoría de palabras aprendidas de uso muy frecuente.\n- Puntuación apropiada (punto, coma, signos de interrogación).","eje":"Expresión escrita"},
+        {"id":"IN7B-OA-16","codigo_oficial":"IN07 OA 16","descripcion":"Demostrar conocimiento y uso del lenguaje en sus textos escritos por medio de las siguientes funciones:\n- Expresar cantidades, contar y enumerar; por ejemplo: there is/are many/much/a hundred/eighty/some people/water; too.\n- Identificar y describir objetos, deportes y pasatiempos; por ejemplo: these/those cars are fast; it's a plastic bottle.\n- Expresarse sobre actividades; por ejemplo: riding/skating is cool/boring.\n- Expresar obligación y prohibición; por ejemplo: I must practice; you mustn't ride without a helmet.\n- Expresarse con claridad, usando palabras y expresiones de uso común, sinónimos, palabras compuestas; por ejemplo: afraid of flying; angry about/with..., give advice on...; have fun/a good time; I want/don't want...; see you later/soon; make a mistake/plans/friends; for example; suddenly; outdoor.\n- Señalar el tiempo, el grado y el modo en que ocurren las acciones; por ejemplo: he won the race yesterday; she sings quietly/softly/loudly; they run very fast; every week; very...\n- Formular preguntas y justificar respuestas; por ejemplo: Why do you like football? I like football because it's a team sport.\n- Explicar causa y efecto; por ejemplo: ice melts if you heat it.\n- Formular y responder preguntas sobre rutinas y acciones presentes y pasadas; por ejemplo: Does/did he cook? Yes/no, he does/doesn't/did/didn't.\n- Describir acciones que interrumpen u ocurren simultáneamente en el pasado; por ejemplo: I was playing football, when it started to rain; while he was cycling, she was listening to music; I saw a shark while I was swimming.\n- Unir ideas; por ejemplo: first, second, next, finally; he felt nervous before/after the test; it's too dangerous to visit.","eje":"Expresión escrita"}
       ]
     }
   ]
