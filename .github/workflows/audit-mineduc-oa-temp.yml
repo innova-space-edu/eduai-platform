@@ -19,7 +19,7 @@ jobs:
           node-version: 22
       - name: Comparar OA locales con Currículum Nacional
         run: node scripts/audit-mineduc-official-artifact-temp.mjs
-      - name: Publicar reporte
+      - name: Publicar reporte preliminar
         uses: actions/upload-artifact@v4
         with:
           name: oa-audit-report
@@ -30,4 +30,22 @@ jobs:
         with:
           name: mineduc-local-data
           path: data/mineduc
+          if-no-files-found: error
+      - name: Descargar PDFs oficiales MINEDUC
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p official-bases
+          curl -L --fail --retry 3 'https://bibliotecadigital.mineduc.cl/bitstream/handle/20.500.12365/2342/mono-1003.pdf?isAllowed=y&sequence=1' -o official-bases/bases_1_6.pdf
+          curl -L --fail --retry 3 'https://bibliotecadigital.mineduc.cl/bitstream/handle/20.500.12365/654/MONO-46.pdf?isAllowed=y&sequence=1' -o official-bases/bases_7_2.pdf
+          curl -L --fail --retry 3 'https://bibliotecadigital.mineduc.cl/bitstream/handle/20.500.12365/14364/bases%203%C2%B0%204%C2%B0.pdf?isAllowed=y&sequence=1' -o official-bases/bases_3_4.pdf
+          curl -L --fail --retry 3 'https://bibliotecadigital.mineduc.cl/bitstream/handle/20.500.12365/432/MONO-360.pdf?isAllowed=y&sequence=1' -o official-bases/bases_parvularia.pdf
+          command -v pdftotext >/dev/null || (sudo apt-get update && sudo apt-get install -y poppler-utils)
+          for pdf in official-bases/*.pdf; do pdftotext -layout "$pdf" "${pdf%.pdf}.txt"; done
+          ls -lh official-bases
+      - name: Publicar bases oficiales
+        uses: actions/upload-artifact@v4
+        with:
+          name: mineduc-official-bases
+          path: official-bases
           if-no-files-found: error
