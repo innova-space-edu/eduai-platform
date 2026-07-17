@@ -481,7 +481,7 @@
           "nivel": "basica",
           "curso": "7_basico",
           "asignatura": "ciencias_naturales",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         },
         {
           "path": "basica/7_basico/educacion_fisica_y_salud.json",
@@ -495,21 +495,21 @@
           "nivel": "basica",
           "curso": "7_basico",
           "asignatura": "historia_geografia_y_cs_sociales",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         },
         {
           "path": "basica/7_basico/ingles.json",
           "nivel": "basica",
           "curso": "7_basico",
           "asignatura": "ingles",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         },
         {
           "path": "basica/7_basico/lengua_literatura.json",
           "nivel": "basica",
           "curso": "7_basico",
           "asignatura": "lengua_literatura",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         },
         {
           "path": "basica/7_basico/matematica.json",
@@ -537,7 +537,7 @@
           "nivel": "basica",
           "curso": "7_basico",
           "asignatura": "tecnologia",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         },
         {
           "path": "basica/8_basico/artes_visuales.json",
