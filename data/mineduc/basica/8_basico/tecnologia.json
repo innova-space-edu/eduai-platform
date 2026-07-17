@@ -1,47 +1,39 @@
 {
-  "estado": "base_verificada_mineduc",
-  "curso": "8_basico",
-  "asignatura": "tecnologia",
-  "nombre_asignatura": "Tecnología",
-  "fuente": "Currículum Nacional MINEDUC",
+  "metadata": {
+    "nivel": "Básica",
+    "curso": "8° Básico",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "base_curricular": "Bases Curriculares 7º Básico a 2º Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": ["oa_contenido"],
+    "fecha_consulta": "2026-07-17",
+    "nota": "Los OA de contenido fueron transcritos desde la página oficial vigente de Currículum Nacional. La agrupación siguiente corresponde a ejes curriculares y no inventa unidades del programa de estudio.",
+    "asignatura": "Tecnología",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/tecnologia/8-basico"
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
   "unidades": [
     {
-      "unidad": 1,
-      "titulo": "Diseño y solución tecnológica",
+      "numero": 1,
+      "id": "eje-resolucion-de-problemas-tecnologicos",
+      "nombre": "Resolución de problemas tecnológicos",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
-        {
-          "id": "OA1",
-          "descripcion": "Diseñar soluciones tecnológicas para responder a necesidades del entorno.",
-          "eje": "Diseño",
-          "indicadores": [
-            "Identifican problemas del entorno.",
-            "Plantean y prototipan soluciones."
-          ]
-        },
-        {
-          "id": "OA2",
-          "descripcion": "Evaluar la funcionalidad, impacto y mejora de productos tecnológicos.",
-          "eje": "Diseño",
-          "indicadores": [
-            "Analizan ventajas y desventajas de soluciones tecnológicas.",
-            "Proponen mejoras a diseños existentes."
-          ]
-        }
+        {"id":"TE8B-OA-01","codigo_oficial":"TE08 OA 01","descripcion":"Identificar oportunidades o necesidades personales, grupales o locales que impliquen la creación de un producto tecnológico, reflexionando acerca de sus posibles aportes.","eje":"Resolución de problemas tecnológicos"},
+        {"id":"TE8B-OA-02","codigo_oficial":"TE08 OA 02","descripcion":"Diseñar y crear un producto tecnológico que atienda a la oportunidad o necesidad establecida, respetando criterios de eficiencia y sustentabilidad y utilizando herramientas TIC en distintas etapas del proceso.","eje":"Resolución de problemas tecnológicos"},
+        {"id":"TE8B-OA-03","codigo_oficial":"TE08 OA 03","descripcion":"Evaluar el producto tecnológico creado, aplicando criterios propios y técnicos, y proponer mejoras asociadas tanto a los procesos como al producto final.","eje":"Resolución de problemas tecnológicos"},
+        {"id":"TE8B-OA-04","codigo_oficial":"TE08 OA 04","descripcion":"Comunicar el diseño, la planificación u otros procesos de la creación de productos tecnológicos, utilizando herramientas TIC, considerando diferentes tipos de objetivos y audiencias y teniendo en cuenta aspectos éticos.","eje":"Resolución de problemas tecnológicos"}
       ]
     },
     {
-      "unidad": 2,
-      "titulo": "TIC",
+      "numero": 2,
+      "id": "eje-tecnologia,-ambiente-y-sociedad",
+      "nombre": "Tecnología, ambiente y sociedad",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
-        {
-          "id": "OA3",
-          "descripcion": "Usar herramientas digitales de forma ética, segura y eficiente.",
-          "eje": "TIC",
-          "indicadores": [
-            "Utilizan programas digitales con autonomía.",
-            "Aplican criterios de seguridad y ciudadanía digital."
-          ]
-        }
+        {"id":"TE8B-OA-05","codigo_oficial":"TE08 OA 05","descripcion":"Examinar soluciones tecnológicas existentes que respondan a las oportunidades o necesidades establecidas, considerando los destinatarios y los aspectos técnicos y funcionales.","eje":"Tecnología, ambiente y sociedad"},
+        {"id":"TE8B-OA-06","codigo_oficial":"TE08 OA 06","descripcion":"Establecer impactos positivos o negativos de las soluciones tecnológicas analizadas, considerando aspectos éticos, ambientales y sociales, entre otros.","eje":"Tecnología, ambiente y sociedad"}
       ]
     }
   ]
