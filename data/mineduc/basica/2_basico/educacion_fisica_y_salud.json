@@ -4,65 +4,49 @@
     "curso": "2° Básico",
     "asignatura": "Educación Física y Salud",
     "fuente": "Currículum Nacional - MINEDUC Chile",
-    "estado": "base_verificada_mineduc"
+    "source_url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/educacion-fisica-salud/2-basico",
+    "base_curricular": "Bases Curriculares 1° a 6° Básico",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": ["oa_contenido"],
+    "fecha_consulta": "2026-07-17",
+    "nota": "Los once OA de contenido fueron cotejados con la página oficial vigente."
   },
-  "objetivos_habilidad": [
-    {
-      "id": "EF02-OAH-a",
-      "descripcion": "Desarrollar habilidades motrices y coordinación.",
-      "unidades": [1, 2, 3, 4]
-    }
-  ],
-  "objetivos_actitud": [
-    {
-      "id": "EF02-OAA-A",
-      "descripcion": "Participar con respeto y responsabilidad.",
-      "unidades": [1, 2, 3, 4]
-    }
-  ],
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
   "unidades": [
     {
       "numero": 1,
+      "id": "eje-habilidades-motrices",
       "nombre": "Habilidades motrices",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
-        {
-          "id": "EF2B-OA-01",
-          "codigo_oficial": "EF02 OA 01",
-          "descripcion": "Ejecutar habilidades motrices básicas."
-        }
+        {"id":"EF2B-OA-01","codigo_oficial":"EF02 OA 01","descripcion":"Demostrar habilidades motrices básicas de locomoción, manipulación y estabilidad en diferentes direcciones, alturas y niveles, como saltar de forma continua en un pie y luego en el otro, botear un balón mientras camina, mantener el equilibrio sobre una base a una pequeña altura, realizar suspensiones, giros y rodadas o volteos.","eje":"Habilidades motrices"},
+        {"id":"EF2B-OA-02","codigo_oficial":"EF02 OA 02","descripcion":"Ejecutar acciones motrices que presenten una solución a un problema, por ejemplo, agrupaciones, representaciones de símbolos, letras, números o figuras geométricas.","eje":"Habilidades motrices"},
+        {"id":"EF2B-OA-03","codigo_oficial":"EF02 OA 03","descripcion":"Practicar una amplia gama de juegos con y sin oposición, con y sin colaboración, de persecución, individuales y colectivos.","eje":"Habilidades motrices"},
+        {"id":"EF2B-OA-04","codigo_oficial":"EF02 OA 04","descripcion":"Ejecutar habilidades motrices básicas en diferentes entornos, como plazas activas, patio del colegio, playa, entre otros, utilizando referencias (rutas, mapas, símbolos, etc.) guiados por el profesor.","eje":"Habilidades motrices"},
+        {"id":"EF2B-OA-05","codigo_oficial":"EF02 OA 05","descripcion":"Ejecutar movimientos corporales, expresando sensaciones, ideas, estados de ánimo y emociones en variados espacios y a diferentes ritmos e intensidades.","eje":"Habilidades motrices"}
       ]
     },
     {
       "numero": 2,
-      "nombre": "Juego y colaboración",
+      "id": "eje-vida-activa-saludable",
+      "nombre": "Vida activa y saludable",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
-        {
-          "id": "EF2B-OA-02",
-          "codigo_oficial": "EF02 OA 02",
-          "descripcion": "Participar en juegos colectivos."
-        }
+        {"id":"EF2B-OA-06","codigo_oficial":"EF02 OA 06","descripcion":"Ejecutar actividades físicas de intensidad moderada a vigorosa que incrementen la condición física por medio de juegos y circuitos.","eje":"Vida activa y saludable"},
+        {"id":"EF2B-OA-07","codigo_oficial":"EF02 OA 07","descripcion":"Ejecutar e incorporar a su vida cotidiana juegos y actividades físicas de intensidad moderada a vigorosa (cinco veces por semana), como juegos tradicionales, saltar la cuerda y realizar caminatas al aire libre.","eje":"Vida activa y saludable"},
+        {"id":"EF2B-OA-08","codigo_oficial":"EF02 OA 08","descripcion":"Describir las sensaciones y respuestas corporales provocadas por la práctica de actividad física, como cambios del color de la piel, sudor, agitación, ritmo de respiración, cansancio y dificultad al hablar.","eje":"Vida activa y saludable"},
+        {"id":"EF2B-OA-09","codigo_oficial":"EF02 OA 09","descripcion":"Practicar actividades físicas en forma segura, demostrando la adquisición de hábitos de higiene, posturales y de vida saludable, como lavarse las manos y la cara después de la clase, mantener una correcta postura y comer una colación saludable antes y luego de la práctica de actividad física.","eje":"Vida activa y saludable"}
       ]
     },
     {
       "numero": 3,
-      "nombre": "Vida saludable",
+      "id": "eje-seguridad-juego-limpio-liderazgo",
+      "nombre": "Seguridad, juego limpio y liderazgo",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
-        {
-          "id": "EF2B-OA-03",
-          "codigo_oficial": "EF02 OA 03",
-          "descripcion": "Reconocer hábitos saludables."
-        }
-      ]
-    },
-    {
-      "numero": 4,
-      "nombre": "Seguridad y autocuidado",
-      "oa": [
-        {
-          "id": "EF2B-OA-04",
-          "codigo_oficial": "EF02 OA 04",
-          "descripcion": "Practicar actividad física segura."
-        }
+        {"id":"EF2B-OA-10","codigo_oficial":"EF02 OA 10","descripcion":"Practicar juegos o actividades motrices para aprender a trabajar en equipo, asumiendo diferentes roles (respetar al otro, recoger los materiales solicitados o liderar si se le asigna ese rol).","eje":"Seguridad, juego limpio y liderazgo"},
+        {"id":"EF2B-OA-11","codigo_oficial":"EF02 OA 11","descripcion":"Practicar actividades físicas, demostrando comportamientos seguros, como: realizar un calentamiento mediante un juego; escuchar y seguir instrucciones; utilizar implementos bajo supervisión; mantener su posición dentro de los límites establecidos para la actividad.","eje":"Seguridad, juego limpio y liderazgo"}
       ]
     }
   ]
