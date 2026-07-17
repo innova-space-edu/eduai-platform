@@ -1,0 +1,13 @@
+{
+  "fecha_actualizacion": "2026-07-17",
+  "fase": "7_basico_completo",
+  "archivos_curriculares_totales": 105,
+  "asignaturas_verificadas_oficialmente": 10,
+  "archivos_pendientes": 95,
+  "oa_contenido_verificados": 132,
+  "cursos_completos": [
+    "7_basico"
+  ],
+  "siguiente_bloque": "8_basico",
+  "nota": "Solo contabiliza OA de contenido cotejados con una página oficial específica de Currículum Nacional."
+}
