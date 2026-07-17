@@ -36,8 +36,10 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - name: Instalar dependencias
-        run: npm ci --ignore-scripts
+      - name: Normalizar registro e instalar dependencias
+        run: |
+          node scripts/normalize-npm-lockfile.mjs
+          npm install --registry=https://registry.npmjs.org/ --ignore-scripts
       - name: Verificar índice y OA oficiales
         run: |
           npm run curriculum:index
