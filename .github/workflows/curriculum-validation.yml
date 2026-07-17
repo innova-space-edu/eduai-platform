@@ -30,6 +30,18 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      GROQ_API_KEY: ci-placeholder
+      GEMINI_API_KEY: ci-placeholder
+      OPENROUTER_API_KEY: ci-placeholder
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      SUPABASE_URL: https://example.supabase.co
+      SUPABASE_SERVICE_ROLE_KEY: ci-placeholder
+      NEXT_PUBLIC_PANEL_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_PANEL_SUPABASE_ANON_KEY: ci-placeholder
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
