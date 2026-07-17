@@ -18,7 +18,7 @@
   "unidades": [
     {
       "numero": 1,
-      "id": "eje-lectura---comprension",
+      "id": "eje-lectura-comprension",
       "nombre": "Lectura - Comprensión",
       "tipo_agrupacion": "eje_curricular",
       "oa": [
@@ -37,7 +37,7 @@
     },
     {
       "numero": 2,
-      "id": "eje-escritura---produccion",
+      "id": "eje-escritura-produccion",
       "nombre": "Escritura - Producción",
       "tipo_agrupacion": "eje_curricular",
       "oa": [
