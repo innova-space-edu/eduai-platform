@@ -1,8 +1,17 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import { ArrowRight, ChevronRight, Clock3, FolderOpen, Sparkles, WandSparkles } from "lucide-react"
+import {
+  ArrowRight,
+  ChevronDown,
+  ChevronRight,
+  Clock3,
+  FolderOpen,
+  Search,
+  Sparkles,
+  X,
+} from "lucide-react"
 import {
   CREATOR_HUB_CATEGORIES,
   CREATOR_HUB_CORE_TOOLS,
@@ -12,36 +21,87 @@ import {
 } from "@/components/creator-hub/catalog"
 import { loadCreatorHubProjects, type CreatorHubProject } from "@/components/creator-hub/project-store"
 
-function CoreToolCard({ tool }: { tool: (typeof CREATOR_HUB_CORE_TOOLS)[number] }) {
+type SearchItem = {
+  id: string
+  href: string
+  icon: string
+  label: string
+  description: string
+  color: string
+  group: string
+}
+
+const QUICK_ACTIONS = [
+  {
+    href: "/creator-hub/notebook",
+    icon: "📓",
+    label: "Cuaderno EduAI",
+    description: "Lee fuentes, analiza papers y conversa con citas.",
+    color: "#2563eb",
+  },
+  {
+    href: "/creator-hub/materials",
+    icon: "✨",
+    label: "Crear material",
+    description: "Elige el formato dentro de un catálogo ordenado.",
+    color: "#7c3aed",
+  },
+  {
+    href: "/creator-hub/labs",
+    icon: "🧪",
+    label: "Multimedia",
+    description: "Audio, imágenes, video, música y galería.",
+    color: "#0d9488",
+  },
+  {
+    href: "/creator-hub/comics",
+    icon: "💬",
+    label: "Manga e historieta",
+    description: "Diseña historias visuales y storyboards educativos.",
+    color: "#db2777",
+  },
+]
+
+const COMPACT_LINKS = [
+  { href: "/paper", icon: "📄", label: "Chat Paper" },
+  { href: "/investigador", icon: "🔎", label: "Investigador" },
+  { href: "/creator-hub/share", icon: "◩", label: "Compartir con QR" },
+  { href: "/creator-hub/projects", icon: "🗂️", label: "Mis proyectos" },
+]
+
+function ActionCard({ action }: { action: (typeof QUICK_ACTIONS)[number] }) {
   return (
-    <Link href={tool.href} className="group rounded-3xl border border-soft p-5 bg-card-theme hover:bg-card-soft-theme transition-all">
-      <div className="flex items-start gap-4">
-        <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0" style={{ background: `${tool.color}15`, border: `1px solid ${tool.color}28` }}>
-          {tool.icon}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="text-main text-sm font-bold">{tool.label}</h3>
-            {tool.badge && <span className="px-2 py-0.5 rounded-full text-[9px] font-bold" style={{ background: `${tool.color}14`, color: tool.color }}>{tool.badge}</span>}
-          </div>
-          <p className="text-muted2 text-xs leading-relaxed mt-1.5">{tool.description}</p>
-          <div className="flex flex-wrap gap-1.5 mt-3">
-            {tool.features.map((feature) => (
-              <span key={feature} className="px-2 py-0.5 rounded-full text-[10px]" style={{ background: `${tool.color}0d`, color: tool.color }}>{feature}</span>
-            ))}
-          </div>
-        </div>
-        <ChevronRight size={17} style={{ color: tool.color }} className="mt-1 group-hover:translate-x-1 transition-transform" />
+    <Link
+      href={action.href}
+      className="group rounded-3xl border border-soft bg-card-theme p-5 transition-all hover:-translate-y-0.5 hover:shadow-md"
+    >
+      <div className="flex items-start justify-between gap-4">
+        <span
+          className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl text-xl"
+          style={{ background: `${action.color}12`, border: `1px solid ${action.color}22` }}
+        >
+          {action.icon}
+        </span>
+        <ChevronRight
+          size={16}
+          className="mt-1 transition-transform group-hover:translate-x-1"
+          style={{ color: action.color }}
+        />
       </div>
+      <h2 className="mt-4 text-sm font-bold text-main">{action.label}</h2>
+      <p className="mt-1.5 text-xs leading-relaxed text-muted2">{action.description}</p>
     </Link>
   )
 }
 
 export default function CreatorHubPage() {
-  const [recent, setRecent] = useState<CreatorHubProject[]>(() => loadCreatorHubProjects().slice(0, 4))
+  const [recent, setRecent] = useState<CreatorHubProject[]>([])
+  const [query, setQuery] = useState("")
+  const [showAll, setShowAll] = useState(false)
 
   useEffect(() => {
     const refresh = () => setRecent(loadCreatorHubProjects().slice(0, 4))
+    refresh()
     window.addEventListener("creator-hub-projects-updated", refresh)
     window.addEventListener("storage", refresh)
     return () => {
@@ -50,171 +110,287 @@ export default function CreatorHubPage() {
     }
   }, [])
 
+  const searchItems = useMemo<SearchItem[]>(() => {
+    const core = CREATOR_HUB_CORE_TOOLS.map((tool) => ({
+      id: `core-${tool.id}`,
+      href: tool.href,
+      icon: tool.icon,
+      label: tool.label,
+      description: tool.description,
+      color: tool.color,
+      group: "Espacios",
+    }))
+    const formats = CREATOR_HUB_FORMATS.map((format) => ({
+      id: `format-${format.id}`,
+      href: `/creator-hub/${format.id}`,
+      icon: format.icon,
+      label: format.label,
+      description: format.description,
+      color: format.color,
+      group: "Formatos",
+    }))
+    const labs = CREATOR_HUB_LABS.map((tool) => ({
+      id: `lab-${tool.id}`,
+      href: tool.href,
+      icon: tool.icon,
+      label: tool.label,
+      description: tool.description,
+      color: tool.color,
+      group: "Multimedia",
+    }))
+    const extras: SearchItem[] = [
+      {
+        id: "extra-paper",
+        href: "/paper",
+        icon: "📄",
+        label: "Chat Paper",
+        description: "Analiza documentos académicos con un agente especializado.",
+        color: "#7c3aed",
+        group: "Investigación",
+      },
+      {
+        id: "extra-investigator",
+        href: "/investigador",
+        icon: "🔎",
+        label: "Investigador",
+        description: "Busca y organiza información para iniciar un proyecto.",
+        color: "#2563eb",
+        group: "Investigación",
+      },
+    ]
+    return [...core, ...formats, ...labs, ...extras]
+  }, [])
+
+  const normalizedQuery = query.trim().toLocaleLowerCase("es")
+  const results = normalizedQuery
+    ? searchItems
+        .filter((item) => `${item.label} ${item.description} ${item.group}`.toLocaleLowerCase("es").includes(normalizedQuery))
+        .slice(0, 10)
+    : []
+
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-20 border-b border-soft bg-header-theme backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-5 sm:px-7 py-4 flex items-center justify-between gap-4">
+      <header className="sticky top-0 z-20 border-b border-soft bg-header-theme/95 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-3.5 sm:px-7">
           <div>
-            <div className="flex items-center gap-2 text-violet-500 text-xs font-bold tracking-widest uppercase">
-              <Sparkles size={14} /> Creator Hub
-            </div>
-            <h1 className="text-main text-xl sm:text-2xl font-bold mt-1">Crea, investiga y comparte</h1>
+            <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-violet-500">
+              <Sparkles size={12} /> Creator Hub
+            </p>
+            <h1 className="mt-0.5 text-lg font-bold text-main">Centro creativo</h1>
           </div>
-          <Link href="/creator-hub/materials" className="hidden sm:flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold text-white" style={{ background: "linear-gradient(135deg,#2563eb,#7c3aed)" }}>
-            <WandSparkles size={15} /> Crear material
+          <Link
+            href="/creator-hub/materials"
+            className="flex items-center gap-2 rounded-xl bg-blue-600 px-3.5 py-2 text-xs font-bold text-white transition-colors hover:bg-blue-700"
+          >
+            Crear <ArrowRight size={13} />
           </Link>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-5 sm:px-7 py-7 sm:py-9 space-y-9">
-        <section className="rounded-[28px] border border-soft overflow-hidden bg-card-theme">
-          <div className="grid lg:grid-cols-[1.25fr_0.75fr]">
-            <div className="p-6 sm:p-8">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-bold text-blue-600" style={{ background: "rgba(37,99,235,0.10)" }}>
-                <Sparkles size={13} /> TODO SIGUE DISPONIBLE
-              </div>
-              <h2 className="text-main text-2xl sm:text-3xl font-bold leading-tight mt-4 max-w-2xl">Un centro creativo más claro, sin perder ninguna función.</h2>
-              <p className="text-muted2 text-sm leading-relaxed mt-3 max-w-2xl">
-                Usa el cuaderno con fuentes, crea materiales, genera audio, diseña mangas, trabaja con imágenes y video, o comparte por QR. Las herramientas existentes se mantienen y ahora están agrupadas por propósito.
-              </p>
-              <div className="flex flex-wrap gap-2.5 mt-5">
-                <Link href="/creator-hub/notebook" className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors">
-                  📓 Abrir Cuaderno EduAI <ArrowRight size={14} />
-                </Link>
-                <Link href="/creator-hub/materials" className="flex items-center gap-2 rounded-xl border border-soft px-4 py-2.5 text-xs font-bold text-sub hover:bg-card-soft-theme transition-colors">
-                  ✨ Ver los {CREATOR_HUB_FORMATS.length} formatos
-                </Link>
-              </div>
-            </div>
-            <div className="p-6 sm:p-8 border-t lg:border-t-0 lg:border-l border-soft" style={{ background: "linear-gradient(135deg,rgba(37,99,235,0.08),rgba(124,58,237,0.08))" }}>
-              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted2">Ruta recomendada</p>
-              <div className="space-y-3 mt-4">
-                {[
-                  ["1", "Reúne información", "Cuaderno EduAI, Chat Paper o Investigador"],
-                  ["2", "Transforma el contenido", "Presentación, infografía, quiz, podcast y más"],
-                  ["3", "Complementa el material", "Audio, voces, imágenes, video o manga"],
-                  ["4", "Comparte el resultado", "QR Studio y exportaciones descargables"],
-                ].map(([step, title, description]) => (
-                  <div key={step} className="flex items-start gap-3">
-                    <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-blue-600 bg-white/80 border border-blue-500/15 flex-shrink-0">{step}</span>
-                    <span>
-                      <span className="block text-main text-xs font-bold">{title}</span>
-                      <span className="block text-muted2 text-[11px] leading-relaxed mt-0.5">{description}</span>
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section>
-          <div className="flex items-end justify-between gap-3 mb-4">
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted2">Espacios principales</p>
-              <h2 className="text-main text-lg font-bold mt-1">Elige cómo quieres comenzar</h2>
-            </div>
-          </div>
-          <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-3">
-            {CREATOR_HUB_CORE_TOOLS.map((tool) => <CoreToolCard key={tool.id} tool={tool} />)}
-            <Link href="/creator-hub/projects" className="group rounded-3xl border border-soft p-5 bg-card-theme hover:bg-card-soft-theme transition-all">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl bg-slate-500/10 border border-slate-500/20">🗂️</div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-main text-sm font-bold">Mis proyectos</h3>
-                  <p className="text-muted2 text-xs leading-relaxed mt-1.5">Revisa las creaciones recientes generadas desde Creator Hub y descarga su respaldo.</p>
-                  <div className="flex flex-wrap gap-1.5 mt-3"><span className="px-2 py-0.5 rounded-full text-[10px] bg-slate-500/10 text-muted2">Historial local</span><span className="px-2 py-0.5 rounded-full text-[10px] bg-slate-500/10 text-muted2">JSON</span></div>
-                </div>
-                <ChevronRight size={17} className="text-muted2 mt-1 group-hover:translate-x-1 transition-transform" />
-              </div>
-            </Link>
-          </div>
-        </section>
-
-        <section>
-          <div className="flex items-end justify-between gap-3 mb-4">
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted2">Generación rápida</p>
-              <h2 className="text-main text-lg font-bold mt-1">Crear un material desde un tema, texto o archivo</h2>
-            </div>
-            <Link href="/creator-hub/materials" className="text-blue-600 text-xs font-bold flex items-center gap-1 hover:underline">Ver todos <ArrowRight size={13} /></Link>
-          </div>
-          <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-3">
-            {CREATOR_HUB_CATEGORIES.map((category) => {
-              const formats = CREATOR_HUB_FORMATS.filter((format) => format.category === category.id)
-              return (
-                <Link key={category.id} href={`/creator-hub/materials#${category.id}`} className="rounded-3xl border border-soft bg-card-theme hover:bg-card-soft-theme transition-all p-4 group">
-                  <div className="flex items-center justify-between">
-                    <span className="text-2xl">{category.icon}</span>
-                    <span className="text-[10px] font-bold text-muted2">{formats.length} FORMATOS</span>
-                  </div>
-                  <h3 className="text-main text-sm font-bold mt-4">{category.label}</h3>
-                  <p className="text-muted2 text-xs leading-relaxed mt-1.5">{category.description}</p>
-                  <div className="flex flex-wrap gap-1 mt-3">
-                    {formats.slice(0, 3).map((format) => <span key={format.id} className="text-[10px] text-sub px-2 py-0.5 rounded-full bg-card-soft-theme">{format.icon} {format.label}</span>)}
-                  </div>
-                </Link>
-              )
-            })}
-          </div>
-        </section>
-
-        <section className="grid xl:grid-cols-[1fr_0.86fr] gap-5">
-          <div>
-            <div className="flex items-end justify-between gap-3 mb-4">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted2">Multimedia</p>
-                <h2 className="text-main text-lg font-bold mt-1">Audio, imagen, video y recursos</h2>
-              </div>
-              <Link href="/creator-hub/labs" className="text-teal-600 text-xs font-bold flex items-center gap-1 hover:underline">Abrir labs <ArrowRight size={13} /></Link>
-            </div>
-            <div className="grid sm:grid-cols-2 gap-3">
-              {CREATOR_HUB_LABS.slice(0, 6).map((tool) => (
-                <Link key={tool.id} href={tool.href} className="rounded-2xl border border-soft bg-card-theme hover:bg-card-soft-theme transition-all px-4 py-3 flex items-center gap-3">
-                  <span className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `${tool.color}13` }}>{tool.icon}</span>
-                  <span className="min-w-0 flex-1"><span className="block text-main text-xs font-bold truncate">{tool.label}</span><span className="block text-muted2 text-[10px] truncate mt-0.5">{tool.description}</span></span>
-                  <ChevronRight size={14} className="text-muted2" />
-                </Link>
-              ))}
-            </div>
+      <main className="mx-auto flex max-w-6xl flex-col gap-8 px-5 py-7 sm:px-7 sm:py-9">
+        <section className="rounded-[28px] border border-soft bg-card-theme p-5 sm:p-7">
+          <div className="max-w-2xl">
+            <p className="text-xs font-semibold text-blue-600">Empieza con una acción</p>
+            <h2 className="mt-2 text-2xl font-bold leading-tight text-main sm:text-3xl">
+              ¿Qué quieres hacer hoy?
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted2">
+              Las herramientas siguen disponibles, pero la portada muestra primero solo lo esencial.
+            </p>
           </div>
 
-          <div>
-            <div className="flex items-end justify-between gap-3 mb-4">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted2">Historial</p>
-                <h2 className="text-main text-lg font-bold mt-1">Creaciones recientes</h2>
-              </div>
-              <Link href="/creator-hub/projects" className="text-blue-600 text-xs font-bold flex items-center gap-1 hover:underline">Ver proyectos <ArrowRight size={13} /></Link>
-            </div>
-            <div className="rounded-3xl border border-soft bg-card-theme overflow-hidden">
-              {recent.length === 0 ? (
-                <div className="p-6 text-center">
-                  <FolderOpen size={24} className="text-muted2 mx-auto" />
-                  <p className="text-main text-sm font-bold mt-3">Todavía no hay creaciones guardadas</p>
-                  <p className="text-muted2 text-xs mt-1 leading-relaxed">Al generar un material desde Creator Hub aparecerá automáticamente en este historial local.</p>
+          <div className="relative mt-5 max-w-2xl">
+            <Search size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted2" />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Buscar una herramienta o formato..."
+              className="w-full rounded-2xl border border-soft bg-input-theme py-3.5 pl-11 pr-11 text-sm text-main outline-none transition focus:border-blue-500/40"
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-xl text-muted2 hover:bg-card-soft-theme hover:text-main"
+                aria-label="Limpiar búsqueda"
+              >
+                <X size={15} />
+              </button>
+            )}
+          </div>
+
+          {normalizedQuery && (
+            <div className="mt-4 overflow-hidden rounded-2xl border border-soft bg-app">
+              {results.length === 0 ? (
+                <div className="px-5 py-7 text-center">
+                  <p className="text-sm font-semibold text-main">No encontramos esa herramienta</p>
+                  <p className="mt-1 text-xs text-muted2">Prueba con palabras como audio, presentación, quiz, paper o imagen.</p>
                 </div>
               ) : (
-                <div className="divide-y divide-soft">
-                  {recent.map((project) => {
-                    const format = getCreatorHubFormat(project.format)
-                    return (
-                      <Link href={`/creator-hub/${project.format}`} key={project.id} className="flex items-center gap-3 p-3.5 hover:bg-card-soft-theme transition-all">
-                        <span className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `${format?.color || "#64748b"}13` }}>{format?.icon || "📄"}</span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-main text-xs font-bold truncate">{project.title}</span>
-                          <span className="flex items-center gap-1 text-muted2 text-[10px] mt-0.5"><Clock3 size={10} /> {new Date(project.createdAt).toLocaleString("es-CL")}</span>
-                        </span>
-                        <ChevronRight size={14} className="text-muted2" />
-                      </Link>
-                    )
-                  })}
+                <div className="grid gap-px bg-[var(--border-soft)] sm:grid-cols-2">
+                  {results.map((item) => (
+                    <Link
+                      key={item.id}
+                      href={item.href}
+                      className="flex items-center gap-3 bg-card-theme px-4 py-3.5 transition hover:bg-card-soft-theme"
+                    >
+                      <span
+                        className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl"
+                        style={{ background: `${item.color}12` }}
+                      >
+                        {item.icon}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-xs font-bold text-main">{item.label}</span>
+                        <span className="mt-0.5 block truncate text-[10px] text-muted2">{item.group}</span>
+                      </span>
+                      <ChevronRight size={14} className="text-muted2" />
+                    </Link>
+                  ))}
                 </div>
               )}
             </div>
-          </div>
+          )}
         </section>
-      </div>
+
+        {!normalizedQuery && (
+          <>
+            <section>
+              <div className="mb-4 flex items-end justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted2">Acciones principales</p>
+                  <h2 className="mt-1 text-lg font-bold text-main">Elige un espacio</h2>
+                </div>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {QUICK_ACTIONS.map((action) => <ActionCard key={action.href} action={action} />)}
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                {COMPACT_LINKS.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="flex items-center gap-2 rounded-full border border-soft bg-card-theme px-3 py-2 text-xs font-semibold text-sub transition hover:border-blue-500/20 hover:bg-card-soft-theme hover:text-main"
+                  >
+                    <span>{item.icon}</span>{item.label}
+                  </Link>
+                ))}
+              </div>
+            </section>
+
+            <section className="grid gap-6 xl:grid-cols-[1fr_0.78fr]">
+              <div>
+                <div className="mb-4 flex items-end justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted2">Continuar</p>
+                    <h2 className="mt-1 text-lg font-bold text-main">Creaciones recientes</h2>
+                  </div>
+                  <Link href="/creator-hub/projects" className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:underline">
+                    Ver proyectos <ArrowRight size={12} />
+                  </Link>
+                </div>
+
+                <div className="overflow-hidden rounded-3xl border border-soft bg-card-theme">
+                  {recent.length === 0 ? (
+                    <div className="px-6 py-9 text-center">
+                      <FolderOpen size={24} className="mx-auto text-muted2" />
+                      <p className="mt-3 text-sm font-bold text-main">Aún no hay proyectos guardados</p>
+                      <p className="mt-1 text-xs leading-relaxed text-muted2">Tus próximas creaciones aparecerán aquí para retomarlas rápidamente.</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-soft">
+                      {recent.map((project) => {
+                        const format = getCreatorHubFormat(project.format)
+                        return (
+                          <Link
+                            href={`/creator-hub/${project.format}`}
+                            key={project.id}
+                            className="flex items-center gap-3 p-4 transition hover:bg-card-soft-theme"
+                          >
+                            <span
+                              className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl"
+                              style={{ background: `${format?.color || "#64748b"}12` }}
+                            >
+                              {format?.icon || "📄"}
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-xs font-bold text-main">{project.title}</span>
+                              <span className="mt-1 flex items-center gap-1 text-[10px] text-muted2">
+                                <Clock3 size={10} /> {new Date(project.updatedAt).toLocaleDateString("es-CL")}
+                              </span>
+                            </span>
+                            <ChevronRight size={14} className="text-muted2" />
+                          </Link>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <div className="mb-4">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted2">Explorar</p>
+                  <h2 className="mt-1 text-lg font-bold text-main">Todas las herramientas</h2>
+                </div>
+
+                <div className="rounded-3xl border border-soft bg-card-theme p-4">
+                  <p className="text-xs leading-relaxed text-muted2">
+                    Para evitar una pantalla saturada, el catálogo completo permanece cerrado hasta que lo necesites.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setShowAll((current) => !current)}
+                    className="mt-4 flex w-full items-center justify-between rounded-2xl border border-soft bg-card-soft-theme px-4 py-3 text-left text-xs font-bold text-main"
+                  >
+                    <span>{CREATOR_HUB_FORMATS.length + CREATOR_HUB_LABS.length} herramientas disponibles</span>
+                    <ChevronDown size={15} className={`transition-transform ${showAll ? "rotate-180" : ""}`} />
+                  </button>
+
+                  {showAll && (
+                    <div className="mt-4 space-y-4">
+                      {CREATOR_HUB_CATEGORIES.map((category) => {
+                        const formats = CREATOR_HUB_FORMATS.filter((format) => format.category === category.id)
+                        return (
+                          <div key={category.id}>
+                            <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted2">{category.icon} {category.label}</p>
+                            <div className="flex flex-wrap gap-2">
+                              {formats.map((format) => (
+                                <Link
+                                  key={format.id}
+                                  href={`/creator-hub/${format.id}`}
+                                  className="rounded-xl border border-soft px-2.5 py-2 text-[11px] font-semibold text-sub transition hover:bg-card-soft-theme"
+                                >
+                                  {format.icon} {format.label}
+                                </Link>
+                              ))}
+                            </div>
+                          </div>
+                        )
+                      })}
+                      <div>
+                        <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted2">🧪 Multimedia</p>
+                        <div className="flex flex-wrap gap-2">
+                          {CREATOR_HUB_LABS.map((tool) => (
+                            <Link
+                              key={tool.id}
+                              href={tool.href}
+                              className="rounded-xl border border-soft px-2.5 py-2 text-[11px] font-semibold text-sub transition hover:bg-card-soft-theme"
+                            >
+                              {tool.icon} {tool.label}
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </section>
+          </>
+        )}
+      </main>
     </div>
   )
 }
