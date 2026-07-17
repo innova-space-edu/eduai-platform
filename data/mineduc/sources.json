@@ -1,130 +1,37 @@
 {
   "version": 1,
-  "revision": "fase_2_7_basico_completo_verificado",
+  "revision": "fase_3_8_basico_completo_verificado",
   "fecha_actualizacion": "2026-07-17",
   "politica": {
     "estado_verificado": "Solo se usa verificado_oficial cuando código y texto fueron cotejados con una fuente oficial específica.",
-    "estados_permitidos": [
-      "verificado_oficial",
-      "pendiente_verificacion",
-      "incompleto",
-      "no_utilizar"
-    ]
+    "estados_permitidos": ["verificado_oficial", "pendiente_verificacion", "incompleto", "no_utilizar"]
   },
   "bases_curriculares": [
-    {
-      "id": "parvularia",
-      "nombre": "Bases Curriculares de Educación Parvularia",
-      "url": "https://www.curriculumnacional.cl/Curriculum/Bases_Curriculares",
-      "nivel": "parvularia"
-    },
-    {
-      "id": "basica-1-6",
-      "nombre": "Bases Curriculares 1° a 6° Básico",
-      "url": "https://www.curriculumnacional.cl/Curriculum/Bases_Curriculares",
-      "nivel": "basica",
-      "cursos": [
-        "1° Básico",
-        "2° Básico",
-        "3° Básico",
-        "4° Básico",
-        "5° Básico",
-        "6° Básico"
-      ]
-    },
-    {
-      "id": "basica-7-media-2",
-      "nombre": "Bases Curriculares 7º Básico a 2º Medio",
-      "url": "https://www.curriculumnacional.cl/node/3670",
-      "nivel": "basica-media",
-      "cursos": [
-        "7° Básico",
-        "8° Básico",
-        "1° Medio",
-        "2° Medio"
-      ]
-    },
-    {
-      "id": "media-3-4",
-      "nombre": "Bases Curriculares 3° y 4° Medio",
-      "url": "https://www.curriculumnacional.cl/Curriculum/Bases_Curriculares",
-      "nivel": "media",
-      "cursos": [
-        "3° Medio",
-        "4° Medio"
-      ]
-    }
+    {"id":"parvularia","nombre":"Bases Curriculares de Educación Parvularia","url":"https://www.curriculumnacional.cl/Curriculum/Bases_Curriculares","nivel":"parvularia"},
+    {"id":"basica-1-6","nombre":"Bases Curriculares 1° a 6° Básico","url":"https://www.curriculumnacional.cl/Curriculum/Bases_Curriculares","nivel":"basica","cursos":["1° Básico","2° Básico","3° Básico","4° Básico","5° Básico","6° Básico"]},
+    {"id":"basica-7-media-2","nombre":"Bases Curriculares 7º Básico a 2º Medio","url":"https://www.curriculumnacional.cl/node/3670","nivel":"basica-media","cursos":["7° Básico","8° Básico","1° Medio","2° Medio"]},
+    {"id":"media-3-4","nombre":"Bases Curriculares 3° y 4° Medio","url":"https://www.curriculumnacional.cl/Curriculum/Bases_Curriculares","nivel":"media","cursos":["3° Medio","4° Medio"]}
   ],
   "asignaturas_verificadas": {
-    "basica/7_basico/matematica": {
-      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/matematica/7-basico",
-      "base_curricular_id": "basica-7-media-2",
-      "fecha_consulta": "2026-07-17",
-      "alcance": ["MA07 OA 01", "MA07 OA 19"],
-      "cantidad_oa_contenido": 19
-    },
-    "basica/7_basico/ciencias_naturales": {
-      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/ciencias-naturales/7-basico",
-      "base_curricular_id": "basica-7-media-2",
-      "fecha_consulta": "2026-07-17",
-      "alcance": ["CN07 OA 01", "CN07 OA 15"],
-      "cantidad_oa_contenido": 15
-    },
-    "basica/7_basico/historia_geografia_y_cs_sociales": {
-      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/historia-geografia-ciencias-sociales/7-basico",
-      "base_curricular_id": "basica-7-media-2",
-      "fecha_consulta": "2026-07-17",
-      "alcance": ["HI07 OA 01", "HI07 OA 23"],
-      "cantidad_oa_contenido": 23
-    },
-    "basica/7_basico/tecnologia": {
-      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/tecnologia/7-basico",
-      "base_curricular_id": "basica-7-media-2",
-      "fecha_consulta": "2026-07-17",
-      "alcance": ["TE07 OA 01", "TE07 OA 06"],
-      "cantidad_oa_contenido": 6
-    },
-    "basica/7_basico/lengua_literatura": {
-      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/lengua-literatura/7-basico",
-      "base_curricular_id": "basica-7-media-2",
-      "fecha_consulta": "2026-07-17",
-      "alcance": ["LE07 OA 01", "LE07 OA 25"],
-      "cantidad_oa_contenido": 25
-    },
-    "basica/7_basico/ingles": {
-      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/ingles/7-basico",
-      "base_curricular_id": "basica-7-media-2",
-      "fecha_consulta": "2026-07-17",
-      "alcance": ["IN07 OA 01", "IN07 OA 16"],
-      "cantidad_oa_contenido": 16
-    },
-    "basica/7_basico/artes_visuales": {
-      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/artes-visuales/7-basico",
-      "base_curricular_id": "basica-7-media-2",
-      "fecha_consulta": "2026-07-17",
-      "alcance": ["AR07 OA 01", "AR07 OA 06"],
-      "cantidad_oa_contenido": 6
-    },
-    "basica/7_basico/educacion_fisica_y_salud": {
-      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/educacion-fisica-salud/7-basico",
-      "base_curricular_id": "basica-7-media-2",
-      "fecha_consulta": "2026-07-17",
-      "alcance": ["EF07 OA 01", "EF07 OA 05"],
-      "cantidad_oa_contenido": 5
-    },
-    "basica/7_basico/musica": {
-      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/musica/7-basico",
-      "base_curricular_id": "basica-7-media-2",
-      "fecha_consulta": "2026-07-17",
-      "alcance": ["MU07 OA 01", "MU07 OA 07"],
-      "cantidad_oa_contenido": 7
-    },
-    "basica/7_basico/orientacion": {
-      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/orientacion/7-basico",
-      "base_curricular_id": "basica-7-media-2",
-      "fecha_consulta": "2026-07-17",
-      "alcance": ["OR07 OA 01", "OR07 OA 10"],
-      "cantidad_oa_contenido": 10
-    }
+    "basica/7_basico/matematica":{"url":"https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/matematica/7-basico","base_curricular_id":"basica-7-media-2","fecha_consulta":"2026-07-17","alcance":["MA07 OA 01","MA07 OA 19"],"cantidad_oa_contenido":19},
+    "basica/7_basico/ciencias_naturales":{"url":"https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/ciencias-naturales/7-basico","base_curricular_id":"basica-7-media-2","fecha_consulta":"2026-07-17","alcance":["CN07 OA 01","CN07 OA 15"],"cantidad_oa_contenido":15},
+    "basica/7_basico/historia_geografia_y_cs_sociales":{"url":"https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/historia-geografia-ciencias-sociales/7-basico","base_curricular_id":"basica-7-media-2","fecha_consulta":"2026-07-17","alcance":["HI07 OA 01","HI07 OA 23"],"cantidad_oa_contenido":23},
+    "basica/7_basico/tecnologia":{"url":"https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/tecnologia/7-basico","base_curricular_id":"basica-7-media-2","fecha_consulta":"2026-07-17","alcance":["TE07 OA 01","TE07 OA 06"],"cantidad_oa_contenido":6},
+    "basica/7_basico/lengua_literatura":{"url":"https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/lengua-literatura/7-basico","base_curricular_id":"basica-7-media-2","fecha_consulta":"2026-07-17","alcance":["LE07 OA 01","LE07 OA 25"],"cantidad_oa_contenido":25},
+    "basica/7_basico/ingles":{"url":"https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/ingles/7-basico","base_curricular_id":"basica-7-media-2","fecha_consulta":"2026-07-17","alcance":["IN07 OA 01","IN07 OA 16"],"cantidad_oa_contenido":16},
+    "basica/7_basico/artes_visuales":{"url":"https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/artes-visuales/7-basico","base_curricular_id":"basica-7-media-2","fecha_consulta":"2026-07-17","alcance":["AR07 OA 01","AR07 OA 06"],"cantidad_oa_contenido":6},
+    "basica/7_basico/educacion_fisica_y_salud":{"url":"https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/educacion-fisica-salud/7-basico","base_curricular_id":"basica-7-media-2","fecha_consulta":"2026-07-17","alcance":["EF07 OA 01","EF07 OA 05"],"cantidad_oa_contenido":5},
+    "basica/7_basico/musica":{"url":"https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/musica/7-basico","base_curricular_id":"basica-7-media-2","fecha_consulta":"2026-07-17","alcance":["MU07 OA 01","MU07 OA 07"],"cantidad_oa_contenido":7},
+    "basica/7_basico/orientacion":{"url":"https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/orientacion/7-basico","base_curricular_id":"basica-7-media-2","fecha_consulta":"2026-07-17","alcance":["OR07 OA 01","OR07 OA 10"],"cantidad_oa_contenido":10},
+    "basica/8_basico/matematica":{"url":"https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/matematica/8-basico","base_curricular_id":"basica-7-media-2","fecha_consulta":"2026-07-17","alcance":["MA08 OA 01","MA08 OA 17"],"cantidad_oa_contenido":17},
+    "basica/8_basico/ciencias_naturales":{"url":"https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/ciencias-naturales/8-basico","base_curricular_id":"basica-7-media-2","fecha_consulta":"2026-07-17","alcance":["CN08 OA 01","CN08 OA 15"],"cantidad_oa_contenido":15},
+    "basica/8_basico/historia_geografia_y_cs_sociales":{"url":"https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/historia-geografia-ciencias-sociales/8-basico","base_curricular_id":"basica-7-media-2","fecha_consulta":"2026-07-17","alcance":["HI08 OA 01","HI08 OA 22"],"cantidad_oa_contenido":22},
+    "basica/8_basico/lengua_literatura":{"url":"https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/lengua-literatura/8-basico","base_curricular_id":"basica-7-media-2","fecha_consulta":"2026-07-17","alcance":["LE08 OA 01","LE08 OA 26"],"cantidad_oa_contenido":26},
+    "basica/8_basico/ingles":{"url":"https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/ingles/8-basico","base_curricular_id":"basica-7-media-2","fecha_consulta":"2026-07-17","alcance":["IN08 OA 01","IN08 OA 16"],"cantidad_oa_contenido":16},
+    "basica/8_basico/tecnologia":{"url":"https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/tecnologia/8-basico","base_curricular_id":"basica-7-media-2","fecha_consulta":"2026-07-17","alcance":["TE08 OA 01","TE08 OA 06"],"cantidad_oa_contenido":6},
+    "basica/8_basico/artes_visuales":{"url":"https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/artes-visuales/8-basico","base_curricular_id":"basica-7-media-2","fecha_consulta":"2026-07-17","alcance":["AR08 OA 01","AR08 OA 06"],"cantidad_oa_contenido":6},
+    "basica/8_basico/educacion_fisica_y_salud":{"url":"https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/educacion-fisica-salud/8-basico","base_curricular_id":"basica-7-media-2","fecha_consulta":"2026-07-17","alcance":["EF08 OA 01","EF08 OA 05"],"cantidad_oa_contenido":5},
+    "basica/8_basico/musica":{"url":"https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/musica/8-basico","base_curricular_id":"basica-7-media-2","fecha_consulta":"2026-07-17","alcance":["MU08 OA 01","MU08 OA 07"],"cantidad_oa_contenido":7},
+    "basica/8_basico/orientacion":{"url":"https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/orientacion/8-basico","base_curricular_id":"basica-7-media-2","fecha_consulta":"2026-07-17","alcance":["OR08 OA 01","OR08 OA 10"],"cantidad_oa_contenido":10}
   }
 }
