@@ -25,3 +25,9 @@ jobs:
           name: oa-audit-report
           path: oa-audit-report.json
           if-no-files-found: error
+      - name: Publicar base local MINEDUC
+        uses: actions/upload-artifact@v4
+        with:
+          name: mineduc-local-data
+          path: data/mineduc
+          if-no-files-found: error
