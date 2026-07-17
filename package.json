@@ -4,10 +4,10 @@
   "private": true,
   "engines": { "node": "22.x" },
   "scripts": {
-    "dev": "node scripts/apply-notebook-ingestion-fix.mjs && node scripts/apply-notebook-home-link.mjs && next dev",
+    "dev": "node scripts/apply-notebook-ingestion-fix.mjs && node scripts/apply-notebook-home-link.mjs && node scripts/apply-educador-dual-submit.mjs && next dev",
     "planner:maintain": "node scripts/apply-planner-maintenance.mjs",
     "whiteboard:finalize": "node scripts/apply-whiteboard-finalization.mjs",
-    "build": "node scripts/apply-planner-maintenance.mjs && node scripts/apply-planning-format-dropdown.mjs && node scripts/apply-whiteboard-finalization.mjs && node scripts/apply-mixed-edit-support.mjs && node scripts/apply-notebook-ingestion-fix.mjs && node scripts/apply-notebook-home-link.mjs && next build",
+    "build": "node scripts/apply-planner-maintenance.mjs && node scripts/apply-planning-format-dropdown.mjs && node scripts/apply-whiteboard-finalization.mjs && node scripts/apply-mixed-edit-support.mjs && node scripts/apply-notebook-ingestion-fix.mjs && node scripts/apply-notebook-home-link.mjs && node scripts/apply-educador-dual-submit.mjs && next build",
     "start": "next start",
     "lint": "eslint",
     "test:planner": "tsx scripts/test-planner-integral.ts",
