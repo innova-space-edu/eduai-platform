@@ -1,14 +1,16 @@
 {
   "fecha_actualizacion": "2026-07-17",
-  "fase": "8_basico_completo",
+  "fase": "1_basico_completo",
   "archivos_curriculares_totales": 105,
-  "asignaturas_verificadas_oficialmente": 20,
-  "archivos_pendientes": 85,
-  "oa_contenido_verificados": 262,
+  "asignaturas_verificadas_oficialmente": 29,
+  "propuestas_oficiales_verificadas": 1,
+  "archivos_pendientes": 75,
+  "oa_contenido_verificados": 386,
   "cursos_completos": [
+    "1_basico",
     "7_basico",
     "8_basico"
   ],
-  "siguiente_bloque": "1_a_6_basico",
-  "nota": "Solo contabiliza OA de contenido cotejados con una página oficial específica de Currículum Nacional."
+  "siguiente_bloque": "2_basico",
+  "nota": "Contabiliza OA cotejados con una página oficial específica. Inglés de 1° básico se registra por separado como propuesta curricular oficial, no como base obligatoria."
 }
