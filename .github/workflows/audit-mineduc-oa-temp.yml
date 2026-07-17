@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - audit/mineduc-oa-2026
+  pull_request:
+    branches:
+      - main
 
 jobs:
   audit:
