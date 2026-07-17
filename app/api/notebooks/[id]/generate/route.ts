@@ -1,73 +1,119 @@
-// app/api/notebooks/[id]/generate/route.ts  v2
-// Mejoras:
-// - Podcast: usa el agente podcast-wav del sistema para audio real
-// - Infografía: llama a visual-detect para decidir si necesita imagen
-// - Mapa mental: JSON compatible con React Flow
-
 import { NextRequest, NextResponse } from "next/server"
-import { createClient }   from "@/lib/supabase/server"
-import { callAI }         from "@/lib/ai-router-v4"
-import { getActiveChunks, buildContextFromChunks } from "@/lib/notebook/retrieval"
-import {
-  buildInfographicPrompt, buildMindmapPrompt, buildQuizPrompt,
-  buildPodcastPrompt, buildFlashcardsPrompt, buildTimelinePrompt,
-} from "@/lib/notebook/prompts"
-import type { NotebookOutputFormat } from "@/lib/notebook/types"
-import { buildDesignPromptDirective, getDesignTemplateSummary } from "@/lib/design-templates/registry"
+import { createClient } from "@/lib/supabase/server"
+import { callAI } from "@/lib/ai-router-v4"
+import { buildContextFromChunks, getActiveChunks } from "@/lib/notebook/retrieval"
+import { buildPodcastPrompt } from "@/lib/notebook/prompts"
 
 export const maxDuration = 90
 
 type Params = { params: Promise<{ id: string }> }
-
-// ─── Detectar si el tema necesita imagen ─────────────────────────────────────
-
-async function shouldGenerateImage(topic: string, summary: string): Promise<boolean> {
-  try {
-    const apiKey = process.env.GEMINI_API_KEY
-    if (!apiKey) return false
-
-    const GEMINI_MODEL = process.env.GEMINI_FAST_MODEL || "gemini-2.5-flash"
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
-      {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{
-            role: "user",
-            parts: [{ text: `¿El siguiente tema educativo se beneficia de una imagen visual?
-Tema: "${topic}"
-Resumen: "${summary.slice(0, 200)}"
-Responde SOLO: true o false` }]
-          }],
-          generationConfig: { maxOutputTokens: 10, temperature: 0 },
-        }),
-        signal: AbortSignal.timeout(5_000),
-      }
-    )
-    if (!res.ok) return false
-    const data = await res.json()
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? ""
-    return text.trim().toLowerCase().includes("true")
-  } catch {
-    return false
-  }
-}
-
-// ─── Normalizar segmentos para podcast-wav ───────────────────────────────────
+type AllowedFormat = "cornell" | "podcast"
+type PodcastMode = "brief" | "deep" | "critique"
 
 function normalizePodcastSegments(
-  segments: Array<{ speaker: string; text: string; type?: string }>
+  segments: Array<{ speaker?: string; text?: string }>,
 ): Array<{ speaker: "A" | "B"; text: string }> {
   return segments
-    .filter((s) => s.text?.trim().length > 5)
-    .map((s) => ({
-      speaker: (s.speaker === "Álvaro" || s.speaker === "A") ? "A" : "B" as "A" | "B",
-      text: s.text.trim(),
+    .filter((segment) => typeof segment.text === "string" && segment.text.trim().length > 5)
+    .map((segment) => ({
+      speaker: segment.speaker === "Álvaro" || segment.speaker === "A" ? "A" : "B",
+      text: segment.text!.trim(),
     }))
 }
 
-// ─── Handler ──────────────────────────────────────────────────────────────────
+function podcastModeInstruction(mode: PodcastMode) {
+  if (mode === "brief") {
+    return "Crea una conversación breve de 6 a 8 segmentos. Prioriza las ideas centrales y evita detalles secundarios."
+  }
+  if (mode === "critique") {
+    return "Crea una conversación crítica de 10 a 14 segmentos. Distingue evidencia, interpretación, limitaciones, discrepancias y preguntas abiertas."
+  }
+  return "Crea una conversación profunda de 12 a 16 segmentos. Explica conceptos, relaciones, evidencia y conclusiones con detalle."
+}
+
+function buildCornellPrompt({
+  specialistRole,
+  notebookTitle,
+  context,
+  topicHint,
+}: {
+  specialistRole: string
+  notebookTitle: string
+  context: string
+  topicHint?: string
+}) {
+  return `Eres ${specialistRole}. Crea notas Cornell rigurosas usando exclusivamente las fuentes entregadas.
+
+CUADERNO: ${notebookTitle}
+${topicHint ? `ENFOQUE SOLICITADO: ${topicHint}` : ""}
+
+FUENTES:
+${context}
+
+REGLAS:
+- No agregues información externa ni inventes datos.
+- Separa conceptos, preguntas guía, evidencia, explicaciones y síntesis.
+- Señala desacuerdos o límites cuando existan.
+- Cada fila debe servir para estudiar y volver a las fuentes.
+
+Responde SOLO JSON válido con esta estructura exacta:
+{
+  "title": "título de las notas",
+  "subject": "tema o área",
+  "date": "fecha actual o sin fecha",
+  "mainNotes": [
+    {"topic": "pregunta, palabra clave o concepto", "notes": "apunte claro y respaldado por las fuentes"}
+  ],
+  "summary": "síntesis final que integra las fuentes sin exceder su evidencia",
+  "keywords": ["término 1", "término 2"]
+}
+
+Genera entre 6 y 12 filas y entre 5 y 10 palabras clave.`
+}
+
+async function verifyNotebook(id: string, userId: string) {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("notebooks")
+    .select("id, title, specialist_role")
+    .eq("id", id)
+    .eq("user_id", userId)
+    .single()
+  return data
+}
+
+export async function GET(request: NextRequest, { params }: Params) {
+  try {
+    const { id } = await params
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 })
+    if (!(await verifyNotebook(id, user.id))) return NextResponse.json({ error: "No encontrado" }, { status: 404 })
+
+    const formatsParam = new URL(request.url).searchParams.get("formats") || "cornell,podcast"
+    const formats = formatsParam.split(",").filter((format): format is AllowedFormat => format === "cornell" || format === "podcast")
+    const outputs: Partial<Record<AllowedFormat, Record<string, unknown>>> = {}
+
+    for (const format of formats) {
+      const { data } = await supabase
+        .from("notebook_outputs")
+        .select("output_json, created_at")
+        .eq("notebook_id", id)
+        .eq("format", format)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (data?.output_json && typeof data.output_json === "object") {
+        outputs[format] = data.output_json as Record<string, unknown>
+      }
+    }
+
+    return NextResponse.json({ outputs })
+  } catch (error) {
+    console.error("[Notebook outputs GET]", error)
+    return NextResponse.json({ outputs: {} })
+  }
+}
 
 export async function POST(request: NextRequest, { params }: Params) {
   try {
@@ -76,127 +122,106 @@ export async function POST(request: NextRequest, { params }: Params) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 })
 
-    const { data: nb } = await supabase
-      .from("notebooks").select("id, title, specialist_role").eq("id", id).eq("user_id", user.id).single()
-    if (!nb) return NextResponse.json({ error: "No encontrado" }, { status: 404 })
+    const notebook = await verifyNotebook(id, user.id)
+    if (!notebook) return NextResponse.json({ error: "No encontrado" }, { status: 404 })
 
     const body = await request.json().catch(() => ({}))
-    const { format, topicHint, designTemplateId } = body as { format: NotebookOutputFormat; topicHint?: string; designTemplateId?: string }
-    const designFormat = format === "presentation" ? "ppt" : format
+    const format = String(body?.format || "") as AllowedFormat
+    const topicHint = typeof body?.topicHint === "string" ? body.topicHint.trim().slice(0, 500) : ""
+    const podcastMode: PodcastMode = ["brief", "deep", "critique"].includes(body?.podcastMode)
+      ? body.podcastMode
+      : "deep"
 
-    const VALID: NotebookOutputFormat[] = [
-      "infographic","mindmap","quiz","podcast","flashcards","timeline",
-      "presentation","cornell","glossary","story","lessonplan",
-    ]
-    if (!VALID.includes(format)) {
-      return NextResponse.json({ error: `formato inválido: ${format}` }, { status: 400 })
+    if (format !== "cornell" && format !== "podcast") {
+      return NextResponse.json(
+        { error: "En el cuaderno solo están disponibles Notas Cornell y Podcast." },
+        { status: 400 },
+      )
     }
 
-    // Resumen existente
-    const { data: summaryRow } = await supabase
-      .from("notebook_summaries").select("*").eq("notebook_id", id).single()
-
-    const summary    = summaryRow?.summary_markdown ?? ""
-    const keyPoints: string[] = Array.isArray(summaryRow?.key_points) ? summaryRow.key_points : []
-
-    // Chunks activos (para formatos que necesitan detalle)
-    let contextChunks = ""
-    const needsDetail: NotebookOutputFormat[] = ["quiz","flashcards","timeline","podcast","cornell"]
-    if (needsDetail.includes(format) || !summary) {
-      const { data: sources } = await supabase
-        .from("notebook_sources").select("id, title").eq("notebook_id", id).eq("is_active", true)
-      const chunks = await getActiveChunks(id, 12_000)
-      contextChunks = buildContextFromChunks(chunks, sources ?? [])
+    const { data: sourceData } = await supabase
+      .from("notebook_sources")
+      .select("id, title")
+      .eq("notebook_id", id)
+      .eq("is_active", true)
+      .eq("status", "ready")
+    const sources = sourceData || []
+    if (!sources.length) {
+      return NextResponse.json({ error: "No hay fuentes activas procesadas." }, { status: 422 })
     }
 
-    const contentBase = summary || contextChunks.slice(0, 4000)
+    const chunks = await getActiveChunks(id, format === "podcast" ? 16_000 : 14_000)
+    if (!chunks.length) {
+      return NextResponse.json({ error: "No hay texto procesado suficiente en las fuentes." }, { status: 422 })
+    }
+    const context = buildContextFromChunks(chunks, sources)
 
-    // ─── Construir prompt según formato ──────────────────────────────────────
+    let prompt: string
+    if (format === "cornell") {
+      prompt = buildCornellPrompt({
+        specialistRole: notebook.specialist_role,
+        notebookTitle: notebook.title,
+        context,
+        topicHint,
+      })
+    } else {
+      prompt = `${buildPodcastPrompt({
+        summary: context.slice(0, 12_000),
+        keyPoints: [],
+        specialistRole: notebook.specialist_role,
+      })}
 
-    let prompt = ""
-    switch (format) {
-      case "infographic":
-        prompt = buildInfographicPrompt({ summary: contentBase, keyPoints, specialistRole: nb.specialist_role, topicHint })
-        break
-      case "mindmap":
-        prompt = buildMindmapPrompt({ summary: contentBase, keyPoints, specialistRole: nb.specialist_role })
-        break
-      case "quiz":
-        prompt = buildQuizPrompt({ chunks: contextChunks || summary, specialistRole: nb.specialist_role })
-        break
-      case "podcast":
-        prompt = buildPodcastPrompt({ summary: contentBase, keyPoints, specialistRole: nb.specialist_role })
-        break
-      case "flashcards":
-        prompt = buildFlashcardsPrompt({ chunks: contextChunks || summary, specialistRole: nb.specialist_role })
-        break
-      case "timeline":
-        prompt = buildTimelinePrompt({ chunks: contextChunks || summary, specialistRole: nb.specialist_role })
-        break
-      default:
-        prompt = `Eres ${nb.specialist_role}. Basándote en este contenido, genera un ${format} educativo en JSON.
-CONTENIDO: ${contentBase.slice(0, 5000)}
-Responde SOLO en JSON bien estructurado.`
+MODO DEL EPISODIO: ${podcastMode}
+${podcastModeInstruction(podcastMode)}
+${topicHint ? `ENFOQUE SOLICITADO: ${topicHint}` : ""}
+
+REGLAS ADICIONALES:
+- Usa exclusivamente las fuentes del cuaderno.
+- Si las fuentes discrepan, haz que los locutores lo expliquen.
+- No inventes cifras, autores, fechas ni conclusiones.
+- El cierre debe distinguir qué está respaldado y qué queda abierto.`
     }
 
-    prompt += buildDesignPromptDirective(designTemplateId, designFormat)
-
-    // ─── Llamar AI ────────────────────────────────────────────────────────────
-
-    let outputJson: Record<string, unknown>
+    let output: Record<string, unknown>
     try {
       const response = await callAI(
         [{ role: "user", content: prompt }],
-        { maxTokens: 4000, preferProvider: "gemini" }
+        { maxTokens: 4_000, preferProvider: "gemini" },
       )
       const raw = response.text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim()
-      outputJson = JSON.parse(raw)
-    } catch (err) {
-      console.error("[Generate] AI/parse failed:", err)
-      return NextResponse.json({ error: "Error generando contenido" }, { status: 500 })
+      output = JSON.parse(raw) as Record<string, unknown>
+    } catch (error) {
+      console.error("[Notebook generate parse]", error)
+      return NextResponse.json({ error: "La IA no devolvió un formato válido. Intenta nuevamente." }, { status: 500 })
     }
 
-    // ─── Enriquecimientos por formato ─────────────────────────────────────────
-
-    // PODCAST: normalizar segmentos para podcast-wav
     if (format === "podcast") {
-      const rawSegs = (outputJson.segments as Array<{ speaker: string; text: string; type?: string }>) ?? []
-      const normalizedSegments = normalizePodcastSegments(rawSegs)
-      outputJson._podcastWavSegments = normalizedSegments
-      // Instrucción para el frontend de cómo obtener el audio
-      outputJson._audioEndpoint = "/api/agents/podcast-wav"
+      const rawSegments = Array.isArray(output.segments)
+        ? output.segments as Array<{ speaker?: string; text?: string }>
+        : []
+      output._podcastWavSegments = normalizePodcastSegments(rawSegments)
+      output._audioEndpoint = "/api/agents/podcast-wav"
+      output._podcastMode = podcastMode
     }
+    output._sourceCount = sources.length
+    output._generatedFromNotebook = true
 
-    // INFOGRAFÍA: verificar si el tema necesita imagen
-    if (format === "infographic") {
-      const topic = (outputJson.title as string) ?? nb.title
-      const needsImg = await shouldGenerateImage(topic, summary)
-      if (needsImg) {
-        // Agregar prompt de imagen sugerido para que el Studio lo ofrezca
-        outputJson._imagePrompt = `Imagen educativa ilustrativa sobre: ${topic}. Estilo infográfico profesional, sin texto.`
-        outputJson._hasImageSuggestion = true
-      }
-    }
-
-    outputJson._design = getDesignTemplateSummary(designTemplateId, designFormat)
-
-    // ─── Guardar output ────────────────────────────────────────────────────────
-
-    const { data: saved } = await supabase
+    const { data: saved, error: saveError } = await supabase
       .from("notebook_outputs")
       .insert({
-        notebook_id: id, format,
-        title: (outputJson.title as string) ?? nb.title,
-        output_json: outputJson, version: 1,
+        notebook_id: id,
+        format,
+        title: typeof output.title === "string" ? output.title : notebook.title,
+        output_json: output,
+        version: 1,
       })
-      .select().single()
+      .select("id")
+      .single()
 
-    return NextResponse.json({
-      ok: true, output: outputJson, savedId: saved?.id ?? null, format,
-    })
-
-  } catch (err) {
-    console.error("[Generate] Unhandled:", err)
-    return NextResponse.json({ error: "Error interno" }, { status: 500 })
+    if (saveError) console.warn("[Notebook generate save]", saveError.message)
+    return NextResponse.json({ ok: true, output, savedId: saved?.id || null, format })
+  } catch (error) {
+    console.error("[Notebook generate POST]", error)
+    return NextResponse.json({ error: "Error interno al generar" }, { status: 500 })
   }
 }
