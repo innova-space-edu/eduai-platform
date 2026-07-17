@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "revision": "fase_2_correccion_7_basico_matematica_ciencias_historia_tecnologia",
+  "revision": "fase_2_correccion_completa_7_basico_troncales",
   "fecha_actualizacion": "2026-07-17",
   "politica": {
     "estado_verificado": "Solo se usa verificado_oficial cuando código y texto fueron cotejados con una fuente oficial específica.",
@@ -95,6 +95,26 @@
         "TE07 OA 06"
       ],
       "cantidad_oa_contenido": 6
+    },
+    "basica/7_basico/lengua_literatura": {
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/lengua-literatura/7-basico",
+      "base_curricular_id": "basica-7-media-2",
+      "fecha_consulta": "2026-07-17",
+      "alcance": [
+        "LE07 OA 01",
+        "LE07 OA 25"
+      ],
+      "cantidad_oa_contenido": 25
+    },
+    "basica/7_basico/ingles": {
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/ingles/7-basico",
+      "base_curricular_id": "basica-7-media-2",
+      "fecha_consulta": "2026-07-17",
+      "alcance": [
+        "IN07 OA 01",
+        "IN07 OA 16"
+      ],
+      "cantidad_oa_contenido": 16
     }
   }
 }
