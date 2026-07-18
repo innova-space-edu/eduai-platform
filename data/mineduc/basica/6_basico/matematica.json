@@ -2,144 +2,201 @@
   "metadata": {
     "nivel": "Básica",
     "curso": "6° Básico",
-    "asignatura": "Matemática",
     "fuente": "Currículum Nacional - MINEDUC Chile",
-    "source_url": "https://curriculumnacional.mineduc.cl/",
-    "estado": "base_inicial_en_revision",
-    "ultima_actualizacion_manual": "2026-03-28",
-    "nota": "Archivo base estructurado para activar Educación Básica en el planificador. Requiere revisión final OA por OA contra las Bases/Programas oficiales MINEDUC antes de marcarlo como verificado."
+    "base_curricular": "Bases Curriculares 1° a 6° Básico",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-07-18",
+    "nota": "Los OA de contenido fueron obtenidos directamente de la página oficial vigente de Currículum Nacional. La agrupación corresponde a ejes curriculares y no inventa unidades del programa de estudio.",
+    "asignatura": "Matemática",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/matematica/6-basico"
   },
-  "objetivos_habilidad": [
-    {
-      "id": "6_BASICO-OAH-RP",
-      "descripcion": "Resolver problemas, modelar y comunicar procedimientos matemáticos en contextos cotidianos y escolares.",
-      "unidades": [
-        1,
-        2,
-        3,
-        4
-      ]
-    },
-    {
-      "id": "6_BASICO-OAH-REP",
-      "descripcion": "Representar información matemática de manera concreta, pictórica y simbólica.",
-      "unidades": [
-        1,
-        2,
-        3,
-        4
-      ]
-    }
-  ],
-  "objetivos_actitud": [
-    {
-      "id": "6_BASICO-OAA-A",
-      "descripcion": "Manifestar un estilo de trabajo ordenado, perseverante y colaborativo en la resolución de tareas matemáticas.",
-      "unidades": [
-        1,
-        2,
-        3,
-        4
-      ]
-    }
-  ],
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
   "unidades": [
     {
       "numero": 1,
-      "nombre": "Números, razones y porcentajes",
+      "id": "eje-numeros-y-operaciones",
+      "nombre": "Números y operaciones",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
           "id": "MA6B-OA-01",
           "codigo_oficial": "MA06 OA 01",
-          "descripcion": "Demostrar que comprenden los números naturales y sus operaciones, resolviendo problemas en diversos contextos."
+          "descripcion": "Demostrar que comprenden los factores y múltiplos:\n- determinando los múltiplos y factores de números naturales menores de 100\n- identificando números primos y compuestos\n- resolviendo problemas que involucran múltiplos",
+          "eje": "Números y operaciones"
         },
         {
           "id": "MA6B-OA-02",
           "codigo_oficial": "MA06 OA 02",
-          "descripcion": "Demostrar que comprenden el concepto de razón y tasa en situaciones cotidianas."
+          "descripcion": "Realizar cálculos que involucren las cuatro operaciones en el contexto de la resolución de problemas, utilizando la calculadora en ámbitos superiores a 10000.",
+          "eje": "Números y operaciones"
         },
         {
           "id": "MA6B-OA-03",
           "codigo_oficial": "MA06 OA 03",
-          "descripcion": "Resolver problemas que involucren porcentajes, aumentos, descuentos e interpretación de información porcentual."
+          "descripcion": "Demostrar que comprenden el concepto de razón de manera concreta, pictórica y simbólica, en forma manual y/o usando software educativo.",
+          "eje": "Números y operaciones"
         },
         {
           "id": "MA6B-OA-04",
           "codigo_oficial": "MA06 OA 04",
-          "descripcion": "Relacionar fracciones, decimales y porcentajes, y usarlos en la resolución de problemas."
+          "descripcion": "Demostrar que comprenden el concepto de porcentaje de manera concreta, pictórica y simbólica, de forma manual y/o usando software educativo.",
+          "eje": "Números y operaciones"
+        },
+        {
+          "id": "MA6B-OA-05",
+          "codigo_oficial": "MA06 OA 05",
+          "descripcion": "Demostrar que comprenden las fracciones y números mixtos:\n- identificando y determinando equivalencias entre fracciones impropias y números mixtos, usando material concreto y representaciones pictóricas de manera manual y/o con software educativo\n- representando estos números en la recta numérica",
+          "eje": "Números y operaciones"
+        },
+        {
+          "id": "MA6B-OA-06",
+          "codigo_oficial": "MA06 OA 06",
+          "descripcion": "Resolver adiciones y sustracciones de fracciones propias e impropias y números mixtos con numeradores y denominadores de hasta dos dígitos.",
+          "eje": "Números y operaciones"
+        },
+        {
+          "id": "MA6B-OA-07",
+          "codigo_oficial": "MA06 OA 07",
+          "descripcion": "Demostrar que comprenden la multiplicación y la división de decimales por números naturales de un dígito, múltiplos de 10 y decimales hasta la milésima de manera concreta, pictórica y simbólica.",
+          "eje": "Números y operaciones"
+        },
+        {
+          "id": "MA6B-OA-08",
+          "codigo_oficial": "MA06 OA 08",
+          "descripcion": "Resolver problemas rutinarios y no rutinarios que involucren adiciones y sustracciones de fracciones propias, impropias, números mixtos o decimales hasta la milésima.",
+          "eje": "Números y operaciones"
         }
       ]
     },
     {
       "numero": 2,
-      "nombre": "Fracciones, decimales y álgebra inicial",
+      "id": "eje-patrones-y-algebra",
+      "nombre": "Patrones y álgebra",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
-          "id": "MA6B-OA-05",
-          "codigo_oficial": "MA06 OA 05",
-          "descripcion": "Demostrar que comprenden la adición, sustracción, multiplicación y división de fracciones y decimales en casos pertinentes al nivel."
+          "id": "MA6B-OA-09",
+          "codigo_oficial": "MA06 OA 09",
+          "descripcion": "Demostrar que comprenden la relación entre los valores de una tabla y aplicarla en la resolución de problemas sencillos:\n- identificando patrones entre los valores de la tabla\n- formulando una regla con lenguaje matemático",
+          "eje": "Patrones y álgebra"
         },
         {
-          "id": "MA6B-OA-06",
-          "codigo_oficial": "MA06 OA 06",
-          "descripcion": "Resolver problemas rutinarios y no rutinarios que involucren fracciones, decimales y porcentajes."
+          "id": "MA6B-OA-10",
+          "codigo_oficial": "MA06 OA 10",
+          "descripcion": "Representar generalizaciones de relaciones entre números naturales, usando expresiones con letras y ecuaciones.",
+          "eje": "Patrones y álgebra"
         },
         {
-          "id": "MA6B-OA-07",
-          "codigo_oficial": "MA06 OA 07",
-          "descripcion": "Describir y generalizar patrones numéricos, usando tablas, expresiones y lenguaje algebraico inicial."
-        },
-        {
-          "id": "MA6B-OA-08",
-          "codigo_oficial": "MA06 OA 08",
-          "descripcion": "Evaluar expresiones numéricas y relaciones simples, reconociendo regularidades."
+          "id": "MA6B-OA-11",
+          "codigo_oficial": "MA06 OA 11",
+          "descripcion": "Resolver ecuaciones de primer grado con una incógnita, utilizando estrategias como:\n- usando una balanza\n- usar la descomposición y la correspondencia 1 a 1 entre los términos en cada lado de la ecuación y aplicando procedimientos formales de resolución",
+          "eje": "Patrones y álgebra"
         }
       ]
     },
     {
       "numero": 3,
-      "nombre": "Geometría, área, volumen y transformaciones",
+      "id": "eje-geometria",
+      "nombre": "Geometría",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
-        {
-          "id": "MA6B-OA-09",
-          "codigo_oficial": "MA06 OA 09",
-          "descripcion": "Construir y analizar ángulos, polígonos, circunferencias y triángulos, considerando sus propiedades."
-        },
-        {
-          "id": "MA6B-OA-10",
-          "codigo_oficial": "MA06 OA 10",
-          "descripcion": "Calcular perímetro y área de polígonos y área de figuras compuestas simples."
-        },
-        {
-          "id": "MA6B-OA-11",
-          "codigo_oficial": "MA06 OA 11",
-          "descripcion": "Demostrar que comprenden el volumen de cubos y prismas rectos y lo aplican en problemas."
-        },
         {
           "id": "MA6B-OA-12",
           "codigo_oficial": "MA06 OA 12",
-          "descripcion": "Describir y aplicar transformaciones geométricas simples, como traslaciones, reflexiones y rotaciones."
+          "descripcion": "Construir y comparar triángulos de acuerdo a la medida de sus lados y /o sus ángulos con instrumentos geométricos o software geométrico.",
+          "eje": "Geometría"
+        },
+        {
+          "id": "MA6B-OA-13",
+          "codigo_oficial": "MA06 OA 13",
+          "descripcion": "Demostrar que comprenden el concepto de área de una superficie en cubos y paralelepípedos, calculando el área de sus redes (plantillas) asociadas.",
+          "eje": "Geometría"
+        },
+        {
+          "id": "MA6B-OA-14",
+          "codigo_oficial": "MA06 OA 14",
+          "descripcion": "Realizar teselados de figuras 2D usando traslaciones, reflexiones y rotaciones.",
+          "eje": "Geometría"
+        },
+        {
+          "id": "MA6B-OA-15",
+          "codigo_oficial": "MA06 OA 15",
+          "descripcion": "Construir ángulos agudos, obtusos, rectos, extendidos y completos con instrumentos geométricos o software geométrico.",
+          "eje": "Geometría"
+        },
+        {
+          "id": "MA6B-OA-16",
+          "codigo_oficial": "MA06 OA 16",
+          "descripcion": "Identificar los ángulos que se forman entre dos rectas que se cortan (pares de ángulos opuestos por el vértice y pares de ángulos complementarios).",
+          "eje": "Geometría"
+        },
+        {
+          "id": "MA6B-OA-17",
+          "codigo_oficial": "MA06 OA 17",
+          "descripcion": "Demostrar de manera concreta, pictórica y simbólica que la suma de los ángulos interiores de un triángulo es 180º y de un cuadrilátero es 360º.",
+          "eje": "Geometría"
         }
       ]
     },
     {
       "numero": 4,
-      "nombre": "Datos, estadística y probabilidad",
+      "id": "eje-medicion",
+      "nombre": "Medición",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
-          "id": "MA6B-OA-13",
-          "codigo_oficial": "MA06 OA 13",
-          "descripcion": "Recolectar, organizar y representar datos en tablas y gráficos adecuados al tipo de información."
+          "id": "MA6B-OA-18",
+          "codigo_oficial": "MA06 OA 18",
+          "descripcion": "Calcular la superficie de cubos y paralelepípedos expresando el resultado en cm 2 y m 2 .",
+          "eje": "Medición"
         },
         {
-          "id": "MA6B-OA-14",
-          "codigo_oficial": "MA06 OA 14",
-          "descripcion": "Calcular e interpretar medidas de tendencia central simples, como promedio y mediana, en contextos acotados."
+          "id": "MA6B-OA-19",
+          "codigo_oficial": "MA06 OA 19",
+          "descripcion": "Calcular el volumen de cubos y paralelepípedos, expresando el resultado en cm 3 , m 3 y mm 3 .",
+          "eje": "Medición"
         },
         {
-          "id": "MA6B-OA-15",
-          "codigo_oficial": "MA06 OA 15",
-          "descripcion": "Describir y comparar probabilidades de eventos simples, usando fracciones, decimales y lenguaje cotidiano."
+          "id": "MA6B-OA-20",
+          "codigo_oficial": "MA06 OA 20",
+          "descripcion": "Estimar y medir ángulos usando el transportador, expresando las mediciones en grados.",
+          "eje": "Medición"
+        },
+        {
+          "id": "MA6B-OA-21",
+          "codigo_oficial": "MA06 OA 21",
+          "descripcion": "Calcular ángulos en rectas paralelas cortadas por una transversal y en triángulos.",
+          "eje": "Medición"
+        }
+      ]
+    },
+    {
+      "numero": 5,
+      "id": "eje-datos-y-probabilidades",
+      "nombre": "Datos y probabilidades",
+      "tipo_agrupacion": "eje_curricular",
+      "oa": [
+        {
+          "id": "MA6B-OA-22",
+          "codigo_oficial": "MA06 OA 22",
+          "descripcion": "Comparar distribuciones de dos grupos, provenientes de muestras aleatorias, usando diagramas de puntos y de tallo y hojas.",
+          "eje": "Datos y probabilidades"
+        },
+        {
+          "id": "MA6B-OA-23",
+          "codigo_oficial": "MA06 OA 23",
+          "descripcion": "Conjeturar acerca de la tendencia de resultados obtenidos en repeticiones de un mismo experimento con dados, monedas u otros, de manera manual y/o usando software educativo.",
+          "eje": "Datos y probabilidades"
+        },
+        {
+          "id": "MA6B-OA-24",
+          "codigo_oficial": "MA06 OA 24",
+          "descripcion": "Leer e interpretar gráficos de barra doble y circulares y comunicar sus conclusiones.",
+          "eje": "Datos y probabilidades"
         }
       ]
     }

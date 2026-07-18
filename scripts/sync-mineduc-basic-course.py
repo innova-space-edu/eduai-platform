@@ -137,12 +137,12 @@ COURSES = {
     6: {
         "folder": "6_basico",
         "label": "6° Básico",
-        "expected_total": 153,
+        "expected_total": 155,
         "subjects": [
             subject("matematica", 24),
             subject("lenguaje", 31),
             subject("ciencias", 18),
-            subject("historia", 24),
+            subject("historia", 26),
             subject("ingles", 16),
             subject("artes", 5),
             subject("educacion_fisica", 11),
@@ -156,7 +156,7 @@ COURSES = {
             "asignaturas_verificadas_oficialmente": 76,
             "propuestas_oficiales_verificadas": 4,
             "archivos_pendientes": 25,
-            "oa_contenido_verificados": 1107,
+            "oa_contenido_verificados": 1109,
             "cursos_completos": ["1_basico", "2_basico", "3_basico", "4_basico", "5_basico", "6_basico", "7_basico", "8_basico"],
             "siguiente_bloque": "educacion_media",
         },
