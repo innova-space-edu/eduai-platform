@@ -20,6 +20,8 @@ if spec is None or spec.loader is None:
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 
+canonical_available = True
+
 
 def curl(url: str, attempts: int) -> str:
     command = [
@@ -30,9 +32,9 @@ def curl(url: str, attempts: int) -> str:
         "--silent",
         "--show-error",
         "--connect-timeout",
-        "15",
+        "12",
         "--max-time",
-        "90",
+        "75",
         "--retry",
         str(attempts),
         "--retry-all-errors",
@@ -49,20 +51,25 @@ def curl(url: str, attempts: int) -> str:
 
 
 def fetch_with_fallback(url: str) -> str:
-    try:
-        return curl(url, attempts=1)
-    except subprocess.CalledProcessError as canonical_error:
-        mirror = url.replace(
-            "https://www.curriculumnacional.cl/",
-            "https://pre-curriculumnacional.tifon.cl/",
-            1,
-        )
-        print(
-            f"[red] URL canónica no disponible ({canonical_error.returncode}); "
-            f"consultando espejo oficial de contingencia: {mirror}",
-            flush=True,
-        )
-        return curl(mirror, attempts=3)
+    global canonical_available
+    if canonical_available:
+        try:
+            return curl(url, attempts=0)
+        except subprocess.CalledProcessError as canonical_error:
+            canonical_available = False
+            print(
+                f"[red] URL canónica no disponible ({canonical_error.returncode}); "
+                "el resto de esta ejecución usará el espejo oficial de contingencia.",
+                flush=True,
+            )
+
+    mirror = url.replace(
+        "https://www.curriculumnacional.cl/",
+        "https://pre-curriculumnacional.tifon.cl/",
+        1,
+    )
+    print(f"[red] consultando espejo oficial: {mirror}", flush=True)
+    return curl(mirror, attempts=2)
 
 
 module.fetch_html = fetch_with_fallback
