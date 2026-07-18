@@ -1,0 +1,96 @@
+name: Finalizar registro curricular de 4° básico una vez
+
+on:
+  push:
+    branches:
+      - fix/mineduc-curriculum-official-2026
+    paths:
+      - .github/workflows/finalize-4-basico-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/mineduc-curriculum-official-2026
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Registrar fuentes, avance e índice
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('fs')
+
+          const sourcesPath = 'data/mineduc/sources.json'
+          const progressPath = 'data/mineduc/meta/verification-progress.json'
+          const sources = JSON.parse(fs.readFileSync(sourcesPath, 'utf8'))
+
+          sources.revision = 'fase_7_4_basico_completo_verificado'
+          sources.fecha_actualizacion = '2026-07-17'
+          sources.asignaturas_verificadas ||= {}
+
+          const entries = {
+            'basica/4_basico/matematica': ['https://www.curriculumnacional.cl/curriculum/1o-6o-basico/matematica/4-basico', 'MA04 OA 01', 'MA04 OA 27', 27],
+            'basica/4_basico/lenguaje': ['https://www.curriculumnacional.cl/curriculum/1o-6o-basico/lenguaje-comunicacion/4-basico', 'LE04 OA 01', 'LE04 OA 30', 30],
+            'basica/4_basico/ciencias_naturales': ['https://www.curriculumnacional.cl/curriculum/1o-6o-basico/ciencias-naturales/4-basico', 'CN04 OA 01', 'CN04 OA 17', 17],
+            'basica/4_basico/historia_geografia_y_cs_sociales': ['https://www.curriculumnacional.cl/curriculum/1o-6o-basico/historia-geografia-ciencias-sociales/4-basico', 'HI04 OA 01', 'HI04 OA 18', 18],
+            'basica/4_basico/artes_visuales': ['https://www.curriculumnacional.cl/curriculum/1o-6o-basico/artes-visuales/4-basico', 'AR04 OA 01', 'AR04 OA 05', 5],
+            'basica/4_basico/educacion_fisica_y_salud': ['https://www.curriculumnacional.cl/curriculum/1o-6o-basico/educacion-fisica-salud/4-basico', 'EF04 OA 01', 'EF04 OA 11', 11],
+            'basica/4_basico/musica': ['https://www.curriculumnacional.cl/curriculum/1o-6o-basico/musica/4-basico', 'MU04 OA 01', 'MU04 OA 08', 8],
+            'basica/4_basico/orientacion': ['https://www.curriculumnacional.cl/curriculum/1o-6o-basico/orientacion/4-basico', 'OR04 OA 01', 'OR04 OA 09', 9],
+            'basica/4_basico/tecnologia': ['https://www.curriculumnacional.cl/curriculum/1o-6o-basico/tecnologia/4-basico', 'TE04 OA 01', 'TE04 OA 07', 7]
+          }
+
+          for (const [key, [url, first, last, count]] of Object.entries(entries)) {
+            sources.asignaturas_verificadas[key] = {
+              url,
+              base_curricular_id: 'basica-1-6',
+              fecha_consulta: '2026-07-17',
+              alcance: [first, last],
+              cantidad_oa_contenido: count
+            }
+          }
+
+          sources.asignaturas_verificadas['basica/4_basico/ingles'] = {
+            url: 'https://www.curriculumnacional.cl/curriculum/1o-6o-basico/ingles-propuesta/4-basico',
+            base_curricular_id: 'propuesta-ingles-4',
+            fecha_consulta: '2026-07-17',
+            alcance: ['EN04 OA 01', 'EN04 OA 14'],
+            cantidad_oa_contenido: 14,
+            caracter_documento: 'propuesta_curricular'
+          }
+
+          fs.writeFileSync(sourcesPath, JSON.stringify(sources, null, 2) + '\n')
+
+          const progress = {
+            fecha_actualizacion: '2026-07-17',
+            fase: '4_basico_completo',
+            archivos_curriculares_totales: 105,
+            asignaturas_verificadas_oficialmente: 56,
+            propuestas_oficiales_verificadas: 4,
+            archivos_pendientes: 45,
+            oa_contenido_verificados: 805,
+            cursos_completos: ['1_basico', '2_basico', '3_basico', '4_basico', '7_basico', '8_basico'],
+            siguiente_bloque: '5_basico',
+            ultima_validacion: 'en_ejecucion',
+            nota: 'Contabiliza OA cotejados con páginas oficiales específicas. Inglés de 1° a 4° básico se registra como propuesta curricular oficial, no como base obligatoria.'
+          }
+          fs.writeFileSync(progressPath, JSON.stringify(progress, null, 2) + '\n')
+          NODE
+
+          node scripts/generate-mineduc-index.mjs
+          rm -f .github/workflows/finalize-4-basico-once.yml
+
+      - name: Publicar cierre de 4° básico
+        run: |
+          git config user.name "Innova Space"
+          git config user.email "contacto@innova-space-edu.cl"
+          git add -A data/mineduc/sources.json data/mineduc/meta/verification-progress.json data/mineduc/index.json .github/workflows/finalize-4-basico-once.yml
+          git commit -m "chore(curriculum): cerrar verificación de 4° básico"
+          git push origin HEAD:fix/mineduc-curriculum-official-2026
