@@ -59,6 +59,7 @@
   },
   "siguiente_bloque": "ninguno",
   "ultima_validacion": "success",
-  "estado_fusion": "listo_para_fusion",
-  "nota": "Los 105 archivos curriculares cargados por EduAI quedaron revisados. Educación Parvularia mantiene seis archivos operativos, pero respeta los tres tramos oficiales SC, NM y NT sin inventar objetivos distintos para menor/mayor o NT1/NT2."
+  "estado_fusion": "fusionado_en_main",
+  "commit_fusion": "feeb748d09117a3a957935fda1793af4a69fdd75",
+  "nota": "Los 105 archivos curriculares cargados por EduAI quedaron revisados y fusionados en main. Educación Parvularia mantiene seis archivos operativos, pero respeta los tres tramos oficiales SC, NM y NT sin inventar objetivos distintos para menor/mayor o NT1/NT2."
 }
