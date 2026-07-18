@@ -1,0 +1,85 @@
+name: Sincronizar OA oficiales de Educación Media una vez
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/sync-mineduc-media-once.yml
+      - scripts/sync-mineduc-media.py
+      - scripts/validate-mineduc-curriculum.mjs
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/mineduc-media-parvularia-2026
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Instalar parser HTML
+        run: python -m pip install --disable-pip-version-check beautifulsoup4
+      - name: Sincronizar Educación Media desde Currículum Nacional
+        id: sync
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          python -u scripts/sync-mineduc-media.py 2>&1 | tee sync-mineduc-media.log
+      - name: Publicar diagnóstico
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sync-mineduc-media-log
+          path: sync-mineduc-media.log
+          if-no-files-found: error
+      - name: Detener si falló la sincronización
+        if: steps.sync.outcome != 'success'
+        run: exit 1
+      - name: Regenerar índice
+        run: node scripts/generate-mineduc-index.mjs
+      - name: Validar currículum
+        run: node scripts/validate-mineduc-curriculum.mjs --strict
+      - name: Instalar dependencias y compilar
+        env:
+          GROQ_API_KEY: ci-placeholder
+          GEMINI_API_KEY: ci-placeholder
+          OPENROUTER_API_KEY: ci-placeholder
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+          SUPABASE_URL: https://example.supabase.co
+          SUPABASE_SERVICE_ROLE_KEY: ci-placeholder
+          NEXT_PUBLIC_PANEL_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_PANEL_SUPABASE_ANON_KEY: ci-placeholder
+        run: |
+          node scripts/normalize-npm-lockfile.mjs
+          npm install --registry=https://registry.npmjs.org/ --ignore-scripts
+          npm run build
+      - name: Registrar validación y retirar tarea temporal
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          path = Path('data/mineduc/meta/verification-progress.json')
+          data = json.loads(path.read_text(encoding='utf-8'))
+          data['ultima_validacion'] = 'success'
+          path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+          PY
+          rm -f .github/workflows/sync-mineduc-media-once.yml
+      - name: Publicar corrección completa de Educación Media
+        run: |
+          git config user.name "Innova Space"
+          git config user.email "contacto@innova-space-edu.cl"
+          git add -A data/mineduc scripts/sync-mineduc-media.py scripts/validate-mineduc-curriculum.mjs .github/workflows/sync-mineduc-media-once.yml
+          git commit -m "fix(curriculum): verificar OA oficiales completos de Educación Media"
+          git push origin HEAD:fix/mineduc-media-parvularia-2026
