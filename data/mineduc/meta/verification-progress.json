@@ -18,6 +18,7 @@
   ],
   "siguiente_bloque": "educacion_media",
   "ultima_validacion": "success",
-  "estado_fusion": "listo_para_fusion",
-  "nota": "Educación Básica completa: OA de contenido cotejados con páginas oficiales específicas. Inglés de 1° a 4° básico se registra como propuesta oficial; Inglés de 5° y 6° básico pertenece a la base curricular obligatoria."
+  "estado_fusion": "fusionado_en_main",
+  "commit_fusion": "f7dd2d67794c6d0a2b163587809fd9bdc802b881",
+  "nota": "Educación Básica completa y fusionada en main: OA de contenido cotejados con páginas oficiales específicas. Inglés de 1° a 4° básico se registra como propuesta oficial; Inglés de 5° y 6° básico pertenece a la base curricular obligatoria."
 }
