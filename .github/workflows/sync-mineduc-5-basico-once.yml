@@ -5,6 +5,7 @@ on:
     paths:
       - .github/workflows/sync-mineduc-5-basico-once.yml
       - scripts/sync-mineduc-basic-course.py
+      - scripts/run-sync-mineduc-basic-course.py
 
 permissions:
   contents: write
@@ -32,7 +33,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          python -u scripts/sync-mineduc-basic-course.py --course 5 2>&1 | tee sync-mineduc-5.log
+          python -u scripts/run-sync-mineduc-basic-course.py --course 5 2>&1 | tee sync-mineduc-5.log
       - name: Publicar diagnóstico de sincronización
         if: always()
         uses: actions/upload-artifact@v4
@@ -79,6 +80,6 @@ jobs:
         run: |
           git config user.name "Innova Space"
           git config user.email "contacto@innova-space-edu.cl"
-          git add -A data/mineduc scripts/sync-mineduc-basic-course.py .github/workflows/sync-mineduc-5-basico-once.yml
+          git add -A data/mineduc scripts/sync-mineduc-basic-course.py scripts/run-sync-mineduc-basic-course.py .github/workflows/sync-mineduc-5-basico-once.yml
           git commit -m "fix(curriculum): verificar OA oficiales completos de 5° básico"
           git push origin HEAD:fix/mineduc-curriculum-official-2026
