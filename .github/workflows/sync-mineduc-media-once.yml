@@ -5,6 +5,7 @@ on:
     paths:
       - .github/workflows/sync-mineduc-media-once.yml
       - scripts/sync-mineduc-media.py
+      - scripts/run-sync-mineduc-media.py
       - scripts/validate-mineduc-curriculum.mjs
 
 permissions:
@@ -33,7 +34,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          python -u scripts/sync-mineduc-media.py 2>&1 | tee sync-mineduc-media.log
+          python -u scripts/run-sync-mineduc-media.py 2>&1 | tee sync-mineduc-media.log
       - name: Publicar diagnóstico
         if: always()
         uses: actions/upload-artifact@v4
@@ -80,6 +81,6 @@ jobs:
         run: |
           git config user.name "Innova Space"
           git config user.email "contacto@innova-space-edu.cl"
-          git add -A data/mineduc scripts/sync-mineduc-media.py scripts/validate-mineduc-curriculum.mjs .github/workflows/sync-mineduc-media-once.yml
+          git add -A data/mineduc scripts/sync-mineduc-media.py scripts/run-sync-mineduc-media.py scripts/validate-mineduc-curriculum.mjs .github/workflows/sync-mineduc-media-once.yml
           git commit -m "fix(curriculum): verificar OA oficiales completos de Educación Media"
           git push origin HEAD:fix/mineduc-media-parvularia-2026
