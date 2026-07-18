@@ -3,62 +3,73 @@
     "nivel": "Media",
     "curso": "2° Medio",
     "asignatura": "Biología",
-    "base_asignatura_origen": "Ciencias Naturales 2° Medio",
     "fuente": "Currículum Nacional - MINEDUC Chile",
-    "source_url": "https://www.curriculumnacional.cl/",
-    "estado": "parcial_verificado",
-    "ultima_actualizacion_manual": "2026-03-28",
-    "nota": "Archivo separado por eje para facilitar el planificador. Los OA pertenecen a Ciencias Naturales 2° Medio, eje Biología."
+    "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/ciencias-naturales/2-medio",
+    "base_curricular": "Bases Curriculares 7º Básico a 2º Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-07-18",
+    "nota": "Los OA fueron obtenidos directamente de páginas oficiales específicas de Currículum Nacional. La agrupación interna no altera el texto oficial.",
+    "base_asignatura_origen": "Ciencias Naturales 2° Medio"
   },
   "objetivos_habilidad": [],
-  "objetivos_actitud": [
-    {
-      "id": "CN2M-OAA-A",
-      "codigo_oficial": "CN2M OAA A",
-      "descripcion": "Mostrar curiosidad, creatividad e interés por conocer y comprender los fenómenos del entorno natural y tecnológico, disfrutando del crecimiento intelectual que genera el conocimiento científico y valorando su importancia para el desarrollo de la sociedad."
-    }
-  ],
+  "objetivos_actitud": [],
   "unidades": [
     {
       "numero": 1,
-      "nombre": "Coordinación y regulación",
+      "id": "eje-biologia",
+      "nombre": "Biología",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
           "id": "CN2M-OA-01",
           "codigo_oficial": "CN2M OA 01",
-          "descripcion": "Explicar cómo el sistema nervioso coordina las acciones del organismo para adaptarse a estímulos del ambiente por medio de señales transmitidas por neuronas a lo largo del cuerpo, e investigar y comunicar sus cuidados."
+          "descripcion": "Explicar cómo el sistema nervioso coordina las acciones del organismo para adaptarse a estímulos del ambiente por medio de señales transmitidas por neuronas a lo largo del cuerpo, e investigar y comunicar sus cuidados, como las horas de sueño, el consumo de drogas, café y alcohol, y la prevención de traumatismos.",
+          "eje": "Biología"
         },
         {
           "id": "CN2M-OA-02",
           "codigo_oficial": "CN2M OA 02",
-          "descripcion": "Crear modelos que expliquen la regulación de la glicemia por medio del control de las hormonas pancreáticas y los caracteres sexuales y las funciones reproductivas por medio del control de las hormonas sexuales en el organismo."
-        }
-      ]
-    },
-    {
-      "numero": 2,
-      "nombre": "Sexualidad y reproducción",
-      "oa": [
+          "descripcion": "Crear modelos que expliquen la regulación de:\n- La glicemia por medio del control de las hormonas pancreáticas\n- Los caracteres sexuales y las funciones reproductivas por medio del control de las hormonas sexuales en el organismo",
+          "eje": "Biología"
+        },
         {
           "id": "CN2M-OA-03",
           "codigo_oficial": "CN2M OA 03",
-          "descripcion": "Describir la fecundación, la implantación y el desarrollo del embrión, y analizar medidas de autocuidado y salud sexual y reproductiva."
+          "descripcion": "Explicar que la sexualidad humana y la reproducción son aspectos fundamentales de la vida del ser humano, considerando los aspectos biológicos, sociales, afectivos y psicológicos, y la responsabilidad individual frente a sí mismo y los demás.",
+          "eje": "Biología"
+        },
+        {
+          "id": "CN2M-OA-04",
+          "codigo_oficial": "CN2M OA 04",
+          "descripcion": "Describir la fecundación, la implantación y el desarrollo del embrión, y analizar la responsabilidad de los padres en la nutrición prenatal y la lactancia.",
+          "eje": "Biología"
         },
         {
           "id": "CN2M-OA-05",
           "codigo_oficial": "CN2M OA 05",
-          "descripcion": "Explicar y evaluar los métodos de regulación de la fertilidad e identificar los elementos de una paternidad y una maternidad responsables."
-        }
-      ]
-    },
-    {
-      "numero": 3,
-      "nombre": "Herencia y división celular",
-      "oa": [
+          "descripcion": "Explicar y evaluar los métodos de regulación de la fertilidad e identificar los elementos de una paternidad y una maternidad responsables.",
+          "eje": "Biología"
+        },
         {
           "id": "CN2M-OA-06",
           "codigo_oficial": "CN2M OA 06",
-          "descripcion": "Investigar y argumentar, basándose en evidencias, que el material genético se transmite de generación en generación en organismos como plantas y animales, considerando la comparación de la mitosis y la meiosis, y las causas y consecuencias de anomalías y pérdida de control de la división celular."
+          "descripcion": "Investigar y argumentar, basándose en evidencias, que el material genético se transmite de generación en generación en organismos como plantas y animales, considerando:\n- La comparación de la mitosis y la meiosis\n- Las causas y consecuencias de anomalías y pérdida de control de la división celular (tumor, cáncer, trisomía, entre otros)",
+          "eje": "Biología"
+        },
+        {
+          "id": "CN2M-OA-07",
+          "codigo_oficial": "CN2M OA 07",
+          "descripcion": "Desarrollar una explicación científica, basada en evidencias, sobre los procesos de herencia genética en plantas y animales, aplicando los principios básicos de la herencia propuestos por Mendel.",
+          "eje": "Biología"
+        },
+        {
+          "id": "CN2M-OA-08",
+          "codigo_oficial": "CN2M OA 08",
+          "descripcion": "Investigar y explicar las aplicaciones que han surgido a raíz de la manipulación genética para generar alimentos, detergentes, vestuario, fármacos u otras, y evaluar sus implicancias éticas y sociales.",
+          "eje": "Biología"
         }
       ]
     }

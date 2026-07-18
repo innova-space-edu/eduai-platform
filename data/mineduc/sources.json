@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "revision": "fase_9_educacion_basica_completa_verificada",
+  "revision": "fase_10_educacion_media_completa_verificada",
   "fecha_actualizacion": "2026-07-18",
   "politica": {
     "estado_verificado": "Solo se usa verificado_oficial cuando código y texto fueron cotejados con una base curricular oficial específica.",
@@ -839,6 +839,208 @@
         "TE06 OA 07"
       ],
       "cantidad_oa_contenido": 7
+    },
+    "media/1_medio/matematica": {
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/matematica/1-medio",
+      "base_curricular_id": "basica-7-media-2",
+      "fecha_consulta": "2026-07-18",
+      "alcance": [
+        "MA1M OA 01",
+        "MA1M OA 15"
+      ],
+      "cantidad_oa_contenido": 15
+    },
+    "media/1_medio/lengua_literatura": {
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/lengua-literatura/1-medio",
+      "base_curricular_id": "basica-7-media-2",
+      "fecha_consulta": "2026-07-18",
+      "alcance": [
+        "LE1M OA 01",
+        "LE1M OA 24"
+      ],
+      "cantidad_oa_contenido": 24
+    },
+    "media/1_medio/tecnologia": {
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/tecnologia/1-medio",
+      "base_curricular_id": "basica-7-media-2",
+      "fecha_consulta": "2026-07-18",
+      "alcance": [
+        "TE1M OA 01",
+        "TE1M OA 06"
+      ],
+      "cantidad_oa_contenido": 6
+    },
+    "media/1_medio/biologia": {
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/ciencias-naturales/1-medio",
+      "base_curricular_id": "basica-7-media-2",
+      "fecha_consulta": "2026-07-18",
+      "alcance": [
+        "CN1M OA 01",
+        "CN1M OA 08"
+      ],
+      "cantidad_oa_contenido": 8
+    },
+    "media/1_medio/fisica": {
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/ciencias-naturales/1-medio",
+      "base_curricular_id": "basica-7-media-2",
+      "fecha_consulta": "2026-07-18",
+      "alcance": [
+        "CN1M OA 09",
+        "CN1M OA 16"
+      ],
+      "cantidad_oa_contenido": 8
+    },
+    "media/1_medio/quimica": {
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/ciencias-naturales/1-medio",
+      "base_curricular_id": "basica-7-media-2",
+      "fecha_consulta": "2026-07-18",
+      "alcance": [
+        "CN1M OA 17",
+        "CN1M OA 20"
+      ],
+      "cantidad_oa_contenido": 4
+    },
+    "media/2_medio/matematica": {
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/matematica/2-medio",
+      "base_curricular_id": "basica-7-media-2",
+      "fecha_consulta": "2026-07-18",
+      "alcance": [
+        "MA2M OA 01",
+        "MA2M OA 12"
+      ],
+      "cantidad_oa_contenido": 12
+    },
+    "media/2_medio/lengua_literatura": {
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/lengua-literatura/2-medio",
+      "base_curricular_id": "basica-7-media-2",
+      "fecha_consulta": "2026-07-18",
+      "alcance": [
+        "LE2M OA 01",
+        "LE2M OA 24"
+      ],
+      "cantidad_oa_contenido": 24
+    },
+    "media/2_medio/tecnologia": {
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/tecnologia/2-medio",
+      "base_curricular_id": "basica-7-media-2",
+      "fecha_consulta": "2026-07-18",
+      "alcance": [
+        "TE2M OA 01",
+        "TE2M OA 06"
+      ],
+      "cantidad_oa_contenido": 6
+    },
+    "media/2_medio/biologia": {
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/ciencias-naturales/2-medio",
+      "base_curricular_id": "basica-7-media-2",
+      "fecha_consulta": "2026-07-18",
+      "alcance": [
+        "CN2M OA 01",
+        "CN2M OA 08"
+      ],
+      "cantidad_oa_contenido": 8
+    },
+    "media/2_medio/fisica": {
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/ciencias-naturales/2-medio",
+      "base_curricular_id": "basica-7-media-2",
+      "fecha_consulta": "2026-07-18",
+      "alcance": [
+        "CN2M OA 09",
+        "CN2M OA 14"
+      ],
+      "cantidad_oa_contenido": 6
+    },
+    "media/2_medio/quimica": {
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/ciencias-naturales/2-medio",
+      "base_curricular_id": "basica-7-media-2",
+      "fecha_consulta": "2026-07-18",
+      "alcance": [
+        "CN2M OA 15",
+        "CN2M OA 18"
+      ],
+      "cantidad_oa_contenido": 4
+    },
+    "media/3_medio/matematica": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/matematica-3o-medio/3-medio-fg",
+      "base_curricular_id": "media-3-4",
+      "fecha_consulta": "2026-07-18",
+      "alcance": [
+        "FG-MATE-3M-OAC-01",
+        "FG-MATE-3M-OAC-04"
+      ],
+      "cantidad_oa_contenido": 4
+    },
+    "media/4_medio/matematica": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/matematica-4o-medio/4-medio-fg",
+      "base_curricular_id": "media-3-4",
+      "fecha_consulta": "2026-07-18",
+      "alcance": [
+        "FG-MATE-4M-OAC-01",
+        "FG-MATE-4M-OAC-04"
+      ],
+      "cantidad_oa_contenido": 4
+    },
+    "media/3_medio/educacion_ciudadana": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/educacion-ciudadana-3-medio/3-medio-fg",
+      "base_curricular_id": "media-3-4",
+      "fecha_consulta": "2026-07-18",
+      "alcance": [
+        "FG-ECIU-3M-OAC-01",
+        "FG-ECIU-3M-OAC-08"
+      ],
+      "cantidad_oa_contenido": 8
+    },
+    "media/4_medio/educacion_ciudadana": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/educacion-ciudadana-4m/4-medio-fg",
+      "base_curricular_id": "media-3-4",
+      "fecha_consulta": "2026-07-18",
+      "alcance": [
+        "FG-ECIU-4M-OAC-01",
+        "FG-ECIU-4M-OAC-08"
+      ],
+      "cantidad_oa_contenido": 8
+    },
+    "media/4_medio/lengua_literatura": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/lengua-literatura-4o-medio/4-medio-fg",
+      "base_curricular_id": "media-3-4",
+      "fecha_consulta": "2026-07-18",
+      "alcance": [
+        "FG-LELI-4M-OAC-01",
+        "FG-LELI-4M-OAC-08"
+      ],
+      "cantidad_oa_contenido": 8
+    },
+    "media/3_medio/ciencias_para_la_ciudadania": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/ambiente-sostenibilidad/3-medio-fg",
+      "base_curricular_id": "media-3-4",
+      "fecha_consulta": "2026-07-18",
+      "alcance": [
+        "FG-CIAS-3y4-OAC-01",
+        "FG-CITS-3y4-OAC-03"
+      ],
+      "cantidad_oa_contenido": 12,
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/ambiente-sostenibilidad/3-medio-fg",
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/bienestar-salud/3-medio-fg",
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/seguridad-prevencion-autocuidado/3-medio-fg",
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/tecnologia-sociedad/3-medio-fg"
+      ]
+    },
+    "media/4_medio/ciencias_para_la_ciudadania": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/ambiente-sostenibilidad/3-medio-fg",
+      "base_curricular_id": "media-3-4",
+      "fecha_consulta": "2026-07-18",
+      "alcance": [
+        "FG-CIAS-3y4-OAC-01",
+        "FG-CITS-3y4-OAC-03"
+      ],
+      "cantidad_oa_contenido": 12,
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/ambiente-sostenibilidad/3-medio-fg",
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/bienestar-salud/3-medio-fg",
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/seguridad-prevencion-autocuidado/3-medio-fg",
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/tecnologia-sociedad/3-medio-fg"
+      ]
     }
   },
   "propuestas_oficiales_verificadas": {

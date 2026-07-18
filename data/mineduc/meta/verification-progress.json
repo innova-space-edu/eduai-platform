@@ -1,11 +1,11 @@
 {
   "fecha_actualizacion": "2026-07-18",
-  "fase": "educacion_basica_completa",
+  "fase": "educacion_media_completa",
   "archivos_curriculares_totales": 105,
-  "asignaturas_verificadas_oficialmente": 76,
+  "asignaturas_verificadas_oficialmente": 95,
   "propuestas_oficiales_verificadas": 4,
-  "archivos_pendientes": 25,
-  "oa_contenido_verificados": 1109,
+  "archivos_pendientes": 6,
+  "oa_contenido_verificados": 1290,
   "cursos_completos": [
     "1_basico",
     "2_basico",
@@ -16,9 +16,15 @@
     "7_basico",
     "8_basico"
   ],
-  "siguiente_bloque": "educacion_media",
+  "siguiente_bloque": "educacion_parvularia",
   "ultima_validacion": "success",
-  "estado_fusion": "fusionado_en_main",
+  "estado_fusion": "rama_en_revision",
   "commit_fusion": "f7dd2d67794c6d0a2b163587809fd9bdc802b881",
-  "nota": "Educación Básica completa y fusionada en main: OA de contenido cotejados con páginas oficiales específicas. Inglés de 1° a 4° básico se registra como propuesta oficial; Inglés de 5° y 6° básico pertenece a la base curricular obligatoria."
+  "nota": "Educación Básica y los 19 archivos existentes de Educación Media quedaron cotejados con páginas oficiales específicas. Permanecen pendientes los seis archivos operativos de Educación Parvularia.",
+  "cursos_media_completos": [
+    "1_medio",
+    "2_medio",
+    "3_medio",
+    "4_medio"
+  ]
 }

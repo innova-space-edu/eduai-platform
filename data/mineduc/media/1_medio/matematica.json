@@ -4,106 +4,137 @@
     "curso": "1° Medio",
     "asignatura": "Matemática",
     "fuente": "Currículum Nacional - MINEDUC Chile",
-    "source_url": "https://curriculumnacional.mineduc.cl/",
-    "estado": "parcial_verificado",
-    "ultima_actualizacion_manual": "2026-03-27"
+    "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/matematica/1-medio",
+    "base_curricular": "Bases Curriculares 7º Básico a 2º Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-07-18",
+    "nota": "Los OA fueron obtenidos directamente de páginas oficiales específicas de Currículum Nacional. La agrupación interna no altera el texto oficial."
   },
-  "objetivos_habilidad": [
-    {
-      "id": "MA1M-OAH-f",
-      "descripcion": "Fundamentar conjeturas usando lenguaje algebraico para comprobar o descartar la validez de los enunciados.",
-      "unidades": [1, 2, 3]
-    },
-    {
-      "id": "MA1M-OAH-l",
-      "descripcion": "Elegir o elaborar representaciones de acuerdo a las necesidades de la actividad, identificando sus limitaciones y validez de estas.",
-      "unidades": [1, 2, 3, 4]
-    },
-    {
-      "id": "MA1M-OAH-n",
-      "descripcion": "Organizar, analizar y hacer inferencias acerca de información representada en tablas y gráficos.",
-      "unidades": [1, 2, 3, 4]
-    }
-  ],
-  "objetivos_actitud": [
-    {
-      "id": "MA1M-OAA-d",
-      "descripcion": "Trabajar en equipo en forma responsable y proactiva, ayudando a los otros, considerando y respetando los aportes de todos, y manifestando disposición a entender sus argumentos en las soluciones de los problemas.",
-      "unidades": [1, 2, 3]
-    }
-  ],
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
   "unidades": [
     {
       "numero": 1,
-      "nombre": "Productos notables. Potencias con exponente entero. El cono.",
+      "id": "eje-numeros",
+      "nombre": "Números",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
           "id": "MA1M-OA-01",
           "codigo_oficial": "MA1M OA 01",
-          "descripcion": "Calcular operaciones con números racionales en forma simbólica."
+          "descripcion": "Calcular operaciones con números racionales en forma simbólica.",
+          "eje": "Números"
         },
         {
           "id": "MA1M-OA-02",
           "codigo_oficial": "MA1M OA 02",
-          "descripcion": "Mostrar que comprenden las potencias de base racional y exponente entero."
-        },
-        {
-          "id": "MA1M-OA-03",
-          "codigo_oficial": "MA1M OA 03",
-          "descripcion": "Desarrollar los productos notables de manera concreta, pictórica y simbólica."
-        },
-        {
-          "id": "MA1M-OA-07",
-          "codigo_oficial": "MA1M OA 07",
-          "descripcion": "Desarrollar las fórmulas para encontrar el área de la superficie y el volumen del cono."
+          "descripcion": "Mostrar que comprenden las potencias de base racional y exponente entero:\n- Transfiriendo propiedades de la multiplicación y división de potencias a los ámbitos numéricos correspondientes\n- Relacionándolas con el crecimiento y decrecimiento de cantidades\n- Resolviendo problemas de la vida diaria y otras asignaturas",
+          "eje": "Números"
         }
       ]
     },
     {
       "numero": 2,
-      "nombre": "Sistemas de ecuaciones lineales. Área y perímetros de sectores y segmentos circulares.",
+      "id": "eje-algebra-y-funciones",
+      "nombre": "Álgebra y funciones",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
+        {
+          "id": "MA1M-OA-03",
+          "codigo_oficial": "MA1M OA 03",
+          "descripcion": "Desarrollar los productos notables de manera concreta, pictórica y simbólica:\n- Transformando productos en sumas y viceversa\n- Aplicándolos a situaciones concretas\n- Completando el cuadrado del binomio\n- Utilizándolas en la reducción y desarrollo de expresiones algebraicas",
+          "eje": "Álgebra y funciones"
+        },
         {
           "id": "MA1M-OA-04",
           "codigo_oficial": "MA1M OA 04",
-          "descripcion": "Resolver sistemas de ecuaciones lineales (2x2) relacionados con problemas de la vida diaria y de otras asignaturas, mediante representaciones gráficas y simbólicas, de manera manual y/o con software educativo."
+          "descripcion": "Resolver sistemas de ecuaciones lineales (2x2) relacionados con problemas de la vida diaria y de otras asignaturas, mediante representaciones gráficas y simbólicas, de manera manual y/o con software educativo.",
+          "eje": "Álgebra y funciones"
         },
         {
           "id": "MA1M-OA-05",
           "codigo_oficial": "MA1M OA 05",
-          "descripcion": "Graficar relaciones lineales en dos variables de la forma f(x, y) = ax + by."
+          "descripcion": "Graficar relaciones lineales en dos variables de la forma f(x, y) = ax + by; por ejemplo: un haz de rectas paralelas en el plano cartesiano, líneas de nivel en planos inclinados (techo), propagación de olas en el mar y la formación de algunas capas de rocas:\n- Creando tablas de valores con a, b fijo y x, y variable\n- Representando una ecuación lineal dada por medio de un gráfico, de manera manual y/o con software educativo\n- Escribiendo la relación entre las variables de un gráfico dado; por ejemplo, variando c en la ecuación ax + by = c ; (a, b, c ϵ Q) (decimales hasta la décima)",
+          "eje": "Álgebra y funciones"
         }
       ]
     },
     {
       "numero": 3,
-      "nombre": "Homotecia y sus aplicaciones",
+      "id": "eje-geometria",
+      "nombre": "Geometría",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
+        {
+          "id": "MA1M-OA-06",
+          "codigo_oficial": "MA1M OA 06",
+          "descripcion": "Desarrollar la fórmula de los valores del área y del perímetro de sectores y segmentos circulares, respectivamente, a partir de ángulos centrales de 60°, 90°, 120° y 180°, por medio de representaciones concretas.",
+          "eje": "Geometría"
+        },
+        {
+          "id": "MA1M-OA-07",
+          "codigo_oficial": "MA1M OA 07",
+          "descripcion": "Desarrollar las fórmulas para encontrar el área de la superficie y el volumen del cono:\n- Desplegando la red del cono para la fórmula del área de superficie\n- Experimentando de manera concreta para encontrar la relación entre el volumen del cilindro y el cono\n- Aplicando las fórmulas a la resolución de problemas geométricos y de la vida diaria",
+          "eje": "Geometría"
+        },
+        {
+          "id": "MA1M-OA-08",
+          "codigo_oficial": "MA1M OA 08",
+          "descripcion": "Mostrar que comprenden el concepto de homotecia:\n- Relacionándola con la perspectiva, el funcionamiento de instrumentos ópticos y el ojo humano\n- Midiendo segmentos adecuados para determinar las propiedades de la homotecia\n- Aplicando propiedades de la homotecia en la construcción de objetos, de manera manual y/o con software educativo\n- Resolviendo problemas de la vida cotidiana y de otras asignaturas",
+          "eje": "Geometría"
+        },
+        {
+          "id": "MA1M-OA-09",
+          "codigo_oficial": "MA1M OA 09",
+          "descripcion": "Desarrollar el teorema de Tales mediante las propiedades de la homotecia, para aplicarlo en la resolución de problemas.",
+          "eje": "Geometría"
+        },
         {
           "id": "MA1M-OA-10",
           "codigo_oficial": "MA1M OA 10",
-          "descripcion": "Aplicar propiedades de semejanza y de proporcionalidad a modelos a escala y otras situaciones de la vida diaria y otras asignaturas."
+          "descripcion": "Aplicar propiedades de semejanza y de proporcionalidad a modelos a escala y otras situaciones de la vida diaria y otras asignaturas.",
+          "eje": "Geometría"
         },
         {
           "id": "MA1M-OA-11",
           "codigo_oficial": "MA1M OA 11",
-          "descripcion": "Representar el concepto de homotecia de forma vectorial, relacionándolo con el producto de un vector por un escalar, de manera manual y/o con software educativo."
+          "descripcion": "Representar el concepto de homotecia de forma vectorial, relacionándolo con el producto de un vector por un escalar, de manera manual y/o con software educativo.",
+          "eje": "Geometría"
         }
       ]
     },
     {
       "numero": 4,
-      "nombre": "Nube de punto y gráficos “xy”. Regla aditiva y multiplicativa de probabilidades.",
+      "id": "eje-probabilidad-y-estadistica",
+      "nombre": "Probabilidad y estadística",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
           "id": "MA1M-OA-12",
           "codigo_oficial": "MA1M OA 12",
-          "descripcion": "Registrar distribuciones de dos características distintas, de una misma población, en una tabla de doble entrada y en una nube de puntos."
+          "descripcion": "Registrar distribuciones de dos características distintas, de una misma población, en una tabla de doble entrada y en una nube de puntos.",
+          "eje": "Probabilidad y estadística"
         },
         {
           "id": "MA1M-OA-13",
           "codigo_oficial": "MA1M OA 13",
-          "descripcion": "Comparar poblaciones mediante la confección de gráficos “xy” para dos atributos de muestras, de manera concreta y pictórica."
+          "descripcion": "Comparar poblaciones mediante la confección de gráficos \"xy\" para dos atributos de muestras, de manera concreta y pictórica:\n- Utilizando nubes de puntos en dos colores\n- Separando la nube por medio de una recta trazada de manera intuitiva",
+          "eje": "Probabilidad y estadística"
+        },
+        {
+          "id": "MA1M-OA-14",
+          "codigo_oficial": "MA1M OA 14",
+          "descripcion": "Desarrollar las reglas de las probabilidades, la regla aditiva, la regla multiplicativa y la combinación de ambas, de manera concreta, pictórica y simbólica, de manera manual y/o con software educativo, en el contexto de la resolución de problemas.",
+          "eje": "Probabilidad y estadística"
+        },
+        {
+          "id": "MA1M-OA-15",
+          "codigo_oficial": "MA1M OA 15",
+          "descripcion": "Mostrar que comprenden el concepto de azar:\n- Experimentando con la tabla de Galton y con paseos aleatorios sencillos de manera manual y/o con software educativo\n- Realizando análisis estadísticos, empezando por frecuencias relativas\n- Utilizando probabilidades para describir el comportamiento azaroso\n- Resolviendo problemas de la vida diaria y de otras asignaturas",
+          "eje": "Probabilidad y estadística"
         }
       ]
     }

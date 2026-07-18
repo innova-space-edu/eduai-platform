@@ -3,40 +3,61 @@
     "nivel": "Media",
     "curso": "2° Medio",
     "asignatura": "Física",
-    "base_asignatura_origen": "Ciencias Naturales 2° Medio",
     "fuente": "Currículum Nacional - MINEDUC Chile",
-    "source_url": "https://www.curriculumnacional.cl/",
-    "estado": "estructura_base",
-    "ultima_actualizacion_manual": "2026-03-28",
-    "nota": "Archivo base estructural. Completar OA con validación literal desde fichas oficiales antes de usarlo como definitivo."
+    "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/ciencias-naturales/2-medio",
+    "base_curricular": "Bases Curriculares 7º Básico a 2º Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-07-18",
+    "nota": "Los OA fueron obtenidos directamente de páginas oficiales específicas de Currículum Nacional. La agrupación interna no altera el texto oficial.",
+    "base_asignatura_origen": "Ciencias Naturales 2° Medio"
   },
   "objetivos_habilidad": [],
   "objetivos_actitud": [],
   "unidades": [
     {
       "numero": 1,
-      "nombre": "Fuerza y movimiento",
+      "id": "eje-fisica",
+      "nombre": "Física",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
+        {
+          "id": "CN2M-OA-09",
+          "codigo_oficial": "CN2M OA 09",
+          "descripcion": "Analizar, sobre la base de la experimentación, el movimiento rectilíneo uniforme y acelerado de un objeto respecto de un sistema de referencia espacio-temporal, considerando variables como la posición, la velocidad y la aceleración en situaciones cotidianas.",
+          "eje": "Física"
+        },
         {
           "id": "CN2M-OA-10",
           "codigo_oficial": "CN2M OA 10",
-          "descripcion": "Explicar, por medio de investigaciones experimentales, los efectos que tiene una fuerza neta sobre un objeto, utilizando las leyes de Newton y el diagrama de cuerpo libre."
+          "descripcion": "Explicar, por medio de investigaciones experimentales, los efectos que tiene una fuerza neta sobre un objeto, utilizando las leyes de Newton y el diagrama de cuerpo libre.",
+          "eje": "Física"
         },
         {
           "id": "CN2M-OA-11",
           "codigo_oficial": "CN2M OA 11",
-          "descripcion": "Describir el movimiento de un objeto, usando la ley de conservación de la energía mecánica y los conceptos de trabajo y potencia mecánica."
-        }
-      ]
-    },
-    {
-      "numero": 2,
-      "nombre": "Astronomía, geofísica y clima",
-      "oa": [
+          "descripcion": "Describir el movimiento de un objeto, usando la ley de conservación de la energía mecánica y los conceptos de trabajo y potencia mecánica.",
+          "eje": "Física"
+        },
+        {
+          "id": "CN2M-OA-12",
+          "codigo_oficial": "CN2M OA 12",
+          "descripcion": "Analizar e interpretar datos de investigaciones sobre colisiones entre objetos, considerando:\n- La cantidad de movimiento de un cuerpo en función del impulso que adquiere\n- La ley de conservación de cantidad de movimiento (momento lineal o momentum)",
+          "eje": "Física"
+        },
+        {
+          "id": "CN2M-OA-13",
+          "codigo_oficial": "CN2M OA 13",
+          "descripcion": "Demostrar que comprenden que el conocimiento del Universo cambia y aumenta a partir de nuevas evidencias, usando modelos como el geocéntrico y el heliocéntrico, y teorías como la del Big-Bang, entre otros.",
+          "eje": "Física"
+        },
         {
           "id": "CN2M-OA-14",
           "codigo_oficial": "CN2M OA 14",
-          "descripcion": "Explicar cualitativamente por medio de las leyes de Kepler y la de gravitación universal de Newton el origen de las mareas, la formación y dinámica de estructuras cósmicas naturales y el movimiento de estructuras artificiales como sondas, satélites y naves espaciales."
+          "descripcion": "Explicar cualitativamente por medio de las leyes de Kepler y la de gravitación universal de Newton:\n- El origen de las mareas\n- La formación y dinámica de estructuras cósmicas naturales, como el sistema solar y sus componentes, las estrellas y las galaxias\n- El movimiento de estructuras artificiales como sondas, satélites y naves espaciales",
+          "eje": "Física"
         }
       ]
     }

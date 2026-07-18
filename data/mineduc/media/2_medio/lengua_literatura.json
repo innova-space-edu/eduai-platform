@@ -4,84 +4,191 @@
     "curso": "2° Medio",
     "asignatura": "Lengua y Literatura",
     "fuente": "Currículum Nacional - MINEDUC Chile",
-    "source_url": "https://www.curriculumnacional.cl/",
-    "estado": "parcial_verificado",
-    "ultima_actualizacion_manual": "2026-03-27"
+    "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/lengua-literatura/2-medio",
+    "base_curricular": "Bases Curriculares 7º Básico a 2º Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-07-18",
+    "nota": "Los OA fueron obtenidos directamente de páginas oficiales específicas de Currículum Nacional. La agrupación interna no altera el texto oficial."
   },
   "objetivos_habilidad": [],
   "objetivos_actitud": [],
   "unidades": [
     {
       "numero": 1,
-      "nombre": "Sobre la ausencia: exilio, migración e identidad (narrativa)",
+      "id": "eje-lectura-comprension",
+      "nombre": "Lectura - Comprensión",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
           "id": "LE2M-OA-01",
           "codigo_oficial": "LE2M OA 01",
-          "descripcion": "Leer habitualmente para aprender y recrearse, y seleccionar textos de acuerdo con sus preferencias y propósitos."
+          "descripcion": "Leer habitualmente para aprender y recrearse, y seleccionar textos de acuerdo con sus preferencias y propósitos.",
+          "eje": "Lectura - Comprensión"
         },
         {
           "id": "LE2M-OA-02",
           "codigo_oficial": "LE2M OA 02",
-          "descripcion": "Reflexionar sobre las diferentes dimensiones de la experiencia humana, propia y ajena, a partir de la lectura de obras literarias y otros textos que forman parte de nuestras herencias culturales."
+          "descripcion": "Reflexionar sobre las diferentes dimensiones de la experiencia humana, propia y ajena, a partir de la lectura de obras literarias y otros textos que forman parte de nuestras herencias culturales, abordando los temas estipulados para el curso y las obras sugeridas para cada uno.",
+          "eje": "Lectura - Comprensión"
         },
         {
-          "id": "LE2M-OA-12",
-          "codigo_oficial": "LE2M OA 12",
-          "descripcion": "Aplicar flexiblemente y creativamente las habilidades de escritura adquiridas en clases como medio de expresión personal y cuando se enfrentan a nuevos géneros."
+          "id": "LE2M-OA-03",
+          "codigo_oficial": "LE2M OA 03",
+          "descripcion": "Analizar las narraciones leídas para enriquecer su comprensión, considerando, cuando sea pertinente:\n- El o los conflictos de la historia\n- Un análisis de los personajes que considere su relación con otros personajes, qué dicen, qué se dice de ellos, sus acciones y motivaciones, sus convicciones y los dilemas que enfrentan\n- La relación de un fragmento de la obra con el total\n- Cómo el relato está influido por la visión del narrador\n- Personajes tipo (por ejemplo, el pícaro, el avaro, el seductor, la madrastra, etc.), símbolos y tópicos literarios presentes en el texto\n- Las creencias, prejuicios y estereotipos presentes en el relato, a la luz de la visión de mundo de la época en la que fue escrito y su conexión con el mundo actual\n- El efecto producido por recursos como flashback, indicios, caja china (historia dentro de una historia), historia paralela\n- Relaciones intertextuales con otras obras",
+          "eje": "Lectura - Comprensión"
+        },
+        {
+          "id": "LE2M-OA-04",
+          "codigo_oficial": "LE2M OA 04",
+          "descripcion": "Analizar los poemas leídos para enriquecer su comprensión, considerando, cuando sea pertinente:\n- Los símbolos presentes en el texto y su relación con la totalidad del poema\n- La actitud del hablante hacia el tema que aborda\n- El significado o el efecto que produce el uso de lenguaje figurado en el poema\n- El efecto que tiene el uso de repeticiones (de estructuras, sonidos, palabras o ideas) en el poema\n- La relación que hay entre un fragmento y el total del poema\n- Relaciones intertextuales con otras obras\n- Las características del soneto",
+          "eje": "Lectura - Comprensión"
+        },
+        {
+          "id": "LE2M-OA-05",
+          "codigo_oficial": "LE2M OA 05",
+          "descripcion": "Analizar los textos dramáticos leídos o vistos, para enriquecer su comprensión, considerando, cuando sea pertinente:\n- El conflicto y qué problema humano se expresa a través de él\n- Un análisis de los personajes principales que considere su evolución, su relación con otros personajes, qué dicen, qué se dice de ellos, lo que hacen, cómo reaccionan, qué piensan y cuáles son sus motivaciones\n- Personajes tipo, símbolos y tópicos literarios\n- Las creencias, prejuicios y estereotipos presentes en el relato, a la luz de la visión de mundo de la época en la que fue escrito y su conexión con el mundo actual\n- La atmósfera de la obra y cómo se construye a través de los diálogos, los monólogos, las acciones y las acotaciones\n- Cómo los elementos propios de la puesta en escena aportan a la comprensión de la obra: iluminación, sonido, vestuario, escenografía, actuación\n- Relaciones intertextuales con otras obras",
+          "eje": "Lectura - Comprensión"
+        },
+        {
+          "id": "LE2M-OA-06",
+          "codigo_oficial": "LE2M OA 06",
+          "descripcion": "Comprender la relevancia de las obras del Siglo de Oro, considerando sus características y el contexto en el que se enmarcan.",
+          "eje": "Lectura - Comprensión"
+        },
+        {
+          "id": "LE2M-OA-07",
+          "codigo_oficial": "LE2M OA 07",
+          "descripcion": "Leer y comprender cuentos latinoamericanos modernos y contemporáneos, considerando sus características y el contexto en el que se enmarcan.",
+          "eje": "Lectura - Comprensión"
+        },
+        {
+          "id": "LE2M-OA-08",
+          "codigo_oficial": "LE2M OA 08",
+          "descripcion": "Formular una interpretación de los textos literarios leídos o vistos, que sea coherente con su análisis, considerando:\n- Una hipótesis sobre el sentido de la obra, que muestre un punto de vista personal, histórico, social o universal\n- Una crítica de la obra sustentada en citas o ejemplos\n- Los antecedentes culturales que influyen en la visión que refleja la obra sobre temas como el destino, la muerte, la trascendencia, la guerra u otros\n- La relación de la obra con la visión de mundo y el contexto histórico en el que se ambienta y/o en el que fue creada, ejemplificando dicha relación",
+          "eje": "Lectura - Comprensión"
+        },
+        {
+          "id": "LE2M-OA-09",
+          "codigo_oficial": "LE2M OA 09",
+          "descripcion": "Analizar y evaluar textos con finalidad argumentativa, como columnas de opinión, cartas al director, discursos y ensayos, considerando:\n- La tesis, ya sea explícita o implícita, y los argumentos e información que la sostienen\n- Los recursos emocionales que usa el autor para persuadir o convencer al lector, y evaluándolos\n- Fallas evidentes en la argumentación, por ejemplo, exageración, estereotipos, generalizaciones, descalificaciones personales, entre otras\n- El efecto que produce el uso de modalizadores en el grado de certeza con que se presenta la información\n- La manera en que el autor organiza el texto\n- Con qué intención el autor usa distintos elementos léxicos valorativos y figuras retóricas\n- Su postura personal frente a lo leído, refutando o apoyando los argumentos que la sustentan",
+          "eje": "Lectura - Comprensión"
+        },
+        {
+          "id": "LE2M-OA-10",
+          "codigo_oficial": "LE2M OA 10",
+          "descripcion": "Analizar y evaluar textos de los medios de comunicación, como noticias, reportajes, cartas al director, propaganda o crónicas, considerando:\n- Los propósitos explícitos e implícitos del texto, justificando con ejemplos sus afirmaciones sobre dichos propósitos\n- Las estrategias de persuasión utilizadas en el texto (uso del humor, presencia de estereotipos, apelación a los sentimientos, etc.) y evaluándolas\n- Las evidencias que se entregan o se omiten para apoyar una afirmación\n- Los efectos causados por recursos no lingüísticos (como diseño, imágenes, disposición gráfica y efectos de audio) y lingüísticos (uso de imperativo, figuras literarias, expresiones populares, palabras en otros idiomas, intertextualidad, modalizaciones, etc.) presentes en el texto\n- Similitudes y diferencias en la forma en que distintas fuentes presentan un mismo hecho\n- Qué elementos del texto influyen en las propias opiniones, percepción de sí mismo y opciones que tomamos",
+          "eje": "Lectura - Comprensión"
+        },
+        {
+          "id": "LE2M-OA-11",
+          "codigo_oficial": "LE2M OA 11",
+          "descripcion": "Leer y comprender textos no literarios para contextualizar y complementar las lecturas literarias realizadas en clases.",
+          "eje": "Lectura - Comprensión"
         }
       ]
     },
     {
       "numero": 2,
-      "nombre": "Ciudadanía y trabajo (medios de comunicación)",
+      "id": "eje-escritura-produccion",
+      "nombre": "Escritura - Producción",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
-          "id": "LE2M-OA-11",
-          "codigo_oficial": "LE2M OA 11",
-          "descripcion": "Leer y comprender textos no literarios para contextualizar y complementar las lecturas literarias realizadas en clases."
+          "id": "LE2M-OA-12",
+          "codigo_oficial": "LE2M OA 12",
+          "descripcion": "Aplicar flexiblemente y creativamente las habilidades de escritura adquiridas en clases como medio de expresión personal y cuando se enfrentan a nuevos géneros:\n- Investigando las características del género antes de escribir\n- Adecuando el texto a los propósitos de escritura y a la situación",
+          "eje": "Escritura - Producción"
         },
         {
           "id": "LE2M-OA-13",
           "codigo_oficial": "LE2M OA 13",
-          "descripcion": "Escribir, con el propósito de explicar un tema, textos de diversos géneros, como artículos, informes o reportajes."
+          "descripcion": "Escribir, con el propósito de explicar un tema, textos de diversos géneros (por ejemplo, artículos, informes, reportajes, etc.) caracterizados por:\n- Una presentación clara del tema en que se esbozan los aspectos que se abordarán\n- Una organización y redacción propias de la información\n- La inclusión de hechos, descripciones, ejemplos o explicaciones que reflejen una reflexión personal sobre el tema\n- Una progresión temática clara, con especial atención al empleo de recursos anafóricos y conectores\n- El uso de recursos variados que favorezcan el interés y la comprensión del lector, tales como anécdotas, citas, síntesis, imágenes, infografías, etc\n- Un cierre coherente con las características del género y el propósito del autor\n- El uso de citas y referencias según un formato previamente acordado",
+          "eje": "Escritura - Producción"
+        },
+        {
+          "id": "LE2M-OA-14",
+          "codigo_oficial": "LE2M OA 14",
+          "descripcion": "Escribir, con el propósito de persuadir, textos de diversos géneros, en particular ensayos sobre los temas o lecturas propuestos para el nivel, caracterizados por:\n- La presentación de una hipótesis o afirmación referida a temas contingentes o literarios\n- La presencia de evidencias e información pertinente, extraídas de textos literarios y no literarios\n- El uso de contraargumentos cuando es pertinente\n- El uso de recursos variados que favorezcan el interés y la comprensión del lector, tales como anécdotas, citas, síntesis, imágenes, infografías, etc\n- La mantención de la coherencia temática\n- Una conclusión coherente con los argumentos presentados\n- El uso de citas y referencias según un formato previamente acordado",
+          "eje": "Escritura - Producción"
         },
         {
           "id": "LE2M-OA-15",
           "codigo_oficial": "LE2M OA 15",
-          "descripcion": "Planificar, escribir, revisar, reescribir y editar sus textos en función del contexto, el destinatario y el propósito."
+          "descripcion": "Planificar, escribir, revisar, reescribir y editar sus textos en función del contexto, el destinatario y el propósito:\n- Recopilando información e ideas y organizándolas antes de escribir\n- Adecuando el registro, específicamente el vocabulario (uso de términos técnicos, frases hechas, palabras propias de las redes sociales, términos y expresiones propios del lenguaje hablado), el uso de la persona gramatical y la estructura del texto, al género discursivo, contexto y destinatario\n- Considerando los conocimientos e intereses del lector al incluir la información\n- Asegurando la coherencia y la cohesión del texto\n- Cuidando la organización a nivel oracional y textual\n- Usando conectores adecuados para unir las secciones que componen el texto y relacionando las ideas dentro de cada párrafo\n- Usando un vocabulario variado y preciso\n- Reconociendo y corrigiendo usos inadecuados, especialmente de pronombres personales y reflejos, conjugaciones verbales, participios irregulares, conectores, preposiciones, y concordancia sujeto-verbo, artículo-sustantivo, sustantivo-adjetivo y complementarios\n- Corrigiendo la ortografía y mejorando la presentación\n- Usando eficazmente las herramientas del procesador de textos",
+          "eje": "Escritura - Producción"
+        },
+        {
+          "id": "LE2M-OA-16",
+          "codigo_oficial": "LE2M OA 16",
+          "descripcion": "Usar consistentemente el estilo directo y el indirecto en textos escritos y orales:\n- Empleando adecuadamente los tiempos verbales en el estilo indirecto\n- Reflexionando sobre el contraste en aspectos formales y de significado entre estilo directo e indirecto, especialmente en textos del ámbito académico",
+          "eje": "Escritura - Producción"
+        },
+        {
+          "id": "LE2M-OA-17",
+          "codigo_oficial": "LE2M OA 17",
+          "descripcion": "Emplear frases nominales complejas como recurso para compactar la información y establecer correferencia en textos con finalidad expositiva y argumentativa.",
+          "eje": "Escritura - Producción"
+        },
+        {
+          "id": "LE2M-OA-18",
+          "codigo_oficial": "LE2M OA 18",
+          "descripcion": "Escribir correctamente para facilitar la comprensión al lector:\n- Aplicando todas las reglas de ortografía literal y acentual\n- Verificando la escritura de las palabras cuya ortografía no está sujeta a reglas\n- Usando correctamente el punto, coma, raya, dos puntos, paréntesis, puntos suspensivos, comillas y punto y coma",
+          "eje": "Escritura - Producción"
         }
       ]
     },
     {
       "numero": 3,
-      "nombre": "Lo divino y lo humano (género lírico)",
+      "id": "eje-comunicacion-oral",
+      "nombre": "Comunicación oral",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
-          "id": "LE2M-OA-03",
-          "codigo_oficial": "LE2M OA 03",
-          "descripcion": "Analizar las narraciones leídas para enriquecer su comprensión, considerando, cuando sea pertinente, el conflicto, el narrador, los personajes, el tiempo, el espacio, los símbolos y el lenguaje figurado."
+          "id": "LE2M-OA-19",
+          "codigo_oficial": "LE2M OA 19",
+          "descripcion": "Comprender, comparar y evaluar textos orales y audiovisuales, tales como exposiciones, discursos, documentales, noticias, reportajes, etc., considerando:\n- Su postura personal frente a lo escuchado y argumentos que la sustenten\n- Una ordenación de la información en términos de su relevancia\n- El contexto en el que se enmarcan los textos\n- El uso de estereotipos, clichés y generalizaciones\n- Los argumentos y elementos de persuasión que usa el hablante para sostener una postura\n- Diferentes puntos de vista expresados en los textos\n- La contribución de imágenes y sonido al significado del texto\n- Las relaciones que se establecen entre imágenes, texto y sonido\n- Relaciones entre lo escuchado y los temas y obras estudiados durante el curso",
+          "eje": "Comunicación oral"
         },
         {
-          "id": "LE2M-OA-08",
-          "codigo_oficial": "LE2M OA 08",
-          "descripcion": "Analizar y evaluar textos con finalidad argumentativa, como columnas de opinión, ensayos o discursos, considerando tesis, argumentos, evidencias y recursos persuasivos."
+          "id": "LE2M-OA-20",
+          "codigo_oficial": "LE2M OA 20",
+          "descripcion": "Evaluar el punto de vista de un emisor, su razonamiento y uso de recursos retóricos (vocabulario, organización de las ideas, desarrollo y progresión de los argumentos, etc.).",
+          "eje": "Comunicación oral"
+        },
+        {
+          "id": "LE2M-OA-21",
+          "codigo_oficial": "LE2M OA 21",
+          "descripcion": "Dialogar constructivamente para debatir o explorar ideas:\n- Manteniendo el foco\n- Demostrando comprensión de lo dicho por el interlocutor\n- Fundamentando su postura de manera pertinente y usando información que permita cumplir los propósitos establecidos\n- Distinguiendo afirmaciones basadas en evidencias de aquellas que no lo están\n- Retomando lo dicho por otros a través del parafraseo antes de contribuir con una idea nueva o refutar un argumento\n- Negociando acuerdos con los interlocutores\n- Reformulando sus comentarios para desarrollarlos mejor\n- Considerando al interlocutor para la toma de turnos",
+          "eje": "Comunicación oral"
+        },
+        {
+          "id": "LE2M-OA-22",
+          "codigo_oficial": "LE2M OA 22",
+          "descripcion": "Expresarse frente a una audiencia de manera clara y adecuada a la situación para comunicar temas de su interés:\n- Presentando información fidedigna y que denota una investigación previa\n- Siguiendo una progresión temática clara\n- Graduando la cantidad de información que se entrega en cada parte de la exposición para asegurarse de que la audiencia comprenda\n- Usando un vocabulario que denota dominio del tema\n- Usando conectores adecuados para hilar la presentación\n- Usando material visual que destaque solo lo más relevante y/o explique los conceptos más complejos",
+          "eje": "Comunicación oral"
+        },
+        {
+          "id": "LE2M-OA-23",
+          "codigo_oficial": "LE2M OA 23",
+          "descripcion": "Analizar los posibles efectos de los elementos lingüísticos, paralingüísticos y no lingüísticos que usa un hablante en una situación determinada.",
+          "eje": "Comunicación oral"
         }
       ]
     },
     {
       "numero": 4,
-      "nombre": "Poder y ambición (género dramático)",
+      "id": "eje-investigacion",
+      "nombre": "Investigación",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
-          "id": "LE2M-OA-01",
-          "codigo_oficial": "LE2M OA 01",
-          "descripcion": "Leer habitualmente para aprender y recrearse, y seleccionar textos de acuerdo con sus preferencias y propósitos."
-        },
-        {
-          "id": "LE2M-OA-19",
-          "codigo_oficial": "LE2M OA 19",
-          "descripcion": "Comprender, comparar y evaluar textos orales y audiovisuales, tales como exposiciones, discursos, documentales, noticias, reportajes y obras dramáticas."
+          "id": "LE2M-OA-24",
+          "codigo_oficial": "LE2M OA 24",
+          "descripcion": "Realizar investigaciones sobre diversos temas para complementar sus lecturas o responder interrogantes relacionadas con el lenguaje y la literatura:\n- Delimitando el tema de investigación\n- Seleccionando páginas y fuentes según la profundidad y la cobertura de la información que buscan\n- Usando los organizadores y la estructura textual para encontrar información de manera eficiente\n- Evaluando si los textos entregan suficiente información para responder una determinada pregunta o cumplir un propósito\n- Evaluando la validez y confiabilidad de las fuentes consultadas\n- Jerarquizando la información encontrada en las fuentes investigadas\n- Registrando la información bibliográfica de las fuentes consultadas\n- Elaborando un texto oral o escrito bien estructurado que comunique sus hallazgos",
+          "eje": "Investigación"
         }
       ]
     }
