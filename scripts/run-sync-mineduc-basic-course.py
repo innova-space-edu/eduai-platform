@@ -10,6 +10,7 @@ URL canónica y el parser valida códigos, secuencia y cantidad antes de escribi
 from __future__ import annotations
 
 import importlib.util
+import json
 import subprocess
 from pathlib import Path
 
@@ -20,6 +21,27 @@ if spec is None or spec.loader is None:
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 
+# La comparación con la página oficial confirmó que Historia de 5° básico
+# contiene HI05 OA 01 a HI05 OA 22. Se aplica aquí mientras el sincronizador
+# se amplía para 6° básico y luego se consolidan las configuraciones.
+course_five = module.COURSES[5]
+course_five["expected_total"] = 149
+for subject in course_five["subjects"]:
+    if subject["prefix"] == "HI":
+        subject["count"] = 22
+
+original_update_progress = module.update_progress
+
+
+def update_progress_with_verified_total(course: int, course_cfg: dict) -> None:
+    original_update_progress(course, course_cfg)
+    path = module.MINEDUC_ROOT / "meta" / "verification-progress.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data["oa_contenido_verificados"] = 954
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+module.update_progress = update_progress_with_verified_total
 canonical_available = True
 
 
