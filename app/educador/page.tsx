@@ -17,6 +17,7 @@ import {
 import { PLANNING_PROFILE_OPTIONS, type PlanningProfileId } from "@/lib/school-planning-profiles"
 import {
   getAvailableAsignaturas,
+  getCurriculumVerification,
   getParvulariaAmbitoForCurso,
   getParvulariaOATForCurso,
   hasLocalCurriculumForAsignatura,
@@ -312,6 +313,11 @@ export default function EducadorPage() {
   const summary = useMemo(
     () => getPlannerSummary(curriculumState),
     [curriculumState]
+  )
+
+  const curriculumVerification = useMemo(
+    () => getCurriculumVerification(config.nivel, config.curso, config.asignatura),
+    [config.nivel, config.curso, config.asignatura]
   )
 
   const parvulariaOAT = useMemo(
@@ -1063,6 +1069,48 @@ export default function EducadorPage() {
                 </div>
               </div>
 
+              {currentAsignaturaHasLocal && curriculumVerification && (
+                <div
+                  className={`mb-4 rounded-2xl border px-4 py-3 ${
+                    curriculumVerification.isOfficiallyVerified
+                      ? "border-emerald-500/30 bg-emerald-500/10"
+                      : "border-amber-500/30 bg-amber-500/10"
+                  }`}
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span
+                      className={`text-xs font-semibold ${
+                        curriculumVerification.isOfficiallyVerified
+                          ? "text-emerald-700"
+                          : "text-amber-800"
+                      }`}
+                    >
+                      {curriculumVerification.isOfficiallyVerified ? "✓" : "⚠"} {curriculumVerification.label}
+                    </span>
+                    {curriculumVerification.verifiedAt && (
+                      <span className="text-[11px] text-muted2">
+                        Consulta: {curriculumVerification.verifiedAt}
+                      </span>
+                    )}
+                  </div>
+                  {!curriculumVerification.isOfficiallyVerified && (
+                    <p className="mt-1 text-[11px] leading-relaxed text-amber-800">
+                      Puedes usar esta base como apoyo interno, pero no debe presentarse como cita literal definitiva de MINEDUC.
+                    </p>
+                  )}
+                  {curriculumVerification.sourceUrl && (
+                    <a
+                      href={curriculumVerification.sourceUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-1 inline-block text-[11px] font-medium text-emerald-700 hover:underline"
+                    >
+                      Revisar fuente oficial ↗
+                    </a>
+                  )}
+                </div>
+              )}
+
               {!!units.length && (
                 <div className="mb-4">
                   <label className="text-muted2 text-xs mb-2 block">
@@ -1145,7 +1193,18 @@ export default function EducadorPage() {
                                   <div className="text-sm font-semibold text-main">
                                     {oa.codigoOficial || oa.id}
                                   </div>
-                                  <p className="text-xs text-sub leading-relaxed mt-1 text-justify">
+                                  {oa.verificationLabel && (
+                                    <span
+                                      className={`mt-1 inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium ${
+                                        oa.verificationStatus === "verificado_oficial"
+                                          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700"
+                                          : "border-amber-500/30 bg-amber-500/10 text-amber-800"
+                                      }`}
+                                    >
+                                      {oa.verificationLabel}
+                                    </span>
+                                  )}
+                                  <p className="text-xs text-sub leading-relaxed mt-1 text-justify whitespace-pre-line">
                                     {oa.texto}
                                   </p>
                                 </div>

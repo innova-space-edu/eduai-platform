@@ -4,70 +4,69 @@
     "curso": "7° Básico",
     "asignatura": "Educación Física y Salud",
     "fuente": "Currículum Nacional - MINEDUC Chile",
-    "source_url": "https://www.curriculumnacional.cl/",
-    "estado": "base_verificada_mineduc",
-    "ultima_actualizacion_manual": "2026-04-07",
-    "nota": "Archivo organizado con OA oficiales visibles en Currículum Nacional. Ejes oficiales usados como unidades del planificador."
+    "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/educacion-fisica-salud/7-basico",
+    "base_curricular": "Bases Curriculares 7º Básico a 2º Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-07-17",
+    "nota": "Los OA de contenido fueron cotejados con la página oficial vigente de Currículum Nacional. La agrupación corresponde a ejes curriculares, no a unidades inventadas."
   },
   "objetivos_habilidad": [],
-  "objetivos_actitud": [
-    {
-      "id": "EF07 OAA A",
-      "descripcion": "Demostrar respeto por los demás al participar en actividades físicas y/o deportivas; por ejemplo: aplicar el principio de juego limpio, llegar a acuerdos, jugar en forma cooperativa, aceptar el resultado y manejar el triunfo, entre otros.",
-      "unidades": [1, 2, 3]
-    },
-    {
-      "id": "EF07 OAA B",
-      "descripcion": "Promover la participación de todos en las actividades físicas, valorando la diversidad de las personas, sin discriminar por características como altura, peso, color de piel, origen, condición física, discapacidades, etc.",
-      "unidades": [1, 2, 3]
-    },
-    {
-      "id": "EF07 OAA C",
-      "descripcion": "Trabajar en equipo, asumiendo responsablemente roles y tareas, colaborando con otros y aceptando consejos y críticas.",
-      "unidades": [1, 2, 3]
-    }
-  ],
+  "objetivos_actitud": [],
   "unidades": [
     {
       "numero": 1,
+      "id": "eje-habilidades-motrices",
       "nombre": "Habilidades motrices",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
           "id": "EF7B-OA-01",
           "codigo_oficial": "EF07 OA 01",
-          "descripcion": "Aplicar, combinar y ajustar las habilidades motrices específicas de locomoción, manipulación y estabilidad en, al menos: un deporte individual, un deporte de oposición, un deporte de colaboración, un deporte de oposición/colaboración y una danza."
+          "descripcion": "Aplicar, combinar y ajustar las habilidades motrices específicas de locomoción, manipulación y estabilidad en, al menos:\n- Un deporte individual (atletismo, gimnasia artística, entre otros).\n- Un deporte de oposición (tenis, bádminton, entre otros).\n- Un deporte de colaboración (escalada, vóleibol duplas, entre otros).\n- Un deporte de oposición/colaboración (básquetbol, hándbol, hockey, entre otros).\n- Una danza (folclórica, moderna, entre otras).",
+          "eje": "Habilidades motrices"
         },
         {
           "id": "EF7B-OA-02",
           "codigo_oficial": "EF07 OA 02",
-          "descripcion": "Seleccionar y aplicar estrategias y tácticas específicas para la resolución de problemas durante la práctica de juegos o deportes."
+          "descripcion": "Seleccionar y aplicar estrategias y tácticas específicas para la resolución de problemas durante la práctica de juegos o deportes; por ejemplo: ubicar la pelota lejos de un contrincante, utilizar los espacios para recibir un objeto sin oponentes, aplicar un sistema de juego (uno contra uno, tres contra tres, entre otros), entre otros.",
+          "eje": "Habilidades motrices"
         }
       ]
     },
     {
       "numero": 2,
+      "id": "eje-vida-activa-saludable",
       "nombre": "Vida activa y saludable",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
           "id": "EF7B-OA-03",
           "codigo_oficial": "EF07 OA 03",
-          "descripcion": "Desarrollar la resistencia cardiovascular, la fuerza muscular, la velocidad y la flexibilidad para alcanzar una condición física saludable, considerando: frecuencia, intensidad, tiempo de duración y tipo de ejercicio."
+          "descripcion": "Desarrollar la resistencia cardiovascular, la fuerza muscular, la velocidad y la flexibilidad para alcanzar una condición física saludable, considerando:\n- Frecuencia.\n- Intensidad.\n- Tiempo de duración.\n- Tipo de ejercicio (correr, andar en bicicleta, realizar trabajo de fuerza, ejercicios de flexibilidad, entre otros).",
+          "eje": "Vida activa y saludable"
         },
         {
           "id": "EF7B-OA-04",
           "codigo_oficial": "EF07 OA 04",
-          "descripcion": "Practicar regularmente una variedad de actividades físicas alternativas y/o deportivas en diferentes entornos, aplicando conductas de autocuidado y seguridad."
+          "descripcion": "Practicar regularmente una variedad de actividades físicas alternativas y/o deportivas en diferentes entornos, aplicando conductas de autocuidado y seguridad, como realizar al menos 30 minutos diarios de actividades físicas de su interés, evitar el consumo de drogas, tabaco y alcohol, ejecutar un calentamiento, aplicar reglas y medidas de seguridad, hidratarse con agua de forma permanente, entre otras.",
+          "eje": "Vida activa y saludable"
         }
       ]
     },
     {
       "numero": 3,
+      "id": "eje-responsabilidad-personal-social",
       "nombre": "Responsabilidad personal y social en el deporte y la actividad física",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
           "id": "EF7B-OA-05",
           "codigo_oficial": "EF07 OA 05",
-          "descripcion": "Participar en una variedad actividades físicas y/o deportivas de su interés y que se desarrollan en su comunidad escolar y/o en su entorno."
+          "descripcion": "Participar en una variedad actividades físicas y/o deportivas de su interés y que se desarrollan en su comunidad escolar y/o en su entorno; por ejemplo:\n- Integrarse en talleres de actividades físicas y/o deportivas extraprogramáticas que se desarrollan en su comunidad y/o entorno.\n- Asumir variados roles en la participación y promoción de una vida activa.\n- Utilizar los entornos cercanos para realizar alguna actividad física y/o deportiva (plazas, parques, entre otros).",
+          "eje": "Responsabilidad personal y social en el deporte y la actividad física"
         }
       ]
     }

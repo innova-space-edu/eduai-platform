@@ -2,93 +2,75 @@
   "metadata": {
     "nivel": "Básica",
     "curso": "6° Básico",
-    "asignatura": "Tecnología",
     "fuente": "Currículum Nacional - MINEDUC Chile",
-    "source_url": "https://www.curriculumnacional.cl/",
-    "estado": "base_verificada_mineduc",
-    "ultima_actualizacion_manual": "2026-03-29",
-    "nota": "Archivo estructurado con los OA de Tecnología publicados en la Base Curricular oficial de Currículum Nacional."
+    "base_curricular": "Bases Curriculares 1° a 6° Básico",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-07-18",
+    "nota": "Los OA de contenido fueron obtenidos directamente de la página oficial vigente de Currículum Nacional. La agrupación corresponde a ejes curriculares y no inventa unidades del programa de estudio.",
+    "asignatura": "Tecnología",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/tecnologia/6-basico"
   },
   "objetivos_habilidad": [],
-  "objetivos_actitud": [
-    {
-      "id": "6_BASICO-TE-OAA-A",
-      "descripcion": "Demostrar curiosidad por el entorno tecnológico, y disposición a informarse y explorar sus diversos usos, funcionamiento y materiales."
-    },
-    {
-      "id": "6_BASICO-TE-OAA-B",
-      "descripcion": "Demostrar disposición a desarrollar su creatividad, experimentando, imaginando y pensando divergentemente."
-    },
-    {
-      "id": "6_BASICO-TE-OAA-C",
-      "descripcion": "Demostrar iniciativa personal y emprendimiento en la creación y diseño de tecnologías innovadoras."
-    },
-    {
-      "id": "6_BASICO-TE-OAA-D",
-      "descripcion": "Demostrar disposición a trabajar en equipo, colaborar con otros y aceptar consejos y críticas."
-    },
-    {
-      "id": "6_BASICO-TE-OAA-E",
-      "descripcion": "Demostrar un uso seguro y responsable de internet, cumpliendo las reglas entregadas por el profesor y respetando los derechos de autor."
-    }
-  ],
+  "objetivos_actitud": [],
   "unidades": [
     {
       "numero": 1,
-      "nombre": "Diseño y representación de ideas",
+      "id": "eje-disenar-hacer-y-probar",
+      "nombre": "Diseñar, hacer y probar",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
           "id": "TE6B-OA-01",
           "codigo_oficial": "TE06 OA 01",
-          "descripcion": "Crear diseños de objetos y sistemas tecnológicos para resolver problemas o aprovechar oportunidades, representando ideas mediante dibujos o TIC e innovando con productos."
+          "descripcion": "Crear diseños de objetos y sistemas tecnológicos para resolver problemas o aprovechar oportunidades:\n- desde diversos ámbitos tecnológicos determinados y tópicos de otras asignaturas\n- representando sus ideas a través de dibujos a mano alzada, dibujo técnico o usando TIC\n- innovando con productos",
+          "eje": "Diseñar, hacer y probar"
         },
         {
           "id": "TE6B-OA-02",
           "codigo_oficial": "TE06 OA 02",
-          "descripcion": "Planificar la elaboración de objetos o servicios tecnológicos, incorporando secuencia de acciones, tiempos, costos y recursos, y discutiendo implicancias ambientales y sociales."
+          "descripcion": "Planificar la elaboración de objetos o servicios tecnológicos, incorporando la secuencia de acciones, tiempos, costos y recursos necesarios o alternativos para lograr el resultado deseado, y discutiendo las implicancias ambientales y sociales de los elementos considerados.",
+          "eje": "Diseñar, hacer y probar"
+        },
+        {
+          "id": "TE6B-OA-03",
+          "codigo_oficial": "TE06 OA 03",
+          "descripcion": "Elaborar un producto tecnológico para resolver problemas y aprovechar oportunidades, seleccionando y demostrando dominio en el uso de:\n- técnicas y herramientas para medir, marcar, cortar, unir, pegar, perforar, mezclar, lijar, serrar y pintar, entre otras\n- materiales como papeles, cartones, maderas, fibras, plásticos, cerámicos, metales, desechos, entre otros",
+          "eje": "Diseñar, hacer y probar"
+        },
+        {
+          "id": "TE6B-OA-04",
+          "codigo_oficial": "TE06 OA 04",
+          "descripcion": "Probar y evaluar la calidad de los trabajos propios o de otros, de forma individual o en equipos, aplicando criterios de funcionamiento, técnicos, medioambientales, estéticos y de seguridad, dialogando sobre sus resultados y aplicando correcciones según corresponda.",
+          "eje": "Diseñar, hacer y probar"
         }
       ]
     },
     {
       "numero": 2,
-      "nombre": "Elaboración y prueba de objetos",
-      "oa": [
-        {
-          "id": "TE6B-OA-03",
-          "codigo_oficial": "TE06 OA 03",
-          "descripcion": "Elaborar un producto tecnológico para resolver problemas y aprovechar oportunidades, seleccionando y demostrando dominio en el uso de técnicas, herramientas y materiales diversos."
-        },
-        {
-          "id": "TE6B-OA-04",
-          "codigo_oficial": "TE06 OA 04",
-          "descripcion": "Probar y evaluar la calidad de los trabajos propios o de otros, aplicando criterios de funcionamiento, técnicos, medioambientales, estéticos y de seguridad, dialogando sobre sus resultados y aplicando correcciones."
-        }
-      ]
-    },
-    {
-      "numero": 3,
-      "nombre": "Herramientas digitales y software",
+      "id": "eje-tecnologias-de-la-informacion-y-la-comunicacion",
+      "nombre": "Tecnologías de la información y la comunicación",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
           "id": "TE6B-OA-05",
           "codigo_oficial": "TE06 OA 05",
-          "descripcion": "Usar software para organizar y comunicar los resultados de investigaciones e intercambiar ideas con diferentes propósitos, mediante programas de presentación y hojas de cálculo con gráficos diversos."
+          "descripcion": "Usar software para organizar y comunicar los resultados de investigaciones e intercambiar ideas con diferentes propósitos, mediante:\n- programas de presentación para mostrar imágenes, diagramas y textos, entre otros\n- hojas de cálculo para elaborar tablas de doble entrada y diseñar gráficos de barra simple y doble, circulares y de línea, entre otros",
+          "eje": "Tecnologías de la información y la comunicación"
         },
         {
           "id": "TE6B-OA-06",
           "codigo_oficial": "TE06 OA 06",
-          "descripcion": "Usar procesador de textos para crear, editar, dar formato, incorporar elementos de diseño, revisar y guardar un documento."
-        }
-      ]
-    },
-    {
-      "numero": 4,
-      "nombre": "Uso responsable de internet",
-      "oa": [
+          "descripcion": "Usar procesador de textos para crear, editar, dar formato, incorporar elementos de diseño, revisar y guardar un documento.",
+          "eje": "Tecnologías de la información y la comunicación"
+        },
         {
           "id": "TE6B-OA-07",
           "codigo_oficial": "TE06 OA 07",
-          "descripcion": "Usar internet y comunicación en línea para compartir y publicar información de diferente carácter con otras personas, considerando la seguridad de la fuente y las normas de privacidad y de uso."
+          "descripcion": "Usar internet y comunicación en línea para compartir y publicar información de diferente carácter con otras personas, considerando la seguridad de la fuente y las normas de privacidad y de uso.",
+          "eje": "Tecnologías de la información y la comunicación"
         }
       ]
     }

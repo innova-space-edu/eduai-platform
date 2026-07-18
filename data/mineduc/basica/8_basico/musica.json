@@ -2,67 +2,47 @@
   "metadata": {
     "nivel": "Básica",
     "curso": "8° Básico",
-    "asignatura": "Música",
     "fuente": "Currículum Nacional - MINEDUC Chile",
-    "source_url": "https://www.curriculumnacional.cl/",
-    "estado": "base_verificada_mineduc",
-    "ultima_actualizacion_manual": "2026-04-07",
-    "nota": "Archivo organizado con OA oficiales visibles en Currículum Nacional. Agrupación por ejes oficiales para el planificador."
+    "base_curricular": "Bases Curriculares 7º Básico a 2º Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": ["oa_contenido"],
+    "fecha_consulta": "2026-07-17",
+    "nota": "Los OA de contenido fueron transcritos desde la página oficial vigente de Currículum Nacional. La agrupación siguiente corresponde a ejes curriculares y no inventa unidades del programa de estudio.",
+    "asignatura": "Música",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/musica/8-basico"
   },
   "objetivos_habilidad": [],
   "objetivos_actitud": [],
   "unidades": [
     {
       "numero": 1,
+      "id": "eje-escuchar-y-apreciar",
       "nombre": "Escuchar y apreciar",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
-        {
-          "id": "MU8B-OA-01",
-          "codigo_oficial": "MU08 OA 01",
-          "descripcion": "Comunicar sentimientos, sensaciones e ideas al escuchar manifestaciones y obras musicales de Chile y el mundo, presentes en la tradición, oral, escrita y popular, integrando sus conocimientos en expresiones verbales, visuales, sonoras y corporales."
-        },
-        {
-          "id": "MU8B-OA-02",
-          "codigo_oficial": "MU08 OA 02",
-          "descripcion": "Describir analíticamente los elementos del lenguaje musical y los procedimientos compositivos evidentes en la música escuchada, interpretada y creada, y su relación con el propósito expresivo."
-        }
+        {"id":"MU8B-OA-01","codigo_oficial":"MU08 OA 01","descripcion":"Comunicar sentimientos, sensaciones e ideas al escuchar manifestaciones y obras musicales de Chile y el mundo presentes en la tradición oral, escrita y popular, integrando sus conocimientos en expresiones verbales, visuales, sonoras y corporales.","eje":"Escuchar y apreciar"},
+        {"id":"MU8B-OA-02","codigo_oficial":"MU08 OA 02","descripcion":"Describir analíticamente los elementos del lenguaje musical y los procedimientos compositivos evidentes en la música escuchada, interpretada y creada, y su relación con el propósito expresivo.","eje":"Escuchar y apreciar"}
       ]
     },
     {
       "numero": 2,
+      "id": "eje-interpretar-y-crear",
       "nombre": "Interpretar y crear",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
-        {
-          "id": "MU8B-OA-03",
-          "codigo_oficial": "MU08 OA 03",
-          "descripcion": "Cantar y tocar repertorio relacionado con la música escuchada, desarrollando habilidades tales como comprensión rítmica, melódica, conciencia de textura y estilo, expresividad, rigurosidad, fluidez de fraseo y dinámica, entre otros."
-        },
-        {
-          "id": "MU8B-OA-04",
-          "codigo_oficial": "MU08 OA 04",
-          "descripcion": "Interpretar repertorio diverso a una y más voces, con precisión rítmica y melódica, incorporando como guía el uso de medios de registro y transmisión, en la presentación de su quehacer musical."
-        },
-        {
-          "id": "MU8B-OA-05",
-          "codigo_oficial": "MU08 OA 05",
-          "descripcion": "Improvisar y crear música aplicando experiencias y conocimientos a partir de indicaciones determinadas, dando énfasis a acompañamientos y variaciones rítmicas, melódicas y/o armónicas."
-        }
+        {"id":"MU8B-OA-03","codigo_oficial":"MU08 OA 03","descripcion":"Cantar y tocar repertorio relacionado con la música escuchada, desarrollando habilidades tales como comprensión rítmica, melódica, conciencia de textura y estilo, expresividad, rigurosidad, fluidez de fraseo y dinámica, entre otras.","eje":"Interpretar y crear"},
+        {"id":"MU8B-OA-04","codigo_oficial":"MU08 OA 04","descripcion":"Interpretar repertorio diverso a una y más voces, con precisión rítmica y melódica, incorporando como guía el uso de medios de registro y transmisión en la presentación de su quehacer musical.","eje":"Interpretar y crear"},
+        {"id":"MU8B-OA-05","codigo_oficial":"MU08 OA 05","descripcion":"Improvisar y crear música aplicando experiencias y conocimientos basándose en indicaciones determinadas, dando énfasis a acompañamientos y variaciones rítmicas, melódicas o armónicas.","eje":"Interpretar y crear"}
       ]
     },
     {
       "numero": 3,
+      "id": "eje-reflexionar-y-relacionar",
       "nombre": "Reflexionar y relacionar",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
-        {
-          "id": "MU8B-OA-06",
-          "codigo_oficial": "MU08 OA 06",
-          "descripcion": "Explicar fortalezas y áreas de crecimiento personal en la audición, interpretación, creación y reflexión, y su influencia en el trabajo musical propio y colectivo."
-        },
-        {
-          "id": "MU8B-OA-07",
-          "codigo_oficial": "MU08 OA 07",
-          "descripcion": "Apreciar el rol de la música en la sociedad a partir del repertorio trabajado, respetando la diversidad y riqueza de los contextos socioculturales."
-        }
+        {"id":"MU8B-OA-06","codigo_oficial":"MU08 OA 06","descripcion":"Explicar fortalezas y áreas de crecimiento personal en la audición, interpretación, creación y reflexión, y su influencia en el trabajo musical propio y colectivo.","eje":"Reflexionar y relacionar"},
+        {"id":"MU8B-OA-07","codigo_oficial":"MU08 OA 07","descripcion":"Apreciar el rol de la música en la sociedad sobre la base del repertorio trabajado, respetando la diversidad y riqueza de los contextos socioculturales.","eje":"Reflexionar y relacionar"}
       ]
     }
   ]

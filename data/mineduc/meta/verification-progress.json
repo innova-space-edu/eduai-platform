@@ -1,0 +1,23 @@
+{
+  "fecha_actualizacion": "2026-07-18",
+  "fase": "educacion_basica_completa",
+  "archivos_curriculares_totales": 105,
+  "asignaturas_verificadas_oficialmente": 76,
+  "propuestas_oficiales_verificadas": 4,
+  "archivos_pendientes": 25,
+  "oa_contenido_verificados": 1109,
+  "cursos_completos": [
+    "1_basico",
+    "2_basico",
+    "3_basico",
+    "4_basico",
+    "5_basico",
+    "6_basico",
+    "7_basico",
+    "8_basico"
+  ],
+  "siguiente_bloque": "educacion_media",
+  "ultima_validacion": "success",
+  "estado_fusion": "listo_para_fusion",
+  "nota": "Educación Básica completa: OA de contenido cotejados con páginas oficiales específicas. Inglés de 1° a 4° básico se registra como propuesta oficial; Inglés de 5° y 6° básico pertenece a la base curricular obligatoria."
+}

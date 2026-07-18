@@ -1,85 +1,152 @@
 {
-  "estado": "base_verificada_mineduc",
-  "curso": "8_basico",
-  "asignatura": "matematica",
-  "nombre_asignatura": "Matemática",
-  "fuente": "Currículum Nacional MINEDUC",
+  "metadata": {
+    "nivel": "Básica",
+    "curso": "8° Básico",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "base_curricular": "Bases Curriculares 7º Básico a 2º Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-07-17",
+    "nota": "Los OA de contenido fueron transcritos desde la página oficial vigente de Currículum Nacional. La agrupación siguiente corresponde a ejes curriculares y no inventa unidades del programa de estudio.",
+    "asignatura": "Matemática",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/matematica/8-basico"
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
   "unidades": [
     {
-      "unidad": 1,
-      "titulo": "Números y operaciones",
+      "numero": 1,
+      "id": "eje-numeros",
+      "nombre": "Números",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
-          "id": "OA1",
-          "descripcion": "Resolver problemas con números enteros, racionales y porcentajes.",
-          "eje": "Números",
-          "indicadores": [
-            "Aplican operaciones con números racionales.",
-            "Resuelven problemas de porcentaje en contexto."
-          ]
+          "id": "MA8B-OA-01",
+          "codigo_oficial": "MA08 OA 01",
+          "descripcion": "Mostrar que comprenden la multiplicación y la división de números enteros:\n- Representándolas de manera concreta, pictórica y simbólica.\n- Aplicando procedimientos usados en la multiplicación y la división de números naturales.\n- Aplicando la regla de los signos de la operación.\n- Resolviendo problemas rutinarios y no rutinarios.",
+          "eje": "Números"
         },
         {
-          "id": "OA2",
-          "descripcion": "Explicar y aplicar razones, proporciones y porcentajes.",
-          "eje": "Números",
-          "indicadores": [
-            "Resuelven proporciones directas e inversas.",
-            "Modelan situaciones reales con razones."
-          ]
-        }
-      ]
-    },
-    {
-      "unidad": 2,
-      "titulo": "Álgebra y funciones",
-      "oa": [
-        {
-          "id": "OA3",
-          "descripcion": "Modelar situaciones con expresiones algebraicas y ecuaciones lineales.",
-          "eje": "Álgebra",
-          "indicadores": [
-            "Traducen situaciones a ecuaciones.",
-            "Resuelven ecuaciones lineales."
-          ]
+          "id": "MA8B-OA-02",
+          "codigo_oficial": "MA08 OA 02",
+          "descripcion": "Utilizar las operaciones de multiplicación y división con los números racionales en el contexto de la resolución de problemas:\n- Representándolos en la recta numérica.\n- Involucrando diferentes conjuntos numéricos (fracciones, decimales y números enteros).",
+          "eje": "Números"
         },
         {
-          "id": "OA4",
-          "descripcion": "Analizar relaciones lineales y representarlas gráficamente.",
-          "eje": "Álgebra",
-          "indicadores": [
-            "Construyen tablas y gráficos.",
-            "Interpretan pendiente e intercepto."
-          ]
+          "id": "MA8B-OA-03",
+          "codigo_oficial": "MA08 OA 03",
+          "descripcion": "Explicar la multiplicación y la división de potencias de base natural y exponente natural hasta 3, de manera concreta, pictórica y simbólica.",
+          "eje": "Números"
+        },
+        {
+          "id": "MA8B-OA-04",
+          "codigo_oficial": "MA08 OA 04",
+          "descripcion": "Mostrar que comprenden las raíces cuadradas de números naturales:\n- Estimándolas de manera intuitiva.\n- Representándolas de manera concreta, pictórica y simbólica.\n- Aplicándolas en situaciones geométricas y en la vida diaria.",
+          "eje": "Números"
+        },
+        {
+          "id": "MA8B-OA-05",
+          "codigo_oficial": "MA08 OA 05",
+          "descripcion": "Resolver problemas que involucran variaciones porcentuales en contextos diversos, usando representaciones pictóricas y registrando el proceso de manera simbólica; por ejemplo: el interés anual del ahorro.",
+          "eje": "Números"
         }
       ]
     },
     {
-      "unidad": 3,
-      "titulo": "Geometría",
+      "numero": 2,
+      "id": "eje-algebra-funciones",
+      "nombre": "Álgebra y funciones",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
-          "id": "OA5",
-          "descripcion": "Aplicar propiedades de triángulos, cuadriláteros y circunferencia.",
-          "eje": "Geometría",
-          "indicadores": [
-            "Reconocen propiedades geométricas.",
-            "Resuelven problemas de perímetro, área y ángulos."
-          ]
+          "id": "MA8B-OA-06",
+          "codigo_oficial": "MA08 OA 06",
+          "descripcion": "Mostrar que comprenden la operatoria de expresiones algebraicas:\n- Representándolas de manera pictórica y simbólica.\n- Relacionándolas con el área de cuadrados, rectángulos y volúmenes de paralelepípedos.\n- Determinando formas factorizadas.",
+          "eje": "Álgebra y funciones"
+        },
+        {
+          "id": "MA8B-OA-07",
+          "codigo_oficial": "MA08 OA 07",
+          "descripcion": "Mostrar que comprenden la noción de función por medio de un cambio lineal:\n- Utilizando tablas.\n- Usando metáforas de máquinas.\n- Estableciendo reglas entre x e y.\n- Representando de manera gráfica (plano cartesiano, diagramas de Venn), de manera manual y/o con software educativo.",
+          "eje": "Álgebra y funciones"
+        },
+        {
+          "id": "MA8B-OA-08",
+          "codigo_oficial": "MA08 OA 08",
+          "descripcion": "Modelar situaciones de la vida diaria y de otras asignaturas, usando ecuaciones lineales de la forma: ax = b; x/a = b, a ≠ 0; ax + b = c; x/a + b = c; ax = b + cx; a(x + b) = c; ax + b = cx + d (a, b, c, d, e ∈ Q).",
+          "eje": "Álgebra y funciones"
+        },
+        {
+          "id": "MA8B-OA-09",
+          "codigo_oficial": "MA08 OA 09",
+          "descripcion": "Resolver inecuaciones lineales con coeficientes racionales en el contexto de la resolución de problemas, por medio de representaciones gráficas, simbólicas, de manera manual y/o con software educativo.",
+          "eje": "Álgebra y funciones"
+        },
+        {
+          "id": "MA8B-OA-10",
+          "codigo_oficial": "MA08 OA 10",
+          "descripcion": "Mostrar que comprenden la función afín:\n- Generalizándola como la suma de una constante con una función lineal.\n- Trasladando funciones lineales en el plano cartesiano.\n- Determinando el cambio constante de un intervalo a otro, de manera gráfica y simbólica, de manera manual y/o con software educativo.\n- Relacionándola con el interés simple.\n- Usándola para resolver problemas de la vida diaria y de otras asignaturas.",
+          "eje": "Álgebra y funciones"
         }
       ]
     },
     {
-      "unidad": 4,
-      "titulo": "Probabilidad y estadística",
+      "numero": 3,
+      "id": "eje-geometria",
+      "nombre": "Geometría",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
-          "id": "OA6",
-          "descripcion": "Analizar datos y probabilidades en distintos contextos.",
-          "eje": "Datos y azar",
-          "indicadores": [
-            "Interpretan medidas de tendencia central.",
-            "Calculan probabilidades simples y compuestas."
-          ]
+          "id": "MA8B-OA-11",
+          "codigo_oficial": "MA08 OA 11",
+          "descripcion": "Desarrollar las fórmulas para encontrar el área de superficies y el volumen de prismas rectos con diferentes bases y cilindros:\n- Estimando de manera intuitiva área de superficie y volumen.\n- Desplegando la red de prismas rectos para encontrar la fórmula del área de superficie.\n- Transfiriendo la fórmula del volumen de un cubo (base por altura) en prismas diversos y cilindros.\n- Aplicando las fórmulas a la resolución de problemas geométricos y de la vida diaria.",
+          "eje": "Geometría"
+        },
+        {
+          "id": "MA8B-OA-12",
+          "codigo_oficial": "MA08 OA 12",
+          "descripcion": "Explicar, de manera concreta, pictórica y simbólica, la validez del teorema de Pitágoras y aplicar a la resolución de problemas geométricos y de la vida cotidiana, de manera manual y/o con software educativo.",
+          "eje": "Geometría"
+        },
+        {
+          "id": "MA8B-OA-13",
+          "codigo_oficial": "MA08 OA 13",
+          "descripcion": "Describir la posición y el movimiento (traslaciones, rotaciones y reflexiones) de figuras 2D, de manera manual y/o con software educativo, utilizando:\n- Los vectores para la traslación.\n- Los ejes del plano cartesiano como ejes de reflexión.\n- Los puntos del plano para las rotaciones.",
+          "eje": "Geometría"
+        },
+        {
+          "id": "MA8B-OA-14",
+          "codigo_oficial": "MA08 OA 14",
+          "descripcion": "Componer rotaciones, traslaciones y reflexiones en el plano cartesiano y en el espacio, de manera manual y/o con software educativo, y aplicar a la simetría de polígonos y poliedros y a la resolución de problemas geométricos relacionados con el arte.",
+          "eje": "Geometría"
+        }
+      ]
+    },
+    {
+      "numero": 4,
+      "id": "eje-probabilidad-estadistica",
+      "nombre": "Probabilidad y estadística",
+      "tipo_agrupacion": "eje_curricular",
+      "oa": [
+        {
+          "id": "MA8B-OA-15",
+          "codigo_oficial": "MA08 OA 15",
+          "descripcion": "Mostrar que comprenden las medidas de posición, percentiles y cuartiles:\n- Identificando la población que está sobre o bajo el percentil.\n- Representándolas con diagramas, incluyendo el diagrama de cajón, de manera manual y/o con software educativo.\n- Utilizándolas para comparar poblaciones.",
+          "eje": "Probabilidad y estadística"
+        },
+        {
+          "id": "MA8B-OA-16",
+          "codigo_oficial": "MA08 OA 16",
+          "descripcion": "Evaluar la forma en que los datos están presentados:\n- Comparando la información de los mismos datos representada en distintos tipos de gráficos para determinar fortalezas y debilidades de cada uno.\n- Justificando la elección del gráfico para una determinada situación y su correspondiente conjunto de datos.\n- Detectando manipulaciones de gráficos para representar datos.",
+          "eje": "Probabilidad y estadística"
+        },
+        {
+          "id": "MA8B-OA-17",
+          "codigo_oficial": "MA08 OA 17",
+          "descripcion": "Explicar el principio combinatorio multiplicativo:\n- A partir de situaciones concretas.\n- Representándolo con tablas y árboles regulares, de manera manual y/o con software educativo.\n- Utilizándolo para calcular la probabilidad de un evento compuesto.",
+          "eje": "Probabilidad y estadística"
         }
       ]
     }

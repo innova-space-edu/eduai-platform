@@ -2,150 +2,85 @@
   "metadata": {
     "nivel": "Básica",
     "curso": "4° Básico",
-    "asignatura": "Matemática",
     "fuente": "Currículum Nacional - MINEDUC Chile",
-    "source_url": "https://curriculumnacional.mineduc.cl/",
-    "estado": "base_inicial_en_revision",
-    "ultima_actualizacion_manual": "2026-03-28",
-    "nota": "Archivo base estructurado para activar Educación Básica en el planificador. Requiere revisión final OA por OA contra las Bases/Programas oficiales MINEDUC antes de marcarlo como verificado."
+    "base_curricular": "Bases Curriculares 1° a 6° Básico",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-07-17",
+    "nota": "Los OA de contenido fueron cotejados con la página oficial vigente de Currículum Nacional. La agrupación siguiente corresponde a ejes curriculares y no inventa unidades del programa de estudio.",
+    "asignatura": "Matemática",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/matematica/4-basico"
   },
-  "objetivos_habilidad": [
-    {
-      "id": "4_BASICO-OAH-RP",
-      "descripcion": "Resolver problemas, modelar y comunicar procedimientos matemáticos en contextos cotidianos y escolares.",
-      "unidades": [
-        1,
-        2,
-        3,
-        4
-      ]
-    },
-    {
-      "id": "4_BASICO-OAH-REP",
-      "descripcion": "Representar información matemática de manera concreta, pictórica y simbólica.",
-      "unidades": [
-        1,
-        2,
-        3,
-        4
-      ]
-    }
-  ],
-  "objetivos_actitud": [
-    {
-      "id": "4_BASICO-OAA-A",
-      "descripcion": "Manifestar un estilo de trabajo ordenado, perseverante y colaborativo en la resolución de tareas matemáticas.",
-      "unidades": [
-        1,
-        2,
-        3,
-        4
-      ]
-    }
-  ],
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
   "unidades": [
     {
       "numero": 1,
-      "nombre": "Números naturales hasta 10 000 y operaciones",
+      "id": "eje-numeros-operaciones",
+      "nombre": "Números y operaciones",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
-        {
-          "id": "MA4B-OA-01",
-          "codigo_oficial": "MA04 OA 01",
-          "descripcion": "Leer, escribir, representar, comparar, ordenar, componer y descomponer números naturales hasta 10 000."
-        },
-        {
-          "id": "MA4B-OA-02",
-          "codigo_oficial": "MA04 OA 02",
-          "descripcion": "Demostrar que comprenden la adición y la sustracción con números naturales hasta 10 000."
-        },
-        {
-          "id": "MA4B-OA-03",
-          "codigo_oficial": "MA04 OA 03",
-          "descripcion": "Resolver problemas rutinarios y no rutinarios de adición y sustracción usando diversas estrategias."
-        },
-        {
-          "id": "MA4B-OA-04",
-          "codigo_oficial": "MA04 OA 04",
-          "descripcion": "Demostrar que comprenden la multiplicación por uno y dos dígitos y la división en casos simples."
-        }
+        {"id":"MA4B-OA-01","codigo_oficial":"MA04 OA 01","descripcion":"Representar y describir números del 0 al 10 000:\n- contándolos de 10 en 10, de 100 en 100, de 1 000 en 1 000\n- leyéndolos y escribiéndolos\n- representándolos en forma concreta, pictórica y simbólica\n- comparándolos y ordenándolos en la recta numérica o la tabla posicional\n- identificando el valor posicional de los dígitos hasta la decena de mil\n- componiendo y descomponiendo números naturales hasta 10 000 en forma aditiva, de acuerdo a su valor posicional.","eje":"Números y operaciones"},
+        {"id":"MA4B-OA-02","codigo_oficial":"MA04 OA 02","descripcion":"Describir y aplicar estrategias de cálculo mental:\n- conteo hacia delante y atrás\n- doblar y dividir por 2\n- por descomposición\n- usar el doble del doble para determinar las multiplicaciones hasta 10 x 10 y sus divisiones correspondientes.","eje":"Números y operaciones"},
+        {"id":"MA4B-OA-03","codigo_oficial":"MA04 OA 03","descripcion":"Demostrar que comprenden la adición y la sustracción de números hasta 1 000:\n- usando estrategias personales para realizar estas operaciones\n- descomponiendo los números involucrados\n- estimando sumas y diferencias\n- resolviendo problemas rutinarios y no rutinarios que incluyan adiciones y sustracciones\n- aplicando los algoritmos en la adición de hasta cuatro sumandos y en la sustracción de hasta un sustraendo.","eje":"Números y operaciones"},
+        {"id":"MA4B-OA-04","codigo_oficial":"MA04 OA 04","descripcion":"Fundamentar y aplicar las propiedades del 0 y del 1 para la multiplicación y la propiedad del 1 para la división.","eje":"Números y operaciones"},
+        {"id":"MA4B-OA-05","codigo_oficial":"MA04 OA 05","descripcion":"Demostrar que comprenden la multiplicación de números de tres dígitos por números de un dígito:\n- usando estrategias con o sin material concreto\n- utilizando las tablas de multiplicación\n- estimando productos\n- usando la propiedad distributiva de la multiplicación respecto de la suma\n- aplicando el algoritmo de la multiplicación\n- resolviendo problemas rutinarios.","eje":"Números y operaciones"},
+        {"id":"MA4B-OA-06","codigo_oficial":"MA04 OA 06","descripcion":"Demostrar que comprenden la división con dividendos de dos dígitos y divisores de un dígito:\n- usando estrategias para dividir, con o sin material concreto\n- utilizando la relación que existe entre la división y la multiplicación\n- estimando el cociente\n- aplicando la estrategia por descomposición del dividendo\n- aplicando el algoritmo de la división.","eje":"Números y operaciones"},
+        {"id":"MA4B-OA-07","codigo_oficial":"MA04 OA 07","descripcion":"Resolver problemas rutinarios y no rutinarios en contextos cotidianos que incluyen dinero, seleccionando y utilizando la operación apropiada.","eje":"Números y operaciones"},
+        {"id":"MA4B-OA-08","codigo_oficial":"MA04 OA 08","descripcion":"Demostrar que comprende las fracciones con denominadores 100, 12, 10, 8, 6, 5, 4, 3, 2:\n- explicando que una fracción representa la parte de un todo o de un grupo de elementos y un lugar en la recta numérica\n- describiendo situaciones en las cuales se puede usar fracciones\n- mostrando que una fracción puede tener representaciones diferentes\n- comparando y ordenando fracciones (por ejemplo: 1/100, 1/8, 1/5, 1/4, 1/2) con material concreto y pictórico.","eje":"Números y operaciones"},
+        {"id":"MA4B-OA-09","codigo_oficial":"MA04 OA 09","descripcion":"Resolver adiciones y sustracciones de fracciones con igual denominador (denominadores 100, 12, 10, 8, 6, 5, 4, 3, 2) de manera concreta y pictórica en el contexto de la resolución de problemas.","eje":"Números y operaciones"},
+        {"id":"MA4B-OA-10","codigo_oficial":"MA04 OA 10","descripcion":"Identificar, escribir y representar fracciones propias y los números mixtos hasta el 5 de manera concreta, pictórica y simbólica, en el contexto de la resolución de problemas.","eje":"Números y operaciones"},
+        {"id":"MA4B-OA-11","codigo_oficial":"MA04 OA 11","descripcion":"Describir y representar decimales (décimos y centésimos):\n- representándolos en forma concreta, pictórica y simbólica, de manera manual y/o con software educativo\n- comparándolos y ordenándolos hasta la centésima.","eje":"Números y operaciones"},
+        {"id":"MA4B-OA-12","codigo_oficial":"MA04 OA 12","descripcion":"Resolver adiciones y sustracciones de decimales, empleando el valor posicional hasta la centésima en el contexto de la resolución de problemas.","eje":"Números y operaciones"}
       ]
     },
     {
       "numero": 2,
-      "nombre": "Fracciones y patrones",
+      "id": "eje-patrones-algebra",
+      "nombre": "Patrones y álgebra",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
-        {
-          "id": "MA4B-OA-05",
-          "codigo_oficial": "MA04 OA 05",
-          "descripcion": "Resolver problemas que involucren multiplicación y división en contextos cotidianos."
-        },
-        {
-          "id": "MA4B-OA-06",
-          "codigo_oficial": "MA04 OA 06",
-          "descripcion": "Demostrar que comprenden fracciones propias e impropias simples, representándolas en forma concreta, pictórica y simbólica."
-        },
-        {
-          "id": "MA4B-OA-07",
-          "codigo_oficial": "MA04 OA 07",
-          "descripcion": "Comparar y ordenar fracciones de uso frecuente y relacionarlas con la unidad y la recta numérica."
-        },
-        {
-          "id": "MA4B-OA-08",
-          "codigo_oficial": "MA04 OA 08",
-          "descripcion": "Identificar, describir y crear patrones numéricos y geométricos, explicando la regla de formación."
-        }
+        {"id":"MA4B-OA-13","codigo_oficial":"MA04 OA 13","descripcion":"Identificar y describir patrones numéricos en tablas que involucren una operación, de manera manual y/o usando software educativo.","eje":"Patrones y álgebra"},
+        {"id":"MA4B-OA-14","codigo_oficial":"MA04 OA 14","descripcion":"Resolver ecuaciones e inecuaciones de un paso que involucren adiciones y sustracciones, comprobando los resultados en forma pictórica y simbólica del 0 al 100 y aplicando las relaciones inversas entre la adición y la sustracción.","eje":"Patrones y álgebra"}
       ]
     },
     {
       "numero": 3,
-      "nombre": "Geometría y medición",
+      "id": "eje-geometria",
+      "nombre": "Geometría",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
-        {
-          "id": "MA4B-OA-09",
-          "codigo_oficial": "MA04 OA 09",
-          "descripcion": "Describir y construir ángulos, líneas paralelas y perpendiculares, y figuras 2D en una cuadrícula."
-        },
-        {
-          "id": "MA4B-OA-10",
-          "codigo_oficial": "MA04 OA 10",
-          "descripcion": "Describir, clasificar y construir figuras geométricas y cuerpos 3D según sus propiedades."
-        },
-        {
-          "id": "MA4B-OA-11",
-          "codigo_oficial": "MA04 OA 11",
-          "descripcion": "Demostrar que comprenden área y perímetro de rectángulos y otras figuras simples."
-        },
-        {
-          "id": "MA4B-OA-12",
-          "codigo_oficial": "MA04 OA 12",
-          "descripcion": "Medir, estimar y convertir unidades de longitud, masa y capacidad en situaciones cotidianas."
-        }
+        {"id":"MA4B-OA-15","codigo_oficial":"MA04 OA 15","descripcion":"Describir la localización absoluta de un objeto en un mapa simple con coordenadas informales (por ejemplo con letras y números), y la localización relativa en relación a otros objetos.","eje":"Geometría"},
+        {"id":"MA4B-OA-16","codigo_oficial":"MA04 OA 16","descripcion":"Determinar las vistas de figuras 3D, desde el frente, desde el lado y desde arriba.","eje":"Geometría"},
+        {"id":"MA4B-OA-17","codigo_oficial":"MA04 OA 17","descripcion":"Demostrar que comprenden una línea de simetría:\n- identificando figuras simétricas 2D\n- creando figuras simétricas 2D\n- dibujando una o más líneas de simetría en figuras 2D\n- usando software geométrico.","eje":"Geometría"},
+        {"id":"MA4B-OA-18","codigo_oficial":"MA04 OA 18","descripcion":"Trasladar, rotar y reflejar figuras 2D.","eje":"Geometría"},
+        {"id":"MA4B-OA-19","codigo_oficial":"MA04 OA 19","descripcion":"Construir ángulos con el transportador y compararlos.","eje":"Geometría"}
       ]
     },
     {
       "numero": 4,
-      "nombre": "Tiempo, datos y probabilidades iniciales",
+      "id": "eje-medicion",
+      "nombre": "Medición",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
-        {
-          "id": "MA4B-OA-13",
-          "codigo_oficial": "MA04 OA 13",
-          "descripcion": "Leer e interpretar calendarios, horarios, relojes y relaciones temporales en problemas cotidianos."
-        },
-        {
-          "id": "MA4B-OA-14",
-          "codigo_oficial": "MA04 OA 14",
-          "descripcion": "Recolectar y registrar datos en tablas de frecuencia, pictogramas y gráficos de barra."
-        },
-        {
-          "id": "MA4B-OA-15",
-          "codigo_oficial": "MA04 OA 15",
-          "descripcion": "Interpretar información en tablas y gráficos de barra, comparando y justificando conclusiones."
-        },
-        {
-          "id": "MA4B-OA-16",
-          "codigo_oficial": "MA04 OA 16",
-          "descripcion": "Describir eventos probables, posibles e imposibles en experiencias aleatorias simples."
-        }
+        {"id":"MA4B-OA-20","codigo_oficial":"MA04 OA 20","descripcion":"Leer y registrar diversas mediciones del tiempo en relojes análogos y digitales, usando los conceptos A.M., P.M. y 24 horas.","eje":"Medición"},
+        {"id":"MA4B-OA-21","codigo_oficial":"MA04 OA 21","descripcion":"Realizar conversiones entre unidades de tiempo en el contexto de la resolución de problemas: el número de segundos en un minuto, el número de minutos en una hora, el número de días en un mes y el número de meses en un año.","eje":"Medición"},
+        {"id":"MA4B-OA-22","codigo_oficial":"MA04 OA 22","descripcion":"Medir longitudes con unidades estandarizadas (m, cm) y realizar transformaciones entre estas unidades (m a cm y viceversa) en el contexto de la resolución de problemas.","eje":"Medición"},
+        {"id":"MA4B-OA-23","codigo_oficial":"MA04 OA 23","descripcion":"Demostrar que comprenden el concepto de área de un rectángulo y de un cuadrado:\n- reconociendo que el área de una superficie se mide en unidades cuadradas\n- seleccionando y justificando la elección de la unidad estandarizada (cm² y m²)\n- determinando y registrando el área en cm² y m² en contextos cercanos\n- construyendo diferentes rectángulos para un área dada (cm² y m²) para mostrar que distintos rectángulos pueden tener la misma área\n- usando software geométrico.","eje":"Medición"},
+        {"id":"MA4B-OA-24","codigo_oficial":"MA04 OA 24","descripcion":"Demostrar que comprenden el concepto de volumen de un cuerpo:\n- seleccionando una unidad no estandarizada para medir el volumen de un cuerpo\n- reconociendo que el volumen se mide en unidades de cubo\n- midiendo y registrando el volumen en unidades de cubo\n- usando software geométrico.","eje":"Medición"}
+      ]
+    },
+    {
+      "numero": 5,
+      "id": "eje-datos-probabilidades",
+      "nombre": "Datos y probabilidades",
+      "tipo_agrupacion": "eje_curricular",
+      "oa": [
+        {"id":"MA4B-OA-25","codigo_oficial":"MA04 OA 25","descripcion":"Realizar encuestas, analizar los datos, comparar con los resultados de muestras aleatorias, usando tablas y gráficos.","eje":"Datos y probabilidades"},
+        {"id":"MA4B-OA-26","codigo_oficial":"MA04 OA 26","descripcion":"Realizar experimentos aleatorios lúdicos y cotidianos, y tabular y representar mediante gráficos de manera manual y/o con software educativo.","eje":"Datos y probabilidades"},
+        {"id":"MA4B-OA-27","codigo_oficial":"MA04 OA 27","descripcion":"Leer e interpretar pictogramas y gráficos de barra simple con escala, y comunicar sus conclusiones.","eje":"Datos y probabilidades"}
       ]
     }
   ]

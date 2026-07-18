@@ -1,38 +1,57 @@
 {
-  "estado": "base_verificada_mineduc",
-  "curso": "8_basico",
-  "asignatura": "ingles",
-  "nombre_asignatura": "Inglés",
-  "fuente": "Currículum Nacional MINEDUC",
+  "metadata": {
+    "nivel": "Básica",
+    "curso": "8° Básico",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "base_curricular": "Bases Curriculares 7º Básico a 2º Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": ["oa_contenido"],
+    "fecha_consulta": "2026-07-17",
+    "nota": "Los OA de contenido fueron transcritos desde la página oficial vigente de Currículum Nacional. La agrupación siguiente corresponde a ejes curriculares y no inventa unidades del programa de estudio.",
+    "asignatura": "Inglés",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/ingles/8-basico"
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
   "unidades": [
     {
-      "unidad": 1,
-      "titulo": "Comprensión oral y expresión oral",
+      "numero": 1,
+      "id": "eje-comunicacion-oral",
+      "nombre": "Comunicación oral",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
-        {
-          "id": "OA1",
-          "descripcion": "Comprender información general y específica en textos orales.",
-          "eje": "Listening & Speaking",
-          "indicadores": [
-            "Identifican ideas principales y detalles.",
-            "Participan en conversaciones sobre temas conocidos."
-          ]
-        }
+        {"id":"IN8B-OA-01","codigo_oficial":"IN08 OA 01","descripcion":"Demostrar comprensión de ideas generales e información explícita en textos orales adaptados y auténticos simples, literarios y no literarios, en diversos formatos audiovisuales (como exposiciones orales, conversaciones, entrevistas, descripciones, instrucciones, procedimientos, anécdotas, narraciones, rimas, juegos de palabras y canciones), acerca de temas variados (experiencias personales, temas de otras asignaturas, del contexto inmediato, de actualidad e interés global o de otras culturas) y que contienen las funciones del año.","eje":"Comunicación oral"},
+        {"id":"IN8B-OA-02","codigo_oficial":"IN08 OA 02","descripcion":"Identificar palabras y frases clave, expresiones de uso frecuente, vocabulario temático, conectores (then, also, so, until y los del año anterior), sonidos /ð/ y /θ/ (this, mother/three, birthday), sonidos iniciales /w/ (week), /r/ (ready) y los sonidos finales /d/, /t/ o /ɪd/ (lived/helped/decided) de verbos regulares en pasado, en textos orales en diversos formatos o al participar en interacciones cotidianas y conversaciones en la clase.","eje":"Comunicación oral"},
+        {"id":"IN8B-OA-03","codigo_oficial":"IN08 OA 03","descripcion":"Identificar en los textos escuchados:\n- Propósito o finalidad del texto, tema e ideas generales.\n- Información específica y detalles relevantes asociados a personas y sus acciones, lugares, tiempo, hablantes y situaciones.\n- Pasos en instrucciones y procedimientos, secuencia de eventos, diferencia entre hecho y opinión y relaciones causa-efecto y condición.","eje":"Comunicación oral"},
+        {"id":"IN8B-OA-04","codigo_oficial":"IN08 OA 04","descripcion":"Identificar y usar estrategias para apoyar la comprensión de los textos escuchados:\n- Hacer predicciones.\n- Escuchar con un propósito.\n- Usar conocimientos previos.\n- Focalizar la atención en palabras y/o expresiones clave.\n- Utilizar apoyos como imágenes y gestos del hablante.\n- Preguntar para clarificar o corroborar información en interacciones.\n- Confirmar predicciones.\n- Resumir alguna idea con apoyo.","eje":"Comunicación oral"},
+        {"id":"IN8B-OA-05","codigo_oficial":"IN08 OA 05","descripcion":"Presentar información en forma oral, usando recursos multimodales que refuercen el mensaje en forma creativa acerca de temas variados (como experiencias personales, temas de otras asignaturas, otras culturas, problemas globales y textos leídos o escuchados), demostrando:\n- Conocimiento del contenido y coherencia en la organización de ideas.\n- Uso apropiado de las funciones del lenguaje y vocabulario del nivel.\n- Uso apropiado de sonidos del idioma como /ð/ y /θ/ (this, mother/three, birthday), sonidos iniciales /w/ (week), /r/ (ready) y los sonidos finales /d/, /t/, /ɪd/ (lived/helped/decided) de verbos regulares en pasado.\n- Tener conciencia de audiencia, contexto y propósito.","eje":"Comunicación oral"},
+        {"id":"IN8B-OA-06","codigo_oficial":"IN08 OA 06","descripcion":"Participar en interacciones y exposiciones recurriendo a las siguientes estrategias para expresarse con claridad y fluidez:\n- Antes de hablar: practicar presentación, repetir, predecir vocabulario clave y expresiones de uso común (chunks), preparar apoyo organizacional y visual.\n- Al hablar: usar gestos y rellenos temporales (por ejemplo: you know…; sure!), parafrasear y usar sinónimos, activar uso de conectores, solicitar ayuda.\n- Después de hablar: registrar errores y corregirlos con ayuda de la o el docente y recursos.","eje":"Comunicación oral"},
+        {"id":"IN8B-OA-07","codigo_oficial":"IN08 OA 07","descripcion":"Reaccionar a textos leídos o escuchados por medio de exposiciones orales o en discusiones y conversaciones grupales, en las que:\n- Hacen conexiones con otras asignaturas, la lengua materna y su cultura, la vida cotidiana, experiencias personales y otras culturas con apoyo, por ejemplo I know (about) this because…; I remember that…\n- Expresan opiniones, hacen comparaciones y las justifican, por ejemplo there will be…because…; you should/shouldn’t…because…; I know/find…, I think there will…; … is more important than…; …is the oldest … because…\n- Resumen y sintetizan información usando oraciones simples y descripciones breves y simples.\n- Generan preguntas con apoyo, por ejemplo: Whose … are these?, How much taller is …? When…?","eje":"Comunicación oral"},
+        {"id":"IN8B-OA-08","codigo_oficial":"IN08 OA 08","descripcion":"Demostrar conocimiento y uso del lenguaje en conversaciones, discusiones y exposiciones por medio de las siguientes funciones:\n- Expresar cantidades, contar y enumerar; por ejemplo: there are a lot of people; all the/plenty of/several people; she is the first/third; two hundred and fifty.\n- Expresar gustos y preferencias; por ejemplo: I love/enjoy/hate/don’t mind playing the piano; I’d/would like…\n- Comparar, por ejemplo: he is taller than Tom; this supermarket is the cheapest/most expensive in the city.\n- Solicitar y dar información sobre tiempo; por ejemplo: When is the party? On Saturday, at 10:00 o’clock/tomorrow/next week/year; in December.\n- Expresar intenciones, planes futuros y predicciones; por ejemplo: I’m going to Easter Island next week; she’s arriving tomorrow morning; Man will land on Mars in the year 2500/in the future.\n- Identificar y describir objetos, lugares y personas; por ejemplo: it’s a big brown building; they are French; the man in…; the woman with…\n- Expresar dirección; por ejemplo: into the bank; out of the store; from the supermarket; to school.\n- Expresarse con claridad usando palabras y expresiones de uso común, sinónimos y palabras compuestas; por ejemplo: I like/love swimming; arrive at the station; look at; that’s ok; catch a bus/coach/train; get on/off the bus; let’s…; go on holidays; tired of; maybe, download.\n- Señalar frecuencia y secuencia de acciones; por ejemplo: I never/always/sometimes visit the country; first/next/then/last/finally.\n- Solicitar permiso y dar consejo; por ejemplo: Can I go out?; You shouldn’t walk in the rain without an umbrella.\n- Unir ideas; por ejemplo: he came and then we watched the film; it was far so we took the bus; I’ll wait until Monday; the library is the best in town. It also has…\n- Solicitar y dar información sobre posesión; por ejemplo: Whose wallet is this? It belongs to a friend of mine/his; It’s hers/theirs; Which is yours?\n- Expresar condiciones; por ejemplo: If you cook, I’ll help you.","eje":"Comunicación oral"}
       ]
     },
     {
-      "unidad": 2,
-      "titulo": "Comprensión escrita y expresión escrita",
+      "numero": 2,
+      "id": "eje-comprension-de-lectura",
+      "nombre": "Comprensión de lectura",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
-        {
-          "id": "OA2",
-          "descripcion": "Leer y escribir textos breves sobre experiencias, opiniones e información general.",
-          "eje": "Reading & Writing",
-          "indicadores": [
-            "Comprenden textos breves y guiados.",
-            "Escriben textos simples con estructura clara."
-          ]
-        }
+        {"id":"IN8B-OA-09","codigo_oficial":"IN08 OA 09","descripcion":"Demostrar comprensión de ideas generales e información explícita en textos adaptados y auténticos simples, en formato impreso o digital, acerca de temas variados (como experiencias personales, temas de otras asignaturas, del contexto inmediato, de actualidad e interés global o de otras culturas) y que contienen las funciones del año.","eje":"Comprensión de lectura"},
+        {"id":"IN8B-OA-10","codigo_oficial":"IN08 OA 10","descripcion":"Demostrar comprensión de textos no literarios (como descripciones, artículos de revista, instrucciones, procedimientos, avisos publicitarios, emails, diálogos, páginas web, biografías, gráficos) al identificar:\n- Propósito o finalidad del texto.\n- Ideas generales, información específica y detalles.\n- Relaciones de secuencia, causa-efecto, condición entre ideas y diferencia hecho-opinión.\n- Palabras y frases clave, expresiones de uso frecuente y vocabulario temático.\n- Conectores (so, then, until, also, maybe y los del año anterior) y palabras derivadas de otras por medio de los sufijos -er en comparaciones y terminación -ion.","eje":"Comprensión de lectura"},
+        {"id":"IN8B-OA-11","codigo_oficial":"IN08 OA 11","descripcion":"Demostrar comprensión de textos literarios (como canciones o poemas, tiras cómicas, cuentos breves y simples y novelas adaptadas) al identificar:\n- El tema como idea general, personajes, sus acciones y características, entorno (tiempo, lugar), trama (inicio, desarrollo, final), problema-solución.\n- Palabras y frases clave, expresiones de uso frecuente y vocabulario temático.","eje":"Comprensión de lectura"},
+        {"id":"IN8B-OA-12","codigo_oficial":"IN08 OA 12","descripcion":"Identificar y usar estrategias para apoyar la comprensión de los textos leídos:\n- Prelectura: leer con un propósito, hacer predicciones, usar conocimientos previos.\n- Lectura: hacer lectura rápida y lectura focalizada, visualizar, identificar elementos organizacionales del texto (título, subtítulo, imágenes).\n- Postlectura: confirmar predicciones, usar organizadores gráficos, releer, recontar con apoyo, preguntar para confirmar información.","eje":"Comprensión de lectura"}
+      ]
+    },
+    {
+      "numero": 3,
+      "id": "eje-expresion-escrita",
+      "nombre": "Expresión escrita",
+      "tipo_agrupacion": "eje_curricular",
+      "oa": [
+        {"id":"IN8B-OA-13","codigo_oficial":"IN08 OA 13","descripcion":"Escribir historias e información relevante, usando diversos recursos multimodales que refuercen el mensaje en forma creativa en textos variados, acerca de temas como:\n- Experiencias personales.\n- Contenidos interdisciplinarios.\n- Problemas globales.\n- Cultura de otros países.\n- Textos leídos.","eje":"Expresión escrita"},
+        {"id":"IN8B-OA-14","codigo_oficial":"IN08 OA 14","descripcion":"Escribir una variedad de textos breves, como cuentos, correos electrónicos, folletos, rimas, descripciones, biografías, instrucciones y resúmenes, utilizando los pasos del proceso de escritura (organizar ideas, redactar, revisar, editar, publicar), ocasionalmente con apoyo, de acuerdo a un modelo y a un criterio de evaluación, recurriendo a herramientas como el procesador de textos y diccionario en línea.","eje":"Expresión escrita"},
+        {"id":"IN8B-OA-15","codigo_oficial":"IN08 OA 15","descripcion":"Escribir para informar, expresar opiniones y narrar, usando:\n- Palabras, oraciones y estructuras aprendidas y otras de uso frecuente.\n- Conectores aprendidos.\n- Correcta ortografía de mayoría de palabras aprendidas de uso muy frecuente.\n- Puntuación apropiada (dos puntos).","eje":"Expresión escrita"},
+        {"id":"IN8B-OA-16","codigo_oficial":"IN08 OA 16","descripcion":"Demostrar conocimiento y uso del lenguaje en sus textos escritos por medio de las siguientes funciones:\n- Expresar cantidades, contar y enumerar; por ejemplo: there are a lot of people; all the/several people; she is the first/third; two hundred and fifty.\n- Expresar gustos, preferencias y opiniones; por ejemplo: I love/enjoy/hate/don’t mind playing the piano; I’d/would like… I know…; I find…\n- Comparar, por ejemplo: he is taller than Tom; this supermarket is the best/most expensive in the city.\n- Solicitar y dar información sobre tiempo; por ejemplo: When is the party? On Saturday, at 10:00 o’clock/tomorrow/next week/year; in December.\n- Expresar intenciones, planes futuros y predicciones; por ejemplo: I’m going to Easter Island next week; she’s arriving tomorrow morning; Man will land on Mars in the year 2500/in the future.\n- Identificar y describir objetos, lugares y personas; por ejemplo: it’s a big brown building; they are French; the man in…; the woman with…; the location/accommodation/destination was great.\n- Expresar tiempo, y dirección; por ejemplo: on Monday; in December; at 5 o’clock, into the bank; out of the store; from the supermarket; to school.\n- Expresarse con claridad usando palabras y expresiones de uso común, sinónimos y palabras compuestas; por ejemplo: I like/love swimming; arrive at the station; look at; get on/off the bus; let’s…; go on holidays; download.\n- Señalar frecuencia y secuencia de acciones; por ejemplo: I never/always/sometimes visit the country; first/next/then.\n- Unir ideas; por ejemplo: he came and then we watched the film; it was far so we took the bus; I’ll wait until Monday; the library is the best in town. It also has…\n- Expresar condiciones, por ejemplo: If you cook, I’ll help you.","eje":"Expresión escrita"}
       ]
     }
   ]

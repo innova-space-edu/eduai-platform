@@ -2,134 +2,145 @@
   "metadata": {
     "nivel": "Básica",
     "curso": "6° Básico",
-    "asignatura": "Inglés",
     "fuente": "Currículum Nacional - MINEDUC Chile",
-    "source_url": "https://www.curriculumnacional.cl/",
-    "estado": "base_verificada_mineduc",
-    "ultima_actualizacion_manual": "2026-03-29",
-    "nota": "Archivo estructurado con los OA de Inglés publicados en la Base Curricular oficial para 5° y 6° básico."
+    "base_curricular": "Bases Curriculares 1° a 6° Básico",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-07-18",
+    "nota": "Los OA de contenido fueron obtenidos directamente de la página oficial vigente de Currículum Nacional. La agrupación corresponde a ejes curriculares y no inventa unidades del programa de estudio.",
+    "asignatura": "Inglés",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/ingles/6-basico"
   },
   "objetivos_habilidad": [],
-  "objetivos_actitud": [
-    {
-      "id": "6_BASICO-IN-OAA-A",
-      "descripcion": "Demostrar curiosidad e interés por conocer tanto su propia realidad como otras realidades y culturas, valorando lo propio y ampliando su conocimiento del mundo."
-    },
-    {
-      "id": "6_BASICO-IN-OAA-B",
-      "descripcion": "Manifestar una actitud positiva frente a sí mismo y sus capacidades para aprender un nuevo idioma."
-    },
-    {
-      "id": "6_BASICO-IN-OAA-C",
-      "descripcion": "Demostrar respeto ante otras personas, realidades o culturas, reconociendo sus aportes y valorando la diversidad de modos de vida."
-    },
-    {
-      "id": "6_BASICO-IN-OAA-D",
-      "descripcion": "Manifestar un estilo de trabajo y estudio riguroso y perseverante, para alcanzar los propósitos de la asignatura."
-    }
-  ],
+  "objetivos_actitud": [],
   "unidades": [
     {
       "numero": 1,
+      "id": "eje-comprension-auditiva",
       "nombre": "Comprensión auditiva",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
           "id": "IN6B-OA-01",
           "codigo_oficial": "IN06 OA 01",
-          "descripcion": "Escuchar y demostrar comprensión de información explícita en textos adaptados y auténticos simples, tanto no literarios como literarios, relacionados con las funciones del año y temas cotidianos, del entorno y de interés global."
+          "descripcion": "Escuchar y demostrar comprensión de información explícita en textos adaptados y auténticos simples, tanto no literarios (textos expositivos, diálogos) como literarios (rimas, poemas, canciones, cuentos) que estén enunciados en forma clara, tengan repetición de palabras y apoyo visual y gestual, y estén relacionados con las funciones del año y los siguientes temas:\n- la comida y la bebida, la salud, lugares de la ciudad, ocupaciones, el mundo natural, viajes y medios de transporte\n- temas relacionados con el contexto inmediato de los estudiantes como experiencias personales pasadas, sentimientos, historias ficticias e información de interés relativa a eventos y aspectos de su entorno y de nuestro país\n- temas de otras asignaturas: hábitos de limpieza e higiene, beneficios de actividad física, alimentación saludable (Ciencias Naturales); características geográficas como relieve y clima de Chile (Geografía)\n- temas de actualidad e interés global como cultura de otros países, cuidado del medio ambiente, avances tecnológicos (redes sociales, medios de comunicación)",
+          "eje": "Comprensión auditiva"
         },
         {
           "id": "IN6B-OA-02",
           "codigo_oficial": "IN06 OA 02",
-          "descripcion": "Identificar en los textos escuchados tema e ideas generales, información específica, vocabulario temático y sonidos del idioma que interfieren con la comunicación."
+          "descripcion": "Identificar en los textos escuchados:\n- tema e ideas generales\n- información específica asociada a personas, lugares, tiempo y acciones\n- palabras, familias de palabras, expresiones de uso frecuente y vocabulario temático\n- repetición de sonidos y sonidos propios del idioma inglés que interfieren con la comunicación como los sonidos ch/sh en palabras como chip/ship ; b/v en palabras como boat/vote",
+          "eje": "Comprensión auditiva"
         },
         {
           "id": "IN6B-OA-03",
           "codigo_oficial": "IN06 OA 03",
-          "descripcion": "Escuchar textos orales en diversos formatos audiovisuales, usando estrategias para apoyar la comprensión como predicciones, claves contextuales, focalización en palabras clave y apoyo visual."
+          "descripcion": "Escuchar textos orales en diversos formatos audiovisuales, usando las siguientes estrategias para apoyar la comprensión:\n- hacer predicciones, basándose en conocimientos previos\n- usar claves contextuales (tema, hablantes, lugar, tiempo, imágenes)\n- focalizar la atención en palabras claves\n- visualizar diferentes aspectos del texto\n- usar apoyo visual",
+          "eje": "Comprensión auditiva"
         },
         {
           "id": "IN6B-OA-04",
           "codigo_oficial": "IN06 OA 04",
-          "descripcion": "Reaccionar a los textos escuchados, expresando opiniones y sentimientos o haciendo conexiones con experiencias personales, en forma oral o escrita."
+          "descripcion": "Reaccionar a los textos escuchados, expresando opiniones y sentimientos o haciendo conexiones con experiencias personales, en forma oral o escrita.",
+          "eje": "Comprensión auditiva"
         }
       ]
     },
     {
       "numero": 2,
+      "id": "eje-comprension-de-lectura",
       "nombre": "Comprensión de lectura",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
           "id": "IN6B-OA-05",
           "codigo_oficial": "IN06 OA 05",
-          "descripcion": "Leer y demostrar comprensión de textos adaptados y auténticos simples no literarios, relacionados con los temas y funciones del año."
+          "descripcion": "Leer y demostrar comprensión de textos adaptados y auténticos simples, no literarios, que contengan palabras de uso frecuente, familias de palabras y repetición de frases, y estén acompañados de apoyo visual y relacionados con los temas y las siguientes funciones del año:\n- expresar habilidad e inhabilidad\n- dar direcciones e indicar posición\n- solicitar y contrastar información\n- decir y preguntar la hora\n- referirse a acciones cotidianas que ocurren al momento de hablar y en el pasado\n- describir personas y acciones y cómo estas se realizan; expresar cantidades, necesidad y posesiones",
+          "eje": "Comprensión de lectura"
         },
         {
           "id": "IN6B-OA-06",
           "codigo_oficial": "IN06 OA 06",
-          "descripcion": "Leer comprensivamente textos no literarios, como notas, postales, invitaciones, menús, recetas, instrucciones, avisos, emails, diálogos o textos expositivos, identificando propósito, ideas generales, información explícita y vocabulario temático."
+          "descripcion": "Leer comprensivamente textos no literarios, como notas, postales, invitaciones, tarjetas de saludo, menús, recetas, instrucciones, avisos publicitarios, emails, diálogos o textos expositivos, identificando:\n- propósito del texto\n- ideas generales\n- información explícita\n- palabras clave, expresiones de uso común asociadas a las funciones del nivel (por ejemplo: have lunch, catch a cold ) y vocabulario temático",
+          "eje": "Comprensión de lectura"
         },
         {
           "id": "IN6B-OA-07",
           "codigo_oficial": "IN06 OA 07",
-          "descripcion": "Leer comprensivamente textos literarios adaptados y auténticos simples, como rimas, poemas, tiras cómicas y cuentos, identificando tema, personajes, tiempo, acciones y secuencia de eventos."
+          "descripcion": "Leer comprensivamente textos literarios adaptados y auténticos simples, como rimas, poemas, tiras cómicas y cuentos, que contengan palabras de uso frecuente, familias de palabras, repetición de frases y estén acompañados de apoyo visual, identificando:\n- tema general del texto\n- personajes, lugares, tiempo y acciones\n- secuencia de eventos ( beginning - middle - end )\n- vocabulario temático y expresiones de uso común",
+          "eje": "Comprensión de lectura"
         },
         {
           "id": "IN6B-OA-08",
           "codigo_oficial": "IN06 OA 08",
-          "descripcion": "Reaccionar a los textos leídos, expresando opiniones y sentimientos o haciendo conexiones con experiencias personales, en forma oral o escrita."
+          "descripcion": "Reaccionar a los textos leídos, expresando opiniones y sentimientos o haciendo conexiones con experiencias personales, en forma oral o escrita.",
+          "eje": "Comprensión de lectura"
         },
         {
           "id": "IN6B-OA-09",
           "codigo_oficial": "IN06 OA 09",
-          "descripcion": "Usar estrategias para apoyar la comprensión de los textos leídos, tanto en formato digital como impreso, incluyendo prelectura, lectura y poslectura."
+          "descripcion": "Usar las siguientes estrategias para apoyar la comprensión de los textos leídos, tanto en formato digital como impreso:\n- prelectura: hacer predicciones basándose en conocimientos previos, elementos visuales y contextuales\n- lectura: usar organizadores, como títulos, subtítulos, ilustraciones, imágenes y notas\n- poslectura: organizar información en diagramas, releer, usar el texto leído como modelo para la expresión escrita",
+          "eje": "Comprensión de lectura"
         }
       ]
     },
     {
       "numero": 3,
+      "id": "eje-expresion-oral",
       "nombre": "Expresión oral",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
           "id": "IN6B-OA-10",
           "codigo_oficial": "IN06 OA 10",
-          "descripcion": "Reproducir y producir textos orales, como monólogos, canciones, poemas, adivinanzas y diálogos, para identificar y familiarizarse con los sonidos propios del idioma."
+          "descripcion": "Reproducir y producir textos orales, como monólogos, canciones, poemas, adivinanzas y diálogos, para identificar y familiarizarse con los sonidos propios del idioma, como, ch/sh en palabras como chip/ship ; b/v en palabras como boat/vote .",
+          "eje": "Expresión oral"
         },
         {
           "id": "IN6B-OA-11",
           "codigo_oficial": "IN06 OA 11",
-          "descripcion": "Expresarse oralmente, ya sea en diálogos, presentaciones o actividades grupales, con apoyo visual y/o digital, en torno a los temas del año."
+          "descripcion": "Expresarse oralmente, ya sea en diálogos, presentaciones o actividades grupales, con apoyo visual y/o digital, en torno a los temas del año.",
+          "eje": "Expresión oral"
         },
         {
           "id": "IN6B-OA-12",
           "codigo_oficial": "IN06 OA 12",
-          "descripcion": "Participar en diálogos con pares y profesores al realizar funciones comunicativas del nivel, como expresar habilidad e inhabilidad, dar direcciones, contrastar información, pedir la hora, referirse al presente y pasado, describir acciones, cantidades y posesiones, formular preguntas y dar información general."
+          "descripcion": "Participar en diálogos con pares y profesores al realizar las siguientes funciones:\n- expresar habilidad e inhabilidad, por ejemplo: I can/can't\n- describir posición y dar indicaciones de dirección y su secuencia, por ejemplo: The zoo is in front of the park; turn right/left, then go straight\n- describir personas en cuanto a personalidad o estado, por ejemplo: he is quiet/friendly; I feel sad/angry/tired\n- contrastar información, por ejemplo: it can run but it can't jump; there is cheese but there isn't bread\n- expresar necesidad, por ejemplo: I have to \n- pedir y decir la hora, por ejemplo: What time is it? It's 4 o'clock\n- describir y preguntar por acciones que ocurren al momento de hablar, por ejemplo: He is/isn't reading; Is he reading? Yes, he is/No, he isn't; Are they playing? Yes, they are/No, they aren't\n- expresar cantidad y números hasta el 50, por ejemplo: there is/are a/many/a lot of ... child/children ; there are 30 cars\n- describir acciones que ocurren en el pasado, por ejemplo: I was/made/did/felt \n- describir acciones y cómo se realizan, por ejemplo: he reads fast/very slowly\n- expresar posesión, por ejemplo: it is his/her/our car; this is Pedro's pet\n- formular y responder preguntas, por ejemplo: Who...?/How much/many...?/Can...?/Where...?\n- dar información general sobre un tema conocido, por ejemplo: the/he/they... is/are/have/eat/read\n- re-contar cuentos con apoyo de ilustraciones, por ejemplo: the... run/play/have...; there is/are",
+          "eje": "Expresión oral"
         },
         {
           "id": "IN6B-OA-13",
           "codigo_oficial": "IN06 OA 13",
-          "descripcion": "Demostrar conocimiento y uso del vocabulario aprendido: vocabulario temático de uso cotidiano, palabras frecuentes y expresiones de uso común asociadas a las funciones del nivel."
+          "descripcion": "Demostrar conocimiento y uso del vocabulario aprendido:\n- vocabulario temático\n- palabras de uso frecuente\n- expresiones de uso común asociadas a las funciones del nivel (por ejemplo: have lunch, catch a cold )",
+          "eje": "Expresión oral"
         }
       ]
     },
     {
       "numero": 4,
+      "id": "eje-expresion-escrita",
       "nombre": "Expresión escrita",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
           "id": "IN6B-OA-14",
           "codigo_oficial": "IN06 OA 14",
-          "descripcion": "Completar y escribir, de acuerdo a un modelo y con apoyo visual, textos no literarios y literarios breves para compartir información en torno a los temas del año."
+          "descripcion": "Escribir, de acuerdo a un modelo y con apoyo de lenguaje visual, textos no literarios (como email, postal, agenda, invitación) y textos literarios (como cuentos, rimas, tiras cómicas) con el propósito de compartir información en torno a los temas del año.",
+          "eje": "Expresión escrita"
         },
         {
           "id": "IN6B-OA-15",
           "codigo_oficial": "IN06 OA 15",
-          "descripcion": "Escribir para realizar funciones del nivel, como expresar habilidad, dar direcciones, describir personas, acciones, posiciones, pasado, cantidades, necesidad y posesiones."
+          "descripcion": "Escribir para realizar las siguientes funciones:\n- indicar posición, por ejemplo: The zoo is in front of the park\n- describir personas en cuanto a personalidad o estado, por ejemplo: he is quiet/friendly; I feel sad/happy/angry\n- contrastar información, por ejemplo: it can fly but it can't swim\n- expresar necesidad, por ejemplo: I have to\n- describir y preguntar por acciones que ocurren al momento de hablar, por ejemplo: He is/isn't reading; Is he reading? Yes, he is/No, he isn't; Are they playing? Yes, they are/No, they aren't\n- expresar cantidad e identificar sustantivos plurales irregulares, por ejemplo: there is/are a/many/a lot of... child/children\n- describir acciones que ocurren en el pasado, por ejemplo: I was/made/did/felt\n- describir acciones y cómo estas se realizan, por ejemplo: he reads fast/very slowly\n- expresar posesión, por ejemplo: it is his/her/our car; this is Pedro's pet\n- expresar cantidad numérica hasta el 20;\n- formular y responder preguntas, por ejemplo: Who...?/How much/many...?/Can...?/Where...?",
+          "eje": "Expresión escrita"
         },
         {
           "id": "IN6B-OA-16",
           "codigo_oficial": "IN06 OA 16",
-          "descripcion": "Utilizar los pasos del proceso de escritura, recurriendo a herramientas como diccionario en línea y procesador de texto, para escribir oraciones simples y párrafos breves de acuerdo a un modelo."
+          "descripcion": "Utilizar los pasos del proceso de escritura (organización de ideas, escritura, corrección y publicación), recurriendo a herramientas como diccionario en línea y procesador de texto, para:\n- crear sus propias oraciones y párrafos breves o diálogos con la ayuda del docente\n- utilizar los elementos ortográficos del nivel: mayúscula (en pronombre I) y signos de interrogación\n- demostrar conocimiento y uso del vocabulario temático, palabras de uso frecuente y expresiones de uso común asociadas a las funciones del nivel (por ejemplo: have lunch, catch a cold )",
+          "eje": "Expresión escrita"
         }
       ]
     }

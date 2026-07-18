@@ -2,164 +2,173 @@
   "metadata": {
     "nivel": "Básica",
     "curso": "5° Básico",
-    "asignatura": "Historia, Geografía y Cs. Sociales",
     "fuente": "Currículum Nacional - MINEDUC Chile",
-    "source_url": "https://www.curriculumnacional.cl/",
-    "estado": "base_oa_completa_en_revision",
-    "ultima_actualizacion_manual": "2026-03-29",
-    "nota": "Archivo creado a partir de la Base Curricular oficial del curso en Currículum Nacional. Se recomienda una última revisión fina de habilidades e indicadores antes de marcarlo como 100% verificado."
+    "base_curricular": "Bases Curriculares 1° a 6° Básico",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-07-17",
+    "nota": "Los OA de contenido fueron obtenidos directamente de la página oficial vigente de Currículum Nacional. La agrupación corresponde a ejes curriculares y no inventa unidades del programa de estudio.",
+    "asignatura": "Historia, Geografía y Ciencias Sociales",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/historia-geografia-ciencias-sociales/5-basico"
   },
   "objetivos_habilidad": [],
-  "objetivos_actitud": [
-    {
-      "id": "5_BASICO-OAA-A",
-      "descripcion": "Trabajar en forma rigurosa y perseverante, con espíritu emprendedor y con una disposición positiva a la crítica y la autocrítica."
-    },
-    {
-      "id": "5_BASICO-OAA-B",
-      "descripcion": "Reconocer la importancia y la dignidad de todos los trabajos, valorando y respetando a las personas que los realizan."
-    },
-    {
-      "id": "5_BASICO-OAA-C",
-      "descripcion": "Respetar y defender la igualdad de derechos entre hombres y mujeres y apreciar la importancia de desarrollar relaciones que potencien su participación equitativa en la vida económica, familiar, social y cultural."
-    },
-    {
-      "id": "5_BASICO-OAA-D",
-      "descripcion": "Respetar y defender la igualdad de derechos esenciales de todas las personas, sin distinción de sexo, edad, condición física, etnia, religión o situación económica."
-    },
-    {
-      "id": "5_BASICO-OAA-E",
-      "descripcion": "Participar solidaria y responsablemente en las actividades y proyectos del establecimiento y del espacio comunitario, demostrando espíritu emprendedor."
-    },
-    {
-      "id": "5_BASICO-OAA-F",
-      "descripcion": "Establecer lazos de pertenencia con su entorno social y natural a partir del conocimiento, la valoración y la reflexión sobre su historia personal, su comunidad y el país."
-    },
-    {
-      "id": "5_BASICO-OAA-G",
-      "descripcion": "Comportarse y actuar en la vida cotidiana según principios y virtudes ciudadanas."
-    },
-    {
-      "id": "5_BASICO-OAA-H",
-      "descripcion": "Demostrar valoración por la democracia, reconociendo su importancia para la convivencia y el resguardo de derechos."
-    },
-    {
-      "id": "5_BASICO-OAA-I",
-      "descripcion": "Demostrar valoración por la vida en sociedad para el desarrollo y el crecimiento de la persona."
-    }
-  ],
+  "objetivos_actitud": [],
   "unidades": [
     {
       "numero": 1,
-      "nombre": "Descubrimiento, conquista y cambios",
+      "id": "eje-historia",
+      "nombre": "Historia",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
           "id": "HI5B-OA-01",
           "codigo_oficial": "HI05 OA 01",
-          "descripcion": "Explicar los viajes de descubrimiento de Cristóbal Colón, de Hernando de Magallanes y de algún otro explorador, considerando sus objetivos, rutas, avances tecnológicos, dificultades y contexto europeo general."
+          "descripcion": "Explicar los viajes de descubrimiento de Cristóbal Colón, de Hernando de Magallanes y de algún otro explorador, considerando sus objetivos, las rutas recorridas, los avances tecnológicos que facilitaron la navegación, las dificultades y los desafíos que enfrentaron las tripulaciones y el contexto europeo general en que se desarrollaron.",
+          "eje": "Historia"
         },
         {
           "id": "HI5B-OA-02",
           "codigo_oficial": "HI05 OA 02",
-          "descripcion": "Describir el proceso de conquista de América y de Chile, incluyendo principales actores, expediciones, conflictos bélicos y fundación de ciudades, y reconocer el surgimiento de una nueva sociedad."
+          "descripcion": "Describir el proceso de conquista de América y de Chile, incluyendo a los principales actores (Corona española, Iglesia católica y hombres y mujeres protagonistas, entre otros), algunas expediciones y conflictos bélicos, y la fundación de ciudades como expresión de la voluntad de los españoles de quedarse y expandirse, y reconocer en este proceso el surgimiento de una nueva sociedad.",
+          "eje": "Historia"
         },
         {
           "id": "HI5B-OA-03",
           "codigo_oficial": "HI05 OA 03",
-          "descripcion": "Analizar el impacto y las consecuencias que tuvo el proceso de conquista para Europa y para América, considerando diversos ámbitos."
+          "descripcion": "Analizar el impacto y las consecuencias que tuvo el proceso de conquista para Europa y para América, considerando diversos ámbitos.",
+          "eje": "Historia"
         },
         {
           "id": "HI5B-OA-04",
           "codigo_oficial": "HI05 OA 04",
-          "descripcion": "Investigar sobre los efectos de la conquista sobre los pueblos indígenas americanos, utilizando fuentes dadas por el docente."
+          "descripcion": "Investigar sobre los efectos de la conquista sobre los pueblos indígenas americanos, utilizando fuentes dadas por el docente.",
+          "eje": "Historia"
+        },
+        {
+          "id": "HI5B-OA-05",
+          "codigo_oficial": "HI05 OA 05",
+          "descripcion": "Describir algunas dimensiones de la vida colonial en Chile, como organización de la sociedad y grupos sociales, oficios y actividades económicas, costumbres y vida cotidiana, arte y celebraciones.",
+          "eje": "Historia"
+        },
+        {
+          "id": "HI5B-OA-06",
+          "codigo_oficial": "HI05 OA 06",
+          "descripcion": "Explicar aspectos centrales de la Colonia, como la dependencia de las colonias americanas de la metrópoli, el rol de la Iglesia católica y el surgimiento de una sociedad mestiza.",
+          "eje": "Historia"
+        },
+        {
+          "id": "HI5B-OA-07",
+          "codigo_oficial": "HI05 OA 07",
+          "descripcion": "Explicar y dar ejemplos de las distintas formas en las que españoles y mapuches se relacionaron en el período colonial, considerando resistencia mapuche y guerra de Arauco, mestizaje, formas de trabajo (como encomienda y esclavitud), evangelización, vida fronteriza y sistema de parlamentos.",
+          "eje": "Historia"
+        },
+        {
+          "id": "HI5B-OA-08",
+          "codigo_oficial": "HI05 OA 08",
+          "descripcion": "Identificar, en su entorno o en fotografías, elementos del patrimonio colonial de Chile que siguen presentes hoy, como edificios, obras de arte y costumbres, entre otros.",
+          "eje": "Historia"
         }
       ]
     },
     {
       "numero": 2,
-      "nombre": "Vida colonial y patrimonio",
+      "id": "eje-geografia",
+      "nombre": "Geografía",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
-          "id": "HI5B-OA-05",
-          "codigo_oficial": "HI05 OA 05",
-          "descripcion": "Describir algunas dimensiones de la vida colonial en Chile, como organización de la sociedad, oficios, actividades económicas, costumbres, vida cotidiana, arte y celebraciones."
+          "id": "HI5B-OA-09",
+          "codigo_oficial": "HI05 OA 09",
+          "descripcion": "Caracterizar las grandes zonas de Chile y sus paisajes (Norte Grande, Norte Chico, Zona Central, Zona Sur y Zona Austral), considerando ubicación, clima (temperatura y precipitaciones), relieve, hidrografía, población y recursos naturales, entre otros.",
+          "eje": "Geografía"
         },
         {
-          "id": "HI5B-OA-06",
-          "codigo_oficial": "HI05 OA 06",
-          "descripcion": "Explicar aspectos centrales de la Colonia, como la dependencia de las colonias americanas de la metrópoli, el rol de la Iglesia católica y el surgimiento de una sociedad mestiza."
+          "id": "HI5B-OA-10",
+          "codigo_oficial": "HI05 OA 10",
+          "descripcion": "Reconocer y ubicar en mapas recursos naturales significativos de Chile, como cobre, hierro, recursos marítimos y forestales, entre otros; diferenciar recursos renovables y no renovables y explicar la importancia de cuidarlos en el marco de un desarrollo sostenible.",
+          "eje": "Geografía"
         },
         {
-          "id": "HI5B-OA-07",
-          "codigo_oficial": "HI05 OA 07",
-          "descripcion": "Explicar y dar ejemplos de las distintas formas en las que españoles y mapuches se relacionaron en el período colonial."
+          "id": "HI5B-OA-11",
+          "codigo_oficial": "HI05 OA 11",
+          "descripcion": "Analizar y dar ejemplos de diversas maneras en las que el trabajo de las personas, sus ideas y proyectos potencian y dan valor a los recursos naturales (por ejemplo: tecnología de riego, elaboración de vinos, uso de madera en la construcción, nuevas formas de explotación sustentable).",
+          "eje": "Geografía"
         },
         {
-          "id": "HI5B-OA-08",
-          "codigo_oficial": "HI05 OA 08",
-          "descripcion": "Identificar, en su entorno o en fotografías, elementos del patrimonio colonial de Chile que siguen presentes hoy, como edificios, obras de arte y costumbres, entre otros."
+          "id": "HI5B-OA-12",
+          "codigo_oficial": "HI05 OA 12",
+          "descripcion": "Investigar, describir y ubicarlos riesgos naturales que afectan a su localidad, como sismos, maremotos, inundaciones, derrumbes y volcanismo, e identificar formas en que la comunidad puede protegerse (construcciones antisísmicas, medidas de seguridad y evacuación en el hogar, en la escuela y en los distintos espacios públicos, entre otros).",
+          "eje": "Geografía"
         }
       ]
     },
     {
       "numero": 3,
-      "nombre": "Grandes zonas y recursos de Chile",
-      "oa": [
-        {
-          "id": "HI5B-OA-09",
-          "codigo_oficial": "HI05 OA 09",
-          "descripcion": "Caracterizar las grandes zonas de Chile y sus paisajes (Norte Grande, Norte Chico, Zona Central, Zona Sur y Zona Austral), considerando ubicación, clima, relieve, hidrografía, población y recursos naturales, entre otros."
-        },
-        {
-          "id": "HI5B-OA-10",
-          "codigo_oficial": "HI05 OA 10",
-          "descripcion": "Reconocer y ubicar en mapas recursos naturales significativos de Chile, diferenciar recursos renovables y no renovables y explicar la importancia de cuidarlos en el marco de un desarrollo sostenible."
-        },
-        {
-          "id": "HI5B-OA-11",
-          "codigo_oficial": "HI05 OA 11",
-          "descripcion": "Analizar y dar ejemplos de diversas maneras en las que el trabajo de las personas, sus ideas y proyectos potencian y dan valor a los recursos naturales."
-        },
-        {
-          "id": "HI5B-OA-12",
-          "codigo_oficial": "HI05 OA 12",
-          "descripcion": "Investigar, describir y ubicar los riesgos naturales que afectan a su localidad e identificar formas en que la comunidad puede protegerse."
-        }
-      ]
-    },
-    {
-      "numero": 4,
-      "nombre": "Derechos, deberes y participación",
+      "id": "eje-formacion-ciudadana",
+      "nombre": "Formación ciudadana",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
           "id": "HI5B-OA-13",
           "codigo_oficial": "HI05 OA 13",
-          "descripcion": "Reconocer que todas las personas son sujetos de derecho, que deben ser respetados por los pares, la comunidad y el Estado, y que esos derechos no dependen de características individuales."
+          "descripcion": "Reconocer que todas las personas son sujetos de derecho, que deben ser respetados por los pares, la comunidad y el Estado, y que esos derechos no dependen de características individuales, como etnia, sexo, lugar de nacimiento u otras.",
+          "eje": "Formación ciudadana"
         },
         {
           "id": "HI5B-OA-14",
           "codigo_oficial": "HI05 OA 14",
-          "descripcion": "Reconocer que los derechos generan deberes y responsabilidades en las personas y en el Estado."
+          "descripcion": "Reconocer que los derechos generan deberes y responsabilidades en las personas y en el Estado, lo que, por ejemplo, se manifiesta en que:\n- las personas deben respetar los derechos de los demás\n- todas las personas deben respetar las leyes\n- el Estado debe asegurar que las personas puedan ejercer sus derechos (a la educación, a la protección de la salud, a la libertad de expresión, a la propiedad privada y a la igualdad ante la ley, entre otros)\n- el Estado debe asegurar los derechos de las personas a participar en la vida pública, como el derecho a formar organizaciones de participación social (fundaciones, juntas de vecinos, etc.), a participar en partidos políticos y el derecho a sufragio, entre otros",
+          "eje": "Formación ciudadana"
         },
         {
           "id": "HI5B-OA-15",
           "codigo_oficial": "HI05 OA 15",
-          "descripcion": "Reconocer que hay logros y beneficios que dependen del esfuerzo, el mérito y el comportamiento de cada persona."
+          "descripcion": "Reconocer que hay logros y beneficios que dependen del esfuerzo, el mérito y el comportamiento de cada persona (como las calificaciones, los premios deportivos, los premios por compañerismo, el aprecio y el reconocimiento por parte de sus pares, el liderazgo).",
+          "eje": "Formación ciudadana"
         },
         {
           "id": "HI5B-OA-16",
           "codigo_oficial": "HI05 OA 16",
-          "descripcion": "Demostrar actitudes cívicas con acciones en su vida diaria, como actuar con honestidad, respetar a todas las personas, contribuir a la buena convivencia y cuidar el patrimonio y el medioambiente."
+          "descripcion": "Demostrar actitudes cívicas con acciones en su vida diaria, como:\n- actuar con honestidad y responsabilidad (ejemplos: respetar los acuerdos establecidos, respetar la autoría de música y películas, evitar el plagio escolar, etc.)\n- respetar a todas las personas (ejemplos: no discriminar por condiciones físicas, sociales, culturales o étnicas, escuchar respetuosamente opiniones distintas, respetar espacios y propiedad de los demás, etc.)\n- contribuir a la buena convivencia (ejemplos: buscar soluciones pacíficas para resolver problemas, mostrar empatía con los demás, etc.)\n- cuidar y valorar el patrimonio y el medioambiente (ejemplos: realizar campañas de información y cuidado de nuestro patrimonio, usar la energía de manera eficiente, etc.)",
+          "eje": "Formación ciudadana"
         },
         {
           "id": "HI5B-OA-17",
           "codigo_oficial": "HI05 OA 17",
-          "descripcion": "Participar en su comunidad, tomando parte en elecciones para una directiva de curso, asignando roles y funciones a cada cargo, y comprendiendo las responsabilidades de los cargos."
+          "descripcion": "Participaren su comunidad, tomando parte en elecciones para una directiva de curso, asignando roles y funciones a cada cargo, y demostrando que entienden las responsabilidades que lleva consigo el desempeño de un cargo y la importancia de elegir personas que se estimen idóneas, para mantener una buena convivencia y una organización del curso que permita el trabajo escolar.",
+          "eje": "Formación ciudadana"
         },
         {
           "id": "HI5B-OA-18",
           "codigo_oficial": "HI05 OA 18",
-          "descripcion": "Diseñar y participar en un proyecto que solucione un problema de la comunidad escolar, ateniéndose a un plan y a un presupuesto."
+          "descripcion": "Diseñar y participar en un proyecto que solucione un problema de la comunidad escolar, considerando temas como voluntariado, gasto excesivo de agua y electricidad en la escuela, y cuidado del medioambiente, entre otros, y ateniéndose a un plan y a un presupuesto.",
+          "eje": "Formación ciudadana"
+        },
+        {
+          "id": "HI5B-OA-19",
+          "codigo_oficial": "HI05 OA 19",
+          "descripcion": "Explicar formas en que un grupo de personas puede organizarse para resolver problemas, mejorar su calidad de vida y la de otros y lograr metas comunes; por ejemplo, fundaciones, voluntariado, empresas, agrupaciones y recolección de fondos para causas benéficas.",
+          "eje": "Formación ciudadana"
+        },
+        {
+          "id": "HI5B-OA-20",
+          "codigo_oficial": "HI05 OA 20",
+          "descripcion": "Opinar y argumentar con fundamentos sobre temas de la asignatura u otros.",
+          "eje": "Formación ciudadana"
+        },
+        {
+          "id": "HI5B-OA-21",
+          "codigo_oficial": "HI05 OA 21",
+          "descripcion": "Evaluar posibles soluciones frente a un problema o proyecto y justificar su elección.",
+          "eje": "Formación ciudadana"
+        },
+        {
+          "id": "HI5B-OA-22",
+          "codigo_oficial": "HI05 OA 22",
+          "descripcion": "Informarse y opinar sobre temas relevantes y de su interés en el país y el mundo (política, medioambiente, deporte, arte y música, entre otros) por medio de periódicos y TlC.",
+          "eje": "Formación ciudadana"
         }
       ]
     }

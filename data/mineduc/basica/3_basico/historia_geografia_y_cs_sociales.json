@@ -2,150 +2,56 @@
   "metadata": {
     "nivel": "Básica",
     "curso": "3° Básico",
-    "asignatura": "Historia, Geografía y Cs. Sociales",
+    "asignatura": "Historia, Geografía y Ciencias Sociales",
     "fuente": "Currículum Nacional - MINEDUC Chile",
-    "source_url": "https://www.curriculumnacional.cl/",
-    "estado": "base_oa_completa_en_revision",
-    "ultima_actualizacion_manual": "2026-03-29",
-    "nota": "Archivo creado a partir de la Base Curricular oficial del curso en Currículum Nacional. Se recomienda una última revisión fina de habilidades e indicadores antes de marcarlo como 100% verificado."
+    "source_url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/historia-geografia-ciencias-sociales/3-basico",
+    "base_curricular": "Bases Curriculares 1° a 6° Básico",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": ["oa_contenido"],
+    "fecha_consulta": "2026-07-17",
+    "nota": "Los dieciséis OA de contenido fueron cotejados con la página oficial vigente. La agrupación corresponde a ejes curriculares y no inventa unidades del programa de estudio."
   },
   "objetivos_habilidad": [],
-  "objetivos_actitud": [
-    {
-      "id": "3_BASICO-OAA-A",
-      "descripcion": "Trabajar en forma rigurosa y perseverante, con espíritu emprendedor y con una disposición positiva a la crítica y la autocrítica."
-    },
-    {
-      "id": "3_BASICO-OAA-B",
-      "descripcion": "Reconocer la importancia y la dignidad de todos los trabajos, valorando y respetando a las personas que los realizan."
-    },
-    {
-      "id": "3_BASICO-OAA-C",
-      "descripcion": "Respetar y defender la igualdad de derechos entre hombres y mujeres y apreciar la importancia de desarrollar relaciones que potencien su participación equitativa en la vida económica, familiar, social y cultural."
-    },
-    {
-      "id": "3_BASICO-OAA-D",
-      "descripcion": "Respetar y defender la igualdad de derechos esenciales de todas las personas, sin distinción de sexo, edad, condición física, etnia, religión o situación económica."
-    },
-    {
-      "id": "3_BASICO-OAA-E",
-      "descripcion": "Participar solidaria y responsablemente en las actividades y proyectos del establecimiento y del espacio comunitario, demostrando espíritu emprendedor."
-    },
-    {
-      "id": "3_BASICO-OAA-F",
-      "descripcion": "Establecer lazos de pertenencia con su entorno social y natural a partir del conocimiento, la valoración y la reflexión sobre su historia personal, su comunidad y el país."
-    },
-    {
-      "id": "3_BASICO-OAA-G",
-      "descripcion": "Comportarse y actuar en la vida cotidiana según principios y virtudes ciudadanas."
-    },
-    {
-      "id": "3_BASICO-OAA-H",
-      "descripcion": "Demostrar valoración por la democracia, reconociendo su importancia para la convivencia y el resguardo de derechos."
-    },
-    {
-      "id": "3_BASICO-OAA-I",
-      "descripcion": "Demostrar valoración por la vida en sociedad para el desarrollo y el crecimiento de la persona."
-    }
-  ],
+  "objetivos_actitud": [],
   "unidades": [
     {
       "numero": 1,
-      "nombre": "Grecia y Roma en la Antigüedad",
+      "id": "eje-historia",
+      "nombre": "Historia",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
-        {
-          "id": "HI3B-OA-01",
-          "codigo_oficial": "HI03 OA 01",
-          "descripcion": "Reconocer aspectos de la vida cotidiana de la civilización griega de la Antigüedad e identificar algunos elementos de su legado a sociedades y culturas del presente."
-        },
-        {
-          "id": "HI3B-OA-02",
-          "codigo_oficial": "HI03 OA 02",
-          "descripcion": "Reconocer aspectos de la vida cotidiana de la civilización romana de la Antigüedad e identificar algunos elementos de su legado a sociedades y culturas del presente."
-        },
-        {
-          "id": "HI3B-OA-03",
-          "codigo_oficial": "HI03 OA 03",
-          "descripcion": "Explicar, con ejemplos concretos, cómo diferentes culturas y pueblos han enfrentado de distintas maneras el desafío de desarrollarse y satisfacer necesidades comunes a todos los seres humanos."
-        },
-        {
-          "id": "HI3B-OA-04",
-          "codigo_oficial": "HI03 OA 04",
-          "descripcion": "Comparar modos de vida de la Antigüedad con el propio, considerando costumbres, trabajos y oficios, creencias, vestimentas y características de las ciudades, entre otros."
-        }
+        {"id":"HI3B-OA-01","codigo_oficial":"HI03 OA 01","descripcion":"Reconocer aspectos de la vida cotidiana de la civilización griega de la Antigüedad e identificar algunos elementos de su legado a sociedades y culturas del presente; entre ellos, la organización democrática, el desarrollo de la historia, el teatro como forma de expresión, el arte y la escultura, la arquitectura, la mitología, la geometría y la filosofía, la creación del alfabeto y los juegos olímpicos.","eje":"Historia"},
+        {"id":"HI3B-OA-02","codigo_oficial":"HI03 OA 02","descripcion":"Reconocer aspectos de la vida cotidiana de la civilización romana de la Antigüedad e identificar algunos elementos de su legado a sociedades y culturas del presente; entre ellos, el idioma, el derecho y las leyes, el arte y las obras arquitectónicas.","eje":"Historia"},
+        {"id":"HI3B-OA-03","codigo_oficial":"HI03 OA 03","descripcion":"Explicar, con ejemplos concretos, cómo diferentes culturas y pueblos (como griegos y romanos de la Antigüedad) han enfrentado de distintas maneras el desafío de desarrollarse y satisfacer las necesidades comunes a todos los seres humanos.","eje":"Historia"},
+        {"id":"HI3B-OA-04","codigo_oficial":"HI03 OA 04","descripcion":"Comparar modos de vida de la Antigüedad con el propio, considerando costumbres, trabajos y oficios, creencias, vestimentas y características de las ciudades, entre otros.","eje":"Historia"},
+        {"id":"HI3B-OA-05","codigo_oficial":"HI03 OA 05","descripcion":"Investigar sobre algún tema de su interés con relación a las civilizaciones estudiadas (como los héroes, los dioses, las ciudades, las viviendas, la vestimenta, las herramientas tecnológicas y la esclavitud, entre otros) por medio de diferentes fuentes (libros, fuentes gráficas, TIC) y comunicar lo aprendido.","eje":"Historia"}
       ]
     },
     {
       "numero": 2,
-      "nombre": "Comparaciones entre pasado y presente",
+      "id": "eje-geografia",
+      "nombre": "Geografía",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
-        {
-          "id": "HI3B-OA-05",
-          "codigo_oficial": "HI03 OA 05",
-          "descripcion": "Investigar sobre algún tema de su interés con relación a las civilizaciones estudiadas por medio de diferentes fuentes y comunicar lo aprendido."
-        },
-        {
-          "id": "HI3B-OA-06",
-          "codigo_oficial": "HI03 OA 06",
-          "descripcion": "Ubicar personas, lugares y elementos en una cuadrícula, utilizando líneas de referencia y puntos cardinales."
-        },
-        {
-          "id": "HI3B-OA-07",
-          "codigo_oficial": "HI03 OA 07",
-          "descripcion": "Distinguir hemisferios, círculo del Ecuador, trópicos, polos, continentes y océanos del planeta en mapas y globos terráqueos."
-        },
-        {
-          "id": "HI3B-OA-08",
-          "codigo_oficial": "HI03 OA 08",
-          "descripcion": "Identificar y ubicar en mapas las principales zonas climáticas del mundo y dar ejemplos de distintos paisajes que pueden encontrarse en estas zonas y de cómo las personas han elaborado diferentes estrategias para habitarlos."
-        }
+        {"id":"HI3B-OA-06","codigo_oficial":"HI03 OA 06","descripcion":"Ubicar personas, lugares y elementos en una cuadrícula, utilizando líneas de referencia y puntos cardinales.","eje":"Geografía"},
+        {"id":"HI3B-OA-07","codigo_oficial":"HI03 OA 07","descripcion":"Distinguir hemisferios, círculo del Ecuador, trópicos, polos, continentes y océanos del planeta en mapas y globos terráqueos.","eje":"Geografía"},
+        {"id":"HI3B-OA-08","codigo_oficial":"HI03 OA 08","descripcion":"Identificar y ubicar en mapas las principales zonas climáticas del mundo y dar ejemplos de distintos paisajes que pueden encontrarse en estas zonas y de cómo las personas han elaborado diferentes estrategias para habitarlos.","eje":"Geografía"},
+        {"id":"HI3B-OA-09","codigo_oficial":"HI03 OA 09","descripcion":"Caracterizar el entorno geográfico de las civilizaciones estudiadas, utilizando vocabulario geográfico adecuado (continente, valle, montaña, océano, río, archipiélago, mares, península, ciudad, construcciones y monumentos, entre otros).","eje":"Geografía"},
+        {"id":"HI3B-OA-10","codigo_oficial":"HI03 OA 10","descripcion":"Reconocer algunos factores geográficos que influyeron en el desarrollo de las civilizaciones estudiadas (ubicación, relieve y clima, recursos naturales disponibles, importancia del mar Egeo y sus islas para Grecia e importancia del mar Mediterráneo para Roma, entre otros).","eje":"Geografía"}
       ]
     },
     {
       "numero": 3,
-      "nombre": "Representación del espacio y zonas climáticas",
+      "id": "eje-formacion-ciudadana",
+      "nombre": "Formación ciudadana",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
-        {
-          "id": "HI3B-OA-09",
-          "codigo_oficial": "HI03 OA 09",
-          "descripcion": "Caracterizar el entorno geográfico de las civilizaciones estudiadas, utilizando vocabulario geográfico adecuado."
-        },
-        {
-          "id": "HI3B-OA-10",
-          "codigo_oficial": "HI03 OA 10",
-          "descripcion": "Reconocer algunos factores geográficos que influyeron en el desarrollo de las civilizaciones estudiadas."
-        },
-        {
-          "id": "HI3B-OA-11",
-          "codigo_oficial": "HI03 OA 11",
-          "descripcion": "Asumir sus deberes y responsabilidades como estudiante y en situaciones de la vida cotidiana."
-        },
-        {
-          "id": "HI3B-OA-12",
-          "codigo_oficial": "HI03 OA 12",
-          "descripcion": "Mostrar actitudes y realizar acciones concretas en su entorno cercano que reflejen valores y virtudes ciudadanas, como tolerancia, respeto al otro y empatía."
-        }
-      ]
-    },
-    {
-      "numero": 4,
-      "nombre": "Ciudadanía, derechos y responsabilidades",
-      "oa": [
-        {
-          "id": "HI3B-OA-13",
-          "codigo_oficial": "HI03 OA 13",
-          "descripcion": "Participar en decisiones grupales del curso, respetando mecanismos democráticos simples y las opiniones de los demás."
-        },
-        {
-          "id": "HI3B-OA-14",
-          "codigo_oficial": "HI03 OA 14",
-          "descripcion": "Reconocer que los niños tienen derechos que les permiten recibir un cuidado especial por parte de la sociedad con el fin de que puedan aprender, crecer y desarrollarse, y dar ejemplos de cómo la sociedad los garantiza."
-        },
-        {
-          "id": "HI3B-OA-15",
-          "codigo_oficial": "HI03 OA 15",
-          "descripcion": "Investigar y comunicar problemas de la comunidad o del curso, proponiendo acciones de colaboración y cuidado del entorno."
-        }
+        {"id":"HI3B-OA-11","codigo_oficial":"HI03 OA 11","descripcion":"Asumir sus deberes y responsabilidades como estudiante y en situaciones de la vida cotidiana, como cumplir con sus deberes escolares, colaborar en el orden y en la limpieza de los espacios que comparte con su familia, escuela y comunidad, cuidar sus pertenencias y las de los demás, preocuparse de su salud e higiene y ayudar en su casa.","eje":"Formación ciudadana"},
+        {"id":"HI3B-OA-12","codigo_oficial":"HI03 OA 12","descripcion":"Mostrar actitudes y realizar acciones concretas en su entorno cercano (familia, escuela y comunidad) que reflejen valores y virtudes ciudadanas, como:\n- la tolerancia y el respeto al otro (ejemplos: respetar las opiniones distintas a las propias, mostrar disposición al diálogo, respetar expresiones de diversidad, como diferentes costumbres, creencias, origen étnico, nacionalidad, etc.)\n- la empatía (ejemplos: demostrar cortesía con los demás, escuchar al otro, ayudar a quien lo necesite, etc.).","eje":"Formación ciudadana"},
+        {"id":"HI3B-OA-13","codigo_oficial":"HI03 OA 13","descripcion":"Mantener una conducta honesta en la vida cotidiana, en los juegos y en el trabajo escolar, hablando con la verdad, respetando las reglas de los juegos sin hacer trampa y reconociendo sus errores y sus acciones, entre otros.","eje":"Formación ciudadana"},
+        {"id":"HI3B-OA-14","codigo_oficial":"HI03 OA 14","descripcion":"Reconocer que los niños tienen derechos que les permiten recibir un cuidado especial por parte de la sociedad con el fin de que puedan aprender, crecer y desarrollarse, y dar ejemplos de cómo la sociedad les garantiza estos derechos.","eje":"Formación ciudadana"},
+        {"id":"HI3B-OA-15","codigo_oficial":"HI03 OA 15","descripcion":"Investigar y comunicar sus resultados sobre algunas instituciones públicas y privadas (como Junaeb, Sernac, SII, BancoEstado, instituciones de previsión y de salud, universidades, Hogar de Cristo y fundaciones, entre otras), identificando el servicio que prestan en la comunidad y los diferentes trabajos que realizan las personas que se desempeñan en ellas.","eje":"Formación ciudadana"},
+        {"id":"HI3B-OA-16","codigo_oficial":"HI03 OA 16","descripcion":"Participar responsable y activamente en su hogar (encargos, celebraciones, cuidado de las cosas) y en la escuela (campañas solidarias, celebraciones, deportes y juegos), cumpliendo compromisos y responsabilidades adquiridos.","eje":"Formación ciudadana"}
       ]
     }
   ]

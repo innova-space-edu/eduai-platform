@@ -1,46 +1,70 @@
 {
-  "estado": "base_verificada_mineduc",
-  "curso": "7_basico",
-  "asignatura": "tecnologia",
-  "nombre_asignatura": "Tecnología",
-  "fuente": "Currículum Nacional MINEDUC",
+  "metadata": {
+    "nivel": "Básica",
+    "curso": "7° Básico",
+    "asignatura": "Tecnología",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/tecnologia/7-basico",
+    "base_curricular": "Bases Curriculares 7º Básico a 2º Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-07-17",
+    "nota": "Los OA de contenido fueron cotejados con la página oficial vigente de Currículum Nacional. La agrupación corresponde a ejes curriculares, no a unidades inventadas."
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
   "unidades": [
     {
-      "unidad": 1,
-      "titulo": "Diseño y solución de problemas",
+      "numero": 1,
+      "id": "eje-resolucion-problemas-tecnologicos",
+      "nombre": "Resolución de problemas tecnológicos",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
-          "id": "OA1",
-          "descripcion": "Identificar problemas del entorno y proponer soluciones tecnológicas.",
-          "eje": "Diseño",
-          "indicadores": [
-            "Detectan necesidades del entorno.",
-            "Proponen ideas de solución tecnológica."
-          ]
+          "id": "TE7B-OA-01",
+          "codigo_oficial": "TE07 OA 01",
+          "descripcion": "Identificar necesidades personales o grupales del entorno cercano que impliquen soluciones de reparación, adaptación o mejora, reflexionando acerca de sus posibles aportes.",
+          "eje": "Resolución de problemas tecnológicos"
         },
         {
-          "id": "OA2",
-          "descripcion": "Diseñar, construir y evaluar objetos o sistemas tecnológicos.",
-          "eje": "Diseño",
-          "indicadores": [
-            "Elaboran prototipos.",
-            "Evalúan el funcionamiento de sus soluciones."
-          ]
+          "id": "TE7B-OA-02",
+          "codigo_oficial": "TE07 OA 02",
+          "descripcion": "Diseñar e implementar soluciones que respondan a las necesidades de reparación, adaptación o mejora de objetos o entornos, haciendo uso eficiente de recursos materiales, energéticos y digitales.",
+          "eje": "Resolución de problemas tecnológicos"
+        },
+        {
+          "id": "TE7B-OA-03",
+          "codigo_oficial": "TE07 OA 03",
+          "descripcion": "Evaluar soluciones implementadas como respuesta a las necesidades de reparación, adaptación o mejora de objetos o entornos, aplicando criterios propios y técnicos.",
+          "eje": "Resolución de problemas tecnológicos"
+        },
+        {
+          "id": "TE7B-OA-04",
+          "codigo_oficial": "TE07 OA 04",
+          "descripcion": "Comunicar el diseño, la planificación u otros procesos de la resolución de necesidades de reparación, adaptación o mejora de objetos o entornos, utilizando herramientas TIC, considerando el objetivo, la audiencia y aspectos éticos.",
+          "eje": "Resolución de problemas tecnológicos"
         }
       ]
     },
     {
-      "unidad": 2,
-      "titulo": "Tecnologías de la información",
+      "numero": 2,
+      "id": "eje-tecnologia-ambiente-sociedad",
+      "nombre": "Tecnología, ambiente y sociedad",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
-          "id": "OA3",
-          "descripcion": "Utilizar herramientas digitales de manera segura y responsable.",
-          "eje": "TIC",
-          "indicadores": [
-            "Usan programas y plataformas digitales.",
-            "Aplican normas de seguridad digital."
-          ]
+          "id": "TE7B-OA-05",
+          "codigo_oficial": "TE07 OA 05",
+          "descripcion": "Contrastar soluciones tecnológicas existentes de reparación, adaptación o mejora, identificando las necesidades a las que respondieron y el contexto en que fueron desarrolladas.",
+          "eje": "Tecnología, ambiente y sociedad"
+        },
+        {
+          "id": "TE7B-OA-06",
+          "codigo_oficial": "TE07 OA 06",
+          "descripcion": "Caracterizar algunos de los efectos que han tenido las soluciones tecnológicas existentes de reparación, adaptación o mejora, considerando aspectos sociales y ambientales.",
+          "eje": "Tecnología, ambiente y sociedad"
         }
       ]
     }

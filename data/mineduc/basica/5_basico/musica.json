@@ -2,89 +2,89 @@
   "metadata": {
     "nivel": "Básica",
     "curso": "5° Básico",
-    "asignatura": "Música",
     "fuente": "Currículum Nacional - MINEDUC Chile",
-    "source_url": "https://www.curriculumnacional.cl/",
-    "estado": "base_verificada_mineduc",
-    "ultima_actualizacion_manual": "2026-04-06",
-    "nota": "Archivo organizado para el planificador según OA oficiales de Música 5° básico y la organización general del programa MINEDUC."
+    "base_curricular": "Bases Curriculares 1° a 6° Básico",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-07-17",
+    "nota": "Los OA de contenido fueron obtenidos directamente de la página oficial vigente de Currículum Nacional. La agrupación corresponde a ejes curriculares y no inventa unidades del programa de estudio.",
+    "asignatura": "Música",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/musica/5-basico"
   },
-  "objetivos_habilidad": [
-    {
-      "id": "MU05-OAH-a",
-      "descripcion": "Escuchar, describir, interpretar e improvisar música usando el lenguaje musical.",
-      "unidades": [1, 2, 3, 4]
-    },
-    {
-      "id": "MU05-OAH-b",
-      "descripcion": "Crear ideas musicales con propósito expresivo y reflexionar sobre procesos y resultados.",
-      "unidades": [1, 2, 3, 4]
-    }
-  ],
-  "objetivos_actitud": [
-    {
-      "id": "MU05-OAA-A",
-      "descripcion": "Valorar la música como forma de expresión y comunicación.",
-      "unidades": [1, 2, 3, 4]
-    },
-    {
-      "id": "MU05-OAA-B",
-      "descripcion": "Participar con respeto, creatividad y disposición en experiencias musicales.",
-      "unidades": [1, 2, 3, 4]
-    }
-  ],
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
   "unidades": [
     {
       "numero": 1,
-      "nombre": "Raíces y expresiones de la música americana",
+      "id": "eje-escuchar-y-apreciar",
+      "nombre": "Escuchar y apreciar",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
           "id": "MU5B-OA-01",
           "codigo_oficial": "MU05 OA 01",
-          "descripcion": "Describir la música escuchada e interpretada, basándose en los elementos del lenguaje musical (reiteraciones, contrastes, pulsos, acentos, patrones rítmicos y melódicos, diseños melódicos, variaciones, dinámica, tempo, secciones A-AB-ABA, otras, preguntas-respuestas y texturas) y su propósito expresivo."
+          "descripcion": "Describir la música escuchada e interpretada, basándose en los elementos del lenguaje musical (reiteraciones, contrastes, pulsos, acentos, patrones rítmicos y melódicos, diseños melódicos, variaciones, dinámica, tempo, secciones A-AB-ABA, otras, preguntas-respuestas y texturas) y su propósito expresivo.",
+          "eje": "Escuchar y apreciar"
         },
         {
           "id": "MU5B-OA-02",
           "codigo_oficial": "MU05 OA 02",
-          "descripcion": "Expresar, mostrando grados crecientes de elaboración, sensaciones, emociones e ideas que les sugiere la música escuchada, usando diversos medios expresivos."
+          "descripcion": "Expresar, mostrando grados crecientes de elaboración y detalle, las sensaciones, emociones e ideas que les sugiere la música escuchada e interpretada, usando diversos medios expresivos (verbal, corporal, musical, visual).",
+          "eje": "Escuchar y apreciar"
+        },
+        {
+          "id": "MU5B-OA-03",
+          "codigo_oficial": "MU05 OA 03",
+          "descripcion": "Escuchar música en forma abundante de diversos contextos y culturas poniendo énfasis en: Tradición escrita (docta), música de compositores americanos y del mundo (por ejemplo, \"Cantos de México\" de C. Chávez, \"Malambo\" de C. Guastavino, \"Cinema\" de E. Satie); Tradición oral (folclor, música de pueblos originarios), música americana y sus orígenes (por ejemplo, música africana, huaynos, joropos); Popular (jazz, rock, fusión etc.), música de América (por ejemplo tangos, jazz, cumbias). Escuchar apreciativamente al menos 15 músicas variadas de corta y mediana duración.",
+          "eje": "Escuchar y apreciar"
         }
       ]
     },
     {
       "numero": 2,
-      "nombre": "Audición, interpretación y reflexión de la música americana",
+      "id": "eje-interpretar-y-crear",
+      "nombre": "Interpretar y crear",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
-        {
-          "id": "MU5B-OA-03",
-          "codigo_oficial": "MU05 OA 03",
-          "descripcion": "Escuchar música en forma abundante de diversos contextos y culturas, poniendo énfasis en música americana."
-        },
         {
           "id": "MU5B-OA-04",
           "codigo_oficial": "MU05 OA 04",
-          "descripcion": "Cantar al unísono, a más voces y tocar instrumentos de percusión, melódicos y/o armónicos."
+          "descripcion": "Cantar al unísono y a más voces y tocar instrumentos de percusión, melódicos (metalófono, flauta dulce u otros) y/o armónicos (guitarra, teclado, otros).",
+          "eje": "Interpretar y crear"
+        },
+        {
+          "id": "MU5B-OA-05",
+          "codigo_oficial": "MU05 OA 05",
+          "descripcion": "Improvisar y crear ideas musicales con un propósito dado y un adecuado dominio del lenguaje musical.",
+          "eje": "Interpretar y crear"
+        },
+        {
+          "id": "MU5B-OA-06",
+          "codigo_oficial": "MU05 OA 06",
+          "descripcion": "Presentar su trabajo musical al curso y la comunidad, en forma individual y grupal, con responsabilidad, dominio y musicalidad.",
+          "eje": "Interpretar y crear"
         }
       ]
     },
     {
       "numero": 3,
-      "nombre": "Creación e improvisación musical",
+      "id": "eje-reflexionar-y-contextualizar",
+      "nombre": "Reflexionar y contextualizar",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
-          "id": "MU5B-OA-05",
-          "codigo_oficial": "MU05 OA 05",
-          "descripcion": "Improvisar y crear ideas musicales con un propósito dado y un adecuado dominio del lenguaje musical."
-        }
-      ]
-    },
-    {
-      "numero": 4,
-      "nombre": "Presentación y comunicación musical",
-      "oa": [
+          "id": "MU5B-OA-07",
+          "codigo_oficial": "MU05 OA 07",
+          "descripcion": "Explicar la relación entre las obras interpretadas y/o escuchadas, con elementos del contexto en que surgen.",
+          "eje": "Reflexionar y contextualizar"
+        },
         {
-          "id": "MU5B-OA-06",
-          "codigo_oficial": "MU05 OA 06",
-          "descripcion": "Presentar su trabajo musical al curso y la comunidad, en forma individual y grupal, con compromiso y responsabilidad."
+          "id": "MU5B-OA-08",
+          "codigo_oficial": "MU05 OA 08",
+          "descripcion": "Reflexionar sobre sus fortalezas y áreas en que pueden mejorar la audición, la interpretación y la creación, propia y de otros, con respeto y autocrítica.",
+          "eje": "Reflexionar y contextualizar"
         }
       ]
     }

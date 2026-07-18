@@ -2,104 +2,107 @@
   "metadata": {
     "nivel": "Básica",
     "curso": "5° Básico",
-    "asignatura": "Educación Física y Salud",
     "fuente": "Currículum Nacional - MINEDUC Chile",
-    "source_url": "https://www.curriculumnacional.cl/",
-    "estado": "base_verificada_mineduc",
-    "ultima_actualizacion_manual": "2026-04-06",
-    "nota": "Archivo estructurado para el planificador según OA oficiales de Educación Física y Salud 5° básico y la organización general del programa MINEDUC."
+    "base_curricular": "Bases Curriculares 1° a 6° Básico",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-07-17",
+    "nota": "Los OA de contenido fueron obtenidos directamente de la página oficial vigente de Currículum Nacional. La agrupación corresponde a ejes curriculares y no inventa unidades del programa de estudio.",
+    "asignatura": "Educación Física y Salud",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/educacion-fisica-salud/5-basico"
   },
-  "objetivos_habilidad": [
-    {
-      "id": "EF05-OAH-a",
-      "descripcion": "Aplicar habilidades motrices en actividades deportivas y predeportivas.",
-      "unidades": [1, 2, 3, 4]
-    },
-    {
-      "id": "EF05-OAH-b",
-      "descripcion": "Practicar actividad física segura, saludable y colaborativa, aplicando estrategias y reglas.",
-      "unidades": [1, 2, 3, 4]
-    }
-  ],
-  "objetivos_actitud": [
-    {
-      "id": "EF05-OAA-A",
-      "descripcion": "Demostrar esfuerzo, responsabilidad y respeto en la práctica de actividad física.",
-      "unidades": [1, 2, 3, 4]
-    },
-    {
-      "id": "EF05-OAA-B",
-      "descripcion": "Valorar la actividad física y el deporte como medios para el bienestar personal y social.",
-      "unidades": [1, 2, 3, 4]
-    }
-  ],
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
   "unidades": [
     {
       "numero": 1,
-      "nombre": "Habilidades motrices básicas",
+      "id": "eje-habilidades-motrices",
+      "nombre": "Habilidades motrices",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
           "id": "EF5B-OA-01",
           "codigo_oficial": "EF05 OA 01",
-          "descripcion": "Demostrar la aplicación de las habilidades motrices básicas adquiridas, en una variedad de actividades deportivas."
+          "descripcion": "Demostrar la aplicación de las habilidades motrices básicas adquiridas, en una variedad de actividades deportivas; por ejemplo: realizar un giro sobre una viga de equilibrio, lanzar un balón hacia la portería y correr una distancia determinada (por ejemplo: 50 o 100 metros).",
+          "eje": "Habilidades motrices"
         },
         {
           "id": "EF5B-OA-02",
           "codigo_oficial": "EF05 OA 02",
-          "descripcion": "Resolver problemas motores aplicando combinaciones de habilidades motrices básicas en juegos y actividades físicas."
+          "descripcion": "Ejecutar juegos colectivos y deportes, creando tácticas y estrategias y demostrando formas para resolver un problema en relación con el espacio, el objeto y los adversarios; por ejemplo: dar tres pases en cinco segundos o dar tres pasos y dar un pase a un compañero.",
+          "eje": "Habilidades motrices"
+        },
+        {
+          "id": "EF5B-OA-03",
+          "codigo_oficial": "EF05 OA 03",
+          "descripcion": "Practicar deportes individuales y colectivos con reglas y espacios adaptados en los que aplican estrategias defensivas y ofensivas; por ejemplo: reducir y ampliar espacios, obtener y mantener la posesión del balón y transportar el balón de forma controlada.",
+          "eje": "Habilidades motrices"
+        },
+        {
+          "id": "EF5B-OA-04",
+          "codigo_oficial": "EF05 OA 04",
+          "descripcion": "Ejecutar actividades físicas y/o deportivas, utilizando diferentes entornos y aplicando medidas para conservar limpios y ordenados los espacios; por ejemplo: caminatas recreativas urbanas, bailes recreativos, cicletadas, juegos de balón en plazas y parques.",
+          "eje": "Habilidades motrices"
+        },
+        {
+          "id": "EF5B-OA-05",
+          "codigo_oficial": "EF05 OA 05",
+          "descripcion": "Demostrar la correcta ejecución de una danza nacional, utilizando pasos básicos y música folclórica de forma individual o grupal; por ejemplo: danzas de la zona norte, central, sur e Isla de Pascua.",
+          "eje": "Habilidades motrices"
         }
       ]
     },
     {
       "numero": 2,
-      "nombre": "Práctica de deportes individuales y colectivos",
+      "id": "eje-vida-activa-y-saludable",
+      "nombre": "Vida activa y saludable",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
-          "id": "EF5B-OA-03",
-          "codigo_oficial": "EF05 OA 03",
-          "descripcion": "Practicar deportes individuales y colectivos, aplicando reglas, estrategias específicas y principios de juego."
+          "id": "EF5B-OA-06",
+          "codigo_oficial": "EF05 OA 06",
+          "descripcion": "Ejecutar actividades físicas de intensidad moderada a vigorosa que desarrollen la condición física por medio de la práctica de ejercicios de resistencia cardiovascular, fuerza, flexibilidad y velocidad, estableciendo metas de superación personal.",
+          "eje": "Vida activa y saludable"
         },
         {
-          "id": "EF5B-OA-04",
-          "codigo_oficial": "EF05 OA 04",
-          "descripcion": "Aplicar estrategias tácticas básicas en situaciones de juego y actividades predeportivas."
+          "id": "EF5B-OA-07",
+          "codigo_oficial": "EF05 OA 07",
+          "descripcion": "Practicar y planificar de forma regular actividades físicas y/o deportivas de intensidad moderada a vigorosa, como planificar un partido, participar en una caminata o corrida familiar e integrar talleres deportivos.",
+          "eje": "Vida activa y saludable"
+        },
+        {
+          "id": "EF5B-OA-08",
+          "codigo_oficial": "EF05 OA 08",
+          "descripcion": "Determinar la intensidad del esfuerzo físico de forma manual, mediante el pulso o utilizando escalas de percepción de esfuerzo.",
+          "eje": "Vida activa y saludable"
+        },
+        {
+          "id": "EF5B-OA-09",
+          "codigo_oficial": "EF05 OA 09",
+          "descripcion": "Practicar actividades físicas en forma segura, demostrando la adquisición de hábitos de higiene, posturales y de vida saludable, como utilizar una ropa distinta para la clase, mantener una correcta postura, utilizar protectores solares e hidratarse con agua antes, durante y después de la clase.",
+          "eje": "Vida activa y saludable"
         }
       ]
     },
     {
       "numero": 3,
-      "nombre": "Condición física y vida saludable",
-      "oa": [
-        {
-          "id": "EF5B-OA-05",
-          "codigo_oficial": "EF05 OA 05",
-          "descripcion": "Participar en actividades físicas de intensidad moderada a vigorosa para mejorar la condición física."
-        },
-        {
-          "id": "EF5B-OA-06",
-          "codigo_oficial": "EF05 OA 06",
-          "descripcion": "Reconocer y practicar hábitos de vida activa y saludable asociados a la actividad física."
-        },
-        {
-          "id": "EF5B-OA-08",
-          "codigo_oficial": "EF05 OA 08",
-          "descripcion": "Reconocer y monitorear respuestas corporales provocadas por la actividad física."
-        }
-      ]
-    },
-    {
-      "numero": 4,
-      "nombre": "Seguridad, autocuidado y trabajo en equipo",
+      "id": "eje-seguridad-juego-limpio-y-liderazgo",
+      "nombre": "Seguridad, juego limpio y liderazgo",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
           "id": "EF5B-OA-10",
           "codigo_oficial": "EF05 OA 10",
-          "descripcion": "Participar en actividades motrices y deportivas, demostrando actitudes de trabajo en equipo, respeto, liderazgo y colaboración."
+          "descripcion": "Practicar actividades físicas y /o juegos colectivos, demostrando responsabilidad, liderazgo y respeto al participar; por ejemplo: conversar y plantear discrepancias, aceptar las diferencias individuales e intentar llegar a acuerdos, jugar en forma cooperativa, aceptar el resultado y manejar el triunfo.",
+          "eje": "Seguridad, juego limpio y liderazgo"
         },
         {
           "id": "EF5B-OA-11",
           "codigo_oficial": "EF05 OA 11",
-          "descripcion": "Practicar actividades físicas y/o deportivas, demostrando comportamientos seguros y un manejo adecuado de los materiales y los procedimientos."
+          "descripcion": "Practicar actividades físicas y/o deportivas, demostrando comportamientos seguros y un manejo adecuado de los materiales y los procedimientos, como: realizar un calentamiento específico individual o grupal; usar ropa adecuada para la actividad; cuidar sus pertenencias; manipular de forma segura los implementos y las instalaciones.",
+          "eje": "Seguridad, juego limpio y liderazgo"
         }
       ]
     }

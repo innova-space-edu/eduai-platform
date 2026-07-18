@@ -1,52 +1,132 @@
 {
-  "estado": "base_verificada_mineduc",
-  "curso": "8_basico",
-  "asignatura": "ciencias_naturales",
-  "nombre_asignatura": "Ciencias Naturales",
-  "fuente": "Currículum Nacional MINEDUC",
+  "metadata": {
+    "nivel": "Básica",
+    "curso": "8° Básico",
+    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "base_curricular": "Bases Curriculares 7º Básico a 2º Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-07-17",
+    "nota": "Los OA de contenido fueron transcritos desde la página oficial vigente de Currículum Nacional. La agrupación siguiente corresponde a ejes curriculares y no inventa unidades del programa de estudio.",
+    "asignatura": "Ciencias Naturales",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/ciencias-naturales/8-basico"
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
   "unidades": [
     {
-      "unidad": 1,
-      "titulo": "Biología",
+      "numero": 1,
+      "id": "eje-biologia",
+      "nombre": "Biología",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
-          "id": "OA1",
-          "descripcion": "Analizar funciones del organismo humano y su relación con la salud.",
-          "eje": "Biología",
-          "indicadores": [
-            "Explican funciones de sistemas corporales.",
-            "Relacionan hábitos saludables con prevención de enfermedades."
-          ]
+          "id": "CN8B-OA-01",
+          "codigo_oficial": "CN08 OA 01",
+          "descripcion": "Explicar que los modelos de la célula han evolucionado sobre la base de evidencias, como las aportadas por científicos como Hooke, Leeuwenhoek, Virchow, Schleiden y Schwann.",
+          "eje": "Biología"
+        },
+        {
+          "id": "CN8B-OA-02",
+          "codigo_oficial": "CN08 OA 02",
+          "descripcion": "Desarrollar modelos que expliquen la relación entre la función de una célula y sus partes, considerando:\n- Sus estructuras (núcleo, citoplasma, membrana celular, pared celular, vacuolas, mitocondria, cloroplastos, entre otras).\n- Células eucariontes (animal y vegetal) y procariontes.\n- Tipos celulares (como intestinal, muscular, nervioso, pancreático).",
+          "eje": "Biología"
+        },
+        {
+          "id": "CN8B-OA-03",
+          "codigo_oficial": "CN08 OA 03",
+          "descripcion": "Explicar, por medio de la experimentación, los mecanismos de intercambio de partículas entre la célula (en animales y plantas) y su ambiente por difusión y osmosis.",
+          "eje": "Biología"
+        },
+        {
+          "id": "CN8B-OA-04",
+          "codigo_oficial": "CN08 OA 04",
+          "descripcion": "Crear modelos que expliquen que las plantas tienen estructuras especializadas para responder a estímulos del medioambiente, similares a las del cuerpo humano, considerando los procesos de transporte de sustancia e intercambio de gases.",
+          "eje": "Biología"
+        },
+        {
+          "id": "CN8B-OA-05",
+          "codigo_oficial": "CN08 OA 05",
+          "descripcion": "Explicar, basándose en evidencias, la interacción de sistemas del cuerpo humano organizados por estructuras especializadas que contribuyen a su equilibrio, considerando:\n- La digestión de los alimentos por medio de la acción de enzimas digestivas y su absorción o paso a la sangre.\n- El rol del sistema circulatorio en el transporte de sustancias como nutrientes, gases, desechos metabólicos y anticuerpos.\n- El proceso de ventilación pulmonar e intercambio gaseoso a nivel alveolar.\n- El rol del sistema excretor en relación con la filtración de la sangre, la regulación de la cantidad de agua en el cuerpo y la eliminación de desechos.\n- La prevención de enfermedades debido al consumo excesivo de sustancias, como tabaco, alcohol, grasas y sodio, que se relacionan con estos sistemas.",
+          "eje": "Biología"
+        },
+        {
+          "id": "CN8B-OA-06",
+          "codigo_oficial": "CN08 OA 06",
+          "descripcion": "Investigar experimentalmente y explicar las características de los nutrientes (carbohidratos, proteínas, grasas, vitaminas, minerales y agua) en los alimentos y sus efectos para la salud humana.",
+          "eje": "Biología"
+        },
+        {
+          "id": "CN8B-OA-07",
+          "codigo_oficial": "CN08 OA 07",
+          "descripcion": "Analizar y evaluar, basándose en evidencias, los factores que contribuyen a mantener un cuerpo saludable, proponiendo un plan que considere:\n- Una alimentación balanceada.\n- Un ejercicio físico regular.\n- Evitar consumo de alcohol, tabaco y drogas.",
+          "eje": "Biología"
         }
       ]
     },
     {
-      "unidad": 2,
-      "titulo": "Física",
+      "numero": 2,
+      "id": "eje-fisica",
+      "nombre": "Física",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
-          "id": "OA2",
-          "descripcion": "Explicar fenómenos relacionados con energía, calor y electricidad.",
-          "eje": "Física",
-          "indicadores": [
-            "Describen transformaciones de energía.",
-            "Analizan situaciones de transferencia de calor y electricidad."
-          ]
+          "id": "CN8B-OA-08",
+          "codigo_oficial": "CN08 OA 08",
+          "descripcion": "Analizar las fuerzas eléctricas, considerando:\n- Los tipos de electricidad.\n- Los métodos de electrización (fricción, contacto e inducción).\n- La planificación, conducción y evaluación de experimentos para evidenciar las interacciones eléctricas.\n- La evaluación de los riesgos en la vida cotidiana y las posibles soluciones.",
+          "eje": "Física"
+        },
+        {
+          "id": "CN8B-OA-09",
+          "codigo_oficial": "CN08 OA 09",
+          "descripcion": "Investigar, explicar y evaluar las tecnologías que permiten la generación de energía eléctrica, como ocurre en pilas o baterías, en paneles fotovoltaicos y en generadores (eólicos, hidroeléctricos o nucleares, entre otros).",
+          "eje": "Física"
+        },
+        {
+          "id": "CN8B-OA-10",
+          "codigo_oficial": "CN08 OA 10",
+          "descripcion": "Analizar un circuito eléctrico domiciliario y comparar experimentalmente los circuitos eléctricos, en serie y en paralelo, en relación con la:\n- Energía eléctrica.\n- Diferencia de potencial.\n- Intensidad de corriente.\n- Potencia eléctrica.\n- Resistencia eléctrica.\n- Eficiencia energética.",
+          "eje": "Física"
+        },
+        {
+          "id": "CN8B-OA-11",
+          "codigo_oficial": "CN08 OA 11",
+          "descripcion": "Desarrollar modelos e investigaciones experimentales que expliquen el calor como un proceso de transferencia de energía térmica entre dos o más cuerpos que están a diferentes temperaturas, o entre una fuente térmica y un objeto, considerando:\n- Las formas en que se propaga (conducción, convección y radiación).\n- Los efectos que produce (cambio de temperatura, deformación y cambio de estado, entre otros).\n- La cantidad de calor cedida y absorbida en un proceso térmico.\n- Objetos tecnológicos que protegen de altas o bajas temperaturas a seres vivos y objetos.\n- Su diferencia con la temperatura (a nivel de sus partículas).\n- Mediciones de temperatura, usando termómetro y variadas escalas, como Celsius, Kelvin y Fahrenheit, entre otras.",
+          "eje": "Física"
         }
       ]
     },
     {
-      "unidad": 3,
-      "titulo": "Química",
+      "numero": 3,
+      "id": "eje-quimica",
+      "nombre": "Química",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
-          "id": "OA3",
-          "descripcion": "Analizar la estructura de la materia y sus transformaciones.",
-          "eje": "Química",
-          "indicadores": [
-            "Distinguen elementos, compuestos y mezclas.",
-            "Explican cambios físicos y químicos."
-          ]
+          "id": "CN8B-OA-12",
+          "codigo_oficial": "CN08 OA 12",
+          "descripcion": "Investigar y analizar cómo ha evolucionado el conocimiento de la constitución de la materia, considerando los aportes y las evidencias de:\n- La teoría atómica de Dalton.\n- Los modelos atómicos desarrollados por Thomson, Rutherford y Bohr, entre otros.",
+          "eje": "Química"
+        },
+        {
+          "id": "CN8B-OA-13",
+          "codigo_oficial": "CN08 OA 13",
+          "descripcion": "Desarrollar modelos que expliquen que la materia está constituida por átomos que interactúan, generando diversas partículas y sustancias.",
+          "eje": "Química"
+        },
+        {
+          "id": "CN8B-OA-14",
+          "codigo_oficial": "CN08 OA 14",
+          "descripcion": "Usar la tabla periódica como un modelo para predecir las propiedades relativas de los elementos químicos basándose en los patrones de sus átomos, considerando:\n- El número atómico.\n- La masa atómica.\n- La conductividad eléctrica.\n- La conductividad térmica.\n- El brillo.\n- Los enlaces que se pueden formar.",
+          "eje": "Química"
+        },
+        {
+          "id": "CN8B-OA-15",
+          "codigo_oficial": "CN08 OA 15",
+          "descripcion": "Investigar y argumentar, basándose en evidencias, que existen algunos elementos químicos más frecuentes en la Tierra que son comunes en los seres vivos y son soporte para la vida, como el carbono, el hidrógeno, el oxígeno y el nitrógeno.",
+          "eje": "Química"
         }
       ]
     }
