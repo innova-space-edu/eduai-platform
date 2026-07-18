@@ -1,17 +1,17 @@
 name: Sincronizar OA oficiales de 5° básico una vez
 
 on:
-  push:
-    branches:
-      - fix/mineduc-curriculum-official-2026
+  pull_request:
     paths:
       - .github/workflows/sync-mineduc-5-basico-once.yml
+      - scripts/sync-mineduc-basic-course.py
 
 permissions:
   contents: write
 
 jobs:
   sync:
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -32,9 +32,22 @@ jobs:
         run: node scripts/generate-mineduc-index.mjs
       - name: Validar currículum
         run: node scripts/validate-mineduc-curriculum.mjs --strict
-      - name: Compilar plataforma
+      - name: Instalar dependencias y compilar
+        env:
+          GROQ_API_KEY: ci-placeholder
+          GEMINI_API_KEY: ci-placeholder
+          OPENROUTER_API_KEY: ci-placeholder
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+          SUPABASE_URL: https://example.supabase.co
+          SUPABASE_SERVICE_ROLE_KEY: ci-placeholder
+          NEXT_PUBLIC_PANEL_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_PANEL_SUPABASE_ANON_KEY: ci-placeholder
         run: |
-          npm ci
+          node scripts/normalize-npm-lockfile.mjs
+          npm install --registry=https://registry.npmjs.org/ --ignore-scripts
           npm run build
       - name: Registrar validación y retirar tarea temporal
         run: |
