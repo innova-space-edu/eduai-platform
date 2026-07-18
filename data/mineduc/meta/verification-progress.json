@@ -6,6 +6,8 @@
   "propuestas_oficiales_verificadas": 4,
   "archivos_pendientes": 0,
   "oa_contenido_verificados": 1536,
+  "oat_verificados": 166,
+  "objetivos_oficiales_verificados": 1702,
   "cursos_completos": [
     "1_basico",
     "2_basico",
@@ -16,19 +18,20 @@
     "7_basico",
     "8_basico"
   ],
-  "siguiente_bloque": "ninguno",
-  "ultima_validacion": "success",
-  "estado_fusion": "listo_para_fusion",
-  "commit_fusion": "f7dd2d67794c6d0a2b163587809fd9bdc802b881",
-  "nota": "Los 105 archivos curriculares cargados por EduAI quedaron revisados. Educación Parvularia mantiene seis archivos operativos, pero respeta los tres tramos oficiales SC, NM y NT sin inventar objetivos distintos para menor/mayor o NT1/NT2.",
   "cursos_media_completos": [
     "1_medio",
     "2_medio",
     "3_medio",
     "4_medio"
   ],
-  "oat_verificados": 166,
-  "objetivos_oficiales_verificados": 1702,
+  "cursos_parvularia_completos": [
+    "sala_cuna_menor",
+    "sala_cuna_mayor",
+    "medio_menor",
+    "medio_mayor",
+    "nt1",
+    "nt2"
+  ],
   "objetivos_unicos_parvularia": 206,
   "detalle_unico_parvularia": {
     "oa_contenido": 123,
@@ -38,31 +41,24 @@
         "nombre": "Sala Cuna",
         "oa_contenido": 30,
         "oat": 20,
-        "total": 50,
-        "content": 30
+        "total": 50
       },
       "NM": {
         "nombre": "Nivel Medio",
         "oa_contenido": 41,
         "oat": 30,
-        "total": 71,
-        "content": 41
+        "total": 71
       },
       "NT": {
         "nombre": "Nivel Transición",
         "oa_contenido": 52,
         "oat": 33,
-        "total": 85,
-        "content": 52
+        "total": 85
       }
     }
   },
-  "cursos_parvularia_completos": [
-    "sala_cuna_menor",
-    "sala_cuna_mayor",
-    "medio_menor",
-    "medio_mayor",
-    "nt1",
-    "nt2"
-  ]
+  "siguiente_bloque": "ninguno",
+  "ultima_validacion": "success",
+  "estado_fusion": "listo_para_fusion",
+  "nota": "Los 105 archivos curriculares cargados por EduAI quedaron revisados. Educación Parvularia mantiene seis archivos operativos, pero respeta los tres tramos oficiales SC, NM y NT sin inventar objetivos distintos para menor/mayor o NT1/NT2."
 }
