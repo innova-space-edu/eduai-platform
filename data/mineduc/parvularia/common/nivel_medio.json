@@ -17,10 +17,7 @@
       "oat"
     ],
     "fecha_consulta": "2026-07-18",
-    "nota": "Medio Mayor es una subdivisión operativa de EduAI. MINEDUC define los OA/OAT para el tramo oficial Nivel Medio (NM); por ello este archivo reproduce exactamente la base común del tramo y no inventa una progresión curricular separada.",
-    "curso": "Medio Mayor",
-    "subnivel_operativo": "Medio Mayor",
-    "base_oficial_compartida": "data/mineduc/parvularia/common/nivel_medio.json"
+    "nota": "Base oficial común del tramo. Contiene los OA y OAT de los ocho núcleos establecidos por las Bases Curriculares de Educación Parvularia."
   },
   "ambitos": [
     {

@@ -11,37 +11,37 @@
           "path": "parvularia/medio_mayor.json",
           "nivel": "parvularia",
           "curso": "medio_mayor",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         },
         {
           "path": "parvularia/medio_menor.json",
           "nivel": "parvularia",
           "curso": "medio_menor",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         },
         {
           "path": "parvularia/nt1.json",
           "nivel": "parvularia",
           "curso": "nt1",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         },
         {
           "path": "parvularia/nt2.json",
           "nivel": "parvularia",
           "curso": "nt2",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         },
         {
           "path": "parvularia/sala_cuna_mayor.json",
           "nivel": "parvularia",
           "curso": "sala_cuna_mayor",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         },
         {
           "path": "parvularia/sala_cuna_menor.json",
           "nivel": "parvularia",
           "curso": "sala_cuna_menor",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         }
       ]
     },

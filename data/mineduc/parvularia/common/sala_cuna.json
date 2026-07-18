@@ -17,10 +17,7 @@
       "oat"
     ],
     "fecha_consulta": "2026-07-18",
-    "nota": "Sala Cuna Menor es una subdivisión operativa de EduAI. MINEDUC define los OA/OAT para el tramo oficial Sala Cuna (SC); por ello este archivo reproduce exactamente la base común del tramo y no inventa una progresión curricular separada.",
-    "curso": "Sala Cuna Menor",
-    "subnivel_operativo": "Sala Cuna Menor",
-    "base_oficial_compartida": "data/mineduc/parvularia/common/sala_cuna.json"
+    "nota": "Base oficial común del tramo. Contiene los OA y OAT de los ocho núcleos establecidos por las Bases Curriculares de Educación Parvularia."
   },
   "ambitos": [
     {
