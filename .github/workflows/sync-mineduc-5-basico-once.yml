@@ -1,0 +1,56 @@
+name: Sincronizar OA oficiales de 5° básico una vez
+
+on:
+  push:
+    branches:
+      - fix/mineduc-curriculum-official-2026
+    paths:
+      - .github/workflows/sync-mineduc-5-basico-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/mineduc-curriculum-official-2026
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Instalar parser HTML
+        run: python -m pip install --disable-pip-version-check beautifulsoup4
+      - name: Sincronizar 5° básico desde Currículum Nacional
+        run: python scripts/sync-mineduc-basic-course.py --course 5
+      - name: Regenerar índice
+        run: node scripts/generate-mineduc-index.mjs
+      - name: Validar currículum
+        run: node scripts/validate-mineduc-curriculum.mjs --strict
+      - name: Compilar plataforma
+        run: |
+          npm ci
+          npm run build
+      - name: Registrar validación y retirar tarea temporal
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          path = Path('data/mineduc/meta/verification-progress.json')
+          data = json.loads(path.read_text(encoding='utf-8'))
+          data['ultima_validacion'] = 'success'
+          path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+          PY
+          rm -f .github/workflows/sync-mineduc-5-basico-once.yml
+      - name: Publicar corrección completa de 5° básico
+        run: |
+          git config user.name "Innova Space"
+          git config user.email "contacto@innova-space-edu.cl"
+          git add -A data/mineduc scripts/sync-mineduc-basic-course.py .github/workflows/sync-mineduc-5-basico-once.yml
+          git commit -m "fix(curriculum): verificar OA oficiales completos de 5° básico"
+          git push origin HEAD:fix/mineduc-curriculum-official-2026
