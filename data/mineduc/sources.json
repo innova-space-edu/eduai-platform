@@ -661,6 +661,26 @@
       ],
       "cantidad_oa_contenido": 14,
       "caracter": "propuesta_curricular_no_obligatoria"
+    },
+    "basica/1_basico/ingles": {
+      "url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/ingles-propuesta/1-basico",
+      "fecha_consulta": "2026-07-17",
+      "alcance": [
+        "EN01 OA 01",
+        "EN01 OA 14"
+      ],
+      "cantidad_oa_contenido": 14,
+      "caracter": "propuesta_curricular_no_obligatoria"
+    },
+    "basica/4_basico/ingles": {
+      "url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/ingles-propuesta/4-basico",
+      "fecha_consulta": "2026-07-17",
+      "alcance": [
+        "EN04 OA 01",
+        "EN04 OA 14"
+      ],
+      "cantidad_oa_contenido": 14,
+      "caracter": "propuesta_curricular_no_obligatoria"
     }
   }
 }
