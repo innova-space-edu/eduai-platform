@@ -18,5 +18,6 @@
   ],
   "siguiente_bloque": "educacion_media",
   "ultima_validacion": "success",
-  "nota": "Contabiliza OA de contenido cotejados con páginas oficiales específicas. Inglés de 1° a 4° básico se registra como propuesta oficial; Inglés de 5° y 6° básico pertenece a la base curricular obligatoria."
+  "estado_fusion": "listo_para_fusion",
+  "nota": "Educación Básica completa: OA de contenido cotejados con páginas oficiales específicas. Inglés de 1° a 4° básico se registra como propuesta oficial; Inglés de 5° y 6° básico pertenece a la base curricular obligatoria."
 }
