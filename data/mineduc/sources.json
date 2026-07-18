@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "revision": "fase_7_4_basico_completo_verificado",
+  "revision": "fase_8_5_basico_completo_verificado",
   "fecha_actualizacion": "2026-07-17",
   "politica": {
     "estado_verificado": "Solo se usa verificado_oficial cuando código y texto fueron cotejados con una base curricular oficial específica.",
@@ -639,6 +639,106 @@
       ],
       "cantidad_oa_contenido": 14,
       "caracter_documento": "propuesta_curricular"
+    },
+    "basica/5_basico/matematica": {
+      "url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/matematica/5-basico",
+      "base_curricular_id": "basica-1-6",
+      "fecha_consulta": "2026-07-17",
+      "alcance": [
+        "MA05 OA 01",
+        "MA05 OA 27"
+      ],
+      "cantidad_oa_contenido": 27
+    },
+    "basica/5_basico/lenguaje": {
+      "url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/lenguaje-comunicacion/5-basico",
+      "base_curricular_id": "basica-1-6",
+      "fecha_consulta": "2026-07-17",
+      "alcance": [
+        "LE05 OA 01",
+        "LE05 OA 30"
+      ],
+      "cantidad_oa_contenido": 30
+    },
+    "basica/5_basico/ciencias_naturales": {
+      "url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/ciencias-naturales/5-basico",
+      "base_curricular_id": "basica-1-6",
+      "fecha_consulta": "2026-07-17",
+      "alcance": [
+        "CN05 OA 01",
+        "CN05 OA 14"
+      ],
+      "cantidad_oa_contenido": 14
+    },
+    "basica/5_basico/historia_geografia_y_cs_sociales": {
+      "url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/historia-geografia-ciencias-sociales/5-basico",
+      "base_curricular_id": "basica-1-6",
+      "fecha_consulta": "2026-07-17",
+      "alcance": [
+        "HI05 OA 01",
+        "HI05 OA 22"
+      ],
+      "cantidad_oa_contenido": 22
+    },
+    "basica/5_basico/ingles": {
+      "url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/ingles/5-basico",
+      "base_curricular_id": "basica-1-6",
+      "fecha_consulta": "2026-07-17",
+      "alcance": [
+        "IN05 OA 01",
+        "IN05 OA 16"
+      ],
+      "cantidad_oa_contenido": 16
+    },
+    "basica/5_basico/artes_visuales": {
+      "url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/artes-visuales/5-basico",
+      "base_curricular_id": "basica-1-6",
+      "fecha_consulta": "2026-07-17",
+      "alcance": [
+        "AR05 OA 01",
+        "AR05 OA 05"
+      ],
+      "cantidad_oa_contenido": 5
+    },
+    "basica/5_basico/educacion_fisica_y_salud": {
+      "url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/educacion-fisica-salud/5-basico",
+      "base_curricular_id": "basica-1-6",
+      "fecha_consulta": "2026-07-17",
+      "alcance": [
+        "EF05 OA 01",
+        "EF05 OA 11"
+      ],
+      "cantidad_oa_contenido": 11
+    },
+    "basica/5_basico/musica": {
+      "url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/musica/5-basico",
+      "base_curricular_id": "basica-1-6",
+      "fecha_consulta": "2026-07-17",
+      "alcance": [
+        "MU05 OA 01",
+        "MU05 OA 08"
+      ],
+      "cantidad_oa_contenido": 8
+    },
+    "basica/5_basico/orientacion": {
+      "url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/orientacion/5-basico",
+      "base_curricular_id": "basica-1-6",
+      "fecha_consulta": "2026-07-17",
+      "alcance": [
+        "OR05 OA 01",
+        "OR05 OA 09"
+      ],
+      "cantidad_oa_contenido": 9
+    },
+    "basica/5_basico/tecnologia": {
+      "url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/tecnologia/5-basico",
+      "base_curricular_id": "basica-1-6",
+      "fecha_consulta": "2026-07-17",
+      "alcance": [
+        "TE05 OA 01",
+        "TE05 OA 07"
+      ],
+      "cantidad_oa_contenido": 7
     }
   },
   "propuestas_oficiales_verificadas": {

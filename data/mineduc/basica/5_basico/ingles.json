@@ -2,134 +2,145 @@
   "metadata": {
     "nivel": "Básica",
     "curso": "5° Básico",
-    "asignatura": "Inglés",
     "fuente": "Currículum Nacional - MINEDUC Chile",
-    "source_url": "https://www.curriculumnacional.cl/",
-    "estado": "base_verificada_mineduc",
-    "ultima_actualizacion_manual": "2026-03-29",
-    "nota": "Archivo estructurado con los OA de Inglés publicados en la Base Curricular oficial para 5° y 6° básico."
+    "base_curricular": "Bases Curriculares 1° a 6° Básico",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-07-17",
+    "nota": "Los OA de contenido fueron obtenidos directamente de la página oficial vigente de Currículum Nacional. La agrupación corresponde a ejes curriculares y no inventa unidades del programa de estudio.",
+    "asignatura": "Inglés",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/ingles/5-basico"
   },
   "objetivos_habilidad": [],
-  "objetivos_actitud": [
-    {
-      "id": "5_BASICO-IN-OAA-A",
-      "descripcion": "Demostrar curiosidad e interés por conocer tanto su propia realidad como otras realidades y culturas, valorando lo propio y ampliando su conocimiento del mundo."
-    },
-    {
-      "id": "5_BASICO-IN-OAA-B",
-      "descripcion": "Manifestar una actitud positiva frente a sí mismo y sus capacidades para aprender un nuevo idioma."
-    },
-    {
-      "id": "5_BASICO-IN-OAA-C",
-      "descripcion": "Demostrar respeto ante otras personas, realidades o culturas, reconociendo sus aportes y valorando la diversidad de modos de vida."
-    },
-    {
-      "id": "5_BASICO-IN-OAA-D",
-      "descripcion": "Manifestar un estilo de trabajo y estudio riguroso y perseverante, para alcanzar los propósitos de la asignatura."
-    }
-  ],
+  "objetivos_actitud": [],
   "unidades": [
     {
       "numero": 1,
+      "id": "eje-comprension-auditiva",
       "nombre": "Comprensión auditiva",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
           "id": "IN5B-OA-01",
           "codigo_oficial": "IN05 OA 01",
-          "descripcion": "Escuchar y demostrar comprensión de información explícita en textos adaptados y auténticos simples, tanto no literarios como literarios, relacionados con las funciones del año y temas cotidianos, del entorno y de interés global."
+          "descripcion": "Escuchar y demostrar comprensión de información explícita en textos adaptados y auténticos simples, tanto no literarios (textos expositivos, diálogos) como literarios (rimas, canciones, cuentos), que estén enunciados en forma clara, tengan repetición de palabras y apoyo visual y gestual, y estén relacionados con las funciones del año y con los siguientes temas:\n- temas de la vida cotidiana: la escuela, la casa, la familia, la ropa, la comida, el clima\n- temas del contexto inmediato de los estudiantes como experiencias personales e información de interés relativa a eventos y aspectos de su entorno y de nuestro país\n- temas de otras asignaturas, como alimentación equilibrada y variada (Ciencias Naturales), descripción de lugares y clima (Geografía)\n- temas de actualidad e interés global como cultura de otros países, cuidado del medio ambiente y avances tecnológicos (redes sociales, medios de comunicación)",
+          "eje": "Comprensión auditiva"
         },
         {
           "id": "IN5B-OA-02",
           "codigo_oficial": "IN05 OA 02",
-          "descripcion": "Identificar en los textos escuchados el tema e ideas generales, información específica, palabras y vocabulario temático, y sonidos del inglés para familiarizarse con ellos."
+          "descripcion": "Identificar en los textos escuchados:\n- tema e ideas generales\n- información específica asociada a personas, lugares y tiempo\n- palabras, familias de palabras, expresiones de uso frecuente y vocabulario temático\n- sonidos y repetición de sonidos para comenzar a familiarizarse con los sonidos del inglés",
+          "eje": "Comprensión auditiva"
         },
         {
           "id": "IN5B-OA-03",
           "codigo_oficial": "IN05 OA 03",
-          "descripcion": "Escuchar textos orales en diversos formatos audiovisuales, usando estrategias para apoyar la comprensión como hacer predicciones, usar claves contextuales y apoyo visual."
+          "descripcion": "Escuchar textos orales en diversos formatos audiovisuales, usando las siguientes estrategias para apoyar la comprensión:\n- hacer predicciones basándose en conocimientos previos\n- usar claves contextuales (tema, hablantes, lugar, tiempo, imágenes)\n- visualizar diferentes aspectos del texto\n- usar apoyo visual",
+          "eje": "Comprensión auditiva"
         },
         {
           "id": "IN5B-OA-04",
           "codigo_oficial": "IN05 OA 04",
-          "descripcion": "Reaccionar a los textos escuchados, expresando preferencias o haciendo conexiones con experiencias personales, en forma oral, escrita o a través de ilustraciones."
+          "descripcion": "Reaccionar a los textos escuchados, expresando preferencias o haciendo conexiones con experiencias personales, en forma oral, escrita o a través de ilustraciones.",
+          "eje": "Comprensión auditiva"
         }
       ]
     },
     {
       "numero": 2,
+      "id": "eje-comprension-de-lectura",
       "nombre": "Comprensión de lectura",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
           "id": "IN5B-OA-05",
           "codigo_oficial": "IN05 OA 05",
-          "descripcion": "Leer y demostrar comprensión de textos adaptados y auténticos simples no literarios, relacionados con los temas y funciones del año."
+          "descripcion": "Leer y demostrar comprensión de textos adaptados y auténticos simples no literarios, que contengan palabras de uso frecuente, familias de palabras, repetición de palabras y frases, estén acompañados de abundante apoyo visual y estén relacionados con los temas y las siguientes funciones del año:\n- saludar y despedirse\n- solicitar y entregar información personal y de temas familiares\n- agradecer, disculparse y pedir permiso\n- seguir y dar instrucciones\n- describir personas, objetos y su posición, lugares, acciones cotidianas y clima\n- expresar gustos, preferencias, cantidades y posesiones",
+          "eje": "Comprensión de lectura"
         },
         {
           "id": "IN5B-OA-06",
           "codigo_oficial": "IN05 OA 06",
-          "descripcion": "Leer comprensivamente textos no literarios como notas, postales, invitaciones, menús, recetas, diálogos, instrucciones o emails, identificando propósito, ideas generales, información explícita y vocabulario temático."
+          "descripcion": "Leer comprensivamente textos no literarios, como notas, postales, invitaciones, tarjetas de saludo, menús, recetas, diálogos, instrucciones o emails, identificando:\n- propósito del texto\n- ideas generales\n- información explícita\n- palabras clave, expresiones de uso común asociadas a las funciones del nivel (por ejemplo: I'm sorry, excuse me ) y vocabulario temático",
+          "eje": "Comprensión de lectura"
         },
         {
           "id": "IN5B-OA-07",
           "codigo_oficial": "IN05 OA 07",
-          "descripcion": "Leer comprensivamente textos literarios adaptados y auténticos simples, como rimas, canciones y cuentos, identificando tema, personajes, lugares, tiempo, secuencia de eventos y vocabulario temático."
+          "descripcion": "Leer comprensivamente textos literarios adaptados y auténticos simples como rimas, canciones y cuentos, que contengan palabras de uso frecuente, familias de palabras, repetición de palabras y frases y estén acompañados de abundante apoyo visual, identificando:\n- tema general del texto\n- personajes, lugares y tiempo\n- secuencia de eventos ( beginning - middle - end )\n- vocabulario temático y expresiones de uso común",
+          "eje": "Comprensión de lectura"
         },
         {
           "id": "IN5B-OA-08",
           "codigo_oficial": "IN05 OA 08",
-          "descripcion": "Reaccionar a los textos leídos, expresando preferencias o haciendo conexiones con experiencias personales, en forma oral, escrita o por medio de ilustraciones."
+          "descripcion": "Reaccionar a los textos leídos, expresando preferencias o haciendo conexiones con experiencias personales, en forma oral, escrita o por medio de ilustraciones.",
+          "eje": "Comprensión de lectura"
         },
         {
           "id": "IN5B-OA-09",
           "codigo_oficial": "IN05 OA 09",
-          "descripcion": "Usar estrategias para apoyar la comprensión de los textos leídos, tanto en formato digital como impreso."
+          "descripcion": "Usar las siguientes estrategias para apoyar la comprensión de los textos leídos, tanto en formato digital como impreso:\n- prelectura: hacer predicciones, basándose en conocimientos previos y elementos visuales\n- lectura: usar organizadores, como títulos, subtítulos, ilustraciones e imágenes\n- poslectura: organizar información en diagramas, releer",
+          "eje": "Comprensión de lectura"
         }
       ]
     },
     {
       "numero": 3,
+      "id": "eje-expresion-oral",
       "nombre": "Expresión oral",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
           "id": "IN5B-OA-10",
           "codigo_oficial": "IN05 OA 10",
-          "descripcion": "Reproducir y producir monólogos, canciones, rimas y diálogos para comenzar a identificar y familiarizarse con los sonidos propios del idioma."
+          "descripcion": "Reproducir y producir monólogos, canciones, rimas y diálogos para comenzar a identificar y familiarizarse con los sonidos propios del idioma.",
+          "eje": "Expresión oral"
         },
         {
           "id": "IN5B-OA-11",
           "codigo_oficial": "IN05 OA 11",
-          "descripcion": "Expresarse oralmente, ya sea en diálogos, presentaciones o actividades grupales, con apoyo de lenguaje visual y/o digital, en torno a los temas del año."
+          "descripcion": "Expresarse oralmente, ya sea en diálogos, presentaciones o actividades grupales, con apoyo de lenguaje visual y/o digital, en torno a los temas del año.",
+          "eje": "Expresión oral"
         },
         {
           "id": "IN5B-OA-12",
           "codigo_oficial": "IN05 OA 12",
-          "descripcion": "Participar en diálogos con pares y profesores al realizar funciones comunicativas del nivel, como saludar, dar instrucciones, agradecer, describir acciones, objetos, clima, gustos, cantidades, posiciones y dar información general."
+          "descripcion": "Participar en diálogos con pares y profesores al realizar las siguientes funciones:\n- saludar y despedirse, por ejemplo: hello/good morning, goodbye\n- dar instrucciones, por ejemplo: sit down, close the door\n- agradecer, disculparse y pedir permiso, por ejemplo: thank you, sorry, may I...?\n- describir acciones cotidianas, por ejemplo: I run, I sleep\n- identificar y describir objetos, personas y lugares en su apariencia, por ejemplo: the... is big, it is black\n- agregar información, por ejemplo: it is big and black; this is my bag and that is your bag\n- describir el clima, por ejemplo: today is sunny/cloudy\n- expresar gustos y preferencias, por ejemplo: I like/don't like\n- describir posesiones, por ejemplo: this/that is my/your...; I/They have\n- expresar cantidad numérica hasta el 20\n- identificar y expresar cantidades, por ejemplo: there is a/an/one...; there are two/twenty... It is a/an\n- solicitar y dar información, por ejemplo: How old/What/Where is/are...?; there is/are...; it /this/the... is/are...; Is/Are he/they...? yes/no; Is he your father? Yes he is/No, he isn't\n- identificar y describir posición de objetos, por ejemplo: the... is on/in/under the\n- dar información general sobre un tema conocido, por ejemplo: the/he/they... is/are/have/eat/read\n- re-contar cuentos con apoyo de ilustraciones, por ejemplo: the... run/play/have...; there is/are",
+          "eje": "Expresión oral"
         },
         {
           "id": "IN5B-OA-13",
           "codigo_oficial": "IN05 OA 13",
-          "descripcion": "Demostrar conocimiento y uso del vocabulario aprendido: vocabulario temático de uso cotidiano, palabras frecuentes y expresiones de uso común asociadas a las funciones del nivel."
+          "descripcion": "Demostrar conocimiento y uso del vocabulario aprendido:\n- vocabulario temático de uso cotidiano\n- palabras de uso frecuente\n- expresiones de uso común asociadas a las funciones del nivel (por ejemplo: Excuse me, How old...? )",
+          "eje": "Expresión oral"
         }
       ]
     },
     {
       "numero": 4,
+      "id": "eje-expresion-escrita",
       "nombre": "Expresión escrita",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
           "id": "IN5B-OA-14",
           "codigo_oficial": "IN05 OA 14",
-          "descripcion": "Completar y escribir, de acuerdo a un modelo y con apoyo de lenguaje visual, textos no literarios y literarios breves para compartir información en torno a los temas del año."
+          "descripcion": "Completar y escribir, de acuerdo a un modelo y con apoyo de lenguaje visual, textos no literarios (como postales, mini libros, listas de compras) y textos literarios (como rimas, tiras cómicas) con el propósito de compartir información en torno a los temas del año.",
+          "eje": "Expresión escrita"
         },
         {
           "id": "IN5B-OA-15",
           "codigo_oficial": "IN05 OA 15",
-          "descripcion": "Escribir para realizar funciones del nivel, como describir acciones, expresar gustos, cantidades, posesiones, apariencia, posición, clima y dar información general."
+          "descripcion": "Escribir para realizar las siguientes funciones:\n- describir acciones cotidianas, por ejemplo: I run, I sleep\n- expresar gustos y preferencias, por ejemplo: I like/don't like\n- identificar y expresar cantidades, por ejemplo: there is a/an/one...; there are two/twenty...; It is a/an\n- agregar información, por ejemplo: it is big and black\n- describir posesiones, por ejemplo: this is my/your... ...; I/They have\n- expresar cantidad numérica hasta el 12\n- identificar y describir objetos, personas y lugares por su apariencia, por ejemplo: the... is big; it is black\n- describir posición de objetos, por ejemplo: the... is on/in/under the\n- dar información general sobre un tema conocido, por ejemplo: the... is/are/have/eat/read...; he/they is/are/have/eat/read\n- describir el clima, por ejemplo: today is sunny/cloudy\n- solicitar y dar información, por ejemplo: What/ Where is/are...?; there is/are...; it/this/the... is/are; Is this...? Yes, it is/No, it isn't; Is he your father? Yes, he is/No, he isn't",
+          "eje": "Expresión escrita"
         },
         {
           "id": "IN5B-OA-16",
           "codigo_oficial": "IN05 OA 16",
-          "descripcion": "Utilizar los pasos del proceso de escritura, recurriendo a herramientas como diccionario en línea y procesador de texto, para escribir oraciones simples y párrafos breves de acuerdo a un modelo."
+          "descripcion": "Utilizar los pasos del proceso de escritura (organización de ideas, escritura, corrección y publicación), recurriendo a herramientas como diccionario en línea y procesador de texto, para:\n- escribir oraciones simples y párrafos breves de acuerdo a un modelo y con la ayuda del docente\n- demostrar conocimiento y uso de vocabulario temático de uso cotidiano, palabras de uso frecuente y expresiones de uso común asociadas a las funciones del nivel (por ejemplo: Excuse me, I'm sorry, How old... )",
+          "eje": "Expresión escrita"
         }
       ]
     }

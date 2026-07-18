@@ -2,144 +2,219 @@
   "metadata": {
     "nivel": "Básica",
     "curso": "5° Básico",
-    "asignatura": "Matemática",
     "fuente": "Currículum Nacional - MINEDUC Chile",
-    "source_url": "https://curriculumnacional.mineduc.cl/",
-    "estado": "base_inicial_en_revision",
-    "ultima_actualizacion_manual": "2026-03-28",
-    "nota": "Archivo base estructurado para activar Educación Básica en el planificador. Requiere revisión final OA por OA contra las Bases/Programas oficiales MINEDUC antes de marcarlo como verificado."
+    "base_curricular": "Bases Curriculares 1° a 6° Básico",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-07-17",
+    "nota": "Los OA de contenido fueron obtenidos directamente de la página oficial vigente de Currículum Nacional. La agrupación corresponde a ejes curriculares y no inventa unidades del programa de estudio.",
+    "asignatura": "Matemática",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/matematica/5-basico"
   },
-  "objetivos_habilidad": [
-    {
-      "id": "5_BASICO-OAH-RP",
-      "descripcion": "Resolver problemas, modelar y comunicar procedimientos matemáticos en contextos cotidianos y escolares.",
-      "unidades": [
-        1,
-        2,
-        3,
-        4
-      ]
-    },
-    {
-      "id": "5_BASICO-OAH-REP",
-      "descripcion": "Representar información matemática de manera concreta, pictórica y simbólica.",
-      "unidades": [
-        1,
-        2,
-        3,
-        4
-      ]
-    }
-  ],
-  "objetivos_actitud": [
-    {
-      "id": "5_BASICO-OAA-A",
-      "descripcion": "Manifestar un estilo de trabajo ordenado, perseverante y colaborativo en la resolución de tareas matemáticas.",
-      "unidades": [
-        1,
-        2,
-        3,
-        4
-      ]
-    }
-  ],
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
   "unidades": [
     {
       "numero": 1,
-      "nombre": "Números naturales, decimales y operaciones",
+      "id": "eje-numeros-y-operaciones",
+      "nombre": "Números y operaciones",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
           "id": "MA5B-OA-01",
           "codigo_oficial": "MA05 OA 01",
-          "descripcion": "Leer, escribir, comparar y ordenar números naturales grandes, usando valor posicional y recta numérica."
+          "descripcion": "Representar y describir números naturales de hasta más de 6 dígitos y menores que 1 000 millones:\n- identificando el valor posicional de los dígitos\n- componiendo y descomponiendo números naturales en forma estándar y expandida aproximando cantidades\n- comparando y ordenando números naturales en este ámbito numérico\n- dando ejemplos de estos números naturales en contextos reales",
+          "eje": "Números y operaciones"
         },
         {
           "id": "MA5B-OA-02",
           "codigo_oficial": "MA05 OA 02",
-          "descripcion": "Demostrar que comprenden la adición y la sustracción con números naturales de varias cifras."
+          "descripcion": "Aplicar estrategias de cálculo mental para la multiplicación:\n- anexar ceros cuando se multiplica por un múltiplo de 10\n- doblar y dividir por 2 en forma repetida\n- usando las propiedades conmutativa, asociativa y distributiva",
+          "eje": "Números y operaciones"
         },
         {
           "id": "MA5B-OA-03",
           "codigo_oficial": "MA05 OA 03",
-          "descripcion": "Demostrar que comprenden la multiplicación y la división de números naturales y su uso en resolución de problemas."
+          "descripcion": "Demostrar que comprenden la multiplicación de números naturales de dos dígitos por números naturales de dos dígitos:\n- estimando productos\n- aplicando estrategias de cálculo mental\n- resolviendo problemas rutinarios y no rutinarios aplicando el algoritmo",
+          "eje": "Números y operaciones"
         },
         {
           "id": "MA5B-OA-04",
           "codigo_oficial": "MA05 OA 04",
-          "descripcion": "Leer, representar, comparar y ordenar números decimales hasta la milésima en contextos diversos."
+          "descripcion": "Demostrar que comprenden la división con dividendos de tres dígitos y divisores de un dígito:\n- interpretando el resto\n- resolviendo problemas rutinarios y no rutinarios que impliquen divisiones",
+          "eje": "Números y operaciones"
+        },
+        {
+          "id": "MA5B-OA-05",
+          "codigo_oficial": "MA05 OA 05",
+          "descripcion": "Realizar cálculos que involucren las cuatro operaciones, aplicando las reglas relativas a paréntesis y la prevalencia de la multiplicación y la división por sobre la adición y la sustracción cuando corresponda.",
+          "eje": "Números y operaciones"
+        },
+        {
+          "id": "MA5B-OA-06",
+          "codigo_oficial": "MA05 OA 06",
+          "descripcion": "Resolver problemas rutinarios y no rutinarios que involucren las cuatro operaciones y combinaciones de ellas:\n- que incluyan situaciones con dinero\n- usando la calculadora y el computador en ámbitos numéricos superiores al 10 000",
+          "eje": "Números y operaciones"
+        },
+        {
+          "id": "MA5B-OA-07",
+          "codigo_oficial": "MA05 OA 07",
+          "descripcion": "Demostrar que comprenden las fracciones propias:\n- representándolas de manera concreta, pictórica y simbólica\n- creando grupos de fracciones equivalentes -simplificando y amplificando- de manera concreta, pictórica y simbólica, de forma manual y/o con software educativo\n- comparando fracciones propias con igual y distinto denominador de manera concreta, pictórica y simbólica",
+          "eje": "Números y operaciones"
+        },
+        {
+          "id": "MA5B-OA-08",
+          "codigo_oficial": "MA05 OA 08",
+          "descripcion": "Demostrar que comprenden las fracciones impropias de uso común de denominadores 2, 3, 4, 5, 6, 8, 10, 12 y los números mixtos asociados:\n- usando material concreto y pictórico para representarlas, de manera manual y/o con software educativo\n- identificando y determinando equivalencias entre fracciones impropias y números mixtos\n- representando estas fracciones y estos números mixtos en la recta numérica",
+          "eje": "Números y operaciones"
+        },
+        {
+          "id": "MA5B-OA-09",
+          "codigo_oficial": "MA05 OA 09",
+          "descripcion": "Resolver adiciones y sustracciones con fracciones propias con denominadores menores o iguales a 12:\n- de manera pictórica y simbólica\n- amplificando o simplificando",
+          "eje": "Números y operaciones"
+        },
+        {
+          "id": "MA5B-OA-10",
+          "codigo_oficial": "MA05 OA 10",
+          "descripcion": "Determinar el decimal que corresponde a fracciones con denominador 2, 4, 5 y 10.",
+          "eje": "Números y operaciones"
+        },
+        {
+          "id": "MA5B-OA-11",
+          "codigo_oficial": "MA05 OA 11",
+          "descripcion": "Comparar y ordenar decimales hasta la milésima.",
+          "eje": "Números y operaciones"
+        },
+        {
+          "id": "MA5B-OA-12",
+          "codigo_oficial": "MA05 OA 12",
+          "descripcion": "Resolver adiciones y sustracciones de decimales, empleando el valor posicional hasta la milésima.",
+          "eje": "Números y operaciones"
+        },
+        {
+          "id": "MA5B-OA-13",
+          "codigo_oficial": "MA05 OA 13",
+          "descripcion": "Resolver problemas rutinarios y no rutinarios, aplicando adiciones y sustracciones de fracciones propias o decimales hasta la milésima.",
+          "eje": "Números y operaciones"
         }
       ]
     },
     {
       "numero": 2,
-      "nombre": "Fracciones, decimales y porcentajes simples",
+      "id": "eje-patrones-y-algebra",
+      "nombre": "Patrones y álgebra",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
-          "id": "MA5B-OA-05",
-          "codigo_oficial": "MA05 OA 05",
-          "descripcion": "Demostrar que comprenden las fracciones propias, impropias y números mixtos, y sus representaciones."
+          "id": "MA5B-OA-14",
+          "codigo_oficial": "MA05 OA 14",
+          "descripcion": "Descubrir alguna regla que explique una sucesión dada y que permita hacer predicciones.",
+          "eje": "Patrones y álgebra"
         },
         {
-          "id": "MA5B-OA-06",
-          "codigo_oficial": "MA05 OA 06",
-          "descripcion": "Comparar, ordenar, amplificar y simplificar fracciones en casos simples."
-        },
-        {
-          "id": "MA5B-OA-07",
-          "codigo_oficial": "MA05 OA 07",
-          "descripcion": "Resolver problemas de adición y sustracción de fracciones con igual denominador y relacionarlas con números decimales."
-        },
-        {
-          "id": "MA5B-OA-08",
-          "codigo_oficial": "MA05 OA 08",
-          "descripcion": "Calcular y aplicar porcentajes simples en situaciones cotidianas, como descuentos o aumentos sencillos."
+          "id": "MA5B-OA-15",
+          "codigo_oficial": "MA05 OA 15",
+          "descripcion": "Resolver problemas, usando ecuaciones e inecuaciones de un paso, que involucren adiciones y sustracciones, en forma pictórica y simbólica.",
+          "eje": "Patrones y álgebra"
         }
       ]
     },
     {
       "numero": 3,
-      "nombre": "Patrones, geometría y medición",
+      "id": "eje-geometria",
+      "nombre": "Geometría",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
-          "id": "MA5B-OA-09",
-          "codigo_oficial": "MA05 OA 09",
-          "descripcion": "Describir, extender y generalizar patrones numéricos y geométricos, expresando reglas simples."
+          "id": "MA5B-OA-16",
+          "codigo_oficial": "MA05 OA 16",
+          "descripcion": "Identificar y dibujar puntos en el primer cuadrante del plano cartesiano, dadas sus coordenadas en números naturales.",
+          "eje": "Geometría"
         },
         {
-          "id": "MA5B-OA-10",
-          "codigo_oficial": "MA05 OA 10",
-          "descripcion": "Construir, medir y clasificar ángulos, triángulos y cuadriláteros según sus propiedades."
+          "id": "MA5B-OA-17",
+          "codigo_oficial": "MA05 OA 17",
+          "descripcion": "Describir y dar ejemplos de aristas y caras de figuras 3D y lados de figuras 2D:\n- que son paralelos\n- que se intersectan\n- que son perpendiculares",
+          "eje": "Geometría"
         },
         {
-          "id": "MA5B-OA-11",
-          "codigo_oficial": "MA05 OA 11",
-          "descripcion": "Calcular perímetros y áreas de rectángulos, cuadrados y figuras compuestas simples."
-        },
-        {
-          "id": "MA5B-OA-12",
-          "codigo_oficial": "MA05 OA 12",
-          "descripcion": "Medir y convertir unidades de longitud, superficie, volumen, masa y tiempo en contextos cotidianos."
+          "id": "MA5B-OA-18",
+          "codigo_oficial": "MA05 OA 18",
+          "descripcion": "Demostrar que comprenden el concepto de congruencia, usando la traslación, la reflexión y la rotación en cuadrículas y mediante software geométrico.",
+          "eje": "Geometría"
         }
       ]
     },
     {
       "numero": 4,
-      "nombre": "Datos, gráficos y probabilidad",
+      "id": "eje-medicion",
+      "nombre": "Medición",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
-          "id": "MA5B-OA-13",
-          "codigo_oficial": "MA05 OA 13",
-          "descripcion": "Recolectar datos, organizarlos en tablas de frecuencia y representarlos en gráficos de barra y de líneas."
+          "id": "MA5B-OA-19",
+          "codigo_oficial": "MA05 OA 19",
+          "descripcion": "Medir longitudes con unidades estandarizadas (m, cm, mm) en el contexto de la resolución de problemas.",
+          "eje": "Medición"
         },
         {
-          "id": "MA5B-OA-14",
-          "codigo_oficial": "MA05 OA 14",
-          "descripcion": "Interpretar y comparar información en tablas y gráficos para responder preguntas y comunicar conclusiones."
+          "id": "MA5B-OA-20",
+          "codigo_oficial": "MA05 OA 20",
+          "descripcion": "Realizar transformaciones entre unidades de medidas de longitud: km a m, m a cm, cm a mm y viceversa, de manera manual y/o usando software educativo.",
+          "eje": "Medición"
         },
         {
-          "id": "MA5B-OA-15",
-          "codigo_oficial": "MA05 OA 15",
-          "descripcion": "Describir la probabilidad de eventos simples con lenguaje cotidiano y fracciones simples."
+          "id": "MA5B-OA-21",
+          "codigo_oficial": "MA05 OA 21",
+          "descripcion": "Diseñar y construir diferentes rectángulos, dados el perímetro, el área o ambos, y sacar conclusiones.",
+          "eje": "Medición"
+        },
+        {
+          "id": "MA5B-OA-22",
+          "codigo_oficial": "MA05 OA 22",
+          "descripcion": "Calcular áreas de triángulos, de paralelogramos y de trapecios, y estimar áreas de figuras irregulares aplicando las siguientes estrategias:\n- conteo de cuadrículas\n- comparación con el área de un rectángulo\n- completar figuras por traslación",
+          "eje": "Medición"
+        }
+      ]
+    },
+    {
+      "numero": 5,
+      "id": "eje-datos-y-probabilidades",
+      "nombre": "Datos y probabilidades",
+      "tipo_agrupacion": "eje_curricular",
+      "oa": [
+        {
+          "id": "MA5B-OA-23",
+          "codigo_oficial": "MA05 OA 23",
+          "descripcion": "Calcular el promedio de datos e interpretarlo en su contexto.",
+          "eje": "Datos y probabilidades"
+        },
+        {
+          "id": "MA5B-OA-24",
+          "codigo_oficial": "MA05 OA 24",
+          "descripcion": "Describir la posibilidad de ocurrencia de un evento en base a un experimento aleatorio, empleando los términos seguro; posible; poco posible; imposible.",
+          "eje": "Datos y probabilidades"
+        },
+        {
+          "id": "MA5B-OA-25",
+          "codigo_oficial": "MA05 OA 25",
+          "descripcion": "Comparar probabilidades de distintos eventos sin calcularlas.",
+          "eje": "Datos y probabilidades"
+        },
+        {
+          "id": "MA5B-OA-26",
+          "codigo_oficial": "MA05 OA 26",
+          "descripcion": "Leer, interpretar y completar tablas, gráficos de barra simple y gráficos de línea y comunicar sus conclusiones.",
+          "eje": "Datos y probabilidades"
+        },
+        {
+          "id": "MA5B-OA-27",
+          "codigo_oficial": "MA05 OA 27",
+          "descripcion": "Utilizar diagramas de tallo y hojas para representar datos provenientes de muestras aleatorias.",
+          "eje": "Datos y probabilidades"
         }
       ]
     }

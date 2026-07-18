@@ -1,20 +1,21 @@
 {
   "fecha_actualizacion": "2026-07-17",
-  "fase": "4_basico_completo",
+  "fase": "5_basico_completo",
   "archivos_curriculares_totales": 105,
-  "asignaturas_verificadas_oficialmente": 56,
+  "asignaturas_verificadas_oficialmente": 66,
   "propuestas_oficiales_verificadas": 4,
-  "archivos_pendientes": 45,
-  "oa_contenido_verificados": 805,
+  "archivos_pendientes": 35,
+  "oa_contenido_verificados": 954,
   "cursos_completos": [
     "1_basico",
     "2_basico",
     "3_basico",
     "4_basico",
+    "5_basico",
     "7_basico",
     "8_basico"
   ],
-  "siguiente_bloque": "5_basico",
+  "siguiente_bloque": "6_basico",
   "ultima_validacion": "success",
-  "nota": "Contabiliza OA cotejados con páginas oficiales específicas. Inglés de 1° a 4° básico se registra como propuesta curricular oficial, no como base obligatoria."
+  "nota": "Contabiliza OA de contenido cotejados con páginas oficiales específicas. Inglés de 1° a 4° básico se registra como propuesta oficial; Inglés de 5° básico pertenece a la base curricular obligatoria."
 }

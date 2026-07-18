@@ -334,70 +334,70 @@
           "nivel": "basica",
           "curso": "5_basico",
           "asignatura": "artes_visuales",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         },
         {
           "path": "basica/5_basico/ciencias_naturales.json",
           "nivel": "basica",
           "curso": "5_basico",
           "asignatura": "ciencias_naturales",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         },
         {
           "path": "basica/5_basico/educacion_fisica_y_salud.json",
           "nivel": "basica",
           "curso": "5_basico",
           "asignatura": "educacion_fisica_y_salud",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         },
         {
           "path": "basica/5_basico/historia_geografia_y_cs_sociales.json",
           "nivel": "basica",
           "curso": "5_basico",
           "asignatura": "historia_geografia_y_cs_sociales",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         },
         {
           "path": "basica/5_basico/ingles.json",
           "nivel": "basica",
           "curso": "5_basico",
           "asignatura": "ingles",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         },
         {
           "path": "basica/5_basico/lenguaje.json",
           "nivel": "basica",
           "curso": "5_basico",
           "asignatura": "lenguaje",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         },
         {
           "path": "basica/5_basico/matematica.json",
           "nivel": "basica",
           "curso": "5_basico",
           "asignatura": "matematica",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         },
         {
           "path": "basica/5_basico/musica.json",
           "nivel": "basica",
           "curso": "5_basico",
           "asignatura": "musica",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         },
         {
           "path": "basica/5_basico/orientacion.json",
           "nivel": "basica",
           "curso": "5_basico",
           "asignatura": "orientacion",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         },
         {
           "path": "basica/5_basico/tecnologia.json",
           "nivel": "basica",
           "curso": "5_basico",
           "asignatura": "tecnologia",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         },
         {
           "path": "basica/6_basico/artes_visuales.json",
