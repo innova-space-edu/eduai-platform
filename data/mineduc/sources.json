@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "revision": "fase_6_3_basico_completo_verificado",
+  "revision": "fase_7_4_basico_completo_verificado",
   "fecha_actualizacion": "2026-07-17",
   "politica": {
     "estado_verificado": "Solo se usa verificado_oficial cuando código y texto fueron cotejados con una base curricular oficial específica.",
@@ -538,6 +538,107 @@
         "TE03 OA 07"
       ],
       "cantidad_oa_contenido": 7
+    },
+    "basica/4_basico/matematica": {
+      "url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/matematica/4-basico",
+      "base_curricular_id": "basica-1-6",
+      "fecha_consulta": "2026-07-17",
+      "alcance": [
+        "MA04 OA 01",
+        "MA04 OA 27"
+      ],
+      "cantidad_oa_contenido": 27
+    },
+    "basica/4_basico/lenguaje": {
+      "url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/lenguaje-comunicacion/4-basico",
+      "base_curricular_id": "basica-1-6",
+      "fecha_consulta": "2026-07-17",
+      "alcance": [
+        "LE04 OA 01",
+        "LE04 OA 30"
+      ],
+      "cantidad_oa_contenido": 30
+    },
+    "basica/4_basico/ciencias_naturales": {
+      "url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/ciencias-naturales/4-basico",
+      "base_curricular_id": "basica-1-6",
+      "fecha_consulta": "2026-07-17",
+      "alcance": [
+        "CN04 OA 01",
+        "CN04 OA 17"
+      ],
+      "cantidad_oa_contenido": 17
+    },
+    "basica/4_basico/historia_geografia_y_cs_sociales": {
+      "url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/historia-geografia-ciencias-sociales/4-basico",
+      "base_curricular_id": "basica-1-6",
+      "fecha_consulta": "2026-07-17",
+      "alcance": [
+        "HI04 OA 01",
+        "HI04 OA 18"
+      ],
+      "cantidad_oa_contenido": 18
+    },
+    "basica/4_basico/artes_visuales": {
+      "url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/artes-visuales/4-basico",
+      "base_curricular_id": "basica-1-6",
+      "fecha_consulta": "2026-07-17",
+      "alcance": [
+        "AR04 OA 01",
+        "AR04 OA 05"
+      ],
+      "cantidad_oa_contenido": 5
+    },
+    "basica/4_basico/educacion_fisica_y_salud": {
+      "url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/educacion-fisica-salud/4-basico",
+      "base_curricular_id": "basica-1-6",
+      "fecha_consulta": "2026-07-17",
+      "alcance": [
+        "EF04 OA 01",
+        "EF04 OA 11"
+      ],
+      "cantidad_oa_contenido": 11
+    },
+    "basica/4_basico/musica": {
+      "url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/musica/4-basico",
+      "base_curricular_id": "basica-1-6",
+      "fecha_consulta": "2026-07-17",
+      "alcance": [
+        "MU04 OA 01",
+        "MU04 OA 08"
+      ],
+      "cantidad_oa_contenido": 8
+    },
+    "basica/4_basico/orientacion": {
+      "url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/orientacion/4-basico",
+      "base_curricular_id": "basica-1-6",
+      "fecha_consulta": "2026-07-17",
+      "alcance": [
+        "OR04 OA 01",
+        "OR04 OA 09"
+      ],
+      "cantidad_oa_contenido": 9
+    },
+    "basica/4_basico/tecnologia": {
+      "url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/tecnologia/4-basico",
+      "base_curricular_id": "basica-1-6",
+      "fecha_consulta": "2026-07-17",
+      "alcance": [
+        "TE04 OA 01",
+        "TE04 OA 07"
+      ],
+      "cantidad_oa_contenido": 7
+    },
+    "basica/4_basico/ingles": {
+      "url": "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/ingles-propuesta/4-basico",
+      "base_curricular_id": "propuesta-ingles-4",
+      "fecha_consulta": "2026-07-17",
+      "alcance": [
+        "EN04 OA 01",
+        "EN04 OA 14"
+      ],
+      "cantidad_oa_contenido": 14,
+      "caracter_documento": "propuesta_curricular"
     }
   },
   "propuestas_oficiales_verificadas": {
