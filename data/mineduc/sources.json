@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "revision": "fase_9_educacion_basica_completa_verificada",
+  "revision": "fase_11_base_mineduc_completa_verificada",
   "fecha_actualizacion": "2026-07-18",
   "politica": {
     "estado_verificado": "Solo se usa verificado_oficial cuando código y texto fueron cotejados con una base curricular oficial específica.",
@@ -839,6 +839,298 @@
         "TE06 OA 07"
       ],
       "cantidad_oa_contenido": 7
+    },
+    "media/1_medio/matematica": {
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/matematica/1-medio",
+      "base_curricular_id": "basica-7-media-2",
+      "fecha_consulta": "2026-07-18",
+      "alcance": [
+        "MA1M OA 01",
+        "MA1M OA 15"
+      ],
+      "cantidad_oa_contenido": 15
+    },
+    "media/1_medio/lengua_literatura": {
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/lengua-literatura/1-medio",
+      "base_curricular_id": "basica-7-media-2",
+      "fecha_consulta": "2026-07-18",
+      "alcance": [
+        "LE1M OA 01",
+        "LE1M OA 24"
+      ],
+      "cantidad_oa_contenido": 24
+    },
+    "media/1_medio/tecnologia": {
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/tecnologia/1-medio",
+      "base_curricular_id": "basica-7-media-2",
+      "fecha_consulta": "2026-07-18",
+      "alcance": [
+        "TE1M OA 01",
+        "TE1M OA 06"
+      ],
+      "cantidad_oa_contenido": 6
+    },
+    "media/1_medio/biologia": {
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/ciencias-naturales/1-medio",
+      "base_curricular_id": "basica-7-media-2",
+      "fecha_consulta": "2026-07-18",
+      "alcance": [
+        "CN1M OA 01",
+        "CN1M OA 08"
+      ],
+      "cantidad_oa_contenido": 8
+    },
+    "media/1_medio/fisica": {
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/ciencias-naturales/1-medio",
+      "base_curricular_id": "basica-7-media-2",
+      "fecha_consulta": "2026-07-18",
+      "alcance": [
+        "CN1M OA 09",
+        "CN1M OA 16"
+      ],
+      "cantidad_oa_contenido": 8
+    },
+    "media/1_medio/quimica": {
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/ciencias-naturales/1-medio",
+      "base_curricular_id": "basica-7-media-2",
+      "fecha_consulta": "2026-07-18",
+      "alcance": [
+        "CN1M OA 17",
+        "CN1M OA 20"
+      ],
+      "cantidad_oa_contenido": 4
+    },
+    "media/2_medio/matematica": {
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/matematica/2-medio",
+      "base_curricular_id": "basica-7-media-2",
+      "fecha_consulta": "2026-07-18",
+      "alcance": [
+        "MA2M OA 01",
+        "MA2M OA 12"
+      ],
+      "cantidad_oa_contenido": 12
+    },
+    "media/2_medio/lengua_literatura": {
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/lengua-literatura/2-medio",
+      "base_curricular_id": "basica-7-media-2",
+      "fecha_consulta": "2026-07-18",
+      "alcance": [
+        "LE2M OA 01",
+        "LE2M OA 24"
+      ],
+      "cantidad_oa_contenido": 24
+    },
+    "media/2_medio/tecnologia": {
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/tecnologia/2-medio",
+      "base_curricular_id": "basica-7-media-2",
+      "fecha_consulta": "2026-07-18",
+      "alcance": [
+        "TE2M OA 01",
+        "TE2M OA 06"
+      ],
+      "cantidad_oa_contenido": 6
+    },
+    "media/2_medio/biologia": {
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/ciencias-naturales/2-medio",
+      "base_curricular_id": "basica-7-media-2",
+      "fecha_consulta": "2026-07-18",
+      "alcance": [
+        "CN2M OA 01",
+        "CN2M OA 08"
+      ],
+      "cantidad_oa_contenido": 8
+    },
+    "media/2_medio/fisica": {
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/ciencias-naturales/2-medio",
+      "base_curricular_id": "basica-7-media-2",
+      "fecha_consulta": "2026-07-18",
+      "alcance": [
+        "CN2M OA 09",
+        "CN2M OA 14"
+      ],
+      "cantidad_oa_contenido": 6
+    },
+    "media/2_medio/quimica": {
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/ciencias-naturales/2-medio",
+      "base_curricular_id": "basica-7-media-2",
+      "fecha_consulta": "2026-07-18",
+      "alcance": [
+        "CN2M OA 15",
+        "CN2M OA 18"
+      ],
+      "cantidad_oa_contenido": 4
+    },
+    "media/3_medio/matematica": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/matematica-3o-medio/3-medio-fg",
+      "base_curricular_id": "media-3-4",
+      "fecha_consulta": "2026-07-18",
+      "alcance": [
+        "FG-MATE-3M-OAC-01",
+        "FG-MATE-3M-OAC-04"
+      ],
+      "cantidad_oa_contenido": 4
+    },
+    "media/4_medio/matematica": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/matematica-4o-medio/4-medio-fg",
+      "base_curricular_id": "media-3-4",
+      "fecha_consulta": "2026-07-18",
+      "alcance": [
+        "FG-MATE-4M-OAC-01",
+        "FG-MATE-4M-OAC-04"
+      ],
+      "cantidad_oa_contenido": 4
+    },
+    "media/3_medio/educacion_ciudadana": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/educacion-ciudadana-3-medio/3-medio-fg",
+      "base_curricular_id": "media-3-4",
+      "fecha_consulta": "2026-07-18",
+      "alcance": [
+        "FG-ECIU-3M-OAC-01",
+        "FG-ECIU-3M-OAC-08"
+      ],
+      "cantidad_oa_contenido": 8
+    },
+    "media/4_medio/educacion_ciudadana": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/educacion-ciudadana-4m/4-medio-fg",
+      "base_curricular_id": "media-3-4",
+      "fecha_consulta": "2026-07-18",
+      "alcance": [
+        "FG-ECIU-4M-OAC-01",
+        "FG-ECIU-4M-OAC-08"
+      ],
+      "cantidad_oa_contenido": 8
+    },
+    "media/4_medio/lengua_literatura": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/lengua-literatura-4o-medio/4-medio-fg",
+      "base_curricular_id": "media-3-4",
+      "fecha_consulta": "2026-07-18",
+      "alcance": [
+        "FG-LELI-4M-OAC-01",
+        "FG-LELI-4M-OAC-08"
+      ],
+      "cantidad_oa_contenido": 8
+    },
+    "media/3_medio/ciencias_para_la_ciudadania": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/ambiente-sostenibilidad/3-medio-fg",
+      "base_curricular_id": "media-3-4",
+      "fecha_consulta": "2026-07-18",
+      "alcance": [
+        "FG-CIAS-3y4-OAC-01",
+        "FG-CITS-3y4-OAC-03"
+      ],
+      "cantidad_oa_contenido": 12,
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/ambiente-sostenibilidad/3-medio-fg",
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/bienestar-salud/3-medio-fg",
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/seguridad-prevencion-autocuidado/3-medio-fg",
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/tecnologia-sociedad/3-medio-fg"
+      ]
+    },
+    "media/4_medio/ciencias_para_la_ciudadania": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/ambiente-sostenibilidad/3-medio-fg",
+      "base_curricular_id": "media-3-4",
+      "fecha_consulta": "2026-07-18",
+      "alcance": [
+        "FG-CIAS-3y4-OAC-01",
+        "FG-CITS-3y4-OAC-03"
+      ],
+      "cantidad_oa_contenido": 12,
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/ambiente-sostenibilidad/3-medio-fg",
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/bienestar-salud/3-medio-fg",
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/seguridad-prevencion-autocuidado/3-medio-fg",
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/tecnologia-sociedad/3-medio-fg"
+      ]
+    },
+    "parvularia/sala_cuna_menor": {
+      "url": "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/desarrollo-personal-social/sc-sala-cuna",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/desarrollo-personal-social/sc-sala-cuna",
+        "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/comunicacion-integral/sc-sala-cuna",
+        "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/interaccion-comprension-entorno/sc-sala-cuna"
+      ],
+      "base_curricular_id": "parvularia",
+      "fecha_consulta": "2026-07-18",
+      "tramo_oficial": "SC",
+      "base_oficial_compartida": "data/mineduc/parvularia/common/sala_cuna.json",
+      "cantidad_oa_contenido": 30,
+      "cantidad_oat": 20,
+      "cantidad_objetivos_oficiales": 50
+    },
+    "parvularia/sala_cuna_mayor": {
+      "url": "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/desarrollo-personal-social/sc-sala-cuna",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/desarrollo-personal-social/sc-sala-cuna",
+        "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/comunicacion-integral/sc-sala-cuna",
+        "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/interaccion-comprension-entorno/sc-sala-cuna"
+      ],
+      "base_curricular_id": "parvularia",
+      "fecha_consulta": "2026-07-18",
+      "tramo_oficial": "SC",
+      "base_oficial_compartida": "data/mineduc/parvularia/common/sala_cuna.json",
+      "cantidad_oa_contenido": 30,
+      "cantidad_oat": 20,
+      "cantidad_objetivos_oficiales": 50
+    },
+    "parvularia/medio_menor": {
+      "url": "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/desarrollo-personal-social/nm-nivel-medio",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/desarrollo-personal-social/nm-nivel-medio",
+        "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/comunicacion-integral/nm-nivel-medio",
+        "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/interaccion-comprension-entorno/nm-nivel-medio"
+      ],
+      "base_curricular_id": "parvularia",
+      "fecha_consulta": "2026-07-18",
+      "tramo_oficial": "NM",
+      "base_oficial_compartida": "data/mineduc/parvularia/common/nivel_medio.json",
+      "cantidad_oa_contenido": 41,
+      "cantidad_oat": 30,
+      "cantidad_objetivos_oficiales": 71
+    },
+    "parvularia/medio_mayor": {
+      "url": "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/desarrollo-personal-social/nm-nivel-medio",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/desarrollo-personal-social/nm-nivel-medio",
+        "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/comunicacion-integral/nm-nivel-medio",
+        "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/interaccion-comprension-entorno/nm-nivel-medio"
+      ],
+      "base_curricular_id": "parvularia",
+      "fecha_consulta": "2026-07-18",
+      "tramo_oficial": "NM",
+      "base_oficial_compartida": "data/mineduc/parvularia/common/nivel_medio.json",
+      "cantidad_oa_contenido": 41,
+      "cantidad_oat": 30,
+      "cantidad_objetivos_oficiales": 71
+    },
+    "parvularia/nt1": {
+      "url": "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/desarrollo-personal-social/nt-nivel-transicion",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/desarrollo-personal-social/nt-nivel-transicion",
+        "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/comunicacion-integral/nt-nivel-transicion",
+        "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/interaccion-comprension-entorno/nt-nivel-transicion"
+      ],
+      "base_curricular_id": "parvularia",
+      "fecha_consulta": "2026-07-18",
+      "tramo_oficial": "NT",
+      "base_oficial_compartida": "data/mineduc/parvularia/common/nivel_transicion.json",
+      "cantidad_oa_contenido": 52,
+      "cantidad_oat": 33,
+      "cantidad_objetivos_oficiales": 85
+    },
+    "parvularia/nt2": {
+      "url": "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/desarrollo-personal-social/nt-nivel-transicion",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/desarrollo-personal-social/nt-nivel-transicion",
+        "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/comunicacion-integral/nt-nivel-transicion",
+        "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/interaccion-comprension-entorno/nt-nivel-transicion"
+      ],
+      "base_curricular_id": "parvularia",
+      "fecha_consulta": "2026-07-18",
+      "tramo_oficial": "NT",
+      "base_oficial_compartida": "data/mineduc/parvularia/common/nivel_transicion.json",
+      "cantidad_oa_contenido": 52,
+      "cantidad_oat": 33,
+      "cantidad_objetivos_oficiales": 85
     }
   },
   "propuestas_oficiales_verificadas": {

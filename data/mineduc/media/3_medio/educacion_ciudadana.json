@@ -1,61 +1,74 @@
 {
   "metadata": {
     "nivel": "Media",
-    "curso": "3° Medio",
+    "curso": "3° Medio FG",
     "asignatura": "Educación Ciudadana",
     "fuente": "Currículum Nacional - MINEDUC Chile",
-    "source_url": "https://www.curriculumnacional.cl/",
-    "estado": "parcial_verificado",
-    "ultima_actualizacion_manual": "2026-03-28"
+    "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/educacion-ciudadana-3-medio/3-medio-fg",
+    "base_curricular": "Bases Curriculares 3° y 4° Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-07-18",
+    "nota": "Los OA fueron obtenidos directamente de páginas oficiales específicas de Currículum Nacional. La agrupación interna no altera el texto oficial."
   },
   "objetivos_habilidad": [],
   "objetivos_actitud": [],
   "unidades": [
     {
       "numero": 1,
-      "nombre": "Estado, democracia y ciudadanía",
+      "id": "eje-objetivos-de-aprendizaje",
+      "nombre": "Objetivos de Aprendizaje",
+      "tipo_agrupacion": "lista_oficial",
       "oa": [
         {
           "id": "FG-ECIU-3M-OAC-01",
           "codigo_oficial": "FG-ECIU-3M-OAC-01",
-          "descripcion": "Identificar los fundamentos, atributos y dimensiones de la democracia y la ciudadanía, considerando las libertades fundamentales de las personas como un principio de estas y reconociendo sus implicancias en los deberes del Estado y en los derechos y responsabilidades ciudadanas."
+          "descripcion": "Identificar los fundamentos, atributos y dimensiones de la democracia y la ciudadanía, considerando las libertades fundamentales de las personas como un principio de estas y reconociendo sus implicancias en los deberes del Estado y en los derechos y responsabilidades ciudadanas.",
+          "eje": "Objetivos de Aprendizaje"
         },
         {
           "id": "FG-ECIU-3M-OAC-02",
           "codigo_oficial": "FG-ECIU-3M-OAC-02",
-          "descripcion": "Evaluar las relaciones entre el Estado y el mercado, considerando temas como sueldos justos, productividad, carga tributaria, comercio justo, probidad, desarrollo sustentable, riqueza y pobreza."
-        }
-      ]
-    },
-    {
-      "numero": 2,
-      "nombre": "Justicia y derechos humanos",
-      "oa": [
+          "descripcion": "Investigar, a partir de casos de interés público, los mecanismos de acceso a la justicia y las principales características del sistema judicial, para fortalecer estrategias de resguardo de las libertades fundamentales, los propios derechos y los de la comunidad.",
+          "eje": "Objetivos de Aprendizaje"
+        },
         {
           "id": "FG-ECIU-3M-OAC-03",
           "codigo_oficial": "FG-ECIU-3M-OAC-03",
-          "descripcion": "Reflexionar personal y grupalmente sobre riesgos para la democracia en Chile y el mundo, tales como el fenómeno de la desafección política, la desigualdad, la corrupción, el narcotráfico, la violencia, entre otros."
+          "descripcion": "Reflexionar personal y grupalmente sobre riesgos para la democracia en Chile y el mundo, tales como el fenómeno de la desafección política, la desigualdad, la corrupción, el narcotráfico, la violencia, entre otros.",
+          "eje": "Objetivos de Aprendizaje"
         },
         {
           "id": "FG-ECIU-3M-OAC-04",
           "codigo_oficial": "FG-ECIU-3M-OAC-04",
-          "descripcion": "Analizar las relaciones entre el derecho, la justicia y la equidad en situaciones de la vida cotidiana, considerando principios de derechos humanos y el funcionamiento del sistema judicial."
-        }
-      ]
-    },
-    {
-      "numero": 3,
-      "nombre": "Participación y la organización territorial en democracia",
-      "oa": [
+          "descripcion": "Evaluar las relaciones entre el Estado y el mercado, considerando temas como sueldos justos, productividad, carga tributaria, comercio justo, probidad, desarrollo sustentable, riqueza y pobreza.",
+          "eje": "Objetivos de Aprendizaje"
+        },
         {
           "id": "FG-ECIU-3M-OAC-05",
           "codigo_oficial": "FG-ECIU-3M-OAC-05",
-          "descripcion": "Investigar mecanismos y espacios de participación ciudadana a nivel local, comunal, regional o nacional, evaluando su incidencia en la vida democrática."
+          "descripcion": "Promover el reconocimiento, la defensa y exigibilidad de los derechos humanos en la vida cotidiana, considerando los principios de universalidad, indivisibilidad, inalienabilidad, igualdad y no discriminación que los sustentan.",
+          "eje": "Objetivos de Aprendizaje"
         },
         {
           "id": "FG-ECIU-3M-OAC-06",
           "codigo_oficial": "FG-ECIU-3M-OAC-06",
-          "descripcion": "Analizar la organización político-administrativa del territorio chileno y su relación con la descentralización, la participación y el desarrollo regional."
+          "descripcion": "Reflexionar personal y grupalmente sobre diversas formas de participación y su aporte al fortalecimiento del bien común, considerando experiencias personales, fenómenos sociales contemporáneos y las perspectivas del republicanismo, el liberalismo, y el comunitarismo.",
+          "eje": "Objetivos de Aprendizaje"
+        },
+        {
+          "id": "FG-ECIU-3M-OAC-07",
+          "codigo_oficial": "FG-ECIU-3M-OAC-07",
+          "descripcion": "Distinguir relaciones políticas, económicas y socioculturales que configuran el territorio en distintas escalas, proponiendo alternativas para avanzar en justicia social y ambiental.",
+          "eje": "Objetivos de Aprendizaje"
+        },
+        {
+          "id": "FG-ECIU-3M-OAC-08",
+          "codigo_oficial": "FG-ECIU-3M-OAC-08",
+          "descripcion": "Participar en distintas instancias escolares de ejercicio democrático, reconociendo la necesidad de organizar socialmente la vida en comunidad, a fin de fortalecer una sana convivencia que resguarde las libertades fundamentales y el bien común.\nUnidad de Currículum y Evaluación Ministerio de Educación\nTeléfono: +56 2 24066000\nAyuda Mineduc\nAcerca de este sitio\nPolíticas de Privacidad\n- Facebook\n- Twitter\n- Youtube\n- Instagram",
+          "eje": "Objetivos de Aprendizaje"
         }
       ]
     }

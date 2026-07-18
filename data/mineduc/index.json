@@ -11,37 +11,37 @@
           "path": "parvularia/medio_mayor.json",
           "nivel": "parvularia",
           "curso": "medio_mayor",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         },
         {
           "path": "parvularia/medio_menor.json",
           "nivel": "parvularia",
           "curso": "medio_menor",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         },
         {
           "path": "parvularia/nt1.json",
           "nivel": "parvularia",
           "curso": "nt1",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         },
         {
           "path": "parvularia/nt2.json",
           "nivel": "parvularia",
           "curso": "nt2",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         },
         {
           "path": "parvularia/sala_cuna_mayor.json",
           "nivel": "parvularia",
           "curso": "sala_cuna_mayor",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         },
         {
           "path": "parvularia/sala_cuna_menor.json",
           "nivel": "parvularia",
           "curso": "sala_cuna_menor",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         }
       ]
     },
@@ -620,133 +620,133 @@
           "nivel": "media",
           "curso": "1_medio",
           "asignatura": "biologia",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         },
         {
           "path": "media/1_medio/fisica.json",
           "nivel": "media",
           "curso": "1_medio",
           "asignatura": "fisica",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         },
         {
           "path": "media/1_medio/lengua_literatura.json",
           "nivel": "media",
           "curso": "1_medio",
           "asignatura": "lengua_literatura",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         },
         {
           "path": "media/1_medio/matematica.json",
           "nivel": "media",
           "curso": "1_medio",
           "asignatura": "matematica",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         },
         {
           "path": "media/1_medio/quimica.json",
           "nivel": "media",
           "curso": "1_medio",
           "asignatura": "quimica",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         },
         {
           "path": "media/1_medio/tecnologia.json",
           "nivel": "media",
           "curso": "1_medio",
           "asignatura": "tecnologia",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         },
         {
           "path": "media/2_medio/biologia.json",
           "nivel": "media",
           "curso": "2_medio",
           "asignatura": "biologia",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         },
         {
           "path": "media/2_medio/fisica.json",
           "nivel": "media",
           "curso": "2_medio",
           "asignatura": "fisica",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         },
         {
           "path": "media/2_medio/lengua_literatura.json",
           "nivel": "media",
           "curso": "2_medio",
           "asignatura": "lengua_literatura",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         },
         {
           "path": "media/2_medio/matematica.json",
           "nivel": "media",
           "curso": "2_medio",
           "asignatura": "matematica",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         },
         {
           "path": "media/2_medio/quimica.json",
           "nivel": "media",
           "curso": "2_medio",
           "asignatura": "quimica",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         },
         {
           "path": "media/2_medio/tecnologia.json",
           "nivel": "media",
           "curso": "2_medio",
           "asignatura": "tecnologia",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         },
         {
           "path": "media/3_medio/ciencias_para_la_ciudadania.json",
           "nivel": "media",
           "curso": "3_medio",
           "asignatura": "ciencias_para_la_ciudadania",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         },
         {
           "path": "media/3_medio/educacion_ciudadana.json",
           "nivel": "media",
           "curso": "3_medio",
           "asignatura": "educacion_ciudadana",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         },
         {
           "path": "media/3_medio/matematica.json",
           "nivel": "media",
           "curso": "3_medio",
           "asignatura": "matematica",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         },
         {
           "path": "media/4_medio/ciencias_para_la_ciudadania.json",
           "nivel": "media",
           "curso": "4_medio",
           "asignatura": "ciencias_para_la_ciudadania",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         },
         {
           "path": "media/4_medio/educacion_ciudadana.json",
           "nivel": "media",
           "curso": "4_medio",
           "asignatura": "educacion_ciudadana",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         },
         {
           "path": "media/4_medio/lengua_literatura.json",
           "nivel": "media",
           "curso": "4_medio",
           "asignatura": "lengua_literatura",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         },
         {
           "path": "media/4_medio/matematica.json",
           "nivel": "media",
           "curso": "4_medio",
           "asignatura": "matematica",
-          "estado_verificacion": "pendiente_verificacion"
+          "estado_verificacion": "verificado_oficial"
         }
       ]
     }

@@ -1,59 +1,50 @@
 {
   "metadata": {
     "nivel": "Media",
-    "curso": "3° Medio",
+    "curso": "3° Medio FG",
     "asignatura": "Matemática",
-    "plan": "Formación General",
     "fuente": "Currículum Nacional - MINEDUC Chile",
-    "source_url": "https://www.curriculumnacional.cl/",
-    "estado": "verificado_parcialmente_por_unidad",
-    "ultima_actualizacion_manual": "2026-03-28",
-    "nota": "Las unidades y los OA están verificados oficialmente. La asociación OA→unidad quedó organizada de forma coherente con el programa; conviene hacer una validación fina posterior porque algunas páginas de apoyo del portal muestran asociaciones inconsistentes entre recursos y ficha de programa."
+    "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/matematica-3o-medio/3-medio-fg",
+    "base_curricular": "Bases Curriculares 3° y 4° Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-07-18",
+    "nota": "Los OA fueron obtenidos directamente de páginas oficiales específicas de Currículum Nacional. La agrupación interna no altera el texto oficial."
   },
   "objetivos_habilidad": [],
   "objetivos_actitud": [],
   "unidades": [
     {
       "numero": 1,
-      "nombre": "Relaciones métricas en la circunferencia",
-      "oa": [
-        {
-          "id": "FG-MATE-3M-OAC-04",
-          "codigo_oficial": "FG-MATE-3M-OAC-04",
-          "descripcion": "Resolver problemas de geometría euclidiana que involucren relaciones métricas entre ángulos, arcos, cuerdas y secantes en la circunferencia, de forma manuscrita y con uso de herramientas tecnológicas."
-        }
-      ]
-    },
-    {
-      "numero": 2,
-      "nombre": "Medidas de dispersión y probabilidades condicionales",
-      "oa": [
-        {
-          "id": "FG-MATE-3M-OAC-02",
-          "codigo_oficial": "FG-MATE-3M-OAC-02",
-          "descripcion": "Tomar decisiones en situaciones de incerteza que involucren el análisis de datos estadísticos con medidas de dispersión y probabilidades condicionales."
-        }
-      ]
-    },
-    {
-      "numero": 3,
-      "nombre": "Funciones exponencial y logarítmica",
-      "oa": [
-        {
-          "id": "FG-MATE-3M-OAC-03",
-          "codigo_oficial": "FG-MATE-3M-OAC-03",
-          "descripcion": "Aplicar modelos matemáticos que describen fenómenos o situaciones de crecimiento y decrecimiento, que involucran las funciones exponencial y logarítmica, de forma manuscrita, con uso de herramientas tecnológicas y promoviendo la búsqueda, selección, contrastación y verificación de información en ambientes digitales y redes sociales."
-        }
-      ]
-    },
-    {
-      "numero": 4,
-      "nombre": "Los números complejos",
+      "id": "eje-objetivos-de-aprendizaje",
+      "nombre": "Objetivos de Aprendizaje",
+      "tipo_agrupacion": "lista_oficial",
       "oa": [
         {
           "id": "FG-MATE-3M-OAC-01",
           "codigo_oficial": "FG-MATE-3M-OAC-01",
-          "descripcion": "Resolver problemas de adición, sustracción, multiplicación y división de números complejos C, en forma pictórica, simbólica y con uso de herramientas tecnológicas."
+          "descripcion": "Resolver problemas de adición, sustracción, multiplicación y división de números complejos C, en forma pictórica, simbólica y con uso de herramientas tecnológicas.",
+          "eje": "Objetivos de Aprendizaje"
+        },
+        {
+          "id": "FG-MATE-3M-OAC-02",
+          "codigo_oficial": "FG-MATE-3M-OAC-02",
+          "descripcion": "Tomar decisiones en situaciones de incerteza que involucren el análisis de datos estadísticos con medidas de dispersión y probabilidades condicionales.",
+          "eje": "Objetivos de Aprendizaje"
+        },
+        {
+          "id": "FG-MATE-3M-OAC-03",
+          "codigo_oficial": "FG-MATE-3M-OAC-03",
+          "descripcion": "Aplicar modelos matemáticos que describen fenómenos o situaciones de crecimiento y decrecimiento, que involucran las funciones exponencial y logarítmica, de forma manuscrita, con uso de herramientas tecnológicas y promoviendo la búsqueda, selección, contrastación y verificación de información en ambientes digitales y redes sociales.",
+          "eje": "Objetivos de Aprendizaje"
+        },
+        {
+          "id": "FG-MATE-3M-OAC-04",
+          "codigo_oficial": "FG-MATE-3M-OAC-04",
+          "descripcion": "Resolver problemas de geometría euclidiana que involucran relaciones métricas entre ángulos, arcos, cuerdas y secantes en la circunferencia, de forma manuscrita y con uso de herramientas tecnológicas.\nUnidad de Currículum y Evaluación Ministerio de Educación\nTeléfono: +56 2 24066000\nAyuda Mineduc\nAcerca de este sitio\nPolíticas de Privacidad\n- Facebook\n- Twitter\n- Youtube\n- Instagram",
+          "eje": "Objetivos de Aprendizaje"
         }
       ]
     }

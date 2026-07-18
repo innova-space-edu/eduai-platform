@@ -1,58 +1,50 @@
 {
   "metadata": {
     "nivel": "Media",
-    "curso": "4° Medio",
+    "curso": "4° Medio FG",
     "asignatura": "Matemática",
-    "plan": "Formación General",
     "fuente": "Currículum Nacional - MINEDUC Chile",
-    "source_url": "https://www.curriculumnacional.cl/",
-    "estado": "verificado",
-    "ultima_actualizacion_manual": "2026-03-27"
+    "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/matematica-4o-medio/4-medio-fg",
+    "base_curricular": "Bases Curriculares 3° y 4° Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-07-18",
+    "nota": "Los OA fueron obtenidos directamente de páginas oficiales específicas de Currículum Nacional. La agrupación interna no altera el texto oficial."
   },
   "objetivos_habilidad": [],
   "objetivos_actitud": [],
   "unidades": [
     {
       "numero": 1,
-      "nombre": "Matemática financiera",
+      "id": "eje-objetivos-de-aprendizaje",
+      "nombre": "Objetivos de Aprendizaje",
+      "tipo_agrupacion": "lista_oficial",
       "oa": [
         {
           "id": "FG-MATE-4M-OAC-01",
           "codigo_oficial": "FG-MATE-4M-OAC-01",
-          "descripcion": "Fundamentar decisiones en el ámbito financiero y económico personal o comunitario, a partir de modelos que consideren porcentajes, tasas de interés e índices económicos."
-        }
-      ]
-    },
-    {
-      "numero": 2,
-      "nombre": "Modelos binomial y normal",
-      "oa": [
+          "descripcion": "Fundamentar decisiones en el ámbito financiero y económico personal o comunitario, a partir de modelos que consideren porcentajes, tasas de interés e índices económicos.",
+          "eje": "Objetivos de Aprendizaje"
+        },
         {
           "id": "FG-MATE-4M-OAC-02",
           "codigo_oficial": "FG-MATE-4M-OAC-02",
-          "descripcion": "Fundamentar decisiones en situaciones de incerteza, a partir del análisis crítico de datos estadísticos y con base en los modelos binomial y normal."
-        }
-      ]
-    },
-    {
-      "numero": 3,
-      "nombre": "Funciones potencias y trigonométricas",
-      "oa": [
+          "descripcion": "Fundamentar decisiones en situaciones de incerteza, a partir del análisis crítico de datos estadísticos y con base en los modelos binomial y normal.",
+          "eje": "Objetivos de Aprendizaje"
+        },
         {
           "id": "FG-MATE-4M-OAC-03",
           "codigo_oficial": "FG-MATE-4M-OAC-03",
-          "descripcion": "Construir modelos de situaciones o fenómenos de crecimiento, decrecimiento y periódicos que involucren funciones potencias de exponente entero y trigonométricas sen(x) y cos(x), de forma manuscrita, con uso de herramientas tecnológicas y promoviendo la búsqueda, selección, contrastación y verificación de información en ambientes digitales y redes sociales."
-        }
-      ]
-    },
-    {
-      "numero": 4,
-      "nombre": "Rectas y circunferencias en el plano",
-      "oa": [
+          "descripcion": "Construir modelos de situaciones o fenómenos de crecimiento, decrecimiento y periódicos que involucren funciones potencias de exponente entero y trigonométricas sen(x) y cos(x), de forma manuscrita, con uso de herramientas tecnológicas y promoviendo la búsqueda, selección, contrastación y verificación de información en ambientes digitales y redes sociales.",
+          "eje": "Objetivos de Aprendizaje"
+        },
         {
           "id": "FG-MATE-4M-OAC-04",
           "codigo_oficial": "FG-MATE-4M-OAC-04",
-          "descripcion": "Resolver problemas acerca de rectas y circunferencias en el plano cartesiano, utilizando ecuaciones, sistemas, representaciones gráficas y herramientas tecnológicas."
+          "descripcion": "Resolver problemas acerca de rectas y circunferencias en el plano, mediante su representación analítica, de forma manuscrita y con uso de herramientas tecnológicas.\nUnidad de Currículum y Evaluación Ministerio de Educación\nTeléfono: +56 2 24066000\nAyuda Mineduc\nAcerca de este sitio\nPolíticas de Privacidad\n- Facebook\n- Twitter\n- Youtube\n- Instagram",
+          "eje": "Objetivos de Aprendizaje"
         }
       ]
     }

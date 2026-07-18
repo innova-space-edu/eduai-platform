@@ -1,56 +1,74 @@
 {
   "metadata": {
     "nivel": "Media",
-    "curso": "4° Medio",
+    "curso": "4° Medio FG",
     "asignatura": "Educación Ciudadana",
     "fuente": "Currículum Nacional - MINEDUC Chile",
-    "source_url": "https://www.curriculumnacional.cl/",
-    "estado": "parcial_verificado",
-    "ultima_actualizacion_manual": "2026-03-28"
+    "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/educacion-ciudadana-4m/4-medio-fg",
+    "base_curricular": "Bases Curriculares 3° y 4° Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-07-18",
+    "nota": "Los OA fueron obtenidos directamente de páginas oficiales específicas de Currículum Nacional. La agrupación interna no altera el texto oficial."
   },
   "objetivos_habilidad": [],
   "objetivos_actitud": [],
   "unidades": [
     {
       "numero": 1,
-      "nombre": "La participación ciudadana contribuye con soluciones a los desafíos, problemas y conflictos presentes en la sociedad",
+      "id": "eje-objetivos-de-aprendizaje",
+      "nombre": "Objetivos de Aprendizaje",
+      "tipo_agrupacion": "lista_oficial",
       "oa": [
         {
           "id": "FG-ECIU-4M-OAC-01",
           "codigo_oficial": "FG-ECIU-4M-OAC-01",
-          "descripcion": "Analizar problemáticas públicas relevantes a distintas escalas y proponer alternativas de participación ciudadana dentro del sistema democrático."
+          "descripcion": "Evaluar las características y el funcionamiento de la institucionalidad democrática, las formas de representación y su impacto en la distribución del poder en la sociedad, a la luz del bien común, la cohesión y justicia social.",
+          "eje": "Objetivos de Aprendizaje"
         },
         {
           "id": "FG-ECIU-4M-OAC-02",
           "codigo_oficial": "FG-ECIU-4M-OAC-02",
-          "descripcion": "Evaluar formas de participación social, política y comunitaria, considerando su contribución al bien común."
-        }
-      ]
-    },
-    {
-      "numero": 2,
-      "nombre": "Trabajo, derechos y organización social",
-      "oa": [
+          "descripcion": "Participar de forma corresponsable y ética en la búsqueda de estrategias y soluciones a desafíos, problemas y conflictos en diversas escalas, que impliquen armonizar desarrollo, democracia, equidad y sustentabilidad.",
+          "eje": "Objetivos de Aprendizaje"
+        },
         {
           "id": "FG-ECIU-4M-OAC-03",
           "codigo_oficial": "FG-ECIU-4M-OAC-03",
-          "descripcion": "Analizar el trabajo como dimensión fundamental de la vida social, considerando derechos laborales, instituciones y conflictos asociados."
+          "descripcion": "Analizar el impacto de diversos modelos de desarrollo y las políticas económicas en la vida cotidiana y en el cambio climático, en función de la sustentabilidad y del aseguramiento de una vida digna y justa para todos y todas con condiciones para el desarrollo personal y colectivo.",
+          "eje": "Objetivos de Aprendizaje"
+        },
+        {
+          "id": "FG-ECIU-4M-OAC-04",
+          "codigo_oficial": "FG-ECIU-4M-OAC-04",
+          "descripcion": "Comprender la importancia de los derechos laborales en Chile, considerando las principales tendencias globales y nacionales, la evolución de los mecanismos institucionales que buscan resguardarlos y los aportes de los movimientos y organizaciones sociales a su fortalecimiento.",
+          "eje": "Objetivos de Aprendizaje"
         },
         {
           "id": "FG-ECIU-4M-OAC-05",
           "codigo_oficial": "FG-ECIU-4M-OAC-05",
-          "descripcion": "Comprender la importancia de los derechos laborales en Chile, considerando las principales tendencias globales y nacionales, la evolución de los mecanismos institucionales que buscan resguardarlos y los aportes de los movimientos y organizaciones sociales a su fortalecimiento."
-        }
-      ]
-    },
-    {
-      "numero": 3,
-      "nombre": "Ciudadanía activa y deliberación democrática",
-      "oa": [
+          "descripcion": "Relacionar de manera fundamentada los conceptos libertad, igualdad y solidaridad, con desafíos y problemas de la democracia como la desigualdad y superación de la pobreza, la equidad de género, la inclusión, la diversidad étnica, cultural y sexual, entre otras.",
+          "eje": "Objetivos de Aprendizaje"
+        },
         {
-          "id": "FG-ECIU-4M-OAC-04",
-          "codigo_oficial": "FG-ECIU-4M-OAC-04",
-          "descripcion": "Deliberar sobre asuntos públicos relevantes considerando distintas perspectivas, evidencia, derechos y responsabilidades ciudadanas."
+          "id": "FG-ECIU-4M-OAC-06",
+          "codigo_oficial": "FG-ECIU-4M-OAC-06",
+          "descripcion": "Evaluar oportunidades y riesgos de los medios de comunicación masiva y del uso de las nuevas tecnologías de la información en el marco de una sociedad democrática, reflexionando personal y grupalmente sobre sus implicancias en la participación ciudadana y en el resguardo de la vida privada.",
+          "eje": "Objetivos de Aprendizaje"
+        },
+        {
+          "id": "FG-ECIU-4M-OAC-07",
+          "codigo_oficial": "FG-ECIU-4M-OAC-07",
+          "descripcion": "Proponer formas de organización del territorio y del espacio público que promuevan la acción colectiva, la interculturalidad, la inclusión de la diversidad y el mejoramiento de la vida comunitaria.",
+          "eje": "Objetivos de Aprendizaje"
+        },
+        {
+          "id": "FG-ECIU-4M-OAC-08",
+          "codigo_oficial": "FG-ECIU-4M-OAC-08",
+          "descripcion": "Tomar decisiones fundadas en principios éticos, valores y virtudes públicas en las prácticas ciudadanas, resguardando la dignidad del otro y la vida en democracia.\nUnidad de Currículum y Evaluación Ministerio de Educación\nTeléfono: +56 2 24066000\nAyuda Mineduc\nAcerca de este sitio\nPolíticas de Privacidad\n- Facebook\n- Twitter\n- Youtube\n- Instagram",
+          "eje": "Objetivos de Aprendizaje"
         }
       ]
     }

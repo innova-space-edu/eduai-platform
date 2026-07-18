@@ -5,7 +5,7 @@ const ROOT = join(process.cwd(), "data", "mineduc")
 const STRICT = process.argv.includes("--strict")
 const VERIFIED = new Set(["verificado_oficial", "verificado_propuesta_oficial"])
 const ALLOWED = new Set(["verificado_oficial", "verificado_propuesta_oficial", "pendiente_verificacion", "incompleto", "no_utilizar"])
-const OFFICIAL_CODE = /^(?:[A-Z]{2,5}\d{2}|[A-Z]{2,5}\dM) OA \d{2}$/
+const OFFICIAL_CODE = /^(?:(?:[A-Z]{2,5}\d{2}|[A-Z]{2,5}\dM) OA \d{2}|FG-[A-Z]{4}-[34]M-OAC-\d{2}|FG-CI(?:AS|BS|SA|TS)-3y4-OAC-\d{2}|(?:OA|OAT) \d{2} (?:IA|CC|CM|LV|LA|EEN|CES|PM) (?:SC|NM|NT))$/
 const GENERIC_CODE = /^OA\s*0*\d+$/i
 
 function walk(dir) {
@@ -39,6 +39,7 @@ function collectContentOA(data) {
   for (const scope of data?.ambitos || []) {
     for (const core of scope?.nucleos || []) {
       for (const item of core?.oa_contenido || []) out.push(item)
+      for (const item of core?.oa_transversales || []) out.push(item)
     }
   }
   return out
@@ -87,7 +88,8 @@ for (const path of courseFiles) {
   }
 
   if (isVerified) {
-    if (!metadata.source_url || !String(metadata.source_url).startsWith("https://www.curriculumnacional.cl/")) {
+    const sourceUrls = [metadata.source_url, ...(metadata.source_urls || [])].filter(Boolean)
+    if (!sourceUrls.length || sourceUrls.some((url) => !String(url).startsWith("https://www.curriculumnacional.cl/"))) {
       errors.push(`${rel}: archivo verificado sin source_url oficial específico`)
     }
     if (!metadata.fecha_consulta) errors.push(`${rel}: archivo verificado sin fecha_consulta`)
