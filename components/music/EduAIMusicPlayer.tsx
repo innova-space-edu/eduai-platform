@@ -45,6 +45,7 @@ type ExtendedMusicTrack = EduMusicTrack & {
   embedOnly?: boolean;
   embedUrl?: string;
   loaderUrl?: string;
+  previewSeconds?: number;
 };
 
 type SpotifyEmbedItem = {
@@ -188,7 +189,7 @@ function spotifyOpenUrl(embedSrc: string) {
 function sourceLabel(source?: EduMusicTrack["source"]) {
   if (source === "jamendo") return "Jamendo";
   if (source === "audius") return "Audius";
-  if (source === "itunes") return "DJ 30s";
+  if (source === "itunes") return "Preview iTunes";
   if (source === "youtube") return "YouTube video";
   if (source === "radio") return "Radio online";
   if (source === "external") return "Externo";
@@ -197,6 +198,7 @@ function sourceLabel(source?: EduMusicTrack["source"]) {
 
 function playbackKind(track?: EduMusicTrack) {
   if (isEmbedTrack(track)) return "Reproductor oficial ConectaAPP";
+  if (asExtendedTrack(track)?.previewSeconds) return "YouTube DJ · video y audio sincronizados · 30 segundos";
   if (track?.source === "itunes") return "Preview 30 segundos · modo DJ";
   if (track?.source === "youtube") return "YouTube · cola automática";
   if (track?.source === "radio") return "Radio online en vivo";
@@ -1122,7 +1124,9 @@ function MainPanel({
 
               {track.source === "youtube" && (
                 <p className="mt-3 text-xs font-semibold text-emerald-200/90">
-                  YouTube usa el reproductor real al centro: reproduce/pausa con los controles de EduAI y avanza automáticamente al terminar cada video de la cola.
+                  {asExtendedTrack(track)?.previewSeconds
+                    ? "Modo DJ 30s: este mismo video entrega la imagen y el audio; comienza en 0:00 y avanza al siguiente al llegar a 30 segundos."
+                    : "YouTube usa el reproductor real al centro: el video y el audio provienen de la misma fuente y avanzan juntos."}
                 </p>
               )}
               {track.source === "itunes" && (
@@ -1248,7 +1252,7 @@ function RightPanel({
       <section className="shrink-0 rounded-2xl border border-emerald-400/20 bg-[#14171f] p-3">
         <p className="text-sm font-black text-white">Buscar canciones</p>
         <p className="mt-1 text-xs text-slate-400">
-          Busca canciones completas con Jamendo/Audius. En modo YouTube, EduAI crea una cola automática controlada por el botón central.
+          Busca videos musicales: cada resultado reproduce video y audio desde la misma fuente de YouTube.
         </p>
         <div className="mt-3 flex gap-2">
           <input
@@ -1276,10 +1280,8 @@ function RightPanel({
         {music.onlineError && <p className="mt-2 text-xs font-bold text-rose-300">{music.onlineError}</p>}
         <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] font-black uppercase tracking-wide">
           {[
-            { id: "full", label: "Completas" },
+            { id: "youtube", label: "Videos" },
             { id: "preview", label: "DJ 30s" },
-            { id: "all", label: "Todo" },
-            { id: "youtube", label: "YouTube" },
           ].map((item) => {
             const provider = item.id as "all" | "full" | "preview" | "youtube";
             return (
@@ -1303,7 +1305,7 @@ function RightPanel({
           })}
         </div>
         <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
-          Por defecto se buscan canciones completas en Jamendo/Audius. DJ 30s usa previews iTunes y, si hay YouTube API Key, añade visuales tipo reel silenciados.
+          Videos reproduce cada canción completa desde YouTube. DJ 30s usa ese mismo video desde 0:00 y corta a los 30 segundos, sin mezclar audios externos.
         </p>
         {(music.onlineTracks.length > 0 || music.onlineQuery) && (
           <button
