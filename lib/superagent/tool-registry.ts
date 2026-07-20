@@ -15,9 +15,11 @@ export type ToolName =
   | "generate_rubric"
   | "summarize_text"
   | "translate_text"
+  | "proofread_text"
   | "generate_image_prompt"
   | "generate_image"
   | "narrate_text"
+  | "generate_podcast"
   | "generate_edu_video"
   | "recommend_focus_music"
   | "generate_code"
@@ -688,6 +690,31 @@ Incluye 4-5 criterios medibles.`;
   },
 
   {
+    name: "proofread_text",
+    label: "Corregir texto",
+    icon: "✍️",
+    description: "Corrige ortografía, redacción y claridad sin cambiar el sentido del texto.",
+    category: "content",
+    enabled: true,
+    params: [{ name: "text", type: "string", description: "Texto a corregir", required: true }],
+    async execute(args, baseUrl, options) {
+      try {
+        const text = String(args.text || args.content || "").trim();
+        const res = await callInternalAPI(baseUrl, "/api/superagent/chat", {
+          messages: [{ role: "user", content: `Corrige ortografía, gramática y claridad del siguiente texto sin cambiar su significado. Devuelve solo la versión corregida:\n\n${text}` }],
+          task: "general",
+          maxTokens: 2500,
+        }, options);
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+        return { success: true, output: `✍️ **Texto corregido:**\n\n${data.text}` };
+      } catch (err) {
+        return { success: false, output: "No se pudo corregir el texto.", error: err instanceof Error ? err.message : String(err) };
+      }
+    },
+  },
+
+  {
     name: "generate_image_prompt",
     label: "Prompt para imagen",
     icon: "🖼️",
@@ -860,6 +887,40 @@ Incluye 4-5 criterios medibles.`;
           output: "No se pudo generar la narración.",
           error: err instanceof Error ? err.message : String(err),
         };
+      }
+    },
+  },
+
+  {
+    name: "generate_podcast",
+    label: "Crear podcast",
+    icon: "🎙️",
+    description: "Genera un micro-podcast educativo con guion y dos voces.",
+    category: "audio",
+    enabled: true,
+    params: [{ name: "prompt", type: "string", description: "Tema del episodio", required: true }],
+    async execute(args, baseUrl, options) {
+      try {
+        const prompt = normalizeText(args.prompt || args.content);
+        const res = await callInternalAPI(baseUrl, "/api/agents/audio/generate", {
+          prompt,
+          inputMode: "prompt",
+          style: "dialogue",
+          voiceA: "es-CL-LorenzoNeural",
+          voiceB: "es-CL-CatalinaNeural",
+        }, options);
+        const data = await readJsonOrText(res);
+        if (!res.ok || !data.ok) throw new Error(String(data.error || `HTTP ${res.status}`));
+        const audio = String(data.audioBase64 || "");
+        const script = String(data.script || "");
+        if (!audio) throw new Error("El motor no devolvió audio");
+        return {
+          success: true,
+          output: `🎙️ **Podcast listo.**\n\n<audio controls src="data:audio/mpeg;base64,${audio}"></audio>\n\n**Guion del episodio:**\n\n${script}`,
+          data: { script, style: "dialogue" },
+        };
+      } catch (err) {
+        return { success: false, output: "No se pudo generar el podcast.", error: err instanceof Error ? err.message : String(err) };
       }
     },
   },
@@ -1108,7 +1169,7 @@ export function detectToolFromMessage(message: string): ToolName | null {
   )
     return "generate_code";
   if (
-    /genera(r)?\s*(un\s*)?(video|animaci[oó]n)|video educativo|text(o)? a video|imagen a video/i.test(
+    /(?:genera(r)?|crea(r)?|haz)\s*(un\s*)?(video|animaci[oó]n)|video educativo|text(o)? a video|imagen a video/i.test(
       m,
     )
   )
@@ -1117,6 +1178,7 @@ export function detectToolFromMessage(message: string): ToolName | null {
     /m[uú]sica|focus|concentraci[oó]n|pomodoro|estudiar con m[uú]sica/i.test(m)
   )
     return "recommend_focus_music";
+  if (/podcast|micro.?podcast|episodio de audio/i.test(m)) return "generate_podcast";
   if (/narr(a|ar|e)|escuchar|lee en voz|audio/i.test(m)) return "narrate_text";
   if (
     /(?:genera(r)?|crea(r)?|haz|diseña)\s*(una\s*)?(imagen|ilustraci[oó]n|afiche|p[oó]ster|infograf[ií]a|portada|visual)/i.test(
@@ -1141,6 +1203,8 @@ export function detectToolFromMessage(message: string): ToolName | null {
   if (/resum(e|ir|en)\s*(este|el|texto|document)/i.test(m))
     return "summarize_text";
   if (/traduc(e|ir|ci[oó]n)/i.test(m)) return "translate_text";
+  if (/corrige|corregir|revisa|mejora.*(texto|redacci[oó]n|ortograf[ií]a)|ortograf[ií]a/i.test(m))
+    return "proofread_text";
   if (/explic(a|ar)\s*(el|la|qu[eé]\s*es|concepto)/i.test(m))
     return "explain_concept";
 
