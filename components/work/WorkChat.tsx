@@ -45,6 +45,20 @@ const WELCOME: ChatMessage = {
   content: "## Bienvenido a Open EDUAI Work\n\nPuedo investigar con fuentes, crear materiales, coordinar agentes y convertir tus ideas en acciones dentro de EDUAI. Selecciona un modo o escribe directamente qué necesitas.",
 }
 
+// Las herramientas devuelven Markdown y, para TTS, un reproductor HTML. El
+// parser Markdown no interpreta HTML crudo por seguridad, por lo que lo
+// transformamos a un enlace especial que se renderiza como audio real.
+function normalizeToolMedia(content: string) {
+  return content.replace(
+    /<audio\s+controls\s+src="(data:audio\/mpeg;base64,[^"]+)"><\/audio>/g,
+    "[▶ Reproducir narración]($1)",
+  )
+}
+
+function isSafeWorkUrl(url: string) {
+  return /^https?:\/\//i.test(url) || /^mailto:/i.test(url) || url.startsWith("/") || url.startsWith("#")
+}
+
 function messageId() {
   return typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
@@ -251,14 +265,24 @@ export function WorkChat({
                       <ReactMarkdown
                         remarkPlugins={[remarkGfm, remarkMath]}
                         rehypePlugins={[rehypeKatex]}
+                        urlTransform={(url) => url.startsWith("data:audio/mpeg;base64,") || isSafeWorkUrl(url) ? url : ""}
                         components={{
-                          a: ({ href, children }) => (
+                          a: ({ href, children }) => href?.startsWith("data:audio/mpeg;base64,") ? (
+                            <span className="my-3 block rounded-xl border border-blue-500/20 bg-blue-500/5 p-3 not-prose">
+                              <span className="mb-2 block text-xs font-semibold text-blue-600">Narración generada</span>
+                              <audio controls preload="metadata" src={href} className="w-full" />
+                            </span>
+                          ) : (
                             <a href={href} target={href?.startsWith("http") ? "_blank" : undefined} rel="noreferrer" className="inline-flex items-center gap-0.5 font-medium underline underline-offset-2">
                               {children}{href?.startsWith("http") && <ExternalLink size={10} />}
                             </a>
                           ),
+                          img: ({ src, alt }) => (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={src} alt={alt || "Imagen generada por EduAI"} className="my-3 max-h-[520px] w-full rounded-xl border border-soft bg-white object-contain" />
+                          ),
                         }}
-                      >{message.content}</ReactMarkdown>
+                      >{normalizeToolMedia(message.content)}</ReactMarkdown>
                     </div>
                     {message.role === "assistant" && (
                       <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-soft pt-2 text-[10px] text-muted2">
