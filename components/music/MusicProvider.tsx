@@ -751,7 +751,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
       const playerVars = {
         autoplay: 1,
-        controls: 1,
+        controls: 0,
         rel: 0,
         modestbranding: 1,
         playsinline: 1,
