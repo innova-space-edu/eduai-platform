@@ -1054,7 +1054,8 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
           body: JSON.stringify({
             query: clean,
             provider: mode === "youtube" ? "youtube" : mode || "full",
-            limit: mode === "youtube" ? 24 : 24,
+            // Una cola amplia evita repetir videos tras solo unas pocas pistas.
+            limit: 48,
           }),
         });
         const data = await res.json();
