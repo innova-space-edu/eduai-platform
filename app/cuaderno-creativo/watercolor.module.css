@@ -1,0 +1,13 @@
+.watercolorNotebook {
+  min-height: 100%;
+}
+
+.watercolorNotebook :global(canvas[aria-label="Lienzo de dibujo"]) {
+  opacity: 0.72;
+  mix-blend-mode: multiply;
+  filter: saturate(0.9) contrast(0.94);
+}
+
+.watercolorNotebook :global(canvas[aria-label="Lienzo de dibujo"]:active) {
+  opacity: 0.76;
+}
