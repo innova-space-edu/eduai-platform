@@ -68,23 +68,6 @@ function getEmbedUrl(track?: EduMusicTrack | null) {
   return asExtendedTrack(track)?.embedUrl || track?.externalUrl || track?.src || "";
 }
 
-function getDjReelEmbedUrl(track?: EduMusicTrack | null) {
-  const videoId = track?.youtubeVideoId;
-  if (!videoId) return "";
-  const params = new URLSearchParams({
-    autoplay: "1",
-    mute: "1",
-    controls: "0",
-    disablekb: "1",
-    loop: "1",
-    playlist: videoId,
-    playsinline: "1",
-    modestbranding: "1",
-    rel: "0",
-  });
-  return `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
-}
-
 const NAV_ITEMS = [
   { id: "home", label: "Inicio", icon: Home },
   { id: "search", label: "Buscar", icon: Search },
@@ -846,42 +829,6 @@ function PlaylistHeader({ tracks }: { tracks: EduMusicTrack[] }) {
 
 function CurrentTrackArtwork({ track }: { track: EduMusicTrack }) {
   const artwork = track.artworkUrl || track.videoThumbnail || (track.cover?.startsWith("http") ? track.cover : undefined);
-  const djReelUrl = track.source === "itunes" ? getDjReelEmbedUrl(track) : "";
-
-  if (track.source === "itunes") {
-    return (
-      <div className="relative aspect-[9/16] h-[410px] max-h-[58vh] w-[232px] overflow-hidden rounded-[2.1rem] border border-emerald-300/25 bg-black shadow-2xl shadow-emerald-950/40 ring-1 ring-white/10 max-xl:h-[360px] max-xl:w-[204px]">
-        {djReelUrl ? (
-          <iframe
-            src={djReelUrl}
-            title={`${track.title} - DJ reel visual`}
-            className="absolute inset-0 h-full w-full border-0"
-            allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
-            allowFullScreen
-          />
-        ) : artwork ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={artwork} alt={track.title} className="h-full w-full object-cover scale-105 opacity-85" />
-        ) : (
-          <div className="h-full w-full bg-gradient-to-br from-emerald-400 via-cyan-500 to-slate-950" />
-        )}
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.2)_45%,rgba(0,0,0,.92))]" />
-        <div className="absolute left-4 right-4 top-4 flex items-center justify-between gap-2">
-          <span className="rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-200 ring-1 ring-white/10 backdrop-blur-md">Reel único</span>
-          <span className="rounded-full bg-emerald-400 px-2.5 py-1 text-[10px] font-black text-slate-950">30s</span>
-        </div>
-        <div className="absolute inset-x-0 bottom-0 p-4 text-left">
-          <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-white/18">
-            <div className="h-full w-full origin-left animate-[eduai-dj-progress_30s_linear_infinite] rounded-full bg-emerald-400" />
-          </div>
-          <p className="line-clamp-2 text-base font-black leading-tight text-white drop-shadow">{track.title}</p>
-          <p className="mt-1 line-clamp-1 text-xs font-semibold text-slate-200">{track.artist}</p>
-          <p className="mt-2 text-[10px] leading-relaxed text-slate-300">Visual silenciado. El audio principal usa el preview legal de 30 segundos.</p>
-        </div>
-      </div>
-    );
-  }
-
   if (track.source === "youtube") {
     return (
       <div className="relative aspect-video w-full max-w-[620px] overflow-hidden rounded-3xl border border-red-400/25 bg-black shadow-2xl shadow-black/40 ring-1 ring-white/10">
@@ -964,13 +911,15 @@ function MainPanel({
               Las listas quedan a los lados. Aquí se muestra solo la canción actual.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => music.playPlaylist(playlist.id)}
-            className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full bg-emerald-400 px-4 text-xs font-black text-slate-950 shadow-md shadow-emerald-500/20 hover:bg-emerald-300"
-          >
-            <Play className="h-4 w-4" fill="currentColor" /> Reproducir lista
-          </button>
+          {track.source !== "youtube" && (
+            <button
+              type="button"
+              onClick={() => music.playPlaylist(playlist.id)}
+              className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full bg-emerald-400 px-4 text-xs font-black text-slate-950 shadow-md shadow-emerald-500/20 hover:bg-emerald-300"
+            >
+              <Play className="h-4 w-4" fill="currentColor" /> Reproducir lista
+            </button>
+          )}
         </div>
 
         <div className="flex min-h-0 flex-1 items-center justify-center rounded-3xl border border-emerald-400/15 bg-[radial-gradient(circle_at_center,rgba(16,185,129,.18),rgba(15,23,42,.78)_48%,rgba(5,7,10,.95))] p-5">
@@ -1719,7 +1668,7 @@ export default function EduAIMusicPlayer({
             onClearSpotify={() => setSelectedSpotifyEmbed(null)}
           />
         </div>
-        <BottomPlayer />
+        {music.currentTrack.source !== "youtube" && <BottomPlayer />}
       </div>
       <AddToPlaylistBar />
     </div>
