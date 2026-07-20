@@ -322,11 +322,13 @@ async function searchYouTube(
 
   const params = new URLSearchParams({
     part: "snippet",
-    q: `${query} official audio official video`,
+    // Usamos el término real del usuario: añadir siempre "official" reducía
+    // demasiado la variedad y hacía que la cola reciclara los mismos videos.
+    q: query,
     type: "video",
     videoEmbeddable: "true",
     videoSyndicated: "true",
-    maxResults: String(Math.min(limit, 24)),
+    maxResults: String(Math.min(limit, 50)),
     key,
     safeSearch: "moderate",
   });
@@ -433,7 +435,7 @@ async function handle(req: NextRequest) {
   if (shouldUseYouTubeFallback) {
     youtubeFallback = await searchYouTube(
       query,
-      Math.min(8, limit),
+      Math.min(48, limit),
       normalizedProvider === "preview" ? 30 : undefined,
     ).catch(() => []);
     if (["youtube", "preview", "full", "all"].includes(normalizedProvider)) {
