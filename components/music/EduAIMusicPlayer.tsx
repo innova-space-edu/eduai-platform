@@ -1,1676 +1,229 @@
-"use client";
-
-import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import {
-  ArrowLeft,
-  ExternalLink,
-  Heart,
-  Home,
-  Library,
-  ListMusic,
-  Menu,
-  Music2,
-  Pause,
-  Play,
-  Plus,
-  Radio,
-  Repeat,
-  Search,
-  Shuffle,
-  SkipBack,
-  SkipForward,
-  Volume2,
-} from "lucide-react";
-import {
-  EXTERNAL_MUSIC_COLLECTIONS,
-  MOOD_LABELS,
-  type EduMusicMood,
-  type EduMusicPlaylist,
-  type EduMusicTrack,
-} from "@/lib/music/eduai-music-catalog";
-import { YOUTUBE_PLAYER_ID, useEduAIMusic } from "@/components/music/MusicProvider";
-
-type PlayerMode = "panel" | "mini" | "page";
-
-type Props = {
-  mode?: PlayerMode;
-  showMiniWhenStopped?: boolean;
-  onOpenPanel?: () => void;
-};
-
-type ExtendedMusicTrack = EduMusicTrack & {
-  playable?: boolean;
-  externalOnly?: boolean;
-  embedOnly?: boolean;
-  embedUrl?: string;
-  loaderUrl?: string;
-  previewSeconds?: number;
-};
-
-type SpotifyEmbedItem = {
-  id: string;
-  title: string;
-  subtitle: string;
-  src: string;
-  accent: string;
-};
-
-function asExtendedTrack(track?: EduMusicTrack | null): ExtendedMusicTrack | null {
-  return (track || null) as ExtendedMusicTrack | null;
-}
-
-function isEmbedTrack(track?: EduMusicTrack | null) {
-  return Boolean(asExtendedTrack(track)?.embedOnly);
-}
-
-function getEmbedUrl(track?: EduMusicTrack | null) {
-  return asExtendedTrack(track)?.embedUrl || track?.externalUrl || track?.src || "";
-}
-
-const NAV_ITEMS = [
-  { id: "home", label: "Inicio", icon: Home },
-  { id: "search", label: "Buscar", icon: Search },
-  { id: "radio", label: "Radio", icon: Radio },
-  { id: "library", label: "Biblioteca", icon: Library },
-  { id: "playlists", label: "Playlists", icon: ListMusic },
-  { id: "liked", label: "Me gusta", icon: Heart },
-  { id: "queue", label: "Cola", icon: Menu },
-] as const;
-
-const MOODS: Array<EduMusicMood | "all"> = [
-  "all",
-  "focus",
-  "calm",
-  "classical",
-  "reading",
-  "creative",
-  "deep",
-  "nature",
-  "energy",
-];
-
-const SPOTIFY_EMBEDS: SpotifyEmbedItem[] = [
-  {
-    id: "spotify-calvin-mix",
-    title: "Calvin Harris Mix",
-    subtitle: "Electrónica y energía para modo DJ visual",
-    src: "https://open.spotify.com/embed/playlist/37i9dQZF1EIZna6YqhjeY0?utm_source=generator&theme=0",
-    accent: "from-emerald-400 to-cyan-400",
-  },
-  {
-    id: "spotify-top-global",
-    title: "Top Global",
-    subtitle: "Tendencias globales desde Spotify",
-    src: "https://open.spotify.com/embed/playlist/37i9dQZEVXddk5AflVss6A?utm_source=generator&theme=0",
-    accent: "from-violet-400 to-fuchsia-400",
-  },
-  {
-    id: "spotify-electro-mix",
-    title: "Mix electrónico",
-    subtitle: "Visual tipo club, ideal para reels de fondo",
-    src: "https://open.spotify.com/embed/playlist/37i9dQZF1E8KVBYF00LoMc?utm_source=generator&theme=0",
-    accent: "from-lime-300 to-emerald-400",
-  },
-  {
-    id: "spotify-personal-1",
-    title: "Lista personal 1",
-    subtitle: "Playlist guardada para pruebas en EduAI Music",
-    src: "https://open.spotify.com/embed/playlist/3z0zQdiFbPdiZ1I7xRpqPx?utm_source=generator&theme=0",
-    accent: "from-sky-400 to-blue-500",
-  },
-  {
-    id: "spotify-personal-2",
-    title: "Lista personal 2",
-    subtitle: "Otra lista visual para abrir en el centro",
-    src: "https://open.spotify.com/embed/playlist/6VjXyFH9Z5HlGPAjRBKR32?utm_source=generator&theme=0",
-    accent: "from-amber-300 to-orange-400",
-  },
-  {
-    id: "spotify-focus",
-    title: "Focus profundo",
-    subtitle: "Música para estudiar y trabajar",
-    src: "https://open.spotify.com/embed/playlist/37i9dQZF1DX6aTaZa0K6VA?utm_source=generator&theme=0",
-    accent: "from-teal-300 to-emerald-500",
-  },
-];
-
-function cn(...values: Array<string | false | null | undefined>) {
-  return values.filter(Boolean).join(" ");
-}
-
-function youtubeSearchUrl(query: string) {
-  return `https://www.youtube.com/results?search_query=${encodeURIComponent(
-    query || "study music playlist",
-  )}`;
-}
-
-function parseDuration(duration?: string) {
-  if (!duration) return 0;
-  const [m, s] = duration.split(":").map((part) => Number(part));
-  return Number.isFinite(m) && Number.isFinite(s) ? m * 60 + s : 0;
-}
-
-function formatSeconds(seconds: number) {
-  const safe = Math.max(0, Math.floor(seconds || 0));
-  const min = Math.floor(safe / 60);
-  const sec = safe % 60;
-  return `${min}:${String(sec).padStart(2, "0")}`;
-}
-
-function durationForPlayer(track: EduMusicTrack, reportedDuration = 0) {
-  if (track.source === "itunes") return 30;
-  return reportedDuration || parseDuration(track.duration);
-}
-
-function spotifyOpenUrl(embedSrc: string) {
-  return embedSrc
-    .replace("https://open.spotify.com/embed/", "https://open.spotify.com/")
-    .replace(/\?.*$/, "");
-}
-
-function sourceLabel(source?: EduMusicTrack["source"]) {
-  if (source === "jamendo") return "Jamendo";
-  if (source === "audius") return "Audius";
-  if (source === "itunes") return "Preview iTunes";
-  if (source === "youtube") return "YouTube video";
-  if (source === "radio") return "Radio online";
-  if (source === "external") return "Externo";
-  return "EduAI";
-}
-
-function playbackKind(track?: EduMusicTrack) {
-  if (isEmbedTrack(track)) return "Reproductor oficial ConectaAPP";
-  if (asExtendedTrack(track)?.previewSeconds) return "YouTube DJ · video y audio sincronizados · 30 segundos";
-  if (track?.source === "itunes") return "Preview 30 segundos · modo DJ";
-  if (track?.source === "youtube") return "YouTube · cola automática";
-  if (track?.source === "radio") return "Radio online en vivo";
-  if (track?.source === "jamendo" || track?.source === "audius")
-    return "Canción completa reproducible";
-  return "Pista completa EduAI";
-}
-
-function Cover({
-  track,
-  label,
-  cover,
-  size = "md",
-}: {
-  track?: EduMusicTrack;
-  label?: string;
-  cover?: string;
-  size?: "xs" | "sm" | "md" | "lg" | "hero";
-}) {
-  const cls =
-    size === "hero"
-      ? "h-20 w-20 rounded-2xl text-2xl"
-      : size === "lg"
-        ? "h-14 w-14 rounded-xl text-xl"
-        : size === "md"
-          ? "h-10 w-10 rounded-xl text-base"
-          : size === "sm"
-            ? "h-8 w-8 rounded-lg text-xs"
-            : "h-7 w-7 rounded-lg text-[10px]";
-  const title = track?.title || label || "Música";
-  const artwork =
-    track?.artworkUrl ||
-    (track?.cover?.startsWith("http") ? track.cover : undefined);
-
-  if (artwork) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={artwork}
-        alt={title}
-        className={`${cls} shrink-0 object-cover shadow-sm shadow-black/40`}
-      />
-    );
-  }
-
-  return (
-    <div
-      className={`${cls} flex shrink-0 items-center justify-center font-black text-slate-950 shadow-sm shadow-black/40 ring-1 ring-white/10`}
-      style={{
-        background:
-          cover || track?.cover || "linear-gradient(135deg,#34d399,#10b981)",
-      }}
-    >
-      {title.slice(0, 1).toUpperCase()}
-    </div>
-  );
-}
-
-function IconButton({
-  children,
-  onClick,
-  active,
-  title,
-  className,
-}: {
-  children: React.ReactNode;
-  onClick: () => void;
-  active?: boolean;
-  title?: string;
-  className?: string;
-}) {
-  return (
-    <button
-      type="button"
-      title={title}
-      onClick={onClick}
-      className={cn(
-        "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-black transition",
-        active
-          ? "bg-emerald-400 text-slate-950 shadow-md shadow-emerald-500/25"
-          : "bg-white/8 text-slate-300 hover:bg-emerald-400/15 hover:text-emerald-200",
-        className,
-      )}
-    >
-      {children}
-    </button>
-  );
-}
-
-function PlayButton({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
-  const music = useEduAIMusic();
-  const embedTrack = isEmbedTrack(music.currentTrack);
-  const cls =
-    size === "lg" ? "h-11 w-11" : size === "sm" ? "h-8 w-8" : "h-10 w-10";
-  const iconCls = size === "lg" ? "h-5 w-5" : "h-4 w-4";
-  return (
-    <button
-      type="button"
-      onClick={() => {
-        if (!embedTrack) music.setPlaying((value) => !value);
-      }}
-      className={cn(
-        `${cls} inline-flex shrink-0 items-center justify-center rounded-full bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/25 transition`,
-        embedTrack ? "cursor-default opacity-75" : "hover:scale-105 hover:bg-emerald-300",
-      )}
-      aria-label={embedTrack ? "Usa el reproductor oficial" : music.playing ? "Pausar" : "Reproducir"}
-      title={embedTrack ? "Usa el reproductor oficial de la radio" : music.playing ? "Pausar" : "Reproducir"}
-    >
-      {embedTrack ? (
-        <ExternalLink className={iconCls} />
-      ) : music.playing ? (
-        <Pause className={iconCls} fill="currentColor" />
-      ) : (
-        <Play className={`${iconCls} translate-x-0.5`} fill="currentColor" />
-      )}
-    </button>
-  );
-}
-
-function SidebarTrackRow({
-  track,
-  index,
-  tracks,
-}: {
-  track: EduMusicTrack;
-  index: number;
-  tracks: EduMusicTrack[];
-}) {
-  const music = useEduAIMusic();
-  const active = track.id === music.currentTrack.id;
-  return (
-    <button
-      type="button"
-      onClick={() => music.playTrack(track, tracks)}
-      className={cn(
-        "flex h-12 w-full items-center gap-2 rounded-xl px-2 text-left transition",
-        active
-          ? "bg-emerald-400/14 text-white ring-1 ring-emerald-400/35"
-          : "text-slate-300 hover:bg-white/7 hover:text-white",
-      )}
-    >
-      <span
-        className={cn(
-          "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-black",
-          active ? "bg-emerald-400 text-slate-950" : "bg-white/8 text-slate-400",
-        )}
-      >
-        {active && music.playing ? (
-          <Pause className="h-3 w-3" fill="currentColor" />
-        ) : active ? (
-          <Play className="h-3 w-3" fill="currentColor" />
-        ) : (
-          index + 1
-        )}
-      </span>
-      <Cover track={track} size="xs" />
-      <span className="min-w-0 flex-1">
-        <span
-          className={cn(
-            "block truncate text-xs font-black",
-            active ? "text-emerald-300" : "text-current",
-          )}
-        >
-          {track.title}
-        </span>
-        <span className="block truncate text-[10px] text-slate-500">
-          {track.artist} · {sourceLabel(track.source)}
-        </span>
-      </span>
-    </button>
-  );
-}
-
-function TableTrackRow({
-  track,
-  index,
-  tracks,
-}: {
-  track: EduMusicTrack;
-  index: number;
-  tracks: EduMusicTrack[];
-}) {
-  const music = useEduAIMusic();
-  const active = track.id === music.currentTrack.id;
-  return (
-    <div
-      className={cn(
-        "group flex h-12 items-center gap-3 rounded-xl px-3 transition",
-        active
-          ? "bg-emerald-400/12 text-white ring-1 ring-emerald-400/25"
-          : "text-slate-300 hover:bg-white/7 hover:text-white",
-      )}
-    >
-      <button
-        type="button"
-        onClick={() => music.playTrack(track, tracks)}
-        className={cn(
-          "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-black transition",
-          active
-            ? "bg-emerald-400 text-slate-950"
-            : "bg-white/8 text-slate-400 group-hover:bg-emerald-400 group-hover:text-slate-950",
-        )}
-        aria-label={`Reproducir ${track.title}`}
-      >
-        {active && music.playing ? (
-          <Pause className="h-3.5 w-3.5" fill="currentColor" />
-        ) : active ? (
-          <Play className="h-3.5 w-3.5" fill="currentColor" />
-        ) : (
-          index + 1
-        )}
-      </button>
-      <Cover track={track} size="sm" />
-      <button
-        type="button"
-        onClick={() => music.playTrack(track, tracks)}
-        className="min-w-0 flex-[1.6] text-left"
-      >
-        <span
-          className={cn(
-            "block truncate text-sm font-black",
-            active ? "text-emerald-300" : "text-current",
-          )}
-        >
-          {track.title}
-        </span>
-        <span className="block truncate text-xs text-slate-500">
-          {track.artist}
-        </span>
-      </button>
-      <span className="hidden min-w-0 flex-1 truncate text-xs text-slate-400 md:block">
-        {track.album}
-      </span>
-      <span className="hidden w-20 shrink-0 rounded-full bg-white/7 px-2 py-1 text-center text-[10px] font-bold uppercase tracking-wide text-slate-400 lg:block">
-        {sourceLabel(track.source)}
-      </span>
-      <div className="ml-auto flex shrink-0 items-center gap-3">
-        <button
-          type="button"
-          onClick={() => music.toggleLike(track.id)}
-          className={cn(
-            "text-slate-500 hover:text-emerald-300",
-            music.liked.has(track.id) && "text-emerald-300",
-          )}
-          aria-label="Me gusta"
-        >
-          <Heart
-            className="h-3.5 w-3.5"
-            fill={music.liked.has(track.id) ? "currentColor" : "none"}
-          />
-        </button>
-        <button
-          type="button"
-          onClick={() => music.requestAddToPlaylist(track.id)}
-          className="text-slate-500 hover:text-emerald-300"
-          aria-label="Agregar a playlist"
-        >
-          <Plus className="h-3.5 w-3.5" />
-        </button>
-        <span className="w-9 text-right text-xs text-slate-500">
-          {track.duration}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function SidebarTrackList({ tracks, limit = 40 }: { tracks: EduMusicTrack[]; limit?: number }) {
-  const shown = tracks.slice(0, limit);
-  if (!shown.length) {
-    return (
-      <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-4 text-center text-xs text-slate-400">
-        No hay canciones en esta vista.
-      </div>
-    );
-  }
-  return (
-    <div className="space-y-1">
-      {shown.map((track, index) => (
-        <SidebarTrackRow key={track.id} track={track} index={index} tracks={shown} />
-      ))}
-    </div>
-  );
-}
-
-function TableTrackList({ tracks }: { tracks: EduMusicTrack[] }) {
-  if (!tracks.length) {
-    return (
-      <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-8 text-center text-sm text-slate-400">
-        No hay canciones seleccionadas.
-      </div>
-    );
-  }
-  return (
-    <div className="space-y-1">
-      <div className="flex items-center gap-3 px-3 pb-2 text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">
-        <span className="w-7">#</span>
-        <span className="w-8"></span>
-        <span className="min-w-0 flex-[1.6]">Título</span>
-        <span className="hidden min-w-0 flex-1 md:block">Álbum</span>
-        <span className="hidden w-20 text-center lg:block">Fuente</span>
-        <span className="ml-auto w-24 text-right">Acciones</span>
-      </div>
-      {tracks.map((track, index) => (
-        <TableTrackRow key={track.id} track={track} index={index} tracks={tracks} />
-      ))}
-    </div>
-  );
-}
-
-function TopBar() {
-  const music = useEduAIMusic();
-  return (
-    <header className="flex h-[58px] shrink-0 items-center gap-4 border-b border-white/10 bg-[#05070a] px-4 text-white">
-      <div className="flex w-[300px] shrink-0 items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-400 text-slate-950 shadow-md shadow-emerald-500/20">
-          <Music2 className="h-5 w-5" />
-        </div>
-        <div className="min-w-0">
-          <h1 className="truncate text-xl font-black tracking-tight text-white">
-            EduAI Music
-          </h1>
-          <p className="truncate text-[11px] font-semibold text-emerald-300">
-            Música, playlists y foco educativo
-          </p>
-        </div>
-      </div>
-
-      <div className="flex h-10 min-w-0 flex-1 items-center gap-3 rounded-full border border-white/10 bg-white/8 px-4 shadow-inner shadow-black/30 max-md:hidden">
-        <Search className="h-4 w-4 text-emerald-300" />
-        <input
-          value={music.query}
-          onChange={(e) => music.setQuery(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && music.query.trim())
-              void music.searchOnline(music.query);
-          }}
-          placeholder="Buscar en biblioteca o presiona Enter para buscar online"
-          className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
-        />
-      </div>
-
-      <Link
-        href="/agentes"
-        className="ml-auto inline-flex shrink-0 items-center gap-2 rounded-full border border-white/10 bg-white/8 px-4 py-2 text-xs font-bold text-slate-200 transition hover:bg-white/12 hover:text-white"
-      >
-        <ArrowLeft className="h-4 w-4" /> Volver
-      </Link>
-    </header>
-  );
-}
-
-
-function RadioPanel() {
-  const music = useEduAIMusic();
-  const presets = [
-    { label: "FM Dos", term: "fm dos", countryCode: "CL" },
-    { label: "Canal 95", term: "canal 95", countryCode: "CL" },
-    { label: "Carolina", term: "carolina", countryCode: "CL" },
-    { label: "Chile", term: "", countryCode: "CL" },
-    { label: "Noticias", term: "noticias", countryCode: "CL" },
-    { label: "Música", term: "music", countryCode: "CL" },
-    { label: "Mundo", term: "", countryCode: "" },
-  ];
-  const shown = music.radioTracks.slice(0, 8);
-
-  return (
-    <section className="shrink-0 rounded-2xl border border-emerald-400/20 bg-[linear-gradient(135deg,rgba(16,185,129,.16),rgba(20,23,31,.96))] p-3">
-      <div className="flex items-center justify-between gap-2">
-        <div>
-          <p className="inline-flex items-center gap-1.5 text-sm font-black text-white">
-            <Radio className="h-4 w-4 text-emerald-300" /> Radio online
-          </p>
-          <p className="text-[10px] text-slate-400">Sintoniza emisoras en vivo.</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => void music.searchRadio("", "CL")}
-          disabled={music.radioLoading}
-          className="rounded-full bg-emerald-400 px-3 py-1.5 text-[10px] font-black text-slate-950 disabled:opacity-50"
-        >
-          {music.radioLoading ? "..." : "Buscar"}
-        </button>
-      </div>
-
-      <div className="mt-2 flex gap-2">
-        <input
-          value={music.radioQuery}
-          onChange={(e) => music.setRadioQuery(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && void music.searchRadio()}
-          placeholder="FM Dos, Carolina, Canal 95, Bío-Bío..."
-          className="min-w-0 flex-1 rounded-full border border-white/10 bg-black/25 px-3 py-2 text-xs text-white outline-none placeholder:text-slate-500 focus:border-emerald-400/60"
-        />
-      </div>
-
-      <div className="mt-2 flex flex-wrap gap-1.5">
-        {presets.map((item) => (
-          <button
-            key={`${item.label}-${item.countryCode}`}
-            type="button"
-            onClick={() => void music.searchRadio(item.term, item.countryCode)}
-            className="rounded-full bg-white/8 px-2.5 py-1 text-[10px] font-black text-slate-300 transition hover:bg-emerald-400/15 hover:text-emerald-200"
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
-
-      {music.radioError && <p className="mt-2 text-[10px] font-bold text-rose-300">{music.radioError}</p>}
-
-      {shown.length > 0 && (
-        <div className="mt-2 max-h-[180px] space-y-1 overflow-y-auto pr-1">
-          {shown.map((track, index) => {
-            const active = track.id === music.currentTrack.id;
-            return (
-              <button
-                key={track.id}
-                type="button"
-                onClick={() => music.playTrack(track, music.radioTracks)}
-                className={cn(
-                  "flex w-full items-center gap-2 rounded-xl px-2 py-1.5 text-left transition",
-                  active ? "bg-emerald-400/15 text-white ring-1 ring-emerald-400/30" : "hover:bg-white/7",
-                )}
-              >
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/8 text-[10px] font-black text-emerald-300">
-                  {active && music.playing ? <Pause className="h-3 w-3" fill="currentColor" /> : index + 1}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[11px] font-black text-white">{track.title}</span>
-                  <span className="block truncate text-[10px] text-slate-500">{track.artist}</span>
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </section>
-  );
-}
-
-function Sidebar({ tracks }: { tracks: EduMusicTrack[] }) {
-  const music = useEduAIMusic();
-  const [playlistFilter, setPlaylistFilter] = useState("");
-  const filteredPlaylists = music.playlists.filter((playlist) =>
-    playlist.name.toLowerCase().includes(playlistFilter.toLowerCase()),
-  );
-
-  return (
-    <aside className="flex min-h-0 min-w-0 flex-col border-r border-white/10 bg-[#0b0d12] p-2.5 text-white">
-      <div className="shrink-0 rounded-2xl border border-white/10 bg-[#14171f] p-3">
-        <div className="flex items-center justify-between gap-2">
-          <div>
-            <p className="text-sm font-black text-white">Tu biblioteca</p>
-            <p className="text-[11px] text-slate-400">Canciones y grupos</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => music.setCreateOpen((value) => !value)}
-            className="inline-flex items-center gap-1 rounded-full bg-emerald-400 px-3 py-1.5 text-xs font-black text-slate-950 hover:bg-emerald-300"
-          >
-            <Plus className="h-3.5 w-3.5" /> Crear
-          </button>
-        </div>
-
-        <div className="mt-3 grid grid-cols-2 gap-1.5 text-xs font-bold text-slate-300">
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                onClick={() => music.setView(item.id)}
-                className={cn(
-                  "inline-flex items-center gap-2 rounded-xl px-3 py-2 transition",
-                  music.view === item.id
-                    ? "bg-emerald-400 text-slate-950"
-                    : "bg-white/7 hover:bg-emerald-400/10 hover:text-emerald-200",
-                )}
-              >
-                <Icon className="h-3.5 w-3.5" /> {item.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {music.createOpen && (
-          <div className="mt-3 rounded-xl border border-emerald-400/20 bg-emerald-400/8 p-2">
-            <input
-              value={music.newPlaylistName}
-              onChange={(e) => music.setNewPlaylistName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && music.createPlaylist()}
-              placeholder="Nombre de playlist"
-              className="h-9 w-full rounded-lg border border-white/10 bg-black/25 px-3 text-xs text-white outline-none placeholder:text-slate-500"
-            />
-            <button
-              type="button"
-              onClick={music.createPlaylist}
-              className="mt-2 h-9 w-full rounded-lg bg-emerald-400 text-xs font-black text-slate-950 hover:bg-emerald-300"
-            >
-              Crear playlist
-            </button>
-          </div>
-        )}
-      </div>
-
-      <div className="mt-3">
-        <RadioPanel />
-      </div>
-
-      <div className="mt-3 flex min-h-0 flex-1 flex-col gap-3">
-        <section className="flex min-h-0 flex-[0.8] flex-col rounded-2xl border border-white/10 bg-[#14171f] p-3">
-          <div className="mb-2 flex h-9 items-center gap-2 rounded-xl bg-black/25 px-3">
-            <Search className="h-3.5 w-3.5 text-emerald-300" />
-            <input
-              value={playlistFilter}
-              onChange={(e) => setPlaylistFilter(e.target.value)}
-              placeholder="Filtrar grupos"
-              className="min-w-0 flex-1 bg-transparent text-xs text-white outline-none placeholder:text-slate-500"
-            />
-          </div>
-          <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-            <div className="space-y-1">
-              {filteredPlaylists.map((playlist: EduMusicPlaylist) => (
-                <button
-                  key={playlist.id}
-                  onClick={() => {
-                    music.setSelectedPlaylistId(playlist.id);
-                    music.setView(
-                      playlist.id === "pl-liked"
-                        ? "liked"
-                        : playlist.id === "pl-radio"
-                          ? "radio"
-                          : playlist.id === "pl-online"
-                            ? "search"
-                            : "playlists",
-                    );
-                  }}
-                  className={cn(
-                    "flex h-[48px] w-full items-center gap-2 rounded-xl px-2 text-left transition",
-                    music.selectedPlaylistId === playlist.id
-                      ? "bg-white/12 ring-1 ring-emerald-400/25"
-                      : "hover:bg-white/7",
-                  )}
-                >
-                  <Cover label={playlist.name} cover={playlist.cover} size="xs" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-xs font-black text-white">
-                      {playlist.name}
-                    </span>
-                    <span className="block truncate text-[10px] text-slate-500">
-                      {playlist.trackIds.length} canciones
-                    </span>
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="flex min-h-0 flex-1 flex-col rounded-2xl border border-white/10 bg-[#14171f] p-3">
-          <div className="mb-2 flex items-center justify-between">
-            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-emerald-300">
-              Canciones
-            </p>
-            <span className="text-xs text-slate-500">{tracks.length}</span>
-          </div>
-          <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-            <SidebarTrackList tracks={tracks} limit={60} />
-          </div>
-        </section>
-      </div>
-    </aside>
-  );
-}
-
-function PlaylistHeader({ tracks }: { tracks: EduMusicTrack[] }) {
-  const music = useEduAIMusic();
-  const playlist = music.selectedPlaylist;
-  const totalSeconds = tracks.reduce(
-    (sum, track) => sum + parseDuration(track.duration),
-    0,
-  );
-
-  return (
-    <section className="shrink-0 rounded-2xl border border-emerald-400/20 bg-[linear-gradient(135deg,rgba(16,185,129,.22),rgba(17,24,39,.98)_50%,rgba(34,197,94,.12))] p-3 text-white shadow-md shadow-black/25">
-      <div className="flex min-w-0 items-center gap-3">
-        <Cover label={playlist.name} cover={playlist.cover} size="hero" />
-        <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-300">
-            Playlist seleccionada
-          </p>
-          <h2 className="mt-1 truncate text-2xl font-black tracking-tight text-white max-xl:text-xl">
-            {playlist.name}
-          </h2>
-          <p className="mt-1 line-clamp-1 max-w-2xl text-xs leading-relaxed text-slate-300">
-            {playlist.description}
-          </p>
-          <p className="mt-2 text-xs font-semibold text-slate-400">
-            EduAI Music · {tracks.length} canciones · {formatSeconds(totalSeconds)} aprox.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => music.playPlaylist(playlist.id)}
-          className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full bg-emerald-400 px-4 text-xs font-black text-slate-950 shadow-md shadow-emerald-500/20 hover:bg-emerald-300"
-        >
-          <Play className="h-4 w-4" fill="currentColor" /> Reproducir
-        </button>
-      </div>
-
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <IconButton onClick={() => music.setShuffle((value) => !value)} active={music.shuffle} title="Aleatorio">
-          <Shuffle className="h-4 w-4" />
-        </IconButton>
-        <IconButton onClick={() => music.toggleLike(music.currentTrack.id)} active={music.liked.has(music.currentTrack.id)} title="Me gusta">
-          <Heart className="h-4 w-4" fill={music.liked.has(music.currentTrack.id) ? "currentColor" : "none"} />
-        </IconButton>
-        <IconButton
-          onClick={() => music.setRepeat(music.repeat === "off" ? "all" : music.repeat === "all" ? "one" : "off")}
-          active={music.repeat !== "off"}
-          title="Repetir"
-        >
-          <Repeat className="h-4 w-4" />
-        </IconButton>
-        <div className="ml-1 flex min-w-0 flex-wrap gap-1.5">
-          {MOODS.map((mood) => (
-            <button
-              key={mood}
-              type="button"
-              onClick={() => music.setSelectedMood(mood)}
-              className={cn(
-                "rounded-full border px-2.5 py-1.5 text-[10px] font-bold transition",
-                music.selectedMood === mood
-                  ? "border-emerald-300 bg-emerald-400 text-slate-950"
-                  : "border-white/10 bg-white/7 text-slate-300 hover:bg-emerald-400/10 hover:text-emerald-200",
-              )}
-            >
-              {mood === "all" ? "Todo" : MOOD_LABELS[mood]}
-            </button>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function CurrentTrackArtwork({ track }: { track: EduMusicTrack }) {
-  const artwork = track.artworkUrl || track.videoThumbnail || (track.cover?.startsWith("http") ? track.cover : undefined);
-  if (track.source === "youtube") {
-    return (
-      <div className="relative aspect-video w-full max-w-[620px] overflow-hidden rounded-3xl border border-red-400/25 bg-black shadow-2xl shadow-black/40 ring-1 ring-white/10">
-        <div id={YOUTUBE_PLAYER_ID} className="absolute inset-0 h-full w-full bg-black" />
-        {artwork && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={artwork}
-            alt={track.title}
-            className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-500"
-          />
-        )}
-        <div className="pointer-events-none absolute left-3 top-3 rounded-full bg-red-500/90 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-white shadow-lg shadow-red-950/30">
-          YouTube · cola automática
-        </div>
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent p-4 text-left">
-          <p className="line-clamp-1 text-sm font-black text-white drop-shadow">{track.title}</p>
-          <p className="mt-0.5 line-clamp-1 text-xs font-semibold text-slate-200">{track.artist}</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (artwork) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={artwork}
-        alt={track.title}
-        className="h-44 w-44 rounded-3xl object-cover shadow-2xl shadow-black/35 ring-1 ring-white/10 max-xl:h-36 max-xl:w-36"
-      />
-    );
-  }
-
-  return (
-    <div
-      className="flex h-44 w-44 flex-col items-center justify-center rounded-3xl p-5 text-center shadow-2xl shadow-black/35 ring-1 ring-white/10 max-xl:h-36 max-xl:w-36"
-      style={{ background: track.cover || "linear-gradient(135deg,#34d399,#0f766e)" }}
-    >
-      <span className="text-4xl font-black text-slate-950 max-xl:text-3xl">
-        {track.title.slice(0, 1).toUpperCase()}
-      </span>
-      <span className="mt-3 line-clamp-2 text-xs font-black leading-tight text-slate-950">
-        {track.title}
-      </span>
-      <span className="mt-1 line-clamp-1 text-[10px] font-bold text-slate-800">
-        {track.artist}
-      </span>
-    </div>
-  );
-}
-
-function MainPanel({
-  tracks,
-  spotifyEmbed,
-  onClearSpotify,
-}: {
-  tracks: EduMusicTrack[];
-  spotifyEmbed: SpotifyEmbedItem | null;
-  onClearSpotify: () => void;
-}) {
-  const music = useEduAIMusic();
-  const track = music.currentTrack;
-  const playlist = music.selectedPlaylist;
-  const embedTrack = isEmbedTrack(track);
-  const embedUrl = getEmbedUrl(track);
-
-  return (
-    <main className="flex min-h-0 min-w-0 flex-col bg-[#101218] p-2.5 text-white">
-      <section className="flex min-h-0 flex-1 flex-col rounded-2xl border border-white/10 bg-[#151922] p-4 shadow-lg shadow-black/20">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-300">
-              Reproductor central
-            </p>
-            <h2 className="truncate text-xl font-black text-white">
-              {playlist.name}
-            </h2>
-            <p className="truncate text-xs text-slate-400">
-              Las listas quedan a los lados. Aquí se muestra solo la canción actual.
-            </p>
-          </div>
-          {track.source !== "youtube" && (
-            <button
-              type="button"
-              onClick={() => music.playPlaylist(playlist.id)}
-              className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full bg-emerald-400 px-4 text-xs font-black text-slate-950 shadow-md shadow-emerald-500/20 hover:bg-emerald-300"
-            >
-              <Play className="h-4 w-4" fill="currentColor" /> Reproducir lista
-            </button>
-          )}
-        </div>
-
-        <div className="flex min-h-0 flex-1 items-center justify-center rounded-3xl border border-emerald-400/15 bg-[radial-gradient(circle_at_center,rgba(16,185,129,.18),rgba(15,23,42,.78)_48%,rgba(5,7,10,.95))] p-5">
-          {spotifyEmbed ? (
-            <div className="w-full max-w-3xl rounded-[1.75rem] border border-emerald-300/20 bg-black/25 p-4 text-center shadow-xl shadow-black/25 backdrop-blur-xl max-xl:p-4">
-              <div className="mx-auto max-w-xl">
-                <p className="mx-auto mb-2 w-fit rounded-full bg-emerald-400/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-300">
-                  Spotify visual · reproductor oficial
-                </p>
-                <h3 className="line-clamp-2 text-2xl font-black leading-tight text-white max-xl:text-xl">
-                  {spotifyEmbed.title}
-                </h3>
-                <p className="mt-1 text-sm font-semibold text-slate-300">
-                  {spotifyEmbed.subtitle}
-                </p>
-                <p className="mt-2 text-xs text-slate-500">
-                  Haz clic en play dentro del embed oficial. EduAI no controla Spotify directamente sin OAuth/Spotify Premium.
-                </p>
-              </div>
-
-              <div className="mt-4 overflow-hidden rounded-3xl border border-emerald-400/20 bg-black/50 shadow-2xl shadow-black/40">
-                <iframe
-                  data-testid="embed-iframe"
-                  title={spotifyEmbed.title}
-                  src={spotifyEmbed.src}
-                  width="100%"
-                  height="420"
-                  frameBorder="0"
-                  allowFullScreen
-                  allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                  loading="lazy"
-                  className="block border-0 bg-black"
-                />
-              </div>
-
-              <div className="mt-4 grid grid-cols-2 gap-2 max-sm:grid-cols-1">
-                <button
-                  type="button"
-                  onClick={onClearSpotify}
-                  className="rounded-full border border-white/10 bg-white/7 px-3 py-2 text-xs font-black text-slate-300 transition hover:bg-emerald-400/10 hover:text-emerald-200"
-                >
-                  Volver a EduAI Player
-                </button>
-                <a
-                  href={spotifyOpenUrl(spotifyEmbed.src)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="rounded-full border border-emerald-400/25 bg-emerald-400 px-3 py-2 text-xs font-black text-slate-950 transition hover:bg-emerald-300"
-                >
-                  Abrir en Spotify
-                </a>
-              </div>
-            </div>
-          ) : embedTrack ? (
-            <div className="w-full max-w-4xl rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-center shadow-xl shadow-black/25 backdrop-blur-xl max-xl:p-4">
-              <div className="mx-auto max-w-xl">
-                <p className="mx-auto mb-2 w-fit rounded-full bg-emerald-400/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-300">
-                  {playbackKind(track)}
-                </p>
-                <h3 className="line-clamp-2 text-xl font-black leading-tight text-white max-xl:text-lg">
-                  {track.title}
-                </h3>
-                <p className="mt-1 truncate text-sm font-semibold text-slate-300">
-                  {track.artist}
-                </p>
-                <p className="mt-1 text-xs text-slate-500">
-                  Canal 95 usa el reproductor oficial de ConectaAPP. No se reproduce con el audio global de EduAI porque no entrega un stream directo estable.
-                </p>
-              </div>
-
-              <div className="mt-4 overflow-hidden rounded-3xl border border-emerald-400/20 bg-black/40 shadow-2xl shadow-black/40">
-                {embedUrl ? (
-                  <iframe
-                    src={embedUrl}
-                    title={`${track.title} - reproductor oficial`}
-                    className="h-[560px] w-full border-0 bg-black max-lg:h-[520px] max-sm:h-[480px]"
-                    allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
-                    allowFullScreen
-                  />
-                ) : (
-                  <div className="flex min-h-[360px] flex-col items-center justify-center p-6 text-center">
-                    <CurrentTrackArtwork track={track} />
-                    <p className="mt-4 text-sm font-bold text-rose-200">No hay URL de reproductor oficial configurada.</p>
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-4 grid grid-cols-2 gap-2 max-sm:grid-cols-1">
-                <button
-                  type="button"
-                  onClick={() => music.toggleLike(track.id)}
-                  className={cn(
-                    "rounded-full border px-3 py-2 text-xs font-black transition",
-                    music.liked.has(track.id)
-                      ? "border-emerald-400 bg-emerald-400 text-slate-950"
-                      : "border-white/10 bg-white/7 text-slate-300 hover:bg-emerald-400/10 hover:text-emerald-200",
-                  )}
-                >
-                  ♥ Me gusta
-                </button>
-                <a
-                  href={track.externalUrl || embedUrl || "https://www.canal95.cl/"}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="rounded-full border border-white/10 bg-white/7 px-3 py-2 text-xs font-black text-slate-300 transition hover:bg-emerald-400/10 hover:text-emerald-200"
-                >
-                  Abrir fuente oficial
-                </a>
-              </div>
-            </div>
-          ) : (
-            <div className={cn("w-full rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-center shadow-xl shadow-black/25 backdrop-blur-xl max-xl:p-4", track.source === "youtube" ? "max-w-4xl" : "max-w-xl")}>
-              <div className="flex justify-center">
-                <CurrentTrackArtwork track={track} />
-              </div>
-
-              <div className="mx-auto mt-4 max-w-lg">
-                <p className="mx-auto mb-2 w-fit rounded-full bg-emerald-400/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-300">
-                  {playbackKind(track)}
-                </p>
-                <h3 className="line-clamp-2 text-xl font-black leading-tight text-white max-xl:text-lg">
-                  {track.title}
-                </h3>
-                <p className="mt-1 truncate text-sm font-semibold text-slate-300">
-                  {track.artist}
-                </p>
-                <p className="mt-1 truncate text-xs text-slate-500">
-                  {track.album || "Sin álbum"} · {track.duration || "--:--"}
-                </p>
-              </div>
-
-              <div className="mt-4 flex items-center justify-center gap-2.5">
-                <IconButton onClick={() => music.setShuffle((value) => !value)} active={music.shuffle} title="Aleatorio">
-                  <Shuffle className="h-4 w-4" />
-                </IconButton>
-                <IconButton onClick={music.prevTrack} title="Anterior">
-                  <SkipBack className="h-4 w-4" fill="currentColor" />
-                </IconButton>
-                <PlayButton size="lg" />
-                <IconButton onClick={music.nextTrack} title="Siguiente">
-                  <SkipForward className="h-4 w-4" fill="currentColor" />
-                </IconButton>
-                <IconButton
-                  onClick={() => music.setRepeat(music.repeat === "off" ? "all" : music.repeat === "all" ? "one" : "off")}
-                  active={music.repeat !== "off"}
-                  title="Repetir"
-                >
-                  <Repeat className="h-4 w-4" />
-                </IconButton>
-              </div>
-
-              {track.source === "youtube" && (
-                <p className="mt-3 text-xs font-semibold text-emerald-200/90">
-                  {asExtendedTrack(track)?.previewSeconds
-                    ? "Modo DJ 30s: este mismo video entrega la imagen y el audio; comienza en 0:00 y avanza al siguiente al llegar a 30 segundos."
-                    : "YouTube usa el reproductor real al centro: el video y el audio provienen de la misma fuente y avanzan juntos."}
-                </p>
-              )}
-              {track.source === "itunes" && (
-                <p className="mt-3 text-xs font-semibold text-emerald-200/90">
-                  Modo DJ 30s: al terminar el preview avanza automáticamente. Si hay YouTube API Key, se muestra un video visual tipo reel silenciado.
-                </p>
-              )}
-              {track.source === "radio" && (
-                <p className="mt-3 text-xs font-semibold text-emerald-200/90">
-                  Radio online en vivo. Algunas emisoras pueden tardar unos segundos en iniciar según su servidor.
-                </p>
-              )}
-
-              <div className="mt-4 grid grid-cols-2 gap-2 max-sm:grid-cols-1">
-                <button
-                  type="button"
-                  onClick={() => music.toggleLike(track.id)}
-                  className={cn(
-                    "rounded-full border px-3 py-2 text-xs font-black transition",
-                    music.liked.has(track.id)
-                      ? "border-emerald-400 bg-emerald-400 text-slate-950"
-                      : "border-white/10 bg-white/7 text-slate-300 hover:bg-emerald-400/10 hover:text-emerald-200",
-                  )}
-                >
-                  ♥ Me gusta
-                </button>
-                <button
-                  type="button"
-                  onClick={() => music.requestAddToPlaylist(track.id)}
-                  className="rounded-full border border-white/10 bg-white/7 px-3 py-2 text-xs font-black text-slate-300 transition hover:bg-emerald-400/10 hover:text-emerald-200"
-                >
-                  + Agregar a playlist
-                </button>
-              </div>
-
-              <p className="mt-3 text-[11px] text-slate-500">
-                {tracks.length} canciones disponibles en la lista lateral izquierda.
-              </p>
-            </div>
-          )}
-        </div>
-      </section>
-    </main>
-  );
-}
-
-function SpotifyEmbeds({
-  selectedId,
-  onSelect,
-  onClear,
-}: {
-  selectedId?: string;
-  onSelect: (item: SpotifyEmbedItem) => void;
-  onClear: () => void;
-}) {
-  return (
-    <section className="shrink-0 rounded-2xl border border-white/10 bg-[#14171f] p-3">
-      <div className="mb-2 flex items-center justify-between">
-        <div>
-          <p className="text-sm font-black text-white">Spotify visual</p>
-          <p className="text-[11px] text-slate-500">Toca una lista para abrirla al centro.</p>
-        </div>
-        {selectedId ? (
-          <button
-            type="button"
-            onClick={onClear}
-            className="rounded-full bg-white/8 px-2 py-1 text-[10px] font-black text-slate-300 transition hover:bg-rose-400/15 hover:text-rose-200"
-          >
-            Cerrar lista
-          </button>
-        ) : (
-          <span className="rounded-full bg-white/8 px-2 py-1 text-[10px] font-black text-slate-400">
-            {SPOTIFY_EMBEDS.length} listas
-          </span>
-        )}
-      </div>
-      <div className="grid grid-cols-2 gap-2">
-        {SPOTIFY_EMBEDS.map((item) => {
-          const active = selectedId === item.id;
-          return (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => onSelect(item)}
-              className={cn(
-                "rounded-2xl border p-2 text-left transition",
-                active
-                  ? "border-emerald-300/45 bg-emerald-400/14 shadow-lg shadow-emerald-950/20"
-                  : "border-white/10 bg-white/6 hover:border-emerald-300/25 hover:bg-emerald-400/10",
-              )}
-            >
-              <span className={`mb-2 block h-1.5 rounded-full bg-gradient-to-r ${item.accent}`} />
-              <span className="block truncate text-[11px] font-black text-white">
-                {item.title}
-              </span>
-              <span className="mt-0.5 block line-clamp-2 text-[9px] leading-tight text-slate-500">
-                {item.subtitle}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-function RightPanel({
-  selectedSpotifyId,
-  onSelectSpotify,
-  onClearSpotify,
-}: {
-  selectedSpotifyId?: string;
-  onSelectSpotify: (item: SpotifyEmbedItem) => void;
-  onClearSpotify: () => void;
-}) {
-  const music = useEduAIMusic();
-  const [youtubeQuery, setYoutubeQuery] = useState("música para estudiar sin letra");
-  const related = music.allTracks
-    .filter((track) => track.mood === music.currentTrack.mood && track.id !== music.currentTrack.id)
-    .slice(0, 6);
-
-  return (
-    <aside className="flex min-h-0 min-w-0 flex-col gap-2.5 overflow-y-auto border-l border-white/10 bg-[#0b0d12] p-2.5 text-white">
-      <section className="shrink-0 rounded-2xl border border-emerald-400/20 bg-[#14171f] p-3">
-        <p className="text-sm font-black text-white">Buscar canciones</p>
-        <p className="mt-1 text-xs text-slate-400">
-          Busca videos musicales: cada resultado reproduce video y audio desde la misma fuente de YouTube.
-        </p>
-        <div className="mt-3 flex gap-2">
-          <input
-            value={music.onlineQuery}
-            onChange={(e) => music.setOnlineQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") void music.searchOnline();
-              if (e.key === "Escape") {
-                music.setOnlineQuery("");
-                music.clearOnlineResults();
-              }
-            }}
-            placeholder="daddy, lofi, piano, estudio..."
-            className="min-w-0 flex-1 rounded-full border border-white/10 bg-black/25 px-3 py-2 text-xs text-white outline-none placeholder:text-slate-500 focus:border-emerald-400/60"
-          />
-          <button
-            type="button"
-            onClick={() => void music.searchOnline()}
-            disabled={music.onlineLoading}
-            className="rounded-full bg-emerald-400 px-4 py-2 text-xs font-black text-slate-950 disabled:opacity-50"
-          >
-            {music.onlineLoading ? "..." : "Buscar"}
-          </button>
-        </div>
-        {music.onlineError && <p className="mt-2 text-xs font-bold text-rose-300">{music.onlineError}</p>}
-        <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] font-black uppercase tracking-wide">
-          {[
-            { id: "youtube", label: "Videos" },
-            { id: "preview", label: "DJ 30s" },
-          ].map((item) => {
-            const provider = item.id as "all" | "full" | "preview" | "youtube";
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => {
-                  music.setOnlineProviderMode(provider);
-                  if (music.onlineQuery.trim()) void music.searchOnline(undefined, provider);
-                }}
-                className={cn(
-                  "rounded-full px-2 py-1 transition",
-                  music.onlineProviderMode === item.id
-                    ? "bg-emerald-400 text-slate-950"
-                    : "bg-white/8 text-slate-300 hover:bg-emerald-400/12 hover:text-emerald-200",
-                )}
-              >
-                {item.label}
-              </button>
-            );
-          })}
-        </div>
-        <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
-          Videos reproduce cada canción completa desde YouTube. DJ 30s usa ese mismo video desde 0:00 y corta a los 30 segundos, sin mezclar audios externos.
-        </p>
-        {(music.onlineTracks.length > 0 || music.onlineQuery) && (
-          <button
-            type="button"
-            onClick={() => {
-              music.setOnlineQuery("");
-              music.clearOnlineResults();
-            }}
-            className="mt-2 text-[10px] font-black text-slate-400 transition hover:text-rose-200"
-          >
-            Limpiar búsqueda y resultados
-          </button>
-        )}
-      </section>
-
-      <section className="flex min-h-0 flex-[0.65] flex-col rounded-2xl border border-white/10 bg-[#14171f] p-3">
-        <div className="mb-2 flex items-center justify-between">
-          <p className="text-sm font-black text-white">Resultados online</p>
-          <button
-            type="button"
-            onClick={() => {
-              music.setSelectedPlaylistId("pl-online");
-              music.setView("search");
-            }}
-            className="text-xs font-bold text-emerald-300 hover:underline"
-          >
-            ver todos
-          </button>
-        </div>
-        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-          <SidebarTrackList tracks={music.onlineTracks.length ? music.onlineTracks : related} limit={12} />
-        </div>
-      </section>
-
-      <SpotifyEmbeds selectedId={selectedSpotifyId} onSelect={onSelectSpotify} onClear={onClearSpotify} />
-
-      <section className="shrink-0 rounded-2xl border border-white/10 bg-[#14171f] p-3">
-        <p className="text-sm font-black text-white">Ahora suena</p>
-        <div className="mt-3 flex items-center gap-3">
-          <Cover track={music.currentTrack} size="lg" />
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-black text-emerald-300">{music.currentTrack.title}</p>
-            <p className="truncate text-xs text-slate-300">{music.currentTrack.artist}</p>
-            <p className="truncate text-[11px] text-slate-500">{music.currentTrack.album}</p>
-          </div>
-        </div>
-        {music.currentTrack.externalUrl && (
-          <a
-            href={music.currentTrack.externalUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-emerald-300 hover:underline"
-          >
-            Abrir fuente <ExternalLink className="h-3 w-3" />
-          </a>
-        )}
-      </section>
-
-      <section className="shrink-0 rounded-2xl border border-white/10 bg-[#14171f] p-3">
-        <p className="text-sm font-black text-white">Fuentes externas</p>
-        <div className="mt-2 flex gap-2">
-          <input
-            value={youtubeQuery}
-            onChange={(e) => setYoutubeQuery(e.target.value)}
-            placeholder="Buscar en YouTube"
-            className="min-w-0 flex-1 rounded-full border border-white/10 bg-black/25 px-3 py-2 text-xs text-white outline-none placeholder:text-slate-500"
-          />
-          <a
-            href={youtubeSearchUrl(youtubeQuery)}
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-full bg-white/8 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-emerald-400/10 hover:text-emerald-200"
-          >
-            Abrir
-          </a>
-        </div>
-        <div className="mt-2 max-h-[88px] space-y-1 overflow-y-auto pr-1">
-          {EXTERNAL_MUSIC_COLLECTIONS.map((item) => (
-            <a
-              key={item.id}
-              href={item.url}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center justify-between gap-2 rounded-xl px-2 py-1.5 text-xs hover:bg-white/7"
-            >
-              <span className="min-w-0">
-                <span className="block truncate font-bold text-slate-200">{item.name}</span>
-                <span className="block truncate text-[10px] text-slate-500">{item.provider}</span>
-              </span>
-              <ExternalLink className="h-3.5 w-3.5 text-slate-500" />
-            </a>
-          ))}
-        </div>
-      </section>
-    </aside>
-  );
-}
-
-function ProgressRange({
-  currentTime,
-  duration,
-  onSeek,
-  compact = false,
-}: {
-  currentTime: number;
-  duration: number;
-  onSeek: (seconds: number) => void;
-  compact?: boolean;
-}) {
-  const safeDuration = Math.max(1, duration || 1);
-  const value = Math.min(currentTime || 0, safeDuration);
-  const progress = Math.min(100, (value / safeDuration) * 100);
-
-  return (
-    <div className="relative min-w-0 flex-1">
-      <div className={cn("absolute left-0 right-0 top-1/2 -translate-y-1/2 overflow-hidden rounded-full bg-white/16", compact ? "h-1.5" : "h-2")}> 
-        <div
-          className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-cyan-300 to-violet-400 shadow-[0_0_14px_rgba(52,211,153,.45)]"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
-      <input
-        type="range"
-        min="0"
-        max={safeDuration}
-        step="1"
-        value={value}
-        onChange={(e) => onSeek(Number(e.target.value))}
-        className={cn("relative z-10 w-full cursor-pointer opacity-0", compact ? "h-4" : "h-5")}
-        aria-label="Progreso"
-      />
-    </div>
-  );
-}
-
-function BottomPlayer() {
-  const music = useEduAIMusic();
-  const duration = durationForPlayer(music.currentTrack, music.durationSeconds);
-
-  return (
-    <footer className="flex h-[76px] shrink-0 items-center gap-4 border-t border-white/10 bg-[#05070a] px-4 text-white">
-      <div className="flex min-w-0 items-center gap-3" style={{ width: 320 }}>
-        <Cover track={music.currentTrack} size="md" />
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-black text-white">{music.currentTrack.title}</p>
-          <p className="truncate text-xs text-slate-400">{music.currentTrack.artist} · {sourceLabel(music.currentTrack.source)}</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => music.toggleLike(music.currentTrack.id)}
-          className={cn("text-slate-500 hover:text-emerald-300", music.liked.has(music.currentTrack.id) && "text-emerald-300")}
-        >
-          <Heart className="h-4 w-4" fill={music.liked.has(music.currentTrack.id) ? "currentColor" : "none"} />
-        </button>
-      </div>
-
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center justify-center gap-3">
-          <IconButton onClick={() => music.setShuffle((value) => !value)} active={music.shuffle}>
-            <Shuffle className="h-4 w-4" />
-          </IconButton>
-          <IconButton onClick={music.prevTrack}>
-            <SkipBack className="h-4 w-4" fill="currentColor" />
-          </IconButton>
-          <PlayButton size="lg" />
-          <IconButton onClick={music.nextTrack}>
-            <SkipForward className="h-4 w-4" fill="currentColor" />
-          </IconButton>
-          <IconButton
-            onClick={() => music.setRepeat(music.repeat === "off" ? "all" : music.repeat === "all" ? "one" : "off")}
-            active={music.repeat !== "off"}
-          >
-            <Repeat className="h-4 w-4" />
-          </IconButton>
-        </div>
-        <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-500">
-          <span className="w-9 text-right">{formatSeconds(music.currentTime)}</span>
-          <ProgressRange currentTime={music.currentTime} duration={duration} onSeek={music.seekTo} />
-          <span className="w-9">{formatSeconds(duration)}</span>
-        </div>
-      </div>
-
-      <div className="hidden items-center justify-end gap-3 pr-14 xl:flex" style={{ width: 320 }}>
-        <ListMusic className="h-4 w-4 text-slate-500" />
-        <Volume2 className="h-4 w-4 text-slate-500" />
-        <input
-          type="range"
-          min="0"
-          max="1"
-          step="0.01"
-          value={music.volume}
-          onChange={(e) => music.setVolume(Number(e.target.value))}
-          className="w-24 accent-emerald-400"
-        />
-      </div>
-    </footer>
-  );
-}
-
-function AddToPlaylistBar() {
-  const music = useEduAIMusic();
-  if (!music.pendingTrackId) return null;
-  const track = music.allTracks.find((item) => item.id === music.pendingTrackId);
-  return (
-    <div className="fixed bottom-24 left-1/2 z-50 w-[min(92vw,720px)] -translate-x-1/2 rounded-2xl border border-emerald-400/20 bg-[#11131a] p-3 text-white shadow-2xl">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-bold">Agregar {track?.title ?? "canción"} a playlist:</p>
-        <button type="button" onClick={() => music.setPendingTrackId(null)} className="rounded-full px-2 text-slate-400 hover:bg-white/10">
-          ×
-        </button>
-      </div>
-      <div className="mt-2 flex flex-wrap gap-2">
-        <button type="button" onClick={() => music.addToPlaylist("pl-liked", music.pendingTrackId!)} className="rounded-full bg-emerald-400 px-3 py-1.5 text-xs font-black text-slate-950">
-          ♥ Me gusta
-        </button>
-        {music.userPlaylists.map((playlist) => (
-          <button key={playlist.id} type="button" onClick={() => music.addToPlaylist(playlist.id, music.pendingTrackId!)} className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold hover:bg-white/15">
-            {playlist.name}
-          </button>
-        ))}
-        <button type="button" onClick={() => music.setCreateOpen(true)} className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold hover:bg-emerald-400/15 hover:text-emerald-200">
-          + Nueva
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function MiniBar({ onOpenPanel }: { onOpenPanel?: () => void }) {
-  const music = useEduAIMusic();
-  const [collapsed, setCollapsed] = useState(false);
-  const duration = durationForPlayer(music.currentTrack, music.durationSeconds);
-
-  useEffect(() => {
-    setCollapsed(false);
-  }, [music.currentTrack.id]);
-
-  if (collapsed) {
-    return (
-      <div className="fixed bottom-20 right-5 z-50 flex items-center gap-1 rounded-full border border-emerald-300/25 bg-[#06080d]/95 p-1.5 text-white shadow-2xl shadow-emerald-950/30 backdrop-blur-xl">
-        <button
-          type="button"
-          onClick={() => setCollapsed(false)}
-          className="flex items-center gap-2 rounded-full px-2 py-1 text-left hover:bg-white/10"
-          title="Restaurar reproductor"
-          aria-label="Restaurar reproductor de música"
-        >
-          <Cover track={music.currentTrack} size="xs" />
-          <span className="hidden max-w-[150px] truncate text-[11px] font-black sm:block">
-            {music.currentTrack.title}
-          </span>
-        </button>
-        <PlayButton size="sm" />
-      </div>
-    );
-  }
-
-  return (
-    <div className="fixed bottom-4 left-1/2 z-50 w-[min(94vw,620px)] -translate-x-1/2 rounded-2xl border border-emerald-300/25 bg-[#06080d]/95 p-2.5 text-white shadow-2xl shadow-emerald-950/30 backdrop-blur-xl">
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={onOpenPanel}
-          className="flex min-w-0 flex-1 items-center gap-2 text-left"
-          title="Abrir reproductor"
-        >
-          <Cover track={music.currentTrack} size="sm" />
-          <span className="min-w-0">
-            <span className="block truncate text-xs font-black text-white">{music.currentTrack.title}</span>
-            <span className="block truncate text-[10px] text-slate-400">{music.currentTrack.artist}</span>
-          </span>
-        </button>
-
-        <div className="flex items-center gap-1">
-          <IconButton onClick={music.prevTrack}>
-            <SkipBack className="h-3.5 w-3.5" fill="currentColor" />
-          </IconButton>
-          <PlayButton size="sm" />
-          <IconButton onClick={music.nextTrack}>
-            <SkipForward className="h-3.5 w-3.5" fill="currentColor" />
-          </IconButton>
-        </div>
-
-        <div className="hidden items-center gap-1 pl-1 sm:flex">
-          <Volume2 className="h-3.5 w-3.5 text-slate-400" />
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.01"
-            value={music.volume}
-            onChange={(e) => music.setVolume(Number(e.target.value))}
-            className="w-20 accent-emerald-400"
-            aria-label="Volumen"
-          />
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setCollapsed(true)}
-          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/8 text-base font-black leading-none text-slate-300 transition hover:bg-white/15 hover:text-white"
-          title="Minimizar reproductor"
-          aria-label="Minimizar reproductor de música"
-        >
-          −
-        </button>
-      </div>
-
-      <div className="mt-2 flex items-center gap-2 text-[10px] text-slate-500">
-        <span className="w-8 text-right">{formatSeconds(music.currentTime)}</span>
-        <ProgressRange currentTime={music.currentTime} duration={duration} onSeek={music.seekTo} compact />
-        <span className="w-8">{formatSeconds(duration)}</span>
-      </div>
-    </div>
-  );
-}
-
-function CompactPanel({ onOpenPanel }: { onOpenPanel?: () => void }) {
-  const music = useEduAIMusic();
-  const tracks = music.view === "liked" ? music.allTracks.filter((track) => music.liked.has(track.id)) : music.view === "queue" ? music.queue : music.visibleTracks;
-  return (
-    <div className="h-full overflow-hidden rounded-2xl border border-white/10 bg-[#0c0e14] text-white shadow-xl">
-      <div className="flex h-full flex-col">
-        <div className="border-b border-white/10 p-3">
-          <div className="flex items-center justify-between gap-2">
-            <button type="button" onClick={onOpenPanel} className="min-w-0 text-left">
-              <p className="text-sm font-black text-white">EduAI Music</p>
-              <p className="truncate text-[10px] text-slate-400">{music.currentTrack.title}</p>
-            </button>
-            <Link href="/music" className="rounded-full bg-emerald-400 px-3 py-1.5 text-[10px] font-black text-slate-950 hover:bg-emerald-300">
-              Abrir
-            </Link>
-          </div>
-        </div>
-        <div className="min-h-0 flex-1 overflow-y-auto p-3">
-          <SidebarTrackList tracks={tracks} limit={12} />
-        </div>
-        <div className="border-t border-white/10 p-3">
-          <div className="flex items-center gap-2">
-            <Cover track={music.currentTrack} size="sm" />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-black text-white">{music.currentTrack.title}</p>
-              <p className="truncate text-[10px] text-slate-400">{music.currentTrack.artist}</p>
-            </div>
-            <PlayButton size="sm" />
-          </div>
-        </div>
-      </div>
-      <AddToPlaylistBar />
-    </div>
-  );
-}
-
-export default function EduAIMusicPlayer({
-  mode = "page",
-  showMiniWhenStopped = false,
-  onOpenPanel,
-}: Props) {
-  const music = useEduAIMusic();
-  const [selectedSpotifyEmbed, setSelectedSpotifyEmbed] = useState<SpotifyEmbedItem | null>(null);
-  const setPendingTrackId = music.setPendingTrackId;
-
-  useEffect(() => {
-    if (mode === "page") setPendingTrackId(null);
-  }, [mode, setPendingTrackId]);
-
-  // Spotify vive como una vista temporal. Al navegar, elegir otra playlist o
-  // reproducir una canción, desmontamos el iframe para que no quede visible ni
-  // siga cargando en segundo plano.
-  useEffect(() => {
-    setSelectedSpotifyEmbed(null);
-  }, [music.currentTrack.id, music.selectedPlaylistId, music.view]);
-
-  const tracksForMain = useMemo(() => {
-    if (music.view === "liked") return music.allTracks.filter((track) => music.liked.has(track.id));
-    if (music.view === "queue") return music.queue;
-    return music.visibleTracks;
-  }, [music.allTracks, music.liked, music.queue, music.view, music.visibleTracks]);
-
-  if (mode === "mini") {
-    const shouldShowMini =
-      music.playing || (showMiniWhenStopped && music.hasActiveSession);
-    if (!shouldShowMini) return null;
-    return <MiniBar onOpenPanel={onOpenPanel} />;
-  }
-  if (mode === "panel") return <CompactPanel onOpenPanel={onOpenPanel} />;
-
-  return (
-    <div className="h-screen min-h-[680px] overflow-hidden bg-[#05070a] text-white">
-      <style jsx global>{`
-        @keyframes eduai-dj-progress {
-          from { transform: scaleX(0); }
-          to { transform: scaleX(1); }
-        }
-      `}</style>
-      <div className="flex h-full flex-col">
-        <TopBar />
-        <div
-          className="grid min-h-0 flex-1 overflow-hidden"
-          style={{ gridTemplateColumns: "280px minmax(0, 1fr) 320px" }}
-        >
-          <Sidebar tracks={tracksForMain} />
-          <MainPanel
-            tracks={tracksForMain}
-            spotifyEmbed={selectedSpotifyEmbed}
-            onClearSpotify={() => setSelectedSpotifyEmbed(null)}
-          />
-          <RightPanel
-            selectedSpotifyId={selectedSpotifyEmbed?.id}
-            onSelectSpotify={setSelectedSpotifyEmbed}
-            onClearSpotify={() => setSelectedSpotifyEmbed(null)}
-          />
-        </div>
-        {music.currentTrack.source !== "youtube" && <BottomPlayer />}
-      </div>
-      <AddToPlaylistBar />
-    </div>
-  );
-}
+Yªçx￾ÚîÆ­yèºÚn￿è®("©¶￿÷(º{￿m¹óNZ￿ú.¶­￾X§z￿È\ÙHÛY[Â[\Ü[ÈÛH^Û[ÈÂ[\ÜÈ\ÙQYXÝ\ÙSY[[Ë\ÙTÝ]HHÛHXXÝÂ[\ÜÂ\ÝÓY^\[[ËX\ÛYKX\K\Ý]\ÚXËY[K]\ÚXÌ]\ÙK^K\ËY[Ë\X]ÙX\ÚÚYKÚÚ\XÚËÚÚ\ÜØ\Û[YLHÛHXÚYK\XXÝÂ[\ÜÂVTSÓUTÒP×ÐÓÓPÕSÓËSÓÑÓPSË\HYS]\ÚXÓ[ÛÙ\HYS]\ÚXÔ^[\Ý\HYS]\ÚXÕXÚËHÛHÛXÛ]\ÚXËÙYXZK[]\ÚXËXØ][ÙÈÂ[\ÜÈSÕUPWÔVQTÒQ\ÙQYPRS]\ÚXÈHÛHØÛÛ\Û[ËÛ]\ÚXËÓ]\ÚXÔÝY\Â\H^Y\[ÙHH[[Z[HYÙHÂ\HÜÈHÂ[ÙOÎ^Y\[ÙNÂÚÝÓZ[UÚ[ÝÜYÎÛÛX[ÂÛÜ[[[Î
+
+HOÚYÂNÂ\H^[Y]\ÚXÕXÚÈHYS]\ÚXÕXÚÈ	Â^XXOÎÛÛX[Â^\[ÛOÎÛÛX[Â[XYÛOÎÛÛX[Â[XY\ÎÝ[ÎÂØY\\ÎÝ[ÎÂ]Y]ÔÙXÛÛÏÎ[X\Â]Y]ÔÝ\ÙXÛÛÏÎ[X\ÂNÂ\HÜÝYQ[XY][HHÂYÝ[ÎÂ]NÝ[ÎÂÝX]NÝ[ÎÂÜÎÝ[ÎÂXØÙ[Ý[ÎÂNÂ[Ý[Û\Ñ^[YXÚÊXÚÏÎYS]\ÚXÕXÚÈ[
+N^[Y]\ÚXÕXÚÈ[Â]\
+XÚÈ[
+H\È^[Y]\ÚXÕXÚÈ[ÂB[Ý[Û\Ñ[XYXÚÊXÚÏÎYS]\ÚXÕXÚÈ[
+HÂ]\ÛÛX[\Ñ^[YXÚÊXÚÊOË[XYÛJNÂB[Ý[ÛÙ][XY\
+XÚÏÎYS]\ÚXÕXÚÈ[
+HÂ]\\Ñ^[YXÚÊXÚÊOË[XY\XÚÏË^\[\XÚÏËÜÈÂBÛÛÝUÒUSTÈHÂÈYÛYHX[[XÚ[ÈXÛÛÛYHKÈYÙX\ÚX[\ØØ\XÛÛÙX\ÚKÈYY[ÈX[Y[ÈXÛÛY[ÈKÈYX\HX[X[ÝXØHXÛÛX\HKÈY^[\ÝÈX[^[\ÝÈXÛÛ\Ý]\ÚXÈKÈYZÙYX[YHÝ\ÝHXÛÛX\KÈY]Y]YHX[ÛÛHXÛÛY[HKH\ÈÛÛÝÂÛÛÝSÓÑÎ\^OYS]\ÚXÓ[ÛÙ[HÂ[ØÝ\ÈØ[HÛ\ÜÚXØ[XY[ÈÜX]]HY\]\H[\ÞHNÂÛÛÝÔÕQWÑSPQÎÜÝYQ[XY][V×HHÂÂYÜÝYKXØ[[[Z^]NØ[[\\ÈZ^ÝX]N[XÝ°ìÛXØHH[\ðëXH\H[ÙÈ\ÝX[ÜÎÎËÛÜ[ÜÝYKÛÛKÙ[XYÜ^[\ÝÌÍÚNYVQRVM\ZVLÝ]WÜÛÝ\ÙOYÙ[\]Ü[YOLXØÙ[ÛKY[Y\[MËXÞX[MKÂYÜÝYK]ÜYÛØ[]NÜÛØ[ÝX]N[[ÚX\ÈÛØ[\È\ÙHÜÝYHÜÎÎËÛÜ[ÜÝYKÛÛKÙ[XYÜ^[\ÝÌÍÚNYVUÍPYÜÍOÝ]WÜÛÝ\ÙOYÙ[\]Ü[YOLXØÙ[ÛK][Û]MËYXÚÚXKMKÂYÜÝYKY[XÝË[Z^]NZ^[XÝ°ìÛXÛÈÝX]N\ÝX[\ÈÛXYX[\HY[ÈHÛÈÜÎÎËÛÜ[ÜÝYKÛÛKÙ[XYÜ^[\ÝÌÍÚNYVQNÕQÓXÏÝ]WÜÛÝ\ÙOYÙ[\]Ü[YOLXØÙ[ÛK[[YKLÌËY[Y\[MKÂYÜÝYK\\ÛÛ[LH]N\ÝH\ÛÛ[HÝX]N^[\ÝÝX\YH\HYX\È[YPRH]\ÚXÈÜÎÎËÛÜ[ÜÝYKÛÛKÙ[XYÜ^[\ÝÌÞYQVRMÞTÝ]WÜÛÝ\ÙOYÙ[\]Ü[YOLXØÙ[ÛK\ÚÞKMËXYKMLKÂYÜÝYK\\ÛÛ[L]N\ÝH\ÛÛ[ÝX]NÝH\ÝH\ÝX[\HX\[[Ù[ÈÜÎÎËÛÜ[ÜÝYKÛÛKÙ[XYÜ^[\ÝÍQVRÔZÔÌÝ]WÜÛÝ\ÙOYÙ[\]Ü[YOLXØÙ[ÛKX[X\LÌË[Ü[ÙKMKÂYÜÝYKYØÝ\È]NØÝ\ÈÙ[ÈÝX]NpîÚXØH\H\ÝYX\HXZ\ÜÎÎËÛÜ[ÜÝYKÛÛKÙ[XYÜ^[\ÝÌÍÚNYVQUVLÍOÝ]WÜÛÝ\ÙOYÙ[\]Ü[YOLXØÙ[ÛK]X[LÌËY[Y\[MLKNÂ[Ý[ÛÛ[Y\Î\^OÝ[È[ÙH[[Y[YHÂ]\[Y\Ë[\ÛÛX[KÚ[NÂB[Ý[Û[Ý]XTÙX\Ú\
+]Y\NÝ[ÊHÂ]\ÎËÝÝÝË[Ý]XKÛÛKÜ\Ý[ÏÜÙX\ÚÜ]Y\OIÙ[ÛÙUTPÛÛ\Û[
+]Y\HÝYH]\ÚXÈ^[\Ý
+_XÂB[Ý[Û\ÙQ\][Û\][ÛÎÝ[ÊHÂY
+Y\][ÛH]\ÂÛÛÝÛK×HH\][ÛÜ]
+KX\
+
+\
+HO[X\\
+JNÂ]\[X\\Ñ[]JJH	[X\\Ñ[]JÊHÈH
+
+ÈÈÂB[Ý[ÛÜX]ÙXÛÛÊÙXÛÛÎ[X\HÂÛÛÝØYHHX]X^
+X]ÛÜÙXÛÛÈ
+JNÂÛÛÝZ[HX]ÛÜØYHÈ
+NÂÛÛÝÙXÈHØYH	HÂ]\	ÛZ[NÔÝ[ÊÙXÊKYÝ\
+_XÂB[Ý[Û\][ÛÜ^Y\XÚÎYS]\ÚXÕXÚË\ÜY\][ÛH
+HÂY
+XÚËÛÝ\ÙHOOH][\ÈH]\ÌÂ]\\ÜY\][Û\ÙQ\][ÛXÚË\][ÛNÂB[Ý[ÛÜÝYSÜ[\
+[XYÜÎÝ[ÊHÂ]\[XYÜÂ\XÙJÎËÛÜ[ÜÝYKÛÛKÙ[XYÈÎËÛÜ[ÜÝYKÛÛKÈB\XÙJ×ËËNÂB[Ý[ÛÛÝ\ÙSX[
+ÛÝ\ÙOÎYS]\ÚXÕXÚÖÈÛÝ\ÙHJHÂY
+ÛÝ\ÙHOOH[Y[ÈH]\[Y[ÈÂY
+ÛÝ\ÙHOOH]Y]\ÈH]\]Y]\ÈÂY
+ÛÝ\ÙHOOH][\ÈH]\]Y]ÈU[\ÈÂY
+ÛÝ\ÙHOOH[Ý]XHH]\[ÝUXHY[ÈÂY
+ÛÝ\ÙHOOHY[ÈH]\Y[ÈÛ[HÂY
+ÛÝ\ÙHOOH^\[H]\^\ÈÂ]\YPRHÂB[Ý[Û^XXÚÒÚ[
+XÚÏÎYS]\ÚXÕXÚÊHÂY
+\Ñ[XYXÚÊXÚÊJH]\\ÙXÝÜÙXÚX[ÛÛXÝPTÂY
+\Ñ^[YXÚÊXÚÊOË]Y]ÔÙXÛÛÊH]\Z^0­È]Y[È[ÝUXH0­ÈL8 $ÌNÂY
+XÚÏËÛÝ\ÙHOOH][\ÈH]\]Y]ÈÌÙYÝ[ÜÈ0­È[ÙÈÂY
+XÚÏËÛÝ\ÙHOOH[Ý]XHH]\[ÝUXH0­ÈÛÛH]]Ûpè]XØHÂY
+XÚÏËÛÝ\ÙHOOHY[ÈH]\Y[ÈÛ[H[]ÈÂY
+XÚÏËÛÝ\ÙHOOH[Y[ÈXÚÏËÛÝ\ÙHOOH]Y]\ÈB]\Ø[ÚpìÛÛÛ\]H\ÙXÚXHÂ]\\ÝHÛÛ\]HYPRHÂB[Ý[ÛÛÝ\ÂXÚËX[ÛÝ\Ú^HHYNÂXÚÏÎYS]\ÚXÕXÚÎÂX[ÎÝ[ÎÂÛÝ\ÎÝ[ÎÂÚ^OÎÈÛHYÈ\ÈÂJHÂÛÛÝÛÈBÚ^HOOH\ÈÈLËLÝ[YL^LÚ^HOOHÈÈLMËLMÝ[Y^^^Ú^HOOHYÈLLËLLÝ[Y^^X\ÙHÚ^HOOHÛHÈNËNÝ[Y[È^^ÈMÈËMÈÝ[Y[È^VÌLHÂÛÛÝ]HHXÚÏË]HX[pîÚXØHÂÛÛÝ\ÛÜÈBXÚÏË\ÛÜÕ\
+XÚÏËÛÝ\ËÝ\ÕÚ]
+HÈXÚËÛÝ\[Y[Y
+NÂY
+\ÛÜÊHÂ]\
+ËÈ\Û[Y\ØXK[^[[H^Û^ÛËZ[YËY[[Y[[YÂÜÏ^Ø\ÛÜßB[^Ý]_BÛ\ÜÓ[YO^Ø	ØÛßHÚ[ËLØXÝXÛÝ\ÚYÝË\ÛHÚYÝËXXÚËÍBÏ
+NÂB]\
+]Û\ÜÓ[YO^Ø	ØÛßH^Ú[ËL][\ËXÙ[\\ÝYKXÙ[\ÛXXÚÈ^\Û]KNMLÚYÝË\ÛHÚYÝËXXÚËÍ[ËLH[Ë]Ú]KÌLBÝ[O^ÞÂXÚÙÜÝ[ÛÝ\XÚÏËÛÝ\[X\YÜYY[
+LÍYYËÌÍÎNKÌLNJH_BÝ]KÛXÙJJKÕ\\Ø\ÙJ
+_BÙ]
+NÂB[Ý[ÛXÛÛ]ÛÂÚ[[ÛÛXÚËXÝ]K]KÛ\ÜÓ[YKNÂÚ[[XXÝXXÝÙNÂÛÛXÚÎ
+
+HOÚYÂXÝ]OÎÛÛX[Â]OÎÝ[ÎÂÛ\ÜÓ[YOÎÝ[ÎÂJHÂ]\
+]Û\OH]Û]O^Ý]_BÛÛXÚÏ^ÛÛÛXÚßBÛ\ÜÓ[YO^ØÛ[[KY^NËNÚ[ËL][\ËXÙ[\\ÝYKXÙ[\Ý[YY[^^ÈÛXXÚÈ[Ú][ÛXÝ]BÈËY[Y\[M^\Û]KNMLÚYÝË[YÚYÝËY[Y\[MLÌHË]Ú]KÎ^\Û]KLÌÝ\ËY[Y\[MÌMHÝ\^Y[Y\[LÛ\ÜÓ[YK
+_BØÚ[[BØ]Û
+NÂB[Ý[Û^P]ÛÈÚ^HHYNÈÚ^OÎÛHYÈJHÂÛÛÝ]\ÚXÈH\ÙQYPRS]\ÚXÊ
+NÂÛÛÝ[XYXÚÈH\Ñ[XYXÚÊ]\ÚXËÝ\[XÚÊNÂÛÛÝÛÈBÚ^HOOHÈÈLLHËLLHÚ^HOOHÛHÈNËNLLËLLÂÛÛÝXÛÛÛÈHÚ^HOOHÈÈMHËMHMËMÂ]\
+]Û\OH]ÛÛÛXÚÏ^Ê
+HOÂY
+Y[XYXÚÊH]\ÚXËÙ]^Z[Ê
+[YJHO][YJNÂ_BÛ\ÜÓ[YO^ØÛ	ØÛßH[[KY^Ú[ËL][\ËXÙ[\\ÝYKXÙ[\Ý[YY[ËY[Y\[M^\Û]KNMLÚYÝË[ÈÚYÝËY[Y\[MLÌH[Ú][Û[XYXÚÈÈÝ\ÛÜYY][ÜXÚ]KMÍHÝ\ØØ[KLLHÝ\ËY[Y\[LÌ
+_B\XK[X[^Ù[XYXÚÈÈ\ØH[\ÙXÝÜÙXÚX[]\ÚXË^Z[ÈÈ]\Ø\\ÙXÚ\B]O^Ù[XYXÚÈÈ\ØH[\ÙXÝÜÙXÚX[HHY[È]\ÚXË^Z[ÈÈ]\Ø\\ÙXÚ\BÙ[XYXÚÈÈ
+^\[[ÈÛ\ÜÓ[YO^ÚXÛÛÛßHÏ
+H]\ÚXË^Z[ÈÈ
+]\ÙHÛ\ÜÓ[YO^ÚXÛÛÛßH[HÝ\[ÛÛÜÏ
+H
+^HÛ\ÜÓ[YO^Ø	ÚXÛÛÛßH[Û]K^LXH[HÝ\[ÛÛÜÏ
+_BØ]Û
+NÂB[Ý[ÛÚYX\XÚÔÝÊÂXÚË[^XÚÜËNÂXÚÎYS]\ÚXÕXÚÎÂ[^[X\ÂXÚÜÎYS]\ÚXÕXÚÖ×NÂJHÂÛÛÝ]\ÚXÈH\ÙQYPRS]\ÚXÊ
+NÂÛÛÝXÝ]HHXÚËYOOH]\ÚXËÝ\[XÚËYÂ]\
+]Û\OH]ÛÛÛXÚÏ^Ê
+HO]\ÚXË^UXÚÊXÚËXÚÜÊ_BÛ\ÜÓ[YO^ØÛ^LLËY[][\ËXÙ[\Ø\LÝ[Y^L^[Y[Ú][ÛXÝ]BÈËY[Y\[MÌM^]Ú]H[ËLH[ËY[Y\[MÌÍH^\Û]KLÌÝ\Ë]Ú]KÍÈÝ\^]Ú]H
+_BÜ[Û\ÜÓ[YO^ØÛ^MËMÚ[ËL][\ËXÙ[\\ÝYKXÙ[\Ý[YY[^VÌLHÛXXÚÈXÝ]HÈËY[Y\[M^\Û]KNMLË]Ú]KÎ^\Û]KM
+_BØXÝ]H	]\ÚXË^Z[ÈÈ
+]\ÙHÛ\ÜÓ[YOHLÈËLÈ[HÝ\[ÛÛÜÏ
+HXÝ]HÈ
+^HÛ\ÜÓ[YOHLÈËLÈ[HÝ\[ÛÛÜÏ
+H
+[^
+ÈB
+_BÜÜ[ÛÝ\XÚÏ^ÝXÚßHÚ^OHÈÏÜ[Û\ÜÓ[YOHZ[]ËL^LHÜ[Û\ÜÓ[YO^ØÛØÚÈ[Ø]H^^ÈÛXXÚÈXÝ]HÈ^Y[Y\[LÌ^XÝ\[
+_BÝXÚË]_BÜÜ[Ü[Û\ÜÓ[YOHØÚÈ[Ø]H^VÌLH^\Û]KMLÝXÚË\\ÝH0­ÈÜÛÝ\ÙSX[
+XÚËÛÝ\ÙJ_BÜÜ[ÜÜ[Ø]Û
+NÂB[Ý[ÛXUXÚÔÝÊÂXÚË[^XÚÜËNÂXÚÎYS]\ÚXÕXÚÎÂ[^[X\ÂXÚÜÎYS]\ÚXÕXÚÖ×NÂJHÂÛÛÝ]\ÚXÈH\ÙQYPRS]\ÚXÊ
+NÂÛÛÝXÝ]HHXÚËYOOH]\ÚXËÝ\[XÚËYÂ]\
+]Û\ÜÓ[YO^ØÛÜÝ\^LL][\ËXÙ[\Ø\LÈÝ[Y^LÈ[Ú][ÛXÝ]BÈËY[Y\[MÌL^]Ú]H[ËLH[ËY[Y\[MÌH^\Û]KLÌÝ\Ë]Ú]KÍÈÝ\^]Ú]H
+_B]Û\OH]ÛÛÛXÚÏ^Ê
+HO]\ÚXË^UXÚÊXÚËXÚÜÊ_BÛ\ÜÓ[YO^ØÛ^MÈËMÈÚ[ËL][\ËXÙ[\\ÝYKXÙ[\Ý[YY[^VÌLHÛXXÚÈ[Ú][ÛXÝ]BÈËY[Y\[M^\Û]KNMLË]Ú]KÎ^\Û]KMÜÝ\ZÝ\ËY[Y\[MÜÝ\ZÝ\^\Û]KNML
+_B\XK[X[^Ø\ÙXÚ\	ÝXÚË]_XBØXÝ]H	]\ÚXË^Z[ÈÈ
+]\ÙHÛ\ÜÓ[YOHLËHËLËH[HÝ\[ÛÛÜÏ
+HXÝ]HÈ
+^HÛ\ÜÓ[YOHLËHËLËH[HÝ\[ÛÛÜÏ
+H
+[^
+ÈB
+_BØ]ÛÛÝ\XÚÏ^ÝXÚßHÚ^OHÛHÏ]Û\OH]ÛÛÛXÚÏ^Ê
+HO]\ÚXË^UXÚÊXÚËXÚÜÊ_BÛ\ÜÓ[YOHZ[]ËL^VÌKH^[YÜ[Û\ÜÓ[YO^ØÛØÚÈ[Ø]H^\ÛHÛXXÚÈXÝ]HÈ^Y[Y\[LÌ^XÝ\[
+_BÝXÚË]_BÜÜ[Ü[Û\ÜÓ[YOHØÚÈ[Ø]H^^È^\Û]KMLÝXÚË\\ÝBÜÜ[Ø]ÛÜ[Û\ÜÓ[YOHY[Z[]ËL^LH[Ø]H^^È^\Û]KMYØÚÈÝXÚË[[_BÜÜ[Ü[Û\ÜÓ[YOHY[ËLÚ[ËLÝ[YY[Ë]Ú]KÍÈLKLH^XÙ[\^VÌLHÛXÛ\\Ø\ÙHXÚÚ[Ë]ÚYH^\Û]KMÎØÚÈÜÛÝ\ÙSX[
+XÚËÛÝ\ÙJ_BÜÜ[]Û\ÜÓ[YOH[X]]È^Ú[ËL][\ËXÙ[\Ø\LÈ]Û\OH]ÛÛÛXÚÏ^Ê
+HO]\ÚXËÙÙÛSZÙJXÚËY
+_BÛ\ÜÓ[YO^ØÛ^\Û]KMLÝ\^Y[Y\[LÌ]\ÚXËZÙY\ÊXÚËY
+H	^Y[Y\[LÌ
+_B\XK[X[HYHÝ\ÝHX\Û\ÜÓ[YOHLËHËLËH[^Û]\ÚXËZÙY\ÊXÚËY
+HÈÝ\[ÛÛÜÛHBÏØ]Û]Û\OH]ÛÛÛXÚÏ^Ê
+HO]\ÚXË\]Y\ÝYÔ^[\Ý
+XÚËY
+_BÛ\ÜÓ[YOH^\Û]KMLÝ\^Y[Y\[LÌ\XK[X[HYÜYØ\H^[\Ý\ÈÛ\ÜÓ[YOHLËHËLËHÏØ]ÛÜ[Û\ÜÓ[YOHËNH^\YÚ^^È^\Û]KMLÝXÚË\][ÛBÜÜ[Ù]Ù]
+NÂB[Ý[ÛÚYX\XÚÓ\Ý
+ÈXÚÜË[Z]HNÈXÚÜÎYS]\ÚXÕXÚÖ×NÈ[Z]Î[X\JHÂÛÛÝÚÝÛHXÚÜËÛXÙJ[Z]
+NÂY
+\ÚÝÛ[Ý
+HÂ]\
+]Û\ÜÓ[YOHÝ[Y^Ü\Ü\]Ú]KÌLË]Ú]KÍHLÈKM^XÙ[\^^È^\Û]KMÈ^HØ[Ú[Û\È[\ÝH\ÝKÙ]
+NÂB]\
+]Û\ÜÓ[YOHÜXÙK^KLHÜÚÝÛX\
+
+XÚË[^
+HO
+ÚYX\XÚÔÝÈÙ^O^ÝXÚËYHXÚÏ^ÝXÚßH[^^Ú[^HXÚÜÏ^ÜÚÝÛHÏ
+J_BÙ]
+NÂB[Ý[ÛXUXÚÓ\Ý
+ÈXÚÜÈNÈXÚÜÎYS]\ÚXÕXÚÖ×HJHÂY
+]XÚÜË[Ý
+HÂ]\
+]Û\ÜÓ[YOHÝ[YLÜ\Ü\]Ú]KÌLË]Ú]KÍHMKN^XÙ[\^\ÛH^\Û]KMÈ^HØ[Ú[Û\ÈÙ[XØÚ[ÛY\ËÙ]
+NÂB]\
+]Û\ÜÓ[YOHÜXÙK^KLH]Û\ÜÓ[YOH^][\ËXÙ[\Ø\LÈLÈL^VÌLHÛXXÚÈ\\Ø\ÙHXÚÚ[ËVÌM[WH^\Û]KMLÜ[Û\ÜÓ[YOHËMÈÏÜÜ[Ü[Û\ÜÓ[YOHËNÜÜ[Ü[Û\ÜÓ[YOHZ[]ËL^VÌKH0ë][ÏÜÜ[Ü[Û\ÜÓ[YOHY[Z[]ËL^LHYØÚÈ°à[[OÜÜ[Ü[Û\ÜÓ[YOHY[ËL^XÙ[\ÎØÚÈY[OÜÜ[Ü[Û\ÜÓ[YOH[X]]ÈËL^\YÚXØÚ[Û\ÏÜÜ[Ù]ÝXÚÜËX\
+
+XÚË[^
+HO
+XUXÚÔÝÈÙ^O^ÝXÚËYHXÚÏ^ÝXÚßH[^^Ú[^HXÚÜÏ^ÝXÚÜßHÏ
+J_BÙ]
+NÂB[Ý[ÛÜ\
+HÂÛÛÝ]\ÚXÈH\ÙQYPRS]\ÚXÊ
+NÂ]\
+XY\Û\ÜÓ[YOH^VÍNHÚ[ËL][\ËXÙ[\Ø\MÜ\XÜ\]Ú]KÌLËVÈÌLÌWHM^]Ú]H]Û\ÜÓ[YOH^ËVÌÌHÚ[ËL][\ËXÙ[\Ø\LÈ]Û\ÜÓ[YOH^LLËLL][\ËXÙ[\\ÝYKXÙ[\Ý[YY[ËY[Y\[M^\Û]KNMLÚYÝË[YÚYÝËY[Y\[MLÌ]\ÚXÌÛ\ÜÓ[YOHMHËMHÏÙ]]Û\ÜÓ[YOHZ[]ËLHÛ\ÜÓ[YOH[Ø]H^^ÛXXÚÈXÚÚ[Ë]YÚ^]Ú]HYPRH]\ÚXÂÚOÛ\ÜÓ[YOH[Ø]H^VÌL\HÛ\Ù[ZXÛ^Y[Y\[LÌpîÚXØK^[\ÝÈHØÛÈYXØ]]ÂÜÙ]Ù]]Û\ÜÓ[YOH^LLZ[]ËL^LH][\ËXÙ[\Ø\LÈÝ[YY[Ü\Ü\]Ú]KÌLË]Ú]KÎMÚYÝËZ[\ÚYÝËXXÚËÌÌX^[YY[ÙX\ÚÛ\ÜÓ[YOHMËM^Y[Y\[LÌÏ[][YO^Û]\ÚXË]Y\_BÛÚ[ÙO^ÊJHO]\ÚXËÙ]]Y\JK\Ù][YJ_BÛÙ^QÝÛ^ÊJHOÂY
+KÙ^HOOH[\	]\ÚXË]Y\K[J
+JBÚY]\ÚXËÙX\ÚÛ[J]\ÚXË]Y\JNÂ_BXÙZÛ\H\ØØ\[X[ÝXØHÈ\Ú[ÛH[\\H\ØØ\Û[HÛ\ÜÓ[YOHZ[]ËL^LHË][Ü\[^\ÛH^]Ú]HÝ][K[ÛHXÙZÛ\^\Û]KMLÏÙ][ÂYHØYÙ[\ÈÛ\ÜÓ[YOH[X]]È[[KY^Ú[ËL][\ËXÙ[\Ø\LÝ[YY[Ü\Ü\]Ú]KÌLË]Ú]KÎMKL^^ÈÛXÛ^\Û]KL[Ú][ÛÝ\Ë]Ú]KÌLÝ\^]Ú]H\ÝÓYÛ\ÜÓ[YOHMËMÏÛ\Ó[ÏÚXY\
+NÂB[Ý[ÛY[Ô[[
+
+HÂÛÛÝ]\ÚXÈH\ÙQYPRS]\ÚXÊ
+NÂÛÛÝ\Ù]ÈHÂÈX[HÜÈ\NHÜÈÛÝ[PÛÙNÓKÈX[Ø[[MH\NØ[[MHÛÝ[PÛÙNÓKÈX[Ø\Û[H\NØ\Û[HÛÝ[PÛÙNÓKÈX[Ú[H\NÛÝ[PÛÙNÓKÈX[ÝXÚX\È\NÝXÚX\ÈÛÝ[PÛÙNÓKÈX[pîÚXØH\N]\ÚXÈÛÝ[PÛÙNÓKÈX[][È\NÛÝ[PÛÙNKNÂÛÛÝÚÝÛH]\ÚXËY[ÕXÚÜËÛXÙJ
+NÂ]\
+ÙXÝ[ÛÛ\ÜÓ[YOHÚ[ËLÝ[YLÜ\Ü\Y[Y\[MÌËVÛ[X\YÜYY[
+LÍYYËØJMNKLKMKØJËÌKMJWHLÈ]Û\ÜÓ[YOH^][\ËXÙ[\\ÝYKX]ÙY[Ø\L]Û\ÜÓ[YOH[[KY^][\ËXÙ[\Ø\LKH^\ÛHÛXXÚÈ^]Ú]HY[ÈÛ\ÜÓ[YOHMËM^Y[Y\[LÌÏY[ÈÛ[BÜÛ\ÜÓ[YOH^VÌLH^\Û]KMÚ[Û^H[Z\ÛÜ\È[]ËÜÙ]]Û\OH]ÛÛÛXÚÏ^Ê
+HOÚY]\ÚXËÙX\ÚY[ÊÓ_B\ØXY^Û]\ÚXËY[ÓØY[ßBÛ\ÜÓ[YOHÝ[YY[ËY[Y\[MLÈKLKH^VÌLHÛXXÚÈ^\Û]KNML\ØXYÜXÚ]KMLÛ]\ÚXËY[ÓØY[ÈÈ\ØØ\BØ]ÛÙ]]Û\ÜÓ[YOH]L^Ø\L[][YO^Û]\ÚXËY[Ô]Y\_BÛÚ[ÙO^ÊJHO]\ÚXËÙ]Y[Ô]Y\JK\Ù][YJ_BÛÙ^QÝÛ^ÊJHOKÙ^HOOH[\	ÚY]\ÚXËÙX\ÚY[Ê
+_BXÙZÛ\HHÜËØ\Û[KØ[[MK°ë[ËP°ë[ËÛ\ÜÓ[YOHZ[]ËL^LHÝ[YY[Ü\Ü\]Ú]KÌLËXXÚËÌHLÈKL^^È^]Ú]HÝ][K[ÛHXÙZÛ\^\Û]KMLØÝ\ÎÜ\Y[Y\[MÍÏÙ]]Û\ÜÓ[YOH]L^^]Ü\Ø\LKHÜ\Ù]ËX\
+
+][JHO
+]ÛÙ^O^Ø	Ú][KX[KIÚ][KÛÝ[PÛÙ_XB\OH]ÛÛÛXÚÏ^Ê
+HOÚY]\ÚXËÙX\ÚY[Ê][K\K][KÛÝ[PÛÙJ_BÛ\ÜÓ[YOHÝ[YY[Ë]Ú]KÎLHKLH^VÌLHÛXXÚÈ^\Û]KLÌ[Ú][ÛÝ\ËY[Y\[MÌMHÝ\^Y[Y\[LÚ][KX[BØ]Û
+J_BÙ]Û]\ÚXËY[Ñ\Ü	Û\ÜÓ[YOH]L^VÌLHÛXÛ^\ÜÙKLÌÛ]\ÚXËY[Ñ\ÜOÜBÜÚÝÛ[Ý	
+]Û\ÜÓ[YOH]LX^ZVÌNHÜXÙK^KLHÝ\ÝË^KX]]ÈLHÜÚÝÛX\
+
+XÚË[^
+HOÂÛÛÝXÝ]HHXÚËYOOH]\ÚXËÝ\[XÚËYÂ]\
+]ÛÙ^O^ÝXÚËYB\OH]ÛÛÛXÚÏ^Ê
+HO]\ÚXË^UXÚÊXÚË]\ÚXËY[ÕXÚÜÊ_BÛ\ÜÓ[YO^ØÛ^ËY[][\ËXÙ[\Ø\LÝ[Y^LKLKH^[Y[Ú][ÛXÝ]HÈËY[Y\[MÌMH^]Ú]H[ËLH[ËY[Y\[MÌÌÝ\Ë]Ú]KÍÈ
+_BÜ[Û\ÜÓ[YOH^MËMÚ[ËL][\ËXÙ[\\ÝYKXÙ[\Ý[YY[Ë]Ú]KÎ^VÌLHÛXXÚÈ^Y[Y\[LÌØXÝ]H	]\ÚXË^Z[ÈÈ]\ÙHÛ\ÜÓ[YOHLÈËLÈ[HÝ\[ÛÛÜÏ[^
+È_BÜÜ[Ü[Û\ÜÓ[YOHZ[]ËL^LHÜ[Û\ÜÓ[YOHØÚÈ[Ø]H^VÌL\HÛXXÚÈ^]Ú]HÝXÚË]_OÜÜ[Ü[Û\ÜÓ[YOHØÚÈ[Ø]H^VÌLH^\Û]KMLÝXÚË\\ÝOÜÜ[ÜÜ[Ø]Û
+NÂJ_BÙ]
+_BÜÙXÝ[Û
+NÂB[Ý[ÛÚYX\ÈXÚÜÈNÈXÚÜÎYS]\ÚXÕXÚÖ×HJHÂÛÛÝ]\ÚXÈH\ÙQYPRS]\ÚXÊ
+NÂÛÛÝÜ^[\Ý[\Ù]^[\Ý[\HH\ÙTÝ]JNÂÛÛÝ[\Y^[\ÝÈH]\ÚXË^[\ÝË[\
+^[\Ý
+HO^[\Ý[YKÓÝÙ\Ø\ÙJ
+K[ÛY\Ê^[\Ý[\ÓÝÙ\Ø\ÙJ
+JK
+NÂ]\
+\ÚYHÛ\ÜÓ[YOH^Z[ZLZ[]ËL^XÛÛÜ\\Ü\]Ú]KÌLËVÈÌLHLH^]Ú]H]Û\ÜÓ[YOHÚ[ËLÝ[YLÜ\Ü\]Ú]KÌLËVÈÌMMÌYHLÈ]Û\ÜÓ[YOH^][\ËXÙ[\\ÝYKX]ÙY[Ø\L]Û\ÜÓ[YOH^\ÛHÛXXÚÈ^]Ú]HHX[ÝXØOÜÛ\ÜÓ[YOH^VÌL\H^\Û]KMØ[Ú[Û\ÈHÜ\ÜÏÜÙ]]Û\OH]ÛÛÛXÚÏ^Ê
+HO]\ÚXËÙ]ÜX]SÜ[
+[YJHO][YJ_BÛ\ÜÓ[YOH[[KY^][\ËXÙ[\Ø\LHÝ[YY[ËY[Y\[MLÈKLKH^^ÈÛXXÚÈ^\Û]KNMLÝ\ËY[Y\[LÌ\ÈÛ\ÜÓ[YOHLËHËLËHÏÜX\Ø]ÛÙ]]Û\ÜÓ[YOH]LÈÜYÜYXÛÛËLØ\LKH^^ÈÛXÛ^\Û]KLÌÓUÒUSTËX\
+
+][JHOÂÛÛÝXÛÛH][KXÛÛÂ]\
+]ÛÙ^O^Ú][KYBÛÛXÚÏ^Ê
+HO]\ÚXËÙ]Y]Ê][KY
+_BÛ\ÜÓ[YO^ØÛ[[KY^][\ËXÙ[\Ø\LÝ[Y^LÈKL[Ú][Û]\ÚXËY]ÈOOH][KYÈËY[Y\[M^\Û]KNMLË]Ú]KÍÈÝ\ËY[Y\[MÌLÝ\^Y[Y\[L
+_BXÛÛÛ\ÜÓ[YOHLËHËLËHÏÚ][KX[BØ]Û
+NÂJ_BÙ]Û]\ÚXËÜX]SÜ[	
+]Û\ÜÓ[YOH]LÈÝ[Y^Ü\Ü\Y[Y\[MÌËY[Y\[MÎL[][YO^Û]\ÚXË]Ô^[\Ý[Y_BÛÚ[ÙO^ÊJHO]\ÚXËÙ]]Ô^[\Ý[YJK\Ù][YJ_BÛÙ^QÝÛ^ÊJHOKÙ^HOOH[\	]\ÚXËÜX]T^[\Ý
+
+_BXÙZÛ\HÛXHH^[\ÝÛ\ÜÓ[YOHNHËY[Ý[Y[ÈÜ\Ü\]Ú]KÌLËXXÚËÌHLÈ^^È^]Ú]HÝ][K[ÛHXÙZÛ\^\Û]KMLÏ]Û\OH]ÛÛÛXÚÏ^Û]\ÚXËÜX]T^[\ÝBÛ\ÜÓ[YOH]LNHËY[Ý[Y[ÈËY[Y\[M^^ÈÛXXÚÈ^\Û]KNMLÝ\ËY[Y\[LÌÜX\^[\ÝØ]ÛÙ]
+_BÙ]]Û\ÜÓ[YOH]LÈY[Ô[[ÏÙ]]Û\ÜÓ[YOH]LÈ^Z[ZL^LH^XÛÛØ\LÈÙXÝ[ÛÛ\ÜÓ[YOH^Z[ZL^VÌH^XÛÛÝ[YLÜ\Ü\]Ú]KÌLËVÈÌMMÌYHLÈ]Û\ÜÓ[YOHXL^NH][\ËXÙ[\Ø\LÝ[Y^ËXXÚËÌHLÈÙX\ÚÛ\ÜÓ[YOHLËHËLËH^Y[Y\[LÌÏ[][YO^Ü^[\Ý[\BÛÚ[ÙO^ÊJHOÙ]^[\Ý[\K\Ù][YJ_BXÙZÛ\H[\Ü\ÜÈÛ\ÜÓ[YOHZ[]ËL^LHË][Ü\[^^È^]Ú]HÝ][K[ÛHXÙZÛ\^\Û]KMLÏÙ]]Û\ÜÓ[YOHZ[ZL^LHÝ\ÝË^KX]]ÈLH]Û\ÜÓ[YOHÜXÙK^KLHÙ[\Y^[\ÝËX\
+
+^[\ÝYS]\ÚXÔ^[\Ý
+HO
+]ÛÙ^O^Ü^[\ÝYBÛÛXÚÏ^Ê
+HOÂ]\ÚXËÙ]Ù[XÝY^[\ÝY
+^[\ÝY
+NÂ]\ÚXËÙ]Y]Ê^[\ÝYOOH[ZÙYÈZÙY^[\ÝYOOH\Y[ÈÈY[È^[\ÝYOOH[Û[HÈÙX\Ú^[\ÝÈ
+NÂ_BÛ\ÜÓ[YO^ØÛ^VÍHËY[][\ËXÙ[\Ø\LÝ[Y^L^[Y[Ú][Û]\ÚXËÙ[XÝY^[\ÝYOOH^[\ÝYÈË]Ú]KÌL[ËLH[ËY[Y\[MÌHÝ\Ë]Ú]KÍÈ
+_BÛÝ\X[^Ü^[\Ý[Y_HÛÝ\^Ü^[\ÝÛÝ\HÚ^OHÈÏÜ[Û\ÜÓ[YOHZ[]ËL^LHÜ[Û\ÜÓ[YOHØÚÈ[Ø]H^^ÈÛXXÚÈ^]Ú]HÜ^[\Ý[Y_BÜÜ[Ü[Û\ÜÓ[YOHØÚÈ[Ø]H^VÌLH^\Û]KMLÜ^[\ÝXÚÒYË[ÝHØ[Ú[Û\ÂÜÜ[ÜÜ[Ø]Û
+J_BÙ]Ù]ÜÙXÝ[ÛÙXÝ[ÛÛ\ÜÓ[YOH^Z[ZL^LH^XÛÛÝ[YLÜ\Ü\]Ú]KÌLËVÈÌMMÌYHLÈ]Û\ÜÓ[YOHXL^][\ËXÙ[\\ÝYKX]ÙY[Û\ÜÓ[YOH^VÌL\HÛXXÚÈ\\Ø\ÙHXÚÚ[ËVÌM[WH^Y[Y\[LÌØ[Ú[Û\ÂÜÜ[Û\ÜÓ[YOH^^È^\Û]KMLÝXÚÜË[ÝOÜÜ[Ù]]Û\ÜÓ[YOHZ[ZL^LHÝ\ÝË^KX]]ÈLHÚYX\XÚÓ\ÝXÚÜÏ^ÝXÚÜßH[Z]^ÍHÏÙ]ÜÙXÝ[ÛÙ]Ø\ÚYO
+NÂB[Ý[Û^[\ÝXY\ÈXÚÜÈNÈXÚÜÎYS]\ÚXÕXÚÖ×HJHÂÛÛÝ]\ÚXÈH\ÙQYPRS]\ÚXÊ
+NÂÛÛÝ^[\ÝH]\ÚXËÙ[XÝY^[\ÝÂÛÛÝÝ[ÙXÛÛÈHXÚÜËYXÙJ
+Ý[KXÚÊHOÝ[H
+È\ÙQ\][ÛXÚË\][ÛK
+NÂ]\
+ÙXÝ[ÛÛ\ÜÓ[YOHÚ[ËLÝ[YLÜ\Ü\Y[Y\[MÌËVÛ[X\YÜYY[
+LÍYYËØJMNKLKKØJMËÎKN
+WÍL	KØJÍNMËMLJWHLÈ^]Ú]HÚYÝË[YÚYÝËXXÚËÌH]Û\ÜÓ[YOH^Z[]ËL][\ËXÙ[\Ø\LÈÛÝ\X[^Ü^[\Ý[Y_HÛÝ\^Ü^[\ÝÛÝ\HÚ^OH\ÈÏ]Û\ÜÓ[YOHZ[]ËL^LHÛ\ÜÓ[YOH^VÌL\HÛXXÚÈ\\Ø\ÙHXÚÚ[ËVÌN[WH^Y[Y\[LÌ^[\ÝÙ[XØÚ[ÛYBÜÛ\ÜÓ[YOH]LH[Ø]H^LÛXXÚÈXÚÚ[Ë]YÚ^]Ú]HX^^^^Ü^[\Ý[Y_BÚÛ\ÜÓ[YOH]LH[KXÛ[\LHX^]ËL^^ÈXY[Ë\[^Y^\Û]KLÌÜ^[\Ý\ØÜ\[ÛBÜÛ\ÜÓ[YOH]L^^ÈÛ\Ù[ZXÛ^\Û]KMYPRH]\ÚXÈ0­ÈÝXÚÜË[ÝHØ[Ú[Û\È0­ÈÙÜX]ÙXÛÛÊÝ[ÙXÛÛÊ_H\ÞÜÙ]]Û\OH]ÛÛÛXÚÏ^Ê
+HO]\ÚXË^T^[\Ý
+^[\ÝY
+_BÛ\ÜÓ[YOH[[KY^NHÚ[ËL][\ËXÙ[\Ø\LÝ[YY[ËY[Y\[MM^^ÈÛXXÚÈ^\Û]KNMLÚYÝË[YÚYÝËY[Y\[MLÌÝ\ËY[Y\[LÌ^HÛ\ÜÓ[YOHMËM[HÝ\[ÛÛÜÏ\ÙXÚ\Ø]ÛÙ]]Û\ÜÓ[YOH]LÈ^^]Ü\][\ËXÙ[\Ø\LXÛÛ]ÛÛÛXÚÏ^Ê
+HO]\ÚXËÙ]ÚYJ
+[YJHO][YJ_HXÝ]O^Û]\ÚXËÚY_H]OH[X]Ü[ÈÚYHÛ\ÜÓ[YOHMËMÏÒXÛÛ]ÛXÛÛ]ÛÛÛXÚÏ^Ê
+HO]\ÚXËÙÙÛSZÙJ]\ÚXËÝ\[XÚËY
+_HXÝ]O^Û]\ÚXËZÙY\Ê]\ÚXËÝ\[XÚËY
+_H]OHYHÝ\ÝHX\Û\ÜÓ[YOHMËM[^Û]\ÚXËZÙY\Ê]\ÚXËÝ\[XÚËY
+HÈÝ\[ÛÛÜÛHHÏÒXÛÛ]ÛXÛÛ]ÛÛÛXÚÏ^Ê
+HO]\ÚXËÙ]\X]
+]\ÚXË\X]OOHÙÈ[]\ÚXË\X]OOH[ÈÛHÙ_BXÝ]O^Û]\ÚXË\X]OOHÙB]OH\]\\X]Û\ÜÓ[YOHMËMÏÒXÛÛ]Û]Û\ÜÓ[YOH[LH^Z[]ËL^]Ü\Ø\LKHÓSÓÑËX\
+
+[ÛÙ
+HO
+]ÛÙ^O^Û[ÛÙB\OH]ÛÛÛXÚÏ^Ê
+HO]\ÚXËÙ]Ù[XÝY[ÛÙ
+[ÛÙ
+_BÛ\ÜÓ[YO^ØÛÝ[YY[Ü\LHKLKH^VÌLHÛXÛ[Ú][Û]\ÚXËÙ[XÝY[ÛÙOOH[ÛÙÈÜ\Y[Y\[LÌËY[Y\[M^\Û]KNMLÜ\]Ú]KÌLË]Ú]KÍÈ^\Û]KLÌÝ\ËY[Y\[MÌLÝ\^Y[Y\[L
+_BÛ[ÛÙOOH[ÈÙÈSÓÑÓPSÖÛ[ÛÙ_BØ]Û
+J_BÙ]Ù]ÜÙXÝ[Û
+NÂB[Ý[ÛÝ\[XÚÐ\ÛÜÊÈXÚÈNÈXÚÎYS]\ÚXÕXÚÈJHÂÛÛÝ\ÛÜÈHXÚË\ÛÜÕ\XÚËY[Õ[XZ[
+XÚËÛÝ\ËÝ\ÕÚ]
+HÈXÚËÛÝ\[Y[Y
+NÂÛÛÝ\ÑZ^HXÚËÛÝ\ÙHOOH[Ý]XH	ÛÛX[\Ñ^[YXÚÊXÚÊOË]Y]ÔÙXÛÛÊNÂY
+\ÑZ^
+HÂ]\
+]Û\ÜÓ[YOH[]]H^MMËMMÝ\ÝËZY[Ý[YLÞÜ\Ü\Y[Y\[MÌÌËVÈÌLHÚYÝËLÚYÝËY[Y\[NMLÌÌ[ËLH[Ë]Ú]KÌLËÊ[Y[YHÚYÝYH[ÛYÈ\H[]Y[ÈÙXÚX[H[ÝUXK\ÈÈ]Y\ÝHY[Ë
+ßB]Y^ÖSÕUPWÔVQTÒQHÛ\ÜÓ[YOHÚ[\Y][Ë[ÛHXÛÛ]H\Û9￾Ú$z{¶»§q«^￿óCóRÓ2ÓFWBÕ³ÒföçBÖ&Æ6²WW&66RG&6¶ærÕ³ãFVÕÒFWBÖVÖW&ÆBÓ3#à¢·Æ&6´¶æBG&6²Ð¢Â÷à¢Æ26Æ74æÖSÒ&ÆæRÖ6Æ×Ó"FWB×ÂföçBÖ&Æ6²ÆVFær×FvBFWB×vFRÖ×Ã§FWBÖÆr#à¢·G&6²çFFÆWÐ¢Âö3à¢Ç6Æ74æÖSÒ&×BÓG'Væ6FRFWB×6ÒföçB×6VÖ&öÆBFWB×6ÆFRÓ3#à¢·G&6²æ'F7GÐ¢Â÷à¢Ç6Æ74æÖSÒ&×BÓFWB×2FWB×6ÆFRÓS#à¢6æÂRW6VÂ&W&öGV7F÷"öf6ÂFR6öæV7Fâæò6R&W&öGV6R6öâVÂVFòvÆö&ÂFRVGT÷'VRæòVçG&VvVâ7G&VÒF&V7FòW7F&ÆRà¢Â÷à¢ÂöFcà ¢ÆFb6Æ74æÖSÒ&×BÓB÷fW&fÆ÷rÖFFVâ&÷VæFVBÓ7Â&÷&FW"&÷&FW"ÖVÖW&ÆBÓCó#&rÖ&Æ6²óC6F÷rÓ'Â6F÷rÖ&Æ6²óC#à¢¶VÖ&VEW&Âò¢Æg&ÖP¢7&3×¶VÖ&VEW&ÇÐ¢FFÆS×¶G·G&6²çFFÆWÒÒ&W&öGV7F÷"öf6ÆÐ¢6Æ74æÖSÒ&Õ³ScÒrÖgVÆÂ&÷&FW"Ó&rÖ&Æ6²ÖÖÆs¦Õ³S#ÒÖ×6Ó¦Õ³CÒ ¢ÆÆ÷sÒ&WF÷Æ²Væ7'FVBÖÖVF²gVÆÇ67&VVã²7GW&RÖâ×7GW&R ¢ÆÆ÷tgVÆÅ67&VVà¢óà¢¢¢ÆFb6Æ74æÖSÒ&fÆWÖâÖÕ³3cÒfÆWÖ6öÂFV×2Ö6VçFW"§W7FgÖ6VçFW"ÓbFWBÖ6VçFW"#à¢Ä7W'&VçEG&6´'Gv÷&²G&6³×·G&6·Òóà¢Ç6Æ74æÖSÒ&×BÓBFWB×6ÒföçBÖ&öÆBFWB×&÷6RÓ##äæòU$ÂFR&W&öGV7F÷"öf6Â6öæfwW&FãÂ÷à¢ÂöFcà¢Ð¢ÂöFcà ¢ÆFb6Æ74æÖSÒ&×BÓBw&Bw&BÖ6öÇ2Ó"vÓ"Ö×6Ó¦w&BÖ6öÇ2Ó#à¢Æ'WGFöà¢GSÒ&'WGFöâ ¢öä6Æ6³×²Óâ×W62çFövvÆTÆ¶RG&6²æBÐ¢6Æ74æÖS×¶6â¢'&÷VæFVBÖgVÆÂ&÷&FW"Ó2Ó"FWB×2föçBÖ&Æ6²G&ç6Föâ"À¢×W62æÆ¶VBæ2G&6²æB¢ò&&÷&FW"ÖVÖW&ÆBÓC&rÖVÖW&ÆBÓCFWB×6ÆFRÓS ¢¢&&÷&FW"×vFRó&r×vFRórFWB×6ÆFRÓ3÷fW#¦&rÖVÖW&ÆBÓCó÷fW#§FWBÖVÖW&ÆBÓ#"À¢Ð¢à¢)RÖRwW7F¢Âö'WGFöãà¢Æ¢&Vc×·G&6²æWFW&æÅW&ÂÇÂVÖ&VEW&ÂÇÂ&GG3¢ò÷wwræ6æÃRæ6Âò'Ð¢F&vWCÒ%ö&Ææ² ¢&VÃÒ&æ÷&VfW'&W" ¢6Æ74æÖSÒ'&÷VæFVBÖgVÆÂ&÷&FW"&÷&FW"×vFRó&r×vFRórÓ2Ó"FWB×2föçBÖ&Æ6²FWB×6ÆFRÓ3G&ç6Föâ÷fW#¦&rÖVÖW&ÆBÓCó÷fW#§FWBÖVÖW&ÆBÓ# ¢à¢'&"gVVçFRöf6À¢Âöà¢ÂöFcà¢ÂöFcà¢¢¢ÆFb6Æ74æÖS×¶6â'rÖgVÆÂ&÷VæFVBÕ³ãW&VÕÒ&÷&FW"&÷&FW"×vFRó&rÖ&Æ6²ó#ÓBFWBÖ6VçFW"6F÷r×Â6F÷rÖ&Æ6²ó#R&6¶G&÷Ö&ÇW"×ÂÖ×Ã§ÓB"ÂG&6²ç6÷W&6RÓÓÒ'÷WGV&R"ò&Ö×rÓGÂ"¢&Ö×r×Â"Óà¢ÆFb6Æ74æÖSÒ&fÆW§W7FgÖ6VçFW"#à¢Ä7W'&VçEG&6´'Gv÷&²G&6³×·G&6·Òóà¢ÂöFcà ¢ÆFb6Æ74æÖSÒ&×ÖWFò×BÓBÖ×rÖÆr#à¢Ç6Æ74æÖSÒ&×ÖWFòÖ"Ó"rÖfB&÷VæFVBÖgVÆÂ&rÖVÖW&ÆBÓCóRÓ2ÓFWBÕ³ÒföçBÖ&Æ6²WW&66RG&6¶ærÕ³ãFVÕÒFWBÖVÖW&ÆBÓ3#à¢·Æ&6´¶æBG&6²Ð¢Â÷à¢Æ26Æ74æÖSÒ&ÆæRÖ6Æ×Ó"FWB×ÂföçBÖ&Æ6²ÆVFær×FvBFWB×vFRÖ×Ã§FWBÖÆr#à¢·G&6²çFFÆWÐ¢Âö3à¢Ç6Æ74æÖSÒ&×BÓG'Væ6FRFWB×6ÒföçB×6VÖ&öÆBFWB×6ÆFRÓ3#à¢·G&6²æ'F7GÐ¢Â÷à¢Ç6Æ74æÖSÒ&×BÓG'Væ6FRFWB×2FWB×6ÆFRÓS#à¢·G&6²æÆ'VÒÇÂ%6â:Æ'VÒ'Ò+r·G&6²æGW&FöâÇÂ"ÒÓ¢ÒÒ'Ð¢Â÷à¢ÂöFcà ¢ÆFb6Æ74æÖSÒ&×BÓBfÆWFV×2Ö6VçFW"§W7FgÖ6VçFW"vÓ"ãR#à¢Ä6öä'WGFöâöä6Æ6³×²Óâ×W62ç6WE6VffÆRfÇVRÓâfÇVRÒ7FfS×¶×W62ç6VffÆWÒFFÆSÒ$ÆVF÷&ò#à¢Å6VffÆR6Æ74æÖSÒ&ÓBrÓB"óà¢Âô6öä'WGFöãà¢Ä6öä'WGFöâöä6Æ6³×¶×W62ç&WeG&6·ÒFFÆSÒ$çFW&÷"#à¢Å6¶&6²6Æ74æÖSÒ&ÓBrÓB"fÆÃÒ&7W'&VçD6öÆ÷""óà¢Âô6öä'WGFöãà¢ÅÆ'WGFöâ6¦SÒ&Ær"óà¢Ä6öä'WGFöâöä6Æ6³×¶×W62ææWEG&6·ÒFFÆSÒ%6wVVçFR#à¢Å6¶f÷'v&B6Æ74æÖSÒ&ÓBrÓB"fÆÃÒ&7W'&VçD6öÆ÷""óà¢Âô6öä'WGFöãà¢Ä6öä'WGFöà¢öä6Æ6³×²Óâ×W62ç6WE&WVB×W62ç&WVBÓÓÒ&öfb"ò&ÆÂ"¢×W62ç&WVBÓÓÒ&ÆÂ"ò&öæR"¢&öfb"Ð¢7FfS×¶×W62ç&WVBÓÒ&öfb'Ð¢FFÆSÒ%&WWF" ¢à¢Å&WVB6Æ74æÖSÒ&ÓBrÓB"óà¢Âô6öä'WGFöãà¢ÂöFcà ¢·G&6²ç6÷W&6RÓÓÒ'÷WGV&R"bb¢Ç6Æ74æÖSÒ&×BÓ2FWB×2föçB×6VÖ&öÆBFWBÖVÖW&ÆBÓ#ó#à¢¶4WFVæFVEG&6²G&6²òç&WfWu6V6öæG0¢ò$ÖöFòD¢Ö¢&W&öGV6R6öÆòVÂVFòFR÷UGV&RVçG&R£S£#²ÂFW&Öæ"6&vç7FçL:æVÖVçFRÆ6wVVçFR6æ6;6âFRÆ6öÆâ ¢¢%÷UGV&RW6VÂ&W&öGV7F÷"&VÂÂ6VçG&ó¢VÂfFVòVÂVFò&÷fVæVâFRÆÖ6ÖgVVçFRfç¦â§VçF÷2â'Ð¢Â÷à¢Ð¢·G&6²ç6÷W&6RÓÓÒ&GVæW2"bb¢Ç6Æ74æÖSÒ&×BÓ2FWB×2föçB×6VÖ&öÆBFWBÖVÖW&ÆBÓ#ó#à¢ÖöFòD¢33¢ÂFW&Öæ"VÂ&WfWrfç¦WFöÜ:F6ÖVçFRâ6÷UGV&R¶WÂ6R×VW7G&VâfFVòf7VÂFò&VVÂ6ÆVæ6Fòà¢Â÷à¢Ð¢·G&6²ç6÷W&6RÓÓÒ'&Fò"bb¢Ç6Æ74æÖSÒ&×BÓ2FWB×2föçB×6VÖ&öÆBFWBÖVÖW&ÆBÓ#ó#à¢&FòöæÆæRVâffòâÆwVæ2VÖ6÷&2VVFVâF&F"Væ÷26VwVæF÷2Vâæ6"6V|;¦â7R6W'fF÷"à¢Â÷à¢Ð ¢ÆFb6Æ74æÖSÒ&×BÓBw&Bw&BÖ6öÇ2Ó"vÓ"Ö×6Ó¦w&BÖ6öÇ2Ó#à¢Æ'WGFöà¢GSÒ&'WGFöâ ¢öä6Æ6³×²Óâ×W62çFövvÆTÆ¶RG&6²æBÐ¢6Æ74æÖS×¶6â¢'&÷VæFVBÖgVÆÂ&÷&FW"Ó2Ó"FWB×2föçBÖ&Æ6²G&ç6Föâ"À¢×W62æÆ¶VBæ2G&6²æB¢ò&&÷&FW"ÖVÖW&ÆBÓC&rÖVÖW&ÆBÓCFWB×6ÆFRÓS ¢¢&&÷&FW"×vFRó&r×vFRórFWB×6ÆFRÓ3÷fW#¦&rÖVÖW&ÆBÓCó÷fW#§FWBÖVÖW&ÆBÓ#"À¢Ð¢à¢)RÖRwW7F¢Âö'WGFöãà¢Æ'WGFöà¢GSÒ&'WGFöâ ¢öä6Æ6³×²Óâ×W62ç&WVW7DFEFõÆÆ7BG&6²æBÐ¢6Æ74æÖSÒ'&÷VæFVBÖgVÆÂ&÷&FW"&÷&FW"×vFRó&r×vFRórÓ2Ó"FWB×2föçBÖ&Æ6²FWB×6ÆFRÓ3G&ç6Föâ÷fW#¦&rÖVÖW&ÆBÓCó÷fW#§FWBÖVÖW&ÆBÓ# ¢à¢²w&Vv"ÆÆ7@¢Âö'WGFöãà¢ÂöFcà ¢Ç6Æ74æÖSÒ&×BÓ2FWBÕ³ÒFWB×6ÆFRÓS#à¢·G&6·2æÆVæwFÒ6æ6öæW2F7öæ&ÆW2VâÆÆ7FÆFW&Â§VW&Fà¢Â÷à¢ÂöFcà¢Ð¢ÂöFcà¢Â÷6V7Föãà¢ÂöÖãà¢°§Ð ¦gVæ7Föâ7÷FgVÖ&VG2°¢6VÆV7FVDBÀ¢öå6VÆV7BÀ¢öä6ÆV"À§Ó¢°¢6VÆV7FVDCó¢7G&æs°¢öå6VÆV7C¢FVÓ¢7÷FgVÖ&VDFVÒÓâföC°¢öä6ÆV#¢ÓâföC°§Ò°¢&WGW&â¢Ç6V7Föâ6Æ74æÖSÒ'6&æ²Ó&÷VæFVBÓ'Â&÷&FW"&÷&FW"×vFRó&rÕ²3CseÒÓ2#à¢ÆFb6Æ74æÖSÒ&Ö"Ó"fÆWFV×2Ö6VçFW"§W7FgÖ&WGvVVâ#à¢ÆFcà¢Ç6Æ74æÖSÒ'FWB×6ÒföçBÖ&Æ6²FWB×vFR#å7÷Fgf7VÃÂ÷à¢Ç6Æ74æÖSÒ'FWBÕ³ÒFWB×6ÆFRÓS#åFö6VæÆ7F&'&&ÆÂ6VçG&òãÂ÷à¢ÂöFcà¢·6VÆV7FVDBò¢Æ'WGFöà¢GSÒ&'WGFöâ ¢öä6Æ6³×¶öä6ÆV'Ð¢6Æ74æÖSÒ'&÷VæFVBÖgVÆÂ&r×vFRóÓ"ÓFWBÕ³ÒföçBÖ&Æ6²FWB×6ÆFRÓ3G&ç6Föâ÷fW#¦&r×&÷6RÓCóR÷fW#§FWB×&÷6RÓ# ¢à¢6W'&"Æ7F¢Âö'WGFöãà¢¢¢Ç7â6Æ74æÖSÒ'&÷VæFVBÖgVÆÂ&r×vFRóÓ"ÓFWBÕ³ÒföçBÖ&Æ6²FWB×6ÆFRÓC#à¢µ5õDeôTÔ$TE2æÆVæwFÒÆ7F0¢Â÷7ãà¢Ð¢ÂöFcà¢ÆFb6Æ74æÖSÒ&w&Bw&BÖ6öÇ2Ó"vÓ"#à¢µ5õDeôTÔ$TE2æÖFVÒÓâ°¢6öç7B7FfRÒ6VÆV7FVDBÓÓÒFVÒæC°¢&WGW&â¢Æ'WGFöà¢¶W×¶FVÒæGÐ¢GSÒ&'WGFöâ ¢öä6Æ6³×²Óâöå6VÆV7BFVÒÐ¢6Æ74æÖS×¶6â¢'&÷VæFVBÓ'Â&÷&FW"Ó"FWBÖÆVgBG&ç6Föâ"À¢7FfP¢ò&&÷&FW"ÖVÖW&ÆBÓ3óCR&rÖVÖW&ÆBÓCóB6F÷rÖÆr6F÷rÖVÖW&ÆBÓSó# ¢¢&&÷&FW"×vFRó&r×vFRób÷fW#¦&÷&FW"ÖVÖW&ÆBÓ3ó#R÷fW#¦&rÖVÖW&ÆBÓCó"À¢Ð¢à¢Ç7â6Æ74æÖS×¶Ö"Ó"&Æö6²ÓãR&÷VæFVBÖgVÆÂ&rÖw&FVçB×Fò×"G¶FVÒæ66VçGÖÒóà¢Ç7â6Æ74æÖSÒ&&Æö6²G'Væ6FRFWBÕ³ÒföçBÖ&Æ6²FWB×vFR#à¢¶FVÒçFFÆWÐ¢Â÷7ãà¢Ç7â6Æ74æÖSÒ&×BÓãR&Æö6²ÆæRÖ6Æ×Ó"FWBÕ³ÒÆVFær×FvBFWB×6ÆFRÓS#à¢¶FVÒç7V'FFÆWÐ¢Â÷7ãà¢Âö'WGFöãà¢°¢ÒÐ¢ÂöFcà¢Â÷6V7Föãà¢°§Ð¦gVæ7Föâ&vEæVÂ°¢6VÆV7FVE7÷FgBÀ¢öå6VÆV7E7÷FgÀ¢öä6ÆV%7÷FgÀ§Ó¢°¢6VÆV7FVE7÷FgCó¢7G&æs°¢öå6VÆV7E7÷Fg¢FVÓ¢7÷FgVÖ&VDFVÒÓâföC°¢öä6ÆV%7÷Fg¢ÓâföC°§Ò°¢6öç7B×W62ÒW6TVGT×W62°¢6öç7B·÷WGV&UVW'Â6WE÷WGV&UVW'ÒÒW6U7FFR&Ü;§66&W7GVF"6âÆWG&"°¢6öç7B&VÆFVBÒ×W62æÆÅG&6·0¢æfÇFW"G&6²ÓâG&6²æÖööBÓÓÒ×W62æ7W'&VçEG&6²æÖööBbbG&6²æBÓÒ×W62æ7W'&VçEG&6²æB¢ç6Æ6RÂb° ¢&WGW&â¢Æ6FR6Æ74æÖSÒ&fÆWÖâÖÓÖâ×rÓfÆWÖ6öÂvÓ"ãR÷fW&fÆ÷r×ÖWFò&÷&FW"ÖÂ&÷&FW"×vFRó&rÕ²3#C%ÒÓ"ãRFWB×vFR#à¢Ç6V7Föâ6Æ74æÖSÒ'6&æ²Ó&÷VæFVBÓ'Â&÷&FW"&÷&FW"ÖVÖW&ÆBÓCó#&rÕ²3CseÒÓ2#à¢Ç6Æ74æÖSÒ'FWB×6ÒföçBÖ&Æ6²FWB×vFR#ä'W66"6æ6öæW3Â÷à¢Ç6Æ74æÖSÒ&×BÓFWB×2FWB×6ÆFRÓC#à¢'W66fFV÷2×W66ÆW3¢6F&W7VÇFFò&W&öGV6RfFVòVFòFW6FRÆÖ6ÖgVVçFRFR÷UGV&Rà¢Â÷à¢ÆFb6Æ74æÖSÒ&×BÓ2fÆWvÓ"#à¢ÆçW@¢fÇVS×¶×W62æöæÆæUVW'Ð¢öä6ævS×²RÓâ×W62ç6WDöæÆæUVW'RçF&vWBçfÇVRÐ¢öä¶WF÷vã×²RÓâ°¢bRæ¶WÓÓÒ$VçFW""föB×W62ç6V&6öæÆæR°¢bRæ¶WÓÓÒ$W66R"°¢×W62ç6WDöæÆæUVW'""°¢×W62æ6ÆV$öæÆæU&W7VÇG2°¢Ð¢×Ð¢Æ6VöÆFW#Ò&FFGÂÆöfÂæòÂW7GVFòâââ ¢6Æ74æÖSÒ&Öâ×rÓfÆWÓ&÷VæFVBÖgVÆÂ&÷&FW"&÷&FW"×vFRó&rÖ&Æ6²ó#RÓ2Ó"FWB×2FWB×vFR÷WFÆæRÖæöæRÆ6VöÆFW#§FWB×6ÆFRÓSfö7W3¦&÷&FW"ÖVÖW&ÆBÓCóc ¢óà¢Æ'WGFöà¢GSÒ&'WGFöâ ¢öä6Æ6³×²ÓâföB×W62ç6V&6öæÆæRÐ¢F6&ÆVC×¶×W62æöæÆæTÆöFæwÐ¢6Æ74æÖSÒ'&÷VæFVBÖgVÆÂ&rÖVÖW&ÆBÓCÓBÓ"FWB×2föçBÖ&Æ6²FWB×6ÆFRÓSF6&ÆVC¦÷6GÓS ¢à¢¶×W62æöæÆæTÆöFærò"âââ"¢$'W66"'Ð¢Âö'WGFöãà¢ÂöFcà¢¶×W62æöæÆæTW'&÷"bbÇ6Æ74æÖSÒ&×BÓ"FWB×2föçBÖ&öÆBFWB×&÷6RÓ3#ç¶×W62æöæÆæTW'&÷'ÓÂ÷çÐ¢ÆFb6Æ74æÖSÒ&×BÓ"fÆWfÆW×w&vÓãRFWBÕ³ÒföçBÖ&Æ6²WW&66RG&6¶ær×vFR#à¢µ°¢²C¢'÷WGV&R"ÂÆ&VÃ¢%fFV÷2"ÒÀ¢²C¢'&WfWr"ÂÆ&VÃ¢$D¢Ö"ÒÀ¢ÒæÖFVÒÓâ°¢6öç7B&÷fFW"ÒFVÒæB2&ÆÂ"Â&gVÆÂ"Â'&WfWr"Â'÷WGV&R#°¢&WGW&â¢Æ'WGFöà¢¶W×¶FVÒæGÐ¢GSÒ&'WGFöâ ¢öä6Æ6³×²Óâ°¢×W62ç6WDöæÆæU&÷fFW$ÖöFR&÷fFW"°¢b×W62æöæÆæUVW'çG&ÒföB×W62ç6V&6öæÆæRVæFVfæVBÂ&÷fFW"°¢×Ð¢6Æ74æÖS×¶6â¢'&÷VæFVBÖgVÆÂÓ"ÓG&ç6Föâ"À¢×W62æöæÆæU&÷fFW$ÖöFRÓÓÒFVÒæ@¢ò&&rÖVÖW&ÆBÓCFWB×6ÆFRÓS ¢¢&&r×vFRóFWB×6ÆFRÓ3÷fW#¦&rÖVÖW&ÆBÓCó"÷fW#§FWBÖVÖW&ÆBÓ#"À¢Ð¢à¢¶FVÒæÆ&VÇÐ¢Âö'WGFöãà¢°¢ÒÐ¢ÂöFcà¢Ç6Æ74æÖSÒ&×BÓ"FWBÕ³ÒÆVFær×&VÆVBFWB×6ÆFRÓS#à¢fFV÷2&W&öGV6R6F6æ6;6â6ö×ÆWF6öâfFVòâD¢ÖW66öÆòVÂVFòFR÷UGV&RFW6FR£SGW&çFR36VwVæF÷2Væ6FVæWFöÜ:F6ÖVçFRÆ6öÆà¢Â÷à¢²×W62æöæÆæUG&6·2æÆVæwFâÇÂ×W62æöæÆæUVW'bb¢Æ'WGFöà¢GSÒ&'WGFöâ ¢öä6Æ6³×²Óâ°¢×W62ç6WDöæÆæUVW'""°¢×W62æ6ÆV$öæÆæU&W7VÇG2°¢×Ð¢6Æ74æÖSÒ&×BÓ"FWBÕ³ÒföçBÖ&Æ6²FWB×6ÆFRÓCG&ç6Föâ÷fW#§FWB×&÷6RÓ# ¢à¢Æ×",;§7VVF&W7VÇFF÷0¢Âö'WGFöãà¢Ð¢Â÷6V7Föãà ¢Ç6V7Föâ6Æ74æÖSÒ&fÆWÖâÖÓfÆWÕ³ãcUÒfÆWÖ6öÂ&÷VæFVBÓ'Â&÷&FW"&÷&FW"×vFRó&rÕ²3CseÒÓ2#à¢ÆFb6Æ74æÖSÒ&Ö"Ó"fÆWFV×2Ö6VçFW"§W7FgÖ&WGvVVâ#à¢Ç6Æ74æÖSÒ'FWB×6ÒföçBÖ&Æ6²FWB×vFR#å&W7VÇFF÷2öæÆæSÂ÷à¢Æ'WGFöà¢GSÒ&'WGFöâ ¢öä6Æ6³×²Óâ°¢×W62ç6WE6VÆV7FVEÆÆ7DB'ÂÖöæÆæR"°¢×W62ç6WEfWr'6V&6"°¢×Ð¢6Æ74æÖSÒ'FWB×2föçBÖ&öÆBFWBÖVÖW&ÆBÓ3÷fW#§VæFW&ÆæR ¢à¢fW"FöF÷0¢Âö'WGFöãà¢ÂöFcà¢ÆFb6Æ74æÖSÒ&ÖâÖÓfÆWÓ÷fW&fÆ÷r×ÖWFò"Ó#à¢Å6FV&%G&6´Æ7BG&6·3×¶×W62æöæÆæUG&6·2æÆVæwFò×W62æöæÆæUG&6·2¢&VÆFVGÒÆÖC×³'Òóà¢ÂöFcà¢Â÷6V7Föãà ¢Å7÷FgVÖ&VG26VÆV7FVDC×·6VÆV7FVE7÷FgGÒöå6VÆV7C×¶öå6VÆV7E7÷FgÒöä6ÆV#×¶öä6ÆV%7÷FgÒóà ¢Ç6V7Föâ6Æ74æÖSÒ'6&æ²Ó&÷VæFVBÓ'Â&÷&FW"&÷&FW"×vFRó&rÕ²3CseÒÓ2#à¢Ç6Æ74æÖSÒ'FWB×6ÒföçBÖ&Æ6²FWB×vFR#ä÷&7VVæÂ÷à¢ÆFb6Æ74æÖSÒ&×BÓ2fÆWFV×2Ö6VçFW"vÓ2#à¢Ä6÷fW"G&6³×¶×W62æ7W'&VçEG&6·Ò6¦SÒ&Ær"óà¢ÆFb6Æ74æÖSÒ&Öâ×rÓfÆWÓ#à¢Ç6Æ74æÖSÒ'G'Væ6FRFWB×6ÒföçBÖ&Æ6²FWBÖVÖW&ÆBÓ3#ç¶×W62æ7W'&VçEG&6²çFFÆWÓÂ÷à¢Ç6Æ74æÖSÒ'G'Væ6FRFWB×2FWB×6ÆFRÓ3#ç¶×W62æ7W'&VçEG&6²æ'F7GÓÂ÷à¢Ç6Æ74æÖSÒ'G'Væ6FRFWBÕ³ÒFWB×6ÆFRÓS#ç¶×W62æ7W'&VçEG&6²æÆ'V×ÓÂ÷à¢ÂöFcà¢ÂöFcà¢¶×W62æ7W'&VçEG&6²æWFW&æÅW&Âbb¢Æ¢&Vc×¶×W62æ7W'&VçEG&6²æWFW&æÅW&ÇÐ¢F&vWCÒ%ö&Ææ² ¢&VÃÒ&æ÷&VfW'&W" ¢6Æ74æÖSÒ&×BÓ2æÆæRÖfÆWFV×2Ö6VçFW"vÓFWB×2föçBÖ&öÆBFWBÖVÖW&ÆBÓ3÷fW#§VæFW&ÆæR ¢à¢'&"gVVçFRÄWFW&æÄÆæ²6Æ74æÖSÒ&Ó2rÓ2"óà¢Âöà¢Ð¢Â÷6V7Föãà ¢Ç6V7Föâ6Æ74æÖSÒ'6&æ²Ó&÷VæFVBÓ'Â&÷&FW"&÷&FW"×vFRó&rÕ²3CseÒÓ2#à¢Ç6Æ74æÖSÒ'FWB×6ÒföçBÖ&Æ6²FWB×vFR#ägVVçFW2WFW&æ3Â÷à¢ÆFb6Æ74æÖSÒ&×BÓ"fÆWvÓ"#à¢ÆçW@¢fÇVS×·÷WGV&UVW'Ð¢öä6ævS×²RÓâ6WE÷WGV&UVW'RçF&vWBçfÇVRÐ¢Æ6VöÆFW#Ò$'W66"Vâ÷UGV&R ¢6Æ74æÖSÒ&Öâ×rÓfÆWÓ&÷VæFVBÖgVÆÂ&÷&FW"&÷&FW"×vFRó&rÖ&Æ6²ó#RÓ2Ó"FWB×2FWB×vFR÷WFÆæRÖæöæRÆ6VöÆFW#§FWB×6ÆFRÓS ¢óà¢Æ¢&Vc×·÷WGV&U6V&6W&Â÷WGV&UVW'Ð¢F&vWCÒ%ö&Ææ² ¢&VÃÒ&æ÷&VfW'&W" ¢6Æ74æÖSÒ'&÷VæFVBÖgVÆÂ&r×vFRóÓ2Ó"FWB×2föçBÖ&öÆBFWB×6ÆFRÓ#÷fW#¦&rÖVÖW&ÆBÓCó÷fW#§FWBÖVÖW&ÆBÓ# ¢à¢'& ¢Âöà¢ÂöFcà¢ÆFb6Æ74æÖSÒ&×BÓ"ÖÖÕ³Ò76R×Ó÷fW&fÆ÷r×ÖWFò"Ó#à¢´UDU$äÅôÕU45ô4ôÄÄT5Dôå2æÖFVÒÓâ¢Æ¢¶W×¶FVÒæGÐ¢&Vc×¶FVÒçW&ÇÐ¢F&vWCÒ%ö&Ææ² ¢&VÃÒ&æ÷&VfW'&W" ¢6Æ74æÖSÒ&fÆWFV×2Ö6VçFW"§W7FgÖ&WGvVVâvÓ"&÷VæFVB×ÂÓ"ÓãRFWB×2÷fW#¦&r×vFRór ¢à¢Ç7â6Æ74æÖSÒ&Öâ×rÓ#à¢Ç7â6Æ74æÖSÒ&&Æö6²G'Væ6FRföçBÖ&öÆBFWB×6ÆFRÓ##ç¶FVÒææÖWÓÂ÷7ãà¢Ç7â6Æ74æÖSÒ&&Æö6²G'Væ6FRFWBÕ³ÒFWB×6ÆFRÓS#ç¶FVÒç&÷fFW'ÓÂ÷7ãà¢Â÷7ãà¢ÄWFW&æÄÆæ²6Æ74æÖSÒ&Ó2ãRrÓ2ãRFWB×6ÆFRÓS"óà¢Âöà¢Ð¢ÂöFcà¢Â÷6V7Föãà¢Âö6FSà¢°§Ð ¦gVæ7Föâ&öw&W75&ævR°¢7W'&VçEFÖRÀ¢GW&FöâÀ¢öå6VV²À¢6ö×7BÒfÇ6RÀ§Ó¢°¢7W'&VçEFÖS¢çVÖ&W#°¢GW&Föã¢çVÖ&W#°¢öå6VV³¢6V6öæG3¢çVÖ&W"ÓâföC°¢6ö×7Có¢&ööÆVã°§Ò°¢6öç7B6fTGW&FöâÒÖFæÖÂGW&FöâÇÂ°¢6öç7BfÇVRÒÖFæÖâ7W'&VçEFÖRÇÂÂ6fTGW&Föâ°¢6öç7B&öw&W72ÒÖFæÖâÂfÇVRò6fTGW&Föâ¢° ¢&WGW&â¢ÆFb6Æ74æÖSÒ'&VÆFfRÖâ×rÓfÆWÓ#à¢ÆFb6Æ74æÖS×¶6â&'6öÇWFRÆVgBÓ&vBÓF÷Óó"×G&ç6ÆFR×Óó"÷fW&fÆ÷rÖFFVâ&÷VæFVBÖgVÆÂ&r×vFRób"Â6ö×7Bò&ÓãR"¢&Ó""Óâ ¢ÆF`¢6Æ74æÖSÒ&ÖgVÆÂ&÷VæFVBÖgVÆÂ&rÖw&FVçB×Fò×"g&öÒÖVÖW&ÆBÓCfÖ7âÓ3Fò×föÆWBÓC6F÷rÕ³óóG÷&v&S"Ã#ÃS2ÂãCRÒ ¢7GÆS×·²vGF¢G·&öw&W77ÒV×Ð¢óà¢ÂöFcà¢ÆçW@¢GSÒ'&ævR ¢ÖãÒ# ¢Ö×·6fTGW&FöçÐ¢7FWÒ# ¢fÇVS×·fÇVWÐ¢öä6ævS×²RÓâöå6VV²çVÖ&W"RçF&vWBçfÇVRÐ¢6Æ74æÖS×¶6â'&VÆFfR¢ÓrÖgVÆÂ7W'6÷"×öçFW"÷6GÓ"Â6ö×7Bò&ÓB"¢&ÓR"Ð¢&ÖÆ&VÃÒ%&öw&W6ò ¢óà¢ÂöFcà¢°§Ð ¦gVæ7Föâ&÷GFöÕÆW"°¢6öç7B×W62ÒW6TVGT×W62°¢6öç7BGW&FöâÒGW&Föäf÷%ÆW"×W62æ7W'&VçEG&6²Â×W62æGW&Föå6V6öæG2° ¢&WGW&â¢Æfö÷FW"6Æ74æÖSÒ&fÆWÕ³sgÒ6&æ²ÓFV×2Ö6VçFW"vÓB&÷&FW"×B&÷&FW"×vFRó&rÕ²3SsÒÓBFWB×vFR#à¢ÆFb6Æ74æÖSÒ&fÆWÖâ×rÓFV×2Ö6VçFW"vÓ2"7GÆS×·²vGF¢3#×Óà¢Ä6÷fW"G&6³×¶×W62æ7W'&VçEG&6·Ò6¦SÒ&ÖB"óà¢ÆFb6Æ74æÖSÒ&Öâ×rÓfÆWÓ#à¢Ç6Æ74æÖSÒ'G'Væ6FRFWB×6ÒföçBÖ&Æ6²FWB×vFR#ç¶×W62æ7W'&VçEG&6²çFFÆWÓÂ÷à¢Ç6Æ74æÖSÒ'G'Væ6FRFWB×2FWB×6ÆFRÓC#ç¶×W62æ7W'&VçEG&6²æ'F7GÒ+r·6÷W&6TÆ&VÂ×W62æ7W'&VçEG&6²ç6÷W&6RÓÂ÷à¢ÂöFcà¢Æ'WGFöà¢GSÒ&'WGFöâ ¢öä6Æ6³×²Óâ×W62çFövvÆTÆ¶R×W62æ7W'&VçEG&6²æBÐ¢6Æ74æÖS×¶6â'FWB×6ÆFRÓS÷fW#§FWBÖVÖW&ÆBÓ3"Â×W62æÆ¶VBæ2×W62æ7W'&VçEG&6²æBbb'FWBÖVÖW&ÆBÓ3"Ð¢à¢ÄV'B6Æ74æÖSÒ&ÓBrÓB"fÆÃ×¶×W62æÆ¶VBæ2×W62æ7W'&VçEG&6²æBò&7W'&VçD6öÆ÷""¢&æöæR'Òóà¢Âö'WGFöãà¢ÂöFcà ¢ÆFb6Æ74æÖSÒ&Öâ×rÓfÆWÓ#à¢ÆFb6Æ74æÖSÒ&fÆWFV×2Ö6VçFW"§W7FgÖ6VçFW"vÓ2#à¢Ä6öä'WGFöâöä6Æ6³×²Óâ×W62ç6WE6VffÆRfÇVRÓâfÇVRÒ7FfS×¶×W62ç6VffÆWÓà¢Å6VffÆR6Æ74æÖSÒ&ÓBrÓB"óà¢Âô6öä'WGFöãà¢Ä6öä'WGFöâöä6Æ6³×¶×W62ç&WeG&6·Óà¢Å6¶&6²6Æ74æÖSÒ&ÓBrÓB"fÆÃÒ&7W'&VçD6öÆ÷""óà¢Âô6öä'WGFöãà¢ÅÆ'WGFöâ6¦SÒ&Ær"óà¢Ä6öä'WGFöâöä6Æ6³×¶×W62ææWEG&6·Óà¢Å6¶f÷'v&B6Æ74æÖSÒ&ÓBrÓB"fÆÃÒ&7W'&VçD6öÆ÷""óà¢Âô6öä'WGFöãà¢Ä6öä'WGFöà¢öä6Æ6³×²Óâ×W62ç6WE&WVB×W62ç&WVBÓÓÒ&öfb"ò&ÆÂ"¢×W62ç&WVBÓÓÒ&ÆÂ"ò&öæR"¢&öfb"Ð¢7FfS×¶×W62ç&WVBÓÒ&öfb'Ð¢à¢Å&WVB6Æ74æÖSÒ&ÓBrÓB"óà¢Âô6öä'WGFöãà¢ÂöFcà¢ÆFb6Æ74æÖSÒ&×BÓfÆWFV×2Ö6VçFW"vÓ"FWBÕ³ÒFWB×6ÆFRÓS#à¢Ç7â6Æ74æÖSÒ'rÓFWB×&vB#ç¶f÷&ÖE6V6öæG2×W62æ7W'&VçEFÖRÓÂ÷7ãà¢Å&öw&W75&ævR7W'&VçEFÖS×¶×W62æ7W'&VçEFÖWÒGW&Föã×¶GW&FöçÒöå6VV³×¶×W62ç6VVµF÷Òóà¢Ç7â6Æ74æÖSÒ'rÓ#ç¶f÷&ÖE6V6öæG2GW&FöâÓÂ÷7ãà¢ÂöFcà¢ÂöFcà ¢ÆFb6Æ74æÖSÒ&FFVâFV×2Ö6VçFW"§W7FgÖVæBvÓ2"ÓBÃ¦fÆW"7GÆS×·²vGF¢3#×Óà¢ÄÆ7D×W626Æ74æÖSÒ&ÓBrÓBFWB×6ÆFRÓS"óà¢ÅföÇVÖS"6Æ74æÖSÒ&ÓBrÓBFWB×6ÆFRÓS"óà¢ÆçW@¢GSÒ'&ævR ¢ÖãÒ# ¢ÖÒ# ¢7FWÒ#ã ¢fÇVS×¶×W62çföÇVÖWÐ¢öä6ævS×²RÓâ×W62ç6WEföÇVÖRçVÖ&W"RçF&vWBçfÇVRÐ¢6Æ74æÖSÒ'rÓ#B66VçBÖVÖW&ÆBÓC ¢óà¢ÂöFcà¢Âöfö÷FW#à¢°§Ð ¦gVæ7FöâFEFõÆÆ7D&"°¢6öç7B×W62ÒW6TVGT×W62°¢b×W62çVæFæuG&6´B&WGW&âçVÆÃ°¢6öç7BG&6²Ò×W62æÆÅG&6·2æfæBFVÒÓâFVÒæBÓÓÒ×W62çVæFæuG&6´B°¢&WGW&â¢ÆFb6Æ74æÖSÒ&fVB&÷GFöÒÓ#BÆVgBÓó"¢ÓSrÕ¶Öâ'grÃs#Ò×G&ç6ÆFR×Óó"&÷VæFVBÓ'Â&÷&FW"&÷&FW"ÖVÖW&ÆBÓCó#&rÕ²33ÒÓ2FWB×vFR6F÷rÓ'Â#à¢ÆFb6Æ74æÖSÒ&fÆWFV×2Ö6VçFW"§W7FgÖ&WGvVVâvÓ"#à¢Ç6Æ74æÖSÒ'FWB×2föçBÖ&öÆB#äw&Vv"·G&6³òçFFÆRóò&6æ6;6â'ÒÆÆ7C£Â÷à¢Æ'WGFöâGSÒ&'WGFöâ"öä6Æ6³×²Óâ×W62ç6WEVæFæuG&6´BçVÆÂÒ6Æ74æÖSÒ'&÷VæFVBÖgVÆÂÓ"FWB×6ÆFRÓC÷fW#¦&r×vFRó#à¢9p¢Âö'WGFöãà¢ÂöFcà¢ÆFb6Æ74æÖSÒ&×BÓ"fÆWfÆW×w&vÓ"#à¢Æ'WGFöâGSÒ&'WGFöâ"öä6Æ6³×²Óâ×W62æFEFõÆÆ7B'ÂÖÆ¶VB"Â×W62çVæFæuG&6´BÒ6Æ74æÖSÒ'&÷VæFVBÖgVÆÂ&rÖVÖW&ÆBÓCÓ2ÓãRFWB×2föçBÖ&Æ6²FWB×6ÆFRÓS#à¢)RÖRwW7F¢Âö'WGFöãà¢¶×W62çW6W%ÆÆ7G2æÖÆÆ7BÓâ¢Æ'WGFöâ¶W×·ÆÆ7BæGÒGSÒ&'WGFöâ"öä6Æ6³×²Óâ×W62æFEFõÆÆ7BÆÆ7BæBÂ×W62çVæFæuG&6´BÒ6Æ74æÖSÒ'&÷VæFVBÖgVÆÂ&r×vFRóÓ2ÓãRFWB×2föçBÖ&öÆB÷fW#¦&r×vFRóR#à¢·ÆÆ7BææÖWÐ¢Âö'WGFöãà¢Ð¢Æ'WGFöâGSÒ&'WGFöâ"öä6Æ6³×²Óâ×W62ç6WD7&VFT÷VâG'VRÒ6Æ74æÖSÒ'&÷VæFVBÖgVÆÂ&r×vFRóÓ2ÓãRFWB×2föçBÖ&öÆB÷fW#¦&rÖVÖW&ÆBÓCóR÷fW#§FWBÖVÖW&ÆBÓ##à¢²çVWf¢Âö'WGFöãà¢ÂöFcà¢ÂöFcà¢°§Ð ¦gVæ7FöâÖæ&"²öä÷VåæVÂÓ¢²öä÷VåæVÃó¢ÓâföBÒ°¢6öç7B×W62ÒW6TVGT×W62°¢6öç7B¶6öÆÆ6VBÂ6WD6öÆÆ6VEÒÒW6U7FFRfÇ6R°¢6öç7BGW&FöâÒGW&Föäf÷%ÆW"×W62æ7W'&VçEG&6²Â×W62æGW&Föå6V6öæG2° ¢W6TVffV7BÓâ°¢6WD6öÆÆ6VBfÇ6R°¢ÒÂ¶×W62æ7W'&VçEG&6²æEÒ° ¢b6öÆÆ6VB°¢&WGW&â¢ÆFb6Æ74æÖSÒ&fVB&÷GFöÒÓ#&vBÓR¢ÓSfÆWFV×2Ö6VçFW"vÓ&÷VæFVBÖgVÆÂ&÷&FW"&÷&FW"ÖVÖW&ÆBÓ3ó#R&rÕ²3cEÒóRÓãRFWB×vFR6F÷rÓ'Â6F÷rÖVÖW&ÆBÓSó3&6¶G&÷Ö&ÇW"×Â#à¢Æ'WGFöà¢GSÒ&'WGFöâ ¢öä6Æ6³×²Óâ6WD6öÆÆ6VBfÇ6RÐ¢6Æ74æÖSÒ&fÆWFV×2Ö6VçFW"vÓ"&÷VæFVBÖgVÆÂÓ"ÓFWBÖÆVgB÷fW#¦&r×vFRó ¢FFÆSÒ%&W7FW&"&W&öGV7F÷" ¢&ÖÆ&VÃÒ%&W7FW&"&W&öGV7F÷"FRÜ;§66 ¢à¢Ä6÷fW"G&6³×¶×W62æ7W'&VçEG&6·Ò6¦SÒ'2"óà¢Ç7â6Æ74æÖSÒ&FFVâÖ×rÕ³SÒG'Væ6FRFWBÕ³ÒföçBÖ&Æ6²6Ó¦&Æö6²#à¢¶×W62æ7W'&VçEG&6²çFFÆWÐ¢Â÷7ãà¢Âö'WGFöãà¢ÅÆ'WGFöâ6¦SÒ'6Ò"óà¢ÂöFcà¢°¢Ð ¢&WGW&â¢ÆFb6Æ74æÖSÒ&fVB&÷GFöÒÓBÆVgBÓó"¢ÓSrÕ¶ÖâGgrÃc#Ò×G&ç6ÆFR×Óó"&÷VæFVBÓ'Â&÷&FW"&÷&FW"ÖVÖW&ÆBÓ3ó#R&rÕ²3cEÒóRÓ"ãRFWB×vFR6F÷rÓ'Â6F÷rÖVÖW&ÆBÓSó3&6¶G&÷Ö&ÇW"×Â#à¢ÆFb6Æ74æÖSÒ&fÆWFV×2Ö6VçFW"vÓ"#à¢Æ'WGFöà¢GSÒ&'WGFöâ ¢öä6Æ6³×¶öä÷VåæVÇÐ¢6Æ74æÖSÒ&fÆWÖâ×rÓfÆWÓFV×2Ö6VçFW"vÓ"FWBÖÆVgB ¢FFÆSÒ$'&"&W&öGV7F÷" ¢à¢Ä6÷fW"G&6³×¶×W62æ7W'&VçEG&6·Ò6¦SÒ'6Ò"óà¢Ç7â6Æ74æÖSÒ&Öâ×rÓ#à¢Ç7â6Æ74æÖSÒ&&Æö6²G'Væ6FRFWB×2föçBÖ&Æ6²FWB×vFR#ç¶×W62æ7W'&VçEG&6²çFFÆWÓÂ÷7ãà¢Ç7â6Æ74æÖSÒ&&Æö6²G'Væ6FRFWBÕ³ÒFWB×6ÆFRÓC#ç¶×W62æ7W'&VçEG&6²æ'F7GÓÂ÷7ãà¢Â÷7ãà¢Âö'WGFöãà ¢ÆFb6Æ74æÖSÒ&fÆWFV×2Ö6VçFW"vÓ#à¢Ä6öä'WGFöâöä6Æ6³×¶×W62ç&WeG&6·Óà¢Å6¶&6²6Æ74æÖSÒ&Ó2ãRrÓ2ãR"fÆÃÒ&7W'&VçD6öÆ÷""óà¢Âô6öä'WGFöãà¢ÅÆ'WGFöâ6¦SÒ'6Ò"óà¢Ä6öä'WGFöâöä6Æ6³×¶×W62ææWEG&6·Óà¢Å6¶f÷'v&B6Æ74æÖSÒ&Ó2ãRrÓ2ãR"fÆÃÒ&7W'&VçD6öÆ÷""óà¢Âô6öä'WGFöãà¢ÂöFcà ¢ÆFb6Æ74æÖSÒ&FFVâFV×2Ö6VçFW"vÓÂÓ6Ó¦fÆW#à¢ÅföÇVÖS"6Æ74æÖSÒ&Ó2ãRrÓ2ãRFWB×6ÆFRÓC"óà¢ÆçW@¢GSÒ'&ævR ¢ÖãÒ# ¢ÖÒ# ¢7FWÒ#ã ¢fÇVS×¶×W62çföÇVÖWÐ¢öä6ævS×²RÓâ×W62ç6WEföÇVÖRçVÖ&W"RçF&vWBçfÇVRÐ¢6Æ74æÖSÒ'rÓ#66VçBÖVÖW&ÆBÓC ¢&ÖÆ&VÃÒ%föÇVÖVâ ¢óà¢ÂöFcà ¢Æ'WGFöà¢GSÒ&'WGFöâ ¢öä6Æ6³×²Óâ6WD6öÆÆ6VBG'VRÐ¢6Æ74æÖSÒ&æÆæRÖfÆWÓrÓ6&æ²ÓFV×2Ö6VçFW"§W7FgÖ6VçFW"&÷VæFVBÖgVÆÂ&r×vFRóFWBÖ&6RföçBÖ&Æ6²ÆVFærÖæöæRFWB×6ÆFRÓ3G&ç6Föâ÷fW#¦&r×vFRóR÷fW#§FWB×vFR ¢FFÆSÒ$ÖæÖ¦"&W&öGV7F÷" ¢&ÖÆ&VÃÒ$ÖæÖ¦"&W&öGV7F÷"FRÜ;§66 ¢à¢( ¢Âö'WGFöãà¢ÂöFcà ¢ÆFb6Æ74æÖSÒ&×BÓ"fÆWFV×2Ö6VçFW"vÓ"FWBÕ³ÒFWB×6ÆFRÓS#à¢Ç7â6Æ74æÖSÒ'rÓFWB×&vB#ç¶f÷&ÖE6V6öæG2×W62æ7W'&VçEFÖRÓÂ÷7ãà¢Å&öw&W75&ævR7W'&VçEFÖS×¶×W62æ7W'&VçEFÖWÒGW&Föã×¶GW&FöçÒöå6VV³×¶×W62ç6VVµF÷Ò6ö×7Bóà¢Ç7â6Æ74æÖSÒ'rÓ#ç¶f÷&ÖE6V6öæG2GW&FöâÓÂ÷7ãà¢ÂöFcà¢ÂöFcà¢°§Ð ¦gVæ7Föâ6ö×7EæVÂ²öä÷VåæVÂÓ¢²öä÷VåæVÃó¢ÓâföBÒ°¢6öç7B×W62ÒW6TVGT×W62°¢6öç7BG&6·2Ò×W62çfWrÓÓÒ&Æ¶VB"ò×W62æÆÅG&6·2æfÇFW"G&6²Óâ×W62æÆ¶VBæ2G&6²æB¢×W62çfWrÓÓÒ'VWVR"ò×W62çVWVR¢×W62çf6&ÆUG&6·3°¢&WGW&â¢ÆFb6Æ74æÖSÒ&ÖgVÆÂ÷fW&fÆ÷rÖFFVâ&÷VæFVBÓ'Â&÷&FW"&÷&FW"×vFRó&rÕ²33SEÒFWB×vFR6F÷r×Â#à¢ÆFb6Æ74æÖSÒ&fÆWÖgVÆÂfÆWÖ6öÂ#à¢ÆFb6Æ74æÖSÒ&&÷&FW"Ö"&÷&FW"×vFRóÓ2#à¢ÆFb6Æ74æÖSÒ&fÆWFV×2Ö6VçFW"§W7FgÖ&WGvVVâvÓ"#à¢Æ'WGFöâGSÒ&'WGFöâ"öä6Æ6³×¶öä÷VåæVÇÒ6Æ74æÖSÒ&Öâ×rÓFWBÖÆVgB#à¢Ç6Æ74æÖSÒ'FWB×6ÒföçBÖ&Æ6²FWB×vFR#äVGT×W63Â÷à¢Ç6Æ74æÖSÒ'G'Væ6FRFWBÕ³ÒFWB×6ÆFRÓC#ç¶×W62æ7W'&VçEG&6²çFFÆWÓÂ÷à¢Âö'WGFöãà¢ÄÆæ²&VcÒ"ö×W62"6Æ74æÖSÒ'&÷VæFVBÖgVÆÂ&rÖVÖW&ÆBÓCÓ2ÓãRFWBÕ³ÒföçBÖ&Æ6²FWB×6ÆFRÓS÷fW#¦&rÖVÖW&ÆBÓ3#à¢'& ¢ÂôÆæ³à¢ÂöFcà¢ÂöFcà¢ÆFb6Æ74æÖSÒ&ÖâÖÓfÆWÓ÷fW&fÆ÷r×ÖWFòÓ2#à¢Å6FV&%G&6´Æ7BG&6·3×·G&6·7ÒÆÖC×³'Òóà¢ÂöFcà¢ÆFb6Æ74æÖSÒ&&÷&FW"×B&÷&FW"×vFRóÓ2#à¢ÆFb6Æ74æÖSÒ&fÆWFV×2Ö6VçFW"vÓ"#à¢Ä6÷fW"G&6³×¶×W62æ7W'&VçEG&6·Ò6¦SÒ'6Ò"óà¢ÆFb6Æ74æÖSÒ&Öâ×rÓfÆWÓ#à¢Ç6Æ74æÖSÒ'G'Væ6FRFWB×2föçBÖ&Æ6²FWB×vFR#ç¶×W62æ7W'&VçEG&6²çFFÆWÓÂ÷à¢Ç6Æ74æÖSÒ'G'Væ6FRFWBÕ³ÒFWB×6ÆFRÓC#ç¶×W62æ7W'&VçEG&6²æ'F7GÓÂ÷à¢ÂöFcà¢ÅÆ'WGFöâ6¦SÒ'6Ò"óà¢ÂöFcà¢ÂöFcà¢ÂöFcà¢ÄFEFõÆÆ7D&"óà¢ÂöFcà¢°§Ð ¦W÷'BFVfVÇBgVæ7FöâVGT×W65ÆW"°¢ÖöFRÒ'vR"À¢6÷tÖævVå7F÷VBÒfÇ6RÀ¢öä÷VåæVÂÀ§Ó¢&÷2°¢6öç7B×W62ÒW6TVGT×W62°¢6öç7B·6VÆV7FVE7÷FgVÖ&VBÂ6WE6VÆV7FVE7÷FgVÖ&VEÒÒW6U7FFSÅ7÷FgVÖ&VDFVÒÂçVÆÃâçVÆÂ°¢6öç7B6WEVæFæuG&6´BÒ×W62ç6WEVæFæuG&6´C° ¢W6TVffV7BÓâ°¢bÖöFRÓÓÒ'vR"6WEVæFæuG&6´BçVÆÂ°¢ÒÂ¶ÖöFRÂ6WEVæFæuG&6´EÒ° ¢òò7÷FgffR6öÖòVæf7FFV×÷&ÂâÂæfVv"ÂVÆVv"÷G&ÆÆ7Bð¢òò&W&öGV6"Væ6æ6;6âÂFW6ÖöçFÖ÷2VÂg&ÖR&VRæòVVFRf6&ÆRæ¢òò6v6&væFòVâ6VwVæFòÆæòà¢W6TVffV7BÓâ°¢6WE6VÆV7FVE7÷FgVÖ&VBçVÆÂ°¢ÒÂ¶×W62æ7W'&VçEG&6²æBÂ×W62ç6VÆV7FVEÆÆ7DBÂ×W62çfWuÒ° ¢6öç7BG&6·4f÷$ÖâÒW6TÖVÖòÓâ°¢b×W62çfWrÓÓÒ&Æ¶VB"&WGW&â×W62æÆÅG&6·2æfÇFW"G&6²Óâ×W62æÆ¶VBæ2G&6²æB°¢b×W62çfWrÓÓÒ'VWVR"&WGW&â×W62çVWVS°¢&WGW&â×W62çf6&ÆUG&6·3°¢ÒÂ¶×W62æÆÅG&6·2Â×W62æÆ¶VBÂ×W62çVWVRÂ×W62çfWrÂ×W62çf6&ÆUG&6·5Ò° ¢bÖöFRÓÓÒ&Öæ"°¢6öç7B6÷VÆE6÷tÖæÐ¢×W62çÆærÇÂ6÷tÖævVå7F÷VBbb×W62æ47FfU6W76öâ°¢b6÷VÆE6÷tÖæ&WGW&âçVÆÃ°¢&WGW&âÄÖæ&"öä÷VåæVÃ×¶öä÷VåæVÇÒóã°¢Ð¢bÖöFRÓÓÒ'æVÂ"&WGW&âÄ6ö×7EæVÂöä÷VåæVÃ×¶öä÷VåæVÇÒóã° ¢&WGW&â¢ÆFb6Æ74æÖSÒ&×67&VVâÖâÖÕ³cÒ÷fW&fÆ÷rÖFFVâ&rÕ²3SsÒFWB×vFR#à¢Ç7GÆR§7vÆö&Ãç¶ ¢¶Wg&ÖW2VGVÖF¢×&öw&W72°¢g&öÒ²G&ç6f÷&Ó¢66ÆU²Ð¢Fò²G&ç6f÷&Ó¢66ÆU²Ð¢Ð¢ÓÂ÷7GÆSà¢ÆFb6Æ74æÖSÒ&fÆWÖgVÆÂfÆWÖ6öÂ#à¢ÅF÷&"óà¢ÆF`¢6Æ74æÖSÒ&w&BÖâÖÓfÆWÓ÷fW&fÆ÷rÖFFVâ ¢7GÆS×·²w&EFV×ÆFT6öÇVÖç3¢##ÖæÖÂg"3#"×Ð¢à¢Å6FV&"G&6·3×·G&6·4f÷$ÖçÒóà¢ÄÖåæVÀ¢G&6·3×·G&6·4f÷$ÖçÐ¢7÷FgVÖ&VC×·6VÆV7FVE7÷FgVÖ&VGÐ¢öä6ÆV%7÷Fg×²Óâ6WE6VÆV7FVE7÷FgVÖ&VBçVÆÂÐ¢óà¢Å&vEæVÀ¢6VÆV7FVE7÷FgC×·6VÆV7FVE7÷FgVÖ&VCòæGÐ¢öå6VÆV7E7÷Fg×·6WE6VÆV7FVE7÷FgVÖ&VGÐ¢öä6ÆV%7÷Fg×²Óâ6WE6VÆV7FVE7÷FgVÖ&VBçVÆÂÐ¢óà¢ÂöFcà¢¶×W62æ7W'&VçEG&6²ç6÷W&6RÓÒ'÷WGV&R"bbÄ&÷GFöÕÆW"óçÐ¢ÂöFcà¢ÄFEFõÆÆ7D&"óà¢ÂöFcà¢°§Ð￿
