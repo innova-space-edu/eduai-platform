@@ -1119,7 +1119,7 @@ export function detectToolFromMessage(message: string): ToolName | null {
     return "recommend_focus_music";
   if (/narr(a|ar|e)|escuchar|lee en voz|audio/i.test(m)) return "narrate_text";
   if (
-    /genera(r)?\s*(una\s*)?(imagen|ilustraci[oó]n|afiche|poster)|crear\s*(imagen|ilustraci[oó]n)/i.test(
+    /(?:genera(r)?|crea(r)?|haz|diseña)\s*(una\s*)?(imagen|ilustraci[oó]n|afiche|p[oó]ster|infograf[ií]a|portada|visual)/i.test(
       m,
     )
   )
