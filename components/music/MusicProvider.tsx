@@ -257,6 +257,10 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const youtubeReadyRef = useRef(false);
   const youtubeVideoIdRef = useRef<string>("");
   const youtubeRetryRef = useRef(0);
+  // YouTube emite ENDED, PAUSED y a veces ERROR durante un mismo cambio de
+  // clip. Este candado evita que esos eventos atrasados avancen dos o más
+  // canciones de la cola DJ.
+  const youtubeTransitionUntilRef = useRef(0);
   const playingRef = useRef(false);
   const hlsRef = useRef<any>(null);
   const nextTrackRef = useRef<() => void>(() => {});
@@ -626,6 +630,8 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       if (isYouTubeQueueTrack(track)) {
         setShuffle(true);
         setRepeat("all");
+        // Si veníamos de otro video, ignoramos el evento de cierre atrasado.
+        youtubeTransitionUntilRef.current = Date.now() + 1400;
       }
 
       if (isEmbedTrack(track)) {
@@ -686,6 +692,13 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   );
 
   const nextTrack = useCallback(() => {
+    if (isYouTubeQueueTrack(currentTrack)) {
+      const now = Date.now();
+      if (now < youtubeTransitionUntilRef.current) return;
+      // Mantiene el candado hasta que el nuevo clip ya esté montado. Es corto
+      // para que el botón Siguiente siga sintiéndose inmediato.
+      youtubeTransitionUntilRef.current = now + 1400;
+    }
     setHasActiveSession(true);
     // En DJ y Videos la cola debe pasar a otra pista aunque el usuario haya
     // dejado activado "repetir una" en una sesión anterior.
@@ -748,6 +761,9 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   }, [nextTrack]);
 
   const prevTrack = useCallback(() => {
+    if (isYouTubeQueueTrack(currentTrack)) {
+      youtubeTransitionUntilRef.current = Date.now() + 1400;
+    }
     setHasActiveSession(true);
     const list = queue.length
       ? queue
@@ -838,10 +854,14 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
               // actualiza el estado. Ignoramos la pausa transitoria que emite
               // YouTube al cargar el siguiente video de la cola.
               if (state === window.YT?.PlayerState?.ENDED) {
+                const reportedId = event.target?.getVideoData?.()?.video_id;
+                if (reportedId && reportedId !== youtubeVideoIdRef.current) return;
                 nextTrackRef.current();
               }
             },
-            onError: () => {
+            onError: (event: any) => {
+              const reportedId = event.target?.getVideoData?.()?.video_id;
+              if (reportedId && reportedId !== youtubeVideoIdRef.current) return;
               nextTrackRef.current();
             },
           },
