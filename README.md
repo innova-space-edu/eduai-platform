@@ -85,7 +85,7 @@
 | 📄 **Chat Paper** | `/paper` | Conversación con PDFs académicos con extracción y análisis |
 | 📝 **Examen Estudiante** | `/examen` | Modo examen completo con timer, corrección IA y retroalimentación |
 | 📋 **Examen Docente** | `/examen/docente` | Crea pruebas con IA, comparte link y recibe notas automáticas |
-| 🦅 **Chat Global Claw** | `/chat-global` | Chat central tipo ChatGPT conectado a agentes, código, imagen, video, música y evaluación |
+| ✦ **Open EDUAI Work** | `/chat-global` | Espacio integral para investigar con fuentes, crear, colaborar y ejecutar acciones con el motor Claw |
 | 🎵 **EduAI Music** | `/music` | Reproductor persistente con biblioteca, playlists, buscador online y Spotify embeds |
 | 🎨 **Creator Hub** | `/creator-hub` | Generación de materiales educativos: infografías, PPT, podcast, mapas, flashcards y más |
 | 🎙️ **Audio Lab** | `/audio-lab` | Transcribe audio/video, edita y exporta en formatos educativos |
@@ -125,18 +125,19 @@
 
 ---
 
-## 💬 Chat Global Claw
+## ✦ Open EDUAI Work
 
 <div align="center">
 
 | Elemento | Función |
 |----------|---------|
 | **Ruta principal** | `/chat-global` |
-| **API** | `/api/superagent/chat` |
-| **Herramientas** | Exámenes, planificación, imagen, video, música, narración, resumen, traducción, código |
-| **Skills rápidas** | Examen PIE/NEE · Música de estudio · Workflow docente · Diagrama académico · Admin Lab |
-| **Panel de agentes** | Accesos a Music, Exámenes, Creator Hub, Image Studio, Video Studio y más |
-| **Integración flotante** | `components/ui/SuperAgentButton.tsx` con pestaña de chat y música |
+| **Modos** | Preguntar · Investigar · Crear · Colaborar · Ejecutar |
+| **APIs** | `/api/superagent/chat` · `/api/work/research` · `/api/work/context` |
+| **Contexto** | Fuentes y resultados del cuaderno activo, citas web y biblioteca lateral |
+| **Herramientas Claw** | Exámenes, planificación, imagen, video, música, narración, resumen, traducción y código |
+| **Organización** | Conversaciones persistentes, tareas por Work, resultados y acceso a salas colaborativas |
+| **Compatibilidad** | Conserva el motor Claw y sus herramientas; cambia la experiencia principal por un espacio de trabajo integral |
 
 </div>
 
@@ -743,7 +744,7 @@ eduai-platform/
 │   ├── agentes/                ← Lista de 18 agentes especializados
 │   ├── ai-social/              ← Chat social de agentes
 │   ├── audio-lab/              ← Audio Lab v2
-│   ├── chat-global/            ← Chat central tipo ChatGPT con SuperAgent
+│   ├── chat-global/            ← Open EDUAI Work: investigación, creación y ejecución con Claw
 │   ├── creator-hub/            ← Creator Hub con formatos educativos
 │   ├── dashboard/              ← Dashboard con sidebar y acceso a Música
 │   ├── educador/               ← Planificador MINEDUC con 113 JSONs
@@ -1045,7 +1046,7 @@ Principiante → Aprendiz → Practicante → Avanzado → Experto → Maestro
 - [x] 📓 **Búsqueda web real** — Serper/Tavily/Investigador y rutas `/api/web/*`
 - [x] 🦾 **EduAI Claw Superagente** — engine · tool registry · guardrails · action-router
 - [x] 🦾 **Skill System inicial** — skills por rol: all/teacher/admin
-- [x] 💬 **Chat Global Claw** — ruta `/chat-global` + `/api/superagent/chat`
+- [x] ✦ **Open EDUAI Work** — ruta `/chat-global`, contexto RAG, búsqueda web y motor Claw
 - [x] 💬 **Chat Social de agentes** — pantalla temática y salas
 - [x] ⚡ **execute-suggested-action** — EduAI Claw ejecuta acciones detectadas
 - [x] 📋 **Examen Groq Primario** — Llama 3.3 70B primario con fallback
