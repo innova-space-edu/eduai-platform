@@ -1172,9 +1172,11 @@ function MainPanel({
 function SpotifyEmbeds({
   selectedId,
   onSelect,
+  onClear,
 }: {
   selectedId?: string;
   onSelect: (item: SpotifyEmbedItem) => void;
+  onClear: () => void;
 }) {
   return (
     <section className="shrink-0 rounded-2xl border border-white/10 bg-[#14171f] p-3">
@@ -1183,9 +1185,19 @@ function SpotifyEmbeds({
           <p className="text-sm font-black text-white">Spotify visual</p>
           <p className="text-[11px] text-slate-500">Toca una lista para abrirla al centro.</p>
         </div>
-        <span className="rounded-full bg-white/8 px-2 py-1 text-[10px] font-black text-slate-400">
-          {SPOTIFY_EMBEDS.length} listas
-        </span>
+        {selectedId ? (
+          <button
+            type="button"
+            onClick={onClear}
+            className="rounded-full bg-white/8 px-2 py-1 text-[10px] font-black text-slate-300 transition hover:bg-rose-400/15 hover:text-rose-200"
+          >
+            Cerrar lista
+          </button>
+        ) : (
+          <span className="rounded-full bg-white/8 px-2 py-1 text-[10px] font-black text-slate-400">
+            {SPOTIFY_EMBEDS.length} listas
+          </span>
+        )}
       </div>
       <div className="grid grid-cols-2 gap-2">
         {SPOTIFY_EMBEDS.map((item) => {
@@ -1219,9 +1231,11 @@ function SpotifyEmbeds({
 function RightPanel({
   selectedSpotifyId,
   onSelectSpotify,
+  onClearSpotify,
 }: {
   selectedSpotifyId?: string;
   onSelectSpotify: (item: SpotifyEmbedItem) => void;
+  onClearSpotify: () => void;
 }) {
   const music = useEduAIMusic();
   const [youtubeQuery, setYoutubeQuery] = useState("música para estudiar sin letra");
@@ -1240,7 +1254,13 @@ function RightPanel({
           <input
             value={music.onlineQuery}
             onChange={(e) => music.setOnlineQuery(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && void music.searchOnline()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void music.searchOnline();
+              if (e.key === "Escape") {
+                music.setOnlineQuery("");
+                music.clearOnlineResults();
+              }
+            }}
             placeholder="daddy, lofi, piano, estudio..."
             className="min-w-0 flex-1 rounded-full border border-white/10 bg-black/25 px-3 py-2 text-xs text-white outline-none placeholder:text-slate-500 focus:border-emerald-400/60"
           />
@@ -1285,6 +1305,18 @@ function RightPanel({
         <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
           Por defecto se buscan canciones completas en Jamendo/Audius. DJ 30s usa previews iTunes y, si hay YouTube API Key, añade visuales tipo reel silenciados.
         </p>
+        {(music.onlineTracks.length > 0 || music.onlineQuery) && (
+          <button
+            type="button"
+            onClick={() => {
+              music.setOnlineQuery("");
+              music.clearOnlineResults();
+            }}
+            className="mt-2 text-[10px] font-black text-slate-400 transition hover:text-rose-200"
+          >
+            Limpiar búsqueda y resultados
+          </button>
+        )}
       </section>
 
       <section className="flex min-h-0 flex-[0.65] flex-col rounded-2xl border border-white/10 bg-[#14171f] p-3">
@@ -1306,7 +1338,7 @@ function RightPanel({
         </div>
       </section>
 
-      <SpotifyEmbeds selectedId={selectedSpotifyId} onSelect={onSelectSpotify} />
+      <SpotifyEmbeds selectedId={selectedSpotifyId} onSelect={onSelectSpotify} onClear={onClearSpotify} />
 
       <section className="shrink-0 rounded-2xl border border-white/10 bg-[#14171f] p-3">
         <p className="text-sm font-black text-white">Ahora suena</p>
@@ -1638,6 +1670,13 @@ export default function EduAIMusicPlayer({
     if (mode === "page") setPendingTrackId(null);
   }, [mode, setPendingTrackId]);
 
+  // Spotify vive como una vista temporal. Al navegar, elegir otra playlist o
+  // reproducir una canción, desmontamos el iframe para que no quede visible ni
+  // siga cargando en segundo plano.
+  useEffect(() => {
+    setSelectedSpotifyEmbed(null);
+  }, [music.currentTrack.id, music.selectedPlaylistId, music.view]);
+
   const tracksForMain = useMemo(() => {
     if (music.view === "liked") return music.allTracks.filter((track) => music.liked.has(track.id));
     if (music.view === "queue") return music.queue;
@@ -1675,6 +1714,7 @@ export default function EduAIMusicPlayer({
           <RightPanel
             selectedSpotifyId={selectedSpotifyEmbed?.id}
             onSelectSpotify={setSelectedSpotifyEmbed}
+            onClearSpotify={() => setSelectedSpotifyEmbed(null)}
           />
         </div>
         <BottomPlayer />
