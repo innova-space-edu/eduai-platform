@@ -6,6 +6,7 @@ import {
   ArrowUp,
   Check,
   Copy,
+  Download,
   ExternalLink,
   Globe2,
   Loader2,
@@ -59,6 +60,22 @@ function isSafeWorkUrl(url: string) {
   return /^https?:\/\//i.test(url) || /^mailto:/i.test(url) || url.startsWith("/") || url.startsWith("#")
 }
 
+function downloadAsWord(content: string, title: string) {
+  const safeTitle = title.replace(/[^a-z0-9áéíóúñ _-]/gi, "").trim() || "eduai-documento"
+  const body = content
+    .replace(/<audio[\s\S]*?<\/audio>/g, "[Audio generado en EduAI Work]")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\n/g, "<br />")
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>${safeTitle}</title><style>body{font-family:Arial,sans-serif;line-height:1.55;color:#172033;margin:48px}h1{color:#2563eb}</style></head><body><h1>${safeTitle}</h1><p>${body}</p></body></html>`
+  const url = URL.createObjectURL(new Blob([html], { type: "application/msword" }))
+  const link = document.createElement("a")
+  link.href = url
+  link.download = `${safeTitle}.doc`
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
 function messageId() {
   return typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
@@ -82,6 +99,8 @@ export function WorkChat({
   const abortRef = useRef<AbortController | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [uploadingFile, setUploadingFile] = useState(false)
   const activeMode = getWorkMode(mode)
   const storageKey = `open-eduai-work:${notebookId || "general"}`
 
@@ -212,6 +231,68 @@ export function WorkChat({
     setLoading(false)
   }
 
+  const attachSourceFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    if (fileInputRef.current) fileInputRef.current.value = ""
+    if (!notebookId) {
+      setMessages((current) => [...current, {
+        id: messageId(), role: "assistant",
+        content: "Primero crea o selecciona un Work para poder leer y conservar el archivo.",
+      }])
+      return
+    }
+
+    const extension = file.name.split(".").pop()?.toLowerCase()
+    const type = extension === "pdf" ? "pdf" : extension === "docx" ? "docx" : extension === "txt" ? "txt" : null
+    if (!type) {
+      setMessages((current) => [...current, {
+        id: messageId(), role: "assistant",
+        content: "Por ahora puedes adjuntar PDF, DOCX o TXT. El archivo se agregará como fuente para leerlo y trabajar con él.",
+      }])
+      return
+    }
+
+    setUploadingFile(true)
+    try {
+      const fileBase64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onerror = () => reject(new Error("No se pudo leer el archivo"))
+        reader.onload = () => resolve(String(reader.result || "").split(",")[1] || "")
+        reader.readAsDataURL(file)
+      })
+      const rawText = type === "txt" ? await file.text() : undefined
+      const sourceResponse = await fetch(`/api/notebooks/${notebookId}/sources`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type, title: file.name, raw_text: rawText, metadata: { importedFrom: "open-eduai-work" } }),
+      })
+      const sourceData = await sourceResponse.json().catch(() => ({}))
+      if (!sourceResponse.ok || !sourceData?.source?.id) throw new Error(sourceData?.error || "No se pudo registrar el archivo")
+      const ingestResponse = await fetch(`/api/notebooks/${notebookId}/ingest`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sourceId: sourceData.source.id, fileBase64: type === "txt" ? undefined : fileBase64 }),
+      })
+      const ingestData = await ingestResponse.json().catch(() => ({}))
+      if (!ingestResponse.ok || !ingestData?.ok) throw new Error(ingestData?.error || "No se pudo extraer contenido del archivo")
+      setMessages((current) => [...current, {
+        id: messageId(), role: "assistant",
+        content: `📎 **Archivo listo:** ${file.name}\n\nExtraje ${ingestData.chunkCount || 0} fragmentos. Ahora puedes pedirme: “resume este archivo”, “traduce el archivo”, “crea un podcast desde las fuentes” o “investiga usando solo las fuentes”.`,
+        provider: "EduAI Files",
+        model: "Notebook Reader",
+      }])
+      onResultCreated({ id: `source-${sourceData.source.id}`, title: file.name, type: "Fuente procesada" })
+    } catch (error) {
+      setMessages((current) => [...current, {
+        id: messageId(), role: "assistant",
+        content: `No pude procesar el archivo: ${error instanceof Error ? error.message : "Error inesperado"}`,
+      }])
+    } finally {
+      setUploadingFile(false)
+    }
+  }
+
   return (
     <section className="flex min-h-0 flex-1 flex-col bg-card-theme">
       <div className="flex items-center justify-between gap-3 border-b border-soft px-4 py-2.5 sm:px-6">
@@ -289,6 +370,9 @@ export function WorkChat({
                         {message.provider && <span>{message.provider}{message.model ? ` · ${message.model}` : ""}</span>}
                         {message.toolUsed && <span className="rounded-full bg-teal-500/10 px-2 py-0.5 text-teal-600">{message.toolUsed.replace(/_/g, " ")}</span>}
                         {!!message.citations?.length && <span>{message.citations.length} fuentes</span>}
+                        <button type="button" onClick={() => downloadAsWord(message.content, message.toolUsed || "resultado-eduai")} className="rounded-lg p-1 hover:bg-card-theme" title="Descargar como Word">
+                          <Download size={12} />
+                        </button>
                         <button type="button" onClick={() => void copyMessage(message)} className="ml-auto rounded-lg p-1 hover:bg-card-theme" title="Copiar respuesta">
                           {copiedId === message.id ? <Check size={12} /> : <Copy size={12} />}
                         </button>
@@ -331,9 +415,12 @@ export function WorkChat({
             />
             <div className="flex items-center gap-2 px-1 pt-1">
               {notebookId ? (
-                <Link href={`/notebooks/${notebookId}`} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] text-muted2 hover:bg-card-theme hover:text-main" title="Administrar archivos y fuentes">
-                  <Paperclip size={12} /> {readySourceCount} fuentes
-                </Link>
+                <>
+                  <input ref={fileInputRef} type="file" accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain" onChange={(event) => void attachSourceFile(event)} className="hidden" />
+                  <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploadingFile} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] text-muted2 hover:bg-card-theme hover:text-main disabled:opacity-50" title="Adjuntar PDF, Word o texto">
+                    {uploadingFile ? <Loader2 size={12} className="animate-spin" /> : <Paperclip size={12} />} {uploadingFile ? "Leyendo…" : `${readySourceCount} fuentes`}
+                  </button>
+                </>
               ) : (
                 <Link href="/notebooks" className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] text-muted2 hover:bg-card-theme hover:text-main">
                   <Paperclip size={12} /> Agregar fuentes
