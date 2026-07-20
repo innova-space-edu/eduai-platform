@@ -23,7 +23,6 @@ import {
   Volume2,
 } from "lucide-react";
 import {
-  EXTERNAL_MUSIC_COLLECTIONS,
   MOOD_LABELS,
   type EduMusicMood,
   type EduMusicPlaylist,
@@ -140,10 +139,14 @@ function cn(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(" ");
 }
 
-function youtubeSearchUrl(query: string) {
-  return `https://www.youtube.com/results?search_query=${encodeURIComponent(
-    query || "study music playlist",
-  )}`;
+function LoadingBar({ active, label = "Cargando" }: { active: boolean; label?: string }) {
+  if (!active) return null;
+  return (
+    <div className="absolute inset-x-0 bottom-0 z-20 h-0.5 overflow-hidden bg-emerald-400/10" role="status" aria-live="polite">
+      <span className="sr-only">{label}</span>
+      <span className="block h-full w-2/5 animate-[eduai-loading_1.1s_ease-in-out_infinite] rounded-full bg-gradient-to-r from-transparent via-emerald-300 to-cyan-300" />
+    </div>
+  );
 }
 
 function parseDuration(duration?: string) {
@@ -496,22 +499,22 @@ function TableTrackList({ tracks }: { tracks: EduMusicTrack[] }) {
 function TopBar() {
   const music = useEduAIMusic();
   return (
-    <header className="flex h-[58px] shrink-0 items-center gap-4 border-b border-white/10 bg-[#05070a] px-4 text-white">
-      <div className="flex w-[300px] shrink-0 items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-400 text-slate-950 shadow-md shadow-emerald-500/20">
+    <header className="relative flex h-[64px] shrink-0 items-center gap-4 border-b border-white/10 bg-[#07090d] px-5 text-white">
+      <div className="flex w-[236px] shrink-0 items-center gap-3">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-400 text-slate-950 shadow-md shadow-emerald-500/20">
           <Music2 className="h-5 w-5" />
         </div>
         <div className="min-w-0">
-          <h1 className="truncate text-xl font-black tracking-tight text-white">
+          <h1 className="truncate text-lg font-black tracking-tight text-white">
             EduAI Music
           </h1>
-          <p className="truncate text-[11px] font-semibold text-emerald-300">
-            Música, playlists y foco educativo
+          <p className="truncate text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-300">
+            Tu espacio de escucha
           </p>
         </div>
       </div>
 
-      <div className="flex h-10 min-w-0 flex-1 items-center gap-3 rounded-full border border-white/10 bg-white/8 px-4 shadow-inner shadow-black/30 max-md:hidden">
+      <div className="flex h-10 min-w-0 max-w-2xl flex-1 items-center gap-3 rounded-xl border border-white/10 bg-white/[0.06] px-4 shadow-inner shadow-black/30 max-md:hidden focus-within:border-emerald-400/50">
         <Search className="h-4 w-4 text-emerald-300" />
         <input
           value={music.query}
@@ -531,6 +534,7 @@ function TopBar() {
       >
         <ArrowLeft className="h-4 w-4" /> Volver
       </Link>
+      <LoadingBar active={music.onlineLoading || music.radioLoading} label="Buscando música" />
     </header>
   );
 }
@@ -687,9 +691,13 @@ function Sidebar({ tracks }: { tracks: EduMusicTrack[] }) {
         )}
       </div>
 
-      <div className="mt-3">
-        <RadioPanel />
-      </div>
+      <details className="group mt-3 shrink-0 rounded-2xl border border-white/10 bg-[#14171f]">
+        <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2.5 text-xs font-black text-slate-300 marker:hidden">
+          <span className="inline-flex items-center gap-2"><Radio className="h-3.5 w-3.5 text-emerald-300" /> Radio en vivo</span>
+          <span className="text-slate-500 transition group-open:rotate-45">+</span>
+        </summary>
+        <div className="border-t border-white/10 p-2"><RadioPanel /></div>
+      </details>
 
       <div className="mt-3 flex min-h-0 flex-1 flex-col gap-3">
         <section className="flex min-h-0 flex-[0.8] flex-col rounded-2xl border border-white/10 bg-[#14171f] p-3">
@@ -916,19 +924,17 @@ function MainPanel({
   const embedUrl = getEmbedUrl(track);
 
   return (
-    <main className="flex min-h-0 min-w-0 flex-col bg-[#101218] p-2.5 text-white">
-      <section className="flex min-h-0 flex-1 flex-col rounded-2xl border border-white/10 bg-[#151922] p-4 shadow-lg shadow-black/20">
-        <div className="mb-3 flex items-center justify-between gap-3">
+    <main className="flex min-h-0 min-w-0 flex-col bg-[#0d1016] p-3 text-white">
+      <section className="flex min-h-0 flex-1 flex-col rounded-[1.4rem] border border-white/10 bg-[#131720] p-5 shadow-lg shadow-black/20">
+        <div className="mb-4 flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-300">
-              Reproductor central
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-300">
+              Reproduciendo ahora
             </p>
             <h2 className="truncate text-xl font-black text-white">
-              {playlist.name}
+              {track.source === "youtube" ? (asExtendedTrack(track)?.previewSeconds ? "DJ mix" : "Video musical") : playlist.name}
             </h2>
-            <p className="truncate text-xs text-slate-400">
-              Las listas quedan a los lados. Aquí se muestra solo la canción actual.
-            </p>
+            <p className="truncate text-xs text-slate-500">{playlist.name} · {tracks.length} pistas</p>
           </div>
           {track.source !== "youtube" && (
             <button
@@ -1090,6 +1096,16 @@ function MainPanel({
                 </IconButton>
               </div>
 
+              <div className="mx-auto mt-4 flex max-w-xl items-center gap-2 text-[10px] font-bold tabular-nums text-slate-500">
+                <span className="w-9 text-right">{formatSeconds(music.currentTime)}</span>
+                <ProgressRange
+                  currentTime={music.currentTime}
+                  duration={durationForPlayer(track, music.durationSeconds)}
+                  onSeek={music.seekTo}
+                />
+                <span className="w-9 text-left">{formatSeconds(durationForPlayer(track, music.durationSeconds))}</span>
+              </div>
+
               {track.source === "youtube" && (
                 <p className="mt-3 text-xs font-semibold text-emerald-200/90">
                   {asExtendedTrack(track)?.previewSeconds
@@ -1130,9 +1146,7 @@ function MainPanel({
                 </button>
               </div>
 
-              <p className="mt-3 text-[11px] text-slate-500">
-                {tracks.length} canciones disponibles en la lista lateral izquierda.
-              </p>
+              <p className="mt-3 text-[11px] text-slate-500">La cola continúa automáticamente al terminar cada pista.</p>
             </div>
           )}
         </div>
@@ -1210,18 +1224,19 @@ function RightPanel({
   onClearSpotify: () => void;
 }) {
   const music = useEduAIMusic();
-  const [youtubeQuery, setYoutubeQuery] = useState("música para estudiar sin letra");
   const related = music.allTracks
     .filter((track) => track.mood === music.currentTrack.mood && track.id !== music.currentTrack.id)
     .slice(0, 6);
 
   return (
-    <aside className="flex min-h-0 min-w-0 flex-col gap-2.5 overflow-y-auto border-l border-white/10 bg-[#0b0d12] p-2.5 text-white">
-      <section className="shrink-0 rounded-2xl border border-emerald-400/20 bg-[#14171f] p-3">
-        <p className="text-sm font-black text-white">Buscar canciones</p>
-        <p className="mt-1 text-xs text-slate-400">
-          Busca videos musicales: cada resultado reproduce video y audio desde la misma fuente de YouTube.
-        </p>
+    <aside className="flex min-h-0 min-w-0 flex-col gap-3 overflow-y-auto border-l border-white/10 bg-[#0a0d12] p-3 text-white">
+      <section className="relative shrink-0 rounded-2xl border border-emerald-400/20 bg-[#14171f] p-3.5">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-sm font-black text-white">Buscar música</p>
+          <span className="rounded-full bg-emerald-400/12 px-2 py-1 text-[9px] font-black uppercase tracking-wide text-emerald-300">
+            {music.onlineProviderMode === "preview" ? "DJ mix" : "Video"}
+          </span>
+        </div>
         <div className="mt-3 flex gap-2">
           <input
             value={music.onlineQuery}
@@ -1233,7 +1248,7 @@ function RightPanel({
                 music.clearOnlineResults();
               }
             }}
-            placeholder="daddy, lofi, piano, estudio..."
+            placeholder="Artista, tema o ambiente..."
             className="min-w-0 flex-1 rounded-full border border-white/10 bg-black/25 px-3 py-2 text-xs text-white outline-none placeholder:text-slate-500 focus:border-emerald-400/60"
           />
           <button
@@ -1242,7 +1257,7 @@ function RightPanel({
             disabled={music.onlineLoading}
             className="rounded-full bg-emerald-400 px-4 py-2 text-xs font-black text-slate-950 disabled:opacity-50"
           >
-            {music.onlineLoading ? "..." : "Buscar"}
+            {music.onlineLoading ? "Buscando" : "Buscar"}
           </button>
         </div>
         {music.onlineError && <p className="mt-2 text-xs font-bold text-rose-300">{music.onlineError}</p>}
@@ -1272,9 +1287,11 @@ function RightPanel({
             );
           })}
         </div>
-        <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
-          Videos reproduce cada canción completa con video. DJ mix usa solo el audio de YouTube desde 0:50 durante 30 segundos y encadena automáticamente la cola.
-        </p>
+        {music.onlineLoading && (
+          <div className="mt-3 flex items-center gap-2 text-[10px] font-bold text-emerald-200">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-300" /> Actualizando resultados…
+          </div>
+        )}
         {(music.onlineTracks.length > 0 || music.onlineQuery) && (
           <button
             type="button"
@@ -1289,9 +1306,12 @@ function RightPanel({
         )}
       </section>
 
-      <section className="flex min-h-0 flex-[0.65] flex-col rounded-2xl border border-white/10 bg-[#14171f] p-3">
+      <section className="flex min-h-[260px] flex-1 flex-col rounded-2xl border border-white/10 bg-[#14171f] p-3">
         <div className="mb-2 flex items-center justify-between">
-          <p className="text-sm font-black text-white">Resultados online</p>
+          <div>
+            <p className="text-sm font-black text-white">En cola</p>
+            <p className="text-[10px] text-slate-500">Elige una pista para continuar.</p>
+          </div>
           <button
             type="button"
             onClick={() => {
@@ -1308,66 +1328,14 @@ function RightPanel({
         </div>
       </section>
 
-      <SpotifyEmbeds selectedId={selectedSpotifyId} onSelect={onSelectSpotify} onClear={onClearSpotify} />
-
-      <section className="shrink-0 rounded-2xl border border-white/10 bg-[#14171f] p-3">
-        <p className="text-sm font-black text-white">Ahora suena</p>
-        <div className="mt-3 flex items-center gap-3">
-          <Cover track={music.currentTrack} size="lg" />
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-black text-emerald-300">{music.currentTrack.title}</p>
-            <p className="truncate text-xs text-slate-300">{music.currentTrack.artist}</p>
-            <p className="truncate text-[11px] text-slate-500">{music.currentTrack.album}</p>
-          </div>
+      <details className="group shrink-0 rounded-2xl border border-white/10 bg-[#14171f]">
+        <summary className="flex cursor-pointer list-none items-center justify-between px-3.5 py-3 text-xs font-black text-slate-300 marker:hidden">
+          <span>Spotify y fuentes</span><span className="text-emerald-300 transition group-open:rotate-45">+</span>
+        </summary>
+        <div className="border-t border-white/10 p-2.5">
+          <SpotifyEmbeds selectedId={selectedSpotifyId} onSelect={onSelectSpotify} onClear={onClearSpotify} />
         </div>
-        {music.currentTrack.externalUrl && (
-          <a
-            href={music.currentTrack.externalUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-emerald-300 hover:underline"
-          >
-            Abrir fuente <ExternalLink className="h-3 w-3" />
-          </a>
-        )}
-      </section>
-
-      <section className="shrink-0 rounded-2xl border border-white/10 bg-[#14171f] p-3">
-        <p className="text-sm font-black text-white">Fuentes externas</p>
-        <div className="mt-2 flex gap-2">
-          <input
-            value={youtubeQuery}
-            onChange={(e) => setYoutubeQuery(e.target.value)}
-            placeholder="Buscar en YouTube"
-            className="min-w-0 flex-1 rounded-full border border-white/10 bg-black/25 px-3 py-2 text-xs text-white outline-none placeholder:text-slate-500"
-          />
-          <a
-            href={youtubeSearchUrl(youtubeQuery)}
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-full bg-white/8 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-emerald-400/10 hover:text-emerald-200"
-          >
-            Abrir
-          </a>
-        </div>
-        <div className="mt-2 max-h-[88px] space-y-1 overflow-y-auto pr-1">
-          {EXTERNAL_MUSIC_COLLECTIONS.map((item) => (
-            <a
-              key={item.id}
-              href={item.url}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center justify-between gap-2 rounded-xl px-2 py-1.5 text-xs hover:bg-white/7"
-            >
-              <span className="min-w-0">
-                <span className="block truncate font-bold text-slate-200">{item.name}</span>
-                <span className="block truncate text-[10px] text-slate-500">{item.provider}</span>
-              </span>
-              <ExternalLink className="h-3.5 w-3.5 text-slate-500" />
-            </a>
-          ))}
-        </div>
-      </section>
+      </details>
     </aside>
   );
 }
@@ -1668,12 +1636,17 @@ export default function EduAIMusicPlayer({
           from { transform: scaleX(0); }
           to { transform: scaleX(1); }
         }
+        @keyframes eduai-loading {
+          0% { transform: translateX(-120%); }
+          55% { transform: translateX(180%); }
+          100% { transform: translateX(280%); }
+        }
       `}</style>
       <div className="flex h-full flex-col">
         <TopBar />
         <div
           className="grid min-h-0 flex-1 overflow-hidden"
-          style={{ gridTemplateColumns: "280px minmax(0, 1fr) 320px" }}
+          style={{ gridTemplateColumns: "240px minmax(0, 1fr) 300px" }}
         >
           <Sidebar tracks={tracksForMain} />
           <MainPanel
@@ -1687,7 +1660,6 @@ export default function EduAIMusicPlayer({
             onClearSpotify={() => setSelectedSpotifyEmbed(null)}
           />
         </div>
-        {music.currentTrack.source !== "youtube" && <BottomPlayer />}
       </div>
       <AddToPlaylistBar />
     </div>
