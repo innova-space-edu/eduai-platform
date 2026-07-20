@@ -569,12 +569,21 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Nunca dejes el iframe de YouTube sonando al cambiar a una pista de audio.
-    // Esto evita la mezcla entre la cola DJ/video y el reproductor HTML.
+    // AdemÃ¡s se destruye la instancia: su contenedor visual pudo desmontarse
+    // al cambiar de bÃºsqueda y reutilizarla provoca excepciones del cliente.
     if (youtubeReadyRef.current && youtubePlayerRef.current?.pauseVideo) {
       try {
         youtubePlayerRef.current.pauseVideo();
       } catch {}
     }
+    if (youtubePlayerRef.current?.destroy) {
+      try {
+        youtubePlayerRef.current.destroy();
+      } catch {}
+    }
+    youtubePlayerRef.current = null;
+    youtubeReadyRef.current = false;
+    youtubeVideoIdRef.current = "";
 
     if (isEmbedTrack(currentTrack) || !currentTrack?.src) {
       audio.pause();
@@ -1017,9 +1026,9 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       onlineSearchAbortRef.current = controller;
       setOnlineLoading(true);
       setOnlineError("");
-      // Una bÃºsqueda representa una nueva sesiÃ³n: no mezclamos resultados ni
-      // conservamos la lista anterior mientras se consulta el nuevo tÃ©rmino.
-      setOnlineTracks([]);
+      // Conservamos la lista actual durante la consulta y la reemplazamos de
+      // forma atÃ³mica al recibir la respuesta. AsÃ­ el host de YouTube no se
+      // desmonta mientras su iframe sigue activo.
       setSelectedPlaylistId("pl-online");
       setView("search");
       try {
