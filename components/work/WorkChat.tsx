@@ -76,6 +76,59 @@ function downloadAsWord(content: string, title: string) {
   URL.revokeObjectURL(url)
 }
 
+function safeExportName(title: string) {
+  return title.replace(/[^a-z0-9áéíóúñ _-]/gi, "").trim() || "eduai-resultado"
+}
+
+async function downloadAsPdf(content: string, title: string) {
+  const { jsPDF } = await import("jspdf")
+  const doc = new jsPDF({ unit: "mm", format: "a4" })
+  const name = safeExportName(title)
+  const margin = 18
+  const width = 174
+  let y = 20
+  doc.setFontSize(18)
+  doc.text(name, margin, y)
+  y += 12
+  doc.setFontSize(10)
+  for (const line of doc.splitTextToSize(content.replace(/<audio[\s\S]*?<\/audio>/g, "[Audio generado]"), width)) {
+    if (y > 278) { doc.addPage(); y = 20 }
+    doc.text(line, margin, y)
+    y += 5
+  }
+  doc.save(`${name}.pdf`)
+}
+
+async function downloadAsPptx(content: string, title: string) {
+  const PptxGenJS = (await import("pptxgenjs")).default
+  const pptx = new PptxGenJS()
+  const name = safeExportName(title)
+  pptx.layout = "LAYOUT_WIDE"
+  const slides = content.split(/\n(?=#+\s)/).filter(Boolean).slice(0, 12)
+  for (const [index, chunk] of slides.entries()) {
+    const slide = pptx.addSlide()
+    slide.background = { color: "F8FAFC" }
+    slide.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: 13.33, h: 0.35, fill: { color: "2563EB" }, line: { color: "2563EB" } })
+    const lines = chunk.replace(/^#+\s*/m, "").replace(/<audio[\s\S]*?<\/audio>/g, "[Audio generado]").trim()
+    slide.addText(index === 0 ? name : `EduAI Work · ${index + 1}`, { x: 0.7, y: 0.7, w: 12, h: 0.45, fontSize: 24, bold: true, color: "172033" })
+    slide.addText(lines, { x: 0.8, y: 1.5, w: 11.8, h: 5.4, fontSize: 16, color: "334155", valign: "top", margin: 0.06 })
+  }
+  if (!slides.length) {
+    const slide = pptx.addSlide()
+    slide.addText(name, { x: 0.7, y: 0.7, w: 12, h: 0.5, fontSize: 24, bold: true })
+  }
+  await pptx.writeFile({ fileName: `${name}.pptx` })
+}
+
+async function downloadAsXlsx(content: string, title: string) {
+  const XLSX = await import("xlsx")
+  const name = safeExportName(title)
+  const rows = content.split(/\n+/).filter(Boolean).map((line, index) => ({ N: index + 1, Contenido: line.replace(/^[-#*\d.\s]+/, "") }))
+  const workbook = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(rows), "Resultado EduAI")
+  XLSX.writeFile(workbook, `${name}.xlsx`)
+}
+
 function messageId() {
   return typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
@@ -370,9 +423,15 @@ export function WorkChat({
                         {message.provider && <span>{message.provider}{message.model ? ` · ${message.model}` : ""}</span>}
                         {message.toolUsed && <span className="rounded-full bg-teal-500/10 px-2 py-0.5 text-teal-600">{message.toolUsed.replace(/_/g, " ")}</span>}
                         {!!message.citations?.length && <span>{message.citations.length} fuentes</span>}
-                        <button type="button" onClick={() => downloadAsWord(message.content, message.toolUsed || "resultado-eduai")} className="rounded-lg p-1 hover:bg-card-theme" title="Descargar como Word">
-                          <Download size={12} />
-                        </button>
+                        <details className="relative">
+                          <summary className="flex cursor-pointer list-none rounded-lg p-1 hover:bg-card-theme" title="Descargar resultado"><Download size={12} /></summary>
+                          <div className="absolute right-0 z-20 mt-1 flex w-36 flex-col rounded-xl border border-soft bg-card-theme p-1 shadow-lg">
+                            <button type="button" onClick={() => downloadAsWord(message.content, message.toolUsed || "resultado-eduai")} className="rounded-lg px-2 py-1.5 text-left hover:bg-card-soft-theme">Word (.doc)</button>
+                            <button type="button" onClick={() => void downloadAsPdf(message.content, message.toolUsed || "resultado-eduai")} className="rounded-lg px-2 py-1.5 text-left hover:bg-card-soft-theme">PDF</button>
+                            <button type="button" onClick={() => void downloadAsPptx(message.content, message.toolUsed || "resultado-eduai")} className="rounded-lg px-2 py-1.5 text-left hover:bg-card-soft-theme">Presentación</button>
+                            <button type="button" onClick={() => void downloadAsXlsx(message.content, message.toolUsed || "resultado-eduai")} className="rounded-lg px-2 py-1.5 text-left hover:bg-card-soft-theme">Excel</button>
+                          </div>
+                        </details>
                         <button type="button" onClick={() => void copyMessage(message)} className="ml-auto rounded-lg p-1 hover:bg-card-theme" title="Copiar respuesta">
                           {copiedId === message.id ? <Check size={12} /> : <Copy size={12} />}
                         </button>
