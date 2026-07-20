@@ -258,6 +258,20 @@ export async function runCoreCycle(
           wasToolCall: true,
         }
       }
+
+      // Nunca caemos silenciosamente al modelo conversacional cuando una
+      // herramienta concreta falla. Eso podía producir respuestas que parecían
+      // confirmar una imagen, audio o archivo que en realidad no existía.
+      return {
+        text: `${result.output}${result.error ? `\n\nDetalle técnico: ${result.error}` : ""}`,
+        provider: "EduAI Tools",
+        model: tool.label,
+        task: "general",
+        latencyMs: Date.now() - t0,
+        toolUsed: toolName,
+        toolResult: result,
+        wasToolCall: true,
+      }
     }
   }
 
