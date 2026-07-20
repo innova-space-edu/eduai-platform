@@ -36,6 +36,7 @@ type ExtendedEduMusicTrack = EduMusicTrack & {
   embedUrl?: string;
   loaderUrl?: string;
   previewSeconds?: number;
+  previewStartSeconds?: number;
 };
 
 type StoredState = {
@@ -155,7 +156,7 @@ function isHlsUrl(src?: string) {
 function isBlockedBrowserAudioSrc(src?: string) {
   const clean = String(src || "").trim();
   if (!clean) return false;
-  // La app corre en HTTPS. Estos streams producen mixed content, certificados inválidos
+  // La app corre en HTTPS. Estos streams producen mixed content, certificados invÃ¡lidos
   // o errores como NET::ERR_CERT_COMMON_NAME_INVALID en el navegador.
   return /^http:\/\//i.test(clean) || /sonando\.us\.digitalproserver\.com/i.test(clean);
 }
@@ -178,7 +179,7 @@ function sanitizeStoredTrack(track: EduMusicTrack): EduMusicTrack {
   return {
     ...track,
     src: "",
-    album: "Señal externa no reproducible directamente",
+    album: "SeÃ±al externa no reproducible directamente",
     playable: false,
     externalOnly: true,
     externalUrl: track.externalUrl || "https://www.canal95.cl/",
@@ -465,7 +466,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
             !isBlockedBrowserAudioSrc(track.src),
         );
         if (fallback) {
-          setRadioError(`${currentTrack.title} falló. Probando señal alternativa de FM Dos...`);
+          setRadioError(`${currentTrack.title} fallÃ³. Probando seÃ±al alternativa de FM Dos...`);
           setCurrentId(fallback.id);
           setPlaying(true);
           return;
@@ -474,7 +475,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
       setPlaying(false);
       setRadioError(
-        `No se pudo reproducir ${currentTrack.title}. La emisora puede estar usando HTTP, un certificado inválido o una señal que el navegador bloquea. Usa “Abrir fuente” o prueba otra radio.`,
+        `No se pudo reproducir ${currentTrack.title}. La emisora puede estar usando HTTP, un certificado invÃ¡lido o una seÃ±al que el navegador bloquea. Usa âAbrir fuenteâ o prueba otra radio.`,
       );
     };
 
@@ -515,7 +516,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     if (currentTrack.source === "radio" && isBlockedBrowserAudioSrc(currentTrack.src)) {
       setPlaying(false);
       setRadioError(
-        `${currentTrack.title} usa una señal bloqueada por el navegador por HTTP o certificado inválido. Busca otra radio o abre la fuente oficial.`,
+        `${currentTrack.title} usa una seÃ±al bloqueada por el navegador por HTTP o certificado invÃ¡lido. Busca otra radio o abre la fuente oficial.`,
       );
       return;
     }
@@ -567,6 +568,14 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    // Nunca dejes el iframe de YouTube sonando al cambiar a una pista de audio.
+    // Esto evita la mezcla entre la cola DJ/video y el reproductor HTML.
+    if (youtubeReadyRef.current && youtubePlayerRef.current?.pauseVideo) {
+      try {
+        youtubePlayerRef.current.pauseVideo();
+      } catch {}
+    }
+
     if (isEmbedTrack(currentTrack) || !currentTrack?.src) {
       audio.pause();
       if (playing) setPlaying(false);
@@ -612,7 +621,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         setCurrentId(track.id);
         setPlaying(false);
         setRadioError(
-          `${track.title} usa una señal bloqueada por el navegador por HTTP o certificado inválido. Se abrirá la fuente oficial si está disponible.`,
+          `${track.title} usa una seÃ±al bloqueada por el navegador por HTTP o certificado invÃ¡lido. Se abrirÃ¡ la fuente oficial si estÃ¡ disponible.`,
         );
         if (externalUrl && typeof window !== "undefined") {
           window.open(externalUrl, "_blank", "noopener,noreferrer");
@@ -624,7 +633,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         setCurrentId(track.id);
         setPlaying(false);
         setRadioError(
-          `${track.title} no tiene una señal HTTPS reproducible directamente en el navegador. Se abrirá la fuente oficial.`,
+          `${track.title} no tiene una seÃ±al HTTPS reproducible directamente en el navegador. Se abrirÃ¡ la fuente oficial.`,
         );
         if (typeof window !== "undefined") {
           window.open(externalUrl, "_blank", "noopener,noreferrer");
@@ -665,7 +674,10 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       }
       if (currentTrack?.source === "youtube" && youtubePlayerRef.current?.seekTo) {
         try {
-          youtubePlayerRef.current.seekTo(0, true);
+          youtubePlayerRef.current.seekTo(
+            Math.max(0, Number(asExtendedTrack(currentTrack)?.previewStartSeconds || 0)),
+            true,
+          );
           youtubePlayerRef.current.playVideo();
         } catch {}
         setPlaying(true);
@@ -735,6 +747,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     const videoId = currentTrack.youtubeVideoId;
     if (!videoId) return;
     const previewSeconds = Math.max(0, Number(asExtendedTrack(currentTrack)?.previewSeconds || 0));
+    const previewStartSeconds = Math.max(0, Number(asExtendedTrack(currentTrack)?.previewStartSeconds || 0));
 
     let cancelled = false;
     let mountRetry: number | null = null;
@@ -768,8 +781,8 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
             youtubeVideoIdRef.current = videoId;
             player.loadVideoById?.({
               videoId,
-              startSeconds: 0,
-              ...(previewSeconds ? { endSeconds: previewSeconds } : {}),
+              startSeconds: previewStartSeconds,
+              ...(previewSeconds ? { endSeconds: previewStartSeconds + previewSeconds } : {}),
             });
           }
           if (playingRef.current) player.playVideo?.();
@@ -834,7 +847,8 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         const state = Number(player.getPlayerState?.());
         const safeTime = Number.isFinite(time) ? time : 0;
         const safeDuration = Number.isFinite(duration) ? duration : 0;
-        setCurrentTime(safeTime);
+        const clipStart = Math.max(0, Number(asExtendedTrack(currentTrack)?.previewStartSeconds || 0));
+        setCurrentTime(Math.max(0, safeTime - clipStart));
         const clipDuration = Math.max(0, Number(asExtendedTrack(currentTrack)?.previewSeconds || 0));
         const effectiveDuration = clipDuration || safeDuration;
         setDurationSeconds(effectiveDuration);
@@ -848,7 +862,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
           }
         }
 
-        if (effectiveDuration > 0 && safeTime >= effectiveDuration - 0.35) {
+        if (effectiveDuration > 0 && safeTime >= clipStart + effectiveDuration - 0.35) {
           nextTrackRef.current();
         }
       } catch {}
@@ -933,7 +947,8 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     (seconds: number) => {
       if (currentTrack?.source === "youtube" && youtubePlayerRef.current?.seekTo) {
         try {
-          youtubePlayerRef.current.seekTo(seconds, true);
+          const clipStart = Math.max(0, Number(asExtendedTrack(currentTrack)?.previewStartSeconds || 0));
+          youtubePlayerRef.current.seekTo(clipStart + seconds, true);
           setCurrentTime(seconds);
         } catch {}
         return;
@@ -1002,8 +1017,8 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       onlineSearchAbortRef.current = controller;
       setOnlineLoading(true);
       setOnlineError("");
-      // Una búsqueda representa una nueva sesión: no mezclamos resultados ni
-      // conservamos la lista anterior mientras se consulta el nuevo término.
+      // Una bÃºsqueda representa una nueva sesiÃ³n: no mezclamos resultados ni
+      // conservamos la lista anterior mientras se consulta el nuevo tÃ©rmino.
       setOnlineTracks([]);
       setSelectedPlaylistId("pl-online");
       setView("search");
@@ -1020,19 +1035,19 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         });
         const data = await res.json();
         if (requestId !== onlineSearchRequestRef.current) return;
-        if (!res.ok || !data?.ok) throw new Error(data?.error || "No se pudo buscar música online.");
+        if (!res.ok || !data?.ok) throw new Error(data?.error || "No se pudo buscar mÃºsica online.");
         const tracks = Array.isArray(data.tracks) ? (data.tracks as EduMusicTrack[]) : [];
         if (!tracks.length) {
           setOnlineError(
             mode === "full"
               ? data?.sources?.youtube
-                ? "No encontré canciones completas en Jamendo/Audius ni videos embebibles de YouTube. Prueba con otro término o cambia a DJ 30s."
-                : "No encontré canciones completas en Jamendo/Audius. Para buscar videos de YouTube debes agregar YOUTUBE_API_KEY en Vercel o cambiar a DJ 30s."
+                ? "No encontrÃ© canciones completas en Jamendo/Audius ni videos embebibles de YouTube. Prueba con otro tÃ©rmino o cambia a DJ 30s."
+                : "No encontrÃ© canciones completas en Jamendo/Audius. Para buscar videos de YouTube debes agregar YOUTUBE_API_KEY en Vercel o cambiar a DJ 30s."
               : mode === "youtube"
                 ? data?.sources?.youtube
-                  ? "No encontré videos embebibles de YouTube para esa búsqueda."
+                  ? "No encontrÃ© videos embebibles de YouTube para esa bÃºsqueda."
                   : "Falta configurar YOUTUBE_API_KEY en Vercel para buscar videos de YouTube."
-                : "No encontré resultados reproducibles para esa búsqueda.",
+                : "No encontrÃ© resultados reproducibles para esa bÃºsqueda.",
           );
           return;
         }
@@ -1040,7 +1055,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         if (tracks[0]) playTrack(tracks[0], tracks);
       } catch (error) {
         if (controller.signal.aborted || requestId !== onlineSearchRequestRef.current) return;
-        setOnlineError(error instanceof Error ? error.message : "Error buscando música online.");
+        setOnlineError(error instanceof Error ? error.message : "Error buscando mÃºsica online.");
       } finally {
         if (requestId === onlineSearchRequestRef.current) setOnlineLoading(false);
       }
@@ -1064,7 +1079,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         if (!res.ok || !data?.ok) throw new Error(data?.error || "No se pudieron buscar radios.");
         const tracks = Array.isArray(data.tracks) ? (data.tracks as EduMusicTrack[]) : [];
         if (!tracks.length) {
-          setRadioError("No encontré radios activas para esa búsqueda. Prueba con otra ciudad, país o nombre de radio.");
+          setRadioError("No encontrÃ© radios activas para esa bÃºsqueda. Prueba con otra ciudad, paÃ­s o nombre de radio.");
           return;
         }
         setOnlineTracks((prev) => {
