@@ -18,6 +18,7 @@ type NormalizedTrack = {
   youtubeVideoId?: string;
   videoEmbedUrl?: string;
   videoThumbnail?: string;
+  previewSeconds?: number;
 };
 
 type ItunesResult = {
@@ -310,7 +311,11 @@ async function searchAudius(query: string, limit: number): Promise<NormalizedTra
     });
 }
 
-async function searchYouTube(query: string, limit: number): Promise<NormalizedTrack[]> {
+async function searchYouTube(
+  query: string,
+  limit: number,
+  previewSeconds?: number,
+): Promise<NormalizedTrack[]> {
   const key = process.env.YOUTUBE_API_KEY;
   if (!key) return [];
 
@@ -346,39 +351,23 @@ async function searchYouTube(query: string, limit: number): Promise<NormalizedTr
         id: `youtube-${videoId}`,
         title,
         artist,
-        album: "YouTube video",
+        album: previewSeconds ? "YouTube DJ 30s" : "YouTube video",
         mood: moodFromText(`${title} ${artist} ${item.snippet?.description || ""}`),
-        duration: "Video",
+        duration: previewSeconds ? `0:${String(previewSeconds).padStart(2, "0")}` : "Video",
         src: "",
         cover: thumbnail || "linear-gradient(135deg,#ef4444,#111827)",
         artworkUrl: thumbnail,
         externalUrl: `https://www.youtube.com/watch?v=${videoId}`,
         source: "youtube" as const,
-        tags: ["youtube", "video", "fallback"],
+        tags: ["youtube", "video", previewSeconds ? "dj-30s" : "full-video"],
         youtubeVideoId: videoId,
         videoEmbedUrl: `https://www.youtube.com/embed/${videoId}`,
         videoThumbnail: thumbnail,
+        previewSeconds,
       };
     });
 }
 
-
-function withDjVisuals(previews: NormalizedTrack[], videos: NormalizedTrack[]): NormalizedTrack[] {
-  if (!previews.length || !videos.length) return previews;
-
-  return previews.map((track, index) => {
-    const video = videos[index % videos.length];
-    if (!video?.youtubeVideoId) return track;
-    return {
-      ...track,
-      album: `${track.album || "Preview"} · DJ Reel visual`,
-      tags: Array.from(new Set([...(track.tags || []), "dj-reel", "video-visual", "youtube-visual"])),
-      youtubeVideoId: video.youtubeVideoId,
-      videoEmbedUrl: video.videoEmbedUrl,
-      videoThumbnail: video.videoThumbnail || video.artworkUrl,
-    };
-  });
-}
 
 async function handle(req: NextRequest) {
   const url = new URL(req.url);
@@ -410,37 +399,40 @@ async function handle(req: NextRequest) {
   const fullTasks: Array<Promise<NormalizedTrack[]>> = [];
   const previewTasks: Array<Promise<NormalizedTrack[]>> = [];
 
-  // Prefer legal playable full streams first. YouTube is a video fallback, not MP3 extraction.
-  if (normalizedProvider === "all" || normalizedProvider === "full" || normalizedProvider === "jamendo") {
+  // Las fuentes de audio siguen disponibles por API, pero la interfaz de
+  // búsqueda usa resultados con video para que imagen y sonido coincidan.
+  if (normalizedProvider === "jamendo") {
     fullTasks.push(searchJamendo(query, limit).catch(() => []));
   }
-  if (normalizedProvider === "all" || normalizedProvider === "full" || normalizedProvider === "audius") {
+  if (normalizedProvider === "audius") {
     fullTasks.push(searchAudius(query, limit).catch(() => []));
   }
-  if (normalizedProvider === "all" || normalizedProvider === "preview" || normalizedProvider === "itunes") {
+  if (normalizedProvider === "itunes") {
     previewTasks.push(searchItunes(query, limit).catch(() => []));
   }
 
   let fullResults = (await Promise.all(fullTasks)).flat();
   let previewResults = (await Promise.all(previewTasks)).flat();
   let youtubeFallback: NormalizedTrack[] = [];
-  let djVisuals: NormalizedTrack[] = [];
 
+  // El modo DJ usa el mismo video y audio de YouTube, limitado a 30 segundos.
+  // Nunca se mezcla un preview de iTunes con un video externo.
   const shouldUseYouTubeFallback =
     normalizedProvider === "youtube" ||
     normalizedProvider === "preview" ||
-    normalizedProvider === "itunes" ||
-    ((normalizedProvider === "full" || normalizedProvider === "all") && fullResults.length === 0);
+    normalizedProvider === "full" ||
+    normalizedProvider === "all";
 
   if (shouldUseYouTubeFallback) {
-    youtubeFallback = await searchYouTube(query, Math.min(8, limit)).catch(() => []);
-    if (normalizedProvider === "youtube") fullResults = [];
-  }
-
-  if ((normalizedProvider === "preview" || normalizedProvider === "itunes" || normalizedProvider === "all") && previewResults.length) {
-    djVisuals = youtubeFallback;
-    previewResults = withDjVisuals(previewResults, djVisuals);
-    if (normalizedProvider === "preview" || normalizedProvider === "itunes") youtubeFallback = [];
+    youtubeFallback = await searchYouTube(
+      query,
+      Math.min(8, limit),
+      normalizedProvider === "preview" ? 30 : undefined,
+    ).catch(() => []);
+    if (["youtube", "preview", "full", "all"].includes(normalizedProvider)) {
+      fullResults = [];
+      previewResults = [];
+    }
   }
 
   const map = new Map<string, NormalizedTrack>();
@@ -453,20 +445,19 @@ async function handle(req: NextRequest) {
     requestedProvider: provider,
     query,
     limit,
-    fallbackUsed: Boolean(youtubeFallback.length || djVisuals.length),
+    fallbackUsed: Boolean(youtubeFallback.length),
     fallbackReason: youtubeFallback.length
-      ? "No se encontró audio completo en Jamendo/Audius para esa búsqueda; se muestran videos embebibles de YouTube."
-      : djVisuals.length
-        ? "Modo DJ: se agregaron videos visuales tipo reel a los previews de 30 segundos."
-        : null,
-    djVisuals: djVisuals.length,
+      ? normalizedProvider === "preview"
+        ? "Modo DJ: video y audio de YouTube reproducidos juntos durante 30 segundos."
+        : "No se encontró audio completo en Jamendo/Audius para esa búsqueda; se muestran videos embebibles de YouTube."
+      : null,
     youtubeKeyMissing: !process.env.YOUTUBE_API_KEY && (normalizedProvider === "full" || normalizedProvider === "youtube" || normalizedProvider === "preview"),
     youtubeSearchUrl: !process.env.YOUTUBE_API_KEY && (normalizedProvider === "full" || normalizedProvider === "youtube" || normalizedProvider === "preview") ? `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}` : null,
     sources: {
       jamendo: Boolean(process.env.JAMENDO_CLIENT_ID),
       jamendoOAuth: Boolean(process.env.JAMENDO_CLIENT_SECRET),
       audius: true,
-      itunes: true,
+      itunes: normalizedProvider !== "preview",
       youtube: Boolean(process.env.YOUTUBE_API_KEY),
     },
     tracks,
