@@ -78,6 +78,7 @@ export async function POST(req: NextRequest) {
       stream?: boolean
       context?: {
         page?: string
+        pageMode?: string
         subject?: string
         examTitle?: string
         studentCourse?: string
@@ -221,6 +222,7 @@ export async function POST(req: NextRequest) {
     // ── Non-streaming: usar superagent-core con tool detection ────────────────
     const coreContext: CoreContext = {
       currentPage:   context?.page,
+      pageMode:      context?.pageMode,
       subject:       context?.subject,
       examTitle:     context?.examTitle,
       studentCourse: context?.studentCourse,

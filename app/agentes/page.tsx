@@ -144,17 +144,17 @@ const AGENTS: AgentItem[] = [
   },
   {
     id: "superagent-chat",
-    icon: "🦅",
-    name: "Chat Global Claw",
+    icon: "🧭",
+    name: "Open EDUAI Work",
     description:
-      "Chat central tipo ChatGPT: accede a todos los agentes, código, imagen, video, música y evaluación",
+      "Espacio robusto para investigar con fuentes, crear, colaborar y ejecutar con todos los agentes de EDUAI",
     color: "from-slate-900 to-blue-600",
     glow: "rgba(37,99,235,0.16)",
     border: "rgba(37,99,235,0.24)",
     href: "/chat-global",
     tag: "General",
     status: "active",
-    ctaLabel: "Abrir chat global",
+    ctaLabel: "Abrir Open EDUAI Work",
   },
   {
     id: "music-focus",
