@@ -19,6 +19,7 @@ type NormalizedTrack = {
   videoEmbedUrl?: string;
   videoThumbnail?: string;
   previewSeconds?: number;
+  previewStartSeconds?: number;
 };
 
 type ItunesResult = {
@@ -98,19 +99,19 @@ function formatDuration(value?: number, unit: "ms" | "s" = "s") {
 
 function moodFromText(text: string) {
   const s = text.toLowerCase();
-  if (/(calm|relax|sleep|piano|meditation|ambient|soft|chill|peace|tranquil|relajaci[oó]n|calma)/.test(s))
+  if (/(calm|relax|sleep|piano|meditation|ambient|soft|chill|peace|tranquil|relajaci[oÃ³]n|calma)/.test(s))
     return "calm";
   if (
-    /(classical|orchestra|study|math|science|stem|bach|mozart|beethoven|instrumental|cl[aá]sica)/.test(
+    /(classical|orchestra|study|math|science|stem|bach|mozart|beethoven|instrumental|cl[aÃ¡]sica)/.test(
       s,
     )
   )
     return "classical";
-  if (/(lofi|focus|concentration|study|work|productivity|concentraci[oó]n|estudio)/.test(s))
+  if (/(lofi|focus|concentration|study|work|productivity|concentraci[oÃ³]n|estudio)/.test(s))
     return "focus";
   if (/(read|reading|acoustic|book|literature|lectura)/.test(s)) return "reading";
-  if (/(energy|pop|dance|workout|electro|edm|house|energ[ií]a)/.test(s)) return "energy";
-  if (/(design|creative|project|art|dise[nñ]o|creativ)/.test(s)) return "creative";
+  if (/(energy|pop|dance|workout|electro|edm|house|energ[iÃ­]a)/.test(s)) return "energy";
+  if (/(design|creative|project|art|dise[nÃ±]o|creativ)/.test(s)) return "creative";
   return "focus";
 }
 
@@ -125,7 +126,7 @@ function safeId(value: string) {
 }
 
 function isStudyInstrumentalQuery(query: string) {
-  return /(instrumental|sin letra|lofi|focus|study|estudio|concentraci[oó]n|calm|relax|relajaci[oó]n|piano|ambient|meditation|meditaci[oó]n)/i.test(
+  return /(instrumental|sin letra|lofi|focus|study|estudio|concentraci[oÃ³]n|calm|relax|relajaci[oÃ³]n|piano|ambient|meditation|meditaci[oÃ³]n)/i.test(
     query,
   );
 }
@@ -133,10 +134,10 @@ function isStudyInstrumentalQuery(query: string) {
 function tagHints(query: string) {
   const s = query.toLowerCase();
   const hints: string[] = [];
-  if (/(lofi|focus|study|estudio|concentraci[oó]n)/.test(s)) hints.push("chillout", "instrumental");
-  if (/(relax|calm|relajaci[oó]n|calma|sleep|meditation|meditaci[oó]n)/.test(s)) hints.push("relaxation", "ambient");
-  if (/(classical|cl[aá]sica|piano|orchestra|bach|mozart|beethoven)/.test(s)) hints.push("classical", "piano");
-  if (/(electro|edm|house|dance|energy|energ[ií]a)/.test(s)) hints.push("electronic");
+  if (/(lofi|focus|study|estudio|concentraci[oÃ³]n)/.test(s)) hints.push("chillout", "instrumental");
+  if (/(relax|calm|relajaci[oÃ³]n|calma|sleep|meditation|meditaci[oÃ³]n)/.test(s)) hints.push("relaxation", "ambient");
+  if (/(classical|cl[aÃ¡]sica|piano|orchestra|bach|mozart|beethoven)/.test(s)) hints.push("classical", "piano");
+  if (/(electro|edm|house|dance|energy|energ[iÃ­]a)/.test(s)) hints.push("electronic");
   if (/(jazz|blues|soul)/.test(s)) hints.push("jazz");
   if (/(rock|guitar|guitarra)/.test(s)) hints.push("rock", "guitar");
   return Array.from(new Set(hints)).slice(0, 4);
@@ -165,7 +166,7 @@ async function searchItunes(query: string, limit: number): Promise<NormalizedTra
   return ((data.results || []) as ItunesResult[])
     .filter((item) => item.previewUrl && item.trackName && item.artistName)
     .map((item) => {
-      const title = item.trackName || "Canción";
+      const title = item.trackName || "CanciÃ³n";
       const artist = item.artistName || "Artista";
       const album = item.collectionName || "Resultado online";
       const artwork = (item.artworkUrl600 || item.artworkUrl100 || "").replace("100x100bb", "600x600bb");
@@ -183,7 +184,7 @@ async function searchItunes(query: string, limit: number): Promise<NormalizedTra
         artworkUrl: artwork,
         externalUrl: item.trackViewUrl,
         source: "itunes" as const,
-        tags: ["itunes", "preview", "dj-30s", item.primaryGenreName || "música"].filter(
+        tags: ["itunes", "preview", "dj-30s", item.primaryGenreName || "mÃºsica"].filter(
           Boolean,
         ),
       };
@@ -243,7 +244,7 @@ async function jamendoRequest(
       const image = item.image || item.album_image;
       return {
         id: `jamendo-${item.id || safeId(`${item.artist_name}-${item.name}`)}`,
-        title: item.name || "Canción",
+        title: item.name || "CanciÃ³n",
         artist: item.artist_name || "Artista independiente",
         album: item.album_name || "Jamendo",
         mood: moodFromText(
@@ -292,7 +293,7 @@ async function searchAudius(query: string, limit: number): Promise<NormalizedTra
         item.artwork?.["150x150"];
       return {
         id: `audius-${item.id}`,
-        title: item.title || "Canción",
+        title: item.title || "CanciÃ³n",
         artist: item.user?.name || item.user?.handle || "Audius Artist",
         album: item.genre || "Audius",
         mood: moodFromText(
@@ -351,7 +352,7 @@ async function searchYouTube(
         id: `youtube-${videoId}`,
         title,
         artist,
-        album: previewSeconds ? "YouTube DJ 30s" : "YouTube video",
+        album: previewSeconds ? "YouTube DJ Â· 0:50â1:20" : "YouTube video",
         mood: moodFromText(`${title} ${artist} ${item.snippet?.description || ""}`),
         duration: previewSeconds ? `0:${String(previewSeconds).padStart(2, "0")}` : "Video",
         src: "",
@@ -359,11 +360,13 @@ async function searchYouTube(
         artworkUrl: thumbnail,
         externalUrl: `https://www.youtube.com/watch?v=${videoId}`,
         source: "youtube" as const,
-        tags: ["youtube", "video", previewSeconds ? "dj-30s" : "full-video"],
+        tags: ["youtube", "video", previewSeconds ? "dj-30s", "desde-0-50" : "full-video"],
         youtubeVideoId: videoId,
         videoEmbedUrl: `https://www.youtube.com/embed/${videoId}`,
         videoThumbnail: thumbnail,
         previewSeconds,
+        // DJ toma un fragmento reconocible de la canciÃ³n, no la introducciÃ³n.
+        previewStartSeconds: previewSeconds ? 50 : undefined,
       };
     });
 }
@@ -400,7 +403,7 @@ async function handle(req: NextRequest) {
   const previewTasks: Array<Promise<NormalizedTrack[]>> = [];
 
   // Las fuentes de audio siguen disponibles por API, pero la interfaz de
-  // búsqueda usa resultados con video para que imagen y sonido coincidan.
+  // bÃºsqueda usa resultados con video para que imagen y sonido coincidan.
   if (normalizedProvider === "jamendo") {
     fullTasks.push(searchJamendo(query, limit).catch(() => []));
   }
@@ -448,8 +451,8 @@ async function handle(req: NextRequest) {
     fallbackUsed: Boolean(youtubeFallback.length),
     fallbackReason: youtubeFallback.length
       ? normalizedProvider === "preview"
-        ? "Modo DJ: video y audio de YouTube reproducidos juntos durante 30 segundos."
-        : "No se encontró audio completo en Jamendo/Audius para esa búsqueda; se muestran videos embebibles de YouTube."
+        ? "Modo DJ: audio de YouTube desde 0:50 durante 30 segundos y cola automÃ¡tica."
+        : "No se encontrÃ³ audio completo en Jamendo/Audius para esa bÃºsqueda; se muestran videos embebibles de YouTube."
       : null,
     youtubeKeyMissing: !process.env.YOUTUBE_API_KEY && (normalizedProvider === "full" || normalizedProvider === "youtube" || normalizedProvider === "preview"),
     youtubeSearchUrl: !process.env.YOUTUBE_API_KEY && (normalizedProvider === "full" || normalizedProvider === "youtube" || normalizedProvider === "preview") ? `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}` : null,
