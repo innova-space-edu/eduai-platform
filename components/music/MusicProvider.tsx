@@ -116,6 +116,7 @@ type MusicContextValue = {
   durationSeconds: number;
   seekTo: (seconds: number) => void;
   searchOnline: (term?: string, providerOverride?: OnlineProviderMode) => Promise<void>;
+  clearOnlineResults: () => void;
 };
 
 declare global {
@@ -253,6 +254,8 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const playingRef = useRef(false);
   const hlsRef = useRef<any>(null);
   const nextTrackRef = useRef<() => void>(() => {});
+  const onlineSearchAbortRef = useRef<AbortController | null>(null);
+  const onlineSearchRequestRef = useRef(0);
   const [hydrated, setHydrated] = useState(false);
   const [view, setView] = useState<MusicView>("home");
   const [query, setQuery] = useState("");
@@ -948,6 +951,19 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     setHasActiveSession(false);
   }, []);
 
+  const clearOnlineResults = useCallback(() => {
+    onlineSearchRequestRef.current += 1;
+    onlineSearchAbortRef.current?.abort();
+    onlineSearchAbortRef.current = null;
+    setOnlineLoading(false);
+    setOnlineError("");
+    setOnlineTracks([]);
+  }, []);
+
+  useEffect(() => {
+    return () => onlineSearchAbortRef.current?.abort();
+  }, []);
+
   useEffect(() => {
     if (typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
     const artwork = trackArtwork(currentTrack);
@@ -975,12 +991,23 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       if (providerOverride) setOnlineProviderMode(providerOverride);
       const clean = (term || onlineQuery || query).trim();
       if (!clean) return;
+      onlineSearchRequestRef.current += 1;
+      const requestId = onlineSearchRequestRef.current;
+      onlineSearchAbortRef.current?.abort();
+      const controller = new AbortController();
+      onlineSearchAbortRef.current = controller;
       setOnlineLoading(true);
       setOnlineError("");
+      // Una búsqueda representa una nueva sesión: no mezclamos resultados ni
+      // conservamos la lista anterior mientras se consulta el nuevo término.
+      setOnlineTracks([]);
+      setSelectedPlaylistId("pl-online");
+      setView("search");
       try {
         const res = await fetch("/api/music/search", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
           body: JSON.stringify({
             query: clean,
             provider: mode === "youtube" ? "youtube" : mode || "full",
@@ -988,6 +1015,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
           }),
         });
         const data = await res.json();
+        if (requestId !== onlineSearchRequestRef.current) return;
         if (!res.ok || !data?.ok) throw new Error(data?.error || "No se pudo buscar música online.");
         const tracks = Array.isArray(data.tracks) ? (data.tracks as EduMusicTrack[]) : [];
         if (!tracks.length) {
@@ -1004,18 +1032,13 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
           );
           return;
         }
-        setOnlineTracks((prev) => {
-          const map = new Map<string, EduMusicTrack>();
-          [...tracks.map(sanitizeStoredTrack), ...prev.map(sanitizeStoredTrack)].forEach((track) => map.set(track.id, track));
-          return Array.from(map.values()).slice(0, 80);
-        });
-        setSelectedPlaylistId("pl-online");
-        setView("search");
+        setOnlineTracks(tracks.map(sanitizeStoredTrack).slice(0, 60));
         if (tracks[0]) playTrack(tracks[0], tracks);
       } catch (error) {
+        if (controller.signal.aborted || requestId !== onlineSearchRequestRef.current) return;
         setOnlineError(error instanceof Error ? error.message : "Error buscando música online.");
       } finally {
-        setOnlineLoading(false);
+        if (requestId === onlineSearchRequestRef.current) setOnlineLoading(false);
       }
     },
     [onlineProviderMode, onlineQuery, playTrack, query],
@@ -1121,6 +1144,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     durationSeconds,
     seekTo,
     searchOnline,
+    clearOnlineResults,
   };
 
   return (
