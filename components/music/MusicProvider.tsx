@@ -247,6 +247,13 @@ function trackArtwork(track: EduMusicTrack) {
   return track.artworkUrl || track.videoThumbnail || (track.cover?.startsWith("http") ? track.cover : undefined);
 }
 
+function isDjMixTrack(track?: EduMusicTrack | null) {
+  return Boolean(
+    track?.source === "youtube" &&
+      Math.max(0, Number(asExtendedTrack(track)?.previewSeconds || 0)) > 0,
+  );
+}
+
 export function MusicProvider({ children }: { children: React.ReactNode }) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const youtubePlayerRef = useRef<any>(null);
@@ -617,6 +624,13 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       setHasActiveSession(true);
       if (queueFrom?.length) setQueueIds(queueFrom.map((t) => t.id));
 
+      // DJ siempre mezcla pistas distintas: no hereda por accidente el modo
+      // "repetir una" que puede haber quedado guardado en el navegador.
+      if (isDjMixTrack(track)) {
+        setShuffle(true);
+        setRepeat("all");
+      }
+
       if (isEmbedTrack(track)) {
         setCurrentId(track.id);
         setPlaying(false);
@@ -676,7 +690,9 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
   const nextTrack = useCallback(() => {
     setHasActiveSession(true);
-    if (repeat === "one") {
+    // En modo DJ, la cola debe pasar a otra canción aunque el usuario haya
+    // dejado activado "repetir una" en una sesión anterior.
+    if (repeat === "one" && !isDjMixTrack(currentTrack)) {
       if (isEmbedTrack(currentTrack)) {
         setPlaying(false);
         return;
