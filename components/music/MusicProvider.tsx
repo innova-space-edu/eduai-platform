@@ -156,7 +156,7 @@ function isHlsUrl(src?: string) {
 function isBlockedBrowserAudioSrc(src?: string) {
   const clean = String(src || "").trim();
   if (!clean) return false;
-  // La app corre en HTTPS. Estos streams producen mixed content, certificados invÃ¡lidos
+  // La app corre en HTTPS. Estos streams producen mixed content, certificados inválidos
   // o errores como NET::ERR_CERT_COMMON_NAME_INVALID en el navegador.
   return /^http:\/\//i.test(clean) || /sonando\.us\.digitalproserver\.com/i.test(clean);
 }
@@ -179,7 +179,7 @@ function sanitizeStoredTrack(track: EduMusicTrack): EduMusicTrack {
   return {
     ...track,
     src: "",
-    album: "SeÃ±al externa no reproducible directamente",
+    album: "Señal externa no reproducible directamente",
     playable: false,
     externalOnly: true,
     externalUrl: track.externalUrl || "https://www.canal95.cl/",
@@ -466,7 +466,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
             !isBlockedBrowserAudioSrc(track.src),
         );
         if (fallback) {
-          setRadioError(`${currentTrack.title} fallÃ³. Probando seÃ±al alternativa de FM Dos...`);
+          setRadioError(`${currentTrack.title} falló. Probando señal alternativa de FM Dos...`);
           setCurrentId(fallback.id);
           setPlaying(true);
           return;
@@ -475,7 +475,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
       setPlaying(false);
       setRadioError(
-        `No se pudo reproducir ${currentTrack.title}. La emisora puede estar usando HTTP, un certificado invÃ¡lido o una seÃ±al que el navegador bloquea. Usa âAbrir fuenteâ o prueba otra radio.`,
+        `No se pudo reproducir ${currentTrack.title}. La emisora puede estar usando HTTP, un certificado inválido o una señal que el navegador bloquea. Usa “Abrir fuente” o prueba otra radio.`,
       );
     };
 
@@ -516,7 +516,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     if (currentTrack.source === "radio" && isBlockedBrowserAudioSrc(currentTrack.src)) {
       setPlaying(false);
       setRadioError(
-        `${currentTrack.title} usa una seÃ±al bloqueada por el navegador por HTTP o certificado invÃ¡lido. Busca otra radio o abre la fuente oficial.`,
+        `${currentTrack.title} usa una señal bloqueada por el navegador por HTTP o certificado inválido. Busca otra radio o abre la fuente oficial.`,
       );
       return;
     }
@@ -569,8 +569,8 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Nunca dejes el iframe de YouTube sonando al cambiar a una pista de audio.
-    // AdemÃ¡s se destruye la instancia: su contenedor visual pudo desmontarse
-    // al cambiar de bÃºsqueda y reutilizarla provoca excepciones del cliente.
+    // Además se destruye la instancia: su contenedor visual pudo desmontarse
+    // al cambiar de búsqueda y reutilizarla provoca excepciones del cliente.
     if (youtubeReadyRef.current && youtubePlayerRef.current?.pauseVideo) {
       try {
         youtubePlayerRef.current.pauseVideo();
@@ -630,7 +630,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         setCurrentId(track.id);
         setPlaying(false);
         setRadioError(
-          `${track.title} usa una seÃ±al bloqueada por el navegador por HTTP o certificado invÃ¡lido. Se abrirÃ¡ la fuente oficial si estÃ¡ disponible.`,
+          `${track.title} usa una señal bloqueada por el navegador por HTTP o certificado inválido. Se abrirá la fuente oficial si está disponible.`,
         );
         if (externalUrl && typeof window !== "undefined") {
           window.open(externalUrl, "_blank", "noopener,noreferrer");
@@ -642,7 +642,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         setCurrentId(track.id);
         setPlaying(false);
         setRadioError(
-          `${track.title} no tiene una seÃ±al HTTPS reproducible directamente en el navegador. Se abrirÃ¡ la fuente oficial.`,
+          `${track.title} no tiene una señal HTTPS reproducible directamente en el navegador. Se abrirá la fuente oficial.`,
         );
         if (typeof window !== "undefined") {
           window.open(externalUrl, "_blank", "noopener,noreferrer");
@@ -1027,7 +1027,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       setOnlineLoading(true);
       setOnlineError("");
       // Conservamos la lista actual durante la consulta y la reemplazamos de
-      // forma atÃ³mica al recibir la respuesta. AsÃ­ el host de YouTube no se
+      // forma atómica al recibir la respuesta. Así el host de YouTube no se
       // desmonta mientras su iframe sigue activo.
       setSelectedPlaylistId("pl-online");
       setView("search");
@@ -1044,19 +1044,19 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         });
         const data = await res.json();
         if (requestId !== onlineSearchRequestRef.current) return;
-        if (!res.ok || !data?.ok) throw new Error(data?.error || "No se pudo buscar mÃºsica online.");
+        if (!res.ok || !data?.ok) throw new Error(data?.error || "No se pudo buscar música online.");
         const tracks = Array.isArray(data.tracks) ? (data.tracks as EduMusicTrack[]) : [];
         if (!tracks.length) {
           setOnlineError(
             mode === "full"
               ? data?.sources?.youtube
-                ? "No encontrÃ© canciones completas en Jamendo/Audius ni videos embebibles de YouTube. Prueba con otro tÃ©rmino o cambia a DJ 30s."
-                : "No encontrÃ© canciones completas en Jamendo/Audius. Para buscar videos de YouTube debes agregar YOUTUBE_API_KEY en Vercel o cambiar a DJ 30s."
+                ? "No encontré canciones completas en Jamendo/Audius ni videos embebibles de YouTube. Prueba con otro término o cambia a DJ 30s."
+                : "No encontré canciones completas en Jamendo/Audius. Para buscar videos de YouTube debes agregar YOUTUBE_API_KEY en Vercel o cambiar a DJ 30s."
               : mode === "youtube"
                 ? data?.sources?.youtube
-                  ? "No encontrÃ© videos embebibles de YouTube para esa bÃºsqueda."
+                  ? "No encontré videos embebibles de YouTube para esa búsqueda."
                   : "Falta configurar YOUTUBE_API_KEY en Vercel para buscar videos de YouTube."
-                : "No encontrÃ© resultados reproducibles para esa bÃºsqueda.",
+                : "No encontré resultados reproducibles para esa búsqueda.",
           );
           return;
         }
@@ -1064,7 +1064,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         if (tracks[0]) playTrack(tracks[0], tracks);
       } catch (error) {
         if (controller.signal.aborted || requestId !== onlineSearchRequestRef.current) return;
-        setOnlineError(error instanceof Error ? error.message : "Error buscando mÃºsica online.");
+        setOnlineError(error instanceof Error ? error.message : "Error buscando música online.");
       } finally {
         if (requestId === onlineSearchRequestRef.current) setOnlineLoading(false);
       }
@@ -1088,7 +1088,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         if (!res.ok || !data?.ok) throw new Error(data?.error || "No se pudieron buscar radios.");
         const tracks = Array.isArray(data.tracks) ? (data.tracks as EduMusicTrack[]) : [];
         if (!tracks.length) {
-          setRadioError("No encontrÃ© radios activas para esa bÃºsqueda. Prueba con otra ciudad, paÃ­s o nombre de radio.");
+          setRadioError("No encontré radios activas para esa búsqueda. Prueba con otra ciudad, país o nombre de radio.");
           return;
         }
         setOnlineTracks((prev) => {
