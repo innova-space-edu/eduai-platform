@@ -726,16 +726,18 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     if (shuffle && list.length > 1) {
       const others = list.filter((track) => track.id !== currentId);
       const random = others[Math.floor(Math.random() * others.length)] ?? list[0];
+      const shouldContinue = playingRef.current;
       setCurrentId(random.id);
-      setPlaying(true);
+      setPlaying(shouldContinue);
       return;
     }
 
     const index = Math.max(0, list.findIndex((track) => track.id === currentId));
     const next = list[index + 1] ?? (repeat === "all" ? list[0] : null);
     if (next) {
+      const shouldContinue = playingRef.current;
       setCurrentId(next.id);
-      setPlaying(true);
+      setPlaying(shouldContinue);
     } else {
       setPlaying(false);
     }
@@ -758,8 +760,9 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     const index = Math.max(0, list.findIndex((track) => track.id === currentId));
     const prev = list[(index - 1 + list.length) % list.length];
     if (prev) {
+      const shouldContinue = playingRef.current;
       setCurrentId(prev.id);
-      setPlaying(true);
+      setPlaying(shouldContinue);
     }
   }, [allTracks, baseTracks, currentId, queue, visibleTracks]);
 
@@ -831,10 +834,9 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
                 youtubeRetryRef.current = 0;
                 return;
               }
-              if (state === window.YT?.PlayerState?.PAUSED) {
-                setPlaying(false);
-                return;
-              }
+              // Los controles de YouTube están ocultos: pausar desde EduAI ya
+              // actualiza el estado. Ignoramos la pausa transitoria que emite
+              // YouTube al cargar el siguiente video de la cola.
               if (state === window.YT?.PlayerState?.ENDED) {
                 nextTrackRef.current();
               }
