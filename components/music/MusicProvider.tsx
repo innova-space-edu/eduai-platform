@@ -35,6 +35,7 @@ type ExtendedEduMusicTrack = EduMusicTrack & {
   embedOnly?: boolean;
   embedUrl?: string;
   loaderUrl?: string;
+  previewSeconds?: number;
 };
 
 type StoredState = {
@@ -262,7 +263,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const [onlineQuery, setOnlineQuery] = useState("");
   const [onlineLoading, setOnlineLoading] = useState(false);
   const [onlineError, setOnlineError] = useState("");
-  const [onlineProviderMode, setOnlineProviderMode] = useState<OnlineProviderMode>("full");
+  const [onlineProviderMode, setOnlineProviderMode] = useState<OnlineProviderMode>("youtube");
   const [radioQuery, setRadioQuery] = useState("Chile");
   const [radioLoading, setRadioLoading] = useState(false);
   const [radioError, setRadioError] = useState("");
@@ -303,15 +304,12 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const stored = safeReadState();
     if (stored.volume !== undefined) setVolume(stored.volume);
-    if (stored.onlineTracks) {
-      setOnlineTracks(stored.onlineTracks.slice(0, 80).map(sanitizeStoredTrack));
-    }
     if (stored.trackId) setCurrentId(stored.trackId);
     if (stored.playlistId) setSelectedPlaylistId(stored.playlistId);
     if (stored.likedTrackIds) setLikedTrackIds(stored.likedTrackIds);
     if (stored.userPlaylists) setUserPlaylists(stored.userPlaylists);
     if (stored.queueIds) setQueueIds(stored.queueIds);
-    setOnlineProviderMode("full");
+    setOnlineProviderMode("youtube");
     if (stored.view) setView(stored.view === "radio" ? "radio" : stored.view);
     if (stored.shuffle !== undefined) setShuffle(stored.shuffle);
     if (stored.repeat) setRepeat(stored.repeat);
@@ -398,7 +396,6 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       volume,
       likedTrackIds,
       userPlaylists,
-      onlineTracks: onlineTracks.slice(0, 80),
       onlineProviderMode: onlineProviderMode === "youtube" ? "full" : onlineProviderMode,
       queueIds,
       view,
@@ -737,6 +734,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
     const videoId = currentTrack.youtubeVideoId;
     if (!videoId) return;
+    const previewSeconds = Math.max(0, Number(asExtendedTrack(currentTrack)?.previewSeconds || 0));
 
     let cancelled = false;
     let mountRetry: number | null = null;
@@ -768,7 +766,11 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
           const loadedId = youtubeVideoIdRef.current;
           if (forceLoad || loadedId !== videoId) {
             youtubeVideoIdRef.current = videoId;
-            player.loadVideoById?.(videoId);
+            player.loadVideoById?.({
+              videoId,
+              startSeconds: 0,
+              ...(previewSeconds ? { endSeconds: previewSeconds } : {}),
+            });
           }
           if (playingRef.current) player.playVideo?.();
         } catch {}
@@ -833,7 +835,9 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         const safeTime = Number.isFinite(time) ? time : 0;
         const safeDuration = Number.isFinite(duration) ? duration : 0;
         setCurrentTime(safeTime);
-        setDurationSeconds(safeDuration);
+        const clipDuration = Math.max(0, Number(asExtendedTrack(currentTrack)?.previewSeconds || 0));
+        const effectiveDuration = clipDuration || safeDuration;
+        setDurationSeconds(effectiveDuration);
 
         if (playingRef.current) {
           const PlayerState = window.YT?.PlayerState || {};
@@ -844,7 +848,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
           }
         }
 
-        if (safeDuration > 0 && safeTime >= safeDuration - 0.8) {
+        if (effectiveDuration > 0 && safeTime >= effectiveDuration - 0.35) {
           nextTrackRef.current();
         }
       } catch {}
