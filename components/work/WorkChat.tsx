@@ -228,56 +228,6 @@ export function WorkChat({
         return
       }
 
-      // Cuando el usuario se refiere a un archivo o a las fuentes del Work,
-      // respondemos desde los fragmentos ya procesados en vez de inventar una
-      // respuesta genérica. Así "resume/traduce este archivo" realmente lee
-      // el documento adjunto.
-      const asksForSources = Boolean(notebookId && readySourceCount > 0) &&
-        /\b(archivo|documento|adjunto|fuente(?:s)?|pdf|docx|txt|este material|estas fuentes)\b/i.test(content)
-      if (asksForSources && notebookId) {
-        const sourceResponse = await fetch(`/api/notebooks/${notebookId}/chat`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          signal: abortRef.current.signal,
-          body: JSON.stringify({ message: content, history, stream: false }),
-        })
-        const sourceData = await sourceResponse.json().catch(() => ({}))
-        if (!sourceResponse.ok) throw new Error(sourceData?.error || "No pude leer las fuentes del Work")
-        const citations = Array.isArray(sourceData?.citations) ? sourceData.citations : []
-        let sourceContent = sourceData.text || "No encontré contenido suficiente en las fuentes."
-        // El guion se construye primero con los fragmentos y solo después se
-        // envía a TTS: el podcast no inventa contenido fuera del archivo.
-        if (/\b(podcast|episodio|audio|narraci[oó]n)\b/i.test(content) && sourceData.text) {
-          const audioResponse = await fetch("/api/agents/audio/generate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            signal: abortRef.current.signal,
-            body: JSON.stringify({
-              inputMode: "text",
-              text: sourceData.text,
-              style: /podcast|episodio/i.test(content) ? "dialogue" : "narration",
-              voiceA: "Lorenzo",
-              voiceB: "Catalina",
-            }),
-          })
-          const audioData = await audioResponse.json().catch(() => ({}))
-          if (!audioResponse.ok || !audioData?.audioBase64) {
-            throw new Error(audioData?.error || "El guion se creó, pero no se pudo generar el audio")
-          }
-          sourceContent = `🎙️ **Audio creado desde las fuentes del Work.**\n\n<audio controls src="data:audio/mpeg;base64,${audioData.audioBase64}"></audio>\n\n**Guion basado en las fuentes:**\n\n${sourceData.text}`
-        }
-        onCitationsChange(citations)
-        setMessages((current) => current.map((message) => message.id === pendingId ? {
-          id: pendingId,
-          role: "assistant",
-          content: sourceContent,
-          provider: sourceData.provider || "EduAI Files",
-          model: sourceData.model || "Notebook Reader",
-          citations,
-        } : message))
-        return
-      }
-
       const response = await fetch("/api/superagent/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -327,7 +277,7 @@ export function WorkChat({
       setLoading(false)
       textareaRef.current?.focus()
     }
-  }, [input, loading, messages, mode, notebookId, notebookTitle, onCitationsChange, onResultCreated, readySourceCount, scope])
+  }, [input, loading, messages, mode, notebookId, notebookTitle, onCitationsChange, onResultCreated, scope])
 
   const stop = () => {
     abortRef.current?.abort()
