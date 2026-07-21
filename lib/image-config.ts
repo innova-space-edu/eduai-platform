@@ -1,5 +1,5 @@
 // lib/image-config.ts
-// v2 — FLUX.2 en Together, cadena OpenRouter 2026, Gemini via OR
+// v3 — configuración multiproveedor para generación de imágenes en EduAI
 
 export type ProviderId =
   | "auto"
@@ -28,7 +28,7 @@ export const STYLE_GUIDES: Record<string, string> = {
   "oil painting":
     "oil on canvas, impressionist brushstrokes, museum quality, rich textures, classical fine art painting",
   anime:
-    "anime style, Studio Ghibli inspired, detailed linework, vibrant colors, manga illustration, clean lines",
+    "anime style, detailed linework, vibrant colors, manga illustration, clean lines",
   watercolor:
     "watercolor painting, soft edges, transparent washes, artistic, delicate details, paper texture visible",
   "3d render":
@@ -46,56 +46,58 @@ export const STYLE_GUIDES: Record<string, string> = {
 }
 
 export const DEFAULT_IMAGE_PROVIDER_ORDER: Record<GenerationMode, ConcreteProviderId[]> = {
-  fast:        ["pollinations", "openrouter", "together", "huggingface"],
-  quality:     ["gemini", "openrouter", "together", "huggingface", "pollinations"],
-  educational: ["gemini", "openrouter", "together", "huggingface", "pollinations"],
+  fast: ["pollinations", "openrouter", "together", "huggingface", "gemini"],
+  quality: ["gemini", "openrouter", "together", "huggingface", "pollinations"],
+  educational: ["gemini", "openrouter", "pollinations", "together", "huggingface"],
 }
 
 const GEMINI_IMAGE_MODELS_RAW = [
   process.env.GEMINI_IMAGE_MODEL_PRIMARY,
   process.env.GEMINI_IMAGE_MODEL_SECONDARY,
   process.env.GEMINI_IMAGE_MODEL_TERTIARY,
-  // GA — modelos activos oficiales
-  "gemini-2.5-flash-image", // GA desde Oct 2025, modelo correcto
-  "gemini-3.1-flash-image-preview", // preview más reciente
-  // Fallbacks (pueden fallar en cuentas nuevas o regiones)
-  "gemini-2.0-flash-exp",
-  "gemini-2.0-flash-preview-image-generation",
-  "gemini-2.0-flash-exp-image-generation",
+  "gemini-3.1-flash-image",
+  "gemini-2.5-flash-image",
 ]
 
 export const GEMINI_IMAGE_MODELS: string[] = GEMINI_IMAGE_MODELS_RAW.filter(
   (model): model is string => Boolean(model)
 )
 
-export type TogetherImageModel = { id: string; steps: number; guidance: number; useAspectRatio: boolean }
+const POLLINATIONS_IMAGE_MODELS_RAW = [
+  process.env.POLLINATIONS_IMAGE_MODEL_PRIMARY,
+  process.env.POLLINATIONS_IMAGE_MODEL_SECONDARY,
+  process.env.POLLINATIONS_IMAGE_MODEL_TERTIARY,
+  "zimage",
+  "flux",
+  "qwen-image",
+]
+
+export const POLLINATIONS_IMAGE_MODELS: string[] = POLLINATIONS_IMAGE_MODELS_RAW.filter(
+  (model): model is string => Boolean(model)
+)
+
+export type TogetherImageModel = {
+  id: string
+  steps: number
+  guidance: number
+  useAspectRatio: boolean
+}
+
 export const TOGETHER_IMAGE_MODELS: TogetherImageModel[] = [
-  // FLUX.2 (nov 2025) — calidad producción, usa aspect_ratio
-  { id: "black-forest-labs/FLUX.2-pro",     steps: 28, guidance: 3.5, useAspectRatio: true  },
-  { id: "black-forest-labs/FLUX.2-flex",    steps: 28, guidance: 3.5, useAspectRatio: true  },
-  // FLUX.1.x — más rápido, usa width/height
-  { id: "black-forest-labs/FLUX.1-schnell", steps: 4,  guidance: 0,   useAspectRatio: false },
-  { id: "black-forest-labs/FLUX.1-dev",     steps: 20, guidance: 3.5, useAspectRatio: false },
+  { id: process.env.TOGETHER_IMAGE_MODEL_PRIMARY || "black-forest-labs/FLUX.1-schnell-Free", steps: 4, guidance: 0, useAspectRatio: false },
+  { id: process.env.TOGETHER_IMAGE_MODEL_SECONDARY || "black-forest-labs/FLUX.1-schnell", steps: 4, guidance: 0, useAspectRatio: false },
+  { id: process.env.TOGETHER_IMAGE_MODEL_TERTIARY || "black-forest-labs/FLUX.1.1-pro", steps: 20, guidance: 3.5, useAspectRatio: false },
 ]
 
 export const HUGGINGFACE_IMAGE_MODELS = [
-  { id: "black-forest-labs/FLUX.1-schnell", steps: 4, guidance: 0 },
-  { id: "stabilityai/stable-diffusion-xl-base-1.0", steps: 25, guidance: 7.5 },
+  { id: process.env.HF_IMAGE_MODEL_PRIMARY || "black-forest-labs/FLUX.1-schnell", steps: 4, guidance: 0 },
+  { id: process.env.HF_IMAGE_MODEL_SECONDARY || "stabilityai/stable-diffusion-xl-base-1.0", steps: 25, guidance: 7.5 },
 ]
 
-// Modelos de imagen disponibles vía OpenRouter (abril 2026).
-// modalities: ["image","text"] → modelos que devuelven texto + imagen (Gemini, OpenAI)
-//             ["image"]        → solo imagen (Sourceful, ByteDance, FLUX)
 export const OPENROUTER_IMAGE_MODELS: { id: string; modalities: string[] }[] = [
-  // Google Gemini — GA, mejor calidad/precio, excelente para educación
-  { id: "google/gemini-2.5-flash-image",         modalities: ["image", "text"] },
-  { id: "google/gemini-3.1-flash-image-preview", modalities: ["image", "text"] },
-  // Sourceful Riverflow — rápido y barato ($0.02/imagen)
-  { id: "sourceful/riverflow-v2-fast",           modalities: ["image"] },
-  // ByteDance Seedream 4.5 — alta calidad ($0.04/imagen)
-  { id: "bytedance-seed/seedream-4.5",           modalities: ["image"] },
-  // OpenAI GPT-5 Image Mini — fallback premium
-  { id: "openai/gpt-5-image-mini",               modalities: ["image", "text"] },
+  { id: process.env.OPENROUTER_IMAGE_MODEL_PRIMARY || "bytedance-seed/seedream-4.5", modalities: ["image"] },
+  { id: process.env.OPENROUTER_IMAGE_MODEL_SECONDARY || "google/gemini-2.5-flash-image", modalities: ["image", "text"] },
+  { id: process.env.OPENROUTER_IMAGE_MODEL_TERTIARY || "sourceful/riverflow-v2-fast", modalities: ["image"] },
 ]
 
 export function clamp(v: number, min: number, max: number, fallback: number): number {
@@ -161,6 +163,7 @@ export function getGeminiImageKeys(): string[] {
   return envPool(
     "GEMINI_API_KEY_IMAGE",
     "GEMINI_API_KEY_IMAGE_2",
+    "GEMINI_API_KEY_IMAGE_3",
     "GEMINI_API_KEY"
   )
 }
@@ -196,14 +199,24 @@ export function getHuggingFaceTokens(): string[] {
     "HF_TOKEN_2",
     "HF_TOKEN_3",
     "HF_TOKEN_4",
-    "HF_TOKEN_5"
+    "HF_TOKEN_5",
+    "HF_TOKEN"
   )
 }
 
-export function parseProviderOrder(value: string | undefined, fallback: ConcreteProviderId[]): ConcreteProviderId[] {
+export function parseProviderOrder(
+  value: string | undefined,
+  fallback: ConcreteProviderId[]
+): ConcreteProviderId[] {
   if (!value?.trim()) return fallback
 
-  const valid: ConcreteProviderId[] = ["gemini", "pollinations", "together", "huggingface", "openrouter"]
+  const valid: ConcreteProviderId[] = [
+    "gemini",
+    "pollinations",
+    "together",
+    "huggingface",
+    "openrouter",
+  ]
   const parsed = value
     .split(",")
     .map((part) => part.trim().toLowerCase())
