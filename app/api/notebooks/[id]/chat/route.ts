@@ -104,6 +104,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     const body = await request.json().catch(() => ({}))
     const message = String(body?.message || "").trim()
     const history = normalizeHistory(body?.history)
+    const wantStream = body?.stream !== false
     if (!message) return NextResponse.json({ error: "Escribe una pregunta" }, { status: 400 })
 
     const { data: sourceData } = await supabase
@@ -156,6 +157,12 @@ ${context}`
     const citationsHeader = Buffer.from(JSON.stringify(citations), "utf8").toString("base64")
 
     try {
+      if (!wantStream) {
+        const response = await callAI(messages, { maxTokens: 2_200, preferProvider: "gemini" })
+        const text = response.text.trim()
+        await saveMessage(id, "assistant", text, citations)
+        return NextResponse.json({ text, citations, provider: response.provider, model: response.model })
+      }
       const stream = await callGeminiStream(messages, 2_200)
       let fullResponse = ""
       const transform = new TransformStream<Uint8Array, Uint8Array>({
