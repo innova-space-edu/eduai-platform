@@ -6,10 +6,11 @@
     "node": "22.x"
   },
   "scripts": {
-    "dev": "node scripts/apply-notebook-ingestion-fix.mjs && node scripts/apply-notebook-home-link.mjs && node scripts/apply-educador-dual-submit.mjs && next dev",
+    "dev": "node scripts/apply-notebook-ingestion-fix.mjs && node scripts/apply-notebook-home-link.mjs && node scripts/apply-educador-dual-submit.mjs && node scripts/apply-mira-voice-mode.mjs && next dev",
     "planner:maintain": "node scripts/apply-planner-maintenance.mjs",
     "whiteboard:finalize": "node scripts/apply-whiteboard-finalization.mjs",
-    "build": "node scripts/validate-mineduc-curriculum.mjs --strict && node scripts/apply-planner-maintenance.mjs && node scripts/apply-planning-format-dropdown.mjs && node scripts/apply-whiteboard-finalization.mjs && node scripts/apply-mixed-edit-support.mjs && node scripts/apply-notebook-ingestion-fix.mjs && node scripts/apply-notebook-home-link.mjs && node scripts/apply-educador-dual-submit.mjs && next build",
+    "mira:voice": "node scripts/apply-mira-voice-mode.mjs",
+    "build": "node scripts/validate-mineduc-curriculum.mjs --strict && node scripts/apply-planner-maintenance.mjs && node scripts/apply-planning-format-dropdown.mjs && node scripts/apply-whiteboard-finalization.mjs && node scripts/apply-mixed-edit-support.mjs && node scripts/apply-notebook-ingestion-fix.mjs && node scripts/apply-notebook-home-link.mjs && node scripts/apply-educador-dual-submit.mjs && node scripts/apply-mira-voice-mode.mjs && next build",
     "start": "next start",
     "lint": "eslint",
     "test:planner": "tsx scripts/test-planner-integral.ts",
