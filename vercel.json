@@ -1,3 +1,9 @@
 {
-  "installCommand": "node scripts/normalize-npm-lockfile.mjs && npm install --registry=https://registry.npmjs.org/"
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "node scripts/normalize-npm-lockfile.mjs && npm install --registry=https://registry.npmjs.org/",
+  "functions": {
+    "app/api/**/*.ts": {
+      "maxDuration": 60
+    }
+  }
 }
