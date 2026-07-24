@@ -134,10 +134,11 @@ export default function EduAIUsageTracker() {
       ? new PerformanceObserver(list => {
           for (const entry of list.getEntries()) {
             if (entry.entryType !== "resource") continue
+            const resourceEntry = entry as PerformanceResourceTiming
 
             let url: URL
             try {
-              url = new URL(entry.name)
+              url = new URL(resourceEntry.name)
             } catch {
               continue
             }
@@ -154,10 +155,10 @@ export default function EduAIUsageTracker() {
             trackEduAIEvent({
               eventType: classifyApiEvent(url.pathname),
               success: true,
-              latencyMs: Math.max(0, Math.round(entry.duration)),
+              latencyMs: Math.max(0, Math.round(resourceEntry.duration)),
               metadata: {
                 apiPath: url.pathname.slice(0, 180),
-                initiatorType: entry.initiatorType || "resource",
+                initiatorType: resourceEntry.initiatorType || "resource",
                 instrumentation: "performance_resource_v1",
               },
             })
