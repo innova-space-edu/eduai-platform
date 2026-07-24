@@ -1,0 +1,102 @@
+name: E2E ciclo de examen
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "URL de localhost publicado, Supabase branch o Vercel Preview. No usar producción."
+        required: true
+        type: string
+      existing_exam_code:
+        description: "Código de un examen E2E existente. Déjalo vacío para intentar crear uno."
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-exam-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  exam-cycle:
+    name: Probar ciclo completo del examen
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    env:
+      CI: "true"
+      E2E_BASE_URL: ${{ inputs.base_url }}
+      E2E_EXISTING_EXAM_CODE: ${{ inputs.existing_exam_code }}
+      E2E_TEACHER_EMAIL: ${{ secrets.E2E_TEACHER_EMAIL }}
+      E2E_TEACHER_PASSWORD: ${{ secrets.E2E_TEACHER_PASSWORD }}
+      E2E_STUDENT_NAME: ${{ secrets.E2E_STUDENT_NAME }}
+      E2E_STUDENT_RUT: ${{ secrets.E2E_STUDENT_RUT }}
+      E2E_CREATE_EXAM_SELECTOR: ${{ vars.E2E_CREATE_EXAM_SELECTOR }}
+      E2E_EXAM_TITLE_SELECTOR: ${{ vars.E2E_EXAM_TITLE_SELECTOR }}
+      E2E_EXAM_SUBJECT_SELECTOR: ${{ vars.E2E_EXAM_SUBJECT_SELECTOR }}
+      E2E_SAVE_EXAM_SELECTOR: ${{ vars.E2E_SAVE_EXAM_SELECTOR }}
+      E2E_PUBLISH_EXAM_SELECTOR: ${{ vars.E2E_PUBLISH_EXAM_SELECTOR }}
+      E2E_EXAM_CODE_SELECTOR: ${{ vars.E2E_EXAM_CODE_SELECTOR }}
+      E2E_STUDENT_NAME_SELECTOR: ${{ vars.E2E_STUDENT_NAME_SELECTOR }}
+      E2E_STUDENT_RUT_SELECTOR: ${{ vars.E2E_STUDENT_RUT_SELECTOR }}
+      E2E_START_EXAM_SELECTOR: ${{ vars.E2E_START_EXAM_SELECTOR }}
+      E2E_SUBMIT_EXAM_SELECTOR: ${{ vars.E2E_SUBMIT_EXAM_SELECTOR }}
+      E2E_CONFIRM_SUBMIT_SELECTOR: ${{ vars.E2E_CONFIRM_SUBMIT_SELECTOR }}
+      E2E_RESULTS_SELECTOR: ${{ vars.E2E_RESULTS_SELECTOR }}
+
+    steps:
+      - name: Validar destino seguro
+        shell: bash
+        run: |
+          if [ -z "$E2E_BASE_URL" ]; then
+            echo "E2E_BASE_URL es obligatorio"
+            exit 1
+          fi
+          if echo "$E2E_BASE_URL" | grep -q "eduaiplatformclon.vercel.app"; then
+            echo "Ejecución bloqueada: no se permiten pruebas E2E destructivas en producción."
+            exit 1
+          fi
+          if [ -z "$E2E_TEACHER_EMAIL" ] || [ -z "$E2E_TEACHER_PASSWORD" ]; then
+            echo "Configura E2E_TEACHER_EMAIL y E2E_TEACHER_PASSWORD como GitHub Actions secrets."
+            exit 1
+          fi
+
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias de la aplicación
+        run: npm ci
+
+      - name: Instalar Playwright solo para la prueba
+        run: |
+          npm install --no-save --package-lock=false @playwright/test@1.61.1
+          npx playwright install --with-deps chromium
+
+      - name: Ejecutar prueba E2E
+        run: npx playwright test --config=playwright.config.mjs
+
+      - name: Guardar reporte HTML
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-exam-report-${{ github.run_id }}
+          path: playwright-report
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Guardar evidencia de fallas
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-exam-failures-${{ github.run_id }}
+          path: test-results/e2e
+          if-no-files-found: ignore
+          retention-days: 14
