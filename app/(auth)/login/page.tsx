@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import Link from "next/link"
 import { Zap, Mail, Lock, Eye, EyeOff, AlertCircle } from "lucide-react"
+import LegalFooter from "@/components/legal/LegalFooter"
 
 export default function LoginPage() {
   const [email, setEmail]       = useState("")
@@ -31,15 +32,12 @@ export default function LoginPage() {
 
   return (
     <main className="min-h-screen bg-app flex flex-col items-center justify-center px-4 relative overflow-hidden">
-      {/* Soft background orbs */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full pointer-events-none"
         style={{ background: "radial-gradient(circle, rgba(37,99,235,0.07) 0%, transparent 70%)" }} />
       <div className="absolute bottom-1/4 left-1/3 w-[400px] h-[400px] rounded-full pointer-events-none"
         style={{ background: "radial-gradient(circle, rgba(124,58,237,0.05) 0%, transparent 70%)" }} />
 
       <div className="w-full max-w-sm relative z-10 animate-fade-in-scale">
-
-        {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-4"
             style={{ background: "linear-gradient(135deg, #2563eb, #7c3aed)", boxShadow: "0 8px 32px rgba(37,99,235,0.28)" }}>
@@ -51,7 +49,6 @@ export default function LoginPage() {
           <p className="text-muted2 text-sm mt-1">Tu tutor personal con IA</p>
         </div>
 
-        {/* Card */}
         <div className="rounded-2xl p-6 border"
           style={{
             background: "var(--bg-card)",
@@ -63,8 +60,6 @@ export default function LoginPage() {
           <h2 className="text-xl font-bold text-main mb-6">Iniciar sesión</h2>
 
           <form onSubmit={handleLogin} className="space-y-4">
-
-            {/* Email */}
             <div>
               <label className="text-sub text-sm mb-2 block font-medium">Email</label>
               <div className="relative">
@@ -78,7 +73,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Password */}
             <div>
               <label className="text-sub text-sm mb-2 block font-medium">Contraseña</label>
               <div className="relative">
@@ -97,7 +91,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Error */}
             {error && (
               <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl border"
                 style={{ background: "rgba(220,38,38,0.07)", borderColor: "rgba(220,38,38,0.20)" }}>
@@ -106,7 +99,6 @@ export default function LoginPage() {
               </div>
             )}
 
-            {/* Submit */}
             <button type="submit" disabled={loading}
               className="w-full py-3 rounded-xl font-semibold text-white text-sm transition-all disabled:opacity-50"
               style={{
@@ -132,6 +124,8 @@ export default function LoginPage() {
             </Link>
           </p>
         </div>
+
+        <LegalFooter compact />
       </div>
     </main>
   )
