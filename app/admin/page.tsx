@@ -8,7 +8,8 @@ import {
   ArrowLeft, Users, MessageSquare, BarChart2,
   ClipboardList, Search, RefreshCw, Loader2,
   CheckCircle2, Clock, AlertCircle, XCircle,
-  ChevronRight, Zap, BookOpen
+  ChevronRight, Zap, BookOpen, FileBarChart,
+  Activity, Layers3, Bot, ArrowUpRight
 } from "lucide-react"
 
 const STATUS_META: Record<string, { label: string; color: string; icon: typeof Clock }> = {
@@ -81,9 +82,32 @@ export default function AdminPage() {
   useEffect(() => { if (activeTab === "reportes") loadReports() }, [activeTab, reportFilter])
 
   async function loadStats() {
-    const res  = await fetch("/api/admin?action=stats")
-    const data = await res.json()
-    setStats(data)
+    setError("")
+    try {
+      const [statsResponse, analyticsResponse] = await Promise.all([
+        fetch("/api/admin?action=stats", { cache: "no-store" }),
+        fetch("/api/admin?action=analytics&period=30", { cache: "no-store" }),
+      ])
+      const [statsData, analyticsData] = await Promise.all([
+        statsResponse.json(),
+        analyticsResponse.json(),
+      ])
+      if (!statsResponse.ok) throw new Error(statsData.error || "No se pudo cargar el resumen")
+      setStats({
+        ...statsData,
+        analytics: analyticsResponse.ok ? analyticsData : null,
+      })
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : "No se pudo cargar el dashboard")
+      setStats({
+        totalUsers: 0,
+        totalSessions: 0,
+        activeToday: 0,
+        totalExams: 0,
+        openReports: 0,
+        analytics: null,
+      })
+    }
   }
 
   async function loadUsers() {
@@ -144,7 +168,7 @@ export default function AdminPage() {
   const TABS = [
     { id: "dashboard", label: "Resumen",  icon: BarChart2       },
     { id: "usuarios",  label: "Usuarios", icon: Users            },
-    { id: "reportes",  label: "Reportes", icon: MessageSquare    },
+    { id: "reportes",  label: "Soporte",  icon: MessageSquare    },
   ] as const
 
   return (
@@ -152,7 +176,7 @@ export default function AdminPage() {
 
       {/* Header */}
       <header className="sticky top-0 z-20 border-b border-soft bg-app backdrop-blur-xl">
-        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
+        <div className="max-w-[1500px] mx-auto px-4 lg:px-6 py-3 flex items-center gap-3">
           <Link href="/dashboard"
             className="w-8 h-8 flex items-center justify-center rounded-xl bg-card-soft-theme text-sub hover:text-main transition-all">
             <ArrowLeft size={15} />
@@ -165,6 +189,11 @@ export default function AdminPage() {
             <h1 className="text-main font-bold text-sm">Panel de Administración</h1>
             <p className="text-muted2 text-[11px]">EduAI — Colegio Providencia</p>
           </div>
+          <Link href="/admin/reporte"
+            className="hidden sm:inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border transition-all"
+            style={{ background: "rgba(124,58,237,0.1)", borderColor: "rgba(124,58,237,0.25)", color: "#8b5cf6" }}>
+            <FileBarChart size={14} /> Reporte completo
+          </Link>
           <button onClick={() => { loadStats(); if (activeTab === "usuarios") loadUsers(); if (activeTab === "reportes") loadReports() }}
             className="w-8 h-8 flex items-center justify-center rounded-xl bg-card-soft-theme text-sub hover:text-main transition-all">
             <RefreshCw size={14} />
@@ -189,7 +218,7 @@ export default function AdminPage() {
         </div>
       </header>
 
-      <div className="max-w-5xl mx-auto px-4 py-6">
+      <div className="max-w-[1500px] mx-auto px-4 lg:px-6 py-6">
 
         {/* ── TAB: DASHBOARD ─────────────────────────────────────── */}
         {activeTab === "dashboard" && !stats && (
@@ -200,21 +229,43 @@ export default function AdminPage() {
 
         {activeTab === "dashboard" && stats && (
           <div className="space-y-6">
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-main">Dashboard general</h2>
+                <p className="text-sub text-sm mt-1">Resumen de usuarios, módulos, agentes, actividad y contenido almacenado.</p>
+              </div>
+              <Link href="/admin/reporte"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all"
+                style={{ background: "linear-gradient(135deg, #7c3aed, #2563eb)", boxShadow: "0 8px 24px rgba(124,58,237,0.2)" }}>
+                <FileBarChart size={16} /> Ver reporte por módulo/agente <ArrowUpRight size={14} />
+              </Link>
+            </div>
+
+            {error && (
+              <div className="rounded-xl border px-4 py-3 text-sm text-red-500" style={{ borderColor: "rgba(239,68,68,0.2)", background: "rgba(239,68,68,0.05)" }}>
+                {error}
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-3">
               {[
-                { label: "Usuarios",         value: stats.totalUsers,    icon: Users,       color: "#3b82f6" },
-                { label: "Sesiones totales",  value: stats.totalSessions, icon: BookOpen,    color: "#8b5cf6" },
-                { label: "Activos hoy",       value: stats.activeToday,   icon: Zap,         color: "#f59e0b" },
-                { label: "Exámenes creados",  value: stats.totalExams,    icon: ClipboardList,color: "#10b981"},
-                { label: "Reportes abiertos", value: stats.openReports,   icon: MessageSquare,color: stats.openReports > 0 ? "#f87171" : "var(--text-muted)" },
-              ].map(s => {
-                const Icon = s.icon
+                { label: "Usuarios", value: stats.totalUsers, detail: "registrados", icon: Users, color: "#3b82f6" },
+                { label: "Activos hoy", value: stats.activeToday, detail: "sesiones en 24 h", icon: Zap, color: "#f59e0b" },
+                { label: "Sesiones", value: stats.totalSessions, detail: "de estudio", icon: BookOpen, color: "#8b5cf6" },
+                { label: "Exámenes", value: stats.totalExams, detail: "creados", icon: ClipboardList, color: "#10b981" },
+                { label: "Eventos", value: stats.analytics?.overview?.totalEvents ?? 0, detail: "últimos 30 días", icon: Activity, color: "#a855f7" },
+                { label: "Módulos activos", value: stats.analytics ? `${stats.analytics.overview.activeModules}/${stats.analytics.overview.totalModules}` : "—", detail: "con datos o uso", icon: Layers3, color: "#06b6d4" },
+                { label: "Agentes activos", value: stats.analytics ? `${stats.analytics.overview.activeAgents}/${stats.analytics.overview.totalAgents}` : "—", detail: "con datos o uso", icon: Bot, color: "#ec4899" },
+                { label: "Reportes abiertos", value: stats.openReports, detail: "soporte pendiente", icon: MessageSquare, color: stats.openReports > 0 ? "#f87171" : "#64748b" },
+              ].map(item => {
+                const Icon = item.icon
                 return (
-                  <div key={s.label} className="rounded-2xl p-4 border text-center"
-                       style={{ background: `${s.color}08`, borderColor: `${s.color}20` }}>
-                    <Icon size={18} className="mx-auto mb-2" style={{ color: s.color }} />
-                    <p className="text-2xl font-bold text-main">{s.value ?? "—"}</p>
-                    <p className="text-muted2 text-xs mt-1">{s.label}</p>
+                  <div key={item.label} className="rounded-2xl p-4 border"
+                       style={{ background: `${item.color}08`, borderColor: `${item.color}20` }}>
+                    <Icon size={17} style={{ color: item.color }} />
+                    <p className="text-xl font-bold text-main mt-3">{item.value ?? "—"}</p>
+                    <p className="text-sub text-[11px] font-semibold mt-1">{item.label}</p>
+                    <p className="text-muted2 text-[10px] mt-0.5">{item.detail}</p>
                   </div>
                 )
               })}
@@ -266,6 +317,60 @@ export default function AdminPage() {
                 <ChevronRight size={18} className="text-muted2 ml-auto" />
               </Link>
             </div>
+
+            {stats.analytics && (
+              <div className="grid gap-4 xl:grid-cols-2">
+                <div className="rounded-2xl border p-5" style={{ background: "var(--bg-card-soft)", borderColor: "var(--border-soft)" }}>
+                  <div className="flex items-center justify-between gap-3 mb-4">
+                    <div>
+                      <h3 className="text-main font-bold">Módulos con mayor actividad</h3>
+                      <p className="text-muted2 text-xs mt-1">Eventos y registros de los últimos 30 días</p>
+                    </div>
+                    <Layers3 size={18} className="text-cyan-500" />
+                  </div>
+                  <div className="space-y-2">
+                    {stats.analytics.moduleRows.slice(0, 6).map((module: any) => (
+                      <div key={module.key} className="flex items-center gap-3 rounded-xl border border-soft bg-app/40 px-3 py-2.5">
+                        <span className="text-lg">{module.icon}</span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-xs font-semibold text-main">{module.name}</p>
+                          <p className="text-[10px] text-muted2">{module.category}{module.agentName ? ` · ${module.agentName}` : ""}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-bold text-cyan-500">{module.events}</p>
+                          <p className="text-[9px] text-muted2">{module.storedRecords} registros</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border p-5" style={{ background: "var(--bg-card-soft)", borderColor: "var(--border-soft)" }}>
+                  <div className="flex items-center justify-between gap-3 mb-4">
+                    <div>
+                      <h3 className="text-main font-bold">Agentes con mayor uso</h3>
+                      <p className="text-muted2 text-xs mt-1">Actividad consolidada por agente</p>
+                    </div>
+                    <Bot size={18} className="text-pink-500" />
+                  </div>
+                  <div className="space-y-2">
+                    {stats.analytics.agentRows.slice(0, 6).map((agent: any) => (
+                      <div key={agent.key} className="flex items-center gap-3 rounded-xl border border-soft bg-app/40 px-3 py-2.5">
+                        <div className="grid h-8 w-8 place-items-center rounded-lg border border-pink-500/20 bg-pink-500/10 text-pink-500"><Bot size={14} /></div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-xs font-semibold text-main">{agent.name}</p>
+                          <p className="truncate text-[10px] text-muted2">{agent.modules.join(" · ")}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-bold text-pink-500">{agent.events}</p>
+                          <p className="text-[9px] text-muted2">{agent.uniqueUsers} usuarios</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
