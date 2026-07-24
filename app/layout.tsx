@@ -9,6 +9,7 @@ import EditExamTimeButton from "@/components/exam/EditExamTimeButton"
 import ResultCourseGroups from "@/components/exam/ResultCourseGroups"
 import CreateExamMixedAI from "@/components/exam/CreateExamMixedAI"
 import ExamLatexAnswerFix from "@/components/exam/ExamLatexAnswerFix"
+import EduAIUsageTracker from "@/components/analytics/EduAIUsageTracker"
 
 export const metadata: Metadata = {
   title: "EduAI Platform",
@@ -29,6 +30,7 @@ export default function RootLayout({
           enableSystem={false}
         >
           <MusicProvider>
+            <EduAIUsageTracker />
             {children}
             <ExamUiPolish />
             <EditExamTimeButton />
