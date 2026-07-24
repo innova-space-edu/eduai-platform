@@ -1,0 +1,348 @@
+export type AnalyticsSource = {
+  table: string
+  label: string
+  dateColumn?: string
+}
+
+export type AnalyticsModuleDefinition = {
+  key: string
+  name: string
+  category: string
+  href: string
+  icon: string
+  description: string
+  routePrefixes: string[]
+  agentKey?: string
+  agentName?: string
+  sources?: AnalyticsSource[]
+}
+
+export const ANALYTICS_MODULES: AnalyticsModuleDefinition[] = [
+  {
+    key: "dashboard",
+    name: "Dashboard principal",
+    category: "Plataforma",
+    href: "/dashboard",
+    icon: "🏠",
+    description: "Inicio, accesos rápidos, sesiones y resumen personal.",
+    routePrefixes: ["/dashboard", "/sessions", "/profile"],
+    sources: [{ table: "study_sessions", label: "Sesiones" }],
+  },
+  {
+    key: "study",
+    name: "Sesiones de estudio",
+    category: "Aprendizaje",
+    href: "/study",
+    icon: "📚",
+    description: "Estudio adaptativo, diagnóstico, teoría, práctica y evaluación.",
+    routePrefixes: ["/study/", "/chat"],
+    agentKey: "study-tutor",
+    agentName: "Tutor adaptativo",
+    sources: [{ table: "study_sessions", label: "Sesiones" }, { table: "spaced_repetition", label: "Repasos" }],
+  },
+  {
+    key: "agents",
+    name: "Catálogo de agentes",
+    category: "IA",
+    href: "/agentes",
+    icon: "🤖",
+    description: "Acceso central a agentes y herramientas especializadas.",
+    routePrefixes: ["/agentes"],
+  },
+  {
+    key: "open-eduai-work",
+    name: "Open EDUAI Work",
+    category: "IA",
+    href: "/chat-global",
+    icon: "✦",
+    description: "Espacio integral para preguntar, investigar, crear y ejecutar.",
+    routePrefixes: ["/chat-global"],
+    agentKey: "open-eduai-work",
+    agentName: "Open EDUAI Work",
+    sources: [{ table: "conversations", label: "Conversaciones" }, { table: "chat_messages", label: "Mensajes" }],
+  },
+  {
+    key: "superagent",
+    name: "EduAI Claw",
+    category: "IA",
+    href: "/superagent",
+    icon: "🦾",
+    description: "Superagente, herramientas, skills, acciones y guardrails.",
+    routePrefixes: ["/superagent"],
+    agentKey: "eduai-claw",
+    agentName: "EduAI Claw",
+  },
+  {
+    key: "planner",
+    name: "Planificador MINEDUC",
+    category: "Docencia",
+    href: "/educador",
+    icon: "🏫",
+    description: "Planificaciones y diseño curricular alineado al MINEDUC.",
+    routePrefixes: ["/educador"],
+    agentKey: "educador",
+    agentName: "Planificador MINEDUC",
+    sources: [{ table: "saved_plannings", label: "Planificaciones" }],
+  },
+  {
+    key: "researcher",
+    name: "Investigador",
+    category: "IA",
+    href: "/investigador",
+    icon: "🔬",
+    description: "Búsqueda, análisis y síntesis de fuentes académicas.",
+    routePrefixes: ["/investigador"],
+    agentKey: "investigador",
+    agentName: "Investigador",
+  },
+  {
+    key: "writer",
+    name: "Redactor",
+    category: "IA",
+    href: "/redactor",
+    icon: "✍️",
+    description: "Creación y mejora de textos, informes y documentos.",
+    routePrefixes: ["/redactor"],
+    agentKey: "redactor",
+    agentName: "Redactor",
+  },
+  {
+    key: "mathematician",
+    name: "Matemático",
+    category: "IA",
+    href: "/matematico",
+    icon: "🧮",
+    description: "Resolución matemática paso a paso con LaTeX.",
+    routePrefixes: ["/matematico"],
+    agentKey: "matematico",
+    agentName: "Matemático",
+  },
+  {
+    key: "whiteboard",
+    name: "Pizarra interactiva",
+    category: "Aprendizaje",
+    href: "/pizarra-interactiva",
+    icon: "🖊️",
+    description: "Escritura manual, reconocimiento y retroalimentación matemática.",
+    routePrefixes: ["/pizarra-interactiva"],
+    agentKey: "pizarra-ia",
+    agentName: "Pizarra IA",
+  },
+  {
+    key: "translator",
+    name: "Traductor y MIRA",
+    category: "IA",
+    href: "/traductor",
+    icon: "🌐",
+    description: "Traducción, explicación lingüística y conversación de voz con MIRA.",
+    routePrefixes: ["/traductor"],
+    agentKey: "mira",
+    agentName: "MIRA",
+    sources: [{ table: "audio_voice_events", label: "Eventos de voz" }],
+  },
+  {
+    key: "chat-paper",
+    name: "Chat Paper",
+    category: "Investigación",
+    href: "/paper",
+    icon: "📄",
+    description: "Lectura y conversación profunda con documentos académicos.",
+    routePrefixes: ["/paper", "/paper-large"],
+    agentKey: "chat-paper",
+    agentName: "Chat Paper",
+    sources: [{ table: "paper_documents", label: "Documentos" }, { table: "paper_extractions", label: "Extracciones" }],
+  },
+  {
+    key: "notebooks",
+    name: "EduAI Notebooks",
+    category: "Investigación",
+    href: "/notebooks",
+    icon: "📓",
+    description: "Fuentes, RAG, chat, resultados y estudio organizado.",
+    routePrefixes: ["/notebooks"],
+    agentKey: "notebook-rag",
+    agentName: "Especialista RAG",
+    sources: [
+      { table: "notebooks", label: "Cuadernos" },
+      { table: "notebook_sources", label: "Fuentes" },
+      { table: "notebook_outputs", label: "Resultados" },
+    ],
+  },
+  {
+    key: "exams",
+    name: "Sistema de exámenes",
+    category: "Evaluación",
+    href: "/examen",
+    icon: "📋",
+    description: "Creación, aplicación, corrección y resultados de evaluaciones.",
+    routePrefixes: ["/examen", "/exam-focus"],
+    agentKey: "evaluador",
+    agentName: "Evaluador IA",
+    sources: [{ table: "teacher_exams", label: "Exámenes" }, { table: "exam_submissions", label: "Entregas" }],
+  },
+  {
+    key: "creator-hub",
+    name: "Creator Hub",
+    category: "Creación",
+    href: "/creator-hub",
+    icon: "🎨",
+    description: "Materiales, presentaciones, infografías, podcast y proyectos.",
+    routePrefixes: ["/creator-hub", "/creator"],
+    agentKey: "creator-hub",
+    agentName: "Creator Hub",
+    sources: [{ table: "creative_templates", label: "Plantillas" }],
+  },
+  {
+    key: "creative-notebook",
+    name: "Cuaderno creativo",
+    category: "Creación",
+    href: "/cuaderno-creativo",
+    icon: "🖍️",
+    description: "Dibujo, pintura y plantillas creativas generadas o subidas.",
+    routePrefixes: ["/cuaderno-creativo"],
+    agentKey: "creative-notebook",
+    agentName: "Cuaderno creativo IA",
+    sources: [{ table: "creative_templates", label: "Plantillas" }],
+  },
+  {
+    key: "audio-lab",
+    name: "Audio Lab",
+    category: "Multimedia",
+    href: "/audio-lab",
+    icon: "🎙️",
+    description: "Transcripción, voz, edición, TTS y exportación educativa.",
+    routePrefixes: ["/audio-lab", "/audio-lab-large"],
+    agentKey: "audio-lab",
+    agentName: "Agente de audio",
+    sources: [{ table: "audio_transcriptions", label: "Transcripciones" }, { table: "audio_voice_profiles", label: "Voces" }],
+  },
+  {
+    key: "image-studio",
+    name: "Image Studio",
+    category: "Multimedia",
+    href: "/image-studio",
+    icon: "🖼️",
+    description: "Generación, optimización y administración de imágenes.",
+    routePrefixes: ["/image-studio", "/imagenes"],
+    agentKey: "image-studio",
+    agentName: "Agente de imagen",
+    sources: [{ table: "generated_images", label: "Imágenes" }],
+  },
+  {
+    key: "video-studio",
+    name: "Video Studio",
+    category: "Multimedia",
+    href: "/video-studio",
+    icon: "🎬",
+    description: "Generación de videos y seguimiento de trabajos.",
+    routePrefixes: ["/video-studio"],
+    agentKey: "video-studio",
+    agentName: "Agente de video",
+    sources: [{ table: "video_jobs", label: "Videos" }],
+  },
+  {
+    key: "music",
+    name: "EduAI Music",
+    category: "Multimedia",
+    href: "/music",
+    icon: "🎵",
+    description: "Música de estudio, biblioteca, playlists y reproducción persistente.",
+    routePrefixes: ["/music"],
+    agentKey: "music-agent",
+    agentName: "Agente musical",
+  },
+  {
+    key: "gallery",
+    name: "Galería",
+    category: "Creación",
+    href: "/galeria",
+    icon: "🗂️",
+    description: "Historial y organización de recursos visuales.",
+    routePrefixes: ["/galeria"],
+    sources: [{ table: "generated_images", label: "Imágenes" }],
+  },
+  {
+    key: "qr-studio",
+    name: "QR Studio",
+    category: "Creación",
+    href: "/qr-studio",
+    icon: "▦",
+    description: "Creación, administración y seguimiento de recursos QR.",
+    routePrefixes: ["/qr-studio", "/q/"],
+    sources: [{ table: "qr_resources", label: "Códigos QR" }],
+  },
+  {
+    key: "workspace",
+    name: "Workspace",
+    category: "Organización",
+    href: "/workspace",
+    icon: "📁",
+    description: "Proyectos, archivos y recursos organizados por espacio.",
+    routePrefixes: ["/workspace"],
+    sources: [{ table: "projects", label: "Proyectos" }, { table: "workspace_items", label: "Elementos" }],
+  },
+  {
+    key: "collaboration",
+    name: "Colaboración",
+    category: "Comunidad",
+    href: "/collab",
+    icon: "👥",
+    description: "Salas, mensajes y trabajo colaborativo en tiempo real.",
+    routePrefixes: ["/collab", "/ai-social"],
+    agentKey: "collaborative-agent",
+    agentName: "Agente colaborativo",
+    sources: [{ table: "study_rooms", label: "Salas" }, { table: "room_messages", label: "Mensajes" }],
+  },
+  {
+    key: "gamification",
+    name: "Ranking y gamificación",
+    category: "Comunidad",
+    href: "/ranking",
+    icon: "🏆",
+    description: "XP, logros, misiones, ranking y rachas de estudio.",
+    routePrefixes: ["/ranking"],
+    agentKey: "gamification-agent",
+    agentName: "Agente de gamificación",
+    sources: [{ table: "achievements", label: "Logros" }, { table: "missions", label: "Misiones" }],
+  },
+  {
+    key: "administration",
+    name: "Administración",
+    category: "Sistema",
+    href: "/admin",
+    icon: "🛡️",
+    description: "Gestión de usuarios, soporte, seguridad y analítica.",
+    routePrefixes: ["/admin"],
+    sources: [{ table: "admin_reports", label: "Reportes" }, { table: "exam_security_events", label: "Eventos de seguridad" }],
+  },
+  {
+    key: "admin-model-lab",
+    name: "Admin Model Lab",
+    category: "Sistema",
+    href: "/admin/model-lab",
+    icon: "🧪",
+    description: "Pruebas controladas de modelos y proveedores para administradores.",
+    routePrefixes: ["/admin/model-lab"],
+    agentKey: "admin-model-lab",
+    agentName: "Admin Model Lab",
+  },
+]
+
+export function resolveAnalyticsModule(pathname: string | null | undefined) {
+  if (!pathname) return null
+
+  const normalized = pathname.length > 1 && pathname.endsWith("/")
+    ? pathname.slice(0, -1)
+    : pathname
+
+  const ordered = [...ANALYTICS_MODULES].sort((a, b) => {
+    const aLength = Math.max(...a.routePrefixes.map(prefix => prefix.length))
+    const bLength = Math.max(...b.routePrefixes.map(prefix => prefix.length))
+    return bLength - aLength
+  })
+
+  return ordered.find(module => module.routePrefixes.some(prefix => {
+    if (prefix.endsWith("/")) return normalized.startsWith(prefix)
+    return normalized === prefix || normalized.startsWith(`${prefix}/`)
+  })) || null
+}
