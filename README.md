@@ -9,812 +9,652 @@
 ╚══════╝╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═╝
 ```
 
-### 🎓 Plataforma de Aprendizaje Adaptativo con Inteligencia Artificial
+### 🎓 Ecosistema Educativo Inteligente Multiagente y Multimodal
 
+[![CI](https://github.com/innova-space-edu/eduai-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/innova-space-edu/eduai-platform/actions/workflows/ci.yml)
+[![Currículum MINEDUC](https://github.com/innova-space-edu/eduai-platform/actions/workflows/curriculum-validation.yml/badge.svg)](https://github.com/innova-space-edu/eduai-platform/actions/workflows/curriculum-validation.yml)
 [![Vercel](https://img.shields.io/badge/Vercel-deployed-black?logo=vercel)](https://eduaiplatformclon.vercel.app)
 ![Next.js](https://img.shields.io/badge/Next.js-16.1.6-black?logo=next.js)
 ![React](https://img.shields.io/badge/React-19.2.3-61DAFB?logo=react)
+![Node.js](https://img.shields.io/badge/Node.js-22.x-339933?logo=node.js)
 ![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?logo=supabase)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?logo=typescript)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
-**[🌐 Ver demo en vivo](https://eduaiplatformclon.vercel.app)** · **[📋 Reportar bug](https://github.com/innova-space-edu/eduai-platform/issues)** · **[✨ Solicitar feature](https://github.com/innova-space-edu/eduai-platform/issues)**
+**[🌐 Ver plataforma](https://eduaiplatformclon.vercel.app)** · **[📋 Reportar un problema](https://github.com/innova-space-edu/eduai-platform/issues)** · **[✨ Solicitar una función](https://github.com/innova-space-edu/eduai-platform/issues)**
 
 </div>
 
 ---
 
-## 🗺️ Módulos de la plataforma
+## 📌 Estado verificado del proyecto
+
+Este README fue reconstruido a partir del código de la rama `main` y del ZIP actualizado del proyecto.
 
 <div align="center">
 
-| Módulo | Descripción |
-|--------|-------------|
-| 🧠 **Agentes de Estudio** | 12 agentes adaptativos: Tutor, Socrático, Evaluador, Gamificación, SM-2 y más |
-| 🛠️ **Agentes Especializados** | 18 agentes de dominio: Planificador MINEDUC, Investigador, Matemático, Examen Docente, Music, Video, Admin Model Lab y más |
-| 📓 **EduAI Notebooks** | Workspace tipo NotebookLM: fuentes → RAG híbrido → chat especialista → Studio |
-| ✨ **Creator Hub** | Formatos educativos con plantillas Canva-style generados por IA |
-| 🎙️ **Audio Lab v2** | Pipeline de transcripción con operaciones IA y exportación educativa |
-| 🎨 **Image Studio v8** | Generación de imágenes con múltiples proveedores, prompt optimizer y galería |
-| 📋 **Exámenes Docente** | Exámenes con IA, link público, temas visuales, PIE/NEE, LaTeX y supervisión antifraude |
-| 🏫 **Planificador MINEDUC** | 113 archivos JSON de OA oficiales · Parvularia → Media |
-| 🦾 **EduAI Claw** | Superagente supervisor · Tool Registry · Skill System · Chat Global · Action Router |
-| 🎵 **EduAI Music Studio** | Música persistente tipo dashboard musical: Jamendo, Audius, iTunes previews, Spotify embeds y playlists |
-| 🎬 **Video Studio** | Cola de generación de video educativo desde texto/imagen con proveedores externos configurables |
-| 🛡️ **Admin Model Lab** | Laboratorio aislado para modelos experimentales solo para administradores |
-| 📁 **Workspace** | Proyectos para organizar todo el material generado |
+| Indicador | Estado actual |
+|-----------|---------------|
+| **Páginas de aplicación** | 69 rutas `page.tsx` |
+| **APIs internas** | 120 rutas `route.ts` |
+| **Agentes y módulos visibles** | 20 entradas activas en `/agentes` |
+| **Herramientas de EduAI Claw** | 16 tools ejecutables |
+| **Skills del Superagente** | 12 skills registradas |
+| **Formatos de Creator Hub** | 13 formatos educativos |
+| **Currículo MINEDUC operativo** | 105 archivos JSON validados en modo estricto |
+| **Dependencias** | 35 de producción + 10 de desarrollo |
+| **Migraciones SQL incluidas** | 8 archivos SQL |
+| **Runtime principal** | Next.js 16 · React 19 · Node.js 22 · TypeScript 5 |
+
+</div>
+
+> El índice curricular operativo contiene 105 archivos: 6 de Parvularia, 80 de Educación Básica y 19 de Educación Media. Se valida con `npm run test:curriculum`.
+
+---
+
+## 🧭 Contenidos
+
+1. [Descripción general](#-descripción-general)
+2. [Mapa de módulos](#-mapa-de-módulos)
+3. [Agentes activos](#-agentes-activos)
+4. [EduAI Claw](#-eduai-claw--superagente)
+5. [Open EDUAI Work](#-open-eduai-work)
+6. [Planificación MINEDUC](#-planificador-mineduc)
+7. [Notebooks, RAG y Chat Paper](#-notebooks-rag-y-chat-paper)
+8. [Creación educativa](#-creator-hub-cuaderno-creativo-y-qr-studio)
+9. [Pizarra y Matemática](#-pizarra-interactiva-y-matemática)
+10. [Exámenes](#-sistema-de-exámenes)
+11. [Audio, voz y MIRA](#-audio-lab-voces-y-mira)
+12. [Imagen, video y música](#-imagen-video-y-música)
+13. [Colaboración y administración](#-colaboración-gamificación-y-administración)
+14. [Arquitectura](#-arquitectura-general)
+15. [Base de datos](#-base-de-datos-y-migraciones)
+16. [Variables de entorno](#-variables-de-entorno)
+17. [Instalación](#-instalación-y-desarrollo)
+18. [CI/CD](#-cicd-y-mantenimiento)
+19. [Seguridad y accesibilidad](#-seguridad-privacidad-y-accesibilidad)
+20. [Créditos](#-créditos-y-licencia)
+
+---
+
+## 🚀 Descripción general
+
+**EduAI Platform** es una plataforma educativa chilena que reúne aprendizaje adaptativo, agentes especializados, investigación con fuentes, planificación curricular, creación de recursos, evaluación digital, colaboración y herramientas multimedia.
+
+La plataforma está diseñada para que estudiantes y docentes puedan pasar de una pregunta o una fuente a un producto educativo completo: explicación, planificación, prueba, informe, presentación, hoja de cálculo, audio, podcast, imagen, video, código QR o proyecto organizado.
+
+### Objetivos
+
+- Apoyar el aprendizaje personalizado y la autonomía estudiantil.
+- Entregar herramientas docentes alineadas al currículo oficial chileno.
+- Integrar IA generativa, búsqueda, fuentes y creación en un mismo espacio.
+- Incorporar adaptaciones PIE/NEE, narración, alto contraste y apoyos visuales.
+- Mantener los trabajos, archivos y resultados organizados por usuario y proyecto.
+
+### Perfiles
+
+| Perfil | Capacidades principales |
+|--------|--------------------------|
+| **Estudiante** | Tutoría, diagnóstico, modo socrático, práctica, pizarra, Notebooks, exámenes, música, XP y colaboración |
+| **Docente** | Planificación MINEDUC, pruebas, rúbricas, Creator Hub, Audio Lab, QR Studio, investigación y Workspace |
+| **Administrador** | Usuarios, seguridad, códigos, reportes, auditoría, proveedores y Admin Model Lab |
+
+---
+
+## 🗺️ Mapa de módulos
+
+<div align="center">
+
+| Módulo | Ruta principal | Función |
+|--------|----------------|---------|
+| 🏠 **Dashboard** | `/dashboard` | Inicio, métricas, sesiones y accesos rápidos |
+| 📚 **Sesión de estudio** | `/study/[topic]` | Teoría, ejemplos, diagnóstico, quiz, resumen y modo socrático |
+| 🤖 **Agentes** | `/agentes` | Catálogo de agentes y espacios especializados |
+| ✦ **Open EDUAI Work** | `/chat-global` | Preguntar, investigar, crear, colaborar y ejecutar |
+| 🦾 **EduAI Claw** | `/superagent` | Orquestación, herramientas, skills, acciones y guardrails |
+| 🏫 **Planificador** | `/educador` | Planificaciones alineadas a OA MINEDUC |
+| 🗓️ **Planificador curricular** | `/educador/planificador-curricular` | Planificación diaria, semanal, mensual, semestral y anual |
+| 📓 **EduAI Notebooks** | `/notebooks` | Fuentes, RAG híbrido, chat con citas y Studio |
+| 📄 **Chat Paper** | `/paper` | Lectura y conversación con PDF |
+| 🎨 **Creator Hub** | `/creator-hub` | 13 formatos educativos y Labs creativos |
+| 🖍️ **Cuaderno Creativo** | `/cuaderno-creativo` | Dibujo, pintura y biblioteca privada de plantillas |
+| ✍️ **Pizarra Interactiva** | `/pizarra-interactiva` | Escritura manual, reconocimiento matemático y LaTeX |
+| 🌐 **MIRA** | `/traductor` | Traducción escrita, interpretación de voz y conversación bilingüe |
+| 📝 **Exámenes** | `/examen` | Simulacro, creación docente, publicación, revisión y resultados |
+| 🎙️ **Audio Lab** | `/audio-lab` | Transcripción, edición, operaciones IA, exportación y voces |
+| 🖼️ **Image Studio** | `/image-studio` | Generación de imágenes multi-proveedor y galería |
+| 🎬 **Video Studio** | `/video-studio` | Texto-a-video, imagen-a-video, jobs y estado |
+| 🎵 **EduAI Music** | `/music` | Reproductor persistente, playlists y búsqueda externa |
+| ▦ **QR Studio** | `/qr-studio` | Recursos compartibles, vencimiento, escaneos y PNG |
+| 📁 **Workspace** | `/workspace` | Proyectos, archivos, enlaces y materiales |
+| 💬 **Colaboración** | `/collab` | Salas multiusuario con apoyo de IA |
+| 🧠 **Chat social** | `/ai-social` | Conversación entre agentes y extracción de ideas |
+| 🏆 **Ranking** | `/ranking` | XP, rachas, logros y posiciones |
+| 🛡️ **Administración** | `/admin` | Usuarios, exámenes, seguridad, códigos y Model Lab |
 
 </div>
 
 ---
 
-## 🤖 Agentes de Estudio (12)
+## 🤖 Agentes activos
 
-<div align="center">
+La página `/agentes` registra 20 entradas activas.
 
-| Agente | Código | Función |
-|--------|--------|---------|
-| Tutor General | `AGT` | Responde cualquier tema con orquestador de agentes en paralelo |
-| Socrático | `ASc` | Guía mediante preguntas en vez de dar respuestas directas |
-| Evaluador | `AEv` | Evalúa comprensión con feedback detallado |
-| Adaptativo | `AAD` | Ajusta dificultad automáticamente según desempeño |
-| Diagnóstico | `ADL` | Detecta lagunas cognitivas antes de comenzar |
-| Repaso SM-2 | `ARE` | Repetición espaciada con algoritmo SuperMemo 2 |
-| Gamificación | `AGm` | Transforma el estudio en retos y misiones con XP |
-| Memoria Larga | `AML` | Persistencia de contexto entre sesiones de estudio |
-| Resumen PDF | `ARe` | Extrae y resume contenido de documentos académicos |
-| Voz TTS | `AVN` | Narración en voz alta con Edge TTS y endpoint TTS chunk |
-| Colaborativo | `ACo` | Sala multiusuario hasta 10 personas con IA moderadora |
-| Visual IA v2 | `AIm` | Detecta cuándo una respuesta necesita imagen, diagrama, chart o tabla |
+| # | Agente o espacio | Ruta | Función |
+|--:|------------------|------|---------|
+| 1 | Planificador | `/educador` | Planificación docente MINEDUC |
+| 2 | Investigador | `/investigador` | Búsqueda y síntesis de fuentes |
+| 3 | Redactor | `/redactor` | Ensayos, informes y documentos |
+| 4 | Matemático | `/matematico` | Resolución paso a paso con LaTeX |
+| 5 | Pizarra Interactiva | `/pizarra-interactiva` | Reconocimiento de procedimientos manuscritos |
+| 6 | Cuaderno Creativo | `/cuaderno-creativo` | Dibujo, coloreado y plantillas |
+| 7 | MIRA Traductor | `/traductor` | Texto, voz y conversación bilingüe |
+| 8 | Chat Paper | `/paper` | Conversación con PDF |
+| 9 | Examen | `/examen` | Simulacros con corrección |
+| 10 | Exámenes Docente | `/examen/docente` | Creación, publicación y revisión |
+| 11 | Open EDUAI Work | `/chat-global` | Espacio integral conectado a Claw |
+| 12 | EduAI Music | `/music` | Música y reproducción persistente |
+| 13 | Creator Hub | `/creator-hub` | Materiales educativos y multimedia |
+| 14 | Audio Lab | `/audio-lab` | Transcripción, edición y voces |
+| 15 | Image Studio | `/image-studio` | Imágenes IA multi-proveedor |
+| 16 | Admin Model Lab | `/admin/model-lab` | Modelos experimentales aislados |
+| 17 | Video Studio | `/video-studio` | Generación y seguimiento de video |
+| 18 | Galería | `/galeria` | Historial de imágenes |
+| 19 | Ranking | `/ranking` | XP y rachas |
+| 20 | Workspace | `/workspace` | Organización de proyectos |
 
-</div>
-
----
-
-## 🛠️ Agentes Especializados (18)
-
-<div align="center">
-
-| Agente | Ruta | Función |
-|--------|------|---------|
-| 🏫 **Planificador MINEDUC** | `/educador` | Planificaciones rigurosas alineadas al currículum oficial chileno (113 JSONs) |
-| 🔬 **Investigador** | `/investigador` | Búsqueda y síntesis de fuentes académicas y papers |
-| ✍️ **Redactor** | `/redactor` | Ensayos, informes, cartas y documentos formales |
-| 🧮 **Matemático** | `/matematico` | Resolución paso a paso con notación LaTeX profesional |
-| 🌐 **Traductor** | `/traductor` | Traducción multiidioma con explicación lingüística y cultural |
-| 📄 **Chat Paper** | `/paper` | Conversación con PDFs académicos con extracción y análisis |
-| 📝 **Examen Estudiante** | `/examen` | Modo examen completo con timer, corrección IA y retroalimentación |
-| 📋 **Examen Docente** | `/examen/docente` | Crea pruebas con IA, comparte link y recibe notas automáticas |
-| ✦ **Open EDUAI Work** | `/chat-global` | Espacio integral para investigar con fuentes, crear, colaborar y ejecutar acciones con el motor Claw |
-| 🎵 **EduAI Music** | `/music` | Reproductor persistente con biblioteca, playlists, buscador online y Spotify embeds |
-| 🎨 **Creator Hub** | `/creator-hub` | Generación de materiales educativos: infografías, PPT, podcast, mapas, flashcards y más |
-| 🎙️ **Audio Lab** | `/audio-lab` | Transcribe audio/video, edita y exporta en formatos educativos |
-| 🖼️ **Image Studio** | `/image-studio` | Genera imágenes con FLUX, SD, Gemini/OpenRouter/Together y galería |
-| 🛡️ **Admin Model Lab** | `/admin/model-lab` | Laboratorio para modelos experimentales solo con rol administrador |
-| 🎬 **Video Studio** | `/video-studio` | Generación de videos educativos con cola de trabajos y seguimiento de estado |
-| 🖼️ **Galería** | `/galeria` | Historial de imágenes generadas, manuales y automáticas |
-| 🏆 **Ranking** | `/ranking` | Tabla de posiciones global con podio, XP y racha |
-| 📁 **Workspace** | `/workspace` | Gestor de proyectos para organizar imágenes, audios, transcripciones y documentos |
-
-</div>
+El flujo `/study/[topic]` agrega tutoría, diagnóstico, modo socrático, evaluación, adaptación de dificultad, visualización, resumen, narración, memoria, colaboración y repetición espaciada SM-2.
 
 ---
 
 ## 🦾 EduAI Claw — Superagente
 
-<div align="center">
+EduAI Claw coordina herramientas, agentes, contexto, seguridad y ejecución de acciones.
 
 | Componente | Función |
 |------------|---------|
-| `engine.ts` | Motor principal del superagente: decide, valida y coordina |
-| `router.ts` | Selecciona skill y target óptimos |
-| `guardrails.ts` | Bloquea acciones peligrosas y protege producción |
-| `action-router.ts` | Detecta intención del usuario en chat social y acciones sugeridas |
-| `action-executor.ts` | Ejecuta acciones sugeridas de forma segura |
-| `draft-engine.ts` | Genera borradores sin tocar producción |
-| `social-engine.ts` | Orquesta conversación social entre agentes |
-| `superagent-core.ts` | Núcleo retrocompatible para chat global y tool calling |
-| `tool-registry.ts` | Registro de herramientas automáticas del SuperAgent |
-| `skills/skill-registry.ts` | Skill System con visibilidad por rol: estudiante, docente y admin |
+| `engine.ts` | Motor principal de coordinación |
+| `router.ts` | Selección de skill, tool y destino |
+| `guardrails.ts` | Prevención de acciones inseguras |
+| `action-router.ts` | Detección de intención y acciones sugeridas |
+| `action-executor.ts` | Ejecución controlada |
+| `draft-engine.ts` | Generación de borradores sin tocar producción |
+| `social-engine.ts` | Conversación entre agentes |
+| `superagent-core.ts` | Núcleo de chat y tool calling |
+| `tool-registry.ts` | Registro central de herramientas |
+| `skills/skill-registry.ts` | Skills visibles por rol |
 
-**14 tools:** `generate_exam_questions` · `adapt_for_pie` · `plan_curriculum` · `explain_concept` · `generate_rubric` · `summarize_text` · `translate_text` · `generate_image_prompt` · `generate_image` · `narrate_text` · `generate_edu_video` · `recommend_focus_music` · `generate_code` · `fix_code_error`
+### 16 herramientas verificadas
 
-**5 skills base:** `exam-pie-builder` · `study-music-session` · `teacher-workflow` · `research-diagram` · `admin-model-lab`
+`generate_exam_questions` · `adapt_for_pie` · `plan_curriculum` · `explain_concept` · `generate_rubric` · `summarize_text` · `translate_text` · `generate_image_prompt` · `generate_image` · `narrate_text` · `generate_edu_video` · `recommend_focus_music` · `generate_code` · `fix_code_error` · `create_podcast` · `correct_text`
 
-</div>
+### 12 skills registradas
+
+Las skills cubren creación de exámenes PIE, sesiones musicales, flujos docentes, investigación con diagramas, administración de modelos, generación creativa, análisis de fuentes, producción multimedia y tareas de Open EDUAI Work. La visibilidad se controla por rol.
 
 ---
 
 ## ✦ Open EDUAI Work
 
-<div align="center">
+Open EDUAI Work reemplaza la experiencia de chat aislado por un espacio de trabajo conectado a todo el ecosistema.
 
-| Elemento | Función |
-|----------|---------|
-| **Ruta principal** | `/chat-global` |
+| Capacidad | Implementación |
+|-----------|----------------|
 | **Modos** | Preguntar · Investigar · Crear · Colaborar · Ejecutar |
-| **APIs** | `/api/superagent/chat` · `/api/work/research` · `/api/work/context` |
-| **Contexto** | Fuentes y resultados del cuaderno activo, citas web y biblioteca lateral |
-| **Herramientas Claw** | Exámenes, planificación, imagen, video, música, narración, resumen, traducción y código |
-| **Organización** | Conversaciones persistentes, tareas por Work, resultados y acceso a salas colaborativas |
-| **Compatibilidad** | Conserva el motor Claw y sus herramientas; cambia la experiencia principal por un espacio de trabajo integral |
+| **Fuentes** | Web, archivos adjuntos, cuaderno activo y biblioteca lateral |
+| **Archivos** | Lectura y procesamiento de PDF, DOCX, texto, audio e imágenes compatibles |
+| **Creación** | Imágenes, audio, podcast, exámenes, planificaciones, código y recursos |
+| **Exportación** | PDF, presentación y Excel según el resultado |
+| **Contexto** | Conversaciones, tareas, resultados y fuentes persistentes |
+| **Colaboración** | Acceso a salas y recursos compartidos |
+| **Motor** | Conserva Claw, sus tools, skills y guardrails |
 
-</div>
+APIs principales:
 
----
-
-## 📓 EduAI Notebooks — Workspace RAG
-
-<div align="center">
-
-| Componente | Función |
-|------------|---------|
-| **Panel de fuentes** | URL, PDF, DOCX, texto pegado, búsqueda web y fuentes externas |
-| **Procesamiento** | Extracción de texto → chunking → contextualización → embeddings |
-| **Retrieval híbrido** | Vector (pgvector) + BM25 full-text (pg_trgm) → fusión con RRF |
-| **Chat especialista** | RAG con citas · fallback al Investigador cuando faltan fuentes |
-| **Studio** | Formatos desde contenido real: infografía, mapa mental, quiz, podcast, flashcards, timeline, notas Cornell, presentación |
-| **Podcast real** | Conectado al agente `podcast-wav` → audio MP3 con Álvaro y Elvira |
-| **Imagen en infografía** | Conectado a `visual-detect` + `imagenes` para imagen automática |
-| **TTS en chat** | Botón 🔊 en cada respuesta del asistente |
-| **Source validator** | Puntúa calidad de URLs antes de agregarlas al cuaderno |
-
-</div>
-
----
-
-## 🎵 EduAI Music Studio
-
-<div align="center">
-
-| Elemento | Estado actual |
-|----------|---------------|
-| **Ruta** | `/music` |
-| **Layout** | Panel izquierdo con biblioteca/listas · centro enfocado solo en canción seleccionada · panel derecho con búsqueda online, resultados y embeds |
-| **Reproductor** | Barra inferior persistente con play/pausa, anterior/siguiente, shuffle, repeat, progreso, duración y volumen |
-| **Biblioteca interna** | 40 pistas educativas reproducibles con `SoundHelix` como fuente de audio de prueba |
-| **Playlists del sistema** | Todas · Focus profundo · Antes de una prueba · STEM/Matemática · Lectura y redacción · Crear proyectos · Trabajo docente |
-| **Fuentes online** | Jamendo · Audius · iTunes previews |
-| **Playlists externas** | Spotify embeds oficiales configurados por iframe |
-| **Jamendo** | `/api/music/search`, `/api/music/jamendo/playlists`, OAuth preparado en `/api/music/jamendo/connect` y `/api/music/jamendo/callback` |
-| **Audius** | Búsqueda vía discovery provider configurable con `AUDIUS_API_HOST` |
-| **iTunes** | Fallback de previews promocionales con portada y metadata |
-| **YouTube** | Solo como enlace externo/futura integración por iframe oficial; no conversión a MP3 |
-| **Persistencia** | Estado global con `MusicProvider`; favoritos, cola, volumen, búsqueda y playlist activa en cliente |
-| **Dashboard** | Acceso `Música` agregado al panel lateral del dashboard |
-
-</div>
-
-### Flujo musical actual
-
-```
-Usuario busca música
-    ↓
-/api/music/search
-    ├── Jamendo   → canciones completas si JAMENDO_CLIENT_ID está configurado
-    ├── Audius    → streaming alternativo desde discovery provider
-    └── iTunes    → previews como respaldo
-    ↓
-EduAI Music agrega resultados a “Resultados online”
-    ↓
-El usuario reproduce, guarda en cola, marca favorito o abre fuente externa
-```
-
-### Spotify embeds configurados
-
-La página incluye embeds oficiales de Spotify para playlists entregadas por el usuario. Los iframes funcionan como reproductores embebidos externos dentro del panel derecho, separados del reproductor interno de EduAI Music.
-
----
-
-## 🎬 Video Studio
-
-<div align="center">
-
-| Componente | Función |
-|------------|---------|
-| `/video-studio` | Interfaz para texto-a-video e imagen-a-video |
-| `/api/agents/video` | Crea jobs de video con moderación básica, deduplicación y límites por plan |
-| `/api/agents/video/status/[jobId]` | Devuelve estado, progreso, proveedor, modelo, videoUrl y errores |
-| `/api/agents/video/process` | Procesa jobs pendientes con service role y worker/proveedor externo |
-| `lib/video-agent.ts` | Procesamiento, fallback, normalización y respuesta de proveedores |
-| `lib/video-config.ts` | Duración, modo, fps, ratio y configuración común |
-| `components/video/VideoStudioClient.tsx` | UI con subida de imagen, prompt, duración, audio opcional, polling y últimos jobs |
-| `wan-worker/` | Base de worker Python para proveedor externo |
-
-</div>
-
-### Estado real
-
-Video Studio ya está integrado como módulo activo y puede crear/consultar jobs. Para generar video real en producción se requiere configurar al menos un proveedor externo y las tablas `video_jobs` / `video_usage_daily` en Supabase.
-
-```
-VIDEO_PROVIDER_ORDER=ltx,cogvideox,hunyuan_i2v
-VIDEO_CRON_SECRET=pon_un_secreto_largo
-
-LTX_VIDEO_ENDPOINT=https://tu-endpoint-ltx/api/generate
-LTX_VIDEO_API_KEY=
-LTX_VIDEO_MODEL=Lightricks/LTX-Video
-
-COGVIDEOX_ENDPOINT=https://tu-endpoint-cogvideox/api/generate
-COGVIDEOX_API_KEY=
-COGVIDEOX_MODEL=zai-org/CogVideoX-5b
-
-HUNYUAN_I2V_ENDPOINT=https://tu-endpoint-hunyuan/api/generate
-HUNYUAN_I2V_API_KEY=
-HUNYUAN_I2V_MODEL=Tencent-Hunyuan/HunyuanVideo-I2V
+```text
+/api/superagent/chat
+/api/work/context
+/api/work/research
 ```
 
 ---
 
-## 🧪 Admin Model Lab
+## 🏫 Planificador MINEDUC
 
-<div align="center">
+El Planificador permite construir experiencias pedagógicas vinculadas a Objetivos de Aprendizaje oficiales.
 
-| Componente | Función |
-|------------|---------|
-| `/admin/model-lab` | Laboratorio de modelos experimentales solo para administradores |
-| `lib/ai/admin-model-policy.ts` | Política de acceso, riesgos y restricciones |
-| **Modo seguro** | No disponible para estudiantes ni usuarios normales |
-| **Uso futuro** | Evaluación de modelos experimentales/sin censura solo con rol admin, auditoría y filtros |
+### Cobertura curricular verificada
 
-</div>
+| Nivel | Archivos operativos |
+|-------|--------------------:|
+| Parvularia | 6 |
+| Educación Básica | 80 |
+| Educación Media | 19 |
+| **Total** | **105** |
 
----
+### Funciones
 
-## 🎨 Sistema de Diseño y Exámenes Visuales
+- Selección de nivel, asignatura, OA, unidad y duración.
+- Planificaciones diarias, semanales, mensuales, semestrales y anuales.
+- Objetivos, indicadores, inicio, desarrollo, cierre y evaluación.
+- Actividades, recursos, preguntas, adecuaciones y evidencia.
+- Coincidencia contextual mediante sinónimos de contenidos y OA.
+- Auditoría de calidad estructurada.
+- Validación estricta durante CI y build.
 
-<div align="center">
+Comandos:
 
-| Archivo / módulo | Función |
-|------------------|---------|
-| `DESIGN.md` | Guía visual global: identidad EduAI, componentes, paleta, accesibilidad y estilo Canva educativo |
-| `lib/design/design-intelligence.ts` | Recomendaciones de diseño por contexto |
-| `lib/exam/theme-utils.ts` | 8 temas claros: clásico, moderno, Canva, PIE calma, TDAH, alto contraste, STEM y kids |
-| `components/exam/ExamThemeProvider.tsx` | Inyecta CSS vars y fuentes dinámicas del tema |
-| `components/exam/QuestionCard.tsx` | Renderiza alternativas, V/F y desarrollo con imagen, rúbrica y estilos accesibles |
-| `components/exam/ExamRenderer.tsx` | Renderer completo con progreso, navegación, timer y preview |
-| `components/exam/ExamAudioButton.tsx` | Narración TTS para preguntas, útil en PIE/NEE |
-
-</div>
-
-### Mejoras del creador de exámenes
-
-- Selector de asignatura.
-- Temas visuales tipo Canva y modo claro.
-- Tipografías accesibles: Inter, Lexend, Atkinson Hyperlegible, Poppins.
-- Modo PIE/NEE con perfiles de dislexia, TDAH y baja visión.
-- Imagen por pregunta con preview.
-- Diseño de opciones más limpio con controles desplegables.
-- Render de LaTeX con KaTeX.
-- Vista del estudiante más profesional, con progreso, timer, audio y navegación.
-
----
-
-## ⚡ Modelos e IAs integradas
-
-<div align="center">
-
-| Proveedor | Modelos / uso | Uso principal |
-|-----------|---------------|---------------|
-| **Google Gemini** | Gemini 2.5 Flash · Flash-Lite · Imagen | Generación, investigación, multimodal, imagen, exámenes |
-| **Groq** | Llama 3.3 70B Versatile | Examen Docente primario, tutor stream, resumen rápido |
-| **OpenRouter** | Modelos texto + imagen | Fallback para texto, exámenes, coding e imagen |
-| **Together AI** | FLUX.2 · FLUX.1 | Imágenes alta calidad |
-| **Hugging Face** | FLUX/SDXL y workers opcionales | Imágenes open source, video/voz futuros |
-| **Pollinations** | FLUX / turbo | Imágenes sin API key |
-| **Edge TTS** | es-ES-AlvaroNeural · es-ES-ElviraNeural | Podcast MP3, narración TTS y audio educativo |
-| **Jamendo** | Tracks y playlists | Música completa reproducible con client_id |
-| **Audius** | Tracks y streaming | Música online alternativa |
-| **iTunes Search** | Previews + metadata | Fallback musical con portada y preview |
-| **Spotify Embeds** | Playlists por iframe | Reproducción externa embebida de playlists |
-| **Upstash Redis** | KV Cache | Rate limiting y caché configurable |
-
-</div>
-
----
-
-## 🧰 Stack tecnológico
-
-<div align="center">
-
-| Categoría | Tecnologías |
-|-----------|-------------|
-| **Frontend** | Next.js 16.1.6 · React 19.2.3 · TypeScript 5 · Tailwind CSS 4 |
-| **Renderizado** | KaTeX 0.16 · Mermaid.js 11.12 · Chart.js 4.5 · react-markdown 10 |
-| **Exportación** | PptxGenJS 4.0 · jsPDF 4.2 · xlsx 0.18 · html-to-image 1.11 |
-| **Estado** | Zustand 5.0 · TanStack Query 5 · framer-motion 12.34 · MusicProvider global |
-| **Backend** | Next.js API Routes · `proxy.ts` · Vercel |
-| **Base de datos** | Supabase (PostgreSQL + Auth + Realtime + Storage + pgvector) |
-| **Parsing** | Cheerio 1.2 · Mammoth 1.11 · pdf-parse 2.4 |
-| **Audio** | @andresaya/edge-tts 1.8 · HTML Audio · previews online |
-| **IA SDKs** | @google/generative-ai 0.24 · groq-sdk 0.37 |
-| **Video / workers** | @fal-ai/client · Puppeteer Core · worker Python base para Wan |
-| **UI** | lucide-react · next-themes · Tailwind utilities |
-
-</div>
-
----
-
-## ¿Qué es EduAI Platform?
-
-EduAI Platform es una plataforma educativa de siguiente generación que combina **30+ módulos, agentes y herramientas de inteligencia artificial**, un **EduAI Claw Superagente** con tool registry y skill system, un **Chat Global tipo ChatGPT**, un **EduAI Notebooks** workspace tipo NotebookLM con RAG híbrido, un **Creator Hub con formatos educativos**, un **Audio Lab v2**, un **Image Studio v8**, un **Music Studio con búsqueda online y playlists**, un **Video Studio con cola de generación**, un **sistema de exámenes docentes con temas Canva/PIE/NEE/LaTeX**, y un **panel de administración con Admin Model Lab**.
-
-Diseñada para el contexto educativo chileno, incluye cobertura curricular completa del **MINEDUC** con **113 archivos JSON de OA oficiales** y escala de notas **1.0–7.0**.
-
----
-
-## Para estudiantes
-
-- Sesiones de estudio sobre cualquier tema con agentes adaptativos.
-- 4 modos de aprendizaje: Normal, Socrático, Evaluación y Colaborativo.
-- Quiz adaptativo con dificultad dinámica.
-- Modo examen con timer, corrección automática y retroalimentación.
-- Chat con Papers PDF y fuentes académicas.
-- EduAI Notebooks con fuentes, RAG híbrido, citas y Studio.
-- Visualizaciones automáticas: imágenes IA, diagramas Mermaid, gráficos Chart.js y tablas.
-- Matemáticas con LaTeX renderizado con KaTeX.
-- Narración por voz y audio TTS.
-- EduAI Music para concentración: playlists, música online y Spotify embeds.
-- Historial de sesiones, XP y ranking.
-- Repaso espaciado inteligente con algoritmo SM-2.
-
----
-
-## Para docentes
-
-- Planificador MINEDUC con OA oficiales.
-- Creador de exámenes con IA, LaTeX, V/F, alternativas y desarrollo.
-- Temas visuales claros tipo Canva.
-- Adecuaciones PIE/NEE: dislexia, TDAH y baja visión.
-- Narración de preguntas para accesibilidad.
-- Link público para estudiantes.
-- Evaluación automática con puntaje parcial.
-- Dashboard docente con análisis pedagógico.
-- Audio Lab para transcribir clases o reuniones.
-- Creator Hub para crear guías, infografías, presentaciones, flashcards y materiales.
-- Music Studio para rutinas focus, trabajo docente y ambiente de aula.
-
----
-
-## 📓 EduAI Notebooks — detalle
-
-EduAI Notebooks es un workspace de investigación tipo NotebookLM integrado en la plataforma. Permite construir una base de conocimiento desde fuentes verificadas y generar materiales educativos desde ese contenido real.
-
-### Flujo completo
-
-```
-1. Agregar fuentes
-   URL · PDF · DOCX · TXT · texto pegado · búsqueda web
-        ↓
-2. Procesamiento automático
-   extracción de texto → chunking → Contextual RAG → embeddings background
-        ↓
-3. Chat con especialista
-   Hybrid Retrieval (vector + BM25 → RRF) · citas automáticas
-   fallback al Investigador si faltan fuentes
-        ↓
-4. Studio
-   infografía + imagen · mapa mental · quiz · podcast con audio real
-   flashcards · timeline · notas Cornell · presentación
-```
-
-### RAG híbrido con RRF
-
-El retrieval combina búsqueda vectorial (pgvector) con búsqueda full-text BM25 (pg_trgm) y fusiona los resultados con Reciprocal Rank Fusion.
-
-### Contextual chunks
-
-Antes de generar el embedding de cada chunk, se puede enriquecer el texto con contexto del documento fuente para mejorar la recuperación.
-
-### Agentes del sistema integrados
-
-- **Investigador**: enriquece el chat cuando los chunks no son suficientes.
-- **podcast-wav**: genera audio MP3 real con Álvaro y Elvira desde scripts educativos.
-- **visual-detect + imagenes**: detecta si el tema necesita imagen y la genera para la infografía.
-- **Redactor**: pule resúmenes con estilo académico.
-- **Summary**: generación rápida de resúmenes.
-- **TTS**: lee respuestas en voz alta.
-
-### Tablas Supabase
-
-```
-notebooks          · notebook_sources  · notebook_chunks
-notebook_summaries · notebook_messages · notebook_outputs
-```
-
-### Migraciones SQL
-
-```
-migration.sql       → 6 tablas + RLS + función match_notebook_chunks() (pgvector)
-migration_bm25.sql  → índices GIN + función search_notebook_chunks_fts() (BM25)
+```bash
+npm run curriculum:index
+npm run curriculum:validate
+npm run test:curriculum
+npm run planner:maintain
+npm run test:planner
 ```
 
 ---
 
-## 🦾 EduAI Claw — detalle
+## 📓 Notebooks, RAG y Chat Paper
 
-EduAI Claw es el orquestador central de la plataforma. No es solo un chatbot: es un supervisor que observa contexto, detecta intenciones, coordina agentes y propone acciones seguras.
+EduAI Notebooks transforma fuentes reales en un espacio de investigación y creación.
 
-```
-EduAI Claw opera como superagente:
-  - Observa página, contexto y tarea del usuario
-  - Detecta intención y selecciona herramientas
-  - Puede responder directamente si una tool falla
-  - Propone acciones y rutas adecuadas
-  - Reutiliza skills según rol: estudiante, docente o admin
-  - Mantiene guardrails para evitar acciones peligrosas
-```
+| Etapa | Función |
+|-------|---------|
+| **Ingesta** | URL, PDF, DOCX, texto pegado, búsqueda web y fuentes externas |
+| **Procesamiento** | Extracción, chunking, contextualización y embeddings |
+| **Retrieval** | Vector con pgvector + búsqueda BM25/full-text |
+| **Fusión** | Reciprocal Rank Fusion para ordenar resultados |
+| **Chat** | Respuestas con citas y contexto del cuaderno |
+| **Studio** | Infografía, mapa mental, quiz, podcast, flashcards, timeline, Cornell y presentación |
+| **Audio** | Podcast y narración TTS |
+| **Control** | Validación de URL, ownership y calidad de fuentes |
 
-### Guardrails
-
-- ❌ No expone secretos ni claves.
-- ❌ No ejecuta acciones peligrosas sin confirmación.
-- ❌ No da acceso a modelos experimentales a estudiantes.
-- ✅ Usa tools internas con rutas controladas.
-- ✅ Mantiene separación entre chat global, admin y rutas públicas.
-- ✅ Rate limit por `proxy.ts` en APIs de agentes y SuperAgent.
-
-### Chat Social de Agentes (`/ai-social`)
-
-Sala donde múltiples agentes pueden debatir ideas y generar propuestas para el usuario. Claw detecta intención y sugiere acciones como crear planificación, examen, guía, infografía, resumen o material visual.
-
-### Action Router — Detección de intención
-
-| Intención | Target | Palabras clave |
-|-----------|--------|----------------|
-| `create_lesson_plan` | `educador` | planificación, OA, MINEDUC, docente |
-| `create_exam` | `examen` | examen, prueba, evaluación, preguntas |
-| `create_study_guide` | `drafts` | guía, resumen, estudio, apuntes |
-| `create_research_outline` | `paper` | investigación, paper, hipótesis |
-| `create_math_support` | `matematico` | ecuación, fórmula, derivada |
-| `create_visual_material` | `imagenes` | imagen, infografía, afiche, visual |
+**Chat Paper** complementa el sistema con una experiencia directa para subir PDF, extraer contenido, preguntar, resumir y analizar documentos académicos.
 
 ---
 
-## 🏫 Planificador Curricular MINEDUC
+## 🎨 Creator Hub, Cuaderno Creativo y QR Studio
 
-Genera planificaciones rigurosas alineadas al currículum oficial para docentes chilenos.
+### Creator Hub
 
-### Cobertura curricular (113 archivos JSON de OA)
+Creator Hub incluye 13 formatos educativos y una navegación simplificada con búsqueda y catálogo.
 
-| Nivel | Cursos | Asignaturas |
-|-------|--------|-------------|
-| **Parvularia** | Sala Cuna · Medio Menor/Mayor · NT1/NT2 | Ámbitos, Núcleos, OA y OAT por subnivel |
-| **Básica 1°–8°** | 8 cursos | Matemática · Lenguaje/Lengua · Ciencias · Historia · Inglés · Tecnología · Artes Visuales · Ed. Física · Música · Orientación |
-| **Media** | 1° a 4° Medio | Matemática · Lengua · Biología · Química · Física · Tecnología · Ed. Ciudadana |
+- Infografía.
+- Presentación.
+- Podcast.
+- Mapa mental.
+- Flashcards.
+- Línea de tiempo.
+- Quiz.
+- Notas Cornell.
+- Guía o documento.
+- Material visual.
+- Storyboard o manga.
+- Recurso interactivo.
+- Formato creativo asistido por IA.
 
-### Planificación generada
+También integra generación, edición, guardado, Labs, materiales compartibles y conexión con otros módulos.
 
-Datos generales · Objetivo de Aprendizaje oficial · Indicadores de evaluación · Objetivos de clase · Propósito pedagógico · Planificación sesión a sesión con timing · Evaluación con instrumentos · Adaptaciones y diversidad.
+### Cuaderno Creativo
 
----
+- Lienzo de dibujo y pintura.
+- Herramientas de trazo, borrado y color.
+- Carga de plantillas.
+- Generación de plantillas con IA.
+- Biblioteca privada en Supabase Storage.
+- Búsqueda, reutilización y eliminación con RLS por usuario.
 
-## 🎙️ Audio Lab v2
+### QR Studio
 
-```
-Audio (MP3/WAV/M4A/MP4/WebM)
-    ↓
-/api/agents/audio/pipeline
-    ├── Modo rápido → procesamiento IA desde API routes
-    └── Modo PRO    → microservicio externo opcional
-    ↓
-Operaciones de edición IA
-    ↓
-Exportación: TXT · MD · SRT · VTT · JSON
-```
-
-**Operaciones principales:** limpiar · apuntes · acta · resumen · tareas · capítulos · highlights · guía de estudio · personalizar.
-
----
-
-## 🎨 Image Studio v8
-
-```
-Prompt
-    ↓ optimizePrompt() — Gemini / modelo configurado
-    ↓
-Cadena de proveedores por modo:
-  fast:      Pollinations → OpenRouter → Together → HuggingFace
-  quality:   Gemini → OpenRouter → Together → HuggingFace → Pollinations
-    ↓
-Supabase Storage → URL pública en Galería
-```
-
-**Proveedores:** Gemini Imagen · Pollinations FLUX · Together AI FLUX · Hugging Face · OpenRouter.
+- Creación de recursos compartibles.
+- Estado activo o vencido.
+- Fecha de expiración.
+- Conteo de escaneos.
+- Descarga como PNG.
+- Eliminación y administración del recurso.
+- Acceso público mediante `/q/[slug]`.
 
 ---
 
-## 📋 Exámenes para Docentes
+## ✍️ Pizarra Interactiva y Matemática
 
-Sistema completo con IA para crear pruebas y compartirlas por link público. Los estudiantes rinden sin necesidad de cuenta.
+La Pizarra Interactiva permite escribir procedimientos matemáticos a mano y convertirlos a una representación digital.
 
-### Cadena de generación
+### Flujo
 
-```
-Groq Llama 3.3 70B (primario)
-    ↓ fallback
-OpenRouter
-    ↓ fallback
-Gemini 2.5 Flash
-```
-
-**Características:** alternativas · verdadero/falso · desarrollo · LaTeX con KaTeX · escala MINEDUC 1.0–7.0 · timer configurable · evaluación IA con puntaje parcial · PDF del estudiante · dashboard docente con análisis pedagógico · temas visuales tipo Canva · modo PIE/NEE · narración de preguntas · RUT obligatorio con validación chilena · autoguardado de avance · reanudación de intento por examen + curso + RUT.
-
-### Sistema antifraude
-
-Fullscreen obligatorio · bloqueo de teclas/clipboard · eventos de seguridad · sesiones con heartbeat · rutas admin de seguridad · semáforo de riesgo · incidencias.
-
-### Autoguardado y continuidad del examen
-
-El flujo público `/examen/p/[code]` ahora exige **nombre, curso y RUT válido** antes de iniciar. El RUT se ingresa sin puntos ni guion, acepta dígito verificador `K`, se normaliza como `student_rut_clean` para consultas y se puede mostrar formateado como `12.345.678-K`.
-
-```
-Estudiante inicia examen
-    ↓
-/api/agents/examen-docente → action: start_or_resume_attempt
-    ↓
-Busca borrador por exam_id + student_course + student_rut_clean
-    ├── Si existe: recupera respuestas, pregunta actual y tiempo restante
-    └── Si no existe: crea client_attempt_id y borrador en exam_attempt_drafts
-    ↓
-Durante el examen
-    ├── Al marcar alternativa/desarrollo: autosave_attempt
-    ├── Cada 15 segundos: autosave silencioso
-    └── Al ocultar/cerrar pestaña: autosave silencioso
-    ↓
-Al entregar
-    ├── upsert en exam_submissions por exam_id + client_attempt_id
-    ├── marca exam_attempt_drafts como submitted
-    └── enlaza exam_question_developments con submission_id
+```text
+Trazos del usuario
+      ↓
+Normalización y filtrado de puntos
+      ↓
+/api/whiteboard/recognize
+      ↓
+Proveedor de reconocimiento matemático
+      ↓
+LaTeX + retroalimentación
 ```
 
-**Tablas involucradas:** `exam_attempt_drafts`, `exam_submissions`, `exam_question_developments`.
+Incluye escritura, borrado, limpieza, caché, límites de trazos, soporte de edición mixta y script de finalización.
 
-**Garantía funcional:** si el estudiante sale por error, puede volver a ingresar con el mismo nombre, curso y RUT para continuar desde el último avance guardado. Si el intento ya fue entregado, la API bloquea nuevas modificaciones para evitar duplicados.
-
-### Acceso seguro con códigos temporales
-
-Se agregó una ruta administrativa para estudiantes que no recuerdan su RUT:
-
-```
-/admin/exam-access
-/api/exam-access
+```bash
+npm run whiteboard:finalize
 ```
 
-El docente puede seleccionar examen, curso y estudiante desde `student_roster`, generar un código temporal de un solo uso y entregarlo al estudiante. El código real no se guarda en texto plano: se almacena como `code_hash` y se audita en `exam_access_code_audit`.
+El agente Matemático utiliza Markdown, KaTeX y LaTeX para desarrollar ejercicios paso a paso.
 
-### Rutas principales
+---
 
-```
-/examen/crear
-/examen/docente
-/examen/p/[code]
-/api/agents/exam-generate
-/api/agents/examen-docente
-/api/exam-security/event
-/api/exam-security/session/start
-/api/exam-security/session/heartbeat
-/api/exam-security/admin/dashboard
-/api/exam-security/admin/session/[id]
+## 📝 Sistema de exámenes
+
+### Experiencia del estudiante
+
+- Examen público mediante enlace.
+- Temporizador y progreso.
+- Preguntas de selección, desarrollo y formatos mixtos.
+- Guardado de respuestas y borradores.
+- Desarrollo matemático con evidencia.
+- Temas visuales y apoyos PIE/NEE.
+- Corrección, nota y retroalimentación.
+
+### Herramientas docentes
+
+- Creación manual o con IA.
+- Generación mixta de preguntas.
+- Configuración de puntaje, tiempo y visualización.
+- Publicación por enlace y código.
+- Resultados, revisión y calificación.
+- Seguridad, incidentes y sesiones activas.
+- Códigos de acceso con hash y auditoría.
+
+```bash
+npm run test:exam
 ```
 
 ---
 
-## 🛡️ Panel de Administración
+## 🎙️ Audio Lab, voces y MIRA
 
-Panel exclusivo en `/admin` para usuarios administradores. Incluye métricas, gestión de usuarios, reportes, seguridad de exámenes y acceso a laboratorio de modelos.
+### Audio Lab
 
-### Módulos admin actuales
+- Carga de audio o video.
+- Transcripción.
+- Operaciones de resumen, corrección y transformación.
+- Edición de texto.
+- Exportación educativa, TXT y SRT.
+- Narración y perfiles de voz.
+- Pipeline rápido o servicio externo.
+
+Servicios incluidos:
+
+```text
+services/audio-parser
+services/paper-parser
+services/openvoice-space
+```
+
+### MIRA
+
+MIRA amplía el Traductor con dos modos de voz:
+
+| Modo | Flujo |
+|------|-------|
+| **Traducción** | Audio español ↔ inglés → Whisper → traducción IA → Edge TTS |
+| **Conversación** | Audio → transcripción → respuesta contextual de MIRA → voz automática |
+
+Características verificadas:
+
+- Español de Chile e inglés.
+- Whisper `large-v3-turbo` mediante Groq.
+- Historial breve de conversación.
+- Respuestas de 1 a 3 oraciones en modo conversación.
+- Voces Edge TTS `es-CL-CatalinaNeural` y `en-US-AriaNeural`.
+- Fallback de voz del navegador.
+- Detección de silencio y continuación automática en la interfaz.
+
+API principal:
+
+```text
+/api/agents/traductor/voice
+```
+
+---
+
+## 🖼️ Imagen, video y música
+
+### Image Studio
+
+- Generación multi-proveedor.
+- Modelos FLUX y Stable Diffusion según configuración.
+- Integraciones preparadas para FAL, Gemini, OpenRouter, Together, Hugging Face y Pollinations.
+- Optimización de prompts.
+- Fallbacks limitados y errores concretos.
+- Galería unificada, filtros y vista completa.
+
+### Video Studio
+
+```text
+/video-studio
+/api/agents/video
+/api/agents/video/status/[jobId]
+/api/agents/video/process
+```
+
+- Texto-a-video e imagen-a-video.
+- Moderación básica.
+- Deduplicación.
+- Límites por plan.
+- Jobs, progreso, proveedor, modelo, URL y errores.
+- Worker o proveedor externo configurable.
+- Workflow programado para procesar la cola.
+
+### EduAI Music
+
+- Reproductor inferior persistente.
+- Play, pausa, anterior, siguiente, shuffle, repeat, progreso y volumen.
+- Biblioteca interna y playlists educativas.
+- Favoritos y cola.
+- Búsqueda online mediante Jamendo, Audius e iTunes.
+- Spotify mediante embeds oficiales.
+- YouTube como enlace o integración oficial, sin conversión a MP3.
+
+---
+
+## 💬 Colaboración, gamificación y administración
+
+### Colaboración
+
+- Salas multiusuario.
+- Moderación con IA.
+- Materiales y contexto compartidos.
+- Acceso desde Open EDUAI Work.
+- Chat social entre agentes.
+
+### Gamificación
+
+- XP.
+- Rachas.
+- Logros.
+- Ranking global.
+- Repetición espaciada SM-2.
+- Seguimiento de sesiones y actividad.
+
+### Administración
 
 | Ruta | Función |
 |------|---------|
-| `/admin` | Panel principal |
-| `/admin/exam-security` | Centro de monitoreo de seguridad de evaluaciones |
-| `/admin/model-lab` | Laboratorio de modelos experimentales aislado |
+| `/admin` | Panel general |
+| `/admin/users` | Gestión de usuarios |
+| `/admin/exams` | Supervisión de exámenes |
+| `/admin/exam-security` | Seguridad e incidentes |
+| `/admin/access-codes` | Códigos de acceso |
+| `/admin/model-lab` | Laboratorio de modelos |
+
+Admin Model Lab mantiene los modelos experimentales aislados de la experiencia regular y aplica control de rol, auditoría y filtros.
 
 ---
 
-## AI Router v4 / v5
+## 🏗️ Arquitectura general
 
+```text
+Usuario
+  ↓
+Next.js App Router · React 19
+  ├── Páginas y componentes
+  ├── Server Actions / Route Handlers
+  ├── EduAI Claw
+  ├── AI Router y proveedores
+  ├── Supabase Auth / PostgreSQL / Storage / RLS
+  ├── Servicios externos de audio, PDF, voz y video
+  └── Vercel + GitHub Actions
 ```
-lib/ai-router-v4.ts
-├── callGeminiStructured()   → JSON garantizado via responseSchema
-├── callGeminiMultimodal()   → texto + imagen base64
-├── callGeminiImage()        → generación de imágenes nativa
-├── callGeminiStream()       → streaming en tiempo real
-├── callAICached()           → wrapper con cache Redis
-├── runOrchestrator()        → agentes en paralelo + síntesis
-├── optimizeImagePrompt()    → optimizador para imágenes
-└── detectVisualType()       → AIm v2: tipo/mermaid/chart/image/table
 
-lib/ai-router-v5.ts
-├── Routing inteligente por tarea
-├── Retrocompatibilidad con v4
-├── Soporte para proveedores gratuitos/fallback
-└── Preparado para coding, reasoning, fast y long_context
+### Estructura principal
+
+```text
+app/                     Páginas y APIs de Next.js
+components/              UI, estudio, exámenes, música, Claw y multimedia
+lib/                     IA, Supabase, agentes, seguridad, currículo y dominio
+public/data/mineduc/      Currículo oficial procesado
+scripts/                 Validación, mantenimiento, parches y pruebas
+services/                Microservicios opcionales
+supabase/migrations/      Migraciones SQL incluidas
+wan-worker/               Worker de video
+.github/workflows/        CI, currículo, audio y video
+proxy.ts                  Sesión y protección de rutas
+vercel.json               Configuración de funciones
 ```
+
+### Tecnologías
+
+| Área | Tecnologías |
+|------|-------------|
+| Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS 4, Framer Motion |
+| Estado y datos | Zustand, TanStack Query |
+| Backend | Route Handlers, Node.js 22, Supabase SSR |
+| Base de datos | PostgreSQL, RLS, pgvector, búsqueda full-text/BM25 |
+| IA | Groq, Gemini, FAL y router multi-proveedor |
+| Documentos | PDF Parse, Mammoth, jsPDF, PPTXGenJS, XLSX |
+| Matemática | KaTeX, React KaTeX, Mermaid, Chart.js |
+| Audio | Edge TTS, Whisper/Groq y servicios opcionales |
+| Despliegue | Vercel, GitHub Actions, Docker y Hugging Face Spaces opcional |
 
 ---
 
-## Base de Datos (Supabase)
+## 🗄️ Base de datos y migraciones
 
-### Tablas del sistema base esperadas por la plataforma
+### SQL incluido
 
-```
-profiles · study_sessions · long_memory · generated_images
-content_creations · flashcard_decks · quiz_sessions · user_xp
-teacher_exams · exam_submissions · exam_incidents · saved_plannings
-study_rooms · room_members · room_messages · friendships
-conversations · chat_messages · notifications · platform_config
-spaced_repetition · audio_transcriptions · projects · workspace_items
-admin_emails · admin_reports
+```text
+migration.sql
+migration_bm25.sql
+migration_qr_studio.sql
+supabase/migrations/*.sql
 ```
 
-### Tablas EduAI Notebooks
+Las migraciones incluidas cubren principalmente:
 
-```
-notebooks · notebook_sources · notebook_chunks
-notebook_summaries · notebook_messages · notebook_outputs
-```
+- Notebooks, fuentes, chunks, embeddings y búsqueda híbrida.
+- BM25/full-text y extensiones relacionadas.
+- QR Studio.
+- Repetición espaciada.
+- Seguridad y consentimiento de voz.
+- Códigos de acceso de exámenes.
+- Plantillas del Cuaderno Creativo.
 
-### Tablas nuevas/esperadas por módulos recientes
+### Importante para instalaciones nuevas
 
-```
-video_jobs · video_usage_daily
-superagent_conversations · superagent_messages · superagent_memory
-superagent_tasks · superagent_tool_calls · superagent_skills
-music_playlists · music_playlist_tracks · music_liked_tracks
-music_recently_played · music_user_settings
-exam_admin_logs · exam_alerts · exam_device_status · exam_lockouts
-exam_attempt_drafts · exam_question_developments
-student_roster · exam_access_codes · exam_access_code_audit
-```
+El código utiliza tablas base adicionales —por ejemplo perfiles, exámenes docentes, entregas, borradores, colaboración, video y administración— que pueden existir en la base de producción, pero no están completamente reconstruidas en los SQL incluidos.
 
-> Nota: algunas tablas recientes están preparadas a nivel de código/roadmap y deben crearse con SQL adicional antes de usarlas en producción completa.
+Antes de desplegar desde cero se debe:
 
-### Storage Buckets
+1. Exportar o versionar el esquema base completo de Supabase.
+2. Añadir la migración de `video_jobs` y `video_usage_daily`.
+3. Confirmar la migración de autoguardado y desarrollos de exámenes.
+4. Ejecutar RLS, Storage y funciones SQL necesarias.
+5. Verificar que ninguna clave de service role quede expuesta al cliente.
 
-```
-papers           → Privado (PDFs académicos)
-creations        → Público (Creator Hub)
-chat-files       → Público (chat social)
-workspace-files  → Privado (Workspace)
-generated-images → Público (Image Studio)
-video-images     → Privado/Público según política del Video Studio
-exam-development-artifacts → Privado (desarrollos manuscritos/LaTeX de exámenes)
-```
+---
 
-### Migraciones SQL verificadas en el repositorio actual
+## 🔐 Variables de entorno
 
-```
-supabase/migrations/20260226000000_create_spaced_repetition.sql
-supabase/migrations/20260531_complete_audio_voice_security_and_lifecycle.sql
-supabase/migrations/20260616000000_secure_student_roster_access_codes.sql
-supabase/migrations/20260616010000_exam_autosave_attempt_drafts.sql
-migration.sql       → EduAI Notebooks: 6 tablas + pgvector + RLS
-migration_bm25.sql  → EduAI Notebooks: índices GIN + BM25 RPC
-migration_qr_studio.sql → QR Studio + workspace_assets
-```
-
-### Última actualización Supabase — exámenes con RUT y autoguardado
-
-Esta actualización deja registrada la base necesaria para que los estudiantes rindan con **RUT obligatorio**, autoguardado instantáneo y recuperación de avance. La base ya está preparada a nivel de SQL y debe ejecutarse en Supabase antes de producción si todavía no se aplicó manualmente.
-
-| Elemento | Estado | Uso |
-|----------|--------|-----|
-| `exam_attempt_drafts` | Listo en migración | Guarda respuestas parciales, pregunta actual, tiempo restante y estado del intento |
-| `exam_submissions.client_attempt_id` | Listo en migración | Evita entregas duplicadas con `upsert` por examen + intento |
-| `exam_submissions.student_rut_clean` | Listo en migración | Permite buscar/validar por RUT normalizado sin puntos ni guion |
-| `exam_question_developments` | Listo en migración | Guarda desarrollo manuscrito/LaTeX por pregunta y luego lo enlaza a la entrega |
-| `exam-development-artifacts` | Listo como bucket privado | Almacena JSON y PNG de desarrollos de estudiantes |
-| `student_roster` | Listo en migración | Nómina por año, curso, nombre y RUT limpio |
-| `exam_access_codes` | Listo en migración | Códigos temporales hash para estudiantes que no recuerdan su RUT |
-| `exam_access_code_audit` | Listo en migración | Auditoría de generación, uso y entrega con código |
-
-**Orden recomendado en Supabase SQL Editor:**
-
-```bash
-# 1. Sistema base de exámenes ya existente en producción
-#    Debe contener teacher_exams y exam_submissions.
-
-# 2. Seguridad y acceso por nómina/código
-supabase/migrations/20260616000000_secure_student_roster_access_codes.sql
-
-# 3. Autoguardado, reanudación y desarrollos manuscritos/LaTeX
-supabase/migrations/20260616010000_exam_autosave_attempt_drafts.sql
-```
-
-**Variables nuevas/recomendadas:**
+No se deben subir secretos al repositorio. Variables principales:
 
 ```env
-EXAM_ACCESS_CODE_SECRET=pon_un_secreto_largo_para_hashear_codigos
+# Aplicación
+NEXT_PUBLIC_APP_URL=
+NEXT_PUBLIC_SITE_URL=
+
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+
+# IA de texto
+GROQ_API_KEY=
+GEMINI_API_KEY=
+GOOGLE_GENERATIVE_AI_API_KEY=
+OPENROUTER_API_KEY=
+
+# Búsqueda
+TAVILY_API_KEY=
+SERPER_API_KEY=
+
+# Imágenes
+FAL_KEY=
+TOGETHER_API_KEY=
+HF_TOKEN=
+POLLINATIONS_API_KEY=
+
+# Audio y voz
+AUDIO_PIPELINE_URL=
+AUDIO_PIPELINE_TOKEN=
+AUDIO_DEFAULT_MODE=quick
+EDGE_TTS_VOICE_A=
+EDGE_TTS_VOICE_B=
+
+# Música
+JAMENDO_CLIENT_ID=
+JAMENDO_CLIENT_SECRET=
+JAMENDO_REDIRECT_URI=
+AUDIUS_API_HOST=https://discoveryprovider.audius.co
+YOUTUBE_API_KEY=
+
+# Video
+VIDEO_PROVIDER_ORDER=ltx,cogvideox,hunyuan_i2v
+VIDEO_CRON_SECRET=
+CRON_SECRET=
+HF_SPACE_VIDEO_API_URL=
+HF_SPACE_VIDEO_API_TOKEN=
+
+# Pizarra
+WHITEBOARD_RECOGNITION_URL=
+WHITEBOARD_RECOGNITION_HEADERS_JSON={}
+WHITEBOARD_RECOGNITION_TIMEOUT_MS=6500
+
+# Exámenes
+EXAM_ACCESS_CODE_SECRET=
+EXAM_LATEX_EVALUATOR_URL=
+EXAM_LATEX_EVALUATOR_TOKEN=
+
+# Cache opcional
+UPSTASH_REDIS_REST_URL=
+UPSTASH_REDIS_REST_TOKEN=
 ```
 
-> Importante: las tablas nuevas se dejan con RLS activado y sin políticas públicas porque el estudiante no escribe directo en Supabase; todas las escrituras pasan por API routes con `SUPABASE_SERVICE_ROLE_KEY`.
+Los modelos y proveedores secundarios se pueden ajustar mediante variables específicas del AI Router, imágenes, audio y video.
 
 ---
 
-## Arquitectura del proyecto
+## 💻 Instalación y desarrollo
 
-```
-eduai-platform/
-├── app/
-│   ├── (auth)/                 ← Login, registro y acciones de auth
-│   ├── admin/                  ← Admin dashboard · Exam Security · Model Lab
-│   ├── agentes/                ← Lista de 18 agentes especializados
-│   ├── ai-social/              ← Chat social de agentes
-│   ├── audio-lab/              ← Audio Lab v2
-│   ├── chat-global/            ← Open EDUAI Work: investigación, creación y ejecución con Claw
-│   ├── creator-hub/            ← Creator Hub con formatos educativos
-│   ├── dashboard/              ← Dashboard con sidebar y acceso a Música
-│   ├── educador/               ← Planificador MINEDUC con 113 JSONs
-│   ├── exam-focus/             ← Modo focus / Pomodoro educativo
-│   ├── examen/                 ← Examen estudiante · docente · creador · link público
-│   ├── galeria/                ← Galería de imágenes generadas
-│   ├── image-studio/           ← Image Studio v8
-│   ├── imagenes/               ← Redirección/compatibilidad hacia Image Studio
-│   ├── music/                  ← EduAI Music Studio
-│   ├── notebooks/              ← EduAI Notebooks (workspace RAG)
-│   ├── superagent/             ← Panel y chat EduAI Claw
-│   ├── video-studio/           ← Video Studio con cola de trabajos
-│   └── workspace/              ← Gestión de proyectos
-│
-├── app/api/
-│   ├── agents/                 ← 30+ rutas de agentes especializados
-│   ├── music/                  ← search · providers · jamendo OAuth/playlists
-│   ├── notebooks/              ← CRUD + ingest + chat + generate + embeddings
-│   ├── exam-security/          ← sesión, eventos, heartbeat y admin security
-│   ├── superagent/             ← chat · drafts · skills · social
-│   ├── uploads/                ← subida para video-image
-│   └── web/                    ← search + ingest
-│
-├── components/
-│   ├── exam/                   ← ExamRenderer · QuestionCard · ThemeProvider · AudioButton
-│   ├── exam-security/          ← ExamSecurityClient · Bridge · Overlay
-│   ├── music/                  ← EduAIMusicPlayer · MusicProvider
-│   ├── notebook/               ← SourcePanel · NotebookChat · StudioPanel
-│   ├── superagent/             ← SuperAgentChat · DraftCreatorCard
-│   ├── video/                  ← VideoStudioClient
-│   └── ui/                     ← AgentChatLayout · ExamMathText · SuperAgentButton · etc.
-│
-├── lib/
-│   ├── agents/                 ← exam · design · accessibility · video · voice · music · coding
-│   ├── ai/                     ← admin-model-policy
-│   ├── audio/                  ← pipeline · types · exporters · config
-│   ├── design/                 ← design-intelligence
-│   ├── exam/                   ← theme-utils
-│   ├── exam-security/          ← policy · scoring · session · client-end
-│   ├── music/                  ← eduai-music-catalog
-│   ├── notebook/               ← types · prompts · chunking · ingestion · retrieval · summarizer
-│   ├── superagent/             ← engine · router · guardrails · tools · skills · social
-│   ├── video-agent.ts          ← proceso de generación de video
-│   ├── video-config.ts         ← configuración de video
-│   ├── ai-router-v4.ts
-│   ├── ai-router-v5.ts
-│   ├── image-config.ts
-│   ├── mineduc-oa.ts
-│   └── planificador-curriculum.ts
-│
-├── proxy.ts                    ← Auth refresh, protección de rutas y rate limiting
-├── DESIGN.md                   ← Sistema de diseño global EduAI
-├── migration.sql               ← EduAI Notebooks: tablas + pgvector
-├── migration_bm25.sql          ← EduAI Notebooks: BM25 full-text
-└── data/mineduc/               ← 113 JSONs de OA oficiales
-    ├── parvularia/
-    ├── basica/
-    └── media/
-```
+### Requisitos
 
----
-
-## Instalación y desarrollo
-
-### Requisitos previos
-
-- Node.js 22+
-- Cuenta en [Supabase](https://supabase.com)
-- Cuenta en Vercel para deploy
-- API keys según módulos que quieras activar
+- Node.js 22.x.
+- npm.
+- Proyecto Supabase.
+- Claves de los proveedores que se utilizarán.
+- Vercel para el despliegue recomendado.
+- Docker/Python solo para servicios opcionales.
 
 ### 1. Clonar e instalar
 
@@ -824,285 +664,194 @@ cd eduai-platform
 npm install
 ```
 
-### 2. Variables de entorno
-
-```env
-# ── Supabase ─────────────────────────────────────────────────────────
-NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJxxx...
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=eyJxxx...
-SUPABASE_SERVICE_ROLE_KEY=eyJxxx...
-SUPABASE_URL=https://xxxx.supabase.co
-
-# ── App / Vercel ─────────────────────────────────────────────────────
-NEXT_PUBLIC_APP_URL=https://eduaiplatformclon.vercel.app
-VERCEL_URL=eduaiplatformclon.vercel.app
-
-# ── Gemini ───────────────────────────────────────────────────────────
-GEMINI_API_KEY=AIzaXxx...
-GEMINI_API_KEY_IMAGE=AIzaXxx...
-GEMINI_API_KEY_IMAGE_2=AIzaXxx...
-GEMINI_API_KEY_PROMPT_1=AIzaXxx...
-GEMINI_API_KEY_PROMPT_2=AIzaXxx...
-
-# ── Groq ─────────────────────────────────────────────────────────────
-GROQ_API_KEY=gsk_xxx...
-
-# ── OpenRouter ───────────────────────────────────────────────────────
-OPENROUTER_API_KEY_1=sk-or-xxx...
-OPENROUTER_API_KEY_2=sk-or-xxx...
-OPENROUTER_REFERER=https://tu-dominio.vercel.app
-OPENROUTER_APP_TITLE=EduAI Platform
-
-# ── Together AI ──────────────────────────────────────────────────────
-TOGETHER_API_KEY_1=xxx...
-TOGETHER_API_KEY_2=xxx...
-
-# ── Hugging Face ─────────────────────────────────────────────────────
-HF_TOKEN_1=hf_xxx...
-HF_TOKEN_2=hf_xxx...
-
-# ── EduAI Notebooks — búsqueda web ──────────────────────────────────
-SERPER_API_KEY=xxx...
-TAVILY_API_KEY=tvly-xxx...
-FIRECRAWL_API_KEY=fc-xxx...
-
-# ── Image Studio ─────────────────────────────────────────────────────
-IMAGE_PROVIDER_ORDER_FAST=pollinations,openrouter,together,huggingface
-IMAGE_PROVIDER_ORDER_QUALITY=gemini,openrouter,together,huggingface,pollinations
-IMAGE_PROMPT_OPTIMIZER_ENABLED=true
-IMAGE_PROMPT_OPTIMIZER_MODE=quality_only
-
-# ── Audio Lab v2 ─────────────────────────────────────────────────────
-AUDIO_PIPELINE_URL=http://localhost:8000
-AUDIO_PIPELINE_TOKEN=
-AUDIO_DEFAULT_MODE=quick
-
-# ── EduAI Music ──────────────────────────────────────────────────────
-JAMENDO_CLIENT_ID=tu_client_id
-JAMENDO_CLIENT_SECRET=tu_client_secret_solo_si_usas_oauth
-JAMENDO_REDIRECT_URI=https://eduaiplatformclon.vercel.app/api/music/jamendo/callback
-AUDIUS_API_HOST=https://discoveryprovider.audius.co
-
-# ── Video Studio ─────────────────────────────────────────────────────
-VIDEO_PROVIDER_ORDER=ltx,cogvideox,hunyuan_i2v
-VIDEO_CRON_SECRET=pon_un_secreto_largo
-CRON_SECRET=pon_un_secreto_largo
-LTX_VIDEO_ENDPOINT=https://tu-endpoint-ltx/api/generate
-LTX_VIDEO_API_KEY=
-LTX_VIDEO_MODEL=Lightricks/LTX-Video
-COGVIDEOX_ENDPOINT=https://tu-endpoint-cogvideox/api/generate
-COGVIDEOX_API_KEY=
-COGVIDEOX_MODEL=zai-org/CogVideoX-5b
-HUNYUAN_I2V_ENDPOINT=https://tu-endpoint-hunyuan/api/generate
-HUNYUAN_I2V_API_KEY=
-HUNYUAN_I2V_MODEL=Tencent-Hunyuan/HunyuanVideo-I2V
-
-# ── Cache Redis / Rate limiting ─────────────────────────────────────
-UPSTASH_REDIS_REST_URL=https://...upstash.io
-UPSTASH_REDIS_REST_TOKEN=...
-```
-
-### 3. Supabase — Migraciones verificadas
-
-Ejecutar en **Supabase → SQL Editor**:
+### 2. Configurar entorno
 
 ```bash
-# Sistema base disponible en el repo actual
-supabase/migrations/20260226000000_create_spaced_repetition.sql
-supabase/migrations/20260531_complete_audio_voice_security_and_lifecycle.sql
-supabase/migrations/20260616000000_secure_student_roster_access_codes.sql
-supabase/migrations/20260616010000_exam_autosave_attempt_drafts.sql
-
-# EduAI Notebooks
-migration.sql
-migration_bm25.sql
-
-# QR Studio
-migration_qr_studio.sql
+cp .env.example .env.local
 ```
 
-Crear buckets de Storage:
+Si `.env.example` todavía no existe, crear `.env.local` con las variables necesarias de la sección anterior.
 
-```
-papers           → Privado + RLS
-creations        → Público
-generated-images → Público
-chat-files       → Público
-workspace-files  → Privado + RLS
-video-images     → Según política del Video Studio
-exam-development-artifacts → Privado
-```
+### 3. Preparar Supabase
 
-Agregar admins:
+Ejecutar las migraciones incluidas y comprobar que el esquema base de producción esté disponible.
 
-```sql
-INSERT INTO admin_emails (email) VALUES ('tu@correo.cl');
+### 4. Validar currículo
+
+```bash
+npm run test:curriculum
 ```
 
-### 4. Desarrollo
+Resultado esperado:
+
+```text
+Currículum MINEDUC: 105 archivos, 0 archivos pendientes, 0 advertencias, 0 errores.
+```
+
+### 5. Desarrollo
 
 ```bash
 npm run dev
 ```
 
-### 5. Build y producción
+### 6. Tests y build
 
 ```bash
+npm run lint
+npm run test:planner
+npm run test:exam
+npm run test:curriculum
 npm run build
 npm run start
 ```
 
-### 6. Docker — Microservicio de Audio (opcional)
+---
+
+## ⚙️ Scripts disponibles
+
+| Comando | Función |
+|---------|---------|
+| `npm run dev` | Aplica parches idempotentes y levanta Next.js |
+| `npm run build` | Valida currículo, mantiene módulos y compila |
+| `npm run start` | Inicia producción |
+| `npm run lint` | Ejecuta ESLint |
+| `npm run planner:maintain` | Mantención del planificador |
+| `npm run whiteboard:finalize` | Finaliza la integración de pizarra |
+| `npm run mira:voice` | Aplica el modo de voz MIRA |
+| `npm run test:planner` | Pruebas del planificador |
+| `npm run test:exam` | Pruebas de exámenes |
+| `npm run curriculum:index` | Regenera el índice curricular |
+| `npm run curriculum:validate` | Valida datos curriculares |
+| `npm run test:curriculum` | Validación curricular estricta |
+
+---
+
+## 🔄 CI/CD y mantenimiento
+
+| Workflow | Disparador | Función |
+|----------|------------|---------|
+| `ci.yml` | Push a `main` y Pull Request | Instala, valida, prueba y compila |
+| `curriculum-validation.yml` | Cambios curriculares | Regenera índice y valida OA |
+| `deploy-audio-parser-hf.yml` | Cambios o ejecución manual | Publica el parser en Hugging Face Spaces |
+| `process-video.yml` | Cada 5 minutos o manual | Procesa la cola de video |
+
+### Vercel
+
+- `vercel.json` centraliza límites de funciones.
+- Las rutas de audio, parsing, imágenes, exámenes y video usan runtime Node.js.
+- `proxy.ts` actualiza la sesión Supabase, protege rutas y conserva accesos públicos autorizados.
+
+---
+
+## 🛡️ Seguridad, privacidad y accesibilidad
+
+### Seguridad
+
+- Row Level Security en las migraciones incluidas.
+- Service role solo en servidor.
+- Rutas administrativas protegidas.
+- Guardrails del Superagente.
+- Validación de ownership en Notebooks, plantillas y QR.
+- Códigos de examen con hash y auditoría.
+- Validación de URL y límites de archivos.
+- Tokens opcionales para microservicios.
+
+### Voz y consentimiento
+
+Los perfiles de voz requieren titularidad o autorización, consentimiento y mayoría de edad. Los servicios de voz personalizada deben desplegarse de forma privada y con almacenamiento protegido.
+
+### Accesibilidad educativa
+
+- Perfiles PIE/NEE.
+- Apoyos para dislexia, TDAH y baja visión.
+- Alto contraste y tipografías accesibles.
+- Narración TTS.
+- Instrucciones paso a paso.
+- Adaptación mediante `adapt_for_pie`.
+- Evidencia visual y desarrollo matemático.
+
+---
+
+## 🧪 Estado funcional y pendientes
+
+### Implementado
+
+- [x] Open EDUAI Work con fuentes, archivos y exportaciones.
+- [x] MIRA con traducción y conversación por voz.
+- [x] Creator Hub con 13 formatos.
+- [x] Cuaderno Creativo con biblioteca privada.
+- [x] QR Studio con vencimiento, scans y PNG.
+- [x] Pizarra Interactiva con reconocimiento a LaTeX.
+- [x] Planificador MINEDUC con 105 archivos validados.
+- [x] Notebooks con RAG híbrido y RRF.
+- [x] Exámenes con IA, temas, seguridad y accesibilidad.
+- [x] Audio Lab y servicios externos.
+- [x] Image Studio multi-proveedor.
+- [x] EduAI Music persistente.
+- [x] Video Studio con jobs.
+- [x] Admin Model Lab.
+- [x] CI y validación curricular.
+
+### Requiere configuración o consolidación
+
+- [ ] Versionar el esquema base completo de Supabase.
+- [ ] Agregar migraciones faltantes de video y autoguardado.
+- [ ] Crear `.env.example` sin secretos.
+- [ ] Configurar proveedores externos de audio, voz, video y pizarra.
+- [ ] Añadir pruebas end-to-end de los flujos críticos.
+- [ ] Consolidar gradualmente los scripts `apply-*.mjs` en código fuente estable.
+- [ ] Incorporar observabilidad de costos, latencia y errores por proveedor.
+
+---
+
+## 🤝 Contribuir
+
+1. Crear una rama de trabajo.
+2. Instalar dependencias.
+3. Ejecutar validaciones.
+4. Usar commits descriptivos.
+5. Abrir un Pull Request con alcance y evidencias.
 
 ```bash
-cd docker/docling
-docker-compose up -d
+git checkout -b feature/nueva-funcionalidad
+npm run test:curriculum
+npm run test:planner
+npm run test:exam
+npm run build
+git commit -m "feat: descripción del cambio"
+git push origin feature/nueva-funcionalidad
 ```
 
 ---
 
-## Sistema de Gamificación
+## 👤 Créditos y licencia
 
-```
-Principiante → Aprendiz → Practicante → Avanzado → Experto → Maestro
-    0 XP        100 XP      500 XP       1200 XP    2500 XP   5000 XP
-```
+<div align="center">
 
----
+### Dirección y desarrollo
 
-## Comparación con alternativas
+**Esthefano Morales Campaña**  
+Fundador y Director Ejecutivo de **[Innova Space Edu SpA](https://innova-space-edu.cl/)**
 
-| Feature | EduAI | Khan Academy | ChatGPT Edu | NotebookLM | Spotify/Apps música |
-|---------|:-----:|:------------:|:-----------:|:----------:|:-------------------:|
-| Superagente supervisor con tools | ✅ | ❌ | Parcial | ❌ | ❌ |
-| Chat Global tipo ChatGPT conectado a agentes | ✅ | ❌ | ✅ | ❌ | ❌ |
-| Chat social entre agentes IA | ✅ | ❌ | ❌ | ❌ | ❌ |
-| EduAI Notebooks con RAG híbrido (RRF) | ✅ | ❌ | ❌ | Parcial | ❌ |
-| Contextual RAG / chunks enriquecidos | ✅ | ❌ | ❌ | Parcial | ❌ |
-| BM25 full-text + búsqueda vectorial fusionada | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Podcast con audio real desde notebook | ✅ | ❌ | ❌ | ✅ | ❌ |
-| TTS en respuestas educativas | ✅ | ❌ | ✅ | ❌ | ❌ |
-| Source validator con puntaje de calidad | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Imagen automática en infografías | ✅ | ❌ | ✅ | ❌ | ❌ |
-| Multi-agente educativo | ✅ | ❌ | Parcial | ❌ | ❌ |
-| Planificador MINEDUC con 113 JSONs | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Creator Hub con formatos educativos | ✅ | ❌ | Parcial | ❌ | ❌ |
-| Exámenes docente con link público | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Análisis pedagógico IA post-examen | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Modo supervisión antifraude | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Image Studio con múltiples proveedores | ✅ | ❌ | ✅ | ❌ | ❌ |
-| Audio Lab con operaciones IA | ✅ | ❌ | Parcial | ❌ | ❌ |
-| Music Studio con playlists educativas | ✅ | ❌ | ❌ | ❌ | ✅ |
-| Jamendo/Audius/iTunes en buscador musical | ✅ | ❌ | ❌ | ❌ | Parcial |
-| Spotify embeds dentro de plataforma | ✅ | ❌ | ❌ | ❌ | ✅ |
-| Video Studio con jobs y workers | ✅ | ❌ | Parcial | ❌ | ❌ |
-| Panel de administración completo | ✅ | ❌ | ❌ | ❌ | ❌ |
-| LaTeX matemático | ✅ | ✅ | ✅ | ❌ | ❌ |
-| Gamificación completa + SM-2 | ✅ | ✅ | ❌ | ❌ | ❌ |
-| Colaborativo multiusuario | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Open source / deploy propio | ✅ | ❌ | ❌ | ❌ | ❌ |
+### Desarrollo asistido por IA
 
----
+**ChatGPT de OpenAI** — apoyo de co-creación, documentación y desarrollo asistido.
 
-## Roadmap
+### Organización
 
-### Próximas funcionalidades
+**[Innova Space Education](https://innova-space-edu.cl/)**  
+Antofagasta, Chile · `contacto@innova-space-edu.cl`
 
-- [ ] 🦾 EduAI Claw — persistencia real de conversaciones del Chat Global en Supabase
-- [ ] 🦾 EduAI Claw — memoria persistente entre sesiones
-- [ ] 🦾 EduAI Claw — panel de logs de tool calls en `/superagent`
-- [ ] 🧰 SuperAgent — task queue y workflows largos
-- [ ] 🧰 SuperAgent — sandbox/coding agent seguro estilo OpenHands
-- [ ] 📓 EduAI Notebooks — React Flow para mapa mental dinámico
-- [ ] 📓 EduAI Notebooks — reranker semántico en retrieval
-- [ ] 📓 EduAI Notebooks — multiplayer con Supabase Realtime
-- [ ] 📑 Creator Hub — layouts avanzados de PPT y PDF estilo Canva
-- [ ] ⏳ Timeline SVG con flechas visuales y `causalLinks`
-- [ ] 📇 Modo repaso SM-2 real con scheduling automático
-- [ ] 🏆 XP por Creator Hub, Music Studio y Notebooks
-- [ ] 🎵 EduAI Music — persistencia completa en Supabase: playlists, favoritos, historial y cola
-- [ ] 🎵 EduAI Music — búsqueda multifuente con selección avanzada por proveedor y licencia
-- [ ] 🎵 EduAI Music — integración YouTube solo por IFrame oficial, sin conversión MP3
-- [ ] 🎬 Video Studio — migración `video_jobs` + `video_usage_daily`
-- [ ] 🎬 Video Studio — conectar primer proveedor real LTX/Wan/CogVideoX/Hunyuan
-- [ ] 🎬 Video Studio — worker con ffmpeg para unir TTS + video
-- [ ] 🛡️ Admin Model Lab — auditoría completa por prompt/modelo/usuario
-- [ ] 🛡️ Admin Model Lab — filtros input/output para modelos experimentales
-- [ ] 📱 App móvil (Capacitor)
-- [ ] 📊 Analytics avanzado para docentes
-- [ ] 🎛️ Microservicio Faster-Whisper + WhisperX + pyannote para Audio Lab Pro
+</div>
 
-### Completado ✅
-
-- [x] 📓 **EduAI Notebooks** — workspace RAG completo con 3 paneles
-- [x] 📓 **Hybrid Search + RRF** — vector + BM25 full-text fusionados
-- [x] 📓 **Contextual RAG** — chunks enriquecidos con contexto del documento
-- [x] 📓 **Podcast desde notebook** — conectado al agente `podcast-wav` con audio real
-- [x] 📓 **Imagen en infografía** — `visual-detect` + `imagenes` automáticos
-- [x] 📓 **TTS en chat** — botón 🔊 en respuestas del especialista
-- [x] 📓 **Source validator** — puntaje de calidad de URLs antes de agregar
-- [x] 📓 **Investigador como fallback** — búsqueda web cuando faltan fuentes
-- [x] 📓 **Búsqueda web real** — Serper/Tavily/Investigador y rutas `/api/web/*`
-- [x] 🦾 **EduAI Claw Superagente** — engine · tool registry · guardrails · action-router
-- [x] 🦾 **Skill System inicial** — skills por rol: all/teacher/admin
-- [x] ✦ **Open EDUAI Work** — ruta `/chat-global`, contexto RAG, búsqueda web y motor Claw
-- [x] 💬 **Chat Social de agentes** — pantalla temática y salas
-- [x] ⚡ **execute-suggested-action** — EduAI Claw ejecuta acciones detectadas
-- [x] 📋 **Examen Groq Primario** — Llama 3.3 70B primario con fallback
-- [x] 📋 **Exámenes con RUT obligatorio** — validación chilena, acepta K y normaliza RUT limpio para Supabase
-- [x] 💾 **Autoguardado de exámenes** — `start_or_resume_attempt` + `autosave_attempt` + recuperación por examen/curso/RUT
-- [x] 🗄️ **Migración Supabase de intentos** — `exam_attempt_drafts`, `exam_question_developments` y bucket privado de artefactos
-- [x] 🔐 **Códigos temporales de examen** — `student_roster`, `exam_access_codes` y auditoría con hash
-- [x] 🎨 **Sistema visual de exámenes** — temas claros, Canva, PIE/NEE y LaTeX
-- [x] 🔊 **Narración de preguntas** — `ExamAudioButton` + `tts-chunk`
-- [x] 🎨 **Image Studio v8** — cadena multi-proveedor + galería
-- [x] 📚 **113 JSONs curriculares MINEDUC** — Parvularia, Básica y Media
-- [x] 🎙️ **Audio Lab v2** — pipeline.ts · types.ts · exporters.ts
-- [x] 📄 **Examen — PDF del estudiante** — exportación y análisis
-- [x] 📊 **Análisis pedagógico de examen** — contenidos críticos y feedback docente
-- [x] 🛡️ **Panel de Administración** — dashboard · usuarios · reportes
-- [x] 🛡️ **Exam Security Admin** — panel de monitoreo y acciones administrativas
-- [x] 🔒 **Sistema antifraude** — ExamGuard · SecurityOverlay · exam_incidents
-- [x] 🧪 **Admin Model Lab** — ruta aislada para modelos experimentales solo admin
-- [x] 🎵 **EduAI Music Studio** — layout de 3 paneles + centro enfocado en canción seleccionada
-- [x] 🎵 **MusicProvider global** — reproducción persistente al navegar
-- [x] 🎵 **Jamendo Provider** — búsqueda real y playlists/tracks con `JAMENDO_CLIENT_ID`
-- [x] 🎵 **Audius Provider** — búsqueda de tracks vía discovery provider
-- [x] 🎵 **iTunes previews** — fallback de música con portada/metadata
-- [x] 🎵 **Spotify embeds** — playlists oficiales insertadas por iframe
-- [x] 🎬 **Video Studio base** — UI, jobs, status, process endpoint y worker base
-- [x] 📁 **Workspace** — proyectos con IA, archivos, links
-- [x] 🤖 **AI Router v4/v5** — structured, multimodal, stream, cached y routing por tarea
-- [x] 🗄️ **Redis/Upstash** — cache/rate limit configurable con degradación elegante
-- [x] 🧠 **Orquestador de agentes** en paralelo
-- [x] 🤝 **Colaboración multiusuario**
-- [x] 💬 **Chat social tipo Messenger** con presencia en tiempo real
-- [x] 🧭 **proxy.ts** — migración desde middleware, auth refresh y protección de rutas
-- [x] 🎨 **DESIGN.md** — sistema de diseño global EduAI
-
----
-
-## Contribuir
-
-1. Fork el repositorio
-2. Crea una rama: `git checkout -b feature/nueva-funcionalidad`
-3. Commit: `git commit -m 'feat: descripción'`
-4. Push: `git push origin feature/nueva-funcionalidad`
-5. Abre un Pull Request
-
----
-
-## Licencia
-
-MIT License — ver [LICENSE](LICENSE) para más detalles.
+El proyecto se distribuye bajo la **MIT License**. Consulta [LICENSE](LICENSE) para conocer los términos.
 
 ---
 
 <div align="center">
 
-Desarrollado por **[Innova Space Education 2026](https://innova-space-edu.cl/)**
+**EduAI Platform — Educación, tecnología e inteligencia artificial en un solo ecosistema.**
 
-**[🌐 eduaiplatformclon.vercel.app](https://eduaiplatformclon.vercel.app)**
+**[🌐 Plataforma](https://eduaiplatformclon.vercel.app)** · **[🏢 Innova Space Edu](https://innova-space-edu.cl/)** · **[💻 GitHub](https://github.com/innova-space-edu/eduai-platform)**
 
 </div>
