@@ -65,7 +65,7 @@ export default function PrivacyPage() {
         El tratamiento de información de menores debe respetar su interés superior, su autonomía progresiva y su derecho a recibir información comprensible. Los establecimientos, apoderados y responsables de la plataforma deben limitar el tratamiento a lo necesario para la finalidad educativa.
       </p>
       <p>
-        La Ley N.º 21.719, vigente desde el 1 de diciembre de 2026, establece reglas expresas para datos de niños, niñas y adolescentes y una obligación especial para establecimientos educacionales y entidades que administren dicha información. La plataforma debe preparar desde ahora sus procesos, contratos, inventarios y controles para ese estándar reforzado.
+        La Ley N.º 21.719 entrará en vigor de forma general el 1 de diciembre de 2026 y establece reglas expresas para datos de niños, niñas y adolescentes, además de una obligación especial para establecimientos educacionales y entidades que administren dicha información. La plataforma debe preparar desde ahora sus procesos, contratos, inventarios y controles para ese estándar reforzado.
       </p>
 
       <h2>5. Inteligencia artificial y proveedores</h2>
