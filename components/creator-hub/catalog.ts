@@ -75,6 +75,16 @@ export const CREATOR_HUB_FORMATS: CreatorHubFormat[] = [
     highlights: ["Hitos ordenados", "Fechas visibles", "PNG y PDF"],
   },
   {
+    id: "data-table",
+    icon: "📋",
+    label: "Tabla de datos",
+    description: "Convierte un tema o documento en una tabla estructurada, editable y exportable.",
+    color: "#0ea5e9",
+    category: "visual",
+    placeholder: "Ej: Comparación de energías, resultados de una encuesta o rúbrica de evaluación...",
+    highlights: ["Edición de celdas", "Excel y CSV", "Filas y columnas dinámicas"],
+  },
+  {
     id: "flashcards",
     icon: "📇",
     label: "Flashcards",
@@ -196,8 +206,8 @@ export const CREATOR_HUB_CORE_TOOLS: CreatorHubTool[] = [
     label: "Crear materiales",
     description: "Accede a todos los formatos de creación sin perder ninguna herramienta.",
     color: "#7c3aed",
-    badge: "14 FORMATOS",
-    features: ["Visuales", "Estudio", "Audio y video"],
+    badge: "15 FORMATOS",
+    features: ["Visuales y tablas", "Estudio", "Audio y video"],
   },
   {
     id: "comics",
