@@ -18,6 +18,17 @@ function canUseStorage() {
   return typeof window !== "undefined" && Boolean(window.localStorage)
 }
 
+function writeProjects(projects: CreatorHubProject[]) {
+  if (!canUseStorage()) return false
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(projects.slice(0, MAX_PROJECTS)))
+    window.dispatchEvent(new Event("creator-hub-projects-updated"))
+    return true
+  } catch {
+    return false
+  }
+}
+
 export function loadCreatorHubProjects(): CreatorHubProject[] {
   if (!canUseStorage()) return []
   try {
@@ -41,24 +52,34 @@ export function saveCreatorHubProject(input: Omit<CreatorHubProject, "id" | "cre
     updatedAt: timestamp,
   }
   const projects = [project, ...loadCreatorHubProjects()].slice(0, MAX_PROJECTS)
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(projects))
-    window.dispatchEvent(new Event("creator-hub-projects-updated"))
-    return project
-  } catch {
-    return null
-  }
+  return writeProjects(projects) ? project : null
+}
+
+export function updateCreatorHubProject(
+  projectId: string,
+  patch: Partial<Omit<CreatorHubProject, "id" | "createdAt">>,
+) {
+  if (!canUseStorage()) return null
+  let updated: CreatorHubProject | null = null
+  const projects = loadCreatorHubProjects().map((project) => {
+    if (project.id !== projectId) return project
+    updated = {
+      ...project,
+      ...patch,
+      id: project.id,
+      createdAt: project.createdAt,
+      updatedAt: new Date().toISOString(),
+    }
+    return updated
+  })
+  if (!updated) return null
+  return writeProjects(projects) ? updated : null
 }
 
 export function removeCreatorHubProject(projectId: string) {
   if (!canUseStorage()) return
   const projects = loadCreatorHubProjects().filter((project) => project.id !== projectId)
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(projects))
-    window.dispatchEvent(new Event("creator-hub-projects-updated"))
-  } catch {
-    // El almacenamiento local es un respaldo opcional; no interrumpe el editor.
-  }
+  writeProjects(projects)
 }
 
 export function duplicateCreatorHubProject(projectId: string) {
