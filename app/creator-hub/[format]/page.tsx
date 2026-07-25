@@ -1,10 +1,11 @@
 "use client"
 
-import { useCallback, useRef, useState, type ChangeEvent } from "react"
+import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
 import { ArrowLeft, CheckCircle2, FolderOpen, Info, LoaderCircle, RotateCcw, Sparkles, Upload, WandSparkles } from "lucide-react"
 import { RENDERERS } from "@/components/creator-hub/renderers"
+import VideoSummaryRenderer from "@/components/creator-hub/VideoSummaryRenderer"
 import CreatorHubUtilityBar from "@/components/creator-hub/CreatorHubUtilityBar"
 import ColorPalette from "@/components/ui/ColorPalette"
 import TemplatePicker from "@/components/design/TemplatePicker"
@@ -20,8 +21,15 @@ const SOURCE_TYPES = [
   { id: "docx", icon: "📎", label: "DOCX", description: "Carga un archivo Word" },
 ] as const
 
-type SourceType = (typeof SOURCE_TYPES)[number]["id"]
+const VIDEO_SOURCE_TYPES = [
+  { id: "youtube", icon: "▶️", label: "YouTube", description: "Video público con audio e imagen" },
+] as const
+
+type SourceType = "topic" | "text" | "url" | "pdf" | "docx" | "youtube"
 type EditorStep = "input" | "processing" | "result"
+type DetailLevel = "concise" | "standard" | "detailed"
+type SummaryStyle = "explanatory" | "class" | "critical" | "executive"
+type Audience = "secondary" | "teacher" | "general" | "university"
 
 type ProcessContentResponse = {
   success?: boolean
@@ -54,9 +62,11 @@ export default function CreatorHubFormatPage() {
   const params = useParams()
   const format = (params?.format as string) || "infographic"
   const meta = getCreatorHubFormat(format) || CREATOR_HUB_FORMATS[0]
-  const Renderer = RENDERERS[meta.id]
+  const isVideoSummary = meta.id === "video-summary"
+  const Renderer = isVideoSummary ? VideoSummaryRenderer : RENDERERS[meta.id]
+  const sourceOptions = isVideoSummary ? VIDEO_SOURCE_TYPES : SOURCE_TYPES
 
-  const [sourceType, setSourceType] = useState<SourceType>("topic")
+  const [sourceType, setSourceType] = useState<SourceType>(isVideoSummary ? "youtube" : "topic")
   const [content, setContent] = useState("")
   const [fileName, setFileName] = useState("")
   const [accentColor, setAccentColor] = useState(meta.color)
@@ -66,7 +76,26 @@ export default function CreatorHubFormatPage() {
   const [error, setError] = useState<string | null>(null)
   const [step, setStep] = useState<EditorStep>("input")
   const [saved, setSaved] = useState(false)
+  const [language, setLanguage] = useState("Español de Chile")
+  const [detailLevel, setDetailLevel] = useState<DetailLevel>("detailed")
+  const [summaryStyle, setSummaryStyle] = useState<SummaryStyle>("explanatory")
+  const [audience, setAudience] = useState<Audience>("secondary")
+  const [includeVisualAnalysis, setIncludeVisualAnalysis] = useState(true)
+  const [customInstruction, setCustomInstruction] = useState("")
   const fileRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    setSourceType(isVideoSummary ? "youtube" : "topic")
+    setContent("")
+    setFileName("")
+    setResult(null)
+    setError(null)
+    setStep("input")
+    setSaved(false)
+    setAccentColor(meta.color)
+    setDesignTemplateId(getDefaultDesignTemplateId(meta.id))
+    if (fileRef.current) fileRef.current.value = ""
+  }, [isVideoSummary, meta.color, meta.id])
 
   const handleFile = useCallback((event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -87,10 +116,26 @@ export default function CreatorHubFormatPage() {
     setError(null)
     setStep("processing")
     try {
-      const response = await fetch("/api/process-content", {
+      const endpoint = isVideoSummary ? "/api/creator/video-summary" : "/api/process-content"
+      const requestBody = isVideoSummary
+        ? {
+            youtubeUrl: content.trim(),
+            designTemplateId,
+            options: {
+              language,
+              detailLevel,
+              summaryStyle,
+              audience,
+              includeVisualAnalysis,
+              customInstruction,
+            },
+          }
+        : { sourceType, content, fileName, outputFormat: meta.id, designTemplateId }
+
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sourceType, content, fileName, outputFormat: meta.id, designTemplateId }),
+        body: JSON.stringify(requestBody),
       })
       const data = (await response.json()) as ProcessContentResponse
       if (!data.success || !data.output?.data) throw new Error(data.error || "No fue posible generar el material")
@@ -120,6 +165,7 @@ export default function CreatorHubFormatPage() {
     setResult(null)
     setError(null)
     setSaved(false)
+    setCustomInstruction("")
     if (fileRef.current) fileRef.current.value = ""
   }
 
@@ -170,12 +216,16 @@ export default function CreatorHubFormatPage() {
               <WandSparkles size={15} style={{ color: meta.color }} />
               <h2 className="text-main text-sm font-bold">Configura tu material</h2>
             </div>
-            <p className="text-muted2 text-xs leading-relaxed mt-1.5">Elige la fuente, una plantilla y el color principal. El motor actual de EduAI se mantiene conectado.</p>
+            <p className="text-muted2 text-xs leading-relaxed mt-1.5">
+              {isVideoSummary
+                ? "Pega un enlace público de YouTube y define cómo debe analizarse el contenido hablado y visual."
+                : "Elige la fuente, una plantilla y el color principal. El motor actual de EduAI se mantiene conectado."}
+            </p>
 
             <div className="mt-5">
               <label className="text-muted2 text-[10px] font-bold tracking-[0.16em] uppercase">1. Fuente de contenido</label>
-              <div className="grid grid-cols-2 gap-2 mt-2">
-                {SOURCE_TYPES.map((source) => {
+              <div className={`grid gap-2 mt-2 ${isVideoSummary ? "grid-cols-1" : "grid-cols-2"}`}>
+                {sourceOptions.map((source) => {
                   const active = sourceType === source.id
                   return (
                     <button key={source.id} onClick={() => handleSourceChange(source.id)} className="rounded-2xl border p-2.5 text-left transition-all" style={{ background: active ? `${meta.color}10` : "var(--bg-card-soft)", borderColor: active ? `${meta.color}35` : "var(--border-soft)" }}>
@@ -190,7 +240,18 @@ export default function CreatorHubFormatPage() {
 
             <div className="mt-4">
               <label className="text-muted2 text-[10px] font-bold tracking-[0.16em] uppercase">2. Contenido</label>
-              {(sourceType === "topic" || sourceType === "text" || sourceType === "url") ? (
+              {sourceType === "youtube" ? (
+                <div className="mt-2">
+                  <input
+                    type="url"
+                    value={content}
+                    onChange={(event) => setContent(event.target.value)}
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    className="w-full rounded-2xl border border-soft bg-card-soft-theme px-3.5 py-3 text-sm text-main placeholder:text-muted2 outline-none focus:border-red-500/30 focus:bg-input-theme transition-all"
+                  />
+                  <p className="mt-2 text-[10px] leading-relaxed text-muted2">Admite enlaces watch, youtu.be y Shorts. El video debe ser público.</p>
+                </div>
+              ) : (sourceType === "topic" || sourceType === "text" || sourceType === "url") ? (
                 <textarea
                   value={content}
                   onChange={(event) => setContent(event.target.value)}
@@ -211,9 +272,76 @@ export default function CreatorHubFormatPage() {
             {error && <div className="rounded-2xl border border-red-500/25 bg-red-500/5 p-3 mt-4"><p className="text-red-500 text-xs leading-relaxed">❌ {error}</p></div>}
           </section>
 
+          {isVideoSummary && (
+            <section className="rounded-3xl border border-soft bg-card-theme p-4 sm:p-5 space-y-4">
+              <div>
+                <label className="text-muted2 text-[10px] font-bold tracking-[0.16em] uppercase">3. Personaliza el resumen</label>
+                <p className="mt-1 text-[11px] leading-relaxed text-muted2">Controla el idioma, la profundidad y el enfoque pedagógico.</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <label className="space-y-1.5">
+                  <span className="text-[10px] font-bold text-muted2">IDIOMA</span>
+                  <select value={language} onChange={(event) => setLanguage(event.target.value)} className="w-full rounded-xl border border-soft bg-card-soft-theme px-3 py-2.5 text-xs text-main outline-none">
+                    <option>Español de Chile</option>
+                    <option>Español latinoamericano</option>
+                    <option>English</option>
+                    <option>Português</option>
+                  </select>
+                </label>
+                <label className="space-y-1.5">
+                  <span className="text-[10px] font-bold text-muted2">DETALLE</span>
+                  <select value={detailLevel} onChange={(event) => setDetailLevel(event.target.value as DetailLevel)} className="w-full rounded-xl border border-soft bg-card-soft-theme px-3 py-2.5 text-xs text-main outline-none">
+                    <option value="concise">Conciso</option>
+                    <option value="standard">Estándar</option>
+                    <option value="detailed">Detallado</option>
+                  </select>
+                </label>
+                <label className="space-y-1.5">
+                  <span className="text-[10px] font-bold text-muted2">ENFOQUE</span>
+                  <select value={summaryStyle} onChange={(event) => setSummaryStyle(event.target.value as SummaryStyle)} className="w-full rounded-xl border border-soft bg-card-soft-theme px-3 py-2.5 text-xs text-main outline-none">
+                    <option value="explanatory">Explicativo</option>
+                    <option value="class">Apoyo de clase</option>
+                    <option value="critical">Análisis crítico</option>
+                    <option value="executive">Ejecutivo</option>
+                  </select>
+                </label>
+                <label className="space-y-1.5">
+                  <span className="text-[10px] font-bold text-muted2">AUDIENCIA</span>
+                  <select value={audience} onChange={(event) => setAudience(event.target.value as Audience)} className="w-full rounded-xl border border-soft bg-card-soft-theme px-3 py-2.5 text-xs text-main outline-none">
+                    <option value="secondary">Enseñanza media</option>
+                    <option value="teacher">Docente</option>
+                    <option value="general">Público general</option>
+                    <option value="university">Universitario</option>
+                  </select>
+                </label>
+              </div>
+
+              <label className="flex items-start gap-3 rounded-2xl border border-soft bg-card-soft-theme p-3 cursor-pointer">
+                <input type="checkbox" checked={includeVisualAnalysis} onChange={(event) => setIncludeVisualAnalysis(event.target.checked)} className="mt-0.5 h-4 w-4 accent-red-500" />
+                <span>
+                  <span className="block text-xs font-bold text-sub">Analizar también lo visual</span>
+                  <span className="mt-0.5 block text-[10px] leading-relaxed text-muted2">Considera diagramas, demostraciones, textos en pantalla y cambios de escena.</span>
+                </span>
+              </label>
+
+              <label className="block">
+                <span className="text-[10px] font-bold text-muted2">INSTRUCCIÓN PERSONALIZADA</span>
+                <textarea
+                  value={customInstruction}
+                  onChange={(event) => setCustomInstruction(event.target.value)}
+                  rows={3}
+                  maxLength={1200}
+                  placeholder="Ej: destaca los experimentos, las estadísticas y las conclusiones del expositor..."
+                  className="mt-1.5 w-full resize-y rounded-2xl border border-soft bg-card-soft-theme px-3.5 py-3 text-xs text-main placeholder:text-muted2 outline-none focus:border-red-500/30"
+                />
+              </label>
+            </section>
+          )}
+
           <section className="rounded-3xl border border-soft bg-card-theme p-4 sm:p-5 space-y-5">
             <div>
-              <label className="text-muted2 text-[10px] font-bold tracking-[0.16em] uppercase">3. Diseño visual</label>
+              <label className="text-muted2 text-[10px] font-bold tracking-[0.16em] uppercase">{isVideoSummary ? "4" : "3"}. Diseño visual</label>
               <div className="mt-2"><TemplatePicker format={meta.id} value={designTemplateId} onChange={handleTemplateChange} compact /></div>
             </div>
             <ColorPalette value={accentColor} onChange={setAccentColor} />
@@ -221,7 +349,7 @@ export default function CreatorHubFormatPage() {
 
           <button onClick={handleGenerate} disabled={!content.trim() || processing} className="w-full rounded-2xl py-3.5 px-4 text-sm font-bold text-white flex items-center justify-center gap-2 disabled:opacity-35 transition-all" style={{ background: `linear-gradient(135deg,${meta.color}cc,${meta.color})`, boxShadow: content.trim() ? `0 12px 24px ${meta.color}24` : "none" }}>
             {processing ? <LoaderCircle size={16} className="animate-spin" /> : <Sparkles size={16} />}
-            {processing ? "Generando material..." : `Generar ${meta.label}`}
+            {processing ? (isVideoSummary ? "Analizando video..." : "Generando material...") : `Generar ${meta.label}`}
           </button>
         </aside>
 
@@ -238,13 +366,21 @@ export default function CreatorHubFormatPage() {
             <div className="min-h-[620px] flex flex-col items-center justify-center text-center px-6 py-10">
               <div className="w-20 h-20 rounded-[28px] flex items-center justify-center text-4xl" style={{ background: `${meta.color}12`, border: `1px solid ${meta.color}22` }}>{meta.icon}</div>
               <h2 className="text-main text-lg font-bold mt-5">Prepara tu {meta.label.toLowerCase()}</h2>
-              <p className="text-muted2 text-sm leading-relaxed mt-2 max-w-lg">Completa la configuración del panel izquierdo. Puedes partir desde un tema, un texto, una URL, un PDF o un documento Word.</p>
+              <p className="text-muted2 text-sm leading-relaxed mt-2 max-w-lg">
+                {isVideoSummary
+                  ? "Pega un enlace público de YouTube. EduAI analizará el contenido hablado y visual para construir una síntesis con marcas de tiempo."
+                  : "Completa la configuración del panel izquierdo. Puedes partir desde un tema, un texto, una URL, un PDF o un documento Word."}
+              </p>
               <div className="grid sm:grid-cols-3 gap-2 mt-6 max-w-2xl w-full">
                 {meta.highlights.map((highlight) => <div key={highlight} className="rounded-2xl border border-soft bg-card-soft-theme p-3 text-xs text-sub">✓ {highlight}</div>)}
               </div>
               <div className="rounded-2xl border border-soft bg-card-soft-theme p-3.5 mt-5 max-w-2xl flex items-start gap-2 text-left">
                 <Info size={15} className="text-blue-500 flex-shrink-0 mt-0.5" />
-                <p className="text-muted2 text-xs leading-relaxed">Las funciones originales siguen conectadas. La mejora se concentra en ordenar Creator Hub, ampliar el editor y mantener todos los formatos accesibles.</p>
+                <p className="text-muted2 text-xs leading-relaxed">
+                  {isVideoSummary
+                    ? "El resultado incluirá resumen general, tesis central, momentos clave, conceptos, aprendizajes, preguntas y glosario. Los videos privados o no listados no son compatibles."
+                    : "Las funciones originales siguen conectadas. La mejora se concentra en ordenar Creator Hub, ampliar el editor y mantener todos los formatos accesibles."}
+                </p>
               </div>
             </div>
           )}
@@ -255,10 +391,17 @@ export default function CreatorHubFormatPage() {
                 <div className="absolute inset-0 rounded-full border-2 border-soft animate-spin" style={{ borderTopColor: meta.color }} />
                 <div className="absolute inset-0 flex items-center justify-center text-3xl">{meta.icon}</div>
               </div>
-              <h2 className="text-main text-lg font-bold mt-5">Generando {meta.label.toLowerCase()}...</h2>
-              <p className="text-muted2 text-sm mt-2 max-w-md">EduAI está extrayendo conceptos, estructurando el contenido y aplicando la plantilla seleccionada.</p>
+              <h2 className="text-main text-lg font-bold mt-5">{isVideoSummary ? "Analizando el video..." : `Generando ${meta.label.toLowerCase()}...`}</h2>
+              <p className="text-muted2 text-sm mt-2 max-w-md">
+                {isVideoSummary
+                  ? "EduAI está revisando el audio, los elementos visuales y las marcas de tiempo del video."
+                  : "EduAI está extrayendo conceptos, estructurando el contenido y aplicando la plantilla seleccionada."}
+              </p>
               <div className="flex flex-wrap justify-center gap-2 mt-5">
-                {["Analizando fuente", "Organizando contenido", "Aplicando diseño"].map((label) => <span key={label} className="rounded-full border border-soft bg-card-soft-theme px-3 py-1 text-[11px] text-muted2 animate-pulse">{label}</span>)}
+                {(isVideoSummary
+                  ? ["Leyendo audio y escenas", "Identificando momentos clave", "Construyendo síntesis pedagógica"]
+                  : ["Analizando fuente", "Organizando contenido", "Aplicando diseño"]
+                ).map((label) => <span key={label} className="rounded-full border border-soft bg-card-soft-theme px-3 py-1 text-[11px] text-muted2 animate-pulse">{label}</span>)}
               </div>
             </div>
           )}
