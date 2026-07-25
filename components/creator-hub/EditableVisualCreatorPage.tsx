@@ -1,10 +1,10 @@
 "use client"
 
-import { useCallback, useRef, useState, type ChangeEvent } from "react"
+import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react"
 import Link from "next/link"
-import { ArrowLeft, CheckCircle2, FolderOpen, Info, LoaderCircle, RotateCcw, Sparkles, Upload, WandSparkles } from "lucide-react"
-import { InfographicRenderer, PPTRenderer } from "@/components/creator-hub/renderers"
+import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, FolderOpen, Info, LoaderCircle, RotateCcw, Sparkles, Upload, WandSparkles } from "lucide-react"
 import { InfographicContentEditor, PresentationContentEditor } from "@/components/creator-hub/EditableVisualEditors"
+import { EditableInfographicPreview, EditablePresentationSlidePreview } from "@/components/creator-hub/EditableVisualPreviews"
 import CreatorHubUtilityBar from "@/components/creator-hub/CreatorHubUtilityBar"
 import ColorPalette from "@/components/ui/ColorPalette"
 import TemplatePicker from "@/components/design/TemplatePicker"
@@ -70,7 +70,19 @@ export default function EditableVisualCreatorPage({ format }: { format: VisualFo
   const [error, setError] = useState<string | null>(null)
   const [projectId, setProjectId] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
+  const [previewIndex, setPreviewIndex] = useState(0)
   const fileRef = useRef<HTMLInputElement>(null)
+
+  const slideCount = format === "ppt" && Array.isArray(result?.slides) ? result.slides.length : 0
+
+  useEffect(() => {
+    if (format !== "ppt") return
+    if (slideCount === 0) {
+      setPreviewIndex(0)
+      return
+    }
+    if (previewIndex >= slideCount) setPreviewIndex(slideCount - 1)
+  }, [format, previewIndex, slideCount])
 
   const handleFile = useCallback((event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -93,6 +105,7 @@ export default function EditableVisualCreatorPage({ format }: { format: VisualFo
     setError(null)
     setProjectId(null)
     setSaved(false)
+    setPreviewIndex(0)
     setAccentColor(meta?.color || "#3b82f6")
     setDesignTemplateId(getDefaultDesignTemplateId(format))
     if (fileRef.current) fileRef.current.value = ""
@@ -116,6 +129,7 @@ export default function EditableVisualCreatorPage({ format }: { format: VisualFo
 
       const generated = payload.output.data
       setResult(generated)
+      setPreviewIndex(0)
       setStep("result")
 
       const project = saveCreatorHubProject({
@@ -150,7 +164,6 @@ export default function EditableVisualCreatorPage({ format }: { format: VisualFo
   if (!meta) return null
 
   const palette = designPalette(result)
-  const Preview = format === "infographic" ? InfographicRenderer : PPTRenderer
   const Editor = format === "infographic" ? InfographicContentEditor : PresentationContentEditor
 
   return (
@@ -302,8 +315,18 @@ export default function EditableVisualCreatorPage({ format }: { format: VisualFo
                 <Link href="/creator-hub/projects" className="flex items-center gap-1.5 text-xs font-bold text-sub hover:text-main"><FolderOpen size={13} /> Ver proyectos</Link>
               </div>
 
+              {format === "ppt" && (
+                <div className="flex items-center justify-between rounded-2xl border border-soft bg-card-soft-theme px-3 py-2">
+                  <button type="button" onClick={() => setPreviewIndex((index) => Math.max(0, index - 1))} disabled={previewIndex === 0} className="inline-flex items-center gap-1 rounded-xl border border-soft px-3 py-1.5 text-xs font-bold text-muted2 disabled:opacity-30"><ChevronLeft size={13} /> Anterior</button>
+                  <div className="text-center"><p className="text-xs font-bold text-main">Diapositiva {previewIndex + 1}</p><p className="text-[10px] text-muted2">{slideCount} en total</p></div>
+                  <button type="button" onClick={() => setPreviewIndex((index) => Math.min(slideCount - 1, index + 1))} disabled={previewIndex >= slideCount - 1} className="inline-flex items-center gap-1 rounded-xl border border-soft px-3 py-1.5 text-xs font-bold text-muted2 disabled:opacity-30">Siguiente <ChevronRight size={13} /></button>
+                </div>
+              )}
+
               <div id="creator-result-container" className="overflow-auto rounded-2xl border p-4 sm:p-5" style={{ background: palette.background || "var(--bg-card-soft)", borderColor: palette.primary ? `${palette.primary}22` : "var(--border-soft)" }}>
-                <Preview data={result} />
+                {format === "infographic"
+                  ? <EditableInfographicPreview data={result} />
+                  : <EditablePresentationSlidePreview data={result} index={previewIndex} />}
               </div>
 
               <CreatorHubUtilityBar format={format} data={result} accentColor={accentColor} designTemplateId={designTemplateId} title={projectTitle(format, result, meta.label)} />
