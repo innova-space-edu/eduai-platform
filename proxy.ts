@@ -1,8 +1,9 @@
 /**
- * proxy.ts — EduAI Platform v5.1
+ * proxy.ts — EduAI Platform v5.2
  * ─────────────────────────────────────────────────────────────────────────────
  * v4: Agrega rutas del SuperAgent, modo focus y exam-focus a protección.
  *     Rate limiting específico para /api/superagent/* y rutas TTS.
+ * v5.2: Protege las APIs de Creator Hub y limita el análisis de videos.
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
@@ -40,10 +41,13 @@ const RATE_LIMITS: Record<string, { limit: number; windowSecs: number }> = {
   "/api/agents/tts-chunk":     { limit: 40, windowSecs: 60 },
   // SuperAgent chat — límite moderado (usa múltiples providers gratis)
   "/api/superagent/chat":      { limit: 25, windowSecs: 60 },
+  // Creator Hub — análisis multimodal costoso
+  "/api/creator/video-summary": { limit: 6, windowSecs: 60 },
   // Exam security — sin límite estricto (heartbeats frecuentes)
   "/api/exam-security/event":  { limit: 60, windowSecs: 60 },
-  // Default
+  // Defaults
   "__default_agents__":        { limit: 20, windowSecs: 60 },
+  "__default_creator__":       { limit: 10, windowSecs: 60 },
 }
 
 async function checkRateLimit(
@@ -102,21 +106,38 @@ export async function proxy(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  // ── 2. Rate limiting — /api/agents/* y /api/superagent/* ──────────────────
-  const isAgentAPI     = pathname.startsWith("/api/agents/")
+  // ── 2. Protección y rate limiting de APIs costosas ───────────────────────
+  const isAgentAPI      = pathname.startsWith("/api/agents/")
   const isSuperagentAPI = pathname.startsWith("/api/superagent/")
+  const isCreatorAPI    = pathname.startsWith("/api/creator/")
 
-  if (isAgentAPI || isSuperagentAPI) {
-    const authCookie  = request.cookies.getAll()
-      .find(c => c.name.includes("auth-token"))?.value
-    const ip          = request.headers.get("x-forwarded-for")
+  if (isCreatorAPI && !user) {
+    return new NextResponse(
+      JSON.stringify({
+        error: "Unauthorized",
+        message: "Debes iniciar sesión para utilizar las herramientas de Creator Hub.",
+      }),
+      {
+        status: 401,
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-store, max-age=0",
+        },
+      }
+    )
+  }
+
+  if (isAgentAPI || isSuperagentAPI || isCreatorAPI) {
+    const ip = request.headers.get("x-forwarded-for")
       ?.split(",")[0]?.trim() || "unknown"
-    const identifier  = authCookie
-      ? `user:${authCookie.slice(0, 32)}:${pathname}`
+    const identifier = user
+      ? `user:${user.id}:${pathname}`
       : `ip:${ip}:${pathname}`
 
-    const config        = RATE_LIMITS[pathname] || RATE_LIMITS["__default_agents__"]
-    const effectiveLimit = authCookie ? config.limit : Math.floor(config.limit / 2)
+    const config = RATE_LIMITS[pathname] || (
+      isCreatorAPI ? RATE_LIMITS["__default_creator__"] : RATE_LIMITS["__default_agents__"]
+    )
+    const effectiveLimit = user ? config.limit : Math.floor(config.limit / 2)
     const { allowed, remaining } = await checkRateLimit(
       identifier, effectiveLimit, config.windowSecs
     )
@@ -131,8 +152,9 @@ export async function proxy(request: NextRequest) {
         {
           status:  429,
           headers: {
-            "Content-Type":        "application/json",
-            "Retry-After":         String(config.windowSecs),
+            "Content-Type":         "application/json",
+            "Cache-Control":        "no-store, max-age=0",
+            "Retry-After":          String(config.windowSecs),
             "X-RateLimit-Remaining": "0",
           },
         }
