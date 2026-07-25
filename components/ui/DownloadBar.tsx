@@ -3,6 +3,7 @@
 
 import { useState, useRef, type MutableRefObject } from "react"
 import { downloadRenderedAsImage, downloadAsPDF, downloadAsPPTX } from "@/lib/creator-downloads"
+import { downloadVideoSummaryAsPDF } from "@/lib/video-summary-downloads"
 
 interface DownloadBarProps {
   format: string
@@ -33,6 +34,10 @@ const FORMAT_DOWNLOADS: Record<string, { label: string; icon: string; action: st
     { label: "Escuchar",  icon: "🔊", action: "play" },
     { label: "PDF Guión", icon: "📄", action: "pdf"  },
     { label: "TXT Guión", icon: "📝", action: "txt"  },
+  ],
+  "video-summary": [
+    { label: "PNG", icon: "🖼️", action: "png" },
+    { label: "PDF", icon: "📄", action: "pdf" },
   ],
   mindmap: [
     { label: "PNG", icon: "🖼️", action: "png" },
@@ -80,7 +85,11 @@ export default function DownloadBar({ format, data, title, accentColor = "#3b82f
           await downloadRenderedAsImage("creator-result-container", baseName, "jpeg")
           break
         case "pdf":
-          await downloadAsPDF(data, format, baseName, accentColor, effectiveTemplateId)
+          if (format === "video-summary") {
+            await downloadVideoSummaryAsPDF(data, baseName, accentColor)
+          } else {
+            await downloadAsPDF(data, format, baseName, accentColor, effectiveTemplateId)
+          }
           break
         case "pptx":
           await downloadAsPPTX(data, baseName, accentColor, effectiveTemplateId)
@@ -121,12 +130,9 @@ export default function DownloadBar({ format, data, title, accentColor = "#3b82f
 
   if (downloads.length === 0) return null
 
-  // ── Solo el return cambió ────────────────────────────────────────────────────
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2 flex-wrap">
-
-        {/* Label */}
         <span className="text-muted2 text-[11px] font-semibold tracking-widest uppercase mr-1">
           ↓ Exportar
         </span>
@@ -157,7 +163,6 @@ export default function DownloadBar({ format, data, title, accentColor = "#3b82f
                            : "#9ca3af",
               }}
             >
-              {/* Ícono / spinner */}
               {isActive && !isStoppable ? (
                 <span
                   className="w-3 h-3 rounded-full border-2 animate-spin"
@@ -171,7 +176,6 @@ export default function DownloadBar({ format, data, title, accentColor = "#3b82f
                 <span>{d.icon}</span>
               )}
 
-              {/* Label — igual que antes */}
               {isStoppable    ? "Detener"
                : isActive     ? progress || "Generando..."
                : d.label}
@@ -184,12 +188,6 @@ export default function DownloadBar({ format, data, title, accentColor = "#3b82f
     </div>
   )
 }
-
-// ============================================================
-// PODCAST MP3 — 1 sola llamada a nuestro endpoint:
-// POST /api/agents/podcast-wav  -> devuelve MP3 final (audio/mpeg)
-// (backend se encarga de 2 voces, calidad tipo podcast, etc.)
-// ============================================================
 
 async function generateAndDownloadPodcastMP3(
   data: any,
@@ -211,7 +209,6 @@ async function generateAndDownloadPodcastMP3(
   if (cancelRef.current) return
 
   if (!res.ok) {
-    // Puede venir JSON de error
     const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }))
     throw new Error(err.error || `Error ${res.status}`)
   }
@@ -232,10 +229,6 @@ async function generateAndDownloadPodcastMP3(
   setTimeout(() => URL.revokeObjectURL(url), 1500)
   setProgress("")
 }
-
-// ============================================================
-// ESCUCHAR — Web Speech API local (sin servidor)
-// ============================================================
 
 function splitText(text: string, maxLen = 200): string[] {
   if (text.length <= maxLen) return [text]
@@ -329,10 +322,6 @@ async function playWithSpeechAPI(
   setPlaying(false)
   setProgress("")
 }
-
-// ============================================================
-// TXT — Descargar guión
-// ============================================================
 
 function downloadScript(data: any, fileName: string) {
   const segments = data?.segments || []

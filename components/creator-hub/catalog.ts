@@ -125,6 +125,16 @@ export const CREATOR_HUB_FORMATS: CreatorHubFormat[] = [
     highlights: ["Dos voces", "Escuchar", "MP3 y guion"],
   },
   {
+    id: "video-summary",
+    icon: "▶️",
+    label: "Resumen de video",
+    description: "Analiza un video público de YouTube y crea un resumen con momentos clave, conceptos y preguntas.",
+    color: "#ef4444",
+    category: "narrative",
+    placeholder: "Pega un enlace público de YouTube...",
+    highlights: ["Enlace de YouTube", "Marcas de tiempo", "Audio y análisis visual"],
+  },
+  {
     id: "story",
     icon: "📚",
     label: "Cuento educativo",
@@ -164,7 +174,7 @@ export const CREATOR_HUB_CATEGORIES: Array<{
 }> = [
   { id: "visual", icon: "🖼️", label: "Materiales visuales", description: "Recursos para explicar, proyectar e imprimir." },
   { id: "study", icon: "📚", label: "Estudio y evaluación", description: "Materiales para practicar, repasar y verificar aprendizajes." },
-  { id: "narrative", icon: "🎙️", label: "Narrativa y audio", description: "Formatos para enseñar con historias, diálogo y ritmo." },
+  { id: "narrative", icon: "🎙️", label: "Narrativa, audio y video", description: "Formatos para enseñar con historias, diálogo, sonido y contenido audiovisual." },
   { id: "planning", icon: "🗒️", label: "Planificación", description: "Estructuras para organizar una experiencia de aprendizaje." },
 ]
 
@@ -186,8 +196,8 @@ export const CREATOR_HUB_CORE_TOOLS: CreatorHubTool[] = [
     label: "Crear materiales",
     description: "Accede a todos los formatos de creación sin perder ninguna herramienta.",
     color: "#7c3aed",
-    badge: "13 FORMATOS",
-    features: ["Visuales", "Estudio", "Audio"],
+    badge: "14 FORMATOS",
+    features: ["Visuales", "Estudio", "Audio y video"],
   },
   {
     id: "comics",
