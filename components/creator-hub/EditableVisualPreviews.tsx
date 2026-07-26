@@ -10,9 +10,9 @@ const INFOGRAPHIC_COLORS: Record<string, string> = {
   indigo: "#4338ca",
 }
 
-export function EditableInfographicPreview({ data }: { data: any }) {
-  const accent = INFOGRAPHIC_COLORS[data?.colorScheme] || data?._design?.palette?.primary || "#3b82f6"
-  const sections = Array.isArray(data?.sections) ? data.sections : []
+export function EditableInfographicPreview({ data, accentColor }: { data: any; accentColor?: string }) {
+  const accent = accentColor || data?._design?.palette?.primary || INFOGRAPHIC_COLORS[data?.colorScheme] || "#3b82f6"
+  const sections = Array.isArray(data?.sections) ? data.sections.filter((section: any) => section?.hidden !== true) : []
 
   return (
     <article className="overflow-hidden rounded-3xl border border-white/10" style={{ background: "linear-gradient(155deg,#07111f,#0d1d36 55%,#10182d)" }}>
@@ -33,11 +33,11 @@ export function EditableInfographicPreview({ data }: { data: any }) {
 
       <div className={`grid grid-cols-1 gap-3 px-5 pb-5 ${sections.length > 3 ? "md:grid-cols-2" : ""}`}>
         {sections.map((section: any, index: number) => (
-          <section key={index} className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.055]">
+          <section key={section.id || index} className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.055]">
             <div className="flex items-center gap-3 border-b border-white/10 px-4 py-3">
               <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl text-xl" style={{ background: `${accent}20` }}>{section.icon || "📌"}</div>
               <div className="min-w-0 flex-1">
-                <p className="text-[9px] font-black uppercase tracking-[0.18em]" style={{ color: accent }}>Bloque {String(index + 1).padStart(2, "0")}</p>
+                <p className="text-[9px] font-black uppercase tracking-[0.18em]" style={{ color: accent }}>Capa {String(index + 1).padStart(2, "0")}</p>
                 <h2 className="mt-0.5 text-sm font-bold text-white">{section.heading || `Sección ${index + 1}`}</h2>
               </div>
             </div>
@@ -80,19 +80,21 @@ const PRESENTATION_THEMES: Record<string, { bg: string; accent: string; text: st
   dark: { bg: "linear-gradient(145deg,#020617,#111827)", accent: "#34d399", text: "#f0fdf4", sub: "#a7f3d0", card: "rgba(52,211,153,0.11)" },
 }
 
-export function EditablePresentationSlidePreview({ data, index }: { data: any; index: number }) {
+export function EditablePresentationSlidePreview({ data, index, accentColor }: { data: any; index: number; accentColor?: string }) {
   const slides = Array.isArray(data?.slides) ? data.slides : []
   const slide = slides[index]
   if (!slide) return <div className="flex aspect-video items-center justify-center rounded-2xl border border-soft text-sm text-muted2">No hay diapositivas</div>
 
-  const theme = PRESENTATION_THEMES[data?.theme] || PRESENTATION_THEMES.academic
+  const baseTheme = PRESENTATION_THEMES[data?.theme] || PRESENTATION_THEMES.academic
+  const accent = accentColor || data?._design?.palette?.primary || baseTheme.accent
+  const theme = { ...baseTheme, accent, card: `${accent}1f` }
   const isTitle = index === 0 || slide.type === "title"
   const isQuote = slide.type === "quote"
   const isStats = slide.type === "stats"
   const isSplit = slide.layout === "two-column" && (slide.bullets?.length || 0) >= 4
 
   return (
-    <article className="relative flex aspect-video min-h-[360px] flex-col overflow-hidden rounded-3xl border border-white/10" style={{ background: theme.bg }}>
+    <article className={`relative flex aspect-video min-h-[360px] flex-col overflow-hidden rounded-3xl border border-white/10 ${slide.hidden ? "opacity-35" : ""}`} style={{ background: theme.bg }}>
       <div className="absolute left-0 top-0 h-1.5 w-full" style={{ background: `linear-gradient(90deg,${theme.accent},${theme.accent}30)` }} />
       {!isTitle && <div className="absolute bottom-0 left-0 top-0 w-1.5 opacity-70" style={{ background: theme.accent }} />}
       <div className="absolute inset-0 opacity-[0.08]" style={{ backgroundImage: `radial-gradient(ellipse at 85% 10%,${theme.accent},transparent 48%)` }} />
