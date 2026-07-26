@@ -20,6 +20,11 @@ const requiredFiles = [
   "app/creator-hub/projects/[id]/page.tsx",
   "components/creator-hub/UniversalLayerEditor.tsx",
   "components/creator-hub/UniversalProjectEditor.tsx",
+  "components/creator-hub/DirectVisualCanvasEditor.tsx",
+  "components/creator-hub/CreatorCanvasDownloadBar.tsx",
+  "lib/creator-canvas.ts",
+  "lib/creator-canvas-downloads.ts",
+  "lib/creator-template-preview.ts",
   "supabase/migrations/202607260001_creator_hub_foundation.sql",
 ]
 
@@ -44,6 +49,8 @@ for (const mime of [
 ]) {
   check(templatesRoute.includes(mime), `La biblioteca de plantillas no contempla ${mime}`)
 }
+check(templatesRoute.includes("renderCreatorTemplatePreview"), "Las plantillas no generan una vista visual utilizable")
+check(templatesRoute.includes("preview_path"), "Las plantillas no guardan su fondo visual")
 
 const projectStore = read("components/creator-hub/project-store.ts")
 check(projectStore.includes("loadCloudCreatorHubProject"), "Los proyectos no se pueden reabrir desde la nube")
@@ -54,6 +61,31 @@ for (const feature of ["hidden", "locked", "moveArrayItem", "prepareVisibleCreat
   check(universal.includes(feature), `El editor universal no contiene la función ${feature}`)
 }
 
+const directCanvas = read("components/creator-hub/DirectVisualCanvasEditor.tsx")
+for (const feature of [
+  "contentEditable",
+  "startGesture",
+  "createTextCanvasElement",
+  "createShapeCanvasElement",
+  "createImageCanvasElement",
+  "showLayers",
+  "showStyle",
+  "fontFamily",
+  "backgroundColor",
+  "creator-canvas-surface",
+]) {
+  check(directCanvas.includes(feature), `El lienzo directo no contiene la función ${feature}`)
+}
+
+const visualCreator = read("components/creator-hub/EditableVisualCreatorPage.tsx")
+check(visualCreator.includes("creator-hub:sidebar-mode"), "El editor visual no puede liberar el espacio del panel lateral")
+check(visualCreator.includes("DirectVisualCanvasEditor"), "Infografías y presentaciones no usan el editor directo")
+check(visualCreator.includes("applyCanvasTemplate"), "El editor visual no aplica la plantilla como fondo")
+
+const canvasDownloads = read("lib/creator-canvas-downloads.ts")
+check(canvasDownloads.includes("downloadCreatorCanvasAsPDF"), "El lienzo no se exporta a PDF")
+check(canvasDownloads.includes("downloadCreatorCanvasAsPPTX"), "El lienzo no se exporta a PPTX")
+
 const comics = read("app/creator-hub/comics/page.tsx")
 check(comics.includes("generateAllImages"), "Cómics no permite generar todas las imágenes")
 check(comics.includes("visualDescription"), "Cómics no conserva ficha visual de personajes")
@@ -62,6 +94,7 @@ check(comics.includes("imagePrompt"), "Cómics no usa prompts por viñeta")
 const palette = read("components/ui/ColorPalette.tsx")
 check(palette.includes('type="color"'), "La paleta no incluye color personalizado")
 check(palette.includes("onChange(palette.color)"), "Los botones de color no notifican el cambio")
+check(!palette.includes("#a855f7"), "La paleta aún contiene el violeta neón anterior")
 
 if (failures.length) {
   console.error("\nCreator Hub integrity: FAILED")
