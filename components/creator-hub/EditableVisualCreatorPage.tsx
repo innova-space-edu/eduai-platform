@@ -3,15 +3,34 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
-import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, FolderOpen, Info, Layers3, LoaderCircle, RotateCcw, Sparkles, Upload, WandSparkles } from "lucide-react"
+import {
+  ArrowLeft,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  FileInput,
+  FolderOpen,
+  LayoutTemplate,
+  LoaderCircle,
+  PanelLeftClose,
+  RotateCcw,
+  Sparkles,
+  Upload,
+  X,
+} from "lucide-react"
 import { InfographicContentEditor, PresentationContentEditor } from "@/components/creator-hub/EditableVisualEditors"
-import { EditableInfographicPreview, EditablePresentationSlidePreview } from "@/components/creator-hub/EditableVisualPreviews"
+import DirectVisualCanvasEditor from "@/components/creator-hub/DirectVisualCanvasEditor"
 import CreatorHubUtilityBar from "@/components/creator-hub/CreatorHubUtilityBar"
-import ColorPalette from "@/components/ui/ColorPalette"
-import TemplatePicker from "@/components/design/TemplatePicker"
-import { getDefaultDesignTemplateId } from "@/lib/design-templates/registry"
+import TemplatePicker, { type TemplatePickerSelection } from "@/components/design/TemplatePicker"
 import { getCreatorHubFormat } from "@/components/creator-hub/catalog"
 import { loadCloudCreatorHubProject, saveCreatorHubProject, updateCreatorHubProject } from "@/components/creator-hub/project-store"
+import {
+  applyCanvasAccent,
+  applyCanvasTemplate,
+  ensureVisualCanvasData,
+  refreshVisualCanvasBindings,
+  type CreatorTemplateReference,
+} from "@/lib/creator-canvas"
 
 const SOURCE_TYPES = [
   { id: "topic", icon: "💡", label: "Tema", description: "Describe lo que necesitas" },
@@ -24,25 +43,13 @@ const SOURCE_TYPES = [
 type SourceType = (typeof SOURCE_TYPES)[number]["id"]
 type VisualFormat = "infographic" | "ppt"
 type Step = "input" | "processing" | "result"
+type FloatingPanel = "content" | "template" | null
 
 type ApiResponse = {
   success?: boolean
   error?: string
   output?: { data?: any }
 }
-
-const CONFIG = {
-  infographic: {
-    editorTitle: "Edita la infografía por capas",
-    editorDescription: "Cambia títulos, cifras, ideas e íconos; oculta, bloquea, duplica y reordena cada capa.",
-    processing: ["Analizando la fuente", "Jerarquizando información", "Construyendo capas visuales"],
-  },
-  ppt: {
-    editorTitle: "Edita la presentación por capas",
-    editorDescription: "Cada diapositiva funciona como una capa principal editable antes de descargar el PPTX final.",
-    processing: ["Analizando la fuente", "Diseñando la secuencia pedagógica", "Construyendo diapositivas editables"],
-  },
-} as const
 
 function uid(prefix: string) {
   return typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
@@ -51,14 +58,6 @@ function uid(prefix: string) {
 function projectTitle(format: VisualFormat, data: any, fallback: string) {
   if (format === "infographic") return data?.title || fallback
   return data?.title || data?.slides?.[0]?.title || fallback
-}
-
-function designPalette(data: any) {
-  const palette = data?._design?.palette
-  return {
-    background: typeof palette?.background === "string" ? palette.background : undefined,
-    primary: typeof palette?.primary === "string" ? palette.primary : undefined,
-  }
 }
 
 function ensureLayerMetadata(format: VisualFormat, data: any) {
@@ -79,16 +78,55 @@ function ensureLayerMetadata(format: VisualFormat, data: any) {
   }
 }
 
+function toTemplateReference(template?: TemplatePickerSelection | null): CreatorTemplateReference | null {
+  if (!template || template.kind === "blank") return null
+  return {
+    id: template.id,
+    name: template.name,
+    imageUrl: template.imageUrl,
+    fileUrl: template.fileUrl,
+    fileKind: template.fileKind,
+    accentColor: template.accentColor,
+    secondaryColor: template.secondaryColor,
+    instructions: template.instructions,
+  }
+}
+
+async function resolveCustomTemplate(templateId: string): Promise<TemplatePickerSelection | null> {
+  if (!templateId.startsWith("custom:")) return null
+  const response = await fetch("/api/creative-templates", { cache: "no-store" })
+  if (!response.ok) return null
+  const payload = await response.json().catch(() => ({}))
+  const id = templateId.slice("custom:".length)
+  const template = (payload?.templates || []).find((item: any) => item.id === id)
+  if (!template) return null
+  return {
+    id: templateId,
+    name: template.name || "Plantilla",
+    kind: "custom",
+    formats: template.formats,
+    accentColor: template.accentColor,
+    secondaryColor: template.secondaryColor,
+    instructions: template.instructions,
+    imageUrl: template.imageUrl,
+    fileUrl: template.fileUrl,
+    fileKind: template.fileKind,
+    fileName: template.fileName,
+  }
+}
+
+const headerButton = "inline-flex h-9 items-center gap-1.5 rounded-lg px-2 text-xs font-semibold text-sub transition hover:text-main disabled:opacity-35"
+
 export default function EditableVisualCreatorPage({ format }: { format: VisualFormat }) {
   const meta = getCreatorHubFormat(format)
-  const config = CONFIG[format]
   const searchParams = useSearchParams()
   const requestedProjectId = searchParams.get("project")
   const [sourceType, setSourceType] = useState<SourceType>("topic")
   const [content, setContent] = useState("")
   const [fileName, setFileName] = useState("")
-  const [accentColor, setAccentColor] = useState(meta?.color || "#3b82f6")
-  const [designTemplateId, setDesignTemplateId] = useState(() => getDefaultDesignTemplateId(format))
+  const [accentColor, setAccentColor] = useState("#334155")
+  const [designTemplateId, setDesignTemplateId] = useState("blank")
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplatePickerSelection | null>(null)
   const [step, setStep] = useState<Step>("input")
   const [processing, setProcessing] = useState(false)
   const [result, setResult] = useState<any>(null)
@@ -97,9 +135,16 @@ export default function EditableVisualCreatorPage({ format }: { format: VisualFo
   const [saved, setSaved] = useState(false)
   const [previewIndex, setPreviewIndex] = useState(0)
   const [hydrating, setHydrating] = useState(Boolean(requestedProjectId))
+  const [panel, setPanel] = useState<FloatingPanel>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const slideCount = format === "ppt" && Array.isArray(result?.slides) ? result.slides.length : 0
+
+  useEffect(() => {
+    const hidden = step === "result"
+    window.dispatchEvent(new CustomEvent("creator-hub:sidebar-mode", { detail: { hidden } }))
+    return () => window.dispatchEvent(new CustomEvent("creator-hub:sidebar-mode", { detail: { hidden: false } }))
+  }, [step])
 
   useEffect(() => {
     if (!requestedProjectId) {
@@ -108,32 +153,35 @@ export default function EditableVisualCreatorPage({ format }: { format: VisualFo
     }
     let active = true
     setHydrating(true)
-    void loadCloudCreatorHubProject(requestedProjectId).then((project) => {
+    void loadCloudCreatorHubProject(requestedProjectId).then(async (project) => {
       if (!active) return
       if (!project || project.format !== format) {
-        setError("No fue posible abrir este proyecto en el editor seleccionado.")
+        setError("No fue posible abrir este proyecto.")
         setHydrating(false)
         return
       }
+      const template = await resolveCustomTemplate(project.designTemplateId || "")
+      if (!active) return
+      const color = template?.accentColor || project.accentColor || "#334155"
+      const prepared = ensureVisualCanvasData(ensureLayerMetadata(format, project.data), format, color, toTemplateReference(template))
+      const withTemplate = applyCanvasTemplate(prepared, toTemplateReference(template))
       setProjectId(project.id)
-      setResult(ensureLayerMetadata(format, project.data))
-      setAccentColor(project.accentColor || meta?.color || "#3b82f6")
-      setDesignTemplateId(project.designTemplateId || getDefaultDesignTemplateId(format))
+      setResult(withTemplate)
+      setAccentColor(color)
+      setDesignTemplateId(template?.id || project.designTemplateId || "blank")
+      setSelectedTemplate(template)
       setPreviewIndex(0)
       setSaved(true)
       setStep("result")
       setHydrating(false)
     })
     return () => { active = false }
-  }, [format, meta?.color, requestedProjectId])
+  }, [format, requestedProjectId])
 
   useEffect(() => {
     if (format !== "ppt") return
-    if (slideCount === 0) {
-      setPreviewIndex(0)
-      return
-    }
-    if (previewIndex >= slideCount) setPreviewIndex(slideCount - 1)
+    if (slideCount === 0) setPreviewIndex(0)
+    else if (previewIndex >= slideCount) setPreviewIndex(slideCount - 1)
   }, [format, previewIndex, slideCount])
 
   const handleFile = useCallback((event: ChangeEvent<HTMLInputElement>) => {
@@ -145,53 +193,38 @@ export default function EditableVisualCreatorPage({ format }: { format: VisualFo
     reader.readAsDataURL(file)
   }, [])
 
-  const persistResult = (next: any, nextAccent = accentColor, nextTemplate = designTemplateId) => {
-    setResult(next)
+  const persistResult = (next: any, nextAccent = accentColor, nextTemplate = designTemplateId, refreshBindings = false) => {
+    const prepared = refreshBindings ? refreshVisualCanvasBindings(next) : next
+    setResult(prepared)
     if (!projectId) return
     const updated = updateCreatorHubProject(projectId, {
-      title: projectTitle(format, next, meta?.label || "Material"),
-      data: next,
+      title: projectTitle(format, prepared, meta?.label || "Material"),
+      data: prepared,
       accentColor: nextAccent,
       designTemplateId: nextTemplate,
     })
     setSaved(Boolean(updated))
   }
 
-  const changeAccentColor = (color: string) => {
+  const changeTemplate = (templateId: string, nextAccentColor?: string, template?: TemplatePickerSelection) => {
+    const nextTemplate = template || null
+    const color = nextAccentColor || accentColor
+    setDesignTemplateId(templateId)
+    setSelectedTemplate(nextTemplate)
     setAccentColor(color)
     if (!result) return
-    const next = {
-      ...result,
-      _design: {
-        ...(result._design || {}),
-        palette: {
-          ...(result._design?.palette || {}),
-          primary: color,
-          accent: color,
-        },
-      },
+    let next = ensureVisualCanvasData(result, format, color, toTemplateReference(nextTemplate))
+    next = applyCanvasTemplate(next, toTemplateReference(nextTemplate))
+    next = applyCanvasAccent(next, color)
+    next._design = {
+      ...(next._design || {}),
+      id: templateId,
+      custom: nextTemplate?.kind === "custom",
+      sourceFile: nextTemplate?.fileName || null,
+      templateImageUrl: nextTemplate?.imageUrl || null,
+      palette: { ...(next._design?.palette || {}), primary: color, accent: color, secondary: nextTemplate?.secondaryColor || "#94a3b8" },
     }
-    persistResult(next, color, designTemplateId)
-  }
-
-  const changeTemplate = (templateId: string, nextAccentColor?: string) => {
-    setDesignTemplateId(templateId)
-    const nextColor = nextAccentColor || accentColor
-    if (nextAccentColor) setAccentColor(nextAccentColor)
-    if (!result) return
-    const next = {
-      ...result,
-      _design: {
-        ...(result._design || {}),
-        id: templateId,
-        palette: {
-          ...(result._design?.palette || {}),
-          primary: nextColor,
-          accent: nextColor,
-        },
-      },
-    }
-    persistResult(next, nextColor, templateId)
+    persistResult(next, color, templateId)
   }
 
   const reset = () => {
@@ -204,8 +237,10 @@ export default function EditableVisualCreatorPage({ format }: { format: VisualFo
     setProjectId(null)
     setSaved(false)
     setPreviewIndex(0)
-    setAccentColor(meta?.color || "#3b82f6")
-    setDesignTemplateId(getDefaultDesignTemplateId(format))
+    setAccentColor("#334155")
+    setDesignTemplateId("blank")
+    setSelectedTemplate(null)
+    setPanel(null)
     if (fileRef.current) fileRef.current.value = ""
   }
 
@@ -215,6 +250,7 @@ export default function EditableVisualCreatorPage({ format }: { format: VisualFo
     setError(null)
     setSaved(false)
     setStep("processing")
+    setPanel(null)
 
     try {
       const response = await fetch("/api/process-content", {
@@ -225,10 +261,16 @@ export default function EditableVisualCreatorPage({ format }: { format: VisualFo
       const payload = await response.json() as ApiResponse
       if (!payload.success || !payload.output?.data) throw new Error(payload.error || "No fue posible generar el material")
 
-      const generated = ensureLayerMetadata(format, payload.output.data)
+      let generated = ensureLayerMetadata(format, payload.output.data)
+      generated = ensureVisualCanvasData(generated, format, accentColor, toTemplateReference(selectedTemplate))
+      generated = applyCanvasTemplate(generated, toTemplateReference(selectedTemplate))
       generated._design = {
         ...(generated._design || {}),
-        palette: { ...(generated._design?.palette || {}), primary: accentColor, accent: accentColor },
+        id: designTemplateId,
+        custom: selectedTemplate?.kind === "custom",
+        sourceFile: selectedTemplate?.fileName || null,
+        templateImageUrl: selectedTemplate?.imageUrl || null,
+        palette: { ...(generated._design?.palette || {}), primary: accentColor, accent: accentColor, secondary: selectedTemplate?.secondaryColor || "#94a3b8" },
       }
       setResult(generated)
       setPreviewIndex(0)
@@ -252,59 +294,59 @@ export default function EditableVisualCreatorPage({ format }: { format: VisualFo
   }
 
   if (!meta) return null
-  const palette = designPalette(result)
   const Editor = format === "infographic" ? InfographicContentEditor : PresentationContentEditor
 
-  if (hydrating) {
-    return <div className="flex min-h-[70vh] items-center justify-center"><LoaderCircle size={34} className="animate-spin text-blue-500" /></div>
-  }
+  if (hydrating) return <div className="flex min-h-[70vh] items-center justify-center"><LoaderCircle size={34} className="animate-spin text-blue-500" /></div>
 
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-30 border-b border-soft bg-header-theme backdrop-blur-xl">
-        <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4 px-5 py-3.5 sm:px-7">
+      <header className="sticky top-0 z-30 border-b border-soft bg-header-theme/95 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-[1900px] items-center justify-between gap-4 px-4 py-2.5 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
-            <Link href="/creator-hub/materials" className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border border-soft text-muted2 transition hover:bg-card-soft-theme hover:text-main" title="Volver a materiales"><ArrowLeft size={15} /></Link>
-            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl text-xl" style={{ background: `${accentColor}16`, border: `1px solid ${accentColor}2c` }}>{meta.icon}</div>
-            <div className="min-w-0"><p className="truncate text-sm font-bold text-main sm:text-base">{meta.label} editable por capas</p><p className="hidden truncate text-[11px] text-muted2 sm:block">Genera, modifica y exporta desde un mismo espacio.</p></div>
+            <Link href="/creator-hub/materials" className={headerButton} title="Volver"><ArrowLeft size={15} /></Link>
+            <span className="text-lg">{meta.icon}</span>
+            <div className="min-w-0"><p className="truncate text-sm font-bold text-main">{meta.label}</p><p className="hidden text-[10px] text-muted2 sm:block">Editor visual</p></div>
           </div>
-          <div className="flex flex-shrink-0 items-center gap-2">
-            {saved && <span className="hidden items-center gap-1.5 text-[11px] font-bold text-emerald-600 sm:flex"><CheckCircle2 size={13} /> Cambios guardados</span>}
-            {(step === "result" || step === "processing") && <button type="button" onClick={reset} disabled={processing} className="inline-flex items-center gap-1.5 rounded-xl border border-soft px-3 py-2 text-xs font-bold text-muted2 transition hover:bg-card-soft-theme hover:text-main disabled:opacity-40"><RotateCcw size={13} /> Nueva creación</button>}
+          <div className="flex flex-wrap items-center justify-end gap-1">
+            {step === "result" && <>
+              <button type="button" onClick={() => setPanel((current) => current === "content" ? null : "content")} className={`${headerButton} ${panel === "content" ? "text-blue-600" : ""}`}><FileInput size={14} /> Contenido</button>
+              <button type="button" onClick={() => setPanel((current) => current === "template" ? null : "template")} className={`${headerButton} ${panel === "template" ? "text-blue-600" : ""}`}><LayoutTemplate size={14} /> Plantilla</button>
+            </>}
+            {saved && <span className="hidden items-center gap-1.5 px-2 text-[10px] font-bold text-emerald-600 md:flex"><CheckCircle2 size={12} /> Guardado</span>}
+            {(step === "result" || step === "processing") && <button type="button" onClick={reset} disabled={processing} className={headerButton}><RotateCcw size={14} /> Nueva creación</button>}
           </div>
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-[1600px] items-start gap-5 px-5 py-6 sm:px-7 xl:grid-cols-[430px_minmax(0,1fr)]">
-        <aside className="space-y-4 xl:sticky xl:top-[82px] xl:max-h-[calc(100vh-96px)] xl:overflow-y-auto xl:pr-1">
-          {step !== "result" ? (
-            <>
-              <section className="rounded-3xl border border-soft bg-card-theme p-4 sm:p-5">
-                <div className="flex items-center gap-2"><WandSparkles size={15} style={{ color: accentColor }} /><h2 className="text-sm font-bold text-main">Configura el material</h2></div>
-                <p className="mt-1.5 text-xs leading-relaxed text-muted2">Selecciona una fuente. Después de generar aparecerá aquí el editor de capas.</p>
-                <div className="mt-5"><label className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted2">1. Fuente</label><div className="mt-2 grid grid-cols-2 gap-2">{SOURCE_TYPES.map((source) => { const active = sourceType === source.id; return <button key={source.id} type="button" onClick={() => { setSourceType(source.id); setContent(""); setFileName(""); setError(null); if (fileRef.current) fileRef.current.value = "" }} className="rounded-2xl border p-2.5 text-left transition-all" style={{ background: active ? `${accentColor}10` : "var(--bg-card-soft)", borderColor: active ? `${accentColor}35` : "var(--border-soft)" }}><span className="block text-base">{source.icon}</span><span className="mt-1 block text-xs font-bold" style={{ color: active ? accentColor : "var(--text-secondary)" }}>{source.label}</span><span className="mt-0.5 block text-[10px] leading-tight text-muted2">{source.description}</span></button> })}</div></div>
-                <div className="mt-4"><label className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted2">2. Contenido</label>{sourceType === "topic" || sourceType === "text" || sourceType === "url" ? <textarea value={content} onChange={(event) => setContent(event.target.value)} rows={sourceType === "text" ? 9 : 5} placeholder={sourceType === "topic" ? meta.placeholder : sourceType === "url" ? "https://ejemplo.com/articulo" : "Pega aquí el contenido que quieres transformar..."} className="mt-2 w-full resize-y rounded-2xl border border-soft bg-card-soft-theme px-3.5 py-3 text-sm text-main outline-none placeholder:text-muted2 focus:border-blue-500/30" /> : <button type="button" onClick={() => fileRef.current?.click()} className="mt-2 w-full rounded-2xl border-2 border-dashed p-6 text-center" style={{ background: content ? "rgba(16,185,129,0.06)" : "var(--bg-card-soft)", borderColor: content ? "rgba(16,185,129,0.32)" : "var(--border-medium)" }}>{content ? <CheckCircle2 size={24} className="mx-auto text-emerald-500" /> : <Upload size={24} className="mx-auto text-muted2" />}<span className="mt-2 block text-xs font-bold text-sub">{content ? `${fileName} cargado` : `Subir archivo .${sourceType}`}</span><input ref={fileRef} type="file" accept={sourceType === "pdf" ? ".pdf" : ".docx,.doc"} onChange={handleFile} className="hidden" /></button>}</div>
-                {error && <div className="mt-4 rounded-2xl border border-red-500/25 bg-red-500/5 p-3 text-xs text-red-500">❌ {error}</div>}
-              </section>
-              <section className="space-y-5 rounded-3xl border border-soft bg-card-theme p-4 sm:p-5"><div><label className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted2">3. Diseño visual</label><div className="mt-2"><TemplatePicker format={format} value={designTemplateId} onChange={changeTemplate} compact /></div></div><ColorPalette value={accentColor} onChange={changeAccentColor} /></section>
-              <button type="button" onClick={generate} disabled={!content.trim() || processing} className="flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-sm font-bold text-white disabled:opacity-35" style={{ background: `linear-gradient(135deg,${accentColor}cc,${accentColor})` }}>{processing ? <LoaderCircle size={16} className="animate-spin" /> : <Sparkles size={16} />}{processing ? "Generando capas editables..." : `Generar ${meta.label}`}</button>
-            </>
-          ) : (
-            <section className="rounded-3xl border border-soft bg-card-theme p-4 sm:p-5">
-              <div className="mb-4"><p className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.16em]" style={{ color: accentColor }}><Layers3 size={12} /> Edición activa</p><h2 className="mt-1 text-base font-bold text-main">{config.editorTitle}</h2><p className="mt-1 text-xs leading-relaxed text-muted2">{config.editorDescription}</p></div>
-              <Editor data={result} onChange={(next) => persistResult(next)} />
-              <div className="mt-5 border-t border-soft pt-5"><TemplatePicker format={format} value={designTemplateId} onChange={changeTemplate} compact /><div className="mt-4"><ColorPalette value={accentColor} onChange={changeAccentColor} /></div></div>
-            </section>
-          )}
+      {panel && step === "result" && (
+        <aside className="fixed left-3 top-[70px] z-50 max-h-[calc(100vh-84px)] w-[430px] max-w-[calc(100vw-24px)] overflow-y-auto rounded-2xl border border-soft bg-header-theme/95 p-4 shadow-2xl backdrop-blur-xl">
+          <div className="mb-4 flex items-center justify-between gap-3"><div><p className="text-sm font-bold text-main">{panel === "content" ? "Contenido estructurado" : "Plantilla base"}</p><p className="text-[10px] text-muted2">{panel === "content" ? "Los cambios también aparecen en el lienzo." : "La vista previa de la plantilla se usa como fondo real."}</p></div><button type="button" onClick={() => setPanel(null)} className={headerButton}><X size={15} /></button></div>
+          {panel === "content" ? <Editor data={result} onChange={(next) => persistResult(next, accentColor, designTemplateId, true)} /> : <TemplatePicker format={format} value={designTemplateId} onChange={changeTemplate} compact />}
         </aside>
+      )}
 
-        <section className="min-w-0 overflow-hidden rounded-3xl border border-soft bg-card-theme">
-          <div className="flex items-center justify-between gap-3 border-b border-soft px-4 py-3.5 sm:px-5"><div><p className="text-sm font-bold text-main">Vista de trabajo</p><p className="mt-0.5 text-[11px] text-muted2">La previsualización y las exportaciones usan la versión más reciente.</p></div><span className="rounded-full px-2.5 py-1 text-[10px] font-bold" style={{ background: `${accentColor}12`, color: accentColor }}>{meta.icon} {meta.label}</span></div>
-          {step === "input" && <div className="flex min-h-[650px] flex-col items-center justify-center px-6 py-10 text-center"><div className="flex h-20 w-20 items-center justify-center rounded-[28px] text-4xl" style={{ background: `${accentColor}12`, border: `1px solid ${accentColor}22` }}>{meta.icon}</div><h2 className="mt-5 text-lg font-bold text-main">Crea una primera versión con IA</h2><p className="mt-2 max-w-xl text-sm leading-relaxed text-muted2">Después de generar se habilitará el editor por capas para cambiar el contenido y el diseño.</p><div className="mt-6 grid w-full max-w-2xl gap-2 sm:grid-cols-3">{meta.highlights.map((highlight) => <div key={highlight} className="rounded-2xl border border-soft bg-card-soft-theme p-3 text-xs text-sub">✓ {highlight}</div>)}</div><div className="mt-5 flex max-w-2xl items-start gap-2 rounded-2xl border border-soft bg-card-soft-theme p-3.5 text-left"><Info size={15} className="mt-0.5 flex-shrink-0 text-blue-500" /><p className="text-xs leading-relaxed text-muted2">Los materiales guardados en Mis proyectos ahora pueden reabrirse con “Continuar editando”.</p></div></div>}
-          {step === "processing" && <div className="flex min-h-[650px] flex-col items-center justify-center px-6 py-10 text-center"><div className="relative h-20 w-20"><div className="absolute inset-0 animate-spin rounded-full border-2 border-soft" style={{ borderTopColor: accentColor }} /><div className="absolute inset-0 flex items-center justify-center text-3xl">{meta.icon}</div></div><h2 className="mt-5 text-lg font-bold text-main">Preparando capas editables...</h2><div className="mt-5 flex flex-wrap justify-center gap-2">{config.processing.map((label) => <span key={label} className="animate-pulse rounded-full border border-soft px-3 py-1 text-[11px] text-muted2">{label}</span>)}</div></div>}
-          {step === "result" && result && <div className="space-y-4 p-4 sm:p-5"><div className="flex flex-col gap-3 rounded-2xl border p-3.5 sm:flex-row sm:items-center" style={{ background: `${accentColor}08`, borderColor: `${accentColor}22` }}><CheckCircle2 size={18} style={{ color: accentColor }} /><div className="min-w-0 flex-1"><p className="text-sm font-bold" style={{ color: accentColor }}>{meta.label} lista para editar por capas</p><p className="mt-0.5 text-[11px] text-muted2">Usa el panel izquierdo para modificar, ocultar, bloquear y reordenar capas.</p></div><Link href="/creator-hub/projects" className="flex items-center gap-1.5 text-xs font-bold text-sub"><FolderOpen size={13} /> Ver proyectos</Link></div>{format === "ppt" && <div className="flex items-center justify-between rounded-2xl border border-soft bg-card-soft-theme px-3 py-2"><button type="button" onClick={() => setPreviewIndex((index) => Math.max(0, index - 1))} disabled={previewIndex === 0} className="inline-flex items-center gap-1 rounded-xl border border-soft px-3 py-1.5 text-xs font-bold text-muted2 disabled:opacity-30"><ChevronLeft size={13} /> Anterior</button><div className="text-center"><p className="text-xs font-bold text-main">Diapositiva {previewIndex + 1}</p><p className="text-[10px] text-muted2">{slideCount} en total</p></div><button type="button" onClick={() => setPreviewIndex((index) => Math.min(slideCount - 1, index + 1))} disabled={previewIndex >= slideCount - 1} className="inline-flex items-center gap-1 rounded-xl border border-soft px-3 py-1.5 text-xs font-bold text-muted2 disabled:opacity-30">Siguiente <ChevronRight size={13} /></button></div>}<div id="creator-result-container" className="overflow-auto rounded-2xl border p-4 sm:p-5" style={{ background: palette.background || "var(--bg-card-soft)", borderColor: `${accentColor}33` }}>{format === "infographic" ? <EditableInfographicPreview data={result} accentColor={accentColor} /> : <EditablePresentationSlidePreview data={result} index={previewIndex} accentColor={accentColor} />}</div><CreatorHubUtilityBar format={format} data={result} accentColor={accentColor} designTemplateId={designTemplateId} title={projectTitle(format, result, meta.label)} /></div>}
-        </section>
-      </main>
+      {step === "input" && (
+        <main className="mx-auto grid max-w-6xl gap-5 px-5 py-7 lg:grid-cols-[430px_minmax(0,1fr)]">
+          <section className="space-y-4 rounded-3xl border border-soft bg-card-theme p-5">
+            <div><h1 className="text-lg font-bold text-main">Crear {meta.label.toLowerCase()}</h1><p className="mt-1 text-xs leading-5 text-muted2">Selecciona la fuente, la plantilla base y genera el primer lienzo.</p></div>
+            <div><p className="text-[10px] font-black uppercase tracking-wider text-muted2">Fuente</p><div className="mt-2 grid grid-cols-2 gap-2">{SOURCE_TYPES.map((source) => { const active = sourceType === source.id; return <button key={source.id} type="button" onClick={() => { setSourceType(source.id); setContent(""); setFileName(""); setError(null); if (fileRef.current) fileRef.current.value = "" }} className="rounded-2xl border p-3 text-left" style={{ borderColor: active ? "rgba(37,99,235,.35)" : "var(--border-soft)", background: "var(--bg-card-soft)" }}><span className="text-base">{source.icon}</span><p className="mt-1 text-xs font-bold text-main">{source.label}</p><p className="text-[10px] text-muted2">{source.description}</p></button> })}</div></div>
+            <div><p className="text-[10px] font-black uppercase tracking-wider text-muted2">Contenido</p>{sourceType === "topic" || sourceType === "text" || sourceType === "url" ? <textarea value={content} onChange={(event) => setContent(event.target.value)} rows={sourceType === "text" ? 9 : 5} placeholder={sourceType === "topic" ? meta.placeholder : sourceType === "url" ? "https://ejemplo.com/articulo" : "Pega aquí el contenido..."} className="mt-2 w-full resize-y rounded-2xl border border-soft bg-card-soft-theme px-3.5 py-3 text-sm text-main outline-none" /> : <button type="button" onClick={() => fileRef.current?.click()} className="mt-2 w-full rounded-2xl border-2 border-dashed border-soft p-6 text-center"><Upload size={24} className="mx-auto text-muted2" /><span className="mt-2 block text-xs font-bold text-sub">{content ? `${fileName} cargado` : `Subir archivo .${sourceType}`}</span><input ref={fileRef} type="file" accept={sourceType === "pdf" ? ".pdf" : ".docx,.doc"} onChange={handleFile} className="hidden" /></button>}</div>
+            {error && <div className="rounded-xl border border-red-500/25 px-3 py-2 text-xs text-red-500">{error}</div>}
+            <button type="button" onClick={generate} disabled={!content.trim() || processing} className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white disabled:opacity-35"><Sparkles size={15} /> Generar</button>
+          </section>
+          <section className="rounded-3xl border border-soft bg-card-theme p-5"><TemplatePicker format={format} value={designTemplateId} onChange={changeTemplate} /></section>
+        </main>
+      )}
+
+      {step === "processing" && <div className="flex min-h-[75vh] flex-col items-center justify-center"><LoaderCircle size={42} className="animate-spin text-blue-600" /><p className="mt-4 text-sm font-bold text-main">Creando el lienzo...</p></div>}
+
+      {step === "result" && result && (
+        <main className="mx-auto max-w-[1900px] space-y-3 px-3 py-3 sm:px-5">
+          {format === "ppt" && <div className="flex items-center justify-center gap-4"><button type="button" onClick={() => setPreviewIndex((index) => Math.max(0, index - 1))} disabled={previewIndex === 0} className={headerButton}><ChevronLeft size={14} /> Anterior</button><span className="text-xs font-bold text-main">{previewIndex + 1} / {slideCount}</span><button type="button" onClick={() => setPreviewIndex((index) => Math.min(slideCount - 1, index + 1))} disabled={previewIndex >= slideCount - 1} className={headerButton}>Siguiente <ChevronRight size={14} /></button></div>}
+          <DirectVisualCanvasEditor data={result} pageIndex={previewIndex} onChange={(next) => persistResult(next)} />
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-soft px-3 py-2"><Link href="/creator-hub/projects" className={headerButton}><FolderOpen size={14} /> Proyectos</Link><CreatorHubUtilityBar format={format} data={result} accentColor={accentColor} designTemplateId={designTemplateId} title={projectTitle(format, result, meta.label)} /></div>
+        </main>
+      )}
     </div>
   )
 }
