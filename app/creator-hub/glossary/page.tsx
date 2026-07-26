@@ -1,5 +1,5 @@
-import EditableDocumentCreatorPage from "@/components/creator-hub/EditableDocumentCreatorPage"
+import EditableDirectDocumentCreatorPage from "@/components/creator-hub/EditableDirectDocumentCreatorPage"
 
 export default function EditableGlossaryPage() {
-  return <EditableDocumentCreatorPage format="glossary" />
+  return <EditableDirectDocumentCreatorPage format="glossary" />
 }
