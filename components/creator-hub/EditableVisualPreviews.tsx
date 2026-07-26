@@ -1,5 +1,7 @@
 "use client"
 
+import { VisualCanvasRenderer } from "@/components/creator-hub/DirectVisualCanvasEditor"
+
 const INFOGRAPHIC_COLORS: Record<string, string> = {
   blue: "#3b82f6",
   green: "#16a34a",
@@ -11,6 +13,8 @@ const INFOGRAPHIC_COLORS: Record<string, string> = {
 }
 
 export function EditableInfographicPreview({ data, accentColor }: { data: any; accentColor?: string }) {
+  if (data?._canvas?.pages?.length) return <VisualCanvasRenderer data={data} pageIndex={0} scale={0.72} />
+
   const accent = accentColor || data?._design?.palette?.primary || INFOGRAPHIC_COLORS[data?.colorScheme] || "#3b82f6"
   const sections = Array.isArray(data?.sections) ? data.sections.filter((section: any) => section?.hidden !== true) : []
 
@@ -25,49 +29,25 @@ export function EditableInfographicPreview({ data, accentColor }: { data: any; a
         </div>
       </header>
 
-      {data?.keyFact && (
-        <div className="mx-5 mb-5 rounded-2xl border px-5 py-4 text-center" style={{ borderColor: `${accent}40`, background: `${accent}15` }}>
-          <p className="text-sm font-bold" style={{ color: accent }}>💡 {data.keyFact}</p>
-        </div>
-      )}
+      {data?.keyFact && <div className="mx-5 mb-5 rounded-2xl border px-5 py-4 text-center" style={{ borderColor: `${accent}40`, background: `${accent}15` }}><p className="text-sm font-bold" style={{ color: accent }}>💡 {data.keyFact}</p></div>}
 
       <div className={`grid grid-cols-1 gap-3 px-5 pb-5 ${sections.length > 3 ? "md:grid-cols-2" : ""}`}>
         {sections.map((section: any, index: number) => (
           <section key={section.id || index} className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.055]">
             <div className="flex items-center gap-3 border-b border-white/10 px-4 py-3">
               <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl text-xl" style={{ background: `${accent}20` }}>{section.icon || "📌"}</div>
-              <div className="min-w-0 flex-1">
-                <p className="text-[9px] font-black uppercase tracking-[0.18em]" style={{ color: accent }}>Capa {String(index + 1).padStart(2, "0")}</p>
-                <h2 className="mt-0.5 text-sm font-bold text-white">{section.heading || `Sección ${index + 1}`}</h2>
-              </div>
+              <div className="min-w-0 flex-1"><p className="text-[9px] font-black uppercase tracking-[0.18em]" style={{ color: accent }}>Capa {String(index + 1).padStart(2, "0")}</p><h2 className="mt-0.5 text-sm font-bold text-white">{section.heading || `Sección ${index + 1}`}</h2></div>
             </div>
             <div className="p-4">
-              {(section.stat?.value || section.stat?.label) && (
-                <div className="mb-3 rounded-xl px-3 py-3 text-center" style={{ background: `${accent}16` }}>
-                  <p className="text-2xl font-black" style={{ color: accent }}>{section.stat?.value}</p>
-                  {section.stat?.label && <p className="mt-1 text-[10px] text-slate-400">{section.stat.label}</p>}
-                </div>
-              )}
-              <ul className="space-y-2">
-                {(section.points || []).map((point: string, pointIndex: number) => (
-                  <li key={pointIndex} className="flex gap-2 text-xs leading-relaxed text-slate-300"><span className="mt-0.5 font-black" style={{ color: accent }}>▸</span><span>{point}</span></li>
-                ))}
-              </ul>
+              {(section.stat?.value || section.stat?.label) && <div className="mb-3 rounded-xl px-3 py-3 text-center" style={{ background: `${accent}16` }}><p className="text-2xl font-black" style={{ color: accent }}>{section.stat?.value}</p>{section.stat?.label && <p className="mt-1 text-[10px] text-slate-400">{section.stat.label}</p>}</div>}
+              <ul className="space-y-2">{(section.points || []).map((point: string, pointIndex: number) => <li key={pointIndex} className="flex gap-2 text-xs leading-relaxed text-slate-300"><span className="mt-0.5 font-black" style={{ color: accent }}>▸</span><span>{point}</span></li>)}</ul>
             </div>
           </section>
         ))}
       </div>
 
-      {data?.conclusion && (
-        <div className="mx-5 mb-5 rounded-2xl border border-white/10 bg-white/[0.045] px-5 py-4 text-center">
-          <p className="text-xs italic leading-relaxed text-slate-300">📝 {data.conclusion}</p>
-        </div>
-      )}
-
-      <footer className="flex items-center justify-between px-5 pb-4 text-[9px] font-semibold uppercase tracking-widest text-slate-600">
-        <span>EduAI Creator Studio</span>
-        <span>{new Date().toLocaleDateString("es-CL")}</span>
-      </footer>
+      {data?.conclusion && <div className="mx-5 mb-5 rounded-2xl border border-white/10 bg-white/[0.045] px-5 py-4 text-center"><p className="text-xs italic leading-relaxed text-slate-300">📝 {data.conclusion}</p></div>}
+      <footer className="flex items-center justify-between px-5 pb-4 text-[9px] font-semibold uppercase tracking-widest text-slate-600"><span>EduAI Creator Studio</span><span>{new Date().toLocaleDateString("es-CL")}</span></footer>
     </article>
   )
 }
@@ -81,6 +61,8 @@ const PRESENTATION_THEMES: Record<string, { bg: string; accent: string; text: st
 }
 
 export function EditablePresentationSlidePreview({ data, index, accentColor }: { data: any; index: number; accentColor?: string }) {
+  if (data?._canvas?.pages?.[index]) return <VisualCanvasRenderer data={data} pageIndex={index} scale={0.72} />
+
   const slides = Array.isArray(data?.slides) ? data.slides : []
   const slide = slides[index]
   if (!slide) return <div className="flex aspect-video items-center justify-center rounded-2xl border border-soft text-sm text-muted2">No hay diapositivas</div>
@@ -99,51 +81,10 @@ export function EditablePresentationSlidePreview({ data, index, accentColor }: {
       {!isTitle && <div className="absolute bottom-0 left-0 top-0 w-1.5 opacity-70" style={{ background: theme.accent }} />}
       <div className="absolute inset-0 opacity-[0.08]" style={{ backgroundImage: `radial-gradient(ellipse at 85% 10%,${theme.accent},transparent 48%)` }} />
       <div className="absolute bottom-5 right-7 select-none text-7xl font-black opacity-[0.06]" style={{ color: theme.accent }}>{index + 1}</div>
-
       <div className="relative z-10 flex flex-1 flex-col justify-center px-12 py-9">
-        {isTitle ? (
-          <div className="text-center">
-            <div className="mx-auto mb-6 h-1 w-20 rounded-full" style={{ background: theme.accent }} />
-            <h1 className="text-3xl font-black leading-tight" style={{ color: theme.text }}>{slide.title}</h1>
-            {slide.subtitle && <p className="mx-auto mt-4 max-w-3xl text-base leading-relaxed" style={{ color: theme.sub }}>{slide.subtitle}</p>}
-            {data?.author && <p className="mt-7 text-xs font-black uppercase tracking-[0.2em]" style={{ color: theme.accent }}>{data.author}</p>}
-          </div>
-        ) : isQuote ? (
-          <div className="px-8 text-center">
-            <div className="text-7xl font-serif leading-none opacity-20" style={{ color: theme.accent }}>“</div>
-            <p className="text-2xl font-semibold italic leading-relaxed" style={{ color: theme.text }}>{slide.title}</p>
-            {slide.notes && <p className="mt-5 text-sm" style={{ color: theme.sub }}>— {slide.notes}</p>}
-          </div>
-        ) : isStats ? (
-          <div>
-            <div className="mb-6 flex items-center gap-3"><div className="h-7 w-1.5 rounded-full" style={{ background: theme.accent }} /><h2 className="text-xl font-black" style={{ color: theme.text }}>{slide.title}</h2></div>
-            <div className="grid grid-cols-3 gap-4">
-              {(slide.bullets || []).slice(0, 6).map((bullet: string, bulletIndex: number) => {
-                const [value, ...rest] = bullet.split(" — ")
-                return <div key={bulletIndex} className="rounded-2xl border border-white/10 p-4 text-center" style={{ background: theme.card }}><p className="text-2xl font-black" style={{ color: theme.accent }}>{value}</p><p className="mt-2 text-xs leading-relaxed" style={{ color: theme.sub }}>{rest.join(" — ")}</p></div>
-              })}
-            </div>
-          </div>
-        ) : (
-          <div>
-            <div className="mb-6 flex items-center gap-3"><div className="h-7 w-1.5 rounded-full" style={{ background: theme.accent }} /><h2 className="text-xl font-black" style={{ color: theme.text }}>{slide.title}</h2></div>
-            {slide.subtitle && <p className="mb-4 text-sm" style={{ color: theme.sub }}>{slide.subtitle}</p>}
-            <div className={isSplit ? "grid grid-cols-2 gap-x-8 gap-y-3" : "space-y-3"}>
-              {(slide.bullets || []).map((bullet: string, bulletIndex: number) => (
-                <div key={bulletIndex} className="flex items-start gap-3">
-                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg text-xs font-black" style={{ background: theme.card, color: theme.accent }}>{bulletIndex + 1}</span>
-                  <p className="text-sm leading-relaxed" style={{ color: theme.sub }}>{bullet}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        {isTitle ? <div className="text-center"><div className="mx-auto mb-6 h-1 w-20 rounded-full" style={{ background: theme.accent }} /><h1 className="text-3xl font-black leading-tight" style={{ color: theme.text }}>{slide.title}</h1>{slide.subtitle && <p className="mx-auto mt-4 max-w-3xl text-base leading-relaxed" style={{ color: theme.sub }}>{slide.subtitle}</p>}{data?.author && <p className="mt-7 text-xs font-black uppercase tracking-[0.2em]" style={{ color: theme.accent }}>{data.author}</p>}</div> : isQuote ? <div className="px-8 text-center"><div className="text-7xl font-serif leading-none opacity-20" style={{ color: theme.accent }}>“</div><p className="text-2xl font-semibold italic leading-relaxed" style={{ color: theme.text }}>{slide.title}</p>{slide.notes && <p className="mt-5 text-sm" style={{ color: theme.sub }}>— {slide.notes}</p>}</div> : isStats ? <div><div className="mb-6 flex items-center gap-3"><div className="h-7 w-1.5 rounded-full" style={{ background: theme.accent }} /><h2 className="text-xl font-black" style={{ color: theme.text }}>{slide.title}</h2></div><div className="grid grid-cols-3 gap-4">{(slide.bullets || []).slice(0, 6).map((bullet: string, bulletIndex: number) => { const [value, ...rest] = bullet.split(" — "); return <div key={bulletIndex} className="rounded-2xl border border-white/10 p-4 text-center" style={{ background: theme.card }}><p className="text-2xl font-black" style={{ color: theme.accent }}>{value}</p><p className="mt-2 text-xs leading-relaxed" style={{ color: theme.sub }}>{rest.join(" — ")}</p></div> })}</div></div> : <div><div className="mb-6 flex items-center gap-3"><div className="h-7 w-1.5 rounded-full" style={{ background: theme.accent }} /><h2 className="text-xl font-black" style={{ color: theme.text }}>{slide.title}</h2></div>{slide.subtitle && <p className="mb-4 text-sm" style={{ color: theme.sub }}>{slide.subtitle}</p>}<div className={isSplit ? "grid grid-cols-2 gap-x-8 gap-y-3" : "space-y-3"}>{(slide.bullets || []).map((bullet: string, bulletIndex: number) => <div key={bulletIndex} className="flex items-start gap-3"><span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg text-xs font-black" style={{ background: theme.card, color: theme.accent }}>{bulletIndex + 1}</span><p className="text-sm leading-relaxed" style={{ color: theme.sub }}>{bullet}</p></div>)}</div></div>}
       </div>
-
-      <footer className="relative z-10 flex items-center justify-between px-7 pb-5 text-[10px] font-bold uppercase tracking-widest" style={{ color: `${theme.sub}99` }}>
-        <span>{data?.title || "Presentación EduAI"}</span>
-        <span>{index + 1} / {slides.length}</span>
-      </footer>
+      <footer className="relative z-10 flex items-center justify-between px-7 pb-5 text-[10px] font-bold uppercase tracking-widest" style={{ color: `${theme.sub}99` }}><span>{data?.title || "Presentación EduAI"}</span><span>{index + 1} / {slides.length}</span></footer>
     </article>
   )
 }
