@@ -44,6 +44,7 @@ jobs:
       NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlhdCI6MTcwMDAwMDAwMCwiZXhwIjoyMDAwMDAwMDAwfQ.placeholder
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: placeholder
       GEMINI_API_KEY: placeholder
+      GROQ_API_KEY: placeholder
       UPSTASH_REDIS_REST_URL: ""
       UPSTASH_REDIS_REST_TOKEN: ""
     steps:
