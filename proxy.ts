@@ -1,9 +1,9 @@
 /**
- * proxy.ts — EduAI Platform v5.2
+ * proxy.ts — EduAI Platform v5.3
  * ─────────────────────────────────────────────────────────────────────────────
  * v4: Agrega rutas del SuperAgent, modo focus y exam-focus a protección.
- *     Rate limiting específico para /api/superagent/* y rutas TTS.
  * v5.2: Protege las APIs de Creator Hub y limita el análisis de videos.
+ * v5.3: Protege también /api/process-content, usado por todos los creadores.
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
@@ -13,17 +13,16 @@ import { NextResponse, type NextRequest } from "next/server"
 const PROTECTED_ROUTES = [
   "/dashboard", "/study", "/profile", "/admin",
   "/creator-hub", "/audio-lab", "/image-studio", "/workspace",
-  "/educador",      // ← planificador MINEDUC y planificaciones guardadas
-  "/superagent",    // ← todo el hub del superagente
-  "/chat-global",   // ← chat global tipo ChatGPT
-  "/music",         // ← música persistente y playlists
-  "/exam-focus",    // ← nuevo: modo focus de estudio
+  "/educador",
+  "/superagent",
+  "/chat-global",
+  "/music",
+  "/exam-focus",
 ]
 
 const AUTH_ROUTES = ["/login", "/register"]
 
 const RATE_LIMITS: Record<string, { limit: number; windowSecs: number }> = {
-  // APIs existentes — sin cambios
   "/api/agents/chat":          { limit: 30, windowSecs: 60 },
   "/api/agents/socratic":      { limit: 30, windowSecs: 60 },
   "/api/agents/theory":        { limit: 20, windowSecs: 60 },
@@ -36,16 +35,12 @@ const RATE_LIMITS: Record<string, { limit: number; windowSecs: number }> = {
   "/api/agents/gemini-image":  { limit: 10, windowSecs: 60 },
   "/api/agents/podcast-wav":   { limit: 5,  windowSecs: 60 },
   "/api/agents/transcription": { limit: 5,  windowSecs: 60 },
-  // TTS — límite generoso para PIE (narración de preguntas)
   "/api/agents/tts":           { limit: 40, windowSecs: 60 },
   "/api/agents/tts-chunk":     { limit: 40, windowSecs: 60 },
-  // SuperAgent chat — límite moderado (usa múltiples providers gratis)
   "/api/superagent/chat":      { limit: 25, windowSecs: 60 },
-  // Creator Hub — análisis multimodal costoso
   "/api/creator/video-summary": { limit: 6, windowSecs: 60 },
-  // Exam security — sin límite estricto (heartbeats frecuentes)
+  "/api/process-content":       { limit: 8, windowSecs: 60 },
   "/api/exam-security/event":  { limit: 60, windowSecs: 60 },
-  // Defaults
   "__default_agents__":        { limit: 20, windowSecs: 60 },
   "__default_creator__":       { limit: 10, windowSecs: 60 },
 }
@@ -55,23 +50,23 @@ async function checkRateLimit(
   limit: number,
   windowSecs: number
 ): Promise<{ allowed: boolean; remaining: number }> {
-  const url   = process.env.UPSTASH_REDIS_REST_URL
+  const url = process.env.UPSTASH_REDIS_REST_URL
   const token = process.env.UPSTASH_REDIS_REST_TOKEN
   if (!url || !token) return { allowed: true, remaining: limit }
   try {
     const key = `rl:${identifier}`
     const res = await fetch(url, {
-      method:  "POST",
+      method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body:    JSON.stringify(["INCR", key]),
+      body: JSON.stringify(["INCR", key]),
     })
     if (!res.ok) return { allowed: true, remaining: limit }
     const { result: current } = await res.json()
     if (current === 1) {
       fetch(url, {
-        method:  "POST",
+        method: "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body:    JSON.stringify(["EXPIRE", key, windowSecs]),
+        body: JSON.stringify(["EXPIRE", key, windowSecs]),
       }).catch(() => {})
     }
     return { allowed: current <= limit, remaining: Math.max(0, limit - current) }
@@ -82,8 +77,6 @@ async function checkRateLimit(
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
-
-  // ── 1. Refresh de sesión Supabase — SIEMPRE primero ─────────────────────
   let response = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -106,10 +99,9 @@ export async function proxy(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  // ── 2. Protección y rate limiting de APIs costosas ───────────────────────
-  const isAgentAPI      = pathname.startsWith("/api/agents/")
+  const isAgentAPI = pathname.startsWith("/api/agents/")
   const isSuperagentAPI = pathname.startsWith("/api/superagent/")
-  const isCreatorAPI    = pathname.startsWith("/api/creator/")
+  const isCreatorAPI = pathname.startsWith("/api/creator/") || pathname === "/api/process-content"
 
   if (isCreatorAPI && !user) {
     return new NextResponse(
@@ -128,33 +120,27 @@ export async function proxy(request: NextRequest) {
   }
 
   if (isAgentAPI || isSuperagentAPI || isCreatorAPI) {
-    const ip = request.headers.get("x-forwarded-for")
-      ?.split(",")[0]?.trim() || "unknown"
-    const identifier = user
-      ? `user:${user.id}:${pathname}`
-      : `ip:${ip}:${pathname}`
-
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown"
+    const identifier = user ? `user:${user.id}:${pathname}` : `ip:${ip}:${pathname}`
     const config = RATE_LIMITS[pathname] || (
       isCreatorAPI ? RATE_LIMITS["__default_creator__"] : RATE_LIMITS["__default_agents__"]
     )
     const effectiveLimit = user ? config.limit : Math.floor(config.limit / 2)
-    const { allowed, remaining } = await checkRateLimit(
-      identifier, effectiveLimit, config.windowSecs
-    )
+    const { allowed, remaining } = await checkRateLimit(identifier, effectiveLimit, config.windowSecs)
 
     if (!allowed) {
       return new NextResponse(
         JSON.stringify({
-          error:      "Rate limit exceeded",
-          message:    "Demasiadas solicitudes. Espera un momento.",
+          error: "Rate limit exceeded",
+          message: "Demasiadas solicitudes. Espera un momento.",
           retryAfter: config.windowSecs,
         }),
         {
-          status:  429,
+          status: 429,
           headers: {
-            "Content-Type":         "application/json",
-            "Cache-Control":        "no-store, max-age=0",
-            "Retry-After":          String(config.windowSecs),
+            "Content-Type": "application/json",
+            "Cache-Control": "no-store, max-age=0",
+            "Retry-After": String(config.windowSecs),
             "X-RateLimit-Remaining": "0",
           },
         }
@@ -165,16 +151,11 @@ export async function proxy(request: NextRequest) {
     return response
   }
 
-  // ── 3. Protección de rutas de página ──────────────────────────────────────
-  const isProtected = PROTECTED_ROUTES.some(r => pathname.startsWith(r))
-  const isAuth      = AUTH_ROUTES.some(r => pathname === r)
+  const isProtected = PROTECTED_ROUTES.some((route) => pathname.startsWith(route))
+  const isAuth = AUTH_ROUTES.some((route) => pathname === route)
 
-  if (!user && isProtected) {
-    return NextResponse.redirect(new URL("/login", request.url))
-  }
-  if (user && isAuth) {
-    return NextResponse.redirect(new URL("/dashboard", request.url))
-  }
+  if (!user && isProtected) return NextResponse.redirect(new URL("/login", request.url))
+  if (user && isAuth) return NextResponse.redirect(new URL("/dashboard", request.url))
 
   return response
 }
