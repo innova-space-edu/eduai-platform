@@ -4,6 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { Clipboard, Download, Printer, QrCode } from "lucide-react"
 import DownloadBar from "@/components/ui/DownloadBar"
+import CreatorCanvasDownloadBar from "@/components/creator-hub/CreatorCanvasDownloadBar"
 import CreatorQualityPanel from "@/components/creator-hub/CreatorQualityPanel"
 import CreatorTransformPanel from "@/components/creator-hub/CreatorTransformPanel"
 
@@ -32,6 +33,9 @@ function readString(data: unknown, key: string) {
 export default function CreatorHubUtilityBar({ format, data, accentColor, designTemplateId, title }: CreatorHubUtilityBarProps) {
   const [copied, setCopied] = useState(false)
   const fileName = safeFileName(title || readString(data, "title") || readString(data, "headline") || readString(data, "deckTitle") || readString(data, "centralTopic") || "eduai-material")
+  const hasCanvas = Boolean((data as any)?._canvas?.pages?.length)
+  const materialTitle = title || readString(data, "title") || readString(data, "headline") || "Material EduAI"
+  const actionClass = "inline-flex h-8 items-center gap-1.5 rounded-lg px-2 text-xs font-semibold text-sub transition hover:text-main"
 
   const copyJson = async () => {
     await navigator.clipboard?.writeText(JSON.stringify(data, null, 2))
@@ -51,22 +55,18 @@ export default function CreatorHubUtilityBar({ format, data, accentColor, design
 
   return (
     <div className="space-y-4">
-      <div className="space-y-3 rounded-2xl border border-soft bg-card-theme p-3.5">
-        <DownloadBar format={format} data={data} accentColor={accentColor} designTemplateId={designTemplateId} title={title} />
-        <div className="flex flex-wrap gap-2 border-t border-soft pt-3">
-          <span className="mr-1 self-center text-[11px] font-semibold uppercase tracking-widest text-muted2">Acciones</span>
-          <button type="button" onClick={copyJson} className="flex items-center gap-1.5 rounded-xl border border-soft px-3 py-1.5 text-xs font-semibold text-muted2 transition-all hover:bg-card-soft-theme hover:text-main">
-            <Clipboard size={13} /> {copied ? "Copiado" : "Copiar JSON"}
-          </button>
-          <button type="button" onClick={downloadJson} className="flex items-center gap-1.5 rounded-xl border border-soft px-3 py-1.5 text-xs font-semibold text-muted2 transition-all hover:bg-card-soft-theme hover:text-main">
-            <Download size={13} /> Respaldo JSON
-          </button>
-          <button type="button" onClick={() => window.print()} className="flex items-center gap-1.5 rounded-xl border border-soft px-3 py-1.5 text-xs font-semibold text-muted2 transition-all hover:bg-card-soft-theme hover:text-main">
-            <Printer size={13} /> Imprimir vista
-          </button>
-          <Link href="/qr-studio" className="flex items-center gap-1.5 rounded-xl border border-soft px-3 py-1.5 text-xs font-semibold text-muted2 transition-all hover:bg-card-soft-theme hover:text-main">
-            <QrCode size={13} /> Abrir QR Studio
-          </Link>
+      <div className="space-y-2 border-t border-soft pt-2">
+        {hasCanvas ? (
+          <CreatorCanvasDownloadBar format={format} data={data} title={materialTitle} />
+        ) : (
+          <DownloadBar format={format} data={data} accentColor={accentColor} designTemplateId={designTemplateId} title={title} />
+        )}
+        <div className="flex flex-wrap items-center gap-1">
+          <span className="mr-1 text-[10px] font-bold uppercase tracking-widest text-muted2">Acciones</span>
+          <button type="button" onClick={copyJson} className={actionClass}><Clipboard size={13} /> {copied ? "Copiado" : "Copiar JSON"}</button>
+          <button type="button" onClick={downloadJson} className={actionClass}><Download size={13} /> Respaldo</button>
+          <button type="button" onClick={() => window.print()} className={actionClass}><Printer size={13} /> Imprimir</button>
+          <Link href="/qr-studio" className={actionClass}><QrCode size={13} /> QR Studio</Link>
         </div>
       </div>
       <CreatorTransformPanel sourceFormat={format} data={data} accentColor={accentColor} designTemplateId={designTemplateId} />

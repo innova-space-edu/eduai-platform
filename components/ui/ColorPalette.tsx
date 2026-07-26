@@ -6,22 +6,20 @@ interface ColorPaletteProps {
 }
 
 const PALETTES = [
-  { name: "Azul", color: "#3b82f6" },
-  { name: "Índigo", color: "#6366f1" },
-  { name: "Violeta", color: "#8b5cf6" },
-  { name: "Rosa", color: "#ec4899" },
-  { name: "Rojo", color: "#ef4444" },
-  { name: "Naranja", color: "#f97316" },
-  { name: "Ámbar", color: "#f59e0b" },
-  { name: "Verde", color: "#22c55e" },
-  { name: "Esmeralda", color: "#10b981" },
-  { name: "Cian", color: "#06b6d4" },
-  { name: "Gris", color: "#475569" },
-  { name: "Negro", color: "#0f172a" },
+  { name: "Blanco", color: "#ffffff" },
+  { name: "Marfil", color: "#f5f1e8" },
+  { name: "Azul tinta", color: "#1e3a5f" },
+  { name: "Pizarra", color: "#334155" },
+  { name: "Carbón", color: "#1f2937" },
+  { name: "Bosque", color: "#285943" },
+  { name: "Oliva", color: "#64734a" },
+  { name: "Terracota", color: "#a45135" },
+  { name: "Burdeos", color: "#7f1d1d" },
+  { name: "Azul clásico", color: "#2563eb" },
 ]
 
 function normalizeColor(value: string) {
-  return /^#[0-9a-f]{6}$/i.test(value) ? value.toLowerCase() : "#3b82f6"
+  return /^#[0-9a-f]{6}$/i.test(value) ? value.toLowerCase() : "#334155"
 }
 
 export default function ColorPalette({ value, onChange }: ColorPaletteProps) {
@@ -30,7 +28,7 @@ export default function ColorPalette({ value, onChange }: ColorPaletteProps) {
   return (
     <div>
       <div className="mb-2 flex items-center justify-between gap-3">
-        <label className="block text-[11px] font-semibold tracking-widest text-muted2">COLOR PRINCIPAL</label>
+        <label className="block text-[11px] font-semibold tracking-widest text-muted2">COLOR</label>
         <span className="font-mono text-[10px] uppercase text-muted2">{normalized}</span>
       </div>
       <div className="flex flex-wrap items-center gap-2">
@@ -44,20 +42,14 @@ export default function ColorPalette({ value, onChange }: ColorPaletteProps) {
               title={palette.name}
               aria-label={`Usar color ${palette.name}`}
               aria-pressed={selected}
-              className={`h-8 w-8 rounded-full border-2 transition-all ${selected ? "scale-110 border-main shadow-md ring-2 ring-blue-500/30 ring-offset-2 ring-offset-[var(--bg-card)]" : "border-white/70 hover:scale-105"}`}
-              style={{ backgroundColor: palette.color }}
+              className={`h-8 w-8 rounded-full border transition-transform hover:scale-105 ${selected ? "scale-110 ring-2 ring-blue-500/35 ring-offset-2 ring-offset-[var(--bg-card)]" : ""}`}
+              style={{ backgroundColor: palette.color, borderColor: palette.color === "#ffffff" ? "#cbd5e1" : "rgba(15,23,42,.16)" }}
             />
           )
         })}
-        <label className="relative flex h-8 w-8 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-soft" title="Elegir color personalizado">
+        <label className="relative flex h-8 w-8 cursor-pointer items-center justify-center overflow-hidden rounded-full border border-dashed border-soft" title="Elegir color personalizado">
           <span className="pointer-events-none text-sm font-black text-muted2">＋</span>
-          <input
-            type="color"
-            value={normalized}
-            onChange={(event) => onChange(event.target.value)}
-            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-            aria-label="Color personalizado"
-          />
+          <input type="color" value={normalized} onChange={(event) => onChange(event.target.value)} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" aria-label="Color personalizado" />
         </label>
       </div>
     </div>
