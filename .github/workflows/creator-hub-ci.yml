@@ -1,0 +1,80 @@
+name: Creator Hub CI
+
+on:
+  pull_request:
+    paths:
+      - "app/creator-hub/**"
+      - "app/api/creator/**"
+      - "app/api/process-content/**"
+      - "components/creator-hub/**"
+      - "components/design/**"
+      - "components/ui/ColorPalette.tsx"
+      - "lib/content-processor.ts"
+      - "lib/safe-remote-url.ts"
+      - "proxy.ts"
+      - "scripts/test-creator-hub-integrity.mjs"
+      - "package.json"
+      - ".github/workflows/creator-hub-ci.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: creator-hub-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  integrity:
+    name: Creator Hub integrity
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run test:creator
+
+  typecheck-build:
+    name: Next.js build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlhdCI6MTcwMDAwMDAwMCwiZXhwIjoyMDAwMDAwMDAwfQ.placeholder
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: placeholder
+      GEMINI_API_KEY: placeholder
+      GROQ_API_KEY: placeholder
+      UPSTASH_REDIS_REST_URL: ""
+      UPSTASH_REDIS_REST_TOKEN: ""
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run test:creator
+      - name: Build application
+        id: creator_build
+        shell: bash
+        run: |
+          set +e
+          npm run build > creator-build.log 2>&1
+          status=$?
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          tail -n 40 creator-build.log
+          exit 0
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: creator-build-log
+          path: creator-build.log
+          if-no-files-found: error
+          retention-days: 3
+      - name: Fail when build failed
+        if: steps.creator_build.outputs.status != '0'
+        run: |
+          echo "La compilación de Creator Hub falló. Revisa el artefacto creator-build-log."
+          exit 1
