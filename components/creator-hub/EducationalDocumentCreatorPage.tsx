@@ -5,6 +5,7 @@ import Link from "next/link"
 import { ArrowLeft, CheckCircle2, FolderOpen, LoaderCircle, RotateCcw, Sparkles, Upload, WandSparkles } from "lucide-react"
 import UniversalLayerEditor, { prepareVisibleCreatorData } from "@/components/creator-hub/UniversalLayerEditor"
 import EducationalDocumentPreview from "@/components/creator-hub/EducationalDocumentPreview"
+import EducationalDocumentDownloadBar from "@/components/creator-hub/EducationalDocumentDownloadBar"
 import CreatorHubUtilityBar from "@/components/creator-hub/CreatorHubUtilityBar"
 import ColorPalette from "@/components/ui/ColorPalette"
 import TemplatePicker from "@/components/design/TemplatePicker"
@@ -146,6 +147,7 @@ export default function EducationalDocumentCreatorPage({ format }: { format: Edu
 
   if (!meta) return null
   const visibleData = prepareVisibleCreatorData(result)
+  const currentTitle = titleFromData(result, meta.label)
 
   return (
     <div className="min-h-screen">
@@ -181,7 +183,7 @@ export default function EducationalDocumentCreatorPage({ format }: { format: Edu
             {step === "processing" && <div className="flex min-h-[680px] flex-col items-center justify-center px-6 text-center"><LoaderCircle size={42} className="animate-spin" style={{ color: accentColor }} /><h2 className="mt-5 text-lg font-bold text-main">Preparando el documento...</h2><p className="mt-2 text-sm text-muted2">Organizando objetivos, actividades, evidencias y criterios.</p></div>}
             {step === "result" && result && <><div className="mb-4 flex items-center gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-3"><CheckCircle2 size={16} className="text-emerald-600" /><div className="flex-1"><p className="text-xs font-bold text-emerald-700">Documento listo para editar</p><p className="text-[10px] text-emerald-700/70">Los cambios se guardan automáticamente.</p></div><Link href="/creator-hub/projects" className="flex items-center gap-1 text-[10px] font-bold text-emerald-700"><FolderOpen size={12} /> Mis proyectos</Link></div><div id="creator-result-container" className="overflow-auto rounded-2xl border border-soft bg-card-soft-theme p-3 sm:p-5"><EducationalDocumentPreview format={format} data={visibleData} accentColor={accentColor} /></div></>}
           </div>
-          {step === "result" && result && <CreatorHubUtilityBar format={format} data={visibleData} accentColor={accentColor} designTemplateId={designTemplateId} title={titleFromData(result, meta.label)} />}
+          {step === "result" && result && <><EducationalDocumentDownloadBar title={currentTitle} /><CreatorHubUtilityBar format={format} data={visibleData} accentColor={accentColor} designTemplateId={designTemplateId} title={currentTitle} /></>}
         </section>
       </main>
     </div>
