@@ -5,6 +5,7 @@ import Link from "next/link"
 import { Clipboard, Download, Printer, QrCode } from "lucide-react"
 import DownloadBar from "@/components/ui/DownloadBar"
 import CreatorQualityPanel from "@/components/creator-hub/CreatorQualityPanel"
+import CreatorTransformPanel from "@/components/creator-hub/CreatorTransformPanel"
 
 interface CreatorHubUtilityBarProps {
   format: string
@@ -68,6 +69,7 @@ export default function CreatorHubUtilityBar({ format, data, accentColor, design
           </Link>
         </div>
       </div>
+      <CreatorTransformPanel sourceFormat={format} data={data} accentColor={accentColor} designTemplateId={designTemplateId} />
       <CreatorQualityPanel format={format} data={data} />
     </div>
   )
