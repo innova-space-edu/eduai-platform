@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { FilePlus2, LoaderCircle, Plus } from "lucide-react"
 import { getCompatibleDesignTemplates } from "@/lib/design-templates/registry"
@@ -54,7 +54,18 @@ export default function TemplatePicker({ format, value, onChange, compact = fals
   const builtInTemplates = showBuiltIn ? getCompatibleDesignTemplates(format) : []
   const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>([])
   const [loading, setLoading] = useState(true)
+  const normalizedValueRef = useRef<string | null>(null)
   const activeId = value?.startsWith("custom:") || (showBuiltIn && value) ? value : "blank"
+
+  useEffect(() => {
+    if (showBuiltIn || !value || value === "blank" || value.startsWith("custom:")) {
+      normalizedValueRef.current = null
+      return
+    }
+    if (normalizedValueRef.current === value) return
+    normalizedValueRef.current = value
+    onChange("blank", blankTemplate.accentColor, blankTemplate)
+  }, [onChange, showBuiltIn, value])
 
   useEffect(() => {
     let active = true
@@ -94,12 +105,7 @@ export default function TemplatePicker({ format, value, onChange, compact = fals
       </div>
 
       <div className={gridClass}>
-        <button
-          type="button"
-          onClick={() => onChange("blank", blankTemplate.accentColor, blankTemplate)}
-          className="group rounded-2xl border p-3 text-left transition-all"
-          style={{ borderColor: activeId === "blank" ? "rgba(37,99,235,.42)" : "var(--border-soft)", background: "var(--bg-card-soft)" }}
-        >
+        <button type="button" onClick={() => onChange("blank", blankTemplate.accentColor, blankTemplate)} className="group rounded-2xl border p-3 text-left transition-all" style={{ borderColor: activeId === "blank" ? "rgba(37,99,235,.42)" : "var(--border-soft)", background: "var(--bg-card-soft)" }}>
           <div className="flex items-start gap-3">
             <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl border border-soft bg-white text-slate-500"><FilePlus2 size={18} /></div>
             <div className="min-w-0 flex-1"><div className="flex items-center gap-2"><p className="truncate text-xs font-bold text-main">Lienzo en blanco</p>{activeId === "blank" && <span className="rounded-full border border-blue-500/25 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-blue-600">Activa</span>}</div><p className="mt-1 text-[11px] leading-relaxed text-muted2">Empieza sin fondo y construye el diseño directamente en el lienzo.</p></div>
@@ -124,17 +130,9 @@ export default function TemplatePicker({ format, value, onChange, compact = fals
             fileName: template.fileName,
           }
           return (
-            <button
-              key={template.pickerId}
-              type="button"
-              onClick={() => onChange(template.pickerId, accent, selection)}
-              className="group relative overflow-hidden rounded-2xl border p-3 text-left transition-all"
-              style={{ borderColor: selected ? `${accent}66` : "var(--border-soft)", boxShadow: selected ? `0 8px 22px ${accent}14` : "none", background: "var(--bg-card-soft)" }}
-            >
+            <button key={template.pickerId} type="button" onClick={() => onChange(template.pickerId, accent, selection)} className="group relative overflow-hidden rounded-2xl border p-3 text-left transition-all" style={{ borderColor: selected ? `${accent}66` : "var(--border-soft)", boxShadow: selected ? `0 8px 22px ${accent}14` : "none", background: "var(--bg-card-soft)" }}>
               <div className="relative flex items-start gap-3">
-                <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl border border-soft bg-white">
-                  {template.imageUrl ? <img src={template.imageUrl} alt="" className="h-full w-full object-cover" /> : <span className="text-base" style={{ color: accent }}>✦</span>}
-                </div>
+                <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl border border-soft bg-white">{template.imageUrl ? <img src={template.imageUrl} alt="" className="h-full w-full object-cover" /> : <span className="text-base" style={{ color: accent }}>✦</span>}</div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2"><p className="truncate text-xs font-bold text-main">{template.name}</p>{selected && <span className="rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-wide" style={{ borderColor: `${accent}45`, color: accent }}>Activa</span>}</div>
                   <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-muted2">{template.instructions || template.fileName || "Plantilla personalizada"}</p>
