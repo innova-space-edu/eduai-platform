@@ -1,5 +1,5 @@
-import EditableDiagramCreatorPage from "@/components/creator-hub/EditableDiagramCreatorPage"
+import EditableFreeformVisualCreatorPage from "@/components/creator-hub/EditableFreeformVisualCreatorPage"
 
 export default function EditableMindmapPage() {
-  return <EditableDiagramCreatorPage format="mindmap" />
+  return <EditableFreeformVisualCreatorPage format="mindmap" />
 }
