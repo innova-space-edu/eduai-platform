@@ -1,5 +1,5 @@
-import EditableDiagramCreatorPage from "@/components/creator-hub/EditableDiagramCreatorPage"
+import EditableFreeformVisualCreatorPage from "@/components/creator-hub/EditableFreeformVisualCreatorPage"
 
 export default function EditableTimelinePage() {
-  return <EditableDiagramCreatorPage format="timeline" />
+  return <EditableFreeformVisualCreatorPage format="timeline" />
 }
