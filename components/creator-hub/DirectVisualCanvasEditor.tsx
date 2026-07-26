@@ -20,7 +20,6 @@ import {
   Move,
   Palette,
   PanelRightClose,
-  Plus,
   Redo2,
   RotateCw,
   SendToBack,
@@ -48,7 +47,14 @@ import {
   type CreatorCanvasPage,
   type CreatorCanvasShape,
 } from "@/lib/creator-canvas"
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react"
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
+} from "react"
 
 const FONT_OPTIONS = [
   "Arial",
@@ -67,7 +73,7 @@ const toolButton = "inline-flex h-9 items-center justify-center gap-1.5 rounded-
 const iconButton = "inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted2 transition hover:text-main disabled:cursor-not-allowed disabled:opacity-25"
 const fieldClass = "h-9 rounded-lg border border-soft bg-card-theme px-2.5 text-xs text-main outline-none focus:border-blue-500/35"
 
-function styleValue(value: unknown, fallback: number) {
+function numberValue(value: unknown, fallback: number) {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback
 }
 
@@ -137,13 +143,15 @@ function RenderElement({
   onTextCommit: (text: string) => void
 }) {
   const isText = element.type === "text"
-  const isShape = element.type === "shape"
-  const css = elementCss(element)
-
   return (
     <div
       data-canvas-element={element.id}
-      style={{ ...css, cursor: element.locked ? "default" : editing ? "text" : "move", outline: selected ? "2px solid #2563eb" : "none", outlineOffset: 2 }}
+      style={{
+        ...elementCss(element),
+        cursor: element.locked ? "default" : editing ? "text" : "move",
+        outline: selected ? "2px solid #2563eb" : "none",
+        outlineOffset: 2,
+      }}
       onPointerDown={(event) => {
         event.stopPropagation()
         onSelect()
@@ -155,7 +163,13 @@ function RenderElement({
       }}
     >
       {element.type === "image" && element.src ? (
-        <img src={element.src} alt={element.name} crossOrigin="anonymous" className="pointer-events-none h-full w-full object-cover" draggable={false} />
+        <img
+          src={element.src}
+          alt={element.name}
+          crossOrigin="anonymous"
+          className="pointer-events-none h-full w-full object-cover"
+          draggable={false}
+        />
       ) : isText ? (
         <div
           contentEditable={editing}
@@ -163,17 +177,20 @@ function RenderElement({
           spellCheck
           className="h-full w-full outline-none"
           style={{ cursor: editing ? "text" : "inherit", userSelect: editing ? "text" : "none" }}
+          onPointerDown={(event) => {
+            if (editing) event.stopPropagation()
+          }}
           onBlur={(event) => onTextCommit(event.currentTarget.innerText)}
           onKeyDown={(event) => {
-            if (event.key === "Escape") event.currentTarget.blur()
             event.stopPropagation()
+            if (event.key === "Escape") event.currentTarget.blur()
           }}
         >
           {element.text || ""}
         </div>
-      ) : isShape ? (
+      ) : (
         <div className="h-full w-full" />
-      ) : null}
+      )}
 
       {selected && !editing && !element.locked && (
         <>
@@ -253,8 +270,8 @@ function StylePanel({
                 <p className="text-[9px] font-black uppercase tracking-[0.16em] text-muted2">Tipografía</p>
                 <select value={selected.style?.fontFamily || "Arial"} onChange={(event) => patchStyle({ fontFamily: event.target.value })} className={`mt-2 w-full ${fieldClass}`}>{FONT_OPTIONS.map((font) => <option key={font} value={font}>{font}</option>)}</select>
                 <div className="mt-2 flex items-center gap-1">
-                  <input type="number" min={8} max={180} value={styleValue(selected.style?.fontSize, 24)} onChange={(event) => patchStyle({ fontSize: Number(event.target.value) })} className={`w-20 ${fieldClass}`} />
-                  <button type="button" onClick={() => patchStyle({ fontWeight: styleValue(selected.style?.fontWeight, 400) >= 700 ? 400 : 800 })} className={`${iconButton} ${styleValue(selected.style?.fontWeight, 400) >= 700 ? "text-blue-600" : ""}`}><Bold size={14} /></button>
+                  <input type="number" min={8} max={180} value={numberValue(selected.style?.fontSize, 24)} onChange={(event) => patchStyle({ fontSize: Number(event.target.value) })} className={`w-20 ${fieldClass}`} />
+                  <button type="button" onClick={() => patchStyle({ fontWeight: numberValue(selected.style?.fontWeight, 400) >= 700 ? 400 : 800 })} className={`${iconButton} ${numberValue(selected.style?.fontWeight, 400) >= 700 ? "text-blue-600" : ""}`}><Bold size={14} /></button>
                   <button type="button" onClick={() => patchStyle({ fontStyle: selected.style?.fontStyle === "italic" ? "normal" : "italic" })} className={`${iconButton} ${selected.style?.fontStyle === "italic" ? "text-blue-600" : ""}`}><Italic size={14} /></button>
                   <button type="button" onClick={() => patchStyle({ textDecoration: selected.style?.textDecoration === "underline" ? "none" : "underline" })} className={`${iconButton} ${selected.style?.textDecoration === "underline" ? "text-blue-600" : ""}`}><Underline size={14} /></button>
                   <button type="button" onClick={() => patchStyle({ textAlign: "left" })} className={`${iconButton} ${selected.style?.textAlign === "left" ? "text-blue-600" : ""}`}><AlignLeft size={14} /></button>
@@ -338,11 +355,23 @@ export function VisualCanvasRenderer({ data, pageIndex = 0, scale = 1 }: { data:
         }}
       >
         {[...page.elements].sort((a, b) => a.zIndex - b.zIndex).map((element) => (
-          <div key={element.id} style={elementCss(element)}>{element.type === "image" && element.src ? <img src={element.src} alt="" crossOrigin="anonymous" className="h-full w-full object-cover" /> : element.type === "text" ? <div className="h-full w-full">{element.text}</div> : null}</div>
+          <div key={element.id} style={elementCss(element)}>
+            {element.type === "image" && element.src ? <img src={element.src} alt="" crossOrigin="anonymous" className="h-full w-full object-cover" /> : element.type === "text" ? <div className="h-full w-full">{element.text}</div> : null}
+          </div>
         ))}
       </div>
     </div>
   )
+}
+
+type Gesture = {
+  mode: "move" | "resize" | "rotate"
+  elementId: string
+  startX: number
+  startY: number
+  origin: CreatorCanvasElement
+  centerClientX: number
+  centerClientY: number
 }
 
 export default function DirectVisualCanvasEditor({
@@ -362,15 +391,8 @@ export default function DirectVisualCanvasEditor({
   const [showLayers, setShowLayers] = useState(false)
   const [showStyle, setShowStyle] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
-  const gestureRef = useRef<null | {
-    mode: "move" | "resize" | "rotate"
-    elementId: string
-    startX: number
-    startY: number
-    origin: CreatorCanvasElement
-    centerX?: number
-    centerY?: number
-  }>(null)
+  const surfaceRef = useRef<HTMLDivElement>(null)
+  const gestureRef = useRef<Gesture | null>(null)
   const historyRef = useRef<any[]>([structuredClone(data)])
   const historyIndexRef = useRef(0)
 
@@ -420,17 +442,26 @@ export default function DirectVisualCanvasEditor({
   }
 
   const patchSelected = (patch: Partial<CreatorCanvasElement>) => {
-    if (!selectedId) return
-    patchElement(selectedId, patch)
+    if (selectedId) patchElement(selectedId, patch)
   }
 
-  const patchPage = (patch: Partial<CreatorCanvasPage>) => commit(updateCanvasPage(workingRef.current, pageIndex, patch))
+  const patchPage = (patch: Partial<CreatorCanvasPage>) => {
+    commit(updateCanvasPage(workingRef.current, pageIndex, patch))
+  }
 
-  const startGesture = (mode: "move" | "resize" | "rotate", element: CreatorCanvasElement, event: ReactPointerEvent) => {
+  const startGesture = (mode: Gesture["mode"], element: CreatorCanvasElement, event: ReactPointerEvent) => {
     if (element.locked) return
-    const centerX = element.x + element.width / 2
-    const centerY = element.y + element.height / 2
-    gestureRef.current = { mode, elementId: element.id, startX: event.clientX, startY: event.clientY, origin: structuredClone(element), centerX, centerY }
+    const rect = surfaceRef.current?.getBoundingClientRect()
+    if (!rect) return
+    gestureRef.current = {
+      mode,
+      elementId: element.id,
+      startX: event.clientX,
+      startY: event.clientY,
+      origin: structuredClone(element),
+      centerClientX: rect.left + (element.x + element.width / 2) * zoom,
+      centerClientY: rect.top + (element.y + element.height / 2) * zoom,
+    }
     event.currentTarget.setPointerCapture?.(event.pointerId)
   }
 
@@ -441,11 +472,17 @@ export default function DirectVisualCanvasEditor({
       const dx = (event.clientX - gesture.startX) / zoom
       const dy = (event.clientY - gesture.startY) / zoom
       let patch: Partial<CreatorCanvasElement> = {}
-      if (gesture.mode === "move") patch = { x: Math.round(gesture.origin.x + dx), y: Math.round(gesture.origin.y + dy) }
-      if (gesture.mode === "resize") patch = { width: Math.max(40, Math.round(gesture.origin.width + dx)), height: Math.max(30, Math.round(gesture.origin.height + dy)) }
-      if (gesture.mode === "rotate") {
-        const angle = Math.atan2(event.clientY - (gesture.centerY || 0), event.clientX - (gesture.centerX || 0)) * 180 / Math.PI
-        patch = { rotation: Math.round(angle + 90) }
+      if (gesture.mode === "move") {
+        patch = { x: Math.round(gesture.origin.x + dx), y: Math.round(gesture.origin.y + dy) }
+      } else if (gesture.mode === "resize") {
+        patch = {
+          width: Math.max(40, Math.round(gesture.origin.width + dx)),
+          height: Math.max(30, Math.round(gesture.origin.height + dy)),
+        }
+      } else {
+        const startAngle = Math.atan2(gesture.startY - gesture.centerClientY, gesture.startX - gesture.centerClientX)
+        const currentAngle = Math.atan2(event.clientY - gesture.centerClientY, event.clientX - gesture.centerClientX)
+        patch = { rotation: Math.round((gesture.origin.rotation || 0) + (currentAngle - startAngle) * 180 / Math.PI) }
       }
       patchElement(gesture.elementId, patch, false)
     }
@@ -476,9 +513,10 @@ export default function DirectVisualCanvasEditor({
         const step = event.shiftKey ? 10 : 1
         const current = workingRef.current?._canvas?.pages?.[pageIndex]?.elements?.find((element: CreatorCanvasElement) => element.id === selectedId)
         if (!current || current.locked) return
-        const x = current.x + (event.key === "ArrowLeft" ? -step : event.key === "ArrowRight" ? step : 0)
-        const y = current.y + (event.key === "ArrowUp" ? -step : event.key === "ArrowDown" ? step : 0)
-        patchElement(selectedId, { x, y })
+        patchElement(selectedId, {
+          x: current.x + (event.key === "ArrowLeft" ? -step : event.key === "ArrowRight" ? step : 0),
+          y: current.y + (event.key === "ArrowUp" ? -step : event.key === "ArrowDown" ? step : 0),
+        })
       }
     }
     window.addEventListener("keydown", keydown)
@@ -545,6 +583,7 @@ export default function DirectVisualCanvasEditor({
       <div className="max-h-[calc(100vh-190px)] min-h-[620px] overflow-auto p-6" onPointerDown={() => { setSelectedId(null); setEditingId(null) }}>
         <div className="mx-auto" style={{ width: page.width * zoom, height: page.height * zoom }}>
           <div
+            ref={surfaceRef}
             id="creator-canvas-surface"
             className="relative overflow-hidden shadow-2xl"
             style={{
@@ -558,7 +597,13 @@ export default function DirectVisualCanvasEditor({
               backgroundRepeat: "no-repeat",
               backgroundSize: fitStyle(page.backgroundFit),
             }}
-            onPointerDown={(event) => event.stopPropagation()}
+            onPointerDown={(event) => {
+              event.stopPropagation()
+              if (event.target === event.currentTarget) {
+                setSelectedId(null)
+                setEditingId(null)
+              }
+            }}
           >
             {[...page.elements].sort((a, b) => a.zIndex - b.zIndex).map((element) => (
               <RenderElement
