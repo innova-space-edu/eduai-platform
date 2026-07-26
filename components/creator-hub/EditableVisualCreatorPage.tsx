@@ -12,7 +12,6 @@ import {
   FolderOpen,
   LayoutTemplate,
   LoaderCircle,
-  PanelLeftClose,
   RotateCcw,
   Sparkles,
   Upload,
@@ -52,12 +51,15 @@ type ApiResponse = {
 }
 
 function uid(prefix: string) {
-  return typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 }
 
 function projectTitle(format: VisualFormat, data: any, fallback: string) {
-  if (format === "infographic") return data?.title || fallback
-  return data?.title || data?.slides?.[0]?.title || fallback
+  return format === "infographic"
+    ? data?.title || fallback
+    : data?.title || data?.slides?.[0]?.title || fallback
 }
 
 function ensureLayerMetadata(format: VisualFormat, data: any) {
@@ -66,14 +68,24 @@ function ensureLayerMetadata(format: VisualFormat, data: any) {
     return {
       ...data,
       sections: Array.isArray(data.sections)
-        ? data.sections.map((section: any) => ({ id: section?.id || uid("layer"), hidden: section?.hidden === true, locked: section?.locked === true, ...section }))
+        ? data.sections.map((section: any) => ({
+            id: section?.id || uid("layer"),
+            hidden: section?.hidden === true,
+            locked: section?.locked === true,
+            ...section,
+          }))
         : [],
     }
   }
   return {
     ...data,
     slides: Array.isArray(data.slides)
-      ? data.slides.map((slide: any) => ({ id: slide?.id || uid("slide"), hidden: slide?.hidden === true, locked: slide?.locked === true, ...slide }))
+      ? data.slides.map((slide: any) => ({
+          id: slide?.id || uid("slide"),
+          hidden: slide?.hidden === true,
+          locked: slide?.locked === true,
+          ...slide,
+        }))
       : [],
   }
 }
@@ -143,7 +155,9 @@ export default function EditableVisualCreatorPage({ format }: { format: VisualFo
   useEffect(() => {
     const hidden = step === "result"
     window.dispatchEvent(new CustomEvent("creator-hub:sidebar-mode", { detail: { hidden } }))
-    return () => window.dispatchEvent(new CustomEvent("creator-hub:sidebar-mode", { detail: { hidden: false } }))
+    return () => {
+      window.dispatchEvent(new CustomEvent("creator-hub:sidebar-mode", { detail: { hidden: false } }))
+    }
   }, [step])
 
   useEffect(() => {
@@ -163,7 +177,12 @@ export default function EditableVisualCreatorPage({ format }: { format: VisualFo
       const template = await resolveCustomTemplate(project.designTemplateId || "")
       if (!active) return
       const color = template?.accentColor || project.accentColor || "#334155"
-      const prepared = ensureVisualCanvasData(ensureLayerMetadata(format, project.data), format, color, toTemplateReference(template))
+      const prepared = ensureVisualCanvasData(
+        ensureLayerMetadata(format, project.data),
+        format,
+        color,
+        toTemplateReference(template),
+      )
       const withTemplate = applyCanvasTemplate(prepared, toTemplateReference(template))
       setProjectId(project.id)
       setResult(withTemplate)
@@ -175,7 +194,9 @@ export default function EditableVisualCreatorPage({ format }: { format: VisualFo
       setStep("result")
       setHydrating(false)
     })
-    return () => { active = false }
+    return () => {
+      active = false
+    }
   }, [format, requestedProjectId])
 
   useEffect(() => {
@@ -193,7 +214,12 @@ export default function EditableVisualCreatorPage({ format }: { format: VisualFo
     reader.readAsDataURL(file)
   }, [])
 
-  const persistResult = (next: any, nextAccent = accentColor, nextTemplate = designTemplateId, refreshBindings = false) => {
+  const persistResult = (
+    next: any,
+    nextAccent = accentColor,
+    nextTemplate = designTemplateId,
+    refreshBindings = false,
+  ) => {
     const prepared = refreshBindings ? refreshVisualCanvasBindings(next) : next
     setResult(prepared)
     if (!projectId) return
@@ -206,13 +232,18 @@ export default function EditableVisualCreatorPage({ format }: { format: VisualFo
     setSaved(Boolean(updated))
   }
 
-  const changeTemplate = (templateId: string, nextAccentColor?: string, template?: TemplatePickerSelection) => {
+  const changeTemplate = (
+    templateId: string,
+    nextAccentColor?: string,
+    template?: TemplatePickerSelection,
+  ) => {
     const nextTemplate = template || null
     const color = nextAccentColor || accentColor
     setDesignTemplateId(templateId)
     setSelectedTemplate(nextTemplate)
     setAccentColor(color)
     if (!result) return
+
     let next = ensureVisualCanvasData(result, format, color, toTemplateReference(nextTemplate))
     next = applyCanvasTemplate(next, toTemplateReference(nextTemplate))
     next = applyCanvasAccent(next, color)
@@ -222,7 +253,12 @@ export default function EditableVisualCreatorPage({ format }: { format: VisualFo
       custom: nextTemplate?.kind === "custom",
       sourceFile: nextTemplate?.fileName || null,
       templateImageUrl: nextTemplate?.imageUrl || null,
-      palette: { ...(next._design?.palette || {}), primary: color, accent: color, secondary: nextTemplate?.secondaryColor || "#94a3b8" },
+      palette: {
+        ...(next._design?.palette || {}),
+        primary: color,
+        accent: color,
+        secondary: nextTemplate?.secondaryColor || "#94a3b8",
+      },
     }
     persistResult(next, color, templateId)
   }
@@ -259,7 +295,9 @@ export default function EditableVisualCreatorPage({ format }: { format: VisualFo
         body: JSON.stringify({ sourceType, content, fileName, outputFormat: format, designTemplateId }),
       })
       const payload = await response.json() as ApiResponse
-      if (!payload.success || !payload.output?.data) throw new Error(payload.error || "No fue posible generar el material")
+      if (!payload.success || !payload.output?.data) {
+        throw new Error(payload.error || "No fue posible generar el material")
+      }
 
       let generated = ensureLayerMetadata(format, payload.output.data)
       generated = ensureVisualCanvasData(generated, format, accentColor, toTemplateReference(selectedTemplate))
@@ -270,7 +308,12 @@ export default function EditableVisualCreatorPage({ format }: { format: VisualFo
         custom: selectedTemplate?.kind === "custom",
         sourceFile: selectedTemplate?.fileName || null,
         templateImageUrl: selectedTemplate?.imageUrl || null,
-        palette: { ...(generated._design?.palette || {}), primary: accentColor, accent: accentColor, secondary: selectedTemplate?.secondaryColor || "#94a3b8" },
+        palette: {
+          ...(generated._design?.palette || {}),
+          primary: accentColor,
+          accent: accentColor,
+          secondary: selectedTemplate?.secondaryColor || "#94a3b8",
+        },
       }
       setResult(generated)
       setPreviewIndex(0)
@@ -296,7 +339,9 @@ export default function EditableVisualCreatorPage({ format }: { format: VisualFo
   if (!meta) return null
   const Editor = format === "infographic" ? InfographicContentEditor : PresentationContentEditor
 
-  if (hydrating) return <div className="flex min-h-[70vh] items-center justify-center"><LoaderCircle size={34} className="animate-spin text-blue-500" /></div>
+  if (hydrating) {
+    return <div className="flex min-h-[70vh] items-center justify-center"><LoaderCircle size={34} className="animate-spin text-blue-500" /></div>
+  }
 
   return (
     <div className="min-h-screen">
@@ -308,10 +353,12 @@ export default function EditableVisualCreatorPage({ format }: { format: VisualFo
             <div className="min-w-0"><p className="truncate text-sm font-bold text-main">{meta.label}</p><p className="hidden text-[10px] text-muted2 sm:block">Editor visual</p></div>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-1">
-            {step === "result" && <>
-              <button type="button" onClick={() => setPanel((current) => current === "content" ? null : "content")} className={`${headerButton} ${panel === "content" ? "text-blue-600" : ""}`}><FileInput size={14} /> Contenido</button>
-              <button type="button" onClick={() => setPanel((current) => current === "template" ? null : "template")} className={`${headerButton} ${panel === "template" ? "text-blue-600" : ""}`}><LayoutTemplate size={14} /> Plantilla</button>
-            </>}
+            {step === "result" && (
+              <>
+                <button type="button" onClick={() => setPanel((current) => current === "content" ? null : "content")} className={`${headerButton} ${panel === "content" ? "text-blue-600" : ""}`}><FileInput size={14} /> Contenido</button>
+                <button type="button" onClick={() => setPanel((current) => current === "template" ? null : "template")} className={`${headerButton} ${panel === "template" ? "text-blue-600" : ""}`}><LayoutTemplate size={14} /> Plantilla</button>
+              </>
+            )}
             {saved && <span className="hidden items-center gap-1.5 px-2 text-[10px] font-bold text-emerald-600 md:flex"><CheckCircle2 size={12} /> Guardado</span>}
             {(step === "result" || step === "processing") && <button type="button" onClick={reset} disabled={processing} className={headerButton}><RotateCcw size={14} /> Nueva creación</button>}
           </div>
@@ -320,17 +367,65 @@ export default function EditableVisualCreatorPage({ format }: { format: VisualFo
 
       {panel && step === "result" && (
         <aside className="fixed left-3 top-[70px] z-50 max-h-[calc(100vh-84px)] w-[430px] max-w-[calc(100vw-24px)] overflow-y-auto rounded-2xl border border-soft bg-header-theme/95 p-4 shadow-2xl backdrop-blur-xl">
-          <div className="mb-4 flex items-center justify-between gap-3"><div><p className="text-sm font-bold text-main">{panel === "content" ? "Contenido estructurado" : "Plantilla base"}</p><p className="text-[10px] text-muted2">{panel === "content" ? "Los cambios también aparecen en el lienzo." : "La vista previa de la plantilla se usa como fondo real."}</p></div><button type="button" onClick={() => setPanel(null)} className={headerButton}><X size={15} /></button></div>
-          {panel === "content" ? <Editor data={result} onChange={(next) => persistResult(next, accentColor, designTemplateId, true)} /> : <TemplatePicker format={format} value={designTemplateId} onChange={changeTemplate} compact />}
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div><p className="text-sm font-bold text-main">{panel === "content" ? "Contenido" : "Plantilla"}</p></div>
+            <button type="button" onClick={() => setPanel(null)} className={headerButton}><X size={15} /></button>
+          </div>
+          {panel === "content"
+            ? <Editor data={result} onChange={(next) => persistResult(next, accentColor, designTemplateId, true)} />
+            : <TemplatePicker format={format} value={designTemplateId} onChange={changeTemplate} compact />}
         </aside>
       )}
 
       {step === "input" && (
         <main className="mx-auto grid max-w-6xl gap-5 px-5 py-7 lg:grid-cols-[430px_minmax(0,1fr)]">
           <section className="space-y-4 rounded-3xl border border-soft bg-card-theme p-5">
-            <div><h1 className="text-lg font-bold text-main">Crear {meta.label.toLowerCase()}</h1><p className="mt-1 text-xs leading-5 text-muted2">Selecciona la fuente, la plantilla base y genera el primer lienzo.</p></div>
-            <div><p className="text-[10px] font-black uppercase tracking-wider text-muted2">Fuente</p><div className="mt-2 grid grid-cols-2 gap-2">{SOURCE_TYPES.map((source) => { const active = sourceType === source.id; return <button key={source.id} type="button" onClick={() => { setSourceType(source.id); setContent(""); setFileName(""); setError(null); if (fileRef.current) fileRef.current.value = "" }} className="rounded-2xl border p-3 text-left" style={{ borderColor: active ? "rgba(37,99,235,.35)" : "var(--border-soft)", background: "var(--bg-card-soft)" }}><span className="text-base">{source.icon}</span><p className="mt-1 text-xs font-bold text-main">{source.label}</p><p className="text-[10px] text-muted2">{source.description}</p></button> })}</div></div>
-            <div><p className="text-[10px] font-black uppercase tracking-wider text-muted2">Contenido</p>{sourceType === "topic" || sourceType === "text" || sourceType === "url" ? <textarea value={content} onChange={(event) => setContent(event.target.value)} rows={sourceType === "text" ? 9 : 5} placeholder={sourceType === "topic" ? meta.placeholder : sourceType === "url" ? "https://ejemplo.com/articulo" : "Pega aquí el contenido..."} className="mt-2 w-full resize-y rounded-2xl border border-soft bg-card-soft-theme px-3.5 py-3 text-sm text-main outline-none" /> : <button type="button" onClick={() => fileRef.current?.click()} className="mt-2 w-full rounded-2xl border-2 border-dashed border-soft p-6 text-center"><Upload size={24} className="mx-auto text-muted2" /><span className="mt-2 block text-xs font-bold text-sub">{content ? `${fileName} cargado` : `Subir archivo .${sourceType}`}</span><input ref={fileRef} type="file" accept={sourceType === "pdf" ? ".pdf" : ".docx,.doc"} onChange={handleFile} className="hidden" /></button>}</div>
+            <div><h1 className="text-lg font-bold text-main">Crear {meta.label.toLowerCase()}</h1><p className="mt-1 text-xs leading-5 text-muted2">Selecciona la fuente y una plantilla base.</p></div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-wider text-muted2">Fuente</p>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {SOURCE_TYPES.map((source) => {
+                  const active = sourceType === source.id
+                  return (
+                    <button
+                      key={source.id}
+                      type="button"
+                      onClick={() => {
+                        setSourceType(source.id)
+                        setContent("")
+                        setFileName("")
+                        setError(null)
+                        if (fileRef.current) fileRef.current.value = ""
+                      }}
+                      className="rounded-2xl border p-3 text-left"
+                      style={{ borderColor: active ? "rgba(37,99,235,.35)" : "var(--border-soft)", background: "var(--bg-card-soft)" }}
+                    >
+                      <span className="text-base">{source.icon}</span>
+                      <p className="mt-1 text-xs font-bold text-main">{source.label}</p>
+                      <p className="text-[10px] text-muted2">{source.description}</p>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-wider text-muted2">Contenido</p>
+              {sourceType === "topic" || sourceType === "text" || sourceType === "url" ? (
+                <textarea
+                  value={content}
+                  onChange={(event) => setContent(event.target.value)}
+                  rows={sourceType === "text" ? 9 : 5}
+                  placeholder={sourceType === "topic" ? meta.placeholder : sourceType === "url" ? "https://ejemplo.com/articulo" : "Pega aquí el contenido..."}
+                  className="mt-2 w-full resize-y rounded-2xl border border-soft bg-card-soft-theme px-3.5 py-3 text-sm text-main outline-none"
+                />
+              ) : (
+                <button type="button" onClick={() => fileRef.current?.click()} className="mt-2 w-full rounded-2xl border-2 border-dashed border-soft p-6 text-center">
+                  <Upload size={24} className="mx-auto text-muted2" />
+                  <span className="mt-2 block text-xs font-bold text-sub">{content ? `${fileName} cargado` : `Subir archivo .${sourceType}`}</span>
+                  <input ref={fileRef} type="file" accept={sourceType === "pdf" ? ".pdf" : ".docx,.doc"} onChange={handleFile} className="hidden" />
+                </button>
+              )}
+            </div>
             {error && <div className="rounded-xl border border-red-500/25 px-3 py-2 text-xs text-red-500">{error}</div>}
             <button type="button" onClick={generate} disabled={!content.trim() || processing} className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white disabled:opacity-35"><Sparkles size={15} /> Generar</button>
           </section>
@@ -338,13 +433,27 @@ export default function EditableVisualCreatorPage({ format }: { format: VisualFo
         </main>
       )}
 
-      {step === "processing" && <div className="flex min-h-[75vh] flex-col items-center justify-center"><LoaderCircle size={42} className="animate-spin text-blue-600" /><p className="mt-4 text-sm font-bold text-main">Creando el lienzo...</p></div>}
+      {step === "processing" && (
+        <div className="flex min-h-[75vh] flex-col items-center justify-center">
+          <LoaderCircle size={42} className="animate-spin text-blue-600" />
+          <p className="mt-4 text-sm font-bold text-main">Creando el lienzo...</p>
+        </div>
+      )}
 
       {step === "result" && result && (
         <main className="mx-auto max-w-[1900px] space-y-3 px-3 py-3 sm:px-5">
-          {format === "ppt" && <div className="flex items-center justify-center gap-4"><button type="button" onClick={() => setPreviewIndex((index) => Math.max(0, index - 1))} disabled={previewIndex === 0} className={headerButton}><ChevronLeft size={14} /> Anterior</button><span className="text-xs font-bold text-main">{previewIndex + 1} / {slideCount}</span><button type="button" onClick={() => setPreviewIndex((index) => Math.min(slideCount - 1, index + 1))} disabled={previewIndex >= slideCount - 1} className={headerButton}>Siguiente <ChevronRight size={14} /></button></div>}
+          {format === "ppt" && (
+            <div className="flex items-center justify-center gap-4">
+              <button type="button" onClick={() => setPreviewIndex((index) => Math.max(0, index - 1))} disabled={previewIndex === 0} className={headerButton}><ChevronLeft size={14} /> Anterior</button>
+              <span className="text-xs font-bold text-main">{previewIndex + 1} / {slideCount}</span>
+              <button type="button" onClick={() => setPreviewIndex((index) => Math.min(slideCount - 1, index + 1))} disabled={previewIndex >= slideCount - 1} className={headerButton}>Siguiente <ChevronRight size={14} /></button>
+            </div>
+          )}
           <DirectVisualCanvasEditor data={result} pageIndex={previewIndex} onChange={(next) => persistResult(next)} />
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-soft px-3 py-2"><Link href="/creator-hub/projects" className={headerButton}><FolderOpen size={14} /> Proyectos</Link><CreatorHubUtilityBar format={format} data={result} accentColor={accentColor} designTemplateId={designTemplateId} title={projectTitle(format, result, meta.label)} /></div>
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-soft px-3 py-2">
+            <Link href="/creator-hub/projects" className={headerButton}><FolderOpen size={14} /> Proyectos</Link>
+            <CreatorHubUtilityBar format={format} data={result} accentColor={accentColor} designTemplateId={designTemplateId} title={projectTitle(format, result, meta.label)} />
+          </div>
         </main>
       )}
     </div>
