@@ -207,20 +207,6 @@ const AGENTS: AgentItem[] = [
     status: "active",
   },
   {
-    id: "admin-model-lab",
-    icon: "🛡️",
-    name: "Admin Model Lab",
-    description:
-      "Laboratorio aislado para modelos experimentales solo con rol administrador, auditoría y filtros.",
-    color: "from-slate-950 to-amber-700",
-    glow: "rgba(245,158,11,0.16)",
-    border: "rgba(245,158,11,0.24)",
-    href: "/admin/model-lab",
-    tag: "Admin",
-    status: "active",
-    ctaLabel: "Abrir laboratorio",
-  },
-  {
     id: "video-studio",
     icon: "🎬",
     name: "Video Studio",
@@ -231,8 +217,8 @@ const AGENTS: AgentItem[] = [
     border: "rgba(34,211,238,0.24)",
     href: "/video-studio",
     tag: "Creativo",
-    status: "active",
-    ctaLabel: "Abrir Video Studio",
+    status: "maintenance",
+    ctaLabel: "Temporalmente no disponible",
   },
   {
     id: "galeria",
@@ -286,7 +272,6 @@ const TAG_STYLES: Record<string, { bg: string; text: string; border: string }> =
   Comunidad: { bg: "rgba(245,158,11,0.1)", text: "#fcd34d", border: "rgba(245,158,11,0.2)" },
   Organización: { bg: "rgba(67,56,202,0.1)", text: "#a5b4fc", border: "rgba(67,56,202,0.2)" },
   General: { bg: "rgba(37,99,235,0.1)", text: "#93c5fd", border: "rgba(37,99,235,0.2)" },
-  Admin: { bg: "rgba(245,158,11,0.1)", text: "#fcd34d", border: "rgba(245,158,11,0.2)" },
 };
 
 function statusPill(status?: "active" | "maintenance") {
@@ -300,6 +285,70 @@ function statusPill(status?: "active" | "maintenance") {
     label: "Disponible",
     className: "bg-emerald-500/10 text-emerald-700 border border-emerald-400/20",
   };
+}
+
+function AgentCard({ agent }: { agent: AgentItem }) {
+  const tagStyle = TAG_STYLES[agent.tag] || TAG_STYLES.Creativo;
+  const state = statusPill(agent.status);
+  const maintenance = agent.status === "maintenance";
+
+  const content = (
+    <>
+      <div className="flex items-start justify-between gap-3">
+        <div className={`flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${agent.color} text-2xl shadow-lg transition-transform duration-200 group-hover:scale-105`}>
+          {agent.icon}
+        </div>
+        <div className="flex flex-col items-end gap-2">
+          <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold" style={{ background: tagStyle.bg, color: tagStyle.text, borderColor: tagStyle.border }}>{agent.tag}</span>
+          <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${state.className}`}>
+            {maintenance ? <span className="inline-flex items-center gap-1"><Wrench size={10} />{state.label}</span> : state.label}
+          </span>
+        </div>
+      </div>
+
+      <div className="flex-1">
+        <h3 className="mb-1.5 text-base font-semibold text-main">{agent.name}</h3>
+        <p className="text-sm leading-relaxed text-muted2">{agent.description}</p>
+      </div>
+
+      <div className={`flex items-center gap-1 text-xs font-medium ${maintenance ? "text-amber-700" : "text-muted2 group-hover:text-blue-400"}`}>
+        <span>{agent.ctaLabel || "Abrir agente"}</span>
+        {!maintenance && <ChevronRight size={13} className="transition-transform group-hover:translate-x-1" />}
+      </div>
+    </>
+  );
+
+  const className = "group relative flex flex-col gap-4 rounded-2xl border p-5 animate-fade-in";
+  const style = { background: "var(--bg-card-soft)", borderColor: "var(--bg-card-soft)" };
+
+  if (maintenance) {
+    return (
+      <div key={agent.id} aria-disabled="true" className={`${className} cursor-not-allowed opacity-75`} style={style}>
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <Link
+      key={agent.id}
+      href={agent.href}
+      className={`${className} transition-all duration-200 hover:scale-[1.02]`}
+      style={style}
+      onMouseEnter={(event) => {
+        event.currentTarget.style.background = agent.glow;
+        event.currentTarget.style.borderColor = agent.border;
+        event.currentTarget.style.boxShadow = `0 8px 32px ${agent.glow}`;
+      }}
+      onMouseLeave={(event) => {
+        event.currentTarget.style.background = "var(--bg-card-soft)";
+        event.currentTarget.style.borderColor = "var(--bg-card-soft)";
+        event.currentTarget.style.boxShadow = "none";
+      }}
+    >
+      {content}
+    </Link>
+  );
 }
 
 export default function AgentesPage() {
@@ -333,50 +382,7 @@ export default function AgentesPage() {
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 stagger">
-          {AGENTS.map((agent) => {
-            const tagStyle = TAG_STYLES[agent.tag] || TAG_STYLES.Creativo;
-            const state = statusPill(agent.status);
-            return (
-              <Link
-                key={agent.id}
-                href={agent.href}
-                className="group relative flex flex-col gap-4 rounded-2xl border p-5 transition-all duration-200 hover:scale-[1.02] animate-fade-in"
-                style={{ background: "var(--bg-card-soft)", borderColor: "var(--bg-card-soft)" }}
-                onMouseEnter={(event) => {
-                  event.currentTarget.style.background = agent.glow;
-                  event.currentTarget.style.borderColor = agent.border;
-                  event.currentTarget.style.boxShadow = `0 8px 32px ${agent.glow}`;
-                }}
-                onMouseLeave={(event) => {
-                  event.currentTarget.style.background = "var(--bg-card-soft)";
-                  event.currentTarget.style.borderColor = "var(--bg-card-soft)";
-                  event.currentTarget.style.boxShadow = "none";
-                }}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className={`flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${agent.color} text-2xl shadow-lg transition-transform duration-200 group-hover:scale-105`}>
-                    {agent.icon}
-                  </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold" style={{ background: tagStyle.bg, color: tagStyle.text, borderColor: tagStyle.border }}>{agent.tag}</span>
-                    <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${state.className}`}>
-                      {agent.status === "maintenance" ? <span className="inline-flex items-center gap-1"><Wrench size={10} />{state.label}</span> : state.label}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex-1">
-                  <h3 className="mb-1.5 text-base font-semibold text-main transition-colors group-hover:text-main">{agent.name}</h3>
-                  <p className="text-sm leading-relaxed text-muted2">{agent.description}</p>
-                </div>
-
-                <div className={`flex items-center gap-1 text-xs font-medium transition-colors ${agent.status === "maintenance" ? "text-amber-700 group-hover:text-amber-700" : "text-muted2 group-hover:text-blue-400"}`}>
-                  <span>{agent.ctaLabel || "Abrir agente"}</span>
-                  <ChevronRight size={13} className="transition-transform group-hover:translate-x-1" />
-                </div>
-              </Link>
-            );
-          })}
+          {AGENTS.map((agent) => <AgentCard key={agent.id} agent={agent} />)}
         </div>
       </div>
     </div>
