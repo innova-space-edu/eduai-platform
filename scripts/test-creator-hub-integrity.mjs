@@ -16,6 +16,7 @@ const requiredFiles = [
   "app/api/creator/quality-review/route.ts",
   "app/api/creator/transform/route.ts",
   "app/api/creator/comics/storyboard/route.ts",
+  "app/api/creator/comics/image/route.ts",
   "app/creator-hub/templates/page.tsx",
   "app/creator-hub/projects/[id]/page.tsx",
   "components/creator-hub/UniversalLayerEditor.tsx",
@@ -33,6 +34,7 @@ for (const file of requiredFiles) check(exists(file), `Falta el archivo requerid
 const proxy = read("proxy.ts")
 check(proxy.includes('pathname === "/api/process-content"'), "El proxy no protege /api/process-content")
 check(proxy.includes("SPECIALIZED_PROJECT_EDITORS"), "El proxy no dirige proyectos al editor universal")
+check(proxy.includes('"/api/creator/comics/image"'), "El proxy no reserva capacidad para el lote de historietas")
 
 const processRoute = read("app/api/process-content/route.ts")
 check(processRoute.includes("safeRemoteFetch"), "La generación por URL no usa protección SSRF")
@@ -87,9 +89,38 @@ check(canvasDownloads.includes("downloadCreatorCanvasAsPDF"), "El lienzo no se e
 check(canvasDownloads.includes("downloadCreatorCanvasAsPPTX"), "El lienzo no se exporta a PPTX")
 
 const comics = read("app/creator-hub/comics/page.tsx")
-check(comics.includes("generateAllImages"), "Cómics no permite generar todas las imágenes")
-check(comics.includes("visualDescription"), "Cómics no conserva ficha visual de personajes")
-check(comics.includes("imagePrompt"), "Cómics no usa prompts por viñeta")
+for (const feature of [
+  "generateAllImages",
+  "generateVisualBible",
+  "castImageUrl",
+  "referenceImageUrl",
+  "identityLocked",
+  "imageLocked",
+  "imageDirty",
+  "consistencyMode",
+  "runPool",
+]) {
+  check(comics.includes(feature), `Mangas e historietas no contiene la función ${feature}`)
+}
+
+const comicImageRoute = read("app/api/creator/comics/image/route.ts")
+for (const feature of [
+  "inlineData",
+  "castPrompt",
+  "individualCharacterPrompt",
+  "panelPrompt",
+  "preferredModel",
+  "referenceCount",
+  "generated-images",
+]) {
+  check(comicImageRoute.includes(feature), `El motor de consistencia visual no contiene ${feature}`)
+}
+check(comicImageRoute.includes("allowedReferenceHost"), "Las referencias visuales remotas no están restringidas al almacenamiento propio")
+
+const storyboard = read("app/api/creator/comics/storyboard/route.ts")
+for (const feature of ["fixedTraits", "outfit", "prohibitedChanges", "characterNames", "styleDirection"]) {
+  check(storyboard.includes(feature), `El storyboard no entrega ${feature}`)
+}
 
 const palette = read("components/ui/ColorPalette.tsx")
 check(palette.includes('type="color"'), "La paleta no incluye color personalizado")
