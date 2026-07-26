@@ -1,9 +1,10 @@
 /**
- * proxy.ts — EduAI Platform v5.4
+ * proxy.ts — EduAI Platform v5.5
  * ─────────────────────────────────────────────────────────────────────────────
  * v5.2: Protege las APIs de Creator Hub y limita el análisis de videos.
  * v5.3: Protege también /api/process-content, usado por todos los creadores.
  * v5.4: Reabre proyectos guardados en el editor universal por capas.
+ * v5.5: Reserva capacidad para generar el elenco y las viñetas de una historieta.
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
@@ -36,10 +37,11 @@ const RATE_LIMITS: Record<string, { limit: number; windowSecs: number }> = {
   "/api/agents/tts-chunk":     { limit: 40, windowSecs: 60 },
   "/api/superagent/chat":      { limit: 25, windowSecs: 60 },
   "/api/creator/video-summary": { limit: 6, windowSecs: 60 },
+  "/api/creator/comics/image":  { limit: 24, windowSecs: 60 },
   "/api/process-content":       { limit: 8, windowSecs: 60 },
-  "/api/exam-security/event":  { limit: 60, windowSecs: 60 },
-  "__default_agents__":        { limit: 20, windowSecs: 60 },
-  "__default_creator__":       { limit: 10, windowSecs: 60 },
+  "/api/exam-security/event":   { limit: 60, windowSecs: 60 },
+  "__default_agents__":         { limit: 20, windowSecs: 60 },
+  "__default_creator__":        { limit: 10, windowSecs: 60 },
 }
 
 async function checkRateLimit(

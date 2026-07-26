@@ -3,18 +3,57 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
-import { ArrowDown, ArrowLeft, ArrowUp, CheckCircle2, Copy, Download, Eye, EyeOff, ImagePlus, LoaderCircle, Lock, Plus, QrCode, RefreshCw, Sparkles, Trash2, Unlock } from "lucide-react"
+import {
+  ArrowDown,
+  ArrowLeft,
+  ArrowUp,
+  Check,
+  CheckCircle2,
+  Copy,
+  Download,
+  Eye,
+  EyeOff,
+  ImagePlus,
+  Images,
+  LoaderCircle,
+  Lock,
+  Plus,
+  QrCode,
+  RefreshCw,
+  ShieldCheck,
+  Sparkles,
+  Trash2,
+  Unlock,
+  UserRound,
+  WandSparkles,
+} from "lucide-react"
 import ColorPalette from "@/components/ui/ColorPalette"
 import { downloadRenderedAsImage } from "@/lib/creator-downloads"
-import { loadCloudCreatorHubProject, saveCreatorHubProject, updateCreatorHubProject } from "@/components/creator-hub/project-store"
+import {
+  loadCloudCreatorHubProject,
+  saveCreatorHubProject,
+  updateCreatorHubProject,
+} from "@/components/creator-hub/project-store"
 
 type ComicStyle = "manga" | "western" | "webtoon" | "child"
+type ConsistencyMode = "basic" | "high" | "strict"
 
 type Character = {
   id: string
   name: string
   description: string
   visualDescription: string
+  fixedTraits: string
+  outfit: string
+  accessories: string
+  prohibitedChanges: string
+  identityLocked: boolean
+  referenceImageUrl?: string
+  referenceProvider?: string
+  referenceModel?: string
+  referenceLoading?: boolean
+  referenceError?: string
+  referenceStale?: boolean
 }
 
 type Panel = {
@@ -24,12 +63,37 @@ type Panel = {
   dialogue: string
   shot: string
   imagePrompt: string
+  emotion: string
+  background: string
+  characterIds: string[]
   imageUrl?: string
   provider?: string
+  model?: string
+  referenceCount?: number
   loading?: boolean
   error?: string
   hidden?: boolean
   locked?: boolean
+  imageLocked?: boolean
+  imageDirty?: boolean
+}
+
+type VisualBible = {
+  castImageUrl?: string
+  provider?: string
+  model?: string
+  generatedAt?: string
+  locked: boolean
+  stale: boolean
+  loading?: boolean
+  error?: string
+}
+
+type BatchProgress = {
+  stage: "storyboard" | "cast" | "characters" | "panels"
+  done: number
+  total: number
+  current: string
 }
 
 const STYLES: Array<{ id: ComicStyle; label: string; icon: string; description: string }> = [
@@ -39,43 +103,112 @@ const STYLES: Array<{ id: ComicStyle; label: string; icon: string; description: 
   { id: "child", label: "Cómic infantil", icon: "🧒", description: "Visual simple y amigable" },
 ]
 
-const VISUAL_STYLE: Record<ComicStyle, string> = {
-  manga: "black and white manga panel, precise ink line art, screentone shading, expressive faces, cinematic composition",
-  western: "colorful western comic-book panel, clean outlines, dynamic action, polished digital illustration",
-  webtoon: "modern Korean webtoon panel, clean digital illustration, vertical-friendly composition, polished colors",
-  child: "friendly children's educational comic panel, simple readable shapes, warm colorful illustration",
-}
+const CONSISTENCY_MODES: Array<{ id: ConsistencyMode; label: string; description: string }> = [
+  { id: "basic", label: "Básica", description: "Usa la ficha general de personajes." },
+  { id: "high", label: "Alta", description: "Usa ficha general y referencia individual." },
+  { id: "strict", label: "Estrica", description: "Añade referencias de viñetas cercanas al regenerar." },
+]
 
-const API_STYLE: Record<ComicStyle, string> = {
-  manga: "anime",
-  western: "digital art",
-  webtoon: "anime",
-  child: "educational",
+const DEFAULT_STYLE_DIRECTION: Record<ComicStyle, string> = {
+  manga: "Tinta negra limpia, screentones controlados, fondos detallados y expresiones claras. Mantener la misma proporción de cabeza y cuerpo en toda la obra.",
+  western: "Color digital equilibrado, contornos limpios, sombreado cel y composición clásica de historieta educativa.",
+  webtoon: "Color digital limpio, luz suave, fondos verticales continuos y personajes con siluetas muy reconocibles.",
+  child: "Formas simples, colores cálidos, fondos claros, expresiones amigables y lectura visual inmediata.",
 }
 
 function uid(prefix: string) {
-  return typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 }
 
-function fallbackPanels(topic: string): Panel[] {
+function blankCharacter(index = 1): Character {
+  return {
+    id: uid("character"),
+    name: `Personaje ${index}`,
+    description: "Rol dentro de la historia.",
+    visualDescription: "Describe edad aparente, rostro, cabello o pelaje, ojos, proporciones y expresión base.",
+    fixedTraits: "Rasgos físicos que no pueden cambiar.",
+    outfit: "Ropa, calzado y colores exactos para toda la historieta.",
+    accessories: "Accesorios permanentes.",
+    prohibitedChanges: "No cambiar rostro, edad, ropa, colores ni accesorios.",
+    identityLocked: false,
+    referenceStale: true,
+  }
+}
+
+function normalizeCharacter(value: any, index: number): Character {
+  return {
+    id: value?.id || uid("character"),
+    name: value?.name || `Personaje ${index + 1}`,
+    description: value?.description || "",
+    visualDescription: value?.visualDescription || value?.description || "",
+    fixedTraits: value?.fixedTraits || "",
+    outfit: value?.outfit || "",
+    accessories: value?.accessories || "",
+    prohibitedChanges: value?.prohibitedChanges || "",
+    identityLocked: value?.identityLocked === true,
+    referenceImageUrl: value?.referenceImageUrl,
+    referenceProvider: value?.referenceProvider,
+    referenceModel: value?.referenceModel,
+    referenceLoading: false,
+    referenceError: "",
+    referenceStale: value?.referenceStale !== false,
+  }
+}
+
+function normalizePanel(value: any, index: number, characters: Character[]): Panel {
+  const knownIds = new Set(characters.map((character) => character.id))
+  const ids = Array.isArray(value?.characterIds)
+    ? value.characterIds.filter((id: unknown) => typeof id === "string" && knownIds.has(id))
+    : []
+  return {
+    id: value?.id || uid("panel"),
+    title: value?.title || `Viñeta ${index + 1}`,
+    scene: value?.scene || "",
+    dialogue: value?.dialogue || "",
+    shot: value?.shot || "plano medio",
+    imagePrompt: value?.imagePrompt || value?.scene || "",
+    emotion: value?.emotion || "",
+    background: value?.background || "",
+    characterIds: ids.length ? ids : characters.slice(0, 2).map((character) => character.id),
+    imageUrl: value?.imageUrl,
+    provider: value?.provider,
+    model: value?.model,
+    referenceCount: value?.referenceCount,
+    loading: false,
+    error: "",
+    hidden: value?.hidden === true,
+    locked: value?.locked === true,
+    imageLocked: value?.imageLocked === true,
+    imageDirty: value?.imageDirty === true || !value?.imageUrl,
+  }
+}
+
+function fallbackPanels(topic: string, characters: Character[]): Panel[] {
   const subject = topic.trim() || "el tema elegido"
   const base = [
-    ["Inicio", `Presenta el lugar, a los personajes y el contexto de ${subject}.`, "Algo extraño está ocurriendo. ¿Lo investigamos?", "plano general"],
-    ["Pregunta", `El protagonista descubre un desafío o pregunta central relacionada con ${subject}.`, "Antes de decidir, necesitamos entender el problema.", "plano medio"],
-    ["Exploración", `Los personajes observan evidencias y comparan explicaciones sobre ${subject}.`, "Mira esta evidencia; cambia lo que pensábamos.", "plano detalle"],
-    ["Explicación", `La guía explica el concepto principal mediante un ejemplo visual y cotidiano.`, "Ahora puedo relacionarlo con algo de la vida real.", "plano conjunto"],
-    ["Resolución", `Los personajes aplican lo aprendido para resolver el desafío inicial.`, "La solución funciona porque usamos la evidencia correcta.", "plano dinámico"],
-    ["Cierre", `La historia termina con una conclusión y una reflexión sobre ${subject}.`, "Comprender el tema nos ayuda a tomar mejores decisiones.", "plano final"],
+    ["Inicio", `Presenta el lugar, a los personajes y el contexto de ${subject}.`, "Algo extraño está ocurriendo. ¿Lo investigamos?", "plano general", "curiosidad"],
+    ["Pregunta", `El protagonista descubre un desafío o pregunta central relacionada con ${subject}.`, "Antes de decidir, necesitamos entender el problema.", "plano medio", "sorpresa"],
+    ["Exploración", `Los personajes observan evidencias y comparan explicaciones sobre ${subject}.`, "Mira esta evidencia; cambia lo que pensábamos.", "plano detalle", "concentración"],
+    ["Explicación", "La guía explica el concepto principal mediante un ejemplo visual y cotidiano.", "Ahora puedo relacionarlo con algo de la vida real.", "plano conjunto", "comprensión"],
+    ["Resolución", "Los personajes aplican lo aprendido para resolver el desafío inicial.", "La solución funciona porque usamos la evidencia correcta.", "plano dinámico", "entusiasmo"],
+    ["Cierre", `La historia termina con una conclusión y una reflexión sobre ${subject}.`, "Comprender el tema nos ayuda a tomar mejores decisiones.", "plano final", "satisfacción"],
   ]
-  return base.map(([title, scene, dialogue, shot]) => ({
+  return base.map(([panelTitle, scene, dialogue, shot, emotion]) => ({
     id: uid("panel"),
-    title,
+    title: panelTitle,
     scene,
     dialogue,
     shot,
-    imagePrompt: `${scene} ${shot}.`,
+    emotion,
+    background: "Ambiente coherente con la escena anterior.",
+    imagePrompt: scene,
+    characterIds: characters.slice(0, 2).map((character) => character.id),
     hidden: false,
     locked: false,
+    imageLocked: false,
+    imageDirty: true,
   }))
 }
 
@@ -88,6 +221,28 @@ function moveItem<T>(items: T[], index: number, direction: -1 | 1) {
   return next
 }
 
+async function runPool<T>(items: T[], concurrency: number, worker: (item: T, index: number) => Promise<void>) {
+  let cursor = 0
+  const runners = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+    while (cursor < items.length) {
+      const index = cursor
+      cursor += 1
+      await worker(items[index], index)
+    }
+  })
+  await Promise.all(runners)
+}
+
+function stripTransientCharacter(character: Character) {
+  const { referenceLoading: _loading, referenceError: _error, ...rest } = character
+  return rest
+}
+
+function stripTransientPanel(panel: Panel) {
+  const { loading: _loading, error: _error, ...rest } = panel
+  return rest
+}
+
 export default function ComicsCreatorPage() {
   const searchParams = useSearchParams()
   const requestedProjectId = searchParams.get("project")
@@ -97,34 +252,63 @@ export default function ComicsCreatorPage() {
   const [audience, setAudience] = useState("Estudiantes de enseñanza media")
   const [educationalGoal, setEducationalGoal] = useState("")
   const [style, setStyle] = useState<ComicStyle>("manga")
+  const [styleDirection, setStyleDirection] = useState(DEFAULT_STYLE_DIRECTION.manga)
+  const [consistencyMode, setConsistencyMode] = useState<ConsistencyMode>("high")
   const [panelCount, setPanelCount] = useState(6)
-  const [accentColor, setAccentColor] = useState("#ec4899")
+  const [accentColor, setAccentColor] = useState("#a45135")
   const [characters, setCharacters] = useState<Character[]>([
-    { id: uid("character"), name: "Protagonista", description: "Estudiante curioso que formula preguntas y busca evidencias.", visualDescription: "Adolescente de cabello oscuro, mochila azul y expresión curiosa." },
-    { id: uid("character"), name: "Guía", description: "Personaje que acompaña el aprendizaje con ejemplos claros.", visualDescription: "Persona adulta de cabello corto, chaqueta clara y cuaderno en la mano." },
+    {
+      ...blankCharacter(1),
+      name: "Protagonista",
+      description: "Estudiante curioso que formula preguntas y busca evidencias.",
+      visualDescription: "Adolescente de cabello oscuro, ojos marrones grandes y expresión curiosa.",
+      fixedTraits: "Rostro juvenil ovalado, cabello oscuro corto y ojos marrones grandes.",
+      outfit: "Uniforme escolar blanco y azul, zapatillas oscuras y mochila azul.",
+      accessories: "Mochila azul.",
+      prohibitedChanges: "No cambiar edad, rostro, cabello, uniforme, mochila ni colores.",
+    },
+    {
+      ...blankCharacter(2),
+      name: "Guía",
+      description: "Personaje que acompaña el aprendizaje con ejemplos claros.",
+      visualDescription: "Persona adulta de cabello corto, expresión amable y postura de docente.",
+      fixedTraits: "Rostro adulto amable, cabello corto y postura segura.",
+      outfit: "Chaqueta clara, camisa azul y pantalón oscuro.",
+      accessories: "Cuaderno en la mano.",
+      prohibitedChanges: "No cambiar rostro, cabello, chaqueta, camisa, cuaderno ni colores.",
+    },
   ])
   const [panels, setPanels] = useState<Panel[]>([])
+  const [visualBible, setVisualBible] = useState<VisualBible>({ locked: false, stale: true })
   const [projectId, setProjectId] = useState<string | null>(null)
   const [generatingStoryboard, setGeneratingStoryboard] = useState(false)
   const [generatingAll, setGeneratingAll] = useState(false)
   const [error, setError] = useState("")
   const [message, setMessage] = useState("")
   const [copied, setCopied] = useState(false)
+  const [progress, setProgress] = useState<BatchProgress | null>(null)
   const hydratedRef = useRef(false)
 
   const project = useMemo(() => ({
-    version: "comics-layered-v3",
+    version: "comics-consistent-v4",
     title,
     summary,
     topic,
     audience,
     educationalGoal,
     style,
+    styleDirection,
+    consistencyMode,
     panelCount,
     accentColor,
-    characters,
-    panels,
-  }), [accentColor, audience, characters, educationalGoal, panelCount, panels, style, summary, title, topic])
+    characters: characters.map(stripTransientCharacter),
+    panels: panels.map(stripTransientPanel),
+    visualBible: {
+      ...visualBible,
+      loading: false,
+      error: "",
+    },
+  }), [accentColor, audience, characters, consistencyMode, educationalGoal, panelCount, panels, style, styleDirection, summary, title, topic, visualBible])
 
   useEffect(() => {
     if (!requestedProjectId || hydratedRef.current) return
@@ -132,6 +316,10 @@ export default function ComicsCreatorPage() {
     void loadCloudCreatorHubProject(requestedProjectId).then((saved) => {
       if (!saved || saved.format !== "comic" || !saved.data || typeof saved.data !== "object") return
       const data = saved.data as any
+      const restoredCharacters = Array.isArray(data.characters)
+        ? data.characters.map(normalizeCharacter)
+        : []
+      const safeCharacters = restoredCharacters.length ? restoredCharacters : [blankCharacter(1), blankCharacter(2)]
       setProjectId(saved.id)
       setTitle(data.title || saved.title)
       setSummary(data.summary || "")
@@ -139,11 +327,23 @@ export default function ComicsCreatorPage() {
       setAudience(data.audience || "Estudiantes")
       setEducationalGoal(data.educationalGoal || "")
       setStyle(data.style || "manga")
+      setStyleDirection(data.styleDirection || DEFAULT_STYLE_DIRECTION[data.style as ComicStyle] || DEFAULT_STYLE_DIRECTION.manga)
+      setConsistencyMode(data.consistencyMode || "high")
       setPanelCount(Number(data.panelCount) || 6)
-      setAccentColor(data.accentColor || saved.accentColor || "#ec4899")
-      setCharacters(Array.isArray(data.characters) ? data.characters : [])
-      setPanels(Array.isArray(data.panels) ? data.panels : [])
-      setMessage("Proyecto reabierto. Puedes continuar editándolo.")
+      setAccentColor(data.accentColor || saved.accentColor || "#a45135")
+      setCharacters(safeCharacters)
+      setPanels(Array.isArray(data.panels) ? data.panels.map((panel: any, index: number) => normalizePanel(panel, index, safeCharacters)) : [])
+      setVisualBible({
+        castImageUrl: data.visualBible?.castImageUrl,
+        provider: data.visualBible?.provider,
+        model: data.visualBible?.model,
+        generatedAt: data.visualBible?.generatedAt,
+        locked: data.visualBible?.locked === true,
+        stale: data.visualBible?.stale !== false,
+        loading: false,
+        error: "",
+      })
+      setMessage("Proyecto reabierto.")
     })
   }, [requestedProjectId])
 
@@ -170,114 +370,373 @@ export default function ComicsCreatorPage() {
     return saved?.id || null
   }
 
-  const generateStoryboard = async () => {
-    if (!topic.trim()) {
-      setError("Describe primero el tema o la historia.")
-      return
+  const commonImagePayload = (nextCharacters: Character[]) => ({
+    title,
+    topic,
+    audience,
+    educationalGoal,
+    style,
+    styleDirection,
+    consistencyMode,
+    characters: nextCharacters.map(stripTransientCharacter),
+  })
+
+  const updateStyle = (nextStyle: ComicStyle) => {
+    setStyle(nextStyle)
+    setStyleDirection(DEFAULT_STYLE_DIRECTION[nextStyle])
+    if (!visualBible.locked) setVisualBible((current) => ({ ...current, stale: true }))
+    setCharacters((current) => current.map((character) => character.identityLocked ? character : { ...character, referenceStale: true }))
+    setPanels((current) => current.map((panel) => panel.imageLocked ? panel : { ...panel, imageDirty: true }))
+  }
+
+  const updateCharacter = (id: string, field: keyof Character, value: string | boolean) => {
+    const identityFields: Array<keyof Character> = [
+      "name",
+      "visualDescription",
+      "fixedTraits",
+      "outfit",
+      "accessories",
+      "prohibitedChanges",
+    ]
+    setCharacters((current) => current.map((character) => {
+      if (character.id !== id) return character
+      const next = { ...character, [field]: value }
+      if (identityFields.includes(field)) next.referenceStale = true
+      return next
+    }))
+    if (identityFields.includes(field) && !visualBible.locked) {
+      setVisualBible((current) => ({ ...current, stale: true }))
+      setPanels((current) => current.map((panel) => panel.imageLocked ? panel : { ...panel, imageDirty: true }))
     }
-    setGeneratingStoryboard(true)
+  }
+
+  const updatePanel = (id: string, patch: Partial<Panel>, visualChange = false) => {
+    setPanels((current) => current.map((panel) => panel.id === id
+      ? { ...panel, ...patch, imageDirty: visualChange && !panel.imageLocked ? true : panel.imageDirty }
+      : panel))
+  }
+
+  const requestStoryboard = async () => {
+    if (!topic.trim()) throw new Error("Describe primero el tema o la historia.")
+    setProgress({ stage: "storyboard", done: 0, total: 1, current: "Construyendo la historia" })
+    const response = await fetch("/api/creator/comics/storyboard", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        topic,
+        audience,
+        educationalGoal,
+        style,
+        panelCount,
+        characters: characters.map(stripTransientCharacter),
+      }),
+    })
+    const payload = await response.json().catch(() => ({}))
+    if (!response.ok || !payload?.storyboard) throw new Error(payload?.error || "No fue posible generar el storyboard.")
+
+    const storyboard = payload.storyboard
+    const generatedCharacters = Array.isArray(storyboard.characters) ? storyboard.characters : []
+    const nextCharacters = generatedCharacters.map((generated: any, index: number) => {
+      const existing = characters.find((character) => character.name.trim().toLowerCase() === String(generated.name || "").trim().toLowerCase())
+      if (existing?.identityLocked) return existing
+      return normalizeCharacter({
+        ...generated,
+        id: existing?.id || uid("character"),
+        identityLocked: existing?.identityLocked || false,
+        referenceImageUrl: existing?.referenceImageUrl,
+        referenceProvider: existing?.referenceProvider,
+        referenceModel: existing?.referenceModel,
+        referenceStale: true,
+      }, index)
+    })
+    const safeCharacters = nextCharacters.length ? nextCharacters : characters
+    const nameToId = new Map(safeCharacters.map((character) => [character.name.trim().toLowerCase(), character.id]))
+    const nextPanels = Array.isArray(storyboard.panels)
+      ? storyboard.panels.map((panel: any, index: number) => normalizePanel({
+          ...panel,
+          id: uid("panel"),
+          characterIds: Array.isArray(panel.characterNames)
+            ? panel.characterNames.map((name: unknown) => nameToId.get(String(name).trim().toLowerCase())).filter(Boolean)
+            : [],
+          imageDirty: true,
+        }, index, safeCharacters))
+      : fallbackPanels(topic, safeCharacters)
+
+    const nextTitle = storyboard.title || title
+    const nextSummary = storyboard.summary || ""
+    const nextStyleDirection = storyboard.styleDirection || styleDirection
+    setTitle(nextTitle)
+    setSummary(nextSummary)
+    setStyleDirection(nextStyleDirection)
+    setCharacters(safeCharacters)
+    setPanels(nextPanels)
+    if (!visualBible.locked) setVisualBible((current) => ({ ...current, stale: true }))
+    setProgress({ stage: "storyboard", done: 1, total: 1, current: "Storyboard listo" })
+
+    return {
+      title: nextTitle,
+      summary: nextSummary,
+      styleDirection: nextStyleDirection,
+      characters: safeCharacters,
+      panels: nextPanels,
+    }
+  }
+
+  const generateCastReference = async (nextCharacters: Character[], force = false) => {
+    if (visualBible.castImageUrl && visualBible.locked && !force) return visualBible
+    if (visualBible.castImageUrl && !visualBible.stale && !force) return visualBible
+
+    setVisualBible((current) => ({ ...current, loading: true, error: "" }))
+    setProgress({ stage: "cast", done: 0, total: 1, current: "Creando la biblia visual" })
+    const response = await fetch("/api/creator/comics/image", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "cast",
+        ...commonImagePayload(nextCharacters),
+        preferredModel: visualBible.model || "",
+      }),
+    })
+    const payload = await response.json().catch(() => ({}))
+    if (!response.ok || !payload?.imageUrl) throw new Error(payload?.error || "No fue posible crear la biblia visual.")
+    const nextBible: VisualBible = {
+      castImageUrl: payload.imageUrl,
+      provider: payload.provider,
+      model: payload.model,
+      generatedAt: new Date().toISOString(),
+      locked: visualBible.locked,
+      stale: false,
+      loading: false,
+      error: "",
+    }
+    setVisualBible(nextBible)
+    setProgress({ stage: "cast", done: 1, total: 1, current: "Biblia visual lista" })
+    return nextBible
+  }
+
+  const requestCharacterReference = async (
+    character: Character,
+    castImageUrl: string,
+    preferredModel: string,
+  ) => {
+    const response = await fetch("/api/creator/comics/image", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "character",
+        ...commonImagePayload(characters),
+        characters: characters.map(stripTransientCharacter),
+        characterId: character.id,
+        castImageUrl,
+        preferredModel,
+      }),
+    })
+    const payload = await response.json().catch(() => ({}))
+    if (!response.ok || !payload?.imageUrl) throw new Error(payload?.error || `No fue posible crear la referencia de ${character.name}.`)
+    return {
+      ...character,
+      referenceImageUrl: payload.imageUrl,
+      referenceProvider: payload.provider,
+      referenceModel: payload.model,
+      referenceLoading: false,
+      referenceError: "",
+      referenceStale: false,
+    }
+  }
+
+  const generateVisualBible = async (sourceCharacters: Character[], force = false) => {
+    const bible = await generateCastReference(sourceCharacters, force)
+    const castImageUrl = bible.castImageUrl || ""
+    if (!castImageUrl) throw new Error("La biblia visual no contiene una imagen de referencia.")
+
+    const targets = sourceCharacters.filter((character) => !character.identityLocked && (force || !character.referenceImageUrl || character.referenceStale))
+    if (!targets.length) return { bible, characters: sourceCharacters }
+
+    setProgress({ stage: "characters", done: 0, total: targets.length, current: "Preparando personajes" })
+    setCharacters((current) => current.map((character) => targets.some((target) => target.id === character.id) ? { ...character, referenceLoading: true, referenceError: "" } : character))
+    const generated = new Map<string, Character>()
+    let completed = 0
+    await runPool(targets, 3, async (character) => {
+      try {
+        const updated = await requestCharacterReference(character, castImageUrl, bible.model || "")
+        generated.set(character.id, updated)
+      } catch (reason) {
+        generated.set(character.id, {
+          ...character,
+          referenceLoading: false,
+          referenceError: reason instanceof Error ? reason.message : "Falló la referencia visual.",
+          referenceStale: true,
+        })
+      } finally {
+        completed += 1
+        setProgress({ stage: "characters", done: completed, total: targets.length, current: character.name })
+      }
+    })
+    const nextCharacters = sourceCharacters.map((character) => generated.get(character.id) || character)
+    setCharacters(nextCharacters)
+    return { bible, characters: nextCharacters }
+  }
+
+  const generateOneCharacterReference = async (character: Character) => {
+    if (character.referenceLoading) return
     setError("")
-    setMessage("")
     try {
-      const response = await fetch("/api/creator/comics/storyboard", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic, audience, educationalGoal, style, panelCount, characters }),
-      })
-      const payload = await response.json().catch(() => ({}))
-      if (!response.ok || !payload?.storyboard) throw new Error(payload?.error || "No fue posible generar el storyboard.")
-      const storyboard = payload.storyboard
-      const nextCharacters = Array.isArray(storyboard.characters)
-        ? storyboard.characters.map((character: any) => ({ id: uid("character"), name: character.name || "Personaje", description: character.description || "", visualDescription: character.visualDescription || character.description || "" }))
-        : characters
-      const nextPanels = Array.isArray(storyboard.panels)
-        ? storyboard.panels.map((panel: any) => ({ id: uid("panel"), title: panel.title || "Viñeta", scene: panel.scene || "", dialogue: panel.dialogue || "", shot: panel.shot || "", imagePrompt: panel.imagePrompt || panel.scene || "", hidden: false, locked: false }))
-        : fallbackPanels(topic)
-      setTitle(storyboard.title || title)
-      setSummary(storyboard.summary || "")
-      setCharacters(nextCharacters)
-      setPanels(nextPanels)
-      const nextProject = { ...project, title: storyboard.title || title, summary: storyboard.summary || "", characters: nextCharacters, panels: nextPanels }
-      ensureProject(nextProject)
-      setMessage("Storyboard creado. Ahora puedes editar cada capa y generar las imágenes.")
+      const { bible } = await generateVisualBible(characters, false)
+      setCharacters((current) => current.map((item) => item.id === character.id ? { ...item, referenceLoading: true, referenceError: "" } : item))
+      const updated = await requestCharacterReference(character, bible.castImageUrl || "", bible.model || "")
+      setCharacters((current) => current.map((item) => item.id === character.id ? updated : item))
+      setMessage(`Referencia visual de ${character.name} actualizada.`)
     } catch (reason) {
-      const fallback = fallbackPanels(topic)
-      setPanels(fallback)
-      ensureProject({ ...project, panels: fallback })
-      setError(`${reason instanceof Error ? reason.message : "Falló la IA."} Se creó una estructura local para que puedas continuar.`)
+      setCharacters((current) => current.map((item) => item.id === character.id ? { ...item, referenceLoading: false, referenceError: reason instanceof Error ? reason.message : "Falló la referencia." } : item))
+      setError(reason instanceof Error ? reason.message : "No fue posible generar la referencia visual.")
     } finally {
-      setGeneratingStoryboard(false)
+      setProgress(null)
     }
   }
 
-  const buildImagePrompt = (panel: Panel, index: number) => {
-    const cast = characters
-      .filter((character) => character.name.trim())
-      .map((character) => `${character.name}: ${character.visualDescription || character.description}`)
-      .join(" | ")
-    const storyContext = panels.map((item, itemIndex) => `${itemIndex + 1}. ${item.title}: ${item.scene}`).join(" ")
-    return [
-      `Create panel ${index + 1} of one coherent educational comic titled "${title}" about ${topic}.`,
-      `Complete story continuity: ${storyContext}`,
-      `Current panel: ${panel.title}. Scene: ${panel.scene}. Shot: ${panel.shot}. Detailed visual instruction: ${panel.imagePrompt}.`,
-      `Character model sheet, identical in every panel: ${cast}. Do not change clothing, hair, face, colors, age or accessories.`,
-      `Style: ${VISUAL_STYLE[style]}. Audience: ${audience}.`,
-      educationalGoal ? `Educational objective: ${educationalGoal}.` : "",
-      `Continuity key: EDUAI-${projectId || "comic"}-${characters.map((character) => character.name).join("-")}.`,
-      "One single comic panel, no written words, no captions, no speech bubbles, no watermark. Leave clear negative space for an editable dialogue bubble.",
-    ].filter(Boolean).join(" ")
-  }
-
-  const generatePanelImage = async (panel: Panel, index: number) => {
-    if (panel.loading) return false
+  const generatePanelImage = async (
+    panel: Panel,
+    index: number,
+    sourcePanels = panels,
+    sourceCharacters = characters,
+    bible = visualBible,
+    force = false,
+  ) => {
+    if (panel.loading || panel.imageLocked) return false
+    if (!force && panel.imageUrl && !panel.imageDirty) return true
     setPanels((current) => current.map((item) => item.id === panel.id ? { ...item, loading: true, error: "" } : item))
     try {
-      const vertical = style === "webtoon"
-      const response = await fetch("/api/agents/imagenes", {
+      const neighborImages = [sourcePanels[index - 1]?.imageUrl, sourcePanels[index + 1]?.imageUrl].filter(Boolean)
+      const response = await fetch("/api/creator/comics/image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: buildImagePrompt(panel, index),
-          customPrompt: buildImagePrompt(panel, index),
-          style: API_STYLE[style],
-          width: vertical ? 768 : 1024,
-          height: vertical ? 1152 : 768,
-          provider: "auto",
-          mode: "quality",
-          source: "comic_panel",
-          topic: topic.trim() || title,
-          educationalContext: `${audience}. ${educationalGoal}. Panel ${index + 1}: ${panel.scene}`,
+          action: "panel",
+          ...commonImagePayload(sourceCharacters),
+          characters: sourceCharacters.map(stripTransientCharacter),
+          panel: stripTransientPanel(panel),
+          panels: sourcePanels.map(stripTransientPanel),
+          panelIndex: index,
+          castImageUrl: bible.castImageUrl || "",
+          neighborImages,
+          preferredModel: bible.model || "",
         }),
       })
       const payload = await response.json().catch(() => ({}))
-      if (!response.ok || !payload?.imageUrl) throw new Error(payload?.error || "Ningún motor de imagen quedó disponible.")
-      setPanels((current) => current.map((item) => item.id === panel.id ? { ...item, imageUrl: payload.imageUrl, provider: payload.model ? `${payload.provider} · ${payload.model}` : payload.provider, loading: false, error: "" } : item))
+      if (!response.ok || !payload?.imageUrl) throw new Error(payload?.error || "No fue posible generar esta viñeta.")
+      setPanels((current) => current.map((item) => item.id === panel.id ? {
+        ...item,
+        imageUrl: payload.imageUrl,
+        provider: payload.provider,
+        model: payload.model,
+        referenceCount: payload.referenceCount,
+        loading: false,
+        error: "",
+        imageDirty: false,
+      } : item))
       return true
     } catch (reason) {
-      setPanels((current) => current.map((item) => item.id === panel.id ? { ...item, loading: false, error: reason instanceof Error ? reason.message : "No fue posible generar la imagen." } : item))
+      setPanels((current) => current.map((item) => item.id === panel.id ? {
+        ...item,
+        loading: false,
+        error: reason instanceof Error ? reason.message : "No fue posible generar la imagen.",
+      } : item))
       return false
     }
   }
 
-  const generateAllImages = async () => {
-    if (!panels.length || generatingAll) return
-    setGeneratingAll(true)
-    setMessage("Generando imágenes en orden para mantener la continuidad visual...")
-    for (let index = 0; index < panels.length; index += 1) {
-      const panel = panels[index]
-      if (panel.hidden || panel.imageUrl) continue
-      await generatePanelImage(panel, index)
+  const generatePanelsBatch = async (
+    sourcePanels: Panel[],
+    sourceCharacters: Character[],
+    bible: VisualBible,
+    force = false,
+  ) => {
+    const targets = sourcePanels
+      .map((panel, index) => ({ panel, index }))
+      .filter(({ panel }) => !panel.hidden && !panel.imageLocked && (force || !panel.imageUrl || panel.imageDirty))
+    if (!targets.length) {
+      setMessage("Las imágenes visibles ya están actualizadas o bloqueadas.")
+      return
     }
+
+    setGeneratingAll(true)
+    let completed = 0
+    setProgress({ stage: "panels", done: 0, total: targets.length, current: "Generando viñetas" })
+    await runPool(targets, 3, async ({ panel, index }) => {
+      await generatePanelImage(panel, index, sourcePanels, sourceCharacters, bible, force)
+      completed += 1
+      setProgress({ stage: "panels", done: completed, total: targets.length, current: panel.title })
+    })
     setGeneratingAll(false)
-    setMessage("Proceso de imágenes terminado. Revisa cada viñeta y regenera las que necesites.")
+    setProgress(null)
+    setMessage("Generación terminada. Todas las viñetas usaron la misma biblia visual y el mismo modelo principal.")
   }
 
-  const updateCharacter = (id: string, field: keyof Omit<Character, "id">, value: string) => {
-    setCharacters((current) => current.map((character) => character.id === id ? { ...character, [field]: value } : character))
+  const generateAllImages = async (force = false) => {
+    if (!panels.length || generatingAll) return
+    setError("")
+    setMessage("")
+    try {
+      const identityPack = await generateVisualBible(characters, false)
+      await generatePanelsBatch(panels, identityPack.characters, identityPack.bible, force)
+    } catch (reason) {
+      setGeneratingAll(false)
+      setProgress(null)
+      setError(reason instanceof Error ? reason.message : "No fue posible generar la historieta completa.")
+    }
   }
 
-  const updatePanel = (id: string, patch: Partial<Panel>) => {
-    setPanels((current) => current.map((panel) => panel.id === id ? { ...panel, ...patch } : panel))
+  const generateStoryboardOnly = async () => {
+    setGeneratingStoryboard(true)
+    setError("")
+    setMessage("")
+    try {
+      const generated = await requestStoryboard()
+      ensureProject({
+        ...project,
+        title: generated.title,
+        summary: generated.summary,
+        styleDirection: generated.styleDirection,
+        characters: generated.characters.map(stripTransientCharacter),
+        panels: generated.panels.map(stripTransientPanel),
+      })
+      setMessage("Storyboard creado. Revisa las escenas o genera la historieta completa.")
+    } catch (reason) {
+      const fallback = fallbackPanels(topic, characters)
+      setPanels(fallback)
+      ensureProject({ ...project, panels: fallback.map(stripTransientPanel) })
+      setError(`${reason instanceof Error ? reason.message : "Falló la IA."} Se creó una estructura local para continuar.`)
+    } finally {
+      setGeneratingStoryboard(false)
+      setProgress(null)
+    }
+  }
+
+  const createCompleteComic = async () => {
+    if (!topic.trim() || generatingStoryboard || generatingAll) return
+    setGeneratingStoryboard(true)
+    setGeneratingAll(true)
+    setError("")
+    setMessage("")
+    try {
+      const generated = await requestStoryboard()
+      ensureProject({
+        ...project,
+        title: generated.title,
+        summary: generated.summary,
+        styleDirection: generated.styleDirection,
+        characters: generated.characters.map(stripTransientCharacter),
+        panels: generated.panels.map(stripTransientPanel),
+      })
+      const identityPack = await generateVisualBible(generated.characters, true)
+      await generatePanelsBatch(generated.panels, identityPack.characters, identityPack.bible, true)
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "No fue posible crear la historieta completa.")
+      setProgress(null)
+      setGeneratingAll(false)
+    } finally {
+      setGeneratingStoryboard(false)
+    }
   }
 
   const copyProject = async () => {
@@ -286,63 +745,99 @@ export default function ComicsCreatorPage() {
     window.setTimeout(() => setCopied(false), 1600)
   }
 
+  const progressPercent = progress?.total ? Math.round((progress.done / progress.total) * 100) : 0
+  const primaryBusy = generatingStoryboard || generatingAll
+
   return (
     <main className="min-h-screen bg-app">
-      <header className="sticky top-0 z-10 border-b border-soft bg-app backdrop-blur-xl">
-        <div className="mx-auto flex max-w-[1500px] items-center justify-between gap-3 px-6 py-4">
+      <header className="sticky top-0 z-20 border-b border-soft bg-app/95 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-[1580px] items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="flex items-center gap-3">
-            <Link href="/creator-hub" className="rounded-xl border border-soft p-2 text-muted2 hover:text-main"><ArrowLeft size={15} /></Link>
-            <div><div className="flex items-center gap-2"><h1 className="font-bold text-main">Mangas e historietas por capas</h1><span className="rounded-full px-2 py-0.5 text-[10px] font-bold" style={{ background: `${accentColor}18`, color: accentColor }}>PRO</span></div><p className="text-xs text-muted2">Storyboard con IA, personajes consistentes, imágenes por viñeta y diálogos editables.</p></div>
+            <Link href="/creator-hub" className="p-2 text-muted2 hover:text-main"><ArrowLeft size={15} /></Link>
+            <div>
+              <div className="flex items-center gap-2"><h1 className="font-bold text-main">Mangas e historietas</h1><span className="rounded-full border border-soft px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-sub">Consistencia visual</span></div>
+              <p className="text-xs text-muted2">Biblia visual, personajes bloqueables, generación coordinada y diálogos independientes.</p>
+            </div>
           </div>
-          <Link href="/qr-studio" className="flex items-center gap-1.5 rounded-xl border border-soft px-3 py-2 text-xs text-sub"><QrCode size={14} /> QR Studio</Link>
+          <Link href="/qr-studio" className="flex items-center gap-1.5 px-2 py-2 text-xs text-sub"><QrCode size={14} /> QR Studio</Link>
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-[1500px] gap-6 px-6 py-8 xl:grid-cols-[430px_minmax(0,1fr)]">
-        <section className="space-y-5 xl:sticky xl:top-24 xl:max-h-[calc(100vh-110px)] xl:overflow-y-auto xl:pr-1">
+      <div className="mx-auto grid max-w-[1580px] gap-5 px-4 py-6 sm:px-6 xl:grid-cols-[455px_minmax(0,1fr)]">
+        <section className="space-y-4 xl:sticky xl:top-20 xl:max-h-[calc(100vh-92px)] xl:overflow-y-auto xl:pr-1">
           <div className="rounded-3xl border border-soft bg-card-theme p-5">
-            <h2 className="mb-4 font-semibold text-main">1. Define el proyecto</h2>
+            <h2 className="mb-4 font-semibold text-main">Proyecto</h2>
             <div className="space-y-3">
               <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Título de la historieta" className="w-full rounded-xl border border-soft bg-card-soft-theme px-3 py-2.5 text-sm font-bold text-main outline-none" />
-              <textarea value={topic} onChange={(event) => setTopic(event.target.value)} rows={4} placeholder="Tema o historia central. Ejemplo: riesgos naturales en Antofagasta..." className="w-full resize-y rounded-xl border border-soft bg-card-soft-theme px-3 py-2.5 text-sm text-main outline-none" />
+              <textarea value={topic} onChange={(event) => setTopic(event.target.value)} rows={4} placeholder="Tema o historia central" className="w-full resize-y rounded-xl border border-soft bg-card-soft-theme px-3 py-2.5 text-sm text-main outline-none" />
               <input value={audience} onChange={(event) => setAudience(event.target.value)} placeholder="Público objetivo" className="w-full rounded-xl border border-soft bg-card-soft-theme px-3 py-2.5 text-sm text-main outline-none" />
               <textarea value={educationalGoal} onChange={(event) => setEducationalGoal(event.target.value)} rows={3} placeholder="Objetivo educativo" className="w-full resize-y rounded-xl border border-soft bg-card-soft-theme px-3 py-2.5 text-sm text-main outline-none" />
-              <div className="grid grid-cols-2 gap-2"><label className="text-[10px] font-black uppercase tracking-wider text-muted2">Viñetas<input type="number" min={4} max={10} value={panelCount} onChange={(event) => setPanelCount(Math.max(4, Math.min(10, Number(event.target.value) || 6)))} className="mt-1.5 w-full rounded-xl border border-soft bg-card-soft-theme px-3 py-2 text-xs text-main" /></label><ColorPalette value={accentColor} onChange={setAccentColor} /></div>
+              <div className="grid grid-cols-2 gap-3"><label className="text-[10px] font-black uppercase tracking-wider text-muted2">Viñetas<input type="number" min={4} max={10} value={panelCount} onChange={(event) => setPanelCount(Math.max(4, Math.min(10, Number(event.target.value) || 6)))} className="mt-1.5 w-full rounded-xl border border-soft bg-card-soft-theme px-3 py-2 text-xs text-main" /></label><ColorPalette value={accentColor} onChange={setAccentColor} /></div>
             </div>
           </div>
 
-          <div className="rounded-3xl border border-soft bg-card-theme p-5"><h2 className="mb-3 font-semibold text-main">2. Estilo visual</h2><div className="grid grid-cols-2 gap-2">{STYLES.map((item) => <button key={item.id} type="button" onClick={() => setStyle(item.id)} className="rounded-2xl border p-3 text-left" style={{ borderColor: style === item.id ? `${accentColor}66` : "var(--border-soft)", background: style === item.id ? `${accentColor}0f` : "var(--bg-card-soft)" }}><p className="text-sm font-semibold text-main">{item.icon} {item.label}</p><p className="mt-1 text-xs text-muted2">{item.description}</p></button>)}</div></div>
-
           <div className="rounded-3xl border border-soft bg-card-theme p-5">
-            <div className="mb-3 flex items-center justify-between"><h2 className="font-semibold text-main">3. Ficha visual de personajes</h2><button type="button" onClick={() => setCharacters((current) => [...current, { id: uid("character"), name: "Nuevo personaje", description: "Rol dentro de la historia.", visualDescription: "Describe rostro, cabello, ropa, colores y accesorios." }])} className="flex items-center gap-1.5 text-xs text-blue-500"><Plus size={13} /> Agregar</button></div>
-            <div className="space-y-2">{characters.map((character) => <div key={character.id} className="rounded-2xl border border-soft bg-card-soft-theme p-3"><div className="flex gap-2"><input value={character.name} onChange={(event) => updateCharacter(character.id, "name", event.target.value)} className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-main outline-none" /><button type="button" onClick={() => setCharacters((current) => current.filter((item) => item.id !== character.id))} className="text-muted2 hover:text-red-500"><Trash2 size={14} /></button></div><textarea value={character.description} onChange={(event) => updateCharacter(character.id, "description", event.target.value)} rows={2} className="mt-2 w-full resize-y bg-transparent text-xs text-muted2 outline-none" /><textarea value={character.visualDescription} onChange={(event) => updateCharacter(character.id, "visualDescription", event.target.value)} rows={3} placeholder="Apariencia fija para todas las viñetas" className="mt-2 w-full resize-y rounded-xl border border-soft bg-card-theme px-2.5 py-2 text-xs text-sub outline-none" /></div>)}</div>
+            <h2 className="mb-3 font-semibold text-main">Estilo y consistencia</h2>
+            <div className="grid grid-cols-2 gap-2">{STYLES.map((item) => <button key={item.id} type="button" onClick={() => updateStyle(item.id)} className="rounded-2xl border p-3 text-left" style={{ borderColor: style === item.id ? `${accentColor}66` : "var(--border-soft)", background: style === item.id ? `${accentColor}0f` : "var(--bg-card-soft)" }}><p className="text-sm font-semibold text-main">{item.icon} {item.label}</p><p className="mt-1 text-xs text-muted2">{item.description}</p></button>)}</div>
+            <textarea value={styleDirection} onChange={(event) => { setStyleDirection(event.target.value); if (!visualBible.locked) setVisualBible((current) => ({ ...current, stale: true })); setPanels((current) => current.map((panel) => panel.imageLocked ? panel : { ...panel, imageDirty: true })) }} rows={4} className="mt-3 w-full resize-y rounded-xl border border-soft bg-card-soft-theme px-3 py-2.5 text-xs leading-5 text-sub outline-none" placeholder="Dirección artística global" />
+            <div className="mt-3 grid grid-cols-3 gap-2">{CONSISTENCY_MODES.map((mode) => <button key={mode.id} type="button" onClick={() => { setConsistencyMode(mode.id); setPanels((current) => current.map((panel) => panel.imageLocked ? panel : { ...panel, imageDirty: true })) }} className="rounded-xl border p-2 text-left" style={{ borderColor: consistencyMode === mode.id ? `${accentColor}66` : "var(--border-soft)" }}><p className="text-[11px] font-bold text-main">{mode.label}</p><p className="mt-1 text-[9px] leading-4 text-muted2">{mode.description}</p></button>)}</div>
           </div>
 
+          <div className="rounded-3xl border border-soft bg-card-theme p-5">
+            <div className="flex items-start justify-between gap-3"><div><h2 className="font-semibold text-main">Biblia visual</h2><p className="mt-1 text-[10px] leading-4 text-muted2">La misma referencia se adjunta a todas las viñetas.</p></div><button type="button" onClick={() => setVisualBible((current) => ({ ...current, locked: !current.locked }))} className="p-2 text-muted2" title={visualBible.locked ? "Desbloquear identidad global" : "Bloquear identidad global"}>{visualBible.locked ? <Lock size={15} /> : <Unlock size={15} />}</button></div>
+            <div className="mt-3 flex aspect-video items-center justify-center overflow-hidden rounded-2xl border border-soft bg-card-soft-theme">
+              {visualBible.castImageUrl ? <img src={visualBible.castImageUrl} alt="Biblia visual del elenco" className="h-full w-full object-cover" /> : visualBible.loading ? <LoaderCircle size={28} className="animate-spin text-muted2" /> : <div className="text-center text-muted2"><Images size={28} className="mx-auto" /><p className="mt-2 text-xs">Sin ficha del elenco</p></div>}
+            </div>
+            <div className="mt-3 flex items-center justify-between gap-2"><div className="min-w-0"><p className="truncate text-[10px] font-bold text-sub">{visualBible.model || "Modelo pendiente"}</p><p className={`text-[9px] ${visualBible.stale ? "text-amber-600" : "text-emerald-600"}`}>{visualBible.stale ? "Debe actualizarse" : visualBible.castImageUrl ? "Identidad sincronizada" : "Sin generar"}</p></div><button type="button" disabled={visualBible.loading || visualBible.locked} onClick={() => void generateVisualBible(characters, true).then(() => { setProgress(null); setMessage("Biblia visual actualizada.") }).catch((reason) => { setProgress(null); setError(reason instanceof Error ? reason.message : "Falló la biblia visual.") })} className="flex items-center gap-1.5 px-2 py-2 text-xs font-semibold text-sub disabled:opacity-35">{visualBible.loading ? <LoaderCircle size={13} className="animate-spin" /> : <RefreshCw size={13} />} {visualBible.castImageUrl ? "Regenerar" : "Generar"}</button></div>
+            {visualBible.error && <p className="mt-2 text-[10px] text-red-500">{visualBible.error}</p>}
+          </div>
+
+          <div className="rounded-3xl border border-soft bg-card-theme p-5">
+            <div className="mb-3 flex items-center justify-between"><div><h2 className="font-semibold text-main">Personajes</h2><p className="mt-1 text-[10px] text-muted2">Cada identidad puede bloquearse y tener su propia referencia.</p></div><button type="button" onClick={() => setCharacters((current) => [...current, blankCharacter(current.length + 1)])} className="flex items-center gap-1.5 text-xs text-blue-600"><Plus size={13} /> Agregar</button></div>
+            <div className="space-y-3">{characters.map((character) => <article key={character.id} className="rounded-2xl border border-soft bg-card-soft-theme p-3">
+              <div className="flex gap-3">
+                <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl border border-soft bg-card-theme">{character.referenceImageUrl ? <img src={character.referenceImageUrl} alt={`Referencia de ${character.name}`} className="h-full w-full object-cover" /> : character.referenceLoading ? <LoaderCircle size={20} className="animate-spin text-muted2" /> : <UserRound size={22} className="text-muted2" />}</div>
+                <div className="min-w-0 flex-1"><div className="flex items-center gap-1"><input disabled={character.identityLocked} value={character.name} onChange={(event) => updateCharacter(character.id, "name", event.target.value)} className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-main outline-none disabled:opacity-60" /><button type="button" onClick={() => updateCharacter(character.id, "identityLocked", !character.identityLocked)} className="p-1.5 text-muted2">{character.identityLocked ? <Lock size={13} /> : <Unlock size={13} />}</button><button type="button" onClick={() => setCharacters((current) => current.filter((item) => item.id !== character.id))} className="p-1.5 text-muted2 hover:text-red-500"><Trash2 size={13} /></button></div><textarea value={character.description} onChange={(event) => updateCharacter(character.id, "description", event.target.value)} rows={2} className="mt-1 w-full resize-y bg-transparent text-[11px] leading-4 text-muted2 outline-none" /><div className="mt-2 flex items-center justify-between gap-2"><span className={`text-[9px] font-bold ${character.referenceStale ? "text-amber-600" : character.referenceImageUrl ? "text-emerald-600" : "text-muted2"}`}>{character.referenceStale ? "Referencia desactualizada" : character.referenceImageUrl ? "Identidad lista" : "Sin referencia"}</span><button type="button" disabled={character.referenceLoading || character.identityLocked} onClick={() => void generateOneCharacterReference(character)} className="flex items-center gap-1 text-[10px] font-bold text-sub disabled:opacity-35">{character.referenceLoading ? <LoaderCircle size={11} className="animate-spin" /> : <ImagePlus size={11} />} Referencia</button></div></div>
+              </div>
+              <details className="mt-3 rounded-xl border border-soft p-3" open={!character.referenceImageUrl}><summary className="cursor-pointer text-[10px] font-black uppercase tracking-wider text-muted2">Contrato visual</summary><div className="mt-3 space-y-2"><label className="block text-[9px] font-bold uppercase tracking-wider text-muted2">Apariencia<textarea disabled={character.identityLocked} value={character.visualDescription} onChange={(event) => updateCharacter(character.id, "visualDescription", event.target.value)} rows={3} className="mt-1 w-full resize-y rounded-lg border border-soft bg-card-theme px-2.5 py-2 text-[11px] normal-case leading-4 text-sub outline-none disabled:opacity-55" /></label><label className="block text-[9px] font-bold uppercase tracking-wider text-muted2">Rasgos fijos<textarea disabled={character.identityLocked} value={character.fixedTraits} onChange={(event) => updateCharacter(character.id, "fixedTraits", event.target.value)} rows={2} className="mt-1 w-full resize-y rounded-lg border border-soft bg-card-theme px-2.5 py-2 text-[11px] normal-case leading-4 text-sub outline-none disabled:opacity-55" /></label><label className="block text-[9px] font-bold uppercase tracking-wider text-muted2">Vestuario<textarea disabled={character.identityLocked} value={character.outfit} onChange={(event) => updateCharacter(character.id, "outfit", event.target.value)} rows={2} className="mt-1 w-full resize-y rounded-lg border border-soft bg-card-theme px-2.5 py-2 text-[11px] normal-case leading-4 text-sub outline-none disabled:opacity-55" /></label><label className="block text-[9px] font-bold uppercase tracking-wider text-muted2">Accesorios<input disabled={character.identityLocked} value={character.accessories} onChange={(event) => updateCharacter(character.id, "accessories", event.target.value)} className="mt-1 w-full rounded-lg border border-soft bg-card-theme px-2.5 py-2 text-[11px] normal-case text-sub outline-none disabled:opacity-55" /></label><label className="block text-[9px] font-bold uppercase tracking-wider text-muted2">No cambiar<textarea disabled={character.identityLocked} value={character.prohibitedChanges} onChange={(event) => updateCharacter(character.id, "prohibitedChanges", event.target.value)} rows={2} className="mt-1 w-full resize-y rounded-lg border border-soft bg-card-theme px-2.5 py-2 text-[11px] normal-case leading-4 text-sub outline-none disabled:opacity-55" /></label></div></details>
+              {character.referenceError && <p className="mt-2 text-[10px] text-red-500">{character.referenceError}</p>}
+            </article>)}</div>
+          </div>
+
+          {progress && <div className="rounded-2xl border border-soft bg-card-theme p-4"><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold text-main">{progress.current}</p><p className="mt-1 text-[10px] text-muted2">{progress.done} de {progress.total}</p></div><span className="text-xs font-black text-sub">{progressPercent}%</span></div><div className="mt-3 h-2 overflow-hidden rounded-full bg-card-soft-theme"><div className="h-full rounded-full transition-all" style={{ width: `${progressPercent}%`, background: accentColor }} /></div></div>}
           {error && <div className="rounded-2xl border border-red-500/25 bg-red-500/5 p-3 text-xs leading-5 text-red-500">{error}</div>}
-          {message && <div className="rounded-2xl border border-blue-500/20 bg-blue-500/5 p-3 text-xs leading-5 text-blue-600">{message}</div>}
-          <button type="button" onClick={generateStoryboard} disabled={generatingStoryboard || !topic.trim()} className="flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-bold text-white disabled:opacity-40" style={{ background: `linear-gradient(135deg,${accentColor},#7c3aed)` }}>{generatingStoryboard ? <LoaderCircle size={16} className="animate-spin" /> : <Sparkles size={16} />}{generatingStoryboard ? "Creando storyboard con IA..." : panels.length ? "Regenerar storyboard" : "Crear storyboard con IA"}</button>
+          {message && <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-3 text-xs leading-5 text-emerald-700">{message}</div>}
+
+          <div className="grid gap-2 sm:grid-cols-2"><button type="button" onClick={() => void createCompleteComic()} disabled={primaryBusy || !topic.trim()} className="flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold text-white disabled:opacity-40" style={{ background: accentColor }}>{primaryBusy ? <LoaderCircle size={16} className="animate-spin" /> : <WandSparkles size={16} />}{primaryBusy ? "Creando historieta..." : "Crear completa"}</button><button type="button" onClick={() => void generateStoryboardOnly()} disabled={primaryBusy || !topic.trim()} className="flex items-center justify-center gap-2 rounded-xl border border-soft px-4 py-3 text-sm font-bold text-sub disabled:opacity-40"><Sparkles size={16} /> Solo storyboard</button></div>
         </section>
 
-        <section className="rounded-3xl border border-soft bg-card-theme p-5">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-semibold text-main">Storyboard visual editable</h2><p className="mt-1 text-xs text-muted2">Cada viñeta es una capa. La imagen, el diálogo y la escena se pueden modificar por separado.</p></div><div className="flex flex-wrap gap-2"><button type="button" onClick={() => setPanels((current) => [...current, { id: uid("panel"), title: `Viñeta ${current.length + 1}`, scene: "Describe la escena.", dialogue: "Escribe el diálogo.", shot: "plano medio", imagePrompt: "", hidden: false, locked: false }])} className="flex items-center gap-1.5 rounded-xl border border-soft px-3 py-2 text-xs text-sub"><Plus size={13} /> Viñeta</button><button type="button" onClick={generateAllImages} disabled={generatingAll || !panels.length} className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold text-white disabled:opacity-40" style={{ background: accentColor }}>{generatingAll ? <LoaderCircle size={13} className="animate-spin" /> : <ImagePlus size={13} />} Generar todas</button><button type="button" onClick={copyProject} className="flex items-center gap-1.5 rounded-xl border border-soft px-3 py-2 text-xs text-sub"><Copy size={13} /> {copied ? "Copiado" : "JSON"}</button></div></div>
+        <section className="rounded-3xl border border-soft bg-card-theme p-4 sm:p-5">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-semibold text-main">Storyboard editable</h2><p className="mt-1 text-xs text-muted2">El diálogo se edita sin regenerar la imagen. Los cambios visuales marcan la viñeta para actualización.</p></div><div className="flex flex-wrap gap-1"><button type="button" onClick={() => setPanels((current) => [...current, normalizePanel({ title: `Viñeta ${current.length + 1}`, scene: "Describe la escena.", dialogue: "Escribe el diálogo.", shot: "plano medio", imagePrompt: "", characterIds: characters.slice(0, 2).map((character) => character.id), imageDirty: true }, current.length, characters)])} className="flex items-center gap-1.5 px-2 py-2 text-xs text-sub"><Plus size={13} /> Viñeta</button><button type="button" onClick={() => void generateAllImages(false)} disabled={generatingAll || !panels.length} className="flex items-center gap-1.5 px-2 py-2 text-xs font-bold text-sub disabled:opacity-40">{generatingAll ? <LoaderCircle size={13} className="animate-spin" /> : <ImagePlus size={13} />} Actualizar imágenes</button><button type="button" onClick={copyProject} className="flex items-center gap-1.5 px-2 py-2 text-xs text-sub"><Copy size={13} /> {copied ? "Copiado" : "JSON"}</button></div></div>
 
           {summary && <div className="mb-4 rounded-2xl border border-soft bg-card-soft-theme p-4 text-xs leading-6 text-sub"><strong>Sinopsis:</strong> {summary}</div>}
 
-          {panels.length === 0 ? <div className="flex min-h-96 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-soft p-8 text-center"><span className="text-5xl">💬</span><p className="font-semibold text-main">Todavía no hay viñetas</p><p className="max-w-sm text-sm text-muted2">Describe la historia y pulsa “Crear storyboard con IA”.</p></div> : <div className={`grid gap-4 ${style === "webtoon" ? "grid-cols-1" : "md:grid-cols-2"}`}>{panels.map((panel, index) => <article key={panel.id} className={`rounded-3xl border border-soft bg-card-soft-theme p-3 ${panel.hidden ? "opacity-50" : ""}`}>
-            <div className="mb-3 flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold" style={{ background: `${accentColor}18`, color: accentColor }}>{index + 1}</span><input disabled={panel.locked} value={panel.title} onChange={(event) => updatePanel(panel.id, { title: event.target.value })} className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-main outline-none disabled:opacity-50" /><button type="button" onClick={() => updatePanel(panel.id, { hidden: !panel.hidden })} className="text-muted2">{panel.hidden ? <EyeOff size={13} /> : <Eye size={13} />}</button><button type="button" onClick={() => updatePanel(panel.id, { locked: !panel.locked })} className="text-muted2">{panel.locked ? <Lock size={13} /> : <Unlock size={13} />}</button><button type="button" onClick={() => setPanels((current) => moveItem(current, index, -1))} disabled={index === 0} className="text-muted2 disabled:opacity-25"><ArrowUp size={13} /></button><button type="button" onClick={() => setPanels((current) => moveItem(current, index, 1))} disabled={index === panels.length - 1} className="text-muted2 disabled:opacity-25"><ArrowDown size={13} /></button><button type="button" onClick={() => setPanels((current) => current.filter((item) => item.id !== panel.id))} className="text-muted2 hover:text-red-500"><Trash2 size={14} /></button></div>
+          {panels.length === 0 ? <div className="flex min-h-96 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-soft p-8 text-center"><span className="text-5xl">💬</span><p className="font-semibold text-main">Todavía no hay viñetas</p><p className="max-w-sm text-sm text-muted2">Crea la historieta completa o genera solamente el storyboard.</p></div> : <div className={`grid gap-4 ${style === "webtoon" ? "grid-cols-1" : "2xl:grid-cols-2"}`}>{panels.map((panel, index) => <article key={panel.id} className={`rounded-3xl border border-soft bg-card-soft-theme p-3 ${panel.hidden ? "opacity-50" : ""}`}>
+            <div className="mb-3 flex items-center gap-1"><span className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold" style={{ background: `${accentColor}18`, color: accentColor }}>{index + 1}</span><input disabled={panel.locked} value={panel.title} onChange={(event) => updatePanel(panel.id, { title: event.target.value }, false)} className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-main outline-none disabled:opacity-50" />{panel.imageDirty && <span className="rounded-full bg-amber-100 px-2 py-1 text-[8px] font-black uppercase tracking-wide text-amber-700">Actualizar</span>}<button type="button" onClick={() => updatePanel(panel.id, { hidden: !panel.hidden })} className="p-1.5 text-muted2">{panel.hidden ? <EyeOff size={13} /> : <Eye size={13} />}</button><button type="button" onClick={() => updatePanel(panel.id, { locked: !panel.locked })} className="p-1.5 text-muted2">{panel.locked ? <Lock size={13} /> : <Unlock size={13} />}</button><button type="button" onClick={() => setPanels((current) => moveItem(current, index, -1))} disabled={index === 0} className="p-1 text-muted2 disabled:opacity-25"><ArrowUp size={13} /></button><button type="button" onClick={() => setPanels((current) => moveItem(current, index, 1))} disabled={index === panels.length - 1} className="p-1 text-muted2 disabled:opacity-25"><ArrowDown size={13} /></button><button type="button" onClick={() => setPanels((current) => current.filter((item) => item.id !== panel.id))} className="p-1.5 text-muted2 hover:text-red-500"><Trash2 size={13} /></button></div>
 
             <div id={`comic-panel-${panel.id}`} className={`relative flex items-center justify-center overflow-hidden rounded-2xl border border-soft bg-white ${style === "webtoon" ? "aspect-[2/3]" : "aspect-[4/3]"}`}>
-              {panel.imageUrl ? <img src={panel.imageUrl} alt={`Viñeta ${index + 1}: ${panel.title}`} className="h-full w-full object-cover" /> : panel.loading ? <div className="flex flex-col items-center gap-2 text-center"><LoaderCircle size={28} className="animate-spin" style={{ color: accentColor }} /><p className="text-xs text-muted2">Generando imagen coherente...</p></div> : <button type="button" onClick={() => void generatePanelImage(panel, index)} className="flex flex-col items-center gap-2 p-5 text-muted2 hover:text-main"><ImagePlus size={30} /><span className="text-xs font-semibold">Generar imagen de esta escena</span></button>}
-              {panel.imageUrl && panel.dialogue && <div className="absolute left-3 top-3 max-w-[72%] rounded-2xl rounded-tl-sm border border-black/10 bg-white/95 px-3 py-2 text-[11px] font-semibold leading-4 text-slate-900 shadow-lg">{panel.dialogue}</div>}
-              {panel.imageUrl && <div className="absolute bottom-2 right-2 flex gap-1"><button type="button" onClick={() => void downloadRenderedAsImage(`comic-panel-${panel.id}`, `comic-vineta-${index + 1}`, "png")} className="flex h-8 w-8 items-center justify-center rounded-lg bg-black/65 text-white" title="Descargar viñeta con diálogo"><Download size={13} /></button><button type="button" onClick={() => void generatePanelImage(panel, index)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-black/65 text-white" title="Regenerar imagen"><RefreshCw size={13} /></button></div>}
+              {panel.imageUrl ? <img src={panel.imageUrl} alt={`Viñeta ${index + 1}: ${panel.title}`} className="h-full w-full object-cover" /> : panel.loading ? <div className="flex flex-col items-center gap-2 text-center"><LoaderCircle size={28} className="animate-spin" style={{ color: accentColor }} /><p className="text-xs text-muted2">Aplicando referencias visuales...</p></div> : <button type="button" onClick={() => void generateVisualBible(characters, false).then((pack) => generatePanelImage(panel, index, panels, pack.characters, pack.bible, true)).catch((reason) => setError(reason instanceof Error ? reason.message : "Falló la imagen."))} className="flex flex-col items-center gap-2 p-5 text-muted2 hover:text-main"><ImagePlus size={30} /><span className="text-xs font-semibold">Generar con los mismos personajes</span></button>}
+              {panel.imageUrl && panel.dialogue && <div className="absolute left-3 top-3 max-w-[74%] rounded-2xl rounded-tl-sm border border-black/10 bg-white/95 px-3 py-2 text-[11px] font-semibold leading-4 text-slate-900 shadow-lg">{panel.dialogue}</div>}
+              {panel.imageUrl && <div className="absolute bottom-2 right-2 flex gap-1"><button type="button" onClick={() => void downloadRenderedAsImage(`comic-panel-${panel.id}`, `comic-vineta-${index + 1}`, "png")} className="flex h-8 w-8 items-center justify-center rounded-lg bg-black/65 text-white" title="Descargar viñeta con diálogo"><Download size={13} /></button><button type="button" onClick={() => updatePanel(panel.id, { imageLocked: !panel.imageLocked })} className="flex h-8 w-8 items-center justify-center rounded-lg bg-black/65 text-white" title={panel.imageLocked ? "Desbloquear imagen" : "Bloquear imagen"}>{panel.imageLocked ? <Lock size={13} /> : <Unlock size={13} />}</button><button type="button" disabled={panel.imageLocked || panel.loading} onClick={() => void generateVisualBible(characters, false).then((pack) => generatePanelImage(panel, index, panels, pack.characters, pack.bible, true)).catch((reason) => setError(reason instanceof Error ? reason.message : "Falló la imagen."))} className="flex h-8 w-8 items-center justify-center rounded-lg bg-black/65 text-white disabled:opacity-35" title="Regenerar manteniendo personajes"><RefreshCw size={13} /></button></div>}
             </div>
-            {panel.provider && <p className="mt-1 truncate text-[9px] text-muted2">Motor: {panel.provider}</p>}
+            {panel.provider && <p className="mt-1 truncate text-[9px] text-muted2">Motor: {panel.provider} · {panel.model} · {panel.referenceCount || 0} referencias</p>}
             {panel.error && <p className="mt-2 whitespace-pre-wrap text-[10px] leading-4 text-red-500">{panel.error}</p>}
 
-            <div className="mt-3 grid gap-3"><label className="text-[10px] font-bold uppercase tracking-wider text-muted2">Escena<textarea disabled={panel.locked} value={panel.scene} onChange={(event) => updatePanel(panel.id, { scene: event.target.value })} rows={4} className="mt-1 w-full resize-y rounded-xl border border-soft bg-card-theme px-2.5 py-2 text-xs normal-case text-sub outline-none disabled:opacity-50" /></label><label className="text-[10px] font-bold uppercase tracking-wider text-muted2">Diálogo · capa independiente<textarea disabled={panel.locked} value={panel.dialogue} onChange={(event) => updatePanel(panel.id, { dialogue: event.target.value })} rows={3} className="mt-1 w-full resize-y rounded-xl border border-soft bg-card-theme px-2.5 py-2 text-xs normal-case text-sub outline-none disabled:opacity-50" /></label><div className="grid grid-cols-2 gap-2"><label className="text-[10px] font-bold uppercase tracking-wider text-muted2">Plano<input disabled={panel.locked} value={panel.shot} onChange={(event) => updatePanel(panel.id, { shot: event.target.value })} className="mt-1 w-full rounded-xl border border-soft bg-card-theme px-2.5 py-2 text-xs normal-case text-sub" /></label><button type="button" onClick={() => void generatePanelImage(panel, index)} disabled={panel.loading || panel.hidden} className="mt-4 flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold text-white disabled:opacity-40" style={{ background: accentColor }}>{panel.loading ? <LoaderCircle size={12} className="animate-spin" /> : <ImagePlus size={12} />}{panel.imageUrl ? "Regenerar" : "Generar"}</button></div><label className="text-[10px] font-bold uppercase tracking-wider text-muted2">Prompt visual editable<textarea disabled={panel.locked} value={panel.imagePrompt} onChange={(event) => updatePanel(panel.id, { imagePrompt: event.target.value })} rows={3} className="mt-1 w-full resize-y rounded-xl border border-soft bg-card-theme px-2.5 py-2 text-xs normal-case text-sub outline-none disabled:opacity-50" /></label></div>
+            <div className="mt-3 space-y-3">
+              <div><p className="text-[9px] font-black uppercase tracking-wider text-muted2">Personajes visibles</p><div className="mt-1.5 flex flex-wrap gap-1">{characters.map((character) => { const active = panel.characterIds.includes(character.id); return <button key={character.id} type="button" disabled={panel.locked} onClick={() => updatePanel(panel.id, { characterIds: active ? panel.characterIds.filter((id) => id !== character.id) : [...panel.characterIds, character.id] }, true)} className="flex items-center gap-1 rounded-full border px-2 py-1 text-[9px] font-bold disabled:opacity-50" style={{ borderColor: active ? `${accentColor}66` : "var(--border-soft)", color: active ? accentColor : "var(--text-muted)" }}>{active && <Check size={10} />}{character.name}</button> })}</div></div>
+              <label className="block text-[9px] font-black uppercase tracking-wider text-muted2">Escena<textarea disabled={panel.locked} value={panel.scene} onChange={(event) => updatePanel(panel.id, { scene: event.target.value }, true)} rows={4} className="mt-1 w-full resize-y rounded-xl border border-soft bg-card-theme px-2.5 py-2 text-xs normal-case leading-5 text-sub outline-none disabled:opacity-50" /></label>
+              <label className="block text-[9px] font-black uppercase tracking-wider text-muted2">Diálogo · capa independiente<textarea disabled={panel.locked} value={panel.dialogue} onChange={(event) => updatePanel(panel.id, { dialogue: event.target.value }, false)} rows={3} className="mt-1 w-full resize-y rounded-xl border border-soft bg-card-theme px-2.5 py-2 text-xs normal-case leading-5 text-sub outline-none disabled:opacity-50" /></label>
+              <div className="grid grid-cols-2 gap-2"><label className="text-[9px] font-black uppercase tracking-wider text-muted2">Plano<input disabled={panel.locked} value={panel.shot} onChange={(event) => updatePanel(panel.id, { shot: event.target.value }, true)} className="mt-1 w-full rounded-xl border border-soft bg-card-theme px-2.5 py-2 text-xs normal-case text-sub outline-none disabled:opacity-50" /></label><label className="text-[9px] font-black uppercase tracking-wider text-muted2">Emoción<input disabled={panel.locked} value={panel.emotion} onChange={(event) => updatePanel(panel.id, { emotion: event.target.value }, true)} className="mt-1 w-full rounded-xl border border-soft bg-card-theme px-2.5 py-2 text-xs normal-case text-sub outline-none disabled:opacity-50" /></label></div>
+              <label className="block text-[9px] font-black uppercase tracking-wider text-muted2">Fondo<input disabled={panel.locked} value={panel.background} onChange={(event) => updatePanel(panel.id, { background: event.target.value }, true)} className="mt-1 w-full rounded-xl border border-soft bg-card-theme px-2.5 py-2 text-xs normal-case text-sub outline-none disabled:opacity-50" /></label>
+              <label className="block text-[9px] font-black uppercase tracking-wider text-muted2">Instrucción visual adicional<textarea disabled={panel.locked} value={panel.imagePrompt} onChange={(event) => updatePanel(panel.id, { imagePrompt: event.target.value }, true)} rows={2} className="mt-1 w-full resize-y rounded-xl border border-soft bg-card-theme px-2.5 py-2 text-xs normal-case leading-5 text-sub outline-none disabled:opacity-50" /></label>
+            </div>
           </article>)}</div>}
 
-          {projectId && <div className="mt-5 flex items-center gap-2 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 text-xs text-emerald-700"><CheckCircle2 size={14} /> La historieta se guarda automáticamente en Mis proyectos.</div>}
+          {panels.length > 0 && <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-soft pt-4"><div className="flex items-center gap-2 text-[10px] text-muted2"><ShieldCheck size={13} /> {visualBible.castImageUrl ? "Identidad visual activa" : "Genera la biblia visual para mayor consistencia"}</div><button type="button" onClick={() => void generateAllImages(true)} disabled={generatingAll} className="flex items-center gap-2 rounded-xl border border-soft px-3 py-2 text-xs font-bold text-sub disabled:opacity-35">{generatingAll ? <LoaderCircle size={14} className="animate-spin" /> : <RefreshCw size={14} />} Regenerar todas las no bloqueadas</button></div>}
         </section>
       </div>
     </main>
