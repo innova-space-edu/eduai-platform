@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { renderCreatorTemplatePreview } from "@/lib/creator-template-preview"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
+export const maxDuration = 60
 
 const BUCKET = "creative-templates"
 const MAX_FILE_BYTES = 25 * 1024 * 1024
@@ -102,11 +104,12 @@ async function withSignedUrl(supabase: Awaited<ReturnType<typeof createClient>>,
     mimeType: template.mime_type || legacy?.mimeType || null,
     fileKind,
     formats: template.formats || legacy?.formats || [],
-    accentColor: template.accent_color || legacy?.accentColor || "#7c3aed",
-    secondaryColor: template.secondary_color || legacy?.secondaryColor || "#06b6d4",
+    accentColor: template.accent_color || legacy?.accentColor || "#334155",
+    secondaryColor: template.secondary_color || legacy?.secondaryColor || "#94a3b8",
     isCreatorTemplate: template.is_creator_template ?? Boolean(legacy),
     imageUrl,
     fileUrl,
+    hasVisualPreview: Boolean(imageUrl),
   }
 }
 
@@ -152,8 +155,8 @@ export async function POST(request: NextRequest) {
   let name = "Plantilla sin nombre"
   let instructions = ""
   let formats: string[] = []
-  let accentColor = "#7c3aed"
-  let secondaryColor = "#06b6d4"
+  let accentColor = "#334155"
+  let secondaryColor = "#94a3b8"
   let source: TemplateSource = "uploaded"
   let prompt: string | null = null
   let isCreatorTemplate = false
@@ -189,7 +192,8 @@ export async function POST(request: NextRequest) {
     source = normalizeSource(body?.source)
   }
 
-  const storagePath = `${user.id}/${crypto.randomUUID()}.${extension}`
+  const assetId = crypto.randomUUID()
+  const storagePath = `${user.id}/${assetId}.${extension}`
   const { error: uploadError } = await supabase.storage.from(BUCKET).upload(storagePath, buffer, {
     contentType: mimeType,
     cacheControl: "31536000",
@@ -200,6 +204,21 @@ export async function POST(request: NextRequest) {
       ? " Aplica la migración 202607260001_creator_hub_foundation.sql para habilitar documentos y presentaciones."
       : ""
     return NextResponse.json({ error: `${uploadError.message}${migrationHint}` }, { status: 500 })
+  }
+
+  let previewPath: string | null = fileKind === "image" ? storagePath : null
+  if (fileKind !== "image") {
+    const { data: signed } = await supabase.storage.from(BUCKET).createSignedUrl(storagePath, 15 * 60)
+    const preview = await renderCreatorTemplatePreview({ buffer, mimeType, fileKind, sourceUrl: signed?.signedUrl || null })
+    if (preview?.length) {
+      const candidate = `${user.id}/${assetId}-preview.png`
+      const { error: previewError } = await supabase.storage.from(BUCKET).upload(candidate, preview, {
+        contentType: "image/png",
+        cacheControl: "31536000",
+        upsert: false,
+      })
+      if (!previewError) previewPath = candidate
+    }
   }
 
   const modernPayload = {
@@ -215,7 +234,7 @@ export async function POST(request: NextRequest) {
     accent_color: accentColor,
     secondary_color: secondaryColor,
     instructions: instructions || null,
-    preview_path: fileKind === "image" ? storagePath : null,
+    preview_path: previewPath,
     is_creator_template: isCreatorTemplate,
   }
 
@@ -237,7 +256,8 @@ export async function POST(request: NextRequest) {
   }
 
   if (insert.error) {
-    await supabase.storage.from(BUCKET).remove([storagePath])
+    const paths = [storagePath, previewPath].filter(Boolean) as string[]
+    await supabase.storage.from(BUCKET).remove([...new Set(paths)])
     const message = insert.error.code === "42703"
       ? "Falta aplicar la migración 202607260001_creator_hub_foundation.sql en Supabase."
       : insert.error.message
@@ -264,7 +284,7 @@ export async function DELETE(request: NextRequest) {
   } else {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     if (!data) return NextResponse.json({ error: "Plantilla no encontrada." }, { status: 404 })
-    const paths = [data.storage_path, data.preview_path].filter(Boolean)
+    const paths = [data.storage_path, data.preview_path].filter(Boolean) as string[]
     await supabase.storage.from(BUCKET).remove([...new Set(paths)])
   }
 
