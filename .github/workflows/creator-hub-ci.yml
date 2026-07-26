@@ -54,4 +54,16 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts
       - run: npm run test:creator
-      - run: npm run build
+      - name: Build and print concise failure
+        shell: bash
+        run: |
+          set +e
+          npm run build > creator-build.log 2>&1
+          status=$?
+          if [ $status -ne 0 ]; then
+            echo "::group::Creator Hub build failure"
+            tail -n 140 creator-build.log
+            echo "::endgroup::"
+            exit $status
+          fi
+          tail -n 40 creator-build.log
