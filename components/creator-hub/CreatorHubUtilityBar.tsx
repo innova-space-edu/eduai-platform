@@ -4,6 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { Clipboard, Download, Printer, QrCode } from "lucide-react"
 import DownloadBar from "@/components/ui/DownloadBar"
+import CreatorQualityPanel from "@/components/creator-hub/CreatorQualityPanel"
 
 interface CreatorHubUtilityBarProps {
   format: string
@@ -48,23 +49,26 @@ export default function CreatorHubUtilityBar({ format, data, accentColor, design
   }
 
   return (
-    <div className="rounded-2xl border border-soft bg-card-theme p-3.5 space-y-3">
-      <DownloadBar format={format} data={data} accentColor={accentColor} designTemplateId={designTemplateId} title={title} />
-      <div className="flex flex-wrap gap-2 border-t border-soft pt-3">
-        <span className="text-muted2 text-[11px] font-semibold tracking-widest uppercase mr-1 self-center">Acciones</span>
-        <button onClick={copyJson} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-soft text-xs font-semibold text-muted2 hover:text-main hover:bg-card-soft-theme transition-all">
-          <Clipboard size={13} /> {copied ? "Copiado" : "Copiar JSON"}
-        </button>
-        <button onClick={downloadJson} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-soft text-xs font-semibold text-muted2 hover:text-main hover:bg-card-soft-theme transition-all">
-          <Download size={13} /> Respaldo JSON
-        </button>
-        <button onClick={() => window.print()} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-soft text-xs font-semibold text-muted2 hover:text-main hover:bg-card-soft-theme transition-all">
-          <Printer size={13} /> Imprimir vista
-        </button>
-        <Link href="/qr-studio" className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-soft text-xs font-semibold text-muted2 hover:text-main hover:bg-card-soft-theme transition-all">
-          <QrCode size={13} /> Abrir QR Studio
-        </Link>
+    <div className="space-y-4">
+      <div className="space-y-3 rounded-2xl border border-soft bg-card-theme p-3.5">
+        <DownloadBar format={format} data={data} accentColor={accentColor} designTemplateId={designTemplateId} title={title} />
+        <div className="flex flex-wrap gap-2 border-t border-soft pt-3">
+          <span className="mr-1 self-center text-[11px] font-semibold uppercase tracking-widest text-muted2">Acciones</span>
+          <button type="button" onClick={copyJson} className="flex items-center gap-1.5 rounded-xl border border-soft px-3 py-1.5 text-xs font-semibold text-muted2 transition-all hover:bg-card-soft-theme hover:text-main">
+            <Clipboard size={13} /> {copied ? "Copiado" : "Copiar JSON"}
+          </button>
+          <button type="button" onClick={downloadJson} className="flex items-center gap-1.5 rounded-xl border border-soft px-3 py-1.5 text-xs font-semibold text-muted2 transition-all hover:bg-card-soft-theme hover:text-main">
+            <Download size={13} /> Respaldo JSON
+          </button>
+          <button type="button" onClick={() => window.print()} className="flex items-center gap-1.5 rounded-xl border border-soft px-3 py-1.5 text-xs font-semibold text-muted2 transition-all hover:bg-card-soft-theme hover:text-main">
+            <Printer size={13} /> Imprimir vista
+          </button>
+          <Link href="/qr-studio" className="flex items-center gap-1.5 rounded-xl border border-soft px-3 py-1.5 text-xs font-semibold text-muted2 transition-all hover:bg-card-soft-theme hover:text-main">
+            <QrCode size={13} /> Abrir QR Studio
+          </Link>
+        </div>
       </div>
+      <CreatorQualityPanel format={format} data={data} />
     </div>
   )
 }
