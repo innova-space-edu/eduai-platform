@@ -22,8 +22,8 @@ export default function CreatorCanvasDownloadBar({ format, data, title }: { form
   const run = async (type: "png" | "jpg" | "pdf" | "pptx") => {
     setBusy(type)
     try {
-      if (type === "png") await downloadRenderedAsImage("creator-result-container", fileName, "png")
-      else if (type === "jpg") await downloadRenderedAsImage("creator-result-container", fileName, "jpeg")
+      if (type === "png") await downloadRenderedAsImage("creator-canvas-surface", fileName, "png")
+      else if (type === "jpg") await downloadRenderedAsImage("creator-canvas-surface", fileName, "jpeg")
       else if (type === "pdf") await downloadCreatorCanvasAsPDF(data, title)
       else await downloadCreatorCanvasAsPPTX(data, title)
     } finally {
