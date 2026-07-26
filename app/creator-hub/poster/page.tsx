@@ -1,5 +1,5 @@
-import EditableDocumentCreatorPage from "@/components/creator-hub/EditableDocumentCreatorPage"
+import EditableFreeformVisualCreatorPage from "@/components/creator-hub/EditableFreeformVisualCreatorPage"
 
 export default function EditablePosterPage() {
-  return <EditableDocumentCreatorPage format="poster" />
+  return <EditableFreeformVisualCreatorPage format="poster" />
 }
