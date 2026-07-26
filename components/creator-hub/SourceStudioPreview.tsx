@@ -1,0 +1,43 @@
+"use client"
+
+function list(value: unknown): any[] {
+  return Array.isArray(value) ? value.filter((item) => !(item && typeof item === "object" && item.hidden === true)) : []
+}
+
+function CitationBadges({ ids, sources }: { ids: unknown; sources: any[] }) {
+  const values = Array.isArray(ids) ? ids.map(String) : []
+  if (!values.length) return null
+  return <div className="mt-2 flex flex-wrap gap-1.5">{values.map((id) => { const source = sources.find((item) => item.id === id); return <span key={id} title={source?.title || source?.name || id} className="rounded-full border border-indigo-200 bg-indigo-50 px-2 py-1 text-[9px] font-black text-indigo-700">[{id}]</span> })}</div>
+}
+
+export default function SourceStudioPreview({ data, accentColor = "#4f46e5" }: { data: any; accentColor?: string }) {
+  const sources = list(data?._sources)
+  return (
+    <article className="mx-auto min-h-[980px] w-full max-w-[980px] overflow-hidden rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-sm">
+      <header className="relative overflow-hidden px-8 py-9 text-white sm:px-11" style={{ background: `linear-gradient(135deg,${accentColor},#0ea5e9)` }}>
+        <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-white/10" />
+        <div className="relative"><p className="text-[10px] font-black uppercase tracking-[0.24em] text-white/70">Informe fundamentado en fuentes</p><h1 className="mt-3 max-w-3xl text-3xl font-black leading-tight">{data?.title || "Síntesis de fuentes"}</h1>{data?.subtitle && <p className="mt-3 max-w-3xl text-sm leading-6 text-white/80">{data.subtitle}</p>}<div className="mt-5 flex flex-wrap gap-2"><span className="rounded-full bg-white/15 px-3 py-1.5 text-[10px] font-bold">{sources.length} fuentes</span>{data?._grounding?.strictSources && <span className="rounded-full bg-emerald-400/20 px-3 py-1.5 text-[10px] font-bold text-emerald-50">Solo fuentes aportadas</span>}</div></div>
+      </header>
+
+      <div className="space-y-8 p-7 sm:p-10">
+        {data?.researchQuestion && <section className="rounded-3xl border border-indigo-200 bg-indigo-50 p-5"><p className="text-[9px] font-black uppercase tracking-[0.18em] text-indigo-600">Pregunta de investigación</p><p className="mt-2 text-base font-bold leading-7 text-indigo-950">{data.researchQuestion}</p></section>}
+
+        <section><h2 className="flex items-center gap-2 text-lg font-black"><span className="h-7 w-1.5 rounded-full" style={{ background: accentColor }} />Resumen ejecutivo</h2><p className="mt-3 whitespace-pre-line text-sm leading-7 text-slate-600">{data?.executiveSummary}</p></section>
+
+        {list(data?.keyFindings).length > 0 && <section><h2 className="flex items-center gap-2 text-lg font-black"><span className="h-7 w-1.5 rounded-full" style={{ background: accentColor }} />Hallazgos principales</h2><div className="mt-4 grid gap-3 sm:grid-cols-2">{list(data.keyFindings).map((finding, index) => <article key={index} className="rounded-3xl border border-slate-200 bg-slate-50 p-4"><div className="flex items-start justify-between gap-3"><span className="flex h-8 w-8 items-center justify-center rounded-xl text-xs font-black text-white" style={{ background: accentColor }}>{index + 1}</span><span className={`rounded-full px-2.5 py-1 text-[9px] font-black uppercase ${finding?.confidence === "high" ? "bg-emerald-100 text-emerald-700" : finding?.confidence === "medium" ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"}`}>{finding?.confidence || "—"}</span></div><h3 className="mt-3 text-sm font-black leading-6 text-slate-800">{finding?.finding}</h3><p className="mt-2 text-xs leading-6 text-slate-600">{finding?.evidence}</p><CitationBadges ids={finding?.sourceIds} sources={sources} /></article>)}</div></section>}
+
+        {list(data?.sections).map((section, index) => <section key={index}><h2 className="flex items-center gap-2 text-lg font-black"><span className="flex h-7 w-7 items-center justify-center rounded-xl text-xs font-black text-white" style={{ background: accentColor }}>{index + 1}</span>{section?.heading || `Sección ${index + 1}`}</h2><p className="mt-3 whitespace-pre-line text-sm leading-7 text-slate-600">{section?.content}</p>{list(section?.evidence).length > 0 && <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4"><p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Evidencias resumidas</p><ul className="mt-2 space-y-2">{list(section.evidence).map((item, evidenceIndex) => <li key={evidenceIndex} className="flex gap-2 text-xs leading-5 text-slate-600"><span style={{ color: accentColor }}>●</span>{String(item)}</li>)}</ul></div>}<CitationBadges ids={section?.sourceIds} sources={sources} />{(list(section?.agreements).length > 0 || list(section?.disagreements).length > 0) && <div className="mt-4 grid gap-3 sm:grid-cols-2">{list(section?.agreements).length > 0 && <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4"><p className="text-[9px] font-black uppercase tracking-wider text-emerald-700">Acuerdos</p>{list(section.agreements).map((item, itemIndex) => <p key={itemIndex} className="mt-2 text-xs leading-5 text-emerald-800">✓ {String(item)}</p>)}</div>}{list(section?.disagreements).length > 0 && <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4"><p className="text-[9px] font-black uppercase tracking-wider text-amber-700">Diferencias o tensiones</p>{list(section.disagreements).map((item, itemIndex) => <p key={itemIndex} className="mt-2 text-xs leading-5 text-amber-800">△ {String(item)}</p>)}</div>}</div>}</section>)}
+
+        {list(data?.sourceComparison).length > 0 && <section><h2 className="flex items-center gap-2 text-lg font-black"><span className="h-7 w-1.5 rounded-full" style={{ background: accentColor }} />Comparación entre fuentes</h2><div className="mt-4 space-y-3">{list(data.sourceComparison).map((comparison, index) => <article key={index} className="rounded-3xl border border-slate-200 p-4"><h3 className="text-sm font-black text-slate-800">{comparison?.topic}</h3><div className="mt-3 grid gap-2 sm:grid-cols-2">{list(comparison?.positions).map((position, positionIndex) => <div key={positionIndex} className="rounded-2xl bg-slate-50 p-3"><span className="rounded-full bg-indigo-100 px-2 py-1 text-[9px] font-black text-indigo-700">[{position?.sourceId}]</span><p className="mt-2 text-xs leading-5 text-slate-600">{position?.position}</p></div>)}</div><p className="mt-3 text-xs font-semibold leading-6 text-slate-700"><strong>Síntesis:</strong> {comparison?.synthesis}</p></article>)}</div></section>}
+
+        {list(data?.conclusions).length > 0 && <section><h2 className="flex items-center gap-2 text-lg font-black"><span className="h-7 w-1.5 rounded-full" style={{ background: accentColor }} />Conclusiones</h2><ol className="mt-3 space-y-2">{list(data.conclusions).map((item, index) => <li key={index} className="text-sm leading-6 text-slate-600"><strong className="mr-2" style={{ color: accentColor }}>{index + 1}.</strong>{String(item)}</li>)}</ol></section>}
+
+        {list(data?.limitations).length > 0 && <section className="rounded-3xl border border-amber-200 bg-amber-50 p-5"><p className="text-[9px] font-black uppercase tracking-wider text-amber-700">Limitaciones y vacíos</p><ul className="mt-2 list-disc space-y-2 pl-5 text-xs leading-5 text-amber-800">{list(data.limitations).map((item, index) => <li key={index}>{String(item)}</li>)}</ul></section>}
+
+        <section><h2 className="flex items-center gap-2 text-lg font-black"><span className="h-7 w-1.5 rounded-full" style={{ background: accentColor }} />Fuentes y bibliografía</h2><div className="mt-4 space-y-2">{sources.map((source, index) => <article key={source.id || index} className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><div className="flex items-start gap-3"><span className="rounded-lg px-2 py-1 text-[10px] font-black text-white" style={{ background: accentColor }}>{source.id}</span><div className="min-w-0"><p className="text-xs font-black text-slate-700">{source.name || source.title}</p><p className="mt-1 break-words text-[10px] leading-5 text-slate-500">{source.bibliography || source.url || source.fileName}</p></div></div></article>)}</div></section>
+      </div>
+
+      <footer className="flex items-center justify-between border-t border-slate-200 px-8 py-4 text-[9px] font-bold uppercase tracking-widest text-slate-400"><span>EduAI Source Studio</span><span>Informe editable y fundamentado</span></footer>
+    </article>
+  )
+}
