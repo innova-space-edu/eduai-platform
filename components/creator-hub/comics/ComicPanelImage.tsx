@@ -25,7 +25,7 @@ const VISUAL_STYLE: Record<ComicStyle, string> = {
   manga: "black and white manga panel, clean ink line art, screentone shading, expressive faces, dynamic composition",
   western: "colorful western comic-book panel, clean outlines, cinematic framing, polished digital illustration",
   webtoon: "modern webtoon panel, clean digital illustration, vertical-friendly composition, soft polished colors",
-  child: "friendly children's educational comic panel, simple readable shapes, colorful warm illustration",
+  child: "friendly children's comic panel, simple readable shapes, colorful warm illustration",
 }
 
 const API_STYLE: Record<ComicStyle, string> = {
@@ -50,14 +50,15 @@ export default function ComicPanelImage({
       .join(" | ")
 
     return [
-      `Create one single comic illustration panel about: ${topic.trim() || "educational story"}.`,
+      `Create one single comic illustration panel about: ${topic.trim() || "the story described by the user"}.`,
       `Panel title: ${title}. Scene: ${scene}.`,
-      `Keep the same character appearance across panels. Cast: ${cast || "student protagonist and educational guide"}.`,
+      `Use only the named characters defined by the user. Cast: ${cast || "one user-defined protagonist"}.`,
+      "Do not invent a guide, mentor or teacher unless the user explicitly defined that character.",
       `Visual style: ${VISUAL_STYLE[style]}.`,
-      educationalGoal.trim() ? `Educational goal: ${educationalGoal.trim()}.` : "",
-      `Audience: ${audience.trim() || "students"}.`,
-      "No written words, no captions, no speech bubbles, no logo, no signature, no watermark. Dialogue is added separately in the editor.",
-      "Clear single-panel composition with the important action fully visible.",
+      educationalGoal.trim() ? `Goal: ${educationalGoal.trim()}.` : "",
+      `Audience: ${audience.trim() || "general audience"}.`,
+      "No written words, captions, speech bubbles, logo, signature or watermark. Dialogue is added separately in the editor.",
+      "Keep faces and the main action away from the upper corners and leave a calm lower band for optional dialogue.",
     ].filter(Boolean).join(" ")
   }
 
@@ -78,7 +79,7 @@ export default function ComicPanelImage({
           provider: "auto",
           mode: "quality",
           source: "comic_panel",
-          topic: topic.trim() || "comic educational project",
+          topic: topic.trim() || "comic project",
           educationalContext: `${audience}. ${educationalGoal}`,
         }),
       })
@@ -104,34 +105,23 @@ export default function ComicPanelImage({
 
   return (
     <div className="mb-3">
-      <div className="relative overflow-hidden rounded-xl border border-soft aspect-[4/3] flex items-center justify-center" style={{ background: "var(--bg-input)" }}>
+      <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-xl border border-soft" style={{ background: "var(--bg-input)" }}>
         {imageUrl ? (
           <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={imageUrl} alt={`Viñeta ${panelIndex + 1}: ${title}`} className="w-full h-full object-cover" />
-            <div className="absolute right-2 bottom-2 flex gap-1">
-              <button onClick={download} title="Descargar imagen" className="w-8 h-8 rounded-lg flex items-center justify-center text-white bg-black/60 backdrop-blur-sm">
-                <Download size={14} />
-              </button>
-              <button onClick={generate} title="Regenerar imagen" className="w-8 h-8 rounded-lg flex items-center justify-center text-white bg-black/60 backdrop-blur-sm">
-                <RefreshCw size={14} />
-              </button>
+            <img src={imageUrl} alt={`Viñeta ${panelIndex + 1}: ${title}`} className="h-full w-full object-cover" />
+            <div className="absolute bottom-2 right-2 flex gap-1">
+              <button onClick={download} title="Descargar imagen" className="flex h-8 w-8 items-center justify-center rounded-lg bg-black/60 text-white backdrop-blur-sm"><Download size={14} /></button>
+              <button onClick={generate} title="Regenerar imagen" className="flex h-8 w-8 items-center justify-center rounded-lg bg-black/60 text-white backdrop-blur-sm"><RefreshCw size={14} /></button>
             </div>
           </>
         ) : loading ? (
-          <div className="flex flex-col items-center gap-2 text-center p-4">
-            <Loader2 size={25} className="animate-spin text-pink-400" />
-            <p className="text-muted2 text-xs">Generando imagen...</p>
-          </div>
+          <div className="flex flex-col items-center gap-2 p-4 text-center"><Loader2 size={25} className="animate-spin text-pink-400" /><p className="text-xs text-muted2">Generando imagen...</p></div>
         ) : (
-          <button onClick={generate} className="flex flex-col items-center gap-2 text-muted2 hover:text-main transition-colors p-4">
-            <ImagePlus size={28} />
-            <span className="text-xs font-semibold">Generar imagen</span>
-          </button>
+          <button onClick={generate} className="flex flex-col items-center gap-2 p-4 text-muted2 transition-colors hover:text-main"><ImagePlus size={28} /><span className="text-xs font-semibold">Generar imagen</span></button>
         )}
       </div>
-      {provider && <p className="text-[10px] text-muted2 mt-1 truncate">Motor: {provider}</p>}
-      {error && <p className="text-[11px] text-red-400 mt-1 whitespace-pre-wrap line-clamp-4">{error}</p>}
+      {provider && <p className="mt-1 truncate text-[10px] text-muted2">Motor: {provider}</p>}
+      {error && <p className="mt-1 line-clamp-4 whitespace-pre-wrap text-[11px] text-red-400">{error}</p>}
     </div>
   )
 }

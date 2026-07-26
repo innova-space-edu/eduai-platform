@@ -23,6 +23,8 @@ const requiredFiles = [
   "components/creator-hub/UniversalProjectEditor.tsx",
   "components/creator-hub/DirectVisualCanvasEditor.tsx",
   "components/creator-hub/CreatorCanvasDownloadBar.tsx",
+  "components/creator-hub/comics/ComicsCreatorStudio.tsx",
+  "components/creator-hub/comics/DialogueOverlay.tsx",
   "lib/creator-canvas.ts",
   "lib/creator-canvas-downloads.ts",
   "lib/creator-template-preview.ts",
@@ -88,7 +90,10 @@ const canvasDownloads = read("lib/creator-canvas-downloads.ts")
 check(canvasDownloads.includes("downloadCreatorCanvasAsPDF"), "El lienzo no se exporta a PDF")
 check(canvasDownloads.includes("downloadCreatorCanvasAsPPTX"), "El lienzo no se exporta a PPTX")
 
-const comics = read("app/creator-hub/comics/page.tsx")
+const comicsPage = read("app/creator-hub/comics/page.tsx")
+check(comicsPage.includes("ComicsCreatorStudio"), "La ruta de historietas no carga el estudio modular")
+
+const comics = read("components/creator-hub/comics/ComicsCreatorStudio.tsx")
 for (const feature of [
   "generateAllImages",
   "generateVisualBible",
@@ -99,8 +104,20 @@ for (const feature of [
   "imageDirty",
   "consistencyMode",
   "runPool",
+  "worldContext",
+  "autoCast",
+  "allowExtras",
+  "appearsAlways",
+  "DialogueOverlay",
 ]) {
   check(comics.includes(feature), `Mangas e historietas no contiene la función ${feature}`)
+}
+check(!comics.includes('name: "Guía"'), "El editor todavía crea un Guía predeterminado")
+check(comics.includes("maxLength={12000}"), "El contexto del mundo no admite textos extensos")
+
+const dialogueOverlay = read("components/creator-hub/comics/DialogueOverlay.tsx")
+for (const feature of ["splitByKnownSpeakers", "caption", "max-h-[37%]", "bubbleClass"]) {
+  check(dialogueOverlay.includes(feature), `La distribución de diálogo no contiene ${feature}`)
 }
 
 const comicImageRoute = read("app/api/creator/comics/image/route.ts")
@@ -112,15 +129,21 @@ for (const feature of [
   "preferredModel",
   "referenceCount",
   "generated-images",
+  "worldContext",
+  "allowExtras",
+  "appearsAlways",
 ]) {
   check(comicImageRoute.includes(feature), `El motor de consistencia visual no contiene ${feature}`)
 }
 check(comicImageRoute.includes("allowedReferenceHost"), "Las referencias visuales remotas no están restringidas al almacenamiento propio")
+check(comicImageRoute.includes("Do not add named characters"), "Las imágenes pueden inventar personajes principales")
 
 const storyboard = read("app/api/creator/comics/storyboard/route.ts")
-for (const feature of ["fixedTraits", "outfit", "prohibitedChanges", "characterNames", "styleDirection"]) {
-  check(storyboard.includes(feature), `El storyboard no entrega ${feature}`)
+for (const feature of ["fixedTraits", "outfit", "prohibitedChanges", "characterNames", "styleDirection", "worldContext", "autoCast", "allowExtras", "finalCast"]) {
+  check(storyboard.includes(feature), `El storyboard no entrega o respeta ${feature}`)
 }
+check(storyboard.includes("no crees automáticamente un guía"), "El storyboard no prohíbe el guía automático")
+check(storyboard.includes("12000"), "El storyboard no conserva contexto largo")
 
 const palette = read("components/ui/ColorPalette.tsx")
 check(palette.includes('type="color"'), "La paleta no incluye color personalizado")
