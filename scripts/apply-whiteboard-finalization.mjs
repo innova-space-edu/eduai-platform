@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
 const filePath = "components/exam/ExamQuestionNotebook.tsx";
 let source = readFileSync(filePath, "utf8");
@@ -105,3 +105,21 @@ source = source.replace(
 );
 
 writeFileSync(filePath, source);
+
+const studioPath = "components/whiteboard/WhiteboardMathStudio.tsx";
+if (existsSync(studioPath)) {
+  let studio = readFileSync(studioPath, "utf8");
+  studio = studio.replace(
+    "  const strokes = Array.isArray(value.strokes)",
+    "  const strokes: WhiteboardStroke[] = Array.isArray(value.strokes)",
+  );
+  studio = studio.replace(
+    "  let blocks = Array.isArray(value.blocks)",
+    "  let blocks: WhiteboardMathBlock[] = Array.isArray(value.blocks)",
+  );
+  studio = studio.replace(
+    "  let pages = Array.isArray(value.pages)",
+    "  let pages: WhiteboardPage[] = Array.isArray(value.pages)",
+  );
+  writeFileSync(studioPath, studio);
+}
