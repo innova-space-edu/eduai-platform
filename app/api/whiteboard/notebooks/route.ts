@@ -29,7 +29,7 @@ function cleanPage(value: any, index: number): WhiteboardPage | null {
 
 function cleanNotebook(value: any): WhiteboardNotebook | null {
   if (!value || !UUID.test(value.id)) return null
-  const pages = Array.isArray(value.pages)
+  const pages: WhiteboardPage[] = Array.isArray(value.pages)
     ? value.pages.map(cleanPage).filter((page: WhiteboardPage | null): page is WhiteboardPage => Boolean(page)).slice(0, 80)
     : []
   if (!pages.length) return null
@@ -38,7 +38,7 @@ function cleanNotebook(value: any): WhiteboardNotebook | null {
     id: value.id,
     title: text(value.title, 240, "Cuaderno sin título"),
     pages,
-    activePageId: UUID.test(value.activePageId) && pages.some((page) => page.id === value.activePageId) ? value.activePageId : pages[0].id,
+    activePageId: typeof value.activePageId === "string" && UUID.test(value.activePageId) && pages.some((page: WhiteboardPage) => page.id === value.activePageId) ? value.activePageId : pages[0].id,
     createdAt: text(value.createdAt, 80, now),
     updatedAt: now,
   }
@@ -74,7 +74,7 @@ async function upsertNotebook(supabase: Awaited<ReturnType<typeof createClient>>
 
   const keepIds = notebook.pages.map((page) => page.id)
   const { data: existing } = await supabase.from("whiteboard_pages").select("id").eq("notebook_id", notebook.id)
-  const removeIds = (existing || []).map((row) => row.id).filter((id) => !keepIds.includes(id))
+  const removeIds = (existing || []).map((row: { id: string }) => row.id).filter((id: string) => !keepIds.includes(id))
   if (removeIds.length) {
     const { error: deleteError } = await supabase.from("whiteboard_pages").delete().in("id", removeIds)
     if (deleteError) throw deleteError
