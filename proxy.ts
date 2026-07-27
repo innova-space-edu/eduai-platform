@@ -1,10 +1,11 @@
 /**
- * proxy.ts — EduAI Platform v5.5
+ * proxy.ts — EduAI Platform v5.6
  * ─────────────────────────────────────────────────────────────────────────────
  * v5.2: Protege las APIs de Creator Hub y limita el análisis de videos.
  * v5.3: Protege también /api/process-content, usado por todos los creadores.
  * v5.4: Reabre proyectos guardados en el editor universal por capas.
  * v5.5: Reserva capacidad para generar el elenco y las viñetas de una historieta.
+ * v5.6: Aísla y protege las APIs de la pizarra matemática.
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
@@ -15,6 +16,7 @@ const PROTECTED_ROUTES = [
   "/dashboard", "/study", "/profile", "/admin",
   "/creator-hub", "/audio-lab", "/image-studio", "/workspace",
   "/educador", "/superagent", "/chat-global", "/music", "/exam-focus",
+  "/pizarra-interactiva",
 ]
 
 const AUTH_ROUTES = ["/login", "/register"]
@@ -40,8 +42,12 @@ const RATE_LIMITS: Record<string, { limit: number; windowSecs: number }> = {
   "/api/creator/comics/image":  { limit: 24, windowSecs: 60 },
   "/api/process-content":       { limit: 8, windowSecs: 60 },
   "/api/exam-security/event":   { limit: 60, windowSecs: 60 },
+  "/api/whiteboard/recognize":  { limit: 24, windowSecs: 60 },
+  "/api/whiteboard/solve":      { limit: 14, windowSecs: 60 },
+  "/api/whiteboard/notebooks":  { limit: 36, windowSecs: 60 },
   "__default_agents__":         { limit: 20, windowSecs: 60 },
   "__default_creator__":        { limit: 10, windowSecs: 60 },
+  "__default_whiteboard__":     { limit: 30, windowSecs: 60 },
 }
 
 async function checkRateLimit(
@@ -98,12 +104,15 @@ export async function proxy(request: NextRequest) {
   const isAgentAPI = pathname.startsWith("/api/agents/")
   const isSuperagentAPI = pathname.startsWith("/api/superagent/")
   const isCreatorAPI = pathname.startsWith("/api/creator/") || pathname === "/api/process-content"
+  const isWhiteboardAPI = pathname.startsWith("/api/whiteboard/")
 
-  if (isCreatorAPI && !user) {
+  if ((isCreatorAPI || isWhiteboardAPI) && !user) {
     return new NextResponse(
       JSON.stringify({
         error: "Unauthorized",
-        message: "Debes iniciar sesión para utilizar las herramientas de Creator Hub.",
+        message: isWhiteboardAPI
+          ? "Debes iniciar sesión para utilizar la pizarra matemática."
+          : "Debes iniciar sesión para utilizar las herramientas de Creator Hub.",
       }),
       {
         status: 401,
@@ -112,11 +121,15 @@ export async function proxy(request: NextRequest) {
     )
   }
 
-  if (isAgentAPI || isSuperagentAPI || isCreatorAPI) {
+  if (isAgentAPI || isSuperagentAPI || isCreatorAPI || isWhiteboardAPI) {
     const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown"
     const identifier = user ? `user:${user.id}:${pathname}` : `ip:${ip}:${pathname}`
     const rateConfig = RATE_LIMITS[pathname] || (
-      isCreatorAPI ? RATE_LIMITS["__default_creator__"] : RATE_LIMITS["__default_agents__"]
+      isCreatorAPI
+        ? RATE_LIMITS["__default_creator__"]
+        : isWhiteboardAPI
+          ? RATE_LIMITS["__default_whiteboard__"]
+          : RATE_LIMITS["__default_agents__"]
     )
     const effectiveLimit = user ? rateConfig.limit : Math.floor(rateConfig.limit / 2)
     const { allowed, remaining } = await checkRateLimit(identifier, effectiveLimit, rateConfig.windowSecs)
@@ -150,8 +163,6 @@ export async function proxy(request: NextRequest) {
   if (!user && isProtected) return NextResponse.redirect(new URL("/login", request.url))
   if (user && isAuth) return NextResponse.redirect(new URL("/dashboard", request.url))
 
-  // Los enlaces antiguos de “Continuar editando” se conservan, pero ahora los
-  // formatos sin hidratación especializada abren el editor universal por capas.
   const requestedProject = searchParams.get("project")
   const formatMatch = pathname.match(/^\/creator-hub\/([^/]+)$/)
   if (user && requestedProject && formatMatch && /^[a-zA-Z0-9-]{8,80}$/.test(requestedProject)) {

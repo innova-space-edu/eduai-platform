@@ -16,6 +16,7 @@
     "test:planner": "tsx scripts/test-planner-integral.ts",
     "test:exam": "tsx scripts/test-exam-grading.ts",
     "test:creator": "node scripts/apply-comics-runtime-fixes.mjs && node scripts/test-creator-hub-integrity.mjs",
+    "test:whiteboard": "node scripts/test-whiteboard-math-studio.mjs",
     "curriculum:index": "node scripts/generate-mineduc-index.mjs",
     "curriculum:validate": "node scripts/validate-mineduc-curriculum.mjs",
     "test:curriculum": "node scripts/validate-mineduc-curriculum.mjs --strict"
