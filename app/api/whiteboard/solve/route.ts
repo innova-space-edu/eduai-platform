@@ -17,6 +17,7 @@ export const maxDuration = 45
 
 const NO_CACHE = { "Cache-Control": "no-store, max-age=0" }
 const MODES = new Set<WhiteboardSolveMode>(["solve", "verify", "hint", "explain", "graph"])
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 function cleanText(value: unknown, max: number) {
   return typeof value === "string" ? value.trim().slice(0, max) : ""
@@ -74,7 +75,7 @@ function normalizeAiResult(payload: any, latex: string): WhiteboardSolveResult {
         }
       : null,
     graph: null,
-    warning: "Resultado asistido por IA. Revisa los pasos importantes; no fue validado por el motor simbólico.",
+    warning: cleanText(payload?.warning, 1800) || "Resultado asistido por IA. Revisa los pasos importantes; no fue validado por el motor simbólico.",
   }
 }
 
@@ -118,7 +119,7 @@ async function addPedagogicalExplanation(result: WhiteboardSolveResult, mode: Wh
     const response = await callAI([
       {
         role: "system",
-        content: `Eres un profesor de matemáticas. Explica resultados ya calculados por un motor matemático. No cambies la respuesta, no agregues resultados distintos y usa LaTeX entre $...$ o $$...$$. Responde en español con claridad.`,
+        content: "Eres un profesor de matemáticas. Explica resultados ya calculados por un motor matemático. No cambies la respuesta, no agregues resultados distintos y usa LaTeX entre $...$ o $$...$$. Responde en español con claridad.",
       },
       {
         role: "user",
@@ -160,6 +161,7 @@ export async function POST(request: Request) {
         if (!result) throw error
       }
     }
+    if (!result) throw new Error("Ningún motor pudo interpretar el problema.")
 
     if (mode === "hint") {
       const firstStep = result.steps[0]
@@ -171,6 +173,23 @@ export async function POST(request: Request) {
       }
     } else {
       result = await addPedagogicalExplanation(result, mode)
+    }
+
+    const notebookId = cleanText(body?.notebookId, 80)
+    const pageId = cleanText(body?.pageId, 80)
+    if ((!notebookId || UUID.test(notebookId)) && (!pageId || UUID.test(pageId))) {
+      const { error: logError } = await supabase.from("whiteboard_solution_runs").insert({
+        user_id: user.id,
+        notebook_id: notebookId || null,
+        page_id: pageId || null,
+        block_id: cleanText(body?.blockId, 120) || null,
+        mode,
+        input_latex: primaryLatex,
+        result,
+        engine: result.engine,
+        verified: result.verified,
+      })
+      if (logError && logError.code !== "42P01") console.warn("[whiteboard/solve/log]", logError.message)
     }
 
     return NextResponse.json({ result }, { headers: NO_CACHE })
