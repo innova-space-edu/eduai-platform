@@ -45,6 +45,7 @@ export type WhiteboardPage = {
 export type WhiteboardNotebook = {
   id: string
   title: string
+  folder?: string
   pages: WhiteboardPage[]
   activePageId: string
   createdAt: string
