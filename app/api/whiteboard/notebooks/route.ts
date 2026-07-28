@@ -37,6 +37,7 @@ function cleanNotebook(value: any): WhiteboardNotebook | null {
   return {
     id: value.id,
     title: text(value.title, 240, "Cuaderno sin título"),
+    folder: text(value.folder, 120, "Mis cuadernos"),
     pages,
     activePageId: typeof value.activePageId === "string" && UUID.test(value.activePageId) && pages.some((page: WhiteboardPage) => page.id === value.activePageId) ? value.activePageId : pages[0].id,
     createdAt: text(value.createdAt, 80, now),
@@ -50,7 +51,7 @@ async function upsertNotebook(supabase: Awaited<ReturnType<typeof createClient>>
     user_id: userId,
     title: notebook.title,
     active_page_id: notebook.activePageId,
-    settings: {},
+    settings: { folder: notebook.folder || "Mis cuadernos" },
     created_at: notebook.createdAt,
     updated_at: notebook.updatedAt,
   }, { onConflict: "id" })
@@ -89,7 +90,7 @@ export async function GET() {
 
     const { data, error } = await supabase
       .from("whiteboard_notebooks")
-      .select("id,title,active_page_id,created_at,updated_at,whiteboard_pages(id)")
+      .select("id,title,active_page_id,settings,created_at,updated_at,whiteboard_pages(id)")
       .eq("user_id", user.id)
       .order("updated_at", { ascending: false })
       .limit(60)
@@ -99,6 +100,7 @@ export async function GET() {
       notebooks: (data || []).map((item: any) => ({
         id: item.id,
         title: item.title,
+        folder: typeof item.settings?.folder === "string" && item.settings.folder.trim() ? item.settings.folder.trim() : "Mis cuadernos",
         activePageId: item.active_page_id,
         pageCount: Array.isArray(item.whiteboard_pages) ? item.whiteboard_pages.length : 0,
         createdAt: item.created_at,

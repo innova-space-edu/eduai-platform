@@ -114,6 +114,7 @@ const templatePaths = [
 ];
 const rotationUpgradePath = "scripts/whiteboard-template/rotation-upgrade.b64";
 const aiVisualUpgradePath = "scripts/whiteboard-template/ai-visual-upgrade.b64";
+const layoutFoldersUpgradePath = "scripts/whiteboard-template/layout-folders-upgrade.b64";
 const digitalWhiteboardPath = "components/whiteboard/WhiteboardMathStudio.tsx";
 
 function loadUpgrade(file, functionName) {
@@ -134,6 +135,10 @@ if (templatePaths.every(existsSync)) {
 
   if (existsSync(aiVisualUpgradePath)) {
     digitalWhiteboard = loadUpgrade(aiVisualUpgradePath, "applyWhiteboardAiVisualUpgrade")(digitalWhiteboard);
+  }
+
+  if (existsSync(layoutFoldersUpgradePath)) {
+    digitalWhiteboard = loadUpgrade(layoutFoldersUpgradePath, "applyWhiteboardLayoutFoldersUpgrade")(digitalWhiteboard);
   }
 
   writeFileSync(digitalWhiteboardPath, digitalWhiteboard);
