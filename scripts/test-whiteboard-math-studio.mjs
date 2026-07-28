@@ -31,7 +31,19 @@ for (const feature of [
   "exportPage",
   "reorder",
   "/api/whiteboard/notebooks",
+  "panelOpen",
+  "rotationX",
+  "rotationY",
+  "rotationZ",
+  "plot3d",
+  "parentId",
+  "compileExpression",
+  "Contenido dentro del elemento",
 ]) check(page.includes(feature), `La pizarra digital no contiene: ${feature}`)
+
+check(page.indexOf("topItems.map") >= 0 && page.indexOf("topItems.map") < page.indexOf("strokes.map((s)"), "Los trazos no se renderizan por encima de los objetos")
+check(page.includes("useState(false), [zoom"), "El panel de herramientas no comienza cerrado")
+check(page.includes('pointerEvents={tool==="select"?"all":"none"}'), "Los objetos bloquean el dibujo cuando está activo el lápiz")
 
 for (const removedFeature of [
   "/api/whiteboard/recognize",
@@ -48,7 +60,7 @@ check(notebooks.includes("whiteboard_pages"), "No existe persistencia de página
 check(notebooks.includes("blocks: Array.isArray(value.blocks)"), "La API no conserva objetos visuales del lienzo")
 
 const proxy = read("proxy.ts")
-check(proxy.includes('"/pizarra-interactiva"'), "La ruta de la pizarra no está protegida")
+check(proxy.includes('\"/pizarra-interactiva\"'), "La ruta de la pizarra no está protegida")
 
 const migration = read("supabase/migrations/202607260004_whiteboard_math_studio.sql")
 for (const table of ["whiteboard_notebooks", "whiteboard_pages"]) {
