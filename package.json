@@ -6,7 +6,7 @@
     "node": "22.x"
   },
   "scripts": {
-    "dev": "node scripts/apply-comics-runtime-fixes.mjs && node scripts/apply-notebook-ingestion-fix.mjs && node scripts/apply-notebook-home-link.mjs && node scripts/apply-educador-dual-submit.mjs && node scripts/apply-mira-voice-mode.mjs && next dev",
+    "dev": "node scripts/apply-whiteboard-finalization.mjs && node scripts/apply-comics-runtime-fixes.mjs && node scripts/apply-notebook-ingestion-fix.mjs && node scripts/apply-notebook-home-link.mjs && node scripts/apply-educador-dual-submit.mjs && node scripts/apply-mira-voice-mode.mjs && next dev",
     "planner:maintain": "node scripts/apply-planner-maintenance.mjs",
     "whiteboard:finalize": "node scripts/apply-whiteboard-finalization.mjs",
     "mira:voice": "node scripts/apply-mira-voice-mode.mjs",
@@ -16,7 +16,7 @@
     "test:planner": "tsx scripts/test-planner-integral.ts",
     "test:exam": "tsx scripts/test-exam-grading.ts",
     "test:creator": "node scripts/apply-comics-runtime-fixes.mjs && node scripts/test-creator-hub-integrity.mjs",
-    "test:whiteboard": "node scripts/test-whiteboard-math-studio.mjs",
+    "test:whiteboard": "node scripts/apply-whiteboard-finalization.mjs && node scripts/test-whiteboard-math-studio.mjs",
     "curriculum:index": "node scripts/generate-mineduc-index.mjs",
     "curriculum:validate": "node scripts/validate-mineduc-curriculum.mjs",
     "test:curriculum": "node scripts/validate-mineduc-curriculum.mjs --strict"
