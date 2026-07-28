@@ -14,6 +14,7 @@ const requiredFiles = [
   "app/api/whiteboard/notebooks/[id]/route.ts",
   "supabase/migrations/202607260004_whiteboard_math_studio.sql",
   "scripts/whiteboard-template/rotation-upgrade.b64",
+  "scripts/whiteboard-template/ai-visual-upgrade.b64",
 ]
 
 for (const file of requiredFiles) check(exists(file), `Falta el archivo requerido: ${file}`)
@@ -45,6 +46,12 @@ for (const feature of [
   "Arrastra para girar la figura o el gráfico",
   'data-shape-render="sphere-shell"',
   'data-graph-render="rotatable-3d"',
+  'type AiVisualMode = "image" | "sticker"',
+  'data-ai-visual-panel="compact"',
+  "Imagen / Sticker IA",
+  "Generar e insertar sticker",
+  "transparentBackground: isSticker",
+  "setAiPreview(imageUrl)",
 ]) check(page.includes(feature), `La pizarra digital no contiene: ${feature}`)
 
 check(page.indexOf("topItems.map") >= 0 && page.indexOf("topItems.map") < page.indexOf("strokes.map((s)"), "Los trazos no se renderizan por encima de los objetos")
@@ -53,6 +60,8 @@ check(page.includes('pointerEvents={interactive?"all":"none"}'), "Los objetos bl
 check(page.includes('onPointerDown={(e)=>beginItem(e,selected,"rotate")}'), "El botón Girar no inicia la rotación con el mouse")
 check(page.includes("rotationX:original.rotationX-dy*.72"), "El arrastre vertical no modifica la rotación X")
 check(page.includes("rotationY:original.rotationY+dx*.72"), "El arrastre horizontal no modifica la rotación Y")
+check(!page.includes("Generar imagen para tus apuntes"), "El generador IA todavía usa el modal grande anterior")
+check(!page.includes('setShowAi(true)} className="flex w-full'), "El botón antiguo del modal IA sigue presente")
 
 for (const removedFeature of [
   "/api/whiteboard/recognize",
