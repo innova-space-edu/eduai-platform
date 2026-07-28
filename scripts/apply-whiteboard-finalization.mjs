@@ -136,5 +136,20 @@ if (templatePaths.every(existsSync)) {
     digitalWhiteboard = loadUpgrade(aiVisualUpgradePath, "applyWhiteboardAiVisualUpgrade")(digitalWhiteboard);
   }
 
+  const inspectMarkers = [
+    'type Notebook =',
+    'const [notebook, setNotebook]',
+    'const addPage =',
+    'const loadLibrary =',
+    'return <div className={`min-h-screen',
+    '<div className="flex flex-wrap items-center gap-1 border-b',
+    '<aside className=',
+    '{showLibrary&&',
+  ];
+  for (const marker of inspectMarkers) {
+    const index = digitalWhiteboard.indexOf(marker);
+    console.log(`\n[whiteboard-layout-inspect:${marker}]\n${index >= 0 ? digitalWhiteboard.slice(index, index + 12000) : "NOT_FOUND"}\n[/whiteboard-layout-inspect]`);
+  }
+
   writeFileSync(digitalWhiteboardPath, digitalWhiteboard);
 }
