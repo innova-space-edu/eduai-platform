@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
 const filePath = "components/exam/ExamQuestionNotebook.tsx";
 let source = readFileSync(filePath, "utf8");
@@ -105,3 +105,12 @@ source = source.replace(
 );
 
 writeFileSync(filePath, source);
+
+const digitalWhiteboardPath = "components/whiteboard/WhiteboardMathStudio.tsx";
+if (existsSync(digitalWhiteboardPath)) {
+  const digitalWhiteboard = readFileSync(digitalWhiteboardPath, "utf8").replace(
+    ' xmlns="http://www.w3.org/1999/xhtml"',
+    "",
+  );
+  writeFileSync(digitalWhiteboardPath, digitalWhiteboard);
+}
