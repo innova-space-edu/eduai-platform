@@ -24,7 +24,7 @@ export async function GET(_request: Request, context: RouteContext) {
 
     const { data: notebook, error } = await supabase
       .from("whiteboard_notebooks")
-      .select("id,title,active_page_id,created_at,updated_at")
+      .select("id,title,active_page_id,settings,created_at,updated_at")
       .eq("id", id)
       .eq("user_id", user.id)
       .maybeSingle()
@@ -43,6 +43,7 @@ export async function GET(_request: Request, context: RouteContext) {
       notebook: {
         id: notebook.id,
         title: notebook.title,
+        folder: typeof notebook.settings?.folder === "string" && notebook.settings.folder.trim() ? notebook.settings.folder.trim() : "Mis cuadernos",
         activePageId: notebook.active_page_id,
         pages: (pages || []).map((page) => ({
           id: page.id,
