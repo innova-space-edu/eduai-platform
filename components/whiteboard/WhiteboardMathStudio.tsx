@@ -1,898 +1,229 @@
 "use client"
 
 import {
-  ArrowDown,
-  ArrowLeft,
-  ArrowUp,
-  BookOpen,
-  Brush,
-  CheckCircle2,
-  Clipboard,
-  Cloud,
-  CloudOff,
-  Download,
-  Edit3,
-  Eraser,
-  Expand,
-  FileText,
-  Lightbulb,
-  LoaderCircle,
-  Maximize2,
-  Minimize2,
-  Plus,
-  Redo2,
-  RefreshCw,
-  Save,
-  Send,
-  Sigma,
-  Sparkles,
-  Trash2,
-  Undo2,
-  X,
+  ArrowLeft, BookOpen, Box, Brush, Camera, ChevronDown, ChevronUp, Cloud, CloudOff,
+  Copy, Download, Eraser, Expand, FileJson, FileText, Grid3X3, Highlighter,
+  Image as ImageIcon, Layers, LoaderCircle, Minimize2, MousePointer2, Palette, Plus,
+  Redo2, Save, Shapes, Sparkles, Square, Trash2, Type, Undo2, Upload, X,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type PointerEvent as ReactPointerEvent,
-} from "react"
-import MathRenderer from "@/components/ui/MathRenderer"
-import {
-  combinedLatex,
-  mergeRecognitionWithExisting,
-  segmentStrokes,
-} from "@/lib/whiteboard/geometry"
-import type {
-  WhiteboardMathBlock,
-  WhiteboardNotebook,
-  WhiteboardPage,
-  WhiteboardPoint,
-  WhiteboardSolveMode,
-  WhiteboardSolveResult,
-  WhiteboardStroke,
-} from "@/lib/whiteboard/types"
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react"
 
-type Tool = "pen" | "eraser"
-type PanelTab = "latex" | "solve" | "verify" | "graph" | "ai"
-type ChatMessage = { role: "user" | "assistant"; content: string }
-type SavedNotebookSummary = {
-  id: string
-  title: string
-  pageCount: number
-  updatedAt: string
-  source: "cloud" | "local"
+const W = 1400
+const H = 1050
+const CURRENT = "eduai-digital-whiteboard-current-v3"
+const LIBRARY = "eduai-digital-whiteboard-library-v3"
+const OLD_CURRENT = ["eduai-whiteboard-math-current-v2", "eduai-whiteboard-current-notebook"]
+const OLD_LIBRARY = ["eduai-whiteboard-math-library-v2", "eduai-whiteboard-saved-notebooks"]
+const button = "inline-flex h-9 items-center justify-center gap-1.5 rounded-xl px-3 text-xs font-semibold transition disabled:opacity-35"
+
+type Point = { x: number; y: number }
+type Stroke = { id: string; points: Point[]; color: string; width: number; opacity: number }
+type Tool = "select" | "pen" | "marker" | "eraser"
+type Background = "plain" | "ruled" | "grid" | "dots" | "black" | "blue"
+type Tab = "background" | "2d" | "3d" | "graphs" | "media"
+type ShapeName = "rectangle" | "square" | "circle" | "ellipse" | "triangle" | "diamond" | "pentagon" | "hexagon" | "star" | "line" | "arrow" | "vector" | "angle" | "cube" | "prism" | "pyramid" | "tetrahedron" | "triangular-prism" | "cylinder" | "cone" | "sphere"
+type GraphName = "axes2d" | "axes3d" | "polar" | "number-line" | "science"
+type Base = { id: string; x: number; y: number; width: number; height: number; opacity: number; createdAt: string }
+type ShapeItem = Base & { kind: "shape"; shape: ShapeName; stroke: string; fill: string; strokeWidth: number }
+type GraphItem = Base & { kind: "graph"; graph: GraphName; fill: string }
+type ImageItem = Base & { kind: "image"; src: string; alt: string }
+type TextItem = Base & { kind: "text"; text: string; color: string; fontSize: number; fontWeight: number; align: "left" | "center" | "right" }
+type Settings = { id: string; kind: "page-settings"; background: Background; createdAt: string }
+type Item = ShapeItem | GraphItem | ImageItem | TextItem
+type Block = Item | Settings
+type Page = { id: string; title: string; strokes: Stroke[]; blocks: Block[]; activeBlockId: string | null; canvasHeight: number; createdAt: string; updatedAt: string }
+type Notebook = { id: string; title: string; pages: Page[]; activePageId: string; createdAt: string; updatedAt: string; cloudSyncedAt?: string | null }
+type Saved = { id: string; title: string; pageCount: number; updatedAt: string; source: "cloud" | "local" }
+type Interaction = { mode: "drag" | "resize"; item: Item; start: Point; page: Page }
+
+const backgrounds: { id: Background; label: string }[] = [
+  { id: "plain", label: "Blanco" }, { id: "ruled", label: "Clásico" }, { id: "grid", label: "Cuadrícula" },
+  { id: "dots", label: "Puntos" }, { id: "black", label: "Negro" }, { id: "blue", label: "Azul" },
+]
+const shapes2d: [ShapeName, string][] = [
+  ["rectangle", "Rectángulo"], ["square", "Cuadrado"], ["circle", "Círculo"], ["ellipse", "Elipse"],
+  ["triangle", "Triángulo"], ["diamond", "Rombo"], ["pentagon", "Pentágono"], ["hexagon", "Hexágono"],
+  ["star", "Estrella"], ["line", "Recta"], ["arrow", "Flecha"], ["vector", "Vector"], ["angle", "Ángulo"],
+]
+const shapes3d: [ShapeName, string][] = [
+  ["cube", "Cubo"], ["prism", "Prisma rectangular"], ["pyramid", "Pirámide"], ["tetrahedron", "Tetraedro"],
+  ["triangular-prism", "Prisma triangular"], ["cylinder", "Cilindro"], ["cone", "Cono"], ["sphere", "Esfera"],
+]
+const graphs: [GraphName, string][] = [
+  ["axes2d", "Plano cartesiano 2D"], ["axes3d", "Sistema de ejes 3D"], ["polar", "Plano polar"],
+  ["number-line", "Recta numérica"], ["science", "Gráfico científico"],
+]
+
+const now = () => new Date().toISOString()
+function id() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID()
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = Math.floor(Math.random() * 16); return (c === "x" ? r : (r & 3) | 8).toString(16)
+  })
 }
-
-const LOCAL_CURRENT_KEY = "eduai-whiteboard-math-current-v2"
-const LOCAL_LIBRARY_KEY = "eduai-whiteboard-math-library-v2"
-const LEGACY_CURRENT_KEY = "eduai-whiteboard-current-notebook"
-const LEGACY_LIBRARY_KEY = "eduai-whiteboard-saved-notebooks"
-const DEFAULT_CANVAS_HEIGHT = 1200
-const CANVAS_GROWTH_STEP = 650
-const CANVAS_BOTTOM_MARGIN = 180
-const ERASER_RADIUS = 20
-const RECOGNITION_DEBOUNCE_MS = 950
-const CLOUD_SAVE_DEBOUNCE_MS = 1400
-
-function createId() {
-  return typeof crypto !== "undefined" && "randomUUID" in crypto
-    ? crypto.randomUUID()
-    : `${Date.now()}-${Math.random().toString(36).slice(2, 12)}`
-}
-
-function now() {
-  return new Date().toISOString()
-}
-
-function createPage(index: number): WhiteboardPage {
+const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T
+function newPage(index: number): Page {
   const timestamp = now()
-  return {
-    id: createId(),
-    title: `Página ${index + 1}`,
-    strokes: [],
-    blocks: [],
-    activeBlockId: null,
-    canvasHeight: DEFAULT_CANVAS_HEIGHT,
-    createdAt: timestamp,
-    updatedAt: timestamp,
-  }
+  return { id: id(), title: `Página ${index + 1}`, strokes: [], blocks: [{ id: id(), kind: "page-settings", background: "grid", createdAt: timestamp }], activeBlockId: null, canvasHeight: H, createdAt: timestamp, updatedAt: timestamp }
 }
-
-function createNotebook(): WhiteboardNotebook {
-  const timestamp = now()
-  const page = createPage(0)
-  return {
-    id: createId(),
-    title: "Cuaderno sin título",
-    pages: [page],
-    activePageId: page.id,
-    createdAt: timestamp,
-    updatedAt: timestamp,
-    cloudSyncedAt: null,
-  }
+function newNotebook(): Notebook {
+  const timestamp = now(), page = newPage(0)
+  return { id: id(), title: "Mi cuaderno digital", pages: [page], activePageId: page.id, createdAt: timestamp, updatedAt: timestamp, cloudSyncedAt: null }
 }
-
-function validPoint(value: any): value is WhiteboardPoint {
-  return value && Number.isFinite(value.x) && Number.isFinite(value.y)
-}
-
-function normalizeStroke(value: any, index: number): WhiteboardStroke | null {
+const number = (value: unknown, fallback: number) => Number.isFinite(value) ? Number(value) : fallback
+function normalizeStroke(value: any, index: number): Stroke | null {
   if (!value || !Array.isArray(value.points)) return null
-  const points = value.points.filter(validPoint).map((point: WhiteboardPoint) => ({ x: point.x, y: point.y }))
-  if (!points.length) return null
-  return {
-    id: typeof value.id === "string" ? value.id : `stroke-${index}-${createId()}`,
-    points,
-    color: typeof value.color === "string" ? value.color : "#0f172a",
-    width: Number.isFinite(value.width) ? value.width : 4,
-  }
+  const points = value.points.filter((p: any) => Number.isFinite(p?.x) && Number.isFinite(p?.y)).map((p: any) => ({ x: p.x, y: p.y }))
+  return points.length ? { id: typeof value.id === "string" ? value.id : `s-${index}-${id()}`, points, color: typeof value.color === "string" ? value.color : "#0f172a", width: Math.max(1, number(value.width, 4)), opacity: Math.max(.1, Math.min(1, number(value.opacity, 1))) } : null
 }
-
-function normalizeBlock(value: any): WhiteboardMathBlock | null {
+function normalizeBlock(value: any): Block | null {
   if (!value || typeof value.id !== "string") return null
-  return {
-    id: value.id,
-    strokeIds: Array.isArray(value.strokeIds) ? value.strokeIds.filter((id: unknown) => typeof id === "string") : [],
-    bounds: {
-      x: Number.isFinite(value.bounds?.x) ? value.bounds.x : 0,
-      y: Number.isFinite(value.bounds?.y) ? value.bounds.y : 0,
-      width: Number.isFinite(value.bounds?.width) ? value.bounds.width : 120,
-      height: Number.isFinite(value.bounds?.height) ? value.bounds.height : 80,
-    },
-    latex: typeof value.latex === "string" ? value.latex : "",
-    text: typeof value.text === "string" ? value.text : "",
-    confidence: typeof value.confidence === "number" ? value.confidence : null,
-    type: ["number", "expression", "equation", "system", "function", "geometry", "text", "unknown"].includes(value.type) ? value.type : "unknown",
-    status: ["writing", "recognizing", "ready", "review"].includes(value.status) ? value.status : "review",
-    source: ["mathpix", "gemini", "manual", "none"].includes(value.source) ? value.source : "none",
-    alternatives: Array.isArray(value.alternatives) ? value.alternatives.filter((item: unknown) => typeof item === "string").slice(0, 3) : [],
-    editedManually: value.editedManually === true,
-    warning: typeof value.warning === "string" ? value.warning : null,
-  }
+  if (value.kind === "page-settings") return { id: value.id, kind: "page-settings", background: backgrounds.some((b) => b.id === value.background) ? value.background : "grid", createdAt: value.createdAt || now() }
+  const base = { id: value.id, x: number(value.x, 80), y: number(value.y, 80), width: Math.max(40, number(value.width, 260)), height: Math.max(40, number(value.height, 190)), opacity: Math.max(.1, Math.min(1, number(value.opacity, 1))), createdAt: value.createdAt || now() }
+  if (value.kind === "image" && typeof value.src === "string") return { ...base, kind: "image", src: value.src, alt: String(value.alt || "Imagen") }
+  if (value.kind === "text") return { ...base, kind: "text", text: String(value.text || "Texto"), color: String(value.color || "#0f172a"), fontSize: Math.max(12, Math.min(100, number(value.fontSize, 32))), fontWeight: number(value.fontWeight, 500), align: ["left", "center", "right"].includes(value.align) ? value.align : "left" }
+  if (value.kind === "shape" && [...shapes2d, ...shapes3d].some(([shape]) => shape === value.shape)) return { ...base, kind: "shape", shape: value.shape, stroke: String(value.stroke || "#2563eb"), fill: String(value.fill || "transparent"), strokeWidth: Math.max(1, Math.min(16, number(value.strokeWidth, 4))) }
+  if (value.kind === "graph" && graphs.some(([graph]) => graph === value.graph)) return { ...base, kind: "graph", graph: value.graph, fill: String(value.fill || "#ffffff") }
+  return null
 }
-
-function normalizePage(value: any, index: number): WhiteboardPage | null {
+function normalizePage(value: any, index: number): Page | null {
   if (!value || typeof value !== "object") return null
   const timestamp = now()
-  const strokes = Array.isArray(value.strokes)
-    ? value.strokes.map(normalizeStroke).filter((stroke: WhiteboardStroke | null): stroke is WhiteboardStroke => Boolean(stroke))
-    : []
-  let blocks = Array.isArray(value.blocks)
-    ? value.blocks.map(normalizeBlock).filter((block: WhiteboardMathBlock | null): block is WhiteboardMathBlock => Boolean(block))
-    : []
-  if (!blocks.length && typeof value.latex === "string" && value.latex.trim()) {
-    const segmented = segmentStrokes(strokes)
-    const first = segmented[0]
-    blocks = [{
-      id: first?.id || `legacy-${createId()}`,
-      strokeIds: first?.strokeIds || strokes.map((stroke) => stroke.id),
-      bounds: first?.bounds || { x: 20, y: 20, width: 320, height: 120 },
-      latex: value.latex,
-      text: value.latex,
-      confidence: null,
-      type: value.latex.includes("=") ? "equation" : "expression",
-      status: "ready",
-      source: "manual",
-      alternatives: [],
-      editedManually: true,
-    }]
-  }
-  return {
-    id: typeof value.id === "string" ? value.id : createId(),
-    title: typeof value.title === "string" && value.title.trim() ? value.title : `Página ${index + 1}`,
-    strokes,
-    blocks,
-    activeBlockId: typeof value.activeBlockId === "string" && blocks.some((block) => block.id === value.activeBlockId)
-      ? value.activeBlockId
-      : blocks[0]?.id || null,
-    canvasHeight: Number.isFinite(value.canvasHeight) ? Math.max(DEFAULT_CANVAS_HEIGHT, value.canvasHeight) : DEFAULT_CANVAS_HEIGHT,
-    createdAt: typeof value.createdAt === "string" ? value.createdAt : timestamp,
-    updatedAt: typeof value.updatedAt === "string" ? value.updatedAt : timestamp,
-  }
+  const strokes = Array.isArray(value.strokes) ? value.strokes.map(normalizeStroke).filter(Boolean) as Stroke[] : []
+  const blocks = Array.isArray(value.blocks) ? value.blocks.map(normalizeBlock).filter(Boolean) as Block[] : []
+  if (!blocks.some((b) => b.kind === "page-settings")) blocks.unshift({ id: id(), kind: "page-settings", background: "grid", createdAt: timestamp })
+  const visualIds = blocks.filter((b): b is Item => b.kind !== "page-settings").map((b) => b.id)
+  return { id: typeof value.id === "string" ? value.id : id(), title: String(value.title || `Página ${index + 1}`), strokes, blocks, activeBlockId: typeof value.activeBlockId === "string" && visualIds.includes(value.activeBlockId) ? value.activeBlockId : null, canvasHeight: Math.max(H, number(value.canvasHeight, H)), createdAt: value.createdAt || timestamp, updatedAt: value.updatedAt || timestamp }
 }
-
-function normalizeNotebook(value: any): WhiteboardNotebook | null {
+function normalizeNotebook(value: any): Notebook | null {
   if (!value || typeof value !== "object") return null
-  let pages = Array.isArray(value.pages)
-    ? value.pages.map(normalizePage).filter((page: WhiteboardPage | null): page is WhiteboardPage => Boolean(page))
-    : []
-  if (!pages.length && (Array.isArray(value.strokes) || typeof value.latex === "string")) {
-    const legacyPage = normalizePage({
-      id: createId(),
-      title: "Página 1",
-      strokes: value.strokes || [],
-      latex: value.latex || "",
-      canvasHeight: value.canvasHeight,
-      createdAt: value.createdAt,
-      updatedAt: value.updatedAt,
-    }, 0)
-    if (legacyPage) pages = [legacyPage]
-  }
+  let pages = Array.isArray(value.pages) ? value.pages.map(normalizePage).filter(Boolean) as Page[] : []
+  if (!pages.length && Array.isArray(value.strokes)) { const p = normalizePage({ id: id(), title: "Página 1", strokes: value.strokes, blocks: [] }, 0); if (p) pages = [p] }
   if (!pages.length) return null
-  const timestamp = now()
-  return {
-    id: typeof value.id === "string" ? value.id : createId(),
-    title: typeof value.title === "string" && value.title.trim() ? value.title : "Cuaderno sin título",
-    pages,
-    activePageId: typeof value.activePageId === "string" && pages.some((page) => page.id === value.activePageId)
-      ? value.activePageId
-      : pages[0].id,
-    createdAt: typeof value.createdAt === "string" ? value.createdAt : timestamp,
-    updatedAt: typeof value.updatedAt === "string" ? value.updatedAt : timestamp,
-    cloudSyncedAt: typeof value.cloudSyncedAt === "string" ? value.cloudSyncedAt : null,
-  }
+  return { id: typeof value.id === "string" ? value.id : id(), title: String(value.title || "Mi cuaderno digital"), pages, activePageId: typeof value.activePageId === "string" && pages.some((p) => p.id === value.activePageId) ? value.activePageId : pages[0].id, createdAt: value.createdAt || now(), updatedAt: value.updatedAt || now(), cloudSyncedAt: typeof value.cloudSyncedAt === "string" ? value.cloudSyncedAt : null }
 }
-
-function pointToSegmentDistance(point: WhiteboardPoint, start: WhiteboardPoint, end: WhiteboardPoint) {
-  const dx = end.x - start.x
-  const dy = end.y - start.y
-  if (dx === 0 && dy === 0) return Math.hypot(point.x - start.x, point.y - start.y)
-  const ratio = Math.max(0, Math.min(1, ((point.x - start.x) * dx + (point.y - start.y) * dy) / (dx * dx + dy * dy)))
-  return Math.hypot(point.x - (start.x + ratio * dx), point.y - (start.y + ratio * dy))
+function firstLocal(keys: string[]) { for (const key of keys) { const value = localStorage.getItem(key); if (value) return value } return null }
+function localLibrary(): Notebook[] {
+  try { const parsed = JSON.parse(localStorage.getItem(LIBRARY) || firstLocal(OLD_LIBRARY) || "[]"); return Array.isArray(parsed) ? parsed.map(normalizeNotebook).filter(Boolean) as Notebook[] : [] } catch { return [] }
 }
-
-function strokeTouchesPoint(stroke: WhiteboardStroke, point: WhiteboardPoint) {
-  if (stroke.points.length === 1) return Math.hypot(stroke.points[0].x - point.x, stroke.points[0].y - point.y) <= ERASER_RADIUS
-  return stroke.points.some((current, index) => index > 0 && pointToSegmentDistance(point, stroke.points[index - 1], current) <= ERASER_RADIUS)
+function saveLocal(notebook: Notebook) {
+  try { localStorage.setItem(CURRENT, JSON.stringify(notebook)); localStorage.setItem(LIBRARY, JSON.stringify([notebook, ...localLibrary().filter((n) => n.id !== notebook.id)].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 40))); return true } catch { return false }
 }
+const itemsOf = (page: Page) => page.blocks.filter((b): b is Item => b.kind !== "page-settings")
+const backgroundOf = (page: Page): Background => (page.blocks.find((b): b is Settings => b.kind === "page-settings")?.background || "grid")
+const poly = (sides: number, w: number, h: number, rotation = -Math.PI / 2) => Array.from({ length: sides }, (_, i) => { const a = rotation + i * Math.PI * 2 / sides; return `${w / 2 + Math.cos(a) * (w / 2 - 5)},${h / 2 + Math.sin(a) * (h / 2 - 5)}` }).join(" ")
+const star = (w: number, h: number) => Array.from({ length: 10 }, (_, i) => { const r = (i % 2 ? .22 : .47) * Math.min(w, h), a = -Math.PI / 2 + i * Math.PI / 5; return `${w / 2 + Math.cos(a) * r},${h / 2 + Math.sin(a) * r}` }).join(" ")
 
-function formatTime(value?: string | null) {
-  if (!value) return ""
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? "" : date.toLocaleTimeString("es-CL")
+function ShapeArt({ item }: { item: ShapeItem }) {
+  const { width: w, height: h, stroke, fill, strokeWidth: sw, shape } = item
+  const p = { fill, stroke, strokeWidth: sw, vectorEffect: "non-scaling-stroke" as const }
+  if (["rectangle", "square"].includes(shape)) return <rect x={5} y={5} width={w - 10} height={h - 10} rx={shape === "square" ? 2 : 12} {...p} />
+  if (["circle", "ellipse"].includes(shape)) return <ellipse cx={w / 2} cy={h / 2} rx={w / 2 - 5} ry={h / 2 - 5} {...p} />
+  if (shape === "triangle") return <polygon points={`${w / 2},5 ${w - 5},${h - 5} 5,${h - 5}`} {...p} />
+  if (shape === "diamond") return <polygon points={`${w / 2},5 ${w - 5},${h / 2} ${w / 2},${h - 5} 5,${h / 2}`} {...p} />
+  if (["pentagon", "hexagon"].includes(shape)) return <polygon points={poly(shape === "pentagon" ? 5 : 6, w, h)} {...p} />
+  if (shape === "star") return <polygon points={star(w, h)} {...p} />
+  if (["line", "arrow", "vector"].includes(shape)) return <g fill="none" stroke={stroke} strokeWidth={sw} vectorEffect="non-scaling-stroke"><line x1={8} y1={h * .58} x2={w - 8} y2={h * .58} />{shape !== "line" && <polyline points={`${w - 35},${h * .42} ${w - 8},${h * .58} ${w - 35},${h * .74}`} />}{shape === "vector" && <text x={w * .45} y={h * .42} fill={stroke} stroke="none" fontSize={26} fontWeight={800}>v⃗</text>}</g>
+  if (shape === "angle") return <g fill="none" stroke={stroke} strokeWidth={sw}><polyline points={`${w * .12},${h * .82} ${w * .5},${h * .38} ${w * .9},${h * .78}`} /><path d={`M ${w * .35} ${h * .58} A ${w * .2} ${h * .2} 0 0 1 ${w * .66} ${h * .57}`} /></g>
+  if (["cube", "prism"].includes(shape)) return <g fill={fill} stroke={stroke} strokeWidth={sw} vectorEffect="non-scaling-stroke"><rect x={6} y={h * .25} width={w * .68} height={h * .68} /><polyline points={`6,${h * .25} ${w * .22},6 ${w * .9},6 ${w * .74},${h * .25}`} fill="none" /><polyline points={`${w * .74},${h * .25} ${w * .9},6 ${w * .9},${h * .68} ${w * .74},${h * .93}`} fill="none" /><line x1={w * .22} y1={6} x2={w * .22} y2={h * .68} strokeDasharray="7 6" /><line x1={w * .22} y1={h * .68} x2={w * .9} y2={h * .68} strokeDasharray="7 6" /></g>
+  if (["pyramid", "tetrahedron"].includes(shape)) return <g fill={fill} stroke={stroke} strokeWidth={sw}><polygon points={`${w / 2},5 ${w - 6},${h - 7} 7,${h - 7}`} /><line x1={w / 2} y1={5} x2={w * .52} y2={h * .58} /><line x1={7} y1={h - 7} x2={w * .52} y2={h * .58} /><line x1={w - 6} y1={h - 7} x2={w * .52} y2={h * .58} strokeDasharray="7 6" /></g>
+  if (shape === "triangular-prism") return <g fill={fill} stroke={stroke} strokeWidth={sw}><polygon points={`${w * .08},${h * .82} ${w * .32},${h * .18} ${w * .56},${h * .82}`} /><polygon points={`${w * .4},${h * .7} ${w * .64},${h * .06} ${w * .9},${h * .7}`} fill="none" /><line x1={w * .08} y1={h * .82} x2={w * .4} y2={h * .7} /><line x1={w * .32} y1={h * .18} x2={w * .64} y2={h * .06} /><line x1={w * .56} y1={h * .82} x2={w * .9} y2={h * .7} /></g>
+  if (shape === "cylinder") return <g fill={fill} stroke={stroke} strokeWidth={sw}><ellipse cx={w / 2} cy={h * .18} rx={w * .38} ry={h * .13} /><line x1={w * .12} y1={h * .18} x2={w * .12} y2={h * .8} /><line x1={w * .88} y1={h * .18} x2={w * .88} y2={h * .8} /><ellipse cx={w / 2} cy={h * .8} rx={w * .38} ry={h * .13} /></g>
+  if (shape === "cone") return <g fill={fill} stroke={stroke} strokeWidth={sw}><path d={`M ${w / 2} 5 L ${w * .12} ${h * .78} A ${w * .38} ${h * .14} 0 0 0 ${w * .88} ${h * .78} Z`} /><ellipse cx={w / 2} cy={h * .78} rx={w * .38} ry={h * .14} fill="none" /></g>
+  return <g fill={fill} stroke={stroke} strokeWidth={sw}><ellipse cx={w / 2} cy={h / 2} rx={w * .45} ry={h * .45} /><ellipse cx={w / 2} cy={h / 2} rx={w * .2} ry={h * .45} fill="none" /><ellipse cx={w / 2} cy={h / 2} rx={w * .45} ry={h * .18} fill="none" /></g>
 }
-
-function readLocalLibrary(): WhiteboardNotebook[] {
-  try {
-    const current = localStorage.getItem(LOCAL_LIBRARY_KEY) || localStorage.getItem(LEGACY_LIBRARY_KEY)
-    if (!current) return []
-    const parsed = JSON.parse(current)
-    if (!Array.isArray(parsed)) return []
-    return parsed.map(normalizeNotebook).filter((item: WhiteboardNotebook | null): item is WhiteboardNotebook => Boolean(item))
-  } catch {
-    return []
-  }
+function GraphArt({ item }: { item: GraphItem }) {
+  const { width: w, height: h, graph } = item, grid = "#cbd5e1"
+  if (graph === "number-line") return <g><line x1={12} y1={h / 2} x2={w - 12} y2={h / 2} stroke="#334155" strokeWidth={3} />{Array.from({ length: 13 }, (_, i) => { const x = 30 + i * (w - 60) / 12; return <g key={i}><line x1={x} y1={h / 2 - 10} x2={x} y2={h / 2 + 10} stroke="#64748b" /><text x={x} y={h / 2 + 33} textAnchor="middle" fontSize={16} fill="#475569">{i - 6}</text></g> })}</g>
+  if (graph === "polar") return <g fill="none">{[.25, .5, .75, 1].map((r) => <circle key={r} cx={w / 2} cy={h / 2} r={Math.min(w, h) * .43 * r} stroke={grid} />)}{Array.from({ length: 12 }, (_, i) => { const a = i * Math.PI / 6, r = Math.min(w, h) * .43; return <line key={i} x1={w / 2} y1={h / 2} x2={w / 2 + Math.cos(a) * r} y2={h / 2 + Math.sin(a) * r} stroke={i % 3 ? grid : "#64748b"} /> })}<line x1={w * .07} y1={h / 2} x2={w * .93} y2={h / 2} stroke="#ef4444" strokeWidth={3} /><line x1={w / 2} y1={h * .07} x2={w / 2} y2={h * .93} stroke="#16a34a" strokeWidth={3} /></g>
+  if (graph === "axes3d") return <g fill="none"><line x1={w * .48} y1={h * .58} x2={w * .94} y2={h * .82} stroke="#ef4444" strokeWidth={4} /><line x1={w * .48} y1={h * .58} x2={w * .08} y2={h * .84} stroke="#16a34a" strokeWidth={4} /><line x1={w * .48} y1={h * .58} x2={w * .48} y2={h * .08} stroke="#2563eb" strokeWidth={4} /><text x={w * .93} y={h * .78} fill="#ef4444">X</text><text x={w * .05} y={h * .8} fill="#16a34a">Y</text><text x={w * .5} y={h * .1} fill="#2563eb">Z</text></g>
+  const m = graph === "science" ? 34 : 0, pw = w - m * 2, ph = h - m * 2, ox = graph === "science" ? m : w / 2, oy = graph === "science" ? h - m : h / 2
+  return <g fill="none">{Array.from({ length: 11 }, (_, i) => <line key={`v${i}`} x1={m + i * pw / 10} y1={m} x2={m + i * pw / 10} y2={m + ph} stroke={grid} />)}{Array.from({ length: 9 }, (_, i) => <line key={`h${i}`} x1={m} y1={m + i * ph / 8} x2={m + pw} y2={m + i * ph / 8} stroke={grid} />)}<line x1={m} y1={oy} x2={m + pw} y2={oy} stroke="#ef4444" strokeWidth={3} /><line x1={ox} y1={m} x2={ox} y2={m + ph} stroke="#16a34a" strokeWidth={3} /></g>
 }
-
-function writeLocalNotebook(notebook: WhiteboardNotebook) {
-  localStorage.setItem(LOCAL_CURRENT_KEY, JSON.stringify(notebook))
-  const library = [notebook, ...readLocalLibrary().filter((item) => item.id !== notebook.id)]
-    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
-    .slice(0, 60)
-  localStorage.setItem(LOCAL_LIBRARY_KEY, JSON.stringify(library))
+function BackgroundLayer({ background, height }: { background: Background; height: number }) {
+  const base = background === "black" ? "#0b1220" : background === "blue" ? "#0b2a52" : "#fff", dark = background === "black" || background === "blue"
+  return <g><rect width={W} height={height} fill={base} />{background === "ruled" && <>{Array.from({ length: Math.ceil(height / 38) }, (_, i) => <line key={i} x1={0} y1={(i + 1) * 38} x2={W} y2={(i + 1) * 38} stroke="#bfdbfe" />)}<line x1={90} y1={0} x2={90} y2={height} stroke="#fda4af" strokeWidth={2} /></>}{(background === "grid" || dark) && <>{Array.from({ length: 51 }, (_, i) => <line key={`v${i}`} x1={i * 28} y1={0} x2={i * 28} y2={height} stroke={dark ? (background === "black" ? "#1e293b" : "#17467a") : "#e2e8f0"} />)}{Array.from({ length: Math.ceil(height / 28) }, (_, i) => <line key={`h${i}`} x1={0} y1={i * 28} x2={W} y2={i * 28} stroke={dark ? (background === "black" ? "#1e293b" : "#17467a") : "#e2e8f0"} />)}</>}{background === "dots" && Array.from({ length: Math.ceil(height / 30) }, (_, r) => Array.from({ length: 47 }, (_, c) => <circle key={`${r}-${c}`} cx={c * 30 + 15} cy={r * 30 + 15} r={1.5} fill="#94a3b8" />))}</g>
 }
-
-async function renderBlockImages(strokes: WhiteboardStroke[]) {
-  const blocks = segmentStrokes(strokes)
-  const images: Record<string, string> = {}
-  for (const block of blocks) {
-    const padding = 24
-    const width = Math.max(96, Math.ceil(block.bounds.width + padding * 2))
-    const height = Math.max(96, Math.ceil(block.bounds.height + padding * 2))
-    const canvas = document.createElement("canvas")
-    canvas.width = Math.min(1800, width)
-    canvas.height = Math.min(1000, height)
-    const context = canvas.getContext("2d")
-    if (!context) continue
-    context.fillStyle = "#ffffff"
-    context.fillRect(0, 0, canvas.width, canvas.height)
-    context.strokeStyle = "#111827"
-    context.lineWidth = 5
-    context.lineCap = "round"
-    context.lineJoin = "round"
-    const scaleX = canvas.width / width
-    const scaleY = canvas.height / height
-    for (const stroke of block.strokes) {
-      if (!stroke.points.length) continue
-      context.beginPath()
-      stroke.points.forEach((point, index) => {
-        const x = (point.x - block.bounds.x + padding) * scaleX
-        const y = (point.y - block.bounds.y + padding) * scaleY
-        if (index === 0) context.moveTo(x, y)
-        else context.lineTo(x, y)
-      })
-      context.stroke()
-    }
-    images[block.id] = canvas.toDataURL("image/png", 0.92)
-  }
-  return images
-}
-
-function GraphView({ result }: { result: WhiteboardSolveResult | null }) {
-  const graph = result?.graph
-  if (!graph?.points?.length) {
-    return <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm text-slate-500">Resuelve o selecciona una función compatible para generar su gráfica.</div>
-  }
-  const width = 640
-  const height = 380
-  const xScale = (x: number) => ((x - graph.xMin) / (graph.xMax - graph.xMin)) * width
-  const yScale = (y: number) => height - ((y - graph.yMin) / Math.max(1e-9, graph.yMax - graph.yMin)) * height
-  const path = graph.points.map((point, index) => `${index === 0 ? "M" : "L"}${xScale(point.x).toFixed(2)},${yScale(point.y).toFixed(2)}`).join(" ")
-  const axisX = graph.yMin <= 0 && graph.yMax >= 0 ? yScale(0) : height
-  const axisY = graph.xMin <= 0 && graph.xMax >= 0 ? xScale(0) : 0
-  return (
-    <div className="space-y-3">
-      <div className="rounded-2xl border border-slate-200 bg-white p-3">
-        <svg viewBox={`0 0 ${width} ${height}`} className="h-auto w-full">
-          <rect width={width} height={height} fill="#ffffff" />
-          {Array.from({ length: 11 }, (_, index) => index).map((index) => <line key={`v-${index}`} x1={index * width / 10} y1={0} x2={index * width / 10} y2={height} stroke="#e2e8f0" strokeWidth={1} />)}
-          {Array.from({ length: 9 }, (_, index) => index).map((index) => <line key={`h-${index}`} x1={0} y1={index * height / 8} x2={width} y2={index * height / 8} stroke="#e2e8f0" strokeWidth={1} />)}
-          <line x1={0} y1={axisX} x2={width} y2={axisX} stroke="#64748b" strokeWidth={1.5} />
-          <line x1={axisY} y1={0} x2={axisY} y2={height} stroke="#64748b" strokeWidth={1.5} />
-          <path d={path} fill="none" stroke="#2563eb" strokeWidth={3} strokeLinejoin="round" strokeLinecap="round" />
-        </svg>
-      </div>
-      <div className="rounded-xl bg-blue-50 px-3 py-2 text-sm text-blue-800"><MathRenderer content={`$$${graph.expressionLatex}$$`} /></div>
-    </div>
-  )
-}
-
-const buttonBase = "inline-flex h-9 items-center justify-center gap-1.5 rounded-xl px-3 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-35"
+const distance = (p: Point, a: Point, b: Point) => { const dx = b.x - a.x, dy = b.y - a.y; if (!dx && !dy) return Math.hypot(p.x - a.x, p.y - a.y); const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / (dx * dx + dy * dy))); return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy)) }
+const hitsStroke = (s: Stroke, p: Point) => s.points.some((point, i) => i > 0 && distance(p, s.points[i - 1], point) < 24)
+const hitsItem = (item: Item, p: Point) => p.x >= item.x - 8 && p.x <= item.x + item.width + 8 && p.y >= item.y - 8 && p.y <= item.y + item.height + 8
+function fileData(file: File) { return new Promise<string>((resolve, reject) => { const r = new FileReader(); r.onload = () => typeof r.result === "string" ? resolve(r.result) : reject(new Error("Archivo inválido")); r.onerror = () => reject(r.error); r.readAsDataURL(file) }) }
+async function compress(src: string) { if (!src.startsWith("data:image/")) return src; return new Promise<string>((resolve) => { const image = new Image(); image.onload = () => { const scale = Math.min(1, 1000 / Math.max(image.naturalWidth, image.naturalHeight)), canvas = document.createElement("canvas"); canvas.width = Math.max(1, Math.round(image.naturalWidth * scale)); canvas.height = Math.max(1, Math.round(image.naturalHeight * scale)); const ctx = canvas.getContext("2d"); if (!ctx) return resolve(src); ctx.drawImage(image, 0, 0, canvas.width, canvas.height); resolve(canvas.toDataURL("image/jpeg", .8)) }; image.onerror = () => resolve(src); image.src = src }) }
 
 export default function WhiteboardMathStudio() {
-  const router = useRouter()
-  const initialNotebook = useMemo(() => createNotebook(), [])
-  const svgRef = useRef<SVGSVGElement>(null)
-  const boardScrollRef = useRef<HTMLDivElement>(null)
-  const recognitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const cloudSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const hydratedRef = useRef(false)
-  const [notebook, setNotebook] = useState<WhiteboardNotebook>(initialNotebook)
-  const [tool, setTool] = useState<Tool>("pen")
-  const [activeStroke, setActiveStroke] = useState<WhiteboardStroke | null>(null)
-  const [redoStack, setRedoStack] = useState<WhiteboardStroke[][]>([])
-  const [recognizing, setRecognizing] = useState(false)
-  const [recognitionFeedback, setRecognitionFeedback] = useState("Escribe una expresión. Cada bloque se convertirá automáticamente a LaTeX.")
-  const [panelTab, setPanelTab] = useState<PanelTab>("latex")
-  const [editingLatex, setEditingLatex] = useState(false)
-  const [latexDraft, setLatexDraft] = useState("")
-  const [solveMode, setSolveMode] = useState<WhiteboardSolveMode>("solve")
-  const [solveResult, setSolveResult] = useState<WhiteboardSolveResult | null>(null)
-  const [solveLoading, setSolveLoading] = useState(false)
-  const [solveError, setSolveError] = useState("")
-  const [expanded, setExpanded] = useState(false)
-  const [cloudStatus, setCloudStatus] = useState<"idle" | "saving" | "synced" | "local" | "error">("idle")
-  const [savedNotebooks, setSavedNotebooks] = useState<SavedNotebookSummary[]>([])
-  const [showLibrary, setShowLibrary] = useState(false)
-  const [libraryLoading, setLibraryLoading] = useState(false)
-  const [chatInput, setChatInput] = useState("")
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
-  const [chatLoading, setChatLoading] = useState(false)
+  const router = useRouter(), svgRef = useRef<SVGSVGElement>(null), scrollRef = useRef<HTMLDivElement>(null), imageRef = useRef<HTMLInputElement>(null), importRef = useRef<HTMLInputElement>(null), videoRef = useRef<HTMLVideoElement>(null), streamRef = useRef<MediaStream | null>(null), saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null), hydrated = useRef(false)
+  const [notebook, setNotebook] = useState<Notebook>(() => newNotebook()), [tool, setTool] = useState<Tool>("pen"), [color, setColor] = useState("#0f172a"), [width, setWidth] = useState(5), [activeStroke, setActiveStroke] = useState<Stroke | null>(null), [interaction, setInteraction] = useState<Interaction | null>(null), [undoStack, setUndoStack] = useState<Page[]>([]), [redoStack, setRedoStack] = useState<Page[]>([]), [tab, setTab] = useState<Tab>("background"), [zoom, setZoom] = useState(.85), [expanded, setExpanded] = useState(false), [cloud, setCloud] = useState<"idle" | "saving" | "synced" | "local" | "error">("idle"), [showLibrary, setShowLibrary] = useState(false), [saved, setSaved] = useState<Saved[]>([]), [libraryLoading, setLibraryLoading] = useState(false), [showAi, setShowAi] = useState(false), [aiPrompt, setAiPrompt] = useState(""), [aiStyle, setAiStyle] = useState("educational"), [aiLoading, setAiLoading] = useState(false), [aiError, setAiError] = useState(""), [camera, setCamera] = useState(false), [cameraError, setCameraError] = useState(""), [exporting, setExporting] = useState(false)
+  const page = useMemo(() => notebook.pages.find((p) => p.id === notebook.activePageId) || notebook.pages[0], [notebook]), items = useMemo(() => itemsOf(page), [page]), selected = items.find((i) => i.id === page.activeBlockId) || null, background = backgroundOf(page), strokes = activeStroke ? [...page.strokes, activeStroke] : page.strokes
+  const updatePage = useCallback((pageId: string, fn: (p: Page) => Page) => setNotebook((n) => ({ ...n, pages: n.pages.map((p) => p.id === pageId ? fn(p) : p), updatedAt: now() })), [])
+  const noHistory = useCallback((fn: (p: Page) => Page) => updatePage(notebook.activePageId, (p) => ({ ...fn(p), updatedAt: now() })), [notebook.activePageId, updatePage])
+  const commit = useCallback((fn: (p: Page) => Page) => { const previous = clone(page), next = { ...fn(clone(page)), updatedAt: now() }; setUndoStack((s) => [...s.slice(-79), previous]); setRedoStack([]); updatePage(page.id, () => next) }, [page, updatePage])
+  const point = useCallback((event: ReactPointerEvent<SVGSVGElement | SVGGElement | SVGRectElement>) => { const svg = svgRef.current; if (!svg) return { x: 0, y: 0 }; const p = svg.createSVGPoint(); p.x = event.clientX; p.y = event.clientY; const m = svg.getScreenCTM()?.inverse(), result = m ? p.matrixTransform(m) : p; return { x: result.x, y: result.y } }, [])
+  const origin = () => { const scroll = scrollRef.current, svg = svgRef.current, scale = svg ? svg.clientWidth / W : 1; return { x: 100, y: Math.max(80, (scroll?.scrollTop || 0) / (scale || 1) + 80) } }
 
-  const activePage = useMemo(
-    () => notebook.pages.find((page) => page.id === notebook.activePageId) || notebook.pages[0],
-    [notebook],
-  )
-  const strokes = activePage.strokes
-  const allStrokes = activeStroke ? [...strokes, activeStroke] : strokes
-  const activeBlock = activePage.blocks.find((block) => block.id === activePage.activeBlockId) || activePage.blocks[0] || null
-  const pageLatex = combinedLatex(activePage.blocks)
+  useEffect(() => { try { const raw = localStorage.getItem(CURRENT) || firstLocal(OLD_CURRENT), restored = raw ? normalizeNotebook(JSON.parse(raw)) : null; if (restored) setNotebook(restored) } catch {} finally { hydrated.current = true } }, [])
+  useEffect(() => { if (!hydrated.current) return; const snapshot = { ...notebook, updatedAt: now() }, local = saveLocal(snapshot); setCloud(local ? "local" : "error"); if (saveTimer.current) clearTimeout(saveTimer.current); saveTimer.current = setTimeout(async () => { setCloud("saving"); try { const response = await fetch("/api/whiteboard/notebooks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ notebook: snapshot }) }); if (!response.ok) throw new Error(); const data = await response.json(), synced = data?.notebook?.cloudSyncedAt || now(); setNotebook((n) => n.id === snapshot.id ? { ...n, cloudSyncedAt: synced } : n); setCloud("synced") } catch { setCloud(local ? "local" : "error") } }, 1700) }, [notebook.activePageId, notebook.pages, notebook.title])
+  useEffect(() => () => { if (saveTimer.current) clearTimeout(saveTimer.current); streamRef.current?.getTracks().forEach((t) => t.stop()) }, [])
+  useEffect(() => { if (camera && videoRef.current && streamRef.current) { videoRef.current.srcObject = streamRef.current; void videoRef.current.play().catch(() => undefined) } }, [camera])
 
-  const updatePage = useCallback((pageId: string, updater: (page: WhiteboardPage) => WhiteboardPage) => {
-    setNotebook((current) => ({
-      ...current,
-      pages: current.pages.map((page) => page.id === pageId ? updater(page) : page),
-      updatedAt: now(),
-    }))
-  }, [])
+  const addItem = (item: Item) => { commit((p) => ({ ...p, blocks: [...p.blocks, item], activeBlockId: item.id })); setTool("select") }
+  const addShape = (shape: ShapeName) => { const o = origin(), is3d = shapes3d.some(([s]) => s === shape), line = ["line", "arrow", "vector", "angle"].includes(shape); addItem({ id: id(), kind: "shape", shape, x: o.x, y: o.y, width: line ? 360 : is3d ? 300 : 250, height: line ? 150 : is3d ? 260 : 220, stroke: background === "black" || background === "blue" ? "#f8fafc" : "#2563eb", fill: is3d || line ? "transparent" : "#dbeafe", strokeWidth: 4, opacity: 1, createdAt: now() }) }
+  const addGraph = (graph: GraphName) => { const o = origin(); addItem({ id: id(), kind: "graph", graph, x: o.x, y: o.y, width: graph === "number-line" ? 650 : 520, height: graph === "number-line" ? 150 : 390, fill: "#ffffff", opacity: 1, createdAt: now() }) }
+  const addText = () => { const o = origin(); addItem({ id: id(), kind: "text", text: "Escribe aquí tus apuntes", x: o.x, y: o.y, width: 480, height: 150, color: background === "black" || background === "blue" ? "#ffffff" : "#0f172a", fontSize: 34, fontWeight: 500, align: "left", opacity: 1, createdAt: now() }) }
+  const addImage = async (src: string, alt: string) => { const o = origin(); addItem({ id: id(), kind: "image", src: await compress(src), alt, x: o.x, y: o.y, width: 480, height: 320, opacity: 1, createdAt: now() }) }
+  const uploadImage = async (file?: File) => { if (!file) return; try { if (!file.type.startsWith("image/")) throw new Error("Selecciona una imagen."); await addImage(await fileData(file), file.name) } catch (e) { alert(e instanceof Error ? e.message : "No fue posible adjuntar la imagen.") } finally { if (imageRef.current) imageRef.current.value = "" } }
+  const setBackground = (next: Background) => { commit((p) => ({ ...p, blocks: [...p.blocks.filter((b) => b.kind !== "page-settings"), { id: id(), kind: "page-settings", background: next, createdAt: now() }] })); if (next === "black" || next === "blue") setColor("#ffffff") }
+  const generateAi = async () => { if (!aiPrompt.trim()) return; setAiLoading(true); setAiError(""); try { const response = await fetch("/api/agents/imagenes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: aiPrompt.trim(), style: aiStyle, width: 1024, height: 768, provider: "auto", mode: "educational", source: "digital-whiteboard", educationalContext: "Imagen de apoyo para apuntes educativos, limpia y sin texto ilegible." }) }), data = await response.json().catch(() => ({})); if (!response.ok || !data.imageUrl) throw new Error(data.error || "No fue posible generar la imagen."); await addImage(data.imageUrl, aiPrompt.trim()); setShowAi(false); setAiPrompt("") } catch (e) { setAiError(e instanceof Error ? e.message : "No fue posible generar la imagen.") } finally { setAiLoading(false) } }
+  const openCamera = async () => { setCameraError(""); try { if (!navigator.mediaDevices?.getUserMedia) throw new Error("La cámara requiere HTTPS y un navegador compatible."); streamRef.current?.getTracks().forEach((t) => t.stop()); streamRef.current = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false }); setCamera(true) } catch (e) { setCameraError(e instanceof Error ? e.message : "No fue posible abrir la cámara."); setCamera(true) } }
+  const closeCamera = () => { streamRef.current?.getTracks().forEach((t) => t.stop()); streamRef.current = null; if (videoRef.current) videoRef.current.srcObject = null; setCamera(false); setCameraError("") }
+  const capture = async () => { const video = videoRef.current; if (!video?.videoWidth) return; const canvas = document.createElement("canvas"), scale = Math.min(1, 1200 / video.videoWidth); canvas.width = video.videoWidth * scale; canvas.height = video.videoHeight * scale; canvas.getContext("2d")?.drawImage(video, 0, 0, canvas.width, canvas.height); await addImage(canvas.toDataURL("image/jpeg", .82), "Fotografía"); closeCamera() }
 
-  const updateActivePage = useCallback((updater: (page: WhiteboardPage) => WhiteboardPage) => {
-    updatePage(notebook.activePageId, updater)
-  }, [notebook.activePageId, updatePage])
+  const erase = (p: Point) => { const item = [...items].reverse().find((i) => hitsItem(i, p)); if (item) return commit((page) => ({ ...page, blocks: page.blocks.filter((b) => b.id !== item.id), activeBlockId: null })); const stroke = [...page.strokes].reverse().find((s) => hitsStroke(s, p)); if (stroke) commit((page) => ({ ...page, strokes: page.strokes.filter((s) => s.id !== stroke.id) })) }
+  const pointerDown = (event: ReactPointerEvent<SVGSVGElement>) => { const p = point(event); if (tool === "select") { if (page.activeBlockId) noHistory((page) => ({ ...page, activeBlockId: null })); return } if (tool === "eraser") return erase(p); event.currentTarget.setPointerCapture(event.pointerId); setActiveStroke({ id: id(), points: [p], color, width: tool === "marker" ? Math.max(14, width * 3) : width, opacity: tool === "marker" ? .28 : 1 }) }
+  const pointerMove = (event: ReactPointerEvent<SVGSVGElement>) => { const p = point(event); if (interaction) { const dx = p.x - interaction.start.x, dy = p.y - interaction.start.y; noHistory((page) => ({ ...page, blocks: page.blocks.map((b) => b.id !== interaction.item.id || b.kind === "page-settings" ? b : interaction.mode === "drag" ? { ...b, x: Math.max(0, interaction.item.x + dx), y: Math.max(0, interaction.item.y + dy) } : { ...b, width: Math.max(50, interaction.item.width + dx), height: Math.max(40, interaction.item.height + dy) }) })); return } if (activeStroke && event.currentTarget.hasPointerCapture(event.pointerId)) setActiveStroke((s) => s ? { ...s, points: [...s.points, p] } : s) }
+  const pointerUp = (event: ReactPointerEvent<SVGSVGElement>) => { if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); if (interaction) { setUndoStack((s) => [...s.slice(-79), interaction.page]); setRedoStack([]); setInteraction(null); return } if (activeStroke?.points.length && activeStroke.points.length > 1) commit((p) => ({ ...p, strokes: [...p.strokes, activeStroke] })); setActiveStroke(null) }
+  const beginItem = (event: ReactPointerEvent<SVGGElement | SVGRectElement>, item: Item, mode: "drag" | "resize") => { if (tool !== "select") return; event.stopPropagation(); svgRef.current?.setPointerCapture(event.pointerId); noHistory((p) => ({ ...p, activeBlockId: item.id })); setInteraction({ mode, item: clone(item), start: point(event), page: clone(page) }) }
+  const undo = () => { const previous = undoStack.at(-1); if (!previous) return; setUndoStack((s) => s.slice(0, -1)); setRedoStack((s) => [...s.slice(-79), clone(page)]); updatePage(page.id, () => clone(previous)) }
+  const redo = () => { const next = redoStack.at(-1); if (!next) return; setRedoStack((s) => s.slice(0, -1)); setUndoStack((s) => [...s.slice(-79), clone(page)]); updatePage(page.id, () => clone(next)) }
+  const patchSelected = (patch: Partial<Item>) => { if (selected) commit((p) => ({ ...p, blocks: p.blocks.map((b) => b.id === selected.id && b.kind !== "page-settings" ? { ...b, ...patch } as Item : b) })) }
+  const deleteSelected = () => selected && commit((p) => ({ ...p, blocks: p.blocks.filter((b) => b.id !== selected.id), activeBlockId: null }))
+  const duplicate = () => selected && addItem({ ...clone(selected), id: id(), x: selected.x + 30, y: selected.y + 30, createdAt: now() })
+  const reorder = (forward: boolean) => { if (!selected) return; commit((p) => { const settings = p.blocks.filter((b) => b.kind === "page-settings"), visual = p.blocks.filter((b): b is Item => b.kind !== "page-settings"), i = visual.findIndex((b) => b.id === selected.id), j = forward ? i + 1 : i - 1; if (i < 0 || j < 0 || j >= visual.length) return p; [visual[i], visual[j]] = [visual[j], visual[i]]; return { ...p, blocks: [...settings, ...visual] } }) }
 
-  const getPoint = useCallback((event: ReactPointerEvent<SVGSVGElement>) => {
-    const rect = svgRef.current?.getBoundingClientRect()
-    if (!rect) return { x: 0, y: 0 }
-    return { x: event.clientX - rect.left, y: event.clientY - rect.top }
-  }, [])
+  const addPage = () => { const p = newPage(notebook.pages.length); setNotebook((n) => ({ ...n, pages: [...n.pages, p], activePageId: p.id, updatedAt: now() })); setUndoStack([]); setRedoStack([]) }
+  const openPage = (pageId: string) => { setNotebook((n) => ({ ...n, activePageId: pageId, updatedAt: now() })); setUndoStack([]); setRedoStack([]); requestAnimationFrame(() => scrollRef.current?.scrollTo({ top: 0 })) }
+  const loadLibrary = async () => { setLibraryLoading(true); const local = localLibrary().map((n) => ({ id: n.id, title: n.title, pageCount: n.pages.length, updatedAt: n.updatedAt, source: "local" as const })); let remote: Saved[] = []; try { const response = await fetch("/api/whiteboard/notebooks", { cache: "no-store" }); if (response.ok) remote = (await response.json()).notebooks.map((n: Saved) => ({ ...n, source: "cloud" as const })) } catch {} const seen = new Set<string>(); setSaved([...remote, ...local].filter((n) => { const key = `${n.source}:${n.id}`; if (seen.has(key)) return false; seen.add(key); return true }).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))); setShowLibrary(true); setLibraryLoading(false) }
+  const openSaved = async (entry: Saved) => { try { const restored = entry.source === "local" ? localLibrary().find((n) => n.id === entry.id) || null : normalizeNotebook((await (await fetch(`/api/whiteboard/notebooks/${entry.id}`, { cache: "no-store" })).json()).notebook); if (!restored) throw new Error("Cuaderno incompatible."); setNotebook(restored); setShowLibrary(false); setUndoStack([]); setRedoStack([]) } catch (e) { alert(e instanceof Error ? e.message : "No fue posible abrir el cuaderno.") } }
+  const exportJson = () => { const url = URL.createObjectURL(new Blob([JSON.stringify({ format: "eduai-digital-notebook", version: 3, notebook }, null, 2)], { type: "application/json" })), a = document.createElement("a"); a.href = url; a.download = `${notebook.title.replace(/\W+/g, "-") || "cuaderno"}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 500) }
+  const importMaterial = async (file?: File) => { if (!file) return; try { if (file.type.startsWith("image/")) return await uploadImage(file); const data = JSON.parse(await file.text()), restored = normalizeNotebook(data.notebook || data); if (restored) { setNotebook({ ...restored, id: id(), title: `${restored.title} (importado)`, updatedAt: now(), cloudSyncedAt: null }); return } const imported = normalizePage(data.page || data, notebook.pages.length); if (!imported) throw new Error("Material incompatible."); const p = { ...imported, id: id(), title: `${imported.title} (importado)` }; setNotebook((n) => ({ ...n, pages: [...n.pages, p], activePageId: p.id, updatedAt: now() })) } catch (e) { alert(e instanceof Error ? e.message : "No fue posible importar el material.") } finally { if (importRef.current) importRef.current.value = "" } }
+  const exportPage = async (format: "png" | "pdf") => { const svg = svgRef.current; if (!svg || exporting) return; setExporting(true); try { const copy = svg.cloneNode(true) as SVGSVGElement; copy.querySelectorAll("[data-selection]").forEach((n) => n.remove()); copy.setAttribute("width", String(W)); copy.setAttribute("height", String(page.canvasHeight)); const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(copy)], { type: "image/svg+xml" })), image = new Image(); await new Promise<void>((resolve, reject) => { image.onload = () => resolve(); image.onerror = () => reject(new Error("No fue posible preparar la página.")); image.src = url }); const scale = Math.min(2, 5000 / Math.max(W, page.canvasHeight)), canvas = document.createElement("canvas"); canvas.width = W * scale; canvas.height = page.canvasHeight * scale; canvas.getContext("2d")?.drawImage(image, 0, 0, canvas.width, canvas.height); URL.revokeObjectURL(url); if (format === "png") { const a = document.createElement("a"); a.href = canvas.toDataURL("image/png"); a.download = `${page.title}.png`; a.click() } else { const { jsPDF } = await import("jspdf"), pw = 1000, ph = pw * page.canvasHeight / W, pdf = new jsPDF({ orientation: pw > ph ? "landscape" : "portrait", unit: "px", format: [pw, ph] }); pdf.addImage(canvas.toDataURL("image/jpeg", .9), "JPEG", 0, 0, pw, ph); pdf.save(`${page.title}.pdf`) } } catch (e) { alert(e instanceof Error ? e.message : "No fue posible exportar la página.") } finally { setExporting(false) } }
 
-  const recognize = useCallback(async (nextStrokes: WhiteboardStroke[], pageId: string) => {
-    if (!nextStrokes.length) {
-      updatePage(pageId, (page) => ({ ...page, blocks: [], activeBlockId: null, updatedAt: now() }))
-      setRecognitionFeedback("La página está vacía.")
-      return
-    }
-    setRecognizing(true)
-    setRecognitionFeedback("Reconociendo bloques matemáticos...")
-    try {
-      const blockImages = await renderBlockImages(nextStrokes)
-      const response = await fetch("/api/whiteboard/recognize", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ strokes: nextStrokes, blockImages }),
-      })
-      const data = await response.json().catch(() => ({}))
-      if (!response.ok) throw new Error(data?.error || "No fue posible reconocer la escritura.")
-      const incoming = Array.isArray(data?.blocks) ? data.blocks.map(normalizeBlock).filter(Boolean) as WhiteboardMathBlock[] : []
-      updatePage(pageId, (page) => {
-        const blocks = mergeRecognitionWithExisting(page.blocks, incoming)
-        const activeBlockId = blocks.some((block) => block.id === page.activeBlockId) ? page.activeBlockId : blocks[0]?.id || null
-        return { ...page, blocks, activeBlockId, updatedAt: now() }
-      })
-      if (incoming.some((block) => block.latex)) {
-        setRecognitionFeedback(incoming.some((block) => block.status === "review")
-          ? "LaTeX generado. Revisa los bloques marcados antes de resolver."
-          : "LaTeX actualizado correctamente.")
-      } else {
-        setRecognitionFeedback("No se obtuvo LaTeX automático. Selecciona el bloque y usa Editar LaTeX.")
-      }
-    } catch (error) {
-      setRecognitionFeedback(error instanceof Error ? error.message : "No fue posible reconocer la escritura.")
-    } finally {
-      setRecognizing(false)
-    }
-  }, [updatePage])
+  const renderItem = (item: Item): ReactNode => <g key={item.id} transform={`translate(${item.x} ${item.y})`} opacity={item.opacity}><g onPointerDown={(e) => beginItem(e, item, "drag")} className={tool === "select" ? "cursor-move" : ""}>{item.kind === "shape" && <ShapeArt item={item} />}{item.kind === "graph" && <g><rect width={item.width} height={item.height} rx={12} fill={item.fill} stroke="#e2e8f0" /><GraphArt item={item} /></g>}{item.kind === "image" && <image href={item.src} width={item.width} height={item.height} preserveAspectRatio="xMidYMid meet" />}{item.kind === "text" && <foreignObject width={item.width} height={item.height}><div xmlns="http://www.w3.org/1999/xhtml" style={{ width: "100%", height: "100%", overflow: "hidden", whiteSpace: "pre-wrap", overflowWrap: "anywhere", color: item.color, fontSize: item.fontSize, fontWeight: item.fontWeight, lineHeight: 1.25, textAlign: item.align, padding: 8 }}>{item.text}</div></foreignObject>}{tool === "select" && <rect width={item.width} height={item.height} fill="transparent" />}</g>{selected?.id === item.id && <g data-selection="true"><rect x={-6} y={-6} width={item.width + 12} height={item.height + 12} rx={9} fill="none" stroke="#2563eb" strokeWidth={3} strokeDasharray="10 7" /><rect x={item.width - 10} y={item.height - 10} width={22} height={22} rx={5} fill="#2563eb" stroke="#fff" strokeWidth={3} className="cursor-nwse-resize" onPointerDown={(e) => beginItem(e, item, "resize")} /></g>}</g>
+  const tabs: [Tab, string, ReactNode][] = [["background", "Fondos", <Palette size={14} />], ["2d", "2D", <Shapes size={14} />], ["3d", "3D", <Box size={14} />], ["graphs", "Gráficos", <Grid3X3 size={14} />], ["media", "Contenido", <ImageIcon size={14} />]]
 
-  const scheduleRecognition = useCallback((nextStrokes: WhiteboardStroke[], pageId: string) => {
-    if (recognitionTimer.current) clearTimeout(recognitionTimer.current)
-    recognitionTimer.current = setTimeout(() => void recognize(nextStrokes, pageId), RECOGNITION_DEBOUNCE_MS)
-  }, [recognize])
-
-  useEffect(() => () => {
-    if (recognitionTimer.current) clearTimeout(recognitionTimer.current)
-    if (cloudSaveTimer.current) clearTimeout(cloudSaveTimer.current)
-  }, [])
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(LOCAL_CURRENT_KEY) || localStorage.getItem(LEGACY_CURRENT_KEY)
-      const restored = raw ? normalizeNotebook(JSON.parse(raw)) : null
-      if (restored) setNotebook(restored)
-    } catch {
-      // El cuaderno inicial permanece disponible.
-    } finally {
-      hydratedRef.current = true
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!hydratedRef.current) return
-    const snapshot = { ...notebook, updatedAt: now() }
-    writeLocalNotebook(snapshot)
-    setCloudStatus((current) => current === "saving" ? current : "local")
-    if (cloudSaveTimer.current) clearTimeout(cloudSaveTimer.current)
-    cloudSaveTimer.current = setTimeout(async () => {
-      setCloudStatus("saving")
-      try {
-        const response = await fetch("/api/whiteboard/notebooks", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ notebook: snapshot }),
-        })
-        if (!response.ok) throw new Error("Cloud unavailable")
-        const payload = await response.json()
-        const syncedAt = payload?.notebook?.cloudSyncedAt || now()
-        setNotebook((current) => current.id === snapshot.id ? { ...current, cloudSyncedAt: syncedAt } : current)
-        setCloudStatus("synced")
-      } catch {
-        setCloudStatus("local")
-      }
-    }, CLOUD_SAVE_DEBOUNCE_MS)
-  }, [notebook.activePageId, notebook.pages, notebook.title])
-
-  const commit = (nextStrokes: WhiteboardStroke[]) => {
-    updateActivePage((page) => ({ ...page, strokes: nextStrokes, updatedAt: now() }))
-    setRedoStack([])
-    scheduleRecognition(nextStrokes, activePage.id)
-  }
-
-  const growCanvasIfNeeded = (point: WhiteboardPoint) => {
-    if (point.y > activePage.canvasHeight - CANVAS_BOTTOM_MARGIN) {
-      updateActivePage((page) => ({ ...page, canvasHeight: page.canvasHeight + CANVAS_GROWTH_STEP, updatedAt: now() }))
-    }
-  }
-
-  const eraseAt = (point: WhiteboardPoint) => {
-    const next = strokes.filter((stroke) => !strokeTouchesPoint(stroke, point))
-    if (next.length !== strokes.length) commit(next)
-  }
-
-  const onPointerDown = (event: ReactPointerEvent<SVGSVGElement>) => {
-    event.currentTarget.setPointerCapture(event.pointerId)
-    const point = getPoint(event)
-    growCanvasIfNeeded(point)
-    if (tool === "eraser") {
-      eraseAt(point)
-      return
-    }
-    setActiveStroke({ id: createId(), points: [point], color: "#0f172a", width: 4 })
-  }
-
-  const onPointerMove = (event: ReactPointerEvent<SVGSVGElement>) => {
-    if (!event.currentTarget.hasPointerCapture(event.pointerId)) return
-    const point = getPoint(event)
-    growCanvasIfNeeded(point)
-    if (tool === "eraser") {
-      eraseAt(point)
-      return
-    }
-    setActiveStroke((current) => current ? { ...current, points: [...current.points, point] } : current)
-  }
-
-  const onPointerUp = (event: ReactPointerEvent<SVGSVGElement>) => {
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
-    if (tool === "pen" && activeStroke && activeStroke.points.length > 1) commit([...strokes, activeStroke])
-    setActiveStroke(null)
-  }
-
-  const undo = () => {
-    if (!strokes.length) return
-    setRedoStack((current) => [...current, strokes])
-    const next = strokes.slice(0, -1)
-    updateActivePage((page) => ({ ...page, strokes: next, updatedAt: now() }))
-    scheduleRecognition(next, activePage.id)
-  }
-
-  const redo = () => {
-    const previous = redoStack.at(-1)
-    if (!previous) return
-    setRedoStack((current) => current.slice(0, -1))
-    updateActivePage((page) => ({ ...page, strokes: previous, updatedAt: now() }))
-    scheduleRecognition(previous, activePage.id)
-  }
-
-  const clearPage = () => {
-    if (strokes.length && !window.confirm("¿Limpiar todos los trazos de esta página?")) return
-    updateActivePage((page) => ({ ...page, strokes: [], blocks: [], activeBlockId: null, updatedAt: now() }))
-    setRedoStack([])
-    setSolveResult(null)
-    setRecognitionFeedback("La página quedó vacía.")
-  }
-
-  const selectBlock = (block: WhiteboardMathBlock) => {
-    updateActivePage((page) => ({ ...page, activeBlockId: block.id }))
-    setEditingLatex(false)
-    setLatexDraft(block.latex)
-    setSolveResult(null)
-  }
-
-  const beginLatexEdit = () => {
-    if (!activeBlock) return
-    setLatexDraft(activeBlock.latex)
-    setEditingLatex(true)
-  }
-
-  const saveLatexEdit = () => {
-    if (!activeBlock) return
-    const latex = latexDraft.trim().replace(/^\$\$?|\$\$?$/g, "").trim()
-    updateActivePage((page) => ({
-      ...page,
-      blocks: page.blocks.map((block) => block.id === activeBlock.id
-        ? { ...block, latex, text: latex, source: "manual", confidence: 1, status: latex ? "ready" : "review", editedManually: true, warning: null }
-        : block),
-      updatedAt: now(),
-    }))
-    setEditingLatex(false)
-    setRecognitionFeedback("LaTeX corregido manualmente.")
-  }
-
-  const useAlternative = (alternative: string) => {
-    if (!activeBlock) return
-    setLatexDraft(alternative)
-    updateActivePage((page) => ({
-      ...page,
-      blocks: page.blocks.map((block) => block.id === activeBlock.id
-        ? { ...block, latex: alternative, text: alternative, source: "manual", confidence: 1, status: "ready", editedManually: true }
-        : block),
-      updatedAt: now(),
-    }))
-  }
-
-  const runMath = async (mode: WhiteboardSolveMode) => {
-    const latex = activeBlock?.latex || pageLatex
-    if (!latex.trim()) {
-      setSolveError("Primero genera o edita el LaTeX del problema.")
-      setPanelTab("latex")
-      return
-    }
-    setSolveMode(mode)
-    setSolveLoading(true)
-    setSolveError("")
-    setPanelTab(mode === "verify" ? "verify" : mode === "graph" ? "graph" : "solve")
-    try {
-      const lines = activeBlock ? [activeBlock.latex] : activePage.blocks.map((block) => block.latex).filter(Boolean)
-      const response = await fetch("/api/whiteboard/solve", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ latex, lines, mode }),
-      })
-      const payload = await response.json().catch(() => ({}))
-      if (!response.ok) throw new Error(payload?.error || "No fue posible procesar el ejercicio.")
-      setSolveResult(payload.result)
-    } catch (error) {
-      setSolveError(error instanceof Error ? error.message : "No fue posible procesar el ejercicio.")
-    } finally {
-      setSolveLoading(false)
-    }
-  }
-
-  const addPage = () => {
-    const page = createPage(notebook.pages.length)
-    setNotebook((current) => ({ ...current, pages: [...current.pages, page], activePageId: page.id, updatedAt: now() }))
-    setRedoStack([])
-    setSolveResult(null)
-    requestAnimationFrame(() => boardScrollRef.current?.scrollTo({ top: 0 }))
-  }
-
-  const openPage = (pageId: string) => {
-    setNotebook((current) => ({ ...current, activePageId: pageId, updatedAt: now() }))
-    setRedoStack([])
-    setSolveResult(null)
-    setEditingLatex(false)
-    requestAnimationFrame(() => boardScrollRef.current?.scrollTo({ top: 0 }))
-  }
-
-  const createNewNotebook = () => {
-    if (notebook.pages.some((page) => page.strokes.length) && !window.confirm("¿Crear un cuaderno nuevo? El actual ya está guardado localmente.")) return
-    setNotebook(createNotebook())
-    setSolveResult(null)
-    setRedoStack([])
-    setCloudStatus("idle")
-  }
-
-  const loadLibrary = async () => {
-    setLibraryLoading(true)
-    const local = readLocalLibrary().map((item) => ({ id: item.id, title: item.title, pageCount: item.pages.length, updatedAt: item.updatedAt, source: "local" as const }))
-    let cloud: SavedNotebookSummary[] = []
-    try {
-      const response = await fetch("/api/whiteboard/notebooks", { cache: "no-store" })
-      if (response.ok) {
-        const payload = await response.json()
-        cloud = (payload?.notebooks || []).map((item: any) => ({ ...item, source: "cloud" as const }))
-      }
-    } catch {
-      // La biblioteca local sigue disponible.
-    }
-    const seen = new Set<string>()
-    setSavedNotebooks([...cloud, ...local].filter((item) => {
-      const key = `${item.source}:${item.id}`
-      if (seen.has(key)) return false
-      seen.add(key)
-      return true
-    }).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)))
-    setShowLibrary(true)
-    setLibraryLoading(false)
-  }
-
-  const openSavedNotebook = async (summary: SavedNotebookSummary) => {
-    try {
-      if (summary.source === "cloud") {
-        const response = await fetch(`/api/whiteboard/notebooks/${summary.id}`, { cache: "no-store" })
-        const payload = await response.json()
-        if (!response.ok) throw new Error(payload?.error || "No fue posible abrir el cuaderno.")
-        const restored = normalizeNotebook(payload.notebook)
-        if (!restored) throw new Error("El cuaderno no tiene un formato válido.")
-        setNotebook(restored)
-        setCloudStatus("synced")
-      } else {
-        const restored = readLocalLibrary().find((item) => item.id === summary.id)
-        if (!restored) throw new Error("El cuaderno local ya no está disponible.")
-        setNotebook(restored)
-        setCloudStatus("local")
-      }
-      setShowLibrary(false)
-      setSolveResult(null)
-      setRedoStack([])
-    } catch (error) {
-      window.alert(error instanceof Error ? error.message : "No fue posible abrir el cuaderno.")
-    }
-  }
-
-  const deleteSavedNotebook = async (summary: SavedNotebookSummary) => {
-    if (!window.confirm(`¿Eliminar “${summary.title}”?`)) return
-    if (summary.source === "cloud") {
-      await fetch(`/api/whiteboard/notebooks/${summary.id}`, { method: "DELETE" }).catch(() => undefined)
-    } else {
-      localStorage.setItem(LOCAL_LIBRARY_KEY, JSON.stringify(readLocalLibrary().filter((item) => item.id !== summary.id)))
-    }
-    setSavedNotebooks((current) => current.filter((item) => !(item.id === summary.id && item.source === summary.source)))
-  }
-
-  const copyLatex = async () => {
-    const latex = activeBlock?.latex || pageLatex
-    if (latex) await navigator.clipboard.writeText(latex)
-  }
-
-  const downloadLatex = () => {
-    if (!pageLatex) return
-    const content = `\\documentclass{article}\n\\usepackage{amsmath,amssymb}\n\\begin{document}\n\\[\n${pageLatex}\n\\]\n\\end{document}\n`
-    const url = URL.createObjectURL(new Blob([content], { type: "application/x-tex" }))
-    const anchor = document.createElement("a")
-    anchor.href = url
-    anchor.download = `${notebook.title.replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ -]/g, "").replace(/\s+/g, "-") || "pizarra"}.tex`
-    anchor.click()
-    setTimeout(() => URL.revokeObjectURL(url), 800)
-  }
-
-  const downloadPageImage = async (format: "png" | "pdf") => {
-    const svg = svgRef.current
-    if (!svg) return
-    const serialized = new XMLSerializer().serializeToString(svg)
-    const blob = new Blob([serialized], { type: "image/svg+xml" })
-    const url = URL.createObjectURL(blob)
-    const image = new Image()
-    image.onload = async () => {
-      const canvas = document.createElement("canvas")
-      canvas.width = Math.max(800, svg.clientWidth * 2)
-      canvas.height = Math.min(5000, activePage.canvasHeight * 2)
-      const context = canvas.getContext("2d")
-      if (!context) return
-      context.fillStyle = "#ffffff"
-      context.fillRect(0, 0, canvas.width, canvas.height)
-      context.drawImage(image, 0, 0, canvas.width, canvas.height)
-      if (format === "png") {
-        const anchor = document.createElement("a")
-        anchor.href = canvas.toDataURL("image/png")
-        anchor.download = `${activePage.title}.png`
-        anchor.click()
-      } else {
-        const { jsPDF } = await import("jspdf")
-        const pdf = new jsPDF({ orientation: canvas.width > canvas.height ? "landscape" : "portrait", unit: "px", format: [canvas.width / 2, canvas.height / 2] })
-        pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, canvas.width / 2, canvas.height / 2)
-        pdf.save(`${activePage.title}.pdf`)
-      }
-      URL.revokeObjectURL(url)
-    }
-    image.src = url
-  }
-
-  const sendChat = async () => {
-    const question = chatInput.trim()
-    if (!question || chatLoading) return
-    const selectedLatex = activeBlock?.latex || pageLatex
-    const context = [
-      question,
-      selectedLatex ? `Expresión seleccionada: $$${selectedLatex}$$` : "",
-      solveResult ? `Resultado del motor matemático: ${JSON.stringify(solveResult)}` : "",
-      "No cambies los resultados verificados del motor. Explica con claridad y usa LaTeX.",
-    ].filter(Boolean).join("\n\n")
-    const history = chatMessages.slice(-8)
-    setChatMessages((current) => [...current, { role: "user", content: question }])
-    setChatInput("")
-    setChatLoading(true)
-    try {
-      const response = await fetch("/api/agents/matematico", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: context, history }),
-      })
-      const payload = await response.json().catch(() => ({}))
-      if (!response.ok) throw new Error(payload?.error || "No fue posible consultar al profesor IA.")
-      setChatMessages((current) => [...current, { role: "assistant", content: payload.text || "No recibí una respuesta." }])
-    } catch (error) {
-      setChatMessages((current) => [...current, { role: "assistant", content: error instanceof Error ? `⚠️ ${error.message}` : "⚠️ No fue posible responder." }])
-    } finally {
-      setChatLoading(false)
-    }
-  }
-
-  const scrollNotebook = (direction: "up" | "down") => {
-    const container = boardScrollRef.current
-    if (!container) return
-    container.scrollBy({ top: direction === "down" ? container.clientHeight * 0.82 : -container.clientHeight * 0.82, behavior: "smooth" })
-  }
-
-  const tabs: { id: PanelTab; label: string }[] = [
-    { id: "latex", label: "LaTeX" },
-    { id: "solve", label: "Resolver" },
-    { id: "verify", label: "Verificar" },
-    { id: "graph", label: "Gráfica" },
-    { id: "ai", label: "IA" },
-  ]
-
-  return (
-    <div className={`min-h-screen bg-slate-50 text-slate-900 ${expanded ? "overflow-hidden" : ""}`}>
-      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-[1800px] items-center justify-between gap-3 px-4 py-2.5">
-          <div className="flex min-w-0 items-center gap-3">
-            <button onClick={() => router.back()} className={`${buttonBase} border border-slate-200 bg-white text-slate-700`}><ArrowLeft size={15} /> Volver</button>
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-600 text-xl text-white">✍️</div>
-            <div className="min-w-0"><h1 className="truncate text-sm font-bold">Pizarra matemática</h1><p className="hidden text-xs text-slate-500 sm:block">Trazos → bloques LaTeX → solución y verificación</p></div>
-          </div>
-          <button onClick={() => setExpanded((value) => !value)} className={`${buttonBase} border border-slate-200 bg-white text-slate-700`}>{expanded ? <Minimize2 size={15} /> : <Expand size={15} />}{expanded ? "Reducir" : "Expandir"}</button>
+  return <div className={`min-h-screen bg-slate-100 text-slate-900 ${expanded ? "overflow-hidden" : ""}`}>
+    <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur"><div className="mx-auto flex max-w-[1900px] items-center justify-between gap-3 px-4 py-2.5"><div className="flex min-w-0 items-center gap-3"><button onClick={() => router.back()} className={`${button} border border-slate-200 bg-white text-slate-700`}><ArrowLeft size={15} /> Volver</button><div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-indigo-600 text-xl text-white">✍️</div><div><h1 className="text-sm font-bold">Cuaderno digital interactivo</h1><p className="hidden text-xs text-slate-500 sm:block">Apuntes, dibujo, imágenes, figuras y gráficos en un solo lienzo</p></div></div><button onClick={() => setExpanded((v) => !v)} className={`${button} border border-slate-200 bg-white text-slate-700`}>{expanded ? <Minimize2 size={15} /> : <Expand size={15} />}{expanded ? "Reducir" : "Expandir"}</button></div></header>
+    <main className={`mx-auto flex max-w-[1900px] flex-col gap-3 px-3 py-3 sm:px-4 ${expanded ? "h-[calc(100vh-61px)]" : ""}`}>
+      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm"><span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Cuaderno</span><input value={notebook.title} onChange={(e) => setNotebook((n) => ({ ...n, title: e.target.value, updatedAt: now() }))} className="min-w-[220px] flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-400" /><span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-semibold ${cloud === "synced" ? "bg-emerald-100 text-emerald-700" : cloud === "saving" ? "bg-amber-100 text-amber-700" : cloud === "error" ? "bg-rose-100 text-rose-700" : "bg-slate-100 text-slate-600"}`}>{cloud === "synced" ? <Cloud size={12} /> : cloud === "saving" ? <LoaderCircle size={12} className="animate-spin" /> : <CloudOff size={12} />}{cloud === "synced" ? "Sincronizado" : cloud === "saving" ? "Guardando" : cloud === "error" ? "Sin espacio local" : "Guardado local"}</span></div>
+      <section className="grid min-h-0 flex-1 gap-3 xl:grid-cols-[1fr_340px]">
+        <div className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex flex-wrap items-center gap-1 border-b border-slate-200 bg-slate-50 px-2 py-2"><button onClick={() => setTool("select")} className={`${button} ${tool === "select" ? "bg-slate-900 text-white" : "text-slate-700 hover:bg-white"}`}><MousePointer2 size={14} /> Seleccionar</button><button onClick={() => setTool("pen")} className={`${button} ${tool === "pen" ? "bg-blue-600 text-white" : "text-slate-700 hover:bg-white"}`}><Brush size={14} /> Lápiz</button><button onClick={() => setTool("marker")} className={`${button} ${tool === "marker" ? "bg-amber-400 text-slate-900" : "text-slate-700 hover:bg-white"}`}><Highlighter size={14} /> Destacador</button><button onClick={() => setTool("eraser")} className={`${button} ${tool === "eraser" ? "bg-rose-500 text-white" : "text-slate-700 hover:bg-white"}`}><Eraser size={14} /> Borrador</button><label className="flex h-9 items-center gap-2 rounded-xl border border-slate-200 bg-white px-2 text-xs font-semibold"><input type="color" value={color} onChange={(e) => setColor(e.target.value)} className="h-6 w-7" />Color</label><label className="flex h-9 items-center gap-2 rounded-xl border border-slate-200 bg-white px-2 text-xs font-semibold">Trazo<input type="range" min={2} max={18} value={width} onChange={(e) => setWidth(Number(e.target.value))} className="w-20" /></label><button onClick={undo} disabled={!undoStack.length} className={`${button} px-2 text-slate-700`}><Undo2 size={16} /></button><button onClick={redo} disabled={!redoStack.length} className={`${button} px-2 text-slate-700`}><Redo2 size={16} /></button><div className="ml-auto flex gap-1"><button onClick={() => { if (!notebook.pages.some((p) => p.strokes.length || itemsOf(p).length) || confirm("¿Crear un cuaderno nuevo?")) setNotebook(newNotebook()) }} className={`${button} text-slate-700`}>Nuevo</button><button onClick={() => { saveLocal({ ...notebook, updatedAt: now() }); setCloud("local") }} className={`${button} text-emerald-700`}><Save size={14} /> Guardar</button><button onClick={() => void loadLibrary()} className={`${button} text-blue-700`}><BookOpen size={14} /> Mis cuadernos</button></div></div>
+          <div className="flex items-center gap-2 border-b border-slate-200 bg-white px-3 py-2"><div className="flex min-w-0 flex-1 gap-1 overflow-x-auto">{notebook.pages.map((p, i) => <button key={p.id} onClick={() => openPage(p.id)} className={`${button} shrink-0 ${p.id === page.id ? "bg-sky-600 text-white" : "bg-slate-100 text-slate-600"}`}>Página {i + 1}</button>)}<button onClick={addPage} className={`${button} shrink-0 bg-emerald-100 text-emerald-700`}><Plus size={14} /> Página</button></div><div className="flex items-center gap-1 rounded-xl bg-slate-100 p-1"><button onClick={() => setZoom((z) => Math.max(.45, z - .1))} className="h-7 w-8 rounded-lg bg-white font-bold">−</button><span className="w-12 text-center text-[11px] font-bold">{Math.round(zoom * 100)}%</span><button onClick={() => setZoom((z) => Math.min(1.35, z + .1))} className="h-7 w-8 rounded-lg bg-white font-bold">+</button></div></div>
+          <div ref={scrollRef} className="relative min-h-[520px] flex-1 overflow-auto bg-slate-200/70 p-4" style={{ height: expanded ? "calc(100vh - 238px)" : 750 }}><div className="mx-auto shadow-2xl" style={{ width: W * zoom, minWidth: W * zoom }}><svg ref={svgRef} viewBox={`0 0 ${W} ${page.canvasHeight}`} width={W * zoom} height={page.canvasHeight * zoom} onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerUp} className={`block touch-none select-none ${tool === "eraser" ? "cursor-cell" : tool === "select" ? "cursor-default" : "cursor-crosshair"}`}><BackgroundLayer background={background} height={page.canvasHeight} />{strokes.map((s) => <polyline key={s.id} points={s.points.map((p) => `${p.x},${p.y}`).join(" ")} fill="none" stroke={s.color} strokeWidth={s.width} strokeOpacity={s.opacity} strokeLinecap="round" strokeLinejoin="round" />)}{items.map(renderItem)}</svg></div></div>
         </div>
-      </header>
-
-      <main className={`mx-auto flex max-w-[1800px] flex-col gap-3 px-3 py-3 sm:px-4 ${expanded ? "h-[calc(100vh-61px)]" : ""}`}>
-        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
-          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Cuaderno</span>
-          <input value={notebook.title} onChange={(event) => setNotebook((current) => ({ ...current, title: event.target.value, updatedAt: now() }))} className="min-w-[220px] flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-400" />
-          <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold ${cloudStatus === "synced" ? "bg-emerald-100 text-emerald-700" : cloudStatus === "saving" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600"}`}>
-            {cloudStatus === "synced" ? <Cloud size={12} /> : cloudStatus === "saving" ? <LoaderCircle size={12} className="animate-spin" /> : <CloudOff size={12} />}
-            {cloudStatus === "synced" ? "Sincronizado" : cloudStatus === "saving" ? "Guardando" : "Guardado local"}
-          </span>
-          {notebook.cloudSyncedAt && <span className="text-[10px] text-slate-400">{formatTime(notebook.cloudSyncedAt)}</span>}
-        </div>
-
-        <section className={`grid min-h-0 flex-1 gap-3 ${expanded ? "lg:grid-cols-[1.25fr_0.75fr]" : "lg:grid-cols-[1.08fr_0.92fr]"}`}>
-          <div className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <div className="flex flex-wrap items-center gap-1 border-b border-slate-200 bg-slate-50 px-2 py-2">
-              <button onClick={() => setTool("pen")} className={`${buttonBase} ${tool === "pen" ? "bg-blue-600 text-white" : "text-slate-700 hover:bg-white"}`}><Brush size={14} /> Lápiz</button>
-              <button onClick={() => setTool("eraser")} className={`${buttonBase} ${tool === "eraser" ? "bg-rose-500 text-white" : "text-slate-700 hover:bg-white"}`}><Eraser size={14} /> Borrador</button>
-              <button onClick={undo} disabled={!strokes.length} className={`${buttonBase} px-2 text-slate-700 hover:bg-white`} title="Deshacer"><Undo2 size={15} /></button>
-              <button onClick={redo} disabled={!redoStack.length} className={`${buttonBase} px-2 text-slate-700 hover:bg-white`} title="Rehacer"><Redo2 size={15} /></button>
-              <span className="mx-1 h-5 w-px bg-slate-200" />
-              <button onClick={createNewNotebook} className={`${buttonBase} text-slate-700 hover:bg-white`}>Nuevo</button>
-              <button onClick={() => { writeLocalNotebook({ ...notebook, updatedAt: now() }); setCloudStatus("local") }} className={`${buttonBase} text-emerald-700 hover:bg-white`}><Save size={14} /> Guardar</button>
-              <button onClick={() => void loadLibrary()} className={`${buttonBase} text-blue-700 hover:bg-white`}><BookOpen size={14} /> Mis cuadernos</button>
-              <div className="ml-auto flex items-center gap-1">
-                <button onClick={() => void downloadPageImage("png")} className={`${buttonBase} px-2 text-slate-600`} title="Descargar PNG"><Download size={14} /> PNG</button>
-                <button onClick={() => void downloadPageImage("pdf")} className={`${buttonBase} px-2 text-slate-600`} title="Descargar PDF"><FileText size={14} /> PDF</button>
-                <button onClick={clearPage} className={`${buttonBase} px-2 text-rose-600`}><Trash2 size={14} /> Limpiar</button>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 border-b border-slate-200 bg-white px-3 py-2">
-              <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto">
-                {notebook.pages.map((page, index) => <button key={page.id} onClick={() => openPage(page.id)} className={`${buttonBase} shrink-0 ${page.id === activePage.id ? "bg-sky-600 text-white" : "bg-slate-100 text-slate-600"}`}>Página {index + 1}</button>)}
-                <button onClick={addPage} className={`${buttonBase} shrink-0 bg-emerald-100 text-emerald-700`}><Plus size={14} /> Página</button>
-              </div>
-              <button onClick={() => scrollNotebook("up")} className={`${buttonBase} px-2 text-slate-600`}><ArrowUp size={15} /></button>
-              <button onClick={() => scrollNotebook("down")} className={`${buttonBase} px-2 text-slate-600`}><ArrowDown size={15} /></button>
-            </div>
-
-            <div ref={boardScrollRef} className="relative min-h-[500px] flex-1 overflow-y-auto bg-white" style={{ height: expanded ? "calc(100vh - 225px)" : 740, overscrollBehavior: "contain" }}>
-              <svg ref={svgRef} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp} style={{ height: activePage.canvasHeight }} className={`w-full touch-none bg-white ${tool === "eraser" ? "cursor-cell" : "cursor-crosshair"}`}>
-                <defs><pattern id="math-grid" width="24" height="24" patternUnits="userSpaceOnUse"><path d="M 24 0 L 0 0 0 24" fill="none" stroke="#e2e8f0" strokeWidth="0.7" /></pattern></defs>
-                <rect width="100%" height="100%" fill="url(#math-grid)" />
-                {allStrokes.map((stroke) => <polyline key={stroke.id} points={stroke.points.map((point) => `${point.x},${point.y}`).join(" ")} fill="none" stroke={stroke.color || "#0f172a"} strokeWidth={stroke.width || 4} strokeLinecap="round" strokeLinejoin="round" />)}
-                {activePage.blocks.map((block, index) => {
-                  const active = block.id === activeBlock?.id
-                  return <g key={block.id} onPointerDown={(event) => { event.stopPropagation(); selectBlock(block) }} className="cursor-pointer">
-                    <rect x={block.bounds.x} y={block.bounds.y} width={block.bounds.width} height={block.bounds.height} rx={10} fill="transparent" stroke={active ? "#2563eb" : block.status === "review" ? "#f59e0b" : "#10b981"} strokeWidth={active ? 2.5 : 1.5} strokeDasharray={block.status === "review" ? "6 4" : undefined} />
-                    <rect x={block.bounds.x} y={Math.max(0, block.bounds.y - 22)} width={76} height={20} rx={8} fill={active ? "#2563eb" : block.status === "review" ? "#f59e0b" : "#10b981"} />
-                    <text x={block.bounds.x + 8} y={Math.max(14, block.bounds.y - 8)} fill="#ffffff" fontSize={10} fontWeight={800}>Bloque {index + 1}</text>
-                  </g>
-                })}
-              </svg>
-            </div>
-          </div>
-
-          <aside className="flex min-h-[560px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <div className="flex items-center gap-1 overflow-x-auto border-b border-slate-200 bg-slate-50 px-2 py-2">
-              {tabs.map((tab) => <button key={tab.id} onClick={() => setPanelTab(tab.id)} className={`${buttonBase} shrink-0 ${panelTab === tab.id ? "bg-white text-blue-700 shadow-sm" : "text-slate-500"}`}>{tab.label}</button>)}
-              <span className="ml-auto inline-flex shrink-0 items-center gap-1.5 px-2 text-[10px] font-semibold text-slate-500">{recognizing ? <LoaderCircle size={12} className="animate-spin" /> : <CheckCircle2 size={12} className="text-emerald-500" />}{recognizing ? "Reconociendo" : `${activePage.blocks.length} bloques`}</span>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-4">
-              {panelTab === "latex" && <div className="space-y-4">
-                <div className="flex items-start justify-between gap-3"><div><h2 className="text-sm font-bold">LaTeX del bloque</h2><p className="mt-1 text-xs text-slate-500">Selecciona un contorno del lienzo para trabajar solo con esa expresión.</p></div><button onClick={() => void recognize(strokes, activePage.id)} disabled={!strokes.length || recognizing} className={`${buttonBase} text-blue-700`}><RefreshCw size={14} /> Reprocesar</button></div>
-                <div className="min-h-36 rounded-2xl border border-blue-100 bg-blue-50/60 p-4">
-                  {activeBlock?.latex ? <MathRenderer content={`$$${activeBlock.latex}$$`} /> : pageLatex ? <MathRenderer content={`$$${pageLatex}$$`} /> : <p className="text-sm text-slate-500">Escribe en el lienzo. También puedes corregir manualmente con el botón Editar LaTeX.</p>}
-                </div>
-                {activeBlock && <div className="flex flex-wrap items-center gap-2 text-[10px] text-slate-500"><span className="rounded-full bg-slate-100 px-2 py-1">{activeBlock.type}</span><span className="rounded-full bg-slate-100 px-2 py-1">Motor: {activeBlock.source}</span>{typeof activeBlock.confidence === "number" && <span className="rounded-full bg-slate-100 px-2 py-1">Confianza: {Math.round(activeBlock.confidence * 100)}%</span>}</div>}
-                {editingLatex ? <div className="space-y-2 rounded-2xl border border-blue-200 bg-white p-3"><textarea value={latexDraft} onChange={(event) => setLatexDraft(event.target.value)} rows={5} className="w-full resize-y rounded-xl border border-slate-200 bg-slate-50 p-3 font-mono text-sm outline-none focus:border-blue-400" placeholder="Escribe LaTeX sin delimitadores $...$" /><div className="flex justify-end gap-2"><button onClick={() => setEditingLatex(false)} className={`${buttonBase} text-slate-600`}>Cancelar</button><button onClick={saveLatexEdit} className={`${buttonBase} bg-blue-600 text-white`}>Aplicar corrección</button></div></div> : <button onClick={beginLatexEdit} disabled={!activeBlock} className={`${buttonBase} border border-slate-200 bg-white text-blue-700`}><Edit3 size={14} /> Editar LaTeX</button>}
-                {activeBlock?.alternatives?.length ? <div className="rounded-2xl border border-slate-200 p-3"><p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Alternativas</p><div className="mt-2 space-y-2">{activeBlock.alternatives.map((alternative) => <button key={alternative} onClick={() => useAlternative(alternative)} className="block w-full rounded-xl bg-slate-50 px-3 py-2 text-left text-sm hover:bg-blue-50"><MathRenderer content={`$${alternative}$`} /></button>)}</div></div> : null}
-                <div className={`rounded-2xl border p-3 text-sm ${activeBlock?.warning ? "border-amber-200 bg-amber-50 text-amber-800" : "border-slate-200 bg-slate-50 text-slate-600"}`}>{activeBlock?.warning || recognitionFeedback}</div>
-                <div className="flex flex-wrap gap-2"><button onClick={copyLatex} disabled={!activeBlock?.latex && !pageLatex} className={`${buttonBase} text-slate-700`}><Clipboard size={14} /> Copiar</button><button onClick={downloadLatex} disabled={!pageLatex} className={`${buttonBase} text-slate-700`}><Download size={14} /> Descargar .tex</button></div>
-                <div className="grid gap-2 sm:grid-cols-3"><button onClick={() => void runMath("solve")} className={`${buttonBase} bg-blue-600 text-white`}><Sigma size={14} /> Solución</button><button onClick={() => void runMath("verify")} className={`${buttonBase} bg-emerald-600 text-white`}><CheckCircle2 size={14} /> Verificar</button><button onClick={() => void runMath("hint")} className={`${buttonBase} bg-amber-500 text-white`}><Lightbulb size={14} /> Pista</button></div>
-              </div>}
-
-              {(panelTab === "solve" || panelTab === "verify") && <div className="space-y-4">
-                <div className="flex items-center justify-between gap-3"><div><h2 className="text-sm font-bold">{panelTab === "verify" ? "Verificación del procedimiento" : solveMode === "hint" ? "Pista progresiva" : "Solución matemática"}</h2><p className="mt-1 text-xs text-slate-500">SymPy tiene prioridad; el motor local y la IA actúan como respaldo.</p></div>{solveLoading && <LoaderCircle size={18} className="animate-spin text-blue-600" />}</div>
-                {solveError && <div className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{solveError}</div>}
-                {!solveResult && !solveLoading && <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm text-slate-500">Usa Solución, Verificar o Pista desde la pestaña LaTeX.</div>}
-                {solveResult && <>
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3"><div className="flex flex-wrap items-center gap-2 text-[10px] font-semibold"><span className="rounded-full bg-white px-2 py-1">{solveResult.classification}</span><span className="rounded-full bg-white px-2 py-1">Motor: {solveResult.engine}</span><span className={`rounded-full px-2 py-1 ${solveResult.verified ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>{solveResult.verified ? "Verificado" : "Revisión recomendada"}</span></div><div className="mt-3"><MathRenderer content={`$$${solveResult.normalizedLatex}$$`} /></div></div>
-                  {solveResult.steps.length > 0 && <div className="space-y-2">{solveResult.steps.map((step, index) => <article key={`${step.index}-${index}`} className={`rounded-2xl border p-3 ${step.valid === false ? "border-red-200 bg-red-50" : "border-slate-200 bg-white"}`}><p className="text-xs font-bold text-slate-700">Paso {index + 1}</p><p className="mt-1 text-sm text-slate-600">{step.explanation}</p>{step.latex && <div className="mt-2 rounded-xl bg-slate-50 p-2"><MathRenderer content={`$$${step.latex}$$`} /></div>}</article>)}</div>}
-                  {solveResult.answerLatex && <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4"><p className="text-[10px] font-black uppercase tracking-wider text-emerald-700">Resultado</p><div className="mt-2"><MathRenderer content={`$$${solveResult.answerLatex}$$`} /></div></div>}
-                  {solveResult.explanation && <div className="rounded-2xl border border-blue-100 bg-blue-50/50 p-4 text-sm text-slate-700"><MathRenderer content={solveResult.explanation} /></div>}
-                  {solveResult.warning && <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">{solveResult.warning}</div>}
-                </>}
-              </div>}
-
-              {panelTab === "graph" && <div className="space-y-4"><div className="flex items-center justify-between"><div><h2 className="text-sm font-bold">Gráfica</h2><p className="mt-1 text-xs text-slate-500">Representación calculada desde la expresión seleccionada.</p></div><button onClick={() => void runMath("graph")} className={`${buttonBase} text-blue-700`}><Maximize2 size={14} /> Graficar</button></div><GraphView result={solveResult} /></div>}
-
-              {panelTab === "ai" && <div className="flex min-h-[480px] flex-col"><div><h2 className="text-sm font-bold">Profesor matemático</h2><p className="mt-1 text-xs text-slate-500">Pregunta por una pista o por la explicación de un paso. La IA recibe el resultado del motor cuando existe.</p></div><div className="mt-4 flex-1 space-y-2 overflow-y-auto">{chatMessages.length === 0 ? <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm text-slate-500">Selecciona un bloque y pregunta, por ejemplo: “Explícame el paso 2”.</div> : chatMessages.map((message, index) => <div key={`${message.role}-${index}`} className={`rounded-2xl px-3 py-2 text-sm ${message.role === "user" ? "ml-auto max-w-[86%] bg-blue-600 text-white" : "mr-auto max-w-[96%] border border-slate-200 bg-white text-slate-700"}`}>{message.role === "assistant" ? <MathRenderer content={message.content} /> : message.content}</div>)}</div><div className="mt-3 flex gap-2"><textarea value={chatInput} onChange={(event) => setChatInput(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void sendChat() } }} rows={2} placeholder="Pregunta sobre el ejercicio..." className="min-w-0 flex-1 resize-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-400" /><button onClick={() => void sendChat()} disabled={!chatInput.trim() || chatLoading} className={`${buttonBase} h-auto bg-blue-600 text-white`}>{chatLoading ? <LoaderCircle size={15} className="animate-spin" /> : <Send size={15} />}</button></div></div>}
-            </div>
-          </aside>
-        </section>
-      </main>
-
-      {showLibrary && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4" onClick={() => setShowLibrary(false)}><section className="max-h-[84vh] w-full max-w-3xl overflow-hidden rounded-3xl bg-white shadow-2xl" onClick={(event) => event.stopPropagation()}><header className="flex items-center justify-between border-b border-slate-200 px-5 py-4"><div><h2 className="flex items-center gap-2 text-base font-bold"><BookOpen size={17} className="text-blue-600" /> Mis cuadernos</h2><p className="mt-1 text-xs text-slate-500">La nube se usa cuando la migración está instalada; el navegador funciona como respaldo.</p></div><button onClick={() => setShowLibrary(false)} className="rounded-xl p-2 text-slate-500 hover:bg-slate-100"><X size={18} /></button></header><div className="max-h-[68vh] space-y-3 overflow-y-auto p-4">{libraryLoading ? <div className="flex justify-center p-12"><LoaderCircle size={28} className="animate-spin text-blue-600" /></div> : savedNotebooks.length === 0 ? <div className="rounded-2xl border border-dashed border-slate-300 p-10 text-center text-sm text-slate-500">Aún no hay cuadernos guardados.</div> : savedNotebooks.map((summary) => <article key={`${summary.source}-${summary.id}`} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 p-4"><div className="min-w-0"><h3 className="truncate text-sm font-bold">{summary.title}</h3><p className="mt-1 text-xs text-slate-500">{summary.pageCount} páginas · {summary.source === "cloud" ? "Nube" : "Navegador"} · {new Date(summary.updatedAt).toLocaleString("es-CL")}</p></div><div className="flex gap-2"><button onClick={() => void openSavedNotebook(summary)} className={`${buttonBase} bg-blue-600 text-white`}>Abrir</button><button onClick={() => void deleteSavedNotebook(summary)} className={`${buttonBase} text-rose-600`}><Trash2 size={14} /> Eliminar</button></div></article>)}</div></section></div>}
-    </div>
-  )
+        <aside className="flex min-h-[600px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"><div className="flex gap-1 overflow-x-auto border-b border-slate-200 bg-slate-50 px-2 py-2">{tabs.map(([key, label, icon]) => <button key={key} onClick={() => setTab(key)} className={`${button} shrink-0 px-2.5 ${tab === key ? "bg-white text-blue-700 shadow-sm" : "text-slate-500"}`}>{icon}{label}</button>)}</div><div className="flex-1 overflow-y-auto p-4">
+          {tab === "background" && <div className="space-y-3"><h2 className="text-sm font-bold">Fondos por página</h2><div className="grid grid-cols-2 gap-2">{backgrounds.map((b) => <button key={b.id} onClick={() => setBackground(b.id)} className={`rounded-2xl border p-3 text-left ${background === b.id ? "border-blue-500 bg-blue-50 ring-2 ring-blue-100" : "border-slate-200"}`}><div className={`mb-2 h-16 rounded-xl border ${b.id === "black" ? "bg-slate-950" : b.id === "blue" ? "bg-blue-950" : b.id === "ruled" ? "bg-[repeating-linear-gradient(to_bottom,#fff_0,#fff_14px,#bfdbfe_15px)]" : b.id === "grid" ? "bg-[linear-gradient(#e2e8f0_1px,transparent_1px),linear-gradient(90deg,#e2e8f0_1px,transparent_1px)] bg-[size:14px_14px]" : b.id === "dots" ? "bg-[radial-gradient(#94a3b8_1px,transparent_1px)] bg-[size:12px_12px]" : "bg-white"}`} /><p className="text-xs font-bold">{b.label}</p></button>)}</div></div>}
+          {tab === "2d" && <div className="space-y-3"><h2 className="text-sm font-bold">Figuras y vectores 2D</h2><div className="grid grid-cols-2 gap-2">{shapes2d.map(([shape, label]) => <button key={shape} onClick={() => addShape(shape)} className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-left text-xs font-semibold hover:bg-blue-50"><Square size={16} className="mb-2 text-blue-600" />{label}</button>)}</div></div>}
+          {tab === "3d" && <div className="space-y-3"><h2 className="text-sm font-bold">Sólidos geométricos 3D</h2><p className="text-xs text-slate-500">Modelos de alambre vacíos para explicar y completar.</p><div className="grid grid-cols-2 gap-2">{shapes3d.map(([shape, label]) => <button key={shape} onClick={() => addShape(shape)} className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-left text-xs font-semibold hover:bg-violet-50"><Box size={16} className="mb-2 text-violet-600" />{label}</button>)}</div></div>}
+          {tab === "graphs" && <div className="space-y-3"><h2 className="text-sm font-bold">Gráficos vacíos</h2><p className="text-xs text-slate-500">Ejes y aristas diferenciados por color.</p>{graphs.map(([graph, label]) => <button key={graph} onClick={() => addGraph(graph)} className="mb-2 flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-left hover:bg-emerald-50"><Grid3X3 size={18} className="text-emerald-600" /><span className="text-xs font-bold">{label}</span></button>)}</div>}
+          {tab === "media" && <div className="space-y-2"><h2 className="text-sm font-bold">Contenido para tus apuntes</h2><p className="mb-3 text-xs text-slate-500">Se inserta sobre la escritura y puede moverse o redimensionarse.</p><button onClick={addText} className="flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-left"><Type size={18} className="text-blue-600" /><span className="text-xs font-bold">Agregar texto</span></button><button onClick={() => imageRef.current?.click()} className="flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-left"><Upload size={18} className="text-indigo-600" /><span className="text-xs font-bold">Adjuntar imagen</span></button><button onClick={() => void openCamera()} className="flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-left"><Camera size={18} className="text-emerald-600" /><span className="text-xs font-bold">Tomar fotografía</span></button><button onClick={() => setShowAi(true)} className="flex w-full items-center gap-3 rounded-xl border border-violet-200 bg-violet-50 p-3 text-left"><Sparkles size={18} className="text-violet-600" /><span className="text-xs font-bold text-violet-900">Generar imagen con IA</span></button><div className="my-3 h-px bg-slate-200" /><button onClick={() => importRef.current?.click()} className="flex w-full items-center gap-3 rounded-xl border border-slate-200 p-3 text-left"><FileJson size={18} /><span className="text-xs font-bold">Importar material</span></button><button onClick={exportJson} className="flex w-full items-center gap-3 rounded-xl border border-slate-200 p-3 text-left"><Download size={18} /><span className="text-xs font-bold">Exportar cuaderno editable</span></button><div className="grid grid-cols-2 gap-2"><button onClick={() => void exportPage("png")} disabled={exporting} className={`${button} border border-slate-200`}><ImageIcon size={14} /> PNG</button><button onClick={() => void exportPage("pdf")} disabled={exporting} className={`${button} border border-slate-200`}><FileText size={14} /> PDF</button></div></div>}
+          {selected && <div className="mt-5 space-y-3 rounded-2xl border border-blue-200 bg-blue-50/60 p-3"><div className="flex justify-between"><div><p className="text-[10px] font-black uppercase text-blue-600">Elemento seleccionado</p><p className="text-xs font-bold">{selected.kind}</p></div><Layers size={17} className="text-blue-600" /></div>{selected.kind === "text" && <><textarea value={selected.text} onChange={(e) => patchSelected({ text: e.target.value } as Partial<TextItem>)} rows={4} className="w-full rounded-xl border border-slate-200 bg-white p-2 text-xs" /><label className="block text-[10px] font-bold">Tamaño<input type="range" min={12} max={96} value={selected.fontSize} onChange={(e) => patchSelected({ fontSize: Number(e.target.value) } as Partial<TextItem>)} className="w-full" /></label></>}{selected.kind === "shape" && <div className="grid grid-cols-2 gap-2"><label className="rounded-xl bg-white p-2 text-[10px] font-bold">Borde<input type="color" value={selected.stroke} onChange={(e) => patchSelected({ stroke: e.target.value } as Partial<ShapeItem>)} className="h-8 w-full" /></label><label className="rounded-xl bg-white p-2 text-[10px] font-bold">Relleno<input type="color" value={selected.fill === "transparent" ? "#ffffff" : selected.fill} onChange={(e) => patchSelected({ fill: e.target.value } as Partial<ShapeItem>)} className="h-8 w-full" /></label></div>}<label className="block text-[10px] font-bold">Opacidad<input type="range" min={.15} max={1} step={.05} value={selected.opacity} onChange={(e) => patchSelected({ opacity: Number(e.target.value) })} className="w-full" /></label><div className="grid grid-cols-2 gap-2"><button onClick={() => reorder(false)} className={`${button} border bg-white`}><ChevronDown size={14} /> Atrás</button><button onClick={() => reorder(true)} className={`${button} border bg-white`}><ChevronUp size={14} /> Adelante</button><button onClick={duplicate} className={`${button} border bg-white`}><Copy size={14} /> Duplicar</button><button onClick={deleteSelected} className={`${button} bg-rose-500 text-white`}><Trash2 size={14} /> Eliminar</button></div></div>}
+        </div><div className="border-t border-slate-200 bg-slate-50 p-3"><button onClick={() => { if ((!page.strokes.length && !items.length) || confirm("¿Limpiar esta página?")) commit((p) => ({ ...p, strokes: [], blocks: p.blocks.filter((b) => b.kind === "page-settings"), activeBlockId: null })) }} className={`${button} w-full text-rose-600`}><Trash2 size={14} /> Limpiar página</button></div></aside>
+      </section>
+    </main>
+    <input ref={imageRef} type="file" accept="image/*" className="hidden" onChange={(e) => void uploadImage(e.target.files?.[0])} /><input ref={importRef} type="file" accept="application/json,.json,image/*" className="hidden" onChange={(e) => void importMaterial(e.target.files?.[0])} />
+    {showAi && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4"><div className="w-full max-w-lg rounded-3xl bg-white p-5 shadow-2xl"><div className="flex justify-between"><div><h2 className="text-lg font-black">Generar imagen para tus apuntes</h2><p className="text-xs text-slate-500">Se insertará directamente en el lienzo.</p></div><button onClick={() => setShowAi(false)}><X size={18} /></button></div><textarea value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)} rows={5} className="mt-4 w-full rounded-2xl border bg-slate-50 p-3 text-sm" placeholder="Ejemplo: esquema educativo del ciclo del agua..." /><select value={aiStyle} onChange={(e) => setAiStyle(e.target.value)} className="mt-3 w-full rounded-xl border px-3 py-2 text-sm"><option value="educational">Educativo</option><option value="infographic">Infografía</option><option value="flat design">Diseño plano</option><option value="sketch">Boceto</option><option value="3d render">Render 3D</option><option value="realistic">Realista</option></select>{aiError && <div className="mt-3 rounded-xl bg-rose-50 p-3 text-xs text-rose-700">{aiError}</div>}<button onClick={() => void generateAi()} disabled={!aiPrompt.trim() || aiLoading} className={`${button} mt-4 w-full bg-violet-600 text-white`}>{aiLoading ? <LoaderCircle size={15} className="animate-spin" /> : <Sparkles size={15} />}{aiLoading ? "Generando..." : "Generar e insertar"}</button></div></div>}
+    {camera && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4"><div className="w-full max-w-3xl overflow-hidden rounded-3xl bg-white"><div className="flex justify-between border-b px-5 py-4"><h2 className="text-lg font-black">Tomar fotografía</h2><button onClick={closeCamera}><X size={18} /></button></div><div className="bg-slate-950 p-4">{cameraError ? <div className="rounded-2xl bg-rose-50 p-6 text-center text-sm text-rose-700">{cameraError}</div> : <video ref={videoRef} playsInline muted className="mx-auto max-h-[65vh] w-full rounded-2xl object-contain" />}</div><div className="flex justify-end gap-2 p-4"><button onClick={closeCamera} className={`${button} border`}>Cancelar</button><button onClick={() => void capture()} disabled={Boolean(cameraError)} className={`${button} bg-emerald-600 text-white`}><Camera size={15} /> Capturar y adjuntar</button></div></div></div>}
+    {showLibrary && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4"><div className="flex max-h-[82vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl bg-white"><div className="flex justify-between border-b px-5 py-4"><h2 className="text-lg font-black">Mis cuadernos digitales</h2><button onClick={() => setShowLibrary(false)}><X size={18} /></button></div><div className="flex-1 overflow-y-auto p-4">{libraryLoading ? <div className="p-10 text-center"><LoaderCircle className="mx-auto animate-spin" /></div> : saved.length ? saved.map((entry) => <button key={`${entry.source}-${entry.id}`} onClick={() => void openSaved(entry)} className="mb-2 flex w-full items-center gap-3 rounded-2xl border p-3 text-left"><span className="text-xl">📓</span><span><strong className="block text-sm">{entry.title}</strong><small className="text-slate-500">{entry.pageCount} páginas · {entry.source === "cloud" ? "Nube" : "Local"}</small></span></button>) : <div className="p-10 text-center text-sm text-slate-500">Aún no hay cuadernos guardados.</div>}</div></div></div>}
+  </div>
 }
