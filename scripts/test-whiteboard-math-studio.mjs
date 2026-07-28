@@ -13,6 +13,7 @@ const requiredFiles = [
   "app/api/whiteboard/notebooks/route.ts",
   "app/api/whiteboard/notebooks/[id]/route.ts",
   "supabase/migrations/202607260004_whiteboard_math_studio.sql",
+  "scripts/whiteboard-template/rotation-upgrade.b64",
 ]
 
 for (const file of requiredFiles) check(exists(file), `Falta el archivo requerido: ${file}`)
@@ -39,11 +40,19 @@ for (const feature of [
   "parentId",
   "compileExpression",
   "Contenido dentro del elemento",
+  'mode: "drag" | "resize" | "rotate"',
+  'interaction.mode==="rotate"',
+  "Arrastra para girar la figura o el gráfico",
+  'data-shape-render="sphere-shell"',
+  'data-graph-render="rotatable-3d"',
 ]) check(page.includes(feature), `La pizarra digital no contiene: ${feature}`)
 
 check(page.indexOf("topItems.map") >= 0 && page.indexOf("topItems.map") < page.indexOf("strokes.map((s)"), "Los trazos no se renderizan por encima de los objetos")
 check(page.includes("useState(false), [zoom"), "El panel de herramientas no comienza cerrado")
 check(page.includes('pointerEvents={interactive?"all":"none"}'), "Los objetos bloquean el dibujo cuando está activo el lápiz")
+check(page.includes('onPointerDown={(e)=>beginItem(e,selected,"rotate")}'), "El botón Girar no inicia la rotación con el mouse")
+check(page.includes("rotationX:original.rotationX-dy*.72"), "El arrastre vertical no modifica la rotación X")
+check(page.includes("rotationY:original.rotationY+dx*.72"), "El arrastre horizontal no modifica la rotación Y")
 
 for (const removedFeature of [
   "/api/whiteboard/recognize",
