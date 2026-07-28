@@ -127,5 +127,16 @@ if (templatePaths.every(existsSync)) {
     digitalWhiteboard = applyWhiteboardRotationUpgrade(digitalWhiteboard);
   }
 
+  const inspectMarkers = [
+    'const [notebook, setNotebook]',
+    'const generateAi =',
+    '{tab==="media"',
+    '{showAi&&',
+  ];
+  for (const marker of inspectMarkers) {
+    const index = digitalWhiteboard.indexOf(marker);
+    console.log(`\n[whiteboard-ai-inspect:${marker}]\n${index >= 0 ? digitalWhiteboard.slice(index, index + 5200) : "NOT_FOUND"}\n[/whiteboard-ai-inspect]`);
+  }
+
   writeFileSync(digitalWhiteboardPath, digitalWhiteboard);
 }
