@@ -113,29 +113,27 @@ const templatePaths = [
   "scripts/whiteboard-template/source3.b64",
 ];
 const rotationUpgradePath = "scripts/whiteboard-template/rotation-upgrade.b64";
+const aiVisualUpgradePath = "scripts/whiteboard-template/ai-visual-upgrade.b64";
 const digitalWhiteboardPath = "components/whiteboard/WhiteboardMathStudio.tsx";
+
+function loadUpgrade(file, functionName) {
+  const upgradeCode = gunzipSync(Buffer.from(readFileSync(file, "utf8").trim(), "base64"))
+    .toString("utf8")
+    .replace(/^export\s+/m, "");
+  return new Function(`${upgradeCode}\nreturn ${functionName};`)();
+}
+
 if (templatePaths.every(existsSync)) {
   let digitalWhiteboard = templatePaths
     .map((templatePath) => gunzipSync(Buffer.from(readFileSync(templatePath, "utf8").trim(), "base64")).toString("utf8"))
     .join("");
 
   if (existsSync(rotationUpgradePath)) {
-    const upgradeCode = gunzipSync(Buffer.from(readFileSync(rotationUpgradePath, "utf8").trim(), "base64"))
-      .toString("utf8")
-      .replace(/^export\s+/m, "");
-    const applyWhiteboardRotationUpgrade = new Function(`${upgradeCode}\nreturn applyWhiteboardRotationUpgrade;`)();
-    digitalWhiteboard = applyWhiteboardRotationUpgrade(digitalWhiteboard);
+    digitalWhiteboard = loadUpgrade(rotationUpgradePath, "applyWhiteboardRotationUpgrade")(digitalWhiteboard);
   }
 
-  const inspectMarkers = [
-    'const [notebook, setNotebook]',
-    'const generateAi =',
-    '{tab==="media"',
-    '{showAi&&',
-  ];
-  for (const marker of inspectMarkers) {
-    const index = digitalWhiteboard.indexOf(marker);
-    console.log(`\n[whiteboard-ai-inspect:${marker}]\n${index >= 0 ? digitalWhiteboard.slice(index, index + 5200) : "NOT_FOUND"}\n[/whiteboard-ai-inspect]`);
+  if (existsSync(aiVisualUpgradePath)) {
+    digitalWhiteboard = loadUpgrade(aiVisualUpgradePath, "applyWhiteboardAiVisualUpgrade")(digitalWhiteboard);
   }
 
   writeFileSync(digitalWhiteboardPath, digitalWhiteboard);
