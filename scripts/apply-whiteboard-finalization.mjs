@@ -114,6 +114,7 @@ const templatePaths = [
 ];
 const rotationUpgradePath = "scripts/whiteboard-template/rotation-upgrade.b64";
 const aiVisualUpgradePath = "scripts/whiteboard-template/ai-visual-upgrade.b64";
+const layoutFoldersUpgradePath = "scripts/whiteboard-template/layout-folders-upgrade.b64";
 const digitalWhiteboardPath = "components/whiteboard/WhiteboardMathStudio.tsx";
 
 function loadUpgrade(file, functionName) {
@@ -136,19 +137,8 @@ if (templatePaths.every(existsSync)) {
     digitalWhiteboard = loadUpgrade(aiVisualUpgradePath, "applyWhiteboardAiVisualUpgrade")(digitalWhiteboard);
   }
 
-  const inspectMarkers = [
-    'type Notebook =',
-    'const [notebook, setNotebook]',
-    'const addPage =',
-    'const loadLibrary =',
-    'return <div className={`min-h-screen',
-    '<div className="flex flex-wrap items-center gap-1 border-b',
-    '<aside className=',
-    '{showLibrary&&',
-  ];
-  for (const marker of inspectMarkers) {
-    const index = digitalWhiteboard.indexOf(marker);
-    console.log(`\n[whiteboard-layout-inspect:${marker}]\n${index >= 0 ? digitalWhiteboard.slice(index, index + 12000) : "NOT_FOUND"}\n[/whiteboard-layout-inspect]`);
+  if (existsSync(layoutFoldersUpgradePath)) {
+    digitalWhiteboard = loadUpgrade(layoutFoldersUpgradePath, "applyWhiteboardLayoutFoldersUpgrade")(digitalWhiteboard);
   }
 
   writeFileSync(digitalWhiteboardPath, digitalWhiteboard);
