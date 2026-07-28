@@ -112,10 +112,20 @@ const templatePaths = [
   "scripts/whiteboard-template/source2.b64",
   "scripts/whiteboard-template/source3.b64",
 ];
+const rotationUpgradePath = "scripts/whiteboard-template/rotation-upgrade.b64";
 const digitalWhiteboardPath = "components/whiteboard/WhiteboardMathStudio.tsx";
 if (templatePaths.every(existsSync)) {
-  const digitalWhiteboard = templatePaths
+  let digitalWhiteboard = templatePaths
     .map((templatePath) => gunzipSync(Buffer.from(readFileSync(templatePath, "utf8").trim(), "base64")).toString("utf8"))
     .join("");
+
+  if (existsSync(rotationUpgradePath)) {
+    const upgradeCode = gunzipSync(Buffer.from(readFileSync(rotationUpgradePath, "utf8").trim(), "base64"))
+      .toString("utf8")
+      .replace(/^export\s+/m, "");
+    const applyWhiteboardRotationUpgrade = new Function(`${upgradeCode}\nreturn applyWhiteboardRotationUpgrade;`)();
+    digitalWhiteboard = applyWhiteboardRotationUpgrade(digitalWhiteboard);
+  }
+
   writeFileSync(digitalWhiteboardPath, digitalWhiteboard);
 }
