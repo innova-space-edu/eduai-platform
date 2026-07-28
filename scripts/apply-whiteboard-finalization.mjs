@@ -1,4 +1,5 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { gunzipSync } from "node:zlib";
 
 const filePath = "components/exam/ExamQuestionNotebook.tsx";
 let source = readFileSync(filePath, "utf8");
@@ -106,11 +107,15 @@ source = source.replace(
 
 writeFileSync(filePath, source);
 
+const templatePaths = [
+  "scripts/whiteboard-template/source1.b64",
+  "scripts/whiteboard-template/source2.b64",
+  "scripts/whiteboard-template/source3.b64",
+];
 const digitalWhiteboardPath = "components/whiteboard/WhiteboardMathStudio.tsx";
-if (existsSync(digitalWhiteboardPath)) {
-  const digitalWhiteboard = readFileSync(digitalWhiteboardPath, "utf8").replace(
-    ' xmlns="http://www.w3.org/1999/xhtml"',
-    "",
-  );
+if (templatePaths.every(existsSync)) {
+  const digitalWhiteboard = templatePaths
+    .map((templatePath) => gunzipSync(Buffer.from(readFileSync(templatePath, "utf8").trim(), "base64")).toString("utf8"))
+    .join("");
   writeFileSync(digitalWhiteboardPath, digitalWhiteboard);
 }
