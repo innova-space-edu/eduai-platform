@@ -113,18 +113,27 @@ const templatePaths = [
   "scripts/whiteboard-template/source3.b64",
 ];
 const rotationUpgradePath = "scripts/whiteboard-template/rotation-upgrade.b64";
+const aiVisualUpgradePath = "scripts/whiteboard-template/ai-visual-upgrade.b64";
 const digitalWhiteboardPath = "components/whiteboard/WhiteboardMathStudio.tsx";
+
+function loadUpgrade(file, functionName) {
+  const upgradeCode = gunzipSync(Buffer.from(readFileSync(file, "utf8").trim(), "base64"))
+    .toString("utf8")
+    .replace(/^export\s+/m, "");
+  return new Function(`${upgradeCode}\nreturn ${functionName};`)();
+}
+
 if (templatePaths.every(existsSync)) {
   let digitalWhiteboard = templatePaths
     .map((templatePath) => gunzipSync(Buffer.from(readFileSync(templatePath, "utf8").trim(), "base64")).toString("utf8"))
     .join("");
 
   if (existsSync(rotationUpgradePath)) {
-    const upgradeCode = gunzipSync(Buffer.from(readFileSync(rotationUpgradePath, "utf8").trim(), "base64"))
-      .toString("utf8")
-      .replace(/^export\s+/m, "");
-    const applyWhiteboardRotationUpgrade = new Function(`${upgradeCode}\nreturn applyWhiteboardRotationUpgrade;`)();
-    digitalWhiteboard = applyWhiteboardRotationUpgrade(digitalWhiteboard);
+    digitalWhiteboard = loadUpgrade(rotationUpgradePath, "applyWhiteboardRotationUpgrade")(digitalWhiteboard);
+  }
+
+  if (existsSync(aiVisualUpgradePath)) {
+    digitalWhiteboard = loadUpgrade(aiVisualUpgradePath, "applyWhiteboardAiVisualUpgrade")(digitalWhiteboard);
   }
 
   writeFileSync(digitalWhiteboardPath, digitalWhiteboard);
