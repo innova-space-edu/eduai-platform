@@ -43,7 +43,7 @@ for (const feature of [
 
 check(page.indexOf("topItems.map") >= 0 && page.indexOf("topItems.map") < page.indexOf("strokes.map((s)"), "Los trazos no se renderizan por encima de los objetos")
 check(page.includes("useState(false), [zoom"), "El panel de herramientas no comienza cerrado")
-check(page.includes('pointerEvents={tool==="select"?"all":"none"}'), "Los objetos bloquean el dibujo cuando está activo el lápiz")
+check(page.includes('pointerEvents={interactive?"all":"none"}'), "Los objetos bloquean el dibujo cuando está activo el lápiz")
 
 for (const removedFeature of [
   "/api/whiteboard/recognize",
