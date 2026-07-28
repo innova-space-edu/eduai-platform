@@ -112,18 +112,20 @@ const templatePaths = [
   "scripts/whiteboard-template/source2.b64",
   "scripts/whiteboard-template/source3.b64",
 ];
+const rotationUpgradePath = "scripts/whiteboard-template/rotation-upgrade.b64";
 const digitalWhiteboardPath = "components/whiteboard/WhiteboardMathStudio.tsx";
 if (templatePaths.every(existsSync)) {
-  const digitalWhiteboard = templatePaths
+  let digitalWhiteboard = templatePaths
     .map((templatePath) => gunzipSync(Buffer.from(readFileSync(templatePath, "utf8").trim(), "base64")).toString("utf8"))
     .join("");
-  writeFileSync(digitalWhiteboardPath, digitalWhiteboard);
 
-  const lines = digitalWhiteboard.split("\n");
-  for (const marker of ["type Interaction", "function SolidArt", "function GraphArt", "const pointerMove", "const beginItem", "const renderItem", "rotationX", "Contenido dentro del elemento"]) {
-    const index = lines.findIndex((line) => line.includes(marker));
-    if (index >= 0) {
-      console.log(`\n[whiteboard-inspect:${marker}]\n${lines.slice(Math.max(0, index - 3), Math.min(lines.length, index + 18)).join("\n")}\n[/whiteboard-inspect]`);
-    }
+  if (existsSync(rotationUpgradePath)) {
+    const upgradeCode = gunzipSync(Buffer.from(readFileSync(rotationUpgradePath, "utf8").trim(), "base64"))
+      .toString("utf8")
+      .replace(/^export\s+/m, "");
+    const applyWhiteboardRotationUpgrade = new Function(`${upgradeCode}\nreturn applyWhiteboardRotationUpgrade;`)();
+    digitalWhiteboard = applyWhiteboardRotationUpgrade(digitalWhiteboard);
   }
+
+  writeFileSync(digitalWhiteboardPath, digitalWhiteboard);
 }
