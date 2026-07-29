@@ -11,17 +11,6 @@ const nextConfig: NextConfig = {
     "mammoth",
   ],
 
-  // Mantiene una URL semántica para el estudio de canciones sin crear una
-  // función serverless adicional. El plan Hobby ya utiliza el máximo de 12.
-  async rewrites() {
-    return [
-      {
-        source: "/api/agents/audio/songs",
-        destination: "/api/agents/audio/generate?kind=song",
-      },
-    ]
-  },
-
   // Para usar @sparticuz/chromium en Vercel (opcional, si activas Playwright):
   // serverExternalPackages: ["playwright-core", "@sparticuz/chromium-min", "pdf-parse", "mammoth"],
 
