@@ -2,7 +2,7 @@
 title: EduAI Song Engine
 emoji: 🎵
 colorFrom: purple
-colorTo: cyan
+colorTo: blue
 sdk: gradio
 sdk_version: 6.20.0
 python_version: 3.12.12
