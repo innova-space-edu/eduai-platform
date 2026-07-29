@@ -7,9 +7,27 @@
   min-height: 100dvh;
 }
 
+.mobileToolsButton,
+.mobileToolsBackdrop {
+  display: none;
+}
+
+@keyframes mobileToolsInFromLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 /*
- * Teléfonos y pantallas pequeñas: se mantiene el orden vertical original
- * (herramientas, cuaderno y biblioteca) con desplazamiento normal de página.
+ * Teléfonos y pantallas pequeñas: el cuaderno se muestra primero. El panel de
+ * herramientas se abre encima del lienzo desde el mismo botón y no ocupa una
+ * fila permanente ni empuja el cuaderno hacia abajo.
  */
 @media (max-width: 767px) {
   .page > :global(div),
@@ -18,7 +36,68 @@
     min-width: 0;
     height: auto !important;
     max-height: none !important;
-    overflow: visible;
+  }
+
+  .mobileToolsButton {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 4.65rem);
+    right: 0.75rem;
+    z-index: 75;
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    border: 1px solid rgb(217 70 239);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.97);
+    padding: 0.65rem 0.9rem;
+    color: rgb(162 28 175);
+    font-size: 0.78rem;
+    font-weight: 800;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.18);
+    backdrop-filter: blur(12px);
+  }
+
+  .mobileToolsButton[aria-expanded="true"] {
+    background: rgb(192 38 211);
+    color: white;
+  }
+
+  .mobileToolsBackdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    display: block;
+    border: 0;
+    background: rgba(15, 23, 42, 0.48);
+    backdrop-filter: blur(2px);
+  }
+
+  /* El panel izquierdo de herramientas no se apila antes ni después del lienzo. */
+  .page :global(main > aside:first-child) {
+    display: none !important;
+  }
+
+  .toolsOpen :global(main > aside:first-child) {
+    position: fixed !important;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 60;
+    display: block !important;
+    width: min(90vw, 23rem) !important;
+    height: 100dvh !important;
+    min-height: 0 !important;
+    max-height: 100dvh !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+    border-radius: 0 1.5rem 1.5rem 0 !important;
+    background: white;
+    padding-top: calc(env(safe-area-inset-top, 0px) + 4rem);
+    box-shadow: 24px 0 60px rgba(15, 23, 42, 0.28);
+    animation: mobileToolsInFromLeft 180ms ease-out;
   }
 }
 
