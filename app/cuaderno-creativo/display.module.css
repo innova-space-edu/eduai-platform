@@ -1,0 +1,163 @@
+.page {
+  min-width: 0;
+}
+
+.page > :global(div) {
+  min-height: 100dvh;
+}
+
+@media (min-width: 900px) {
+  .page > :global(div) {
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  .page :global(header > div) {
+    max-width: none !important;
+    flex-wrap: nowrap !important;
+    padding: 0.5rem 1rem !important;
+  }
+
+  .page :global(main) {
+    max-width: none !important;
+    height: calc(100dvh - 67px);
+    grid-template-columns: 220px minmax(0, 1fr) 260px !important;
+    gap: 0.65rem !important;
+    overflow: hidden;
+    padding: 0.65rem !important;
+  }
+
+  .page :global(main > aside),
+  .page :global(main > section) {
+    position: static !important;
+    align-self: stretch !important;
+    width: auto;
+    height: 100%;
+    min-height: 0;
+    max-height: none !important;
+  }
+
+  .page :global(main > aside:first-child) {
+    overflow-y: auto !important;
+  }
+
+  .page :global(main > aside:first-child > div) {
+    padding: 0.65rem !important;
+  }
+
+  .page :global(main > aside:first-child > div:first-child > div:nth-child(2)) {
+    gap: 0.35rem !important;
+  }
+
+  .page :global(main > aside:first-child > div:first-child > div:nth-child(2) > button) {
+    min-height: 3.1rem !important;
+    gap: 0.2rem !important;
+    padding: 0.3rem !important;
+    font-size: 0.62rem !important;
+  }
+
+  .page :global(main > section) {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .page :global(main > section > div:first-child),
+  .page :global(main > section > div:nth-child(2)),
+  .page :global(main > section > div:last-child) {
+    flex: 0 0 auto;
+  }
+
+  .page :global(main > section > div:first-child),
+  .page :global(main > section > div:nth-child(2)),
+  .page :global(main > section > div:last-child) {
+    padding-block: 0.45rem !important;
+  }
+
+  .page :global(main > section > div:nth-child(3)) {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0 !important;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden !important;
+    padding: 0.65rem !important;
+  }
+
+  .page :global(main > section > div:nth-child(3) > div) {
+    width: auto !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    aspect-ratio: 3 / 4;
+  }
+
+  .page :global(main > aside:last-child) {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .page :global(main > aside:last-child > div:first-child) {
+    flex: 0 0 auto;
+    padding: 0.65rem !important;
+  }
+
+  .page :global(main > aside:last-child > div:last-child) {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none !important;
+    overflow-y: auto;
+  }
+}
+
+@media (min-width: 900px) and (max-width: 1180px) {
+  .page :global(header p) {
+    display: none;
+  }
+
+  .page :global(main) {
+    grid-template-columns: 205px minmax(0, 1fr) 235px !important;
+  }
+
+  .page :global(main > aside:first-child > div) {
+    padding: 0.5rem !important;
+  }
+
+  .page :global(main > aside:last-child > div:last-child > div) {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (min-width: 900px) and (max-height: 850px) {
+  .page :global(header > div) {
+    padding-block: 0.35rem !important;
+  }
+
+  .page :global(main) {
+    height: calc(100dvh - 57px);
+    padding-block: 0.45rem !important;
+  }
+
+  .page :global(main > aside:first-child > div) {
+    padding-block: 0.5rem !important;
+  }
+
+  .page :global(main > section > div:nth-child(3)) {
+    padding: 0.45rem !important;
+  }
+
+  .page :global(main > section > div:last-child) {
+    display: none;
+  }
+}
+
+@media (min-width: 720px) and (max-width: 899px) {
+  .page :global(main) {
+    grid-template-columns: 210px minmax(0, 1fr) !important;
+  }
+
+  .page :global(main > aside:last-child) {
+    grid-column: 1 / -1;
+  }
+}
