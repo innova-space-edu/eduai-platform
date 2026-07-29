@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from "next/server"
 import Groq from "groq-sdk"
 import { EdgeTTS, Constants } from "@andresaya/edge-tts"
 import { createClient } from "@/lib/supabase/server"
+import { createSongJob, deleteSongJob, listSongJobs } from "@/lib/audio/song-studio-server"
 
 export const runtime = "nodejs"
-export const maxDuration = 60
+export const maxDuration = 300
 
 type AudioStyle = "narration" | "dialogue"
 type InputMode = "prompt" | "text"
@@ -221,6 +222,20 @@ async function synthesize(segments: Segment[], voiceA: string, voiceB: string) {
   return concat(parts)
 }
 
+export async function GET(req: NextRequest) {
+  if (req.nextUrl.searchParams.get("kind") !== "song") {
+    return NextResponse.json({ error: "Método no disponible" }, { status: 405 })
+  }
+  return listSongJobs()
+}
+
+export async function DELETE(req: NextRequest) {
+  if (req.nextUrl.searchParams.get("kind") !== "song") {
+    return NextResponse.json({ error: "Método no disponible" }, { status: 405 })
+  }
+  return deleteSongJob(req.nextUrl.searchParams.get("id") || "")
+}
+
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -228,6 +243,11 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json().catch(() => ({}))
+
+    if (body.kind === "song") {
+      return createSongJob(body)
+    }
+
     const prompt = String(body.prompt || body.text || "").trim().slice(0, MAX_INPUT_LENGTH)
     const inputMode: InputMode = body.inputMode === "text" ? "text" : "prompt"
     const style: AudioStyle = body.style === "dialogue" ? "dialogue" : "narration"
