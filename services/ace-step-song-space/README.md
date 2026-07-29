@@ -20,3 +20,5 @@ short_description: Motor privado de canciones IA para Audio Lab de EduAI
 Servicio privado de generación musical para EduAI, basado en ACE-Step 1.5 XL Turbo y ejecutado con ZeroGPU.
 
 El endpoint Gradio público interno es `generate_song`. La aplicación principal autentica las llamadas con el token privado de Hugging Face y guarda los resultados en Supabase Storage.
+
+El despliegue del Space se administra automáticamente mediante GitHub Actions desde el repositorio de EduAI.
