@@ -4,7 +4,7 @@ import { createNarration } from "@/lib/audio/narration-server"
 import { createSongJob, deleteSongJob, listSongJobs } from "@/lib/audio/song-studio-server"
 
 export const runtime = "nodejs"
-export const maxDuration = 300
+export const maxDuration = 60
 
 function isSongRequest(req: NextRequest, body?: Record<string, unknown>) {
   return req.nextUrl.searchParams.get("kind") === "song" || body?.kind === "song"
