@@ -47,6 +47,10 @@ export interface PlanningPreviewBlock {
   style: PlanningBlockStyle
 }
 
+export type PlanningBlockOverrides = Omit<Partial<PlanningPreviewBlock>, "style"> & {
+  style?: Partial<PlanningBlockStyle>
+}
+
 export interface PlanningPreviewPayload {
   version: 1
   id: string
@@ -87,7 +91,7 @@ const transparent = "#ffffff00"
 
 export function createPlanningBlock(
   type: PlanningBlockType,
-  overrides: Partial<PlanningPreviewBlock> = {}
+  overrides: PlanningBlockOverrides = {}
 ): PlanningPreviewBlock {
   const headingLevel = overrides.level || 2
   const headingSize = headingLevel === 1 ? 30 : headingLevel === 2 ? 23 : 19
@@ -95,8 +99,7 @@ export function createPlanningBlock(
     fontFamily: "inherit",
     fontSize: type === "heading" ? headingSize : type === "table" ? 13 : 15,
     color: "#0f172a",
-    background:
-      type === "quote" || type === "callout" ? "#ecfdf5" : transparent,
+    background: type === "quote" ? "#ecfdf5" : transparent,
     fontWeight: type === "heading" ? 800 : 400,
     fontStyle: "normal",
     textDecoration: "none",
