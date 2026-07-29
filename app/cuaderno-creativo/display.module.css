@@ -1,12 +1,33 @@
 .page {
   min-width: 0;
+  overflow-x: hidden;
 }
 
 .page > :global(div) {
   min-height: 100dvh;
 }
 
-@media (min-width: 900px) {
+/*
+ * Teléfonos y pantallas pequeñas: se mantiene el orden vertical original
+ * (herramientas, cuaderno y biblioteca) con desplazamiento normal de página.
+ */
+@media (max-width: 767px) {
+  .page > :global(div),
+  .page :global(main),
+  .page :global(main > *) {
+    min-width: 0;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible;
+  }
+}
+
+/*
+ * Modo pantalla gigante. No se aplica a notebooks normales: se activa en
+ * pizarras táctiles grandes o en viewports ultraanchos.
+ */
+@media (min-width: 1180px) and (min-height: 650px) and (any-pointer: coarse),
+  (min-width: 2200px) and (min-height: 900px) {
   .page > :global(div) {
     height: 100dvh;
     overflow: hidden;
@@ -15,13 +36,16 @@
   .page :global(header > div) {
     max-width: none !important;
     flex-wrap: nowrap !important;
-    padding: 0.5rem 1rem !important;
+    padding: 0.45rem 1rem !important;
   }
 
   .page :global(main) {
     max-width: none !important;
-    height: calc(100dvh - 67px);
-    grid-template-columns: 220px minmax(0, 1fr) 260px !important;
+    height: calc(100dvh - 63px);
+    grid-template-columns:
+      clamp(220px, 14vw, 280px)
+      minmax(0, 1fr)
+      clamp(240px, 16vw, 320px) !important;
     gap: 0.65rem !important;
     overflow: hidden;
     padding: 0.65rem !important;
@@ -33,11 +57,13 @@
     align-self: stretch !important;
     width: auto;
     height: 100%;
+    min-width: 0;
     min-height: 0;
     max-height: none !important;
   }
 
   .page :global(main > aside:first-child) {
+    overflow-x: hidden;
     overflow-y: auto !important;
   }
 
@@ -50,12 +76,13 @@
   }
 
   .page :global(main > aside:first-child > div:first-child > div:nth-child(2) > button) {
-    min-height: 3.1rem !important;
+    min-height: 3rem !important;
     gap: 0.2rem !important;
     padding: 0.3rem !important;
-    font-size: 0.62rem !important;
+    font-size: 0.64rem !important;
   }
 
+  /* El cuaderno queda siempre como elemento central y principal. */
   .page :global(main > section) {
     display: flex;
     flex-direction: column;
@@ -66,12 +93,7 @@
   .page :global(main > section > div:nth-child(2)),
   .page :global(main > section > div:last-child) {
     flex: 0 0 auto;
-  }
-
-  .page :global(main > section > div:first-child),
-  .page :global(main > section > div:nth-child(2)),
-  .page :global(main > section > div:last-child) {
-    padding-block: 0.45rem !important;
+    padding-block: 0.4rem !important;
   }
 
   .page :global(main > section > div:nth-child(3)) {
@@ -81,7 +103,7 @@
     align-items: center;
     justify-content: center;
     overflow: hidden !important;
-    padding: 0.65rem !important;
+    padding: 0.55rem !important;
   }
 
   .page :global(main > section > div:nth-child(3) > div) {
@@ -111,53 +133,35 @@
   }
 }
 
-@media (min-width: 900px) and (max-width: 1180px) {
+/* Pantallas gigantes con poco alto útil: compactar sin reducir el cuaderno. */
+@media (min-width: 1180px) and (max-height: 850px) and (any-pointer: coarse),
+  (min-width: 2200px) and (min-height: 700px) and (max-height: 950px) {
+  .page :global(header > div) {
+    padding-block: 0.3rem !important;
+  }
+
   .page :global(header p) {
     display: none;
   }
 
   .page :global(main) {
-    grid-template-columns: 205px minmax(0, 1fr) 235px !important;
+    height: calc(100dvh - 53px);
+    grid-template-columns:
+      clamp(205px, 13vw, 250px)
+      minmax(0, 1fr)
+      clamp(220px, 15vw, 285px) !important;
+    padding-block: 0.4rem !important;
   }
 
   .page :global(main > aside:first-child > div) {
-    padding: 0.5rem !important;
-  }
-
-  .page :global(main > aside:last-child > div:last-child > div) {
-    grid-template-columns: 1fr !important;
-  }
-}
-
-@media (min-width: 900px) and (max-height: 850px) {
-  .page :global(header > div) {
-    padding-block: 0.35rem !important;
-  }
-
-  .page :global(main) {
-    height: calc(100dvh - 57px);
     padding-block: 0.45rem !important;
   }
 
-  .page :global(main > aside:first-child > div) {
-    padding-block: 0.5rem !important;
-  }
-
   .page :global(main > section > div:nth-child(3)) {
-    padding: 0.45rem !important;
+    padding: 0.4rem !important;
   }
 
   .page :global(main > section > div:last-child) {
     display: none;
-  }
-}
-
-@media (min-width: 720px) and (max-width: 899px) {
-  .page :global(main) {
-    grid-template-columns: 210px minmax(0, 1fr) !important;
-  }
-
-  .page :global(main > aside:last-child) {
-    grid-column: 1 / -1;
   }
 }
