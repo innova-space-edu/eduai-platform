@@ -40,28 +40,38 @@ create index if not exists audio_song_jobs_user_updated_idx
 create index if not exists audio_song_jobs_status_idx
   on public.audio_song_jobs(status, created_at);
 
+-- Algunos proyectos creados desde abril de 2026 no exponen automáticamente
+-- las tablas nuevas a la Data API. Estos permisos son explícitos y la RLS
+-- continúa limitando cada fila a su propietario.
+grant usage on schema public to authenticated;
+grant select, insert, update, delete on table public.audio_song_jobs to authenticated;
+
 alter table public.audio_song_jobs enable row level security;
 
 drop policy if exists "audio_song_jobs_select_own" on public.audio_song_jobs;
 create policy "audio_song_jobs_select_own"
   on public.audio_song_jobs for select
-  using (auth.uid() = user_id);
+  to authenticated
+  using ((select auth.uid()) = user_id);
 
 drop policy if exists "audio_song_jobs_insert_own" on public.audio_song_jobs;
 create policy "audio_song_jobs_insert_own"
   on public.audio_song_jobs for insert
-  with check (auth.uid() = user_id);
+  to authenticated
+  with check ((select auth.uid()) = user_id);
 
 drop policy if exists "audio_song_jobs_update_own" on public.audio_song_jobs;
 create policy "audio_song_jobs_update_own"
   on public.audio_song_jobs for update
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
+  to authenticated
+  using ((select auth.uid()) = user_id)
+  with check ((select auth.uid()) = user_id);
 
 drop policy if exists "audio_song_jobs_delete_own" on public.audio_song_jobs;
 create policy "audio_song_jobs_delete_own"
   on public.audio_song_jobs for delete
-  using (auth.uid() = user_id);
+  to authenticated
+  using ((select auth.uid()) = user_id);
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
@@ -79,35 +89,39 @@ on conflict (id) do update set
 drop policy if exists "generated_songs_select_own" on storage.objects;
 create policy "generated_songs_select_own"
   on storage.objects for select
+  to authenticated
   using (
     bucket_id = 'generated-songs'
-    and (storage.foldername(name))[1] = auth.uid()::text
+    and (storage.foldername(name))[1] = (select auth.uid())::text
   );
 
 drop policy if exists "generated_songs_insert_own" on storage.objects;
 create policy "generated_songs_insert_own"
   on storage.objects for insert
+  to authenticated
   with check (
     bucket_id = 'generated-songs'
-    and (storage.foldername(name))[1] = auth.uid()::text
+    and (storage.foldername(name))[1] = (select auth.uid())::text
   );
 
 drop policy if exists "generated_songs_update_own" on storage.objects;
 create policy "generated_songs_update_own"
   on storage.objects for update
+  to authenticated
   using (
     bucket_id = 'generated-songs'
-    and (storage.foldername(name))[1] = auth.uid()::text
+    and (storage.foldername(name))[1] = (select auth.uid())::text
   )
   with check (
     bucket_id = 'generated-songs'
-    and (storage.foldername(name))[1] = auth.uid()::text
+    and (storage.foldername(name))[1] = (select auth.uid())::text
   );
 
 drop policy if exists "generated_songs_delete_own" on storage.objects;
 create policy "generated_songs_delete_own"
   on storage.objects for delete
+  to authenticated
   using (
     bucket_id = 'generated-songs'
-    and (storage.foldername(name))[1] = auth.uid()::text
+    and (storage.foldername(name))[1] = (select auth.uid())::text
   );
