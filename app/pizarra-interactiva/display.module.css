@@ -7,9 +7,27 @@
   min-height: 100dvh;
 }
 
+.mobileToolsButton,
+.mobileToolsBackdrop {
+  display: none;
+}
+
+@keyframes mobileToolsInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 /*
- * Teléfonos y pantallas pequeñas: se conserva la distribución móvil original
- * del componente. Solo se evita el desborde horizontal de controles y lienzo.
+ * Teléfonos y pantallas pequeñas: el lienzo permanece como contenido principal.
+ * El panel Fondos/2D/3D/Gráficos/Contenido se abre sobre el lienzo desde el botón
+ * Herramientas y nunca vuelve a apilarse debajo de él.
  */
 @media (max-width: 767px) {
   .page :global(header > div),
@@ -22,6 +40,83 @@
   .page :global(main) {
     height: auto !important;
     overflow: visible !important;
+  }
+
+  .mobileToolsButton {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 4.65rem);
+    right: 0.75rem;
+    z-index: 75;
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    border: 1px solid rgb(203 213 225);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.97);
+    padding: 0.65rem 0.9rem;
+    color: rgb(30 41 59);
+    font-size: 0.78rem;
+    font-weight: 800;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.18);
+    backdrop-filter: blur(12px);
+  }
+
+  .mobileToolsButton[aria-expanded="true"] {
+    border-color: rgb(37 99 235);
+    background: rgb(37 99 235);
+    color: white;
+  }
+
+  .mobileToolsBackdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    display: block;
+    border: 0;
+    background: rgba(15, 23, 42, 0.48);
+    backdrop-filter: blur(2px);
+  }
+
+  /* En móvil el panel lateral se mantiene cerrado hasta tocar Herramientas. */
+  .page :global(main > section > aside) {
+    display: none !important;
+  }
+
+  .toolsOpen :global(main > section > aside) {
+    position: fixed !important;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 60;
+    display: flex !important;
+    width: min(90vw, 23rem) !important;
+    height: 100dvh !important;
+    min-height: 0 !important;
+    max-height: 100dvh !important;
+    flex-direction: column;
+    overflow: hidden !important;
+    border-radius: 1.5rem 0 0 1.5rem !important;
+    background: white;
+    padding-top: calc(env(safe-area-inset-top, 0px) + 4rem);
+    box-shadow: -24px 0 60px rgba(15, 23, 42, 0.28);
+    animation: mobileToolsInFromRight 180ms ease-out;
+  }
+
+  .toolsOpen :global(main > section > aside > div:first-child) {
+    flex: 0 0 auto;
+  }
+
+  .toolsOpen :global(main > section > aside > div:nth-child(2)) {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+  }
+
+  .toolsOpen :global(main > section > aside > div:last-child) {
+    flex: 0 0 auto;
   }
 }
 
