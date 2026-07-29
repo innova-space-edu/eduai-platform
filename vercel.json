@@ -1,6 +1,12 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "node scripts/normalize-npm-lockfile.mjs && npm install --registry=https://registry.npmjs.org/",
+  "rewrites": [
+    {
+      "source": "/api/agents/audio/songs",
+      "destination": "/api/agents/audio/generate?kind=song"
+    }
+  ],
   "functions": {
     "app/api/**/*.ts": {
       "maxDuration": 60

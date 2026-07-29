@@ -2,10 +2,11 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { AudioLines, FileAudio, ShieldCheck } from "lucide-react"
+import { AudioLines, FileAudio, Music2, ShieldCheck } from "lucide-react"
 
 const ITEMS = [
   { href: "/audio-lab", label: "Transcribir y crear audio", icon: AudioLines },
+  { href: "/audio-lab/songs", label: "Crear canciones", icon: Music2 },
   { href: "/audio-lab/large", label: "Archivos grandes", icon: FileAudio },
   { href: "/audio-lab/voices", label: "Mis voces", icon: ShieldCheck },
 ]
