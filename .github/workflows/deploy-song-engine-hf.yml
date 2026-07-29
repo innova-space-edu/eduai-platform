@@ -26,14 +26,24 @@ jobs:
           import os
           from huggingface_hub import HfApi
 
-          token = os.environ["HF_TOKEN"]
+          token = os.environ.get("HF_TOKEN", "").strip()
           repo_id = os.environ["HF_SPACE_REPO"]
-          api = HfApi(token=token)
+          if not token:
+              raise RuntimeError("El secreto HF_TOKEN no está configurado en GitHub Actions")
 
+          api = HfApi(token=token)
+          identity = api.whoami()
+          print(f"Authenticated in Hugging Face as: {identity.get('name', 'unknown')}")
+
+          # Hugging Face exige un plan pagado para crear Spaces Gradio en
+          # cpu-basic. Las cuentas personales gratuitas en buen estado pueden
+          # crear hasta dos Spaces ZeroGPU, siempre que se solicite ZeroGPU
+          # desde el momento de creación.
           api.create_repo(
               repo_id=repo_id,
               repo_type="space",
               space_sdk="gradio",
+              space_hardware="zero-a10g",
               private=True,
               exist_ok=True,
           )
@@ -45,12 +55,13 @@ jobs:
               commit_message="Deploy EduAI Song Engine",
           )
 
-          try:
-              runtime = api.request_space_hardware(repo_id=repo_id, hardware="zero-a10g")
-              print(f"Requested hardware: {runtime.requested_hardware or runtime.hardware}")
-          except Exception as error:
-              print(f"ZeroGPU request warning: {error}")
-              print("The source was deployed. Select ZeroGPU manually if the account cannot request it through the API.")
-
+          # También asegura ZeroGPU cuando el Space ya existía.
+          runtime = api.request_space_hardware(
+              repo_id=repo_id,
+              hardware="zero-a10g",
+          )
+          requested = getattr(runtime, "requested_hardware", None)
+          active = getattr(runtime, "hardware", None)
+          print(f"ZeroGPU requested: {requested or active or 'zero-a10g'}")
           print(f"Deployed https://huggingface.co/spaces/{repo_id}")
           PY
