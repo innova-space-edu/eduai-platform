@@ -31,7 +31,6 @@ export default function PizarraInteractivaPage() {
         type="button"
         className={styles.mobileToolsButton}
         aria-expanded={toolsOpen}
-        aria-controls="pizarra-mobile-tools"
         onClick={() => setToolsOpen((current) => !current)}
       >
         {toolsOpen ? <X size={18} /> : <PanelLeftOpen size={18} />}
