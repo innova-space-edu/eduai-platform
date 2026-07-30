@@ -1,6 +1,6 @@
 <div align="center">
 
-```
+```text
 ███████╗██████╗ ██╗   ██╗ █████╗ ██╗
 ██╔════╝██╔══██╗██║   ██║██╔══██╗██║
 █████╗  ██║  ██║██║   ██║███████║██║
@@ -11,93 +11,215 @@
 
 ### 🎓 Ecosistema Educativo Inteligente Multiagente y Multimodal
 
-[![CI](https://github.com/innova-space-edu/eduai-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/innova-space-edu/eduai-platform/actions/workflows/ci.yml)
-[![Currículum MINEDUC](https://github.com/innova-space-edu/eduai-platform/actions/workflows/curriculum-validation.yml/badge.svg)](https://github.com/innova-space-edu/eduai-platform/actions/workflows/curriculum-validation.yml)
 [![Vercel](https://img.shields.io/badge/Vercel-deployed-black?logo=vercel)](https://eduaiplatformclon.vercel.app)
 ![Next.js](https://img.shields.io/badge/Next.js-16.1.6-black?logo=next.js)
 ![React](https://img.shields.io/badge/React-19.2.3-61DAFB?logo=react)
 ![Node.js](https://img.shields.io/badge/Node.js-22.x-339933?logo=node.js)
 ![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?logo=supabase)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript)
-![License](https://img.shields.io/badge/license-MIT-blue)
+![Teachers](https://img.shields.io/badge/Teachers-Free%20to%20use-16a34a)
+![Code](https://img.shields.io/badge/Code-Private%20%26%20Proprietary-7c3aed)
+![Owner](https://img.shields.io/badge/Owner-Innova%20Space%20Education%20SpA-0f172a)
 
-**[🌐 Ver plataforma](https://eduaiplatformclon.vercel.app)** · **[📋 Reportar un problema](https://github.com/innova-space-edu/eduai-platform/issues)** · **[✨ Solicitar una función](https://github.com/innova-space-edu/eduai-platform/issues)**
+**[🌐 Ver plataforma](https://eduaiplatformclon.vercel.app)** · **[🏢 Innova Space Education](https://innova-space-edu.cl/)** · **[✉️ Contacto](mailto:contacto@innova-space-edu.cl)**
 
 </div>
 
 ---
 
-## 📌 Estado verificado del repositorio
+> [!IMPORTANT]
+> **EduAI es de uso gratuito para docentes — Free to use for teachers.** Esta gratuidad corresponde al acceso y uso educativo de la plataforma bajo sus términos vigentes.
+>
+> **El código fuente es privado y propietario.** El acceso gratuito a la plataforma no convierte el software en código libre, no concede acceso al repositorio y no autoriza copiar, modificar, redistribuir, sublicenciar, vender ni reutilizar su código.
+>
+> **EduAI Platform, su código, arquitectura, identidad visual, documentación técnica y desarrollos propios son propiedad de Innova Space Education SpA.** Los componentes de terceros conservan sus licencias originales.
 
-Este README fue reconstruido a partir del código real del proyecto y de la rama `main` del repositorio.
+---
+
+## 📌 Estado verificado del proyecto
+
+Este documento fue actualizado a partir del contenido real incluido en el proyecto.
 
 <div align="center">
 
 | Indicador | Estado actual |
 |-----------|---------------|
-| **Páginas de aplicación** | 69 rutas `page.tsx` |
-| **APIs internas** | 120 rutas `route.ts` |
-| **Agentes y módulos visibles** | 20 entradas activas en `/agentes` |
+| **Páginas de aplicación** | 104 rutas `page.tsx` |
+| **APIs internas** | 135 rutas `route.ts` |
+| **Agentes y espacios visibles** | 19 entradas en `/agentes` |
 | **Herramientas de EduAI Claw** | 16 tools ejecutables |
 | **Skills del Superagente** | 12 skills registradas |
-| **Formatos de Creator Hub** | 13 formatos educativos |
-| **Currículo MINEDUC operativo** | 105 archivos JSON validados en modo estricto |
+| **Formatos educativos de Creator Hub** | 23 formatos |
+| **Páginas del área Creator Hub** | 34 rutas |
+| **Currículo MINEDUC operativo** | 105 archivos validados en modo estricto |
+| **Migraciones SQL incluidas** | 13 archivos SQL |
 | **Dependencias** | 35 de producción + 10 de desarrollo |
-| **Migraciones SQL incluidas** | 8 archivos SQL entre raíz y `supabase/migrations` |
 | **Runtime principal** | Next.js 16 · React 19 · Node.js 22 · TypeScript 5 |
+| **Modelo de distribución** | Plataforma gratuita para docentes · código privado y propietario |
 
 </div>
 
-> La validación curricular se ejecuta con `npm run test:curriculum`. El índice actual contiene 105 archivos operativos: 6 de Parvularia, 80 de Educación Básica y 19 de Educación Media.
+> La validación curricular se ejecuta con `npm run test:curriculum` y actualmente informa: **105 archivos, 0 pendientes, 0 advertencias y 0 errores**.
 
 ---
 
 ## 🧭 Contenidos
 
 1. [¿Qué es EduAI Platform?](#-qué-es-eduai-platform)
-2. [Mapa de módulos](#-mapa-de-módulos)
-3. [Agentes y espacios activos](#-agentes-y-espacios-activos)
-4. [EduAI Claw](#-eduai-claw--superagente)
-5. [Open EDUAI Work](#-open-eduai-work)
-6. [Planificación MINEDUC](#-planificador-mineduc-y-planificación-escolar)
-7. [Notebooks, RAG y Chat Paper](#-eduai-notebooks-rag-y-chat-paper)
-8. [Creator Hub, Cuaderno Creativo y QR Studio](#-creator-hub-cuaderno-creativo-y-qr-studio)
-9. [Pizarra Interactiva y Matemática](#-pizarra-interactiva-y-matemática)
-10. [Sistema de exámenes](#-sistema-de-exámenes)
-11. [Audio Lab, voces y MIRA](#-audio-lab-voces-y-mira)
-12. [Imagen, video y música](#-imagen-video-y-música)
-13. [Colaboración, gamificación y administración](#-colaboración-gamificación-y-administración)
-14. [Arquitectura](#-arquitectura-general)
-15. [Base de datos y migraciones](#-base-de-datos-y-migraciones)
-16. [Variables de entorno](#-variables-de-entorno)
-17. [Instalación y desarrollo](#-instalación-y-desarrollo)
-18. [CI/CD y mantenimiento](#-cicd-y-mantenimiento)
-19. [Seguridad, privacidad y accesibilidad](#-seguridad-privacidad-y-accesibilidad)
-20. [Créditos y licencia](#-créditos-y-licencia)
+2. [Principios de acceso y propiedad](#-principios-de-acceso-y-propiedad)
+3. [Novedades incorporadas](#-novedades-incorporadas)
+4. [Mapa de módulos](#-mapa-de-módulos)
+5. [Agentes y espacios activos](#-agentes-y-espacios-activos)
+6. [EduAI Claw](#-eduai-claw--superagente)
+7. [Open EDUAI Work](#-open-eduai-work)
+8. [Planificador MINEDUC y editor visual](#-planificador-mineduc-y-editor-visual)
+9. [Notebooks, RAG y Chat Paper](#-eduai-notebooks-rag-y-chat-paper)
+10. [Creator Hub](#-creator-hub)
+11. [Pizarra Interactiva](#-pizarra-interactiva)
+12. [Cuaderno Creativo y QR Studio](#-cuaderno-creativo-y-qr-studio)
+13. [Sistema de exámenes](#-sistema-de-exámenes)
+14. [Audio Lab, canciones, voces y MIRA](#-audio-lab-canciones-voces-y-mira)
+15. [Imagen, video y música](#-imagen-video-y-música)
+16. [Colaboración, gamificación y administración](#-colaboración-gamificación-y-administración)
+17. [Arquitectura y estructura](#-arquitectura-y-estructura)
+18. [Base de datos y migraciones](#-base-de-datos-y-migraciones)
+19. [Desarrollo interno y CI/CD](#-desarrollo-interno-y-cicd)
+20. [Seguridad, privacidad y accesibilidad](#-seguridad-privacidad-y-accesibilidad)
+21. [Estado funcional y roadmap](#-estado-funcional-y-roadmap)
+22. [Créditos, propiedad y licencia](#-créditos-propiedad-y-licencia)
 
 ---
 
 ## 🚀 ¿Qué es EduAI Platform?
 
-**EduAI Platform** es una plataforma educativa chilena que integra aprendizaje adaptativo, agentes especializados, creación de materiales, planificación curricular, investigación con fuentes, evaluación digital, herramientas multimedia y colaboración en un solo ecosistema.
+**EduAI Platform** es una plataforma educativa chilena que integra planificación curricular, agentes especializados, investigación con fuentes, creación de materiales, evaluación digital, multimedia, accesibilidad y colaboración en un único ecosistema.
 
-La aplicación combina experiencias inspiradas en asistentes conversacionales, espacios de investigación tipo NotebookLM, creación visual tipo Canva educativo, reproducción musical persistente, herramientas de evaluación docente y un superagente central llamado **EduAI Claw**.
+La aplicación combina asistentes conversacionales, espacios de investigación con documentos, herramientas visuales, cuadernos digitales, generación multimedia, evaluación docente y un superagente central llamado **EduAI Claw**.
 
 ### Propósito
 
 - Ayudar a estudiantes a comprender, practicar, investigar y crear.
-- Dar a docentes herramientas para planificar, evaluar y producir materiales.
-- Integrar IA generativa sin separar el trabajo en múltiples plataformas.
-- Mantener un enfoque alineado al currículo chileno y a las necesidades PIE/NEE.
-- Permitir que los resultados se conviertan en productos utilizables: PDF, PPTX, XLSX, DOC, audio, imágenes, videos, QR, exámenes y proyectos.
+- Entregar a docentes herramientas para planificar, evaluar y producir materiales.
+- Integrar IA generativa sin obligar a trabajar en múltiples plataformas separadas.
+- Mantener alineación con el currículo chileno y las necesidades PIE/NEE.
+- Convertir resultados en productos utilizables: PDF, Word compatible, PPTX, XLSX, audio, imágenes, videos, QR, exámenes y proyectos.
+- Mantener el acceso docente como **uso gratuito para profesores**, sin liberar el código fuente.
 
 ### Perfiles principales
 
 | Perfil | Capacidades principales |
 |--------|--------------------------|
-| **Estudiante** | Estudio adaptativo, modo socrático, evaluaciones, pizarra matemática, TTS, Notebooks, música, XP y colaboración |
-| **Docente** | Planificación MINEDUC, exámenes, rúbricas, análisis pedagógico, Creator Hub, Audio Lab, QR y Workspace |
-| **Administrador** | Usuarios, reportes, seguridad de exámenes, códigos de acceso, auditoría y Admin Model Lab |
+| **Estudiante** | Estudio adaptativo, modo socrático, evaluaciones, cuaderno digital, TTS, Notebooks, música, XP y colaboración |
+| **Docente** | Planificación MINEDUC, editor visual, exámenes, rúbricas, Creator Hub, Audio Lab, QR y Workspace |
+| **Administrador** | Usuarios, reportes, seguridad de exámenes, códigos de acceso, auditoría, analítica y Admin Model Lab |
+
+---
+
+## 🔐 Principios de acceso y propiedad
+
+### Uso gratuito para docentes
+
+EduAI se ofrece como una herramienta de **uso gratuito para docentes**. Esta condición busca facilitar la planificación, la creación de materiales, la evaluación y el uso pedagógico de inteligencia artificial.
+
+La disponibilidad gratuita puede estar sujeta a:
+
+- registro de usuario;
+- límites técnicos razonables;
+- disponibilidad de proveedores externos;
+- políticas de uso responsable;
+- términos de servicio de la plataforma;
+- condiciones especiales para instituciones o despliegues personalizados.
+
+### Código privado
+
+El repositorio de producción y el código fuente de EduAI son privados. No se distribuyen como software libre ni como proyecto de código abierto.
+
+No se autoriza, salvo permiso escrito de Innova Space Education SpA:
+
+- copiar o publicar el código fuente;
+- redistribuir archivos del proyecto;
+- crear productos derivados basados en el código;
+- sublicenciar, vender o comercializar el software;
+- retirar avisos de propiedad;
+- realizar ingeniería inversa cuando la legislación aplicable lo permita restringir;
+- reutilizar la identidad visual, marcas o documentación técnica propietaria.
+
+### Diferencia entre plataforma gratuita y código libre
+
+| Concepto | Condición de EduAI |
+|----------|--------------------|
+| Uso de la plataforma por docentes | **Gratuito** |
+| Acceso al código fuente | **Privado** |
+| Licencia del código propio | **Propietaria** |
+| Copia o redistribución del código | **No autorizada** |
+| Uso institucional personalizado | Sujeto a autorización o acuerdo |
+| Librerías de terceros | Conservan sus licencias originales |
+
+---
+
+## ✨ Novedades incorporadas
+
+### 1. Editor visual completo para planificaciones
+
+La ruta `/educador/vista-previa` transforma la planificación generada en un documento visual editable:
+
+- documento multipágina;
+- hojas A4, Carta y Oficio;
+- orientación vertical u horizontal;
+- selección individual, múltiple y mediante cuadro de selección;
+- arrastre libre con mouse, lápiz o pantalla táctil;
+- redimensionado desde ocho controles;
+- rotación de elementos;
+- agrupación, bloqueo, alineación, distribución y orden de capas;
+- copiar, cortar, pegar, duplicar, deshacer y rehacer;
+- movimiento con flechas y desplazamiento ampliado con `Shift`;
+- eliminación mediante `Supr` o `Retroceso`;
+- imágenes movibles, redimensionables, rotables y ajustables;
+- 15 familias tipográficas;
+- tamaños desde 8 hasta 96 px y tamaño personalizado;
+- paleta ampliada de 50 colores más selector personalizado;
+- estilos profesional, colorido, parvularia y minimalista;
+- cuadrícula, ajuste magnético y zoom;
+- exportación directa a PDF;
+- exportación Word compatible en formato `.doc`;
+- impresión, copia de texto y guardado automático del borrador.
+
+### 2. Pizarra Interactiva convertida en cuaderno digital
+
+La pizarra dejó de depender del reconocimiento matemático como función principal y se consolidó como un cuaderno digital multipágina:
+
+- escritura y dibujo libre;
+- fondos por página;
+- figuras geométricas 2D;
+- sólidos geométricos 3D de alambre;
+- vectores, ángulos, líneas y flechas;
+- gráficos vacíos 2D, 3D, polares, científicos y rectas numéricas;
+- texto, imágenes, cámara y generación de imágenes con IA;
+- elementos superpuestos, movibles y redimensionables;
+- importación y exportación del cuaderno editable;
+- exportación PNG y PDF;
+- guardado local y sincronización cuando el backend está configurado.
+
+### 3. Responsive diferenciado por tipo de pantalla
+
+La Pizarra Interactiva y el Cuaderno Creativo ahora usan distribuciones distintas para:
+
+- **pantallas pequeñas**, con el lienzo como contenido principal y herramientas en panel desplegable;
+- **notebooks y computadores**, con distribución estándar de escritorio;
+- **pantallas táctiles gigantes**, incluida la experiencia para pizarras de aproximadamente 86 pulgadas, con paneles compactos y área de trabajo prioritaria.
+
+### 4. Creator Hub ampliado
+
+Creator Hub incorpora 23 formatos educativos, edición de contenido, proyectos, versiones, plantillas, colaboración, transformación entre formatos, revisión de calidad y exportaciones específicas.
+
+### 5. Nuevas bases y módulos
+
+- Analítica administrativa de uso por módulo y agente.
+- Base de proyectos y versiones para Creator Hub.
+- Colaboración en proyectos de Creator Hub.
+- Persistencia estructurada para cuadernos de la Pizarra Interactiva y motor matemático opcional con SymPy.
+- Estudio de canciones con IA dentro de Audio Lab y servicio privado ACE-Step.
+- Nuevas pruebas focalizadas para Creator Hub y Pizarra.
 
 ---
 
@@ -108,29 +230,32 @@ La aplicación combina experiencias inspiradas en asistentes conversacionales, e
 | Módulo | Ruta principal | Función |
 |--------|----------------|---------|
 | 🏠 **Dashboard** | `/dashboard` | Inicio, estadísticas, sesiones, accesos rápidos y consola Claw |
-| 📚 **Sesión de estudio** | `/study/[topic]` | Teoría, ejemplos, diagnóstico, quiz, resumen, modo socrático y visualizaciones |
+| 📚 **Sesión de estudio** | `/study/[topic]` | Teoría, diagnóstico, quiz, resumen, modo socrático y visualizaciones |
 | 🤖 **Agentes EduAI** | `/agentes` | Catálogo central de agentes y herramientas activas |
 | ✦ **Open EDUAI Work** | `/chat-global` | Preguntar, investigar, crear, colaborar y ejecutar con fuentes y archivos |
 | 🦾 **EduAI Claw** | `/superagent` | Orquestador, herramientas, borradores, guardrails y chat social |
 | 🏫 **Planificador** | `/educador` | Planificaciones alineadas a OA oficiales MINEDUC |
+| 👁️ **Editor de planificación** | `/educador/vista-previa` | Vista previa editable, multipágina y exportable |
 | 🗓️ **Planificador curricular** | `/educador/planificador-curricular` | Planificación diaria, semanal, mensual, semestral y anual |
 | 📓 **EduAI Notebooks** | `/notebooks` | Fuentes, RAG híbrido, chat con citas y Studio |
 | 📄 **Chat Paper** | `/paper` | Lectura y conversación profunda con PDF |
-| 🎨 **Creator Hub** | `/creator-hub` | 13 formatos educativos, manga, materiales, Labs y compartir |
+| 🎨 **Creator Hub** | `/creator-hub` | 23 formatos educativos, proyectos, plantillas y exportaciones |
+| ✍️ **Pizarra Interactiva** | `/pizarra-interactiva` | Cuaderno digital con trazos, figuras, gráficos, cámara e imágenes IA |
 | 🖍️ **Cuaderno Creativo** | `/cuaderno-creativo` | Dibujo, pintura y biblioteca privada de plantillas |
-| ✍️ **Pizarra Interactiva** | `/pizarra-interactiva` | Escritura manual, reconocimiento matemático y conversión a LaTeX |
 | 🌐 **MIRA Traductor** | `/traductor` | Traducción escrita, interpretación por voz y conversación bilingüe |
 | 📝 **Exámenes** | `/examen` | Simulacro, creación docente, publicación, resultados y revisión |
-| 🎙️ **Audio Lab** | `/audio-lab` | Transcripción, edición, procesamiento, exportación y perfiles de voz |
+| 🎙️ **Audio Lab** | `/audio-lab` | Transcripción, edición, procesamiento y perfiles de voz |
+| 🎵 **Estudio de canciones** | `/audio-lab/songs` | Composición y seguimiento de canciones generadas |
 | 🖼️ **Image Studio** | `/image-studio` | Generación visual multi-proveedor y galería |
-| 🎬 **Video Studio** | `/video-studio` | Texto-a-video, imagen-a-video, cola y seguimiento de jobs |
+| 🎬 **Video Studio** | `/video-studio` | Texto-a-video, imagen-a-video, cola y seguimiento de trabajos |
 | 🎵 **EduAI Music** | `/music` | Reproductor persistente, playlists, búsqueda y fuentes externas |
-| ▦ **QR Studio** | `/qr-studio` | Recursos compartibles, vencimiento, conteo de escaneos y PNG |
+| ▦ **QR Studio** | `/qr-studio` | Recursos compartibles, vencimiento, escaneos y PNG |
 | 📁 **Workspace** | `/workspace` | Proyectos, archivos, enlaces y materiales generados |
 | 💬 **Colaboración** | `/collab` | Salas multiusuario y moderación con IA |
 | 🧠 **Chat social** | `/ai-social` | Conversaciones internas entre agentes y extracción de ideas |
 | 🏆 **Ranking** | `/ranking` | XP, rachas, logros y tabla de posiciones |
-| 🛡️ **Administración** | `/admin` | Usuarios, exámenes, seguridad, códigos y Model Lab |
+| ⚖️ **Gobernanza IA** | `/gobernanza-ia` | Información y criterios de uso responsable de IA |
+| 🛡️ **Administración** | `/admin` | Usuarios, exámenes, seguridad, analítica y Model Lab |
 
 </div>
 
@@ -138,44 +263,35 @@ La aplicación combina experiencias inspiradas en asistentes conversacionales, e
 
 ## 🤖 Agentes y espacios activos
 
-La página `/agentes` contiene 20 entradas activas verificadas en el código.
+La página `/agentes` contiene 19 entradas verificadas.
 
-<div align="center">
-
-| # | Agente o espacio | Ruta | Función principal |
-|--:|------------------|------|------------------|
-| 1 | **Planificador** | `/educador` | Planificación docente alineada al currículo chileno |
-| 2 | **Investigador** | `/investigador` | Búsqueda, síntesis y análisis de fuentes |
-| 3 | **Redactor** | `/redactor` | Ensayos, informes, cartas y documentos |
-| 4 | **Matemático** | `/matematico` | Resolución paso a paso y LaTeX |
-| 5 | **Pizarra Interactiva** | `/pizarra-interactiva` | Trazos, reconocimiento matemático y retroalimentación |
-| 6 | **Cuaderno Creativo** | `/cuaderno-creativo` | Dibujo, coloreado y plantillas |
-| 7 | **MIRA Traductor** | `/traductor` | Traducción, conversación e interpretación por voz |
-| 8 | **Chat Paper** | `/paper` | Conversación con documentos PDF |
-| 9 | **Examen** | `/examen` | Simulacro con timer y corrección |
-| 10 | **Exámenes Docente** | `/examen/docente` | Creación, publicación, resultados y revisión |
-| 11 | **Open EDUAI Work** | `/chat-global` | Espacio integral conectado a Claw |
-| 12 | **EduAI Music** | `/music` | Música persistente y playlists |
-| 13 | **Creator Hub** | `/creator-hub` | Materiales y productos educativos |
-| 14 | **Audio Lab** | `/audio-lab` | Audio, transcripción y voces |
-| 15 | **Image Studio** | `/image-studio` | Imágenes IA multi-proveedor |
-| 16 | **Admin Model Lab** | `/admin/model-lab` | Evaluación aislada de modelos experimentales |
-| 17 | **Video Studio** | `/video-studio` | Generación y seguimiento de videos |
-| 18 | **Galería** | `/galeria` | Historial y reutilización de imágenes |
-| 19 | **Ranking** | `/ranking` | Gamificación, XP y rachas |
-| 20 | **Workspace** | `/workspace` | Organización de proyectos y recursos |
-
-</div>
-
-### Capacidades pedagógicas del modo estudio
-
-El flujo `/study/[topic]` integra, según la actividad, tutoría general, diagnóstico, modo socrático, evaluación, dificultad adaptativa, visualización, resumen, narración, memoria, colaboración y repetición espaciada SM-2.
+| # | Agente o espacio | Ruta | Estado | Función principal |
+|--:|------------------|------|--------|------------------|
+| 1 | **Planificador** | `/educador` | Activo | Planificación docente alineada al currículo chileno |
+| 2 | **Investigador** | `/investigador` | Activo | Búsqueda, síntesis y análisis de fuentes |
+| 3 | **Redactor** | `/redactor` | Activo | Ensayos, informes, cartas y documentos |
+| 4 | **Matemático** | `/matematico` | Activo | Resolución paso a paso y LaTeX |
+| 5 | **Pizarra Interactiva** | `/pizarra-interactiva` | Activo | Cuaderno digital, figuras, gráficos y medios |
+| 6 | **Cuaderno Creativo** | `/cuaderno-creativo` | Activo | Dibujo, coloreado y plantillas |
+| 7 | **Traductor MIRA** | `/traductor` | Activo | Traducción, conversación e interpretación por voz |
+| 8 | **Chat Paper** | `/paper` | Activo | Conversación con documentos PDF |
+| 9 | **Examen** | `/examen` | Activo | Simulacro con timer y corrección |
+| 10 | **Exámenes Docente** | `/examen/docente` | Activo | Creación, publicación, resultados y revisión |
+| 11 | **Open EDUAI Work** | `/chat-global` | Activo | Espacio integral conectado a Claw |
+| 12 | **EduAI Music** | `/music` | Activo | Música persistente y playlists |
+| 13 | **Creator Hub** | `/creator-hub` | Activo | Materiales y productos educativos |
+| 14 | **Audio Lab** | `/audio-lab` | Activo | Audio, transcripción, canciones y voces |
+| 15 | **Image Studio** | `/image-studio` | Activo | Imágenes IA multi-proveedor |
+| 16 | **Video Studio** | `/video-studio` | Mantenimiento | Generación y seguimiento de videos |
+| 17 | **Galería** | `/galeria` | Activo | Historial y reutilización de imágenes |
+| 18 | **Ranking** | `/ranking` | Activo | Gamificación, XP y rachas |
+| 19 | **Workspace** | `/workspace` | Activo | Organización de proyectos y recursos |
 
 ---
 
 ## 🦾 EduAI Claw — Superagente
 
-EduAI Claw es el orquestador central. Observa el contexto, selecciona herramientas, prepara borradores, sugiere siguientes pasos y evita acciones no autorizadas mediante guardrails.
+EduAI Claw es el orquestador central. Observa el contexto, selecciona herramientas, prepara borradores, sugiere próximos pasos y limita acciones no autorizadas mediante guardrails.
 
 ### Componentes principales
 
@@ -186,13 +302,12 @@ EduAI Claw es el orquestador central. Observa el contexto, selecciona herramient
 | `lib/superagent/guardrails.ts` | Restricciones de seguridad |
 | `lib/superagent/action-router.ts` | Detección de intención y acciones sugeridas |
 | `lib/superagent/action-executor.ts` | Ejecución controlada de acciones |
-| `lib/superagent/draft-engine.ts` | Creación de borradores sin escribir en producción |
+| `lib/superagent/draft-engine.ts` | Creación de borradores |
 | `lib/superagent/social-engine.ts` | Conversación social entre agentes |
-| `lib/superagent/social-session-store.ts` | Sesiones sociales |
 | `lib/superagent/superagent-core.ts` | Núcleo compatible con chat y tool calling |
 | `lib/superagent/tool-registry.ts` | Registro de herramientas ejecutables |
 | `lib/superagent/registry.ts` | Registro y filtrado de skills |
-| `lib/superagent/eduai-map.ts` | Mapa de navegación de páginas EduAI |
+| `lib/superagent/eduai-map.ts` | Mapa de navegación de EduAI |
 
 ### 16 herramientas registradas
 
@@ -216,12 +331,12 @@ spawn_agent_discussion          extract_ideas_from_social_chat
 anticipate_user_next_need       create_draft_file
 ```
 
-### Guardrails actuales
+### Guardrails
 
-- No permite inspeccionar secretos.
+- No inspecciona secretos.
 - No inyecta mensajes en chats privados.
-- No sobrescribe producción de forma autónoma.
-- No habilita auto-modificación del sistema.
+- No sobrescribe producción autónomamente.
+- No habilita automodificación del sistema.
 - Limita sugerencias, borradores y skills por ciclo.
 - Diferencia permisos por contexto y rol.
 
@@ -229,9 +344,9 @@ anticipate_user_next_need       create_draft_file
 
 ## ✦ Open EDUAI Work
 
-`/chat-global` es el espacio de trabajo integral de EduAI. Conserva el motor Claw, pero organiza la experiencia como un entorno de investigación y producción.
+`/chat-global` es el espacio de trabajo integral de EduAI.
 
-### Cinco modos de trabajo
+### Modos de trabajo
 
 | Modo | Objetivo |
 |------|----------|
@@ -241,37 +356,27 @@ anticipate_user_next_need       create_draft_file
 | **Colaborar** | Organizar roles, acuerdos, tareas y sesiones compartidas |
 | **Ejecutar** | Convertir una solicitud en una acción o producto utilizable |
 
-### Funciones verificadas
+### Funciones
 
 - Conversaciones persistentes por espacio de trabajo.
 - Contexto desde un Notebook activo.
 - Panel lateral con fuentes y citas.
-- Investigación con alcance `fuentes`, `web` o `fuentes + web`.
-- Adjuntos PDF, DOCX y TXT incorporados como fuentes.
+- Investigación con fuentes, web o alcance combinado.
+- Adjuntos PDF, DOCX y TXT.
 - Lectura, resumen, traducción y corrección de archivos.
-- Creación de podcast o narración desde documentos adjuntos.
+- Creación de podcast o narración desde documentos.
 - Descarga de resultados en DOC, PDF, PPTX y XLSX.
 - Renderizado de imágenes y audio dentro del chat.
-- Acceso a acciones del Superagente.
-- Resultados y tareas organizados por Work.
-
-### APIs
-
-```text
-/api/superagent/chat
-/api/work/research
-/api/work/context
-/api/notebooks/[id]/sources
-/api/notebooks/[id]/ingest
-```
+- Acciones del Superagente.
+- Organización de resultados por Work.
 
 ---
 
-## 🏫 Planificador MINEDUC y planificación escolar
+## 🏫 Planificador MINEDUC y editor visual
 
-El módulo docente usa una base curricular local validada y rutas especializadas para conectar OA, indicadores, actividades, evaluación y recursos.
+El módulo docente utiliza una base curricular local validada y rutas especializadas para conectar OA, indicadores, actividades, evaluación y recursos.
 
-### Cobertura curricular verificada
+### Cobertura curricular
 
 | Nivel | Archivos operativos |
 |-------|---------------------:|
@@ -280,25 +385,76 @@ El módulo docente usa una base curricular local validada y rutas especializadas
 | Educación Media | 19 |
 | **Total** | **105** |
 
-Todos los archivos del índice se encuentran en estado `verificado_oficial` o `verificado_propuesta_oficial` y pasan la validación estricta del repositorio.
-
 ### Funciones del planificador
 
-- Selección de nivel, curso y asignatura.
+- Selección de nivel, curso, asignatura, ámbito y núcleo.
 - Conexión manual o automática de OA.
-- Sinónimos temáticos para encontrar OA por contexto.
-- Perfiles de planificación: clase, feria científica, salida pedagógica, campaña, evento escolar, proyecto ABP/STEAM y experiencia de Parvularia.
+- Sinónimos temáticos para localizar OA por contexto.
+- Sala heterogénea y niveles unidos en Parvularia.
+- Perfiles de planificación para clase, feria científica, salida pedagógica, campaña, evento escolar, ABP/STEAM y experiencias de Parvularia.
 - Planificación diaria, semanal, mensual, semestral y anual.
-- Cronogramas institucionales para horizontes largos.
+- Cronogramas institucionales para horizontes extensos.
 - Adecuaciones y complementos pedagógicos.
 - Auditoría estructurada de calidad.
-- Exportación PDF mediante `lib/planning-pdf.ts`.
 - Guardado y consulta de planificaciones.
+- Vista previa editable antes de descargar.
+
+### Vista previa editable
+
+La planificación se transfiere a `/educador/vista-previa`, donde cada elemento se convierte en un objeto independiente.
+
+#### Selección y movimiento
+
+- Clic para seleccionar.
+- `Shift` para selección múltiple.
+- Cuadro de selección sobre el lienzo.
+- Arrastre libre.
+- Flechas del teclado para ajustes precisos.
+- `Shift + flecha` para desplazamiento de 10 px.
+- Bloqueo de elementos.
+- Modo mano para desplazar la vista.
+
+#### Transformación
+
+- Ocho controles de redimensionado.
+- Control de rotación.
+- Agrupar y desagrupar.
+- Alinear y distribuir.
+- Traer al frente, enviar al fondo y modificar capas.
+- Duplicar, copiar, cortar y pegar.
+
+#### Edición visual
+
+- Textos, títulos, párrafos, listas, tablas, notas, figuras, líneas e imágenes.
+- 15 familias tipográficas.
+- 20 tamaños predefinidos entre 8 y 96 px.
+- Tamaño personalizado.
+- Negrita, cursiva y subrayado.
+- Alineación horizontal y vertical.
+- Interlineado y espaciado de letras.
+- Paleta de 50 colores y selector personalizado.
+- Color de texto, relleno, borde y fondo de página.
+- Opacidad, sombra, borde, redondeado y relleno interno.
+- Imágenes con modos contener, recortar o estirar.
+
+#### Páginas y exportación
+
+- Formatos A4, Carta y Oficio.
+- Orientación vertical u horizontal.
+- Crear, duplicar, eliminar y reordenar páginas.
+- Cuadrícula, ajuste magnético y zoom.
+- PDF multipágina.
+- Word compatible `.doc`.
+- Impresión.
+- Copia como texto.
+- Guardado automático y manual.
 
 ### Archivos clave
 
 ```text
 app/educador/
+app/educador/vista-previa/page.tsx
+app/educador/vista-previa/editor.module.css
 app/api/agents/educador/route.ts
 app/api/agents/educador/curriculum/route.ts
 app/api/agents/planificador-curricular/route.ts
@@ -308,17 +464,8 @@ lib/planner-oa-bridge.ts
 lib/planner-oa-synonyms.ts
 lib/school-planning-profiles.ts
 lib/planning-quality-audit.ts
+lib/planning-preview.ts
 data/mineduc/
-```
-
-### Comandos de mantenimiento
-
-```bash
-npm run curriculum:index
-npm run curriculum:validate
-npm run test:curriculum
-npm run planner:maintain
-npm run test:planner
 ```
 
 ---
@@ -327,7 +474,7 @@ npm run test:planner
 
 ### EduAI Notebooks
 
-EduAI Notebooks es un workspace de tres paneles para construir conocimiento desde fuentes reales.
+EduAI Notebooks es un workspace para construir conocimiento desde fuentes reales.
 
 ```text
 Fuentes → extracción → chunking → contextualización → embeddings
@@ -345,14 +492,14 @@ Fuentes → extracción → chunking → contextualización → embeddings
 
 #### Pipeline
 
-1. Se crea la fuente en `notebook_sources`.
-2. Se extrae el texto con parser local o externo.
-3. Se divide en chunks con solapamiento.
-4. Se generan embeddings cuando existe una clave compatible.
-5. Se guarda el contenido en `notebook_chunks`.
-6. El retrieval combina búsqueda vectorial y full-text.
-7. Los resultados se fusionan con Reciprocal Rank Fusion.
-8. El chat responde con citas y puede usar al Investigador como fallback.
+1. Crea la fuente en `notebook_sources`.
+2. Extrae el texto mediante parser local o externo.
+3. Divide el contenido en chunks con solapamiento.
+4. Genera embeddings cuando existe un proveedor compatible.
+5. Guarda el contenido en `notebook_chunks`.
+6. Combina búsqueda vectorial y full-text.
+7. Fusiona resultados con Reciprocal Rank Fusion.
+8. Responde con citas.
 9. Studio genera materiales desde el contenido recuperado.
 
 #### Studio
@@ -360,164 +507,181 @@ Fuentes → extracción → chunking → contextualización → embeddings
 - Infografía.
 - Mapa mental.
 - Quiz.
-- Podcast con audio.
+- Podcast.
 - Flashcards.
 - Timeline.
 - Notas Cornell.
 - Presentación.
 
-#### Tablas
-
-```text
-notebooks
-notebook_sources
-notebook_chunks
-notebook_summaries
-notebook_messages
-notebook_outputs
-```
-
 ### Chat Paper
 
-`/paper` y `/paper-large` permiten cargar PDF, extraer contenido y conversar con el documento. El sistema puede usar:
+`/paper` y `/paper-large` permiten cargar PDF, extraer contenido y conversar con el documento.
 
-- `pdf-parse` para texto nativo.
-- OCR Space como apoyo opcional.
-- Parser externo Docling/Faster pipeline mediante `DOCLING_PARSER_URL`.
-- Supabase Storage para documentos.
-- `paper_documents`, `paper_chunks` y `paper_extractions` cuando existen en la base conectada.
+El sistema contempla:
 
-### Microservicio Paper Parser
-
-`services/paper-parser/` contiene un Space Docker para Hugging Face con:
-
-```text
-GET /health
-POST de procesamiento según app.py
-```
-
-El parser está diseñado para PDFs normales y escaneados, con OCR adaptativo y límites configurables.
+- `pdf-parse` para texto nativo;
+- OCR opcional para documentos escaneados;
+- parser externo mediante `DOCLING_PARSER_URL`;
+- Supabase Storage;
+- tablas de documentos, chunks y extracciones cuando existen en la base conectada.
 
 ---
 
-## 🎨 Creator Hub, Cuaderno Creativo y QR Studio
+## 🎨 Creator Hub
 
-### Creator Hub
+Creator Hub es el sistema central de creación educativa y actualmente contiene **23 formatos**.
 
-Creator Hub funciona como un catálogo central de creación educativa.
-
-#### 13 formatos
+### Formatos disponibles
 
 | Categoría | Formatos |
 |-----------|----------|
-| **Visuales** | Infografía, presentación, afiche, mapa mental, timeline |
-| **Estudio** | Flashcards, quiz, notas Cornell, glosario |
-| **Narrativa y audio** | Podcast, cuento educativo, canción/rap |
-| **Planificación** | Plan de clase |
+| **Materiales visuales — 6** | Infografía, presentación, afiche, mapa mental, timeline y tabla de datos |
+| **Estudio y evaluación — 11** | Flashcards, quiz, notas Cornell, glosario, guía de aprendizaje, rúbrica, prueba, solucionario, ficha de laboratorio, ticket de salida y lista de cotejo |
+| **Narrativa, audio y video — 4** | Podcast, resumen de video, cuento educativo y canción/rap |
+| **Planificación — 2** | Plan de clase e informe |
 
-#### Herramientas centrales
+### Capacidades
 
-- Cuaderno EduAI.
-- Crear materiales.
-- Mangas e historietas.
-- Labs multimedia.
+- Creación desde texto, archivos o fuentes.
+- Editores especializados según formato.
+- Edición directa del contenido generado.
+- Plantillas de diseño.
+- Colores de acento.
+- Proyectos persistentes.
+- Historial de versiones.
+- Editor universal por capas.
+- Transformación entre formatos.
+- Revisión de calidad.
+- Colaboración en proyectos.
+- Biblioteca de plantillas.
 - Compartir con QR.
+- Exportaciones PDF, PNG, JPG, PPTX, XLSX, CSV y otros formatos según el material.
 
-#### Labs conectados
-
-- Audio Lab.
-- Audio Lab Pro.
-- Perfiles de voz.
-- Image Studio.
-- Video Studio.
-- Galería.
-- EduAI Music.
-- Creator clásico.
-
-#### Subrutas
+### Áreas centrales
 
 ```text
 /creator-hub
-/creator-hub/[format]
-/creator-hub/materials
 /creator-hub/notebook
-/creator-hub/comics
+/creator-hub/materials
 /creator-hub/labs
+/creator-hub/comics
 /creator-hub/projects
+/creator-hub/templates
 /creator-hub/share
+/creator-hub/collaboration/[id]
 ```
+
+---
+
+## ✍️ Pizarra Interactiva
+
+La ruta `/pizarra-interactiva` es un **cuaderno digital interactivo multipágina**.
+
+### Escritura y dibujo
+
+- Trazos con mouse, lápiz o dedo.
+- Selección de color y grosor.
+- Borrado y limpieza de página.
+- Deshacer y rehacer.
+- Fondos blanco, cuadrícula, líneas, puntos, oscuro y azul.
+
+### Objetos 2D
+
+- Rectángulo.
+- Cuadrado.
+- Círculo y elipse.
+- Triángulo.
+- Rombo.
+- Pentágono y hexágono.
+- Estrella.
+- Línea, flecha, vector y ángulo.
+
+### Objetos 3D
+
+- Cubo.
+- Prisma.
+- Pirámide.
+- Tetraedro.
+- Prisma triangular.
+- Cilindro.
+- Cono.
+- Esfera.
+
+### Gráficos vacíos
+
+- Plano cartesiano 2D.
+- Sistema de ejes 3D.
+- Plano polar.
+- Recta numérica.
+- Gráfico científico.
+
+### Contenido y multimedia
+
+- Texto editable.
+- Imágenes desde el dispositivo.
+- Fotografías tomadas con cámara.
+- Imágenes generadas con IA.
+- Elementos movibles y redimensionables.
+- Capas, duplicación, opacidad y eliminación.
+
+### Cuadernos y exportación
+
+- Varias páginas por cuaderno.
+- Guardado local.
+- Biblioteca de cuadernos.
+- Sincronización en nube cuando Supabase está configurado.
+- Motor matemático opcional en `services/whiteboard-math-engine/` para resolver, simplificar, verificar y graficar mediante SymPy.
+- Importación de material JSON o imágenes.
+- Exportación del cuaderno editable.
+- Exportación de página a PNG y PDF.
+
+### Distribución responsive
+
+- Panel desplegable en pantallas pequeñas.
+- Distribución estándar en notebooks y PC.
+- Distribución especial en pantallas táctiles gigantes.
+- El lienzo se mantiene como elemento principal en todos los tamaños.
+
+---
+
+## 🖍️ Cuaderno Creativo y QR Studio
 
 ### Cuaderno Creativo
 
 `/cuaderno-creativo` permite:
 
-- Dibujar y pintar en un lienzo.
-- Trabajar con plantillas para colorear.
-- Subir plantillas propias.
-- Generar plantillas con IA.
-- Guardar, buscar, reutilizar y eliminar plantillas.
-- Mantener una biblioteca privada mediante Supabase Storage y RLS.
-
-La migración `202607210001_creative_templates.sql` crea la tabla `creative_templates` y sus políticas.
+- dibujar, pintar y rellenar figuras;
+- utilizar lápiz, pincel, marcador, relleno, líneas, rectángulos, círculos y texto;
+- trabajar en varias páginas;
+- subir imágenes y convertirlas en plantillas;
+- generar plantillas para colorear con IA;
+- guardar, buscar, reutilizar y eliminar plantillas;
+- mantener una biblioteca privada mediante Supabase Storage y RLS;
+- descargar la página activa en PNG;
+- descargar el cuaderno completo en PDF;
+- usar panel de herramientas desplegable en pantallas pequeñas;
+- adaptar la interfaz a notebooks y pantallas táctiles gigantes.
 
 ### QR Studio
 
-`/qr-studio` permite crear recursos QR para:
-
-- Enlaces.
-- Texto.
-- Notebooks.
-- Proyectos o assets relacionados.
+`/qr-studio` permite crear recursos QR para enlaces, texto, Notebooks, proyectos y assets relacionados.
 
 Funciones:
 
-- Código corto único.
-- Ruta pública `/q/[shortCode]`.
-- Visibilidad configurable.
-- Fecha de vencimiento.
-- Conteo de escaneos.
-- Descarga PNG.
-- Eliminación desde la biblioteca.
-- Protección de recursos privados o vencidos.
-
-La migración `migration_qr_studio.sql` crea `qr_resources`, `workspace_assets` y la función `record_qr_scan()`.
-
----
-
-## ✍️ Pizarra Interactiva y Matemática
-
-### Pizarra Interactiva
-
-La ruta `/pizarra-interactiva` captura escritura con mouse, lápiz o dedo.
-
-- Guarda trazos del lienzo.
-- Permite borrado por trazo.
-- Convierte el procedimiento a LaTeX mediante un proveedor externo.
-- Muestra el LaTeX reconocido y permite editarlo.
-- Envía el procedimiento al agente Matemático como contexto.
-- Puede conservar imagen, texto legible y LaTeX como evidencia en exámenes.
-- Incluye caché y reducción de puntos para disminuir latencia.
-- Evita depender del OCR en cada trazo; el reconocimiento final puede ejecutarse al cambiar de pregunta o entregar.
-
-### API
-
-```text
-POST /api/whiteboard/recognize
-```
-
-### Agente Matemático
-
-`/matematico` ofrece resolución paso a paso, expresiones KaTeX/LaTeX y apoyo para revisar procedimientos.
-
-### Integración con exámenes
-
-`ExamQuestionNotebook` y `ExamLatexAnswerFix` permiten conservar desarrollos manuscritos o matemáticos y revisar el resultado reconocido.
+- código corto único;
+- ruta pública `/q/[shortCode]`;
+- visibilidad configurable;
+- fecha de vencimiento;
+- conteo de escaneos;
+- descarga PNG;
+- eliminación desde la biblioteca;
+- protección de recursos privados o vencidos.
 
 ---
 
 ## 📋 Sistema de exámenes
 
-EduAI incluye un sistema completo para docentes, estudiantes y administración.
+EduAI incluye un sistema para docentes, estudiantes y administración.
 
 ### Flujo docente
 
@@ -531,7 +695,7 @@ Crear → generar preguntas con IA → editar → aplicar tema y ajustes PIE
 - Alternativas.
 - Verdadero/Falso.
 - Desarrollo.
-- Preguntas mixtas generadas por IA.
+- Preguntas mixtas.
 - Justificación y rúbricas.
 - Contenido matemático con LaTeX.
 - Imagen por pregunta.
@@ -543,81 +707,60 @@ Crear → generar preguntas con IA → editar → aplicar tema y ajustes PIE
 - Timer y reloj digital.
 - Barra de progreso.
 - Navegación entre preguntas.
-- Calculadora científica autorizable por docente.
-- Narración TTS de preguntas.
+- Calculadora científica autorizable.
+- Narración TTS.
 - Temas accesibles.
 - Cuaderno de desarrollo y evidencia visual.
-- Autoguardado y reanudación cuando el esquema correspondiente existe.
+- Autoguardado y reanudación cuando el esquema está disponible.
 
-### Temas visuales
+### Corrección y seguridad
 
-```text
-clásico · moderno · Canva · PIE calma · TDAH
-alto contraste · STEM · kids
-```
-
-### Corrección y resultados
-
-- Corrección automática.
-- Puntaje parcial.
+- Corrección automática y puntaje parcial.
 - Escala chilena 1.0–7.0.
 - Revisión manual.
 - Re-cálculo matemático.
-- Feedback visible u ocultable.
-- Análisis pedagógico por curso y contenido.
-- Descarga PDF del examen o resultados.
-
-### Seguridad
-
-- `ExamGuard` y overlay de seguridad.
-- Sesión de supervisión.
-- Heartbeat.
+- Feedback configurable.
+- Análisis pedagógico.
+- Descarga PDF.
+- Sesiones de supervisión y heartbeat.
 - Registro de eventos e incidentes.
 - Mensajería administrador-estudiante.
-- Acciones administrativas sobre sesiones.
 - Códigos temporales vinculados a nómina.
 - Auditoría de códigos con hash.
 
-### Rutas principales
-
-```text
-/examen
-/examen/crear
-/examen/docente
-/examen/editar/[id]
-/examen/p/[code]
-/examen/resultados/[id]
-/admin/exam-access
-/admin/exam-codes
-/admin/exam-security
-```
-
 ---
 
-## 🎙️ Audio Lab, voces y MIRA
+## 🎙️ Audio Lab, canciones, voces y MIRA
 
 ### Audio Lab
 
-El pipeline de audio usa una cadena configurable:
+Funciones principales:
 
-```text
-Microservicio externo → Groq Whisper → Gemini fallback
-```
+- carga de audio o video;
+- procesamiento rápido o Pro;
+- transcripción con timestamps;
+- edición de transcripción;
+- resumen y operaciones con IA;
+- exportación TXT, SRT y formatos relacionados;
+- proyectos extensos en `/audio-lab-large`;
+- perfiles de voz con consentimiento.
 
-Funciones:
+### Estudio de canciones
 
-- Carga de audio o video.
-- Procesamiento rápido o Pro.
-- Transcripción con timestamps.
-- Edición de transcripción.
-- Resumen y operaciones IA.
-- Exportación TXT, SRT y otros formatos.
-- URLs de carga reanudable.
-- Proyectos extensos en `/audio-lab-large`.
+La ruta `/audio-lab/songs` y la tabla `audio_song_jobs` preparan un flujo para:
+
+- título, prompt y descripción;
+- letra y estilo musical;
+- género, estado de ánimo e idioma;
+- duración, BPM, tonalidad y compás;
+- modo instrumental o vocal;
+- perfil de voz autorizado;
+- estados de cola, composición, generación y carga;
+- almacenamiento privado de canciones generadas.
+
+La generación efectiva depende del proveedor configurado. El proyecto incluye `services/ace-step-song-space/` como motor privado basado en ACE-Step para despliegues autorizados.
 
 ### Perfiles de voz
-
-`/audio-lab/voices` incorpora controles de consentimiento:
 
 - Voz propia o tercero autorizado.
 - Confirmación de mayoría de edad.
@@ -625,36 +768,18 @@ Funciones:
 - Eventos de auditoría.
 - Sesiones de seguridad.
 - Ciclo de procesamiento y eliminación.
-- Storage privado cuando se configura correctamente.
-
-### Microservicios
-
-| Carpeta | Objetivo |
-|---------|----------|
-| `services/audio-parser/` | Faster Whisper, VAD, segmentos y timestamps |
-| `services/openvoice-space/` | Procesamiento y síntesis de voz en Space privado |
-| `services/paper-parser/` | Parsing y OCR de PDF fuera de Vercel |
+- Storage privado.
+- Consentimiento separado para canto cuando se utiliza esa función.
 
 ### MIRA
 
 MIRA es el agente de idiomas de `/traductor`.
 
-#### Modos
-
 | Modo | Funcionamiento |
 |------|----------------|
 | **Traducción escrita** | Traducción con explicación lingüística y cultural |
 | **Intérprete por voz** | Español ↔ inglés desde grabación de audio |
-| **Conversación en vivo** | Respuesta autónoma en el idioma seleccionado con contexto reciente |
-
-#### Pipeline de voz
-
-```text
-Micrófono → Groq Whisper large-v3-turbo → AI Router
-→ respuesta o traducción → Edge TTS → reproducción MP3
-```
-
-El endpoint limita tamaño de audio, historial y duración, requiere usuario autenticado y usa voces en español de Chile e inglés.
+| **Conversación en vivo** | Respuesta autónoma en el idioma seleccionado |
 
 ---
 
@@ -662,69 +787,50 @@ El endpoint limita tamaño de audio, historial y duración, requiere usuario aut
 
 ### Image Studio
 
-Image Studio usa una cadena de proveedores con fallback y modos de calidad.
-
-Proveedores y opciones presentes en el proyecto:
+Proveedores y opciones presentes:
 
 - Google Gemini Image.
 - OpenRouter.
 - Together AI.
 - Hugging Face.
 - Pollinations.
-- FAL client para integraciones compatibles.
+- FAL para integraciones compatibles.
 
 Funciones:
 
-- Prompt optimizer.
-- Orden de proveedores por modo rápido, calidad o educativo.
-- Preview.
-- Galería unificada.
-- Imágenes automáticas desde agentes o Notebooks.
-- Configuración central en `lib/image-config.ts`.
+- optimización de prompts;
+- prioridades por modo rápido, calidad o educativo;
+- vista previa;
+- galería unificada;
+- generación automática desde agentes o Notebooks;
+- configuración centralizada.
 
 ### Video Studio
 
-```text
-POST /api/agents/video
-GET  /api/agents/video/status/[jobId]
-POST /api/agents/video/process
-```
-
-Funciones:
-
 - Texto-a-video.
 - Imagen-a-video.
-- Duración, FPS y relación de aspecto configurables.
-- Audio opcional en payload.
+- Duración, FPS y relación de aspecto.
+- Audio opcional.
 - Moderación básica.
 - Deduplicación.
-- Límites por minuto y día.
+- Límites de uso.
 - Jobs y polling.
 - Fallback entre proveedores.
-- Worker Python base en `wan-worker/`.
-- Procesamiento programado mediante GitHub Actions.
+- Worker Python base.
 
-Proveedores contemplados:
-
-```text
-LTX Video · CogVideoX · HunyuanVideo-I2V · HF Space compatible
-```
-
-> Para generación real se requiere un endpoint de proveedor y el esquema de `video_jobs`/`video_usage_daily`. El documento `docs/VIDEO_AGENT_SETUP.md` referencia una migración de video que no está incluida en este ZIP.
+> La disponibilidad de Video Studio depende de un proveedor o worker externo y puede mostrarse en mantenimiento.
 
 ### EduAI Music
 
-- Reproductor global persistente mediante `MusicProvider`.
+- Reproductor global persistente.
 - Play, pausa, anterior, siguiente, shuffle, repeat, progreso y volumen.
 - Biblioteca educativa interna.
 - Playlists del sistema.
 - Favoritos y cola.
-- Jamendo con búsqueda y OAuth preparado.
-- Audius mediante discovery provider.
-- Previews de iTunes como fallback.
+- Jamendo, Audius e iTunes como fuentes compatibles.
 - Spotify mediante embeds oficiales.
 - Radio/proxy configurable.
-- YouTube como búsqueda o enlace cuando se configura la API correspondiente.
+- YouTube cuando existe configuración compatible.
 
 ---
 
@@ -734,10 +840,10 @@ LTX Video · CogVideoX · HunyuanVideo-I2V · HF Space compatible
 
 - Salas de estudio mediante `/collab` y `/collab/[code]`.
 - Mensajes y miembros en tiempo real.
-- Agente colaborativo para moderar.
-- Chat social tipo Messenger.
-- Amigos, presencia, notificaciones y carga de archivos.
-- Chat social de agentes en `/ai-social`.
+- Moderación asistida por IA.
+- Amigos, presencia, notificaciones y archivos.
+- Chat social de agentes.
+- Colaboración específica dentro de Creator Hub.
 
 ### Gamificación
 
@@ -748,11 +854,6 @@ LTX Video · CogVideoX · HunyuanVideo-I2V · HF Space compatible
 - Rachas.
 - Repetición espaciada SM-2.
 
-```text
-Principiante → Aprendiz → Practicante → Avanzado → Experto → Maestro
-    0 XP        100 XP      500 XP       1200 XP    2500 XP   5000 XP
-```
-
 ### Administración
 
 - Dashboard administrativo.
@@ -761,22 +862,25 @@ Principiante → Aprendiz → Practicante → Avanzado → Experto → Maestro
 - Gestión global de exámenes.
 - Seguridad de sesiones.
 - Códigos de acceso.
-- Mensajería y notas de administración.
+- Mensajería y notas administrativas.
 - Admin Model Lab protegido por rol.
+- Analítica por módulo, agente, tipo de evento, latencia, tokens, costo estimado y errores.
 
 ---
 
-## 🏗️ Arquitectura general
+## 🏗️ Arquitectura y estructura
+
+### Arquitectura general
 
 ```text
 Navegador
    │
    ├── Next.js App Router + React 19
-   │      ├── páginas y componentes cliente/servidor
-   │      ├── proxy.ts para auth y protección
-   │      └── API Routes
+   │      ├── páginas cliente y servidor
+   │      ├── proxy.ts para autenticación
+   │      └── Route Handlers
    │
-   ├── AI Router v4/v5
+   ├── AI Router
    │      ├── Gemini
    │      ├── Groq
    │      ├── OpenRouter
@@ -801,146 +905,92 @@ Navegador
           ├── Audio Parser
           ├── Paper Parser
           ├── OpenVoice privado
+          ├── ACE-Step Song Engine privado
+          ├── Whiteboard Math Engine
           ├── workers de video
           └── búsqueda web / scraping
 ```
 
-### AI Router
-
-| Archivo | Uso |
-|---------|-----|
-| `lib/ai-router.ts` | Compatibilidad general |
-| `lib/ai-router-v4.ts` | Routing estructurado, stream y multimodal |
-| `lib/ai-router-v5.ts` | Caché y routing por tarea/modelo |
-| `lib/redis.ts` | Caché y rate limit con Upstash opcional |
-
-### Estadísticas de rutas
-
-#### Páginas por grupo
+### Páginas por grupo
 
 | Grupo | Cantidad |
 |-------|---------:|
-| Administración | 9 |
-| Creator Hub | 8 |
+| Creator Hub | 34 |
+| Otros módulos y páginas | 31 |
+| Administración | 11 |
 | Exámenes | 6 |
-| Educador | 4 |
-| Audio Lab | 4 |
+| Educador | 5 |
+| Audio Lab | 5 |
 | Autenticación | 2 |
 | Colaboración | 2 |
 | Notebooks | 2 |
 | Perfil | 2 |
 | Superagente | 2 |
 | Workspace | 2 |
-| Otros módulos y páginas | 26 |
-| **Total** | **69** |
+| **Total** | **104** |
 
-#### APIs por grupo
+### APIs por grupo
 
 | Grupo | Cantidad |
 |-------|---------:|
 | Agentes | 54 |
+| Otros grupos | 23 |
 | Notebooks | 11 |
+| Creator | 9 |
 | Seguridad de exámenes | 8 |
-| Música | 6 |
 | Superagente | 6 |
+| Música | 6 |
 | Chat | 5 |
 | Examen | 4 |
-| QR | 3 |
+| Administración | 3 |
 | Sesiones | 3 |
-| Otros grupos | 20 |
-| **Total** | **120** |
+| QR | 3 |
+| **Total** | **135** |
 
----
-
-## 📂 Estructura del proyecto
+### Estructura resumida
 
 ```text
 eduai-platform/
 ├── app/
-│   ├── (auth)/                    # Login y registro
 │   ├── admin/                     # Administración y seguridad
 │   ├── agentes/                   # Catálogo de agentes
-│   ├── ai-social/                 # Chat social de agentes
-│   ├── audio-lab/                 # Audio Lab y perfiles de voz
+│   ├── audio-lab/                 # Audio, voces y canciones
 │   ├── chat-global/               # Open EDUAI Work
 │   ├── collab/                    # Salas colaborativas
-│   ├── creator-hub/               # Creator Hub y submódulos
-│   ├── cuaderno-creativo/         # Lienzo y biblioteca de plantillas
-│   ├── educador/                  # Planificador docente
+│   ├── creator-hub/               # 23 formatos y proyectos
+│   ├── cuaderno-creativo/         # Lienzo y biblioteca
+│   ├── educador/                  # Planificador y editor visual
 │   ├── examen/                    # Exámenes y resultados
 │   ├── image-studio/              # Generación visual
 │   ├── music/                     # Reproductor persistente
 │   ├── notebooks/                 # Workspace RAG
 │   ├── paper/                     # Chat Paper
-│   ├── pizarra-interactiva/       # Escritura matemática
+│   ├── pizarra-interactiva/       # Cuaderno digital interactivo
 │   ├── qr-studio/                 # Gestión de QR
 │   ├── study/                     # Sesión adaptativa
 │   ├── superagent/                # Panel Claw
 │   ├── traductor/                 # MIRA
 │   ├── video-studio/              # Video Studio
 │   ├── workspace/                 # Proyectos
-│   └── api/                       # 120 endpoints internos
+│   └── api/                       # 135 endpoints internos
 │
-├── components/
-│   ├── creator-hub/
-│   ├── dashboard/
-│   ├── design/
-│   ├── exam/
-│   ├── exam-security/
-│   ├── music/
-│   ├── notebook/
-│   ├── superagent/
-│   ├── video/
-│   ├── work/
-│   └── ui/
-│
-├── lib/
-│   ├── agents/
-│   ├── ai/
-│   ├── audio/
-│   ├── design/
-│   ├── design-templates/
-│   ├── exam/
-│   ├── exam-security/
-│   ├── music/
-│   ├── notebook/
-│   ├── papers/
-│   ├── qr/
-│   ├── superagent/
-│   ├── work/
-│   ├── ai-router-v4.ts
-│   ├── ai-router-v5.ts
-│   ├── image-config.ts
-│   ├── mineduc-oa.ts
-│   ├── planning-pdf.ts
-│   ├── video-agent.ts
-│   └── video-config.ts
-│
-├── services/
-│   ├── audio-parser/
-│   ├── openvoice-space/
-│   └── paper-parser/
-│
-├── wan-worker/                    # Worker Python base para video
-├── data/mineduc/                  # Currículo oficial validado
+├── components/                    # UI y módulos especializados
+├── lib/                           # Agentes, IA, datos y lógica
+├── services/                      # Microservicios opcionales
+├── wan-worker/                    # Worker base de video
+├── data/mineduc/                  # Currículo validado
 ├── supabase/migrations/           # Migraciones versionadas
-├── scripts/                       # Validación, mantenimiento y sincronización
-├── docs/                          # Guías técnicas por módulo
-├── docker/                        # Servicios Docker auxiliares
-├── .github/workflows/             # CI, currículo, audio parser y video queue
-├── proxy.ts                       # Auth, rutas protegidas y refresh
+├── scripts/                       # Validación y mantenimiento
+├── docs/                          # Documentación interna
+├── .github/workflows/             # CI y automatizaciones
+├── proxy.ts
 ├── next.config.ts
 ├── vercel.json
-├── DESIGN.md
-├── INSTALL.md
+├── LICENSE
 └── README.md
 ```
 
----
-
-## 🧰 Stack tecnológico
-
-<div align="center">
+### Stack tecnológico
 
 | Categoría | Tecnologías |
 |-----------|-------------|
@@ -956,375 +1006,103 @@ eduai-platform/
 | **Audio** | Edge TTS · Groq Whisper · parser Faster Whisper externo |
 | **Video** | LTX · CogVideoX · Hunyuan · workers externos compatibles |
 | **Música** | Jamendo · Audius · iTunes · Spotify embeds · radio proxy |
-| **Cache** | Upstash Redis opcional con degradación elegante |
-
-</div>
+| **Cache** | Upstash Redis opcional |
 
 ---
 
 ## 🗄️ Base de datos y migraciones
 
-### Migraciones incluidas en el repositorio
+### Migraciones incluidas
 
-| Archivo | Contenido |
-|---------|-----------|
-| `migration.sql` | 6 tablas de Notebooks, RLS y `match_notebook_chunks()` |
-| `migration_bm25.sql` | Búsqueda full-text y `search_notebook_chunks_fts()` |
-| `migration_qr_studio.sql` | `qr_resources`, `workspace_assets` y `record_qr_scan()` |
+| Archivo | Contenido principal |
+|---------|---------------------|
+| `migration.sql` | Notebooks, RLS y búsqueda vectorial |
+| `migration_bm25.sql` | Búsqueda full-text de Notebooks |
+| `migration_qr_studio.sql` | QR, assets y registro de escaneos |
 | `20260226000000_create_spaced_repetition.sql` | Repetición espaciada |
-| `20260531_complete_audio_voice_security_and_lifecycle.sql` | Perfiles de voz, transcripciones, eventos y sesiones |
-| `20260616000000_secure_student_roster_access_codes.sql` | Nómina, códigos temporales y auditoría |
-| `20260616053000_access_code_reuse_visibility.sql` | Visibilidad y reutilización de códigos |
+| `20260531_complete_audio_voice_security_and_lifecycle.sql` | Perfiles de voz, transcripciones y seguridad |
+| `20260616000000_secure_student_roster_access_codes.sql` | Nómina y códigos temporales |
+| `20260616053000_access_code_reuse_visibility.sql` | Reutilización y visibilidad de códigos |
 | `202607210001_creative_templates.sql` | Biblioteca de plantillas creativas |
+| `202607230001_admin_module_agent_analytics.sql` | Analítica administrativa por módulo y agente |
+| `202607260001_creator_hub_foundation.sql` | Proyectos, versiones y plantillas de Creator Hub |
+| `202607260002_creator_hub_collaboration.sql` | Colaboración en Creator Hub |
+| `202607260004_whiteboard_math_studio.sql` | Cuadernos y páginas de Pizarra Interactiva |
+| `202607290001_audio_song_studio.sql` | Estudio de canciones y storage privado |
 
-### Tablas creadas por estas migraciones
-
-```text
-notebooks                    notebook_sources
-notebook_chunks              notebook_summaries
-notebook_messages            notebook_outputs
-qr_resources                 workspace_assets
-spaced_repetition            audio_transcriptions
-audio_voice_profiles         audio_voice_events
-voice_security_sessions      student_roster
-exam_access_codes            exam_access_code_audit
-creative_templates
-```
-
-### Esquema base esperado
-
-La aplicación también referencia tablas que deben existir en el proyecto Supabase conectado, entre ellas:
+### Tablas nuevas destacadas
 
 ```text
-profiles                     study_sessions
-teacher_exams                exam_submissions
-exam_attempt_drafts          exam_question_developments
-exam_security_sessions       exam_security_events
-exam_security_actions        exam_security_heartbeats
-exam_security_admin_notes    exam_security_policies
-exam_incidents               admin_emails
-admin_reports                generated_images
-projects                     workspace_items
-paper_documents              paper_chunks
-paper_extractions            video_jobs
-video_usage_daily            achievements
-missions                     conversations
-chat_messages                friendships
-notifications                study_rooms
-room_members                 room_messages
-long_memory                  saved_plannings
+eduai_usage_events
+creator_hub_projects
+creator_hub_project_versions
+whiteboard_notebooks
+whiteboard_pages
+whiteboard_recognition_runs
+whiteboard_solution_runs
+audio_song_jobs
 ```
 
-> El ZIP actual no contiene una migración única que cree todo el esquema base. Antes de desplegar desde cero, se debe incorporar o recuperar el esquema inicial de producción. También se referencian migraciones de video y autoguardado de examen que no están presentes entre los archivos incluidos.
-
-### Buckets utilizados o esperados
-
-```text
-papers
-creations
-generated-images
-chat-files
-workspace-files
-video-images
-exam-development-artifacts
-```
-
-Los buckets privados deben configurarse con RLS y acceso por usuario o service role según el módulo.
+> El proyecto también referencia tablas del esquema base de producción. Un despliegue desde cero requiere recuperar o consolidar ese esquema completo antes de habilitar todos los módulos.
 
 ---
 
-## 🔐 Variables de entorno
+## 💻 Desarrollo interno y CI/CD
 
-No todas las variables son obligatorias. El mínimo depende de los módulos que se activen.
-
-### Núcleo
-
-```env
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
-SUPABASE_URL=
-SUPABASE_SERVICE_ROLE_KEY=
-```
-
-### Modelos de texto
-
-```env
-GEMINI_API_KEY=
-GEMINI_API_KEY_POOL=
-GEMINI_TEXT_MODEL_PRIMARY=
-GEMINI_TEXT_MODEL_LITE=
-GEMINI_FAST_MODEL=
-
-GROQ_API_KEY=
-GROQ_TEXT_MODEL=
-
-OPENROUTER_API_KEY=
-OPENROUTER_API_KEY_1=
-OPENROUTER_REFERER=
-OPENROUTER_APP_TITLE=EduAI Platform
-
-TOGETHER_TEXT_MODEL=
-CEREBRAS_API_KEY=
-```
-
-### Búsqueda y parsing
-
-```env
-SERPER_API_KEY=
-TAVILY_API_KEY=
-FIRECRAWL_API_KEY=
-PLAYWRIGHT_WS_ENDPOINT=
-
-DOCLING_PARSER_URL=
-DOCLING_PARSER_TIMEOUT_MS=12000
-PAPER_PARSER_TOKEN=
-OCR_SPACE_API_KEY=
-```
-
-### Imagen
-
-```env
-IMAGE_PROVIDER_ORDER_FAST=pollinations,openrouter,together,huggingface
-IMAGE_PROVIDER_ORDER_QUALITY=gemini,openrouter,together,huggingface,pollinations
-IMAGE_PROVIDER_ORDER_EDUCATIONAL=
-IMAGE_PROMPT_OPTIMIZER_ENABLED=true
-IMAGE_PROMPT_OPTIMIZER_MODE=quality_only
-
-GEMINI_IMAGE_MODEL_PRIMARY=
-GEMINI_IMAGE_MODEL_SECONDARY=
-GEMINI_IMAGE_MODEL_TERTIARY=
-OPENROUTER_IMAGE_MODEL_PRIMARY=
-OPENROUTER_IMAGE_MODEL_SECONDARY=
-OPENROUTER_IMAGE_MODEL_TERTIARY=
-TOGETHER_IMAGE_MODEL_PRIMARY=
-TOGETHER_IMAGE_MODEL_SECONDARY=
-TOGETHER_IMAGE_MODEL_TERTIARY=
-HF_IMAGE_MODEL_PRIMARY=
-HF_IMAGE_MODEL_SECONDARY=
-POLLINATIONS_API_KEY=
-POLLINATIONS_IMAGE_MODEL_PRIMARY=
-POLLINATIONS_IMAGE_MODEL_SECONDARY=
-POLLINATIONS_IMAGE_MODEL_TERTIARY=
-```
-
-### Audio, voz y MIRA
-
-```env
-AUDIO_PIPELINE_URL=
-AUDIO_PIPELINE_PROVIDER=
-AUDIO_PIPELINE_TOKEN=
-AUDIO_DEFAULT_MODE=quick
-AUDIO_SCRIPT_MODEL=
-EDGE_TTS_VOICE_A=
-EDGE_TTS_VOICE_B=
-```
-
-MIRA necesita `GROQ_API_KEY` para transcripción de voz y utiliza las claves configuradas en el AI Router para generar la respuesta.
-
-### Música
-
-```env
-JAMENDO_CLIENT_ID=
-JAMENDO_CLIENT_SECRET=
-JAMENDO_REDIRECT_URI=
-AUDIUS_API_HOST=https://discoveryprovider.audius.co
-YOUTUBE_API_KEY=
-RADIO_PROXY_BASE=
-```
-
-### Video
-
-```env
-VIDEO_PROVIDER_ORDER=ltx,cogvideox,hunyuan_i2v
-VIDEO_CRON_SECRET=
-CRON_SECRET=
-HF_SPACE_VIDEO_API_URL=
-HF_SPACE_VIDEO_API_TOKEN=
-```
-
-Los endpoints y modelos específicos de LTX, CogVideoX o Hunyuan se configuran según el worker utilizado.
-
-### Pizarra
-
-```env
-WHITEBOARD_RECOGNITION_URL=
-WHITEBOARD_RECOGNITION_HEADERS_JSON={}
-WHITEBOARD_RECOGNITION_TIMEOUT_MS=6500
-WHITEBOARD_RECOGNITION_CACHE_TTL_MS=12000
-WHITEBOARD_RECOGNITION_CACHE_ITEMS=
-WHITEBOARD_RECOGNITION_PAYLOAD_MODE=mathpix
-WHITEBOARD_RECOGNITION_FORMATS=
-WHITEBOARD_RECOGNITION_MAX_STROKES=
-WHITEBOARD_RECOGNITION_MAX_POINTS_PER_STROKE=
-WHITEBOARD_RECOGNITION_MIN_POINT_DISTANCE=
-```
-
-### Exámenes
-
-```env
-EXAM_ACCESS_CODE_SECRET=
-EXAM_GENERATE_BATCH_SIZE=
-EXAM_GENERATE_MAX_QUESTIONS=
-EXAM_GENERATE_GROQ_MAX_TOKENS=
-EXAM_LATEX_EVALUATOR_URL=
-EXAM_LATEX_EVALUATOR_TOKEN=
-```
-
-### Cache y panel alternativo
-
-```env
-UPSTASH_REDIS_REST_URL=
-UPSTASH_REDIS_REST_TOKEN=
-NEXT_PUBLIC_PANEL_SUPABASE_URL=
-NEXT_PUBLIC_PANEL_SUPABASE_ANON_KEY=
-```
-
----
-
-## 💻 Instalación y desarrollo
+> [!CAUTION]
+> Esta sección corresponde únicamente al equipo interno y a colaboradores expresamente autorizados. La presencia de comandos técnicos en este documento no concede acceso ni licencia sobre el código.
 
 ### Requisitos
 
 - Node.js 22.x.
 - npm.
-- Proyecto Supabase.
-- Claves de IA según los módulos que se usarán.
+- Proyecto Supabase autorizado.
+- Claves de proveedores según los módulos habilitados.
 - Vercel para el despliegue recomendado.
-- Python/Docker solo para microservicios opcionales.
+- Python o Docker para microservicios opcionales.
 
-### 1. Clonar
+### Flujo interno
 
 ```bash
+# Repositorio privado: requiere autorización previa
 git clone https://github.com/innova-space-edu/eduai-platform.git
 cd eduai-platform
-```
-
-### 2. Instalar
-
-```bash
 npm install
-```
-
-### 3. Configurar variables
-
-```bash
-cp .env.example .env.local
-```
-
-Si no existe `.env.example`, crear `.env.local` utilizando la sección anterior y añadir solo las claves necesarias.
-
-### 4. Preparar Supabase
-
-Ejecutar las migraciones incluidas y comprobar que el esquema base de la plataforma ya exista.
-
-```text
-migration.sql
-migration_bm25.sql
-migration_qr_studio.sql
-supabase/migrations/*.sql
-```
-
-### 5. Validar currículo
-
-```bash
 npm run test:curriculum
-```
-
-Resultado esperado:
-
-```text
-Currículum MINEDUC: 105 archivos, 0 archivos pendientes, 0 advertencias, 0 errores.
-```
-
-### 6. Desarrollo
-
-```bash
-npm run dev
-```
-
-El script aplica automáticamente los parches idempotentes de Notebooks, Planificador, envío dual y MIRA antes de iniciar Next.js.
-
-### 7. Tests focalizados
-
-```bash
 npm run test:planner
+npm run test:creator
+npm run test:whiteboard
 npm run test:exam
-npm run test:curriculum
-```
-
-### 8. Build
-
-```bash
 npm run build
-npm run start
 ```
 
-El build valida currículo y ejecuta scripts de mantenimiento antes de compilar.
-
-### 9. Microservicios opcionales
-
-```bash
-# Audio parser
-cd services/audio-parser
-docker build -t eduai-audio-parser .
-
-# Paper parser
-cd services/paper-parser
-docker build -t eduai-paper-parser .
-
-# OpenVoice privado
-cd services/openvoice-space
-docker build -t eduai-openvoice .
-```
-
----
-
-## ⚙️ Scripts disponibles
+### Scripts disponibles
 
 | Comando | Función |
 |---------|---------|
-| `npm run dev` | Aplica parches idempotentes y levanta Next.js |
+| `npm run dev` | Aplica integraciones idempotentes e inicia Next.js |
 | `npm run build` | Valida currículo, mantiene módulos y compila |
 | `npm run start` | Inicia la compilación de producción |
 | `npm run lint` | Ejecuta ESLint |
-| `npm run planner:maintain` | Mantención del planificador |
-| `npm run whiteboard:finalize` | Finaliza integración de pizarra |
-| `npm run mira:voice` | Aplica modo de voz MIRA |
-| `npm run test:planner` | Pruebas del planificador integral |
-| `npm run test:exam` | Pruebas de cálculo y corrección |
-| `npm run curriculum:index` | Regenera índice curricular |
+| `npm run planner:maintain` | Mantención integral del planificador |
+| `npm run planning:preview` | Aplica la integración del editor de planificación |
+| `npm run whiteboard:finalize` | Finaliza la integración de la pizarra |
+| `npm run mira:voice` | Aplica el modo de voz de MIRA |
+| `npm run test:planner` | Pruebas del planificador |
+| `npm run test:creator` | Integridad de Creator Hub |
+| `npm run test:whiteboard` | Integridad de Pizarra Interactiva |
+| `npm run test:exam` | Pruebas de corrección de exámenes |
+| `npm run curriculum:index` | Regenera el índice curricular |
 | `npm run curriculum:validate` | Valida datos curriculares |
 | `npm run test:curriculum` | Valida currículo en modo estricto |
 
-La carpeta `scripts/` también incluye sincronizadores de Currículum Nacional, mantenimiento de formato, soporte de edición mixta y normalización del lockfile.
+### CI/CD
 
----
-
-## 🔄 CI/CD y mantenimiento
-
-### Workflows de GitHub Actions
-
-| Workflow | Disparador | Función |
-|----------|------------|---------|
-| `ci.yml` | Push a `main` y Pull Request | Instala, valida TypeScript, lint, tests del planificador y build |
-| `curriculum-validation.yml` | Cambios curriculares | Regenera índice, valida OA y compila |
-| `deploy-audio-parser-hf.yml` | Cambios en audio parser o ejecución manual | Publica el parser en Hugging Face Spaces |
-| `process-video.yml` | Cada 5 minutos o manual | Llama al procesador de cola de video |
-
-### Vercel
-
-`vercel.json` centraliza la duración máxima de funciones. Las rutas de audio, parsing, imágenes, exámenes y video usan runtime Node.js y límites compatibles con el plan configurado.
-
-### Proxy y autenticación
-
-`proxy.ts` reemplaza el middleware tradicional y se encarga de:
-
-- Actualizar la sesión Supabase.
-- Proteger rutas autenticadas.
-- Redirigir según estado de sesión.
-- Mantener compatibilidad con las rutas públicas de exámenes y QR.
+- GitHub Actions para integración continua.
+- Validación estricta del currículo.
+- Despliegues automáticos en Vercel.
+- Automatizaciones para parser de audio y cola de video.
+- Scripts idempotentes de mantenimiento durante desarrollo y build.
 
 ---
 
@@ -1332,127 +1110,120 @@ La carpeta `scripts/` también incluye sincronizadores de Currículum Nacional, 
 
 ### Seguridad
 
-- RLS en migraciones incluidas.
-- Service role solo en endpoints de servidor.
+- RLS en las migraciones incluidas.
+- Service role solamente en endpoints de servidor.
 - Rutas administrativas protegidas.
 - Códigos de examen con hash y auditoría.
 - Políticas de sesiones e incidentes.
 - Guardrails del Superagente.
-- Validación de ownership en Notebooks y QR.
+- Validación de ownership en Notebooks, QR, Creator Hub y cuadernos.
 - Validación de URL y fetch seguro.
 - Límites de tamaño en audio y archivos.
 - Tokens opcionales para microservicios.
+- Repositorio de código privado.
 
-### Voz y consentimiento
+### Privacidad
 
-El módulo de perfiles de voz exige confirmaciones de titularidad o autorización, consentimiento y mayoría de edad. El servicio OpenVoice debe desplegarse de forma privada y con almacenamiento persistente protegido.
+- Bibliotecas y proyectos personales protegidos por usuario.
+- Storage privado en módulos sensibles.
+- Consentimiento explícito para perfiles de voz.
+- Separación entre recursos públicos y privados.
+- Información sensible gestionada mediante variables de entorno y secretos del proveedor de despliegue.
 
 ### Accesibilidad educativa
 
 - Perfiles PIE/NEE.
-- Dislexia, TDAH y baja visión.
+- Apoyo para dislexia, TDAH y baja visión.
 - Temas de alto contraste.
 - Tipografías accesibles.
 - Narración TTS.
 - Instrucciones por pasos.
-- Pizarra y evidencia visual.
-- Adaptación automática mediante la tool `adapt_for_pie`.
-
-### Diseño
-
-`DESIGN.md` define la identidad visual: estilo educativo moderno, tarjetas tipo Canva, modo institucional para administración y continuidad entre chat, multimedia y evaluación.
+- Evidencia visual y cuadernos digitales.
+- Adaptación mediante la tool `adapt_for_pie`.
+- Interfaces diferenciadas para móvil, notebook y pantallas táctiles grandes.
 
 ---
 
-## 🧪 Estado funcional y requisitos pendientes
+## 🧪 Estado funcional y roadmap
 
-### Implementado en el código
+### Implementado
 
 - [x] Open EDUAI Work con archivos, citas y exportaciones.
 - [x] MIRA con traducción y conversación por voz.
-- [x] Creator Hub con 13 formatos.
-- [x] Cuaderno Creativo con biblioteca de plantillas.
-- [x] QR Studio con vencimiento, scans y descarga.
-- [x] Pizarra Interactiva con reconocimiento a LaTeX.
-- [x] Planificador MINEDUC con 105 archivos operativos validados.
+- [x] Creator Hub con 23 formatos educativos.
+- [x] Proyectos, versiones y colaboración de Creator Hub.
+- [x] Editor visual multipágina para planificaciones.
+- [x] Exportación PDF y Word compatible desde el editor.
+- [x] Cuaderno Creativo con biblioteca privada y exportación.
+- [x] Pizarra Interactiva como cuaderno digital multipágina.
+- [x] Distribuciones responsive para móvil, PC y pantallas gigantes.
+- [x] QR Studio con vencimiento y conteo de escaneos.
+- [x] Planificador MINEDUC con 105 archivos validados.
 - [x] Notebooks con RAG híbrido y RRF.
-- [x] Exámenes con IA, temas, seguridad y accesibilidad.
-- [x] Audio Lab y microservicios externos.
+- [x] Exámenes con IA, seguridad y accesibilidad.
+- [x] Audio Lab, perfiles de voz y base para canciones.
 - [x] Image Studio multi-proveedor.
 - [x] EduAI Music persistente.
-- [x] Video Studio con jobs y procesamiento.
-- [x] Admin Model Lab.
+- [x] Video Studio con jobs y procesamiento configurable.
+- [x] Analítica administrativa por módulo y agente.
 - [x] CI y validación curricular.
 
 ### Requiere configuración externa
 
-- [ ] Esquema base completo de Supabase para una instalación desde cero.
-- [ ] Migración de `video_jobs` y `video_usage_daily` referenciada en documentación.
-- [ ] Migración de autoguardado de exámenes si no existe en la base de producción.
+- [ ] Esquema base completo de Supabase para una instalación nueva.
 - [ ] Proveedor real de video o worker GPU.
-- [ ] Parser/worker externo para Audio Lab Pro.
-- [ ] Space privado para clonación o síntesis de voz personalizada.
-- [ ] Proveedor de reconocimiento de trazos para la pizarra.
-- [ ] API keys de búsqueda, imagen, audio y modelos según cada módulo.
+- [ ] Parser externo para Audio Lab Pro.
+- [ ] Proveedor de canciones compatible con `audio_song_jobs`.
+- [ ] Space privado para síntesis de voz personalizada.
+- [ ] Claves de búsqueda, IA, imagen, audio y video según cada módulo.
+
+### Roadmap
+
+- Consolidar el esquema base completo de Supabase.
+- Crear un `.env.example` interno sin secretos.
+- Ampliar pruebas end-to-end.
+- Consolidar scripts `apply-*.mjs` en módulos estables.
+- Añadir observabilidad de costos, latencia y errores.
+- Mejorar edición colaborativa en tiempo real.
+- Incorporar exportación `.docx` nativa al editor visual.
+- Ampliar plantillas institucionales y accesibles.
+- Mejorar administración de límites gratuitos para docentes.
 
 ---
 
-## 🛣️ Roadmap sugerido
-
-- Unificar y versionar el esquema base completo de Supabase.
-- Añadir migraciones faltantes de video y autoguardado.
-- Crear `.env.example` sin secretos.
-- Agregar tests end-to-end para login, planificación, examen y Notebooks.
-- Consolidar parches `apply-*.mjs` en código fuente estable.
-- Añadir observabilidad de costos, latencia y errores por proveedor.
-- Completar auditoría del Admin Model Lab.
-- Integrar procesamiento asíncrono de audio y video.
-- Añadir exportaciones visuales avanzadas tipo Canva en Creator Hub.
-- Ampliar colaboración en tiempo real y permisos por institución.
-
----
-
-## 🤝 Contribuir
-
-1. Crear un fork o una rama de trabajo.
-2. Instalar dependencias.
-3. Ejecutar validaciones y tests.
-4. Usar commits descriptivos.
-5. Abrir un Pull Request con el alcance y evidencias.
-
-```bash
-git checkout -b feature/nueva-funcionalidad
-npm run test:curriculum
-npm run test:planner
-npm run test:exam
-npm run build
-git commit -m "feat: descripción del cambio"
-git push origin feature/nueva-funcionalidad
-```
-
----
-
-## 👤 Créditos y licencia
+## 👤 Créditos, propiedad y licencia
 
 <div align="center">
 
 ### Dirección y desarrollo
 
 **Esthefano Morales Campaña**  
-Fundador y Director Ejecutivo de **[Innova Space Edu SpA](https://innova-space-edu.cl/)**
+Fundador y Director Ejecutivo de **[Innova Space Education SpA](https://innova-space-edu.cl/)**
 
 ### Desarrollo asistido por IA
 
 **ChatGPT de OpenAI** — apoyo de co-creación, documentación y desarrollo asistido.
 
-### Organización
+### Organización propietaria
 
-**[Innova Space Education](https://innova-space-edu.cl/)**  
+**Innova Space Education SpA**  
 Antofagasta, Chile · `contacto@innova-space-edu.cl`
 
 </div>
 
-El proyecto se distribuye bajo la **MIT License**. Consulta [LICENSE](LICENSE) para conocer los términos completos.
+### Licencia propietaria
+
+Copyright © 2026 **Innova Space Education SpA**. Todos los derechos reservados.
+
+El código fuente de EduAI Platform es **privado y propietario**. No se concede una licencia pública para copiar, modificar, publicar, distribuir, sublicenciar o vender el software.
+
+El uso gratuito ofrecido a docentes corresponde únicamente al acceso y uso pedagógico de la plataforma alojada:
+
+> **Free to use for teachers — uso gratuito para docentes.**
+
+Esta autorización de uso no transfiere derechos de propiedad intelectual, no permite acceder al código fuente y no autoriza crear productos derivados del software.
+
+Consulta [LICENSE](LICENSE) para conocer el aviso propietario aplicable al código. Las dependencias y componentes de terceros continúan sujetos a sus licencias respectivas.
 
 ---
 
@@ -1460,6 +1231,10 @@ El proyecto se distribuye bajo la **MIT License**. Consulta [LICENSE](LICENSE) p
 
 **EduAI Platform — Educación, tecnología e inteligencia artificial en un solo ecosistema.**
 
-**[🌐 Plataforma](https://eduaiplatformclon.vercel.app)** · **[🏢 Innova Space Edu](https://innova-space-edu.cl/)** · **[💻 GitHub](https://github.com/innova-space-edu/eduai-platform)**
+### 👩‍🏫 Free to use for teachers · Uso gratuito para docentes
+### 🔒 Private and proprietary code · Código privado y propietario
+### 🏢 Property of Innova Space Education SpA
+
+**[🌐 Plataforma](https://eduaiplatformclon.vercel.app)** · **[🏢 Innova Space Education](https://innova-space-edu.cl/)** · **[✉️ Contacto](mailto:contacto@innova-space-edu.cl)**
 
 </div>
