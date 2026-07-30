@@ -82,23 +82,8 @@ if (fs.existsSync(previewPagePath)) {
   let source = fs.readFileSync(previewPagePath, "utf8")
   const replacements = [
     [
-      "  type PlanningBlockStyle,\n  type PlanningBlockType,",
-      "  type PlanningBlockOverrides,\n  type PlanningBlockStyle,\n  type PlanningBlockType,",
-    ],
-    ["  type FormEvent,\n}", "  type FormEvent,\n  type MouseEvent,\n}"],
-    ["  overrides?: Partial<PlanningPreviewBlock>", "  overrides?: PlanningBlockOverrides"],
-    [
-      "  function insertBlock(type: PlanningBlockType, overrides: Partial<PlanningPreviewBlock> = {}) {",
-      "  function insertBlock(type: PlanningBlockType, overrides: PlanningBlockOverrides = {}) {",
-    ],
-    ["React.MouseEvent<HTMLElement>", "MouseEvent<HTMLElement>"],
-    [
-      "        <section key={block.id} {...commonProps} className={`${commonClass} ${styles.shape} ${shapeClass}`}>",
-      "        <section key={block.id} className={`${commonClass} ${styles.shape} ${shapeClass}`} style={blockCss(block)} onClick={commonProps.onClick}>",
-    ],
-    [
-      "        {...commonProps}\n        style={{ ...blockCss(block), minHeight: 0, height: Math.max(2, block.style.borderWidth || 2), padding: 0, background: block.style.borderColor }}",
-      "        className={commonClass}\n        onClick={commonProps.onClick}\n        style={{ ...blockCss(block), minHeight: 0, height: Math.max(2, block.style.borderWidth || 2), padding: 0, background: block.style.borderColor }}",
+      "    if (!page || !ids.size) return\n    clipboardRef.current = page.elements",
+      "    if (!current || !page || !ids.size) return\n    clipboardRef.current = page.elements",
     ],
   ]
 
