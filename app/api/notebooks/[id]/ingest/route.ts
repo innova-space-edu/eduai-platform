@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { ingestNotebookSource } from "@/lib/notebook/ingestion-v2"
+import { analyzeYouTubeForNotebook, parseYouTubeUrl } from "@/lib/notebook/youtube-analysis"
 
 export const runtime = "nodejs"
-export const maxDuration = 60
+export const maxDuration = 120
 
 type Params = { params: Promise<{ id: string }> }
+
+function objectMetadata(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {}
+}
 
 export async function POST(request: NextRequest, { params }: Params) {
   try {
@@ -30,11 +37,54 @@ export async function POST(request: NextRequest, { params }: Params) {
 
     const { data: source } = await supabase
       .from("notebook_sources")
-      .select("id")
+      .select("id, url, title, metadata")
       .eq("id", sourceId)
       .eq("notebook_id", id)
       .single()
     if (!source) return NextResponse.json({ error: "Fuente no encontrada" }, { status: 404 })
+
+    if (source.url && parseYouTubeUrl(source.url)) {
+      try {
+        await supabase
+          .from("notebook_sources")
+          .update({ status: "processing", error_message: null })
+          .eq("id", sourceId)
+
+        const extraction = await analyzeYouTubeForNotebook({
+          url: source.url,
+          sourceTitle: source.title,
+          sourceMetadata: objectMetadata(source.metadata),
+        })
+
+        const { error: youtubeUpdateError } = await supabase
+          .from("notebook_sources")
+          .update({
+            title: extraction.title,
+            raw_text: extraction.text,
+            metadata: {
+              ...objectMetadata(source.metadata),
+              ...extraction.metadata,
+            },
+            status: "processing",
+            error_message: null,
+          })
+          .eq("id", sourceId)
+
+        if (youtubeUpdateError) throw new Error(youtubeUpdateError.message)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        console.error("[Ingest YouTube]", message)
+        await supabase
+          .from("notebook_sources")
+          .update({ status: "error", error_message: message })
+          .eq("id", sourceId)
+
+        return NextResponse.json(
+          { ok: false, chunkCount: 0, error: message },
+          { status: 422 },
+        )
+      }
+    }
 
     const result = await ingestNotebookSource(sourceId, fileBase64)
     return NextResponse.json(result, { status: result.ok ? 200 : 422 })

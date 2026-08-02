@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { assertPublicHttpUrl, fetchPublicUrl } from "@/lib/notebook/url-safety"
+import { parseYouTubeUrl } from "@/lib/notebook/youtube-analysis"
 
 export const runtime = "nodejs"
 export const maxDuration = 20
 
 type Params = { params: Promise<{ id: string }> }
+
+type SourceKind = "paper" | "pdf" | "video" | "web"
 
 function decodeEntities(value: string): string {
   return value
@@ -18,7 +21,7 @@ function decodeEntities(value: string): string {
     .trim()
 }
 
-function inferKind(url: URL, contentType: string): "paper" | "pdf" | "web" {
+function inferKind(url: URL, contentType: string): SourceKind {
   const host = url.hostname.toLowerCase()
   const path = url.pathname.toLowerCase()
   if (host.includes("doi.org") || host.includes("arxiv.org") || host.includes("pubmed.ncbi.nlm.nih.gov")) return "paper"
@@ -29,6 +32,59 @@ function inferKind(url: URL, contentType: string): "paper" | "pdf" | "web" {
 function titleFromUrl(url: URL): string {
   const last = decodeURIComponent(url.pathname.split("/").filter(Boolean).at(-1) || "")
   return last.replace(/[-_]+/g, " ").replace(/\.pdf$/i, "").trim() || url.hostname
+}
+
+async function checkYouTubeUrl(requestedUrl: string, startedAt: number) {
+  const parsed = parseYouTubeUrl(requestedUrl)
+  if (!parsed) return null
+
+  const response = await fetch(
+    `https://www.youtube.com/oembed?url=${encodeURIComponent(parsed.canonicalUrl)}&format=json`,
+    { signal: AbortSignal.timeout(8_000), cache: "no-store" },
+  )
+
+  if (!response.ok) {
+    return NextResponse.json({
+      ok: false,
+      status: response.status,
+      statusText: response.statusText,
+      requestedUrl,
+      finalUrl: parsed.canonicalUrl,
+      title: "Video de YouTube",
+      description: "",
+      contentType: "video/youtube",
+      contentLength: null,
+      kind: "video" satisfies SourceKind,
+      elapsedMs: Date.now() - startedAt,
+      checkedAt: new Date().toISOString(),
+      warning: "YouTube no entregó metadatos públicos. Confirma que el video sea público y esté disponible.",
+    }, { status: 422 })
+  }
+
+  const data = await response.json() as {
+    title?: string
+    author_name?: string
+    thumbnail_url?: string
+  }
+
+  return NextResponse.json({
+    ok: true,
+    status: 200,
+    statusText: "OK",
+    requestedUrl,
+    finalUrl: parsed.canonicalUrl,
+    title: typeof data.title === "string" ? data.title.slice(0, 200) : "Video de YouTube",
+    description: typeof data.author_name === "string" ? `Canal: ${data.author_name.slice(0, 160)}` : "",
+    contentType: "video/youtube",
+    contentLength: null,
+    kind: "video" satisfies SourceKind,
+    videoId: parsed.videoId,
+    embedUrl: parsed.embedUrl,
+    thumbnailUrl: data.thumbnail_url || parsed.thumbnailUrl,
+    elapsedMs: Date.now() - startedAt,
+    checkedAt: new Date().toISOString(),
+    warning: null,
+  })
 }
 
 export async function POST(request: NextRequest, { params }: Params) {
@@ -50,12 +106,15 @@ export async function POST(request: NextRequest, { params }: Params) {
     const requestedUrl = String(body?.url || "").trim()
     if (!requestedUrl) return NextResponse.json({ error: "URL requerida" }, { status: 400 })
 
-    const safeUrl = await assertPublicHttpUrl(requestedUrl)
     const startedAt = Date.now()
+    const youtubeResult = await checkYouTubeUrl(requestedUrl, startedAt)
+    if (youtubeResult) return youtubeResult
+
+    const safeUrl = await assertPublicHttpUrl(requestedUrl)
     const response = await fetchPublicUrl(safeUrl, {
       method: "GET",
       headers: {
-        "User-Agent": "EduAI-Notebook/1.0 (+https://innova-space-edu.cl)",
+        "User-Agent": "EduAI-Notebook/2.0 (+https://innova-space-edu.cl)",
         Accept: "text/html,application/xhtml+xml,application/pdf,text/plain;q=0.9,*/*;q=0.5",
         Range: "bytes=0-65535",
       },
