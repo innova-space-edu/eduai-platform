@@ -12,6 +12,7 @@ import {
   Bot,
   Flame,
   FolderKanban,
+  LibraryBig,
   LogOut,
   MessageCircle,
   Music2,
@@ -220,6 +221,14 @@ export default function Dashboard() {
           <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-3">
             <p className="text-xs font-semibold uppercase tracking-widest text-muted2">Panel</p>
             <div className="flex items-center gap-3">
+              <Link
+                href="/biblioteca"
+                className="group flex items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all hover:-translate-y-0.5"
+                style={{ background: "rgba(124,58,237,0.08)", borderColor: "rgba(124,58,237,0.18)", color: "#6d28d9" }}
+              >
+                <LibraryBig size={14} className="transition-transform group-hover:scale-110" />
+                <span className="hidden sm:inline">Biblioteca</span>
+              </Link>
               <span className="text-sm text-sub">{displayName}</span>
               <div className="rounded-xl border px-2.5 py-1 text-xs font-semibold" style={{ background: `${levelColor.glow}`, borderColor: "var(--border-soft)" }}>
                 <span className={levelColor.text}>{level}</span>
