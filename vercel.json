@@ -6,5 +6,10 @@
       "source": "/api/agents/audio/songs",
       "destination": "/api/agents/audio/generate?kind=song"
     }
-  ]
+  ],
+  "functions": {
+    "app/api/**/*.ts": {
+      "maxDuration": 60
+    }
+  }
 }
