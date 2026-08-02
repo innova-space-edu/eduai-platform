@@ -19,7 +19,7 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript)
 ![Teachers](https://img.shields.io/badge/Teachers-Free%20to%20use-16a34a)
 ![Code](https://img.shields.io/badge/Code-Private%20%26%20Proprietary-7c3aed)
-![Owner](https://img.shields.io/badge/Owner-Innova%20Space%20Education%20SpA-0f172a)
+[![Owner](https://img.shields.io/badge/Owner-Innova%20Space%20Education%20SpA-0f172a)](https://innova-space-edu.cl)
 
 **[🌐 Ver plataforma](https://eduaiplatformclon.vercel.app)** · **[🏢 Innova Space Education](https://innova-space-edu.cl/)** · **[✉️ Contacto](mailto:contacto@innova-space-edu.cl)**
 
