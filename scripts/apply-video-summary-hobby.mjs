@@ -73,7 +73,7 @@ if (!currentFunction.includes('La consolidación se realizó localmente')) {
   const summaries = segmentResults
     .map(({ segment, analysis }) => {
       const summary = typeof analysis.summary === "string" ? analysis.summary.trim() : ""
-      return summary ? \\`\\${segment.startLabel}–\\${segment.endLabel}: \\${summary}\\` : ""
+      return summary ? segment.startLabel + "–" + segment.endLabel + ": " + summary : ""
     })
     .filter(Boolean)
 
@@ -98,8 +98,8 @@ if (!currentFunction.includes('La consolidación se realizó localmente')) {
 
   const centralThesis = takeaways[0]
     || (conceptNames.length
-      ? \\`El video desarrolla principalmente \\${conceptNames.slice(0, 3).join(", ")}.\\`
-      : \\`Síntesis del video \\${metadata.title || "de YouTube"}.\\`)
+      ? "El video desarrolla principalmente " + conceptNames.slice(0, 3).join(", ") + "."
+      : "Síntesis del video " + (metadata.title || "de YouTube") + ".")
 
   return {
     executiveSummary: summaries.join("\\n\\n"),
