@@ -6,13 +6,5 @@
       "source": "/api/agents/audio/songs",
       "destination": "/api/agents/audio/generate?kind=song"
     }
-  ],
-  "functions": {
-    "app/api/creator/video-summary/route.ts": {
-      "maxDuration": 300
-    },
-    "app/api/notebooks/[id]/ingest/route.ts": {
-      "maxDuration": 300
-    }
-  }
+  ]
 }
