@@ -8,8 +8,11 @@
     }
   ],
   "functions": {
-    "app/api/**/*.ts": {
-      "maxDuration": 60
+    "app/api/creator/video-summary/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/notebooks/[id]/ingest/route.ts": {
+      "maxDuration": 300
     }
   }
 }

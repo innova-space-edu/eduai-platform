@@ -44,8 +44,10 @@ async function checkYouTubeUrl(requestedUrl: string, startedAt: number) {
   )
 
   if (!response.ok) {
+    const message = "YouTube no entregó metadatos públicos. Confirma que el video sea público y esté disponible."
     return NextResponse.json({
       ok: false,
+      error: message,
       status: response.status,
       statusText: response.statusText,
       requestedUrl,
@@ -57,7 +59,7 @@ async function checkYouTubeUrl(requestedUrl: string, startedAt: number) {
       kind: "video" satisfies SourceKind,
       elapsedMs: Date.now() - startedAt,
       checkedAt: new Date().toISOString(),
-      warning: "YouTube no entregó metadatos públicos. Confirma que el video sea público y esté disponible.",
+      warning: message,
     }, { status: 422 })
   }
 
