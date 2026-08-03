@@ -83,7 +83,7 @@ requireText(navigation, '"/repositorio"', "ruta protegida del repositorio")
 requireText(courseSubjectPatch, "updateEducationalLevel", "reinicio de asignatura al cambiar curso")
 requireText(packageJson.scripts.dev, "apply-repository-course-subject-selects.mjs", "selectores en desarrollo")
 requireText(packageJson.scripts.build, "apply-repository-course-subject-selects.mjs", "selectores en compilación")
-requireText(packageJson.scripts.test:repository, "apply-repository-course-subject-selects.mjs", "selectores en prueba del repositorio")
+requireText(packageJson.scripts["test:repository"], "apply-repository-course-subject-selects.mjs", "selectores en prueba del repositorio")
 requireText(packageJson.scripts.dev, "apply-repository-navigation.mjs", "parche en desarrollo")
 requireText(packageJson.scripts.build, "apply-repository-navigation.mjs", "parche en compilación")
 
