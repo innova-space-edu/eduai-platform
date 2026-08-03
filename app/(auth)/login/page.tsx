@@ -8,16 +8,24 @@ import { Zap, Mail, Lock, Eye, EyeOff, AlertCircle } from "lucide-react"
 import LegalFooter from "@/components/legal/LegalFooter"
 
 export default function LoginPage() {
-  const [email, setEmail]       = useState("")
-  const [password, setPassword] = useState("")
-  const [showPass, setShowPass] = useState(false)
-  const [error, setError]       = useState("")
-  const [loading, setLoading]   = useState(false)
+  const [email, setEmail]                 = useState("")
+  const [password, setPassword]           = useState("")
+  const [showPass, setShowPass]           = useState(false)
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
+  const [error, setError]                 = useState("")
+  const [loading, setLoading]             = useState(false)
   const router = useRouter()
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
-    setLoading(true); setError("")
+    setError("")
+
+    if (!acceptedTerms) {
+      setError("Debes aceptar los términos y condiciones de EduAI para continuar")
+      return
+    }
+
+    setLoading(true)
     const supabase = createClient()
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) { setError("Email o contraseña incorrectos"); setLoading(false) }
@@ -90,6 +98,38 @@ export default function LoginPage() {
                 </button>
               </div>
             </div>
+
+            <label
+              htmlFor="accept-terms"
+              className="flex cursor-pointer items-start gap-3 rounded-xl border px-3.5 py-3 transition-colors"
+              style={{
+                background: acceptedTerms ? "rgba(37,99,235,0.06)" : "var(--bg-card-soft)",
+                borderColor: acceptedTerms ? "rgba(37,99,235,0.32)" : "var(--border-soft)",
+              }}
+            >
+              <input
+                id="accept-terms"
+                type="checkbox"
+                checked={acceptedTerms}
+                onChange={event => {
+                  setAcceptedTerms(event.target.checked)
+                  if (event.target.checked && error.includes("términos")) setError("")
+                }}
+                className="mt-0.5 h-4 w-4 flex-shrink-0 cursor-pointer rounded border-gray-300 accent-blue-600"
+              />
+              <span className="text-xs leading-5 text-sub">
+                He leído y acepto los{" "}
+                <Link
+                  href="/terminos"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold text-blue-600 underline decoration-blue-300 underline-offset-2 hover:text-blue-700"
+                  onClick={event => event.stopPropagation()}
+                >
+                  términos y condiciones de EduAI
+                </Link>.
+              </span>
+            </label>
 
             {error && (
               <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl border"
