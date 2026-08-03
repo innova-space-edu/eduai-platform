@@ -13,27 +13,7 @@ export const MATERIAL_TYPES = [
   { value: "otro", label: "Otro" },
 ] as const
 
-export const SUBJECT_SUGGESTIONS = [
-  "Matemática",
-  "Lenguaje y Literatura",
-  "Ciencias Naturales",
-  "Física",
-  "Química",
-  "Biología",
-  "Historia, Geografía y Ciencias Sociales",
-  "Educación Ciudadana",
-  "Tecnología",
-  "Inglés",
-  "Artes Visuales",
-  "Música",
-  "Educación Física y Salud",
-  "Orientación",
-  "Filosofía",
-  "Religión",
-] as const
-
-export const LEVEL_SUGGESTIONS = [
-  "Educación parvularia",
+export const COURSE_OPTIONS = [
   "1° básico",
   "2° básico",
   "3° básico",
@@ -46,10 +26,261 @@ export const LEVEL_SUGGESTIONS = [
   "2° medio",
   "3° medio",
   "4° medio",
-  "Educación superior",
-  "Docentes",
-  "Otro",
 ] as const
+
+export type SubjectGroup = {
+  label: string
+  subjects: readonly string[]
+}
+
+const BASIC_1_TO_6_SUBJECT_GROUPS: readonly SubjectGroup[] = [
+  {
+    label: "Formación general",
+    subjects: [
+      "Lenguaje y Comunicación",
+      "Matemática",
+      "Ciencias Naturales",
+      "Historia, Geografía y Ciencias Sociales",
+      "Inglés",
+      "Educación Física y Salud",
+      "Artes Visuales",
+      "Música",
+      "Tecnología",
+      "Orientación",
+      "Religión",
+    ],
+  },
+  {
+    label: "Complementarias y talleres",
+    subjects: [
+      "Biblioteca y Plan Lector",
+      "Taller de Lectura y Escritura",
+      "Taller de Matemática",
+      "Computación y Programación",
+      "Robótica",
+      "Educación Socioemocional",
+      "Convivencia Escolar",
+      "Formación Ciudadana",
+      "Medioambiente y Sustentabilidad",
+      "Vida Saludable",
+      "Otro taller complementario",
+    ],
+  },
+]
+
+const BASIC_7_TO_8_SUBJECT_GROUPS: readonly SubjectGroup[] = [
+  {
+    label: "Formación general",
+    subjects: [
+      "Lengua y Literatura",
+      "Matemática",
+      "Ciencias Naturales",
+      "Historia, Geografía y Ciencias Sociales",
+      "Inglés",
+      "Educación Física y Salud",
+      "Artes Visuales",
+      "Música",
+      "Tecnología",
+      "Orientación",
+      "Religión",
+    ],
+  },
+  {
+    label: "Complementarias y talleres",
+    subjects: [
+      "Biblioteca y Plan Lector",
+      "Taller de Lectura y Escritura",
+      "Taller de Matemática",
+      "Computación y Programación",
+      "Robótica",
+      "Educación Socioemocional",
+      "Convivencia Escolar",
+      "Formación Ciudadana",
+      "Medioambiente y Sustentabilidad",
+      "Emprendimiento",
+      "Vida Saludable",
+      "Otro taller complementario",
+    ],
+  },
+]
+
+const MIDDLE_1_TO_2_SUBJECT_GROUPS: readonly SubjectGroup[] = [
+  {
+    label: "Formación general",
+    subjects: [
+      "Lengua y Literatura",
+      "Matemática",
+      "Inglés",
+      "Historia, Geografía y Ciencias Sociales",
+      "Biología",
+      "Física",
+      "Química",
+      "Educación Física y Salud",
+      "Tecnología",
+      "Artes Visuales",
+      "Música",
+      "Orientación",
+      "Religión",
+    ],
+  },
+  {
+    label: "Complementarias y talleres",
+    subjects: [
+      "Ciencias Naturales",
+      "Formación Ciudadana",
+      "Computación y Programación",
+      "Robótica",
+      "Taller de Lectura y Escritura",
+      "Taller de Matemática",
+      "Taller PAES",
+      "Educación Socioemocional",
+      "Convivencia Escolar",
+      "Medioambiente y Sustentabilidad",
+      "Emprendimiento",
+      "Vida Saludable",
+      "Otro taller complementario",
+    ],
+  },
+]
+
+const MIDDLE_3_TO_4_SUBJECT_GROUPS: readonly SubjectGroup[] = [
+  {
+    label: "Plan común de formación general",
+    subjects: [
+      "Lengua y Literatura",
+      "Matemática",
+      "Inglés",
+      "Educación Ciudadana",
+      "Filosofía",
+      "Ciencias para la Ciudadanía",
+      "Educación Física y Salud",
+      "Orientación",
+      "Religión",
+      "Artes Visuales",
+      "Música",
+      "Tecnología",
+    ],
+  },
+  {
+    label: "Complementarias y preparación académica",
+    subjects: [
+      "Historia, Geografía y Ciencias Sociales",
+      "Biología",
+      "Física",
+      "Química",
+      "Taller PAES Competencia Lectora",
+      "Taller PAES Matemática M1",
+      "Taller PAES Matemática M2",
+      "Taller PAES Ciencias",
+      "Taller PAES Historia y Ciencias Sociales",
+      "Computación y Programación",
+      "Robótica",
+      "Educación Socioemocional",
+      "Convivencia Escolar",
+      "Medioambiente y Sustentabilidad",
+      "Emprendimiento",
+      "Otro taller complementario",
+    ],
+  },
+  {
+    label: "Electivos · Lengua, Filosofía e Historia",
+    subjects: [
+      "Taller de Literatura",
+      "Lectura y Escritura Especializadas",
+      "Participación y Argumentación en Democracia",
+      "Estética",
+      "Filosofía Política",
+      "Seminario de Filosofía",
+      "Comprensión Histórica del Presente",
+      "Geografía, Territorio y Desafíos Socioambientales",
+      "Economía y Sociedad",
+    ],
+  },
+  {
+    label: "Electivos · Matemática y Ciencias",
+    subjects: [
+      "Límites, Derivadas e Integrales",
+      "Probabilidades y Estadística Descriptiva e Inferencial",
+      "Geometría 3D",
+      "Biología de los Ecosistemas",
+      "Biología Celular y Molecular",
+      "Ciencias de la Salud",
+      "Física · Electivo de profundización",
+      "Química · Electivo de profundización",
+    ],
+  },
+  {
+    label: "Electivos · Artes y Educación Física",
+    subjects: [
+      "Artes Visuales, Audiovisuales y Multimediales",
+      "Diseño y Arquitectura",
+      "Interpretación y Creación en Teatro",
+      "Creación y Composición Musical",
+      "Interpretación Musical",
+      "Ciencias del Ejercicio Físico y Deportivo",
+      "Promoción de Estilos de Vida Activos y Saludables",
+    ],
+  },
+  {
+    label: "Formación técnico-profesional y especialidades",
+    subjects: [
+      "Administración",
+      "Contabilidad",
+      "Programación",
+      "Conectividad y Redes",
+      "Electricidad",
+      "Electrónica",
+      "Mecánica Automotriz",
+      "Construcción",
+      "Refrigeración y Climatización",
+      "Gastronomía",
+      "Atención de Párvulos",
+      "Atención de Enfermería",
+      "Agropecuaria",
+      "Turismo",
+      "Servicios de Hotelería",
+      "Gráfica",
+      "Química Industrial",
+      "Explotación Minera",
+      "Metalurgia Extractiva",
+      "Otro módulo o especialidad TP",
+    ],
+  },
+]
+
+const BASIC_1_TO_6 = new Set<string>([
+  "1° básico",
+  "2° básico",
+  "3° básico",
+  "4° básico",
+  "5° básico",
+  "6° básico",
+])
+
+const BASIC_7_TO_8 = new Set<string>(["7° básico", "8° básico"])
+const MIDDLE_1_TO_2 = new Set<string>(["1° medio", "2° medio"])
+const MIDDLE_3_TO_4 = new Set<string>(["3° medio", "4° medio"])
+
+export function subjectGroupsForCourse(course: string): readonly SubjectGroup[] {
+  if (BASIC_1_TO_6.has(course)) return BASIC_1_TO_6_SUBJECT_GROUPS
+  if (BASIC_7_TO_8.has(course)) return BASIC_7_TO_8_SUBJECT_GROUPS
+  if (MIDDLE_1_TO_2.has(course)) return MIDDLE_1_TO_2_SUBJECT_GROUPS
+  if (MIDDLE_3_TO_4.has(course)) return MIDDLE_3_TO_4_SUBJECT_GROUPS
+  return []
+}
+
+export const LEVEL_SUGGESTIONS = COURSE_OPTIONS
+
+export const SUBJECT_SUGGESTIONS = Array.from(
+  new Set(
+    [
+      ...BASIC_1_TO_6_SUBJECT_GROUPS,
+      ...BASIC_7_TO_8_SUBJECT_GROUPS,
+      ...MIDDLE_1_TO_2_SUBJECT_GROUPS,
+      ...MIDDLE_3_TO_4_SUBJECT_GROUPS,
+    ].flatMap((group) => group.subjects),
+  ),
+)
 
 export type MaterialType = (typeof MATERIAL_TYPES)[number]["value"]
 export type RepositorySourceType = "file" | "youtube"
