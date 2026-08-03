@@ -1,4 +1,4 @@
--- Repositorio EduAI: archivos educativos y enlaces de YouTube con acceso público dentro de la plataforma.
+-- Repositorio EduAI: archivos educativos y enlaces de YouTube con acceso público en internet.
 
 create extension if not exists pgcrypto;
 
@@ -115,14 +115,15 @@ for each row execute function public.set_repository_item_metadata();
 
 alter table public.repository_items enable row level security;
 
--- Todos los usuarios autenticados pueden visualizar el repositorio completo.
+-- Catálogo público: cualquier visitante puede ver los registros sin iniciar sesión.
 drop policy if exists repository_items_read_authenticated on public.repository_items;
-create policy repository_items_read_authenticated
+drop policy if exists repository_items_read_public on public.repository_items;
+create policy repository_items_read_public
 on public.repository_items for select
-to authenticated
+to anon, authenticated
 using (visibility = 'public');
 
--- Cada usuario crea, modifica y elimina únicamente sus propios registros.
+-- Cada usuario autenticado crea, modifica y elimina únicamente sus propios registros.
 drop policy if exists repository_items_insert_own on public.repository_items;
 create policy repository_items_insert_own
 on public.repository_items for insert
@@ -142,11 +143,10 @@ on public.repository_items for delete
 to authenticated
 using ((select auth.uid()) = created_by);
 
+grant select on public.repository_items to anon;
 grant select, insert, update, delete on public.repository_items to authenticated;
-revoke all on public.repository_items from anon;
 
--- El bucket acepta cualquier formato para conservar el archivo original.
--- La interfaz limita cada carga a 100 MB.
+-- El bucket público conserva cualquier formato original hasta 100 MB.
 insert into storage.buckets (
   id,
   name,
@@ -157,7 +157,7 @@ insert into storage.buckets (
 values (
   'eduai-repository',
   'eduai-repository',
-  false,
+  true,
   104857600,
   null
 )
@@ -166,12 +166,8 @@ on conflict (id) do update set
   file_size_limit = excluded.file_size_limit,
   allowed_mime_types = excluded.allowed_mime_types;
 
--- Público dentro de EduAI: lectura para cualquier usuario autenticado.
+-- En un bucket público, las descargas y visualizaciones no requieren políticas SELECT.
 drop policy if exists repository_files_read_authenticated on storage.objects;
-create policy repository_files_read_authenticated
-on storage.objects for select
-to authenticated
-using (bucket_id = 'eduai-repository');
 
 -- La primera carpeta de cada archivo corresponde al UUID del docente.
 drop policy if exists repository_files_insert_own_folder on storage.objects;
