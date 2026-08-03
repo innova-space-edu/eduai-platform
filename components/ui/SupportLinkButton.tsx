@@ -20,7 +20,7 @@ export default function SupportLinkButton() {
   return (
     <Link
       href="/soporte"
-      className="fixed bottom-6 right-5 z-40 hidden items-center gap-2 rounded-full border border-blue-500/20 bg-app/90 px-4 py-2.5 text-xs font-semibold text-blue-600 shadow-lg backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-blue-500/40 hover:text-blue-500 sm:inline-flex"
+      className="fixed bottom-6 right-20 z-40 hidden items-center gap-2 rounded-full border border-blue-500/20 bg-app/90 px-4 py-2.5 text-xs font-semibold text-blue-600 shadow-lg backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-blue-500/40 hover:text-blue-500 sm:inline-flex"
       title="Enviar un reporte de falla al administrador"
     >
       <MessageSquareWarning size={15} />
