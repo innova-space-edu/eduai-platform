@@ -4,29 +4,28 @@ import { fileURLToPath } from "node:url"
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const dashboardPath = path.join(root, "app", "dashboard", "page.tsx")
+const proxyPath = path.join(root, "proxy.ts")
 
-if (!fs.existsSync(dashboardPath)) {
-  throw new Error(`No se encontró ${dashboardPath}`)
+for (const target of [dashboardPath, proxyPath]) {
+  if (!fs.existsSync(target)) throw new Error(`No se encontró ${target}`)
 }
 
-let source = fs.readFileSync(dashboardPath, "utf8")
-let changed = false
+let dashboardSource = fs.readFileSync(dashboardPath, "utf8")
+let dashboardChanged = false
 
-if (!source.includes("  HardDrive,")) {
+if (!dashboardSource.includes("  HardDrive,")) {
   const importMarker = "  FolderKanban,\n  LibraryBig,"
-  if (!source.includes(importMarker)) {
+  if (!dashboardSource.includes(importMarker)) {
     throw new Error("No se encontró el bloque de iconos del panel para agregar HardDrive")
   }
-  source = source.replace(importMarker, "  FolderKanban,\n  HardDrive,\n  LibraryBig,")
-  changed = true
+  dashboardSource = dashboardSource.replace(importMarker, "  FolderKanban,\n  HardDrive,\n  LibraryBig,")
+  dashboardChanged = true
 }
 
-if (!source.includes('href="/repositorio"')) {
+if (!dashboardSource.includes('href="/repositorio"')) {
   const libraryLinkPattern = /(\s+<Link\n\s+href="\/biblioteca"[\s\S]*?<\/Link>)/
-  const match = source.match(libraryLinkPattern)
-  if (!match) {
-    throw new Error("No se encontró el botón Biblioteca del panel")
-  }
+  const match = dashboardSource.match(libraryLinkPattern)
+  if (!match) throw new Error("No se encontró el botón Biblioteca del panel")
 
   const repositoryLink = `
               <Link
@@ -38,13 +37,26 @@ if (!source.includes('href="/repositorio"')) {
                 <span className="hidden sm:inline">Repositorio</span>
               </Link>`
 
-  source = source.replace(match[0], `${match[0]}${repositoryLink}`)
-  changed = true
+  dashboardSource = dashboardSource.replace(match[0], `${match[0]}${repositoryLink}`)
+  dashboardChanged = true
 }
 
-if (changed) {
-  fs.writeFileSync(dashboardPath, source)
+if (dashboardChanged) {
+  fs.writeFileSync(dashboardPath, dashboardSource)
   console.log("[repositorio] navegación del panel actualizada")
 } else {
   console.log("[repositorio] navegación del panel ya estaba actualizada")
+}
+
+let proxySource = fs.readFileSync(proxyPath, "utf8")
+if (!proxySource.includes('"/repositorio"')) {
+  const routeMarker = '  "/pizarra-interactiva",\n]'
+  if (!proxySource.includes(routeMarker)) {
+    throw new Error("No se encontró el bloque de rutas protegidas del proxy")
+  }
+  proxySource = proxySource.replace(routeMarker, '  "/pizarra-interactiva",\n  "/repositorio",\n]')
+  fs.writeFileSync(proxyPath, proxySource)
+  console.log("[repositorio] ruta protegida agregada al proxy")
+} else {
+  console.log("[repositorio] ruta del repositorio ya estaba protegida")
 }
