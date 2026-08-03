@@ -137,6 +137,10 @@ export default function EditExamTimeButton() {
       if (url.includes("/api/agents/examen-docente") && method === "POST" && typeof init?.body === "string") {
         try {
           const body = JSON.parse(init.body)
+          if (body?.source === "edit-data-panel") {
+            return originalFetch(input, init)
+          }
+
           if (body?.action === "update" && body?.examId === examId && body?.settings && typeof body.settings === "object") {
             const nextSettings: Record<string, any> = {
               ...body.settings,
@@ -231,6 +235,7 @@ export default function EditExamTimeButton() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          source: "edit-data-panel",
           action: "update",
           examId,
           teacherId,
