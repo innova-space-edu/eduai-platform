@@ -98,20 +98,40 @@ function patchPage() {
     "serialización de metadatos pedagógicos",
   )
 
-  const returnStart = block([
+  const branchReturnStart = block([
     "          return {",
     "            type: q.type,",
   ])
-  const enrichedReturnStart = block([
+  const enrichedBranchReturnStart = block([
     "          return {",
     "            ...getQuestionPedagogyPayload(q),",
     "            type: q.type,",
   ])
-  const returnCount = source.split(returnStart).length - 1
-  if (returnCount < 4) {
-    throw new Error(`[exam-question-pedagogy] Se esperaban 4 payloads de preguntas y se encontraron ${returnCount}`)
+  const branchReturnCount = source.split(branchReturnStart).length - 1
+  if (branchReturnCount < 3) {
+    throw new Error(`[exam-question-pedagogy] Se esperaban 3 payloads ramificados y se encontraron ${branchReturnCount}`)
   }
-  source = source.replaceAll(returnStart, enrichedReturnStart)
+  source = source.replaceAll(branchReturnStart, enrichedBranchReturnStart)
+
+  source = replaceRequired(
+    source,
+    block([
+      "        return {",
+      "          type: q.type,",
+      "          question: q.question,",
+      "          imageUrl: q.imageUrl || \"\",",
+      "          modelAnswer: (q as DevelopmentQuestion).modelAnswer || \"\",",
+    ]),
+    block([
+      "        return {",
+      "          ...getQuestionPedagogyPayload(q),",
+      "          type: q.type,",
+      "          question: q.question,",
+      "          imageUrl: q.imageUrl || \"\",",
+      "          modelAnswer: (q as DevelopmentQuestion).modelAnswer || \"\",",
+    ]),
+    "payload final de desarrollo",
+  )
 
   source = replaceRequired(
     source,
