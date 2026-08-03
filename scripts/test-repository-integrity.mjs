@@ -23,7 +23,7 @@ const packageJson = JSON.parse(read("package.json"))
 for (const [value, label] of [
   ['from("repository_items")', "lectura de registros"],
   [`.from(REPOSITORY_BUCKET)`, "acceso al bucket"],
-  ["createSignedUrl", "URL temporal para visualizar"],
+  ["getPublicUrl", "URL pública para visualizar"],
   ["youtube-nocookie.com/embed", "visor de YouTube"],
   ["view.officeapps.live.com", "visor de archivos Office"],
   ["buildTree(filteredItems)", "árbol de carpetas"],
@@ -37,10 +37,11 @@ for (const value of ["guia", "prueba", "rubrica", "presentacion", "planificacion
 for (const [value, label] of [
   ["create table if not exists public.repository_items", "tabla repository_items"],
   ["alter table public.repository_items enable row level security", "RLS"],
-  ["repository_items_read_authenticated", "lectura pública autenticada"],
+  ["repository_items_read_public", "lectura pública en internet"],
   ["repository_files_insert_own_folder", "carga por carpeta del usuario"],
   ["'eduai-repository'", "bucket"],
-  ["false,\n  104857600", "bucket privado y límite de 100 MB"],
+  ["true,\n  104857600", "bucket público y límite de 100 MB"],
+  ["grant select on public.repository_items to anon", "lectura anónima del catálogo"],
   ["metadata jsonb", "respaldo JSON"],
 ]) requireText(migration, value, label)
 
