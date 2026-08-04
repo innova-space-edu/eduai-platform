@@ -33,7 +33,7 @@ function hasUsefulText(text: string) {
   return clean.split(/\s+/).filter(Boolean).length >= 120
 }
 
-function pagesFromMarkdown(markdown: string, fallbackPageCount: number): PdfInspectorPage[] {
+function pagesFromMarkdown(markdown: string): PdfInspectorPage[] {
   const source = String(markdown || "")
   if (!source.trim()) return []
 
@@ -54,17 +54,22 @@ function pagesFromMarkdown(markdown: string, fallbackPageCount: number): PdfInsp
     if (pages.length) return pages
   }
 
-  const formFeedPages = source
+  const formFeedPages: PdfInspectorPage[] = source
     .split(/\f/g)
-    .map((text, index) => ({ pageNumber: index + 1, text: cleanText(text) }))
-    .filter((page) => !!page.text)
+    .map((text, index): PdfInspectorPage => ({
+      pageNumber: index + 1,
+      text: cleanText(text),
+    }))
+    .filter((page: PdfInspectorPage) => !!page.text)
 
   if (formFeedPages.length > 1) return formFeedPages
 
-  return [{
+  const singlePage: PdfInspectorPage = {
     pageNumber: 1,
     text: cleanText(source),
-  }].filter((page) => !!page.text)
+  }
+
+  return singlePage.text ? [singlePage] : []
 }
 
 export async function extractWithPdfInspector(buffer: Buffer): Promise<PdfInspectorResult> {
@@ -125,16 +130,20 @@ export async function extractWithPdfInspector(buffer: Buffer): Promise<PdfInspec
     }
 
     const markdown = cleanText(processed?.markdown || processed?.text || "")
-    const pages = Array.isArray(processed?.pages)
+    const pages: PdfInspectorPage[] = Array.isArray(processed?.pages)
       ? processed.pages
-          .map((page: any, index: number) => ({
+          .map((page: any, index: number): PdfInspectorPage => ({
             pageNumber: Number(page?.pageNumber || page?.page || index + 1),
             text: cleanText(page?.markdown || page?.text || ""),
           }))
           .filter((page: PdfInspectorPage) => !!page.text)
-      : pagesFromMarkdown(markdown, pageCount)
+      : pagesFromMarkdown(markdown)
 
-    const text = cleanText(pages.length ? pages.map((page) => page.text).join("\n\n\f\n\n") : markdown)
+    const text = cleanText(
+      pages.length
+        ? pages.map((page: PdfInspectorPage) => page.text).join("\n\n\f\n\n")
+        : markdown
+    )
 
     return {
       success: hasUsefulText(text),
