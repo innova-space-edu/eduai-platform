@@ -20,6 +20,7 @@ Microservicio Docker para leer PDF normales, mixtos y escaneados desde Chat Pape
 5. Los PDF escaneados, mixtos o con texto insuficiente pasan a este Space.
 6. Para archivos grandes, EduAI envía una URL firmada temporal de Supabase en vez de reenviar el archivo completo mediante Vercel.
 7. El resultado se divide y guarda en `paper_documents` y `paper_chunks` para que la IA consulte solo los fragmentos relevantes.
+8. Chat Paper muestra un panel lateral izquierdo de materiales guardados, ordenados desde el más nuevo. Al abrir un documento ya procesado, reutiliza `paper_documents` y `paper_chunks` sin repetir extracción, OCR ni fragmentación.
 
 ## Entradas admitidas por `POST /parse`
 
@@ -59,15 +60,16 @@ Las URL remotas se restringen a hosts Supabase o a los declarados en `PAPER_PARS
 
 Chat Paper mantiene sus rutas en el bundle compartido de 60 segundos del plan Hobby. El cliente del parser reserva como máximo 52 segundos para despertar y consultar Hugging Face, dejando tiempo para cerrar la respuesta. Un escaneo muy grande que no alcance a terminar devuelve un error controlado y puede reintentarse cuando el Space ya esté activo.
 
-## Requisito de Supabase Storage
+Supabase Storage también debe permitir el tamaño configurado. El bucket `papers` se crea o actualiza con el límite de `PAPER_MAX_PDF_SIZE_MB`, pero el límite efectivo nunca puede superar la configuración global ni el máximo del plan de Supabase.
 
-Al preparar una subida, EduAI crea el bucket privado `papers` o actualiza el bucket existente con:
+## Historial de materiales
 
-- `allowedMimeTypes: ["application/pdf"]`
-- `fileSizeLimit: PAPER_MAX_PDF_SIZE_MB`
-- acceso privado mediante sesión, políticas RLS y URLs firmadas
-
-El límite por bucket nunca puede superar el límite global de Storage ni el máximo permitido por el plan de Supabase. Para utilizar 250 MB, el panel de Supabase debe tener un límite global igual o superior a 250 MB. En un proyecto cuyo plan permita solo 50 MB, Chat Paper seguirá funcionando hasta ese máximo aunque la aplicación esté preparada para archivos mayores.
+- Se obtiene desde `GET /api/agents/paper/extract` sin agregar una función adicional de Vercel.
+- Combina los PDF originales del bucket privado `papers` con sus registros en `paper_documents`.
+- Muestra archivos procesados y pendientes.
+- Se ordena desde el material más reciente.
+- Un documento procesado se abre con `forceRefresh: false`, por lo que la extracción existente se recupera desde caché.
+- El PDF original permanece como una sola copia en Storage.
 
 ## Despliegue
 
