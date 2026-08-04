@@ -5,6 +5,7 @@ const root = process.cwd()
 const extractionPath = path.join(root, "lib/papers/extraction.ts")
 const healthRoutePath = path.join(root, "app/api/agents/paper/parser-health/route.ts")
 const legacyUploadRoutePath = path.join(root, "app/api/agents/paper/upload/route.ts")
+const uploadUrlRoutePath = path.join(root, "app/api/agents/paper/upload-url/route.ts")
 const paperRoutePaths = [
   path.join(root, "app/api/agents/paper/route.ts"),
   path.join(root, "app/api/agents/paper/extract/route.ts"),
@@ -36,25 +37,40 @@ async function removeTemporaryHealthRoute() {
 }
 
 async function consolidateUploadFlow() {
-  let source = await fs.readFile(paperPagePath, "utf8")
+  for (const filePath of paperPages) {
+    let source = await fs.readFile(filePath, "utf8")
 
-  const fallbackPattern = /\n\s*} else if \(\[400, 401, 413\]\.includes\(signedRes\.status\)\) \{\n\s*throw new Error\(await readErrorResponse\(signedRes\)\)\n\s*} else \{\n\s*\/\/ Fallback:[\s\S]*?uploadData = await uploadRes\.json\(\)\n\s*}/
+    source = source.replaceAll(
+      'fetch("/api/agents/paper/upload-url", {',
+      'fetch("/api/agents/paper/extract", {',
+    )
 
-  source = source.replace(
-    fallbackPattern,
-    `
+    source = source.replaceAll(
+      "body: JSON.stringify({\n          filename:",
+      'body: JSON.stringify({\n          action: "prepare-upload",\n          filename:',
+    )
+    source = source.replaceAll(
+      "body: JSON.stringify({\n        filename:",
+      'body: JSON.stringify({\n        action: "prepare-upload",\n        filename:',
+    )
+
+    if (filePath === paperPagePath) {
+      const fallbackPattern = /\n\s*} else if \(\[400, 401, 413\]\.includes\(signedRes\.status\)\) \{\n\s*throw new Error\(await readErrorResponse\(signedRes\)\)\n\s*} else \{\n\s*\/\/ Fallback:[\s\S]*?uploadData = await uploadRes\.json\(\)\n\s*}/
+
+      source = source.replace(
+        fallbackPattern,
+        `
       } else {
         throw new Error(await readErrorResponse(signedRes))
       }`,
-  )
+      )
+    }
 
-  await fs.writeFile(paperPagePath, source)
-  await fs.rm(legacyUploadRoutePath, { force: true })
-  try {
-    await fs.rmdir(path.dirname(legacyUploadRoutePath))
-  } catch {
-    // upload-url y extract permanecen en esta carpeta.
+    await fs.writeFile(filePath, source)
   }
+
+  await fs.rm(legacyUploadRoutePath, { force: true })
+  await fs.rm(uploadUrlRoutePath, { force: true })
 }
 
 async function ensureNativeTextFallback() {
@@ -104,4 +120,4 @@ await consolidateUploadFlow()
 await ensureNativeTextFallback()
 await normalizePaperRouteDurations()
 await import("./test-paper-pipeline.mjs")
-console.log("[paper-pipeline] PDF listo en el bundle compartido de Vercel Hobby.")
+console.log("[paper-pipeline] PDF listo con subida y extracción en una sola función.")
