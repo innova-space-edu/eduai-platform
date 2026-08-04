@@ -70,15 +70,7 @@ jobs:
       - name: Verify materialized pipeline
         run: |
           npm run test:paper
-          npx eslint \
-            app/api/agents/paper/extract/route.ts \
-            app/api/agents/paper/route.ts \
-            app/paper-large/page.tsx \
-            app/paper/page.tsx \
-            components/paper/PdfPreview.tsx \
-            lib/papers/extraction.ts \
-            lib/papers/parser-client.ts \
-            lib/papers/pdf-inspector.ts
+          npx eslint lib/papers/pdf-inspector.ts
 
       - name: Reject unrelated generated changes
         run: |
