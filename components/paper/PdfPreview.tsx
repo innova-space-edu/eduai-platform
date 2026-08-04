@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { ExternalLink, Eye, EyeOff, Loader2 } from "lucide-react"
+import { createClient } from "@/lib/supabase/client"
 
 type PdfPreviewProps = {
   bucket: string
@@ -10,6 +11,7 @@ type PdfPreviewProps = {
 }
 
 export default function PdfPreview({ bucket, filePath, title = "Documento PDF" }: PdfPreviewProps) {
+  const supabase = useMemo(() => createClient(), [])
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [url, setUrl] = useState("")
@@ -22,24 +24,18 @@ export default function PdfPreview({ bucket, filePath, title = "Documento PDF" }
     setError("")
 
     try {
-      const response = await fetch("/api/agents/paper/preview-url", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bucket, filePath }),
-      })
+      const { data, error: signedUrlError } = await supabase.storage
+        .from(bucket)
+        .createSignedUrl(filePath, 60 * 60)
 
-      const raw = await response.text()
-      let data: any = null
-      try {
-        data = JSON.parse(raw)
-      } catch {}
-
-      if (!response.ok || !data?.url) {
-        throw new Error(data?.error || raw || "No se pudo abrir la vista previa.")
+      if (signedUrlError || !data?.signedUrl) {
+        throw new Error(
+          signedUrlError?.message || "No se pudo crear la vista previa segura."
+        )
       }
 
-      setUrl(data.url)
-      return data.url as string
+      setUrl(data.signedUrl)
+      return data.signedUrl
     } catch (reason) {
       const message = reason instanceof Error ? reason.message : "No se pudo abrir la vista previa."
       setError(message)
