@@ -15,10 +15,11 @@ Microservicio Docker para leer PDF normales, mixtos y escaneados desde Chat Pape
 
 1. El usuario sube el PDF directamente a Supabase Storage.
 2. Los archivos de 6 MB o más usan carga TUS reanudable.
-3. EduAI utiliza `pdf-inspector` para clasificar y extraer rápidamente los PDF con texto nativo.
-4. Los PDF escaneados, mixtos o con texto insuficiente pasan a este Space.
-5. Para archivos grandes, EduAI envía una URL firmada temporal de Supabase en vez de reenviar el archivo completo mediante Vercel.
-6. El resultado se divide y guarda en `paper_documents` y `paper_chunks` para que la IA consulte solo los fragmentos relevantes.
+3. `pdf-inspector` clasifica rápidamente el documento como texto, mixto, escaneado o basado en imágenes.
+4. Cuando la versión instalada expone extracción completa, EduAI utiliza su salida estructurada. En caso contrario, los PDF con texto se extraen localmente con `pdf-parse`.
+5. Los PDF escaneados, mixtos o con texto insuficiente pasan a este Space.
+6. Para archivos grandes, EduAI envía una URL firmada temporal de Supabase en vez de reenviar el archivo completo mediante Vercel.
+7. El resultado se divide y guarda en `paper_documents` y `paper_chunks` para que la IA consulte solo los fragmentos relevantes.
 
 ## Entradas admitidas por `POST /parse`
 
@@ -32,7 +33,7 @@ Campos adicionales:
 - `filename`: nombre del PDF cuando se usa `source_url`.
 - `force_ocr=true|false`: fuerza OCR para documentos escaneados.
 
-Las URL remotas se restringen a hosts Supabase o a los declarados en `PAPER_PARSER_ALLOWED_HOSTS`.
+Las URL remotas se restringen a hosts Supabase o a los declarados en `PAPER_PARSER_ALLOWED_HOSTS`. El servicio no sigue redirecciones y valida la firma `%PDF-` antes de procesar el archivo.
 
 ## Variables del Space
 
@@ -48,13 +49,15 @@ Las URL remotas se restringen a hosts Supabase o a los declarados en `PAPER_PARS
 ## Variables de Vercel
 
 - `DOCLING_PARSER_URL=https://esthefanomc23-eduai-paper-parser.hf.space`
-- `DOCLING_PARSER_WAKE_TIMEOUT_MS=90000`
-- `DOCLING_PARSER_TIMEOUT_MS=240000`
+- `DOCLING_PARSER_WAKE_TIMEOUT_MS=8000`
+- `DOCLING_PARSER_TIMEOUT_MS=38000`
 - `PAPER_PARSER_TOKEN=`
 - `PAPER_MAX_PDF_SIZE_MB=250`
 - `PAPER_SERVER_BUFFER_MAX_MB=40`
 
 `PAPER_PARSER_TOKEN` debe tener el mismo valor en Vercel y en el Space.
+
+Chat Paper mantiene sus rutas en el bundle compartido de 60 segundos del plan Hobby. El cliente del parser reserva como máximo 52 segundos para despertar y consultar Hugging Face, dejando tiempo para cerrar la respuesta. Un escaneo muy grande que no alcance a terminar devuelve un error controlado y puede reintentarse cuando el Space ya esté activo.
 
 ## Despliegue
 
