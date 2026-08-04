@@ -51,6 +51,10 @@ assert(
   "Falta el respaldo local para builds de clasificación solamente.",
 )
 assert(
+  extraction.includes("if (!forceRefresh)") && extraction.includes("fromCache: true"),
+  "El pipeline no reutiliza documentos procesados desde la caché.",
+)
+assert(
   inspector.includes("extractionAvailable"),
   "pdf-inspector no distingue clasificación de extracción completa.",
 )
@@ -73,6 +77,10 @@ assert(
 assert(
   paperPage.includes("PaperHistoryPanel") && paperPage.includes("historyOpen"),
   "Chat Paper no incluye el panel lateral de materiales guardados.",
+)
+assert(
+  paperPage.includes("handleOpenHistoryItem") && paperPage.includes("forceRefresh: false"),
+  "El historial no abre materiales usando la caché existente.",
 )
 assert(
   historyPanel.includes("fixed inset-y-0 left-0") && historyPanel.includes("Más nuevos primero"),
@@ -109,6 +117,10 @@ assert(
 assert(
   extractRoute.includes("export async function GET()") && extractRoute.includes("newestFirst: true"),
   "La ruta consolidada no entrega el historial ordenado desde el más nuevo.",
+)
+assert(
+  extractRoute.includes("paper_documents") && extractRoute.includes("storedFiles"),
+  "El historial no combina Storage con la caché de documentos.",
 )
 assert(
   extractRoute.includes('body?.action === "prepare-upload"'),
@@ -159,4 +171,4 @@ assert(
   "El Space no valida la firma PDF.",
 )
 
-console.log("[test-paper-pipeline] Pipeline PDF híbrido y consolidado verificado correctamente.")
+console.log("[test-paper-pipeline] Pipeline PDF híbrido, historial y caché verificados correctamente.")
