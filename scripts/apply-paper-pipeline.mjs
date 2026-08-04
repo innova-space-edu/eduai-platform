@@ -92,6 +92,25 @@ async function ensureNativeTextFallback() {
   await fs.writeFile(extractionPath, source)
 }
 
+async function preferRemoteWhenSizeUnknown() {
+  let source = await fs.readFile(extractionPath, "utf8")
+  source = source.replace(
+    `  const shouldBufferOnVercel =
+    !sourceFileSizeBytes ||
+    sourceFileSizeBytes <= serverBufferMaxBytes ||
+    !sourceUrl`,
+    `  const shouldBufferOnVercel =
+    !sourceUrl ||
+    (sourceFileSizeBytes > 0 && sourceFileSizeBytes <= serverBufferMaxBytes)`,
+  )
+
+  if (!source.includes("sourceFileSizeBytes > 0 && sourceFileSizeBytes <= serverBufferMaxBytes")) {
+    throw new Error("[paper-pipeline] No se pudo activar el modo remoto para tamaño desconocido.")
+  }
+
+  await fs.writeFile(extractionPath, source)
+}
+
 async function normalizePaperRouteDurations() {
   for (const filePath of paperRoutePaths) {
     let source = await fs.readFile(filePath, "utf8")
@@ -124,6 +143,7 @@ await removeWarmupCode()
 await removeTemporaryHealthRoute()
 await consolidateUploadFlow()
 await ensureNativeTextFallback()
+await preferRemoteWhenSizeUnknown()
 await normalizePaperRouteDurations()
 await import("./test-paper-pipeline.mjs")
 console.log("[paper-pipeline] PDF listo con subida y extracción en una sola función.")
