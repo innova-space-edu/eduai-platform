@@ -1,6 +1,9 @@
+import { createClient as createSupabaseAdminClient } from "@supabase/supabase-js"
 import { createClient } from "@/lib/supabase/server"
 import {
   STORAGE_BUCKET,
+  MAX_PDF_SIZE_BYTES,
+  MAX_PDF_SIZE_MB,
   MAX_RETURN_TEXT_CHARS,
   truncateText,
   ensurePaperProcessed,
@@ -14,6 +17,119 @@ function getString(value: unknown) {
   return typeof value === "string" ? value : ""
 }
 
+function safeFilename(name: string) {
+  const clean = String(name || "documento.pdf")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9._-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/(^-|-$)/g, "")
+    .slice(0, 120)
+
+  return clean.toLowerCase().endsWith(".pdf")
+    ? clean
+    : `${clean || "documento"}.pdf`
+}
+
+function getAdminClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!url || !serviceKey) return null
+
+  return createSupabaseAdminClient(url, serviceKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  })
+}
+
+async function ensurePapersBucket(storageClient: any) {
+  try {
+    const { data } = await storageClient.getBucket(STORAGE_BUCKET)
+    if (data) return
+  } catch {}
+
+  try {
+    await storageClient.createBucket(STORAGE_BUCKET, {
+      public: false,
+      fileSizeLimit: MAX_PDF_SIZE_BYTES,
+      allowedMimeTypes: ["application/pdf"],
+    })
+  } catch {
+    // La subida devolverá el error concreto si el bucket o sus políticas no están disponibles.
+  }
+}
+
+async function prepareUpload(params: {
+  body: any
+  user: { id: string }
+  userClient: any
+}) {
+  const { body, user, userClient } = params
+  const filename = safeFilename(getString(body?.filename) || "documento.pdf")
+  const mimeType = getString(body?.mimeType) || "application/pdf"
+  const size = Number(body?.size || 0)
+
+  if (mimeType !== "application/pdf" && !filename.toLowerCase().endsWith(".pdf")) {
+    return Response.json(
+      { error: "Por ahora Chat Paper solo acepta archivos PDF." },
+      { status: 400 },
+    )
+  }
+
+  if (!Number.isFinite(size) || size <= 0) {
+    return Response.json(
+      { error: "El archivo PDF está vacío o tiene un tamaño inválido." },
+      { status: 400 },
+    )
+  }
+
+  if (size > MAX_PDF_SIZE_BYTES) {
+    return Response.json(
+      {
+        error: `El PDF pesa ${(size / 1024 / 1024).toFixed(1)} MB. El límite actual es ${MAX_PDF_SIZE_MB} MB.`,
+      },
+      { status: 413 },
+    )
+  }
+
+  const adminClient = getAdminClient()
+  if (adminClient) {
+    await ensurePapersBucket(adminClient.storage)
+  }
+
+  const signingClient = adminClient || userClient
+  const filePath = `${user.id}/${Date.now()}-${filename}`
+  const { data, error } = await signingClient.storage
+    .from(STORAGE_BUCKET)
+    .createSignedUploadUrl(filePath)
+
+  if (error || !data?.token) {
+    return Response.json(
+      {
+        error:
+          error?.message ||
+          "No se pudo crear la subida segura. Revisa el bucket papers y sus políticas de Storage.",
+      },
+      { status: 500 },
+    )
+  }
+
+  return Response.json({
+    ok: true,
+    action: "prepare-upload",
+    directUpload: true,
+    bucket: STORAGE_BUCKET,
+    filePath,
+    filename,
+    token: data.token,
+    signedUrl: data.signedUrl,
+    maxSizeMB: MAX_PDF_SIZE_MB,
+  })
+}
+
 export async function POST(req: Request) {
   const supabase = await createClient()
   const {
@@ -21,11 +137,18 @@ export async function POST(req: Request) {
   } = await supabase.auth.getUser()
 
   if (!user) {
-    return new Response("Unauthorized", { status: 401 })
+    return Response.json(
+      { error: "Sesión no válida. Vuelve a iniciar sesión." },
+      { status: 401 },
+    )
   }
 
   try {
-    const body = await req.json()
+    const body = await req.json().catch(() => ({}))
+
+    if (body?.action === "prepare-upload") {
+      return prepareUpload({ body, user, userClient: supabase })
+    }
 
     const bucket = getString(body?.bucket).trim()
     const filePath = getString(body?.filePath).trim()
@@ -43,7 +166,7 @@ export async function POST(req: Request) {
     if (!filePath.startsWith(`${user.id}/`)) {
       return Response.json(
         { error: "No tienes permisos para acceder a este archivo." },
-        { status: 403 }
+        { status: 403 },
       )
     }
 
@@ -66,7 +189,7 @@ export async function POST(req: Request) {
           parserUsed: result.parserUsed,
           ocrUsed: result.ocrUsed,
         },
-        { status: 422 }
+        { status: 422 },
       )
     }
 
@@ -105,9 +228,9 @@ export async function POST(req: Request) {
 
     return Response.json(
       {
-        error: error?.message || "No se pudo extraer el texto automáticamente.",
+        error: error?.message || "No se pudo procesar el PDF automáticamente.",
       },
-      { status: 500 }
+      { status: 500 },
     )
   }
 }
