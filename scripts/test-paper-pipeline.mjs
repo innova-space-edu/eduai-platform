@@ -42,6 +42,10 @@ assert(
   "El pipeline no crea URL firmada para el parser remoto.",
 )
 assert(
+  extraction.includes("sourceFileSizeBytes > 0 && sourceFileSizeBytes <= serverBufferMaxBytes"),
+  "Los PDF de tamaño desconocido podrían descargarse dentro de Vercel.",
+)
+assert(
   extraction.includes('inspector.pdfType === "TextBased"'),
   "Falta el respaldo local para builds de clasificación solamente.",
 )
