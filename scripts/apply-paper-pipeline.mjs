@@ -53,6 +53,19 @@ async function consolidateUploadFlow() {
   }
 }
 
+async function ensureNativeTextFallback() {
+  let source = await fs.readFile(extractionPath, "utf8")
+  source = source.replaceAll(
+    `  if (!inspector.available) {
+    localCandidate = await extractTextWithPdfParse(buffer)
+  }`,
+    `  if (!inspector.available || (!inspector.success && inspector.pdfType === "TextBased")) {
+    localCandidate = await extractTextWithPdfParse(buffer)
+  }`,
+  )
+  await fs.writeFile(extractionPath, source)
+}
+
 const source = await fs.readFile(extractionPath, "utf8")
 const remoteAlreadyApplied = source.includes("const SERVER_BUFFER_MAX_MB")
 
@@ -73,4 +86,5 @@ if (!remoteAlreadyApplied) {
 await removeWarmupCode()
 await removeTemporaryHealthRoute()
 await consolidateUploadFlow()
-console.log("[paper-pipeline] Integración PDF lista con subida firmada/TUS y sin endpoints redundantes.")
+await ensureNativeTextFallback()
+console.log("[paper-pipeline] PDF listo: clasificación Rust, extracción nativa y OCR selectivo.")
