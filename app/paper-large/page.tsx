@@ -53,10 +53,11 @@ export default function LargePaperUploadPage() {
       }
 
       setStage("preparing")
-      const signedResponse = await fetch("/api/agents/paper/upload-url", {
+      const signedResponse = await fetch("/api/agents/paper/extract", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          action: "prepare-upload",
           filename: file.name,
           mimeType: file.type || "application/pdf",
           size: file.size,
