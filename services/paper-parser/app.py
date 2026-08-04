@@ -23,12 +23,12 @@ MIN_TEXT_WORDS = int(os.getenv("PAPER_PARSER_MIN_TEXT_WORDS", "120"))
 FORCE_OCR_IF_LOW_TEXT = os.getenv("PAPER_PARSER_FORCE_OCR_IF_LOW_TEXT", "true").lower() != "false"
 DOWNLOAD_TIMEOUT_SECONDS = float(os.getenv("PAPER_PARSER_DOWNLOAD_TIMEOUT_SECONDS", "300"))
 ALLOWED_SOURCE_HOSTS = {
-    value.strip().lower()
+    value.strip().lower().rstrip(".")
     for value in os.getenv("PAPER_PARSER_ALLOWED_HOSTS", "").split(",")
     if value.strip()
 }
 
-app = FastAPI(title=APP_NAME, version="1.2.0")
+app = FastAPI(title=APP_NAME, version="1.2.1")
 
 MATH_REPLACEMENTS = {
     "√": r"\sqrt",
@@ -171,7 +171,7 @@ def _source_host_allowed(source_url: str) -> bool:
     except ValueError:
         return False
 
-    if parsed.scheme != "https" or not parsed.hostname:
+    if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
         return False
 
     hostname = parsed.hostname.lower().rstrip(".")
@@ -189,6 +189,20 @@ def _source_host_allowed(source_url: str) -> bool:
         return True
 
     return any(hostname.endswith(f".{allowed}") for allowed in ALLOWED_SOURCE_HOSTS)
+
+
+def _validate_pdf_signature(pdf_path: Path) -> None:
+    try:
+        with pdf_path.open("rb") as source:
+            signature = source.read(5)
+    except OSError as exc:
+        raise HTTPException(status_code=400, detail="No se pudo leer el archivo PDF") from exc
+
+    if signature != b"%PDF-":
+        raise HTTPException(
+            status_code=400,
+            detail="El archivo recibido no contiene una firma PDF válida",
+        )
 
 
 async def _save_upload(upload: UploadFile, target: Path) -> int:
@@ -222,15 +236,26 @@ async def _download_source(source_url: str, target: Path) -> int:
     total = 0
 
     try:
-        async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(timeout=timeout, follow_redirects=False) as client:
             async with client.stream("GET", source_url) as response:
+                if 300 <= response.status_code < 400:
+                    raise HTTPException(
+                        status_code=502,
+                        detail="Storage intentó redirigir la descarga a un host no autorizado",
+                    )
+
                 response.raise_for_status()
                 content_length = response.headers.get("content-length")
-                if content_length and int(content_length) > MAX_FILE_SIZE_BYTES:
-                    raise HTTPException(
-                        status_code=413,
-                        detail=f"El PDF supera el límite de {MAX_FILE_SIZE_MB} MB",
-                    )
+                if content_length:
+                    try:
+                        declared_size = int(content_length)
+                    except ValueError:
+                        declared_size = 0
+                    if declared_size > MAX_FILE_SIZE_BYTES:
+                        raise HTTPException(
+                            status_code=413,
+                            detail=f"El PDF supera el límite de {MAX_FILE_SIZE_MB} MB",
+                        )
 
                 with target.open("wb") as output:
                     async for chunk in response.aiter_bytes(1024 * 1024):
@@ -275,7 +300,7 @@ def health() -> dict[str, Any]:
     return {
         "ok": True,
         "service": APP_NAME,
-        "version": "1.2.0",
+        "version": "1.2.1",
         "maxFileSizeMB": MAX_FILE_SIZE_MB,
         "ocrLanguages": OCR_LANGUAGES,
         "tokenRequired": bool(PARSER_TOKEN),
@@ -283,6 +308,7 @@ def health() -> dict[str, Any]:
         "minTextWords": MIN_TEXT_WORDS,
         "forceOcrIfLowText": FORCE_OCR_IF_LOW_TEXT,
         "supportsSourceUrl": True,
+        "redirectsAllowed": False,
     }
 
 
@@ -316,6 +342,7 @@ async def parse_document(
         else:
             raise HTTPException(status_code=400, detail="No se recibió el PDF")
 
+        _validate_pdf_signature(pdf_path)
         pages, method, ocr_used, quality = _extract_pages(str(pdf_path), force_ocr=force_ocr)
 
     useful_pages = [page for page in pages if _clean_text(page.get("text"))]
