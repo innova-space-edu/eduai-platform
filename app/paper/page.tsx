@@ -5,6 +5,7 @@ import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import { uploadPdfResumable } from "@/lib/papers/resumable-upload"
 import PdfPreview from "@/components/paper/PdfPreview"
+import PaperHistoryPanel, { type PaperHistoryItem } from "@/components/paper/PaperHistoryPanel"
 import {
   ArrowLeft,
   FileText,
@@ -19,6 +20,7 @@ import {
   BookOpen,
   Hash,
   X,
+  FolderOpen,
 } from "lucide-react"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -405,6 +407,8 @@ export default function PaperPage() {
   const [messages, setMessages] = useState<PaperMessage[]>([])
   const [error, setError] = useState("")
   const [docPanelOpen, setDocPanelOpen] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [historyRefreshKey, setHistoryRefreshKey] = useState(0)
 
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const chatEndRef = useRef<HTMLDivElement | null>(null)
@@ -444,6 +448,7 @@ export default function PaperPage() {
     setDocumentId(null)
     setChunkCount(0)
     setDocPanelOpen(false)
+    setHistoryOpen(false)
 
     try {
       const { data: auth } = await supabase.auth.getUser()
@@ -563,6 +568,7 @@ export default function PaperPage() {
           content: welcomeLines,
           isOverview: true,
         }])
+        setHistoryRefreshKey((value) => value + 1)
       }
     } catch (e: any) {
       console.error("[Paper][extract]", e)
@@ -570,6 +576,31 @@ export default function PaperPage() {
     } finally {
       setExtracting(false)
     }
+  }
+
+  async function handleOpenHistoryItem(item: PaperHistoryItem) {
+    if (uploading || extracting) return
+
+    setHistoryOpen(false)
+    setDocPanelOpen(false)
+    setMessages([])
+    setQuestion("")
+    setError("")
+    setPaperText("")
+    setPaperSummary("")
+    setPaperPageCount(0)
+    setChunkCount(0)
+    setDocumentId(item.id)
+    setStorageBucket(item.bucket || STORAGE_BUCKET)
+    setStoragePath(item.filePath)
+    setPaperTitle(item.title || "Documento")
+
+    await runExtraction({
+      bucket: item.bucket || STORAGE_BUCKET,
+      filePath: item.filePath,
+      filename: item.title,
+      forceRefresh: false,
+    })
   }
 
   async function handleAsk(customQuestion?: string) {
@@ -644,6 +675,13 @@ export default function PaperPage() {
   return (
     <div className="min-h-screen bg-app text-main flex flex-col">
       <DropOverlay onDrop={handleUploadFile} />
+      <PaperHistoryPanel
+        open={historyOpen}
+        refreshKey={historyRefreshKey}
+        busy={uploading || extracting}
+        onClose={() => setHistoryOpen(false)}
+        onOpenItem={handleOpenHistoryItem}
+      />
 
       {/* ── Header ── */}
       <header className="sticky top-0 z-20 border-b border-soft bg-app/90 backdrop-blur-xl">
@@ -674,6 +712,20 @@ export default function PaperPage() {
             </button>
           )}
 
+          <button
+            type="button"
+            onClick={() => {
+              setHistoryOpen((value) => !value)
+              setDocPanelOpen(false)
+            }}
+            className="flex items-center gap-1.5 rounded-xl border border-soft bg-card-soft-theme px-3 py-1.5 text-xs text-sub hover:border-pink-500/30 hover:text-main transition"
+            title="Abrir materiales guardados"
+            aria-expanded={historyOpen}
+          >
+            <FolderOpen size={12} />
+            <span className="hidden sm:inline">Historial</span>
+          </button>
+
           <input
             ref={fileInputRef}
             type="file"
@@ -687,7 +739,10 @@ export default function PaperPage() {
           />
 
           <button
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => {
+              setHistoryOpen(false)
+              fileInputRef.current?.click()
+            }}
             disabled={uploading || extracting}
             className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 bg-gradient-to-r from-pink-600 to-fuchsia-600 text-white text-xs font-semibold disabled:opacity-50 transition"
           >

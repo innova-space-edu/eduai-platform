@@ -19,6 +19,7 @@ const extraction = read("lib/papers/extraction.ts")
 const parserClient = read("lib/papers/parser-client.ts")
 const inspector = read("lib/papers/pdf-inspector.ts")
 const paperPage = read("app/paper/page.tsx")
+const historyPanel = read("components/paper/PaperHistoryPanel.tsx")
 const largePage = read("app/paper-large/page.tsx")
 const extractRoute = read("app/api/agents/paper/extract/route.ts")
 const chatRoute = read("app/api/agents/paper/route.ts")
@@ -70,6 +71,18 @@ assert(
   "Chat Paper no incluye la vista previa bajo demanda.",
 )
 assert(
+  paperPage.includes("PaperHistoryPanel") && paperPage.includes("historyOpen"),
+  "Chat Paper no incluye el panel lateral de materiales guardados.",
+)
+assert(
+  historyPanel.includes("fixed inset-y-0 left-0") && historyPanel.includes("Más nuevos primero"),
+  "El historial no está implementado como panel lateral izquierdo ordenado por novedad.",
+)
+assert(
+  historyPanel.includes("Listo · caché") && historyPanel.includes("Reutiliza el análisis guardado"),
+  "El historial no informa la reutilización de la caché.",
+)
+assert(
   paperPage.includes('action: "prepare-upload"'),
   "Chat Paper no solicita la preparación de subida consolidada.",
 )
@@ -92,6 +105,10 @@ assert(
 assert(
   largePage.includes('action: "prepare-upload"'),
   "La página de PDF grandes no usa la preparación consolidada.",
+)
+assert(
+  extractRoute.includes("export async function GET()") && extractRoute.includes("newestFirst: true"),
+  "La ruta consolidada no entrega el historial ordenado desde el más nuevo.",
 )
 assert(
   extractRoute.includes('body?.action === "prepare-upload"'),

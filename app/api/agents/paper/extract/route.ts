@@ -179,6 +179,155 @@ async function prepareUpload(params: {
   })
 }
 
+type StoredPaperDocument = {
+  id?: string | null
+  bucket?: string | null
+  file_path?: string | null
+  title?: string | null
+  summary?: string | null
+  page_count?: number | null
+  extraction_method?: string | null
+  parser_used?: string | null
+  ocr_used?: boolean | null
+  source_file_size_bytes?: number | null
+}
+
+type StorageHistoryEntry = {
+  name?: string | null
+  created_at?: string | null
+  updated_at?: string | null
+  metadata?: Record<string, unknown> | null
+}
+
+function titleFromStorageName(name: string) {
+  return String(name || "Documento")
+    .replace(/^\d{10,}-/, "")
+    .replace(/\.pdf$/i, "")
+    .replace(/[-_]+/g, " ")
+    .trim() || "Documento"
+}
+
+function uploadedAtFromPath(filePath: string, fallback = "") {
+  const filename = filePath.split("/").pop() || ""
+  const timestamp = Number(filename.match(/^(\d{10,})-/)?.[1] || 0)
+  if (Number.isFinite(timestamp) && timestamp > 0) {
+    return new Date(timestamp).toISOString()
+  }
+  return fallback || new Date(0).toISOString()
+}
+
+function storageEntrySize(entry: StorageHistoryEntry) {
+  const metadata = entry.metadata || {}
+  const candidates = [
+    metadata.size,
+    metadata.contentLength,
+    metadata.content_length,
+  ]
+
+  for (const candidate of candidates) {
+    const size = Number(candidate || 0)
+    if (Number.isFinite(size) && size > 0) return size
+  }
+
+  return 0
+}
+
+export async function GET() {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return Response.json(
+      { error: "Sesión no válida. Vuelve a iniciar sesión." },
+      { status: 401 },
+    )
+  }
+
+  try {
+    const adminClient = getAdminClient()
+    const dataClient: any = adminClient || supabase
+    let warning = ""
+
+    const { data: storedFiles, error: storageError } = await dataClient.storage
+      .from(STORAGE_BUCKET)
+      .list(user.id, {
+        limit: 100,
+        offset: 0,
+        sortBy: { column: "created_at", order: "desc" },
+      })
+
+    if (storageError) {
+      warning = "No se pudo consultar completamente Supabase Storage: " + storageError.message
+      console.warn("[Paper][history][storage]", storageError)
+    }
+
+    const { data: documents, error: documentsError } = await dataClient
+      .from("paper_documents")
+      .select(
+        "id,bucket,file_path,title,summary,page_count,extraction_method,parser_used,ocr_used,source_file_size_bytes",
+      )
+      .eq("user_id", user.id)
+      .eq("bucket", STORAGE_BUCKET)
+      .limit(200)
+
+    if (documentsError) {
+      warning = warning || "Los archivos están disponibles, pero no se pudo leer el estado de la caché."
+      console.warn("[Paper][history][documents]", documentsError)
+    }
+
+    const documentMap = new Map<string, StoredPaperDocument>()
+    for (const document of (documents || []) as StoredPaperDocument[]) {
+      if (document.file_path) documentMap.set(document.file_path, document)
+    }
+
+    const items = ((storedFiles || []) as StorageHistoryEntry[])
+      .filter((entry) => !!entry.name && entry.name.toLowerCase().endsWith(".pdf"))
+      .map((entry) => {
+        const filePath = user.id + "/" + entry.name
+        const document = documentMap.get(filePath)
+        const uploadedAt = uploadedAtFromPath(
+          filePath,
+          entry.created_at || entry.updated_at || "",
+        )
+
+        return {
+          id: document?.id || null,
+          title: document?.title || titleFromStorageName(entry.name || "Documento"),
+          bucket: STORAGE_BUCKET,
+          filePath,
+          summary: document?.summary || "",
+          pageCount: Number(document?.page_count || 0),
+          extractionMethod: document?.extraction_method || "",
+          parserUsed: document?.parser_used || "",
+          ocrUsed: !!document?.ocr_used,
+          fileSizeBytes: Number(
+            document?.source_file_size_bytes || storageEntrySize(entry) || 0,
+          ),
+          uploadedAt,
+          processed: !!document?.id,
+        }
+      })
+      .sort(
+        (left, right) =>
+          new Date(right.uploadedAt).getTime() - new Date(left.uploadedAt).getTime(),
+      )
+
+    return Response.json({
+      items,
+      newestFirst: true,
+      warning: warning || undefined,
+    })
+  } catch (error: unknown) {
+    console.error("[Paper][history] error:", error)
+    return Response.json(
+      { error: getErrorMessage(error) || "No se pudo cargar el historial." },
+      { status: 500 },
+    )
+  }
+}
+
 export async function POST(req: Request) {
   const supabase = await createClient()
   const {
