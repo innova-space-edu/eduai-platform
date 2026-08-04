@@ -4,8 +4,10 @@ import path from "node:path"
 const root = process.cwd()
 const extractionPath = path.join(root, "lib/papers/extraction.ts")
 const healthRoutePath = path.join(root, "app/api/agents/paper/parser-health/route.ts")
+const legacyUploadRoutePath = path.join(root, "app/api/agents/paper/upload/route.ts")
+const paperPagePath = path.join(root, "app/paper/page.tsx")
 const paperPages = [
-  path.join(root, "app/paper/page.tsx"),
+  paperPagePath,
   path.join(root, "app/paper-large/page.tsx"),
 ]
 
@@ -29,6 +31,28 @@ async function removeTemporaryHealthRoute() {
   }
 }
 
+async function consolidateUploadFlow() {
+  let source = await fs.readFile(paperPagePath, "utf8")
+
+  const fallbackPattern = /\n\s*} else if \(\[400, 401, 413\]\.includes\(signedRes\.status\)\) \{\n\s*throw new Error\(await readErrorResponse\(signedRes\)\)\n\s*} else \{\n\s*\/\/ Fallback:[\s\S]*?uploadData = await uploadRes\.json\(\)\n\s*}/
+
+  source = source.replace(
+    fallbackPattern,
+    `
+      } else {
+        throw new Error(await readErrorResponse(signedRes))
+      }`,
+  )
+
+  await fs.writeFile(paperPagePath, source)
+  await fs.rm(legacyUploadRoutePath, { force: true })
+  try {
+    await fs.rmdir(path.dirname(legacyUploadRoutePath))
+  } catch {
+    // upload-url y extract permanecen en esta carpeta.
+  }
+}
+
 const source = await fs.readFile(extractionPath, "utf8")
 const remoteAlreadyApplied = source.includes("const SERVER_BUFFER_MAX_MB")
 
@@ -48,4 +72,5 @@ if (!remoteAlreadyApplied) {
 
 await removeWarmupCode()
 await removeTemporaryHealthRoute()
-console.log("[paper-pipeline] Integración PDF comprobada sin endpoints adicionales.")
+await consolidateUploadFlow()
+console.log("[paper-pipeline] Integración PDF lista con subida firmada/TUS y sin endpoints redundantes.")
