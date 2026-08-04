@@ -1,11 +1,13 @@
 // next.config.ts  — actualizado para Notebook Hub
-// Agrega pdf-parse y playwright-core como external packages del servidor
+// Agrega paquetes nativos/Node como external packages del servidor
 
 import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
-  // Paquetes que no deben ser bundleados por Next.js (son Node.js pure)
+  // Paquetes que no deben ser bundleados por Next.js.
+  // pdf-inspector incluye un binario Rust específico para Linux en Vercel.
   serverExternalPackages: [
+    "@firecrawl/pdf-inspector",
     "pdf-parse",
     "playwright-core",
     "mammoth",

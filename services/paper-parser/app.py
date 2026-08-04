@@ -1,25 +1,34 @@
 from __future__ import annotations
 
+import ipaddress
 import os
 import re
 import tempfile
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
+import httpx
 import pymupdf
 import pymupdf4llm
 from fastapi import FastAPI, File, Form, Header, HTTPException, UploadFile
 
 APP_NAME = "EduAI Paper Parser"
-MAX_FILE_SIZE_MB = int(os.getenv("PAPER_PARSER_MAX_MB", "50"))
+MAX_FILE_SIZE_MB = int(os.getenv("PAPER_PARSER_MAX_MB", "250"))
 MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
 PARSER_TOKEN = os.getenv("PAPER_PARSER_TOKEN", "").strip()
 OCR_LANGUAGES = os.getenv("PAPER_PARSER_OCR_LANGUAGES", "spa+eng").strip() or "spa+eng"
 MIN_TEXT_CHARS = int(os.getenv("PAPER_PARSER_MIN_TEXT_CHARS", "700"))
 MIN_TEXT_WORDS = int(os.getenv("PAPER_PARSER_MIN_TEXT_WORDS", "120"))
 FORCE_OCR_IF_LOW_TEXT = os.getenv("PAPER_PARSER_FORCE_OCR_IF_LOW_TEXT", "true").lower() != "false"
+DOWNLOAD_TIMEOUT_SECONDS = float(os.getenv("PAPER_PARSER_DOWNLOAD_TIMEOUT_SECONDS", "300"))
+ALLOWED_SOURCE_HOSTS = {
+    value.strip().lower().rstrip(".")
+    for value in os.getenv("PAPER_PARSER_ALLOWED_HOSTS", "").split(",")
+    if value.strip()
+}
 
-app = FastAPI(title=APP_NAME, version="1.1.0")
+app = FastAPI(title=APP_NAME, version="1.2.1")
 
 MATH_REPLACEMENTS = {
     "√": r"\sqrt",
@@ -149,6 +158,134 @@ def _extract_pages(pdf_path: str, force_ocr: bool) -> tuple[list[dict[str, Any]]
     return pages, method, ocr_used, quality
 
 
+def _safe_filename(value: str | None) -> str:
+    candidate = Path(value or "documento.pdf").name
+    if not candidate.lower().endswith(".pdf"):
+        candidate = f"{candidate}.pdf"
+    return candidate[:180] or "documento.pdf"
+
+
+def _source_host_allowed(source_url: str) -> bool:
+    try:
+        parsed = urlparse(source_url)
+    except ValueError:
+        return False
+
+    if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
+        return False
+
+    hostname = parsed.hostname.lower().rstrip(".")
+
+    try:
+        ipaddress.ip_address(hostname)
+        return False
+    except ValueError:
+        pass
+
+    if hostname in ALLOWED_SOURCE_HOSTS:
+        return True
+
+    if hostname.endswith(".supabase.co") or hostname.endswith(".supabase.in"):
+        return True
+
+    return any(hostname.endswith(f".{allowed}") for allowed in ALLOWED_SOURCE_HOSTS)
+
+
+def _validate_pdf_signature(pdf_path: Path) -> None:
+    try:
+        with pdf_path.open("rb") as source:
+            signature = source.read(5)
+    except OSError as exc:
+        raise HTTPException(status_code=400, detail="No se pudo leer el archivo PDF") from exc
+
+    if signature != b"%PDF-":
+        raise HTTPException(
+            status_code=400,
+            detail="El archivo recibido no contiene una firma PDF válida",
+        )
+
+
+async def _save_upload(upload: UploadFile, target: Path) -> int:
+    total = 0
+    with target.open("wb") as output:
+        while True:
+            chunk = await upload.read(1024 * 1024)
+            if not chunk:
+                break
+            total += len(chunk)
+            if total > MAX_FILE_SIZE_BYTES:
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"El PDF supera el límite de {MAX_FILE_SIZE_MB} MB",
+                )
+            output.write(chunk)
+
+    if total <= 0:
+        raise HTTPException(status_code=400, detail="El archivo está vacío")
+    return total
+
+
+async def _download_source(source_url: str, target: Path) -> int:
+    if not _source_host_allowed(source_url):
+        raise HTTPException(
+            status_code=400,
+            detail="La URL del PDF no pertenece a un host de Storage permitido",
+        )
+
+    timeout = httpx.Timeout(DOWNLOAD_TIMEOUT_SECONDS, connect=30.0)
+    total = 0
+
+    try:
+        async with httpx.AsyncClient(timeout=timeout, follow_redirects=False) as client:
+            async with client.stream("GET", source_url) as response:
+                if 300 <= response.status_code < 400:
+                    raise HTTPException(
+                        status_code=502,
+                        detail="Storage intentó redirigir la descarga a un host no autorizado",
+                    )
+
+                response.raise_for_status()
+                content_length = response.headers.get("content-length")
+                if content_length:
+                    try:
+                        declared_size = int(content_length)
+                    except ValueError:
+                        declared_size = 0
+                    if declared_size > MAX_FILE_SIZE_BYTES:
+                        raise HTTPException(
+                            status_code=413,
+                            detail=f"El PDF supera el límite de {MAX_FILE_SIZE_MB} MB",
+                        )
+
+                with target.open("wb") as output:
+                    async for chunk in response.aiter_bytes(1024 * 1024):
+                        if not chunk:
+                            continue
+                        total += len(chunk)
+                        if total > MAX_FILE_SIZE_BYTES:
+                            raise HTTPException(
+                                status_code=413,
+                                detail=f"El PDF supera el límite de {MAX_FILE_SIZE_MB} MB",
+                            )
+                        output.write(chunk)
+    except HTTPException:
+        raise
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Storage respondió HTTP {exc.response.status_code}",
+        ) from exc
+    except httpx.HTTPError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"No se pudo descargar el PDF desde Storage: {exc}",
+        ) from exc
+
+    if total <= 0:
+        raise HTTPException(status_code=400, detail="El PDF descargado está vacío")
+    return total
+
+
 @app.get("/")
 def root() -> dict[str, Any]:
     return {
@@ -163,40 +300,49 @@ def health() -> dict[str, Any]:
     return {
         "ok": True,
         "service": APP_NAME,
+        "version": "1.2.1",
         "maxFileSizeMB": MAX_FILE_SIZE_MB,
         "ocrLanguages": OCR_LANGUAGES,
         "tokenRequired": bool(PARSER_TOKEN),
         "minTextChars": MIN_TEXT_CHARS,
         "minTextWords": MIN_TEXT_WORDS,
         "forceOcrIfLowText": FORCE_OCR_IF_LOW_TEXT,
+        "supportsSourceUrl": True,
+        "redirectsAllowed": False,
     }
 
 
 @app.post("/parse")
 async def parse_document(
-    file: UploadFile = File(...),
+    file: UploadFile | None = File(default=None),
+    source_url: str | None = Form(default=None),
+    filename: str | None = Form(default=None),
     force_ocr: bool = Form(False),
     x_parser_token: str | None = Header(default=None),
 ) -> dict[str, Any]:
     _authorize(x_parser_token)
 
-    filename = Path(file.filename or "documento.pdf").name
-    suffix = Path(filename).suffix.lower()
-    if suffix != ".pdf":
-        raise HTTPException(status_code=400, detail="Por ahora el parser acepta archivos PDF")
+    if file is None and not source_url:
+        raise HTTPException(status_code=400, detail="Debes enviar file o source_url")
 
-    content = await file.read()
-    if not content:
-        raise HTTPException(status_code=400, detail="El archivo está vacío")
-    if len(content) > MAX_FILE_SIZE_BYTES:
-        raise HTTPException(
-            status_code=413,
-            detail=f"El PDF supera el límite de {MAX_FILE_SIZE_MB} MB",
-        )
+    resolved_filename = _safe_filename(filename or (file.filename if file else None))
 
     with tempfile.TemporaryDirectory(prefix="eduai-paper-") as temp_dir:
-        pdf_path = Path(temp_dir) / filename
-        pdf_path.write_bytes(content)
+        pdf_path = Path(temp_dir) / resolved_filename
+
+        if source_url:
+            file_size = await _download_source(source_url, pdf_path)
+            input_mode = "signed-url"
+        elif file is not None:
+            suffix = Path(file.filename or resolved_filename).suffix.lower()
+            if suffix != ".pdf":
+                raise HTTPException(status_code=400, detail="Por ahora el parser acepta archivos PDF")
+            file_size = await _save_upload(file, pdf_path)
+            input_mode = "multipart"
+        else:
+            raise HTTPException(status_code=400, detail="No se recibió el PDF")
+
+        _validate_pdf_signature(pdf_path)
         pages, method, ocr_used, quality = _extract_pages(str(pdf_path), force_ocr=force_ocr)
 
     useful_pages = [page for page in pages if _clean_text(page.get("text"))]
@@ -215,7 +361,7 @@ async def parse_document(
         "success": True,
         "parser": "eduai-paper-parser",
         "method": method,
-        "title": Path(filename).stem,
+        "title": Path(resolved_filename).stem,
         "markdown": text,
         "text": text,
         "summary": "",
@@ -225,7 +371,8 @@ async def parse_document(
         "metadata": {
             "forceOCR": force_ocr,
             "ocrLanguages": OCR_LANGUAGES,
-            "fileSizeBytes": len(content),
+            "fileSizeBytes": file_size,
+            "inputMode": input_mode,
             "quality": quality,
         },
     }

@@ -1,8 +1,12 @@
 import { createHash } from "node:crypto"
 import { parseDocumentWithExternalService } from "@/lib/papers/parser-client"
+import { extractWithPdfInspector } from "@/lib/papers/pdf-inspector"
 
 export const STORAGE_BUCKET = "papers"
-export const MAX_PDF_SIZE_MB = 50
+const configuredMaxPdfSizeMb = Number(process.env.PAPER_MAX_PDF_SIZE_MB || 250)
+export const MAX_PDF_SIZE_MB = Number.isFinite(configuredMaxPdfSizeMb)
+  ? Math.min(Math.max(configuredMaxPdfSizeMb, 10), 500)
+  : 250
 export const MAX_PDF_SIZE_BYTES = MAX_PDF_SIZE_MB * 1024 * 1024
 export const MAX_GEMINI_INLINE_PDF_MB = 10
 export const MAX_GEMINI_INLINE_PDF_BYTES = MAX_GEMINI_INLINE_PDF_MB * 1024 * 1024
@@ -73,6 +77,20 @@ interface ExtractorResult {
   success: boolean
   usedOCR?: boolean
   method: string
+  pdfType?: string
+  pagesNeedingOcr?: number[]
+}
+
+function parserNameForMethod(method: string) {
+  const normalized = String(method || "").toLowerCase()
+  if (normalized.startsWith("pdf-inspector")) return "pdf-inspector"
+  if (normalized.includes("pymupdf") || normalized.includes("docling") || normalized.includes("external")) {
+    return "eduai-paper-parser"
+  }
+  if (normalized.includes("pdf-parse")) return "pdf-parse"
+  if (normalized.includes("ocr-space")) return "ocr-space"
+  if (normalized.includes("gemini")) return "gemini"
+  return "internal-v3"
 }
 
 function getString(value: unknown) {
@@ -628,7 +646,7 @@ export async function ensurePaperProcessed(params: {
         summary: cachedDoc.summary || "",
         pageCount: cachedDoc.page_count || 0,
         extractionMethod: cachedDoc.extraction_method || "cache",
-        parserUsed: cachedDoc.parser_used || "internal-v2",
+        parserUsed: cachedDoc.parser_used || "internal-v3",
         ocrUsed: !!cachedDoc.ocr_used,
         truncated: false,
         fromCache: true,
@@ -640,24 +658,93 @@ export async function ensurePaperProcessed(params: {
     }
   }
 
-  const { data: fileBlob, error: downloadError } = await supabase.storage
-    .from(bucket)
-    .download(filePath)
+  const resolvedFilename = filename || filePath.split("/").pop() || "documento.pdf"
+  const configuredServerBufferMb = Number(process.env.PAPER_SERVER_BUFFER_MAX_MB || 40)
+  const SERVER_BUFFER_MAX_MB = Number.isFinite(configuredServerBufferMb)
+    ? Math.min(Math.max(configuredServerBufferMb, 5), 80)
+    : 40
+  const serverBufferMaxBytes = SERVER_BUFFER_MAX_MB * 1024 * 1024
 
-  if (downloadError || !fileBlob) {
-    throw new Error("No se pudo descargar el PDF desde Supabase Storage.")
+  const lastSlash = filePath.lastIndexOf("/")
+  const folder = lastSlash >= 0 ? filePath.slice(0, lastSlash) : ""
+  const objectName = lastSlash >= 0 ? filePath.slice(lastSlash + 1) : filePath
+
+  let sourceFileSizeBytes = 0
+  try {
+    const { data: entries } = await supabase.storage
+      .from(bucket)
+      .list(folder, { search: objectName, limit: 20 })
+    const entry = (entries || []).find((item: any) => item?.name === objectName)
+    sourceFileSizeBytes = Number(
+      entry?.metadata?.size ||
+      entry?.metadata?.contentLength ||
+      entry?.metadata?.content_length ||
+      0
+    )
+  } catch (metadataError) {
+    console.warn("[Paper] no se pudo leer metadata de Storage:", metadataError)
   }
 
-  if (fileBlob.size > MAX_PDF_SIZE_BYTES) {
+  let sourceUrl: string | undefined
+  try {
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .createSignedUrl(filePath, 15 * 60)
+    if (!error) sourceUrl = data?.signedUrl || undefined
+  } catch (signedUrlError) {
+    console.warn("[Paper] no se pudo crear URL firmada:", signedUrlError)
+  }
+
+  if (!sourceFileSizeBytes && sourceUrl) {
+    try {
+      const head = await fetch(sourceUrl, {
+        method: "HEAD",
+        signal: AbortSignal.timeout(15_000),
+        cache: "no-store",
+      })
+      const contentLength = Number(head.headers.get("content-length") || 0)
+      if (Number.isFinite(contentLength) && contentLength > 0) {
+        sourceFileSizeBytes = contentLength
+      }
+    } catch (headError) {
+      console.warn("[Paper] HEAD de Storage no disponible:", headError)
+    }
+  }
+
+  if (sourceFileSizeBytes > MAX_PDF_SIZE_BYTES) {
     throw new Error(
-      `El archivo pesa ${(fileBlob.size / 1024 / 1024).toFixed(1)} MB y excede el límite de ${MAX_PDF_SIZE_MB} MB.`
+      `El archivo pesa ${(sourceFileSizeBytes / 1024 / 1024).toFixed(1)} MB y excede el límite de ${MAX_PDF_SIZE_MB} MB.`
     )
   }
 
-  const arrayBuffer = await fileBlob.arrayBuffer()
-  const buffer = Buffer.from(arrayBuffer)
-  const sha256 = createHash("sha256").update(buffer).digest("hex")
-  
+  let buffer: Buffer | null = null
+  let sha256: string | null = null
+
+  const shouldBufferOnVercel =
+    !sourceUrl ||
+    (sourceFileSizeBytes > 0 && sourceFileSizeBytes <= serverBufferMaxBytes)
+
+  if (shouldBufferOnVercel) {
+    const { data: fileBlob, error: downloadError } = await supabase.storage
+      .from(bucket)
+      .download(filePath)
+
+    if (downloadError || !fileBlob) {
+      throw new Error("No se pudo descargar el PDF desde Supabase Storage.")
+    }
+
+    sourceFileSizeBytes = fileBlob.size
+    if (sourceFileSizeBytes > MAX_PDF_SIZE_BYTES) {
+      throw new Error(
+        `El archivo pesa ${(sourceFileSizeBytes / 1024 / 1024).toFixed(1)} MB y excede el límite de ${MAX_PDF_SIZE_MB} MB.`
+      )
+    }
+
+    const arrayBuffer = await fileBlob.arrayBuffer()
+    buffer = Buffer.from(arrayBuffer)
+    sha256 = createHash("sha256").update(buffer).digest("hex")
+  }
+
   let chosen: ExtractorResult = {
     text: "",
     pageCount: 0,
@@ -665,42 +752,100 @@ export async function ensurePaperProcessed(params: {
     success: false,
     method: "none",
   }
-  
-  const external = await parseDocumentWithExternalService({
-    buffer,
-    filename: filename || filePath.split("/").pop() || "documento.pdf",
-    mimeType: "application/pdf",
-  })
 
-  if (external?.success) {
-    chosen = {
-      text: external.text,
-      pageCount: external.pageCount,
-      pages: external.pages.map((p) => ({
-        pageNumber: p.pageNumber,
-        text: p.text,
-      })),
-      success: true,
-      usedOCR: !!external.ocrUsed,
-      method: external.method || "docling-api",
-      summary: external.summary,
+  if (!buffer) {
+    const external = await parseDocumentWithExternalService({
+      sourceUrl,
+      filename: resolvedFilename,
+      mimeType: "application/pdf",
+      forceOCR: false,
+    })
+
+    if (external?.success) {
+      chosen = {
+        text: external.text,
+        pageCount: external.pageCount,
+        pages: external.pages.map((page) => ({
+          pageNumber: page.pageNumber,
+          text: page.text,
+        })),
+        success: true,
+        usedOCR: !!external.ocrUsed,
+        method: external.method || "eduai-paper-parser-remote",
+        summary: external.summary,
+        pdfType: String(external.metadata?.pdfType || "RemoteLarge"),
+        pagesNeedingOcr: Array.isArray(external.metadata?.pagesNeedingOcr)
+          ? external.metadata.pagesNeedingOcr
+          : [],
+      }
     }
   } else {
-    const pdfResult = await extractTextWithPdfParse(buffer)
-    chosen = pdfResult
-  }
+    const inspector = await extractWithPdfInspector(buffer)
+    const inspectorCandidate: ExtractorResult = {
+      text: inspector.text,
+      pageCount: inspector.pageCount,
+      pages: inspector.pages.map((page) => ({
+        pageNumber: page.pageNumber,
+        text: page.text,
+      })),
+      success: inspector.success,
+      usedOCR: false,
+      method: "pdf-inspector",
+      pdfType: inspector.pdfType,
+      pagesNeedingOcr: inspector.pagesNeedingOcr,
+    }
 
-  if (!chosen.success) {
-    const ocrResult = await extractTextWithOCR(
-      buffer,
-      filename || filePath.split("/").pop() || "documento.pdf"
+    let localCandidate = inspectorCandidate
+    if (!inspector.available || (!inspector.success && inspector.pdfType === "TextBased")) {
+      localCandidate = await extractTextWithPdfParse(buffer)
+    }
+
+    const localNeedsOcr = inspector.available && (
+      inspector.pdfType !== "TextBased" || inspector.pagesNeedingOcr.length > 0
     )
-    if (ocrResult.success) chosen = ocrResult
-  }
 
-  if (!chosen.success && buffer.byteLength <= MAX_GEMINI_INLINE_PDF_BYTES) {
-    const geminiResult = await extractTextWithGemini(buffer.toString("base64"), title)
-    if (geminiResult.success) chosen = geminiResult
+    if (localCandidate.success && !localNeedsOcr) {
+      chosen = localCandidate
+    } else {
+      const external = await parseDocumentWithExternalService({
+        buffer: buffer.byteLength <= 50 * 1024 * 1024 ? buffer : undefined,
+        sourceUrl,
+        filename: resolvedFilename,
+        mimeType: "application/pdf",
+        forceOCR: localNeedsOcr || !localCandidate.success,
+      })
+
+      if (external?.success) {
+        chosen = {
+          text: external.text,
+          pageCount: external.pageCount,
+          pages: external.pages.map((page) => ({
+            pageNumber: page.pageNumber,
+            text: page.text,
+          })),
+          success: true,
+          usedOCR: !!external.ocrUsed,
+          method: external.method || "eduai-paper-parser",
+          summary: external.summary,
+          pdfType: inspector.pdfType,
+          pagesNeedingOcr: inspector.pagesNeedingOcr,
+        }
+      } else if (localCandidate.success) {
+        chosen = localCandidate
+      } else {
+        chosen = await extractTextWithPdfParse(buffer)
+      }
+    }
+
+    if (!chosen.success) {
+      const ocrResult = await extractTextWithOCR(buffer, resolvedFilename)
+      if (ocrResult.success) chosen = ocrResult
+    }
+
+    if (!chosen.success && buffer.byteLength <= MAX_GEMINI_INLINE_PDF_BYTES) {
+      const geminiResult = await extractTextWithGemini(buffer.toString("base64"), title)
+      if (geminiResult.success) chosen = geminiResult
+    }
   }
 
   const extractedText = cleanText(chosen.text)
@@ -710,10 +855,12 @@ export async function ensurePaperProcessed(params: {
     return {
       title,
       text: "",
-      summary: "No se pudo extraer texto útil del documento.",
+      summary: buffer
+        ? "No se pudo extraer texto útil del documento."
+        : "El parser remoto no pudo procesar el PDF grande. Revisa el estado de Hugging Face o vuelve a intentarlo.",
       pageCount: chosen.pageCount || 0,
       extractionMethod: chosen.method || "none",
-      parserUsed: "internal-v2",
+      parserUsed: parserNameForMethod(chosen.method),
       ocrUsed: !!chosen.usedOCR,
       truncated: false,
       fromCache: false,
@@ -725,6 +872,7 @@ export async function ensurePaperProcessed(params: {
 
   const summary = chosen.summary || await summarizeWithGemini(title, extractedText) || "Documento procesado correctamente."
   const builtChunks = buildChunksFromPages(pages)
+  const parserUsed = parserNameForMethod(chosen.method)
 
   const documentId = await upsertPaperDocument(supabase, {
     user_id: userId,
@@ -735,12 +883,16 @@ export async function ensurePaperProcessed(params: {
     summary,
     page_count: chosen.pageCount || pages.length || 1,
     extraction_method: chosen.method,
-    parser_used: chosen.method === "docling-api" ? "docling" : "internal-v2",
+    parser_used: parserUsed,
     ocr_used: !!chosen.usedOCR,
-    source_file_size_bytes: fileBlob.size,
+    source_file_size_bytes: sourceFileSizeBytes || null,
     source_file_sha256: sha256,
     metadata: {
       chunk_count: builtChunks.length,
+      pdf_type: chosen.pdfType || null,
+      pages_needing_ocr: chosen.pagesNeedingOcr || [],
+      input_mode: buffer ? "vercel-buffer" : "signed-url",
+      server_buffer_limit_mb: SERVER_BUFFER_MAX_MB,
     },
   })
 
@@ -766,8 +918,8 @@ export async function ensurePaperProcessed(params: {
     summary,
     pageCount: chosen.pageCount || pages.length || 1,
     extractionMethod: chosen.method,
-    fileSize: fileBlob.size,
-    sha256,
+    fileSize: sourceFileSizeBytes || undefined,
+    sha256: sha256 || undefined,
   })
 
   return {
@@ -776,7 +928,7 @@ export async function ensurePaperProcessed(params: {
     summary,
     pageCount: chosen.pageCount || pages.length || 1,
     extractionMethod: chosen.method,
-    parserUsed: "internal-v2",
+    parserUsed,
     ocrUsed: !!chosen.usedOCR,
     truncated: false,
     fromCache: false,

@@ -1,0 +1,101 @@
+name: Deploy Paper Parser to Hugging Face
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "services/paper-parser/**"
+      - ".github/workflows/deploy-paper-parser-hf.yml"
+
+concurrency:
+  group: deploy-paper-parser-hf
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate parser Python
+        run: python -m py_compile services/paper-parser/app.py
+
+      - name: Install Hugging Face client
+        run: python -m pip install --upgrade huggingface_hub
+
+      - name: Create or update Docker Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          PAPER_PARSER_TOKEN: ${{ secrets.PAPER_PARSER_TOKEN }}
+          HF_SPACE_REPO: EsthefanoMC23/eduai-paper-parser
+        run: |
+          python - <<'PY'
+          import os
+          from huggingface_hub import HfApi
+
+          token = os.environ.get("HF_TOKEN", "").strip()
+          if not token:
+              raise SystemExit("Falta el secreto HF_TOKEN en GitHub Actions")
+
+          repo_id = os.environ["HF_SPACE_REPO"]
+          parser_token = os.environ.get("PAPER_PARSER_TOKEN", "").strip()
+          api = HfApi(token=token)
+
+          api.create_repo(
+              repo_id=repo_id,
+              repo_type="space",
+              space_sdk="docker",
+              private=False,
+              exist_ok=True,
+          )
+
+          api.add_space_variable(repo_id, "PAPER_PARSER_MAX_MB", "250")
+          api.add_space_variable(repo_id, "PAPER_PARSER_DOWNLOAD_TIMEOUT_SECONDS", "300")
+          api.add_space_variable(repo_id, "PAPER_PARSER_OCR_LANGUAGES", "spa+eng")
+          api.add_space_variable(repo_id, "PAPER_PARSER_FORCE_OCR_IF_LOW_TEXT", "true")
+
+          if parser_token:
+              api.add_space_secret(repo_id, "PAPER_PARSER_TOKEN", parser_token)
+
+          api.upload_folder(
+              repo_id=repo_id,
+              repo_type="space",
+              folder_path="services/paper-parser",
+              commit_message="Deploy EduAI Paper Parser",
+          )
+          print(f"Deployed https://huggingface.co/spaces/{repo_id}")
+          PY
+
+      - name: Verify Space health
+        env:
+          SPACE_URL: https://esthefanomc23-eduai-paper-parser.hf.space
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import time
+          import urllib.error
+          import urllib.request
+
+          url = os.environ["SPACE_URL"].rstrip("/") + "/health"
+          deadline = time.time() + 600
+          last_error = ""
+
+          while time.time() < deadline:
+              try:
+                  with urllib.request.urlopen(url, timeout=30) as response:
+                      payload = json.loads(response.read().decode("utf-8"))
+                      if response.status == 200 and payload.get("ok") is True:
+                          print(json.dumps(payload, ensure_ascii=False, indent=2))
+                          raise SystemExit(0)
+              except (urllib.error.URLError, TimeoutError, ValueError) as exc:
+                  last_error = str(exc)
+              time.sleep(10)
+
+          raise SystemExit(f"El Space no respondió correctamente: {last_error}")
+          PY

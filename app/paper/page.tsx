@@ -3,6 +3,9 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
+import { uploadPdfResumable } from "@/lib/papers/resumable-upload"
+import PdfPreview from "@/components/paper/PdfPreview"
+import PaperHistoryPanel, { type PaperHistoryItem } from "@/components/paper/PaperHistoryPanel"
 import {
   ArrowLeft,
   FileText,
@@ -17,6 +20,7 @@ import {
   BookOpen,
   Hash,
   X,
+  FolderOpen,
 } from "lucide-react"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -64,6 +68,7 @@ type ChatResponse = {
 }
 
 const STORAGE_BUCKET = "papers"
+const RESUMABLE_UPLOAD_BYTES = 6 * 1024 * 1024
 
 const SUGGESTED_QUESTIONS = [
   "¿Cuál es la idea central del documento?",
@@ -381,6 +386,7 @@ export default function PaperPage() {
 
   const [userReady, setUserReady] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
   const [extracting, setExtracting] = useState(false)
   const [chatting, setChatting] = useState(false)
 
@@ -401,6 +407,8 @@ export default function PaperPage() {
   const [messages, setMessages] = useState<PaperMessage[]>([])
   const [error, setError] = useState("")
   const [docPanelOpen, setDocPanelOpen] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [historyRefreshKey, setHistoryRefreshKey] = useState(0)
 
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const chatEndRef = useRef<HTMLDivElement | null>(null)
@@ -430,6 +438,7 @@ export default function PaperPage() {
   const handleUploadFile = useCallback(async (file: File) => {
     setError("")
     setUploading(true)
+    setUploadProgress(0)
     setExtracting(false)
     setMessages([])
     setPaperText("")
@@ -439,6 +448,7 @@ export default function PaperPage() {
     setDocumentId(null)
     setChunkCount(0)
     setDocPanelOpen(false)
+    setHistoryOpen(false)
 
     try {
       const { data: auth } = await supabase.auth.getUser()
@@ -451,10 +461,11 @@ export default function PaperPage() {
 
       let uploadData: any = null
 
-      const signedRes = await fetch("/api/agents/paper/upload-url", {
+      const signedRes = await fetch("/api/agents/paper/extract", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          action: "prepare-upload",
           filename: file.name,
           mimeType: file.type || "application/pdf",
           size: file.size,
@@ -471,28 +482,27 @@ export default function PaperPage() {
           throw new Error("El servidor no devolvió la URL segura de subida.")
         }
 
-        const { error: signedUploadError } = await supabase.storage
-          .from(signedBucket)
-          .uploadToSignedUrl(signedPath, signedToken, file, {
-            contentType: "application/pdf",
+        if (file.size >= RESUMABLE_UPLOAD_BYTES) {
+          await uploadPdfResumable({
+            supabase,
+            bucket: signedBucket,
+            objectName: signedPath,
+            file,
+            onProgress: ({ percentage }) => setUploadProgress(percentage),
           })
+        } else {
+          const { error: signedUploadError } = await supabase.storage
+            .from(signedBucket)
+            .uploadToSignedUrl(signedPath, signedToken, file, {
+              contentType: "application/pdf",
+            })
 
-        if (signedUploadError) throw signedUploadError
+          if (signedUploadError) throw signedUploadError
+          setUploadProgress(100)
+        }
         uploadData = signedData
-      } else if ([400, 401, 413].includes(signedRes.status)) {
-        throw new Error(await readErrorResponse(signedRes))
       } else {
-        // Fallback: permite seguir funcionando aunque aún no esté configurada la service role key.
-        const formData = new FormData()
-        formData.append("file", file)
-
-        const uploadRes = await fetch("/api/agents/paper/upload", {
-          method: "POST",
-          body: formData,
-        })
-
-        if (!uploadRes.ok) throw new Error(await readErrorResponse(uploadRes))
-        uploadData = await uploadRes.json()
+        throw new Error(await readErrorResponse(signedRes))
       }
 
       const bucket = uploadData?.bucket || STORAGE_BUCKET
@@ -558,6 +568,7 @@ export default function PaperPage() {
           content: welcomeLines,
           isOverview: true,
         }])
+        setHistoryRefreshKey((value) => value + 1)
       }
     } catch (e: any) {
       console.error("[Paper][extract]", e)
@@ -565,6 +576,31 @@ export default function PaperPage() {
     } finally {
       setExtracting(false)
     }
+  }
+
+  async function handleOpenHistoryItem(item: PaperHistoryItem) {
+    if (uploading || extracting) return
+
+    setHistoryOpen(false)
+    setDocPanelOpen(false)
+    setMessages([])
+    setQuestion("")
+    setError("")
+    setPaperText("")
+    setPaperSummary("")
+    setPaperPageCount(0)
+    setChunkCount(0)
+    setDocumentId(item.id)
+    setStorageBucket(item.bucket || STORAGE_BUCKET)
+    setStoragePath(item.filePath)
+    setPaperTitle(item.title || "Documento")
+
+    await runExtraction({
+      bucket: item.bucket || STORAGE_BUCKET,
+      filePath: item.filePath,
+      filename: item.title,
+      forceRefresh: false,
+    })
   }
 
   async function handleAsk(customQuestion?: string) {
@@ -639,6 +675,13 @@ export default function PaperPage() {
   return (
     <div className="min-h-screen bg-app text-main flex flex-col">
       <DropOverlay onDrop={handleUploadFile} />
+      <PaperHistoryPanel
+        open={historyOpen}
+        refreshKey={historyRefreshKey}
+        busy={uploading || extracting}
+        onClose={() => setHistoryOpen(false)}
+        onOpenItem={handleOpenHistoryItem}
+      />
 
       {/* ── Header ── */}
       <header className="sticky top-0 z-20 border-b border-soft bg-app/90 backdrop-blur-xl">
@@ -669,6 +712,20 @@ export default function PaperPage() {
             </button>
           )}
 
+          <button
+            type="button"
+            onClick={() => {
+              setHistoryOpen((value) => !value)
+              setDocPanelOpen(false)
+            }}
+            className="flex items-center gap-1.5 rounded-xl border border-soft bg-card-soft-theme px-3 py-1.5 text-xs text-sub hover:border-pink-500/30 hover:text-main transition"
+            title="Abrir materiales guardados"
+            aria-expanded={historyOpen}
+          >
+            <FolderOpen size={12} />
+            <span className="hidden sm:inline">Historial</span>
+          </button>
+
           <input
             ref={fileInputRef}
             type="file"
@@ -682,12 +739,15 @@ export default function PaperPage() {
           />
 
           <button
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => {
+              setHistoryOpen(false)
+              fileInputRef.current?.click()
+            }}
             disabled={uploading || extracting}
             className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 bg-gradient-to-r from-pink-600 to-fuchsia-600 text-white text-xs font-semibold disabled:opacity-50 transition"
           >
             {uploading || extracting ? (
-              <><Loader2 size={12} className="animate-spin" />{uploading ? "Subiendo…" : "Procesando…"}</>
+              <><Loader2 size={12} className="animate-spin" />{uploading ? `Subiendo ${uploadProgress}%` : "Procesando…"}</>
             ) : (
               <><Upload size={12} />PDF</>
             )}
@@ -722,6 +782,12 @@ export default function PaperPage() {
                   {paperSummary}
                 </p>
               )}
+
+              <PdfPreview
+                bucket={storageBucket}
+                filePath={storagePath}
+                title={paperTitle}
+              />
 
               <div className="flex gap-2 mt-3">
                 <button

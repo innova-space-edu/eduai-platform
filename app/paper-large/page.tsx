@@ -19,7 +19,7 @@ type ExtractResponse = {
   documentId: string | null
 }
 
-const MAX_MB = 50
+const MAX_MB = 250
 
 export default function LargePaperUploadPage() {
   const supabase = useMemo(() => createClient(), [])
@@ -49,14 +49,15 @@ export default function LargePaperUploadPage() {
       }
       if (file.size <= 0) throw new Error("El archivo está vacío.")
       if (file.size > MAX_MB * 1024 * 1024) {
-        throw new Error(`El PDF supera el límite inicial de ${MAX_MB} MB.`)
+        throw new Error(`El PDF supera el límite actual de ${MAX_MB} MB.`)
       }
 
       setStage("preparing")
-      const signedResponse = await fetch("/api/agents/paper/upload-url", {
+      const signedResponse = await fetch("/api/agents/paper/extract", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          action: "prepare-upload",
           filename: file.name,
           mimeType: file.type || "application/pdf",
           size: file.size,
@@ -98,10 +99,10 @@ export default function LargePaperUploadPage() {
   }
 
   const stageText = {
-    idle: "Selecciona un PDF para probar la carga reanudable.",
+    idle: "Selecciona un PDF pequeño o grande para probar la carga reanudable.",
     preparing: "Preparando la ruta segura en Supabase…",
-    uploading: `Subiendo directamente a Supabase… ${progress}%`,
-    extracting: "Analizando el PDF con Hugging Face y generando fragmentos…",
+    uploading: `Subiendo por fragmentos directamente a Supabase… ${progress}%`,
+    extracting: "Clasificando localmente y usando OCR solo cuando sea necesario…",
     done: "Documento procesado correctamente.",
     error: "La prueba no pudo completarse.",
   }[stage]
@@ -115,7 +116,7 @@ export default function LargePaperUploadPage() {
           </Link>
           <div>
             <h1 className="font-bold text-lg">Chat Paper · PDF grandes</h1>
-            <p className="text-muted2 text-xs">Carga reanudable TUS con progreso real y análisis posterior.</p>
+            <p className="text-muted2 text-xs">Carga TUS reanudable, extracción local rápida y respaldo OCR.</p>
           </div>
         </div>
 
@@ -136,7 +137,7 @@ export default function LargePaperUploadPage() {
               {stage === "done" ? <CheckCircle2 size={28} /> : <Upload size={26} />}
             </div>
             <p className="font-semibold">Seleccionar PDF</p>
-            <p className="text-muted2 text-xs mt-1">Límite inicial: {MAX_MB} MB. La carga se reanuda si la conexión se interrumpe.</p>
+            <p className="text-muted2 text-xs mt-1">Hasta {MAX_MB} MB. La carga continúa si la conexión se interrumpe.</p>
           </label>
 
           <div className="mt-5 rounded-2xl border border-soft p-4">
@@ -160,6 +161,9 @@ export default function LargePaperUploadPage() {
               <p className="text-xs text-sub">Páginas: {result.pageCount} · Fragmentos: {result.chunkCount}</p>
               <p className="text-xs text-sub">Parser: {result.parserUsed || result.extractionMethod} · OCR: {result.ocrUsed ? "Sí" : "No"}</p>
               {result.summary && <p className="text-sm text-sub pt-2 border-t border-soft">{result.summary}</p>}
+              <Link href="/paper" className="inline-flex text-xs font-medium text-pink-400 hover:text-pink-300 pt-2">
+                Abrir Chat Paper
+              </Link>
             </div>
           )}
         </div>
