@@ -26,6 +26,8 @@ type ExternalParserRequest = {
   forceOCR?: boolean
 }
 
+const EXTERNAL_PARSER_BUDGET_MS = 52_000
+
 function cleanText(text: string) {
   return String(text || "")
     .replace(/\u0000/g, "")
@@ -126,11 +128,11 @@ async function wakeParser(params: {
 }) {
   const { baseUrl, parserToken, totalTimeoutMs } = params
   const startedAt = Date.now()
-  let delayMs = 1500
+  let delayMs = 1000
 
   while (Date.now() - startedAt < totalTimeoutMs) {
     const remaining = totalTimeoutMs - (Date.now() - startedAt)
-    const attemptTimeout = Math.min(Math.max(remaining, 1000), 30_000)
+    const attemptTimeout = Math.min(Math.max(remaining, 1000), 8_000)
 
     try {
       const response = await fetch(`${baseUrl}/health`, {
@@ -141,12 +143,12 @@ async function wakeParser(params: {
       })
       if (response.ok) return true
     } catch {
-      // Un Space dormido puede tardar varios intentos en responder.
+      // La petición /parse también puede terminar de activar el Space.
     }
 
     if (Date.now() - startedAt >= totalTimeoutMs) break
     await sleep(Math.min(delayMs, Math.max(totalTimeoutMs - (Date.now() - startedAt), 0)))
-    delayMs = Math.min(Math.round(delayMs * 1.7), 8000)
+    delayMs = Math.min(Math.round(delayMs * 1.6), 3000)
   }
 
   return false
@@ -225,30 +227,44 @@ export async function parseDocumentWithExternalService(
   const parserToken = process.env.PAPER_PARSER_TOKEN?.trim()
   const wakeTimeoutMs = clampNumber(
     process.env.DOCLING_PARSER_WAKE_TIMEOUT_MS,
-    90_000,
-    5_000,
-    120_000,
+    8_000,
+    1_000,
+    12_000,
   )
   const parseTimeoutMs = clampNumber(
     process.env.DOCLING_PARSER_TIMEOUT_MS,
-    240_000,
-    15_000,
-    300_000,
+    38_000,
+    5_000,
+    42_000,
   )
   const fallbackMaxBytes = clampNumber(
     process.env.PAPER_PARSER_BUFFER_FALLBACK_MB,
-    50,
+    40,
     1,
-    100,
+    50,
   ) * 1024 * 1024
+  const startedAt = Date.now()
+  const remainingBudget = () => Math.max(
+    EXTERNAL_PARSER_BUDGET_MS - (Date.now() - startedAt),
+    0,
+  )
 
   try {
-    await wakeParser({ baseUrl, parserToken, totalTimeoutMs: wakeTimeoutMs })
+    await wakeParser({
+      baseUrl,
+      parserToken,
+      totalTimeoutMs: Math.min(wakeTimeoutMs, remainingBudget()),
+    })
+
+    const firstAttemptTimeout = Math.min(parseTimeoutMs, remainingBudget())
+    if (firstAttemptTimeout < 1000) {
+      return errorResult("El parser externo no alcanzó a iniciarse dentro del tiempo disponible.")
+    }
 
     let attempt = await postParse({
       endpoint,
       parserToken,
-      timeoutMs: parseTimeoutMs,
+      timeoutMs: firstAttemptTimeout,
       filename,
       mimeType,
       forceOCR,
@@ -256,11 +272,13 @@ export async function parseDocumentWithExternalService(
       buffer: sourceUrl ? undefined : buffer,
     })
 
+    const retryBudget = remainingBudget()
     if (
       !attempt.response.ok &&
       sourceUrl &&
       buffer &&
-      buffer.byteLength <= fallbackMaxBytes
+      buffer.byteLength <= fallbackMaxBytes &&
+      retryBudget >= 5000
     ) {
       console.warn(
         `[Paper parser] URL mode returned HTTP ${attempt.response.status}; retrying with multipart buffer.`
@@ -268,7 +286,7 @@ export async function parseDocumentWithExternalService(
       attempt = await postParse({
         endpoint,
         parserToken,
-        timeoutMs: parseTimeoutMs,
+        timeoutMs: Math.min(parseTimeoutMs, retryBudget),
         filename,
         mimeType,
         forceOCR,
@@ -291,7 +309,12 @@ export async function parseDocumentWithExternalService(
 
     return parseDoclingResponse(data)
   } catch (error: any) {
+    const timeoutLike = error?.name === "TimeoutError" || error?.name === "AbortError"
     console.error("[Paper parser] error:", error?.message || error)
-    return errorResult(error?.message || "Fallo desconocido del parser externo.")
+    return errorResult(
+      timeoutLike
+        ? "El OCR externo tardó demasiado. Intenta nuevamente cuando el parser esté activo."
+        : error?.message || "Fallo desconocido del parser externo."
+    )
   }
 }
