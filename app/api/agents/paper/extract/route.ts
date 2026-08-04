@@ -17,6 +17,10 @@ function getString(value: unknown) {
   return typeof value === "string" ? value : ""
 }
 
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error || "")
+}
+
 function safeFilename(name: string) {
   const clean = String(name || "documento.pdf")
     .normalize("NFD")
@@ -45,20 +49,56 @@ function getAdminClient() {
   })
 }
 
+const papersBucketOptions = {
+  public: false,
+  fileSizeLimit: MAX_PDF_SIZE_BYTES,
+  allowedMimeTypes: ["application/pdf"],
+}
+
 async function ensurePapersBucket(storageClient: any) {
   try {
-    const { data } = await storageClient.getBucket(STORAGE_BUCKET)
-    if (data) return
-  } catch {}
+    const { data, error } = await storageClient.getBucket(STORAGE_BUCKET)
+
+    if (data && !error) {
+      const { error: updateError } = await storageClient.updateBucket(
+        STORAGE_BUCKET,
+        papersBucketOptions,
+      )
+
+      if (updateError) {
+        return {
+          ready: false,
+          warning:
+            `El bucket papers existe, pero no se pudo actualizar su límite a ${MAX_PDF_SIZE_MB} MB: ` +
+            updateError.message,
+        }
+      }
+
+      return { ready: true, warning: "" }
+    }
+  } catch (error: unknown) {
+    console.warn("[Paper] no se pudo consultar el bucket papers:", error)
+  }
 
   try {
-    await storageClient.createBucket(STORAGE_BUCKET, {
-      public: false,
-      fileSizeLimit: MAX_PDF_SIZE_BYTES,
-      allowedMimeTypes: ["application/pdf"],
-    })
-  } catch {
-    // La subida devolverá el error concreto si el bucket o sus políticas no están disponibles.
+    const { error } = await storageClient.createBucket(
+      STORAGE_BUCKET,
+      papersBucketOptions,
+    )
+
+    if (error) {
+      return {
+        ready: false,
+        warning: `No se pudo crear el bucket papers: ${error.message}`,
+      }
+    }
+
+    return { ready: true, warning: "" }
+  } catch (error: unknown) {
+    return {
+      ready: false,
+      warning: `No se pudo preparar el bucket papers: ${getErrorMessage(error)}`,
+    }
   }
 }
 
@@ -96,8 +136,15 @@ async function prepareUpload(params: {
   }
 
   const adminClient = getAdminClient()
+  let storageWarning = ""
+
   if (adminClient) {
-    await ensurePapersBucket(adminClient.storage)
+    const bucketStatus = await ensurePapersBucket(adminClient.storage)
+    storageWarning = bucketStatus.warning
+
+    if (!bucketStatus.ready) {
+      console.warn("[Paper][storage]", storageWarning)
+    }
   }
 
   const signingClient = adminClient || userClient
@@ -112,6 +159,7 @@ async function prepareUpload(params: {
         error:
           error?.message ||
           "No se pudo crear la subida segura. Revisa el bucket papers y sus políticas de Storage.",
+        storageWarning: storageWarning || undefined,
       },
       { status: 500 },
     )
@@ -127,6 +175,7 @@ async function prepareUpload(params: {
     token: data.token,
     signedUrl: data.signedUrl,
     maxSizeMB: MAX_PDF_SIZE_MB,
+    storageWarning: storageWarning || undefined,
   })
 }
 
@@ -223,12 +272,12 @@ export async function POST(req: Request) {
       chunkCount: result.chunks?.length || 0,
       error: false,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Paper][extract] error:", error)
 
     return Response.json(
       {
-        error: error?.message || "No se pudo procesar el PDF automáticamente.",
+        error: getErrorMessage(error) || "No se pudo procesar el PDF automáticamente.",
       },
       { status: 500 },
     )
