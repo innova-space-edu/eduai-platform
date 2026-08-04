@@ -66,12 +66,36 @@ assert(
   "Chat Paper no incluye la vista previa bajo demanda.",
 )
 assert(
+  paperPage.includes('action: "prepare-upload"'),
+  "Chat Paper no solicita la preparación de subida consolidada.",
+)
+assert(
+  paperPage.includes('fetch("/api/agents/paper/extract"'),
+  "Chat Paper no usa la función consolidada de Paper.",
+)
+assert(
+  !paperPage.includes("/api/agents/paper/upload-url"),
+  "Chat Paper todavía referencia upload-url.",
+)
+assert(
   !paperPage.includes('/api/agents/paper/upload"'),
   "Chat Paper todavía referencia la subida multipart antigua.",
 )
 assert(
   largePage.includes("uploadPdfResumable"),
   "La página de PDF grandes no usa TUS.",
+)
+assert(
+  largePage.includes('action: "prepare-upload"'),
+  "La página de PDF grandes no usa la preparación consolidada.",
+)
+assert(
+  extractRoute.includes('body?.action === "prepare-upload"'),
+  "La ruta extract no procesa la preparación de subida.",
+)
+assert(
+  extractRoute.includes("createSignedUploadUrl"),
+  "La ruta extract no crea la URL de subida segura.",
 )
 assert(
   extractRoute.includes("export const maxDuration = 60"),
@@ -90,6 +114,10 @@ assert(
   "La ruta multipart antigua volvió a aparecer.",
 )
 assert(
+  !exists("app/api/agents/paper/upload-url/route.ts"),
+  "La ruta upload-url redundante volvió a aparecer.",
+)
+assert(
   parserApp.includes("source_url: str | None"),
   "El Space no acepta source_url.",
 )
@@ -102,4 +130,4 @@ assert(
   "El Space no valida la firma PDF.",
 )
 
-console.log("[test-paper-pipeline] Pipeline PDF híbrido verificado correctamente.")
+console.log("[test-paper-pipeline] Pipeline PDF híbrido y consolidado verificado correctamente.")
