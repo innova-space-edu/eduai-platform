@@ -1,9 +1,11 @@
 name: Materialize Paper Pipeline
 
 on:
-  push:
+  pull_request:
     branches:
-      - feat/pdf-large-hybrid-parser
+      - main
+    types:
+      - synchronize
     paths:
       - ".github/workflows/materialize-paper-pipeline.yml"
 
@@ -12,7 +14,7 @@ permissions:
 
 concurrency:
   group: materialize-paper-pipeline
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   materialize:
