@@ -18,6 +18,35 @@ export interface PdfInspectorResult {
   error?: string
 }
 
+type PdfClassification = {
+  pdfType?: unknown
+  pageCount?: unknown
+  confidence?: unknown
+  pagesNeedingOcr?: unknown[]
+}
+
+type PdfProcessedPage = {
+  pageNumber?: unknown
+  page?: unknown
+  markdown?: unknown
+  text?: unknown
+}
+
+type PdfProcessedResult = {
+  markdown?: unknown
+  text?: unknown
+  pageCount?: unknown
+  pages?: PdfProcessedPage[]
+}
+
+type PdfInspectorModule = {
+  classifyPdf?: (buffer: Buffer) => PdfClassification
+  processPdf?: (
+    buffer: Buffer,
+    options?: Record<string, unknown>,
+  ) => PdfProcessedResult
+}
+
 function cleanText(value: unknown) {
   return String(value || "")
     .replace(/\u0000/g, "")
@@ -25,6 +54,10 @@ function cleanText(value: unknown) {
     .replace(/[ \u00A0]{2,}/g, " ")
     .replace(/\n{4,}/g, "\n\n\n")
     .trim()
+}
+
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error || "")
 }
 
 function hasUsefulText(text: string) {
@@ -92,9 +125,9 @@ function emptyResult(params?: Partial<PdfInspectorResult>): PdfInspectorResult {
 
 export async function extractWithPdfInspector(buffer: Buffer): Promise<PdfInspectorResult> {
   try {
-    const module: any = await import("@firecrawl/pdf-inspector")
-    const classifyPdf = module?.classifyPdf
-    const processPdf = module?.processPdf
+    const inspectorModule = await import("@firecrawl/pdf-inspector") as PdfInspectorModule
+    const classifyPdf = inspectorModule.classifyPdf
+    const processPdf = inspectorModule.processPdf
 
     if (typeof classifyPdf !== "function") {
       return emptyResult({
@@ -131,7 +164,7 @@ export async function extractWithPdfInspector(buffer: Buffer): Promise<PdfInspec
       })
     }
 
-    let processed: any
+    let processed: PdfProcessedResult
     try {
       processed = processPdf(buffer, {
         profile: "compact",
@@ -144,7 +177,7 @@ export async function extractWithPdfInspector(buffer: Buffer): Promise<PdfInspec
     const markdown = cleanText(processed?.markdown || processed?.text || "")
     const pages: PdfInspectorPage[] = Array.isArray(processed?.pages)
       ? processed.pages
-          .map((page: any, index: number): PdfInspectorPage => ({
+          .map((page, index): PdfInspectorPage => ({
             pageNumber: Number(page?.pageNumber || page?.page || index + 1),
             text: cleanText(page?.markdown || page?.text || ""),
           }))
@@ -170,10 +203,10 @@ export async function extractWithPdfInspector(buffer: Buffer): Promise<PdfInspec
       markdown,
       pages,
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Paper] pdf-inspector failed:", error)
     return emptyResult({
-      error: error?.message || "No se pudo cargar pdf-inspector.",
+      error: errorMessage(error) || "No se pudo cargar pdf-inspector.",
     })
   }
 }
