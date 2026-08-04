@@ -75,14 +75,20 @@ async function consolidateUploadFlow() {
 
 async function ensureNativeTextFallback() {
   let source = await fs.readFile(extractionPath, "utf8")
-  source = source.replaceAll(
-    `  if (!inspector.available) {
-    localCandidate = await extractTextWithPdfParse(buffer)
-  }`,
-    `  if (!inspector.available || (!inspector.success && inspector.pdfType === "TextBased")) {
-    localCandidate = await extractTextWithPdfParse(buffer)
-  }`,
-  )
+
+  if (!source.includes('inspector.pdfType === "TextBased"')) {
+    source = source.replace(
+      /if \(!inspector\.available\)\s*\{\s*localCandidate\s*=\s*await extractTextWithPdfParse\(buffer\)\s*\}/,
+      `if (!inspector.available || (!inspector.success && inspector.pdfType === "TextBased")) {
+      localCandidate = await extractTextWithPdfParse(buffer)
+    }`,
+    )
+  }
+
+  if (!source.includes('inspector.pdfType === "TextBased"')) {
+    throw new Error("[paper-pipeline] No se pudo conectar el respaldo pdf-parse para PDF con texto.")
+  }
+
   await fs.writeFile(extractionPath, source)
 }
 
