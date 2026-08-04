@@ -59,6 +59,16 @@ Las URL remotas se restringen a hosts Supabase o a los declarados en `PAPER_PARS
 
 Chat Paper mantiene sus rutas en el bundle compartido de 60 segundos del plan Hobby. El cliente del parser reserva como máximo 52 segundos para despertar y consultar Hugging Face, dejando tiempo para cerrar la respuesta. Un escaneo muy grande que no alcance a terminar devuelve un error controlado y puede reintentarse cuando el Space ya esté activo.
 
+## Requisito de Supabase Storage
+
+Al preparar una subida, EduAI crea el bucket privado `papers` o actualiza el bucket existente con:
+
+- `allowedMimeTypes: ["application/pdf"]`
+- `fileSizeLimit: PAPER_MAX_PDF_SIZE_MB`
+- acceso privado mediante sesión, políticas RLS y URLs firmadas
+
+El límite por bucket nunca puede superar el límite global de Storage ni el máximo permitido por el plan de Supabase. Para utilizar 250 MB, el panel de Supabase debe tener un límite global igual o superior a 250 MB. En un proyecto cuyo plan permita solo 50 MB, Chat Paper seguirá funcionando hasta ese máximo aunque la aplicación esté preparada para archivos mayores.
+
 ## Despliegue
 
 El workflow `.github/workflows/deploy-paper-parser-hf.yml` actualiza el Space `EsthefanoMC23/eduai-paper-parser` al integrar cambios en `main`.
