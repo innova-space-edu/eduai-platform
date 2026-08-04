@@ -102,6 +102,14 @@ assert(
   "La ruta extract no crea la URL de subida segura.",
 )
 assert(
+  extractRoute.includes("updateBucket"),
+  "La ruta extract no actualiza el límite de un bucket papers existente.",
+)
+assert(
+  extractRoute.includes("fileSizeLimit: MAX_PDF_SIZE_BYTES"),
+  "El bucket papers no usa el límite configurado por Chat Paper.",
+)
+assert(
   extractRoute.includes("export const maxDuration = 60"),
   "La ruta extract no está en el bundle compartido de 60 segundos.",
 )
