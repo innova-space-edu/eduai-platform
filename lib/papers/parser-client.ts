@@ -18,6 +18,14 @@ export interface ExternalParserResult {
   error?: string
 }
 
+type ExternalParserRequest = {
+  buffer?: Buffer
+  sourceUrl?: string
+  filename: string
+  mimeType?: string
+  forceOCR?: boolean
+}
+
 function cleanText(text: string) {
   return String(text || "")
     .replace(/\u0000/g, "")
@@ -101,83 +109,189 @@ function parseDoclingResponse(data: any): ExternalParserResult {
   }
 }
 
-export async function parseDocumentWithExternalService(params: {
-  buffer: Buffer
+function clampNumber(value: unknown, fallback: number, min: number, max: number) {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) return fallback
+  return Math.min(Math.max(parsed, min), max)
+}
+
+function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+async function wakeParser(params: {
+  baseUrl: string
+  parserToken?: string
+  totalTimeoutMs: number
+}) {
+  const { baseUrl, parserToken, totalTimeoutMs } = params
+  const startedAt = Date.now()
+  let delayMs = 1500
+
+  while (Date.now() - startedAt < totalTimeoutMs) {
+    const remaining = totalTimeoutMs - (Date.now() - startedAt)
+    const attemptTimeout = Math.min(Math.max(remaining, 1000), 30_000)
+
+    try {
+      const response = await fetch(`${baseUrl}/health`, {
+        method: "GET",
+        headers: parserToken ? { "x-parser-token": parserToken } : undefined,
+        signal: AbortSignal.timeout(attemptTimeout),
+        cache: "no-store",
+      })
+      if (response.ok) return true
+    } catch {
+      // Un Space dormido puede tardar varios intentos en responder.
+    }
+
+    if (Date.now() - startedAt >= totalTimeoutMs) break
+    await sleep(Math.min(delayMs, Math.max(totalTimeoutMs - (Date.now() - startedAt), 0)))
+    delayMs = Math.min(Math.round(delayMs * 1.7), 8000)
+  }
+
+  return false
+}
+
+async function postParse(params: {
+  endpoint: string
+  parserToken?: string
+  timeoutMs: number
   filename: string
-  mimeType?: string
-  forceOCR?: boolean
-}): Promise<ExternalParserResult | null> {
-  const { buffer, filename, mimeType = "application/pdf", forceOCR = false } = params
-  const baseUrl = process.env.DOCLING_PARSER_URL?.trim()
+  mimeType: string
+  forceOCR: boolean
+  buffer?: Buffer
+  sourceUrl?: string
+}) {
+  const formData = new FormData()
 
-  if (!baseUrl) return null
+  if (params.sourceUrl) {
+    formData.append("source_url", params.sourceUrl)
+    formData.append("filename", params.filename || "documento.pdf")
+  }
 
-  const requestedTimeout = Number(process.env.DOCLING_PARSER_TIMEOUT_MS || 12000)
-  const timeoutMs = Number.isFinite(requestedTimeout)
-    ? Math.min(Math.max(requestedTimeout, 3000), 20000)
-    : 12000
-
-  try {
-    const formData = new FormData()
+  if (params.buffer) {
     formData.append(
       "file",
-      new Blob([new Uint8Array(buffer)], { type: mimeType }),
-      filename || "document.pdf"
+      new Blob([new Uint8Array(params.buffer)], { type: params.mimeType }),
+      params.filename || "documento.pdf"
     )
-    formData.append("force_ocr", forceOCR ? "true" : "false")
+  }
 
-    const endpoint = `${baseUrl.replace(/\/$/, "")}/parse`
-    const parserToken = process.env.PAPER_PARSER_TOKEN?.trim()
+  formData.append("force_ocr", params.forceOCR ? "true" : "false")
 
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers: parserToken ? { "x-parser-token": parserToken } : undefined,
-      body: formData,
-      signal: AbortSignal.timeout(timeoutMs),
+  const response = await fetch(params.endpoint, {
+    method: "POST",
+    headers: params.parserToken ? { "x-parser-token": params.parserToken } : undefined,
+    body: formData,
+    signal: AbortSignal.timeout(params.timeoutMs),
+    cache: "no-store",
+  })
+
+  return {
+    response,
+    raw: await response.text(),
+  }
+}
+
+function errorResult(message: string): ExternalParserResult {
+  return {
+    success: false,
+    parser: "external-parser",
+    method: "external-parser",
+    text: "",
+    pageCount: 0,
+    pages: [],
+    error: message,
+  }
+}
+
+export async function parseDocumentWithExternalService(
+  params: ExternalParserRequest
+): Promise<ExternalParserResult | null> {
+  const {
+    buffer,
+    sourceUrl,
+    filename,
+    mimeType = "application/pdf",
+    forceOCR = false,
+  } = params
+
+  const configuredUrl = process.env.DOCLING_PARSER_URL?.trim()
+  if (!configuredUrl) return null
+  if (!buffer && !sourceUrl) return errorResult("No se entregó buffer ni URL firmada al parser externo.")
+
+  const baseUrl = configuredUrl.replace(/\/$/, "")
+  const endpoint = `${baseUrl}/parse`
+  const parserToken = process.env.PAPER_PARSER_TOKEN?.trim()
+  const wakeTimeoutMs = clampNumber(
+    process.env.DOCLING_PARSER_WAKE_TIMEOUT_MS,
+    90_000,
+    5_000,
+    120_000,
+  )
+  const parseTimeoutMs = clampNumber(
+    process.env.DOCLING_PARSER_TIMEOUT_MS,
+    240_000,
+    15_000,
+    300_000,
+  )
+  const fallbackMaxBytes = clampNumber(
+    process.env.PAPER_PARSER_BUFFER_FALLBACK_MB,
+    50,
+    1,
+    100,
+  ) * 1024 * 1024
+
+  try {
+    await wakeParser({ baseUrl, parserToken, totalTimeoutMs: wakeTimeoutMs })
+
+    let attempt = await postParse({
+      endpoint,
+      parserToken,
+      timeoutMs: parseTimeoutMs,
+      filename,
+      mimeType,
+      forceOCR,
+      sourceUrl,
+      buffer: sourceUrl ? undefined : buffer,
     })
 
-    const raw = await res.text()
+    if (
+      !attempt.response.ok &&
+      sourceUrl &&
+      buffer &&
+      buffer.byteLength <= fallbackMaxBytes
+    ) {
+      console.warn(
+        `[Paper parser] URL mode returned HTTP ${attempt.response.status}; retrying with multipart buffer.`
+      )
+      attempt = await postParse({
+        endpoint,
+        parserToken,
+        timeoutMs: parseTimeoutMs,
+        filename,
+        mimeType,
+        forceOCR,
+        buffer,
+      })
+    }
 
-    if (!res.ok) {
-      console.error("[Paper parser] HTTP", res.status, raw)
-      return {
-        success: false,
-        parser: "external-parser",
-        method: "external-parser",
-        text: "",
-        pageCount: 0,
-        pages: [],
-        error: `HTTP ${res.status}: ${raw || "sin detalle"}`,
-      }
+    if (!attempt.response.ok) {
+      console.error("[Paper parser] HTTP", attempt.response.status, attempt.raw)
+      return errorResult(`HTTP ${attempt.response.status}: ${attempt.raw || "sin detalle"}`)
     }
 
     let data: any = null
     try {
-      data = JSON.parse(raw)
+      data = JSON.parse(attempt.raw)
     } catch {
-      console.error("[Paper parser] respuesta no JSON:", raw)
-      return {
-        success: false,
-        parser: "external-parser",
-        method: "external-parser",
-        text: "",
-        pageCount: 0,
-        pages: [],
-        error: "La respuesta del parser no fue JSON válido.",
-      }
+      console.error("[Paper parser] respuesta no JSON:", attempt.raw)
+      return errorResult("La respuesta del parser no fue JSON válido.")
     }
 
     return parseDoclingResponse(data)
   } catch (error: any) {
     console.error("[Paper parser] error:", error?.message || error)
-    return {
-      success: false,
-      parser: "external-parser",
-      method: "external-parser",
-      text: "",
-      pageCount: 0,
-      pages: [],
-      error: error?.message || "Fallo desconocido del parser externo.",
-    }
+    return errorResult(error?.message || "Fallo desconocido del parser externo.")
   }
 }
