@@ -79,9 +79,6 @@ jobs:
               '.github/workflows/materialize-paper-pipeline.yml',
               'app/api/agents/paper/extract/route.ts',
               'app/api/agents/paper/route.ts',
-              'app/api/agents/paper/parser-health/route.ts',
-              'app/api/agents/paper/upload-url/route.ts',
-              'app/api/agents/paper/upload/route.ts',
               'app/paper-large/page.tsx',
               'app/paper/page.tsx',
               'lib/papers/extraction.ts',
@@ -118,9 +115,6 @@ jobs:
             .github/workflows/materialize-paper-pipeline.yml \
             app/api/agents/paper/extract/route.ts \
             app/api/agents/paper/route.ts \
-            app/api/agents/paper/parser-health/route.ts \
-            app/api/agents/paper/upload-url/route.ts \
-            app/api/agents/paper/upload/route.ts \
             app/paper-large/page.tsx \
             app/paper/page.tsx \
             lib/papers/extraction.ts \
