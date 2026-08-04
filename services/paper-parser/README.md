@@ -20,7 +20,7 @@ Microservicio Docker para leer PDF normales, mixtos y escaneados desde Chat Pape
 5. Los PDF escaneados, mixtos o con texto insuficiente pasan a este Space.
 6. Para archivos grandes, EduAI envía una URL firmada temporal de Supabase en vez de reenviar el archivo completo mediante Vercel.
 7. El resultado se divide y guarda en `paper_documents` y `paper_chunks` para que la IA consulte solo los fragmentos relevantes.
-8. Chat Paper muestra un panel lateral izquierdo de materiales guardados, ordenados desde el más nuevo. Al abrir un documento ya procesado, reutiliza `paper_documents` y `paper_chunks` sin repetir extracción, OCR ni fragmentación.
+8. Chat Paper muestra un panel lateral izquierdo de materiales guardados, ordenados desde el más nuevo al más antiguo. Al abrir un documento ya procesado, reutiliza `paper_documents` y `paper_chunks` sin repetir extracción, OCR ni fragmentación.
 
 ## Entradas admitidas por `POST /parse`
 
@@ -67,7 +67,7 @@ Supabase Storage también debe permitir el tamaño configurado. El bucket `paper
 - Se obtiene desde `GET /api/agents/paper/extract` sin agregar una función adicional de Vercel.
 - Combina los PDF originales del bucket privado `papers` con sus registros en `paper_documents`.
 - Muestra archivos procesados y pendientes.
-- Se ordena desde el material más reciente.
+- Se ordena desde el material más reciente al más antiguo.
 - Un documento procesado se abre con `forceRefresh: false`, por lo que la extracción existente se recupera desde caché.
 - El PDF original permanece como una sola copia en Storage.
 
