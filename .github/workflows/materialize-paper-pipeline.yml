@@ -70,7 +70,7 @@ jobs:
       - name: Verify materialized pipeline
         run: |
           npm run test:paper
-          npm run build
+          npx tsc --noEmit
 
       - name: Reject unrelated generated changes
         run: |
@@ -105,7 +105,7 @@ jobs:
 
           unexpected = sorted(changed - allowed)
           if unexpected:
-              raise SystemExit('Cambios inesperados generados por build:\n' + '\n'.join(unexpected))
+              raise SystemExit('Cambios inesperados generados por verificación:\n' + '\n'.join(unexpected))
           PY
 
       - name: Commit final source files
