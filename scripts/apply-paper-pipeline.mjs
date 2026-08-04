@@ -5,6 +5,10 @@ const root = process.cwd()
 const extractionPath = path.join(root, "lib/papers/extraction.ts")
 const healthRoutePath = path.join(root, "app/api/agents/paper/parser-health/route.ts")
 const legacyUploadRoutePath = path.join(root, "app/api/agents/paper/upload/route.ts")
+const paperRoutePaths = [
+  path.join(root, "app/api/agents/paper/route.ts"),
+  path.join(root, "app/api/agents/paper/extract/route.ts"),
+]
 const paperPagePath = path.join(root, "app/paper/page.tsx")
 const paperPages = [
   paperPagePath,
@@ -66,6 +70,17 @@ async function ensureNativeTextFallback() {
   await fs.writeFile(extractionPath, source)
 }
 
+async function normalizePaperRouteDurations() {
+  for (const filePath of paperRoutePaths) {
+    let source = await fs.readFile(filePath, "utf8")
+    source = source.replace(
+      /export const maxDuration = \d+/,
+      "export const maxDuration = 60",
+    )
+    await fs.writeFile(filePath, source)
+  }
+}
+
 const source = await fs.readFile(extractionPath, "utf8")
 const remoteAlreadyApplied = source.includes("const SERVER_BUFFER_MAX_MB")
 
@@ -87,4 +102,5 @@ await removeWarmupCode()
 await removeTemporaryHealthRoute()
 await consolidateUploadFlow()
 await ensureNativeTextFallback()
-console.log("[paper-pipeline] PDF listo: clasificación Rust, extracción nativa y OCR selectivo.")
+await normalizePaperRouteDurations()
+console.log("[paper-pipeline] PDF listo en el bundle compartido de Vercel Hobby.")
