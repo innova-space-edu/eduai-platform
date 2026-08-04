@@ -6,6 +6,7 @@ export interface PdfInspectorPage {
 export interface PdfInspectorResult {
   success: boolean
   available: boolean
+  extractionAvailable: boolean
   method: "pdf-inspector"
   pdfType: string
   confidence: number
@@ -72,26 +73,33 @@ function pagesFromMarkdown(markdown: string): PdfInspectorPage[] {
   return singlePage.text ? [singlePage] : []
 }
 
+function emptyResult(params?: Partial<PdfInspectorResult>): PdfInspectorResult {
+  return {
+    success: false,
+    available: false,
+    extractionAvailable: false,
+    method: "pdf-inspector",
+    pdfType: "Unknown",
+    confidence: 0,
+    pageCount: 0,
+    pagesNeedingOcr: [],
+    text: "",
+    markdown: "",
+    pages: [],
+    ...params,
+  }
+}
+
 export async function extractWithPdfInspector(buffer: Buffer): Promise<PdfInspectorResult> {
   try {
     const module: any = await import("@firecrawl/pdf-inspector")
     const classifyPdf = module?.classifyPdf
     const processPdf = module?.processPdf
 
-    if (typeof classifyPdf !== "function" || typeof processPdf !== "function") {
-      return {
-        success: false,
-        available: false,
-        method: "pdf-inspector",
-        pdfType: "Unknown",
-        confidence: 0,
-        pageCount: 0,
-        pagesNeedingOcr: [],
-        text: "",
-        markdown: "",
-        pages: [],
-        error: "La instalación de pdf-inspector no expone classifyPdf/processPdf.",
-      }
+    if (typeof classifyPdf !== "function") {
+      return emptyResult({
+        error: "La instalación de pdf-inspector no expone classifyPdf.",
+      })
     }
 
     const classification = classifyPdf(buffer)
@@ -104,19 +112,23 @@ export async function extractWithPdfInspector(buffer: Buffer): Promise<PdfInspec
           .filter((page: number) => Number.isFinite(page) && page > 0)
       : []
 
+    const classificationResult = {
+      available: true,
+      pdfType,
+      confidence,
+      pageCount,
+      pagesNeedingOcr,
+    }
+
     if (pdfType === "Scanned" || pdfType === "ImageBased") {
-      return {
-        success: false,
-        available: true,
-        method: "pdf-inspector",
-        pdfType,
-        confidence,
-        pageCount,
-        pagesNeedingOcr,
-        text: "",
-        markdown: "",
-        pages: [],
-      }
+      return emptyResult(classificationResult)
+    }
+
+    if (typeof processPdf !== "function") {
+      return emptyResult({
+        ...classificationResult,
+        error: "Esta versión de pdf-inspector ofrece clasificación, pero no extracción completa.",
+      })
     }
 
     let processed: any
@@ -148,6 +160,7 @@ export async function extractWithPdfInspector(buffer: Buffer): Promise<PdfInspec
     return {
       success: hasUsefulText(text),
       available: true,
+      extractionAvailable: true,
       method: "pdf-inspector",
       pdfType,
       confidence,
@@ -159,18 +172,8 @@ export async function extractWithPdfInspector(buffer: Buffer): Promise<PdfInspec
     }
   } catch (error: any) {
     console.error("[Paper] pdf-inspector failed:", error)
-    return {
-      success: false,
-      available: false,
-      method: "pdf-inspector",
-      pdfType: "Unknown",
-      confidence: 0,
-      pageCount: 0,
-      pagesNeedingOcr: [],
-      text: "",
-      markdown: "",
-      pages: [],
+    return emptyResult({
       error: error?.message || "No se pudo cargar pdf-inspector.",
-    }
+    })
   }
 }
