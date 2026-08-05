@@ -1,0 +1,240 @@
+.planner-light-theme {
+  --planner-ink: #17324d;
+  --planner-muted: #62748b;
+  --planner-border: #d9e4f2;
+  min-height: 100vh;
+  color: var(--planner-ink);
+}
+
+.planner-light-theme > div {
+  background:
+    radial-gradient(circle at 8% 0%, rgba(204, 248, 236, 0.72), transparent 27%),
+    radial-gradient(circle at 92% 3%, rgba(237, 224, 255, 0.68), transparent 29%),
+    linear-gradient(180deg, #fbfdff 0%, #f5f9fd 100%) !important;
+  color: var(--planner-ink) !important;
+}
+
+.planner-light-theme header {
+  border-color: #e3eaf5 !important;
+  background: rgba(255, 255, 255, 0.94) !important;
+  box-shadow: 0 8px 28px rgba(79, 103, 140, 0.08) !important;
+}
+
+.planner-light-theme header button {
+  border-color: #d7e1ef !important;
+  background: #ffffff !important;
+  color: #31527b !important;
+  box-shadow: 0 5px 15px rgba(66, 91, 125, 0.08);
+}
+
+.planner-light-theme header [class~="bg-emerald-700"] {
+  background: linear-gradient(145deg, #26c7a0, #64d7bb) !important;
+  color: #ffffff !important;
+  box-shadow: 0 8px 20px rgba(38, 199, 160, 0.22);
+}
+
+.planner-light-theme header a[href="/educador/planificaciones"] {
+  border: 1px solid #d9e5f4 !important;
+  background: #ffffff !important;
+  color: #3275c5 !important;
+  box-shadow: 0 7px 18px rgba(75, 111, 159, 0.1);
+}
+
+.planner-light-theme main > nav {
+  border-color: #e2e9f4 !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+  box-shadow: 0 10px 30px rgba(65, 91, 128, 0.07);
+}
+
+.planner-light-theme nav button {
+  transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+
+.planner-light-theme nav button:hover {
+  transform: translateY(-1px);
+}
+
+.planner-light-theme nav [class~="bg-emerald-700"] {
+  background: linear-gradient(135deg, #def8ef, #eefbf7) !important;
+  color: #167861 !important;
+  box-shadow: inset 0 0 0 1px #b8ebdc;
+}
+
+.planner-light-theme nav [class~="bg-emerald-100"] {
+  background: #f2fbf8 !important;
+  color: #2f7466 !important;
+}
+
+.planner-light-theme nav button [class~="bg-emerald-700"] {
+  background: #46bfa0 !important;
+  color: #ffffff !important;
+  box-shadow: none;
+}
+
+.planner-light-theme nav [class~="bg-slate-100"] {
+  background: #f5f8fc !important;
+  color: #718198 !important;
+}
+
+.planner-light-theme main section {
+  border-color: #e0e8f3 !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+  box-shadow: 0 18px 50px rgba(78, 101, 135, 0.09) !important;
+}
+
+.planner-light-theme main section h2,
+.planner-light-theme main section p,
+.planner-light-theme main section label {
+  color: var(--planner-ink);
+}
+
+.planner-light-theme main section p[class*="text-slate-600"],
+.planner-light-theme main section p[class*="text-slate-700"] {
+  color: var(--planner-muted) !important;
+}
+
+.planner-light-theme main section button[class*="rounded-2xl"][class*="border-2"] {
+  border-color: #dbe5f1;
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgba(70, 96, 132, 0.055);
+  transition: transform 170ms ease, box-shadow 170ms ease, border-color 170ms ease, background 170ms ease;
+}
+
+.planner-light-theme main section button[class*="rounded-2xl"][class*="border-2"]:hover {
+  transform: translateY(-2px);
+  border-color: #9fdacb;
+  box-shadow: 0 12px 28px rgba(70, 96, 132, 0.1);
+}
+
+.planner-light-theme main section button[class~="border-emerald-700"][class~="bg-emerald-50"] {
+  border-color: #3eb792 !important;
+  background: linear-gradient(145deg, #edfcf7, #f8fffd) !important;
+  box-shadow: 0 12px 26px rgba(55, 181, 144, 0.12) !important;
+}
+
+.planner-light-theme main section button[class~="border-indigo-700"][class~="bg-indigo-50"] {
+  border-color: #8c7cf2 !important;
+  background: linear-gradient(145deg, #f3f1ff, #fbfaff) !important;
+  box-shadow: 0 12px 26px rgba(124, 104, 228, 0.11) !important;
+}
+
+.planner-light-theme main section button > div:first-child > span:first-child[class~="text-2xl"] {
+  display: inline-flex;
+  width: 48px;
+  height: 48px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  background: linear-gradient(145deg, #f2fbff, #eef9f5);
+  box-shadow: inset 0 0 0 1px rgba(150, 177, 208, 0.2);
+}
+
+.planner-light-theme main section select,
+.planner-light-theme main section input,
+.planner-light-theme main section textarea {
+  border-color: #d6e1ef !important;
+  background: #ffffff !important;
+  color: #243d5a !important;
+  box-shadow: 0 5px 14px rgba(66, 90, 125, 0.045);
+}
+
+.planner-light-theme main section select:focus,
+.planner-light-theme main section input:focus,
+.planner-light-theme main section textarea:focus {
+  border-color: #58bfa7 !important;
+  box-shadow: 0 0 0 4px rgba(81, 194, 167, 0.13) !important;
+}
+
+.planner-light-theme main section [class~="bg-emerald-700"] {
+  background: linear-gradient(135deg, #42bfa0, #62cdb3) !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 22px rgba(66, 191, 160, 0.2);
+}
+
+.planner-light-theme main section [class~="bg-indigo-700"] {
+  background: linear-gradient(135deg, #8778e9, #a496f3) !important;
+  color: #ffffff !important;
+}
+
+.planner-light-theme main section [class~="bg-cyan-800"] {
+  background: #57b9c8 !important;
+  color: #ffffff !important;
+}
+
+.planner-light-theme aside > div {
+  border: 1px solid #dce6f2 !important;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%) !important;
+  color: var(--planner-ink) !important;
+  box-shadow: 0 18px 48px rgba(72, 98, 134, 0.11) !important;
+}
+
+.planner-light-theme aside h2,
+.planner-light-theme aside p {
+  color: var(--planner-ink) !important;
+}
+
+.planner-light-theme aside > div > p:first-child {
+  color: #26a986 !important;
+}
+
+.planner-light-theme aside [class~="bg-white/10"] {
+  border: 1px solid #e0e8f4;
+  background: #f8fbff !important;
+  color: var(--planner-ink) !important;
+  box-shadow: 0 7px 20px rgba(86, 109, 143, 0.055);
+}
+
+.planner-light-theme aside [class~="bg-white/10"]:nth-child(1) {
+  background: linear-gradient(145deg, #f2f8ff, #fbfdff) !important;
+}
+
+.planner-light-theme aside [class~="bg-white/10"]:nth-child(2) {
+  background: linear-gradient(145deg, #f5f2ff, #fcfbff) !important;
+}
+
+.planner-light-theme aside [class~="bg-white/10"]:nth-child(3) {
+  background: linear-gradient(145deg, #f6f3ff, #fbfaff) !important;
+}
+
+.planner-light-theme aside [class~="text-slate-300"] {
+  color: #687a91 !important;
+}
+
+.planner-light-theme aside [class~="border-emerald-500"] {
+  border-color: #9cdec9 !important;
+  background: linear-gradient(145deg, #ecfbf6, #f7fffc) !important;
+}
+
+.planner-light-theme aside [class~="border-amber-400"] {
+  border-color: #f1cf88 !important;
+  background: #fff9ea !important;
+}
+
+.planner-light-theme aside [class~="bg-emerald-500/15"],
+.planner-light-theme aside [class~="bg-amber-400/15"] {
+  color: var(--planner-ink) !important;
+}
+
+.planner-light-theme [class~="shadow-lg"] {
+  box-shadow: 0 16px 38px rgba(66, 91, 126, 0.12) !important;
+}
+
+@media (max-width: 1279px) {
+  .planner-light-theme aside > div {
+    background: #ffffff !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .planner-light-theme header h1 {
+    font-size: 0.95rem;
+  }
+
+  .planner-light-theme header a[href="/educador/planificaciones"] {
+    padding-inline: 0.75rem !important;
+  }
+
+  .planner-light-theme main section {
+    border-radius: 22px !important;
+  }
+}
