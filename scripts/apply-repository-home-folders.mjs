@@ -16,6 +16,15 @@ if (!existsSync(PAGE)) {
 
 let source = readFileSync(PAGE, "utf8")
 
+// Identidad visual y textos generales de la página.
+source = source
+  .replaceAll("Repositorio EduAI", "Nube EduAI")
+  .replaceAll("Agregar al repositorio", "Agregar a Nube EduAI")
+  .replaceAll("No se pudo cargar el repositorio.", "No se pudo cargar Nube EduAI.")
+  .replaceAll("Inicio del repositorio", "Inicio de Nube EduAI")
+  .replaceAll("bg-slate-950/45", "bg-slate-300/55")
+  .replaceAll("bg-slate-950/35", "bg-slate-300/60")
+
 if (!source.includes(MARKER)) {
   source = replaceRequired(
     source,
@@ -90,11 +99,11 @@ function fileIcon(item: RepositoryItem, size = 15) {`,
               className={\`mb-2 flex w-full items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-xs font-semibold transition \${selectedId === null ? "border-blue-200 bg-blue-50 text-blue-700" : "border-transparent text-slate-600 hover:border-slate-200 hover:bg-slate-50"}\`}
             >
               <HardDrive size={16} className="shrink-0" />
-              <span className="flex-1">Inicio del repositorio</span>
+              <span className="flex-1">Inicio de Nube EduAI</span>
               <ChevronRight size={13} />
             </button>
             {loading ? (`,
-    "acceso al inicio del repositorio",
+    "acceso al inicio de Nube EduAI",
   )
 
   source = replaceRequired(
@@ -106,47 +115,47 @@ function fileIcon(item: RepositoryItem, size = 15) {`,
               {selectedItem ? (
                 <RepositoryPreview item={selectedItem} signedUrl={signedUrl} loadingUrl={loadingUrl} urlError={urlError} />
               ) : (
-                <div className="flex min-h-full items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50/70 to-indigo-50 p-5 sm:p-8">
-                  <div className="w-full max-w-4xl overflow-hidden rounded-[30px] border border-white bg-white/90 shadow-2xl shadow-blue-100/70 backdrop-blur">
+                <div className="flex min-h-full items-center justify-center bg-gradient-to-br from-sky-50 via-blue-50/80 to-violet-50/80 p-5 sm:p-8">
+                  <div className="w-full max-w-4xl overflow-hidden rounded-[30px] border border-blue-100 bg-white/95 shadow-2xl shadow-blue-100/60 backdrop-blur">
                     <div className="grid gap-0 lg:grid-cols-[1.15fr_0.85fr]">
                       <div className="p-7 sm:p-10">
-                        <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-xl shadow-blue-200">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-br from-sky-500 to-indigo-500 text-white shadow-xl shadow-blue-200/80">
                           <HardDrive size={30} />
                         </div>
                         <p className="mt-6 text-xs font-black uppercase tracking-[0.22em] text-blue-600">Tu nube educativa</p>
-                        <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">Bienvenido al Repositorio EduAI</h2>
+                        <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">Bienvenido a Nube EduAI</h2>
                         <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
-                          Guarda en un solo lugar tus guías, pruebas, planificaciones, presentaciones, imágenes, videos y documentos de estudio. EduAI los organiza por asignatura, curso, año y tipo de material para que puedas encontrarlos cuando los necesites.
+                          Guarda en un solo lugar tus guías, pruebas, planificaciones, presentaciones, imágenes, videos y documentos de estudio. Nube EduAI los organiza por asignatura, curso, año y tipo de material para que puedas encontrarlos cuando los necesites.
                         </p>
                         <div className="mt-7 flex flex-col gap-3 sm:flex-row">
                           <button type="button" onClick={() => setUploadOpen(true)} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-blue-200 transition hover:-translate-y-0.5 hover:bg-blue-700">
                             <Upload size={18} /> Subir mi primer material
                           </button>
-                          <button type="button" onClick={() => setMobileSidebarOpen(true)} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50 sm:hidden">
+                          <button type="button" onClick={() => setMobileSidebarOpen(true)} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-blue-100 bg-white px-5 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-blue-50 sm:hidden">
                             <Folder size={18} /> Ver carpetas
                           </button>
                         </div>
                         <p className="mt-5 text-xs leading-5 text-slate-500">Selecciona una carpeta del panel izquierdo para abrir o cerrar su contenido. Todas comienzan cerradas para mantener una vista limpia y ordenada.</p>
                       </div>
 
-                      <div className="border-t border-slate-100 bg-slate-950 p-7 text-white lg:border-l lg:border-t-0 sm:p-9">
-                        <p className="text-xs font-black uppercase tracking-[0.2em] text-blue-300">Tu colección actual</p>
+                      <div className="border-t border-blue-100 bg-gradient-to-br from-blue-50 via-indigo-50 to-violet-50 p-7 text-slate-900 lg:border-l lg:border-t-0 sm:p-9">
+                        <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">Tu colección actual</p>
                         <div className="mt-5 grid grid-cols-3 gap-3 lg:grid-cols-1">
-                          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                            <p className="text-2xl font-black">{items.length}</p>
-                            <p className="mt-1 text-xs text-slate-300">materiales guardados</p>
+                          <div className="rounded-2xl border border-blue-100 bg-white p-4 shadow-sm shadow-blue-100/70">
+                            <p className="text-2xl font-black text-slate-900">{items.length}</p>
+                            <p className="mt-1 text-xs text-slate-500">materiales guardados</p>
                           </div>
-                          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                            <p className="text-2xl font-black">{counts.files}</p>
-                            <p className="mt-1 text-xs text-slate-300">archivos y documentos</p>
+                          <div className="rounded-2xl border border-indigo-100 bg-white p-4 shadow-sm shadow-indigo-100/70">
+                            <p className="text-2xl font-black text-slate-900">{counts.files}</p>
+                            <p className="mt-1 text-xs text-slate-500">archivos y documentos</p>
                           </div>
-                          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                            <p className="text-2xl font-black">{counts.videos}</p>
-                            <p className="mt-1 text-xs text-slate-300">videos enlazados</p>
+                          <div className="rounded-2xl border border-violet-100 bg-white p-4 shadow-sm shadow-violet-100/70">
+                            <p className="text-2xl font-black text-slate-900">{counts.videos}</p>
+                            <p className="mt-1 text-xs text-slate-500">videos enlazados</p>
                           </div>
                         </div>
-                        <div className="mt-6 rounded-2xl border border-blue-400/20 bg-blue-400/10 p-4 text-xs leading-6 text-blue-100">
-                          Sube material de estudio propio, recursos para tus clases o documentos que quieras conservar. Tu repositorio crecerá contigo y estará disponible desde cualquier dispositivo con tu cuenta EduAI.
+                        <div className="mt-6 rounded-2xl border border-blue-200 bg-white/85 p-4 text-xs leading-6 text-slate-600 shadow-sm">
+                          Sube material de estudio propio, recursos para tus clases o documentos que quieras conservar. Tu nube educativa crecerá contigo y estará disponible desde cualquier dispositivo con tu cuenta EduAI.
                         </div>
                       </div>
                     </div>
@@ -156,21 +165,38 @@ function fileIcon(item: RepositoryItem, size = 15) {`,
             </div>`,
     "ventana de bienvenida",
   )
-
-  writeFileSync(PAGE, source)
 }
+
+// Compatibilidad con una copia de trabajo que ya hubiera recibido la versión anterior.
+source = source
+  .replaceAll("Bienvenido al Nube EduAI", "Bienvenido a Nube EduAI")
+  .replaceAll("Bienvenido al Repositorio EduAI", "Bienvenido a Nube EduAI")
+  .replaceAll("Inicio del repositorio", "Inicio de Nube EduAI")
+  .replaceAll("bg-slate-950 p-7 text-white", "bg-gradient-to-br from-blue-50 via-indigo-50 to-violet-50 p-7 text-slate-900")
+  .replaceAll("text-blue-300", "text-indigo-600")
+  .replaceAll("border-white/10 bg-white/5", "border-blue-100 bg-white shadow-sm shadow-blue-100/70")
+  .replaceAll("text-slate-300", "text-slate-500")
+  .replaceAll("border-blue-400/20 bg-blue-400/10 p-4 text-xs leading-6 text-blue-100", "border-blue-200 bg-white/85 p-4 text-xs leading-6 text-slate-600 shadow-sm")
+  .replaceAll("Tu repositorio crecerá contigo", "Tu nube educativa crecerá contigo")
+
+writeFileSync(PAGE, source)
 
 const verified = readFileSync(PAGE, "utf8")
 for (const required of [
   MARKER,
   "buildCollapsedPaths",
-  "Inicio del repositorio",
-  "Bienvenido al Repositorio EduAI",
+  "Inicio de Nube EduAI",
+  "Bienvenido a Nube EduAI",
   "Subir mi primer material",
+  "from-blue-50 via-indigo-50 to-violet-50",
 ]) {
   if (!verified.includes(required)) {
     throw new Error(`[repository-home] Falta ${required}`)
   }
 }
 
-console.log("[repository-home] carpetas cerradas y bienvenida inicial aplicadas")
+if (verified.includes("Bienvenido al Repositorio EduAI") || verified.includes("bg-slate-950 p-7 text-white")) {
+  throw new Error("[repository-home] La interfaz antigua u oscura sigue presente")
+}
+
+console.log("[repository-home] Nube EduAI clara y bienvenida inicial aplicadas")
