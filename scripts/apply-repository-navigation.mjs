@@ -31,21 +31,30 @@ if (!dashboardSource.includes('href="/repositorio"')) {
               <Link
                 href="/repositorio"
                 className="group flex items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all hover:-translate-y-0.5"
-                style={{ background: "rgba(37,99,235,0.08)", borderColor: "rgba(37,99,235,0.18)", color: "#1d4ed8" }}
+                style={{ background: "rgba(224,242,254,0.92)", borderColor: "rgba(125,211,252,0.65)", color: "#2563eb" }}
               >
                 <HardDrive size={14} className="transition-transform group-hover:scale-110" />
-                <span className="hidden sm:inline">Repositorio</span>
+                <span className="hidden sm:inline">Nube EduAI</span>
               </Link>`
 
   dashboardSource = dashboardSource.replace(match[0], `${match[0]}${repositoryLink}`)
   dashboardChanged = true
 }
 
+const renamedDashboard = dashboardSource
+  .replace('<span className="hidden sm:inline">Repositorio</span>', '<span className="hidden sm:inline">Nube EduAI</span>')
+  .replace('style={{ background: "rgba(37,99,235,0.08)", borderColor: "rgba(37,99,235,0.18)", color: "#1d4ed8" }}', 'style={{ background: "rgba(224,242,254,0.92)", borderColor: "rgba(125,211,252,0.65)", color: "#2563eb" }}')
+
+if (renamedDashboard !== dashboardSource) {
+  dashboardSource = renamedDashboard
+  dashboardChanged = true
+}
+
 if (dashboardChanged) {
   fs.writeFileSync(dashboardPath, dashboardSource)
-  console.log("[repositorio] navegación del panel actualizada")
+  console.log("[nube-eduai] navegación del panel actualizada")
 } else {
-  console.log("[repositorio] navegación del panel ya estaba actualizada")
+  console.log("[nube-eduai] navegación del panel ya estaba actualizada")
 }
 
 let proxySource = fs.readFileSync(proxyPath, "utf8")
@@ -56,7 +65,7 @@ if (!proxySource.includes('"/repositorio"')) {
   }
   proxySource = proxySource.replace(routeMarker, '  "/pizarra-interactiva",\n  "/repositorio",\n]')
   fs.writeFileSync(proxyPath, proxySource)
-  console.log("[repositorio] ruta protegida agregada al proxy")
+  console.log("[nube-eduai] ruta protegida agregada al proxy")
 } else {
-  console.log("[repositorio] ruta del repositorio ya estaba protegida")
+  console.log("[nube-eduai] ruta de Nube EduAI ya estaba protegida")
 }

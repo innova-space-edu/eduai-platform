@@ -51,16 +51,16 @@ if (!source.includes(MARKER)) {
   },
   {
     id: "repositorio",
-    icon: "🗂️",
-    name: "Repositorio",
+    icon: "☁️",
+    name: "Nube EduAI",
     description: "Guarda, ordena y consulta tus materiales educativos por curso y asignatura.",
-    color: "from-teal-500 to-emerald-700",
-    glow: "rgba(20,184,166,0.15)",
-    border: "rgba(20,184,166,0.22)",
+    color: "from-sky-400 to-indigo-500",
+    glow: "rgba(56,189,248,0.16)",
+    border: "rgba(99,102,241,0.20)",
     href: "/repositorio",
     tag: "Organización",
     status: "active",
-    ctaLabel: "Abrir repositorio",
+    ctaLabel: "Abrir Nube EduAI",
   },
 ];
 
@@ -71,14 +71,23 @@ if (!source.includes(MARKER)) {
   }
 
   source = source.replace(anchor, replacement)
-  writeFileSync(PAGE, source)
 }
+
+source = source
+  .replace('name: "Repositorio"', 'name: "Nube EduAI"')
+  .replace('ctaLabel: "Abrir repositorio"', 'ctaLabel: "Abrir Nube EduAI"')
+  .replace('icon: "🗂️",\n    name: "Nube EduAI"', 'icon: "☁️",\n    name: "Nube EduAI"')
+  .replace('color: "from-teal-500 to-emerald-700",\n    glow: "rgba(20,184,166,0.15)",\n    border: "rgba(20,184,166,0.22)",\n    href: "/repositorio"', 'color: "from-sky-400 to-indigo-500",\n    glow: "rgba(56,189,248,0.16)",\n    border: "rgba(99,102,241,0.20)",\n    href: "/repositorio"')
+
+writeFileSync(PAGE, source)
 
 const verified = readFileSync(PAGE, "utf8")
 for (const required of [
   MARKER,
   'id: "biblioteca"',
   'id: "repositorio"',
+  'name: "Nube EduAI"',
+  'ctaLabel: "Abrir Nube EduAI"',
   'href: "/biblioteca"',
   'href: "/repositorio"',
 ]) {
@@ -87,4 +96,4 @@ for (const required of [
   }
 }
 
-console.log("[agent-cards] Biblioteca y Repositorio disponibles en Agentes")
+console.log("[agent-cards] Biblioteca y Nube EduAI disponibles en Agentes")
