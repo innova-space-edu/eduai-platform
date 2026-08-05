@@ -19,8 +19,14 @@ const catalog = read("lib/repository/catalog.ts")
 const migration = read("supabase/migrations/202608030001_repository_documents.sql")
 const navigation = read("scripts/apply-repository-navigation.mjs")
 const homePatch = read("scripts/apply-repository-home-folders.mjs")
+const sharingPatch = read("scripts/apply-repository-sharing.mjs")
 const agentCardsPatch = read("scripts/apply-agent-library-repository-cards.mjs")
 const courseSubjectPatch = read("scripts/apply-repository-course-subject-selects.mjs")
+const shareToken = read("lib/repository/public-share.ts")
+const shareCreateRoute = read("app/api/repository/share/route.ts")
+const sharePublicRoute = read("app/api/repository/public/[token]/route.ts")
+const sharePublicPage = read("app/nube/[token]/page.tsx")
+const sharePublicViewer = read("app/nube/[token]/shared-material-viewer.tsx")
 const packageJson = JSON.parse(read("package.json"))
 
 for (const [value, label] of [
@@ -35,6 +41,8 @@ for (const [value, label] of [
   ["subjectGroupsForCourse", "asignaturas dependientes del curso"],
   ["<optgroup", "asignaturas agrupadas"],
   ["Selecciona primero un curso", "bloqueo de asignatura sin curso"],
+  ["createShareLink", "creación del enlace compartido"],
+  ["Compartir documento", "botón y diálogo para compartir"],
 ]) requireText(page, value, label)
 
 for (const value of ["guia", "prueba", "rubrica", "presentacion", "planificacion", "actividad", "ejercicio", "imagen", "otro"]) {
@@ -87,10 +95,20 @@ requireText(homePatch, "Bienvenido a Nube EduAI", "bienvenida de Nube EduAI")
 requireText(homePatch, "from-blue-50 via-indigo-50 to-violet-50", "panel de colección claro")
 requireText(agentCardsPatch, 'name: "Nube EduAI"', "tarjeta Nube EduAI en Agentes")
 requireText(courseSubjectPatch, "updateEducationalLevel", "reinicio de asignatura al cambiar curso")
-requireText(packageJson.scripts.dev, "apply-repository-course-subject-selects.mjs", "selectores en desarrollo")
-requireText(packageJson.scripts.build, "apply-repository-course-subject-selects.mjs", "selectores en compilación")
-requireText(packageJson.scripts["test:repository"], "apply-repository-course-subject-selects.mjs", "selectores en prueba de Nube EduAI")
-requireText(packageJson.scripts.dev, "apply-repository-navigation.mjs", "parche en desarrollo")
-requireText(packageJson.scripts.build, "apply-repository-navigation.mjs", "parche en compilación")
+requireText(sharingPatch, "El enlace no tiene fecha de vencimiento", "aviso de enlace permanente")
+requireText(sharingPatch, "/api/repository/share", "API de creación de enlace")
+requireText(shareToken, "createHmac", "firma criptográfica del enlace")
+requireText(shareToken, "timingSafeEqual", "verificación segura de la firma")
+requireText(shareCreateRoute, "createRepositoryShareToken", "generador de enlace")
+requireText(shareCreateRoute, "item.created_by !== user.id", "restricción al propietario")
+requireText(sharePublicRoute, "parseRepositoryShareToken", "validación del enlace público")
+requireText(sharePublicRoute, "SUPABASE_SERVICE_ROLE_KEY", "lectura pública segura")
+requireText(sharePublicRoute, "createSignedUrl", "URL temporal interna por visita")
+requireText(sharePublicPage, "SharedMaterialViewer", "página pública")
+requireText(sharePublicViewer, "Descargar archivo", "descarga desde la página pública")
+requireText(sharePublicViewer, "Generado por EduAI - Innova Space Education 2026", "autoría en el pie de página")
+requireText(packageJson.scripts.dev, "apply-repository-sharing.mjs", "compartir en desarrollo")
+requireText(packageJson.scripts.build, "apply-repository-sharing.mjs", "compartir en compilación")
+requireText(packageJson.scripts["test:repository"], "apply-repository-sharing.mjs", "compartir en prueba de Nube EduAI")
 
-console.log("Nube EduAI: verificación estructural y visual correcta")
+console.log("Nube EduAI: verificación estructural, visual y de enlaces públicos correcta")
