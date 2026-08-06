@@ -20,8 +20,9 @@ export async function POST(request: NextRequest) {
 
   const { data: item, error } = await supabase
     .from("repository_items")
-    .select("id,created_by,title")
+    .select("id,title")
     .eq("id", itemId)
+    .eq("visibility", "public")
     .maybeSingle()
 
   if (error) {
@@ -29,9 +30,6 @@ export async function POST(request: NextRequest) {
   }
   if (!item) {
     return NextResponse.json({ error: "El material ya no está disponible." }, { status: 404 })
-  }
-  if (item.created_by !== user.id) {
-    return NextResponse.json({ error: "Solo quien subió el material puede generar su enlace público." }, { status: 403 })
   }
 
   try {
