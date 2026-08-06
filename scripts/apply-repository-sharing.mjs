@@ -86,19 +86,17 @@ if (!source.includes(MARKER)) {
     `                <div className="flex shrink-0 items-center gap-1">
                   {selectedItem.source_type === "youtube" && selectedItem.youtube_url && (`,
     `                <div className="flex shrink-0 items-center gap-1">
-                  {selectedItem.created_by === userId && (
-                    <button
-                      type="button"
-                      onClick={() => void createShareLink(selectedItem)}
-                      className="rounded-xl p-2.5 text-slate-500 transition hover:bg-blue-50 hover:text-blue-600"
-                      aria-label="Compartir documento"
-                      title="Compartir documento"
-                    >
-                      <Share2 size={17} />
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => void createShareLink(selectedItem)}
+                    className="rounded-xl p-2.5 text-slate-500 transition hover:bg-blue-50 hover:text-blue-600"
+                    aria-label="Compartir documento"
+                    title="Compartir documento"
+                  >
+                    <Share2 size={17} />
+                  </button>
                   {selectedItem.source_type === "youtube" && selectedItem.youtube_url && (`,
-    "botón compartir",
+    "botón compartir para todos los usuarios",
   )
 
   source = replaceRequired(
@@ -120,7 +118,7 @@ if (!source.includes(MARKER)) {
 
             <div className="p-6">
               <div className="rounded-2xl border border-blue-100 bg-blue-50/70 p-4 text-sm leading-6 text-slate-600">
-                Cualquier persona que reciba este enlace podrá ver únicamente este material y descargarlo. El enlace no tiene fecha de vencimiento.
+                Cualquier usuario de EduAI puede generar y compartir este enlace. Quien lo reciba podrá ver únicamente este material y descargarlo. El enlace no tiene fecha de vencimiento.
               </div>
 
               {shareLoading ? (
@@ -166,10 +164,16 @@ for (const required of [
   "createShareLink",
   "Compartir documento",
   "/api/repository/share",
+  "Cualquier usuario de EduAI puede generar y compartir este enlace",
+  "descargarlo",
   "El enlace no tiene fecha de vencimiento",
   "Ver página compartida",
 ]) {
   if (!verified.includes(required)) throw new Error(`[repository-sharing] Falta ${required}`)
 }
 
-console.log("[repository-sharing] enlaces permanentes y diálogo de compartir aplicados")
+if (verified.includes("selectedItem.created_by === userId")) {
+  throw new Error("[repository-sharing] El botón compartir sigue restringido al autor")
+}
+
+console.log("[repository-sharing] todos los usuarios pueden compartir y descargar materiales")
