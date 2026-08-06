@@ -91,8 +91,22 @@ async function checkUploadRateLimit(request: NextRequest, ownerId: string) {
   }
 }
 
-function cleanText(value: FormDataEntryValue | null, maxLength: number) {
+function cleanText(value: unknown, maxLength: number) {
   return typeof value === "string" ? value.trim().slice(0, maxLength) : ""
+}
+
+function validateFileMetadata(fileName: string, fileSize: number, mimeType: string) {
+  if (!fileName || fileSize <= 0 || fileSize > MAX_REPOSITORY_FILE_SIZE) {
+    return "El archivo debe pesar entre 1 byte y 100 MB."
+  }
+  if (BLOCKED_FILE_EXTENSION.test(fileName) || BLOCKED_MIME_TYPES.has(mimeType.toLowerCase())) {
+    return "Este tipo de archivo no está permitido en el acceso público."
+  }
+  return ""
+}
+
+function isOwnedPublicPath(path: string, ownerId: string) {
+  return path.startsWith(`${ownerId}/public/`) && !path.includes("..") && path.length <= 700
 }
 
 export async function GET(_request: NextRequest, context: { params: Promise<{ token: string }> }) {
@@ -131,20 +145,62 @@ export async function POST(request: NextRequest, context: { params: Promise<{ to
     }, { status: 429, headers: { "Retry-After": "3600" } })
   }
 
-  const form = await request.formData().catch(() => null)
-  if (!form) return NextResponse.json({ error: "La solicitud de carga no es válida." }, { status: 400 })
+  const body = await request.json().catch(() => null)
+  const fileName = cleanText(body?.fileName, 255)
+  const fileSize = Number(body?.fileSize || 0)
+  const mimeType = cleanText(body?.mimeType, 160) || "application/octet-stream"
+  const schoolYear = Number.parseInt(String(body?.year || ""), 10)
 
-  const fileEntry = form.get("file")
-  const file = fileEntry instanceof File ? fileEntry : null
-  const title = cleanText(form.get("title"), 240)
-  const subject = cleanText(form.get("subject"), 160)
-  const educationalLevel = cleanText(form.get("educationalLevel"), 120)
-  const schoolYear = Number.parseInt(cleanText(form.get("year"), 4), 10)
-  const materialType = cleanText(form.get("materialType"), 40) as MaterialType
-  const questionCount = Number.parseInt(cleanText(form.get("questionCount"), 8) || "0", 10)
+  const fileError = validateFileMetadata(fileName, fileSize, mimeType)
+  if (fileError) return NextResponse.json({ error: fileError }, { status: 400 })
+  if (!Number.isInteger(schoolYear) || schoolYear < 1900 || schoolYear > 2200) {
+    return NextResponse.json({ error: "Ingresa un año válido." }, { status: 400 })
+  }
 
-  if (!file || !title || !subject || !educationalLevel) {
-    return NextResponse.json({ error: "Completa el archivo, título, asignatura y nivel educativo." }, { status: 400 })
+  const safeName = normalizeStorageName(fileName)
+  const storagePath = `${access.ownerId}/public/${schoolYear}/${randomUUID()}-${safeName}`
+  const { data, error } = await access.admin.storage
+    .from(REPOSITORY_BUCKET)
+    .createSignedUploadUrl(storagePath, { upsert: false })
+
+  if (error || !data?.token) {
+    return NextResponse.json({ error: "No fue posible preparar la carga del archivo." }, { status: 500 })
+  }
+
+  return NextResponse.json({
+    storagePath,
+    uploadToken: data.token,
+  }, {
+    headers: { "Cache-Control": "no-store, max-age=0" },
+  })
+}
+
+export async function PUT(request: NextRequest, context: { params: Promise<{ token: string }> }) {
+  const { token } = await context.params
+  const access = await validatePublicAccess(token)
+  if (!access) {
+    return NextResponse.json({ error: "El enlace público no es válido o fue desactivado." }, { status: 404 })
+  }
+
+  const body = await request.json().catch(() => null)
+  const storagePath = cleanText(body?.storagePath, 700)
+  const fileName = cleanText(body?.fileName, 255)
+  const fileSize = Number(body?.fileSize || 0)
+  const mimeType = cleanText(body?.mimeType, 160) || "application/octet-stream"
+  const title = cleanText(body?.title, 240)
+  const subject = cleanText(body?.subject, 160)
+  const educationalLevel = cleanText(body?.educationalLevel, 120)
+  const schoolYear = Number.parseInt(String(body?.year || ""), 10)
+  const materialType = cleanText(body?.materialType, 40) as MaterialType
+  const questionCount = Number.parseInt(String(body?.questionCount || "0"), 10)
+
+  if (!isOwnedPublicPath(storagePath, access.ownerId)) {
+    return NextResponse.json({ error: "La ruta del archivo no es válida." }, { status: 400 })
+  }
+  const fileError = validateFileMetadata(fileName, fileSize, mimeType)
+  if (fileError) return NextResponse.json({ error: fileError }, { status: 400 })
+  if (!title || !subject || !educationalLevel) {
+    return NextResponse.json({ error: "Completa título, asignatura y nivel educativo." }, { status: 400 })
   }
   if (!Number.isInteger(schoolYear) || schoolYear < 1900 || schoolYear > 2200) {
     return NextResponse.json({ error: "Ingresa un año válido." }, { status: 400 })
@@ -155,27 +211,16 @@ export async function POST(request: NextRequest, context: { params: Promise<{ to
   if (!Number.isInteger(questionCount) || questionCount < 0) {
     return NextResponse.json({ error: "La cantidad de preguntas no es válida." }, { status: 400 })
   }
-  if (file.size <= 0 || file.size > MAX_REPOSITORY_FILE_SIZE) {
-    return NextResponse.json({ error: "El archivo debe pesar entre 1 byte y 100 MB." }, { status: 400 })
-  }
-  if (BLOCKED_FILE_EXTENSION.test(file.name) || BLOCKED_MIME_TYPES.has(file.type.toLowerCase())) {
-    return NextResponse.json({ error: "Este tipo de archivo no está permitido en el acceso público." }, { status: 400 })
-  }
 
-  const safeName = normalizeStorageName(file.name)
-  const storagePath = `${access.ownerId}/public/${schoolYear}/${randomUUID()}-${safeName}`
-  const bytes = Buffer.from(await file.arrayBuffer())
-
-  const { error: uploadError } = await access.admin.storage
+  const slash = storagePath.lastIndexOf("/")
+  const folder = storagePath.slice(0, slash)
+  const storedName = storagePath.slice(slash + 1)
+  const { data: storedFiles, error: listError } = await access.admin.storage
     .from(REPOSITORY_BUCKET)
-    .upload(storagePath, bytes, {
-      contentType: file.type || "application/octet-stream",
-      cacheControl: "3600",
-      upsert: false,
-    })
+    .list(folder, { search: storedName, limit: 10 })
 
-  if (uploadError) {
-    return NextResponse.json({ error: "No fue posible subir el archivo." }, { status: 500 })
+  if (listError || !storedFiles?.some((item) => item.name === storedName)) {
+    return NextResponse.json({ error: "El archivo aún no terminó de subir." }, { status: 400 })
   }
 
   const backup = {
@@ -192,9 +237,9 @@ export async function POST(request: NextRequest, context: { params: Promise<{ to
     file: {
       bucket: REPOSITORY_BUCKET,
       storage_path: storagePath,
-      original_name: file.name,
-      mime_type: file.type || "application/octet-stream",
-      size: file.size,
+      original_name: fileName,
+      mime_type: mimeType,
+      size: fileSize,
     },
   }
 
@@ -207,9 +252,9 @@ export async function POST(request: NextRequest, context: { params: Promise<{ to
     question_count: questionCount,
     source_type: "file" as const,
     storage_path: storagePath,
-    original_file_name: file.name,
-    mime_type: file.type || "application/octet-stream",
-    file_size: file.size,
+    original_file_name: fileName,
+    mime_type: mimeType,
+    file_size: fileSize,
     youtube_url: null,
     youtube_video_id: null,
     visibility: "public" as const,
@@ -229,4 +274,19 @@ export async function POST(request: NextRequest, context: { params: Promise<{ to
   }
 
   return NextResponse.json({ item: data as Partial<RepositoryItem> }, { status: 201 })
+}
+
+export async function DELETE(request: NextRequest, context: { params: Promise<{ token: string }> }) {
+  const { token } = await context.params
+  const access = await validatePublicAccess(token)
+  if (!access) return NextResponse.json({ error: "Acceso no válido." }, { status: 404 })
+
+  const body = await request.json().catch(() => null)
+  const storagePath = cleanText(body?.storagePath, 700)
+  if (!isOwnedPublicPath(storagePath, access.ownerId)) {
+    return NextResponse.json({ error: "La ruta del archivo no es válida." }, { status: 400 })
+  }
+
+  await access.admin.storage.from(REPOSITORY_BUCKET).remove([storagePath])
+  return NextResponse.json({ ok: true })
 }
