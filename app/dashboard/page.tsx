@@ -130,7 +130,7 @@ export default function Dashboard() {
   ]
 
   return (
-    <div className="flex min-h-screen bg-app">
+    <div className="flex h-screen overflow-hidden bg-app">
       <aside
         style={{ width: expanded ? "220px" : "68px" }}
         className="fixed left-0 top-0 z-20 flex h-full flex-col overflow-hidden transition-all duration-300"
@@ -238,10 +238,10 @@ export default function Dashboard() {
 
       <main
         style={{ marginLeft: expanded ? "220px" : "68px" }}
-        className="flex min-h-screen min-w-0 flex-1 flex-col transition-all duration-300"
+        className="flex h-screen min-w-0 flex-1 flex-col overflow-hidden transition-all duration-300"
       >
         <div
-          className="sticky top-0 z-10 border-b backdrop-blur-xl"
+          className="z-10 shrink-0 border-b backdrop-blur-xl"
           style={{ background: "var(--bg-header)", borderColor: "var(--border-soft)" }}
         >
           <div className="mx-auto flex w-full max-w-[1320px] items-center justify-between px-4 py-3 sm:px-6">
@@ -273,13 +273,13 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="mx-auto flex w-full max-w-[1320px] flex-1 gap-5 px-3 py-3 sm:px-5 sm:py-4 xl:px-6">
-          <div className="min-w-0 flex-1">
+        <div className="mx-auto flex min-h-0 w-full max-w-[1320px] flex-1 gap-5 overflow-hidden px-3 py-3 sm:px-5 sm:py-4 xl:px-6">
+          <div className="h-full min-h-0 min-w-0 flex-1">
             <ClawStudyConsole displayName={displayName} isAdmin={isAdmin} />
           </div>
 
-          <aside className="hidden w-[260px] shrink-0 lg:block">
-            <div className="sticky top-[76px] space-y-3">
+          <aside className="hidden h-full w-[260px] shrink-0 overflow-y-auto overscroll-contain pb-2 lg:block">
+            <div className="space-y-3">
               <div className="px-1 pb-1">
                 <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted2">Tu progreso</p>
               </div>
