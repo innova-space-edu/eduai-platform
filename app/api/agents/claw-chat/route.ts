@@ -46,7 +46,7 @@ function normalizeHistory(history: unknown, message: string): CoreMessage[] {
   const safeHistory = Array.isArray(history)
     ? history
         .filter((m): m is { role: string; content: string } => m && typeof m.role === "string" && typeof m.content === "string")
-        .slice(-10)
+        .slice(-16)
         .map((m): CoreMessage => ({ role: m.role === "assistant" ? "assistant" : "user", content: m.content }))
     : [];
 
@@ -117,7 +117,7 @@ function safePageContext(value: unknown): PageContext {
   return {
     pathname: typeof raw.pathname === "string" ? raw.pathname.slice(0, 180) : undefined,
     pageTitle: typeof raw.pageTitle === "string" ? raw.pageTitle.slice(0, 160) : undefined,
-    mode: typeof raw.mode === "string" ? raw.mode.slice(0, 60) : undefined,
+    mode: typeof raw.mode === "string" ? raw.mode.slice(0, 80) : undefined,
     subject: typeof raw.subject === "string" ? raw.subject.slice(0, 80) : undefined,
     selectedTopic: typeof raw.selectedTopic === "string" ? raw.selectedTopic.slice(0, 120) : undefined,
     selectedSubtopic: typeof raw.selectedSubtopic === "string" ? raw.selectedSubtopic.slice(0, 120) : undefined,
@@ -146,6 +146,11 @@ function inferTopicFromPath(pathname?: string): string | undefined {
   }
 }
 
+function buildClawConversationMode(mode?: string) {
+  const base = mode === "admin" ? "administrador" : "usuario";
+  return `${base}; conversación natural y cercana. Responde primero a lo que la persona dice. Puedes conversar de cualquier tema cotidiano, escuchar, ayudar a pensar, bromear con prudencia y acompañar con calidez. No conviertas saludos ni charla casual en una sesión de estudio y no empujes herramientas si no las piden. Sé comprensivo y amistoso sin fingir ser humano ni tener experiencias propias. Usa formato limpio y fácil de leer.`;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { message, history = [], userName, pageContext } = await req.json();
@@ -166,7 +171,7 @@ export async function POST(req: NextRequest) {
         examTitle: context.pageTitle,
         studentCourse: context.selectedSubtopic,
         userId: typeof userName === "string" ? userName : undefined,
-        pageMode: context.mode,
+        pageMode: buildClawConversationMode(context.mode),
         availableActions: context.availableActions,
       },
       req.nextUrl.origin,
