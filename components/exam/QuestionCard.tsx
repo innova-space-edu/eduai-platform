@@ -2,6 +2,15 @@
 
 import ExamMathText from "@/components/ui/ExamMathText";
 
+type ResponseMode =
+  | "short_text"
+  | "long_text"
+  | "math"
+  | "text_math"
+  | "math_steps";
+
+type StimulusKind = "text" | "source" | "case" | "data" | "experiment";
+
 interface RubricItem {
   criteria: string;
   points: number;
@@ -22,6 +31,11 @@ interface Question {
   showRubricToStudent?: boolean;
   rubric?: RubricItem[];
   imageUrl?: string;
+  responseMode?: ResponseMode;
+  stimulusKind?: StimulusKind;
+  stimulusTitle?: string;
+  stimulusText?: string;
+  showStimulusToStudent?: boolean;
 }
 
 interface QuestionCardProps {
@@ -47,8 +61,24 @@ function getQuestionText(q: Question) {
 function typeLabel(type: Question["type"]) {
   if (type === "multiple_choice") return "Alternativas";
   if (type === "true_false") return "Verdadero / Falso";
-  if (type === "mixed_choice_development") return "Alternativa + desarrollo";
-  return "Desarrollo";
+  if (type === "mixed_choice_development") return "Alternativa + respuesta construida";
+  return "Respuesta construida";
+}
+
+function responseModeLabel(mode: ResponseMode) {
+  if (mode === "short_text") return "Respuesta corta";
+  if (mode === "math") return "Respuesta matemática";
+  if (mode === "text_math") return "Texto + matemática";
+  if (mode === "math_steps") return "Procedimiento paso a paso";
+  return "Respuesta abierta";
+}
+
+function stimulusLabel(kind?: StimulusKind) {
+  if (kind === "source") return "Fuente";
+  if (kind === "case") return "Caso";
+  if (kind === "data") return "Datos / tabla";
+  if (kind === "experiment") return "Experimento";
+  return "Texto base";
 }
 
 export default function QuestionCard({
@@ -69,6 +99,24 @@ export default function QuestionCard({
   const isMixed = q.type === "mixed_choice_development";
   const showOptions = q.type === "multiple_choice" || isMixed;
   const showDevelopment = q.type === "development" || isMixed;
+  const responseMode: ResponseMode = q.responseMode || "long_text";
+  const hasExplicitResponseMode = Boolean(q.responseMode);
+  const responseUsesMath = ["math", "text_math", "math_steps"].includes(responseMode);
+  const shouldUseNotebook =
+    useNotebookForDevelopment && (!hasExplicitResponseMode || responseUsesMath);
+  const showStimulus =
+    q.showStimulusToStudent === true && Boolean(q.stimulusText?.trim());
+
+  const responsePlaceholder =
+    responseMode === "short_text"
+      ? "Escribe una palabra, concepto, valor o frase breve..."
+      : responseMode === "math"
+        ? "Escribe tu expresión, ecuación o resultado. Puedes usar notación matemática o LaTeX entre $...$ si lo necesitas."
+        : responseMode === "text_math"
+          ? "Explica con tus palabras y agrega las ecuaciones, fórmulas o expresiones necesarias."
+          : responseMode === "math_steps"
+            ? "Desarrolla el procedimiento paso a paso e incluye el resultado final."
+            : "Escribe tu respuesta con tus palabras. Fundamenta cuando corresponda.";
 
   return (
     <div className="exam-question">
@@ -90,6 +138,24 @@ export default function QuestionCard({
           Lee con calma
         </span>
       </div>
+
+      {showStimulus && (
+        <div className="mb-6 rounded-[calc(var(--exam-radius)-6px)] border border-[var(--exam-border)] bg-[var(--exam-soft-bg)] p-4 sm:p-5">
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <span className="exam-badge rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em]">
+              {stimulusLabel(q.stimulusKind)}
+            </span>
+            {q.stimulusTitle?.trim() && (
+              <h3 className="text-sm font-black text-[var(--exam-text)] sm:text-base">
+                {q.stimulusTitle}
+              </h3>
+            )}
+          </div>
+          <div className="whitespace-pre-wrap text-sm leading-7 text-[var(--exam-text)] sm:text-base">
+            <ExamMathText text={q.stimulusText || ""} />
+          </div>
+        </div>
+      )}
 
       {q.imageUrl && q.imageUrl.trim() !== "" && (
         <div className="exam-question-image">
@@ -171,11 +237,20 @@ export default function QuestionCard({
 
       {showDevelopment && (
         <div className={isMixed ? "mt-6 space-y-5" : "space-y-5"}>
-          {isMixed ? (
-            <p className="exam-question-meta text-xs font-black uppercase tracking-[0.16em]">
-              Desarrollo {q.developmentMaxPoints ? `(${q.developmentMaxPoints} pts)` : ""}
-            </p>
-          ) : null}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            {isMixed ? (
+              <p className="exam-question-meta text-xs font-black uppercase tracking-[0.16em]">
+                Respuesta construida {q.developmentMaxPoints ? `(${q.developmentMaxPoints} pts)` : ""}
+              </p>
+            ) : (
+              <p className="exam-question-meta text-xs font-black uppercase tracking-[0.16em]">
+                Respuesta
+              </p>
+            )}
+            <span className="exam-badge rounded-full px-3 py-1 text-[11px] font-bold">
+              {responseModeLabel(responseMode)}
+            </span>
+          </div>
 
           {Array.isArray(q.rubric) && q.rubric.length > 0 && (q.type === "development" || q.showRubricToStudent === true) && (
             <div className="rounded-[calc(var(--exam-radius)-6px)] border border-[var(--exam-border)] bg-[var(--exam-soft-bg)] p-4">
@@ -193,24 +268,44 @@ export default function QuestionCard({
             </div>
           )}
 
-          {useNotebookForDevelopment ? (
+          {shouldUseNotebook ? (
             <div className="rounded-[calc(var(--exam-radius)-6px)] border border-blue-200 bg-blue-50/70 px-4 py-3">
-              <p className="text-sm font-black text-blue-800">✍️ Responde en el cuaderno digital</p>
-              <p className="mt-1 text-xs leading-relaxed text-blue-700">
-                El cuaderno está visible abajo. Escribe tu procedimiento con el lápiz; el sistema guardará el lienzo y el LaTeX reconocido al avanzar o entregar.
+              <p className="text-sm font-black text-blue-800">
+                ✍️ Responde en el cuaderno digital
               </p>
+              <p className="mt-1 text-xs leading-relaxed text-blue-700">
+                El cuaderno está visible abajo. Puedes escribir procedimientos, ecuaciones, fórmulas químicas o desarrollos; el sistema guardará el lienzo y el LaTeX reconocido al avanzar o entregar.
+              </p>
+            </div>
+          ) : responseMode === "short_text" ? (
+            <div>
+              <label className="exam-question-meta mb-2 block text-xs font-bold uppercase tracking-[0.12em]">
+                Respuesta breve
+              </label>
+              <input
+                value={devAnswer || ""}
+                onChange={(e) => onDevChange(e.target.value)}
+                className="exam-input w-full px-4 py-3 text-base outline-none focus:ring-2 focus:ring-[var(--exam-accent-soft)]"
+                placeholder={responsePlaceholder}
+                autoComplete="off"
+              />
             </div>
           ) : (
             <div>
               <label className="exam-question-meta mb-2 block text-xs font-bold uppercase tracking-[0.12em]">
-                Respuesta de desarrollo
+                {responseModeLabel(responseMode)}
               </label>
               <textarea
                 value={devAnswer || ""}
                 onChange={(e) => onDevChange(e.target.value)}
-                className="exam-input min-h-[230px] w-full px-4 py-3 text-base outline-none focus:ring-2 focus:ring-[var(--exam-accent-soft)]"
-                placeholder="Escribe tu respuesta. Puedes ordenar tus ideas en pasos."
+                className={`exam-input w-full px-4 py-3 text-base outline-none focus:ring-2 focus:ring-[var(--exam-accent-soft)] ${responseMode === "math" ? "min-h-[150px]" : "min-h-[230px]"}`}
+                placeholder={responsePlaceholder}
               />
+              {responseUsesMath && (
+                <p className="exam-question-meta mt-2 text-xs leading-relaxed">
+                  Puedes combinar texto con notación matemática. Si el docente habilitó el cuaderno digital, úsalo para procedimientos, ecuaciones y fórmulas complejas.
+                </p>
+              )}
             </div>
           )}
         </div>
