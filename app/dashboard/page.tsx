@@ -17,7 +17,6 @@ import {
   MessageCircle,
   Music2,
   QrCode,
-  Search,
   ShieldCheck,
   UserCircle2,
   Users,
@@ -59,7 +58,6 @@ export default function Dashboard() {
   const [level, setLevel] = useState("Principiante")
   const [streak, setStreak] = useState(0)
   const [sessions, setSessions] = useState(0)
-  const [topic, setTopic] = useState("")
   const [expanded, setExpanded] = useState(false)
   const [loaded, setLoaded] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
@@ -69,7 +67,10 @@ export default function Dashboard() {
 
   useEffect(() => {
     const init = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
       if (!user) {
         router.push("/login")
         return
@@ -119,15 +120,17 @@ export default function Dashboard() {
     ? Math.min(((xp - currentLevel.min) / (nextLevel.min - currentLevel.min)) * 100, 100)
     : 100
   const levelColor = LEVEL_COLORS[levelIdx] || LEVEL_COLORS[0]
-
-  const handleStudy = () => {
-    if (topic.trim()) router.push(`/study/${encodeURIComponent(topic.trim())}`)
-  }
-
   const displayName = user?.user_metadata?.name || user?.email?.split("@")[0] || "Estudiante"
 
+  const stats = [
+    { label: "Nivel", value: level, icon: BarChart3, color: "#2563eb" },
+    { label: "XP Total", value: `${xp}`, icon: Zap, color: "#d97706" },
+    { label: "Racha", value: `${streak}d`, icon: Flame, color: "#ea580c" },
+    { label: "Sesiones", value: String(sessions), icon: BookMarked, color: "#059669" },
+  ]
+
   return (
-    <div className="min-h-screen bg-app flex">
+    <div className="flex min-h-screen bg-app">
       <aside
         style={{ width: expanded ? "220px" : "68px" }}
         className="fixed left-0 top-0 z-20 flex h-full flex-col overflow-hidden transition-all duration-300"
@@ -136,7 +139,11 @@ export default function Dashboard() {
       >
         <div
           className="absolute inset-0 border-r backdrop-blur-xl"
-          style={{ background: "var(--bg-sidebar)", borderColor: "var(--border-soft)", boxShadow: "var(--shadow-sm)" }}
+          style={{
+            background: "var(--bg-sidebar)",
+            borderColor: "var(--border-soft)",
+            boxShadow: "var(--shadow-sm)",
+          }}
         />
 
         <div className="relative flex h-full flex-col">
@@ -186,7 +193,13 @@ export default function Dashboard() {
                 onMouseEnter={(event) => (event.currentTarget.style.background = "rgba(124,58,237,0.07)")}
                 onMouseLeave={(event) => (event.currentTarget.style.background = "")}
               >
-                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl transition-all group-hover:scale-105" style={{ background: "rgba(124,58,237,0.12)", border: "1px solid rgba(124,58,237,0.25)" }}>
+                <div
+                  className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl transition-all group-hover:scale-105"
+                  style={{
+                    background: "rgba(124,58,237,0.12)",
+                    border: "1px solid rgba(124,58,237,0.25)",
+                  }}
+                >
                   <ShieldCheck size={17} style={{ color: "#7c3aed" }} />
                 </div>
                 {expanded && (
@@ -207,114 +220,111 @@ export default function Dashboard() {
               className="group flex w-full items-center gap-3 rounded-2xl border border-transparent px-2.5 py-2.5 transition-all hover:border-red-100 hover:bg-red-50"
               title={!expanded ? "Salir" : undefined}
             >
-              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl" style={{ background: "var(--bg-card-soft)", border: "1px solid var(--border-soft)" }}>
+              <div
+                className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl"
+                style={{ background: "var(--bg-card-soft)", border: "1px solid var(--border-soft)" }}
+              >
                 <LogOut size={16} className="text-muted2 transition-colors group-hover:text-red-500" />
               </div>
-              {expanded && <span className="whitespace-nowrap text-sm text-muted2 transition-colors group-hover:text-red-500">Cerrar sesión</span>}
+              {expanded && (
+                <span className="whitespace-nowrap text-sm text-muted2 transition-colors group-hover:text-red-500">
+                  Cerrar sesión
+                </span>
+              )}
             </button>
           </div>
         </div>
       </aside>
 
-      <main style={{ marginLeft: expanded ? "220px" : "68px" }} className="flex min-h-screen flex-1 flex-col transition-all duration-300">
-        <div className="sticky top-0 z-10 border-b backdrop-blur-xl" style={{ background: "var(--bg-header)", borderColor: "var(--border-soft)" }}>
-          <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-3">
-            <p className="text-xs font-semibold uppercase tracking-widest text-muted2">Panel</p>
+      <main
+        style={{ marginLeft: expanded ? "220px" : "68px" }}
+        className="flex min-h-screen min-w-0 flex-1 flex-col transition-all duration-300"
+      >
+        <div
+          className="sticky top-0 z-10 border-b backdrop-blur-xl"
+          style={{ background: "var(--bg-header)", borderColor: "var(--border-soft)" }}
+        >
+          <div className="mx-auto flex w-full max-w-[1320px] items-center justify-between px-4 py-3 sm:px-6">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-muted2">EduAI</p>
+              <p className="hidden text-xs text-sub sm:block">Claw es tu espacio principal de trabajo</p>
+            </div>
             <div className="flex items-center gap-3">
               <Link
                 href="/biblioteca"
                 className="group flex items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all hover:-translate-y-0.5"
-                style={{ background: "rgba(124,58,237,0.08)", borderColor: "rgba(124,58,237,0.18)", color: "#6d28d9" }}
+                style={{
+                  background: "rgba(124,58,237,0.08)",
+                  borderColor: "rgba(124,58,237,0.18)",
+                  color: "#6d28d9",
+                }}
               >
                 <LibraryBig size={14} className="transition-transform group-hover:scale-110" />
                 <span className="hidden sm:inline">Biblioteca</span>
               </Link>
-              <span className="text-sm text-sub">{displayName}</span>
-              <div className="rounded-xl border px-2.5 py-1 text-xs font-semibold" style={{ background: `${levelColor.glow}`, borderColor: "var(--border-soft)" }}>
+              <span className="hidden text-sm text-sub md:inline">{displayName}</span>
+              <div
+                className="rounded-xl border px-2.5 py-1 text-xs font-semibold lg:hidden"
+                style={{ background: `${levelColor.glow}`, borderColor: "var(--border-soft)" }}
+              >
                 <span className={levelColor.text}>{level}</span>
-              </div>
-              <div className="flex items-center gap-1 rounded-xl border px-2 py-1" style={{ background: "rgba(217,119,6,0.08)", borderColor: "rgba(217,119,6,0.18)" }}>
-                <Zap size={11} style={{ color: "var(--accent-amber)" }} />
-                <span className="tabular-nums text-xs font-bold" style={{ color: "var(--accent-amber)" }}>{xp}</span>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-8">
-          <div className="animate-fade-in">
-            <h1 className="mb-1 text-3xl font-bold text-main">Hola, {displayName} 👋</h1>
-            <p className="text-sm text-muted2">¿Qué quieres aprender, crear o resolver hoy?</p>
+        <div className="mx-auto flex w-full max-w-[1320px] flex-1 gap-5 px-3 py-3 sm:px-5 sm:py-4 xl:px-6">
+          <div className="min-w-0 flex-1">
+            <ClawStudyConsole displayName={displayName} isAdmin={isAdmin} />
           </div>
 
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4 stagger">
-            {[
-              { label: "Nivel", value: level, icon: BarChart3, color: "#2563eb" },
-              { label: "XP Total", value: `${xp}`, icon: Zap, color: "#d97706" },
-              { label: "Racha", value: `${streak}d`, icon: Flame, color: "#ea580c" },
-              { label: "Sesiones", value: String(sessions), icon: BookMarked, color: "#059669" },
-            ].map((stat) => {
-              const Icon = stat.icon
-              return (
-                <div key={stat.label} className="animate-fade-in rounded-2xl border p-4 transition-all hover:scale-[1.02] hover:shadow-md" style={{ background: `${stat.color}0c`, borderColor: `${stat.color}20` }}>
-                  <div className="mb-2 flex items-center gap-1.5">
-                    <Icon size={12} style={{ color: stat.color }} />
-                    <p className="text-[11px] font-medium uppercase tracking-wide text-muted2">{stat.label}</p>
+          <aside className="hidden w-[260px] shrink-0 lg:block">
+            <div className="sticky top-[76px] space-y-3">
+              <div className="px-1 pb-1">
+                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted2">Tu progreso</p>
+              </div>
+
+              {stats.map((stat) => {
+                const Icon = stat.icon
+                return (
+                  <div
+                    key={stat.label}
+                    className="rounded-2xl border p-4 transition-all hover:-translate-y-0.5 hover:shadow-md"
+                    style={{ background: `${stat.color}0c`, borderColor: `${stat.color}20` }}
+                  >
+                    <div className="mb-2 flex items-center gap-2">
+                      <div
+                        className="flex h-8 w-8 items-center justify-center rounded-xl"
+                        style={{ background: `${stat.color}12`, border: `1px solid ${stat.color}24` }}
+                      >
+                        <Icon size={15} style={{ color: stat.color }} />
+                      </div>
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted2">{stat.label}</p>
+                    </div>
+                    <p className="text-2xl font-bold leading-tight text-main">{stat.value}</p>
                   </div>
-                  <p className="text-xl font-bold leading-tight text-main">{stat.value}</p>
-                </div>
-              )
-            })}
-          </div>
+                )
+              })}
 
-          <div className="animate-fade-in rounded-2xl border px-5 py-4" style={{ background: "var(--bg-card)", borderColor: "var(--border-soft)", boxShadow: "var(--shadow-sm)" }}>
-            <div className="mb-2.5 flex justify-between text-xs" style={{ color: "var(--text-muted)" }}>
-              <span>Progreso hacia <span style={{ color: "var(--text-secondary)" }}>{nextLevel?.name || "Maestro"}</span></span>
-              <span className="tabular-nums">{xp} / {nextLevel?.min || currentLevel.max} XP</span>
-            </div>
-            <div className="xp-bar-track">
-              <div className="xp-bar-fill" style={{ width: loaded ? `${progress}%` : "0%" }} />
-            </div>
-          </div>
-
-          <div className="animate-fade-in rounded-2xl border p-5" style={{ background: "var(--bg-card)", borderColor: "var(--border-soft)", boxShadow: "var(--shadow-sm)" }}>
-            <div className="mb-4 flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-xl" style={{ background: "rgba(37,99,235,0.10)", border: "1px solid rgba(37,99,235,0.20)" }}>
-                <BookOpen size={14} style={{ color: "var(--accent-blue)" }} />
-              </div>
-              <h2 className="text-sm font-semibold text-main">Nueva sesión de estudio</h2>
-            </div>
-
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <div className="relative flex-1">
-                <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted2" />
-                <input
-                  value={topic}
-                  onChange={(event) => setTopic(event.target.value)}
-                  onKeyDown={(event) => event.key === "Enter" && handleStudy()}
-                  placeholder="Ej: Leyes de Newton, Integrales, Química orgánica..."
-                  className="w-full rounded-xl py-3 pl-9 pr-4 text-sm transition-all focus:outline-none"
-                  style={{ background: "var(--bg-input)", border: "1px solid var(--border-medium)", color: "var(--text-primary)" }}
-                  onFocus={(event) => (event.currentTarget.style.borderColor = "rgba(37,99,235,0.45)")}
-                  onBlur={(event) => (event.currentTarget.style.borderColor = "var(--border-medium)")}
-                />
-              </div>
-              <button
-                onClick={handleStudy}
-                disabled={!topic.trim()}
-                className="flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-white transition-all disabled:opacity-40"
-                style={{
-                  background: topic.trim() ? "linear-gradient(135deg, #1d4ed8, #2563eb)" : "var(--border-medium)",
-                  boxShadow: topic.trim() ? "0 4px 16px rgba(37,99,235,0.28)" : "none",
-                  color: topic.trim() ? "white" : "var(--text-muted)",
-                }}
+              <div
+                className="rounded-2xl border p-4"
+                style={{ background: "var(--bg-card)", borderColor: "var(--border-soft)", boxShadow: "var(--shadow-sm)" }}
               >
-                <span>Estudiar</span>
-              </button>
+                <div className="mb-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted2">Siguiente nivel</p>
+                  <div className="mt-1 flex items-end justify-between gap-2">
+                    <span className="text-sm font-bold text-main">{nextLevel?.name || "Maestro"}</span>
+                    <span className="text-[11px] tabular-nums text-muted2">
+                      {xp}/{nextLevel?.min || currentLevel.max} XP
+                    </span>
+                  </div>
+                </div>
+                <div className="xp-bar-track">
+                  <div className="xp-bar-fill" style={{ width: loaded ? `${progress}%` : "0%" }} />
+                </div>
+              </div>
             </div>
-          </div>
-
-          <ClawStudyConsole displayName={displayName} isAdmin={isAdmin} />
+          </aside>
         </div>
       </main>
     </div>

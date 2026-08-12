@@ -1,9 +1,20 @@
 "use client"
 
-import { useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowRight, Bot, BookOpen, FileQuestion, ImageIcon, Loader2, PenLine, Search, Send, Sparkles } from "lucide-react"
+import {
+  ArrowRight,
+  Bot,
+  BookOpen,
+  FileQuestion,
+  ImageIcon,
+  Loader2,
+  PenLine,
+  Plus,
+  Send,
+  Sparkles,
+} from "lucide-react"
 
 type Role = "user" | "assistant"
 type Message = { role: Role; content: string }
@@ -14,12 +25,12 @@ type Props = {
   isAdmin?: boolean
 }
 
-const QUICK_ACTIONS = [
+const CREATE_ACTIONS = [
   {
-    label: "Estudiar tema",
+    label: "Estudiar un tema",
     icon: BookOpen,
     prompt: "Quiero iniciar una sesión de estudio autónoma sobre ",
-    hint: "Explica, practica y evalúa",
+    hint: "Explicar, practicar y evaluar",
   },
   {
     label: "Crear prueba",
@@ -28,10 +39,10 @@ const QUICK_ACTIONS = [
     hint: "Alternativas, desarrollo y rúbrica",
   },
   {
-    label: "Generar imagen",
+    label: "Crear imagen",
     icon: ImageIcon,
     prompt: "Genera una imagen educativa estilo Canva con colores suaves sobre ",
-    hint: "Visual para explicar una idea",
+    hint: "Material visual educativo",
   },
   {
     label: "Planificar clase",
@@ -42,12 +53,12 @@ const QUICK_ACTIONS = [
 ]
 
 const EDUAI_SHORTCUTS = [
-  { label: "Creator Hub", href: "/creator-hub", emoji: "🚀" },
-  { label: "Crear examen", href: "/examen/crear", emoji: "📝" },
-  { label: "QR Studio", href: "/qr-studio", emoji: "▦" },
-  { label: "Image Studio", href: "/image-studio", emoji: "🎨" },
-  { label: "Chat Paper", href: "/paper", emoji: "📄" },
-  { label: "Audio Lab", href: "/audio-lab", emoji: "🎙️" },
+  { label: "Creator Hub", href: "/creator-hub", emoji: "🚀", hint: "Crear materiales" },
+  { label: "Crear examen", href: "/examen/crear", emoji: "📝", hint: "Evaluaciones completas" },
+  { label: "QR Studio", href: "/qr-studio", emoji: "▦", hint: "Códigos QR" },
+  { label: "Image Studio", href: "/image-studio", emoji: "🎨", hint: "Imágenes educativas" },
+  { label: "Chat Paper", href: "/paper", emoji: "📄", hint: "Trabajar con documentos" },
+  { label: "Audio Lab", href: "/audio-lab", emoji: "🎙️", hint: "Audio y voz" },
 ]
 
 function extractStudyTopic(text: string) {
@@ -64,7 +75,11 @@ function renderContent(text: string) {
     const match = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/)
     if (!match) return <span key={index}>{part}</span>
     return (
-      <Link key={index} href={match[2]} className="inline-flex items-center gap-1 rounded-lg bg-violet-100 px-2 py-0.5 text-xs font-bold text-violet-700 hover:bg-violet-200">
+      <Link
+        key={index}
+        href={match[2]}
+        className="inline-flex items-center gap-1 rounded-lg bg-violet-100 px-2 py-0.5 text-xs font-bold text-violet-700 hover:bg-violet-200"
+      >
         {match[1]} <ArrowRight size={11} />
       </Link>
     )
@@ -77,17 +92,25 @@ export default function ClawStudyConsole({ displayName = "Estudiante", isAdmin =
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: `Hola ${displayName}. Soy Claw, tu superagente de EduAI. Puedo iniciar sesiones de estudio, crear pruebas, generar imágenes, buscar herramientas de la plataforma o llevarte a la página correcta.`,
+      content: `Hola ${displayName}. Soy Claw, tu superagente de EduAI. Dime directamente qué necesitas: estudiar, preparar una clase, crear una prueba, generar una imagen o abrir una herramienta de EduAI.`,
     },
   ])
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
   const [loading, setLoading] = useState(false)
+  const [toolsOpen, setToolsOpen] = useState(false)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const transcriptRef = useRef<HTMLDivElement>(null)
 
   const contextualPrompt = useMemo(() => {
-    if (isAdmin) return "Modo admin disponible: puedo ayudarte con creación de exámenes, resultados, QR, materiales y herramientas internas."
-    return "Modo estudiante: puedo ayudarte a estudiar, practicar y crear explicaciones visuales."
+    if (isAdmin) return "Modo administrador activo: Claw puede ayudarte a crear, revisar y abrir herramientas internas."
+    return "Modo estudiante activo: Claw puede ayudarte a estudiar, practicar y crear material educativo."
   }, [isAdmin])
+
+  useEffect(() => {
+    const transcript = transcriptRef.current
+    if (!transcript) return
+    transcript.scrollTo({ top: transcript.scrollHeight, behavior: "smooth" })
+  }, [messages, loading, suggestions])
 
   const send = async (override?: string) => {
     const text = String(override ?? input).trim()
@@ -101,6 +124,7 @@ export default function ClawStudyConsole({ displayName = "Estudiante", isAdmin =
     }
 
     setInput("")
+    setToolsOpen(false)
     setSuggestions([])
     const nextMessages: Message[] = [...messages, { role: "user", content: text }]
     setMessages(nextMessages)
@@ -115,9 +139,15 @@ export default function ClawStudyConsole({ displayName = "Estudiante", isAdmin =
           history: nextMessages.slice(-10),
           pageContext: {
             pathname: "/dashboard",
-            pageTitle: "Panel de estudio EduAI",
+            pageTitle: "Chat principal de EduAI",
             mode: isAdmin ? "admin" : "student",
-            availableActions: ["start_study_session", "generate_exam_questions", "generate_image", "plan_curriculum", "navigate_to_page"],
+            availableActions: [
+              "start_study_session",
+              "generate_exam_questions",
+              "generate_image",
+              "plan_curriculum",
+              "navigate_to_page",
+            ],
           },
           userName: displayName,
         }),
@@ -130,28 +160,34 @@ export default function ClawStudyConsole({ displayName = "Estudiante", isAdmin =
     } catch (error) {
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: error instanceof Error ? `No pude completar la acción: ${error.message}` : "No pude completar la acción." },
+        {
+          role: "assistant",
+          content: error instanceof Error ? `No pude completar la acción: ${error.message}` : "No pude completar la acción.",
+        },
       ])
     } finally {
       setLoading(false)
     }
   }
 
-  const handleQuickAction = (prompt: string) => {
+  const handleCreateAction = (prompt: string) => {
     setInput(prompt)
+    setToolsOpen(false)
     setTimeout(() => inputRef.current?.focus(), 60)
   }
 
   return (
-    <section className="rounded-[2rem] border border-soft bg-card-theme p-5 shadow-sm animate-fade-in">
-      <div className="mb-4 flex items-start justify-between gap-4">
+    <section className="flex min-h-[calc(100vh-88px)] flex-col overflow-hidden rounded-[2rem] border border-soft bg-card-theme shadow-sm animate-fade-in">
+      <div className="flex items-start justify-between gap-4 border-b border-soft px-5 py-4 sm:px-6">
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-violet-600 text-white shadow-lg shadow-blue-500/20">
             <Bot size={19} />
           </div>
           <div>
-            <h2 className="text-main text-lg font-black">Claw — Superagente EduAI</h2>
-            <p className="text-muted2 text-xs leading-relaxed">Escribe cualquier cosa: estudiar, crear material, generar imagen, abrir una herramienta o pedir ayuda dentro de EduAI.</p>
+            <h1 className="text-main text-lg font-black">Claw — Superagente EduAI</h1>
+            <p className="text-muted2 mt-0.5 text-xs leading-relaxed">
+              Tu espacio principal para conversar, estudiar y crear dentro de EduAI.
+            </p>
           </div>
         </div>
         <span className="hidden rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-bold text-emerald-700 sm:inline-flex">
@@ -159,100 +195,138 @@ export default function ClawStudyConsole({ displayName = "Estudiante", isAdmin =
         </span>
       </div>
 
-      <div className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
-        {QUICK_ACTIONS.map((action) => {
-          const Icon = action.icon
-          return (
-            <button
-              key={action.label}
-              type="button"
-              onClick={() => handleQuickAction(action.prompt)}
-              className="group rounded-2xl border border-soft bg-card-soft-theme p-3 text-left transition hover:-translate-y-0.5 hover:border-blue-200 hover:bg-blue-50/70"
-            >
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
-                  <Icon size={15} />
-                </div>
-                <div>
-                  <p className="text-main text-sm font-bold group-hover:text-blue-700">{action.label}</p>
-                  <p className="text-muted2 text-[11px]">{action.hint}</p>
-                </div>
+      <div ref={transcriptRef} className="flex-1 space-y-4 overflow-y-auto bg-app/40 px-4 py-5 sm:px-6">
+        <div className="mx-auto flex w-full max-w-3xl items-center gap-2 rounded-2xl border border-violet-100 bg-violet-50/70 px-3 py-2 text-xs text-violet-800">
+          <Sparkles size={13} className="shrink-0" />
+          <span>{contextualPrompt}</span>
+        </div>
+
+        <div className="mx-auto w-full max-w-3xl space-y-4">
+          {messages.map((message, index) => (
+            <div key={`${message.role}-${index}`} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
+              <div
+                className={`max-w-[88%] whitespace-pre-wrap rounded-3xl px-4 py-3 text-sm leading-6 shadow-sm ${
+                  message.role === "user"
+                    ? "rounded-br-lg bg-blue-600 text-white"
+                    : "rounded-bl-lg border border-soft bg-card-soft-theme text-main"
+                }`}
+              >
+                {message.role === "assistant" ? renderContent(message.content) : message.content}
               </div>
-            </button>
-          )
-        })}
+            </div>
+          ))}
+
+          {loading && (
+            <div className="flex justify-start">
+              <div className="inline-flex items-center gap-2 rounded-3xl rounded-bl-lg border border-soft bg-card-soft-theme px-4 py-3 text-xs text-muted2 shadow-sm">
+                <Loader2 size={14} className="animate-spin" /> Claw está pensando y revisando herramientas...
+              </div>
+            </div>
+          )}
+
+          {suggestions.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {suggestions.map((suggestion) => (
+                <Link
+                  key={`${suggestion.href}-${suggestion.label}`}
+                  href={suggestion.href}
+                  className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-[11px] font-bold text-violet-700 hover:bg-violet-100"
+                >
+                  {suggestion.emoji} {suggestion.label}
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className="mb-4 max-h-72 space-y-3 overflow-y-auto rounded-3xl border border-soft bg-app p-3">
-        <div className="rounded-2xl border border-violet-100 bg-violet-50/70 p-3 text-xs text-violet-800">
-          <Sparkles size={13} className="mr-1 inline" /> {contextualPrompt}
-        </div>
-        {messages.slice(-6).map((message, index) => (
-          <div key={`${message.role}-${index}`} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
-            <div className={`max-w-[88%] rounded-2xl px-3 py-2 text-sm leading-relaxed ${message.role === "user" ? "bg-blue-600 text-white" : "bg-card-soft-theme text-main"}`}>
-              {message.role === "assistant" ? renderContent(message.content) : message.content}
+      <div className="relative border-t border-soft bg-card-theme px-3 py-3 sm:px-5 sm:py-4">
+        {toolsOpen && (
+          <div className="absolute bottom-[calc(100%-4px)] left-4 z-30 w-[min(360px,calc(100vw-110px))] overflow-hidden rounded-3xl border border-soft bg-card-theme p-2 shadow-2xl sm:left-6">
+            <div className="px-2 pb-1 pt-1 text-[11px] font-bold uppercase tracking-wider text-muted2">Crear con Claw</div>
+            <div className="grid gap-1">
+              {CREATE_ACTIONS.map((action) => {
+                const Icon = action.icon
+                return (
+                  <button
+                    key={action.label}
+                    type="button"
+                    onClick={() => handleCreateAction(action.prompt)}
+                    className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition hover:bg-blue-50"
+                  >
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
+                      <Icon size={16} />
+                    </div>
+                    <div>
+                      <p className="text-main text-sm font-bold">{action.label}</p>
+                      <p className="text-muted2 text-[11px]">{action.hint}</p>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+
+            <div className="my-2 border-t border-soft" />
+            <div className="px-2 pb-1 text-[11px] font-bold uppercase tracking-wider text-muted2">Herramientas EduAI</div>
+            <div className="grid grid-cols-2 gap-1">
+              {EDUAI_SHORTCUTS.map((shortcut) => (
+                <Link
+                  key={shortcut.href}
+                  href={shortcut.href}
+                  onClick={() => setToolsOpen(false)}
+                  className="rounded-2xl px-3 py-2.5 transition hover:bg-violet-50"
+                >
+                  <div className="text-sm font-bold text-main">{shortcut.emoji} {shortcut.label}</div>
+                  <div className="mt-0.5 text-[10px] text-muted2">{shortcut.hint}</div>
+                </Link>
+              ))}
             </div>
           </div>
-        ))}
-        {loading && (
-          <div className="flex items-center gap-2 text-xs text-muted2">
-            <Loader2 size={14} className="animate-spin" /> Claw está pensando y revisando herramientas...
-          </div>
         )}
-      </div>
 
-      {suggestions.length > 0 && (
-        <div className="mb-3 flex flex-wrap gap-2">
-          {suggestions.map((suggestion) => (
-            <Link
-              key={suggestion.href}
-              href={suggestion.href}
-              className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-[11px] font-bold text-violet-700 hover:bg-violet-100"
+        <div className="mx-auto w-full max-w-3xl rounded-[1.7rem] border border-soft bg-card-soft-theme p-2 shadow-sm transition focus-within:border-blue-200 focus-within:shadow-md">
+          <textarea
+            ref={inputRef}
+            value={input}
+            onChange={(event) => setInput(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault()
+                send()
+              }
+            }}
+            rows={2}
+            placeholder="Escribe a Claw: enséñame un tema, crea una prueba, prepara una guía, genera una imagen..."
+            className="min-h-[72px] w-full resize-none bg-transparent px-3 py-2 text-sm text-main outline-none placeholder:text-muted2"
+            disabled={loading}
+          />
+
+          <div className="flex items-center justify-between gap-2 border-t border-soft px-1 pt-2">
+            <button
+              type="button"
+              onClick={() => setToolsOpen((open) => !open)}
+              className={`inline-flex h-10 w-10 items-center justify-center rounded-full border transition ${
+                toolsOpen
+                  ? "rotate-45 border-blue-200 bg-blue-50 text-blue-700"
+                  : "border-soft bg-card-theme text-main hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+              }`}
+              aria-label="Abrir opciones para crear materiales"
+              title="Crear materiales y abrir herramientas"
             >
-              {suggestion.emoji} {suggestion.label}
-            </Link>
-          ))}
-        </div>
-      )}
+              <Plus size={20} />
+            </button>
 
-      <div className="rounded-3xl border border-soft bg-card-soft-theme p-2">
-        <textarea
-          ref={inputRef}
-          value={input}
-          onChange={(event) => setInput(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" && !event.shiftKey) {
-              event.preventDefault()
-              send()
-            }
-          }}
-          rows={2}
-          placeholder="Ej: enséñame química orgánica paso a paso, crea una prueba de fracciones, abre QR Studio..."
-          className="min-h-[68px] w-full resize-none bg-transparent px-3 py-2 text-sm text-main outline-none placeholder:text-muted2"
-          disabled={loading}
-        />
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-soft px-2 pt-2">
-          <div className="flex flex-wrap gap-1.5">
-            {EDUAI_SHORTCUTS.map((shortcut) => (
-              <Link key={shortcut.href} href={shortcut.href} className="rounded-full bg-white/70 px-2.5 py-1 text-[10px] font-semibold text-muted2 hover:text-blue-700">
-                {shortcut.emoji} {shortcut.label}
-              </Link>
-            ))}
+            <button
+              type="button"
+              onClick={() => send()}
+              disabled={loading || !input.trim()}
+              className="inline-flex h-10 items-center gap-2 rounded-full bg-blue-600 px-4 text-xs font-black text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {loading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+              <span className="hidden sm:inline">Enviar</span>
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => send()}
-            disabled={loading || !input.trim()}
-            className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2 text-xs font-black text-white transition hover:bg-blue-700 disabled:opacity-40"
-          >
-            {loading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-            Enviar
-          </button>
         </div>
-      </div>
-
-      <div className="mt-3 flex items-center gap-2 text-[11px] text-muted2">
-        <Search size={12} /> Claw puede sugerir rutas, iniciar estudio y activar herramientas internas según el pedido.
       </div>
     </section>
   )
