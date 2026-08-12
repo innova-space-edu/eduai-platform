@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import {
   ArrowRight,
   Bot,
@@ -29,7 +28,7 @@ const CREATE_ACTIONS = [
   {
     label: "Estudiar un tema",
     icon: BookOpen,
-    prompt: "Quiero iniciar una sesión de estudio autónoma sobre ",
+    prompt: "Inicia una sesión de estudio sobre ",
     hint: "Explicar, practicar y evaluar",
   },
   {
@@ -41,13 +40,13 @@ const CREATE_ACTIONS = [
   {
     label: "Crear imagen",
     icon: ImageIcon,
-    prompt: "Genera una imagen educativa estilo Canva con colores suaves sobre ",
+    prompt: "Genera una imagen educativa sobre ",
     hint: "Material visual educativo",
   },
   {
     label: "Planificar clase",
     icon: PenLine,
-    prompt: "Planifica una clase para enseñanza media sobre ",
+    prompt: "Ayúdame a planificar una clase sobre ",
     hint: "Inicio, desarrollo y cierre",
   },
 ]
@@ -61,38 +60,94 @@ const EDUAI_SHORTCUTS = [
   { label: "Audio Lab", href: "/audio-lab", emoji: "🎙️", hint: "Audio y voz" },
 ]
 
-function extractStudyTopic(text: string) {
-  const cleaned = text
-    .replace(/^(quiero|necesito|ayúdame a|ayudame a|puedes)?\s*(estudiar|aprender|repasar|ver)\s*/i, "")
-    .replace(/^(sobre|de|el|la|los|las)\s*/i, "")
-    .trim()
-  return cleaned || text.trim()
-}
+function renderInlineContent(text: string) {
+  const parts = text.split(/(\[[^\]]+\]\([^)]+\)|\*\*[^*]+\*\*|\*[^*\n]+\*|`[^`]+`)/g)
 
-function renderContent(text: string) {
-  const parts = text.split(/(\[[^\]]+\]\([^)]+\))/g)
   return parts.map((part, index) => {
-    const match = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/)
-    if (!match) return <span key={index}>{part}</span>
-    return (
-      <Link
-        key={index}
-        href={match[2]}
-        className="inline-flex items-center gap-1 rounded-lg bg-violet-100 px-2 py-0.5 text-xs font-bold text-violet-700 hover:bg-violet-200"
-      >
-        {match[1]} <ArrowRight size={11} />
-      </Link>
-    )
+    const link = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/)
+    if (link) {
+      const href = link[2]
+      if (href.startsWith("/")) {
+        return (
+          <Link
+            key={index}
+            href={href}
+            className="inline-flex items-center gap-1 rounded-lg bg-violet-100 px-2 py-0.5 text-xs font-bold text-violet-700 hover:bg-violet-200"
+          >
+            {link[1]} <ArrowRight size={11} />
+          </Link>
+        )
+      }
+      return (
+        <a key={index} href={href} target="_blank" rel="noreferrer" className="font-semibold text-blue-700 underline underline-offset-2">
+          {link[1]}
+        </a>
+      )
+    }
+
+    const bold = part.match(/^\*\*([^*]+)\*\*$/)
+    if (bold) return <strong key={index} className="font-semibold text-main">{bold[1]}</strong>
+
+    const italic = part.match(/^\*([^*\n]+)\*$/)
+    if (italic) return <em key={index}>{italic[1]}</em>
+
+    const code = part.match(/^`([^`]+)`$/)
+    if (code) return <code key={index} className="rounded-md bg-black/5 px-1.5 py-0.5 text-[0.92em]">{code[1]}</code>
+
+    return <span key={index}>{part.replace(/\*\*/g, "").replace(/__/g, "")}</span>
   })
 }
 
+function renderContent(text: string) {
+  const lines = String(text || "").replace(/\r/g, "").split("\n")
+
+  return (
+    <div className="space-y-2">
+      {lines.map((line, index) => {
+        const trimmed = line.trim()
+        if (!trimmed) return <div key={`space-${index}`} className="h-1" />
+
+        const heading = trimmed.match(/^#{1,4}\s+(.+)$/)
+        if (heading) {
+          return (
+            <p key={index} className="pt-1 font-bold text-main">
+              {renderInlineContent(heading[1])}
+            </p>
+          )
+        }
+
+        const bullet = trimmed.match(/^[-*•]\s+(.+)$/)
+        if (bullet) {
+          return (
+            <div key={index} className="flex items-start gap-2">
+              <span className="mt-[1px] shrink-0 text-blue-600">•</span>
+              <span className="min-w-0">{renderInlineContent(bullet[1])}</span>
+            </div>
+          )
+        }
+
+        const numbered = trimmed.match(/^(\d+)[.)]\s+(.+)$/)
+        if (numbered) {
+          return (
+            <div key={index} className="flex items-start gap-2">
+              <span className="shrink-0 font-semibold text-blue-700">{numbered[1]}.</span>
+              <span className="min-w-0">{renderInlineContent(numbered[2])}</span>
+            </div>
+          )
+        }
+
+        return <p key={index}>{renderInlineContent(line)}</p>
+      })}
+    </div>
+  )
+}
+
 export default function ClawStudyConsole({ displayName = "Estudiante", isAdmin = false }: Props) {
-  const router = useRouter()
   const [input, setInput] = useState("")
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: `Hola ${displayName}. Soy Claw, tu superagente de EduAI. Dime directamente qué necesitas: estudiar, preparar una clase, crear una prueba, generar una imagen o abrir una herramienta de EduAI.`,
+      content: `Hola ${displayName} 👋 Soy Claw. Podemos conversar con naturalidad, resolver una duda, pensar una idea, organizar algo o trabajar con las herramientas de EduAI. ¿Qué tienes en mente?`,
     },
   ])
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
@@ -102,26 +157,21 @@ export default function ClawStudyConsole({ displayName = "Estudiante", isAdmin =
   const transcriptRef = useRef<HTMLDivElement>(null)
 
   const contextualPrompt = useMemo(() => {
-    if (isAdmin) return "Modo administrador activo: Claw puede ayudarte a crear, revisar y abrir herramientas internas."
-    return "Modo estudiante activo: Claw puede ayudarte a estudiar, practicar y crear material educativo."
+    if (isAdmin) return "Claw está disponible para conversar contigo y, cuando lo necesites, usar herramientas de administración y creación."
+    return "Claw puede conversar contigo, ayudarte a pensar y también usar herramientas de EduAI cuando tú se lo pidas."
   }, [isAdmin])
 
   useEffect(() => {
     const transcript = transcriptRef.current
     if (!transcript) return
-    transcript.scrollTo({ top: transcript.scrollHeight, behavior: "smooth" })
+    requestAnimationFrame(() => {
+      transcript.scrollTop = transcript.scrollHeight
+    })
   }, [messages, loading, suggestions])
 
   const send = async (override?: string) => {
     const text = String(override ?? input).trim()
     if (!text || loading) return
-
-    const maybeStudy = /^\s*(estudiar|aprender|repasar)\b/i.test(text)
-    if (maybeStudy && text.length < 90) {
-      const topic = extractStudyTopic(text)
-      router.push(`/study/${encodeURIComponent(topic)}`)
-      return
-    }
 
     setInput("")
     setToolsOpen(false)
@@ -136,10 +186,10 @@ export default function ClawStudyConsole({ displayName = "Estudiante", isAdmin =
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: text,
-          history: nextMessages.slice(-10),
+          history: nextMessages.slice(-14),
           pageContext: {
             pathname: "/dashboard",
-            pageTitle: "Chat principal de EduAI",
+            pageTitle: "Conversación principal con Claw",
             mode: isAdmin ? "admin" : "student",
             availableActions: [
               "start_study_session",
@@ -177,8 +227,8 @@ export default function ClawStudyConsole({ displayName = "Estudiante", isAdmin =
   }
 
   return (
-    <section className="flex min-h-[calc(100vh-88px)] flex-col overflow-hidden rounded-[2rem] border border-soft bg-card-theme shadow-sm animate-fade-in">
-      <div className="flex items-start justify-between gap-4 border-b border-soft px-5 py-4 sm:px-6">
+    <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[2rem] border border-soft bg-card-theme shadow-sm animate-fade-in">
+      <div className="shrink-0 flex items-start justify-between gap-4 border-b border-soft px-5 py-4 sm:px-6">
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-violet-600 text-white shadow-lg shadow-blue-500/20">
             <Bot size={19} />
@@ -186,7 +236,7 @@ export default function ClawStudyConsole({ displayName = "Estudiante", isAdmin =
           <div>
             <h1 className="text-main text-lg font-black">Claw — Superagente EduAI</h1>
             <p className="text-muted2 mt-0.5 text-xs leading-relaxed">
-              Tu espacio principal para conversar, estudiar y crear dentro de EduAI.
+              Conversa, pregunta, crea o simplemente habla con Claw.
             </p>
           </div>
         </div>
@@ -195,7 +245,10 @@ export default function ClawStudyConsole({ displayName = "Estudiante", isAdmin =
         </span>
       </div>
 
-      <div ref={transcriptRef} className="flex-1 space-y-4 overflow-y-auto bg-app/40 px-4 py-5 sm:px-6">
+      <div
+        ref={transcriptRef}
+        className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain bg-app/40 px-4 py-5 sm:px-6"
+      >
         <div className="mx-auto flex w-full max-w-3xl items-center gap-2 rounded-2xl border border-violet-100 bg-violet-50/70 px-3 py-2 text-xs text-violet-800">
           <Sparkles size={13} className="shrink-0" />
           <span>{contextualPrompt}</span>
@@ -205,13 +258,13 @@ export default function ClawStudyConsole({ displayName = "Estudiante", isAdmin =
           {messages.map((message, index) => (
             <div key={`${message.role}-${index}`} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
               <div
-                className={`max-w-[88%] whitespace-pre-wrap rounded-3xl px-4 py-3 text-sm leading-6 shadow-sm ${
+                className={`max-w-[88%] rounded-3xl px-4 py-3 text-sm leading-6 shadow-sm ${
                   message.role === "user"
                     ? "rounded-br-lg bg-blue-600 text-white"
                     : "rounded-bl-lg border border-soft bg-card-soft-theme text-main"
                 }`}
               >
-                {message.role === "assistant" ? renderContent(message.content) : message.content}
+                {message.role === "assistant" ? renderContent(message.content) : <p className="whitespace-pre-wrap">{message.content}</p>}
               </div>
             </div>
           ))}
@@ -219,7 +272,7 @@ export default function ClawStudyConsole({ displayName = "Estudiante", isAdmin =
           {loading && (
             <div className="flex justify-start">
               <div className="inline-flex items-center gap-2 rounded-3xl rounded-bl-lg border border-soft bg-card-soft-theme px-4 py-3 text-xs text-muted2 shadow-sm">
-                <Loader2 size={14} className="animate-spin" /> Claw está pensando y revisando herramientas...
+                <Loader2 size={14} className="animate-spin" /> Claw está pensando...
               </div>
             </div>
           )}
@@ -240,7 +293,7 @@ export default function ClawStudyConsole({ displayName = "Estudiante", isAdmin =
         </div>
       </div>
 
-      <div className="relative border-t border-soft bg-card-theme px-3 py-3 sm:px-5 sm:py-4">
+      <div className="relative shrink-0 border-t border-soft bg-card-theme px-3 py-3 sm:px-5 sm:py-4">
         {toolsOpen && (
           <div className="absolute bottom-[calc(100%-4px)] left-4 z-30 w-[min(360px,calc(100vw-110px))] overflow-hidden rounded-3xl border border-soft bg-card-theme p-2 shadow-2xl sm:left-6">
             <div className="px-2 pb-1 pt-1 text-[11px] font-bold uppercase tracking-wider text-muted2">Crear con Claw</div>
@@ -296,8 +349,8 @@ export default function ClawStudyConsole({ displayName = "Estudiante", isAdmin =
               }
             }}
             rows={2}
-            placeholder="Escribe a Claw: enséñame un tema, crea una prueba, prepara una guía, genera una imagen..."
-            className="min-h-[72px] w-full resize-none bg-transparent px-3 py-2 text-sm text-main outline-none placeholder:text-muted2"
+            placeholder="Escribe lo que quieras: una pregunta, una idea, algo que te preocupa o una tarea para Claw..."
+            className="min-h-[64px] max-h-32 w-full resize-none overflow-y-auto bg-transparent px-3 py-2 text-sm text-main outline-none placeholder:text-muted2"
             disabled={loading}
           />
 
