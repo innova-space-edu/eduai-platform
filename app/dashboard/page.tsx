@@ -130,10 +130,10 @@ export default function Dashboard() {
   ]
 
   return (
-    <div className="flex h-screen overflow-hidden bg-app">
+    <div className="flex h-[100dvh] overflow-hidden bg-app [--sidebar-closed:56px] [--sidebar-open:196px] lg:[--sidebar-closed:68px] lg:[--sidebar-open:220px] min-[1920px]:[--sidebar-closed:80px] min-[1920px]:[--sidebar-open:260px]">
       <aside
-        style={{ width: expanded ? "220px" : "68px" }}
-        className="fixed left-0 top-0 z-20 flex h-full flex-col overflow-hidden transition-all duration-300"
+        style={{ width: expanded ? "var(--sidebar-open)" : "var(--sidebar-closed)" }}
+        className="fixed left-0 top-0 z-20 flex h-[100dvh] flex-col overflow-hidden transition-[width] duration-300"
         onMouseEnter={() => setExpanded(true)}
         onMouseLeave={() => setExpanded(false)}
       >
@@ -147,18 +147,18 @@ export default function Dashboard() {
         />
 
         <div className="relative flex h-full flex-col">
-          <div className="flex h-14 flex-shrink-0 items-center gap-3 border-b px-4" style={{ borderColor: "var(--border-soft)" }}>
-            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 shadow-lg shadow-blue-500/20">
+          <div className="flex h-12 flex-shrink-0 items-center gap-2 border-b px-2.5 sm:h-14 sm:gap-3 sm:px-4 min-[1920px]:h-16 min-[1920px]:px-5" style={{ borderColor: "var(--border-soft)" }}>
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 shadow-lg shadow-blue-500/20 sm:h-9 sm:w-9 sm:rounded-2xl min-[1920px]:h-10 min-[1920px]:w-10">
               <Zap size={18} className="text-main" />
             </div>
             {expanded && (
-              <span className="animate-fade-in whitespace-nowrap text-base font-bold text-main">
+              <span className="animate-fade-in whitespace-nowrap text-sm font-bold text-main sm:text-base min-[1920px]:text-lg">
                 Edu<span className="text-blue-600">AI</span>
               </span>
             )}
           </div>
 
-          <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto overflow-x-hidden px-2 py-3">
+          <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto overflow-x-hidden px-1.5 py-2 sm:px-2 sm:py-3 min-[1920px]:gap-1 min-[1920px]:px-3 min-[1920px]:py-4">
             {NAV_LINKS.map((item) => {
               const Icon = item.icon
               return (
@@ -166,18 +166,18 @@ export default function Dashboard() {
                   key={item.href}
                   href={item.href}
                   title={!expanded ? item.label : undefined}
-                  className="group flex items-center gap-3 rounded-2xl border border-transparent px-2.5 py-2.5 transition-all"
+                  className="group flex items-center gap-2 rounded-xl border border-transparent px-1.5 py-2 transition-all sm:gap-3 sm:rounded-2xl sm:px-2.5 sm:py-2.5 min-[1920px]:py-3"
                   onMouseEnter={(event) => (event.currentTarget.style.background = `${item.color}0d`)}
                   onMouseLeave={(event) => (event.currentTarget.style.background = "")}
                 >
                   <div
-                    className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl transition-all group-hover:scale-105"
+                    className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg transition-all group-hover:scale-105 sm:h-9 sm:w-9 sm:rounded-xl min-[1920px]:h-10 min-[1920px]:w-10"
                     style={{ background: `${item.color}15`, border: `1px solid ${item.color}28` }}
                   >
                     <Icon size={17} style={{ color: item.color }} />
                   </div>
                   {expanded && (
-                    <span className="whitespace-nowrap text-sm font-medium text-sub transition-colors group-hover:text-main">
+                    <span className="whitespace-nowrap text-xs font-medium text-sub transition-colors group-hover:text-main sm:text-sm min-[1920px]:text-[15px]">
                       {item.label}
                     </span>
                   )}
@@ -189,12 +189,12 @@ export default function Dashboard() {
               <Link
                 href="/admin"
                 title={!expanded ? "Administración" : undefined}
-                className="group mt-1 flex items-center gap-3 rounded-2xl border border-transparent px-2.5 py-2.5 transition-all"
+                className="group mt-1 flex items-center gap-2 rounded-xl border border-transparent px-1.5 py-2 transition-all sm:gap-3 sm:rounded-2xl sm:px-2.5 sm:py-2.5 min-[1920px]:py-3"
                 onMouseEnter={(event) => (event.currentTarget.style.background = "rgba(124,58,237,0.07)")}
                 onMouseLeave={(event) => (event.currentTarget.style.background = "")}
               >
                 <div
-                  className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl transition-all group-hover:scale-105"
+                  className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg transition-all group-hover:scale-105 sm:h-9 sm:w-9 sm:rounded-xl min-[1920px]:h-10 min-[1920px]:w-10"
                   style={{
                     background: "rgba(124,58,237,0.12)",
                     border: "1px solid rgba(124,58,237,0.25)",
@@ -203,7 +203,7 @@ export default function Dashboard() {
                   <ShieldCheck size={17} style={{ color: "#7c3aed" }} />
                 </div>
                 {expanded && (
-                  <span className="whitespace-nowrap text-sm font-medium text-purple-600 transition-colors group-hover:text-purple-700">
+                  <span className="whitespace-nowrap text-xs font-medium text-purple-600 transition-colors group-hover:text-purple-700 sm:text-sm min-[1920px]:text-[15px]">
                     Administración
                   </span>
                 )}
@@ -211,23 +211,23 @@ export default function Dashboard() {
             )}
           </nav>
 
-          <div className="flex-shrink-0 border-t px-2 py-3" style={{ borderColor: "var(--border-soft)" }}>
+          <div className="flex-shrink-0 border-t px-1.5 py-2 sm:px-2 sm:py-3 min-[1920px]:px-3" style={{ borderColor: "var(--border-soft)" }}>
             <button
               onClick={async () => {
                 await supabase.auth.signOut()
                 router.push("/login")
               }}
-              className="group flex w-full items-center gap-3 rounded-2xl border border-transparent px-2.5 py-2.5 transition-all hover:border-red-100 hover:bg-red-50"
+              className="group flex w-full items-center gap-2 rounded-xl border border-transparent px-1.5 py-2 transition-all hover:border-red-100 hover:bg-red-50 sm:gap-3 sm:rounded-2xl sm:px-2.5 sm:py-2.5"
               title={!expanded ? "Salir" : undefined}
             >
               <div
-                className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl"
+                className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg sm:h-9 sm:w-9 sm:rounded-xl min-[1920px]:h-10 min-[1920px]:w-10"
                 style={{ background: "var(--bg-card-soft)", border: "1px solid var(--border-soft)" }}
               >
                 <LogOut size={16} className="text-muted2 transition-colors group-hover:text-red-500" />
               </div>
               {expanded && (
-                <span className="whitespace-nowrap text-sm text-muted2 transition-colors group-hover:text-red-500">
+                <span className="whitespace-nowrap text-xs text-muted2 transition-colors group-hover:text-red-500 sm:text-sm min-[1920px]:text-[15px]">
                   Cerrar sesión
                 </span>
               )}
@@ -237,22 +237,22 @@ export default function Dashboard() {
       </aside>
 
       <main
-        style={{ marginLeft: expanded ? "220px" : "68px" }}
-        className="flex h-screen min-w-0 flex-1 flex-col overflow-hidden transition-all duration-300"
+        style={{ marginLeft: expanded ? "var(--sidebar-open)" : "var(--sidebar-closed)" }}
+        className="flex h-[100dvh] min-w-0 flex-1 flex-col overflow-hidden transition-[margin] duration-300"
       >
         <div
           className="z-10 shrink-0 border-b backdrop-blur-xl"
           style={{ background: "var(--bg-header)", borderColor: "var(--border-soft)" }}
         >
-          <div className="mx-auto flex w-full max-w-[1320px] items-center justify-between px-4 py-3 sm:px-6">
+          <div className="mx-auto flex h-12 w-full max-w-[1480px] items-center justify-between px-3 sm:h-14 sm:px-5 lg:px-6 min-[1920px]:h-16 min-[1920px]:max-w-[1840px] min-[1920px]:px-8">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-muted2">EduAI</p>
-              <p className="hidden text-xs text-sub sm:block">Claw es tu espacio principal de trabajo</p>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted2 sm:text-xs min-[1920px]:text-[13px]">EduAI</p>
+              <p className="hidden text-xs text-sub sm:block min-[1920px]:text-sm">Claw es tu espacio principal de trabajo</p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 sm:gap-3 min-[1920px]:gap-4">
               <Link
                 href="/biblioteca"
-                className="group flex items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all hover:-translate-y-0.5"
+                className="group flex items-center gap-1.5 rounded-lg border px-2 py-1.5 text-[11px] font-semibold transition-all hover:-translate-y-0.5 sm:rounded-xl sm:px-3 sm:text-xs min-[1920px]:px-4 min-[1920px]:py-2 min-[1920px]:text-sm"
                 style={{
                   background: "rgba(124,58,237,0.08)",
                   borderColor: "rgba(124,58,237,0.18)",
@@ -262,9 +262,9 @@ export default function Dashboard() {
                 <LibraryBig size={14} className="transition-transform group-hover:scale-110" />
                 <span className="hidden sm:inline">Biblioteca</span>
               </Link>
-              <span className="hidden text-sm text-sub md:inline">{displayName}</span>
+              <span className="hidden text-sm text-sub md:inline min-[1920px]:text-[15px]">{displayName}</span>
               <div
-                className="rounded-xl border px-2.5 py-1 text-xs font-semibold lg:hidden"
+                className="rounded-lg border px-2 py-1 text-[10px] font-semibold lg:hidden sm:rounded-xl sm:px-2.5 sm:text-xs"
                 style={{ background: `${levelColor.glow}`, borderColor: "var(--border-soft)" }}
               >
                 <span className={levelColor.text}>{level}</span>
@@ -273,15 +273,15 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="mx-auto flex min-h-0 w-full max-w-[1320px] flex-1 gap-5 overflow-hidden px-3 py-3 sm:px-5 sm:py-4 xl:px-6">
+        <div className="mx-auto flex min-h-0 w-full max-w-[1480px] flex-1 gap-3 overflow-hidden px-2 py-2 sm:gap-4 sm:px-3 sm:py-3 lg:gap-4 lg:px-4 lg:py-4 xl:gap-5 xl:px-5 min-[1920px]:max-w-[1840px] min-[1920px]:gap-8 min-[1920px]:px-8 min-[1920px]:py-6">
           <div className="h-full min-h-0 min-w-0 flex-1">
             <ClawStudyConsole displayName={displayName} isAdmin={isAdmin} />
           </div>
 
-          <aside className="hidden h-full w-[260px] shrink-0 overflow-y-auto overscroll-contain pb-2 lg:block">
-            <div className="space-y-3">
+          <aside className="hidden h-full w-[238px] shrink-0 overflow-y-auto overscroll-contain pb-2 lg:block xl:w-[260px] min-[1920px]:w-[320px]">
+            <div className="space-y-2.5 xl:space-y-3 min-[1920px]:space-y-4">
               <div className="px-1 pb-1">
-                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted2">Tu progreso</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted2 xl:text-[11px] min-[1920px]:text-xs">Tu progreso</p>
               </div>
 
               {stats.map((stat) => {
@@ -289,32 +289,32 @@ export default function Dashboard() {
                 return (
                   <div
                     key={stat.label}
-                    className="rounded-2xl border p-4 transition-all hover:-translate-y-0.5 hover:shadow-md"
+                    className="rounded-xl border p-3 transition-all hover:-translate-y-0.5 hover:shadow-md xl:rounded-2xl xl:p-4 min-[1920px]:p-5"
                     style={{ background: `${stat.color}0c`, borderColor: `${stat.color}20` }}
                   >
-                    <div className="mb-2 flex items-center gap-2">
+                    <div className="mb-1.5 flex items-center gap-2 xl:mb-2 min-[1920px]:gap-3">
                       <div
-                        className="flex h-8 w-8 items-center justify-center rounded-xl"
+                        className="flex h-7 w-7 items-center justify-center rounded-lg xl:h-8 xl:w-8 xl:rounded-xl min-[1920px]:h-10 min-[1920px]:w-10"
                         style={{ background: `${stat.color}12`, border: `1px solid ${stat.color}24` }}
                       >
                         <Icon size={15} style={{ color: stat.color }} />
                       </div>
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted2">{stat.label}</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted2 xl:text-[11px] min-[1920px]:text-xs">{stat.label}</p>
                     </div>
-                    <p className="text-2xl font-bold leading-tight text-main">{stat.value}</p>
+                    <p className="text-xl font-bold leading-tight text-main xl:text-2xl min-[1920px]:text-3xl">{stat.value}</p>
                   </div>
                 )
               })}
 
               <div
-                className="rounded-2xl border p-4"
+                className="rounded-xl border p-3 xl:rounded-2xl xl:p-4 min-[1920px]:p-5"
                 style={{ background: "var(--bg-card)", borderColor: "var(--border-soft)", boxShadow: "var(--shadow-sm)" }}
               >
-                <div className="mb-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted2">Siguiente nivel</p>
+                <div className="mb-2.5 xl:mb-3 min-[1920px]:mb-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-muted2 xl:text-[11px] min-[1920px]:text-xs">Siguiente nivel</p>
                   <div className="mt-1 flex items-end justify-between gap-2">
-                    <span className="text-sm font-bold text-main">{nextLevel?.name || "Maestro"}</span>
-                    <span className="text-[11px] tabular-nums text-muted2">
+                    <span className="text-xs font-bold text-main xl:text-sm min-[1920px]:text-base">{nextLevel?.name || "Maestro"}</span>
+                    <span className="text-[10px] tabular-nums text-muted2 xl:text-[11px] min-[1920px]:text-xs">
                       {xp}/{nextLevel?.min || currentLevel.max} XP
                     </span>
                   </div>
