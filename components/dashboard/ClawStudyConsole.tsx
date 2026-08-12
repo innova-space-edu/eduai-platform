@@ -9,6 +9,7 @@ import {
   FileQuestion,
   ImageIcon,
   Loader2,
+  Mic,
   PenLine,
   Plus,
   Send,
@@ -18,11 +19,14 @@ import {
 type Role = "user" | "assistant"
 type Message = { role: Role; content: string }
 type Suggestion = { label: string; href: string; emoji: string }
+type VoiceState = "idle" | "recording" | "transcribing"
 
 type Props = {
   displayName?: string
   isAdmin?: boolean
 }
+
+const MAX_RECORDING_SECONDS = 90
 
 const CREATE_ACTIONS = [
   {
@@ -142,6 +146,42 @@ function renderContent(text: string) {
   )
 }
 
+function getRecordingMimeType() {
+  if (typeof MediaRecorder === "undefined") return ""
+  const candidates = [
+    "audio/webm;codecs=opus",
+    "audio/mp4",
+    "audio/webm",
+    "audio/ogg;codecs=opus",
+  ]
+  return candidates.find((mime) => MediaRecorder.isTypeSupported(mime)) || ""
+}
+
+function getAudioExtension(mimeType: string) {
+  const mime = mimeType.split(";")[0]
+  if (mime === "audio/mp4") return "m4a"
+  if (mime === "audio/ogg") return "ogg"
+  return "webm"
+}
+
+function blobToBase64(blob: Blob) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      const value = String(reader.result || "")
+      resolve(value.includes(",") ? value.split(",")[1] : value)
+    }
+    reader.onerror = () => reject(new Error("No se pudo preparar la grabación"))
+    reader.readAsDataURL(blob)
+  })
+}
+
+function formatRecordingTime(seconds: number) {
+  const mins = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  return `${mins}:${String(secs).padStart(2, "0")}`
+}
+
 export default function ClawStudyConsole({ displayName = "Estudiante", isAdmin = false }: Props) {
   const [input, setInput] = useState("")
   const [messages, setMessages] = useState<Message[]>([
@@ -153,8 +193,16 @@ export default function ClawStudyConsole({ displayName = "Estudiante", isAdmin =
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
   const [loading, setLoading] = useState(false)
   const [toolsOpen, setToolsOpen] = useState(false)
+  const [voiceState, setVoiceState] = useState<VoiceState>("idle")
+  const [recordingSeconds, setRecordingSeconds] = useState(0)
+  const [voiceError, setVoiceError] = useState("")
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const transcriptRef = useRef<HTMLDivElement>(null)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const mediaStreamRef = useRef<MediaStream | null>(null)
+  const recordingChunksRef = useRef<Blob[]>([])
+  const recordingTimerRef = useRef<number | null>(null)
+  const recordingStartedAtRef = useRef(0)
 
   const contextualPrompt = useMemo(() => {
     if (isAdmin) return "Claw está disponible para conversar contigo y, cuando lo necesites, usar herramientas de administración y creación."
@@ -169,9 +217,17 @@ export default function ClawStudyConsole({ displayName = "Estudiante", isAdmin =
     })
   }, [messages, loading, suggestions])
 
+  useEffect(() => {
+    return () => {
+      if (recordingTimerRef.current !== null) window.clearInterval(recordingTimerRef.current)
+      if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop()
+      mediaStreamRef.current?.getTracks().forEach((track) => track.stop())
+    }
+  }, [])
+
   const send = async (override?: string) => {
     const text = String(override ?? input).trim()
-    if (!text || loading) return
+    if (!text || loading || voiceState === "recording") return
 
     setInput("")
     setToolsOpen(false)
@@ -217,6 +273,138 @@ export default function ClawStudyConsole({ displayName = "Estudiante", isAdmin =
       ])
     } finally {
       setLoading(false)
+    }
+  }
+
+  const transcribeRecording = async (audioBlob: Blob, recorderMime: string) => {
+    if (audioBlob.size < 1000) throw new Error("La grabación quedó demasiado corta. Intenta hablar un poco más.")
+
+    const normalizedMime = (recorderMime || audioBlob.type || "audio/webm").split(";")[0]
+    const audioBase64 = await blobToBase64(audioBlob)
+    const extension = getAudioExtension(normalizedMime)
+
+    const response = await fetch("/api/agents/audio/pipeline", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        audioBase64,
+        mimeType: normalizedMime,
+        fileName: `claw-dictado-${Date.now()}.${extension}`,
+        fileSizeBytes: audioBlob.size,
+        options: {
+          mode: "pro",
+          improveAudio: false,
+          preciseSubtitles: false,
+          diarize: false,
+          detectLanguage: true,
+          createSummary: false,
+        },
+      }),
+    })
+
+    const data = await response.json()
+    if (!response.ok) throw new Error(data?.error || "No se pudo transcribir el audio")
+
+    const transcript = String(data?.transcriptClean || data?.transcript || "").trim()
+    if (!transcript) throw new Error("No pude detectar palabras claras en la grabación.")
+
+    setInput((current) => {
+      const previous = current.trim()
+      return previous ? `${previous} ${transcript}` : transcript
+    })
+    window.setTimeout(() => inputRef.current?.focus(), 80)
+  }
+
+  const stopRecording = () => {
+    const recorder = mediaRecorderRef.current
+    if (recorder?.state === "recording") recorder.stop()
+  }
+
+  const startRecording = async () => {
+    if (voiceState === "recording") {
+      stopRecording()
+      return
+    }
+    if (voiceState === "transcribing" || loading) return
+
+    setVoiceError("")
+    setToolsOpen(false)
+
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+      setVoiceError("Este navegador no permite grabar audio desde el chat.")
+      return
+    }
+
+    let stream: MediaStream | null = null
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          channelCount: 1,
+        },
+      })
+
+      const mimeType = getRecordingMimeType()
+      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream)
+      mediaStreamRef.current = stream
+      mediaRecorderRef.current = recorder
+      recordingChunksRef.current = []
+      recordingStartedAtRef.current = Date.now()
+      setRecordingSeconds(0)
+      setVoiceState("recording")
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) recordingChunksRef.current.push(event.data)
+      }
+
+      recorder.onerror = () => {
+        setVoiceError("La grabación se interrumpió. Revisa el permiso del micrófono e inténtalo otra vez.")
+      }
+
+      recorder.onstop = async () => {
+        if (recordingTimerRef.current !== null) {
+          window.clearInterval(recordingTimerRef.current)
+          recordingTimerRef.current = null
+        }
+
+        const chunks = recordingChunksRef.current
+        recordingChunksRef.current = []
+        const recordedMime = recorder.mimeType || mimeType || "audio/webm"
+        const audioBlob = new Blob(chunks, { type: recordedMime })
+
+        mediaStreamRef.current?.getTracks().forEach((track) => track.stop())
+        mediaStreamRef.current = null
+        mediaRecorderRef.current = null
+        setVoiceState("transcribing")
+
+        try {
+          await transcribeRecording(audioBlob, recordedMime)
+        } catch (error) {
+          setVoiceError(error instanceof Error ? error.message : "No se pudo transcribir la grabación.")
+        } finally {
+          setVoiceState("idle")
+          setRecordingSeconds(0)
+        }
+      }
+
+      recorder.start(250)
+      recordingTimerRef.current = window.setInterval(() => {
+        const elapsed = Math.floor((Date.now() - recordingStartedAtRef.current) / 1000)
+        setRecordingSeconds(elapsed)
+        if (elapsed >= MAX_RECORDING_SECONDS && mediaRecorderRef.current?.state === "recording") {
+          mediaRecorderRef.current.stop()
+        }
+      }, 250)
+    } catch (error) {
+      stream?.getTracks().forEach((track) => track.stop())
+      setVoiceState("idle")
+      setVoiceError(
+        error instanceof DOMException && error.name === "NotAllowedError"
+          ? "Necesito permiso para usar el micrófono. Habilítalo en el navegador y vuelve a intentarlo."
+          : "No pude acceder al micrófono. Revisa que esté conectado y disponible.",
+      )
     }
   }
 
@@ -341,7 +529,10 @@ export default function ClawStudyConsole({ displayName = "Estudiante", isAdmin =
           <textarea
             ref={inputRef}
             value={input}
-            onChange={(event) => setInput(event.target.value)}
+            onChange={(event) => {
+              setInput(event.target.value)
+              if (voiceError) setVoiceError("")
+            }}
             onKeyDown={(event) => {
               if (event.key === "Enter" && !event.shiftKey) {
                 event.preventDefault()
@@ -349,31 +540,77 @@ export default function ClawStudyConsole({ displayName = "Estudiante", isAdmin =
               }
             }}
             rows={2}
-            placeholder="Escribe lo que quieras: una pregunta, una idea, algo que te preocupa o una tarea para Claw..."
+            placeholder={
+              voiceState === "recording"
+                ? "Te escucho… pulsa el micrófono otra vez para terminar."
+                : voiceState === "transcribing"
+                  ? "Transcribiendo tu grabación con alta precisión…"
+                  : "Escribe lo que quieras: una pregunta, una idea, algo que te preocupa o una tarea para Claw..."
+            }
             className="min-h-[52px] max-h-28 w-full resize-none overflow-y-auto bg-transparent px-2.5 py-2 text-[13px] text-main outline-none placeholder:text-muted2 lg:min-h-[64px] lg:max-h-32 lg:px-3 lg:text-sm min-[2048px]:min-h-[76px] min-[2048px]:max-h-40 min-[2048px]:px-4 min-[2048px]:py-3 min-[2048px]:text-base"
-            disabled={loading}
+            disabled={loading || voiceState === "transcribing"}
           />
 
           <div className="flex items-center justify-between gap-2 border-t border-soft px-1 pt-1.5 lg:pt-2 min-[2048px]:pt-2.5">
-            <button
-              type="button"
-              onClick={() => setToolsOpen((open) => !open)}
-              className={`inline-flex h-9 w-9 items-center justify-center rounded-full border transition lg:h-10 lg:w-10 min-[2048px]:h-11 min-[2048px]:w-11 ${
-                toolsOpen
-                  ? "rotate-45 border-blue-200 bg-blue-50 text-blue-700"
-                  : "border-soft bg-card-theme text-main hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
-              }`}
-              aria-label="Abrir opciones para crear materiales"
-              title="Crear materiales y abrir herramientas"
-            >
-              <Plus size={19} className="min-[2048px]:h-5 min-[2048px]:w-5" />
-            </button>
+            <div className="flex min-w-0 items-center gap-1 lg:gap-2">
+              <button
+                type="button"
+                onClick={() => setToolsOpen((open) => !open)}
+                className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition lg:h-10 lg:w-10 min-[2048px]:h-11 min-[2048px]:w-11 ${
+                  toolsOpen
+                    ? "rotate-45 border-blue-200 bg-blue-50 text-blue-700"
+                    : "border-soft bg-card-theme text-main hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                }`}
+                aria-label="Abrir opciones para crear materiales"
+                title="Crear materiales y abrir herramientas"
+              >
+                <Plus size={19} className="min-[2048px]:h-5 min-[2048px]:w-5" />
+              </button>
+
+              <button
+                type="button"
+                onClick={startRecording}
+                disabled={voiceState === "transcribing" || (loading && voiceState !== "recording")}
+                className={`relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-transparent transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-40 lg:h-10 lg:w-10 min-[2048px]:h-11 min-[2048px]:w-11 ${
+                  voiceState === "recording"
+                    ? "text-red-500"
+                    : "text-muted2 hover:text-blue-600"
+                }`}
+                aria-label={voiceState === "recording" ? "Detener grabación" : "Dictar mensaje por voz"}
+                title={voiceState === "recording" ? "Detener y transcribir" : "Dictar por voz"}
+              >
+                {voiceState === "recording" && (
+                  <span className="absolute inset-1 rounded-full border border-red-300/80 motion-safe:animate-ping" />
+                )}
+                {voiceState === "transcribing" ? (
+                  <Loader2 size={19} className="animate-spin min-[2048px]:h-5 min-[2048px]:w-5" />
+                ) : (
+                  <Mic size={20} strokeWidth={2.1} className="relative min-[2048px]:h-[22px] min-[2048px]:w-[22px]" />
+                )}
+              </button>
+
+              {voiceState === "recording" && (
+                <span className="truncate text-[10px] font-semibold tabular-nums text-red-500 lg:text-[11px] min-[2048px]:text-xs">
+                  Grabando {formatRecordingTime(recordingSeconds)}
+                </span>
+              )}
+              {voiceState === "transcribing" && (
+                <span className="truncate text-[10px] font-semibold text-blue-600 lg:text-[11px] min-[2048px]:text-xs">
+                  Transcribiendo…
+                </span>
+              )}
+              {voiceState === "idle" && voiceError && (
+                <span className="max-w-[230px] truncate text-[10px] text-red-500 lg:max-w-[360px] lg:text-[11px] min-[2048px]:max-w-[520px] min-[2048px]:text-xs" title={voiceError}>
+                  {voiceError}
+                </span>
+              )}
+            </div>
 
             <button
               type="button"
               onClick={() => send()}
-              disabled={loading || !input.trim()}
-              className="inline-flex h-9 items-center gap-2 rounded-full bg-blue-600 px-3 text-[11px] font-black text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40 lg:h-10 lg:px-4 lg:text-xs min-[2048px]:h-11 min-[2048px]:px-5 min-[2048px]:text-sm"
+              disabled={loading || voiceState !== "idle" || !input.trim()}
+              className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full bg-blue-600 px-3 text-[11px] font-black text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40 lg:h-10 lg:px-4 lg:text-xs min-[2048px]:h-11 min-[2048px]:px-5 min-[2048px]:text-sm"
             >
               {loading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
               <span className="hidden lg:inline">Enviar</span>
