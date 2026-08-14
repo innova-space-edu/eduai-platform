@@ -1,0 +1,50 @@
+name: Validación EduAI AI Core
+
+on:
+  pull_request:
+    paths:
+      - "lib/ai/**"
+      - "lib/video-agent.ts"
+      - "app/api/assets/**"
+      - "app/api/agents/video/**"
+      - "app/(auth)/register/**"
+      - "supabase/migrations/20260814*.sql"
+      - "scripts/test-ai-core.ts"
+      - "package.json"
+      - ".github/workflows/ai-core-validation.yml"
+
+jobs:
+  validate-ai-core:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GEMINI_API_KEY: ci-placeholder
+      GROQ_API_KEY: ci-placeholder
+      OPENROUTER_API_KEY: ci-placeholder
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      SUPABASE_URL: https://example.supabase.co
+      SUPABASE_SERVICE_ROLE_KEY: ci-placeholder
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Instalar dependencias
+        run: |
+          node scripts/normalize-npm-lockfile.mjs
+          npm install --registry=https://registry.npmjs.org/ --ignore-scripts
+      - name: Probar fingerprints y routing
+        run: npm run test:ai-core
+      - name: Verificar TypeScript del núcleo nuevo
+        run: |
+          npx tsc --noEmit --pretty false 2>&1 | tee ai-core-tsc.log
+      - name: Publicar registro
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-core-validation-log
+          path: ai-core-tsc.log
+          if-no-files-found: warn
