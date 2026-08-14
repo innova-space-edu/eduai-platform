@@ -1,11 +1,8 @@
-import crypto from "crypto"
 import { NextRequest } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import {
-  normalizeDuration,
-  normalizeMode,
-  VIDEO_MAX_DURATION,
-} from "@/lib/video-config"
+import { assertAICapabilityAllowed } from "@/lib/ai/access-policy"
+import { generationFingerprint } from "@/lib/ai/fingerprint"
+import { normalizeDuration, normalizeMode, VIDEO_MAX_DURATION } from "@/lib/video-config"
 
 type VideoMode = "text_to_video" | "image_to_video"
 type VideoPlan = "free" | "pro" | "pro_max"
@@ -17,6 +14,8 @@ type VideoRequestBody = {
   withAudio?: boolean
   mode?: VideoMode
   imageUrl?: string | null
+  aspectRatio?: "16:9" | "9:16"
+  resolution?: "720p" | "1080p" | "4k"
 }
 
 type DailyLimitResult = {
@@ -27,11 +26,7 @@ type DailyLimitResult = {
   remaining: number
 }
 
-const DAILY_LIMITS: Record<VideoPlan, number> = {
-  free: 1,
-  pro: 5,
-  pro_max: 15,
-}
+const DAILY_LIMITS: Record<VideoPlan, number> = { free: 1, pro: 5, pro_max: 15 }
 
 function getTodayIsoDate(): string {
   return new Date().toISOString().slice(0, 10)
@@ -41,48 +36,26 @@ function normalizePrompt(input: string): string {
   return input.replace(/\s+/g, " ").trim()
 }
 
-function buildPromptHash(params: {
-  userId: string
-  prompt: string
-  mode: VideoMode
-  duration: number
-  imageUrl: string | null
-}) {
-  const raw = [
-    params.userId,
-    normalizePrompt(params.prompt).toLowerCase(),
-    params.mode,
-    String(params.duration),
-    params.imageUrl || "",
-  ].join("|")
-  return crypto.createHash("sha256").update(raw).digest("hex")
+function normalizeAspectRatio(value: string | null | undefined): "16:9" | "9:16" {
+  return value === "9:16" ? "9:16" : "16:9"
+}
+
+function normalizeResolution(value: string | null | undefined): "720p" | "1080p" | "4k" {
+  if (value === "1080p") return "1080p"
+  if (value === "4k") return "4k"
+  return "720p"
 }
 
 function basicModeration(prompt: string) {
   const text = prompt.toLowerCase()
-  const blockedTerms = [
-    "child sexual",
-    "explicit minor",
-    "rape",
-    "bestiality",
-    "sexual violence",
-  ]
+  const blockedTerms = ["child sexual", "explicit minor", "rape", "bestiality", "sexual violence"]
   const matched = blockedTerms.find((term) => text.includes(term))
-  if (matched) {
-    return {
-      blocked: true,
-      reason: `Prompt bloqueado por moderación básica: ${matched}`,
-    }
-  }
-  return {
-    blocked: false,
-    reason: null,
-  }
+  return matched
+    ? { blocked: true, reason: `Prompt bloqueado por moderación básica: ${matched}` }
+    : { blocked: false, reason: null }
 }
 
 async function resolveUserPlan(_userId: string): Promise<VideoPlan> {
-  // Fase 1: todos parten como free.
-  // Más adelante lo conectamos con suscripciones reales.
   return "free"
 }
 
@@ -93,7 +66,6 @@ async function getDailyUsage(params: {
 }): Promise<DailyLimitResult> {
   const today = getTodayIsoDate()
   const limit = DAILY_LIMITS[params.plan] ?? DAILY_LIMITS.free
-
   const { data, error } = await params.supabase
     .from("video_usage_daily")
     .select("videos_created")
@@ -101,20 +73,9 @@ async function getDailyUsage(params: {
     .eq("usage_date", today)
     .maybeSingle()
 
-  if (error) {
-    throw new Error(`No se pudo consultar el uso diario: ${error.message}`)
-  }
-
+  if (error) throw new Error(`No se pudo consultar el uso diario: ${error.message}`)
   const used = data?.videos_created ?? 0
-  const remaining = Math.max(0, limit - used)
-
-  return {
-    allowed: used < limit,
-    plan: params.plan,
-    limit,
-    used,
-    remaining,
-  }
+  return { allowed: used < limit, plan: params.plan, limit, used, remaining: Math.max(0, limit - used) }
 }
 
 async function incrementDailyUsage(params: {
@@ -123,221 +84,172 @@ async function incrementDailyUsage(params: {
   plan: VideoPlan
 }) {
   const today = getTodayIsoDate()
-
   const { data: existing, error: fetchError } = await params.supabase
     .from("video_usage_daily")
-    .select("id, videos_created")
+    .select("id,videos_created")
     .eq("user_id", params.userId)
     .eq("usage_date", today)
     .maybeSingle()
 
-  if (fetchError) {
-    throw new Error(`No se pudo leer el contador diario: ${fetchError.message}`)
-  }
+  if (fetchError) throw new Error(`No se pudo leer el contador diario: ${fetchError.message}`)
 
   if (!existing) {
-    const { error: insertError } = await params.supabase
-      .from("video_usage_daily")
-      .insert({
-        user_id: params.userId,
-        usage_date: today,
-        plan: params.plan,
-        videos_created: 1,
-      })
-
-    if (insertError) {
-      throw new Error(`No se pudo crear el contador diario: ${insertError.message}`)
-    }
+    const { error } = await params.supabase.from("video_usage_daily").insert({
+      user_id: params.userId,
+      usage_date: today,
+      plan: params.plan,
+      videos_created: 1,
+    })
+    if (error) throw new Error(`No se pudo crear el contador diario: ${error.message}`)
     return
   }
 
-  const { error: updateError } = await params.supabase
+  const { error } = await params.supabase
     .from("video_usage_daily")
-    .update({
-      videos_created: (existing.videos_created ?? 0) + 1,
-      plan: params.plan,
-    })
+    .update({ videos_created: (existing.videos_created ?? 0) + 1, plan: params.plan })
     .eq("id", existing.id)
-
-  if (updateError) {
-    throw new Error(`No se pudo actualizar el contador diario: ${updateError.message}`)
-  }
+  if (error) throw new Error(`No se pudo actualizar el contador diario: ${error.message}`)
 }
 
-async function findRecentDuplicateJob(params: {
+function parseSupabaseAssetUrl(value: string | null | undefined) {
+  if (!value?.startsWith("supabase://")) return null
+  const remainder = value.slice("supabase://".length)
+  const slash = remainder.indexOf("/")
+  if (slash <= 0) return null
+  return { bucket: remainder.slice(0, slash), path: remainder.slice(slash + 1) }
+}
+
+async function resolveVideoUrl(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  stored: string | null | undefined
+) {
+  if (!stored) return null
+  const parsed = parseSupabaseAssetUrl(stored)
+  if (!parsed) return stored
+  const { data } = await supabase.storage.from(parsed.bucket).createSignedUrl(parsed.path, 60 * 30)
+  return data?.signedUrl || null
+}
+
+async function findReusableJob(params: {
   supabase: Awaited<ReturnType<typeof createClient>>
   userId: string
-  promptHash: string
+  fingerprint: string
 }) {
-  const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString()
-
   const { data, error } = await params.supabase
     .from("video_jobs")
-    .select("id, status, plan, created_at, video_url, thumbnail_url")
+    .select("id,status,plan,created_at,video_url,thumbnail_url,asset_id,provider,model")
     .eq("user_id", params.userId)
-    .eq("prompt_hash", params.promptHash)
+    .eq("fingerprint", params.fingerprint)
     .in("status", ["queued", "processing", "completed"])
-    .gte("created_at", tenMinutesAgo)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle()
 
-  if (error) {
-    throw new Error(`No se pudo revisar duplicados: ${error.message}`)
+  if (!error) return data ?? null
+
+  // Compatibilidad temporal si todavía no se aplicó la migración que agrega fingerprint.
+  if (error.code === "42703" || /fingerprint/i.test(error.message)) {
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString()
+    const fallback = await params.supabase
+      .from("video_jobs")
+      .select("id,status,plan,created_at,video_url,thumbnail_url,provider,model")
+      .eq("user_id", params.userId)
+      .eq("prompt_hash", params.fingerprint)
+      .in("status", ["queued", "processing", "completed"])
+      .gte("created_at", tenMinutesAgo)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (fallback.error) throw new Error(`No se pudo revisar duplicados: ${fallback.error.message}`)
+    return fallback.data ?? null
   }
 
-  return data ?? null
+  throw new Error(`No se pudo revisar reutilización: ${error.message}`)
 }
 
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createClient()
-
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
 
     if (userError || !user) {
-      return Response.json(
-        {
-          ok: false,
-          error: "No autenticado.",
-          code: "UNAUTHORIZED",
-        },
-        { status: 401 }
-      )
+      return Response.json({ ok: false, error: "No autenticado.", code: "UNAUTHORIZED" }, { status: 401 })
     }
 
     const body = (await req.json()) as VideoRequestBody
-
-    const rawPrompt = body.prompt ?? ""
-    const prompt = normalizePrompt(rawPrompt)
+    const prompt = normalizePrompt(body.prompt ?? "")
     const style = normalizePrompt(body.style ?? "")
     const mode = normalizeMode(body.mode ?? "text_to_video") as VideoMode
     const duration = normalizeDuration(body.duration ?? 6)
     const withAudio = Boolean(body.withAudio)
-    const imageUrl =
-      typeof body.imageUrl === "string" && body.imageUrl.trim().length > 0
-        ? body.imageUrl.trim()
-        : null
+    const imageUrl = typeof body.imageUrl === "string" && body.imageUrl.trim() ? body.imageUrl.trim() : null
+    const aspectRatio = normalizeAspectRatio(body.aspectRatio)
+    const resolution = normalizeResolution(body.resolution)
 
     if (!prompt || prompt.length < 8) {
-      return Response.json(
-        {
-          ok: false,
-          error: "El prompt es demasiado corto.",
-          code: "INVALID_PROMPT",
-        },
-        { status: 400 }
-      )
+      return Response.json({ ok: false, error: "El prompt es demasiado corto.", code: "INVALID_PROMPT" }, { status: 400 })
     }
-
     if (prompt.length > 2000) {
-      return Response.json(
-        {
-          ok: false,
-          error: "El prompt es demasiado largo.",
-          code: "PROMPT_TOO_LONG",
-        },
-        { status: 400 }
-      )
+      return Response.json({ ok: false, error: "El prompt es demasiado largo.", code: "PROMPT_TOO_LONG" }, { status: 400 })
     }
-
     if (!["text_to_video", "image_to_video"].includes(mode)) {
-      return Response.json(
-        {
-          ok: false,
-          error: "Modo de video no válido.",
-          code: "INVALID_MODE",
-        },
-        { status: 400 }
-      )
+      return Response.json({ ok: false, error: "Modo de video no válido.", code: "INVALID_MODE" }, { status: 400 })
     }
-
     if (duration < 2 || duration > VIDEO_MAX_DURATION) {
-      return Response.json(
-        {
-          ok: false,
-          error: `La duración debe estar entre 2 y ${VIDEO_MAX_DURATION} segundos.`,
-          code: "INVALID_DURATION",
-        },
-        { status: 400 }
-      )
+      return Response.json({ ok: false, error: `La duración debe estar entre 2 y ${VIDEO_MAX_DURATION} segundos.`, code: "INVALID_DURATION" }, { status: 400 })
     }
-
     if (mode === "image_to_video" && !imageUrl) {
-      return Response.json(
-        {
-          ok: false,
-          error: "Para imagen a video debes enviar una imagen base.",
-          code: "IMAGE_REQUIRED",
-        },
-        { status: 400 }
-      )
+      return Response.json({ ok: false, error: "Para imagen a video debes enviar una imagen base.", code: "IMAGE_REQUIRED" }, { status: 400 })
     }
 
     const moderation = basicModeration(prompt)
-
     if (moderation.blocked) {
-      return Response.json(
-        {
-          ok: false,
-          error: moderation.reason,
-          code: "PROMPT_BLOCKED",
-        },
-        { status: 400 }
-      )
+      return Response.json({ ok: false, error: moderation.reason, code: "PROMPT_BLOCKED" }, { status: 400 })
     }
 
-    const plan = await resolveUserPlan(user.id)
-
-    const usage = await getDailyUsage({
-      supabase,
-      userId: user.id,
-      plan,
-    })
-
-    if (!usage.allowed) {
-      return Response.json(
-        {
-          ok: false,
-          error: "Has alcanzado el límite diario de videos para tu plan.",
-          code: "DAILY_LIMIT_REACHED",
-          plan,
-          limit: usage.limit,
-          used: usage.used,
-          remaining: usage.remaining,
-        },
-        { status: 429 }
-      )
+    try {
+      await assertAICapabilityAllowed({ supabase, userId: user.id, capability: "video" })
+    } catch (error) {
+      const typed = error as Error & { status?: number; code?: string }
+      return Response.json({ ok: false, error: typed.message, code: typed.code || "ACCESS_RESTRICTED" }, { status: typed.status || 403 })
     }
 
-    const promptHash = buildPromptHash({
-      userId: user.id,
-      prompt,
-      mode,
-      duration,
-      imageUrl,
+    const fingerprint = generationFingerprint({
+      capability: "video",
+      scopeKey: user.id,
+      payload: { prompt, style, mode, duration, withAudio, imageUrl, aspectRatio, resolution },
     })
 
-    const duplicate = await findRecentDuplicateJob({
-      supabase,
-      userId: user.id,
-      promptHash,
-    })
-
+    const duplicate = await findReusableJob({ supabase, userId: user.id, fingerprint })
     if (duplicate) {
       return Response.json({
         ok: true,
         jobId: duplicate.id,
         status: duplicate.status,
         deduplicated: true,
-        plan: duplicate.plan ?? plan,
-        remainingToday: usage.remaining,
-        videoUrl: duplicate.video_url ?? null,
+        reused: duplicate.status === "completed",
+        generationAvoided: true,
+        plan: duplicate.plan ?? "free",
+        videoUrl: await resolveVideoUrl(supabase, duplicate.video_url),
         thumbnailUrl: duplicate.thumbnail_url ?? null,
+        assetId: "asset_id" in duplicate ? duplicate.asset_id ?? null : null,
+        provider: duplicate.provider ?? null,
+        model: duplicate.model ?? null,
       })
+    }
+
+    const plan = await resolveUserPlan(user.id)
+    const usage = await getDailyUsage({ supabase, userId: user.id, plan })
+    if (!usage.allowed) {
+      return Response.json({
+        ok: false,
+        error: "Has alcanzado el límite diario de videos para tu plan.",
+        code: "DAILY_LIMIT_REACHED",
+        plan,
+        limit: usage.limit,
+        used: usage.used,
+        remaining: usage.remaining,
+      }, { status: 429 })
     }
 
     const requestPayload = {
@@ -347,6 +259,8 @@ export async function POST(req: NextRequest) {
       withAudio,
       mode,
       imageUrl,
+      aspectRatio,
+      resolution,
     }
 
     const { data: insertedJob, error: insertError } = await supabase
@@ -357,59 +271,37 @@ export async function POST(req: NextRequest) {
         plan,
         mode,
         prompt,
-        prompt_hash: promptHash,
+        prompt_hash: fingerprint,
+        fingerprint,
         style: style || null,
         duration_seconds: duration,
         include_audio: withAudio,
         image_url: imageUrl,
-        provider: "wan-worker",
+        provider: process.env.GEMINI_API_KEY_VIDEO || process.env.GEMINI_API_KEY ? "google" : "hf-space",
         model: null,
         request_payload: requestPayload,
-        moderation_payload: {
-          blocked: false,
-          reason: null,
-          phase: "basic",
-        },
+        moderation_payload: { blocked: false, reason: null, phase: "basic" },
       })
-      .select("id, status, plan")
+      .select("id,status,plan")
       .single()
 
     if (insertError || !insertedJob) {
-      return Response.json(
-        {
-          ok: false,
-          error: insertError?.message || "No se pudo crear el job de video.",
-          code: "JOB_CREATE_FAILED",
-        },
-        { status: 500 }
-      )
+      return Response.json({ ok: false, error: insertError?.message || "No se pudo crear el job de video.", code: "JOB_CREATE_FAILED" }, { status: 500 })
     }
 
-    await incrementDailyUsage({
-      supabase,
-      userId: user.id,
-      plan,
-    })
+    await incrementDailyUsage({ supabase, userId: user.id, plan })
 
     return Response.json({
       ok: true,
       jobId: insertedJob.id,
       status: insertedJob.status,
       deduplicated: false,
+      reused: false,
       plan: insertedJob.plan,
       remainingToday: Math.max(0, usage.remaining - 1),
     })
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Error inesperado al crear el video."
-
-    return Response.json(
-      {
-        ok: false,
-        error: message,
-        code: "INTERNAL_ERROR",
-      },
-      { status: 500 }
-    )
+    const message = error instanceof Error ? error.message : "Error inesperado al crear el video."
+    return Response.json({ ok: false, error: message, code: "INTERNAL_ERROR" }, { status: 500 })
   }
 }
