@@ -5,8 +5,17 @@ on:
     paths:
       - "lib/ai/**"
       - "lib/video-agent.ts"
+      - "lib/notebook/**"
+      - "lib/papers/**"
       - "app/api/assets/**"
       - "app/api/agents/video/**"
+      - "app/api/agents/investigador/**"
+      - "app/api/agents/matematico/**"
+      - "app/api/agents/redactor/**"
+      - "app/api/agents/traductor/**"
+      - "app/api/agents/paper/**"
+      - "app/api/agents/chat/**"
+      - "app/api/notebooks/**"
       - "app/(auth)/register/**"
       - "supabase/migrations/20260814*.sql"
       - "scripts/test-ai-core.ts"
@@ -16,7 +25,7 @@ on:
 jobs:
   validate-ai-core:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 18
     env:
       GEMINI_API_KEY: ci-placeholder
       GROQ_API_KEY: ci-placeholder
@@ -36,6 +45,8 @@ jobs:
         run: |
           node scripts/normalize-npm-lockfile.mjs
           npm install --registry=https://registry.npmjs.org/ --ignore-scripts
+      - name: Aplicar compatibilidad idempotente de Notebook
+        run: node scripts/apply-notebook-ingestion-fix.mjs
       - name: Probar fingerprints y routing
         run: npm run test:ai-core
       - name: Verificar TypeScript del núcleo nuevo
