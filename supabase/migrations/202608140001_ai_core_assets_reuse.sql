@@ -69,7 +69,6 @@ create table if not exists public.eduai_assets (
   root_asset_id uuid references public.eduai_assets(id) on delete set null,
   version integer not null default 1 check (version >= 1),
   metadata jsonb not null default '{}'::jsonb,
-  -- Campos preparados para la futura capa de gobierno/privacidad.
   data_classification text not null default 'standard' check (data_classification in ('standard','personal','sensitive','confidential')),
   processing_purpose text,
   contains_personal_data boolean not null default false,
@@ -100,7 +99,6 @@ create index if not exists eduai_assets_root_version_idx
 create index if not exists eduai_assets_metadata_gin_idx
   on public.eduai_assets using gin (metadata);
 
--- Añadir FK desde solicitudes al asset final una vez que la tabla de assets existe.
 do $$
 begin
   if not exists (
@@ -210,10 +208,7 @@ on conflict (provider, model) do update set
   updated_at = now();
 
 -- updated_at triggers
-foreach_table: begin
-end;
 
--- PostgreSQL no tiene foreach DDL; crear triggers explícitos e idempotentes.
 drop trigger if exists ai_generation_requests_updated_at on public.ai_generation_requests;
 create trigger ai_generation_requests_updated_at
 before update on public.ai_generation_requests
