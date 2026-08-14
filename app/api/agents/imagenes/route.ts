@@ -1,8 +1,17 @@
 // app/api/agents/imagenes/route.ts
-// Motor multiproveedor con límites por proveedor y fallback total acotado.
+// Motor multiproveedor con límites por proveedor, fallback y reutilización persistente.
 
 import { createClient } from "@/lib/supabase/server"
 import { createClient as createAdmin } from "@supabase/supabase-js"
+import { assertAICapabilityAllowed } from "@/lib/ai/access-policy"
+import { generationFingerprint } from "@/lib/ai/fingerprint"
+import {
+  createEduAIAsset,
+  findReusableGeneration,
+  finishGenerationRequest,
+  recordGenerationStart,
+  saveReusableGeneration,
+} from "@/lib/ai/reuse"
 import {
   HUGGINGFACE_IMAGE_MODELS,
   OPENROUTER_IMAGE_MODELS,
@@ -46,6 +55,12 @@ type ProviderAttempt = {
   model?: string
   error: string
   elapsedMs: number
+}
+
+type StoredImage = {
+  publicUrl: string
+  storagePath: string
+  mimeType: string
 }
 
 const DEFAULT_TOTAL_TIMEOUT_MS = 48_000
@@ -122,32 +137,34 @@ async function fetchBase64(url: string, signal: AbortSignal): Promise<string | n
   return `data:${mime};base64,${Buffer.from(buf).toString("base64")}`
 }
 
-async function uploadToStorage(imageBase64: string, userId: string): Promise<string | null> {
+async function uploadToStorage(imageBase64: string, userId: string): Promise<StoredImage | null> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !key) return null
 
   try {
-    const admin = createAdmin(url, key)
+    const admin = createAdmin(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
     const match = imageBase64.match(/^data:(image\/[\w.+-]+);base64,(.+)$/)
     if (!match) return null
 
-    const mime = match[1]
-    const ext = mime.split("/")[1] || "png"
+    const mimeType = match[1]
+    const rawExt = mimeType.split("/")[1] || "png"
+    const ext = rawExt.replace(/[^a-zA-Z0-9]/g, "") || "png"
     const buf = Buffer.from(match[2], "base64")
-    const fileName = `${userId}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`
+    const storagePath = `${userId}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`
 
     const { error } = await admin.storage
       .from("generated-images")
-      .upload(fileName, buf, { contentType: mime, upsert: false })
+      .upload(storagePath, buf, { contentType: mimeType, upsert: false })
 
     if (error) {
       console.warn("[Image][Storage]", error.message)
       return null
     }
 
-    const { data } = admin.storage.from("generated-images").getPublicUrl(fileName)
-    return data?.publicUrl || null
+    const { data } = admin.storage.from("generated-images").getPublicUrl(storagePath)
+    if (!data?.publicUrl) return null
+    return { publicUrl: data.publicUrl, storagePath, mimeType }
   } catch (error) {
     console.error("[Image][Storage]", errMsg(error))
     return null
@@ -208,8 +225,9 @@ Output only the prompt.`
   const timer = setTimeout(() => controller.abort(), 5_000)
 
   try {
+    const model = process.env.GOOGLE_TEXT_MODEL_LITE || process.env.GEMINI_TEXT_MODEL_LITE || "gemini-3.5-flash-lite"
     const res = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent",
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
       {
         method: "POST",
         headers: {
@@ -711,6 +729,97 @@ export async function POST(req: Request) {
   }
 
   try {
+    await assertAICapabilityAllowed({
+      supabase,
+      userId: user.id,
+      capability: "image",
+    })
+  } catch (error) {
+    const typed = error as Error & { status?: number; code?: string }
+    return Response.json(
+      { success: false, error: typed.message, code: typed.code || "ACCESS_RESTRICTED" },
+      { status: typed.status || 403 }
+    )
+  }
+
+  const fingerprint = generationFingerprint({
+    capability: "image",
+    scopeKey: user.id,
+    payload: {
+      prompt,
+      style,
+      width,
+      height,
+      provider,
+      mode,
+      customPrompt: customPrompt || null,
+      educationalContext: educationalContext || null,
+    },
+  })
+
+  const reusable = await findReusableGeneration({
+    supabase,
+    userId: user.id,
+    fingerprint,
+    capability: "image",
+    reusePolicy: "exact_private",
+  })
+
+  if (reusable && typeof reusable.result.imageUrl === "string") {
+    const requestId = await recordGenerationStart({
+      supabase,
+      userId: user.id,
+      capability: "image",
+      fingerprint,
+      module: source || "image-studio",
+      provider: reusable.provider,
+      model: reusable.model,
+      reusePolicy: "exact_private",
+      requestJson: { reusedCacheId: reusable.id },
+    })
+
+    await finishGenerationRequest({
+      supabase,
+      requestId,
+      status: "reused",
+      provider: reusable.provider,
+      model: reusable.model,
+      assetId: reusable.assetId,
+      latencyMs: Date.now() - startedAt,
+      metadata: { cacheId: reusable.id, generationAvoided: true },
+    })
+
+    return Response.json(
+      {
+        success: true,
+        imageUrl: reusable.result.imageUrl,
+        optimizedPrompt: reusable.result.optimizedPrompt || prompt,
+        provider: reusable.provider || reusable.result.provider || "cache",
+        model: reusable.model || reusable.result.model || "cached",
+        mode,
+        type: "url",
+        reused: true,
+        generationAvoided: true,
+        assetId: reusable.assetId,
+        cacheId: reusable.id,
+        promptOptimized: Boolean(reusable.result.promptOptimized),
+        elapsedMs: Date.now() - startedAt,
+      },
+      { headers: { "Cache-Control": "private, max-age=60" } }
+    )
+  }
+
+  const requestId = await recordGenerationStart({
+    supabase,
+    userId: user.id,
+    capability: "image",
+    fingerprint,
+    module: source || "image-studio",
+    reusePolicy: "exact_private",
+    requestJson: { prompt, style, width, height, provider, mode, topic },
+  })
+
+  try {
     const promptWasOptimized = !customPrompt && shouldOptimizePrompt(mode, customPrompt)
     const optimizedPrompt = customPrompt
       ? customPrompt
@@ -770,6 +879,14 @@ export async function POST(req: Request) {
     if (!imageBase64) {
       const details = attempts.map(formatAttempt)
       const compactDetails = details.join(" | ").slice(0, 1_600)
+      await finishGenerationRequest({
+        supabase,
+        requestId,
+        status: "failed",
+        error: compactDetails || "Ningún proveedor quedó disponible",
+        latencyMs: Date.now() - startedAt,
+        metadata: { attempts, providerOrder: order },
+      })
       return Response.json(
         {
           success: false,
@@ -779,33 +896,96 @@ export async function POST(req: Request) {
           providerOrder: order,
           elapsedMs: Date.now() - startedAt,
         },
-        {
-          status: 503,
-          headers: { "Cache-Control": "no-store" },
-        }
+        { status: 503, headers: { "Cache-Control": "no-store" } }
       )
     }
 
-    void (async () => {
-      try {
-        const publicUrl = await uploadToStorage(imageBase64, user.id)
-        const { error } = await supabase.from("generated_images").insert({
-          user_id: user.id,
-          prompt,
-          optimized_prompt: optimizedPrompt,
-          image_url: publicUrl ?? imageBase64,
-          provider: usedModel ? `${usedProvider} · ${usedModel}` : usedProvider,
-          style,
-          width,
-          height,
-          source,
-          topic,
+    let stored: StoredImage | null = null
+    let assetId: string | null = null
+
+    try {
+      stored = await uploadToStorage(imageBase64, user.id)
+      const permanentImageUrl = stored?.publicUrl ?? imageBase64
+
+      const { error: legacyInsertError } = await supabase.from("generated_images").insert({
+        user_id: user.id,
+        prompt,
+        optimized_prompt: optimizedPrompt,
+        image_url: permanentImageUrl,
+        provider: usedModel ? `${usedProvider} · ${usedModel}` : usedProvider,
+        style,
+        width,
+        height,
+        source,
+        topic,
+      })
+      if (legacyInsertError) console.error("[Image][DB]", legacyInsertError.message)
+
+      if (stored) {
+        assetId = await createEduAIAsset(supabase, {
+          ownerId: user.id,
+          assetType: "image",
+          title: prompt.slice(0, 180),
+          mimeType: stored.mimeType,
+          storageBucket: "generated-images",
+          storagePath: stored.storagePath,
+          externalUrl: stored.publicUrl,
+          sourceModule: source || "image-studio",
+          sourceId: topic ? String(topic) : null,
+          generationRequestId: requestId,
+          fingerprint,
+          visibility: "private",
+          metadata: {
+            provider: usedProvider,
+            model: usedModel,
+            style,
+            width,
+            height,
+            optimizedPrompt,
+            promptOptimized: promptWasOptimized,
+          },
         })
-        if (error) console.error("[Image][DB]", error.message)
-      } catch (error) {
-        console.error("[Image][Save]", errMsg(error))
+
+        await saveReusableGeneration({
+          supabase,
+          userId: user.id,
+          capability: "image",
+          fingerprint,
+          provider: usedProvider,
+          model: usedModel,
+          assetId,
+          reusePolicy: "exact_private",
+          visibility: "private",
+          result: {
+            imageUrl: stored.publicUrl,
+            optimizedPrompt,
+            provider: usedProvider,
+            model: usedModel,
+            promptOptimized: promptWasOptimized,
+            width,
+            height,
+            style,
+          },
+        })
       }
-    })()
+    } catch (saveError) {
+      console.error("[Image][Save]", errMsg(saveError))
+    }
+
+    await finishGenerationRequest({
+      supabase,
+      requestId,
+      status: "completed",
+      provider: usedProvider,
+      model: usedModel,
+      assetId,
+      latencyMs: Date.now() - startedAt,
+      metadata: {
+        persistentReuseReady: Boolean(stored),
+        providerOrder: order,
+        attempts,
+      },
+    })
 
     return Response.json(
       {
@@ -819,12 +999,23 @@ export async function POST(req: Request) {
         providerOrder: order,
         attempts,
         promptOptimized: promptWasOptimized,
+        reused: false,
+        generationAvoided: false,
+        assetId,
+        persistentUrl: stored?.publicUrl || null,
         elapsedMs: Date.now() - startedAt,
       },
       { headers: { "Cache-Control": "no-store" } }
     )
   } catch (error) {
     console.error("[Image][POST]", error)
+    await finishGenerationRequest({
+      supabase,
+      requestId,
+      status: "failed",
+      error: errMsg(error).slice(0, 1_900),
+      latencyMs: Date.now() - startedAt,
+    })
     return Response.json(
       {
         success: false,
