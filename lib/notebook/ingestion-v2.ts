@@ -1,10 +1,14 @@
+import { GoogleGenAI } from "@google/genai"
 import { createClient } from "@/lib/supabase/server"
+import { fileSha256 } from "@/lib/ai/fingerprint"
 import { chunkText, cleanHtml } from "./chunking"
 import { fetchPublicUrl } from "./url-safety"
 import type { NotebookSource } from "./types"
 
 const MAX_REMOTE_FILE_BYTES = 20 * 1024 * 1024
 const USER_AGENT = "EduAI-Notebook/2.0 (+https://innova-space-edu.cl)"
+const EMBEDDING_MODEL = process.env.GOOGLE_EMBEDDING_MODEL || "gemini-embedding-2"
+const EMBEDDING_DIMENSIONS = 768
 
 function normalizeText(value: string, limit = 100_000): string {
   return value
@@ -247,20 +251,34 @@ function buildContextualChunkText(chunk: string, sourceTitle: string, documentIn
 
 const EMBEDDING_BATCH = 4
 
+function embeddingKeys(): string[] {
+  return (
+    process.env.GEMINI_API_KEY_POOL ||
+    process.env.GEMINI_API_KEY_TEXT ||
+    process.env.GEMINI_API_KEY ||
+    process.env.GOOGLE_API_KEY ||
+    ""
+  )
+    .split(",")
+    .map((key) => key.trim())
+    .filter(Boolean)
+}
+
 async function generateEmbedding(text: string): Promise<number[] | null> {
   try {
-    const { GoogleGenerativeAI } = await import("@google/generative-ai")
-    const keys = (process.env.GEMINI_API_KEY_POOL ?? process.env.GEMINI_API_KEY ?? "")
-      .split(",")
-      .map((key) => key.trim())
-      .filter(Boolean)
+    const keys = embeddingKeys()
     if (!keys.length) return null
     const key = keys[Math.floor(Math.random() * keys.length)]
-    const client = new GoogleGenerativeAI(key)
-    const model = client.getGenerativeModel({ model: "text-embedding-004" })
-    const result = await model.embedContent(text.slice(0, 2_048))
-    return result.embedding.values
-  } catch {
+    const ai = new GoogleGenAI({ apiKey: key })
+    const result = await ai.models.embedContent({
+      model: EMBEDDING_MODEL,
+      contents: text.slice(0, 8_000),
+      config: { outputDimensionality: EMBEDDING_DIMENSIONS },
+    })
+    const values = result.embeddings?.[0]?.values
+    return Array.isArray(values) && values.length === EMBEDDING_DIMENSIONS ? values : null
+  } catch (error) {
+    console.warn("[Notebook embeddings]", error instanceof Error ? error.message : String(error))
     return null
   }
 }
@@ -274,10 +292,82 @@ async function generateEmbeddingsBatched(texts: string[]): Promise<Array<number[
   return results
 }
 
+async function findReusableSource(input: {
+  supabase: Awaited<ReturnType<typeof createClient>>
+  sourceId: string
+  notebookId: string
+  contentHash: string
+}) {
+  const { data: notebook } = await input.supabase
+    .from("notebooks")
+    .select("user_id")
+    .eq("id", input.notebookId)
+    .maybeSingle()
+  if (!notebook?.user_id) return null
+
+  const { data: notebooks } = await input.supabase
+    .from("notebooks")
+    .select("id")
+    .eq("user_id", notebook.user_id)
+  const notebookIds = (notebooks || []).map((row) => row.id)
+  if (!notebookIds.length) return null
+
+  const { data, error } = await input.supabase
+    .from("notebook_sources")
+    .select("id,title,extracted_text,notebook_id")
+    .in("notebook_id", notebookIds)
+    .eq("content_hash", input.contentHash)
+    .eq("status", "ready")
+    .neq("id", input.sourceId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    if (error.code !== "42703" && !/content_hash|schema cache/i.test(error.message)) {
+      console.warn("[Notebook reuse] lookup:", error.message)
+    }
+    return null
+  }
+  return data || null
+}
+
+async function copyReusableChunks(input: {
+  supabase: Awaited<ReturnType<typeof createClient>>
+  fromSourceId: string
+  toSourceId: string
+  notebookId: string
+}) {
+  const { data: chunks, error } = await input.supabase
+    .from("notebook_chunks")
+    .select("chunk_index,chunk_text,token_count,embedding")
+    .eq("source_id", input.fromSourceId)
+    .order("chunk_index")
+  if (error || !chunks?.length) return 0
+
+  await input.supabase.from("notebook_chunks").delete().eq("source_id", input.toSourceId)
+  const rows = chunks.map((chunk) => ({
+    notebook_id: input.notebookId,
+    source_id: input.toSourceId,
+    chunk_index: chunk.chunk_index,
+    chunk_text: chunk.chunk_text,
+    token_count: chunk.token_count,
+    embedding: chunk.embedding,
+  }))
+
+  for (let index = 0; index < rows.length; index += 50) {
+    const { error: insertError } = await input.supabase
+      .from("notebook_chunks")
+      .insert(rows.slice(index, index + 50))
+    if (insertError) throw new Error(`No se pudieron reutilizar los fragmentos: ${insertError.message}`)
+  }
+  return rows.length
+}
+
 export async function ingestNotebookSource(
   sourceId: string,
   rawFileBase64?: string,
-): Promise<{ ok: boolean; chunkCount: number; error?: string }> {
+): Promise<{ ok: boolean; chunkCount: number; reused?: boolean; reusedFrom?: string; error?: string }> {
   const supabase = await createClient()
   const { data: source, error: sourceError } = await supabase
     .from("notebook_sources")
@@ -297,9 +387,53 @@ export async function ingestNotebookSource(
       return { ok: false, chunkCount: 0, error: "Texto insuficiente" }
     }
 
+    const contentHash = fileSha256(Buffer.from(text, "utf8"))
     const title = source.title || extractTitleFromText(text, source.url)
+    const reusable = await findReusableSource({
+      supabase,
+      sourceId,
+      notebookId: source.notebook_id,
+      contentHash,
+    })
+
+    if (reusable?.id) {
+      const chunkCount = await copyReusableChunks({
+        supabase,
+        fromSourceId: reusable.id,
+        toSourceId: sourceId,
+        notebookId: source.notebook_id,
+      })
+
+      if (chunkCount > 0) {
+        const { error: reuseUpdateError } = await supabase
+          .from("notebook_sources")
+          .update({
+            extracted_text: reusable.extracted_text || text,
+            title,
+            status: "ready",
+            error_message: null,
+            content_hash: contentHash,
+            reused_from_source_id: reusable.id,
+            ingestion_reused_at: new Date().toISOString(),
+            ingestion_model: EMBEDDING_MODEL,
+          })
+          .eq("id", sourceId)
+        if (reuseUpdateError) throw new Error(reuseUpdateError.message)
+
+        return { ok: true, chunkCount, reused: true, reusedFrom: reusable.id }
+      }
+    }
+
     const { error: updateError } = await supabase.from("notebook_sources")
-      .update({ extracted_text: text, title, status: "processing", error_message: null })
+      .update({
+        extracted_text: text,
+        title,
+        status: "processing",
+        error_message: null,
+        content_hash: contentHash,
+        reused_from_source_id: null,
+        ingestion_model: EMBEDDING_MODEL,
+      })
       .eq("id", sourceId)
     if (updateError) throw new Error(updateError.message)
 
@@ -322,7 +456,7 @@ export async function ingestNotebookSource(
     }
 
     await supabase.from("notebook_sources").update({ status: "ready", title }).eq("id", sourceId)
-    return { ok: true, chunkCount: rawChunks.length }
+    return { ok: true, chunkCount: rawChunks.length, reused: false }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     console.error("[Notebook ingestion v2]", message)
