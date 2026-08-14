@@ -4,7 +4,9 @@ import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Zap, User, Mail, Lock, Eye, EyeOff, AlertCircle, CalendarDays, GraduationCap } from "lucide-react"
+import EduAIBrand from "@/components/branding/EduAIBrand"
+import { User, Mail, Lock, Eye, EyeOff, AlertCircle, CalendarDays, GraduationCap } from "lucide-react"
+// EDUAI_ANIMATED_BRAND_V1
 
 type AccountType = "teacher" | "university_student" | "researcher" | "professional" | "other"
 
@@ -82,8 +84,6 @@ export default function RegisterPage() {
         is_online: false, last_seen: new Date().toISOString(), created_at: new Date().toISOString(),
       }, { onConflict: "id" })
 
-      // El trigger de Auth crea eduai_user_access incluso si aún no hay sesión.
-      // Cuando sí existe sesión, este upsert actúa como respaldo idempotente.
       if (signUpData.session) {
         await supabase.from("eduai_user_access").upsert({
           user_id: signUpData.user.id,
@@ -138,15 +138,13 @@ export default function RegisterPage() {
         style={{ background: "radial-gradient(ellipse at 50% 0%, rgba(124,58,237,0.06) 0%, transparent 70%)" }} />
 
       <div className="w-full max-w-md relative z-10 animate-fade-in">
-        <div className="text-center mb-7">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-4"
-            style={{ background: "linear-gradient(135deg, #7c3aed, #2563eb)", boxShadow: "0 8px 32px rgba(124,58,237,0.28)" }}>
-            <Zap size={28} className="text-main" />
-          </div>
-          <h1 className="text-3xl font-bold text-main">
-            Edu<span style={{ color: "var(--accent-blue)" }}>AI</span>
-          </h1>
-          <p className="text-muted2 text-sm mt-1">Crea tu cuenta</p>
+        <div className="mb-7 text-center">
+          <EduAIBrand
+            className="w-full"
+            logoClassName="h-20 w-20"
+            nameClassName="text-3xl font-bold tracking-tight text-main"
+          />
+          <p className="mt-2 text-sm text-muted2">Crea tu cuenta</p>
         </div>
 
         <div className="rounded-2xl p-6 border"
