@@ -1,8 +1,6 @@
-import Groq from "groq-sdk"
 import { createClient } from "@/lib/supabase/server"
+import { streamAIText } from "@/lib/ai/gateway"
 import { orchestrate } from "@/app/api/agents/orchestrator/index"
-
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
 
 export async function POST(req: Request) {
   const supabase = await createClient()
@@ -126,35 +124,27 @@ FORMATO EXACTO:
   ]
 
   try {
-    const stream = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+    const stream = await streamAIText({
       messages,
-      stream: true,
-      temperature: studyType === "exercises" ? 0.55 : 0.65,
-      max_tokens: studyType === "summary" ? 850 : 1300,
+      maxOutputTokens: studyType === "summary" ? 850 : 1300,
+      preferredProvider: "groq",
+      context: {
+        userId: user.id,
+        module: "study-tutor",
+        sourceId: topic ? String(topic) : null,
+        reusePolicy: "never",
+        visibility: "private",
+      },
+      supabase,
     })
 
-    const encoder = new TextEncoder()
-    const readable = new ReadableStream({
-      async start(controller) {
-        try {
-          for await (const chunk of stream) {
-            const text = chunk.choices[0]?.delta?.content || ""
-            if (text) controller.enqueue(encoder.encode(text))
-          }
-        } finally {
-          controller.close()
-        }
-      }
-    })
-
-    return new Response(readable, {
+    return new Response(stream, {
       headers: {
         "Content-Type": "text/plain; charset=utf-8",
-        "Cache-Control": "no-cache",
-      }
+        "Cache-Control": "no-cache, no-store",
+      },
     })
   } catch (e: any) {
-    return new Response(e.message || "Error", { status: 500 })
+    return new Response(e?.message || "Error", { status: e?.status || 500 })
   }
 }
