@@ -1,6 +1,7 @@
 # EduAI AI Core — despliegue seguro
 
 > Objetivo: modernizar EduAI sin duplicar módulos ni romper producción.
+> Último redeploy válido debe usar un commit posterior a `1c12415`, que incluye la corrección del reranker estructurado de Chat Paper.
 
 ## Principios
 
