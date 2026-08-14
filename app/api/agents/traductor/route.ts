@@ -1,5 +1,5 @@
-// app/api/agents/traductor/route.ts — v2
-import { callAI } from "@/lib/ai-router"
+// app/api/agents/traductor/route.ts
+import { runAIText } from "@/lib/ai/gateway"
 import { createClient } from "@/lib/supabase/server"
 
 export async function POST(req: Request) {
@@ -51,15 +51,37 @@ ${isFile ? `NOTA: El usuario está traduciendo el archivo "${fileName || "un doc
     { role: "system" as const, content: systemPrompt },
     ...history.slice(-10).map((m: any) => ({
       role: m.role as "user" | "assistant",
-      content: m.content,
+      content: typeof m.content === "string" ? m.content : "",
     })),
-    { role: "user" as const, content: message },
+    { role: "user" as const, content: String(message) },
   ]
 
   try {
-    const result = await callAI(messages, { maxTokens: isFile ? 4000 : 2000 })
-    return Response.json({ text: result.text, provider: result.provider })
+    const result = await runAIText({
+      messages,
+      capability: isFile ? "long_context" : "text",
+      maxOutputTokens: isFile ? 4000 : 2000,
+      context: {
+        userId: user.id,
+        module: "mira-traductor",
+        sourceId: isFile && fileName ? String(fileName) : null,
+        reusePolicy: "exact_private",
+        visibility: "private",
+      },
+      supabase,
+    })
+
+    return Response.json({
+      text: result.data,
+      provider: result.provider,
+      model: result.model,
+      reused: result.reused,
+      generationAvoided: result.reused,
+    })
   } catch (e: any) {
-    return Response.json({ error: e.message || "Error en la traducción" }, { status: 500 })
+    return Response.json(
+      { error: e?.message || "Error en la traducción", code: e?.code || undefined },
+      { status: e?.status || 500 },
+    )
   }
 }
