@@ -11,6 +11,12 @@ export type GoogleTextResult = {
   model: string
 }
 
+export type GoogleGroundedResult = GoogleTextResult & {
+  usedSearch: boolean
+  searchQueries: string[]
+  sources: Array<{ title: string; uri: string }>
+}
+
 export type GoogleImageResult = {
   dataUrl: string
   mimeType: string
@@ -80,6 +86,48 @@ export async function generateGoogleText(input: {
     text: response.text ?? "",
     provider: "google",
     model,
+  }
+}
+
+export async function generateGoogleGroundedText(input: {
+  messages: GatewayMessage[]
+  maxOutputTokens?: number
+  temperature?: number
+}): Promise<GoogleGroundedResult> {
+  const ai = client("text")
+  const model = googleModel("text")
+  const systemInstruction = input.messages.find((message) => message.role === "system")?.content
+
+  const response = await ai.models.generateContent({
+    model,
+    contents: toContents(input.messages),
+    config: {
+      ...(systemInstruction ? { systemInstruction } : {}),
+      maxOutputTokens: input.maxOutputTokens ?? 4096,
+      temperature: input.temperature ?? 0.4,
+      tools: [{ googleSearch: {} }],
+    },
+  } as any)
+
+  const candidate = (response as any)?.candidates?.[0]
+  const grounding = candidate?.groundingMetadata || {}
+  const searchQueries = Array.isArray(grounding.webSearchQueries)
+    ? grounding.webSearchQueries.map((value: unknown) => String(value)).filter(Boolean)
+    : []
+  const sources = Array.isArray(grounding.groundingChunks)
+    ? grounding.groundingChunks
+        .map((chunk: any) => chunk?.web)
+        .filter((web: any) => web?.uri)
+        .map((web: any) => ({ title: String(web.title || web.uri), uri: String(web.uri) }))
+    : []
+
+  return {
+    text: response.text ?? "",
+    provider: "google",
+    model,
+    usedSearch: searchQueries.length > 0 || sources.length > 0,
+    searchQueries,
+    sources,
   }
 }
 
