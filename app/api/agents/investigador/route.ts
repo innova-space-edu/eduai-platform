@@ -1,181 +1,203 @@
 // app/api/agents/investigador/route.ts
-// AGT-Investigador v2 — Gemini 2.5 Flash + Google Search Tool
-// Busca en la web real antes de responder. Cita fuentes con URL y fecha.
+// AGT-Investigador — Google Search grounding + EduAI AI Gateway fallback.
 
 import { createClient } from "@/lib/supabase/server"
-
-const GEMINI_MODEL = process.env.GEMINI_FAST_MODEL || "gemini-2.5-flash"
+import { assertAICapabilityAllowed } from "@/lib/ai/access-policy"
+import { generationFingerprint } from "@/lib/ai/fingerprint"
+import { runAIText } from "@/lib/ai/gateway"
+import { generateGoogleGroundedText, hasGoogleAI } from "@/lib/ai/providers/google"
+import { finishGenerationRequest, recordGenerationStart } from "@/lib/ai/reuse"
 
 const SYSTEM_PROMPT = `Eres AGT-Investigador, un investigador académico experto con acceso a búsqueda web en tiempo real.
 
 COMPORTAMIENTO:
-- SIEMPRE usa la herramienta de búsqueda para obtener información actualizada y verificada
-- Distingue claramente entre hechos verificados (con fuente) y tu conocimiento base
-- Estructura las respuestas con secciones claras usando ## para títulos
-- Cita fuentes con formato: [Nombre fuente](URL) — Fecha
-- Si la búsqueda no retorna resultados útiles, indícalo y responde desde tu conocimiento base
-- Usa **negrita** para conceptos clave
-- Responde siempre en español, salvo que el usuario pida otro idioma
+- SIEMPRE usa la herramienta de búsqueda para obtener información actualizada y verificada cuando esté disponible.
+- Distingue claramente entre hechos verificados con fuentes y análisis/inferencia.
+- Estructura las respuestas con secciones claras usando ## para títulos.
+- No inventes enlaces ni fuentes.
+- Si la búsqueda no retorna resultados útiles, indícalo explícitamente.
+- Usa **negrita** para conceptos clave.
+- Responde siempre en español, salvo que el usuario pida otro idioma.
 - Sé riguroso, preciso y equilibrado. No especules sin indicarlo.
 
 FORMATO DE RESPUESTA:
 ## 🔍 Hallazgos principales
-[Resumen de lo encontrado con búsqueda]
+[Resumen]
 
 ## 📚 Análisis detallado
-[Desarrollo del tema con datos verificados]
-
-## 🔗 Fuentes consultadas
-[Lista de fuentes con URLs cuando estén disponibles]
+[Desarrollo]
 
 ## 💡 Conclusión
-[Síntesis y reflexión final]`
+[Síntesis]`
+
+type HistoryItem = { role: "user" | "assistant"; content: string }
+
+function normalizeHistory(value: unknown): HistoryItem[] {
+  if (!Array.isArray(value)) return []
+  return value
+    .filter((item): item is HistoryItem => {
+      if (!item || typeof item !== "object") return false
+      const row = item as Partial<HistoryItem>
+      return (row.role === "user" || row.role === "assistant") && typeof row.content === "string"
+    })
+    .slice(-8)
+}
 
 export async function POST(req: Request) {
+  const startedAt = Date.now()
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new Response("Unauthorized", { status: 401 })
 
-  const { message, history = [] } = await req.json()
-  const apiKey = process.env.GEMINI_API_KEY
-  if (!apiKey) return new Response("GEMINI_API_KEY missing", { status: 500 })
+  const body = await req.json().catch(() => ({}))
+  const message = typeof body?.message === "string" ? body.message.trim() : ""
+  const history = normalizeHistory(body?.history)
+  if (!message) return Response.json({ error: "Escribe qué deseas investigar." }, { status: 400 })
 
-  // Construir historial de conversación para Gemini
-  const conversationHistory = history.map((m: { role: string; content: string }) => ({
-    role: m.role === "assistant" ? "model" : "user",
-    parts: [{ text: m.content }],
-  }))
+  try {
+    await assertAICapabilityAllowed({
+      supabase,
+      userId: user.id,
+      capability: "research",
+      provider: "google",
+    })
+  } catch (error) {
+    const typed = error as Error & { status?: number; code?: string }
+    return Response.json(
+      { error: typed.message, code: typed.code || "ACCESS_RESTRICTED" },
+      { status: typed.status || 403 },
+    )
+  }
 
-  // Mensaje actual del usuario
-  conversationHistory.push({
-    role: "user",
-    parts: [{ text: message }],
+  const messages = [
+    { role: "system" as const, content: SYSTEM_PROMPT },
+    ...history,
+    { role: "user" as const, content: message },
+  ]
+
+  const fingerprint = generationFingerprint({
+    capability: "research",
+    scopeKey: user.id,
+    payload: {
+      message,
+      history,
+      freshnessBucket: new Date().toISOString().slice(0, 10),
+      searchGrounding: true,
+    },
   })
 
-  const body = {
-    system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
-    contents: conversationHistory,
-    tools: [
-      {
-        google_search: {},
-      },
-    ],
-    generationConfig: {
-      temperature: 0.4,
-      maxOutputTokens: 4096,
-    },
+  const requestId = await recordGenerationStart({
+    supabase,
+    userId: user.id,
+    capability: "research",
+    fingerprint,
+    module: "investigador",
+    provider: "google",
+    reusePolicy: "never",
+    requestJson: { message, searchGrounding: true },
+  })
+
+  if (hasGoogleAI("text")) {
+    try {
+      const grounded = await generateGoogleGroundedText({
+        messages,
+        maxOutputTokens: 4096,
+        temperature: 0.4,
+      })
+
+      const uniqueSources = Array.from(
+        new Map(grounded.sources.map((source) => [source.uri, source])).values(),
+      ).slice(0, 12)
+
+      const sourcesBlock = uniqueSources.length
+        ? `\n\n---\n## 🔗 Fuentes verificadas\n${uniqueSources.map((source) => `- [${source.title}](${source.uri})`).join("\n")}`
+        : ""
+      const badge = grounded.usedSearch
+        ? "\n\n> 🔍 *Búsqueda web activa — respuesta respaldada con Google Search grounding.*"
+        : "\n\n> 📚 *No se obtuvieron fuentes web útiles para esta consulta.*"
+      const finalText = `${grounded.text}${badge}${sourcesBlock}`
+
+      await finishGenerationRequest({
+        supabase,
+        requestId,
+        status: "completed",
+        provider: grounded.provider,
+        model: grounded.model,
+        latencyMs: Date.now() - startedAt,
+        metadata: {
+          usedSearch: grounded.usedSearch,
+          sourceCount: uniqueSources.length,
+          searchQueries: grounded.searchQueries,
+        },
+      })
+
+      return Response.json({
+        text: finalText,
+        provider: grounded.provider,
+        model: grounded.model,
+        usedSearch: grounded.usedSearch,
+        searchQueries: grounded.searchQueries,
+        sources: uniqueSources,
+        reused: false,
+      })
+    } catch (error) {
+      console.warn("[Investigador] Google Search grounding falló, usando Gateway:", error)
+    }
   }
 
   try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-        signal: AbortSignal.timeout(45_000),
-      }
-    )
-
-    if (!res.ok) {
-      const errText = await res.text()
-      console.error("[Investigador] Gemini error:", errText)
-
-      // Fallback: responder sin búsqueda si falla Google Search
-      return fallbackResponse(message, history, apiKey)
-    }
-
-    const data = await res.json()
-    const candidate = data.candidates?.[0]
-    if (!candidate) return new Response("Sin respuesta del modelo", { status: 500 })
-
-    // Extraer texto de la respuesta (puede venir en múltiples partes si usó search)
-    const parts = candidate.content?.parts || []
-    let text = parts
-      .filter((p: any) => p.text)
-      .map((p: any) => p.text)
-      .join("")
-
-    // Extraer grounding metadata (fuentes reales usadas)
-    const groundingMeta = candidate.groundingMetadata
-    let sourcesBlock = ""
-
-    if (groundingMeta?.groundingChunks?.length) {
-      const sources = groundingMeta.groundingChunks
-        .filter((chunk: any) => chunk.web?.uri)
-        .map((chunk: any) => {
-          const title = chunk.web.title || chunk.web.uri
-          const uri   = chunk.web.uri
-          return `- [${title}](${uri})`
-        })
-
-      if (sources.length > 0) {
-        sourcesBlock = `\n\n---\n**🌐 Fuentes verificadas por búsqueda web:**\n${sources.join("\n")}`
-      }
-    }
-
-    // Indicar si se usó búsqueda web
-    const usedSearch = !!groundingMeta?.webSearchQueries?.length
-    const searchBadge = usedSearch
-      ? `\n\n> 🔍 *Búsqueda web activa — información verificada en tiempo real*`
-      : `\n\n> 📚 *Respuesta desde conocimiento base — sin búsqueda web activa*`
-
-    const finalText = text + searchBadge + sourcesBlock
-
-    return Response.json({
-      text: finalText,
-      provider: "Gemini",
-      model: GEMINI_MODEL,
-      usedSearch,
-      searchQueries: groundingMeta?.webSearchQueries || [],
+    const fallback = await runAIText({
+      messages: [
+        {
+          role: "system",
+          content: `${SYSTEM_PROMPT}\n\nLa búsqueda web no está disponible. No afirmes que verificaste información en internet. Indica las limitaciones de actualidad cuando correspondan.`,
+        },
+        ...history,
+        { role: "user", content: message },
+      ],
+      capability: "research",
+      maxOutputTokens: 3000,
+      context: {
+        userId: user.id,
+        module: "investigador-fallback",
+        reusePolicy: "exact_private",
+        visibility: "private",
+      },
+      supabase,
     })
 
-  } catch (e: any) {
-    console.error("[Investigador] Error:", e.message)
-    return fallbackResponse(message, history, apiKey)
+    await finishGenerationRequest({
+      supabase,
+      requestId,
+      status: "completed",
+      provider: fallback.provider,
+      model: fallback.model,
+      latencyMs: Date.now() - startedAt,
+      metadata: { usedSearch: false, fallback: true, reusedFallback: fallback.reused },
+    })
+
+    return Response.json({
+      text: `${fallback.data}\n\n> 📚 *Respuesta sin búsqueda web activa.*`,
+      provider: fallback.provider,
+      model: fallback.model,
+      usedSearch: false,
+      searchQueries: [],
+      sources: [],
+      reused: fallback.reused,
+      generationAvoided: fallback.reused,
+    })
+  } catch (error) {
+    const typed = error as Error & { code?: string; status?: number }
+    await finishGenerationRequest({
+      supabase,
+      requestId,
+      status: "failed",
+      error: typed.message,
+      latencyMs: Date.now() - startedAt,
+    })
+    return Response.json(
+      { error: typed.message || "No fue posible completar la investigación.", code: typed.code },
+      { status: typed.status || 500 },
+    )
   }
-}
-
-// ── Fallback sin Google Search (si el tool falla o no está disponible) ─────────
-async function fallbackResponse(
-  message: string,
-  history: Array<{ role: string; content: string }>,
-  apiKey: string
-): Promise<Response> {
-  const fallbackSystem = `Eres AGT-Investigador, un investigador académico experto.
-Responde con rigor académico. Si no tienes información actualizada sobre algo, indícalo claramente.
-Usa ## para títulos, **negrita** para conceptos clave. Responde en español.`
-
-  const messages = [
-    { role: "user" as const, parts: [{ text: fallbackSystem + "\n\n" + message }] },
-    ...history.slice(-4).map((m) => ({
-      role: m.role === "assistant" ? "model" as const : "user" as const,
-      parts: [{ text: m.content }],
-    })),
-    { role: "user" as const, parts: [{ text: message }] },
-  ]
-
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: messages,
-        generationConfig: { temperature: 0.5, maxOutputTokens: 3000 },
-      }),
-      signal: AbortSignal.timeout(30_000),
-    }
-  )
-
-  const data = await res.json()
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "Sin respuesta disponible."
-
-  return Response.json({
-    text: text + "\n\n> 📚 *Respuesta desde conocimiento base — búsqueda web no disponible*",
-    provider: "Gemini",
-    model: GEMINI_MODEL,
-    usedSearch: false,
-    searchQueries: [],
-  })
 }
