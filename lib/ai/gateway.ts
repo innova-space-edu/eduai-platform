@@ -7,6 +7,7 @@ import {
   type AIProviderId,
   type AIRequestContext,
 } from "./capabilities"
+import { assertAICapabilityAllowed } from "./access-policy"
 import { generationFingerprint } from "./fingerprint"
 import {
   findReusableGeneration,
@@ -49,6 +50,21 @@ function providerOrder(capability: AICapability, preferred?: AIProviderId | null
   return providerOrderFor(capability, process.env[envName])
 }
 
+async function assertAccess(input: {
+  supabase?: SupabaseClient | null
+  context?: AIRequestContext
+  capability: AICapability
+  provider?: AIProviderId | null
+}) {
+  if (!input.supabase || !input.context?.userId) return
+  await assertAICapabilityAllowed({
+    supabase: input.supabase,
+    userId: input.context.userId,
+    capability: input.capability,
+    provider: input.provider,
+  })
+}
+
 async function lookupReuse(input: {
   supabase?: SupabaseClient | null
   context?: AIRequestContext
@@ -76,6 +92,14 @@ export async function runAIText(input: {
 }): Promise<GatewayResult<string>> {
   const startedAt = Date.now()
   const capability = input.capability || "text"
+
+  await assertAccess({
+    supabase: input.supabase,
+    context: input.context,
+    capability,
+    provider: input.preferredProvider,
+  })
+
   const fingerprint = generationFingerprint({
     capability,
     payload: {
@@ -153,6 +177,13 @@ export async function runAIText(input: {
   const errors: string[] = []
   for (const provider of providerOrder(capability, input.preferredProvider)) {
     try {
+      await assertAccess({
+        supabase: input.supabase,
+        context: input.context,
+        capability,
+        provider,
+      })
+
       let result: { text: string; provider: string; model: string }
 
       if (provider === "google" && hasGoogleAI("text")) {
@@ -204,6 +235,8 @@ export async function runAIText(input: {
         latencyMs: Date.now() - startedAt,
       }
     } catch (error) {
+      const typed = error as Error & { code?: string }
+      if (typed.code === "EDUAI_ACCESS_RESTRICTED") throw error
       errors.push(`${provider}: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
@@ -232,6 +265,14 @@ export async function runAIStructured<T = Record<string, unknown>>(input: {
 }): Promise<GatewayResult<T>> {
   const startedAt = Date.now()
   const capability: AICapability = "structured"
+
+  await assertAccess({
+    supabase: input.supabase,
+    context: input.context,
+    capability,
+    provider: input.preferredProvider,
+  })
+
   const fingerprint = generationFingerprint({
     capability,
     payload: {
@@ -270,6 +311,13 @@ export async function runAIStructured<T = Record<string, unknown>>(input: {
 
   for (const provider of order) {
     try {
+      await assertAccess({
+        supabase: input.supabase,
+        context: input.context,
+        capability,
+        provider,
+      })
+
       let result: { text: string; data: T; provider: string; model: string }
 
       if (provider === "google" && hasGoogleAI("text")) {
@@ -321,6 +369,8 @@ export async function runAIStructured<T = Record<string, unknown>>(input: {
         latencyMs: Date.now() - startedAt,
       }
     } catch (error) {
+      const typed = error as Error & { code?: string }
+      if (typed.code === "EDUAI_ACCESS_RESTRICTED") throw error
       errors.push(`${provider}: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
@@ -333,8 +383,18 @@ export async function streamAIText(input: {
   maxOutputTokens?: number
   lite?: boolean
   preferredProvider?: AIProviderId | null
+  context?: AIRequestContext
+  supabase?: SupabaseClient | null
 }): Promise<ReadableStream<Uint8Array>> {
   const first = providerOrder("text", input.preferredProvider)[0]
+
+  await assertAccess({
+    supabase: input.supabase,
+    context: input.context,
+    capability: "text",
+    provider: first,
+  })
+
   if (first === "google" && hasGoogleAI("text")) {
     return streamGoogleText({
       messages: input.messages,
@@ -361,6 +421,15 @@ export async function runGoogleImage(input: {
   aspectRatio?: string
   imageSize?: "0.5K" | "1K" | "2K" | "4K"
   previousInteractionId?: string | null
+  context?: AIRequestContext
+  supabase?: SupabaseClient | null
 }) {
+  await assertAccess({
+    supabase: input.supabase,
+    context: input.context,
+    capability: "image",
+    provider: "google",
+  })
+
   return generateGoogleImage(input)
 }
