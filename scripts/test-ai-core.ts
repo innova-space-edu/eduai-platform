@@ -1,6 +1,7 @@
 import assert from "node:assert/strict"
 import { generationFingerprint, stableJson } from "../lib/ai/fingerprint"
 import { providerOrderFor } from "../lib/ai/capabilities"
+import { decideCapability, type EduAIAccessProfile } from "../lib/ai/access-policy"
 
 function testStableJson() {
   const a = stableJson({ b: 2, a: "  hola   mundo ", nested: { z: true, a: 1 } })
@@ -41,10 +42,35 @@ function testProviderOrder() {
   )
 }
 
+function testAccessPolicy() {
+  const adult: EduAIAccessProfile = {
+    userId: "adult",
+    ageBand: "adult",
+    accountType: "teacher",
+    accessTier: "teacher",
+    hasExplicitAgeProfile: true,
+  }
+  const minor: EduAIAccessProfile = {
+    userId: "minor",
+    ageBand: "under_18",
+    accountType: "other",
+    accessTier: "restricted",
+    hasExplicitAgeProfile: true,
+  }
+
+  assert.equal(decideCapability(adult, "video", "google").allowed, true)
+  assert.equal(decideCapability(adult, "research", "google").allowed, true)
+  assert.equal(decideCapability(minor, "video", "google").allowed, false)
+  assert.equal(decideCapability(minor, "image", "google").allowed, false)
+  assert.equal(decideCapability(minor, "text", "local").allowed, true)
+  assert.equal(decideCapability(minor, "text", "google").allowed, false)
+}
+
 function main() {
   testStableJson()
   testFingerprintDeterminism()
   testProviderOrder()
+  testAccessPolicy()
   console.log("✓ EduAI AI Core tests OK")
 }
 
