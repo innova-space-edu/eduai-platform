@@ -1,4 +1,4 @@
-import { runAIText } from "@/lib/ai/gateway"
+import { runAIStructured, runAIText } from "@/lib/ai/gateway"
 import { createClient } from "@/lib/supabase/server"
 import {
   STORAGE_BUCKET,
@@ -19,6 +19,23 @@ type ChunkRecord = {
   content: string
   lexical_hint: string
   similarity?: number
+}
+
+type RerankResult = {
+  selected: number[]
+}
+
+const RERANK_SCHEMA = {
+  type: "object",
+  properties: {
+    selected: {
+      type: "array",
+      items: { type: "integer" },
+      maxItems: 5,
+    },
+  },
+  required: ["selected"],
+  additionalProperties: false,
 }
 
 function escapeRegExp(value: string) {
@@ -118,20 +135,20 @@ async function rerankChunks(params: {
       preview: chunk.content.slice(0, 1000),
     }))
 
-    const result = await runAIText({
+    const result = await runAIStructured<RerankResult>({
       messages: [
         {
           role: "system",
           content:
             "Eres un reranker documental. Elige los fragmentos más útiles para responder una pregunta sobre un documento. " +
-            'Responde SOLO JSON válido con este formato: {"selected":[0,3,2,5]}. Máximo 5 índices. No expliques nada.',
+            "Devuelve como máximo 5 valores de chunk_index, ordenados desde el más relevante al menos relevante.",
         },
         {
           role: "user",
           content: `Pregunta del usuario:\n${params.question}\n\nFragmentos candidatos:\n${JSON.stringify(compact)}`,
         },
       ],
-      capability: "structured",
+      schema: RERANK_SCHEMA,
       maxOutputTokens: 300,
       lite: true,
       context: {
@@ -144,11 +161,8 @@ async function rerankChunks(params: {
       supabase: params.supabase,
     })
 
-    const raw = result.data || ""
-    const match = raw.match(/\{[\s\S]*\}/)
-    const parsed = match ? JSON.parse(match[0]) : JSON.parse(raw)
-    const selected = Array.isArray(parsed?.selected)
-      ? parsed.selected.filter((n: unknown) => Number.isInteger(n)).map((n: number) => Number(n))
+    const selected = Array.isArray(result.data?.selected)
+      ? result.data.selected.filter((n: unknown): n is number => Number.isInteger(n))
       : []
 
     const byIndex = new Map(params.chunks.map(chunk => [chunk.chunk_index, chunk]))
