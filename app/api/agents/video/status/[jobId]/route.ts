@@ -1,13 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 
-type JobStatus =
-  | "queued"
-  | "processing"
-  | "completed"
-  | "failed"
-  | "blocked"
-  | "canceled"
+type JobStatus = "queued" | "processing" | "completed" | "failed" | "blocked" | "canceled"
 
 type VideoJobRow = {
   id: string
@@ -22,6 +16,8 @@ type VideoJobRow = {
   image_url?: string | null
   provider?: string | null
   model?: string | null
+  operation_name?: string | null
+  asset_id?: string | null
   request_payload?: Record<string, unknown> | null
   response_payload?: Record<string, unknown> | null
   moderation_payload?: Record<string, unknown> | null
@@ -29,6 +25,7 @@ type VideoJobRow = {
   thumbnail_url?: string | null
   error_message?: string | null
   retry_count?: number | null
+  reuse_count?: number | null
   started_at?: string | null
   completed_at?: string | null
   created_at?: string
@@ -37,38 +34,49 @@ type VideoJobRow = {
 
 function getProgressFromStatus(status: JobStatus): number {
   switch (status) {
-    case "queued":
-      return 10
-    case "processing":
-      return 60
-    case "completed":
-      return 100
+    case "queued": return 10
+    case "processing": return 60
+    case "completed": return 100
     case "failed":
     case "blocked":
-    case "canceled":
-      return 100
-    default:
-      return 0
+    case "canceled": return 100
+    default: return 0
   }
 }
 
 function getStatusLabel(status: JobStatus): string {
   switch (status) {
-    case "queued":
-      return "En cola"
-    case "processing":
-      return "Procesando"
-    case "completed":
-      return "Completado"
-    case "failed":
-      return "Falló"
-    case "blocked":
-      return "Bloqueado"
-    case "canceled":
-      return "Cancelado"
-    default:
-      return "Desconocido"
+    case "queued": return "En cola"
+    case "processing": return "Procesando"
+    case "completed": return "Completado"
+    case "failed": return "Falló"
+    case "blocked": return "Bloqueado"
+    case "canceled": return "Cancelado"
+    default: return "Desconocido"
   }
+}
+
+function parseSupabaseAssetUrl(value: string | null | undefined) {
+  if (!value?.startsWith("supabase://")) return null
+  const remainder = value.slice("supabase://".length)
+  const slash = remainder.indexOf("/")
+  if (slash <= 0) return null
+  return { bucket: remainder.slice(0, slash), path: remainder.slice(slash + 1) }
+}
+
+async function resolvePrivateUrl(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  value: string | null | undefined
+) {
+  if (!value) return null
+  const parsed = parseSupabaseAssetUrl(value)
+  if (!parsed) return value
+
+  const { data, error } = await supabase.storage
+    .from(parsed.bucket)
+    .createSignedUrl(parsed.path, 60 * 30)
+
+  return error ? null : data?.signedUrl || null
 }
 
 export async function GET(
@@ -77,101 +85,40 @@ export async function GET(
 ) {
   try {
     const supabase = await createClient()
-
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
 
     if (userError || !user) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "No autenticado.",
-          code: "UNAUTHORIZED",
-        },
-        { status: 401 }
-      )
+      return NextResponse.json({ ok: false, error: "No autenticado.", code: "UNAUTHORIZED" }, { status: 401 })
     }
 
     const { jobId } = await context.params
-
     if (!jobId || typeof jobId !== "string") {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "jobId inválido.",
-          code: "INVALID_JOB_ID",
-        },
-        { status: 400 }
-      )
+      return NextResponse.json({ ok: false, error: "jobId inválido.", code: "INVALID_JOB_ID" }, { status: 400 })
     }
 
     const { data: job, error } = await supabase
       .from("video_jobs")
-      .select(
-        `
-        id,
-        user_id,
-        status,
-        plan,
-        mode,
-        prompt,
-        style,
-        duration_seconds,
-        include_audio,
-        image_url,
-        provider,
-        model,
-        request_payload,
-        response_payload,
-        moderation_payload,
-        video_url,
-        thumbnail_url,
-        error_message,
-        retry_count,
-        started_at,
-        completed_at,
-        created_at,
-        updated_at
-      `
-      )
+      .select("id,user_id,status,plan,mode,prompt,style,duration_seconds,include_audio,image_url,provider,model,operation_name,asset_id,request_payload,response_payload,moderation_payload,video_url,thumbnail_url,error_message,retry_count,reuse_count,started_at,completed_at,created_at,updated_at")
       .eq("id", jobId)
       .eq("user_id", user.id)
       .maybeSingle<VideoJobRow>()
 
     if (error) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: error.message,
-          code: "JOB_FETCH_FAILED",
-        },
-        { status: 500 }
-      )
+      return NextResponse.json({ ok: false, error: error.message, code: "JOB_FETCH_FAILED" }, { status: 500 })
     }
-
     if (!job) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "Job no encontrado.",
-          code: "JOB_NOT_FOUND",
-        },
-        { status: 404 }
-      )
+      return NextResponse.json({ ok: false, error: "Job no encontrado.", code: "JOB_NOT_FOUND" }, { status: 404 })
     }
 
-    const status = job.status
-    const progress = getProgressFromStatus(status)
-    const statusLabel = getStatusLabel(status)
+    const videoUrl = await resolvePrivateUrl(supabase, job.video_url)
+    const thumbnailUrl = await resolvePrivateUrl(supabase, job.thumbnail_url)
 
     return NextResponse.json({
       ok: true,
       jobId: job.id,
-      status,
-      statusLabel,
-      progress,
+      status: job.status,
+      statusLabel: getStatusLabel(job.status),
+      progress: getProgressFromStatus(job.status),
       plan: job.plan ?? "free",
       mode: job.mode ?? "text_to_video",
       prompt: job.prompt ?? "",
@@ -181,8 +128,11 @@ export async function GET(
       imageUrl: job.image_url ?? null,
       provider: job.provider ?? null,
       model: job.model ?? null,
-      videoUrl: job.video_url ?? null,
-      thumbnailUrl: job.thumbnail_url ?? null,
+      assetId: job.asset_id ?? null,
+      videoUrl,
+      thumbnailUrl,
+      reusable: Boolean(job.asset_id || job.video_url),
+      reuseCount: job.reuse_count ?? 0,
       errorMessage: job.error_message ?? null,
       retryCount: job.retry_count ?? 0,
       startedAt: job.started_at ?? null,
@@ -193,17 +143,8 @@ export async function GET(
       responsePayload: job.response_payload ?? null,
       moderationPayload: job.moderation_payload ?? null,
     })
-  } catch (error: unknown) {
-    const message =
-      error instanceof Error ? error.message : "Error inesperado al consultar el estado."
-
-    return NextResponse.json(
-      {
-        ok: false,
-        error: message,
-        code: "INTERNAL_ERROR",
-      },
-      { status: 500 }
-    )
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Error inesperado al consultar el estado."
+    return NextResponse.json({ ok: false, error: message, code: "INTERNAL_ERROR" }, { status: 500 })
   }
 }
