@@ -20,6 +20,8 @@ export type EduAIAssetInput = {
   storageBucket?: string | null
   storagePath?: string | null
   externalUrl?: string | null
+  textContent?: string | null
+  contentJson?: Record<string, unknown> | unknown[] | null
   sourceModule?: string | null
   sourceId?: string | null
   generationRequestId?: string | null
@@ -30,6 +32,10 @@ export type EduAIAssetInput = {
   rootAssetId?: string | null
   version?: number
   retentionUntil?: string | null
+  workspaceId?: string | null
+  dataClassification?: "standard" | "personal" | "sensitive" | "confidential"
+  processingPurpose?: string | null
+  containsPersonalData?: boolean
 }
 
 function isSchemaUnavailable(error: unknown): boolean {
@@ -158,6 +164,14 @@ export async function createEduAIAsset(
   input: EduAIAssetInput
 ): Promise<string | null> {
   const rootAssetId = input.rootAssetId || null
+  const hasPayload = Boolean(
+    input.storagePath || input.externalUrl || input.textContent || input.contentJson
+  )
+  if (!hasPayload) {
+    console.warn("[AI Assets] se omitió un asset sin contenido persistente")
+    return null
+  }
+
   const { data, error } = await supabase
     .from("eduai_assets")
     .insert({
@@ -168,16 +182,22 @@ export async function createEduAIAsset(
       storage_bucket: input.storageBucket || null,
       storage_path: input.storagePath || null,
       external_url: input.externalUrl || null,
+      text_content: input.textContent || null,
+      content_json: input.contentJson || null,
       source_module: input.sourceModule || null,
       source_id: input.sourceId || null,
       generation_request_id: input.generationRequestId || null,
       fingerprint: input.fingerprint || null,
       visibility: input.visibility || "private",
+      workspace_id: input.workspaceId || null,
       metadata: input.metadata || {},
       parent_asset_id: input.parentAssetId || null,
       root_asset_id: rootAssetId,
       version: input.version || 1,
       retention_until: input.retentionUntil || null,
+      data_classification: input.dataClassification || "standard",
+      processing_purpose: input.processingPurpose || null,
+      contains_personal_data: Boolean(input.containsPersonalData),
     })
     .select("id")
     .maybeSingle()
@@ -231,6 +251,25 @@ export async function saveReusableGeneration(input: {
 
   if (error && !isSchemaUnavailable(error)) {
     console.warn("[AI Reuse] cache save failed:", error.message)
+  }
+}
+
+export async function attachAssetToGeneration(input: {
+  supabase: SupabaseClient
+  userId: string
+  capability: AICapability
+  fingerprint: string
+  assetId: string
+}): Promise<void> {
+  const { error } = await input.supabase
+    .from("ai_generation_cache")
+    .update({ asset_id: input.assetId })
+    .eq("owner_id", input.userId)
+    .eq("capability", input.capability)
+    .eq("fingerprint", input.fingerprint)
+
+  if (error && !isSchemaUnavailable(error)) {
+    console.warn("[AI Reuse] cache asset attach failed:", error.message)
   }
 }
 
