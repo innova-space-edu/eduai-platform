@@ -1,4 +1,4 @@
-import { callAI } from "@/lib/ai-router"
+import { runAIText } from "@/lib/ai/gateway"
 import { createClient } from "@/lib/supabase/server"
 import {
   STORAGE_BUCKET,
@@ -55,7 +55,6 @@ function extractKeywords(text: string) {
 function scoreChunkLexically(chunk: ChunkRecord, query: string) {
   const content = normalize(`${chunk.section_title || ""} ${chunk.content} ${chunk.lexical_hint || ""}`)
   const keywords = extractKeywords(query)
-
   let score = 0
 
   for (const keyword of keywords) {
@@ -101,11 +100,17 @@ function mergeSemanticAndLexical(params: {
     .slice(0, maxItems)
 }
 
-async function rerankChunksWithGemini(question: string, chunks: ChunkRecord[]) {
-  if (!process.env.GEMINI_API_KEY || chunks.length <= 3) return chunks.slice(0, 5)
+async function rerankChunks(params: {
+  question: string
+  chunks: ChunkRecord[]
+  supabase: Awaited<ReturnType<typeof createClient>>
+  userId: string
+  sourceId: string
+}) {
+  if (params.chunks.length <= 3) return params.chunks.slice(0, 5)
 
   try {
-    const compact = chunks.map((chunk) => ({
+    const compact = params.chunks.map((chunk) => ({
       chunk_index: chunk.chunk_index,
       section_title: chunk.section_title,
       page_start: chunk.page_start,
@@ -113,95 +118,77 @@ async function rerankChunksWithGemini(question: string, chunks: ChunkRecord[]) {
       preview: chunk.content.slice(0, 1000),
     }))
 
-    const messages = [
-      {
-        role: "system" as const,
-        content:
-          "Eres un reranker documental. " +
-          "Debes elegir los fragmentos más útiles para responder una pregunta sobre un documento. " +
-          'Responde SOLO JSON válido con este formato: {"selected":[0,3,2,5]}. ' +
-          "Máximo 5 índices. No expliques nada.",
+    const result = await runAIText({
+      messages: [
+        {
+          role: "system",
+          content:
+            "Eres un reranker documental. Elige los fragmentos más útiles para responder una pregunta sobre un documento. " +
+            'Responde SOLO JSON válido con este formato: {"selected":[0,3,2,5]}. Máximo 5 índices. No expliques nada.',
+        },
+        {
+          role: "user",
+          content: `Pregunta del usuario:\n${params.question}\n\nFragmentos candidatos:\n${JSON.stringify(compact)}`,
+        },
+      ],
+      capability: "structured",
+      maxOutputTokens: 300,
+      lite: true,
+      context: {
+        userId: params.userId,
+        module: "paper-rerank",
+        sourceId: params.sourceId,
+        reusePolicy: "exact_private",
+        visibility: "private",
       },
-      {
-        role: "user" as const,
-        content:
-          `Pregunta del usuario:\n${question}\n\n` +
-          `Fragmentos candidatos:\n${JSON.stringify(compact)}`,
-      },
-    ]
-
-    const result = await callAI(messages, {
-      maxTokens: 300,
-      preferProvider: "gemini-lite",
+      supabase: params.supabase,
     })
 
-    const raw = result.text || ""
+    const raw = result.data || ""
     const match = raw.match(/\{[\s\S]*\}/)
     const parsed = match ? JSON.parse(match[0]) : JSON.parse(raw)
-
     const selected = Array.isArray(parsed?.selected)
       ? parsed.selected.filter((n: unknown) => Number.isInteger(n)).map((n: number) => Number(n))
       : []
 
-    const byIndex = new Map(chunks.map(chunk => [chunk.chunk_index, chunk]))
+    const byIndex = new Map(params.chunks.map(chunk => [chunk.chunk_index, chunk]))
     const reranked = selected
       .map((index: number) => byIndex.get(index))
       .filter(Boolean) as ChunkRecord[]
 
-    return reranked.length ? reranked.slice(0, 5) : chunks.slice(0, 5)
+    return reranked.length ? reranked.slice(0, 5) : params.chunks.slice(0, 5)
   } catch (error) {
     console.warn("[Paper][rerank] fallback merged:", error)
-    return chunks.slice(0, 5)
+    return params.chunks.slice(0, 5)
   }
 }
 
 function buildCitationLabel(chunk: ChunkRecord) {
-  const pageLabel =
-    chunk.page_start === chunk.page_end
-      ? `p. ${chunk.page_start}`
-      : `pp. ${chunk.page_start}-${chunk.page_end}`
-
+  const pageLabel = chunk.page_start === chunk.page_end
+    ? `p. ${chunk.page_start}`
+    : `pp. ${chunk.page_start}-${chunk.page_end}`
   const sectionLabel = chunk.section_title ? ` · ${chunk.section_title}` : ""
   return `Fragmento ${chunk.chunk_index + 1} (${pageLabel}${sectionLabel})`
 }
 
 export async function POST(req: Request) {
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    return new Response("Unauthorized", { status: 401 })
-  }
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return new Response("Unauthorized", { status: 401 })
 
   try {
     const body = await req.json()
-
     const message = typeof body?.message === "string" ? body.message.trim() : ""
     const history = Array.isArray(body?.history) ? body.history : []
     const paperTitle = typeof body?.paperTitle === "string" ? body.paperTitle : "Documento"
     const storagePath = typeof body?.storagePath === "string" ? body.storagePath : ""
-    const storageBucket =
-      typeof body?.storageBucket === "string" ? body.storageBucket : STORAGE_BUCKET
+    const storageBucket = typeof body?.storageBucket === "string" ? body.storageBucket : STORAGE_BUCKET
 
-    if (!message) {
-      return Response.json({ error: "Falta la pregunta del usuario." }, { status: 400 })
-    }
-
-    if (!storagePath) {
-      return Response.json({ error: "Falta la ruta del documento en Storage." }, { status: 400 })
-    }
-
-    if (storageBucket !== STORAGE_BUCKET) {
-      return Response.json({ error: "Bucket no permitido." }, { status: 400 })
-    }
-
+    if (!message) return Response.json({ error: "Falta la pregunta del usuario." }, { status: 400 })
+    if (!storagePath) return Response.json({ error: "Falta la ruta del documento en Storage." }, { status: 400 })
+    if (storageBucket !== STORAGE_BUCKET) return Response.json({ error: "Bucket no permitido." }, { status: 400 })
     if (!storagePath.startsWith(`${user.id}/`)) {
-      return Response.json(
-        { error: "No tienes permisos para acceder a este archivo." },
-        { status: 403 }
-      )
+      return Response.json({ error: "No tienes permisos para acceder a este archivo." }, { status: 403 })
     }
 
     const paper = await ensurePaperProcessed({
@@ -214,10 +201,7 @@ export async function POST(req: Request) {
     })
 
     if (!paper.text?.trim()) {
-      return Response.json(
-        { error: "No hay texto disponible para analizar en este documento." },
-        { status: 400 }
-      )
+      return Response.json({ error: "No hay texto disponible para analizar en este documento." }, { status: 400 })
     }
 
     if (paper.documentId) {
@@ -233,22 +217,17 @@ export async function POST(req: Request) {
     }
 
     let chunks: ChunkRecord[] = Array.isArray(paper.chunks) ? (paper.chunks as ChunkRecord[]) : []
-
     if (!chunks.length && paper.documentId) {
       const { data } = await supabase
         .from("paper_chunks")
         .select("*")
         .eq("document_id", paper.documentId)
         .order("chunk_index", { ascending: true })
-
       chunks = (data || []) as ChunkRecord[]
     }
 
     if (!chunks.length) {
-      return Response.json(
-        { error: "El documento no tiene fragmentos indexados todavía." },
-        { status: 400 }
-      )
+      return Response.json({ error: "El documento no tiene fragmentos indexados todavía." }, { status: 400 })
     }
 
     let semanticTop: ChunkRecord[] = []
@@ -267,47 +246,45 @@ export async function POST(req: Request) {
     }
 
     const lexicalTop = chunks
-      .map(chunk => ({
-        chunk,
-        score: scoreChunkLexically(chunk, message),
-      }))
+      .map(chunk => ({ chunk, score: scoreChunkLexically(chunk, message) }))
       .sort((a, b) => b.score - a.score)
       .slice(0, 8)
       .map(item => item.chunk)
 
-    const merged = mergeSemanticAndLexical({
-      semantic: semanticTop,
-      lexical: lexicalTop,
-      maxItems: 8,
+    const merged = mergeSemanticAndLexical({ semantic: semanticTop, lexical: lexicalTop, maxItems: 8 })
+    const sourceId = paper.documentId || storagePath
+    const selected = await rerankChunks({
+      question: message,
+      chunks: merged,
+      supabase,
+      userId: user.id,
+      sourceId,
     })
-
-    const selected = await rerankChunksWithGemini(message, merged)
 
     const contextBlock = selected
       .map(chunk => `### ${buildCitationLabel(chunk)}\n${cleanText(chunk.content)}`)
       .join("\n\n")
 
-    const systemPrompt =
-  `Eres APaper, el agente de análisis de documentos de EduAI. Hablas como un colega inteligente que acaba de leer el documento completo y quiere compartir lo que encontró de forma natural y conversacional.
-   
-  DOCUMENTO: "${paper.title || paperTitle}"
-  RESUMEN GENERAL:
-  ${paper.summary}
-   
-  FRAGMENTOS RECUPERADOS PARA ESTA PREGUNTA:
-  ${contextBlock}
-   
-  CÓMO RESPONDER:
-  - Sé conversacional y directo, como si explicaras a un amigo inteligente. No uses listas de bullets como primer recurso — escribe en párrafos fluidos.
-  - Si hay varios puntos importantes, puedes usar una lista corta (máximo 4-5 ítems), pero empieza siempre con una frase introductoria que conecte la respuesta con la pregunta.
-  - Cita los fragmentos de forma natural: "según la sección sobre metodología..." o "en el fragmento 3 se menciona que..." — no como labels técnicos al principio de cada párrafo.
-  - Si la pregunta pide un resumen general, empieza con la idea central en 1-2 frases, luego desarrolla los puntos clave como una historia coherente.
-  - Si la pregunta pide análisis, separa claramente qué dice el documento ("el autor sostiene que...") de tu interpretación ("esto sugiere que...").
-  - Si la evidencia es insuficiente para responder bien, dilo de forma honesta y sugiere qué preguntas alternativas podrían funcionar mejor.
-  - Usa LaTeX para fórmulas: $E = mc^2$ para inline, $$...$$ para bloques.
-  - Responde siempre en español salvo que el usuario pida otro idioma.
-  - Longitud ideal: 3-5 párrafos para respuestas generales. Más breve si la pregunta es específica. No rellenes con perogrulladas.`
-    
+    const systemPrompt = `Eres APaper, el agente de análisis de documentos de EduAI. Hablas como un colega inteligente que acaba de leer el documento completo y quiere compartir lo que encontró de forma natural y conversacional.
+
+DOCUMENTO: "${paper.title || paperTitle}"
+RESUMEN GENERAL:
+${paper.summary}
+
+FRAGMENTOS RECUPERADOS PARA ESTA PREGUNTA:
+${contextBlock}
+
+CÓMO RESPONDER:
+- Sé conversacional y directo, como si explicaras a un amigo inteligente. No uses listas de bullets como primer recurso — escribe en párrafos fluidos.
+- Si hay varios puntos importantes, puedes usar una lista corta (máximo 4-5 ítems), pero empieza siempre con una frase introductoria que conecte la respuesta con la pregunta.
+- Cita los fragmentos de forma natural: "según la sección sobre metodología..." o "en el fragmento 3 se menciona que...".
+- Si la pregunta pide un resumen general, empieza con la idea central en 1-2 frases y luego desarrolla los puntos clave.
+- Si la pregunta pide análisis, separa claramente qué dice el documento de tu interpretación.
+- Si la evidencia es insuficiente, dilo de forma honesta y sugiere preguntas alternativas.
+- Usa LaTeX para fórmulas: $E = mc^2$ para inline, $$...$$ para bloques.
+- Responde siempre en español salvo que el usuario pida otro idioma.
+- Longitud ideal: 3-5 párrafos para respuestas generales. Más breve si la pregunta es específica.`
+
     const messages = [
       { role: "system" as const, content: systemPrompt },
       ...history.slice(-10).map((m: any) => ({
@@ -317,15 +294,26 @@ export async function POST(req: Request) {
       { role: "user" as const, content: message },
     ]
 
-    const result = await callAI(messages, {
-      maxTokens: 2200,
-      preferProvider: "gemini",
+    const result = await runAIText({
+      messages,
+      capability: "long_context",
+      maxOutputTokens: 2200,
+      context: {
+        userId: user.id,
+        module: "paper-chat",
+        sourceId,
+        reusePolicy: "exact_private",
+        visibility: "private",
+      },
+      supabase,
     })
 
     return Response.json({
-      text: result.text,
+      text: result.data,
       provider: result.provider,
       model: result.model,
+      reused: result.reused,
+      generationAvoided: result.reused,
       storageBucket,
       storagePath,
       extractionMethod: paper.extractionMethod,
@@ -341,9 +329,10 @@ export async function POST(req: Request) {
     })
   } catch (e: any) {
     console.error("[Paper][chat] error:", e)
+    const status = e?.status === 403 || e?.code === "EDUAI_ACCESS_RESTRICTED" ? 403 : 500
     return Response.json(
-      { error: e?.message || "Error al analizar el paper." },
-      { status: 500 }
+      { error: e?.message || "Error al analizar el paper.", code: e?.code || undefined },
+      { status }
     )
   }
 }
