@@ -1,6 +1,8 @@
 import fs from "node:fs"
 import path from "node:path"
 
+await import("./apply-current-image-models.mjs")
+
 const root = process.cwd()
 const studio = fs.readFileSync(path.join(root, "components/video/VideoStudioClient.tsx"), "utf8")
 const marketplace = fs.readFileSync(path.join(root, "components/video/PersonalAIMarketplace.tsx"), "utf8")
@@ -28,7 +30,10 @@ requireText(personalRoute, "assertPersonalBudget", "límite antes de gasto")
 requireText(personalRoute, "generationAvoided: true", "reutilización antes del cobro")
 requireText(personalStatus, "pollPersonalVideo", "polling premium asíncrono")
 requireText(imageConfig, 'fast: ["gemini", "pollinations", "openrouter", "together", "huggingface"]', "Gemini primero en imagen rápida")
-requireText(imageConfig, '"gemini-3.1-flash-image"', "Gemini 3.1 Image")
+requireText(imageConfig, 'const CURRENT_GEMINI_IMAGE_MODELS = [', "bloque de modelos actuales")
+requireText(imageConfig, '"gemini-3.1-flash-image",', "Gemini 3.1 Image primero")
+requireText(imageConfig, '"gemini-3.1-flash-lite-image",', "Gemini 3.1 Lite Image")
+requireText(imageConfig, '!/^gemini-2\\.5-flash-image', "filtro Gemini 2.5 legacy")
 
 if (credentialRoute.includes("encrypted_secret") || credentialRoute.includes("encryption_iv") || credentialRoute.includes("encryption_tag")) {
   throw new Error("[test-video-personal-marketplace] La API de cuenta referencia campos cifrados directamente; debe delegarlos al vault")
