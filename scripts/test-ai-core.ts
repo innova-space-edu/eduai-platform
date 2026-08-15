@@ -4,6 +4,7 @@ import path from "node:path"
 import { generationFingerprint, stableJson } from "../lib/ai/fingerprint"
 import { providerOrderFor } from "../lib/ai/capabilities"
 import { decideCapability, type EduAIAccessProfile } from "../lib/ai/access-policy"
+import { resolveProviderModel } from "../lib/ai/model-registry"
 
 function testStableJson() {
   const a = stableJson({ b: 2, a: "  hola   mundo ", nested: { z: true, a: 1 } })
@@ -83,13 +84,29 @@ function testStructuredObservability() {
   assert.ok(structured.includes("generationAvoided: true"), "Structured debe marcar ahorro por reutilización")
 }
 
-function main() {
+async function testModelRegistryFallback() {
+  const resolved = await resolveProviderModel({
+    provider: "google",
+    capability: "image",
+    fallbackModel: "fallback-image-model",
+  })
+  assert.equal(resolved.model, "fallback-image-model")
+  assert.equal(resolved.source, "fallback")
+
+  const gatewayPath = path.join(process.cwd(), "lib", "ai", "gateway.ts")
+  const gateway = fs.readFileSync(gatewayPath, "utf8")
+  assert.ok(gateway.includes("resolveProviderModel({"), "Gateway debe consultar el registro dinámico")
+  assert.ok(gateway.includes("model: selected.model"), "Gateway debe pasar el modelo resuelto al proveedor")
+}
+
+async function main() {
   testStableJson()
   testFingerprintDeterminism()
   testProviderOrder()
   testAccessPolicy()
   testStructuredObservability()
+  await testModelRegistryFallback()
   console.log("✓ EduAI AI Core tests OK")
 }
 
-main()
+void main()
