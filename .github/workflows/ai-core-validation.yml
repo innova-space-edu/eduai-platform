@@ -17,6 +17,8 @@ on:
       - "app/api/agents/paper/**"
       - "app/api/agents/chat/**"
       - "app/api/agents/claw-chat/**"
+      - "app/api/agents/examen/**"
+      - "app/api/agents/educador/**"
       - "app/api/superagent/chat/**"
       - "app/api/notebooks/**"
       - "app/(auth)/register/**"
