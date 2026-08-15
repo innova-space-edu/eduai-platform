@@ -31,3 +31,6 @@ if (createRoute.includes("await incrementDailyUsage({ supabase, userId: user.id,
 }
 
 console.log("[test-video-free-router] WAN/HF Gradio/HF legacy/Google, polling multi-provider y cupo por completados verificados")
+
+await import("./apply-video-free-ui.mjs")
+await import("./test-video-free-ui.mjs")
