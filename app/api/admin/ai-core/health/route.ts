@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient as createServerClient } from "@/lib/supabase/server"
 import { createClient as createAdminClient } from "@supabase/supabase-js"
-import { generateGoogleText, hasGoogleAI } from "@/lib/ai/providers/google"
+import { hasGoogleAI } from "@/lib/ai/providers/google"
 import { resolveProviderModel } from "@/lib/ai/model-registry"
 
 export const runtime = "nodejs"
@@ -52,6 +52,15 @@ async function requireAdmin() {
 
 function configured(name: string) {
   return Boolean(process.env[name]?.trim())
+}
+
+function googleTextKey() {
+  return (
+    process.env.GEMINI_API_KEY_TEXT ||
+    process.env.GEMINI_API_KEY ||
+    process.env.GOOGLE_API_KEY ||
+    null
+  )
 }
 
 function effectiveVideoProviderOrder() {
@@ -204,6 +213,53 @@ async function supabaseReadiness() {
   return result
 }
 
+async function probeGoogleLite(model: string) {
+  const key = googleTextKey()
+  if (!key) throw Object.assign(new Error("GEMINI_API_KEY no configurada"), { code: "GOOGLE_KEY_MISSING" })
+
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 8_000)
+
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": key,
+        },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: "Responde únicamente OK" }] }],
+          generationConfig: { maxOutputTokens: 8, temperature: 0 },
+        }),
+        signal: controller.signal,
+        cache: "no-store",
+      },
+    )
+
+    const payload = await response.json().catch(() => null) as any
+    if (!response.ok) {
+      const message = payload?.error?.message || `Google HTTP ${response.status}`
+      throw Object.assign(new Error(message), { code: `GOOGLE_HTTP_${response.status}` })
+    }
+
+    const text = payload?.candidates?.[0]?.content?.parts
+      ?.map((part: any) => String(part?.text || ""))
+      .join(" ")
+      .trim() || ""
+
+    return text
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw Object.assign(new Error("Google no respondió dentro de 8 segundos"), { code: "GOOGLE_HEALTH_TIMEOUT" })
+    }
+    throw error
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 export async function GET() {
   const user = await requireAdmin()
   if (!user) return NextResponse.json({ error: "Acceso denegado" }, { status: 403 })
@@ -255,23 +311,16 @@ export async function POST(req: NextRequest) {
   }
 
   const startedAt = Date.now()
+  const baseConfig = configuration()
+  const healthModel = baseConfig.google.liteModel
   let status: "healthy" | "degraded" | "down" = "healthy"
   let errorCode: string | null = null
-  let model: string | null = null
+  let model: string | null = healthModel
   let errorMessage: string | null = null
 
   try {
-    const selected = (await effectiveGoogleModels()).text
-    const result = await generateGoogleText({
-      messages: [
-        { role: "system", content: "Health check técnico. Responde únicamente OK." },
-        { role: "user", content: "OK" },
-      ],
-      maxOutputTokens: 8,
-      model: selected.model,
-    })
-    model = result.model
-    if (!/ok/i.test(result.text)) status = "degraded"
+    const text = await probeGoogleLite(healthModel)
+    if (!/ok/i.test(text)) status = "degraded"
   } catch (error) {
     status = "down"
     errorCode = (error as { code?: string })?.code || "GOOGLE_HEALTH_FAILED"
@@ -288,7 +337,10 @@ export async function POST(req: NextRequest) {
       status,
       latency_ms: latencyMs,
       error_code: errorCode,
-      metadata: errorMessage ? { error: errorMessage.slice(0, 500) } : {},
+      metadata: {
+        health_check: "lite",
+        ...(errorMessage ? { error: errorMessage.slice(0, 500) } : {}),
+      },
       checked_at: new Date().toISOString(),
     })
     if (error && error.code !== "42P01") console.warn("[AI health]", error.message)
