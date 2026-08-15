@@ -93,3 +93,5 @@ if (!proxySource.includes('"/repositorio"')) {
 } else {
   console.log("[nube-eduai] ruta de Nube EduAI ya estaba protegida")
 }
+
+await import("./apply-repository-ai-assets.mjs")
