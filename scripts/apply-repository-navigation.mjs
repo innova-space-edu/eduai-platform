@@ -50,6 +50,30 @@ if (renamedDashboard !== dashboardSource) {
   dashboardChanged = true
 }
 
+if (!dashboardSource.includes('href="/admin/model-lab"')) {
+  const adminIdentityMarker = '<span className="hidden text-sm text-sub lg:inline min-[2048px]:text-[15px]">{displayName}</span>'
+  if (!dashboardSource.includes(adminIdentityMarker)) {
+    throw new Error("No se encontró el nombre de usuario del panel para conectar Model Lab")
+  }
+
+  dashboardSource = dashboardSource.replace(
+    adminIdentityMarker,
+    `{isAdmin ? (
+                <Link
+                  href="/admin/model-lab"
+                  title="Model Lab"
+                  aria-label="Abrir Model Lab de administración"
+                  className="hidden text-sm text-sub transition-colors hover:text-main lg:inline min-[2048px]:text-[15px]"
+                >
+                  {displayName}
+                </Link>
+              ) : (
+                <span className="hidden text-sm text-sub lg:inline min-[2048px]:text-[15px]">{displayName}</span>
+              )}`,
+  )
+  dashboardChanged = true
+}
+
 if (dashboardChanged) {
   fs.writeFileSync(dashboardPath, dashboardSource)
   console.log("[nube-eduai] navegación del panel actualizada")
