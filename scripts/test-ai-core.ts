@@ -1,4 +1,6 @@
 import assert from "node:assert/strict"
+import fs from "node:fs"
+import path from "node:path"
 import { generationFingerprint, stableJson } from "../lib/ai/fingerprint"
 import { providerOrderFor } from "../lib/ai/capabilities"
 import { decideCapability, type EduAIAccessProfile } from "../lib/ai/access-policy"
@@ -66,11 +68,27 @@ function testAccessPolicy() {
   assert.equal(decideCapability(minor, "text", "google").allowed, false)
 }
 
+function testStructuredObservability() {
+  const gatewayPath = path.join(process.cwd(), "lib", "ai", "gateway.ts")
+  const gateway = fs.readFileSync(gatewayPath, "utf8")
+  const start = gateway.indexOf("export async function runAIStructured")
+  const end = gateway.indexOf("export async function streamAIText", start)
+  assert.ok(start >= 0 && end > start, "Debe existir el bloque runAIStructured")
+
+  const structured = gateway.slice(start, end)
+  assert.ok(structured.includes("recordGenerationStart({"), "Structured debe registrar cada solicitud")
+  assert.ok(structured.includes('status: "reused"'), "Structured debe registrar generaciones evitadas")
+  assert.ok(structured.includes('status: "completed"'), "Structured debe registrar generaciones reales")
+  assert.ok(structured.includes('status: "failed"'), "Structured debe registrar fallos")
+  assert.ok(structured.includes("generationAvoided: true"), "Structured debe marcar ahorro por reutilización")
+}
+
 function main() {
   testStableJson()
   testFingerprintDeterminism()
   testProviderOrder()
   testAccessPolicy()
+  testStructuredObservability()
   console.log("✓ EduAI AI Core tests OK")
 }
 
