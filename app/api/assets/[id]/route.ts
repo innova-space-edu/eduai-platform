@@ -19,8 +19,21 @@ export async function GET(
     .maybeSingle()
 
   if (error || !asset) return Response.json({ error: "Asset no encontrado" }, { status: 404 })
+  if (asset.owner_id !== user.id) return Response.json({ error: "No autorizado" }, { status: 403 })
 
   let accessUrl = asset.external_url || null
+
+  if (asset.source_module === "legacy-gallery" && asset.source_id) {
+    const { data: legacy } = await supabase
+      .from("generated_images")
+      .select("image_url")
+      .eq("id", asset.source_id)
+      .eq("user_id", user.id)
+      .maybeSingle()
+
+    accessUrl = legacy?.image_url || accessUrl
+  }
+
   if (asset.storage_bucket && asset.storage_path) {
     const { data } = await supabase.storage
       .from(asset.storage_bucket)
