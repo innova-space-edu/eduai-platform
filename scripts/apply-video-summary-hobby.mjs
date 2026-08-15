@@ -123,5 +123,7 @@ if (!fs.existsSync(routePath)) {
   }
 }
 
+await import("./apply-video-model-registry.mjs")
+await import("./test-video-model-registry.mjs")
 await import("./apply-video-reusable-assets.mjs")
 await import("./test-video-reusable-assets.mjs")
