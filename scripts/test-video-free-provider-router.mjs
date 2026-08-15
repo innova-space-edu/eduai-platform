@@ -1,0 +1,29 @@
+import fs from "node:fs"
+import path from "node:path"
+
+const root = process.cwd()
+const agent = fs.readFileSync(path.join(root, "lib/video-agent.ts"), "utf8")
+const processRoute = fs.readFileSync(path.join(root, "app/api/agents/video/process/route.ts"), "utf8")
+const statusRoute = fs.readFileSync(path.join(root, "app/api/agents/video/status/[jobId]/route.ts"), "utf8")
+const createRoute = fs.readFileSync(path.join(root, "app/api/agents/video/route.ts"), "utf8")
+
+function requireText(source, value, label) {
+  if (!source.includes(value)) throw new Error(`[test-video-free-router] Falta ${label}: ${value}`)
+}
+
+requireText(agent, 'from "@/lib/video/providers/wan"', "adapter WAN")
+requireText(agent, 'process.env.VIDEO_PROVIDER_ORDER || "wan,hf-space,google"', "orden gratuito primero")
+requireText(agent, 'if (isWanVideoConfigured() && !order.includes("wan")) order.unshift("wan")', "WAN antepuesto al orden legacy")
+requireText(agent, 'if (provider === "wan")', "rama WAN")
+requireText(agent, 'input.operationName.startsWith("wan:")', "polling WAN")
+requireText(processRoute, 'provider: job.provider || null', "provider durante cron/polling")
+requireText(statusRoute, '["google", "wan"].includes(current.provider || "")', "polling async multi-provider")
+requireText(statusRoute, 'provider: current.provider', "provider durante status polling")
+requireText(createRoute, 'provider: null', "job sin proveedor preasignado")
+requireText(createRoute, '.eq("status", "completed")', "cupo basado en videos completados")
+
+if (createRoute.includes("await incrementDailyUsage({ supabase, userId: user.id, plan })")) {
+  throw new Error("[test-video-free-router] Un intento de video todavía consume cupo antes de completarse")
+}
+
+console.log("[test-video-free-router] WAN/HF/Google, polling multi-provider y cupo por completados verificados")
