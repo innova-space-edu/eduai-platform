@@ -2,6 +2,7 @@ import fs from "node:fs"
 import path from "node:path"
 
 await import("./apply-current-image-models.mjs")
+await import("./apply-personal-provider-hardening.mjs")
 
 const root = process.cwd()
 const studio = fs.readFileSync(path.join(root, "components/video/VideoStudioClient.tsx"), "utf8")
@@ -10,6 +11,7 @@ const vault = fs.readFileSync(path.join(root, "lib/ai/personal-credentials.ts"),
 const credentialRoute = fs.readFileSync(path.join(root, "app/api/account/ai-credentials/route.ts"), "utf8")
 const personalRoute = fs.readFileSync(path.join(root, "app/api/agents/video/personal/route.ts"), "utf8")
 const personalStatus = fs.readFileSync(path.join(root, "app/api/agents/video/personal/status/[jobId]/route.ts"), "utf8")
+const personalRouter = fs.readFileSync(path.join(root, "lib/video/personal-video-router.ts"), "utf8")
 const imageConfig = fs.readFileSync(path.join(root, "lib/image-config.ts"), "utf8")
 
 function requireText(source, text, label) {
@@ -29,6 +31,7 @@ requireText(personalRoute, 'plan: "personal"', "job personal separado")
 requireText(personalRoute, "assertPersonalBudget", "límite antes de gasto")
 requireText(personalRoute, "generationAvoided: true", "reutilización antes del cobro")
 requireText(personalStatus, "pollPersonalVideo", "polling premium asíncrono")
+requireText(personalRouter, 'version: `${owner}/${name}:${model.latest_version.id}`', "versión completa Replicate")
 requireText(imageConfig, 'fast: ["gemini", "pollinations", "openrouter", "together", "huggingface"]', "Gemini primero en imagen rápida")
 requireText(imageConfig, 'const CURRENT_GEMINI_IMAGE_MODELS = [', "bloque de modelos actuales")
 requireText(imageConfig, '"gemini-3.1-flash-image",', "Gemini 3.1 Image primero")
@@ -45,4 +48,4 @@ if (/localStorage.*(key|token|secret)/i.test(marketplace)) {
   throw new Error("[test-video-personal-marketplace] No guardar claves personales en localStorage")
 }
 
-console.log("[test-video-personal-marketplace] BYOK cifrado, presupuestos, reuse y Gemini 3.1-first verificados")
+console.log("[test-video-personal-marketplace] BYOK cifrado, presupuestos, reuse, Replicate versionado y Gemini 3.1-first verificados")
