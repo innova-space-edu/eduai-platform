@@ -159,6 +159,16 @@ function estimateFromUnit(unitPrice: number, unit: string, durationSeconds: numb
   return null
 }
 
+export async function estimateFalVideoCost(secret: string, endpointId: string, durationSeconds: number) {
+  const pricing = await falPricing(secret, [endpointId])
+  const price = pricing.get(endpointId)
+  if (!price) return null
+  return {
+    ...price,
+    estimatedCostUsd: estimateFromUnit(price.unitPrice, price.unit, durationSeconds),
+  }
+}
+
 async function listFalCategory(secret: string, category: string, limit: number) {
   const params = new URLSearchParams({ category, status: "active", limit: String(limit) })
   const response = await fetch(`https://api.fal.ai/v1/models?${params.toString()}`, {
@@ -169,6 +179,20 @@ async function listFalCategory(secret: string, category: string, limit: number) 
   const payload = await response.json().catch(() => null) as any
   if (!response.ok) throw new Error(compactError(payload) || `fal HTTP ${response.status}`)
   return Array.isArray(payload?.models) ? payload.models : []
+}
+
+export async function getFalModelSchema(secret: string, endpointId: string) {
+  const params = new URLSearchParams()
+  params.append("endpoint_id", endpointId)
+  params.set("expand", "openapi-3.0")
+  const response = await fetch(`https://api.fal.ai/v1/models?${params.toString()}`, {
+    headers: { Authorization: `Key ${secret}` },
+    signal: AbortSignal.timeout(12_000),
+    cache: "no-store",
+  })
+  const payload = await response.json().catch(() => null) as any
+  if (!response.ok) throw new Error(compactError(payload) || `fal HTTP ${response.status}`)
+  return Array.isArray(payload?.models) ? payload.models[0] || null : null
 }
 
 export async function listFalVideoModels(secret: string, durationSeconds = 5, limit = 18): Promise<MarketplaceModel[]> {
@@ -221,9 +245,22 @@ export async function listHuggingFaceVideoModels(limit = 24): Promise<Marketplac
     thumbnailUrl: null,
     modelUrl: `https://huggingface.co/${item.id}`,
     pricing: null,
-    compatible: true,
-    compatibilityNote: "Beta: Hugging Face decide el proveedor disponible según la cuenta y preferencias del usuario.",
+    compatible: false,
+    compatibilityNote: "Catálogo disponible. Generación directa queda en beta hasta validar un flujo asíncrono confiable para Vercel.",
   }))
+}
+
+export async function getReplicateModel(secret: string, modelId: string) {
+  const [owner, name] = modelId.split("/")
+  if (!owner || !name) throw new Error("Modelo Replicate inválido")
+  const response = await fetch(`https://api.replicate.com/v1/models/${encodeURIComponent(owner)}/${encodeURIComponent(name)}`, {
+    headers: { Authorization: `Bearer ${secret}` },
+    signal: AbortSignal.timeout(12_000),
+    cache: "no-store",
+  })
+  const payload = await response.json().catch(() => null) as any
+  if (!response.ok) throw new Error(compactError(payload) || `Replicate HTTP ${response.status}`)
+  return payload
 }
 
 export async function listReplicateVideoModels(secret: string, limit = 20): Promise<MarketplaceModel[]> {
