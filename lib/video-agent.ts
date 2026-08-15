@@ -357,7 +357,14 @@ function videoProviderOrder(): string[] {
     .split(",")
     .map((value) => value.trim().toLowerCase())
     .filter(Boolean)
-  return Array.from(new Set(configured))
+    // Compatibilidad con la configuración anterior de EduAI. Replicate nunca tuvo
+    // implementación en este motor; si todavía aparece en Vercel, migrarlo a Veo.
+    .map((value) => value === "replicate" || value === "veo" ? "google" : value)
+    .filter((value) => ["google", "hf-space", "ltx", "wan-worker"].includes(value))
+
+  const order = Array.from(new Set(configured))
+  if (!order.length) return googleVideoKey() ? ["google", "hf-space"] : ["hf-space"]
+  return order
 }
 
 export async function processVideoJob(
