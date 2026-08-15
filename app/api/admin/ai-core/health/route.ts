@@ -6,11 +6,35 @@ import { generateGoogleText, hasGoogleAI } from "@/lib/ai/providers/google"
 export const runtime = "nodejs"
 export const maxDuration = 30
 
+const REQUIRED_TABLES = [
+  "profiles",
+  "admin_emails",
+  "notebooks",
+  "notebook_sources",
+  "eduai_assets",
+  "eduai_asset_links",
+  "ai_generation_requests",
+  "ai_generation_cache",
+  "eduai_user_access",
+  "video_jobs",
+  "video_usage_daily",
+] as const
+
 function adminClient() {
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !key) return null
   return createAdminClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
+}
+
+function projectRef() {
+  const raw = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
+  if (!raw) return null
+  try {
+    return new URL(raw).hostname.split(".")[0] || null
+  } catch {
+    return null
+  }
 }
 
 async function requireAdmin() {
@@ -35,6 +59,11 @@ function configuration() {
       dedicatedTextKey: configured("GEMINI_API_KEY_TEXT"),
       dedicatedImageKey: configured("GEMINI_API_KEY_IMAGE"),
       dedicatedVideoKey: configured("GEMINI_API_KEY_VIDEO"),
+      textModel: process.env.GOOGLE_TEXT_MODEL_PRIMARY || process.env.GEMINI_TEXT_MODEL_PRIMARY || "gemini-3.6-flash",
+      liteModel: process.env.GOOGLE_TEXT_MODEL_LITE || process.env.GEMINI_TEXT_MODEL_LITE || "gemini-3.5-flash-lite",
+      embeddingModel: process.env.GOOGLE_EMBEDDING_MODEL || "gemini-embedding-2",
+      imageModel: process.env.GOOGLE_IMAGE_MODEL_PRIMARY || process.env.GEMINI_IMAGE_MODEL_PRIMARY || "gemini-3.1-flash-image",
+      videoModel: process.env.GOOGLE_VIDEO_MODEL_PRIMARY || "veo-3.1-generate-preview",
     },
     groq: { configured: configured("GROQ_API_KEY") },
     openrouter: {
@@ -56,14 +85,85 @@ function configuration() {
       google: hasGoogleAI("video"),
       fallback: configured("HF_SPACE_VIDEO_API_URL"),
       cronSecret: configured("CRON_SECRET") || configured("VIDEO_CRON_SECRET"),
+      providerOrder: process.env.VIDEO_PROVIDER_ORDER || "google,hf-space",
     },
   }
+}
+
+async function supabaseReadiness() {
+  const admin = adminClient()
+  const urlConfigured = configured("SUPABASE_URL") || configured("NEXT_PUBLIC_SUPABASE_URL")
+  const publishableConfigured = configured("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY") || configured("NEXT_PUBLIC_SUPABASE_ANON_KEY")
+  const serviceRoleConfigured = configured("SUPABASE_SERVICE_ROLE_KEY")
+
+  const result = {
+    configured: urlConfigured && publishableConfigured,
+    serviceRoleConfigured,
+    projectRef: projectRef(),
+    tables: [] as Array<{ table: string; available: boolean; error?: string }>,
+    assetBucket: { available: false, error: undefined as string | undefined },
+  }
+
+  if (!admin) return result
+
+  for (const table of REQUIRED_TABLES) {
+    try {
+      const { error } = await admin.from(table).select("*", { count: "exact", head: true }).limit(1)
+      result.tables.push({
+        table,
+        available: !error,
+        ...(error ? { error: error.message } : {}),
+      })
+    } catch (error) {
+      result.tables.push({
+        table,
+        available: false,
+        error: error instanceof Error ? error.message : "No disponible",
+      })
+    }
+  }
+
+  try {
+    const { data: buckets, error } = await admin.storage.listBuckets()
+    if (error) {
+      result.assetBucket = { available: false, error: error.message }
+    } else {
+      result.assetBucket = {
+        available: Boolean((buckets || []).some(bucket => bucket.name === "eduai-assets")),
+        error: undefined,
+      }
+    }
+  } catch (error) {
+    result.assetBucket = {
+      available: false,
+      error: error instanceof Error ? error.message : "No disponible",
+    }
+  }
+
+  return result
 }
 
 export async function GET() {
   const user = await requireAdmin()
   if (!user) return NextResponse.json({ error: "Acceso denegado" }, { status: 403 })
-  return NextResponse.json({ configuration: configuration() })
+
+  const config = configuration()
+  const supabase = await supabaseReadiness()
+  const tablesReady = supabase.tables.length > 0 && supabase.tables.every(item => item.available)
+  const ready = Boolean(
+    supabase.configured &&
+    supabase.serviceRoleConfigured &&
+    tablesReady &&
+    supabase.assetBucket.available &&
+    config.google.text,
+  )
+
+  return NextResponse.json({
+    generatedAt: new Date().toISOString(),
+    ready,
+    configuration: config,
+    supabase,
+  }, { headers: { "Cache-Control": "no-store" } })
 }
 
 export async function POST(req: NextRequest) {
