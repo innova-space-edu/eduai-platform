@@ -1,6 +1,6 @@
 import { EdgeTTS, Constants } from "@andresaya/edge-tts"
 import Groq from "groq-sdk"
-import { callAI } from "@/lib/ai-router"
+import { runAIText } from "@/lib/ai/gateway"
 import { createClient } from "@/lib/supabase/server"
 
 export const runtime = "nodejs"
@@ -79,7 +79,7 @@ No traduzcas ni uses Markdown, títulos, listas, acotaciones o comillas.`
 export async function POST(req: Request) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new Response("Unauthorized", { status: 401 })
+  if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 })
 
   if (!process.env.GROQ_API_KEY) {
     return Response.json({ error: "El modo voz necesita GROQ_API_KEY en Vercel." }, { status: 503 })
@@ -92,16 +92,11 @@ export async function POST(req: Request) {
     const selectedLanguage = normalizeLanguage(formData.get("language"))
     const history = parseHistory(formData.get("history"))
 
-    if (!(audio instanceof File)) {
-      return Response.json({ error: "No se recibió audio." }, { status: 400 })
-    }
-    if (audio.size === 0) {
-      return Response.json({ error: "La grabación está vacía." }, { status: 400 })
-    }
-    if (audio.size > MAX_AUDIO_BYTES) {
-      return Response.json({ error: "La grabación es demasiado grande." }, { status: 413 })
-    }
+    if (!(audio instanceof File)) return Response.json({ error: "No se recibió audio." }, { status: 400 })
+    if (audio.size === 0) return Response.json({ error: "La grabación está vacía." }, { status: 400 })
+    if (audio.size > MAX_AUDIO_BYTES) return Response.json({ error: "La grabación es demasiado grande." }, { status: 413 })
 
+    // STT permanece en Groq/Whisper por su baja latencia. La respuesta de IA ya pasa por Gateway.
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
     const transcription = await groq.audio.transcriptions.create({
       file: audio as any,
@@ -112,18 +107,12 @@ export async function POST(req: Request) {
     }) as any
 
     const original = String(transcription.text || "").trim().slice(0, 1200)
-    if (!original) {
-      return Response.json({ error: "No pude reconocer lo que dijiste." }, { status: 422 })
-    }
+    if (!original) return Response.json({ error: "No pude reconocer lo que dijiste." }, { status: 422 })
 
     const sourceCode = selectedLanguage
     const targetCode = mode === "translate" ? oppositeLanguage(sourceCode) : sourceCode
-    const sourceLanguage = mode === "conversation"
-      ? `Tú · ${LANGUAGE[sourceCode].label}`
-      : LANGUAGE[sourceCode].label
-    const targetLanguage = mode === "conversation"
-      ? `MIRA · ${LANGUAGE[targetCode].label}`
-      : LANGUAGE[targetCode].label
+    const sourceLanguage = mode === "conversation" ? `Tú · ${LANGUAGE[sourceCode].label}` : LANGUAGE[sourceCode].label
+    const targetLanguage = mode === "conversation" ? `MIRA · ${LANGUAGE[targetCode].label}` : LANGUAGE[targetCode].label
 
     const messages = mode === "conversation"
       ? [
@@ -139,14 +128,23 @@ export async function POST(req: Request) {
           { role: "user" as const, content: original },
         ]
 
-    const result = await callAI(messages, { maxTokens: mode === "conversation" ? 650 : 500 })
-    const responseText = cleanResponse(result.text).slice(0, 1800)
+    const result = await runAIText({
+      messages,
+      capability: "text",
+      maxOutputTokens: mode === "conversation" ? 650 : 500,
+      context: {
+        userId: user.id,
+        module: mode === "conversation" ? "mira-live-conversation" : "mira-live-translate",
+        reusePolicy: mode === "translate" ? "exact_private" : "never",
+        visibility: "private",
+      },
+      supabase,
+    })
+    const responseText = cleanResponse(result.data).slice(0, 1800)
 
     if (!responseText) {
       return Response.json({
-        error: mode === "conversation"
-          ? "No se pudo generar la respuesta de MIRA."
-          : "No se pudo generar la traducción.",
+        error: mode === "conversation" ? "No se pudo generar la respuesta de MIRA." : "No se pudo generar la traducción.",
       }, { status: 500 })
     }
 
@@ -178,11 +176,15 @@ export async function POST(req: Request) {
       audioBase64,
       audioMime: audioBase64 ? "audio/mpeg" : undefined,
       provider: result.provider,
+      model: result.model,
+      reused: result.reused,
     })
   } catch (error) {
     console.error("MIRA live voice error:", error)
+    const typed = error as Error & { status?: number; code?: string }
     return Response.json({
-      error: error instanceof Error ? error.message : "No se pudo procesar la conversación de voz.",
-    }, { status: 500 })
+      error: typed.message || "No se pudo procesar la conversación de voz.",
+      code: typed.code,
+    }, { status: typed.status || 500 })
   }
 }
