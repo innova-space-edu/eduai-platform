@@ -20,15 +20,19 @@ const REQUIRED_TABLES = [
   "video_usage_daily",
 ] as const
 
+function supabaseUrl() {
+  return process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || null
+}
+
 function adminClient() {
-  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
+  const url = supabaseUrl()
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !key) return null
   return createAdminClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
 }
 
 function projectRef() {
-  const raw = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
+  const raw = supabaseUrl()
   if (!raw) return null
   try {
     return new URL(raw).hostname.split(".")[0] || null
@@ -90,6 +94,39 @@ function configuration() {
   }
 }
 
+async function checkTableViaPostgrest(table: string) {
+  const url = supabaseUrl()
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !key) return { table, available: false, error: "Supabase no configurado" }
+
+  try {
+    const response = await fetch(`${url.replace(/\/$/, "")}/rest/v1/${encodeURIComponent(table)}?select=*&limit=0`, {
+      method: "GET",
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${key}`,
+        Accept: "application/json",
+      },
+      cache: "no-store",
+    })
+
+    if (response.ok) return { table, available: true }
+
+    const payload = await response.json().catch(() => null) as { message?: string; code?: string } | null
+    return {
+      table,
+      available: false,
+      error: payload?.message || payload?.code || `PostgREST ${response.status}`,
+    }
+  } catch (error) {
+    return {
+      table,
+      available: false,
+      error: error instanceof Error ? error.message : "No disponible",
+    }
+  }
+}
+
 async function supabaseReadiness() {
   const admin = adminClient()
   const urlConfigured = configured("SUPABASE_URL") || configured("NEXT_PUBLIC_SUPABASE_URL")
@@ -106,22 +143,7 @@ async function supabaseReadiness() {
 
   if (!admin) return result
 
-  for (const table of REQUIRED_TABLES) {
-    try {
-      const { error } = await admin.from(table).select("*", { count: "exact", head: true }).limit(1)
-      result.tables.push({
-        table,
-        available: !error,
-        ...(error ? { error: error.message } : {}),
-      })
-    } catch (error) {
-      result.tables.push({
-        table,
-        available: false,
-        error: error instanceof Error ? error.message : "No disponible",
-      })
-    }
-  }
+  result.tables = await Promise.all(REQUIRED_TABLES.map(table => checkTableViaPostgrest(table)))
 
   try {
     const { data: buckets, error } = await admin.storage.listBuckets()
