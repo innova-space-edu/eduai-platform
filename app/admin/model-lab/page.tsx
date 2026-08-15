@@ -1,5 +1,6 @@
 import Link from "next/link";
 import AICoreHealthPanel from "@/components/admin/AICoreHealthPanel";
+import AICoreMetricsPanel from "@/components/admin/AICoreMetricsPanel";
 import { ADMIN_ONLY_EXPERIMENTAL_MODELS } from "@/lib/ai/admin-model-policy";
 
 export default function AdminModelLabPage() {
@@ -18,6 +19,7 @@ export default function AdminModelLabPage() {
         </div>
 
         <AICoreHealthPanel />
+        <AICoreMetricsPanel />
 
         <section className="rounded-[28px] border border-amber-400/25 bg-amber-500/10 p-5">
           <h2 className="text-lg font-black text-amber-200">Política para modelos experimentales</h2>
