@@ -21,8 +21,9 @@ function replaceAgent(oldText, newText, label) {
   changed = true
 }
 
-function replaceProcess(oldText, newText, label) {
+function replaceProcess(oldText, newText, label, alreadyAppliedMarker = null) {
   if (processRoute.includes(newText)) return
+  if (alreadyAppliedMarker && processRoute.includes(alreadyAppliedMarker)) return
   if (!processRoute.includes(oldText)) throw new Error(`[video-model-registry] Falta ${label}`)
   processRoute = processRoute.replace(oldText, newText)
   changed = true
@@ -64,10 +65,14 @@ replaceAgent(
   "modelo en inicio de Veo",
 )
 
+// En la primera pasada añade `model`. El router free-first añade después `provider`
+// justo antes de `model`. En una segunda ejecución (test:creator -> npm run build)
+// considerar ese estado enriquecido como ya aplicado, en vez de fallar.
 replaceProcess(
   '    sourceJobId: job.id,\n  }',
   '    sourceJobId: job.id,\n    model: job.model || null,\n  }',
   "modelo del job hacia el motor",
+  '    model: job.model || null,',
 )
 
 if (changed) {
