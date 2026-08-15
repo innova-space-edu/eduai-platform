@@ -127,7 +127,7 @@ if (agent.slice(operationStart, errorsMarker) !== operationBranch) {
 }
 
 const googleBranch = '    if (provider === "google") {'
-if (!agent.includes('provider === "wan"')) {
+if (!agent.includes('    if (provider === "wan") {')) {
   const index = agent.indexOf(googleBranch, agent.indexOf("const errors: string[]"))
   if (index < 0) throw new Error("[video-free-router] No se encontró rama Google")
   const wanBranch = `    if (provider === "wan") {
@@ -146,7 +146,7 @@ if (!agent.includes('provider === "wan"')) {
   changed = true
 }
 
-if (!agent.includes('provider === "hf-gradio"')) {
+if (!agent.includes('    if (provider === "hf-gradio") {')) {
   const index = agent.indexOf(googleBranch, agent.indexOf("const errors: string[]"))
   if (index < 0) throw new Error("[video-free-router] No se encontró punto para HF Gradio")
   const hfBranch = `    if (provider === "hf-gradio") {
