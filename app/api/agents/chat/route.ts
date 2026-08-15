@@ -71,7 +71,7 @@ Usa este contexto como andamiaje. Si hay puntos débiles, enfócate en ellos. Si
 
   let orchestratorContext = ""
   try {
-    const orch = await orchestrate(topic, userMessage)
+    const orch = await orchestrate(topic, userMessage, { supabase, userId: user.id })
     if (orch.shouldEnrich) {
       orchestratorContext = `
 CONTEXTO ENRIQUECIDO POR AGENTES ESPECIALIZADOS:
