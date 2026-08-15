@@ -12,12 +12,16 @@ function requireText(source, value, label) {
 }
 
 requireText(agent, 'from "@/lib/video/providers/wan"', "adapter WAN")
-requireText(agent, 'process.env.VIDEO_PROVIDER_ORDER || "wan,hf-space,google"', "orden gratuito primero")
+requireText(agent, 'from "@/lib/video/providers/hf-gradio"', "adapter HF Gradio")
+requireText(agent, 'process.env.VIDEO_PROVIDER_ORDER || "wan,hf-gradio,hf-space,google"', "orden gratuito primero")
 requireText(agent, 'if (isWanVideoConfigured() && !order.includes("wan")) order.unshift("wan")', "WAN antepuesto al orden legacy")
+requireText(agent, 'isHFGradioVideoConfigured() && !order.includes("hf-gradio")', "HF Gradio antepuesto al premium")
 requireText(agent, 'if (provider === "wan")', "rama WAN")
+requireText(agent, 'if (provider === "hf-gradio")', "rama HF Gradio")
 requireText(agent, 'input.operationName.startsWith("wan:")', "polling WAN")
+requireText(agent, 'input.operationName.startsWith("hf:")', "polling HF Gradio")
 requireText(processRoute, 'provider: job.provider || null', "provider durante cron/polling")
-requireText(statusRoute, '["google", "wan"].includes(current.provider || "")', "polling async multi-provider")
+requireText(statusRoute, '["google", "wan", "hf-gradio"].includes(current.provider || "")', "polling async multi-provider")
 requireText(statusRoute, 'provider: current.provider', "provider durante status polling")
 requireText(createRoute, 'provider: null', "job sin proveedor preasignado")
 requireText(createRoute, '.eq("status", "completed")', "cupo basado en videos completados")
@@ -26,4 +30,4 @@ if (createRoute.includes("await incrementDailyUsage({ supabase, userId: user.id,
   throw new Error("[test-video-free-router] Un intento de video todavía consume cupo antes de completarse")
 }
 
-console.log("[test-video-free-router] WAN/HF/Google, polling multi-provider y cupo por completados verificados")
+console.log("[test-video-free-router] WAN/HF Gradio/HF legacy/Google, polling multi-provider y cupo por completados verificados")
