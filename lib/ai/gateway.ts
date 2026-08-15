@@ -293,6 +293,34 @@ export async function runAIStructured<T = Record<string, unknown>>(input: {
   })
 
   if (reusable?.result.data !== undefined) {
+    const requestId = input.supabase && input.context?.userId
+      ? await recordGenerationStart({
+          supabase: input.supabase,
+          userId: input.context.userId,
+          capability,
+          fingerprint,
+          module: input.context.module,
+          provider: reusable.provider,
+          model: reusable.model,
+          reusePolicy: input.context.reusePolicy,
+          workspaceId: input.context.workspaceId,
+          requestJson: { reusedCacheId: reusable.id, structured: true },
+        })
+      : null
+
+    if (input.supabase) {
+      await finishGenerationRequest({
+        supabase: input.supabase,
+        requestId,
+        status: "reused",
+        provider: reusable.provider,
+        model: reusable.model,
+        assetId: reusable.assetId,
+        latencyMs: Date.now() - startedAt,
+        metadata: { cacheId: reusable.id, generationAvoided: true, structured: true },
+      })
+    }
+
     return {
       data: reusable.result.data as T,
       text: typeof reusable.result.text === "string" ? reusable.result.text : undefined,
@@ -304,6 +332,24 @@ export async function runAIStructured<T = Record<string, unknown>>(input: {
       cacheId: reusable.id,
       latencyMs: Date.now() - startedAt,
     }
+  }
+
+  let requestId: string | null = null
+  if (input.supabase && input.context?.userId) {
+    requestId = await recordGenerationStart({
+      supabase: input.supabase,
+      userId: input.context.userId,
+      capability,
+      fingerprint,
+      module: input.context.module,
+      reusePolicy: input.context.reusePolicy,
+      workspaceId: input.context.workspaceId,
+      requestJson: {
+        messages: input.messages,
+        maxOutputTokens: input.maxOutputTokens ?? null,
+        structured: true,
+      },
+    })
   }
 
   const order = providerOrder(capability, input.preferredProvider)
@@ -356,6 +402,15 @@ export async function runAIStructured<T = Record<string, unknown>>(input: {
           visibility: input.context.visibility,
           workspaceId: input.context.workspaceId,
         })
+        await finishGenerationRequest({
+          supabase: input.supabase,
+          requestId,
+          status: "completed",
+          provider: result.provider,
+          model: result.model,
+          latencyMs: Date.now() - startedAt,
+          metadata: { structured: true },
+        })
       }
 
       return {
@@ -373,6 +428,17 @@ export async function runAIStructured<T = Record<string, unknown>>(input: {
       if (typed.code === "EDUAI_ACCESS_RESTRICTED") throw error
       errors.push(`${provider}: ${error instanceof Error ? error.message : String(error)}`)
     }
+  }
+
+  if (input.supabase) {
+    await finishGenerationRequest({
+      supabase: input.supabase,
+      requestId,
+      status: "failed",
+      error: errors.join(" | ").slice(0, 2000),
+      latencyMs: Date.now() - startedAt,
+      metadata: { structured: true },
+    })
   }
 
   throw new Error(`EduAI Structured Gateway: todos los proveedores fallaron. ${errors.join(" | ")}`)
