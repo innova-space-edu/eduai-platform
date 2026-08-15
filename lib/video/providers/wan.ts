@@ -32,10 +32,14 @@ function apiBaseUrl() {
       : "https://dashscope.aliyuncs.com/api/v1"
   }
   if (region === "frankfurt" || region === "eu") {
-    return workspace ? `https://${workspace}.eu-central-1.maas.aliyuncs.com/api/v1` : null
+    return workspace
+      ? `https://${workspace}.eu-central-1.maas.aliyuncs.com/api/v1`
+      : null
   }
 
-  return workspace ? `https://${workspace}.ap-southeast-1.maas.aliyuncs.com/api/v1` : null
+  return workspace
+    ? `https://${workspace}.ap-southeast-1.maas.aliyuncs.com/api/v1`
+    : "https://dashscope-intl.aliyuncs.com/api/v1"
 }
 
 export function isWanVideoConfigured() {
@@ -83,7 +87,7 @@ export async function startWanVideo(input: {
       ok: false,
       status: "failed",
       provider: "wan",
-      error: "WAN no está configurado. Falta DASHSCOPE_API_KEY y/o el endpoint/workspace de Model Studio.",
+      error: "WAN no está configurado. Falta DASHSCOPE_API_KEY o un endpoint regional válido de Model Studio.",
       raw: { configured: false },
     }
   }
