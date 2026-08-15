@@ -34,3 +34,5 @@ console.log("[test-video-free-router] WAN/HF Gradio/HF legacy/Google, polling mu
 
 await import("./apply-video-free-ui.mjs")
 await import("./test-video-free-ui.mjs")
+await import("./apply-video-personal-marketplace.mjs")
+await import("./test-video-personal-marketplace.mjs")
