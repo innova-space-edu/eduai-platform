@@ -53,6 +53,19 @@ function configured(name: string) {
   return Boolean(process.env[name]?.trim())
 }
 
+function effectiveVideoProviderOrder() {
+  const configuredOrder = (process.env.VIDEO_PROVIDER_ORDER || "google,hf-space")
+    .split(",")
+    .map(value => value.trim().toLowerCase())
+    .filter(Boolean)
+    .map(value => value === "replicate" || value === "veo" ? "google" : value)
+    .filter(value => ["google", "hf-space", "ltx", "wan-worker"].includes(value))
+
+  const unique = Array.from(new Set(configuredOrder))
+  if (unique.length) return unique.join(",")
+  return hasGoogleAI("video") ? "google,hf-space" : "hf-space"
+}
+
 function configuration() {
   return {
     google: {
@@ -89,7 +102,8 @@ function configuration() {
       google: hasGoogleAI("video"),
       fallback: configured("HF_SPACE_VIDEO_API_URL"),
       cronSecret: configured("CRON_SECRET") || configured("VIDEO_CRON_SECRET"),
-      providerOrder: process.env.VIDEO_PROVIDER_ORDER || "google,hf-space",
+      configuredProviderOrder: process.env.VIDEO_PROVIDER_ORDER || "google,hf-space",
+      providerOrder: effectiveVideoProviderOrder(),
     },
   }
 }
