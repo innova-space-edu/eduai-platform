@@ -24,9 +24,13 @@ on:
       - "app/api/agents/transcript-editor/**"
       - "app/api/whiteboard/solve/**"
       - "app/api/superagent/chat/**"
+      - "app/api/creator/quality-review/**"
       - "app/api/notebooks/**"
       - "app/(auth)/register/**"
       - "supabase/migrations/20260814*.sql"
+      - "scripts/apply-educador-ai-gateway.mjs"
+      - "scripts/apply-educador-dual-submit.mjs"
+      - "scripts/test-educador-ai-gateway.mjs"
       - "scripts/test-ai-core.ts"
       - "package.json"
       - ".github/workflows/ai-core-validation.yml"
@@ -56,6 +60,8 @@ jobs:
           npm install --registry=https://registry.npmjs.org/ --ignore-scripts
       - name: Aplicar compatibilidad idempotente de Notebook
         run: node scripts/apply-notebook-ingestion-fix.mjs
+      - name: Aplicar y verificar migración de Educador
+        run: node scripts/apply-educador-dual-submit.mjs
       - name: Probar fingerprints y routing
         run: npm run test:ai-core
       - name: Verificar TypeScript del núcleo nuevo
