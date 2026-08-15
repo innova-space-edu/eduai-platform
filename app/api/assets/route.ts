@@ -31,10 +31,47 @@ function clampLimit(value: string | null) {
   return Math.max(1, Math.min(100, Math.round(parsed)))
 }
 
+async function loadLegacyGalleryUrls(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  assets: AssetRow[]
+) {
+  const ids = Array.from(new Set(
+    assets
+      .filter((asset) => asset.source_module === "legacy-gallery" && asset.source_id)
+      .map((asset) => asset.source_id as string)
+  ))
+
+  if (!ids.length) return new Map<string, string>()
+
+  const { data, error } = await supabase
+    .from("generated_images")
+    .select("id,image_url")
+    .eq("user_id", userId)
+    .in("id", ids)
+
+  if (error) {
+    console.warn("[AI Assets] legacy gallery lookup failed:", error.message)
+    return new Map<string, string>()
+  }
+
+  return new Map(
+    (data || [])
+      .filter((row) => row.id && row.image_url)
+      .map((row) => [String(row.id), String(row.image_url)] as const)
+  )
+}
+
 async function withAccessUrl(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  asset: AssetRow
+  asset: AssetRow,
+  legacyGalleryUrls: Map<string, string>
 ) {
+  if (asset.source_module === "legacy-gallery" && asset.source_id) {
+    const legacyUrl = legacyGalleryUrls.get(asset.source_id)
+    if (legacyUrl) return { ...asset, access_url: legacyUrl }
+  }
+
   if (!asset.storage_bucket || !asset.storage_path) {
     return { ...asset, access_url: asset.external_url }
   }
@@ -79,7 +116,9 @@ export async function GET(req: Request) {
     return Response.json({ error: error.message }, { status: 500 })
   }
 
-  const assets = await Promise.all((data || []).map((asset) => withAccessUrl(supabase, asset as AssetRow)))
+  const rows = (data || []) as AssetRow[]
+  const legacyGalleryUrls = await loadLegacyGalleryUrls(supabase, user.id, rows)
+  const assets = await Promise.all(rows.map((asset) => withAccessUrl(supabase, asset, legacyGalleryUrls)))
   return Response.json({ assets })
 }
 
