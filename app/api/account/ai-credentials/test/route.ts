@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
       status: result.status,
       message: result.message,
     })
-    return NextResponse.json({ ok: result.ok, provider, ...result }, { status: result.ok ? 200 : 400 })
+    return NextResponse.json({ provider, ...result }, { status: result.ok ? 200 : 400 })
   } catch (error) {
     const message = error instanceof Error ? error.message : "No fue posible probar la conexión"
     try {
