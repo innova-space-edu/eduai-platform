@@ -1,12 +1,11 @@
 // app/api/superagent/chat/route.ts
-// ─────────────────────────────────────────────────────────────────────────────
-// Endpoint de chat para EduAI SuperAgent
-// Usa ai-router-v5 con todos los proveedores gratuitos 2026
-// Soporta: streaming (Groq), non-streaming (todos), selección de tarea
-// ─────────────────────────────────────────────────────────────────────────────
+// Chat del SuperAgent/Claw conectado a EduAI AI Gateway.
+// Mantiene el contrato existente de streaming SSE y tool-use.
 
 import { NextRequest } from "next/server"
-import { callAIv5, getAvailableProviders, getModelForTask } from "@/lib/ai-router-v5"
+import { createClient } from "@/lib/supabase/server"
+import { runAIText, streamAIText, type GatewayMessage } from "@/lib/ai/gateway"
+import { getAvailableProviders, getModelForTask } from "@/lib/ai-router-v5"
 import type { Message, AITaskType } from "@/lib/ai-router-v5"
 import { runCoreCycle } from "@/lib/superagent/superagent-core"
 import type { CoreContext } from "@/lib/superagent/superagent-core"
@@ -14,23 +13,20 @@ import type { CoreContext } from "@/lib/superagent/superagent-core"
 export const runtime = "nodejs"
 export const maxDuration = 60
 
-// Sistema de contexto educativo para el superagente
-const EDUAI_SYSTEM_PROMPT = `Eres EduAI Claw, el asistente inteligente de EduAI Platform — una plataforma educativa chilena para el Colegio Providencia.
+const EDUAI_SYSTEM_PROMPT = `Eres EduAI Claw, el asistente inteligente de EduAI Platform — una plataforma educativa chilena.
 
 Puedes ayudar con:
-• 📝 Crear y mejorar evaluaciones (exámenes, rúbricas, preguntas)
-• 📚 Planificación curricular según el currículum nacional MINEDUC
+• 📝 Crear y mejorar evaluaciones, rúbricas y preguntas
+• 📚 Planificación curricular según MINEDUC
 • 🧠 Tutorías y explicaciones pedagógicas
-• ♿ Adaptaciones PIE/NEE (dislexia, TDAH, baja visión)
-• 🔬 Contenido STEM (Física, Química, Biología, Matemática)
-• 📊 Análisis de resultados de evaluaciones
+• ♿ Adaptaciones PIE/NEE
+• 🔬 Contenido STEM
+• 📊 Análisis de resultados
 • 🎨 Diseño de materiales educativos visuales
 
 Responde siempre en español. Sé concreto, práctico y alineado al contexto chileno.
-Cuando generes preguntas de examen, usa el formato JSON estructurado que EduAI entiende.
-Para matemática, usa LaTeX con $...$ para inline y $$...$$ para bloques.`
+Para matemática, usa LaTeX con $...$ inline y $$...$$ para bloques.`
 
-// Detectar tipo de tarea desde el mensaje para optimizar routing
 function detectTaskType(message: string): AITaskType {
   const text = message.toLowerCase()
 
@@ -54,14 +50,32 @@ function detectTaskType(message: string): AITaskType {
   ) return "vision"
 
   if (message.length > 3000) return "long_context"
-
   return "general"
+}
+
+function capabilityForTask(task: AITaskType): "text" | "code" | "vision" | "long_context" {
+  if (task === "coding") return "code"
+  if (task === "vision") return "vision"
+  if (task === "long_context") return "long_context"
+  return "text"
+}
+
+function gatewayMessages(messages: Message[], systemPrompt: string): GatewayMessage[] {
+  return [
+    { role: "system", content: systemPrompt },
+    ...messages.map((message) => ({ role: message.role, content: message.content } as GatewayMessage)),
+  ]
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return Response.json({ success: false, error: "No autenticado" }, { status: 401 })
+    }
 
+    const body = await req.json()
     const {
       messages,
       task: explicitTask,
@@ -93,173 +107,150 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Determinar tipo de tarea
     const lastUserMessage = [...messages].reverse().find(m => m.role === "user")?.content ?? ""
     const task: AITaskType = explicitTask ?? detectTaskType(lastUserMessage)
 
-    // Construir system prompt contextualizado
     let sysPrompt = systemPrompt ?? EDUAI_SYSTEM_PROMPT
     if (context?.subject) sysPrompt += `\nAsignatura actual: ${context.subject}`
-    if (context?.page)    sysPrompt += `\nPágina actual: ${context.page}`
+    if (context?.page) sysPrompt += `\nPágina actual: ${context.page}`
     if (context?.examTitle) sysPrompt += `\nExamen en edición: "${context.examTitle}"`
     if (context?.studentCourse) sysPrompt += `\nCurso: ${context.studentCourse}`
 
-    // ── Llamada interna sin tools: evita recursión cuando una herramienta usa IA ──
-    if (skipTools) {
-      const aiResult = await callAIv5(messages, {
-        task,
-        maxTokens,
-        systemPrompt: sysPrompt,
-      })
-
-      return Response.json(
-        {
-          success: true,
-          text: aiResult.text,
-          provider: aiResult.provider,
-          model: aiResult.model,
-          task,
-          wasToolCall: false,
-        },
-        { status: 200 }
-      )
+    const messagesForGateway = gatewayMessages(messages, sysPrompt)
+    const requestContext = {
+      userId: user.id,
+      module: skipTools ? "superagent-internal" : "superagent-chat",
+      reusePolicy: "exact_private" as const,
+      visibility: "private" as const,
     }
 
-    // ── Streaming (solo Groq, el más rápido) ──────────────────────────────
+    // Llamada interna sin tools: evita recursión cuando una herramienta usa IA.
+    if (skipTools) {
+      const aiResult = await runAIText({
+        messages: messagesForGateway,
+        capability: capabilityForTask(task),
+        maxOutputTokens: maxTokens,
+        context: requestContext,
+        supabase,
+      })
+
+      return Response.json({
+        success: true,
+        text: aiResult.data,
+        provider: aiResult.provider,
+        model: aiResult.model,
+        task,
+        wasToolCall: false,
+        reused: aiResult.reused,
+      })
+    }
+
+    // Streaming SSE compatible con la interfaz existente, ahora sobre AI Gateway.
     if (wantStream) {
+      const source = await streamAIText({
+        messages: messagesForGateway,
+        maxOutputTokens: maxTokens,
+        context: requestContext,
+        supabase,
+      })
+      const reader = source.getReader()
       const encoder = new TextEncoder()
+      const decoder = new TextDecoder()
 
-      const readable = new ReadableStream({
+      const readable = new ReadableStream<Uint8Array>({
         async start(controller) {
+          let full = ""
           try {
-            const Groq = (await import("groq-sdk")).default
-            const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
-
-            const model =
-              task === "coding" ? "moonshotai/kimi-k2" : "llama-3.3-70b-versatile"
-
-            const msgs: Message[] = [
-              { role: "system", content: sysPrompt },
-              ...messages,
-            ]
-
-            const stream = await groq.chat.completions.create({
-              model,
-              messages: msgs as Parameters<typeof groq.chat.completions.create>[0]["messages"],
-              max_tokens: maxTokens,
-              temperature: 0.7,
-              stream: true,
-            })
-
-            let full = ""
-            for await (const chunk of stream) {
-              const delta = chunk.choices[0]?.delta?.content ?? ""
-              if (delta) {
-                full += delta
-                controller.enqueue(
-                  encoder.encode(`data: ${JSON.stringify({ delta, done: false })}\n\n`)
-                )
-              }
+            while (true) {
+              const { value, done } = await reader.read()
+              if (done) break
+              const delta = decoder.decode(value, { stream: true })
+              if (!delta) continue
+              full += delta
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ delta, done: false })}\n\n`))
             }
 
-            // Evento final con metadata
-            controller.enqueue(
-              encoder.encode(
-                `data: ${JSON.stringify({
-                  done: true,
-                  full,
-                  provider: "Groq",
-                  model,
-                  task,
-                })}\n\n`
-              )
-            )
+            const tail = decoder.decode()
+            if (tail) {
+              full += tail
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ delta: tail, done: false })}\n\n`))
+            }
+
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+              done: true,
+              full,
+              provider: "EduAI AI Gateway",
+              model: "stream",
+              task,
+            })}\n\n`))
             controller.close()
-          } catch (streamErr) {
-            // Fallback: non-stream con Gemini
-            console.warn("[superagent/chat] Groq stream falló, usando Gemini:", streamErr)
-            try {
-              const res = await callAIv5(messages, {
-                task,
-                maxTokens,
-                systemPrompt: sysPrompt,
-              })
-              controller.enqueue(
-                encoder.encode(
-                  `data: ${JSON.stringify({
-                    done: true,
-                    full: res.text,
-                    provider: res.provider,
-                    model: res.model,
-                    task,
-                  })}\n\n`
-                )
-              )
-              controller.close()
-            } catch (fallbackErr) {
-              controller.enqueue(
-                encoder.encode(
-                  `data: ${JSON.stringify({
-                    error: fallbackErr instanceof Error ? fallbackErr.message : "Error desconocido",
-                  })}\n\n`
-                )
-              )
-              controller.close()
-            }
+          } catch (streamError) {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+              error: streamError instanceof Error ? streamError.message : "Error de streaming",
+            })}\n\n`))
+            controller.close()
+          } finally {
+            reader.releaseLock()
           }
+        },
+        cancel() {
+          void reader.cancel()
         },
       })
 
       return new Response(readable, {
         headers: {
-          "Content-Type":  "text/event-stream",
-          "Cache-Control": "no-cache",
-          "Connection":    "keep-alive",
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache, no-transform",
+          "Connection": "keep-alive",
         },
       })
     }
 
-    // ── Non-streaming: usar superagent-core con tool detection ────────────────
     const coreContext: CoreContext = {
-      currentPage:   context?.page,
-      pageMode:      context?.pageMode,
-      subject:       context?.subject,
-      examTitle:     context?.examTitle,
+      userId: user.id,
+      currentPage: context?.page,
+      pageMode: context?.pageMode,
+      subject: context?.subject,
+      examTitle: context?.examTitle,
       studentCourse: context?.studentCourse,
     }
 
-    const baseUrl = req.nextUrl.origin
-
-    const result = await runCoreCycle(messages, coreContext, baseUrl, {
-      headers: req.headers,
-    })
-
-    return Response.json(
-      {
-        success:     true,
-        text:        result.text,
-        provider:    result.provider,
-        model:       result.model,
-        task:        result.task,
-        latencyMs:   result.latencyMs,
-        wasToolCall: result.wasToolCall,
-        toolUsed:    result.toolUsed,
-      },
-      { status: 200 }
+    const result = await runCoreCycle(
+      messages,
+      coreContext,
+      req.nextUrl.origin,
+      { headers: req.headers },
+      { supabase, userId: user.id, module: "superagent-chat" },
     )
+
+    return Response.json({
+      success: true,
+      text: result.text,
+      provider: result.provider,
+      model: result.model,
+      task: result.task,
+      latencyMs: result.latencyMs,
+      wasToolCall: result.wasToolCall,
+      toolUsed: result.toolUsed,
+      reused: Boolean(result.reused),
+    })
   } catch (error) {
     console.error("[superagent/chat:POST]", error)
+    const typed = error as Error & { status?: number; code?: string }
     return Response.json(
       {
         success: false,
-        error:   error instanceof Error ? error.message : "Error interno del servidor.",
+        error: typed.message || "Error interno del servidor.",
+        code: typed.code,
       },
-      { status: 500 }
+      { status: typed.status || 500 }
     )
   }
 }
 
-// ── GET: estado de proveedores ────────────────────────────────────────────────
+// GET conserva el diagnóstico legacy de proveedores mientras Model Lab migra
+// el inventario completo a AI Core.
 export async function GET() {
   const providers = getAvailableProviders()
 
@@ -267,19 +258,19 @@ export async function GET() {
     success: true,
     providers,
     taskRouting: {
-      fast:         getModelForTask("fast"),
-      coding:       getModelForTask("coding"),
-      reasoning:    getModelForTask("reasoning"),
+      fast: getModelForTask("fast"),
+      coding: getModelForTask("coding"),
+      reasoning: getModelForTask("reasoning"),
       long_context: getModelForTask("long_context"),
-      vision:       getModelForTask("vision"),
-      batch:        getModelForTask("batch"),
-      general:      getModelForTask("general"),
+      vision: getModelForTask("vision"),
+      batch: getModelForTask("batch"),
+      general: getModelForTask("general"),
     },
     envVarsNeeded: {
-      GROQ_API_KEY:       { configured: !!process.env.GROQ_API_KEY,       free: true,  url: "https://console.groq.com" },
-      GEMINI_API_KEY:     { configured: !!process.env.GEMINI_API_KEY,     free: true,  url: "https://aistudio.google.com" },
-      OPENROUTER_API_KEY: { configured: !!process.env.OPENROUTER_API_KEY, free: true,  url: "https://openrouter.ai" },
-      CEREBRAS_API_KEY:   { configured: !!process.env.CEREBRAS_API_KEY,   free: true,  url: "https://cloud.cerebras.ai" },
+      GROQ_API_KEY: { configured: !!process.env.GROQ_API_KEY, free: true },
+      GEMINI_API_KEY: { configured: !!process.env.GEMINI_API_KEY, free: true },
+      OPENROUTER_API_KEY: { configured: !!process.env.OPENROUTER_API_KEY, free: true },
+      CEREBRAS_API_KEY: { configured: !!process.env.CEREBRAS_API_KEY, free: true },
     },
   })
 }
