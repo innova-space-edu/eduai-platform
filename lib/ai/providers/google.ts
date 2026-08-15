@@ -68,9 +68,10 @@ export async function generateGoogleText(input: {
   messages: GatewayMessage[]
   maxOutputTokens?: number
   lite?: boolean
+  model?: string
 }): Promise<GoogleTextResult> {
   const ai = client("text")
-  const model = googleModel(input.lite ? "lite" : "text")
+  const model = input.model || googleModel(input.lite ? "lite" : "text")
   const systemInstruction = input.messages.find((message) => message.role === "system")?.content
 
   const response = await ai.models.generateContent({
@@ -93,9 +94,10 @@ export async function generateGoogleGroundedText(input: {
   messages: GatewayMessage[]
   maxOutputTokens?: number
   temperature?: number
+  model?: string
 }): Promise<GoogleGroundedResult> {
   const ai = client("text")
-  const model = googleModel("text")
+  const model = input.model || googleModel("text")
   const systemInstruction = input.messages.find((message) => message.role === "system")?.content
 
   const response = await ai.models.generateContent({
@@ -135,9 +137,10 @@ export async function streamGoogleText(input: {
   messages: GatewayMessage[]
   maxOutputTokens?: number
   lite?: boolean
+  model?: string
 }): Promise<ReadableStream<Uint8Array>> {
   const ai = client("text")
-  const model = googleModel(input.lite ? "lite" : "text")
+  const model = input.model || googleModel(input.lite ? "lite" : "text")
   const systemInstruction = input.messages.find((message) => message.role === "system")?.content
   const stream = await ai.models.generateContentStream({
     model,
@@ -168,9 +171,10 @@ export async function generateGoogleStructured<T = Record<string, unknown>>(inpu
   schema: Record<string, unknown>
   maxOutputTokens?: number
   lite?: boolean
+  model?: string
 }): Promise<GoogleTextResult & { data: T }> {
   const ai = client("text")
-  const model = googleModel(input.lite ? "lite" : "text")
+  const model = input.model || googleModel(input.lite ? "lite" : "text")
   const systemInstruction = input.messages.find((message) => message.role === "system")?.content
 
   const response = await ai.models.generateContent({
@@ -198,9 +202,10 @@ export async function generateGoogleImage(input: {
   aspectRatio?: string
   imageSize?: "0.5K" | "1K" | "2K" | "4K"
   previousInteractionId?: string | null
+  model?: string
 }): Promise<GoogleImageResult> {
   const ai = client("image")
-  const model = googleModel("image")
+  const model = input.model || googleModel("image")
 
   const interaction = await ai.interactions.create({
     model,
