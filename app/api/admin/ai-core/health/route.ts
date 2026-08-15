@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { createClient as createServerClient } from "@/lib/supabase/server"
 import { createClient as createAdminClient } from "@supabase/supabase-js"
 import { generateGoogleText, hasGoogleAI } from "@/lib/ai/providers/google"
+import { resolveProviderModel } from "@/lib/ai/model-registry"
 
 export const runtime = "nodejs"
 export const maxDuration = 30
@@ -108,6 +109,30 @@ function configuration() {
   }
 }
 
+async function effectiveGoogleModels() {
+  const base = configuration().google
+  const admin = adminClient()
+  if (!admin) {
+    return {
+      text: { model: base.textModel, source: "fallback" as const },
+      image: { model: base.imageModel, source: "fallback" as const },
+      video: { model: base.videoModel, source: "fallback" as const },
+    }
+  }
+
+  const [text, image, video] = await Promise.all([
+    resolveProviderModel({ supabase: admin, provider: "google", capability: "text", fallbackModel: base.textModel }),
+    resolveProviderModel({ supabase: admin, provider: "google", capability: "image", fallbackModel: base.imageModel }),
+    resolveProviderModel({ supabase: admin, provider: "google", capability: "video", fallbackModel: base.videoModel }),
+  ])
+
+  return {
+    text: { model: text.model, source: text.source },
+    image: { model: image.model, source: image.source },
+    video: { model: video.model, source: video.source },
+  }
+}
+
 async function checkTableViaPostgrest(table: string) {
   const url = supabaseUrl()
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -183,8 +208,18 @@ export async function GET() {
   const user = await requireAdmin()
   if (!user) return NextResponse.json({ error: "Acceso denegado" }, { status: 403 })
 
-  const config = configuration()
-  const supabase = await supabaseReadiness()
+  const baseConfig = configuration()
+  const [supabase, effectiveModels] = await Promise.all([
+    supabaseReadiness(),
+    effectiveGoogleModels(),
+  ])
+  const config = {
+    ...baseConfig,
+    google: {
+      ...baseConfig.google,
+      effectiveModels,
+    },
+  }
   const tablesReady = supabase.tables.length > 0 && supabase.tables.every(item => item.available)
   const ready = Boolean(
     supabase.configured &&
@@ -226,13 +261,14 @@ export async function POST(req: NextRequest) {
   let errorMessage: string | null = null
 
   try {
+    const selected = (await effectiveGoogleModels()).text
     const result = await generateGoogleText({
       messages: [
         { role: "system", content: "Health check técnico. Responde únicamente OK." },
         { role: "user", content: "OK" },
       ],
       maxOutputTokens: 8,
-      lite: true,
+      model: selected.model,
     })
     model = result.model
     if (!/ok/i.test(result.text)) status = "degraded"
