@@ -95,3 +95,4 @@ if (!proxySource.includes('"/repositorio"')) {
 }
 
 await import("./apply-repository-ai-assets.mjs")
+await import("./test-repository-ai-assets.mjs")
