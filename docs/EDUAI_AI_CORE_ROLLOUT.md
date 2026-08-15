@@ -1,7 +1,8 @@
 # EduAI AI Core — despliegue seguro
 
 > Objetivo: modernizar EduAI sin duplicar módulos ni romper producción.
-> Último redeploy válido debe usar un commit posterior a `1c12415`, que incluye la corrección del reranker estructurado de Chat Paper.
+
+> Último trigger de Preview: usar siempre el HEAD actual de `feat/eduai-core-reuse-ai-gateway`; no hacer Redeploy sobre deployments antiguos porque Vercel conserva el commit original.
 
 ## Principios
 
