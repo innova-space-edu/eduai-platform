@@ -8,6 +8,9 @@ on:
       - "lib/notebook/**"
       - "lib/papers/**"
       - "lib/superagent/superagent-core.ts"
+      - "components/assets/**"
+      - "components/video/**"
+      - "app/repositorio/**"
       - "app/api/assets/**"
       - "app/api/agents/video/**"
       - "app/api/agents/investigador/**"
@@ -31,6 +34,12 @@ on:
       - "scripts/apply-educador-ai-gateway.mjs"
       - "scripts/apply-educador-dual-submit.mjs"
       - "scripts/test-educador-ai-gateway.mjs"
+      - "scripts/apply-repository-ai-assets.mjs"
+      - "scripts/test-repository-ai-assets.mjs"
+      - "scripts/apply-repository-navigation.mjs"
+      - "scripts/apply-video-reusable-assets.mjs"
+      - "scripts/test-video-reusable-assets.mjs"
+      - "scripts/apply-video-summary-hobby.mjs"
       - "scripts/test-ai-core.ts"
       - "package.json"
       - ".github/workflows/ai-core-validation.yml"
@@ -62,6 +71,10 @@ jobs:
         run: node scripts/apply-notebook-ingestion-fix.mjs
       - name: Aplicar y verificar migración de Educador
         run: node scripts/apply-educador-dual-submit.mjs
+      - name: Aplicar y verificar Nube EduAI reutilizable
+        run: node scripts/apply-repository-navigation.mjs
+      - name: Aplicar y verificar reutilización de Video Studio
+        run: node scripts/apply-video-summary-hobby.mjs
       - name: Probar fingerprints y routing
         run: npm run test:ai-core
       - name: Verificar TypeScript del núcleo nuevo
