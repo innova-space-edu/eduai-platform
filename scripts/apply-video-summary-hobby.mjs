@@ -6,61 +6,59 @@ const routePath = path.join(root, "app/api/creator/video-summary/route.ts")
 
 if (!fs.existsSync(routePath)) {
   console.log("[video-summary-hobby] route not found; skipped")
-  process.exit(0)
-}
+} else {
+  let source = fs.readFileSync(routePath, "utf8")
+  let changed = false
 
-let source = fs.readFileSync(routePath, "utf8")
-let changed = false
-
-function replaceOnce(from, to, label) {
-  if (source.includes(to)) return
-  if (!source.includes(from)) {
-    throw new Error(`[video-summary-hobby] marker not found: ${label}`)
+  function replaceOnce(from, to, label) {
+    if (source.includes(to)) return
+    if (!source.includes(from)) {
+      throw new Error(`[video-summary-hobby] marker not found: ${label}`)
+    }
+    source = source.replace(from, to)
+    changed = true
   }
-  source = source.replace(from, to)
-  changed = true
-}
 
-replaceOnce(
-  'export const maxDuration = 300',
-  'export const maxDuration = 60',
-  'App Router duration',
-)
+  replaceOnce(
+    'export const maxDuration = 300',
+    'export const maxDuration = 60',
+    'App Router duration',
+  )
 
-replaceOnce(
-  'const TARGET_SEGMENT_SECONDS = 600',
-  'const TARGET_SEGMENT_SECONDS = 900',
-  'segment size',
-)
+  replaceOnce(
+    'const TARGET_SEGMENT_SECONDS = 600',
+    'const TARGET_SEGMENT_SECONDS = 900',
+    'segment size',
+  )
 
-replaceOnce(
-  'const SEGMENT_CONCURRENCY = 3',
-  'const SEGMENT_CONCURRENCY = MAX_SEGMENTS',
-  'segment concurrency',
-)
+  replaceOnce(
+    'const SEGMENT_CONCURRENCY = 3',
+    'const SEGMENT_CONCURRENCY = MAX_SEGMENTS',
+    'segment concurrency',
+  )
 
-replaceOnce(
-  'schema: PLAN_SCHEMA,\n    maxOutputTokens: 512,\n    timeoutMs: 45_000,',
-  'schema: PLAN_SCHEMA,\n    maxOutputTokens: 512,\n    timeoutMs: 15_000,',
-  'duration fallback timeout',
-)
+  replaceOnce(
+    'schema: PLAN_SCHEMA,\n    maxOutputTokens: 512,\n    timeoutMs: 45_000,',
+    'schema: PLAN_SCHEMA,\n    maxOutputTokens: 512,\n    timeoutMs: 15_000,',
+    'duration fallback timeout',
+  )
 
-replaceOnce(
-  'maxOutputTokens: 5_500,\n      timeoutMs: 90_000,',
-  'maxOutputTokens: 5_000,\n      timeoutMs: 42_000,',
-  'segment timeout',
-)
+  replaceOnce(
+    'maxOutputTokens: 5_500,\n      timeoutMs: 90_000,',
+    'maxOutputTokens: 5_000,\n      timeoutMs: 42_000,',
+    'segment timeout',
+  )
 
-const functionStart = source.indexOf('async function buildGlobalSynthesis({')
-const postStart = source.indexOf('\nexport async function POST(', functionStart)
+  const functionStart = source.indexOf('async function buildGlobalSynthesis({')
+  const postStart = source.indexOf('\nexport async function POST(', functionStart)
 
-if (functionStart < 0 || postStart < 0) {
-  throw new Error('[video-summary-hobby] synthesis function markers not found')
-}
+  if (functionStart < 0 || postStart < 0) {
+    throw new Error('[video-summary-hobby] synthesis function markers not found')
+  }
 
-const currentFunction = source.slice(functionStart, postStart)
-if (!currentFunction.includes('La consolidación se realizó localmente')) {
-  const localSynthesis = `async function buildGlobalSynthesis({
+  const currentFunction = source.slice(functionStart, postStart)
+  if (!currentFunction.includes('La consolidación se realizó localmente')) {
+    const localSynthesis = `async function buildGlobalSynthesis({
   segmentResults,
   metadata,
 }: {
@@ -113,13 +111,17 @@ if (!currentFunction.includes('La consolidación se realizó localmente')) {
   }
 }
 `
-  source = source.slice(0, functionStart) + localSynthesis + source.slice(postStart)
-  changed = true
+    source = source.slice(0, functionStart) + localSynthesis + source.slice(postStart)
+    changed = true
+  }
+
+  if (changed) {
+    fs.writeFileSync(routePath, source)
+    console.log("[video-summary-hobby] segmented video analysis adapted for Hobby")
+  } else {
+    console.log("[video-summary-hobby] already applied")
+  }
 }
 
-if (changed) {
-  fs.writeFileSync(routePath, source)
-  console.log("[video-summary-hobby] segmented video analysis adapted for Hobby")
-} else {
-  console.log("[video-summary-hobby] already applied")
-}
+await import("./apply-video-reusable-assets.mjs")
+await import("./test-video-reusable-assets.mjs")
