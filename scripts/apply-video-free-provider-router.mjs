@@ -27,8 +27,8 @@ function replaceIn(source, from, to, label) {
 agent = replaceIn(
   agent,
   'import { createClient as createAdmin } from "@supabase/supabase-js"',
-  'import { createClient as createAdmin } from "@supabase/supabase-js"\nimport { isWanVideoConfigured, pollWanVideo, startWanVideo } from "@/lib/video/providers/wan"',
-  "import WAN",
+  'import { createClient as createAdmin } from "@supabase/supabase-js"\nimport { isWanVideoConfigured, pollWanVideo, startWanVideo } from "@/lib/video/providers/wan"\nimport { isHFGradioVideoConfigured, pollHFGradioVideo, startHFGradioVideo } from "@/lib/video/providers/hf-gradio"',
+  "imports de proveedores gratuitos",
 )
 
 if (!agent.includes("provider?: string | null")) {
@@ -56,22 +56,26 @@ const providerOrderStart = agent.indexOf("function videoProviderOrder(): string[
 const providerOrderEnd = agent.indexOf("\n\nexport async function processVideoJob", providerOrderStart)
 if (providerOrderStart < 0 || providerOrderEnd < 0) throw new Error("[video-free-router] No se encontró videoProviderOrder")
 const providerOrder = `function videoProviderOrder(): string[] {
-  const configured = (process.env.VIDEO_PROVIDER_ORDER || "wan,hf-space,google")
+  const configured = (process.env.VIDEO_PROVIDER_ORDER || "wan,hf-gradio,hf-space,google")
     .split(",")
     .map((value) => value.trim().toLowerCase())
     .filter(Boolean)
     .map((value) => value === "replicate" || value === "veo" ? "google" : value)
-    .filter((value) => ["wan", "google", "hf-space", "ltx", "wan-worker"].includes(value))
+    .filter((value) => ["wan", "hf-gradio", "google", "hf-space", "ltx", "wan-worker"].includes(value))
 
   const order = Array.from(new Set(configured))
 
-  // Si WAN quedó configurado después de un deploy con el orden legacy, se antepone
-  // automáticamente. Google/Veo queda disponible como premium/fallback, no como requisito.
+  // Los proveedores gratuitos configurados se anteponen incluso si Vercel conserva
+  // el orden legacy. Google/Veo queda como premium/fallback y nunca es requisito.
   if (isWanVideoConfigured() && !order.includes("wan")) order.unshift("wan")
+  if (isHFGradioVideoConfigured() && !order.includes("hf-gradio")) {
+    order.splice(order[0] === "wan" ? 1 : 0, 0, "hf-gradio")
+  }
 
   if (!order.length) {
     const fallback: string[] = []
     if (isWanVideoConfigured()) fallback.push("wan")
+    if (isHFGradioVideoConfigured()) fallback.push("hf-gradio")
     if (process.env.HF_SPACE_VIDEO_API_URL) fallback.push("hf-space")
     if (googleVideoKey()) fallback.push("google")
     return fallback
@@ -91,6 +95,16 @@ const operationBranch = `  if (input.operationName) {
 
     if (input.provider === "wan" || input.operationName.startsWith("wan:")) {
       return pollWanVideo({
+        operationName: input.operationName,
+        userId: input.userId,
+        prompt,
+        sourceJobId: input.sourceJobId,
+        model: input.model,
+      })
+    }
+
+    if (input.provider === "hf-gradio" || input.operationName.startsWith("hf:")) {
+      return pollHFGradioVideo({
         operationName: input.operationName,
         userId: input.userId,
         prompt,
@@ -132,6 +146,25 @@ if (!agent.includes('provider === "wan"')) {
   changed = true
 }
 
+if (!agent.includes('provider === "hf-gradio"')) {
+  const index = agent.indexOf(googleBranch, agent.indexOf("const errors: string[]"))
+  if (index < 0) throw new Error("[video-free-router] No se encontró punto para HF Gradio")
+  const hfBranch = `    if (provider === "hf-gradio") {
+      if (!isHFGradioVideoConfigured()) {
+        errors.push("hf-gradio: proveedor no configurado")
+        continue
+      }
+      const result = await startHFGradioVideo({ prompt, style, duration, mode, imageUrl, aspectRatio, resolution })
+      if (result.ok) return result
+      errors.push(\`hf-gradio: \${result.error || "falló"}\`)
+      continue
+    }
+
+`
+  agent = agent.slice(0, index) + hfBranch + agent.slice(index)
+  changed = true
+}
+
 if (!processRoute.includes("provider: job.provider || null")) {
   processRoute = replaceIn(
     processRoute,
@@ -143,9 +176,13 @@ if (!processRoute.includes("provider: job.provider || null")) {
 
 statusRoute = statusRoute.replace(
   'if (current.status !== "processing" || current.provider !== "google" || !current.operation_name) return current',
-  'if (current.status !== "processing" || !["google", "wan"].includes(current.provider || "") || !current.operation_name) return current',
+  'if (current.status !== "processing" || !["google", "wan", "hf-gradio"].includes(current.provider || "") || !current.operation_name) return current',
 )
-if (statusRoute.includes('!["google", "wan"].includes(current.provider || "")')) changed = true
+statusRoute = statusRoute.replace(
+  'if (current.status !== "processing" || !["google", "wan"].includes(current.provider || "") || !current.operation_name) return current',
+  'if (current.status !== "processing" || !["google", "wan", "hf-gradio"].includes(current.provider || "") || !current.operation_name) return current',
+)
+if (statusRoute.includes('!["google", "wan", "hf-gradio"].includes(current.provider || "")')) changed = true
 
 if (!statusRoute.includes("provider: current.provider,\n      model: current.model,")) {
   statusRoute = replaceIn(
@@ -156,7 +193,6 @@ if (!statusRoute.includes("provider: current.provider,\n      model: current.mod
   )
 }
 
-// No preasignar Google antes de saber qué proveedor resolvió el router.
 if (createRoute.includes('provider: process.env.GEMINI_API_KEY_VIDEO || process.env.GEMINI_API_KEY ? "google" : "hf-space",')) {
   createRoute = createRoute.replace(
     'provider: process.env.GEMINI_API_KEY_VIDEO || process.env.GEMINI_API_KEY ? "google" : "hf-space",',
@@ -207,7 +243,7 @@ if (changed) {
   fs.writeFileSync(processPath, processRoute)
   fs.writeFileSync(statusPath, statusRoute)
   fs.writeFileSync(createPath, createRoute)
-  console.log("[video-free-router] WAN/HF antes de Veo; fallos no consumen cupo diario")
+  console.log("[video-free-router] WAN/HF Gradio/HF legacy antes de Veo; fallos no consumen cupo diario")
 } else {
   console.log("[video-free-router] ya aplicado")
 }
