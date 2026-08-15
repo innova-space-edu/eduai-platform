@@ -1,5 +1,5 @@
 // lib/image-config.ts
-// v3 — configuración multiproveedor para generación de imágenes en EduAI
+// v4 — Gemini 3.1 primero + configuración multiproveedor de respaldo
 
 export type ProviderId =
   | "auto"
@@ -45,23 +45,26 @@ export const STYLE_GUIDES: Record<string, string> = {
     "infographic style, data visualization, clean design, informative, colorful sections, professional design",
 }
 
+// Gemini 3.1 es el motor preferido. Los demás proveedores quedan como respaldo
+// automático cuando Google no tiene cuota, no responde o rechaza la solicitud.
 export const DEFAULT_IMAGE_PROVIDER_ORDER: Record<GenerationMode, ConcreteProviderId[]> = {
-  fast: ["pollinations", "openrouter", "together", "huggingface", "gemini"],
+  fast: ["gemini", "pollinations", "openrouter", "together", "huggingface"],
   quality: ["gemini", "openrouter", "together", "huggingface", "pollinations"],
   educational: ["gemini", "openrouter", "pollinations", "together", "huggingface"],
 }
 
 const GEMINI_IMAGE_MODELS_RAW = [
+  process.env.GOOGLE_IMAGE_MODEL_PRIMARY,
   process.env.GEMINI_IMAGE_MODEL_PRIMARY,
   process.env.GEMINI_IMAGE_MODEL_SECONDARY,
   process.env.GEMINI_IMAGE_MODEL_TERTIARY,
   "gemini-3.1-flash-image",
-  "gemini-2.5-flash-image",
+  "gemini-3.1-flash-lite-image",
 ]
 
-export const GEMINI_IMAGE_MODELS: string[] = GEMINI_IMAGE_MODELS_RAW.filter(
-  (model): model is string => Boolean(model)
-)
+export const GEMINI_IMAGE_MODELS: string[] = Array.from(new Set(
+  GEMINI_IMAGE_MODELS_RAW.filter((model): model is string => Boolean(model))
+))
 
 const POLLINATIONS_IMAGE_MODELS_RAW = [
   process.env.POLLINATIONS_IMAGE_MODEL_PRIMARY,
@@ -96,8 +99,8 @@ export const HUGGINGFACE_IMAGE_MODELS = [
 
 export const OPENROUTER_IMAGE_MODELS: { id: string; modalities: string[] }[] = [
   { id: process.env.OPENROUTER_IMAGE_MODEL_PRIMARY || "bytedance-seed/seedream-4.5", modalities: ["image"] },
-  { id: process.env.OPENROUTER_IMAGE_MODEL_SECONDARY || "google/gemini-2.5-flash-image", modalities: ["image", "text"] },
-  { id: process.env.OPENROUTER_IMAGE_MODEL_TERTIARY || "sourceful/riverflow-v2-fast", modalities: ["image"] },
+  { id: process.env.OPENROUTER_IMAGE_MODEL_SECONDARY || "sourceful/riverflow-v2-fast", modalities: ["image"] },
+  { id: process.env.OPENROUTER_IMAGE_MODEL_TERTIARY || "google/gemini-3.1-flash-image", modalities: ["image", "text"] },
 ]
 
 export function clamp(v: number, min: number, max: number, fallback: number): number {
