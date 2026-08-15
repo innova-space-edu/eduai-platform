@@ -39,7 +39,11 @@ const authMarker = '  if (!user) return NextResponse.json({ error: "Unauthorized
 const authReplacement = `  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   try {
-    await assertAICapabilityAllowed(supabase, user.id, "text")
+    await assertAICapabilityAllowed({
+      supabase,
+      userId: user.id,
+      capability: "text",
+    })
   } catch (error) {
     const typed = error instanceof Error ? error : new Error("Acceso restringido")
     const status = typeof error === "object" && error && "status" in error ? Number(error.status) || 403 : 403
