@@ -9,6 +9,7 @@ import {
 } from "./capabilities"
 import { assertAICapabilityAllowed } from "./access-policy"
 import { generationFingerprint } from "./fingerprint"
+import { resolveProviderModel } from "./model-registry"
 import {
   findReusableGeneration,
   finishGenerationRequest,
@@ -19,6 +20,7 @@ import {
   generateGoogleImage,
   generateGoogleStructured,
   generateGoogleText,
+  googleModel,
   hasGoogleAI,
   streamGoogleText,
   type GatewayMessage,
@@ -78,6 +80,24 @@ async function lookupReuse(input: {
     fingerprint: input.fingerprint,
     capability: input.capability,
     reusePolicy: input.context.reusePolicy,
+  })
+}
+
+async function googleRuntimeModel(input: {
+  supabase?: SupabaseClient | null
+  capability: AICapability
+  lite?: boolean
+  kind?: "text" | "image"
+}) {
+  const fallbackModel = input.kind === "image"
+    ? googleModel("image")
+    : googleModel(input.lite ? "lite" : "text")
+
+  return resolveProviderModel({
+    supabase: input.supabase,
+    provider: "google",
+    capability: input.capability,
+    fallbackModel,
   })
 }
 
@@ -187,10 +207,16 @@ export async function runAIText(input: {
       let result: { text: string; provider: string; model: string }
 
       if (provider === "google" && hasGoogleAI("text")) {
+        const selected = await googleRuntimeModel({
+          supabase: input.supabase,
+          capability,
+          lite: input.lite,
+        })
         result = await generateGoogleText({
           messages: input.messages,
           maxOutputTokens: input.maxOutputTokens,
           lite: input.lite,
+          model: selected.model,
         })
       } else if (provider === "groq" || provider === "openrouter") {
         result = await callLegacyAI(input.messages, {
@@ -367,11 +393,17 @@ export async function runAIStructured<T = Record<string, unknown>>(input: {
       let result: { text: string; data: T; provider: string; model: string }
 
       if (provider === "google" && hasGoogleAI("text")) {
+        const selected = await googleRuntimeModel({
+          supabase: input.supabase,
+          capability,
+          lite: input.lite,
+        })
         result = await generateGoogleStructured<T>({
           messages: input.messages,
           schema: input.schema,
           maxOutputTokens: input.maxOutputTokens,
           lite: input.lite,
+          model: selected.model,
         })
       } else if (provider === "groq" || provider === "openrouter") {
         const fallback = await callLegacyAI(input.messages, {
@@ -462,10 +494,16 @@ export async function streamAIText(input: {
   })
 
   if (first === "google" && hasGoogleAI("text")) {
+    const selected = await googleRuntimeModel({
+      supabase: input.supabase,
+      capability: "text",
+      lite: input.lite,
+    })
     return streamGoogleText({
       messages: input.messages,
       maxOutputTokens: input.maxOutputTokens,
       lite: input.lite,
+      model: selected.model,
     })
   }
 
@@ -497,5 +535,11 @@ export async function runGoogleImage(input: {
     provider: "google",
   })
 
-  return generateGoogleImage(input)
+  const selected = await googleRuntimeModel({
+    supabase: input.supabase,
+    capability: "image",
+    kind: "image",
+  })
+
+  return generateGoogleImage({ ...input, model: selected.model })
 }
