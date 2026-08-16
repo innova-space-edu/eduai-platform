@@ -16,5 +16,12 @@ requireText(client, "friendlyVideoError", "mensajes amigables")
 requireText(client, "friendlyProvider", "nombre amigable del proveedor")
 requireText(client, "EduAI reutiliza primero", "mensaje ahorro primero")
 requireText(client, "Preferir audio", "audio no garantizado")
+requireText(client, "[4, 6, 8].map((seconds) => (", "duraciones compatibles 4/6/8")
+requireText(client, "if (value <= 5) return 4", "normalización a 4 segundos")
+requireText(client, "if (value <= 7) return 6", "normalización a 6 segundos")
 
-console.log("[test-video-free-ui] Video Studio muestra routing automático y errores compactos")
+if (client.includes("[2, 4, 6, 8, 10].map((seconds) => (")) {
+  throw new Error("[test-video-free-ui] Video Studio todavía expone duraciones 2/10 no compatibles")
+}
+
+console.log("[test-video-free-ui] Video Studio muestra routing automático, errores compactos y duraciones 4/6/8")
