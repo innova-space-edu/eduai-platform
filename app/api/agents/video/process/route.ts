@@ -91,11 +91,13 @@ function extractRequestInput(job: VideoJobRow) {
     operationName: job.operation_name || null,
     userId: job.user_id,
     sourceJobId: job.id,
+    provider: job.provider || null,
+    model: job.model || null,
   }
 }
 
 async function findWork(supabase: ReturnType<typeof getAdminSupabase>): Promise<{ job: VideoJobRow; claimed: boolean } | null> {
-  // Priorizar operaciones Google ya iniciadas para no dejar videos terminados sin persistir.
+  // Priorizar operaciones asíncronas ya iniciadas para no dejar videos terminados sin persistir.
   const { data: processing, error: processingError } = await supabase
     .from("video_jobs")
     .select("*")
@@ -108,11 +110,13 @@ async function findWork(supabase: ReturnType<typeof getAdminSupabase>): Promise<
   if (processingError) throw new Error(processingError.message)
   if (processing) return { job: processing, claimed: true }
 
+  // Los jobs recientes tienen prioridad. Un registro legacy/abandonado permanece auditable,
+  // pero no puede ponerse delante de una generación actual indefinidamente.
   const { data: queued, error: queuedError } = await supabase
     .from("video_jobs")
     .select("*")
     .eq("status", "queued")
-    .order("created_at", { ascending: true })
+    .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle<VideoJobRow>()
 
