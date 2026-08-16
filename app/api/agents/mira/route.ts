@@ -98,7 +98,6 @@ export async function POST(req: NextRequest) {
         { role: "user", content: message },
       ],
       maxOutputTokens: 1800,
-      temperature: 0.55,
       context: {
         userId: user.id,
         module: "mira-assistant",
@@ -111,11 +110,11 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      message: result.text,
+      message: result.text || result.data,
       provider: result.provider,
       model: result.model,
       reused: result.reused,
-      generationAvoided: result.generationAvoided,
+      generationAvoided: result.reused,
     })
   } catch (error) {
     console.error("[MIRA]", error)
