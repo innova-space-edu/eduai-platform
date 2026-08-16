@@ -16,11 +16,13 @@ function replaceRequired(oldText, newText, label) {
   changed = true
 }
 
-replaceRequired(
-  'import { useCallback, useEffect, useMemo, useRef, useState } from "react"',
-  'import { useCallback, useEffect, useMemo, useRef, useState } from "react"\nimport ReusableAssetPicker, { type ReusableAsset } from "@/components/assets/ReusableAssetPicker"',
-  "import React",
-)
+const reusableImport = 'import ReusableAssetPicker, { type ReusableAsset } from "@/components/assets/ReusableAssetPicker"'
+if (!source.includes(reusableImport)) {
+  const reactImport = 'import { useCallback, useEffect, useMemo, useRef, useState } from "react"'
+  if (!source.includes(reactImport)) throw new Error("[video-reuse] No se encontró import React")
+  source = source.replace(reactImport, `${reactImport}\n${reusableImport}`)
+  changed = true
+}
 
 replaceRequired(
   '  const [imagePreview, setImagePreview] = useState<string | null>(null)\n\n  const [isUploadingImage, setIsUploadingImage] = useState(false)',
