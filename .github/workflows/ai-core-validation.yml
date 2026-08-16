@@ -4,14 +4,21 @@ on:
   pull_request:
     paths:
       - "lib/ai/**"
+      - "lib/video/**"
       - "lib/video-agent.ts"
+      - "lib/image-config.ts"
       - "lib/notebook/**"
       - "lib/papers/**"
       - "lib/superagent/superagent-core.ts"
       - "components/assets/**"
       - "components/video/**"
+      - "components/admin/**"
+      - "app/admin/model-lab/**"
+      - "app/agentes/**"
       - "app/repositorio/**"
       - "app/api/assets/**"
+      - "app/api/account/ai-credentials/**"
+      - "app/api/admin/ai-core/**"
       - "app/api/agents/video/**"
       - "app/api/agents/investigador/**"
       - "app/api/agents/matematico/**"
@@ -31,24 +38,30 @@ on:
       - "app/api/notebooks/**"
       - "app/(auth)/register/**"
       - "supabase/migrations/20260814*.sql"
+      - "supabase/migrations/20260815*.sql"
       - "scripts/apply-educador-ai-gateway.mjs"
       - "scripts/apply-educador-dual-submit.mjs"
       - "scripts/test-educador-ai-gateway.mjs"
       - "scripts/apply-repository-ai-assets.mjs"
       - "scripts/test-repository-ai-assets.mjs"
       - "scripts/apply-repository-navigation.mjs"
-      - "scripts/apply-video-reusable-assets.mjs"
-      - "scripts/test-video-reusable-assets.mjs"
-      - "scripts/apply-video-summary-hobby.mjs"
+      - "scripts/apply-video-*.mjs"
+      - "scripts/test-video-*.mjs"
+      - "scripts/apply-current-image-models.mjs"
+      - "scripts/apply-personal-provider-hardening.mjs"
+      - "scripts/apply-agent-library-repository-cards.mjs"
       - "scripts/test-ai-core.ts"
       - "package.json"
+      - "package-lock.json"
       - ".github/workflows/ai-core-validation.yml"
 
 jobs:
   validate-ai-core:
     runs-on: ubuntu-latest
-    timeout-minutes: 18
+    timeout-minutes: 25
     env:
+      CI: true
+      NEXT_TELEMETRY_DISABLED: 1
       GEMINI_API_KEY: ci-placeholder
       GROQ_API_KEY: ci-placeholder
       OPENROUTER_API_KEY: ci-placeholder
@@ -57,6 +70,7 @@ jobs:
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
       SUPABASE_URL: https://example.supabase.co
       SUPABASE_SERVICE_ROLE_KEY: ci-placeholder
+      EDUAI_CREDENTIALS_MASTER_KEY: ci-placeholder-master-key-for-build-only
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -80,10 +94,15 @@ jobs:
       - name: Verificar TypeScript del núcleo nuevo
         run: |
           npx tsc --noEmit --pretty false 2>&1 | tee ai-core-tsc.log
-      - name: Publicar registro
+      - name: Ejecutar build de producción como Vercel
+        run: |
+          npm run build 2>&1 | tee ai-core-build.log
+      - name: Publicar registros
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ai-core-validation-log
-          path: ai-core-tsc.log
+          name: ai-core-validation-logs
+          path: |
+            ai-core-tsc.log
+            ai-core-build.log
           if-no-files-found: warn
