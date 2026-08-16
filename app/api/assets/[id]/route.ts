@@ -15,11 +15,11 @@ export async function GET(
     .from("eduai_assets")
     .select("*")
     .eq("id", id)
+    .eq("owner_id", user.id)
     .is("deleted_at", null)
     .maybeSingle()
 
   if (error || !asset) return Response.json({ error: "Asset no encontrado" }, { status: 404 })
-  if (asset.owner_id !== user.id) return Response.json({ error: "No autorizado" }, { status: 403 })
 
   let accessUrl = asset.external_url || null
 
@@ -45,7 +45,8 @@ export async function GET(
   const { data: versions } = await supabase
     .from("eduai_assets")
     .select("id,title,asset_type,version,parent_asset_id,root_asset_id,created_at,updated_at")
-    .eq("root_asset_id", rootId)
+    .eq("owner_id", user.id)
+    .or(`id.eq.${rootId},root_asset_id.eq.${rootId}`)
     .is("deleted_at", null)
     .order("version", { ascending: false })
 
