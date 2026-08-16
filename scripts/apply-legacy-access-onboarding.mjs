@@ -16,11 +16,32 @@ function replaceRequired(oldText, newText, label) {
   changed = true
 }
 
-replaceRequired(
-  'import ClawStudyConsole from "@/components/dashboard/ClawStudyConsole"',
-  'import ClawStudyConsole from "@/components/dashboard/ClawStudyConsole"\nimport LegacyAccessOnboarding from "@/components/access/LegacyAccessOnboarding"',
-  "import de ClawStudyConsole",
-)
+const clawImport = 'import ClawStudyConsole from "@/components/dashboard/ClawStudyConsole"'
+const legacyImport = 'import LegacyAccessOnboarding from "@/components/access/LegacyAccessOnboarding"'
+
+// El build ejecuta este parche más de una vez y otros parches pueden insertar
+// imports entre ClawStudyConsole y LegacyAccessOnboarding. La idempotencia debe
+// comprobar el import por sí mismo, no una pareja de líneas contiguas.
+{
+  let seenLegacyImport = false
+  const lines = source.split("\n")
+  const deduped = lines.filter((line) => {
+    if (line.trim() !== legacyImport) return true
+    if (seenLegacyImport) {
+      changed = true
+      return false
+    }
+    seenLegacyImport = true
+    return true
+  })
+  source = deduped.join("\n")
+
+  if (!seenLegacyImport) {
+    if (!source.includes(clawImport)) throw new Error("[legacy-access] No se encontró import de ClawStudyConsole")
+    source = source.replace(clawImport, `${clawImport}\n${legacyImport}`)
+    changed = true
+  }
+}
 
 replaceRequired(
   '  const [loaded, setLoaded] = useState(false)\n  const [isAdmin, setIsAdmin] = useState(false)',
