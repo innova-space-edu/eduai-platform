@@ -3,6 +3,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { CheckCircle2, CircleAlert, Database, RefreshCw, ServerCog, Sparkles } from "lucide-react"
 
+type EffectiveModel = {
+  model: string
+  source: "registry" | "fallback" | string
+}
+
 type HealthResponse = {
   generatedAt: string
   ready: boolean
@@ -20,6 +25,11 @@ type HealthResponse = {
       embeddingModel: string
       imageModel: string
       videoModel: string
+      effectiveModels: {
+        text: EffectiveModel
+        image: EffectiveModel
+        video: EffectiveModel
+      }
     }
     groq: { configured: boolean }
     openrouter: { configured: boolean }
@@ -27,7 +37,13 @@ type HealthResponse = {
     cerebras: { configured: boolean }
     redis: { configured: boolean }
     research: { tavily: boolean; firecrawl: boolean; googleGrounding: boolean }
-    video: { google: boolean; fallback: boolean; cronSecret: boolean; providerOrder: string }
+    video: {
+      google: boolean
+      fallback: boolean
+      cronSecret: boolean
+      configuredProviderOrder: string
+      providerOrder: string
+    }
   }
   supabase: {
     configured: boolean
@@ -43,6 +59,18 @@ function Status({ ok, label }: { ok: boolean; label: string }) {
     <div className="flex items-center gap-2 text-sm">
       {ok ? <CheckCircle2 className="h-4 w-4 text-emerald-300" /> : <CircleAlert className="h-4 w-4 text-amber-300" />}
       <span className={ok ? "text-emerald-100" : "text-amber-100"}>{label}</span>
+    </div>
+  )
+}
+
+function ModelLine({ label, value }: { label: string; value: EffectiveModel }) {
+  const sourceLabel = value.source === "registry" ? "registro" : value.source === "fallback" ? "fallback" : value.source
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span>{label}: {value.model}</span>
+      <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${value.source === "registry" ? "bg-emerald-500/10 text-emerald-200" : "bg-slate-500/10 text-slate-300"}`}>
+        {sourceLabel}
+      </span>
     </div>
   )
 }
@@ -157,11 +185,11 @@ export default function AICoreHealthPanel() {
                 <Status ok={data.configuration.google.image} label="Imagen" />
                 <Status ok={data.configuration.google.video} label="Video" />
               </div>
-              <div className="mt-4 space-y-1 text-xs text-slate-400">
-                <p>Texto: {data.configuration.google.textModel}</p>
+              <div className="mt-4 space-y-1.5 text-xs text-slate-400">
+                <ModelLine label="Texto efectivo" value={data.configuration.google.effectiveModels.text} />
                 <p>Embeddings: {data.configuration.google.embeddingModel}</p>
-                <p>Imagen: {data.configuration.google.imageModel}</p>
-                <p>Video: {data.configuration.google.videoModel}</p>
+                <ModelLine label="Imagen efectiva" value={data.configuration.google.effectiveModels.image} />
+                <ModelLine label="Video efectivo" value={data.configuration.google.effectiveModels.video} />
               </div>
               <button
                 type="button"
@@ -182,7 +210,10 @@ export default function AICoreHealthPanel() {
                 <Status ok={data.configuration.redis.configured} label="Redis / Upstash" />
                 <Status ok={data.configuration.video.cronSecret} label="Cron de video" />
               </div>
-              <p className="mt-4 text-xs text-slate-400">Video order: {data.configuration.video.providerOrder}</p>
+              <div className="mt-4 space-y-1 text-xs text-slate-400">
+                <p>Orden efectivo de video: {data.configuration.video.providerOrder || "sin proveedores configurados"}</p>
+                <p className="text-[11px] text-slate-500">Configurado: {data.configuration.video.configuredProviderOrder}</p>
+              </div>
             </article>
           </div>
 
