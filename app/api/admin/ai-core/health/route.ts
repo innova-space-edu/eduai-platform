@@ -63,17 +63,56 @@ function googleTextKey() {
   )
 }
 
+function wanConfigured() {
+  return configured("WAN_VIDEO_API_KEY") || configured("DASHSCOPE_API_KEY")
+}
+
+function hfGradioConfigured() {
+  return configured("HF_GRADIO_VIDEO_BASE_URL")
+}
+
+function hfLegacyConfigured() {
+  return configured("HF_SPACE_VIDEO_API_URL")
+}
+
+function googleVideoConfigured() {
+  return configured("GEMINI_API_KEY_VIDEO") || configured("GEMINI_API_KEY") || configured("GOOGLE_API_KEY")
+}
+
 function effectiveVideoProviderOrder() {
-  const configuredOrder = (process.env.VIDEO_PROVIDER_ORDER || "google,hf-space")
+  const configuredOrder = (process.env.VIDEO_PROVIDER_ORDER || "wan,hf-gradio,hf-space,google")
     .split(",")
     .map(value => value.trim().toLowerCase())
     .filter(Boolean)
     .map(value => value === "replicate" || value === "veo" ? "google" : value)
-    .filter(value => ["google", "hf-space", "ltx", "wan-worker"].includes(value))
+    .filter(value => ["wan", "hf-gradio", "hf-space", "google", "ltx", "wan-worker"].includes(value))
 
-  const unique = Array.from(new Set(configuredOrder))
-  if (unique.length) return unique.join(",")
-  return hasGoogleAI("video") ? "google,hf-space" : "hf-space"
+  const order = Array.from(new Set(configuredOrder))
+  if (wanConfigured() && !order.includes("wan")) order.unshift("wan")
+  if (hfGradioConfigured() && !order.includes("hf-gradio")) {
+    order.splice(order[0] === "wan" ? 1 : 0, 0, "hf-gradio")
+  }
+  if (hfLegacyConfigured() && !order.includes("hf-space")) {
+    const googleIndex = order.indexOf("google")
+    if (googleIndex >= 0) order.splice(googleIndex, 0, "hf-space")
+    else order.push("hf-space")
+  }
+
+  // Mismo criterio que el router real: reutilización primero, opciones de ahorro después y Veo al final.
+  const premiumConfigured = order.includes("google") || googleVideoConfigured()
+  const freeFirst = order.filter(provider => provider !== "google")
+  if (premiumConfigured) freeFirst.push("google")
+
+  if (!freeFirst.length) {
+    const fallback: string[] = []
+    if (wanConfigured()) fallback.push("wan")
+    if (hfGradioConfigured()) fallback.push("hf-gradio")
+    if (hfLegacyConfigured()) fallback.push("hf-space")
+    if (googleVideoConfigured()) fallback.push("google")
+    return fallback.join(",")
+  }
+
+  return freeFirst.join(",")
 }
 
 function configuration() {
@@ -109,10 +148,10 @@ function configuration() {
       googleGrounding: hasGoogleAI("text"),
     },
     video: {
-      google: hasGoogleAI("video"),
-      fallback: configured("HF_SPACE_VIDEO_API_URL"),
+      google: googleVideoConfigured(),
+      fallback: wanConfigured() || hfGradioConfigured() || hfLegacyConfigured(),
       cronSecret: configured("CRON_SECRET") || configured("VIDEO_CRON_SECRET"),
-      configuredProviderOrder: process.env.VIDEO_PROVIDER_ORDER || "google,hf-space",
+      configuredProviderOrder: process.env.VIDEO_PROVIDER_ORDER || "wan,hf-gradio,hf-space,google",
       providerOrder: effectiveVideoProviderOrder(),
     },
   }
@@ -315,7 +354,7 @@ export async function POST(req: NextRequest) {
   const healthModel = baseConfig.google.liteModel
   let status: "healthy" | "degraded" | "down" = "healthy"
   let errorCode: string | null = null
-  let model: string | null = healthModel
+  const model: string | null = healthModel
   let errorMessage: string | null = null
 
   try {
