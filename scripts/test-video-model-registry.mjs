@@ -16,8 +16,22 @@ for (const [label, value] of [
   if (!agent.includes(value)) throw new Error(`[test-video-model-registry] Falta ${label}: ${value}`)
 }
 
+const inputStart = agent.indexOf("export type ProcessVideoJobInput = {")
+const inputEnd = agent.indexOf("\n}\n\nexport type ProcessVideoJobResult", inputStart)
+const inputType = inputStart >= 0 && inputEnd > inputStart ? agent.slice(inputStart, inputEnd) : ""
+if (!inputType.includes("model?: string | null") || !inputType.includes("provider?: string | null")) {
+  throw new Error("[test-video-model-registry] ProcessVideoJobInput debe conservar model + provider")
+}
+
+const pollStart = agent.indexOf("async function pollGoogleVeo(input: {")
+const pollEnd = agent.indexOf("}): Promise<ProcessVideoJobResult>", pollStart)
+const pollSignature = pollStart >= 0 && pollEnd > pollStart ? agent.slice(pollStart, pollEnd) : ""
+if (!pollSignature.includes("model?: string | null")) {
+  throw new Error("[test-video-model-registry] pollGoogleVeo no acepta el modelo persistido del job")
+}
+
 if (!processRoute.includes("model: job.model || null")) {
   throw new Error("[test-video-model-registry] process route no conserva el modelo del job")
 }
 
-console.log("[test-video-model-registry] Video Studio usa registro dinámico y conserva modelo durante polling")
+console.log("[test-video-model-registry] Video Studio conserva provider/model y Veo acepta el modelo durante polling")
