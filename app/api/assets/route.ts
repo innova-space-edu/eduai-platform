@@ -100,6 +100,8 @@ export async function GET(req: Request) {
   let query = supabase
     .from("eduai_assets")
     .select("id,owner_id,asset_type,title,mime_type,storage_bucket,storage_path,external_url,text_content,content_json,source_module,source_id,fingerprint,visibility,parent_asset_id,root_asset_id,version,metadata,created_at,updated_at")
+    // Defensa en profundidad además de RLS: la biblioteca nunca consulta assets de otro dueño.
+    .eq("owner_id", user.id)
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(limit)
@@ -147,11 +149,11 @@ export async function POST(req: Request) {
     .from("eduai_assets")
     .select("id,owner_id")
     .eq("id", assetId)
+    .eq("owner_id", user.id)
     .is("deleted_at", null)
     .maybeSingle()
 
   if (assetError || !asset) return Response.json({ error: "Asset no encontrado" }, { status: 404 })
-  if (asset.owner_id !== user.id) return Response.json({ error: "No autorizado" }, { status: 403 })
 
   const { data, error } = await supabase
     .from("eduai_asset_links")
