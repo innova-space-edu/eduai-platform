@@ -8,15 +8,26 @@ const componentPath = path.join(root, "components", "access", "LegacyAccessOnboa
 
 const dashboard = fs.readFileSync(dashboardPath, "utf8")
 const component = fs.readFileSync(componentPath, "utf8")
+const legacyImport = 'import LegacyAccessOnboarding from "@/components/access/LegacyAccessOnboarding"'
 
 for (const [label, value] of [
-  ["import onboarding", 'import LegacyAccessOnboarding from "@/components/access/LegacyAccessOnboarding"'],
+  ["import onboarding", legacyImport],
   ["legacy state", "legacyAccessRequired"],
   ["access profile lookup", '.from("eduai_user_access")'],
   ["non-blocking lookup", "if (!accessProfileError) setLegacyAccessRequired(!accessProfile)"],
   ["dashboard modal", "<LegacyAccessOnboarding"],
 ]) {
   if (!dashboard.includes(value)) throw new Error(`[test-legacy-access] Falta ${label}: ${value}`)
+}
+
+const importCount = dashboard.split(legacyImport).length - 1
+if (importCount !== 1) {
+  throw new Error(`[test-legacy-access] LegacyAccessOnboarding debe importarse exactamente una vez; encontrados ${importCount}`)
+}
+
+const componentCount = dashboard.split("<LegacyAccessOnboarding").length - 1
+if (componentCount !== 1) {
+  throw new Error(`[test-legacy-access] LegacyAccessOnboarding debe renderizarse exactamente una vez; encontrados ${componentCount}`)
 }
 
 for (const [label, value] of [
@@ -29,4 +40,4 @@ for (const [label, value] of [
   if (!component.includes(value)) throw new Error(`[test-legacy-access] Falta ${label}: ${value}`)
 }
 
-console.log("[test-legacy-access] cuentas legacy completan edad/perfil una sola vez sin bloqueo por error de consulta")
+console.log("[test-legacy-access] cuentas legacy completan edad/perfil una sola vez; import y modal idempotentes")
