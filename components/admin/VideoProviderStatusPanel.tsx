@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { CheckCircle2, CircleAlert, RefreshCw, Video } from "lucide-react"
+import { CheckCircle2, CircleAlert, RefreshCw, ShieldCheck, Video } from "lucide-react"
 
 type Provider = {
   id: string
@@ -21,6 +21,15 @@ type VideoProvidersResponse = {
   configuredOrder: string | null
   effectiveOrder: string[]
   providers: Provider[]
+  personalMarketplace: {
+    enabled: boolean
+    masterKeyConfigured: boolean
+    credentialCount: number
+    spendEventCount: number
+    supportedProviders: string[]
+    generationProviders: string[]
+    billingOwner: string
+  }
   recentFailures: Array<{
     provider: string | null
     model: string | null
@@ -68,7 +77,7 @@ export default function VideoProviderStatusPanel() {
           </div>
           <h2 className="mt-2 text-xl font-black text-white">Proveedores de video</h2>
           <p className="mt-2 max-w-3xl text-sm text-slate-300">
-            Reutilización primero; después proveedores gratuitos/cuota y Google Veo únicamente como premium opcional.
+            Reutilización primero; después proveedores gratuitos/cuota. Premium Personal usa la cuenta del usuario y Google Veo queda opcional.
           </p>
         </div>
         <button
@@ -94,6 +103,30 @@ export default function VideoProviderStatusPanel() {
                   {data.freeConfigured ? "Hay un proveedor no premium configurado" : "Falta conectar un proveedor gratuito/cuota"}
                 </p>
                 <p className="mt-1 text-xs text-slate-300">Orden efectivo: {data.effectiveOrder.join(" → ") || "sin proveedores"}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className={`rounded-2xl border p-4 ${data.personalMarketplace.masterKeyConfigured ? "border-emerald-400/25 bg-emerald-500/10" : "border-amber-400/25 bg-amber-500/10"}`}>
+            <div className="flex items-start gap-3">
+              <ShieldCheck className={`mt-0.5 h-5 w-5 ${data.personalMarketplace.masterKeyConfigured ? "text-emerald-300" : "text-amber-300"}`} />
+              <div className="min-w-0">
+                <p className="font-black text-white">Premium Personal · gasto del usuario</p>
+                <p className="mt-1 text-xs leading-relaxed text-slate-300">
+                  fal.ai y Replicate generan con la cuenta personal del usuario. Hugging Face permanece como catálogo/conexión beta.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-slate-300">
+                  <span className="rounded-full border border-white/10 bg-black/20 px-2.5 py-1">Credenciales: {data.personalMarketplace.credentialCount}</span>
+                  <span className="rounded-full border border-white/10 bg-black/20 px-2.5 py-1">Eventos de gasto: {data.personalMarketplace.spendEventCount}</span>
+                  <span className="rounded-full border border-white/10 bg-black/20 px-2.5 py-1">Cobro: usuario</span>
+                </div>
+                {!data.personalMarketplace.masterKeyConfigured ? (
+                  <p className="mt-3 rounded-xl border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-xs text-amber-100">
+                    Antes de producción configura EDUAI_CREDENTIALS_MASTER_KEY en Vercel. No bloquea el Preview, pero la bóveda de producción debe usar una llave independiente.
+                  </p>
+                ) : (
+                  <p className="mt-3 text-xs font-semibold text-emerald-200">Bóveda personal lista con clave maestra dedicada.</p>
+                )}
               </div>
             </div>
           </div>
