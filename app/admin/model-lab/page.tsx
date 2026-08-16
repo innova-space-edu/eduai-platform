@@ -1,6 +1,7 @@
 import Link from "next/link";
 import AICoreHealthPanel from "@/components/admin/AICoreHealthPanel";
 import AICoreMetricsPanel from "@/components/admin/AICoreMetricsPanel";
+import AIModelRegistryPanel from "@/components/admin/AIModelRegistryPanel";
 import VideoProviderStatusPanel from "@/components/admin/VideoProviderStatusPanel";
 import { ADMIN_ONLY_EXPERIMENTAL_MODELS } from "@/lib/ai/admin-model-policy";
 
@@ -13,13 +14,14 @@ export default function AdminModelLabPage() {
             <p className="text-xs font-black uppercase tracking-[0.24em] text-amber-300">Admin only</p>
             <h1 className="mt-2 text-3xl font-black tracking-tight">Model Lab experimental</h1>
             <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-300">
-              Centro técnico para revisar la infraestructura de IA, probar proveedores y mantener modelos experimentales separados de los flujos públicos de EduAI.
+              Centro técnico para revisar la infraestructura de IA, probar proveedores, administrar modelos activos y mantener experimentos separados de los flujos públicos de EduAI.
             </p>
           </div>
           <Link href="/admin" className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold text-slate-200 hover:bg-white/10">← Admin</Link>
         </div>
 
         <AICoreHealthPanel />
+        <AIModelRegistryPanel />
         <VideoProviderStatusPanel />
         <AICoreMetricsPanel />
 
