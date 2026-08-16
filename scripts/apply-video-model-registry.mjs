@@ -40,9 +40,8 @@ if (!agent.includes(registryImport)) {
 
 replaceAgent(
   '  sourceJobId?: string | null\n}',
-  '  sourceJobId?: string | null\n  model?: string | null\n}',
-  "modelo opcional en ProcessVideoJobInput",
-  '  model?: string | null\n}',
+  '  sourceJobId?: string | null\n  model?: string | null\n  provider?: string | null\n}',
+  "modelo y proveedor opcionales en ProcessVideoJobInput",
 )
 
 replaceAgent(
@@ -83,7 +82,7 @@ replaceProcess(
 if (changed) {
   fs.writeFileSync(agentPath, agent)
   fs.writeFileSync(processPath, processRoute)
-  console.log("[video-model-registry] Veo usa ai_provider_models y conserva el modelo durante polling")
+  console.log("[video-model-registry] Veo usa ai_provider_models y conserva modelo/proveedor durante polling")
 } else {
   console.log("[video-model-registry] Veo ya usa ai_provider_models")
 }
