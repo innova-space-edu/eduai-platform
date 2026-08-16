@@ -40,19 +40,39 @@ function googleConfigured() {
 }
 
 function effectiveOrder() {
-  const order = (process.env.VIDEO_PROVIDER_ORDER || "wan,hf-gradio,hf-space,google")
+  const configuredOrder = (process.env.VIDEO_PROVIDER_ORDER || "wan,hf-gradio,hf-space,google")
     .split(",")
     .map(value => value.trim().toLowerCase())
     .filter(Boolean)
     .map(value => value === "replicate" || value === "veo" ? "google" : value)
     .filter(value => ["wan", "hf-gradio", "hf-space", "google", "ltx", "wan-worker"].includes(value))
 
-  const unique = Array.from(new Set(order))
-  if (wanConfigured() && !unique.includes("wan")) unique.unshift("wan")
-  if (hfGradioConfigured() && !unique.includes("hf-gradio")) {
-    unique.splice(unique[0] === "wan" ? 1 : 0, 0, "hf-gradio")
+  const order = Array.from(new Set(configuredOrder))
+  if (wanConfigured() && !order.includes("wan")) order.unshift("wan")
+  if (hfGradioConfigured() && !order.includes("hf-gradio")) {
+    order.splice(order[0] === "wan" ? 1 : 0, 0, "hf-gradio")
   }
-  return unique
+  if (hfLegacyConfigured() && !order.includes("hf-space")) {
+    const googleIndex = order.indexOf("google")
+    if (googleIndex >= 0) order.splice(googleIndex, 0, "hf-space")
+    else order.push("hf-space")
+  }
+
+  // Debe reflejar exactamente la política del router real: ahorro primero y Google/Veo al final.
+  const premiumConfigured = order.includes("google") || googleConfigured()
+  const freeFirst = order.filter(provider => provider !== "google")
+  if (premiumConfigured) freeFirst.push("google")
+
+  if (!freeFirst.length) {
+    const fallback: string[] = []
+    if (wanConfigured()) fallback.push("wan")
+    if (hfGradioConfigured()) fallback.push("hf-gradio")
+    if (hfLegacyConfigured()) fallback.push("hf-space")
+    if (googleConfigured()) fallback.push("google")
+    return fallback
+  }
+
+  return freeFirst
 }
 
 function classifyError(error: string | null | undefined) {
