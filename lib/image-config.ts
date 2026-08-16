@@ -53,18 +53,24 @@ export const DEFAULT_IMAGE_PROVIDER_ORDER: Record<GenerationMode, ConcreteProvid
   educational: ["gemini", "openrouter", "pollinations", "together", "huggingface"],
 }
 
-const GEMINI_IMAGE_MODELS_RAW = [
+const CURRENT_GEMINI_IMAGE_MODELS = [
+  "gemini-3.1-flash-image",
+  "gemini-3.1-flash-lite-image",
+] as const
+
+const CONFIGURED_GEMINI_IMAGE_MODELS = [
   process.env.GOOGLE_IMAGE_MODEL_PRIMARY,
   process.env.GEMINI_IMAGE_MODEL_PRIMARY,
   process.env.GEMINI_IMAGE_MODEL_SECONDARY,
   process.env.GEMINI_IMAGE_MODEL_TERTIARY,
-  "gemini-3.1-flash-image",
-  "gemini-3.1-flash-lite-image",
 ]
 
-export const GEMINI_IMAGE_MODELS: string[] = Array.from(new Set(
-  GEMINI_IMAGE_MODELS_RAW.filter((model): model is string => Boolean(model))
-))
+export const GEMINI_IMAGE_MODELS: string[] = Array.from(new Set([
+  ...CURRENT_GEMINI_IMAGE_MODELS,
+  ...CONFIGURED_GEMINI_IMAGE_MODELS.filter(
+    (model): model is string => Boolean(model) && !/^gemini-2\.5-flash-image(?:$|-)/i.test(model!),
+  ),
+]))
 
 const POLLINATIONS_IMAGE_MODELS_RAW = [
   process.env.POLLINATIONS_IMAGE_MODEL_PRIMARY,
