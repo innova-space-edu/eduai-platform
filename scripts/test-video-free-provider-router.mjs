@@ -26,6 +26,13 @@ requireText(statusRoute, 'provider: current.provider', "provider durante status 
 requireText(createRoute, 'provider: null', "job sin proveedor preasignado")
 requireText(createRoute, '.eq("status", "completed")', "cupo basado en videos completados")
 
+const inputStart = agent.indexOf("export type ProcessVideoJobInput = {")
+const inputEnd = agent.indexOf("\n}\n\nexport type ProcessVideoJobResult", inputStart)
+if (inputStart < 0 || inputEnd < 0) throw new Error("[test-video-free-router] No se encontró ProcessVideoJobInput")
+const inputType = agent.slice(inputStart, inputEnd)
+requireText(inputType, "provider?: string | null", "provider tipado en ProcessVideoJobInput")
+requireText(inputType, "model?: string | null", "model tipado en ProcessVideoJobInput")
+
 if (createRoute.includes("await incrementDailyUsage({ supabase, userId: user.id, plan })")) {
   throw new Error("[test-video-free-router] Un intento de video todavía consume cupo antes de completarse")
 }
