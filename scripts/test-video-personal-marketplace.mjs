@@ -43,6 +43,9 @@ requireText(imageConfig, 'const CURRENT_GEMINI_IMAGE_MODELS = [', "bloque de mod
 requireText(imageConfig, '"gemini-3.1-flash-image",', "Gemini 3.1 Image primero")
 requireText(imageConfig, '"gemini-3.1-flash-lite-image",', "Gemini 3.1 Lite Image")
 requireText(imageConfig, '!/^gemini-2\\.5-flash-image', "filtro Gemini 2.5 legacy")
+requireText(imageConfig, 'function geminiFirstProviderOrder(', "protección de proveedor Gemini primero")
+requireText(imageConfig, 'return ["gemini", ...order.filter((provider) => provider !== "gemini")]', "Gemini forzado delante de orden legacy")
+requireText(imageConfig, 'return geminiFirstProviderOrder(parseProviderOrder(', "orden auto protegido contra variables legacy")
 
 if (credentialRoute.includes("encrypted_secret") || credentialRoute.includes("encryption_iv") || credentialRoute.includes("encryption_tag")) {
   throw new Error("[test-video-personal-marketplace] La API de cuenta referencia campos cifrados directamente; debe delegarlos al vault")
@@ -54,4 +57,4 @@ if (/localStorage.*(key|token|secret)/i.test(marketplace)) {
   throw new Error("[test-video-personal-marketplace] No guardar claves personales en localStorage")
 }
 
-console.log("[test-video-personal-marketplace] BYOK cifrado, recuperación, presupuestos, reuse, Replicate versionado y Gemini 3.1-first verificados")
+console.log("[test-video-personal-marketplace] BYOK cifrado, recuperación, presupuestos, reuse, Replicate versionado y Gemini 3.1/provider-first verificados")
