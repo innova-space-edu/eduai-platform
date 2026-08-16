@@ -66,18 +66,21 @@ async function getDailyUsage(params: {
 }): Promise<DailyLimitResult> {
   const today = getTodayIsoDate()
   const limit = DAILY_LIMITS[params.plan] ?? DAILY_LIMITS.free
-  const { data, error } = await params.supabase
-    .from("video_usage_daily")
-    .select("videos_created")
+  const start = today + "T00:00:00.000Z"
+  const { count, error } = await params.supabase
+    .from("video_jobs")
+    .select("id", { count: "exact", head: true })
     .eq("user_id", params.userId)
-    .eq("usage_date", today)
-    .maybeSingle()
+    .eq("status", "completed")
+    .gte("completed_at", start)
 
   if (error) throw new Error(`No se pudo consultar el uso diario: ${error.message}`)
-  const used = data?.videos_created ?? 0
+  const used = count ?? 0
   return { allowed: used < limit, plan: params.plan, limit, used, remaining: Math.max(0, limit - used) }
 }
 
+// Compatibilidad temporal con el contador histórico. El flujo actual no lo llama:
+// el cupo se calcula desde video_jobs completados para que un fallo no consuma uso.
 async function incrementDailyUsage(params: {
   supabase: Awaited<ReturnType<typeof createClient>>
   userId: string
@@ -110,6 +113,8 @@ async function incrementDailyUsage(params: {
     .eq("id", existing.id)
   if (error) throw new Error(`No se pudo actualizar el contador diario: ${error.message}`)
 }
+
+void incrementDailyUsage
 
 function parseSupabaseAssetUrl(value: string | null | undefined) {
   if (!value?.startsWith("supabase://")) return null
@@ -277,7 +282,7 @@ export async function POST(req: NextRequest) {
         duration_seconds: duration,
         include_audio: withAudio,
         image_url: imageUrl,
-        provider: process.env.GEMINI_API_KEY_VIDEO || process.env.GEMINI_API_KEY ? "google" : "hf-space",
+        provider: null,
         model: null,
         request_payload: requestPayload,
         moderation_payload: { blocked: false, reason: null, phase: "basic" },
@@ -289,8 +294,6 @@ export async function POST(req: NextRequest) {
       return Response.json({ ok: false, error: insertError?.message || "No se pudo crear el job de video.", code: "JOB_CREATE_FAILED" }, { status: 500 })
     }
 
-    await incrementDailyUsage({ supabase, userId: user.id, plan })
-
     return Response.json({
       ok: true,
       jobId: insertedJob.id,
@@ -298,7 +301,7 @@ export async function POST(req: NextRequest) {
       deduplicated: false,
       reused: false,
       plan: insertedJob.plan,
-      remainingToday: Math.max(0, usage.remaining - 1),
+      remainingToday: usage.remaining,
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : "Error inesperado al crear el video."
