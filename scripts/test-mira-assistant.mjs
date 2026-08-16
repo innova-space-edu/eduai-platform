@@ -41,7 +41,10 @@ for (const [label, text] of [
 for (const [label, text] of [
   ["voice authenticated", 'supabase.auth.getUser()'],
   ["voice gateway", 'runAIText({'],
-  ["voice MIRA context", 'module: "mira-voice"'],
+  ["voice conversation context", '"mira-live-conversation"'],
+  ["voice translate context", '"mira-live-translate"'],
+  ["voice private visibility", 'visibility: "private"'],
+  ["voice exact translation reuse", 'mode === "translate" ? "exact_private" : "never"'],
 ]) requireText(voice, text, label)
 
 for (const [label, text] of [
