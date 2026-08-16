@@ -3,7 +3,11 @@ import fs from "node:fs"
 import path from "node:path"
 import { generationFingerprint, stableJson } from "../lib/ai/fingerprint"
 import { providerOrderFor } from "../lib/ai/capabilities"
-import { decideCapability, type EduAIAccessProfile } from "../lib/ai/access-policy"
+import {
+  decideCapability,
+  deriveAccessProfileFromMetadata,
+  type EduAIAccessProfile,
+} from "../lib/ai/access-policy"
 import { resolveProviderModel } from "../lib/ai/model-registry"
 
 function testStableJson() {
@@ -69,6 +73,41 @@ function testAccessPolicy() {
   assert.equal(decideCapability(minor, "text", "google").allowed, false)
 }
 
+function testAuthMetadataAccessFallback() {
+  const minor = deriveAccessProfileFromMetadata({
+    userId: "minor-metadata",
+    metadata: {
+      birth_date: "2012-01-15",
+      account_type: "university_student",
+    },
+  })
+  assert.ok(minor, "Una fecha válida en metadata debe producir un perfil explícito")
+  assert.equal(minor.ageBand, "under_18")
+  assert.equal(minor.accessTier, "restricted", "Un menor nunca debe caer temporalmente a legacy_standard")
+  assert.equal(decideCapability(minor, "video", "google").allowed, false)
+
+  const adultTeacherMetadata = deriveAccessProfileFromMetadata({
+    userId: "adult-metadata",
+    metadata: {
+      birth_date: "1990-05-20",
+      account_type: "teacher",
+    },
+  })
+  assert.ok(adultTeacherMetadata)
+  assert.equal(adultTeacherMetadata.ageBand, "adult")
+  assert.equal(
+    adultTeacherMetadata.accessTier,
+    "standard",
+    "Metadata controlada por cliente no debe elevar una cuenta a teacher/researcher/admin",
+  )
+
+  const invalid = deriveAccessProfileFromMetadata({
+    userId: "invalid-metadata",
+    metadata: { birth_date: "2026-02-31", account_type: "teacher" },
+  })
+  assert.equal(invalid, null, "Fechas imposibles no deben convertirse en un perfil de autorización")
+}
+
 function testStructuredObservability() {
   const gatewayPath = path.join(process.cwd(), "lib", "ai", "gateway.ts")
   const gateway = fs.readFileSync(gatewayPath, "utf8")
@@ -104,6 +143,7 @@ async function main() {
   testFingerprintDeterminism()
   testProviderOrder()
   testAccessPolicy()
+  testAuthMetadataAccessFallback()
   testStructuredObservability()
   await testModelRegistryFallback()
   console.log("✓ EduAI AI Core tests OK")
