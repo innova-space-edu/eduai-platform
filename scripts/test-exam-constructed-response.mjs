@@ -41,5 +41,6 @@ for (const [path, needles] of checks) {
 }
 
 await import("./test-exam-server-auth-gateway.mjs")
+await import("./test-exam-submit-idempotency.mjs")
 
-console.log("[test-exam-constructed] respuestas construidas, estímulos, modos matemáticos y auth docente OK")
+console.log("[test-exam-constructed] respuestas construidas, auth docente e idempotencia de entrega OK")
