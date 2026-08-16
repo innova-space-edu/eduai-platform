@@ -34,6 +34,28 @@ function IconForType({ type }: { type: string }) {
   return <FileText size={18} />
 }
 
+function AssetPreview({ asset }: { asset: ReusableAsset }) {
+  if (asset.asset_type.toLowerCase().includes("image") && asset.access_url) {
+    return (
+      <span className="h-16 w-20 shrink-0 overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-800">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={asset.access_url}
+          alt={asset.title || "Imagen reutilizable"}
+          loading="lazy"
+          className="h-full w-full object-cover"
+        />
+      </span>
+    )
+  }
+
+  return (
+    <span className="flex h-16 w-20 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+      <IconForType type={asset.asset_type} />
+    </span>
+  )
+}
+
 function formatDate(value: string) {
   try {
     return new Intl.DateTimeFormat("es-CL", { dateStyle: "medium" }).format(new Date(value))
@@ -141,9 +163,7 @@ export default function ReusableAssetPicker({
               }`}
             >
               <div className="flex items-start gap-3">
-                <span className="mt-0.5 rounded-lg bg-slate-100 p-2 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                  <IconForType type={asset.asset_type} />
-                </span>
+                <AssetPreview asset={asset} />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-semibold">{asset.title || "Recurso sin título"}</span>
                   <span className="mt-1 block truncate text-[11px] text-slate-500">
