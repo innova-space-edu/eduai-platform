@@ -2,12 +2,15 @@ import VideoStudioClient from "@/components/video/VideoStudioClient"
 
 export const metadata = {
   title: "Video Studio | EduAI",
-  description: "Generación de videos con IA desde texto o imagen",
+  description: "Generación y reutilización de videos con IA desde texto o imagen, con enrutamiento automático de ahorro primero",
 }
 
 export default function VideoStudioPage() {
   return (
-    <main className="min-h-screen bg-gradient-to-b from-white via-blue-50/40 to-white text-main">
+    <main
+      className="min-h-screen bg-gradient-to-b from-white via-blue-50/40 to-white text-main"
+      data-video-routing="free-first"
+    >
       <div className="mx-auto max-w-7xl px-4 py-8 md:px-6 lg:px-8">
         <VideoStudioClient />
       </div>
