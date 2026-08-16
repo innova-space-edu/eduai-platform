@@ -24,12 +24,17 @@ function replaceIn(source, from, to, label) {
   return source.replace(from, to)
 }
 
-agent = replaceIn(
-  agent,
-  'import { createClient as createAdmin } from "@supabase/supabase-js"',
-  'import { createClient as createAdmin } from "@supabase/supabase-js"\nimport { isWanVideoConfigured, pollWanVideo, startWanVideo } from "@/lib/video/providers/wan"\nimport { isHFGradioVideoConfigured, pollHFGradioVideo, startHFGradioVideo } from "@/lib/video/providers/hf-gradio"',
-  "imports de proveedores gratuitos",
-)
+const importAnchor = 'import { createClient as createAdmin } from "@supabase/supabase-js"'
+const providerImports = [
+  'import { isWanVideoConfigured, pollWanVideo, startWanVideo } from "@/lib/video/providers/wan"',
+  'import { isHFGradioVideoConfigured, pollHFGradioVideo, startHFGradioVideo } from "@/lib/video/providers/hf-gradio"',
+]
+const missingProviderImports = providerImports.filter((value) => !agent.includes(value))
+if (missingProviderImports.length) {
+  if (!agent.includes(importAnchor)) throw new Error("[video-free-router] Falta import base de Supabase")
+  agent = agent.replace(importAnchor, `${importAnchor}\n${missingProviderImports.join("\n")}`)
+  changed = true
+}
 
 if (!agent.includes("provider?: string | null")) {
   agent = replaceIn(
@@ -41,7 +46,9 @@ if (!agent.includes("provider?: string | null")) {
 }
 
 const durationStart = agent.indexOf("function normalizeDuration(value: number | null | undefined): number {")
-const durationEnd = agent.indexOf("\n}\n\nfunction normalizeAspectRatio", durationStart)
+const durationEnd = agent.indexOf("\n}\n\nfunction normalizeVeoDuration", durationStart) >= 0
+  ? agent.indexOf("\n}\n\nfunction normalizeVeoDuration", durationStart)
+  : agent.indexOf("\n}\n\nfunction normalizeAspectRatio", durationStart)
 if (durationStart < 0 || durationEnd < 0) throw new Error("[video-free-router] No se encontró normalizeDuration")
 const durationFn = `function normalizeDuration(value: number | null | undefined): number {
   const safe = typeof value === "number" && Number.isFinite(value) ? Math.round(value) : 6
@@ -65,14 +72,22 @@ const providerOrder = `function videoProviderOrder(): string[] {
 
   const order = Array.from(new Set(configured))
 
-  // Los proveedores gratuitos configurados se anteponen incluso si Vercel conserva
-  // el orden legacy. Google/Veo queda como premium/fallback y nunca es requisito.
   if (isWanVideoConfigured() && !order.includes("wan")) order.unshift("wan")
   if (isHFGradioVideoConfigured() && !order.includes("hf-gradio")) {
     order.splice(order[0] === "wan" ? 1 : 0, 0, "hf-gradio")
   }
+  if (process.env.HF_SPACE_VIDEO_API_URL && !order.includes("hf-space")) {
+    const googleIndex = order.indexOf("google")
+    if (googleIndex >= 0) order.splice(googleIndex, 0, "hf-space")
+    else order.push("hf-space")
+  }
 
-  if (!order.length) {
+  // Ahorro primero: Google/Veo siempre queda al final cuando está disponible.
+  const premiumConfigured = order.includes("google") || Boolean(googleVideoKey())
+  const freeFirst = order.filter((provider) => provider !== "google")
+  if (premiumConfigured) freeFirst.push("google")
+
+  if (!freeFirst.length) {
     const fallback: string[] = []
     if (isWanVideoConfigured()) fallback.push("wan")
     if (isHFGradioVideoConfigured()) fallback.push("hf-gradio")
@@ -80,7 +95,7 @@ const providerOrder = `function videoProviderOrder(): string[] {
     if (googleVideoKey()) fallback.push("google")
     return fallback
   }
-  return order
+  return freeFirst
 }`
 if (agent.slice(providerOrderStart, providerOrderEnd) !== providerOrder) {
   agent = agent.slice(0, providerOrderStart) + providerOrder + agent.slice(providerOrderEnd)
@@ -91,7 +106,9 @@ const operationStart = agent.indexOf("  if (input.operationName) {")
 const errorsMarker = agent.indexOf("\n\n  const errors: string[] = []", operationStart)
 if (operationStart < 0 || errorsMarker < 0) throw new Error("[video-free-router] No se encontró rama de polling")
 const operationBranch = `  if (input.operationName) {
-    if (!input.userId) return { ok: false, status: "failed", provider: input.provider || null, error: "Falta userId para persistir el video terminado." }
+    if (!input.userId) {
+      return { ok: false, status: "failed", provider: input.provider || null, error: "Falta userId para persistir el video terminado." }
+    }
 
     if (input.provider === "wan" || input.operationName.startsWith("wan:")) {
       return pollWanVideo({
@@ -182,7 +199,6 @@ statusRoute = statusRoute.replace(
   'if (current.status !== "processing" || !["google", "wan"].includes(current.provider || "") || !current.operation_name) return current',
   'if (current.status !== "processing" || !["google", "wan", "hf-gradio"].includes(current.provider || "") || !current.operation_name) return current',
 )
-if (statusRoute.includes('!["google", "wan", "hf-gradio"].includes(current.provider || "")')) changed = true
 
 if (!statusRoute.includes("provider: current.provider,\n      model: current.model,")) {
   statusRoute = replaceIn(
@@ -201,7 +217,6 @@ if (createRoute.includes('provider: process.env.GEMINI_API_KEY_VIDEO || process.
   changed = true
 }
 
-// Los intentos fallidos no consumen el límite diario. El uso se calcula con videos completados.
 const usageStart = createRoute.indexOf("async function getDailyUsage(params: {")
 const usageEnd = createRoute.indexOf("\n}\n\nasync function incrementDailyUsage", usageStart)
 if (usageStart < 0 || usageEnd < 0) throw new Error("[video-free-router] No se encontró getDailyUsage")
@@ -243,7 +258,7 @@ if (changed) {
   fs.writeFileSync(processPath, processRoute)
   fs.writeFileSync(statusPath, statusRoute)
   fs.writeFileSync(createPath, createRoute)
-  console.log("[video-free-router] WAN/HF Gradio/HF legacy antes de Veo; fallos no consumen cupo diario")
+  console.log("[video-free-router] free-first canónico preservado; Veo queda al final")
 } else {
-  console.log("[video-free-router] ya aplicado")
+  console.log("[video-free-router] free-first canónico ya aplicado")
 }
