@@ -45,9 +45,62 @@ if (!source.includes(newBlock)) {
   changed = true
 }
 
+if (!source.includes("function geminiFirstProviderOrder(")) {
+  const marker = "export function providerOrder(provider: ProviderId, mode: GenerationMode): ConcreteProviderId[] {"
+  const index = source.indexOf(marker)
+  if (index < 0) throw new Error("[current-image-models] providerOrder no encontrado")
+  const helper = `function geminiFirstProviderOrder(order: ConcreteProviderId[]): ConcreteProviderId[] {
+  return ["gemini", ...order.filter((provider) => provider !== "gemini")]
+}
+
+`
+  source = source.slice(0, index) + helper + source.slice(index)
+  changed = true
+}
+
+const providerReplacements = [
+  [
+    `    return parseProviderOrder(
+      process.env.IMAGE_PROVIDER_ORDER_FAST,
+      DEFAULT_IMAGE_PROVIDER_ORDER.fast
+    )`,
+    `    return geminiFirstProviderOrder(parseProviderOrder(
+      process.env.IMAGE_PROVIDER_ORDER_FAST,
+      DEFAULT_IMAGE_PROVIDER_ORDER.fast
+    ))`,
+  ],
+  [
+    `    return parseProviderOrder(
+      process.env.IMAGE_PROVIDER_ORDER_QUALITY,
+      DEFAULT_IMAGE_PROVIDER_ORDER.quality
+    )`,
+    `    return geminiFirstProviderOrder(parseProviderOrder(
+      process.env.IMAGE_PROVIDER_ORDER_QUALITY,
+      DEFAULT_IMAGE_PROVIDER_ORDER.quality
+    ))`,
+  ],
+  [
+    `  return parseProviderOrder(
+    process.env.IMAGE_PROVIDER_ORDER_EDUCATIONAL,
+    DEFAULT_IMAGE_PROVIDER_ORDER.educational
+  )`,
+    `  return geminiFirstProviderOrder(parseProviderOrder(
+    process.env.IMAGE_PROVIDER_ORDER_EDUCATIONAL,
+    DEFAULT_IMAGE_PROVIDER_ORDER.educational
+  ))`,
+  ],
+]
+
+for (const [before, after] of providerReplacements) {
+  if (source.includes(after)) continue
+  if (!source.includes(before)) throw new Error("[current-image-models] orden de proveedor esperado no encontrado")
+  source = source.replace(before, after)
+  changed = true
+}
+
 if (changed) {
   fs.writeFileSync(target, source)
-  console.log("[current-image-models] Gemini 3.1/3.1 Lite primero; Gemini 2.5 legacy filtrado")
+  console.log("[current-image-models] Gemini 3.1/3.1 Lite y proveedor Gemini primero; Gemini 2.5 legacy filtrado")
 } else {
   console.log("[current-image-models] ya aplicado")
 }
