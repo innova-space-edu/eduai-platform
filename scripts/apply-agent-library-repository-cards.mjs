@@ -10,7 +10,16 @@ if (!existsSync(PAGE)) {
 let source = readFileSync(PAGE, "utf8")
 
 if (!source.includes(MARKER)) {
-  const anchor = `  {
+  const alreadyCanonical = source.includes('id: "biblioteca"') && source.includes('id: "repositorio"')
+
+  if (alreadyCanonical) {
+    const canonicalMarkerAnchor = "];\n\nconst TAGS ="
+    if (!source.includes(canonicalMarkerAnchor)) {
+      throw new Error("[agent-cards] No se encontró cierre canónico del arreglo AGENTS")
+    }
+    source = source.replace(canonicalMarkerAnchor, `];\n\n// ${MARKER}\n\nconst TAGS =`)
+  } else {
+    const anchor = `  {
     id: "workspace",
     icon: "📁",
     name: "Workspace",
@@ -24,7 +33,7 @@ if (!source.includes(MARKER)) {
   },
 ];`
 
-  const replacement = `  {
+    const replacement = `  {
     id: "workspace",
     icon: "📁",
     name: "Workspace",
@@ -66,11 +75,12 @@ if (!source.includes(MARKER)) {
 
 // ${MARKER}`
 
-  if (!source.includes(anchor)) {
-    throw new Error("[agent-cards] No se encontró el bloque final de Workspace")
-  }
+    if (!source.includes(anchor)) {
+      throw new Error("[agent-cards] No se encontró el bloque final de Workspace")
+    }
 
-  source = source.replace(anchor, replacement)
+    source = source.replace(anchor, replacement)
+  }
 }
 
 source = source
