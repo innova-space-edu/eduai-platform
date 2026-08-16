@@ -1,5 +1,9 @@
 import { GoogleGenAI } from "@google/genai"
 import { createClient as createAdmin } from "@supabase/supabase-js"
+import { resolveProviderModel } from "@/lib/ai/model-registry"
+import { isWanVideoConfigured, pollWanVideo, startWanVideo } from "@/lib/video/providers/wan"
+import { isHFGradioVideoConfigured, pollHFGradioVideo, startHFGradioVideo } from "@/lib/video/providers/hf-gradio"
+import { persistRemoteVideo } from "@/lib/video/persist-remote-video"
 
 export type VideoMode = "text_to_video" | "image_to_video"
 
@@ -15,6 +19,8 @@ export type ProcessVideoJobInput = {
   operationName?: string | null
   userId?: string | null
   sourceJobId?: string | null
+  model?: string | null
+  provider?: string | null
 }
 
 export type ProcessVideoJobResult = {
@@ -41,8 +47,13 @@ function normalizeMode(value: string | null | undefined): VideoMode {
 
 function normalizeDuration(value: number | null | undefined): number {
   const safe = typeof value === "number" && Number.isFinite(value) ? Math.round(value) : 6
-  if (safe <= 5) return 4
-  if (safe <= 7) return 6
+  return Math.min(10, Math.max(2, safe))
+}
+
+function normalizeVeoDuration(value: number, resolution: "720p" | "1080p" | "4k"): 4 | 6 | 8 {
+  if (resolution !== "720p") return 8
+  if (value <= 5) return 4
+  if (value <= 7) return 6
   return 8
 }
 
@@ -86,6 +97,13 @@ function googleClient() {
   return new GoogleGenAI({ apiKey })
 }
 
+function getAdminSupabase() {
+  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !key) throw new Error("Supabase server credentials no configuradas")
+  return createAdmin(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
+}
+
 async function fetchImageInput(url: string) {
   const response = await fetch(url, { signal: AbortSignal.timeout(20_000) })
   if (!response.ok) throw new Error(`No se pudo leer la imagen base: HTTP ${response.status}`)
@@ -102,11 +120,22 @@ async function startGoogleVeo(input: {
   imageUrl: string | null
   aspectRatio: "16:9" | "9:16"
   resolution: "720p" | "1080p" | "4k"
+  model?: string | null
 }): Promise<ProcessVideoJobResult> {
   const ai = googleClient()
-  const model = googleVideoModel()
+  const selectedModel = await resolveProviderModel({
+    supabase: getAdminSupabase(),
+    provider: "google",
+    capability: "video",
+    fallbackModel: googleVideoModel(),
+  })
+  const model = input.model || selectedModel.model
+
   const requestedResolution = input.resolution
-  const durationSeconds = requestedResolution === "720p" ? input.duration : 8
+  const effectiveResolution = requestedResolution === "4k" && /lite/i.test(model)
+    ? "1080p"
+    : requestedResolution
+  const durationSeconds = normalizeVeoDuration(input.duration, effectiveResolution)
   const prompt = input.style ? `${input.prompt}. Visual style: ${input.style}.` : input.prompt
 
   const image = input.mode === "image_to_video" && input.imageUrl
@@ -120,7 +149,7 @@ async function startGoogleVeo(input: {
     config: {
       aspectRatio: input.aspectRatio,
       durationSeconds,
-      resolution: requestedResolution,
+      resolution: effectiveResolution,
       numberOfVideos: 1,
       ...(image ? { personGeneration: "allow_adult" } : {}),
     },
@@ -138,19 +167,15 @@ async function startGoogleVeo(input: {
     raw: {
       operationName,
       durationSeconds,
-      resolution: requestedResolution,
+      requestedResolution,
+      resolution: effectiveResolution,
+      resolutionAdjusted: effectiveResolution !== requestedResolution,
       aspectRatio: input.aspectRatio,
       nativeAudio: true,
+      modelSource: selectedModel.source,
       phase: "submitted",
     },
   }
-}
-
-function getAdminSupabase() {
-  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!url || !key) throw new Error("Supabase server credentials no configuradas")
-  return createAdmin(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
 }
 
 async function persistGoogleVideo(input: {
@@ -216,9 +241,16 @@ async function pollGoogleVeo(input: {
   userId: string
   prompt: string
   sourceJobId?: string | null
+  model?: string | null
 }): Promise<ProcessVideoJobResult> {
   const ai = googleClient()
-  const model = googleVideoModel()
+  const selectedModel = await resolveProviderModel({
+    supabase: getAdminSupabase(),
+    provider: "google",
+    capability: "video",
+    fallbackModel: googleVideoModel(),
+  })
+  const model = input.model || selectedModel.model
 
   const operation = await ai.operations.getVideosOperation({
     operation: { name: input.operationName } as any,
@@ -231,7 +263,7 @@ async function pollGoogleVeo(input: {
       provider: "google",
       model,
       operationName: input.operationName,
-      raw: { operationName: input.operationName, phase: "polling" },
+      raw: { operationName: input.operationName, phase: "polling", modelSource: selectedModel.source },
     }
   }
 
@@ -285,6 +317,8 @@ async function runHFSpaceProvider(input: {
   withAudio: boolean
   mode: VideoMode
   imageUrl: string | null
+  userId?: string | null
+  sourceJobId?: string | null
 }): Promise<ProcessVideoJobResult> {
   const hfSpaceUrl = process.env.HF_SPACE_VIDEO_API_URL
   const hfSpaceToken = process.env.HF_SPACE_VIDEO_API_TOKEN
@@ -305,7 +339,14 @@ async function runHFSpaceProvider(input: {
         "Content-Type": "application/json",
         ...(hfSpaceToken ? { Authorization: `Bearer ${hfSpaceToken}` } : {}),
       },
-      body: JSON.stringify(input),
+      body: JSON.stringify({
+        prompt: input.prompt,
+        style: input.style,
+        duration: input.duration,
+        withAudio: input.withAudio,
+        mode: input.mode,
+        imageUrl: input.imageUrl,
+      }),
       signal: AbortSignal.timeout(50_000),
     })
     const raw = await response.json().catch(() => null)
@@ -320,8 +361,8 @@ async function runHFSpaceProvider(input: {
       }
     }
 
-    const videoUrl = raw?.videoUrl || raw?.video_url || raw?.output_url || raw?.url || null
-    if (!videoUrl) {
+    const remoteVideoUrl = raw?.videoUrl || raw?.video_url || raw?.output_url || raw?.url || null
+    if (!remoteVideoUrl) {
       return {
         ok: false,
         status: "failed",
@@ -332,12 +373,40 @@ async function runHFSpaceProvider(input: {
       }
     }
 
+    if (input.userId) {
+      const persisted = await persistRemoteVideo({
+        remoteUrl: remoteVideoUrl,
+        userId: input.userId,
+        provider: "hf-space",
+        model: raw?.model || null,
+        prompt: input.prompt,
+        sourceJobId: input.sourceJobId,
+        metadata: { source: "hf-space-legacy", providerUrlExpires: true },
+      })
+      return {
+        ok: true,
+        status: "completed",
+        provider: "hf-space",
+        model: raw?.model || null,
+        videoUrl: persisted.videoUrl,
+        thumbnailUrl: raw?.thumbnailUrl || raw?.thumbnail_url || raw?.poster_url || null,
+        assetId: persisted.assetId,
+        raw: {
+          ...(raw && typeof raw === "object" ? raw : {}),
+          phase: "persisted",
+          assetId: persisted.assetId,
+          storageBucket: "eduai-assets",
+          storagePath: persisted.storagePath,
+        },
+      }
+    }
+
     return {
       ok: true,
       status: "completed",
       provider: "hf-space",
       model: raw?.model || null,
-      videoUrl,
+      videoUrl: remoteVideoUrl,
       thumbnailUrl: raw?.thumbnailUrl || raw?.thumbnail_url || raw?.poster_url || null,
       raw: raw && typeof raw === "object" ? raw : null,
     }
@@ -353,18 +422,39 @@ async function runHFSpaceProvider(input: {
 }
 
 function videoProviderOrder(): string[] {
-  const configured = (process.env.VIDEO_PROVIDER_ORDER || "google,hf-space")
+  const configured = (process.env.VIDEO_PROVIDER_ORDER || "wan,hf-gradio,hf-space,google")
     .split(",")
     .map((value) => value.trim().toLowerCase())
     .filter(Boolean)
-    // Compatibilidad con la configuración anterior de EduAI. Replicate nunca tuvo
-    // implementación en este motor; si todavía aparece en Vercel, migrarlo a Veo.
     .map((value) => value === "replicate" || value === "veo" ? "google" : value)
-    .filter((value) => ["google", "hf-space", "ltx", "wan-worker"].includes(value))
+    .filter((value) => ["wan", "hf-gradio", "google", "hf-space", "ltx", "wan-worker"].includes(value))
 
   const order = Array.from(new Set(configured))
-  if (!order.length) return googleVideoKey() ? ["google", "hf-space"] : ["hf-space"]
-  return order
+
+  if (isWanVideoConfigured() && !order.includes("wan")) order.unshift("wan")
+  if (isHFGradioVideoConfigured() && !order.includes("hf-gradio")) {
+    order.splice(order[0] === "wan" ? 1 : 0, 0, "hf-gradio")
+  }
+  if (process.env.HF_SPACE_VIDEO_API_URL && !order.includes("hf-space")) {
+    const googleIndex = order.indexOf("google")
+    if (googleIndex >= 0) order.splice(googleIndex, 0, "hf-space")
+    else order.push("hf-space")
+  }
+
+  // Ahorro primero: Google/Veo siempre queda al final cuando está disponible.
+  const premiumConfigured = order.includes("google") || Boolean(googleVideoKey())
+  const freeFirst = order.filter((provider) => provider !== "google")
+  if (premiumConfigured) freeFirst.push("google")
+
+  if (!freeFirst.length) {
+    const fallback: string[] = []
+    if (isWanVideoConfigured()) fallback.push("wan")
+    if (isHFGradioVideoConfigured()) fallback.push("hf-gradio")
+    if (process.env.HF_SPACE_VIDEO_API_URL) fallback.push("hf-space")
+    if (googleVideoKey()) fallback.push("google")
+    return fallback
+  }
+  return freeFirst
 }
 
 export async function processVideoJob(
@@ -401,34 +491,90 @@ export async function processVideoJob(
   }
 
   if (input.operationName) {
-    if (!input.userId) return { ok: false, status: "failed", provider: "google", error: "Falta userId para persistir el video terminado." }
+    if (!input.userId) {
+      return { ok: false, status: "failed", provider: input.provider || null, error: "Falta userId para persistir el video terminado." }
+    }
+
+    if (input.provider === "wan" || input.operationName.startsWith("wan:")) {
+      return pollWanVideo({
+        operationName: input.operationName,
+        userId: input.userId,
+        prompt,
+        sourceJobId: input.sourceJobId,
+        model: input.model,
+      })
+    }
+
+    if (input.provider === "hf-gradio" || input.operationName.startsWith("hf:")) {
+      return pollHFGradioVideo({
+        operationName: input.operationName,
+        userId: input.userId,
+        prompt,
+        sourceJobId: input.sourceJobId,
+        model: input.model,
+      })
+    }
+
     return pollGoogleVeo({
       operationName: input.operationName,
       userId: input.userId,
       prompt,
       sourceJobId: input.sourceJobId,
+      model: input.model,
     })
   }
 
   const errors: string[] = []
   for (const provider of videoProviderOrder()) {
+    if (provider === "wan") {
+      if (!isWanVideoConfigured()) {
+        errors.push("wan: proveedor no configurado")
+        continue
+      }
+      const result = await startWanVideo({ prompt, style, duration, mode, imageUrl, aspectRatio, resolution })
+      if (result.ok) return result
+      errors.push(`wan: ${result.error || "falló"}`)
+      continue
+    }
+
+    if (provider === "hf-gradio") {
+      if (!isHFGradioVideoConfigured()) {
+        errors.push("hf-gradio: proveedor no configurado")
+        continue
+      }
+      const result = await startHFGradioVideo({ prompt, style, duration, mode, imageUrl, aspectRatio, resolution })
+      if (result.ok) return result
+      errors.push(`hf-gradio: ${result.error || "falló"}`)
+      continue
+    }
+
+    if (provider === "hf-space" || provider === "ltx" || provider === "wan-worker") {
+      const result = await runHFSpaceProvider({
+        prompt,
+        style,
+        duration,
+        withAudio,
+        mode,
+        imageUrl,
+        userId: input.userId,
+        sourceJobId: input.sourceJobId,
+      })
+      if (result.ok) return result
+      errors.push(`${provider}: ${result.error || "falló"}`)
+      continue
+    }
+
     if (provider === "google") {
       if (!googleVideoKey()) {
         errors.push("google: GEMINI_API_KEY no configurada")
         continue
       }
       try {
-        return await startGoogleVeo({ prompt, style, duration, mode, imageUrl, aspectRatio, resolution })
+        return await startGoogleVeo({ prompt, style, duration, mode, imageUrl, aspectRatio, resolution, model: input.model })
       } catch (error) {
         errors.push(`google: ${error instanceof Error ? error.message : String(error)}`)
         continue
       }
-    }
-
-    if (provider === "hf-space" || provider === "ltx" || provider === "wan-worker") {
-      const result = await runHFSpaceProvider({ prompt, style, duration, withAudio, mode, imageUrl })
-      if (result.ok) return result
-      errors.push(`${provider}: ${result.error || "falló"}`)
     }
   }
 
