@@ -26,7 +26,7 @@ if (!agent.includes("function compactVideoProviderError(")) {
   }
   if (/401|403|unauthorized|forbidden|api.?key/i.test(message)) return "credenciales no válidas o sin permiso"
   if (/timeout|timed out|abort/i.test(message)) return "tiempo de espera agotado"
-  return message.replace(/\\s+/g, " ").slice(0, 320)
+  return message.replace(/\s+/g, " ").slice(0, 320)
 }
 
 `
@@ -72,6 +72,26 @@ function friendlyVideoError(value: string) {
 
 `
   client = client.slice(0, index) + helper + client.slice(index)
+  changed = true
+}
+
+const oldNormalizeDuration = `function normalizeDuration(value: number) {
+  if (value < 2) return 2
+  if (value > 10) return 10
+  return Math.round(value)
+}`
+const compatibleNormalizeDuration = `function normalizeDuration(value: number) {
+  if (value <= 5) return 4
+  if (value <= 7) return 6
+  return 8
+}`
+if (client.includes(oldNormalizeDuration)) {
+  client = client.replace(oldNormalizeDuration, compatibleNormalizeDuration)
+  changed = true
+}
+
+if (client.includes("[2, 4, 6, 8, 10].map((seconds) => (")) {
+  client = client.replace("[2, 4, 6, 8, 10].map((seconds) => (", "[4, 6, 8].map((seconds) => (")
   changed = true
 }
 
