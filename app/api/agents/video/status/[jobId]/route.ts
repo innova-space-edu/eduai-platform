@@ -91,88 +91,314 @@ async function resolvePrivateUrl(
   return error ? null : data?.signedUrl || null
 }
 
-async function maybeAdvanceGoogleJob(job: VideoJobRow): Promise<VideoJobRow> {
-  if (job.status !== "processing" || job.provider !== "google" || !job.operation_name) return job
+function requestString(payload: Record<string, unknown> | null | undefined, key: string, fallback = "") {
+  const value = payload?.[key]
+  return typeof value === "string" ? value : fallback
+}
 
-  // Evitar golpear la API de operaciones en cada render/poll ultra rápido.
-  const updatedAt = job.updated_at ? new Date(job.updated_at).getTime() : 0
-  if (updatedAt && Date.now() - updatedAt < 5_000) return job
+function requestNumber(payload: Record<string, unknown> | null | undefined, key: string, fallback: number) {
+  const value = payload?.[key]
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback
+}
 
-  try {
-    const result = await processVideoJob({
-      prompt: job.prompt || String(job.request_payload?.prompt || "Video EduAI"),
-      operationName: job.operation_name,
-      userId: job.user_id,
-      sourceJobId: job.id,
-    })
+function requestBoolean(payload: Record<string, unknown> | null | undefined, key: string, fallback: boolean) {
+  const value = payload?.[key]
+  return typeof value === "boolean" ? value : fallback
+}
 
-    const admin = getAdminSupabase()
-    if (!admin) return job
+async function maybeAdvanceVideoJob(job: VideoJobRow): Promise<VideoJobRow> {
+  const admin = getAdminSupabase()
+  if (!admin) return job
 
-    if (result.ok && result.status === "completed" && result.videoUrl) {
-      const completedAt = new Date().toISOString()
-      const { error } = await admin
-        .from("video_jobs")
-        .update({
-          status: "completed",
-          provider: result.provider || job.provider,
-          model: result.model || job.model,
-          asset_id: result.assetId || job.asset_id || null,
-          video_url: result.videoUrl,
-          thumbnail_url: result.thumbnailUrl || job.thumbnail_url || null,
-          response_payload: result.raw || job.response_payload || null,
-          error_message: null,
-          completed_at: completedAt,
-        })
-        .eq("id", job.id)
-        .eq("user_id", job.user_id)
+  let current = job
 
-      if (!error) {
-        return {
-          ...job,
-          status: "completed",
-          provider: result.provider || job.provider,
-          model: result.model || job.model,
-          asset_id: result.assetId || job.asset_id || null,
-          video_url: result.videoUrl,
-          thumbnail_url: result.thumbnailUrl || job.thumbnail_url || null,
-          response_payload: result.raw || job.response_payload || null,
-          error_message: null,
-          completed_at: completedAt,
-          updated_at: completedAt,
-        }
-      }
+  // Preview deployments do not execute Vercel Cron Jobs. When the authenticated
+  // owner polls a queued job, claim exactly that job and start it immediately.
+  // Production can still use /api/agents/video/process through Vercel Cron.
+  if (current.status === "queued") {
+    const startedAt = new Date().toISOString()
+    const { data: claimed, error: claimError } = await admin
+      .from("video_jobs")
+      .update({
+        status: "processing",
+        error_message: null,
+        started_at: current.started_at || startedAt,
+      })
+      .eq("id", current.id)
+      .eq("user_id", current.user_id)
+      .eq("status", "queued")
+      .select("id")
+      .maybeSingle()
+
+    if (claimError) {
+      console.warn("[Video status][autostart]", claimError.message)
+      return current
     }
 
-    if (!result.ok && result.status === "failed") {
-      const completedAt = new Date().toISOString()
+    // Otro request puede haber reclamado el job milisegundos antes.
+    if (!claimed) return current
+
+    current = {
+      ...current,
+      status: "processing",
+      started_at: current.started_at || startedAt,
+      updated_at: startedAt,
+    }
+
+    try {
+      const result = await processVideoJob({
+        prompt: current.prompt || requestString(current.request_payload, "prompt", "Video EduAI"),
+        style: current.style || requestString(current.request_payload, "style", ""),
+        duration: current.duration_seconds ?? requestNumber(current.request_payload, "duration", 6),
+        withAudio: current.include_audio ?? requestBoolean(current.request_payload, "withAudio", false),
+        mode: current.mode || requestString(current.request_payload, "mode", "text_to_video"),
+        imageUrl: current.image_url || requestString(current.request_payload, "imageUrl", "") || null,
+        aspectRatio: requestString(current.request_payload, "aspectRatio", "16:9"),
+        resolution: requestString(current.request_payload, "resolution", "720p"),
+        userId: current.user_id,
+        sourceJobId: current.id,
+        provider: current.provider || null,
+        model: current.model || null,
+      })
+
+      const now = new Date().toISOString()
+
+      if (result.ok && result.status === "processing") {
+        const { error } = await admin
+          .from("video_jobs")
+          .update({
+            status: "processing",
+            provider: result.provider || current.provider || null,
+            model: result.model || current.model || null,
+            operation_name: result.operationName || current.operation_name || null,
+            response_payload: result.raw || current.response_payload || null,
+            error_message: null,
+          })
+          .eq("id", current.id)
+          .eq("user_id", current.user_id)
+
+        if (error) console.warn("[Video status][autostart]", error.message)
+
+        return {
+          ...current,
+          status: "processing",
+          provider: result.provider || current.provider || null,
+          model: result.model || current.model || null,
+          operation_name: result.operationName || current.operation_name || null,
+          response_payload: result.raw || current.response_payload || null,
+          error_message: null,
+          updated_at: now,
+        }
+      }
+
+      if (result.ok && result.status === "completed" && result.videoUrl) {
+        const { error } = await admin
+          .from("video_jobs")
+          .update({
+            status: "completed",
+            provider: result.provider || current.provider,
+            model: result.model || current.model,
+            operation_name: result.operationName || current.operation_name || null,
+            asset_id: result.assetId || current.asset_id || null,
+            video_url: result.videoUrl,
+            thumbnail_url: result.thumbnailUrl || current.thumbnail_url || null,
+            response_payload: result.raw || current.response_payload || null,
+            error_message: null,
+            completed_at: now,
+          })
+          .eq("id", current.id)
+          .eq("user_id", current.user_id)
+
+        if (error) console.warn("[Video status][autostart]", error.message)
+
+        return {
+          ...current,
+          status: "completed",
+          provider: result.provider || current.provider,
+          model: result.model || current.model,
+          operation_name: result.operationName || current.operation_name || null,
+          asset_id: result.assetId || current.asset_id || null,
+          video_url: result.videoUrl,
+          thumbnail_url: result.thumbnailUrl || current.thumbnail_url || null,
+          response_payload: result.raw || current.response_payload || null,
+          error_message: null,
+          completed_at: now,
+          updated_at: now,
+        }
+      }
+
+      const failedStatus: JobStatus = result.status === "blocked" ? "blocked" : "failed"
+      const errorMessage = result.moderationReason || result.error || "No fue posible iniciar el video."
+      await admin
+        .from("video_jobs")
+        .update({
+          status: failedStatus,
+          provider: result.provider || current.provider || null,
+          model: result.model || current.model || null,
+          response_payload: result.raw || current.response_payload || null,
+          error_message: errorMessage,
+          completed_at: now,
+          retry_count: Number(current.retry_count || 0) + 1,
+        })
+        .eq("id", current.id)
+        .eq("user_id", current.user_id)
+
+      return {
+        ...current,
+        status: failedStatus,
+        provider: result.provider || current.provider || null,
+        model: result.model || current.model || null,
+        response_payload: result.raw || current.response_payload || null,
+        error_message: errorMessage,
+        completed_at: now,
+        retry_count: Number(current.retry_count || 0) + 1,
+        updated_at: now,
+      }
+    } catch (error) {
+      const now = new Date().toISOString()
+      const message = error instanceof Error ? error.message : String(error)
+      console.warn("[Video status][autostart]", message)
       await admin
         .from("video_jobs")
         .update({
           status: "failed",
-          error_message: result.error || "La operación de Google falló.",
-          response_payload: result.raw || job.response_payload || null,
-          completed_at: completedAt,
-          retry_count: Number(job.retry_count || 0) + 1,
+          error_message: message,
+          completed_at: now,
+          retry_count: Number(current.retry_count || 0) + 1,
         })
-        .eq("id", job.id)
-        .eq("user_id", job.user_id)
+        .eq("id", current.id)
+        .eq("user_id", current.user_id)
 
       return {
-        ...job,
+        ...current,
         status: "failed",
-        error_message: result.error || "La operación de Google falló.",
-        response_payload: result.raw || job.response_payload || null,
-        completed_at: completedAt,
-        retry_count: Number(job.retry_count || 0) + 1,
-        updated_at: completedAt,
+        error_message: message,
+        completed_at: now,
+        retry_count: Number(current.retry_count || 0) + 1,
+        updated_at: now,
+      }
+    }
+  }
+
+  if (
+    current.status !== "processing"
+    || !["google", "wan", "hf-gradio"].includes(current.provider || "")
+    || !current.operation_name
+  ) return current
+
+  // Evitar golpear APIs de polling en cada render/poll ultra rápido.
+  const updatedAt = current.updated_at ? new Date(current.updated_at).getTime() : 0
+  if (updatedAt && Date.now() - updatedAt < 5_000) return current
+
+  try {
+    const result = await processVideoJob({
+      prompt: current.prompt || requestString(current.request_payload, "prompt", "Video EduAI"),
+      operationName: current.operation_name,
+      userId: current.user_id,
+      sourceJobId: current.id,
+      provider: current.provider,
+      model: current.model,
+    })
+
+    const now = new Date().toISOString()
+
+    if (result.ok && result.status === "processing") {
+      const { error } = await admin
+        .from("video_jobs")
+        .update({
+          provider: result.provider || current.provider,
+          model: result.model || current.model,
+          operation_name: result.operationName || current.operation_name,
+          response_payload: result.raw || current.response_payload || null,
+          error_message: null,
+        })
+        .eq("id", current.id)
+        .eq("user_id", current.user_id)
+
+      if (error) console.warn("[Video status][poll]", error.message)
+
+      return {
+        ...current,
+        provider: result.provider || current.provider,
+        model: result.model || current.model,
+        operation_name: result.operationName || current.operation_name,
+        response_payload: result.raw || current.response_payload || null,
+        error_message: null,
+        updated_at: now,
+      }
+    }
+
+    if (result.ok && result.status === "completed" && result.videoUrl) {
+      const { error } = await admin
+        .from("video_jobs")
+        .update({
+          status: "completed",
+          provider: result.provider || current.provider,
+          model: result.model || current.model,
+          operation_name: result.operationName || current.operation_name,
+          asset_id: result.assetId || current.asset_id || null,
+          video_url: result.videoUrl,
+          thumbnail_url: result.thumbnailUrl || current.thumbnail_url || null,
+          response_payload: result.raw || current.response_payload || null,
+          error_message: null,
+          completed_at: now,
+        })
+        .eq("id", current.id)
+        .eq("user_id", current.user_id)
+
+      if (!error) {
+        return {
+          ...current,
+          status: "completed",
+          provider: result.provider || current.provider,
+          model: result.model || current.model,
+          operation_name: result.operationName || current.operation_name,
+          asset_id: result.assetId || current.asset_id || null,
+          video_url: result.videoUrl,
+          thumbnail_url: result.thumbnailUrl || current.thumbnail_url || null,
+          response_payload: result.raw || current.response_payload || null,
+          error_message: null,
+          completed_at: now,
+          updated_at: now,
+        }
+      }
+    }
+
+    if (!result.ok) {
+      const failedStatus: JobStatus = result.status === "blocked" ? "blocked" : "failed"
+      const message = result.moderationReason || result.error || "La operación de video falló."
+      await admin
+        .from("video_jobs")
+        .update({
+          status: failedStatus,
+          provider: result.provider || current.provider,
+          model: result.model || current.model,
+          response_payload: result.raw || current.response_payload || null,
+          error_message: message,
+          completed_at: now,
+          retry_count: Number(current.retry_count || 0) + 1,
+        })
+        .eq("id", current.id)
+        .eq("user_id", current.user_id)
+
+      return {
+        ...current,
+        status: failedStatus,
+        provider: result.provider || current.provider,
+        model: result.model || current.model,
+        response_payload: result.raw || current.response_payload || null,
+        error_message: message,
+        completed_at: now,
+        retry_count: Number(current.retry_count || 0) + 1,
+        updated_at: now,
       }
     }
   } catch (error) {
+    // Un error transitorio de polling no debe destruir un job todavía válido.
     console.warn("[Video status][poll]", error instanceof Error ? error.message : String(error))
   }
 
-  return job
+  return current
 }
 
 export async function GET(
@@ -206,7 +432,7 @@ export async function GET(
       return NextResponse.json({ ok: false, error: "Job no encontrado.", code: "JOB_NOT_FOUND" }, { status: 404 })
     }
 
-    const job = await maybeAdvanceGoogleJob(loadedJob)
+    const job = await maybeAdvanceVideoJob(loadedJob)
     const videoUrl = await resolvePrivateUrl(supabase, job.video_url)
     const thumbnailUrl = await resolvePrivateUrl(supabase, job.thumbnail_url)
 
