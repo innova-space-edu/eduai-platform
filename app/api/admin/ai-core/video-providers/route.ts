@@ -113,14 +113,20 @@ export async function GET() {
   ]
 
   let recentFailures: Array<{ provider: string | null; model: string | null; category: string | null; at: string | null }> = []
+  let personalCredentialCount = 0
+  let personalSpendEventCount = 0
   const admin = adminClient()
   if (admin) {
-    const { data } = await admin
-      .from("video_jobs")
-      .select("provider,model,error_message,completed_at,updated_at")
-      .eq("status", "failed")
-      .order("updated_at", { ascending: false })
-      .limit(8)
+    const [{ data }, credentials, spendEvents] = await Promise.all([
+      admin
+        .from("video_jobs")
+        .select("provider,model,error_message,completed_at,updated_at")
+        .eq("status", "failed")
+        .order("updated_at", { ascending: false })
+        .limit(8),
+      admin.from("user_ai_credentials").select("id", { count: "exact", head: true }),
+      admin.from("user_ai_spend_events").select("id", { count: "exact", head: true }),
+    ])
 
     recentFailures = (data || []).map(row => ({
       provider: row.provider || null,
@@ -128,6 +134,8 @@ export async function GET() {
       category: classifyError(row.error_message),
       at: row.completed_at || row.updated_at || null,
     }))
+    personalCredentialCount = credentials.count ?? 0
+    personalSpendEventCount = spendEvents.count ?? 0
   }
 
   const freeConfigured = providers.some(provider => provider.configured && provider.tier !== "premium")
@@ -139,6 +147,15 @@ export async function GET() {
     configuredOrder: process.env.VIDEO_PROVIDER_ORDER || null,
     effectiveOrder: effectiveOrder(),
     providers,
+    personalMarketplace: {
+      enabled: true,
+      masterKeyConfigured: configured("EDUAI_CREDENTIALS_MASTER_KEY"),
+      credentialCount: personalCredentialCount,
+      spendEventCount: personalSpendEventCount,
+      supportedProviders: ["fal", "replicate", "huggingface"],
+      generationProviders: ["fal", "replicate"],
+      billingOwner: "user",
+    },
     recentFailures,
   }, { headers: { "Cache-Control": "no-store" } })
 }
