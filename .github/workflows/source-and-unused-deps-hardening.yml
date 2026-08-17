@@ -85,9 +85,9 @@ jobs:
 
           patchFile('app/educador/vista-previa/page.tsx', [
             {
-              label: 'current no nulo antes de copiar selección',
-              from: '    if (!page || !ids.size) return',
-              to: '    if (!current || !page || !ids.size) return',
+              label: 'current estrechado antes de buscar página al copiar',
+              from: `    const current = documentRef.current\n    const page = current?.pages.find((item) => item.id === current.activePageId)\n    const ids = new Set(selectedRef.current)\n    if (!page || !ids.size) return`,
+              to: `    const current = documentRef.current\n    if (!current) return\n    const page = current.pages.find((item) => item.id === current.activePageId)\n    const ids = new Set(selectedRef.current)\n    if (!page || !ids.size) return`,
             },
           ])
 
