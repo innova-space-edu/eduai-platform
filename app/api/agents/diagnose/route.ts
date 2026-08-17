@@ -1,7 +1,10 @@
 import Groq from "groq-sdk"
 import { createClient } from "@/lib/supabase/server"
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
+function createGroqClient() {
+  const apiKey = process.env.GROQ_API_KEY?.trim()
+  return apiKey ? new Groq({ apiKey }) : null
+}
 
 export async function POST(req: Request) {
   const supabase = await createClient()
@@ -19,6 +22,14 @@ export async function POST(req: Request) {
       gaps: [],
       recommendations: [],
     })
+  }
+
+  const groq = createGroqClient()
+  if (!groq) {
+    return Response.json(
+      { error: "El proveedor de diagnóstico no está configurado temporalmente." },
+      { status: 503 },
+    )
   }
 
   try {
