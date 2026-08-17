@@ -18,6 +18,7 @@ if (!source.includes(newAttemptId)) {
   changed = true
 }
 
+const db = source.includes("function getSupabase()") ? "getSupabase()" : "supabase"
 const validationMarker = `      if (!isValidRut(rutClean)) {
         return NextResponse.json(
           { error: "RUT inválido. Escríbelo sin puntos ni guion, incluyendo el dígito verificador o K." },
@@ -25,7 +26,7 @@ const validationMarker = `      if (!isValidRut(rutClean)) {
         )
       }
 
-      const { data: officialExam, error: officialExamError } = await supabase`
+      const { data: officialExam, error: officialExamError } = await ${db}`
 
 const guardedValidation = `      if (!isValidRut(rutClean)) {
         return NextResponse.json(
@@ -39,7 +40,7 @@ const guardedValidation = `      if (!isValidRut(rutClean)) {
       // Recupera el intento persistido cuando el cliente perdió el id local.
       // Esto mantiene una identidad estable para el submit y evita crear intentos
       // distintos para el mismo RUT/curso/examen.
-      const { data: existingDraft, error: existingDraftError } = await supabase
+      const { data: existingDraft, error: existingDraftError } = await ${db}
         .from("exam_attempt_drafts")
         .select("id, client_attempt_id, status, submission_id")
         .eq("exam_id", examId)
@@ -56,7 +57,7 @@ const guardedValidation = `      if (!isValidRut(rutClean)) {
       // mismo examen + RUT + curso se devuelve tal cual; no se vuelve a corregir.
       let existingSubmission: any = null
       if (existingDraft?.submission_id) {
-        const { data, error } = await supabase
+        const { data, error } = await ${db}
           .from("exam_submissions")
           .select("*")
           .eq("id", existingDraft.submission_id)
@@ -67,7 +68,7 @@ const guardedValidation = `      if (!isValidRut(rutClean)) {
       }
 
       if (!existingSubmission) {
-        const { data, error } = await supabase
+        const { data, error } = await ${db}
           .from("exam_submissions")
           .select("*")
           .eq("exam_id", examId)
@@ -81,7 +82,7 @@ const guardedValidation = `      if (!isValidRut(rutClean)) {
       }
 
       if (existingSubmission) {
-        const { data: existingExam } = await supabase
+        const { data: existingExam } = await ${db}
           .from("teacher_exams")
           .select("questions, settings")
           .eq("id", examId)
@@ -103,7 +104,7 @@ const guardedValidation = `      if (!isValidRut(rutClean)) {
         effectiveClientAttemptId = createServerAttemptId()
       }
 
-      const { data: officialExam, error: officialExamError } = await supabase`
+      const { data: officialExam, error: officialExamError } = await ${db}`
 
 if (!source.includes("generationAvoided: true,\n          submission: existingSubmission")) {
   if (!source.includes(validationMarker)) throw new Error("[exam-submit-idempotency] bloque de validación submit no encontrado")
