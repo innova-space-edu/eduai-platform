@@ -22,7 +22,8 @@ jobs:
         run: node scripts/normalize-npm-lockfile.mjs
 
       - name: Verify public npm registry
-        run: node -e "const fs=require('fs'); const lock=fs.readFileSync('package-lock.json','utf8'); if(lock.includes('packages.applied-caas-gateway1.internal.api.openai.org')) throw new Error('El lockfile aún contiene URLs privadas'); console.log('Public npm registry verified')"
+        run: |
+          node -e "const fs=require('fs'); const lock=fs.readFileSync('package-lock.json','utf8'); if(lock.includes('packages.applied-caas-gateway1.internal.api.openai.org')) throw new Error('El lockfile aún contiene URLs privadas'); console.log('Public npm registry verified')"
 
       - name: Install dependencies
         run: npm install --registry=https://registry.npmjs.org/
@@ -34,7 +35,8 @@ jobs:
         run: npm run whiteboard:finalize
 
       - name: Verify planner maintenance
-        run: node -e "const fs=require('fs'); const route=fs.readFileSync('app/api/agents/educador/route.ts','utf8'); if(route.includes('explicación del problema ambiental')) throw new Error('La rúbrica ambiental fija sigue presente'); for(const file of ['fix-exam-generate.diff','fix-exam-create-page.diff']) if(fs.existsSync(file)) throw new Error('Parche temporal aún presente: '+file); console.log('Planner maintenance verified')"
+        run: |
+          node -e "const fs=require('fs'); const route=fs.readFileSync('app/api/agents/educador/route.ts','utf8'); if(route.includes('explicación del problema ambiental')) throw new Error('La rúbrica ambiental fija sigue presente'); for(const file of ['fix-exam-generate.diff','fix-exam-create-page.diff']) if(fs.existsSync(file)) throw new Error('Parche temporal aún presente: '+file); console.log('Planner maintenance verified')"
 
       - name: Whiteboard integrity
         run: npm run test:whiteboard
