@@ -1,0 +1,105 @@
+name: Hardening fuente y dependencias sin uso
+
+on:
+  push:
+    branches:
+      - feat/eduai-core-reuse-ai-gateway
+    paths:
+      - ".github/workflows/source-and-unused-deps-hardening.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  harden:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CI: true
+      NEXT_TELEMETRY_DISABLED: 1
+      GEMINI_API_KEY: ci-placeholder
+      GROQ_API_KEY: ci-placeholder
+      OPENROUTER_API_KEY: ci-placeholder
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      SUPABASE_URL: https://example.supabase.co
+      SUPABASE_SERVICE_ROLE_KEY: ci-placeholder
+      EDUAI_CREDENTIALS_MASTER_KEY: ci-placeholder-master-key-for-build-only
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar baseline
+        run: |
+          node scripts/normalize-npm-lockfile.mjs
+          npm install --registry=https://registry.npmjs.org/ --ignore-scripts
+
+      - name: Materializar fixes TypeScript en fuente
+        run: |
+          node <<'NODE'
+          const fs = require('fs')
+
+          const comicsPath = 'components/creator-hub/comics/ComicsCreatorStudio.tsx'
+          let comics = fs.readFileSync(comicsPath, 'utf8')
+          const comicsBefore = comics
+          comics = comics.replace(
+            '    const nextCharacters = generatedCharacters.map((generated: any, index: number) => {',
+            '    const nextCharacters: Character[] = generatedCharacters.map((generated: any, index: number) => {',
+          )
+          comics = comics.replace(
+            '    const safeCharacters = nextCharacters.length ? nextCharacters : characters',
+            '    const safeCharacters: Character[] = nextCharacters.length ? nextCharacters : characters',
+          )
+          if (comics === comicsBefore) throw new Error('No se pudieron materializar los tipos de Comics Creator')
+          fs.writeFileSync(comicsPath, comics)
+
+          const notebookPath = 'lib/notebook/ingestion-v2.ts'
+          let notebook = fs.readFileSync(notebookPath, 'utf8')
+          const notebookBefore = notebook
+          notebook = notebook.replace(
+            `    let root = $("body")\n    for (const selector of selectors) {\n      const candidate = $(selector).first()\n      if (candidate.length && candidate.text().trim().length > 300) {\n        root = candidate\n        break\n      }\n    }\n\n    const blocks: string[] = []\n    root.find("h1,h2,h3,h4,p,li,blockquote,pre,figcaption").each((_, element) => {`,
+            `    let rootSelector = "body"\n    for (const selector of selectors) {\n      const candidate = $(selector).first()\n      if (candidate.length && candidate.text().trim().length > 300) {\n        rootSelector = selector\n        break\n      }\n    }\n\n    const blocks: string[] = []\n    $(rootSelector).first().find("h1,h2,h3,h4,p,li,blockquote,pre,figcaption").each((_, element) => {`,
+          )
+          if (notebook === notebookBefore) throw new Error('No se pudo materializar el tipo de raíz Cheerio')
+          fs.writeFileSync(notebookPath, notebook)
+          NODE
+
+      - name: Eliminar dependencias vulnerables sin referencias de código
+        run: npm uninstall --save puppeteer-core @sparticuz/chromium pptxgenjs
+
+      - name: Reinstalar desde lock exacto
+        run: npm ci --ignore-scripts
+
+      - name: TypeScript sobre checkout materializado
+        run: npx tsc --noEmit --pretty false
+
+      - name: Validar transformaciones legacy
+        run: |
+          npm run planner:maintain
+          npm run whiteboard:finalize
+          npm run test:whiteboard
+          npx tsc --noEmit --pretty false
+
+      - name: Auditoría de producción
+        run: |
+          npm audit --omit=dev --json > npm-audit-unused-deps.json || true
+          node -e 'const fs=require("fs"); const a=JSON.parse(fs.readFileSync("npm-audit-unused-deps.json","utf8")); console.log(JSON.stringify(a.metadata?.vulnerabilities || {}, null, 2));'
+
+      - name: Build completo
+        run: npm run build
+
+      - name: Publicar solo archivos fuente y dependencias validados
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add components/creator-hub/comics/ComicsCreatorStudio.tsx lib/notebook/ingestion-v2.ts package.json package-lock.json
+          if git diff --cached --quiet; then
+            echo "No hay cambios que publicar"
+            exit 0
+          fi
+          git commit -m "fix: materializar tipos y retirar dependencias sin uso"
+          git push origin HEAD:feat/eduai-core-reuse-ai-gateway
