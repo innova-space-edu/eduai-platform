@@ -38,6 +38,20 @@ for (const relative of targets) {
     changed = true
   }
 
+  // El hardening de autenticación de Exámenes puede ejecutarse después de
+  // prebuild y reinsertar el cliente como propiedad del AI Gateway. También
+  // debe resolverse de forma diferida para no dejar un identificador global.
+  if (relative === "app/api/agents/examen-docente/route.ts") {
+    const normalizedClientProperty = source.replace(
+      /\n(\s*)supabase,\n/g,
+      "\n$1supabase: createServerSupabase(),\n",
+    )
+    if (normalizedClientProperty !== source) {
+      source = normalizedClientProperty
+      changed = true
+    }
+  }
+
   if (changed) {
     fs.writeFileSync(file, source)
     console.log(`[provider-client-init] lazy Supabase aplicado en ${relative}`)
