@@ -1,6 +1,8 @@
 import fs from "node:fs"
 import path from "node:path"
 
+await import("./apply-provider-client-initialization.mjs")
+
 const target = path.join(process.cwd(), "app", "api", "agents", "examen-docente", "route.ts")
 if (!fs.existsSync(target)) throw new Error("[exam-submit-idempotency] examen-docente route no encontrada")
 
@@ -18,7 +20,12 @@ if (!source.includes(newAttemptId)) {
   changed = true
 }
 
-const db = source.includes("function getSupabase()") ? "getSupabase()" : "supabase"
+const db = source.includes("function createServerSupabase()")
+  ? "createServerSupabase()"
+  : source.includes("function getSupabase()")
+    ? "getSupabase()"
+    : "supabase"
+
 const validationMarker = `      if (!isValidRut(rutClean)) {
         return NextResponse.json(
           { error: "RUT inválido. Escríbelo sin puntos ni guion, incluyendo el dígito verificador o K." },
