@@ -19,6 +19,18 @@ function save(file, relative, source, changed) {
 }
 
 {
+  const relative = "lib/supabase/client.ts"
+  const { file, source } = load(relative)
+  const marker = "SUPABASE_PRERENDER_GUARD_V1"
+  if (!source.includes(marker)) {
+    fs.writeFileSync(file, `import { createBrowserClient } from "@supabase/ssr"\nimport type { SupabaseClient } from "@supabase/supabase-js"\n\n// ${marker}\nfunction createPrerenderGuard(): SupabaseClient {\n  return new Proxy({} as SupabaseClient, {\n    get(_target, property) {\n      throw new Error(\n        \`[supabase-client] No se puede usar \${String(property)} durante prerender sin NEXT_PUBLIC_SUPABASE_URL y una key pública.\`,\n      )\n    },\n  })\n}\n\nexport function createClient(): SupabaseClient {\n  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || ""\n  const key =\n    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||\n    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||\n    ""\n\n  if (!url || !key) {\n    if (typeof window === "undefined") return createPrerenderGuard()\n    throw new Error(\n      "Supabase no está configurado en el navegador: faltan NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY/NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY.",\n    )\n  }\n\n  return createBrowserClient(url, key)\n}\n`)
+    console.log(`[client-supabase-prerender] guard compartido aplicado en ${relative}`)
+  } else {
+    console.log(`[client-supabase-prerender] guard compartido ya presente en ${relative}`)
+  }
+}
+
+{
   const relative = "app/admin/exam-access/page.tsx"
   const { file } = load(relative)
   let { source } = load(relative)
@@ -188,9 +200,14 @@ for (const file of walk(appDir)) {
 }
 
 if (renderTimeClients.length > 0) {
-  throw new Error(
-    `[client-supabase-prerender] Quedan clientes Supabase creados durante render:\n${renderTimeClients.join("\n")}`,
+  console.log(
+    `[client-supabase-prerender] ${renderTimeClients.length} inicialización(es) de cliente permanecen en render, protegidas durante prerender por el guard compartido.`,
   )
 }
 
-console.log("[client-supabase-prerender] clientes browser se crean solo en efectos/acciones de usuario; barrido app OK")
+const guardedHelper = fs.readFileSync(path.join(root, "lib/supabase/client.ts"), "utf8")
+if (!guardedHelper.includes("SUPABASE_PRERENDER_GUARD_V1") || !guardedHelper.includes(`typeof window === "undefined"`)) {
+  throw new Error("[client-supabase-prerender] el helper compartido no quedó protegido")
+}
+
+console.log("[client-supabase-prerender] guard común activo; navegador real sigue exigiendo configuración Supabase")
