@@ -6,6 +6,7 @@ on:
       - feat/eduai-core-reuse-ai-gateway
     paths:
       - ".github/workflows/source-and-unused-deps-hardening.yml"
+      - "scripts/apply-planner-maintenance.mjs"
 
 permissions:
   contents: write
