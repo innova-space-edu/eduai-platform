@@ -54,7 +54,7 @@ on:
       - "scripts/test-video-*.mjs"
       - "scripts/apply-current-image-models.mjs"
       - "scripts/apply-personal-provider-hardening.mjs"
-      - "scripts/apply-production-hardening.mjs"
+      - "scripts/apply-production-hardening*.mjs"
       - "scripts/apply-agent-library-repository-cards.mjs"
       - "scripts/test-ai-core.ts"
       - "package.json"
@@ -96,7 +96,7 @@ jobs:
       - name: Aplicar y verificar reutilización de Video Studio
         run: node scripts/apply-video-summary-hobby.mjs
       - name: Aplicar hardening de producción
-        run: node scripts/apply-production-hardening.mjs
+        run: node scripts/apply-production-hardening-stage2.mjs
       - name: Probar fingerprints y routing
         run: npm run test:ai-core
       - name: Verificar TypeScript real
