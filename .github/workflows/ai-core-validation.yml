@@ -13,9 +13,12 @@ on:
       - "components/assets/**"
       - "components/video/**"
       - "components/admin/**"
+      - "components/creator-hub/**"
+      - "components/whiteboard/**"
       - "app/admin/model-lab/**"
       - "app/agentes/**"
       - "app/repositorio/**"
+      - "app/educador/**"
       - "app/api/assets/**"
       - "app/api/account/ai-credentials/**"
       - "app/api/admin/ai-core/**"
@@ -36,9 +39,11 @@ on:
       - "app/api/superagent/chat/**"
       - "app/api/creator/quality-review/**"
       - "app/api/notebooks/**"
+      - "app/api/repository/public-access/**"
       - "app/(auth)/register/**"
       - "supabase/migrations/20260814*.sql"
       - "supabase/migrations/20260815*.sql"
+      - "supabase/migrations/20260816*.sql"
       - "scripts/apply-educador-ai-gateway.mjs"
       - "scripts/apply-educador-dual-submit.mjs"
       - "scripts/test-educador-ai-gateway.mjs"
@@ -49,6 +54,7 @@ on:
       - "scripts/test-video-*.mjs"
       - "scripts/apply-current-image-models.mjs"
       - "scripts/apply-personal-provider-hardening.mjs"
+      - "scripts/apply-production-hardening.mjs"
       - "scripts/apply-agent-library-repository-cards.mjs"
       - "scripts/test-ai-core.ts"
       - "package.json"
@@ -89,13 +95,19 @@ jobs:
         run: node scripts/apply-repository-navigation.mjs
       - name: Aplicar y verificar reutilización de Video Studio
         run: node scripts/apply-video-summary-hobby.mjs
+      - name: Aplicar hardening de producción
+        run: node scripts/apply-production-hardening.mjs
       - name: Probar fingerprints y routing
         run: npm run test:ai-core
-      - name: Verificar TypeScript del núcleo nuevo
+      - name: Verificar TypeScript real
+        shell: bash
         run: |
+          set -o pipefail
           npx tsc --noEmit --pretty false 2>&1 | tee ai-core-tsc.log
       - name: Ejecutar build de producción como Vercel
+        shell: bash
         run: |
+          set -o pipefail
           npm run build 2>&1 | tee ai-core-build.log
       - name: Publicar registros
         if: always()
