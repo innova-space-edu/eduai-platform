@@ -11,6 +11,7 @@ if (!fs.existsSync(migrationPath)) {
 }
 
 const sql = fs.readFileSync(migrationPath, "utf8")
+const executableSql = sql.replace(/--.*$/gm, "")
 
 function requireText(value, label) {
   if (!sql.includes(value)) {
@@ -39,8 +40,8 @@ requireText(
   "roles legítimos del trigger de actualización",
 )
 
-if (/auth\.role\s*\(/i.test(sql)) {
-  throw new Error("[test-user-access-security] La migración correctiva no debe usar auth.role()")
+if (/auth\.role\s*\(/i.test(executableSql)) {
+  throw new Error("[test-user-access-security] La migración correctiva no debe ejecutar auth.role()")
 }
 
-console.log("[test-user-access-security] funciones de acceso sin RPC privilegiado y sin auth.role() verificadas")
+console.log("[test-user-access-security] funciones de acceso sin RPC privilegiado y sin auth.role() ejecutable verificadas")
