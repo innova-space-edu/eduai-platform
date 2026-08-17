@@ -30,6 +30,10 @@ replace(
   "const nextCharacters: Character[] = generatedCharacters.map((generated: any, index: number) => {",
 )
 replace(
+  "const safeCharacters = nextCharacters.length ? nextCharacters : characters",
+  "const safeCharacters: Character[] = nextCharacters.length ? nextCharacters : characters",
+)
+replace(
   `  const generateAllImages = async (force = false) => {
     if (!panels.length || generatingAll) return
     setError("")`,

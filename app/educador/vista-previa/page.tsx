@@ -579,9 +579,10 @@ export default function PlanningPreviewEditorPage() {
 
   const copySelection = useCallback(() => {
     const current = documentRef.current
-    const page = current?.pages.find((item) => item.id === current.activePageId)
+    if (!current) return
+    const page = current.pages.find((item) => item.id === current.activePageId)
     const ids = new Set(selectedRef.current)
-    if (!page || !ids.size) return
+    if (!current || !page || !ids.size) return
     clipboardRef.current = page.elements
       .filter((element) => ids.has(element.id))
       .map((element) => cloneDocument({

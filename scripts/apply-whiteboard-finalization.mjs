@@ -141,5 +141,6 @@ if (templatePaths.every(existsSync)) {
     digitalWhiteboard = loadUpgrade(layoutFoldersUpgradePath, "applyWhiteboardLayoutFoldersUpgrade")(digitalWhiteboard);
   }
 
+  digitalWhiteboard = digitalWhiteboard.replaceAll(' xmlns="http://www.w3.org/1999/xhtml"', "");
   writeFileSync(digitalWhiteboardPath, digitalWhiteboard);
 }

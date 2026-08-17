@@ -494,11 +494,11 @@ export default function ComicsCreatorStudio() {
 
     const storyboard = payload.storyboard
     const generatedCharacters = Array.isArray(storyboard.characters) ? storyboard.characters : []
-    const nextCharacters = generatedCharacters.map((generated: any, index: number) => {
+    const nextCharacters: Character[] = generatedCharacters.map((generated: any, index: number) => {
       const existing = characters.find((character) => character.name.trim().toLowerCase() === String(generated.name || "").trim().toLowerCase())
       return mergeGeneratedCharacter(existing, generated, index)
     })
-    const safeCharacters = nextCharacters.length ? nextCharacters : characters
+    const safeCharacters: Character[] = nextCharacters.length ? nextCharacters : characters
     const nameToId = new Map(safeCharacters.map((character) => [character.name.trim().toLowerCase(), character.id]))
     const alwaysIds = safeCharacters.filter((character) => character.appearsAlways).map((character) => character.id)
     const nextPanels = Array.isArray(storyboard.panels)
@@ -537,7 +537,11 @@ export default function ComicsCreatorStudio() {
       body: JSON.stringify({ action: "cast", ...commonImagePayload(nextCharacters), preferredModel: visualBible.model || "" }),
     })
     const payload = await response.json().catch(() => ({}))
-    if (!response.ok || !payload?.imageUrl) throw new Error(payload?.error || "No fue posible crear la biblia visual.")
+    if (!response.ok || !payload?.imageUrl) {
+      const failure = payload?.error || "No fue posible crear la biblia visual."
+      setVisualBible((current) => ({ ...current, loading: false, error: failure }))
+      throw new Error(failure)
+    }
     const nextBible: VisualBible = {
       castImageUrl: payload.imageUrl,
       provider: payload.provider,
@@ -644,6 +648,8 @@ export default function ComicsCreatorStudio() {
   const generatePanelsBatch = async (sourcePanels: Panel[], sourceCharacters: Character[], bible: VisualBible, force = false) => {
     const targets = sourcePanels.map((panel, index) => ({ panel, index })).filter(({ panel }) => !panel.hidden && !panel.imageLocked && (force || !panel.imageUrl || panel.imageDirty))
     if (!targets.length) {
+      setGeneratingAll(false)
+      setProgress(null)
       setMessage("Las imágenes visibles ya están actualizadas o bloqueadas.")
       return
     }
@@ -662,6 +668,7 @@ export default function ComicsCreatorStudio() {
 
   const generateAllImages = async (force = false) => {
     if (!panels.length || generatingAll) return
+    setGeneratingAll(true)
     setError("")
     setMessage("")
     try {

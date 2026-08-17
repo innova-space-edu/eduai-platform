@@ -131,18 +131,19 @@ async function extractHtmlDocument(html: string, url: string): Promise<string> {
       "#main-content",
       "#content",
     ]
-    let root = $("body")
+    let rootSelector = "body"
     for (const selector of selectors) {
       const candidate = $(selector).first()
       if (candidate.length && candidate.text().trim().length > 300) {
-        root = candidate
+        rootSelector = selector
         break
       }
     }
 
+    const root = $(rootSelector).first()
     const blocks: string[] = []
     root.find("h1,h2,h3,h4,p,li,blockquote,pre,figcaption").each((_, element) => {
-      const tag = element.tagName?.toLowerCase() || ""
+      const tag = ((element as { tagName?: string }).tagName || "").toLowerCase()
       const text = normalizeText($(element).text(), 5_000)
       if (text.length < 2) return
       if (/^h[1-4]$/.test(tag)) blocks.push(`\n## ${text}`)
