@@ -1,0 +1,7 @@
+// Ordena las migraciones de Video Studio antes del hardening final.
+// Premium Personal debe existir en el cliente antes de propagar imageAssetId.
+await import("./apply-video-personal-marketplace.mjs")
+await import("./apply-video-personal-recovery.mjs")
+await import("./apply-production-hardening.mjs")
+
+console.log("[production-hardening-stage2] marketplace, recovery y hardening aplicados")
