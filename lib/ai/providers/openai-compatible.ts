@@ -86,16 +86,19 @@ function headers(provider: CompatibleProvider, key: string): Record<string, stri
   }
 }
 
-export async function generateCompatibleText(input: {
+function timeoutSignal() {
+  const timeoutMs = Number(process.env.EDUAI_AI_PROVIDER_TIMEOUT_MS || 60_000)
+  return AbortSignal.timeout(Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 60_000)
+}
+
+function requestBody(input: {
   provider: CompatibleProvider
   model: string
   messages: GatewayMessage[]
   maxOutputTokens?: number
   structuredSchema?: Record<string, unknown>
-}): Promise<CompatibleTextResult> {
-  const key = apiKey(input.provider)
-  if (!key) throw new Error(`No hay API key configurada para ${input.provider}`)
-
+  stream?: boolean
+}) {
   const messages = input.structuredSchema
     ? [
         {
@@ -112,18 +115,32 @@ export async function generateCompatibleText(input: {
     model: input.model,
     messages,
     max_tokens: input.maxOutputTokens ?? 4000,
+    ...(input.stream ? { stream: true } : {}),
   }
 
   if (input.provider === "openrouter") {
     body.provider = openRouterProviderConfig()
   }
 
-  const timeoutMs = Number(process.env.EDUAI_AI_PROVIDER_TIMEOUT_MS || 60_000)
+  return body
+}
+
+async function compatibleFetch(input: {
+  provider: CompatibleProvider
+  model: string
+  messages: GatewayMessage[]
+  maxOutputTokens?: number
+  structuredSchema?: Record<string, unknown>
+  stream?: boolean
+}) {
+  const key = apiKey(input.provider)
+  if (!key) throw new Error(`No hay API key configurada para ${input.provider}`)
+
   const response = await fetch(ENDPOINTS[input.provider], {
     method: "POST",
     headers: headers(input.provider, key),
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 60_000),
+    body: JSON.stringify(requestBody(input)),
+    signal: timeoutSignal(),
   })
 
   if (!response.ok) {
@@ -133,6 +150,17 @@ export async function generateCompatibleText(input: {
     )
   }
 
+  return response
+}
+
+export async function generateCompatibleText(input: {
+  provider: CompatibleProvider
+  model: string
+  messages: GatewayMessage[]
+  maxOutputTokens?: number
+  structuredSchema?: Record<string, unknown>
+}): Promise<CompatibleTextResult> {
+  const response = await compatibleFetch(input)
   const data = (await response.json()) as {
     model?: string
     choices?: Array<{ message?: { content?: string | null } }>
@@ -145,6 +173,81 @@ export async function generateCompatibleText(input: {
     provider: input.provider,
     model: data.model || input.model,
   }
+}
+
+export async function streamCompatibleText(input: {
+  provider: CompatibleProvider
+  model: string
+  messages: GatewayMessage[]
+  maxOutputTokens?: number
+}): Promise<ReadableStream<Uint8Array>> {
+  const response = await compatibleFetch({ ...input, stream: true })
+  if (!response.body) throw new Error(`${input.provider}: respuesta streaming sin body`)
+
+  const upstream = response.body.getReader()
+  const decoder = new TextDecoder()
+  const encoder = new TextEncoder()
+
+  return new ReadableStream<Uint8Array>({
+    async start(controller) {
+      let buffer = ""
+
+      const processLine = (line: string) => {
+        const trimmed = line.trim()
+        if (!trimmed || trimmed.startsWith(":")) return false
+        if (!trimmed.startsWith("data:")) return false
+
+        const payload = trimmed.slice(5).trim()
+        if (!payload) return false
+        if (payload === "[DONE]") return true
+
+        try {
+          const event = JSON.parse(payload) as {
+            error?: { message?: string }
+            choices?: Array<{ delta?: { content?: string | null }; finish_reason?: string | null }>
+          }
+          if (event.error?.message) {
+            throw new Error(`${input.provider} streaming: ${event.error.message}`)
+          }
+          const text = event.choices?.[0]?.delta?.content
+          if (text) controller.enqueue(encoder.encode(text))
+        } catch (error) {
+          if (error instanceof SyntaxError) return false
+          throw error
+        }
+        return false
+      }
+
+      try {
+        let doneByEvent = false
+        while (!doneByEvent) {
+          const { done, value } = await upstream.read()
+          buffer += decoder.decode(value, { stream: !done })
+
+          const lines = buffer.split(/\r?\n/)
+          buffer = lines.pop() || ""
+          for (const line of lines) {
+            if (processLine(line)) {
+              doneByEvent = true
+              break
+            }
+          }
+
+          if (done) {
+            if (buffer) processLine(buffer)
+            break
+          }
+        }
+        controller.close()
+      } catch (error) {
+        await upstream.cancel().catch(() => undefined)
+        controller.error(error)
+      }
+    },
+    async cancel() {
+      await upstream.cancel().catch(() => undefined)
+    },
+  })
 }
 
 export function parseStructuredJson<T>(text: string): T {
