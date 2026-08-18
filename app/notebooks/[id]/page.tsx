@@ -11,6 +11,7 @@ import {
 } from "lucide-react"
 import { useNotebook } from "@/hooks/useNotebook"
 import SourcePanelPro from "@/components/notebook/SourcePanelPro"
+import NotebookFileSearchPanel from "@/components/notebook/NotebookFileSearchPanel"
 import NotebookChatPro from "@/components/notebook/NotebookChatPro"
 import NotebookStudyPanel from "@/components/notebook/NotebookStudyPanel"
 import SpecialistRoleSelector from "@/components/notebook/SpecialistRoleSelector"
@@ -154,14 +155,17 @@ export default function NotebookPage() {
       <div className="flex min-h-0 flex-1 overflow-hidden">
         {leftOpen && (
           <aside className="flex w-[300px] shrink-0 flex-col overflow-hidden border-r border-soft xl:w-[330px]">
-            <SourcePanelPro
-              notebookId={id}
-              sources={sources}
-              onSourcesChange={async () => {
-                await Promise.resolve(refreshSources())
-                await Promise.resolve(refreshSummary())
-              }}
-            />
+            <NotebookFileSearchPanel notebookId={id} sources={sources} />
+            <div className="min-h-0 flex-1">
+              <SourcePanelPro
+                notebookId={id}
+                sources={sources}
+                onSourcesChange={async () => {
+                  await Promise.resolve(refreshSources())
+                  await Promise.resolve(refreshSummary())
+                }}
+              />
+            </div>
           </aside>
         )}
 
