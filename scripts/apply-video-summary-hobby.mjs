@@ -130,6 +130,8 @@ await import("./test-video-reusable-assets.mjs")
 // El hardening crítico se aplica antes de las cadenas de tests/UI para que
 // npm run build en un checkout limpio no dependa de una preparación previa de CI.
 await import("./apply-production-hardening-stage2.mjs")
+await import("./apply-video-stale-queue.mjs")
+await import("./test-video-stale-queue.mjs")
 await import("./apply-video-preview-autostart.mjs")
 await import("./test-video-preview-autostart.mjs")
 await import("./apply-video-free-provider-router.mjs")
