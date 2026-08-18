@@ -6,6 +6,7 @@ await import("./apply-production-hardening.mjs")
 await import("./test-user-access-function-security.mjs")
 await import("./test-provider-health-events.mjs")
 await import("./test-asset-import-ssrf.mjs")
+await import("./test-notebook-remote-pdf-cap.mjs")
 await import("./test-production-hardening.mjs")
 
-console.log("[production-hardening-stage2] marketplace, recovery, access, provider health, SSRF y gates de producción verificados")
+console.log("[production-hardening-stage2] marketplace, recovery, access, provider health, SSRF, Notebook remote PDF y gates verificados")
