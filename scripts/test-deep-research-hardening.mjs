@@ -23,7 +23,9 @@ if (!source.includes("startFailed: true") || !source.includes("finalizationFaile
 if (!source.includes("const completedText = interaction.text.trim()") || !source.includes("emptyResult: true")) {
   throw new Error("[test-deep-research-hardening] empty result must fail before finalizing")
 }
-if (source.indexOf("const completedText = interaction.text.trim()") > source.indexOf('status: "finalizing"')) {
+const completedTextIndex = source.indexOf("const completedText = interaction.text.trim()")
+const finalizingClaimIndex = source.indexOf('.update({ status: "finalizing", updated_at: new Date().toISOString() })')
+if (completedTextIndex < 0 || finalizingClaimIndex < 0 || completedTextIndex > finalizingClaimIndex) {
   throw new Error("[test-deep-research-hardening] completed text validation must happen before finalizing claim")
 }
 if (!source.includes('.in("status", ["queued", "running", "finalizing"])')) {
