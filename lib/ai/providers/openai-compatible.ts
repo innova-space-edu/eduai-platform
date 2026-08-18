@@ -1,7 +1,7 @@
 import type { AICapability, AIProviderId } from "../capabilities"
 import type { GatewayMessage } from "./google"
 
-type CompatibleProvider = Extract<AIProviderId, "groq" | "openrouter" | "together" | "cerebras">
+export type CompatibleProvider = Extract<AIProviderId, "groq" | "openrouter" | "together" | "cerebras">
 
 export type CompatibleTextResult = {
   text: string
@@ -29,14 +29,12 @@ function apiKey(provider: CompatibleProvider): string | null {
   }
 }
 
+export function isCompatibleProviderId(provider: AIProviderId): provider is CompatibleProvider {
+  return provider === "groq" || provider === "openrouter" || provider === "together" || provider === "cerebras"
+}
+
 export function hasCompatibleProvider(provider: AIProviderId): provider is CompatibleProvider {
-  return (
-    (provider === "groq" ||
-      provider === "openrouter" ||
-      provider === "together" ||
-      provider === "cerebras") &&
-    Boolean(apiKey(provider))
-  )
+  return isCompatibleProviderId(provider) && Boolean(apiKey(provider))
 }
 
 export function compatibleFallbackModel(
@@ -120,11 +118,12 @@ export async function generateCompatibleText(input: {
     body.provider = openRouterProviderConfig()
   }
 
+  const timeoutMs = Number(process.env.EDUAI_AI_PROVIDER_TIMEOUT_MS || 60_000)
   const response = await fetch(ENDPOINTS[input.provider], {
     method: "POST",
     headers: headers(input.provider, key),
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(Number(process.env.EDUAI_AI_PROVIDER_TIMEOUT_MS || 60_000)),
+    signal: AbortSignal.timeout(Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 60_000),
   })
 
   if (!response.ok) {
