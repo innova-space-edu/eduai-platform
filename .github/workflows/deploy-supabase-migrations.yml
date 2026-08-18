@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - feat/eduai-core-reuse-ai-gateway
     paths:
       - "supabase/migrations/**"
       - ".github/workflows/deploy-supabase-migrations.yml"
