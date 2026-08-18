@@ -26,8 +26,11 @@ if (/grant\s+(?:insert|update|delete|all).*authenticated/i.test(indexMigration))
   throw new Error("[test-google-file-search] authenticated users must not mutate File Search state directly")
 }
 if (!guardMigration.includes("on delete restrict")) throw new Error("[test-google-file-search] remote lifecycle delete guards missing")
-for (const marker of ["uploadToFileSearchStore", "new Blob", "customMetadata", "eduai_content_hash", "maxTokensPerChunk", "getGoogleFileSearchOperation", "listGoogleFileSearchDocuments", "findGoogleFileSearchDocument", "GoogleFileSearchHttpError"]) {
+for (const marker of ["uploadToFileSearchStore", "new Blob", "customMetadata", "eduai_content_hash", "maxTokensPerChunk", "getGoogleFileSearchOperation", "fileSearchStores.documents.list", "findGoogleFileSearchDocument", "remoteDocumentPriority", "GoogleFileSearchHttpError"]) {
   if (!provider.includes(marker)) throw new Error(`[test-google-file-search] provider missing ${marker}`)
+}
+if (!provider.includes('document.state === "STATE_ACTIVE"') || !provider.includes('document.state === "STATE_PENDING"') || !provider.includes('document.state === "STATE_FAILED"')) {
+  throw new Error("[test-google-file-search] reconciliation must prioritize ACTIVE over PENDING/FAILED")
 }
 if (!route.includes('capability: "retrieval"') || !route.includes('provider: "google"')) {
   throw new Error("[test-google-file-search] age/cloud access guard missing")
@@ -56,4 +59,4 @@ if (!deepRoute.includes('.select("source_id,content_hash")') || !deepRoute.inclu
   throw new Error("[test-google-file-search] active/current source hash filtering missing")
 }
 
-console.log("[test-google-file-search] hosted File Search is SHA-aware, freshness-checked, reconciled, server-owned, deletion-safe and additive to EduAI RAG")
+console.log("[test-google-file-search] hosted File Search is SHA-aware, freshness-checked, SDK-reconciled, server-owned, deletion-safe and additive to EduAI RAG")

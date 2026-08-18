@@ -136,37 +136,25 @@ function normalizeRemoteDocument(value: any): GoogleFileSearchRemoteDocument | n
 export async function listGoogleFileSearchDocuments(storeName: string) {
   if (!STORE_RESOURCE.test(storeName)) throw new Error("File Search Store inválido")
   const documents: GoogleFileSearchRemoteDocument[] = []
-  let pageToken = ""
-  const seenTokens = new Set<string>()
-
-  for (let page = 0; page < 250; page += 1) {
-    const params = new URLSearchParams({ key: apiKey(), pageSize: "20" })
-    if (pageToken) params.set("pageToken", pageToken)
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/${storeName}/documents?${params.toString()}`,
-      { signal: AbortSignal.timeout(20_000), cache: "no-store" },
-    )
-    const body = await response.json().catch(() => null) as any
-    if (!response.ok) {
-      throw new GoogleFileSearchHttpError(
-        body?.error?.message || `Google File Search documents respondió HTTP ${response.status}`,
-        response.status,
-      )
-    }
-
-    for (const raw of Array.isArray(body?.documents) ? body.documents : []) {
-      const document = normalizeRemoteDocument(raw)
-      if (document) documents.push(document)
-    }
-
-    const next = typeof body?.nextPageToken === "string" ? body.nextPageToken : ""
-    if (!next) return documents
-    if (seenTokens.has(next)) throw new Error("Google File Search devolvió paginación repetida")
-    seenTokens.add(next)
-    pageToken = next
+  const pager = await client().fileSearchStores.documents.list({ parent: storeName })
+  for await (const raw of pager) {
+    const document = normalizeRemoteDocument(raw)
+    if (document) documents.push(document)
+    if (documents.length > 5_000) throw new Error("Google File Search excedió el límite de documentos de seguridad")
   }
+  return documents
+}
 
-  throw new Error("Google File Search excedió el límite de paginación de seguridad")
+function remoteDocumentPriority(document: GoogleFileSearchRemoteDocument) {
+  if (document.state === "STATE_ACTIVE") return 3
+  if (document.state === "STATE_PENDING") return 2
+  if (document.state === "STATE_FAILED") return 1
+  return 0
+}
+
+function remoteDocumentTime(document: GoogleFileSearchRemoteDocument) {
+  const parsed = Date.parse(document.updateTime || document.createTime || "")
+  return Number.isFinite(parsed) ? parsed : 0
 }
 
 export async function findGoogleFileSearchDocument(input: {
@@ -180,7 +168,11 @@ export async function findGoogleFileSearchDocument(input: {
     if (input.contentHash && document.customMetadata.eduai_content_hash !== input.contentHash) return false
     return true
   })
-  return matches.at(-1) || null
+  matches.sort((a, b) => {
+    const priority = remoteDocumentPriority(b) - remoteDocumentPriority(a)
+    return priority || remoteDocumentTime(b) - remoteDocumentTime(a) || b.name.localeCompare(a.name)
+  })
+  return matches[0] || null
 }
 
 export async function startGoogleFileSearchUpload(input: {
