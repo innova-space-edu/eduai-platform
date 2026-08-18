@@ -30,6 +30,7 @@ import {
   hasCompatibleProvider,
   isCompatibleProviderId,
   parseStructuredJson,
+  streamCompatibleText,
 } from "./providers/openai-compatible"
 
 export type { GatewayMessage }
@@ -576,18 +577,11 @@ export async function streamAIText(input: {
           capability: "text",
         })
         if (!selected) continue
-        const result = await generateCompatibleText({
+        return streamCompatibleText({
           provider,
           model: selected.model,
           messages: input.messages,
           maxOutputTokens: input.maxOutputTokens,
-        })
-        const encoded = new TextEncoder().encode(result.text)
-        return new ReadableStream<Uint8Array>({
-          start(controller) {
-            controller.enqueue(encoded)
-            controller.close()
-          },
         })
       }
 
