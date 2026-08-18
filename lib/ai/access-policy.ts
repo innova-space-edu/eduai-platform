@@ -33,27 +33,87 @@ const ACCOUNT_TYPES = new Set([
   "other",
 ])
 
+const ACCESS_TIERS = new Set<EduAIAccessTier>([
+  "restricted",
+  "standard",
+  "teacher",
+  "researcher",
+  "admin",
+  "legacy_standard",
+])
+
 function schemaUnavailable(error: unknown) {
   const value = error as { code?: string; message?: string } | null
   return value?.code === "42P01" || /does not exist|schema cache/i.test(value?.message || "")
 }
 
-function parseBirthDate(value: unknown): Date | null {
+function parseBirthDate(value: unknown, now = new Date()): Date | null {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null
   const parsed = new Date(`${value}T00:00:00.000Z`)
   if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value) return null
-  if (parsed.getUTCFullYear() < 1900 || parsed.getTime() > Date.now()) return null
+  if (parsed.getUTCFullYear() < 1900 || parsed.getTime() > now.getTime()) return null
   return parsed
 }
 
-function isUnder18(birthDate: Date) {
-  const now = new Date()
+function isUnder18(birthDate: Date, now = new Date()) {
   const threshold = new Date(Date.UTC(
     now.getUTCFullYear() - 18,
     now.getUTCMonth(),
     now.getUTCDate(),
   ))
   return birthDate.getTime() > threshold.getTime()
+}
+
+export function deriveEffectiveStoredAccessProfile(input: {
+  userId: string
+  birthDate: unknown
+  ageBand: unknown
+  accountType: unknown
+  accessTier: unknown
+  now?: Date
+}): EduAIAccessProfile {
+  const now = input.now || new Date()
+  const birthDate = parseBirthDate(input.birthDate, now)
+  const storedAgeBand = input.ageBand === "under_18" ? "under_18" : "adult"
+  const storedTier = typeof input.accessTier === "string" && ACCESS_TIERS.has(input.accessTier as EduAIAccessTier)
+    ? input.accessTier as EduAIAccessTier
+    : "standard"
+  const accountType = typeof input.accountType === "string" ? input.accountType : null
+
+  if (!birthDate) {
+    return {
+      userId: input.userId,
+      ageBand: storedAgeBand,
+      accountType,
+      accessTier: storedAgeBand === "under_18" ? "restricted" : storedTier,
+      hasExplicitAgeProfile: true,
+    }
+  }
+
+  const restrictedByCurrentAge = isUnder18(birthDate, now)
+  if (restrictedByCurrentAge) {
+    return {
+      userId: input.userId,
+      ageBand: "under_18",
+      accountType,
+      accessTier: "restricted",
+      hasExplicitAgeProfile: true,
+    }
+  }
+
+  // El paso del tiempo no dispara triggers en Postgres. Si la cuenta fue
+  // guardada como menor/restricted y ya cumplió 18, promovemos el acceso
+  // efectivo a standard en el request. No elevamos roles privilegiados y no
+  // anulamos una restricción adulta futura que tenga age_band='adult'.
+  const agedOutOfMinorRestriction = storedAgeBand === "under_18" && storedTier === "restricted"
+
+  return {
+    userId: input.userId,
+    ageBand: "adult",
+    accountType,
+    accessTier: agedOutOfMinorRestriction ? "standard" : storedTier,
+    hasExplicitAgeProfile: true,
+  }
 }
 
 export function deriveAccessProfileFromMetadata(input: {
@@ -144,6 +204,10 @@ function legacyProfile(userId: string): EduAIAccessProfile {
  * convierte temporalmente en legacy_standard por una carrera de provisión.
  * Las cuentas históricas sin birth_date conservan legacy_standard durante la
  * migración progresiva.
+ *
+ * La edad efectiva se recalcula desde birth_date en cada lectura para que una
+ * cuenta no permanezca restricted después de cumplir 18 solo porque Postgres
+ * no recibió un UPDATE el día de su cumpleaños.
  */
 export async function getEduAIAccessProfile(
   supabase: SupabaseClient,
@@ -151,18 +215,18 @@ export async function getEduAIAccessProfile(
 ): Promise<EduAIAccessProfile> {
   const { data, error } = await supabase
     .from("eduai_user_access")
-    .select("user_id,age_band,account_type,access_tier")
+    .select("user_id,birth_date,age_band,account_type,access_tier")
     .eq("user_id", userId)
     .maybeSingle()
 
   if (!error && data) {
-    return {
+    return deriveEffectiveStoredAccessProfile({
       userId,
-      ageBand: data.age_band === "under_18" ? "under_18" : "adult",
-      accountType: data.account_type || null,
-      accessTier: (data.access_tier || "standard") as EduAIAccessTier,
-      hasExplicitAgeProfile: true,
-    }
+      birthDate: data.birth_date,
+      ageBand: data.age_band,
+      accountType: data.account_type,
+      accessTier: data.access_tier,
+    })
   }
 
   if (error && !schemaUnavailable(error)) {
