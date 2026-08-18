@@ -6,6 +6,7 @@ import { providerOrderFor } from "../lib/ai/capabilities"
 import {
   decideCapability,
   deriveAccessProfileFromMetadata,
+  deriveEffectiveStoredAccessProfile,
   type EduAIAccessProfile,
 } from "../lib/ai/access-policy"
 import { resolveProviderModel } from "../lib/ai/model-registry"
@@ -108,6 +109,56 @@ function testAuthMetadataAccessFallback() {
   assert.equal(invalid, null, "Fechas imposibles no deben convertirse en un perfil de autorización")
 }
 
+function testStoredAgeTransition() {
+  const now = new Date("2026-08-17T12:00:00.000Z")
+
+  const staleMinor = deriveEffectiveStoredAccessProfile({
+    userId: "stale-minor",
+    birthDate: "2010-08-18",
+    ageBand: "adult",
+    accountType: "other",
+    accessTier: "standard",
+    now,
+  })
+  assert.equal(staleMinor.ageBand, "under_18", "birth_date actual debe prevalecer sobre age_band obsoleto")
+  assert.equal(staleMinor.accessTier, "restricted", "un menor nunca debe heredar un tier adulto obsoleto")
+
+  const eighteenthBirthday = deriveEffectiveStoredAccessProfile({
+    userId: "turning-18",
+    birthDate: "2008-08-17",
+    ageBand: "under_18",
+    accountType: "university_student",
+    accessTier: "restricted",
+    now,
+  })
+  assert.equal(eighteenthBirthday.ageBand, "adult", "al cumplir 18 debe cambiar el tramo efectivo")
+  assert.equal(eighteenthBirthday.accessTier, "standard", "la restricción causada por minoría debe expirar a los 18")
+
+  const adultAdministrativeRestriction = deriveEffectiveStoredAccessProfile({
+    userId: "adult-restricted",
+    birthDate: "1990-05-20",
+    ageBand: "adult",
+    accountType: "other",
+    accessTier: "restricted",
+    now,
+  })
+  assert.equal(
+    adultAdministrativeRestriction.accessTier,
+    "restricted",
+    "una restricción adulta no debe levantarse solo por recalcular edad",
+  )
+
+  const adultTeacher = deriveEffectiveStoredAccessProfile({
+    userId: "adult-teacher",
+    birthDate: "1985-03-10",
+    ageBand: "adult",
+    accountType: "teacher",
+    accessTier: "teacher",
+    now,
+  })
+  assert.equal(adultTeacher.accessTier, "teacher", "roles privilegiados válidos deben conservarse")
+}
+
 function testStructuredObservability() {
   const gatewayPath = path.join(process.cwd(), "lib", "ai", "gateway.ts")
   const gateway = fs.readFileSync(gatewayPath, "utf8")
@@ -144,6 +195,7 @@ async function main() {
   testProviderOrder()
   testAccessPolicy()
   testAuthMetadataAccessFallback()
+  testStoredAgeTransition()
   testStructuredObservability()
   await testModelRegistryFallback()
   console.log("✓ EduAI AI Core tests OK")
