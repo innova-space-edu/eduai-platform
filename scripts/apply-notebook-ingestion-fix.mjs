@@ -31,10 +31,13 @@ source = source.replace(
       const tag = ((element as { tagName?: string }).tagName || "").toLowerCase()`,
 )
 
-source = source.replace(
-  `import { fetchPublicUrl } from "./url-safety"`,
-  `import { fetchPublicUrl } from "./url-safety"\nimport { fetchSafeRemoteBytes } from "@/lib/safe-remote-url"`,
-)
+const safeRemoteImport = `import { fetchSafeRemoteBytes } from "@/lib/safe-remote-url"`
+if (!source.includes(safeRemoteImport)) {
+  source = source.replace(
+    `import { fetchPublicUrl } from "./url-safety"`,
+    `import { fetchPublicUrl } from "./url-safety"\n${safeRemoteImport}`,
+  )
+}
 
 source = source.replace(
   `async function extractRemotePdf(url: string): Promise<string> {
