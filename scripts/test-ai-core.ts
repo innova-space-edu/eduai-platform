@@ -7,6 +7,7 @@ import {
   decideCapability,
   deriveAccessProfileFromMetadata,
   deriveEffectiveStoredAccessProfile,
+  unresolvedAccessProfile,
   type EduAIAccessProfile,
 } from "../lib/ai/access-policy"
 import { resolveProviderModel } from "../lib/ai/model-registry"
@@ -74,7 +75,7 @@ function testAccessPolicy() {
   assert.equal(decideCapability(minor, "text", "google").allowed, false)
 }
 
-function testAuthMetadataAccessFallback() {
+function testMetadataNormalizationOnly() {
   const minor = deriveAccessProfileFromMetadata({
     userId: "minor-metadata",
     metadata: {
@@ -82,10 +83,9 @@ function testAuthMetadataAccessFallback() {
       account_type: "university_student",
     },
   })
-  assert.ok(minor, "Una fecha válida en metadata debe producir un perfil explícito")
+  assert.ok(minor, "Una fecha válida en metadata debe poder normalizarse para provisión/UI")
   assert.equal(minor.ageBand, "under_18")
-  assert.equal(minor.accessTier, "restricted", "Un menor nunca debe caer temporalmente a legacy_standard")
-  assert.equal(decideCapability(minor, "video", "google").allowed, false)
+  assert.equal(minor.accessTier, "restricted")
 
   const adultTeacherMetadata = deriveAccessProfileFromMetadata({
     userId: "adult-metadata",
@@ -106,7 +106,33 @@ function testAuthMetadataAccessFallback() {
     userId: "invalid-metadata",
     metadata: { birth_date: "2026-02-31", account_type: "teacher" },
   })
-  assert.equal(invalid, null, "Fechas imposibles no deben convertirse en un perfil de autorización")
+  assert.equal(invalid, null, "Fechas imposibles no deben normalizarse como perfil válido")
+}
+
+function testMissingProfileFailsClosed() {
+  const unresolved = unresolvedAccessProfile("missing-profile")
+  assert.equal(unresolved.ageBand, "unknown")
+  assert.equal(unresolved.accessTier, "restricted")
+  assert.equal(unresolved.hasExplicitAgeProfile, false)
+  assert.equal(decideCapability(unresolved, "video", "google").allowed, false)
+  assert.equal(decideCapability(unresolved, "text", "google").allowed, false)
+  assert.equal(decideCapability(unresolved, "text", "local").allowed, true)
+
+  const accessPolicyPath = path.join(process.cwd(), "lib", "ai", "access-policy.ts")
+  const source = fs.readFileSync(accessPolicyPath, "utf8")
+  const start = source.indexOf("export async function getEduAIAccessProfile")
+  const end = source.indexOf("export function decideCapability", start)
+  assert.ok(start >= 0 && end > start, "Debe existir getEduAIAccessProfile")
+  const authorizationBlock = source.slice(start, end)
+  assert.equal(
+    authorizationBlock.includes("user_metadata"),
+    false,
+    "La autorización no debe derivarse desde user_metadata editable por el usuario",
+  )
+  assert.ok(
+    authorizationBlock.includes("return unresolvedAccessProfile(userId)"),
+    "La ausencia de perfil debe fallar cerrada",
+  )
 }
 
 function testStoredAgeTransition() {
@@ -194,7 +220,8 @@ async function main() {
   testFingerprintDeterminism()
   testProviderOrder()
   testAccessPolicy()
-  testAuthMetadataAccessFallback()
+  testMetadataNormalizationOnly()
+  testMissingProfileFailsClosed()
   testStoredAgeTransition()
   testStructuredObservability()
   await testModelRegistryFallback()
