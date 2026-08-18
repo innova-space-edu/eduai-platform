@@ -1,5 +1,4 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
-import { callAI as callLegacyAI } from "@/lib/ai-router-v4"
 import {
   envNameForCapability,
   providerOrderFor,
@@ -25,6 +24,13 @@ import {
   streamGoogleText,
   type GatewayMessage,
 } from "./providers/google"
+import {
+  compatibleFallbackModel,
+  generateCompatibleText,
+  hasCompatibleProvider,
+  isCompatibleProviderId,
+  parseStructuredJson,
+} from "./providers/openai-compatible"
 
 export type { GatewayMessage }
 
@@ -38,12 +44,6 @@ export type GatewayResult<T = string> = {
   reused: boolean
   cacheId?: string | null
   latencyMs: number
-}
-
-function legacyPreference(provider: AIProviderId): "groq" | "openrouter" | undefined {
-  if (provider === "groq") return "groq"
-  if (provider === "openrouter") return "openrouter"
-  return undefined
 }
 
 function providerOrder(capability: AICapability, preferred?: AIProviderId | null): AIProviderId[] {
@@ -83,22 +83,74 @@ async function lookupReuse(input: {
   })
 }
 
-async function googleRuntimeModel(input: {
+async function providerRuntimeModel(input: {
   supabase?: SupabaseClient | null
+  provider: AIProviderId
   capability: AICapability
   lite?: boolean
   kind?: "text" | "image"
 }) {
-  const fallbackModel = input.kind === "image"
-    ? googleModel("image")
-    : googleModel(input.lite ? "lite" : "text")
+  let fallbackModel: string | null = null
+
+  if (input.provider === "google") {
+    fallbackModel = input.kind === "image"
+      ? googleModel("image")
+      : googleModel(input.lite ? "lite" : "text")
+  } else if (isCompatibleProviderId(input.provider)) {
+    fallbackModel = compatibleFallbackModel(input.provider, input.capability)
+  }
+
+  if (!fallbackModel) return null
 
   return resolveProviderModel({
     supabase: input.supabase,
-    provider: "google",
+    provider: input.provider,
     capability: input.capability,
     fallbackModel,
   })
+}
+
+async function executeTextProvider(input: {
+  provider: AIProviderId
+  capability: AICapability
+  messages: GatewayMessage[]
+  maxOutputTokens?: number
+  lite?: boolean
+  supabase?: SupabaseClient | null
+}): Promise<{ text: string; provider: string; model: string } | null> {
+  if (input.provider === "google") {
+    if (!hasGoogleAI("text")) return null
+    const selected = await providerRuntimeModel({
+      supabase: input.supabase,
+      provider: "google",
+      capability: input.capability,
+      lite: input.lite,
+    })
+    if (!selected) return null
+    return generateGoogleText({
+      messages: input.messages,
+      maxOutputTokens: input.maxOutputTokens,
+      lite: input.lite,
+      model: selected.model,
+    })
+  }
+
+  if (hasCompatibleProvider(input.provider)) {
+    const selected = await providerRuntimeModel({
+      supabase: input.supabase,
+      provider: input.provider,
+      capability: input.capability,
+    })
+    if (!selected) return null
+    return generateCompatibleText({
+      provider: input.provider,
+      model: selected.model,
+      messages: input.messages,
+      maxOutputTokens: input.maxOutputTokens,
+    })
+  }
+
+  return null
 }
 
 export async function runAIText(input: {
@@ -204,26 +256,17 @@ export async function runAIText(input: {
         provider,
       })
 
-      let result: { text: string; provider: string; model: string }
+      const result = await executeTextProvider({
+        provider,
+        capability,
+        messages: input.messages,
+        maxOutputTokens: input.maxOutputTokens,
+        lite: input.lite,
+        supabase: input.supabase,
+      })
 
-      if (provider === "google" && hasGoogleAI("text")) {
-        const selected = await googleRuntimeModel({
-          supabase: input.supabase,
-          capability,
-          lite: input.lite,
-        })
-        result = await generateGoogleText({
-          messages: input.messages,
-          maxOutputTokens: input.maxOutputTokens,
-          lite: input.lite,
-          model: selected.model,
-        })
-      } else if (provider === "groq" || provider === "openrouter") {
-        result = await callLegacyAI(input.messages, {
-          maxTokens: input.maxOutputTokens,
-          preferProvider: legacyPreference(provider),
-        })
-      } else {
+      if (!result) {
+        errors.push(`${provider}: no configurado para esta capacidad`)
         continue
       }
 
@@ -390,34 +433,49 @@ export async function runAIStructured<T = Record<string, unknown>>(input: {
         provider,
       })
 
-      let result: { text: string; data: T; provider: string; model: string }
+      let result: { text: string; data: T; provider: string; model: string } | null = null
 
       if (provider === "google" && hasGoogleAI("text")) {
-        const selected = await googleRuntimeModel({
+        const selected = await providerRuntimeModel({
           supabase: input.supabase,
+          provider: "google",
           capability,
           lite: input.lite,
         })
-        result = await generateGoogleStructured<T>({
-          messages: input.messages,
-          schema: input.schema,
-          maxOutputTokens: input.maxOutputTokens,
-          lite: input.lite,
-          model: selected.model,
-        })
-      } else if (provider === "groq" || provider === "openrouter") {
-        const fallback = await callLegacyAI(input.messages, {
-          maxTokens: input.maxOutputTokens,
-          preferProvider: legacyPreference(provider),
-        })
-        const cleaned = fallback.text.replace(/```json|```/g, "").trim()
-        result = {
-          text: cleaned,
-          data: JSON.parse(cleaned) as T,
-          provider: fallback.provider,
-          model: fallback.model,
+        if (selected) {
+          result = await generateGoogleStructured<T>({
+            messages: input.messages,
+            schema: input.schema,
+            maxOutputTokens: input.maxOutputTokens,
+            lite: input.lite,
+            model: selected.model,
+          })
         }
-      } else {
+      } else if (hasCompatibleProvider(provider)) {
+        const selected = await providerRuntimeModel({
+          supabase: input.supabase,
+          provider,
+          capability,
+        })
+        if (selected) {
+          const response = await generateCompatibleText({
+            provider,
+            model: selected.model,
+            messages: input.messages,
+            maxOutputTokens: input.maxOutputTokens,
+            structuredSchema: input.schema,
+          })
+          result = {
+            text: response.text,
+            data: parseStructuredJson<T>(response.text),
+            provider: response.provider,
+            model: response.model,
+          }
+        }
+      }
+
+      if (!result) {
+        errors.push(`${provider}: no configurado para salida estructurada`)
         continue
       }
 
@@ -484,40 +542,64 @@ export async function streamAIText(input: {
   context?: AIRequestContext
   supabase?: SupabaseClient | null
 }): Promise<ReadableStream<Uint8Array>> {
-  const first = providerOrder("text", input.preferredProvider)[0]
+  const errors: string[] = []
 
-  await assertAccess({
-    supabase: input.supabase,
-    context: input.context,
-    capability: "text",
-    provider: first,
-  })
+  for (const provider of providerOrder("text", input.preferredProvider)) {
+    try {
+      await assertAccess({
+        supabase: input.supabase,
+        context: input.context,
+        capability: "text",
+        provider,
+      })
 
-  if (first === "google" && hasGoogleAI("text")) {
-    const selected = await googleRuntimeModel({
-      supabase: input.supabase,
-      capability: "text",
-      lite: input.lite,
-    })
-    return streamGoogleText({
-      messages: input.messages,
-      maxOutputTokens: input.maxOutputTokens,
-      lite: input.lite,
-      model: selected.model,
-    })
+      if (provider === "google" && hasGoogleAI("text")) {
+        const selected = await providerRuntimeModel({
+          supabase: input.supabase,
+          provider: "google",
+          capability: "text",
+          lite: input.lite,
+        })
+        if (!selected) continue
+        return streamGoogleText({
+          messages: input.messages,
+          maxOutputTokens: input.maxOutputTokens,
+          lite: input.lite,
+          model: selected.model,
+        })
+      }
+
+      if (hasCompatibleProvider(provider)) {
+        const selected = await providerRuntimeModel({
+          supabase: input.supabase,
+          provider,
+          capability: "text",
+        })
+        if (!selected) continue
+        const result = await generateCompatibleText({
+          provider,
+          model: selected.model,
+          messages: input.messages,
+          maxOutputTokens: input.maxOutputTokens,
+        })
+        const encoded = new TextEncoder().encode(result.text)
+        return new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.enqueue(encoded)
+            controller.close()
+          },
+        })
+      }
+
+      errors.push(`${provider}: no configurado para streaming`)
+    } catch (error) {
+      const typed = error as Error & { code?: string }
+      if (typed.code === "EDUAI_ACCESS_RESTRICTED") throw error
+      errors.push(`${provider}: ${error instanceof Error ? error.message : String(error)}`)
+    }
   }
 
-  const fallback = await callLegacyAI(input.messages, {
-    maxTokens: input.maxOutputTokens,
-    preferProvider: legacyPreference(first),
-  })
-  const encoded = new TextEncoder().encode(fallback.text)
-  return new ReadableStream<Uint8Array>({
-    start(controller) {
-      controller.enqueue(encoded)
-      controller.close()
-    },
-  })
+  throw new Error(`EduAI Stream Gateway: todos los proveedores fallaron. ${errors.join(" | ")}`)
 }
 
 export async function runGoogleImage(input: {
@@ -535,11 +617,13 @@ export async function runGoogleImage(input: {
     provider: "google",
   })
 
-  const selected = await googleRuntimeModel({
+  const selected = await providerRuntimeModel({
     supabase: input.supabase,
+    provider: "google",
     capability: "image",
     kind: "image",
   })
+  if (!selected) throw new Error("Google Image no tiene un modelo configurado")
 
   return generateGoogleImage({ ...input, model: selected.model })
 }
