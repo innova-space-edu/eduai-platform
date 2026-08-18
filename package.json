@@ -23,7 +23,7 @@
     "test:creator": "node scripts/apply-comics-runtime-fixes.mjs && node scripts/apply-video-summary-hobby.mjs && node scripts/test-creator-hub-integrity.mjs",
     "test:whiteboard": "node scripts/apply-whiteboard-finalization.mjs && node scripts/test-whiteboard-math-studio.mjs",
     "test:repository": "node scripts/apply-repository-course-subject-selects.mjs && node scripts/apply-repository-home-folders.mjs && node scripts/apply-repository-sharing.mjs && node scripts/apply-repository-public-access.mjs && node scripts/apply-public-cloud-direct-upload.mjs && node scripts/test-repository-integrity.mjs",
-    "test:ai-core": "tsx scripts/test-ai-core.ts",
+    "test:ai-core": "tsx scripts/test-ai-core.ts && tsx scripts/test-ai-multiprovider.ts",
     "test:mira": "node scripts/apply-mira-voice-mode.mjs && node scripts/test-mira-assistant.mjs",
     "curriculum:index": "node scripts/generate-mineduc-index.mjs",
     "curriculum:validate": "node scripts/validate-mineduc-curriculum.mjs",
