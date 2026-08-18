@@ -124,13 +124,19 @@ async function applyOperationResult(mapping: DocumentRow, operation: GoogleFileS
   }
 
   if (!operation.documentName) {
+    const terminalError = "Google File Search completó la indexación sin devolver documentName"
     const { data } = await admin
       .from("eduai_google_file_search_documents")
-      .update({ status: "indexing", updated_at: now, metadata: { ...(mapping.metadata || {}), operation_done: true, waiting_for_document_name: true } })
+      .update({
+        status: "failed",
+        error_message: terminalError,
+        updated_at: now,
+        metadata: { ...(mapping.metadata || {}), operation_done: true, invalid_terminal_response: true },
+      })
       .eq("id", mapping.id)
       .select("*")
       .single()
-    return (data || mapping) as DocumentRow
+    return (data || { ...mapping, status: "failed", error_message: terminalError }) as DocumentRow
   }
 
   const { data } = await admin
