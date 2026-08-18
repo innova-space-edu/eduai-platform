@@ -1,6 +1,0 @@
-project_ref=jfytmdvcqrjbbtyuklyf
-checked_at=2026-08-18T03:22:26Z
-2.114.0
-secret_status=missing
-access_token=missing
-db_password=missing
