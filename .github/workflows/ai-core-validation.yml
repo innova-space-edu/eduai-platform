@@ -197,7 +197,7 @@ jobs:
         shell: bash
         run: |
           npm audit --omit=dev --json > npm-audit-production.json || true
-          node -e 'const fs=require("fs"); const a=JSON.parse(fs.readFileSync("npm-audit-production.json","utf8")); console.log(JSON.stringify(a.metadata?.vulnerabilities || {}, null, 2));'
+          node -e 'const fs=require("fs"); const a=JSON.parse(fs.readFileSync("npm-audit-production.json","utf8")); const v=a.metadata?.vulnerabilities || {}; console.log(JSON.stringify(v, null, 2)); if ((v.high || 0) > 0 || (v.critical || 0) > 0) { console.error("Vulnerabilidades high/critical detectadas en dependencias de producción"); process.exit(1); }'
       - name: Publicar auditoría de producción
         if: always()
         uses: actions/upload-artifact@v4
