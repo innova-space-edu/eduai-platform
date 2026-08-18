@@ -47,6 +47,12 @@ function safeCode(value?: string | null) {
   return value.replace(/[^a-zA-Z0-9_.:-]/g, "_").slice(0, 120)
 }
 
+/**
+ * Telemetría server-only preparada para el AI Gateway.
+ * No persiste prompts, respuestas, tokens ni secretos. La activación del
+ * registro por intento se hará junto al circuit-breaker para no alterar aún
+ * el hot path estable del Gateway.
+ */
 export async function recordProviderHealth(input: HealthInput): Promise<void> {
   const supabase = getAdminClient()
   if (!supabase) return
