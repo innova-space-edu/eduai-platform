@@ -6,13 +6,15 @@ import { assertAICapabilityAllowed } from "@/lib/ai/access-policy"
 import {
   createGoogleFileSearchStore,
   deleteGoogleFileSearchStore,
-  getGoogleFileSearchOperation,
   googleFileSearchEmbeddingModel,
   hasGoogleFileSearch,
   startGoogleFileSearchUpload,
   type GoogleFileSearchOperation,
 } from "@/lib/ai/providers/google-file-search"
-import { cleanupGoogleFileSearchSource } from "@/lib/ai/google-file-search-lifecycle"
+import {
+  cleanupGoogleFileSearchSource,
+  reconcileGoogleFileSearchSource,
+} from "@/lib/ai/google-file-search-lifecycle"
 
 export const runtime = "nodejs"
 export const maxDuration = 60
@@ -226,9 +228,18 @@ export async function POST(request: NextRequest, { params }: Params) {
       return NextResponse.json({ document: { ...existing.data, stale: false }, reused: true, generationAvoided: true })
     }
     if (existing.data && ["queued", "indexing", "deleting"].includes(String(existing.data.status))) {
-      return NextResponse.json({ error: "Esta fuente ya tiene una indexación en curso", document: existing.data }, { status: 409 })
+      const reconciled = await reconcileGoogleFileSearchSource({ ownerId: user.id, notebookId, sourceId })
+      if (reconciled && ["queued", "indexing", "deleting"].includes(String(reconciled.status)) && !reconciled.document_name) {
+        return NextResponse.json({ error: "Esta fuente ya tiene una indexación en curso", document: reconciled }, { status: 409 })
+      }
     }
-    if (existing.data) {
+    const current = await admin
+      .from("eduai_google_file_search_documents")
+      .select("*")
+      .eq("owner_id", user.id)
+      .eq("source_id", sourceId)
+      .maybeSingle()
+    if (current.data) {
       await cleanupGoogleFileSearchSource({ ownerId: user.id, notebookId, sourceId })
     }
 
@@ -310,25 +321,17 @@ export async function GET(request: NextRequest, { params }: Params) {
       })
     }
 
-    const { data: rawMapping, error } = await supabase
-      .from("eduai_google_file_search_documents")
-      .select("*")
-      .eq("notebook_id", notebookId)
-      .eq("source_id", sourceId)
-      .maybeSingle()
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    if (!rawMapping) return NextResponse.json({ document: null, store: store || null })
-    let mapping = rawMapping as DocumentRow
-
-    if (mapping.status === "indexing" && mapping.operation_name) {
-      const operation = await getGoogleFileSearchOperation(mapping.operation_name)
-      mapping = await applyOperationResult(mapping, operation)
-    }
-
+    const reconciled = await reconcileGoogleFileSearchSource({ ownerId: user.id, notebookId, sourceId })
+    if (!reconciled) return NextResponse.json({ document: null, store: store || null })
+    const mapping = reconciled as DocumentRow
     const hashes = await currentSourceHashes(supabase, notebookId, [sourceId])
     return NextResponse.json({ document: annotateStale(mapping, hashes), store: store || null })
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "No se pudo consultar File Search" }, { status: 500 })
+    const typed = error as Error & { status?: number }
+    return NextResponse.json(
+      { error: typed.message || "No se pudo consultar File Search" },
+      { status: typed.status || 500 },
+    )
   }
 }
 

@@ -26,7 +26,7 @@ if (/grant\s+(?:insert|update|delete|all).*authenticated/i.test(indexMigration))
   throw new Error("[test-google-file-search] authenticated users must not mutate File Search state directly")
 }
 if (!guardMigration.includes("on delete restrict")) throw new Error("[test-google-file-search] remote lifecycle delete guards missing")
-for (const marker of ["uploadToFileSearchStore", "new Blob", "customMetadata", "eduai_content_hash", "maxTokensPerChunk", "getGoogleFileSearchOperation"]) {
+for (const marker of ["uploadToFileSearchStore", "new Blob", "customMetadata", "eduai_content_hash", "maxTokensPerChunk", "getGoogleFileSearchOperation", "listGoogleFileSearchDocuments", "findGoogleFileSearchDocument", "GoogleFileSearchHttpError"]) {
   if (!provider.includes(marker)) throw new Error(`[test-google-file-search] provider missing ${marker}`)
 }
 if (!route.includes('capability: "retrieval"') || !route.includes('provider: "google"')) {
@@ -38,8 +38,11 @@ if (!route.includes("generationAvoided: true") || !route.includes("contentHash")
 if (!route.includes("annotateStale") || !route.includes("currentSourceHashes") || !route.includes("stale: false")) {
   throw new Error("[test-google-file-search] stale hosted index detection missing")
 }
-if (!lifecycle.includes("GoogleFileSearchBusyError") || !lifecycle.includes("deleteGoogleFileSearchStore") || !lifecycle.includes("deleteGoogleFileSearchDocument")) {
-  throw new Error("[test-google-file-search] remote lifecycle cleanup missing")
+if (!route.includes("reconcileGoogleFileSearchSource")) {
+  throw new Error("[test-google-file-search] route does not reconcile remote operations/documents")
+}
+for (const marker of ["GoogleFileSearchBusyError", "deleteGoogleFileSearchStore", "deleteGoogleFileSearchDocument", "reconcileGoogleFileSearchSource", "ORPHAN_GRACE_MS", "STATE_ACTIVE", "STATE_FAILED"]) {
+  if (!lifecycle.includes(marker)) throw new Error(`[test-google-file-search] lifecycle missing ${marker}`)
 }
 if (!notebookRoute.includes("cleanupGoogleFileSearchNotebook")) throw new Error("[test-google-file-search] notebook delete does not clean remote store")
 if (!sourceRoute.includes("cleanupGoogleFileSearchSource")) throw new Error("[test-google-file-search] source delete does not clean remote document")
@@ -53,4 +56,4 @@ if (!deepRoute.includes('.select("source_id,content_hash")') || !deepRoute.inclu
   throw new Error("[test-google-file-search] active/current source hash filtering missing")
 }
 
-console.log("[test-google-file-search] hosted File Search is SHA-aware, freshness-checked, server-owned, deletion-safe and additive to EduAI RAG")
+console.log("[test-google-file-search] hosted File Search is SHA-aware, freshness-checked, reconciled, server-owned, deletion-safe and additive to EduAI RAG")

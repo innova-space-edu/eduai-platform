@@ -15,6 +15,15 @@ function client() {
   return new GoogleGenAI({ apiKey: apiKey() })
 }
 
+export class GoogleFileSearchHttpError extends Error {
+  status: number
+  constructor(message: string, status: number) {
+    super(message)
+    this.name = "GoogleFileSearchHttpError"
+    this.status = status
+  }
+}
+
 export function hasGoogleFileSearch() {
   return Boolean(process.env.GEMINI_API_KEY_TEXT || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY)
 }
@@ -49,7 +58,10 @@ async function deleteResource(resourceName: string) {
   if (response.status === 404) return
   if (!response.ok) {
     const body = await response.text().catch(() => "")
-    throw new Error(`Google File Search no pudo borrar el recurso (${response.status}): ${body.slice(0, 500)}`)
+    throw new GoogleFileSearchHttpError(
+      `Google File Search no pudo borrar el recurso (${response.status}): ${body.slice(0, 500)}`,
+      response.status,
+    )
   }
 }
 
@@ -69,6 +81,15 @@ export type GoogleFileSearchOperation = {
   raw: Record<string, unknown>
 }
 
+export type GoogleFileSearchRemoteDocument = {
+  name: string
+  displayName: string
+  state: string
+  customMetadata: Record<string, string | number | string[]>
+  createTime: string | null
+  updateTime: string | null
+}
+
 function normalizeOperation(operation: any): GoogleFileSearchOperation {
   const name = String(operation?.name || "")
   if (!name || !OPERATION_PREFIX.test(name)) throw new Error("Google File Search no devolvió una operación válida")
@@ -80,6 +101,86 @@ function normalizeOperation(operation: any): GoogleFileSearchOperation {
     documentName: typeof response?.documentName === "string" ? response.documentName : null,
     raw: operation && typeof operation === "object" ? operation as Record<string, unknown> : {},
   }
+}
+
+function normalizeMetadata(value: unknown) {
+  const result: Record<string, string | number | string[]> = {}
+  if (!Array.isArray(value)) return result
+  for (const item of value) {
+    if (!item || typeof item !== "object") continue
+    const row = item as Record<string, any>
+    const key = typeof row.key === "string" ? row.key : ""
+    if (!key) continue
+    if (typeof row.stringValue === "string") result[key] = row.stringValue
+    else if (typeof row.numericValue === "number") result[key] = row.numericValue
+    else if (Array.isArray(row.stringListValue?.values)) {
+      result[key] = row.stringListValue.values.map((entry: unknown) => String(entry))
+    }
+  }
+  return result
+}
+
+function normalizeRemoteDocument(value: any): GoogleFileSearchRemoteDocument | null {
+  const name = String(value?.name || "")
+  if (!DOCUMENT_RESOURCE.test(name)) return null
+  return {
+    name,
+    displayName: String(value?.displayName || name),
+    state: String(value?.state || "STATE_UNSPECIFIED"),
+    customMetadata: normalizeMetadata(value?.customMetadata),
+    createTime: typeof value?.createTime === "string" ? value.createTime : null,
+    updateTime: typeof value?.updateTime === "string" ? value.updateTime : null,
+  }
+}
+
+export async function listGoogleFileSearchDocuments(storeName: string) {
+  if (!STORE_RESOURCE.test(storeName)) throw new Error("File Search Store inválido")
+  const documents: GoogleFileSearchRemoteDocument[] = []
+  let pageToken = ""
+  const seenTokens = new Set<string>()
+
+  for (let page = 0; page < 250; page += 1) {
+    const params = new URLSearchParams({ key: apiKey(), pageSize: "20" })
+    if (pageToken) params.set("pageToken", pageToken)
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/${storeName}/documents?${params.toString()}`,
+      { signal: AbortSignal.timeout(20_000), cache: "no-store" },
+    )
+    const body = await response.json().catch(() => null) as any
+    if (!response.ok) {
+      throw new GoogleFileSearchHttpError(
+        body?.error?.message || `Google File Search documents respondió HTTP ${response.status}`,
+        response.status,
+      )
+    }
+
+    for (const raw of Array.isArray(body?.documents) ? body.documents : []) {
+      const document = normalizeRemoteDocument(raw)
+      if (document) documents.push(document)
+    }
+
+    const next = typeof body?.nextPageToken === "string" ? body.nextPageToken : ""
+    if (!next) return documents
+    if (seenTokens.has(next)) throw new Error("Google File Search devolvió paginación repetida")
+    seenTokens.add(next)
+    pageToken = next
+  }
+
+  throw new Error("Google File Search excedió el límite de paginación de seguridad")
+}
+
+export async function findGoogleFileSearchDocument(input: {
+  storeName: string
+  sourceId: string
+  contentHash?: string | null
+}) {
+  const documents = await listGoogleFileSearchDocuments(input.storeName)
+  const matches = documents.filter((document) => {
+    if (document.customMetadata.eduai_source_id !== input.sourceId) return false
+    if (input.contentHash && document.customMetadata.eduai_content_hash !== input.contentHash) return false
+    return true
+  })
+  return matches.at(-1) || null
 }
 
 export async function startGoogleFileSearchUpload(input: {
@@ -122,7 +223,10 @@ export async function getGoogleFileSearchOperation(operationName: string) {
   )
   const body = await response.json().catch(() => null)
   if (!response.ok) {
-    throw new Error(`Google File Search operation respondió HTTP ${response.status}`)
+    throw new GoogleFileSearchHttpError(
+      `Google File Search operation respondió HTTP ${response.status}`,
+      response.status,
+    )
   }
   return normalizeOperation(body)
 }
