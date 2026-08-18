@@ -100,3 +100,76 @@ if (changed) {
 } else {
   console.log("[content-ai-core] Creator Hub ya usa Google structured API actual")
 }
+
+const routeTarget = path.join(root, "app", "api", "process-content", "route.ts")
+if (!fs.existsSync(routeTarget)) throw new Error(`No se encontró ${routeTarget}`)
+let routeSource = fs.readFileSync(routeTarget, "utf8")
+let routeChanged = false
+
+if (routeSource.includes('import { safeRemoteFetch } from "@/lib/safe-remote-url"')) {
+  routeSource = routeSource.replace(
+    'import { safeRemoteFetch } from "@/lib/safe-remote-url"',
+    'import { fetchSafeRemoteBytes } from "@/lib/safe-remote-url"',
+  )
+  routeChanged = true
+}
+
+const extractStart = routeSource.indexOf('async function extractSafeUrl(url: string) {')
+const extractEnd = routeSource.indexOf('\nasync function getCustomTemplate(', extractStart)
+if (extractStart < 0 || extractEnd < 0) throw new Error("[content-ai-core] no se encontró extractSafeUrl")
+const currentExtract = routeSource.slice(extractStart, extractEnd)
+if (!currentExtract.includes('fetchSafeRemoteBytes')) {
+  const extractReplacement = `async function extractSafeUrl(url: string) {
+  const { buffer, mimeType } = await fetchSafeRemoteBytes({
+    url,
+    maxBytes: 2_000_000,
+    timeoutMs: 15_000,
+    maxRedirects: 5,
+    userAgent: "EduAI-Creator/1.0",
+    headers: { Accept: "text/html,application/xhtml+xml" },
+  })
+  if (mimeType !== "text/html" && mimeType !== "application/xhtml+xml") {
+    throw new Error("La URL debe apuntar a una página HTML")
+  }
+  const html = buffer.toString("utf8")
+  const cheerio = await import("cheerio")
+  const $ = cheerio.load(html)
+  $("script, style, nav, footer, header, aside, iframe, noscript, .ad, .advertisement").remove()
+  const title = $("h1").first().text().trim() || $("title").text().trim() || "Fuente web"
+  const raw = ($("article").first().text() || $("main").first().text() || $("body").text())
+    .replace(/\\s+/g, " ")
+    .trim()
+    .slice(0, 12_000)
+  if (!raw) throw new Error("No se encontró contenido legible en la página")
+  return extractFromText(\`Fuente: \${title}\\nURL: \${url}\\n\\n\${raw}\`, false)
+}
+`
+  routeSource = routeSource.slice(0, extractStart) + extractReplacement + routeSource.slice(extractEnd)
+  routeChanged = true
+}
+
+const oldProviderGate = `    const geminiKey = process.env.GEMINI_API_KEY_TEXT || process.env.GEMINI_API_KEY
+    if (!geminiKey) return NextResponse.json({ success: false, error: "El motor de generación no está configurado." }, { status: 503, headers })`
+const newProviderGate = `    const geminiKey = process.env.GEMINI_API_KEY_TEXT || process.env.GEMINI_API_KEY || ""
+    const groqConfigured = Boolean(process.env.GROQ_API_KEY?.trim())
+    if (!geminiKey && !groqConfigured) {
+      return NextResponse.json({ success: false, error: "No hay un proveedor de generación configurado (Google o Groq)." }, { status: 503, headers })
+    }`
+if (routeSource.includes(oldProviderGate)) {
+  routeSource = routeSource.replace(oldProviderGate, newProviderGate)
+  routeChanged = true
+}
+
+if (!routeSource.includes('const groqConfigured = Boolean(process.env.GROQ_API_KEY?.trim())')) {
+  throw new Error("[content-ai-core] no se pudo aplicar el gate Google/Groq en process-content")
+}
+if (!routeSource.includes('fetchSafeRemoteBytes({')) {
+  throw new Error("[content-ai-core] process-content no quedó con descarga web limitada")
+}
+
+if (routeChanged) {
+  fs.writeFileSync(routeTarget, routeSource)
+  console.log("[content-ai-core] process-content permite Google/Groq y limita fuentes web antes de buffer")
+} else {
+  console.log("[content-ai-core] process-content ya tiene fallback y descarga web endurecida")
+}
