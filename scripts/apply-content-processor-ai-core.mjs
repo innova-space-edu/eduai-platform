@@ -10,10 +10,15 @@ let source = fs.readFileSync(target, "utf8")
 let changed = false
 
 const importMarker = 'import { buildDesignPromptDirective, getDesignTemplateSummary } from "@/lib/design-templates/registry"'
-const newImport = `${importMarker}\nimport { generateGoogleStructured } from "@/lib/ai/providers/google"`
-if (!source.includes('import { generateGoogleStructured } from "@/lib/ai/providers/google"')) {
+const gatewayImport = 'import { runAIStructured } from "@/lib/ai/gateway"'
+const googleStructuredImport = 'import { generateGoogleStructured } from "@/lib/ai/providers/google"'
+
+if (source.includes(googleStructuredImport)) {
+  source = source.replace(googleStructuredImport, gatewayImport)
+  changed = true
+} else if (!source.includes(gatewayImport)) {
   if (!source.includes(importMarker)) throw new Error("[content-ai-core] no se encontró import base")
-  source = source.replace(importMarker, newImport)
+  source = source.replace(importMarker, `${importMarker}\n${gatewayImport}`)
   changed = true
 }
 
@@ -22,7 +27,7 @@ const sectionEnd = source.indexOf('// ==========================================
 if (functionStart < 0 || sectionEnd < 0) throw new Error("[content-ai-core] no se encontró structureWithAI")
 
 const currentFunction = source.slice(functionStart, sectionEnd)
-if (!currentFunction.includes('generateGoogleStructured')) {
+if (!currentFunction.includes('runAIStructured')) {
   const replacement = `export async function structureWithAI(
   extractedContent: ExtractedContent,
   outputFormat: OutputFormat,
@@ -48,7 +53,7 @@ REGLAS CRÍTICAS:
   const schema = SCHEMAS[outputFormat] as Record<string, unknown>
 
   try {
-    const result = await generateGoogleStructured<Record<string, unknown>>({
+    const result = await runAIStructured<Record<string, unknown>>({
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
@@ -56,24 +61,18 @@ REGLAS CRÍTICAS:
       schema,
       maxOutputTokens: 8192,
     })
-    console.log(\`[Creator] Google \${result.model} OK para \${outputFormat}\`)
+    console.log(\`[Creator] AI Gateway \${result.provider}/\${result.model} OK para \${outputFormat}\`)
     return {
       success: true,
       data: result.data,
       format: outputFormat,
-      provider: result.model,
+      provider: result.provider,
+      model: result.model,
     }
-  } catch (googleError: any) {
-    console.warn(\`[Creator] Google estructurado falló (\${googleError?.message || googleError}), intentando Groq...\`)
-    try {
-      const data = await callGroqFallback(systemPrompt, userPrompt)
-      console.log(\`[Creator] Groq OK para \${outputFormat}\`)
-      return { success: true, data, format: outputFormat, provider: "groq" }
-    } catch (groqError: any) {
-      return {
-        success: false,
-        error: \`Todos los proveedores activos fallaron. Google: \${googleError?.message || googleError} | Groq: \${groqError?.message || groqError}\`,
-      }
+  } catch (gatewayError: any) {
+    return {
+      success: false,
+      error: \`EduAI AI Gateway no pudo estructurar el material: \${gatewayError?.message || gatewayError}\`,
     }
   }
 }
@@ -83,22 +82,28 @@ REGLAS CRÍTICAS:
   changed = true
 }
 
-// Los helpers REST antiguos pueden seguir físicamente durante la transición para
-// minimizar el diff, pero structureWithAI ya no los invoca.
 source = source.replace(
   '// v3 — Gemini 2.5 Flash + responseSchema + prompts potenciados + contexto extendido 12K',
+  '// v5 — EduAI AI Gateway multiproveedor + prompts potenciados + contexto extendido 12K',
+)
+source = source.replace(
   '// v4 — Google structured API actual + Groq fallback + prompts potenciados + contexto extendido 12K',
+  '// v5 — EduAI AI Gateway multiproveedor + prompts potenciados + contexto extendido 12K',
 )
 source = source.replace(
   '// Paso 2: Estructurar con IA (Gemini 2.5 Flash + cascada de fallbacks)',
+  '// Paso 2: Estructurar mediante EduAI AI Gateway multiproveedor',
+)
+source = source.replace(
   '// Paso 2: Estructurar con Google structured output + fallback Groq',
+  '// Paso 2: Estructurar mediante EduAI AI Gateway multiproveedor',
 )
 
 if (changed) {
   fs.writeFileSync(target, source)
-  console.log("[content-ai-core] Creator Hub usa Google structured API actual + fallback Groq")
+  console.log("[content-ai-core] Creator Hub usa EduAI AI Gateway multiproveedor")
 } else {
-  console.log("[content-ai-core] Creator Hub ya usa Google structured API actual")
+  console.log("[content-ai-core] Creator Hub ya usa EduAI AI Gateway multiproveedor")
 }
 
 const routeTarget = path.join(root, "app", "api", "process-content", "route.ts")
@@ -150,18 +155,22 @@ if (!currentExtract.includes('fetchSafeRemoteBytes')) {
 
 const oldProviderGate = `    const geminiKey = process.env.GEMINI_API_KEY_TEXT || process.env.GEMINI_API_KEY
     if (!geminiKey) return NextResponse.json({ success: false, error: "El motor de generación no está configurado." }, { status: 503, headers })`
-const newProviderGate = `    const geminiKey = process.env.GEMINI_API_KEY_TEXT || process.env.GEMINI_API_KEY || ""
+const interimProviderGate = `    const geminiKey = process.env.GEMINI_API_KEY_TEXT || process.env.GEMINI_API_KEY || ""
     const groqConfigured = Boolean(process.env.GROQ_API_KEY?.trim())
     if (!geminiKey && !groqConfigured) {
       return NextResponse.json({ success: false, error: "No hay un proveedor de generación configurado (Google o Groq)." }, { status: 503, headers })
     }`
+const gatewayProviderCompatibility = `    const geminiKey = process.env.GEMINI_API_KEY_TEXT || process.env.GEMINI_API_KEY || ""`
 if (routeSource.includes(oldProviderGate)) {
-  routeSource = routeSource.replace(oldProviderGate, newProviderGate)
+  routeSource = routeSource.replace(oldProviderGate, gatewayProviderCompatibility)
+  routeChanged = true
+} else if (routeSource.includes(interimProviderGate)) {
+  routeSource = routeSource.replace(interimProviderGate, gatewayProviderCompatibility)
   routeChanged = true
 }
 
-if (!routeSource.includes('const groqConfigured = Boolean(process.env.GROQ_API_KEY?.trim())')) {
-  throw new Error("[content-ai-core] no se pudo aplicar el gate Google/Groq en process-content")
+if (!routeSource.includes(gatewayProviderCompatibility)) {
+  throw new Error("[content-ai-core] no se pudo dejar process-content compatible con el Gateway")
 }
 if (!routeSource.includes('fetchSafeRemoteBytes({')) {
   throw new Error("[content-ai-core] process-content no quedó con descarga web limitada")
@@ -169,7 +178,7 @@ if (!routeSource.includes('fetchSafeRemoteBytes({')) {
 
 if (routeChanged) {
   fs.writeFileSync(routeTarget, routeSource)
-  console.log("[content-ai-core] process-content permite Google/Groq y limita fuentes web antes de buffer")
+  console.log("[content-ai-core] process-content delega disponibilidad al Gateway y limita fuentes web")
 } else {
-  console.log("[content-ai-core] process-content ya tiene fallback y descarga web endurecida")
+  console.log("[content-ai-core] process-content ya delega al Gateway y descarga web endurecida")
 }
