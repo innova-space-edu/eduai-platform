@@ -55,13 +55,13 @@ replace(
 replace(
   "provider",
   `export async function startGoogleDeepResearch(input: {\n  prompt: string\n  max?: boolean\n  visualization?: boolean\n}) {`,
-  `export async function startGoogleDeepResearch(input: {\n  prompt: string\n  max?: boolean\n  visualization?: boolean\n  fileSearchStoreNames?: string[]\n}) {`,
+  `export async function startGoogleDeepResearch(input: {\n  prompt: string\n  max?: boolean\n  visualization?: boolean\n  fileSearchStoreNames?: string[]\n  fileSearchMetadataFilter?: string | null\n}) {`,
   "Deep Research File Search input",
 )
 replace(
   "provider",
   `    background: true,\n    agent_config: {`,
-  `    background: true,\n    ...(input.fileSearchStoreNames?.length ? {\n      tools: [{ type: "file_search", file_search_store_names: input.fileSearchStoreNames }],\n    } : {}),\n    agent_config: {`,
+  `    background: true,\n    ...(input.fileSearchStoreNames?.length ? {\n      tools: [{\n        type: "file_search",\n        file_search_store_names: input.fileSearchStoreNames,\n        ...(input.fileSearchMetadataFilter ? { metadata_filter: input.fileSearchMetadataFilter } : {}),\n      }],\n    } : {}),\n    agent_config: {`,
   "Deep Research File Search tool",
 )
 
@@ -76,7 +76,7 @@ if (!deepRoute.includes("async function readyGoogleFileSearchStores(")) {
   const marker = "function responseForStoredJob(job: DeepResearchJob) {"
   const index = deepRoute.indexOf(marker)
   if (index < 0) throw new Error("[google-file-search] Deep Research response marker missing")
-  const helper = `async function readyGoogleFileSearchStores(input: {\n  supabase: Awaited<ReturnType<typeof createClient>>\n  notebookId: string | null\n  includeSources: boolean\n}) {\n  if (!input.notebookId || !input.includeSources) return [] as string[]\n  const { data: store } = await input.supabase\n    .from("eduai_google_file_search_stores")\n    .select("store_name,status")\n    .eq("notebook_id", input.notebookId)\n    .eq("status", "active")\n    .maybeSingle()\n  if (!store?.store_name) return [] as string[]\n\n  const { count } = await input.supabase\n    .from("eduai_google_file_search_documents")\n    .select("id", { count: "exact", head: true })\n    .eq("notebook_id", input.notebookId)\n    .eq("status", "ready")\n  return (count || 0) > 0 ? [String(store.store_name)] : []\n}\n\n`
+  const helper = `const FILE_SEARCH_ACTIVE_SOURCE_FILTER_LIMIT = 64\n\nasync function readyGoogleFileSearchStores(input: {\n  supabase: Awaited<ReturnType<typeof createClient>>\n  notebookId: string | null\n  includeSources: boolean\n}) {\n  const empty = { storeNames: [] as string[], metadataFilter: null as string | null, activeSourceCount: 0 }\n  if (!input.notebookId || !input.includeSources) return empty\n\n  const { data: store } = await input.supabase\n    .from("eduai_google_file_search_stores")\n    .select("store_name,status")\n    .eq("notebook_id", input.notebookId)\n    .eq("status", "active")\n    .maybeSingle()\n  if (!store?.store_name) return empty\n\n  const { data: indexedDocuments } = await input.supabase\n    .from("eduai_google_file_search_documents")\n    .select("source_id")\n    .eq("notebook_id", input.notebookId)\n    .eq("status", "ready")\n  const indexedSourceIds = (indexedDocuments || [])\n    .map((document) => String(document.source_id || ""))\n    .filter(Boolean)\n  if (!indexedSourceIds.length) return empty\n\n  const { data: activeSources } = await input.supabase\n    .from("notebook_sources")\n    .select("id")\n    .eq("notebook_id", input.notebookId)\n    .eq("status", "ready")\n    .eq("is_active", true)\n    .in("id", indexedSourceIds)\n  const activeSourceIds = (activeSources || []).map((source) => String(source.id || "")).filter(Boolean)\n  if (!activeSourceIds.length) return empty\n\n  if (activeSourceIds.length > FILE_SEARCH_ACTIVE_SOURCE_FILTER_LIMIT) {\n    return { ...empty, activeSourceCount: activeSourceIds.length }\n  }\n\n  const metadataFilter = activeSourceIds\n    .map((sourceId) => 'eduai_source_id="' + sourceId + '"')\n    .join(" OR ")\n  return { storeNames: [String(store.store_name)], metadataFilter, activeSourceCount: activeSourceIds.length }\n}\n\n`
   deepRoute = deepRoute.slice(0, index) + helper + deepRoute.slice(index)
   changed = true
 }
@@ -84,25 +84,25 @@ if (!deepRoute.includes("async function readyGoogleFileSearchStores(")) {
 replace(
   "route",
   `    const local = await notebookContext({ supabase, userId: user.id, notebookId, query, includeSources })\n    const agent =`,
-  `    const local = await notebookContext({ supabase, userId: user.id, notebookId, query, includeSources })\n    const fileSearchStoreNames = await readyGoogleFileSearchStores({ supabase, notebookId, includeSources })\n    const agent =`,
+  `    const local = await notebookContext({ supabase, userId: user.id, notebookId, query, includeSources })\n    const fileSearch = await readyGoogleFileSearchStores({ supabase, notebookId, includeSources })\n    const fileSearchStoreNames = fileSearch.storeNames\n    const fileSearchMetadataFilter = fileSearch.metadataFilter\n    const agent =`,
   "load ready File Search stores",
 )
 replace(
   "route",
   `        visualization,\n      },`,
-  `        visualization,\n        fileSearchStoreNames,\n      },`,
+  `        visualization,\n        fileSearchStoreNames,\n        fileSearchMetadataFilter,\n      },`,
   "File Search in fingerprint",
 )
 replace(
   "route",
   `    const interaction = await startGoogleDeepResearch({ prompt, max, visualization })`,
-  `    const interaction = await startGoogleDeepResearch({ prompt, max, visualization, fileSearchStoreNames })`,
+  `    const interaction = await startGoogleDeepResearch({\n      prompt,\n      max,\n      visualization,\n      fileSearchStoreNames,\n      fileSearchMetadataFilter,\n    })`,
   "Deep Research start with File Search",
 )
 replace(
   "route",
   `          google_status: interaction.rawStatus,`,
-  `          google_status: interaction.rawStatus,\n          file_search_store_names: fileSearchStoreNames,`,
+  `          google_status: interaction.rawStatus,\n          file_search_store_names: fileSearchStoreNames,\n          file_search_metadata_filter_applied: Boolean(fileSearchMetadataFilter),\n          file_search_active_source_count: fileSearch.activeSourceCount,`,
   "File Search metadata",
 )
 replace(
@@ -112,12 +112,16 @@ replace(
   "File Search citation type",
 )
 
+if (!deepProvider.includes("metadata_filter") || !deepRoute.includes('.eq("is_active", true)') || !deepRoute.includes("fileSearchMetadataFilter")) {
+  throw new Error("[google-file-search] active-source metadata filter was not materialized")
+}
+
 if (changed) {
   fs.writeFileSync(notebookRoutePath, notebookRoute)
   fs.writeFileSync(sourceRoutePath, sourceRoute)
   fs.writeFileSync(deepProviderPath, deepProvider)
   fs.writeFileSync(deepRoutePath, deepRoute)
-  console.log("[google-file-search] Notebook lifecycle + Deep Research File Search integrados sin reemplazar RAG")
+  console.log("[google-file-search] Notebook lifecycle + active-source Deep Research File Search integrados sin reemplazar RAG")
 } else {
   console.log("[google-file-search] already applied")
 }
