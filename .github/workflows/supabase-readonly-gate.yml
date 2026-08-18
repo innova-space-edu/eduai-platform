@@ -6,6 +6,9 @@ on:
       - feat/eduai-core-reuse-ai-gateway
     paths:
       - ".github/workflows/supabase-readonly-gate.yml"
+  pull_request:
+    paths:
+      - ".github/workflows/supabase-readonly-gate.yml"
 
 permissions:
   contents: read
