@@ -75,9 +75,19 @@ function testGatewayWiring() {
   const gatewayPath = path.join(process.cwd(), "lib", "ai", "gateway.ts")
   const source = fs.readFileSync(gatewayPath, "utf8")
   assert.ok(source.includes("generateCompatibleText"), "Gateway debe invocar adaptadores multiproveedor")
+  assert.ok(source.includes("streamCompatibleText"), "Gateway debe mantener streaming real en fallbacks")
   assert.ok(source.includes("hasCompatibleProvider"), "Gateway debe saltar proveedores sin credenciales")
   assert.ok(source.includes("compatibleFallbackModel"), "Gateway debe resolver fallback por proveedor")
   assert.ok(source.includes("resolveProviderModel({"), "Gateway debe conservar el registro dinámico")
+}
+
+function testVertexWiring() {
+  const googlePath = path.join(process.cwd(), "lib", "ai", "providers", "google.ts")
+  const source = fs.readFileSync(googlePath, "utf8")
+  assert.ok(source.includes('process.env.GOOGLE_GENAI_USE_VERTEX === "true"'), "Vertex debe estar detrás de feature flag")
+  assert.ok(source.includes("vertexai: true"), "Google provider debe poder iniciar Vertex AI")
+  assert.ok(source.includes("GOOGLE_CLOUD_PROJECT"), "Vertex debe exigir proyecto server-side")
+  assert.ok(source.includes('kind === "text" && useVertexText()'), "Vertex debe limitarse a texto mientras image/video siguen estables")
 }
 
 function main() {
@@ -86,6 +96,7 @@ function main() {
   testFallbackModels()
   testStructuredParsing()
   testGatewayWiring()
+  testVertexWiring()
   console.log("✓ EduAI multiprovider tests OK")
 }
 
