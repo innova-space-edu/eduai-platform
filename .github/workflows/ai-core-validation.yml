@@ -173,6 +173,25 @@ jobs:
         run: |
           node scripts/normalize-npm-lockfile.mjs
           npm install --registry=https://registry.npmjs.org/ --ignore-scripts
+      - name: Detectar lockfile reconciliado
+        id: reconciled-lock
+        shell: bash
+        run: |
+          if git diff --quiet -- package-lock.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "package-lock.json ya está sincronizado"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "package-lock.json fue reconciliado por npm install"
+            git diff --stat -- package-lock.json
+          fi
+      - name: Publicar lockfile reconciliado
+        if: steps.reconciled-lock.outputs.changed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-lock-reconciled
+          path: package-lock.json
+          if-no-files-found: error
       - name: Auditar solo dependencias de producción
         shell: bash
         run: |
