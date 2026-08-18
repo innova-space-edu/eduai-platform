@@ -4,6 +4,7 @@ export type AICapability =
   | "vision"
   | "long_context"
   | "research"
+  | "retrieval"
   | "embeddings"
   | "image"
   | "video"
@@ -40,12 +41,15 @@ export type AIRequestContext = {
 // Orden conservador: Google sigue siendo el proveedor principal donde ya está
 // funcionando. Los proveedores alternativos se añaden como fallbacks y pueden
 // reordenarse por capability mediante variables EDUAI_AI_PROVIDER_ORDER_*.
+// `retrieval` representa índices/buscadores cloud como Google File Search y no
+// sustituye el RAG local/propio de EduAI.
 export const DEFAULT_PROVIDER_ORDER: Record<AICapability, AIProviderId[]> = {
   text: ["google", "groq", "openrouter", "cerebras", "together"],
   structured: ["google", "groq", "openrouter", "cerebras", "together"],
   vision: ["google", "openrouter", "together"],
   long_context: ["google", "openrouter", "groq", "cerebras", "together"],
   research: ["google", "groq", "openrouter"],
+  retrieval: ["google"],
   embeddings: ["google", "local"],
   image: ["google", "openrouter", "together"],
   video: ["google"],
