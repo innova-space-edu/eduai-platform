@@ -66,7 +66,8 @@ export async function assertSafeRemoteUrl(value: string | URL) {
     hostname === "localhost" ||
     hostname.endsWith(".localhost") ||
     hostname.endsWith(".local") ||
-    hostname.endsWith(".internal")
+    hostname.endsWith(".internal") ||
+    hostname === "metadata.google.internal"
   ) {
     throw new Error("La dirección local no está permitida")
   }
@@ -90,23 +91,36 @@ export async function assertSafeRemoteUrl(value: string | URL) {
   return url
 }
 
-export async function safeRemoteFetch(value: string, init: RequestInit = {}) {
-  let current = await assertSafeRemoteUrl(value)
+function buildHeaders(input?: HeadersInit, userAgent?: string, defaultAccept?: string) {
+  const headers = new Headers(input)
+  if (userAgent && !headers.has("User-Agent")) headers.set("User-Agent", userAgent)
+  if (defaultAccept && !headers.has("Accept")) headers.set("Accept", defaultAccept)
+  return headers
+}
 
-  for (let redirects = 0; redirects <= MAX_REDIRECTS; redirects += 1) {
+export async function safeRemoteFetch(
+  value: string | URL,
+  init: RequestInit = {},
+  maxRedirects = MAX_REDIRECTS,
+) {
+  let current = await assertSafeRemoteUrl(value)
+  const redirectsLimit = Math.max(0, Math.min(10, Math.floor(maxRedirects)))
+
+  for (let redirects = 0; redirects <= redirectsLimit; redirects += 1) {
     const response = await fetch(current, {
       ...init,
       redirect: "manual",
-      headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; EduAI/1.0)",
-        Accept: "text/html,application/xhtml+xml",
-        ...(init.headers || {}),
-      },
+      headers: buildHeaders(
+        init.headers,
+        "Mozilla/5.0 (compatible; EduAI/1.0)",
+        "text/html,application/xhtml+xml",
+      ),
     })
 
     if (![301, 302, 303, 307, 308].includes(response.status)) return response
     const location = response.headers.get("location")
     if (!location) throw new Error("Redirección sin destino")
+    if (redirects >= redirectsLimit) throw new Error("Demasiadas redirecciones")
     current = await assertSafeRemoteUrl(new URL(location, current))
   }
 
@@ -147,6 +161,7 @@ export async function fetchSafeRemoteBytes(input: {
   timeoutMs: number
   maxRedirects?: number
   userAgent?: string
+  headers?: HeadersInit
 }) {
   if (!Number.isFinite(input.maxBytes) || input.maxBytes <= 0) throw new Error("Límite remoto inválido")
   const maxRedirects = Number.isFinite(input.maxRedirects)
@@ -158,7 +173,7 @@ export async function fetchSafeRemoteBytes(input: {
     const response = await fetch(current, {
       redirect: "manual",
       signal: AbortSignal.timeout(input.timeoutMs),
-      headers: input.userAgent ? { "User-Agent": input.userAgent } : undefined,
+      headers: buildHeaders(input.headers, input.userAgent),
       cache: "no-store",
     })
 
