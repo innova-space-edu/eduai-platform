@@ -35,16 +35,22 @@ if (!route.includes('capability: "retrieval"') || !route.includes('provider: "go
 if (!route.includes("generationAvoided: true") || !route.includes("contentHash")) {
   throw new Error("[test-google-file-search] SHA reuse path missing")
 }
+if (!route.includes("annotateStale") || !route.includes("currentSourceHashes") || !route.includes("stale: false")) {
+  throw new Error("[test-google-file-search] stale hosted index detection missing")
+}
 if (!lifecycle.includes("GoogleFileSearchBusyError") || !lifecycle.includes("deleteGoogleFileSearchStore") || !lifecycle.includes("deleteGoogleFileSearchDocument")) {
   throw new Error("[test-google-file-search] remote lifecycle cleanup missing")
 }
 if (!notebookRoute.includes("cleanupGoogleFileSearchNotebook")) throw new Error("[test-google-file-search] notebook delete does not clean remote store")
 if (!sourceRoute.includes("cleanupGoogleFileSearchSource")) throw new Error("[test-google-file-search] source delete does not clean remote document")
-if (!deepProvider.includes('type: "file_search"') || !deepProvider.includes("file_search_store_names")) {
-  throw new Error("[test-google-file-search] Deep Research provider does not accept File Search")
+if (!deepProvider.includes('type: "file_search"') || !deepProvider.includes("file_search_store_names") || !deepProvider.includes("metadata_filter")) {
+  throw new Error("[test-google-file-search] Deep Research provider does not accept filtered File Search")
 }
-if (!deepRoute.includes("readyGoogleFileSearchStores") || !deepRoute.includes("fileSearchStoreNames")) {
-  throw new Error("[test-google-file-search] Deep Research does not discover ready Notebook stores")
+if (!deepRoute.includes("readyGoogleFileSearchStores") || !deepRoute.includes("fileSearchStoreNames") || !deepRoute.includes("indexedHashBySource")) {
+  throw new Error("[test-google-file-search] Deep Research does not enforce current ready Notebook indexes")
+}
+if (!deepRoute.includes('.select("source_id,content_hash")') || !deepRoute.includes('.select("id,content_hash")') || !deepRoute.includes('.eq("is_active", true)')) {
+  throw new Error("[test-google-file-search] active/current source hash filtering missing")
 }
 
-console.log("[test-google-file-search] hosted File Search is SHA-aware, server-owned, deletion-safe and additive to EduAI RAG")
+console.log("[test-google-file-search] hosted File Search is SHA-aware, freshness-checked, server-owned, deletion-safe and additive to EduAI RAG")

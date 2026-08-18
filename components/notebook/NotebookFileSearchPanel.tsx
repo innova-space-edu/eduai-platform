@@ -11,6 +11,7 @@ type FileSearchDocument = {
   status: string
   error_message?: string | null
   indexed_at?: string | null
+  stale?: boolean
 }
 
 type FileSearchResponse = {
@@ -22,10 +23,17 @@ type FileSearchResponse = {
 }
 
 const POLL_MS = 5_000
+const REFRESH_MS = 30_000
+
+function effectiveStatus(document?: FileSearchDocument | null) {
+  if (document?.status === "ready" && document.stale) return "stale"
+  return document?.status || "none"
+}
 
 function statusLabel(status?: string | null) {
   switch (status) {
     case "ready": return "Lista"
+    case "stale": return "Desactualizada"
     case "queued":
     case "indexing": return "Indexando"
     case "failed": return "Error"
@@ -37,6 +45,7 @@ function statusLabel(status?: string | null) {
 function statusClass(status?: string | null) {
   switch (status) {
     case "ready": return "bg-emerald-500/10 text-emerald-500"
+    case "stale": return "bg-amber-500/10 text-amber-500"
     case "queued":
     case "indexing":
     case "deleting": return "bg-blue-500/10 text-blue-500"
@@ -107,6 +116,12 @@ export default function NotebookFileSearchPanel({ notebookId, sources }: {
   }, [loadAll])
 
   useEffect(() => {
+    if (!open) return
+    const interval = window.setInterval(() => void loadAll(), REFRESH_MS)
+    return () => window.clearInterval(interval)
+  }, [loadAll, open])
+
+  useEffect(() => {
     if (pollTimer.current) clearTimeout(pollTimer.current)
     const hasPending = Object.values(documents).some((document) => ["queued", "indexing"].includes(document.status))
     if (!hasPending) return
@@ -159,7 +174,8 @@ export default function NotebookFileSearchPanel({ notebookId, sources }: {
     }
   }
 
-  const readyIndexed = Object.values(documents).filter((document) => document.status === "ready").length
+  const readyIndexed = Object.values(documents).filter((document) => effectiveStatus(document) === "ready").length
+  const staleCount = Object.values(documents).filter((document) => effectiveStatus(document) === "stale").length
   const pending = Object.values(documents).filter((document) => ["queued", "indexing"].includes(document.status)).length
 
   return (
@@ -175,7 +191,7 @@ export default function NotebookFileSearchPanel({ notebookId, sources }: {
         <span className="min-w-0 flex-1">
           <span className="block text-[11px] font-semibold text-main">Índice IA Google</span>
           <span className="block text-[9px] text-muted2">
-            {readyIndexed} listas{pending ? ` · ${pending} indexando` : ""} · opcional
+            {readyIndexed} listas{staleCount ? ` · ${staleCount} desactualizadas` : ""}{pending ? ` · ${pending} indexando` : ""} · opcional
           </span>
         </span>
         {loading ? <Loader2 size={12} className="animate-spin text-muted2" /> : open ? <ChevronUp size={13} className="text-muted2" /> : <ChevronDown size={13} className="text-muted2" />}
@@ -183,9 +199,14 @@ export default function NotebookFileSearchPanel({ notebookId, sources }: {
 
       {open && (
         <div className="max-h-64 space-y-1.5 overflow-y-auto border-t border-soft px-2.5 py-2">
-          <p className="px-1 text-[9px] leading-relaxed text-muted2">
-            File Search es una capa adicional para investigación profunda. El chat normal sigue usando el RAG privado de EduAI aunque no indexes nada aquí.
-          </p>
+          <div className="flex items-start gap-2 px-1">
+            <p className="min-w-0 flex-1 text-[9px] leading-relaxed text-muted2">
+              File Search es una capa adicional para investigación profunda. El chat normal sigue usando el RAG privado de EduAI aunque no indexes nada aquí.
+            </p>
+            <button type="button" onClick={() => void loadAll()} disabled={loading} className="rounded-lg p-1 text-muted2 hover:bg-card-soft-theme hover:text-violet-500 disabled:opacity-40" title="Actualizar estados">
+              <RefreshCw size={10} className={loading ? "animate-spin" : ""} />
+            </button>
+          </div>
 
           {error && <p className="rounded-lg bg-red-500/10 px-2 py-1.5 text-[9px] text-red-500">{error}</p>}
 
@@ -195,8 +216,10 @@ export default function NotebookFileSearchPanel({ notebookId, sources }: {
 
           {readySources.map((source) => {
             const document = documents[source.id]
-            const status = document?.status || "none"
-            const busy = busySourceId === source.id || ["queued", "indexing", "deleting"].includes(status)
+            const status = effectiveStatus(document)
+            const remoteStatus = document?.status || "none"
+            const busy = busySourceId === source.id || ["queued", "indexing", "deleting"].includes(remoteStatus)
+            const canSync = source.is_active && !busy
             return (
               <article key={source.id} className="rounded-lg border border-soft bg-card-soft-theme p-2">
                 <div className="flex items-start gap-2">
@@ -211,27 +234,41 @@ export default function NotebookFileSearchPanel({ notebookId, sources }: {
                     {document?.error_message && <p className="mt-1 line-clamp-2 text-[8px] text-red-500">{document.error_message}</p>}
                   </div>
 
-                  {status === "ready" ? (
-                    <button
-                      type="button"
-                      onClick={() => void removeSource(source.id)}
-                      disabled={busy}
-                      className="rounded-lg p-1.5 text-muted2 hover:bg-red-500/10 hover:text-red-500 disabled:opacity-35"
-                      title="Quitar de File Search"
-                    >
-                      {busySourceId === source.id ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => void syncSource(source.id)}
-                      disabled={busy}
-                      className="flex shrink-0 items-center gap-1 rounded-lg bg-violet-500/10 px-2 py-1 text-[9px] font-semibold text-violet-500 disabled:opacity-35"
-                    >
-                      {busy ? <Loader2 size={10} className="animate-spin" /> : <RefreshCw size={10} />}
-                      {status === "failed" ? "Reintentar" : status === "none" ? "Indexar" : "Procesando"}
-                    </button>
-                  )}
+                  <div className="flex shrink-0 items-center gap-1">
+                    {status === "ready" ? (
+                      <button
+                        type="button"
+                        onClick={() => void removeSource(source.id)}
+                        disabled={busy}
+                        className="rounded-lg p-1.5 text-muted2 hover:bg-red-500/10 hover:text-red-500 disabled:opacity-35"
+                        title="Quitar de File Search"
+                      >
+                        {busySourceId === source.id ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => void syncSource(source.id)}
+                        disabled={!canSync}
+                        className="flex items-center gap-1 rounded-lg bg-violet-500/10 px-2 py-1 text-[9px] font-semibold text-violet-500 disabled:opacity-35"
+                        title={!source.is_active ? "Activa la fuente para indexarla" : undefined}
+                      >
+                        {busy ? <Loader2 size={10} className="animate-spin" /> : <RefreshCw size={10} />}
+                        {status === "stale" ? "Reindexar" : status === "failed" ? "Reintentar" : status === "none" ? "Indexar" : "Procesando"}
+                      </button>
+                    )}
+                    {status === "stale" && (
+                      <button
+                        type="button"
+                        onClick={() => void removeSource(source.id)}
+                        disabled={busy}
+                        className="rounded-lg p-1.5 text-muted2 hover:bg-red-500/10 hover:text-red-500 disabled:opacity-35"
+                        title="Quitar índice desactualizado"
+                      >
+                        <Trash2 size={10} />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </article>
             )

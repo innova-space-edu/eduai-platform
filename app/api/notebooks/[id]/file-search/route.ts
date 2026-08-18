@@ -64,6 +64,33 @@ async function ownedNotebook(supabase: Awaited<ReturnType<typeof createClient>>,
   return data
 }
 
+async function currentSourceHashes(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  notebookId: string,
+  sourceIds: string[],
+) {
+  const hashes = new Map<string, string>()
+  if (!sourceIds.length) return hashes
+  const { data } = await supabase
+    .from("notebook_sources")
+    .select("id,content_hash")
+    .eq("notebook_id", notebookId)
+    .in("id", sourceIds)
+  for (const source of data || []) {
+    const hash = String(source.content_hash || "").trim()
+    if (hash) hashes.set(String(source.id), hash)
+  }
+  return hashes
+}
+
+function annotateStale(document: DocumentRow, hashes: Map<string, string>) {
+  const currentHash = hashes.get(document.source_id)
+  return {
+    ...document,
+    stale: Boolean(currentHash && currentHash !== document.content_hash),
+  }
+}
+
 async function ensureStore(input: { ownerId: string; notebookId: string; notebookTitle: string }) {
   const admin = adminClient()
   const existing = await admin
@@ -196,7 +223,7 @@ export async function POST(request: NextRequest, { params }: Params) {
       .maybeSingle()
     if (existing.error) throw new Error(existing.error.message)
     if (existing.data?.content_hash === contentHash && existing.data.status === "ready") {
-      return NextResponse.json({ document: existing.data, reused: true, generationAvoided: true })
+      return NextResponse.json({ document: { ...existing.data, stale: false }, reused: true, generationAvoided: true })
     }
     if (existing.data && ["queued", "indexing", "deleting"].includes(String(existing.data.status))) {
       return NextResponse.json({ error: "Esta fuente ya tiene una indexación en curso", document: existing.data }, { status: 409 })
@@ -240,7 +267,7 @@ export async function POST(request: NextRequest, { params }: Params) {
         .single()
       let mapping = (updated.data || queued.data) as DocumentRow
       if (operation.done) mapping = await applyOperationResult(mapping, operation)
-      return NextResponse.json({ document: mapping, reused: false, generationAvoided: false }, { status: mapping.status === "ready" ? 200 : 202 })
+      return NextResponse.json({ document: { ...mapping, stale: false }, reused: false, generationAvoided: false }, { status: mapping.status === "ready" ? 200 : 202 })
     } catch (uploadError) {
       const message = uploadError instanceof Error ? uploadError.message : String(uploadError)
       await admin.from("eduai_google_file_search_documents").update({ status: "failed", error_message: message.slice(0, 1200), updated_at: new Date().toISOString() }).eq("id", queued.data.id)
@@ -275,7 +302,12 @@ export async function GET(request: NextRequest, { params }: Params) {
         .eq("notebook_id", notebookId)
         .order("updated_at", { ascending: false })
       if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-      return NextResponse.json({ store: store || null, documents: documents || [] })
+      const rows = (documents || []) as DocumentRow[]
+      const hashes = await currentSourceHashes(supabase, notebookId, rows.map((document) => document.source_id))
+      return NextResponse.json({
+        store: store || null,
+        documents: rows.map((document) => annotateStale(document, hashes)),
+      })
     }
 
     const { data: rawMapping, error } = await supabase
@@ -293,7 +325,8 @@ export async function GET(request: NextRequest, { params }: Params) {
       mapping = await applyOperationResult(mapping, operation)
     }
 
-    return NextResponse.json({ document: mapping, store: store || null })
+    const hashes = await currentSourceHashes(supabase, notebookId, [sourceId])
+    return NextResponse.json({ document: annotateStale(mapping, hashes), store: store || null })
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "No se pudo consultar File Search" }, { status: 500 })
   }
