@@ -37,19 +37,22 @@ export type AIRequestContext = {
   visibility?: AIVisibility
 }
 
+// Orden conservador: Google sigue siendo el proveedor principal donde ya está
+// funcionando. Los proveedores alternativos se añaden como fallbacks y pueden
+// reordenarse por capability mediante variables EDUAI_AI_PROVIDER_ORDER_*.
 export const DEFAULT_PROVIDER_ORDER: Record<AICapability, AIProviderId[]> = {
-  text: ["google", "groq", "openrouter"],
-  structured: ["google", "groq", "openrouter"],
-  vision: ["google", "openrouter"],
-  long_context: ["google", "openrouter"],
-  research: ["google", "openrouter"],
+  text: ["google", "groq", "openrouter", "cerebras", "together"],
+  structured: ["google", "groq", "openrouter", "cerebras", "together"],
+  vision: ["google", "openrouter", "together"],
+  long_context: ["google", "openrouter", "groq", "cerebras", "together"],
+  research: ["google", "groq", "openrouter"],
   embeddings: ["google", "local"],
   image: ["google", "openrouter", "together"],
   video: ["google"],
   audio_transcribe: ["groq", "google"],
   audio_speech: ["google"],
   music: ["google", "local"],
-  code: ["google", "groq", "openrouter"],
+  code: ["google", "groq", "cerebras", "openrouter", "together"],
 }
 
 const PROVIDERS = new Set<AIProviderId>([
