@@ -3,11 +3,11 @@ import path from "node:path"
 
 const migrationPath = path.join(
   process.cwd(),
-  "supabase/migrations/202608170011_user_access_function_security.sql",
+  "supabase/migrations/20260818053511_user_access_function_security.sql",
 )
 
 if (!fs.existsSync(migrationPath)) {
-  throw new Error("[test-user-access-security] Falta migración correctiva 202608170011")
+  throw new Error("[test-user-access-security] Falta migración correctiva 20260818053511")
 }
 
 const sql = fs.readFileSync(migrationPath, "utf8")
