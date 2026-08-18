@@ -1,4 +1,7 @@
 import { createClient as createAdmin } from "@supabase/supabase-js"
+import { fetchSafeRemoteBytes } from "@/lib/safe-remote-url"
+
+const MAX_VIDEO_BYTES = 500 * 1024 * 1024
 
 function getAdminSupabase() {
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -16,18 +19,16 @@ export async function persistRemoteVideo(input: {
   sourceJobId?: string | null
   metadata?: Record<string, unknown>
 }) {
-  const response = await fetch(input.remoteUrl, {
-    redirect: "follow",
-    signal: AbortSignal.timeout(60_000),
+  const { buffer, mimeType } = await fetchSafeRemoteBytes({
+    url: input.remoteUrl,
+    maxBytes: MAX_VIDEO_BYTES,
+    timeoutMs: 60_000,
+    maxRedirects: 5,
+    userAgent: "EduAI-Video-Persister/1.0",
   })
-  if (!response.ok) {
-    throw new Error(`No se pudo descargar el video de ${input.provider}: HTTP ${response.status}`)
-  }
 
-  const buffer = Buffer.from(await response.arrayBuffer())
-  if (!buffer.byteLength) throw new Error(`${input.provider} devolvió un video vacío`)
-  if (buffer.byteLength > 500 * 1024 * 1024) {
-    throw new Error("El video supera el límite de almacenamiento de EduAI")
+  if (mimeType !== "application/octet-stream" && mimeType !== "video/mp4") {
+    throw new Error(`${input.provider} devolvió un recurso que no es video MP4 (${mimeType})`)
   }
 
   const supabase = getAdminSupabase()

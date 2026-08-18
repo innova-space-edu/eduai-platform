@@ -2,13 +2,12 @@ import { createHash } from "node:crypto"
 import { createClient } from "@/lib/supabase/server"
 import { createClient as createAdminClient } from "@supabase/supabase-js"
 import { createEduAIAsset } from "@/lib/ai/reuse"
-import { assertPublicRemoteUrl } from "@/lib/security/public-http-url"
+import { fetchSafeRemoteBytes } from "@/lib/safe-remote-url"
 
 export const runtime = "nodejs"
 export const maxDuration = 60
 
 const MAX_BYTES = 500 * 1024 * 1024
-const MAX_REDIRECTS = 5
 const ALLOWED_TYPES = new Set(["image", "video", "audio", "music", "document", "presentation", "dataset", "other"])
 
 function getAdmin() {
@@ -37,73 +36,9 @@ function safeExt(mime: string) {
 function normalizeRemoteUrl(value: unknown) {
   if (typeof value !== "string" || !value.trim()) return null
   const url = new URL(value.trim())
-  if (!['https:', 'http:'].includes(url.protocol)) throw new Error("Solo se permiten URLs HTTP/HTTPS")
+  if (!["https:", "http:"].includes(url.protocol)) throw new Error("Solo se permiten URLs HTTP/HTTPS")
   if (url.username || url.password) throw new Error("La URL no puede contener credenciales")
   return url.toString()
-}
-
-async function readCappedBody(response: Response) {
-  if (!response.body) throw new Error("El recurso remoto no tiene contenido")
-
-  const reader = response.body.getReader()
-  const chunks: Buffer[] = []
-  let total = 0
-
-  try {
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-      if (!value?.byteLength) continue
-
-      total += value.byteLength
-      if (total > MAX_BYTES) {
-        await reader.cancel("EduAI remote asset size limit").catch(() => undefined)
-        throw new Error("El recurso supera 500 MB")
-      }
-      chunks.push(Buffer.from(value))
-    }
-  } finally {
-    reader.releaseLock()
-  }
-
-  if (!total) throw new Error("El recurso está vacío")
-  return Buffer.concat(chunks, total)
-}
-
-async function remoteBytes(rawUrl: string) {
-  let currentUrl = new URL(rawUrl)
-
-  for (let redirectCount = 0; redirectCount <= MAX_REDIRECTS; redirectCount += 1) {
-    await assertPublicRemoteUrl(currentUrl)
-
-    const response = await fetch(currentUrl, {
-      redirect: "manual",
-      signal: AbortSignal.timeout(45_000),
-      headers: { "User-Agent": "EduAI-Asset-Importer/1.0" },
-      cache: "no-store",
-    })
-
-    if (response.status >= 300 && response.status < 400) {
-      const location = response.headers.get("location")
-      if (!location) throw new Error(`Redirección HTTP ${response.status} sin destino`)
-      if (redirectCount >= MAX_REDIRECTS) throw new Error("El recurso supera el máximo de redirecciones")
-      currentUrl = new URL(location, currentUrl)
-      continue
-    }
-
-    if (!response.ok) throw new Error(`El recurso respondió HTTP ${response.status}`)
-
-    const declared = Number(response.headers.get("content-length") || 0)
-    if (Number.isFinite(declared) && declared > MAX_BYTES) throw new Error("El recurso supera 500 MB")
-
-    const buffer = await readCappedBody(response)
-    return {
-      buffer,
-      mimeType: response.headers.get("content-type")?.split(";")[0]?.trim() || "application/octet-stream",
-    }
-  }
-
-  throw new Error("No se pudo resolver el recurso remoto")
 }
 
 export async function POST(req: Request) {
@@ -124,7 +59,13 @@ export async function POST(req: Request) {
   const sourceId = typeof body.source_id === "string" ? body.source_id.trim().slice(0, 240) : null
 
   try {
-    const { buffer, mimeType } = await remoteBytes(remoteUrl)
+    const { buffer, mimeType } = await fetchSafeRemoteBytes({
+      url: remoteUrl,
+      maxBytes: MAX_BYTES,
+      timeoutMs: 45_000,
+      maxRedirects: 5,
+      userAgent: "EduAI-Asset-Importer/1.0",
+    })
     const contentHash = createHash("sha256").update(buffer).digest("hex")
 
     const { data: existing } = await supabase
