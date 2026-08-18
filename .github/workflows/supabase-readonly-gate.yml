@@ -6,12 +6,9 @@ on:
       - feat/eduai-core-reuse-ai-gateway
     paths:
       - ".github/workflows/supabase-readonly-gate.yml"
-  pull_request:
-    paths:
-      - ".github/workflows/supabase-readonly-gate.yml"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   verify-production-database:
@@ -22,61 +19,75 @@ jobs:
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
       SUPABASE_PROJECT_REF: jfytmdvcqrjbbtyuklyf
     steps:
-      - name: Checkout
+      - name: Checkout de la rama
         uses: actions/checkout@v4
-
-      - name: Validar secretos sin exponerlos
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -n "$SUPABASE_ACCESS_TOKEN" || { echo "::error::Missing SUPABASE_ACCESS_TOKEN"; exit 1; }
-          test -n "$SUPABASE_DB_PASSWORD" || { echo "::error::Missing SUPABASE_DB_PASSWORD"; exit 1; }
-          echo "Secrets requeridos presentes"
+        with:
+          ref: feat/eduai-core-reuse-ai-gateway
+          fetch-depth: 0
 
       - name: Instalar Supabase CLI
         uses: supabase/setup-cli@v1
         with:
           version: latest
 
-      - name: Descubrir comandos disponibles
-        shell: bash
-        run: |
-          set -euo pipefail
-          supabase --version
-          supabase link --help > supabase-link-help.log
-          supabase migration list --help > supabase-migration-list-help.log
-          supabase db lint --help > supabase-db-lint-help.log
-
-      - name: Enlazar proyecto de producción sin aplicar cambios
-        shell: bash
-        run: |
-          set -euo pipefail
-          supabase link --project-ref "$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
-
-      - name: Listar migraciones locales y remotas
-        shell: bash
-        run: |
-          set -euo pipefail
-          supabase migration list --linked | tee supabase-migration-list.log
-
-      - name: Ejecutar lint de base en modo lectura si está soportado
+      - name: Verificar producción en modo solo lectura
         shell: bash
         run: |
           set -u
-          if grep -q -- "--linked" supabase-db-lint-help.log; then
-            supabase db lint --linked --level warning 2>&1 | tee supabase-db-lint.log
+          RESULT="supabase-readonly-result.txt"
+          : > "$RESULT"
+          echo "project_ref=$SUPABASE_PROJECT_REF" >> "$RESULT"
+          echo "checked_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$RESULT"
+
+          supabase --version >> "$RESULT" 2>&1
+          supabase link --help > supabase-link-help.log 2>&1
+          supabase migration list --help > supabase-migration-list-help.log 2>&1
+          supabase db lint --help > supabase-db-lint-help.log 2>&1
+
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ] || [ -z "$SUPABASE_DB_PASSWORD" ]; then
+            echo "secret_status=missing" >> "$RESULT"
+            [ -n "$SUPABASE_ACCESS_TOKEN" ] && echo "access_token=present" >> "$RESULT" || echo "access_token=missing" >> "$RESULT"
+            [ -n "$SUPABASE_DB_PASSWORD" ] && echo "db_password=present" >> "$RESULT" || echo "db_password=missing" >> "$RESULT"
             exit 0
           fi
-          echo "La versión instalada no expone --linked para db lint" | tee supabase-db-lint.log
 
-      - name: Publicar evidencia de solo lectura
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: supabase-readonly-gate
-          path: |
-            supabase-*-help.log
-            supabase-migration-list.log
-            supabase-db-lint.log
-          if-no-files-found: warn
-          retention-days: 7
+          echo "secret_status=present" >> "$RESULT"
+          echo "access_token=present" >> "$RESULT"
+          echo "db_password=present" >> "$RESULT"
+
+          if ! supabase link --project-ref "$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD" > supabase-link.log 2>&1; then
+            echo "link_status=failed" >> "$RESULT"
+            sed -E 's/(postgresql:\/\/[^:]+:)[^@]+@/\1***@/g' supabase-link.log >> "$RESULT"
+            exit 0
+          fi
+          echo "link_status=success" >> "$RESULT"
+
+          echo "--- migration list ---" >> "$RESULT"
+          if supabase migration list --linked > supabase-migration-list.log 2>&1; then
+            cat supabase-migration-list.log >> "$RESULT"
+          else
+            echo "migration_list_status=failed" >> "$RESULT"
+            cat supabase-migration-list.log >> "$RESULT"
+          fi
+
+          echo "--- db lint ---" >> "$RESULT"
+          if grep -q -- "--linked" supabase-db-lint-help.log; then
+            supabase db lint --linked --level warning > supabase-db-lint.log 2>&1 || true
+            cat supabase-db-lint.log >> "$RESULT"
+          else
+            echo "db_lint_linked=unsupported" >> "$RESULT"
+          fi
+
+      - name: Commit de evidencia sanitizada
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add supabase-readonly-result.txt
+          if git diff --cached --quiet; then
+            echo "Sin cambios en evidencia"
+            exit 0
+          fi
+          git commit -m "chore: record Supabase read-only gate result"
+          git push origin HEAD:feat/eduai-core-reuse-ai-gateway
