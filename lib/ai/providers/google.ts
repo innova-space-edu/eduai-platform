@@ -25,6 +25,16 @@ export type GoogleImageResult = {
   interactionId?: string | null
 }
 
+function useVertexText(): boolean {
+  return process.env.GOOGLE_GENAI_USE_VERTEX === "true"
+}
+
+function vertexTextConfig() {
+  const project = process.env.GOOGLE_CLOUD_PROJECT?.trim() || ""
+  const location = process.env.GOOGLE_CLOUD_LOCATION?.trim() || "us-central1"
+  return { project, location }
+}
+
 function apiKey(kind: "text" | "image" | "video" = "text"): string {
   const key =
     (kind === "text" ? process.env.GEMINI_API_KEY_TEXT : undefined) ||
@@ -38,6 +48,21 @@ function apiKey(kind: "text" | "image" | "video" = "text"): string {
 }
 
 function client(kind: "text" | "image" | "video" = "text") {
+  if (kind === "text" && useVertexText()) {
+    const { project, location } = vertexTextConfig()
+    if (!project) {
+      throw new Error("GOOGLE_GENAI_USE_VERTEX=true requiere GOOGLE_CLOUD_PROJECT")
+    }
+
+    // Vertex AI usa credenciales de aplicación/Workload Identity del entorno
+    // servidor. No se coloca una service-account key en el frontend.
+    return new GoogleGenAI({
+      vertexai: true,
+      project,
+      location,
+    })
+  }
+
   return new GoogleGenAI({ apiKey: apiKey(kind) })
 }
 
@@ -235,6 +260,10 @@ export async function generateGoogleImage(input: {
 }
 
 export function hasGoogleAI(kind: "text" | "image" | "video" = "text"): boolean {
+  if (kind === "text" && useVertexText()) {
+    return Boolean(vertexTextConfig().project)
+  }
+
   try {
     return Boolean(apiKey(kind))
   } catch {
