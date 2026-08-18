@@ -116,6 +116,11 @@ export function deriveEffectiveStoredAccessProfile(input: {
   }
 }
 
+/**
+ * Normaliza metadata declarada por el usuario para flujos de provisión/UI.
+ * No debe usarse como fuente de autorización: user_metadata es editable por
+ * el usuario. Las decisiones de acceso leen exclusivamente eduai_user_access.
+ */
 export function deriveAccessProfileFromMetadata(input: {
   userId: string
   metadata?: Record<string, unknown> | null
@@ -139,71 +144,24 @@ export function deriveAccessProfileFromMetadata(input: {
   }
 }
 
-async function deriveCurrentAuthProfile(
-  supabase: SupabaseClient,
-  userId: string,
-): Promise<{ profile: EduAIAccessProfile; metadata: Record<string, unknown> } | null> {
-  try {
-    const { data, error } = await supabase.auth.getUser()
-    if (error || !data.user || data.user.id !== userId) return null
-    const metadata = (data.user.user_metadata || {}) as Record<string, unknown>
-    const profile = deriveAccessProfileFromMetadata({ userId, metadata })
-    return profile ? { profile, metadata } : null
-  } catch {
-    return null
-  }
-}
-
-async function persistDerivedProfile(input: {
-  supabase: SupabaseClient
-  profile: EduAIAccessProfile
-  metadata: Record<string, unknown>
-}) {
-  const birthDate = typeof input.metadata.birth_date === "string" ? input.metadata.birth_date : null
-  if (!birthDate) return
-
-  const acceptedTerms = input.metadata.terms_accepted === true || input.metadata.terms_accepted === "true"
-  const acceptedPrivacy = input.metadata.privacy_accepted === true || input.metadata.privacy_accepted === "true"
-  const now = new Date().toISOString()
-
-  const { error } = await input.supabase.from("eduai_user_access").insert({
-    user_id: input.profile.userId,
-    birth_date: birthDate,
-    age_band: input.profile.ageBand,
-    account_type: input.profile.accountType || "other",
-    access_tier: input.profile.accessTier,
-    country_code: typeof input.metadata.country_code === "string" ? input.metadata.country_code : null,
-    age_self_declared: true,
-    terms_version: typeof input.metadata.terms_version === "string" ? input.metadata.terms_version : null,
-    terms_accepted_at: acceptedTerms ? now : null,
-    privacy_version: typeof input.metadata.privacy_version === "string" ? input.metadata.privacy_version : null,
-    privacy_accepted_at: acceptedPrivacy ? now : null,
-  })
-
-  if (error && error.code !== "23505") {
-    console.warn("[AI Access] derived profile persistence failed:", error.message)
-  }
-}
-
-function legacyProfile(userId: string): EduAIAccessProfile {
+export function unresolvedAccessProfile(userId: string): EduAIAccessProfile {
   return {
     userId,
     ageBand: "unknown",
     accountType: null,
-    accessTier: "legacy_standard",
+    accessTier: "restricted",
     hasExplicitAgeProfile: false,
   }
 }
 
 /**
- * Lee el perfil de autorización desde eduai_user_access.
+ * Lee el perfil de autorización exclusivamente desde eduai_user_access.
  *
- * Defensa en profundidad: si la fila todavía no existe (por ejemplo, una
- * confirmación de email posterior al signUp), deriva el tramo desde metadata
- * de la sesión Auth en el mismo request. Así una cuenta under_18 nunca se
- * convierte temporalmente en legacy_standard por una carrera de provisión.
- * Las cuentas históricas sin birth_date conservan legacy_standard durante la
- * migración progresiva.
+ * Si la fila todavía no existe, la decisión falla cerrada: la cuenta queda en
+ * tramo unknown/restricted hasta que el trigger de Auth o el onboarding cree
+ * su perfil. No se autoriza desde user_metadata porque es editable por el
+ * cliente. Esto también impide que una llamada directa a la API evite el
+ * onboarding de cuentas legacy.
  *
  * La edad efectiva se recalcula desde birth_date en cada lectura para que una
  * cuenta no permanezca restricted después de cumplir 18 solo porque Postgres
@@ -233,15 +191,7 @@ export async function getEduAIAccessProfile(
     console.warn("[AI Access] profile lookup failed:", error.message)
   }
 
-  const derived = await deriveCurrentAuthProfile(supabase, userId)
-  if (derived) {
-    // Persistencia best-effort. La decisión de seguridad de este request no
-    // depende de que el INSERT termine correctamente.
-    if (!error) await persistDerivedProfile({ supabase, ...derived })
-    return derived.profile
-  }
-
-  return legacyProfile(userId)
+  return unresolvedAccessProfile(userId)
 }
 
 export function decideCapability(
@@ -265,7 +215,9 @@ export function decideCapability(
     cloudAllowed: false,
     localAllowed,
     reason:
-      "Esta cuenta tiene acceso restringido. Las capacidades generativas en la nube están deshabilitadas para este perfil.",
+      profile.hasExplicitAgeProfile
+        ? "Esta cuenta tiene acceso restringido. Las capacidades generativas en la nube están deshabilitadas para este perfil."
+        : "Completa tu perfil de acceso y edad para habilitar las capacidades de IA disponibles.",
   }
 }
 
