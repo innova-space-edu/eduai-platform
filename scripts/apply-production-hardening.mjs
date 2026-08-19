@@ -173,8 +173,18 @@ patch("app/api/repository/public-access/[token]/items/[itemId]/route.ts", (sourc
 // Video Studio: nunca confía en imageUrl enviado por el cliente. Para uploads
 // solo admite video-inputs del propio usuario; para reutilización resuelve el
 // asset privado por owner_id y genera una nueva URL firmada server-side.
+// La ruta v2 de Créditos IA ya incorpora este hardening de forma nativa, por lo
+// que el parche legado debe ser idempotente y no intentar reescribirla.
 // ---------------------------------------------------------------------------
 patch("app/api/agents/video/route.ts", (source) => {
+  const alreadyHardenedCreditsRoute =
+    source.includes('import { resolveTrustedImageInput } from "@/lib/video/trusted-image-input"') &&
+    source.includes("const trustedImage = await resolveTrustedImageInput({") &&
+    source.includes("const imageIdentity = trustedImage.identity") &&
+    source.includes("billingMode: selectedModel.provider === \"auto\" ? \"free\" : \"credits\"")
+
+  if (alreadyHardenedCreditsRoute) return source
+
   let next = source
   const oldImport = 'import { resolveOwnedImageAssetId, stableImageFingerprintIdentity } from "@/lib/video/image-asset-identity"\n'
   if (next.includes(oldImport)) next = next.replace(oldImport, "")
