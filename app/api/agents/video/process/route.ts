@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
-import { processVideoJob } from "@/lib/video-agent"
+import { processVideoJob, type ProcessVideoJobResult } from "@/lib/video-agent"
+import { captureVideoCredits, releaseVideoCredits } from "@/lib/credits/server"
+import { pollFalPremiumVideo, startFalPremiumVideo } from "@/lib/video/providers/fal-premium"
 
 export const runtime = "nodejs"
 export const maxDuration = 60
@@ -19,6 +21,22 @@ type ProcessVideoResponse = {
   error?: string
 }
 
+type RequestPayload = {
+  prompt?: string
+  style?: string | null
+  duration?: number | null
+  durationSeconds?: number | null
+  withAudio?: boolean | null
+  includeAudio?: boolean | null
+  mode?: string | null
+  imageUrl?: string | null
+  image_url?: string | null
+  aspectRatio?: string | null
+  resolution?: string | null
+  modelKey?: string | null
+  billingMode?: string | null
+}
+
 type VideoJobRow = {
   id: string
   user_id: string
@@ -34,19 +52,7 @@ type VideoJobRow = {
   model?: string | null
   operation_name?: string | null
   asset_id?: string | null
-  request_payload?: {
-    prompt?: string
-    style?: string | null
-    duration?: number | null
-    durationSeconds?: number | null
-    withAudio?: boolean | null
-    includeAudio?: boolean | null
-    mode?: string | null
-    imageUrl?: string | null
-    image_url?: string | null
-    aspectRatio?: string | null
-    resolution?: string | null
-  } | null
+  request_payload?: RequestPayload | null
   response_payload?: Record<string, unknown> | null
   moderation_payload?: Record<string, unknown> | null
   video_url?: string | null
@@ -62,7 +68,6 @@ type VideoJobRow = {
 function isAuthorized(req: Request) {
   const cronSecret = process.env.VIDEO_CRON_SECRET || process.env.CRON_SECRET
   if (!cronSecret) return process.env.NODE_ENV !== "production"
-
   const authHeader = req.headers.get("authorization")
   const explicitHeader = req.headers.get("x-video-cron-secret")
   return authHeader === `Bearer ${cronSecret}` || explicitHeader === cronSecret
@@ -93,11 +98,61 @@ function extractRequestInput(job: VideoJobRow) {
     sourceJobId: job.id,
     provider: job.provider || null,
     model: job.model || null,
+    modelKey: payload.modelKey || null,
+  }
+}
+
+async function runJob(job: VideoJobRow): Promise<ProcessVideoJobResult> {
+  const input = extractRequestInput(job)
+
+  if (job.provider === "fal") {
+    if (input.operationName) {
+      return pollFalPremiumVideo({
+        operationName: input.operationName,
+        prompt: input.prompt,
+        userId: input.userId,
+        sourceJobId: input.sourceJobId,
+        model: input.model,
+      })
+    }
+    if (!input.modelKey) {
+      return { ok: false, status: "failed", provider: "fal", error: "Falta modelKey para el job premium." }
+    }
+    return startFalPremiumVideo({
+      modelKey: input.modelKey,
+      prompt: input.prompt,
+      style: input.style,
+      duration: Number(input.duration),
+      withAudio: Boolean(input.withAudio),
+      mode: input.mode === "image_to_video" ? "image_to_video" : "text_to_video",
+      imageUrl: input.imageUrl,
+      aspectRatio: input.aspectRatio === "9:16" ? "9:16" : "16:9",
+      resolution: input.resolution === "4k" ? "4k" : input.resolution === "1080p" ? "1080p" : "720p",
+      userId: input.userId,
+    })
+  }
+
+  return processVideoJob(input)
+}
+
+async function settleCompleted(jobId: string) {
+  try {
+    await captureVideoCredits(jobId)
+  } catch (error) {
+    console.error("[Video][credits][capture]", jobId, error instanceof Error ? error.message : String(error))
+    throw error
+  }
+}
+
+async function settleFailed(jobId: string, reason: string) {
+  try {
+    await releaseVideoCredits(jobId, reason)
+  } catch (error) {
+    console.error("[Video][credits][release]", jobId, error instanceof Error ? error.message : String(error))
   }
 }
 
 async function findWork(supabase: ReturnType<typeof getAdminSupabase>): Promise<{ job: VideoJobRow; claimed: boolean } | null> {
-  // Priorizar operaciones asíncronas ya iniciadas para no dejar videos terminados sin persistir.
   const { data: processing, error: processingError } = await supabase
     .from("video_jobs")
     .select("*")
@@ -110,8 +165,6 @@ async function findWork(supabase: ReturnType<typeof getAdminSupabase>): Promise<
   if (processingError) throw new Error(processingError.message)
   if (processing) return { job: processing, claimed: true }
 
-  // Los jobs recientes tienen prioridad. Un registro legacy/abandonado permanece auditable,
-  // pero no puede ponerse delante de una generación actual indefinidamente.
   const { data: queued, error: queuedError } = await supabase
     .from("video_jobs")
     .select("*")
@@ -144,13 +197,21 @@ export async function POST(req: Request) {
 
     const supabase = getAdminSupabase()
     const work = await findWork(supabase)
-
-    if (!work) {
-      return NextResponse.json({ ok: true, message: "No hay jobs pendientes en la cola." } satisfies ProcessVideoResponse)
-    }
+    if (!work) return NextResponse.json({ ok: true, message: "No hay jobs pendientes en la cola." } satisfies ProcessVideoResponse)
 
     const nextJob = work.job
-    const result = await processVideoJob(extractRequestInput(nextJob))
+    let result: ProcessVideoJobResult
+    try {
+      result = await runJob(nextJob)
+    } catch (error) {
+      result = {
+        ok: false,
+        status: "failed",
+        provider: nextJob.provider || null,
+        model: nextJob.model || null,
+        error: error instanceof Error ? error.message : String(error),
+      }
+    }
 
     if (result.ok && result.status === "processing") {
       const { error } = await supabase
@@ -164,21 +225,21 @@ export async function POST(req: Request) {
           error_message: null,
         })
         .eq("id", nextJob.id)
-
       if (error) throw new Error(error.message)
 
       return NextResponse.json({
         ok: true,
         jobId: nextJob.id,
         status: "processing",
-        provider: result.provider || "google",
-        model: result.model || null,
+        provider: result.provider || nextJob.provider || "google",
+        model: result.model || nextJob.model || null,
         message: result.operationName ? "Generación iniciada; EduAI continuará consultando el estado." : "Generación en curso.",
       } satisfies ProcessVideoResponse)
     }
 
     if (!result.ok || !result.videoUrl) {
       const failedStatus: JobStatus = result.status === "blocked" ? "blocked" : "failed"
+      const failureMessage = result.moderationReason || result.error || "No fue posible generar el video."
       const { error } = await supabase
         .from("video_jobs")
         .update({
@@ -187,13 +248,13 @@ export async function POST(req: Request) {
           model: result.model || nextJob.model || null,
           operation_name: result.operationName || nextJob.operation_name || null,
           response_payload: result.raw ?? null,
-          error_message: result.moderationReason || result.error || "No fue posible generar el video.",
+          error_message: failureMessage,
           completed_at: new Date().toISOString(),
           retry_count: (nextJob.retry_count ?? 0) + 1,
         })
         .eq("id", nextJob.id)
-
       if (error) throw new Error(error.message)
+      await settleFailed(nextJob.id, failureMessage)
 
       return NextResponse.json({
         ok: false,
@@ -201,7 +262,7 @@ export async function POST(req: Request) {
         status: failedStatus,
         provider: result.provider || nextJob.provider || null,
         model: result.model || nextJob.model || null,
-        error: result.moderationReason || result.error || "Error desconocido al procesar el video.",
+        error: failureMessage,
       } satisfies ProcessVideoResponse)
     }
 
@@ -220,8 +281,9 @@ export async function POST(req: Request) {
         completed_at: new Date().toISOString(),
       })
       .eq("id", nextJob.id)
-
     if (completeError) throw new Error(completeError.message)
+
+    await settleCompleted(nextJob.id)
 
     return NextResponse.json({
       ok: true,
@@ -231,7 +293,7 @@ export async function POST(req: Request) {
       model: result.model || nextJob.model || null,
       videoUrl: result.videoUrl,
       thumbnailUrl: result.thumbnailUrl || null,
-      message: "Video procesado y guardado en EduAI correctamente.",
+      message: "Video procesado, guardado y conciliado correctamente.",
     } satisfies ProcessVideoResponse)
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unexpected error"
