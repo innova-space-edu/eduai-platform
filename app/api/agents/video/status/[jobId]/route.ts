@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { createClient as createAdmin } from "@supabase/supabase-js"
-import { processVideoJob } from "@/lib/video-agent"
+import { processVideoJob, type ProcessVideoJobResult } from "@/lib/video-agent"
+import { captureVideoCredits, releaseVideoCredits } from "@/lib/credits/server"
+import { pollFalPremiumVideo, startFalPremiumVideo } from "@/lib/video/providers/fal-premium"
 
 export const runtime = "nodejs"
 export const maxDuration = 60
 
 type JobStatus = "queued" | "processing" | "completed" | "failed" | "blocked" | "canceled"
+type RequestPayload = Record<string, unknown>
 
 type VideoJobRow = {
   id: string
@@ -23,7 +26,7 @@ type VideoJobRow = {
   model?: string | null
   operation_name?: string | null
   asset_id?: string | null
-  request_payload?: Record<string, unknown> | null
+  request_payload?: RequestPayload | null
   response_payload?: Record<string, unknown> | null
   moderation_payload?: Record<string, unknown> | null
   video_url?: string | null
@@ -38,27 +41,23 @@ type VideoJobRow = {
 }
 
 function getProgressFromStatus(status: JobStatus): number {
-  switch (status) {
-    case "queued": return 10
-    case "processing": return 60
-    case "completed": return 100
-    case "failed":
-    case "blocked":
-    case "canceled": return 100
-    default: return 0
-  }
+  if (status === "queued") return 10
+  if (status === "processing") return 60
+  if (status === "completed") return 100
+  if (["failed", "blocked", "canceled"].includes(status)) return 100
+  return 0
 }
 
 function getStatusLabel(status: JobStatus): string {
-  switch (status) {
-    case "queued": return "En cola"
-    case "processing": return "Procesando"
-    case "completed": return "Completado"
-    case "failed": return "Falló"
-    case "blocked": return "Bloqueado"
-    case "canceled": return "Cancelado"
-    default: return "Desconocido"
+  const labels: Record<JobStatus, string> = {
+    queued: "En cola",
+    processing: "Procesando",
+    completed: "Completado",
+    failed: "Falló",
+    blocked: "Bloqueado",
+    canceled: "Cancelado",
   }
+  return labels[status] || "Desconocido"
 }
 
 function getAdminSupabase() {
@@ -83,47 +82,180 @@ async function resolvePrivateUrl(
   if (!value) return null
   const parsed = parseSupabaseAssetUrl(value)
   if (!parsed) return value
-
-  const { data, error } = await supabase.storage
-    .from(parsed.bucket)
-    .createSignedUrl(parsed.path, 60 * 30)
-
+  const { data, error } = await supabase.storage.from(parsed.bucket).createSignedUrl(parsed.path, 60 * 30)
   return error ? null : data?.signedUrl || null
 }
 
-function requestString(payload: Record<string, unknown> | null | undefined, key: string, fallback = "") {
+function requestString(payload: RequestPayload | null | undefined, key: string, fallback = "") {
   const value = payload?.[key]
   return typeof value === "string" ? value : fallback
 }
 
-function requestNumber(payload: Record<string, unknown> | null | undefined, key: string, fallback: number) {
+function requestNumber(payload: RequestPayload | null | undefined, key: string, fallback: number) {
   const value = payload?.[key]
   return typeof value === "number" && Number.isFinite(value) ? value : fallback
 }
 
-function requestBoolean(payload: Record<string, unknown> | null | undefined, key: string, fallback: boolean) {
+function requestBoolean(payload: RequestPayload | null | undefined, key: string, fallback: boolean) {
   const value = payload?.[key]
   return typeof value === "boolean" ? value : fallback
+}
+
+async function runCurrentJob(job: VideoJobRow): Promise<ProcessVideoJobResult> {
+  const prompt = job.prompt || requestString(job.request_payload, "prompt", "Video EduAI")
+  const style = job.style || requestString(job.request_payload, "style", "")
+  const duration = job.duration_seconds ?? requestNumber(job.request_payload, "duration", 6)
+  const withAudio = job.include_audio ?? requestBoolean(job.request_payload, "withAudio", false)
+  const mode = job.mode || requestString(job.request_payload, "mode", "text_to_video")
+  const imageUrl = job.image_url || requestString(job.request_payload, "imageUrl", "") || null
+  const aspectRatio = requestString(job.request_payload, "aspectRatio", "16:9")
+  const resolution = requestString(job.request_payload, "resolution", "720p")
+
+  if (job.provider === "fal") {
+    if (job.operation_name) {
+      return pollFalPremiumVideo({
+        operationName: job.operation_name,
+        prompt,
+        userId: job.user_id,
+        sourceJobId: job.id,
+        model: job.model || null,
+      })
+    }
+
+    const modelKey = requestString(job.request_payload, "modelKey", "")
+    if (!modelKey) return { ok: false, status: "failed", provider: "fal", error: "Falta modelKey en el job premium." }
+    return startFalPremiumVideo({
+      modelKey,
+      prompt,
+      style,
+      duration,
+      withAudio,
+      mode: mode === "image_to_video" ? "image_to_video" : "text_to_video",
+      imageUrl,
+      aspectRatio: aspectRatio === "9:16" ? "9:16" : "16:9",
+      resolution: resolution === "4k" ? "4k" : resolution === "1080p" ? "1080p" : "720p",
+      userId: job.user_id,
+    })
+  }
+
+  return processVideoJob({
+    prompt,
+    style,
+    duration,
+    withAudio,
+    mode,
+    imageUrl,
+    aspectRatio,
+    resolution,
+    operationName: job.operation_name || null,
+    userId: job.user_id,
+    sourceJobId: job.id,
+    provider: job.provider || null,
+    model: job.model || null,
+  })
+}
+
+async function releaseCreditsQuietly(jobId: string, reason: string) {
+  try {
+    await releaseVideoCredits(jobId, reason)
+  } catch (error) {
+    console.warn("[Video status][credits release]", error instanceof Error ? error.message : String(error))
+  }
+}
+
+async function completeJob(
+  admin: NonNullable<ReturnType<typeof getAdminSupabase>>,
+  current: VideoJobRow,
+  result: ProcessVideoJobResult
+): Promise<VideoJobRow> {
+  const now = new Date().toISOString()
+  const { error } = await admin
+    .from("video_jobs")
+    .update({
+      status: "completed",
+      provider: result.provider || current.provider,
+      model: result.model || current.model,
+      operation_name: result.operationName || current.operation_name || null,
+      asset_id: result.assetId || current.asset_id || null,
+      video_url: result.videoUrl,
+      thumbnail_url: result.thumbnailUrl || current.thumbnail_url || null,
+      response_payload: result.raw || current.response_payload || null,
+      error_message: null,
+      completed_at: now,
+    })
+    .eq("id", current.id)
+    .eq("user_id", current.user_id)
+  if (error) throw new Error(error.message)
+
+  await captureVideoCredits(current.id)
+
+  return {
+    ...current,
+    status: "completed",
+    provider: result.provider || current.provider,
+    model: result.model || current.model,
+    operation_name: result.operationName || current.operation_name || null,
+    asset_id: result.assetId || current.asset_id || null,
+    video_url: result.videoUrl || current.video_url || null,
+    thumbnail_url: result.thumbnailUrl || current.thumbnail_url || null,
+    response_payload: result.raw || current.response_payload || null,
+    error_message: null,
+    completed_at: now,
+    updated_at: now,
+  }
+}
+
+async function failJob(
+  admin: NonNullable<ReturnType<typeof getAdminSupabase>>,
+  current: VideoJobRow,
+  result: ProcessVideoJobResult
+): Promise<VideoJobRow> {
+  const now = new Date().toISOString()
+  const failedStatus: JobStatus = result.status === "blocked" ? "blocked" : "failed"
+  const message = result.moderationReason || result.error || "No fue posible generar el video."
+
+  const { error } = await admin
+    .from("video_jobs")
+    .update({
+      status: failedStatus,
+      provider: result.provider || current.provider || null,
+      model: result.model || current.model || null,
+      operation_name: result.operationName || current.operation_name || null,
+      response_payload: result.raw || current.response_payload || null,
+      error_message: message,
+      completed_at: now,
+      retry_count: Number(current.retry_count || 0) + 1,
+    })
+    .eq("id", current.id)
+    .eq("user_id", current.user_id)
+  if (error) throw new Error(error.message)
+
+  await releaseCreditsQuietly(current.id, message)
+
+  return {
+    ...current,
+    status: failedStatus,
+    provider: result.provider || current.provider || null,
+    model: result.model || current.model || null,
+    operation_name: result.operationName || current.operation_name || null,
+    response_payload: result.raw || current.response_payload || null,
+    error_message: message,
+    completed_at: now,
+    retry_count: Number(current.retry_count || 0) + 1,
+    updated_at: now,
+  }
 }
 
 async function maybeAdvanceVideoJob(job: VideoJobRow): Promise<VideoJobRow> {
   const admin = getAdminSupabase()
   if (!admin) return job
-
   let current = job
 
-  // Preview deployments do not execute Vercel Cron Jobs. When the authenticated
-  // owner polls a queued job, claim exactly that job and start it immediately.
-  // Production can still use /api/agents/video/process through Vercel Cron.
   if (current.status === "queued") {
     const startedAt = new Date().toISOString()
     const { data: claimed, error: claimError } = await admin
       .from("video_jobs")
-      .update({
-        status: "processing",
-        error_message: null,
-        started_at: current.started_at || startedAt,
-      })
+      .update({ status: "processing", error_message: null, started_at: current.started_at || startedAt })
       .eq("id", current.id)
       .eq("user_id", current.user_id)
       .eq("status", "queued")
@@ -134,36 +266,14 @@ async function maybeAdvanceVideoJob(job: VideoJobRow): Promise<VideoJobRow> {
       console.warn("[Video status][autostart]", claimError.message)
       return current
     }
-
-    // Otro request puede haber reclamado el job milisegundos antes.
     if (!claimed) return current
 
-    current = {
-      ...current,
-      status: "processing",
-      started_at: current.started_at || startedAt,
-      updated_at: startedAt,
-    }
+    current = { ...current, status: "processing", started_at: current.started_at || startedAt, updated_at: startedAt }
 
     try {
-      const result = await processVideoJob({
-        prompt: current.prompt || requestString(current.request_payload, "prompt", "Video EduAI"),
-        style: current.style || requestString(current.request_payload, "style", ""),
-        duration: current.duration_seconds ?? requestNumber(current.request_payload, "duration", 6),
-        withAudio: current.include_audio ?? requestBoolean(current.request_payload, "withAudio", false),
-        mode: current.mode || requestString(current.request_payload, "mode", "text_to_video"),
-        imageUrl: current.image_url || requestString(current.request_payload, "imageUrl", "") || null,
-        aspectRatio: requestString(current.request_payload, "aspectRatio", "16:9"),
-        resolution: requestString(current.request_payload, "resolution", "720p"),
-        userId: current.user_id,
-        sourceJobId: current.id,
-        provider: current.provider || null,
-        model: current.model || null,
-      })
-
-      const now = new Date().toISOString()
-
+      const result = await runCurrentJob(current)
       if (result.ok && result.status === "processing") {
+        const now = new Date().toISOString()
         const { error } = await admin
           .from("video_jobs")
           .update({
@@ -176,12 +286,9 @@ async function maybeAdvanceVideoJob(job: VideoJobRow): Promise<VideoJobRow> {
           })
           .eq("id", current.id)
           .eq("user_id", current.user_id)
-
-        if (error) console.warn("[Video status][autostart]", error.message)
-
+        if (error) throw new Error(error.message)
         return {
           ...current,
-          status: "processing",
           provider: result.provider || current.provider || null,
           model: result.model || current.model || null,
           operation_name: result.operationName || current.operation_name || null,
@@ -190,118 +297,24 @@ async function maybeAdvanceVideoJob(job: VideoJobRow): Promise<VideoJobRow> {
           updated_at: now,
         }
       }
-
-      if (result.ok && result.status === "completed" && result.videoUrl) {
-        const { error } = await admin
-          .from("video_jobs")
-          .update({
-            status: "completed",
-            provider: result.provider || current.provider,
-            model: result.model || current.model,
-            operation_name: result.operationName || current.operation_name || null,
-            asset_id: result.assetId || current.asset_id || null,
-            video_url: result.videoUrl,
-            thumbnail_url: result.thumbnailUrl || current.thumbnail_url || null,
-            response_payload: result.raw || current.response_payload || null,
-            error_message: null,
-            completed_at: now,
-          })
-          .eq("id", current.id)
-          .eq("user_id", current.user_id)
-
-        if (error) console.warn("[Video status][autostart]", error.message)
-
-        return {
-          ...current,
-          status: "completed",
-          provider: result.provider || current.provider,
-          model: result.model || current.model,
-          operation_name: result.operationName || current.operation_name || null,
-          asset_id: result.assetId || current.asset_id || null,
-          video_url: result.videoUrl,
-          thumbnail_url: result.thumbnailUrl || current.thumbnail_url || null,
-          response_payload: result.raw || current.response_payload || null,
-          error_message: null,
-          completed_at: now,
-          updated_at: now,
-        }
-      }
-
-      const failedStatus: JobStatus = result.status === "blocked" ? "blocked" : "failed"
-      const errorMessage = result.moderationReason || result.error || "No fue posible iniciar el video."
-      await admin
-        .from("video_jobs")
-        .update({
-          status: failedStatus,
-          provider: result.provider || current.provider || null,
-          model: result.model || current.model || null,
-          response_payload: result.raw || current.response_payload || null,
-          error_message: errorMessage,
-          completed_at: now,
-          retry_count: Number(current.retry_count || 0) + 1,
-        })
-        .eq("id", current.id)
-        .eq("user_id", current.user_id)
-
-      return {
-        ...current,
-        status: failedStatus,
-        provider: result.provider || current.provider || null,
-        model: result.model || current.model || null,
-        response_payload: result.raw || current.response_payload || null,
-        error_message: errorMessage,
-        completed_at: now,
-        retry_count: Number(current.retry_count || 0) + 1,
-        updated_at: now,
-      }
+      if (result.ok && result.status === "completed" && result.videoUrl) return completeJob(admin, current, result)
+      return failJob(admin, current, result)
     } catch (error) {
-      const now = new Date().toISOString()
       const message = error instanceof Error ? error.message : String(error)
       console.warn("[Video status][autostart]", message)
-      await admin
-        .from("video_jobs")
-        .update({
-          status: "failed",
-          error_message: message,
-          completed_at: now,
-          retry_count: Number(current.retry_count || 0) + 1,
-        })
-        .eq("id", current.id)
-        .eq("user_id", current.user_id)
-
-      return {
-        ...current,
-        status: "failed",
-        error_message: message,
-        completed_at: now,
-        retry_count: Number(current.retry_count || 0) + 1,
-        updated_at: now,
-      }
+      return failJob(admin, current, { ok: false, status: "failed", provider: current.provider, model: current.model, error: message })
     }
   }
 
-  if (
-    current.status !== "processing"
-    || !["google", "wan", "hf-gradio"].includes(current.provider || "")
-    || !current.operation_name
-  ) return current
+  if (current.status !== "processing" || !current.operation_name) return current
+  if (!["google", "wan", "hf-gradio", "fal"].includes(current.provider || "")) return current
 
-  // Evitar golpear APIs de polling en cada render/poll ultra rápido.
   const updatedAt = current.updated_at ? new Date(current.updated_at).getTime() : 0
   if (updatedAt && Date.now() - updatedAt < 5_000) return current
 
   try {
-    const result = await processVideoJob({
-      prompt: current.prompt || requestString(current.request_payload, "prompt", "Video EduAI"),
-      operationName: current.operation_name,
-      userId: current.user_id,
-      sourceJobId: current.id,
-      provider: current.provider,
-      model: current.model,
-    })
-
+    const result = await runCurrentJob(current)
     const now = new Date().toISOString()
-
     if (result.ok && result.status === "processing") {
       const { error } = await admin
         .from("video_jobs")
@@ -314,9 +327,7 @@ async function maybeAdvanceVideoJob(job: VideoJobRow): Promise<VideoJobRow> {
         })
         .eq("id", current.id)
         .eq("user_id", current.user_id)
-
       if (error) console.warn("[Video status][poll]", error.message)
-
       return {
         ...current,
         provider: result.provider || current.provider,
@@ -327,74 +338,9 @@ async function maybeAdvanceVideoJob(job: VideoJobRow): Promise<VideoJobRow> {
         updated_at: now,
       }
     }
-
-    if (result.ok && result.status === "completed" && result.videoUrl) {
-      const { error } = await admin
-        .from("video_jobs")
-        .update({
-          status: "completed",
-          provider: result.provider || current.provider,
-          model: result.model || current.model,
-          operation_name: result.operationName || current.operation_name,
-          asset_id: result.assetId || current.asset_id || null,
-          video_url: result.videoUrl,
-          thumbnail_url: result.thumbnailUrl || current.thumbnail_url || null,
-          response_payload: result.raw || current.response_payload || null,
-          error_message: null,
-          completed_at: now,
-        })
-        .eq("id", current.id)
-        .eq("user_id", current.user_id)
-
-      if (!error) {
-        return {
-          ...current,
-          status: "completed",
-          provider: result.provider || current.provider,
-          model: result.model || current.model,
-          operation_name: result.operationName || current.operation_name,
-          asset_id: result.assetId || current.asset_id || null,
-          video_url: result.videoUrl,
-          thumbnail_url: result.thumbnailUrl || current.thumbnail_url || null,
-          response_payload: result.raw || current.response_payload || null,
-          error_message: null,
-          completed_at: now,
-          updated_at: now,
-        }
-      }
-    }
-
-    if (!result.ok) {
-      const failedStatus: JobStatus = result.status === "blocked" ? "blocked" : "failed"
-      const message = result.moderationReason || result.error || "La operación de video falló."
-      await admin
-        .from("video_jobs")
-        .update({
-          status: failedStatus,
-          provider: result.provider || current.provider,
-          model: result.model || current.model,
-          response_payload: result.raw || current.response_payload || null,
-          error_message: message,
-          completed_at: now,
-          retry_count: Number(current.retry_count || 0) + 1,
-        })
-        .eq("id", current.id)
-        .eq("user_id", current.user_id)
-
-      return {
-        ...current,
-        status: failedStatus,
-        provider: result.provider || current.provider,
-        model: result.model || current.model,
-        response_payload: result.raw || current.response_payload || null,
-        error_message: message,
-        completed_at: now,
-        retry_count: Number(current.retry_count || 0) + 1,
-        updated_at: now,
-      }
-    }
+    if (result.ok && result.status === "completed" && result.videoUrl) return completeJob(admin, current, result)
+    if (!result.ok) return failJob(admin, current, result)
   } catch (error) {
-    // Un error transitorio de polling no debe destruir un job todavía válido.
     console.warn("[Video status][poll]", error instanceof Error ? error.message : String(error))
   }
 
@@ -408,15 +354,10 @@ export async function GET(
   try {
     const supabase = await createClient()
     const { data: { user }, error: userError } = await supabase.auth.getUser()
-
-    if (userError || !user) {
-      return NextResponse.json({ ok: false, error: "No autenticado.", code: "UNAUTHORIZED" }, { status: 401 })
-    }
+    if (userError || !user) return NextResponse.json({ ok: false, error: "No autenticado.", code: "UNAUTHORIZED" }, { status: 401 })
 
     const { jobId } = await context.params
-    if (!jobId || typeof jobId !== "string") {
-      return NextResponse.json({ ok: false, error: "jobId inválido.", code: "INVALID_JOB_ID" }, { status: 400 })
-    }
+    if (!jobId || typeof jobId !== "string") return NextResponse.json({ ok: false, error: "jobId inválido.", code: "INVALID_JOB_ID" }, { status: 400 })
 
     const { data: loadedJob, error } = await supabase
       .from("video_jobs")
@@ -425,16 +366,14 @@ export async function GET(
       .eq("user_id", user.id)
       .maybeSingle<VideoJobRow>()
 
-    if (error) {
-      return NextResponse.json({ ok: false, error: error.message, code: "JOB_FETCH_FAILED" }, { status: 500 })
-    }
-    if (!loadedJob) {
-      return NextResponse.json({ ok: false, error: "Job no encontrado.", code: "JOB_NOT_FOUND" }, { status: 404 })
-    }
+    if (error) return NextResponse.json({ ok: false, error: error.message, code: "JOB_FETCH_FAILED" }, { status: 500 })
+    if (!loadedJob) return NextResponse.json({ ok: false, error: "Job no encontrado.", code: "JOB_NOT_FOUND" }, { status: 404 })
 
     const job = await maybeAdvanceVideoJob(loadedJob)
-    const videoUrl = await resolvePrivateUrl(supabase, job.video_url)
-    const thumbnailUrl = await resolvePrivateUrl(supabase, job.thumbnail_url)
+    const [videoUrl, thumbnailUrl] = await Promise.all([
+      resolvePrivateUrl(supabase, job.video_url),
+      resolvePrivateUrl(supabase, job.thumbnail_url),
+    ])
 
     return NextResponse.json({
       ok: true,
