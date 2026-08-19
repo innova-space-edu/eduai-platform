@@ -4,6 +4,7 @@ import { assertAICapabilityAllowed } from "@/lib/ai/access-policy"
 import { generationFingerprint } from "@/lib/ai/fingerprint"
 import { ensureWallet, getAdminSupabase, getBillingSettings } from "@/lib/credits/server"
 import { normalizeDuration, normalizeMode, VIDEO_MAX_DURATION } from "@/lib/video-config"
+import { resolveTrustedImageInput } from "@/lib/video/trusted-image-input"
 import {
   endpointForMode,
   estimateProviderUsd,
@@ -22,6 +23,7 @@ type VideoRequestBody = {
   withAudio?: boolean
   mode?: VideoMode
   imageUrl?: string | null
+  imageAssetId?: string | null
   aspectRatio?: "16:9" | "9:16"
   resolution?: StudioResolution
   modelKey?: string
@@ -158,13 +160,16 @@ export async function POST(req: NextRequest) {
     const requestedDuration = Number.isFinite(Number(body.duration)) ? Math.round(Number(body.duration)) : 6
     const duration = selectedModel.provider === "auto" ? normalizeDuration(requestedDuration) : requestedDuration
     const withAudio = Boolean(body.withAudio)
-    const imageUrl = typeof body.imageUrl === "string" && body.imageUrl.trim() ? body.imageUrl.trim() : null
+    const requestedImageUrl = typeof body.imageUrl === "string" && body.imageUrl.trim() ? body.imageUrl.trim() : null
+    const requestedImageAssetId = typeof body.imageAssetId === "string" && body.imageAssetId.trim() ? body.imageAssetId.trim() : null
     const aspectRatio = normalizeAspectRatio(body.aspectRatio)
     const resolution = normalizeResolution(body.resolution || selectedModel.resolutions[0])
 
     if (!prompt || prompt.length < 8) return Response.json({ ok: false, error: "El prompt es demasiado corto.", code: "INVALID_PROMPT" }, { status: 400 })
     if (prompt.length > 2000) return Response.json({ ok: false, error: "El prompt es demasiado largo.", code: "PROMPT_TOO_LONG" }, { status: 400 })
-    if (mode === "image_to_video" && !imageUrl) return Response.json({ ok: false, error: "Para imagen a video debes enviar una imagen base.", code: "IMAGE_REQUIRED" }, { status: 400 })
+    if (mode === "image_to_video" && !requestedImageUrl && !requestedImageAssetId) {
+      return Response.json({ ok: false, error: "Para imagen a video debes enviar una imagen base.", code: "IMAGE_REQUIRED" }, { status: 400 })
+    }
 
     if (selectedModel.provider === "auto") {
       if (duration < 2 || duration > VIDEO_MAX_DURATION) {
@@ -185,10 +190,23 @@ export async function POST(req: NextRequest) {
       return Response.json({ ok: false, error: typed.message, code: typed.code || "ACCESS_RESTRICTED" }, { status: typed.status || 403 })
     }
 
+    const trustedImage = await resolveTrustedImageInput({
+      supabase,
+      userId: user.id,
+      imageUrl: requestedImageUrl,
+      imageAssetId: requestedImageAssetId,
+    })
+    if (!trustedImage.ok) {
+      return Response.json({ ok: false, error: trustedImage.error, code: trustedImage.code }, { status: 400 })
+    }
+    const imageUrl = trustedImage.imageUrl
+    const imageAssetId = trustedImage.imageAssetId
+    const imageIdentity = trustedImage.identity
+
     const fingerprint = generationFingerprint({
       capability: "video",
       scopeKey: user.id,
-      payload: { modelKey: selectedModel.key, prompt, style, mode, duration, withAudio, imageUrl, aspectRatio, resolution },
+      payload: { modelKey: selectedModel.key, prompt, style, mode, duration, withAudio, imageIdentity, aspectRatio, resolution },
     })
 
     const duplicate = await findReusableJob({ supabase, userId: user.id, fingerprint })
@@ -243,6 +261,8 @@ export async function POST(req: NextRequest) {
       withAudio,
       mode,
       imageUrl,
+      imageAssetId,
+      imageIdentity,
       aspectRatio,
       resolution,
       modelKey: selectedModel.key,
