@@ -5,6 +5,16 @@ const target = path.join(process.cwd(), "components/video/VideoStudioClient.tsx"
 if (!fs.existsSync(target)) throw new Error("[video-personal-marketplace] VideoStudioClient no encontrado")
 
 let source = fs.readFileSync(target, "utf8")
+
+// Video Studio v2 usa Créditos IA administrados por EduAI y no debe volver a
+// insertar el marketplace BYOK legado durante prebuild. El código BYOK se
+// conserva en el repositorio para compatibilidad/administración avanzada, pero
+// ya no forma parte de la experiencia principal del usuario.
+if (source.includes("Créditos IA EduAI") || source.includes("Generar con Créditos IA")) {
+  console.log("[video-personal-marketplace] UI de Créditos IA detectada; overlay BYOK legado omitido")
+  process.exit(0)
+}
+
 let changed = false
 
 if (!source.includes('import PersonalAIMarketplace from "@/components/video/PersonalAIMarketplace"')) {
@@ -31,7 +41,7 @@ if (!source.includes("<PersonalAIMarketplace")) {
 
 if (changed) {
   fs.writeFileSync(target, source)
-  console.log("[video-personal-marketplace] Premium Personal integrado en Video Studio")
+  console.log("[video-personal-marketplace] Premium Personal integrado en Video Studio legado")
 } else {
   console.log("[video-personal-marketplace] ya aplicado")
 }
