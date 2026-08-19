@@ -79,6 +79,15 @@ replaceOneOf(
 
 replaceOneOf(
   [
+    '    if (selected.toLowerCase().includes("mercadopago")) {',
+    '    if (selected === "wallet_purchase" || selected.toLowerCase().includes("mercadopago")) {',
+  ],
+  '    if (selected === "wallet_purchase" || selected.toLowerCase().includes("mercadopago")) {',
+  "pago con Cuenta Mercado Pago sin envío al backend",
+)
+
+replaceOneOf(
+  [
     '    setImageFile(null)\n    setImageUrl(null)\n    setImagePreview(null)',
   ],
   '    setImageFile(null)\n    setSelectedImageAssetId(null)\n    setImageUrl(null)\n    setImagePreview(null)',
@@ -87,7 +96,7 @@ replaceOneOf(
 
 if (changed) {
   fs.writeFileSync(target, source)
-  console.log("[video-reuse] Video Studio puede reutilizar imágenes de eduai_assets con identidad estable")
+  console.log("[video-reuse] Video Studio puede reutilizar imágenes y pagar con Cuenta Mercado Pago de forma segura")
 } else {
-  console.log("[video-reuse] selector de imágenes reutilizables ya estaba aplicado")
+  console.log("[video-reuse] Video Studio reutilizable y Payment Brick ya estaban actualizados")
 }
