@@ -1,3 +1,4 @@
+import PaymentReturnReconciler from "@/components/video/PaymentReturnReconciler"
 import VideoStudioClient from "@/components/video/VideoStudioClient"
 
 export const metadata = {
@@ -12,6 +13,7 @@ export default function VideoStudioPage() {
       data-video-routing="credits-and-free-first"
     >
       <div className="mx-auto max-w-7xl px-4 py-8 md:px-6 lg:px-8">
+        <PaymentReturnReconciler />
         <VideoStudioClient />
       </div>
     </main>
