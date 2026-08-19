@@ -70,6 +70,15 @@ if (!source.includes("<ReusableAssetPicker")) {
 
 replaceOneOf(
   [
+    '          imageUrl,\n          aspectRatio,',
+    '          imageUrl,\n          imageAssetId: selectedImageAssetId,\n          aspectRatio,',
+  ],
+  '          imageUrl,\n          imageAssetId: selectedImageAssetId,\n          aspectRatio,',
+  "identidad estable del asset en la solicitud",
+)
+
+replaceOneOf(
+  [
     '    setImageFile(null)\n    setImageUrl(null)\n    setImagePreview(null)',
   ],
   '    setImageFile(null)\n    setSelectedImageAssetId(null)\n    setImageUrl(null)\n    setImagePreview(null)',
@@ -78,7 +87,7 @@ replaceOneOf(
 
 if (changed) {
   fs.writeFileSync(target, source)
-  console.log("[video-reuse] Video Studio puede reutilizar imágenes de eduai_assets")
+  console.log("[video-reuse] Video Studio puede reutilizar imágenes de eduai_assets con identidad estable")
 } else {
   console.log("[video-reuse] selector de imágenes reutilizables ya estaba aplicado")
 }
