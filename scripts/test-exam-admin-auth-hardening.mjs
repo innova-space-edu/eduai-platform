@@ -3,6 +3,7 @@ import fs from "node:fs"
 // Reuse the canonical exam auth regression suite instead of maintaining a
 // second set of route markers that can diverge from exam-server-auth-gateway.
 await import("./test-exam-server-auth-gateway.mjs")
+await import("./test-exam-development-security.mjs")
 
 const migration = fs.readFileSync(
   "supabase/migrations/20260818182329_secure_exam_submissions_rls.sql",
@@ -25,5 +26,5 @@ if (/using\s*\(\s*true\s*\)/i.test(migration) || /with\s+check\s*\(\s*true\s*\)/
 }
 
 console.log(
-  "[exam-admin-auth-test] canonical exam-server-auth gateway + closed exam_submissions RLS verified",
+  "[exam-admin-auth-test] canonical teacher auth + development security + closed exam_submissions RLS verified",
 )
