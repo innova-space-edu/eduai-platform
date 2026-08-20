@@ -17,10 +17,21 @@ function replaceRequired(source, marker, replacement, label) {
 }
 
 patchFile(saveRoutePath, (source) => {
-  if (source.includes("Intento de examen no encontrado.")) return source
+  let next = source
 
-  const marker = "    const supabase = getAdminClient();"
-  const block = `${marker}
+  const gradingImport = 'import { getQuestionMaxPoints } from "@/lib/exam/grading";'
+  if (!next.includes(gradingImport)) {
+    next = replaceRequired(
+      next,
+      'import { createClient } from "@supabase/supabase-js";',
+      `import { createClient } from "@supabase/supabase-js";\n${gradingImport}`,
+      "grading import",
+    )
+  }
+
+  if (!next.includes("Intento de examen no encontrado.")) {
+    const marker = "    const supabase = getAdminClient();"
+    const block = `${marker}
     const requestedSubmissionId = String(body.submissionId || "").trim();
     const { data: draft, error: draftError } = await supabase
       .from("exam_attempt_drafts")
@@ -49,13 +60,84 @@ patchFile(saveRoutePath, (source) => {
       return NextResponse.json({ error: "La entrega no corresponde al intento indicado." }, { status: 403 });
     }`
 
-  let next = replaceRequired(source, marker, block, "save admin client")
-  next = replaceRequired(
-    next,
-    "      submission_id: body.submissionId || null,",
-    "      submission_id: requestedSubmissionId || null,",
-    "normalized submission id",
-  )
+    next = replaceRequired(next, marker, block, "save admin client")
+    next = replaceRequired(
+      next,
+      "      submission_id: body.submissionId || null,",
+      "      submission_id: requestedSubmissionId || null,",
+      "normalized submission id",
+    )
+  }
+
+  if (!next.includes("Pauta oficial de la pregunta no encontrada.")) {
+    const oldQuestionId = '    const questionId = String(body.questionId || `question-${questionIndex + 1}`).trim();'
+    const requestedQuestionId = '    const requestedQuestionId = String(body.questionId || "").trim();'
+    next = replaceRequired(next, oldQuestionId, requestedQuestionId, "requested question id")
+
+    const marker = '    const basePath = `${safeSegment(examId, "exam")}/${safeSegment(clientAttemptId, "attempt")}/${questionIndex}`;'
+    const officialBlock = `    const { data: officialExam, error: officialExamError } = await supabase
+      .from("teacher_exams")
+      .select("questions")
+      .eq("id", examId)
+      .maybeSingle();
+    if (officialExamError) throw officialExamError;
+
+    const officialQuestions = Array.isArray(officialExam?.questions) ? officialExam.questions : [];
+    const officialQuestion = officialQuestions[questionIndex] as any;
+    if (!officialQuestion || typeof officialQuestion !== "object") {
+      return NextResponse.json({ error: "Pauta oficial de la pregunta no encontrada." }, { status: 404 });
+    }
+
+    const officialQuestionId = String(officialQuestion.id || \`question-\${questionIndex + 1}\`).trim();
+    if (requestedQuestionId && requestedQuestionId !== officialQuestionId) {
+      return NextResponse.json({ error: "La pregunta no corresponde al examen indicado." }, { status: 403 });
+    }
+
+    const officialQuestionText = String(officialQuestion.question || officialQuestion.statement || "");
+    const officialExpectedLatex = String(
+      officialQuestion.modelAnswer || officialQuestion.expectedAnswer || officialQuestion.expectedLatex || "",
+    );
+    const officialExpectedSteps = Array.isArray(officialQuestion.expectedSteps)
+      ? officialQuestion.expectedSteps
+      : [];
+    const officialRubric = Array.isArray(officialQuestion.rubric) ? officialQuestion.rubric : [];
+    const officialMaxPoints = getQuestionMaxPoints(officialQuestion);
+
+${marker}`
+    next = replaceRequired(next, marker, officialBlock, "official question")
+
+    next = replaceRequired(
+      next,
+      "      questionId,",
+      "      questionId: officialQuestionId,",
+      "artifact question id",
+    )
+    next = replaceRequired(
+      next,
+      "    const evaluation = await evaluateLatex(body, latex, pages);",
+      `    const evaluation = await evaluateLatex(
+      {
+        ...body,
+        questionId: officialQuestionId,
+        questionText: officialQuestionText,
+        expectedLatex: officialExpectedLatex,
+        expectedSteps: officialExpectedSteps,
+        rubric: officialRubric,
+        maxPoints: officialMaxPoints,
+      },
+      latex,
+      pages,
+    );`,
+      "server-authoritative evaluator",
+    )
+    next = replaceRequired(
+      next,
+      "      question_id: questionId,",
+      "      question_id: officialQuestionId,",
+      "stored question id",
+    )
+  }
+
   return next
 })
 
@@ -107,4 +189,4 @@ ${marker}`
   return next
 })
 
-console.log("[exam-development-security] attempt capability + teacher ownership hardened")
+console.log("[exam-development-security] attempt capability + official rubric + teacher ownership hardened")
