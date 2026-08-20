@@ -3,6 +3,8 @@ import path from "node:path"
 
 const saveRoutePath = path.join(process.cwd(), "app", "api", "examen", "developments", "route.ts")
 const reviewRoutePath = path.join(process.cwd(), "app", "api", "examen", "developments", "by-submission", "route.ts")
+const feedbackRoutePath = path.join(process.cwd(), "app", "api", "agents", "exam-feedback", "route.ts")
+const studentPagePath = path.join(process.cwd(), "app", "examen", "p", "[code]", "page.tsx")
 
 function patchFile(filePath, transform) {
   if (!fs.existsSync(filePath)) throw new Error(`[exam-development-security] ruta no encontrada: ${filePath}`)
@@ -189,4 +191,71 @@ ${marker}`
   return next
 })
 
-console.log("[exam-development-security] attempt capability + official rubric + teacher ownership hardened")
+patchFile(feedbackRoutePath, (source) => {
+  let next = source
+
+  if (!next.includes("function getFeedbackAdminClient()")) {
+    const marker = `const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
+)`
+    const replacement = `function getFeedbackAdminClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || ""
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || ""
+  if (!url || !key) throw new Error("Supabase de servidor no está configurado.")
+  return createClient(url, key, { auth: { persistSession: false } })
+}`
+    next = replaceRequired(next, marker, replacement, "feedback fail-closed admin client")
+  }
+
+  if (!next.includes("clientAttemptId requerido")) {
+    const marker = `    const { submissionId } = await req.json()
+    if (!submissionId) {
+      return NextResponse.json({ error: "submissionId requerido", feedback: [] }, { status: 400 })
+    }`
+    const replacement = `    const { submissionId, clientAttemptId } = await req.json()
+    const safeSubmissionId = String(submissionId || "").trim()
+    const safeAttemptId = String(clientAttemptId || "").trim()
+    if (!safeSubmissionId) {
+      return NextResponse.json({ error: "submissionId requerido", feedback: [] }, { status: 400 })
+    }
+    if (!safeAttemptId) {
+      return NextResponse.json({ error: "clientAttemptId requerido", feedback: [] }, { status: 400 })
+    }
+
+    const supabase = getFeedbackAdminClient()`
+    next = replaceRequired(next, marker, replacement, "feedback capability input")
+  }
+
+  if (!next.includes('.eq("client_attempt_id", safeAttemptId)')) {
+    next = replaceRequired(
+      next,
+      '.select("id, exam_id, answers")',
+      '.select("id, exam_id, answers, client_attempt_id")',
+      "feedback attempt column",
+    )
+    next = replaceRequired(
+      next,
+      '.eq("id", submissionId)',
+      '.eq("id", safeSubmissionId)\n      .eq("client_attempt_id", safeAttemptId)',
+      "feedback capability binding",
+    )
+  }
+
+  return next
+})
+
+patchFile(studentPagePath, (source) => {
+  if (source.includes("clientAttemptId: attemptIdRef.current")) return source
+  return replaceRequired(
+    source,
+    "        body: JSON.stringify({ submissionId: sub.id }),",
+    `        body: JSON.stringify({
+          submissionId: sub.id,
+          clientAttemptId: attemptIdRef.current,
+        }),`,
+    "student feedback capability",
+  )
+})
+
+console.log("[exam-development-security] attempt + official rubric + teacher URLs + feedback capability hardened")
