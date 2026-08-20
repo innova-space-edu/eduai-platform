@@ -62,6 +62,10 @@ changed = patchFile(marketplacePath, source => {
 }) || changed
 
 changed = patchFile(freeRoutePath, source => {
+  // El hardening nuevo usa resolveTrustedImageInput y ya reemplaza esta migración legacy.
+  // Si está presente, no intentamos volver a insertar el fingerprint anterior.
+  if (source.includes("resolveTrustedImageInput")) return source
+
   let next = source
   if (!next.includes('from "@/lib/video/image-asset-identity"')) {
     next = replaceRequired(
@@ -99,6 +103,10 @@ changed = patchFile(freeRoutePath, source => {
 }) || changed
 
 changed = patchFile(personalRoutePath, source => {
+  // Igual que la ruta automática: si ya existe el resolvedor seguro moderno,
+  // esta migración legacy debe ser un no-op idempotente.
+  if (source.includes("resolveTrustedImageInput")) return source
+
   let next = source
   if (!next.includes('from "@/lib/video/image-asset-identity"')) {
     next = replaceRequired(
