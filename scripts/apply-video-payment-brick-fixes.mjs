@@ -134,7 +134,7 @@ patch("app/api/credits/mercadopago/payment/route.ts", (source) => {
     // nuevo intento con otra tarjeta obtiene una clave distinta. Así un pago
     // rechazado no queda "pegado" a la respuesta del primer intento.
     const paymentAttemptKey = createHash("sha256")
-      .update(\`${String(order.idempotency_key)}:\${token}\`)
+      .update(String(order.idempotency_key) + ":" + token)
       .digest("hex")
 
     const payment = await mercadoPagoRequest<PaymentResult>("/v1/payments", {
