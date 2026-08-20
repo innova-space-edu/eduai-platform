@@ -112,6 +112,42 @@ ${helper}`,
   return next
 })
 
+patch("app/api/credits/mercadopago/payment/route.ts", (source) => {
+  let next = source
+  if (!next.includes('from "node:crypto"')) {
+    next = replaceRequired(
+      next,
+      `import { NextRequest, NextResponse } from "next/server"\n`,
+      `import { createHash } from "node:crypto"\nimport { NextRequest, NextResponse } from "next/server"\n`,
+      "import de hash para idempotencia por intento",
+    )
+  }
+
+  next = replaceRequired(
+    next,
+    `    const payment = await mercadoPagoRequest<PaymentResult>("/v1/payments", {
+      method: "POST",
+      idempotencyKey: String(order.idempotency_key),
+      body: paymentBody,
+    })`,
+    `    // La idempotencia se conserva para reenvíos del mismo token, pero un
+    // nuevo intento con otra tarjeta obtiene una clave distinta. Así un pago
+    // rechazado no queda "pegado" a la respuesta del primer intento.
+    const paymentAttemptKey = createHash("sha256")
+      .update(\`${String(order.idempotency_key)}:\${token}\`)
+      .digest("hex")
+
+    const payment = await mercadoPagoRequest<PaymentResult>("/v1/payments", {
+      method: "POST",
+      idempotencyKey: paymentAttemptKey,
+      body: paymentBody,
+    })`,
+    "idempotencia por intento de tarjeta",
+  )
+
+  return next
+})
+
 patch("components/ui/SupportButton.tsx", (source) => {
   const before = `  useEffect(() => {
     // Revisar respuestas no leídas al montar
@@ -140,4 +176,4 @@ patch("components/ui/SupportButton.tsx", (source) => {
   return replaceRequired(source, before, after, "fetch prematuro de reportes")
 })
 
-console.log("[video-payment-fixes] Payment Brick TEST, mensajes y saldo verificados")
+console.log("[video-payment-fixes] Payment Brick TEST, reintentos, mensajes y saldo verificados")
