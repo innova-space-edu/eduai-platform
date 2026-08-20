@@ -11,6 +11,14 @@ const reviewRoute = fs.readFileSync(
   path.join(process.cwd(), "app", "api", "examen", "developments", "by-submission", "route.ts"),
   "utf8",
 )
+const feedbackRoute = fs.readFileSync(
+  path.join(process.cwd(), "app", "api", "agents", "exam-feedback", "route.ts"),
+  "utf8",
+)
+const studentPage = fs.readFileSync(
+  path.join(process.cwd(), "app", "examen", "p", "[code]", "page.tsx"),
+  "utf8",
+)
 
 function requireText(source, text, label) {
   if (!source.includes(text)) throw new Error(`[exam-development-security-test] Falta ${label}: ${text}`)
@@ -74,8 +82,33 @@ if (!(ownershipIndex > submissionRead && developmentsRead > ownershipIndex && si
   throw new Error("[exam-development-security-test] Ownership docente debe preceder desarrollos y URLs firmadas")
 }
 
-if (saveRoute.includes("NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY") || reviewRoute.includes("NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY")) {
+for (const [label, text] of [
+  ["feedback fail closed client", "function getFeedbackAdminClient()"],
+  ["feedback service role", "process.env.SUPABASE_SERVICE_ROLE_KEY"],
+  ["feedback attempt input", "clientAttemptId requerido"],
+  ["feedback attempt column", 'answers, client_attempt_id'],
+  ["feedback submission binding", '.eq("id", safeSubmissionId)'],
+  ["feedback attempt binding", '.eq("client_attempt_id", safeAttemptId)'],
+]) requireText(feedbackRoute, text, label)
+
+if (feedbackRoute.includes("SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY")) {
+  throw new Error("[exam-development-security-test] Feedback no puede degradar service role hacia anon key")
+}
+const feedbackClient = feedbackRoute.indexOf("const supabase = getFeedbackAdminClient()")
+const feedbackRead = feedbackRoute.indexOf('.from("exam_submissions")')
+const feedbackAttemptBinding = feedbackRoute.indexOf('.eq("client_attempt_id", safeAttemptId)')
+if (!(feedbackClient >= 0 && feedbackRead > feedbackClient && feedbackAttemptBinding > feedbackRead)) {
+  throw new Error("[exam-development-security-test] Feedback debe enlazar submission + attempt antes de leer la pauta")
+}
+
+requireText(studentPage, "clientAttemptId: attemptIdRef.current", "student feedback capability")
+
+if (
+  saveRoute.includes("NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY") ||
+  reviewRoute.includes("NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY") ||
+  feedbackRoute.includes("NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY")
+) {
   throw new Error("[exam-development-security-test] service role no puede exponerse como NEXT_PUBLIC")
 }
 
-console.log("[exam-development-security-test] attempt + server-authoritative rubric + teacher-owned signed URLs verified")
+console.log("[exam-development-security-test] attempt + official rubric + teacher URLs + student feedback capability verified")
