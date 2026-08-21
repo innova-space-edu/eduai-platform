@@ -42,6 +42,15 @@ patch("components/video/VideoStudioClient.tsx", (source) => {
     )
   }
 
+  if (!next.includes("netAmountClp?: number")) {
+    next = replaceRequired(
+      next,
+      `  credits?: number\n  preferenceId?: string | null`,
+      `  credits?: number\n  netAmountClp?: number\n  vatAmountClp?: number\n  vatRate?: number\n  preferenceId?: string | null`,
+      "desglose IVA en respuesta de recarga",
+    )
+  }
+
   const helper = `function paymentRejectionMessage(statusDetail?: string | null) {
   const code = (statusDetail || "").trim()
   const messages: Record<string, string> = {
@@ -54,6 +63,10 @@ patch("components/video/VideoStudioClient.tsx", (source) => {
     cc_rejected_duplicated_payment: "Mercado Pago detectó un pago duplicado. Espera antes de intentar otra vez.",
   }
   return messages[code] || (code ? \`Pago rechazado por Mercado Pago (\${code}).\` : "El pago fue rechazado por Mercado Pago.")
+}
+
+function rechargeCreditsWithVat(amountClp: number) {
+  return Math.round(amountClp / 1.19)
 }
 `
 
@@ -69,7 +82,14 @@ patch("components/video/VideoStudioClient.tsx", (source) => {
 }
 
 ${helper}`,
-      "helper de rechazo de pago",
+      "helper de rechazo de pago e IVA",
+    )
+  } else if (!next.includes("function rechargeCreditsWithVat")) {
+    next = replaceRequired(
+      next,
+      `function statusColor(status: JobStatus | null) {`,
+      `function rechargeCreditsWithVat(amountClp: number) {\n  return Math.round(amountClp / 1.19)\n}\n\nfunction statusColor(status: JobStatus | null) {`,
+      "helper de créditos netos con IVA",
     )
   }
 
@@ -97,6 +117,13 @@ ${helper}`,
     `            ...(order.preferenceId ? { mercadoPago: "all" } : {}),`,
     `            ...(order.preferenceId && !testMode ? { mercadoPago: "wallet_purchase" } : {}),`,
     "wallet de Mercado Pago solo fuera de TEST",
+  )
+
+  next = replaceRequired(
+    next,
+    `<p className="mt-1 text-xs text-violet-700">≈ {formatCredits(amount)} créditos</p>`,
+    `<p className="mt-1 text-xs text-violet-700">{formatCredits(rechargeCreditsWithVat(amount))} créditos · IVA incluido</p>`,
+    "créditos netos visibles por recarga",
   )
 
   const walletDetails = `                  {wallet && wallet.reservedCredits > 0 && <p className="mt-1 text-xs text-amber-600">{formatCredits(wallet.reservedCredits)} reservados en generaciones</p>}`
@@ -132,7 +159,7 @@ ${helper}`,
   if (next.includes(activeOrderSummary) && !next.includes("Modo de prueba de Mercado Pago")) {
     next = next.replace(
       activeOrderSummary,
-      `${activeOrderSummary}\n                {activeOrder.publicKey?.startsWith("TEST-") && (\n                  <div className="mb-4 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-xs leading-5 text-sky-900">\n                    <strong>Modo de prueba de Mercado Pago.</strong> No uses una tarjeta real. Para simular un pago aprobado puedes usar, por ejemplo, Visa <strong>4168 8188 4444 7115</strong> o Mastercard <strong>5416 7526 0258 2580</strong>, vencimiento <strong>11/30</strong>, CVV <strong>123</strong>, titular <strong>APRO</strong> y documento <strong>Otro · 123456789</strong>. Usa un correo distinto al de la cuenta vendedora.\n                  </div>\n                )}`,
+      `                <div className="mb-4 rounded-2xl bg-slate-50 p-4 text-sm text-slate-700">\n                  <div className="flex justify-between"><span>Total a pagar</span><strong>{formatClp(Number(activeOrder.amountClp || 0))}</strong></div>\n                  <div className="mt-1 flex justify-between"><span>Valor neto</span><strong>{formatClp(Number(activeOrder.netAmountClp || 0))}</strong></div>\n                  <div className="mt-1 flex justify-between"><span>IVA 19%</span><strong>{formatClp(Number(activeOrder.vatAmountClp || 0))}</strong></div>\n                  <div className="mt-2 border-t border-slate-200 pt-2 flex justify-between"><span>Créditos IA acreditados</span><strong>{formatCredits(activeOrder.credits)}</strong></div>\n                </div>\n                {activeOrder.publicKey?.startsWith("TEST-") && (\n                  <div className="mb-4 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-xs leading-5 text-sky-900">\n                    <strong>Modo de prueba de Mercado Pago.</strong> No uses una tarjeta real. Para simular un pago aprobado puedes usar, por ejemplo, Visa <strong>4168 8188 4444 7115</strong> o Mastercard <strong>5416 7526 0258 2580</strong>, vencimiento <strong>11/30</strong>, CVV <strong>123</strong>, titular <strong>APRO</strong> y documento <strong>Otro · 123456789</strong>. Usa un correo distinto al de la cuenta vendedora.\n                  </div>\n                )}`,
     )
   }
 
@@ -203,4 +230,4 @@ patch("components/ui/SupportButton.tsx", (source) => {
   return replaceRequired(source, before, after, "fetch prematuro de reportes")
 })
 
-console.log("[video-payment-fixes] Payment Brick TEST, reintentos, Premium Personal, mensajes y saldo verificados")
+console.log("[video-payment-fixes] Payment Brick TEST, IVA 19%, reintentos, Premium Personal, mensajes y saldo verificados")
