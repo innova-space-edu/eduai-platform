@@ -33,6 +33,15 @@ function replaceRequired(source, before, after, label) {
 patch("components/video/VideoStudioClient.tsx", (source) => {
   let next = source
 
+  if (!next.includes('import PersonalAIMarketplace from "@/components/video/PersonalAIMarketplace"')) {
+    next = replaceRequired(
+      next,
+      `import { useCallback, useEffect, useMemo, useRef, useState } from "react"\n`,
+      `import { useCallback, useEffect, useMemo, useRef, useState } from "react"\nimport PersonalAIMarketplace from "@/components/video/PersonalAIMarketplace"\n`,
+      "import de Premium Personal",
+    )
+  }
+
   const helper = `function paymentRejectionMessage(statusDetail?: string | null) {
   const code = (statusDetail || "").trim()
   const messages: Record<string, string> = {
@@ -86,7 +95,7 @@ ${helper}`,
   next = replaceRequired(
     next,
     `            ...(order.preferenceId ? { mercadoPago: "all" } : {}),`,
-    `            ...(order.preferenceId && !testMode ? { mercadoPago: "all" } : {}),`,
+    `            ...(order.preferenceId && !testMode ? { mercadoPago: "wallet_purchase" } : {}),`,
     "wallet de Mercado Pago solo fuera de TEST",
   )
 
@@ -98,6 +107,24 @@ ${helper}`,
     )
   }
 
+  const generationActions = `              <div className="flex flex-wrap gap-3">
+                {premiumSelected && quote?.ok && quote.enoughCredits === false ? (
+                  <button type="button" onClick={() => setPaymentOpen(true)} className="rounded-2xl bg-violet-600 px-5 py-3 text-sm font-semibold text-white hover:bg-violet-500">Agregar créditos para generar</button>
+                ) : (
+                  <button type="button" onClick={() => void handleCreateJob()} disabled={!canSubmit} className="rounded-2xl bg-violet-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-50">
+                    {isSubmitting ? "Preparando generación…" : premiumSelected ? "Generar con Créditos IA" : "Generar video"}
+                  </button>
+                )}
+                <button type="button" onClick={resetForm} className="rounded-2xl border border-medium px-5 py-3 text-sm font-medium text-main hover:bg-card-soft-theme">Limpiar</button>
+              </div>`
+
+  if (next.includes(generationActions) && !next.includes("data-personal-ai-marketplace")) {
+    next = next.replace(
+      generationActions,
+      `${generationActions}\n\n              <div data-personal-ai-marketplace className="rounded-2xl border border-amber-300/40 bg-amber-400/5 p-4">\n                <div className="mb-3">\n                  <p className="text-sm font-semibold text-main">Conectar mis propias APIs</p>\n                  <p className="mt-1 text-xs leading-5 text-sub">Opcional. Aquí puedes crear una cuenta en fal.ai, Hugging Face o Replicate, abrir directamente la página para obtener tu API key, revisar facturación y comprobar la conexión. El cargo de estas generaciones se hace en tu cuenta del proveedor, no con Créditos IA.</p>\n                </div>\n                <PersonalAIMarketplace\n                  prompt={prompt}\n                  style={style}\n                  duration={duration}\n                  withAudio={withAudio}\n                  mode={mode}\n                  imageUrl={imageUrl}\n                />\n              </div>`,
+    )
+  }
+
   const activeOrderSummary = `                <div className="mb-4 rounded-2xl bg-slate-50 p-4 text-sm text-slate-700">
                   <div className="flex justify-between"><span>Recarga</span><strong>{formatClp(Number(activeOrder.amountClp || 0))}</strong></div>
                   <div className="mt-1 flex justify-between"><span>Créditos IA</span><strong>{formatCredits(activeOrder.credits)}</strong></div>
@@ -105,7 +132,7 @@ ${helper}`,
   if (next.includes(activeOrderSummary) && !next.includes("Modo de prueba de Mercado Pago")) {
     next = next.replace(
       activeOrderSummary,
-      `${activeOrderSummary}\n                {activeOrder.publicKey?.startsWith("TEST-") && (\n                  <div className="mb-4 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-xs leading-5 text-sky-900">\n                    <strong>Modo de prueba de Mercado Pago.</strong> Usa una tarjeta de prueba. Para simular un pago aprobado escribe <strong>APRO</strong> como nombre del titular, selecciona documento <strong>Otro</strong> con número <strong>123456789</strong> y usa un correo distinto al de la cuenta vendedora. No uses una tarjeta real.\n                  </div>\n                )}`,
+      `${activeOrderSummary}\n                {activeOrder.publicKey?.startsWith("TEST-") && (\n                  <div className="mb-4 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-xs leading-5 text-sky-900">\n                    <strong>Modo de prueba de Mercado Pago.</strong> No uses una tarjeta real. Para simular un pago aprobado puedes usar, por ejemplo, Visa <strong>4168 8188 4444 7115</strong> o Mastercard <strong>5416 7526 0258 2580</strong>, vencimiento <strong>11/30</strong>, CVV <strong>123</strong>, titular <strong>APRO</strong> y documento <strong>Otro · 123456789</strong>. Usa un correo distinto al de la cuenta vendedora.\n                  </div>\n                )}`,
     )
   }
 
@@ -176,4 +203,4 @@ patch("components/ui/SupportButton.tsx", (source) => {
   return replaceRequired(source, before, after, "fetch prematuro de reportes")
 })
 
-console.log("[video-payment-fixes] Payment Brick TEST, reintentos, mensajes y saldo verificados")
+console.log("[video-payment-fixes] Payment Brick TEST, reintentos, Premium Personal, mensajes y saldo verificados")
