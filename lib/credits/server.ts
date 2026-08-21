@@ -2,6 +2,8 @@ import "server-only"
 
 import { createClient as createAdminClient } from "@supabase/supabase-js"
 
+export const EDUAI_VAT_RATE = 0.19
+
 export type BillingSettings = {
   creditsPerClp: number
   usdToClp: number
@@ -17,6 +19,30 @@ export type WalletSnapshot = {
   availableCredits: number
   lifetimePurchasedCredits: number
   lifetimeSpentCredits: number
+}
+
+export type RechargeBreakdown = {
+  grossClp: number
+  netClp: number
+  vatClp: number
+  vatRate: number
+  credits: number
+}
+
+export function calculateRechargeCredits(amountClp: number, creditsPerClp: number): RechargeBreakdown {
+  const grossClp = Math.round(Number(amountClp))
+  const netExact = grossClp / (1 + EDUAI_VAT_RATE)
+  const netClp = Math.round(netExact)
+  const vatClp = grossClp - netClp
+  const credits = Math.max(0, Math.round(netExact * Number(creditsPerClp || 0)))
+
+  return {
+    grossClp,
+    netClp,
+    vatClp,
+    vatRate: EDUAI_VAT_RATE,
+    credits,
+  }
 }
 
 export function getAdminSupabase() {
