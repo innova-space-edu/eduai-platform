@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { assertAICapabilityAllowed } from "@/lib/ai/access-policy"
-import { getAdminSupabase, getBillingSettings, mercadoPagoRequest } from "@/lib/credits/server"
+import {
+  calculateRechargeCredits,
+  getAdminSupabase,
+  getBillingSettings,
+  mercadoPagoRequest,
+} from "@/lib/credits/server"
 
 export const runtime = "nodejs"
 
@@ -36,7 +41,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "Monto de recarga no válido." }, { status: 400 })
     }
 
-    const credits = Math.round(amountClp * settings.creditsPerClp)
+    const recharge = calculateRechargeCredits(amountClp, settings.creditsPerClp)
+    const credits = recharge.credits
     const admin = getAdminSupabase()
     const { data: order, error: orderError } = await admin
       .from("ai_payment_orders")
@@ -46,7 +52,15 @@ export async function POST(req: NextRequest) {
         credits,
         status: "pending",
         payer_email: user.email || null,
-        metadata: { source: "video-studio", credits_per_clp: settings.creditsPerClp },
+        metadata: {
+          source: "video-studio",
+          credits_per_clp: settings.creditsPerClp,
+          gross_amount_clp: recharge.grossClp,
+          net_amount_clp: recharge.netClp,
+          vat_amount_clp: recharge.vatClp,
+          vat_rate: recharge.vatRate,
+          vat_included: true,
+        },
       })
       .select("id,idempotency_key,amount_clp,credits")
       .single()
@@ -63,14 +77,22 @@ export async function POST(req: NextRequest) {
           items: [{
             id: `eduai-credits-${credits}`,
             title: `${credits.toLocaleString("es-CL")} Créditos IA EduAI`,
-            description: "Créditos de consumo para herramientas de IA dentro de EduAI",
+            description: `Recarga EduAI con IVA 19% incluido. Neto $${recharge.netClp.toLocaleString("es-CL")} CLP`,
             currency_id: "CLP",
             quantity: 1,
             unit_price: amountClp,
           }],
           payer: user.email ? { email: user.email } : undefined,
           external_reference: `eduai-credit-order:${order.id}`,
-          metadata: { eduai_order_id: order.id, eduai_user_id: user.id, credits },
+          metadata: {
+            eduai_order_id: order.id,
+            eduai_user_id: user.id,
+            credits,
+            gross_amount_clp: recharge.grossClp,
+            net_amount_clp: recharge.netClp,
+            vat_amount_clp: recharge.vatClp,
+            vat_rate: recharge.vatRate,
+          },
           payment_methods: { installments: 1 },
           back_urls: {
             success: `${origin}/video-studio?payment=success`,
@@ -94,6 +116,9 @@ export async function POST(req: NextRequest) {
       orderId: order.id,
       amountClp,
       credits,
+      netAmountClp: recharge.netClp,
+      vatAmountClp: recharge.vatClp,
+      vatRate: recharge.vatRate,
       preferenceId,
       publicKey: process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY,
     })
