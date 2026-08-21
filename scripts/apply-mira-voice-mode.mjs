@@ -61,10 +61,34 @@ async function patchAgentCard() {
   const filePath = path.join(process.cwd(), "app", "agentes", "page.tsx")
   let source = await readFile(filePath, "utf8")
   const original = source
+
+  const miraCard = `  {
+    id: "mira",
+    icon: "✨",
+    name: "MIRA",
+    description: "Asistente general de EduAI para conversar, organizar, explicar y encontrar la herramienta adecuada.",
+    color: "from-violet-500 to-cyan-500",
+    glow: "rgba(34,211,238,0.14)",
+    border: "rgba(139,92,246,0.24)",
+    href: "/mira",
+    tag: "General",
+    status: "active",
+    ctaLabel: "Hablar con MIRA",
+  },
+`
+
+  if (!source.includes('id: "mira"')) {
+    const traductorAnchor = `  {
+    id: "traductor",`
+    if (!source.includes(traductorAnchor)) throw new Error("No se encontró la tarjeta Traductor para insertar MIRA.")
+    source = source.replace(traductorAnchor, `${miraCard}${traductorAnchor}`)
+  }
+
   source = source.replace(
     'description: "Traducción con explicación lingüística y cultural",',
-    'description: "Traducción de textos, documentos y conversación de voz en vivo",',
+    'description: "Traducción de textos, documentos y conversación de voz en vivo con MIRA",',
   )
+
   if (source !== original) await writeFile(filePath, source, "utf8")
   return source !== original
 }
@@ -76,5 +100,5 @@ const changed = await Promise.all([
 ])
 
 console.log(changed.some(Boolean)
-  ? "MIRA live voice aplicado al traductor."
-  : "MIRA live voice ya estaba aplicado.")
+  ? "MIRA general + live voice integradas en EduAI."
+  : "MIRA general + live voice ya estaban integradas.")

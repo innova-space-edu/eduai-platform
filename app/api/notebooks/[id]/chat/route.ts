@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import { callAI, callGeminiStream } from "@/lib/ai-router-v4"
+import { runAIText, streamAIText } from "@/lib/ai/gateway"
 import { getActiveChunks, retrieveRelevantChunks } from "@/lib/notebook/retrieval"
 import { buildNotebookSystemPrompt } from "@/lib/notebook/prompts"
 import type { NotebookChunk } from "@/lib/notebook/types"
@@ -154,24 +154,52 @@ ${context}`
       { role: "user", content: message },
     ]
 
+    const aiContext = {
+      userId: user.id,
+      module: "notebook-chat",
+      sourceId: id,
+      reusePolicy: "exact_private" as const,
+      visibility: "private" as const,
+    }
     const citationsHeader = Buffer.from(JSON.stringify(citations), "utf8").toString("base64")
 
     try {
       if (!wantStream) {
-        const response = await callAI(messages, { maxTokens: 2_200, preferProvider: "gemini" })
-        const text = response.text.trim()
+        const response = await runAIText({
+          messages,
+          capability: "long_context",
+          maxOutputTokens: 2_200,
+          context: aiContext,
+          supabase,
+        })
+        const text = response.data.trim()
         await saveMessage(id, "assistant", text, citations)
-        return NextResponse.json({ text, citations, provider: response.provider, model: response.model })
+        return NextResponse.json({
+          text,
+          citations,
+          provider: response.provider,
+          model: response.model,
+          reused: response.reused,
+          generationAvoided: response.reused,
+        })
       }
-      const stream = await callGeminiStream(messages, 2_200)
+
+      const stream = await streamAIText({
+        messages,
+        maxOutputTokens: 2_200,
+        context: aiContext,
+        supabase,
+      })
       let fullResponse = ""
+      const decoder = new TextDecoder()
       const transform = new TransformStream<Uint8Array, Uint8Array>({
         transform(chunk, controller) {
-          const text = new TextDecoder().decode(chunk)
+          const text = decoder.decode(chunk, { stream: true })
           fullResponse += text
           controller.enqueue(chunk)
         },
         async flush() {
+          fullResponse += decoder.decode()
           if (fullResponse.trim()) await saveMessage(id, "assistant", fullResponse.trim(), citations)
         },
       })
@@ -185,10 +213,27 @@ ${context}`
       })
     } catch (streamError) {
       console.warn("[Notebook chat] streaming fallback:", streamError)
-      const response = await callAI(messages, { maxTokens: 2_200, preferProvider: "gemini" })
-      const text = response.text.trim()
+      const typed = streamError as Error & { code?: string; status?: number }
+      if (typed.code === "EDUAI_ACCESS_RESTRICTED") {
+        return NextResponse.json({ error: typed.message, code: typed.code }, { status: typed.status || 403 })
+      }
+
+      const response = await runAIText({
+        messages,
+        capability: "long_context",
+        maxOutputTokens: 2_200,
+        context: aiContext,
+        supabase,
+      })
+      const text = response.data.trim()
       await saveMessage(id, "assistant", text, citations)
-      return NextResponse.json({ text, citations })
+      return NextResponse.json({
+        text,
+        citations,
+        provider: response.provider,
+        model: response.model,
+        reused: response.reused,
+      })
     }
   } catch (error) {
     console.error("[Notebook chat POST]", error)

@@ -10,7 +10,16 @@ if (!existsSync(PAGE)) {
 let source = readFileSync(PAGE, "utf8")
 
 if (!source.includes(MARKER)) {
-  const anchor = `  {
+  const alreadyCanonical = source.includes('id: "biblioteca"') && source.includes('id: "repositorio"')
+
+  if (alreadyCanonical) {
+    const canonicalMarkerAnchor = "];\n\nconst TAGS ="
+    if (!source.includes(canonicalMarkerAnchor)) {
+      throw new Error("[agent-cards] No se encontró cierre canónico del arreglo AGENTS")
+    }
+    source = source.replace(canonicalMarkerAnchor, `];\n\n// ${MARKER}\n\nconst TAGS =`)
+  } else {
+    const anchor = `  {
     id: "workspace",
     icon: "📁",
     name: "Workspace",
@@ -24,7 +33,7 @@ if (!source.includes(MARKER)) {
   },
 ];`
 
-  const replacement = `  {
+    const replacement = `  {
     id: "workspace",
     icon: "📁",
     name: "Workspace",
@@ -66,11 +75,12 @@ if (!source.includes(MARKER)) {
 
 // ${MARKER}`
 
-  if (!source.includes(anchor)) {
-    throw new Error("[agent-cards] No se encontró el bloque final de Workspace")
-  }
+    if (!source.includes(anchor)) {
+      throw new Error("[agent-cards] No se encontró el bloque final de Workspace")
+    }
 
-  source = source.replace(anchor, replacement)
+    source = source.replace(anchor, replacement)
+  }
 }
 
 source = source
@@ -78,6 +88,18 @@ source = source
   .replace('ctaLabel: "Abrir repositorio"', 'ctaLabel: "Abrir Nube EduAI"')
   .replace('icon: "🗂️",\n    name: "Nube EduAI"', 'icon: "☁️",\n    name: "Nube EduAI"')
   .replace('color: "from-teal-500 to-emerald-700",\n    glow: "rgba(20,184,166,0.15)",\n    border: "rgba(20,184,166,0.22)",\n    href: "/repositorio"', 'color: "from-sky-400 to-indigo-500",\n    glow: "rgba(56,189,248,0.16)",\n    border: "rgba(99,102,241,0.20)",\n    href: "/repositorio"')
+  .replace(
+    'description: "Genera imágenes con FLUX y SD, galería unificada con filtros y fullscreen"',
+    'description: "Genera y reutiliza imágenes con Gemini 3.1 primero y proveedores alternativos como respaldo automático"',
+  )
+  .replace(
+    '      "Genera videos educativos desde texto o imagen con cola de trabajos, límites por plan y seguimiento de estado."',
+    '      "Genera y reutiliza videos desde texto o imagen. EduAI prioriza ahorro y permite Premium Personal con la cuenta del usuario."',
+  )
+  .replace(
+    '    tag: "Creativo",\n    status: "maintenance",\n    ctaLabel: "Temporalmente no disponible",\n  },\n  {\n    id: "galeria"',
+    '    tag: "Creativo",\n    status: "active",\n    ctaLabel: "Abrir Video Studio",\n  },\n  {\n    id: "galeria"',
+  )
 
 writeFileSync(PAGE, source)
 
@@ -90,10 +112,22 @@ for (const required of [
   'ctaLabel: "Abrir Nube EduAI"',
   'href: "/biblioteca"',
   'href: "/repositorio"',
+  'id: "image-studio"',
+  'Gemini 3.1 primero',
+  'id: "video-studio"',
+  'ctaLabel: "Abrir Video Studio"',
+  'Premium Personal',
 ]) {
   if (!verified.includes(required)) {
     throw new Error(`[agent-cards] Falta ${required}`)
   }
 }
 
-console.log("[agent-cards] Biblioteca y Nube EduAI disponibles en Agentes")
+const videoStart = verified.indexOf('id: "video-studio"')
+const videoEnd = verified.indexOf('id: "galeria"', videoStart)
+const videoBlock = verified.slice(videoStart, videoEnd)
+if (!videoBlock.includes('status: "active"') || videoBlock.includes('status: "maintenance"')) {
+  throw new Error("[agent-cards] Video Studio continúa bloqueado en Agentes")
+}
+
+console.log("[agent-cards] Biblioteca, Nube EduAI, Image Studio y Video Studio disponibles en Agentes")

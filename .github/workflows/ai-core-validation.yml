@@ -1,0 +1,207 @@
+name: Validación EduAI AI Core
+
+on:
+  pull_request:
+    paths:
+      - "lib/ai/**"
+      - "lib/video/**"
+      - "lib/video-agent.ts"
+      - "lib/image-config.ts"
+      - "lib/notebook/**"
+      - "lib/papers/**"
+      - "lib/safe-remote-url.ts"
+      - "lib/superagent/superagent-core.ts"
+      - "components/assets/**"
+      - "components/video/**"
+      - "components/admin/**"
+      - "components/creator-hub/**"
+      - "components/whiteboard/**"
+      - "app/admin/model-lab/**"
+      - "app/agentes/**"
+      - "app/repositorio/**"
+      - "app/educador/**"
+      - "app/api/assets/**"
+      - "app/api/web/**"
+      - "app/api/account/ai-credentials/**"
+      - "app/api/admin/ai-core/**"
+      - "app/api/agents/video/**"
+      - "app/api/agents/investigador/**"
+      - "app/api/agents/matematico/**"
+      - "app/api/agents/redactor/**"
+      - "app/api/agents/traductor/**"
+      - "app/api/agents/paper/**"
+      - "app/api/agents/chat/**"
+      - "app/api/agents/claw-chat/**"
+      - "app/api/agents/examen/**"
+      - "app/api/agents/educador/**"
+      - "app/api/agents/planificador-curricular/**"
+      - "app/api/agents/collab/**"
+      - "app/api/agents/transcript-editor/**"
+      - "app/api/whiteboard/solve/**"
+      - "app/api/superagent/chat/**"
+      - "app/api/creator/quality-review/**"
+      - "app/api/notebooks/**"
+      - "app/api/repository/public-access/**"
+      - "app/(auth)/register/**"
+      - "supabase/migrations/**"
+      - "scripts/apply-educador-ai-gateway.mjs"
+      - "scripts/apply-educador-dual-submit.mjs"
+      - "scripts/test-educador-ai-gateway.mjs"
+      - "scripts/apply-repository-ai-assets.mjs"
+      - "scripts/test-repository-ai-assets.mjs"
+      - "scripts/apply-repository-navigation.mjs"
+      - "scripts/apply-video-*.mjs"
+      - "scripts/test-video-*.mjs"
+      - "scripts/apply-current-image-models.mjs"
+      - "scripts/apply-personal-provider-hardening.mjs"
+      - "scripts/apply-production-hardening*.mjs"
+      - "scripts/test-production-hardening.mjs"
+      - "scripts/test-user-access-function-security.mjs"
+      - "scripts/test-provider-health-events.mjs"
+      - "scripts/test-asset-import-ssrf.mjs"
+      - "scripts/apply-agent-library-repository-cards.mjs"
+      - "scripts/test-ai-core.ts"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/ai-core-validation.yml"
+
+jobs:
+  validate-ai-core:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CI: true
+      NEXT_TELEMETRY_DISABLED: 1
+      GEMINI_API_KEY: ci-placeholder
+      GROQ_API_KEY: ci-placeholder
+      OPENROUTER_API_KEY: ci-placeholder
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      SUPABASE_URL: https://example.supabase.co
+      SUPABASE_SERVICE_ROLE_KEY: ci-placeholder
+      EDUAI_CREDENTIALS_MASTER_KEY: ci-placeholder-master-key-for-build-only
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Instalar dependencias
+        run: |
+          node scripts/normalize-npm-lockfile.mjs
+          npm install --registry=https://registry.npmjs.org/ --ignore-scripts
+      - name: Aplicar compatibilidad idempotente de Notebook
+        run: node scripts/apply-notebook-ingestion-fix.mjs
+      - name: Aplicar y verificar migración de Educador
+        run: node scripts/apply-educador-dual-submit.mjs
+      - name: Aplicar y verificar Nube EduAI reutilizable
+        run: node scripts/apply-repository-navigation.mjs
+      - name: Aplicar y verificar reutilización de Video Studio
+        run: node scripts/apply-video-summary-hobby.mjs
+      - name: Aplicar hardening de producción
+        run: node scripts/apply-production-hardening-stage2.mjs
+      - name: Probar fingerprints y routing
+        run: npm run test:ai-core
+      - name: Verificar TypeScript real
+        shell: bash
+        run: |
+          set -o pipefail
+          npx tsc --noEmit --pretty false 2>&1 | tee ai-core-tsc.log
+      - name: Ejecutar build de producción como Vercel
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee ai-core-build.log
+      - name: Publicar registros
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-core-validation-logs
+          path: |
+            ai-core-tsc.log
+            ai-core-build.log
+          if-no-files-found: warn
+
+  clean-production-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CI: true
+      NEXT_TELEMETRY_DISABLED: 1
+      GEMINI_API_KEY: ci-placeholder
+      GROQ_API_KEY: ci-placeholder
+      OPENROUTER_API_KEY: ci-placeholder
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      SUPABASE_URL: https://example.supabase.co
+      SUPABASE_SERVICE_ROLE_KEY: ci-placeholder
+      EDUAI_CREDENTIALS_MASTER_KEY: ci-placeholder-master-key-for-build-only
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Instalar dependencias desde checkout limpio
+        run: |
+          node scripts/normalize-npm-lockfile.mjs
+          npm install --registry=https://registry.npmjs.org/ --ignore-scripts
+      - name: Build limpio sin preparación previa
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee clean-production-build.log
+      - name: Publicar log de build limpio
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: clean-production-build-log
+          path: clean-production-build.log
+          if-no-files-found: warn
+
+  dependency-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Instalar dependencias para auditoría
+        run: |
+          node scripts/normalize-npm-lockfile.mjs
+          npm install --registry=https://registry.npmjs.org/ --ignore-scripts
+      - name: Detectar lockfile reconciliado
+        id: reconciled-lock
+        shell: bash
+        run: |
+          if git diff --quiet -- package-lock.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "package-lock.json ya está sincronizado"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "package-lock.json fue reconciliado por npm install"
+            git diff --stat -- package-lock.json
+          fi
+      - name: Publicar lockfile reconciliado
+        if: steps.reconciled-lock.outputs.changed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-lock-reconciled
+          path: package-lock.json
+          if-no-files-found: error
+      - name: Auditar solo dependencias de producción
+        shell: bash
+        run: |
+          npm audit --omit=dev --json > npm-audit-production.json || true
+          node -e 'const fs=require("fs"); const a=JSON.parse(fs.readFileSync("npm-audit-production.json","utf8")); const v=a.metadata?.vulnerabilities || {}; console.log(JSON.stringify(v, null, 2)); if ((v.high || 0) > 0 || (v.critical || 0) > 0) { console.error("Vulnerabilidades high/critical detectadas en dependencias de producción"); process.exit(1); }'
+      - name: Publicar auditoría de producción
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-audit-production
+          path: npm-audit-production.json
+          if-no-files-found: error

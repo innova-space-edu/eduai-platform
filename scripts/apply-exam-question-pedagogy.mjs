@@ -211,3 +211,5 @@ function patchApi() {
 patchPage()
 patchApi()
 console.log("[exam-question-pedagogy] OA, modo, habilidad y evidencia conectados por pregunta")
+
+await import("./apply-exam-server-auth-gateway.mjs")

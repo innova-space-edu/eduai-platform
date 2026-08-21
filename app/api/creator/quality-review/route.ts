@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { runAIStructured } from "@/lib/ai/gateway"
 import { createClient } from "@/lib/supabase/server"
 
 export const runtime = "nodejs"
@@ -61,6 +62,30 @@ const QUALITY_SCHEMA = {
   ],
 }
 
+type QualityReview = {
+  overallScore: number
+  spellingScore: number
+  pedagogyScore: number
+  coherenceScore: number
+  accessibilityScore: number
+  factualRiskScore: number
+  readingLevel: string
+  summary: string
+  strengths: string[]
+  issues: Array<{
+    severity: "critical" | "warning" | "suggestion"
+    category: string
+    path: string
+    message: string
+    suggestion: string
+  }>
+  checks: Array<{
+    label: string
+    status: "pass" | "warning" | "fail"
+    detail: string
+  }>
+}
+
 function sanitizeForReview(value: unknown) {
   const json = JSON.stringify(value, (_key, child) => {
     if (typeof child === "string" && child.startsWith("data:")) return "[archivo embebido omitido]"
@@ -72,17 +97,18 @@ function sanitizeForReview(value: unknown) {
 
 export async function POST(request: NextRequest) {
   const length = Number(request.headers.get("content-length") || 0)
-  if (length > MAX_BODY_BYTES) return NextResponse.json({ error: "El material es demasiado extenso para revisarlo de una vez." }, { status: 413, headers: HEADERS })
+  if (length > MAX_BODY_BYTES) {
+    return NextResponse.json({ error: "El material es demasiado extenso para revisarlo de una vez." }, { status: 413, headers: HEADERS })
+  }
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: "Debes iniciar sesión." }, { status: 401, headers: HEADERS })
 
   const body = await request.json().catch(() => null)
-  if (!body?.data || typeof body.data !== "object") return NextResponse.json({ error: "Falta el material para revisar." }, { status: 400, headers: HEADERS })
-
-  const key = process.env.GEMINI_API_KEY
-  if (!key) return NextResponse.json({ error: "El revisor de calidad no está configurado." }, { status: 503, headers: HEADERS })
+  if (!body?.data || typeof body.data !== "object") {
+    return NextResponse.json({ error: "Falta el material para revisar." }, { status: 400, headers: HEADERS })
+  }
 
   const format = typeof body?.format === "string" ? body.format.slice(0, 80) : "material educativo"
   const audience = typeof body?.audience === "string" ? body.audience.slice(0, 160) : "estudiantes de enseñanza media"
@@ -110,31 +136,45 @@ El campo path debe identificar el lugar aproximado, por ejemplo questions[2].opt
 Entrega sugerencias accionables y breves. factualRiskScore significa 100 = bajo riesgo y 0 = riesgo muy alto.`
 
   try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.15,
-          maxOutputTokens: 5000,
-          responseMimeType: "application/json",
-          responseSchema: QUALITY_SCHEMA,
+    const result = await runAIStructured<QualityReview>({
+      messages: [
+        {
+          role: "system",
+          content: "Eres el revisor de calidad de EduAI Creator Hub. Debes evaluar el contenido sin inventar hechos y devolver únicamente datos compatibles con el esquema solicitado.",
         },
-      }),
-      signal: AbortSignal.timeout(50_000),
+        { role: "user", content: prompt },
+      ],
+      schema: QUALITY_SCHEMA,
+      maxOutputTokens: 5000,
+      context: {
+        userId: user.id,
+        module: "creator-quality-review",
+        reusePolicy: "exact_private",
+        visibility: "private",
+      },
+      supabase,
     })
 
-    if (!response.ok) {
-      console.error("[CreatorQuality]", response.status, await response.text())
-      return NextResponse.json({ error: "El revisor de calidad no respondió correctamente." }, { status: 502, headers: HEADERS })
-    }
-    const payload = await response.json()
-    const raw = payload?.candidates?.[0]?.content?.parts?.[0]?.text
-    if (!raw) return NextResponse.json({ error: "El revisor no devolvió resultados." }, { status: 502, headers: HEADERS })
-    return NextResponse.json({ success: true, review: JSON.parse(raw), reviewedAt: new Date().toISOString() }, { headers: HEADERS })
+    return NextResponse.json({
+      success: true,
+      review: result.data,
+      reviewedAt: new Date().toISOString(),
+      provider: result.provider,
+      model: result.model,
+      reused: result.reused,
+      generationAvoided: result.reused,
+    }, { headers: HEADERS })
   } catch (error) {
     console.error("[CreatorQuality]", error)
-    return NextResponse.json({ error: "La revisión tardó demasiado o falló temporalmente." }, { status: 500, headers: HEADERS })
+    const typed = error as Error & { status?: number; code?: string }
+    return NextResponse.json(
+      {
+        error: typed.code === "EDUAI_ACCESS_RESTRICTED"
+          ? typed.message
+          : "La revisión tardó demasiado o falló temporalmente.",
+        code: typed.code,
+      },
+      { status: typed.status || 500, headers: HEADERS },
+    )
   }
 }

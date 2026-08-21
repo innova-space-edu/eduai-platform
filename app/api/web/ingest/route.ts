@@ -1,15 +1,13 @@
 // app/api/web/ingest/route.ts
-// v4
-// - acepta title + metadata desde SourcePanel
-// - dedupe por URL normalizada
-// - scraping robusto con Firecrawl opcional + fetch/cheerio
-// - siempre responde JSON
-// - deja la fuente lista (status=ready)
+// v5: dedupe + scraping con guard SSRF compartido y límite de descarga.
 
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { assertSafeRemoteUrl, fetchSafeRemoteBytes } from "@/lib/safe-remote-url"
 
 export const maxDuration = 30
+
+const MAX_WEB_BYTES = 2 * 1024 * 1024
 
 type ScrapeResult = {
   title: string
@@ -21,9 +19,7 @@ function normalizeUrl(input: string): string {
   try {
     const u = new URL(input.trim())
     u.hash = ""
-    if (u.pathname.endsWith("/")) {
-      u.pathname = u.pathname.slice(0, -1)
-    }
+    if (u.pathname.endsWith("/")) u.pathname = u.pathname.slice(0, -1)
     return u.toString()
   } catch {
     return input.trim()
@@ -50,8 +46,6 @@ function cleanText(text: string, maxLen = 50000): string {
     .slice(0, maxLen)
 }
 
-// ─── Scraping en cascada ───────────────────────────────────────────
-
 async function scrapeWithFirecrawl(url: string): Promise<ScrapeResult | null> {
   const firecrawlKey = process.env.FIRECRAWL_API_KEY
   if (!firecrawlKey) return null
@@ -69,14 +63,12 @@ async function scrapeWithFirecrawl(url: string): Promise<ScrapeResult | null> {
         onlyMainContent: true,
         waitFor: 1000,
       }),
-      signal: AbortSignal.timeout(20000),
+      signal: AbortSignal.timeout(20_000),
     })
-
     if (!res.ok) return null
 
     const data = await res.json()
-    const text = cleanText(String(data?.data?.markdown ?? ""), 60000)
-
+    const text = cleanText(String(data?.data?.markdown ?? ""), 60_000)
     if (text.length < 100) return null
 
     return {
@@ -84,42 +76,33 @@ async function scrapeWithFirecrawl(url: string): Promise<ScrapeResult | null> {
       text,
       method: "firecrawl",
     }
-  } catch (e) {
-    console.warn("[WebIngest] Firecrawl failed:", e)
+  } catch (error) {
+    console.warn("[WebIngest] Firecrawl failed:", error)
     return null
   }
 }
 
 async function scrapeWithFetch(url: string): Promise<ScrapeResult | null> {
   try {
-    const res = await fetch(url, {
+    const { buffer, mimeType } = await fetchSafeRemoteBytes({
+      url,
+      maxBytes: MAX_WEB_BYTES,
+      timeoutMs: 15_000,
+      maxRedirects: 5,
+      userAgent: "Mozilla/5.0 (compatible; EduAI-WebIngest/1.0)",
       headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        Accept:
-          "text/html,application/xhtml+xml,application/xml;q=0.9,text/plain;q=0.8,*/*;q=0.7",
+        Accept: "text/html,application/xhtml+xml,text/plain;q=0.8,*/*;q=0.2",
         "Accept-Language": "es-CL,es;q=0.9,en;q=0.8",
         "Cache-Control": "no-cache",
         Pragma: "no-cache",
       },
-      redirect: "follow",
-      signal: AbortSignal.timeout(15000),
     })
 
-    if (!res.ok) {
-      console.warn(`[WebIngest] HTTP ${res.status} for ${url}`)
+    if (!["text/html", "application/xhtml+xml", "text/plain", "application/octet-stream"].includes(mimeType)) {
       return null
     }
 
-    const contentType = (res.headers.get("content-type") ?? "").toLowerCase()
-    if (
-      contentType.includes("application/pdf") ||
-      contentType.includes("application/octet-stream")
-    ) {
-      return null
-    }
-
-    const html = await res.text()
+    const html = buffer.toString("utf8")
     if (!html || html.length < 100) return null
 
     const titleMatch = html.match(/<title[^>]*>([^<]{1,200})<\/title>/i)
@@ -128,81 +111,44 @@ async function scrapeWithFetch(url: string): Promise<ScrapeResult | null> {
     try {
       const cheerio = await import("cheerio")
       const $ = cheerio.load(html)
-
       $(
         [
-          "script",
-          "style",
-          "nav",
-          "footer",
-          "header",
-          "aside",
-          "iframe",
-          "noscript",
-          "[class*='nav']",
-          "[class*='menu']",
-          "[class*='sidebar']",
-          "[class*='cookie']",
-          "[class*='popup']",
-          "[class*='modal']",
-          "[class*='banner']",
-          "[class*='advert']",
-          "[class*='ad-']",
-          "[id*='cookie']",
-          "[id*='modal']",
-        ].join(",")
+          "script", "style", "nav", "footer", "header", "aside", "iframe", "noscript",
+          "[class*='nav']", "[class*='menu']", "[class*='sidebar']", "[class*='cookie']",
+          "[class*='popup']", "[class*='modal']", "[class*='banner']", "[class*='advert']",
+          "[class*='ad-']", "[id*='cookie']", "[id*='modal']",
+        ].join(","),
       ).remove()
 
       const mainSelectors = [
-        "article",
-        "main",
-        "[role='main']",
-        ".content",
-        "#content",
-        ".post-content",
-        ".article-body",
-        ".entry-content",
-        "#main-content",
-        ".page-content",
+        "article", "main", "[role='main']", ".content", "#content", ".post-content",
+        ".article-body", ".entry-content", "#main-content", ".page-content",
       ]
-
       let mainEl: ReturnType<typeof $> | null = null
-      for (const sel of mainSelectors) {
-        if ($(sel).length > 0) {
-          mainEl = $(sel).first()
+      for (const selector of mainSelectors) {
+        if ($(selector).length > 0) {
+          mainEl = $(selector).first()
           break
         }
       }
 
       const rawText = mainEl ? mainEl.text() : $("body").text()
-      const text = cleanText(rawText, 50000)
-
+      const text = cleanText(rawText, 50_000)
       if (text.length < 80) return null
-
-      return {
-        title: pageTitle || url,
-        text,
-        method: "fetch-cheerio",
-      }
+      return { title: pageTitle || url, text, method: "fetch-cheerio" }
     } catch {
       const fallback = cleanText(
         html
           .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
           .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
           .replace(/<[^>]+>/g, " "),
-        50000
+        50_000,
       )
-
       if (fallback.length < 80) return null
-
-      return {
-        title: pageTitle || url,
-        text: fallback,
-        method: "fetch-regex",
-      }
+      return { title: pageTitle || url, text: fallback, method: "fetch-regex" }
     }
-  } catch (e) {
-    console.warn("[WebIngest] fetch failed:", e)
+  } catch (error) {
+    console.warn("[WebIngest] safe fetch failed:", error)
     return null
   }
 }
@@ -213,19 +159,11 @@ async function scrapeUrl(url: string): Promise<ScrapeResult | null> {
   return scrapeWithFetch(url)
 }
 
-// ─── Handler ───────────────────────────────────────────────────────
-
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 })
-    }
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 })
 
     const body = (await request.json().catch(() => ({}))) as {
       url?: string
@@ -240,21 +178,18 @@ export async function POST(request: NextRequest) {
     const incomingMetadata = body.metadata ?? {}
 
     if (!rawUrl || !notebookId) {
-      return NextResponse.json(
-        { error: "url y notebookId requeridos" },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: "url y notebookId requeridos" }, { status: 400 })
     }
 
     let normalized = ""
     try {
-      const u = new URL(rawUrl)
-      if (!["http:", "https:"].includes(u.protocol)) {
-        throw new Error("invalid_protocol")
-      }
-      normalized = normalizeUrl(u.toString())
-    } catch {
-      return NextResponse.json({ error: "URL inválida" }, { status: 400 })
+      const safeUrl = await assertSafeRemoteUrl(rawUrl)
+      normalized = normalizeUrl(safeUrl.toString())
+    } catch (error) {
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : "URL inválida o no permitida" },
+        { status: 400 },
+      )
     }
 
     const { data: notebook, error: nbErr } = await supabase
@@ -263,52 +198,41 @@ export async function POST(request: NextRequest) {
       .eq("id", notebookId)
       .eq("user_id", user.id)
       .single()
+    if (nbErr || !notebook) return NextResponse.json({ error: "Notebook no encontrado" }, { status: 404 })
 
-    if (nbErr || !notebook) {
-      return NextResponse.json(
-        { error: "Notebook no encontrado" },
-        { status: 404 }
-      )
-    }
-
-    // Dedupe robusto: trae URLs del notebook y compara normalizadas
     const { data: existingSources, error: existingErr } = await supabase
       .from("notebook_sources")
       .select("id,url")
       .eq("notebook_id", notebookId)
-
     if (existingErr) {
       console.error("[WebIngest] Dedupe query error:", existingErr)
       return NextResponse.json({ error: existingErr.message }, { status: 500 })
     }
 
-    const duplicate = (existingSources ?? []).find((s) => {
-      const existingUrl = typeof s.url === "string" ? normalizeUrl(s.url) : ""
+    const duplicate = (existingSources ?? []).find((source) => {
+      const existingUrl = typeof source.url === "string" ? normalizeUrl(source.url) : ""
       return existingUrl && existingUrl === normalized
     })
-
     if (duplicate) {
       return NextResponse.json(
         { error: "Esta URL ya está en el cuaderno", sourceId: duplicate.id },
-        { status: 409 }
+        { status: 409 },
       )
     }
 
     const scraped = await scrapeUrl(normalized)
-
     if (!scraped || scraped.text.length < 80) {
       return NextResponse.json(
         {
           error:
             "No se pudo extraer contenido. El sitio puede bloquear bots o requerir JavaScript. Prueba pegando el texto manualmente o configura FIRECRAWL_API_KEY.",
         },
-        { status: 422 }
+        { status: 422 },
       )
     }
 
     const finalTitle = (incomingTitle || scraped.title || normalized).slice(0, 200)
-    const finalText = cleanText(scraped.text, 60000)
-
+    const finalText = cleanText(scraped.text, 60_000)
     const metadata = {
       ...incomingMetadata,
       source: "web",
@@ -342,18 +266,11 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      {
-        source,
-        preview: finalText.slice(0, 500),
-        extractor: scraped.method,
-      },
-      { status: 201 }
+      { source, preview: finalText.slice(0, 500), extractor: scraped.method },
+      { status: 201 },
     )
-  } catch (err) {
-    console.error("[WebIngest] Unhandled:", err)
-    return NextResponse.json(
-      { error: "Error interno del servidor" },
-      { status: 500 }
-    )
+  } catch (error) {
+    console.error("[WebIngest] Unhandled:", error)
+    return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
   }
 }

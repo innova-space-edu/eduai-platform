@@ -1,7 +1,10 @@
 import Groq from "groq-sdk"
 import { createClient } from "@/lib/supabase/server"
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
+function createGroqClient() {
+  const apiKey = process.env.GROQ_API_KEY?.trim()
+  return apiKey ? new Groq({ apiKey }) : null
+}
 
 export async function POST(req: Request) {
   const supabase = await createClient()
@@ -9,6 +12,13 @@ export async function POST(req: Request) {
   if (!user) return new Response("Unauthorized", { status: 401 })
 
   const { topic, context } = await req.json()
+  const groq = createGroqClient()
+  if (!groq) {
+    return Response.json(
+      { error: "El proveedor de análisis visual no está configurado temporalmente." },
+      { status: 503 },
+    )
+  }
 
   try {
     const completion = await groq.chat.completions.create({

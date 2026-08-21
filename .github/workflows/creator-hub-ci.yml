@@ -32,7 +32,10 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci --ignore-scripts
+      - name: Install dependencies
+        run: |
+          node scripts/normalize-npm-lockfile.mjs
+          npm install --registry=https://registry.npmjs.org/ --ignore-scripts
       - run: npm run test:creator
 
   typecheck-build:
@@ -53,7 +56,10 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci --ignore-scripts
+      - name: Install dependencies
+        run: |
+          node scripts/normalize-npm-lockfile.mjs
+          npm install --registry=https://registry.npmjs.org/ --ignore-scripts
       - run: npm run test:creator
       - name: Build application
         id: creator_build

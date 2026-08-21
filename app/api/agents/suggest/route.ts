@@ -1,7 +1,10 @@
 import Groq from "groq-sdk"
 import { createClient } from "@/lib/supabase/server"
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
+function createGroqClient() {
+  const apiKey = process.env.GROQ_API_KEY?.trim()
+  return apiKey ? new Groq({ apiKey }) : null
+}
 
 export async function POST(req: Request) {
   const supabase = await createClient()
@@ -9,6 +12,13 @@ export async function POST(req: Request) {
   if (!user) return new Response("Unauthorized", { status: 401 })
 
   const { topic } = await req.json()
+  const groq = createGroqClient()
+  if (!groq) {
+    return Response.json(
+      { error: "El proveedor de sugerencias no está configurado temporalmente." },
+      { status: 503 },
+    )
+  }
 
   try {
     const completion = await groq.chat.completions.create({
@@ -40,11 +50,9 @@ Devuelve exactamente este JSON con 4 subtemas específicos y concisos:
     })
 
     const text = completion.choices[0]?.message?.content || ""
-    
-    // Extraer JSON limpio
     const jsonMatch = text.match(/\{[\s\S]*\}/)
     if (!jsonMatch) throw new Error("No JSON found")
-    
+
     const data = JSON.parse(jsonMatch[0])
     return Response.json(data)
 

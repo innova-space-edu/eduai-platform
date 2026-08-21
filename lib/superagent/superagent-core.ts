@@ -2,11 +2,12 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Núcleo del SuperAgent con capacidad de chat + herramientas.
 // NO reemplaza engine.ts (que sigue siendo el motor de sugerencias/observación).
-// Este archivo agrega la capa de conversación inteligente con tool-use.
+// La conversación final pasa por EduAI AI Gateway para compartir permisos,
+// reutilización, proveedores y observabilidad con el resto de la plataforma.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { callAIv5 } from "@/lib/ai-router-v5"
-import type { Message, AITaskType } from "@/lib/ai-router-v5"
+import type { SupabaseClient } from "@supabase/supabase-js"
+import { runAIText, type GatewayMessage } from "@/lib/ai/gateway"
 import { detectToolFromMessage, getToolByName, getEnabledTools } from "./tool-registry"
 import type { ToolExecutionOptions, ToolName, ToolResult } from "./tool-registry"
 import {
@@ -17,6 +18,8 @@ import {
   isStudyIntent,
   searchEduAIPages,
 } from "./eduai-map"
+
+export type CoreTaskType = "coding" | "reasoning" | "long_context" | "general"
 
 export interface CoreMessage {
   role: "user" | "assistant" | "system"
@@ -34,15 +37,23 @@ export interface CoreContext {
   availableActions?: string[]
 }
 
+export interface CoreAIRuntime {
+  supabase?: SupabaseClient | null
+  userId?: string
+  module?: string
+  workspaceId?: string | null
+}
+
 export interface CoreResponse {
   text: string
   provider: string
   model: string
-  task: AITaskType
+  task: CoreTaskType
   latencyMs?: number
   toolUsed?: ToolName
   toolResult?: ToolResult
   wasToolCall: boolean
+  reused?: boolean
 }
 
 function buildSystemPrompt(context: CoreContext): string {
@@ -96,12 +107,18 @@ REGLAS DE RESPUESTA:
 - Mantén respuestas compactas, con botones/enlaces útiles cuando corresponda.`
 }
 
-function detectAITask(message: string): AITaskType {
+function detectAITask(message: string): CoreTaskType {
   const m = message.toLowerCase()
   if (/código|code|typescript|react|bug|función|api/.test(m)) return "coding"
   if (/analiza|razona|deduce|compara|demuestra|planifica/.test(m)) return "reasoning"
   if (message.length > 3000) return "long_context"
   return "general"
+}
+
+function gatewayCapability(task: CoreTaskType): "text" | "code" | "long_context" {
+  if (task === "coding") return "code"
+  if (task === "long_context") return "long_context"
+  return "text"
 }
 
 function extractToolArgs(toolName: ToolName, message: string): Record<string, unknown> {
@@ -230,6 +247,7 @@ export async function runCoreCycle(
   context: CoreContext = {},
   baseUrl: string = "",
   options: ToolExecutionOptions = {},
+  aiRuntime: CoreAIRuntime = {},
 ): Promise<CoreResponse> {
   const t0 = Date.now()
   const lastUser = [...messages].reverse().find((message) => message.role === "user")
@@ -259,9 +277,6 @@ export async function runCoreCycle(
         }
       }
 
-      // Nunca caemos silenciosamente al modelo conversacional cuando una
-      // herramienta concreta falla. Eso podía producir respuestas que parecían
-      // confirmar una imagen, audio o archivo que en realidad no existía.
       return {
         text: `${result.output}${result.error ? `\n\nDetalle técnico: ${result.error}` : ""}`,
         provider: "EduAI Tools",
@@ -277,23 +292,38 @@ export async function runCoreCycle(
 
   const systemPrompt = buildSystemPrompt(context)
   const task = detectAITask(userText)
-  const aiMessages: Message[] = messages
-    .filter((message) => message.role !== "system")
-    .map((message) => ({ role: message.role, content: message.content }))
+  const aiMessages: GatewayMessage[] = [
+    { role: "system", content: systemPrompt },
+    ...messages
+      .filter((message) => message.role !== "system")
+      .map((message) => ({ role: message.role, content: message.content } as GatewayMessage)),
+  ]
 
-  const result = await callAIv5(aiMessages, {
-    task,
-    maxTokens: task === "long_context" ? 4000 : 2200,
-    systemPrompt,
+  const effectiveUserId = aiRuntime.userId || context.userId
+  const result = await runAIText({
+    messages: aiMessages,
+    capability: gatewayCapability(task),
+    maxOutputTokens: task === "long_context" ? 4000 : 2200,
+    context: effectiveUserId
+      ? {
+          userId: effectiveUserId,
+          workspaceId: aiRuntime.workspaceId || null,
+          module: aiRuntime.module || "claw",
+          reusePolicy: "exact_private",
+          visibility: "private",
+        }
+      : undefined,
+    supabase: aiRuntime.supabase || null,
   })
 
   return {
-    text: result.text,
+    text: result.data,
     provider: result.provider,
     model: result.model,
     task,
-    latencyMs: Date.now() - t0,
+    latencyMs: result.latencyMs,
     wasToolCall: false,
+    reused: result.reused,
   }
 }
 

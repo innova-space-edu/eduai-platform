@@ -30,10 +30,12 @@ if (fs.existsSync(curricularRoutePath)) {
     )
   }
 
-  curricularRoute = curricularRoute.replace(
-    "const horizon = getPlanningHorizonConfig(tiempo)",
-    "const isMacro = isMacroPlanningForSchool(tiempo, nivel)\n  const horizon = getPlanningHorizonConfig(tiempo)"
-  )
+  if (!curricularRoute.includes("const isMacro = isMacroPlanningForSchool(tiempo, nivel)")) {
+    curricularRoute = curricularRoute.replace(
+      "const horizon = getPlanningHorizonConfig(tiempo)",
+      "const isMacro = isMacroPlanningForSchool(tiempo, nivel)\n  const horizon = getPlanningHorizonConfig(tiempo)"
+    )
+  }
 
   curricularRoute = curricularRoute.replace(
     "const horizonText = buildPlanningHorizonText(tiempo, sesiones, duracionMinutos, periodoLabel)",
