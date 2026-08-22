@@ -43,15 +43,15 @@ export async function GET() {
         const available = model.provider === "auto"
           ? true
           : model.provider === "google"
-            ? googleReady
+            ? settings.premiumVideoEnabled && googleReady
             : settings.premiumVideoEnabled && falReady
 
-        const unavailableReason = model.provider === "google" && !googleReady
-          ? "Veo directo requiere GEMINI_API_KEY_VIDEO, GEMINI_API_KEY o GOOGLE_API_KEY en el servidor."
-          : model.provider === "fal" && !falReady
-            ? "Proveedor premium fal.ai pendiente de conexión en el servidor."
-            : model.provider === "fal" && !settings.premiumVideoEnabled
-              ? "Generación premium temporalmente deshabilitada."
+        const unavailableReason = !settings.premiumVideoEnabled && model.provider !== "auto"
+          ? "La generación de video de pago está temporalmente deshabilitada."
+          : model.provider === "google" && !googleReady
+            ? "Veo directo requiere GEMINI_API_KEY_VIDEO, GEMINI_API_KEY o GOOGLE_API_KEY en el servidor."
+            : model.provider === "fal" && !falReady
+              ? "Proveedor premium fal.ai pendiente de conexión en el servidor."
               : null
 
         return { ...model, available, unavailableReason }
