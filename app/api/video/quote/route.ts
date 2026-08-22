@@ -44,12 +44,36 @@ export async function POST(req: NextRequest) {
     if (validation) return NextResponse.json({ ok: false, error: validation }, { status: 400 })
 
     const wallet = await ensureWallet(user.id)
+
     if (model.provider === "auto") {
       return NextResponse.json({
         ok: true,
         modelKey: model.key,
         billing: "free",
+        billingLabel: "Sin Créditos IA",
         estimatedUsd: 0,
+        estimatedCredits: 0,
+        availableCredits: wallet.availableCredits,
+        enoughCredits: true,
+      })
+    }
+
+    if (model.provider === "google") {
+      const googleReady = Boolean(
+        process.env.GEMINI_API_KEY_VIDEO?.trim()
+        || process.env.GEMINI_API_KEY?.trim()
+        || process.env.GOOGLE_API_KEY?.trim()
+      )
+      if (!googleReady) {
+        return NextResponse.json({ ok: false, error: "Veo 3.1 directo no está configurado en el servidor." }, { status: 503 })
+      }
+
+      return NextResponse.json({
+        ok: true,
+        modelKey: model.key,
+        billing: "google_direct",
+        billingLabel: "Sin Créditos IA · puede consumir cuota/facturación Google",
+        estimatedUsd: null,
         estimatedCredits: 0,
         availableCredits: wallet.availableCredits,
         enoughCredits: true,
@@ -71,6 +95,7 @@ export async function POST(req: NextRequest) {
       ok: true,
       modelKey: model.key,
       billing: "credits",
+      billingLabel: "Créditos IA EduAI",
       estimatedUsd: Number(estimatedUsd.toFixed(6)),
       estimatedCredits,
       availableCredits: wallet.availableCredits,
