@@ -212,20 +212,62 @@ function ModelCard({ model, selected, onSelect }: { model: VideoModel; selected:
       type="button"
       disabled={!model.available}
       onClick={onSelect}
-      className={`rounded-2xl border p-4 text-left transition ${selected ? "border-violet-500 bg-violet-500/10 ring-2 ring-violet-500/20" : "border-medium bg-card-theme hover:border-violet-300"} ${!model.available ? "cursor-not-allowed opacity-55" : ""}`}
+      className={`rounded-xl border p-3 text-left transition ${selected ? "border-violet-500 bg-violet-500/10 ring-2 ring-violet-500/20" : "border-medium bg-card-theme hover:border-violet-300"} ${!model.available ? "cursor-not-allowed opacity-55" : ""}`}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="font-semibold text-main">{model.name}</p>
-          <p className="mt-1 text-xs leading-5 text-sub">{model.description}</p>
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-main">{model.name}</p>
+          <p className="mt-1 line-clamp-2 text-[11px] leading-4 text-sub">{model.description}</p>
         </div>
-        {selected && <span className="rounded-full bg-violet-600 px-2 py-1 text-[10px] font-bold text-white">SELECCIONADO</span>}
+        {selected && <span className="shrink-0 rounded-full bg-violet-600 px-2 py-1 text-[9px] font-bold text-white">SELECCIONADO</span>}
       </div>
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        {model.badges.map((badge) => <span key={badge} className="rounded-full bg-card-soft-theme px-2 py-1 text-[10px] text-sub">{badge}</span>)}
+      <div className="mt-2 flex flex-wrap gap-1">
+        {model.badges.slice(0, 3).map((badge) => <span key={badge} className="rounded-full bg-card-soft-theme px-2 py-0.5 text-[9px] text-sub">{badge}</span>)}
+        <span className="rounded-full bg-card-soft-theme px-2 py-0.5 text-[9px] text-sub">{model.durations.join("/")} s</span>
+        <span className="rounded-full bg-card-soft-theme px-2 py-0.5 text-[9px] text-sub">{model.resolutions.map((item) => item.toUpperCase()).join("/")}</span>
       </div>
-      {!model.available && model.unavailableReason && <p className="mt-3 text-xs font-medium text-rose-600">{model.unavailableReason}</p>}
+      {!model.available && model.unavailableReason && <p className="mt-2 line-clamp-2 text-[10px] font-medium text-rose-600">{model.unavailableReason}</p>}
     </button>
+  )
+}
+
+function ModelGroup({
+  badge,
+  badgeClass,
+  title,
+  description,
+  models,
+  selectedModelKey,
+  onSelect,
+  defaultOpen = false,
+}: {
+  badge: string
+  badgeClass: string
+  title: string
+  description?: string
+  models: VideoModel[]
+  selectedModelKey: string
+  onSelect: (model: VideoModel) => void
+  defaultOpen?: boolean
+}) {
+  return (
+    <details open={defaultOpen} className="group rounded-2xl border border-medium bg-app px-4 py-3">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 [&::-webkit-details-marker]:hidden">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${badgeClass}`}>{badge}</span>
+            <h3 className="text-sm font-semibold text-main">{title}</h3>
+            <span className="rounded-full bg-card-soft-theme px-2 py-0.5 text-[10px] text-sub">{models.length} {models.length === 1 ? "modelo" : "modelos"}</span>
+          </div>
+          {description && <p className="mt-1 line-clamp-1 text-[11px] text-sub">{description}</p>}
+        </div>
+        <span className="shrink-0 rounded-xl border border-medium bg-card-theme px-3 py-1.5 text-[11px] font-semibold text-violet-700 group-open:hidden">Ver modelos</span>
+        <span className="hidden shrink-0 rounded-xl border border-medium bg-card-theme px-3 py-1.5 text-[11px] font-semibold text-violet-700 group-open:inline">Ocultar</span>
+      </summary>
+      <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {models.map((item) => <ModelCard key={item.key} model={item} selected={selectedModelKey === item.key} onSelect={() => onSelect(item)} />)}
+      </div>
+    </details>
   )
 }
 
@@ -587,24 +629,18 @@ export default function VideoStudioClient() {
       </section>
 
       <section className="rounded-3xl border border-soft bg-card-theme p-5 md:p-7">
-        <h2 className="text-lg font-bold text-main">1. Elige cómo generar</h2>
-
-        <div className="mt-5 space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <div className="mb-3 flex items-center gap-2"><span className="rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-bold text-emerald-700">GRATIS</span><h3 className="font-semibold text-main">EduAI Auto</h3></div>
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{freeModels.map((item) => <ModelCard key={item.key} model={item} selected={selectedModelKey === item.key} onSelect={() => selectModel(item)} />)}</div>
+            <h2 className="text-lg font-bold text-main">1. Elige cómo generar</h2>
+            <p className="mt-1 text-xs text-sub">Abre solo el grupo que quieras ver. Los modelos quedan ocultos para reducir el scroll.</p>
           </div>
+          {selectedModel && <div className="rounded-xl border border-violet-300/30 bg-violet-500/5 px-3 py-2 text-xs text-sub"><span className="font-semibold text-main">Seleccionado:</span> {selectedModel.name}</div>}
+        </div>
 
-          <div>
-            <div className="mb-3 flex items-center gap-2"><span className="rounded-full bg-blue-500/15 px-3 py-1 text-xs font-bold text-blue-700">GOOGLE · PAGO</span><h3 className="font-semibold text-main">Veo 3.1 directo</h3></div>
-            <p className="mb-3 text-xs text-sub">Conexión directa con Google. Se cobra con Créditos IA y no pasa por fal.ai.</p>
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{googleModels.map((item) => <ModelCard key={item.key} model={item} selected={selectedModelKey === item.key} onSelect={() => selectModel(item)} />)}</div>
-          </div>
-
-          <div>
-            <div className="mb-3 flex items-center gap-2"><span className="rounded-full bg-violet-500/15 px-3 py-1 text-xs font-bold text-violet-700">FAL.AI · PAGO</span><h3 className="font-semibold text-main">Modelos premium</h3></div>
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{falModels.map((item) => <ModelCard key={item.key} model={item} selected={selectedModelKey === item.key} onSelect={() => selectModel(item)} />)}</div>
-          </div>
+        <div className="mt-4 space-y-2">
+          <ModelGroup badge="GRATIS" badgeClass="bg-emerald-500/15 text-emerald-700" title="EduAI Auto" description="Reutilización primero y proveedores gratuitos/configurados. Nunca salta automáticamente a modelos de pago." models={freeModels} selectedModelKey={selectedModelKey} onSelect={selectModel} defaultOpen />
+          <ModelGroup badge="GOOGLE · PAGO" badgeClass="bg-blue-500/15 text-blue-700" title="Veo 3.1 directo" description="Conexión directa con Google. Se cobra con Créditos IA y no pasa por fal.ai." models={googleModels} selectedModelKey={selectedModelKey} onSelect={selectModel} />
+          <ModelGroup badge="FAL.AI · PAGO" badgeClass="bg-violet-500/15 text-violet-700" title="Modelos premium" description="Kling, Wan, LTX, Veo y Seedance mediante fal.ai." models={falModels} selectedModelKey={selectedModelKey} onSelect={selectModel} />
         </div>
       </section>
 
