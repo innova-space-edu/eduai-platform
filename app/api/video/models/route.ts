@@ -21,21 +21,41 @@ export async function GET() {
 
     const [wallet, settings] = await Promise.all([ensureWallet(user.id), getBillingSettings()])
     const falReady = Boolean(process.env.FAL_KEY?.trim())
-    const mercadoPagoReady = Boolean(process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY?.trim() && process.env.MERCADOPAGO_ACCESS_TOKEN?.trim())
+    const googleReady = Boolean(
+      process.env.GEMINI_API_KEY_VIDEO?.trim()
+      || process.env.GEMINI_API_KEY?.trim()
+      || process.env.GOOGLE_API_KEY?.trim()
+    )
+    const mercadoPagoReady = Boolean(
+      process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY?.trim()
+      && process.env.MERCADOPAGO_ACCESS_TOKEN?.trim()
+      && process.env.MERCADOPAGO_WEBHOOK_SECRET?.trim()
+    )
 
     return NextResponse.json({
       ok: true,
       wallet,
-      payments: { enabled: settings.paymentsEnabled, configured: mercadoPagoReady },
-      models: VIDEO_STUDIO_MODELS.map(({ endpointText: _text, endpointImage: _image, ...model }) => ({
-        ...model,
-        available: model.provider === "auto" ? true : settings.premiumVideoEnabled && falReady,
-        unavailableReason: model.provider === "fal" && !falReady
-          ? "Proveedor premium pendiente de conexión en el servidor."
-          : model.provider === "fal" && !settings.premiumVideoEnabled
-            ? "Generación premium temporalmente deshabilitada."
-            : null,
-      })),
+      payments: {
+        enabled: settings.paymentsEnabled,
+        configured: mercadoPagoReady,
+      },
+      models: VIDEO_STUDIO_MODELS.map(({ endpointText: _text, endpointImage: _image, ...model }) => {
+        const available = model.provider === "auto"
+          ? true
+          : model.provider === "google"
+            ? googleReady
+            : settings.premiumVideoEnabled && falReady
+
+        const unavailableReason = model.provider === "google" && !googleReady
+          ? "Veo directo requiere GEMINI_API_KEY_VIDEO, GEMINI_API_KEY o GOOGLE_API_KEY en el servidor."
+          : model.provider === "fal" && !falReady
+            ? "Proveedor premium fal.ai pendiente de conexión en el servidor."
+            : model.provider === "fal" && !settings.premiumVideoEnabled
+              ? "Generación premium temporalmente deshabilitada."
+              : null
+
+        return { ...model, available, unavailableReason }
+      }),
     })
   } catch (error) {
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : "No se pudo cargar Video Studio." }, { status: 500 })
