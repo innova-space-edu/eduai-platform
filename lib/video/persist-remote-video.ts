@@ -18,6 +18,7 @@ export async function persistRemoteVideo(input: {
   prompt: string
   sourceJobId?: string | null
   metadata?: Record<string, unknown>
+  headers?: HeadersInit
 }) {
   const { buffer, mimeType } = await fetchSafeRemoteBytes({
     url: input.remoteUrl,
@@ -25,6 +26,7 @@ export async function persistRemoteVideo(input: {
     timeoutMs: 60_000,
     maxRedirects: 5,
     userAgent: "EduAI-Video-Persister/1.0",
+    headers: input.headers,
   })
 
   if (mimeType !== "application/octet-stream" && mimeType !== "video/mp4") {
