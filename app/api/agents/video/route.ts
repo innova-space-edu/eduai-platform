@@ -57,6 +57,14 @@ function normalizeResolution(value: string | null | undefined): StudioResolution
   return "720p"
 }
 
+function googleVideoConfigured() {
+  return Boolean(
+    process.env.GEMINI_API_KEY_VIDEO?.trim()
+    || process.env.GEMINI_API_KEY?.trim()
+    || process.env.GOOGLE_API_KEY?.trim()
+  )
+}
+
 function basicModeration(prompt: string) {
   const text = prompt.toLowerCase()
   const blockedTerms = ["child sexual", "explicit minor", "rape", "bestiality", "sexual violence"]
@@ -159,7 +167,7 @@ export async function POST(req: NextRequest) {
     const mode = normalizeMode(body.mode ?? "text_to_video") as VideoMode
     const requestedDuration = Number.isFinite(Number(body.duration)) ? Math.round(Number(body.duration)) : 6
     const duration = selectedModel.provider === "auto" ? normalizeDuration(requestedDuration) : requestedDuration
-    const withAudio = Boolean(body.withAudio)
+    const withAudio = selectedModel.provider === "google" ? true : Boolean(body.withAudio)
     const requestedImageUrl = typeof body.imageUrl === "string" && body.imageUrl.trim() ? body.imageUrl.trim() : null
     const requestedImageAssetId = typeof body.imageAssetId === "string" && body.imageAssetId.trim() ? body.imageAssetId.trim() : null
     const aspectRatio = normalizeAspectRatio(body.aspectRatio)
@@ -234,14 +242,24 @@ export async function POST(req: NextRequest) {
     let estimatedUsd = 0
     let provider: string | null = null
     let providerModel: string | null = null
+    let billingMode: "free" | "google_direct" | "credits" = "free"
 
-    if (selectedModel.provider === "auto") {
+    if (selectedModel.provider === "auto" || selectedModel.provider === "google") {
       plan = await resolveUserPlan(user.id)
       const usage = await getDailyUsage({ supabase, userId: user.id, plan })
       if (!usage.allowed) {
         return Response.json({ ok: false, error: "Has alcanzado el límite diario de videos para tu plan.", code: "DAILY_LIMIT_REACHED", plan, limit: usage.limit, used: usage.used, remaining: usage.remaining }, { status: 429 })
       }
       remainingToday = usage.remaining
+
+      if (selectedModel.provider === "google") {
+        if (!googleVideoConfigured()) {
+          return Response.json({ ok: false, error: "Veo 3.1 directo no está configurado en el servidor.", code: "GOOGLE_VIDEO_UNAVAILABLE" }, { status: 503 })
+        }
+        provider = "google"
+        providerModel = selectedModel.googleModel || "veo-3.1-generate-preview"
+        billingMode = "google_direct"
+      }
     } else {
       const settings = await getBillingSettings()
       if (!settings.premiumVideoEnabled || !process.env.FAL_KEY?.trim()) {
@@ -252,6 +270,7 @@ export async function POST(req: NextRequest) {
       plan = "credits"
       provider = "fal"
       providerModel = endpointForMode(selectedModel, mode) || null
+      billingMode = "credits"
     }
 
     const requestPayload = {
@@ -266,7 +285,7 @@ export async function POST(req: NextRequest) {
       aspectRatio,
       resolution,
       modelKey: selectedModel.key,
-      billingMode: selectedModel.provider === "auto" ? "free" : "credits",
+      billingMode,
       estimatedCredits,
       estimatedUsd,
     }
@@ -337,6 +356,8 @@ export async function POST(req: NextRequest) {
       estimatedUsd,
       availableCredits,
       modelKey: selectedModel.key,
+      provider,
+      billingMode,
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : "Error inesperado al crear el video."
