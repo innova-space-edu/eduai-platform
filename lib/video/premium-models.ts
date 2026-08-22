@@ -25,8 +25,8 @@ export const VIDEO_STUDIO_MODELS: VideoStudioModel[] = [
     name: "EduAI Auto",
     provider: "auto",
     tier: "free",
-    description: "Reutiliza primero y luego prueba WAN/Hugging Face antes de usar Veo directo como último respaldo.",
-    badges: ["Sin Créditos IA", "Ahorro primero", "Reutilización"],
+    description: "Reutiliza primero y luego prueba los proveedores gratuitos/configurados de EduAI. No salta automáticamente a modelos de pago.",
+    badges: ["Gratis", "Ahorro primero", "Reutilización"],
     modes: ["text_to_video", "image_to_video"],
     durations: [2, 4, 6, 8, 10],
     resolutions: ["720p"],
@@ -37,9 +37,9 @@ export const VIDEO_STUDIO_MODELS: VideoStudioModel[] = [
     key: "veo-3.1-direct",
     name: "Veo 3.1 Directo",
     provider: "google",
-    tier: "free",
-    description: "Genera directamente con la API de Google desde texto o imagen. No consume Créditos IA de EduAI; puede consumir la cuota/facturación de Google configurada en el servidor.",
-    badges: ["Sin Créditos IA", "Google directo", "Texto + imagen", "Audio nativo"],
+    tier: "premium",
+    description: "Veo 3.1 Standard conectado directamente a Google. Genera desde texto o imagen y se paga con Créditos IA de EduAI, separado de fal.ai.",
+    badges: ["Google directo", "Pago", "Texto + imagen", "Audio nativo"],
     modes: ["text_to_video", "image_to_video"],
     durations: [4, 6, 8],
     resolutions: ["720p", "1080p", "4k"],
@@ -90,11 +90,11 @@ export const VIDEO_STUDIO_MODELS: VideoStudioModel[] = [
   },
   {
     key: "veo-3.1-fast",
-    name: "Veo 3.1 Fast",
+    name: "Veo 3.1 Fast · fal.ai",
     provider: "fal",
     tier: "premium",
-    description: "Modelo premium de Google servido por fal.ai, con audio opcional y hasta 4K en texto a video.",
-    badges: ["Google", "Audio", "Hasta 4K"],
+    description: "Veo 3.1 Fast servido por fal.ai. Se mantiene como alternativa premium independiente del Veo directo de Google.",
+    badges: ["fal.ai", "Google", "Audio", "Hasta 4K"],
     modes: ["text_to_video", "image_to_video"],
     durations: [4, 6, 8],
     resolutions: ["720p", "1080p", "4k"],
@@ -151,6 +151,8 @@ export function estimateProviderUsd(input: {
 }) {
   const seconds = Math.max(1, input.duration)
   switch (input.modelKey) {
+    case "veo-3.1-direct":
+      return seconds * (input.resolution === "4k" ? 0.60 : 0.40)
     case "kling-3-standard":
       return seconds * (input.withAudio ? 0.126 : 0.084)
     case "wan-2.7":
