@@ -5,7 +5,7 @@ export type StudioAspectRatio = "16:9" | "9:16"
 export type VideoStudioModel = {
   key: string
   name: string
-  provider: "auto" | "fal"
+  provider: "auto" | "google" | "fal"
   tier: "free" | "economy" | "balanced" | "premium"
   description: string
   badges: string[]
@@ -15,6 +15,7 @@ export type VideoStudioModel = {
   audio: "optional" | "included" | "auto"
   endpointText?: string
   endpointImage?: string
+  googleModel?: string
   recommended?: boolean
 }
 
@@ -24,13 +25,26 @@ export const VIDEO_STUDIO_MODELS: VideoStudioModel[] = [
     name: "EduAI Auto",
     provider: "auto",
     tier: "free",
-    description: "Reutiliza primero y luego usa el router gratuito de EduAI antes de recurrir a Veo.",
-    badges: ["Gratis", "Ahorro primero", "Reutilización"],
+    description: "Reutiliza primero y luego prueba WAN/Hugging Face antes de usar Veo directo como último respaldo.",
+    badges: ["Sin Créditos IA", "Ahorro primero", "Reutilización"],
     modes: ["text_to_video", "image_to_video"],
     durations: [2, 4, 6, 8, 10],
     resolutions: ["720p"],
     audio: "optional",
     recommended: true,
+  },
+  {
+    key: "veo-3.1-direct",
+    name: "Veo 3.1 Directo",
+    provider: "google",
+    tier: "free",
+    description: "Genera directamente con la API de Google desde texto o imagen. No consume Créditos IA de EduAI; puede consumir la cuota/facturación de Google configurada en el servidor.",
+    badges: ["Sin Créditos IA", "Google directo", "Texto + imagen", "Audio nativo"],
+    modes: ["text_to_video", "image_to_video"],
+    durations: [4, 6, 8],
+    resolutions: ["720p", "1080p", "4k"],
+    audio: "included",
+    googleModel: "veo-3.1-generate-preview",
   },
   {
     key: "kling-3-standard",
@@ -122,6 +136,10 @@ export function validateVideoModelSelection(input: {
   if (!input.model.durations.includes(input.duration)) return "La duración no está disponible para el modelo seleccionado."
   if (!input.model.resolutions.includes(input.resolution)) return "La resolución no está disponible para el modelo seleccionado."
   if (input.model.provider === "fal" && !endpointForMode(input.model, input.mode)) return "El endpoint del modelo no está disponible."
+  if (input.model.provider === "google" && !input.model.googleModel) return "El modelo directo de Google no está configurado."
+  if (input.model.provider === "google" && input.resolution !== "720p" && input.duration !== 8) {
+    return "Veo 3.1 requiere 8 segundos para 1080p o 4K."
+  }
   return null
 }
 
