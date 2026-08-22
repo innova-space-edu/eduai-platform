@@ -217,8 +217,8 @@ const AGENTS: AgentItem[] = [
     border: "rgba(34,211,238,0.24)",
     href: "/video-studio",
     tag: "Creativo",
-    status: "maintenance",
-    ctaLabel: "Temporalmente no disponible",
+    status: "active",
+    ctaLabel: "Abrir Video Studio",
   },
   {
     id: "galeria",
