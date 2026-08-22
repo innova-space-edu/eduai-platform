@@ -340,35 +340,25 @@ async function runHFSpaceProvider(input: {
 }
 
 function videoProviderOrder(): string[] {
-  const configured = (process.env.VIDEO_PROVIDER_ORDER || "wan,hf-gradio,hf-space,google")
+  const configured = (process.env.VIDEO_PROVIDER_ORDER || "wan,hf-gradio,hf-space")
     .split(",")
     .map((value) => value.trim().toLowerCase())
     .filter(Boolean)
-    .map((value) => value === "replicate" || value === "veo" ? "google" : value)
-    .filter((value) => ["wan", "hf-gradio", "google", "hf-space", "ltx", "wan-worker"].includes(value))
+    .filter((value) => ["wan", "hf-gradio", "hf-space", "ltx", "wan-worker"].includes(value))
 
   const order = Array.from(new Set(configured))
   if (isWanVideoConfigured() && !order.includes("wan")) order.unshift("wan")
   if (isHFGradioVideoConfigured() && !order.includes("hf-gradio")) order.splice(order[0] === "wan" ? 1 : 0, 0, "hf-gradio")
-  if (process.env.HF_SPACE_VIDEO_API_URL && !order.includes("hf-space")) {
-    const googleIndex = order.indexOf("google")
-    if (googleIndex >= 0) order.splice(googleIndex, 0, "hf-space")
-    else order.push("hf-space")
-  }
+  if (process.env.HF_SPACE_VIDEO_API_URL && !order.includes("hf-space")) order.push("hf-space")
 
-  const premiumConfigured = order.includes("google") || Boolean(googleVideoKey())
-  const freeFirst = order.filter((provider) => provider !== "google")
-  if (premiumConfigured) freeFirst.push("google")
-
-  if (!freeFirst.length) {
+  if (!order.length) {
     const fallback: string[] = []
     if (isWanVideoConfigured()) fallback.push("wan")
     if (isHFGradioVideoConfigured()) fallback.push("hf-gradio")
     if (process.env.HF_SPACE_VIDEO_API_URL) fallback.push("hf-space")
-    if (googleVideoKey()) fallback.push("google")
     return fallback
   }
-  return freeFirst
+  return order
 }
 
 export async function processVideoJob(input: ProcessVideoJobInput): Promise<ProcessVideoJobResult> {
@@ -398,7 +388,21 @@ export async function processVideoJob(input: ProcessVideoJobInput): Promise<Proc
     if (input.provider === "hf-gradio" || input.operationName.startsWith("hf:")) {
       return pollHFGradioVideo({ operationName: input.operationName, userId: input.userId, prompt, sourceJobId: input.sourceJobId, model: input.model })
     }
-    return pollGoogleVeo({ operationName: input.operationName, userId: input.userId, prompt, sourceJobId: input.sourceJobId, model: input.model })
+    if (input.provider === "google") {
+      return pollGoogleVeo({ operationName: input.operationName, userId: input.userId, prompt, sourceJobId: input.sourceJobId, model: input.model })
+    }
+    return { ok: false, status: "failed", provider: input.provider || null, error: "Operación de video no reconocida." }
+  }
+
+  // Veo directo se ejecuta únicamente cuando el job fue creado explícitamente
+  // con provider=google. Nunca forma parte del fallback gratuito de EduAI Auto.
+  if (input.provider === "google") {
+    if (!googleVideoKey()) return { ok: false, status: "failed", provider: "google", error: "GEMINI_API_KEY no configurada para Veo 3.1 directo." }
+    try {
+      return await startGoogleVeo({ prompt, style, duration, mode, imageUrl, aspectRatio, resolution, model: input.model })
+    } catch (error) {
+      return { ok: false, status: "failed", provider: "google", model: input.model || googleVideoModel(), error: error instanceof Error ? error.message : String(error) }
+    }
   }
 
   const errors: string[] = []
@@ -423,23 +427,13 @@ export async function processVideoJob(input: ProcessVideoJobInput): Promise<Proc
       const result = await runHFSpaceProvider({ prompt, style, duration, withAudio, mode, imageUrl, userId: input.userId, sourceJobId: input.sourceJobId })
       if (result.ok) return result
       errors.push(`${provider}: ${result.error || "falló"}`)
-      continue
-    }
-
-    if (provider === "google") {
-      if (!googleVideoKey()) { errors.push("google: GEMINI_API_KEY no configurada"); continue }
-      try {
-        return await startGoogleVeo({ prompt, style, duration, mode, imageUrl, aspectRatio, resolution, model: input.model })
-      } catch (error) {
-        errors.push(`google: ${error instanceof Error ? error.message : String(error)}`)
-      }
     }
   }
 
   return {
     ok: false,
     status: "failed",
-    error: `No se pudo iniciar la generación de video. ${errors.join(" | ")}`,
+    error: `No se pudo iniciar la generación gratuita de video. ${errors.join(" | ")}`,
     raw: { providers: videoProviderOrder(), errors },
   }
 }
