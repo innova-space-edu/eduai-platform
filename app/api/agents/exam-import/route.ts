@@ -168,7 +168,7 @@ async function parsePdf(buffer: Buffer): Promise<ParsedDocument> {
       const result = await pdfModule.default(buffer)
       text = String(result?.text || "")
     }
-  } catch (error) {
+  } catch {
     warnings.push("No se pudo completar la extracción auxiliar con pdf-parse; Gemini analizará el PDF visualmente.")
   }
 
@@ -438,7 +438,7 @@ export async function POST(request: NextRequest) {
     const rawQuestions = Array.isArray(output?.questions) ? output.questions : []
     if (!rawQuestions.length) return NextResponse.json({ error: "No se detectaron preguntas en el documento" }, { status: 422 })
 
-    const questions = rawQuestions.map(normalizeImportedQuestion)
+    const questions: ImportedExamQuestion[] = rawQuestions.map((raw: any) => normalizeImportedQuestion(raw))
     const statsBeforeImages = summarizeImportedQuestions(questions)
 
     if (!inferAnswers && statsBeforeImages.inferredAnswers > 0) {
