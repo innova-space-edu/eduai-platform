@@ -1,47 +1,92 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createClient as createAdminClient } from "@supabase/supabase-js"
 import { createClient as createServerClient } from "@/lib/supabase/server"
-import { createRepositoryPublicAccessToken } from "@/lib/repository/public-share"
+import { getRepositoryAdminClient } from "@/lib/repository/public-access"
+import {
+  createRepositoryPublicAccessSlug,
+  createRepositoryPublicAccessToken,
+} from "@/lib/repository/public-share"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-function getAdminClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!url || !key) throw new Error("Supabase administrativo no está configurado")
-  return createAdminClient(url, key, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
-}
-
 async function requireRepositoryAdmin() {
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user?.email) return { user: null, error: "No autenticado" }
+  if (!user?.email) return { user: null, admin: null, error: "No autenticado" }
 
-  const admin = getAdminClient()
+  const admin = getRepositoryAdminClient()
   const { data, error } = await admin
     .from("admin_emails")
     .select("email")
     .eq("email", user.email)
     .maybeSingle()
 
-  if (error || !data) return { user: null, error: "Acceso denegado" }
-  return { user, error: null }
+  if (error || !data) return { user: null, admin: null, error: "Acceso denegado" }
+  return { user, admin, error: null }
 }
 
-export async function GET() {
+async function findExistingSlug(admin: ReturnType<typeof getRepositoryAdminClient>, ownerId: string) {
+  const { data, error } = await admin
+    .from("repository_public_links")
+    .select("slug")
+    .eq("owner_id", ownerId)
+    .eq("active", true)
+    .maybeSingle()
+
+  if (error) {
+    // Compatibilidad temporal antes de aplicar la migración de alias cortos.
+    if (error.code === "42P01") return null
+    throw error
+  }
+  return data?.slug ? String(data.slug) : null
+}
+
+async function getOrCreateShortSlug(admin: ReturnType<typeof getRepositoryAdminClient>, ownerId: string) {
+  const existing = await findExistingSlug(admin, ownerId)
+  if (existing) return existing
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const slug = createRepositoryPublicAccessSlug()
+    const { data, error } = await admin
+      .from("repository_public_links")
+      .insert({ slug, owner_id: ownerId, active: true })
+      .select("slug")
+      .single()
+
+    if (!error && data?.slug) return String(data.slug)
+    if (error?.code === "42P01") return null
+    if (error?.code === "23505") {
+      const raced = await findExistingSlug(admin, ownerId)
+      if (raced) return raced
+      continue
+    }
+    throw error
+  }
+
+  throw new Error("No fue posible generar un enlace público corto.")
+}
+
+function buildPublicUrl(request: NextRequest, ownerId: string, slug: string | null) {
+  if (slug) return new URL(`/nube-publica/${encodeURIComponent(slug)}`, request.nextUrl.origin).toString()
+  const legacyToken = createRepositoryPublicAccessToken(ownerId)
+  return new URL(`/nube-publica/${encodeURIComponent(legacyToken)}`, request.nextUrl.origin).toString()
+}
+
+export async function GET(request: NextRequest) {
   try {
     const result = await requireRepositoryAdmin()
-    if (!result.user) {
+    if (!result.user || !result.admin) {
       return NextResponse.json({ isAdmin: false }, {
         status: result.error === "No autenticado" ? 401 : 403,
         headers: { "Cache-Control": "no-store, max-age=0" },
       })
     }
 
-    return NextResponse.json({ isAdmin: true }, {
+    const slug = await findExistingSlug(result.admin, result.user.id)
+    return NextResponse.json({
+      isAdmin: true,
+      publicUrl: slug ? buildPublicUrl(request, result.user.id, slug) : null,
+    }, {
       headers: { "Cache-Control": "no-store, max-age=0" },
     })
   } catch {
@@ -52,16 +97,16 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const result = await requireRepositoryAdmin()
-    if (!result.user) {
+    if (!result.user || !result.admin) {
       return NextResponse.json({ error: result.error }, {
         status: result.error === "No autenticado" ? 401 : 403,
       })
     }
 
-    const token = createRepositoryPublicAccessToken(result.user.id)
-    const publicUrl = new URL(`/nube-publica/${encodeURIComponent(token)}`, request.nextUrl.origin).toString()
+    const slug = await getOrCreateShortSlug(result.admin, result.user.id)
+    const publicUrl = buildPublicUrl(request, result.user.id, slug)
 
-    return NextResponse.json({ publicUrl }, {
+    return NextResponse.json({ publicUrl, short: Boolean(slug) }, {
       headers: { "Cache-Control": "no-store, max-age=0" },
     })
   } catch (caught) {
