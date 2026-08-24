@@ -1,6 +1,6 @@
 import "server-only"
 
-import { createHmac, timingSafeEqual } from "node:crypto"
+import { createHmac, randomBytes, timingSafeEqual } from "node:crypto"
 
 const TOKEN_PATTERN = /^([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})\.([A-Za-z0-9_-]{32})$/i
 const PUBLIC_ACCESS_PATTERN = /^public\.([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})\.([A-Za-z0-9_-]{40})$/i
@@ -41,6 +41,7 @@ export function parseRepositoryShareToken(token: string) {
   return itemId
 }
 
+// Compatibilidad con enlaces públicos largos ya entregados.
 export function createRepositoryPublicAccessToken(ownerId: string) {
   return `public.${ownerId}.${publicAccessSignatureFor(ownerId)}`
 }
@@ -55,4 +56,10 @@ export function parseRepositoryPublicAccessToken(token: string) {
   if (supplied.length !== expected.length || !timingSafeEqual(supplied, expected)) return null
 
   return ownerId
+}
+
+// 12 caracteres base64url ~= 72 bits de entropía. El alias se guarda server-side,
+// por lo que no expone el UUID del administrador ni la firma HMAC del enlace legado.
+export function createRepositoryPublicAccessSlug() {
+  return randomBytes(9).toString("base64url")
 }
