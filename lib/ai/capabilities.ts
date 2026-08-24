@@ -38,6 +38,11 @@ export type AIRequestContext = {
   visibility?: AIVisibility
 }
 
+// Orden conservador: Google sigue siendo el proveedor principal donde ya está
+// funcionando. Los proveedores alternativos se añaden como fallbacks y pueden
+// reordenarse por capability mediante variables EDUAI_AI_PROVIDER_ORDER_*.
+// `retrieval` representa índices/buscadores cloud como Google File Search y no
+// sustituye el RAG local/propio de EduAI.
 export const DEFAULT_PROVIDER_ORDER: Record<AICapability, AIProviderId[]> = {
   text: ["google", "groq", "openrouter", "cerebras", "together"],
   structured: ["google", "groq", "openrouter", "cerebras", "together"],
@@ -75,6 +80,7 @@ export function providerOrderFor(
     .filter((value): value is AIProviderId => PROVIDERS.has(value as AIProviderId))
 
   if (!parsed.length) return DEFAULT_PROVIDER_ORDER[capability]
+
   return Array.from(new Set(parsed))
 }
 

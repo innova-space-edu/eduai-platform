@@ -1,15 +1,18 @@
-import { callAI } from "@/lib/ai-router"
+import { runAIText } from "@/lib/ai/gateway"
 import { createClient } from "@/lib/supabase/server"
+
+function parseJson(text: string) {
+  return JSON.parse(text.replace(/```json|```/g, "").trim())
+}
 
 export async function POST(req: Request) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return new Response("Unauthorized", { status: 401 })
+  if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 })
 
   const { action, topic, level, numQuestions = 10, answers, questions } = await req.json()
 
   if (action === "generate") {
-    // Generar examen completo
     const messages = [
       {
         role: "system" as const,
@@ -56,18 +59,40 @@ JSON requerido:
 }`
       }
     ]
+
     try {
-      const result = await callAI(messages, { maxTokens: 4000, preferProvider: "gemini" })
-      const clean = result.text.replace(/```json|```/g, "").trim()
-      const exam = JSON.parse(clean)
-      return Response.json(exam)
-    } catch (e: any) {
-      return new Response(e.message, { status: 500 })
+      const result = await runAIText({
+        messages,
+        capability: "text",
+        maxOutputTokens: 4000,
+        context: {
+          userId: user.id,
+          module: "exam-generate",
+          reusePolicy: "exact_private",
+          visibility: "private",
+        },
+        supabase,
+      })
+      const exam = parseJson(result.data)
+      return Response.json({
+        ...exam,
+        _eduai: {
+          provider: result.provider,
+          model: result.model,
+          reused: result.reused,
+          generationAvoided: result.reused,
+        },
+      })
+    } catch (error) {
+      const typed = error as Error & { status?: number; code?: string }
+      return Response.json(
+        { error: typed.message, code: typed.code },
+        { status: typed.status || 500 },
+      )
     }
   }
 
   if (action === "evaluate") {
-    // Evaluar respuestas del usuario
     const messages = [
       {
         role: "system" as const,
@@ -101,7 +126,7 @@ JSON requerido:
   "results": [
     {
       "questionId": número,
-      "correct": true/false/partial,
+      "correct": true/false/"partial",
       "pointsEarned": número,
       "pointsMax": número,
       "feedback": "feedback específico"
@@ -111,15 +136,38 @@ JSON requerido:
 }`
       }
     ]
+
     try {
-      const result = await callAI(messages, { maxTokens: 3000, preferProvider: "gemini" })
-      const clean = result.text.replace(/```json|```/g, "").trim()
-      const evaluation = JSON.parse(clean)
-      return Response.json(evaluation)
-    } catch (e: any) {
-      return new Response(e.message, { status: 500 })
+      const result = await runAIText({
+        messages,
+        capability: "text",
+        maxOutputTokens: 3000,
+        context: {
+          userId: user.id,
+          module: "exam-evaluate",
+          reusePolicy: "exact_private",
+          visibility: "private",
+        },
+        supabase,
+      })
+      const evaluation = parseJson(result.data)
+      return Response.json({
+        ...evaluation,
+        _eduai: {
+          provider: result.provider,
+          model: result.model,
+          reused: result.reused,
+          generationAvoided: result.reused,
+        },
+      })
+    } catch (error) {
+      const typed = error as Error & { status?: number; code?: string }
+      return Response.json(
+        { error: typed.message, code: typed.code },
+        { status: typed.status || 500 },
+      )
     }
   }
 
-  return new Response("Invalid action", { status: 400 })
+  return Response.json({ error: "Invalid action" }, { status: 400 })
 }

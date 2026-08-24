@@ -57,14 +57,6 @@ function normalizeResolution(value: string | null | undefined): StudioResolution
   return "720p"
 }
 
-function googleVideoConfigured() {
-  return Boolean(
-    process.env.GEMINI_API_KEY_VIDEO?.trim()
-    || process.env.GEMINI_API_KEY?.trim()
-    || process.env.GOOGLE_API_KEY?.trim()
-  )
-}
-
 function basicModeration(prompt: string) {
   const text = prompt.toLowerCase()
   const blockedTerms = ["child sexual", "explicit minor", "rape", "bestiality", "sexual violence"]
@@ -85,7 +77,7 @@ async function getDailyUsage(params: {
 }): Promise<DailyLimitResult> {
   const today = getTodayIsoDate()
   const limit = DAILY_LIMITS[params.plan] ?? DAILY_LIMITS.free
-  const start = `${today}T00:00:00.000Z`
+  const start = today + "T00:00:00.000Z"
   const { count, error } = await params.supabase
     .from("video_jobs")
     .select("id", { count: "exact", head: true })
@@ -167,7 +159,7 @@ export async function POST(req: NextRequest) {
     const mode = normalizeMode(body.mode ?? "text_to_video") as VideoMode
     const requestedDuration = Number.isFinite(Number(body.duration)) ? Math.round(Number(body.duration)) : 6
     const duration = selectedModel.provider === "auto" ? normalizeDuration(requestedDuration) : requestedDuration
-    const withAudio = selectedModel.provider === "google" ? true : Boolean(body.withAudio)
+    const withAudio = Boolean(body.withAudio)
     const requestedImageUrl = typeof body.imageUrl === "string" && body.imageUrl.trim() ? body.imageUrl.trim() : null
     const requestedImageAssetId = typeof body.imageAssetId === "string" && body.imageAssetId.trim() ? body.imageAssetId.trim() : null
     const aspectRatio = normalizeAspectRatio(body.aspectRatio)
@@ -207,7 +199,6 @@ export async function POST(req: NextRequest) {
     if (!trustedImage.ok) {
       return Response.json({ ok: false, error: trustedImage.error, code: trustedImage.code }, { status: 400 })
     }
-
     const imageUrl = trustedImage.imageUrl
     const imageAssetId = trustedImage.imageAssetId
     const imageIdentity = trustedImage.identity
@@ -243,43 +234,24 @@ export async function POST(req: NextRequest) {
     let estimatedUsd = 0
     let provider: string | null = null
     let providerModel: string | null = null
-    let billingMode: "free" | "credits_google" | "credits_fal" = "free"
 
     if (selectedModel.provider === "auto") {
       plan = await resolveUserPlan(user.id)
       const usage = await getDailyUsage({ supabase, userId: user.id, plan })
       if (!usage.allowed) {
-        return Response.json({ ok: false, error: "Has alcanzado el límite diario de videos gratuitos para tu plan.", code: "DAILY_LIMIT_REACHED", plan, limit: usage.limit, used: usage.used, remaining: usage.remaining }, { status: 429 })
+        return Response.json({ ok: false, error: "Has alcanzado el límite diario de videos para tu plan.", code: "DAILY_LIMIT_REACHED", plan, limit: usage.limit, used: usage.used, remaining: usage.remaining }, { status: 429 })
       }
       remainingToday = usage.remaining
     } else {
       const settings = await getBillingSettings()
-      if (!settings.premiumVideoEnabled) {
-        return Response.json({ ok: false, error: "La generación de video de pago está temporalmente deshabilitada.", code: "PREMIUM_VIDEO_DISABLED" }, { status: 503 })
+      if (!settings.premiumVideoEnabled || !process.env.FAL_KEY?.trim()) {
+        return Response.json({ ok: false, error: "El proveedor premium no está configurado en el servidor.", code: "PREMIUM_PROVIDER_UNAVAILABLE" }, { status: 503 })
       }
-
-      if (selectedModel.provider === "google") {
-        if (!googleVideoConfigured()) {
-          return Response.json({ ok: false, error: "Veo 3.1 directo no está configurado en el servidor.", code: "GOOGLE_VIDEO_UNAVAILABLE" }, { status: 503 })
-        }
-        provider = "google"
-        providerModel = selectedModel.googleModel || "veo-3.1-generate-preview"
-        billingMode = "credits_google"
-      } else {
-        if (!process.env.FAL_KEY?.trim()) {
-          return Response.json({ ok: false, error: "fal.ai no está configurado en el servidor.", code: "FAL_UNAVAILABLE" }, { status: 503 })
-        }
-        provider = "fal"
-        providerModel = endpointForMode(selectedModel, mode) || null
-        billingMode = "credits_fal"
-      }
-
       estimatedUsd = estimateProviderUsd({ modelKey: selectedModel.key, duration, resolution, withAudio })
-      estimatedCredits = Math.max(
-        settings.minGenerationCredits,
-        Math.ceil(estimatedUsd * settings.usdToClp * settings.markupMultiplier * settings.creditsPerClp)
-      )
+      estimatedCredits = Math.max(settings.minGenerationCredits, Math.ceil(estimatedUsd * settings.usdToClp * settings.markupMultiplier * settings.creditsPerClp))
       plan = "credits"
+      provider = "fal"
+      providerModel = endpointForMode(selectedModel, mode) || null
     }
 
     const requestPayload = {
@@ -294,7 +266,7 @@ export async function POST(req: NextRequest) {
       aspectRatio,
       resolution,
       modelKey: selectedModel.key,
-      billingMode,
+      billingMode: selectedModel.provider === "auto" ? "free" : "credits",
       estimatedCredits,
       estimatedUsd,
     }
@@ -332,17 +304,13 @@ export async function POST(req: NextRequest) {
         p_job_id: insertedJob.id,
         p_credits: estimatedCredits,
         p_model_key: selectedModel.key,
-        p_provider: provider,
+        p_provider: "fal",
         p_estimate_usd: estimatedUsd,
       })
 
       if (reserveError) {
         const admin = getAdminSupabase()
-        await admin
-          .from("video_jobs")
-          .update({ status: "canceled", error_message: reserveError.message, completed_at: new Date().toISOString() })
-          .eq("id", insertedJob.id)
-
+        await admin.from("video_jobs").update({ status: "canceled", error_message: reserveError.message, completed_at: new Date().toISOString() }).eq("id", insertedJob.id)
         const wallet = await ensureWallet(user.id)
         const insufficient = /insufficient_credits/i.test(reserveError.message)
         return Response.json({
@@ -353,7 +321,6 @@ export async function POST(req: NextRequest) {
           availableCredits: wallet.availableCredits,
         }, { status: insufficient ? 402 : 500 })
       }
-
       const row = Array.isArray(reservation) ? reservation[0] : reservation
       availableCredits = Number(row?.available_after ?? (await ensureWallet(user.id)).availableCredits)
     }
@@ -370,8 +337,6 @@ export async function POST(req: NextRequest) {
       estimatedUsd,
       availableCredits,
       modelKey: selectedModel.key,
-      provider,
-      billingMode,
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : "Error inesperado al crear el video."

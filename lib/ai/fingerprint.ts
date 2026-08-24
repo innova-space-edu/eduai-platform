@@ -10,7 +10,9 @@ function canonicalize(value: unknown): unknown {
   if (value === null || value === undefined) return value ?? null
   if (typeof value === "string") return normalizeString(value)
   if (typeof value === "number" || typeof value === "boolean") return value
+
   if (Array.isArray(value)) return value.map(canonicalize)
+
   if (typeof value === "object") {
     return Object.fromEntries(
       Object.entries(value as Record<string, unknown>)
@@ -19,6 +21,7 @@ function canonicalize(value: unknown): unknown {
         .map(([key, child]) => [key, canonicalize(child)])
     )
   }
+
   return String(value)
 }
 
@@ -42,6 +45,7 @@ export function generationFingerprint(input: {
     scopeKey: input.scopeKey ?? null,
     payload: input.payload,
   })
+
   return createHash("sha256").update(canonical).digest("hex")
 }
 

@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     const mode: StudioVideoMode = body.mode === "image_to_video" ? "image_to_video" : "text_to_video"
     const duration = Number(body.duration ?? model.durations[0] ?? 6)
     const resolution = (body.resolution || model.resolutions[0] || "720p") as StudioResolution
-    const withAudio = model.provider === "google" ? true : Boolean(body.withAudio)
+    const withAudio = Boolean(body.withAudio)
 
     const validation = validateVideoModelSelection({ model, mode, duration, resolution })
     if (validation) return NextResponse.json({ ok: false, error: validation }, { status: 400 })
@@ -49,7 +49,6 @@ export async function POST(req: NextRequest) {
         ok: true,
         modelKey: model.key,
         billing: "free",
-        billingLabel: "Gratis / sin Créditos IA",
         estimatedUsd: 0,
         estimatedCredits: 0,
         availableCredits: wallet.availableCredits,
@@ -57,22 +56,9 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    if (model.provider === "google") {
-      const googleReady = Boolean(
-        process.env.GEMINI_API_KEY_VIDEO?.trim()
-        || process.env.GEMINI_API_KEY?.trim()
-        || process.env.GOOGLE_API_KEY?.trim()
-      )
-      if (!googleReady) {
-        return NextResponse.json({ ok: false, error: "Veo 3.1 directo no está configurado en el servidor." }, { status: 503 })
-      }
-    } else if (!process.env.FAL_KEY?.trim()) {
-      return NextResponse.json({ ok: false, error: "fal.ai todavía no está configurado." }, { status: 503 })
-    }
-
     const settings = await getBillingSettings()
-    if (!settings.premiumVideoEnabled) {
-      return NextResponse.json({ ok: false, error: "La generación de video de pago está temporalmente deshabilitada." }, { status: 503 })
+    if (!settings.premiumVideoEnabled || !process.env.FAL_KEY?.trim()) {
+      return NextResponse.json({ ok: false, error: "El proveedor premium todavía no está disponible." }, { status: 503 })
     }
 
     const estimatedUsd = estimateProviderUsd({ modelKey: model.key, duration, resolution, withAudio })
@@ -84,9 +70,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       modelKey: model.key,
-      provider: model.provider,
       billing: "credits",
-      billingLabel: model.provider === "google" ? "Créditos IA · Google directo" : "Créditos IA · fal.ai",
       estimatedUsd: Number(estimatedUsd.toFixed(6)),
       estimatedCredits,
       availableCredits: wallet.availableCredits,

@@ -34,6 +34,7 @@ function isPrivateIPv6(address: string) {
   if (normalized.startsWith("ff")) return true
   if (normalized.startsWith("2001:db8")) return true
 
+  // Para literales IPv6 se acepta únicamente global-unicast 2000::/3.
   const firstGroup = normalized.split(":")[0]
   const first = Number.parseInt(firstGroup, 16)
   return !Number.isFinite(first) || first < 0x2000 || first > 0x3fff

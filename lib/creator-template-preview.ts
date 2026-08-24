@@ -19,7 +19,8 @@ async function screenshotHtml(html: string) {
   try {
     browser = await launchBrowser()
     const page = await browser.newPage()
-    await page.setContent(html, { waitUntil: "networkidle0", timeout: 30_000 })
+    await page.setContent(html, { waitUntil: "domcontentloaded", timeout: 30_000 })
+    await page.waitForNetworkIdle({ idleTime: 500, timeout: 30_000 })
     await page.evaluate(async () => {
       if (document.fonts?.ready) await document.fonts.ready
     })

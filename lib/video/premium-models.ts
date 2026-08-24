@@ -5,7 +5,7 @@ export type StudioAspectRatio = "16:9" | "9:16"
 export type VideoStudioModel = {
   key: string
   name: string
-  provider: "auto" | "google" | "fal"
+  provider: "auto" | "fal"
   tier: "free" | "economy" | "balanced" | "premium"
   description: string
   badges: string[]
@@ -15,7 +15,6 @@ export type VideoStudioModel = {
   audio: "optional" | "included" | "auto"
   endpointText?: string
   endpointImage?: string
-  googleModel?: string
   recommended?: boolean
 }
 
@@ -25,26 +24,13 @@ export const VIDEO_STUDIO_MODELS: VideoStudioModel[] = [
     name: "EduAI Auto",
     provider: "auto",
     tier: "free",
-    description: "Reutiliza primero y luego prueba los proveedores gratuitos/configurados de EduAI. No salta automáticamente a modelos de pago.",
+    description: "Reutiliza primero y luego usa el router gratuito de EduAI antes de recurrir a Veo.",
     badges: ["Gratis", "Ahorro primero", "Reutilización"],
     modes: ["text_to_video", "image_to_video"],
     durations: [2, 4, 6, 8, 10],
     resolutions: ["720p"],
     audio: "optional",
     recommended: true,
-  },
-  {
-    key: "veo-3.1-direct",
-    name: "Veo 3.1 Directo",
-    provider: "google",
-    tier: "premium",
-    description: "Veo 3.1 Standard conectado directamente a Google. Genera desde texto o imagen y se paga con Créditos IA de EduAI, separado de fal.ai.",
-    badges: ["Google directo", "Pago", "Texto + imagen", "Audio nativo"],
-    modes: ["text_to_video", "image_to_video"],
-    durations: [4, 6, 8],
-    resolutions: ["720p", "1080p", "4k"],
-    audio: "included",
-    googleModel: "veo-3.1-generate-preview",
   },
   {
     key: "kling-3-standard",
@@ -90,11 +76,11 @@ export const VIDEO_STUDIO_MODELS: VideoStudioModel[] = [
   },
   {
     key: "veo-3.1-fast",
-    name: "Veo 3.1 Fast · fal.ai",
+    name: "Veo 3.1 Fast",
     provider: "fal",
     tier: "premium",
-    description: "Veo 3.1 Fast servido por fal.ai. Se mantiene como alternativa premium independiente del Veo directo de Google.",
-    badges: ["fal.ai", "Google", "Audio", "Hasta 4K"],
+    description: "Modelo premium de Google servido por fal.ai, con audio opcional y hasta 4K en texto a video.",
+    badges: ["Google", "Audio", "Hasta 4K"],
     modes: ["text_to_video", "image_to_video"],
     durations: [4, 6, 8],
     resolutions: ["720p", "1080p", "4k"],
@@ -136,13 +122,12 @@ export function validateVideoModelSelection(input: {
   if (!input.model.durations.includes(input.duration)) return "La duración no está disponible para el modelo seleccionado."
   if (!input.model.resolutions.includes(input.resolution)) return "La resolución no está disponible para el modelo seleccionado."
   if (input.model.provider === "fal" && !endpointForMode(input.model, input.mode)) return "El endpoint del modelo no está disponible."
-  if (input.model.provider === "google" && !input.model.googleModel) return "El modelo directo de Google no está configurado."
-  if (input.model.provider === "google" && input.resolution !== "720p" && input.duration !== 8) {
-    return "Veo 3.1 requiere 8 segundos para 1080p o 4K."
-  }
   return null
 }
 
+// Conservative fallback estimates from the public fal.ai model pages. These are
+// estimates only: the UI explicitly labels them as estimated and the server owns
+// the reservation amount. They can be replaced by live provider pricing later.
 export function estimateProviderUsd(input: {
   modelKey: string
   duration: number
@@ -151,8 +136,6 @@ export function estimateProviderUsd(input: {
 }) {
   const seconds = Math.max(1, input.duration)
   switch (input.modelKey) {
-    case "veo-3.1-direct":
-      return seconds * (input.resolution === "4k" ? 0.60 : 0.40)
     case "kling-3-standard":
       return seconds * (input.withAudio ? 0.126 : 0.084)
     case "wan-2.7":
@@ -163,6 +146,7 @@ export function estimateProviderUsd(input: {
     case "seedance-2.0-fast":
       return seconds * 0.2419
     case "ltx-2.3-fast":
+      // Deliberately conservative until the live account pricing endpoint is used.
       return seconds * (input.resolution === "4k" ? 0.20 : 0.08)
     default:
       return 0

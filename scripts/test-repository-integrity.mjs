@@ -156,6 +156,12 @@ requireText(packageJson.scripts["test:repository"], "apply-repository-public-acc
 requireText(packageJson.scripts.dev, "apply-public-cloud-direct-upload.mjs", "carga directa en desarrollo")
 requireText(packageJson.scripts.build, "apply-public-cloud-direct-upload.mjs", "carga directa en compilación")
 requireText(packageJson.scripts["test:repository"], "apply-public-cloud-direct-upload.mjs", "carga directa en prueba")
-if (packageJson.dependencies.pptxgenjs !== "^4.0.1") throw new Error("pptxgenjs debe permanecer en ^4.0.1")
+
+if (packageJson.devDependencies?.pptxgenjs !== "^4.0.1") {
+  throw new Error("pptxgenjs debe permanecer en devDependencies ^4.0.1 para las exportaciones PPTX del cliente")
+}
+if (packageJson.dependencies?.pptxgenjs) {
+  throw new Error("pptxgenjs no debe volver a dependencies: su uso es de exportación cliente y no debe contaminar el árbol runtime del servidor")
+}
 
 console.log("Nube EduAI: acceso público administrado, carga directa, descarga y uso compartido correcto")

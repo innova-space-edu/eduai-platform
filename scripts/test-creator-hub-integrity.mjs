@@ -39,7 +39,7 @@ check(proxy.includes("SPECIALIZED_PROJECT_EDITORS"), "El proxy no dirige proyect
 check(proxy.includes('"/api/creator/comics/image"'), "El proxy no reserva capacidad para el lote de historietas")
 
 const processRoute = read("app/api/process-content/route.ts")
-check(processRoute.includes("safeRemoteFetch"), "La generación por URL no usa protección SSRF")
+check(processRoute.includes("fetchSafeRemoteBytes"), "La generación por URL no usa protección SSRF + límite de bytes")
 check(processRoute.includes("MAX_REQUEST_BYTES"), "La generación no define límite de solicitud")
 check(processRoute.includes("supabase.auth.getUser"), "La generación principal no verifica autenticación")
 

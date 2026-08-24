@@ -1,29 +1,61 @@
-// lib/notebook/retrieval.ts  v3
-// Hybrid search: vector (pgvector) + BM25 full-text (pg_trgm) → Reciprocal Rank Fusion
-// RRF mejora retrieval ~26-31% vs vector-only (arXiv:2402.03367)
+// lib/notebook/retrieval.ts  v4
+// Hybrid search: Gemini Embedding 2 + full-text → Reciprocal Rank Fusion.
 
+import { GoogleGenAI } from "@google/genai"
 import { createClient } from "@/lib/supabase/server"
 import type { NotebookChunk } from "./types"
 
-// ─── Embedding de query ───────────────────────────────────────────────────────
+const EMBEDDING_MODEL = process.env.GOOGLE_EMBEDDING_MODEL || "gemini-embedding-2"
+const EMBEDDING_DIMENSIONS = 768
+
+function embeddingKeys(): string[] {
+  return (
+    process.env.GEMINI_API_KEY_POOL ||
+    process.env.GEMINI_API_KEY_TEXT ||
+    process.env.GEMINI_API_KEY ||
+    process.env.GOOGLE_API_KEY ||
+    ""
+  )
+    .split(",")
+    .map((key) => key.trim())
+    .filter(Boolean)
+}
 
 async function embedQuery(text: string): Promise<number[] | null> {
   try {
-    const { GoogleGenerativeAI } = await import("@google/generative-ai")
-    const keys = (process.env.GEMINI_API_KEY_POOL ?? process.env.GEMINI_API_KEY ?? "")
-      .split(",").map((k) => k.trim()).filter(Boolean)
+    const keys = embeddingKeys()
     if (!keys.length) return null
-    const key    = keys[Math.floor(Math.random() * keys.length)]
-    const genai  = new GoogleGenerativeAI(key)
-    const model  = genai.getGenerativeModel({ model: "text-embedding-004" })
-    const result = await model.embedContent(text.slice(0, 1000))
-    return result.embedding.values
-  } catch {
+    const key = keys[Math.floor(Math.random() * keys.length)]
+    const ai = new GoogleGenAI({ apiKey: key })
+    const result = await ai.models.embedContent({
+      model: EMBEDDING_MODEL,
+      contents: text.slice(0, 8_000),
+      config: { outputDimensionality: EMBEDDING_DIMENSIONS },
+    })
+    const values = result.embeddings?.[0]?.values
+    return Array.isArray(values) && values.length === EMBEDDING_DIMENSIONS ? values : null
+  } catch (error) {
+    console.warn("[Notebook retrieval][embedding]", error instanceof Error ? error.message : String(error))
     return null
   }
 }
 
-// ─── Retrieval vectorial (pgvector) ──────────────────────────────────────────
+async function notebookVectorSpaceIsCurrent(notebookId: string): Promise<boolean> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("notebook_sources")
+    .select("id,ingestion_model")
+    .eq("notebook_id", notebookId)
+    .eq("is_active", true)
+    .eq("status", "ready")
+
+  if (error) {
+    // Antes de aplicar la migración de tracking, usar únicamente full-text para no mezclar vectores viejos.
+    return false
+  }
+  if (!data?.length) return false
+  return data.every((source) => source.ingestion_model === EMBEDDING_MODEL)
+}
 
 async function vectorRetrieval(
   notebookId: string,
@@ -33,20 +65,23 @@ async function vectorRetrieval(
   const supabase = await createClient()
   const { data, error } = await supabase.rpc("match_notebook_chunks", {
     p_notebook_id: notebookId,
-    p_embedding:   `[${embedding.join(",")}]`,
-    p_limit:       limit,
+    p_embedding: `[${embedding.join(",")}]`,
+    p_limit: limit,
     p_active_only: true,
   })
   if (error || !data) return []
   return (data as Array<{ id: string; source_id: string; chunk_text: string; score: number }>)
-    .map((row, i) => ({
-      id: row.id, notebook_id: notebookId, source_id: row.source_id,
-      chunk_index: 0, chunk_text: row.chunk_text,
-      score: row.score, rank: i, created_at: "",
+    .map((row, index) => ({
+      id: row.id,
+      notebook_id: notebookId,
+      source_id: row.source_id,
+      chunk_index: 0,
+      chunk_text: row.chunk_text,
+      score: row.score,
+      rank: index,
+      created_at: "",
     }))
 }
-
-// ─── Retrieval full-text BM25 (PostgreSQL ts_rank_cd) ────────────────────────
 
 async function bm25Retrieval(
   notebookId: string,
@@ -54,26 +89,28 @@ async function bm25Retrieval(
   limit: number
 ): Promise<Array<NotebookChunk & { rank: number }>> {
   const supabase = await createClient()
-
-  // Intentar RPC con BM25 real (requiere migration_bm25.sql)
   const { data, error } = await supabase.rpc("search_notebook_chunks_fts", {
     p_notebook_id: notebookId,
-    p_query:       query,
-    p_limit:       limit,
+    p_query: query,
+    p_limit: limit,
     p_active_only: true,
   })
 
   if (!error && data && data.length > 0) {
     return (data as Array<{ id: string; source_id: string; chunk_text: string; rank: number }>)
-      .map((row, i) => ({
-        id: row.id, notebook_id: notebookId, source_id: row.source_id,
-        chunk_index: 0, chunk_text: row.chunk_text,
-        score: row.rank, rank: i, created_at: "",
+      .map((row, index) => ({
+        id: row.id,
+        notebook_id: notebookId,
+        source_id: row.source_id,
+        chunk_index: 0,
+        chunk_text: row.chunk_text,
+        score: row.rank,
+        rank: index,
+        created_at: "",
       }))
   }
 
-  // Fallback: keyword scoring en memoria si BM25 RPC no está disponible
-  return await keywordFallback(notebookId, query, limit)
+  return keywordFallback(notebookId, query, limit)
 }
 
 async function keywordFallback(
@@ -93,48 +130,47 @@ async function keywordFallback(
 
   if (!data) return []
 
-  const STOPWORDS = new Set(["para","como","pero","desde","esto","esta","sobre","entre","hasta","desde"])
-  const keywords  = query.toLowerCase().split(/\s+/)
-    .filter((w) => w.length > 3 && !STOPWORDS.has(w))
+  const stopwords = new Set(["para","como","pero","desde","esto","esta","sobre","entre","hasta","desde"])
+  const keywords = query.toLowerCase().split(/\s+/)
+    .filter((word) => word.length > 3 && !stopwords.has(word))
 
-  if (!keywords.length) return (data as NotebookChunk[]).slice(0, limit).map((c, i) => ({ ...c, rank: i }))
+  if (!keywords.length) {
+    return (data as NotebookChunk[]).slice(0, limit).map((chunk, index) => ({ ...chunk, rank: index }))
+  }
 
   return (data as (NotebookChunk & { notebook_sources: unknown })[])
-    .map((chunk, i) => {
-      const lower  = chunk.chunk_text.toLowerCase()
-      let   score  = 0
-      for (const kw of keywords) {
-        const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    .map((chunk, index) => {
+      const lower = chunk.chunk_text.toLowerCase()
+      let score = 0
+      for (const keyword of keywords) {
+        const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
         const matches = (lower.match(new RegExp(escaped, "g")) || []).length
         score += matches
-        if (lower.slice(0, 200).includes(kw)) score += 2
+        if (lower.slice(0, 200).includes(keyword)) score += 2
       }
-      return { ...chunk, score, rank: i }
+      return { ...chunk, score, rank: index }
     })
-    .filter((c) => c.score > 0)
+    .filter((chunk) => chunk.score > 0)
     .sort((a, b) => b.score - a.score)
     .slice(0, limit)
 }
 
-// ─── Reciprocal Rank Fusion ───────────────────────────────────────────────────
-// Parámetro k=60 es el estándar de la literatura (Cormack et al., 2009)
-
 function reciprocalRankFusion(
-  vectorResults:  Array<NotebookChunk & { rank: number }>,
+  vectorResults: Array<NotebookChunk & { rank: number }>,
   keywordResults: Array<NotebookChunk & { rank: number }>,
   k = 60,
   topN = 8
 ): NotebookChunk[] {
   const scores = new Map<string, number>()
-  const chunks  = new Map<string, NotebookChunk>()
+  const chunks = new Map<string, NotebookChunk>()
 
-  vectorResults.forEach((c, rank) => {
-    scores.set(c.id, (scores.get(c.id) ?? 0) + 1 / (k + rank + 1))
-    chunks.set(c.id, c)
+  vectorResults.forEach((chunk, rank) => {
+    scores.set(chunk.id, (scores.get(chunk.id) ?? 0) + 1 / (k + rank + 1))
+    chunks.set(chunk.id, chunk)
   })
-  keywordResults.forEach((c, rank) => {
-    scores.set(c.id, (scores.get(c.id) ?? 0) + 1 / (k + rank + 1))
-    if (!chunks.has(c.id)) chunks.set(c.id, c)
+  keywordResults.forEach((chunk, rank) => {
+    scores.set(chunk.id, (scores.get(chunk.id) ?? 0) + 1 / (k + rank + 1))
+    if (!chunks.has(chunk.id)) chunks.set(chunk.id, chunk)
   })
 
   return [...scores.entries()]
@@ -143,34 +179,29 @@ function reciprocalRankFusion(
     .map(([id, score]) => ({ ...chunks.get(id)!, score }))
 }
 
-// ─── Retrieval principal: hybrid RRF ─────────────────────────────────────────
-
 export async function retrieveRelevantChunks(params: {
-  notebookId:      string
-  query:           string
-  limit?:          number
+  notebookId: string
+  query: string
+  limit?: number
   activeSourceIds?: string[]
 }): Promise<NotebookChunk[]> {
   const { notebookId, query, limit = 8 } = params
 
-  // Lanzar vector y BM25 en paralelo
-  const embedding = await embedQuery(query)
+  // Si el cuaderno contiene embeddings de una generación anterior, no mezclarlos.
+  // Full-text sigue operativo y el vector se reactiva después de reingestar las fuentes.
+  const vectorReady = await notebookVectorSpaceIsCurrent(notebookId)
+  const embedding = vectorReady ? await embedQuery(query) : null
 
   const [vectorResults, keywordResults] = await Promise.all([
     embedding ? vectorRetrieval(notebookId, embedding, limit * 2) : Promise.resolve([]),
     bm25Retrieval(notebookId, query, limit * 2),
   ])
 
-  // Si solo tenemos uno de los dos, usar ese directamente
   if (vectorResults.length === 0 && keywordResults.length === 0) return []
   if (vectorResults.length === 0) return keywordResults.slice(0, limit)
   if (keywordResults.length === 0) return vectorResults.slice(0, limit)
-
-  // Hybrid RRF
   return reciprocalRankFusion(vectorResults, keywordResults, 60, limit)
 }
-
-// ─── Chunks activos para Studio ──────────────────────────────────────────────
 
 export async function getActiveChunks(
   notebookId: string,
@@ -183,7 +214,8 @@ export async function getActiveChunks(
       notebook_sources!inner(is_active)`)
     .eq("notebook_id", notebookId)
     .eq("notebook_sources.is_active", true)
-    .order("source_id").order("chunk_index")
+    .order("source_id")
+    .order("chunk_index")
     .limit(150)
 
   if (!data) return []
@@ -197,17 +229,15 @@ export async function getActiveChunks(
   return result
 }
 
-// ─── Contexto textual para prompts ───────────────────────────────────────────
-
 export function buildContextFromChunks(
   chunks: NotebookChunk[],
   sources: Array<{ id: string; title?: string | null }>
 ): string {
-  const sourceMap = new Map(sources.map((s) => [s.id, s.title ?? "Fuente"]))
-  const grouped   = new Map<string, string[]>()
-  for (const c of chunks) {
-    if (!grouped.has(c.source_id)) grouped.set(c.source_id, [])
-    grouped.get(c.source_id)!.push(c.chunk_text)
+  const sourceMap = new Map(sources.map((source) => [source.id, source.title ?? "Fuente"]))
+  const grouped = new Map<string, string[]>()
+  for (const chunk of chunks) {
+    if (!grouped.has(chunk.source_id)) grouped.set(chunk.source_id, [])
+    grouped.get(chunk.source_id)!.push(chunk.chunk_text)
   }
   const parts: string[] = []
   grouped.forEach((texts, sourceId) => {

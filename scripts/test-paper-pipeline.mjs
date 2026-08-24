@@ -1,6 +1,8 @@
 import fs from "node:fs"
 import path from "node:path"
 
+await import("./apply-paper-content-hash-reuse.mjs")
+
 const root = process.cwd()
 
 function read(relativePath) {
@@ -53,6 +55,22 @@ assert(
 assert(
   extraction.includes("if (!forceRefresh)") && extraction.includes("fromCache: true"),
   "El pipeline no reutiliza documentos procesados desde la caché.",
+)
+assert(
+  extraction.includes('eq("source_file_sha256", sha256)') && extraction.includes('eq("user_id", userId)'),
+  "Chat Paper no busca duplicados por SHA-256 dentro del mismo usuario.",
+)
+assert(
+  extraction.includes('reuse_strategy: "sha256"') && extraction.includes("reused_from_document_id"),
+  "La reutilización por hash no deja trazabilidad del documento origen.",
+)
+assert(
+  extraction.includes("embedding: chunk.embedding ?? null") && extraction.includes("embedding_model: chunk.embedding_model ?? null"),
+  "La copia de un PDF duplicado no conserva embeddings ya pagados.",
+)
+assert(
+  extraction.indexOf("const reusedByHash = await clonePaperFromHashCache({") < extraction.indexOf("const inspector = await extractWithPdfInspector(buffer)"),
+  "La reutilización SHA-256 debe ocurrir antes de parser/OCR.",
 )
 assert(
   inspector.includes("extractionAvailable"),
@@ -171,4 +189,4 @@ assert(
   "El Space no valida la firma PDF.",
 )
 
-console.log("[test-paper-pipeline] Pipeline PDF híbrido, historial y caché verificados correctamente.")
+console.log("[test-paper-pipeline] Pipeline PDF híbrido, historial, caché por ruta y reutilización SHA-256 verificados correctamente.")

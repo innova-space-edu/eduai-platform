@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import { callAI } from "@/lib/ai-router-v4"
+import { runAIText } from "@/lib/ai/gateway"
 
 export const runtime = "nodejs"
 export const maxDuration = 90
@@ -43,20 +43,16 @@ const SYSTEM_PROMPTS: Record<Operation, string> = {
 - Mantén el idioma original
 - No inventes información
 Responde solo con el texto limpio.`,
-
   notes: `Convierte la transcripción en apuntes estructurados en markdown.
 Usa títulos, subtítulos, ideas clave, definiciones, ejemplos y conceptos para repasar.
 No inventes contenido que no aparezca en la transcripción.`,
-
   minutes: `Convierte la transcripción en un acta formal de reunión.
 Incluye: participantes, temas tratados, decisiones, acuerdos, pendientes y riesgos.
 Usa markdown.
 Si algún dato no está claro, indica "No especificado".`,
-
   summary: `Resume la transcripción en 5 a 10 puntos clave.
 Usa markdown y prioriza decisiones, ideas centrales y conclusiones.
 No inventes contenido.`,
-
   actions: `Extrae tareas y compromisos de la transcripción.
 Usa esta estructura en markdown:
 
@@ -67,7 +63,6 @@ Usa esta estructura en markdown:
   - Evidencia: ...
 
 Si algún dato no aparece, escribe "No especificado".`,
-
   chapters: `Divide la transcripción en capítulos temáticos.
 Usa markdown y para cada capítulo incluye:
 
@@ -77,11 +72,9 @@ Usa markdown y para cada capítulo incluye:
 - resumen breve
 
 No inventes temas ajenos a la transcripción.`,
-
   highlights: `Extrae citas, frases o ideas destacadas de la transcripción.
 Usa markdown con una lista de highlights y breve contexto.
 No repitas contenido innecesariamente.`,
-
   study_guide: `Convierte la transcripción en una guía de estudio.
 Incluye:
 
@@ -93,7 +86,6 @@ Incluye:
 ## Mini quiz de 5 preguntas con respuesta
 
 No inventes información fuera de la transcripción.`,
-
   custom: `Sigue exactamente la instrucción del usuario sobre la transcripción.
 Responde solo con el resultado final en markdown si aporta claridad.
 No inventes información.`,
@@ -116,21 +108,11 @@ function truncateTranscript(text: string, maxChars = 120000): string {
   return `${text.slice(0, maxChars)}\n\n[TRANSCRIPCIÓN RECORTADA POR LONGITUD]`
 }
 
-function buildUserPrompt(
-  operation: Operation,
-  transcript: string,
-  customInstruction: string
-): string {
+function buildUserPrompt(operation: Operation, transcript: string, customInstruction: string): string {
   if (operation === "custom") {
-    return `INSTRUCCIÓN DEL USUARIO:
-${customInstruction}
-
-TRANSCRIPCIÓN:
-${transcript}`
+    return `INSTRUCCIÓN DEL USUARIO:\n${customInstruction}\n\nTRANSCRIPCIÓN:\n${transcript}`
   }
-
-  return `TRANSCRIPCIÓN:
-${transcript}`
+  return `TRANSCRIPCIÓN:\n${transcript}`
 }
 
 async function persistOutputs(params: {
@@ -140,10 +122,7 @@ async function persistOutputs(params: {
   output: string
 }) {
   const { supabase, transcriptionId, operation, output } = params
-
-  const updates: Record<string, unknown> = {
-    updated_at: new Date().toISOString(),
-  }
+  const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
 
   if (operation === "clean") updates.transcript_clean = output
   if (operation === "summary") updates.summary = output
@@ -159,81 +138,56 @@ async function persistOutputs(params: {
   try {
     await supabase.from("audio_transcriptions").update(updates).eq("id", transcriptionId)
   } catch {
-    // La tabla puede no tener aún todas estas columnas.
-    // No rompemos el flujo por persistencia parcial.
+    // Persistencia parcial no debe romper el editor.
   }
 }
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    return NextResponse.json({ error: "No autenticado" }, { status: 401 })
-  }
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 })
 
   let body: RequestBody
-
   try {
     body = (await req.json()) as RequestBody
   } catch {
     return NextResponse.json({ error: "Body inválido" }, { status: 400 })
   }
 
-  const rawTranscript = String(body.transcript || "")
-  const transcript = truncateTranscript(normalizeTranscript(rawTranscript))
+  const transcript = truncateTranscript(normalizeTranscript(String(body.transcript || "")))
   const rawOperation = String(body.operation || "summary").trim()
   const customInstruction = String(body.customInstruction || "").trim()
 
-  if (!transcript) {
-    return NextResponse.json({ error: "Falta transcript" }, { status: 400 })
-  }
-
+  if (!transcript) return NextResponse.json({ error: "Falta transcript" }, { status: 400 })
   if (!isValidOperation(rawOperation)) {
-    return NextResponse.json(
-      {
-        error: "Operación inválida",
-        validOperations: VALID_OPERATIONS,
-      },
-      { status: 400 }
-    )
+    return NextResponse.json({ error: "Operación inválida", validOperations: VALID_OPERATIONS }, { status: 400 })
   }
 
   const operation: Operation = rawOperation
-
   if (operation === "custom" && !customInstruction) {
-    return NextResponse.json(
-      { error: "Falta customInstruction para la operación custom" },
-      { status: 400 }
-    )
+    return NextResponse.json({ error: "Falta customInstruction para la operación custom" }, { status: 400 })
   }
 
-  const system = SYSTEM_PROMPTS[operation]
-  const userPrompt = buildUserPrompt(operation, transcript, customInstruction)
-
   try {
-    const ai = await callAI(
-      [
-        { role: "system", content: system },
-        { role: "user", content: userPrompt },
+    const ai = await runAIText({
+      messages: [
+        { role: "system", content: SYSTEM_PROMPTS[operation] },
+        { role: "user", content: buildUserPrompt(operation, transcript, customInstruction) },
       ],
-      {
-        maxTokens: 4000,
-        preferProvider: "gemini",
-      }
-    )
+      capability: transcript.length > 30000 ? "long_context" : "text",
+      maxOutputTokens: 4000,
+      context: {
+        userId: user.id,
+        module: `transcript-${operation}`,
+        sourceId: body.transcriptionId || null,
+        reusePolicy: "exact_private",
+        visibility: "private",
+      },
+      supabase,
+    })
 
-    const output = String(ai.text || "").trim()
-
-    if (!output) {
-      return NextResponse.json(
-        { error: "La IA no devolvió contenido" },
-        { status: 502 }
-      )
-    }
+    const output = String(ai.data || "").trim()
+    if (!output) return NextResponse.json({ error: "La IA no devolvió contenido" }, { status: 502 })
 
     if (body.transcriptionId) {
       await persistOutputs({
@@ -250,19 +204,14 @@ export async function POST(req: NextRequest) {
       output,
       provider: ai.provider,
       model: ai.model,
+      reused: ai.reused,
+      generationAvoided: ai.reused,
     })
-  } catch (error: unknown) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : "No se pudo procesar la transcripción"
-
+  } catch (error) {
+    const typed = error as Error & { status?: number; code?: string }
     return NextResponse.json(
-      {
-        error: message,
-        success: false,
-      },
-      { status: 500 }
+      { error: typed.message || "No se pudo procesar la transcripción", code: typed.code, success: false },
+      { status: typed.status || 500 },
     )
   }
 }

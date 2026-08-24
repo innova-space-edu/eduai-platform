@@ -101,6 +101,10 @@ export function deriveEffectiveStoredAccessProfile(input: {
     }
   }
 
+  // El paso del tiempo no dispara triggers en Postgres. Si la cuenta fue
+  // guardada como menor/restricted y ya cumplió 18, promovemos el acceso
+  // efectivo a standard en el request. No elevamos roles privilegiados y no
+  // anulamos una restricción adulta futura que tenga age_band='adult'.
   const agedOutOfMinorRestriction = storedAgeBand === "under_18" && storedTier === "restricted"
 
   return {
@@ -112,6 +116,11 @@ export function deriveEffectiveStoredAccessProfile(input: {
   }
 }
 
+/**
+ * Normaliza metadata declarada por el usuario para flujos de provisión/UI.
+ * No debe usarse como fuente de autorización: user_metadata es editable por
+ * el usuario. Las decisiones de acceso leen exclusivamente eduai_user_access.
+ */
 export function deriveAccessProfileFromMetadata(input: {
   userId: string
   metadata?: Record<string, unknown> | null
@@ -129,6 +138,7 @@ export function deriveAccessProfileFromMetadata(input: {
     userId: input.userId,
     ageBand: restricted ? "under_18" : "adult",
     accountType,
+    // Los roles privilegiados nunca se elevan desde metadata controlada por el cliente.
     accessTier: restricted ? "restricted" : "standard",
     hasExplicitAgeProfile: true,
   }
@@ -144,6 +154,19 @@ export function unresolvedAccessProfile(userId: string): EduAIAccessProfile {
   }
 }
 
+/**
+ * Lee el perfil de autorización exclusivamente desde eduai_user_access.
+ *
+ * Si la fila todavía no existe, la decisión falla cerrada: la cuenta queda en
+ * tramo unknown/restricted hasta que el trigger de Auth o el onboarding cree
+ * su perfil. No se autoriza desde user_metadata porque es editable por el
+ * cliente. Esto también impide que una llamada directa a la API evite el
+ * onboarding de cuentas legacy.
+ *
+ * La edad efectiva se recalcula desde birth_date en cada lectura para que una
+ * cuenta no permanezca restricted después de cumplir 18 solo porque Postgres
+ * no recibió un UPDATE el día de su cumpleaños.
+ */
 export async function getEduAIAccessProfile(
   supabase: SupabaseClient,
   userId: string

@@ -1,5 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { assertAICapabilityAllowed } from "@/lib/ai/access-policy"
+import { generationFingerprint } from "@/lib/ai/fingerprint"
+import {
+  createEduAIAsset,
+  findReusableGeneration,
+  finishGenerationRequest,
+  recordGenerationStart,
+  saveReusableGeneration,
+} from "@/lib/ai/reuse"
 import {
   extractFromDOCX,
   extractFromPDF,
@@ -93,6 +102,7 @@ function templateDirective(template: any) {
 }
 
 export async function POST(request: NextRequest) {
+  const startedAt = Date.now()
   const id = requestId(request)
   const headers = { ...NO_CACHE_HEADERS, "X-Request-Id": id }
   const declaredLength = Number(request.headers.get("content-length") || 0)
@@ -128,8 +138,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: "El documento supera el tamaño permitido." }, { status: 413, headers })
     }
 
-    const geminiKey = process.env.GEMINI_API_KEY
-    if (!geminiKey) return NextResponse.json({ success: false, error: "El motor de generación no está configurado." }, { status: 503, headers })
+    try {
+      await assertAICapabilityAllowed({ supabase, userId: user.id, capability: "structured" })
+    } catch (accessError) {
+      const typed = accessError as Error & { code?: string; status?: number }
+      return NextResponse.json({ success: false, error: typed.message, code: typed.code || "ACCESS_RESTRICTED" }, { status: typed.status || 403, headers })
+    }
 
     const customTemplate = await getCustomTemplate(supabase, user.id, designTemplateId)
     let preparedSource: SourceType = sourceType
@@ -141,8 +155,88 @@ export async function POST(request: NextRequest) {
       preparedContent = extracted.rawText || ""
     }
 
+    const fingerprint = generationFingerprint({
+      capability: "structured",
+      scopeKey: user.id,
+      payload: {
+        operation: "creator-generate",
+        sourceType: preparedSource,
+        content: preparedContent,
+        fileName: fileName || null,
+        outputFormat,
+        designTemplateId: designTemplateId || null,
+        customTemplate: customTemplate
+          ? {
+              id: customTemplate.id,
+              instructions: customTemplate.instructions || null,
+              accent: customTemplate.accent_color || null,
+              secondary: customTemplate.secondary_color || null,
+            }
+          : null,
+      },
+    })
+
+    const reusable = await findReusableGeneration({
+      supabase,
+      userId: user.id,
+      capability: "structured",
+      fingerprint,
+      reusePolicy: "exact_private",
+    })
+
+    if (reusable?.result.processResult && typeof reusable.result.processResult === "object") {
+      const logId = await recordGenerationStart({
+        supabase,
+        userId: user.id,
+        capability: "structured",
+        fingerprint,
+        module: "creator-hub",
+        provider: reusable.provider,
+        model: reusable.model,
+        reusePolicy: "exact_private",
+        requestJson: { cacheId: reusable.id, sourceType, outputFormat },
+      })
+      await finishGenerationRequest({
+        supabase,
+        requestId: logId,
+        status: "reused",
+        provider: reusable.provider,
+        model: reusable.model,
+        assetId: reusable.assetId,
+        latencyMs: Date.now() - startedAt,
+        metadata: { cacheId: reusable.id, generationAvoided: true },
+      })
+
+      return NextResponse.json({
+        ...(reusable.result.processResult as Record<string, unknown>),
+        reused: true,
+        generationAvoided: true,
+        assetId: reusable.assetId,
+      }, { headers })
+    }
+
+    const geminiKey = process.env.GEMINI_API_KEY_TEXT || process.env.GEMINI_API_KEY
+    if (!geminiKey) return NextResponse.json({ success: false, error: "El motor de generación no está configurado." }, { status: 503, headers })
+
+    const generationRequestId = await recordGenerationStart({
+      supabase,
+      userId: user.id,
+      capability: "structured",
+      fingerprint,
+      module: "creator-hub",
+      reusePolicy: "exact_private",
+      requestJson: {
+        sourceType,
+        preparedSource,
+        outputFormat,
+        fileName: fileName || null,
+        designTemplateId: designTemplateId || null,
+      },
+    })
+
+    let result: any
     if (!customTemplate) {
-      const result = await processContent({
+      result = await processContent({
         sourceType: preparedSource,
         content: preparedContent,
         fileName,
@@ -150,54 +244,129 @@ export async function POST(request: NextRequest) {
         geminiKey,
         designTemplateId,
       })
-      if (!result.success) return NextResponse.json({ success: false, error: result.error || "No fue posible generar el material." }, { status: 422, headers })
-      return NextResponse.json(result, { headers })
-    }
+      if (!result.success) {
+        await finishGenerationRequest({
+          supabase,
+          requestId: generationRequestId,
+          status: "failed",
+          error: result.error || "No fue posible generar el material.",
+          latencyMs: Date.now() - startedAt,
+        })
+        return NextResponse.json({ success: false, error: result.error || "No fue posible generar el material." }, { status: 422, headers })
+      }
+    } else {
+      let extracted: any
+      if (preparedSource === "topic") extracted = extractFromText(preparedContent, true)
+      else if (preparedSource === "text") extracted = extractFromText(preparedContent, false)
+      else if (preparedSource === "pdf") extracted = await extractFromPDF(preparedContent, fileName)
+      else if (preparedSource === "docx") extracted = await extractFromDOCX(preparedContent, fileName)
+      else extracted = extractFromText(preparedContent, false)
 
-    let extracted: any
-    if (preparedSource === "topic") extracted = extractFromText(preparedContent, true)
-    else if (preparedSource === "text") extracted = extractFromText(preparedContent, false)
-    else if (preparedSource === "pdf") extracted = await extractFromPDF(preparedContent, fileName)
-    else if (preparedSource === "docx") extracted = await extractFromDOCX(preparedContent, fileName)
-    else extracted = extractFromText(preparedContent, false)
+      if (!extracted.success) {
+        await finishGenerationRequest({
+          supabase,
+          requestId: generationRequestId,
+          status: "failed",
+          error: extracted.error || "No fue posible leer la fuente.",
+          latencyMs: Date.now() - startedAt,
+        })
+        return NextResponse.json({ success: false, error: extracted.error || "No fue posible leer la fuente." }, { status: 422, headers })
+      }
+      extracted.rawText = `${extracted.rawText || ""}\n\n${templateDirective(customTemplate)}`.slice(0, 16_000)
 
-    if (!extracted.success) return NextResponse.json({ success: false, error: extracted.error || "No fue posible leer la fuente." }, { status: 422, headers })
-    extracted.rawText = `${extracted.rawText || ""}\n\n${templateDirective(customTemplate)}`.slice(0, 16_000)
+      const structured = await structureWithAI(extracted, outputFormat, geminiKey)
+      if (!structured.success) {
+        await finishGenerationRequest({
+          supabase,
+          requestId: generationRequestId,
+          status: "failed",
+          error: structured.error || "No fue posible estructurar el material.",
+          latencyMs: Date.now() - startedAt,
+        })
+        return NextResponse.json({ success: false, error: "No fue posible estructurar el material con la plantilla seleccionada." }, { status: 422, headers })
+      }
 
-    const structured = await structureWithAI(extracted, outputFormat, geminiKey)
-    if (!structured.success) return NextResponse.json({ success: false, error: "No fue posible estructurar el material con la plantilla seleccionada." }, { status: 422, headers })
-
-    return NextResponse.json({
-      success: true,
-      source: {
-        type: extracted.sourceType || preparedSource,
-        title: extracted.title || fileName || "Fuente",
-        wordCount: extracted.wordCount || 0,
-        url: sourceType === "url" ? content : null,
-      },
-      output: {
-        format: outputFormat,
-        data: {
-          ...(structured.data || {}),
-          _design: {
-            id: designTemplateId,
-            name: customTemplate.name,
-            custom: true,
-            sourceFile: customTemplate.file_name || null,
-            instructions: customTemplate.instructions || null,
-            palette: {
-              primary: customTemplate.accent_color || "#7c3aed",
-              secondary: customTemplate.secondary_color || "#06b6d4",
-              accent: customTemplate.accent_color || "#7c3aed",
-              background: "#f8fafc",
-              surface: "#ffffff",
-              text: "#0f172a",
-              muted: "#64748b",
+      result = {
+        success: true,
+        source: {
+          type: extracted.sourceType || preparedSource,
+          title: extracted.title || fileName || "Fuente",
+          wordCount: extracted.wordCount || 0,
+          url: sourceType === "url" ? content : null,
+        },
+        output: {
+          format: outputFormat,
+          data: {
+            ...(structured.data || {}),
+            _design: {
+              id: designTemplateId,
+              name: customTemplate.name,
+              custom: true,
+              sourceFile: customTemplate.file_name || null,
+              instructions: customTemplate.instructions || null,
+              palette: {
+                primary: customTemplate.accent_color || "#7c3aed",
+                secondary: customTemplate.secondary_color || "#06b6d4",
+                accent: customTemplate.accent_color || "#7c3aed",
+                background: "#f8fafc",
+                surface: "#ffffff",
+                text: "#0f172a",
+                muted: "#64748b",
+              },
             },
           },
         },
+        processedAt: new Date().toISOString(),
+      }
+    }
+
+    const assetId = await createEduAIAsset(supabase, {
+      ownerId: user.id,
+      assetType: `creator-${outputFormat}`,
+      title: result?.output?.data?.title || result?.output?.data?.headline || result?.source?.title || fileName || "Material Creator Hub",
+      mimeType: "application/json",
+      contentJson: result.output,
+      sourceModule: "creator-hub",
+      sourceId: result?.source?.url || null,
+      generationRequestId,
+      fingerprint,
+      visibility: "private",
+      metadata: {
+        outputFormat,
+        sourceType,
+        designTemplateId: designTemplateId || null,
       },
-      processedAt: new Date().toISOString(),
+      processingPurpose: "Crear material educativo reutilizable solicitado por el usuario",
+    })
+
+    await saveReusableGeneration({
+      supabase,
+      userId: user.id,
+      capability: "structured",
+      fingerprint,
+      provider: "creator-engine",
+      model: process.env.GOOGLE_TEXT_MODEL_PRIMARY || process.env.GEMINI_TEXT_MODEL_PRIMARY || "gemini-3.6-flash",
+      assetId,
+      reusePolicy: "exact_private",
+      visibility: "private",
+      result: { processResult: result },
+    })
+
+    await finishGenerationRequest({
+      supabase,
+      requestId: generationRequestId,
+      status: "completed",
+      provider: "creator-engine",
+      model: process.env.GOOGLE_TEXT_MODEL_PRIMARY || process.env.GEMINI_TEXT_MODEL_PRIMARY || "gemini-3.6-flash",
+      assetId,
+      latencyMs: Date.now() - startedAt,
+    })
+
+    return NextResponse.json({
+      ...result,
+      reused: false,
+      generationAvoided: false,
+      assetId,
     }, { headers })
   } catch (error) {
     console.error(`[Creator][${id}]`, error)

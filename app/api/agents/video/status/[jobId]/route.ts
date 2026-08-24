@@ -43,7 +43,9 @@ type VideoJobRow = {
 function getProgressFromStatus(status: JobStatus): number {
   if (status === "queued") return 10
   if (status === "processing") return 60
-  return 100
+  if (status === "completed") return 100
+  if (["failed", "blocked", "canceled"].includes(status)) return 100
+  return 0
 }
 
 function getStatusLabel(status: JobStatus): string {
@@ -55,7 +57,7 @@ function getStatusLabel(status: JobStatus): string {
     blocked: "Bloqueado",
     canceled: "Cancelado",
   }
-  return labels[status]
+  return labels[status] || "Desconocido"
 }
 
 function getAdminSupabase() {
@@ -73,7 +75,10 @@ function parseSupabaseAssetUrl(value: string | null | undefined) {
   return { bucket: remainder.slice(0, slash), path: remainder.slice(slash + 1) }
 }
 
-async function resolvePrivateUrl(supabase: Awaited<ReturnType<typeof createClient>>, value: string | null | undefined) {
+async function resolvePrivateUrl(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  value: string | null | undefined
+) {
   if (!value) return null
   const parsed = parseSupabaseAssetUrl(value)
   if (!parsed) return value
@@ -151,56 +156,49 @@ async function runCurrentJob(job: VideoJobRow): Promise<ProcessVideoJobResult> {
 }
 
 async function releaseCreditsQuietly(jobId: string, reason: string) {
-  try { await releaseVideoCredits(jobId, reason) }
-  catch (error) { console.warn("[Video status][credits release]", error instanceof Error ? error.message : String(error)) }
+  try {
+    await releaseVideoCredits(jobId, reason)
+  } catch (error) {
+    console.warn("[Video status][credits release]", error instanceof Error ? error.message : String(error))
+  }
 }
 
-async function finalizePersistedJob(
+async function completeJob(
   admin: NonNullable<ReturnType<typeof getAdminSupabase>>,
   current: VideoJobRow,
-  result?: ProcessVideoJobResult,
+  result: ProcessVideoJobResult
 ): Promise<VideoJobRow> {
   const now = new Date().toISOString()
-
-  if (result?.videoUrl) {
-    const { error: persistError } = await admin
-      .from("video_jobs")
-      .update({
-        status: "processing",
-        provider: result.provider || current.provider,
-        model: result.model || current.model,
-        operation_name: result.operationName || current.operation_name || null,
-        asset_id: result.assetId || current.asset_id || null,
-        video_url: result.videoUrl,
-        thumbnail_url: result.thumbnailUrl || current.thumbnail_url || null,
-        response_payload: result.raw || current.response_payload || null,
-        error_message: null,
-      })
-      .eq("id", current.id)
-      .eq("user_id", current.user_id)
-    if (persistError) throw new Error(persistError.message)
-  }
-
-  // Captura idempotente. Para jobs free sin reserva devuelve 0.
-  await captureVideoCredits(current.id)
-
-  const { error: completeError } = await admin
+  const { error } = await admin
     .from("video_jobs")
-    .update({ status: "completed", error_message: null, completed_at: now })
+    .update({
+      status: "completed",
+      provider: result.provider || current.provider,
+      model: result.model || current.model,
+      operation_name: result.operationName || current.operation_name || null,
+      asset_id: result.assetId || current.asset_id || null,
+      video_url: result.videoUrl,
+      thumbnail_url: result.thumbnailUrl || current.thumbnail_url || null,
+      response_payload: result.raw || current.response_payload || null,
+      error_message: null,
+      completed_at: now,
+    })
     .eq("id", current.id)
     .eq("user_id", current.user_id)
-  if (completeError) throw new Error(completeError.message)
+  if (error) throw new Error(error.message)
+
+  await captureVideoCredits(current.id)
 
   return {
     ...current,
     status: "completed",
-    provider: result?.provider || current.provider,
-    model: result?.model || current.model,
-    operation_name: result?.operationName || current.operation_name || null,
-    asset_id: result?.assetId || current.asset_id || null,
-    video_url: result?.videoUrl || current.video_url || null,
-    thumbnail_url: result?.thumbnailUrl || current.thumbnail_url || null,
-    response_payload: result?.raw || current.response_payload || null,
+    provider: result.provider || current.provider,
+    model: result.model || current.model,
+    operation_name: result.operationName || current.operation_name || null,
+    asset_id: result.assetId || current.asset_id || null,
+    video_url: result.videoUrl || current.video_url || null,
+    thumbnail_url: result.thumbnailUrl || current.thumbnail_url || null,
+    response_payload: result.raw || current.response_payload || null,
     error_message: null,
     completed_at: now,
     updated_at: now,
@@ -210,7 +208,7 @@ async function finalizePersistedJob(
 async function failJob(
   admin: NonNullable<ReturnType<typeof getAdminSupabase>>,
   current: VideoJobRow,
-  result: ProcessVideoJobResult,
+  result: ProcessVideoJobResult
 ): Promise<VideoJobRow> {
   const now = new Date().toISOString()
   const failedStatus: JobStatus = result.status === "blocked" ? "blocked" : "failed"
@@ -253,15 +251,6 @@ async function maybeAdvanceVideoJob(job: VideoJobRow): Promise<VideoJobRow> {
   if (!admin) return job
   let current = job
 
-  // Recuperación del caso: video persistido + crédito aún no capturado.
-  if (current.status === "processing" && current.video_url) {
-    try { return await finalizePersistedJob(admin, current) }
-    catch (error) {
-      console.warn("[Video status][settlement retry]", error instanceof Error ? error.message : String(error))
-      return current
-    }
-  }
-
   if (current.status === "queued") {
     const startedAt = new Date().toISOString()
     const { data: claimed, error: claimError } = await admin
@@ -273,7 +262,12 @@ async function maybeAdvanceVideoJob(job: VideoJobRow): Promise<VideoJobRow> {
       .select("id")
       .maybeSingle()
 
-    if (claimError || !claimed) return current
+    if (claimError) {
+      console.warn("[Video status][autostart]", claimError.message)
+      return current
+    }
+    if (!claimed) return current
+
     current = { ...current, status: "processing", started_at: current.started_at || startedAt, updated_at: startedAt }
 
     try {
@@ -303,10 +297,11 @@ async function maybeAdvanceVideoJob(job: VideoJobRow): Promise<VideoJobRow> {
           updated_at: now,
         }
       }
-      if (result.ok && result.status === "completed" && result.videoUrl) return finalizePersistedJob(admin, current, result)
+      if (result.ok && result.status === "completed" && result.videoUrl) return completeJob(admin, current, result)
       return failJob(admin, current, result)
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
+      console.warn("[Video status][autostart]", message)
       return failJob(admin, current, { ok: false, status: "failed", provider: current.provider, model: current.model, error: message })
     }
   }
@@ -343,7 +338,7 @@ async function maybeAdvanceVideoJob(job: VideoJobRow): Promise<VideoJobRow> {
         updated_at: now,
       }
     }
-    if (result.ok && result.status === "completed" && result.videoUrl) return finalizePersistedJob(admin, current, result)
+    if (result.ok && result.status === "completed" && result.videoUrl) return completeJob(admin, current, result)
     if (!result.ok) return failJob(admin, current, result)
   } catch (error) {
     console.warn("[Video status][poll]", error instanceof Error ? error.message : String(error))
@@ -352,14 +347,17 @@ async function maybeAdvanceVideoJob(job: VideoJobRow): Promise<VideoJobRow> {
   return current
 }
 
-export async function GET(_req: NextRequest, context: { params: Promise<{ jobId: string }> }) {
+export async function GET(
+  _req: NextRequest,
+  context: { params: Promise<{ jobId: string }> }
+) {
   try {
     const supabase = await createClient()
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     if (userError || !user) return NextResponse.json({ ok: false, error: "No autenticado.", code: "UNAUTHORIZED" }, { status: 401 })
 
     const { jobId } = await context.params
-    if (!jobId) return NextResponse.json({ ok: false, error: "jobId inválido.", code: "INVALID_JOB_ID" }, { status: 400 })
+    if (!jobId || typeof jobId !== "string") return NextResponse.json({ ok: false, error: "jobId inválido.", code: "INVALID_JOB_ID" }, { status: 400 })
 
     const { data: loadedJob, error } = await supabase
       .from("video_jobs")
@@ -408,6 +406,7 @@ export async function GET(_req: NextRequest, context: { params: Promise<{ jobId:
       moderationPayload: job.moderation_payload ?? null,
     })
   } catch (error) {
-    return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : "Error inesperado al consultar el estado.", code: "INTERNAL_ERROR" }, { status: 500 })
+    const message = error instanceof Error ? error.message : "Error inesperado al consultar el estado."
+    return NextResponse.json({ ok: false, error: message, code: "INTERNAL_ERROR" }, { status: 500 })
   }
 }

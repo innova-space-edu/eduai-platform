@@ -1,8 +1,9 @@
 // app/api/agents/claw-chat/route.ts
 // Endpoint de compatibilidad para el botón flotante y la consola principal de Claw.
-// Usa el núcleo del SuperAgent para mantener integradas las herramientas nuevas.
+// Usa el núcleo del SuperAgent y entrega al AI Gateway el usuario autenticado real.
 
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
 import { runCoreCycle } from "@/lib/superagent/superagent-core";
 import type { CoreMessage } from "@/lib/superagent/superagent-core";
 
@@ -153,6 +154,10 @@ function buildClawConversationMode(mode?: string) {
 
 export async function POST(req: NextRequest) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+
     const { message, history = [], userName, pageContext } = await req.json();
     const cleanMessage = String(message || "").trim();
 
@@ -162,6 +167,7 @@ export async function POST(req: NextRequest) {
     const inferredPath = context.pathname || inferPathnameFromReferrer(req) || "floating-claw";
     const inferredTopic = context.subject || context.selectedTopic || inferTopicFromPath(inferredPath);
     const messages = normalizeHistory(history, cleanMessage);
+    const displayName = typeof userName === "string" ? userName.slice(0, 100) : undefined;
 
     const result = await runCoreCycle(
       messages,
@@ -170,12 +176,17 @@ export async function POST(req: NextRequest) {
         subject: inferredTopic,
         examTitle: context.pageTitle,
         studentCourse: context.selectedSubtopic,
-        userId: typeof userName === "string" ? userName : undefined,
-        pageMode: buildClawConversationMode(context.mode),
+        userId: user.id,
+        pageMode: `${buildClawConversationMode(context.mode)}${displayName ? ` Nombre visible del usuario: ${displayName}.` : ""}`,
         availableActions: context.availableActions,
       },
       req.nextUrl.origin,
       { headers: req.headers },
+      {
+        supabase,
+        userId: user.id,
+        module: "claw-chat",
+      },
     );
 
     return NextResponse.json({
@@ -186,8 +197,13 @@ export async function POST(req: NextRequest) {
       latencyMs: result.latencyMs,
       toolUsed: result.toolUsed,
       wasToolCall: result.wasToolCall,
+      reused: Boolean(result.reused),
     });
   } catch (err: unknown) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : "Error" }, { status: 500 });
+    const typed = err as Error & { status?: number; code?: string };
+    return NextResponse.json(
+      { error: typed.message || "Error", code: typed.code },
+      { status: typed.status || 500 },
+    );
   }
 }

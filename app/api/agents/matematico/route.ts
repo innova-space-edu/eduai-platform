@@ -1,4 +1,4 @@
-import { callAI } from "@/lib/ai-router"
+import { runAIText } from "@/lib/ai/gateway"
 import { createClient } from "@/lib/supabase/server"
 
 type HistoryMessage = {
@@ -39,48 +39,71 @@ export async function POST(req: Request) {
         role: "system" as const,
         content: `Eres un profesor de matemáticas experto. REGLA ABSOLUTA: TODA expresión matemática DEBE estar en LaTeX. Prohibido texto plano matemático.
 
-    FORMATO LATEX OBLIGATORIO:
-    - Inline: $x^2$, $\\sqrt{x}$, $\\frac{a}{b}$, $\\pi$, $\\infty$
-    - Bloque (ecuaciones principales): $$x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}$$
-    - Sistemas: $$\\begin{cases} x+y=1 \\\\ x-y=0 \\end{cases}$$
-    - Matrices: $$\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}$$
-    - Integrales: $$\\int_a^b f(x)\\,dx$$
-    - Sumas: $$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$
-    - Límites: $$\\lim_{x \\to 0} \\frac{\\sin x}{x} = 1$$
+FORMATO LATEX OBLIGATORIO:
+- Inline: $x^2$, $\\sqrt{x}$, $\\frac{a}{b}$, $\\pi$, $\\infty$
+- Bloque (ecuaciones principales): $$x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}$$
+- Sistemas: $$\\begin{cases} x+y=1 \\\\ x-y=0 \\end{cases}$$
+- Matrices: $$\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}$$
+- Integrales: $$\\int_a^b f(x)\\,dx$$
+- Sumas: $$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$
+- Límites: $$\\lim_{x \\to 0} \\frac{\\sin x}{x} = 1$$
 
-    NUNCA escribas: "x^2", "sqrt(x)", "1/2" — siempre $x^2$, $\\sqrt{x}$, $\\frac{1}{2}$
+NUNCA escribas: "x^2", "sqrt(x)", "1/2" — siempre $x^2$, $\\sqrt{x}$, $\\frac{1}{2}$
 
-    ESTRUCTURA OBLIGATORIA:
-    ## 🔍 Problema
-    [identificar tipo]
+ESTRUCTURA OBLIGATORIA:
+## 🔍 Problema
+[identificar tipo]
 
-    ## 📐 Concepto clave
-    $$fórmula\\ principal$$
+## 📐 Concepto clave
+$$fórmula\\ principal$$
 
-    ## ✏️ Solución paso a paso
-    **Paso 1:** ...con LaTeX...
-    **Paso 2:** ...
-    ...
+## ✏️ Solución paso a paso
+**Paso 1:** ...con LaTeX...
+**Paso 2:** ...
+...
 
-    ## ✅ Resultado
-    $$respuesta\\ final$$
+## ✅ Resultado
+$$respuesta\\ final$$
 
-    ## 💡 Verificación
-    [comprobar resultado]
+## 💡 Verificación
+[comprobar resultado]
 
-    Responde siempre en español.`
+Responde siempre en español.`,
       },
       ...safeHistory,
-      { role: "user" as const, content: message }
+      { role: "user" as const, content: message },
     ]
 
-    const result = await callAI(messages, { maxTokens: 3000, preferProvider: "gemini" })
-    return Response.json({ text: result.text, provider: result.provider })
+    const result = await runAIText({
+      messages,
+      capability: "text",
+      maxOutputTokens: 3000,
+      preferredProvider: "google",
+      context: {
+        userId: user.id,
+        module: "matematico",
+        reusePolicy: "exact_private",
+        visibility: "private",
+      },
+      supabase,
+    })
+
+    return Response.json({
+      text: result.data,
+      provider: result.provider,
+      model: result.model,
+      reused: result.reused,
+      generationAvoided: result.reused,
+    })
   } catch (error) {
     console.error("[agents/matematico]", error)
+    const typed = error as Error & { status?: number; code?: string }
     return Response.json(
-      { error: error instanceof Error ? error.message : "No fue posible consultar al agente matemático." },
-      { status: 500 },
+      {
+        error: typed?.message || "No fue posible consultar al agente matemático.",
+        code: typed?.code || undefined,
+      },
+      { status: typed?.status || 500 },
     )
   }
 }

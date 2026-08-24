@@ -1,6 +1,9 @@
 import fs from "node:fs"
 import path from "node:path"
 
+await import("./apply-content-processor-ai-core.mjs")
+await import("./test-content-processor-ai-core.mjs")
+
 const candidates = [
   "components/creator-hub/comics/ComicsCreatorStudio.tsx",
   "app/creator-hub/comics/page.tsx",
@@ -25,6 +28,10 @@ replace('label: "Estrica"', 'label: "Estricta"')
 replace(
   "const nextCharacters = generatedCharacters.map((generated: any, index: number) => {",
   "const nextCharacters: Character[] = generatedCharacters.map((generated: any, index: number) => {",
+)
+replace(
+  "const safeCharacters = nextCharacters.length ? nextCharacters : characters",
+  "const safeCharacters: Character[] = nextCharacters.length ? nextCharacters : characters",
 )
 replace(
   `  const generateAllImages = async (force = false) => {

@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto"
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { ensureWallet, getAdminSupabase, mercadoPagoRequest } from "@/lib/credits/server"
@@ -79,15 +78,9 @@ export async function POST(req: NextRequest) {
     const issuerId = cleanString(form.issuer_id, 80)
     if (issuerId) paymentBody.issuer_id = issuerId
 
-    // Un reenvío del mismo token conserva idempotencia, pero una nueva tarjeta/token
-    // obtiene otra clave. Así un intento rechazado no bloquea el siguiente intento.
-    const paymentAttemptKey = createHash("sha256")
-      .update(`${String(order.idempotency_key)}:${token}`)
-      .digest("hex")
-
     const payment = await mercadoPagoRequest<PaymentResult>("/v1/payments", {
       method: "POST",
-      idempotencyKey: paymentAttemptKey,
+      idempotencyKey: String(order.idempotency_key),
       body: paymentBody,
     })
 

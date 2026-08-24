@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
-import { callAIv5 } from "@/lib/ai-router-v5"
+import { assertAICapabilityAllowed } from "@/lib/ai/access-policy"
+import { runAIText } from "@/lib/ai/gateway"
+import { generateGoogleGroundedText, hasGoogleAI } from "@/lib/ai/providers/google"
 import { retrieveRelevantChunks } from "@/lib/notebook/retrieval"
 import { createClient } from "@/lib/supabase/server"
 import type { ResearchScope, WorkCitation } from "@/lib/work/types"
 
 export const runtime = "nodejs"
 export const maxDuration = 60
-
-const GEMINI_MODEL = process.env.GEMINI_FAST_MODEL || "gemini-2.5-flash"
 
 type HistoryMessage = { role: "user" | "assistant"; content: string }
 type SourceRow = { id: string; title: string | null; url: string | null; type: string | null }
@@ -47,8 +47,23 @@ export async function POST(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 })
 
+    try {
+      await assertAICapabilityAllowed({
+        supabase,
+        userId: user.id,
+        capability: "research",
+        provider: scope === "sources" ? null : "google",
+      })
+    } catch (accessError) {
+      const typed = accessError as Error & { code?: string; status?: number }
+      return NextResponse.json(
+        { error: typed.message, code: typed.code || "ACCESS_RESTRICTED" },
+        { status: typed.status || 403 },
+      )
+    }
+
     let sourceContext = ""
-    let localCitations: WorkCitation[] = []
+    const localCitations: WorkCitation[] = []
 
     if (notebookId && scope !== "web") {
       const { data: notebook } = await supabase
@@ -88,8 +103,12 @@ export async function POST(request: NextRequest) {
 
     const systemPrompt = `Eres Open EDUAI Work, un investigador y asistente educativo riguroso para Chile.
 Responde en español claro. Distingue hechos, interpretación e incertidumbre.
-Usa citas Markdown junto a las afirmaciones relevantes y termina con una síntesis accionable.
-${scope === "sources" ? "Usa exclusivamente las fuentes del cuaderno entregadas. Si no alcanzan, indícalo." : "Combina las fuentes entregadas con búsqueda web actual y verificable."}
+Usa citas junto a las afirmaciones relevantes y termina con una síntesis accionable.
+${scope === "sources"
+  ? "Usa exclusivamente las fuentes del cuaderno entregadas. Si no alcanzan, indícalo."
+  : scope === "web"
+    ? "Usa búsqueda web actual y verificable."
+    : "Combina las fuentes del cuaderno con búsqueda web actual y verificable; diferencia claramente ambos orígenes."}
 No inventes fuentes, autores, páginas ni URLs.`
 
     const prompt = sourceContext
@@ -100,89 +119,109 @@ No inventes fuentes, autores, páginas ni URLs.`
       if (!sourceContext) {
         return NextResponse.json({ error: "Este trabajo no tiene fuentes activas procesadas" }, { status: 422 })
       }
-      const result = await callAIv5(
-        [...history, { role: "user", content: prompt }],
-        { task: "long_context", maxTokens: 3_500, systemPrompt },
-      )
+
+      const result = await runAIText({
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...history,
+          { role: "user", content: prompt },
+        ],
+        capability: "long_context",
+        maxOutputTokens: 3_500,
+        context: {
+          userId: user.id,
+          workspaceId: notebookId,
+          module: "open-work-research",
+          sourceId: notebookId,
+          reusePolicy: "exact_private",
+          visibility: "private",
+        },
+        supabase,
+      })
+
       return NextResponse.json({
-        text: result.text,
+        text: result.data,
         provider: result.provider,
         model: result.model,
         usedWeb: false,
+        reused: result.reused,
+        generationAvoided: result.reused,
         citations: dedupeCitations(localCitations),
       })
     }
 
-    const apiKey = process.env.GEMINI_API_KEY
-    if (!apiKey) {
-      const result = await callAIv5(
-        [...history, { role: "user", content: prompt }],
-        { task: "long_context", maxTokens: 3_500, systemPrompt: `${systemPrompt}\nLa búsqueda web no está disponible; dilo claramente.` },
-      )
-      return NextResponse.json({
-        text: `${result.text}\n\n> La búsqueda web no estuvo disponible en esta respuesta.`,
-        provider: result.provider,
-        model: result.model,
-        usedWeb: false,
-        citations: dedupeCitations(localCitations),
-      })
+    if (hasGoogleAI("text")) {
+      try {
+        const grounded = await generateGoogleGroundedText({
+          messages: [
+            { role: "system", content: systemPrompt },
+            ...history,
+            { role: "user", content: prompt },
+          ],
+          maxOutputTokens: 4096,
+          temperature: 0.35,
+        })
+
+        const webCitations: WorkCitation[] = grounded.sources.map((source, index) => ({
+          sourceId: `web-${index}`,
+          sourceTitle: source.title || source.uri,
+          sourceUrl: source.uri,
+          sourceType: "web",
+        }))
+
+        return NextResponse.json({
+          text: grounded.text,
+          provider: grounded.provider,
+          model: grounded.model,
+          usedWeb: grounded.usedSearch,
+          searchQueries: grounded.searchQueries,
+          reused: false,
+          generationAvoided: false,
+          citations: dedupeCitations([...localCitations, ...webCitations]),
+        })
+      } catch (groundingError) {
+        console.warn("[Open EDUAI Work research] Google grounding fallback:", groundingError)
+      }
     }
 
-    const contents = [
-      ...history.map((item) => ({
-        role: item.role === "assistant" ? "model" : "user",
-        parts: [{ text: item.content }],
-      })),
-      { role: "user", parts: [{ text: prompt }] },
-    ]
-
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          system_instruction: { parts: [{ text: systemPrompt }] },
-          contents,
-          tools: [{ google_search: {} }],
-          generationConfig: { temperature: 0.35, maxOutputTokens: 4096 },
-        }),
-        signal: AbortSignal.timeout(50_000),
+    const fallback = await runAIText({
+      messages: [
+        {
+          role: "system",
+          content: `${systemPrompt}\nLa búsqueda web no está disponible en esta ejecución. No digas que verificaste información en internet y señala la limitación de actualidad.`,
+        },
+        ...history,
+        { role: "user", content: prompt },
+      ],
+      capability: sourceContext ? "long_context" : "research",
+      maxOutputTokens: 3_500,
+      context: {
+        userId: user.id,
+        workspaceId: notebookId,
+        module: "open-work-research-fallback",
+        sourceId: notebookId,
+        reusePolicy: "exact_private",
+        visibility: "private",
       },
-    )
-
-    if (!response.ok) throw new Error(`Búsqueda web no disponible (${response.status})`)
-    const data = await response.json()
-    const candidate = data.candidates?.[0]
-    const text = candidate?.content?.parts
-      ?.filter((part: { text?: string }) => part.text)
-      .map((part: { text: string }) => part.text)
-      .join("")
-      .trim()
-    if (!text) throw new Error("La investigación no produjo una respuesta")
-
-    const webCitations: WorkCitation[] = (candidate?.groundingMetadata?.groundingChunks ?? [])
-      .filter((chunk: { web?: { uri?: string } }) => chunk.web?.uri)
-      .map((chunk: { web: { uri: string; title?: string } }, index: number) => ({
-        sourceId: `web-${index}`,
-        sourceTitle: chunk.web.title || chunk.web.uri,
-        sourceUrl: chunk.web.uri,
-        sourceType: "web",
-      }))
+      supabase,
+    })
 
     return NextResponse.json({
-      text,
-      provider: "Gemini + Google Search",
-      model: GEMINI_MODEL,
-      usedWeb: true,
-      searchQueries: candidate?.groundingMetadata?.webSearchQueries ?? [],
-      citations: dedupeCitations([...localCitations, ...webCitations]),
+      text: `${fallback.data}\n\n> La búsqueda web no estuvo disponible en esta respuesta.`,
+      provider: fallback.provider,
+      model: fallback.model,
+      usedWeb: false,
+      searchQueries: [],
+      reused: fallback.reused,
+      generationAvoided: fallback.reused,
+      citations: dedupeCitations(localCitations),
     })
   } catch (error) {
     console.error("[Open EDUAI Work research]", error)
+    const typed = error as Error & { status?: number; code?: string }
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "No fue posible completar la investigación" },
-      { status: 500 },
+      { error: typed.message || "No fue posible completar la investigación", code: typed.code || undefined },
+      { status: typed.status || 500 },
     )
   }
 }

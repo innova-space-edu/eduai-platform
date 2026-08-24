@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import { callAI, getEducadorModelStrategy } from "@/lib/ai-router-v4"
+import { runAIText } from "@/lib/ai/gateway"
 import { cursoToKey, type NivelKey } from "@/lib/mineduc-oa"
 import {
   buildPlanningHorizonText,
@@ -202,7 +202,6 @@ Usa cada tramo para generar clases diarias, guías, rúbricas y tickets de salid
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const body = await req.json().catch(() => null)
@@ -300,17 +299,26 @@ ${formatInstruction}`
   ]
 
   try {
-    const strategy = getEducadorModelStrategy(tiempo === "diaria" ? "planning_short" : "planning_full")
-    const result = await callAI(aiMessages, {
-      maxTokens: tiempo === "anual" ? Math.max(strategy.maxTokens, 5200) : strategy.maxTokens,
-      preferProvider: strategy.preferProvider,
-      openrouterModel: strategy.openrouterModel,
+    const maxOutputTokens = tiempo === "diaria" ? 3200 : tiempo === "semanal" ? 4200 : 8000
+    const result = await runAIText({
+      messages: aiMessages,
+      capability: tiempo === "semestral" || tiempo === "anual" ? "long_context" : "text",
+      maxOutputTokens,
+      context: {
+        userId: user.id,
+        module: `planner-${tiempo}`,
+        reusePolicy: "exact_private",
+        visibility: "private",
+      },
+      supabase,
     })
 
     return NextResponse.json({
-      text: result.text,
+      text: result.data,
       provider: result.provider,
       model: result.model,
+      reused: result.reused,
+      generationAvoided: result.reused,
       cursoKey: cursoToKey(curso),
       nivel,
       curso,
@@ -326,7 +334,12 @@ ${formatInstruction}`
       bridgeToDailyAgent: cfg.generarAgenteDia !== false,
     })
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "No fue posible generar la planificación"
+    const typed = error as Error & { status?: number; code?: string }
+    if (typed.code === "EDUAI_ACCESS_RESTRICTED") {
+      return NextResponse.json({ error: typed.message, code: typed.code }, { status: typed.status || 403 })
+    }
+
+    const errorMessage = typed.message || "No fue posible generar la planificación"
     const fallbackText = buildLocalFallback({
       curso,
       asignatura,

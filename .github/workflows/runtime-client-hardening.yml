@@ -1,0 +1,52 @@
+name: Hardening clientes runtime
+
+on:
+  push:
+    branches:
+      - feat/eduai-core-reuse-ai-gateway
+    paths:
+      - ".github/workflows/runtime-client-hardening.yml"
+      - "scripts/apply-runtime-client-safety.mjs"
+      - "scripts/apply-exam-submit-idempotency.mjs"
+
+permissions:
+  contents: write
+
+jobs:
+  harden:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Instalar dependencias
+        run: |
+          node scripts/normalize-npm-lockfile.mjs
+          npm install --registry=https://registry.npmjs.org/ --ignore-scripts
+      - name: Materializar clientes lazy
+        run: node scripts/apply-runtime-client-safety.mjs
+      - name: Verificar inicialización de proveedores
+        run: node scripts/test-provider-client-initialization.mjs
+      - name: TypeScript sin secretos
+        run: npx tsc --noEmit --pretty false
+      - name: Build completo sin secretos
+        run: npm run build
+      - name: Publicar rutas validadas
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            app/api/agents/exam-feedback/route.ts \
+            app/api/agents/exam-math-rescore/route.ts \
+            app/api/agents/exam-time/route.ts \
+            app/api/agents/examen-docente/route.ts \
+            app/api/exam-access/route.ts
+          if git diff --cached --quiet; then
+            echo "No hay cambios que publicar"
+            exit 0
+          fi
+          git commit -m "fix: inicializar Supabase bajo demanda en APIs"
+          git push origin HEAD:feat/eduai-core-reuse-ai-gateway

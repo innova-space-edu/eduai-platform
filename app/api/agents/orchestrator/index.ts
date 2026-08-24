@@ -1,4 +1,5 @@
-import { callAI } from "@/lib/ai-router"
+import type { SupabaseClient } from "@supabase/supabase-js"
+import { runAIText } from "@/lib/ai/gateway"
 
 interface AgentMessage {
   role: "system" | "user" | "assistant"
@@ -8,6 +9,11 @@ interface AgentMessage {
 interface OrchestratorResult {
   enrichedContext: string
   shouldEnrich: boolean
+}
+
+type OrchestratorRuntime = {
+  supabase?: SupabaseClient | null
+  userId?: string | null
 }
 
 // ── Detector de complejidad ──────────────────────────────
@@ -23,8 +29,31 @@ function isComplexQuery(message: string): boolean {
   return wordCount > 8 || complexIndicators.some(r => r.test(message))
 }
 
+async function callOrchestratorAI(
+  messages: AgentMessage[],
+  maxOutputTokens: number,
+  module: string,
+  runtime: OrchestratorRuntime,
+) {
+  const result = await runAIText({
+    messages,
+    capability: "text",
+    maxOutputTokens,
+    context: runtime.userId
+      ? {
+          userId: runtime.userId,
+          module,
+          reusePolicy: "exact_private",
+          visibility: "private",
+        }
+      : undefined,
+    supabase: runtime.supabase || null,
+  })
+  return result.data
+}
+
 // ── Agente Investigador + Verificador ───────────────────
-async function runInvestigator(topic: string, question: string): Promise<string> {
+async function runInvestigator(topic: string, question: string, runtime: OrchestratorRuntime): Promise<string> {
   const messages: AgentMessage[] = [
     {
       role: "system",
@@ -37,12 +66,11 @@ Tu rol: buscar los hechos más relevantes y verificados sobre la pregunta del es
     },
     { role: "user", content: `Tema: ${topic}\nPregunta: ${question}` },
   ]
-  const result = await callAI(messages, { maxTokens: 200, preferProvider: "gemini" })
-  return result.text
+  return callOrchestratorAI(messages, 260, "tutor-orchestrator-investigator", runtime)
 }
 
 // ── Agente Lógico + Matemático + Código ─────────────────
-async function runLogician(topic: string, question: string): Promise<string> {
+async function runLogician(topic: string, question: string, runtime: OrchestratorRuntime): Promise<string> {
   const messages: AgentMessage[] = [
     {
       role: "system",
@@ -56,12 +84,16 @@ Tu rol: analizar la estructura lógica de la pregunta y detectar qué tipo de ra
     },
     { role: "user", content: `Tema: ${topic}\nPregunta: ${question}` },
   ]
-  const result = await callAI(messages, { maxTokens: 200, preferProvider: "gemini" })
-  return result.text
+  return callOrchestratorAI(messages, 260, "tutor-orchestrator-logician", runtime)
 }
 
 // ── Agente Creativo + Contrarian ────────────────────────
-async function runCreative(topic: string, question: string, investigatorOutput: string): Promise<string> {
+async function runCreative(
+  topic: string,
+  question: string,
+  investigatorOutput: string,
+  runtime: OrchestratorRuntime,
+): Promise<string> {
   const messages: AgentMessage[] = [
     {
       role: "system",
@@ -75,8 +107,7 @@ Tu rol: mejorar la experiencia de aprendizaje y cuestionar el enfoque.
     },
     { role: "user", content: `Tema: ${topic}\nPregunta: ${question}\nAnálisis del investigador: ${investigatorOutput}` },
   ]
-  const result = await callAI(messages, { maxTokens: 200, preferProvider: "gemini" })
-  return result.text
+  return callOrchestratorAI(messages, 260, "tutor-orchestrator-creative", runtime)
 }
 
 // ── Capitán — Sintetizador ───────────────────────────────
@@ -85,7 +116,8 @@ async function runCaptain(
   question: string,
   investigator: string,
   logician: string,
-  creative: string
+  creative: string,
+  runtime: OrchestratorRuntime,
 ): Promise<string> {
   const messages: AgentMessage[] = [
     {
@@ -110,38 +142,42 @@ REGLAS:
 Pregunta del estudiante: ${question}
 
 INVESTIGADOR dice: ${investigator}
-LÓGICO dice: ${logician}  
+LÓGICO dice: ${logician}
 CREATIVO dice: ${creative}
 
 Sintetiza un contexto enriquecido para el tutor:`,
     },
   ]
-  const result = await callAI(messages, { maxTokens: 300, preferProvider: "gemini" })
-  return result.text
+  return callOrchestratorAI(messages, 420, "tutor-orchestrator-captain", runtime)
 }
 
 // ── Router principal del orquestador ────────────────────
-export async function orchestrate(topic: string, question: string): Promise<OrchestratorResult> {
+export async function orchestrate(
+  topic: string,
+  question: string,
+  runtime: OrchestratorRuntime = {},
+): Promise<OrchestratorResult> {
   if (!isComplexQuery(question)) {
     return { enrichedContext: "", shouldEnrich: false }
   }
 
   try {
-    // Los 3 agentes corren en PARALELO
+    // Los primeros agentes corren en paralelo. Cada etapa puede reutilizar su
+    // resultado exacto de forma privada para evitar recomputar la misma duda.
     const [investigatorResult, logicianResult] = await Promise.all([
-      runInvestigator(topic, question),
-      runLogician(topic, question),
+      runInvestigator(topic, question, runtime),
+      runLogician(topic, question, runtime),
     ])
 
-    // Creativo usa el output del investigador
-    const creativeResult = await runCreative(topic, question, investigatorResult)
+    const creativeResult = await runCreative(topic, question, investigatorResult, runtime)
 
-    // Capitán sintetiza todo
     const enrichedContext = await runCaptain(
-      topic, question,
+      topic,
+      question,
       investigatorResult,
       logicianResult,
-      creativeResult
+      creativeResult,
+      runtime,
     )
 
     return { enrichedContext, shouldEnrich: true }

@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import { callAI } from "@/lib/ai-router-v4"
+import { runAIText } from "@/lib/ai/gateway"
+import {
+  attachAssetToGeneration,
+  createEduAIAsset,
+  findReusableGeneration,
+  linkAsset,
+} from "@/lib/ai/reuse"
 import { buildContextFromChunks, getActiveChunks } from "@/lib/notebook/retrieval"
 import { buildPodcastPrompt } from "@/lib/notebook/prompts"
 
@@ -183,15 +189,29 @@ REGLAS ADICIONALES:
     }
 
     let output: Record<string, unknown>
+    let generation: Awaited<ReturnType<typeof runAIText>>
     try {
-      const response = await callAI(
-        [{ role: "user", content: prompt }],
-        { maxTokens: 4_000, preferProvider: "gemini" },
-      )
-      const raw = response.text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim()
+      generation = await runAIText({
+        messages: [{ role: "user", content: prompt }],
+        capability: "long_context",
+        maxOutputTokens: 4_000,
+        context: {
+          userId: user.id,
+          module: "notebook-studio",
+          sourceId: id,
+          reusePolicy: "exact_private",
+          visibility: "private",
+        },
+        supabase,
+      })
+      const raw = generation.data.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim()
       output = JSON.parse(raw) as Record<string, unknown>
     } catch (error) {
       console.error("[Notebook generate parse]", error)
+      const typed = error as Error & { code?: string; status?: number }
+      if (typed.code === "EDUAI_ACCESS_RESTRICTED") {
+        return NextResponse.json({ error: typed.message, code: typed.code }, { status: typed.status || 403 })
+      }
       return NextResponse.json({ error: "La IA no devolvió un formato válido. Intenta nuevamente." }, { status: 500 })
     }
 
@@ -205,6 +225,7 @@ REGLAS ADICIONALES:
     }
     output._sourceCount = sources.length
     output._generatedFromNotebook = true
+    output._reusedGeneration = generation.reused
 
     const { data: saved, error: saveError } = await supabase
       .from("notebook_outputs")
@@ -219,7 +240,81 @@ REGLAS ADICIONALES:
       .single()
 
     if (saveError) console.warn("[Notebook generate save]", saveError.message)
-    return NextResponse.json({ ok: true, output, savedId: saved?.id || null, format })
+
+    let assetId: string | null = null
+    if (generation.reused) {
+      const cached = await findReusableGeneration({
+        supabase,
+        userId: user.id,
+        fingerprint: generation.fingerprint,
+        capability: "long_context",
+        reusePolicy: "exact_private",
+      })
+      assetId = cached?.assetId || null
+    } else {
+      assetId = await createEduAIAsset(supabase, {
+        ownerId: user.id,
+        assetType: format === "podcast" ? "podcast-script" : "cornell-notes",
+        title: typeof output.title === "string" ? output.title : notebook.title,
+        mimeType: "application/json",
+        contentJson: output,
+        sourceModule: "notebook-studio",
+        sourceId: id,
+        fingerprint: generation.fingerprint,
+        visibility: "private",
+        metadata: {
+          notebookId: id,
+          format,
+          provider: generation.provider,
+          model: generation.model,
+          sourceCount: sources.length,
+        },
+        processingPurpose: "Generar material de estudio a partir de fuentes seleccionadas por el usuario",
+      })
+
+      if (assetId) {
+        await attachAssetToGeneration({
+          supabase,
+          userId: user.id,
+          capability: "long_context",
+          fingerprint: generation.fingerprint,
+          assetId,
+        })
+      }
+    }
+
+    if (assetId) {
+      await linkAsset({
+        supabase,
+        ownerId: user.id,
+        assetId,
+        targetType: "notebook",
+        targetId: id,
+        relation: "generated_from",
+      })
+      if (saved?.id) {
+        await linkAsset({
+          supabase,
+          ownerId: user.id,
+          assetId,
+          targetType: "notebook_output",
+          targetId: saved.id,
+          relation: "represents",
+        })
+      }
+    }
+
+    return NextResponse.json({
+      ok: true,
+      output,
+      savedId: saved?.id || null,
+      format,
+      assetId,
+      reused: generation.reused,
+      generationAvoided: generation.reused,
+      provider: generation.provider,
+      model: generation.model,
+    })
   } catch (error) {
     console.error("[Notebook generate POST]", error)
     return NextResponse.json({ error: "Error interno al generar" }, { status: 500 })

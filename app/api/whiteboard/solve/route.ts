@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
-import { callAI } from "@/lib/ai-router"
+import type { SupabaseClient } from "@supabase/supabase-js"
+import { runAIText } from "@/lib/ai/gateway"
 import { createClient } from "@/lib/supabase/server"
 import {
   callPythonMathEngine,
@@ -79,7 +80,13 @@ function normalizeAiResult(payload: any, latex: string): WhiteboardSolveResult {
   }
 }
 
-async function solveWithAI(latex: string, lines: string[], mode: WhiteboardSolveMode) {
+async function solveWithAI(
+  latex: string,
+  lines: string[],
+  mode: WhiteboardSolveMode,
+  supabase: SupabaseClient,
+  userId: string,
+) {
   const prompt = `Analiza este problema matemático y devuelve SOLO JSON válido, sin markdown externo.
 Expresión principal en LaTeX: ${latex}
 ${lines.length > 1 ? `Procedimiento escrito, una línea por paso:\n${lines.map((line, index) => `${index + 1}. ${line}`).join("\n")}` : ""}
@@ -103,35 +110,62 @@ Esquema:
   "warning":""
 }`
 
-  const response = await callAI([
-    {
-      role: "system",
-      content: "Eres el motor pedagógico de una pizarra matemática. Respondes JSON estricto en español y conservas LaTeX correcto.",
-    },
-    { role: "user", content: prompt },
-  ], { maxTokens: 5000, preferProvider: "gemini" })
-  return normalizeAiResult(parseJson(response.text), latex)
-}
-
-async function addPedagogicalExplanation(result: WhiteboardSolveResult, mode: WhiteboardSolveMode) {
-  if (mode === "graph" || mode === "hint" || result.engine === "ai-assisted") return result
-  try {
-    const response = await callAI([
+  const response = await runAIText({
+    messages: [
       {
         role: "system",
-        content: "Eres un profesor de matemáticas. Explica resultados ya calculados por un motor matemático. No cambies la respuesta, no agregues resultados distintos y usa LaTeX entre $...$ o $$...$$. Responde en español con claridad.",
+        content: "Eres el motor pedagógico de una pizarra matemática. Respondes JSON estricto en español y conservas LaTeX correcto.",
       },
-      {
-        role: "user",
-        content: `Problema: $$${result.normalizedLatex}$$
+      { role: "user", content: prompt },
+    ],
+    capability: "text",
+    maxOutputTokens: 5000,
+    context: {
+      userId,
+      module: "whiteboard-solve",
+      reusePolicy: "exact_private",
+      visibility: "private",
+    },
+    supabase,
+  })
+  return normalizeAiResult(parseJson(response.data), latex)
+}
+
+async function addPedagogicalExplanation(
+  result: WhiteboardSolveResult,
+  mode: WhiteboardSolveMode,
+  supabase: SupabaseClient,
+  userId: string,
+) {
+  if (mode === "graph" || mode === "hint" || result.engine === "ai-assisted") return result
+  try {
+    const response = await runAIText({
+      messages: [
+        {
+          role: "system",
+          content: "Eres un profesor de matemáticas. Explica resultados ya calculados por un motor matemático. No cambies la respuesta, no agregues resultados distintos y usa LaTeX entre $...$ o $$...$$. Responde en español con claridad.",
+        },
+        {
+          role: "user",
+          content: `Problema: $$${result.normalizedLatex}$$
 Clasificación: ${result.classification}
 Pasos verificados: ${JSON.stringify(result.steps)}
 Respuesta verificada: $$${result.answerLatex}$$
 Modo: ${mode}
 Escribe una explicación pedagógica breve, indicando la operación realizada en cada paso y una comprobación final.`,
+        },
+      ],
+      capability: "text",
+      maxOutputTokens: 1800,
+      context: {
+        userId,
+        module: "whiteboard-explain",
+        reusePolicy: "exact_private",
+        visibility: "private",
       },
-    ], { maxTokens: 1800, preferProvider: "gemini" })
-    return { ...result, explanation: response.text || result.explanation }
+      supabase,
+    })
+    return { ...result, explanation: response.data || result.explanation }
   } catch {
     return result
   }
@@ -156,8 +190,10 @@ export async function POST(request: Request) {
     if (!result) result = solveDeterministically(primaryLatex, lines)
     if (!result || (mode === "verify" && result.verification?.lines?.some((line) => line.valid === null))) {
       try {
-        result = await solveWithAI(primaryLatex, lines, mode)
+        result = await solveWithAI(primaryLatex, lines, mode, supabase, user.id)
       } catch (error) {
+        const typed = error as Error & { code?: string }
+        if (typed.code === "EDUAI_ACCESS_RESTRICTED") throw error
         if (!result) throw error
       }
     }
@@ -172,7 +208,7 @@ export async function POST(request: Request) {
         explanation: firstStep?.explanation || "Identifica la operación principal y aplícala de forma equivalente en ambos lados.",
       }
     } else {
-      result = await addPedagogicalExplanation(result, mode)
+      result = await addPedagogicalExplanation(result, mode, supabase, user.id)
     }
 
     const notebookId = cleanText(body?.notebookId, 80)
@@ -195,8 +231,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ result }, { headers: NO_CACHE })
   } catch (error) {
     console.error("[whiteboard/solve]", error)
+    const typed = error as Error & { status?: number; code?: string }
     return NextResponse.json({
-      error: error instanceof Error ? error.message : "No fue posible procesar el problema matemático.",
-    }, { status: 500, headers: NO_CACHE })
+      error: typed.message || "No fue posible procesar el problema matemático.",
+      code: typed.code,
+    }, { status: typed.status || 500, headers: NO_CACHE })
   }
 }

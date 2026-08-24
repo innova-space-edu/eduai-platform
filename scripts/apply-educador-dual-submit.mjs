@@ -1,4 +1,6 @@
 // El nuevo Agente Planificador usa un flujo guiado y un único envío estructurado.
-// Este parche se conserva como paso de compatibilidad dentro del comando de build,
-// pero ya no debe modificar app/educador/page.tsx ni agregar la consulta libre antigua.
+// Este paso de compatibilidad se mantiene dentro del comando de build y además
+// aplica/verifica la migración de Educador al AI Gateway sin reescribir su UI.
 console.log("[educador-dual-submit] nuevo planificador detectado; parche legado omitido")
+await import("./apply-educador-ai-gateway.mjs")
+await import("./test-educador-ai-gateway.mjs")

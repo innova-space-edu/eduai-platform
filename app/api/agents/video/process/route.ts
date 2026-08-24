@@ -54,6 +54,7 @@ type VideoJobRow = {
   asset_id?: string | null
   request_payload?: RequestPayload | null
   response_payload?: Record<string, unknown> | null
+  moderation_payload?: Record<string, unknown> | null
   video_url?: string | null
   thumbnail_url?: string | null
   error_message?: string | null
@@ -67,13 +68,17 @@ type VideoJobRow = {
 function isAuthorized(req: Request) {
   const cronSecret = process.env.VIDEO_CRON_SECRET || process.env.CRON_SECRET
   if (!cronSecret) return process.env.NODE_ENV !== "production"
-  return req.headers.get("authorization") === `Bearer ${cronSecret}` || req.headers.get("x-video-cron-secret") === cronSecret
+  const authHeader = req.headers.get("authorization")
+  const explicitHeader = req.headers.get("x-video-cron-secret")
+  return authHeader === `Bearer ${cronSecret}` || explicitHeader === cronSecret
 }
 
 function getAdminSupabase() {
   const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!url || !key) throw new Error("Faltan SUPABASE_URL (o NEXT_PUBLIC_SUPABASE_URL) o SUPABASE_SERVICE_ROLE_KEY.")
+  if (!url || !key) {
+    throw new Error("Faltan SUPABASE_URL (o NEXT_PUBLIC_SUPABASE_URL) o SUPABASE_SERVICE_ROLE_KEY.")
+  }
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
 }
 
@@ -110,7 +115,9 @@ async function runJob(job: VideoJobRow): Promise<ProcessVideoJobResult> {
         model: input.model,
       })
     }
-    if (!input.modelKey) return { ok: false, status: "failed", provider: "fal", error: "Falta modelKey para el job premium." }
+    if (!input.modelKey) {
+      return { ok: false, status: "failed", provider: "fal", error: "Falta modelKey para el job premium." }
+    }
     return startFalPremiumVideo({
       modelKey: input.modelKey,
       prompt: input.prompt,
@@ -128,29 +135,44 @@ async function runJob(job: VideoJobRow): Promise<ProcessVideoJobResult> {
   return processVideoJob(input)
 }
 
-async function releaseQuietly(jobId: string, reason: string) {
-  try { await releaseVideoCredits(jobId, reason) }
-  catch (error) { console.error("[Video][credits][release]", jobId, error instanceof Error ? error.message : String(error)) }
+async function settleCompleted(jobId: string) {
+  try {
+    await captureVideoCredits(jobId)
+  } catch (error) {
+    console.error("[Video][credits][capture]", jobId, error instanceof Error ? error.message : String(error))
+    throw error
+  }
 }
 
-async function findWork(supabase: ReturnType<typeof getAdminSupabase>): Promise<VideoJobRow | null> {
+async function settleFailed(jobId: string, reason: string) {
+  try {
+    await releaseVideoCredits(jobId, reason)
+  } catch (error) {
+    console.error("[Video][credits][release]", jobId, error instanceof Error ? error.message : String(error))
+  }
+}
+
+async function findWork(supabase: ReturnType<typeof getAdminSupabase>): Promise<{ job: VideoJobRow; claimed: boolean } | null> {
   const { data: processing, error: processingError } = await supabase
     .from("video_jobs")
     .select("*")
     .eq("status", "processing")
+    .not("operation_name", "is", null)
     .order("updated_at", { ascending: true })
     .limit(1)
     .maybeSingle<VideoJobRow>()
+
   if (processingError) throw new Error(processingError.message)
-  if (processing) return processing
+  if (processing) return { job: processing, claimed: true }
 
   const { data: queued, error: queuedError } = await supabase
     .from("video_jobs")
     .select("*")
     .eq("status", "queued")
-    .order("created_at", { ascending: true })
+    .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle<VideoJobRow>()
+
   if (queuedError) throw new Error(queuedError.message)
   if (!queued) return null
 
@@ -161,47 +183,34 @@ async function findWork(supabase: ReturnType<typeof getAdminSupabase>): Promise<
     .eq("status", "queued")
     .select("id")
     .maybeSingle()
-  if (claimError) throw new Error(claimError.message)
-  return claimed ? { ...queued, status: "processing" } : null
-}
 
-async function finalizeStoredResult(supabase: ReturnType<typeof getAdminSupabase>, jobId: string) {
-  await captureVideoCredits(jobId)
-  const { error } = await supabase
-    .from("video_jobs")
-    .update({ status: "completed", error_message: null, completed_at: new Date().toISOString() })
-    .eq("id", jobId)
-  if (error) throw new Error(error.message)
+  if (claimError) throw new Error(claimError.message)
+  if (!claimed) return null
+  return { job: { ...queued, status: "processing" }, claimed: true }
 }
 
 export async function POST(req: Request) {
   try {
-    if (!isAuthorized(req)) return NextResponse.json({ ok: false, error: "Unauthorized" } satisfies ProcessVideoResponse, { status: 401 })
-
-    const supabase = getAdminSupabase()
-    const nextJob = await findWork(supabase)
-    if (!nextJob) return NextResponse.json({ ok: true, message: "No hay jobs pendientes en la cola." } satisfies ProcessVideoResponse)
-
-    // Si el video ya quedó persistido pero la captura falló, solo reintentamos
-    // la conciliación de créditos: nunca volvemos a llamar al proveedor.
-    if (nextJob.status === "processing" && nextJob.video_url) {
-      await finalizeStoredResult(supabase, nextJob.id)
-      return NextResponse.json({
-        ok: true,
-        jobId: nextJob.id,
-        status: "completed",
-        provider: nextJob.provider || null,
-        model: nextJob.model || null,
-        videoUrl: nextJob.video_url,
-        thumbnailUrl: nextJob.thumbnail_url || null,
-        message: "Video conciliado correctamente.",
-      } satisfies ProcessVideoResponse)
+    if (!isAuthorized(req)) {
+      return NextResponse.json({ ok: false, error: "Unauthorized" } satisfies ProcessVideoResponse, { status: 401 })
     }
 
+    const supabase = getAdminSupabase()
+    const work = await findWork(supabase)
+    if (!work) return NextResponse.json({ ok: true, message: "No hay jobs pendientes en la cola." } satisfies ProcessVideoResponse)
+
+    const nextJob = work.job
     let result: ProcessVideoJobResult
-    try { result = await runJob(nextJob) }
-    catch (error) {
-      result = { ok: false, status: "failed", provider: nextJob.provider || null, model: nextJob.model || null, error: error instanceof Error ? error.message : String(error) }
+    try {
+      result = await runJob(nextJob)
+    } catch (error) {
+      result = {
+        ok: false,
+        status: "failed",
+        provider: nextJob.provider || null,
+        model: nextJob.model || null,
+        error: error instanceof Error ? error.message : String(error),
+      }
     }
 
     if (result.ok && result.status === "processing") {
@@ -209,7 +218,7 @@ export async function POST(req: Request) {
         .from("video_jobs")
         .update({
           status: "processing",
-          provider: result.provider || nextJob.provider || null,
+          provider: result.provider || nextJob.provider || "google",
           model: result.model || nextJob.model || null,
           operation_name: result.operationName || nextJob.operation_name || null,
           response_payload: result.raw ?? nextJob.response_payload ?? null,
@@ -222,9 +231,9 @@ export async function POST(req: Request) {
         ok: true,
         jobId: nextJob.id,
         status: "processing",
-        provider: result.provider || nextJob.provider || null,
+        provider: result.provider || nextJob.provider || "google",
         model: result.model || nextJob.model || null,
-        message: "Generación en curso.",
+        message: result.operationName ? "Generación iniciada; EduAI continuará consultando el estado." : "Generación en curso.",
       } satisfies ProcessVideoResponse)
     }
 
@@ -245,7 +254,7 @@ export async function POST(req: Request) {
         })
         .eq("id", nextJob.id)
       if (error) throw new Error(error.message)
-      await releaseQuietly(nextJob.id, failureMessage)
+      await settleFailed(nextJob.id, failureMessage)
 
       return NextResponse.json({
         ok: false,
@@ -257,13 +266,11 @@ export async function POST(req: Request) {
       } satisfies ProcessVideoResponse)
     }
 
-    // Persistimos el resultado manteniendo processing. La captura de créditos
-    // ocurre antes de completed para que el estado sea recuperable/idempotente.
-    const { error: persistError } = await supabase
+    const { error: completeError } = await supabase
       .from("video_jobs")
       .update({
-        status: "processing",
-        provider: result.provider || nextJob.provider || null,
+        status: "completed",
+        provider: result.provider || nextJob.provider || "google",
         model: result.model || nextJob.model || null,
         operation_name: result.operationName || nextJob.operation_name || null,
         asset_id: result.assetId || nextJob.asset_id || null,
@@ -271,23 +278,25 @@ export async function POST(req: Request) {
         thumbnail_url: result.thumbnailUrl || null,
         response_payload: result.raw ?? null,
         error_message: null,
+        completed_at: new Date().toISOString(),
       })
       .eq("id", nextJob.id)
-    if (persistError) throw new Error(persistError.message)
+    if (completeError) throw new Error(completeError.message)
 
-    await finalizeStoredResult(supabase, nextJob.id)
+    await settleCompleted(nextJob.id)
 
     return NextResponse.json({
       ok: true,
       jobId: nextJob.id,
       status: "completed",
-      provider: result.provider || nextJob.provider || null,
+      provider: result.provider || nextJob.provider || "google",
       model: result.model || nextJob.model || null,
       videoUrl: result.videoUrl,
       thumbnailUrl: result.thumbnailUrl || null,
       message: "Video procesado, guardado y conciliado correctamente.",
     } satisfies ProcessVideoResponse)
   } catch (error) {
-    return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : "Unexpected error" } satisfies ProcessVideoResponse, { status: 500 })
+    const message = error instanceof Error ? error.message : "Unexpected error"
+    return NextResponse.json({ ok: false, error: message } satisfies ProcessVideoResponse, { status: 500 })
   }
 }
