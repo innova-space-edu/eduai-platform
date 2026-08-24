@@ -51,4 +51,49 @@ assert.deepEqual(mixedSummary, {
   percentage: 75,
 })
 
-console.log("✓ exam grading tests passed")
+const mixedChoiceDevelopmentExam = [
+  {
+    type: "mixed_choice_development",
+    selectionPoints: 3,
+    developmentMaxPoints: 2,
+  },
+]
+const mixedChoiceDevelopmentSummary = calculateScoreSummary(
+  mixedChoiceDevelopmentExam,
+  [
+    {
+      type: "mixed_choice_development",
+      selectionCorrect: true,
+      developmentScore: 2,
+    },
+  ],
+)
+assert.deepEqual(mixedChoiceDevelopmentSummary, {
+  earnedPoints: 5,
+  totalPoints: 5,
+  correctCount: 1,
+  percentage: 100,
+})
+assert.equal(calculateGradeFromPercentage(mixedChoiceDevelopmentSummary.percentage, 60), 7)
+
+const allTypesExam = [
+  { type: "multiple_choice", maxPoints: 2 },
+  { type: "true_false", selectionPoints: 1, justificationMaxPoints: 1 },
+  { type: "development", maxPoints: 4 },
+  { type: "mixed_choice_development", selectionPoints: 2, developmentMaxPoints: 2 },
+]
+const allTypesSummary = calculateScoreSummary(allTypesExam, [
+  { type: "multiple_choice", isCorrect: true },
+  { type: "true_false", selectionCorrect: true, justificationScore: 1 },
+  { type: "development", manualScore: 4 },
+  { type: "mixed_choice_development", selectionCorrect: true, developmentScore: 2 },
+])
+assert.deepEqual(allTypesSummary, {
+  earnedPoints: 12,
+  totalPoints: 12,
+  correctCount: 4,
+  percentage: 100,
+})
+assert.equal(calculateGradeFromPercentage(allTypesSummary.percentage, 60), 7)
+
+console.log("✓ exam grading tests passed for all question types")
