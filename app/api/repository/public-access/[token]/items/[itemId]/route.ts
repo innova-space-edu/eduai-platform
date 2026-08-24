@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createClient as createAdminClient } from "@supabase/supabase-js"
 import {
   REPOSITORY_BUCKET,
   formatBytes,
@@ -7,41 +6,11 @@ import {
   materialTypeLabel,
   type RepositoryItem,
 } from "@/lib/repository/catalog"
-import {
-  createRepositoryShareToken,
-  parseRepositoryPublicAccessToken,
-} from "@/lib/repository/public-share"
+import { validateRepositoryPublicAccess } from "@/lib/repository/public-access"
+import { createRepositoryShareToken } from "@/lib/repository/public-share"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
-
-function getAdminClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!url || !key) throw new Error("Supabase administrativo no está configurado")
-  return createAdminClient(url, key, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
-}
-
-async function validatePublicAccess(token: string) {
-  const ownerId = parseRepositoryPublicAccessToken(decodeURIComponent(token))
-  if (!ownerId) return null
-
-  const admin = getAdminClient()
-  const { data: userResult, error: userError } = await admin.auth.admin.getUserById(ownerId)
-  const email = userResult.user?.email
-  if (userError || !email) return null
-
-  const { data: adminEmail, error: adminError } = await admin
-    .from("admin_emails")
-    .select("email")
-    .eq("email", email)
-    .maybeSingle()
-
-  if (adminError || !adminEmail) return null
-  return admin
-}
 
 export async function GET(request: NextRequest, context: { params: Promise<{ token: string; itemId: string }> }) {
   const { token, itemId } = await context.params
@@ -49,12 +18,12 @@ export async function GET(request: NextRequest, context: { params: Promise<{ tok
     return NextResponse.json({ error: "El material no es válido." }, { status: 400 })
   }
 
-  const admin = await validatePublicAccess(token)
-  if (!admin) {
+  const access = await validateRepositoryPublicAccess(token)
+  if (!access) {
     return NextResponse.json({ error: "El enlace público no es válido o fue desactivado." }, { status: 404 })
   }
 
-  const { data, error } = await admin
+  const { data, error } = await access.admin
     .from("repository_items")
     .select("*")
     .eq("id", itemId)
@@ -70,8 +39,8 @@ export async function GET(request: NextRequest, context: { params: Promise<{ tok
 
   if (item.source_type === "file" && item.storage_path) {
     const [preview, download] = await Promise.all([
-      admin.storage.from(REPOSITORY_BUCKET).createSignedUrl(item.storage_path, 60 * 60),
-      admin.storage.from(REPOSITORY_BUCKET).createSignedUrl(item.storage_path, 60 * 60, {
+      access.admin.storage.from(REPOSITORY_BUCKET).createSignedUrl(item.storage_path, 60 * 60),
+      access.admin.storage.from(REPOSITORY_BUCKET).createSignedUrl(item.storage_path, 60 * 60, {
         download: item.original_file_name || item.title,
       }),
     ])
