@@ -81,7 +81,15 @@ function buildPublicUrl(request: NextRequest, ownerId: string, slug: string | nu
 }
 
 async function buildActivePublicUrl(request: NextRequest, admin: ReturnType<typeof getRepositoryAdminClient>, ownerId: string) {
-  const slug = await getOrCreateShortSlug(admin, ownerId)
+  // El alias de 12 caracteres es una mejora opcional. El acceso público no debe
+  // depender de que esa tabla exista, esté en caché o pueda escribirse en ese instante.
+  let slug: string | null = null
+  try {
+    slug = await getOrCreateShortSlug(admin, ownerId)
+  } catch {
+    slug = null
+  }
+
   return {
     publicUrl: buildPublicUrl(request, ownerId, slug),
     short: Boolean(slug),
