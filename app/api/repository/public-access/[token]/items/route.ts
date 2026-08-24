@@ -1,15 +1,15 @@
 import { randomUUID } from "node:crypto"
 import { NextRequest, NextResponse } from "next/server"
-import { createClient as createAdminClient } from "@supabase/supabase-js"
 import {
   MATERIAL_TYPES,
   MAX_REPOSITORY_FILE_SIZE,
   REPOSITORY_BUCKET,
   normalizeStorageName,
+  parseYouTubeVideoId,
   type MaterialType,
   type RepositoryItem,
 } from "@/lib/repository/catalog"
-import { parseRepositoryPublicAccessToken } from "@/lib/repository/public-share"
+import { validateRepositoryPublicAccess } from "@/lib/repository/public-access"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -26,34 +26,7 @@ const BLOCKED_MIME_TYPES = new Set([
   "application/x-sh",
 ])
 const ALLOWED_MATERIAL_TYPES = new Set<string>(MATERIAL_TYPES.map((item) => item.value))
-
-function getAdminClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!url || !key) throw new Error("Supabase administrativo no está configurado")
-  return createAdminClient(url, key, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
-}
-
-async function validatePublicAccess(token: string) {
-  const ownerId = parseRepositoryPublicAccessToken(decodeURIComponent(token))
-  if (!ownerId) return null
-
-  const admin = getAdminClient()
-  const { data: userResult, error: userError } = await admin.auth.admin.getUserById(ownerId)
-  const email = userResult.user?.email
-  if (userError || !email) return null
-
-  const { data: adminEmail, error: adminError } = await admin
-    .from("admin_emails")
-    .select("email")
-    .eq("email", email)
-    .maybeSingle()
-
-  if (adminError || !adminEmail) return null
-  return { admin, ownerId }
-}
+const PUBLIC_ITEM_SELECT = "id,title,subject,educational_level,school_year,material_type,question_count,source_type,original_file_name,mime_type,file_size,youtube_url,youtube_video_id,visibility,created_at,updated_at"
 
 async function checkUploadRateLimit(request: NextRequest, ownerId: string) {
   const url = process.env.UPSTASH_REDIS_REST_URL
@@ -105,20 +78,38 @@ function validateFileMetadata(fileName: string, fileSize: number, mimeType: stri
   return ""
 }
 
+function validateCommonFields(body: Record<string, unknown> | null) {
+  const title = cleanText(body?.title, 240)
+  const subject = cleanText(body?.subject, 160)
+  const educationalLevel = cleanText(body?.educationalLevel, 120)
+  const schoolYear = Number.parseInt(String(body?.year || ""), 10)
+  const materialType = cleanText(body?.materialType, 40) as MaterialType
+  const questionCount = Number.parseInt(String(body?.questionCount || "0"), 10)
+
+  if (!title || !subject || !educationalLevel) return { error: "Completa título, asignatura y nivel educativo." as const }
+  if (!Number.isInteger(schoolYear) || schoolYear < 1900 || schoolYear > 2200) return { error: "Ingresa un año válido." as const }
+  if (!ALLOWED_MATERIAL_TYPES.has(materialType)) return { error: "El tipo de material no es válido." as const }
+  if (!Number.isInteger(questionCount) || questionCount < 0) return { error: "La cantidad de preguntas no es válida." as const }
+
+  return { title, subject, educationalLevel, schoolYear, materialType, questionCount, error: null }
+}
+
 function isOwnedPublicPath(path: string, ownerId: string) {
   return path.startsWith(`${ownerId}/public/`) && !path.includes("..") && path.length <= 700
 }
 
 export async function GET(_request: NextRequest, context: { params: Promise<{ token: string }> }) {
   const { token } = await context.params
-  const access = await validatePublicAccess(token)
+  const access = await validateRepositoryPublicAccess(token)
   if (!access) {
     return NextResponse.json({ error: "El enlace público no es válido o fue desactivado." }, { status: 404 })
   }
 
+  // Catálogo global: todo material con visibility=public aparece tanto aquí como
+  // dentro de Nube EduAI para cualquier usuario autenticado.
   const { data, error } = await access.admin
     .from("repository_items")
-    .select("id,title,subject,educational_level,school_year,material_type,question_count,source_type,original_file_name,mime_type,file_size,youtube_url,youtube_video_id,visibility,created_at,updated_at")
+    .select(PUBLIC_ITEM_SELECT)
     .eq("visibility", "public")
     .order("created_at", { ascending: false })
     .limit(2000)
@@ -127,14 +118,14 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ to
     return NextResponse.json({ error: "No fue posible cargar los materiales." }, { status: 500 })
   }
 
-  return NextResponse.json({ items: data || [] }, {
+  return NextResponse.json({ items: data || [], sharedGlobally: true }, {
     headers: { "Cache-Control": "no-store, max-age=0" },
   })
 }
 
 export async function POST(request: NextRequest, context: { params: Promise<{ token: string }> }) {
   const { token } = await context.params
-  const access = await validatePublicAccess(token)
+  const access = await validateRepositoryPublicAccess(token)
   if (!access) {
     return NextResponse.json({ error: "El enlace público no es válido o fue desactivado." }, { status: 404 })
   }
@@ -145,7 +136,53 @@ export async function POST(request: NextRequest, context: { params: Promise<{ to
     }, { status: 429, headers: { "Retry-After": "3600" } })
   }
 
-  const body = await request.json().catch(() => null)
+  const body = await request.json().catch(() => null) as Record<string, unknown> | null
+  const sourceType = cleanText(body?.sourceType, 20) || "file"
+
+  if (sourceType === "youtube") {
+    const common = validateCommonFields(body)
+    if (common.error) return NextResponse.json({ error: common.error }, { status: 400 })
+
+    const youtubeUrl = cleanText(body?.youtubeUrl, 700)
+    const youtubeId = parseYouTubeVideoId(youtubeUrl)
+    if (!youtubeId) return NextResponse.json({ error: "Ingresa un enlace válido de YouTube." }, { status: 400 })
+
+    const payload = {
+      title: common.title,
+      subject: common.subject,
+      educational_level: common.educationalLevel,
+      school_year: common.schoolYear,
+      material_type: common.materialType,
+      question_count: common.questionCount,
+      source_type: "youtube" as const,
+      storage_path: null,
+      original_file_name: null,
+      mime_type: null,
+      file_size: null,
+      youtube_url: youtubeUrl,
+      youtube_video_id: youtubeId,
+      visibility: "public" as const,
+      metadata: {
+        schema_version: 1,
+        visibility: "public",
+        upload_source: "public_access_link",
+        shared_globally: true,
+        source_type: "youtube",
+        youtube: { url: youtubeUrl, video_id: youtubeId },
+      },
+      created_by: access.ownerId,
+    }
+
+    const { data, error } = await access.admin
+      .from("repository_items")
+      .insert(payload)
+      .select(PUBLIC_ITEM_SELECT)
+      .single()
+
+    if (error) return NextResponse.json({ error: "No fue posible registrar el video en Nube EduAI." }, { status: 500 })
+    return NextResponse.json({ item: data as Partial<RepositoryItem>, sharedGlobally: true }, { status: 201 })
+  }
+
   const fileName = cleanText(body?.fileName, 255)
   const fileSize = Number(body?.fileSize || 0)
   const mimeType = cleanText(body?.mimeType, 160) || "application/octet-stream"
@@ -177,40 +214,24 @@ export async function POST(request: NextRequest, context: { params: Promise<{ to
 
 export async function PUT(request: NextRequest, context: { params: Promise<{ token: string }> }) {
   const { token } = await context.params
-  const access = await validatePublicAccess(token)
+  const access = await validateRepositoryPublicAccess(token)
   if (!access) {
     return NextResponse.json({ error: "El enlace público no es válido o fue desactivado." }, { status: 404 })
   }
 
-  const body = await request.json().catch(() => null)
+  const body = await request.json().catch(() => null) as Record<string, unknown> | null
   const storagePath = cleanText(body?.storagePath, 700)
   const fileName = cleanText(body?.fileName, 255)
   const fileSize = Number(body?.fileSize || 0)
   const mimeType = cleanText(body?.mimeType, 160) || "application/octet-stream"
-  const title = cleanText(body?.title, 240)
-  const subject = cleanText(body?.subject, 160)
-  const educationalLevel = cleanText(body?.educationalLevel, 120)
-  const schoolYear = Number.parseInt(String(body?.year || ""), 10)
-  const materialType = cleanText(body?.materialType, 40) as MaterialType
-  const questionCount = Number.parseInt(String(body?.questionCount || "0"), 10)
+  const common = validateCommonFields(body)
 
+  if (common.error) return NextResponse.json({ error: common.error }, { status: 400 })
   if (!isOwnedPublicPath(storagePath, access.ownerId)) {
     return NextResponse.json({ error: "La ruta del archivo no es válida." }, { status: 400 })
   }
   const fileError = validateFileMetadata(fileName, fileSize, mimeType)
   if (fileError) return NextResponse.json({ error: fileError }, { status: 400 })
-  if (!title || !subject || !educationalLevel) {
-    return NextResponse.json({ error: "Completa título, asignatura y nivel educativo." }, { status: 400 })
-  }
-  if (!Number.isInteger(schoolYear) || schoolYear < 1900 || schoolYear > 2200) {
-    return NextResponse.json({ error: "Ingresa un año válido." }, { status: 400 })
-  }
-  if (!ALLOWED_MATERIAL_TYPES.has(materialType)) {
-    return NextResponse.json({ error: "El tipo de material no es válido." }, { status: 400 })
-  }
-  if (!Number.isInteger(questionCount) || questionCount < 0) {
-    return NextResponse.json({ error: "La cantidad de preguntas no es válida." }, { status: 400 })
-  }
 
   const slash = storagePath.lastIndexOf("/")
   const folder = storagePath.slice(0, slash)
@@ -227,12 +248,13 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ tok
     schema_version: 1,
     visibility: "public",
     upload_source: "public_access_link",
-    title,
-    subject,
-    educational_level: educationalLevel,
-    school_year: schoolYear,
-    material_type: materialType,
-    question_count: questionCount,
+    shared_globally: true,
+    title: common.title,
+    subject: common.subject,
+    educational_level: common.educationalLevel,
+    school_year: common.schoolYear,
+    material_type: common.materialType,
+    question_count: common.questionCount,
     source_type: "file",
     file: {
       bucket: REPOSITORY_BUCKET,
@@ -244,12 +266,12 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ tok
   }
 
   const payload = {
-    title,
-    subject,
-    educational_level: educationalLevel,
-    school_year: schoolYear,
-    material_type: materialType,
-    question_count: questionCount,
+    title: common.title,
+    subject: common.subject,
+    educational_level: common.educationalLevel,
+    school_year: common.schoolYear,
+    material_type: common.materialType,
+    question_count: common.questionCount,
     source_type: "file" as const,
     storage_path: storagePath,
     original_file_name: fileName,
@@ -265,7 +287,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ tok
   const { data, error: insertError } = await access.admin
     .from("repository_items")
     .insert(payload)
-    .select("id,title,subject,educational_level,school_year,material_type,question_count,source_type,original_file_name,mime_type,file_size,youtube_url,youtube_video_id,visibility,created_at,updated_at")
+    .select(PUBLIC_ITEM_SELECT)
     .single()
 
   if (insertError) {
@@ -273,15 +295,15 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ tok
     return NextResponse.json({ error: "El archivo subió, pero no pudo registrarse en Nube EduAI." }, { status: 500 })
   }
 
-  return NextResponse.json({ item: data as Partial<RepositoryItem> }, { status: 201 })
+  return NextResponse.json({ item: data as Partial<RepositoryItem>, sharedGlobally: true }, { status: 201 })
 }
 
 export async function DELETE(request: NextRequest, context: { params: Promise<{ token: string }> }) {
   const { token } = await context.params
-  const access = await validatePublicAccess(token)
+  const access = await validateRepositoryPublicAccess(token)
   if (!access) return NextResponse.json({ error: "Acceso no válido." }, { status: 404 })
 
-  const body = await request.json().catch(() => null)
+  const body = await request.json().catch(() => null) as Record<string, unknown> | null
   const storagePath = cleanText(body?.storagePath, 700)
   if (!isOwnedPublicPath(storagePath, access.ownerId)) {
     return NextResponse.json({ error: "La ruta del archivo no es válida." }, { status: 400 })
