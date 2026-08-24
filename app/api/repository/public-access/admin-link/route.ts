@@ -75,8 +75,9 @@ async function getOrCreateShortSlug(admin: ReturnType<typeof getRepositoryAdminC
 }
 
 function buildPublicUrl(request: NextRequest, ownerId: string, slug: string | null) {
-  const token = slug || createRepositoryCompactPublicAccessToken(ownerId)
-  return new URL(`/nube-publica/${encodeURIComponent(token)}`, request.nextUrl.origin).toString()
+  if (slug) return new URL(`/nube-publica/${encodeURIComponent(slug)}`, request.nextUrl.origin).toString()
+  const compactToken = createRepositoryCompactPublicAccessToken(ownerId)
+  return new URL(`/nube-publica/${encodeURIComponent(compactToken)}`, request.nextUrl.origin).toString()
 }
 
 async function buildActivePublicUrl(request: NextRequest, admin: ReturnType<typeof getRepositoryAdminClient>, ownerId: string) {
