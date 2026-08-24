@@ -24,12 +24,20 @@ for (const relative of targets) {
   let changed = false
 
   if (!source.includes("function createServerSupabase()")) {
-    const declaration = /const supabase = createClient\([\s\S]*?\n\)\n/
-    if (!declaration.test(source)) {
-      throw new Error(`[provider-client-init] No se encontró cliente Supabase global en ${relative}`)
+    // Algunas rutas nuevas ya vienen con una factoría lazy equivalente. La
+    // normalizamos al nombre compartido en vez de exigir un cliente global.
+    if (source.includes("function getSupabaseAdmin()")) {
+      source = source.replace("function getSupabaseAdmin()", "function createServerSupabase()")
+      source = source.replace(/\bgetSupabaseAdmin\(\)/g, "createServerSupabase()")
+      changed = true
+    } else {
+      const declaration = /const supabase = createClient\([\s\S]*?\n\)\n/
+      if (!declaration.test(source)) {
+        throw new Error(`[provider-client-init] No se encontró cliente Supabase global o factoría lazy en ${relative}`)
+      }
+      source = source.replace(declaration, `${helper}\n`)
+      changed = true
     }
-    source = source.replace(declaration, `${helper}\n`)
-    changed = true
   }
 
   const next = source.replace(/\bsupabase\s*\.from\(/g, "createServerSupabase().from(")
