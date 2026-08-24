@@ -1,12 +1,16 @@
 #!/usr/bin/env node
 /*
   Importa un listado de alumnos exportado como .xls HTML desde el libro de clases.
+
   Uso:
     node scripts/import-student-roster.js ./listado_alumnos.xls "1° Medio A" 2026
 
   Requiere variables:
     NEXT_PUBLIC_SUPABASE_URL
     SUPABASE_SERVICE_ROLE_KEY
+
+  La exportación del colegio puede contener alumnos retirados o matriculados en
+  otro curso. Esos registros se conservan, pero se guardan con active=false.
 */
 const fs = require('fs')
 const { createClient } = require('@supabase/supabase-js')
@@ -65,7 +69,14 @@ function normalizeSearch(value) {
 }
 
 function cleanRut(value) {
-  return String(value || '').toUpperCase().replace(/[^0-9K]/g, '').slice(0, 9)
+  // No limitar a 9 caracteres: algunas nóminas institucionales incluyen
+  // identificadores extendidos (por ejemplo IPE) con dígito verificador.
+  return String(value || '').toUpperCase().replace(/[^0-9K]/g, '')
+}
+
+function rowIsInactive(tr) {
+  return /class\s*=\s*['"][^'"]*retirado/i.test(tr) ||
+    /MATRICULADO\s+EN\s+OTRO\s+CURSO/i.test(tr)
 }
 
 function parseRows(html) {
@@ -85,7 +96,7 @@ function parseRows(html) {
           rut: cells[1],
           rut_clean: rutClean,
           source: 'import_listado_alumnos',
-          active: true,
+          active: !rowIsInactive(tr),
         })
       }
     }
@@ -102,12 +113,27 @@ async function main() {
   }
 
   const supabase = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } })
+
+  // El archivo representa una fotografía completa del curso: primero deja el
+  // curso en estado inactivo y luego reactiva/actualiza únicamente lo que viene
+  // en la exportación. Así también se reflejan retiros y traslados posteriores.
+  const { error: deactivateError } = await supabase
+    .from('student_roster')
+    .update({ active: false })
+    .eq('school_year', schoolYear)
+    .eq('course', course)
+
+  if (deactivateError) throw deactivateError
+
   const { error } = await supabase
     .from('student_roster')
     .upsert(rows, { onConflict: 'school_year,course,rut_clean' })
 
   if (error) throw error
-  console.log(`Importados/actualizados: ${rows.length} estudiantes para ${course} (${schoolYear})`)
+
+  const active = rows.filter((row) => row.active).length
+  const inactive = rows.length - active
+  console.log(`Importados/actualizados: ${rows.length} estudiantes para ${course} (${schoolYear}) · activos: ${active} · inactivos: ${inactive}`)
 }
 
 main().catch((err) => {
