@@ -3,14 +3,22 @@ name: CI
 on:
   push:
     branches: [main]
+
   pull_request:
+
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
   validate:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: true
 
       - name: Use Node.js 22
         uses: actions/setup-node@v4
