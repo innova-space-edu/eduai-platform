@@ -1,7 +1,10 @@
 import "server-only"
 
 import { createClient as createAdminClient } from "@supabase/supabase-js"
-import { parseRepositoryPublicAccessToken } from "@/lib/repository/public-share"
+import {
+  parseRepositoryCompactPublicAccessToken,
+  parseRepositoryPublicAccessToken,
+} from "@/lib/repository/public-share"
 
 const SHORT_PUBLIC_ACCESS_PATTERN = /^[A-Za-z0-9_-]{10,24}$/
 
@@ -20,8 +23,13 @@ export function getRepositoryAdminClient() {
 
 async function resolveOwnerId(token: string) {
   const decoded = decodeURIComponent(token).trim()
+
   const legacyOwnerId = parseRepositoryPublicAccessToken(decoded)
   if (legacyOwnerId) return legacyOwnerId
+
+  const compactOwnerId = parseRepositoryCompactPublicAccessToken(decoded)
+  if (compactOwnerId) return compactOwnerId
+
   if (!isRepositoryPublicAccessSlug(decoded)) return null
 
   const admin = getRepositoryAdminClient()

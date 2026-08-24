@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 import { createClient as createServerClient } from "@/lib/supabase/server"
 import { getRepositoryAdminClient } from "@/lib/repository/public-access"
 import {
+  createRepositoryCompactPublicAccessToken,
   createRepositoryPublicAccessSlug,
-  createRepositoryPublicAccessToken,
 } from "@/lib/repository/public-share"
 
 export const runtime = "nodejs"
@@ -25,6 +25,13 @@ async function requireRepositoryAdmin() {
   return { user, admin, error: null }
 }
 
+function isMissingShortLinkTable(error: { code?: string | null; message?: string | null } | null | undefined) {
+  if (!error) return false
+  if (error.code === "42P01" || error.code === "PGRST205") return true
+  const message = String(error.message || "").toLowerCase()
+  return message.includes("repository_public_links") && (message.includes("does not exist") || message.includes("schema cache"))
+}
+
 async function findExistingSlug(admin: ReturnType<typeof getRepositoryAdminClient>, ownerId: string) {
   const { data, error } = await admin
     .from("repository_public_links")
@@ -34,8 +41,9 @@ async function findExistingSlug(admin: ReturnType<typeof getRepositoryAdminClien
     .maybeSingle()
 
   if (error) {
-    // Compatibilidad temporal antes de aplicar la migración de alias cortos.
-    if (error.code === "42P01") return null
+    // Si la migración aún no existe en producción, el acceso sigue funcionando
+    // mediante el token compacto firmado y sin depender de la base de datos.
+    if (isMissingShortLinkTable(error)) return null
     throw error
   }
   return data?.slug ? String(data.slug) : null
@@ -54,7 +62,7 @@ async function getOrCreateShortSlug(admin: ReturnType<typeof getRepositoryAdminC
       .single()
 
     if (!error && data?.slug) return String(data.slug)
-    if (error?.code === "42P01") return null
+    if (isMissingShortLinkTable(error)) return null
     if (error?.code === "23505") {
       const raced = await findExistingSlug(admin, ownerId)
       if (raced) return raced
@@ -68,8 +76,25 @@ async function getOrCreateShortSlug(admin: ReturnType<typeof getRepositoryAdminC
 
 function buildPublicUrl(request: NextRequest, ownerId: string, slug: string | null) {
   if (slug) return new URL(`/nube-publica/${encodeURIComponent(slug)}`, request.nextUrl.origin).toString()
-  const legacyToken = createRepositoryPublicAccessToken(ownerId)
-  return new URL(`/nube-publica/${encodeURIComponent(legacyToken)}`, request.nextUrl.origin).toString()
+  const compactToken = createRepositoryCompactPublicAccessToken(ownerId)
+  return new URL(`/nube-publica/${encodeURIComponent(compactToken)}`, request.nextUrl.origin).toString()
+}
+
+async function buildActivePublicUrl(request: NextRequest, admin: ReturnType<typeof getRepositoryAdminClient>, ownerId: string) {
+  // El alias de 12 caracteres es una mejora opcional. El acceso público no debe
+  // depender de que esa tabla exista, esté en caché o pueda escribirse en ese instante.
+  let slug: string | null = null
+  try {
+    slug = await getOrCreateShortSlug(admin, ownerId)
+  } catch {
+    slug = null
+  }
+
+  return {
+    publicUrl: buildPublicUrl(request, ownerId, slug),
+    short: Boolean(slug),
+    compactFallback: !slug,
+  }
 }
 
 export async function GET(request: NextRequest) {
@@ -82,15 +107,15 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    const slug = await findExistingSlug(result.admin, result.user.id)
-    return NextResponse.json({
-      isAdmin: true,
-      publicUrl: slug ? buildPublicUrl(request, result.user.id, slug) : null,
-    }, {
+    const access = await buildActivePublicUrl(request, result.admin, result.user.id)
+    return NextResponse.json({ isAdmin: true, ...access }, {
       headers: { "Cache-Control": "no-store, max-age=0" },
     })
-  } catch {
-    return NextResponse.json({ isAdmin: false }, { status: 500 })
+  } catch (caught) {
+    return NextResponse.json({
+      isAdmin: false,
+      error: caught instanceof Error ? caught.message : "No fue posible preparar el acceso público.",
+    }, { status: 500 })
   }
 }
 
@@ -103,10 +128,8 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    const slug = await getOrCreateShortSlug(result.admin, result.user.id)
-    const publicUrl = buildPublicUrl(request, result.user.id, slug)
-
-    return NextResponse.json({ publicUrl, short: Boolean(slug) }, {
+    const access = await buildActivePublicUrl(request, result.admin, result.user.id)
+    return NextResponse.json(access, {
       headers: { "Cache-Control": "no-store, max-age=0" },
     })
   } catch (caught) {
