@@ -31,6 +31,22 @@ function replaceRequired(source, before, after, label) {
 }
 
 patch("components/video/VideoStudioClient.tsx", (source) => {
+  // La versión de producción posterior a #98/#100 ya incorpora de forma nativa
+  // el desglose IVA, mensajes de rechazo, modo TEST y wallet_purchase. En ese
+  // caso no intentamos reaplicar el parche antiguo sobre una estructura de UI
+  // distinta: mantenerlo idempotente evita romper prebuild después de sincronizar main.
+  const modernProductionVideoStudio =
+    source.includes("netAmountClp: number") &&
+    source.includes("function paymentRejectionMessage") &&
+    source.includes("function rechargeCreditsWithVat") &&
+    source.includes('const testMode = activeOrder.publicKey.startsWith("TEST-")') &&
+    source.includes('mercadoPago: "wallet_purchase"')
+
+  if (modernProductionVideoStudio) {
+    console.log("[video-payment-fixes] Video Studio de producción ya contiene Payment Brick + IVA + TEST")
+    return source
+  }
+
   let next = source
 
   if (!next.includes('import PersonalAIMarketplace from "@/components/video/PersonalAIMarketplace"')) {
@@ -42,7 +58,7 @@ patch("components/video/VideoStudioClient.tsx", (source) => {
     )
   }
 
-  if (!next.includes("netAmountClp?: number")) {
+  if (!next.includes("netAmountClp?: number") && !next.includes("netAmountClp: number")) {
     next = replaceRequired(
       next,
       `  credits?: number\n  preferenceId?: string | null`,
