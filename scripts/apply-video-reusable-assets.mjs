@@ -29,8 +29,9 @@ replaceOneOf(
   [
     '  const [imagePreview, setImagePreview] = useState<string | null>(null)\n  const [isUploadingImage, setIsUploadingImage] = useState(false)',
     '  const [imagePreview, setImagePreview] = useState<string | null>(null)\n\n  const [isUploadingImage, setIsUploadingImage] = useState(false)',
+    '  const [imagePreview, setImagePreview] = useState<string | null>(null)\n  const [uploadingImage, setUploadingImage] = useState(false)',
   ],
-  '  const [imagePreview, setImagePreview] = useState<string | null>(null)\n  const [selectedImageAssetId, setSelectedImageAssetId] = useState<string | null>(null)\n  const [isUploadingImage, setIsUploadingImage] = useState(false)',
+  '  const [imagePreview, setImagePreview] = useState<string | null>(null)\n  const [selectedImageAssetId, setSelectedImageAssetId] = useState<string | null>(null)\n  const [uploadingImage, setUploadingImage] = useState(false)',
   "estado de imagen base",
 )
 
@@ -59,8 +60,16 @@ const legacyInputMarker = `                <input
                   className="block w-full text-sm text-sub file:mr-4 file:rounded-xl file:border-0 file:bg-sky-600 file:px-4 file:py-2 file:text-main hover:file:bg-sky-500"
                 />`
 
+const compactProductionInputMarker = `                <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => void handleImageChange(event.target.files?.[0] || null)} className="block w-full text-sm text-sub" />`
+
 if (!source.includes("<ReusableAssetPicker")) {
-  const inputMarker = source.includes(modernInputMarker) ? modernInputMarker : source.includes(legacyInputMarker) ? legacyInputMarker : null
+  const inputMarker = source.includes(modernInputMarker)
+    ? modernInputMarker
+    : source.includes(legacyInputMarker)
+      ? legacyInputMarker
+      : source.includes(compactProductionInputMarker)
+        ? compactProductionInputMarker
+        : null
   if (!inputMarker) throw new Error("[video-reuse] No se encontró selector de archivo de imagen")
   const indent = inputMarker === modernInputMarker ? "                  " : "                "
   const pickerBlock = `${inputMarker}\n\n${indent}<div className="mt-4 rounded-2xl border border-medium bg-card-theme p-3">\n${indent}  <p className="mb-3 text-xs font-semibold text-main">O reutiliza una imagen guardada en Recursos IA</p>\n${indent}  <ReusableAssetPicker\n${indent}    assetType="image"\n${indent}    selectedId={selectedImageAssetId}\n${indent}    emptyText="Todavía no hay imágenes guardadas en EduAI AI Core."\n${indent}    onSelect={(asset: ReusableAsset) => {\n${indent}      if (!asset.access_url) {\n${indent}        setErrorMessage("Este recurso no tiene una URL disponible para Video Studio.")\n${indent}        return\n${indent}      }\n${indent}      if (imagePreview?.startsWith("blob:")) URL.revokeObjectURL(imagePreview)\n${indent}      setImageFile(null)\n${indent}      setSelectedImageAssetId(asset.id)\n${indent}      setImageUrl(asset.access_url)\n${indent}      setImagePreview(asset.access_url)\n${indent}      setErrorMessage(null)\n${indent}      setSuccessMessage("Imagen reutilizable seleccionada. No se volverá a subir ni generar.")\n${indent}    }}\n${indent}  />\n${indent}</div>`
@@ -77,14 +86,17 @@ replaceOneOf(
   "identidad estable del asset en la solicitud",
 )
 
-replaceOneOf(
-  [
-    '    if (selected.toLowerCase().includes("mercadopago")) {',
-    '    if (selected === "wallet_purchase" || selected.toLowerCase().includes("mercadopago")) {',
-  ],
-  '    if (selected === "wallet_purchase" || selected.toLowerCase().includes("mercadopago")) {',
-  "pago con Cuenta Mercado Pago sin envío al backend",
-)
+const walletBefore = '    if (selected.toLowerCase().includes("mercadopago")) {'
+const walletAfter = '    if (selected === "wallet_purchase" || selected.toLowerCase().includes("mercadopago")) {'
+if (source.includes(walletBefore) || source.includes(walletAfter)) {
+  replaceOneOf(
+    [walletBefore, walletAfter],
+    walletAfter,
+    "pago con Cuenta Mercado Pago sin envío al backend",
+  )
+} else if (!(source.includes('mercadoPago: "wallet_purchase"') && source.includes("submitMercadoPagoPayment(activeOrder"))) {
+  throw new Error("[video-reuse] No se encontró manejo equivalente de Cuenta Mercado Pago")
+}
 
 replaceOneOf(
   [
@@ -96,7 +108,7 @@ replaceOneOf(
 
 if (changed) {
   fs.writeFileSync(target, source)
-  console.log("[video-reuse] Video Studio puede reutilizar imágenes y pagar con Cuenta Mercado Pago de forma segura")
+  console.log("[video-reuse] Video Studio puede reutilizar imágenes y conserva el flujo de pago de producción")
 } else {
   console.log("[video-reuse] Video Studio reutilizable y Payment Brick ya estaban actualizados")
 }
