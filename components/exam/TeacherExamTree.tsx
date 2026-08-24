@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, type Dispatch, type SetStateAction } from "react"
 import { BookOpen, CalendarDays, ChevronDown, ChevronRight, Folder, FolderOpen, GraduationCap } from "lucide-react"
 import TeacherExamRow from "@/components/exam/TeacherExamRow"
 import { type CourseGroup, countCourse, countSubject } from "@/lib/exam/teacher-exam-browser"
@@ -37,7 +37,7 @@ export default function TeacherExamTree({ groups, autoExpand, copiedId, onCopy, 
     setOpenCourses(new Set()); setOpenSubjects(new Set()); setOpenDates(new Set())
   }
 
-  function toggle(setter:React.Dispatch<React.SetStateAction<Set<string>>>,key:string) {
+  function toggle(setter:Dispatch<SetStateAction<Set<string>>>,key:string) {
     setter(current => {
       const next=new Set(current)
       if (next.has(key)) next.delete(key); else next.add(key)
