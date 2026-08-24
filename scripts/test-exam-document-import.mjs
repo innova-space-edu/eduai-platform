@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync } from "node:fs"
 // El flujo normal ejecuta primero el parche principal. Este import aplica las
 // salvaguardas finales de forma idempotente antes de verificar el resultado.
 await import("./apply-exam-document-import-safety.mjs")
+await import("./apply-exam-result-feedback-v2.mjs")
 
 // Reparación defensiva: el helper de segunda verificación se genera desde un
 // template literal. Si una versión anterior dejó las comillas JSON sin escapar,
@@ -55,3 +56,4 @@ check("20/21 UI no pide activar IA cuando ya se intentó resolver", component.in
 check("21/21 prompt JSON de segunda verificación conserva sintaxis válida", route.includes("'Devuelve JSON estricto: {\"answers\"") && !route.includes('"Devuelve JSON estricto: {"answers"'))
 
 console.log(`\n[exam-document-import] ${checks.length}/21 verificaciones superadas`)
+await import("./test-exam-result-feedback-v2.mjs")
