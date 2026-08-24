@@ -44,7 +44,7 @@ if (!source.includes(MARKER)) {
   source = replaceRequired(
     source,
     `          <div className="flex items-center gap-1 sm:gap-2">\n            <Link href="/biblioteca"`,
-    `          <div className="flex items-center gap-1 sm:gap-2">\n            {isRepositoryAdmin && publicAccessUrl && (\n              <a href={publicAccessUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-2.5 py-2 text-sm font-black text-emerald-700 transition hover:bg-emerald-100" title="Abrir Nube EduAI pública">\n                <Globe2 size={16} /> <span className="hidden sm:inline">Nube pública</span>\n              </a>\n            )}\n            {isRepositoryAdmin && (\n              <button type="button" onClick={() => void openPublicAccess()} className="inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-2.5 py-2 text-sm font-black text-sky-700 transition hover:bg-sky-100" title="Administrar enlace público">\n                <Share2 size={16} /> <span className="hidden sm:inline">{publicAccessUrl ? "Enlace público" : "Activar público"}</span>\n              </button>\n            )}\n            <Link href="/biblioteca"`,
+    `          <div className="flex items-center gap-1 sm:gap-2">\n            {isRepositoryAdmin && publicAccessUrl && (\n              <a href={publicAccessUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-2.5 py-2 text-sm font-black text-emerald-700 transition hover:bg-emerald-100" title="Abrir Nube EduAI pública">\n                <Globe2 size={16} /> <span className="hidden sm:inline">Nube pública</span>\n              </a>\n            )}\n            {isRepositoryAdmin && (\n              <button type="button" aria-label="Compartir a público" onClick={() => void openPublicAccess()} className="inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-2.5 py-2 text-sm font-black text-sky-700 transition hover:bg-sky-100" title="Administrar enlace público">\n                <Share2 size={16} /> <span className="hidden sm:inline">{publicAccessUrl ? "Enlace público" : "Activar público"}</span>\n              </button>\n            )}\n            <Link href="/biblioteca"`,
     "botones visibles de Nube pública",
   )
 
@@ -61,6 +61,7 @@ if (!source.includes(MARKER)) {
 const verified = readFileSync(PAGE, "utf8")
 for (const required of [
   MARKER,
+  "Compartir a público",
   "Nube pública",
   "Activar público",
   "Solo administrador",
