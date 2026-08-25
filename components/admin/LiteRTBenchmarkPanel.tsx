@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { Activity, Cpu, Gauge, History, Loader2, Play, Trophy, Zap } from "lucide-react"
+import { Activity, Cpu, Gauge, History, Loader2, Play, Trash2, Trophy, Zap } from "lucide-react"
 import {
   DEFAULT_LITERT_PROBE_MODEL_ID,
   EDUAI_LITERT_ESM_URL,
@@ -34,7 +34,7 @@ type BenchmarkSnapshot = {
 }
 
 const STORAGE_KEY = "eduai_litert_benchmark_v1"
-const BENCHMARK_RUNS = 4
+const BENCHMARK_RUNS = 5
 const INPUT_SHAPE = [1, 3, 224, 224]
 const INPUT_SIZE = INPUT_SHAPE.reduce((total, value) => total * value, 1)
 
@@ -46,6 +46,19 @@ function formatMs(value: number) {
 function average(values: number[]) {
   if (!values.length) return 0
   return values.reduce((total, value) => total + value, 0) / values.length
+}
+
+function standardDeviation(values: number[]) {
+  if (values.length < 2) return 0
+  const mean = average(values)
+  const variance = values.reduce((sum, value) => sum + Math.pow(value - mean, 2), 0) / values.length
+  return Math.sqrt(variance)
+}
+
+function stabilityScore(result: BackendResult) {
+  if (!result.supported || !result.runs.length || result.averageMs <= 0) return 0
+  const coefficient = standardDeviation(result.runs) / result.averageMs
+  return Math.max(0, Math.min(100, Math.round(100 - coefficient * 250)))
 }
 
 function makeInput() {
@@ -68,7 +81,7 @@ function disposeOutputs(outputs: any) {
 
 function resultSummary(result: BackendResult) {
   if (!result.supported) return result.error || "No disponible"
-  return `${formatMs(result.averageMs)} promedio`
+  return `${formatMs(result.averageMs)} · estabilidad ${stabilityScore(result)}/100`
 }
 
 function Sparkline({ values, max }: { values: number[]; max: number }) {
@@ -118,6 +131,10 @@ export default function LiteRTBenchmarkPanel() {
     if (!latest) return 0
     return Math.max(...latest.webgpu.runs, ...latest.wasm.runs, 1)
   }, [latest])
+
+  const historyMax = useMemo(() => {
+    return Math.max(...history.flatMap(item => [item.webgpu.averageMs || 0, item.wasm.averageMs || 0]), 1)
+  }, [history])
 
   async function runBackend(litert: any, backend: BackendName): Promise<BackendResult> {
     if (!probeModel) {
@@ -202,8 +219,6 @@ export default function LiteRTBenchmarkPanel() {
       }
       await litert.loadLiteRt(EDUAI_LITERT_WASM_URL)
 
-      // WASM primero deja una base CPU estable. La comparación usa solo tiempo de inferencia,
-      // no tiempo de descarga/compilación del modelo.
       const wasm = await runBackend(litert, "wasm")
       const webgpu = await runBackend(litert, "webgpu")
 
@@ -241,6 +256,13 @@ export default function LiteRTBenchmarkPanel() {
     }
   }
 
+  function clearHistory() {
+    localStorage.removeItem(STORAGE_KEY)
+    setHistory([])
+    setLatest(null)
+    setError("")
+  }
+
   const winnerLabel = latest?.winner === "webgpu"
     ? "WebGPU"
     : latest?.winner === "wasm"
@@ -250,6 +272,12 @@ export default function LiteRTBenchmarkPanel() {
         : latest?.winner === "single"
           ? "Solo un backend disponible"
           : "Sin resultado"
+
+  const winnerStability = latest?.winner === "webgpu"
+    ? stabilityScore(latest.webgpu)
+    : latest?.winner === "wasm"
+      ? stabilityScore(latest.wasm)
+      : 0
 
   return (
     <section className="rounded-[30px] border border-cyan-400/15 bg-[radial-gradient(circle_at_top_left,rgba(6,182,212,0.12),transparent_30%),linear-gradient(180deg,rgba(4,13,29,0.98),rgba(5,10,24,0.98))] p-5 shadow-[0_22px_70px_rgba(8,47,73,0.16)] sm:p-6">
@@ -261,18 +289,25 @@ export default function LiteRTBenchmarkPanel() {
           </div>
           <h2 className="mt-2 text-2xl font-black text-white">Benchmark WebGPU vs WASM</h2>
           <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-400">
-            Ejecuta el mismo MobileNet V3 Small con ambos backends, descarta una corrida de calentamiento y compara {BENCHMARK_RUNS} inferencias medidas. Menor latencia es mejor.
+            Ejecuta el mismo MobileNet V3 Small con ambos backends, descarta una corrida de calentamiento y compara {BENCHMARK_RUNS} inferencias medidas. Menor latencia y mayor estabilidad son mejores.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => void runBenchmark()}
-          disabled={running}
-          className="inline-flex items-center gap-2 rounded-2xl border border-cyan-300/20 bg-cyan-500/10 px-4 py-2.5 text-sm font-black text-cyan-100 transition hover:-translate-y-0.5 hover:bg-cyan-500/20 disabled:cursor-wait disabled:opacity-60"
-        >
-          {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-          {running ? phase || "Midiendo…" : latest ? "Repetir benchmark" : "Comparar backends"}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          {history.length ? (
+            <button type="button" onClick={clearHistory} disabled={running} className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-xs font-black text-slate-400 transition hover:bg-white/[0.07] hover:text-slate-200 disabled:opacity-40">
+              <Trash2 className="h-3.5 w-3.5" /> Limpiar historial
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => void runBenchmark()}
+            disabled={running}
+            className="inline-flex items-center gap-2 rounded-2xl border border-cyan-300/20 bg-cyan-500/10 px-4 py-2.5 text-sm font-black text-cyan-100 transition hover:-translate-y-0.5 hover:bg-cyan-500/20 disabled:cursor-wait disabled:opacity-60"
+          >
+            {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+            {running ? phase || "Midiendo…" : latest ? "Repetir benchmark" : "Comparar backends"}
+          </button>
+        </div>
       </div>
 
       {running ? (
@@ -295,6 +330,7 @@ export default function LiteRTBenchmarkPanel() {
             {[latest.webgpu, latest.wasm].map(result => {
               const Icon = result.backend === "webgpu" ? Gauge : Cpu
               const isWinner = latest.winner === result.backend
+              const stability = stabilityScore(result)
               return (
                 <article key={result.backend} className={`rounded-[24px] border p-4 ${isWinner ? "border-emerald-400/25 bg-emerald-500/[0.06]" : "border-white/10 bg-black/20"}`}>
                   <div className="flex items-center justify-between gap-3">
@@ -304,10 +340,11 @@ export default function LiteRTBenchmarkPanel() {
                   <p className={`mt-3 text-3xl font-black ${result.supported ? "text-white" : "text-slate-600"}`}>{result.supported ? formatMs(result.averageMs) : "N/D"}</p>
                   <p className="mt-1 text-[10px] uppercase tracking-wider text-slate-600">promedio de inferencia</p>
                   <div className="mt-3"><Sparkline values={result.runs} max={maxGraphValue} /></div>
-                  <div className="mt-3 grid grid-cols-3 gap-2 text-[10px]">
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-[10px] sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
                     <div className="rounded-xl bg-slate-950/50 p-2"><p className="text-slate-600">Min</p><p className="mt-1 font-black text-slate-300">{formatMs(result.minMs)}</p></div>
                     <div className="rounded-xl bg-slate-950/50 p-2"><p className="text-slate-600">Max</p><p className="mt-1 font-black text-slate-300">{formatMs(result.maxMs)}</p></div>
                     <div className="rounded-xl bg-slate-950/50 p-2"><p className="text-slate-600">Compile</p><p className="mt-1 font-black text-slate-300">{formatMs(result.compileMs)}</p></div>
+                    <div className="rounded-xl bg-slate-950/50 p-2"><p className="text-slate-600">Estabilidad</p><p className={`mt-1 font-black ${stability >= 85 ? "text-emerald-300" : stability >= 65 ? "text-amber-300" : "text-red-300"}`}>{stability}/100</p></div>
                   </div>
                   {!result.supported ? <p className="mt-3 text-xs leading-relaxed text-amber-300/80">{result.error}</p> : null}
                 </article>
@@ -320,6 +357,12 @@ export default function LiteRTBenchmarkPanel() {
               <p className="mt-2 text-xs leading-relaxed text-slate-400">
                 {latest.speedup ? `El backend más rápido fue aproximadamente ${latest.speedup.toFixed(2)}× más veloz en este benchmark.` : "No hay dos backends válidos para calcular un factor de aceleración."}
               </p>
+              {winnerStability ? (
+                <div className="mt-4">
+                  <div className="flex items-center justify-between text-[10px]"><span className="font-black uppercase tracking-wider text-slate-600">Confianza del ganador</span><span className="font-black text-slate-300">{winnerStability}/100</span></div>
+                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-900"><div className="h-full rounded-full bg-gradient-to-r from-violet-500 via-cyan-400 to-emerald-400" style={{ width: `${winnerStability}%` }} /></div>
+                </div>
+              ) : null}
               <div className="mt-4 rounded-2xl border border-white/5 bg-slate-950/50 p-3 text-[10px] text-slate-500">
                 <p>CPU threads: <span className="font-black text-slate-300">{latest.threads || "—"}</span></p>
                 <p className="mt-1">Modelo: <span className="font-black text-slate-300">{probeModel?.name || DEFAULT_LITERT_PROBE_MODEL_ID}</span></p>
@@ -354,13 +397,29 @@ export default function LiteRTBenchmarkPanel() {
 
       {history.length > 1 ? (
         <div className="mt-5 rounded-2xl border border-white/8 bg-black/20 p-4">
-          <div className="flex items-center gap-2 text-slate-300"><History className="h-4 w-4" /><p className="text-xs font-black">Historial local reciente</p></div>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-slate-300"><History className="h-4 w-4" /><p className="text-xs font-black">Historial local reciente</p></div>
+            <p className="text-[10px] text-slate-600">Hasta 5 mediciones guardadas en este navegador.</p>
+          </div>
+          <div className="mt-4 grid gap-2 lg:grid-cols-4">
             {history.slice(1, 5).map(snapshot => (
               <div key={snapshot.id} className="rounded-xl border border-white/5 bg-slate-950/45 p-3 text-[10px]">
                 <p className="font-black text-slate-300">{new Date(snapshot.createdAt).toLocaleString("es-CL")}</p>
-                <p className="mt-2 text-slate-500">WebGPU: <span className="font-black text-slate-300">{resultSummary(snapshot.webgpu)}</span></p>
-                <p className="mt-1 text-slate-500">WASM: <span className="font-black text-slate-300">{resultSummary(snapshot.wasm)}</span></p>
+                <div className="mt-3 space-y-2">
+                  {[
+                    ["WebGPU", snapshot.webgpu],
+                    ["WASM", snapshot.wasm],
+                  ].map(([backendLabel, raw]) => {
+                    const result = raw as BackendResult
+                    const width = result.supported ? Math.max(5, (result.averageMs / historyMax) * 100) : 0
+                    return (
+                      <div key={backendLabel as string}>
+                        <div className="flex justify-between gap-2 text-slate-500"><span>{backendLabel as string}</span><span className="font-black text-slate-300">{resultSummary(result)}</span></div>
+                        <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-900"><div className="h-full rounded-full bg-cyan-400/70" style={{ width: `${width}%` }} /></div>
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
             ))}
           </div>
