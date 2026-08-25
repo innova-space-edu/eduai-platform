@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { CheckCircle2, CircleAlert, Database, RefreshCw, ServerCog, Sparkles } from "lucide-react"
+import { CheckCircle2, CircleAlert, Database, Gauge, RefreshCw, ServerCog, Sparkles } from "lucide-react"
 
 type EffectiveModel = {
   model: string
@@ -106,6 +106,25 @@ export default function AICoreHealthPanel() {
     [data],
   )
 
+  const readiness = useMemo(() => {
+    if (!data) return { score: 0, ok: 0, total: 0 }
+    const checks = [
+      data.supabase.configured,
+      data.supabase.serviceRoleConfigured,
+      data.supabase.assetBucket.available,
+      !missingTables.length,
+      data.configuration.google.text,
+      data.configuration.google.image,
+      data.configuration.google.video,
+      data.configuration.groq.configured,
+      data.configuration.openrouter.configured,
+      data.configuration.redis.configured,
+      data.configuration.video.cronSecret,
+    ]
+    const ok = checks.filter(Boolean).length
+    return { score: Math.round((ok / checks.length) * 100), ok, total: checks.length }
+  }, [data, missingTables.length])
+
   const testGoogle = async () => {
     setTestingGoogle(true)
     setGoogleResult(null)
@@ -126,13 +145,13 @@ export default function AICoreHealthPanel() {
   }
 
   return (
-    <section className="rounded-[28px] border border-cyan-400/20 bg-cyan-500/[0.07] p-5">
+    <section className="rounded-[30px] border border-cyan-400/20 bg-[radial-gradient(circle_at_top_right,rgba(6,182,212,0.11),transparent_30%),rgba(6,78,99,0.08)] p-5 shadow-[0_22px_70px_rgba(8,47,73,0.12)] sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-300">Infraestructura</p>
-          <h2 className="mt-2 text-xl font-black text-white">Estado de EduAI AI Core</h2>
+          <h2 className="mt-2 text-2xl font-black text-white">Estado de EduAI AI Core</h2>
           <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-300">
-            Verifica Vercel, Supabase, migraciones, reutilización de assets y proveedores sin mostrar ninguna API key.
+            Verifica Vercel, Supabase, migraciones, reutilización de assets, modelos efectivos y proveedores sin mostrar ninguna API key.
           </p>
         </div>
         <button
@@ -154,7 +173,7 @@ export default function AICoreHealthPanel() {
 
       {data ? (
         <div className="mt-5 space-y-4">
-          <div className={`rounded-2xl border p-4 ${data.ready ? "border-emerald-400/25 bg-emerald-500/10" : "border-amber-400/25 bg-amber-500/10"}`}>
+          <div className={`grid gap-4 rounded-2xl border p-4 sm:grid-cols-[1fr_auto] sm:items-center ${data.ready ? "border-emerald-400/25 bg-emerald-500/10" : "border-amber-400/25 bg-amber-500/10"}`}>
             <div className="flex items-center gap-3">
               {data.ready ? <CheckCircle2 className="h-5 w-5 text-emerald-300" /> : <CircleAlert className="h-5 w-5 text-amber-300" />}
               <div>
@@ -162,15 +181,23 @@ export default function AICoreHealthPanel() {
                 <p className="mt-1 text-xs text-slate-300">Diagnóstico: {new Date(data.generatedAt).toLocaleString("es-CL")}</p>
               </div>
             </div>
+            <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-slate-950/30 px-3 py-2">
+              <Gauge className="h-4 w-4 text-cyan-300" />
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-wider text-slate-500">Readiness operativo</p>
+                <p className="text-sm font-black text-white">{readiness.score}/100 · {readiness.ok}/{readiness.total}</p>
+              </div>
+            </div>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-3">
+          <div className="grid gap-4 xl:grid-cols-3">
             <article className="rounded-2xl border border-white/10 bg-black/20 p-4">
               <div className="flex items-center gap-2 text-cyan-200"><Database className="h-4 w-4" /><h3 className="font-black">Supabase</h3></div>
               <div className="mt-3 space-y-2">
                 <Status ok={data.supabase.configured} label="URL + clave pública" />
                 <Status ok={data.supabase.serviceRoleConfigured} label="Service role servidor" />
                 <Status ok={data.supabase.assetBucket.available} label="Bucket eduai-assets" />
+                <Status ok={!missingTables.length} label="Migraciones / tablas" />
               </div>
               <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2">
                 <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Project ref usado por Vercel</p>
@@ -180,7 +207,7 @@ export default function AICoreHealthPanel() {
 
             <article className="rounded-2xl border border-white/10 bg-black/20 p-4">
               <div className="flex items-center gap-2 text-violet-200"><Sparkles className="h-4 w-4" /><h3 className="font-black">Google AI</h3></div>
-              <div className="mt-3 space-y-2">
+              <div className="mt-3 grid gap-2 sm:grid-cols-3 xl:grid-cols-1">
                 <Status ok={data.configuration.google.text} label="Texto / Gateway" />
                 <Status ok={data.configuration.google.image} label="Imagen" />
                 <Status ok={data.configuration.google.video} label="Video" />
@@ -203,16 +230,28 @@ export default function AICoreHealthPanel() {
             </article>
 
             <article className="rounded-2xl border border-white/10 bg-black/20 p-4">
-              <div className="flex items-center gap-2 text-blue-200"><ServerCog className="h-4 w-4" /><h3 className="font-black">Servicios</h3></div>
-              <div className="mt-3 space-y-2">
+              <div className="flex items-center gap-2 text-blue-200"><ServerCog className="h-4 w-4" /><h3 className="font-black">Servicios y routing</h3></div>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
                 <Status ok={data.configuration.groq.configured} label="Groq" />
                 <Status ok={data.configuration.openrouter.configured} label="OpenRouter" />
+                <Status ok={data.configuration.together.configured} label="Together" />
+                <Status ok={data.configuration.cerebras.configured} label="Cerebras" />
                 <Status ok={data.configuration.redis.configured} label="Redis / Upstash" />
                 <Status ok={data.configuration.video.cronSecret} label="Cron de video" />
               </div>
-              <div className="mt-4 space-y-1 text-xs text-slate-400">
-                <p>Orden efectivo de video: {data.configuration.video.providerOrder || "sin proveedores configurados"}</p>
-                <p className="text-[11px] text-slate-500">Configurado: {data.configuration.video.configuredProviderOrder}</p>
+              <div className="mt-4 rounded-xl border border-white/5 bg-slate-950/40 p-3 text-xs text-slate-400">
+                <p className="font-black text-slate-300">Research</p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {[
+                    ["Tavily", data.configuration.research.tavily],
+                    ["Firecrawl", data.configuration.research.firecrawl],
+                    ["Google Grounding", data.configuration.research.googleGrounding],
+                  ].map(([name, ok]) => (
+                    <span key={name as string} className={`rounded-full border px-2 py-1 text-[10px] font-bold ${ok ? "border-emerald-400/15 bg-emerald-500/10 text-emerald-200" : "border-white/8 bg-white/[0.03] text-slate-600"}`}>{name as string}</span>
+                  ))}
+                </div>
+                <p className="mt-3">Video efectivo: {data.configuration.video.providerOrder || "sin proveedores configurados"}</p>
+                <p className="mt-1 text-[11px] text-slate-500">Configurado: {data.configuration.video.configuredProviderOrder}</p>
               </div>
             </article>
           </div>
@@ -224,7 +263,7 @@ export default function AICoreHealthPanel() {
                 {missingTables.length ? `${missingTables.length} pendientes` : "Todas disponibles"}
               </span>
             </div>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {data.supabase.tables.map(item => (
                 <div key={item.table} className="flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
                   {item.available ? <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-300" /> : <CircleAlert className="h-4 w-4 shrink-0 text-amber-300" />}
