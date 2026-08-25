@@ -2,6 +2,7 @@ import Link from "next/link";
 import AICoreHealthPanel from "@/components/admin/AICoreHealthPanel";
 import AICoreMetricsPanel from "@/components/admin/AICoreMetricsPanel";
 import AIModelRegistryPanel from "@/components/admin/AIModelRegistryPanel";
+import LiteRTLocalAIPanel from "@/components/admin/LiteRTLocalAIPanel";
 import VideoProviderStatusPanel from "@/components/admin/VideoProviderStatusPanel";
 import { ADMIN_ONLY_EXPERIMENTAL_MODELS } from "@/lib/ai/admin-model-policy";
 
@@ -21,6 +22,7 @@ export default function AdminModelLabPage() {
         </div>
 
         <AICoreHealthPanel />
+        <LiteRTLocalAIPanel />
         <AIModelRegistryPanel />
         <VideoProviderStatusPanel />
         <AICoreMetricsPanel />
