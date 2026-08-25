@@ -14,6 +14,7 @@ import AIModelRegistryPanel from "@/components/admin/AIModelRegistryPanel";
 import LiteRTLocalAIPanel from "@/components/admin/LiteRTLocalAIPanel";
 import LiteRTCacheAnalyticsPanel from "@/components/admin/LiteRTCacheAnalyticsPanel";
 import LiteRTPrewarm from "@/components/admin/LiteRTPrewarm";
+import LiteRTRouterStatusPanel from "@/components/admin/LiteRTRouterStatusPanel";
 import LiteRTQuantizationPanelV2 from "@/components/admin/LiteRTQuantizationPanelV2";
 import LiteRTBenchmarkPanelV4 from "@/components/admin/LiteRTBenchmarkPanelV4";
 import LocalAITelemetryPanel from "@/components/admin/LocalAITelemetryPanel";
@@ -98,6 +99,7 @@ export default function AdminModelLabPage() {
 
         <div id="litert" className={`scroll-mt-24 ${styles.litertShell}`}>
           <LiteRTLocalAIPanel />
+          <LiteRTRouterStatusPanel />
           <LiteRTCacheAnalyticsPanel />
           <LiteRTQuantizationPanelV2 />
         </div>
