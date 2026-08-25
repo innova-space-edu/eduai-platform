@@ -12,8 +12,9 @@ import AICoreHealthPanel from "@/components/admin/AICoreHealthPanel";
 import AICoreMetricsPanel from "@/components/admin/AICoreMetricsPanel";
 import AIModelRegistryPanel from "@/components/admin/AIModelRegistryPanel";
 import LiteRTLocalAIPanel from "@/components/admin/LiteRTLocalAIPanel";
-import LiteRTQuantizationPanel from "@/components/admin/LiteRTQuantizationPanel";
-import LiteRTBenchmarkPanelV2 from "@/components/admin/LiteRTBenchmarkPanelV2";
+import LiteRTQuantizationPanelV2 from "@/components/admin/LiteRTQuantizationPanelV2";
+import LiteRTBenchmarkPanelV3 from "@/components/admin/LiteRTBenchmarkPanelV3";
+import LocalAITelemetryPanel from "@/components/admin/LocalAITelemetryPanel";
 import ModelLabSectionNav from "@/components/admin/ModelLabSectionNav";
 import VideoProviderStatusPanel from "@/components/admin/VideoProviderStatusPanel";
 import { ADMIN_ONLY_EXPERIMENTAL_MODELS } from "@/lib/ai/admin-model-policy";
@@ -22,7 +23,7 @@ import styles from "./model-lab.module.css";
 const LAB_CAPABILITIES = [
   { label: "AI Core", detail: "Proveedores y Supabase", icon: Sparkles, tone: "text-cyan-200 border-cyan-400/15 bg-cyan-950/35" },
   { label: "Local AI", detail: "LiteRT · WebGPU · WASM", icon: BrainCircuit, tone: "text-emerald-200 border-emerald-400/15 bg-emerald-950/30" },
-  { label: "Performance", detail: "Benchmark por dispositivo", icon: Gauge, tone: "text-violet-200 border-violet-400/15 bg-violet-950/30" },
+  { label: "Performance", detail: "Benchmark estadístico", icon: Gauge, tone: "text-violet-200 border-violet-400/15 bg-violet-950/30" },
   { label: "Control", detail: "Admin only · aislado", icon: ShieldCheck, tone: "text-amber-200 border-amber-400/15 bg-amber-950/25" },
 ] as const;
 
@@ -79,11 +80,11 @@ export default function AdminModelLabPage() {
 
         <div id="litert" className={`scroll-mt-24 ${styles.litertShell}`}>
           <LiteRTLocalAIPanel />
-          <LiteRTQuantizationPanel />
+          <LiteRTQuantizationPanelV2 />
         </div>
 
         <div id="benchmark" className="scroll-mt-24">
-          <LiteRTBenchmarkPanelV2 />
+          <LiteRTBenchmarkPanelV3 />
         </div>
 
         <div id="modelos" className="scroll-mt-24">
@@ -94,7 +95,8 @@ export default function AdminModelLabPage() {
           <VideoProviderStatusPanel />
         </div>
 
-        <div id="observabilidad" className="scroll-mt-24">
+        <div id="observabilidad" className="scroll-mt-24 space-y-4">
+          <LocalAITelemetryPanel />
           <AICoreMetricsPanel />
         </div>
 
