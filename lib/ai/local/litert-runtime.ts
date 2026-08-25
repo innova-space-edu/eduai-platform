@@ -26,33 +26,35 @@ function isAlreadyLoadedError(error: unknown) {
   return /already\s+(loading|loaded)|loading\s*\/\s*loaded/i.test(message)
 }
 
-function installCompiledModelPool(litert: any) {
-  if (litert.__eduaiCompiledPoolInstalled) return
-  const nativeLoadAndCompile = litert.loadAndCompile.bind(litert)
-  litert.loadAndCompile = (source: any, options?: any) => acquireLiteRTCompiledModel(nativeLoadAndCompile, source, options)
-  Object.defineProperty(litert, "__eduaiCompiledPoolInstalled", { value: true, enumerable: false })
-  litert.__eduaiCompiledPoolStatus = getLiteRTCompiledModelPoolStatus
-  litert.__eduaiClearCompiledPool = clearLiteRTCompiledModelPool
+function createLiteRTFacade(module: any) {
+  const nativeLoadAndCompile = module.loadAndCompile.bind(module)
+  return {
+    ...module,
+    loadAndCompile: (source: any, options?: any) => acquireLiteRTCompiledModel(nativeLoadAndCompile, source, options),
+    __eduaiCompiledPoolInstalled: true,
+    __eduaiCompiledPoolStatus: getLiteRTCompiledModelPoolStatus,
+    __eduaiClearCompiledPool: clearLiteRTCompiledModelPool,
+  }
 }
 
 async function initializeRuntime(): Promise<LiteRTRuntimeHandle> {
   const startedAt = performance.now()
   const importStartedAt = performance.now()
-  const litert = await import(/* webpackIgnore: true */ EDUAI_LITERT_ESM_URL)
+  const module = await import(/* webpackIgnore: true */ EDUAI_LITERT_ESM_URL)
   const importMs = performance.now() - importStartedAt
 
-  if (typeof litert.loadLiteRt !== "function" || typeof litert.loadAndCompile !== "function" || typeof litert.Tensor !== "function") {
+  if (typeof module.loadLiteRt !== "function" || typeof module.loadAndCompile !== "function" || typeof module.Tensor !== "function") {
     throw new Error("LiteRT.js cargó, pero no expone la API esperada.")
   }
 
   const initStartedAt = performance.now()
   try {
-    await litert.loadLiteRt(EDUAI_LITERT_WASM_URL, { jspi: true })
+    await module.loadLiteRt(EDUAI_LITERT_WASM_URL, { jspi: true })
   } catch (error) {
     if (!isAlreadyLoadedError(error)) throw error
   }
   const initMs = performance.now() - initStartedAt
-  installCompiledModelPool(litert)
+  const litert = createLiteRTFacade(module)
 
   return {
     litert,
