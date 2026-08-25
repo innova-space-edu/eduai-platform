@@ -1,5 +1,5 @@
 import type { LiteRTCapabilitySnapshot } from "@/lib/ai/local/litert-capabilities"
-import { EDUAI_LITERT_VERSION } from "@/lib/ai/local/litert-models"
+import { DEFAULT_LITERT_PROBE_MODEL_ID, EDUAI_LITERT_VERSION } from "@/lib/ai/local/litert-models"
 
 export type LiteRTBackend = "webgpu" | "webnn" | "wasm"
 
@@ -9,9 +9,29 @@ export type LiteRTRouteDecision = {
   reason: string
   webnnEligible: boolean
   source?: "benchmark" | "capability"
+  modelId?: string
 }
 
 export type LiteRTRouteProfile = {
+  version: 3
+  signature: string
+  backend: "webgpu" | "wasm"
+  createdAt: string
+  modelId: string
+  medianEndToEndMs: number
+  p95EndToEndMs: number
+  alternativeMedianEndToEndMs: number | null
+  runtimeVersion: string
+}
+
+type StoredRouteProfilesV3 = {
+  version: 3
+  signature: string
+  runtimeVersion: string
+  profiles: Record<string, Omit<LiteRTRouteProfile, "version" | "signature" | "runtimeVersion">>
+}
+
+type LegacyRouteProfileV2 = {
   version: 2
   signature: string
   backend: "webgpu" | "wasm"
@@ -23,7 +43,8 @@ export type LiteRTRouteProfile = {
   runtimeVersion: string
 }
 
-const ROUTE_PROFILE_KEY = "eduai_litert_route_profile_v2"
+const ROUTE_PROFILES_KEY = "eduai_litert_route_profiles_v3"
+const LEGACY_ROUTE_PROFILE_KEY = "eduai_litert_route_profile_v2"
 
 function safeWindow() {
   return typeof window !== "undefined" ? window : null
@@ -44,45 +65,94 @@ export function getLiteRTDeviceSignature(runtimeVersion = EDUAI_LITERT_VERSION) 
   return parts.join("|")
 }
 
-export function readLiteRTRouteProfile(runtimeVersion = EDUAI_LITERT_VERSION): LiteRTRouteProfile | null {
+function readStore(runtimeVersion = EDUAI_LITERT_VERSION): StoredRouteProfilesV3 | null {
   const target = safeWindow()
   if (!target) return null
+  const signature = getLiteRTDeviceSignature(runtimeVersion)
   try {
-    const parsed = JSON.parse(target.localStorage.getItem(ROUTE_PROFILE_KEY) || "null") as LiteRTRouteProfile | null
-    if (!parsed || parsed.version !== 2) return null
-    if (parsed.runtimeVersion !== runtimeVersion) return null
-    if (parsed.signature !== getLiteRTDeviceSignature(runtimeVersion)) return null
-    return parsed
+    const parsed = JSON.parse(target.localStorage.getItem(ROUTE_PROFILES_KEY) || "null") as StoredRouteProfilesV3 | null
+    if (parsed?.version === 3 && parsed.runtimeVersion === runtimeVersion && parsed.signature === signature) return parsed
+  } catch { /* ignore corrupt local profile */ }
+
+  // One-time compatibility path for the V2 profile already calibrated in users' browsers.
+  try {
+    const legacy = JSON.parse(target.localStorage.getItem(LEGACY_ROUTE_PROFILE_KEY) || "null") as LegacyRouteProfileV2 | null
+    if (!legacy || legacy.version !== 2 || legacy.runtimeVersion !== runtimeVersion || legacy.signature !== signature) return null
+    const migrated: StoredRouteProfilesV3 = {
+      version: 3,
+      signature,
+      runtimeVersion,
+      profiles: {
+        [legacy.modelId]: {
+          backend: legacy.backend,
+          createdAt: legacy.createdAt,
+          modelId: legacy.modelId,
+          medianEndToEndMs: legacy.medianEndToEndMs,
+          p95EndToEndMs: legacy.p95EndToEndMs,
+          alternativeMedianEndToEndMs: legacy.alternativeMedianEndToEndMs,
+        },
+      },
+    }
+    target.localStorage.setItem(ROUTE_PROFILES_KEY, JSON.stringify(migrated))
+    return migrated
   } catch {
     return null
   }
 }
 
+export function readLiteRTRouteProfile(runtimeVersion = EDUAI_LITERT_VERSION, modelId = DEFAULT_LITERT_PROBE_MODEL_ID): LiteRTRouteProfile | null {
+  const store = readStore(runtimeVersion)
+  const profile = store?.profiles?.[modelId]
+  if (!store || !profile) return null
+  return { ...profile, version: 3, signature: store.signature, runtimeVersion: store.runtimeVersion }
+}
+
+export function readAllLiteRTRouteProfiles(runtimeVersion = EDUAI_LITERT_VERSION): LiteRTRouteProfile[] {
+  const store = readStore(runtimeVersion)
+  if (!store) return []
+  return Object.values(store.profiles).map(profile => ({ ...profile, version: 3, signature: store.signature, runtimeVersion: store.runtimeVersion }))
+}
+
 export function saveLiteRTRouteProfile(input: Omit<LiteRTRouteProfile, "version" | "signature" | "createdAt" | "runtimeVersion">, runtimeVersion = EDUAI_LITERT_VERSION) {
   const target = safeWindow()
   if (!target) return null
-  const profile: LiteRTRouteProfile = {
-    ...input,
-    version: 2,
-    signature: getLiteRTDeviceSignature(runtimeVersion),
-    createdAt: new Date().toISOString(),
+  const signature = getLiteRTDeviceSignature(runtimeVersion)
+  const current = readStore(runtimeVersion)
+  const createdAt = new Date().toISOString()
+  const profile = { ...input, createdAt }
+  const store: StoredRouteProfilesV3 = {
+    version: 3,
+    signature,
     runtimeVersion,
+    profiles: { ...(current?.profiles || {}), [input.modelId]: profile },
   }
-  target.localStorage.setItem(ROUTE_PROFILE_KEY, JSON.stringify(profile))
-  target.dispatchEvent(new CustomEvent("eduai:litert-route-profile", { detail: profile }))
-  return profile
+  target.localStorage.setItem(ROUTE_PROFILES_KEY, JSON.stringify(store))
+  target.localStorage.removeItem(LEGACY_ROUTE_PROFILE_KEY)
+  const expanded: LiteRTRouteProfile = { ...profile, version: 3, signature, runtimeVersion }
+  target.dispatchEvent(new CustomEvent("eduai:litert-route-profile", { detail: expanded }))
+  return expanded
 }
 
-export function clearLiteRTRouteProfile() {
+export function clearLiteRTRouteProfile(modelId?: string) {
   const target = safeWindow()
   if (!target) return
-  target.localStorage.removeItem(ROUTE_PROFILE_KEY)
-  target.dispatchEvent(new CustomEvent("eduai:litert-route-profile", { detail: null }))
+  if (!modelId) {
+    target.localStorage.removeItem(ROUTE_PROFILES_KEY)
+    target.localStorage.removeItem(LEGACY_ROUTE_PROFILE_KEY)
+    target.dispatchEvent(new CustomEvent("eduai:litert-route-profile", { detail: null }))
+    return
+  }
+  const store = readStore()
+  if (!store) return
+  const profiles = { ...store.profiles }
+  delete profiles[modelId]
+  target.localStorage.setItem(ROUTE_PROFILES_KEY, JSON.stringify({ ...store, profiles }))
+  target.dispatchEvent(new CustomEvent("eduai:litert-route-profile", { detail: { modelId, deleted: true } }))
 }
 
-function resolveLiteRTRoute(capabilities: LiteRTCapabilitySnapshot): LiteRTRouteDecision {
+function resolveLiteRTRoute(capabilities: LiteRTCapabilitySnapshot, modelId: string): LiteRTRouteDecision {
   const webnnEligible = capabilities.webnnContext && capabilities.jspi
-  const persisted = readLiteRTRouteProfile()
+  const persisted = readLiteRTRouteProfile(EDUAI_LITERT_VERSION, modelId)
 
   if (persisted?.backend === "webgpu" && capabilities.webgpu) {
     return {
@@ -90,7 +160,8 @@ function resolveLiteRTRoute(capabilities: LiteRTCapabilitySnapshot): LiteRTRoute
       experimental: webnnEligible ? "webnn" : "webgpu",
       webnnEligible,
       source: "benchmark",
-      reason: `WebGPU fue validado por Benchmark V4 en este dispositivo (${persisted.medianEndToEndMs.toFixed(1)} ms end-to-end mediana).`,
+      modelId,
+      reason: `WebGPU fue validado para ${modelId} (${persisted.medianEndToEndMs.toFixed(1)} ms E2E mediana).`,
     }
   }
 
@@ -100,7 +171,8 @@ function resolveLiteRTRoute(capabilities: LiteRTCapabilitySnapshot): LiteRTRoute
       experimental: webnnEligible ? "webnn" : "wasm",
       webnnEligible,
       source: "benchmark",
-      reason: `WASM fue validado por Benchmark V4 como la ruta end-to-end más rápida en este dispositivo (${persisted.medianEndToEndMs.toFixed(1)} ms mediana).`,
+      modelId,
+      reason: `WASM fue validado para ${modelId} como la ruta E2E más rápida (${persisted.medianEndToEndMs.toFixed(1)} ms mediana).`,
     }
   }
 
@@ -110,9 +182,10 @@ function resolveLiteRTRoute(capabilities: LiteRTCapabilitySnapshot): LiteRTRoute
       experimental: webnnEligible ? "webnn" : "webgpu",
       webnnEligible,
       source: "capability",
+      modelId,
       reason: webnnEligible
-        ? "WebGPU queda como ruta estable; WebNN está disponible solo para pruebas experimentales."
-        : "WebGPU ofrece la mejor ruta estable detectada; WASM queda como fallback hasta completar Benchmark V4.",
+        ? `WebGPU queda como ruta estable inicial para ${modelId}; WebNN se mantiene experimental.`
+        : `WebGPU queda como ruta estable inicial para ${modelId}; WASM permanece como fallback hasta calibrarlo.`,
     }
   }
 
@@ -122,7 +195,8 @@ function resolveLiteRTRoute(capabilities: LiteRTCapabilitySnapshot): LiteRTRoute
       experimental: "webnn",
       webnnEligible: true,
       source: "capability",
-      reason: "WebNN está disponible, pero continúa en preview; producción mantiene WASM como fallback estable.",
+      modelId,
+      reason: `WebNN está disponible para ${modelId}, pero producción mantiene WASM hasta una calibración específica.`,
     }
   }
 
@@ -131,30 +205,18 @@ function resolveLiteRTRoute(capabilities: LiteRTCapabilitySnapshot): LiteRTRoute
     experimental: "wasm",
     webnnEligible: false,
     source: "capability",
-    reason: "No hay acelerador web estable detectado; se usa WASM/XNNPack.",
+    modelId,
+    reason: `No hay acelerador web estable calibrado para ${modelId}; se usa WASM/XNNPack.`,
   }
 }
 
-export function selectLiteRTRoute(capabilities: LiteRTCapabilitySnapshot): LiteRTRouteDecision {
-  // The returned object intentionally resolves its values lazily. Components may
-  // keep this object alive while Benchmark V4 writes a newer profile to localStorage.
-  // Reading route.production later must therefore see the latest calibrated route
-  // without forcing a full LiteRT reinitialization or a page reload.
+export function selectLiteRTRoute(capabilities: LiteRTCapabilitySnapshot, modelId = DEFAULT_LITERT_PROBE_MODEL_ID): LiteRTRouteDecision {
   return {
-    get production() {
-      return resolveLiteRTRoute(capabilities).production
-    },
-    get experimental() {
-      return resolveLiteRTRoute(capabilities).experimental
-    },
-    get reason() {
-      return resolveLiteRTRoute(capabilities).reason
-    },
-    get webnnEligible() {
-      return resolveLiteRTRoute(capabilities).webnnEligible
-    },
-    get source() {
-      return resolveLiteRTRoute(capabilities).source
-    },
+    get production() { return resolveLiteRTRoute(capabilities, modelId).production },
+    get experimental() { return resolveLiteRTRoute(capabilities, modelId).experimental },
+    get reason() { return resolveLiteRTRoute(capabilities, modelId).reason },
+    get webnnEligible() { return resolveLiteRTRoute(capabilities, modelId).webnnEligible },
+    get source() { return resolveLiteRTRoute(capabilities, modelId).source },
+    get modelId() { return modelId },
   }
 }
