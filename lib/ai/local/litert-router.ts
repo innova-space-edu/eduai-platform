@@ -80,7 +80,7 @@ export function clearLiteRTRouteProfile() {
   target.dispatchEvent(new CustomEvent("eduai:litert-route-profile", { detail: null }))
 }
 
-export function selectLiteRTRoute(capabilities: LiteRTCapabilitySnapshot): LiteRTRouteDecision {
+function resolveLiteRTRoute(capabilities: LiteRTCapabilitySnapshot): LiteRTRouteDecision {
   const webnnEligible = capabilities.webnnContext && capabilities.jspi
   const persisted = readLiteRTRouteProfile()
 
@@ -132,5 +132,29 @@ export function selectLiteRTRoute(capabilities: LiteRTCapabilitySnapshot): LiteR
     webnnEligible: false,
     source: "capability",
     reason: "No hay acelerador web estable detectado; se usa WASM/XNNPack.",
+  }
+}
+
+export function selectLiteRTRoute(capabilities: LiteRTCapabilitySnapshot): LiteRTRouteDecision {
+  // The returned object intentionally resolves its values lazily. Components may
+  // keep this object alive while Benchmark V4 writes a newer profile to localStorage.
+  // Reading route.production later must therefore see the latest calibrated route
+  // without forcing a full LiteRT reinitialization or a page reload.
+  return {
+    get production() {
+      return resolveLiteRTRoute(capabilities).production
+    },
+    get experimental() {
+      return resolveLiteRTRoute(capabilities).experimental
+    },
+    get reason() {
+      return resolveLiteRTRoute(capabilities).reason
+    },
+    get webnnEligible() {
+      return resolveLiteRTRoute(capabilities).webnnEligible
+    },
+    get source() {
+      return resolveLiteRTRoute(capabilities).source
+    },
   }
 }
