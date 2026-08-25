@@ -47,6 +47,19 @@ export const LOCAL_AI_MODELS: LocalAIModelDefinition[] = [
     notes: "Cuantiza los pesos a INT8 pero conserva activaciones FP32. Es la variante adecuada para comparar tamaño y velocidad sin cambiar el pipeline de entrada actual.",
   },
   {
+    id: "mobilenet-v2-webnn-probe",
+    name: "MobileNet V2 · WebNN probe",
+    runtime: "litertjs",
+    task: "Clasificación de imágenes / diagnóstico WebNN",
+    format: ".tflite",
+    sizeMB: 14.1,
+    sourceRepo: "litert-community/MobileNet-v2",
+    modelUrl: "https://huggingface.co/litert-community/MobileNet-v2/resolve/main/mobilenet_v2.tflite",
+    status: "candidate",
+    recommendedFor: ["WebNN preview", "NPU/GPU experimental", "validación de contexto WebNN"],
+    notes: "Modelo de prueba separado para WebNN. MobileNet V2 figura entre los modelos validados por Microsoft para su preview de WebNN; EduAI lo mantiene fuera de la ruta de producción.",
+  },
+  {
     id: "mobilenet-v3-small-static-int8",
     name: "MobileNet V3 Small Static INT8",
     runtime: "litertjs",
@@ -115,6 +128,7 @@ export const LOCAL_AI_MODELS: LocalAIModelDefinition[] = [
 
 export const DEFAULT_LITERT_PROBE_MODEL_ID = "mobilenet-v3-small-fp32"
 export const DEFAULT_LITERT_INT8_COMPARE_MODEL_ID = "mobilenet-v3-small-int8"
+export const DEFAULT_LITERT_WEBNN_PROBE_MODEL_ID = "mobilenet-v2-webnn-probe"
 
 export function getLocalAIModel(modelId: string) {
   return LOCAL_AI_MODELS.find((model) => model.id === modelId) || null
