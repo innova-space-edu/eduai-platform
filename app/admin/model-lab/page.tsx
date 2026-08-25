@@ -12,8 +12,11 @@ import AICoreHealthPanel from "@/components/admin/AICoreHealthPanel";
 import AICoreMetricsPanel from "@/components/admin/AICoreMetricsPanel";
 import AIModelRegistryPanel from "@/components/admin/AIModelRegistryPanel";
 import LiteRTLocalAIPanel from "@/components/admin/LiteRTLocalAIPanel";
+import LiteRTCacheAnalyticsPanel from "@/components/admin/LiteRTCacheAnalyticsPanel";
+import LiteRTPrewarm from "@/components/admin/LiteRTPrewarm";
+import LiteRTRouterStatusPanel from "@/components/admin/LiteRTRouterStatusPanel";
 import LiteRTQuantizationPanelV2 from "@/components/admin/LiteRTQuantizationPanelV2";
-import LiteRTBenchmarkPanelV3 from "@/components/admin/LiteRTBenchmarkPanelV3";
+import LiteRTBenchmarkPanelV4 from "@/components/admin/LiteRTBenchmarkPanelV4";
 import LocalAITelemetryPanel from "@/components/admin/LocalAITelemetryPanel";
 import ModelLabSectionNav from "@/components/admin/ModelLabSectionNav";
 import VideoProviderStatusPanel from "@/components/admin/VideoProviderStatusPanel";
@@ -26,7 +29,7 @@ export const revalidate = 0;
 const LAB_CAPABILITIES = [
   { label: "AI Core", detail: "Proveedores y Supabase", icon: Sparkles, tone: "text-cyan-200 border-cyan-400/15 bg-cyan-950/35" },
   { label: "Local AI", detail: "LiteRT · WebGPU · WASM", icon: BrainCircuit, tone: "text-emerald-200 border-emerald-400/15 bg-emerald-950/30" },
-  { label: "Performance", detail: "Benchmark estadístico", icon: Gauge, tone: "text-violet-200 border-violet-400/15 bg-violet-950/30" },
+  { label: "Performance", detail: "Benchmark end-to-end", icon: Gauge, tone: "text-violet-200 border-violet-400/15 bg-violet-950/30" },
   { label: "Control", detail: "Admin only · aislado", icon: ShieldCheck, tone: "text-amber-200 border-amber-400/15 bg-amber-950/25" },
 ] as const;
 
@@ -42,6 +45,7 @@ export default function AdminModelLabPage() {
 
   return (
     <main className={`${styles.darkLab} min-h-screen px-3 py-5 text-white sm:px-5 sm:py-7`}>
+      <LiteRTPrewarm />
       <div className="mx-auto max-w-[1440px] space-y-5">
         <header className="relative overflow-hidden rounded-[30px] border border-white/10 bg-[#081224] p-5 shadow-[0_24px_90px_rgba(2,6,23,0.55)] sm:p-7">
           <div className="pointer-events-none absolute -right-16 -top-24 h-72 w-72 rounded-full bg-cyan-950/30 blur-3xl" />
@@ -95,11 +99,13 @@ export default function AdminModelLabPage() {
 
         <div id="litert" className={`scroll-mt-24 ${styles.litertShell}`}>
           <LiteRTLocalAIPanel />
+          <LiteRTRouterStatusPanel />
+          <LiteRTCacheAnalyticsPanel />
           <LiteRTQuantizationPanelV2 />
         </div>
 
         <div id="benchmark" className="scroll-mt-24">
-          <LiteRTBenchmarkPanelV3 />
+          <LiteRTBenchmarkPanelV4 />
         </div>
 
         <div id="modelos" className="scroll-mt-24">
