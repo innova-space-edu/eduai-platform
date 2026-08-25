@@ -6,6 +6,7 @@ export type LiteRTRuntimeHandle = {
   initMs: number
   totalMs: number
   initializedAt: string
+  jspiRequested: boolean
 }
 
 export type LiteRTRuntimeLease = LiteRTRuntimeHandle & {
@@ -33,7 +34,10 @@ async function initializeRuntime(): Promise<LiteRTRuntimeHandle> {
 
   const initStartedAt = performance.now()
   try {
-    await litert.loadLiteRt(EDUAI_LITERT_WASM_URL)
+    // JSPI es requerido por LiteRT.js para WebNN y habilita partición mixta
+    // WebGPU/WASM en navegadores compatibles. En navegadores sin JSPI LiteRT
+    // conserva sus rutas soportadas y puede hacer fallback completo a WASM.
+    await litert.loadLiteRt(EDUAI_LITERT_WASM_URL, { jspi: true })
   } catch (error) {
     // LiteRT.js no es idempotente en todas las versiones. Si otro panel ya
     // inicializó el runtime en esta misma página, reutilizamos ese estado.
@@ -47,6 +51,7 @@ async function initializeRuntime(): Promise<LiteRTRuntimeHandle> {
     initMs,
     totalMs: performance.now() - startedAt,
     initializedAt: new Date().toISOString(),
+    jspiRequested: true,
   }
 }
 
@@ -91,5 +96,6 @@ export function getLiteRTRuntimeStatus() {
     ready: Boolean(cachedRuntime),
     loading: Boolean(runtimePromise && !cachedRuntime),
     initializedAt: cachedRuntime?.initializedAt || null,
+    jspiRequested: cachedRuntime?.jspiRequested || false,
   }
 }
