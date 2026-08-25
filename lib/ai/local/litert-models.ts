@@ -35,16 +35,29 @@ export const LOCAL_AI_MODELS: LocalAIModelDefinition[] = [
   },
   {
     id: "mobilenet-v3-small-int8",
-    name: "MobileNet V3 Small INT8",
+    name: "MobileNet V3 Small INT8 weight-only",
+    runtime: "litertjs",
+    task: "Clasificación de imágenes",
+    format: ".tflite",
+    sizeMB: 2.75,
+    sourceRepo: "litert-community/MobileNet-v3-small",
+    modelUrl: "https://huggingface.co/litert-community/MobileNet-v3-small/resolve/main/mobilenet_v3_small_weight_only_wi8_afp32.tflite",
+    status: "ready",
+    recommendedFor: ["equipos modestos", "FP32 activations", "comparación contra FP32"],
+    notes: "Cuantiza los pesos a INT8 pero conserva activaciones FP32. Es la variante adecuada para comparar tamaño y velocidad sin cambiar el pipeline de entrada actual.",
+  },
+  {
+    id: "mobilenet-v3-small-static-int8",
+    name: "MobileNet V3 Small Static INT8",
     runtime: "litertjs",
     task: "Clasificación de imágenes",
     format: ".tflite",
     sizeMB: 2.88,
     sourceRepo: "litert-community/MobileNet-v3-small",
     modelUrl: "https://huggingface.co/litert-community/MobileNet-v3-small/resolve/main/mobilenet_v3_small_int8_channelwise.tflite",
-    status: "candidate",
-    recommendedFor: ["equipos modestos", "CPU/WASM", "pruebas de cuantización"],
-    notes: "Mucho más liviano. Debe validarse por dispositivo porque la delegación WebGPU de modelos cuantizados puede variar.",
+    status: "next",
+    recommendedFor: ["NPU/WebNN futuro", "activaciones INT8", "validación de cuantización completa"],
+    notes: "Variante estática INT8 con activaciones INT8. Requiere cuantizar la entrada y validar escalas/zero-point antes de habilitarla en la prueba visual general.",
   },
   {
     id: "whisper-tiny-int8",
@@ -101,6 +114,7 @@ export const LOCAL_AI_MODELS: LocalAIModelDefinition[] = [
 ]
 
 export const DEFAULT_LITERT_PROBE_MODEL_ID = "mobilenet-v3-small-fp32"
+export const DEFAULT_LITERT_INT8_COMPARE_MODEL_ID = "mobilenet-v3-small-int8"
 
 export function getLocalAIModel(modelId: string) {
   return LOCAL_AI_MODELS.find((model) => model.id === modelId) || null
