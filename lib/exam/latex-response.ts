@@ -63,8 +63,12 @@ export function normalizeLatexSource(value: unknown): string {
     .replace(/\\dfrac/g, "\\frac")
     .replace(/\\tfrac/g, "\\frac")
     .replace(/\\displaystyle\s*/g, "")
-    .replace(/\\left/g, "")
-    .replace(/\\right/g, "")
+    // IMPORTANTE: \left y \right son comandos de tamaño, pero también son
+    // prefijos de comandos válidos como \leftarrow, \rightarrow y
+    // \rightleftharpoons. El límite de palabra evita convertir, por ejemplo,
+    // \rightarrow en el texto crudo "arrow".
+    .replace(/\\left\b/g, "")
+    .replace(/\\right\b/g, "")
     .replace(/\\,/g, " ")
     .replace(/\\;/g, " ")
     .replace(/\\!/g, "")
