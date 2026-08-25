@@ -12,7 +12,8 @@ import AICoreHealthPanel from "@/components/admin/AICoreHealthPanel";
 import AICoreMetricsPanel from "@/components/admin/AICoreMetricsPanel";
 import AIModelRegistryPanel from "@/components/admin/AIModelRegistryPanel";
 import LiteRTLocalAIPanel from "@/components/admin/LiteRTLocalAIPanel";
-import LiteRTBenchmarkPanel from "@/components/admin/LiteRTBenchmarkPanel";
+import LiteRTQuantizationPanel from "@/components/admin/LiteRTQuantizationPanel";
+import LiteRTBenchmarkPanelV2 from "@/components/admin/LiteRTBenchmarkPanelV2";
 import ModelLabSectionNav from "@/components/admin/ModelLabSectionNav";
 import VideoProviderStatusPanel from "@/components/admin/VideoProviderStatusPanel";
 import { ADMIN_ONLY_EXPERIMENTAL_MODELS } from "@/lib/ai/admin-model-policy";
@@ -78,10 +79,11 @@ export default function AdminModelLabPage() {
 
         <div id="litert" className={`scroll-mt-24 ${styles.litertShell}`}>
           <LiteRTLocalAIPanel />
+          <LiteRTQuantizationPanel />
         </div>
 
         <div id="benchmark" className="scroll-mt-24">
-          <LiteRTBenchmarkPanel />
+          <LiteRTBenchmarkPanelV2 />
         </div>
 
         <div id="modelos" className="scroll-mt-24">
