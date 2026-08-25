@@ -12,6 +12,13 @@ export type LocalAIEvent = {
   compileMs?: number
   runCount?: number
   runtimeReused?: boolean
+  modelReused?: boolean
+  preprocessMs?: number
+  modelAcquireMs?: number
+  computeMs?: number
+  readbackMs?: number
+  postprocessMs?: number
+  endToEndMs?: number
   success: boolean
   note?: string
 }
@@ -26,7 +33,9 @@ export type LocalAITelemetrySummary = {
   wasmRuns: number
   webgpuShare: number
   medianLatencyMs: number
+  medianEndToEndMs: number
   runtimeReuseRate: number
+  modelReuseRate: number
 }
 
 export const LOCAL_AI_TELEMETRY_STORAGE_KEY = "eduai_local_ai_telemetry_v1"
@@ -86,9 +95,14 @@ export function summarizeLocalAIEvents(events: LocalAIEvent[]): LocalAITelemetry
   const wasmRuns = backendEvents.filter(event => event.backend === "wasm").reduce((sum, event) => sum + (event.runCount || 0), 0)
   const measuredRuns = successful.reduce((sum, event) => sum + (event.runCount || 0), 0)
   const latencyValues = successful.map(event => event.latencyMs).filter((value): value is number => typeof value === "number" && Number.isFinite(value))
+  const endToEndValues = successful.map(event => event.endToEndMs ?? event.latencyMs).filter((value): value is number => typeof value === "number" && Number.isFinite(value))
   const reuseEligible = successful.filter(event => typeof event.runtimeReused === "boolean")
+  const modelReuseEligible = successful.filter(event => typeof event.modelReused === "boolean")
   const runtimeReuseRate = reuseEligible.length
     ? (reuseEligible.filter(event => event.runtimeReused).length / reuseEligible.length) * 100
+    : 0
+  const modelReuseRate = modelReuseEligible.length
+    ? (modelReuseEligible.filter(event => event.modelReused).length / modelReuseEligible.length) * 100
     : 0
 
   return {
@@ -101,6 +115,8 @@ export function summarizeLocalAIEvents(events: LocalAIEvent[]): LocalAITelemetry
     wasmRuns,
     webgpuShare: webgpuRuns + wasmRuns > 0 ? (webgpuRuns / (webgpuRuns + wasmRuns)) * 100 : 0,
     medianLatencyMs: median(latencyValues),
+    medianEndToEndMs: median(endToEndValues),
     runtimeReuseRate,
+    modelReuseRate,
   }
 }

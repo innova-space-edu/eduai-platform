@@ -1,4 +1,5 @@
 import { EDUAI_LITERT_ESM_URL, EDUAI_LITERT_WASM_URL } from "@/lib/ai/local/litert-models"
+import { acquireLiteRTCompiledModel, clearLiteRTCompiledModelPool, getLiteRTCompiledModelPoolStatus } from "@/lib/ai/local/litert-model-pool"
 
 export type LiteRTRuntimeHandle = {
   litert: any
@@ -25,23 +26,35 @@ function isAlreadyLoadedError(error: unknown) {
   return /already\s+(loading|loaded)|loading\s*\/\s*loaded/i.test(message)
 }
 
+function createLiteRTFacade(module: any) {
+  const nativeLoadAndCompile = module.loadAndCompile.bind(module)
+  return {
+    ...module,
+    loadAndCompile: (source: any, options?: any) => acquireLiteRTCompiledModel(nativeLoadAndCompile, source, options),
+    __eduaiCompiledPoolInstalled: true,
+    __eduaiCompiledPoolStatus: getLiteRTCompiledModelPoolStatus,
+    __eduaiClearCompiledPool: clearLiteRTCompiledModelPool,
+  }
+}
+
 async function initializeRuntime(): Promise<LiteRTRuntimeHandle> {
   const startedAt = performance.now()
   const importStartedAt = performance.now()
-  const litert = await import(/* webpackIgnore: true */ EDUAI_LITERT_ESM_URL)
+  const module = await import(/* webpackIgnore: true */ EDUAI_LITERT_ESM_URL)
   const importMs = performance.now() - importStartedAt
 
-  if (typeof litert.loadLiteRt !== "function" || typeof litert.loadAndCompile !== "function" || typeof litert.Tensor !== "function") {
+  if (typeof module.loadLiteRt !== "function" || typeof module.loadAndCompile !== "function" || typeof module.Tensor !== "function") {
     throw new Error("LiteRT.js cargó, pero no expone la API esperada.")
   }
 
   const initStartedAt = performance.now()
   try {
-    await litert.loadLiteRt(EDUAI_LITERT_WASM_URL, { jspi: true })
+    await module.loadLiteRt(EDUAI_LITERT_WASM_URL, { jspi: true })
   } catch (error) {
     if (!isAlreadyLoadedError(error)) throw error
   }
   const initMs = performance.now() - initStartedAt
+  const litert = createLiteRTFacade(module)
 
   return {
     litert,
@@ -136,5 +149,6 @@ export function getLiteRTRuntimeStatus() {
     prewarmAttempted,
     prewarmCompletedAt,
     prewarmError,
+    compiledPool: getLiteRTCompiledModelPoolStatus(),
   }
 }
