@@ -1,4 +1,5 @@
 import { EDUAI_LITERT_ESM_URL, EDUAI_LITERT_WASM_URL } from "@/lib/ai/local/litert-models"
+import { acquireLiteRTCompiledModel, clearLiteRTCompiledModelPool, getLiteRTCompiledModelPoolStatus } from "@/lib/ai/local/litert-model-pool"
 
 export type LiteRTRuntimeHandle = {
   litert: any
@@ -25,6 +26,15 @@ function isAlreadyLoadedError(error: unknown) {
   return /already\s+(loading|loaded)|loading\s*\/\s*loaded/i.test(message)
 }
 
+function installCompiledModelPool(litert: any) {
+  if (litert.__eduaiCompiledPoolInstalled) return
+  const nativeLoadAndCompile = litert.loadAndCompile.bind(litert)
+  litert.loadAndCompile = (source: any, options?: any) => acquireLiteRTCompiledModel(nativeLoadAndCompile, source, options)
+  Object.defineProperty(litert, "__eduaiCompiledPoolInstalled", { value: true, enumerable: false })
+  litert.__eduaiCompiledPoolStatus = getLiteRTCompiledModelPoolStatus
+  litert.__eduaiClearCompiledPool = clearLiteRTCompiledModelPool
+}
+
 async function initializeRuntime(): Promise<LiteRTRuntimeHandle> {
   const startedAt = performance.now()
   const importStartedAt = performance.now()
@@ -42,6 +52,7 @@ async function initializeRuntime(): Promise<LiteRTRuntimeHandle> {
     if (!isAlreadyLoadedError(error)) throw error
   }
   const initMs = performance.now() - initStartedAt
+  installCompiledModelPool(litert)
 
   return {
     litert,
@@ -136,5 +147,6 @@ export function getLiteRTRuntimeStatus() {
     prewarmAttempted,
     prewarmCompletedAt,
     prewarmError,
+    compiledPool: getLiteRTCompiledModelPoolStatus(),
   }
 }
