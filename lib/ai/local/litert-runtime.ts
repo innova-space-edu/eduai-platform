@@ -16,6 +16,9 @@ export type LiteRTRuntimeLease = LiteRTRuntimeHandle & {
 
 let cachedRuntime: LiteRTRuntimeHandle | null = null
 let runtimePromise: Promise<LiteRTRuntimeHandle> | null = null
+let prewarmAttempted = false
+let prewarmCompletedAt: string | null = null
+let prewarmError: string | null = null
 
 function isAlreadyLoadedError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error || "")
@@ -34,13 +37,8 @@ async function initializeRuntime(): Promise<LiteRTRuntimeHandle> {
 
   const initStartedAt = performance.now()
   try {
-    // JSPI es requerido por LiteRT.js para WebNN y habilita partición mixta
-    // WebGPU/WASM en navegadores compatibles. En navegadores sin JSPI LiteRT
-    // conserva sus rutas soportadas y puede hacer fallback completo a WASM.
     await litert.loadLiteRt(EDUAI_LITERT_WASM_URL, { jspi: true })
   } catch (error) {
-    // LiteRT.js no es idempotente en todas las versiones. Si otro panel ya
-    // inicializó el runtime en esta misma página, reutilizamos ese estado.
     if (!isAlreadyLoadedError(error)) throw error
   }
   const initMs = performance.now() - initStartedAt
@@ -91,11 +89,52 @@ export async function getLiteRTRuntime(): Promise<LiteRTRuntimeLease> {
   }
 }
 
+export function scheduleLiteRTPrewarm(options: { timeoutMs?: number; delayMs?: number } = {}) {
+  if (typeof window === "undefined") return () => undefined
+  const target = window as Window & {
+    requestIdleCallback?: (callback: () => void, options?: { timeout?: number }) => number
+    cancelIdleCallback?: (id: number) => void
+  }
+  const timeoutMs = options.timeoutMs ?? 2500
+  const delayMs = options.delayMs ?? 700
+  let cancelled = false
+  let idleId: number | null = null
+  let timerId: ReturnType<typeof setTimeout> | null = null
+
+  const run = () => {
+    if (cancelled || cachedRuntime || runtimePromise) return
+    prewarmAttempted = true
+    void getLiteRTRuntime()
+      .then(() => {
+        prewarmCompletedAt = new Date().toISOString()
+        prewarmError = null
+      })
+      .catch(error => {
+        prewarmError = error instanceof Error ? error.message : String(error || "Prewarm falló")
+      })
+  }
+
+  if (typeof target.requestIdleCallback === "function") {
+    idleId = target.requestIdleCallback(run, { timeout: timeoutMs })
+  } else {
+    timerId = setTimeout(run, delayMs)
+  }
+
+  return () => {
+    cancelled = true
+    if (idleId !== null && typeof target.cancelIdleCallback === "function") target.cancelIdleCallback(idleId)
+    if (timerId) clearTimeout(timerId)
+  }
+}
+
 export function getLiteRTRuntimeStatus() {
   return {
     ready: Boolean(cachedRuntime),
     loading: Boolean(runtimePromise && !cachedRuntime),
     initializedAt: cachedRuntime?.initializedAt || null,
     jspiRequested: cachedRuntime?.jspiRequested || false,
+    prewarmAttempted,
+    prewarmCompletedAt,
+    prewarmError,
   }
 }
