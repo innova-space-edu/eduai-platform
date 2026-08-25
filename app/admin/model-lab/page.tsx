@@ -3,6 +3,7 @@ import AICoreHealthPanel from "@/components/admin/AICoreHealthPanel";
 import AICoreMetricsPanel from "@/components/admin/AICoreMetricsPanel";
 import AIModelRegistryPanel from "@/components/admin/AIModelRegistryPanel";
 import LiteRTLocalAIPanel from "@/components/admin/LiteRTLocalAIPanel";
+import LiteRTBenchmarkPanel from "@/components/admin/LiteRTBenchmarkPanel";
 import VideoProviderStatusPanel from "@/components/admin/VideoProviderStatusPanel";
 import { ADMIN_ONLY_EXPERIMENTAL_MODELS } from "@/lib/ai/admin-model-policy";
 
@@ -23,6 +24,7 @@ export default function AdminModelLabPage() {
 
         <AICoreHealthPanel />
         <LiteRTLocalAIPanel />
+        <LiteRTBenchmarkPanel />
         <AIModelRegistryPanel />
         <VideoProviderStatusPanel />
         <AICoreMetricsPanel />
