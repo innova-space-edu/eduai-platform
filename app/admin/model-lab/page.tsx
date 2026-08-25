@@ -6,6 +6,7 @@ import LiteRTLocalAIPanel from "@/components/admin/LiteRTLocalAIPanel";
 import LiteRTBenchmarkPanel from "@/components/admin/LiteRTBenchmarkPanel";
 import VideoProviderStatusPanel from "@/components/admin/VideoProviderStatusPanel";
 import { ADMIN_ONLY_EXPERIMENTAL_MODELS } from "@/lib/ai/admin-model-policy";
+import styles from "./model-lab.module.css";
 
 export default function AdminModelLabPage() {
   return (
@@ -23,7 +24,9 @@ export default function AdminModelLabPage() {
         </div>
 
         <AICoreHealthPanel />
-        <LiteRTLocalAIPanel />
+        <div className={styles.litertShell}>
+          <LiteRTLocalAIPanel />
+        </div>
         <LiteRTBenchmarkPanel />
         <AIModelRegistryPanel />
         <VideoProviderStatusPanel />

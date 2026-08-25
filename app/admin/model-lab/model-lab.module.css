@@ -1,0 +1,86 @@
+.litertShell {
+  min-width: 0;
+}
+
+.litertShell section {
+  max-width: 100%;
+}
+
+/* El segundo bloque directo del panel LiteRT es el grid Diagnóstico + Prueba real. */
+.litertShell section > div:nth-child(2) {
+  min-width: 0;
+  align-items: start;
+}
+
+.litertShell section > div:nth-child(2) > div {
+  min-width: 0;
+  align-self: start;
+}
+
+/* Evita que las columnas fr usen el min-content de las etiquetas largas. */
+@media (min-width: 1280px) {
+  .litertShell section > div:nth-child(2) {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr) !important;
+  }
+}
+
+/* Columna de la prueba real: nunca debe ensanchar el grid exterior. */
+.litertShell section > div:nth-child(2) > div:nth-child(2) {
+  min-width: 0;
+  overflow: visible;
+}
+
+/* Preview + información del modelo. */
+.litertShell section > div:nth-child(2) > div:nth-child(2) > div:nth-child(2) {
+  min-width: 0;
+  grid-template-columns: minmax(0, 132px) minmax(0, 1fr);
+}
+
+.litertShell section > div:nth-child(2) > div:nth-child(2) > div:nth-child(2) > label {
+  min-height: 8.5rem;
+  max-height: 10rem;
+}
+
+.litertShell section > div:nth-child(2) > div:nth-child(2) > div:nth-child(2) > div {
+  min-width: 0;
+}
+
+/* El resultado ocupa todo el ancho disponible y permite multilínea. */
+.litertShell section > div:nth-child(2) > div:nth-child(2) > div:nth-child(3) {
+  width: 100%;
+  min-width: 0;
+  overflow: visible;
+}
+
+.litertShell section > div:nth-child(2) > div:nth-child(2) > div:nth-child(3) [class~="truncate"] {
+  min-width: 0;
+  overflow: visible;
+  white-space: normal;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+
+/* Las tres métricas se adaptan a anchos estrechos en lugar de desbordar. */
+.litertShell section > div:nth-child(2) > div:nth-child(2) > div:nth-child(3) > div:nth-child(2) {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.litertShell section > div:nth-child(2) > div:nth-child(2) > div:nth-child(3) > div:nth-child(2) > div {
+  min-width: 0;
+}
+
+@media (max-width: 720px) {
+  .litertShell section > div:nth-child(2) > div:nth-child(2) > div:nth-child(2) {
+    grid-template-columns: 1fr;
+  }
+
+  .litertShell section > div:nth-child(2) > div:nth-child(2) > div:nth-child(2) > label {
+    min-height: 12rem;
+    max-height: 15rem;
+  }
+
+  .litertShell section > div:nth-child(2) > div:nth-child(2) > div:nth-child(3) > div:nth-child(2) {
+    grid-template-columns: 1fr;
+  }
+}
