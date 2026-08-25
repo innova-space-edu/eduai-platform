@@ -19,6 +19,8 @@ export type LiteRTCacheAnalytics = {
   hitRate: number
 }
 
+const memoryObjectUrls = new Map<string, { url: string; byteLength: number }>()
+
 function emptyAnalytics(): LiteRTCacheAnalytics {
   return { requests: 0, hits: 0, misses: 0, networkBytes: 0, lastSource: null, lastAccessAt: null, hitRate: 0 }
 }
@@ -69,6 +71,12 @@ export async function getCachedModelSource(modelUrl: string): Promise<CachedMode
     return { url: modelUrl, cacheHit: false, byteLength: null, source: "direct", cleanup: () => undefined }
   }
 
+  const memory = memoryObjectUrls.get(modelUrl)
+  if (memory) {
+    recordCacheAccess("cache", memory.byteLength)
+    return { url: memory.url, cacheHit: true, byteLength: memory.byteLength, source: "cache", cleanup: () => undefined }
+  }
+
   try {
     const cache = await caches.open(CACHE_NAME)
     let response = await cache.match(modelUrl)
@@ -91,12 +99,15 @@ export async function getCachedModelSource(modelUrl: string): Promise<CachedMode
     const source = cacheHit ? "cache" : "network"
     recordCacheAccess(source, blob.size)
     const objectUrl = URL.createObjectURL(blob)
+    memoryObjectUrls.set(modelUrl, { url: objectUrl, byteLength: blob.size })
     return {
       url: objectUrl,
       cacheHit,
       byteLength: blob.size,
       source,
-      cleanup: () => URL.revokeObjectURL(objectUrl),
+      // The object URL remains stable for the browser session so compiled-model
+      // pooling can reuse modelId/backend combinations across Model Lab panels.
+      cleanup: () => undefined,
     }
   } catch {
     recordCacheAccess("direct", null)
@@ -106,13 +117,15 @@ export async function getCachedModelSource(modelUrl: string): Promise<CachedMode
 
 export async function precacheLiteRTModel(modelUrl: string) {
   const source = await getCachedModelSource(modelUrl)
-  const result = { source: source.source, cacheHit: source.cacheHit, byteLength: source.byteLength }
-  source.cleanup()
-  return result
+  return { source: source.source, cacheHit: source.cacheHit, byteLength: source.byteLength }
 }
 
 export async function clearLiteRTModelCache() {
   if (typeof window === "undefined" || !("caches" in window)) return false
+  for (const source of memoryObjectUrls.values()) {
+    try { URL.revokeObjectURL(source.url) } catch { /* best effort */ }
+  }
+  memoryObjectUrls.clear()
   const deleted = await caches.delete(CACHE_NAME)
   localStorage.removeItem(CACHE_ANALYTICS_KEY)
   window.dispatchEvent(new CustomEvent("eduai:litert-cache-analytics", { detail: emptyAnalytics() }))
