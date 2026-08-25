@@ -20,6 +20,9 @@ import VideoProviderStatusPanel from "@/components/admin/VideoProviderStatusPane
 import { ADMIN_ONLY_EXPERIMENTAL_MODELS } from "@/lib/ai/admin-model-policy";
 import styles from "./model-lab.module.css";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const LAB_CAPABILITIES = [
   { label: "AI Core", detail: "Proveedores y Supabase", icon: Sparkles, tone: "text-cyan-200 border-cyan-400/15 bg-cyan-950/35" },
   { label: "Local AI", detail: "LiteRT · WebGPU · WASM", icon: BrainCircuit, tone: "text-emerald-200 border-emerald-400/15 bg-emerald-950/30" },
@@ -27,7 +30,16 @@ const LAB_CAPABILITIES = [
   { label: "Control", detail: "Admin only · aislado", icon: ShieldCheck, tone: "text-amber-200 border-amber-400/15 bg-amber-950/25" },
 ] as const;
 
+function getBuildFingerprint() {
+  const commit = (process.env.VERCEL_GIT_COMMIT_SHA || process.env.GITHUB_SHA || "local").slice(0, 8);
+  const branch = process.env.VERCEL_GIT_COMMIT_REF || process.env.GITHUB_REF_NAME || "local";
+  const environment = process.env.VERCEL_ENV || process.env.NODE_ENV || "local";
+  return { commit, branch, environment };
+}
+
 export default function AdminModelLabPage() {
+  const build = getBuildFingerprint();
+
   return (
     <main className={`${styles.darkLab} min-h-screen px-3 py-5 text-white sm:px-5 sm:py-7`}>
       <div className="mx-auto max-w-[1440px] space-y-5">
@@ -43,6 +55,9 @@ export default function AdminModelLabPage() {
                 </span>
                 <span className="rounded-full border border-emerald-400/15 bg-emerald-950/30 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-200">
                   Local-first enabled
+                </span>
+                <span className="rounded-full border border-cyan-400/15 bg-cyan-950/25 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-cyan-200" title={`Commit ${build.commit} · rama ${build.branch} · entorno ${build.environment}`}>
+                  Build {build.commit} · {build.branch} · {build.environment}
                 </span>
               </div>
               <h1 className="mt-4 text-3xl font-black tracking-tight sm:text-4xl">EduAI Model Lab</h1>
