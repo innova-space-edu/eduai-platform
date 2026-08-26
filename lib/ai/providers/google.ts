@@ -54,8 +54,6 @@ function client(kind: "text" | "image" | "video" = "text") {
       throw new Error("GOOGLE_GENAI_USE_VERTEX=true requiere GOOGLE_CLOUD_PROJECT")
     }
 
-    // Vertex AI usa credenciales de aplicación/Workload Identity del entorno
-    // servidor. No se coloca una service-account key en el frontend.
     return new GoogleGenAI({
       vertexai: true,
       project,
@@ -87,6 +85,39 @@ function toContents(messages: GatewayMessage[]) {
       role: message.role === "assistant" ? "model" : "user",
       parts: [{ text: message.content }],
     }))
+}
+
+function parseStructuredJson<T>(raw: string): T {
+  const text = raw.trim()
+  const attempts = new Set<string>()
+  if (text) attempts.add(text)
+
+  const unfenced = text
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim()
+  if (unfenced) attempts.add(unfenced)
+
+  const firstObject = unfenced.indexOf("{")
+  const lastObject = unfenced.lastIndexOf("}")
+  if (firstObject >= 0 && lastObject > firstObject) attempts.add(unfenced.slice(firstObject, lastObject + 1))
+
+  const firstArray = unfenced.indexOf("[")
+  const lastArray = unfenced.lastIndexOf("]")
+  if (firstArray >= 0 && lastArray > firstArray) attempts.add(unfenced.slice(firstArray, lastArray + 1))
+
+  let lastError: unknown = null
+  for (const candidate of attempts) {
+    try {
+      return JSON.parse(candidate) as T
+    } catch (error) {
+      lastError = error
+    }
+  }
+
+  const preview = text.replace(/\s+/g, " ").slice(0, 180)
+  const suffix = lastError instanceof Error ? ` (${lastError.message})` : ""
+  throw new Error(`Google devolvió una salida estructurada no válida${suffix}. Inicio recibido: ${preview || "vacío"}`)
 }
 
 export async function generateGoogleText(input: {
@@ -216,7 +247,7 @@ export async function generateGoogleStructured<T = Record<string, unknown>>(inpu
   const text = (response.text ?? "").trim()
   return {
     text,
-    data: JSON.parse(text) as T,
+    data: parseStructuredJson<T>(text),
     provider: "google",
     model,
   }
