@@ -87,13 +87,14 @@ export async function GET(req: NextRequest) {
   const realGenerations = completed.length
   const generationAvoided = reused.length
   const cacheHitRate = total > 0 ? Math.round((generationAvoided / total) * 1000) / 10 : 0
+  const gatewayFailures = failed.filter((row) => !row.provider).length
 
   const byCapability = new Map<string, { requests: number; generated: number; reused: number; failed: number; latency: number[] }>()
   const byProvider = new Map<string, { requests: number; generated: number; reused: number; failed: number; latency: number[]; cost: number }>()
 
   for (const row of requests) {
     const capability = row.capability || "unknown"
-    const provider = row.provider || "unknown"
+    const provider = row.provider || (row.status === "failed" ? "gateway (sin respuesta)" : "unknown")
     if (!byCapability.has(capability)) byCapability.set(capability, { requests: 0, generated: 0, reused: 0, failed: 0, latency: [] })
     if (!byProvider.has(provider)) byProvider.set(provider, { requests: 0, generated: 0, reused: 0, failed: 0, latency: [], cost: 0 })
 
@@ -126,6 +127,7 @@ export async function GET(req: NextRequest) {
       realGenerations,
       generationsAvoided: generationAvoided,
       failures: failed.length,
+      gatewayFailures,
       cacheHitRate,
       persistentCacheHits: totalPersistentHits,
       activeUsers: userIds.size,
