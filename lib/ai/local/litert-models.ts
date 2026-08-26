@@ -81,9 +81,9 @@ export const LOCAL_AI_MODELS: LocalAIModelDefinition[] = [
     sizeMB: 41.1,
     sourceRepo: "litert-community/whisper-tiny",
     modelUrl: "https://huggingface.co/litert-community/whisper-tiny/resolve/main/whisper_tiny_30s_i8.tflite",
-    status: "candidate",
+    status: "ready",
     recommendedFor: ["dictado local", "transcripción", "modo voz de MIRA"],
-    notes: "El runtime puede cargar el modelo, pero EduAI todavía debe implementar tokenización, audio y postprocesamiento ASR.",
+    notes: "Whisper Tiny INT8 con pipeline ASR local: audio 16 kHz, log-Mel, firmas encode/decode y tokenizer de Whisper. Permanece en Model Lab hasta validar calidad y latencia por dispositivo.",
   },
   {
     id: "qwen3-0.6b-int4",
@@ -129,6 +129,7 @@ export const LOCAL_AI_MODELS: LocalAIModelDefinition[] = [
 export const DEFAULT_LITERT_PROBE_MODEL_ID = "mobilenet-v3-small-fp32"
 export const DEFAULT_LITERT_INT8_COMPARE_MODEL_ID = "mobilenet-v3-small-int8"
 export const DEFAULT_LITERT_WEBNN_PROBE_MODEL_ID = "mobilenet-v2-webnn-probe"
+export const DEFAULT_LITERT_WHISPER_MODEL_ID = "whisper-tiny-int8"
 
 export function getLocalAIModel(modelId: string) {
   return LOCAL_AI_MODELS.find((model) => model.id === modelId) || null
