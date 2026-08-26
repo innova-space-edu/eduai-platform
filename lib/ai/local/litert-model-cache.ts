@@ -20,6 +20,15 @@ export type LiteRTCacheAnalytics = {
 }
 
 const memoryObjectUrls = new Map<string, { url: string; byteLength: number }>()
+const originalUrlBySource = new Map<string, string>()
+
+function registerSource(sourceUrl: string, originalUrl: string) {
+  originalUrlBySource.set(sourceUrl, originalUrl)
+}
+
+export function getOriginalLiteRTModelUrl(sourceUrl: string) {
+  return originalUrlBySource.get(sourceUrl) || sourceUrl
+}
 
 function emptyAnalytics(): LiteRTCacheAnalytics {
   return { requests: 0, hits: 0, misses: 0, networkBytes: 0, lastSource: null, lastAccessAt: null, hitRate: 0 }
@@ -68,11 +77,13 @@ function recordCacheAccess(source: "cache" | "network" | "direct", byteLength: n
 
 export async function getCachedModelSource(modelUrl: string): Promise<CachedModelSource> {
   if (typeof window === "undefined" || !("caches" in window)) {
+    registerSource(modelUrl, modelUrl)
     return { url: modelUrl, cacheHit: false, byteLength: null, source: "direct", cleanup: () => undefined }
   }
 
   const memory = memoryObjectUrls.get(modelUrl)
   if (memory) {
+    registerSource(memory.url, modelUrl)
     recordCacheAccess("cache", memory.byteLength)
     return { url: memory.url, cacheHit: true, byteLength: memory.byteLength, source: "cache", cleanup: () => undefined }
   }
@@ -92,6 +103,7 @@ export async function getCachedModelSource(modelUrl: string): Promise<CachedMode
 
     const blob = await response.blob()
     if (!blob.size) {
+      registerSource(modelUrl, modelUrl)
       recordCacheAccess("direct", null)
       return { url: modelUrl, cacheHit, byteLength: null, source: "direct", cleanup: () => undefined }
     }
@@ -100,16 +112,16 @@ export async function getCachedModelSource(modelUrl: string): Promise<CachedMode
     recordCacheAccess(source, blob.size)
     const objectUrl = URL.createObjectURL(blob)
     memoryObjectUrls.set(modelUrl, { url: objectUrl, byteLength: blob.size })
+    registerSource(objectUrl, modelUrl)
     return {
       url: objectUrl,
       cacheHit,
       byteLength: blob.size,
       source,
-      // The object URL remains stable for the browser session so compiled-model
-      // pooling can reuse modelId/backend combinations across Model Lab panels.
       cleanup: () => undefined,
     }
   } catch {
+    registerSource(modelUrl, modelUrl)
     recordCacheAccess("direct", null)
     return { url: modelUrl, cacheHit: false, byteLength: null, source: "direct", cleanup: () => undefined }
   }
@@ -126,6 +138,7 @@ export async function clearLiteRTModelCache() {
     try { URL.revokeObjectURL(source.url) } catch { /* best effort */ }
   }
   memoryObjectUrls.clear()
+  originalUrlBySource.clear()
   const deleted = await caches.delete(CACHE_NAME)
   localStorage.removeItem(CACHE_ANALYTICS_KEY)
   window.dispatchEvent(new CustomEvent("eduai:litert-cache-analytics", { detail: emptyAnalytics() }))
