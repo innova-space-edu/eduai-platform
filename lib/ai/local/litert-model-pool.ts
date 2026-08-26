@@ -5,6 +5,8 @@ import {
   rememberLiteRTNegativeCapability,
 } from "@/lib/ai/local/litert-negative-cache"
 import type { LiteRTBackend } from "@/lib/ai/local/litert-router"
+import { getOriginalLiteRTModelUrl } from "@/lib/ai/local/litert-model-cache"
+import { LOCAL_AI_MODELS } from "@/lib/ai/local/litert-models"
 
 export type LiteRTCompiledModelPoolEntry = {
   key: string
@@ -31,6 +33,13 @@ const pending = new Map<string, Promise<LiteRTCompiledModelPoolEntry>>()
 
 function keyFor(sourceUrl: string, accelerator: string, modelId?: string | null) {
   return `${modelId || sourceUrl}|${accelerator}`
+}
+
+function resolveModelId(source: unknown, explicit?: unknown) {
+  if (typeof explicit === "string" && explicit) return explicit
+  if (typeof source !== "string") return null
+  const original = getOriginalLiteRTModelUrl(source)
+  return LOCAL_AI_MODELS.find(model => model.modelUrl === original)?.id || null
 }
 
 function disposeEntry(entry: LiteRTCompiledModelPoolEntry) {
@@ -66,8 +75,6 @@ function lease(entry: LiteRTCompiledModelPoolEntry, reused: boolean) {
       if (property === "__eduaiPoolKey") return entry.key
       if (property === "__eduaiPoolReuseCount") return entry.reuseCount
       if (property === "__eduaiPoolModelId") return entry.modelId
-      // El pool posee el ciclo de vida real del modelo. Los leases conservan
-      // delete()/dispose() como no-op para no destruir una instancia compartida.
       if (property === "delete" || property === "dispose") return () => undefined
       const value = Reflect.get(target, property, receiver)
       return typeof value === "function" ? value.bind(target) : value
@@ -80,7 +87,7 @@ export async function acquireLiteRTCompiledModel(
   source: any,
   options: any = {},
 ) {
-  const modelId = typeof options?.__eduaiModelId === "string" ? options.__eduaiModelId : null
+  const modelId = resolveModelId(source, options?.__eduaiModelId)
   const accelerator = String(options?.accelerator || "default")
   const nativeOptions = { ...options }
   delete nativeOptions.__eduaiModelId
@@ -91,7 +98,7 @@ export async function acquireLiteRTCompiledModel(
     if (blocked) throw new LiteRTBackendUnsupportedError(modelId, accelerator as LiteRTBackend, blocked.reason)
   }
 
-  if (typeof source !== "string") {
+  const compile = async () => {
     try {
       return await nativeLoadAndCompile(source, nativeOptions)
     } catch (error) {
@@ -103,6 +110,8 @@ export async function acquireLiteRTCompiledModel(
     }
   }
 
+  if (typeof source !== "string") return compile()
+
   pruneExpired()
   const key = keyFor(source, accelerator, modelId)
   const existing = pool.get(key)
@@ -110,7 +119,7 @@ export async function acquireLiteRTCompiledModel(
 
   let inFlight = pending.get(key)
   if (!inFlight) {
-    inFlight = nativeLoadAndCompile(source, nativeOptions).then(rawModel => {
+    inFlight = compile().then(rawModel => {
       const entry: LiteRTCompiledModelPoolEntry = {
         key,
         accelerator,
@@ -127,10 +136,6 @@ export async function acquireLiteRTCompiledModel(
       return entry
     }).catch(error => {
       pending.delete(key)
-      if (modelId && ["webgpu", "webnn", "wasm"].includes(accelerator) && isDeterministicLiteRTCompatibilityError(error)) {
-        const blocked = rememberLiteRTNegativeCapability({ modelId, backend: accelerator as LiteRTBackend, error })
-        throw new LiteRTBackendUnsupportedError(modelId, accelerator as LiteRTBackend, blocked?.reason || "Backend no compatible con este modelo.")
-      }
       throw error
     })
     pending.set(key, inFlight)
