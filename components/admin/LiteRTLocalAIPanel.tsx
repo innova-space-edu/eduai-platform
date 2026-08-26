@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import {
   Activity,
   BrainCircuit,
@@ -32,7 +32,7 @@ import {
   type LiteRTCapabilitySnapshot,
 } from "@/lib/ai/local/litert-capabilities"
 import { getLiteRTRuntime } from "@/lib/ai/local/litert-runtime"
-import { selectLiteRTRoute, type LiteRTRouteDecision } from "@/lib/ai/local/litert-router"
+import { readLiteRTRouteProfile, selectLiteRTRoute, type LiteRTRouteDecision } from "@/lib/ai/local/litert-router"
 import {
   clearLiteRTModelCache,
   getCachedModelSource,
@@ -105,10 +105,10 @@ function hardwareTier(sizeMB: number) {
   return "Alto"
 }
 
-function recommendedBackend(runtime: string, sizeMB: number) {
+function fallbackBackend(runtime: string, sizeMB: number) {
   if (runtime === "litert-lm") return "WebGPU"
   if (sizeMB < 5) return "WASM / WebGPU"
-  return "WebGPU"
+  return "WebGPU / WASM"
 }
 
 function softmax(values: number[]) {
@@ -218,6 +218,7 @@ export default function LiteRTLocalAIPanel() {
   const [inference, setInference] = useState<InferenceState>({ status: "idle" })
   const [webnnTest, setWebnnTest] = useState<WebNNTestState>({ status: "idle" })
   const [cacheStats, setCacheStats] = useState({ entries: 0, bytes: 0 })
+  const [routeRevision, setRouteRevision] = useState(0)
   const litertRef = useRef<any>(null)
   const modelRef = useRef<any>(null)
   const modelBackendRef = useRef<"webgpu" | "wasm" | null>(null)
@@ -225,6 +226,13 @@ export default function LiteRTLocalAIPanel() {
   const probeModel = getLocalAIModel(DEFAULT_LITERT_PROBE_MODEL_ID)
   const webnnProbeModel = getLocalAIModel(DEFAULT_LITERT_WEBNN_PROBE_MODEL_ID)
   const readyModels = useMemo(() => LOCAL_AI_MODELS.filter(model => model.status === "ready"), [])
+
+  useEffect(() => {
+    setRouteRevision(1)
+    const handler = () => setRouteRevision(value => value + 1)
+    window.addEventListener("eduai:litert-route-profile", handler)
+    return () => window.removeEventListener("eduai:litert-route-profile", handler)
+  }, [])
 
   async function refreshCacheStats() {
     setCacheStats(await getLiteRTModelCacheSize())
@@ -383,11 +391,16 @@ export default function LiteRTLocalAIPanel() {
 
   const capabilities = runtime?.capabilities || null
   const webnnReady = Boolean(capabilities?.webnnContext && capabilities?.jspi)
+  const calibratedLabel = (modelId: string, modelRuntime: string, sizeMB: number) => {
+    if (!routeRevision) return fallbackBackend(modelRuntime, sizeMB)
+    const profile = readLiteRTRouteProfile(EDUAI_LITERT_VERSION, modelId)
+    return profile ? `${profile.backend.toUpperCase()} · ${formatMs(profile.medianEndToEndMs)}` : fallbackBackend(modelRuntime, sizeMB)
+  }
 
   return (
     <section className="overflow-hidden rounded-[30px] border border-emerald-400/20 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.13),transparent_28%),linear-gradient(180deg,rgba(2,20,24,0.96),rgba(2,12,19,0.98))] p-5 shadow-[0_22px_70px_rgba(2,44,34,0.18)] sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div><div className="flex items-center gap-2 text-emerald-300"><Activity className="h-4 w-4" /><p className="text-xs font-black uppercase tracking-[0.22em]">Local-first AI · diagnostics v2</p></div><h2 className="mt-2 text-2xl font-black text-white">LiteRT.js · IA local en el navegador</h2><p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-300">Diagnóstico de aceleradores, routing automático, caché persistente y latencia end-to-end real. WebNN se mantiene experimental; WebGPU/WASM son las rutas estables.</p></div>
+        <div><div className="flex items-center gap-2 text-emerald-300"><Activity className="h-4 w-4" /><p className="text-xs font-black uppercase tracking-[0.22em]">Local-first AI · diagnostics v3</p></div><h2 className="mt-2 text-2xl font-black text-white">LiteRT.js · IA local en el navegador</h2><p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-300">Diagnóstico de aceleradores, Router V3 por modelo, caché persistente y latencia end-to-end real. WebNN se mantiene experimental; WebGPU/WASM son las rutas estables.</p></div>
         <button type="button" onClick={() => void initializeRuntime()} disabled={testing} className="inline-flex items-center gap-2 rounded-2xl border border-emerald-400/25 bg-emerald-950/30 px-4 py-2.5 text-sm font-black text-emerald-100 disabled:opacity-60">{testing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}{testing ? "Diagnosticando…" : runtime ? "Volver a probar" : "Probar este dispositivo"}</button>
       </div>
 
@@ -396,11 +409,11 @@ export default function LiteRTLocalAIPanel() {
           <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-300">Compatibilidad local</p><h3 className="mt-1 text-lg font-black text-white">Mapa de aceleración del dispositivo</h3></div><span className="rounded-full border border-emerald-400/20 bg-emerald-950/30 px-3 py-1.5 text-[11px] font-black text-emerald-200">{runtime ? `Producción · ${runtime.route.production.toUpperCase()}` : "Sin diagnóstico"}</span></div>
           <div className="mt-4 grid items-center gap-4 sm:grid-cols-[180px_1fr_240px]"><ReadinessGauge score={runtime?.score || 0} active={Boolean(runtime?.initialized)} /><div className="space-y-3">{[
             ["Runtime", runtime?.initialized, `LiteRT.js ${EDUAI_LITERT_VERSION}`],
-            ["WebGPU", capabilities?.webgpu, capabilities?.webgpu ? "Aceleración disponible" : "No disponible"],
-            ["WASM", capabilities?.wasm, "Fallback XNNPack"],
+            ["WebGPU", capabilities?.webgpu, capabilities?.webgpu ? "Acelerador disponible" : "No disponible"],
+            ["WASM", capabilities?.wasm, "CPU/XNNPack disponible"],
             ["JSPI", capabilities?.jspi, capabilities?.jspi ? "Partición mixta habilitable" : "No expuesto"],
           ].map(([label, ok, detail]) => <div key={String(label)} className="flex items-center gap-3 rounded-2xl border border-white/5 bg-white/[0.025] px-3 py-2.5"><StatusDot ok={Boolean(ok)} /><div className="min-w-0 flex-1"><p className="text-xs font-black text-slate-200">{label}</p><p className="truncate text-[10px] text-slate-500">{detail}</p></div>{ok ? <CheckCircle2 className="h-4 w-4 text-emerald-400" /> : null}</div>)}</div><CapabilityRadar capabilities={capabilities} /></div>
-          {runtime ? <div className="mt-4 grid gap-2 sm:grid-cols-4">{[["Import runtime", formatMs(runtime.importMs)], ["Inicialización", formatMs(runtime.initMs)], ["Total", formatMs(runtime.totalMs)], ["Runtime", runtime.reused ? "Reutilizado" : "Inicializado"]].map(([label, value]) => <div key={label} className="rounded-2xl border border-white/5 bg-slate-950/50 px-3 py-3"><p className="text-[10px] font-black uppercase text-slate-600">{label}</p><p className="mt-1 text-sm font-black text-white">{value}</p></div>)}</div> : null}
+          {runtime ? <div className="mt-4 grid gap-2 sm:grid-cols-4">{[["Import runtime", formatMs(runtime.importMs)], ["Inicialización original", formatMs(runtime.initMs)], ["Adquisición actual", formatMs(runtime.totalMs)], ["Runtime", runtime.reused ? "Reutilizado" : "Inicializado"]].map(([label, value]) => <div key={label} className="rounded-2xl border border-white/5 bg-slate-950/50 px-3 py-3"><p className="text-[10px] font-black uppercase text-slate-600">{label}</p><p className="mt-1 text-sm font-black text-white">{value}</p></div>)}</div> : null}
         </div>
 
         <div className="rounded-[26px] border border-cyan-400/15 bg-cyan-950/15 p-5">
@@ -421,18 +434,18 @@ export default function LiteRTLocalAIPanel() {
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{[
         { label: "Runtime", icon: Sparkles, ok: runtime?.initialized, value: `LiteRT.js ${EDUAI_LITERT_VERSION}`, detail: "Singleton + JSPI solicitado" },
-        { label: "WebGPU", icon: Gauge, ok: capabilities?.webgpu, value: capabilities ? (capabilities.webgpu ? "Disponible" : "No disponible") : "Sin probar", detail: "Ruta estable preferida" },
-        { label: "WASM / CPU", icon: Cpu, ok: capabilities?.wasm, value: capabilities ? (capabilities.wasm ? "Disponible" : "No disponible") : "Sin probar", detail: "Fallback XNNPack" },
+        { label: "WebGPU", icon: Gauge, ok: capabilities?.webgpu, value: capabilities ? (capabilities.webgpu ? "Disponible" : "No disponible") : "Sin probar", detail: "Acelerador disponible; Router V3 decide por modelo" },
+        { label: "WASM / CPU", icon: Cpu, ok: capabilities?.wasm, value: capabilities ? (capabilities.wasm ? "Disponible" : "No disponible") : "Sin probar", detail: "CPU/XNNPack; Router V3 decide por modelo" },
         { label: "WebNN", icon: Laptop, ok: capabilities?.webnnContext, value: capabilities ? explainWebNNStatus(capabilities) : "Sin probar", detail: "Preview / NPU emergente" },
       ].map(item => { const Icon = item.icon; return <article key={item.label} className="rounded-2xl border border-white/10 bg-black/20 p-4"><div className="flex items-center justify-between"><div className="flex items-center gap-2"><Icon className="h-4 w-4 text-emerald-300" /><span className="text-xs font-black">{item.label}</span></div><StatusDot ok={Boolean(item.ok)} /></div><p className="mt-3 text-sm font-black text-white">{item.value}</p><p className="mt-1 text-[10px] text-slate-500">{item.detail}</p></article> })}</div>
 
-      {runtime ? <div className="mt-4 rounded-2xl border border-emerald-400/20 bg-emerald-950/25 p-4 text-sm text-emerald-100"><p className="font-black">Router local: {runtime.route.production.toUpperCase()}</p><p className="mt-1 text-xs text-emerald-100/70">{runtime.route.reason}</p></div> : null}
+      {runtime ? <div className="mt-4 rounded-2xl border border-emerald-400/20 bg-emerald-950/25 p-4 text-sm text-emerald-100"><p className="font-black">Router V3 · {runtime.route.production.toUpperCase()}</p><p className="mt-1 text-xs text-emerald-100/70">{runtime.route.reason}</p></div> : null}
 
       <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-slate-950/45 p-4"><div className="flex items-center gap-3"><HardDriveDownload className="h-5 w-5 text-cyan-300" /><div><p className="text-xs font-black text-white">Caché persistente de modelos</p><p className="mt-1 text-[10px] text-slate-500">{cacheStats.entries} archivos · {formatBytes(cacheStats.bytes)} guardados en este navegador</p></div></div><div className="flex gap-2"><button type="button" onClick={() => void refreshCacheStats()} className="rounded-xl border border-white/10 bg-slate-950/60 px-3 py-2 text-[10px] font-black text-slate-300">Actualizar</button><button type="button" onClick={() => void clearCache()} disabled={!cacheStats.entries} className="inline-flex items-center gap-1.5 rounded-xl border border-red-400/15 bg-red-950/20 px-3 py-2 text-[10px] font-black text-red-200 disabled:opacity-30"><Trash2 className="h-3.5 w-3.5" />Limpiar cache</button></div></div>
 
       <div className="mt-6 flex items-center justify-between gap-3"><div className="flex items-center gap-2 text-sm font-black text-white"><ShieldCheck className="h-4 w-4 text-emerald-300" />Catálogo local</div><span className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-600">visión · voz · LLM local</span></div>
-      <div className="mt-3 grid gap-3 lg:grid-cols-2">{LOCAL_AI_MODELS.map(model => <article key={model.id} className="rounded-2xl border border-white/10 bg-black/20 p-4"><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">{model.runtime} · {model.format}</p><h3 className="mt-1 font-black text-white">{model.name}</h3><p className="mt-1 text-xs text-slate-400">{model.task} · ~{model.sizeMB} MB</p></div><span className={`rounded-full px-2.5 py-1 text-[10px] font-black ${model.status === "ready" ? "bg-emerald-950/40 text-emerald-200" : model.status === "candidate" ? "bg-blue-950/40 text-blue-200" : "bg-slate-900 text-slate-300"}`}>{model.status === "ready" ? "Primera prueba" : model.status === "candidate" ? "Candidato" : "Siguiente fase"}</span></div><div className="mt-3 grid grid-cols-2 gap-2 text-[10px]"><div className="rounded-xl border border-white/5 bg-slate-950/50 px-2.5 py-2"><span className="text-slate-600">Backend</span><p className="mt-0.5 font-black text-slate-300">{recommendedBackend(model.runtime, model.sizeMB)}</p></div><div className="rounded-xl border border-white/5 bg-slate-950/50 px-2.5 py-2"><span className="text-slate-600">Hardware</span><p className="mt-0.5 font-black text-slate-300">{hardwareTier(model.sizeMB)}</p></div></div><p className="mt-3 text-xs leading-relaxed text-slate-300">{model.notes}</p><div className="mt-3 flex flex-wrap gap-1.5">{model.recommendedFor.map(tag => <span key={tag} className="rounded-full border border-white/5 bg-slate-950/60 px-2 py-1 text-[9px] font-bold text-slate-500">{tag}</span>)}</div></article>)}</div>
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500"><span>Modelo principal: {DEFAULT_LITERT_PROBE_MODEL_ID}. Listos: {readyModels.length}.</span><span className="inline-flex items-center gap-1.5"><ImageIcon className="h-3.5 w-3.5" /> Próximo: router real en tareas EduAI + Whisper local.</span></div>
+      <div className="mt-3 grid gap-3 lg:grid-cols-2">{LOCAL_AI_MODELS.map(model => <article key={model.id} className="rounded-2xl border border-white/10 bg-black/20 p-4"><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">{model.runtime} · {model.format}</p><h3 className="mt-1 font-black text-white">{model.name}</h3><p className="mt-1 text-xs text-slate-400">{model.task} · ~{model.sizeMB} MB</p></div><span className={`rounded-full px-2.5 py-1 text-[10px] font-black ${model.status === "ready" ? "bg-emerald-950/40 text-emerald-200" : model.status === "candidate" ? "bg-blue-950/40 text-blue-200" : "bg-slate-900 text-slate-300"}`}>{model.status === "ready" ? "Primera prueba" : model.status === "candidate" ? "Candidato" : "Siguiente fase"}</span></div><div className="mt-3 grid grid-cols-2 gap-2 text-[10px]"><div className="rounded-xl border border-white/5 bg-slate-950/50 px-2.5 py-2"><span className="text-slate-600">Recomendado</span><p className="mt-0.5 font-black text-slate-300">{calibratedLabel(model.id, model.runtime, model.sizeMB)}</p></div><div className="rounded-xl border border-white/5 bg-slate-950/50 px-2.5 py-2"><span className="text-slate-600">Hardware</span><p className="mt-0.5 font-black text-slate-300">{hardwareTier(model.sizeMB)}</p></div></div><p className="mt-3 text-xs leading-relaxed text-slate-300">{model.notes}</p><div className="mt-3 flex flex-wrap gap-1.5">{model.recommendedFor.map(tag => <span key={tag} className="rounded-full border border-white/5 bg-slate-950/60 px-2 py-1 text-[9px] font-bold text-slate-500">{tag}</span>)}</div></article>)}</div>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500"><span>Modelo principal: {DEFAULT_LITERT_PROBE_MODEL_ID}. Listos: {readyModels.length}.</span><span className="inline-flex items-center gap-1.5"><ImageIcon className="h-3.5 w-3.5" /> Próximo: Whisper Tiny INT8 local.</span></div>
     </section>
   )
 }
