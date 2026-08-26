@@ -17,6 +17,7 @@ import LiteRTPrewarm from "@/components/admin/LiteRTPrewarm";
 import LiteRTRouterStatusPanel from "@/components/admin/LiteRTRouterStatusPanel";
 import LiteRTQuantizationPanelV3 from "@/components/admin/LiteRTQuantizationPanelV3";
 import LiteRTBenchmarkPanelV4 from "@/components/admin/LiteRTBenchmarkPanelV4";
+import WhisperTinyLocalPanel from "@/components/admin/WhisperTinyLocalPanel";
 import LocalAITelemetryPanel from "@/components/admin/LocalAITelemetryPanel";
 import ModelLabSectionNav from "@/components/admin/ModelLabSectionNav";
 import VideoProviderStatusPanel from "@/components/admin/VideoProviderStatusPanel";
@@ -28,7 +29,7 @@ export const revalidate = 0;
 
 const LAB_CAPABILITIES = [
   { label: "AI Core", detail: "Proveedores y Supabase", icon: Sparkles, tone: "text-cyan-200 border-cyan-400/15 bg-cyan-950/35" },
-  { label: "Local AI", detail: "LiteRT · Router V3 · model pool", icon: BrainCircuit, tone: "text-emerald-200 border-emerald-400/15 bg-emerald-950/30" },
+  { label: "Local AI", detail: "LiteRT · Router V3 · visión · voz", icon: BrainCircuit, tone: "text-emerald-200 border-emerald-400/15 bg-emerald-950/30" },
   { label: "Performance", detail: "Benchmark end-to-end", icon: Gauge, tone: "text-violet-200 border-violet-400/15 bg-violet-950/30" },
   { label: "Control", detail: "Admin only · aislado", icon: ShieldCheck, tone: "text-amber-200 border-amber-400/15 bg-amber-950/25" },
 ] as const;
@@ -69,7 +70,7 @@ export default function AdminModelLabPage() {
 
         <ModelLabSectionNav />
         <div id="infraestructura" className="scroll-mt-24"><AICoreHealthPanel /></div>
-        <div id="litert" className={`scroll-mt-24 ${styles.litertShell}`}><LiteRTLocalAIPanel /><LiteRTRouterStatusPanel /><LiteRTCacheAnalyticsPanel /><LiteRTQuantizationPanelV3 /></div>
+        <div id="litert" className={`scroll-mt-24 ${styles.litertShell}`}><LiteRTLocalAIPanel /><LiteRTRouterStatusPanel /><LiteRTCacheAnalyticsPanel /><WhisperTinyLocalPanel /><LiteRTQuantizationPanelV3 /></div>
         <div id="benchmark" className="scroll-mt-24"><LiteRTBenchmarkPanelV4 /></div>
         <div id="modelos" className="scroll-mt-24"><AIModelRegistryPanel /></div>
         <div id="video" className="scroll-mt-24"><VideoProviderStatusPanel /></div>
