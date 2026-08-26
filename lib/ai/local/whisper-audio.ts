@@ -10,6 +10,10 @@ export type WhisperAudioFeatures = {
   waveform: Float32Array
   features: Float32Array
   durationSeconds: number
+  sourceDurationSeconds: number
+  segmentStartSeconds: number
+  segmentEndSeconds: number
+  truncated: boolean
   decodeMs: number
   featureMs: number
   validFrames: number
@@ -43,7 +47,6 @@ function melToHz(mel: number) {
 function getHannWindow() {
   if (cachedWindow) return cachedWindow
   const window = new Float32Array(WHISPER_PADDED_FFT)
-  // Librosa-style periodic Hann window (fftbins=true).
   for (let index = 0; index < window.length; index += 1) {
     window[index] = 0.5 - 0.5 * Math.cos((2 * Math.PI * index) / window.length)
   }
@@ -217,19 +220,34 @@ async function decodeAudioBlob(blob: Blob) {
   }
 }
 
-export async function prepareWhisperAudio(blob: Blob): Promise<WhisperAudioFeatures> {
+export async function prepareWhisperAudio(
+  blob: Blob,
+  options: { segmentStartSeconds?: number } = {},
+): Promise<WhisperAudioFeatures> {
   const decodeStarted = performance.now()
   const decoded = await decodeAudioBlob(blob)
   const decodeMs = performance.now() - decodeStarted
   const maxSamples = WHISPER_SAMPLE_RATE * WHISPER_MAX_SECONDS
-  const waveform = decoded.length > maxSamples ? decoded.slice(decoded.length - maxSamples) : decoded
+  const sourceDurationSeconds = decoded.length / WHISPER_SAMPLE_RATE
+  const maxStartSeconds = Math.max(0, sourceDurationSeconds - WHISPER_MAX_SECONDS)
+  const requestedStartSeconds = Number.isFinite(options.segmentStartSeconds) ? Number(options.segmentStartSeconds) : 0
+  const segmentStartSeconds = Math.min(maxStartSeconds, Math.max(0, requestedStartSeconds))
+  const startSample = Math.min(decoded.length, Math.max(0, Math.round(segmentStartSeconds * WHISPER_SAMPLE_RATE)))
+  const waveform = decoded.length > maxSamples
+    ? decoded.slice(startSample, Math.min(decoded.length, startSample + maxSamples))
+    : decoded
+  const durationSeconds = waveform.length / WHISPER_SAMPLE_RATE
   const featureStarted = performance.now()
   const { features, validFrames } = computeWhisperLogMel(waveform)
   const featureMs = performance.now() - featureStarted
   return {
     waveform,
     features,
-    durationSeconds: waveform.length / WHISPER_SAMPLE_RATE,
+    durationSeconds,
+    sourceDurationSeconds,
+    segmentStartSeconds,
+    segmentEndSeconds: segmentStartSeconds + durationSeconds,
+    truncated: sourceDurationSeconds > WHISPER_MAX_SECONDS,
     decodeMs,
     featureMs,
     validFrames,
