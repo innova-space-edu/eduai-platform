@@ -1,11 +1,23 @@
 export const WHISPER_TOKENIZER_URL = "https://huggingface.co/openai/whisper-tiny/resolve/main/tokenizer.json"
 export const WHISPER_DECODE_START_TOKEN_ID = 50258
 export const WHISPER_DECODE_STOP_TOKEN_ID = 50257
+export const WHISPER_TRANSLATE_TOKEN_ID = 50358
+export const WHISPER_TRANSCRIBE_TOKEN_ID = 50359
+export const WHISPER_NO_TIMESTAMPS_TOKEN_ID = 50363
+
+export type WhisperLanguageToken = {
+  code: string
+  tokenId: number
+}
 
 export type WhisperTokenizer = {
   vocabSize: number
   decode: (tokenIds: number[]) => string
+  decodeRaw: (tokenIds: number[]) => string
   specialTokenIds: ReadonlySet<number>
+  languageTokens: ReadonlyMap<string, number>
+  tokenForSpecial: (content: string) => number | null
+  tokenText: (tokenId: number) => string | null
 }
 
 type TokenizerJson = {
@@ -35,42 +47,79 @@ function buildByteDecoder() {
 }
 
 const BYTE_DECODER = buildByteDecoder()
+const CONTROL_TOKEN = /^<\|.+\|>$/
+const LANGUAGE_TOKEN = /^<\|([a-z]{2,3})\|>$/
 
 function makeTokenizer(payload: TokenizerJson): WhisperTokenizer {
   const idToToken = new Map<number, string>()
+  const tokenToId = new Map<string, number>()
   const vocab = payload.model?.vocab || {}
   for (const [token, id] of Object.entries(vocab)) {
-    if (Number.isFinite(id)) idToToken.set(Number(id), token)
+    if (!Number.isFinite(id)) continue
+    idToToken.set(Number(id), token)
+    tokenToId.set(token, Number(id))
   }
+
   const specialTokenIds = new Set<number>()
+  const languageTokens = new Map<string, number>()
   for (const token of payload.added_tokens || []) {
     if (typeof token.id !== "number") continue
-    if (typeof token.content === "string") idToToken.set(token.id, token.content)
+    if (typeof token.content === "string") {
+      idToToken.set(token.id, token.content)
+      tokenToId.set(token.content, token.id)
+      const language = LANGUAGE_TOKEN.exec(token.content)?.[1]
+      if (language) languageTokens.set(language, token.id)
+    }
     if (token.special) specialTokenIds.add(token.id)
   }
 
   const utf8Encoder = new TextEncoder()
   const utf8Decoder = new TextDecoder("utf-8", { fatal: false })
 
+  function decodeTokens(tokenIds: number[], keepControlTokens: boolean) {
+    const pieces: string[] = []
+    let bytes: number[] = []
+
+    const flushBytes = () => {
+      if (!bytes.length) return
+      pieces.push(utf8Decoder.decode(new Uint8Array(bytes)))
+      bytes = []
+    }
+
+    for (const tokenId of tokenIds) {
+      const token = idToToken.get(tokenId)
+      if (!token) continue
+      const isControl = CONTROL_TOKEN.test(token) || specialTokenIds.has(tokenId)
+      if (isControl) {
+        flushBytes()
+        if (keepControlTokens) pieces.push(token)
+        continue
+      }
+      for (const character of token) {
+        const byte = BYTE_DECODER.get(character)
+        if (typeof byte === "number") bytes.push(byte)
+        else bytes.push(...utf8Encoder.encode(character))
+      }
+    }
+    flushBytes()
+    return pieces.join("").replace(/\s+/g, " ").trim()
+  }
+
   return {
     vocabSize: idToToken.size,
     specialTokenIds,
+    languageTokens,
+    tokenForSpecial(content: string) {
+      return tokenToId.get(content) ?? null
+    },
+    tokenText(tokenId: number) {
+      return idToToken.get(tokenId) ?? null
+    },
+    decodeRaw(tokenIds: number[]) {
+      return decodeTokens(tokenIds, true)
+    },
     decode(tokenIds: number[]) {
-      const bytes: number[] = []
-      for (const tokenId of tokenIds) {
-        if (specialTokenIds.has(tokenId)) continue
-        const token = idToToken.get(tokenId)
-        if (!token) continue
-        for (const character of token) {
-          const byte = BYTE_DECODER.get(character)
-          if (typeof byte === "number") {
-            bytes.push(byte)
-          } else {
-            bytes.push(...utf8Encoder.encode(character))
-          }
-        }
-      }
-      return utf8Decoder.decode(new Uint8Array(bytes)).trim()
+      return decodeTokens(tokenIds, false)
     },
   }
 }
