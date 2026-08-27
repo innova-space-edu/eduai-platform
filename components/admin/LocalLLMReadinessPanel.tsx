@@ -12,6 +12,16 @@ type HardwareState = {
   loading: boolean
 }
 
+type WebGPUAdapterLike = {
+  limits?: {
+    maxBufferSize?: number
+  }
+}
+
+type WebGPUApiLike = {
+  requestAdapter: (options?: { powerPreference?: "low-power" | "high-performance" }) => Promise<WebGPUAdapterLike | null>
+}
+
 const MODELS = [
   {
     id: "qwen3-0.6b-dynamic-int4",
@@ -58,14 +68,15 @@ export default function LocalLLMReadinessPanel() {
 
   async function probe() {
     if (typeof navigator === "undefined") return
-    const gpu = (navigator as Navigator & { gpu?: GPU }).gpu
-    let adapter: GPUAdapter | null = null
+    const gpu = (navigator as Navigator & { gpu?: WebGPUApiLike }).gpu
+    let adapter: WebGPUAdapterLike | null = null
     try {
       adapter = gpu ? await gpu.requestAdapter({ powerPreference: "high-performance" }) : null
     } catch {
       adapter = null
     }
-    const maxBuffer = adapter ? Number(adapter.limits.maxBufferSize) / 1024 / 1024 : null
+    const rawMaxBuffer = adapter?.limits?.maxBufferSize
+    const maxBuffer = typeof rawMaxBuffer === "number" ? rawMaxBuffer / 1024 / 1024 : null
     setHardware({
       webgpu: Boolean(gpu),
       adapter: Boolean(adapter),
