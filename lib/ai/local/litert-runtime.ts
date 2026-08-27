@@ -26,6 +26,13 @@ function isAlreadyLoadedError(error: unknown) {
   return /already\s+(loading|loaded)|loading\s*\/\s*loaded/i.test(message)
 }
 
+function isBrowserExecutionRealm() {
+  if (typeof window !== "undefined") return true
+  if (typeof self === "undefined") return false
+  const candidate = self as typeof self & { importScripts?: (...urls: string[]) => void }
+  return typeof candidate.importScripts === "function"
+}
+
 function createLiteRTFacade(module: any) {
   const nativeLoadAndCompile = module.loadAndCompile.bind(module)
   return {
@@ -67,8 +74,8 @@ async function initializeRuntime(): Promise<LiteRTRuntimeHandle> {
 }
 
 export async function getLiteRTRuntime(): Promise<LiteRTRuntimeLease> {
-  if (typeof window === "undefined") {
-    throw new Error("LiteRT.js solo puede inicializarse en el navegador.")
+  if (!isBrowserExecutionRealm()) {
+    throw new Error("LiteRT.js solo puede inicializarse en el navegador o en un Web Worker del navegador.")
   }
 
   const acquireStartedAt = performance.now()
