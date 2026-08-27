@@ -6,6 +6,12 @@ export const WHISPER_HOP_LENGTH = 160
 export const WHISPER_N_MELS = 80
 export const WHISPER_N_FRAMES = 3000
 
+export type WhisperDecodedAudio = {
+  waveform: Float32Array
+  sourceDurationSeconds: number
+  decodeMs: number
+}
+
 export type WhisperAudioFeatures = {
   waveform: Float32Array
   features: Float32Array
@@ -220,22 +226,25 @@ async function decodeAudioBlob(blob: Blob) {
   }
 }
 
-export async function prepareWhisperAudio(
-  blob: Blob,
+export async function decodeWhisperAudio(blob: Blob): Promise<WhisperDecodedAudio> {
+  const started = performance.now()
+  const waveform = await decodeAudioBlob(blob)
+  return {
+    waveform,
+    sourceDurationSeconds: waveform.length / WHISPER_SAMPLE_RATE,
+    decodeMs: performance.now() - started,
+  }
+}
+
+export function prepareWhisperDecodedSegment(
+  decoded: WhisperDecodedAudio,
   options: { segmentStartSeconds?: number } = {},
-): Promise<WhisperAudioFeatures> {
-  const decodeStarted = performance.now()
-  const decoded = await decodeAudioBlob(blob)
-  const decodeMs = performance.now() - decodeStarted
+): WhisperAudioFeatures {
   const maxSamples = WHISPER_SAMPLE_RATE * WHISPER_MAX_SECONDS
-  const sourceDurationSeconds = decoded.length / WHISPER_SAMPLE_RATE
-  const maxStartSeconds = Math.max(0, sourceDurationSeconds - WHISPER_MAX_SECONDS)
   const requestedStartSeconds = Number.isFinite(options.segmentStartSeconds) ? Number(options.segmentStartSeconds) : 0
-  const segmentStartSeconds = Math.min(maxStartSeconds, Math.max(0, requestedStartSeconds))
-  const startSample = Math.min(decoded.length, Math.max(0, Math.round(segmentStartSeconds * WHISPER_SAMPLE_RATE)))
-  const waveform = decoded.length > maxSamples
-    ? decoded.slice(startSample, Math.min(decoded.length, startSample + maxSamples))
-    : decoded
+  const segmentStartSeconds = Math.min(decoded.sourceDurationSeconds, Math.max(0, requestedStartSeconds))
+  const startSample = Math.min(decoded.waveform.length, Math.max(0, Math.round(segmentStartSeconds * WHISPER_SAMPLE_RATE)))
+  const waveform = decoded.waveform.slice(startSample, Math.min(decoded.waveform.length, startSample + maxSamples))
   const durationSeconds = waveform.length / WHISPER_SAMPLE_RATE
   const featureStarted = performance.now()
   const { features, validFrames } = computeWhisperLogMel(waveform)
@@ -244,12 +253,20 @@ export async function prepareWhisperAudio(
     waveform,
     features,
     durationSeconds,
-    sourceDurationSeconds,
+    sourceDurationSeconds: decoded.sourceDurationSeconds,
     segmentStartSeconds,
     segmentEndSeconds: segmentStartSeconds + durationSeconds,
-    truncated: sourceDurationSeconds > WHISPER_MAX_SECONDS,
-    decodeMs,
+    truncated: decoded.sourceDurationSeconds > WHISPER_MAX_SECONDS,
+    decodeMs: decoded.decodeMs,
     featureMs,
     validFrames,
   }
+}
+
+export async function prepareWhisperAudio(
+  blob: Blob,
+  options: { segmentStartSeconds?: number } = {},
+): Promise<WhisperAudioFeatures> {
+  const decoded = await decodeWhisperAudio(blob)
+  return prepareWhisperDecodedSegment(decoded, options)
 }
