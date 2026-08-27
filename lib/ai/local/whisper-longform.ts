@@ -75,6 +75,22 @@ export type WhisperLongFormResult = {
   mergeStrategy: "fuzzy-token-overlap"
 }
 
+export type WhisperFeatureRunnerOptions = {
+  maxTokens: number
+  language: string
+  task: WhisperTask
+  includeTimestamps: boolean
+  signal?: AbortSignal
+  yieldEveryTokens: number
+  onProgress?: (progress: WhisperProgress) => void
+}
+
+export type WhisperFeatureRunner = (
+  features: Float32Array,
+  backend: WhisperBackend,
+  options: WhisperFeatureRunnerOptions,
+) => Promise<WhisperTranscriptionResult>
+
 type WhisperLongFormOptions = {
   backend: WhisperBackend
   language?: string
@@ -83,6 +99,7 @@ type WhisperLongFormOptions = {
   maxTokensPerChunk?: number
   signal?: AbortSignal
   onProgress?: (progress: WhisperLongFormProgress) => void
+  transcribeFeatures?: WhisperFeatureRunner
 }
 
 type ChunkPlan = {
@@ -156,9 +173,12 @@ function buildChunkPlan(decoded: WhisperDecodedAudio, overlapSeconds: number): C
     const quiet = findQuietStart(decoded, plannedStartSeconds, previous.startSeconds)
     let startSeconds = quiet.startSeconds
     if (startSeconds <= previous.startSeconds + 1) startSeconds = plannedStartSeconds
-    if (startSeconds + WHISPER_MAX_SECONDS >= decoded.sourceDurationSeconds) {
-      startSeconds = Math.max(previous.startSeconds + 1, decoded.sourceDurationSeconds - WHISPER_MAX_SECONDS)
-    }
+
+    // Do not pull the final chunk backwards just to force a full 30 s window.
+    // prepareWhisperDecodedSegment pads a shorter final window safely; keeping this
+    // start close to the nominal boundary preserves the intended ~3 s overlap.
+    startSeconds = Math.min(startSeconds, Math.max(previous.startSeconds + 1, decoded.sourceDurationSeconds - 0.1))
+
     plan.push({
       startSeconds,
       plannedStartSeconds,
@@ -269,6 +289,7 @@ export async function transcribeWhisperLongForm(
   const overlapSeconds = Math.min(10, Math.max(0, options.overlapSeconds ?? WHISPER_LONGFORM_OVERLAP_SECONDS))
   const requestedLanguage = options.language || "auto"
   const task = options.task || "transcribe"
+  const runner: WhisperFeatureRunner = options.transcribeFeatures || transcribeWhisperFeatures
   abortIfNeeded(options.signal)
   options.onProgress?.({ phase: "decode", chunkIndex: 0, chunkCount: 1 })
   const decoded = await decodeWhisperAudio(blob)
@@ -298,7 +319,7 @@ export async function transcribeWhisperLongForm(
     abortIfNeeded(options.signal)
 
     const languageForChunk = resolvedLanguage === "auto" ? "auto" : resolvedLanguage
-    const result = await transcribeWhisperFeatures(features.features, options.backend, {
+    const result = await runner(features.features, options.backend, {
       maxTokens: options.maxTokensPerChunk ?? 192,
       language: languageForChunk,
       task,
