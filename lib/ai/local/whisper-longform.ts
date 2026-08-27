@@ -2,7 +2,9 @@ import {
   decodeWhisperAudio,
   prepareWhisperDecodedSegment,
   WHISPER_MAX_SECONDS,
+  WHISPER_SAMPLE_RATE,
   type WhisperAudioFeatures,
+  type WhisperDecodedAudio,
 } from "@/lib/ai/local/whisper-audio"
 import {
   transcribeWhisperFeatures,
@@ -13,18 +15,26 @@ import {
 } from "@/lib/ai/local/whisper-transcribe"
 
 export const WHISPER_LONGFORM_OVERLAP_SECONDS = 3
+export const WHISPER_LONGFORM_QUALITY_VERSION = "v1.4"
+const SILENCE_SEARCH_SECONDS = 2.25
+const SILENCE_WINDOW_SECONDS = 0.22
+const MIN_CHUNK_ADVANCE_SECONDS = 18
+const MAX_FUZZY_WORDS = 28
 
 export type WhisperLongFormChunk = {
   index: number
   startSeconds: number
   endSeconds: number
+  plannedStartSeconds: number
+  silenceAdjustmentSeconds: number
+  boundaryRms: number
   features: WhisperAudioFeatures
   result: WhisperTranscriptionResult
   globalTimestampTokens: string[]
 }
 
 export type WhisperLongFormProgress = {
-  phase: "decode" | "features" | "model" | "merge"
+  phase: "decode" | "segment" | "features" | "model" | "merge"
   chunkIndex: number
   chunkCount: number
   startSeconds?: number
@@ -60,6 +70,9 @@ export type WhisperLongFormResult = {
   modelReused: boolean
   cacheHit: boolean
   cacheSource: "cache" | "network" | "direct"
+  qualityVersion: string
+  boundaryStrategy: "silence-aware"
+  mergeStrategy: "fuzzy-token-overlap"
 }
 
 type WhisperLongFormOptions = {
@@ -72,19 +85,90 @@ type WhisperLongFormOptions = {
   onProgress?: (progress: WhisperLongFormProgress) => void
 }
 
+type ChunkPlan = {
+  startSeconds: number
+  plannedStartSeconds: number
+  silenceAdjustmentSeconds: number
+  boundaryRms: number
+}
+
 function abortIfNeeded(signal?: AbortSignal) {
   if (signal?.aborted) throw new DOMException("Transcripción cancelada.", "AbortError")
 }
 
-function buildChunkStarts(durationSeconds: number, overlapSeconds: number) {
-  if (durationSeconds <= WHISPER_MAX_SECONDS) return [0]
-  const step = Math.max(1, WHISPER_MAX_SECONDS - overlapSeconds)
-  const starts: number[] = []
-  for (let start = 0; start < durationSeconds; start += step) {
-    starts.push(start)
-    if (start + WHISPER_MAX_SECONDS >= durationSeconds) break
+function rmsWindow(waveform: Float32Array, centerSeconds: number) {
+  const halfSamples = Math.max(1, Math.round((SILENCE_WINDOW_SECONDS * WHISPER_SAMPLE_RATE) / 2))
+  const center = Math.round(centerSeconds * WHISPER_SAMPLE_RATE)
+  const start = Math.max(0, center - halfSamples)
+  const end = Math.min(waveform.length, center + halfSamples)
+  if (end <= start) return Number.POSITIVE_INFINITY
+  let energy = 0
+  for (let index = start; index < end; index += 1) {
+    const value = waveform[index]
+    energy += value * value
   }
-  return starts
+  return Math.sqrt(energy / Math.max(1, end - start))
+}
+
+function findQuietStart(decoded: WhisperDecodedAudio, plannedStartSeconds: number, previousStartSeconds: number) {
+  const duration = decoded.sourceDurationSeconds
+  const lower = Math.max(
+    previousStartSeconds + MIN_CHUNK_ADVANCE_SECONDS,
+    plannedStartSeconds - SILENCE_SEARCH_SECONDS,
+  )
+  const upper = Math.min(duration, plannedStartSeconds + SILENCE_SEARCH_SECONDS)
+  if (upper <= lower) {
+    return { startSeconds: plannedStartSeconds, rms: rmsWindow(decoded.waveform, plannedStartSeconds) }
+  }
+
+  let bestSeconds = plannedStartSeconds
+  let bestRms = Number.POSITIVE_INFINITY
+  const step = 0.1
+  for (let seconds = lower; seconds <= upper; seconds += step) {
+    const rms = rmsWindow(decoded.waveform, seconds)
+    const distancePenalty = Math.abs(seconds - plannedStartSeconds) * 0.002
+    const score = rms + distancePenalty
+    if (score < bestRms) {
+      bestRms = score
+      bestSeconds = seconds
+    }
+  }
+  return { startSeconds: Math.max(0, Math.min(duration, bestSeconds)), rms: rmsWindow(decoded.waveform, bestSeconds) }
+}
+
+function buildChunkPlan(decoded: WhisperDecodedAudio, overlapSeconds: number): ChunkPlan[] {
+  if (decoded.sourceDurationSeconds <= WHISPER_MAX_SECONDS) {
+    return [{ startSeconds: 0, plannedStartSeconds: 0, silenceAdjustmentSeconds: 0, boundaryRms: rmsWindow(decoded.waveform, 0) }]
+  }
+
+  const plan: ChunkPlan[] = [{
+    startSeconds: 0,
+    plannedStartSeconds: 0,
+    silenceAdjustmentSeconds: 0,
+    boundaryRms: rmsWindow(decoded.waveform, 0),
+  }]
+  const nominalStep = Math.max(1, WHISPER_MAX_SECONDS - overlapSeconds)
+
+  while (true) {
+    const previous = plan[plan.length - 1]
+    if (previous.startSeconds + WHISPER_MAX_SECONDS >= decoded.sourceDurationSeconds) break
+    const plannedStartSeconds = previous.startSeconds + nominalStep
+    const quiet = findQuietStart(decoded, plannedStartSeconds, previous.startSeconds)
+    let startSeconds = quiet.startSeconds
+    if (startSeconds <= previous.startSeconds + 1) startSeconds = plannedStartSeconds
+    if (startSeconds + WHISPER_MAX_SECONDS >= decoded.sourceDurationSeconds) {
+      startSeconds = Math.max(previous.startSeconds + 1, decoded.sourceDurationSeconds - WHISPER_MAX_SECONDS)
+    }
+    plan.push({
+      startSeconds,
+      plannedStartSeconds,
+      silenceAdjustmentSeconds: startSeconds - plannedStartSeconds,
+      boundaryRms: quiet.rms,
+    })
+    if (plan.length > 1000 || startSeconds + WHISPER_MAX_SECONDS >= decoded.sourceDurationSeconds) break
+  }
+
+  return plan
 }
 
 function normalizedWord(value: string) {
@@ -94,24 +178,81 @@ function normalizedWord(value: string) {
     .replace(/[^\p{L}\p{N}]+/gu, "")
 }
 
+function editDistance(a: string, b: string) {
+  if (a === b) return 0
+  if (!a.length) return b.length
+  if (!b.length) return a.length
+  const previous = new Array<number>(b.length + 1)
+  const current = new Array<number>(b.length + 1)
+  for (let column = 0; column <= b.length; column += 1) previous[column] = column
+  for (let row = 1; row <= a.length; row += 1) {
+    current[0] = row
+    for (let column = 1; column <= b.length; column += 1) {
+      const cost = a[row - 1] === b[column - 1] ? 0 : 1
+      current[column] = Math.min(previous[column] + 1, current[column - 1] + 1, previous[column - 1] + cost)
+    }
+    for (let column = 0; column <= b.length; column += 1) previous[column] = current[column]
+  }
+  return previous[b.length]
+}
+
+function wordSimilarity(a: string, b: string) {
+  const left = normalizedWord(a)
+  const right = normalizedWord(b)
+  if (!left || !right) return 0
+  if (left === right) return 1
+  const distance = editDistance(left, right)
+  return 1 - distance / Math.max(left.length, right.length)
+}
+
+function overlapScore(leftWords: string[], rightWords: string[]) {
+  if (!leftWords.length || leftWords.length !== rightWords.length) return 0
+  let score = 0
+  let strong = 0
+  for (let index = 0; index < leftWords.length; index += 1) {
+    const similarity = wordSimilarity(leftWords[index], rightWords[index])
+    score += similarity
+    if (similarity >= 0.82) strong += 1
+  }
+  const mean = score / leftWords.length
+  const strongShare = strong / leftWords.length
+  return mean * 0.72 + strongShare * 0.28
+}
+
+function normalizeReadableText(value: string) {
+  const collapsed = value
+    .replace(/\s+([,.;:!?])/g, "$1")
+    .replace(/([¿¡])\s+/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim()
+  if (!collapsed) return ""
+  return collapsed.charAt(0).toLocaleUpperCase() + collapsed.slice(1)
+}
+
 function mergeOverlappingText(previous: string, next: string) {
-  const left = previous.trim()
-  const right = next.trim()
+  const left = normalizeReadableText(previous)
+  const right = normalizeReadableText(next)
   if (!left) return right
   if (!right) return left
   const leftWords = left.split(/\s+/)
   const rightWords = right.split(/\s+/)
-  const maxOverlap = Math.min(24, leftWords.length, rightWords.length)
+  const maxOverlap = Math.min(MAX_FUZZY_WORDS, leftWords.length, rightWords.length)
+  let best: { size: number; offset: number; score: number } | null = null
 
-  for (let size = maxOverlap; size >= 2; size -= 1) {
-    const leftSlice = leftWords.slice(-size).map(normalizedWord)
-    const rightSlice = rightWords.slice(0, size).map(normalizedWord)
-    if (leftSlice.every((word, index) => word && word === rightSlice[index])) {
-      return [...leftWords, ...rightWords.slice(size)].join(" ").trim()
+  for (let offset = 0; offset <= Math.min(5, Math.max(0, rightWords.length - 2)); offset += 1) {
+    for (let size = maxOverlap; size >= 2; size -= 1) {
+      if (offset + size > rightWords.length) continue
+      const leftSlice = leftWords.slice(-size)
+      const rightSlice = rightWords.slice(offset, offset + size)
+      const score = overlapScore(leftSlice, rightSlice)
+      if (!best || score > best.score || (score === best.score && size > best.size)) best = { size, offset, score }
     }
   }
 
-  return `${left} ${right}`.replace(/\s+/g, " ").trim()
+  if (best && (best.score >= 0.78 || (best.size >= 5 && best.score >= 0.7))) {
+    return normalizeReadableText([...leftWords, ...rightWords.slice(best.offset + best.size)].join(" "))
+  }
+  return normalizeReadableText(`${left} ${right}`)
 }
 
 function offsetTimestamp(token: string, offsetSeconds: number) {
@@ -133,20 +274,22 @@ export async function transcribeWhisperLongForm(
   const decoded = await decodeWhisperAudio(blob)
   abortIfNeeded(options.signal)
 
-  const starts = buildChunkStarts(decoded.sourceDurationSeconds, overlapSeconds)
+  options.onProgress?.({ phase: "segment", chunkIndex: 0, chunkCount: 1 })
+  const plan = buildChunkPlan(decoded, overlapSeconds)
   const chunks: WhisperLongFormChunk[] = []
   let mergedText = ""
   let resolvedLanguage = requestedLanguage
   let languageConfidence = requestedLanguage === "auto" ? 0 : 1
   let featureMs = 0
 
-  for (let index = 0; index < starts.length; index += 1) {
+  for (let index = 0; index < plan.length; index += 1) {
     abortIfNeeded(options.signal)
-    const startSeconds = starts[index]
+    const item = plan[index]
+    const startSeconds = item.startSeconds
     options.onProgress?.({
       phase: "features",
       chunkIndex: index,
-      chunkCount: starts.length,
+      chunkCount: plan.length,
       startSeconds,
       endSeconds: Math.min(decoded.sourceDurationSeconds, startSeconds + WHISPER_MAX_SECONDS),
     })
@@ -165,7 +308,7 @@ export async function transcribeWhisperLongForm(
       onProgress: modelProgress => options.onProgress?.({
         phase: "model",
         chunkIndex: index,
-        chunkCount: starts.length,
+        chunkCount: plan.length,
         startSeconds: features.segmentStartSeconds,
         endSeconds: features.segmentEndSeconds,
         modelProgress,
@@ -182,6 +325,9 @@ export async function transcribeWhisperLongForm(
       index,
       startSeconds: features.segmentStartSeconds,
       endSeconds: features.segmentEndSeconds,
+      plannedStartSeconds: item.plannedStartSeconds,
+      silenceAdjustmentSeconds: item.silenceAdjustmentSeconds,
+      boundaryRms: item.boundaryRms,
       features,
       result,
       globalTimestampTokens,
@@ -189,7 +335,7 @@ export async function transcribeWhisperLongForm(
     mergedText = mergeOverlappingText(mergedText, result.text)
   }
 
-  options.onProgress?.({ phase: "merge", chunkIndex: starts.length, chunkCount: starts.length })
+  options.onProgress?.({ phase: "merge", chunkIndex: plan.length, chunkCount: plan.length })
   const totalMs = performance.now() - started
   const decodedTokens = chunks.reduce((sum, chunk) => sum + chunk.result.decodedTokens, 0)
   const decodeWallMs = chunks.reduce((sum, chunk) => sum + chunk.result.decodeWallMs, 0)
@@ -200,7 +346,7 @@ export async function transcribeWhisperLongForm(
   const finalConfidence = requestedLanguage === "auto" ? languageConfidence || first?.languageConfidence || 0 : 1
 
   return {
-    text: mergedText,
+    text: normalizeReadableText(mergedText),
     rawText: chunks.map(chunk => chunk.result.rawText).join("\n"),
     chunks,
     backend: options.backend,
@@ -227,5 +373,8 @@ export async function transcribeWhisperLongForm(
     modelReused: chunks.every(chunk => chunk.result.modelReused),
     cacheHit: chunks.every(chunk => chunk.result.cacheHit),
     cacheSource: chunks.every(chunk => chunk.result.cacheSource === "cache") ? "cache" : first?.cacheSource || "direct",
+    qualityVersion: WHISPER_LONGFORM_QUALITY_VERSION,
+    boundaryStrategy: "silence-aware",
+    mergeStrategy: "fuzzy-token-overlap",
   }
 }

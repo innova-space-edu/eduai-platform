@@ -19,6 +19,8 @@ import LiteRTQuantizationPanelV3 from "@/components/admin/LiteRTQuantizationPane
 import LiteRTBenchmarkPanelV4 from "@/components/admin/LiteRTBenchmarkPanelV4";
 import WhisperTinyLocalPanel from "@/components/admin/WhisperTinyLocalPanel";
 import LocalAITelemetryPanel from "@/components/admin/LocalAITelemetryPanel";
+import LocalAIModelMetricsPanel from "@/components/admin/LocalAIModelMetricsPanel";
+import LocalLLMReadinessPanel from "@/components/admin/LocalLLMReadinessPanel";
 import ModelLabSectionNav from "@/components/admin/ModelLabSectionNav";
 import VideoProviderStatusPanel from "@/components/admin/VideoProviderStatusPanel";
 import { ADMIN_ONLY_EXPERIMENTAL_MODELS } from "@/lib/ai/admin-model-policy";
@@ -72,9 +74,9 @@ export default function AdminModelLabPage() {
         <div id="infraestructura" className="scroll-mt-24"><AICoreHealthPanel /></div>
         <div id="litert" className={`scroll-mt-24 ${styles.litertShell}`}><LiteRTLocalAIPanel /><LiteRTRouterStatusPanel /><LiteRTCacheAnalyticsPanel /><WhisperTinyLocalPanel /><LiteRTQuantizationPanelV3 /></div>
         <div id="benchmark" className="scroll-mt-24"><LiteRTBenchmarkPanelV4 /></div>
-        <div id="modelos" className="scroll-mt-24"><AIModelRegistryPanel /></div>
+        <div id="modelos" className="scroll-mt-24 space-y-4"><LocalLLMReadinessPanel /><AIModelRegistryPanel /></div>
         <div id="video" className="scroll-mt-24"><VideoProviderStatusPanel /></div>
-        <div id="observabilidad" className="scroll-mt-24 space-y-4"><LocalAITelemetryPanel /><AICoreMetricsPanel /></div>
+        <div id="observabilidad" className="scroll-mt-24 space-y-4"><LocalAITelemetryPanel /><LocalAIModelMetricsPanel /><AICoreMetricsPanel /></div>
 
         <div id="experimental" className="scroll-mt-24 space-y-4">
           <section className="overflow-hidden rounded-[28px] border border-amber-400/20 bg-[#111723] p-5 sm:p-6"><div className="flex flex-wrap items-start justify-between gap-4"><div className="max-w-3xl"><div className="flex items-center gap-2 text-amber-200"><ShieldCheck className="h-4 w-4" /><p className="text-xs font-black uppercase tracking-[0.2em]">Zona aislada</p></div><h2 className="mt-2 text-xl font-black text-white">Política para modelos experimentales</h2><p className="mt-2 text-sm leading-relaxed text-slate-300">Los modelos experimentales permanecen separados por rol, sin endpoint público para estudiantes, con auditoría, filtros de seguridad y apagado por defecto en producción.</p></div><span className="inline-flex items-center gap-2 rounded-full border border-red-400/20 bg-red-950/30 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-red-200"><Cpu className="h-3.5 w-3.5" /> Producción bloqueada</span></div></section>
