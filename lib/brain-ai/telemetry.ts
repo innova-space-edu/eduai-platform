@@ -57,6 +57,7 @@ export function recordBrainAITrace(trace: BrainAITrace) {
   const next = [record, ...readRaw().filter(item => item.traceId !== record.traceId)].slice(0, MAX_TRACES)
   storage.setItem(STORAGE_KEY, JSON.stringify(next))
   window.dispatchEvent(new CustomEvent("eduai:brain-ai-shadow-trace", { detail: record }))
+  void persistBrainAITrace(trace)
 }
 
 export async function persistBrainAITrace(trace: BrainAITrace): Promise<BrainAIPersistenceStatus> {
@@ -95,6 +96,7 @@ export function clearBrainAITraceTelemetry() {
   if (!storage) return
   storage.removeItem(STORAGE_KEY)
   window.dispatchEvent(new CustomEvent("eduai:brain-ai-shadow-trace", { detail: null }))
+  void clearRemoteBrainAITraceTelemetry()
 }
 
 export async function clearRemoteBrainAITraceTelemetry() {
