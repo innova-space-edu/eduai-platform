@@ -11,6 +11,8 @@ import {
 import AICoreHealthPanel from "@/components/admin/AICoreHealthPanel";
 import AICoreMetricsPanel from "@/components/admin/AICoreMetricsPanel";
 import AIModelRegistryPanel from "@/components/admin/AIModelRegistryPanel";
+import BrainAILabPanel from "@/components/admin/BrainAILabPanel";
+import VoiceLabPanel from "@/components/admin/VoiceLabPanel";
 import LiteRTLocalAIPanel from "@/components/admin/LiteRTLocalAIPanel";
 import LiteRTCacheAnalyticsPanel from "@/components/admin/LiteRTCacheAnalyticsPanel";
 import LiteRTPrewarm from "@/components/admin/LiteRTPrewarm";
@@ -31,9 +33,10 @@ export const revalidate = 0;
 
 const LAB_CAPABILITIES = [
   { label: "AI Core", detail: "Proveedores y Supabase", icon: Sparkles, tone: "text-cyan-200 border-cyan-400/15 bg-cyan-950/35" },
+  { label: "Brain AI", detail: "Cognitive OS · Shadow Mode", icon: BrainCircuit, tone: "text-fuchsia-200 border-fuchsia-400/15 bg-fuchsia-950/30" },
   { label: "Local AI", detail: "LiteRT · Router V3 · visión · voz", icon: BrainCircuit, tone: "text-emerald-200 border-emerald-400/15 bg-emerald-950/30" },
   { label: "Performance", detail: "Benchmark end-to-end", icon: Gauge, tone: "text-violet-200 border-violet-400/15 bg-violet-950/30" },
-  { label: "Control", detail: "Admin only · aislado", icon: ShieldCheck, tone: "text-amber-200 border-amber-400/15 bg-amber-950/25" },
+  { label: "Control", detail: "Admin only · Production Gate", icon: ShieldCheck, tone: "text-amber-200 border-amber-400/15 bg-amber-950/25" },
 ] as const;
 
 function getBuildFingerprint() {
@@ -59,19 +62,21 @@ export default function AdminModelLabPage() {
               <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-950/30 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-amber-200"><FlaskConical className="h-3.5 w-3.5" /> Admin only</span>
                 <span className="rounded-full border border-emerald-400/15 bg-emerald-950/30 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-200">Local-first enabled</span>
+                <span className="rounded-full border border-fuchsia-400/15 bg-fuchsia-950/25 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-fuchsia-200">Brain AI Shadow Mode</span>
                 <span className="rounded-full border border-cyan-400/15 bg-cyan-950/25 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-cyan-200" title={`Commit ${build.commit} · rama ${build.branch} · entorno ${build.environment}`}>Build {build.commit} · {build.branch} · {build.environment}</span>
               </div>
               <h1 className="mt-4 text-3xl font-black tracking-tight sm:text-4xl">EduAI Model Lab</h1>
-              <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300 sm:text-[15px]">Centro técnico para validar infraestructura, medir IA local, comparar backends, administrar modelos y observar costos sin exponer secretos ni mezclar experimentos con los flujos de estudiantes.</p>
+              <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300 sm:text-[15px]">Banco de pruebas del futuro sistema multimodal de EduAI: Brain AI, memoria, texto, audio, imagen, video, routing local/cloud, observabilidad y Production Gate antes de promover capacidades hacia docentes o estudiantes.</p>
             </div>
             <Link href="/admin" className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-[#0c1a2d] px-4 py-2.5 text-sm font-black text-slate-200 transition hover:-translate-y-0.5 hover:bg-[#10223a]"><ArrowLeft className="h-4 w-4" /> Admin</Link>
           </div>
 
-          <div className="relative mt-6 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">{LAB_CAPABILITIES.map(({ label, detail, icon: Icon, tone }) => <div key={label} className={`rounded-2xl border px-4 py-3 ${tone}`}><div className="flex items-center gap-2"><Icon className="h-4 w-4" /><span className="text-xs font-black">{label}</span></div><p className="mt-1 text-[10px] text-slate-500">{detail}</p></div>)}</div>
+          <div className="relative mt-6 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">{LAB_CAPABILITIES.map(({ label, detail, icon: Icon, tone }) => <div key={label} className={`rounded-2xl border px-4 py-3 ${tone}`}><div className="flex items-center gap-2"><Icon className="h-4 w-4" /><span className="text-xs font-black">{label}</span></div><p className="mt-1 text-[10px] text-slate-500">{detail}</p></div>)}</div>
         </header>
 
         <ModelLabSectionNav />
         <div id="infraestructura" className="scroll-mt-24"><AICoreHealthPanel /></div>
+        <div id="brain-ai" className="scroll-mt-24 space-y-4"><BrainAILabPanel /><VoiceLabPanel /></div>
         <div id="litert" className={`scroll-mt-24 ${styles.litertShell}`}><LiteRTLocalAIPanel /><LiteRTRouterStatusPanel /><LiteRTCacheAnalyticsPanel /><WhisperTinyLocalPanel /><LiteRTQuantizationPanelV3 /></div>
         <div id="benchmark" className="scroll-mt-24"><LiteRTBenchmarkPanelV4 /></div>
         <div id="modelos" className="scroll-mt-24 space-y-4"><LocalLLMReadinessPanel /><AIModelRegistryPanel /></div>
