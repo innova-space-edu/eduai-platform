@@ -3,6 +3,8 @@ import type { BrainAITrace, BrainAITraceSummary } from "@/lib/brain-ai/types"
 const STORAGE_KEY = "eduai_brain_ai_shadow_traces_v1"
 const MAX_TRACES = 40
 
+export type BrainAIPersistenceStatus = "saved" | "migration-required" | "unavailable"
+
 type StoredTrace = Pick<BrainAITrace,
   | "traceId"
   | "createdAt"
@@ -57,6 +59,22 @@ export function recordBrainAITrace(trace: BrainAITrace) {
   window.dispatchEvent(new CustomEvent("eduai:brain-ai-shadow-trace", { detail: record }))
 }
 
+export async function persistBrainAITrace(trace: BrainAITrace): Promise<BrainAIPersistenceStatus> {
+  if (typeof window === "undefined") return "unavailable"
+  try {
+    const response = await fetch("/api/admin/brain-ai/trace", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ trace }),
+    })
+    const body = await response.json().catch(() => ({})) as { migrationRequired?: boolean }
+    if (body.migrationRequired) return "migration-required"
+    return response.ok ? "saved" : "unavailable"
+  } catch {
+    return "unavailable"
+  }
+}
+
 export function getBrainAITraceSummary(): BrainAITraceSummary {
   const traces = readRaw()
   const first = traces[0]
@@ -77,4 +95,14 @@ export function clearBrainAITraceTelemetry() {
   if (!storage) return
   storage.removeItem(STORAGE_KEY)
   window.dispatchEvent(new CustomEvent("eduai:brain-ai-shadow-trace", { detail: null }))
+}
+
+export async function clearRemoteBrainAITraceTelemetry() {
+  if (typeof window === "undefined") return false
+  try {
+    const response = await fetch("/api/admin/brain-ai/trace", { method: "DELETE" })
+    return response.ok
+  } catch {
+    return false
+  }
 }
