@@ -12,6 +12,7 @@ import AICoreHealthPanel from "@/components/admin/AICoreHealthPanel";
 import AICoreMetricsPanel from "@/components/admin/AICoreMetricsPanel";
 import AIModelRegistryPanel from "@/components/admin/AIModelRegistryPanel";
 import BrainAILabPanel from "@/components/admin/BrainAILabPanel";
+import VoiceLabPanel from "@/components/admin/VoiceLabPanel";
 import LiteRTLocalAIPanel from "@/components/admin/LiteRTLocalAIPanel";
 import LiteRTCacheAnalyticsPanel from "@/components/admin/LiteRTCacheAnalyticsPanel";
 import LiteRTPrewarm from "@/components/admin/LiteRTPrewarm";
@@ -75,7 +76,7 @@ export default function AdminModelLabPage() {
 
         <ModelLabSectionNav />
         <div id="infraestructura" className="scroll-mt-24"><AICoreHealthPanel /></div>
-        <div id="brain-ai" className="scroll-mt-24"><BrainAILabPanel /></div>
+        <div id="brain-ai" className="scroll-mt-24 space-y-4"><BrainAILabPanel /><VoiceLabPanel /></div>
         <div id="litert" className={`scroll-mt-24 ${styles.litertShell}`}><LiteRTLocalAIPanel /><LiteRTRouterStatusPanel /><LiteRTCacheAnalyticsPanel /><WhisperTinyLocalPanel /><LiteRTQuantizationPanelV3 /></div>
         <div id="benchmark" className="scroll-mt-24"><LiteRTBenchmarkPanelV4 /></div>
         <div id="modelos" className="scroll-mt-24 space-y-4"><LocalLLMReadinessPanel /><AIModelRegistryPanel /></div>
