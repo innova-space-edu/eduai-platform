@@ -101,6 +101,32 @@ source = source
     '    tag: "Creativo",\n    status: "active",\n    ctaLabel: "Abrir Video Studio",\n  },\n  {\n    id: "galeria"',
   )
 
+if (!source.includes('id: "media-studio"')) {
+  const galleryAnchor = `  {
+    id: "galeria",
+    icon: "🖼️",`
+  const mediaCard = `  {
+    id: "media-studio",
+    icon: "🎞️",
+    name: "Media Studio",
+    description: "Editor profesional de video y audio por capas con biblioteca multimedia, timeline y asistencia IA.",
+    color: "from-cyan-500 to-violet-600",
+    glow: "rgba(34,211,238,0.14)",
+    border: "rgba(139,92,246,0.24)",
+    href: "/media-studio",
+    tag: "Creativo",
+    status: "active",
+    ctaLabel: "Abrir editor",
+  },
+  {
+    id: "galeria",
+    icon: "🖼️",`
+  if (!source.includes(galleryAnchor)) {
+    throw new Error("[agent-cards] No se encontró Galería para insertar Media Studio")
+  }
+  source = source.replace(galleryAnchor, mediaCard)
+}
+
 writeFileSync(PAGE, source)
 
 const verified = readFileSync(PAGE, "utf8")
@@ -117,6 +143,9 @@ for (const required of [
   'id: "video-studio"',
   'ctaLabel: "Abrir Video Studio"',
   'Premium Personal',
+  'id: "media-studio"',
+  'href: "/media-studio"',
+  'ctaLabel: "Abrir editor"',
 ]) {
   if (!verified.includes(required)) {
     throw new Error(`[agent-cards] Falta ${required}`)
@@ -124,10 +153,10 @@ for (const required of [
 }
 
 const videoStart = verified.indexOf('id: "video-studio"')
-const videoEnd = verified.indexOf('id: "galeria"', videoStart)
+const videoEnd = verified.indexOf('id: "media-studio"', videoStart)
 const videoBlock = verified.slice(videoStart, videoEnd)
 if (!videoBlock.includes('status: "active"') || videoBlock.includes('status: "maintenance"')) {
   throw new Error("[agent-cards] Video Studio continúa bloqueado en Agentes")
 }
 
-console.log("[agent-cards] Biblioteca, Nube EduAI, Image Studio y Video Studio disponibles en Agentes")
+console.log("[agent-cards] Biblioteca, Nube EduAI, Image Studio, Video Studio y Media Studio disponibles en Agentes")
