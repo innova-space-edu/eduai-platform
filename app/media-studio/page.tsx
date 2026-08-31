@@ -1,4 +1,5 @@
 import MediaStudioClient from "@/components/media-studio/MediaStudioClient";
+import MediaExportMenu from "@/components/media-studio/MediaExportMenu";
 
 export const metadata = {
   title: "Media Studio | EduAI",
@@ -6,5 +7,10 @@ export const metadata = {
 };
 
 export default function MediaStudioPage() {
-  return <MediaStudioClient />;
+  return (
+    <>
+      <MediaStudioClient />
+      <MediaExportMenu />
+    </>
+  );
 }
