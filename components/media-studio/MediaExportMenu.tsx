@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Download, FileJson, FileText, Image as ImageIcon, Loader2, Video } from "lucide-react";
 import { useMediaStudioStore } from "@/lib/media-studio/store";
 import { exportFramePng, exportProjectJson, exportSrt, exportWebM } from "@/lib/media-studio/browser-export";
@@ -51,6 +51,6 @@ export default function MediaExportMenu() {
   );
 }
 
-function ExportButton({ icon, title, subtitle, busy, onClick }: { icon: React.ReactNode; title: string; subtitle: string; busy: boolean; onClick: () => void }) {
+function ExportButton({ icon, title, subtitle, busy, onClick }: { icon: ReactNode; title: string; subtitle: string; busy: boolean; onClick: () => void }) {
   return <button disabled={busy} onClick={onClick} className="flex w-full items-center gap-3 rounded-xl border border-white/8 bg-white/5 p-2.5 text-left hover:bg-white/10 disabled:opacity-60"><div className="flex h-8 w-8 items-center justify-center rounded-lg bg-black/20">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : icon}</div><div><p className="text-[10px] font-bold">{title}</p><p className="mt-0.5 text-[9px] text-slate-500">{subtitle}</p></div></button>;
 }
