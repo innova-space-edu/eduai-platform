@@ -1,12 +1,15 @@
 export type MediaAssetType = "video" | "audio" | "image" | "music" | "sfx" | "text";
 export type TrackKind = "video" | "audio" | "overlay" | "text";
 export type AspectRatio = "16:9" | "9:16" | "1:1" | "4:5";
+export type KeyframeEasing = "linear" | "ease-in" | "ease-out" | "ease-in-out";
+export type TransitionKind = "none" | "fade" | "dissolve" | "slide-left" | "slide-right" | "zoom";
 
 export type MediaAsset = {
   id: string;
   type: MediaAssetType;
   name: string;
   url: string;
+  storagePath?: string;
   thumbnailUrl?: string;
   duration?: number;
   width?: number;
@@ -35,6 +38,23 @@ export type ClipStyle = {
   borderRadius: number;
 };
 
+export type ClipKeyframeValues = Partial<ClipTransform & ClipStyle & {
+  volume: number;
+  playbackRate: number;
+}>;
+
+export type ClipKeyframe = {
+  id: string;
+  time: number;
+  easing: KeyframeEasing;
+  values: ClipKeyframeValues;
+};
+
+export type ClipTransition = {
+  kind: TransitionKind;
+  duration: number;
+};
+
 export type TimelineClip = {
   id: string;
   assetId?: string;
@@ -42,6 +62,7 @@ export type TimelineClip = {
   type: MediaAssetType;
   name: string;
   sourceUrl?: string;
+  storagePath?: string;
   start: number;
   duration: number;
   trimStart: number;
@@ -51,6 +72,9 @@ export type TimelineClip = {
   playbackRate: number;
   transform: ClipTransform;
   style: ClipStyle;
+  keyframes?: ClipKeyframe[];
+  transitionIn?: ClipTransition;
+  transitionOut?: ClipTransition;
   text?: string;
   textColor?: string;
   fontSize?: number;
@@ -91,9 +115,11 @@ export type MediaAICommand = {
     | "delete_clip"
     | "split_clip"
     | "set_aspect_ratio"
+    | "add_keyframe"
+    | "set_transition"
     | "suggest_media";
   clipId?: string;
-  value?: number | string | boolean;
+  value?: number | string | boolean | Record<string, number | string | boolean>;
   at?: number;
   text?: string;
   query?: string;
