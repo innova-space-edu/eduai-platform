@@ -22,7 +22,13 @@ function recorderMime() {
 }
 
 function seek(element: HTMLMediaElement, time: number) {
-  const safe = Math.max(0, Math.min(time, Number.isFinite(element.duration) ? Math.max(0, element.duration - 0.03) : time));
+  const safe = Math.max(
+    0,
+    Math.min(
+      time,
+      Number.isFinite(element.duration) ? Math.max(0, element.duration - 0.03) : time,
+    ),
+  );
   if (Math.abs(element.currentTime - safe) > 0.12) element.currentTime = safe;
 }
 
@@ -98,7 +104,10 @@ export async function exportProjectWebM(
   const clips = project.tracks.flatMap((track) => track.clips);
   const exportableClips = clips
     .map((clip) => ({ clip, asset: assetMap.get(clip.assetId) }))
-    .filter((entry): entry is { clip: TimelineClip; asset: MediaAsset } => Boolean(entry.asset?.url && entry.asset.exportable !== false));
+    .filter(
+      (entry): entry is { clip: TimelineClip; asset: MediaAsset } =>
+        Boolean(entry.asset?.url && entry.asset.exportable !== false),
+    );
 
   const audioContext = new AudioContext();
   const audioDestination = audioContext.createMediaStreamDestination();
@@ -117,11 +126,12 @@ export async function exportProjectWebM(
       continue;
     }
 
-    const element = asset.kind === "video" ? document.createElement("video") : document.createElement("audio");
+    const element =
+      asset.kind === "video" ? document.createElement("video") : document.createElement("audio");
     if (/^https?:/i.test(asset.url)) element.crossOrigin = "anonymous";
     element.preload = "auto";
     element.src = asset.url;
-    element.playsInline = true;
+    if (element instanceof HTMLVideoElement) element.playsInline = true;
     await waitForMedia(element);
 
     let gain: GainNode | undefined;
@@ -149,7 +159,8 @@ export async function exportProjectWebM(
 
   const finished = new Promise<Blob>((resolve, reject) => {
     recorder.onerror = () => reject(new Error("Falló la grabación WebM."));
-    recorder.onstop = () => resolve(new Blob(chunks, { type: recorder.mimeType || "video/webm" }));
+    recorder.onstop = () =>
+      resolve(new Blob(chunks, { type: recorder.mimeType || "video/webm" }));
   });
 
   await audioContext.resume();
@@ -165,15 +176,28 @@ export async function exportProjectWebM(
       ctx.fillRect(0, 0, project.width, project.height);
 
       const videoTrack = project.tracks.find((track) => track.kind === "video");
-      const visualVideoClip = [...(videoTrack?.clips || [])].reverse().find((clip) => active(clip, elapsed));
+      const visualVideoClip = [...(videoTrack?.clips || [])]
+        .reverse()
+        .find((clip) => active(clip, elapsed));
       if (visualVideoClip) {
-        const media = mediaEntries.find((entry) => entry.clip.id === visualVideoClip.id && entry.element instanceof HTMLVideoElement);
+        const media = mediaEntries.find(
+          (entry) =>
+            entry.clip.id === visualVideoClip.id && entry.element instanceof HTMLVideoElement,
+        );
         if (media) {
           const video = media.element as HTMLVideoElement;
           seek(video, visualVideoClip.offset + elapsed - visualVideoClip.start);
           if (video.paused) void video.play().catch(() => undefined);
           if (video.readyState >= 2) {
-            drawCover(ctx, video, video.videoWidth, video.videoHeight, project.width, project.height, visualVideoClip.opacity);
+            drawCover(
+              ctx,
+              video,
+              video.videoWidth,
+              video.videoHeight,
+              project.width,
+              project.height,
+              visualVideoClip.opacity,
+            );
           }
         }
       }
@@ -183,12 +207,24 @@ export async function exportProjectWebM(
         if (!active(clip, elapsed)) continue;
         const asset = assetMap.get(clip.assetId);
         const image = asset ? images.get(asset.id) : undefined;
-        if (image) drawCover(ctx, image, image.naturalWidth, image.naturalHeight, project.width, project.height, clip.opacity);
+        if (image) {
+          drawCover(
+            ctx,
+            image,
+            image.naturalWidth,
+            image.naturalHeight,
+            project.width,
+            project.height,
+            clip.opacity,
+          );
+        }
       }
 
       for (const entry of mediaEntries) {
         const isActive = active(entry.clip, elapsed);
-        if (entry.gain) entry.gain.gain.value = isActive && !entry.clip.muted ? entry.clip.volume : 0;
+        if (entry.gain) {
+          entry.gain.gain.value = isActive && !entry.clip.muted ? entry.clip.volume : 0;
+        }
         if (isActive) {
           seek(entry.element, entry.clip.offset + elapsed - entry.clip.start);
           if (entry.element.paused) void entry.element.play().catch(() => undefined);
