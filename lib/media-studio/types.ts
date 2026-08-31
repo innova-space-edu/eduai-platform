@@ -63,6 +63,7 @@ export type TimelineClip = {
   name: string;
   sourceUrl?: string;
   storagePath?: string;
+  mimeType?: string;
   start: number;
   duration: number;
   trimStart: number;
