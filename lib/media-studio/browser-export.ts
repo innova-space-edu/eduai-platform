@@ -5,7 +5,7 @@ import type { MediaStudioProject, TimelineClip } from "./types";
 
 type Prepared = { clip: TimelineClip; element: HTMLImageElement | HTMLVideoElement | HTMLAudioElement; gain?: GainNode };
 
-function downloadBlob(blob: Blob, name: string) {
+export function downloadMediaBlob(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -117,7 +117,7 @@ async function prepareVisuals(project: MediaStudioProject) {
 }
 
 export async function exportProjectJson(project: MediaStudioProject) {
-  downloadBlob(new Blob([JSON.stringify(project, null, 2)], { type: "application/json" }), `${safeName(project.name)}.eduai-media.json`);
+  downloadMediaBlob(new Blob([JSON.stringify(project, null, 2)], { type: "application/json" }), `${safeName(project.name)}.eduai-media.json`);
 }
 
 function srtTime(seconds: number) {
@@ -132,7 +132,7 @@ function srtTime(seconds: number) {
 export async function exportSrt(project: MediaStudioProject) {
   const clips = project.tracks.flatMap((track) => track.clips).filter((clip) => clip.type === "text" && (clip.text || "").trim()).sort((a, b) => a.start - b.start);
   const body = clips.map((clip, index) => `${index + 1}\n${srtTime(clip.start)} --> ${srtTime(clip.start + clip.duration)}\n${clip.text}\n`).join("\n");
-  downloadBlob(new Blob([body || ""], { type: "text/plain;charset=utf-8" }), `${safeName(project.name)}.srt`);
+  downloadMediaBlob(new Blob([body || ""], { type: "text/plain;charset=utf-8" }), `${safeName(project.name)}.srt`);
 }
 
 export async function exportFramePng(project: MediaStudioProject, playhead: number) {
@@ -157,11 +157,15 @@ export async function exportFramePng(project: MediaStudioProject, playhead: numb
     drawClip(ctx, clip, source as CanvasImageSource | null, canvas, scale, playhead);
   }
   const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob((value) => value ? resolve(value) : reject(new Error("No se pudo crear PNG")), "image/png"));
-  downloadBlob(blob, `${safeName(project.name)}-${Math.round(playhead * 10) / 10}s.png`);
+  downloadMediaBlob(blob, `${safeName(project.name)}-${Math.round(playhead * 10) / 10}s.png`);
 }
 
-export async function renderWebMBlob(project: MediaStudioProject, onProgress?: (value: number) => void) {
-  if (typeof MediaRecorder === "undefined") throw new Error("Este navegador no soporta exportación WebM");
+export async function renderWebMBlob(
+  project: MediaStudioProject,
+  onProgress?: (value: number) => void,
+  mimeCandidates?: string[],
+) {
+  if (typeof MediaRecorder === "undefined") throw new Error("Este navegador no soporta MediaRecorder");
   const { width, height, scale } = canvasSize(project);
   const canvas = document.createElement("canvas");
   canvas.width = width;
@@ -188,7 +192,12 @@ export async function renderWebMBlob(project: MediaStudioProject, onProgress?: (
 
   const canvasStream = canvas.captureStream(project.fps || 30);
   const combined = new MediaStream([...canvasStream.getVideoTracks(), ...destination.stream.getAudioTracks()]);
-  const preferred = ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"].find((mime) => MediaRecorder.isTypeSupported(mime)) || "video/webm";
+  const candidates = mimeCandidates?.length ? mimeCandidates : ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"];
+  const preferred = candidates.find((mime) => MediaRecorder.isTypeSupported(mime));
+  if (!preferred) {
+    await audioContext.close();
+    throw new Error("El navegador no soporta el formato solicitado mediante MediaRecorder");
+  }
   const recorder = new MediaRecorder(combined, { mimeType: preferred, videoBitsPerSecond: 6_000_000 });
   const chunks: BlobPart[] = [];
   recorder.ondataavailable = (event) => { if (event.data.size) chunks.push(event.data); };
@@ -257,6 +266,18 @@ export async function renderWebMBlob(project: MediaStudioProject, onProgress?: (
 
 export async function exportWebM(project: MediaStudioProject, onProgress?: (value: number) => void) {
   const blob = await renderWebMBlob(project, onProgress);
-  downloadBlob(blob, `${safeName(project.name)}.webm`);
+  downloadMediaBlob(blob, `${safeName(project.name)}.webm`);
+  return blob;
+}
+
+export async function exportBrowserMp4(project: MediaStudioProject, onProgress?: (value: number) => void) {
+  const candidates = [
+    "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
+    "video/mp4;codecs=h264,aac",
+    "video/mp4",
+  ];
+  if (typeof MediaRecorder === "undefined" || !candidates.some((mime) => MediaRecorder.isTypeSupported(mime))) return null;
+  const blob = await renderWebMBlob(project, onProgress, candidates);
+  downloadMediaBlob(blob, `${safeName(project.name)}.mp4`);
   return blob;
 }
