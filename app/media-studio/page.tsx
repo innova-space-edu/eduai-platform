@@ -2,6 +2,7 @@ import MediaStudioClient from "@/components/media-studio/MediaStudioClient";
 import MediaExportMenu from "@/components/media-studio/MediaExportMenu";
 import MediaLibraryDrawer from "@/components/media-studio/MediaLibraryDrawer";
 import MediaStudioProDock from "@/components/media-studio/MediaStudioProDock";
+import MediaAudioAutomation from "@/components/media-studio/MediaAudioAutomation";
 
 export const metadata = {
   title: "Media Studio | EduAI",
@@ -14,6 +15,7 @@ export default function MediaStudioPage() {
       <MediaStudioClient />
       <MediaLibraryDrawer />
       <MediaStudioProDock />
+      <MediaAudioAutomation />
       <MediaExportMenu />
     </>
   );
