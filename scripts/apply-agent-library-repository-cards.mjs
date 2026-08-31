@@ -2,6 +2,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs"
 
 const PAGE = "app/agentes/page.tsx"
 const MARKER = "AGENT_LIBRARY_REPOSITORY_CARDS_V1"
+const MULTIMEDIA_MARKER = "AGENT_MULTIMEDIA_STUDIO_CARD_V1"
 
 if (!existsSync(PAGE)) {
   throw new Error(`[agent-cards] No existe ${PAGE}`)
@@ -83,6 +84,30 @@ if (!source.includes(MARKER)) {
   }
 }
 
+if (!source.includes('id: "multimedia-studio"')) {
+  const anchor = `  {
+    id: "audio-lab",`
+  const card = `  {
+    id: "multimedia-studio",
+    icon: "🎞️",
+    name: "Editor Multimedia",
+    description:
+      "Edita audio, video e imágenes por capas, integra música y exporta proyectos multimedia desde EduAI.",
+    color: "from-cyan-500 to-violet-600",
+    glow: "rgba(34,211,238,0.15)",
+    border: "rgba(139,92,246,0.24)",
+    href: "/multimedia-studio",
+    tag: "Creativo",
+    status: "active",
+    ctaLabel: "Abrir Editor Multimedia",
+  },
+`
+  if (!source.includes(anchor)) {
+    throw new Error("[agent-cards] No se encontró Audio Lab para insertar Editor Multimedia")
+  }
+  source = source.replace(anchor, `// ${MULTIMEDIA_MARKER}\n${card}${anchor}`)
+}
+
 source = source
   .replace('name: "Repositorio"', 'name: "Nube EduAI"')
   .replace('ctaLabel: "Abrir repositorio"', 'ctaLabel: "Abrir Nube EduAI"')
@@ -117,6 +142,9 @@ for (const required of [
   'id: "video-studio"',
   'ctaLabel: "Abrir Video Studio"',
   'Premium Personal',
+  'id: "multimedia-studio"',
+  'href: "/multimedia-studio"',
+  'ctaLabel: "Abrir Editor Multimedia"',
 ]) {
   if (!verified.includes(required)) {
     throw new Error(`[agent-cards] Falta ${required}`)
@@ -130,4 +158,11 @@ if (!videoBlock.includes('status: "active"') || videoBlock.includes('status: "ma
   throw new Error("[agent-cards] Video Studio continúa bloqueado en Agentes")
 }
 
-console.log("[agent-cards] Biblioteca, Nube EduAI, Image Studio y Video Studio disponibles en Agentes")
+const multimediaStart = verified.indexOf('id: "multimedia-studio"')
+const multimediaEnd = verified.indexOf('id: "audio-lab"', multimediaStart)
+const multimediaBlock = verified.slice(multimediaStart, multimediaEnd)
+if (!multimediaBlock.includes('status: "active"')) {
+  throw new Error("[agent-cards] Editor Multimedia no quedó activo en Agentes")
+}
+
+console.log("[agent-cards] Biblioteca, Nube EduAI, Image Studio, Video Studio y Editor Multimedia disponibles en Agentes")
