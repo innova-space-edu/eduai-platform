@@ -161,7 +161,7 @@ if (!videoBlock.includes('status: "active"') || videoBlock.includes('status: "ma
 
 console.log("[agent-cards] Biblioteca, Nube EduAI, Image Studio, Video Studio y Media Studio disponibles en Agentes")
 
-// Media Studio Pro V2: aplica el motor temporal de keyframes/transiciones al preview.
+// Media Studio Pro V2: aplica el motor temporal y nuevas acciones del agente sin duplicar la UI base.
 const MEDIA_CLIENT = "components/media-studio/MediaStudioClient.tsx"
 if (existsSync(MEDIA_CLIENT)) {
   let media = readFileSync(MEDIA_CLIENT, "utf8")
@@ -172,6 +172,11 @@ if (existsSync(MEDIA_CLIENT)) {
       `import { useMediaStudioStore } from "@/lib/media-studio/store";\n${previewImport}`,
     )
   }
+
+  media = media.replace(
+    'import type { AspectRatio, MediaAIPlan, MediaAsset, MediaAssetType, TimelineClip } from "@/lib/media-studio/types";',
+    'import type { AspectRatio, KeyframeEasing, MediaAIPlan, MediaAsset, MediaAssetType, TimelineClip, TransitionKind } from "@/lib/media-studio/types";',
+  )
 
   const visualStart = '{activeVisuals.map(({ clip }) => clip.type === "video" ? <SyncedVideo'
   if (media.includes(visualStart)) {
@@ -187,10 +192,38 @@ if (existsSync(MEDIA_CLIENT)) {
     '{activeAudios.map(({ clip, track }) => <MediaAudioLayer key={clip.id} clip={clip} playhead={playhead} playing={playing} trackMuted={track.muted} />)}',
   )
 
+  const ratioHandler = '        if (command.action === "set_aspect_ratio" && typeof command.value === "string" && ["16:9", "9:16", "1:1", "4:5"].includes(command.value)) setAspectRatio(command.value as AspectRatio);'
+  if (!media.includes('command.action === "add_keyframe"')) {
+    if (!media.includes(ratioHandler)) throw new Error("[media-studio-v2] No se encontró handler de aspecto para extender Media AI")
+    const proHandlers = `${ratioHandler}
+        if (command.action === "add_keyframe" && command.clipId && command.value && typeof command.value === "object") {
+          const target = project.tracks.flatMap((track) => track.clips).find((clip) => clip.id === command.clipId);
+          if (target) {
+            const raw = command.value as Record<string, number | string | boolean>;
+            const easingValue = typeof raw.easing === "string" && ["linear", "ease-in", "ease-out", "ease-in-out"].includes(raw.easing) ? raw.easing as KeyframeEasing : "ease-in-out";
+            const numericEntries = Object.entries(raw).filter(([key, value]) => key !== "easing" && typeof value === "number" && Number.isFinite(value));
+            const values = Object.fromEntries(numericEntries) as import("@/lib/media-studio/types").ClipKeyframeValues;
+            const localTime = Math.max(0, Math.min(target.duration, (command.at ?? playhead) - target.start));
+            const keyframes = [...(target.keyframes || []).filter((item) => Math.abs(item.time - localTime) > 0.03), { id: \`kf-\${crypto.randomUUID()}\`, time: localTime, easing: easingValue, values }].sort((a, b) => a.time - b.time);
+            updateClip(target.id, { keyframes });
+          }
+        }
+        if (command.action === "set_transition" && command.clipId && command.value && typeof command.value === "object") {
+          const raw = command.value as Record<string, number | string | boolean>;
+          const side = raw.side === "out" ? "out" : "in";
+          const allowedKinds: TransitionKind[] = ["none", "fade", "dissolve", "slide-left", "slide-right", "zoom"];
+          const kind = typeof raw.kind === "string" && allowedKinds.includes(raw.kind as TransitionKind) ? raw.kind as TransitionKind : "fade";
+          const duration = typeof raw.duration === "number" && Number.isFinite(raw.duration) ? Math.max(0, Math.min(4, raw.duration)) : 0.6;
+          const transition = { kind, duration: kind === "none" ? 0 : duration };
+          updateClip(command.clipId, side === "out" ? { transitionOut: transition } : { transitionIn: transition });
+        }`
+    media = media.replace(ratioHandler, proHandlers)
+  }
+
   writeFileSync(MEDIA_CLIENT, media)
   const mediaVerified = readFileSync(MEDIA_CLIENT, "utf8")
-  if (!mediaVerified.includes("<MediaVisualLayer") || !mediaVerified.includes("<MediaAudioLayer")) {
-    throw new Error("[media-studio-v2] Preview temporal no quedó conectado")
+  for (const required of ["<MediaVisualLayer", "<MediaAudioLayer", 'command.action === "add_keyframe"', 'command.action === "set_transition"']) {
+    if (!mediaVerified.includes(required)) throw new Error(`[media-studio-v2] Falta ${required}`)
   }
-  console.log("[media-studio-v2] Keyframes y transiciones conectados al preview")
+  console.log("[media-studio-v2] Keyframes, transiciones y Media AI Pro conectados al preview")
 }
