@@ -157,19 +157,30 @@ export default function MediaIntelligencePanel() {
     if (!selected) return;
     setStatus(`Buscando “${suggestion.query}”…`);
     try {
-      let asset: MediaAsset | undefined;
+      let external: MediaAsset | undefined;
       for (const provider of ["pexels", "pixabay"] as const) {
         const response = await fetch(`/api/media-studio/search?q=${encodeURIComponent(suggestion.query)}&provider=${provider}`);
         const body = await response.json();
-        asset = Array.isArray(body.items) ? body.items.find((item: MediaAsset) => item.type === "video" || item.type === "image") : undefined;
-        if (asset) break;
+        external = Array.isArray(body.items) ? body.items.find((item: MediaAsset) => item.type === "video" || item.type === "image") : undefined;
+        if (external) break;
       }
-      if (!asset) throw new Error("No se encontró material editable para esa sugerencia.");
+      if (!external) throw new Error("No se encontró material editable para esa sugerencia.");
+
+      setStatus(`Guardando “${external.name}” en la nube privada…`);
+      const importResponse = await fetch("/api/media-studio/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ asset: external, project }),
+      });
+      const importBody = await importResponse.json().catch(() => null);
+      if (!importResponse.ok || !importBody?.asset) throw new Error(importBody?.error || "No se pudo guardar el B-roll en EDUAI.");
+      const asset = importBody.asset as MediaAsset;
+
       addAsset(asset);
       addClipFromAsset(asset, undefined, selected.start + suggestion.at);
       const id = useMediaStudioStore.getState().selectedClipId;
       if (id) updateClip(id, { duration: suggestion.duration, transitionIn: { kind: "fade", duration: 0.25 }, transitionOut: { kind: "fade", duration: 0.25 } });
-      setStatus(`B-roll añadido: ${asset.name}`);
+      setStatus(`B-roll guardado y añadido: ${asset.name}`);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "No se pudo insertar el B-roll.");
     }
@@ -193,9 +204,9 @@ export default function MediaIntelligencePanel() {
             <button onClick={planBroll} disabled={busy !== null} className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-400/20 bg-cyan-400/10 py-2.5 text-[10px] font-bold text-cyan-200"><Film className="h-4 w-4" />{busy === "broll" ? "Analizando…" : "Proponer B-roll automático"}</button>
           </>}
 
-          {!!suggestions.length && <div className="mt-3 space-y-1.5"><div className="flex items-center justify-between"><p className="text-[9px] font-bold uppercase tracking-wide text-slate-500">B-roll sugerido</p><button onClick={insertAllBroll} className="text-[9px] font-bold text-cyan-300">Insertar todo</button></div>{suggestions.map((item, index) => <button key={`${item.at}-${index}`} onClick={() => insertSuggestion(item)} className="w-full rounded-lg border border-white/8 bg-white/5 p-2 text-left hover:bg-white/10"><div className="flex justify-between gap-2"><p className="truncate text-[10px] font-semibold">{item.query}</p><span className="text-[9px] text-slate-500">{item.at.toFixed(1)}s</span></div><p className="mt-0.5 text-[9px] leading-4 text-slate-600">{item.reason}</p></button>)}</div>}
+          {!!suggestions.length && <div className="mt-3 space-y-1.5"><div className="flex items-center justify-between"><p className="text-[9px] font-bold uppercase tracking-wide text-slate-500">B-roll sugerido</p><button onClick={insertAllBroll} className="text-[9px] font-bold text-cyan-300">Guardar + insertar todo</button></div>{suggestions.map((item, index) => <button key={`${item.at}-${index}`} onClick={() => insertSuggestion(item)} className="w-full rounded-lg border border-white/8 bg-white/5 p-2 text-left hover:bg-white/10"><div className="flex justify-between gap-2"><p className="truncate text-[10px] font-semibold">{item.query}</p><span className="text-[9px] text-slate-500">{item.at.toFixed(1)}s</span></div><p className="mt-0.5 text-[9px] leading-4 text-slate-600">{item.reason}</p></button>)}</div>}
           {status && <p className="mt-3 rounded-lg bg-black/20 p-2 text-[9px] leading-4 text-slate-300">{status}</p>}
-          <p className="mt-2 text-[8px] leading-3 text-slate-700">El modo palabra a palabra distribuye tiempos dentro de cada segmento Whisper. Para alineación fonética exacta se puede añadir un aligner dedicado en el worker IA.</p>
+          <p className="mt-2 text-[8px] leading-3 text-slate-700">El B-roll externo se copia primero a la nube privada para que siga disponible y pueda renderizarse sin depender de CORS. El modo palabra a palabra distribuye tiempos dentro de cada segmento Whisper.</p>
         </div>
       )}
       <button onClick={() => setOpen((value) => !value)} className="flex items-center gap-2 rounded-full border border-white/10 bg-[#101621]/95 px-4 py-2.5 text-xs font-black shadow-xl backdrop-blur-xl hover:bg-[#172131]"><WandSparkles className="h-4 w-4 text-fuchsia-300" />Subtítulos & B-roll {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronUp className="h-3.5 w-3.5" />}</button>
