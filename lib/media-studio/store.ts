@@ -121,10 +121,11 @@ export const useMediaStudioStore = create<MediaStudioState>((set, get) => ({
     if (!track) return state;
     const clip: TimelineClip = {
       id: uid("clip"), assetId: asset.id, trackId: track.id, type: asset.type, name: asset.name,
-      sourceUrl: asset.url, start: Math.max(0, start ?? state.playhead), duration: Math.max(1, asset.duration || (asset.type === "image" ? 5 : 8)),
+      sourceUrl: asset.url, storagePath: asset.storagePath, start: Math.max(0, start ?? state.playhead), duration: Math.max(1, asset.duration || (asset.type === "image" ? 5 : 8)),
       trimStart: 0, trimEnd: 0, volume: 1, muted: false, playbackRate: 1,
       transform: { x: 0, y: 0, scale: 1, rotation: 0, opacity: 1 },
       style: { brightness: 1, contrast: 1, saturation: 1, blur: 0, borderRadius: 0 },
+      keyframes: [], transitionIn: { kind: "none", duration: 0 }, transitionOut: { kind: "none", duration: 0 },
     };
     track.clips.push(clip);
     recomputeDuration(project);
@@ -139,6 +140,7 @@ export const useMediaStudioStore = create<MediaStudioState>((set, get) => ({
       trimStart: 0, trimEnd: 0, volume: 1, muted: false, playbackRate: 1,
       transform: { x: 0, y: 0, scale: 1, rotation: 0, opacity: 1 },
       style: { brightness: 1, contrast: 1, saturation: 1, blur: 0, borderRadius: 8 },
+      keyframes: [], transitionIn: { kind: "none", duration: 0 }, transitionOut: { kind: "none", duration: 0 },
       text, textColor: "#ffffff", fontSize: 56, backgroundColor: "rgba(0,0,0,.35)",
     };
     track.clips.push(clip);
@@ -164,9 +166,24 @@ export const useMediaStudioStore = create<MediaStudioState>((set, get) => ({
       const clip = track.clips[index];
       const local = at - clip.start;
       if (local <= 0.2 || local >= clip.duration - 0.2) return state;
-      const right: TimelineClip = { ...deepClone(clip), id: uid("clip"), start: at, duration: clip.duration - local, trimStart: clip.trimStart + local };
+
+      const originalKeyframes = deepClone(clip.keyframes || []);
+      const originalTransitionOut = deepClone(clip.transitionOut);
+      const right: TimelineClip = {
+        ...deepClone(clip),
+        id: uid("clip"),
+        start: at,
+        duration: clip.duration - local,
+        trimStart: clip.trimStart + local * clip.playbackRate,
+        keyframes: originalKeyframes.filter((item) => item.time >= local).map((item) => ({ ...item, id: uid("kf"), time: item.time - local })),
+        transitionIn: { kind: "none", duration: 0 },
+        transitionOut: originalTransitionOut,
+      };
       clip.duration = local;
+      clip.keyframes = originalKeyframes.filter((item) => item.time <= local);
+      clip.transitionOut = { kind: "none", duration: 0 };
       track.clips.splice(index + 1, 0, right);
+      recomputeDuration(project);
       return withHistory(state, project, right.id);
     }
     return state;
