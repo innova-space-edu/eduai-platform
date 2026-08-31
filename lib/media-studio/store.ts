@@ -121,7 +121,7 @@ export const useMediaStudioStore = create<MediaStudioState>((set, get) => ({
     if (!track) return state;
     const clip: TimelineClip = {
       id: uid("clip"), assetId: asset.id, trackId: track.id, type: asset.type, name: asset.name,
-      sourceUrl: asset.url, storagePath: asset.storagePath, start: Math.max(0, start ?? state.playhead), duration: Math.max(1, asset.duration || (asset.type === "image" ? 5 : 8)),
+      sourceUrl: asset.url, storagePath: asset.storagePath, mimeType: asset.mimeType, start: Math.max(0, start ?? state.playhead), duration: Math.max(1, asset.duration || (asset.type === "image" ? 5 : 8)),
       trimStart: 0, trimEnd: 0, volume: 1, muted: false, playbackRate: 1,
       transform: { x: 0, y: 0, scale: 1, rotation: 0, opacity: 1 },
       style: { brightness: 1, contrast: 1, saturation: 1, blur: 0, borderRadius: 0 },
