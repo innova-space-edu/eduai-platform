@@ -379,7 +379,7 @@ export default function MultimediaStudioClient() {
     event.target.value = "";
   }
 
-  async function handleDropFiles(event: DragEvent<HTMLDivElement>) {
+  async function handleDropFiles(event: DragEvent<HTMLLabelElement>) {
     event.preventDefault();
     const files = Array.from(event.dataTransfer.files || []) as File[];
     if (files.length) await createAssetsFromFiles(files);
