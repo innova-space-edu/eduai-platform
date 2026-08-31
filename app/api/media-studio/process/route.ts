@@ -49,7 +49,8 @@ export async function POST(request: NextRequest) {
     parameters?: Record<string, unknown>;
   } | null;
 
-  const assetId = String(body?.assetId || "").trim();
+  const requestedAssetId = String(body?.assetId || "").trim();
+  const assetId = requestedAssetId.replace(/^eduai-asset-/, "");
   const operation = String(body?.operation || "").trim().toLowerCase();
   if (!assetId) return NextResponse.json({ error: "Falta assetId" }, { status: 400 });
   if (!OPERATIONS.has(operation)) return NextResponse.json({ error: "Operación no soportada" }, { status: 400 });
@@ -67,6 +68,9 @@ export async function POST(request: NextRequest) {
   const audioOnly = new Set(["denoise", "normalize", "stems"]);
   if (audioOnly.has(operation) && !["audio", "music", "sfx", "video"].includes(asset.asset_type)) {
     return NextResponse.json({ error: "Esta operación requiere audio o video" }, { status: 400 });
+  }
+  if (operation === "proxy" && asset.asset_type !== "video") {
+    return NextResponse.json({ error: "Los proxies se generan para clips de video" }, { status: 400 });
   }
 
   const { data: job, error } = await supabase.from("media_processing_jobs").insert({
@@ -105,5 +109,5 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, ...job }, { status: 202 });
+  return NextResponse.json({ ok: true, ...job, workerConfigured: Boolean(workerUrl) }, { status: 202 });
 }
