@@ -1,5 +1,5 @@
--- EDUAI Media Studio v1
--- Proyectos audiovisuales, activos reutilizables y exportaciones.
+-- EDUAI Media Studio v2
+-- Proyectos audiovisuales, activos reutilizables, exportaciones y almacenamiento privado.
 
 create table if not exists public.media_projects (
   id text primary key,
@@ -61,7 +61,6 @@ alter table public.media_projects enable row level security;
 alter table public.media_assets enable row level security;
 alter table public.media_exports enable row level security;
 
--- Policies are recreated defensively to make the migration repeatable in staging.
 drop policy if exists "media_projects_select_own" on public.media_projects;
 drop policy if exists "media_projects_insert_own" on public.media_projects;
 drop policy if exists "media_projects_update_own" on public.media_projects;
@@ -89,6 +88,34 @@ create policy "media_exports_insert_own" on public.media_exports for insert with
 create policy "media_exports_update_own" on public.media_exports for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "media_exports_delete_own" on public.media_exports for delete using (auth.uid() = user_id);
 
-comment on table public.media_projects is 'EDUAI Media Studio: project/timeline state. Binary media remains referenced as assets.';
+-- Bucket privado. Cada usuario sólo puede operar dentro de /<user_id>/...
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'media-studio',
+  'media-studio',
+  false,
+  524288000,
+  array['video/mp4','video/webm','video/quicktime','audio/mpeg','audio/wav','audio/mp4','audio/ogg','audio/webm','image/jpeg','image/png','image/webp','image/gif']
+)
+on conflict (id) do update set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "media_studio_storage_select_own" on storage.objects;
+drop policy if exists "media_studio_storage_insert_own" on storage.objects;
+drop policy if exists "media_studio_storage_update_own" on storage.objects;
+drop policy if exists "media_studio_storage_delete_own" on storage.objects;
+create policy "media_studio_storage_select_own" on storage.objects for select
+  using (bucket_id = 'media-studio' and (storage.foldername(name))[1] = auth.uid()::text);
+create policy "media_studio_storage_insert_own" on storage.objects for insert
+  with check (bucket_id = 'media-studio' and (storage.foldername(name))[1] = auth.uid()::text);
+create policy "media_studio_storage_update_own" on storage.objects for update
+  using (bucket_id = 'media-studio' and (storage.foldername(name))[1] = auth.uid()::text)
+  with check (bucket_id = 'media-studio' and (storage.foldername(name))[1] = auth.uid()::text);
+create policy "media_studio_storage_delete_own" on storage.objects for delete
+  using (bucket_id = 'media-studio' and (storage.foldername(name))[1] = auth.uid()::text);
+
+comment on table public.media_projects is 'EDUAI Media Studio: project/timeline state.';
 comment on table public.media_assets is 'Reusable user media and external licensed assets used by Media Studio.';
-comment on table public.media_exports is 'Future server-render queue and completed Media Studio exports.';
+comment on table public.media_exports is 'Server-render queue and completed Media Studio exports.';
