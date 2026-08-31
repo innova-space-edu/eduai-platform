@@ -160,3 +160,37 @@ if (!videoBlock.includes('status: "active"') || videoBlock.includes('status: "ma
 }
 
 console.log("[agent-cards] Biblioteca, Nube EduAI, Image Studio, Video Studio y Media Studio disponibles en Agentes")
+
+// Media Studio Pro V2: aplica el motor temporal de keyframes/transiciones al preview.
+const MEDIA_CLIENT = "components/media-studio/MediaStudioClient.tsx"
+if (existsSync(MEDIA_CLIENT)) {
+  let media = readFileSync(MEDIA_CLIENT, "utf8")
+  const previewImport = 'import { MediaAudioLayer, MediaVisualLayer } from "@/components/media-studio/MediaPreviewLayers";'
+  if (!media.includes(previewImport)) {
+    media = media.replace(
+      'import { useMediaStudioStore } from "@/lib/media-studio/store";',
+      `import { useMediaStudioStore } from "@/lib/media-studio/store";\n${previewImport}`,
+    )
+  }
+
+  const visualStart = '{activeVisuals.map(({ clip }) => clip.type === "video" ? <SyncedVideo'
+  if (media.includes(visualStart)) {
+    const visualEnd = '>{clip.text}</div>)}'
+    const start = media.indexOf(visualStart)
+    const end = media.indexOf(visualEnd, start)
+    if (end < 0) throw new Error("[media-studio-v2] No se encontró fin del bloque visual")
+    media = media.slice(0, start) + '{activeVisuals.map(({ clip }) => <MediaVisualLayer key={clip.id} clip={clip} playhead={playhead} playing={playing} />)}' + media.slice(end + visualEnd.length)
+  }
+
+  media = media.replace(
+    '{activeAudios.map(({ clip, track }) => <SyncedAudio key={clip.id} clip={clip} playhead={playhead} playing={playing} trackMuted={track.muted} />)}',
+    '{activeAudios.map(({ clip, track }) => <MediaAudioLayer key={clip.id} clip={clip} playhead={playhead} playing={playing} trackMuted={track.muted} />)}',
+  )
+
+  writeFileSync(MEDIA_CLIENT, media)
+  const mediaVerified = readFileSync(MEDIA_CLIENT, "utf8")
+  if (!mediaVerified.includes("<MediaVisualLayer") || !mediaVerified.includes("<MediaAudioLayer")) {
+    throw new Error("[media-studio-v2] Preview temporal no quedó conectado")
+  }
+  console.log("[media-studio-v2] Keyframes y transiciones conectados al preview")
+}
