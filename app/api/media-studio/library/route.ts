@@ -38,20 +38,28 @@ export async function GET(request: NextRequest) {
   try {
     const { data: stored } = await supabase
       .from("media_assets")
-      .select("id,asset_type,name,source,provider,remote_url,thumbnail_url,duration_seconds,width,height,mime_type,license,attribution,external_url")
+      .select("id,asset_type,name,source,provider,storage_path,remote_url,thumbnail_url,duration_seconds,width,height,mime_type,license,attribution,external_url")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(80);
 
     for (const asset of stored || []) {
-      if (!asset.remote_url) continue;
       const haystack = `${asset.name || ""} ${asset.provider || ""}`.toLowerCase();
       if (q && !haystack.includes(q)) continue;
+
+      let playableUrl = asset.remote_url || "";
+      if (asset.storage_path) {
+        const { data: signed } = await supabase.storage.from("media-studio").createSignedUrl(asset.storage_path, 60 * 60 * 6);
+        if (signed?.signedUrl) playableUrl = signed.signedUrl;
+      }
+      if (!playableUrl) continue;
+
       items.push({
         id: `eduai-asset-${asset.id}`,
         type: asset.asset_type,
         name: asset.name,
-        url: asset.remote_url,
+        url: playableUrl,
+        storagePath: asset.storage_path || undefined,
         thumbnailUrl: asset.thumbnail_url || undefined,
         duration: asset.duration_seconds ? Number(asset.duration_seconds) : undefined,
         width: asset.width || undefined,
