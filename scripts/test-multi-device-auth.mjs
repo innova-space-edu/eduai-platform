@@ -40,3 +40,7 @@ const client = readFileSync("lib/supabase/client.ts", "utf8")
 if (!client.includes("createBrowserClient")) throw new Error("[multi-device-auth] El cliente SSR/browser de Supabase no está configurado")
 
 console.log("[multi-device-auth] sesiones independientes por dispositivo verificadas en el código")
+
+// Se ejecuta después del parche base de timeline aplicado durante prebuild.
+// Sustituye las barras simplificadas por una envolvente min/max tipo Audacity.
+await import("./apply-multimedia-audacity-waveform.mjs")
