@@ -47,7 +47,3 @@ for (const check of checks) {
 }
 
 console.log("[test-client-supabase-prerender] rutas browser no crean Supabase durante prerender")
-
-// Este hook se ejecuta en prebuild. Mantiene las mejoras del Editor Multimedia
-// idempotentes en Vercel sin cargar FFmpeg/WASM ni lógica adicional al runtime.
-await import("./apply-multimedia-timeline-enhancements.mjs")
