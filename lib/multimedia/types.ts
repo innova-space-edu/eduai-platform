@@ -63,6 +63,8 @@ export type TimelineClip = {
   volume: number;
   opacity: number;
   muted: boolean;
+  audioFadeIn: number;
+  audioFadeOut: number;
   transform: ClipTransform;
   filter: VisualFilter;
   transitionIn: TransitionKind;
@@ -123,8 +125,8 @@ export const DEFAULT_TRACKS: TimelineTrack[] = [
   { id: "video-main", name: "Video principal", kind: "video", clips: [] },
   { id: "overlay-main", name: "Imágenes / overlay", kind: "overlay", clips: [] },
   { id: "text-main", name: "Texto / subtítulos", kind: "text", clips: [] },
-  { id: "audio-main", name: "Audio", kind: "audio", clips: [] },
-  { id: "music-main", name: "Música", kind: "music", clips: [] },
+  { id: "audio-main", name: "Audio 1", kind: "audio", clips: [] },
+  { id: "music-main", name: "Música 1", kind: "music", clips: [] },
 ];
 
 export function makeProject(): MultimediaProject {
@@ -154,6 +156,8 @@ export function createMediaClip(asset: MediaAsset, trackId: string, start: numbe
     volume: 1,
     opacity: 1,
     muted: false,
+    audioFadeIn: 0,
+    audioFadeOut: 0,
     transform: { ...DEFAULT_TRANSFORM },
     filter: { ...DEFAULT_FILTER },
     transitionIn: "none",
@@ -174,6 +178,8 @@ export function createTextClip(start: number, text = "Texto"): TimelineClip {
     volume: 0,
     opacity: 1,
     muted: true,
+    audioFadeIn: 0,
+    audioFadeOut: 0,
     transform: { ...DEFAULT_TRANSFORM },
     filter: { ...DEFAULT_FILTER },
     transitionIn: "fade",
@@ -199,35 +205,60 @@ export function parseClock(value?: string) {
   return Math.max(1, parts.slice(-2).reduce((acc, part, index) => acc + part * (index === 0 ? 60 : 1), 0));
 }
 
+function normalizeClip(clip: any): TimelineClip {
+  const duration = Math.max(0.05, Number(clip?.duration || 0.05));
+  return {
+    ...clip,
+    clipType: clip?.clipType || "media",
+    start: Math.max(0, Number(clip?.start || 0)),
+    duration,
+    offset: Math.max(0, Number(clip?.offset || 0)),
+    volume: Number.isFinite(clip?.volume) ? clip.volume : 1,
+    opacity: Number.isFinite(clip?.opacity) ? clip.opacity : 1,
+    muted: Boolean(clip?.muted),
+    audioFadeIn: Math.max(0, Math.min(duration / 2, Number(clip?.audioFadeIn || 0))),
+    audioFadeOut: Math.max(0, Math.min(duration / 2, Number(clip?.audioFadeOut || 0))),
+    transform: { ...DEFAULT_TRANSFORM, ...(clip?.transform || {}) },
+    filter: { ...DEFAULT_FILTER, ...(clip?.filter || {}) },
+    transitionIn: clip?.transitionIn || "none",
+    transitionOut: clip?.transitionOut || "none",
+    transitionDuration: Number.isFinite(clip?.transitionDuration) ? clip.transitionDuration : 0.5,
+    keyframes: Array.isArray(clip?.keyframes) ? clip.keyframes : [],
+    textStyle: clip?.clipType === "text" ? { ...DEFAULT_TEXT_STYLE, ...(clip?.textStyle || {}) } : clip?.textStyle,
+  } as TimelineClip;
+}
+
 export function normalizeProject(input: any): MultimediaProject {
   const base = makeProject();
   if (!input || typeof input !== "object") return base;
   const project = input.project || input;
   const incomingTracks = Array.isArray(project.tracks) ? project.tracks : [];
-  const mergedTracks = DEFAULT_TRACKS.map((track) => {
-    const found = incomingTracks.find((item: TimelineTrack) => item?.id === track.id || item?.kind === track.kind);
+
+  const defaultIds = new Set(DEFAULT_TRACKS.map((track) => track.id));
+  const normalizedDefaults = DEFAULT_TRACKS.map((track) => {
+    const found = incomingTracks.find((item: TimelineTrack) => item?.id === track.id);
     return {
       ...track,
-      clips: Array.isArray(found?.clips)
-        ? found.clips.map((clip: any) => ({
-            ...clip,
-            clipType: clip.clipType || "media",
-            transform: { ...DEFAULT_TRANSFORM, ...(clip.transform || {}) },
-            filter: { ...DEFAULT_FILTER, ...(clip.filter || {}) },
-            transitionIn: clip.transitionIn || "none",
-            transitionOut: clip.transitionOut || "none",
-            transitionDuration: Number.isFinite(clip.transitionDuration) ? clip.transitionDuration : 0.5,
-            keyframes: Array.isArray(clip.keyframes) ? clip.keyframes : [],
-            textStyle: clip.clipType === "text" ? { ...DEFAULT_TEXT_STYLE, ...(clip.textStyle || {}) } : clip.textStyle,
-          }))
-        : [],
+      name: found?.name || track.name,
+      clips: Array.isArray(found?.clips) ? found.clips.map(normalizeClip) : [],
     };
   });
+
+  const extraTracks: TimelineTrack[] = incomingTracks
+    .filter((track: TimelineTrack) => track?.id && !defaultIds.has(track.id))
+    .map((track: TimelineTrack) => ({
+      id: String(track.id),
+      name: String(track.name || track.kind || "Pista"),
+      kind: track.kind,
+      clips: Array.isArray(track.clips) ? track.clips.map(normalizeClip) : [],
+    }))
+    .filter((track: TimelineTrack) => ["video", "overlay", "text", "audio", "music"].includes(track.kind));
+
   return {
     ...base,
     ...project,
     version: 2,
-    tracks: mergedTracks,
+    tracks: [...normalizedDefaults, ...extraTracks],
   };
 }
 
@@ -271,4 +302,15 @@ export function transitionFactor(clip: TimelineClip, localTime: number) {
     if (clip.transitionOut === "slide-right") slide = (1 - t);
   }
   return { opacity, slide };
+}
+
+export function audioFadeFactor(clip: TimelineClip, localTime: number) {
+  const time = Math.max(0, Math.min(clip.duration, localTime));
+  const fadeIn = Math.max(0, Math.min(clip.duration / 2, clip.audioFadeIn || 0));
+  const fadeOut = Math.max(0, Math.min(clip.duration / 2, clip.audioFadeOut || 0));
+  let factor = 1;
+  if (fadeIn > 0 && time < fadeIn) factor *= Math.max(0, Math.min(1, time / fadeIn));
+  const remain = Math.max(0, clip.duration - time);
+  if (fadeOut > 0 && remain < fadeOut) factor *= Math.max(0, Math.min(1, remain / fadeOut));
+  return factor;
 }
