@@ -46,10 +46,16 @@ import { createClient } from "@/lib/supabase/client";
 import { exportProjectWav } from "@/lib/multimedia/audio";
 import { convertAudioBlobToMp3, extractAudioFromMedia } from "@/lib/multimedia/media-convert";
 import {
+  clearMultimediaProjects,
+  createMultimediaProjectFolder,
   deleteMultimediaProject,
+  deleteMultimediaProjectFolder,
+  listMultimediaProjectFolders,
   listSavedMultimediaProjects,
   loadMultimediaProject,
+  moveMultimediaProjectToFolder,
   saveMultimediaProject,
+  type MultimediaProjectFolder,
   type SavedProjectSummary,
 } from "@/lib/multimedia/project-store";
 import AudioWaveformCanvas from "@/components/multimedia/AudioWaveformCanvas";
@@ -252,8 +258,14 @@ export default function MultimediaStudioV3Client() {
   const [exportProgress, setExportProgress] = useState(0);
   const [exportFormat, setExportFormat] = useState<ExportFormat>("mp4");
   const [savedProjects, setSavedProjects] = useState<SavedProjectSummary[]>([]);
+  const [savedFolders, setSavedFolders] = useState<MultimediaProjectFolder[]>([]);
   const [savedProjectId, setSavedProjectId] = useState<string | null>(null);
+  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
+  const [folderFilter, setFolderFilter] = useState("all");
+  const [newFolderName, setNewFolderName] = useState("");
   const [savingProject, setSavingProject] = useState(false);
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
+  const [autoSaveStatus, setAutoSaveStatus] = useState("Guarda una vez para activar el autoguardado.");
   const [extractingAudio, setExtractingAudio] = useState(false);
   const [pointerAction, setPointerAction] = useState<PointerAction | null>(null);
 
@@ -262,6 +274,7 @@ export default function MultimediaStudioV3Client() {
   const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
   const audioRefs = useRef<Map<string, HTMLAudioElement>>(new Map());
   const rafRef = useRef<number | null>(null);
+  const autosaveBusyRef = useRef(false);
   const playbackAnchor = useRef({ playhead: 0, time: 0 });
   const supabase = useMemo(() => createClient(), []);
 
@@ -279,6 +292,39 @@ export default function MultimediaStudioV3Client() {
   useEffect(() => { projectRef.current = project; }, [project]);
   useEffect(() => { assetsRef.current = assets; }, [assets]);
   useEffect(() => { void refreshSavedProjects(); }, []);
+
+  useEffect(() => {
+    if (!savedProjectId) {
+      setAutoSaveStatus("Guarda una vez para activar el autoguardado.");
+      return;
+    }
+    if (!autoSaveEnabled) {
+      setAutoSaveStatus("Autoguardado pausado.");
+      return;
+    }
+
+    setAutoSaveStatus("Cambios pendientes…");
+    const timer = window.setTimeout(async () => {
+      if (autosaveBusyRef.current) return;
+      autosaveBusyRef.current = true;
+      try {
+        const saved = await saveMultimediaProject(projectRef.current, assetsRef.current, savedProjectId, currentFolderId);
+        setSavedProjects((current) => {
+          const next = current.some((item) => item.id === saved.id)
+            ? current.map((item) => item.id === saved.id ? saved : item)
+            : [saved, ...current];
+          return next.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+        });
+        setAutoSaveStatus(`Guardado automático · ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`);
+      } catch (error) {
+        setAutoSaveStatus(error instanceof Error ? `Autoguardado: ${error.message}` : "No se pudo autoguardar.");
+      } finally {
+        autosaveBusyRef.current = false;
+      }
+    }, 1600);
+
+    return () => window.clearTimeout(timer);
+  }, [project, assets, savedProjectId, currentFolderId, autoSaveEnabled]);
 
   const commitProject = useCallback((updater: (current: MultimediaProject) => MultimediaProject, recordHistory = true) => {
     const current = projectRef.current;
@@ -928,6 +974,8 @@ export default function MultimediaStudioV3Client() {
       setProject(nextProject);
       setAssets(nextAssets);
       setSavedProjectId(null);
+      setCurrentFolderId(null);
+      setAutoSaveStatus("Guarda una vez para activar el autoguardado.");
       setSelectedClipId(null);
       setPlayhead(0);
       setNotice("Proyecto cargado. Los archivos locales se pueden volver a enlazar por nombre.");
@@ -986,23 +1034,34 @@ export default function MultimediaStudioV3Client() {
 
   async function refreshSavedProjects() {
     try {
-      setSavedProjects(await listSavedMultimediaProjects());
+      const [projects, folders] = await Promise.all([
+        listSavedMultimediaProjects(),
+        listMultimediaProjectFolders(),
+      ]);
+      setSavedProjects(projects);
+      setSavedFolders(folders);
     } catch {
       setSavedProjects([]);
+      setSavedFolders([]);
     }
   }
 
   async function saveProjectHere() {
+    if (autosaveBusyRef.current) return;
+    autosaveBusyRef.current = true;
     setSavingProject(true);
     setNotice("Guardando proyecto y archivos multimedia en EDUAI…");
     try {
-      const saved = await saveMultimediaProject(projectRef.current, assetsRef.current, savedProjectId);
+      const saved = await saveMultimediaProject(projectRef.current, assetsRef.current, savedProjectId, currentFolderId);
       setSavedProjectId(saved.id);
+      setCurrentFolderId(saved.folderId);
       await refreshSavedProjects();
-      setNotice("Proyecto guardado dentro de EDUAI. Puedes cerrarlo y abrirlo luego desde Mis proyectos.");
+      setAutoSaveStatus(`Guardado · ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`);
+      setNotice("Proyecto guardado. Los cambios siguientes se guardarán automáticamente.");
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "No se pudo guardar el proyecto en este navegador.");
     } finally {
+      autosaveBusyRef.current = false;
       setSavingProject(false);
     }
   }
@@ -1021,12 +1080,14 @@ export default function MultimediaStudioV3Client() {
       setProject(nextProject);
       setAssets(nextAssets);
       setSavedProjectId(restored.id);
+      setCurrentFolderId(restored.folderId);
       setSelectedClipId(null);
       setPlayhead(0);
       setUndoStack([]);
       setRedoStack([]);
+      setAutoSaveStatus("Autoguardado activo.");
       setNotice(nextAssets.some((asset) => asset.missing)
-        ? "Proyecto abierto. Algún recurso remoto o local ya no está disponible."
+        ? "Proyecto abierto. Algún recurso ya no está disponible."
         : "Proyecto abierto con sus archivos multimedia.");
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "No se pudo abrir el proyecto guardado.");
@@ -1034,13 +1095,72 @@ export default function MultimediaStudioV3Client() {
   }
 
   async function removeSavedProject(id: string) {
+    if (!window.confirm("¿Eliminar este proyecto guardado? Esta acción no se puede deshacer.")) return;
     try {
       await deleteMultimediaProject(id);
-      if (savedProjectId === id) setSavedProjectId(null);
+      if (savedProjectId === id) {
+        setSavedProjectId(null);
+        setCurrentFolderId(null);
+        setAutoSaveStatus("Guarda una vez para activar el autoguardado.");
+      }
       await refreshSavedProjects();
-      setNotice("Proyecto eliminado de Mis proyectos.");
+      setNotice("Proyecto eliminado.");
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "No se pudo eliminar el proyecto.");
+    }
+  }
+
+  async function createProjectFolder() {
+    const name = newFolderName.trim();
+    if (!name) return;
+    try {
+      const folder = await createMultimediaProjectFolder(name);
+      setNewFolderName("");
+      setCurrentFolderId(folder.id);
+      setFolderFilter(folder.id);
+      await refreshSavedProjects();
+      setNotice(`Carpeta “${folder.name}” creada.`);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "No se pudo crear la carpeta.");
+    }
+  }
+
+  async function removeProjectFolder(folder: MultimediaProjectFolder) {
+    if (!window.confirm(`¿Eliminar la carpeta “${folder.name}”? Sus proyectos pasarán a “Sin carpeta”.`)) return;
+    try {
+      await deleteMultimediaProjectFolder(folder.id);
+      if (currentFolderId === folder.id) setCurrentFolderId(null);
+      if (folderFilter === folder.id) setFolderFilter("all");
+      await refreshSavedProjects();
+      setNotice("Carpeta eliminada. Los proyectos se conservaron sin carpeta.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "No se pudo eliminar la carpeta.");
+    }
+  }
+
+  async function moveSavedProject(id: string, folderId: string | null) {
+    try {
+      await moveMultimediaProjectToFolder(id, folderId);
+      if (savedProjectId === id) setCurrentFolderId(folderId);
+      await refreshSavedProjects();
+      setNotice("Proyecto movido de carpeta.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "No se pudo mover el proyecto.");
+    }
+  }
+
+  async function clearSavedProjects() {
+    if (!savedProjects.length) return;
+    if (!window.confirm(`¿Borrar los ${savedProjects.length} proyectos guardados? Las carpetas se conservarán.`)) return;
+    try {
+      await clearMultimediaProjects();
+      setSavedProjectId(null);
+      setCurrentFolderId(null);
+      setAutoSaveStatus("Guarda una vez para activar el autoguardado.");
+      await refreshSavedProjects();
+      setNotice("Se borraron todos los proyectos guardados.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "No se pudieron borrar los proyectos.");
     }
   }
 
@@ -1243,9 +1363,21 @@ export default function MultimediaStudioV3Client() {
           {tab === "project" && <div className="space-y-3 text-xs">
             <label className="block">Resolución<select value={`${project.width}x${project.height}`} onChange={(event) => { const [width, height] = event.target.value.split("x").map(Number); commitProject((current) => ({ ...current, width, height })); }} className="mt-1 w-full rounded-xl border border-white/10 bg-[#0b1020] px-3 py-2"><option value="1280x720">1280×720 · HD</option><option value="1920x1080">1920×1080 · Full HD</option><option value="1080x1920">1080×1920 · Vertical</option><option value="1080x1080">1080×1080 · Cuadrado</option></select></label>
             <label className="block">FPS<select value={project.fps} onChange={(event) => commitProject((current) => ({ ...current, fps: Number(event.target.value) }))} className="mt-1 w-full rounded-xl border border-white/10 bg-[#0b1020] px-3 py-2"><option value={24}>24 fps</option><option value={30}>30 fps</option><option value={60}>60 fps</option></select></label>
-            <button disabled={savingProject} onClick={saveProjectHere} className="w-full rounded-xl border border-cyan-400/25 bg-cyan-500/15 p-3 font-semibold text-cyan-100 disabled:opacity-50"><Save size={14} className="mr-1 inline" />{savingProject ? "Guardando…" : savedProjectId ? "Guardar cambios en EDUAI" : "Guardar en EDUAI"}</button>
-            <p className="text-[9px] leading-4 text-slate-500">Mis proyectos se guardan en este navegador, incluyendo los archivos locales cuando hay espacio disponible.</p>
-            {savedProjects.length > 0 && <div className="space-y-1 rounded-xl border border-white/10 bg-black/20 p-2"><div className="mb-1 flex items-center justify-between"><span className="text-[10px] font-semibold text-slate-200">Mis proyectos</span><button onClick={() => void refreshSavedProjects()} className="text-[9px] text-cyan-300">Actualizar</button></div>{savedProjects.map((saved) => <div key={saved.id} className={`flex items-center gap-1 rounded-lg border p-1.5 ${savedProjectId === saved.id ? "border-cyan-400/35 bg-cyan-500/10" : "border-white/5 bg-white/[0.02]"}`}><button onClick={() => void openSavedProject(saved.id)} className="min-w-0 flex-1 text-left"><span className="block truncate text-[10px] text-slate-200">{saved.title}</span><span className="block text-[8px] text-slate-500">{new Date(saved.updatedAt).toLocaleString()} · {saved.assetCount} recursos</span></button><button title="Abrir proyecto" onClick={() => void openSavedProject(saved.id)} className="rounded p-1 text-cyan-300 hover:bg-white/10"><FolderOpen size={12} /></button><button title="Eliminar proyecto" onClick={() => void removeSavedProject(saved.id)} className="rounded p-1 text-rose-300 hover:bg-rose-500/10"><Trash2 size={12} /></button></div>)}</div>}
+            <div className="space-y-2 rounded-xl border border-cyan-400/15 bg-cyan-500/5 p-2.5">
+              <label className="block text-[10px] text-slate-300">Carpeta del proyecto<select value={currentFolderId || ""} onChange={(event) => setCurrentFolderId(event.target.value || null)} className="mt-1 w-full rounded-lg border border-white/10 bg-[#0b1020] px-2 py-2 text-[10px]"><option value="">Sin carpeta</option>{savedFolders.map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}</select></label>
+              <div className="flex gap-1"><input value={newFolderName} onChange={(event) => setNewFolderName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void createProjectFolder(); }} placeholder="Nueva carpeta" className="min-w-0 flex-1 rounded-lg border border-white/10 bg-black/20 px-2 py-1.5 text-[10px] outline-none" /><button onClick={() => void createProjectFolder()} disabled={!newFolderName.trim()} className="rounded-lg bg-cyan-500/15 px-2 text-[10px] text-cyan-100 disabled:opacity-40">Crear</button></div>
+            </div>
+            <button disabled={savingProject} onClick={saveProjectHere} className="w-full rounded-xl border border-cyan-400/25 bg-cyan-500/15 p-3 font-semibold text-cyan-100 disabled:opacity-50"><Save size={14} className="mr-1 inline" />{savingProject ? "Guardando…" : savedProjectId ? "Guardar ahora" : "Guardar en EDUAI"}</button>
+            <div className="rounded-xl border border-white/10 bg-black/20 p-2.5"><label className="flex items-center justify-between gap-2 text-[10px]"><span><b className="text-slate-200">Autoguardado</b><span className="mt-0.5 block text-[9px] text-slate-500">{autoSaveStatus}</span></span><input type="checkbox" checked={autoSaveEnabled} onChange={(event) => setAutoSaveEnabled(event.target.checked)} className="h-4 w-4 accent-cyan-500" /></label></div>
+            <p className="text-[9px] leading-4 text-slate-500">Después del primer guardado, cada edición se actualiza automáticamente en este navegador.</p>
+
+            <div className="space-y-2 rounded-xl border border-white/10 bg-black/20 p-2">
+              <div className="flex items-center justify-between gap-2"><span className="text-[10px] font-semibold text-slate-200">Mis proyectos · {savedProjects.length}</span><div className="flex gap-2"><button onClick={() => void refreshSavedProjects()} className="text-[9px] text-cyan-300">Actualizar</button>{savedProjects.length > 0 && <button onClick={() => void clearSavedProjects()} className="text-[9px] text-rose-300">Borrar todos</button>}</div></div>
+              <select value={folderFilter} onChange={(event) => setFolderFilter(event.target.value)} className="w-full rounded-lg border border-white/10 bg-[#0b1020] px-2 py-1.5 text-[10px]"><option value="all">Todas las carpetas</option><option value="root">Sin carpeta</option>{savedFolders.map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}</select>
+              {savedFolders.length > 0 && <div className="space-y-1 border-b border-white/5 pb-2"><p className="text-[8px] font-semibold uppercase tracking-wider text-slate-500">Carpetas</p>{savedFolders.map((folder) => <div key={folder.id} className="flex items-center gap-1 rounded-lg bg-white/[0.025] p-1"><button onClick={() => setFolderFilter(folder.id)} className="min-w-0 flex-1 truncate text-left text-[9px] text-slate-300"><FolderOpen size={10} className="mr-1 inline text-cyan-300" />{folder.name} · {savedProjects.filter((item) => item.folderId === folder.id).length}</button><button title="Eliminar carpeta" onClick={() => void removeProjectFolder(folder)} className="rounded p-1 text-rose-300 hover:bg-rose-500/10"><Trash2 size={10} /></button></div>)}</div>}
+              <div className="space-y-1">{savedProjects.filter((saved) => folderFilter === "all" ? true : folderFilter === "root" ? !saved.folderId : saved.folderId === folderFilter).map((saved) => <div key={saved.id} className={`rounded-lg border p-1.5 ${savedProjectId === saved.id ? "border-cyan-400/35 bg-cyan-500/10" : "border-white/5 bg-white/[0.02]"}`}><div className="flex items-center gap-1"><button onClick={() => void openSavedProject(saved.id)} className="min-w-0 flex-1 text-left"><span className="block truncate text-[10px] text-slate-200">{saved.title}</span><span className="block text-[8px] text-slate-500">{new Date(saved.updatedAt).toLocaleString()} · {saved.assetCount} recursos</span></button><button title="Abrir proyecto" onClick={() => void openSavedProject(saved.id)} className="rounded p-1 text-cyan-300 hover:bg-white/10"><FolderOpen size={12} /></button><button title="Eliminar proyecto" onClick={() => void removeSavedProject(saved.id)} className="rounded p-1 text-rose-300 hover:bg-rose-500/10"><Trash2 size={12} /></button></div><select value={saved.folderId || ""} onChange={(event) => void moveSavedProject(saved.id, event.target.value || null)} className="mt-1 w-full rounded border border-white/5 bg-[#0b1020] px-1.5 py-1 text-[8px] text-slate-400"><option value="">Sin carpeta</option>{savedFolders.map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}</select></div>)}</div>
+              {savedProjects.length === 0 && <p className="py-3 text-center text-[9px] text-slate-500">Aún no hay proyectos guardados.</p>}
+            </div>
             <div className="grid grid-cols-2 gap-2"><button onClick={() => downloadProject(project, assets)} className="rounded-xl border border-white/10 bg-white/5 p-2.5"><Download size={13} className="mr-1 inline" />Proyecto JSON</button><label className="cursor-pointer rounded-xl border border-white/10 bg-white/5 p-2.5 text-center">Cargar JSON<input type="file" accept=".json,application/json" className="hidden" onChange={loadProject} /></label></div>
             <div className="grid grid-cols-2 gap-2"><button disabled={exporting} onClick={exportWav} className="rounded-xl border border-violet-400/20 bg-violet-500/10 p-2.5 text-violet-200 disabled:opacity-50"><Volume2 size={14} className="mr-1 inline" />WAV</button><button disabled={exporting} onClick={exportMp3} className="rounded-xl border border-emerald-400/20 bg-emerald-500/10 p-2.5 text-emerald-200 disabled:opacity-50"><Music2 size={14} className="mr-1 inline" />MP3</button></div>
             <button onClick={exportFrame} className="w-full rounded-xl border border-fuchsia-400/20 bg-fuchsia-500/10 p-3 text-fuchsia-200"><ImageIcon size={14} className="mr-1 inline" />Fotograma PNG</button>
