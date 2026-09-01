@@ -1,5 +1,5 @@
 import type { MediaAsset, MultimediaProject, TimelineClip } from "./types";
-import { interpolateClip, projectDuration, transitionFactor } from "./types";
+import { audioFadeFactor, interpolateClip, projectDuration, transitionFactor } from "./types";
 
 export type ExportFormat = "mp4" | "webm";
 
@@ -268,7 +268,7 @@ export async function exportProjectVideo(project: MultimediaProject, assets: Med
         const local = elapsed - entry.clip.start;
         const animated = interpolateClip(entry.clip, Math.max(0, local));
         const transition = transitionFactor(entry.clip, Math.max(0, local));
-        if (entry.gain) entry.gain.gain.value = isActive && !entry.clip.muted ? Math.max(0, animated.volume * transition.opacity) : 0;
+        if (entry.gain) entry.gain.gain.value = isActive && !entry.clip.muted ? Math.max(0, animated.volume * transition.opacity * audioFadeFactor(entry.clip, Math.max(0, local))) : 0;
         if (isActive) {
           seek(entry.element, entry.clip.offset + local);
           if (entry.element.paused) void entry.element.play().catch(() => undefined);

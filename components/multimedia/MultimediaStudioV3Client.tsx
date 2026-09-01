@@ -43,7 +43,8 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { buildWaveform, exportProjectWav } from "@/lib/multimedia/audio";
+import { exportProjectWav } from "@/lib/multimedia/audio";
+import AudioWaveformCanvas from "@/components/multimedia/AudioWaveformCanvas";
 import { downloadBlob, exportProjectVideo, supportedVideoFormats, type ExportFormat } from "@/lib/multimedia/export-media";
 import {
   MEDIA_ACCEPT,
@@ -53,6 +54,7 @@ import {
   type MediaCompatibility,
 } from "@/lib/multimedia/media-formats";
 import {
+  audioFadeFactor,
   createMediaClip,
   createTextClip,
   interpolateClip,
@@ -114,7 +116,9 @@ type EditableVideo = {
 type PointerAction =
   | { mode: "move"; clipId: string; pointerId: number; startX: number; originalStart: number }
   | { mode: "trim-left"; clipId: string; pointerId: number; startX: number; originalStart: number; originalDuration: number; originalOffset: number }
-  | { mode: "trim-right"; clipId: string; pointerId: number; startX: number; originalDuration: number };
+  | { mode: "trim-right"; clipId: string; pointerId: number; startX: number; originalDuration: number }
+  | { mode: "fade-in"; clipId: string; pointerId: number; startX: number; originalFade: number }
+  | { mode: "fade-out"; clipId: string; pointerId: number; startX: number; originalFade: number };
 
 const TRACK_STYLES: Record<string, string> = {
   video: "border-cyan-400/45 bg-cyan-500/20 text-cyan-100",
@@ -226,7 +230,7 @@ export default function MultimediaStudioV3Client() {
   const [snapEnabled, setSnapEnabled] = useState(true);
   const [zoom, setZoom] = useState(1);
   const [timelineTail, setTimelineTail] = useState(10);
-  const [waveforms, setWaveforms] = useState<Record<string, number[]>>({});
+  const [waveformScale, setWaveformScale] = useState(1);
   const [musicQuery, setMusicQuery] = useState("música instrumental para estudiar");
   const [musicResults, setMusicResults] = useState<MusicResult[]>([]);
   const [searchingMusic, setSearchingMusic] = useState(false);
@@ -253,6 +257,7 @@ export default function MultimediaStudioV3Client() {
   const assetMap = useMemo(() => new Map(assets.map((asset) => [asset.id, asset])), [assets]);
   const selectedClip = clips.find((clip) => clip.id === selectedClipId) || null;
   const selectedAsset = selectedClip?.assetId ? assetMap.get(selectedClip.assetId) : undefined;
+  const selectedTrack = selectedClip ? project.tracks.find((track) => track.id === selectedClip.trackId) : undefined;
   const duration = useMemo(() => projectDuration(project), [project]);
   const timelineSpan = Math.max(15, duration + timelineTail, playhead + 5);
   const pixelsPerSecond = 68 * zoom;
@@ -373,7 +378,7 @@ export default function MultimediaStudioV3Client() {
       if (Math.abs(element.currentTime - wanted) > 0.2) element.currentTime = Math.max(0, wanted);
       const animated = interpolateClip(clip, playhead - clip.start);
       const transition = transitionFactor(clip, playhead - clip.start);
-      element.volume = clip.muted ? 0 : clamp(animated.volume * transition.opacity, 0, 1);
+      element.volume = clip.muted ? 0 : clamp(animated.volume * transition.opacity * audioFadeFactor(clip, playhead - clip.start), 0, 1);
       element.muted = clip.muted;
       if (playing) void element.play().catch(() => undefined);
       else element.pause();
@@ -399,7 +404,7 @@ export default function MultimediaStudioV3Client() {
         if (Math.abs(element.currentTime - wanted) > 0.22) element.currentTime = Math.max(0, wanted);
         const animated = interpolateClip(clip, playhead - clip.start);
         const transition = transitionFactor(clip, playhead - clip.start);
-        element.volume = clip.muted ? 0 : clamp(animated.volume * transition.opacity, 0, 1);
+        element.volume = clip.muted ? 0 : clamp(animated.volume * transition.opacity * audioFadeFactor(clip, playhead - clip.start), 0, 1);
         if (playing) void element.play().catch(() => undefined);
         else element.pause();
       }
@@ -428,35 +433,75 @@ export default function MultimediaStudioV3Client() {
     return () => window.removeEventListener("keydown", keyHandler);
   });
 
-  function targetTrackId(asset: StudioAsset) {
-    if (asset.kind === "video") return "video-main";
-    if (asset.kind === "image") return "overlay-main";
-    if (asset.kind === "music") return "music-main";
-    return "audio-main";
+  function trackHasSpace(track: MultimediaProject["tracks"][number], start: number, clipDuration: number) {
+    const end = start + clipDuration;
+    return track.clips.every((clip) => end <= clip.start + 0.001 || start >= clip.start + clip.duration - 0.001);
+  }
+
+  function makeAudioTrack(kind: "audio" | "music", current: MultimediaProject) {
+    const matching = current.tracks.filter((track) => track.kind === kind);
+    const number = matching.length + 1;
+    return {
+      id: `${kind}-${uid("track")}`,
+      name: kind === "music" ? `Música ${number}` : `Audio ${number}`,
+      kind,
+      clips: [] as TimelineClip[],
+    };
+  }
+
+  function resolveAudioTrack(current: MultimediaProject, kind: "audio" | "music", start: number, clipDuration: number) {
+    const available = current.tracks.find((track) => track.kind === kind && trackHasSpace(track, start, clipDuration));
+    if (available) return { trackId: available.id, newTrack: null };
+    const newTrack = makeAudioTrack(kind, current);
+    return { trackId: newTrack.id, newTrack };
+  }
+
+  function addAudioTrack(kind: "audio" | "music") {
+    const track = makeAudioTrack(kind, projectRef.current);
+    commitProject((current) => ({ ...current, tracks: [...current.tracks, track] }));
+    setNotice(`${track.name} creada. Los clips de esta pista se editan y mezclan por separado.`);
+  }
+
+  function moveClipToTrack(clipId: string, targetTrackId: string) {
+    const clip = projectRef.current.tracks.flatMap((track) => track.clips).find((item) => item.id === clipId);
+    if (!clip || clip.trackId === targetTrackId) return;
+    const target = projectRef.current.tracks.find((track) => track.id === targetTrackId);
+    if (!target) return;
+    commitProject((current) => ({
+      ...current,
+      tracks: current.tracks.map((track) => {
+        const without = track.clips.filter((item) => item.id !== clipId);
+        if (track.id === targetTrackId) return { ...track, clips: [...without, { ...clip, trackId: targetTrackId }] };
+        return { ...track, clips: without };
+      }),
+    }));
+    setNotice(`Clip movido a ${target.name}.`);
   }
 
   function addAssetToTimeline(asset: StudioAsset, at = playhead) {
     if (!asset.url) { setNotice("El recurso no está disponible. Vuelve a enlazarlo."); return; }
-    const trackId = targetTrackId(asset);
-    const clip = createMediaClip(asset, trackId, Math.max(0, at));
-    commitProject((current) => ({
-      ...current,
-      tracks: current.tracks.map((track) => track.id === trackId ? { ...track, clips: [...track.clips, clip] } : track),
-    }));
+    const start = Math.max(0, at);
+    let trackId = asset.kind === "video" ? "video-main" : asset.kind === "image" ? "overlay-main" : asset.kind === "music" ? "music-main" : "audio-main";
+    let newTrack: MultimediaProject["tracks"][number] | null = null;
+
+    if (asset.kind === "audio" || asset.kind === "music") {
+      const resolved = resolveAudioTrack(projectRef.current, asset.kind, start, Math.max(0.5, asset.duration || 10));
+      trackId = resolved.trackId;
+      newTrack = resolved.newTrack;
+    }
+
+    const clip = createMediaClip(asset, trackId, start);
+    commitProject((current) => {
+      const tracks = newTrack ? [...current.tracks, newTrack] : current.tracks;
+      return {
+        ...current,
+        tracks: tracks.map((track) => track.id === trackId ? { ...track, clips: [...track.clips, clip] } : track),
+      };
+    });
     setSelectedClipId(clip.id);
     setPlayhead(clip.start);
-    setNotice(`${asset.name} agregado a ${fmt(clip.start)}.`);
-    if (asset.kind === "audio" || asset.kind === "music") void generateWaveform(asset);
-  }
-
-  async function generateWaveform(asset: StudioAsset) {
-    if (!asset.url || waveforms[asset.id]) return;
-    try {
-      const peaks = await buildWaveform(asset.url, 120);
-      setWaveforms((current) => ({ ...current, [asset.id]: peaks }));
-    } catch {
-      // El recurso sigue siendo editable aunque el navegador/CORS impida la forma de onda.
-    }
+    const trackName = (newTrack || projectRef.current.tracks.find((track) => track.id === trackId))?.name || trackId;
+    setNotice(`${asset.name} agregado a ${trackName} en ${fmt(clip.start)}.`);
   }
 
   async function createAssetsFromFiles(files: File[]) {
@@ -507,7 +552,6 @@ export default function MultimediaStudioV3Client() {
     }
 
     if (incoming.length) setAssets((current) => [...current, ...incoming]);
-    incoming.filter((asset) => asset.kind === "audio").forEach((asset) => void generateWaveform(asset));
     const accepted = incoming.length + relinked;
     setNotice(rejected.length
       ? `${accepted} archivo(s) aceptados. ${rejected.length} requieren conversión: ${rejected.slice(0, 2).join(" · ")}`
@@ -676,6 +720,18 @@ export default function MultimediaStudioV3Client() {
       return;
     }
 
+    if (pointerAction.mode === "fade-in") {
+      const value = clamp(pointerAction.originalFade + dxSeconds, 0, clip.duration / 2);
+      updateClip(clip.id, { audioFadeIn: value }, false);
+      return;
+    }
+
+    if (pointerAction.mode === "fade-out") {
+      const value = clamp(pointerAction.originalFade - dxSeconds, 0, clip.duration / 2);
+      updateClip(clip.id, { audioFadeOut: value }, false);
+      return;
+    }
+
     const maxSource = sourceMaxDuration(clip);
     const wanted = Math.max(0.05, pointerAction.originalDuration + dxSeconds);
     const durationValue = Number.isFinite(maxSource) ? Math.min(wanted, maxSource) : wanted;
@@ -685,7 +741,7 @@ export default function MultimediaStudioV3Client() {
   function endPointerAction(event: ReactPointerEvent<HTMLDivElement>) {
     if (!pointerAction || pointerAction.pointerId !== event.pointerId) return;
     setPointerAction(null);
-    setNotice(pointerAction.mode === "move" ? "Clip movido." : "Recorte aplicado.");
+    setNotice(pointerAction.mode === "move" ? "Clip movido." : pointerAction.mode === "fade-in" || pointerAction.mode === "fade-out" ? "Fade de audio ajustado." : "Recorte aplicado.");
   }
 
   function setPlayheadFromTimeline(event: ReactPointerEvent<HTMLDivElement>) {
@@ -1068,12 +1124,15 @@ export default function MultimediaStudioV3Client() {
               <button onClick={() => setZoom((value) => clamp(value / 1.25, 0.35, 4))} className="rounded-lg border border-white/10 bg-white/5 p-1.5"><ZoomOut size={12} /></button>
               <span className="w-10 text-center text-[9px] text-slate-400">{Math.round(zoom * 100)}%</span>
               <button onClick={() => setZoom((value) => clamp(value * 1.25, 0.35, 4))} className="rounded-lg border border-white/10 bg-white/5 p-1.5"><ZoomIn size={12} /></button>
+              <button onClick={() => addAudioTrack("audio")} title="Añadir pista de audio" className="rounded-lg border border-violet-400/20 bg-violet-500/10 px-2 py-1 text-[9px] text-violet-100">+ Audio</button>
+              <button onClick={() => addAudioTrack("music")} title="Añadir pista de música" className="rounded-lg border border-emerald-400/20 bg-emerald-500/10 px-2 py-1 text-[9px] text-emerald-100">+ Música</button>
+              <label title="Escala vertical de la onda" className="flex items-center gap-1 rounded-lg border border-violet-400/20 bg-violet-500/10 px-2 py-1 text-[9px] text-violet-100">Onda<select value={waveformScale} onChange={(event) => setWaveformScale(Number(event.target.value))} className="bg-transparent text-[9px] outline-none"><option className="bg-[#0b1020]" value={0.5}>0.5×</option><option className="bg-[#0b1020]" value={1}>1×</option><option className="bg-[#0b1020]" value={2}>2×</option><option className="bg-[#0b1020]" value={4}>4×</option></select></label>
               <button onClick={() => setTimelineTail((value) => Math.min(120, value + 10))} title="Añadir espacio al final" className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[9px]">+10s</button>
             </div>
-            <p className="mb-2 text-[9px] text-slate-500">Clic en la regla o pista = mover cabezal · Arrastra el centro del clip = mover · Arrastra los bordes = recortar · S = dividir.</p>
+            <p className="mb-2 text-[9px] text-slate-500">Clic en la regla o pista = mover cabezal · Centro = mover · Bordes = recortar · Puntos turquesa = fade-in/fade-out · Onda = escala vertical · S = dividir.</p>
 
             <div ref={timelineScrollRef} className="overflow-x-auto rounded-xl border border-white/10 bg-black/20">
-              <div className="relative min-h-[330px]" style={{ width: 118 + timelineWidth }}>
+              <div className="relative" style={{ width: 118 + timelineWidth, minHeight: 40 + project.tracks.length * 58 }}>
                 <div className="sticky left-0 z-30 h-8 w-[118px] border-r border-white/10 bg-[#090d19]" />
                 <div className="absolute left-[118px] top-0 h-8 border-b border-white/10" style={{ width: timelineWidth }} onPointerDown={setPlayheadFromTimeline}>
                   {Array.from({ length: Math.ceil(timelineSpan) + 1 }).map((_, second) => <div key={second} className="absolute bottom-0 border-l border-white/10 pl-1 text-[8px] text-slate-500" style={{ left: second * pixelsPerSecond, height: second % 5 === 0 ? 22 : 10 }}>{second % 5 === 0 ? `${second}s` : ""}</div>)}
@@ -1086,11 +1145,16 @@ export default function MultimediaStudioV3Client() {
                     <div className="absolute left-[118px] top-0 h-[54px] border-b border-white/5 bg-white/[0.02]" style={{ width: timelineWidth }} onPointerDown={setPlayheadFromTimeline} onPointerMove={handlePointerMove} onPointerUp={endPointerAction} onPointerCancel={endPointerAction}>
                       {track.clips.map((clip) => {
                         const asset = clip.assetId ? assetMap.get(clip.assetId) : undefined;
-                        const peaks = asset ? waveforms[asset.id] : undefined;
                         return <div key={clip.id} onPointerDown={(event) => beginPointerAction(event, { mode: "move", clipId: clip.id, pointerId: event.pointerId, startX: event.clientX, originalStart: clip.start })} className={`group absolute top-1 h-[46px] touch-none select-none overflow-hidden rounded-lg border ${TRACK_STYLES[track.kind]} ${selectedClipId === clip.id ? "ring-2 ring-white/80" : ""} ${pointerAction?.clipId === clip.id && pointerAction.mode === "move" ? "cursor-grabbing" : "cursor-grab"}`} style={{ left: clip.start * pixelsPerSecond, width: Math.max(18, clip.duration * pixelsPerSecond) }}>
                           <button aria-label="Recortar inicio" onPointerDown={(event) => beginPointerAction(event, { mode: "trim-left", clipId: clip.id, pointerId: event.pointerId, startX: event.clientX, originalStart: clip.start, originalDuration: clip.duration, originalOffset: clip.offset })} className="absolute bottom-0 left-0 top-0 z-20 w-3 cursor-ew-resize touch-none border-r border-white/15 bg-white/5 opacity-60 hover:bg-white/30 hover:opacity-100" />
                           <button aria-label="Recortar fin" onPointerDown={(event) => beginPointerAction(event, { mode: "trim-right", clipId: clip.id, pointerId: event.pointerId, startX: event.clientX, originalDuration: clip.duration })} className="absolute bottom-0 right-0 top-0 z-20 w-3 cursor-ew-resize touch-none border-l border-white/15 bg-white/5 opacity-60 hover:bg-white/30 hover:opacity-100" />
-                          {peaks && (track.kind === "audio" || track.kind === "music") ? <div className="pointer-events-none absolute inset-0 flex items-center gap-px px-3 opacity-55">{peaks.map((peak, index) => <span key={index} className="min-w-[1px] flex-1 rounded-full bg-current" style={{ height: `${Math.max(7, peak * 86)}%` }} />)}</div> : null}
+                          {asset?.url && (track.kind === "audio" || track.kind === "music") ? <>
+                            <AudioWaveformCanvas url={asset.url} offset={clip.offset} duration={clip.duration} amplitudeScale={waveformScale} />
+                            <div className="pointer-events-none absolute bottom-0 left-0 top-0 bg-current opacity-10" style={{ width: `${Math.min(50, ((clip.audioFadeIn || 0) / Math.max(0.05, clip.duration)) * 100)}%`, clipPath: "polygon(0 100%, 100% 0, 100% 100%)" }} />
+                            <div className="pointer-events-none absolute bottom-0 right-0 top-0 bg-current opacity-10" style={{ width: `${Math.min(50, ((clip.audioFadeOut || 0) / Math.max(0.05, clip.duration)) * 100)}%`, clipPath: "polygon(0 0, 100% 100%, 0 100%)" }} />
+                            <button aria-label="Fade de entrada" title={`Fade entrada ${fmt(clip.audioFadeIn || 0)}`} onPointerDown={(event) => beginPointerAction(event, { mode: "fade-in", clipId: clip.id, pointerId: event.pointerId, startX: event.clientX, originalFade: clip.audioFadeIn || 0 })} className="absolute top-1 z-30 h-3 w-3 -translate-x-1/2 cursor-ew-resize touch-none rounded-full border-2 border-[#07111f] bg-cyan-300 shadow" style={{ left: `clamp(8px, ${Math.min(50, ((clip.audioFadeIn || 0) / Math.max(0.05, clip.duration)) * 100)}%, calc(100% - 8px))` }} />
+                            <button aria-label="Fade de salida" title={`Fade salida ${fmt(clip.audioFadeOut || 0)}`} onPointerDown={(event) => beginPointerAction(event, { mode: "fade-out", clipId: clip.id, pointerId: event.pointerId, startX: event.clientX, originalFade: clip.audioFadeOut || 0 })} className="absolute top-1 z-30 h-3 w-3 translate-x-1/2 cursor-ew-resize touch-none rounded-full border-2 border-[#07111f] bg-cyan-300 shadow" style={{ right: `clamp(8px, ${Math.min(50, ((clip.audioFadeOut || 0) / Math.max(0.05, clip.duration)) * 100)}%, calc(100% - 8px))` }} />
+                          </> : null}
                           <div className="pointer-events-none relative z-10 flex h-full items-center gap-1 px-4"><span className="truncate text-[9px] font-medium">{clip.clipType === "text" ? clip.textStyle?.text : asset?.name || "Recurso faltante"}</span>{clip.keyframes.length > 0 && <span className="ml-auto rounded bg-black/30 px-1 text-[8px]">◆{clip.keyframes.length}</span>}</div>
                         </div>;
                       })}
@@ -1118,7 +1182,17 @@ export default function MultimediaStudioV3Client() {
 
             {selectedClip.clipType === "media" && <label>Offset / recorte de fuente · {fmt(selectedClip.offset)}<input type="range" min={0} max={Math.max(0, (selectedAsset?.duration || selectedClip.duration) - 0.05)} step={0.01} value={Math.min(selectedClip.offset, Math.max(0, (selectedAsset?.duration || selectedClip.duration) - 0.05))} onChange={(event) => updateClip(selectedClip.id, { offset: Number(event.target.value) })} className="mt-1 w-full accent-cyan-500" /></label>}
 
-            {(selectedClip.trackId === "audio-main" || selectedClip.trackId === "music-main" || selectedClip.trackId === "video-main") && <div className="rounded-xl border border-violet-400/15 bg-violet-500/5 p-3"><label>Volumen · {Math.round(selectedClip.volume * 100)}%<input type="range" min={0} max={1} step={0.01} value={selectedClip.volume} onChange={(event) => updateClip(selectedClip.id, { volume: Number(event.target.value) })} className="w-full accent-violet-500" /></label><button onClick={() => updateClip(selectedClip.id, { muted: !selectedClip.muted })} className={`mt-2 rounded-lg px-2 py-1 ${selectedClip.muted ? "bg-rose-500/20 text-rose-200" : "bg-white/5"}`}>{selectedClip.muted ? "Silenciado" : "Audio activo"}</button></div>}
+            {selectedTrack && (selectedTrack.kind === "audio" || selectedTrack.kind === "music" || selectedTrack.kind === "video") && <div className="space-y-3 rounded-xl border border-violet-400/15 bg-violet-500/5 p-3">
+              <label>Volumen · {Math.round(selectedClip.volume * 100)}%<input type="range" min={0} max={1} step={0.01} value={selectedClip.volume} onChange={(event) => updateClip(selectedClip.id, { volume: Number(event.target.value) })} className="w-full accent-violet-500" /></label>
+              {(selectedTrack.kind === "audio" || selectedTrack.kind === "music") && <>
+                <label className="block">Pista<select value={selectedClip.trackId} onChange={(event) => moveClipToTrack(selectedClip.id, event.target.value)} className="mt-1 w-full rounded-lg border border-white/10 bg-[#0b1020] px-2 py-1.5">{project.tracks.filter((track) => track.kind === selectedTrack.kind).map((track) => <option key={track.id} value={track.id}>{track.name}</option>)}</select></label>
+                <div className="grid grid-cols-2 gap-2">
+                  <label>Fade entrada · {fmt(selectedClip.audioFadeIn || 0)}<input type="range" min={0} max={Math.max(0.05, selectedClip.duration / 2)} step={0.05} value={selectedClip.audioFadeIn || 0} onChange={(event) => updateClip(selectedClip.id, { audioFadeIn: Number(event.target.value) })} className="w-full accent-cyan-400" /></label>
+                  <label>Fade salida · {fmt(selectedClip.audioFadeOut || 0)}<input type="range" min={0} max={Math.max(0.05, selectedClip.duration / 2)} step={0.05} value={selectedClip.audioFadeOut || 0} onChange={(event) => updateClip(selectedClip.id, { audioFadeOut: Number(event.target.value) })} className="w-full accent-cyan-400" /></label>
+                </div>
+              </>}
+              <button onClick={() => updateClip(selectedClip.id, { muted: !selectedClip.muted })} className={`rounded-lg px-2 py-1 ${selectedClip.muted ? "bg-rose-500/20 text-rose-200" : "bg-white/5"}`}>{selectedClip.muted ? "Silenciado" : "Audio activo"}</button>
+            </div>}
 
             {selectedClip.clipType === "text" && selectedClip.textStyle && <div className="space-y-2 rounded-xl border border-amber-400/15 bg-amber-500/5 p-3"><p className="font-semibold text-amber-200">Texto</p><textarea value={selectedClip.textStyle.text} onChange={(event) => updateClip(selectedClip.id, { textStyle: { ...selectedClip.textStyle!, text: event.target.value } })} rows={3} className="w-full rounded-lg border border-white/10 bg-black/20 p-2 text-xs" /><div className="grid grid-cols-2 gap-2"><label>Tamaño<input type="number" min={10} max={240} value={selectedClip.textStyle.fontSize} onChange={(event) => updateClip(selectedClip.id, { textStyle: { ...selectedClip.textStyle!, fontSize: Number(event.target.value) } })} className="mt-1 w-full rounded-lg border border-white/10 bg-black/20 px-2 py-1" /></label><label>Color<input type="color" value={selectedClip.textStyle.color} onChange={(event) => updateClip(selectedClip.id, { textStyle: { ...selectedClip.textStyle!, color: event.target.value } })} className="mt-1 h-7 w-full rounded bg-transparent" /></label></div></div>}
 
