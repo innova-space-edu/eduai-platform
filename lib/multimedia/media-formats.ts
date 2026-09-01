@@ -78,7 +78,7 @@ export function inferMediaFile(file: Pick<File, "name" | "type">) {
   const extension = mediaExtension(file.name);
   const definition = FORMATS[extension];
   const mimeKind = kindFromMime(file.type || "");
-  const kind = definition?.kind || mimeKind;
+  const kind: EditableMediaKind | "unknown" = definition ? definition.kind : mimeKind;
   const mime = definition?.mime || file.type || "application/octet-stream";
   return { extension, kind, mime, native: Boolean(definition?.native) };
 }
