@@ -1,10 +1,10 @@
-import MultimediaStudioClient from "@/components/multimedia/MultimediaStudioClient";
+import MultimediaStudioV3Client from "@/components/multimedia/MultimediaStudioV3Client";
 
 export const metadata = {
   title: "Editor Multimedia | EduAI",
-  description: "Editor de audio y video por capas integrado con EduAI Music, Video Studio, Audio Lab y Galería.",
+  description: "Editor profesional de audio, video e imágenes por capas con timeline, recorte, división, música, videos editables y exportación integrada.",
 };
 
 export default function MultimediaStudioPage() {
-  return <MultimediaStudioClient />;
+  return <MultimediaStudioV3Client />;
 }
