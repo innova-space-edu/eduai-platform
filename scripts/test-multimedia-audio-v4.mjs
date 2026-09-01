@@ -48,3 +48,4 @@ if (!String(pkg.scripts?.prebuild || "").includes("test-multimedia-audio-v4.mjs"
 }
 
 console.log("[multimedia-v4] OK · Canvas adaptativa, peaks reales, estéreo, fades y pistas dinámicas verificados");
+await import("./test-multimedia-projects-mp3-extract.mjs");

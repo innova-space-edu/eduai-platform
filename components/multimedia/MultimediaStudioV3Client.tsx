@@ -44,6 +44,14 @@ import {
 } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { exportProjectWav } from "@/lib/multimedia/audio";
+import { convertAudioBlobToMp3, extractAudioFromMedia } from "@/lib/multimedia/media-convert";
+import {
+  deleteMultimediaProject,
+  listSavedMultimediaProjects,
+  loadMultimediaProject,
+  saveMultimediaProject,
+  type SavedProjectSummary,
+} from "@/lib/multimedia/project-store";
 import AudioWaveformCanvas from "@/components/multimedia/AudioWaveformCanvas";
 import { downloadBlob, exportProjectVideo, supportedVideoFormats, type ExportFormat } from "@/lib/multimedia/export-media";
 import {
@@ -243,6 +251,10 @@ export default function MultimediaStudioV3Client() {
   const [exporting, setExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
   const [exportFormat, setExportFormat] = useState<ExportFormat>("mp4");
+  const [savedProjects, setSavedProjects] = useState<SavedProjectSummary[]>([]);
+  const [savedProjectId, setSavedProjectId] = useState<string | null>(null);
+  const [savingProject, setSavingProject] = useState(false);
+  const [extractingAudio, setExtractingAudio] = useState(false);
   const [pointerAction, setPointerAction] = useState<PointerAction | null>(null);
 
   const previewRef = useRef<HTMLDivElement | null>(null);
@@ -266,6 +278,7 @@ export default function MultimediaStudioV3Client() {
 
   useEffect(() => { projectRef.current = project; }, [project]);
   useEffect(() => { assetsRef.current = assets; }, [assets]);
+  useEffect(() => { void refreshSavedProjects(); }, []);
 
   const commitProject = useCallback((updater: (current: MultimediaProject) => MultimediaProject, recordHistory = true) => {
     const current = projectRef.current;
@@ -914,6 +927,7 @@ export default function MultimediaStudioV3Client() {
       projectRef.current = nextProject;
       setProject(nextProject);
       setAssets(nextAssets);
+      setSavedProjectId(null);
       setSelectedClipId(null);
       setPlayhead(0);
       setNotice("Proyecto cargado. Los archivos locales se pueden volver a enlazar por nombre.");
@@ -952,6 +966,152 @@ export default function MultimediaStudioV3Client() {
       setNotice(error instanceof Error ? error.message : "No se pudo exportar WAV.");
     } finally {
       setExporting(false);
+    }
+  }
+
+  async function exportMp3() {
+    setExporting(true);
+    setNotice("Mezclando pistas y codificando MP3…");
+    try {
+      const wav = await exportProjectWav(projectRef.current, assetsRef.current);
+      const mp3 = await convertAudioBlobToMp3(wav);
+      downloadBlob(mp3, `${safeFilename(projectRef.current.title)}.mp3`);
+      setNotice("MP3 exportado correctamente a 192 kbps.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "No se pudo exportar MP3.");
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  async function refreshSavedProjects() {
+    try {
+      setSavedProjects(await listSavedMultimediaProjects());
+    } catch {
+      setSavedProjects([]);
+    }
+  }
+
+  async function saveProjectHere() {
+    setSavingProject(true);
+    setNotice("Guardando proyecto y archivos multimedia en EDUAI…");
+    try {
+      const saved = await saveMultimediaProject(projectRef.current, assetsRef.current, savedProjectId);
+      setSavedProjectId(saved.id);
+      await refreshSavedProjects();
+      setNotice("Proyecto guardado dentro de EDUAI. Puedes cerrarlo y abrirlo luego desde Mis proyectos.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "No se pudo guardar el proyecto en este navegador.");
+    } finally {
+      setSavingProject(false);
+    }
+  }
+
+  async function openSavedProject(id: string) {
+    setPlaying(false);
+    try {
+      const restored = await loadMultimediaProject(id);
+      assetsRef.current.forEach((asset) => {
+        if (asset.local && asset.url.startsWith("blob:")) URL.revokeObjectURL(asset.url);
+      });
+      const nextProject = normalizeProject(restored.project);
+      const nextAssets = restored.assets as StudioAsset[];
+      projectRef.current = nextProject;
+      assetsRef.current = nextAssets;
+      setProject(nextProject);
+      setAssets(nextAssets);
+      setSavedProjectId(restored.id);
+      setSelectedClipId(null);
+      setPlayhead(0);
+      setUndoStack([]);
+      setRedoStack([]);
+      setNotice(nextAssets.some((asset) => asset.missing)
+        ? "Proyecto abierto. Algún recurso remoto o local ya no está disponible."
+        : "Proyecto abierto con sus archivos multimedia.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "No se pudo abrir el proyecto guardado.");
+    }
+  }
+
+  async function removeSavedProject(id: string) {
+    try {
+      await deleteMultimediaProject(id);
+      if (savedProjectId === id) setSavedProjectId(null);
+      await refreshSavedProjects();
+      setNotice("Proyecto eliminado de Mis proyectos.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "No se pudo eliminar el proyecto.");
+    }
+  }
+
+  async function separateSelectedVideoAudio() {
+    const clip = selectedClip;
+    const asset = selectedAsset;
+    if (!clip || !asset || asset.kind !== "video" || !asset.url) {
+      setNotice("Selecciona un clip de video para separar su audio.");
+      return;
+    }
+
+    setExtractingAudio(true);
+    setPlaying(false);
+    setNotice("Separando el audio del video…");
+    try {
+      const response = await fetch(asset.url);
+      if (!response.ok) throw new Error("No se pudo leer el video. Una fuente remota puede estar bloqueando CORS.");
+      const videoBlob = await response.blob();
+      const wav = await extractAudioFromMedia(videoBlob, {
+        start: clip.offset,
+        end: clip.offset + clip.duration,
+      });
+      const baseName = asset.name.replace(/\.[^.]+$/, "") || "video";
+      const audioAsset: StudioAsset = {
+        id: uid("asset-audio"),
+        name: `${baseName}-audio.wav`,
+        kind: "audio",
+        url: URL.createObjectURL(wav),
+        duration: clip.duration,
+        source: "separated-video",
+        exportable: true,
+        local: true,
+        missing: false,
+        mime: "audio/wav",
+        extension: "wav",
+        compatibility: "native",
+      };
+
+      const nextAssets = [...assetsRef.current, audioAsset];
+      assetsRef.current = nextAssets;
+      setAssets(nextAssets);
+
+      let createdClipId = "";
+      commitProject((current) => {
+        const resolved = resolveAudioTrack(current, "audio", clip.start, clip.duration);
+        const audioClip = createMediaClip(audioAsset, resolved.trackId, clip.start);
+        audioClip.duration = clip.duration;
+        audioClip.offset = 0;
+        audioClip.volume = clip.volume;
+        audioClip.muted = false;
+        audioClip.audioFadeIn = clip.audioFadeIn || 0;
+        audioClip.audioFadeOut = clip.audioFadeOut || 0;
+        createdClipId = audioClip.id;
+
+        let tracks = current.tracks.map((track) => ({
+          ...track,
+          clips: track.clips.map((item) => item.id === clip.id ? { ...item, muted: true } : item),
+        }));
+        if (resolved.newTrack) tracks = [...tracks, resolved.newTrack];
+        tracks = tracks.map((track) => track.id === resolved.trackId
+          ? { ...track, clips: [...track.clips, audioClip] }
+          : track);
+        return { ...current, tracks };
+      });
+
+      if (createdClipId) setSelectedClipId(createdClipId);
+      setNotice("Audio separado: el video original quedó silenciado y el audio está en una pista independiente.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "No se pudo separar el audio de este video.");
+    } finally {
+      setExtractingAudio(false);
     }
   }
 
@@ -1083,9 +1243,11 @@ export default function MultimediaStudioV3Client() {
           {tab === "project" && <div className="space-y-3 text-xs">
             <label className="block">Resolución<select value={`${project.width}x${project.height}`} onChange={(event) => { const [width, height] = event.target.value.split("x").map(Number); commitProject((current) => ({ ...current, width, height })); }} className="mt-1 w-full rounded-xl border border-white/10 bg-[#0b1020] px-3 py-2"><option value="1280x720">1280×720 · HD</option><option value="1920x1080">1920×1080 · Full HD</option><option value="1080x1920">1080×1920 · Vertical</option><option value="1080x1080">1080×1080 · Cuadrado</option></select></label>
             <label className="block">FPS<select value={project.fps} onChange={(event) => commitProject((current) => ({ ...current, fps: Number(event.target.value) }))} className="mt-1 w-full rounded-xl border border-white/10 bg-[#0b1020] px-3 py-2"><option value={24}>24 fps</option><option value={30}>30 fps</option><option value={60}>60 fps</option></select></label>
-            <button onClick={() => downloadProject(project, assets)} className="w-full rounded-xl border border-white/10 bg-white/5 p-3"><Save size={14} className="mr-1 inline" />Guardar proyecto</button>
-            <label className="block cursor-pointer rounded-xl border border-white/10 bg-white/5 p-3 text-center">Cargar proyecto<input type="file" accept=".json,application/json" className="hidden" onChange={loadProject} /></label>
-            <button disabled={exporting} onClick={exportWav} className="w-full rounded-xl border border-violet-400/20 bg-violet-500/10 p-3 text-violet-200"><Volume2 size={14} className="mr-1 inline" />Exportar WAV</button>
+            <button disabled={savingProject} onClick={saveProjectHere} className="w-full rounded-xl border border-cyan-400/25 bg-cyan-500/15 p-3 font-semibold text-cyan-100 disabled:opacity-50"><Save size={14} className="mr-1 inline" />{savingProject ? "Guardando…" : savedProjectId ? "Guardar cambios en EDUAI" : "Guardar en EDUAI"}</button>
+            <p className="text-[9px] leading-4 text-slate-500">Mis proyectos se guardan en este navegador, incluyendo los archivos locales cuando hay espacio disponible.</p>
+            {savedProjects.length > 0 && <div className="space-y-1 rounded-xl border border-white/10 bg-black/20 p-2"><div className="mb-1 flex items-center justify-between"><span className="text-[10px] font-semibold text-slate-200">Mis proyectos</span><button onClick={() => void refreshSavedProjects()} className="text-[9px] text-cyan-300">Actualizar</button></div>{savedProjects.map((saved) => <div key={saved.id} className={`flex items-center gap-1 rounded-lg border p-1.5 ${savedProjectId === saved.id ? "border-cyan-400/35 bg-cyan-500/10" : "border-white/5 bg-white/[0.02]"}`}><button onClick={() => void openSavedProject(saved.id)} className="min-w-0 flex-1 text-left"><span className="block truncate text-[10px] text-slate-200">{saved.title}</span><span className="block text-[8px] text-slate-500">{new Date(saved.updatedAt).toLocaleString()} · {saved.assetCount} recursos</span></button><button title="Abrir proyecto" onClick={() => void openSavedProject(saved.id)} className="rounded p-1 text-cyan-300 hover:bg-white/10"><FolderOpen size={12} /></button><button title="Eliminar proyecto" onClick={() => void removeSavedProject(saved.id)} className="rounded p-1 text-rose-300 hover:bg-rose-500/10"><Trash2 size={12} /></button></div>)}</div>}
+            <div className="grid grid-cols-2 gap-2"><button onClick={() => downloadProject(project, assets)} className="rounded-xl border border-white/10 bg-white/5 p-2.5"><Download size={13} className="mr-1 inline" />Proyecto JSON</button><label className="cursor-pointer rounded-xl border border-white/10 bg-white/5 p-2.5 text-center">Cargar JSON<input type="file" accept=".json,application/json" className="hidden" onChange={loadProject} /></label></div>
+            <div className="grid grid-cols-2 gap-2"><button disabled={exporting} onClick={exportWav} className="rounded-xl border border-violet-400/20 bg-violet-500/10 p-2.5 text-violet-200 disabled:opacity-50"><Volume2 size={14} className="mr-1 inline" />WAV</button><button disabled={exporting} onClick={exportMp3} className="rounded-xl border border-emerald-400/20 bg-emerald-500/10 p-2.5 text-emerald-200 disabled:opacity-50"><Music2 size={14} className="mr-1 inline" />MP3</button></div>
             <button onClick={exportFrame} className="w-full rounded-xl border border-fuchsia-400/20 bg-fuchsia-500/10 p-3 text-fuchsia-200"><ImageIcon size={14} className="mr-1 inline" />Fotograma PNG</button>
             <div className="rounded-xl border border-white/10 bg-black/20 p-3 text-[9px] leading-5 text-slate-400"><b className="text-slate-200">Atajos:</b><br />Espacio reproducir · S dividir · Ctrl/Cmd+D duplicar · Supr eliminar · Ctrl/Cmd+Z deshacer · Shift+flechas mover cabezal 1 s</div>
           </div>}
@@ -1191,7 +1353,7 @@ export default function MultimediaStudioV3Client() {
                   <label>Fade salida · {fmt(selectedClip.audioFadeOut || 0)}<input type="range" min={0} max={Math.max(0.05, selectedClip.duration / 2)} step={0.05} value={selectedClip.audioFadeOut || 0} onChange={(event) => updateClip(selectedClip.id, { audioFadeOut: Number(event.target.value) })} className="w-full accent-cyan-400" /></label>
                 </div>
               </>}
-              <button onClick={() => updateClip(selectedClip.id, { muted: !selectedClip.muted })} className={`rounded-lg px-2 py-1 ${selectedClip.muted ? "bg-rose-500/20 text-rose-200" : "bg-white/5"}`}>{selectedClip.muted ? "Silenciado" : "Audio activo"}</button>
+              <div className="flex flex-wrap gap-2"><button onClick={() => updateClip(selectedClip.id, { muted: !selectedClip.muted })} className={`rounded-lg px-2 py-1 ${selectedClip.muted ? "bg-rose-500/20 text-rose-200" : "bg-white/5"}`}>{selectedClip.muted ? "Silenciado" : "Audio activo"}</button>{selectedAsset?.kind === "video" && <button disabled={extractingAudio} onClick={separateSelectedVideoAudio} className="rounded-lg border border-cyan-400/20 bg-cyan-500/10 px-2 py-1 text-cyan-100 disabled:opacity-50"><AudioLines size={11} className="mr-1 inline" />{extractingAudio ? "Separando…" : "Separar audio"}</button>}</div>
             </div>}
 
             {selectedClip.clipType === "text" && selectedClip.textStyle && <div className="space-y-2 rounded-xl border border-amber-400/15 bg-amber-500/5 p-3"><p className="font-semibold text-amber-200">Texto</p><textarea value={selectedClip.textStyle.text} onChange={(event) => updateClip(selectedClip.id, { textStyle: { ...selectedClip.textStyle!, text: event.target.value } })} rows={3} className="w-full rounded-lg border border-white/10 bg-black/20 p-2 text-xs" /><div className="grid grid-cols-2 gap-2"><label>Tamaño<input type="number" min={10} max={240} value={selectedClip.textStyle.fontSize} onChange={(event) => updateClip(selectedClip.id, { textStyle: { ...selectedClip.textStyle!, fontSize: Number(event.target.value) } })} className="mt-1 w-full rounded-lg border border-white/10 bg-black/20 px-2 py-1" /></label><label>Color<input type="color" value={selectedClip.textStyle.color} onChange={(event) => updateClip(selectedClip.id, { textStyle: { ...selectedClip.textStyle!, color: event.target.value } })} className="mt-1 h-7 w-full rounded bg-transparent" /></label></div></div>}
