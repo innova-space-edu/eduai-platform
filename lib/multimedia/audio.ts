@@ -1,5 +1,5 @@
 import type { MediaAsset, MultimediaProject, TimelineClip } from "./types";
-import { interpolateClip, projectDuration, transitionFactor } from "./types";
+import { audioFadeFactor, interpolateClip, projectDuration, transitionFactor } from "./types";
 
 export async function buildWaveform(url: string, buckets = 96) {
   const response = await fetch(url);
@@ -15,8 +15,16 @@ export async function buildWaveform(url: string, buckets = 96) {
       const start = bucket * size;
       const end = Math.min(channel.length, start + size);
       let peak = 0;
-      for (let index = start; index < end; index += 1) peak = Math.max(peak, Math.abs(channel[index] || 0));
-      peaks.push(Math.max(0.04, peak));
+      let sumSquares = 0;
+      let count = 0;
+      for (let index = start; index < end; index += 1) {
+        const value = Math.abs(channel[index] || 0);
+        peak = Math.max(peak, value);
+        sumSquares += value * value;
+        count += 1;
+      }
+      const rms = count ? Math.sqrt(sumSquares / count) : 0;
+      peaks.push(Math.max(0.015, peak * 0.72 + rms * 0.28));
     }
     const max = Math.max(...peaks, 0.001);
     return peaks.map((value) => value / max);
@@ -78,7 +86,8 @@ async function fetchAudioBuffer(context: BaseAudioContext, asset: MediaAsset) {
 function gainAt(clip: TimelineClip, localTime: number) {
   const interpolated = interpolateClip(clip, localTime);
   const transition = transitionFactor(clip, localTime);
-  return clip.muted ? 0 : Math.max(0, interpolated.volume * transition.opacity);
+  const clipFade = audioFadeFactor(clip, localTime);
+  return clip.muted ? 0 : Math.max(0, interpolated.volume * transition.opacity * clipFade);
 }
 
 export async function exportProjectWav(project: MultimediaProject, assets: MediaAsset[]) {
@@ -111,8 +120,9 @@ export async function exportProjectWav(project: MultimediaProject, assets: Media
     const offset = Math.max(0, Math.min(clip.offset, Math.max(0, buffer.duration - 0.01)));
     const available = Math.max(0.01, buffer.duration - offset);
     const clipDuration = Math.max(0.01, Math.min(clip.duration, available));
-    const steps = Math.max(2, Math.min(24, Math.ceil(clipDuration * 4)));
-    for (let step = 0; step <= steps; step += 1) {
+    const steps = Math.max(8, Math.min(160, Math.ceil(clipDuration * 12)));
+    gain.gain.setValueAtTime(gainAt(clip, 0), start);
+    for (let step = 1; step <= steps; step += 1) {
       const local = (clipDuration * step) / steps;
       gain.gain.linearRampToValueAtTime(gainAt(clip, local), start + local);
     }
