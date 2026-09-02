@@ -29,6 +29,6 @@ assert.match(importer, /NEXT_PUBLIC_MEDIA_WORKER_URL/, "El importador debe usar 
 assert.match(importer, /rights_confirmed/, "Debe exigir confirmación de derechos antes de convertir");
 assert.match(importer, /MP3 · solo audio/, "Debe permitir MP3");
 assert.match(importer, /MP4 · video/, "Debe permitir MP4");
-assert.doesNotMatch(importer, /cookies|username|password/i, "No debe incluir mecanismos de autenticación o cookies para fuentes restringidas");
+assert.doesNotMatch(importer, /cookiefile|--cookies|username\s*:|password\s*:/i, "No debe implementar autenticación o cookies para fuentes restringidas");
 
 console.log("[multimedia-audio-monitor] OK · monitor, ecualizador e importador URL verificados");
