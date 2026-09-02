@@ -23,7 +23,7 @@ replaceOnce(
 
 replaceOnce(
   '  async function handleDrop(event: React.DragEvent<HTMLLabelElement>) {\n    event.preventDefault();\n    const files = Array.from(event.dataTransfer.files || []);\n    if (files.length) await createAssetsFromFiles(files);\n  }\n',
-  '  async function handleDrop(event: React.DragEvent<HTMLLabelElement>) {\n    event.preventDefault();\n    const files = Array.from(event.dataTransfer.files || []);\n    if (files.length) await createAssetsFromFiles(files);\n  }\n\n  function importUrlMedia(media: ImportedUrlMedia) {\n    const asset: StudioAsset = {\n      id: uid("asset-url"),\n      name: media.name,\n      kind: media.kind,\n      url: media.url,\n      downloadUrl: media.downloadUrl,\n      duration: Math.max(0.05, media.duration || 10),\n      source: media.source || "url",\n      exportable: true,\n      local: false,\n      missing: false,\n      mime: media.mime,\n      extension: media.extension,\n      compatibility: "native",\n    };\n    assetsRef.current = [...assetsRef.current, asset];\n    setAssets((current) => [...current, asset]);\n    setTab("files");\n    setNotice(`${asset.name} importado desde URL. Usa + para agregarlo a la línea de tiempo.`);\n  }\n',
+  '  async function handleDrop(event: React.DragEvent<HTMLLabelElement>) {\n    event.preventDefault();\n    const files = Array.from(event.dataTransfer.files || []);\n    if (files.length) await createAssetsFromFiles(files);\n  }\n\n  function importUrlMedia(media: ImportedUrlMedia) {\n    const asset: StudioAsset = {\n      id: uid("asset-url"),\n      name: media.name,\n      kind: media.kind,\n      url: media.url,\n      downloadUrl: media.downloadUrl,\n      duration: Math.max(0.05, media.duration || 10),\n      source: "url",\n      exportable: true,\n      local: false,\n      missing: false,\n      mime: media.mime,\n      extension: media.extension,\n      compatibility: "native",\n    };\n    assetsRef.current = [...assetsRef.current, asset];\n    setAssets((current) => [...current, asset]);\n    setTab("files");\n    setNotice(`${asset.name} importado desde URL. Usa + para agregarlo a la línea de tiempo.`);\n  }\n',
   "función de importación URL",
 );
 
@@ -45,12 +45,6 @@ replaceOnce(
   "panel URL importer",
 );
 
-replaceOnce(
-  '  Link from "next/link";',
-  '  Link from "next/link";',
-  "noop",
-);
-
 if (!source.includes('  Link2,')) {
   replaceOnce(
     '  ImageIcon,\n',
@@ -58,6 +52,18 @@ if (!source.includes('  Link2,')) {
     "icono Link2",
   );
 }
+
+replaceOnce(
+  'assets.filter((asset) => asset.source === "local" || asset.missing)',
+  'assets.filter((asset) => asset.source === "local" || asset.source === "url" || asset.missing)',
+  "lista de archivos importados",
+);
+
+replaceOnce(
+  '!assets.some((asset) => asset.source === "local" || asset.missing)',
+  '!assets.some((asset) => asset.source === "local" || asset.source === "url" || asset.missing)',
+  "estado vacío de archivos",
+);
 
 fs.writeFileSync(path, source);
 console.log("[multimedia-url-importer] OK · pestaña URL integrada al editor multimedia");
