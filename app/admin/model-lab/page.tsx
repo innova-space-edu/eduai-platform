@@ -12,6 +12,7 @@ import AICoreHealthPanel from "@/components/admin/AICoreHealthPanel";
 import AICoreMetricsPanel from "@/components/admin/AICoreMetricsPanel";
 import AIModelRegistryPanel from "@/components/admin/AIModelRegistryPanel";
 import BrainAILabPanel from "@/components/admin/BrainAILabPanel";
+import BrainAIV6LearningPanel from "@/components/admin/BrainAIV6LearningPanel";
 import VoiceLabPanel from "@/components/admin/VoiceLabPanel";
 import LiteRTLocalAIPanel from "@/components/admin/LiteRTLocalAIPanel";
 import LiteRTCacheAnalyticsPanel from "@/components/admin/LiteRTCacheAnalyticsPanel";
@@ -33,7 +34,7 @@ export const revalidate = 0;
 
 const LAB_CAPABILITIES = [
   { label: "AI Core", detail: "Proveedores y Supabase", icon: Sparkles, tone: "text-cyan-200 border-cyan-400/15 bg-cyan-950/35" },
-  { label: "Brain AI", detail: "Cognitive OS · Shadow Mode", icon: BrainCircuit, tone: "text-fuchsia-200 border-fuchsia-400/15 bg-fuchsia-950/30" },
+  { label: "Brain AI", detail: "Cognitive OS · V6 Lifelong · Shadow", icon: BrainCircuit, tone: "text-fuchsia-200 border-fuchsia-400/15 bg-fuchsia-950/30" },
   { label: "Local AI", detail: "LiteRT · Router V3 · visión · voz", icon: BrainCircuit, tone: "text-emerald-200 border-emerald-400/15 bg-emerald-950/30" },
   { label: "Performance", detail: "Benchmark end-to-end", icon: Gauge, tone: "text-violet-200 border-violet-400/15 bg-violet-950/30" },
   { label: "Control", detail: "Admin only · Production Gate", icon: ShieldCheck, tone: "text-amber-200 border-amber-400/15 bg-amber-950/25" },
@@ -62,7 +63,7 @@ export default function AdminModelLabPage() {
               <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-950/30 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-amber-200"><FlaskConical className="h-3.5 w-3.5" /> Admin only</span>
                 <span className="rounded-full border border-emerald-400/15 bg-emerald-950/30 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-200">Local-first enabled</span>
-                <span className="rounded-full border border-fuchsia-400/15 bg-fuchsia-950/25 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-fuchsia-200">Brain AI Shadow Mode</span>
+                <span className="rounded-full border border-fuchsia-400/15 bg-fuchsia-950/25 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-fuchsia-200">Brain AI V6 · Shadow + Dream Lab</span>
                 <span className="rounded-full border border-cyan-400/15 bg-cyan-950/25 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-cyan-200" title={`Commit ${build.commit} · rama ${build.branch} · entorno ${build.environment}`}>Build {build.commit} · {build.branch} · {build.environment}</span>
               </div>
               <h1 className="mt-4 text-3xl font-black tracking-tight sm:text-4xl">EduAI Model Lab</h1>
@@ -76,7 +77,7 @@ export default function AdminModelLabPage() {
 
         <ModelLabSectionNav />
         <div id="infraestructura" className="scroll-mt-24"><AICoreHealthPanel /></div>
-        <div id="brain-ai" className="scroll-mt-24 space-y-4"><BrainAILabPanel /><VoiceLabPanel /></div>
+        <div id="brain-ai" className="scroll-mt-24 space-y-4"><BrainAILabPanel /><BrainAIV6LearningPanel /><VoiceLabPanel /></div>
         <div id="litert" className={`scroll-mt-24 ${styles.litertShell}`}><LiteRTLocalAIPanel /><LiteRTRouterStatusPanel /><LiteRTCacheAnalyticsPanel /><WhisperTinyLocalPanel /><LiteRTQuantizationPanelV3 /></div>
         <div id="benchmark" className="scroll-mt-24"><LiteRTBenchmarkPanelV4 /></div>
         <div id="modelos" className="scroll-mt-24 space-y-4"><LocalLLMReadinessPanel /><AIModelRegistryPanel /></div>
