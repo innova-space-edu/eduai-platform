@@ -24,6 +24,7 @@ import WhisperTinyLocalPanel from "@/components/admin/WhisperTinyLocalPanel";
 import LocalAITelemetryPanel from "@/components/admin/LocalAITelemetryPanel";
 import LocalAIModelMetricsPanel from "@/components/admin/LocalAIModelMetricsPanel";
 import LocalLLMReadinessPanel from "@/components/admin/LocalLLMReadinessPanel";
+import ModelCandidateLabPanel from "@/components/admin/ModelCandidateLabPanel";
 import ModelLabSectionNav from "@/components/admin/ModelLabSectionNav";
 import VideoProviderStatusPanel from "@/components/admin/VideoProviderStatusPanel";
 import { ADMIN_ONLY_EXPERIMENTAL_MODELS } from "@/lib/ai/admin-model-policy";
@@ -36,7 +37,7 @@ const LAB_CAPABILITIES = [
   { label: "AI Core", detail: "Proveedores y Supabase", icon: Sparkles, tone: "text-cyan-200 border-cyan-400/15 bg-cyan-950/35" },
   { label: "Brain AI", detail: "Cognitive OS · V6 Lifelong · Shadow", icon: BrainCircuit, tone: "text-fuchsia-200 border-fuchsia-400/15 bg-fuchsia-950/30" },
   { label: "Local AI", detail: "LiteRT · Router V3 · visión · voz", icon: BrainCircuit, tone: "text-emerald-200 border-emerald-400/15 bg-emerald-950/30" },
-  { label: "Performance", detail: "Benchmark end-to-end", icon: Gauge, tone: "text-violet-200 border-violet-400/15 bg-violet-950/30" },
+  { label: "Performance", detail: "Benchmarks · model queue", icon: Gauge, tone: "text-violet-200 border-violet-400/15 bg-violet-950/30" },
   { label: "Control", detail: "Admin only · Production Gate", icon: ShieldCheck, tone: "text-amber-200 border-amber-400/15 bg-amber-950/25" },
 ] as const;
 
@@ -80,7 +81,7 @@ export default function AdminModelLabPage() {
         <div id="brain-ai" className="scroll-mt-24 space-y-4"><BrainAILabPanel /><BrainAIV6LearningPanel /><VoiceLabPanel /></div>
         <div id="litert" className={`scroll-mt-24 ${styles.litertShell}`}><LiteRTLocalAIPanel /><LiteRTRouterStatusPanel /><LiteRTCacheAnalyticsPanel /><WhisperTinyLocalPanel /><LiteRTQuantizationPanelV3 /></div>
         <div id="benchmark" className="scroll-mt-24"><LiteRTBenchmarkPanelV4 /></div>
-        <div id="modelos" className="scroll-mt-24 space-y-4"><LocalLLMReadinessPanel /><AIModelRegistryPanel /></div>
+        <div id="modelos" className="scroll-mt-24 space-y-4"><LocalLLMReadinessPanel /><AIModelRegistryPanel /><ModelCandidateLabPanel /></div>
         <div id="video" className="scroll-mt-24"><VideoProviderStatusPanel /></div>
         <div id="observabilidad" className="scroll-mt-24 space-y-4"><LocalAITelemetryPanel /><LocalAIModelMetricsPanel /><AICoreMetricsPanel /></div>
 
