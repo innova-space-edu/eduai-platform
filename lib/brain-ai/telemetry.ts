@@ -3,9 +3,11 @@ import type { BrainAITrace, BrainAITraceSummary } from "@/lib/brain-ai/types"
 const STORAGE_KEY = "eduai_brain_ai_shadow_traces_v1"
 const MAX_TRACES = 40
 
+export const BRAIN_AI_TRACE_EVENT = "eduai:brain-ai-shadow-trace"
+
 export type BrainAIPersistenceStatus = "saved" | "migration-required" | "unavailable"
 
-type StoredTrace = Pick<BrainAITrace,
+export type BrainAIStoredTrace = Pick<BrainAITrace,
   | "traceId"
   | "createdAt"
   | "modalities"
@@ -25,22 +27,27 @@ function browserStorage() {
   return typeof window !== "undefined" ? window.localStorage : null
 }
 
-function readRaw(): StoredTrace[] {
+function readRaw(): BrainAIStoredTrace[] {
   const storage = browserStorage()
   if (!storage) return []
   try {
     const parsed = JSON.parse(storage.getItem(STORAGE_KEY) || "[]")
-    return Array.isArray(parsed) ? parsed.slice(0, MAX_TRACES) as StoredTrace[] : []
+    return Array.isArray(parsed) ? parsed.slice(0, MAX_TRACES) as BrainAIStoredTrace[] : []
   } catch {
     return []
   }
+}
+
+export function getBrainAIStoredTraces(limit = MAX_TRACES): BrainAIStoredTrace[] {
+  const safeLimit = Number.isFinite(limit) ? Math.max(0, Math.min(MAX_TRACES, Math.floor(limit))) : MAX_TRACES
+  return readRaw().slice(0, safeLimit)
 }
 
 export function recordBrainAITrace(trace: BrainAITrace) {
   const storage = browserStorage()
   if (!storage) return
   const passed = trace.gates.filter(gate => gate.passed).length
-  const record: StoredTrace = {
+  const record: BrainAIStoredTrace = {
     traceId: trace.traceId,
     createdAt: trace.createdAt,
     modalities: trace.modalities,
@@ -56,7 +63,7 @@ export function recordBrainAITrace(trace: BrainAITrace) {
   }
   const next = [record, ...readRaw().filter(item => item.traceId !== record.traceId)].slice(0, MAX_TRACES)
   storage.setItem(STORAGE_KEY, JSON.stringify(next))
-  window.dispatchEvent(new CustomEvent("eduai:brain-ai-shadow-trace", { detail: record }))
+  window.dispatchEvent(new CustomEvent(BRAIN_AI_TRACE_EVENT, { detail: record }))
   void persistBrainAITrace(trace)
 }
 
@@ -95,7 +102,7 @@ export function clearBrainAITraceTelemetry() {
   const storage = browserStorage()
   if (!storage) return
   storage.removeItem(STORAGE_KEY)
-  window.dispatchEvent(new CustomEvent("eduai:brain-ai-shadow-trace", { detail: null }))
+  window.dispatchEvent(new CustomEvent(BRAIN_AI_TRACE_EVENT, { detail: null }))
   void clearRemoteBrainAITraceTelemetry()
 }
 
