@@ -177,7 +177,7 @@ on conflict (provider, model) do update set
   source_url = excluded.source_url,
   release_channel = excluded.release_channel,
   priority = excluded.priority,
-  metadata = public.ai_model_candidates.metadata || excluded.metadata,
+  metadata = ai_model_candidates.metadata || excluded.metadata,
   updated_at = now();
 
 -- Mark models already present in the production registry as implemented in the lab queue.
@@ -188,5 +188,5 @@ on conflict (provider, model) do update set
   status = 'implemented',
   label = excluded.label,
   capabilities = excluded.capabilities,
-  metadata = public.ai_model_candidates.metadata || excluded.metadata,
+  metadata = ai_model_candidates.metadata || excluded.metadata,
   updated_at = now();
