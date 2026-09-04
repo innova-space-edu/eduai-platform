@@ -3,6 +3,7 @@ import { callModelLabText, supportsTextSmoke } from "@/lib/ai/model-lab-smoke"
 export type ModelLabBenchmarkCase = {
   id: string
   label: string
+  transportOk: boolean
   passed: boolean
   latencyMs: number | null
   inputTokens: number | null
@@ -104,6 +105,7 @@ export async function runModelLabTextBenchmark(provider: string, model: string, 
     results.push({
       id: definition.id,
       label: definition.label,
+      transportOk: call.ok,
       passed,
       latencyMs: call.latencyMs,
       inputTokens: call.inputTokens,
@@ -115,9 +117,9 @@ export async function runModelLabTextBenchmark(provider: string, model: string, 
 
   const passedCases = results.filter(item => item.passed).length
   const qualityScore = results.length ? passedCases / results.length : 0
-  const successfulTransport = results.filter(item => item.latencyMs != null && !item.detail.toLowerCase().includes("falta api key")).length
+  const successfulTransport = results.filter(item => item.transportOk).length
   const reliabilityScore = results.length ? successfulTransport / results.length : 0
-  const latencies = results.map(item => item.latencyMs).filter((value): value is number => typeof value === "number")
+  const latencies = results.filter(item => item.transportOk).map(item => item.latencyMs).filter((value): value is number => typeof value === "number")
   const inputTokens = results.reduce((sum, item) => sum + (item.inputTokens || 0), 0)
   const outputTokens = results.reduce((sum, item) => sum + (item.outputTokens || 0), 0)
   const supported = results.length ? !results.some(item => item.detail.includes("requiere un benchmark") || item.detail.includes("adapter")) : true
