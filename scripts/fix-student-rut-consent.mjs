@@ -20,15 +20,6 @@ if (autosaveStart >= 0 && autosaveEnd > autosaveStart) {
   source = source.slice(0, autosaveStart) + block + source.slice(autosaveEnd)
 }
 
-// El submit debe usar identidad de la nómina y no depender de nombre/curso del navegador.
-const submitStart = source.indexOf(`    if (action === "submit") {`)
-const closeStart = source.indexOf(`    if (action === "close") {`, submitStart)
-if (submitStart >= 0 && closeStart > submitStart) {
-  let block = source.slice(submitStart, closeStart)
-  block = block.replace(`        studentName,\n        studentCourse,\n`, "")
-  source = source.slice(0, submitStart) + block + source.slice(closeStart)
-}
-
 if (!source.includes(`const formattedRut = formatRut(rutClean)`) || !source.includes(`studentName,\n            studentCourse,\n            studentRut: formattedRut`)) {
   throw new Error("[fix-student-rut-consent] no se pudo verificar la identidad de inicio")
 }
@@ -37,4 +28,10 @@ if (!source.includes(`authoritativeName`) || !source.includes(`student_roster_id
 }
 
 fs.writeFileSync(routePath, source)
-console.log("[fix-student-rut-consent] parche verificado")
+console.log("[fix-student-rut-consent] parche base verificado")
+
+// Compatibilidad con el motor de idempotencia y normalización lazy de Supabase.
+await import("./fix-student-rut-consent-v2.mjs")
+await import("./apply-provider-client-initialization.mjs")
+
+console.log("[fix-student-rut-consent] parche final normalizado")
