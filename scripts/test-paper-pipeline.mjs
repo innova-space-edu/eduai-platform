@@ -189,4 +189,9 @@ assert(
   "El Space no valida la firma PDF.",
 )
 
+// Último parche funcional antes de `next build`: así no interfiere con los
+// transformadores y pruebas previas del motor de exámenes.
+await import("./apply-student-rut-consent.mjs")
+await import("./fix-student-rut-consent.mjs")
+
 console.log("[test-paper-pipeline] Pipeline PDF híbrido, historial, caché por ruta y reutilización SHA-256 verificados correctamente.")
