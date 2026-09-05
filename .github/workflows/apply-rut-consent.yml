@@ -1,0 +1,754 @@
+name: Apply RUT student identification and privacy consent
+
+on:
+  push:
+    branches:
+      - feat/student-rut-identification-consent
+
+permissions:
+  contents: write
+
+jobs:
+  apply-change:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/student-rut-identification-consent
+          fetch-depth: 0
+
+      - name: Apply source changes
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+
+          def replace_once(text: str, old: str, new: str, label: str) -> str:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{label}: expected exactly 1 match, found {count}")
+              return text.replace(old, new, 1)
+
+          # ------------------------------------------------------------------
+          # Student-facing public exam page
+          # ------------------------------------------------------------------
+          page_path = Path("app/examen/p/[code]/page.tsx")
+          page = page_path.read_text(encoding="utf-8")
+
+          page = replace_once(
+              page,
+              '  const [rut, setRut] = useState("");\n',
+              '  const [rut, setRut] = useState("");\n'
+              '  const [privacyConsent, setPrivacyConsent] = useState(false);\n'
+              '  const [showPrivacyModal, setShowPrivacyModal] = useState(false);\n',
+              "frontend privacy states",
+          )
+
+          courses_pattern = re.compile(
+              r'// ── Cursos indexados ─+\nconst CURSOS_BASICA = \[.*?const TODOS_LOS_CURSOS = \[\.\.\.CURSOS_BASICA, \.\.\.CURSOS_MEDIA\];\n\n',
+              re.S,
+          )
+          page, count = courses_pattern.subn('', page, count=1)
+          if count != 1:
+              raise SystemExit(f"frontend course constants: expected 1 match, found {count}")
+
+          start_pattern = re.compile(
+              r'  // ── Inicio examen ─+\n  const startExam = useCallback\(async \(\) => \{.*?\n  \}, \[course, exam, isKiosk, name, requestFullscreen, rut, totalQ\]\);\n',
+              re.S,
+          )
+          start_replacement = '''  // ── Inicio examen ──────────────────────────────────────────────────────────
+  const startExam = useCallback(async () => {
+    const cleanRut = normalizeRutInput(rut);
+
+    if (!exam?.id || !isValidRut(cleanRut)) {
+      setAutosaveStatus("error");
+      setAutosaveMessage(
+        "Ingresa un RUT válido sin puntos ni guion para identificarte.",
+      );
+      return;
+    }
+
+    if (!privacyConsent) {
+      setAutosaveStatus("error");
+      setAutosaveMessage(
+        "Debes confirmar que entiendes el uso de tus datos personales para continuar.",
+      );
+      return;
+    }
+
+    setSubmittedForSecurity(false);
+    setSecurityBlocked(false);
+    setSecurityTerminateReason("");
+    setAutosaveStatus("saving");
+    setAutosaveMessage("Verificando identidad...");
+
+    const fullscreenPromise = document.documentElement
+      .requestFullscreen({ navigationUI: "hide" } as any)
+      .catch(() => {});
+
+    try {
+      const res = await fetch("/api/agents/examen-docente", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "start_or_resume_attempt",
+          examId: exam.id,
+          studentRut: cleanRut,
+          consentAccepted: true,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.error || "No se pudo verificar tu identidad.");
+      }
+
+      const attempt = data.attempt || {};
+      const resolvedName = String(attempt.studentName || "").trim();
+      const resolvedCourse = String(attempt.studentCourse || "").trim();
+
+      if (!resolvedName || !resolvedCourse) {
+        throw new Error(
+          "Tu registro de estudiante está incompleto. Consulta a tu docente.",
+        );
+      }
+
+      const savedAnswers = attempt.answers || {};
+      const nextAttemptId = String(attempt.clientAttemptId || createAttemptId());
+      attemptIdRef.current = nextAttemptId;
+
+      // La identidad proviene exclusivamente de la nómina institucional.
+      setName(resolvedName);
+      setCourse(resolvedCourse);
+      setRut(cleanRut);
+      setMcAnswers(normalizeNumberRecord(savedAnswers.mcAnswers));
+      setDevAnswers(normalizeTextRecord(savedAnswers.devAnswers));
+      setTfJustifications(normalizeTextRecord(savedAnswers.tfJustifications));
+      setDevelopmentArtifacts(
+        (savedAnswers.developmentArtifacts || {}) as Record<
+          number,
+          ExamNotebookArtifact
+        >,
+      );
+
+      const totalSeconds = Math.max(
+        60,
+        Number(exam?.settings?.timeLimit || 30) * 60,
+      );
+      const restoredTimeLeft = Number(attempt.timeLeft);
+      const safeTimeLeft =
+        Number.isFinite(restoredTimeLeft) && restoredTimeLeft > 0
+          ? Math.min(totalSeconds, Math.round(restoredTimeLeft))
+          : totalSeconds;
+      const restoredIndex = Math.max(
+        0,
+        Math.min(totalQ > 0 ? totalQ - 1 : 0, Number(attempt.currentQuestionIndex) || 0),
+      );
+
+      startRef.current = Date.now() - Math.max(0, totalSeconds - safeTimeLeft) * 1000;
+      setTimeLeft(safeTimeLeft);
+      setCurQ(restoredIndex);
+      setAutosaveStatus(data.resumed ? "saved" : "idle");
+      setAutosaveMessage(
+        data.resumed
+          ? `Identidad verificada: ${resolvedName}. Avance anterior recuperado.`
+          : `Identidad verificada: ${resolvedName}. Tu avance se guardará automáticamente.`,
+      );
+
+      await fullscreenPromise;
+      setPhase("exam");
+      setTimeout(() => requestFullscreen(), isKiosk ? 300 : 200);
+    } catch (error: any) {
+      setAutosaveStatus("error");
+      setAutosaveMessage(error?.message || "No se pudo verificar tu identidad.");
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+  }, [exam, isKiosk, privacyConsent, requestFullscreen, rut, totalQ]);
+'''
+          page, count = start_pattern.subn(start_replacement, page, count=1)
+          if count != 1:
+              raise SystemExit(f"frontend startExam: expected 1 match, found {count}")
+
+          register_pattern = re.compile(
+              r'  if \(phase === "register"\) \{.*?\n  \}\n\n  if \(\(phase === "review" \|\| phase === "submitting"\) && submission\) \{',
+              re.S,
+          )
+          register_replacement = '''  if (phase === "register") {
+    return (
+      <div className="min-h-screen bg-app px-4 py-8 text-main flex items-center justify-center">
+        <div className="w-full max-w-xl bg-card-soft-theme border border-soft rounded-2xl p-6 md:p-8">
+          <div className="text-center mb-6">
+            <div className="text-5xl mb-3">📝</div>
+            <h1 className="text-2xl md:text-3xl font-extrabold">
+              {exam?.title || "Examen"}
+            </h1>
+            <p className="text-sub text-sm mt-2">
+              {exam?.topic || "Evaluación"}
+            </p>
+            <p className="text-muted2 text-xs mt-3 leading-relaxed max-w-md mx-auto">
+              Ingresa únicamente tu RUT. EduAI consultará la nómina institucional
+              para reconocer tu nombre y curso antes de iniciar la evaluación.
+            </p>
+          </div>
+
+          <div>
+            <label className="text-sub text-xs font-semibold block mb-1">
+              RUT * <span className="text-muted2">(sin puntos ni guion)</span>
+            </label>
+            <input
+              value={rut}
+              onChange={(e) => {
+                setRut(normalizeRutInput(e.target.value));
+                if (autosaveStatus === "error") {
+                  setAutosaveStatus("idle");
+                  setAutosaveMessage("");
+                }
+              }}
+              placeholder="Ej: 123456789 o 12345678K"
+              autoComplete="off"
+              inputMode="text"
+              maxLength={9}
+              className="w-full bg-card-soft-theme border border-soft rounded-2xl px-4 py-3 text-main text-sm focus:outline-none focus:border-blue-500/30"
+            />
+            <div className="mt-1 flex flex-col gap-1 text-xs">
+              {rut ? (
+                <p className="text-muted2">
+                  RUT ingresado: <span className="font-semibold text-sub">{formatRut(rut)}</span>
+                </p>
+              ) : (
+                <p className="text-muted2">Acepta números y K como dígito verificador.</p>
+              )}
+              {rut && !isValidRut(rut) ? (
+                <p className="font-semibold text-red-600">
+                  RUT inválido. Revisa el dígito verificador.
+                </p>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="mt-5 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-4">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={privacyConsent}
+                onChange={(e) => {
+                  setPrivacyConsent(e.target.checked);
+                  if (autosaveStatus === "error") {
+                    setAutosaveStatus("idle");
+                    setAutosaveMessage("");
+                  }
+                }}
+                className="mt-0.5 h-4 w-4 rounded border-blue-300 accent-blue-600"
+              />
+              <span className="text-xs leading-relaxed text-slate-700">
+                Entiendo y comprendo el uso de mis datos personales durante esta
+                evaluación y acepto la{" "}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setShowPrivacyModal(true);
+                  }}
+                  className="font-semibold text-blue-600 underline underline-offset-2 hover:text-blue-700"
+                >
+                  política de privacidad y seguridad de datos de EduAI
+                </button>
+                .
+              </span>
+            </label>
+          </div>
+
+          {/* ⚠️ Advertencia monitoreo IA */}
+          <div className="mt-5 rounded-2xl border border-amber-400/30 bg-amber-50 px-4 py-4 space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">🔒</span>
+              <p className="text-sm font-bold text-amber-800">
+                Advertencia de monitoreo académico
+              </p>
+            </div>
+            <ul className="text-xs text-amber-700 space-y-1 pl-6 list-disc leading-relaxed">
+              <li>
+                Este examen está bajo{" "}
+                <strong>monitoreo de integridad académica</strong>.
+              </li>
+              <li>
+                Queda <strong>estrictamente prohibido</strong> el uso de
+                inteligencia artificial, buscadores, traductores o cualquier
+                herramienta de apoyo externo.
+              </li>
+              <li>
+                Cualquier intento de copiar, salir de la pantalla o usar otras
+                aplicaciones{" "}
+                <strong>será registrado y notificado al docente</strong>.
+              </li>
+              <li>
+                Al iniciar confirmas que realizarás esta evaluación{" "}
+                <strong>de forma honesta e individual</strong>.
+              </li>
+            </ul>
+            <p className="text-[11px] text-amber-600 pt-1 border-t border-amber-200">
+              Sistema de supervisión: EduAI Exam Security · Colegio Providencia
+            </p>
+          </div>
+
+          <button
+            onClick={startExam}
+            disabled={!isValidRut(rut) || !privacyConsent || autosaveStatus === "saving"}
+            className="w-full mt-4 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm disabled:opacity-30 transition-all"
+          >
+            {autosaveStatus === "saving"
+              ? "Verificando identidad..."
+              : "Identificarme e iniciar evaluación →"}
+          </button>
+
+          {autosaveMessage ? (
+            <p
+              className={`mt-3 rounded-xl px-3 py-2 text-xs font-semibold ${autosaveStatus === "error" ? "bg-red-50 text-red-700" : autosaveStatus === "saving" ? "bg-blue-50 text-blue-700" : "bg-emerald-50 text-emerald-700"}`}
+            >
+              {autosaveStatus === "saving" ? "💾 " : autosaveStatus === "saved" ? "✅ " : autosaveStatus === "error" ? "⚠️ " : ""}
+              {autosaveMessage}
+            </p>
+          ) : null}
+
+          {showPrivacyModal ? (
+            <div
+              className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50 px-4"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="eduai-privacy-title"
+              onMouseDown={(e) => {
+                if (e.target === e.currentTarget) setShowPrivacyModal(false);
+              }}
+            >
+              <div className="w-full max-w-md rounded-2xl border border-blue-100 bg-white p-5 shadow-2xl text-slate-800">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wide text-blue-600">
+                      Privacidad y ciberseguridad
+                    </p>
+                    <h2 id="eduai-privacy-title" className="mt-1 text-lg font-extrabold">
+                      Uso de datos en evaluaciones EduAI
+                    </h2>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowPrivacyModal(false)}
+                    className="rounded-lg px-2 py-1 text-slate-500 hover:bg-slate-100"
+                    aria-label="Cerrar"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="mt-4 space-y-3 text-xs leading-relaxed text-slate-600">
+                  <p>
+                    Tu RUT se utiliza para localizar tu registro académico y
+                    confirmar tu nombre y curso. Durante la evaluación también se
+                    guardan tus respuestas, progreso y, cuando corresponda,
+                    eventos de seguridad asociados al examen.
+                  </p>
+                  <p>
+                    Estos datos se utilizan para identificar al estudiante,
+                    aplicar y revisar la evaluación, conservar su avance y apoyar
+                    la integridad académica. El sistema aplica controles de acceso
+                    y medidas de seguridad para reducir accesos no autorizados.
+                  </p>
+                  <p>
+                    No compartas tu RUT ni el enlace de evaluación fuera de los
+                    canales oficiales. Si detectas un error en tus datos o tienes
+                    dudas sobre su uso, comunícate con tu docente o con la
+                    administración responsable de EduAI.
+                  </p>
+                  <p className="rounded-xl bg-blue-50 px-3 py-2 text-[11px] text-blue-700">
+                    Consentimiento para evaluaciones EduAI · versión 1. La
+                    aceptación queda asociada al intento de evaluación.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowPrivacyModal(false)}
+                  className="mt-5 w-full rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-700"
+                >
+                  Entendido
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
+
+  if ((phase === "review" || phase === "submitting") && submission) {'''
+          page, count = register_pattern.subn(register_replacement, page, count=1)
+          if count != 1:
+              raise SystemExit(f"frontend register UI: expected 1 match, found {count}")
+
+          page_path.write_text(page, encoding="utf-8")
+
+          # ------------------------------------------------------------------
+          # Exam API: authoritative identity from student_roster
+          # ------------------------------------------------------------------
+          route_path = Path("app/api/agents/examen-docente/route.ts")
+          route = route_path.read_text(encoding="utf-8")
+
+          route = replace_once(
+              route,
+              'function normalizeSavedAnswerBundle(value: any) {\n',
+              '''const EXAM_PRIVACY_CONSENT_VERSION = "eduai_exam_privacy_v1"\n\nasync function resolveActiveRosterStudent(rutClean: string) {\n  const { data, error } = await supabase\n    .from("student_roster")\n    .select("id, student_name, course, school_year, updated_at")\n    .eq("rut_clean", rutClean)\n    .eq("active", true)\n    .order("school_year", { ascending: false })\n    .order("updated_at", { ascending: false })\n    .limit(1)\n\n  if (error) throw error\n  return Array.isArray(data) && data.length > 0 ? data[0] : null\n}\n\nfunction normalizeSavedAnswerBundle(value: any) {\n''',
+              "backend roster helper",
+          )
+
+          start_backend_pattern = re.compile(
+              r'    // ── Iniciar o reanudar intento del estudiante ─+.*?\n    // ── Guardado automático del avance ─+',
+              re.S,
+          )
+          start_backend_replacement = '''    // ── Iniciar o reanudar intento del estudiante ───────────────────────────
+    // La identidad se resuelve en el servidor desde student_roster. El navegador
+    // no decide el nombre ni el curso del estudiante.
+    if (action === "start_or_resume_attempt") {
+      assertServerSupabaseAdmin()
+      const { examId, studentRut, consentAccepted } = body
+      const rutClean = normalizeRutClean(studentRut)
+
+      if (!examId) {
+        return NextResponse.json({ error: "Examen requerido" }, { status: 400 })
+      }
+
+      if (consentAccepted !== true) {
+        return NextResponse.json(
+          { error: "Debes aceptar la política de privacidad y seguridad de datos para continuar." },
+          { status: 400 }
+        )
+      }
+
+      if (!isValidRut(rutClean)) {
+        return NextResponse.json(
+          { error: "RUT inválido. Escríbelo sin puntos ni guion, incluyendo el dígito verificador o K." },
+          { status: 400 }
+        )
+      }
+
+      const { data: officialExam, error: examError } = await supabase
+        .from("teacher_exams")
+        .select("id, questions, settings, status")
+        .eq("id", examId)
+        .maybeSingle()
+
+      if (examError || !officialExam) {
+        return NextResponse.json({ error: "Examen no encontrado" }, { status: 404 })
+      }
+
+      if (officialExam.status !== "active") {
+        return NextResponse.json({ error: "Este examen está cerrado" }, { status: 403 })
+      }
+
+      const rosterStudent = await resolveActiveRosterStudent(rutClean)
+      if (!rosterStudent) {
+        return NextResponse.json(
+          { error: "No encontramos un estudiante activo con ese RUT. Revisa el RUT o consulta a tu docente." },
+          { status: 404 }
+        )
+      }
+
+      const studentName = String(rosterStudent.student_name || "").trim()
+      const studentCourse = String(rosterStudent.course || "").trim()
+      if (!studentName || !studentCourse) {
+        return NextResponse.json(
+          { error: "Tu registro de estudiante está incompleto. Consulta a tu docente antes de continuar." },
+          { status: 409 }
+        )
+      }
+
+      const formattedRut = formatRut(rutClean)
+      const totalQuestions = Array.isArray(officialExam.questions) ? officialExam.questions.length : 0
+      const maxTimeLeft = getExamTimeLimitSeconds(officialExam.settings)
+      const acceptedAt = new Date().toISOString()
+
+      // Buscar por examen + RUT evita crear un segundo intento si el curso del
+      // estudiante fue actualizado en la nómina después de iniciar el examen.
+      const { data: existingRows, error: existingError } = await supabase
+        .from("exam_attempt_drafts")
+        .select("id, client_attempt_id, answers, current_question_index, time_left, status, submission_id, started_at, last_saved_at, privacy_consent_at, privacy_consent_version")
+        .eq("exam_id", examId)
+        .eq("student_rut_clean", rutClean)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+
+      if (existingError) throw existingError
+      const existing = Array.isArray(existingRows) && existingRows.length > 0 ? existingRows[0] : null
+
+      if (existing?.status === "submitted") {
+        return NextResponse.json(
+          {
+            error: "Este RUT ya tiene una entrega registrada para este examen.",
+            alreadySubmitted: true,
+            submissionId: existing.submission_id || null,
+          },
+          { status: 409 }
+        )
+      }
+
+      if (existing) {
+        const { error: identityUpdateError } = await supabase
+          .from("exam_attempt_drafts")
+          .update({
+            student_name: studentName,
+            student_course: studentCourse,
+            student_rut: formattedRut,
+            student_roster_id: rosterStudent.id,
+            privacy_consent_at: existing.privacy_consent_at || acceptedAt,
+            privacy_consent_version: EXAM_PRIVACY_CONSENT_VERSION,
+            updated_at: acceptedAt,
+          })
+          .eq("id", existing.id)
+
+        if (identityUpdateError) throw identityUpdateError
+
+        const nextIndex = Math.max(
+          0,
+          Math.min(totalQuestions > 0 ? totalQuestions - 1 : 0, Number(existing.current_question_index) || 0)
+        )
+        const savedTimeLeft = Number(existing.time_left)
+        return NextResponse.json({
+          success: true,
+          resumed: true,
+          attempt: {
+            clientAttemptId: existing.client_attempt_id,
+            answers: normalizeSavedAnswerBundle(existing.answers),
+            currentQuestionIndex: nextIndex,
+            timeLeft:
+              Number.isFinite(savedTimeLeft) && savedTimeLeft > 0
+                ? Math.min(maxTimeLeft, Math.round(savedTimeLeft))
+                : maxTimeLeft,
+            startedAt: existing.started_at || null,
+            lastSavedAt: existing.last_saved_at || null,
+            studentName,
+            studentCourse,
+            studentRut: formattedRut,
+            studentRutClean: rutClean,
+          },
+        })
+      }
+
+      const clientAttemptId = createServerAttemptId()
+      const defaultAnswers = normalizeSavedAnswerBundle(null)
+      const { data: created, error: createError } = await supabase
+        .from("exam_attempt_drafts")
+        .insert({
+          exam_id: examId,
+          student_name: studentName,
+          student_course: studentCourse,
+          student_rut: formattedRut,
+          student_rut_clean: rutClean,
+          student_roster_id: rosterStudent.id,
+          client_attempt_id: clientAttemptId,
+          answers: defaultAnswers,
+          current_question_index: 0,
+          time_left: maxTimeLeft,
+          status: "in_progress",
+          privacy_consent_at: acceptedAt,
+          privacy_consent_version: EXAM_PRIVACY_CONSENT_VERSION,
+          last_saved_at: acceptedAt,
+          updated_at: acceptedAt,
+        })
+        .select("id, client_attempt_id, answers, current_question_index, time_left, started_at, last_saved_at")
+        .single()
+
+      if (createError) throw createError
+
+      return NextResponse.json({
+        success: true,
+        resumed: false,
+        attempt: {
+          clientAttemptId: created.client_attempt_id,
+          answers: normalizeSavedAnswerBundle(created.answers),
+          currentQuestionIndex: 0,
+          timeLeft: maxTimeLeft,
+          startedAt: created.started_at || null,
+          lastSavedAt: created.last_saved_at || null,
+          studentName,
+          studentCourse,
+          studentRut: formattedRut,
+          studentRutClean: rutClean,
+        },
+      })
+    }
+
+    // ── Guardado automático del avance ───────────────────────────────────────'''
+          route, count = start_backend_pattern.subn(start_backend_replacement, route, count=1)
+          if count != 1:
+              raise SystemExit(f"backend start attempt: expected 1 match, found {count}")
+
+          autosave_pattern = re.compile(
+              r'    // ── Guardado automático del avance ─+\n    if \(action === "autosave_attempt"\) \{.*?\n    \}\n\n    if \(action === "create"\) \{',
+              re.S,
+          )
+          autosave_replacement = '''    // ── Guardado automático del avance ───────────────────────────────────────
+    if (action === "autosave_attempt") {
+      assertServerSupabaseAdmin()
+      const {
+        examId,
+        studentRut,
+        clientAttemptId,
+        answers,
+        currentQuestionIndex,
+        timeLeft,
+      } = body
+      const rutClean = normalizeRutClean(studentRut)
+
+      if (!examId || !clientAttemptId) {
+        return NextResponse.json({ error: "Faltan datos para guardar el avance" }, { status: 400 })
+      }
+
+      if (!isValidRut(rutClean)) {
+        return NextResponse.json({ error: "RUT inválido" }, { status: 400 })
+      }
+
+      const { data: officialExam, error: examError } = await supabase
+        .from("teacher_exams")
+        .select("id, questions, settings, status")
+        .eq("id", examId)
+        .maybeSingle()
+
+      if (examError || !officialExam) {
+        return NextResponse.json({ error: "Examen no encontrado" }, { status: 404 })
+      }
+
+      if (officialExam.status !== "active") {
+        return NextResponse.json({ error: "Este examen está cerrado" }, { status: 403 })
+      }
+
+      const totalQuestions = Array.isArray(officialExam.questions) ? officialExam.questions.length : 0
+      const maxIndex = Math.max(0, totalQuestions - 1)
+      const nextIndex = Math.max(0, Math.min(maxIndex, Number(currentQuestionIndex) || 0))
+      const maxTimeLeft = getExamTimeLimitSeconds(officialExam.settings)
+      const nextTimeLeft = Math.max(
+        0,
+        Math.min(maxTimeLeft, Math.round(Number(timeLeft) || 0))
+      )
+
+      const { data: existing, error: existingError } = await supabase
+        .from("exam_attempt_drafts")
+        .select("id, status, submission_id")
+        .eq("exam_id", examId)
+        .eq("client_attempt_id", String(clientAttemptId))
+        .eq("student_rut_clean", rutClean)
+        .maybeSingle()
+
+      if (existingError) throw existingError
+      if (!existing) {
+        return NextResponse.json(
+          { error: "No encontramos el intento iniciado. Vuelve a ingresar con tu RUT." },
+          { status: 404 }
+        )
+      }
+
+      if (existing.status === "submitted") {
+        return NextResponse.json(
+          { error: "El examen ya fue entregado. No se puede modificar el avance.", alreadySubmitted: true },
+          { status: 409 }
+        )
+      }
+
+      const { data: saved, error: saveError } = await supabase
+        .from("exam_attempt_drafts")
+        .update({
+          answers: normalizeSavedAnswerBundle(answers),
+          current_question_index: nextIndex,
+          time_left: nextTimeLeft,
+          last_saved_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existing.id)
+        .select("id, client_attempt_id, current_question_index, time_left, last_saved_at")
+        .single()
+
+      if (saveError) throw saveError
+
+      return NextResponse.json({
+        success: true,
+        attempt: {
+          clientAttemptId: saved.client_attempt_id,
+          currentQuestionIndex: saved.current_question_index,
+          timeLeft: saved.time_left,
+          lastSavedAt: saved.last_saved_at,
+        },
+      })
+    }
+
+    if (action === "create") {'''
+          route, count = autosave_pattern.subn(autosave_replacement, route, count=1)
+          if count != 1:
+              raise SystemExit(f"backend autosave: expected 1 match, found {count}")
+
+          route = replace_once(
+              route,
+              '''      const {\n        examId,\n        studentName,\n        studentCourse,\n        studentRut,\n        answers,\n        timeSpent,\n        examPercentage,\n        clientAttemptId,\n      } = body\n      const rutClean = normalizeRutClean(studentRut)\n      const effectiveClientAttemptId = String(clientAttemptId || createServerAttemptId())\n\n      if (!examId || !studentName || !studentCourse || !answers) {\n        return NextResponse.json({ error: "Faltan datos" }, { status: 400 })\n      }\n''',
+              '''      const {\n        examId,\n        studentRut,\n        answers,\n        timeSpent,\n        examPercentage,\n        clientAttemptId,\n      } = body\n      const rutClean = normalizeRutClean(studentRut)\n      const effectiveClientAttemptId = String(clientAttemptId || "")\n\n      if (!examId || !answers || !effectiveClientAttemptId) {\n        return NextResponse.json({ error: "Faltan datos del intento" }, { status: 400 })\n      }\n''',
+              "backend submit request identity",
+          )
+
+          submit_anchor = '''      if (officialExam.status !== "active") {\n        return NextResponse.json({ error: "Este examen está cerrado" }, { status: 403 })\n      }\n\n      const sanitizedQuestions = sanitizeQuestions(officialExam.questions || [])\n'''
+          submit_identity = '''      if (officialExam.status !== "active") {\n        return NextResponse.json({ error: "Este examen está cerrado" }, { status: 403 })\n      }\n\n      const { data: attemptDraft, error: attemptError } = await supabase\n        .from("exam_attempt_drafts")\n        .select("id, client_attempt_id, student_name, student_course, student_rut, student_rut_clean, student_roster_id, privacy_consent_at, privacy_consent_version, status")\n        .eq("exam_id", examId)\n        .eq("client_attempt_id", effectiveClientAttemptId)\n        .eq("student_rut_clean", rutClean)\n        .maybeSingle()\n\n      if (attemptError) throw attemptError\n      if (!attemptDraft) {\n        return NextResponse.json(\n          { error: "No encontramos el intento iniciado. Vuelve a ingresar con tu RUT." },\n          { status: 404 }\n        )\n      }\n\n      const authoritativeName = String(attemptDraft.student_name || "").trim()\n      const authoritativeCourse = String(attemptDraft.student_course || "").trim()\n      const authoritativeRutClean = normalizeRutClean(attemptDraft.student_rut_clean)\n      const authoritativeRut = attemptDraft.student_rut || formatRut(authoritativeRutClean)\n\n      if (!authoritativeName || !authoritativeCourse || authoritativeRutClean !== rutClean) {\n        return NextResponse.json(\n          { error: "No fue posible validar la identidad asociada a este intento." },\n          { status: 409 }\n        )\n      }\n\n      const sanitizedQuestions = sanitizeQuestions(officialExam.questions || [])\n'''
+          route = replace_once(route, submit_anchor, submit_identity, "backend submit authoritative identity")
+
+          route = replace_once(
+              route,
+              '''          student_name:    studentName,\n          student_course:  studentCourse,\n          student_rut:     formattedRut,\n          student_rut_clean: rutClean,\n''',
+              '''          student_name:    authoritativeName,\n          student_course:  authoritativeCourse,\n          student_rut:     authoritativeRut,\n          student_rut_clean: authoritativeRutClean,\n          student_roster_id: attemptDraft.student_roster_id || null,\n          privacy_consent_at: attemptDraft.privacy_consent_at || null,\n          privacy_consent_version: attemptDraft.privacy_consent_version || EXAM_PRIVACY_CONSENT_VERSION,\n''',
+              "backend submission authoritative fields",
+          )
+
+          # The formatted value is no longer used in submit after identity is loaded
+          submit_scope_pattern = re.compile(
+              r'(      const officialExamPercentage = normalizeExamPercentage\(\n        officialExam\.settings\?\.examPercentage \?\? examPercentage \?\? 60\n      \)\n      const grade = calculateGradeFromPercentage\(scoreSummary\.percentage, officialExamPercentage\)\n)      const formattedRut = formatRut\(rutClean\)\n',
+          )
+          route, count = submit_scope_pattern.subn(r'\1', route, count=1)
+          if count != 1:
+              raise SystemExit(f"backend submit formattedRut removal: expected 1 match, found {count}")
+
+          route_path.write_text(route, encoding="utf-8")
+
+          # ------------------------------------------------------------------
+          # Migration kept in source control for the consent audit trail
+          # ------------------------------------------------------------------
+          migration = Path("supabase/migrations/202609050001_exam_rut_identity_privacy_consent.sql")
+          migration.write_text(
+              '''-- Identificación de estudiantes por RUT y trazabilidad del consentimiento\nalter table public.exam_attempt_drafts\n  add column if not exists privacy_consent_at timestamptz,\n  add column if not exists privacy_consent_version text;\n\nalter table public.exam_submissions\n  add column if not exists privacy_consent_at timestamptz,\n  add column if not exists privacy_consent_version text;\n\ncomment on column public.exam_attempt_drafts.privacy_consent_at is\n  'Momento en que el estudiante aceptó el aviso de privacidad al iniciar o reanudar la evaluación.';\ncomment on column public.exam_attempt_drafts.privacy_consent_version is\n  'Versión del aviso de privacidad aceptado por el estudiante.';\ncomment on column public.exam_submissions.privacy_consent_at is\n  'Consentimiento de privacidad heredado del intento de evaluación.';\ncomment on column public.exam_submissions.privacy_consent_version is\n  'Versión del aviso de privacidad heredada del intento de evaluación.';\n''',
+              encoding="utf-8",
+          )
+
+          # Safety assertions
+          page_check = page_path.read_text(encoding="utf-8")
+          route_check = route_path.read_text(encoding="utf-8")
+          assert 'NOMBRE *' not in page_check
+          assert 'CURSO *' not in page_check
+          assert 'privacyConsent' in page_check
+          assert 'consentAccepted: true' in page_check
+          assert 'resolveActiveRosterStudent' in route_check
+          assert 'student_roster_id: rosterStudent.id' in route_check
+          assert 'privacy_consent_at' in route_check
+          PY
+
+      - name: Sanity-check changed TypeScript with ESLint
+        shell: bash
+        run: |
+          npm ci --ignore-scripts
+          npx eslint "app/examen/p/[code]/page.tsx" "app/api/agents/examen-docente/route.ts" || true
+
+      - name: Commit applied changes and remove temporary workflow
+        shell: bash
+        run: |
+          rm -f .github/workflows/apply-rut-consent.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/examen/p/'[code]'/page.tsx app/api/agents/examen-docente/route.ts supabase/migrations/202609050001_exam_rut_identity_privacy_consent.sql .github/workflows/apply-rut-consent.yml
+          git commit -m "feat: identify students by RUT and require privacy consent"
+          git push origin HEAD:feat/student-rut-identification-consent
