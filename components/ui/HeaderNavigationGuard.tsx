@@ -10,31 +10,70 @@ function normalizedText(value: string | null | undefined) {
     .toLocaleLowerCase("es")
 }
 
-function findLibraryAction() {
-  const nodes = Array.from(document.querySelectorAll<HTMLElement>("a, button"))
+function visibleTopAction(nodes: HTMLElement[]) {
   return (
-    nodes.find(node => {
-      const text = normalizedText(node.textContent)
-      const href = node instanceof HTMLAnchorElement ? node.getAttribute("href") || "" : ""
-      return href === "/biblioteca" || text === "biblioteca"
-    }) || null
+    nodes
+      .filter(node => {
+        const rect = node.getBoundingClientRect()
+        const style = window.getComputedStyle(node)
+        return rect.width > 0 && rect.height > 0 && rect.top < 130 && style.display !== "none"
+      })
+      .sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top)[0] ||
+    nodes[0] ||
+    null
   )
 }
 
+function findLibraryAction() {
+  const nodes = Array.from(document.querySelectorAll<HTMLElement>("a, button")).filter(node => {
+    const text = normalizedText(node.textContent)
+    const href = node instanceof HTMLAnchorElement ? node.getAttribute("href") || "" : ""
+    return href === "/biblioteca" || text === "biblioteca"
+  })
+  return visibleTopAction(nodes)
+}
+
 function findAccessCodesAction() {
-  const nodes = Array.from(document.querySelectorAll<HTMLElement>("a, button"))
-  return (
-    nodes.find(node => {
-      const text = normalizedText(node.textContent)
-      const href = node instanceof HTMLAnchorElement ? node.getAttribute("href") || "" : ""
-      return (
-        text.includes("códigos de acceso") ||
-        text.includes("codigos de acceso") ||
-        href.startsWith("/admin/exam-codes") ||
-        href.startsWith("/admin/exam-access")
-      )
-    }) || null
-  )
+  const nodes = Array.from(document.querySelectorAll<HTMLElement>("a, button")).filter(node => {
+    const text = normalizedText(node.textContent)
+    const href = node instanceof HTMLAnchorElement ? node.getAttribute("href") || "" : ""
+    return (
+      text.includes("códigos de acceso") ||
+      text.includes("codigos de acceso") ||
+      href.startsWith("/admin/exam-codes") ||
+      href.startsWith("/admin/exam-access")
+    )
+  })
+  return visibleTopAction(nodes)
+}
+
+function hasAdminHeaderAction() {
+  const candidates = Array.from(document.querySelectorAll<HTMLElement>('a[href="/admin"], a[href^="/admin?"]'))
+  return Boolean(visibleTopAction(candidates))
+}
+
+function createAccessCodesAction() {
+  if (!hasAdminHeaderAction()) return null
+
+  const link = document.createElement("a")
+  link.href = "/admin/exam-codes"
+  link.textContent = "🔐 Códigos de acceso"
+  link.setAttribute("aria-label", "Códigos de acceso")
+  link.dataset.eduaiGeneratedAccessCodes = "true"
+  link.style.display = "inline-flex"
+  link.style.alignItems = "center"
+  link.style.justifyContent = "center"
+  link.style.gap = "0.35rem"
+  link.style.height = "2rem"
+  link.style.padding = "0 0.75rem"
+  link.style.borderRadius = "0.75rem"
+  link.style.border = "1px solid rgba(5,150,105,0.22)"
+  link.style.background = "rgba(5,150,105,0.10)"
+  link.style.color = "#047857"
+  link.style.fontSize = "0.75rem"
+  link.style.fontWeight = "700"
+  link.style.textDecoration = "none"
+  return link
 }
 
 function normalizeMovedAction(action: HTMLElement) {
@@ -57,8 +96,11 @@ function normalizeMovedAction(action: HTMLElement) {
 
 function keepLibraryAndAccessCodesTogether() {
   const library = findLibraryAction()
-  const accessCodes = findAccessCodesAction()
-  if (!library || !accessCodes || library === accessCodes) return
+  if (!library) return
+
+  let accessCodes = findAccessCodesAction()
+  if (!accessCodes) accessCodes = createAccessCodesAction()
+  if (!accessCodes || library === accessCodes) return
 
   const row = library.parentElement
   if (!row) return
