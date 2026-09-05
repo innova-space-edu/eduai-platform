@@ -34,4 +34,8 @@ console.log("[fix-student-rut-consent] parche base verificado")
 await import("./fix-student-rut-consent-v2.mjs")
 await import("./apply-provider-client-initialization.mjs")
 
-console.log("[fix-student-rut-consent] parche final normalizado")
+// Última barrera antes de compilar: ningún RUT puede iniciar el examen si no
+// existe en la nómina activa del año escolar vigente.
+await import("./enforce-student-roster-gate.mjs")
+
+console.log("[fix-student-rut-consent] parche final normalizado y nómina obligatoria")
