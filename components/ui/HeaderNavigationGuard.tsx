@@ -10,7 +10,7 @@ function normalizedText(value: string | null | undefined) {
     .toLocaleLowerCase("es")
 }
 
-function visibleTopAction(nodes: HTMLElement[]) {
+function visibleTopAction(nodes: HTMLElement[]): HTMLElement | null {
   return (
     nodes
       .filter(node => {
