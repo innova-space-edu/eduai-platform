@@ -10,35 +10,70 @@ function normalizedText(value: string | null | undefined) {
     .toLocaleLowerCase("es")
 }
 
-function findAction(label: "library" | "code") {
+function findLibraryAction() {
   const nodes = Array.from(document.querySelectorAll<HTMLElement>("a, button"))
-
-  return nodes.find(node => {
-    const text = normalizedText(node.textContent)
-    if (label === "library") return text === "biblioteca" || text.includes("biblioteca")
-    return text.includes("agente de código") || text.includes("agente de codigo")
-  }) || null
+  return (
+    nodes.find(node => {
+      const text = normalizedText(node.textContent)
+      const href = node instanceof HTMLAnchorElement ? node.getAttribute("href") || "" : ""
+      return href === "/biblioteca" || text === "biblioteca"
+    }) || null
+  )
 }
 
-function keepLibraryAndCodeTogether() {
-  const library = findAction("library")
-  const code = findAction("code")
-  if (!library || !code || library === code) return
+function findAccessCodesAction() {
+  const nodes = Array.from(document.querySelectorAll<HTMLElement>("a, button"))
+  return (
+    nodes.find(node => {
+      const text = normalizedText(node.textContent)
+      const href = node instanceof HTMLAnchorElement ? node.getAttribute("href") || "" : ""
+      return (
+        text.includes("códigos de acceso") ||
+        text.includes("codigos de acceso") ||
+        href.startsWith("/admin/exam-codes") ||
+        href.startsWith("/admin/exam-access")
+      )
+    }) || null
+  )
+}
 
-  const libraryParent = library.parentElement
-  const codeParent = code.parentElement
-  if (!libraryParent || libraryParent !== codeParent) return
+function normalizeMovedAction(action: HTMLElement) {
+  // El botón podía venir como acción flotante. Al integrarlo al encabezado
+  // anulamos únicamente el posicionamiento flotante; su estilo visual se conserva.
+  action.style.position = "static"
+  action.style.inset = "auto"
+  action.style.top = "auto"
+  action.style.right = "auto"
+  action.style.bottom = "auto"
+  action.style.left = "auto"
+  action.style.transform = "none"
+  action.style.margin = "0"
+  action.style.flexShrink = "0"
+  action.style.whiteSpace = "nowrap"
+  action.style.alignSelf = "center"
+  action.style.zIndex = "auto"
+  action.dataset.eduaiHeaderAction = "access-codes"
+}
 
-  // Conserva el orden visual existente del agente de código, pero sin dejar
-  // que otros accesos (por ejemplo Notas IA) queden entre ambos botones.
-  if (library.previousElementSibling !== code) {
-    libraryParent.insertBefore(code, library)
+function keepLibraryAndAccessCodesTogether() {
+  const library = findLibraryAction()
+  const accessCodes = findAccessCodesAction()
+  if (!library || !accessCodes || library === accessCodes) return
+
+  const row = library.parentElement
+  if (!row) return
+
+  normalizeMovedAction(accessCodes)
+
+  // “Códigos de acceso” queda inmediatamente después de Biblioteca, aunque
+  // originalmente haya sido renderizado como botón flotante en otro contenedor.
+  if (library.nextElementSibling !== accessCodes) {
+    library.insertAdjacentElement("afterend", accessCodes)
   }
 
-  // En barras estrechas evitamos solapamientos. La fila conserva todos sus
-  // accesos en una sola línea y, si no caben, permite desplazamiento horizontal
-  // en vez de montar un botón sobre otro o separar Biblioteca/Agente de código.
-  const row = libraryParent as HTMLElement
+  // Mantiene todos los accesos superiores ordenados y sin superposición.
+  row.style.display = "flex"
+  row.style.alignItems = "center"
   row.style.flexWrap = "nowrap"
   row.style.overflowX = "auto"
   row.style.overflowY = "hidden"
@@ -53,7 +88,7 @@ function keepLibraryAndCodeTogether() {
     }
   })
 
-  row.dataset.eduaiNavigationGuard = "library-code"
+  row.dataset.eduaiNavigationGuard = "library-access-codes"
 }
 
 export default function HeaderNavigationGuard() {
@@ -63,7 +98,7 @@ export default function HeaderNavigationGuard() {
     let frame = 0
     const apply = () => {
       cancelAnimationFrame(frame)
-      frame = requestAnimationFrame(keepLibraryAndCodeTogether)
+      frame = requestAnimationFrame(keepLibraryAndAccessCodesTogether)
     }
 
     apply()
