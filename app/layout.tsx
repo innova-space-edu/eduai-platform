@@ -3,6 +3,7 @@ import "./globals.css"
 import SupportButton from "@/components/ui/SupportButton"
 import SupportLinkButton from "@/components/ui/SupportLinkButton"
 import SuperAgentButton from "@/components/ui/SuperAgentButton"
+import HeaderNavigationGuard from "@/components/ui/HeaderNavigationGuard"
 import { ThemeProvider } from "@/components/theme-provider"
 import { MusicProvider } from "@/components/music/MusicProvider"
 import ExamUiPolish from "@/components/exam/ExamUiPolish"
@@ -34,6 +35,7 @@ export default function RootLayout({
           <MusicProvider>
             <EduAIUsageTracker />
             {children}
+            <HeaderNavigationGuard />
             <DashboardLegalFooter />
             <ExamUiPolish />
             <EditExamTimeButton />
