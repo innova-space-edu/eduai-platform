@@ -1,3 +1,5 @@
+import "./apply-student-rut-consent.mjs"
+import "./fix-student-rut-consent.mjs"
 import fs from "node:fs"
 
 const checks = [
