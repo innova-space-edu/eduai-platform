@@ -1,4 +1,5 @@
 import MultimediaStudioResponsiveClient from "@/components/multimedia/MultimediaStudioResponsiveClient";
+import MultimediaAudioProDockController from "@/components/multimedia/MultimediaAudioProDockController";
 
 export const metadata = {
   title: "Editor Multimedia | EduAI",
@@ -6,5 +7,10 @@ export const metadata = {
 };
 
 export default function MultimediaStudioPage() {
-  return <MultimediaStudioResponsiveClient />;
+  return (
+    <>
+      <MultimediaStudioResponsiveClient />
+      <MultimediaAudioProDockController />
+    </>
+  );
 }
