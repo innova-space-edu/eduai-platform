@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import MultimediaStudioV3Client from "@/components/multimedia/MultimediaStudioV3Client";
+import MultimediaAudioProPanel from "@/components/multimedia/MultimediaAudioProPanel";
 
 function findTimelineElements(root: HTMLElement) {
   const sections = Array.from(root.querySelectorAll("section"));
@@ -111,6 +112,7 @@ export default function MultimediaStudioResponsiveClient() {
   return (
     <div ref={shellRef} className="multimedia-responsive-shell">
       <MultimediaStudioV3Client />
+      <MultimediaAudioProPanel />
       <style>{`
         .multimedia-responsive-shell > div > .mx-auto.grid {
           width: 100%;
