@@ -9,6 +9,19 @@ export type ModelLabSmokeResult = {
   detail: string
 }
 
+export type ModelLabTextCall = {
+  provider: string
+  model: string
+  supported: boolean
+  ok: boolean
+  latencyMs: number | null
+  statusCode: number | null
+  text: string
+  inputTokens: number | null
+  outputTokens: number | null
+  detail: string
+}
+
 const EXPECTED = "EDUAI_SMOKE_OK"
 const PROMPT = `Prueba técnica de disponibilidad. Responde exactamente ${EXPECTED} y nada más.`
 
@@ -43,11 +56,11 @@ function endpointFor(provider: string) {
   return ""
 }
 
-async function openAICompatible(provider: string, model: string): Promise<ModelLabSmokeResult> {
+async function openAICompatible(provider: string, model: string, prompt: string, maxTokens = 128): Promise<ModelLabTextCall> {
   const key = secretFor(provider)
   const endpoint = endpointFor(provider)
   if (!key || !endpoint) {
-    return { provider, model, supported: true, passed: false, latencyMs: null, statusCode: null, outputMatched: false, detail: `Falta API key server-side para ${provider}.` }
+    return { provider, model, supported: true, ok: false, latencyMs: null, statusCode: null, text: "", inputTokens: null, outputTokens: null, detail: `Falta API key server-side para ${provider}.` }
   }
 
   const started = Date.now()
@@ -66,33 +79,34 @@ async function openAICompatible(provider: string, model: string): Promise<ModelL
       headers,
       body: JSON.stringify({
         model,
-        messages: [{ role: "user", content: PROMPT }],
+        messages: [{ role: "user", content: prompt }],
         temperature: 0,
-        max_tokens: 32,
+        max_tokens: maxTokens,
       }),
     })
     const latencyMs = Date.now() - started
     const payload = await response.json().catch(() => ({})) as any
     const text = String(payload?.choices?.[0]?.message?.content || "").trim()
-    const outputMatched = text.includes(EXPECTED)
     return {
       provider,
       model,
       supported: true,
-      passed: response.ok && outputMatched,
+      ok: response.ok,
       latencyMs,
       statusCode: response.status,
-      outputMatched,
-      detail: response.ok ? (outputMatched ? "Smoke test correcto." : "El endpoint respondió, pero no respetó la salida de control.") : String(payload?.error?.message || `HTTP ${response.status}`).slice(0, 400),
+      text,
+      inputTokens: Number.isFinite(payload?.usage?.prompt_tokens) ? Number(payload.usage.prompt_tokens) : null,
+      outputTokens: Number.isFinite(payload?.usage?.completion_tokens) ? Number(payload.usage.completion_tokens) : null,
+      detail: response.ok ? "Endpoint respondió correctamente." : String(payload?.error?.message || `HTTP ${response.status}`).slice(0, 400),
     }
   } catch (error) {
-    return { provider, model, supported: true, passed: false, latencyMs: Date.now() - started, statusCode: null, outputMatched: false, detail: error instanceof Error ? error.message : "Error de red" }
+    return { provider, model, supported: true, ok: false, latencyMs: Date.now() - started, statusCode: null, text: "", inputTokens: null, outputTokens: null, detail: error instanceof Error ? error.message : "Error de red" }
   }
 }
 
-async function googleGemini(model: string): Promise<ModelLabSmokeResult> {
+async function googleGemini(model: string, prompt: string, maxTokens = 128): Promise<ModelLabTextCall> {
   const key = process.env.GEMINI_API_KEY_TEXT || process.env.GEMINI_API_KEY || ""
-  if (!key) return { provider: "google", model, supported: true, passed: false, latencyMs: null, statusCode: null, outputMatched: false, detail: "Falta GEMINI_API_KEY_TEXT/GEMINI_API_KEY server-side." }
+  if (!key) return { provider: "google", model, supported: true, ok: false, latencyMs: null, statusCode: null, text: "", inputTokens: null, outputTokens: null, detail: "Falta GEMINI_API_KEY_TEXT/GEMINI_API_KEY server-side." }
 
   const started = Date.now()
   try {
@@ -101,26 +115,27 @@ async function googleGemini(model: string): Promise<ModelLabSmokeResult> {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: PROMPT }] }],
-        generationConfig: { temperature: 0, maxOutputTokens: 32 },
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0, maxOutputTokens: maxTokens },
       }),
     })
     const latencyMs = Date.now() - started
     const payload = await response.json().catch(() => ({})) as any
     const text = String(payload?.candidates?.[0]?.content?.parts?.map((part: any) => part?.text || "").join(" ") || "").trim()
-    const outputMatched = text.includes(EXPECTED)
     return {
       provider: "google",
       model,
       supported: true,
-      passed: response.ok && outputMatched,
+      ok: response.ok,
       latencyMs,
       statusCode: response.status,
-      outputMatched,
-      detail: response.ok ? (outputMatched ? "Smoke test correcto." : "El endpoint respondió, pero no respetó la salida de control.") : String(payload?.error?.message || `HTTP ${response.status}`).slice(0, 400),
+      text,
+      inputTokens: Number.isFinite(payload?.usageMetadata?.promptTokenCount) ? Number(payload.usageMetadata.promptTokenCount) : null,
+      outputTokens: Number.isFinite(payload?.usageMetadata?.candidatesTokenCount) ? Number(payload.usageMetadata.candidatesTokenCount) : null,
+      detail: response.ok ? "Endpoint respondió correctamente." : String(payload?.error?.message || `HTTP ${response.status}`).slice(0, 400),
     }
   } catch (error) {
-    return { provider: "google", model, supported: true, passed: false, latencyMs: Date.now() - started, statusCode: null, outputMatched: false, detail: error instanceof Error ? error.message : "Error de red" }
+    return { provider: "google", model, supported: true, ok: false, latencyMs: Date.now() - started, statusCode: null, text: "", inputTokens: null, outputTokens: null, detail: error instanceof Error ? error.message : "Error de red" }
   }
 }
 
@@ -128,11 +143,26 @@ export function supportsTextSmoke(capabilities: string[]) {
   return capabilities.some(item => ["text", "structured", "long_context", "code", "research", "agentic", "reasoning", "tools"].includes(item))
 }
 
-export async function runModelLabSmoke(provider: string, model: string, capabilities: string[]): Promise<ModelLabSmokeResult> {
+export async function callModelLabText(provider: string, model: string, capabilities: string[], prompt: string, maxTokens = 128): Promise<ModelLabTextCall> {
   if (!supportsTextSmoke(capabilities)) {
-    return { provider, model, supported: false, passed: false, latencyMs: null, statusCode: null, outputMatched: false, detail: "Este candidato requiere un benchmark de modalidad específica (audio, imagen, video o safety)." }
+    return { provider, model, supported: false, ok: false, latencyMs: null, statusCode: null, text: "", inputTokens: null, outputTokens: null, detail: "Este candidato requiere un benchmark de modalidad específica (audio, imagen, video o safety)." }
   }
-  if (provider === "google") return googleGemini(model)
-  if (["groq", "openrouter", "together", "cerebras"].includes(provider)) return openAICompatible(provider, model)
-  return { provider, model, supported: false, passed: false, latencyMs: null, statusCode: null, outputMatched: false, detail: `Proveedor ${provider} aún no tiene adapter de smoke test.` }
+  if (provider === "google") return googleGemini(model, prompt, maxTokens)
+  if (["groq", "openrouter", "together", "cerebras"].includes(provider)) return openAICompatible(provider, model, prompt, maxTokens)
+  return { provider, model, supported: false, ok: false, latencyMs: null, statusCode: null, text: "", inputTokens: null, outputTokens: null, detail: `Proveedor ${provider} aún no tiene adapter de texto.` }
+}
+
+export async function runModelLabSmoke(provider: string, model: string, capabilities: string[]): Promise<ModelLabSmokeResult> {
+  const result = await callModelLabText(provider, model, capabilities, PROMPT, 32)
+  const outputMatched = result.text.includes(EXPECTED)
+  return {
+    provider,
+    model,
+    supported: result.supported,
+    passed: result.ok && outputMatched,
+    latencyMs: result.latencyMs,
+    statusCode: result.statusCode,
+    outputMatched,
+    detail: result.ok ? (outputMatched ? "Smoke test correcto." : "El endpoint respondió, pero no respetó la salida de control.") : result.detail,
+  }
 }
