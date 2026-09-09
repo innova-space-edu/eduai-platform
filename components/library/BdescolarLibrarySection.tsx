@@ -7,6 +7,8 @@ import {
   ExternalLink,
   Headphones,
   LibraryBig,
+  MessageCircle,
+  Newspaper,
   Search,
   ShieldCheck,
   Smartphone,
@@ -28,10 +30,12 @@ type Props = {
 const FEATURE_ICONS = {
   ebooks: BookOpenCheck,
   audio: Headphones,
+  periodicals: Newspaper,
   loans: LibraryBig,
   streaming: BookOpenCheck,
   accessibility: Accessibility,
   mobile: Smartphone,
+  community: MessageCircle,
 } as const
 
 export default function BdescolarLibrarySection({ query = "" }: Props) {
@@ -98,7 +102,7 @@ export default function BdescolarLibrarySection({ query = "" }: Props) {
       </div>
 
       <div className="p-5 sm:p-7">
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           {BDESCOLAR_FEATURES.map((feature) => {
             const Icon = FEATURE_ICONS[feature.id]
             return (
