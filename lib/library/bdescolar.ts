@@ -32,6 +32,8 @@ export const BDESCOLAR_QUICK_SEARCHES = [
   { id: "history", label: "Historia", query: "historia" },
   { id: "math", label: "Matemática", query: "matemática" },
   { id: "english", label: "Inglés", query: "inglés" },
+  { id: "magazines", label: "Revistas", query: "revistas" },
+  { id: "press", label: "Prensa", query: "periódicos" },
 ] as const
 
 export const BDESCOLAR_FEATURES = [
@@ -44,6 +46,11 @@ export const BDESCOLAR_FEATURES = [
     id: "audio",
     title: "Audiolibros",
     description: "Contenidos de audio disponibles según el perfil y la disponibilidad del catálogo.",
+  },
+  {
+    id: "periodicals",
+    title: "Revistas y prensa",
+    description: "El ecosistema BDEscolar contempla publicaciones periódicas cuando están habilitadas en el catálogo.",
   },
   {
     id: "loans",
@@ -64,5 +71,10 @@ export const BDESCOLAR_FEATURES = [
     id: "mobile",
     title: "App y lectura móvil",
     description: "BDEscolar dispone de aplicación móvil y opciones de descarga/lectura compatibles con sus licencias.",
+  },
+  {
+    id: "community",
+    title: "Reseñas y descubrimiento",
+    description: "La aplicación incorpora reseñas y mejoras de descubrimiento y accesibilidad asociadas a cada contenido.",
   },
 ] as const
