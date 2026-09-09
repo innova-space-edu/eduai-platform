@@ -2,6 +2,7 @@ import fs from "node:fs"
 import path from "node:path"
 
 const pagePath = path.join(process.cwd(), "app", "biblioteca", "page.tsx")
+const catalogPath = path.join(process.cwd(), "lib", "library", "catalog.ts")
 
 if (!fs.existsSync(pagePath)) {
   console.log("[library-community-links] biblioteca page not found")
@@ -38,18 +39,38 @@ if (!source.includes("const EXTERNAL_REPOSITORIES = [")) {
   source = source.replace(dataMarker, dataBlock)
 }
 
+const readerImportMarker = 'import LibraryReader from "@/components/library/LibraryReader"\n'
+
 if (!source.includes('import MineducLibrarySection from "@/components/library/MineducLibrarySection"')) {
-  const importMarker = 'import LibraryReader from "@/components/library/LibraryReader"\n'
-  if (!source.includes(importMarker)) {
+  if (!source.includes(readerImportMarker)) {
     throw new Error("[library-community-links] reader import marker not found")
   }
-  source = source.replace(importMarker, `${importMarker}import MineducLibrarySection from "@/components/library/MineducLibrarySection"\n`)
+  source = source.replace(readerImportMarker, `${readerImportMarker}import MineducLibrarySection from "@/components/library/MineducLibrarySection"\n`)
 }
 
-if (!source.includes('source: "MINEDUC", access: "official"')) {
+if (!source.includes('import BdescolarLibrarySection from "@/components/library/BdescolarLibrarySection"')) {
+  const mineducImport = 'import MineducLibrarySection from "@/components/library/MineducLibrarySection"\n'
+  if (!source.includes(mineducImport)) {
+    throw new Error("[library-community-links] MINEDUC import marker not found")
+  }
+  source = source.replace(mineducImport, `${mineducImport}import BdescolarLibrarySection from "@/components/library/BdescolarLibrarySection"\n`)
+}
+
+if (!source.includes('source: "BDEscolar", access: "borrow"')) {
   const trustedMarker = '  { match: (host) => host.endsWith("wikisource.org"), source: "Wikisource", access: "full" },\n'
   if (!source.includes(trustedMarker)) {
     throw new Error("[library-community-links] trusted source marker not found")
+  }
+  source = source.replace(
+    trustedMarker,
+    `${trustedMarker}  { match: (host) => host === "bdescolar.mineduc.cl" || host.endsWith(".bdescolar.mineduc.cl"), source: "BDEscolar", access: "borrow" },\n`,
+  )
+}
+
+if (!source.includes('source: "MINEDUC", access: "official"')) {
+  const trustedMarker = '  { match: (host) => host === "bdescolar.mineduc.cl" || host.endsWith(".bdescolar.mineduc.cl"), source: "BDEscolar", access: "borrow" },\n'
+  if (!source.includes(trustedMarker)) {
+    throw new Error("[library-community-links] BDE trusted source marker not found")
   }
   source = source.replace(
     trustedMarker,
@@ -77,6 +98,14 @@ if (!source.includes("<MineducLibrarySection query={searchTerm} />")) {
   source = source.replace(mineducMarker, `${mineducMarker}          <MineducLibrarySection query={searchTerm} />\n`)
 }
 
+if (!source.includes("<BdescolarLibrarySection query={searchTerm} />")) {
+  const bdeMarker = `          <MineducLibrarySection query={searchTerm} />\n`
+  if (!source.includes(bdeMarker)) {
+    throw new Error("[library-community-links] MINEDUC section marker not found")
+  }
+  source = source.replace(bdeMarker, `${bdeMarker}          <BdescolarLibrarySection query={searchTerm} />\n`)
+}
+
 const sectionMarker = `          <section className="mt-8"><div className="mb-4 flex items-end justify-between gap-4"><div><div className="flex items-center gap-2"><Globe2 size={18} className="text-blue-600" /><h2 className="text-lg font-bold text-slate-950">Bibliotecas y plataformas conectadas</h2></div>`
 
 const externalSection = `          <section className="mt-8">
@@ -102,5 +131,31 @@ if (!source.includes("Repositorios de libros</h2>")) {
   source = source.replace(sectionMarker, externalSection)
 }
 
+source = source.replace("6 fuentes verificadas", "7 fuentes verificadas")
 fs.writeFileSync(pagePath, source)
-console.log("[library-community-links] external repositories and MINEDUC library applied")
+
+if (fs.existsSync(catalogPath)) {
+  let catalogSource = fs.readFileSync(catalogPath, "utf8")
+  if (!catalogSource.includes('id: "bdescolar"')) {
+    const bpdigitalMarker = `  {
+    id: "bpdigital",
+`
+    if (!catalogSource.includes(bpdigitalMarker)) {
+      throw new Error("[library-community-links] BPDigital source marker not found")
+    }
+    const bdeSource = `  {
+    id: "bdescolar",
+    name: "BDEscolar MINEDUC",
+    description: "Biblioteca Digital Escolar con libros, audiolibros, préstamos, reservas y lectura oficial para comunidades educativas.",
+    access: "Préstamo oficial MINEDUC",
+    url: "https://bdescolar.mineduc.cl/",
+    accent: "from-cyan-600 to-blue-500",
+    verified: true,
+  },
+`
+    catalogSource = catalogSource.replace(bpdigitalMarker, `${bdeSource}${bpdigitalMarker}`)
+    fs.writeFileSync(catalogPath, catalogSource)
+  }
+}
+
+console.log("[library-community-links] external repositories, MINEDUC and BDEscolar applied")
