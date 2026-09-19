@@ -154,6 +154,31 @@ function buildWeeklyOAContext(params: {
   }).join("\n")
 }
 
+function countInstitutionalTableRows(text: string) {
+  const lines = String(text || "").replace(/\r/g, "").split("\n")
+  const headerIndex = lines.findIndex((line) => {
+    const upper = line.toUpperCase()
+    return line.trim().startsWith("|") && upper.includes("SEMANA") && upper.includes("INDICADORES") && upper.includes("OBJETIVO")
+  })
+  if (headerIndex < 0) return { rows: 0, valid: false }
+
+  let rows = 0
+  let started = false
+  for (let i = headerIndex + 1; i < lines.length; i += 1) {
+    const line = lines[i].trim()
+    if (!line.startsWith("|")) {
+      if (started && line) break
+      continue
+    }
+    if (/^\|?\s*:?-{2,}/.test(line)) continue
+    const cells = line.replace(/^\|/, "").replace(/\|$/, "").split("|")
+    if (cells.length !== 4) return { rows, valid: false }
+    rows += 1
+    started = true
+  }
+  return { rows, valid: rows > 0 }
+}
+
 function clampNumber(value: unknown, fallback: number, min: number, max: number) {
   const parsed = Number(value)
   if (!Number.isFinite(parsed)) return fallback
@@ -1405,17 +1430,23 @@ REGLAS DE LAS CELDAS:
   ]
 
   try {
-    const strategy = useCompactResourcePrompt
+    const basePlanningStrategy = getEducadorModelStrategy(
+      sesiones > 1 || selectedOAIds.length > 1 || isInstitutionalMacro
+        ? "planning_full"
+        : "planning_short"
+    )
+    const strategy = isInstitutionalMacro
       ? {
-          maxTokens: outputIntent === "rubrica" ? 4200 : 3400,
-          preferProvider: "groq" as const,
-          openrouterModel: "openai/gpt-4o-mini",
+          ...basePlanningStrategy,
+          maxTokens: tiempoPlanificacion === "anual" ? 15000 : tiempoPlanificacion === "semestral" ? 12000 : 8000,
         }
-      : getEducadorModelStrategy(
-          sesiones > 1 || selectedOAIds.length > 1
-            ? "planning_full"
-            : "planning_short"
-        )
+      : useCompactResourcePrompt
+        ? {
+            maxTokens: outputIntent === "rubrica" ? 4200 : 3400,
+            preferProvider: "groq" as const,
+            openrouterModel: "openai/gpt-4o-mini",
+          }
+        : basePlanningStrategy
 
     let result = await callAI(aiMessages, {
       maxTokens: strategy.maxTokens,
@@ -1423,7 +1454,29 @@ REGLAS DE LAS CELDAS:
       openrouterModel: strategy.openrouterModel,
     })
 
-    let qualityAudit = outputIntent === "planificacion" ? auditPlanningOutput(result.text, planningProfile) : null
+    if (isInstitutionalMacro) {
+      let tableCheck = countInstitutionalTableRows(result.text)
+      if (!tableCheck.valid || tableCheck.rows !== weeklyOAPlan.length) {
+        const repaired = await callAI([
+          ...aiMessages,
+          {
+            role: "user" as const,
+            content: `La salida anterior no cumplió la tabla institucional. Regenera desde cero. Debe existir una sola tabla Markdown de 4 columnas y EXACTAMENTE ${weeklyOAPlan.length} filas de semanas, una por cada entrada de la distribución, sin omitir ninguna. Mantén todos los OA asignados y no agregues secciones.`,
+          },
+        ], {
+          maxTokens: strategy.maxTokens,
+          preferProvider: strategy.preferProvider,
+          openrouterModel: strategy.openrouterModel,
+        })
+        tableCheck = countInstitutionalTableRows(repaired.text)
+        if (!tableCheck.valid || tableCheck.rows !== weeklyOAPlan.length) {
+          throw new Error(`La IA no completó el cronograma institucional: se esperaban ${weeklyOAPlan.length} semanas y se recibieron ${tableCheck.rows}. Intenta generar nuevamente.`)
+        }
+        result = repaired
+      }
+    }
+
+    let qualityAudit = outputIntent === "planificacion" && !isInstitutionalMacro ? auditPlanningOutput(result.text, planningProfile) : null
     if (qualityAudit && !qualityAudit.passed) {
       const repaired = await callAI([
         ...aiMessages,
@@ -1460,10 +1513,16 @@ REGLAS DE LAS CELDAS:
       parvulariaMotivoFusion,
       outputIntent,
       compactPrompt: useCompactResourcePrompt,
+      institutionalPlanning: isInstitutionalMacro,
+      periodLabel,
+      weeklyOAPlan: isInstitutionalMacro ? weeklyOAPlan : undefined,
       _design: designSummary,
     })
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "No fue posible generar la planificacion"
+    if (isInstitutionalMacro) {
+      return NextResponse.json({ error: errorMessage }, { status: 503 })
+    }
     const fallbackText = buildLocalEducadorFallback({
       intent: outputIntent,
       curso,
