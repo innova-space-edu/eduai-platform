@@ -216,12 +216,19 @@ export default function PlannerPage() {
 
   function selectMode(next: PlanMode) {
     setPlanMode(next.id)
-    setConfig((previous) => ({
-      ...previous,
-      planningProfile: previous.nivel === "parvularia" && ["clase", "secuencia", "unidad"].includes(next.id) ? "experiencia_parvularia" : next.profile,
-      tiempoPlanificacion: next.horizon, sesiones: next.sessions,
-      periodoId: next.horizon === "mensual" ? previous.mes : previous.periodoId,
-    }))
+    setConfig((previous) => {
+      const basicMedia = previous.nivel === "basica" || previous.nivel === "media"
+      const leavingInstitutionalMacro = basicMedia && isSchoolPlanningMacro(previous.tiempoPlanificacion) && !isSchoolPlanningMacro(next.horizon)
+      return {
+        ...previous,
+        planningProfile: previous.nivel === "parvularia" && ["clase", "secuencia", "unidad"].includes(next.id) ? "experiencia_parvularia" : next.profile,
+        tiempoPlanificacion: next.horizon,
+        sesiones: next.sessions,
+        periodoId: next.horizon === "mensual" ? previous.mes : previous.periodoId,
+        selectedOAIds: leavingInstitutionalMacro ? [] : previous.selectedOAIds,
+        weeklyOAPlan: leavingInstitutionalMacro ? [] : previous.weeklyOAPlan,
+      }
+    })
   }
   function selectLevel(level: NivelKey) {
     const course = COURSES[level][0]
@@ -285,6 +292,7 @@ export default function PlannerPage() {
       return [
         `Genera el cronograma institucional ${periodLabel} para ${config.curso}, ${config.asignatura}.`,
         `Año: ${config.anioPlanificacion}. Profesor/a: ${config.profesor}. Horas: ${config.horasSemanales}.`,
+        `Tipo de planificación: ${mode.label}. Respeta este enfoque en la progresión semanal sin alterar las cuatro columnas del formato institucional.`,
         "Usa exactamente la distribución semanal indicada. Para cada semana incluye todos los OA asignados, indicadores de evaluación observables y objetivos/actividades de clase coherentes con esos OA.",
         "No uses inicio-desarrollo-cierre ni minutos. La salida debe ser la tabla institucional de cuatro columnas requerida para exportar el PDF del colegio.",
         "DISTRIBUCIÓN SEMANAL DE OA:",
@@ -378,7 +386,7 @@ export default function PlannerPage() {
         <div><Label required>{config.nivel === "parvularia" ? "Núcleo de aprendizaje" : "Asignatura"}</Label><select value={config.asignatura} onChange={(e) => setConfig((p) => ({ ...p, asignatura: e.target.value, unidadId: "", selectedOAIds: [], selectedOATIds: [], weeklyOAPlan: [] }))} className={inputClass}>{subjects.map((item) => <option key={item}>{item}</option>)}</select></div>
       </div>
       <div className="grid gap-4 md:grid-cols-3">
-        <div><Label>Horizonte</Label><select value={config.tiempoPlanificacion} onChange={(e) => { const value = e.target.value as TiempoPlanificacion; setConfig((p) => ({ ...p, tiempoPlanificacion: value, periodoId: value === "mensual" ? p.mes : value === "semestral" ? (["julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"].includes(p.mes) ? "segundo-semestre" : "primer-semestre") : value === "anual" ? "anio-escolar" : p.periodoId, weeklyOAPlan: [] })) }} className={inputClass}><option value="diaria">Diaria</option><option value="semanal">Semanal</option><option value="mensual">Mensual</option>{isBasicaMedia && <option value="semestral">Semestral</option>}{isBasicaMedia && <option value="anual">Anual</option>}</select></div>
+        <div><Label>Horizonte</Label><select value={config.tiempoPlanificacion} onChange={(e) => { const value = e.target.value as TiempoPlanificacion; setConfig((p) => { const leavingInstitutionalMacro = (p.nivel === "basica" || p.nivel === "media") && isSchoolPlanningMacro(p.tiempoPlanificacion) && !isSchoolPlanningMacro(value); return ({ ...p, tiempoPlanificacion: value, periodoId: value === "mensual" ? p.mes : value === "semestral" ? (["julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"].includes(p.mes) ? "segundo-semestre" : "primer-semestre") : value === "anual" ? "anio-escolar" : p.periodoId, selectedOAIds: leavingInstitutionalMacro ? [] : p.selectedOAIds, weeklyOAPlan: [] }) }) }} className={inputClass}><option value="diaria">Diaria</option><option value="semanal">Semanal</option><option value="mensual">Mensual</option>{isBasicaMedia && <option value="semestral">Semestral</option>}{isBasicaMedia && <option value="anual">Anual</option>}</select></div>
         {!institutionalMacro && <><div><Label>Sesiones</Label><input type="number" min={1} max={30} value={config.sesiones} onChange={(e) => setConfig((p) => ({ ...p, sesiones: Math.max(1, Number(e.target.value || 1)) }))} className={inputClass} /></div><div><Label>Minutos por sesión</Label><input type="number" min={15} max={240} step={5} value={config.duracionMinutos} onChange={(e) => setConfig((p) => ({ ...p, duracionMinutos: Math.max(15, Number(e.target.value || 45)) }))} className={inputClass} /></div></>}
         {institutionalMacro && config.tiempoPlanificacion === "mensual" && <div><Label required>Mes</Label><select value={config.periodoId} onChange={(e) => setConfig((p) => ({ ...p, periodoId: e.target.value, mes: e.target.value, weeklyOAPlan: [] }))} className={inputClass}>{SCHOOL_YEAR_MONTHS.map((item) => <option key={item} value={item}>{schoolPlanningMonthLabel(item)}</option>)}</select></div>}
         {institutionalMacro && config.tiempoPlanificacion === "semestral" && <div><Label required>Periodo</Label><select value={config.periodoId} onChange={(e) => setConfig((p) => ({ ...p, periodoId: e.target.value, weeklyOAPlan: [] }))} className={inputClass}>{SCHOOL_SEMESTER_OPTIONS.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></div>}
