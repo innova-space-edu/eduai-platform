@@ -10,6 +10,7 @@ export interface SchoolPlanningPdfMeta {
   establishment?: string
   city?: string
   baseCurricular?: string
+  schedule?: Array<{ month: string; week: number }>
 }
 
 export interface SchoolPlanningPdfRow {
@@ -193,7 +194,9 @@ export async function exportSchoolPlanningPdf(meta: SchoolPlanningPdfMeta, conte
       y = 7
     }
 
-    const values = [row.week, row.oa, row.indicators, row.objective]
+    const scheduled = meta.schedule?.[index]
+    const weekLabel = scheduled ? `${scheduled.week === 1 ? `${scheduled.month.charAt(0).toUpperCase() + scheduled.month.slice(1)}\n` : ""}${scheduled.week}` : row.week
+    const values = [weekLabel, row.oa, row.indicators, row.objective]
     let cursorX = marginX
     values.forEach((value, colIndex) => {
       drawCell(doc, cursorX, y, widths[colIndex], height, value, {
