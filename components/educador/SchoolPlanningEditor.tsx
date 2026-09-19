@@ -13,14 +13,6 @@ type Props = {
   onChange: (content: string) => void
 }
 
-function ReadOnlyCell({ value, center = false }: { value: string; center?: boolean }) {
-  return (
-    <div className={`min-h-[150px] whitespace-pre-line break-words px-3 py-3 text-[11px] leading-[1.4] ${center ? "text-center font-bold" : ""}`}>
-      {value}
-    </div>
-  )
-}
-
 function EditableCell({
   value,
   onChange,
@@ -52,7 +44,7 @@ export default function SchoolPlanningEditor({ meta, content, onChange }: Props)
     )
   }
 
-  function updateRow(index: number, field: "indicators" | "objective", value: string) {
+  function updateRow(index: number, field: keyof SchoolPlanningPdfRow, value: string) {
     const nextRows = rows.map((row, rowIndex) =>
       rowIndex === index ? { ...row, [field]: value } : row
     )
@@ -66,7 +58,7 @@ export default function SchoolPlanningEditor({ meta, content, onChange }: Props)
   return (
     <div className="space-y-3">
       <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-semibold text-sky-900">
-        Edita directamente los indicadores y los objetivos/actividades. La semana y los OA oficiales quedan protegidos para mantener la coherencia curricular.
+        Edita directamente cualquier celda de la tabla. Los cambios se guardan en esta planificación y se respetan también al exportar el PDF.
       </div>
 
       <div className="overflow-x-auto rounded-2xl border border-slate-300 bg-slate-100 p-3">
@@ -110,11 +102,19 @@ export default function SchoolPlanningEditor({ meta, content, onChange }: Props)
             <tbody>
               {rows.map((row, index) => (
                 <tr key={index} className="align-top">
-                  <td className="border border-black bg-slate-50">
-                    <ReadOnlyCell value={row.week} center />
+                  <td className="border border-black bg-white p-0">
+                    <EditableCell
+                      value={row.week}
+                      onChange={(value) => updateRow(index, "week", value)}
+                      label={`Semana o fecha, fila ${index + 1}`}
+                    />
                   </td>
-                  <td className="border border-black bg-slate-50">
-                    <ReadOnlyCell value={row.oa} />
+                  <td className="border border-black bg-white p-0">
+                    <EditableCell
+                      value={row.oa}
+                      onChange={(value) => updateRow(index, "oa", value)}
+                      label={`OA, fila ${index + 1}`}
+                    />
                   </td>
                   <td className="border border-black bg-white p-0">
                     <EditableCell
