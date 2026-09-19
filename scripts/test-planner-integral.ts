@@ -2,6 +2,7 @@ import { strict as assert } from "node:assert"
 import { getAvailableAsignaturas } from "../lib/mineduc-oa"
 import { resolveOAConnection } from "../lib/planner-oa-bridge"
 import { auditPlanningOutput, inferPlanningProfile } from "../lib/school-planning-profiles"
+import { buildSchoolWeekPlan, getSchoolPlanningPeriodLabel } from "../lib/school-planning-template"
 
 const profileCases = [
   ["Organiza una feria científica con stands, experimentos y presentación a apoderados", "media", "feria_cientifica"],
@@ -78,5 +79,15 @@ const structuredFair = `# Feria científica escolar
 const structuredAudit = auditPlanningOutput(structuredFair, feriaProfile)
 assert(structuredAudit.passed, "Una feria desarrollada debe aprobar el auditor")
 console.log(`✓ Auditor estructural de feria científica: ${structuredAudit.score}/100`)
+
+const firstSemester = buildSchoolWeekPlan("semestral", "primer-semestre", "marzo")
+assert.equal(firstSemester.length, 16, "El primer semestre institucional debe tener 16 semanas (marzo-junio)")
+assert.equal(firstSemester[0]?.key, "marzo-1")
+assert.equal(firstSemester.at(-1)?.key, "junio-4")
+assert.equal(getSchoolPlanningPeriodLabel("semestral", "primer-semestre"), "I SEMESTRE")
+
+const annual = buildSchoolWeekPlan("anual", "anio-escolar", "marzo")
+assert.equal(annual.length, 40, "El cronograma anual debe cubrir 10 meses con 4 semanas cada uno")
+console.log("✓ Periodos institucionales: mensual, semestral y anual")
 
 console.log("\nPlanificador escolar integral: todas las pruebas pasaron.")
