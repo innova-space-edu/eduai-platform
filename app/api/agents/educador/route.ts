@@ -1057,16 +1057,41 @@ REGLAS:
 
 
   const tiempoPlanificacion: TiempoPlanificacion =
-    cfg.tiempoPlanificacion === "diaria" || cfg.tiempoPlanificacion === "semanal" || cfg.tiempoPlanificacion === "mensual"
+    cfg.tiempoPlanificacion === "diaria" ||
+    cfg.tiempoPlanificacion === "semanal" ||
+    cfg.tiempoPlanificacion === "mensual" ||
+    cfg.tiempoPlanificacion === "semestral" ||
+    cfg.tiempoPlanificacion === "anual"
       ? cfg.tiempoPlanificacion : "diaria"
 
-  const sesiones = clampNumber(cfg.sesiones, 1, 1, 40)
+  const sesiones = clampNumber(cfg.sesiones, 1, 1, 120)
   const duracionMinutos = clampNumber(cfg.duracionMinutos, nivel === "parvularia" ? 30 : 90, 15, 300)
+  const isBasicaMedia = nivel === "basica" || nivel === "media"
+  const isInstitutionalMacro = isBasicaMedia && (tiempoPlanificacion === "mensual" || tiempoPlanificacion === "semestral" || tiempoPlanificacion === "anual")
+  const profesor = typeof cfg.profesor === "string" ? cfg.profesor.trim() : ""
+  const horasSemanales = typeof cfg.horasSemanales === "string" ? cfg.horasSemanales.trim() : ""
+  const establecimiento = typeof cfg.establecimiento === "string" && cfg.establecimiento.trim() ? cfg.establecimiento.trim() : "Colegio Providencia"
+  const ciudad = typeof cfg.ciudad === "string" && cfg.ciudad.trim() ? cfg.ciudad.trim() : "ANTOFAGASTA"
+  const periodoId = typeof cfg.periodoId === "string" && cfg.periodoId.trim() ? cfg.periodoId.trim() : mes
+  const anioPlanificacion = clampNumber(cfg.anioPlanificacion, new Date().getFullYear(), 2020, 2100)
+  const weeklyOAPlan = ensureWeeklyOAPlan(cfg.weeklyOAPlan)
+  const periodLabel = getSchoolPlanningPeriodLabel(tiempoPlanificacion, periodoId, mes)
+
+  if (isInstitutionalMacro) {
+    if (!profesor || !horasSemanales) {
+      return NextResponse.json({ error: "Completa profesor/a y horas semanales para generar el cronograma institucional." }, { status: 400 })
+    }
+    if (!weeklyOAPlan.length || weeklyOAPlan.some((week) => week.oaIds.length === 0)) {
+      return NextResponse.json({ error: "Asigna al menos un OA a cada semana del período antes de generar." }, { status: 400 })
+    }
+    selectedOAIds = [...new Set([...selectedOAIds, ...weeklyOAPlan.flatMap((week) => week.oaIds)])]
+  }
+
   const requestedPlanningProfile: PlanningProfileId = isPlanningProfileId(cfg.planningProfile) ? cfg.planningProfile : "auto"
   const planningProfile = inferPlanningProfile(`${contexto}\n${message}`, nivel, requestedPlanningProfile)
   const oaConnection = resolveOAConnection({
     state: { nivel, curso, asignatura },
-    unidadId,
+    unidadId: isInstitutionalMacro ? "" : unidadId,
     selectedOAIds,
     userText: `${contexto}\n${message}`,
   })
@@ -1080,13 +1105,13 @@ REGLAS:
     parvulariaHeterogenea, parvulariaSegundoCurso, parvulariaMotivoFusion,
   })
 
-  const isBasicaMedia = nivel === "basica" || nivel === "media"
   const isParv = nivel === "parvularia"
   const sessionWord = sesiones === 1 ? "1 sesion" : `${sesiones} sesiones`
   const sessionBlocks = isParv
     ? buildParvulariaSessionBlocks(sesiones, duracionMinutos, parvulariaHeterogenea)
     : buildSessionBlocks(sesiones, duracionMinutos)
   const claseObjectives = isBasicaMedia ? buildClaseObjectives(sesiones) : ""
+  const weeklyOAContext = isInstitutionalMacro ? buildWeeklyOAContext({ nivel, curso, asignatura, weeklyOAPlan }) : ""
 
 
   const systemPrompt = `Eres APl, el Agente Planificador Curricular de EduAI, especializado en el curriculum oficial chileno del MINEDUC.
@@ -1295,12 +1320,60 @@ CRITERIOS DE CALIDAD - VERIFICAR ANTES DE RESPONDER:
 - Sala Cuna: sin estructuras escolarizadas, experiencias sensoriales, breves y centradas en vínculo
 - Parvularia heterogénea: siempre incluye adecuaciones por edad/rango, seguridad, materiales diferenciados y registro cualitativo`.trim()
 
+  const institutionalSystemPrompt = isInstitutionalMacro ? `Eres APl, Agente Planificador Curricular de EduAI para Educación Básica y Media de Chile.
+
+Debes generar UN CRONOGRAMA INSTITUCIONAL que replique el formato entregado por el Colegio Providencia.
+
+DATOS FIJOS:
+- Establecimiento: ${establecimiento}
+- Ciudad: ${ciudad}
+- Año: ${anioPlanificacion}
+- Periodo: ${periodLabel}
+- Profesor/a: ${profesor}
+- Asignatura: ${asignatura}
+- Curso: ${curso}
+- Horas semanales: ${horasSemanales}
+- Contexto adicional del docente: ${contexto || "Sin contexto adicional"}
+
+DISTRIBUCIÓN SEMANAL OBLIGATORIA DE OA:
+${weeklyOAContext}
+
+REGLAS CURRICULARES:
+1. Usa exclusivamente los OA de la distribución semanal. No inventes códigos ni cambies el texto oficial.
+2. Cada semana debe contener TODOS los OA que el docente asignó a esa semana.
+3. Si el OA trae indicadores curriculares en el contexto, priorízalos. Si no los trae, redacta indicadores pedagógicos observables y medibles, alineados estrictamente al OA; no los presentes como citas oficiales de MINEDUC.
+4. Redacta entre 3 y 6 indicadores útiles por semana, según la complejidad de los OA.
+5. En "OBJETIVO DE LA CLASE" redacta objetivos concretos y las actividades centrales que permiten lograr esos OA, como en el formato institucional de referencia. Usa entre 2 y 5 acciones por semana.
+6. Mantén progresión pedagógica entre semanas y evita repetir literalmente indicadores u objetivos si la progresión exige profundización.
+7. No uses estructura inicio-desarrollo-cierre, minutos, rúbricas, recursos, adaptaciones, conclusiones ni secciones adicionales.
+8. No agregues ni quites semanas. Respeta exactamente el orden de la distribución entregada.
+9. No uses el carácter "|" dentro de una celda. Separa elementos internos únicamente con <br>.
+10. Entrega la respuesta completa aunque sea extensa.
+
+FORMATO DE SALIDA OBLIGATORIO:
+# CRONOGRAMA ${anioPlanificacion}
+## ${periodLabel}
+
+| SEMANA / FECHA | OA | INDICADORES DE EVALUACIÓN | OBJETIVO DE LA CLASE |
+|---|---|---|---|
+[una fila por cada semana de la distribución, en el mismo orden]
+
+REGLAS DE LAS CELDAS:
+- SEMANA / FECHA: escribe "Marzo<br>1" en la primera semana del mes y solo "2", "3", "4" en las siguientes semanas del mismo mes.
+- OA: código oficial + texto completo del OA. Si hay más de uno, sepáralos con <br><br>.
+- INDICADORES DE EVALUACIÓN: cada indicador inicia con "• " y se separa con <br>.
+- OBJETIVO DE LA CLASE: cada objetivo o actividad inicia con "• " y se separa con <br>.
+- Después de la tabla escribe una sola línea: "Base curricular utilizada: ${asignatura} ${curso}, Currículum Nacional MINEDUC. Planificación organizada para ${periodLabel.toLowerCase()} con los OA seleccionados."
+- No escribas texto antes del título ni después de la línea de base curricular.` : ""
+
   const useCompactResourcePrompt = outputIntent !== "planificacion"
   const selectedUnitForPrompt = getPlannerUnits({ nivel, curso, asignatura })
     .find((unit) => unit.id === unidadId)
 
-  const activeSystemPromptBase = useCompactResourcePrompt
-    ? buildCompactEducadorSystemPrompt({
+  const activeSystemPromptBase = isInstitutionalMacro
+    ? institutionalSystemPrompt
+    : useCompactResourcePrompt
+      ? buildCompactEducadorSystemPrompt({
         intent: outputIntent,
         nivel,
         curso,
@@ -1313,11 +1386,13 @@ CRITERIOS DE CALIDAD - VERIFICAR ANTES DE RESPONDER:
         duracionMinutos,
         promptContext,
       })
-    : systemPrompt
+      : systemPrompt
 
-  const activeSystemPrompt = useCompactResourcePrompt
-    ? `${activeSystemPromptBase}${buildPlanningProfilePrompt(planningProfile)}\n${connectedOAContext}${designDirective}`
-    : `${activeSystemPromptBase}${designDirective}`
+  const activeSystemPrompt = isInstitutionalMacro
+    ? activeSystemPromptBase
+    : useCompactResourcePrompt
+      ? `${activeSystemPromptBase}${buildPlanningProfilePrompt(planningProfile)}\n${connectedOAContext}${designDirective}`
+      : `${activeSystemPromptBase}${designDirective}`
 
   const historyLimit = useCompactResourcePrompt || message.length > 700 ? 2 : 8
   const aiMessages = [
