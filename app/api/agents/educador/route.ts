@@ -1512,10 +1512,10 @@ REGLAS DE LAS CELDAS:
       parvulariaSegundoCurso,
       parvulariaMotivoFusion,
       outputIntent,
-      compactPrompt: useCompactResourcePrompt,
       institutionalPlanning: isInstitutionalMacro,
       periodLabel,
       weeklyOAPlan: isInstitutionalMacro ? weeklyOAPlan : undefined,
+      compactPrompt: useCompactResourcePrompt,
       _design: designSummary,
     })
   } catch (error) {
