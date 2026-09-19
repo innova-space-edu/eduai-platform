@@ -15,7 +15,7 @@ function CellText({ value }: { value: string }) {
 }
 
 export default function SchoolPlanningPreview({ meta, content }: Props) {
-  let rows
+  let rows: ReturnType<typeof buildSchoolPlanningRenderRows>
   try {
     rows = buildSchoolPlanningRenderRows(meta, content)
   } catch (error) {
