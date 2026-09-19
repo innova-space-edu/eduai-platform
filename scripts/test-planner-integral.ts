@@ -3,6 +3,7 @@ import { getAvailableAsignaturas } from "../lib/mineduc-oa"
 import { resolveOAConnection } from "../lib/planner-oa-bridge"
 import { auditPlanningOutput, inferPlanningProfile } from "../lib/school-planning-profiles"
 import { buildSchoolWeekPlan, getSchoolPlanningPeriodLabel, validateSchoolPlanningWeeks } from "../lib/school-planning-template"
+import { buildSchoolPlanningRenderRows } from "../lib/school-planning-pdf"
 
 const profileCases = [
   ["Organiza una feria científica con stands, experimentos y presentación a apoderados", "media", "feria_cientifica"],
@@ -96,5 +97,28 @@ const invalidSchedule = validSchedule.slice(1)
 assert.equal(validateSchoolPlanningWeeks(invalidSchedule, "semestral", "primer-semestre").valid, false, "No debe aceptar semanas incompletas o desplazadas")
 console.log("✓ Periodos institucionales: mensual, semestral y anual")
 console.log("✓ Validación estricta de secuencia semanal institucional")
+
+const previewPdfRows = buildSchoolPlanningRenderRows(
+  {
+    year: 2026,
+    periodLabel: "I SEMESTRE",
+    professor: "Docente",
+    subject: "Matemática",
+    hours: "4",
+    course: "1° Medio",
+    schedule: [{ month: "marzo", week: 1 }],
+    oaByWeek: [{ oas: [{ code: "MA1M OA 01", text: "Texto oficial más extenso que la salida IA." }] }],
+  },
+  `# CRONOGRAMA 2026
+## I SEMESTRE
+
+| SEMANA / FECHA | OA | INDICADORES DE EVALUACIÓN | OBJETIVO DE LA CLASE |
+|---|---|---|---|
+| Marzo<br>1 | OA breve | • Indicador 1<br>• Indicador 2 | • Objetivo 1<br>• Objetivo 2 |`,
+)
+assert.equal(previewPdfRows[0]?.week, "Marzo\n1", "La vista debe convertir <br> a saltos de línea reales")
+assert.equal(previewPdfRows[0]?.oa, "MA1M OA 01\nTexto oficial más extenso que la salida IA.", "PDF y vista deben usar el OA oficial final")
+assert.equal(previewPdfRows[0]?.indicators.includes("<br>"), false, "La vista institucional no debe mostrar etiquetas <br>")
+console.log("✓ Paridad de contenido entre vista institucional y PDF")
 
 console.log("\nPlanificador escolar integral: todas las pruebas pasaron.")

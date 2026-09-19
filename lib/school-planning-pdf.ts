@@ -28,7 +28,7 @@ const PEACH: [number, number, number] = [252, 228, 214]
 const LILAC: [number, number, number] = [204, 192, 218]
 const BLACK: [number, number, number] = [0, 0, 0]
 
-function cleanCell(value: string) {
+export function cleanSchoolPlanningCell(value: string) {
   return String(value || "")
     .replace(/<br\s*\/?\s*>/gi, "\n")
     .replace(/&nbsp;/gi, " ")
@@ -45,7 +45,7 @@ function splitMarkdownRow(line: string) {
     .replace(/^\|/, "")
     .replace(/\|$/, "")
     .split("|")
-    .map((cell) => cleanCell(cell))
+    .map((cell) => cleanSchoolPlanningCell(cell))
 }
 
 export function parseSchoolPlanningRows(content: string): SchoolPlanningPdfRow[] {
@@ -76,8 +76,45 @@ export function parseSchoolPlanningRows(content: string): SchoolPlanningPdfRow[]
   return rows
 }
 
+export function buildSchoolPlanningRenderRows(
+  meta: SchoolPlanningPdfMeta,
+  content: string
+): SchoolPlanningPdfRow[] {
+  const rows = parseSchoolPlanningRows(content)
+  if (!rows.length) throw new Error("La planificación no contiene la tabla institucional esperada.")
+
+  if (meta.schedule?.length) {
+    if (rows.length !== meta.schedule.length) {
+      throw new Error(`El cronograma contiene ${rows.length} filas, pero el período requiere ${meta.schedule.length} semanas.`)
+    }
+
+    meta.schedule.forEach((scheduled, index) => {
+      const expected = normalizeSchoolWeekLabel(expectedSchoolWeekLabel(scheduled.month, scheduled.week))
+      const actual = normalizeSchoolWeekLabel(rows[index]?.week || "")
+      if (actual !== expected) {
+        throw new Error(`La fila ${index + 1} no corresponde a ${scheduled.month}, semana ${scheduled.week}. Regenera la planificación antes de exportar.`)
+      }
+    })
+  }
+
+  return rows.map((row, index) => {
+    const scheduled = meta.schedule?.[index]
+    const week = scheduled ? expectedSchoolWeekLabel(scheduled.month, scheduled.week) : row.week
+    const oa = meta.oaByWeek?.[index]?.oas
+      .map((item) => `${item.code}\n${item.text}`)
+      .join("\n\n") || row.oa
+
+    return {
+      week: cleanSchoolPlanningCell(week),
+      oa: cleanSchoolPlanningCell(oa),
+      indicators: cleanSchoolPlanningCell(row.indicators),
+      objective: cleanSchoolPlanningCell(row.objective),
+    }
+  })
+}
+
 function wrapCell(doc: jsPDF, value: string, width: number) {
-  const logicalLines = cleanCell(value).split("\n").filter((line) => line.trim().length > 0)
+  const logicalLines = cleanSchoolPlanningCell(value).split("\n").filter((line) => line.trim().length > 0)
   const result: string[] = []
   for (const line of logicalLines.length ? logicalLines : [""]) {
     const wrapped = doc.splitTextToSize(line, width) as string[]
@@ -107,26 +144,36 @@ function drawCell(
   doc.setTextColor(...BLACK)
 
   const lines = wrapCell(doc, text, width - 3.4)
-  const lineHeight = (options.fontSize || 6.2) * 0.43
-  const totalTextHeight = Math.max(lineHeight, lines.length * lineHeight)
-  const textY = options.center
-    ? y + Math.max(lineHeight, (height - totalTextHeight) / 2 + lineHeight * 0.82)
+  const fontSize = options.fontSize || 6.2
+  const lineHeight = fontSize * 0.43
+  const textBlockHeight = lines.length * lineHeight
+  const firstBaseline = options.center
+    ? y + Math.max(lineHeight * 0.82, (height - textBlockHeight) / 2 + lineHeight * 0.82)
     : y + 2.2 + lineHeight * 0.82
-  if (options.center) {
-    lines.forEach((line, index) => {
-      doc.text(line, x + width / 2, textY + index * lineHeight, { align: "center" })
-    })
-  } else {
-    doc.text(lines, x + 1.7, textY)
-  }
+
+  lines.forEach((line, index) => {
+    doc.text(
+      line,
+      options.center ? x + width / 2 : x + 1.7,
+      firstBaseline + index * lineHeight,
+      options.center ? { align: "center" } : undefined,
+    )
+  })
 }
 
 function calculateRowHeight(doc: jsPDF, row: SchoolPlanningPdfRow, widths: number[]) {
-  doc.setFont("helvetica", "normal")
-  doc.setFontSize(6.2)
   const values = [row.week, row.oa, row.indicators, row.objective]
-  const lineCounts = values.map((value, index) => wrapCell(doc, value, widths[index] - 3.4).length)
-  return Math.max(11, Math.max(...lineCounts) * 2.75 + 4.5)
+  const fontSizes = [6.6, 6.1, 6.1, 6.1]
+
+  const requiredHeights = values.map((value, index) => {
+    doc.setFont("helvetica", index === 0 ? "bold" : "normal")
+    doc.setFontSize(fontSizes[index])
+    const lines = wrapCell(doc, value, widths[index] - 3.4)
+    const lineHeight = fontSizes[index] * 0.43
+    return lines.length * lineHeight + 4.6
+  })
+
+  return Math.max(11, ...requiredHeights)
 }
 
 function drawInstitutionHeader(doc: jsPDF, meta: SchoolPlanningPdfMeta, x: number, width: number) {
@@ -179,21 +226,7 @@ function drawTableHeader(doc: jsPDF, meta: SchoolPlanningPdfMeta, x: number, y: 
 }
 
 export async function exportSchoolPlanningPdf(meta: SchoolPlanningPdfMeta, content: string) {
-  const rows = parseSchoolPlanningRows(content)
-  if (!rows.length) throw new Error("La planificación no contiene la tabla institucional esperada.")
-
-  if (meta.schedule?.length) {
-    if (rows.length !== meta.schedule.length) {
-      throw new Error(`El cronograma contiene ${rows.length} filas, pero el período requiere ${meta.schedule.length} semanas.`)
-    }
-    meta.schedule.forEach((scheduled, index) => {
-      const expected = normalizeSchoolWeekLabel(expectedSchoolWeekLabel(scheduled.month, scheduled.week))
-      const actual = normalizeSchoolWeekLabel(rows[index]?.week || "")
-      if (actual !== expected) {
-        throw new Error(`La fila ${index + 1} no corresponde a ${scheduled.month}, semana ${scheduled.week}. Regenera la planificación antes de exportar.`)
-      }
-    })
-  }
+  const rows = buildSchoolPlanningRenderRows(meta, content)
 
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" })
   const pageWidth = doc.internal.pageSize.getWidth()
@@ -213,10 +246,7 @@ export async function exportSchoolPlanningPdf(meta: SchoolPlanningPdfMeta, conte
       y = drawTableHeader(doc, meta, marginX, 18.5, tableWidth, widths)
     }
 
-    const scheduled = meta.schedule?.[index]
-    const weekLabel = scheduled ? `${scheduled.week === 1 ? `${scheduled.month.charAt(0).toUpperCase() + scheduled.month.slice(1)}\n` : ""}${scheduled.week}` : row.week
-    const officialOA = meta.oaByWeek?.[index]?.oas.map((oa) => `${oa.code}\n${oa.text}`).join("\n\n") || row.oa
-    const values = [weekLabel, officialOA, row.indicators, row.objective]
+    const values = [row.week, row.oa, row.indicators, row.objective]
     let cursorX = marginX
     values.forEach((value, colIndex) => {
       drawCell(doc, cursorX, y, widths[colIndex], height, value, {
