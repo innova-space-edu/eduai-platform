@@ -1,4 +1,5 @@
 import jsPDF from "jspdf"
+import { expectedSchoolWeekLabel, normalizeSchoolWeekLabel } from "@/lib/school-planning-template"
 
 export interface SchoolPlanningPdfMeta {
   year: number
@@ -180,6 +181,19 @@ function drawTableHeader(doc: jsPDF, meta: SchoolPlanningPdfMeta, x: number, y: 
 export async function exportSchoolPlanningPdf(meta: SchoolPlanningPdfMeta, content: string) {
   const rows = parseSchoolPlanningRows(content)
   if (!rows.length) throw new Error("La planificación no contiene la tabla institucional esperada.")
+
+  if (meta.schedule?.length) {
+    if (rows.length !== meta.schedule.length) {
+      throw new Error(`El cronograma contiene ${rows.length} filas, pero el período requiere ${meta.schedule.length} semanas.`)
+    }
+    meta.schedule.forEach((scheduled, index) => {
+      const expected = normalizeSchoolWeekLabel(expectedSchoolWeekLabel(scheduled.month, scheduled.week))
+      const actual = normalizeSchoolWeekLabel(rows[index]?.week || "")
+      if (actual !== expected) {
+        throw new Error(`La fila ${index + 1} no corresponde a ${scheduled.month}, semana ${scheduled.week}. Regenera la planificación antes de exportar.`)
+      }
+    })
+  }
 
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" })
   const pageWidth = doc.internal.pageSize.getWidth()
