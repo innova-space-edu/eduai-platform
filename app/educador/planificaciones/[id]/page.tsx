@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/client"
 import { exportPlanningPdf } from "@/lib/planning-pdf"
 import { exportSchoolPlanningPdf, type SchoolPlanningPdfMeta } from "@/lib/school-planning-pdf"
 import SchoolPlanningPreview from "@/components/educador/SchoolPlanningPreview"
+import SchoolPlanningEditor from "@/components/educador/SchoolPlanningEditor"
 import { getPlannerOAOptions } from "@/lib/planificador-curriculum"
 import { getSchoolPlanningPeriodLabel, type SchoolPlanningWeek } from "@/lib/school-planning-template"
 import type { NivelKey } from "@/lib/mineduc-oa"
@@ -427,7 +428,7 @@ export default function SavedPlanningDetailPage() {
                     viewMode === "edit" ? "bg-white text-sky-800 shadow-sm" : "text-slate-600 hover:text-slate-950"
                   }`}
                 >
-                  Editar
+                  {institutionalPreviewMeta ? "Editar tabla" : "Editar"}
                 </button>
               </div>
               <p className="mt-3 text-sm font-medium leading-6 text-slate-600">
@@ -466,7 +467,7 @@ export default function SavedPlanningDetailPage() {
                   <div>
                     <h3 className="text-xl font-black text-slate-950">Contenido de la planificación</h3>
                     <p className="mt-1 text-sm font-medium text-slate-600">
-                      {viewMode === "preview" ? "Lectura clara tipo documento." : "Edición directa del contenido markdown."}
+                      {viewMode === "preview" ? "Lectura clara tipo documento." : institutionalPreviewMeta ? "Edición visual de la planificación." : "Edición directa del contenido markdown."}
                     </p>
                   </div>
                   <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-bold text-slate-600">
@@ -477,12 +478,20 @@ export default function SavedPlanningDetailPage() {
 
               <div className="p-5">
                 {viewMode === "edit" ? (
-                  <textarea
-                    value={item.content || ""}
-                    onChange={(e) => setItem({ ...item, content: e.target.value })}
-                    rows={24}
-                    className="min-h-[680px] w-full resize-y rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 font-mono text-[15px] leading-7 text-slate-950 outline-none transition focus:border-sky-300 focus:bg-white focus:ring-4 focus:ring-sky-100"
-                  />
+                  institutionalPreviewMeta ? (
+                    <SchoolPlanningEditor
+                      meta={institutionalPreviewMeta}
+                      content={item.content || ""}
+                      onChange={(content) => setItem({ ...item, content })}
+                    />
+                  ) : (
+                    <textarea
+                      value={item.content || ""}
+                      onChange={(e) => setItem({ ...item, content: e.target.value })}
+                      rows={24}
+                      className="min-h-[680px] w-full resize-y rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 font-mono text-[15px] leading-7 text-slate-950 outline-none transition focus:border-sky-300 focus:bg-white focus:ring-4 focus:ring-sky-100"
+                    />
+                  )
                 ) : (
                   <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white">
                     <div className="border-b border-slate-200 bg-emerald-50/70 px-6 py-4">
