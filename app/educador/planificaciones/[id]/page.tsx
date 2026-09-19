@@ -7,7 +7,8 @@ import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { createClient } from "@/lib/supabase/client"
 import { exportPlanningPdf } from "@/lib/planning-pdf"
-import { exportSchoolPlanningPdf } from "@/lib/school-planning-pdf"
+import { exportSchoolPlanningPdf, type SchoolPlanningPdfMeta } from "@/lib/school-planning-pdf"
+import SchoolPlanningPreview from "@/components/educador/SchoolPlanningPreview"
 import { getPlannerOAOptions } from "@/lib/planificador-curriculum"
 import { getSchoolPlanningPeriodLabel, type SchoolPlanningWeek } from "@/lib/school-planning-template"
 import type { NivelKey } from "@/lib/mineduc-oa"
@@ -80,6 +81,43 @@ function getContentStats(content?: string | null) {
   const words = text.trim() ? text.trim().split(/\s+/).length : 0
   const headings = (text.match(/^#{1,6}\s+/gm) || []).length
   return { words, headings }
+}
+
+function buildSavedInstitutionalMeta(item: SavedPlanning): SchoolPlanningPdfMeta | null {
+  const saved = item.planning_json || {}
+  const horizon = String(saved.tiempoPlanificacion || item.tiempo_planificacion || "")
+  const nivel = String(saved.nivel || item.nivel || "")
+  const institutional = (nivel === "basica" || nivel === "media") && ["mensual", "semestral", "anual"].includes(horizon)
+  const weeklyOAPlan = Array.isArray(saved.weeklyOAPlan) ? saved.weeklyOAPlan as unknown as SchoolPlanningWeek[] : []
+  if (!institutional || !weeklyOAPlan.length) return null
+
+  const course = String(saved.curso || item.curso || "")
+  const subject = String(saved.asignatura || item.asignatura || "")
+  const month = String(saved.mes || item.mes || "marzo")
+  const periodoId = String(saved.periodoId || month)
+  const year = Number(saved.anioPlanificacion || new Date(item.created_at).getFullYear() || new Date().getFullYear())
+  const allOA = getPlannerOAOptions({ nivel: nivel as NivelKey, curso: course, asignatura: subject })
+  const byId = new Map(allOA.map((oa) => [oa.id, oa]))
+  const periodLabel = getSchoolPlanningPeriodLabel(horizon as "mensual" | "semestral" | "anual", periodoId, month)
+
+  return {
+    year,
+    periodLabel,
+    professor: String(saved.profesor || ""),
+    subject,
+    hours: String(saved.horasSemanales || ""),
+    course,
+    establishment: String(saved.establecimiento || "Colegio Providencia"),
+    city: String(saved.ciudad || "ANTOFAGASTA"),
+    baseCurricular: `Base curricular utilizada: ${subject} ${course}, Currículum Nacional MINEDUC. Planificación organizada para ${periodLabel.toLowerCase()} con los OA seleccionados.`,
+    schedule: weeklyOAPlan.map((week) => ({ month: week.month, week: week.week })),
+    oaByWeek: weeklyOAPlan.map((week) => ({
+      oas: week.oaIds.flatMap((id) => {
+        const oa = byId.get(id)
+        return oa ? [{ code: oa.codigoOficial || oa.id, text: oa.texto }] : []
+      }),
+    })),
+  }
 }
 
 export default function SavedPlanningDetailPage() {
@@ -213,39 +251,10 @@ export default function SavedPlanningDetailPage() {
     setStatus("")
 
     try {
-      const saved = item.planning_json || {}
-      const horizon = String(saved.tiempoPlanificacion || item.tiempo_planificacion || "")
-      const nivel = String(saved.nivel || item.nivel || "")
-      const institutional = (nivel === "basica" || nivel === "media") && ["mensual", "semestral", "anual"].includes(horizon)
-      const weeklyOAPlan = Array.isArray(saved.weeklyOAPlan) ? saved.weeklyOAPlan as unknown as SchoolPlanningWeek[] : []
+      const institutionalMeta = buildSavedInstitutionalMeta(item)
 
-      if (institutional && weeklyOAPlan.length) {
-        const course = String(saved.curso || item.curso || "")
-        const subject = String(saved.asignatura || item.asignatura || "")
-        const month = String(saved.mes || item.mes || "marzo")
-        const periodoId = String(saved.periodoId || month)
-        const year = Number(saved.anioPlanificacion || new Date(item.created_at).getFullYear() || new Date().getFullYear())
-        const allOA = getPlannerOAOptions({ nivel: nivel as NivelKey, curso: course, asignatura: subject })
-        const byId = new Map(allOA.map((oa) => [oa.id, oa]))
-
-        await exportSchoolPlanningPdf({
-          year,
-          periodLabel: getSchoolPlanningPeriodLabel(horizon as "mensual" | "semestral" | "anual", periodoId, month),
-          professor: String(saved.profesor || ""),
-          subject,
-          hours: String(saved.horasSemanales || ""),
-          course,
-          establishment: String(saved.establecimiento || "Colegio Providencia"),
-          city: String(saved.ciudad || "ANTOFAGASTA"),
-          baseCurricular: `Base curricular utilizada: ${subject} ${course}, Currículum Nacional MINEDUC. Planificación organizada según los OA seleccionados para el período.`,
-          schedule: weeklyOAPlan.map((week) => ({ month: week.month, week: week.week })),
-          oaByWeek: weeklyOAPlan.map((week) => ({
-            oas: week.oaIds.flatMap((id) => {
-              const oa = byId.get(id)
-              return oa ? [{ code: oa.codigoOficial || oa.id, text: oa.texto }] : []
-            }),
-          })),
-        }, item.content)
+      if (institutionalMeta) {
+        await exportSchoolPlanningPdf(institutionalMeta, item.content)
       } else {
         await exportPlanningPdf(
           {
@@ -316,6 +325,7 @@ export default function SavedPlanningDetailPage() {
   ] as const
 
   const contentStats = getContentStats(item.content)
+  const institutionalPreviewMeta = buildSavedInstitutionalMeta(item)
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-950">
@@ -481,18 +491,22 @@ export default function SavedPlanningDetailPage() {
                       <p className="mt-1 text-sm font-semibold text-slate-700">{item.curso || "—"} · {item.asignatura || "—"} · {item.mes || "—"}</p>
                     </div>
                     <div className="p-6 md:p-8">
-                      <article className="prose prose-slate max-w-none
-                        prose-headings:scroll-mt-28 prose-headings:font-black prose-headings:text-slate-950
-                        prose-h1:text-3xl prose-h2:mt-9 prose-h2:text-2xl prose-h3:mt-7 prose-h3:text-xl
-                        prose-p:font-medium prose-p:leading-8 prose-p:text-slate-700
-                        prose-strong:text-slate-950 prose-li:font-medium prose-li:text-slate-700
-                        prose-ul:leading-8 prose-ol:leading-8 prose-hr:border-slate-200
-                        prose-blockquote:border-l-emerald-500 prose-blockquote:text-slate-700
-                        prose-table:my-8 prose-table:w-full prose-table:overflow-hidden
-                        prose-th:border prose-th:border-slate-200 prose-th:bg-slate-100 prose-th:px-3 prose-th:py-3 prose-th:text-left prose-th:text-slate-950
-                        prose-td:border prose-td:border-slate-200 prose-td:px-3 prose-td:py-3 prose-td:text-slate-700">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{item.content || ""}</ReactMarkdown>
-                      </article>
+                      {institutionalPreviewMeta ? (
+                        <SchoolPlanningPreview meta={institutionalPreviewMeta} content={item.content || ""} />
+                      ) : (
+                        <article className="prose prose-slate max-w-none
+                          prose-headings:scroll-mt-28 prose-headings:font-black prose-headings:text-slate-950
+                          prose-h1:text-3xl prose-h2:mt-9 prose-h2:text-2xl prose-h3:mt-7 prose-h3:text-xl
+                          prose-p:font-medium prose-p:leading-8 prose-p:text-slate-700
+                          prose-strong:text-slate-950 prose-li:font-medium prose-li:text-slate-700
+                          prose-ul:leading-8 prose-ol:leading-8 prose-hr:border-slate-200
+                          prose-blockquote:border-l-emerald-500 prose-blockquote:text-slate-700
+                          prose-table:my-8 prose-table:w-full prose-table:overflow-hidden
+                          prose-th:border prose-th:border-slate-200 prose-th:bg-slate-100 prose-th:px-3 prose-th:py-3 prose-th:text-left prose-th:text-slate-950
+                          prose-td:border prose-td:border-slate-200 prose-td:px-3 prose-td:py-3 prose-td:text-slate-700">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{item.content || ""}</ReactMarkdown>
+                        </article>
+                      )}
                     </div>
                   </div>
                 )}
