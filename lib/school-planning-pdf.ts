@@ -76,6 +76,55 @@ export function parseSchoolPlanningRows(content: string): SchoolPlanningPdfRow[]
   return rows
 }
 
+
+function encodeSchoolPlanningCell(value: string) {
+  return cleanSchoolPlanningCell(value)
+    .replace(/\|/g, "¦")
+    .replace(/\n/g, "<br>")
+}
+
+export function replaceSchoolPlanningRows(
+  content: string,
+  rows: SchoolPlanningPdfRow[]
+) {
+  const lines = String(content || "").replace(/\r/g, "").split("\n")
+  const headerIndex = lines.findIndex((line) => {
+    const normalized = line.toUpperCase()
+    return normalized.includes("SEMANA") && normalized.includes("INDICADORES") && normalized.includes("OBJETIVO")
+  })
+  if (headerIndex < 0) {
+    throw new Error("La planificación no contiene la tabla institucional esperada.")
+  }
+
+  let separatorIndex = -1
+  for (let index = headerIndex + 1; index < lines.length; index += 1) {
+    if (/^\|?\s*:?-{2,}/.test(lines[index].trim())) {
+      separatorIndex = index
+      break
+    }
+    if (lines[index].trim() && !lines[index].trim().startsWith("|")) break
+  }
+  if (separatorIndex < 0) {
+    throw new Error("La tabla institucional no tiene un separador Markdown válido.")
+  }
+
+  const bodyStart = separatorIndex + 1
+  let bodyEnd = bodyStart
+  while (bodyEnd < lines.length && lines[bodyEnd].trim().startsWith("|")) {
+    bodyEnd += 1
+  }
+
+  const encodedRows = rows.map((row) =>
+    `| ${encodeSchoolPlanningCell(row.week)} | ${encodeSchoolPlanningCell(row.oa)} | ${encodeSchoolPlanningCell(row.indicators)} | ${encodeSchoolPlanningCell(row.objective)} |`
+  )
+
+  return [
+    ...lines.slice(0, bodyStart),
+    ...encodedRows,
+    ...lines.slice(bodyEnd),
+  ].join("\n")
+}
+
 export function buildSchoolPlanningRenderRows(
   meta: SchoolPlanningPdfMeta,
   content: string

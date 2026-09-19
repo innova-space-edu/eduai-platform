@@ -3,7 +3,7 @@ import { getAvailableAsignaturas } from "../lib/mineduc-oa"
 import { resolveOAConnection } from "../lib/planner-oa-bridge"
 import { auditPlanningOutput, inferPlanningProfile } from "../lib/school-planning-profiles"
 import { buildSchoolWeekPlan, getSchoolPlanningPeriodLabel, validateSchoolPlanningWeeks } from "../lib/school-planning-template"
-import { buildSchoolPlanningRenderRows } from "../lib/school-planning-pdf"
+import { buildSchoolPlanningRenderRows, replaceSchoolPlanningRows } from "../lib/school-planning-pdf"
 
 const profileCases = [
   ["Organiza una feria científica con stands, experimentos y presentación a apoderados", "media", "feria_cientifica"],
@@ -119,6 +119,40 @@ const previewPdfRows = buildSchoolPlanningRenderRows(
 assert.equal(previewPdfRows[0]?.week, "Marzo\n1", "La vista debe convertir <br> a saltos de línea reales")
 assert.equal(previewPdfRows[0]?.oa, "MA1M OA 01\nTexto oficial más extenso que la salida IA.", "PDF y vista deben usar el OA oficial final")
 assert.equal(previewPdfRows[0]?.indicators.includes("<br>"), false, "La vista institucional no debe mostrar etiquetas <br>")
-console.log("✓ Paridad de contenido entre vista institucional y PDF")
+
+const editedContent = replaceSchoolPlanningRows(
+  `# CRONOGRAMA 2026
+## I SEMESTRE
+
+| SEMANA / FECHA | OA | INDICADORES DE EVALUACIÓN | OBJETIVO DE LA CLASE |
+|---|---|---|---|
+| Marzo<br>1 | MA1M OA 01<br>Texto oficial | • Indicador original | • Objetivo original |
+
+Base curricular utilizada: Matemática 1° Medio.`,
+  [{
+    week: "Marzo\n1",
+    oa: "MA1M OA 01\nTexto oficial",
+    indicators: "• Indicador editado\n• Segundo indicador",
+    objective: "• Objetivo editado\n• Actividad complementaria",
+  }],
+)
+assert(editedContent.includes("• Indicador editado<br>• Segundo indicador"), "El editor visual debe serializar saltos de línea dentro de la celda")
+assert(editedContent.includes("Base curricular utilizada: Matemática 1° Medio."), "El editor visual debe conservar el pie del documento")
+const editedRows = buildSchoolPlanningRenderRows(
+  {
+    year: 2026,
+    periodLabel: "I SEMESTRE",
+    professor: "Docente",
+    subject: "Matemática",
+    hours: "4",
+    course: "1° Medio",
+    schedule: [{ month: "marzo", week: 1 }],
+    oaByWeek: [{ oas: [{ code: "MA1M OA 01", text: "Texto oficial" }] }],
+  },
+  editedContent,
+)
+assert.equal(editedRows[0]?.indicators, "• Indicador editado\n• Segundo indicador")
+assert.equal(editedRows[0]?.objective, "• Objetivo editado\n• Actividad complementaria")
+console.log("✓ Paridad de contenido entre vista institucional, editor visual y PDF")
 
 console.log("\nPlanificador escolar integral: todas las pruebas pasaron.")
