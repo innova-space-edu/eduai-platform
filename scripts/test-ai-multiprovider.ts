@@ -68,7 +68,7 @@ function testFallbackModels() {
   withEnv("GROQ_TEXT_MODEL", undefined, () => {
     assert.deepEqual(
       compatibleModelCandidates("groq", "long_context", "llama-3.3-70b-versatile"),
-      ["llama-3.3-70b-versatile", "openai/gpt-oss-120b", "qwen/qwen3.6-27b", "openai/gpt-oss-20b"],
+      ["openai/gpt-oss-120b", "qwen/qwen3.6-27b", "openai/gpt-oss-20b"],
     )
   })
 }
