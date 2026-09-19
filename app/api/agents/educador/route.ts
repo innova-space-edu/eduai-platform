@@ -27,7 +27,7 @@ import {
   type PlanningProfileId,
 } from "@/lib/school-planning-profiles"
 import { buildConnectedOAContext, resolveOAConnection } from "@/lib/planner-oa-bridge"
-import { getSchoolPlanningPeriodLabel, schoolPlanningMonthLabel } from "@/lib/school-planning-template"
+import { buildSchoolWeekPlan, expectedSchoolWeekLabel, getSchoolPlanningPeriodLabel, normalizeSchoolWeekLabel, schoolPlanningMonthLabel, validateSchoolPlanningWeeks } from "@/lib/school-planning-template"
 
 export const runtime = "nodejs"
 export const maxDuration = 60
@@ -154,15 +154,15 @@ function buildWeeklyOAContext(params: {
   }).join("\n")
 }
 
-function countInstitutionalTableRows(text: string) {
+function inspectInstitutionalTable(text: string, expectedWeeks: WeeklyOAConfig[]) {
   const lines = String(text || "").replace(/\r/g, "").split("\n")
   const headerIndex = lines.findIndex((line) => {
     const upper = line.toUpperCase()
     return line.trim().startsWith("|") && upper.includes("SEMANA") && upper.includes("INDICADORES") && upper.includes("OBJETIVO")
   })
-  if (headerIndex < 0) return { rows: 0, valid: false }
+  if (headerIndex < 0) return { rows: 0, valid: false, error: "No se encontró la tabla institucional." }
 
-  let rows = 0
+  const weekCells: string[] = []
   let started = false
   for (let i = headerIndex + 1; i < lines.length; i += 1) {
     const line = lines[i].trim()
@@ -172,11 +172,24 @@ function countInstitutionalTableRows(text: string) {
     }
     if (/^\|?\s*:?-{2,}/.test(line)) continue
     const cells = line.replace(/^\|/, "").replace(/\|$/, "").split("|")
-    if (cells.length !== 4) return { rows, valid: false }
-    rows += 1
+    if (cells.length !== 4) return { rows: weekCells.length, valid: false, error: "La tabla debe tener exactamente cuatro columnas." }
+    weekCells.push(cells[0].trim())
     started = true
   }
-  return { rows, valid: rows > 0 }
+
+  if (weekCells.length !== expectedWeeks.length) {
+    return { rows: weekCells.length, valid: false, error: `Se esperaban ${expectedWeeks.length} filas y se recibieron ${weekCells.length}.` }
+  }
+
+  for (let index = 0; index < expectedWeeks.length; index += 1) {
+    const expected = normalizeSchoolWeekLabel(expectedSchoolWeekLabel(expectedWeeks[index].month, expectedWeeks[index].week))
+    const actual = normalizeSchoolWeekLabel(weekCells[index])
+    if (actual !== expected) {
+      return { rows: weekCells.length, valid: false, error: `La fila ${index + 1} no corresponde a ${expectedWeeks[index].key}.` }
+    }
+  }
+
+  return { rows: weekCells.length, valid: weekCells.length > 0, error: "" }
 }
 
 function clampNumber(value: unknown, fallback: number, min: number, max: number) {
@@ -1106,9 +1119,19 @@ REGLAS:
     if (!profesor || !horasSemanales) {
       return NextResponse.json({ error: "Completa profesor/a y horas semanales para generar el cronograma institucional." }, { status: 400 })
     }
-    if (!weeklyOAPlan.length || weeklyOAPlan.some((week) => week.oaIds.length === 0)) {
-      return NextResponse.json({ error: "Asigna al menos un OA a cada semana del período antes de generar." }, { status: 400 })
+
+    const scheduleValidation = validateSchoolPlanningWeeks(weeklyOAPlan, tiempoPlanificacion, periodoId, mes)
+    if (!scheduleValidation.valid) {
+      return NextResponse.json({ error: scheduleValidation.error || "La distribución semanal no corresponde al período solicitado." }, { status: 400 })
     }
+
+    const availableOA = getPlannerOAOptions({ nivel, curso, asignatura })
+    const validOAIds = new Set(availableOA.map((oa) => oa.id))
+    const invalidWeek = weeklyOAPlan.find((week) => !week.oaIds.length || week.oaIds.some((id) => !validOAIds.has(id)))
+    if (invalidWeek) {
+      return NextResponse.json({ error: `La semana ${invalidWeek.key} tiene OA vacíos o no válidos para ${curso} · ${asignatura}.` }, { status: 400 })
+    }
+
     selectedOAIds = [...new Set([...selectedOAIds, ...weeklyOAPlan.flatMap((week) => week.oaIds)])]
   }
 
@@ -1461,8 +1484,8 @@ REGLAS DE LAS CELDAS:
     })
 
     if (isInstitutionalMacro) {
-      let tableCheck = countInstitutionalTableRows(result.text)
-      if (!tableCheck.valid || tableCheck.rows !== weeklyOAPlan.length) {
+      let tableCheck = inspectInstitutionalTable(result.text, weeklyOAPlan)
+      if (!tableCheck.valid) {
         const repaired = await callAI([
           ...aiMessages,
           {
@@ -1474,9 +1497,9 @@ REGLAS DE LAS CELDAS:
           preferProvider: strategy.preferProvider,
           openrouterModel: strategy.openrouterModel,
         })
-        tableCheck = countInstitutionalTableRows(repaired.text)
-        if (!tableCheck.valid || tableCheck.rows !== weeklyOAPlan.length) {
-          throw new Error(`La IA no completó el cronograma institucional: se esperaban ${weeklyOAPlan.length} semanas y se recibieron ${tableCheck.rows}. Intenta generar nuevamente.`)
+        tableCheck = inspectInstitutionalTable(repaired.text, weeklyOAPlan)
+        if (!tableCheck.valid) {
+          throw new Error(`La IA no completó correctamente el cronograma institucional: ${tableCheck.error || `se esperaban ${weeklyOAPlan.length} semanas y se recibieron ${tableCheck.rows}`}. Intenta generar nuevamente.`)
         }
         result = repaired
       }
