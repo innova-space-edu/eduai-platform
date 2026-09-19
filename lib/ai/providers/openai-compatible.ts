@@ -9,6 +9,11 @@ export type CompatibleTextResult = {
   model: string
 }
 
+const RETIRED_GROQ_MODELS = new Set([
+  "llama-3.1-8b-instant",
+  "llama-3.3-70b-versatile",
+])
+
 const ENDPOINTS: Record<CompatibleProvider, string> = {
   groq: "https://api.groq.com/openai/v1/chat/completions",
   openrouter: "https://openrouter.ai/api/v1/chat/completions",
@@ -66,7 +71,10 @@ export function compatibleModelCandidates(
 ): string[] {
   const candidates: string[] = []
 
-  if (selectedModel?.trim()) candidates.push(selectedModel.trim())
+  const selected = selectedModel?.trim() || ""
+  if (selected && !(provider === "groq" && RETIRED_GROQ_MODELS.has(selected))) {
+    candidates.push(selected)
+  }
 
   if (provider === "groq") {
     if (capability === "research") {
@@ -133,8 +141,8 @@ function headers(provider: CompatibleProvider, key: string): Record<string, stri
 }
 
 function timeoutSignal() {
-  const timeoutMs = Number(process.env.EDUAI_AI_PROVIDER_TIMEOUT_MS || 60_000)
-  return AbortSignal.timeout(Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 60_000)
+  const timeoutMs = Number(process.env.EDUAI_AI_PROVIDER_TIMEOUT_MS || 18_000)
+  return AbortSignal.timeout(Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 18_000)
 }
 
 function requestBody(input: {
