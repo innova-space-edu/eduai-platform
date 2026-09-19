@@ -1472,12 +1472,8 @@ function AddToPlaylistBar() {
 
 function MiniBar({ onOpenPanel }: { onOpenPanel?: () => void }) {
   const music = useEduAIMusic();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const duration = durationForPlayer(music.currentTrack, music.durationSeconds);
-
-  useEffect(() => {
-    setCollapsed(false);
-  }, [music.currentTrack.id]);
 
   if (collapsed) {
     return (
