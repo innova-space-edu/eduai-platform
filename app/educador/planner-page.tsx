@@ -7,7 +7,8 @@ import remarkGfm from "remark-gfm"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { exportPlanningPdf } from "@/lib/planning-pdf"
-import { exportSchoolPlanningPdf } from "@/lib/school-planning-pdf"
+import { exportSchoolPlanningPdf, type SchoolPlanningPdfMeta } from "@/lib/school-planning-pdf"
+import SchoolPlanningPreview from "@/components/educador/SchoolPlanningPreview"
 import {
   buildPlanningHorizonText,
   getPlannerOAOptions,
@@ -343,24 +344,33 @@ export default function PlannerPage() {
     const { error } = await supabase.from("saved_plannings").insert(data)
     setSaving(false); setStatus(error ? `No se pudo guardar: ${error.message}` : "Planificación guardada correctamente.")
   }
+  function institutionalMeta(): SchoolPlanningPdfMeta {
+    return {
+      year: config.anioPlanificacion,
+      periodLabel,
+      professor: config.profesor,
+      subject: config.asignatura,
+      hours: config.horasSemanales,
+      course: config.curso,
+      establishment: config.establecimiento,
+      city: config.ciudad,
+      baseCurricular: `Base curricular utilizada: ${config.asignatura} ${config.curso}, Currículum Nacional MINEDUC. Planificación organizada para ${periodLabel.toLowerCase()} con los OA seleccionados.`,
+      schedule: config.weeklyOAPlan.map((week) => ({ month: week.month, week: week.week })),
+      oaByWeek: config.weeklyOAPlan.map((week) => ({
+        oas: week.oaIds
+          .map((id) => oaOptions.find((oa) => oa.id === id))
+          .filter(Boolean)
+          .map((oa) => ({ code: oa!.codigoOficial || oa!.id, text: oa!.texto })),
+      })),
+    }
+  }
+
   async function exportPdf() {
     if (!latest?.content) return
     setExporting(true); setStatus("")
     try {
       if (institutionalMacro) {
-        await exportSchoolPlanningPdf({
-          year: config.anioPlanificacion,
-          periodLabel,
-          professor: config.profesor,
-          subject: config.asignatura,
-          hours: config.horasSemanales,
-          course: config.curso,
-          establishment: config.establecimiento,
-          city: config.ciudad,
-          baseCurricular: `Base curricular utilizada: ${config.asignatura} ${config.curso}, Currículum Nacional MINEDUC. Planificación organizada para ${periodLabel.toLowerCase()} con los OA seleccionados.`,
-          schedule: config.weeklyOAPlan.map((week) => ({ month: week.month, week: week.week })),
-          oaByWeek: config.weeklyOAPlan.map((week) => ({ oas: week.oaIds.map((id) => oaOptions.find((oa) => oa.id === id)).filter(Boolean).map((oa) => ({ code: oa!.codigoOficial || oa!.id, text: oa!.texto })) })),
-        }, latest.content)
+        await exportSchoolPlanningPdf(institutionalMeta(), latest.content)
       } else {
         await exportPlanningPdf({ title: title(), subtitle: "Planificación generada por EduAI", curso: config.curso, asignatura: config.asignatura, nivel: config.nivel, mes: config.mes, horizonte: config.tiempoPlanificacion, sesiones: config.sesiones, duracionMinutos: config.duracionMinutos, fechaCreacion: new Date().toLocaleString("es-CL"), contexto: config.contexto, designTemplateId: config.nivel === "parvularia" ? "eduai-canva-classroom" : "presenton-pro-slides" }, latest.content)
       }
@@ -433,7 +443,7 @@ export default function PlannerPage() {
     </div>
   )
 
-  const result = latest && <div className="space-y-4"><div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-emerald-700 bg-emerald-50 p-4"><div><p className="text-xs font-black uppercase text-emerald-800">Planificación generada</p><p className="mt-1 font-black">{mode.label} · {config.curso}</p></div><div className="flex flex-wrap gap-2"><button onClick={editPlanning} className="rounded-xl border-2 border-slate-700 bg-white px-3 py-2 text-xs font-black">✏️ Editar datos</button><button onClick={copy} className="rounded-xl border-2 border-blue-700 bg-white px-3 py-2 text-xs font-black text-blue-800">{copied ? "✓ Copiado" : "📋 Copiar"}</button><button onClick={save} disabled={saving} className="rounded-xl border-2 border-emerald-700 bg-white px-3 py-2 text-xs font-black text-emerald-800">{saving ? "Guardando…" : "💾 Guardar"}</button><button onClick={exportPdf} disabled={exporting} className="rounded-xl border-2 border-amber-700 bg-white px-3 py-2 text-xs font-black text-amber-800">{exporting ? "Exportando…" : "📄 Exportar PDF"}</button></div></div><article className="rounded-3xl border-2 border-slate-300 bg-white p-5 md:p-8"><div className={`prose prose-slate max-w-none text-sm prose-table:text-xs prose-th:p-3 prose-td:border prose-td:border-slate-300 prose-td:p-3 ${institutionalMacro ? "prose-th:bg-[#ccc0da] prose-h2:text-slate-900 prose-h3:text-slate-900" : "prose-h2:text-emerald-800 prose-h3:text-indigo-800 prose-th:bg-slate-100"}`}><ReactMarkdown remarkPlugins={[remarkGfm]}>{latest.content}</ReactMarkdown></div>{latest.provider && <p className="mt-6 border-t pt-3 text-xs text-slate-500">Generado mediante {latest.provider}</p>}</article><div className="rounded-2xl border-2 border-indigo-300 bg-indigo-50 p-5"><p className="font-black text-indigo-950">Ajustar planificación</p><div className="mt-3 flex flex-col gap-3 md:flex-row"><textarea value={refinement} onChange={(e) => setRefinement(e.target.value)} placeholder="Ej.: reduce la clase a 45 minutos y agrega una actividad experimental." className={`${inputClass} min-h-[90px] flex-1 font-normal`} /><button onClick={() => send(refinement, true)} disabled={!refinement.trim() || loading} className="rounded-xl bg-indigo-700 px-5 py-3 font-black text-white disabled:bg-slate-400 md:self-end">Aplicar ajuste</button></div></div></div>
+  const result = latest && <div className="space-y-4"><div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-emerald-700 bg-emerald-50 p-4"><div><p className="text-xs font-black uppercase text-emerald-800">Planificación generada</p><p className="mt-1 font-black">{mode.label} · {config.curso}</p></div><div className="flex flex-wrap gap-2"><button onClick={editPlanning} className="rounded-xl border-2 border-slate-700 bg-white px-3 py-2 text-xs font-black">✏️ Editar datos</button><button onClick={copy} className="rounded-xl border-2 border-blue-700 bg-white px-3 py-2 text-xs font-black text-blue-800">{copied ? "✓ Copiado" : "📋 Copiar"}</button><button onClick={save} disabled={saving} className="rounded-xl border-2 border-emerald-700 bg-white px-3 py-2 text-xs font-black text-emerald-800">{saving ? "Guardando…" : "💾 Guardar"}</button><button onClick={exportPdf} disabled={exporting} className="rounded-xl border-2 border-amber-700 bg-white px-3 py-2 text-xs font-black text-amber-800">{exporting ? "Exportando…" : "📄 Exportar PDF"}</button></div></div><article className="rounded-3xl border-2 border-slate-300 bg-white p-5 md:p-8">{institutionalMacro ? <SchoolPlanningPreview meta={institutionalMeta()} content={latest.content} /> : <div className="prose prose-slate max-w-none text-sm prose-table:text-xs prose-th:p-3 prose-td:border prose-td:border-slate-300 prose-td:p-3 prose-h2:text-emerald-800 prose-h3:text-indigo-800 prose-th:bg-slate-100"><ReactMarkdown remarkPlugins={[remarkGfm]}>{latest.content}</ReactMarkdown></div>}{latest.provider && <p className="mt-6 border-t pt-3 text-xs text-slate-500">Generado mediante {latest.provider}</p>}</article><div className="rounded-2xl border-2 border-indigo-300 bg-indigo-50 p-5"><p className="font-black text-indigo-950">Ajustar planificación</p><div className="mt-3 flex flex-col gap-3 md:flex-row"><textarea value={refinement} onChange={(e) => setRefinement(e.target.value)} placeholder="Ej.: reduce la clase a 45 minutos y agrega una actividad experimental." className={`${inputClass} min-h-[90px] flex-1 font-normal`} /><button onClick={() => send(refinement, true)} disabled={!refinement.trim() || loading} className="rounded-xl bg-indigo-700 px-5 py-3 font-black text-white disabled:bg-slate-400 md:self-end">Aplicar ajuste</button></div></div></div>
 
   const stepFour = <div className="space-y-6"><div><p className="text-xs font-black uppercase tracking-[.18em] text-emerald-700">Paso 4</p><h2 className="mt-1 text-2xl font-black">Revisar y generar</h2></div>{!resultReady && <><div className="grid gap-4 rounded-3xl border-2 border-slate-300 bg-slate-50 p-6 md:grid-cols-2"><div><p className="text-xs font-black uppercase text-slate-500">Planificación</p><p className="mt-1 text-lg font-black">{institutionalMacro ? "🏫 Cronograma institucional" : `${mode.icon} ${mode.label}`}</p><p className="mt-2 text-sm text-slate-700">{institutionalMacro ? `${periodLabel} · ${config.weeklyOAPlan.length} semanas` : buildPlanningHorizonText(config.tiempoPlanificacion, config.sesiones, config.duracionMinutos)}</p>{institutionalMacro && <p className="mt-2 text-xs text-slate-600">{config.profesor} · {config.horasSemanales}</p>}</div><div><p className="text-xs font-black uppercase text-slate-500">Curso y asignatura</p><p className="mt-1 font-black">{config.curso}</p><p className="mt-1 text-sm text-slate-700">{config.asignatura}</p></div><div><p className="text-xs font-black uppercase text-slate-500">Currículum</p><p className="mt-1 text-sm font-bold">{institutionalMacro ? "Distribución OA por semana" : selectedUnit?.label || "Sin unidad específica"}</p><p className="mt-2 text-sm text-slate-700">OA: {selectedOA.map((item) => item.codigoOficial || item.id).join(", ")}</p>{institutionalMacro && <p className="mt-2 text-xs text-slate-600">{config.weeklyOAPlan.filter((week) => week.oaIds.length > 0).length}/{config.weeklyOAPlan.length} semanas completas</p>}</div><div><p className="text-xs font-black uppercase text-slate-500">Idea central</p><p className="mt-1 text-sm text-slate-700">{config.contexto.trim() || "La IA propondrá un contexto pertinente."}</p></div></div><button onClick={() => send(generationPrompt())} disabled={loading || config.selectedOAIds.length === 0 || (institutionalMacro && config.weeklyOAPlan.some((week) => week.oaIds.length === 0))} className="w-full rounded-2xl bg-emerald-700 px-6 py-4 font-black text-white shadow-lg hover:bg-emerald-800 disabled:bg-slate-400">{loading ? "Generando planificación…" : "✨ Generar planificación"}</button></>}{loading && <div className="rounded-2xl border-2 border-emerald-300 bg-emerald-50 p-5 text-center font-black text-emerald-950">EduAI está organizando OA, actividades, tiempos y evaluación…</div>}{resultReady && result}</div>
 
