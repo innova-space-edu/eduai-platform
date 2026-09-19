@@ -7,6 +7,7 @@ import remarkGfm from "remark-gfm"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { exportPlanningPdf } from "@/lib/planning-pdf"
+import { exportSchoolPlanningPdf } from "@/lib/school-planning-pdf"
 import {
   buildPlanningHorizonText,
   getPlannerOAOptions,
@@ -14,6 +15,15 @@ import {
   type TiempoPlanificacion,
 } from "@/lib/planificador-curriculum"
 import type { PlanningProfileId } from "@/lib/school-planning-profiles"
+import {
+  SCHOOL_SEMESTER_OPTIONS,
+  SCHOOL_YEAR_MONTHS,
+  buildSchoolWeekPlan,
+  getSchoolPlanningPeriodLabel,
+  isSchoolPlanningMacro,
+  schoolPlanningMonthLabel,
+  type SchoolPlanningWeek,
+} from "@/lib/school-planning-template"
 import {
   getAvailableAsignaturas,
   getCurriculumVerification,
@@ -55,7 +65,7 @@ const PLAN_MODES: PlanMode[] = [
   { id: "especial", icon: "🎪", label: "Actividad especial", detail: "Evento, taller o experiencia vinculada a OA.", profile: "evento_escolar", horizon: "semanal", sessions: 2 },
 ]
 
-const STEPS = ["Tipo y nivel", "Currículum y OA", "Diseño pedagógico", "Revisar y generar"]
+const STEPS = ["Tipo, nivel y período", "Currículum y OA", "Diseño y semanas", "Revisar y generar"]
 const inputClass = "w-full rounded-xl border-2 border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-900 outline-none transition focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
 const choiceClass = (selected: boolean, accent: "emerald" | "indigo" = "emerald") => {
   if (accent === "indigo") return selected
@@ -79,6 +89,13 @@ interface Config {
   tiempoPlanificacion: TiempoPlanificacion
   sesiones: number
   duracionMinutos: number
+  profesor: string
+  horasSemanales: string
+  establecimiento: string
+  ciudad: string
+  periodoId: string
+  anioPlanificacion: number
+  weeklyOAPlan: SchoolPlanningWeek[]
   parvulariaHeterogenea: boolean
   parvulariaSegundoCurso: string
   parvulariaMotivoFusion: string
@@ -112,7 +129,9 @@ export default function PlannerPage() {
   const [config, setConfig] = useState<Config>({
     nivel: "parvularia", curso: COURSES.parvularia[0], asignatura: initialSubject("parvularia", COURSES.parvularia[0]),
     contexto: "", mes: month, unidadId: "", selectedOAIds: [], selectedOATIds: [], tiempoPlanificacion: "diaria",
-    sesiones: 1, duracionMinutos: 30, parvulariaHeterogenea: false, parvulariaSegundoCurso: COURSES.parvularia[1],
+    sesiones: 1, duracionMinutos: 30, profesor: "", horasSemanales: "", establecimiento: "Colegio Providencia", ciudad: "ANTOFAGASTA",
+    periodoId: SCHOOL_YEAR_MONTHS.includes(month as (typeof SCHOOL_YEAR_MONTHS)[number]) ? month : "marzo", anioPlanificacion: new Date().getFullYear(), weeklyOAPlan: [],
+    parvulariaHeterogenea: false, parvulariaSegundoCurso: COURSES.parvularia[1],
     parvulariaMotivoFusion: "", planningProfile: "experiencia_parvularia",
   })
   const [messages, setMessages] = useState<Message[]>([])
@@ -145,14 +164,22 @@ export default function PlannerPage() {
   const mode = useMemo(() => PLAN_MODES.find((item) => item.id === planMode) || PLAN_MODES[0], [planMode])
   const subjects = useMemo(() => getAvailableAsignaturas(config.nivel, config.curso), [config.nivel, config.curso])
   const curricularState = useMemo(() => ({ nivel: config.nivel, curso: config.curso, asignatura: config.asignatura }), [config.nivel, config.curso, config.asignatura])
+  const isBasicaMedia = config.nivel === "basica" || config.nivel === "media"
+  const institutionalMacro = isBasicaMedia && isSchoolPlanningMacro(config.tiempoPlanificacion)
   const units = useMemo(() => getPlannerUnits(curricularState), [curricularState])
-  const oaOptions = useMemo(() => getPlannerOAOptions(curricularState, config.unidadId || undefined), [curricularState, config.unidadId])
+  const oaOptions = useMemo(() => getPlannerOAOptions(curricularState, institutionalMacro ? undefined : config.unidadId || undefined), [curricularState, config.unidadId, institutionalMacro])
   const oatOptions = useMemo(() => config.nivel === "parvularia" ? getParvulariaOATForCurso(config.curso, config.asignatura) : [], [config.nivel, config.curso, config.asignatura])
   const ambito = useMemo(() => config.nivel === "parvularia" ? getParvulariaAmbitoForCurso(config.curso, config.asignatura) : "", [config.nivel, config.curso, config.asignatura])
   const verification = useMemo(() => getCurriculumVerification(config.nivel, config.curso, config.asignatura), [config.nivel, config.curso, config.asignatura])
   const hasCurriculum = useMemo(() => hasLocalCurriculumForAsignatura(config.nivel, config.curso, config.asignatura), [config.nivel, config.curso, config.asignatura])
   const selectedUnit = units.find((item) => item.id === config.unidadId)
   const selectedOA = oaOptions.filter((item) => config.selectedOAIds.includes(item.id))
+  const periodLabel = getSchoolPlanningPeriodLabel(config.tiempoPlanificacion, config.periodoId, config.mes)
+  const weeklyPlanByMonth = config.weeklyOAPlan.reduce<Record<string, SchoolPlanningWeek[]>>((acc, item) => {
+    if (!acc[item.month]) acc[item.month] = []
+    acc[item.month].push(item)
+    return acc
+  }, {})
   const latest = [...messages].reverse().find((item) => item.role === "assistant")
   const resultReady = Boolean(latest?.content)
 
@@ -164,9 +191,28 @@ export default function PlannerPage() {
       const allowedOA = new Set(nextOA.map((item) => item.id))
       const nextOAT = previous.nivel === "parvularia" ? getParvulariaOATForCurso(previous.curso, previous.asignatura) : []
       const allowedOAT = new Set(nextOAT.map((item) => item.id))
-      return { ...previous, unidadId: unitId, selectedOAIds: previous.selectedOAIds.filter((id) => allowedOA.has(id)), selectedOATIds: previous.selectedOATIds.filter((id) => allowedOAT.has(id)) }
+      const selectedOAIds = previous.selectedOAIds.filter((id) => allowedOA.has(id))
+      const selectedSet = new Set(selectedOAIds)
+      return {
+        ...previous,
+        unidadId: unitId,
+        selectedOAIds,
+        selectedOATIds: previous.selectedOATIds.filter((id) => allowedOAT.has(id)),
+        weeklyOAPlan: previous.weeklyOAPlan.map((week) => ({ ...week, oaIds: week.oaIds.filter((id) => selectedSet.has(id)) })),
+      }
     })
   }, [config.nivel, config.curso, config.asignatura])
+
+  useEffect(() => {
+    if (!(config.nivel === "basica" || config.nivel === "media") || !isSchoolPlanningMacro(config.tiempoPlanificacion)) {
+      if (config.weeklyOAPlan.length) setConfig((previous) => ({ ...previous, weeklyOAPlan: [] }))
+      return
+    }
+    setConfig((previous) => ({
+      ...previous,
+      weeklyOAPlan: buildSchoolWeekPlan(previous.tiempoPlanificacion, previous.periodoId, previous.mes, previous.weeklyOAPlan),
+    }))
+  }, [config.nivel, config.tiempoPlanificacion, config.periodoId, config.mes])
 
   function selectMode(next: PlanMode) {
     setPlanMode(next.id)
@@ -174,25 +220,42 @@ export default function PlannerPage() {
       ...previous,
       planningProfile: previous.nivel === "parvularia" && ["clase", "secuencia", "unidad"].includes(next.id) ? "experiencia_parvularia" : next.profile,
       tiempoPlanificacion: next.horizon, sesiones: next.sessions,
+      periodoId: next.horizon === "mensual" ? previous.mes : previous.periodoId,
     }))
   }
   function selectLevel(level: NivelKey) {
     const course = COURSES[level][0]
     setConfig((previous) => ({
-      ...previous, nivel: level, curso: course, asignatura: initialSubject(level, course), unidadId: "", selectedOAIds: [], selectedOATIds: [],
+      ...previous, nivel: level, curso: course, asignatura: initialSubject(level, course), unidadId: "", selectedOAIds: [], selectedOATIds: [], weeklyOAPlan: [],
       duracionMinutos: level === "parvularia" ? 30 : 45,
       planningProfile: level === "parvularia" && ["clase", "secuencia", "unidad"].includes(planMode) ? "experiencia_parvularia" : mode.profile,
     }))
   }
   function updateCourse(course: string) {
-    setConfig((previous) => ({ ...previous, curso: course, asignatura: initialSubject(previous.nivel, course), unidadId: "", selectedOAIds: [], selectedOATIds: [] }))
+    setConfig((previous) => ({ ...previous, curso: course, asignatura: initialSubject(previous.nivel, course), unidadId: "", selectedOAIds: [], selectedOATIds: [], weeklyOAPlan: [] }))
   }
   function toggleOA(id: string) {
     setConfig((previous) => {
-      if (previous.selectedOAIds.includes(id)) return { ...previous, selectedOAIds: previous.selectedOAIds.filter((item) => item !== id) }
-      if (previous.selectedOAIds.length >= (previous.nivel === "parvularia" ? 3 : 10)) return previous
+      if (previous.selectedOAIds.includes(id)) {
+        return {
+          ...previous,
+          selectedOAIds: previous.selectedOAIds.filter((item) => item !== id),
+          weeklyOAPlan: previous.weeklyOAPlan.map((week) => ({ ...week, oaIds: week.oaIds.filter((item) => item !== id) })),
+        }
+      }
+      const maxOA = previous.nivel === "parvularia" ? 3 : isSchoolPlanningMacro(previous.tiempoPlanificacion) ? 60 : 10
+      if (previous.selectedOAIds.length >= maxOA) return previous
       return { ...previous, selectedOAIds: [...previous.selectedOAIds, id] }
     })
+  }
+  function toggleWeekOA(weekKey: string, oaId: string) {
+    setConfig((previous) => ({
+      ...previous,
+      weeklyOAPlan: previous.weeklyOAPlan.map((week) => week.key !== weekKey ? week : {
+        ...week,
+        oaIds: week.oaIds.includes(oaId) ? week.oaIds.filter((item) => item !== oaId) : [...week.oaIds, oaId],
+      }),
+    }))
   }
   function toggleOAT(id: string) {
     setConfig((previous) => {
@@ -205,10 +268,30 @@ export default function PlannerPage() {
     setStatus("")
     if (target >= 2 && (!config.curso || !config.asignatura)) return setStatus("Completa el nivel, curso y asignatura.")
     if (target >= 3 && config.selectedOAIds.length === 0) return setStatus("Selecciona al menos un Objetivo de Aprendizaje.")
+    if (target >= 2 && institutionalMacro && (!config.profesor.trim() || !config.horasSemanales.trim())) return setStatus("Completa profesor/a y horas semanales para el formato institucional.")
+    if (target >= 4 && institutionalMacro) {
+      const incomplete = config.weeklyOAPlan.filter((week) => week.oaIds.length === 0)
+      if (incomplete.length) return setStatus(`Asigna al menos un OA a cada semana. Faltan ${incomplete.length} semana(s).`)
+    }
     setStep(target)
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
   function generationPrompt() {
+    if (institutionalMacro) {
+      const distribution = config.weeklyOAPlan.map((week) => {
+        const oaText = week.oaIds.map((id) => oaOptions.find((oa) => oa.id === id)).filter(Boolean).map((oa) => `${oa!.codigoOficial || oa!.id}: ${oa!.texto}`).join(" | ")
+        return `${schoolPlanningMonthLabel(week.month)} · semana ${week.week}: ${oaText}`
+      }).join("\n")
+      return [
+        `Genera el cronograma institucional ${periodLabel} para ${config.curso}, ${config.asignatura}.`,
+        `Año: ${config.anioPlanificacion}. Profesor/a: ${config.profesor}. Horas: ${config.horasSemanales}.`,
+        "Usa exactamente la distribución semanal indicada. Para cada semana incluye todos los OA asignados, indicadores de evaluación observables y objetivos/actividades de clase coherentes con esos OA.",
+        "No uses inicio-desarrollo-cierre ni minutos. La salida debe ser la tabla institucional de cuatro columnas requerida para exportar el PDF del colegio.",
+        "DISTRIBUCIÓN SEMANAL DE OA:",
+        distribution,
+        config.contexto.trim() ? `Contexto del docente: ${config.contexto.trim()}` : "",
+      ].filter(Boolean).join("\n")
+    }
     return [
       `Genera una planificación de tipo “${mode.label}” para ${config.curso}, ${config.asignatura}.`,
       `Debe usar los OA seleccionados y organizar ${config.sesiones} sesión(es) de ${config.duracionMinutos} minutos.`,
@@ -233,7 +316,7 @@ export default function PlannerPage() {
       setStatus(error instanceof Error ? error.message : "Ocurrió un error inesperado.")
     } finally { setLoading(false) }
   }
-  function title() { return `${mode.label} · ${config.curso} · ${config.asignatura} · ${new Date().toLocaleDateString("es-CL")}` }
+  function title() { return institutionalMacro ? `Cronograma ${config.anioPlanificacion} · ${periodLabel} · ${config.curso} · ${config.asignatura}` : `${mode.label} · ${config.curso} · ${config.asignatura} · ${new Date().toLocaleDateString("es-CL")}` }
   function payload(content: string): SavedPlanningInsert | null {
     if (!userId || !content.trim()) return null
     return {
@@ -254,9 +337,26 @@ export default function PlannerPage() {
   }
   async function exportPdf() {
     if (!latest?.content) return
-    setExporting(true)
-    await exportPlanningPdf({ title: title(), subtitle: "Planificación generada por EduAI", curso: config.curso, asignatura: config.asignatura, nivel: config.nivel, mes: config.mes, horizonte: config.tiempoPlanificacion, sesiones: config.sesiones, duracionMinutos: config.duracionMinutos, fechaCreacion: new Date().toLocaleString("es-CL"), contexto: config.contexto, designTemplateId: config.nivel === "parvularia" ? "eduai-canva-classroom" : "presenton-pro-slides" }, latest.content)
-    setExporting(false)
+    setExporting(true); setStatus("")
+    try {
+      if (institutionalMacro) {
+        await exportSchoolPlanningPdf({
+          year: config.anioPlanificacion,
+          periodLabel,
+          professor: config.profesor,
+          subject: config.asignatura,
+          hours: config.horasSemanales,
+          course: config.curso,
+          establishment: config.establecimiento,
+          city: config.ciudad,
+          baseCurricular: `Base curricular utilizada: ${config.asignatura} ${config.curso}, Currículum Nacional MINEDUC. Planificación organizada para ${periodLabel.toLowerCase()} con los OA seleccionados.`,
+        }, latest.content)
+      } else {
+        await exportPlanningPdf({ title: title(), subtitle: "Planificación generada por EduAI", curso: config.curso, asignatura: config.asignatura, nivel: config.nivel, mes: config.mes, horizonte: config.tiempoPlanificacion, sesiones: config.sesiones, duracionMinutos: config.duracionMinutos, fechaCreacion: new Date().toLocaleString("es-CL"), contexto: config.contexto, designTemplateId: config.nivel === "parvularia" ? "eduai-canva-classroom" : "presenton-pro-slides" }, latest.content)
+      }
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "No fue posible exportar el PDF.")
+    } finally { setExporting(false) }
   }
   function copy() {
     if (!latest?.content) return
