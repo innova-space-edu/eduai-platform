@@ -27,11 +27,12 @@ import {
   type PlanningProfileId,
 } from "@/lib/school-planning-profiles"
 import { buildConnectedOAContext, resolveOAConnection } from "@/lib/planner-oa-bridge"
+import { getSchoolPlanningPeriodLabel, schoolPlanningMonthLabel } from "@/lib/school-planning-template"
 
 export const runtime = "nodejs"
 export const maxDuration = 60
 
-type TiempoPlanificacion = "diaria" | "semanal" | "mensual"
+type TiempoPlanificacion = "diaria" | "semanal" | "mensual" | "semestral" | "anual"
 
 type ChatHistoryItem = {
   role: "user" | "assistant"
@@ -56,6 +57,13 @@ interface EducadorConfig {
   parvulariaSegundoCurso?: string
   parvulariaMotivoFusion?: string
   planningProfile?: PlanningProfileId
+  profesor?: string
+  horasSemanales?: string
+  establecimiento?: string
+  ciudad?: string
+  periodoId?: string
+  anioPlanificacion?: number
+  weeklyOAPlan?: Array<{ key?: string; month?: string; week?: number; oaIds?: string[] }>
 }
 
 function educadorDesignFormat(intent: string) {
@@ -111,6 +119,39 @@ function extractOARequest(message: string): { oaNum: number | null } {
 function ensureArray(value: unknown): string[] {
   if (!Array.isArray(value)) return []
   return value.filter((item): item is string => typeof item === "string")
+}
+
+type WeeklyOAConfig = { key: string; month: string; week: number; oaIds: string[] }
+
+function ensureWeeklyOAPlan(value: unknown): WeeklyOAConfig[] {
+  if (!Array.isArray(value)) return []
+  return value.flatMap((item): WeeklyOAConfig[] => {
+    if (!item || typeof item !== "object") return []
+    const raw = item as { key?: unknown; month?: unknown; week?: unknown; oaIds?: unknown }
+    const month = typeof raw.month === "string" ? raw.month.trim().toLowerCase() : ""
+    const week = Number(raw.week)
+    const key = typeof raw.key === "string" && raw.key.trim() ? raw.key.trim() : month && Number.isInteger(week) ? `${month}-${week}` : ""
+    if (!key || !month || !Number.isInteger(week) || week < 1 || week > 6) return []
+    return [{ key, month, week, oaIds: ensureArray(raw.oaIds) }]
+  })
+}
+
+function buildWeeklyOAContext(params: {
+  nivel: NivelKey
+  curso: string
+  asignatura: string
+  weeklyOAPlan: WeeklyOAConfig[]
+}) {
+  const allOA = getPlannerOAOptions({ nivel: params.nivel, curso: params.curso, asignatura: params.asignatura })
+  const byId = new Map(allOA.map((oa) => [oa.id, oa]))
+  return params.weeklyOAPlan.map((week) => {
+    const assigned = week.oaIds.map((id) => byId.get(id)).filter((oa): oa is NonNullable<typeof oa> => Boolean(oa))
+    const oaText = assigned.map((oa) => {
+      const indicators = oa.indicadores?.length ? ` Indicadores curriculares disponibles: ${oa.indicadores.join(" / ")}` : ""
+      return `${oa.codigoOficial || oa.id}: ${oa.texto}${indicators}`
+    }).join(" || ")
+    return `- ${schoolPlanningMonthLabel(week.month)} · semana ${week.week}: ${oaText || "SIN OA"}`
+  }).join("\n")
 }
 
 function clampNumber(value: unknown, fallback: number, min: number, max: number) {
