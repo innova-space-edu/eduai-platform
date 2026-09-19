@@ -128,6 +128,25 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+async function withGatewayTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | null = null
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`${label} timeout after ${timeoutMs}ms`)), timeoutMs)
+      }),
+    ])
+  } finally {
+    if (timer) clearTimeout(timer)
+  }
+}
+
+function gatewayBudgetMs() {
+  const configured = Number(process.env.EDUAI_AI_GATEWAY_BUDGET_MS || 48_000)
+  return Number.isFinite(configured) && configured >= 10_000 ? configured : 48_000
+}
+
 async function executeTextProvider(input: {
   provider: AIProviderId
   capability: AICapability
@@ -148,24 +167,26 @@ async function executeTextProvider(input: {
 
     const candidates = Array.from(new Set([
       selected.model,
-      googleModel(input.lite ? "lite" : "text"),
       googleModel("lite"),
       "gemini-3.5-flash-lite",
-    ].filter(Boolean)))
+    ].filter(Boolean))).slice(0, 2)
 
     let lastError: unknown = null
     for (const model of candidates) {
       try {
-        return await generateGoogleText({
-          messages: input.messages,
-          maxOutputTokens: input.maxOutputTokens,
-          lite: input.lite,
-          model,
-        })
+        return await withGatewayTimeout(
+          generateGoogleText({
+            messages: input.messages,
+            maxOutputTokens: input.maxOutputTokens,
+            lite: input.lite,
+            model,
+          }),
+          18_000,
+          `google:${model}`,
+        )
       } catch (error) {
         lastError = error
         if (!isGoogleTransientError(error)) throw error
-        await sleep(350)
       }
     }
     if (lastError) throw lastError
@@ -194,8 +215,9 @@ async function executeTextProvider(input: {
       } catch (error) {
         lastError = error
         if (isCompatibleBillingError(error)) throw error
-        if (!isCompatibleModelError(error) && !isCompatibleTransientError(error)) throw error
-        if (isCompatibleTransientError(error)) await sleep(250)
+        if (isCompatibleModelError(error)) continue
+        if (isCompatibleTransientError(error)) throw error
+        throw error
       }
     }
 
@@ -216,6 +238,7 @@ export async function runAIText(input: {
   supabase?: SupabaseClient | null
 }): Promise<GatewayResult<string>> {
   const startedAt = Date.now()
+  const deadlineAt = startedAt + gatewayBudgetMs()
   const capability = input.capability || "text"
 
   await assertAccess({
@@ -301,6 +324,11 @@ export async function runAIText(input: {
 
   const errors: string[] = []
   for (const provider of providerOrder(capability, input.preferredProvider)) {
+    if (Date.now() >= deadlineAt - 3_000) {
+      errors.push("gateway: presupuesto de tiempo agotado antes de intentar otro proveedor")
+      break
+    }
+
     try {
       await assertAccess({
         supabase: input.supabase,
