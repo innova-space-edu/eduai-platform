@@ -27,7 +27,7 @@ import {
   type PlanningProfileId,
 } from "@/lib/school-planning-profiles"
 import { buildConnectedOAContext, resolveOAConnection } from "@/lib/planner-oa-bridge"
-import { buildSchoolWeekPlan, expectedSchoolWeekLabel, getSchoolPlanningPeriodLabel, normalizeSchoolWeekLabel, schoolPlanningMonthLabel, validateSchoolPlanningWeeks } from "@/lib/school-planning-template"
+import { expectedSchoolWeekLabel, getSchoolPlanningPeriodLabel, normalizeSchoolWeekLabel, schoolPlanningMonthLabel, validateSchoolPlanningWeeks } from "@/lib/school-planning-template"
 
 export const runtime = "nodejs"
 export const maxDuration = 60
