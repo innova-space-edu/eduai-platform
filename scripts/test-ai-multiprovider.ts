@@ -4,6 +4,7 @@ import path from "node:path"
 import { providerOrderFor } from "../lib/ai/capabilities"
 import {
   compatibleFallbackModel,
+  compatibleModelCandidates,
   hasCompatibleProvider,
   isCompatibleProviderId,
   parseStructuredJson,
@@ -24,6 +25,7 @@ function withEnv(name: string, value: string | undefined, fn: () => void) {
 function testProviderOrders() {
   assert.deepEqual(providerOrderFor("text"), ["google", "groq", "openrouter", "cerebras", "together"])
   assert.deepEqual(providerOrderFor("structured"), ["google", "groq", "openrouter", "cerebras", "together"])
+  assert.deepEqual(providerOrderFor("long_context"), ["google", "groq", "together", "openrouter", "cerebras"])
   assert.deepEqual(providerOrderFor("research"), ["google", "groq", "openrouter"])
   assert.deepEqual(providerOrderFor("code"), ["google", "groq", "cerebras", "openrouter", "together"])
 }
@@ -46,7 +48,7 @@ function testProviderGuards() {
 
 function testFallbackModels() {
   withEnv("GROQ_TEXT_MODEL", undefined, () => {
-    assert.equal(compatibleFallbackModel("groq", "text"), "llama-3.3-70b-versatile")
+    assert.equal(compatibleFallbackModel("groq", "text"), "openai/gpt-oss-120b")
   })
   withEnv("GROQ_RESEARCH_MODEL", undefined, () => {
     assert.equal(compatibleFallbackModel("groq", "research"), "groq/compound")
@@ -62,6 +64,12 @@ function testFallbackModels() {
   })
   withEnv("CEREBRAS_TEXT_MODEL", undefined, () => {
     assert.equal(compatibleFallbackModel("cerebras", "text"), "gpt-oss-120b")
+  })
+  withEnv("GROQ_TEXT_MODEL", undefined, () => {
+    assert.deepEqual(
+      compatibleModelCandidates("groq", "long_context", "llama-3.3-70b-versatile"),
+      ["llama-3.3-70b-versatile", "openai/gpt-oss-120b", "qwen/qwen3.6-27b", "openai/gpt-oss-20b"],
+    )
   })
 }
 
