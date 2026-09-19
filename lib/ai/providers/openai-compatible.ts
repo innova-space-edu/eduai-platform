@@ -46,7 +46,7 @@ export function compatibleFallbackModel(
       if (capability === "research") {
         return process.env.GROQ_RESEARCH_MODEL || "groq/compound"
       }
-      return process.env.GROQ_TEXT_MODEL || "llama-3.3-70b-versatile"
+      return process.env.GROQ_TEXT_MODEL || "openai/gpt-oss-120b"
     case "openrouter":
       if (capability === "structured") {
         return process.env.OPENROUTER_STRUCTURED_MODEL || process.env.OPENROUTER_TEXT_MODEL || "openrouter/auto"
@@ -57,6 +57,52 @@ export function compatibleFallbackModel(
     case "cerebras":
       return process.env.CEREBRAS_TEXT_MODEL || "gpt-oss-120b"
   }
+}
+
+export function compatibleModelCandidates(
+  provider: CompatibleProvider,
+  capability: AICapability,
+  selectedModel?: string | null,
+): string[] {
+  const candidates: string[] = []
+
+  if (selectedModel?.trim()) candidates.push(selectedModel.trim())
+
+  if (provider === "groq") {
+    if (capability === "research") {
+      candidates.push(
+        process.env.GROQ_RESEARCH_MODEL || "",
+        "groq/compound",
+        "groq/compound-mini",
+      )
+    } else {
+      candidates.push(
+        process.env.GROQ_TEXT_MODEL || "",
+        "openai/gpt-oss-120b",
+        "qwen/qwen3.6-27b",
+        "openai/gpt-oss-20b",
+      )
+    }
+  } else {
+    candidates.push(compatibleFallbackModel(provider, capability))
+  }
+
+  return Array.from(new Set(candidates.map((value) => value.trim()).filter(Boolean)))
+}
+
+export function isCompatibleBillingError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error)
+  return /\berror\s+402\b|payment required|insufficient credits/i.test(message)
+}
+
+export function isCompatibleModelError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error)
+  return /\berror\s+404\b|model_not_found|does not exist|do not have access/i.test(message)
+}
+
+export function isCompatibleTransientError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error)
+  return /\berror\s+(429|500|502|503|504)\b|service unavailable|temporar(?:y|ily)|timeout|timed out/i.test(message)
 }
 
 function openRouterProviderConfig() {
