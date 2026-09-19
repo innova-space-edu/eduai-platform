@@ -153,6 +153,31 @@ const editedRows = buildSchoolPlanningRenderRows(
 )
 assert.equal(editedRows[0]?.indicators, "• Indicador editado\n• Segundo indicador")
 assert.equal(editedRows[0]?.objective, "• Objetivo editado\n• Actividad complementaria")
+
+const fullyEditedRows = buildSchoolPlanningRenderRows(
+  {
+    year: 2026,
+    periodLabel: "I SEMESTRE",
+    professor: "Docente",
+    subject: "Matemática",
+    hours: "4",
+    course: "1° Medio",
+    schedule: [{ month: "marzo", week: 1 }],
+    oaByWeek: [{ oas: [{ code: "MA1M OA 01", text: "Texto oficial" }] }],
+    preferContentRows: true,
+  },
+  replaceSchoolPlanningRows(editedContent, [{
+    week: "Semana especial\n15 al 19 de marzo",
+    oa: "OA editado por el docente\nTexto personalizado",
+    indicators: "• Indicador personalizado",
+    objective: "• Objetivo personalizado",
+  }]),
+)
+assert.equal(fullyEditedRows[0]?.week, "Semana especial\n15 al 19 de marzo", "La planificación guardada debe respetar la semana editada")
+assert.equal(fullyEditedRows[0]?.oa, "OA editado por el docente\nTexto personalizado", "La planificación guardada debe respetar el OA editado")
+assert.equal(fullyEditedRows[0]?.indicators, "• Indicador personalizado")
+assert.equal(fullyEditedRows[0]?.objective, "• Objetivo personalizado")
 console.log("✓ Paridad de contenido entre vista institucional, editor visual y PDF")
+console.log("✓ Edición completa de las cuatro celdas de cada fila")
 
 console.log("\nPlanificador escolar integral: todas las pruebas pasaron.")
