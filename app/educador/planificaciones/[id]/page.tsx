@@ -7,6 +7,10 @@ import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { createClient } from "@/lib/supabase/client"
 import { exportPlanningPdf } from "@/lib/planning-pdf"
+import { exportSchoolPlanningPdf } from "@/lib/school-planning-pdf"
+import { getPlannerOAOptions } from "@/lib/planificador-curriculum"
+import { getSchoolPlanningPeriodLabel, type SchoolPlanningWeek } from "@/lib/school-planning-template"
+import type { NivelKey } from "@/lib/mineduc-oa"
 
 type SavedPlanning = {
   id: string
@@ -149,6 +153,7 @@ export default function SavedPlanningDetailPage() {
       content: item.content,
       planning_text: item.content,
       planning_json: {
+        ...(item.planning_json || {}),
         title: item.title,
         nivel: item.nivel,
         curso: item.curso,
@@ -208,22 +213,59 @@ export default function SavedPlanningDetailPage() {
     setStatus("")
 
     try {
-      await exportPlanningPdf(
-        {
-          title: compactTitle(item),
-          subtitle: "Planificación guardada en EduAI Platform",
-          curso: item.curso || "—",
-          asignatura: item.asignatura || "—",
-          nivel: item.nivel || "—",
-          mes: item.mes || "—",
-          horizonte: item.tiempo_planificacion || "—",
-          sesiones: item.sesiones || 1,
-          duracionMinutos: item.duracion_minutos || 45,
-          fechaCreacion: formatDate(item.created_at),
-          contexto: item.contexto || "",
-        },
-        item.content
-      )
+      const saved = item.planning_json || {}
+      const horizon = String(saved.tiempoPlanificacion || item.tiempo_planificacion || "")
+      const nivel = String(saved.nivel || item.nivel || "")
+      const institutional = (nivel === "basica" || nivel === "media") && ["mensual", "semestral", "anual"].includes(horizon)
+      const weeklyOAPlan = Array.isArray(saved.weeklyOAPlan) ? saved.weeklyOAPlan as unknown as SchoolPlanningWeek[] : []
+
+      if (institutional && weeklyOAPlan.length) {
+        const course = String(saved.curso || item.curso || "")
+        const subject = String(saved.asignatura || item.asignatura || "")
+        const month = String(saved.mes || item.mes || "marzo")
+        const periodoId = String(saved.periodoId || month)
+        const year = Number(saved.anioPlanificacion || new Date(item.created_at).getFullYear() || new Date().getFullYear())
+        const allOA = getPlannerOAOptions({ nivel: nivel as NivelKey, curso: course, asignatura: subject })
+        const byId = new Map(allOA.map((oa) => [oa.id, oa]))
+
+        await exportSchoolPlanningPdf({
+          year,
+          periodLabel: getSchoolPlanningPeriodLabel(horizon as "mensual" | "semestral" | "anual", periodoId, month),
+          professor: String(saved.profesor || ""),
+          subject,
+          hours: String(saved.horasSemanales || ""),
+          course,
+          establishment: String(saved.establecimiento || "Colegio Providencia"),
+          city: String(saved.ciudad || "ANTOFAGASTA"),
+          baseCurricular: `Base curricular utilizada: ${subject} ${course}, Currículum Nacional MINEDUC. Planificación organizada según los OA seleccionados para el período.`,
+          schedule: weeklyOAPlan.map((week) => ({ month: week.month, week: week.week })),
+          oaByWeek: weeklyOAPlan.map((week) => ({
+            oas: week.oaIds.flatMap((id) => {
+              const oa = byId.get(id)
+              return oa ? [{ code: oa.codigoOficial || oa.id, text: oa.texto }] : []
+            }),
+          })),
+        }, item.content)
+      } else {
+        await exportPlanningPdf(
+          {
+            title: compactTitle(item),
+            subtitle: "Planificación guardada en EduAI Platform",
+            curso: item.curso || "—",
+            asignatura: item.asignatura || "—",
+            nivel: item.nivel || "—",
+            mes: item.mes || "—",
+            horizonte: item.tiempo_planificacion || "—",
+            sesiones: item.sesiones || 1,
+            duracionMinutos: item.duracion_minutos || 45,
+            fechaCreacion: formatDate(item.created_at),
+            contexto: item.contexto || "",
+          },
+          item.content
+        )
+      }
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "No fue posible exportar el PDF.")
     } finally {
       setExporting(false)
     }
