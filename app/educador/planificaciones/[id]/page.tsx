@@ -118,6 +118,7 @@ function buildSavedInstitutionalMeta(item: SavedPlanning): SchoolPlanningPdfMeta
         return oa ? [{ code: oa.codigoOficial || oa.id, text: oa.texto }] : []
       }),
     })),
+    preferContentRows: true,
   }
 }
 
@@ -329,7 +330,7 @@ export default function SavedPlanningDetailPage() {
   const institutionalPreviewMeta = buildSavedInstitutionalMeta(item)
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-950">
+    <div className="min-h-screen bg-[#f8fafc] text-slate-950 xl:flex xl:h-screen xl:flex-col xl:overflow-hidden">
       <div className="sticky top-0 z-30 border-b border-slate-200 bg-white/94 backdrop-blur-xl xl:shrink-0">
         <div className="mx-auto max-w-7xl px-6 py-4">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
@@ -397,8 +398,8 @@ export default function SavedPlanningDetailPage() {
           </div>
         )}
 
-        <div className="grid gap-6 xl:min-h-0 xl:flex-1 xl:grid-cols-[300px_minmax(0,1fr)]">
-          <aside className="space-y-5 xl:h-full xl:overflow-y-auto xl:overscroll-contain xl:pr-1 [scrollbar-width:thin]">
+        <div className="grid gap-6 xl:min-h-0 xl:flex-1 xl:grid-cols-[300px_minmax(0,1fr)] xl:overflow-hidden">
+          <aside className="space-y-5 xl:min-h-0 xl:h-full xl:overflow-y-scroll xl:overscroll-contain xl:pr-2 [scrollbar-gutter:stable] [scrollbar-width:thin]">
             <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
               <h2 className="mb-4 text-xl font-black text-emerald-800">Resumen</h2>
               <div className="space-y-3">
@@ -437,7 +438,7 @@ export default function SavedPlanningDetailPage() {
             </section>
           </aside>
 
-          <main className="space-y-6 xl:h-full xl:min-h-0 xl:overflow-y-auto xl:overscroll-contain xl:pr-2 [scrollbar-width:thin]">
+          <main className="space-y-6 xl:min-h-0 xl:h-full xl:overflow-y-scroll xl:overscroll-contain xl:pr-3 [scrollbar-gutter:stable] [scrollbar-width:thin]">
             <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
               <label className="mb-3 block text-sm font-black text-slate-900">Título</label>
               <input
