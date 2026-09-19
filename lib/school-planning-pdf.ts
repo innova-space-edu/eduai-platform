@@ -106,7 +106,10 @@ function drawCell(
 
   const lines = wrapCell(doc, text, width - 3.4)
   const lineHeight = (options.fontSize || 6.2) * 0.43
-  const textY = y + 2.5 + lineHeight
+  const totalTextHeight = Math.max(lineHeight, lines.length * lineHeight)
+  const textY = options.center
+    ? y + Math.max(lineHeight, (height - totalTextHeight) / 2 + lineHeight * 0.82)
+    : y + 2.2 + lineHeight * 0.82
   if (options.center) {
     lines.forEach((line, index) => {
       doc.text(line, x + width / 2, textY + index * lineHeight, { align: "center" })
