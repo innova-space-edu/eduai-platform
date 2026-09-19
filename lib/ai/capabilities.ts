@@ -47,7 +47,7 @@ export const DEFAULT_PROVIDER_ORDER: Record<AICapability, AIProviderId[]> = {
   text: ["google", "groq", "openrouter", "cerebras", "together"],
   structured: ["google", "groq", "openrouter", "cerebras", "together"],
   vision: ["google", "openrouter", "together"],
-  long_context: ["google", "openrouter", "groq", "cerebras", "together"],
+  long_context: ["google", "groq", "together", "openrouter", "cerebras"],
   research: ["google", "groq", "openrouter"],
   retrieval: ["google"],
   embeddings: ["google", "local"],
