@@ -1358,7 +1358,12 @@ DATOS FIJOS:
 - Asignatura: ${asignatura}
 - Curso: ${curso}
 - Horas semanales: ${horasSemanales}
+- Tipo de planificación seleccionado: ${planningProfile.label}
 - Contexto adicional del docente: ${contexto || "Sin contexto adicional"}
+
+ENFOQUE PEDAGÓGICO SELECCIONADO:
+${planningProfile.directive}
+Integra este enfoque dentro de la progresión semanal, especialmente en "OBJETIVO DE LA CLASE", sin crear secciones adicionales fuera de la tabla institucional.
 
 DISTRIBUCIÓN SEMANAL OBLIGATORIA DE OA:
 ${weeklyOAContext}
@@ -1370,10 +1375,11 @@ REGLAS CURRICULARES:
 4. Redacta entre 3 y 6 indicadores útiles por semana, según la complejidad de los OA.
 5. En "OBJETIVO DE LA CLASE" redacta objetivos concretos y las actividades centrales que permiten lograr esos OA, como en el formato institucional de referencia. Usa entre 2 y 5 acciones por semana.
 6. Mantén progresión pedagógica entre semanas y evita repetir literalmente indicadores u objetivos si la progresión exige profundización.
-7. No uses estructura inicio-desarrollo-cierre, minutos, rúbricas, recursos, adaptaciones, conclusiones ni secciones adicionales.
-8. No agregues ni quites semanas. Respeta exactamente el orden de la distribución entregada.
-9. No uses el carácter "|" dentro de una celda. Separa elementos internos únicamente con <br>.
-10. Entrega la respuesta completa aunque sea extensa.
+7. Respeta el tipo de planificación seleccionado (clase, ABP/STEAM, feria, taller, campaña, salida, etc.) y distribuye sus etapas o hitos en las semanas pertinentes, siempre dentro de las cuatro columnas institucionales.
+8. No uses estructura inicio-desarrollo-cierre, minutos, rúbricas, recursos, adaptaciones, conclusiones ni secciones adicionales.
+9. No agregues ni quites semanas. Respeta exactamente el orden de la distribución entregada.
+10. No uses el carácter "|" dentro de una celda. Separa elementos internos únicamente con <br>.
+11. Entrega la respuesta completa aunque sea extensa.
 
 FORMATO DE SALIDA OBLIGATORIO:
 # CRONOGRAMA ${anioPlanificacion}
