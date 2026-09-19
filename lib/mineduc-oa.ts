@@ -147,6 +147,7 @@ export interface OA {
   id: string
   texto: string
   habilidades?: string[]
+  indicadores?: string[]
   ejes?: string[]
   codigoOficial?: string
   unidadId?: string
@@ -687,6 +688,7 @@ function flattenStandardUnits(raw: StandardCurriculumFile, sourceFile: string): 
         id: oa.id,
         texto: oa.descripcion,
         codigoOficial: oa.codigo_oficial,
+        indicadores: oa.indicadores || [],
         unidadId,
         unidadNombre,
         unidadNumero,
@@ -715,6 +717,7 @@ function flattenSharedModules(raw: StandardCurriculumFile, sourceFile: string): 
         id: oa.id,
         texto: oa.descripcion,
         codigoOficial: oa.codigo_oficial,
+        indicadores: oa.indicadores || [],
         unidadId: modulo.id,
         unidadNombre: modulo.nombre,
         unidadNumero: modulo.id,
@@ -750,6 +753,7 @@ function flattenParvulariaNucleo(
           id: oa.id,
           texto: oa.descripcion,
           codigoOficial: oa.codigo_oficial,
+          indicadores: oa.indicadores || [],
           ambito: ambito.nombre,
           nucleo: nucleo.nombre,
           ejes: [ambito.nombre, nucleo.nombre],
@@ -781,6 +785,7 @@ function flattenParvulariaAll(
           id: oa.id,
           texto: oa.descripcion,
           codigoOficial: oa.codigo_oficial,
+          indicadores: oa.indicadores || [],
           ambito: ambito.nombre,
           nucleo: nucleo.nombre,
           ejes: [ambito.nombre, nucleo.nombre],
@@ -798,6 +803,7 @@ function flattenParvulariaAll(
           id: oat.id,
           texto: oat.descripcion,
           codigoOficial: oat.codigo_oficial,
+          indicadores: oat.indicadores || [],
           ambito: ambito.nombre,
           nucleo: nucleo.nombre,
           ejes: [ambito.nombre, nucleo.nombre],
