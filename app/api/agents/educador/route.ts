@@ -1550,7 +1550,21 @@ REGLAS DE LAS CELDAS:
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "No fue posible generar la planificacion"
     if (isInstitutionalMacro) {
-      return NextResponse.json({ error: errorMessage }, { status: 503 })
+      console.error("[Educador AI]", errorMessage)
+      const gatewayUnavailable =
+        errorMessage.includes("EduAI AI Gateway: todos los proveedores fallaron") ||
+        errorMessage.includes("EduAI Structured Gateway: todos los proveedores fallaron")
+
+      return NextResponse.json(
+        gatewayUnavailable
+          ? {
+              error: "Los modelos de IA están temporalmente ocupados o no disponibles. EduAI intentó proveedores alternativos. Vuelve a intentar en unos segundos.",
+              code: "AI_PROVIDERS_UNAVAILABLE",
+              retryable: true,
+            }
+          : { error: errorMessage },
+        { status: 503 },
+      )
     }
     const fallbackText = buildLocalEducadorFallback({
       intent: outputIntent,
