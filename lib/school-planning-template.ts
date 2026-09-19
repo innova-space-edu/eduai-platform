@@ -96,3 +96,39 @@ export function buildSchoolWeekPlan(
 export function schoolPlanningMonthLabel(month: string) {
   return month ? month.charAt(0).toUpperCase() + month.slice(1) : month
 }
+
+export function expectedSchoolWeekLabel(month: string, week: number) {
+  return week === 1 ? `${schoolPlanningMonthLabel(month)}\n1` : String(week)
+}
+
+export function normalizeSchoolWeekLabel(value: string) {
+  return String(value || "")
+    .replace(/<br\s*\/?\s*>/gi, "\n")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase()
+}
+
+export function validateSchoolPlanningWeeks(
+  actual: SchoolPlanningWeek[],
+  horizon: TiempoPlanificacion,
+  periodoId: string,
+  fallbackMonth = "marzo"
+) {
+  const expected = buildSchoolWeekPlan(horizon, periodoId, fallbackMonth)
+  if (actual.length !== expected.length) {
+    return { valid: false, error: `Se esperaban ${expected.length} semanas y se recibieron ${actual.length}.`, expected }
+  }
+  for (let index = 0; index < expected.length; index += 1) {
+    const got = actual[index]
+    const want = expected[index]
+    if (!got || got.key !== want.key || got.month !== want.month || got.week !== want.week) {
+      return {
+        valid: false,
+        error: `La semana ${index + 1} no corresponde al período solicitado. Se esperaba ${want.key}.`,
+        expected,
+      }
+    }
+  }
+  return { valid: true, error: "", expected }
+}
