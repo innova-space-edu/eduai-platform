@@ -351,6 +351,7 @@ export default function PlannerPage() {
           city: config.ciudad,
           baseCurricular: `Base curricular utilizada: ${config.asignatura} ${config.curso}, Currículum Nacional MINEDUC. Planificación organizada para ${periodLabel.toLowerCase()} con los OA seleccionados.`,
           schedule: config.weeklyOAPlan.map((week) => ({ month: week.month, week: week.week })),
+          oaByWeek: config.weeklyOAPlan.map((week) => ({ oas: week.oaIds.map((id) => oaOptions.find((oa) => oa.id === id)).filter(Boolean).map((oa) => ({ code: oa!.codigoOficial || oa!.id, text: oa!.texto })) })),
         }, latest.content)
       } else {
         await exportPlanningPdf({ title: title(), subtitle: "Planificación generada por EduAI", curso: config.curso, asignatura: config.asignatura, nivel: config.nivel, mes: config.mes, horizonte: config.tiempoPlanificacion, sesiones: config.sesiones, duracionMinutos: config.duracionMinutos, fechaCreacion: new Date().toLocaleString("es-CL"), contexto: config.contexto, designTemplateId: config.nivel === "parvularia" ? "eduai-canva-classroom" : "presenton-pro-slides" }, latest.content)
