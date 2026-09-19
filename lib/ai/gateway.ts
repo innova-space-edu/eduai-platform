@@ -26,9 +26,13 @@ import {
 } from "./providers/google"
 import {
   compatibleFallbackModel,
+  compatibleModelCandidates,
   generateCompatibleText,
   hasCompatibleProvider,
+  isCompatibleBillingError,
+  isCompatibleModelError,
   isCompatibleProviderId,
+  isCompatibleTransientError,
   parseStructuredJson,
   streamCompatibleText,
 } from "./providers/openai-compatible"
@@ -111,6 +115,19 @@ async function providerRuntimeModel(input: {
   })
 }
 
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error)
+}
+
+function isGoogleTransientError(error: unknown) {
+  const message = errorMessage(error)
+  return /\b(429|500|502|503|504)\b|UNAVAILABLE|RESOURCE_EXHAUSTED|high demand|temporar(?:y|ily)|timeout|timed out/i.test(message)
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 async function executeTextProvider(input: {
   provider: AIProviderId
   capability: AICapability
@@ -128,12 +145,31 @@ async function executeTextProvider(input: {
       lite: input.lite,
     })
     if (!selected) return null
-    return generateGoogleText({
-      messages: input.messages,
-      maxOutputTokens: input.maxOutputTokens,
-      lite: input.lite,
-      model: selected.model,
-    })
+
+    const candidates = Array.from(new Set([
+      selected.model,
+      googleModel(input.lite ? "lite" : "text"),
+      googleModel("lite"),
+      "gemini-3.5-flash-lite",
+    ].filter(Boolean)))
+
+    let lastError: unknown = null
+    for (const model of candidates) {
+      try {
+        return await generateGoogleText({
+          messages: input.messages,
+          maxOutputTokens: input.maxOutputTokens,
+          lite: input.lite,
+          model,
+        })
+      } catch (error) {
+        lastError = error
+        if (!isGoogleTransientError(error)) throw error
+        await sleep(350)
+      }
+    }
+    if (lastError) throw lastError
+    return null
   }
 
   if (hasCompatibleProvider(input.provider)) {
@@ -143,12 +179,28 @@ async function executeTextProvider(input: {
       capability: input.capability,
     })
     if (!selected) return null
-    return generateCompatibleText({
-      provider: input.provider,
-      model: selected.model,
-      messages: input.messages,
-      maxOutputTokens: input.maxOutputTokens,
-    })
+
+    const candidates = compatibleModelCandidates(input.provider, input.capability, selected.model)
+    let lastError: unknown = null
+
+    for (const model of candidates) {
+      try {
+        return await generateCompatibleText({
+          provider: input.provider,
+          model,
+          messages: input.messages,
+          maxOutputTokens: input.maxOutputTokens,
+        })
+      } catch (error) {
+        lastError = error
+        if (isCompatibleBillingError(error)) throw error
+        if (!isCompatibleModelError(error) && !isCompatibleTransientError(error)) throw error
+        if (isCompatibleTransientError(error)) await sleep(250)
+      }
+    }
+
+    if (lastError) throw lastError
+    return null
   }
 
   return null
