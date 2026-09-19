@@ -283,7 +283,7 @@ export default function SavedPlanningDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#f8fafc] text-slate-950">
+      <div className="min-h-screen bg-[#f8fafc] text-slate-950 xl:flex xl:h-screen xl:flex-col xl:overflow-hidden">
         <div className="mx-auto max-w-7xl px-6 py-8">
           <div className="animate-pulse space-y-5">
             <div className="h-20 rounded-[28px] border border-slate-200 bg-white" />
@@ -330,7 +330,7 @@ export default function SavedPlanningDetailPage() {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-950">
-      <div className="sticky top-0 z-30 border-b border-slate-200 bg-white/94 backdrop-blur-xl">
+      <div className="sticky top-0 z-30 border-b border-slate-200 bg-white/94 backdrop-blur-xl xl:shrink-0">
         <div className="mx-auto max-w-7xl px-6 py-4">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex items-start gap-4">
@@ -390,15 +390,15 @@ export default function SavedPlanningDetailPage() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl px-6 py-6">
+      <div className="mx-auto max-w-7xl px-6 py-6 xl:flex xl:min-h-0 xl:w-full xl:flex-1 xl:flex-col xl:overflow-hidden">
         {status && (
           <div className="mb-6 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-semibold text-sky-800">
             {status}
           </div>
         )}
 
-        <div className="grid gap-6 xl:grid-cols-[300px_minmax(0,1fr)]">
-          <aside className="space-y-5 xl:sticky xl:top-28 xl:self-start">
+        <div className="grid gap-6 xl:min-h-0 xl:flex-1 xl:grid-cols-[300px_minmax(0,1fr)]">
+          <aside className="space-y-5 xl:h-full xl:overflow-y-auto xl:overscroll-contain xl:pr-1 [scrollbar-width:thin]">
             <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
               <h2 className="mb-4 text-xl font-black text-emerald-800">Resumen</h2>
               <div className="space-y-3">
@@ -437,7 +437,7 @@ export default function SavedPlanningDetailPage() {
             </section>
           </aside>
 
-          <main className="space-y-6">
+          <main className="space-y-6 xl:h-full xl:min-h-0 xl:overflow-y-auto xl:overscroll-contain xl:pr-2 [scrollbar-width:thin]">
             <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
               <label className="mb-3 block text-sm font-black text-slate-900">Título</label>
               <input
