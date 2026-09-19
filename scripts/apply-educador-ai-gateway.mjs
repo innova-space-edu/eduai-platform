@@ -95,7 +95,7 @@ const mainOld = `    let result = await callAI(aiMessages, {
     })`
 const mainNew = `    const initialAI = await runAIText({
       messages: aiMessages,
-      capability: !useCompactResourcePrompt && (sesiones > 1 || selectedOAIds.length > 1) ? "long_context" : "text",
+      capability: isInstitutionalMacro || (!useCompactResourcePrompt && (sesiones > 1 || selectedOAIds.length > 1)) ? "long_context" : "text",
       maxOutputTokens: strategy.maxTokens,
       context: {
         userId: user.id,
@@ -112,6 +112,43 @@ const mainNew = `    const initialAI = await runAIText({
       reused: initialAI.reused,
     }`
 replaceRequired(mainOld, mainNew, "generación principal de Educador")
+
+const institutionalRepairOld = `        const repaired = await callAI([
+          ...aiMessages,
+          {
+            role: "user" as const,
+            content: \`La salida anterior no cumplió la tabla institucional. Regenera desde cero. Debe existir una sola tabla Markdown de 4 columnas y EXACTAMENTE \${weeklyOAPlan.length} filas de semanas, una por cada entrada de la distribución, sin omitir ninguna. Mantén todos los OA asignados y no agregues secciones.\`,
+          },
+        ], {
+          maxTokens: strategy.maxTokens,
+          preferProvider: strategy.preferProvider,
+          openrouterModel: strategy.openrouterModel,
+        })`
+const institutionalRepairNew = `        const institutionalRepairAI = await runAIText({
+          messages: [
+            ...aiMessages,
+            {
+              role: "user" as const,
+              content: \`La salida anterior no cumplió la tabla institucional. Regenera desde cero. Debe existir una sola tabla Markdown de 4 columnas y EXACTAMENTE \${weeklyOAPlan.length} filas de semanas, una por cada entrada de la distribución, sin omitir ninguna. Mantén todos los OA asignados y no agregues secciones.\`,
+            },
+          ],
+          capability: "long_context",
+          maxOutputTokens: strategy.maxTokens,
+          context: {
+            userId: user.id,
+            module: "educador-institutional-repair",
+            reusePolicy: "exact_private",
+            visibility: "private",
+          },
+          supabase,
+        })
+        const repaired = {
+          text: institutionalRepairAI.data,
+          provider: institutionalRepairAI.provider,
+          model: institutionalRepairAI.model,
+          reused: institutionalRepairAI.reused,
+        }`
+replaceRequired(institutionalRepairOld, institutionalRepairNew, "reparación de cronograma institucional")
 
 const repairOld = `      const repaired = await callAI([
         ...aiMessages,
