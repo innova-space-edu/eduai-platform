@@ -13,6 +13,7 @@ export interface SchoolPlanningPdfMeta {
   baseCurricular?: string
   schedule?: Array<{ month: string; week: number }>
   oaByWeek?: Array<{ oas: Array<{ code: string; text: string }> }>
+  preferContentRows?: boolean
 }
 
 export interface SchoolPlanningPdfRow {
@@ -137,21 +138,28 @@ export function buildSchoolPlanningRenderRows(
       throw new Error(`El cronograma contiene ${rows.length} filas, pero el período requiere ${meta.schedule.length} semanas.`)
     }
 
-    meta.schedule.forEach((scheduled, index) => {
-      const expected = normalizeSchoolWeekLabel(expectedSchoolWeekLabel(scheduled.month, scheduled.week))
-      const actual = normalizeSchoolWeekLabel(rows[index]?.week || "")
-      if (actual !== expected) {
-        throw new Error(`La fila ${index + 1} no corresponde a ${scheduled.month}, semana ${scheduled.week}. Regenera la planificación antes de exportar.`)
-      }
-    })
+    if (!meta.preferContentRows) {
+      meta.schedule.forEach((scheduled, index) => {
+        const expected = normalizeSchoolWeekLabel(expectedSchoolWeekLabel(scheduled.month, scheduled.week))
+        const actual = normalizeSchoolWeekLabel(rows[index]?.week || "")
+        if (actual !== expected) {
+          throw new Error(`La fila ${index + 1} no corresponde a ${scheduled.month}, semana ${scheduled.week}. Regenera la planificación antes de exportar.`)
+        }
+      })
+    }
   }
 
   return rows.map((row, index) => {
     const scheduled = meta.schedule?.[index]
-    const week = scheduled ? expectedSchoolWeekLabel(scheduled.month, scheduled.week) : row.week
-    const oa = meta.oaByWeek?.[index]?.oas
+    const week = meta.preferContentRows
+      ? row.week
+      : scheduled
+        ? expectedSchoolWeekLabel(scheduled.month, scheduled.week)
+        : row.week
+    const officialOA = meta.oaByWeek?.[index]?.oas
       .map((item) => `${item.code}\n${item.text}`)
-      .join("\n\n") || row.oa
+      .join("\n\n")
+    const oa = meta.preferContentRows ? row.oa : officialOA || row.oa
 
     return {
       week: cleanSchoolPlanningCell(week),
