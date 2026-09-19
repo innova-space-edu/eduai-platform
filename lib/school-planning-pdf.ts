@@ -195,7 +195,8 @@ export async function exportSchoolPlanningPdf(meta: SchoolPlanningPdfMeta, conte
     const height = calculateRowHeight(doc, row, widths)
     if (y + height > pageHeight - 10) {
       doc.addPage("a4", "landscape")
-      y = 7
+      drawInstitutionHeader(doc, meta, marginX, tableWidth)
+      y = drawTableHeader(doc, meta, marginX, 18.5, tableWidth, widths)
     }
 
     const scheduled = meta.schedule?.[index]
