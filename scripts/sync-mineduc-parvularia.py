@@ -27,8 +27,8 @@ from bs4 import BeautifulSoup, Tag
 ROOT = Path(__file__).resolve().parents[1]
 MINEDUC_ROOT = ROOT / "data" / "mineduc"
 PARVULARIA_ROOT = MINEDUC_ROOT / "parvularia"
-CONSULT_DATE = "2026-07-18"
-BASE_CURRICULAR = "Bases Curriculares de Educación Parvularia (vigentes desde 2019)"
+CONSULT_DATE = "2026-09-20"
+BASE_CURRICULAR = "Bases Curriculares de la Educación Parvularia 2018 (BCEP)"
 BASE_CURRICULAR_ID = "parvularia"
 CANONICAL_AVAILABLE = True
 
@@ -131,8 +131,25 @@ TRAMOS = OrderedDict(
 CODE_PATTERN = re.compile(r"\b(OAT|OA) (\d{2}) (IA|CC|CM|LV|LA|EEN|CES|PM) (SC|NM|NT)\b")
 
 
+FOOTER_MARKERS = (
+    "Unidad de Currículum y Evaluación Ministerio de Educación",
+    "Teléfono: +56 2 24066000",
+    "Ayuda Mineduc",
+    "Acerca de este sitio",
+    "Políticas de Privacidad",
+)
+
+
 def clean(text: str) -> str:
     return re.sub(r"\s+", " ", text.replace("\xa0", " ")).strip()
+
+
+def strip_site_footer(text: str) -> str:
+    value = text.strip()
+    positions = [value.find(marker) for marker in FOOTER_MARKERS if marker in value]
+    if positions:
+        value = value[: min(positions)]
+    return value.strip()
 
 
 def curl(url: str, retries: int) -> str:
@@ -210,7 +227,7 @@ def extract_description(heading: Tag) -> str:
     if bullets:
         body = f"{body}\n" if body else ""
         body += "\n".join(f"- {item}" for item in bullets)
-    return body.strip()
+    return strip_site_footer(body)
 
 
 def parse_scope(url: str, tramo_code: str, expected_kind: str, allowed_nuclei: set[str]) -> list[dict]:

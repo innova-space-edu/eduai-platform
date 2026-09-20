@@ -4,8 +4,8 @@ import { resolveOAConnection } from "../lib/planner-oa-bridge"
 import { auditPlanningOutput, inferPlanningProfile } from "../lib/school-planning-profiles"
 import { buildSchoolWeekPlan, getSchoolPlanningPeriodLabel, validateSchoolPlanningWeeks } from "../lib/school-planning-template"
 import { buildSchoolPlanningRenderRows, replaceSchoolPlanningRows } from "../lib/school-planning-pdf"
-import { getPlanningHorizonConfig } from "../lib/planificador-curriculum"
-import { buildParvulariaDateLabel, parseParvulariaPlanningDocument, serializeParvulariaPlanningDocument } from "../lib/parvularia-planning"
+import { getPlanningHorizonConfig, getPlannerOAOptions } from "../lib/planificador-curriculum"
+import { buildParvulariaDateLabel, calculateParvulariaEndDate, parseParvulariaPlanningDocument, serializeParvulariaPlanningDocument } from "../lib/parvularia-planning"
 
 const profileCases = [
   ["Organiza una feria científica con stands, experimentos y presentación a apoderados", "media", "feria_cientifica"],
@@ -185,6 +185,36 @@ console.log("✓ Edición completa de las cuatro celdas de cada fila")
 const quincenal = getPlanningHorizonConfig("quincenal")
 assert.equal(quincenal.shortLabel, "Quincenal", "Parvularia debe disponer del horizonte quincenal")
 assert.equal(buildParvulariaDateLabel("2026-05-13", "2026-06-04"), "13 de mayo de 2026 al 04 de junio de 2026")
+
+assert.equal(calculateParvulariaEndDate("2026-09-20", "diaria"), "2026-09-20")
+assert.equal(calculateParvulariaEndDate("2026-09-20", "semanal"), "2026-09-26")
+assert.equal(calculateParvulariaEndDate("2026-09-20", "quincenal"), "2026-10-04")
+
+const eenOA = getPlannerOAOptions({
+  nivel: "parvularia",
+  curso: "Sala Cuna Mayor (1 a 2 años)",
+  asignatura: "Exploración del Entorno Natural",
+})
+assert.equal(eenOA.length, 5, "Sala Cuna · Exploración del Entorno Natural debe mostrar solo sus 5 OA")
+assert(eenOA.every((oa) => oa.nucleo === "Exploración del entorno natural"), "No se deben mezclar núcleos en el selector principal")
+
+const cesOA = getPlannerOAOptions({
+  nivel: "parvularia",
+  curso: "Sala Cuna Mayor (1 a 2 años)",
+  asignatura: "Comprensión del Entorno Sociocultural",
+})
+const ces04 = cesOA.find((oa) => oa.codigoOficial === "OA 04 CES SC")
+assert(ces04?.texto.includes("Explorar utensilios domésticos y objetos tecnológicos"), "OA 04 CES SC debe coincidir con BCEP 2018")
+assert(!cesOA.some((oa) => /Unidad de Currículum|Ayuda Mineduc|Políticas de Privacidad/.test(oa.texto)), "Los OA no deben contener footer del sitio MINEDUC")
+
+const corporalidad = getPlannerOAOptions({
+  nivel: "parvularia",
+  curso: "Sala Cuna Mayor (1 a 2 años)",
+  asignatura: "Corporalidad y Movimiento",
+})
+assert.equal(corporalidad.length, 7, "Sala Cuna · Corporalidad y Movimiento debe exponer 7 objetivos transversales")
+assert(corporalidad.every((oa) => oa.tipo === "oat"), "Desarrollo Personal y Social debe conservar su carácter transversal")
+console.log("✓ Parvularia: fechas automáticas, filtro por núcleo y BCEP verificadas")
 
 const parvulariaJson = serializeParvulariaPlanningDocument({
   version: 1,

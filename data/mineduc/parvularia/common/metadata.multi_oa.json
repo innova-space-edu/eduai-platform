@@ -1,18 +1,19 @@
 {
   "metadata": {
     "nivel": "Parvularia",
-    "fuente_principal": "Bases Curriculares de la Educación Parvularia (vigentes desde 2019)",
+    "fuente_principal": "Bases Curriculares de la Educación Parvularia 2018 (BCEP)",
     "institucion": "Ministerio de Educación de Chile / Subsecretaría de Educación Parvularia",
-    "estado": "selector_integrado_multi_oa_listo_para_edicion",
-    "ultima_actualizacion_manual": "2026-03-28"
+    "estado": "selector_restringido_por_nucleo_verificado",
+    "ultima_actualizacion_manual": "2026-09-20"
   },
   "reglas_planificador_integrado": {
-    "modo_recomendado": "1 OA principal + 1 o 2 OA complementarios + hasta 2 OAT",
-    "max_oa_parvularia": 3,
+    "modo_recomendado": "Seleccionar objetivos del núcleo principal + hasta 2 OAT transversales complementarios",
+    "max_oa_parvularia": 30,
     "max_oat_parvularia": 2,
-    "permite_combinar_ambitos": true,
-    "permite_combinar_nucleos": true,
-    "nota": "El selector integrado puede mezclar OA de diferentes núcleos y ámbitos del mismo subnivel para una experiencia de aprendizaje unificada."
+    "permite_combinar_ambitos_en_selector_principal": false,
+    "permite_combinar_nucleos_en_selector_principal": false,
+    "permite_oat_transversal_complementario": true,
+    "nota": "El selector principal queda restringido al Ámbito/Núcleo elegido. La integración transversal se realiza mediante OAT complementarios seleccionados explícitamente."
   },
   "niveles_soportados": [
     "Sala Cuna Menor (0 a 1 año)",
