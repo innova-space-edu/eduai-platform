@@ -9,6 +9,9 @@ import { createClient } from "@/lib/supabase/client"
 import { exportPlanningPdf } from "@/lib/planning-pdf"
 import { exportSchoolPlanningPdf, type SchoolPlanningPdfMeta } from "@/lib/school-planning-pdf"
 import SchoolPlanningPreview from "@/components/educador/SchoolPlanningPreview"
+import ParvulariaPlanningPreview from "@/components/educador/ParvulariaPlanningPreview"
+import { exportParvulariaPlanningPdf } from "@/lib/parvularia-planning-pdf"
+import { buildParvulariaDateLabel } from "@/lib/parvularia-planning"
 import {
   buildPlanningHorizonText,
   getPlannerOAOptions,
@@ -100,6 +103,10 @@ interface Config {
   parvulariaHeterogenea: boolean
   parvulariaSegundoCurso: string
   parvulariaMotivoFusion: string
+  educadoraParvularia: string
+  asistentesParvularia: string
+  fechaInicioParvularia: string
+  fechaFinParvularia: string
   planningProfile: PlanningProfileId
 }
 interface SavedPlanningInsert {
@@ -125,6 +132,7 @@ export default function PlannerPage() {
   const router = useRouter()
   const supabase = useMemo(() => createClient(), [])
   const month = new Date().toLocaleString("es-CL", { month: "long" }).toLowerCase()
+  const today = new Date().toLocaleDateString("en-CA")
   const [step, setStep] = useState(1)
   const [planMode, setPlanMode] = useState<PlanModeId>("clase")
   const [config, setConfig] = useState<Config>({
@@ -133,7 +141,8 @@ export default function PlannerPage() {
     sesiones: 1, duracionMinutos: 30, profesor: "", horasSemanales: "", establecimiento: "Colegio Providencia", ciudad: "ANTOFAGASTA",
     periodoId: SCHOOL_YEAR_MONTHS.includes(month as (typeof SCHOOL_YEAR_MONTHS)[number]) ? month : "marzo", anioPlanificacion: new Date().getFullYear(), weeklyOAPlan: [],
     parvulariaHeterogenea: false, parvulariaSegundoCurso: COURSES.parvularia[1],
-    parvulariaMotivoFusion: "", planningProfile: "experiencia_parvularia",
+    parvulariaMotivoFusion: "", educadoraParvularia: "", asistentesParvularia: "", fechaInicioParvularia: today, fechaFinParvularia: today,
+    planningProfile: "experiencia_parvularia",
   })
   const [messages, setMessages] = useState<Message[]>([])
   const [refinement, setRefinement] = useState("")
@@ -142,6 +151,7 @@ export default function PlannerPage() {
   const [saving, setSaving] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [savedPlanningId, setSavedPlanningId] = useState("")
   const [userId, setUserId] = useState("")
   const [openOA, setOpenOA] = useState(true)
   const [openOAT, setOpenOAT] = useState(false)
@@ -166,6 +176,7 @@ export default function PlannerPage() {
   const subjects = useMemo(() => getAvailableAsignaturas(config.nivel, config.curso), [config.nivel, config.curso])
   const curricularState = useMemo(() => ({ nivel: config.nivel, curso: config.curso, asignatura: config.asignatura }), [config.nivel, config.curso, config.asignatura])
   const isBasicaMedia = config.nivel === "basica" || config.nivel === "media"
+  const isParvularia = config.nivel === "parvularia"
   const institutionalMacro = isBasicaMedia && isSchoolPlanningMacro(config.tiempoPlanificacion)
   const units = useMemo(() => getPlannerUnits(curricularState), [curricularState])
   const oaOptions = useMemo(() => getPlannerOAOptions(curricularState, institutionalMacro ? undefined : config.unidadId || undefined), [curricularState, config.unidadId, institutionalMacro])
@@ -234,9 +245,19 @@ export default function PlannerPage() {
   function selectLevel(level: NivelKey) {
     const course = COURSES[level][0]
     setConfig((previous) => ({
-      ...previous, nivel: level, curso: course, asignatura: initialSubject(level, course), unidadId: "", selectedOAIds: [], selectedOATIds: [], weeklyOAPlan: [],
+      ...previous,
+      nivel: level,
+      curso: course,
+      asignatura: initialSubject(level, course),
+      unidadId: "",
+      selectedOAIds: [],
+      selectedOATIds: [],
+      weeklyOAPlan: [],
+      tiempoPlanificacion: level === "parvularia"
+        ? (previous.tiempoPlanificacion === "anual" ? "diaria" : previous.tiempoPlanificacion)
+        : (previous.tiempoPlanificacion === "quincenal" ? "semanal" : previous.tiempoPlanificacion),
       duracionMinutos: level === "parvularia" ? 30 : 45,
-      planningProfile: level === "parvularia" && ["clase", "secuencia", "unidad"].includes(planMode) ? "experiencia_parvularia" : mode.profile,
+      planningProfile: level === "parvularia" ? "experiencia_parvularia" : mode.profile,
     }))
   }
   function updateCourse(course: string) {
@@ -277,6 +298,8 @@ export default function PlannerPage() {
     if (target >= 2 && (!config.curso || !config.asignatura)) return setStatus("Completa el nivel, curso y asignatura.")
     if (target >= 3 && config.selectedOAIds.length === 0) return setStatus("Selecciona al menos un Objetivo de Aprendizaje.")
     if (target >= 2 && institutionalMacro && (!config.profesor.trim() || !config.horasSemanales.trim())) return setStatus("Completa profesor/a y horas semanales para el formato institucional.")
+    if (target >= 2 && isParvularia && (!config.educadoraParvularia.trim() || !config.asistentesParvularia.trim() || !config.fechaInicioParvularia)) return setStatus("Completa educadora de párvulos, asistentes y fecha de inicio.")
+    if (target >= 2 && isParvularia && config.tiempoPlanificacion !== "diaria" && !config.fechaFinParvularia) return setStatus("Completa la fecha de término del período.")
     if (target >= 4 && institutionalMacro) {
       const incomplete = config.weeklyOAPlan.filter((week) => week.oaIds.length === 0)
       if (incomplete.length) return setStatus(`Asigna al menos un OA a cada semana. Faltan ${incomplete.length} semana(s).`)
@@ -285,6 +308,20 @@ export default function PlannerPage() {
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
   function generationPrompt() {
+    if (isParvularia) {
+      const selectedOAContext = selectedOA.map((oa) => `${oa.codigoOficial || oa.id}: ${oa.texto}`).join("\n")
+      return [
+        `Genera la planificación de Educación Parvularia ${config.tiempoPlanificacion} para ${config.curso}, núcleo ${config.asignatura}.`,
+        `Periodo: ${buildParvulariaDateLabel(config.fechaInicioParvularia, config.fechaFinParvularia || config.fechaInicioParvularia)}.`,
+        `Educadora: ${config.educadoraParvularia}. Asistentes: ${config.asistentesParvularia}.`,
+        "Usa la plantilla institucional de siete columnas de Educación Parvularia y completa todos sus campos.",
+        "No organices por horas pedagógicas, número de clases ni minutos; distribuye las experiencias de acuerdo con el período, la jornada y el ritmo del grupo.",
+        selectedOAContext ? `OA seleccionados:\n${selectedOAContext}` : "",
+        config.selectedOATIds.length ? `OAT seleccionados: ${config.selectedOATIds.join(", ")}` : "",
+        config.contexto.trim() ? `Contexto del docente: ${config.contexto.trim()}` : "Propón experiencias pertinentes, lúdicas y aplicables al subnivel.",
+        config.parvulariaHeterogenea ? `Sala heterogénea: ${config.curso} con ${config.parvulariaSegundoCurso}. Motivo: ${config.parvulariaMotivoFusion || "organización pedagógica"}.` : "",
+      ].filter(Boolean).join("\n")
+    }
     if (institutionalMacro) {
       const distribution = config.weeklyOAPlan.map((week) => {
         const oaText = week.oaIds.map((id) => oaOptions.find((oa) => oa.id === id)).filter(Boolean).map((oa) => `${oa!.codigoOficial || oa!.id}: ${oa!.texto}`).join(" | ")
@@ -325,7 +362,7 @@ export default function PlannerPage() {
       setStatus(error instanceof Error ? error.message : "Ocurrió un error inesperado.")
     } finally { setLoading(false) }
   }
-  function title() { return institutionalMacro ? `Cronograma ${config.anioPlanificacion} · ${periodLabel} · ${config.curso} · ${config.asignatura}` : `${mode.label} · ${config.curso} · ${config.asignatura} · ${new Date().toLocaleDateString("es-CL")}` }
+  function title() { return isParvularia ? `Planificación ${config.tiempoPlanificacion} · ${config.curso} · ${config.asignatura} · ${buildParvulariaDateLabel(config.fechaInicioParvularia, config.fechaFinParvularia || config.fechaInicioParvularia)}` : institutionalMacro ? `Cronograma ${config.anioPlanificacion} · ${periodLabel} · ${config.curso} · ${config.asignatura}` : `${mode.label} · ${config.curso} · ${config.asignatura} · ${new Date().toLocaleDateString("es-CL")}` }
   function payload(content: string): SavedPlanningInsert | null {
     if (!userId || !content.trim()) return null
     return {
@@ -336,14 +373,35 @@ export default function PlannerPage() {
       tiempo_planificacion: config.tiempoPlanificacion, sesiones: config.sesiones, duracion_minutos: config.duracionMinutos, content,
     }
   }
-  async function save() {
+  async function persistPlanning(openEditor = false) {
     if (!latest?.content) return
     const data = payload(latest.content)
     if (!data) return setStatus("No se pudo preparar la planificación para guardarla.")
     setSaving(true); setStatus("")
-    const { error } = await supabase.from("saved_plannings").insert(data)
-    setSaving(false); setStatus(error ? `No se pudo guardar: ${error.message}` : "Planificación guardada correctamente.")
+    try {
+      let id = savedPlanningId
+      if (id) {
+        const { error } = await supabase.from("saved_plannings").update(data).eq("id", id).eq("user_id", userId)
+        if (error) throw error
+      } else {
+        const { data: inserted, error } = await supabase.from("saved_plannings").insert(data).select("id").single()
+        if (error) throw error
+        id = String(inserted?.id || "")
+        if (id) setSavedPlanningId(id)
+      }
+      if (openEditor && id) {
+        router.push(`/educador/planificaciones/${id}?edit=1`)
+        return
+      }
+      setStatus("Planificación guardada correctamente.")
+    } catch (error) {
+      setStatus(`No se pudo guardar: ${error instanceof Error ? error.message : "error desconocido"}`)
+    } finally {
+      setSaving(false)
+    }
   }
+  async function save() { await persistPlanning(false) }
+  async function saveAndEdit() { await persistPlanning(true) }
   function institutionalMeta(): SchoolPlanningPdfMeta {
     return {
       year: config.anioPlanificacion,
@@ -369,7 +427,9 @@ export default function PlannerPage() {
     if (!latest?.content) return
     setExporting(true); setStatus("")
     try {
-      if (institutionalMacro) {
+      if (isParvularia) {
+        await exportParvulariaPlanningPdf(latest.content)
+      } else if (institutionalMacro) {
         await exportSchoolPlanningPdf(institutionalMeta(), latest.content)
       } else {
         await exportPlanningPdf({ title: title(), subtitle: "Planificación generada por EduAI", curso: config.curso, asignatura: config.asignatura, nivel: config.nivel, mes: config.mes, horizonte: config.tiempoPlanificacion, sesiones: config.sesiones, duracionMinutos: config.duracionMinutos, fechaCreacion: new Date().toLocaleString("es-CL"), contexto: config.contexto, designTemplateId: config.nivel === "parvularia" ? "eduai-canva-classroom" : "presenton-pro-slides" }, latest.content)
@@ -382,25 +442,40 @@ export default function PlannerPage() {
     if (!latest?.content) return
     navigator.clipboard.writeText(latest.content).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1800) })
   }
-  function editPlanning() { setMessages([]); setRefinement(""); setStatus("Puedes modificar los datos y generar una nueva versión."); setStep(1); window.scrollTo({ top: 0, behavior: "smooth" }) }
+  function editPlanning() { setMessages([]); setSavedPlanningId(""); setRefinement(""); setStatus("Puedes modificar los datos y generar una nueva versión."); setStep(1); window.scrollTo({ top: 0, behavior: "smooth" }) }
 
   const stepOne = (
     <div className="space-y-7">
       <div><p className="text-xs font-black uppercase tracking-[.18em] text-emerald-700">Paso 1</p><h2 className="mt-1 text-2xl font-black">¿Qué deseas planificar?</h2><p className="mt-2 text-sm text-slate-600">Esta pantalla queda dedicada exclusivamente a planificaciones. Las rúbricas y actividades aisladas irán en agentes separados.</p></div>
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        {PLAN_MODES.map((item) => <button key={item.id} onClick={() => selectMode(item)} className={`rounded-2xl border-2 p-4 text-left transition ${choiceClass(planMode === item.id)}`}><div className="flex justify-between"><span className="text-2xl">{item.icon}</span><Check selected={planMode === item.id} /></div><p className="mt-3 font-black">{item.label}</p><p className="mt-1 text-sm text-slate-600">{item.detail}</p></button>)}
-      </div>
+      {isParvularia ? (
+        <div className="rounded-3xl border-2 border-rose-300 bg-gradient-to-br from-rose-50 via-white to-amber-50 p-5">
+          <div className="flex items-start gap-4"><span className="text-3xl">🌸</span><div><p className="text-lg font-black text-rose-950">Planificación de Educación Parvularia</p><p className="mt-1 text-sm leading-6 text-slate-700">Plantilla institucional basada en BCEP: objetivo integrado, principios, foco de experiencia y tabla de Ámbito/Núcleo, OA/OAT, experiencias, orientaciones, roles, recursos y evaluación.</p><p className="mt-2 text-xs font-bold text-rose-800">Sin horas pedagógicas ni bloques por minutos.</p></div></div>
+        </div>
+      ) : (
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {PLAN_MODES.map((item) => <button key={item.id} onClick={() => selectMode(item)} className={`rounded-2xl border-2 p-4 text-left transition ${choiceClass(planMode === item.id)}`}><div className="flex justify-between"><span className="text-2xl">{item.icon}</span><Check selected={planMode === item.id} /></div><p className="mt-3 font-black">{item.label}</p><p className="mt-1 text-sm text-slate-600">{item.detail}</p></button>)}
+        </div>
+      )}
       <div><Label required>Nivel educativo</Label><div className="grid gap-3 md:grid-cols-3">{LEVELS.map((item) => <button key={item.id} onClick={() => selectLevel(item.id)} className={`rounded-2xl border-2 p-4 text-left transition ${choiceClass(config.nivel === item.id, "indigo")}`}><div className="flex justify-between"><span className="text-2xl">{item.icon}</span><Check selected={config.nivel === item.id} color="indigo" /></div><p className="mt-2 font-black">{item.label}</p><p className="mt-1 text-sm text-slate-600">{item.detail}</p></button>)}</div></div>
       <div className="grid gap-4 md:grid-cols-2">
         <div><Label required>Curso o subnivel</Label><select value={config.curso} onChange={(e) => updateCourse(e.target.value)} className={inputClass}>{COURSES[config.nivel].map((item) => <option key={item}>{item}</option>)}</select></div>
         <div><Label required>{config.nivel === "parvularia" ? "Núcleo de aprendizaje" : "Asignatura"}</Label><select value={config.asignatura} onChange={(e) => setConfig((p) => ({ ...p, asignatura: e.target.value, unidadId: "", selectedOAIds: [], selectedOATIds: [], weeklyOAPlan: [] }))} className={inputClass}>{subjects.map((item) => <option key={item}>{item}</option>)}</select></div>
       </div>
       <div className="grid gap-4 md:grid-cols-3">
-        <div><Label>Horizonte</Label><select value={config.tiempoPlanificacion} onChange={(e) => { const value = e.target.value as TiempoPlanificacion; setConfig((p) => { const leavingInstitutionalMacro = (p.nivel === "basica" || p.nivel === "media") && isSchoolPlanningMacro(p.tiempoPlanificacion) && !isSchoolPlanningMacro(value); return ({ ...p, tiempoPlanificacion: value, periodoId: value === "mensual" ? p.mes : value === "semestral" ? (["julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"].includes(p.mes) ? "segundo-semestre" : "primer-semestre") : value === "anual" ? "anio-escolar" : p.periodoId, selectedOAIds: leavingInstitutionalMacro ? [] : p.selectedOAIds, weeklyOAPlan: [] }) }) }} className={inputClass}><option value="diaria">Diaria</option><option value="semanal">Semanal</option><option value="mensual">Mensual</option>{isBasicaMedia && <option value="semestral">Semestral</option>}{isBasicaMedia && <option value="anual">Anual</option>}</select></div>
-        {!institutionalMacro && <><div><Label>Sesiones</Label><input type="number" min={1} max={30} value={config.sesiones} onChange={(e) => setConfig((p) => ({ ...p, sesiones: Math.max(1, Number(e.target.value || 1)) }))} className={inputClass} /></div><div><Label>Minutos por sesión</Label><input type="number" min={15} max={240} step={5} value={config.duracionMinutos} onChange={(e) => setConfig((p) => ({ ...p, duracionMinutos: Math.max(15, Number(e.target.value || 45)) }))} className={inputClass} /></div></>}
+        <div><Label>Horizonte</Label><select value={config.tiempoPlanificacion} onChange={(e) => { const value = e.target.value as TiempoPlanificacion; setConfig((p) => { const leavingInstitutionalMacro = (p.nivel === "basica" || p.nivel === "media") && isSchoolPlanningMacro(p.tiempoPlanificacion) && !isSchoolPlanningMacro(value); return ({ ...p, tiempoPlanificacion: value, periodoId: value === "mensual" ? p.mes : value === "semestral" ? (["julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"].includes(p.mes) ? "segundo-semestre" : "primer-semestre") : value === "anual" ? "anio-escolar" : p.periodoId, selectedOAIds: leavingInstitutionalMacro ? [] : p.selectedOAIds, weeklyOAPlan: [] }) }) }} className={inputClass}><option value="diaria">Diaria</option><option value="semanal">Semanal</option>{isParvularia && <option value="quincenal">Quincenal</option>}<option value="mensual">Mensual</option><option value="semestral">Semestral</option>{isBasicaMedia && <option value="anual">Anual</option>}</select></div>
+        {!isParvularia && !institutionalMacro && <><div><Label>Sesiones</Label><input type="number" min={1} max={30} value={config.sesiones} onChange={(e) => setConfig((p) => ({ ...p, sesiones: Math.max(1, Number(e.target.value || 1)) }))} className={inputClass} /></div><div><Label>Minutos por sesión</Label><input type="number" min={15} max={240} step={5} value={config.duracionMinutos} onChange={(e) => setConfig((p) => ({ ...p, duracionMinutos: Math.max(15, Number(e.target.value || 45)) }))} className={inputClass} /></div></>}
         {institutionalMacro && config.tiempoPlanificacion === "mensual" && <div><Label required>Mes</Label><select value={config.periodoId} onChange={(e) => setConfig((p) => ({ ...p, periodoId: e.target.value, mes: e.target.value, weeklyOAPlan: [] }))} className={inputClass}>{SCHOOL_YEAR_MONTHS.map((item) => <option key={item} value={item}>{schoolPlanningMonthLabel(item)}</option>)}</select></div>}
         {institutionalMacro && config.tiempoPlanificacion === "semestral" && <div><Label required>Periodo</Label><select value={config.periodoId} onChange={(e) => setConfig((p) => ({ ...p, periodoId: e.target.value, weeklyOAPlan: [] }))} className={inputClass}>{SCHOOL_SEMESTER_OPTIONS.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></div>}
         {institutionalMacro && config.tiempoPlanificacion === "anual" && <div><Label>Periodo</Label><div className="rounded-xl border-2 border-slate-300 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700">Año escolar · marzo a diciembre</div></div>}
+      </div>
+      {isParvularia && <div className="rounded-2xl border-2 border-rose-300 bg-rose-50 p-5">
+        <div className="mb-4"><p className="font-black text-rose-950">Datos de la plantilla parvularia</p><p className="mt-1 text-sm text-rose-900">Estos datos aparecerán en el encabezado del documento, igual que en la planificación de referencia.</p></div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div><Label required>Educadora de Párvulos</Label><input value={config.educadoraParvularia} onChange={(e) => setConfig((p) => ({ ...p, educadoraParvularia: e.target.value }))} placeholder="Nombre de la educadora" className={inputClass} /></div>
+          <div><Label required>Asistentes de Párvulos</Label><input value={config.asistentesParvularia} onChange={(e) => setConfig((p) => ({ ...p, asistentesParvularia: e.target.value }))} placeholder="Nombres separados por –" className={inputClass} /></div>
+          <div><Label required>Fecha de inicio</Label><input type="date" value={config.fechaInicioParvularia} onChange={(e) => setConfig((p) => ({ ...p, fechaInicioParvularia: e.target.value, fechaFinParvularia: p.tiempoPlanificacion === "diaria" ? e.target.value : p.fechaFinParvularia }))} className={inputClass} /></div>
+          {config.tiempoPlanificacion !== "diaria" ? <div><Label required>Fecha de término</Label><input type="date" min={config.fechaInicioParvularia || undefined} value={config.fechaFinParvularia} onChange={(e) => setConfig((p) => ({ ...p, fechaFinParvularia: e.target.value }))} className={inputClass} /></div> : <div><Label>Período</Label><div className="rounded-xl border-2 border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-700">Jornada del día seleccionado · sin horas pedagógicas</div></div>}
+        </div>
       </div>
       {institutionalMacro && <div className="rounded-2xl border-2 border-violet-300 bg-violet-50 p-5">
         <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-black text-violet-950">Formato institucional Básica–Media</p><p className="mt-1 text-sm text-violet-900">El PDF se generará en A4 horizontal con el cronograma del Colegio Providencia: semana/fecha, OA, indicadores de evaluación y objetivo de la clase.</p></div><span className="rounded-full bg-white px-3 py-1 text-xs font-black text-violet-800 ring-1 ring-violet-300">{periodLabel}</span></div>
@@ -443,9 +518,9 @@ export default function PlannerPage() {
     </div>
   )
 
-  const result = latest && <div className="space-y-4"><div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-emerald-700 bg-emerald-50 p-4"><div><p className="text-xs font-black uppercase text-emerald-800">Planificación generada</p><p className="mt-1 font-black">{mode.label} · {config.curso}</p></div><div className="flex flex-wrap gap-2"><button onClick={editPlanning} className="rounded-xl border-2 border-slate-700 bg-white px-3 py-2 text-xs font-black">✏️ Editar datos</button><button onClick={copy} className="rounded-xl border-2 border-blue-700 bg-white px-3 py-2 text-xs font-black text-blue-800">{copied ? "✓ Copiado" : "📋 Copiar"}</button><button onClick={save} disabled={saving} className="rounded-xl border-2 border-emerald-700 bg-white px-3 py-2 text-xs font-black text-emerald-800">{saving ? "Guardando…" : "💾 Guardar"}</button><button onClick={exportPdf} disabled={exporting} className="rounded-xl border-2 border-amber-700 bg-white px-3 py-2 text-xs font-black text-amber-800">{exporting ? "Exportando…" : "📄 Exportar PDF"}</button></div></div><article className="rounded-3xl border-2 border-slate-300 bg-white p-5 md:p-8">{institutionalMacro ? <SchoolPlanningPreview meta={institutionalMeta()} content={latest.content} /> : <div className="prose prose-slate max-w-none text-sm prose-table:text-xs prose-th:p-3 prose-td:border prose-td:border-slate-300 prose-td:p-3 prose-h2:text-emerald-800 prose-h3:text-indigo-800 prose-th:bg-slate-100"><ReactMarkdown remarkPlugins={[remarkGfm]}>{latest.content}</ReactMarkdown></div>}{latest.provider && <p className="mt-6 border-t pt-3 text-xs text-slate-500">Generado mediante {latest.provider}</p>}</article><div className="rounded-2xl border-2 border-indigo-300 bg-indigo-50 p-5"><p className="font-black text-indigo-950">Ajustar planificación</p><div className="mt-3 flex flex-col gap-3 md:flex-row"><textarea value={refinement} onChange={(e) => setRefinement(e.target.value)} placeholder="Ej.: reduce la clase a 45 minutos y agrega una actividad experimental." className={`${inputClass} min-h-[90px] flex-1 font-normal`} /><button onClick={() => send(refinement, true)} disabled={!refinement.trim() || loading} className="rounded-xl bg-indigo-700 px-5 py-3 font-black text-white disabled:bg-slate-400 md:self-end">Aplicar ajuste</button></div></div></div>
+  const result = latest && <div className="space-y-4"><div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-emerald-700 bg-emerald-50 p-4"><div><p className="text-xs font-black uppercase text-emerald-800">Planificación generada</p><p className="mt-1 font-black">{isParvularia ? `Educación Parvularia · ${config.curso}` : `${mode.label} · ${config.curso}`}</p></div><div className="flex flex-wrap gap-2"><button onClick={editPlanning} className="rounded-xl border-2 border-slate-700 bg-white px-3 py-2 text-xs font-black">← Editar datos</button>{isParvularia && <button onClick={saveAndEdit} disabled={saving} className="rounded-xl border-2 border-sky-700 bg-sky-700 px-3 py-2 text-xs font-black text-white disabled:opacity-50">{saving ? "Abriendo editor…" : "✏️ Editar planificación"}</button>}<button onClick={copy} className="rounded-xl border-2 border-blue-700 bg-white px-3 py-2 text-xs font-black text-blue-800">{copied ? "✓ Copiado" : "📋 Copiar"}</button><button onClick={save} disabled={saving} className="rounded-xl border-2 border-emerald-700 bg-white px-3 py-2 text-xs font-black text-emerald-800">{saving ? "Guardando…" : "💾 Guardar"}</button><button onClick={exportPdf} disabled={exporting} className="rounded-xl border-2 border-amber-700 bg-white px-3 py-2 text-xs font-black text-amber-800">{exporting ? "Exportando…" : "📄 Exportar PDF"}</button></div></div><article className="rounded-3xl border-2 border-slate-300 bg-white p-5 md:p-8">{isParvularia ? <ParvulariaPlanningPreview content={latest.content} /> : institutionalMacro ? <SchoolPlanningPreview meta={institutionalMeta()} content={latest.content} /> : <div className="prose prose-slate max-w-none text-sm prose-table:text-xs prose-th:p-3 prose-td:border prose-td:border-slate-300 prose-td:p-3 prose-h2:text-emerald-800 prose-h3:text-indigo-800 prose-th:bg-slate-100"><ReactMarkdown remarkPlugins={[remarkGfm]}>{latest.content}</ReactMarkdown></div>}{latest.provider && <p className="mt-6 border-t pt-3 text-xs text-slate-500">Generado mediante {latest.provider}</p>}</article><div className="rounded-2xl border-2 border-indigo-300 bg-indigo-50 p-5"><p className="font-black text-indigo-950">Ajustar planificación con IA</p><div className="mt-3 flex flex-col gap-3 md:flex-row"><textarea value={refinement} onChange={(e) => setRefinement(e.target.value)} placeholder={isParvularia ? "Ej.: agrega más experiencias sensoriales con elementos naturales y refuerza el rol de la familia." : "Ej.: reduce la clase a 45 minutos y agrega una actividad experimental."} className={`${inputClass} min-h-[90px] flex-1 font-normal`} /><button onClick={() => send(refinement, true)} disabled={!refinement.trim() || loading} className="rounded-xl bg-indigo-700 px-5 py-3 font-black text-white disabled:bg-slate-400 md:self-end">Aplicar ajuste</button></div></div></div>
 
-  const stepFour = <div className="space-y-6"><div><p className="text-xs font-black uppercase tracking-[.18em] text-emerald-700">Paso 4</p><h2 className="mt-1 text-2xl font-black">Revisar y generar</h2></div>{!resultReady && <><div className="grid gap-4 rounded-3xl border-2 border-slate-300 bg-slate-50 p-6 md:grid-cols-2"><div><p className="text-xs font-black uppercase text-slate-500">Planificación</p><p className="mt-1 text-lg font-black">{institutionalMacro ? "🏫 Cronograma institucional" : `${mode.icon} ${mode.label}`}</p><p className="mt-2 text-sm text-slate-700">{institutionalMacro ? `${periodLabel} · ${config.weeklyOAPlan.length} semanas` : buildPlanningHorizonText(config.tiempoPlanificacion, config.sesiones, config.duracionMinutos)}</p>{institutionalMacro && <p className="mt-2 text-xs text-slate-600">{config.profesor} · {config.horasSemanales}</p>}</div><div><p className="text-xs font-black uppercase text-slate-500">Curso y asignatura</p><p className="mt-1 font-black">{config.curso}</p><p className="mt-1 text-sm text-slate-700">{config.asignatura}</p></div><div><p className="text-xs font-black uppercase text-slate-500">Currículum</p><p className="mt-1 text-sm font-bold">{institutionalMacro ? "Distribución OA por semana" : selectedUnit?.label || "Sin unidad específica"}</p><p className="mt-2 text-sm text-slate-700">OA: {selectedOA.map((item) => item.codigoOficial || item.id).join(", ")}</p>{institutionalMacro && <p className="mt-2 text-xs text-slate-600">{config.weeklyOAPlan.filter((week) => week.oaIds.length > 0).length}/{config.weeklyOAPlan.length} semanas completas</p>}</div><div><p className="text-xs font-black uppercase text-slate-500">Idea central</p><p className="mt-1 text-sm text-slate-700">{config.contexto.trim() || "La IA propondrá un contexto pertinente."}</p></div></div><button onClick={() => send(generationPrompt())} disabled={loading || config.selectedOAIds.length === 0 || (institutionalMacro && config.weeklyOAPlan.some((week) => week.oaIds.length === 0))} className="w-full rounded-2xl bg-emerald-700 px-6 py-4 font-black text-white shadow-lg hover:bg-emerald-800 disabled:bg-slate-400">{loading ? "Generando planificación…" : "✨ Generar planificación"}</button></>}{loading && <div className="rounded-2xl border-2 border-emerald-300 bg-emerald-50 p-5 text-center font-black text-emerald-950">EduAI está organizando OA, actividades, tiempos y evaluación…</div>}{resultReady && result}</div>
+  const stepFour = <div className="space-y-6"><div><p className="text-xs font-black uppercase tracking-[.18em] text-emerald-700">Paso 4</p><h2 className="mt-1 text-2xl font-black">Revisar y generar</h2></div>{!resultReady && <><div className="grid gap-4 rounded-3xl border-2 border-slate-300 bg-slate-50 p-6 md:grid-cols-2"><div><p className="text-xs font-black uppercase text-slate-500">Planificación</p><p className="mt-1 text-lg font-black">{institutionalMacro ? "🏫 Cronograma institucional" : `${mode.icon} ${mode.label}`}</p><p className="mt-2 text-sm text-slate-700">{isParvularia ? `${config.tiempoPlanificacion} · ${buildParvulariaDateLabel(config.fechaInicioParvularia, config.fechaFinParvularia || config.fechaInicioParvularia)}` : institutionalMacro ? `${periodLabel} · ${config.weeklyOAPlan.length} semanas` : buildPlanningHorizonText(config.tiempoPlanificacion, config.sesiones, config.duracionMinutos)}</p>{institutionalMacro && <p className="mt-2 text-xs text-slate-600">{config.profesor} · {config.horasSemanales}</p>}{isParvularia && <p className="mt-2 text-xs text-slate-600">{config.educadoraParvularia} · {config.asistentesParvularia}</p>}</div><div><p className="text-xs font-black uppercase text-slate-500">Curso y asignatura</p><p className="mt-1 font-black">{config.curso}</p><p className="mt-1 text-sm text-slate-700">{config.asignatura}</p></div><div><p className="text-xs font-black uppercase text-slate-500">Currículum</p><p className="mt-1 text-sm font-bold">{institutionalMacro ? "Distribución OA por semana" : selectedUnit?.label || "Sin unidad específica"}</p><p className="mt-2 text-sm text-slate-700">OA: {selectedOA.map((item) => item.codigoOficial || item.id).join(", ")}</p>{institutionalMacro && <p className="mt-2 text-xs text-slate-600">{config.weeklyOAPlan.filter((week) => week.oaIds.length > 0).length}/{config.weeklyOAPlan.length} semanas completas</p>}</div><div><p className="text-xs font-black uppercase text-slate-500">Idea central</p><p className="mt-1 text-sm text-slate-700">{config.contexto.trim() || "La IA propondrá un contexto pertinente."}</p></div></div><button onClick={() => send(generationPrompt())} disabled={loading || config.selectedOAIds.length === 0 || (institutionalMacro && config.weeklyOAPlan.some((week) => week.oaIds.length === 0))} className="w-full rounded-2xl bg-emerald-700 px-6 py-4 font-black text-white shadow-lg hover:bg-emerald-800 disabled:bg-slate-400">{loading ? "Generando planificación…" : "✨ Generar planificación"}</button></>}{loading && <div className="rounded-2xl border-2 border-emerald-300 bg-emerald-50 p-5 text-center font-black text-emerald-950">EduAI está organizando OA, actividades, tiempos y evaluación…</div>}{resultReady && result}</div>
 
   const content = step === 1 ? stepOne : step === 2 ? stepTwo : step === 3 ? stepThree : stepFour
 
