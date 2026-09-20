@@ -1,6 +1,6 @@
 {
-  "fecha_actualizacion": "2026-07-18",
-  "fase": "base_mineduc_completa",
+  "fecha_actualizacion": "2026-09-20",
+  "fase": "parvularia_bcep_pdf_oficial",
   "archivos_curriculares_totales": 105,
   "asignaturas_verificadas_oficialmente": 101,
   "propuestas_oficiales_verificadas": 4,
@@ -59,7 +59,24 @@
   },
   "siguiente_bloque": "ninguno",
   "ultima_validacion": "success",
-  "estado_fusion": "fusionado_en_main",
+  "estado_fusion": "en_validacion_pr",
   "commit_fusion": "feeb748d09117a3a957935fda1793af4a69fdd75",
-  "nota": "Los 105 archivos curriculares cargados por EduAI quedaron revisados y fusionados en main. Educación Parvularia mantiene seis archivos operativos, pero respeta los tres tramos oficiales SC, NM y NT sin inventar objetivos distintos para menor/mayor o NT1/NT2."
+  "nota": "Educación Parvularia fue re-auditada contra las BCEP 2018. Se mantienen 206 objetivos únicos oficiales en los tres tramos curriculares (SC, NM, NT); se corrigió OA 04 CES SC y se eliminaron residuos de navegación del sitio en descripciones.",
+  "auditoria_parvularia": {
+    "fuente": "https://parvularia.mineduc.cl/wp-content/uploads/2019/09/Bases_Curriculares_Ed_Parvularia_2018-1.pdf",
+    "fecha": "2026-09-20",
+    "estructura": {
+      "ambitos": 3,
+      "nucleos": 8,
+      "tramos": 3
+    },
+    "objetivos_unicos": 206,
+    "correcciones": [
+      "OA 04 CES SC",
+      "9 descripciones con footer web removido"
+    ],
+    "selector": "restringido al núcleo principal + OAT complementarios sin duplicar el núcleo seleccionado",
+    "fuente_tipo": "PDF oficial BCEP 2018",
+    "criterio_planificador": "núcleo principal restringido + OAT complementarios; criterios de planificación/evaluación extraídos de BCEP"
+  }
 }

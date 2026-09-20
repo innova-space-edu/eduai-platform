@@ -1,22 +1,22 @@
 {
   "metadata": {
     "nivel": "Parvularia",
-    "fuente_principal": "Bases Curriculares de la Educación Parvularia (vigentes desde 2019)",
+    "fuente_principal": "Bases Curriculares de la Educación Parvularia 2018 (BCEP)",
     "institucion": "Ministerio de Educación de Chile / Subsecretaría de Educación Parvularia",
     "source_urls": [
-      "https://parvularia.mineduc.cl/wp-content/uploads/2019/09/Bases_Curriculares_Ed_Parvularia_2018-1.pdf",
-      "https://www.curriculumnacional.cl/614/w3-propertyname-753.html",
-      "https://www.curriculumnacional.cl/614/w3-article-69957.html",
-      "https://parvularia.mineduc.cl/orientaciones-tecnico-pedagogicas/"
+      "https://parvularia.mineduc.cl/wp-content/uploads/2019/09/Bases_Curriculares_Ed_Parvularia_2018-1.pdf"
     ],
-    "estado": "estructura_y_tramos_operativos_listos",
-    "ultima_actualizacion_manual": "2026-03-28"
+    "estado": "verificado_bcep_2018",
+    "ultima_actualizacion_manual": "2026-09-20",
+    "source_url": "https://parvularia.mineduc.cl/wp-content/uploads/2019/09/Bases_Curriculares_Ed_Parvularia_2018-1.pdf",
+    "bcep_pdf": "https://parvularia.mineduc.cl/wp-content/uploads/2019/09/Bases_Curriculares_Ed_Parvularia_2018-1.pdf",
+    "fecha_consulta": "2026-09-20"
   },
   "observaciones": [
-    "La estructura curricular oficial de Educación Parvularia se organiza en Ámbitos de Experiencia y Núcleos de Aprendizaje.",
-    "Para el planificador, se recomienda separar OA de contenido y OAT.",
-    "Las experiencias pedagógicas pueden inspirarse en orientaciones oficiales y recursos divulgados por MINEDUC / Subsecretaría / Currículum Nacional.",
-    "Las actividades tipo JUNJI o sugerencias lúdicas deben usarse como inspiración pedagógica, no como reemplazo del OA oficial."
+    "La estructura curricular oficial se organiza en 3 ámbitos, 8 núcleos y 3 tramos curriculares: Sala Cuna, Nivel Medio y Transición.",
+    "Los núcleos del ámbito Desarrollo Personal y Social son transversales; sus objetivos se integran como OAT.",
+    "El selector principal de EduAI debe mostrar únicamente los objetivos del núcleo seleccionado. Los OAT complementarios se eligen por separado.",
+    "Sala Cuna Menor/Mayor, Medio Menor/Mayor y NT1/NT2 son subdivisiones operativas; los objetivos oficiales se prescriben por tramo curricular."
   ],
   "niveles_soportados": [
     "Sala Cuna Menor (0 a 1 año aprox.)",

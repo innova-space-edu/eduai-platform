@@ -116,15 +116,121 @@ export function serializeParvulariaPlanningDocument(document: ParvulariaPlanning
   return JSON.stringify(normalizeParvulariaPlanningDocument(document), null, 2)
 }
 
+function parseIsoDate(value: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value || "")
+  if (!match) return null
+  const year = Number(match[1])
+  const month = Number(match[2])
+  const day = Number(match[3])
+  const date = new Date(Date.UTC(year, month - 1, day))
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null
+  return date
+}
+
+function isoDate(date: Date) {
+  return date.toISOString().slice(0, 10)
+}
+
+function addDays(date: Date, days: number) {
+  const next = new Date(date.getTime())
+  next.setUTCDate(next.getUTCDate() + days)
+  return next
+}
+
+function addCalendarMonthsInclusive(date: Date, months: number) {
+  const originalDay = date.getUTCDate()
+  const absoluteMonth = date.getUTCFullYear() * 12 + date.getUTCMonth() + months
+  const year = Math.floor(absoluteMonth / 12)
+  const month = absoluteMonth % 12
+  const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate()
+  if (originalDay > lastDay) return new Date(Date.UTC(year, month, lastDay))
+  const exclusive = new Date(Date.UTC(year, month, originalDay))
+  exclusive.setUTCDate(exclusive.getUTCDate() - 1)
+  return exclusive
+}
+
 function localDate(value: string) {
-  if (!value) return ""
-  const [year, month, day] = value.split("-").map(Number)
-  if (!year || !month || !day) return value
-  return new Date(year, month - 1, day).toLocaleDateString("es-CL", {
+  const date = parseIsoDate(value)
+  if (!date) return value || ""
+  return new Intl.DateTimeFormat("es-CL", {
+    timeZone: "UTC",
     day: "2-digit",
     month: "long",
     year: "numeric",
-  })
+  }).format(date)
+}
+
+export function calculateParvulariaEndDate(start: string, planningHorizon: ParvulariaPlanningHorizon) {
+  const date = parseIsoDate(start)
+  if (!date) return ""
+  if (planningHorizon === "diaria") return start
+  if (planningHorizon === "semanal") return isoDate(addDays(date, 6))
+  if (planningHorizon === "quincenal") return isoDate(addDays(date, 14))
+  if (planningHorizon === "mensual") return isoDate(addCalendarMonthsInclusive(date, 1))
+  return isoDate(addCalendarMonthsInclusive(date, 6))
+}
+
+function shortDayLabel(date: Date) {
+  const weekday = new Intl.DateTimeFormat("es-CL", { timeZone: "UTC", weekday: "long" }).format(date)
+  const dayMonth = new Intl.DateTimeFormat("es-CL", { timeZone: "UTC", day: "2-digit", month: "long" }).format(date)
+  return `${weekday.charAt(0).toUpperCase() + weekday.slice(1)} ${dayMonth}`
+}
+
+export function buildParvulariaPeriodGuide(
+  start: string,
+  end: string,
+  planningHorizon: ParvulariaPlanningHorizon
+) {
+  const first = parseIsoDate(start)
+  const last = parseIsoDate(end || start)
+  if (!first || !last || last < first) return ""
+
+  if (planningHorizon === "diaria") return `Experiencia de la jornada: ${shortDayLabel(first)}.`
+
+  const days: Date[] = []
+  for (let cursor = new Date(first.getTime()); cursor <= last && days.length < 370; cursor = addDays(cursor, 1)) {
+    days.push(new Date(cursor.getTime()))
+  }
+
+  if (planningHorizon === "semanal" || planningHorizon === "quincenal") {
+    const weekdays = days.filter((date) => {
+      const weekday = date.getUTCDay()
+      return weekday !== 0 && weekday !== 6
+    })
+    return [
+      "Genera una experiencia distinta y concreta para cada día hábil del período (lunes a viernes).",
+      ...weekdays.map((date, index) => `${index + 1}. ${shortDayLabel(date)}`),
+      "Si existe un feriado institucional, el docente podrá editar esa fecha posteriormente; no dejes días hábiles sin experiencia.",
+    ].join("\n")
+  }
+
+  if (planningHorizon === "mensual") {
+    const weeks: string[] = []
+    let week = 1
+    for (let index = 0; index < days.length; index += 7) {
+      const slice = days.slice(index, index + 7)
+      if (!slice.length) continue
+      weeks.push(`Semana ${week}: ${shortDayLabel(slice[0])} a ${shortDayLabel(slice[slice.length - 1])}`)
+      week += 1
+    }
+    return [
+      "Organiza el mes por semanas y, dentro de cada semana, propone experiencias concretas para los días hábiles.",
+      ...weeks,
+    ].join("\n")
+  }
+
+  const months: string[] = []
+  const seen = new Set<string>()
+  for (const date of days) {
+    const key = `${date.getUTCFullYear()}-${date.getUTCMonth()}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    months.push(new Intl.DateTimeFormat("es-CL", { timeZone: "UTC", month: "long", year: "numeric" }).format(date))
+  }
+  return [
+    "Organiza el semestre por meses y semanas, mostrando progresión de experiencias y OA sin convertirlo en bloques horarios.",
+    ...months.map((month, index) => `${index + 1}. ${month.charAt(0).toUpperCase() + month.slice(1)}`),
+  ].join("\n")
 }
 
 export function buildParvulariaDateLabel(start: string, end?: string) {

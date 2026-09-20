@@ -1,0 +1,171 @@
+{
+  "metadata": {
+    "titulo": "Bases Curriculares de la Educación Parvularia",
+    "organismo": "Ministerio de Educación de Chile / Subsecretaría de Educación Parvularia",
+    "publicacion": "Febrero 2018",
+    "fuente_oficial": "https://parvularia.mineduc.cl/wp-content/uploads/2019/09/Bases_Curriculares_Ed_Parvularia_2018-1.pdf",
+    "fecha_revision_eduai": "2026-09-20",
+    "uso": "Contexto oficial para selección curricular, planificación, evaluación, ambientes y trabajo con familia/comunidad en EduAI"
+  },
+  "estructura_curricular": {
+    "ambitos": [
+      {
+        "nombre": "Desarrollo Personal y Social",
+        "caracter": "transversal",
+        "nucleos": [
+          "Identidad y Autonomía",
+          "Convivencia y Ciudadanía",
+          "Corporalidad y Movimiento"
+        ]
+      },
+      {
+        "nombre": "Comunicación Integral",
+        "nucleos": [
+          "Lenguaje Verbal",
+          "Lenguajes Artísticos"
+        ]
+      },
+      {
+        "nombre": "Interacción y Comprensión del Entorno",
+        "nucleos": [
+          "Exploración del Entorno Natural",
+          "Comprensión del Entorno Sociocultural",
+          "Pensamiento Matemático"
+        ]
+      }
+    ],
+    "tramos": [
+      {
+        "id": "SC",
+        "nombre": "1° Nivel (Sala Cuna)",
+        "referencia": "hacia los dos años",
+        "operativos": [
+          "Sala Cuna Menor",
+          "Sala Cuna Mayor"
+        ]
+      },
+      {
+        "id": "NM",
+        "nombre": "2° Nivel (Medio)",
+        "referencia": "hacia los cuatro años",
+        "operativos": [
+          "Medio Menor",
+          "Medio Mayor"
+        ]
+      },
+      {
+        "id": "NT",
+        "nombre": "3° Nivel (Transición)",
+        "referencia": "hacia los seis años",
+        "operativos": [
+          "NT1 / Prekínder",
+          "NT2 / Kínder"
+        ]
+      }
+    ],
+    "regla_tramos": "Los OA se prescriben por tramos curriculares de dos años. Las subdivisiones Menor/Mayor y NT1/NT2 son operativas y no constituyen conjuntos distintos de OA oficiales."
+  },
+  "principios_pedagogicos": [
+    {
+      "nombre": "Bienestar",
+      "aplicacion": "Resguardar integridad, dignidad, seguridad, confort y necesidades/intereses durante toda experiencia."
+    },
+    {
+      "nombre": "Unidad",
+      "aplicacion": "Diseñar experiencias integrales que involucren sentidos, emoción, pensamiento, corporalidad y experiencias previas."
+    },
+    {
+      "nombre": "Singularidad",
+      "aplicacion": "Adaptar a ritmos, características, intereses, fortalezas, cultura y necesidades de cada niña y niño."
+    },
+    {
+      "nombre": "Actividad",
+      "aplicacion": "Párvulos protagonistas que se apropian, construyen y comunican aprendizajes en ambientes enriquecidos y lúdicos."
+    },
+    {
+      "nombre": "Juego",
+      "aplicacion": "Considerar el juego como actividad natural y estrategia pedagógica privilegiada, con flexibilidad y motivación."
+    },
+    {
+      "nombre": "Relación",
+      "aplicacion": "Favorecer interacciones positivas, respetuosas y significativas con pares y adultos."
+    },
+    {
+      "nombre": "Significado",
+      "aplicacion": "Conectar experiencias con conocimientos previos, intereses, vida cotidiana y oportunidades de exploración, creación e interacción."
+    },
+    {
+      "nombre": "Potenciación",
+      "aplicacion": "Proponer desafíos posibles en ambientes enriquecidos, fortaleciendo confianza, talentos y aprendizaje desde los errores."
+    }
+  ],
+  "planificacion": {
+    "relacion_con_evaluacion": "Planificación y evaluación deben mantenerse interrelacionadas y retroalimentarse mediante evidencias de aprendizaje.",
+    "largo_mediano_plazo": {
+      "horizontes": [
+        "anual",
+        "semestral"
+      ],
+      "criterios": [
+        "Asegurar cobertura equilibrada de los ocho núcleos y sus OA.",
+        "Revisar y jerarquizar OA según complejidad, trayectoria, características y aprendizajes previos.",
+        "Usar información inicial del grupo, familias y comunidad.",
+        "Priorizar y distribuir OA en un marco temporal flexible.",
+        "Seleccionar experiencias donde exista protagonismo infantil, intereses y juego.",
+        "Integrar recursos y procedimientos generales de evaluación coherentes con los OA.",
+        "Incorporar adaptaciones, hitos de la comunidad y formatos flexibles."
+      ]
+    },
+    "corto_plazo": {
+      "horizontes": [
+        "jornada diaria",
+        "semana"
+      ],
+      "criterios": [
+        "Diseñar experiencias específicas alineadas a OA intencionados.",
+        "Permitir cambios durante la jornada según reacciones, intereses y aprendizaje observado.",
+        "Integrar habilidades, actitudes y conocimientos del OA mediante exploración, problematización y transferencia a situaciones cotidianas.",
+        "En Sala Cuna y Nivel Medio privilegiar experiencias más breves y atención continua a variaciones de interés.",
+        "Habilitar escenarios y momentos para juego libre y espontáneo cuando sea pertinente."
+      ]
+    }
+  },
+  "evaluacion": {
+    "enfoque": "Evaluación para el aprendizaje, auténtica, formadora y vinculada a la planificación.",
+    "evidencias": [
+      "observaciones",
+      "fotografías",
+      "grabaciones",
+      "producciones",
+      "desempeños en situaciones cotidianas y experiencias de aprendizaje"
+    ],
+    "criterios": [
+      "Comprender el alcance del OA y construir criterios o indicadores que permitan reconocer avances.",
+      "Recoger evidencias en situaciones cotidianas y funcionales, sin depender de momentos formales especiales.",
+      "Mantener el foco en la niña o el niño y reconocer diversidad de ritmos y formas de aprender.",
+      "Usar retroalimentación contingente, acogedora y comprensible para comunicar avances, logros y desafíos.",
+      "Utilizar la evaluación formativa para ajustar experiencias y estrategias durante el proceso.",
+      "Utilizar evaluación final cuando corresponda para verificar OA, informar a familias y apoyar transiciones, evitando juicios perentorios."
+    ]
+  },
+  "familia_y_comunidad": {
+    "criterio": "La familia es primera educadora; la planificación debe considerar información familiar y comunitaria y promover una labor conjunta, complementaria y coherente.",
+    "uso_en_planificacion": [
+      "recoger intereses y antecedentes",
+      "apoyar continuidad de experiencias",
+      "integrar costumbres y recursos comunitarios",
+      "comunicar avances y desafíos"
+    ]
+  },
+  "ambientes_aprendizaje": {
+    "enfoque": "Los ambientes de aprendizaje integran interacciones pedagógicas, espacios y tiempos; cualquier escenario puede transformarse intencionalmente en un ambiente de aprendizaje.",
+    "criterios": [
+      "Promover participación activa de los párvulos y considerar sus preguntas e iniciativas como puntos de partida.",
+      "Construir vínculos afectivos positivos y estables; observar, escuchar y responder a características, necesidades e intereses.",
+      "Asumir la mediación pedagógica como puente para ampliar aprendizajes sin sustituir el protagonismo infantil.",
+      "Organizar espacios seguros, acogedores, estéticos, ventilados, iluminados y con materiales accesibles y pertinentes.",
+      "Usar espacios interiores y exteriores, comunitarios y naturales como escenarios educativos cuando sean pertinentes.",
+      "Organizar el tiempo con experiencias variadas y equilibradas, respetando ritmos, descanso, juego, alimentación y bienestar."
+    ]
+  }
+}

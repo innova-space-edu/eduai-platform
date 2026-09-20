@@ -2,6 +2,7 @@ import {
   cursoToKey,
   getCurriculumRecord,
   getOAs,
+  getParvulariaIntegratedItems,
   getParvulariaAmbitoForCurso,
   getParvulariaOATForCurso,
   normalizeAsignatura,
@@ -135,6 +136,8 @@ export interface PlannerOption {
   id: string
   label: string
   description?: string
+  ambito?: string
+  nucleo?: string
 }
 
 export interface PlannerCurriculumState {
@@ -291,16 +294,20 @@ export function getPlannerUnits(state: PlannerCurriculumState): PlannerUnit[] {
   return []
 }
 
-// Parvularia: getOAs() ya devuelve OA integrados de todo el subnivel/curso, por lo que aquí se pueden combinar OA de varios núcleos.
+// En Parvularia el selector principal queda estrictamente acotado al Ámbito/Núcleo elegido.
+// Los núcleos de Desarrollo Personal y Social devuelven sus OAT como objetivos principales;
+// los otros núcleos devuelven sus OA de contenido. Los OAT complementarios se eligen aparte.
 export function getPlannerOAOptions(state: PlannerCurriculumState, selectedUnitId?: string): OA[] {
+  if (state.nivel === "parvularia") {
+    const target = normalizeAsignatura(state.asignatura, "parvularia")
+    return getParvulariaIntegratedItems(state.curso).filter(
+      (item) => normalizeAsignatura(item.nucleo || "", "parvularia") === target
+    )
+  }
+
   const all = getOAs(state.nivel, state.curso, state.asignatura)
   if (!selectedUnitId) return all
-
-  return all.filter((oa) => {
-    if (state.nivel === "parvularia") return true
-    if (oa.unidadId) return oa.unidadId === selectedUnitId
-    return false
-  })
+  return all.filter((oa) => oa.unidadId === selectedUnitId)
 }
 
 export function getParvulariaAmbito(curso: string, asignatura: string): string {

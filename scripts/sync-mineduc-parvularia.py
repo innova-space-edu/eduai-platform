@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 """Sincroniza los tres tramos oficiales y los seis archivos operativos de Parvularia.
 
-Currículum Nacional define tres tramos oficiales: Sala Cuna (SC), Nivel Medio
-(NM) y Nivel Transición (NT). EduAI conserva seis nombres operativos para la
-planificación, pero cada par comparte exactamente los OA/OAT del tramo oficial:
+La fuente curricular canónica es el PDF oficial de las Bases Curriculares de
+la Educación Parvularia 2018 publicado por la Subsecretaría de Educación
+Parvularia. Currículum Nacional se usa como espejo estructurado para automatizar
+la extracción y contrastar los OA/OAT.
+
+EduAI conserva seis nombres operativos para la planificación, pero cada par
+comparte exactamente los OA/OAT del tramo oficial:
 
 - sala_cuna_menor y sala_cuna_mayor -> SC
 - medio_menor y medio_mayor -> NM
@@ -27,9 +31,10 @@ from bs4 import BeautifulSoup, Tag
 ROOT = Path(__file__).resolve().parents[1]
 MINEDUC_ROOT = ROOT / "data" / "mineduc"
 PARVULARIA_ROOT = MINEDUC_ROOT / "parvularia"
-CONSULT_DATE = "2026-07-18"
-BASE_CURRICULAR = "Bases Curriculares de Educación Parvularia (vigentes desde 2019)"
+CONSULT_DATE = "2026-09-20"
+BASE_CURRICULAR = "Bases Curriculares de la Educación Parvularia 2018 (BCEP)"
 BASE_CURRICULAR_ID = "parvularia"
+OFFICIAL_BCEP_PDF = "https://parvularia.mineduc.cl/wp-content/uploads/2019/09/Bases_Curriculares_Ed_Parvularia_2018-1.pdf"
 CANONICAL_AVAILABLE = True
 
 NUCLEI = OrderedDict(
@@ -131,8 +136,25 @@ TRAMOS = OrderedDict(
 CODE_PATTERN = re.compile(r"\b(OAT|OA) (\d{2}) (IA|CC|CM|LV|LA|EEN|CES|PM) (SC|NM|NT)\b")
 
 
+FOOTER_MARKERS = (
+    "Unidad de Currículum y Evaluación Ministerio de Educación",
+    "Teléfono: +56 2 24066000",
+    "Ayuda Mineduc",
+    "Acerca de este sitio",
+    "Políticas de Privacidad",
+)
+
+
 def clean(text: str) -> str:
     return re.sub(r"\s+", " ", text.replace("\xa0", " ")).strip()
+
+
+def strip_site_footer(text: str) -> str:
+    value = text.strip()
+    positions = [value.find(marker) for marker in FOOTER_MARKERS if marker in value]
+    if positions:
+        value = value[: min(positions)]
+    return value.strip()
 
 
 def curl(url: str, retries: int) -> str:
@@ -210,7 +232,7 @@ def extract_description(heading: Tag) -> str:
     if bullets:
         body = f"{body}\n" if body else ""
         body += "\n".join(f"- {item}" for item in bullets)
-    return body.strip()
+    return strip_site_footer(body)
 
 
 def parse_scope(url: str, tramo_code: str, expected_kind: str, allowed_nuclei: set[str]) -> list[dict]:
@@ -310,9 +332,9 @@ def build_tramo(tramo_code: str, config: dict) -> tuple[dict, list[str], int, in
             "nivel": "Parvularia",
             "tramo_oficial": tramo_code,
             "nombre_tramo_oficial": config["official_name"],
-            "fuente": "Currículum Nacional - MINEDUC Chile",
-            "source_url": source_urls[0],
-            "source_urls": source_urls,
+            "fuente": "Bases Curriculares de la Educación Parvularia 2018 - MINEDUC Chile",
+            "source_url": OFFICIAL_BCEP_PDF,
+            "source_urls": [OFFICIAL_BCEP_PDF],
             "base_curricular": BASE_CURRICULAR,
             "estado_verificacion": "verificado_oficial",
             "alcance_verificacion": ["oa_contenido", "oat"],
@@ -360,8 +382,8 @@ def write_operational_files(
         registry_entries.append(
             {
                 "key": key,
-                "url": source_urls[0],
-                "urls": source_urls,
+                "url": OFFICIAL_BCEP_PDF,
+                "urls": [OFFICIAL_BCEP_PDF],
                 "tramo": tramo_code,
                 "content_count": content_count,
                 "oat_count": oat_count,
