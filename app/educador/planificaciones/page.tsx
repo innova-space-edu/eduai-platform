@@ -131,6 +131,207 @@ function compactTitle(item: SavedPlanning) {
   return `Planificación ${course} · ${subject} · ${date}`
 }
 
+
+type PlanningAreaFolder = {
+  key: string
+  label: string
+  kind: "Ámbito" | "Asignatura"
+  items: SavedPlanning[]
+}
+
+type PlanningDateFolder = {
+  key: string
+  label: string
+  sortValue: number
+  areas: PlanningAreaFolder[]
+}
+
+type PlanningMonthFolder = {
+  key: string
+  label: string
+  sortValue: number
+  dates: PlanningDateFolder[]
+}
+
+type PlanningYearFolder = {
+  key: string
+  label: string
+  sortValue: number
+  months: PlanningMonthFolder[]
+}
+
+function capitalize(value: string) {
+  return value ? value.charAt(0).toUpperCase() + value.slice(1) : value
+}
+
+function safePlanningDate(value?: string | null) {
+  if (!value) return null
+  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T12:00:00` : value
+  const date = new Date(normalized)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
+function getPlanningReferenceDate(item: SavedPlanning) {
+  const saved = item.planning_json || {}
+  const organization =
+    saved.folder_organization && typeof saved.folder_organization === "object"
+      ? saved.folder_organization as Record<string, unknown>
+      : null
+
+  const candidates = [
+    typeof organization?.date === "string" ? organization.date : "",
+    typeof saved.fechaInicioParvularia === "string" ? saved.fechaInicioParvularia : "",
+    typeof saved.fechaPlanificacion === "string" ? saved.fechaPlanificacion : "",
+    typeof saved.fecha === "string" ? saved.fecha : "",
+    item.created_at,
+  ]
+
+  for (const candidate of candidates) {
+    const date = safePlanningDate(candidate)
+    if (date) return date
+  }
+
+  return new Date()
+}
+
+function getPlanningFolderPath(item: SavedPlanning) {
+  const saved = item.planning_json || {}
+  const organization =
+    saved.folder_organization && typeof saved.folder_organization === "object"
+      ? saved.folder_organization as Record<string, unknown>
+      : null
+  const date = getPlanningReferenceDate(item)
+  const year = String(
+    typeof organization?.year === "number" || typeof organization?.year === "string"
+      ? organization.year
+      : date.getFullYear()
+  )
+  const monthNumber = date.getMonth() + 1
+  const monthLabel =
+    typeof organization?.month_label === "string" && organization.month_label.trim()
+      ? capitalize(organization.month_label.trim())
+      : capitalize(date.toLocaleDateString("es-CL", { month: "long" }))
+  const dateKey =
+    typeof organization?.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(organization.date)
+      ? organization.date
+      : `${date.getFullYear()}-${String(monthNumber).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
+  const area =
+    (typeof organization?.area === "string" && organization.area.trim())
+      ? organization.area.trim()
+      : (item.asignatura || item.subject || (item.nivel === "parvularia" ? "Ámbito sin nombre" : "Sin asignatura"))
+  const kind: "Ámbito" | "Asignatura" =
+    organization?.area_kind === "ambito" || item.nivel === "parvularia" ? "Ámbito" : "Asignatura"
+
+  return {
+    year,
+    yearNumber: Number(year) || date.getFullYear(),
+    monthKey: `${year}-${String(monthNumber).padStart(2, "0")}`,
+    monthLabel,
+    monthNumber,
+    dateKey,
+    dateLabel: capitalize(date.toLocaleDateString("es-CL", { day: "2-digit", month: "long", year: "numeric" })),
+    dateSortValue: date.getTime(),
+    area,
+    kind,
+  }
+}
+
+function buildPlanningTree(items: SavedPlanning[]): PlanningYearFolder[] {
+  const years = new Map<string, {
+    key: string
+    label: string
+    sortValue: number
+    months: Map<string, {
+      key: string
+      label: string
+      sortValue: number
+      dates: Map<string, {
+        key: string
+        label: string
+        sortValue: number
+        areas: Map<string, PlanningAreaFolder>
+      }>
+    }>
+  }>()
+
+  for (const item of items) {
+    const path = getPlanningFolderPath(item)
+    const year = years.get(path.year) || {
+      key: path.year,
+      label: path.year,
+      sortValue: path.yearNumber,
+      months: new Map(),
+    }
+    years.set(path.year, year)
+
+    const month = year.months.get(path.monthKey) || {
+      key: path.monthKey,
+      label: path.monthLabel,
+      sortValue: path.monthNumber,
+      dates: new Map(),
+    }
+    year.months.set(path.monthKey, month)
+
+    const date = month.dates.get(path.dateKey) || {
+      key: path.dateKey,
+      label: path.dateLabel,
+      sortValue: path.dateSortValue,
+      areas: new Map(),
+    }
+    month.dates.set(path.dateKey, date)
+
+    const areaKey = `${path.kind}:${path.area.toLocaleLowerCase("es-CL")}`
+    const area = date.areas.get(areaKey) || {
+      key: areaKey,
+      label: path.area,
+      kind: path.kind,
+      items: [],
+    }
+    area.items.push(item)
+    date.areas.set(areaKey, area)
+  }
+
+  return Array.from(years.values())
+    .sort((a, b) => b.sortValue - a.sortValue)
+    .map((year) => ({
+      key: year.key,
+      label: year.label,
+      sortValue: year.sortValue,
+      months: Array.from(year.months.values())
+        .sort((a, b) => b.sortValue - a.sortValue)
+        .map((month) => ({
+          key: month.key,
+          label: month.label,
+          sortValue: month.sortValue,
+          dates: Array.from(month.dates.values())
+            .sort((a, b) => b.sortValue - a.sortValue)
+            .map((date) => ({
+              key: date.key,
+              label: date.label,
+              sortValue: date.sortValue,
+              areas: Array.from(date.areas.values())
+                .sort((a, b) => a.label.localeCompare(b.label, "es-CL"))
+                .map((area) => ({
+                  ...area,
+                  items: [...area.items].sort(
+                    (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+                  ),
+                })),
+            })),
+        })),
+    }))
+}
+
+function countFolderItems(folder: PlanningYearFolder | PlanningMonthFolder | PlanningDateFolder): number {
+  if ("months" in folder) {
+    return folder.months.reduce((total, month) => total + countFolderItems(month), 0)
+  }
+  if ("dates" in folder) {
+    return folder.dates.reduce((total, date) => total + countFolderItems(date), 0)
+  }
+  return folder.areas.reduce((total, area) => total + area.items.length, 0)
+}
+
 export default function SavedPlanningsPage() {
   const router = useRouter()
   const supabase = useMemo(() => createClient(), [])
@@ -141,6 +342,7 @@ export default function SavedPlanningsPage() {
   const [query, setQuery] = useState("")
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [exportingId, setExportingId] = useState<string | null>(null)
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(() => new Set())
 
   useEffect(() => {
     let active = true
@@ -191,6 +393,35 @@ export default function SavedPlanningsPage() {
         .some((value) => String(value).toLowerCase().includes(q))
     )
   }, [items, query])
+
+  const folderTree = useMemo(() => buildPlanningTree(filtered), [filtered])
+
+  useEffect(() => {
+    if (!items.length) return
+    const path = getPlanningFolderPath(items[0])
+    setExpandedFolders((current) => {
+      if (current.size) return current
+      return new Set([
+        `year:${path.year}`,
+        `month:${path.year}:${path.monthKey}`,
+        `date:${path.year}:${path.monthKey}:${path.dateKey}`,
+        `area:${path.year}:${path.monthKey}:${path.dateKey}:${path.kind}:${path.area.toLocaleLowerCase("es-CL")}`,
+      ])
+    })
+  }, [items])
+
+  function isFolderOpen(key: string) {
+    return Boolean(query.trim()) || expandedFolders.has(key)
+  }
+
+  function toggleFolder(key: string) {
+    setExpandedFolders((current) => {
+      const next = new Set(current)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
 
   async function handleDelete(id: string, title: string) {
     const ok = window.confirm(`¿Seguro que deseas eliminar la planificación "${title}"?`)
@@ -257,7 +488,7 @@ export default function SavedPlanningsPage() {
                 Planificaciones guardadas
               </h1>
               <p className="mt-1 text-sm font-medium text-slate-600">
-                Vista clara para revisar, editar, exportar y eliminar tus planificaciones.
+                Tus planificaciones se organizan automáticamente por año, mes, fecha y asignatura o ámbito.
               </p>
             </div>
           </div>
@@ -266,7 +497,7 @@ export default function SavedPlanningsPage() {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar por título, curso, asignatura o contexto..."
+              placeholder="Buscar por título, curso, asignatura, ámbito o contexto..."
               className="w-full rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-900 placeholder:text-slate-400 shadow-sm outline-none transition focus:border-emerald-300 focus:ring-4 focus:ring-emerald-100"
             />
           </div>
@@ -312,13 +543,106 @@ export default function SavedPlanningsPage() {
             </Link>
           </div>
         ) : (
-          <div className="grid gap-5">
-            {filtered.map((item) => {
-              const preview = planningPreview(item)
-              const stats = getPlanningStats(item)
-
+          <div className="space-y-4">
+            {folderTree.map((yearFolder) => {
+              const yearKey = `year:${yearFolder.key}`
               return (
-                <article
+                <section key={yearFolder.key} className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
+                  <button
+                    type="button"
+                    onClick={() => toggleFolder(yearKey)}
+                    className="flex w-full items-center justify-between gap-4 bg-slate-950 px-5 py-4 text-left text-white transition hover:bg-slate-900"
+                  >
+                    <span className="flex items-center gap-3">
+                      <span className="text-xl">📁</span>
+                      <span>
+                        <span className="block text-xs font-black uppercase tracking-[0.18em] text-slate-300">Año</span>
+                        <span className="text-xl font-black">{yearFolder.label}</span>
+                      </span>
+                    </span>
+                    <span className="flex items-center gap-3">
+                      <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold">{countFolderItems(yearFolder)} planificaciones</span>
+                      <span className="text-lg">{isFolderOpen(yearKey) ? "▾" : "▸"}</span>
+                    </span>
+                  </button>
+
+                  {isFolderOpen(yearKey) && (
+                    <div className="space-y-3 bg-slate-50 p-3 md:p-4">
+                      {yearFolder.months.map((monthFolder) => {
+                        const monthKey = `month:${yearFolder.key}:${monthFolder.key}`
+                        return (
+                          <section key={monthFolder.key} className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                            <button
+                              type="button"
+                              onClick={() => toggleFolder(monthKey)}
+                              className="flex w-full items-center justify-between gap-4 px-5 py-3 text-left transition hover:bg-emerald-50"
+                            >
+                              <span className="flex items-center gap-3">
+                                <span>📂</span>
+                                <span className="font-black text-slate-900">{monthFolder.label}</span>
+                              </span>
+                              <span className="flex items-center gap-3 text-xs font-bold text-slate-500">
+                                <span>{countFolderItems(monthFolder)}</span>
+                                <span>{isFolderOpen(monthKey) ? "▾" : "▸"}</span>
+                              </span>
+                            </button>
+
+                            {isFolderOpen(monthKey) && (
+                              <div className="space-y-3 border-t border-slate-100 bg-slate-50/70 p-3">
+                                {monthFolder.dates.map((dateFolder) => {
+                                  const dateKey = `date:${yearFolder.key}:${monthFolder.key}:${dateFolder.key}`
+                                  return (
+                                    <section key={dateFolder.key} className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                                      <button
+                                        type="button"
+                                        onClick={() => toggleFolder(dateKey)}
+                                        className="flex w-full items-center justify-between gap-4 px-5 py-3 text-left transition hover:bg-sky-50"
+                                      >
+                                        <span className="flex items-center gap-3">
+                                          <span>🗓️</span>
+                                          <span>
+                                            <span className="block text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Fecha</span>
+                                            <span className="font-extrabold text-slate-800">{dateFolder.label}</span>
+                                          </span>
+                                        </span>
+                                        <span className="flex items-center gap-3 text-xs font-bold text-slate-500">
+                                          <span>{countFolderItems(dateFolder)}</span>
+                                          <span>{isFolderOpen(dateKey) ? "▾" : "▸"}</span>
+                                        </span>
+                                      </button>
+
+                                      {isFolderOpen(dateKey) && (
+                                        <div className="space-y-3 border-t border-slate-100 p-3">
+                                          {dateFolder.areas.map((areaFolder) => {
+                                            const areaKey = `area:${yearFolder.key}:${monthFolder.key}:${dateFolder.key}:${areaFolder.key}`
+                                            return (
+                                              <section key={areaFolder.key} className="overflow-hidden rounded-2xl border border-emerald-100 bg-emerald-50/40">
+                                                <button
+                                                  type="button"
+                                                  onClick={() => toggleFolder(areaKey)}
+                                                  className="flex w-full items-center justify-between gap-4 px-5 py-3 text-left transition hover:bg-emerald-50"
+                                                >
+                                                  <span className="flex items-center gap-3">
+                                                    <span>📚</span>
+                                                    <span>
+                                                      <span className="block text-[10px] font-black uppercase tracking-[0.16em] text-emerald-700">{areaFolder.kind}</span>
+                                                      <span className="font-black text-slate-900">{areaFolder.label}</span>
+                                                    </span>
+                                                  </span>
+                                                  <span className="flex items-center gap-3 text-xs font-bold text-emerald-800">
+                                                    <span>{areaFolder.items.length}</span>
+                                                    <span>{isFolderOpen(areaKey) ? "▾" : "▸"}</span>
+                                                  </span>
+                                                </button>
+
+                                                {isFolderOpen(areaKey) && (
+                                                  <div className="grid gap-4 border-t border-emerald-100 bg-white p-3 md:p-4">
+                                                    {areaFolder.items.map((item) => {
+                                                      const preview = planningPreview(item)
+                                                      const stats = getPlanningStats(item)
+
+                                                      return (
+                                                        <article
                   key={item.id}
                   className="overflow-hidden rounded-[30px] border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
                 >
@@ -402,7 +726,27 @@ export default function SavedPlanningsPage() {
                       </div>
                     </div>
                   </div>
-                </article>
+                                                        </article>
+                                                      )
+                                                    })}
+                                                  </div>
+                                                )}
+                                              </section>
+                                            )
+                                          })}
+                                        </div>
+                                      )}
+                                    </section>
+                                  )
+                                })}
+                              </div>
+                            )}
+                          </section>
+                        )
+                      })}
+                    </div>
+                  )}
+                </section>
               )
             })}
           </div>

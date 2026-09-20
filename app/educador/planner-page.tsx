@@ -323,6 +323,7 @@ export default function PlannerPage() {
         "Usa la plantilla institucional de siete columnas de Educación Parvularia y completa todos sus campos.",
         "El documento debe contener exactamente tres planificaciones/jornadas diarias: 1) exploración y experiencia principal, 2) expresión artística y sensorial, 3) lenguaje verbal, lectura y comunicación.",
         "En semanal y quincenal crea tres actividades diferentes para cada día hábil: una actividad por cada jornada.",
+        "En TODOS los horizontes, cada actividad del Desarrollo debe ser una oración pedagógica completa y breve, no un título: aproximadamente 100-180 caracteres de contenido con acción del párvulo, material o estímulo, forma de exploración/mediación y propósito o respuesta observable.",
         "La tercera jornada debe enfatizar oralidad, relatos, lectura compartida, canciones, vocabulario, balbuceo/gestos o conversación según la edad, sin inventar OA distintos a los seleccionados.",
         "No organices por horas pedagógicas, número de clases ni minutos; distribuye las experiencias de acuerdo con el período, la jornada y el ritmo del grupo.",
         selectedOAContext ? `OA seleccionados:\n${selectedOAContext}` : "",
@@ -372,11 +373,37 @@ export default function PlannerPage() {
     } finally { setLoading(false) }
   }
   function title() { return isParvularia ? `Planificación ${config.tiempoPlanificacion} · ${config.curso} · ${config.asignatura} · ${buildParvulariaDateLabel(config.fechaInicioParvularia, config.fechaFinParvularia || config.fechaInicioParvularia)}` : institutionalMacro ? `Cronograma ${config.anioPlanificacion} · ${periodLabel} · ${config.curso} · ${config.asignatura}` : `${mode.label} · ${config.curso} · ${config.asignatura} · ${new Date().toLocaleDateString("es-CL")}` }
+
+  function localDateKey(date = new Date()) {
+    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000)
+    return local.toISOString().slice(0, 10)
+  }
+
+  function folderOrganization() {
+    const planningStart =
+      isParvularia && /^\d{4}-\d{2}-\d{2}$/.test(config.fechaInicioParvularia)
+        ? config.fechaInicioParvularia
+        : ""
+    const date = planningStart || localDateKey()
+    const parsed = new Date(`${date}T12:00:00`)
+
+    return {
+      version: 1,
+      year: parsed.getFullYear(),
+      month: parsed.getMonth() + 1,
+      month_label: parsed.toLocaleDateString("es-CL", { month: "long" }),
+      date,
+      area: config.asignatura || (isParvularia ? "Ámbito sin nombre" : "Sin asignatura"),
+      area_kind: isParvularia ? "ambito" : "asignatura",
+      date_source: planningStart ? "planning_start" : "saved_on",
+    }
+  }
+
   function payload(content: string): SavedPlanningInsert | null {
     if (!userId || !content.trim()) return null
     return {
       user_id: userId, title: title(), course: config.curso, subject: config.asignatura, unit: config.unidadId || "", planning_text: content,
-      planning_json: { ...config, plan_mode: planMode, title: title(), content, created_at: new Date().toISOString() },
+      planning_json: { ...config, plan_mode: planMode, title: title(), content, created_at: new Date().toISOString(), folder_organization: folderOrganization() },
       nivel: config.nivel, curso: config.curso, asignatura: config.asignatura, contexto: config.contexto, mes: config.mes,
       unidad_id: config.unidadId, selected_oa_ids: config.selectedOAIds, selected_oat_ids: config.selectedOATIds,
       tiempo_planificacion: config.tiempoPlanificacion, sesiones: config.sesiones, duracion_minutos: config.duracionMinutos, content,
