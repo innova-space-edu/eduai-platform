@@ -373,11 +373,37 @@ export default function PlannerPage() {
     } finally { setLoading(false) }
   }
   function title() { return isParvularia ? `Planificación ${config.tiempoPlanificacion} · ${config.curso} · ${config.asignatura} · ${buildParvulariaDateLabel(config.fechaInicioParvularia, config.fechaFinParvularia || config.fechaInicioParvularia)}` : institutionalMacro ? `Cronograma ${config.anioPlanificacion} · ${periodLabel} · ${config.curso} · ${config.asignatura}` : `${mode.label} · ${config.curso} · ${config.asignatura} · ${new Date().toLocaleDateString("es-CL")}` }
+
+  function localDateKey(date = new Date()) {
+    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000)
+    return local.toISOString().slice(0, 10)
+  }
+
+  function folderOrganization() {
+    const planningStart =
+      isParvularia && /^\d{4}-\d{2}-\d{2}$/.test(config.fechaInicioParvularia)
+        ? config.fechaInicioParvularia
+        : ""
+    const date = planningStart || localDateKey()
+    const parsed = new Date(`${date}T12:00:00`)
+
+    return {
+      version: 1,
+      year: parsed.getFullYear(),
+      month: parsed.getMonth() + 1,
+      month_label: parsed.toLocaleDateString("es-CL", { month: "long" }),
+      date,
+      area: config.asignatura || (isParvularia ? "Ámbito sin nombre" : "Sin asignatura"),
+      area_kind: isParvularia ? "ambito" : "asignatura",
+      date_source: planningStart ? "planning_start" : "saved_on",
+    }
+  }
+
   function payload(content: string): SavedPlanningInsert | null {
     if (!userId || !content.trim()) return null
     return {
       user_id: userId, title: title(), course: config.curso, subject: config.asignatura, unit: config.unidadId || "", planning_text: content,
-      planning_json: { ...config, plan_mode: planMode, title: title(), content, created_at: new Date().toISOString() },
+      planning_json: { ...config, plan_mode: planMode, title: title(), content, created_at: new Date().toISOString(), folder_organization: folderOrganization() },
       nivel: config.nivel, curso: config.curso, asignatura: config.asignatura, contexto: config.contexto, mes: config.mes,
       unidad_id: config.unidadId, selected_oa_ids: config.selectedOAIds, selected_oat_ids: config.selectedOATIds,
       tiempo_planificacion: config.tiempoPlanificacion, sesiones: config.sesiones, duracion_minutos: config.duracionMinutos, content,
