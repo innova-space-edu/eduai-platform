@@ -482,7 +482,7 @@ export default function PlannerPage() {
           <div><Label required>Fecha de inicio</Label><input type="date" value={config.fechaInicioParvularia} onChange={(e) => setConfig((p) => ({ ...p, fechaInicioParvularia: e.target.value, fechaFinParvularia: p.tiempoPlanificacion === "diaria" ? e.target.value : p.fechaFinParvularia }))} className={inputClass} /></div>
           {config.tiempoPlanificacion !== "diaria" ? <div><Label required>Fecha de término</Label><input type="date" min={config.fechaInicioParvularia || undefined} value={config.fechaFinParvularia} onChange={(e) => setConfig((p) => ({ ...p, fechaFinParvularia: e.target.value }))} className={inputClass} /></div> : <div><Label>Período</Label><div className="rounded-xl border-2 border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-700">Jornada del día seleccionado · sin horas pedagógicas</div></div>}
         </div>
-      </div>
+      </div>}
       {institutionalMacro && <div className="rounded-2xl border-2 border-violet-300 bg-violet-50 p-5">
         <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-black text-violet-950">Formato institucional Básica–Media</p><p className="mt-1 text-sm text-violet-900">El PDF se generará en A4 horizontal con el cronograma del Colegio Providencia: semana/fecha, OA, indicadores de evaluación y objetivo de la clase.</p></div><span className="rounded-full bg-white px-3 py-1 text-xs font-black text-violet-800 ring-1 ring-violet-300">{periodLabel}</span></div>
         <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
