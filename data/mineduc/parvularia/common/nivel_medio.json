@@ -8,16 +8,18 @@
     "source_urls": [
       "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/desarrollo-personal-social/nm-nivel-medio",
       "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/comunicacion-integral/nm-nivel-medio",
-      "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/interaccion-comprension-entorno/nm-nivel-medio"
+      "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/interaccion-comprension-entorno/nm-nivel-medio",
+      "https://parvularia.mineduc.cl/wp-content/uploads/2018/03/Bases_Curriculares_Ed_Parvularia_2018.pdf"
     ],
-    "base_curricular": "Bases Curriculares de Educación Parvularia (vigentes desde 2019)",
+    "base_curricular": "Bases Curriculares de la Educación Parvularia 2018 (BCEP)",
     "estado_verificacion": "verificado_oficial",
     "alcance_verificacion": [
       "oa_contenido",
       "oat"
     ],
-    "fecha_consulta": "2026-07-18",
-    "nota": "Base oficial común del tramo. Contiene los OA y OAT de los ocho núcleos establecidos por las Bases Curriculares de Educación Parvularia."
+    "fecha_consulta": "2026-09-20",
+    "nota": "Base oficial común del tramo. Contiene los OA y OAT de los ocho núcleos establecidos por las Bases Curriculares de Educación Parvularia.",
+    "auditoria_manual": "BCEP 2018 MINEDUC revisada el 20-09-2026"
   },
   "ambitos": [
     {
@@ -189,7 +191,7 @@
             {
               "id": "OAT-08-CM-NM",
               "codigo_oficial": "OAT 08 CM NM",
-              "descripcion": "Utilizar categorías de ubicación espacial y temporal, tales como: adelante/atrás, arriba/ abajo, adentro/afuera, antes/después, rápido/lento, en situaciones cotidianas y lúdicas\nUnidad de Currículum y Evaluación Ministerio de Educación\nTeléfono: +56 2 24066000\nAyuda Mineduc\nAcerca de este sitio\nPolíticas de Privacidad\n- Facebook\n- Twitter\n- Youtube\n- Instagram"
+              "descripcion": "Utilizar categorías de ubicación espacial y temporal, tales como: adelante/atrás, arriba/ abajo, adentro/afuera, antes/después, rápido/lento, en situaciones cotidianas y lúdicas"
             }
           ],
           "oa_contenido": []
@@ -284,7 +286,7 @@
             {
               "id": "OA-07-LA-NM",
               "codigo_oficial": "OA 07 LA NM",
-              "descripcion": "Representar a través del dibujo, diversos elementos de su entorno, incorporando figuras cerradas, trazos intencionados y primeros esbozos de la figura humana.\nUnidad de Currículum y Evaluación Ministerio de Educación\nTeléfono: +56 2 24066000\nAyuda Mineduc\nAcerca de este sitio\nPolíticas de Privacidad\n- Facebook\n- Twitter\n- Youtube\n- Instagram"
+              "descripcion": "Representar a través del dibujo, diversos elementos de su entorno, incorporando figuras cerradas, trazos intencionados y primeros esbozos de la figura humana."
             }
           ]
         }
@@ -440,7 +442,7 @@
             {
               "id": "OA-10-PM-NM",
               "codigo_oficial": "OA 10 PM NM",
-              "descripcion": "Identificar algunas acciones que se llevaron a cabo para resolver problemas.\nUnidad de Currículum y Evaluación Ministerio de Educación\nTeléfono: +56 2 24066000\nAyuda Mineduc\nAcerca de este sitio\nPolíticas de Privacidad\n- Facebook\n- Twitter\n- Youtube\n- Instagram"
+              "descripcion": "Identificar algunas acciones que se llevaron a cabo para resolver problemas."
             }
           ]
         }

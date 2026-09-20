@@ -8,19 +8,21 @@
     "source_urls": [
       "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/desarrollo-personal-social/sc-sala-cuna",
       "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/comunicacion-integral/sc-sala-cuna",
-      "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/interaccion-comprension-entorno/sc-sala-cuna"
+      "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/interaccion-comprension-entorno/sc-sala-cuna",
+      "https://parvularia.mineduc.cl/wp-content/uploads/2018/03/Bases_Curriculares_Ed_Parvularia_2018.pdf"
     ],
-    "base_curricular": "Bases Curriculares de Educación Parvularia (vigentes desde 2019)",
+    "base_curricular": "Bases Curriculares de la Educación Parvularia 2018 (BCEP)",
     "estado_verificacion": "verificado_oficial",
     "alcance_verificacion": [
       "oa_contenido",
       "oat"
     ],
-    "fecha_consulta": "2026-07-18",
+    "fecha_consulta": "2026-09-20",
     "nota": "Sala Cuna Mayor es una subdivisión operativa de EduAI. MINEDUC define los OA/OAT para el tramo oficial Sala Cuna (SC); por ello este archivo reproduce exactamente la base común del tramo y no inventa una progresión curricular separada.",
     "curso": "Sala Cuna Mayor",
     "subnivel_operativo": "Sala Cuna Mayor",
-    "base_oficial_compartida": "data/mineduc/parvularia/common/sala_cuna.json"
+    "base_oficial_compartida": "data/mineduc/parvularia/common/sala_cuna.json",
+    "auditoria_manual": "BCEP 2018 MINEDUC revisada el 20-09-2026"
   },
   "ambitos": [
     {
@@ -142,7 +144,7 @@
             {
               "id": "OAT-07-CM-SC",
               "codigo_oficial": "OAT 07 CM SC",
-              "descripcion": "Explorar la alternancia de posturas y movimientos en acciones tales como: trepar, lanzar objetos o hacer ronda, adquiriendo control gradual de su cuerpo al jugar.\nUnidad de Currículum y Evaluación Ministerio de Educación\nTeléfono: +56 2 24066000\nAyuda Mineduc\nAcerca de este sitio\nPolíticas de Privacidad\n- Facebook\n- Twitter\n- Youtube\n- Instagram"
+              "descripcion": "Explorar la alternancia de posturas y movimientos en acciones tales como: trepar, lanzar objetos o hacer ronda, adquiriendo control gradual de su cuerpo al jugar."
             }
           ],
           "oa_contenido": []
@@ -232,7 +234,7 @@
             {
               "id": "OA-06-LA-SC",
               "codigo_oficial": "OA 06 LA SC",
-              "descripcion": "Experimentar sus posibilidades de expresión plástica a través de diversos recursos, produciendo sus primeros garabateos espontáneos.\nUnidad de Currículum y Evaluación Ministerio de Educación\nTeléfono: +56 2 24066000\nAyuda Mineduc\nAcerca de este sitio\nPolíticas de Privacidad\n- Facebook\n- Twitter\n- Youtube\n- Instagram"
+              "descripcion": "Experimentar sus posibilidades de expresión plástica a través de diversos recursos, produciendo sus primeros garabateos espontáneos."
             }
           ]
         }
@@ -296,7 +298,7 @@
             {
               "id": "OA-04-CES-SC",
               "codigo_oficial": "OA 04 CES SC",
-              "descripcion": "Manifestar interés por canciones, juegos y bailes que forman parte de su cotidianeidad."
+              "descripcion": "Explorar utensilios domésticos y objetos tecnológicos que forman parte de su vida cotidiana, tales como: pocillos, envases de botellas, escobas, cucharas, teléfonos, entre otros, utilizándolos progresivamente en situaciones cotidianas y juegos."
             },
             {
               "id": "OA-05-CES-SC",
@@ -338,7 +340,7 @@
             {
               "id": "OA-06-PM-SC",
               "codigo_oficial": "OA 06 PM SC",
-              "descripcion": "Emplear cuantificadores (más/menos, mucho/poco), en situaciones cotidianas.\nUnidad de Currículum y Evaluación Ministerio de Educación\nTeléfono: +56 2 24066000\nAyuda Mineduc\nAcerca de este sitio\nPolíticas de Privacidad\n- Facebook\n- Twitter\n- Youtube\n- Instagram"
+              "descripcion": "Emplear cuantificadores (más/menos, mucho/poco), en situaciones cotidianas."
             }
           ]
         }
