@@ -11,7 +11,6 @@ import {
 } from "react";
 import {
   EDU_MUSIC_TRACKS,
-  SYSTEM_PLAYLISTS,
   getTracksForPlaylist,
   type EduMusicMood,
   type EduMusicPlaylist,
@@ -280,8 +279,10 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const [volume, setVolume] = useState(0.62);
   const [playing, setPlaying] = useState(false);
   const [hasActiveSession, setHasActiveSession] = useState(false);
-  const [currentId, setCurrentId] = useState(EDU_MUSIC_TRACKS[0]?.id);
-  const [selectedPlaylistId, setSelectedPlaylistId] = useState(SYSTEM_PLAYLISTS[0]?.id);
+  const [currentId, setCurrentId] = useState(
+    EDU_MUSIC_TRACKS.find((track) => track.source !== "eduai")?.id,
+  );
+  const [selectedPlaylistId, setSelectedPlaylistId] = useState("pl-radio");
   const [likedTrackIds, setLikedTrackIds] = useState<string[]>([]);
   const [userPlaylists, setUserPlaylists] = useState<EduMusicPlaylist[]>([]);
   const [onlineTracks, setOnlineTracks] = useState<EduMusicTrack[]>([]);
@@ -290,13 +291,16 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const [createOpen, setCreateOpen] = useState(false);
   const [queueIds, setQueueIds] = useState<string[]>([]);
   const [shuffle, setShuffle] = useState(false);
-  const [repeat, setRepeat] = useState<RepeatMode>("all");
+  const [repeat, setRepeat] = useState<RepeatMode>("off");
   const [currentTime, setCurrentTime] = useState(0);
   const [durationSeconds, setDurationSeconds] = useState(0);
 
   const allTracks = useMemo(() => {
     const byId = new Map<string, EduMusicTrack>();
-    [...EDU_MUSIC_TRACKS, ...onlineTracks].forEach((track) => byId.set(track.id, track));
+    [
+      ...EDU_MUSIC_TRACKS.filter((track) => track.source !== "eduai"),
+      ...onlineTracks,
+    ].forEach((track) => byId.set(track.id, track));
     return Array.from(byId.values());
   }, [onlineTracks]);
 
@@ -354,7 +358,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       trackIds: radioTracks.map((track) => track.id),
       system: true,
     };
-    return [...SYSTEM_PLAYLISTS, radioPlaylist, onlinePlaylist, likedPlaylist, ...userPlaylists];
+    return [radioPlaylist, onlinePlaylist, likedPlaylist, ...userPlaylists];
   }, [likedTrackIds, onlineTracks, radioTracks, userPlaylists]);
 
   const selectedPlaylist = useMemo(
@@ -368,7 +372,11 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   );
 
   const currentTrack = useMemo(
-    () => getTrack(currentId) ?? allTracks[0] ?? EDU_MUSIC_TRACKS[0],
+    () =>
+      getTrack(currentId) ??
+      allTracks[0] ??
+      EDU_MUSIC_TRACKS.find((track) => track.source !== "eduai") ??
+      EDU_MUSIC_TRACKS[0],
     [allTracks, currentId, getTrack],
   );
 
@@ -621,15 +629,13 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   }, [playing, currentTrack?.id, currentTrack?.source, currentTime]);
 
   const playTrack = useCallback(
-    (track: EduMusicTrack, queueFrom?: EduMusicTrack[]) => {
+    (track: EduMusicTrack, _queueFrom?: EduMusicTrack[]) => {
       setHasActiveSession(true);
-      if (queueFrom?.length) setQueueIds(queueFrom.map((t) => t.id));
 
-      // DJ y Videos siempre usan una cola continua de pistas distintas: no
-      // heredan por accidente el modo "repetir una" guardado en el navegador.
+      // Reproducir una canción no llena la cola de forma implícita. La cola
+      // contiene solo elementos agregados por el usuario o una playlist que
+      // haya decidido reproducir completa.
       if (isYouTubeQueueTrack(track)) {
-        setShuffle(true);
-        setRepeat("all");
         // Si veníamos de otro video, ignoramos el evento de cierre atrasado.
         youtubeTransitionUntilRef.current = Date.now() + 1400;
       }
@@ -727,14 +733,11 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const list = queue.length
-      ? queue
-      : visibleTracks.length
-        ? visibleTracks
-        : baseTracks.length
-          ? baseTracks
-          : allTracks;
-    if (!list.length) return;
+    const list = queue;
+    if (!list.length) {
+      setPlaying(false);
+      return;
+    }
 
     if (shuffle && list.length > 1) {
       const others = list.filter((track) => track.id !== currentId);
@@ -754,7 +757,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     } else {
       setPlaying(false);
     }
-  }, [allTracks, baseTracks, currentId, currentTrack?.source, queue, repeat, shuffle, visibleTracks]);
+  }, [currentId, currentTrack?.source, queue, repeat, shuffle]);
 
   useEffect(() => {
     nextTrackRef.current = nextTrack;
@@ -765,13 +768,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       youtubeTransitionUntilRef.current = Date.now() + 1400;
     }
     setHasActiveSession(true);
-    const list = queue.length
-      ? queue
-      : visibleTracks.length
-        ? visibleTracks
-        : baseTracks.length
-          ? baseTracks
-          : allTracks;
+    const list = queue;
     if (!list.length) return;
     const index = Math.max(0, list.findIndex((track) => track.id === currentId));
     const prev = list[(index - 1 + list.length) % list.length];
@@ -780,7 +777,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       setCurrentId(prev.id);
       setPlaying(shouldContinue);
     }
-  }, [allTracks, baseTracks, currentId, queue, visibleTracks]);
+  }, [currentId, currentTrack?.source, queue]);
 
   useEffect(() => {
     if (typeof window === "undefined" || currentTrack?.source !== "youtube") return;
@@ -972,7 +969,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const deletePlaylist = useCallback(
     (playlistId: string) => {
       setUserPlaylists((prev) => prev.filter((playlist) => playlist.id !== playlistId));
-      if (selectedPlaylistId === playlistId) setSelectedPlaylistId(SYSTEM_PLAYLISTS[0]?.id);
+      if (selectedPlaylistId === playlistId) setSelectedPlaylistId("pl-radio");
     },
     [selectedPlaylistId],
   );
