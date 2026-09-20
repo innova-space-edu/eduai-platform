@@ -20,6 +20,7 @@ import {
   Shuffle,
   SkipBack,
   SkipForward,
+  Upload,
   Volume2,
 } from "lucide-react";
 import {
@@ -121,9 +122,9 @@ function cn(...values: Array<string | false | null | undefined>) {
 
 const CYBER_COLORS = ["#25f4ff", "#ff42cf", "#9b6cff", "#44ffd2", "#4aa8ff"];
 
-function CyberHexField() {
+function CyberHexField({ active }: { active: boolean }) {
   return (
-    <div className="cyber-hex-field" aria-hidden="true">
+    <div className={cn("cyber-hex-field", active && "is-playing")} aria-hidden="true">
       {Array.from({ length: 70 }, (_, index) => {
         const style = {
           "--cell": CYBER_COLORS[index % CYBER_COLORS.length],
@@ -133,6 +134,16 @@ function CyberHexField() {
         } as CSSProperties;
         return <span key={index} className="cyber-hex" style={style} />;
       })}
+    </div>
+  );
+}
+
+function CyberEqualizer({ active }: { active: boolean }) {
+  return (
+    <div className={cn("cyber-equalizer", active && "is-playing")} aria-hidden="true">
+      {Array.from({ length: 18 }, (_, index) => (
+        <span key={index} style={{ "--bar-delay": `${-(index % 7) * 0.11}s` } as CSSProperties} />
+      ))}
     </div>
   );
 }
@@ -437,6 +448,15 @@ function TableTrackRow({
         </button>
         <button
           type="button"
+          onClick={() => music.addToQueue(track.id)}
+          className="text-slate-500 hover:text-fuchsia-300"
+          aria-label="Agregar a cola"
+          title="Agregar a cola"
+        >
+          <ListMusic className="h-3.5 w-3.5" />
+        </button>
+        <button
+          type="button"
           onClick={() => music.requestAddToPlaylist(track.id)}
           className="text-slate-500 hover:text-cyan-300"
           aria-label="Agregar a playlist"
@@ -684,6 +704,30 @@ function Sidebar({
             );
           })}
         </div>
+
+        {music.view === "library" && (
+          <label className="mt-3 flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-cyan-300/25 bg-cyan-400/8 px-3 py-2 text-xs font-black text-cyan-100 transition hover:border-fuchsia-300/35 hover:bg-fuchsia-400/8">
+            <Upload className="h-4 w-4" />
+            {music.audioUploadLoading ? "Subiendo audio…" : "Subir mis audios"}
+            <input
+              type="file"
+              multiple
+              accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac"
+              className="hidden"
+              disabled={music.audioUploadLoading}
+              onChange={(event) => {
+                const files = Array.from(event.target.files || []);
+                event.target.value = "";
+                if (files.length) void music.uploadAudios(files);
+              }}
+            />
+          </label>
+        )}
+        {music.view === "library" && music.audioUploadError && (
+          <p className="mt-2 rounded-lg border border-rose-400/20 bg-rose-500/8 px-2 py-1.5 text-[10px] font-bold text-rose-200">
+            {music.audioUploadError}
+          </p>
+        )}
 
         {music.createOpen && (
           <div className="mt-3 rounded-xl border border-cyan-400/20 bg-cyan-400/8 p-2">
@@ -1334,13 +1378,24 @@ function RightPanel({
             <p className="text-sm font-black text-white">En cola</p>
             <p className="text-[10px] text-slate-500">Elige una pista para continuar.</p>
           </div>
-          <button
-            type="button"
-            onClick={() => music.setView("queue")}
-            className="text-xs font-bold text-cyan-300 hover:underline"
-          >
-            ver cola
-          </button>
+          <div className="flex items-center gap-2">
+            {music.queue.length > 0 && (
+              <button
+                type="button"
+                onClick={music.clearQueue}
+                className="text-[10px] font-black text-rose-300 hover:underline"
+              >
+                limpiar
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => music.setView("queue")}
+              className="text-xs font-bold text-cyan-300 hover:underline"
+            >
+              ver cola
+            </button>
+          </div>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto pr-1">
           <SidebarTrackList tracks={music.queue} limit={12} />
@@ -1443,7 +1498,8 @@ function BottomPlayer() {
         </div>
       </div>
 
-      <div className="hidden items-center justify-end gap-3 pr-14 xl:flex" style={{ width: 320 }}>
+      <div className="hidden items-center justify-end gap-3 pr-6 xl:flex" style={{ width: 320 }}>
+        <CyberEqualizer active={music.playing} />
         <ListMusic className="h-4 w-4 text-slate-500" />
         <Volume2 className="h-4 w-4 text-slate-500" />
         <input
@@ -1646,7 +1702,7 @@ export default function EduAIMusicPlayer({
 
   return (
     <div className="eduai-music-cyber relative h-screen min-h-[680px] overflow-hidden bg-[#05070a] text-white">
-      <CyberHexField />
+      <CyberHexField active={music.playing} />
       <style jsx global>{`
         @keyframes eduai-dj-progress {
           from { transform: scaleX(0); }
@@ -1675,6 +1731,10 @@ export default function EduAIMusicPlayer({
           0% { transform: translateX(-45%); opacity: .35; }
           50% { opacity: .9; }
           100% { transform: translateX(145%); opacity: .35; }
+        }
+        @keyframes cyber-eq {
+          0%, 100% { transform: scaleY(.18); opacity: .45; }
+          50% { transform: scaleY(1); opacity: 1; }
         }
         .eduai-music-cyber {
           --cyber-cyan: #25f4ff;
@@ -1740,6 +1800,12 @@ export default function EduAIMusicPlayer({
           background: linear-gradient(135deg, transparent 28%, color-mix(in srgb, var(--cell) 58%, transparent) 49%, transparent 70%);
           opacity: var(--glow);
         }
+        .cyber-hex-field.is-playing .cyber-hex {
+          animation-duration: 5.2s, 4.1s;
+        }
+        .cyber-hex-field.is-playing {
+          opacity: .66;
+        }
         .cyber-hex:nth-child(5n + 2),
         .cyber-hex:nth-child(7n + 1) {
           box-shadow:
@@ -1778,6 +1844,31 @@ export default function EduAIMusicPlayer({
           box-shadow:
             0 -16px 50px rgba(0,0,0,.46),
             0 -1px 0 rgba(37,244,255,.13);
+        }
+        .cyber-equalizer {
+          display: flex;
+          align-items: center;
+          gap: 2px;
+          width: 58px;
+          height: 24px;
+          padding: 3px 5px;
+          border: 1px solid rgba(37,244,255,.12);
+          border-radius: 999px;
+          background: rgba(0,0,0,.2);
+          overflow: hidden;
+        }
+        .cyber-equalizer span {
+          width: 2px;
+          height: 100%;
+          border-radius: 999px;
+          transform-origin: center;
+          transform: scaleY(.16);
+          background: linear-gradient(to top, var(--cyber-cyan), var(--cyber-violet), var(--cyber-pink));
+          opacity: .42;
+        }
+        .cyber-equalizer.is-playing span {
+          animation: cyber-eq .72s ease-in-out infinite;
+          animation-delay: var(--bar-delay);
         }
         .cyber-playerbar::before {
           content: "";

@@ -78,6 +78,8 @@ export type TimelineTrack = {
   id: string;
   name: string;
   kind: TrackKind;
+  muted?: boolean;
+  solo?: boolean;
   clips: TimelineClip[];
 };
 
@@ -122,11 +124,11 @@ export const DEFAULT_TEXT_STYLE: TextStyle = {
 };
 
 export const DEFAULT_TRACKS: TimelineTrack[] = [
-  { id: "video-main", name: "Video principal", kind: "video", clips: [] },
-  { id: "overlay-main", name: "Imágenes / overlay", kind: "overlay", clips: [] },
-  { id: "text-main", name: "Texto / subtítulos", kind: "text", clips: [] },
-  { id: "audio-main", name: "Audio 1", kind: "audio", clips: [] },
-  { id: "music-main", name: "Música 1", kind: "music", clips: [] },
+  { id: "video-main", name: "Video principal", kind: "video", muted: false, solo: false, clips: [] },
+  { id: "overlay-main", name: "Imágenes / overlay", kind: "overlay", muted: false, solo: false, clips: [] },
+  { id: "text-main", name: "Texto / subtítulos", kind: "text", muted: false, solo: false, clips: [] },
+  { id: "audio-main", name: "Audio 1", kind: "audio", muted: false, solo: false, clips: [] },
+  { id: "music-main", name: "Música 1", kind: "music", muted: false, solo: false, clips: [] },
 ];
 
 export function makeProject(): MultimediaProject {
@@ -240,6 +242,8 @@ export function normalizeProject(input: any): MultimediaProject {
     return {
       ...track,
       name: found?.name || track.name,
+      muted: Boolean(found?.muted),
+      solo: Boolean(found?.solo),
       clips: Array.isArray(found?.clips) ? found.clips.map(normalizeClip) : [],
     };
   });
@@ -250,6 +254,8 @@ export function normalizeProject(input: any): MultimediaProject {
       id: String(track.id),
       name: String(track.name || track.kind || "Pista"),
       kind: track.kind,
+      muted: Boolean(track.muted),
+      solo: Boolean(track.solo),
       clips: Array.isArray(track.clips) ? track.clips.map(normalizeClip) : [],
     }))
     .filter((track: TimelineTrack) => ["video", "overlay", "text", "audio", "music"].includes(track.kind));

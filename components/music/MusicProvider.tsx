@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { createClient } from "@/lib/supabase/client";
 import {
   EDU_MUSIC_TRACKS,
   getTracksForPlaylist,
@@ -85,6 +86,11 @@ type MusicContextValue = {
   playlists: EduMusicPlaylist[];
   userPlaylists: EduMusicPlaylist[];
   onlineTracks: EduMusicTrack[];
+  uploadedTracks: EduMusicTrack[];
+  audioUploadLoading: boolean;
+  audioUploadError: string;
+  uploadAudios: (files: File[]) => Promise<void>;
+  refreshUploadedAudios: () => Promise<void>;
   visibleTracks: EduMusicTrack[];
   baseTracks: EduMusicTrack[];
   allTracks: EduMusicTrack[];
@@ -129,6 +135,8 @@ declare global {
 }
 
 const STORAGE_KEY = "eduai_music_player_v60";
+const MUSIC_STORAGE_BUCKET = "multimedia-projects";
+const MUSIC_LIBRARY_FOLDER = "music-library";
 export const YOUTUBE_PLAYER_ID = "eduai-youtube-global-player";
 const MusicContext = createContext<MusicContextValue | null>(null);
 
@@ -146,6 +154,23 @@ function safeReadState(): StoredState {
 
 function unique(ids: string[]) {
   return Array.from(new Set(ids.filter(Boolean)));
+}
+
+function safeAudioStorageName(value: string) {
+  return value
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 120) || "audio";
+}
+
+function uploadedTrackTitle(name: string) {
+  return name
+    .replace(/^\d{10,}-/, "")
+    .replace(/\.[a-z0-9]{2,5}$/i, "")
+    .replace(/[-_]+/g, " ")
+    .trim() || "Audio subido";
 }
 
 function isHlsUrl(src?: string) {
@@ -286,6 +311,9 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const [likedTrackIds, setLikedTrackIds] = useState<string[]>([]);
   const [userPlaylists, setUserPlaylists] = useState<EduMusicPlaylist[]>([]);
   const [onlineTracks, setOnlineTracks] = useState<EduMusicTrack[]>([]);
+  const [uploadedTracks, setUploadedTracks] = useState<EduMusicTrack[]>([]);
+  const [audioUploadLoading, setAudioUploadLoading] = useState(false);
+  const [audioUploadError, setAudioUploadError] = useState("");
   const [newPlaylistName, setNewPlaylistName] = useState("");
   const [pendingTrackId, setPendingTrackId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
@@ -294,15 +322,102 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const [repeat, setRepeat] = useState<RepeatMode>("off");
   const [currentTime, setCurrentTime] = useState(0);
   const [durationSeconds, setDurationSeconds] = useState(0);
+  const supabase = useMemo(() => createClient(), []);
+
+  const refreshUploadedAudios = useCallback(async () => {
+    setAudioUploadLoading(true);
+    setAudioUploadError("");
+    try {
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (authError || !authData.user) {
+        setUploadedTracks([]);
+        if (authError) setAudioUploadError("Inicia sesión para usar Mis audios en la nube.");
+        return;
+      }
+
+      const prefix = `${authData.user.id}/${MUSIC_LIBRARY_FOLDER}`;
+      const { data, error } = await supabase.storage
+        .from(MUSIC_STORAGE_BUCKET)
+        .list(prefix, { limit: 500, sortBy: { column: "created_at", order: "desc" } });
+      if (error) throw error;
+
+      const tracks = await Promise.all(
+        (data || [])
+          .filter((item) => item.name && item.id)
+          .map(async (item) => {
+            const path = `${prefix}/${item.name}`;
+            const { data: signed, error: signedError } = await supabase.storage
+              .from(MUSIC_STORAGE_BUCKET)
+              .createSignedUrl(path, 60 * 60 * 6);
+            if (signedError || !signed?.signedUrl) return null;
+            return {
+              id: `uploaded-${item.id || item.name}`,
+              title: uploadedTrackTitle(item.name),
+              artist: "Mis audios",
+              album: "Biblioteca personal",
+              mood: "creative" as const,
+              duration: "--:--",
+              src: signed.signedUrl,
+              cover: "linear-gradient(135deg,#25f4ff,#9b6cff,#ff42cf)",
+              tags: ["mis audios", "subido", "personal"],
+              source: "external" as const,
+              externalUrl: signed.signedUrl,
+            } satisfies EduMusicTrack;
+          }),
+      );
+      setUploadedTracks(tracks.filter((track): track is EduMusicTrack => Boolean(track)));
+    } catch (error) {
+      setAudioUploadError(error instanceof Error ? error.message : "No se pudieron cargar tus audios.");
+    } finally {
+      setAudioUploadLoading(false);
+    }
+  }, [supabase]);
+
+  const uploadAudios = useCallback(async (files: File[]) => {
+    const accepted = files.filter((file) =>
+      file.type.startsWith("audio/") || /\.(mp3|wav|m4a|aac|ogg|flac)$/i.test(file.name),
+    );
+    if (!accepted.length) {
+      setAudioUploadError("Selecciona archivos de audio MP3, WAV, M4A, AAC, OGG o FLAC.");
+      return;
+    }
+
+    setAudioUploadLoading(true);
+    setAudioUploadError("");
+    try {
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (authError || !authData.user) throw new Error("Inicia sesión para subir audio a tu biblioteca.");
+      const prefix = `${authData.user.id}/${MUSIC_LIBRARY_FOLDER}`;
+      for (const file of accepted) {
+        const path = `${prefix}/${Date.now()}-${crypto.randomUUID().slice(0, 8)}-${safeAudioStorageName(file.name)}`;
+        const { error } = await supabase.storage.from(MUSIC_STORAGE_BUCKET).upload(path, file, {
+          upsert: false,
+          contentType: file.type || undefined,
+          cacheControl: "3600",
+        });
+        if (error) throw error;
+      }
+      await refreshUploadedAudios();
+    } catch (error) {
+      setAudioUploadError(error instanceof Error ? error.message : "No se pudieron subir los audios.");
+    } finally {
+      setAudioUploadLoading(false);
+    }
+  }, [refreshUploadedAudios, supabase]);
+
+  useEffect(() => {
+    void refreshUploadedAudios();
+  }, [refreshUploadedAudios]);
 
   const allTracks = useMemo(() => {
     const byId = new Map<string, EduMusicTrack>();
     [
       ...EDU_MUSIC_TRACKS.filter((track) => track.source !== "eduai"),
       ...onlineTracks,
+      ...uploadedTracks,
     ].forEach((track) => byId.set(track.id, track));
     return Array.from(byId.values());
-  }, [onlineTracks]);
+  }, [onlineTracks, uploadedTracks]);
 
   const radioTracks = useMemo(
     () => allTracks.filter((track) => track.source === "radio"),
@@ -349,6 +464,15 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       trackIds: onlineTracks.map((track) => track.id),
       system: true,
     };
+    const libraryPlaylist: EduMusicPlaylist = {
+      id: "pl-library",
+      name: "Mis audios",
+      description: "Archivos de audio subidos por ti.",
+      mood: "mixed",
+      cover: "linear-gradient(135deg,#25f4ff,#9b6cff,#ff42cf)",
+      trackIds: uploadedTracks.map((track) => track.id),
+      system: true,
+    };
     const radioPlaylist: EduMusicPlaylist = {
       id: "pl-radio",
       name: "Radios online",
@@ -358,8 +482,8 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       trackIds: radioTracks.map((track) => track.id),
       system: true,
     };
-    return [radioPlaylist, onlinePlaylist, likedPlaylist, ...userPlaylists];
-  }, [likedTrackIds, onlineTracks, radioTracks, userPlaylists]);
+    return [libraryPlaylist, radioPlaylist, onlinePlaylist, likedPlaylist, ...userPlaylists];
+  }, [likedTrackIds, onlineTracks, radioTracks, uploadedTracks, userPlaylists]);
 
   const selectedPlaylist = useMemo(
     () => playlists.find((playlist) => playlist.id === selectedPlaylistId) ?? playlists[0],
@@ -390,9 +514,11 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     const q = query.trim().toLowerCase();
     const source = view === "radio"
       ? radioTracks
-      : view === "search" || q
-        ? allTracks
-        : baseTracks;
+      : view === "library"
+        ? uploadedTracks
+        : view === "search" || q
+          ? allTracks
+          : baseTracks;
     return source.filter((track) => {
       const moodOk = view === "radio" || selectedMood === "all" || track.mood === selectedMood;
       const queryOk =
@@ -403,7 +529,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
           .includes(q);
       return moodOk && queryOk;
     });
-  }, [allTracks, baseTracks, query, radioTracks, selectedMood, view]);
+  }, [allTracks, baseTracks, query, radioTracks, selectedMood, uploadedTracks, view]);
 
   useEffect(() => {
     if (!hydrated || typeof window === "undefined") return;
@@ -1173,6 +1299,11 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     playlists,
     userPlaylists,
     onlineTracks,
+    uploadedTracks,
+    audioUploadLoading,
+    audioUploadError,
+    uploadAudios,
+    refreshUploadedAudios,
     visibleTracks,
     baseTracks,
     allTracks,
