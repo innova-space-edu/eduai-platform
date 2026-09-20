@@ -4,12 +4,11 @@
     "tramo_oficial": "SC",
     "nombre_tramo_oficial": "Sala Cuna",
     "fuente": "Currículum Nacional - MINEDUC Chile",
-    "source_url": "https://parvularia.mineduc.cl/wp-content/uploads/2018/03/Bases_Curriculares_Ed_Parvularia_2018.pdf",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/desarrollo-personal-social/sc-sala-cuna",
     "source_urls": [
       "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/desarrollo-personal-social/sc-sala-cuna",
       "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/comunicacion-integral/sc-sala-cuna",
-      "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/interaccion-comprension-entorno/sc-sala-cuna",
-      "https://parvularia.mineduc.cl/wp-content/uploads/2018/03/Bases_Curriculares_Ed_Parvularia_2018.pdf"
+      "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/interaccion-comprension-entorno/sc-sala-cuna"
     ],
     "base_curricular": "Bases Curriculares de la Educación Parvularia 2018 (BCEP)",
     "estado_verificacion": "verificado_oficial",
@@ -22,7 +21,8 @@
     "curso": "Sala Cuna Menor",
     "subnivel_operativo": "Sala Cuna Menor",
     "base_oficial_compartida": "data/mineduc/parvularia/common/sala_cuna.json",
-    "auditoria_manual": "BCEP 2018 MINEDUC revisada el 20-09-2026"
+    "auditoria_manual": "BCEP 2018 MINEDUC revisada el 20-09-2026",
+    "bcep_pdf": "https://parvularia.mineduc.cl/wp-content/uploads/2018/03/Bases_Curriculares_Ed_Parvularia_2018.pdf"
   },
   "ambitos": [
     {

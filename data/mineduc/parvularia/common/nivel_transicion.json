@@ -8,8 +8,7 @@
     "source_urls": [
       "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/desarrollo-personal-social/nt-nivel-transicion",
       "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/comunicacion-integral/nt-nivel-transicion",
-      "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/interaccion-comprension-entorno/nt-nivel-transicion",
-      "https://parvularia.mineduc.cl/wp-content/uploads/2018/03/Bases_Curriculares_Ed_Parvularia_2018.pdf"
+      "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/interaccion-comprension-entorno/nt-nivel-transicion"
     ],
     "base_curricular": "Bases Curriculares de la Educación Parvularia 2018 (BCEP)",
     "estado_verificacion": "verificado_oficial",
@@ -19,7 +18,8 @@
     ],
     "fecha_consulta": "2026-09-20",
     "nota": "Base oficial común del tramo. Contiene los OA y OAT de los ocho núcleos establecidos por las Bases Curriculares de Educación Parvularia.",
-    "auditoria_manual": "BCEP 2018 MINEDUC revisada el 20-09-2026"
+    "auditoria_manual": "BCEP 2018 MINEDUC revisada el 20-09-2026",
+    "bcep_pdf": "https://parvularia.mineduc.cl/wp-content/uploads/2018/03/Bases_Curriculares_Ed_Parvularia_2018.pdf"
   },
   "ambitos": [
     {
