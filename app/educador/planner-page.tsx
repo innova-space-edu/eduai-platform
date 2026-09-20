@@ -323,6 +323,7 @@ export default function PlannerPage() {
         "Usa la plantilla institucional de siete columnas de Educación Parvularia y completa todos sus campos.",
         "El documento debe contener exactamente tres planificaciones/jornadas diarias: 1) exploración y experiencia principal, 2) expresión artística y sensorial, 3) lenguaje verbal, lectura y comunicación.",
         "En semanal y quincenal crea tres actividades diferentes para cada día hábil: una actividad por cada jornada.",
+        "En TODOS los horizontes, cada actividad del Desarrollo debe ser una oración pedagógica completa y breve, no un título: aproximadamente 100-180 caracteres de contenido con acción del párvulo, material o estímulo, forma de exploración/mediación y propósito o respuesta observable.",
         "La tercera jornada debe enfatizar oralidad, relatos, lectura compartida, canciones, vocabulario, balbuceo/gestos o conversación según la edad, sin inventar OA distintos a los seleccionados.",
         "No organices por horas pedagógicas, número de clases ni minutos; distribuye las experiencias de acuerdo con el período, la jornada y el ritmo del grupo.",
         selectedOAContext ? `OA seleccionados:\n${selectedOAContext}` : "",
