@@ -89,7 +89,14 @@ for (const path of courseFiles) {
 
   if (isVerified) {
     const sourceUrls = [metadata.source_url, ...(metadata.source_urls || [])].filter(Boolean)
-    if (!sourceUrls.length || sourceUrls.some((url) => !String(url).startsWith("https://www.curriculumnacional.cl/"))) {
+    const isParvulariaFile = rel.startsWith("parvularia/")
+    const isOfficialSource = (url) => {
+      const value = String(url)
+      if (value.startsWith("https://www.curriculumnacional.cl/")) return true
+      if (isParvulariaFile && value.startsWith("https://parvularia.mineduc.cl/")) return true
+      return false
+    }
+    if (!sourceUrls.length || sourceUrls.some((url) => !isOfficialSource(url))) {
       errors.push(`${rel}: archivo verificado sin source_url oficial específico`)
     }
     if (!metadata.fecha_consulta) errors.push(`${rel}: archivo verificado sin fecha_consulta`)
