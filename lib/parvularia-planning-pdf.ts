@@ -137,6 +137,16 @@ function drawMainHeader(doc: jsPDF, x: number, y: number, widths: number[]) {
   return y + height
 }
 
+function drawJourneyHeader(doc: jsPDF, x: number, y: number, width: number, label: string) {
+  const height = 7
+  drawRect(doc, x, y, width, height, PEACH)
+  doc.setFont("times", "bold")
+  doc.setFontSize(8.2)
+  doc.setTextColor(...BLACK)
+  doc.text(clean(label) || "Jornada", x + 2, y + 4.6)
+  return y + height
+}
+
 function rowValues(row: ParvulariaPlanningRow) {
   return [
     row.ambitoNucleo,
@@ -172,7 +182,10 @@ export async function exportParvulariaPlanningPdf(content: string) {
     return drawMainHeader(doc, margin, 12, widths)
   }
 
-  for (const row of planning.filas) {
+  for (let rowIndex = 0; rowIndex < planning.filas.length; rowIndex += 1) {
+    const row = planning.filas[rowIndex]
+    if (bottom - y < 20) y = newContinuationPage()
+    y = drawJourneyHeader(doc, margin, y, tableWidth, row.jornada || `Jornada ${rowIndex + 1}`)
     const values = rowValues(row)
     const linesByCell = values.map((value, index) => wrap(doc, value, widths[index] - 3.4, fontSize))
     const offsets = new Array(linesByCell.length).fill(0)
