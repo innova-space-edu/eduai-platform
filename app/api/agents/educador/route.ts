@@ -1873,6 +1873,203 @@ REGLAS DE LAS CELDAS:
         { status: 503 },
       )
     }
+    if (isStructuredParvularia) {
+      const primaryObjectiveLines = parvulariaSelectedOA.map((oa) =>
+        `${oa.codigoOficial || oa.id}: ${oa.texto}`
+      )
+      const complementaryObjectiveLines = parvulariaSelectedOAT.map((oat) =>
+        `${oat.description || oat.id}: ${oat.label}`
+      )
+      const objectiveLines = [...primaryObjectiveLines, ...complementaryObjectiveLines]
+      const primaryAmbito = parvulariaSelectedOA[0]?.ambito || getParvulariaAmbito(curso, asignatura) || "Ámbito por confirmar"
+      const primaryNucleo = parvulariaSelectedOA[0]?.nucleo || asignatura
+      const scopeText = [
+        `AMBITO: ${primaryAmbito}`,
+        `NUCLEO: ${primaryNucleo}`,
+        ...parvulariaSelectedOAT.map((oat) => `OAT COMPLEMENTARIO: ${oat.ambito || "Desarrollo Personal y Social"} · ${oat.nucleo || oat.label}`),
+      ].join("\n")
+      const objectiveText = objectiveLines.length
+        ? objectiveLines.join("\n\n")
+        : `Objetivos oficiales seleccionados del núcleo ${asignatura}.`
+      const dateLabels = parvulariaRequiredDateLabels.length
+        ? parvulariaRequiredDateLabels
+        : [parvulariaFechas || "Jornada seleccionada"]
+
+      const datedDevelopment = (activity: (dateLabel: string, index: number) => string) =>
+        dateLabels.map((dateLabel, index) => `${dateLabel}: ${activity(dateLabel, index)}`).join("\n\n")
+
+      const commonOrientations = [
+        "Preparar los materiales y el espacio con anticipación.",
+        "Disponer un ambiente seguro, acogedor, ventilado e iluminado, con materiales accesibles.",
+        "Permitir tiempos flexibles de exploración y respetar ritmos, señales de bienestar e intereses individuales.",
+        "Favorecer distintos espacios educativos y libre desplazamiento cuando sea seguro.",
+        "Observar permanentemente para ajustar la mediación, los apoyos y la complejidad de la experiencia.",
+      ].join("\n- ")
+
+      const commonRole = [
+        "Rol del equipo pedagógico:",
+        "- Presentar el ambiente y los recursos sin sustituir el protagonismo de los párvulos.",
+        "- Mediar con lenguaje, gestos, preguntas, modelado y apoyo afectivo según la edad.",
+        "- Observar, registrar y ajustar la experiencia de acuerdo con intereses, respuestas y necesidades.",
+        "",
+        "Rol de la familia:",
+        "- Apoyar con materiales simples o antecedentes del niño o niña cuando corresponda.",
+        "- Dar continuidad en el hogar mediante conversación, exploración, relatos o juegos relacionados.",
+        "- Mantener comunicación con el equipo respecto de intereses, avances y necesidades.",
+      ].join("\n")
+
+      const evaluationText = [
+        "Instrumento: Escala de apreciación.",
+        "Logrado: 3",
+        "Medianamente logrado: 2",
+        "Por lograr: 1",
+        "No observado: 0",
+        "",
+        "Registro de Observación.",
+        "Registro fotográfico cuando sea pertinente y autorizado.",
+        "",
+        "Indicadores:",
+        "1. Participa activamente en la experiencia de acuerdo con sus posibilidades y nivel de desarrollo.",
+        "2. Manifiesta interés, curiosidad o intención comunicativa frente a los materiales, acciones o interacciones propuestas.",
+        "3. Evidencia avances vinculados con los OA/OAT seleccionados mediante acciones, gestos, sonidos, palabras, movimientos o producciones.",
+      ].join("\n")
+
+      const filas = [
+        {
+          jornada: "Jornada 1 · Exploración y experiencia principal",
+          ambitoNucleo: scopeText,
+          objetivosAprendizajes: objectiveText,
+          experienciaAprendizaje: [
+            "Inicio:",
+            "El equipo reúne al grupo, presenta de manera atractiva los materiales y anticipa la experiencia mediante gestos, palabras, objetos concretos o una breve canción de inicio.",
+            "",
+            "Desarrollo:",
+            datedDevelopment((_dateLabel, index) =>
+              `Experiencia ${index + 1}: disponer materiales seguros vinculados con ${primaryNucleo} para que los párvulos observen, manipulen, exploren, comparen, se desplacen o experimenten libremente. El adulto acompaña, verbaliza acciones, modela cuando es necesario y registra respuestas significativas sin dirigir en exceso la exploración.`
+            ),
+            "",
+            "Finalización:",
+            "Invitar a guardar u ordenar los materiales junto al equipo, recuperar lo vivido mediante gestos, sonidos, palabras u observación compartida y reforzar positivamente la participación.",
+          ].join("\n"),
+          orientacionesRelevantes: `- ${commonOrientations}`,
+          rolEquipoFamilia: commonRole,
+          recursos: [
+            "RECURSOS TANGIBLES",
+            "- Materiales concretos, naturales o manipulativos seguros y pertinentes al núcleo.",
+            "- Recipientes, bandejas, telas, elementos de apoyo y espacio preparado según la experiencia.",
+            "",
+            "RECURSOS INTANGIBLES",
+            "- Voz de la educadora y asistentes.",
+            "- Expresión gestual y corporal.",
+            "- Mediación afectiva, observación y lenguaje contextualizado.",
+          ].join("\n"),
+          evaluacion: evaluationText,
+        },
+        {
+          jornada: "Jornada 2 · Expresión artística y sensorial",
+          ambitoNucleo: scopeText,
+          objetivosAprendizajes: objectiveText,
+          experienciaAprendizaje: [
+            "Inicio:",
+            "Presentar un ambiente sensorial y expresivo con música suave, sonidos, colores, texturas o movimiento, vinculándolo con los OA/OAT seleccionados.",
+            "",
+            "Desarrollo:",
+            datedDevelopment((_dateLabel, index) =>
+              `Experiencia ${index + 1}: ofrecer una combinación diferente de telas, papeles, objetos sonoros, luz, color, trazos, movimiento o materiales sensoriales para que los párvulos creen, exploren y expresen preferencias. El equipo acompaña con gestos, ritmo, palabras y demostraciones breves, respetando la exploración autónoma.`
+            ),
+            "",
+            "Finalización:",
+            "Cerrar con una breve socialización sensorial o expresiva, observando producciones, movimientos, gestos o sonidos y guardando los materiales con apoyo del equipo.",
+          ].join("\n"),
+          orientacionesRelevantes: `- ${commonOrientations}`,
+          rolEquipoFamilia: commonRole,
+          recursos: [
+            "RECURSOS TANGIBLES",
+            "- Telas, papeles, materiales de distintas texturas, objetos sonoros e instrumentos seguros.",
+            "- Luces suaves, imágenes, recipientes, elementos artísticos lavables y materiales adecuados a la edad.",
+            "",
+            "RECURSOS INTANGIBLES",
+            "- Música, ritmo y voz del equipo.",
+            "- Expresión gestual, corporal y emocional.",
+            "- Mediación sensible y observación pedagógica.",
+          ].join("\n"),
+          evaluacion: evaluationText,
+        },
+        {
+          jornada: "Jornada 3 · Lenguaje verbal, lectura y comunicación",
+          ambitoNucleo: scopeText,
+          objetivosAprendizajes: objectiveText,
+          experienciaAprendizaje: [
+            "Inicio:",
+            "Generar un momento de encuentro comunicativo mediante saludo, canción, objeto significativo, imagen, libro o relato breve, adecuando el lenguaje a la edad.",
+            "",
+            "Desarrollo:",
+            datedDevelopment((_dateLabel, index) =>
+              `Experiencia ${index + 1}: realizar lectura compartida o dialogada, relato con imágenes u objetos, canción con gestos o conversación guiada relacionada con ${primaryNucleo}. En bebés se priorizan mirada, balbuceo, turnos, sonidos, gestos y nominación; en párvulos mayores se amplían vocabulario, preguntas, descripciones, secuencias y expresión de ideas.`
+            ),
+            "",
+            "Finalización:",
+            "Retomar palabras, sonidos, gestos o ideas destacadas; permitir que los párvulos comuniquen lo que llamó su atención y cerrar con una canción, gesto o breve recapitulación compartida.",
+          ].join("\n"),
+          orientacionesRelevantes: `- ${commonOrientations}`,
+          rolEquipoFamilia: commonRole,
+          recursos: [
+            "RECURSOS TANGIBLES",
+            "- Libros resistentes o álbumes ilustrados, láminas, fotografías, títeres u objetos concretos.",
+            "- Elementos sonoros, canciones y apoyos visuales pertinentes a la edad.",
+            "",
+            "RECURSOS INTANGIBLES",
+            "- Voz de la educadora y asistentes.",
+            "- Entonación, pausas, expresión facial y gestual.",
+            "- Escucha activa, turnos comunicativos y ampliación natural del lenguaje.",
+          ].join("\n"),
+          evaluacion: evaluationText,
+        },
+      ]
+
+      const fallbackText = serializeParvulariaPlanningDocument({
+        version: 1,
+        tipo: "parvularia_institucional",
+        titulo: `Planificación ${parvulariaHorizonLabel(tiempoPlanificacion as "diaria" | "semanal" | "quincenal" | "mensual" | "semestral")} ${anioPlanificacion}`,
+        nivelEducativo: parvulariaHeterogenea ? `${curso} y ${parvulariaSegundoCurso}` : curso,
+        fechas: parvulariaFechas,
+        educadoraParvulos: educadoraParvularia,
+        asistentesParvulos: asistentesParvularia,
+        objetivoAprendizaje: objectiveLines.length
+          ? `Favorecer experiencias integradas orientadas a los objetivos seleccionados: ${objectiveLines.join(" | ")}`
+          : `Favorecer experiencias integradas pertinentes al núcleo ${asignatura}.`,
+        principioJuego: "El juego se incorpora como estrategia pedagógica privilegiada para explorar, expresarse, relacionarse y construir aprendizajes de manera flexible y significativa.",
+        principioActividad: "Los párvulos son protagonistas de sus aprendizajes mediante la exploración, la acción, la comunicación, la creación y la interacción con personas, objetos y ambientes.",
+        focoExperiencia: `Desarrollar tres jornadas pedagógicas complementarias —exploración, expresión artístico-sensorial y lenguaje/comunicación— articuladas con ${primaryNucleo} y los objetivos seleccionados.`,
+        horizonte: tiempoPlanificacion as "diaria" | "semanal" | "quincenal" | "mensual" | "semestral",
+        filas,
+      })
+
+      console.error("[Educador AI · Parvularia]", errorMessage)
+      return NextResponse.json({
+        text: fallbackText,
+        provider: "EduAI respaldo local estructurado",
+        model: "parvularia-structured-fallback",
+        cursoKey: cursoToKey(curso),
+        localCoverage: promptContext.summary,
+        hasLocalCurriculum: promptContext.summary.oas > 0,
+        selectedOAIds,
+        oaConnection: { autoSelected: oaConnection.autoSelected, manuallySelected: oaConnection.manuallySelected, resolvedOAIds: oaConnection.resolvedOAIds },
+        planningProfile: planningProfile.id,
+        planningProfileLabel: planningProfile.label,
+        selectedOATIds,
+        unidadId,
+        parvulariaHeterogenea,
+        parvulariaSegundoCurso,
+        parvulariaMotivoFusion,
+        outputIntent,
+        parvulariaInstitutionalPlanning: true,
+        aiFallback: true,
+        structuredFallback: true,
+        _design: designSummary,
+      })
+    }
+
     const fallbackText = buildLocalEducadorFallback({
       intent: outputIntent,
       curso,
