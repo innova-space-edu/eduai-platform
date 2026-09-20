@@ -212,7 +212,7 @@ export default function SavedPlanningsPage() {
     setExportingId(item.id)
 
     try {
-      if (item.nivel === "parvularia" && item.content) {
+      if (item.nivel === "parvularia" && item.content && getParvulariaDocument(item)) {
         await exportParvulariaPlanningPdf(item.content)
         return
       }
@@ -379,7 +379,7 @@ export default function SavedPlanningsPage() {
 
                         <div className="mt-6 grid gap-3">
                           <Link
-                            href={`/educador/planificaciones/${item.id}${item.nivel === "parvularia" ? "?edit=1" : ""}`}
+                            href={`/educador/planificaciones/${item.id}${getParvulariaDocument(item) ? "?edit=1" : ""}`}
                             className="inline-flex items-center justify-center rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-bold text-sky-800 transition hover:bg-sky-100"
                           >
                             Ver y editar
