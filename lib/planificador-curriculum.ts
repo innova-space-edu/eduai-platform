@@ -136,6 +136,8 @@ export interface PlannerOption {
   id: string
   label: string
   description?: string
+  ambito?: string
+  nucleo?: string
 }
 
 export interface PlannerCurriculumState {
