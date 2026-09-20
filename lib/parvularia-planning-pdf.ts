@@ -154,8 +154,8 @@ export async function exportParvulariaPlanningPdf(content: string) {
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: [355.6, 215.9] })
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
-  const margin = 10
-  const tableWidth = pageWidth - margin * 2
+  const tableWidth = Math.min(287.4, pageWidth - 20)
+  const margin = (pageWidth - tableWidth) / 2
   const widths = mainWidths(tableWidth)
   const bottom = pageHeight - 9
   const lineHeight = 3
