@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "revision": "fase_11_base_mineduc_completa_verificada",
-  "fecha_actualizacion": "2026-07-18",
+  "revision": "fase_12_parvularia_bcep_2018_reauditada",
+  "fecha_actualizacion": "2026-09-20",
   "politica": {
     "estado_verificado": "Solo se usa verificado_oficial cuando código y texto fueron cotejados con una base curricular oficial específica.",
     "estado_propuesta": "verificado_propuesta_oficial identifica propuestas curriculares oficiales cotejadas, sin presentarlas como bases obligatorias.",
@@ -1050,12 +1050,14 @@
         "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/interaccion-comprension-entorno/sc-sala-cuna"
       ],
       "base_curricular_id": "parvularia",
-      "fecha_consulta": "2026-07-18",
+      "fecha_consulta": "2026-09-20",
       "tramo_oficial": "SC",
       "base_oficial_compartida": "data/mineduc/parvularia/common/sala_cuna.json",
       "cantidad_oa_contenido": 30,
       "cantidad_oat": 20,
-      "cantidad_objetivos_oficiales": 50
+      "cantidad_objetivos_oficiales": 50,
+      "bcep_pdf": "https://parvularia.mineduc.cl/wp-content/uploads/2018/03/Bases_Curriculares_Ed_Parvularia_2018.pdf",
+      "estado_auditoria": "verificado_bcep_2018"
     },
     "parvularia/sala_cuna_mayor": {
       "url": "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/desarrollo-personal-social/sc-sala-cuna",
@@ -1065,12 +1067,14 @@
         "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/interaccion-comprension-entorno/sc-sala-cuna"
       ],
       "base_curricular_id": "parvularia",
-      "fecha_consulta": "2026-07-18",
+      "fecha_consulta": "2026-09-20",
       "tramo_oficial": "SC",
       "base_oficial_compartida": "data/mineduc/parvularia/common/sala_cuna.json",
       "cantidad_oa_contenido": 30,
       "cantidad_oat": 20,
-      "cantidad_objetivos_oficiales": 50
+      "cantidad_objetivos_oficiales": 50,
+      "bcep_pdf": "https://parvularia.mineduc.cl/wp-content/uploads/2018/03/Bases_Curriculares_Ed_Parvularia_2018.pdf",
+      "estado_auditoria": "verificado_bcep_2018"
     },
     "parvularia/medio_menor": {
       "url": "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/desarrollo-personal-social/nm-nivel-medio",
@@ -1080,12 +1084,14 @@
         "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/interaccion-comprension-entorno/nm-nivel-medio"
       ],
       "base_curricular_id": "parvularia",
-      "fecha_consulta": "2026-07-18",
+      "fecha_consulta": "2026-09-20",
       "tramo_oficial": "NM",
       "base_oficial_compartida": "data/mineduc/parvularia/common/nivel_medio.json",
       "cantidad_oa_contenido": 41,
       "cantidad_oat": 30,
-      "cantidad_objetivos_oficiales": 71
+      "cantidad_objetivos_oficiales": 71,
+      "bcep_pdf": "https://parvularia.mineduc.cl/wp-content/uploads/2018/03/Bases_Curriculares_Ed_Parvularia_2018.pdf",
+      "estado_auditoria": "verificado_bcep_2018"
     },
     "parvularia/medio_mayor": {
       "url": "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/desarrollo-personal-social/nm-nivel-medio",
@@ -1095,12 +1101,14 @@
         "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/interaccion-comprension-entorno/nm-nivel-medio"
       ],
       "base_curricular_id": "parvularia",
-      "fecha_consulta": "2026-07-18",
+      "fecha_consulta": "2026-09-20",
       "tramo_oficial": "NM",
       "base_oficial_compartida": "data/mineduc/parvularia/common/nivel_medio.json",
       "cantidad_oa_contenido": 41,
       "cantidad_oat": 30,
-      "cantidad_objetivos_oficiales": 71
+      "cantidad_objetivos_oficiales": 71,
+      "bcep_pdf": "https://parvularia.mineduc.cl/wp-content/uploads/2018/03/Bases_Curriculares_Ed_Parvularia_2018.pdf",
+      "estado_auditoria": "verificado_bcep_2018"
     },
     "parvularia/nt1": {
       "url": "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/desarrollo-personal-social/nt-nivel-transicion",
@@ -1110,12 +1118,14 @@
         "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/interaccion-comprension-entorno/nt-nivel-transicion"
       ],
       "base_curricular_id": "parvularia",
-      "fecha_consulta": "2026-07-18",
+      "fecha_consulta": "2026-09-20",
       "tramo_oficial": "NT",
       "base_oficial_compartida": "data/mineduc/parvularia/common/nivel_transicion.json",
       "cantidad_oa_contenido": 52,
       "cantidad_oat": 33,
-      "cantidad_objetivos_oficiales": 85
+      "cantidad_objetivos_oficiales": 85,
+      "bcep_pdf": "https://parvularia.mineduc.cl/wp-content/uploads/2018/03/Bases_Curriculares_Ed_Parvularia_2018.pdf",
+      "estado_auditoria": "verificado_bcep_2018"
     },
     "parvularia/nt2": {
       "url": "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/desarrollo-personal-social/nt-nivel-transicion",
@@ -1125,12 +1135,14 @@
         "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/interaccion-comprension-entorno/nt-nivel-transicion"
       ],
       "base_curricular_id": "parvularia",
-      "fecha_consulta": "2026-07-18",
+      "fecha_consulta": "2026-09-20",
       "tramo_oficial": "NT",
       "base_oficial_compartida": "data/mineduc/parvularia/common/nivel_transicion.json",
       "cantidad_oa_contenido": 52,
       "cantidad_oat": 33,
-      "cantidad_objetivos_oficiales": 85
+      "cantidad_objetivos_oficiales": 85,
+      "bcep_pdf": "https://parvularia.mineduc.cl/wp-content/uploads/2018/03/Bases_Curriculares_Ed_Parvularia_2018.pdf",
+      "estado_auditoria": "verificado_bcep_2018"
     }
   },
   "propuestas_oficiales_verificadas": {

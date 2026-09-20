@@ -966,11 +966,12 @@ export function getParvulariaOATForCurso(
       nucleo: item.nucleo,
     }))
 
-  const sameNucleo = all.filter(
-    (item) => normalizeAsignatura(item.nucleo || "", "parvularia") === normalizedTarget
+  // Los OAT del núcleo principal ya aparecen en el selector principal cuando
+  // Desarrollo Personal y Social es el núcleo seleccionado. Aquí se ofrecen
+  // solo OAT complementarios de otros núcleos transversales, evitando duplicados.
+  return all.filter(
+    (item) => normalizeAsignatura(item.nucleo || "", "parvularia") !== normalizedTarget
   )
-
-  return sameNucleo.length ? [...sameNucleo, ...all.filter((item) => !sameNucleo.includes(item))] : all
 }
 
 export const OA_DATABASE = REGISTRY

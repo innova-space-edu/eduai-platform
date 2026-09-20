@@ -216,6 +216,41 @@ assert.equal(corporalidad.length, 7, "Sala Cuna · Corporalidad y Movimiento deb
 assert(corporalidad.every((oa) => oa.tipo === "oat"), "Desarrollo Personal y Social debe conservar su carácter transversal")
 console.log("✓ Parvularia: fechas automáticas, filtro por núcleo y BCEP verificadas")
 
+const parvulariaExpectedCounts = [
+  ["Sala Cuna Mayor (1 a 2 años)", "Identidad y Autonomía", 7],
+  ["Sala Cuna Mayor (1 a 2 años)", "Convivencia y Ciudadanía", 6],
+  ["Sala Cuna Mayor (1 a 2 años)", "Corporalidad y Movimiento", 7],
+  ["Sala Cuna Mayor (1 a 2 años)", "Lenguaje Verbal", 8],
+  ["Sala Cuna Mayor (1 a 2 años)", "Lenguajes Artísticos", 6],
+  ["Sala Cuna Mayor (1 a 2 años)", "Exploración del Entorno Natural", 5],
+  ["Sala Cuna Mayor (1 a 2 años)", "Comprensión del Entorno Sociocultural", 5],
+  ["Sala Cuna Mayor (1 a 2 años)", "Pensamiento Matemático", 6],
+  ["Medio Mayor (3 a 4 años)", "Identidad y Autonomía", 12],
+  ["Medio Mayor (3 a 4 años)", "Convivencia y Ciudadanía", 10],
+  ["Medio Mayor (3 a 4 años)", "Corporalidad y Movimiento", 8],
+  ["Medio Mayor (3 a 4 años)", "Lenguaje Verbal", 8],
+  ["Medio Mayor (3 a 4 años)", "Lenguajes Artísticos", 7],
+  ["Medio Mayor (3 a 4 años)", "Exploración del Entorno Natural", 9],
+  ["Medio Mayor (3 a 4 años)", "Comprensión del Entorno Sociocultural", 7],
+  ["Medio Mayor (3 a 4 años)", "Pensamiento Matemático", 10],
+  ["NT2 - Kinder (5-6 años)", "Identidad y Autonomía", 13],
+  ["NT2 - Kinder (5-6 años)", "Convivencia y Ciudadanía", 11],
+  ["NT2 - Kinder (5-6 años)", "Corporalidad y Movimiento", 9],
+  ["NT2 - Kinder (5-6 años)", "Lenguaje Verbal", 10],
+  ["NT2 - Kinder (5-6 años)", "Lenguajes Artísticos", 7],
+  ["NT2 - Kinder (5-6 años)", "Exploración del Entorno Natural", 12],
+  ["NT2 - Kinder (5-6 años)", "Comprensión del Entorno Sociocultural", 11],
+  ["NT2 - Kinder (5-6 años)", "Pensamiento Matemático", 12],
+] as const
+
+for (const [curso, nucleo, expected] of parvulariaExpectedCounts) {
+  const items = getPlannerOAOptions({ nivel: "parvularia", curso, asignatura: nucleo })
+  assert.equal(items.length, expected, `${curso} · ${nucleo}: cantidad oficial inesperada`)
+  assert(items.every((item) => item.nucleo?.toLocaleLowerCase("es-CL") === nucleo.toLocaleLowerCase("es-CL")), `${curso} · ${nucleo}: se mezclaron objetivos de otro núcleo`)
+  assert(items.every((item) => !/Unidad de Currículum|Ayuda Mineduc|Políticas de Privacidad|Facebook|Youtube|Instagram/.test(item.texto)), `${curso} · ${nucleo}: hay residuos web en los objetivos`)
+}
+console.log("✓ Parvularia: 24 combinaciones tramo/núcleo validadas contra conteos BCEP")
+
 const parvulariaJson = serializeParvulariaPlanningDocument({
   version: 1,
   tipo: "parvularia_institucional",
