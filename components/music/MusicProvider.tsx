@@ -47,6 +47,7 @@ type StoredState = {
   userPlaylists?: EduMusicPlaylist[];
   onlineTracks?: EduMusicTrack[];
   onlineProviderMode?: OnlineProviderMode;
+  recentIds?: string[];
   queueIds?: string[];
   view?: MusicView;
   shuffle?: boolean;
@@ -87,6 +88,7 @@ type MusicContextValue = {
   userPlaylists: EduMusicPlaylist[];
   onlineTracks: EduMusicTrack[];
   uploadedTracks: EduMusicTrack[];
+  recentTracks: EduMusicTrack[];
   audioUploadLoading: boolean;
   audioUploadError: string;
   uploadAudios: (files: File[]) => Promise<void>;
@@ -137,6 +139,18 @@ declare global {
 const STORAGE_KEY = "eduai_music_player_v60";
 const MUSIC_STORAGE_BUCKET = "multimedia-projects";
 const MUSIC_LIBRARY_FOLDER = "music-library";
+const EMPTY_MUSIC_TRACK: EduMusicTrack = {
+  id: "eduai-music-empty",
+  title: "Elige una canción",
+  artist: "YouTube · Spotify · Radio · Mis audios",
+  album: "Busca música real para comenzar",
+  mood: "creative",
+  duration: "--:--",
+  src: "",
+  cover: "linear-gradient(135deg,#06121f,#102a43 48%,#43145f)",
+  tags: ["música", "fuentes reales"],
+  source: "external",
+};
 export const YOUTUBE_PLAYER_ID = "eduai-youtube-global-player";
 const MusicContext = createContext<MusicContextValue | null>(null);
 
@@ -304,9 +318,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const [volume, setVolume] = useState(0.62);
   const [playing, setPlaying] = useState(false);
   const [hasActiveSession, setHasActiveSession] = useState(false);
-  const [currentId, setCurrentId] = useState(
-    EDU_MUSIC_TRACKS.find((track) => track.source !== "eduai")?.id,
-  );
+  const [currentId, setCurrentId] = useState<string | undefined>(undefined);
   const [selectedPlaylistId, setSelectedPlaylistId] = useState("pl-radio");
   const [likedTrackIds, setLikedTrackIds] = useState<string[]>([]);
   const [userPlaylists, setUserPlaylists] = useState<EduMusicPlaylist[]>([]);
@@ -318,6 +330,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const [pendingTrackId, setPendingTrackId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [queueIds, setQueueIds] = useState<string[]>([]);
+  const [recentIds, setRecentIds] = useState<string[]>([]);
   const [shuffle, setShuffle] = useState(false);
   const [repeat, setRepeat] = useState<RepeatMode>("off");
   const [currentTime, setCurrentTime] = useState(0);
@@ -437,6 +450,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     if (stored.likedTrackIds) setLikedTrackIds(stored.likedTrackIds);
     if (stored.userPlaylists) setUserPlaylists(stored.userPlaylists);
     if (stored.queueIds) setQueueIds(stored.queueIds);
+    if (stored.recentIds) setRecentIds(stored.recentIds.filter((id) => !id.startsWith("edu-")).slice(0, 18));
     setOnlineProviderMode("youtube");
     if (stored.view) setView(stored.view === "radio" ? "radio" : stored.view);
     if (stored.shuffle !== undefined) setShuffle(stored.shuffle);
@@ -496,12 +510,13 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   );
 
   const currentTrack = useMemo(
-    () =>
-      getTrack(currentId) ??
-      allTracks[0] ??
-      EDU_MUSIC_TRACKS.find((track) => track.source !== "eduai") ??
-      EDU_MUSIC_TRACKS[0],
-    [allTracks, currentId, getTrack],
+    () => getTrack(currentId) ?? EMPTY_MUSIC_TRACK,
+    [currentId, getTrack],
+  );
+
+  const recentTracks = useMemo(
+    () => recentIds.map((id) => getTrack(id)).filter(Boolean) as EduMusicTrack[],
+    [getTrack, recentIds],
   );
 
   const liked = useMemo(() => new Set(likedTrackIds), [likedTrackIds]);
@@ -540,6 +555,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       likedTrackIds,
       userPlaylists,
       onlineProviderMode: onlineProviderMode === "youtube" ? "full" : onlineProviderMode,
+      recentIds,
       queueIds,
       view,
       shuffle,
@@ -556,6 +572,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     userPlaylists,
     onlineTracks,
     onlineProviderMode,
+    recentIds,
     queueIds,
     view,
     shuffle,
@@ -757,6 +774,9 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const playTrack = useCallback(
     (track: EduMusicTrack, _queueFrom?: EduMusicTrack[]) => {
       setHasActiveSession(true);
+      if (track.id !== EMPTY_MUSIC_TRACK.id) {
+        setRecentIds((prev) => [track.id, ...prev.filter((id) => id !== track.id)].slice(0, 18));
+      }
 
       // Reproducir una canción no llena la cola de forma implícita. La cola
       // contiene solo elementos agregados por el usuario o una playlist que
@@ -818,6 +838,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       setSelectedPlaylistId(playlist.id);
       setQueueIds(tracks.map((track) => track.id));
       setCurrentId(tracks[0].id);
+      setRecentIds((prev) => [tracks[0].id, ...prev.filter((id) => id !== tracks[0].id)].slice(0, 18));
       setPlaying(!isEmbedTrack(tracks[0]));
     },
     [allTracks, playlists, selectedPlaylist, selectedPlaylistId],
@@ -1300,6 +1321,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     userPlaylists,
     onlineTracks,
     uploadedTracks,
+    recentTracks,
     audioUploadLoading,
     audioUploadError,
     uploadAudios,
