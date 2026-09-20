@@ -166,7 +166,7 @@ function capitalize(value: string) {
 
 function safePlanningDate(value?: string | null) {
   if (!value) return null
-  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(value) ? \`${value}T12:00:00\` : value
+  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T12:00:00` : value
   const date = new Date(normalized)
   return Number.isNaN(date.getTime()) ? null : date
 }
@@ -214,7 +214,7 @@ function getPlanningFolderPath(item: SavedPlanning) {
   const dateKey =
     typeof organization?.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(organization.date)
       ? organization.date
-      : \`${date.getFullYear()}-${String(monthNumber).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}\`
+      : `${date.getFullYear()}-${String(monthNumber).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
   const area =
     (typeof organization?.area === "string" && organization.area.trim())
       ? organization.area.trim()
@@ -225,7 +225,7 @@ function getPlanningFolderPath(item: SavedPlanning) {
   return {
     year,
     yearNumber: Number(year) || date.getFullYear(),
-    monthKey: \`${year}-${String(monthNumber).padStart(2, "0")}\`,
+    monthKey: `${year}-${String(monthNumber).padStart(2, "0")}`,
     monthLabel,
     monthNumber,
     dateKey,
@@ -280,7 +280,7 @@ function buildPlanningTree(items: SavedPlanning[]): PlanningYearFolder[] {
     }
     month.dates.set(path.dateKey, date)
 
-    const areaKey = \`${path.kind}:${path.area.toLocaleLowerCase("es-CL")}\`
+    const areaKey = `${path.kind}:${path.area.toLocaleLowerCase("es-CL")}`
     const area = date.areas.get(areaKey) || {
       key: areaKey,
       label: path.area,
@@ -545,7 +545,7 @@ export default function SavedPlanningsPage() {
         ) : (
           <div className="space-y-4">
             {folderTree.map((yearFolder) => {
-              const yearKey = \`year:${yearFolder.key}\`
+              const yearKey = `year:${yearFolder.key}`
               return (
                 <section key={yearFolder.key} className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
                   <button
@@ -569,7 +569,7 @@ export default function SavedPlanningsPage() {
                   {isFolderOpen(yearKey) && (
                     <div className="space-y-3 bg-slate-50 p-3 md:p-4">
                       {yearFolder.months.map((monthFolder) => {
-                        const monthKey = \`month:${yearFolder.key}:${monthFolder.key}\`
+                        const monthKey = `month:${yearFolder.key}:${monthFolder.key}`
                         return (
                           <section key={monthFolder.key} className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
                             <button
@@ -590,7 +590,7 @@ export default function SavedPlanningsPage() {
                             {isFolderOpen(monthKey) && (
                               <div className="space-y-3 border-t border-slate-100 bg-slate-50/70 p-3">
                                 {monthFolder.dates.map((dateFolder) => {
-                                  const dateKey = \`date:${yearFolder.key}:${monthFolder.key}:${dateFolder.key}\`
+                                  const dateKey = `date:${yearFolder.key}:${monthFolder.key}:${dateFolder.key}`
                                   return (
                                     <section key={dateFolder.key} className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
                                       <button
@@ -614,7 +614,7 @@ export default function SavedPlanningsPage() {
                                       {isFolderOpen(dateKey) && (
                                         <div className="space-y-3 border-t border-slate-100 p-3">
                                           {dateFolder.areas.map((areaFolder) => {
-                                            const areaKey = \`area:${yearFolder.key}:${monthFolder.key}:${dateFolder.key}:${areaFolder.key}\`
+                                            const areaKey = `area:${yearFolder.key}:${monthFolder.key}:${dateFolder.key}:${areaFolder.key}`
                                             return (
                                               <section key={areaFolder.key} className="overflow-hidden rounded-2xl border border-emerald-100 bg-emerald-50/40">
                                                 <button
