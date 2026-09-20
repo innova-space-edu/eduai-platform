@@ -112,6 +112,7 @@ export async function POST(req: NextRequest) {
         { role: "user", content: message },
       ],
       maxOutputTokens: 1800,
+      fallbackProfile: "fast",
       context: {
         userId: user.id,
         module: "mira-assistant",
