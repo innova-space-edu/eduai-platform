@@ -1144,6 +1144,29 @@ REGLAS:
     if (tiempoPlanificacion !== "diaria" && !fechaFinParvularia) {
       return NextResponse.json({ error: "Completa la fecha de término del período de planificación." }, { status: 400 })
     }
+
+    const primaryObjectives = getPlannerOAOptions({ nivel, curso, asignatura })
+    const validPrimaryIds = new Set(primaryObjectives.map((item) => item.id))
+    const invalidPrimary = selectedOAIds.filter((id) => !validPrimaryIds.has(id))
+    if (!selectedOAIds.length) {
+      return NextResponse.json({ error: `Selecciona al menos un objetivo oficial del núcleo ${asignatura}.` }, { status: 400 })
+    }
+    if (invalidPrimary.length) {
+      return NextResponse.json(
+        { error: `Hay objetivos seleccionados que no pertenecen al núcleo ${asignatura}: ${invalidPrimary.join(", ")}.` },
+        { status: 400 }
+      )
+    }
+
+    const complementaryOAT = getParvulariaOAT(curso, asignatura)
+    const validOATIds = new Set(complementaryOAT.map((item) => item.id))
+    const invalidOAT = selectedOATIds.filter((id) => !validOATIds.has(id))
+    if (invalidOAT.length) {
+      return NextResponse.json(
+        { error: `Hay OAT complementarios no válidos para esta selección: ${invalidOAT.join(", ")}.` },
+        { status: 400 }
+      )
+    }
   }
 
   if (isInstitutionalMacro) {
@@ -1408,11 +1431,19 @@ CRITERIOS DE CALIDAD - VERIFICAR ANTES DE RESPONDER:
   const parvulariaCurriculumContext = isStructuredParvularia
     ? [
         ...parvulariaSelectedOA.map((oa) =>
-          `OA ${oa.codigoOficial || oa.id}: ${oa.texto} | Ámbito: ${oa.ambito || getParvulariaAmbito(curso, asignatura) || "No informado"} | Núcleo: ${oa.nucleo || asignatura}`
+          `${oa.codigoOficial || oa.id}: ${oa.texto} | Tipo: ${oa.tipo === "oat" ? "OAT transversal del núcleo principal" : "OA de contenido"} | Ámbito: ${oa.ambito || getParvulariaAmbito(curso, asignatura) || "No informado"} | Núcleo: ${oa.nucleo || asignatura}`
         ),
-        ...parvulariaSelectedOAT.map((oat) => `OAT ${oat.id}: ${oat.description || oat.label}`),
+        ...parvulariaSelectedOAT.map((oat) => `${oat.description || oat.id}: ${oat.label} | OAT complementario | Ámbito: ${oat.ambito || "Desarrollo personal y social"} | Núcleo: ${oat.nucleo || "No informado"}`),
       ].join("\n")
     : ""
+
+  const parvulariaRequiredDateLabels = (tiempoPlanificacion === "semanal" || tiempoPlanificacion === "quincenal")
+    ? parvulariaPeriodGuide
+        .split("\n")
+        .filter((line) => /^\d+\.\s/.test(line))
+        .map((line) => line.replace(/^\d+\.\s*/, "").trim())
+        .filter(Boolean)
+    : []
 
   const parvulariaSystemPrompt = isStructuredParvularia ? `Eres APl, Agente Planificador Curricular de EduAI especializado en Educación Parvularia de Chile.
 
@@ -1648,21 +1679,33 @@ REGLAS DE LAS CELDAS:
           !row.rolEquipoFamilia.trim() ||
           !row.recursos.trim() ||
           !row.evaluacion.trim() ||
-          !/inicio\\s*:/i.test(row.experienciaAprendizaje) ||
-          !/desarrollo\\s*:/i.test(row.experienciaAprendizaje) ||
-          !/finalizaci[oó]n\\s*:/i.test(row.experienciaAprendizaje) ||
+          !/inicio\s*:/i.test(row.experienciaAprendizaje) ||
+          !/desarrollo\s*:/i.test(row.experienciaAprendizaje) ||
+          !/finalizaci[oó]n\s*:/i.test(row.experienciaAprendizaje) ||
           !/recursos tangibles/i.test(row.recursos) ||
           !/recursos intangibles/i.test(row.recursos) ||
-          !/rol de la familia|familia\\s*:/i.test(row.rolEquipoFamilia) ||
+          !/rol de la familia|familia\s*:/i.test(row.rolEquipoFamilia) ||
+          !/instrumento\s*:\s*escala de apreciaci[oó]n/i.test(row.evaluacion) ||
+          !/logrado\s*:\s*3/i.test(row.evaluacion) ||
+          !/medianamente logrado\s*:\s*2/i.test(row.evaluacion) ||
+          !/por lograr\s*:\s*1/i.test(row.evaluacion) ||
+          !/no observado\s*:\s*0/i.test(row.evaluacion) ||
+          !/registro de observaci[oó]n/i.test(row.evaluacion) ||
           !/indicadores?/i.test(row.evaluacion)
         )
-        if (!fixed.objetivoAprendizaje.trim() || !fixed.principioJuego.trim() || !fixed.principioActividad.trim() || !fixed.focoExperiencia.trim() || !fixed.filas.length || incompleteRow || missingOA.length) {
+        const experienceBody = fixed.filas.map((row) => row.experienciaAprendizaje).join("\n").toLocaleLowerCase("es-CL")
+        const missingActivityDates = parvulariaRequiredDateLabels.filter(
+          (label) => !experienceBody.includes(label.toLocaleLowerCase("es-CL"))
+        )
+        if (!fixed.objetivoAprendizaje.trim() || !fixed.principioJuego.trim() || !fixed.principioActividad.trim() || !fixed.focoExperiencia.trim() || !fixed.filas.length || incompleteRow || missingOA.length || missingActivityDates.length) {
           throw new Error(
             missingOA.length
-              ? `Faltan OA seleccionados en la tabla: ${missingOA.map((oa) => oa.codigoOficial || oa.id).join(", ")}.`
-              : incompleteRow
-                ? "Hay una fila incompleta: debe incluir Inicio, Desarrollo, Finalización, roles, recursos tangibles/intangibles e indicadores de evaluación."
-                : "Faltan campos obligatorios de la plantilla."
+              ? `Faltan objetivos seleccionados en la tabla: ${missingOA.map((oa) => oa.codigoOficial || oa.id).join(", ")}.`
+              : missingActivityDates.length
+                ? `Faltan experiencias para estas fechas del período: ${missingActivityDates.join(", ")}.`
+                : incompleteRow
+                  ? "Hay una fila incompleta: debe incluir Inicio, Desarrollo, Finalización, roles, recursos tangibles/intangibles y la escala/indicadores de evaluación."
+                  : "Faltan campos obligatorios de la plantilla."
           )
         }
         return serializeParvulariaPlanningDocument(fixed)

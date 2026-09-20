@@ -1,5 +1,5 @@
 import { strict as assert } from "node:assert"
-import { getAvailableAsignaturas } from "../lib/mineduc-oa"
+import { getAvailableAsignaturas, getParvulariaOATForCurso } from "../lib/mineduc-oa"
 import { resolveOAConnection } from "../lib/planner-oa-bridge"
 import { auditPlanningOutput, inferPlanningProfile } from "../lib/school-planning-profiles"
 import { buildSchoolWeekPlan, getSchoolPlanningPeriodLabel, validateSchoolPlanningWeeks } from "../lib/school-planning-template"
@@ -214,6 +214,8 @@ const corporalidad = getPlannerOAOptions({
 })
 assert.equal(corporalidad.length, 7, "Sala Cuna · Corporalidad y Movimiento debe exponer 7 objetivos transversales")
 assert(corporalidad.every((oa) => oa.tipo === "oat"), "Desarrollo Personal y Social debe conservar su carácter transversal")
+const corporalidadComplementary = getParvulariaOATForCurso("Sala Cuna Mayor (1 a 2 años)", "Corporalidad y Movimiento")
+assert(corporalidadComplementary.every((item) => item.nucleo !== "Corporalidad y movimiento"), "Los OAT complementarios no deben duplicar el núcleo principal")
 console.log("✓ Parvularia: fechas automáticas, filtro por núcleo y BCEP verificadas")
 
 const parvulariaExpectedCounts = [

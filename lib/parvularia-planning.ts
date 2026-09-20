@@ -201,7 +201,7 @@ export function buildParvulariaPeriodGuide(
       "Genera una experiencia distinta y concreta para cada día hábil del período (lunes a viernes).",
       ...weekdays.map((date, index) => `${index + 1}. ${shortDayLabel(date)}`),
       "Si existe un feriado institucional, el docente podrá editar esa fecha posteriormente; no dejes días hábiles sin experiencia.",
-    ].join("\\n")
+    ].join("\n")
   }
 
   if (planningHorizon === "mensual") {
@@ -216,7 +216,7 @@ export function buildParvulariaPeriodGuide(
     return [
       "Organiza el mes por semanas y, dentro de cada semana, propone experiencias concretas para los días hábiles.",
       ...weeks,
-    ].join("\\n")
+    ].join("\n")
   }
 
   const months: string[] = []
@@ -230,7 +230,7 @@ export function buildParvulariaPeriodGuide(
   return [
     "Organiza el semestre por meses y semanas, mostrando progresión de experiencias y OA sin convertirlo en bloques horarios.",
     ...months.map((month, index) => `${index + 1}. ${month.charAt(0).toUpperCase() + month.slice(1)}`),
-  ].join("\\n")
+  ].join("\n")
 }
 
 export function buildParvulariaDateLabel(start: string, end?: string) {
