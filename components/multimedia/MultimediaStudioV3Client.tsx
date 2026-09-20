@@ -817,7 +817,9 @@ export default function MultimediaStudioV3Client() {
 
   function handlePointerMove(event: ReactPointerEvent<HTMLDivElement>) {
     if (!pointerAction || pointerAction.pointerId !== event.pointerId) return;
-    const dxSeconds = (event.clientX - pointerAction.startX) / pixelsPerSecond;
+    const dxSeconds = "startX" in pointerAction
+      ? (event.clientX - pointerAction.startX) / pixelsPerSecond
+      : 0;
     const clip = projectRef.current.tracks.flatMap((track) => track.clips).find((item) => item.id === pointerAction.clipId);
     if (!clip) return;
 

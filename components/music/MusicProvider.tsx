@@ -357,7 +357,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       const tracks = await Promise.all(
         (data || [])
           .filter((item) => item.name && item.id)
-          .map(async (item) => {
+          .map(async (item): Promise<EduMusicTrack | null> => {
             const path = `${prefix}/${item.name}`;
             const { data: signed, error: signedError } = await supabase.storage
               .from(MUSIC_STORAGE_BUCKET)
@@ -378,7 +378,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
             } satisfies EduMusicTrack;
           }),
       );
-      setUploadedTracks(tracks.filter((track): track is EduMusicTrack => Boolean(track)));
+      setUploadedTracks(tracks.filter((track): track is EduMusicTrack => track !== null));
     } catch (error) {
       setAudioUploadError(error instanceof Error ? error.message : "No se pudieron cargar tus audios.");
     } finally {
