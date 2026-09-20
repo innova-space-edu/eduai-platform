@@ -185,7 +185,7 @@ function playbackKind(track?: EduMusicTrack) {
   if (isEmbedTrack(track)) return "Reproductor oficial ConectaAPP";
   if (asExtendedTrack(track)?.previewSeconds) return "DJ mix · audio YouTube · 0:50–1:20";
   if (track?.source === "itunes") return "Preview 30 segundos · modo DJ";
-  if (track?.source === "youtube") return "YouTube · cola automática";
+  if (track?.source === "youtube") return "YouTube · fuente oficial";
   if (track?.source === "radio") return "Radio online en vivo";
   if (track?.source === "jamendo" || track?.source === "audius")
     return "Canción completa reproducible";
@@ -895,7 +895,7 @@ function CurrentTrackArtwork({ track }: { track: EduMusicTrack }) {
           />
         )}
         <div className="pointer-events-none absolute left-3 top-3 rounded-full bg-red-500/90 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-white shadow-lg shadow-red-950/30">
-          YouTube · cola automática
+          YouTube · fuente oficial
         </div>
         <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent p-4 text-left">
           <p className="line-clamp-1 text-sm font-black text-white drop-shadow">{track.title}</p>
@@ -1135,13 +1135,13 @@ function MainPanel({
               {track.source === "youtube" && (
                 <p className="mt-3 text-xs font-semibold text-cyan-200/90">
                   {asExtendedTrack(track)?.previewSeconds
-                    ? "Modo DJ mix: reproduce solo el audio de YouTube entre 0:50 y 1:20; al terminar carga instantáneamente la siguiente canción de la cola."
+                    ? "Modo DJ mix: reproduce solo el audio de YouTube entre 0:50 y 1:20; al terminar avanza únicamente si agregaste otra pista a la cola."
                     : "YouTube usa el reproductor real al centro: el video y el audio provienen de la misma fuente y avanzan juntos."}
                 </p>
               )}
               {track.source === "itunes" && (
                 <p className="mt-3 text-xs font-semibold text-cyan-200/90">
-                  Modo DJ 30s: al terminar el preview avanza automáticamente. Si hay YouTube API Key, se muestra un video visual tipo reel silenciado.
+                  Modo DJ 30s: al terminar el preview avanza solo si existe otra pista en la cola. Si hay YouTube API Key, se muestra un video visual tipo reel silenciado.
                 </p>
               )}
               {track.source === "radio" && (
@@ -1172,7 +1172,7 @@ function MainPanel({
                 </button>
               </div>
 
-              <p className="mt-3 text-[11px] text-slate-500">La cola continúa automáticamente al terminar cada pista.</p>
+              <p className="mt-3 text-[11px] text-slate-500">La cola avanza solo con pistas agregadas por ti o al reproducir una playlist completa.</p>
             </div>
           )}
         </div>
@@ -1250,10 +1250,6 @@ function RightPanel({
   onClearSpotify: () => void;
 }) {
   const music = useEduAIMusic();
-  const related = music.allTracks
-    .filter((track) => track.mood === music.currentTrack.mood && track.id !== music.currentTrack.id)
-    .slice(0, 6);
-
   return (
     <aside className="cyber-rightbar flex min-h-0 min-w-0 flex-col gap-3 overflow-y-auto border-l border-white/10 bg-[#0a0d12] p-3 text-white">
       <section className="relative shrink-0 rounded-2xl border border-cyan-400/20 bg-[#14171f] p-3.5">
@@ -1340,17 +1336,14 @@ function RightPanel({
           </div>
           <button
             type="button"
-            onClick={() => {
-              music.setSelectedPlaylistId("pl-online");
-              music.setView("search");
-            }}
+            onClick={() => music.setView("queue")}
             className="text-xs font-bold text-cyan-300 hover:underline"
           >
-            ver todos
+            ver cola
           </button>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-          <SidebarTrackList tracks={music.onlineTracks.length ? music.onlineTracks : related} limit={12} />
+          <SidebarTrackList tracks={music.queue} limit={12} />
         </div>
       </section>
 
