@@ -28,14 +28,17 @@ assert.match(component, /<UrlMediaImporter onImport=\{importUrlMedia\}/, "Debe m
 assert.match(component, /asset\.source === "url"/, "Los recursos URL deben aparecer en Archivos");
 assert.match(component, /assetPreviewId === asset\.id && assetPreviewPlaying/, "Cada audio del panel debe tener estado de Play\/Pausa independiente");
 assert.match(component, /toggleAssetPreview\(asset\)/, "El panel de archivos debe permitir preescuchar cada audio");
-assert.match(component, /mutedTrackIds\.has\(track\.id\)/, "Las pistas de audio deben tener mute independiente");
-assert.match(component, /toggleTrackMute\(track\.id\)/, "La cabecera de pista debe alternar silencio\/audio activo");
-assert.match(component, /trackMuted \|\| clip\.muted/, "El mute de pista debe aplicarse a la reproducción real");
-assert.match(component, /VolumeX/, "La pista silenciada debe mostrar un estado visual claro");
+assert.match(component, /function toggleTrackMute\(trackId: string\)/, "Debe existir mute persistente por pista");
+assert.match(component, /function toggleTrackSolo\(trackId: string\)/, "Debe existir solo persistente por pista");
+assert.match(component, /track\.muted/, "El estado mute debe vivir en la pista del proyecto");
+assert.match(component, /track\.solo/, "El estado solo debe vivir en la pista del proyecto");
+assert.match(component, /trackSuppressed/, "Mute\/solo debe afectar la reproducción real");
+assert.match(component, /toggleTrackMute\(track\.id\)/, "La cabecera debe alternar mute de pista");
+assert.match(component, /toggleTrackSolo\(track\.id\)/, "La cabecera debe alternar solo de pista");
 assert.match(importer, /NEXT_PUBLIC_MEDIA_WORKER_URL/, "El importador debe usar el worker multimedia configurable");
 assert.match(importer, /rights_confirmed/, "Debe exigir confirmación de derechos antes de convertir");
 assert.match(importer, /MP3 · solo audio/, "Debe permitir MP3");
 assert.match(importer, /MP4 · video/, "Debe permitir MP4");
 assert.doesNotMatch(importer, /cookiefile|--cookies|username\s*:|password\s*:/i, "No debe implementar autenticación o cookies para fuentes restringidas");
 
-console.log("[multimedia-audio-monitor] OK · monitor, ecualizador, preescucha, mute e importador URL verificados");
+console.log("[multimedia-audio-monitor] OK · monitor, ecualizador, preescucha, mute/solo e importador URL verificados");
