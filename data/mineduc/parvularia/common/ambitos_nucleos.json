@@ -1,10 +1,15 @@
 {
   "metadata": {
     "nivel": "Parvularia",
-    "fuente": "Bases Curriculares de la Educación Parvularia (BCEP) - MINEDUC Chile",
+    "fuente": "Bases Curriculares de la Educación Parvularia 2018 - MINEDUC Chile",
     "estado": "verificado_bcep_2018",
     "ultima_actualizacion_manual": "2026-09-20",
-    "source_url": "https://parvularia.mineduc.cl/wp-content/uploads/2018/03/Bases_Curriculares_Ed_Parvularia_2018.pdf"
+    "source_url": "https://parvularia.mineduc.cl/wp-content/uploads/2019/09/Bases_Curriculares_Ed_Parvularia_2018-1.pdf",
+    "source_urls": [
+      "https://parvularia.mineduc.cl/wp-content/uploads/2019/09/Bases_Curriculares_Ed_Parvularia_2018-1.pdf"
+    ],
+    "bcep_pdf": "https://parvularia.mineduc.cl/wp-content/uploads/2019/09/Bases_Curriculares_Ed_Parvularia_2018-1.pdf",
+    "fecha_consulta": "2026-09-20"
   },
   "ambitos": [
     {

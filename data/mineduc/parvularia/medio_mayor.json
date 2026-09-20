@@ -3,12 +3,10 @@
     "nivel": "Parvularia",
     "tramo_oficial": "NM",
     "nombre_tramo_oficial": "Nivel Medio",
-    "fuente": "Currículum Nacional - MINEDUC Chile",
-    "source_url": "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/desarrollo-personal-social/nm-nivel-medio",
+    "fuente": "Bases Curriculares de la Educación Parvularia 2018 - MINEDUC Chile",
+    "source_url": "https://parvularia.mineduc.cl/wp-content/uploads/2019/09/Bases_Curriculares_Ed_Parvularia_2018-1.pdf",
     "source_urls": [
-      "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/desarrollo-personal-social/nm-nivel-medio",
-      "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/comunicacion-integral/nm-nivel-medio",
-      "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/interaccion-comprension-entorno/nm-nivel-medio"
+      "https://parvularia.mineduc.cl/wp-content/uploads/2019/09/Bases_Curriculares_Ed_Parvularia_2018-1.pdf"
     ],
     "base_curricular": "Bases Curriculares de la Educación Parvularia 2018 (BCEP)",
     "estado_verificacion": "verificado_oficial",
@@ -22,7 +20,7 @@
     "subnivel_operativo": "Medio Mayor",
     "base_oficial_compartida": "data/mineduc/parvularia/common/nivel_medio.json",
     "auditoria_manual": "BCEP 2018 MINEDUC revisada el 20-09-2026",
-    "bcep_pdf": "https://parvularia.mineduc.cl/wp-content/uploads/2018/03/Bases_Curriculares_Ed_Parvularia_2018.pdf"
+    "bcep_pdf": "https://parvularia.mineduc.cl/wp-content/uploads/2019/09/Bases_Curriculares_Ed_Parvularia_2018-1.pdf"
   },
   "ambitos": [
     {

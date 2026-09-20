@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "revision": "fase_12_parvularia_bcep_2018_reauditada",
+  "revision": "fase_12_parvularia_fuente_bcep_pdf_oficial",
   "fecha_actualizacion": "2026-09-20",
   "politica": {
     "estado_verificado": "Solo se usa verificado_oficial cuando código y texto fueron cotejados con una base curricular oficial específica.",
@@ -1043,11 +1043,9 @@
       ]
     },
     "parvularia/sala_cuna_menor": {
-      "url": "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/desarrollo-personal-social/sc-sala-cuna",
+      "url": "https://parvularia.mineduc.cl/wp-content/uploads/2019/09/Bases_Curriculares_Ed_Parvularia_2018-1.pdf",
       "urls": [
-        "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/desarrollo-personal-social/sc-sala-cuna",
-        "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/comunicacion-integral/sc-sala-cuna",
-        "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/interaccion-comprension-entorno/sc-sala-cuna"
+        "https://parvularia.mineduc.cl/wp-content/uploads/2019/09/Bases_Curriculares_Ed_Parvularia_2018-1.pdf"
       ],
       "base_curricular_id": "parvularia",
       "fecha_consulta": "2026-09-20",
@@ -1056,15 +1054,14 @@
       "cantidad_oa_contenido": 30,
       "cantidad_oat": 20,
       "cantidad_objetivos_oficiales": 50,
-      "bcep_pdf": "https://parvularia.mineduc.cl/wp-content/uploads/2018/03/Bases_Curriculares_Ed_Parvularia_2018.pdf",
-      "estado_auditoria": "verificado_bcep_2018"
+      "bcep_pdf": "https://parvularia.mineduc.cl/wp-content/uploads/2019/09/Bases_Curriculares_Ed_Parvularia_2018-1.pdf",
+      "estado_auditoria": "verificado_bcep_2018",
+      "fuente_canonica": "BCEP 2018 PDF oficial Subsecretaría de Educación Parvularia"
     },
     "parvularia/sala_cuna_mayor": {
-      "url": "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/desarrollo-personal-social/sc-sala-cuna",
+      "url": "https://parvularia.mineduc.cl/wp-content/uploads/2019/09/Bases_Curriculares_Ed_Parvularia_2018-1.pdf",
       "urls": [
-        "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/desarrollo-personal-social/sc-sala-cuna",
-        "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/comunicacion-integral/sc-sala-cuna",
-        "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/interaccion-comprension-entorno/sc-sala-cuna"
+        "https://parvularia.mineduc.cl/wp-content/uploads/2019/09/Bases_Curriculares_Ed_Parvularia_2018-1.pdf"
       ],
       "base_curricular_id": "parvularia",
       "fecha_consulta": "2026-09-20",
@@ -1073,15 +1070,14 @@
       "cantidad_oa_contenido": 30,
       "cantidad_oat": 20,
       "cantidad_objetivos_oficiales": 50,
-      "bcep_pdf": "https://parvularia.mineduc.cl/wp-content/uploads/2018/03/Bases_Curriculares_Ed_Parvularia_2018.pdf",
-      "estado_auditoria": "verificado_bcep_2018"
+      "bcep_pdf": "https://parvularia.mineduc.cl/wp-content/uploads/2019/09/Bases_Curriculares_Ed_Parvularia_2018-1.pdf",
+      "estado_auditoria": "verificado_bcep_2018",
+      "fuente_canonica": "BCEP 2018 PDF oficial Subsecretaría de Educación Parvularia"
     },
     "parvularia/medio_menor": {
-      "url": "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/desarrollo-personal-social/nm-nivel-medio",
+      "url": "https://parvularia.mineduc.cl/wp-content/uploads/2019/09/Bases_Curriculares_Ed_Parvularia_2018-1.pdf",
       "urls": [
-        "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/desarrollo-personal-social/nm-nivel-medio",
-        "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/comunicacion-integral/nm-nivel-medio",
-        "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/interaccion-comprension-entorno/nm-nivel-medio"
+        "https://parvularia.mineduc.cl/wp-content/uploads/2019/09/Bases_Curriculares_Ed_Parvularia_2018-1.pdf"
       ],
       "base_curricular_id": "parvularia",
       "fecha_consulta": "2026-09-20",
@@ -1090,15 +1086,14 @@
       "cantidad_oa_contenido": 41,
       "cantidad_oat": 30,
       "cantidad_objetivos_oficiales": 71,
-      "bcep_pdf": "https://parvularia.mineduc.cl/wp-content/uploads/2018/03/Bases_Curriculares_Ed_Parvularia_2018.pdf",
-      "estado_auditoria": "verificado_bcep_2018"
+      "bcep_pdf": "https://parvularia.mineduc.cl/wp-content/uploads/2019/09/Bases_Curriculares_Ed_Parvularia_2018-1.pdf",
+      "estado_auditoria": "verificado_bcep_2018",
+      "fuente_canonica": "BCEP 2018 PDF oficial Subsecretaría de Educación Parvularia"
     },
     "parvularia/medio_mayor": {
-      "url": "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/desarrollo-personal-social/nm-nivel-medio",
+      "url": "https://parvularia.mineduc.cl/wp-content/uploads/2019/09/Bases_Curriculares_Ed_Parvularia_2018-1.pdf",
       "urls": [
-        "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/desarrollo-personal-social/nm-nivel-medio",
-        "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/comunicacion-integral/nm-nivel-medio",
-        "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/interaccion-comprension-entorno/nm-nivel-medio"
+        "https://parvularia.mineduc.cl/wp-content/uploads/2019/09/Bases_Curriculares_Ed_Parvularia_2018-1.pdf"
       ],
       "base_curricular_id": "parvularia",
       "fecha_consulta": "2026-09-20",
@@ -1107,15 +1102,14 @@
       "cantidad_oa_contenido": 41,
       "cantidad_oat": 30,
       "cantidad_objetivos_oficiales": 71,
-      "bcep_pdf": "https://parvularia.mineduc.cl/wp-content/uploads/2018/03/Bases_Curriculares_Ed_Parvularia_2018.pdf",
-      "estado_auditoria": "verificado_bcep_2018"
+      "bcep_pdf": "https://parvularia.mineduc.cl/wp-content/uploads/2019/09/Bases_Curriculares_Ed_Parvularia_2018-1.pdf",
+      "estado_auditoria": "verificado_bcep_2018",
+      "fuente_canonica": "BCEP 2018 PDF oficial Subsecretaría de Educación Parvularia"
     },
     "parvularia/nt1": {
-      "url": "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/desarrollo-personal-social/nt-nivel-transicion",
+      "url": "https://parvularia.mineduc.cl/wp-content/uploads/2019/09/Bases_Curriculares_Ed_Parvularia_2018-1.pdf",
       "urls": [
-        "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/desarrollo-personal-social/nt-nivel-transicion",
-        "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/comunicacion-integral/nt-nivel-transicion",
-        "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/interaccion-comprension-entorno/nt-nivel-transicion"
+        "https://parvularia.mineduc.cl/wp-content/uploads/2019/09/Bases_Curriculares_Ed_Parvularia_2018-1.pdf"
       ],
       "base_curricular_id": "parvularia",
       "fecha_consulta": "2026-09-20",
@@ -1124,15 +1118,14 @@
       "cantidad_oa_contenido": 52,
       "cantidad_oat": 33,
       "cantidad_objetivos_oficiales": 85,
-      "bcep_pdf": "https://parvularia.mineduc.cl/wp-content/uploads/2018/03/Bases_Curriculares_Ed_Parvularia_2018.pdf",
-      "estado_auditoria": "verificado_bcep_2018"
+      "bcep_pdf": "https://parvularia.mineduc.cl/wp-content/uploads/2019/09/Bases_Curriculares_Ed_Parvularia_2018-1.pdf",
+      "estado_auditoria": "verificado_bcep_2018",
+      "fuente_canonica": "BCEP 2018 PDF oficial Subsecretaría de Educación Parvularia"
     },
     "parvularia/nt2": {
-      "url": "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/desarrollo-personal-social/nt-nivel-transicion",
+      "url": "https://parvularia.mineduc.cl/wp-content/uploads/2019/09/Bases_Curriculares_Ed_Parvularia_2018-1.pdf",
       "urls": [
-        "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/desarrollo-personal-social/nt-nivel-transicion",
-        "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/comunicacion-integral/nt-nivel-transicion",
-        "https://www.curriculumnacional.cl/curriculum/educacion-parvularia/interaccion-comprension-entorno/nt-nivel-transicion"
+        "https://parvularia.mineduc.cl/wp-content/uploads/2019/09/Bases_Curriculares_Ed_Parvularia_2018-1.pdf"
       ],
       "base_curricular_id": "parvularia",
       "fecha_consulta": "2026-09-20",
@@ -1141,8 +1134,9 @@
       "cantidad_oa_contenido": 52,
       "cantidad_oat": 33,
       "cantidad_objetivos_oficiales": 85,
-      "bcep_pdf": "https://parvularia.mineduc.cl/wp-content/uploads/2018/03/Bases_Curriculares_Ed_Parvularia_2018.pdf",
-      "estado_auditoria": "verificado_bcep_2018"
+      "bcep_pdf": "https://parvularia.mineduc.cl/wp-content/uploads/2019/09/Bases_Curriculares_Ed_Parvularia_2018-1.pdf",
+      "estado_auditoria": "verificado_bcep_2018",
+      "fuente_canonica": "BCEP 2018 PDF oficial Subsecretaría de Educación Parvularia"
     }
   },
   "propuestas_oficiales_verificadas": {
