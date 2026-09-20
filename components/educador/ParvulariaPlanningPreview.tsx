@@ -1,5 +1,6 @@
 "use client"
 
+import { Fragment } from "react"
 import { parseParvulariaPlanningDocument } from "@/lib/parvularia-planning"
 
 type Props = {
@@ -88,7 +89,7 @@ export default function ParvulariaPlanningPreview({ content }: Props) {
           </thead>
           <tbody>
             {doc.filas.map((row, index) => (
-              <tbody key={index} className="contents">
+              <Fragment key={index}>
                 <tr>
                   <td colSpan={7} className="border border-black bg-[#fbe4d5] px-3 py-2 text-left text-[11px] font-bold">
                     {row.jornada || `Jornada ${index + 1}`}
@@ -103,7 +104,7 @@ export default function ParvulariaPlanningPreview({ content }: Props) {
                   <td className="border border-black px-2 py-3"><Text value={row.recursos} /></td>
                   <td className="border border-black px-2 py-3"><Text value={row.evaluacion} /></td>
                 </tr>
-              </tbody>
+              </Fragment>
             ))}
           </tbody>
         </table>
