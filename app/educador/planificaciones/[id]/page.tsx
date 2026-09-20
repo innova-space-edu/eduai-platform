@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
-import { useParams, useRouter, useSearchParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { createClient } from "@/lib/supabase/client"
@@ -141,7 +141,6 @@ function buildSavedInstitutionalMeta(item: SavedPlanning): SchoolPlanningPdfMeta
 export default function SavedPlanningDetailPage() {
   const router = useRouter()
   const params = useParams()
-  const searchParams = useSearchParams()
   const supabase = useMemo(() => createClient(), [])
 
   const planningId = Array.isArray(params?.id) ? params.id[0] : params?.id
@@ -152,7 +151,12 @@ export default function SavedPlanningDetailPage() {
   const [deleting, setDeleting] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [status, setStatus] = useState("")
-  const [viewMode, setViewMode] = useState<"preview" | "edit">(() => searchParams.get("edit") === "1" ? "edit" : "preview")
+  const [viewMode, setViewMode] = useState<"preview" | "edit">("preview")
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    if (new URLSearchParams(window.location.search).get("edit") === "1") setViewMode("edit")
+  }, [])
 
   useEffect(() => {
     let active = true
