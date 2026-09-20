@@ -1,6 +1,7 @@
 export type ParvulariaPlanningHorizon = "diaria" | "semanal" | "quincenal" | "mensual" | "semestral"
 
 export interface ParvulariaPlanningRow {
+  jornada: string
   ambitoNucleo: string
   objetivosAprendizajes: string
   experienciaAprendizaje: string
@@ -27,6 +28,7 @@ export interface ParvulariaPlanningDocument {
 }
 
 const EMPTY_ROW: ParvulariaPlanningRow = {
+  jornada: "",
   ambitoNucleo: "",
   objetivosAprendizajes: "",
   experienciaAprendizaje: "",
@@ -46,10 +48,11 @@ function horizon(value: unknown): ParvulariaPlanningHorizon {
     : "diaria"
 }
 
-function row(value: unknown): ParvulariaPlanningRow | null {
+function row(value: unknown, index: number): ParvulariaPlanningRow | null {
   if (!value || typeof value !== "object") return null
   const raw = value as Record<string, unknown>
   return {
+    jornada: text(raw.jornada) || `Jornada ${index + 1}`,
     ambitoNucleo: text(raw.ambitoNucleo),
     objetivosAprendizajes: text(raw.objetivosAprendizajes),
     experienciaAprendizaje: text(raw.experienciaAprendizaje),
@@ -65,7 +68,7 @@ export function normalizeParvulariaPlanningDocument(
   defaults: Partial<ParvulariaPlanningDocument> = {}
 ): ParvulariaPlanningDocument {
   const raw = value && typeof value === "object" ? value as Record<string, unknown> : {}
-  const rows = Array.isArray(raw.filas) ? raw.filas.map(row).filter((item): item is ParvulariaPlanningRow => Boolean(item)) : []
+  const rows = Array.isArray(raw.filas) ? raw.filas.map((item, index) => row(item, index)).filter((item): item is ParvulariaPlanningRow => Boolean(item)) : []
 
   return {
     version: 1,
@@ -80,7 +83,11 @@ export function normalizeParvulariaPlanningDocument(
     principioActividad: text(raw.principioActividad) || defaults.principioActividad || "",
     focoExperiencia: text(raw.focoExperiencia) || defaults.focoExperiencia || "",
     horizonte: horizon(raw.horizonte || defaults.horizonte),
-    filas: rows.length ? rows : defaults.filas?.length ? defaults.filas : [{ ...EMPTY_ROW }],
+    filas: rows.length
+      ? rows
+      : defaults.filas?.length
+        ? defaults.filas.map((item, index) => ({ ...item, jornada: item.jornada || `Jornada ${index + 1}` }))
+        : [{ ...EMPTY_ROW, jornada: "Jornada 1" }],
   }
 }
 
