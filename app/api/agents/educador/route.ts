@@ -28,7 +28,7 @@ import {
 } from "@/lib/school-planning-profiles"
 import { buildConnectedOAContext, resolveOAConnection } from "@/lib/planner-oa-bridge"
 import { expectedSchoolWeekLabel, getSchoolPlanningPeriodLabel, normalizeSchoolWeekLabel, schoolPlanningMonthLabel, validateSchoolPlanningWeeks } from "@/lib/school-planning-template"
-import { buildParvulariaDateLabel, parseParvulariaPlanningDocument, parvulariaHorizonLabel, serializeParvulariaPlanningDocument } from "@/lib/parvularia-planning"
+import { buildParvulariaDateLabel, buildParvulariaPeriodGuide, parseParvulariaPlanningDocument, parvulariaHorizonLabel, serializeParvulariaPlanningDocument } from "@/lib/parvularia-planning"
 
 export const runtime = "nodejs"
 export const maxDuration = 60
@@ -1120,12 +1120,19 @@ REGLAS:
   const anioPlanificacion = clampNumber(cfg.anioPlanificacion, new Date().getFullYear(), 2020, 2100)
   const weeklyOAPlan = ensureWeeklyOAPlan(cfg.weeklyOAPlan)
   const periodLabel = getSchoolPlanningPeriodLabel(tiempoPlanificacion, periodoId, mes)
-  const isStructuredParvularia = nivel === "parvularia" && outputIntent === "planificacion"
+  const isStructuredParvularia = nivel === "parvularia" && mode === "planificar"
   const educadoraParvularia = typeof cfg.educadoraParvularia === "string" ? cfg.educadoraParvularia.trim() : ""
   const asistentesParvularia = typeof cfg.asistentesParvularia === "string" ? cfg.asistentesParvularia.trim() : ""
   const fechaInicioParvularia = typeof cfg.fechaInicioParvularia === "string" ? cfg.fechaInicioParvularia.trim() : ""
   const fechaFinParvularia = typeof cfg.fechaFinParvularia === "string" ? cfg.fechaFinParvularia.trim() : ""
   const parvulariaFechas = buildParvulariaDateLabel(fechaInicioParvularia, fechaFinParvularia || fechaInicioParvularia)
+  const parvulariaPeriodGuide = isStructuredParvularia && tiempoPlanificacion !== "anual"
+    ? buildParvulariaPeriodGuide(
+        fechaInicioParvularia,
+        fechaFinParvularia || fechaInicioParvularia,
+        tiempoPlanificacion as "diaria" | "semanal" | "quincenal" | "mensual" | "semestral"
+      )
+    : ""
 
   if (isStructuredParvularia) {
     if (!educadoraParvularia || !asistentesParvularia || !fechaInicioParvularia) {
@@ -1423,7 +1430,26 @@ DATOS FIJOS DEL DOCUMENTO:
 - Contexto entregado por el usuario: ${contexto || "Sin contexto adicional"}
 
 BASE CURRICULAR SELECCIONADA. USA ESTOS OA/OAT Y NO INVENTES CÓDIGOS:
-${parvulariaCurriculumContext || "No se recuperó contexto curricular; mantén estrictamente los OA incluidos en la solicitud del usuario."}
+${parvulariaCurriculumContext || "No se recuperó contexto curricular; mantén estrictamente los objetivos incluidos en la solicitud del usuario."}
+
+DISTRIBUCIÓN TEMPORAL OBLIGATORIA:
+${parvulariaPeriodGuide || "Desarrolla experiencias coherentes con el período seleccionado."}
+
+REFERENCIA INSTITUCIONAL QUE DEBES REPLICAR EN CONTENIDO Y ORGANIZACIÓN:
+- El encabezado debe quedar completamente rellenado.
+- El bloque inicial contiene exactamente: Objetivo de aprendizaje; Principio de Juego; Principio de actividad; Foco de experiencia.
+- La tabla principal contiene exactamente siete columnas: Ámbito/Núcleo; Objetivos de Aprendizajes; Experiencia de aprendizaje; Orientaciones Relevantes; Rol del equipo pedagógico y rol de la familia; Recursos; Evaluación.
+- El archivo de referencia desarrolla Experiencia de aprendizaje con Inicio, Desarrollo, experiencias concretas por fecha/rango y Finalización.
+- En Sala Cuna, cuando corresponda, distingue "Edades 06 meses a 12 meses" y "Edades 1 año a 2 años"; en otros subniveles adapta por edad sin inventar una estructura escolarizada.
+- Inicio debe reunir/motivar al grupo, presentar recursos y activar exploración o juego.
+- Desarrollo debe contener ACTIVIDADES REALES, distintas, detalladas y ejecutables: qué harán los párvulos, qué manipularán/observarán/escucharán, cómo interviene el adulto y qué se espera observar. No escribas solo títulos.
+- Finalización debe considerar ordenar/guardar materiales, socializar mediante lenguaje, gestos, sonidos o producciones, y reforzar positivamente la participación.
+- Orientaciones Relevantes debe incluir, según pertinencia: preparar material con anticipación; ambiente fresco e iluminado; uso de distintos espacios educativos; vestimenta cómoda; material suficiente para libre exploración; tiempo flexible; seguridad y bienestar.
+- Rol del equipo pedagógico debe permitir libre acercamiento y desplazamiento, mediar cuando el párvulo lo requiere y evitar sobreintervenir, respetando interés, curiosidad y exploración.
+- Rol de la familia debe indicar apoyo con materiales/continuidad del aprendizaje y comunicación con el equipo.
+- Recursos debe separar "RECURSOS TANGIBLES" y "RECURSOS INTANGIBLES"; incluye voz del equipo y expresión gestual cuando corresponda.
+- Evaluación debe quedar completa: "Instrumento: Escala de apreciación", Logrado: 3, Medianamente logrado: 2, Por lograr: 1, No observado: 0; Registro de Observación; registro fotográfico cuando sea pertinente; e Indicadores observables alineados a cada objetivo.
+- Usa la referencia como estándar de profundidad: una planificación semanal o quincenal no puede devolver una tabla vacía ni una frase genérica por columna.
 
 ESTRUCTURA PEDAGÓGICA OBLIGATORIA:
 1. Debes completar los cuatro campos iniciales: objetivo de aprendizaje integrado, principio de juego, principio de actividad y foco de experiencia.
@@ -1440,6 +1466,10 @@ ESTRUCTURA PEDAGÓGICA OBLIGATORIA:
 12. No uses horas pedagógicas, minutos por sesión, cronogramas por bloques horarios ni cantidad de clases.
 13. Para horizonte diaria genera la experiencia del día; semanal organiza la semana; quincenal organiza dos semanas; mensual organiza por semanas del mes; semestral organiza progresión mensual/semanal sin intentar detallar cada minuto de cada jornada.
 14. La planificación debe ser utilizable directamente y suficientemente detallada, sin texto genérico de relleno.
+15. En semanal y quincenal debes desarrollar una experiencia distinta para CADA día hábil indicado en la guía temporal. En mensual, organiza semanas con experiencias concretas por día hábil. En semestral, organiza meses y semanas con progresión clara.
+16. "Experiencia de aprendizaje" debe contener obligatoriamente los literales Inicio:, Desarrollo: y Finalización:.
+17. Nunca devuelvas campos vacíos. Si falta una idea del docente, CONSTRÚYELA a partir de los objetivos oficiales seleccionados, la edad, el núcleo y el contexto.
+18. No copies actividades del archivo de referencia como plantilla fija: construye nuevas actividades coherentes con los OA/OAT seleccionados, manteniendo su nivel de detalle y su organización.
 
 SALIDA OBLIGATORIA:
 Responde SOLO JSON válido, sin markdown, sin comentarios y sin texto antes o después. Usa exactamente esta forma:
@@ -1617,14 +1647,21 @@ REGLAS DE LAS CELDAS:
           !row.orientacionesRelevantes.trim() ||
           !row.rolEquipoFamilia.trim() ||
           !row.recursos.trim() ||
-          !row.evaluacion.trim()
+          !row.evaluacion.trim() ||
+          !/inicio\\s*:/i.test(row.experienciaAprendizaje) ||
+          !/desarrollo\\s*:/i.test(row.experienciaAprendizaje) ||
+          !/finalizaci[oó]n\\s*:/i.test(row.experienciaAprendizaje) ||
+          !/recursos tangibles/i.test(row.recursos) ||
+          !/recursos intangibles/i.test(row.recursos) ||
+          !/rol de la familia|familia\\s*:/i.test(row.rolEquipoFamilia) ||
+          !/indicadores?/i.test(row.evaluacion)
         )
         if (!fixed.objetivoAprendizaje.trim() || !fixed.principioJuego.trim() || !fixed.principioActividad.trim() || !fixed.focoExperiencia.trim() || !fixed.filas.length || incompleteRow || missingOA.length) {
           throw new Error(
             missingOA.length
               ? `Faltan OA seleccionados en la tabla: ${missingOA.map((oa) => oa.codigoOficial || oa.id).join(", ")}.`
               : incompleteRow
-                ? "Hay una fila de la plantilla con una o más columnas vacías."
+                ? "Hay una fila incompleta: debe incluir Inicio, Desarrollo, Finalización, roles, recursos tangibles/intangibles e indicadores de evaluación."
                 : "Faltan campos obligatorios de la plantilla."
           )
         }
