@@ -88,15 +88,22 @@ export default function ParvulariaPlanningPreview({ content }: Props) {
           </thead>
           <tbody>
             {doc.filas.map((row, index) => (
-              <tr key={index} className="align-top">
-                <td className="border border-black px-2 py-3"><Text value={row.ambitoNucleo} /></td>
-                <td className="border border-black px-2 py-3"><Text value={row.objetivosAprendizajes} /></td>
-                <td className="border border-black px-2 py-3"><Text value={row.experienciaAprendizaje} /></td>
-                <td className="border border-black px-2 py-3"><Text value={row.orientacionesRelevantes} /></td>
-                <td className="border border-black px-2 py-3"><Text value={row.rolEquipoFamilia} /></td>
-                <td className="border border-black px-2 py-3"><Text value={row.recursos} /></td>
-                <td className="border border-black px-2 py-3"><Text value={row.evaluacion} /></td>
-              </tr>
+              <tbody key={index} className="contents">
+                <tr>
+                  <td colSpan={7} className="border border-black bg-[#fbe4d5] px-3 py-2 text-left text-[11px] font-bold">
+                    {row.jornada || `Jornada ${index + 1}`}
+                  </td>
+                </tr>
+                <tr className="align-top">
+                  <td className="border border-black px-2 py-3"><Text value={row.ambitoNucleo} /></td>
+                  <td className="border border-black px-2 py-3"><Text value={row.objetivosAprendizajes} /></td>
+                  <td className="border border-black px-2 py-3"><Text value={row.experienciaAprendizaje} /></td>
+                  <td className="border border-black px-2 py-3"><Text value={row.orientacionesRelevantes} /></td>
+                  <td className="border border-black px-2 py-3"><Text value={row.rolEquipoFamilia} /></td>
+                  <td className="border border-black px-2 py-3"><Text value={row.recursos} /></td>
+                  <td className="border border-black px-2 py-3"><Text value={row.evaluacion} /></td>
+                </tr>
+              </tbody>
             ))}
           </tbody>
         </table>
