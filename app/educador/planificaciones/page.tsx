@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
+import { ArrowLeft, BookOpen, CalendarDays, ChevronDown, ChevronRight, Cloud, Download, FileText, Folder, FolderOpen, Pencil, Plus, Search, Trash2 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { exportPlanningPdf } from "@/lib/planning-pdf"
 import { exportParvulariaPlanningPdf } from "@/lib/parvularia-planning-pdf"
@@ -332,6 +333,61 @@ function countFolderItems(folder: PlanningYearFolder | PlanningMonthFolder | Pla
   return folder.areas.reduce((total, area) => total + area.items.length, 0)
 }
 
+
+type BrowserNode =
+  | { type: "home"; key: "home"; label: "Inicio" }
+  | { type: "year"; key: string; label: string; year: PlanningYearFolder }
+  | { type: "month"; key: string; label: string; year: PlanningYearFolder; month: PlanningMonthFolder }
+  | { type: "date"; key: string; label: string; year: PlanningYearFolder; month: PlanningMonthFolder; date: PlanningDateFolder }
+  | { type: "area"; key: string; label: string; year: PlanningYearFolder; month: PlanningMonthFolder; date: PlanningDateFolder; area: PlanningAreaFolder }
+
+function yearNodeKey(year: PlanningYearFolder) {
+  return "year:" + year.key
+}
+
+function monthNodeKey(year: PlanningYearFolder, month: PlanningMonthFolder) {
+  return "month:" + year.key + ":" + month.key
+}
+
+function dateNodeKey(year: PlanningYearFolder, month: PlanningMonthFolder, date: PlanningDateFolder) {
+  return "date:" + year.key + ":" + month.key + ":" + date.key
+}
+
+function areaNodeKey(year: PlanningYearFolder, month: PlanningMonthFolder, date: PlanningDateFolder, area: PlanningAreaFolder) {
+  return "area:" + year.key + ":" + month.key + ":" + date.key + ":" + area.key
+}
+
+function findBrowserNode(tree: PlanningYearFolder[], selectedKey: string): BrowserNode {
+  if (selectedKey === "home") return { type: "home", key: "home", label: "Inicio" }
+
+  for (const year of tree) {
+    if (yearNodeKey(year) === selectedKey) {
+      return { type: "year", key: selectedKey, label: year.label, year }
+    }
+    for (const month of year.months) {
+      if (monthNodeKey(year, month) === selectedKey) {
+        return { type: "month", key: selectedKey, label: month.label, year, month }
+      }
+      for (const date of month.dates) {
+        if (dateNodeKey(year, month, date) === selectedKey) {
+          return { type: "date", key: selectedKey, label: date.label, year, month, date }
+        }
+        for (const area of date.areas) {
+          if (areaNodeKey(year, month, date, area) === selectedKey) {
+            return { type: "area", key: selectedKey, label: area.label, year, month, date, area }
+          }
+        }
+      }
+    }
+  }
+
+  return { type: "home", key: "home", label: "Inicio" }
+}
+
+function pluralizePlan(count: number) {
+  return count === 1 ? "1 planificación" : count + " planificaciones"
+}
+
 export default function SavedPlanningsPage() {
   const router = useRouter()
   const supabase = useMemo(() => createClient(), [])
@@ -343,6 +399,7 @@ export default function SavedPlanningsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [exportingId, setExportingId] = useState<string | null>(null)
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(() => new Set())
+  const [selectedKey, setSelectedKey] = useState("home")
 
   useEffect(() => {
     let active = true
@@ -395,6 +452,7 @@ export default function SavedPlanningsPage() {
   }, [items, query])
 
   const folderTree = useMemo(() => buildPlanningTree(filtered), [filtered])
+  const selectedNode = useMemo(() => findBrowserNode(folderTree, selectedKey), [folderTree, selectedKey])
 
   useEffect(() => {
     if (!items.length) return
@@ -468,289 +526,494 @@ export default function SavedPlanningsPage() {
     }
   }
 
-  return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-950">
-      <div className="sticky top-0 z-20 border-b border-slate-200 bg-white/92 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-start gap-4">
-            <button
-              onClick={() => router.push("/educador")}
-              className="inline-flex h-11 items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800"
-            >
-              ← Volver
-            </button>
 
-            <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.28em] text-emerald-700">
-                Planificador MINEDUC
-              </p>
-              <h1 className="mt-1 text-3xl font-black tracking-tight text-slate-950">
-                Planificaciones guardadas
-              </h1>
-              <p className="mt-1 text-sm font-medium text-slate-600">
-                Tus planificaciones se organizan automáticamente por año, mes, fecha y asignatura o ámbito.
-              </p>
+  function renderPlanningCard(item: SavedPlanning) {
+    const stats = getPlanningStats(item)
+    return (
+      <article
+        key={item.id}
+        className="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-lg"
+      >
+        <div className="grid gap-0 xl:grid-cols-[minmax(0,1fr)_220px]">
+          <div className="p-5 md:p-6">
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              {stats.map((stat) => (
+                <span
+                  key={stat.label}
+                  className={"rounded-full border px-3 py-1 text-[11px] font-bold " + badgeClass(stat.tone)}
+                >
+                  <span className="mr-1 opacity-70">{stat.label}:</span>
+                  {stat.value}
+                </span>
+              ))}
+            </div>
+
+            <div className="flex items-start gap-4">
+              <div className="mt-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 ring-1 ring-indigo-100">
+                <FileText className="h-6 w-6" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="line-clamp-2 text-lg font-black leading-tight text-slate-950 md:text-xl">
+                  {compactTitle(item)}
+                </h3>
+                <p className="mt-1 text-sm font-semibold text-slate-600">
+                  {(item.curso || "Sin curso") + " · " + (item.asignatura || "Sin asignatura")}
+                </p>
+              </div>
+            </div>
+
+            <p className="mt-4 line-clamp-3 text-sm font-medium leading-6 text-slate-600">
+              {planningPreview(item)}
+            </p>
+
+            <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs font-semibold text-slate-400">
+              <span>Creada {formatDate(item.created_at)}</span>
+              <span>Editada {formatDate(item.updated_at)}</span>
             </div>
           </div>
 
-          <div className="w-full lg:w-[430px]">
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar por título, curso, asignatura, ámbito o contexto..."
-              className="w-full rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-900 placeholder:text-slate-400 shadow-sm outline-none transition focus:border-emerald-300 focus:ring-4 focus:ring-emerald-100"
-            />
+          <div className="border-t border-slate-100 bg-slate-50/80 p-4 xl:border-l xl:border-t-0">
+            <div className="grid h-full content-center gap-2">
+              <Link
+                href={"/educador/planificaciones/" + item.id + (getParvulariaDocument(item) ? "?edit=1" : "")}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-indigo-700"
+              >
+                <Pencil className="h-4 w-4" />
+                Abrir y editar
+              </Link>
+              <button
+                onClick={() => handleExport(item)}
+                disabled={exportingId === item.id}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50"
+              >
+                <Download className="h-4 w-4" />
+                {exportingId === item.id ? "Exportando..." : "PDF"}
+              </button>
+              <button
+                onClick={() => handleDelete(item.id, item.title)}
+                disabled={deletingId === item.id}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-100 bg-rose-50 px-4 py-2.5 text-sm font-bold text-rose-700 transition hover:bg-rose-100 disabled:opacity-50"
+              >
+                <Trash2 className="h-4 w-4" />
+                {deletingId === item.id ? "Eliminando..." : "Eliminar"}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      </article>
+    )
+  }
 
-      <div className="mx-auto max-w-7xl px-6 py-6">
-        {loading ? (
-          <div className="grid gap-5">
-            {Array.from({ length: 3 }).map((_, idx) => (
-              <div key={idx} className="animate-pulse rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-                <div className="mb-5 flex flex-wrap gap-2">
-                  <div className="h-7 w-20 rounded-full bg-slate-100" />
-                  <div className="h-7 w-24 rounded-full bg-slate-100" />
-                  <div className="h-7 w-40 rounded-full bg-slate-100" />
+  function renderFolderCard(
+    key: string,
+    label: string,
+    eyebrow: string,
+    count: number,
+    icon: "folder" | "calendar" | "book"
+  ) {
+    const Icon = icon === "calendar" ? CalendarDays : icon === "book" ? BookOpen : Folder
+    return (
+      <button
+        key={key}
+        type="button"
+        onClick={() => setSelectedKey(key)}
+        className="group flex min-h-32 flex-col justify-between rounded-3xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
+            <Icon className="h-5 w-5" />
+          </span>
+          <ChevronRight className="h-5 w-5 text-slate-300 transition group-hover:translate-x-1 group-hover:text-indigo-500" />
+        </div>
+        <div className="mt-5">
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">{eyebrow}</p>
+          <p className="mt-1 truncate text-base font-black text-slate-900">{label}</p>
+          <p className="mt-1 text-xs font-semibold text-slate-500">{pluralizePlan(count)}</p>
+        </div>
+      </button>
+    )
+  }
+
+  function renderMainContent() {
+    if (selectedNode.type === "home") {
+      const latest = filtered.slice(0, 4)
+      return (
+        <div className="space-y-6">
+          <section className="overflow-hidden rounded-[32px] border border-indigo-100 bg-gradient-to-br from-white via-indigo-50/50 to-violet-50 shadow-sm">
+            <div className="grid lg:grid-cols-[1.35fr_0.65fr]">
+              <div className="p-7 md:p-10">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-indigo-600 text-white shadow-lg shadow-indigo-200">
+                  <Cloud className="h-7 w-7" />
                 </div>
-                <div className="h-8 w-2/3 rounded-xl bg-slate-100" />
-                <div className="mt-4 h-5 w-40 rounded-xl bg-slate-100" />
-                <div className="mt-6 space-y-2">
-                  <div className="h-4 w-full rounded bg-slate-100" />
-                  <div className="h-4 w-full rounded bg-slate-100" />
-                  <div className="h-4 w-2/3 rounded bg-slate-100" />
+                <p className="mt-7 text-xs font-black uppercase tracking-[0.24em] text-indigo-600">Tu archivo docente</p>
+                <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950 md:text-4xl">
+                  Planificaciones organizadas como una nube
+                </h2>
+                <p className="mt-4 max-w-2xl text-sm font-medium leading-7 text-slate-600 md:text-base">
+                  Cada planificación queda ordenada automáticamente por año, mes, fecha y asignatura o ámbito. Usa el panel izquierdo para navegar por la estructura sin perder la vista del documento.
+                </p>
+                <Link
+                  href="/educador"
+                  className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-indigo-700"
+                >
+                  <Plus className="h-4 w-4" />
+                  Crear planificación
+                </Link>
+              </div>
+              <div className="border-t border-indigo-100 bg-white/60 p-6 lg:border-l lg:border-t-0">
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">Colección actual</p>
+                <div className="mt-5 grid gap-3">
+                  <div className="rounded-2xl border border-white bg-white p-5 shadow-sm">
+                    <p className="text-3xl font-black text-slate-950">{filtered.length}</p>
+                    <p className="mt-1 text-xs font-semibold text-slate-500">planificaciones guardadas</p>
+                  </div>
+                  <div className="rounded-2xl border border-white bg-white p-5 shadow-sm">
+                    <p className="text-3xl font-black text-slate-950">{folderTree.length}</p>
+                    <p className="mt-1 text-xs font-semibold text-slate-500">años con contenido</p>
+                  </div>
+                  <div className="rounded-2xl border border-white bg-white p-5 shadow-sm">
+                    <p className="text-3xl font-black text-slate-950">
+                      {folderTree.reduce((total, year) => total + year.months.length, 0)}
+                    </p>
+                    <p className="mt-1 text-xs font-semibold text-slate-500">meses organizados</p>
+                  </div>
                 </div>
               </div>
-            ))}
+            </div>
+          </section>
+
+          {latest.length > 0 ? (
+            <section>
+              <div className="mb-4 flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Acceso rápido</p>
+                  <h3 className="mt-1 text-xl font-black text-slate-950">Planificaciones recientes</h3>
+                </div>
+              </div>
+              <div className="grid gap-4">{latest.map(renderPlanningCard)}</div>
+            </section>
+          ) : null}
+        </div>
+      )
+    }
+
+    if (selectedNode.type === "year") {
+      return (
+        <div>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {selectedNode.year.months.map((month) =>
+              renderFolderCard(
+                monthNodeKey(selectedNode.year, month),
+                month.label,
+                "Mes",
+                countFolderItems(month),
+                "folder"
+              )
+            )}
           </div>
-        ) : error ? (
-          <div className="rounded-[28px] border border-rose-200 bg-rose-50 p-8 text-center font-semibold text-rose-800">
-            No se pudieron cargar las planificaciones. {error}
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="rounded-[28px] border border-dashed border-slate-300 bg-white p-12 text-center shadow-sm">
-            <div className="mb-4 text-5xl">🗂️</div>
-            <h2 className="text-2xl font-black text-slate-950">Aún no hay planificaciones guardadas</h2>
-            <p className="mx-auto mt-3 max-w-xl text-sm font-medium text-slate-600">
-              Crea una planificación en el agente y guárdala para verla aquí.
-            </p>
-            <Link
-              href="/educador"
-              className="mt-6 inline-flex rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700"
+        </div>
+      )
+    }
+
+    if (selectedNode.type === "month") {
+      return (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {selectedNode.month.dates.map((date) =>
+            renderFolderCard(
+              dateNodeKey(selectedNode.year, selectedNode.month, date),
+              date.label,
+              "Fecha",
+              countFolderItems(date),
+              "calendar"
+            )
+          )}
+        </div>
+      )
+    }
+
+    if (selectedNode.type === "date") {
+      return (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {selectedNode.date.areas.map((area) =>
+            renderFolderCard(
+              areaNodeKey(selectedNode.year, selectedNode.month, selectedNode.date, area),
+              area.label,
+              area.kind,
+              area.items.length,
+              "book"
+            )
+          )}
+        </div>
+      )
+    }
+
+    return <div className="grid gap-4">{selectedNode.area.items.map(renderPlanningCard)}</div>
+  }
+
+  function selectedBreadcrumbs() {
+    if (selectedNode.type === "home") return ["Inicio"]
+    if (selectedNode.type === "year") return ["Inicio", selectedNode.year.label]
+    if (selectedNode.type === "month") return ["Inicio", selectedNode.year.label, selectedNode.month.label]
+    if (selectedNode.type === "date") return ["Inicio", selectedNode.year.label, selectedNode.month.label, selectedNode.date.label]
+    return ["Inicio", selectedNode.year.label, selectedNode.month.label, selectedNode.date.label, selectedNode.area.label]
+  }
+
+  return (
+    <div className="min-h-screen bg-[#f6f8fc] text-slate-950">
+      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur-xl">
+        <div className="flex min-h-[74px] items-center justify-between gap-4 px-4 md:px-6">
+          <div className="flex min-w-0 items-center gap-3">
+            <button
+              type="button"
+              onClick={() => router.push("/educador")}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+              aria-label="Volver al planificador"
             >
-              Ir al planificador
-            </Link>
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-indigo-600 text-white shadow-md shadow-indigo-100">
+              <FolderOpen className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="truncate text-lg font-black tracking-tight text-slate-950 md:text-xl">Planificaciones EduAI</h1>
+              <p className="hidden text-xs font-medium text-slate-500 sm:block">Año · mes · fecha · asignatura o ámbito</p>
+            </div>
           </div>
-        ) : (
-          <div className="space-y-4">
-            {folderTree.map((yearFolder) => {
-              const yearKey = `year:${yearFolder.key}`
+
+          <Link
+            href="/educador"
+            className="inline-flex shrink-0 items-center gap-2 rounded-2xl bg-indigo-600 px-4 py-2.5 text-sm font-black text-white shadow-sm transition hover:bg-indigo-700"
+          >
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Nueva planificación</span>
+            <span className="sm:hidden">Nueva</span>
+          </Link>
+        </div>
+      </header>
+
+      <div className="grid lg:h-[calc(100vh-74px)] lg:grid-cols-[310px_minmax(0,1fr)]">
+        <aside className="border-b border-slate-200 bg-white lg:overflow-y-auto lg:border-b-0 lg:border-r">
+          <div className="p-4">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value)
+                  setSelectedKey("home")
+                }}
+                placeholder="Buscar planificaciones..."
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm font-medium text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-300 focus:bg-white focus:ring-4 focus:ring-indigo-100"
+              />
+            </div>
+
+            <div className="mt-4 flex items-center justify-between px-1 text-[11px] font-bold text-slate-400">
+              <span>{pluralizePlan(filtered.length)}</span>
+              <span>{folderTree.length} años</span>
+            </div>
+          </div>
+
+          <nav className="px-2 pb-5">
+            <button
+              type="button"
+              onClick={() => setSelectedKey("home")}
+              className={
+                "mb-2 flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left text-sm font-bold transition " +
+                (selectedNode.type === "home"
+                  ? "bg-indigo-50 text-indigo-700 ring-1 ring-indigo-100"
+                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900")
+              }
+            >
+              <Cloud className="h-4 w-4" />
+              <span>Inicio</span>
+              <ChevronRight className="ml-auto h-4 w-4" />
+            </button>
+
+            {folderTree.map((year) => {
+              const yKey = yearNodeKey(year)
+              const yOpen = isFolderOpen(yKey)
               return (
-                <section key={yearFolder.key} className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
-                  <button
-                    type="button"
-                    onClick={() => toggleFolder(yearKey)}
-                    className="flex w-full items-center justify-between gap-4 bg-slate-950 px-5 py-4 text-left text-white transition hover:bg-slate-900"
-                  >
-                    <span className="flex items-center gap-3">
-                      <span className="text-xl">📁</span>
-                      <span>
-                        <span className="block text-xs font-black uppercase tracking-[0.18em] text-slate-300">Año</span>
-                        <span className="text-xl font-black">{yearFolder.label}</span>
+                <div key={year.key} className="mb-1">
+                  <div className="flex items-center">
+                    <button
+                      type="button"
+                      onClick={() => toggleFolder(yKey)}
+                      className="flex h-9 w-8 shrink-0 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                      aria-label={yOpen ? "Cerrar año" : "Abrir año"}
+                    >
+                      {yOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedKey(yKey)}
+                      className={
+                        "flex min-w-0 flex-1 items-center gap-2 rounded-xl px-2.5 py-2 text-left text-sm font-bold transition " +
+                        (selectedKey === yKey ? "bg-indigo-50 text-indigo-700" : "text-slate-700 hover:bg-slate-50")
+                      }
+                    >
+                      {yOpen ? <FolderOpen className="h-4 w-4 shrink-0" /> : <Folder className="h-4 w-4 shrink-0" />}
+                      <span className="truncate">{year.label}</span>
+                      <span className="ml-auto rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-black text-slate-500">
+                        {countFolderItems(year)}
                       </span>
-                    </span>
-                    <span className="flex items-center gap-3">
-                      <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold">{countFolderItems(yearFolder)} planificaciones</span>
-                      <span className="text-lg">{isFolderOpen(yearKey) ? "▾" : "▸"}</span>
-                    </span>
-                  </button>
-
-                  {isFolderOpen(yearKey) && (
-                    <div className="space-y-3 bg-slate-50 p-3 md:p-4">
-                      {yearFolder.months.map((monthFolder) => {
-                        const monthKey = `month:${yearFolder.key}:${monthFolder.key}`
-                        return (
-                          <section key={monthFolder.key} className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-                            <button
-                              type="button"
-                              onClick={() => toggleFolder(monthKey)}
-                              className="flex w-full items-center justify-between gap-4 px-5 py-3 text-left transition hover:bg-emerald-50"
-                            >
-                              <span className="flex items-center gap-3">
-                                <span>📂</span>
-                                <span className="font-black text-slate-900">{monthFolder.label}</span>
-                              </span>
-                              <span className="flex items-center gap-3 text-xs font-bold text-slate-500">
-                                <span>{countFolderItems(monthFolder)}</span>
-                                <span>{isFolderOpen(monthKey) ? "▾" : "▸"}</span>
-                              </span>
-                            </button>
-
-                            {isFolderOpen(monthKey) && (
-                              <div className="space-y-3 border-t border-slate-100 bg-slate-50/70 p-3">
-                                {monthFolder.dates.map((dateFolder) => {
-                                  const dateKey = `date:${yearFolder.key}:${monthFolder.key}:${dateFolder.key}`
-                                  return (
-                                    <section key={dateFolder.key} className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-                                      <button
-                                        type="button"
-                                        onClick={() => toggleFolder(dateKey)}
-                                        className="flex w-full items-center justify-between gap-4 px-5 py-3 text-left transition hover:bg-sky-50"
-                                      >
-                                        <span className="flex items-center gap-3">
-                                          <span>🗓️</span>
-                                          <span>
-                                            <span className="block text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Fecha</span>
-                                            <span className="font-extrabold text-slate-800">{dateFolder.label}</span>
-                                          </span>
-                                        </span>
-                                        <span className="flex items-center gap-3 text-xs font-bold text-slate-500">
-                                          <span>{countFolderItems(dateFolder)}</span>
-                                          <span>{isFolderOpen(dateKey) ? "▾" : "▸"}</span>
-                                        </span>
-                                      </button>
-
-                                      {isFolderOpen(dateKey) && (
-                                        <div className="space-y-3 border-t border-slate-100 p-3">
-                                          {dateFolder.areas.map((areaFolder) => {
-                                            const areaKey = `area:${yearFolder.key}:${monthFolder.key}:${dateFolder.key}:${areaFolder.key}`
-                                            return (
-                                              <section key={areaFolder.key} className="overflow-hidden rounded-2xl border border-emerald-100 bg-emerald-50/40">
-                                                <button
-                                                  type="button"
-                                                  onClick={() => toggleFolder(areaKey)}
-                                                  className="flex w-full items-center justify-between gap-4 px-5 py-3 text-left transition hover:bg-emerald-50"
-                                                >
-                                                  <span className="flex items-center gap-3">
-                                                    <span>📚</span>
-                                                    <span>
-                                                      <span className="block text-[10px] font-black uppercase tracking-[0.16em] text-emerald-700">{areaFolder.kind}</span>
-                                                      <span className="font-black text-slate-900">{areaFolder.label}</span>
-                                                    </span>
-                                                  </span>
-                                                  <span className="flex items-center gap-3 text-xs font-bold text-emerald-800">
-                                                    <span>{areaFolder.items.length}</span>
-                                                    <span>{isFolderOpen(areaKey) ? "▾" : "▸"}</span>
-                                                  </span>
-                                                </button>
-
-                                                {isFolderOpen(areaKey) && (
-                                                  <div className="grid gap-4 border-t border-emerald-100 bg-white p-3 md:p-4">
-                                                    {areaFolder.items.map((item) => {
-                                                      const preview = planningPreview(item)
-                                                      const stats = getPlanningStats(item)
-
-                                                      return (
-                                                        <article
-                  key={item.id}
-                  className="overflow-hidden rounded-[30px] border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
-                >
-                  <div className="grid gap-0 xl:grid-cols-[minmax(0,1fr)_280px]">
-                    <div className="p-6">
-                      <div className="mb-4 flex flex-wrap items-center gap-2">
-                        {stats.map((stat) => (
-                          <span key={stat.label} className={`rounded-full border px-3 py-1 text-xs font-bold ${badgeClass(stat.tone)}`}>
-                            <span className="mr-1 opacity-80">{stat.label}:</span>{stat.value}
-                          </span>
-                        ))}
-                        <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">
-                          Creada: {formatDate(item.created_at)}
-                        </span>
-                      </div>
-
-                      <h2 className="line-clamp-2 text-2xl font-black leading-tight text-slate-950">
-                        {compactTitle(item)}
-                      </h2>
-
-                      <p className="mt-2 text-base font-semibold text-slate-700">
-                        {item.curso || "Sin curso"} · {item.asignatura || "Sin asignatura"}
-                      </p>
-
-                      {item.contexto ? (
-                        <div className="mt-5 rounded-2xl border border-emerald-100 bg-emerald-50/70 px-4 py-3">
-                          <p className="mb-1 text-[11px] font-black uppercase tracking-[0.18em] text-emerald-800">
-                            Contexto pedagógico
-                          </p>
-                          <p className="line-clamp-2 text-sm font-medium leading-6 text-slate-800">
-                            {item.contexto}
-                          </p>
-                        </div>
-                      ) : null}
-
-                      <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                        <p className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
-                          Vista previa del contenido
-                        </p>
-                        <p className="text-sm font-medium leading-7 text-slate-700">{preview}</p>
-                      </div>
-
-                      <div className="mt-5 flex flex-wrap gap-3 text-xs font-semibold text-slate-500">
-                        <span>Última edición: <span className="text-slate-700">{formatDate(item.updated_at)}</span></span>
-                        {item.mes ? <span>Mes: <span className="text-slate-700">{item.mes}</span></span> : null}
-                      </div>
-                    </div>
-
-                    <div className="border-t border-slate-200 bg-slate-50 p-6 xl:border-l xl:border-t-0">
-                      <div className="flex h-full flex-col justify-between">
-                        <div>
-                          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Acciones</p>
-                          <h3 className="mt-2 text-lg font-black text-slate-950">Gestionar planificación</h3>
-                          <p className="mt-2 text-sm font-medium leading-6 text-slate-600">
-                            Abre la vista completa, edita el contenido, exporta PDF o elimina el registro.
-                          </p>
-                        </div>
-
-                        <div className="mt-6 grid gap-3">
-                          <Link
-                            href={`/educador/planificaciones/${item.id}${getParvulariaDocument(item) ? "?edit=1" : ""}`}
-                            className="inline-flex items-center justify-center rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-bold text-sky-800 transition hover:bg-sky-100"
-                          >
-                            Ver y editar
-                          </Link>
-                          <button
-                            onClick={() => handleExport(item)}
-                            disabled={exportingId === item.id}
-                            className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800 transition hover:bg-amber-100 disabled:opacity-50"
-                          >
-                            {exportingId === item.id ? "Exportando..." : "Exportar PDF"}
-                          </button>
-                          <button
-                            onClick={() => handleDelete(item.id, item.title)}
-                            disabled={deletingId === item.id}
-                            className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-800 transition hover:bg-rose-100 disabled:opacity-50"
-                          >
-                            {deletingId === item.id ? "Eliminando..." : "Eliminar"}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
+                    </button>
                   </div>
-                                                        </article>
-                                                      )
-                                                    })}
-                                                  </div>
-                                                )}
-                                              </section>
+
+                  {yOpen ? (
+                    <div className="ml-4 border-l border-slate-200 pl-2">
+                      {year.months.map((month) => {
+                        const mKey = monthNodeKey(year, month)
+                        const mOpen = isFolderOpen(mKey)
+                        return (
+                          <div key={month.key}>
+                            <div className="flex items-center">
+                              <button
+                                type="button"
+                                onClick={() => toggleFolder(mKey)}
+                                className="flex h-8 w-7 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100"
+                              >
+                                {mOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedKey(mKey)}
+                                className={
+                                  "flex min-w-0 flex-1 items-center gap-2 rounded-xl px-2 py-1.5 text-left text-[13px] font-bold transition " +
+                                  (selectedKey === mKey ? "bg-sky-50 text-sky-700" : "text-slate-600 hover:bg-slate-50")
+                                }
+                              >
+                                <Folder className="h-3.5 w-3.5 shrink-0" />
+                                <span className="truncate">{month.label}</span>
+                              </button>
+                            </div>
+
+                            {mOpen ? (
+                              <div className="ml-3 border-l border-slate-200 pl-2">
+                                {month.dates.map((date) => {
+                                  const dKey = dateNodeKey(year, month, date)
+                                  const dOpen = isFolderOpen(dKey)
+                                  return (
+                                    <div key={date.key}>
+                                      <div className="flex items-center">
+                                        <button
+                                          type="button"
+                                          onClick={() => toggleFolder(dKey)}
+                                          className="flex h-8 w-7 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100"
+                                        >
+                                          {dOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => setSelectedKey(dKey)}
+                                          className={
+                                            "flex min-w-0 flex-1 items-center gap-2 rounded-xl px-2 py-1.5 text-left text-xs font-bold transition " +
+                                            (selectedKey === dKey ? "bg-violet-50 text-violet-700" : "text-slate-600 hover:bg-slate-50")
+                                          }
+                                        >
+                                          <CalendarDays className="h-3.5 w-3.5 shrink-0" />
+                                          <span className="truncate">{date.label}</span>
+                                        </button>
+                                      </div>
+
+                                      {dOpen ? (
+                                        <div className="ml-3 border-l border-slate-200 pl-2">
+                                          {date.areas.map((area) => {
+                                            const aKey = areaNodeKey(year, month, date, area)
+                                            return (
+                                              <button
+                                                key={area.key}
+                                                type="button"
+                                                onClick={() => setSelectedKey(aKey)}
+                                                className={
+                                                  "flex w-full min-w-0 items-center gap-2 rounded-xl px-2 py-1.5 text-left text-xs font-bold transition " +
+                                                  (selectedKey === aKey ? "bg-emerald-50 text-emerald-700" : "text-slate-500 hover:bg-slate-50 hover:text-slate-700")
+                                                }
+                                              >
+                                                <BookOpen className="h-3.5 w-3.5 shrink-0" />
+                                                <span className="truncate">{area.label}</span>
+                                                <span className="ml-auto text-[10px] text-slate-400">{area.items.length}</span>
+                                              </button>
                                             )
                                           })}
                                         </div>
-                                      )}
-                                    </section>
+                                      ) : null}
+                                    </div>
                                   )
                                 })}
                               </div>
-                            )}
-                          </section>
+                            ) : null}
+                          </div>
                         )
                       })}
                     </div>
-                  )}
-                </section>
+                  ) : null}
+                </div>
               )
             })}
+          </nav>
+        </aside>
+
+        <main className="min-w-0 bg-[#f6f8fc] lg:overflow-y-auto">
+          <div className="mx-auto max-w-7xl p-4 md:p-6 lg:p-8">
+            {loading ? (
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <div key={index} className="h-36 animate-pulse rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <div className="h-10 w-10 rounded-2xl bg-slate-100" />
+                    <div className="mt-6 h-4 w-2/3 rounded bg-slate-100" />
+                    <div className="mt-2 h-3 w-1/3 rounded bg-slate-100" />
+                  </div>
+                ))}
+              </div>
+            ) : error ? (
+              <div className="rounded-3xl border border-rose-200 bg-rose-50 p-8 text-center text-sm font-bold text-rose-800">
+                No se pudieron cargar las planificaciones. {error}
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="rounded-[32px] border border-dashed border-slate-300 bg-white p-12 text-center shadow-sm">
+                <Folder className="mx-auto h-12 w-12 text-slate-300" />
+                <h2 className="mt-4 text-2xl font-black text-slate-950">No hay planificaciones en esta vista</h2>
+                <p className="mx-auto mt-2 max-w-lg text-sm font-medium leading-6 text-slate-500">
+                  Cambia la búsqueda o crea una nueva planificación desde el agente.
+                </p>
+                <Link
+                  href="/educador"
+                  className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-black text-white"
+                >
+                  <Plus className="h-4 w-4" />
+                  Crear planificación
+                </Link>
+              </div>
+            ) : (
+              <>
+                <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-1.5 text-xs font-bold text-slate-400">
+                      {selectedBreadcrumbs().map((crumb, index, crumbs) => (
+                        <span key={crumb + index} className="flex items-center gap-1.5">
+                          <span>{crumb}</span>
+                          {index < crumbs.length - 1 ? <ChevronRight className="h-3.5 w-3.5" /> : null}
+                        </span>
+                      ))}
+                    </div>
+                    <h2 className="mt-2 truncate text-2xl font-black tracking-tight text-slate-950 md:text-3xl">
+                      {selectedNode.type === "home" ? "Mis planificaciones" : selectedNode.label}
+                    </h2>
+                    <p className="mt-1 text-sm font-medium text-slate-500">
+                      {selectedNode.type === "home"
+                        ? "Navega por las carpetas del panel izquierdo."
+                        : selectedNode.type === "area"
+                          ? pluralizePlan(selectedNode.area.items.length)
+                          : "Selecciona una carpeta para seguir profundizando."}
+                    </p>
+                  </div>
+                </div>
+
+                {renderMainContent()}
+              </>
+            )}
           </div>
-        )}
+        </main>
       </div>
     </div>
   )
