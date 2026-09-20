@@ -1,5 +1,6 @@
 "use client"
 
+import { Fragment } from "react"
 import {
   parseParvulariaPlanningDocument,
   serializeParvulariaPlanningDocument,
@@ -69,7 +70,7 @@ export default function ParvulariaPlanningEditor({ content, onChange }: Props) {
   return (
     <div className="space-y-3">
       <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-semibold text-sky-900">
-        Todo el texto de la plantilla es editable: encabezado, datos generales y cada celda de la planificación. Los cambios se conservan en la vista previa y en el PDF.
+        Todo el texto de la plantilla es editable: encabezado, datos generales, nombre de cada jornada y cada celda de las tres planificaciones diarias. Los cambios se conservan en la vista previa y en el PDF.
       </div>
 
       <div className="overflow-x-auto rounded-2xl border border-slate-300 bg-slate-100 p-3">
@@ -132,15 +133,28 @@ export default function ParvulariaPlanningEditor({ content, onChange }: Props) {
             </thead>
             <tbody>
               {doc.filas.map((row, index) => (
-                <tr key={index} className="align-top">
-                  <td className={inputCell}><Field label={`Ámbito y núcleo, fila ${index + 1}`} value={row.ambitoNucleo} onChange={(v) => setRow(index, "ambitoNucleo", v)} rows={12} /></td>
-                  <td className={inputCell}><Field label={`Objetivos de aprendizaje, fila ${index + 1}`} value={row.objetivosAprendizajes} onChange={(v) => setRow(index, "objetivosAprendizajes", v)} rows={12} /></td>
-                  <td className={inputCell}><Field label={`Experiencia de aprendizaje, fila ${index + 1}`} value={row.experienciaAprendizaje} onChange={(v) => setRow(index, "experienciaAprendizaje", v)} rows={18} /></td>
-                  <td className={inputCell}><Field label={`Orientaciones relevantes, fila ${index + 1}`} value={row.orientacionesRelevantes} onChange={(v) => setRow(index, "orientacionesRelevantes", v)} rows={14} /></td>
-                  <td className={inputCell}><Field label={`Rol del equipo y familia, fila ${index + 1}`} value={row.rolEquipoFamilia} onChange={(v) => setRow(index, "rolEquipoFamilia", v)} rows={14} /></td>
-                  <td className={inputCell}><Field label={`Recursos, fila ${index + 1}`} value={row.recursos} onChange={(v) => setRow(index, "recursos", v)} rows={14} /></td>
-                  <td className={inputCell}><Field label={`Evaluación, fila ${index + 1}`} value={row.evaluacion} onChange={(v) => setRow(index, "evaluacion", v)} rows={14} /></td>
-                </tr>
+                <Fragment key={index}>
+                  <tr>
+                    <td colSpan={7} className="border border-black bg-[#fbe4d5] p-0">
+                      <Field
+                        label={`Nombre de jornada ${index + 1}`}
+                        value={row.jornada || `Jornada ${index + 1}`}
+                        onChange={(v) => setRow(index, "jornada", v)}
+                        rows={1}
+                        className="bg-[#fbe4d5] text-[11px] font-bold"
+                      />
+                    </td>
+                  </tr>
+                  <tr className="align-top">
+                    <td className={inputCell}><Field label={`Ámbito y núcleo, fila ${index + 1}`} value={row.ambitoNucleo} onChange={(v) => setRow(index, "ambitoNucleo", v)} rows={12} /></td>
+                    <td className={inputCell}><Field label={`Objetivos de aprendizaje, fila ${index + 1}`} value={row.objetivosAprendizajes} onChange={(v) => setRow(index, "objetivosAprendizajes", v)} rows={12} /></td>
+                    <td className={inputCell}><Field label={`Experiencia de aprendizaje, fila ${index + 1}`} value={row.experienciaAprendizaje} onChange={(v) => setRow(index, "experienciaAprendizaje", v)} rows={18} /></td>
+                    <td className={inputCell}><Field label={`Orientaciones relevantes, fila ${index + 1}`} value={row.orientacionesRelevantes} onChange={(v) => setRow(index, "orientacionesRelevantes", v)} rows={14} /></td>
+                    <td className={inputCell}><Field label={`Rol del equipo y familia, fila ${index + 1}`} value={row.rolEquipoFamilia} onChange={(v) => setRow(index, "rolEquipoFamilia", v)} rows={14} /></td>
+                    <td className={inputCell}><Field label={`Recursos, fila ${index + 1}`} value={row.recursos} onChange={(v) => setRow(index, "recursos", v)} rows={14} /></td>
+                    <td className={inputCell}><Field label={`Evaluación, fila ${index + 1}`} value={row.evaluacion} onChange={(v) => setRow(index, "evaluacion", v)} rows={14} /></td>
+                  </tr>
+                </Fragment>
               ))}
             </tbody>
           </table>
