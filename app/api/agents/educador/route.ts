@@ -29,6 +29,7 @@ import {
 import { buildConnectedOAContext, resolveOAConnection } from "@/lib/planner-oa-bridge"
 import { expectedSchoolWeekLabel, getSchoolPlanningPeriodLabel, normalizeSchoolWeekLabel, schoolPlanningMonthLabel, validateSchoolPlanningWeeks } from "@/lib/school-planning-template"
 import { buildParvulariaDateLabel, buildParvulariaPeriodGuide, parseParvulariaPlanningDocument, parvulariaHorizonLabel, serializeParvulariaPlanningDocument } from "@/lib/parvularia-planning"
+import bcepReference from "@/data/mineduc/parvularia/common/bcep_2018_reference.json"
 
 export const runtime = "nodejs"
 export const maxDuration = 60
@@ -1465,6 +1466,16 @@ ${parvulariaCurriculumContext || "No se recuperó contexto curricular; mantén e
 
 DISTRIBUCIÓN TEMPORAL OBLIGATORIA:
 ${parvulariaPeriodGuide || "Desarrolla experiencias coherentes con el período seleccionado."}
+
+CRITERIOS BCEP 2018 OFICIALES PARA CONSTRUIR LA EXPERIENCIA:
+${JSON.stringify({
+  principios: bcepReference.principios_pedagogicos,
+  planificacion: bcepReference.planificacion,
+  evaluacion: bcepReference.evaluacion,
+  familiaComunidad: bcepReference.familia_y_comunidad,
+})}
+
+Aplica estos criterios como fundamento pedagógico. No los copies como secciones nuevas: deben verse reflejados en las actividades, orientaciones, roles, recursos y evaluación.
 
 REFERENCIA INSTITUCIONAL QUE DEBES REPLICAR EN CONTENIDO Y ORGANIZACIÓN:
 - El encabezado debe quedar completamente rellenado.
