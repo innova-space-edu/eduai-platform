@@ -1610,8 +1610,23 @@ REGLAS DE LAS CELDAS:
           const code = (oa.codigoOficial || oa.id).toLowerCase()
           return code && !oaBody.includes(code)
         })
-        if (!fixed.objetivoAprendizaje.trim() || !fixed.principioJuego.trim() || !fixed.principioActividad.trim() || !fixed.focoExperiencia.trim() || !fixed.filas.length || missingOA.length) {
-          throw new Error(missingOA.length ? `Faltan OA seleccionados en la tabla: ${missingOA.map((oa) => oa.codigoOficial || oa.id).join(", ")}.` : "Faltan campos obligatorios de la plantilla.")
+        const incompleteRow = fixed.filas.find((row) =>
+          !row.ambitoNucleo.trim() ||
+          !row.objetivosAprendizajes.trim() ||
+          !row.experienciaAprendizaje.trim() ||
+          !row.orientacionesRelevantes.trim() ||
+          !row.rolEquipoFamilia.trim() ||
+          !row.recursos.trim() ||
+          !row.evaluacion.trim()
+        )
+        if (!fixed.objetivoAprendizaje.trim() || !fixed.principioJuego.trim() || !fixed.principioActividad.trim() || !fixed.focoExperiencia.trim() || !fixed.filas.length || incompleteRow || missingOA.length) {
+          throw new Error(
+            missingOA.length
+              ? `Faltan OA seleccionados en la tabla: ${missingOA.map((oa) => oa.codigoOficial || oa.id).join(", ")}.`
+              : incompleteRow
+                ? "Hay una fila de la plantilla con una o más columnas vacías."
+                : "Faltan campos obligatorios de la plantilla."
+          )
         }
         return serializeParvulariaPlanningDocument(fixed)
       }
