@@ -2,6 +2,7 @@ import type { AICapability, AIProviderId } from "../capabilities"
 import type { GatewayMessage } from "./google"
 
 export type CompatibleProvider = Extract<AIProviderId, "groq" | "openrouter" | "together" | "cerebras">
+export type CompatibleModelProfile = "fast" | "quality"
 
 export type CompatibleTextResult = {
   text: string
@@ -42,21 +43,39 @@ export function hasCompatibleProvider(provider: AIProviderId): provider is Compa
   return isCompatibleProviderId(provider) && Boolean(apiKey(provider))
 }
 
+function usableGroqModel(...values: Array<string | undefined>): string | null {
+  for (const value of values) {
+    const model = value?.trim()
+    if (model && !RETIRED_GROQ_MODELS.has(model)) return model
+  }
+  return null
+}
+
 export function compatibleFallbackModel(
   provider: CompatibleProvider,
   capability: AICapability,
+  profile: CompatibleModelProfile = "quality",
 ): string {
   switch (provider) {
     case "groq":
       if (capability === "research") {
         return process.env.GROQ_RESEARCH_MODEL || "groq/compound"
       }
-      return process.env.GROQ_TEXT_MODEL || "openai/gpt-oss-120b"
+      if (profile === "fast") {
+        return usableGroqModel(
+          process.env.GROQ_TEXT_MODEL_FAST,
+          process.env.GROQ_TEXT_MODEL,
+        ) || "openai/gpt-oss-20b"
+      }
+      return usableGroqModel(
+        process.env.GROQ_TEXT_MODEL_REASONING,
+        process.env.GROQ_TEXT_MODEL,
+      ) || "openai/gpt-oss-120b"
     case "openrouter":
       if (capability === "structured") {
-        return process.env.OPENROUTER_STRUCTURED_MODEL || process.env.OPENROUTER_TEXT_MODEL || "openrouter/auto"
+        return process.env.OPENROUTER_STRUCTURED_MODEL || process.env.OPENROUTER_TEXT_MODEL || "openrouter/free"
       }
-      return process.env.OPENROUTER_TEXT_MODEL || "openrouter/auto"
+      return process.env.OPENROUTER_TEXT_MODEL || "openrouter/free"
     case "together":
       return process.env.TOGETHER_TEXT_MODEL || "Qwen/Qwen3.5-9B"
     case "cerebras":
@@ -68,6 +87,7 @@ export function compatibleModelCandidates(
   provider: CompatibleProvider,
   capability: AICapability,
   selectedModel?: string | null,
+  profile: CompatibleModelProfile = "quality",
 ): string[] {
   const candidates: string[] = []
 
@@ -83,8 +103,17 @@ export function compatibleModelCandidates(
         "groq/compound",
         "groq/compound-mini",
       )
+    } else if (profile === "fast") {
+      candidates.push(
+        process.env.GROQ_TEXT_MODEL_FAST || "",
+        process.env.GROQ_TEXT_MODEL || "",
+        "openai/gpt-oss-20b",
+        "openai/gpt-oss-120b",
+        "qwen/qwen3.6-27b",
+      )
     } else {
       candidates.push(
+        process.env.GROQ_TEXT_MODEL_REASONING || "",
         process.env.GROQ_TEXT_MODEL || "",
         "openai/gpt-oss-120b",
         "qwen/qwen3.6-27b",
@@ -92,10 +121,15 @@ export function compatibleModelCandidates(
       )
     }
   } else {
-    candidates.push(compatibleFallbackModel(provider, capability))
+    candidates.push(compatibleFallbackModel(provider, capability, profile))
   }
 
-  return Array.from(new Set(candidates.map((value) => value.trim()).filter(Boolean)))
+  const normalized = candidates
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .filter((value) => provider !== "groq" || !RETIRED_GROQ_MODELS.has(value))
+
+  return Array.from(new Set(normalized))
 }
 
 export function isCompatibleBillingError(error: unknown): boolean {
