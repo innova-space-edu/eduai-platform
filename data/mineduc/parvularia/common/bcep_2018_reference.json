@@ -156,5 +156,16 @@
       "integrar costumbres y recursos comunitarios",
       "comunicar avances y desafíos"
     ]
+  },
+  "ambientes_aprendizaje": {
+    "enfoque": "Los ambientes de aprendizaje integran interacciones pedagógicas, espacios y tiempos; cualquier escenario puede transformarse intencionalmente en un ambiente de aprendizaje.",
+    "criterios": [
+      "Promover participación activa de los párvulos y considerar sus preguntas e iniciativas como puntos de partida.",
+      "Construir vínculos afectivos positivos y estables; observar, escuchar y responder a características, necesidades e intereses.",
+      "Asumir la mediación pedagógica como puente para ampliar aprendizajes sin sustituir el protagonismo infantil.",
+      "Organizar espacios seguros, acogedores, estéticos, ventilados, iluminados y con materiales accesibles y pertinentes.",
+      "Usar espacios interiores y exteriores, comunitarios y naturales como escenarios educativos cuando sean pertinentes.",
+      "Organizar el tiempo con experiencias variadas y equilibradas, respetando ritmos, descanso, juego, alimentación y bienestar."
+    ]
   }
 }
