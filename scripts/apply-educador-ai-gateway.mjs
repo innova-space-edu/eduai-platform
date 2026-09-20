@@ -95,7 +95,7 @@ const mainOld = `    let result = await callAI(aiMessages, {
     })`
 const mainNew = `    const initialAI = await runAIText({
       messages: aiMessages,
-      capability: isInstitutionalMacro || (!useCompactResourcePrompt && (sesiones > 1 || selectedOAIds.length > 1)) ? "long_context" : "text",
+      capability: isStructuredParvularia || isInstitutionalMacro || (!useCompactResourcePrompt && (sesiones > 1 || selectedOAIds.length > 1)) ? "long_context" : "text",
       maxOutputTokens: strategy.maxTokens,
       context: {
         userId: user.id,
