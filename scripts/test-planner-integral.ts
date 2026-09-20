@@ -4,6 +4,8 @@ import { resolveOAConnection } from "../lib/planner-oa-bridge"
 import { auditPlanningOutput, inferPlanningProfile } from "../lib/school-planning-profiles"
 import { buildSchoolWeekPlan, getSchoolPlanningPeriodLabel, validateSchoolPlanningWeeks } from "../lib/school-planning-template"
 import { buildSchoolPlanningRenderRows, replaceSchoolPlanningRows } from "../lib/school-planning-pdf"
+import { getPlanningHorizonConfig } from "../lib/planificador-curriculum"
+import { buildParvulariaDateLabel, parseParvulariaPlanningDocument, serializeParvulariaPlanningDocument } from "../lib/parvularia-planning"
 
 const profileCases = [
   ["Organiza una feria científica con stands, experimentos y presentación a apoderados", "media", "feria_cientifica"],
@@ -179,5 +181,41 @@ assert.equal(fullyEditedRows[0]?.indicators, "• Indicador personalizado")
 assert.equal(fullyEditedRows[0]?.objective, "• Objetivo personalizado")
 console.log("✓ Paridad de contenido entre vista institucional, editor visual y PDF")
 console.log("✓ Edición completa de las cuatro celdas de cada fila")
+
+const quincenal = getPlanningHorizonConfig("quincenal")
+assert.equal(quincenal.shortLabel, "Quincenal", "Parvularia debe disponer del horizonte quincenal")
+assert.equal(buildParvulariaDateLabel("2026-05-13", "2026-06-04"), "13 de mayo de 2026 al 04 de junio de 2026")
+
+const parvulariaJson = serializeParvulariaPlanningDocument({
+  version: 1,
+  tipo: "parvularia_institucional",
+  titulo: "Planificación Quincenal 2026",
+  nivelEducativo: "Sala Cuna Mayor",
+  fechas: "13 de mayo de 2026 al 04 de junio de 2026",
+  educadoraParvulos: "Educadora",
+  asistentesParvulos: "Asistente 1 – Asistente 2",
+  objetivoAprendizaje: "Favorecer experiencias integradas.",
+  principioJuego: "El juego como eje.",
+  principioActividad: "Los párvulos protagonizan sus aprendizajes.",
+  focoExperiencia: "Exploración sensorial.",
+  horizonte: "quincenal",
+  filas: [{
+    ambitoNucleo: "AMBITO: Interacción y comprensión del entorno\nNUCLEO: Exploración del entorno natural",
+    objetivosAprendizajes: "OA N° 3\nTexto oficial",
+    experienciaAprendizaje: "Inicio:\nExploración.\nDesarrollo:\nExperiencia sensorial.\nFinalización:\nCierre.",
+    orientacionesRelevantes: "Preparar materiales y resguardar seguridad.",
+    rolEquipoFamilia: "Rol del equipo: mediar.\nRol de la familia: apoyar continuidad.",
+    recursos: "RECURSOS TANGIBLES\nArena\nRECURSOS INTANGIBLES\nVoz de la educadora",
+    evaluacion: "Instrumento: Escala de apreciación.\nIndicadores:\n1. Explora materiales.",
+  }],
+})
+const parsedParvularia = parseParvulariaPlanningDocument(parvulariaJson)
+assert.equal(parsedParvularia.horizonte, "quincenal")
+assert.equal(parsedParvularia.filas.length, 1)
+assert(parsedParvularia.filas[0]?.experienciaAprendizaje.includes("Finalización"), "Debe conservar toda la experiencia editable")
+assert(parsedParvularia.filas[0]?.rolEquipoFamilia.includes("Rol de la familia"), "Debe conservar el rol de la familia")
+assert(parsedParvularia.filas[0]?.recursos.includes("RECURSOS INTANGIBLES"), "Debe conservar recursos tangibles e intangibles")
+assert(parsedParvularia.filas[0]?.evaluacion.includes("Indicadores"), "Debe conservar evaluación e indicadores")
+console.log("✓ Plantilla Parvularia: diaria/semanal/quincenal/mensual/semestral y edición estructurada")
 
 console.log("\nPlanificador escolar integral: todas las pruebas pasaron.")

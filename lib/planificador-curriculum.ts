@@ -9,7 +9,7 @@ import {
   type OA,
 } from "@/lib/mineduc-oa"
 
-export type TiempoPlanificacion = "diaria" | "semanal" | "mensual" | "semestral" | "anual"
+export type TiempoPlanificacion = "diaria" | "semanal" | "quincenal" | "mensual" | "semestral" | "anual"
 
 export interface PlanningHorizonConfig {
   id: TiempoPlanificacion
@@ -48,6 +48,18 @@ export const PLANNING_HORIZONS: PlanningHorizonConfig[] = [
     defaultDuracionMinutos: 90,
     periodOptions: [{ id: "semana", label: "Semana lectiva" }],
     expectedStructure: ["propósito semanal", "progresión por sesión", "evaluación formativa", "recursos", "evidencias"],
+  },
+  {
+    id: "quincenal",
+    label: "Planificación quincenal",
+    shortLabel: "Quincenal",
+    description: "Experiencias articuladas para dos semanas, con progresión flexible según la jornada y el ritmo del grupo.",
+    defaultSesiones: 10,
+    minSesiones: 1,
+    maxSesiones: 20,
+    defaultDuracionMinutos: 0,
+    periodOptions: [{ id: "quincena", label: "Quincena" }],
+    expectedStructure: ["datos generales", "OA y OAT", "experiencias", "orientaciones", "roles", "recursos", "evaluación"],
   },
   {
     id: "mensual",

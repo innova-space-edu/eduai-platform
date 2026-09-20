@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { exportPlanningPdf } from "@/lib/planning-pdf"
+import { exportParvulariaPlanningPdf } from "@/lib/parvularia-planning-pdf"
+import { parseParvulariaPlanningDocument } from "@/lib/parvularia-planning"
 
 type SavedPlanning = {
   id: string
@@ -68,13 +70,43 @@ function stripMarkdownPreview(text: string, max = 250) {
   return cleaned.length > max ? `${cleaned.slice(0, max).trim()}…` : cleaned
 }
 
+function getParvulariaDocument(item: SavedPlanning) {
+  if (item.nivel !== "parvularia" || !item.content) return null
+  try {
+    return parseParvulariaPlanningDocument(item.content)
+  } catch {
+    return null
+  }
+}
+
 function getPlanningStats(item: SavedPlanning) {
+  const parv = getParvulariaDocument(item)
+  if (item.nivel === "parvularia") {
+    return [
+      { label: "Nivel", value: "Parvularia", tone: "emerald" },
+      { label: "Horizonte", value: item.tiempo_planificacion || parv?.horizonte || "—", tone: "sky" },
+      { label: "Período", value: parv?.fechas || "—", tone: "violet" },
+      { label: "Formato", value: "BCEP institucional", tone: "amber" },
+    ]
+  }
   return [
     { label: "Nivel", value: item.nivel || "—", tone: "emerald" },
     { label: "Horizonte", value: item.tiempo_planificacion || "—", tone: "sky" },
     { label: "Sesiones", value: String(item.sesiones || 1), tone: "violet" },
     { label: "Duración", value: `${item.duracion_minutos || 45} min`, tone: "amber" },
   ]
+}
+
+function planningPreview(item: SavedPlanning) {
+  const parv = getParvulariaDocument(item)
+  if (parv) {
+    return [parv.objetivoAprendizaje, parv.focoExperiencia, parv.filas[0]?.experienciaAprendizaje]
+      .filter(Boolean)
+      .join(" · ")
+      .replace(/\s+/g, " ")
+      .slice(0, 360)
+  }
+  return stripMarkdownPreview(item.content || "")
 }
 
 function badgeClass(tone: string) {
@@ -180,6 +212,10 @@ export default function SavedPlanningsPage() {
     setExportingId(item.id)
 
     try {
+      if (item.nivel === "parvularia" && item.content && getParvulariaDocument(item)) {
+        await exportParvulariaPlanningPdf(item.content)
+        return
+      }
       await exportPlanningPdf(
         {
           title: compactTitle(item),
@@ -278,7 +314,7 @@ export default function SavedPlanningsPage() {
         ) : (
           <div className="grid gap-5">
             {filtered.map((item) => {
-              const preview = stripMarkdownPreview(item.content || "")
+              const preview = planningPreview(item)
               const stats = getPlanningStats(item)
 
               return (
@@ -343,7 +379,7 @@ export default function SavedPlanningsPage() {
 
                         <div className="mt-6 grid gap-3">
                           <Link
-                            href={`/educador/planificaciones/${item.id}`}
+                            href={`/educador/planificaciones/${item.id}${getParvulariaDocument(item) ? "?edit=1" : ""}`}
                             className="inline-flex items-center justify-center rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-bold text-sky-800 transition hover:bg-sky-100"
                           >
                             Ver y editar

@@ -28,11 +28,12 @@ import {
 } from "@/lib/school-planning-profiles"
 import { buildConnectedOAContext, resolveOAConnection } from "@/lib/planner-oa-bridge"
 import { expectedSchoolWeekLabel, getSchoolPlanningPeriodLabel, normalizeSchoolWeekLabel, schoolPlanningMonthLabel, validateSchoolPlanningWeeks } from "@/lib/school-planning-template"
+import { buildParvulariaDateLabel, parseParvulariaPlanningDocument, parvulariaHorizonLabel, serializeParvulariaPlanningDocument } from "@/lib/parvularia-planning"
 
 export const runtime = "nodejs"
 export const maxDuration = 60
 
-type TiempoPlanificacion = "diaria" | "semanal" | "mensual" | "semestral" | "anual"
+type TiempoPlanificacion = "diaria" | "semanal" | "quincenal" | "mensual" | "semestral" | "anual"
 
 type ChatHistoryItem = {
   role: "user" | "assistant"
@@ -64,6 +65,10 @@ interface EducadorConfig {
   periodoId?: string
   anioPlanificacion?: number
   weeklyOAPlan?: Array<{ key?: string; month?: string; week?: number; oaIds?: string[] }>
+  educadoraParvularia?: string
+  asistentesParvularia?: string
+  fechaInicioParvularia?: string
+  fechaFinParvularia?: string
 }
 
 function educadorDesignFormat(intent: string) {
@@ -1097,6 +1102,7 @@ REGLAS:
   const tiempoPlanificacion: TiempoPlanificacion =
     cfg.tiempoPlanificacion === "diaria" ||
     cfg.tiempoPlanificacion === "semanal" ||
+    cfg.tiempoPlanificacion === "quincenal" ||
     cfg.tiempoPlanificacion === "mensual" ||
     cfg.tiempoPlanificacion === "semestral" ||
     cfg.tiempoPlanificacion === "anual"
@@ -1114,6 +1120,24 @@ REGLAS:
   const anioPlanificacion = clampNumber(cfg.anioPlanificacion, new Date().getFullYear(), 2020, 2100)
   const weeklyOAPlan = ensureWeeklyOAPlan(cfg.weeklyOAPlan)
   const periodLabel = getSchoolPlanningPeriodLabel(tiempoPlanificacion, periodoId, mes)
+  const isStructuredParvularia = nivel === "parvularia" && outputIntent === "planificacion"
+  const educadoraParvularia = typeof cfg.educadoraParvularia === "string" ? cfg.educadoraParvularia.trim() : ""
+  const asistentesParvularia = typeof cfg.asistentesParvularia === "string" ? cfg.asistentesParvularia.trim() : ""
+  const fechaInicioParvularia = typeof cfg.fechaInicioParvularia === "string" ? cfg.fechaInicioParvularia.trim() : ""
+  const fechaFinParvularia = typeof cfg.fechaFinParvularia === "string" ? cfg.fechaFinParvularia.trim() : ""
+  const parvulariaFechas = buildParvulariaDateLabel(fechaInicioParvularia, fechaFinParvularia || fechaInicioParvularia)
+
+  if (isStructuredParvularia) {
+    if (!educadoraParvularia || !asistentesParvularia || !fechaInicioParvularia) {
+      return NextResponse.json(
+        { error: "Completa educadora de párvulos, asistentes y fecha de inicio para generar la planificación parvularia." },
+        { status: 400 }
+      )
+    }
+    if (tiempoPlanificacion !== "diaria" && !fechaFinParvularia) {
+      return NextResponse.json({ error: "Completa la fecha de término del período de planificación." }, { status: 400 })
+    }
+  }
 
   if (isInstitutionalMacro) {
     if (!profesor || !horasSemanales) {
@@ -1368,6 +1392,85 @@ CRITERIOS DE CALIDAD - VERIFICAR ANTES DE RESPONDER:
 - Sala Cuna: sin estructuras escolarizadas, experiencias sensoriales, breves y centradas en vínculo
 - Parvularia heterogénea: siempre incluye adecuaciones por edad/rango, seguridad, materiales diferenciados y registro cualitativo`.trim()
 
+  const parvulariaSelectedOA = isStructuredParvularia
+    ? getPlannerOAOptions({ nivel, curso, asignatura }).filter((oa) => selectedOAIds.includes(oa.id))
+    : []
+  const parvulariaSelectedOAT = isStructuredParvularia
+    ? getParvulariaOAT(curso, asignatura).filter((oat) => selectedOATIds.includes(oat.id))
+    : []
+  const parvulariaCurriculumContext = isStructuredParvularia
+    ? [
+        ...parvulariaSelectedOA.map((oa) =>
+          `OA ${oa.codigoOficial || oa.id}: ${oa.texto} | Ámbito: ${oa.ambito || getParvulariaAmbito(curso, asignatura) || "No informado"} | Núcleo: ${oa.nucleo || asignatura}`
+        ),
+        ...parvulariaSelectedOAT.map((oat) => `OAT ${oat.id}: ${oat.description || oat.label}`),
+      ].join("\n")
+    : ""
+
+  const parvulariaSystemPrompt = isStructuredParvularia ? `Eres APl, Agente Planificador Curricular de EduAI especializado en Educación Parvularia de Chile.
+
+Debes generar una planificación que replique la organización de la plantilla institucional de referencia, SIN logos ni marca de agua. La planificación no se organiza por horas pedagógicas ni por minutos: en Educación Parvularia las experiencias se distribuyen según la jornada, el ritmo del grupo y el horizonte elegido.
+
+DATOS FIJOS DEL DOCUMENTO:
+- Título: Planificación ${parvulariaHorizonLabel(tiempoPlanificacion as "diaria" | "semanal" | "quincenal" | "mensual" | "semestral")} ${anioPlanificacion}
+- Nivel Educativo: ${parvulariaHeterogenea ? `${curso} y ${parvulariaSegundoCurso}` : curso}
+- Fechas: ${parvulariaFechas}
+- Educadora de Párvulos: ${educadoraParvularia}
+- Asistentes de Párvulos: ${asistentesParvularia}
+- Horizonte: ${tiempoPlanificacion}
+- Núcleo seleccionado: ${asignatura}
+- Ámbito de referencia: ${getParvulariaAmbito(curso, asignatura) || "Determinar desde las BCEP"}
+- Contexto entregado por el usuario: ${contexto || "Sin contexto adicional"}
+
+BASE CURRICULAR SELECCIONADA. USA ESTOS OA/OAT Y NO INVENTES CÓDIGOS:
+${parvulariaCurriculumContext || "No se recuperó contexto curricular; mantén estrictamente los OA incluidos en la solicitud del usuario."}
+
+ESTRUCTURA PEDAGÓGICA OBLIGATORIA:
+1. Debes completar los cuatro campos iniciales: objetivo de aprendizaje integrado, principio de juego, principio de actividad y foco de experiencia.
+2. Después debes construir la tabla institucional de SIETE columnas: Ámbito/Núcleo; Objetivos de Aprendizajes; Experiencia de aprendizaje; Orientaciones Relevantes; Rol del equipo pedagógico y rol de la familia; Recursos; Evaluación.
+3. En Ámbito/Núcleo identifica explícitamente AMBITO y NUCLEO. Si corresponde, incorpora además el ámbito/núcleo transversal asociado al OAT.
+4. En Objetivos de Aprendizajes copia el código y texto de cada OA seleccionado y los OAT seleccionados. No reformules el texto oficial como si fuera literal.
+5. En Experiencia de aprendizaje usa Inicio, Desarrollo y Finalización. Dentro del desarrollo organiza experiencias concretas según el período. Incluye fechas o tramos del período cuando corresponda.
+6. Para Sala Cuna diferencia, cuando sea útil, experiencias para 06-12 meses y 1-2 años. Para niveles heterogéneos agrega adecuaciones por rango sin transformar la experiencia en una clase escolarizada.
+7. Orientaciones Relevantes debe cubrir preparación, ambiente, seguridad, vestimenta, disponibilidad de materiales, tiempos flexibles, espacios educativos y observación del bienestar.
+8. Rol del equipo pedagógico y rol de la familia debe distinguir ambos roles explícitamente.
+9. Recursos debe distinguir RECURSOS TANGIBLES y RECURSOS INTANGIBLES.
+10. Evaluación debe incluir instrumento, escala o criterios cuando sean pertinentes, registros de observación, registro fotográfico si aplica e indicadores observables alineados a los OA.
+11. Mantén lenguaje lúdico, experiencial, afectivo, no escolarizado y coherente con BCEP.
+12. No uses horas pedagógicas, minutos por sesión, cronogramas por bloques horarios ni cantidad de clases.
+13. Para horizonte diaria genera la experiencia del día; semanal organiza la semana; quincenal organiza dos semanas; mensual organiza por semanas del mes; semestral organiza progresión mensual/semanal sin intentar detallar cada minuto de cada jornada.
+14. La planificación debe ser utilizable directamente y suficientemente detallada, sin texto genérico de relleno.
+
+SALIDA OBLIGATORIA:
+Responde SOLO JSON válido, sin markdown, sin comentarios y sin texto antes o después. Usa exactamente esta forma:
+{
+  "version": 1,
+  "tipo": "parvularia_institucional",
+  "titulo": "Planificación ...",
+  "nivelEducativo": "...",
+  "fechas": "...",
+  "educadoraParvulos": "...",
+  "asistentesParvulos": "...",
+  "objetivoAprendizaje": "...",
+  "principioJuego": "...",
+  "principioActividad": "...",
+  "focoExperiencia": "...",
+  "horizonte": "${tiempoPlanificacion}",
+  "filas": [
+    {
+      "ambitoNucleo": "...",
+      "objetivosAprendizajes": "...",
+      "experienciaAprendizaje": "...",
+      "orientacionesRelevantes": "...",
+      "rolEquipoFamilia": "...",
+      "recursos": "...",
+      "evaluacion": "..."
+    }
+  ]
+}
+
+Usa saltos de línea dentro de los strings para separar subtítulos y listas. Genera una o más filas según los OA/núcleos seleccionados. Todo el texto que aparezca en la plantilla debe quedar dentro de estos campos para que luego pueda editarse celda por celda.` : ""
+
   const institutionalSystemPrompt = isInstitutionalMacro ? `Eres APl, Agente Planificador Curricular de EduAI para Educación Básica y Media de Chile.
 
 Debes generar UN CRONOGRAMA INSTITUCIONAL que replique el formato entregado por el Colegio Providencia.
@@ -1424,9 +1527,11 @@ REGLAS DE LAS CELDAS:
   const selectedUnitForPrompt = getPlannerUnits({ nivel, curso, asignatura })
     .find((unit) => unit.id === unidadId)
 
-  const activeSystemPromptBase = isInstitutionalMacro
-    ? institutionalSystemPrompt
-    : useCompactResourcePrompt
+  const activeSystemPromptBase = isStructuredParvularia
+    ? parvulariaSystemPrompt
+    : isInstitutionalMacro
+      ? institutionalSystemPrompt
+      : useCompactResourcePrompt
       ? buildCompactEducadorSystemPrompt({
         intent: outputIntent,
         nivel,
@@ -1442,7 +1547,7 @@ REGLAS DE LAS CELDAS:
       })
       : systemPrompt
 
-  const activeSystemPrompt = isInstitutionalMacro
+  const activeSystemPrompt = isStructuredParvularia || isInstitutionalMacro
     ? activeSystemPromptBase
     : useCompactResourcePrompt
       ? `${activeSystemPromptBase}${buildPlanningProfilePrompt(planningProfile)}\n${connectedOAContext}${designDirective}`
@@ -1464,7 +1569,12 @@ REGLAS DE LAS CELDAS:
         ? "planning_full"
         : "planning_short"
     )
-    const strategy = isInstitutionalMacro
+    const strategy = isStructuredParvularia
+      ? {
+          ...basePlanningStrategy,
+          maxTokens: tiempoPlanificacion === "semestral" ? 16000 : tiempoPlanificacion === "mensual" ? 14000 : tiempoPlanificacion === "quincenal" ? 10000 : tiempoPlanificacion === "semanal" ? 7500 : 5500,
+        }
+      : isInstitutionalMacro
       ? {
           ...basePlanningStrategy,
           maxTokens: tiempoPlanificacion === "anual" ? 15000 : tiempoPlanificacion === "semestral" ? 12000 : 8000,
@@ -1482,6 +1592,63 @@ REGLAS DE LAS CELDAS:
       preferProvider: strategy.preferProvider,
       openrouterModel: strategy.openrouterModel,
     })
+
+    if (isStructuredParvularia) {
+      const canonicalize = (rawText: string) => {
+        const parsed = parseParvulariaPlanningDocument(rawText)
+        const fixed = {
+          ...parsed,
+          titulo: `Planificación ${parvulariaHorizonLabel(tiempoPlanificacion as "diaria" | "semanal" | "quincenal" | "mensual" | "semestral")} ${anioPlanificacion}`,
+          nivelEducativo: parvulariaHeterogenea ? `${curso} y ${parvulariaSegundoCurso}` : curso,
+          fechas: parvulariaFechas,
+          educadoraParvulos: educadoraParvularia,
+          asistentesParvulos: asistentesParvularia,
+          horizonte: tiempoPlanificacion as "diaria" | "semanal" | "quincenal" | "mensual" | "semestral",
+        }
+        const oaBody = fixed.filas.map((row) => row.objetivosAprendizajes).join("\n").toLowerCase()
+        const missingOA = parvulariaSelectedOA.filter((oa) => {
+          const code = (oa.codigoOficial || oa.id).toLowerCase()
+          return code && !oaBody.includes(code)
+        })
+        const incompleteRow = fixed.filas.find((row) =>
+          !row.ambitoNucleo.trim() ||
+          !row.objetivosAprendizajes.trim() ||
+          !row.experienciaAprendizaje.trim() ||
+          !row.orientacionesRelevantes.trim() ||
+          !row.rolEquipoFamilia.trim() ||
+          !row.recursos.trim() ||
+          !row.evaluacion.trim()
+        )
+        if (!fixed.objetivoAprendizaje.trim() || !fixed.principioJuego.trim() || !fixed.principioActividad.trim() || !fixed.focoExperiencia.trim() || !fixed.filas.length || incompleteRow || missingOA.length) {
+          throw new Error(
+            missingOA.length
+              ? `Faltan OA seleccionados en la tabla: ${missingOA.map((oa) => oa.codigoOficial || oa.id).join(", ")}.`
+              : incompleteRow
+                ? "Hay una fila de la plantilla con una o más columnas vacías."
+                : "Faltan campos obligatorios de la plantilla."
+          )
+        }
+        return serializeParvulariaPlanningDocument(fixed)
+      }
+
+      try {
+        result = { ...result, text: canonicalize(result.text) }
+      } catch (firstError) {
+        const repaired = await callAI([
+          ...aiMessages,
+          { role: "assistant" as const, content: truncateForPrompt(result.text, 4500) },
+          {
+            role: "user" as const,
+            content: `La salida anterior no cumple el JSON institucional de Educación Parvularia. Regenera desde cero SOLO como JSON válido, con todos los campos y con todos los OA seleccionados incluidos literalmente en objetivosAprendizajes. No uses markdown, horas ni minutos. Error detectado: ${firstError instanceof Error ? firstError.message : "formato inválido"}`,
+          },
+        ], {
+          maxTokens: strategy.maxTokens,
+          preferProvider: strategy.preferProvider,
+          openrouterModel: strategy.openrouterModel,
+        })
+        result = { ...repaired, text: canonicalize(repaired.text) }
+      }
+    }
 
     if (isInstitutionalMacro) {
       let tableCheck = inspectInstitutionalTable(result.text, weeklyOAPlan)
@@ -1505,7 +1672,7 @@ REGLAS DE LAS CELDAS:
       }
     }
 
-    let qualityAudit = outputIntent === "planificacion" && !isInstitutionalMacro ? auditPlanningOutput(result.text, planningProfile) : null
+    let qualityAudit = outputIntent === "planificacion" && !isInstitutionalMacro && !isStructuredParvularia ? auditPlanningOutput(result.text, planningProfile) : null
     if (qualityAudit && !qualityAudit.passed) {
       const repaired = await callAI([
         ...aiMessages,
@@ -1542,6 +1709,7 @@ REGLAS DE LAS CELDAS:
       parvulariaMotivoFusion,
       outputIntent,
       institutionalPlanning: isInstitutionalMacro,
+      parvulariaInstitutionalPlanning: isStructuredParvularia,
       periodLabel,
       weeklyOAPlan: isInstitutionalMacro ? weeklyOAPlan : undefined,
       compactPrompt: useCompactResourcePrompt,
