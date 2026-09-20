@@ -1493,6 +1493,13 @@ REFERENCIA INSTITUCIONAL QUE DEBES REPLICAR EN CONTENIDO Y ORGANIZACIÓN:
 - Recursos debe separar "RECURSOS TANGIBLES" y "RECURSOS INTANGIBLES"; incluye voz del equipo y expresión gestual cuando corresponda.
 - Evaluación debe quedar completa: "Instrumento: Escala de apreciación", Logrado: 3, Medianamente logrado: 2, Por lograr: 1, No observado: 0; Registro de Observación; registro fotográfico cuando sea pertinente; e Indicadores observables alineados a cada objetivo.
 - Usa la referencia como estándar de profundidad: una planificación semanal o quincenal no puede devolver una tabla vacía ni una frase genérica por columna.
+- El archivo de referencia contiene DOS bloques completos de planificación dentro de la misma tabla: uno centrado en Exploración del Entorno Natural + Corporalidad y Movimiento, y otro en Lenguajes Artísticos + Identidad y Autonomía. En EduAI se amplía deliberadamente a TRES jornadas pedagógicas diarias manteniendo la misma estructura de siete columnas.
+- Debes generar EXACTAMENTE TRES filas/jornadas:
+  1) "Jornada 1 · Exploración y experiencia principal": experiencia activa, corporal, natural, científica o manipulativa, siempre alineada a los OA seleccionados.
+  2) "Jornada 2 · Expresión artística y sensorial": experiencia de expresión, arte, música, movimiento, color, textura o creación, integrada a los OA seleccionados.
+  3) "Jornada 3 · Lenguaje verbal, lectura y comunicación": experiencia de oralidad, conversación, relato, lectura compartida/dialogada, canciones, vocabulario, gestos comunicativos o escucha, adaptada al nivel y alineada a los OA seleccionados.
+- Las tres jornadas son planificaciones distintas dentro del mismo documento. No las mezcles en una sola fila.
+- No inventes un OA de Lenguaje Verbal solo por el nombre de la tercera jornada: si ese núcleo no fue seleccionado, utiliza estrategias de lenguaje y comunicación como mediación pedagógica manteniendo los OA oficiales elegidos.
 
 ESTRUCTURA PEDAGÓGICA OBLIGATORIA:
 1. Debes completar los cuatro campos iniciales: objetivo de aprendizaje integrado, principio de juego, principio de actividad y foco de experiencia.
@@ -1509,10 +1516,12 @@ ESTRUCTURA PEDAGÓGICA OBLIGATORIA:
 12. No uses horas pedagógicas, minutos por sesión, cronogramas por bloques horarios ni cantidad de clases.
 13. Para horizonte diaria genera la experiencia del día; semanal organiza la semana; quincenal organiza dos semanas; mensual organiza por semanas del mes; semestral organiza progresión mensual/semanal sin intentar detallar cada minuto de cada jornada.
 14. La planificación debe ser utilizable directamente y suficientemente detallada, sin texto genérico de relleno.
-15. En semanal y quincenal debes desarrollar una experiencia distinta para CADA día hábil indicado en la guía temporal. En mensual, organiza semanas con experiencias concretas por día hábil. En semestral, organiza meses y semanas con progresión clara.
-16. "Experiencia de aprendizaje" debe contener obligatoriamente los literales Inicio:, Desarrollo: y Finalización:.
+15. En diaria debes entregar tres experiencias distintas para el mismo día, una por jornada. En semanal y quincenal, CADA una de las tres jornadas debe contener una actividad diferente para CADA día hábil indicado en la guía temporal. Esto significa 3 actividades por día. En mensual, conserva las tres jornadas y organiza semanas con experiencias concretas; en semestral, conserva las tres jornadas con progresión mensual/semanal.
+16. "Experiencia de aprendizaje" debe contener obligatoriamente los literales Inicio:, Desarrollo: y Finalización: en cada una de las tres jornadas.
 17. Nunca devuelvas campos vacíos. Si falta una idea del docente, CONSTRÚYELA a partir de los objetivos oficiales seleccionados, la edad, el núcleo y el contexto.
 18. No copies actividades del archivo de referencia como plantilla fija: construye nuevas actividades coherentes con los OA/OAT seleccionados, manteniendo su nivel de detalle y su organización.
+19. Las tres jornadas no pueden repetir la misma actividad cambiando solo palabras: deben diferenciar propósito inmediato, recursos, mediación y acciones de los párvulos.
+20. La Jornada 3 debe incluir una mediación explícita de lenguaje/comunicación apropiada al nivel (oralidad, relato, lectura compartida, canciones, vocabulario, balbuceo/gestos o conversación), sin escolarizar la experiencia.
 
 SALIDA OBLIGATORIA:
 Responde SOLO JSON válido, sin markdown, sin comentarios y sin texto antes o después. Usa exactamente esta forma:
@@ -1531,6 +1540,27 @@ Responde SOLO JSON válido, sin markdown, sin comentarios y sin texto antes o de
   "horizonte": "${tiempoPlanificacion}",
   "filas": [
     {
+      "jornada": "Jornada 1 · Exploración y experiencia principal",
+      "ambitoNucleo": "...",
+      "objetivosAprendizajes": "...",
+      "experienciaAprendizaje": "...",
+      "orientacionesRelevantes": "...",
+      "rolEquipoFamilia": "...",
+      "recursos": "...",
+      "evaluacion": "..."
+    },
+    {
+      "jornada": "Jornada 2 · Expresión artística y sensorial",
+      "ambitoNucleo": "...",
+      "objetivosAprendizajes": "...",
+      "experienciaAprendizaje": "...",
+      "orientacionesRelevantes": "...",
+      "rolEquipoFamilia": "...",
+      "recursos": "...",
+      "evaluacion": "..."
+    },
+    {
+      "jornada": "Jornada 3 · Lenguaje verbal, lectura y comunicación",
       "ambitoNucleo": "...",
       "objetivosAprendizajes": "...",
       "experienciaAprendizaje": "...",
@@ -1542,7 +1572,7 @@ Responde SOLO JSON válido, sin markdown, sin comentarios y sin texto antes o de
   ]
 }
 
-Usa saltos de línea dentro de los strings para separar subtítulos y listas. Genera una o más filas según los OA/núcleos seleccionados. Todo el texto que aparezca en la plantilla debe quedar dentro de estos campos para que luego pueda editarse celda por celda.` : ""
+Usa saltos de línea dentro de los strings para separar subtítulos y listas. Debes generar EXACTAMENTE tres filas, en este orden, una por cada jornada pedagógica diaria. Todo el texto que aparezca en la plantilla debe quedar dentro de estos campos para que luego pueda editarse celda por celda.` : ""
 
   const institutionalSystemPrompt = isInstitutionalMacro ? `Eres APl, Agente Planificador Curricular de EduAI para Educación Básica y Media de Chile.
 
@@ -1645,7 +1675,7 @@ REGLAS DE LAS CELDAS:
     const strategy = isStructuredParvularia
       ? {
           ...basePlanningStrategy,
-          maxTokens: tiempoPlanificacion === "semestral" ? 16000 : tiempoPlanificacion === "mensual" ? 14000 : tiempoPlanificacion === "quincenal" ? 10000 : tiempoPlanificacion === "semanal" ? 7500 : 5500,
+          maxTokens: tiempoPlanificacion === "semestral" ? 16000 : tiempoPlanificacion === "mensual" ? 16000 : tiempoPlanificacion === "quincenal" ? 14000 : tiempoPlanificacion === "semanal" ? 10000 : 7000,
         }
       : isInstitutionalMacro
       ? {
@@ -1677,6 +1707,14 @@ REGLAS DE LAS CELDAS:
           educadoraParvulos: educadoraParvularia,
           asistentesParvulos: asistentesParvularia,
           horizonte: tiempoPlanificacion as "diaria" | "semanal" | "quincenal" | "mensual" | "semestral",
+          filas: parsed.filas.map((row, index) => ({
+            ...row,
+            jornada: [
+              "Jornada 1 · Exploración y experiencia principal",
+              "Jornada 2 · Expresión artística y sensorial",
+              "Jornada 3 · Lenguaje verbal, lectura y comunicación",
+            ][index] || row.jornada || `Jornada ${index + 1}`,
+          })),
         }
         const oaBody = fixed.filas.map((row) => row.objetivosAprendizajes).join("\n").toLowerCase()
         const missingOA = parvulariaSelectedOA.filter((oa) => {
@@ -1684,6 +1722,7 @@ REGLAS DE LAS CELDAS:
           return code && !oaBody.includes(code)
         })
         const incompleteRow = fixed.filas.find((row) =>
+          !row.jornada.trim() ||
           !row.ambitoNucleo.trim() ||
           !row.objetivosAprendizajes.trim() ||
           !row.experienciaAprendizaje.trim() ||
@@ -1705,19 +1744,27 @@ REGLAS DE LAS CELDAS:
           !/registro de observaci[oó]n/i.test(row.evaluacion) ||
           !/indicadores?/i.test(row.evaluacion)
         )
-        const experienceBody = fixed.filas.map((row) => row.experienciaAprendizaje).join("\n").toLocaleLowerCase("es-CL")
-        const missingActivityDates = parvulariaRequiredDateLabels.filter(
-          (label) => !experienceBody.includes(label.toLocaleLowerCase("es-CL"))
-        )
-        if (!fixed.objetivoAprendizaje.trim() || !fixed.principioJuego.trim() || !fixed.principioActividad.trim() || !fixed.focoExperiencia.trim() || !fixed.filas.length || incompleteRow || missingOA.length || missingActivityDates.length) {
+        const missingActivityDatesByJourney = fixed.filas.flatMap((row) => {
+          const experienceBody = row.experienciaAprendizaje.toLocaleLowerCase("es-CL")
+          return parvulariaRequiredDateLabels
+            .filter((label) => !experienceBody.includes(label.toLocaleLowerCase("es-CL")))
+            .map((label) => `${row.jornada}: ${label}`)
+        })
+        const languageJourney = fixed.filas[2]
+        const languageJourneyMissing = !languageJourney || !/(lenguaje|lectura|relato|cuento|oral|vocabulario|canci[oó]n|conversaci[oó]n|balbuceo|gestos comunicativos)/i.test(languageJourney.experienciaAprendizaje)
+        if (!fixed.objetivoAprendizaje.trim() || !fixed.principioJuego.trim() || !fixed.principioActividad.trim() || !fixed.focoExperiencia.trim() || fixed.filas.length !== 3 || incompleteRow || missingOA.length || missingActivityDatesByJourney.length || languageJourneyMissing) {
           throw new Error(
             missingOA.length
               ? `Faltan objetivos seleccionados en la tabla: ${missingOA.map((oa) => oa.codigoOficial || oa.id).join(", ")}.`
-              : missingActivityDates.length
-                ? `Faltan experiencias para estas fechas del período: ${missingActivityDates.join(", ")}.`
-                : incompleteRow
-                  ? "Hay una fila incompleta: debe incluir Inicio, Desarrollo, Finalización, roles, recursos tangibles/intangibles y la escala/indicadores de evaluación."
-                  : "Faltan campos obligatorios de la plantilla."
+              : fixed.filas.length !== 3
+                ? `La planificación debe contener exactamente 3 jornadas y se recibieron ${fixed.filas.length}.`
+                : missingActivityDatesByJourney.length
+                  ? `Faltan actividades por jornada para estas fechas: ${missingActivityDatesByJourney.join(", ")}.`
+                  : languageJourneyMissing
+                    ? "La Jornada 3 debe contener una experiencia explícita de lenguaje, lectura, relato, oralidad o comunicación apropiada al nivel."
+                    : incompleteRow
+                      ? "Hay una jornada incompleta: debe incluir Inicio, Desarrollo, Finalización, roles, recursos tangibles/intangibles y la escala/indicadores de evaluación."
+                      : "Faltan campos obligatorios de la plantilla."
           )
         }
         return serializeParvulariaPlanningDocument(fixed)
@@ -1731,7 +1778,7 @@ REGLAS DE LAS CELDAS:
           { role: "assistant" as const, content: truncateForPrompt(result.text, 4500) },
           {
             role: "user" as const,
-            content: `La salida anterior no cumple el JSON institucional de Educación Parvularia. Regenera desde cero SOLO como JSON válido, con todos los campos y con todos los OA seleccionados incluidos literalmente en objetivosAprendizajes. No uses markdown, horas ni minutos. Error detectado: ${firstError instanceof Error ? firstError.message : "formato inválido"}`,
+            content: `La salida anterior no cumple el JSON institucional de Educación Parvularia. Regenera desde cero SOLO como JSON válido. Debe contener EXACTAMENTE TRES jornadas en filas: 1) Exploración y experiencia principal, 2) Expresión artística y sensorial, 3) Lenguaje verbal, lectura y comunicación. Cada jornada debe completar las siete columnas, incluir Inicio/Desarrollo/Finalización y, en semanal/quincenal, una actividad para cada fecha hábil. Mantén todos los OA seleccionados incluidos literalmente en objetivosAprendizajes. No uses markdown, horas ni minutos. Error detectado: ${firstError instanceof Error ? firstError.message : "formato inválido"}`,
           },
         ], {
           maxTokens: strategy.maxTokens,
@@ -1826,6 +1873,203 @@ REGLAS DE LAS CELDAS:
         { status: 503 },
       )
     }
+    if (isStructuredParvularia) {
+      const primaryObjectiveLines = parvulariaSelectedOA.map((oa) =>
+        `${oa.codigoOficial || oa.id}: ${oa.texto}`
+      )
+      const complementaryObjectiveLines = parvulariaSelectedOAT.map((oat) =>
+        `${oat.description || oat.id}: ${oat.label}`
+      )
+      const objectiveLines = [...primaryObjectiveLines, ...complementaryObjectiveLines]
+      const primaryAmbito = parvulariaSelectedOA[0]?.ambito || getParvulariaAmbito(curso, asignatura) || "Ámbito por confirmar"
+      const primaryNucleo = parvulariaSelectedOA[0]?.nucleo || asignatura
+      const scopeText = [
+        `AMBITO: ${primaryAmbito}`,
+        `NUCLEO: ${primaryNucleo}`,
+        ...parvulariaSelectedOAT.map((oat) => `OAT COMPLEMENTARIO: ${oat.ambito || "Desarrollo Personal y Social"} · ${oat.nucleo || oat.label}`),
+      ].join("\n")
+      const objectiveText = objectiveLines.length
+        ? objectiveLines.join("\n\n")
+        : `Objetivos oficiales seleccionados del núcleo ${asignatura}.`
+      const dateLabels = parvulariaRequiredDateLabels.length
+        ? parvulariaRequiredDateLabels
+        : [parvulariaFechas || "Jornada seleccionada"]
+
+      const datedDevelopment = (activity: (dateLabel: string, index: number) => string) =>
+        dateLabels.map((dateLabel, index) => `${dateLabel}: ${activity(dateLabel, index)}`).join("\n\n")
+
+      const commonOrientations = [
+        "Preparar los materiales y el espacio con anticipación.",
+        "Disponer un ambiente seguro, acogedor, ventilado e iluminado, con materiales accesibles.",
+        "Permitir tiempos flexibles de exploración y respetar ritmos, señales de bienestar e intereses individuales.",
+        "Favorecer distintos espacios educativos y libre desplazamiento cuando sea seguro.",
+        "Observar permanentemente para ajustar la mediación, los apoyos y la complejidad de la experiencia.",
+      ].join("\n- ")
+
+      const commonRole = [
+        "Rol del equipo pedagógico:",
+        "- Presentar el ambiente y los recursos sin sustituir el protagonismo de los párvulos.",
+        "- Mediar con lenguaje, gestos, preguntas, modelado y apoyo afectivo según la edad.",
+        "- Observar, registrar y ajustar la experiencia de acuerdo con intereses, respuestas y necesidades.",
+        "",
+        "Rol de la familia:",
+        "- Apoyar con materiales simples o antecedentes del niño o niña cuando corresponda.",
+        "- Dar continuidad en el hogar mediante conversación, exploración, relatos o juegos relacionados.",
+        "- Mantener comunicación con el equipo respecto de intereses, avances y necesidades.",
+      ].join("\n")
+
+      const evaluationText = [
+        "Instrumento: Escala de apreciación.",
+        "Logrado: 3",
+        "Medianamente logrado: 2",
+        "Por lograr: 1",
+        "No observado: 0",
+        "",
+        "Registro de Observación.",
+        "Registro fotográfico cuando sea pertinente y autorizado.",
+        "",
+        "Indicadores:",
+        "1. Participa activamente en la experiencia de acuerdo con sus posibilidades y nivel de desarrollo.",
+        "2. Manifiesta interés, curiosidad o intención comunicativa frente a los materiales, acciones o interacciones propuestas.",
+        "3. Evidencia avances vinculados con los OA/OAT seleccionados mediante acciones, gestos, sonidos, palabras, movimientos o producciones.",
+      ].join("\n")
+
+      const filas = [
+        {
+          jornada: "Jornada 1 · Exploración y experiencia principal",
+          ambitoNucleo: scopeText,
+          objetivosAprendizajes: objectiveText,
+          experienciaAprendizaje: [
+            "Inicio:",
+            "El equipo reúne al grupo, presenta de manera atractiva los materiales y anticipa la experiencia mediante gestos, palabras, objetos concretos o una breve canción de inicio.",
+            "",
+            "Desarrollo:",
+            datedDevelopment((_dateLabel, index) =>
+              `Experiencia ${index + 1}: disponer materiales seguros vinculados con ${primaryNucleo} para que los párvulos observen, manipulen, exploren, comparen, se desplacen o experimenten libremente. El adulto acompaña, verbaliza acciones, modela cuando es necesario y registra respuestas significativas sin dirigir en exceso la exploración.`
+            ),
+            "",
+            "Finalización:",
+            "Invitar a guardar u ordenar los materiales junto al equipo, recuperar lo vivido mediante gestos, sonidos, palabras u observación compartida y reforzar positivamente la participación.",
+          ].join("\n"),
+          orientacionesRelevantes: `- ${commonOrientations}`,
+          rolEquipoFamilia: commonRole,
+          recursos: [
+            "RECURSOS TANGIBLES",
+            "- Materiales concretos, naturales o manipulativos seguros y pertinentes al núcleo.",
+            "- Recipientes, bandejas, telas, elementos de apoyo y espacio preparado según la experiencia.",
+            "",
+            "RECURSOS INTANGIBLES",
+            "- Voz de la educadora y asistentes.",
+            "- Expresión gestual y corporal.",
+            "- Mediación afectiva, observación y lenguaje contextualizado.",
+          ].join("\n"),
+          evaluacion: evaluationText,
+        },
+        {
+          jornada: "Jornada 2 · Expresión artística y sensorial",
+          ambitoNucleo: scopeText,
+          objetivosAprendizajes: objectiveText,
+          experienciaAprendizaje: [
+            "Inicio:",
+            "Presentar un ambiente sensorial y expresivo con música suave, sonidos, colores, texturas o movimiento, vinculándolo con los OA/OAT seleccionados.",
+            "",
+            "Desarrollo:",
+            datedDevelopment((_dateLabel, index) =>
+              `Experiencia ${index + 1}: ofrecer una combinación diferente de telas, papeles, objetos sonoros, luz, color, trazos, movimiento o materiales sensoriales para que los párvulos creen, exploren y expresen preferencias. El equipo acompaña con gestos, ritmo, palabras y demostraciones breves, respetando la exploración autónoma.`
+            ),
+            "",
+            "Finalización:",
+            "Cerrar con una breve socialización sensorial o expresiva, observando producciones, movimientos, gestos o sonidos y guardando los materiales con apoyo del equipo.",
+          ].join("\n"),
+          orientacionesRelevantes: `- ${commonOrientations}`,
+          rolEquipoFamilia: commonRole,
+          recursos: [
+            "RECURSOS TANGIBLES",
+            "- Telas, papeles, materiales de distintas texturas, objetos sonoros e instrumentos seguros.",
+            "- Luces suaves, imágenes, recipientes, elementos artísticos lavables y materiales adecuados a la edad.",
+            "",
+            "RECURSOS INTANGIBLES",
+            "- Música, ritmo y voz del equipo.",
+            "- Expresión gestual, corporal y emocional.",
+            "- Mediación sensible y observación pedagógica.",
+          ].join("\n"),
+          evaluacion: evaluationText,
+        },
+        {
+          jornada: "Jornada 3 · Lenguaje verbal, lectura y comunicación",
+          ambitoNucleo: scopeText,
+          objetivosAprendizajes: objectiveText,
+          experienciaAprendizaje: [
+            "Inicio:",
+            "Generar un momento de encuentro comunicativo mediante saludo, canción, objeto significativo, imagen, libro o relato breve, adecuando el lenguaje a la edad.",
+            "",
+            "Desarrollo:",
+            datedDevelopment((_dateLabel, index) =>
+              `Experiencia ${index + 1}: realizar lectura compartida o dialogada, relato con imágenes u objetos, canción con gestos o conversación guiada relacionada con ${primaryNucleo}. En bebés se priorizan mirada, balbuceo, turnos, sonidos, gestos y nominación; en párvulos mayores se amplían vocabulario, preguntas, descripciones, secuencias y expresión de ideas.`
+            ),
+            "",
+            "Finalización:",
+            "Retomar palabras, sonidos, gestos o ideas destacadas; permitir que los párvulos comuniquen lo que llamó su atención y cerrar con una canción, gesto o breve recapitulación compartida.",
+          ].join("\n"),
+          orientacionesRelevantes: `- ${commonOrientations}`,
+          rolEquipoFamilia: commonRole,
+          recursos: [
+            "RECURSOS TANGIBLES",
+            "- Libros resistentes o álbumes ilustrados, láminas, fotografías, títeres u objetos concretos.",
+            "- Elementos sonoros, canciones y apoyos visuales pertinentes a la edad.",
+            "",
+            "RECURSOS INTANGIBLES",
+            "- Voz de la educadora y asistentes.",
+            "- Entonación, pausas, expresión facial y gestual.",
+            "- Escucha activa, turnos comunicativos y ampliación natural del lenguaje.",
+          ].join("\n"),
+          evaluacion: evaluationText,
+        },
+      ]
+
+      const fallbackText = serializeParvulariaPlanningDocument({
+        version: 1,
+        tipo: "parvularia_institucional",
+        titulo: `Planificación ${parvulariaHorizonLabel(tiempoPlanificacion as "diaria" | "semanal" | "quincenal" | "mensual" | "semestral")} ${anioPlanificacion}`,
+        nivelEducativo: parvulariaHeterogenea ? `${curso} y ${parvulariaSegundoCurso}` : curso,
+        fechas: parvulariaFechas,
+        educadoraParvulos: educadoraParvularia,
+        asistentesParvulos: asistentesParvularia,
+        objetivoAprendizaje: objectiveLines.length
+          ? `Favorecer experiencias integradas orientadas a los objetivos seleccionados: ${objectiveLines.join(" | ")}`
+          : `Favorecer experiencias integradas pertinentes al núcleo ${asignatura}.`,
+        principioJuego: "El juego se incorpora como estrategia pedagógica privilegiada para explorar, expresarse, relacionarse y construir aprendizajes de manera flexible y significativa.",
+        principioActividad: "Los párvulos son protagonistas de sus aprendizajes mediante la exploración, la acción, la comunicación, la creación y la interacción con personas, objetos y ambientes.",
+        focoExperiencia: `Desarrollar tres jornadas pedagógicas complementarias —exploración, expresión artístico-sensorial y lenguaje/comunicación— articuladas con ${primaryNucleo} y los objetivos seleccionados.`,
+        horizonte: tiempoPlanificacion as "diaria" | "semanal" | "quincenal" | "mensual" | "semestral",
+        filas,
+      })
+
+      console.error("[Educador AI · Parvularia]", errorMessage)
+      return NextResponse.json({
+        text: fallbackText,
+        provider: "EduAI respaldo local estructurado",
+        model: "parvularia-structured-fallback",
+        cursoKey: cursoToKey(curso),
+        localCoverage: promptContext.summary,
+        hasLocalCurriculum: promptContext.summary.oas > 0,
+        selectedOAIds,
+        oaConnection: { autoSelected: oaConnection.autoSelected, manuallySelected: oaConnection.manuallySelected, resolvedOAIds: oaConnection.resolvedOAIds },
+        planningProfile: planningProfile.id,
+        planningProfileLabel: planningProfile.label,
+        selectedOATIds,
+        unidadId,
+        parvulariaHeterogenea,
+        parvulariaSegundoCurso,
+        parvulariaMotivoFusion,
+        outputIntent,
+        parvulariaInstitutionalPlanning: true,
+        aiFallback: true,
+        structuredFallback: true,
+        _design: designSummary,
+      })
+    }
+
     const fallbackText = buildLocalEducadorFallback({
       intent: outputIntent,
       curso,

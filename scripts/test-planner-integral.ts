@@ -267,6 +267,7 @@ const parvulariaJson = serializeParvulariaPlanningDocument({
   focoExperiencia: "Exploración sensorial.",
   horizonte: "quincenal",
   filas: [{
+    jornada: "Jornada 1 · Exploración y experiencia principal",
     ambitoNucleo: "AMBITO: Interacción y comprensión del entorno\nNUCLEO: Exploración del entorno natural",
     objetivosAprendizajes: "OA N° 3\nTexto oficial",
     experienciaAprendizaje: "Inicio:\nExploración.\nDesarrollo:\nExperiencia sensorial.\nFinalización:\nCierre.",
@@ -279,10 +280,24 @@ const parvulariaJson = serializeParvulariaPlanningDocument({
 const parsedParvularia = parseParvulariaPlanningDocument(parvulariaJson)
 assert.equal(parsedParvularia.horizonte, "quincenal")
 assert.equal(parsedParvularia.filas.length, 1)
+assert.equal(parsedParvularia.filas[0]?.jornada, "Jornada 1 · Exploración y experiencia principal")
 assert(parsedParvularia.filas[0]?.experienciaAprendizaje.includes("Finalización"), "Debe conservar toda la experiencia editable")
 assert(parsedParvularia.filas[0]?.rolEquipoFamilia.includes("Rol de la familia"), "Debe conservar el rol de la familia")
 assert(parsedParvularia.filas[0]?.recursos.includes("RECURSOS INTANGIBLES"), "Debe conservar recursos tangibles e intangibles")
 assert(parsedParvularia.filas[0]?.evaluacion.includes("Indicadores"), "Debe conservar evaluación e indicadores")
 console.log("✓ Plantilla Parvularia: diaria/semanal/quincenal/mensual/semestral y edición estructurada")
+
+const threeJourneys = serializeParvulariaPlanningDocument({
+  ...parsedParvularia,
+  filas: [
+    { ...parsedParvularia.filas[0], jornada: "Jornada 1 · Exploración y experiencia principal" },
+    { ...parsedParvularia.filas[0], jornada: "Jornada 2 · Expresión artística y sensorial" },
+    { ...parsedParvularia.filas[0], jornada: "Jornada 3 · Lenguaje verbal, lectura y comunicación", experienciaAprendizaje: "Inicio:\nCanción y saludo.\nDesarrollo:\nLectura compartida, relato breve, conversación y vocabulario mediante imágenes.\nFinalización:\nCierre oral y gestual." },
+  ],
+})
+const parsedThreeJourneys = parseParvulariaPlanningDocument(threeJourneys)
+assert.equal(parsedThreeJourneys.filas.length, 3)
+assert(parsedThreeJourneys.filas[2]?.jornada.includes("Lenguaje verbal"), "La tercera jornada debe quedar identificada como lenguaje/comunicación")
+console.log("✓ Plantilla Parvularia: tres jornadas diarias independientes y editables")
 
 console.log("\nPlanificador escolar integral: todas las pruebas pasaron.")
