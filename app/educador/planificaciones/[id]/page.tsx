@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { createClient } from "@/lib/supabase/client"
@@ -10,6 +10,10 @@ import { exportPlanningPdf } from "@/lib/planning-pdf"
 import { exportSchoolPlanningPdf, type SchoolPlanningPdfMeta } from "@/lib/school-planning-pdf"
 import SchoolPlanningPreview from "@/components/educador/SchoolPlanningPreview"
 import SchoolPlanningEditor from "@/components/educador/SchoolPlanningEditor"
+import ParvulariaPlanningPreview from "@/components/educador/ParvulariaPlanningPreview"
+import ParvulariaPlanningEditor from "@/components/educador/ParvulariaPlanningEditor"
+import { exportParvulariaPlanningPdf } from "@/lib/parvularia-planning-pdf"
+import { parseParvulariaPlanningDocument } from "@/lib/parvularia-planning"
 import { getPlannerOAOptions } from "@/lib/planificador-curriculum"
 import { getSchoolPlanningPeriodLabel, type SchoolPlanningWeek } from "@/lib/school-planning-template"
 import type { NivelKey } from "@/lib/mineduc-oa"
@@ -84,6 +88,18 @@ function getContentStats(content?: string | null) {
   return { words, headings }
 }
 
+function getParvulariaPeriod(item: SavedPlanning) {
+  if (item.nivel !== "parvularia" || !item.content) return ""
+  try {
+    return parseParvulariaPlanningDocument(item.content).fechas
+  } catch {
+    const saved = item.planning_json || {}
+    const start = typeof saved.fechaInicioParvularia === "string" ? saved.fechaInicioParvularia : ""
+    const end = typeof saved.fechaFinParvularia === "string" ? saved.fechaFinParvularia : ""
+    return [start, end].filter(Boolean).join(" — ")
+  }
+}
+
 function buildSavedInstitutionalMeta(item: SavedPlanning): SchoolPlanningPdfMeta | null {
   const saved = item.planning_json || {}
   const horizon = String(saved.tiempoPlanificacion || item.tiempo_planificacion || "")
@@ -125,6 +141,7 @@ function buildSavedInstitutionalMeta(item: SavedPlanning): SchoolPlanningPdfMeta
 export default function SavedPlanningDetailPage() {
   const router = useRouter()
   const params = useParams()
+  const searchParams = useSearchParams()
   const supabase = useMemo(() => createClient(), [])
 
   const planningId = Array.isArray(params?.id) ? params.id[0] : params?.id
@@ -135,7 +152,7 @@ export default function SavedPlanningDetailPage() {
   const [deleting, setDeleting] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [status, setStatus] = useState("")
-  const [viewMode, setViewMode] = useState<"preview" | "edit">("preview")
+  const [viewMode, setViewMode] = useState<"preview" | "edit">(() => searchParams.get("edit") === "1" ? "edit" : "preview")
 
   useEffect(() => {
     let active = true
@@ -255,7 +272,9 @@ export default function SavedPlanningDetailPage() {
     try {
       const institutionalMeta = buildSavedInstitutionalMeta(item)
 
-      if (institutionalMeta) {
+      if (item.nivel === "parvularia") {
+        await exportParvulariaPlanningPdf(item.content)
+      } else if (institutionalMeta) {
         await exportSchoolPlanningPdf(institutionalMeta, item.content)
       } else {
         await exportPlanningPdf(
@@ -317,7 +336,16 @@ export default function SavedPlanningDetailPage() {
     )
   }
 
-  const summaryItems = [
+  const isParvulariaPlanning = item.nivel === "parvularia"
+  const parvulariaPeriod = getParvulariaPeriod(item)
+  const summaryItems = isParvulariaPlanning ? [
+    ["Subnivel", item.curso || "—"],
+    ["Núcleo", item.asignatura || "—"],
+    ["Nivel", "Educación Parvularia"],
+    ["Horizonte", item.tiempo_planificacion || "—"],
+    ["Fechas", parvulariaPeriod || "—"],
+    ["Última edición", formatDate(item.updated_at)],
+  ] as const : [
     ["Curso", item.curso || "—"],
     ["Asignatura", item.asignatura || "—"],
     ["Nivel", item.nivel || "—"],
@@ -429,11 +457,11 @@ export default function SavedPlanningDetailPage() {
                     viewMode === "edit" ? "bg-white text-sky-800 shadow-sm" : "text-slate-600 hover:text-slate-950"
                   }`}
                 >
-                  {institutionalPreviewMeta ? "Editar tabla" : "Editar"}
+                  {isParvulariaPlanning ? "Editar plantilla" : institutionalPreviewMeta ? "Editar tabla" : "Editar"}
                 </button>
               </div>
               <p className="mt-3 text-sm font-medium leading-6 text-slate-600">
-                {contentStats.words} palabras · {contentStats.headings} secciones detectadas.
+                {isParvulariaPlanning ? "Plantilla BCEP estructurada · todos los campos son editables." : `${contentStats.words} palabras · ${contentStats.headings} secciones detectadas.`}
               </p>
             </section>
           </aside>
@@ -479,7 +507,12 @@ export default function SavedPlanningDetailPage() {
 
               <div className="p-5">
                 {viewMode === "edit" ? (
-                  institutionalPreviewMeta ? (
+                  isParvulariaPlanning ? (
+                    <ParvulariaPlanningEditor
+                      content={item.content || ""}
+                      onChange={(content) => setItem({ ...item, content })}
+                    />
+                  ) : institutionalPreviewMeta ? (
                     <SchoolPlanningEditor
                       meta={institutionalPreviewMeta}
                       content={item.content || ""}
@@ -501,7 +534,9 @@ export default function SavedPlanningDetailPage() {
                       <p className="mt-1 text-sm font-semibold text-slate-700">{item.curso || "—"} · {item.asignatura || "—"} · {item.mes || "—"}</p>
                     </div>
                     <div className="p-6 md:p-8">
-                      {institutionalPreviewMeta ? (
+                      {isParvulariaPlanning ? (
+                        <ParvulariaPlanningPreview content={item.content || ""} />
+                      ) : institutionalPreviewMeta ? (
                         <SchoolPlanningPreview meta={institutionalPreviewMeta} content={item.content || ""} />
                       ) : (
                         <article className="prose prose-slate max-w-none
