@@ -13,7 +13,7 @@ import SchoolPlanningEditor from "@/components/educador/SchoolPlanningEditor"
 import ParvulariaPlanningPreview from "@/components/educador/ParvulariaPlanningPreview"
 import ParvulariaPlanningEditor from "@/components/educador/ParvulariaPlanningEditor"
 import { exportParvulariaPlanningPdf } from "@/lib/parvularia-planning-pdf"
-import { parseParvulariaPlanningDocument } from "@/lib/parvularia-planning"
+import { isParvulariaPlanningContent, parseParvulariaPlanningDocument } from "@/lib/parvularia-planning"
 import { getPlannerOAOptions } from "@/lib/planificador-curriculum"
 import { getSchoolPlanningPeriodLabel, type SchoolPlanningWeek } from "@/lib/school-planning-template"
 import type { NivelKey } from "@/lib/mineduc-oa"
@@ -276,7 +276,7 @@ export default function SavedPlanningDetailPage() {
     try {
       const institutionalMeta = buildSavedInstitutionalMeta(item)
 
-      if (item.nivel === "parvularia") {
+      if (item.nivel === "parvularia" && isParvulariaPlanningContent(item.content)) {
         await exportParvulariaPlanningPdf(item.content)
       } else if (institutionalMeta) {
         await exportSchoolPlanningPdf(institutionalMeta, item.content)
@@ -340,7 +340,7 @@ export default function SavedPlanningDetailPage() {
     )
   }
 
-  const isParvulariaPlanning = item.nivel === "parvularia"
+  const isParvulariaPlanning = item.nivel === "parvularia" && Boolean(item.content && isParvulariaPlanningContent(item.content))
   const parvulariaPeriod = getParvulariaPeriod(item)
   const summaryItems = isParvulariaPlanning ? [
     ["Subnivel", item.curso || "—"],
