@@ -1472,6 +1472,7 @@ ${JSON.stringify({
   principios: bcepReference.principios_pedagogicos,
   planificacion: bcepReference.planificacion,
   evaluacion: bcepReference.evaluacion,
+  ambientesAprendizaje: bcepReference.ambientes_aprendizaje,
   familiaComunidad: bcepReference.familia_y_comunidad,
 })}
 
