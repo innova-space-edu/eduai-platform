@@ -322,7 +322,7 @@ function buildPlanningTree(items: SavedPlanning[]): PlanningYearFolder[] {
     }))
 }
 
-function countFolderItems(folder: PlanningYearFolder | PlanningMonthFolder | PlanningDateFolder) {
+function countFolderItems(folder: PlanningYearFolder | PlanningMonthFolder | PlanningDateFolder): number {
   if ("months" in folder) {
     return folder.months.reduce((total, month) => total + countFolderItems(month), 0)
   }
