@@ -51,6 +51,23 @@ function usableGroqModel(...values: Array<string | undefined>): string | null {
   return null
 }
 
+function openRouterFreeOnly(): boolean {
+  return process.env.OPENROUTER_FREE_ONLY !== "false"
+}
+
+function isFreeOpenRouterModel(model: string): boolean {
+  return model === "openrouter/free" || model.endsWith(":free")
+}
+
+function usableOpenRouterModel(...values: Array<string | undefined>): string | null {
+  for (const value of values) {
+    const model = value?.trim()
+    if (!model) continue
+    if (!openRouterFreeOnly() || isFreeOpenRouterModel(model)) return model
+  }
+  return null
+}
+
 export function compatibleFallbackModel(
   provider: CompatibleProvider,
   capability: AICapability,
@@ -73,9 +90,12 @@ export function compatibleFallbackModel(
       ) || "openai/gpt-oss-120b"
     case "openrouter":
       if (capability === "structured") {
-        return process.env.OPENROUTER_STRUCTURED_MODEL || process.env.OPENROUTER_TEXT_MODEL || "openrouter/free"
+        return usableOpenRouterModel(
+          process.env.OPENROUTER_STRUCTURED_MODEL,
+          process.env.OPENROUTER_TEXT_MODEL,
+        ) || "openrouter/free"
       }
-      return process.env.OPENROUTER_TEXT_MODEL || "openrouter/free"
+      return usableOpenRouterModel(process.env.OPENROUTER_TEXT_MODEL) || "openrouter/free"
     case "together":
       return process.env.TOGETHER_TEXT_MODEL || "Qwen/Qwen3.5-9B"
     case "cerebras":
@@ -90,14 +110,11 @@ export function compatibleModelCandidates(
   profile: CompatibleModelProfile = "quality",
 ): string[] {
   const candidates: string[] = []
-
   const selected = selectedModel?.trim() || ""
-  if (selected && !(provider === "groq" && RETIRED_GROQ_MODELS.has(selected))) {
-    candidates.push(selected)
-  }
 
   if (provider === "groq") {
     if (capability === "research") {
+      if (selected && !RETIRED_GROQ_MODELS.has(selected)) candidates.push(selected)
       candidates.push(
         process.env.GROQ_RESEARCH_MODEL || "",
         "groq/compound",
@@ -106,21 +123,33 @@ export function compatibleModelCandidates(
     } else if (profile === "fast") {
       candidates.push(
         process.env.GROQ_TEXT_MODEL_FAST || "",
-        process.env.GROQ_TEXT_MODEL || "",
         "openai/gpt-oss-20b",
+      )
+      if (selected && !RETIRED_GROQ_MODELS.has(selected)) candidates.push(selected)
+      candidates.push(
+        process.env.GROQ_TEXT_MODEL || "",
         "openai/gpt-oss-120b",
         "qwen/qwen3.6-27b",
       )
     } else {
       candidates.push(
         process.env.GROQ_TEXT_MODEL_REASONING || "",
-        process.env.GROQ_TEXT_MODEL || "",
         "openai/gpt-oss-120b",
+      )
+      if (selected && !RETIRED_GROQ_MODELS.has(selected)) candidates.push(selected)
+      candidates.push(
+        process.env.GROQ_TEXT_MODEL || "",
         "qwen/qwen3.6-27b",
         "openai/gpt-oss-20b",
       )
     }
+  } else if (provider === "openrouter") {
+    if (selected && (!openRouterFreeOnly() || isFreeOpenRouterModel(selected))) {
+      candidates.push(selected)
+    }
+    candidates.push(compatibleFallbackModel(provider, capability, profile))
   } else {
+    if (selected) candidates.push(selected)
     candidates.push(compatibleFallbackModel(provider, capability, profile))
   }
 
@@ -128,6 +157,7 @@ export function compatibleModelCandidates(
     .map((value) => value.trim())
     .filter(Boolean)
     .filter((value) => provider !== "groq" || !RETIRED_GROQ_MODELS.has(value))
+    .filter((value) => provider !== "openrouter" || !openRouterFreeOnly() || isFreeOpenRouterModel(value))
 
   return Array.from(new Set(normalized))
 }
