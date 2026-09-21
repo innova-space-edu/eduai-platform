@@ -96,7 +96,12 @@ export default function ModelCandidateLabPanel() {
     }
   }
 
-  useEffect(() => {\n    void load();\n    const handler = () => void load();\n    window.addEventListener("eduai-model-candidates-changed", handler);\n    return () => window.removeEventListener("eduai-model-candidates-changed", handler);\n  }, [])
+  useEffect(() => {
+    void load();
+    const handler = () => void load();
+    window.addEventListener("eduai-model-candidates-changed", handler);
+    return () => window.removeEventListener("eduai-model-candidates-changed", handler);
+  }, [])
 
   const providers = useMemo(() => [...new Set(candidates.map(item => item.provider))].sort(), [candidates])
   const filtered = useMemo(() => {
