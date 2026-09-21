@@ -83,11 +83,11 @@ async function fetchAudioBuffer(context: BaseAudioContext, asset: MediaAsset) {
   }
 }
 
-function gainAt(clip: TimelineClip, localTime: number) {
+function gainAt(clip: TimelineClip, localTime: number, trackAudible = true) {
   const interpolated = interpolateClip(clip, localTime);
   const transition = transitionFactor(clip, localTime);
   const clipFade = audioFadeFactor(clip, localTime);
-  return clip.muted ? 0 : Math.max(0, interpolated.volume * transition.opacity * clipFade);
+  return !trackAudible || clip.muted ? 0 : Math.max(0, interpolated.volume * transition.opacity * clipFade);
 }
 
 export async function exportProjectWav(project: MultimediaProject, assets: MediaAsset[]) {
@@ -98,12 +98,13 @@ export async function exportProjectWav(project: MultimediaProject, assets: Media
   const assetMap = new Map(assets.map((asset) => [asset.id, asset]));
   const cache = new Map<string, AudioBuffer | null>();
 
+  const hasSoloTracks = project.tracks.some((track) => Boolean(track.solo));
   const audioClips = project.tracks
     .filter((track) => track.kind === "audio" || track.kind === "music" || track.kind === "video")
-    .flatMap((track) => track.clips)
-    .filter((clip) => clip.clipType === "media" && clip.assetId);
+    .flatMap((track) => track.clips.map((clip) => ({ clip, track })))
+    .filter(({ clip }) => clip.clipType === "media" && clip.assetId);
 
-  for (const clip of audioClips) {
+  for (const { clip, track } of audioClips) {
     const asset = assetMap.get(clip.assetId!);
     if (!asset) continue;
     if (!cache.has(asset.id)) cache.set(asset.id, await fetchAudioBuffer(context, asset));
@@ -121,10 +122,11 @@ export async function exportProjectWav(project: MultimediaProject, assets: Media
     const available = Math.max(0.01, buffer.duration - offset);
     const clipDuration = Math.max(0.01, Math.min(clip.duration, available));
     const steps = Math.max(8, Math.min(160, Math.ceil(clipDuration * 12)));
-    gain.gain.setValueAtTime(gainAt(clip, 0), start);
+    const trackAudible = !track.muted && (!hasSoloTracks || Boolean(track.solo));
+    gain.gain.setValueAtTime(gainAt(clip, 0, trackAudible), start);
     for (let step = 1; step <= steps; step += 1) {
       const local = (clipDuration * step) / steps;
-      gain.gain.linearRampToValueAtTime(gainAt(clip, local), start + local);
+      gain.gain.linearRampToValueAtTime(gainAt(clip, local, trackAudible), start + local);
     }
     source.start(start, offset, clipDuration);
   }

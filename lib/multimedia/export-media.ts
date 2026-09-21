@@ -168,6 +168,12 @@ export async function exportProjectVideo(project: MultimediaProject, assets: Med
 
   const assetMap = new Map(assets.map((asset) => [asset.id, asset]));
   const clips = project.tracks.flatMap((track) => track.clips);
+  const soloTrackIds = new Set(project.tracks.filter((track) => Boolean(track.solo)).map((track) => track.id));
+  const trackById = new Map(project.tracks.map((track) => [track.id, track]));
+  const trackAudible = (trackId: string) => {
+    const track = trackById.get(trackId);
+    return Boolean(track && !track.muted && (!soloTrackIds.size || track.solo));
+  };
   const mediaEntries: ClipMedia[] = [];
   const images = new Map<string, HTMLImageElement>();
   const audioContext = new AudioContext();
@@ -268,7 +274,9 @@ export async function exportProjectVideo(project: MultimediaProject, assets: Med
         const local = elapsed - entry.clip.start;
         const animated = interpolateClip(entry.clip, Math.max(0, local));
         const transition = transitionFactor(entry.clip, Math.max(0, local));
-        if (entry.gain) entry.gain.gain.value = isActive && !entry.clip.muted ? Math.max(0, animated.volume * transition.opacity * audioFadeFactor(entry.clip, Math.max(0, local))) : 0;
+        if (entry.gain) entry.gain.gain.value = isActive && trackAudible(entry.clip.trackId) && !entry.clip.muted
+          ? Math.max(0, animated.volume * transition.opacity * audioFadeFactor(entry.clip, Math.max(0, local)))
+          : 0;
         if (isActive) {
           seek(entry.element, entry.clip.offset + local);
           if (entry.element.paused) void entry.element.play().catch(() => undefined);

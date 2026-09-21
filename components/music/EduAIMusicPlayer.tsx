@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { type CSSProperties, useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   ExternalLink,
@@ -20,11 +20,10 @@ import {
   Shuffle,
   SkipBack,
   SkipForward,
+  Upload,
   Volume2,
 } from "lucide-react";
 import {
-  MOOD_LABELS,
-  type EduMusicMood,
   type EduMusicPlaylist,
   type EduMusicTrack,
 } from "@/lib/music/eduai-music-catalog";
@@ -69,26 +68,15 @@ function getEmbedUrl(track?: EduMusicTrack | null) {
 }
 
 const NAV_ITEMS = [
-  { id: "home", label: "Inicio", icon: Home },
-  { id: "search", label: "Buscar", icon: Search },
-  { id: "radio", label: "Radio", icon: Radio },
-  { id: "library", label: "Biblioteca", icon: Library },
-  { id: "playlists", label: "Playlists", icon: ListMusic },
-  { id: "liked", label: "Me gusta", icon: Heart },
-  { id: "queue", label: "Cola", icon: Menu },
+  { id: "home", view: "home", label: "Inicio", icon: Home },
+  { id: "youtube", view: "search", label: "YouTube", icon: Play },
+  { id: "spotify", view: null, label: "Spotify", icon: Music2 },
+  { id: "radio", view: "radio", label: "Radio", icon: Radio },
+  { id: "library", view: "library", label: "Mis audios", icon: Library },
+  { id: "playlists", view: "playlists", label: "Playlists", icon: ListMusic },
+  { id: "liked", view: "liked", label: "Favoritos", icon: Heart },
+  { id: "queue", view: "queue", label: "Cola", icon: Menu },
 ] as const;
-
-const MOODS: Array<EduMusicMood | "all"> = [
-  "all",
-  "focus",
-  "calm",
-  "classical",
-  "reading",
-  "creative",
-  "deep",
-  "nature",
-  "energy",
-];
 
 const SPOTIFY_EMBEDS: SpotifyEmbedItem[] = [
   {
@@ -96,7 +84,7 @@ const SPOTIFY_EMBEDS: SpotifyEmbedItem[] = [
     title: "Calvin Harris Mix",
     subtitle: "Electrónica y energía para modo DJ visual",
     src: "https://open.spotify.com/embed/playlist/37i9dQZF1EIZna6YqhjeY0?utm_source=generator&theme=0",
-    accent: "from-emerald-400 to-cyan-400",
+    accent: "from-cyan-400 to-cyan-400",
   },
   {
     id: "spotify-top-global",
@@ -110,7 +98,7 @@ const SPOTIFY_EMBEDS: SpotifyEmbedItem[] = [
     title: "Mix electrónico",
     subtitle: "Visual tipo club, ideal para reels de fondo",
     src: "https://open.spotify.com/embed/playlist/37i9dQZF1E8KVBYF00LoMc?utm_source=generator&theme=0",
-    accent: "from-lime-300 to-emerald-400",
+    accent: "from-lime-300 to-cyan-400",
   },
   {
     id: "spotify-personal-1",
@@ -126,25 +114,179 @@ const SPOTIFY_EMBEDS: SpotifyEmbedItem[] = [
     src: "https://open.spotify.com/embed/playlist/6VjXyFH9Z5HlGPAjRBKR32?utm_source=generator&theme=0",
     accent: "from-amber-300 to-orange-400",
   },
-  {
-    id: "spotify-focus",
-    title: "Focus profundo",
-    subtitle: "Música para estudiar y trabajar",
-    src: "https://open.spotify.com/embed/playlist/37i9dQZF1DX6aTaZa0K6VA?utm_source=generator&theme=0",
-    accent: "from-teal-300 to-emerald-500",
-  },
 ];
 
 function cn(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(" ");
 }
 
+function CyberHexField({ active }: { active: boolean }) {
+  const cells = [
+    [120, 92, "#25f4ff"], [280, 46, "#9b6cff"], [430, 132, "#ff42cf"],
+    [610, 70, "#25f4ff"], [820, 126, "#44ffd2"], [1040, 52, "#ff42cf"],
+    [1240, 146, "#4aa8ff"], [1420, 74, "#25f4ff"], [180, 322, "#ff42cf"],
+    [360, 266, "#25f4ff"], [560, 354, "#9b6cff"], [780, 286, "#25f4ff"],
+    [990, 350, "#ff42cf"], [1190, 280, "#44ffd2"], [1390, 362, "#9b6cff"],
+    [100, 560, "#25f4ff"], [320, 512, "#44ffd2"], [520, 610, "#ff42cf"],
+    [760, 526, "#9b6cff"], [980, 620, "#25f4ff"], [1210, 520, "#ff42cf"],
+    [1450, 610, "#25f4ff"], [190, 780, "#9b6cff"], [440, 748, "#25f4ff"],
+    [690, 826, "#ff42cf"], [930, 760, "#44ffd2"], [1180, 830, "#9b6cff"],
+    [1420, 760, "#25f4ff"],
+  ] as const;
+
+  return (
+    <div className={cn("cyber-hex-field", active && "is-playing")} aria-hidden="true">
+      <svg viewBox="0 0 1600 960" preserveAspectRatio="xMidYMid slice" className="h-full w-full">
+        <defs>
+          <linearGradient id="cyber-space" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#020713" />
+            <stop offset="46%" stopColor="#061321" />
+            <stop offset="100%" stopColor="#090313" />
+          </linearGradient>
+          <linearGradient id="cyber-edge" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="#25f4ff" />
+            <stop offset="48%" stopColor="#9b6cff" />
+            <stop offset="100%" stopColor="#ff42cf" />
+          </linearGradient>
+          <pattern id="cyber-hex-pattern" width="112" height="96" patternUnits="userSpaceOnUse">
+            <path
+              d="M28 2H84L110 48 84 94H28L2 48Z"
+              fill="#07111d"
+              fillOpacity=".72"
+              stroke="#2d6175"
+              strokeOpacity=".32"
+              strokeWidth="1.2"
+            />
+            <path d="M29 5H82" stroke="#7cecff" strokeOpacity=".08" />
+          </pattern>
+          <filter id="cyber-glow" x="-80%" y="-80%" width="260%" height="260%">
+            <feGaussianBlur stdDeviation="7" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          <filter id="cyber-energy" x="-30%" y="-30%" width="160%" height="160%">
+            <feTurbulence
+              type="fractalNoise"
+              baseFrequency=".008 .018"
+              numOctaves="1"
+              seed="9"
+              result="noise"
+            >
+              <animate
+                attributeName="baseFrequency"
+                values=".008 .018;.012 .024;.008 .018"
+                dur="14s"
+                repeatCount="indefinite"
+              />
+            </feTurbulence>
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="9" xChannelSelector="R" yChannelSelector="B" />
+          </filter>
+        </defs>
+
+        <rect width="1600" height="960" fill="url(#cyber-space)" />
+        <rect width="1600" height="960" fill="url(#cyber-hex-pattern)" opacity=".94" />
+
+        <g className="cyber-svg-depth">
+          {cells.map(([x, y, color], index) => (
+            <g
+              key={`${x}-${y}`}
+              className="cyber-svg-cell"
+              style={{ "--cell-delay": `${-(index % 9) * 0.72}s` } as CSSProperties}
+              transform={`translate(${x} ${y})`}
+            >
+              <path
+                d="M-34 -28H34L52 0 34 28H-34L-52 0Z"
+                fill="#071421"
+                stroke={color}
+                strokeOpacity={index % 3 === 0 ? ".95" : ".55"}
+                strokeWidth={index % 4 === 0 ? "3" : "1.5"}
+                filter={index % 4 === 0 ? "url(#cyber-glow)" : undefined}
+              />
+              {index % 4 === 0 && (
+                <path d="M-24 28H24" stroke={color} strokeWidth="4" strokeLinecap="round" filter="url(#cyber-glow)" />
+              )}
+            </g>
+          ))}
+        </g>
+
+        <g filter="url(#cyber-energy)" className="cyber-energy-network">
+          <path d="M-80 250C160 210 240 350 430 300S760 140 950 220 1260 440 1700 260" />
+          <path d="M-120 700C140 610 260 760 470 690S820 470 1040 610 1320 810 1710 650" />
+          <path d="M230 -40C310 210 220 390 360 520S690 730 620 1010" />
+          <path d="M1180 -70C1080 210 1210 370 1100 520S970 790 1060 1010" />
+        </g>
+
+        <rect x="1" y="1" width="1598" height="958" fill="none" stroke="url(#cyber-edge)" strokeOpacity=".12" />
+      </svg>
+    </div>
+  );
+}
+
+function CyberHeroIllustration() {
+  return (
+    <svg viewBox="0 0 520 250" className="absolute inset-y-0 right-0 h-full w-[54%] min-w-[420px]" aria-hidden="true">
+      <defs>
+        <linearGradient id="hero-neon" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#25f4ff" />
+          <stop offset="46%" stopColor="#5d7cff" />
+          <stop offset="100%" stopColor="#ff42cf" />
+        </linearGradient>
+        <radialGradient id="hero-aura" cx="50%" cy="45%" r="58%">
+          <stop offset="0%" stopColor="#25f4ff" stopOpacity=".3" />
+          <stop offset="45%" stopColor="#9b6cff" stopOpacity=".16" />
+          <stop offset="100%" stopColor="#ff42cf" stopOpacity="0" />
+        </radialGradient>
+        <filter id="hero-glow" x="-80%" y="-80%" width="260%" height="260%">
+          <feGaussianBlur stdDeviation="5" result="heroBlur" />
+          <feMerge><feMergeNode in="heroBlur" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+      </defs>
+      <circle cx="345" cy="120" r="118" fill="url(#hero-aura)" />
+      <g opacity=".28" stroke="#25f4ff" fill="none">
+        <path d="M35 28H115L145 72 115 116H35L5 72Z" />
+        <path d="M136 76H216L246 120 216 164H136L106 120Z" />
+        <path d="M38 126H118L148 170 118 214H38L8 170Z" />
+      </g>
+      <g className="cyber-hero-rings" fill="none" stroke="url(#hero-neon)" filter="url(#hero-glow)">
+        <circle cx="350" cy="112" r="62" strokeWidth="3" strokeDasharray="12 10" />
+        <circle cx="350" cy="112" r="82" strokeWidth="1.5" strokeDasharray="4 14" opacity=".65" />
+      </g>
+      <g transform="translate(285 48)">
+        <path
+          d="M64 22c34 0 62 28 62 63v32c0 19-8 35-22 47l-4 3v23H35v-24l-3-2C18 152 10 136 10 117V84C10 49 31 22 64 22Z"
+          fill="#030814"
+          stroke="#25f4ff"
+          strokeOpacity=".6"
+          strokeWidth="2"
+        />
+        <path d="M18 91c-16 4-22 17-19 34s14 26 31 24M110 91c16 4 22 17 19 34s-14 26-31 24" fill="none" stroke="url(#hero-neon)" strokeWidth="8" strokeLinecap="round" filter="url(#hero-glow)" />
+        <path d="M17 90c0-40 19-72 48-72s49 31 49 72" fill="none" stroke="#9b6cff" strokeWidth="4" strokeLinecap="round" />
+        <path d="M38 58c14-18 43-25 68-9M35 78c21-18 50-18 73-3" fill="none" stroke="#ff42cf" strokeOpacity=".65" strokeWidth="2" />
+        <path d="M26 167c-33 15-55 39-66 72h211c-10-35-34-59-67-72-19 15-57 16-78 0Z" fill="#020611" stroke="url(#hero-neon)" strokeOpacity=".55" strokeWidth="2" />
+      </g>
+      <path className="cyber-hero-streak" d="M180 206C270 156 330 188 418 140S508 92 560 78" fill="none" stroke="url(#hero-neon)" strokeWidth="3" strokeLinecap="round" filter="url(#hero-glow)" />
+    </svg>
+  );
+}
+
+function CyberEqualizer({ active }: { active: boolean }) {
+  return (
+    <div className={cn("cyber-equalizer", active && "is-playing")} aria-hidden="true">
+      {Array.from({ length: 18 }, (_, index) => (
+        <span key={index} style={{ "--bar-delay": `${-(index % 7) * 0.11}s` } as CSSProperties} />
+      ))}
+    </div>
+  );
+}
+
 function LoadingBar({ active, label = "Cargando" }: { active: boolean; label?: string }) {
   if (!active) return null;
   return (
-    <div className="absolute inset-x-0 bottom-0 z-20 h-0.5 overflow-hidden bg-emerald-400/10" role="status" aria-live="polite">
+    <div className="absolute inset-x-0 bottom-0 z-20 h-0.5 overflow-hidden bg-cyan-400/10" role="status" aria-live="polite">
       <span className="sr-only">{label}</span>
-      <span className="block h-full w-2/5 animate-[eduai-loading_1.1s_ease-in-out_infinite] rounded-full bg-gradient-to-r from-transparent via-emerald-300 to-cyan-300" />
+      <span className="block h-full w-2/5 animate-[eduai-loading_1.1s_ease-in-out_infinite] rounded-full bg-gradient-to-r from-transparent via-cyan-300 to-cyan-300" />
     </div>
   );
 }
@@ -187,11 +329,12 @@ function playbackKind(track?: EduMusicTrack) {
   if (isEmbedTrack(track)) return "Reproductor oficial ConectaAPP";
   if (asExtendedTrack(track)?.previewSeconds) return "DJ mix · audio YouTube · 0:50–1:20";
   if (track?.source === "itunes") return "Preview 30 segundos · modo DJ";
-  if (track?.source === "youtube") return "YouTube · cola automática";
+  if (track?.source === "youtube") return "YouTube · fuente oficial";
   if (track?.source === "radio") return "Radio online en vivo";
   if (track?.source === "jamendo" || track?.source === "audius")
     return "Canción completa reproducible";
-  return "Pista completa EduAI";
+  if (track?.id === "eduai-music-empty") return "Elige una fuente para comenzar";
+  return "Audio personal / fuente externa";
 }
 
 function Cover({
@@ -265,8 +408,8 @@ function IconButton({
       className={cn(
         "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-black transition",
         active
-          ? "bg-emerald-400 text-slate-950 shadow-md shadow-emerald-500/25"
-          : "bg-white/8 text-slate-300 hover:bg-emerald-400/15 hover:text-emerald-200",
+          ? "bg-cyan-400 text-slate-950 shadow-md shadow-cyan-500/25"
+          : "bg-white/8 text-slate-300 hover:bg-cyan-400/15 hover:text-cyan-200",
         className,
       )}
     >
@@ -288,8 +431,8 @@ function PlayButton({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
         if (!embedTrack) music.setPlaying((value) => !value);
       }}
       className={cn(
-        `${cls} inline-flex shrink-0 items-center justify-center rounded-full bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/25 transition`,
-        embedTrack ? "cursor-default opacity-75" : "hover:scale-105 hover:bg-emerald-300",
+        `${cls} inline-flex shrink-0 items-center justify-center rounded-full bg-cyan-400 text-slate-950 shadow-lg shadow-cyan-500/25 transition`,
+        embedTrack ? "cursor-default opacity-75" : "hover:scale-105 hover:bg-cyan-300",
       )}
       aria-label={embedTrack ? "Usa el reproductor oficial" : music.playing ? "Pausar" : "Reproducir"}
       title={embedTrack ? "Usa el reproductor oficial de la radio" : music.playing ? "Pausar" : "Reproducir"}
@@ -323,14 +466,14 @@ function SidebarTrackRow({
       className={cn(
         "flex h-12 w-full items-center gap-2 rounded-xl px-2 text-left transition",
         active
-          ? "bg-emerald-400/14 text-white ring-1 ring-emerald-400/35"
+          ? "bg-cyan-400/14 text-white ring-1 ring-cyan-400/35"
           : "text-slate-300 hover:bg-white/7 hover:text-white",
       )}
     >
       <span
         className={cn(
           "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-black",
-          active ? "bg-emerald-400 text-slate-950" : "bg-white/8 text-slate-400",
+          active ? "bg-cyan-400 text-slate-950" : "bg-white/8 text-slate-400",
         )}
       >
         {active && music.playing ? (
@@ -346,7 +489,7 @@ function SidebarTrackRow({
         <span
           className={cn(
             "block truncate text-xs font-black",
-            active ? "text-emerald-300" : "text-current",
+            active ? "text-cyan-300" : "text-current",
           )}
         >
           {track.title}
@@ -375,7 +518,7 @@ function TableTrackRow({
       className={cn(
         "group flex h-12 items-center gap-3 rounded-xl px-3 transition",
         active
-          ? "bg-emerald-400/12 text-white ring-1 ring-emerald-400/25"
+          ? "bg-cyan-400/12 text-white ring-1 ring-cyan-400/25"
           : "text-slate-300 hover:bg-white/7 hover:text-white",
       )}
     >
@@ -385,8 +528,8 @@ function TableTrackRow({
         className={cn(
           "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-black transition",
           active
-            ? "bg-emerald-400 text-slate-950"
-            : "bg-white/8 text-slate-400 group-hover:bg-emerald-400 group-hover:text-slate-950",
+            ? "bg-cyan-400 text-slate-950"
+            : "bg-white/8 text-slate-400 group-hover:bg-cyan-400 group-hover:text-slate-950",
         )}
         aria-label={`Reproducir ${track.title}`}
       >
@@ -407,7 +550,7 @@ function TableTrackRow({
         <span
           className={cn(
             "block truncate text-sm font-black",
-            active ? "text-emerald-300" : "text-current",
+            active ? "text-cyan-300" : "text-current",
           )}
         >
           {track.title}
@@ -427,8 +570,8 @@ function TableTrackRow({
           type="button"
           onClick={() => music.toggleLike(track.id)}
           className={cn(
-            "text-slate-500 hover:text-emerald-300",
-            music.liked.has(track.id) && "text-emerald-300",
+            "text-slate-500 hover:text-cyan-300",
+            music.liked.has(track.id) && "text-cyan-300",
           )}
           aria-label="Me gusta"
         >
@@ -439,8 +582,17 @@ function TableTrackRow({
         </button>
         <button
           type="button"
+          onClick={() => music.addToQueue(track.id)}
+          className="text-slate-500 hover:text-fuchsia-300"
+          aria-label="Agregar a cola"
+          title="Agregar a cola"
+        >
+          <ListMusic className="h-3.5 w-3.5" />
+        </button>
+        <button
+          type="button"
           onClick={() => music.requestAddToPlaylist(track.id)}
-          className="text-slate-500 hover:text-emerald-300"
+          className="text-slate-500 hover:text-cyan-300"
           aria-label="Agregar a playlist"
         >
           <Plus className="h-3.5 w-3.5" />
@@ -499,23 +651,23 @@ function TableTrackList({ tracks }: { tracks: EduMusicTrack[] }) {
 function TopBar() {
   const music = useEduAIMusic();
   return (
-    <header className="relative flex h-[64px] shrink-0 items-center gap-4 border-b border-white/10 bg-[#07090d] px-5 text-white">
+    <header className="cyber-topbar relative flex h-[64px] shrink-0 items-center gap-4 border-b border-white/10 bg-[#07090d] px-5 text-white">
       <div className="flex w-[236px] shrink-0 items-center gap-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-400 text-slate-950 shadow-md shadow-emerald-500/20">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-400 text-slate-950 shadow-md shadow-cyan-500/20">
           <Music2 className="h-5 w-5" />
         </div>
         <div className="min-w-0">
-          <h1 className="truncate text-lg font-black tracking-tight text-white">
-            EduAI Music
+          <h1 className="cyber-brand truncate text-lg font-black tracking-tight">
+            EDUAI <span>Music</span>
           </h1>
-          <p className="truncate text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-300">
-            Tu espacio de escucha
+          <p className="truncate text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300">
+            Neon audio // live
           </p>
         </div>
       </div>
 
-      <div className="flex h-10 min-w-0 max-w-2xl flex-1 items-center gap-3 rounded-xl border border-white/10 bg-white/[0.06] px-4 shadow-inner shadow-black/30 max-md:hidden focus-within:border-emerald-400/50">
-        <Search className="h-4 w-4 text-emerald-300" />
+      <div className="flex h-10 min-w-0 max-w-2xl flex-1 items-center gap-3 rounded-xl border border-white/10 bg-white/[0.06] px-4 shadow-inner shadow-black/30 max-md:hidden focus-within:border-cyan-400/50">
+        <Search className="h-4 w-4 text-cyan-300" />
         <input
           value={music.query}
           onChange={(e) => music.setQuery(e.target.value)}
@@ -523,7 +675,7 @@ function TopBar() {
             if (e.key === "Enter" && music.query.trim())
               void music.searchOnline(music.query);
           }}
-          placeholder="Buscar en biblioteca o presiona Enter para buscar online"
+          placeholder="Buscar canciones, artistas, álbumes, playlists..."
           className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
         />
       </div>
@@ -554,11 +706,11 @@ function RadioPanel() {
   const shown = music.radioTracks.slice(0, 8);
 
   return (
-    <section className="shrink-0 rounded-2xl border border-emerald-400/20 bg-[linear-gradient(135deg,rgba(16,185,129,.16),rgba(20,23,31,.96))] p-3">
+    <section className="shrink-0 rounded-2xl border border-cyan-400/20 bg-[linear-gradient(135deg,rgba(16,185,129,.16),rgba(20,23,31,.96))] p-3">
       <div className="flex items-center justify-between gap-2">
         <div>
           <p className="inline-flex items-center gap-1.5 text-sm font-black text-white">
-            <Radio className="h-4 w-4 text-emerald-300" /> Radio online
+            <Radio className="h-4 w-4 text-cyan-300" /> Radio online
           </p>
           <p className="text-[10px] text-slate-400">Sintoniza emisoras en vivo.</p>
         </div>
@@ -566,7 +718,7 @@ function RadioPanel() {
           type="button"
           onClick={() => void music.searchRadio("", "CL")}
           disabled={music.radioLoading}
-          className="rounded-full bg-emerald-400 px-3 py-1.5 text-[10px] font-black text-slate-950 disabled:opacity-50"
+          className="rounded-full bg-cyan-400 px-3 py-1.5 text-[10px] font-black text-slate-950 disabled:opacity-50"
         >
           {music.radioLoading ? "..." : "Buscar"}
         </button>
@@ -578,7 +730,7 @@ function RadioPanel() {
           onChange={(e) => music.setRadioQuery(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && void music.searchRadio()}
           placeholder="FM Dos, Carolina, Canal 95, Bío-Bío..."
-          className="min-w-0 flex-1 rounded-full border border-white/10 bg-black/25 px-3 py-2 text-xs text-white outline-none placeholder:text-slate-500 focus:border-emerald-400/60"
+          className="min-w-0 flex-1 rounded-full border border-white/10 bg-black/25 px-3 py-2 text-xs text-white outline-none placeholder:text-slate-500 focus:border-cyan-400/60"
         />
       </div>
 
@@ -588,7 +740,7 @@ function RadioPanel() {
             key={`${item.label}-${item.countryCode}`}
             type="button"
             onClick={() => void music.searchRadio(item.term, item.countryCode)}
-            className="rounded-full bg-white/8 px-2.5 py-1 text-[10px] font-black text-slate-300 transition hover:bg-emerald-400/15 hover:text-emerald-200"
+            className="rounded-full bg-white/8 px-2.5 py-1 text-[10px] font-black text-slate-300 transition hover:bg-cyan-400/15 hover:text-cyan-200"
           >
             {item.label}
           </button>
@@ -608,10 +760,10 @@ function RadioPanel() {
                 onClick={() => music.playTrack(track, music.radioTracks)}
                 className={cn(
                   "flex w-full items-center gap-2 rounded-xl px-2 py-1.5 text-left transition",
-                  active ? "bg-emerald-400/15 text-white ring-1 ring-emerald-400/30" : "hover:bg-white/7",
+                  active ? "bg-cyan-400/15 text-white ring-1 ring-cyan-400/30" : "hover:bg-white/7",
                 )}
               >
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/8 text-[10px] font-black text-emerald-300">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/8 text-[10px] font-black text-cyan-300">
                   {active && music.playing ? <Pause className="h-3 w-3" fill="currentColor" /> : index + 1}
                 </span>
                 <span className="min-w-0 flex-1">
@@ -627,7 +779,17 @@ function RadioPanel() {
   );
 }
 
-function Sidebar({ tracks }: { tracks: EduMusicTrack[] }) {
+function Sidebar({
+  tracks,
+  onOpenSpotify,
+  onNavigate,
+  spotifyActive,
+}: {
+  tracks: EduMusicTrack[];
+  onOpenSpotify: () => void;
+  onNavigate: () => void;
+  spotifyActive: boolean;
+}) {
   const music = useEduAIMusic();
   const [playlistFilter, setPlaylistFilter] = useState("");
   const filteredPlaylists = music.playlists.filter((playlist) =>
@@ -635,8 +797,8 @@ function Sidebar({ tracks }: { tracks: EduMusicTrack[] }) {
   );
 
   return (
-    <aside className="flex min-h-0 min-w-0 flex-col border-r border-white/10 bg-[#0b0d12] p-2.5 text-white">
-      <div className="shrink-0 rounded-2xl border border-white/10 bg-[#14171f] p-3">
+    <aside className="cyber-sidebar flex min-h-0 min-w-0 flex-col border-r border-white/10 bg-[#030a13]/84 p-2.5 text-white">
+      <div className="shrink-0 rounded-2xl border border-white/10 bg-[#07111d]/78 p-3">
         <div className="flex items-center justify-between gap-2">
           <div>
             <p className="text-sm font-black text-white">Tu biblioteca</p>
@@ -645,24 +807,33 @@ function Sidebar({ tracks }: { tracks: EduMusicTrack[] }) {
           <button
             type="button"
             onClick={() => music.setCreateOpen((value) => !value)}
-            className="inline-flex items-center gap-1 rounded-full bg-emerald-400 px-3 py-1.5 text-xs font-black text-slate-950 hover:bg-emerald-300"
+            className="inline-flex items-center gap-1 rounded-full bg-cyan-400 px-3 py-1.5 text-xs font-black text-slate-950 hover:bg-cyan-300"
           >
             <Plus className="h-3.5 w-3.5" /> Crear
           </button>
         </div>
 
-        <div className="mt-3 grid grid-cols-2 gap-1.5 text-xs font-bold text-slate-300">
+        <div className="mt-3 grid grid-cols-1 gap-1.5 text-xs font-bold text-slate-300">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
+            const active =
+              item.id === "spotify" ? spotifyActive : music.view === item.view;
             return (
               <button
                 key={item.id}
-                onClick={() => music.setView(item.id)}
+                onClick={() => {
+                  if (item.id === "spotify") {
+                    onOpenSpotify();
+                    return;
+                  }
+                  onNavigate();
+                  music.setView(item.view);
+                }}
                 className={cn(
                   "inline-flex items-center gap-2 rounded-xl px-3 py-2 transition",
-                  music.view === item.id
-                    ? "bg-emerald-400 text-slate-950"
-                    : "bg-white/7 hover:bg-emerald-400/10 hover:text-emerald-200",
+                  active
+                    ? "bg-cyan-400 text-slate-950"
+                    : "bg-white/7 hover:bg-cyan-400/10 hover:text-cyan-200",
                 )}
               >
                 <Icon className="h-3.5 w-3.5" /> {item.label}
@@ -671,8 +842,32 @@ function Sidebar({ tracks }: { tracks: EduMusicTrack[] }) {
           })}
         </div>
 
+        {music.view === "library" && (
+          <label className="mt-3 flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-cyan-300/25 bg-cyan-400/8 px-3 py-2 text-xs font-black text-cyan-100 transition hover:border-fuchsia-300/35 hover:bg-fuchsia-400/8">
+            <Upload className="h-4 w-4" />
+            {music.audioUploadLoading ? "Subiendo audio…" : "Subir mis audios"}
+            <input
+              type="file"
+              multiple
+              accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac"
+              className="hidden"
+              disabled={music.audioUploadLoading}
+              onChange={(event) => {
+                const files = Array.from(event.target.files || []);
+                event.target.value = "";
+                if (files.length) void music.uploadAudios(files);
+              }}
+            />
+          </label>
+        )}
+        {music.view === "library" && music.audioUploadError && (
+          <p className="mt-2 rounded-lg border border-rose-400/20 bg-rose-500/8 px-2 py-1.5 text-[10px] font-bold text-rose-200">
+            {music.audioUploadError}
+          </p>
+        )}
+
         {music.createOpen && (
-          <div className="mt-3 rounded-xl border border-emerald-400/20 bg-emerald-400/8 p-2">
+          <div className="mt-3 rounded-xl border border-cyan-400/20 bg-cyan-400/8 p-2">
             <input
               value={music.newPlaylistName}
               onChange={(e) => music.setNewPlaylistName(e.target.value)}
@@ -683,7 +878,7 @@ function Sidebar({ tracks }: { tracks: EduMusicTrack[] }) {
             <button
               type="button"
               onClick={music.createPlaylist}
-              className="mt-2 h-9 w-full rounded-lg bg-emerald-400 text-xs font-black text-slate-950 hover:bg-emerald-300"
+              className="mt-2 h-9 w-full rounded-lg bg-cyan-400 text-xs font-black text-slate-950 hover:bg-cyan-300"
             >
               Crear playlist
             </button>
@@ -691,18 +886,18 @@ function Sidebar({ tracks }: { tracks: EduMusicTrack[] }) {
         )}
       </div>
 
-      <details className="group mt-3 shrink-0 rounded-2xl border border-white/10 bg-[#14171f]">
+      <details className="group mt-3 shrink-0 rounded-2xl border border-white/10 bg-[#07111d]/78">
         <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2.5 text-xs font-black text-slate-300 marker:hidden">
-          <span className="inline-flex items-center gap-2"><Radio className="h-3.5 w-3.5 text-emerald-300" /> Radio en vivo</span>
+          <span className="inline-flex items-center gap-2"><Radio className="h-3.5 w-3.5 text-cyan-300" /> Radio en vivo</span>
           <span className="text-slate-500 transition group-open:rotate-45">+</span>
         </summary>
         <div className="border-t border-white/10 p-2"><RadioPanel /></div>
       </details>
 
       <div className="mt-3 flex min-h-0 flex-1 flex-col gap-3">
-        <section className="flex min-h-0 flex-[0.8] flex-col rounded-2xl border border-white/10 bg-[#14171f] p-3">
+        <section className="flex min-h-0 flex-[0.8] flex-col rounded-2xl border border-white/10 bg-[#07111d]/78 p-3">
           <div className="mb-2 flex h-9 items-center gap-2 rounded-xl bg-black/25 px-3">
-            <Search className="h-3.5 w-3.5 text-emerald-300" />
+            <Search className="h-3.5 w-3.5 text-cyan-300" />
             <input
               value={playlistFilter}
               onChange={(e) => setPlaylistFilter(e.target.value)}
@@ -730,7 +925,7 @@ function Sidebar({ tracks }: { tracks: EduMusicTrack[] }) {
                   className={cn(
                     "flex h-[48px] w-full items-center gap-2 rounded-xl px-2 text-left transition",
                     music.selectedPlaylistId === playlist.id
-                      ? "bg-white/12 ring-1 ring-emerald-400/25"
+                      ? "bg-white/12 ring-1 ring-cyan-400/25"
                       : "hover:bg-white/7",
                   )}
                 >
@@ -749,9 +944,9 @@ function Sidebar({ tracks }: { tracks: EduMusicTrack[] }) {
           </div>
         </section>
 
-        <section className="flex min-h-0 flex-1 flex-col rounded-2xl border border-white/10 bg-[#14171f] p-3">
+        <section className="flex min-h-0 flex-1 flex-col rounded-2xl border border-white/10 bg-[#07111d]/78 p-3">
           <div className="mb-2 flex items-center justify-between">
-            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-emerald-300">
+            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-cyan-300">
               Canciones
             </p>
             <span className="text-xs text-slate-500">{tracks.length}</span>
@@ -774,11 +969,11 @@ function PlaylistHeader({ tracks }: { tracks: EduMusicTrack[] }) {
   );
 
   return (
-    <section className="shrink-0 rounded-2xl border border-emerald-400/20 bg-[linear-gradient(135deg,rgba(16,185,129,.22),rgba(17,24,39,.98)_50%,rgba(34,197,94,.12))] p-3 text-white shadow-md shadow-black/25">
+    <section className="shrink-0 rounded-2xl border border-cyan-400/20 bg-[linear-gradient(135deg,rgba(16,185,129,.22),rgba(17,24,39,.98)_50%,rgba(34,197,94,.12))] p-3 text-white shadow-md shadow-black/25">
       <div className="flex min-w-0 items-center gap-3">
         <Cover label={playlist.name} cover={playlist.cover} size="hero" />
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-300">
+          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-cyan-300">
             Playlist seleccionada
           </p>
           <h2 className="mt-1 truncate text-2xl font-black tracking-tight text-white max-xl:text-xl">
@@ -794,7 +989,7 @@ function PlaylistHeader({ tracks }: { tracks: EduMusicTrack[] }) {
         <button
           type="button"
           onClick={() => music.playPlaylist(playlist.id)}
-          className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full bg-emerald-400 px-4 text-xs font-black text-slate-950 shadow-md shadow-emerald-500/20 hover:bg-emerald-300"
+          className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full bg-cyan-400 px-4 text-xs font-black text-slate-950 shadow-md shadow-cyan-500/20 hover:bg-cyan-300"
         >
           <Play className="h-4 w-4" fill="currentColor" /> Reproducir
         </button>
@@ -814,22 +1009,34 @@ function PlaylistHeader({ tracks }: { tracks: EduMusicTrack[] }) {
         >
           <Repeat className="h-4 w-4" />
         </IconButton>
-        <div className="ml-1 flex min-w-0 flex-wrap gap-1.5">
-          {MOODS.map((mood) => (
-            <button
-              key={mood}
-              type="button"
-              onClick={() => music.setSelectedMood(mood)}
-              className={cn(
-                "rounded-full border px-2.5 py-1.5 text-[10px] font-bold transition",
-                music.selectedMood === mood
-                  ? "border-emerald-300 bg-emerald-400 text-slate-950"
-                  : "border-white/10 bg-white/7 text-slate-300 hover:bg-emerald-400/10 hover:text-emerald-200",
-              )}
-            >
-              {mood === "all" ? "Todo" : MOOD_LABELS[mood]}
-            </button>
-          ))}
+        <div className="ml-1 flex min-w-0 flex-wrap items-center gap-1.5">
+          <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-2.5 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-cyan-200">
+            Fuentes reales
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              music.setOnlineProviderMode("youtube");
+              music.setView("search");
+            }}
+            className="rounded-full border border-white/10 bg-white/7 px-2.5 py-1.5 text-[10px] font-bold text-slate-300 transition hover:border-cyan-300/30 hover:bg-cyan-400/10 hover:text-cyan-100"
+          >
+            YouTube
+          </button>
+          <button
+            type="button"
+            onClick={() => music.setView("radio")}
+            className="rounded-full border border-white/10 bg-white/7 px-2.5 py-1.5 text-[10px] font-bold text-slate-300 transition hover:border-fuchsia-300/30 hover:bg-fuchsia-400/10 hover:text-fuchsia-100"
+          >
+            Radio
+          </button>
+          <button
+            type="button"
+            onClick={() => music.setView("library")}
+            className="rounded-full border border-white/10 bg-white/7 px-2.5 py-1.5 text-[10px] font-bold text-slate-300 transition hover:border-violet-300/30 hover:bg-violet-400/10 hover:text-violet-100"
+          >
+            Mis audios
+          </button>
         </div>
       </div>
     </section>
@@ -841,17 +1048,17 @@ function CurrentTrackArtwork({ track }: { track: EduMusicTrack }) {
   const isDjMix = track.source === "youtube" && Boolean(asExtendedTrack(track)?.previewSeconds);
   if (isDjMix) {
     return (
-      <div className="relative flex h-56 w-56 overflow-hidden rounded-3xl border border-emerald-400/30 bg-[#080d12] shadow-2xl shadow-emerald-950/30 ring-1 ring-white/10">
+      <div className="relative flex h-56 w-56 overflow-hidden rounded-3xl border border-cyan-400/30 bg-[#080d12] shadow-2xl shadow-cyan-950/30 ring-1 ring-white/10">
         {/* El iframe sigue montado para el audio oficial de YouTube, pero DJ no muestra video. */}
         <div id={YOUTUBE_PLAYER_ID} className="pointer-events-none absolute h-px w-px overflow-hidden opacity-0" />
         {artwork ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={artwork} alt="" className="absolute inset-0 h-full w-full object-cover opacity-35" />
         ) : null}
-        <div className="relative z-10 flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-emerald-400/20 via-slate-950/30 to-violet-500/20 p-5 text-center">
-          <span className="rounded-full bg-emerald-400 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-slate-950">DJ mix</span>
+        <div className="relative z-10 flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-cyan-400/20 via-slate-950/30 to-violet-500/20 p-5 text-center">
+          <span className="rounded-full bg-cyan-400 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-slate-950">DJ mix</span>
           <span className="mt-4 text-4xl font-black text-white">0:50</span>
-          <span className="mt-1 text-xs font-bold text-emerald-100">30 segundos · siguiente instantáneo</span>
+          <span className="mt-1 text-xs font-bold text-cyan-100">30 segundos · siguiente instantáneo</span>
         </div>
       </div>
     );
@@ -869,7 +1076,7 @@ function CurrentTrackArtwork({ track }: { track: EduMusicTrack }) {
           />
         )}
         <div className="pointer-events-none absolute left-3 top-3 rounded-full bg-red-500/90 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-white shadow-lg shadow-red-950/30">
-          YouTube · cola automática
+          YouTube · fuente oficial
         </div>
         <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent p-4 text-left">
           <p className="line-clamp-1 text-sm font-black text-white drop-shadow">{track.title}</p>
@@ -908,14 +1115,185 @@ function CurrentTrackArtwork({ track }: { track: EduMusicTrack }) {
   );
 }
 
+
+function dedupeTracks(tracks: EduMusicTrack[]) {
+  const map = new Map<string, EduMusicTrack>();
+  tracks.forEach((track) => {
+    if (track?.id && track.id !== "eduai-music-empty") map.set(track.id, track);
+  });
+  return Array.from(map.values());
+}
+
+function CyberHomeDashboard({ onOpenSpotify }: { onOpenSpotify: () => void }) {
+  const music = useEduAIMusic();
+  const likedTracks = music.allTracks.filter((track) => music.liked.has(track.id));
+  const discovery = dedupeTracks([
+    ...music.recentTracks,
+    ...likedTracks,
+    ...music.uploadedTracks,
+    ...music.onlineTracks,
+    ...music.radioTracks,
+  ]).slice(0, 10);
+  const recent = discovery.slice(0, 6);
+  const table = discovery.slice(0, 7);
+
+  const sourceButton = (label: string, action: () => void, accent: string) => (
+    <button
+      type="button"
+      onClick={action}
+      className="cyber-source-chip"
+      style={{ "--source-accent": accent } as CSSProperties}
+    >
+      {label}
+    </button>
+  );
+
+  return (
+    <main className="cyber-main min-h-0 min-w-0 overflow-y-auto p-3 text-white">
+      <section className="cyber-dashboard-panel relative overflow-hidden rounded-[1.35rem] border border-cyan-300/25">
+        <div className="cyber-hero-grid absolute inset-0" aria-hidden="true" />
+        <CyberHeroIllustration />
+        <div className="relative z-10 max-w-[68%] px-6 py-5 max-xl:max-w-[74%]">
+          <p className="text-[10px] font-black uppercase tracking-[0.5em] text-slate-300">Más que música</p>
+          <h2 className="mt-1 text-[clamp(2.1rem,3.4vw,4.2rem)] font-black leading-none tracking-[-0.06em] text-white">
+            EDUAI <span className="cyber-hero-title">Music</span>
+          </h2>
+          <p className="mt-2 text-xs font-bold uppercase tracking-[0.28em] text-slate-300">
+            Sonidos que impulsan tu mundo
+          </p>
+
+          <div className="mt-5 flex max-w-3xl items-center gap-2">
+            <div className="cyber-search-shell flex h-11 min-w-0 flex-1 items-center gap-3 rounded-xl px-4">
+              <Search className="h-4 w-4 text-cyan-300" />
+              <input
+                value={music.onlineQuery}
+                onChange={(event) => music.setOnlineQuery(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && music.onlineQuery.trim()) {
+                    music.setOnlineProviderMode("youtube");
+                    void music.searchOnline(music.onlineQuery, "youtube");
+                  }
+                }}
+                placeholder="Buscar canciones, artistas, álbumes, playlists..."
+                className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                if (!music.onlineQuery.trim()) return;
+                music.setOnlineProviderMode("youtube");
+                void music.searchOnline(music.onlineQuery, "youtube");
+              }}
+              className="cyber-search-button h-11 rounded-xl px-5 text-xs font-black uppercase tracking-wide text-slate-950"
+            >
+              Buscar
+            </button>
+          </div>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            {sourceButton("Todo", () => music.setView("home"), "#25f4ff")}
+            {sourceButton("YouTube", () => { music.setOnlineProviderMode("youtube"); music.setView("search"); }, "#ff4b6e")}
+            {sourceButton("Spotify", onOpenSpotify, "#44ffd2")}
+            {sourceButton("Radio", () => music.setView("radio"), "#9b6cff")}
+            {sourceButton("Mis audios", () => music.setView("library"), "#ff42cf")}
+          </div>
+        </div>
+      </section>
+
+      <section className="cyber-dashboard-panel mt-3 rounded-[1.2rem] border border-cyan-300/20 p-3">
+        <div className="mb-3 flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-black text-white">Escuchado recientemente</h3>
+            <p className="text-[10px] text-slate-500">Solo canciones y fuentes reales que has usado.</p>
+          </div>
+          <span className="text-[10px] font-black uppercase tracking-[0.14em] text-cyan-300">{recent.length} recientes</span>
+        </div>
+
+        {recent.length ? (
+          <div className="grid grid-cols-3 gap-3 2xl:grid-cols-6 xl:grid-cols-4">
+            {recent.map((track) => {
+              const artwork = track.artworkUrl || track.videoThumbnail || (track.cover?.startsWith("http") ? track.cover : undefined);
+              const active = music.currentTrack.id === track.id;
+              return (
+                <button
+                  key={track.id}
+                  type="button"
+                  onClick={() => music.playTrack(track)}
+                  className={cn("cyber-track-card group text-left", active && "is-active")}
+                >
+                  <div className="relative aspect-[1.16] overflow-hidden rounded-xl bg-[#06101b]">
+                    {artwork ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={artwork} alt="" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+                    ) : (
+                      <div className="h-full w-full" style={{ background: track.cover || "linear-gradient(135deg,#25f4ff,#9b6cff,#ff42cf)" }} />
+                    )}
+                    <span className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-full border border-cyan-200/60 bg-[#02131d]/90 text-cyan-200 shadow-[0_0_18px_rgba(37,244,255,.35)]">
+                      {active && music.playing ? <Pause className="h-3.5 w-3.5" fill="currentColor" /> : <Play className="h-3.5 w-3.5 translate-x-px" fill="currentColor" />}
+                    </span>
+                  </div>
+                  <p className="mt-2 truncate text-xs font-black text-white">{track.title}</p>
+                  <p className="truncate text-[10px] text-slate-500">{track.artist} · {sourceLabel(track.source)}</p>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+            {[
+              ["YouTube", "Busca canciones y videos oficiales", "#ff4568", () => { music.setOnlineProviderMode("youtube"); music.setView("search"); }],
+              ["Spotify", "Abre el reproductor oficial", "#44ffd2", onOpenSpotify],
+              ["Radio", "Sintoniza emisoras en vivo", "#9b6cff", () => music.setView("radio")],
+              ["Mis audios", "Sube tu propia música", "#25f4ff", () => music.setView("library")],
+            ].map(([label, text, accent, action]) => (
+              <button
+                key={String(label)}
+                type="button"
+                onClick={action as () => void}
+                className="cyber-empty-source text-left"
+                style={{ "--empty-accent": accent } as CSSProperties}
+              >
+                <span className="text-sm font-black text-white">{String(label)}</span>
+                <span className="mt-1 block text-[10px] text-slate-500">{String(text)}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="cyber-dashboard-panel mt-3 rounded-[1.2rem] border border-cyan-300/20 p-3">
+        <div className="mb-2 flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-black text-white">Canciones para ti</h3>
+            <p className="text-[10px] text-slate-500">Favoritos, recientes, radio y tu biblioteca personal.</p>
+          </div>
+          <button type="button" onClick={() => music.setView("liked")} className="text-[10px] font-black text-cyan-300 hover:text-fuchsia-200">
+            Ver favoritos →
+          </button>
+        </div>
+        {table.length ? (
+          <TableTrackList tracks={table} />
+        ) : (
+          <div className="flex min-h-24 items-center justify-center rounded-xl border border-dashed border-cyan-300/15 bg-black/15 px-4 text-center text-xs text-slate-500">
+            Cuando reproduzcas música real, aquí aparecerán tus canciones recientes y favoritas.
+          </div>
+        )}
+      </section>
+    </main>
+  );
+}
+
 function MainPanel({
   tracks,
   spotifyEmbed,
   onClearSpotify,
+  onOpenSpotify,
 }: {
   tracks: EduMusicTrack[];
   spotifyEmbed: SpotifyEmbedItem | null;
   onClearSpotify: () => void;
+  onOpenSpotify: () => void;
 }) {
   const music = useEduAIMusic();
   const track = music.currentTrack;
@@ -923,12 +1301,16 @@ function MainPanel({
   const embedTrack = isEmbedTrack(track);
   const embedUrl = getEmbedUrl(track);
 
+  if (music.view === "home" && !spotifyEmbed) {
+    return <CyberHomeDashboard onOpenSpotify={onOpenSpotify} />;
+  }
+
   return (
-    <main className="flex min-h-0 min-w-0 flex-col bg-[#0d1016] p-3 text-white">
+    <main className="cyber-main flex min-h-0 min-w-0 flex-col bg-[#0d1016] p-3 text-white">
       <section className="flex min-h-0 flex-1 flex-col rounded-[1.4rem] border border-white/10 bg-[#131720] p-5 shadow-lg shadow-black/20">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-300">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-300">
               Reproduciendo ahora
             </p>
             <h2 className="truncate text-xl font-black text-white">
@@ -940,18 +1322,18 @@ function MainPanel({
             <button
               type="button"
               onClick={() => music.playPlaylist(playlist.id)}
-              className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full bg-emerald-400 px-4 text-xs font-black text-slate-950 shadow-md shadow-emerald-500/20 hover:bg-emerald-300"
+              className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full bg-cyan-400 px-4 text-xs font-black text-slate-950 shadow-md shadow-cyan-500/20 hover:bg-cyan-300"
             >
               <Play className="h-4 w-4" fill="currentColor" /> Reproducir lista
             </button>
           )}
         </div>
 
-        <div className="flex min-h-0 flex-1 items-center justify-center rounded-3xl border border-emerald-400/15 bg-[radial-gradient(circle_at_center,rgba(16,185,129,.18),rgba(15,23,42,.78)_48%,rgba(5,7,10,.95))] p-5">
+        <div className="flex min-h-0 flex-1 items-center justify-center rounded-3xl border border-cyan-400/15 bg-[radial-gradient(circle_at_center,rgba(16,185,129,.18),rgba(15,23,42,.78)_48%,rgba(5,7,10,.95))] p-5">
           {spotifyEmbed ? (
-            <div className="w-full max-w-3xl rounded-[1.75rem] border border-emerald-300/20 bg-black/25 p-4 text-center shadow-xl shadow-black/25 backdrop-blur-xl max-xl:p-4">
+            <div className="w-full max-w-3xl rounded-[1.75rem] border border-cyan-300/20 bg-black/25 p-4 text-center shadow-xl shadow-black/25 backdrop-blur-xl max-xl:p-4">
               <div className="mx-auto max-w-xl">
-                <p className="mx-auto mb-2 w-fit rounded-full bg-emerald-400/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-300">
+                <p className="mx-auto mb-2 w-fit rounded-full bg-cyan-400/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-cyan-300">
                   Spotify visual · reproductor oficial
                 </p>
                 <h3 className="line-clamp-2 text-2xl font-black leading-tight text-white max-xl:text-xl">
@@ -965,7 +1347,7 @@ function MainPanel({
                 </p>
               </div>
 
-              <div className="mt-4 overflow-hidden rounded-3xl border border-emerald-400/20 bg-black/50 shadow-2xl shadow-black/40">
+              <div className="mt-4 overflow-hidden rounded-3xl border border-cyan-400/20 bg-black/50 shadow-2xl shadow-black/40">
                 <iframe
                   data-testid="embed-iframe"
                   title={spotifyEmbed.title}
@@ -984,7 +1366,7 @@ function MainPanel({
                 <button
                   type="button"
                   onClick={onClearSpotify}
-                  className="rounded-full border border-white/10 bg-white/7 px-3 py-2 text-xs font-black text-slate-300 transition hover:bg-emerald-400/10 hover:text-emerald-200"
+                  className="rounded-full border border-white/10 bg-white/7 px-3 py-2 text-xs font-black text-slate-300 transition hover:bg-cyan-400/10 hover:text-cyan-200"
                 >
                   Volver a EduAI Player
                 </button>
@@ -992,7 +1374,7 @@ function MainPanel({
                   href={spotifyOpenUrl(spotifyEmbed.src)}
                   target="_blank"
                   rel="noreferrer"
-                  className="rounded-full border border-emerald-400/25 bg-emerald-400 px-3 py-2 text-xs font-black text-slate-950 transition hover:bg-emerald-300"
+                  className="rounded-full border border-cyan-400/25 bg-cyan-400 px-3 py-2 text-xs font-black text-slate-950 transition hover:bg-cyan-300"
                 >
                   Abrir en Spotify
                 </a>
@@ -1001,7 +1383,7 @@ function MainPanel({
           ) : embedTrack ? (
             <div className="w-full max-w-4xl rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-center shadow-xl shadow-black/25 backdrop-blur-xl max-xl:p-4">
               <div className="mx-auto max-w-xl">
-                <p className="mx-auto mb-2 w-fit rounded-full bg-emerald-400/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-300">
+                <p className="mx-auto mb-2 w-fit rounded-full bg-cyan-400/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-cyan-300">
                   {playbackKind(track)}
                 </p>
                 <h3 className="line-clamp-2 text-xl font-black leading-tight text-white max-xl:text-lg">
@@ -1015,7 +1397,7 @@ function MainPanel({
                 </p>
               </div>
 
-              <div className="mt-4 overflow-hidden rounded-3xl border border-emerald-400/20 bg-black/40 shadow-2xl shadow-black/40">
+              <div className="mt-4 overflow-hidden rounded-3xl border border-cyan-400/20 bg-black/40 shadow-2xl shadow-black/40">
                 {embedUrl ? (
                   <iframe
                     src={embedUrl}
@@ -1039,8 +1421,8 @@ function MainPanel({
                   className={cn(
                     "rounded-full border px-3 py-2 text-xs font-black transition",
                     music.liked.has(track.id)
-                      ? "border-emerald-400 bg-emerald-400 text-slate-950"
-                      : "border-white/10 bg-white/7 text-slate-300 hover:bg-emerald-400/10 hover:text-emerald-200",
+                      ? "border-cyan-400 bg-cyan-400 text-slate-950"
+                      : "border-white/10 bg-white/7 text-slate-300 hover:bg-cyan-400/10 hover:text-cyan-200",
                   )}
                 >
                   ♥ Me gusta
@@ -1049,7 +1431,7 @@ function MainPanel({
                   href={track.externalUrl || embedUrl || "https://www.canal95.cl/"}
                   target="_blank"
                   rel="noreferrer"
-                  className="rounded-full border border-white/10 bg-white/7 px-3 py-2 text-xs font-black text-slate-300 transition hover:bg-emerald-400/10 hover:text-emerald-200"
+                  className="rounded-full border border-white/10 bg-white/7 px-3 py-2 text-xs font-black text-slate-300 transition hover:bg-cyan-400/10 hover:text-cyan-200"
                 >
                   Abrir fuente oficial
                 </a>
@@ -1062,7 +1444,7 @@ function MainPanel({
               </div>
 
               <div className="mx-auto mt-4 max-w-lg">
-                <p className="mx-auto mb-2 w-fit rounded-full bg-emerald-400/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-300">
+                <p className="mx-auto mb-2 w-fit rounded-full bg-cyan-400/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-cyan-300">
                   {playbackKind(track)}
                 </p>
                 <h3 className="line-clamp-2 text-xl font-black leading-tight text-white max-xl:text-lg">
@@ -1107,19 +1489,19 @@ function MainPanel({
               </div>
 
               {track.source === "youtube" && (
-                <p className="mt-3 text-xs font-semibold text-emerald-200/90">
+                <p className="mt-3 text-xs font-semibold text-cyan-200/90">
                   {asExtendedTrack(track)?.previewSeconds
-                    ? "Modo DJ mix: reproduce solo el audio de YouTube entre 0:50 y 1:20; al terminar carga instantáneamente la siguiente canción de la cola."
+                    ? "Modo DJ mix: reproduce solo el audio de YouTube entre 0:50 y 1:20; al terminar avanza únicamente si agregaste otra pista a la cola."
                     : "YouTube usa el reproductor real al centro: el video y el audio provienen de la misma fuente y avanzan juntos."}
                 </p>
               )}
               {track.source === "itunes" && (
-                <p className="mt-3 text-xs font-semibold text-emerald-200/90">
-                  Modo DJ 30s: al terminar el preview avanza automáticamente. Si hay YouTube API Key, se muestra un video visual tipo reel silenciado.
+                <p className="mt-3 text-xs font-semibold text-cyan-200/90">
+                  Modo DJ 30s: al terminar el preview avanza solo si existe otra pista en la cola. Si hay YouTube API Key, se muestra un video visual tipo reel silenciado.
                 </p>
               )}
               {track.source === "radio" && (
-                <p className="mt-3 text-xs font-semibold text-emerald-200/90">
+                <p className="mt-3 text-xs font-semibold text-cyan-200/90">
                   Radio online en vivo. Algunas emisoras pueden tardar unos segundos en iniciar según su servidor.
                 </p>
               )}
@@ -1131,8 +1513,8 @@ function MainPanel({
                   className={cn(
                     "rounded-full border px-3 py-2 text-xs font-black transition",
                     music.liked.has(track.id)
-                      ? "border-emerald-400 bg-emerald-400 text-slate-950"
-                      : "border-white/10 bg-white/7 text-slate-300 hover:bg-emerald-400/10 hover:text-emerald-200",
+                      ? "border-cyan-400 bg-cyan-400 text-slate-950"
+                      : "border-white/10 bg-white/7 text-slate-300 hover:bg-cyan-400/10 hover:text-cyan-200",
                   )}
                 >
                   ♥ Me gusta
@@ -1140,13 +1522,13 @@ function MainPanel({
                 <button
                   type="button"
                   onClick={() => music.requestAddToPlaylist(track.id)}
-                  className="rounded-full border border-white/10 bg-white/7 px-3 py-2 text-xs font-black text-slate-300 transition hover:bg-emerald-400/10 hover:text-emerald-200"
+                  className="rounded-full border border-white/10 bg-white/7 px-3 py-2 text-xs font-black text-slate-300 transition hover:bg-cyan-400/10 hover:text-cyan-200"
                 >
                   + Agregar a playlist
                 </button>
               </div>
 
-              <p className="mt-3 text-[11px] text-slate-500">La cola continúa automáticamente al terminar cada pista.</p>
+              <p className="mt-3 text-[11px] text-slate-500">La cola avanza solo con pistas agregadas por ti o al reproducir una playlist completa.</p>
             </div>
           )}
         </div>
@@ -1165,7 +1547,7 @@ function SpotifyEmbeds({
   onClear: () => void;
 }) {
   return (
-    <section className="shrink-0 rounded-2xl border border-white/10 bg-[#14171f] p-3">
+    <section className="shrink-0 rounded-2xl border border-white/10 bg-[#07111d]/78 p-3">
       <div className="mb-2 flex items-center justify-between">
         <div>
           <p className="text-sm font-black text-white">Spotify visual</p>
@@ -1196,8 +1578,8 @@ function SpotifyEmbeds({
               className={cn(
                 "rounded-2xl border p-2 text-left transition",
                 active
-                  ? "border-emerald-300/45 bg-emerald-400/14 shadow-lg shadow-emerald-950/20"
-                  : "border-white/10 bg-white/6 hover:border-emerald-300/25 hover:bg-emerald-400/10",
+                  ? "border-cyan-300/45 bg-cyan-400/14 shadow-lg shadow-cyan-950/20"
+                  : "border-white/10 bg-white/6 hover:border-cyan-300/25 hover:bg-cyan-400/10",
               )}
             >
               <span className={`mb-2 block h-1.5 rounded-full bg-gradient-to-r ${item.accent}`} />
@@ -1224,113 +1606,103 @@ function RightPanel({
   onClearSpotify: () => void;
 }) {
   const music = useEduAIMusic();
-  const related = music.allTracks
-    .filter((track) => track.mood === music.currentTrack.mood && track.id !== music.currentTrack.id)
-    .slice(0, 6);
+  const track = music.currentTrack;
+  const artwork = track.artworkUrl || track.videoThumbnail || (track.cover?.startsWith("http") ? track.cover : undefined);
+  const duration = durationForPlayer(track, music.durationSeconds);
+  const idle = track.id === "eduai-music-empty";
 
   return (
-    <aside className="flex min-h-0 min-w-0 flex-col gap-3 overflow-y-auto border-l border-white/10 bg-[#0a0d12] p-3 text-white">
-      <section className="relative shrink-0 rounded-2xl border border-emerald-400/20 bg-[#14171f] p-3.5">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-sm font-black text-white">Buscar música</p>
-          <span className="rounded-full bg-emerald-400/12 px-2 py-1 text-[9px] font-black uppercase tracking-wide text-emerald-300">
-            {music.onlineProviderMode === "preview" ? "DJ mix" : "Video"}
+    <aside className="cyber-rightbar flex min-h-0 min-w-0 flex-col gap-3 overflow-y-auto border-l border-white/10 bg-[#030a13]/84 p-3 text-white">
+      <section className="cyber-now-card shrink-0 rounded-2xl border border-cyan-300/25 p-3.5">
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-sm font-black text-white">Reproduciendo</p>
+          <span className="rounded-full border border-fuchsia-300/20 bg-fuchsia-400/10 px-2 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-fuchsia-200">
+            {idle ? "Listo" : sourceLabel(track.source)}
           </span>
         </div>
-        <div className="mt-3 flex gap-2">
-          <input
-            value={music.onlineQuery}
-            onChange={(e) => music.setOnlineQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") void music.searchOnline();
-              if (e.key === "Escape") {
-                music.setOnlineQuery("");
-                music.clearOnlineResults();
-              }
-            }}
-            placeholder="Artista, tema o ambiente..."
-            className="min-w-0 flex-1 rounded-full border border-white/10 bg-black/25 px-3 py-2 text-xs text-white outline-none placeholder:text-slate-500 focus:border-emerald-400/60"
-          />
-          <button
-            type="button"
-            onClick={() => void music.searchOnline()}
-            disabled={music.onlineLoading}
-            className="rounded-full bg-emerald-400 px-4 py-2 text-xs font-black text-slate-950 disabled:opacity-50"
-          >
-            {music.onlineLoading ? "Buscando" : "Buscar"}
-          </button>
+
+        <div className="relative mx-auto aspect-square w-full max-w-[232px] overflow-hidden rounded-2xl border border-cyan-200/25 bg-[#040914] shadow-[0_0_36px_rgba(37,244,255,.12)]">
+          {artwork ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={artwork} alt={track.title} className="h-full w-full object-cover" />
+          ) : (
+            <div className="relative h-full w-full overflow-hidden" style={{ background: track.cover || "linear-gradient(135deg,#03101b,#251052,#6a0f67)" }}>
+              <div className="absolute inset-[18%] rounded-full border-2 border-cyan-300/70 shadow-[0_0_28px_rgba(37,244,255,.4)]" />
+              <div className="absolute inset-[31%] rounded-full border border-fuchsia-300/70 shadow-[0_0_22px_rgba(255,66,207,.35)]" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Music2 className="h-10 w-10 text-white/80" />
+              </div>
+            </div>
+          )}
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-cyan-300/5" />
         </div>
-        {music.onlineError && <p className="mt-2 text-xs font-bold text-rose-300">{music.onlineError}</p>}
-        <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] font-black uppercase tracking-wide">
-          {[
-            { id: "youtube", label: "Videos" },
-            { id: "preview", label: "DJ mix" },
-          ].map((item) => {
-            const provider = item.id as "all" | "full" | "preview" | "youtube";
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => {
-                  music.setOnlineProviderMode(provider);
-                  if (music.onlineQuery.trim()) void music.searchOnline(undefined, provider);
-                }}
-                className={cn(
-                  "rounded-full px-2 py-1 transition",
-                  music.onlineProviderMode === item.id
-                    ? "bg-emerald-400 text-slate-950"
-                    : "bg-white/8 text-slate-300 hover:bg-emerald-400/12 hover:text-emerald-200",
-                )}
-              >
-                {item.label}
-              </button>
-            );
-          })}
-        </div>
-        {music.onlineLoading && (
-          <div className="mt-3 flex items-center gap-2 text-[10px] font-bold text-emerald-200">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-300" /> Actualizando resultados…
+
+        <div className="mt-3 flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <h3 className="truncate text-base font-black text-white">{track.title}</h3>
+            <p className="truncate text-xs font-bold text-cyan-300">{track.artist}</p>
           </div>
-        )}
-        {(music.onlineTracks.length > 0 || music.onlineQuery) && (
-          <button
-            type="button"
-            onClick={() => {
-              music.setOnlineQuery("");
-              music.clearOnlineResults();
-            }}
-            className="mt-2 text-[10px] font-black text-slate-400 transition hover:text-rose-200"
-          >
-            Limpiar búsqueda y resultados
-          </button>
+          {!idle && (
+            <button type="button" onClick={() => music.toggleLike(track.id)} className={cn("mt-1 text-slate-500", music.liked.has(track.id) && "text-fuchsia-400")}>
+              <Heart className="h-5 w-5" fill={music.liked.has(track.id) ? "currentColor" : "none"} />
+            </button>
+          )}
+        </div>
+
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <CyberEqualizer active={music.playing} />
+          {!idle && <PlayButton size="sm" />}
+        </div>
+
+        {!idle && (
+          <div className="mt-3 flex items-center gap-2 text-[9px] font-bold tabular-nums text-slate-500">
+            <span className="w-8 text-right">{formatSeconds(music.currentTime)}</span>
+            <ProgressRange currentTime={music.currentTime} duration={duration} onSeek={music.seekTo} compact />
+            <span className="w-8">{formatSeconds(duration)}</span>
+          </div>
         )}
       </section>
 
-      <section className="flex min-h-[260px] flex-1 flex-col rounded-2xl border border-white/10 bg-[#14171f] p-3">
+      <section className="cyber-dashboard-panel flex min-h-[230px] flex-1 flex-col rounded-2xl border border-white/10 p-3">
         <div className="mb-2 flex items-center justify-between">
           <div>
-            <p className="text-sm font-black text-white">En cola</p>
-            <p className="text-[10px] text-slate-500">Elige una pista para continuar.</p>
+            <p className="text-sm font-black text-white">Cola de reproducción</p>
+            <p className="text-[10px] text-slate-500">{music.queue.length ? `${music.queue.length} pistas` : "Agrega canciones para continuar."}</p>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              music.setSelectedPlaylistId("pl-online");
-              music.setView("search");
-            }}
-            className="text-xs font-bold text-emerald-300 hover:underline"
-          >
-            ver todos
-          </button>
+          {music.queue.length > 0 && (
+            <button type="button" onClick={music.clearQueue} className="text-[10px] font-black text-cyan-300 hover:text-rose-200">
+              Limpiar
+            </button>
+          )}
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-          <SidebarTrackList tracks={music.onlineTracks.length ? music.onlineTracks : related} limit={12} />
+          <SidebarTrackList tracks={music.queue} limit={20} />
         </div>
       </section>
 
-      <details className="group shrink-0 rounded-2xl border border-white/10 bg-[#14171f]">
+      <details className="group shrink-0 rounded-2xl border border-white/10 bg-[#07111d]/78/70">
         <summary className="flex cursor-pointer list-none items-center justify-between px-3.5 py-3 text-xs font-black text-slate-300 marker:hidden">
-          <span>Spotify y fuentes</span><span className="text-emerald-300 transition group-open:rotate-45">+</span>
+          <span>Buscar música</span><span className="text-cyan-300 transition group-open:rotate-45">+</span>
+        </summary>
+        <div className="border-t border-white/10 p-3">
+          <div className="flex gap-2">
+            <input
+              value={music.onlineQuery}
+              onChange={(e) => music.setOnlineQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && void music.searchOnline()}
+              placeholder="Artista o canción"
+              className="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-xs text-white outline-none placeholder:text-slate-500 focus:border-cyan-400/60"
+            />
+            <button type="button" onClick={() => void music.searchOnline()} disabled={music.onlineLoading} className="rounded-xl bg-cyan-400 px-3 text-xs font-black text-slate-950 disabled:opacity-50">
+              <Search className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </details>
+
+      <details className="group shrink-0 rounded-2xl border border-white/10 bg-[#07111d]/78/70">
+        <summary className="flex cursor-pointer list-none items-center justify-between px-3.5 py-3 text-xs font-black text-slate-300 marker:hidden">
+          <span>Spotify y fuentes</span><span className="text-fuchsia-300 transition group-open:rotate-45">+</span>
         </summary>
         <div className="border-t border-white/10 p-2.5">
           <SpotifyEmbeds selectedId={selectedSpotifyId} onSelect={onSelectSpotify} onClear={onClearSpotify} />
@@ -1359,7 +1731,7 @@ function ProgressRange({
     <div className="relative min-w-0 flex-1">
       <div className={cn("absolute left-0 right-0 top-1/2 -translate-y-1/2 overflow-hidden rounded-full bg-white/16", compact ? "h-1.5" : "h-2")}> 
         <div
-          className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-cyan-300 to-violet-400 shadow-[0_0_14px_rgba(52,211,153,.45)]"
+          className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-cyan-300 to-violet-400 shadow-[0_0_14px_rgba(52,211,153,.45)]"
           style={{ width: `${progress}%` }}
         />
       </div>
@@ -1382,7 +1754,7 @@ function BottomPlayer() {
   const duration = durationForPlayer(music.currentTrack, music.durationSeconds);
 
   return (
-    <footer className="flex h-[76px] shrink-0 items-center gap-4 border-t border-white/10 bg-[#05070a] px-4 text-white">
+    <footer className="cyber-playerbar relative flex h-[76px] shrink-0 items-center gap-4 overflow-hidden border-t border-white/10 bg-[#05070a] px-4 text-white">
       <div className="flex min-w-0 items-center gap-3" style={{ width: 320 }}>
         <Cover track={music.currentTrack} size="md" />
         <div className="min-w-0 flex-1">
@@ -1392,7 +1764,7 @@ function BottomPlayer() {
         <button
           type="button"
           onClick={() => music.toggleLike(music.currentTrack.id)}
-          className={cn("text-slate-500 hover:text-emerald-300", music.liked.has(music.currentTrack.id) && "text-emerald-300")}
+          className={cn("text-slate-500 hover:text-cyan-300", music.liked.has(music.currentTrack.id) && "text-cyan-300")}
         >
           <Heart className="h-4 w-4" fill={music.liked.has(music.currentTrack.id) ? "currentColor" : "none"} />
         </button>
@@ -1424,7 +1796,8 @@ function BottomPlayer() {
         </div>
       </div>
 
-      <div className="hidden items-center justify-end gap-3 pr-14 xl:flex" style={{ width: 320 }}>
+      <div className="hidden items-center justify-end gap-3 pr-6 xl:flex" style={{ width: 320 }}>
+        <CyberEqualizer active={music.playing} />
         <ListMusic className="h-4 w-4 text-slate-500" />
         <Volume2 className="h-4 w-4 text-slate-500" />
         <input
@@ -1434,7 +1807,7 @@ function BottomPlayer() {
           step="0.01"
           value={music.volume}
           onChange={(e) => music.setVolume(Number(e.target.value))}
-          className="w-24 accent-emerald-400"
+          className="w-24 accent-cyan-400"
         />
       </div>
     </footer>
@@ -1446,7 +1819,7 @@ function AddToPlaylistBar() {
   if (!music.pendingTrackId) return null;
   const track = music.allTracks.find((item) => item.id === music.pendingTrackId);
   return (
-    <div className="fixed bottom-24 left-1/2 z-50 w-[min(92vw,720px)] -translate-x-1/2 rounded-2xl border border-emerald-400/20 bg-[#11131a] p-3 text-white shadow-2xl">
+    <div className="fixed bottom-24 left-1/2 z-50 w-[min(92vw,720px)] -translate-x-1/2 rounded-2xl border border-cyan-400/20 bg-[#11131a] p-3 text-white shadow-2xl">
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs font-bold">Agregar {track?.title ?? "canción"} a playlist:</p>
         <button type="button" onClick={() => music.setPendingTrackId(null)} className="rounded-full px-2 text-slate-400 hover:bg-white/10">
@@ -1454,7 +1827,7 @@ function AddToPlaylistBar() {
         </button>
       </div>
       <div className="mt-2 flex flex-wrap gap-2">
-        <button type="button" onClick={() => music.addToPlaylist("pl-liked", music.pendingTrackId!)} className="rounded-full bg-emerald-400 px-3 py-1.5 text-xs font-black text-slate-950">
+        <button type="button" onClick={() => music.addToPlaylist("pl-liked", music.pendingTrackId!)} className="rounded-full bg-cyan-400 px-3 py-1.5 text-xs font-black text-slate-950">
           ♥ Me gusta
         </button>
         {music.userPlaylists.map((playlist) => (
@@ -1462,7 +1835,7 @@ function AddToPlaylistBar() {
             {playlist.name}
           </button>
         ))}
-        <button type="button" onClick={() => music.setCreateOpen(true)} className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold hover:bg-emerald-400/15 hover:text-emerald-200">
+        <button type="button" onClick={() => music.setCreateOpen(true)} className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold hover:bg-cyan-400/15 hover:text-cyan-200">
           + Nueva
         </button>
       </div>
@@ -1477,7 +1850,7 @@ function MiniBar({ onOpenPanel }: { onOpenPanel?: () => void }) {
 
   if (collapsed) {
     return (
-      <div className="fixed bottom-20 right-5 z-50 flex items-center gap-1 rounded-full border border-emerald-300/25 bg-[#06080d]/95 p-1.5 text-white shadow-2xl shadow-emerald-950/30 backdrop-blur-xl">
+      <div className="fixed bottom-20 right-5 z-50 flex items-center gap-1 rounded-full border border-cyan-300/25 bg-[#06080d]/95 p-1.5 text-white shadow-2xl shadow-cyan-950/30 backdrop-blur-xl">
         <button
           type="button"
           onClick={() => setCollapsed(false)}
@@ -1496,7 +1869,7 @@ function MiniBar({ onOpenPanel }: { onOpenPanel?: () => void }) {
   }
 
   return (
-    <div className="fixed bottom-4 left-1/2 z-50 w-[min(94vw,620px)] -translate-x-1/2 rounded-2xl border border-emerald-300/25 bg-[#06080d]/95 p-2.5 text-white shadow-2xl shadow-emerald-950/30 backdrop-blur-xl">
+    <div className="fixed bottom-4 left-1/2 z-50 w-[min(94vw,620px)] -translate-x-1/2 rounded-2xl border border-cyan-300/25 bg-[#06080d]/95 p-2.5 text-white shadow-2xl shadow-cyan-950/30 backdrop-blur-xl">
       <div className="flex items-center gap-2">
         <button
           type="button"
@@ -1530,7 +1903,7 @@ function MiniBar({ onOpenPanel }: { onOpenPanel?: () => void }) {
             step="0.01"
             value={music.volume}
             onChange={(e) => music.setVolume(Number(e.target.value))}
-            className="w-20 accent-emerald-400"
+            className="w-20 accent-cyan-400"
             aria-label="Volumen"
           />
         </div>
@@ -1560,14 +1933,14 @@ function CompactPanel({ onOpenPanel }: { onOpenPanel?: () => void }) {
   const tracks = music.view === "liked" ? music.allTracks.filter((track) => music.liked.has(track.id)) : music.view === "queue" ? music.queue : music.visibleTracks;
   return (
     <div className="h-full overflow-hidden rounded-2xl border border-white/10 bg-[#0c0e14] text-white shadow-xl">
-      <div className="flex h-full flex-col">
+      <div className="relative z-10 flex h-full flex-col">
         <div className="border-b border-white/10 p-3">
           <div className="flex items-center justify-between gap-2">
             <button type="button" onClick={onOpenPanel} className="min-w-0 text-left">
               <p className="text-sm font-black text-white">EduAI Music</p>
               <p className="truncate text-[10px] text-slate-400">{music.currentTrack.title}</p>
             </button>
-            <Link href="/music" className="rounded-full bg-emerald-400 px-3 py-1.5 text-[10px] font-black text-slate-950 hover:bg-emerald-300">
+            <Link href="/music" className="rounded-full bg-cyan-400 px-3 py-1.5 text-[10px] font-black text-slate-950 hover:bg-cyan-300">
               Abrir
             </Link>
           </div>
@@ -1626,7 +1999,8 @@ export default function EduAIMusicPlayer({
   if (mode === "panel") return <CompactPanel onOpenPanel={onOpenPanel} />;
 
   return (
-    <div className="h-screen min-h-[680px] overflow-hidden bg-[#05070a] text-white">
+    <div className="eduai-music-cyber relative h-screen min-h-[680px] overflow-hidden bg-[#05070a] text-white">
+      <CyberHexField active={music.playing} />
       <style jsx global>{`
         @keyframes eduai-dj-progress {
           from { transform: scaleX(0); }
@@ -1637,18 +2011,362 @@ export default function EduAIMusicPlayer({
           55% { transform: translateX(180%); }
           100% { transform: translateX(280%); }
         }
+        @keyframes cyber-hex-lift {
+          0%, 100% { transform: translate3d(0, 0, 0) scale(.96); opacity: .34; }
+          38% { transform: translate3d(0, calc(var(--lift) * -1), 22px) scale(1.025); opacity: .86; }
+          68% { transform: translate3d(0, calc(var(--lift) * .42), -10px) scale(.985); opacity: .52; }
+        }
+        @keyframes cyber-cell-glow {
+          0%, 100% { filter: brightness(.72) saturate(1); }
+          45% { filter: brightness(1.5) saturate(1.5); }
+        }
+        @keyframes cyber-aurora {
+          0% { transform: translate3d(-6%, -4%, 0) scale(1); }
+          50% { transform: translate3d(7%, 5%, 0) scale(1.12); }
+          100% { transform: translate3d(-6%, -4%, 0) scale(1); }
+        }
+        @keyframes cyber-player-flow {
+          0% { transform: translateX(-45%); opacity: .35; }
+          50% { opacity: .9; }
+          100% { transform: translateX(145%); opacity: .35; }
+        }
+        @keyframes cyber-eq {
+          0%, 100% { transform: scaleY(.18); opacity: .45; }
+          50% { transform: scaleY(1); opacity: 1; }
+        }
+        @keyframes cyber-wall-drift {
+          0%, 100% { transform: translate3d(-1.2%, -1%, 0) scale(1.025); }
+          50% { transform: translate3d(1.1%, .8%, 0) scale(1.055); }
+        }
+        @keyframes cyber-svg-lift {
+          0%, 100% { transform: translate3d(0,0,0) scale(.96); opacity: .58; }
+          45% { transform: translate3d(0,-8px,0) scale(1.12); opacity: 1; }
+          70% { transform: translate3d(0,4px,0) scale(.985); opacity: .72; }
+        }
+        @keyframes cyber-energy-flow {
+          from { stroke-dashoffset: 0; }
+          to { stroke-dashoffset: -128; }
+        }
+        @keyframes cyber-ring-spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        @keyframes cyber-streak {
+          0%,100% { stroke-dashoffset: 90; opacity: .3; }
+          50% { stroke-dashoffset: 0; opacity: 1; }
+        }
+        .eduai-music-cyber {
+          --cyber-cyan: #25f4ff;
+          --cyber-pink: #ff42cf;
+          --cyber-violet: #9b6cff;
+          --cyber-blue: #4aa8ff;
+          background:
+            radial-gradient(circle at 12% 12%, rgba(37,244,255,.12), transparent 30%),
+            radial-gradient(circle at 88% 18%, rgba(255,66,207,.12), transparent 26%),
+            radial-gradient(circle at 54% 88%, rgba(155,108,255,.14), transparent 32%),
+            #02050c;
+          isolation: isolate;
+        }
+        .eduai-music-cyber::before {
+          content: "";
+          position: absolute;
+          inset: -22%;
+          z-index: 0;
+          pointer-events: none;
+          background:
+            radial-gradient(circle at 22% 30%, rgba(37,244,255,.13), transparent 24%),
+            radial-gradient(circle at 68% 24%, rgba(255,66,207,.12), transparent 22%),
+            radial-gradient(circle at 50% 72%, rgba(155,108,255,.14), transparent 28%);
+          filter: blur(26px);
+          animation: cyber-aurora 18s ease-in-out infinite;
+        }
+        .cyber-hex-field {
+          position: absolute;
+          inset: 0;
+          z-index: 0;
+          pointer-events: none;
+          opacity: .72;
+          overflow: hidden;
+          transition: opacity .5s ease, filter .5s ease;
+        }
+        .cyber-hex-field > svg {
+          display: block;
+          width: 100%;
+          height: 100%;
+        }
+        .cyber-svg-depth {
+          transform-box: fill-box;
+          transform-origin: center;
+          animation: cyber-wall-drift 18s ease-in-out infinite;
+        }
+        .cyber-svg-cell {
+          transform-box: fill-box;
+          transform-origin: center;
+          animation: cyber-svg-lift 6.8s ease-in-out infinite;
+          animation-delay: var(--cell-delay);
+        }
+        .cyber-energy-network path {
+          fill: none;
+          stroke: url(#cyber-edge);
+          stroke-width: 2.2;
+          stroke-linecap: round;
+          stroke-dasharray: 10 22;
+          opacity: .52;
+          animation: cyber-energy-flow 8s linear infinite;
+        }
+        .cyber-energy-network path:nth-child(2n) {
+          animation-direction: reverse;
+          animation-duration: 11s;
+          opacity: .4;
+        }
+        .cyber-hex-field.is-playing {
+          opacity: .94;
+          filter: saturate(1.16) brightness(1.08);
+        }
+        .cyber-hex-field.is-playing .cyber-svg-cell {
+          animation-duration: 4.2s;
+        }
+        .cyber-topbar,
+        .cyber-sidebar,
+        .cyber-rightbar,
+        .cyber-playerbar {
+          background: linear-gradient(180deg, rgba(3, 10, 19, .92), rgba(2, 7, 15, .82)) !important;
+          border-color: rgba(77, 229, 255, .24) !important;
+          backdrop-filter: blur(22px) saturate(1.32);
+          -webkit-backdrop-filter: blur(22px) saturate(1.32);
+        }
+        .cyber-dashboard-panel,
+        .cyber-now-card,
+        .cyber-main > section {
+          background:
+            linear-gradient(145deg, rgba(4,15,27,.84), rgba(3,8,18,.78) 54%, rgba(31,5,38,.58)) !important;
+          border-color: rgba(77,229,255,.28) !important;
+          backdrop-filter: blur(18px) saturate(1.25);
+          -webkit-backdrop-filter: blur(18px) saturate(1.25);
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,.035),
+            inset 0 0 42px rgba(37,244,255,.025),
+            0 0 0 1px rgba(255,66,207,.025),
+            0 16px 40px rgba(0,0,0,.24);
+        }
+        .cyber-sidebar,
+        .cyber-rightbar {
+          box-shadow: inset 0 0 34px rgba(37,244,255,.025);
+        }
+        .cyber-main {
+          background: rgba(1, 5, 12, .24) !important;
+        }
+        .cyber-hero-grid {
+          background:
+            radial-gradient(circle at 82% 32%, rgba(255,66,207,.16), transparent 28%),
+            radial-gradient(circle at 64% 70%, rgba(37,244,255,.14), transparent 30%),
+            linear-gradient(120deg, rgba(2,8,17,.96), rgba(5,20,32,.72) 48%, rgba(32,4,44,.42));
+        }
+        .cyber-hero-grid::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background-image:
+            linear-gradient(rgba(37,244,255,.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(37,244,255,.05) 1px, transparent 1px);
+          background-size: 42px 42px;
+          mask-image: linear-gradient(90deg, black, transparent 76%);
+        }
+        .cyber-hero-title {
+          background: linear-gradient(90deg,#ff42cf 0%,#b552ff 42%,#25f4ff 100%);
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+          text-shadow: 0 0 28px rgba(255,66,207,.22);
+          font-style: italic;
+        }
+        .cyber-search-shell {
+          border: 1px solid rgba(139,92,246,.72);
+          background: rgba(2,7,16,.76);
+          box-shadow:
+            inset 0 0 0 1px rgba(37,244,255,.06),
+            0 0 24px rgba(155,108,255,.12);
+        }
+        .cyber-search-button {
+          background: linear-gradient(90deg,#25f4ff,#46d7ff);
+          box-shadow: 0 0 22px rgba(37,244,255,.22);
+        }
+        .cyber-source-chip {
+          border: 1px solid color-mix(in srgb, var(--source-accent) 62%, transparent);
+          background: color-mix(in srgb, var(--source-accent) 10%, rgba(2,8,18,.88));
+          color: #dffbff;
+          border-radius: 999px;
+          padding: .48rem .9rem;
+          font-size: 10px;
+          font-weight: 900;
+          letter-spacing: .04em;
+          box-shadow: inset 0 0 16px color-mix(in srgb, var(--source-accent) 8%, transparent);
+        }
+        .cyber-source-chip:hover {
+          background: color-mix(in srgb, var(--source-accent) 20%, rgba(2,8,18,.82));
+          box-shadow: 0 0 18px color-mix(in srgb, var(--source-accent) 25%, transparent);
+        }
+        .cyber-track-card {
+          border: 1px solid rgba(98,218,255,.18);
+          border-radius: 14px;
+          padding: 8px;
+          background: linear-gradient(160deg, rgba(6,18,30,.9), rgba(3,8,15,.72));
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
+        }
+        .cyber-track-card:hover,
+        .cyber-track-card.is-active {
+          border-color: rgba(37,244,255,.54);
+          transform: translateY(-3px);
+          box-shadow:
+            0 0 20px rgba(37,244,255,.1),
+            0 12px 24px rgba(0,0,0,.28);
+        }
+        .cyber-empty-source {
+          border: 1px solid color-mix(in srgb, var(--empty-accent) 32%, transparent);
+          border-radius: 14px;
+          padding: 14px;
+          background:
+            radial-gradient(circle at 90% 15%, color-mix(in srgb, var(--empty-accent) 16%, transparent), transparent 36%),
+            rgba(2,8,17,.72);
+        }
+        .cyber-now-card {
+          position: relative;
+          overflow: hidden;
+        }
+        .cyber-now-card::before {
+          content: "";
+          position: absolute;
+          inset: -40% 20% auto -20%;
+          height: 180px;
+          background: radial-gradient(circle, rgba(255,66,207,.14), transparent 68%);
+          pointer-events: none;
+        }
+        .cyber-hero-rings {
+          transform-box: fill-box;
+          transform-origin: center;
+          animation: cyber-ring-spin 22s linear infinite;
+        }
+        .cyber-hero-streak {
+          stroke-dasharray: 18 12;
+          animation: cyber-streak 4.8s ease-in-out infinite;
+        }
+        .eduai-music-cyber section,
+        .eduai-music-cyber details {
+          border-color: rgba(101, 218, 255, .15) !important;
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,.025),
+            0 14px 34px rgba(0,0,0,.2);
+        }
+        .eduai-music-cyber section:hover {
+          border-color: rgba(37,244,255,.24) !important;
+        }
+        .cyber-playerbar {
+          box-shadow:
+            0 -16px 50px rgba(0,0,0,.46),
+            0 -1px 0 rgba(37,244,255,.13);
+        }
+        .cyber-equalizer {
+          display: flex;
+          align-items: center;
+          gap: 2px;
+          width: 58px;
+          height: 24px;
+          padding: 3px 5px;
+          border: 1px solid rgba(37,244,255,.12);
+          border-radius: 999px;
+          background: rgba(0,0,0,.2);
+          overflow: hidden;
+        }
+        .cyber-equalizer span {
+          width: 2px;
+          height: 100%;
+          border-radius: 999px;
+          transform-origin: center;
+          transform: scaleY(.16);
+          background: linear-gradient(to top, var(--cyber-cyan), var(--cyber-violet), var(--cyber-pink));
+          opacity: .42;
+        }
+        .cyber-equalizer.is-playing span {
+          animation: cyber-eq .72s ease-in-out infinite;
+          animation-delay: var(--bar-delay);
+        }
+        .cyber-playerbar::before {
+          content: "";
+          position: absolute;
+          left: -30%;
+          top: 0;
+          width: 34%;
+          height: 1px;
+          pointer-events: none;
+          background: linear-gradient(90deg, transparent, var(--cyber-cyan), var(--cyber-pink), transparent);
+          box-shadow: 0 0 16px rgba(37,244,255,.72);
+          animation: cyber-player-flow 6.5s linear infinite;
+        }
+        .cyber-brand {
+          background: linear-gradient(90deg, #ffffff 0 42%, var(--cyber-cyan) 58%, var(--cyber-violet) 76%, var(--cyber-pink) 100%);
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+          text-shadow: 0 0 24px rgba(37,244,255,.12);
+        }
+        .cyber-brand span {
+          font-style: italic;
+          letter-spacing: -.04em;
+        }
+        .eduai-music-cyber button {
+          transition-property: transform, filter, background-color, border-color, color, box-shadow;
+          transition-duration: 180ms;
+          transition-timing-function: ease;
+        }
+        .eduai-music-cyber button:hover {
+          filter: drop-shadow(0 0 8px rgba(37,244,255,.16));
+        }
+        .eduai-music-cyber button:active {
+          transform: scale(.985);
+        }
+        .eduai-music-cyber input:focus {
+          box-shadow: 0 0 0 1px rgba(37,244,255,.16), 0 0 22px rgba(37,244,255,.08);
+        }
+        .eduai-music-cyber input[type="range"] {
+          accent-color: #25f4ff;
+        }
+        .eduai-music-cyber ::selection {
+          background: rgba(255,66,207,.36);
+          color: white;
+        }
+        @media (max-width: 1180px) {
+          .cyber-hex-field { opacity: .58; }
+          .cyber-hero-grid + svg { opacity: .56; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .cyber-svg-cell,
+          .cyber-svg-depth,
+          .cyber-energy-network path,
+          .cyber-hero-rings,
+          .cyber-hero-streak,
+          .eduai-music-cyber::before,
+          .cyber-playerbar::before {
+            animation: none !important;
+          }
+        }
       `}</style>
-      <div className="flex h-full flex-col">
+      <div className="relative z-10 flex h-full flex-col">
         <TopBar />
         <div
           className="grid min-h-0 flex-1 overflow-hidden"
-          style={{ gridTemplateColumns: "240px minmax(0, 1fr) 300px" }}
+          style={{ gridTemplateColumns: "246px minmax(0, 1fr) 320px" }}
         >
-          <Sidebar tracks={tracksForMain} />
+          <Sidebar
+            tracks={tracksForMain}
+            spotifyActive={Boolean(selectedSpotifyEmbed)}
+            onOpenSpotify={() => setSelectedSpotifyEmbed(SPOTIFY_EMBEDS[0] ?? null)}
+            onNavigate={() => setSelectedSpotifyEmbed(null)}
+          />
           <MainPanel
             tracks={tracksForMain}
             spotifyEmbed={selectedSpotifyEmbed}
             onClearSpotify={() => setSelectedSpotifyEmbed(null)}
+            onOpenSpotify={() => setSelectedSpotifyEmbed(SPOTIFY_EMBEDS[0] ?? null)}
           />
           <RightPanel
             selectedSpotifyId={selectedSpotifyEmbed?.id}
@@ -1656,6 +2374,7 @@ export default function EduAIMusicPlayer({
             onClearSpotify={() => setSelectedSpotifyEmbed(null)}
           />
         </div>
+        <BottomPlayer />
       </div>
       <AddToPlaylistBar />
     </div>
