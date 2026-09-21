@@ -16,6 +16,7 @@ const SECTIONS = [
   { id: "infraestructura", label: "Infraestructura", short: "Core", icon: Database },
   { id: "brain-ai", label: "Brain AI", short: "Brain", icon: BrainCircuit },
   { id: "litert", label: "LiteRT local", short: "LiteRT", icon: Cpu },
+  { id: "local-runtime", label: "EDUAI Local", short: "Local", icon: BrainCircuit },
   { id: "benchmark", label: "Rendimiento", short: "Perf", icon: Gauge },
   { id: "modelos", label: "Modelos", short: "Modelos", icon: Cpu },
   { id: "video", label: "Video Router", short: "Video", icon: Video },
