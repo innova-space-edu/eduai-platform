@@ -138,7 +138,7 @@ export async function probeEduAILocalHardware(): Promise<EduAILocalHardware> {
 }
 
 async function createRuntime() {
-  const wllamaModule = (await import("@wllama/wllama")) as unknown as WllamaModuleShape;
+  const wllamaModule = (await import("@wllama/wllama/esm/index.js")) as unknown as WllamaModuleShape;
   const wasmModule = (await import("@wllama/wllama/esm/wasm-from-cdn.js")) as unknown as WasmModuleShape;
   return new wllamaModule.Wllama(wasmModule.default, {
     parallelDownloads: 3,
