@@ -56,6 +56,7 @@ export type EduAILocalHardware = {
   multithreadReady: boolean;
   storageUsageMB: number | null;
   storageQuotaMB: number | null;
+  persistentStorage: boolean | null;
   gpuLabel: string | null;
   recommendedModelId: string;
   tier: "constrained" | "standard" | "accelerated";
@@ -99,6 +100,7 @@ export async function probeEduAILocalHardware(): Promise<EduAILocalHardware> {
       multithreadReady: false,
       storageUsageMB: null,
       storageQuotaMB: null,
+      persistentStorage: null,
       gpuLabel: null,
       recommendedModelId: DEFAULT_EDUAI_LOCAL_MODEL_ID,
       tier: "constrained",
@@ -126,13 +128,18 @@ export async function probeEduAILocalHardware(): Promise<EduAILocalHardware> {
 
   let storageUsageMB: number | null = null;
   let storageQuotaMB: number | null = null;
+  let persistentStorage: boolean | null = null;
   try {
     const estimate = await nav.storage?.estimate();
     storageUsageMB = asMegabytes(estimate?.usage);
     storageQuotaMB = asMegabytes(estimate?.quota);
+    persistentStorage = nav.storage?.persisted
+      ? await nav.storage.persisted()
+      : null;
   } catch {
     storageUsageMB = null;
     storageQuotaMB = null;
+    persistentStorage = null;
   }
 
   const webgpu = Boolean(nav.gpu);
@@ -164,6 +171,7 @@ export async function probeEduAILocalHardware(): Promise<EduAILocalHardware> {
     multithreadReady: isolated && cores > 1,
     storageUsageMB,
     storageQuotaMB,
+    persistentStorage,
     gpuLabel,
     recommendedModelId: recommendEduAILocalModel({ memoryGB, vramGB: null, webgpu, cores }),
     tier: accelerated ? "accelerated" : constrained ? "constrained" : "standard",
@@ -179,6 +187,31 @@ async function createRuntime() {
     parallelDownloads: 3,
     allowOffline: true,
   });
+}
+
+export async function requestEduAILocalPersistentStorage() {
+  if (typeof navigator === "undefined" || !navigator.storage?.persist) {
+    return {
+      supported: false,
+      granted: false,
+    };
+  }
+
+  const alreadyPersistent = navigator.storage.persisted
+    ? await navigator.storage.persisted().catch(() => false)
+    : false;
+  if (alreadyPersistent) {
+    return {
+      supported: true,
+      granted: true,
+    };
+  }
+
+  const granted = await navigator.storage.persist().catch(() => false);
+  return {
+    supported: true,
+    granted,
+  };
 }
 
 export function getEduAILocalRuntimeState() {

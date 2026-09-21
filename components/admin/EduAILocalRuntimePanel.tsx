@@ -30,6 +30,7 @@ import {
   clearEduAILocalModelCache,
   loadEduAILocalModel,
   probeEduAILocalHardware,
+  requestEduAILocalPersistentStorage,
   runEduAILocalChat,
   unloadEduAILocalModel,
   type EduAILocalHardware,
@@ -64,6 +65,7 @@ export default function EduAILocalRuntimePanel() {
   const [answerTokens, setAnswerTokens] = useState<number | null>(null);
   const [answerTps, setAnswerTps] = useState<number | null>(null);
   const [benchmarking, setBenchmarking] = useState(false);
+  const [persistingStorage, setPersistingStorage] = useState(false);
   const [benchmark, setBenchmark] = useState<{ avgLatencyMs: number; avgTps: number | null; totalTokens: number } | null>(null);
   const [knowledgeSources, setKnowledgeSources] = useState<string[]>([]);
   const [fallbackModelId, setFallbackModelId] = useState<string | null>(null);
@@ -184,6 +186,24 @@ export default function EduAILocalRuntimePanel() {
       window.localStorage.setItem(SELECTED_MODEL_KEY, modelId);
     } catch {
       // Persistencia opcional.
+    }
+  }
+
+  async function protectLocalStorage() {
+    setPersistingStorage(true);
+    setError("");
+    try {
+      const result = await requestEduAILocalPersistentStorage();
+      if (!result.supported) {
+        setError("Este navegador no permite solicitar almacenamiento persistente.");
+      } else if (!result.granted) {
+        setError("El navegador no concedió almacenamiento persistente. EDUAI Local seguirá funcionando, pero la caché puede ser desalojada.");
+      }
+      await calibrate(false);
+    } catch (storageError) {
+      setError(storageError instanceof Error ? storageError.message : "No se pudo proteger la caché local.");
+    } finally {
+      setPersistingStorage(false);
     }
   }
 
@@ -343,8 +363,16 @@ export default function EduAILocalRuntimePanel() {
     },
     {
       label: "Caché navegador",
-      value: hardware ? mb(hardware.storageUsageMB) : "Midiendo…",
-      detail: hardware ? "Cuota estimada " + mb(hardware.storageQuotaMB) : "Storage API",
+      value: hardware?.persistentStorage
+        ? "Persistente"
+        : hardware
+          ? mb(hardware.storageUsageMB)
+          : "Midiendo…",
+      detail: hardware
+        ? hardware.persistentStorage
+          ? "El navegador protegerá mejor modelos y Knowledge Pack"
+          : "Uso " + mb(hardware.storageUsageMB) + " · cuota " + mb(hardware.storageQuotaMB)
+        : "Storage API",
       icon: HardDrive,
     },
     {
@@ -392,6 +420,26 @@ export default function EduAILocalRuntimePanel() {
             </article>
           );
         })}
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+        <div>
+          <p className="text-xs font-black text-white">Persistencia offline</p>
+          <p className="mt-1 text-[10px] leading-4 text-slate-500">
+            {hardware?.persistentStorage
+              ? "Concedida. El navegador intentará conservar modelos y Knowledge Pack incluso bajo presión de almacenamiento."
+              : "Opcional: solicita al navegador que la caché local de EDUAI sea menos susceptible a eliminación automática."}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => void protectLocalStorage()}
+          disabled={persistingStorage || Boolean(hardware?.persistentStorage)}
+          className="inline-flex items-center gap-2 rounded-xl border border-emerald-400/15 bg-emerald-950/20 px-3 py-2.5 text-[10px] font-black text-emerald-100 disabled:opacity-40"
+        >
+          {persistingStorage ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <HardDrive className="h-3.5 w-3.5" />}
+          {hardware?.persistentStorage ? "Caché protegida" : "Proteger caché local"}
+        </button>
       </div>
 
       <div className="mt-4 rounded-[22px] border border-cyan-400/15 bg-cyan-950/10 p-4">
