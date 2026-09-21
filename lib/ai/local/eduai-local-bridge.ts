@@ -20,7 +20,7 @@ export type EduAILocalBridgeChatResult = {
   knowledgeSources: string[];
 };
 
-function normalizeLoopbackBaseUrl(input: string) {
+export function normalizeEduAILocalBridgeBaseUrl(input: string) {
   const value = input.trim().replace(/\/+$/, "");
   let url: URL;
   try {
@@ -66,7 +66,7 @@ export async function probeEduAILocalBridge(
   baseUrl: string,
   token?: string,
 ): Promise<EduAILocalBridgeProbe> {
-  const normalized = normalizeLoopbackBaseUrl(baseUrl);
+  const normalized = normalizeEduAILocalBridgeBaseUrl(baseUrl);
   const started = performance.now();
   let response: Response;
   try {
@@ -106,7 +106,7 @@ export async function runEduAILocalBridgeChat(input: {
   token?: string;
   maxTokens?: number;
 }): Promise<EduAILocalBridgeChatResult> {
-  const normalized = normalizeLoopbackBaseUrl(input.baseUrl);
+  const normalized = normalizeEduAILocalBridgeBaseUrl(input.baseUrl);
   const prompt = input.prompt.trim();
   if (!input.model.trim()) throw new Error("Selecciona un modelo local.");
   if (!prompt) throw new Error("Escribe una instrucción.");
