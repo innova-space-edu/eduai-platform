@@ -38,10 +38,6 @@ type WllamaModuleShape = {
   ModelManager?: ModelManagerConstructor;
 };
 
-type WasmModuleShape = {
-  default: unknown;
-};
-
 export type EduAILocalHardware = {
   cores: number;
   memoryGB: number | null;
@@ -138,9 +134,11 @@ export async function probeEduAILocalHardware(): Promise<EduAILocalHardware> {
 }
 
 async function createRuntime() {
-  const wllamaModule = (await import("@wllama/wllama/esm/index.js")) as unknown as WllamaModuleShape;
-  const wasmModule = (await import("@wllama/wllama/esm/wasm-from-cdn.js")) as unknown as WasmModuleShape;
-  return new wllamaModule.Wllama(wasmModule.default, {
+  const wllamaModule = (await import("@wllama/wllama")) as unknown as WllamaModuleShape;
+  const wasmPaths = {
+    default: "https://cdn.jsdelivr.net/npm/@wllama/wllama@3.6.1/src/wasm/wllama.wasm",
+  };
+  return new wllamaModule.Wllama(wasmPaths, {
     parallelDownloads: 3,
     allowOffline: true,
   });

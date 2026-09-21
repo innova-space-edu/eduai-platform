@@ -4,6 +4,9 @@
 import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
+  // wllama publica TypeScript fuente; Next debe transpilarlo para Turbopack.
+  transpilePackages: ["@wllama/wllama"],
+
   // Paquetes que no deben ser bundleados por Next.js.
   // pdf-inspector incluye un binario Rust específico para Linux en Vercel.
   serverExternalPackages: [
