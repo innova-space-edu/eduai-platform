@@ -40,3 +40,5 @@ Después de entrenar:
 3. cuantizar a Q4_K_M;
 4. registrar el GGUF como candidato en Model Lab;
 5. comparar calidad, RAM, latencia y estabilidad antes de promoción.
+
+Estado: Model Factory v1 · entrenamiento separado de la inferencia local.
