@@ -121,3 +121,15 @@ La suite del navegador comprueba, entre otros puntos:
 
 Los casos críticos bloquean la promoción aunque la puntuación global supere el umbral. Si el modelo aprueba, Model Lab registra localmente el candidato junto con score, RAM, VRAM, WebGPU y fecha de validación. Este registro vive solo en el navegador y no publica ni despliega el modelo.
 
+## Pérdida assistant-only
+
+Por defecto, `train_lora.py` enmascara los tokens de `system` y `user` con `-100` y calcula la pérdida solo sobre las respuestas del `assistant`. Esto concentra la capacidad LoRA en el comportamiento que EDUAI debe aprender, en vez de gastar gradiente reproduciendo el prompt.
+
+Para un experimento que necesite pérdida sobre toda la conversación se puede activar explícitamente:
+
+```bash
+python training/eduai-local/train_lora.py --profile eduai-lite --train-on-prompts
+```
+
+El manifiesto de entrenamiento registra `assistantOnlyLoss` para que el artefacto sea trazable.
+

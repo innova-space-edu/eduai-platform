@@ -18,10 +18,12 @@ from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
     BitsAndBytesConfig,
-    DataCollatorForLanguageModeling,
+    DataCollatorForSeq2Seq,
     Trainer,
     TrainingArguments,
 )
+
+from assistant_labels import build_assistant_only_labels
 
 ROOT = Path(__file__).resolve().parents[2]
 PROFILE_FILE = ROOT / "training" / "eduai-local" / "profiles.json"
@@ -44,6 +46,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--batch-size", type=int, default=2)
     parser.add_argument("--grad-accum", type=int, default=8)
     parser.add_argument("--load-in-4bit", action="store_true")
+    parser.add_argument("--train-on-prompts", action="store_true")
     return parser.parse_args()
 
 
@@ -62,6 +65,30 @@ def to_text(example: dict, tokenizer) -> str:
     if input_text:
         body += "\n\nContexto:\n" + input_text
     return f"Usuario: {body}\nAsistente: {output}"
+
+
+def encode_example(example: dict, tokenizer, max_length: int, train_on_prompts: bool) -> dict:
+    messages = example.get("messages")
+    if not isinstance(messages, list) or not messages:
+        text = to_text(example, tokenizer)
+        encoded = tokenizer(text, truncation=True, max_length=max_length, padding=False)
+        ids = list(encoded["input_ids"])
+        return {"input_ids": ids, "attention_mask": list(encoded["attention_mask"]), "labels": ids.copy()}
+
+    ids = tokenizer.apply_chat_template(messages, tokenize=True, add_generation_prompt=False)
+    if isinstance(ids, dict):
+        ids = ids.get("input_ids", [])
+    ids = list(ids)
+    labels = ids.copy() if train_on_prompts else build_assistant_only_labels(tokenizer, messages, ids)
+
+    if len(ids) > max_length:
+        ids = ids[-max_length:]
+        labels = labels[-max_length:]
+
+    if not train_on_prompts and all(label == -100 for label in labels):
+        raise ValueError("El truncado eliminó todos los tokens assistant; aumenta --max-length.")
+
+    return {"input_ids": ids, "attention_mask": [1] * len(ids), "labels": labels}
 
 
 def main() -> None:
@@ -116,17 +143,15 @@ def main() -> None:
     model = get_peft_model(model, lora)
 
     raw = load_dataset("json", data_files=str(dataset_path), split="train")
-    formatted = raw.map(lambda row: {"text": to_text(row, tokenizer)})
-
-    def tokenize(batch):
-        return tokenizer(
-            batch["text"],
-            truncation=True,
+    tokenized = raw.map(
+        lambda row: encode_example(
+            row,
+            tokenizer,
             max_length=args.max_length,
-            padding=False,
-        )
-
-    tokenized = formatted.map(tokenize, batched=True, remove_columns=formatted.column_names)
+            train_on_prompts=args.train_on_prompts,
+        ),
+        remove_columns=raw.column_names,
+    )
 
     output = Path(output_path)
     output.mkdir(parents=True, exist_ok=True)
@@ -152,7 +177,7 @@ def main() -> None:
         model=model,
         args=train_args,
         train_dataset=tokenized,
-        data_collator=DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False),
+        data_collator=DataCollatorForSeq2Seq(tokenizer=tokenizer, padding=True, label_pad_token_id=-100, return_tensors="pt"),
     )
     trainer.train()
     trainer.save_model(str(output))
@@ -169,6 +194,7 @@ def main() -> None:
         "method": "QLoRA" if args.load_in_4bit else "LoRA",
         "examples": len(raw),
         "maxLength": args.max_length,
+        "assistantOnlyLoss": not args.train_on_prompts,
     }
     (output / "eduai-training-manifest.json").write_text(
         json.dumps(manifest, indent=2, ensure_ascii=False) + "\n",
