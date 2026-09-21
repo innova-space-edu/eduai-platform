@@ -157,6 +157,9 @@ export default function EduAILocalRuntimePanel() {
   const recommendedModelId = useMemo(() => recommendEduAILocalModel(effectiveProfile), [effectiveProfile]);
   const selected = useMemo(() => getEduAILocalModel(selectedModelId), [selectedModelId]);
   const recommended = getEduAILocalModel(recommendedModelId);
+  const selectedCached = cachedModels.some(
+    (item) => item.catalogModelId === selectedModelId && item.status === "valid",
+  );
   const isReady = status === "ready" && loadedModelId === selectedModelId;
 
   function selectModel(modelId: string) {
@@ -560,6 +563,9 @@ export default function EduAILocalRuntimePanel() {
               const fit = evaluateEduAILocalModel(model, effectiveProfile);
               const fitLabel = fit === "recommended" ? "Recomendado" : fit === "compatible" ? "Compatible" : fit === "heavy" ? "Exigente" : "No recomendado";
               const fitClass = fit === "recommended" ? "border-emerald-400/20 text-emerald-200 bg-emerald-950/25" : fit === "compatible" ? "border-cyan-400/15 text-cyan-200 bg-cyan-950/20" : fit === "heavy" ? "border-amber-400/15 text-amber-200 bg-amber-950/20" : "border-red-400/15 text-red-200 bg-red-950/20";
+              const cached = cachedModels.some(
+                (item) => item.catalogModelId === model.id && item.status === "valid",
+              );
               return (
                 <button
                   key={model.id}
@@ -574,6 +580,7 @@ export default function EduAILocalRuntimePanel() {
                       <p className="mt-1 font-mono text-[9px] text-slate-600">{model.repo} · {model.file}</p>
                     </div>
                     <div className="flex flex-wrap items-center gap-1.5">
+                      {cached ? <span className="rounded-full border border-emerald-400/15 bg-emerald-950/20 px-2 py-1 text-[9px] font-black text-emerald-200">Offline</span> : null}
                       <span className={"rounded-full border px-2 py-1 text-[9px] font-black " + fitClass}>{fitLabel}</span>
                       <span className="rounded-full border border-white/10 px-2 py-1 text-[9px] font-black text-slate-400">~{model.sizeMB} MB</span>
                     </div>
@@ -601,11 +608,17 @@ export default function EduAILocalRuntimePanel() {
             <button
               type="button"
               onClick={() => void loadModel()}
-              disabled={status === "loading" || status === "generating"}
+              disabled={status === "loading" || status === "generating" || (hardware?.online === false && !selectedCached)}
               className="inline-flex items-center gap-2 rounded-xl border border-cyan-400/20 bg-cyan-950/35 px-4 py-2.5 text-xs font-black text-cyan-100 disabled:opacity-40"
             >
               {status === "loading" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-              {loadedModelId === selectedModelId ? "Recargar modelo" : "Descargar y cargar"}
+              {hardware?.online === false && !selectedCached
+                ? "No cacheado para offline"
+                : loadedModelId === selectedModelId
+                  ? "Recargar modelo"
+                  : selectedCached
+                    ? "Cargar desde caché"
+                    : "Descargar y cargar"}
             </button>
             <button
               type="button"
@@ -652,7 +665,7 @@ export default function EduAILocalRuntimePanel() {
                     <button
                       type="button"
                       onClick={() => void removeCachedModel(cached.url)}
-                      disabled={Boolean(cacheBusyUrl)}
+                      disabled={Boolean(cacheBusyUrl) || status === "generating" || benchmarking}
                       className="inline-flex items-center gap-1 rounded-lg border border-red-400/10 bg-red-950/15 px-2 py-1.5 text-[8px] font-black text-red-200 disabled:opacity-35"
                     >
                       {cacheBusyUrl === cached.url ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}

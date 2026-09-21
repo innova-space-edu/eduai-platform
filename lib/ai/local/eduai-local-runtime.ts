@@ -21,8 +21,8 @@ type WllamaChatResult = {
 };
 
 type WllamaRuntime = {
-  loadModelFromHF: (
-    source: { repo: string; file: string },
+  loadModelFromUrl: (
+    source: string,
     config?: Record<string, unknown>,
   ) => Promise<void>;
   createChatCompletion: (config: Record<string, unknown>) => Promise<WllamaChatResult>;
@@ -187,6 +187,14 @@ export async function probeEduAILocalHardware(): Promise<EduAILocalHardware> {
   };
 }
 
+function getEduAILocalModelUrl(repo: string, file: string) {
+  const safePath = file
+    .split("/")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+  return `https://huggingface.co/${repo}/resolve/main/${safePath}`;
+}
+
 async function createRuntime() {
   const wllamaModule = (await import("@wllama/wllama")) as unknown as WllamaModuleShape;
   const wasmPaths = {
@@ -273,8 +281,8 @@ export async function loadEduAILocalModel(
 
   const started = performance.now();
   try {
-    await runtime.loadModelFromHF(
-      { repo: model.repo, file: model.file },
+    await runtime.loadModelFromUrl(
+      getEduAILocalModelUrl(model.repo, model.file),
       loadConfig,
     );
   } catch (error) {
