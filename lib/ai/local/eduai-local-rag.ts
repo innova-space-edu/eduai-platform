@@ -1,4 +1,4 @@
-export type EduAIKnowledgeRecord = {
+import { eduAIRagQueryTerms, scoreEduAIRagRecord } from "./eduai-local-rag-score";\nexport type EduAIKnowledgeRecord = {
   id: string;
   source: string;
   language: string;
@@ -93,23 +93,6 @@ async function writePack(pack: EduAIKnowledgePack) {
   } finally {
     db.close();
   }
-}
-
-function normalize(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
-}
-
-function queryTerms(query: string) {
-  const stop = new Set(["como", "donde", "para", "esta", "este", "esto", "desde", "sobre", "entre", "cual", "cuando", "porque", "que", "del", "los", "las", "una", "uno", "con", "por"]);
-  return [...new Set(
-    normalize(query)
-      .split(/[^a-z0-9_./-]+/)
-      .map((term) => term.trim())
-      .filter((term) => term.length >= 3 && !stop.has(term)),
-  )].slice(0, 12);
 }
 
 function estimateBytes(pack: EduAIKnowledgePack) {
@@ -230,40 +213,19 @@ export async function searchEduAILocalKnowledgePack(
   const pack = await readPack();
   if (!pack?.records?.length) return [];
 
-  const terms = queryTerms(query);
+  const terms = eduAIRagQueryTerms(query);
   if (!terms.length) return [];
 
-  const scored: EduAIKnowledgeHit[] = [];
+  const hits: EduAIKnowledgeHit[] = [];
   for (let index = 0; index < pack.records.length; index += 1) {
-    const record = pack.records[index];
-    const source = normalize(record.source);
-    const content = normalize(record.content);
-    let score = 0;
-
-    for (const term of terms) {
-      if (source.includes(term)) score += 8;
-      const first = content.indexOf(term);
-      if (first >= 0) {
-        score += 2;
-        const second = content.indexOf(term, first + term.length);
-        if (second >= 0) score += 1;
-      }
-    }
-
-    if (score > 0) {
-      const firstTerm = terms.find((term) => content.includes(term));
-      const position = firstTerm ? content.indexOf(firstTerm) : 0;
-      const start = Math.max(0, position - 280);
-      const snippet = record.content.slice(start, start + 1500);
-      scored.push({ source: record.source, snippet, score });
-    }
-
-    if (index > 0 && index % 250 === 0) {
+    const hit = scoreEduAIRagRecord(pack.records[index], query, terms);
+    if (hit) hits.push(hit);
+    if (index > 0 && index % 200 === 0) {
       await new Promise<void>((resolve) => setTimeout(resolve, 0));
     }
   }
 
-  return scored
+  return hits
     .sort((a, b) => b.score - a.score || a.source.localeCompare(b.source))
     .slice(0, Math.max(1, Math.min(8, limit)));
 }
