@@ -1,6 +1,7 @@
 import { searchEduAILocalKnowledgePack } from "./eduai-local-rag";
 import {
   DEFAULT_EDUAI_LOCAL_MODEL_ID,
+  EDUAI_LOCAL_MODELS,
   getEduAILocalModel,
   recommendEduAILocalModel,
   type EduAILocalRuntimeMode,
@@ -34,8 +35,16 @@ type WllamaConstructor = new (
   config?: Record<string, unknown>,
 ) => WllamaRuntime;
 
+type CachedModelRuntime = {
+  url: string;
+  size: number;
+  validate?: () => string;
+  remove: () => Promise<void>;
+};
+
 type ModelManagerRuntime = {
   clear: () => Promise<void>;
+  getModels?: (opts?: { includeInvalid?: boolean }) => Promise<CachedModelRuntime[]>;
 };
 
 type ModelManagerConstructor = new () => ModelManagerRuntime;
@@ -349,6 +358,69 @@ export async function unloadEduAILocalModel() {
   activeMode = null;
   if (!runtime) return;
   await Promise.resolve(runtime.exit()).catch(() => undefined);
+}
+
+export type EduAILocalCachedModel = {
+  url: string;
+  sizeMB: number;
+  status: string;
+  catalogModelId: string | null;
+  label: string;
+};
+
+function matchCatalogModelFromUrl(url: string) {
+  const normalized = decodeURIComponent(url).toLowerCase();
+  return (
+    EDUAI_LOCAL_MODELS.find((model) => {
+      const repo = model.repo.toLowerCase();
+      const file = model.file.toLowerCase();
+      return normalized.includes(repo) && normalized.includes(file);
+    }) || null
+  );
+}
+
+export async function listEduAILocalCachedModels(): Promise<EduAILocalCachedModel[]> {
+  const wllamaModule = (await import("@wllama/wllama")) as unknown as WllamaModuleShape;
+  if (!wllamaModule.ModelManager) return [];
+  const manager = new wllamaModule.ModelManager();
+  if (!manager.getModels) return [];
+
+  const models = await manager.getModels({ includeInvalid: true });
+  return models
+    .filter((model) => model.size >= 0)
+    .map((model) => {
+      const catalog = matchCatalogModelFromUrl(model.url);
+      let status = "unknown";
+      try {
+        status = model.validate?.() || "unknown";
+      } catch {
+        status = "unknown";
+      }
+      return {
+        url: model.url,
+        sizeMB: model.size / 1024 / 1024,
+        status,
+        catalogModelId: catalog?.id || null,
+        label: catalog?.label || decodeURIComponent(model.url).split("/").pop() || "Modelo cacheado",
+      };
+    })
+    .sort((a, b) => b.sizeMB - a.sizeMB);
+}
+
+export async function removeEduAILocalCachedModel(url: string) {
+  await unloadEduAILocalModel();
+  const wllamaModule = (await import("@wllama/wllama")) as unknown as WllamaModuleShape;
+  if (!wllamaModule.ModelManager) {
+    throw new Error("La versión instalada de wllama no expone ModelManager.");
+  }
+  const manager = new wllamaModule.ModelManager();
+  if (!manager.getModels) {
+    throw new Error("La versión instalada de wllama no permite listar modelos cacheados.");
+  }
+  const models = await manager.getModels({ includeInvalid: true });
+  const target = models.find((model) => model.url === url);
+  if (!target) throw new Error("El modelo cacheado ya no existe.");
+  await target.remove();
 }
 
 export async function clearEduAILocalModelCache() {

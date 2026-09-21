@@ -28,11 +28,14 @@ import {
 } from "@/lib/ai/local/eduai-local-models";
 import {
   clearEduAILocalModelCache,
+  listEduAILocalCachedModels,
   loadEduAILocalModel,
   probeEduAILocalHardware,
+  removeEduAILocalCachedModel,
   requestEduAILocalPersistentStorage,
   runEduAILocalChat,
   unloadEduAILocalModel,
+  type EduAILocalCachedModel,
   type EduAILocalHardware,
 } from "@/lib/ai/local/eduai-local-runtime";
 
@@ -66,6 +69,8 @@ export default function EduAILocalRuntimePanel() {
   const [answerTps, setAnswerTps] = useState<number | null>(null);
   const [benchmarking, setBenchmarking] = useState(false);
   const [persistingStorage, setPersistingStorage] = useState(false);
+  const [cachedModels, setCachedModels] = useState<EduAILocalCachedModel[]>([]);
+  const [cacheBusyUrl, setCacheBusyUrl] = useState<string | null>(null);
   const [benchmark, setBenchmark] = useState<{ avgLatencyMs: number; avgTps: number | null; totalTokens: number } | null>(null);
   const [knowledgeSources, setKnowledgeSources] = useState<string[]>([]);
   const [fallbackModelId, setFallbackModelId] = useState<string | null>(null);
@@ -90,6 +95,7 @@ export default function EduAILocalRuntimePanel() {
   useEffect(() => {
     mountedRef.current = true;
     void calibrate(true);
+    void refreshCachedModels();
     const onlineHandler = () => void calibrate(false);
     window.addEventListener("online", onlineHandler);
     window.addEventListener("offline", onlineHandler);
@@ -189,6 +195,30 @@ export default function EduAILocalRuntimePanel() {
     }
   }
 
+  async function refreshCachedModels() {
+    try {
+      setCachedModels(await listEduAILocalCachedModels());
+    } catch {
+      setCachedModels([]);
+    }
+  }
+
+  async function removeCachedModel(url: string) {
+    setCacheBusyUrl(url);
+    setError("");
+    try {
+      await removeEduAILocalCachedModel(url);
+      setLoadedModelId(null);
+      setStatus("idle");
+      await refreshCachedModels();
+      await calibrate(false);
+    } catch (cacheError) {
+      setError(cacheError instanceof Error ? cacheError.message : "No se pudo borrar el modelo cacheado.");
+    } finally {
+      setCacheBusyUrl(null);
+    }
+  }
+
   async function protectLocalStorage() {
     setPersistingStorage(true);
     setError("");
@@ -224,6 +254,7 @@ export default function EduAILocalRuntimePanel() {
       setLoadMs(result.loadMs);
       setMultithread(result.multithread);
       setStatus("ready");
+      await refreshCachedModels();
       await calibrate();
     } catch (loadError) {
       if (!mountedRef.current) return;
@@ -330,6 +361,7 @@ export default function EduAILocalRuntimePanel() {
       setBenchmark(null);
       setKnowledgeSources([]);
       setStatus("idle");
+      await refreshCachedModels();
       await calibrate();
     } catch (cacheError) {
       setError(cacheError instanceof Error ? cacheError.message : "No se pudo borrar la caché.");
@@ -587,6 +619,45 @@ export default function EduAILocalRuntimePanel() {
             >
               <Trash2 className="h-3.5 w-3.5" /> Borrar caché
             </button>
+          </div>
+
+          <div className="mt-4 rounded-2xl border border-white/8 bg-slate-950/35 p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">Modelos cacheados</p>
+                <p className="mt-1 text-[9px] text-slate-600">
+                  {cachedModels.length
+                    ? `${cachedModels.length} modelo(s) · ${(cachedModels.reduce((sum, item) => sum + item.sizeMB, 0) / 1024).toFixed(2)} GB`
+                    : "Todavía no hay modelos GGUF guardados en este navegador."}
+                </p>
+              </div>
+              <button type="button" onClick={() => void refreshCachedModels()} className="rounded-lg border border-white/10 px-2.5 py-1.5 text-[9px] font-black text-slate-400">
+                Actualizar
+              </button>
+            </div>
+            {cachedModels.length ? (
+              <div className="mt-2 space-y-1.5">
+                {cachedModels.map((cached) => (
+                  <div key={cached.url} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/5 bg-black/20 px-3 py-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-[10px] font-black text-slate-200">{cached.label}</p>
+                      <p className="mt-0.5 text-[8px] text-slate-600">
+                        {(cached.sizeMB / 1024).toFixed(2)} GB · {cached.status}{cached.catalogModelId ? " · catálogo EDUAI" : ""}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => void removeCachedModel(cached.url)}
+                      disabled={Boolean(cacheBusyUrl)}
+                      className="inline-flex items-center gap-1 rounded-lg border border-red-400/10 bg-red-950/15 px-2 py-1.5 text-[8px] font-black text-red-200 disabled:opacity-35"
+                    >
+                      {cacheBusyUrl === cached.url ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                      Borrar
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </div>
 
           {loadedModelId ? (
