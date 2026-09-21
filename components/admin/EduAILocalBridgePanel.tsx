@@ -11,13 +11,16 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import {
+  evaluateEduAILocalBridgeModel,
   probeEduAILocalBridge,
+  recommendEduAILocalBridgeCapacity,
   runEduAILocalBridgeChat,
   type EduAILocalBridgeModel,
 } from "@/lib/ai/local/eduai-local-bridge";
 
 const BASE_URL_KEY = "eduai-local-bridge-url-v1";
 const MODEL_KEY = "eduai-local-bridge-model-v1";
+const HARDWARE_PROFILE_KEY = "eduai-local-hardware-profile-v1";
 
 function ms(value: number | null) {
   if (value === null) return "—";
@@ -38,6 +41,8 @@ export default function EduAILocalBridgePanel() {
   const [tokens, setTokens] = useState<number | null>(null);
   const [tps, setTps] = useState<number | null>(null);
   const [sources, setSources] = useState<string[]>([]);
+  const [ramGB, setRamGB] = useState<number | null>(null);
+  const [vramGB, setVramGB] = useState<number | null>(null);
 
   useEffect(() => {
     try {
@@ -45,6 +50,12 @@ export default function EduAILocalBridgePanel() {
       const savedModel = window.localStorage.getItem(MODEL_KEY);
       if (savedUrl) setBaseUrl(savedUrl);
       if (savedModel) setModel(savedModel);
+      const savedHardware = window.localStorage.getItem(HARDWARE_PROFILE_KEY);
+      if (savedHardware) {
+        const parsed = JSON.parse(savedHardware) as { ramGB?: unknown; vramGB?: unknown };
+        setRamGB(typeof parsed.ramGB === "number" ? parsed.ramGB : null);
+        setVramGB(typeof parsed.vramGB === "number" ? parsed.vramGB : null);
+      }
     } catch {
       // Persistencia opcional.
     }
@@ -100,6 +111,24 @@ export default function EduAILocalBridgePanel() {
     } catch (runError) {
       setStatus("error");
       setError(runError instanceof Error ? runError.message : "Falló la inferencia por Local Bridge.");
+    }
+  }
+
+  const bridgeCapacity = recommendEduAILocalBridgeCapacity({
+    memoryGB: ramGB,
+    vramGB,
+  });
+
+  function saveHardwareProfile(nextRam: number | null, nextVram: number | null) {
+    setRamGB(nextRam);
+    setVramGB(nextVram);
+    try {
+      window.localStorage.setItem(
+        HARDWARE_PROFILE_KEY,
+        JSON.stringify({ ramGB: nextRam, vramGB: nextVram }),
+      );
+    } catch {
+      // Persistencia opcional.
     }
   }
 
@@ -165,6 +194,36 @@ export default function EduAILocalBridgePanel() {
             ))}
           </div>
 
+          <div className="mt-4 grid gap-2 sm:grid-cols-[0.7fr_0.7fr_1.6fr]">
+            <label className="rounded-xl border border-white/8 bg-slate-950/35 p-3 text-[10px] text-slate-500">
+              RAM
+              <select
+                value={ramGB ?? ""}
+                onChange={(event) => saveHardwareProfile(event.target.value ? Number(event.target.value) : null, vramGB)}
+                className="mt-1.5 w-full rounded-lg border border-white/10 bg-slate-950 px-2 py-2 text-xs font-black text-white"
+              >
+                <option value="">No declarada</option>
+                {[8, 12, 16, 24, 32, 48, 64, 96].map((value) => <option key={value} value={value}>{value} GB</option>)}
+              </select>
+            </label>
+            <label className="rounded-xl border border-white/8 bg-slate-950/35 p-3 text-[10px] text-slate-500">
+              VRAM
+              <select
+                value={vramGB ?? ""}
+                onChange={(event) => saveHardwareProfile(ramGB, event.target.value ? Number(event.target.value) : null)}
+                className="mt-1.5 w-full rounded-lg border border-white/10 bg-slate-950 px-2 py-2 text-xs font-black text-white"
+              >
+                <option value="">No declarada</option>
+                {[0, 2, 4, 6, 8, 12, 16, 24, 32, 48].map((value) => <option key={value} value={value}>{value} GB</option>)}
+              </select>
+            </label>
+            <div className="rounded-xl border border-blue-400/10 bg-blue-950/15 p-3">
+              <p className="text-[9px] font-black uppercase tracking-[0.12em] text-blue-300">Banda sugerida</p>
+              <p className="mt-1 text-sm font-black text-white">{bridgeCapacity.label}</p>
+              <p className="mt-1 text-[9px] leading-4 text-slate-500">{bridgeCapacity.detail}</p>
+            </div>
+          </div>
+
           <button
             type="button"
             onClick={() => void probe()}
@@ -184,7 +243,14 @@ export default function EduAILocalBridgePanel() {
                   onChange={(event) => chooseModel(event.target.value)}
                   className="mt-1.5 w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2.5 text-xs normal-case tracking-normal text-white"
                 >
-                  {models.map((item) => <option key={item.id} value={item.id}>{item.id}</option>)}
+                  {models.map((item) => {
+                    const fit = evaluateEduAILocalBridgeModel(item.id, { memoryGB: ramGB, vramGB });
+                    const suffix =
+                      fit === "recommended" ? " · recomendado" :
+                      fit === "possible" ? " · experimental" :
+                      fit === "heavy" ? " · exigente" : "";
+                    return <option key={item.id} value={item.id}>{item.id}{suffix}</option>;
+                  })}
                 </select>
               </label>
               <div className="mt-2 flex items-center gap-2 text-[10px] text-slate-500">

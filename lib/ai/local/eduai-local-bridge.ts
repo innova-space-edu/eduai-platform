@@ -20,6 +20,112 @@ export type EduAILocalBridgeChatResult = {
   knowledgeSources: string[];
 };
 
+export type EduAILocalBridgeHardwareProfile = {
+  memoryGB: number | null;
+  vramGB: number | null;
+};
+
+export type EduAILocalBridgeCapacity = {
+  label: string;
+  recommendedMaxB: number;
+  experimentalMaxB: number;
+  detail: string;
+};
+
+export type EduAILocalBridgeFit = "recommended" | "possible" | "heavy" | "unknown";
+
+export function recommendEduAILocalBridgeCapacity(
+  profile: EduAILocalBridgeHardwareProfile,
+): EduAILocalBridgeCapacity {
+  const ram = profile.memoryGB ?? 8;
+  const vram = profile.vramGB ?? 0;
+
+  if (ram >= 64 && vram >= 24) {
+    return {
+      label: "20–30B Q4",
+      recommendedMaxB: 30,
+      experimentalMaxB: 40,
+      detail: "Perfil workstation. Prioriza GPU y deja margen para contexto/KV cache.",
+    };
+  }
+  if (ram >= 32 && vram >= 16) {
+    return {
+      label: "12–14B Q4",
+      recommendedMaxB: 14,
+      experimentalMaxB: 20,
+      detail: "Adecuado para 12–14B cuantizados; 20B puede requerir offload híbrido.",
+    };
+  }
+  if (ram >= 24 && vram >= 12) {
+    return {
+      label: "8–12B Q4",
+      recommendedMaxB: 12,
+      experimentalMaxB: 14,
+      detail: "Buen margen para modelos medianos con contexto moderado.",
+    };
+  }
+  if (ram >= 16 && vram >= 8) {
+    return {
+      label: "7–8B Q4",
+      recommendedMaxB: 8,
+      experimentalMaxB: 12,
+      detail: "Perfil sólido para 7–8B; modelos mayores dependerán del offload y contexto.",
+    };
+  }
+  if (ram >= 16 && vram >= 6) {
+    return {
+      label: "4–7B Q4",
+      recommendedMaxB: 7,
+      experimentalMaxB: 8,
+      detail: "7B puede ser viable con cuantización y offload parcial.",
+    };
+  }
+  if (ram >= 8 && vram >= 4) {
+    return {
+      label: "3–4B Q4",
+      recommendedMaxB: 4,
+      experimentalMaxB: 7,
+      detail: "Para i5/8 GB + 4 GB VRAM: 3–4B es la banda prudente; 7B es experimental/híbrido.",
+    };
+  }
+  if (ram >= 8 && vram >= 2) {
+    return {
+      label: "1–3B Q4",
+      recommendedMaxB: 3,
+      experimentalMaxB: 4,
+      detail: "Conviene priorizar modelos pequeños y mantener contexto contenido.",
+    };
+  }
+  return {
+    label: "≤2B Q4",
+    recommendedMaxB: 2,
+    experimentalMaxB: 3,
+    detail: "Perfil limitado; Browser Local suele ser más simple y estable.",
+  };
+}
+
+export function inferEduAILocalBridgeModelBillions(modelId: string): number | null {
+  const normalized = modelId.toLowerCase();
+  const matches = [...normalized.matchAll(/(?:^|[-_./])([0-9]+(?:\.[0-9]+)?)b(?:[-_./]|$)/g)];
+  if (!matches.length) return null;
+  const values = matches
+    .map((match) => Number(match[1]))
+    .filter((value) => Number.isFinite(value) && value > 0);
+  return values.length ? Math.max(...values) : null;
+}
+
+export function evaluateEduAILocalBridgeModel(
+  modelId: string,
+  profile: EduAILocalBridgeHardwareProfile,
+): EduAILocalBridgeFit {
+  const billions = inferEduAILocalBridgeModelBillions(modelId);
+  if (billions === null) return "unknown";
+  const capacity = recommendEduAILocalBridgeCapacity(profile);
+  if (billions <= capacity.recommendedMaxB) return "recommended";
+  if (billions <= capacity.experimentalMaxB) return "possible";
+  return "heavy";
+}
+
 export function normalizeEduAILocalBridgeBaseUrl(input: string) {
   const value = input.trim().replace(/\/+$/, "");
   let url: URL;
