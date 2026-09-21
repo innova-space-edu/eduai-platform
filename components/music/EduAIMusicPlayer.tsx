@@ -2010,11 +2010,7 @@ export default function EduAIMusicPlayer({
           62% {
             transform:
               perspective(760px)
-              translate3d(
-                calc(var(--travel-x) * .35),
-                calc(var(--travel-y) * .35),
-                14px
-              )
+              translate3d(0, 0, 14px)
               scale(.94)
               rotate(var(--pentagon-rotate));
             opacity: .52;
