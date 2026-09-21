@@ -19,6 +19,7 @@ const ALLOWED_EXTENSIONS = new Set([
 const DENY_PATH = /(?:^|[\\/])(?:node_modules|\.next|\.git|public|artifacts|coverage|dist|build)(?:[\\/]|$)/i;
 const SECRET_FILE = /(?:^|[._-])(?:env|secret|credential|private[-_]?key)(?:[._-]|$)/i;
 const SECRET_LINE = /(api[_-]?key|secret|password|private[_-]?key|service[_-]?account)\s*[:=]\s*["'][^"']{8,}["']/i;
+const PATH_ONLY_PREFIXES = ["data/"];
 const MAX_FILE_BYTES = 512 * 1024;
 const CHUNK_CHARS = 6000;
 const OVERLAP_CHARS = 600;
@@ -69,6 +70,7 @@ for (const file of ROOT_FILES) candidates.push(path.join(ROOT, file));
 const unique = [...new Set(candidates)].sort();
 const records = [];
 const byExtension = {};
+const pathOnlySources = [];
 let skipped = 0;
 let totalSourceBytes = 0;
 
@@ -81,6 +83,10 @@ for (const absolute of unique) {
   const ext = path.extname(relative).toLowerCase();
   if (!ALLOWED_EXTENSIONS.has(ext)) {
     skipped += 1;
+    continue;
+  }
+  if (PATH_ONLY_PREFIXES.some((prefix) => relative.startsWith(prefix))) {
+    pathOnlySources.push(relative);
     continue;
   }
   const info = await stat(absolute).catch(() => null);
@@ -103,6 +109,39 @@ for (const absolute of unique) {
       language: ext.slice(1) || "text",
       content,
     });
+  });
+}
+
+const indexedSources = [...new Set([
+  ...records.map((record) => record.source),
+  ...pathOnlySources,
+])].sort();
+const architectureGroups = {
+  pages: indexedSources.filter((source) => /^app\/(?!api\/).*\/(?:page|layout)\.(?:ts|tsx|js|jsx)$/.test(source)),
+  apiRoutes: indexedSources.filter((source) => /^app\/api\/.*\/route\.(?:ts|js)$/.test(source)),
+  components: indexedSources.filter((source) => source.startsWith("components/")),
+  libraries: indexedSources.filter((source) => source.startsWith("lib/")),
+  scripts: indexedSources.filter((source) => source.startsWith("scripts/")),
+  supabase: indexedSources.filter((source) => source.startsWith("supabase/")),
+  data: indexedSources.filter((source) => source.startsWith("data/")),
+  workflows: indexedSources.filter((source) => source.startsWith(".github/workflows/")),
+};
+
+for (const [group, sources] of Object.entries(architectureGroups)) {
+  const architectureText = [
+    `# EDUAI Development Map · ${group}`,
+    "",
+    "Este mapa se genera automáticamente desde el repositorio actual. Úsalo para localizar primero el archivo o subsistema correcto antes de responder preguntas de desarrollo.",
+    "",
+    ...sources.map((source) => `- ${source}`),
+  ].join("\n");
+
+  records.unshift({
+    id: createHash("sha256").update(`eduai-development-map:${group}:${architectureText}`).digest("hex").slice(0, 20),
+    source: `__eduai__/development-map/${group}.md`,
+    chunk: 0,
+    language: "md",
+    content: architectureText,
   });
 }
 
@@ -176,6 +215,10 @@ const manifest = {
   filesScanned: unique.length,
   indexedFiles: Object.values(byExtension).reduce((sum, value) => sum + value, 0),
   records: records.length,
+  pathOnlySources: pathOnlySources.length,
+  architecture: Object.fromEntries(
+    Object.entries(architectureGroups).map(([group, sources]) => [group, sources.length]),
+  ),
   skipped,
   totalSourceBytes,
   corpusBytes: Buffer.byteLength(serialized),
