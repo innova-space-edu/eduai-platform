@@ -2325,6 +2325,32 @@ export default function EduAIMusicPlayer({
           font-style: italic;
           letter-spacing: -.04em;
         }
+        .music-background-title {
+          position: absolute;
+          left: 50%;
+          top: 42px;
+          z-index: 12;
+          transform: translateX(-50%);
+          margin: 0;
+          padding: 0;
+          font-size: clamp(2.2rem, 5vw, 5.8rem);
+          font-weight: 950;
+          line-height: .9;
+          letter-spacing: -.065em;
+          white-space: nowrap;
+          background: linear-gradient(90deg, #ffffff 0 38%, #25f4ff 55%, #9b6cff 74%, #ff42cf 100%);
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+          text-shadow:
+            0 0 24px rgba(37,244,255,.16),
+            0 0 34px rgba(255,66,207,.10);
+          pointer-events: none;
+          user-select: none;
+        }
+        .music-background-title span {
+          font-style: italic;
+        }
         .eduai-music-cyber button {
           transition-property: transform, filter, background-color, border-color, color, box-shadow;
           transition-duration: 180ms;
@@ -2360,33 +2386,46 @@ export default function EduAIMusicPlayer({
           }
         }
       `}</style>
-      <div className="relative z-10 flex h-full flex-col">
-        <TopBar />
-        <div
-          className="grid min-h-0 flex-1 overflow-hidden"
-          style={{ gridTemplateColumns: "246px minmax(0, 1fr) 320px" }}
-        >
-          <Sidebar
-            tracks={tracksForMain}
-            spotifyActive={Boolean(selectedSpotifyEmbed)}
-            onOpenSpotify={() => setSelectedSpotifyEmbed(SPOTIFY_EMBEDS[0] ?? null)}
-            onNavigate={() => setSelectedSpotifyEmbed(null)}
-          />
-          <MainPanel
-            tracks={tracksForMain}
-            spotifyEmbed={selectedSpotifyEmbed}
-            onClearSpotify={() => setSelectedSpotifyEmbed(null)}
-            onOpenSpotify={() => setSelectedSpotifyEmbed(SPOTIFY_EMBEDS[0] ?? null)}
-          />
-          <RightPanel
-            selectedSpotifyId={selectedSpotifyEmbed?.id}
-            onSelectSpotify={setSelectedSpotifyEmbed}
-            onClearSpotify={() => setSelectedSpotifyEmbed(null)}
-          />
+      <h1 className="music-background-title">
+        EDUAI <span>Music</span>
+      </h1>
+
+      {/*
+        MODO DE PRUEBA VISUAL DEL FONDO:
+        toda la interfaz musical sigue montada y conserva su lógica, fuentes,
+        reproductores, playlists, radio, Spotify, YouTube y biblioteca.
+        Solo se oculta visualmente para evaluar el fondo antes de reconstruir
+        la nueva interfaz por capas.
+      */}
+      <div className="hidden" aria-hidden="true">
+        <div className="relative z-10 flex h-full flex-col">
+          <TopBar />
+          <div
+            className="grid min-h-0 flex-1 overflow-hidden"
+            style={{ gridTemplateColumns: "246px minmax(0, 1fr) 320px" }}
+          >
+            <Sidebar
+              tracks={tracksForMain}
+              spotifyActive={Boolean(selectedSpotifyEmbed)}
+              onOpenSpotify={() => setSelectedSpotifyEmbed(SPOTIFY_EMBEDS[0] ?? null)}
+              onNavigate={() => setSelectedSpotifyEmbed(null)}
+            />
+            <MainPanel
+              tracks={tracksForMain}
+              spotifyEmbed={selectedSpotifyEmbed}
+              onClearSpotify={() => setSelectedSpotifyEmbed(null)}
+              onOpenSpotify={() => setSelectedSpotifyEmbed(SPOTIFY_EMBEDS[0] ?? null)}
+            />
+            <RightPanel
+              selectedSpotifyId={selectedSpotifyEmbed?.id}
+              onSelectSpotify={setSelectedSpotifyEmbed}
+              onClearSpotify={() => setSelectedSpotifyEmbed(null)}
+            />
+          </div>
+          <BottomPlayer />
         </div>
-        <BottomPlayer />
+        <AddToPlaylistBar />
       </div>
-      <AddToPlaylistBar />
     </div>
   );
 }
