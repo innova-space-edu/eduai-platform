@@ -1,7 +1,8 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { sanitizeEduAILocalCorpusText } from "./eduai-local-corpus-safety.mjs";\nimport { extractEduAILocalSymbols, renderEduAILocalSymbolDocument } from "./eduai-local-symbol-index.mjs";
+import { sanitizeEduAILocalCorpusText } from "./eduai-local-corpus-safety.mjs";
+import { extractEduAILocalSymbols, renderEduAILocalSymbolDocument } from "./eduai-local-symbol-index.mjs";
 
 const ROOT = process.cwd();
 const SOURCE_ROOTS = ["app", "components", "lib", "docs", "scripts", "supabase", "data", ".github/workflows"];
