@@ -2133,7 +2133,7 @@ function NeonTrackTable({ tracks }: { tracks: EduMusicTrack[] }) {
 
   return (
     <div className="min-h-0 overflow-y-auto pr-1">
-      <div className="grid grid-cols-[34px_minmax(0,1.4fr)_minmax(90px,.8fr)_minmax(90px,.8fr)_58px_38px] items-center gap-2 px-2 pb-1 text-[8px] font-black uppercase tracking-[.16em] text-slate-500">
+      <div className="neon-track-header grid grid-cols-[34px_minmax(0,1.4fr)_minmax(90px,.8fr)_minmax(90px,.8fr)_58px_38px] items-center gap-2 px-2 pb-1 text-[8px] font-black uppercase tracking-[.16em] text-slate-500">
         <span>#</span>
         <span>Título</span>
         <span>Artista</span>
@@ -2148,7 +2148,7 @@ function NeonTrackTable({ tracks }: { tracks: EduMusicTrack[] }) {
             <div
               key={track.id}
               className={cn(
-                "neon-track-row grid grid-cols-[34px_minmax(0,1.4fr)_minmax(90px,.8fr)_minmax(90px,.8fr)_58px_38px] items-center gap-2 rounded-lg px-2 py-1.5",
+                "neon-track-row neon-track-grid grid grid-cols-[34px_minmax(0,1.4fr)_minmax(90px,.8fr)_minmax(90px,.8fr)_58px_38px] items-center gap-2 rounded-lg px-2 py-1.5",
                 active && "is-active",
               )}
             >
@@ -2165,7 +2165,10 @@ function NeonTrackTable({ tracks }: { tracks: EduMusicTrack[] }) {
 
               <button type="button" onClick={() => music.playTrack(track, tracks)} className="flex min-w-0 items-center gap-2 text-left">
                 <Cover track={track} size="xs" />
-                <span className={cn("truncate text-[10px] font-black", active ? "text-cyan-200" : "text-white")}>{track.title}</span>
+                <span className="min-w-0">
+                  <span className={cn("block truncate text-[10px] font-black", active ? "text-cyan-200" : "text-white")}>{track.title}</span>
+                  <span className="block truncate text-[8px] text-slate-500 sm:hidden">{track.artist}</span>
+                </span>
               </button>
 
               <span className="truncate text-[9px] text-slate-300">{track.artist}</span>
@@ -2245,7 +2248,7 @@ function NeonMain({
 
   if (spotifyEmbed) {
     return (
-      <main className="min-h-0 overflow-hidden px-[clamp(12px,1.2vw,20px)] pb-3 pt-5">
+      <main className="neon-main min-h-0 overflow-hidden px-[clamp(12px,1.2vw,20px)] pb-3 pt-5">
         <div className="flex h-full flex-col">
           <div className="flex items-center justify-between px-2 pb-3">
             <div>
@@ -2269,7 +2272,7 @@ function NeonMain({
   }
 
   return (
-    <main className="min-h-0 overflow-hidden px-[clamp(12px,1.2vw,20px)] pb-3 pt-5">
+    <main className="neon-main min-h-0 overflow-hidden px-[clamp(12px,1.2vw,20px)] pb-3 pt-5">
       <div className="flex h-full min-h-0 flex-col">
         <div className="relative shrink-0 px-[clamp(12px,2vw,30px)] pt-[clamp(6px,1vh,14px)]">
           <p className="text-[9px] font-black uppercase tracking-[.48em] text-slate-300/90">Más que música</p>
@@ -2278,7 +2281,7 @@ function NeonMain({
           </h1>
           <p className="mt-1 text-[9px] font-bold uppercase tracking-[.28em] text-slate-300/80">Sonidos que impulsan tu mundo</p>
 
-          <div className="mt-[clamp(14px,2vh,22px)] flex max-w-[690px] items-center gap-2">
+          <div className="neon-search-row mt-[clamp(14px,2vh,22px)] flex max-w-[690px] items-center gap-2">
             <div className="neon-search flex h-10 min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-violet-400/55 bg-black/18 px-3">
               <Search className="h-4 w-4 shrink-0 text-cyan-200" />
               <input
@@ -2305,7 +2308,9 @@ function NeonMain({
               ["YouTube", "search"],
               ["Radio", "radio"],
               ["Mis audios", "library"],
+              ["Playlists", "playlists"],
               ["Favoritos", "liked"],
+              ["Cola", "queue"],
             ].map(([label, view]) => (
               <button
                 key={view}
@@ -2315,7 +2320,7 @@ function NeonMain({
                   music.setView(view as typeof music.view);
                 }}
                 className={cn(
-                  "rounded-full border px-3 py-1.5 text-[9px] font-black transition",
+                  "neon-filter-chip rounded-full border px-3 py-1.5 text-[9px] font-black transition",
                   music.view === view
                     ? "border-cyan-200/65 bg-cyan-400 text-slate-950 shadow-[0_0_15px_rgba(37,244,255,.22)]"
                     : "border-cyan-300/20 bg-black/12 text-slate-300 hover:border-cyan-300/40 hover:text-cyan-100",
@@ -2327,7 +2332,7 @@ function NeonMain({
             <button
               type="button"
               onClick={onOpenSpotify}
-              className="rounded-full border border-fuchsia-300/25 bg-black/12 px-3 py-1.5 text-[9px] font-black text-slate-300 transition hover:border-fuchsia-300/50 hover:text-fuchsia-100"
+              className="neon-filter-chip rounded-full border border-fuchsia-300/25 bg-black/12 px-3 py-1.5 text-[9px] font-black text-slate-300 transition hover:border-fuchsia-300/50 hover:text-fuchsia-100"
             >
               Spotify
             </button>
@@ -2363,7 +2368,7 @@ function NeonMain({
               </div>
 
               {recentTracks.length > 0 && (
-                <div className="grid grid-cols-3 gap-2 xl:grid-cols-6">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
                   {recentTracks.map((track) => <NeonRecentCard key={track.id} track={track} tracks={recentTracks} />)}
                 </div>
               )}
@@ -2397,7 +2402,7 @@ function NeonRightPanel() {
   const artwork = track.artworkUrl || track.videoThumbnail || (track.cover?.startsWith("http") ? track.cover : undefined);
 
   return (
-    <aside className="min-h-0 overflow-hidden px-[clamp(10px,1vw,18px)] pb-3 pt-5">
+    <aside className="neon-right-panel min-h-0 overflow-hidden px-[clamp(10px,1vw,18px)] pb-3 pt-5">
       <div className="flex h-full min-h-0 flex-col">
         <div className="shrink-0 px-1">
           <div className="flex items-center justify-between">
@@ -2489,7 +2494,7 @@ function NeonBottomPlayer() {
 
   return (
     <div className="neon-bottom-player absolute inset-x-0 bottom-0 z-20 h-[84px] px-[clamp(14px,1.5vw,24px)]">
-      <div className="grid h-full grid-cols-[minmax(190px,280px)_minmax(320px,1fr)_minmax(190px,280px)] items-center gap-4">
+      <div className="neon-bottom-grid grid h-full grid-cols-[minmax(190px,280px)_minmax(320px,1fr)_minmax(190px,280px)] items-center gap-4">
         <div className="flex min-w-0 items-center gap-2.5">
           {!idle && <Cover track={track} size="md" />}
           <div className="min-w-0 flex-1">
@@ -2562,11 +2567,8 @@ function NeonMusicOverlay({
   onCloseSpotify: () => void;
 }) {
   return (
-    <div className="relative z-10 h-full pb-[84px]">
-      <div
-        className="grid h-full min-h-0"
-        style={{ gridTemplateColumns: "15.5% minmax(0,64%) 20.5%" }}
-      >
+    <div className="neon-overlay relative z-10 h-full pb-[84px]">
+      <div className="neon-layout grid h-full min-h-0">
         <NeonSidebar
           spotifyActive={Boolean(spotifyEmbed)}
           onOpenSpotify={onOpenSpotify}
@@ -2619,7 +2621,7 @@ export default function EduAIMusicPlayer({
   if (mode === "panel") return <CompactPanel onOpenPanel={onOpenPanel} />;
 
   return (
-    <div className="eduai-music-cyber relative h-screen min-h-[680px] overflow-hidden bg-[#05070a] text-white">
+    <div className="eduai-music-cyber relative h-screen min-h-[560px] overflow-hidden bg-[#05070a] text-white md:min-h-[680px]">
       <CyberStaticBackdrop />
       <RhythmPentagonField active={music.playing} currentTime={music.currentTime} />
       <style jsx global>{`
@@ -3022,10 +3024,23 @@ export default function EduAIMusicPlayer({
           color: transparent;
           text-shadow: 0 0 24px rgba(37,244,255,.14);
         }
+        .neon-layout {
+          grid-template-columns:
+            clamp(190px, 15.5vw, 280px)
+            minmax(0, 1fr)
+            clamp(260px, 20.5vw, 380px);
+        }
         .neon-sidebar {
+          min-width: 0;
+          overflow-y: auto;
           background: transparent;
           border-right: 1px solid rgba(37,244,255,.10);
           text-shadow: 0 1px 12px rgba(0,0,0,.72);
+          scrollbar-width: thin;
+        }
+        .neon-main,
+        .neon-right-panel {
+          min-width: 0;
         }
         .neon-nav-button {
           position: relative;
@@ -3183,13 +3198,145 @@ export default function EduAIMusicPlayer({
           background: rgba(255,66,207,.36);
           color: white;
         }
-        @media (max-width: 1180px) {
+        @media (max-width: 1199px) {
           .cyber-static-backdrop { background-position: center; }
           .cyber-rhythm-field { opacity: .82; }
           .cyber-hero-grid + svg { opacity: .56; }
-          .neon-sidebar { padding-left: 10px; padding-right: 10px; }
-          .neon-nav-button { padding-left: 9px; padding-right: 9px; }
-          .neon-recent-card:nth-child(n+5) { display: none; }
+          .neon-layout {
+            grid-template-columns: minmax(176px, 22%) minmax(0, 1fr);
+          }
+          .neon-right-panel {
+            display: none;
+          }
+          .neon-sidebar {
+            padding-left: 10px;
+            padding-right: 10px;
+          }
+          .neon-nav-button {
+            padding-left: 9px;
+            padding-right: 9px;
+          }
+          .neon-recent-card:nth-child(n+5) {
+            display: none;
+          }
+          .neon-bottom-grid {
+            grid-template-columns: minmax(176px, 240px) minmax(280px, 1fr);
+          }
+          .neon-bottom-grid > :last-child {
+            display: none;
+          }
+          .neon-track-header,
+          .neon-track-grid {
+            grid-template-columns: 34px minmax(0, 1.45fr) minmax(90px, .9fr) 58px 38px !important;
+          }
+          .neon-track-header > :nth-child(4),
+          .neon-track-grid > :nth-child(4) {
+            display: none;
+          }
+        }
+        @media (max-width: 767px) {
+          .eduai-music-cyber {
+            height: 100dvh;
+            min-height: 560px;
+          }
+          .neon-overlay {
+            padding-bottom: calc(118px + env(safe-area-inset-bottom));
+          }
+          .neon-layout {
+            display: block !important;
+            height: 100%;
+          }
+          .neon-sidebar,
+          .neon-right-panel {
+            display: none;
+          }
+          .neon-main {
+            height: 100%;
+            overflow-x: hidden !important;
+            overflow-y: auto !important;
+            overscroll-behavior: contain;
+            padding-left: 10px;
+            padding-right: 10px;
+            padding-top: 14px;
+            padding-bottom: 18px;
+            -webkit-overflow-scrolling: touch;
+          }
+          .neon-main > div {
+            height: auto;
+            min-height: 100%;
+          }
+          .neon-search-row {
+            max-width: none;
+          }
+          .neon-filter-chip {
+            min-height: 36px;
+            padding-left: 12px;
+            padding-right: 12px;
+          }
+          .neon-recent-card:nth-child(n+5) {
+            display: block;
+          }
+          .neon-track-header {
+            display: none !important;
+          }
+          .neon-track-grid {
+            grid-template-columns: 30px minmax(0, 1fr) 32px !important;
+            gap: 6px !important;
+            padding: 6px 4px !important;
+          }
+          .neon-track-grid > :nth-child(3),
+          .neon-track-grid > :nth-child(4),
+          .neon-track-grid > :nth-child(5) {
+            display: none;
+          }
+          .neon-bottom-player {
+            height: calc(118px + env(safe-area-inset-bottom));
+            padding: 8px 12px env(safe-area-inset-bottom);
+            background: linear-gradient(180deg, rgba(1,6,14,.88), rgba(1,6,14,.98));
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+          }
+          .neon-bottom-grid {
+            grid-template-columns: minmax(0, 1fr) !important;
+            grid-template-rows: auto auto;
+            align-content: center;
+            gap: 4px !important;
+          }
+          .neon-bottom-grid > :first-child {
+            min-height: 38px;
+            justify-content: center;
+          }
+          .neon-bottom-grid > :nth-child(2) {
+            min-width: 0;
+          }
+          .neon-bottom-grid > :last-child {
+            display: none;
+          }
+          .neon-control-button {
+            height: 34px;
+            width: 34px;
+          }
+          .neon-main-play {
+            height: 44px !important;
+            width: 44px !important;
+          }
+        }
+        @media (max-width: 479px) {
+          .neon-search-row {
+            flex-wrap: wrap;
+          }
+          .neon-search-row > .neon-search {
+            flex-basis: 100%;
+          }
+          .neon-search-row > button {
+            width: 100%;
+          }
+          .neon-bottom-player {
+            height: calc(124px + env(safe-area-inset-bottom));
+          }
+          .neon-overlay {
+            padding-bottom: calc(124px + env(safe-area-inset-bottom));
+          }
         }
         @media (prefers-reduced-motion: reduce) {
           .rhythm-pentagon,
