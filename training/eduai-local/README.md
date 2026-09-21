@@ -1,13 +1,23 @@
 # EDUAI Local Model Factory
 
-Esta carpeta contiene la ruta reproducible para crear un modelo propio pequeño de EDUAI sin convertir los notebooks escolares en máquinas de entrenamiento.
+Esta carpeta contiene la ruta reproducible para crear una familia propia de modelos EDUAI sin convertir los notebooks escolares en máquinas de entrenamiento.
 
 ## Arquitectura
 
-- **Corpus/RAG:** el script `scripts/build-eduai-local-corpus.mjs` indexa `app/`, `components/`, `lib/` y `docs/` en cada build. Esto representa conocimiento que cambia con el repositorio.
+- **Corpus/RAG:** `scripts/build-eduai-local-corpus.mjs` indexa `app/`, `components/`, `lib/` y `docs/` en cada build. El mismo proceso genera un Knowledge Pack que puede cachearse en el navegador.
 - **Fine-tuning:** LoRA/QLoRA aprende comportamiento estable: selección de herramientas, formatos, estilo EDUAI, límites y respuestas estructuradas.
-- **Inferencia:** el artefacto final se convierte a GGUF, se cuantiza y se prueba en `admin/model-lab` con wllama.
+- **Inferencia:** los artefactos finales se convierten a GGUF, se cuantizan y se prueban en `admin/model-lab` con wllama.
 - **Producción:** permanece bloqueada hasta pasar benchmark, seguridad y Production Gate.
+
+## Familia de entrenamiento
+
+`profiles.json` define tres targets que comparten dataset y reglas:
+
+- **EDUAI Nano:** 350M, pensado para CPU/WASM y equipos básicos.
+- **EDUAI Lite:** 1.2B, target por defecto para 8 GB RAM.
+- **EDUAI Performance:** 2.6B, pensado para equipos como 8 GB RAM + 4 GB VRAM o superiores.
+
+Esto permite mantener la misma especialización de EDUAI con distintos presupuestos de memoria y velocidad.
 
 ## Entrenamiento
 
@@ -18,27 +28,37 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -r training/eduai-local/requirements.txt
 
+# Perfil recomendado por defecto
 python training/eduai-local/train_lora.py \
-  --base-model LiquidAI/LFM2.5-350M \
+  --profile eduai-lite \
   --dataset training/eduai-local/example-instructions.jsonl \
-  --output artifacts/ai/eduai-lite-lora \
+  --load-in-4bit
+
+# Variante de mayor capacidad
+python training/eduai-local/train_lora.py \
+  --profile eduai-performance \
+  --dataset training/eduai-local/example-instructions.jsonl \
   --load-in-4bit
 ```
 
-El archivo de ejemplo es solo una prueba de tubería. Para un modelo real hay que construir y revisar un dataset de instrucciones suficientemente grande; el código completo del repositorio debe permanecer principalmente en RAG, no memorizarse en los pesos.
+El archivo de ejemplo es solo una prueba de tubería. Para un modelo real hay que construir y revisar un dataset de instrucciones suficientemente grande. El código completo del repositorio debe permanecer principalmente en RAG/Knowledge Pack, no memorizarse en los pesos.
 
 ## Datos
 
 El corpus automático no incorpora conversaciones ni datos de estudiantes por defecto. Los archivos con nombres de secretos se omiten y las líneas con apariencia de credencial se redactan.
+
+## Knowledge Pack
+
+El Knowledge Pack generado en build puede instalarse desde Model Lab. Se guarda en IndexedDB y el runtime local busca fragmentos relevantes antes de generar una respuesta. El modelo devuelve además la lista de archivos usados como contexto.
 
 ## Siguiente artefacto
 
 Después de entrenar:
 
 1. fusionar el adaptador LoRA con el modelo base;
-2. convertir el modelo fusionado a GGUF mediante las herramientas de llama.cpp;
-3. cuantizar a Q4_K_M;
-4. registrar el GGUF como candidato en Model Lab;
-5. comparar calidad, RAM, latencia y estabilidad antes de promoción.
+2. convertir el modelo fusionado a GGUF mediante llama.cpp;
+3. producir cuantizaciones compatibles con cada perfil;
+4. registrar los GGUF como candidatos en Model Lab;
+5. comparar calidad, RAM, VRAM, latencia y estabilidad antes de promoción.
 
-Estado: Model Factory v1 · entrenamiento separado de la inferencia local.
+Estado: Model Factory v2 · familia multi-hardware + Knowledge Pack local.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Entrenamiento LoRA/QLoRA para EDUAI-Lite.
+"""Entrenamiento LoRA/QLoRA para la familia EDUAI Local.
 
 Este script NO se ejecuta en Vercel ni en notebooks escolares. Está pensado para
 una GPU externa (Colab, RunPod, Hugging Face Jobs, VM con CUDA, etc.).
@@ -23,12 +23,21 @@ from transformers import (
     TrainingArguments,
 )
 
+ROOT = Path(__file__).resolve().parents[2]
+PROFILE_FILE = ROOT / "training" / "eduai-local" / "profiles.json"
+
+
+def load_profiles() -> dict:
+    return json.loads(PROFILE_FILE.read_text(encoding="utf-8"))
+
 
 def parse_args() -> argparse.Namespace:
+    profiles = load_profiles()
     parser = argparse.ArgumentParser()
-    parser.add_argument("--base-model", default="LiquidAI/LFM2.5-350M")
+    parser.add_argument("--profile", choices=sorted(profiles), default="eduai-lite")
+    parser.add_argument("--base-model", default="")
     parser.add_argument("--dataset", default="training/eduai-local/example-instructions.jsonl")
-    parser.add_argument("--output", default="artifacts/ai/eduai-lite-lora")
+    parser.add_argument("--output", default="")
     parser.add_argument("--max-length", type=int, default=2048)
     parser.add_argument("--epochs", type=float, default=2.0)
     parser.add_argument("--learning-rate", type=float, default=2e-4)
@@ -57,11 +66,16 @@ def to_text(example: dict, tokenizer) -> str:
 
 def main() -> None:
     args = parse_args()
+    profiles = load_profiles()
+    profile = profiles[args.profile]
+    base_model = args.base_model.strip() or profile["baseModel"]
+    output_path = args.output.strip() or profile["output"]
+
     dataset_path = Path(args.dataset)
     if not dataset_path.exists():
         raise SystemExit(f"Dataset no encontrado: {dataset_path}")
 
-    tokenizer = AutoTokenizer.from_pretrained(args.base_model, trust_remote_code=True)
+    tokenizer = AutoTokenizer.from_pretrained(base_model, trust_remote_code=True)
     if tokenizer.pad_token_id is None:
         tokenizer.pad_token = tokenizer.eos_token
 
@@ -87,7 +101,7 @@ def main() -> None:
         if torch.cuda.is_available():
             model_kwargs["device_map"] = "auto"
 
-    model = AutoModelForCausalLM.from_pretrained(args.base_model, **model_kwargs)
+    model = AutoModelForCausalLM.from_pretrained(base_model, **model_kwargs)
     if quantization_config is not None:
         model = prepare_model_for_kbit_training(model)
 
@@ -114,7 +128,7 @@ def main() -> None:
 
     tokenized = formatted.map(tokenize, batched=True, remove_columns=formatted.column_names)
 
-    output = Path(args.output)
+    output = Path(output_path)
     output.mkdir(parents=True, exist_ok=True)
 
     train_args = TrainingArguments(
@@ -145,7 +159,11 @@ def main() -> None:
     tokenizer.save_pretrained(str(output))
 
     manifest = {
-        "baseModel": args.base_model,
+        "profile": args.profile,
+        "profileLabel": profile["label"],
+        "baseModel": base_model,
+        "targetHardware": profile["targetHardware"],
+        "runtimeQuant": profile["runtimeQuant"],
         "dataset": str(dataset_path),
         "output": str(output),
         "method": "QLoRA" if args.load_in_4bit else "LoRA",

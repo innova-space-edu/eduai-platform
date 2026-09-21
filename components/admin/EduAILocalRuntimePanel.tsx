@@ -58,6 +58,7 @@ export default function EduAILocalRuntimePanel() {
   const [prompt, setPrompt] = useState("Explica brevemente qué puede hacer EDUAI Local cuando no hay Internet.");
   const [answer, setAnswer] = useState("");
   const [answerMs, setAnswerMs] = useState<number | null>(null);
+  const [knowledgeSources, setKnowledgeSources] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [manualRamGB, setManualRamGB] = useState<number | null>(null);
   const [manualVramGB, setManualVramGB] = useState<number | null>(null);
@@ -118,6 +119,7 @@ export default function EduAILocalRuntimePanel() {
     setError("");
     setAnswer("");
     setAnswerMs(null);
+    setKnowledgeSources([]);
     try {
       const result = await loadEduAILocalModel(selectedModelId, mode, setProgress);
       if (!mountedRef.current) return;
@@ -143,6 +145,7 @@ export default function EduAILocalRuntimePanel() {
       if (!mountedRef.current) return;
       setAnswer(result.text);
       setAnswerMs(result.latencyMs);
+      setKnowledgeSources(result.knowledgeSources);
       setStatus("ready");
     } catch (chatError) {
       if (!mountedRef.current) return;
@@ -157,6 +160,7 @@ export default function EduAILocalRuntimePanel() {
     setLoadMs(null);
     setAnswer("");
     setAnswerMs(null);
+    setKnowledgeSources([]);
     setStatus("idle");
   }
 
@@ -168,6 +172,7 @@ export default function EduAILocalRuntimePanel() {
       setLoadMs(null);
       setAnswer("");
       setAnswerMs(null);
+      setKnowledgeSources([]);
       setStatus("idle");
       await calibrate();
     } catch (cacheError) {
@@ -431,6 +436,16 @@ export default function EduAILocalRuntimePanel() {
               <div className="mt-3 rounded-2xl border border-emerald-400/15 bg-emerald-950/15 p-3">
                 <div className="flex items-center justify-between gap-2"><p className="text-[10px] font-black uppercase text-emerald-300">Respuesta local</p><span className="text-[9px] font-black text-slate-500">{ms(answerMs)}</span></div>
                 <p className="mt-2 whitespace-pre-wrap text-xs leading-5 text-slate-300">{answer}</p>
+                {knowledgeSources.length ? (
+                  <div className="mt-3 border-t border-emerald-400/10 pt-2">
+                    <p className="text-[9px] font-black uppercase tracking-[0.12em] text-emerald-300">Contexto local usado</p>
+                    <div className="mt-1.5 flex flex-wrap gap-1">
+                      {knowledgeSources.map((source) => (
+                        <span key={source} className="rounded-lg border border-white/8 bg-black/20 px-2 py-1 font-mono text-[8px] text-slate-500">{source}</span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
               </div>
             ) : null}
           </article>

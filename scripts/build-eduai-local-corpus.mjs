@@ -8,6 +8,7 @@ const ROOT_FILES = ["README.md", "DESIGN.md", "SECURITY.md", "INSTALL.md"];
 const OUT_DIR = path.join(ROOT, "artifacts", "ai");
 const OUT_FILE = path.join(OUT_DIR, "eduai-local-corpus.jsonl");
 const MANIFEST_FILE = path.join(OUT_DIR, "eduai-local-corpus-manifest.json");
+const KNOWLEDGE_PACK_FILE = path.join(OUT_DIR, "eduai-local-knowledge-pack.json");
 
 const ALLOWED_EXTENSIONS = new Set([
   ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".md", ".mdx", ".json", ".css", ".sql",
@@ -102,10 +103,21 @@ await mkdir(OUT_DIR, { recursive: true });
 const serialized = records.map((record) => JSON.stringify(record)).join("\n") + "\n";
 await writeFile(OUT_FILE, serialized, "utf8");
 
+const generatedAt = new Date().toISOString();
+const buildCommit = (process.env.VERCEL_GIT_COMMIT_SHA || process.env.GITHUB_SHA || "local").slice(0, 40);
+const knowledgePack = {
+  schemaVersion: 1,
+  generatedAt,
+  buildCommit,
+  records: records.map(({ id, source, language, content }) => ({ id, source, language, content })),
+};
+const knowledgePackSerialized = JSON.stringify(knowledgePack);
+await writeFile(KNOWLEDGE_PACK_FILE, knowledgePackSerialized, "utf8");
+
 const manifest = {
   schemaVersion: 2,
-  generatedAt: new Date().toISOString(),
-  buildCommit: (process.env.VERCEL_GIT_COMMIT_SHA || process.env.GITHUB_SHA || "local").slice(0, 40),
+  generatedAt,
+  buildCommit,
   roots: SOURCE_ROOTS,
   rootFiles: ROOT_FILES,
   output: path.relative(ROOT, OUT_FILE).replaceAll("\\", "/"),
@@ -115,6 +127,8 @@ const manifest = {
   skipped,
   totalSourceBytes,
   corpusBytes: Buffer.byteLength(serialized),
+  knowledgePack: path.relative(ROOT, KNOWLEDGE_PACK_FILE).replaceAll("\\", "/"),
+  knowledgePackBytes: Buffer.byteLength(knowledgePackSerialized),
   byExtension,
   policy: {
     repositoryOnly: true,

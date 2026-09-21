@@ -4,13 +4,21 @@ import { useEffect, useState } from "react";
 import {
   BrainCircuit,
   Database,
+  Download,
   FileCode2,
   Gauge,
   GraduationCap,
   Loader2,
   RefreshCw,
   ShieldCheck,
+  Trash2,
 } from "lucide-react";
+import {
+  clearEduAILocalKnowledgePack,
+  getEduAILocalKnowledgeState,
+  installEduAILocalKnowledgePack,
+  type EduAIKnowledgeState,
+} from "@/lib/ai/local/eduai-local-rag";
 
 type FactoryPayload = {
   available: boolean;
@@ -25,6 +33,7 @@ type FactoryPayload = {
     skipped?: number;
     totalSourceBytes?: number;
     corpusBytes?: number;
+    knowledgePackBytes?: number;
     byExtension?: Record<string, number>;
     policy?: {
       repositoryOnly?: boolean;
@@ -59,6 +68,8 @@ export default function EduAIModelFactoryPanel() {
   const [payload, setPayload] = useState<FactoryPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [knowledge, setKnowledge] = useState<EduAIKnowledgeState | null>(null);
+  const [knowledgeBusy, setKnowledgeBusy] = useState<"download" | "store" | "clear" | null>(null);
 
   async function load() {
     setLoading(true);
@@ -75,7 +86,43 @@ export default function EduAIModelFactoryPanel() {
     }
   }
 
-  useEffect(() => { void load(); }, []);
+  async function refreshKnowledge() {
+    try {
+      setKnowledge(await getEduAILocalKnowledgeState());
+    } catch {
+      setKnowledge(null);
+    }
+  }
+
+  async function installKnowledge() {
+    setError("");
+    try {
+      const state = await installEduAILocalKnowledgePack((stage) => setKnowledgeBusy(stage));
+      setKnowledge(state);
+    } catch (installError) {
+      setError(installError instanceof Error ? installError.message : "No se pudo instalar el Knowledge Pack.");
+    } finally {
+      setKnowledgeBusy(null);
+    }
+  }
+
+  async function clearKnowledge() {
+    setKnowledgeBusy("clear");
+    setError("");
+    try {
+      await clearEduAILocalKnowledgePack();
+      await refreshKnowledge();
+    } catch (clearError) {
+      setError(clearError instanceof Error ? clearError.message : "No se pudo borrar el Knowledge Pack.");
+    } finally {
+      setKnowledgeBusy(null);
+    }
+  }
+
+  useEffect(() => {
+    void load();
+    void refreshKnowledge();
+  }, []);
 
   const manifest = payload?.manifest;
   const factory = payload?.factory;
@@ -95,18 +142,40 @@ export default function EduAIModelFactoryPanel() {
 
       {error ? <div className="mt-4 rounded-2xl border border-red-400/20 bg-red-950/20 p-3 text-xs text-red-200">{error}</div> : null}
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-7">
         {[
           ["Archivos indexados", manifest?.indexedFiles ?? null, "fuentes aceptadas", FileCode2],
           ["Chunks", manifest?.records ?? null, "unidades de conocimiento", Database],
           ["Fuente", bytes(manifest?.totalSourceBytes), "antes de fragmentar", Gauge],
           ["Corpus", bytes(manifest?.corpusBytes), "JSONL saneado", Database],
+          ["Knowledge Pack", bytes(manifest?.knowledgePackBytes), "RAG local cacheable", Database],
           ["Base", factory?.baseModel || "LFM2.5-350M", "modelo estudiante", BrainCircuit],
           ["Entrenamiento", factory?.trainingMethod || "LoRA / QLoRA", "fuera del notebook", GraduationCap],
         ].map(([label, value, detail, Icon]) => {
           const IconComponent = Icon as typeof BrainCircuit;
           return <article key={String(label)} className="rounded-2xl border border-white/10 bg-black/20 p-3.5"><div className="flex items-center gap-2"><IconComponent className="h-3.5 w-3.5 text-fuchsia-300" /><p className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-500">{label}</p></div><p className="mt-2 truncate text-sm font-black text-white">{value ?? "—"}</p><p className="mt-1 text-[10px] text-slate-600">{detail}</p></article>;
         })}
+      </div>
+
+      <div className="mt-4 rounded-[22px] border border-cyan-400/15 bg-cyan-950/10 p-4">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="max-w-3xl">
+            <div className="flex items-center gap-2 text-cyan-200"><Database className="h-4 w-4" /><p className="text-xs font-black">EDUAI Knowledge Pack local</p></div>
+            <p className="mt-2 text-[11px] leading-5 text-slate-400">Guarda el conocimiento saneado del repositorio en IndexedDB. Una vez instalado, el chat local puede recuperar código y documentación aunque la conexión se pierda durante la sesión.</p>
+            <p className="mt-2 text-[10px] text-slate-600">
+              Estado: {knowledge?.installed ? `${knowledge.records} chunks · ${bytes(knowledge.sizeBytes)} · commit ${knowledge.buildCommit?.slice(0, 8) || "local"}` : "no instalado en este navegador"}.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => void installKnowledge()} disabled={Boolean(knowledgeBusy) || !payload?.available} className="inline-flex items-center gap-2 rounded-xl border border-cyan-400/20 bg-cyan-950/30 px-4 py-2.5 text-xs font-black text-cyan-100 disabled:opacity-40">
+              {knowledgeBusy === "download" || knowledgeBusy === "store" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              {knowledgeBusy === "download" ? "Descargando…" : knowledgeBusy === "store" ? "Guardando…" : knowledge?.installed ? "Actualizar pack" : "Instalar pack"}
+            </button>
+            <button type="button" onClick={() => void clearKnowledge()} disabled={!knowledge?.installed || Boolean(knowledgeBusy)} className="inline-flex items-center gap-2 rounded-xl border border-red-400/15 bg-red-950/20 px-3 py-2.5 text-[10px] font-black text-red-200 disabled:opacity-30">
+              <Trash2 className="h-3.5 w-3.5" /> Borrar local
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="mt-5 grid gap-3 lg:grid-cols-4">

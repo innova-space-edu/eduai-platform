@@ -27,12 +27,13 @@ export async function GET() {
       available: true,
       manifest,
       factory: {
-        baseModel: "LiquidAI/LFM2.5-350M",
-        runtimeArtifact: "GGUF Q4_K_M",
+        baseModel: "EDUAI Nano / Lite / Performance",
+        runtimeArtifact: "GGUF por perfil",
         trainingMethod: "LoRA / QLoRA",
-        knowledgeStrategy: "RAG del repositorio + fine-tuning de comportamiento",
-        trainingLocation: "GPU externa; nunca en el notebook de 8 GB",
+        knowledgeStrategy: "Knowledge Pack/RAG + fine-tuning de comportamiento",
+        trainingLocation: "GPU externa; nunca en los notebooks de usuario",
         inferenceTarget: "wllama · navegador · CPU/WASM o WebGPU",
+        profiles: ["eduai-nano", "eduai-lite", "eduai-performance"],
       },
       safeguards: {
         adminOnly: true,
@@ -47,9 +48,9 @@ export async function GET() {
       available: false,
       error: message,
       factory: {
-        baseModel: "LiquidAI/LFM2.5-350M",
+        baseModel: "EDUAI Nano / Lite / Performance",
         trainingMethod: "LoRA / QLoRA",
-        knowledgeStrategy: "RAG del repositorio + fine-tuning de comportamiento",
+        knowledgeStrategy: "Knowledge Pack/RAG + fine-tuning de comportamiento",
       },
     }, { status: 200, headers: HEADERS });
   }

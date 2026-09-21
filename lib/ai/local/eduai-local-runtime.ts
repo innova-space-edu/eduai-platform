@@ -1,3 +1,4 @@
+import { searchEduAILocalKnowledgePack } from "./eduai-local-rag";
 import {
   DEFAULT_EDUAI_LOCAL_MODEL_ID,
   getEduAILocalModel,
@@ -64,6 +65,7 @@ export type EduAILocalLoadResult = {
 export type EduAILocalChatResult = {
   text: string;
   latencyMs: number;
+  knowledgeSources: string[];
 };
 
 let activeRuntime: WllamaRuntime | null = null;
@@ -233,10 +235,15 @@ export async function runEduAILocalChat(
 
   const model = getEduAILocalModel(activeModelId);
   const started = performance.now();
+  const knowledgeHits = await searchEduAILocalKnowledgePack(cleanPrompt, 4).catch(() => []);
+  const knowledgeContext = knowledgeHits.length
+    ? "\n\nContexto local de EDUAI (usa solo si es relevante):\n" +
+      knowledgeHits.map((hit, index) => `[${index + 1}] ${hit.source}\n${hit.snippet}`).join("\n\n")
+    : "";
   const result = await activeRuntime.createChatCompletion({
     messages: [
       { role: "system", content: model.systemPrompt },
-      { role: "user", content: cleanPrompt },
+      { role: "user", content: cleanPrompt + knowledgeContext },
     ],
     max_tokens: Math.max(32, Math.min(512, maxTokens)),
     temperature: 0.3,
@@ -253,6 +260,7 @@ export async function runEduAILocalChat(
   return {
     text: text.trim() || "El modelo no devolvió texto.",
     latencyMs: performance.now() - started,
+    knowledgeSources: [...new Set(knowledgeHits.map((hit) => hit.source))],
   };
 }
 

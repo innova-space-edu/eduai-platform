@@ -1,0 +1,26 @@
+{
+  "eduai-nano": {
+    "label": "EDUAI Nano",
+    "baseModel": "LiquidAI/LFM2.5-350M",
+    "output": "artifacts/ai/eduai-nano-lora",
+    "targetHardware": "4-8 GB RAM, CPU/WASM",
+    "runtimeQuant": "Q4",
+    "purpose": "routing, clasificación, fallback y tareas breves"
+  },
+  "eduai-lite": {
+    "label": "EDUAI Lite",
+    "baseModel": "LiquidAI/LFM2.5-1.2B-Instruct",
+    "output": "artifacts/ai/eduai-lite-lora",
+    "targetHardware": "8 GB RAM, CPU moderna o WebGPU",
+    "runtimeQuant": "QAD Q4_0",
+    "purpose": "asistente general, RAG local, herramientas y trabajo offline"
+  },
+  "eduai-performance": {
+    "label": "EDUAI Performance",
+    "baseModel": "LiquidAI/LFM2.5-2.6B",
+    "output": "artifacts/ai/eduai-performance-lora",
+    "targetHardware": "8 GB RAM + 4 GB VRAM o superior",
+    "runtimeQuant": "QAD Q4_0 / Q5_K_M",
+    "purpose": "máxima calidad local práctica en navegador, agentes y RAG complejo"
+  }
+}
