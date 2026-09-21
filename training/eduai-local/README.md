@@ -51,6 +51,24 @@ El corpus automático no incorpora conversaciones ni datos de estudiantes por de
 
 El Knowledge Pack generado en build puede instalarse desde Model Lab. Se divide en shards de aproximadamente 1,5 MB para evitar respuestas serverless gigantes, se reconstruye en IndexedDB y el runtime local busca fragmentos relevantes antes de generar una respuesta. El panel compara el commit instalado con el build actual y avisa si el pack está desactualizado. El modelo devuelve además la lista de archivos usados como contexto.
 
+## Merge y exportación GGUF
+
+Después del entrenamiento se puede producir un candidato ejecutable por wllama:
+
+```bash
+python training/eduai-local/merge_lora.py \\
+  --adapter artifacts/ai/eduai-lite-lora \\
+  --output artifacts/ai/eduai-lite-merged
+
+LLAMA_CPP_DIR=/ruta/a/llama.cpp \\
+  bash training/eduai-local/export_gguf.sh \\
+  artifacts/ai/eduai-lite-merged \\
+  artifacts/ai/eduai-lite-Q4_K_M.gguf \\
+  Q4_K_M
+```
+
+El exportador calcula SHA-256 y crea un manifiesto del artefacto. Los modelos propios generados con LoRA/QLoRA se cuantizan de forma normal; no deben etiquetarse como QAD salvo que se haya ejecutado un proceso de entrenamiento cuantizado específico.
+
 ## Siguiente artefacto
 
 Después de entrenar:
@@ -58,7 +76,7 @@ Después de entrenar:
 1. fusionar el adaptador LoRA con el modelo base;
 2. convertir el modelo fusionado a GGUF mediante llama.cpp;
 3. producir cuantizaciones compatibles con cada perfil;
-4. registrar los GGUF como candidatos en Model Lab;
+4. registrar el GGUF y su SHA-256 como candidato en Model Lab;
 5. comparar calidad, RAM, VRAM, latencia y estabilidad antes de promoción.
 
 Estado: Model Factory v3 · familia multi-hardware + Knowledge Pack local shardeado.
