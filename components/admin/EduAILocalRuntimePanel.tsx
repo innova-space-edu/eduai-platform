@@ -17,6 +17,7 @@ import {
   Wifi,
   WifiOff,
 } from "lucide-react";
+import { validateEduAIGgufFiles } from "@/lib/ai/local/eduai-local-gguf";
 import {
   EDUAI_LOCAL_MODELS,
   DEFAULT_EDUAI_LOCAL_MODEL_ID,
@@ -29,6 +30,7 @@ import {
 import {
   clearEduAILocalModelCache,
   listEduAILocalCachedModels,
+  loadEduAILocalGgufFiles,
   loadEduAILocalModel,
   probeEduAILocalHardware,
   removeEduAILocalCachedModel,
@@ -71,6 +73,10 @@ export default function EduAILocalRuntimePanel() {
   const [persistingStorage, setPersistingStorage] = useState(false);
   const [cachedModels, setCachedModels] = useState<EduAILocalCachedModel[]>([]);
   const [cacheBusyUrl, setCacheBusyUrl] = useState<string | null>(null);
+  const [customFiles, setCustomFiles] = useState<File[]>([]);
+  const [customLabel, setCustomLabel] = useState("");
+  const [customInfo, setCustomInfo] = useState<{ totalBytes: number; shardCount: number; label: string } | null>(null);
+  const [loadingLabel, setLoadingLabel] = useState<string | null>(null);
   const [benchmark, setBenchmark] = useState<{ avgLatencyMs: number; avgTps: number | null; totalTokens: number } | null>(null);
   const [knowledgeSources, setKnowledgeSources] = useState<string[]>([]);
   const [fallbackModelId, setFallbackModelId] = useState<string | null>(null);
@@ -160,7 +166,7 @@ export default function EduAILocalRuntimePanel() {
   const selectedCached = cachedModels.some(
     (item) => item.catalogModelId === selectedModelId && item.status === "valid",
   );
-  const isReady = status === "ready" && loadedModelId === selectedModelId;
+  const isReady = status === "ready" && Boolean(loadedModelId);
 
   function selectModel(modelId: string) {
     setSelectedModelId(modelId);
@@ -242,6 +248,7 @@ export default function EduAILocalRuntimePanel() {
 
   async function loadModel() {
     setStatus("loading");
+    setLoadingLabel(selected.label);
     setProgress(0);
     setError("");
     setAnswer("");
@@ -257,11 +264,13 @@ export default function EduAILocalRuntimePanel() {
       setLoadMs(result.loadMs);
       setMultithread(result.multithread);
       setStatus("ready");
+      setLoadingLabel(null);
       await refreshCachedModels();
       await calibrate();
     } catch (loadError) {
       if (!mountedRef.current) return;
       setLoadedModelId(null);
+      setLoadingLabel(null);
       setStatus("error");
       const fallback = [...EDUAI_LOCAL_MODELS]
         .filter((model) => model.role !== "router" && model.sizeMB < selected.sizeMB)
@@ -269,6 +278,59 @@ export default function EduAILocalRuntimePanel() {
         .sort((a, b) => b.sizeMB - a.sizeMB)[0];
       setFallbackModelId(fallback?.id || null);
       setError(loadError instanceof Error ? loadError.message : "No se pudo cargar el modelo.");
+    }
+  }
+
+  function chooseCustomGguf(files: File[]) {
+    setError("");
+    if (!files.length) {
+      setCustomFiles([]);
+      setCustomInfo(null);
+      return;
+    }
+    try {
+      const selection = validateEduAIGgufFiles(files);
+      setCustomFiles(selection.files);
+      setCustomInfo({
+        totalBytes: selection.totalBytes,
+        shardCount: selection.shardCount,
+        label: selection.label,
+      });
+      setCustomLabel((current) => current.trim() ? current : selection.label);
+    } catch (selectionError) {
+      setCustomFiles([]);
+      setCustomInfo(null);
+      setError(selectionError instanceof Error ? selectionError.message : "Selección GGUF inválida.");
+    }
+  }
+
+  async function loadCustomCandidate() {
+    if (!customFiles.length || !customInfo) return;
+    setStatus("loading");
+    setLoadingLabel(customLabel.trim() || customInfo.label);
+    setProgress(0);
+    setError("");
+    setAnswer("");
+    setKnowledgeSources([]);
+    try {
+      const result = await loadEduAILocalGgufFiles(
+        customFiles,
+        mode,
+        customLabel.trim() || customInfo.label,
+        setProgress,
+      );
+      if (!mountedRef.current) return;
+      setLoadedModelId(result.modelId);
+      setLoadMs(result.loadMs);
+      setMultithread(result.multithread);
+      setStatus("ready");
+      setLoadingLabel(null);
+    } catch (loadError) {
+      if (!mountedRef.current) return;
+      setLoadedModelId(null);
+      setStatus("error");
+      setLoadingLabel(null);
+      setError(loadError instanceof Error ? loadError.message : "No se pudo cargar el GGUF local.");
     }
   }
 
@@ -319,10 +381,10 @@ export default function EduAILocalRuntimePanel() {
       setBenchmark(nextBenchmark);
       try {
         window.localStorage.setItem(
-          `eduai-local-benchmark:${selectedModelId}`,
+          `eduai-local-benchmark:${loadedModelId || selectedModelId}`,
           JSON.stringify({
             ...nextBenchmark,
-            modelId: selectedModelId,
+            modelId: loadedModelId || selectedModelId,
             ramGB: effectiveProfile.memoryGB,
             vramGB: effectiveProfile.vramGB,
             webgpu: effectiveProfile.webgpu,
@@ -592,10 +654,45 @@ export default function EduAILocalRuntimePanel() {
             })}
           </div>
 
+          <div className="mt-4 rounded-2xl border border-fuchsia-400/15 bg-fuchsia-950/10 p-3.5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.12em] text-fuchsia-200">Probar GGUF propio</p>
+                <p className="mt-1 text-[9px] leading-4 text-slate-500">Abre un GGUF exportado de EDUAI directamente desde este PC. Si está fragmentado, selecciona todos los shards a la vez.</p>
+              </div>
+              {customInfo ? <span className="rounded-full border border-white/10 px-2 py-1 text-[9px] font-black text-slate-400">{customInfo.shardCount} archivo(s) · {(customInfo.totalBytes / 1024 / 1024 / 1024).toFixed(2)} GB</span> : null}
+            </div>
+            <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_0.8fr_auto]">
+              <input
+                type="file"
+                accept=".gguf"
+                multiple
+                onChange={(event) => chooseCustomGguf(Array.from(event.target.files || []))}
+                disabled={status === "loading" || status === "generating"}
+                className="block w-full rounded-xl border border-white/10 bg-slate-950/55 px-3 py-2 text-[10px] text-slate-400 file:mr-3 file:rounded-lg file:border-0 file:bg-fuchsia-950/50 file:px-2 file:py-1 file:text-[9px] file:font-black file:text-fuchsia-100"
+              />
+              <input
+                value={customLabel}
+                onChange={(event) => setCustomLabel(event.target.value)}
+                placeholder="Nombre del candidato"
+                disabled={status === "loading" || status === "generating"}
+                className="rounded-xl border border-white/10 bg-slate-950/55 px-3 py-2 text-[10px] text-white outline-none focus:border-fuchsia-400/25"
+              />
+              <button
+                type="button"
+                onClick={() => void loadCustomCandidate()}
+                disabled={!customFiles.length || status === "loading" || status === "generating"}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-fuchsia-400/20 bg-fuchsia-950/30 px-3 py-2 text-[10px] font-black text-fuchsia-100 disabled:opacity-35"
+              >
+                <Play className="h-3.5 w-3.5" /> Cargar candidato
+              </button>
+            </div>
+          </div>
+
           {status === "loading" ? (
             <div className="mt-4">
               <div className="mb-1.5 flex items-center justify-between text-[10px] font-black text-slate-400">
-                <span>Descargando / cargando {selected.label}</span>
+                <span>Cargando {loadingLabel || selected.label}</span>
                 <span>{Math.round(progress * 100)}%</span>
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-slate-900">
@@ -678,9 +775,10 @@ export default function EduAILocalRuntimePanel() {
           </div>
 
           {loadedModelId ? (
-            <div className="mt-3 grid gap-2 sm:grid-cols-3">
+            <div className="mt-3 grid gap-2 sm:grid-cols-4">
+              <div className="rounded-xl border border-white/5 bg-slate-950/45 p-2.5"><p className="text-[9px] text-slate-600">Activo</p><p className="mt-1 truncate text-[10px] font-black text-white">{loadedModelId}</p></div>
               <div className="rounded-xl border border-white/5 bg-slate-950/45 p-2.5"><p className="text-[9px] text-slate-600">Carga</p><p className="mt-1 text-xs font-black text-white">{ms(loadMs)}</p></div>
-              <div className="rounded-xl border border-white/5 bg-slate-950/45 p-2.5"><p className="text-[9px] text-slate-600">Modo</p><p className="mt-1 text-xs font-black text-white">{mode.toUpperCase()}</p></div>
+              <div className="rounded-xl border border-white/5 bg-slate-950/45 p-2.5"><p className="text-[9px] text-slate-600">Ruta solicitada</p><p className="mt-1 text-xs font-black text-white">{mode === "cpu" ? "CPU/WASM" : hardware?.webgpu ? "WebGPU Auto" : "CPU/WASM"}</p></div>
               <div className="rounded-xl border border-white/5 bg-slate-950/45 p-2.5"><p className="text-[9px] text-slate-600">WASM threads</p><p className="mt-1 text-xs font-black text-white">{multithread ? "Multihilo" : "Single"}</p></div>
             </div>
           ) : null}

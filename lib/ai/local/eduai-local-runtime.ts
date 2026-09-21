@@ -1,4 +1,5 @@
 import { searchEduAILocalKnowledgePack } from "./eduai-local-rag";
+import { validateEduAIGgufFiles } from "./eduai-local-gguf";
 import {
   DEFAULT_EDUAI_LOCAL_MODEL_ID,
   EDUAI_LOCAL_MODELS,
@@ -23,6 +24,10 @@ type WllamaChatResult = {
 type WllamaRuntime = {
   loadModelFromUrl: (
     source: string,
+    config?: Record<string, unknown>,
+  ) => Promise<void>;
+  loadModel: (
+    blobs: Blob[],
     config?: Record<string, unknown>,
   ) => Promise<void>;
   createChatCompletion: (config: Record<string, unknown>) => Promise<WllamaChatResult>;
@@ -90,6 +95,7 @@ export type EduAILocalChatResult = {
 let activeRuntime: WllamaRuntime | null = null;
 let activeModelId: string | null = null;
 let activeMode: EduAILocalRuntimeMode | null = null;
+let activeSystemPrompt: string | null = null;
 let runtimeGeneration = 0;
 
 function asMegabytes(value: number | undefined) {
@@ -298,10 +304,68 @@ export async function loadEduAILocalModel(
   activeRuntime = runtime;
   activeModelId = model.id;
   activeMode = mode;
+  activeSystemPrompt = model.systemPrompt;
   onProgress?.(1);
 
   return {
     modelId: model.id,
+    mode,
+    loadMs: performance.now() - started,
+    multithread: runtime.isMultithread?.() || false,
+  };
+}
+
+export async function loadEduAILocalGgufFiles(
+  files: File[],
+  mode: EduAILocalRuntimeMode,
+  label = "",
+  onProgress?: (fraction: number) => void,
+): Promise<EduAILocalLoadResult> {
+  const selection = validateEduAIGgufFiles(files);
+  await unloadEduAILocalModel();
+  const generation = runtimeGeneration;
+
+  const hardware = await probeEduAILocalHardware();
+  if (!hardware.wasm) throw new Error("Este navegador no expone WebAssembly.");
+  if (!hardware.secureContext) throw new Error("EDUAI Local requiere HTTPS o localhost.");
+
+  const runtime = await createRuntime();
+  const threads = hardware.multithreadReady
+    ? Math.max(1, Math.min(4, hardware.cores - 1))
+    : 1;
+
+  const loadConfig: Record<string, unknown> = {
+    n_ctx: 4096,
+    n_batch: 128,
+    n_threads: threads,
+    jinja: true,
+  };
+  if (mode === "cpu") loadConfig.n_gpu_layers = 0;
+
+  const started = performance.now();
+  onProgress?.(0.08);
+  try {
+    await runtime.loadModel(selection.files, loadConfig);
+  } catch (error) {
+    await Promise.resolve(runtime.exit()).catch(() => undefined);
+    throw error;
+  }
+
+  if (generation !== runtimeGeneration) {
+    await Promise.resolve(runtime.exit()).catch(() => undefined);
+    throw new Error("La carga local fue cancelada.");
+  }
+
+  const displayLabel = label.trim() || selection.label;
+  activeRuntime = runtime;
+  activeModelId = `custom:${displayLabel}`;
+  activeMode = mode;
+  activeSystemPrompt =
+    "Eres un candidato de EDUAI Local en evaluación. Usa el Knowledge Pack cuando sea relevante, no inventes archivos ni acciones y distingue claramente lo que no puedas verificar.";
+  onProgress?.(1);
+
+  return {
+    modelId: activeModelId,
     mode,
     loadMs: performance.now() - started,
     multithread: runtime.isMultithread?.() || false,
@@ -316,7 +380,11 @@ export async function runEduAILocalChat(
   if (!cleanPrompt) throw new Error("Escribe una instrucción antes de ejecutar la prueba.");
   if (!activeRuntime || !activeModelId) throw new Error("Carga un modelo local primero.");
 
-  const model = getEduAILocalModel(activeModelId);
+  const systemPrompt =
+    activeSystemPrompt ||
+    (activeModelId.startsWith("custom:")
+      ? "Eres EDUAI Local."
+      : getEduAILocalModel(activeModelId).systemPrompt);
   const started = performance.now();
   const knowledgeHits = await searchEduAILocalKnowledgePack(cleanPrompt, 4).catch(() => []);
   const knowledgeContext = knowledgeHits.length
@@ -325,7 +393,7 @@ export async function runEduAILocalChat(
     : "";
   const result = await activeRuntime.createChatCompletion({
     messages: [
-      { role: "system", content: model.systemPrompt },
+      { role: "system", content: systemPrompt },
       { role: "user", content: cleanPrompt + knowledgeContext },
     ],
     max_tokens: Math.max(32, Math.min(512, maxTokens)),
@@ -364,6 +432,7 @@ export async function unloadEduAILocalModel() {
   activeRuntime = null;
   activeModelId = null;
   activeMode = null;
+  activeSystemPrompt = null;
   if (!runtime) return;
   await Promise.resolve(runtime.exit()).catch(() => undefined);
 }
