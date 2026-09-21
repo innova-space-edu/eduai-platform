@@ -60,7 +60,9 @@ for (const file of ROOT_FILES) candidates.push(path.join(ROOT, file));
 
 const unique = [...new Set(candidates)].sort();
 const records = [];
+const byExtension = {};
 let skipped = 0;
+let totalSourceBytes = 0;
 
 for (const absolute of unique) {
   const relative = path.relative(ROOT, absolute).replaceAll("\\", "/");
@@ -80,6 +82,8 @@ for (const absolute of unique) {
   }
   const raw = await readFile(absolute, "utf8").catch(() => "");
   if (!raw.trim()) continue;
+  totalSourceBytes += info.size;
+  byExtension[ext || "text"] = (byExtension[ext || "text"] || 0) + 1;
   const clean = sanitize(raw);
   const chunks = chunkText(clean);
   chunks.forEach((content, index) => {
@@ -95,16 +99,23 @@ for (const absolute of unique) {
 }
 
 await mkdir(OUT_DIR, { recursive: true });
-await writeFile(OUT_FILE, records.map((record) => JSON.stringify(record)).join("\n") + "\n", "utf8");
+const serialized = records.map((record) => JSON.stringify(record)).join("\n") + "\n";
+await writeFile(OUT_FILE, serialized, "utf8");
 
 const manifest = {
+  schemaVersion: 2,
   generatedAt: new Date().toISOString(),
+  buildCommit: (process.env.VERCEL_GIT_COMMIT_SHA || process.env.GITHUB_SHA || "local").slice(0, 40),
   roots: SOURCE_ROOTS,
   rootFiles: ROOT_FILES,
   output: path.relative(ROOT, OUT_FILE).replaceAll("\\", "/"),
   filesScanned: unique.length,
+  indexedFiles: Object.values(byExtension).reduce((sum, value) => sum + value, 0),
   records: records.length,
   skipped,
+  totalSourceBytes,
+  corpusBytes: Buffer.byteLength(serialized),
+  byExtension,
   policy: {
     repositoryOnly: true,
     includesUserConversations: false,

@@ -19,7 +19,7 @@ const nextConfig: NextConfig = {
   // Para usar @sparticuz/chromium en Vercel (opcional, si activas Playwright):
   // serverExternalPackages: ["playwright-core", "@sparticuz/chromium-min", "pdf-parse", "mammoth"],
 
-  // El Model Lab local necesita aislamiento cross-origin para SharedArrayBuffer y WASM multihilo.
+  // Incluye el manifiesto generado del corpus en la función admin sin exponer el corpus completo.\n  outputFileTracingIncludes: {\n    "/api/admin/ai-core/local-factory": ["./artifacts/ai/eduai-local-corpus-manifest.json"],\n  },\n\n  // El Model Lab local necesita aislamiento cross-origin para SharedArrayBuffer y WASM multihilo.
   async headers() {
     return [
       {

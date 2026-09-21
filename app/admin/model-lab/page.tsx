@@ -24,7 +24,7 @@ import WhisperTinyLocalPanel from "@/components/admin/WhisperTinyLocalPanel";
 import LocalAITelemetryPanel from "@/components/admin/LocalAITelemetryPanel";
 import LocalAIModelMetricsPanel from "@/components/admin/LocalAIModelMetricsPanel";
 import LocalLLMReadinessPanel from "@/components/admin/LocalLLMReadinessPanel";
-import EduAILocalRuntimePanel from "@/components/admin/EduAILocalRuntimePanel";
+import EduAILocalRuntimePanel from "@/components/admin/EduAILocalRuntimePanel";\nimport EduAIModelFactoryPanel from "@/components/admin/EduAIModelFactoryPanel";
 import ModelCandidateLabPanel from "@/components/admin/ModelCandidateLabPanel";
 import ModelLabSectionNav from "@/components/admin/ModelLabSectionNav";
 import VideoProviderStatusPanel from "@/components/admin/VideoProviderStatusPanel";
@@ -81,7 +81,7 @@ export default function AdminModelLabPage() {
         <div id="infraestructura" className="scroll-mt-24"><AICoreHealthPanel /></div>
         <div id="brain-ai" className="scroll-mt-24 space-y-4"><BrainAILabPanel /><BrainAIV6LearningPanel /><VoiceLabPanel /></div>
         <div id="litert" className={`scroll-mt-24 ${styles.litertShell}`}><LiteRTLocalAIPanel /><LiteRTRouterStatusPanel /><LiteRTCacheAnalyticsPanel /><WhisperTinyLocalPanel /><LiteRTQuantizationPanelV3 /></div>
-        <div id="local-runtime" className="scroll-mt-24"><EduAILocalRuntimePanel /></div>
+        <div id="local-runtime" className="scroll-mt-24 space-y-4"><EduAILocalRuntimePanel /><EduAIModelFactoryPanel /></div>
         <div id="benchmark" className="scroll-mt-24"><LiteRTBenchmarkPanelV4 /></div>
         <div id="modelos" className="scroll-mt-24 space-y-4"><LocalLLMReadinessPanel /><AIModelRegistryPanel /><ModelCandidateLabPanel /></div>
         <div id="video" className="scroll-mt-24"><VideoProviderStatusPanel /></div>
