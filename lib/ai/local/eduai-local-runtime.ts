@@ -165,7 +165,7 @@ export async function probeEduAILocalHardware(): Promise<EduAILocalHardware> {
 async function createRuntime() {
   const wllamaModule = (await import("@wllama/wllama")) as unknown as WllamaModuleShape;
   const wasmPaths = {
-    default: "https://cdn.jsdelivr.net/npm/@wllama/wllama@3.6.1/src/wasm/wllama.wasm",
+    default: "/eduai-local/wllama.wasm",
   };
   return new wllamaModule.Wllama(wasmPaths, {
     parallelDownloads: 3,
