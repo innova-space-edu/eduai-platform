@@ -18,6 +18,8 @@ import {
   WifiOff,
 } from "lucide-react";
 import { validateEduAIGgufFiles } from "@/lib/ai/local/eduai-local-gguf";
+import { EDUAI_BROWSER_QUALITY_CASES, runEduAILocalQualityGate, type EduAILocalQualityReport } from "@/lib/ai/local/eduai-local-quality";
+import { saveEduAILocalCandidate } from "@/lib/ai/local/eduai-local-candidates";
 import {
   EDUAI_LOCAL_MODELS,
   DEFAULT_EDUAI_LOCAL_MODEL_ID,
@@ -70,6 +72,9 @@ export default function EduAILocalRuntimePanel() {
   const [answerTokens, setAnswerTokens] = useState<number | null>(null);
   const [answerTps, setAnswerTps] = useState<number | null>(null);
   const [benchmarking, setBenchmarking] = useState(false);
+  const [qualityRunning, setQualityRunning] = useState(false);
+  const [qualityProgress, setQualityProgress] = useState({ completed: 0, total: 0 });
+  const [qualityReport, setQualityReport] = useState<EduAILocalQualityReport | null>(null);
   const [persistingStorage, setPersistingStorage] = useState(false);
   const [cachedModels, setCachedModels] = useState<EduAILocalCachedModel[]>([]);
   const [cacheBusyUrl, setCacheBusyUrl] = useState<string | null>(null);
@@ -354,6 +359,77 @@ export default function EduAILocalRuntimePanel() {
     }
   }
 
+  function qualityThreshold() {
+    if (!loadedModelId) return 80;
+    if (loadedModelId.startsWith("custom:")) return 80;
+    const model = getEduAILocalModel(loadedModelId);
+    if (model.role === "nano") return 70;
+    if (model.tier === "performance" || model.tier === "max-browser") return 85;
+    return 80;
+  }
+
+  async function runQualityGate() {
+    if (!loadedModelId || qualityRunning || status !== "ready") return;
+    const activeId = loadedModelId;
+    const threshold = qualityThreshold();
+    setQualityRunning(true);
+    setQualityProgress({ completed: 0, total: EDUAI_BROWSER_QUALITY_CASES.length });
+    setQualityReport(null);
+    setStatus("generating");
+    setError("");
+    try {
+      const report = await runEduAILocalQualityGate(
+        (qualityPrompt, maxTokens) => runEduAILocalChat(qualityPrompt, maxTokens),
+        threshold,
+        (completed, total) => setQualityProgress({ completed, total }),
+      );
+      if (!mountedRef.current) return;
+      setQualityReport(report);
+      if (report.promotionGatePassed) {
+        const custom = activeId.startsWith("custom:");
+        const label = custom
+          ? activeId.slice("custom:".length)
+          : getEduAILocalModel(activeId).label;
+        saveEduAILocalCandidate({
+          modelId: activeId,
+          label,
+          source: custom ? "custom-gguf" : "catalog",
+          qualityScore: report.score,
+          qualityThreshold: report.threshold,
+          criticalFailures: report.criticalFailures,
+          promotionGatePassed: true,
+          ramGB: effectiveProfile.memoryGB,
+          vramGB: effectiveProfile.vramGB,
+          webgpu: effectiveProfile.webgpu,
+          createdAt: new Date().toISOString(),
+        });
+      }
+      try {
+        window.localStorage.setItem(
+          `eduai-local-quality:${activeId}`,
+          JSON.stringify({
+            ...report,
+            modelId: activeId,
+            ramGB: effectiveProfile.memoryGB,
+            vramGB: effectiveProfile.vramGB,
+            webgpu: effectiveProfile.webgpu,
+            createdAt: new Date().toISOString(),
+          }),
+        );
+      } catch {
+        // Persistencia opcional.
+      }
+    } catch (qualityError) {
+      if (!mountedRef.current) return;
+      setError(qualityError instanceof Error ? qualityError.message : "El Quality Gate local falló.");
+    } finally {
+      if (mountedRef.current) {
+        setQualityRunning(false);
+        setStatus("ready");
+      }
+    }
+  }
+
   async function runBenchmark() {
     if (!isReady || benchmarking) return;
     setBenchmarking(true);
@@ -411,6 +487,8 @@ export default function EduAILocalRuntimePanel() {
     setAnswerTokens(null);
     setAnswerTps(null);
     setBenchmark(null);
+    setQualityReport(null);
+    setQualityProgress({ completed: 0, total: 0 });
     setKnowledgeSources([]);
     setStatus("idle");
   }
@@ -816,6 +894,40 @@ export default function EduAILocalRuntimePanel() {
                 <div className="rounded-xl border border-white/5 bg-slate-950/45 p-2.5"><p className="text-[9px] text-slate-600">Promedio</p><p className="mt-1 text-xs font-black text-white">{ms(benchmark.avgLatencyMs)}</p></div>
                 <div className="rounded-xl border border-white/5 bg-slate-950/45 p-2.5"><p className="text-[9px] text-slate-600">Velocidad</p><p className="mt-1 text-xs font-black text-white">{benchmark.avgTps ? benchmark.avgTps.toFixed(1) + " tok/s" : "—"}</p></div>
                 <div className="rounded-xl border border-white/5 bg-slate-950/45 p-2.5"><p className="text-[9px] text-slate-600">Tokens</p><p className="mt-1 text-xs font-black text-white">{benchmark.totalTokens}</p></div>
+              </div>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => void runQualityGate()}
+              disabled={!isReady || qualityRunning || benchmarking}
+              className="ml-2 mt-3 inline-flex items-center gap-2 rounded-xl border border-emerald-400/20 bg-emerald-950/25 px-4 py-2.5 text-xs font-black text-emerald-100 disabled:cursor-not-allowed disabled:opacity-35"
+            >
+              {qualityRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+              {qualityRunning
+                ? `Quality Gate ${qualityProgress.completed}/${qualityProgress.total || EDUAI_BROWSER_QUALITY_CASES.length}`
+                : "Ejecutar Quality Gate"}
+            </button>
+            {qualityReport ? (
+              <div className={"mt-3 rounded-2xl border p-3 " + (qualityReport.promotionGatePassed ? "border-emerald-400/20 bg-emerald-950/15" : "border-amber-400/20 bg-amber-950/15")}>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">Quality Gate</p>
+                    <p className="mt-1 text-lg font-black text-white">{qualityReport.score}% · {qualityReport.passed}/{qualityReport.total}</p>
+                  </div>
+                  <span className={"rounded-full border px-3 py-1 text-[9px] font-black " + (qualityReport.promotionGatePassed ? "border-emerald-400/20 text-emerald-200" : "border-amber-400/20 text-amber-200")}>
+                    {qualityReport.promotionGatePassed ? "Aprobado · registrado" : "No promocionar"}
+                  </span>
+                </div>
+                <p className="mt-2 text-[9px] leading-4 text-slate-500">
+                  Umbral {qualityReport.threshold}% · fallos críticos: {qualityReport.criticalFailures.length ? qualityReport.criticalFailures.join(", ") : "ninguno"}.
+                </p>
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {qualityReport.results.map((item) => (
+                    <span key={item.id} className={"rounded-lg border px-2 py-1 text-[8px] font-black " + (item.passed ? "border-emerald-400/10 text-emerald-300" : "border-red-400/15 text-red-300")}>
+                      {item.passed ? "✓" : "×"} {item.id}
+                    </span>
+                  ))}
+                </div>
               </div>
             ) : null}
             {answer ? (

@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   Trash2,
 } from "lucide-react";
+import { clearEduAILocalCandidates, readEduAILocalCandidates, type EduAILocalCandidate } from "@/lib/ai/local/eduai-local-candidates";
 import {
   clearEduAILocalKnowledgePack,
   getEduAILocalKnowledgeState,
@@ -76,6 +77,7 @@ export default function EduAIModelFactoryPanel() {
   const [knowledge, setKnowledge] = useState<EduAIKnowledgeState | null>(null);
   const [knowledgeBusy, setKnowledgeBusy] = useState<"index" | "download" | "store" | "clear" | null>(null);
   const [knowledgeProgress, setKnowledgeProgress] = useState<EduAIKnowledgeInstallProgress | null>(null);
+  const [candidates, setCandidates] = useState<EduAILocalCandidate[]>([]);
 
   async function load() {
     setLoading(true);
@@ -90,6 +92,10 @@ export default function EduAIModelFactoryPanel() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function refreshCandidates() {
+    setCandidates(readEduAILocalCandidates());
   }
 
   async function refreshKnowledge() {
@@ -129,6 +135,10 @@ export default function EduAIModelFactoryPanel() {
   useEffect(() => {
     void load();
     void refreshKnowledge();
+    refreshCandidates();
+    const handler = () => refreshCandidates();
+    window.addEventListener("eduai-local-candidates-changed", handler);
+    return () => window.removeEventListener("eduai-local-candidates-changed", handler);
   }, []);
 
   const manifest = payload?.manifest;
@@ -244,6 +254,47 @@ export default function EduAIModelFactoryPanel() {
             ))}
           </div>
         </div>
+      </div>
+
+      <div className="mt-4 rounded-[22px] border border-emerald-400/15 bg-emerald-950/10 p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-black text-emerald-200">Candidatos aprobados en este navegador</p>
+            <p className="mt-1 text-[10px] leading-5 text-slate-500">
+              Solo aparecen modelos que superaron su Quality Gate sin fallos críticos.
+            </p>
+          </div>
+          {candidates.length ? (
+            <button
+              type="button"
+              onClick={() => {
+                clearEduAILocalCandidates();
+                refreshCandidates();
+              }}
+              className="rounded-xl border border-red-400/10 bg-red-950/15 px-3 py-2 text-[9px] font-black text-red-200"
+            >
+              Limpiar registro
+            </button>
+          ) : null}
+        </div>
+        {candidates.length ? (
+          <div className="mt-3 grid gap-2 lg:grid-cols-2">
+            {candidates.slice(0, 8).map((candidate) => (
+              <div key={candidate.modelId} className="rounded-xl border border-white/8 bg-slate-950/45 p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="truncate text-[10px] font-black text-white">{candidate.label}</p>
+                  <span className="rounded-full border border-emerald-400/15 px-2 py-1 text-[8px] font-black text-emerald-200">{candidate.qualityScore}%</span>
+                </div>
+                <p className="mt-1 text-[8px] leading-4 text-slate-600">
+                  {candidate.source === "custom-gguf" ? "GGUF propio" : "Catálogo"} · umbral {candidate.qualityThreshold}% · RAM {candidate.ramGB ?? "?"} GB · VRAM {candidate.vramGB ?? "?"} GB · {candidate.webgpu ? "WebGPU" : "CPU/WASM"}
+                </p>
+                <p className="mt-1 text-[8px] text-slate-700">{new Date(candidate.createdAt).toLocaleString("es-CL")}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-3 text-[10px] text-slate-600">Todavía no hay candidatos aprobados. Carga un modelo o GGUF propio y ejecuta el Quality Gate desde la consola local.</p>
+        )}
       </div>
 
       <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_auto]">

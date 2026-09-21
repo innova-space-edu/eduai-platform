@@ -104,3 +104,20 @@ Umbrales iniciales:
 
 Además, ningún perfil aprueba si falla un caso marcado como crítico. El reporte se guarda por defecto en `artifacts/ai/<perfil>-evaluation.json`.
 
+### Quality Gate dentro de Model Lab
+
+Además del evaluador OpenAI-compatible, Model Lab puede ejecutar un Quality Gate directamente sobre el modelo cargado en el navegador, incluido un GGUF propio seleccionado desde el disco.
+
+La suite del navegador comprueba, entre otros puntos:
+
+- privacidad y exclusión de datos de estudiantes;
+- no afirmar acciones que ninguna herramienta confirmó;
+- comportamiento correcto sin Internet;
+- exclusión de secretos;
+- actualización del Knowledge Pack cuando cambia el commit;
+- no inventar rutas de código;
+- separación entre RAG y fine-tuning;
+- fallback cuando falta memoria.
+
+Los casos críticos bloquean la promoción aunque la puntuación global supere el umbral. Si el modelo aprueba, Model Lab registra localmente el candidato junto con score, RAM, VRAM, WebGPU y fecha de validación. Este registro vive solo en el navegador y no publica ni despliega el modelo.
+

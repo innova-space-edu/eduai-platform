@@ -24,7 +24,7 @@
     "test:creator": "node scripts/apply-comics-runtime-fixes.mjs && node scripts/apply-video-summary-hobby.mjs && node scripts/test-creator-hub-integrity.mjs",
     "test:whiteboard": "node scripts/apply-whiteboard-finalization.mjs && node scripts/test-whiteboard-math-studio.mjs",
     "test:repository": "node scripts/apply-repository-course-subject-selects.mjs && node scripts/apply-repository-home-folders.mjs && node scripts/apply-repository-sharing.mjs && node scripts/apply-repository-public-access.mjs && node scripts/apply-public-cloud-direct-upload.mjs && node scripts/test-repository-integrity.mjs",
-    "test:ai-core": "tsx scripts/test-ai-core.ts && tsx scripts/test-ai-multiprovider.ts && tsx scripts/test-eduai-local-model-matrix.ts && node scripts/test-eduai-local-training-data.mjs && tsx scripts/test-eduai-local-bridge.ts && node scripts/test-eduai-local-corpus-safety.mjs && node scripts/test-eduai-local-symbol-index.mjs && node scripts/test-eduai-local-eval-suite.mjs && tsx scripts/test-eduai-local-rag-ranking.ts && tsx scripts/test-eduai-local-gguf.ts",
+    "test:ai-core": "tsx scripts/test-ai-core.ts && tsx scripts/test-ai-multiprovider.ts && tsx scripts/test-eduai-local-model-matrix.ts && node scripts/test-eduai-local-training-data.mjs && tsx scripts/test-eduai-local-bridge.ts && node scripts/test-eduai-local-corpus-safety.mjs && node scripts/test-eduai-local-symbol-index.mjs && node scripts/test-eduai-local-eval-suite.mjs && tsx scripts/test-eduai-local-rag-ranking.ts && tsx scripts/test-eduai-local-gguf.ts && tsx scripts/test-eduai-local-quality.ts && tsx scripts/test-eduai-local-candidates.ts",
     "test:mira": "node scripts/apply-mira-voice-mode.mjs && node scripts/test-mira-assistant.mjs",
     "curriculum:index": "node scripts/generate-mineduc-index.mjs",
     "curriculum:validate": "node scripts/validate-mineduc-curriculum.mjs",
@@ -40,7 +40,9 @@
     "test:local-eval-suite": "node scripts/test-eduai-local-eval-suite.mjs",
     "ai:local:evaluate": "python training/eduai-local/evaluate_openai_compatible.py",
     "test:local-rag-ranking": "tsx scripts/test-eduai-local-rag-ranking.ts",
-    "test:local-gguf": "tsx scripts/test-eduai-local-gguf.ts"
+    "test:local-gguf": "tsx scripts/test-eduai-local-gguf.ts",
+    "test:local-browser-quality": "tsx scripts/test-eduai-local-quality.ts",
+    "test:local-candidates": "tsx scripts/test-eduai-local-candidates.ts"
   },
   "dependencies": {
     "@andresaya/edge-tts": "^1.8.0",
