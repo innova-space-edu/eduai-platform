@@ -8,12 +8,10 @@ fi
 
 MERGED_DIR="$1"
 OUTPUT_GGUF="$2"
-QUANT="$3"
-if [[ -z "$QUANT" ]]; then
-  QUANT="Q4_K_M"
-fi
+QUANT="${3:-Q4_K_M}"
+LLAMA_CPP_DIR="${LLAMA_CPP_DIR:-}"
 
-LLAMA_CPP_DIR="${LLAMA_CPP_DIR:-}"\nif [[ -z "$LLAMA_CPP_DIR" ]]; then
+if [[ -z "$LLAMA_CPP_DIR" ]]; then
   echo "Falta LLAMA_CPP_DIR apuntando a un checkout de llama.cpp." >&2
   exit 2
 fi
