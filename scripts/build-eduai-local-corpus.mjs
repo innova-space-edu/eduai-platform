@@ -66,6 +66,9 @@ const unique = [...new Set(candidates)].sort();
 const records = [];
 const byExtension = {};
 const pathOnlySources = [];
+const symbolRecords = [];
+let symbolCount = 0;
+let symbolFiles = 0;
 let skipped = 0;
 let totalSourceBytes = 0;
 

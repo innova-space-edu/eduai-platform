@@ -805,7 +805,7 @@ export default function EduAILocalRuntimePanel() {
             <button
               type="button"
               onClick={() => void runBenchmark()}
-              disabled={!isReady || benchmarking || status === "generating"}
+              disabled={!isReady || benchmarking}
               className="ml-2 mt-3 inline-flex items-center gap-2 rounded-xl border border-cyan-400/20 bg-cyan-950/25 px-4 py-2.5 text-xs font-black text-cyan-100 disabled:cursor-not-allowed disabled:opacity-35"
             >
               {benchmarking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Gauge className="h-4 w-4" />}

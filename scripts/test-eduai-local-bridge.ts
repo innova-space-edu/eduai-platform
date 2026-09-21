@@ -19,7 +19,6 @@ for (const input of [
 ]) {
   assert.throws(
     () => normalizeEduAILocalBridgeBaseUrl(input),
-    undefined,
     `Debe rechazar ${input}`,
   );
 }

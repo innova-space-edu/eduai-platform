@@ -140,6 +140,17 @@ export default function EduAIModelFactoryPanel() {
     knowledge.buildCommit !== manifest.buildCommit,
   );
 
+  const metrics = [
+    { label: "Archivos indexados", value: manifest?.indexedFiles ?? null, detail: "fuentes aceptadas", Icon: FileCode2 },
+    { label: "Chunks", value: manifest?.records ?? null, detail: "unidades de conocimiento", Icon: Database },
+    { label: "Símbolos", value: manifest?.symbols?.total ?? null, detail: `${manifest?.symbols?.files ?? 0} archivos con índice`, Icon: FileCode2 },
+    { label: "Fuente", value: bytes(manifest?.totalSourceBytes), detail: "antes de fragmentar", Icon: Gauge },
+    { label: "Corpus", value: bytes(manifest?.corpusBytes), detail: "JSONL saneado", Icon: Database },
+    { label: "Knowledge Pack", value: bytes(manifest?.knowledgePackBytes), detail: "RAG local cacheable", Icon: Database },
+    { label: "Base", value: factory?.baseModel || "LFM2.5-350M", detail: "modelo estudiante", Icon: BrainCircuit },
+    { label: "Entrenamiento", value: factory?.trainingMethod || "LoRA / QLoRA", detail: "fuera del notebook", Icon: GraduationCap },
+  ];
+
   return (
     <section className="overflow-hidden rounded-[30px] border border-fuchsia-400/15 bg-[radial-gradient(circle_at_top_right,rgba(217,70,239,0.08),transparent_30%),linear-gradient(180deg,#10091c,#060913)] p-5 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -156,19 +167,16 @@ export default function EduAIModelFactoryPanel() {
       {error ? <div className="mt-4 rounded-2xl border border-red-400/20 bg-red-950/20 p-3 text-xs text-red-200">{error}</div> : null}
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-8">
-        {[
-          ["Archivos indexados", manifest?.indexedFiles ?? null, "fuentes aceptadas", FileCode2],
-          ["Chunks", manifest?.records ?? null, "unidades de conocimiento", Database],
-          ["Símbolos", manifest?.symbols?.total ?? null, `${manifest?.symbols?.files ?? 0} archivos con índice`, FileCode2],
-          ["Fuente", bytes(manifest?.totalSourceBytes), "antes de fragmentar", Gauge],
-          ["Corpus", bytes(manifest?.corpusBytes), "JSONL saneado", Database],
-          ["Knowledge Pack", bytes(manifest?.knowledgePackBytes), "RAG local cacheable", Database],
-          ["Base", factory?.baseModel || "LFM2.5-350M", "modelo estudiante", BrainCircuit],
-          ["Entrenamiento", factory?.trainingMethod || "LoRA / QLoRA", "fuera del notebook", GraduationCap],
-        ].map(([label, value, detail, Icon]) => {
-          const IconComponent = Icon as typeof BrainCircuit;
-          return <article key={String(label)} className="rounded-2xl border border-white/10 bg-black/20 p-3.5"><div className="flex items-center gap-2"><IconComponent className="h-3.5 w-3.5 text-fuchsia-300" /><p className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-500">{label}</p></div><p className="mt-2 truncate text-sm font-black text-white">{value ?? "—"}</p><p className="mt-1 text-[10px] text-slate-600">{detail}</p></article>;
-        })}
+        {metrics.map(({ label, value, detail, Icon }) => (
+          <article key={label} className="rounded-2xl border border-white/10 bg-black/20 p-3.5">
+            <div className="flex items-center gap-2">
+              <Icon className="h-3.5 w-3.5 text-fuchsia-300" />
+              <p className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-500">{label}</p>
+            </div>
+            <p className="mt-2 truncate text-sm font-black text-white">{value ?? "—"}</p>
+            <p className="mt-1 text-[10px] text-slate-600">{detail}</p>
+          </article>
+        ))}
       </div>
 
       <div className="mt-4 rounded-[22px] border border-cyan-400/15 bg-cyan-950/10 p-4">
