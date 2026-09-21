@@ -29,7 +29,8 @@
     "curriculum:index": "node scripts/generate-mineduc-index.mjs",
     "curriculum:validate": "node scripts/validate-mineduc-curriculum.mjs",
     "test:curriculum": "node scripts/validate-mineduc-curriculum.mjs --strict",
-    "test:paper": "node scripts/test-paper-pipeline.mjs"
+    "test:paper": "node scripts/test-paper-pipeline.mjs",
+    "ai:local:corpus": "node scripts/build-eduai-local-corpus.mjs"
   },
   "dependencies": {
     "@andresaya/edge-tts": "^1.8.0",
@@ -70,7 +71,8 @@
     "zustand": "^5.0.11",
     "@waveform-playlist/webaudio-peaks": "^12.0.2",
     "mediabunny": "1.55.5",
-    "@mediabunny/mp3-encoder": "1.55.5"
+    "@mediabunny/mp3-encoder": "1.55.5",
+    "@wllama/wllama": "3.6.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

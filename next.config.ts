@@ -16,6 +16,19 @@ const nextConfig: NextConfig = {
   // Para usar @sparticuz/chromium en Vercel (opcional, si activas Playwright):
   // serverExternalPackages: ["playwright-core", "@sparticuz/chromium-min", "pdf-parse", "mammoth"],
 
+  // El Model Lab local necesita aislamiento cross-origin para SharedArrayBuffer y WASM multihilo.
+  async headers() {
+    return [
+      {
+        source: "/admin/model-lab/:path*",
+        headers: [
+          { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+          { key: "Cross-Origin-Embedder-Policy", value: "require-corp" },
+        ],
+      },
+    ]
+  },
+
   // Límite de memoria para funciones serverless de Vercel (default: 1024)
   // Si usas Playwright, necesitas al menos 1536MB
   // experimental: {
