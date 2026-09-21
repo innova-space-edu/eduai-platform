@@ -61,6 +61,10 @@ export default function EduAILocalRuntimePanel() {
   const [prompt, setPrompt] = useState("Explica brevemente qué puede hacer EDUAI Local cuando no hay Internet.");
   const [answer, setAnswer] = useState("");
   const [answerMs, setAnswerMs] = useState<number | null>(null);
+  const [answerTokens, setAnswerTokens] = useState<number | null>(null);
+  const [answerTps, setAnswerTps] = useState<number | null>(null);
+  const [benchmarking, setBenchmarking] = useState(false);
+  const [benchmark, setBenchmark] = useState<{ avgLatencyMs: number; avgTps: number | null; totalTokens: number } | null>(null);
   const [knowledgeSources, setKnowledgeSources] = useState<string[]>([]);
   const [fallbackModelId, setFallbackModelId] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -189,6 +193,8 @@ export default function EduAILocalRuntimePanel() {
     setError("");
     setAnswer("");
     setAnswerMs(null);
+    setAnswerTokens(null);
+    setAnswerTps(null);
     setKnowledgeSources([]);
     setFallbackModelId(null);
     try {
@@ -221,6 +227,8 @@ export default function EduAILocalRuntimePanel() {
       if (!mountedRef.current) return;
       setAnswer(result.text);
       setAnswerMs(result.latencyMs);
+      setAnswerTokens(result.completionTokens || null);
+      setAnswerTps(result.tokensPerSecond);
       setKnowledgeSources(result.knowledgeSources);
       setStatus("ready");
     } catch (chatError) {
@@ -230,12 +238,61 @@ export default function EduAILocalRuntimePanel() {
     }
   }
 
+  async function runBenchmark() {
+    if (!isReady || benchmarking) return;
+    setBenchmarking(true);
+    setError("");
+    try {
+      const prompts = [
+        "Resume en tres puntos qué debe hacer una IA local de EDUAI cuando no tiene Internet.",
+        "Devuelve un JSON breve con las claves herramienta, accion y requiere_internet para una consulta que pide crear una evaluación.",
+        "Explica en cuatro frases la diferencia entre fine-tuning y RAG en EDUAI.",
+      ];
+      const results = [];
+      for (const benchmarkPrompt of prompts) {
+        results.push(await runEduAILocalChat(benchmarkPrompt, 96));
+      }
+      const totalTokens = results.reduce((sum, item) => sum + item.completionTokens, 0);
+      const avgLatencyMs = results.reduce((sum, item) => sum + item.latencyMs, 0) / results.length;
+      const tpsValues = results
+        .map((item) => item.tokensPerSecond)
+        .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+      const avgTps = tpsValues.length
+        ? tpsValues.reduce((sum, value) => sum + value, 0) / tpsValues.length
+        : null;
+      const nextBenchmark = { avgLatencyMs, avgTps, totalTokens };
+      setBenchmark(nextBenchmark);
+      try {
+        window.localStorage.setItem(
+          `eduai-local-benchmark:${selectedModelId}`,
+          JSON.stringify({
+            ...nextBenchmark,
+            modelId: selectedModelId,
+            ramGB: effectiveProfile.memoryGB,
+            vramGB: effectiveProfile.vramGB,
+            webgpu: effectiveProfile.webgpu,
+            createdAt: new Date().toISOString(),
+          }),
+        );
+      } catch {
+        // Persistencia opcional.
+      }
+    } catch (benchmarkError) {
+      setError(benchmarkError instanceof Error ? benchmarkError.message : "El benchmark local falló.");
+    } finally {
+      setBenchmarking(false);
+    }
+  }
+
   async function releaseMemory() {
     await unloadEduAILocalModel();
     setLoadedModelId(null);
     setLoadMs(null);
     setAnswer("");
     setAnswerMs(null);
+    setAnswerTokens(null);
+    setAnswerTps(null);
+    setBenchmark(null);
     setKnowledgeSources([]);
     setStatus("idle");
   }
@@ -248,6 +305,9 @@ export default function EduAILocalRuntimePanel() {
       setLoadMs(null);
       setAnswer("");
       setAnswerMs(null);
+      setAnswerTokens(null);
+      setAnswerTps(null);
+      setBenchmark(null);
       setKnowledgeSources([]);
       setStatus("idle");
       await calibrate();
@@ -508,9 +568,32 @@ export default function EduAILocalRuntimePanel() {
               {status === "generating" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
               Ejecutar solo en este notebook
             </button>
+            <button
+              type="button"
+              onClick={() => void runBenchmark()}
+              disabled={!isReady || benchmarking || status === "generating"}
+              className="ml-2 mt-3 inline-flex items-center gap-2 rounded-xl border border-cyan-400/20 bg-cyan-950/25 px-4 py-2.5 text-xs font-black text-cyan-100 disabled:cursor-not-allowed disabled:opacity-35"
+            >
+              {benchmarking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Gauge className="h-4 w-4" />}
+              Benchmark rápido
+            </button>
+            {benchmark ? (
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                <div className="rounded-xl border border-white/5 bg-slate-950/45 p-2.5"><p className="text-[9px] text-slate-600">Promedio</p><p className="mt-1 text-xs font-black text-white">{ms(benchmark.avgLatencyMs)}</p></div>
+                <div className="rounded-xl border border-white/5 bg-slate-950/45 p-2.5"><p className="text-[9px] text-slate-600">Velocidad</p><p className="mt-1 text-xs font-black text-white">{benchmark.avgTps ? benchmark.avgTps.toFixed(1) + " tok/s" : "—"}</p></div>
+                <div className="rounded-xl border border-white/5 bg-slate-950/45 p-2.5"><p className="text-[9px] text-slate-600">Tokens</p><p className="mt-1 text-xs font-black text-white">{benchmark.totalTokens}</p></div>
+              </div>
+            ) : null}
             {answer ? (
               <div className="mt-3 rounded-2xl border border-emerald-400/15 bg-emerald-950/15 p-3">
-                <div className="flex items-center justify-between gap-2"><p className="text-[10px] font-black uppercase text-emerald-300">Respuesta local</p><span className="text-[9px] font-black text-slate-500">{ms(answerMs)}</span></div>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-[10px] font-black uppercase text-emerald-300">Respuesta local</p>
+                  <div className="flex items-center gap-2 text-[9px] font-black text-slate-500">
+                    <span>{ms(answerMs)}</span>
+                    {answerTokens ? <span>{answerTokens} tok</span> : null}
+                    {answerTps ? <span>{answerTps.toFixed(1)} tok/s</span> : null}
+                  </div>
+                </div>
                 <p className="mt-2 whitespace-pre-wrap text-xs leading-5 text-slate-300">{answer}</p>
                 {knowledgeSources.length ? (
                   <div className="mt-3 border-t border-emerald-400/10 pt-2">

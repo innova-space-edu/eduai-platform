@@ -12,6 +12,11 @@ type WllamaChatResult = {
       content?: unknown;
     };
   }>;
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+  };
 };
 
 type WllamaRuntime = {
@@ -66,6 +71,9 @@ export type EduAILocalLoadResult = {
 export type EduAILocalChatResult = {
   text: string;
   latencyMs: number;
+  promptTokens: number;
+  completionTokens: number;
+  tokensPerSecond: number | null;
   knowledgeSources: string[];
 };
 
@@ -282,9 +290,20 @@ export async function runEduAILocalChat(
         ? ""
         : JSON.stringify(raw);
 
+  const latencyMs = performance.now() - started;
+  const promptTokens = result.usage?.prompt_tokens || 0;
+  const completionTokens = result.usage?.completion_tokens || 0;
+  const tokensPerSecond =
+    completionTokens > 0 && latencyMs > 0
+      ? completionTokens / (latencyMs / 1000)
+      : null;
+
   return {
     text: text.trim() || "El modelo no devolvió texto.",
-    latencyMs: performance.now() - started,
+    latencyMs,
+    promptTokens,
+    completionTokens,
+    tokensPerSecond,
     knowledgeSources: [...new Set(knowledgeHits.map((hit) => hit.source))],
   };
 }
