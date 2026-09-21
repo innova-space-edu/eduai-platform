@@ -68,6 +68,7 @@ export type EduAILocalChatResult = {
 let activeRuntime: WllamaRuntime | null = null;
 let activeModelId: string | null = null;
 let activeMode: EduAILocalRuntimeMode | null = null;
+let runtimeGeneration = 0;
 
 function asMegabytes(value: number | undefined) {
   return typeof value === "number" && Number.isFinite(value) ? value / 1024 / 1024 : null;
@@ -168,6 +169,7 @@ export async function loadEduAILocalModel(
   }
 
   await unloadEduAILocalModel();
+  const generation = runtimeGeneration;
 
   const hardware = await probeEduAILocalHardware();
   if (!hardware.wasm) throw new Error("Este navegador no expone WebAssembly.");
@@ -200,6 +202,11 @@ export async function loadEduAILocalModel(
   } catch (error) {
     await Promise.resolve(runtime.exit()).catch(() => undefined);
     throw error;
+  }
+
+  if (generation !== runtimeGeneration) {
+    await Promise.resolve(runtime.exit()).catch(() => undefined);
+    throw new Error("La carga local fue cancelada.");
   }
 
   activeRuntime = runtime;
@@ -249,6 +256,7 @@ export async function runEduAILocalChat(
 }
 
 export async function unloadEduAILocalModel() {
+  runtimeGeneration += 1;
   const runtime = activeRuntime;
   activeRuntime = null;
   activeModelId = null;

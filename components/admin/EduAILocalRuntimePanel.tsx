@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BrainCircuit,
   Cpu,
@@ -56,25 +56,28 @@ export default function EduAILocalRuntimePanel() {
   const [answer, setAnswer] = useState("");
   const [answerMs, setAnswerMs] = useState<number | null>(null);
   const [error, setError] = useState("");
-  const [selectionTouched, setSelectionTouched] = useState(false);
+  const mountedRef = useRef(true);
 
-  async function calibrate() {
+  async function calibrate(applyRecommendation = false) {
     setError("");
     try {
       const next = await probeEduAILocalHardware();
+      if (!mountedRef.current) return;
       setHardware(next);
-      if (!selectionTouched && !loadedModelId) setSelectedModelId(next.recommendedModelId);
+      if (applyRecommendation) setSelectedModelId(next.recommendedModelId);
     } catch (probeError) {
       setError(probeError instanceof Error ? probeError.message : "No se pudo medir el hardware.");
     }
   }
 
   useEffect(() => {
-    void calibrate();
-    const onlineHandler = () => void calibrate();
+    mountedRef.current = true;
+    void calibrate(true);
+    const onlineHandler = () => void calibrate(false);
     window.addEventListener("online", onlineHandler);
     window.addEventListener("offline", onlineHandler);
     return () => {
+      mountedRef.current = false;
       window.removeEventListener("online", onlineHandler);
       window.removeEventListener("offline", onlineHandler);
       void unloadEduAILocalModel();
@@ -93,12 +96,14 @@ export default function EduAILocalRuntimePanel() {
     setAnswerMs(null);
     try {
       const result = await loadEduAILocalModel(selectedModelId, mode, setProgress);
+      if (!mountedRef.current) return;
       setLoadedModelId(result.modelId);
       setLoadMs(result.loadMs);
       setMultithread(result.multithread);
       setStatus("ready");
       await calibrate();
     } catch (loadError) {
+      if (!mountedRef.current) return;
       setLoadedModelId(null);
       setStatus("error");
       setError(loadError instanceof Error ? loadError.message : "No se pudo cargar el modelo.");
@@ -111,10 +116,12 @@ export default function EduAILocalRuntimePanel() {
     setError("");
     try {
       const result = await runEduAILocalChat(prompt);
+      if (!mountedRef.current) return;
       setAnswer(result.text);
       setAnswerMs(result.latencyMs);
       setStatus("ready");
     } catch (chatError) {
+      if (!mountedRef.current) return;
       setStatus("ready");
       setError(chatError instanceof Error ? chatError.message : "La inferencia local falló.");
     }
@@ -257,10 +264,7 @@ export default function EduAILocalRuntimePanel() {
                 <button
                   key={model.id}
                   type="button"
-                  onClick={() => {
-                    setSelectionTouched(true);
-                    setSelectedModelId(model.id);
-                  }}
+                  onClick={() => setSelectedModelId(model.id)}
                   disabled={status === "loading" || status === "generating"}
                   className={"w-full rounded-2xl border p-3 text-left transition " + (selectedNow ? "border-cyan-400/30 bg-cyan-950/25" : "border-white/8 bg-slate-950/40 hover:border-white/15")}
                 >
