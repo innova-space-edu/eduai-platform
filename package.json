@@ -24,7 +24,7 @@
     "test:creator": "node scripts/apply-comics-runtime-fixes.mjs && node scripts/apply-video-summary-hobby.mjs && node scripts/test-creator-hub-integrity.mjs",
     "test:whiteboard": "node scripts/apply-whiteboard-finalization.mjs && node scripts/test-whiteboard-math-studio.mjs",
     "test:repository": "node scripts/apply-repository-course-subject-selects.mjs && node scripts/apply-repository-home-folders.mjs && node scripts/apply-repository-sharing.mjs && node scripts/apply-repository-public-access.mjs && node scripts/apply-public-cloud-direct-upload.mjs && node scripts/test-repository-integrity.mjs",
-    "test:ai-core": "tsx scripts/test-ai-core.ts && tsx scripts/test-ai-multiprovider.ts && tsx scripts/test-eduai-local-model-matrix.ts && node scripts/test-eduai-local-training-data.mjs && tsx scripts/test-eduai-local-bridge.ts && node scripts/test-eduai-local-corpus-safety.mjs && node scripts/test-eduai-local-symbol-index.mjs && node scripts/test-eduai-local-eval-suite.mjs && tsx scripts/test-eduai-local-rag-ranking.ts && tsx scripts/test-eduai-local-gguf.ts && tsx scripts/test-eduai-local-quality.ts && tsx scripts/test-eduai-local-candidates.ts && python training/eduai-local/test_assistant_labels.py && node scripts/test-eduai-local-offline-shell.mjs && tsx scripts/test-eduai-local-autostart.ts && node scripts/test-eduai-local-candidate-sync.mjs",
+    "test:ai-core": "tsx scripts/test-ai-core.ts && tsx scripts/test-ai-multiprovider.ts && tsx scripts/test-eduai-local-model-matrix.ts && node scripts/test-eduai-local-training-data.mjs && tsx scripts/test-eduai-local-bridge.ts && node scripts/test-eduai-local-corpus-safety.mjs && node scripts/test-eduai-local-symbol-index.mjs && node scripts/test-eduai-local-eval-suite.mjs && tsx scripts/test-eduai-local-rag-ranking.ts && tsx scripts/test-eduai-local-gguf.ts && tsx scripts/test-eduai-local-quality.ts && tsx scripts/test-eduai-local-candidates.ts && python training/eduai-local/test_assistant_labels.py && node scripts/test-eduai-local-offline-shell.mjs && tsx scripts/test-eduai-local-autostart.ts && node scripts/test-eduai-local-candidate-sync.mjs && node scripts/test-eduai-local-wllama-telemetry.mjs",
     "test:mira": "node scripts/apply-mira-voice-mode.mjs && node scripts/test-mira-assistant.mjs",
     "curriculum:index": "node scripts/generate-mineduc-index.mjs",
     "curriculum:validate": "node scripts/validate-mineduc-curriculum.mjs",
@@ -46,7 +46,8 @@
     "test:local-training-labels": "python training/eduai-local/test_assistant_labels.py",
     "test:local-offline-shell": "node scripts/test-eduai-local-offline-shell.mjs",
     "test:local-autostart": "tsx scripts/test-eduai-local-autostart.ts",
-    "test:local-candidate-sync": "node scripts/test-eduai-local-candidate-sync.mjs"
+    "test:local-candidate-sync": "node scripts/test-eduai-local-candidate-sync.mjs",
+    "test:wllama-telemetry": "node scripts/test-eduai-local-wllama-telemetry.mjs"
   },
   "dependencies": {
     "@andresaya/edge-tts": "^1.8.0",

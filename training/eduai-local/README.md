@@ -178,3 +178,15 @@ El flujo es deliberadamente humano:
 
 Nunca se cambia a `implemented` de forma automática.
 
+## Telemetría wllama
+
+Las inferencias y benchmarks GGUF reutilizan la telemetría local existente de EDUAI. Se registran por modelo:
+
+- latencia end-to-end;
+- tokens completados;
+- mediana de tokens por segundo;
+- reutilización del runtime/modelo;
+- tipo de evento: inferencia o benchmark.
+
+En CPU se registra backend `wasm`. En modo Auto con WebGPU disponible se conserva el backend como no confirmado, porque wllama no expone después de la carga una API que certifique cuántas capas quedaron realmente offloaded a WebGPU. La interfaz puede mostrar la ruta solicitada, pero la telemetría no la presenta como backend efectivo.
+

@@ -9,6 +9,8 @@ export type LocalAIEvent = {
   backend?: LocalAIBackend
   modelId?: string
   latencyMs?: number
+  completionTokens?: number
+  tokensPerSecond?: number
   compileMs?: number
   runCount?: number
   runtimeReused?: boolean

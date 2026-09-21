@@ -21,6 +21,7 @@ import { validateEduAIGgufFiles } from "@/lib/ai/local/eduai-local-gguf";
 import { EDUAI_BROWSER_QUALITY_CASES, runEduAILocalQualityGate, type EduAILocalQualityReport } from "@/lib/ai/local/eduai-local-quality";
 import { saveEduAILocalCandidate } from "@/lib/ai/local/eduai-local-candidates";
 import { chooseEduAILocalAutostartModel } from "@/lib/ai/local/eduai-local-autostart";
+import { recordLocalAIEvent } from "@/lib/ai/local/litert-telemetry";
 import {
   EDUAI_LOCAL_MODELS,
   DEFAULT_EDUAI_LOCAL_MODEL_ID,
@@ -421,6 +422,25 @@ export default function EduAILocalRuntimePanel({ standalone = false }: EduAILoca
       setAnswerTokens(result.completionTokens || null);
       setAnswerTps(result.tokensPerSecond);
       setKnowledgeSources(result.knowledgeSources);
+      try {
+        recordLocalAIEvent({
+          groupId: `wllama-chat-${Date.now()}`,
+          kind: "inference",
+          backend: mode === "cpu" || hardware?.webgpu === false ? "wasm" : undefined,
+          modelId: loadedModelId || selectedModelId,
+          latencyMs: result.latencyMs,
+          endToEndMs: result.latencyMs,
+          completionTokens: result.completionTokens,
+          tokensPerSecond: result.tokensPerSecond ?? undefined,
+          runCount: 1,
+          runtimeReused: true,
+          modelReused: true,
+          success: true,
+          note: `wllama · RAG ${useKnowledge ? "on" : "off"} · route ${mode === "cpu" ? "cpu" : "auto"}`,
+        });
+      } catch {
+        // La telemetría nunca debe interrumpir la inferencia.
+      }
       setStatus("ready");
     } catch (chatError) {
       if (!mountedRef.current) return;
@@ -525,6 +545,25 @@ export default function EduAILocalRuntimePanel({ standalone = false }: EduAILoca
         : null;
       const nextBenchmark = { avgLatencyMs, avgTps, totalTokens };
       setBenchmark(nextBenchmark);
+      try {
+        recordLocalAIEvent({
+          groupId: `wllama-benchmark-${Date.now()}`,
+          kind: "benchmark",
+          backend: mode === "cpu" || hardware?.webgpu === false ? "wasm" : undefined,
+          modelId: loadedModelId || selectedModelId,
+          latencyMs: avgLatencyMs,
+          endToEndMs: avgLatencyMs,
+          completionTokens: totalTokens,
+          tokensPerSecond: avgTps ?? undefined,
+          runCount: results.length,
+          runtimeReused: true,
+          modelReused: true,
+          success: true,
+          note: "wllama benchmark · RAG off",
+        });
+      } catch {
+        // La telemetría nunca debe invalidar un benchmark.
+      }
       try {
         window.localStorage.setItem(
           `eduai-local-benchmark:${loadedModelId || selectedModelId}`,
