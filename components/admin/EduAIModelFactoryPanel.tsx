@@ -36,6 +36,7 @@ type FactoryPayload = {
     corpusBytes?: number;
     knowledgePackBytes?: number;
     knowledgePackShards?: number;
+    symbols?: { files?: number; total?: number; records?: number };
     byExtension?: Record<string, number>;
     policy?: {
       repositoryOnly?: boolean;
@@ -152,10 +153,11 @@ export default function EduAIModelFactoryPanel() {
 
       {error ? <div className="mt-4 rounded-2xl border border-red-400/20 bg-red-950/20 p-3 text-xs text-red-200">{error}</div> : null}
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-7">
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-8">
         {[
           ["Archivos indexados", manifest?.indexedFiles ?? null, "fuentes aceptadas", FileCode2],
           ["Chunks", manifest?.records ?? null, "unidades de conocimiento", Database],
+          ["Símbolos", manifest?.symbols?.total ?? null, `${manifest?.symbols?.files ?? 0} archivos con índice`, FileCode2],
           ["Fuente", bytes(manifest?.totalSourceBytes), "antes de fragmentar", Gauge],
           ["Corpus", bytes(manifest?.corpusBytes), "JSONL saneado", Database],
           ["Knowledge Pack", bytes(manifest?.knowledgePackBytes), "RAG local cacheable", Database],
@@ -171,7 +173,7 @@ export default function EduAIModelFactoryPanel() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="max-w-3xl">
             <div className="flex items-center gap-2 text-cyan-200"><Database className="h-4 w-4" /><p className="text-xs font-black">EDUAI Knowledge Pack local</p></div>
-            <p className="mt-2 text-[11px] leading-5 text-slate-400">Guarda el conocimiento saneado del repositorio en IndexedDB. Una vez instalado, el chat local puede recuperar código y documentación aunque la conexión se pierda durante la sesión.</p>
+            <p className="mt-2 text-[11px] leading-5 text-slate-400">Guarda el conocimiento saneado del repositorio en IndexedDB, incluido un índice de símbolos con funciones, clases, exports, handlers de API y objetos SQL. Una vez instalado, el chat local puede recuperar código y documentación aunque la conexión se pierda durante la sesión.</p>
             <p className="mt-2 text-[10px] text-slate-600">
               Estado: {knowledge?.installed ? `${knowledge.records} chunks · ${bytes(knowledge.sizeBytes)} · commit ${knowledge.buildCommit?.slice(0, 8) || "local"}` : "no instalado en este navegador"}.
               {manifest?.knowledgePackShards ? ` Servidor: ${manifest.knowledgePackShards} shards.` : ""}

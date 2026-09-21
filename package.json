@@ -24,7 +24,7 @@
     "test:creator": "node scripts/apply-comics-runtime-fixes.mjs && node scripts/apply-video-summary-hobby.mjs && node scripts/test-creator-hub-integrity.mjs",
     "test:whiteboard": "node scripts/apply-whiteboard-finalization.mjs && node scripts/test-whiteboard-math-studio.mjs",
     "test:repository": "node scripts/apply-repository-course-subject-selects.mjs && node scripts/apply-repository-home-folders.mjs && node scripts/apply-repository-sharing.mjs && node scripts/apply-repository-public-access.mjs && node scripts/apply-public-cloud-direct-upload.mjs && node scripts/test-repository-integrity.mjs",
-    "test:ai-core": "tsx scripts/test-ai-core.ts && tsx scripts/test-ai-multiprovider.ts && tsx scripts/test-eduai-local-model-matrix.ts && node scripts/test-eduai-local-training-data.mjs && tsx scripts/test-eduai-local-bridge.ts && node scripts/test-eduai-local-corpus-safety.mjs",
+    "test:ai-core": "tsx scripts/test-ai-core.ts && tsx scripts/test-ai-multiprovider.ts && tsx scripts/test-eduai-local-model-matrix.ts && node scripts/test-eduai-local-training-data.mjs && tsx scripts/test-eduai-local-bridge.ts && node scripts/test-eduai-local-corpus-safety.mjs && node scripts/test-eduai-local-symbol-index.mjs",
     "test:mira": "node scripts/apply-mira-voice-mode.mjs && node scripts/test-mira-assistant.mjs",
     "curriculum:index": "node scripts/generate-mineduc-index.mjs",
     "curriculum:validate": "node scripts/validate-mineduc-curriculum.mjs",
@@ -35,7 +35,8 @@
     "ai:local:prepare": "node scripts/prepare-eduai-local-runtime.mjs",
     "test:local-training-data": "node scripts/test-eduai-local-training-data.mjs",
     "test:local-bridge": "tsx scripts/test-eduai-local-bridge.ts",
-    "test:local-corpus-safety": "node scripts/test-eduai-local-corpus-safety.mjs"
+    "test:local-corpus-safety": "node scripts/test-eduai-local-corpus-safety.mjs",
+    "test:local-symbol-index": "node scripts/test-eduai-local-symbol-index.mjs"
   },
   "dependencies": {
     "@andresaya/edge-tts": "^1.8.0",

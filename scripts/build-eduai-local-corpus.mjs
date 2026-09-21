@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { sanitizeEduAILocalCorpusText } from "./eduai-local-corpus-safety.mjs";
+import { sanitizeEduAILocalCorpusText } from "./eduai-local-corpus-safety.mjs";\nimport { extractEduAILocalSymbols, renderEduAILocalSymbolDocument } from "./eduai-local-symbol-index.mjs";
 
 const ROOT = process.cwd();
 const SOURCE_ROOTS = ["app", "components", "lib", "docs", "scripts", "supabase", "data", ".github/workflows"];
@@ -93,6 +93,25 @@ for (const absolute of unique) {
   totalSourceBytes += info.size;
   byExtension[ext || "text"] = (byExtension[ext || "text"] || 0) + 1;
   const clean = sanitizeEduAILocalCorpusText(raw);
+  const symbols = extractEduAILocalSymbols(relative, clean);
+  if (symbols.length) {
+    symbolCount += symbols.length;
+    symbolFiles += 1;
+    const symbolDocument = renderEduAILocalSymbolDocument(relative, symbols);
+    chunkText(symbolDocument).forEach((content, index) => {
+      const id = createHash("sha256")
+        .update("symbol:" + relative + ":" + index + ":" + content)
+        .digest("hex")
+        .slice(0, 20);
+      symbolRecords.push({
+        id,
+        source: `__eduai__/symbols/${relative}.md`,
+        chunk: index,
+        language: "md",
+        content,
+      });
+    });
+  }
   const chunks = chunkText(clean);
   chunks.forEach((content, index) => {
     const id = createHash("sha256").update(relative + ":" + index + ":" + content).digest("hex").slice(0, 20);
@@ -120,6 +139,8 @@ const architectureGroups = {
   data: indexedSources.filter((source) => source.startsWith("data/")),
   workflows: indexedSources.filter((source) => source.startsWith(".github/workflows/")),
 };
+
+records.push(...symbolRecords);
 
 for (const [group, sources] of Object.entries(architectureGroups)) {
   const architectureText = [
@@ -209,6 +230,11 @@ const manifest = {
   filesScanned: unique.length,
   indexedFiles: Object.values(byExtension).reduce((sum, value) => sum + value, 0),
   records: records.length,
+  symbols: {
+    files: symbolFiles,
+    total: symbolCount,
+    records: symbolRecords.length,
+  },
   pathOnlySources: pathOnlySources.length,
   architecture: Object.fromEntries(
     Object.entries(architectureGroups).map(([group, sources]) => [group, sources.length]),
