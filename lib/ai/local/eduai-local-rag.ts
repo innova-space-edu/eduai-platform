@@ -12,6 +12,21 @@ export type EduAIKnowledgePack = {
   records: EduAIKnowledgeRecord[];
 };
 
+export type EduAIKnowledgeIndex = {
+  schemaVersion: number;
+  sourceProfile?: string;
+  generatedAt: string;
+  buildCommit: string;
+  totalRecords: number;
+  totalBytes: number;
+  shards: Array<{
+    index: number;
+    file: string;
+    records: number;
+    bytes: number;
+  }>;
+};
+
 export type EduAIKnowledgeState = {
   installed: boolean;
   records: number;
@@ -24,6 +39,14 @@ export type EduAIKnowledgeHit = {
   source: string;
   snippet: string;
   score: number;
+};
+
+export type EduAIKnowledgeInstallProgress = {
+  stage: "index" | "download" | "store";
+  completedShards: number;
+  totalShards: number;
+  downloadedBytes: number;
+  totalBytes: number;
 };
 
 const DB_NAME = "eduai-local-ai-v1";
@@ -97,18 +120,71 @@ function estimateBytes(pack: EduAIKnowledgePack) {
   }
 }
 
-export async function installEduAILocalKnowledgePack(
-  onProgress?: (stage: "download" | "store") => void,
-): Promise<EduAIKnowledgeState> {
-  onProgress?.("download");
-  const response = await fetch("/api/admin/ai-core/local-knowledge-pack", { cache: "no-store" });
+async function fetchJson<T>(url: string): Promise<T> {
+  const response = await fetch(url, { cache: "no-store" });
   const data = await response.json().catch(() => null);
-  if (!response.ok || !data?.records) {
+  if (!response.ok || !data) {
     throw new Error(data?.error || "No se pudo descargar el Knowledge Pack.");
   }
-  const pack = data as EduAIKnowledgePack;
-  onProgress?.("store");
+  return data as T;
+}
+
+export async function installEduAILocalKnowledgePack(
+  onProgress?: (progress: EduAIKnowledgeInstallProgress) => void,
+): Promise<EduAIKnowledgeState> {
+  onProgress?.({ stage: "index", completedShards: 0, totalShards: 0, downloadedBytes: 0, totalBytes: 0 });
+  const index = await fetchJson<EduAIKnowledgeIndex>("/api/admin/ai-core/local-knowledge-pack");
+  if (!Array.isArray(index.shards) || !index.shards.length) {
+    throw new Error("El Knowledge Pack no contiene shards.");
+  }
+
+  const records: EduAIKnowledgeRecord[] = [];
+  let downloadedBytes = 0;
+
+  for (let position = 0; position < index.shards.length; position += 1) {
+    const shardMeta = index.shards[position];
+    onProgress?.({
+      stage: "download",
+      completedShards: position,
+      totalShards: index.shards.length,
+      downloadedBytes,
+      totalBytes: index.totalBytes,
+    });
+    const shard = await fetchJson<{
+      schemaVersion: number;
+      generatedAt: string;
+      buildCommit: string;
+      index: number;
+      records: EduAIKnowledgeRecord[];
+    }>(`/api/admin/ai-core/local-knowledge-pack?shard=${shardMeta.index}`);
+
+    if (shard.buildCommit !== index.buildCommit) {
+      throw new Error("El Knowledge Pack cambió durante la descarga. Vuelve a intentarlo.");
+    }
+    records.push(...(shard.records || []));
+    downloadedBytes += shardMeta.bytes;
+  }
+
+  if (records.length !== index.totalRecords) {
+    throw new Error(`Knowledge Pack incompleto: ${records.length}/${index.totalRecords} chunks.`);
+  }
+
+  onProgress?.({
+    stage: "store",
+    completedShards: index.shards.length,
+    totalShards: index.shards.length,
+    downloadedBytes,
+    totalBytes: index.totalBytes,
+  });
+
+  const pack: EduAIKnowledgePack = {
+    schemaVersion: index.schemaVersion,
+    generatedAt: index.generatedAt,
+    buildCommit: index.buildCommit,
+    records,
+  };
   await writePack(pack);
+
   return {
     installed: true,
     records: pack.records.length,

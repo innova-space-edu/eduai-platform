@@ -1,17 +1,19 @@
 import { createHash } from "node:crypto";
-import { mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const ROOT = process.cwd();
-const SOURCE_ROOTS = ["app", "components", "lib", "docs"];
-const ROOT_FILES = ["README.md", "DESIGN.md", "SECURITY.md", "INSTALL.md"];
+const SOURCE_ROOTS = ["app", "components", "lib", "docs", "scripts", "supabase", "data", ".github/workflows"];
+const ROOT_FILES = ["README.md", "DESIGN.md", "SECURITY.md", "INSTALL.md", "package.json", "next.config.ts", "tsconfig.json", "middleware.ts", "proxy.ts"];
 const OUT_DIR = path.join(ROOT, "artifacts", "ai");
 const OUT_FILE = path.join(OUT_DIR, "eduai-local-corpus.jsonl");
 const MANIFEST_FILE = path.join(OUT_DIR, "eduai-local-corpus-manifest.json");
-const KNOWLEDGE_PACK_FILE = path.join(OUT_DIR, "eduai-local-knowledge-pack.json");
+const KNOWLEDGE_DIR = path.join(OUT_DIR, "knowledge");
+const KNOWLEDGE_INDEX_FILE = path.join(KNOWLEDGE_DIR, "index.json");
 
 const ALLOWED_EXTENSIONS = new Set([
   ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".md", ".mdx", ".json", ".css", ".sql",
+  ".py", ".sh", ".yml", ".yaml", ".toml", ".html",
 ]);
 
 const DENY_PATH = /(?:^|[\\/])(?:node_modules|\.next|\.git|public|artifacts|coverage|dist|build)(?:[\\/]|$)/i;
@@ -20,6 +22,7 @@ const SECRET_LINE = /(api[_-]?key|secret|password|private[_-]?key|service[_-]?ac
 const MAX_FILE_BYTES = 512 * 1024;
 const CHUNK_CHARS = 6000;
 const OVERLAP_CHARS = 600;
+const KNOWLEDGE_SHARD_TARGET_BYTES = 1_500_000;
 
 async function walk(target) {
   const entries = [];
@@ -53,6 +56,10 @@ function chunkText(text) {
     start = Math.max(start + 1, end - OVERLAP_CHARS);
   }
   return chunks;
+}
+
+function recordBytes(record) {
+  return Buffer.byteLength(JSON.stringify(record), "utf8") + 1;
 }
 
 const candidates = [];
@@ -105,17 +112,62 @@ await writeFile(OUT_FILE, serialized, "utf8");
 
 const generatedAt = new Date().toISOString();
 const buildCommit = (process.env.VERCEL_GIT_COMMIT_SHA || process.env.GITHUB_SHA || "local").slice(0, 40);
-const knowledgePack = {
-  schemaVersion: 1,
+
+await rm(KNOWLEDGE_DIR, { recursive: true, force: true });
+await mkdir(KNOWLEDGE_DIR, { recursive: true });
+
+const shards = [];
+let current = [];
+let currentBytes = 0;
+
+async function flushShard() {
+  if (!current.length) return;
+  const index = shards.length;
+  const file = `shard-${String(index).padStart(4, "0")}.json`;
+  const payload = {
+    schemaVersion: 2,
+    generatedAt,
+    buildCommit,
+    index,
+    records: current.map(({ id, source, language, content }) => ({ id, source, language, content })),
+  };
+  const body = JSON.stringify(payload);
+  await writeFile(path.join(KNOWLEDGE_DIR, file), body, "utf8");
+  shards.push({
+    index,
+    file,
+    records: current.length,
+    bytes: Buffer.byteLength(body, "utf8"),
+  });
+  current = [];
+  currentBytes = 0;
+}
+
+for (const record of records) {
+  const bytes = recordBytes(record);
+  if (current.length && currentBytes + bytes > KNOWLEDGE_SHARD_TARGET_BYTES) {
+    await flushShard();
+  }
+  current.push(record);
+  currentBytes += bytes;
+}
+await flushShard();
+
+const knowledgePackBytes = shards.reduce((sum, shard) => sum + shard.bytes, 0);
+const knowledgeIndex = {
+  schemaVersion: 2,
+  sourceProfile: "development-full",
   generatedAt,
   buildCommit,
-  records: records.map(({ id, source, language, content }) => ({ id, source, language, content })),
+  totalRecords: records.length,
+  totalBytes: knowledgePackBytes,
+  shards,
 };
-const knowledgePackSerialized = JSON.stringify(knowledgePack);
-await writeFile(KNOWLEDGE_PACK_FILE, knowledgePackSerialized, "utf8");
+await writeFile(KNOWLEDGE_INDEX_FILE, JSON.stringify(knowledgeIndex, null, 2) + "\n", "utf8");
 
 const manifest = {
-  schemaVersion: 2,
+  schemaVersion: 3,
+  sourceProfile: "development-full",
   generatedAt,
   buildCommit,
   roots: SOURCE_ROOTS,
@@ -127,8 +179,10 @@ const manifest = {
   skipped,
   totalSourceBytes,
   corpusBytes: Buffer.byteLength(serialized),
-  knowledgePack: path.relative(ROOT, KNOWLEDGE_PACK_FILE).replaceAll("\\", "/"),
-  knowledgePackBytes: Buffer.byteLength(knowledgePackSerialized),
+  knowledgePackIndex: path.relative(ROOT, KNOWLEDGE_INDEX_FILE).replaceAll("\\", "/"),
+  knowledgePackBytes,
+  knowledgePackShards: shards.length,
+  knowledgeShardTargetBytes: KNOWLEDGE_SHARD_TARGET_BYTES,
   byExtension,
   policy: {
     repositoryOnly: true,

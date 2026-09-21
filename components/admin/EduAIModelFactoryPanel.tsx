@@ -17,6 +17,7 @@ import {
   clearEduAILocalKnowledgePack,
   getEduAILocalKnowledgeState,
   installEduAILocalKnowledgePack,
+  type EduAIKnowledgeInstallProgress,
   type EduAIKnowledgeState,
 } from "@/lib/ai/local/eduai-local-rag";
 
@@ -34,6 +35,7 @@ type FactoryPayload = {
     totalSourceBytes?: number;
     corpusBytes?: number;
     knowledgePackBytes?: number;
+    knowledgePackShards?: number;
     byExtension?: Record<string, number>;
     policy?: {
       repositoryOnly?: boolean;
@@ -69,7 +71,8 @@ export default function EduAIModelFactoryPanel() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [knowledge, setKnowledge] = useState<EduAIKnowledgeState | null>(null);
-  const [knowledgeBusy, setKnowledgeBusy] = useState<"download" | "store" | "clear" | null>(null);
+  const [knowledgeBusy, setKnowledgeBusy] = useState<"index" | "download" | "store" | "clear" | null>(null);
+  const [knowledgeProgress, setKnowledgeProgress] = useState<EduAIKnowledgeInstallProgress | null>(null);
 
   async function load() {
     setLoading(true);
@@ -97,12 +100,13 @@ export default function EduAIModelFactoryPanel() {
   async function installKnowledge() {
     setError("");
     try {
-      const state = await installEduAILocalKnowledgePack((stage) => setKnowledgeBusy(stage));
+      const state = await installEduAILocalKnowledgePack((progress) => { setKnowledgeBusy(progress.stage); setKnowledgeProgress(progress); });
       setKnowledge(state);
     } catch (installError) {
       setError(installError instanceof Error ? installError.message : "No se pudo instalar el Knowledge Pack.");
     } finally {
       setKnowledgeBusy(null);
+      setKnowledgeProgress(null);
     }
   }
 
@@ -126,6 +130,12 @@ export default function EduAIModelFactoryPanel() {
 
   const manifest = payload?.manifest;
   const factory = payload?.factory;
+  const knowledgeStale = Boolean(
+    knowledge?.installed &&
+    knowledge.buildCommit &&
+    manifest?.buildCommit &&
+    knowledge.buildCommit !== manifest.buildCommit,
+  );
 
   return (
     <section className="overflow-hidden rounded-[30px] border border-fuchsia-400/15 bg-[radial-gradient(circle_at_top_right,rgba(217,70,239,0.08),transparent_30%),linear-gradient(180deg,#10091c,#060913)] p-5 sm:p-6">
@@ -164,12 +174,25 @@ export default function EduAIModelFactoryPanel() {
             <p className="mt-2 text-[11px] leading-5 text-slate-400">Guarda el conocimiento saneado del repositorio en IndexedDB. Una vez instalado, el chat local puede recuperar código y documentación aunque la conexión se pierda durante la sesión.</p>
             <p className="mt-2 text-[10px] text-slate-600">
               Estado: {knowledge?.installed ? `${knowledge.records} chunks · ${bytes(knowledge.sizeBytes)} · commit ${knowledge.buildCommit?.slice(0, 8) || "local"}` : "no instalado en este navegador"}.
+              {manifest?.knowledgePackShards ? ` Servidor: ${manifest.knowledgePackShards} shards.` : ""}
+              {knowledgeStale ? " Hay una versión más nueva disponible." : knowledge?.installed ? " Pack actualizado." : ""}
             </p>
+            {knowledgeProgress && knowledgeBusy !== "clear" ? (
+              <div className="mt-2">
+                <div className="flex items-center justify-between text-[9px] font-black text-slate-500">
+                  <span>{knowledgeBusy === "index" ? "Leyendo índice" : knowledgeBusy === "store" ? "Guardando en IndexedDB" : "Descargando shards"}</span>
+                  <span>{knowledgeProgress.totalShards ? Math.round((knowledgeProgress.completedShards / knowledgeProgress.totalShards) * 100) + "%" : "…"}</span>
+                </div>
+                <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-900">
+                  <div className="h-full rounded-full bg-cyan-400" style={{ width: knowledgeProgress.totalShards ? Math.max(3, Math.round((knowledgeProgress.completedShards / knowledgeProgress.totalShards) * 100)) + "%" : "3%" }} />
+                </div>
+              </div>
+            ) : null}
           </div>
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => void installKnowledge()} disabled={Boolean(knowledgeBusy) || !payload?.available} className="inline-flex items-center gap-2 rounded-xl border border-cyan-400/20 bg-cyan-950/30 px-4 py-2.5 text-xs font-black text-cyan-100 disabled:opacity-40">
-              {knowledgeBusy === "download" || knowledgeBusy === "store" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-              {knowledgeBusy === "download" ? "Descargando…" : knowledgeBusy === "store" ? "Guardando…" : knowledge?.installed ? "Actualizar pack" : "Instalar pack"}
+              {knowledgeBusy === "index" || knowledgeBusy === "download" || knowledgeBusy === "store" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              {knowledgeBusy === "index" ? "Preparando…" : knowledgeBusy === "download" ? "Descargando…" : knowledgeBusy === "store" ? "Guardando…" : knowledgeStale ? "Actualizar ahora" : knowledge?.installed ? "Reinstalar pack" : "Instalar pack"}
             </button>
             <button type="button" onClick={() => void clearKnowledge()} disabled={!knowledge?.installed || Boolean(knowledgeBusy)} className="inline-flex items-center gap-2 rounded-xl border border-red-400/15 bg-red-950/20 px-3 py-2.5 text-[10px] font-black text-red-200 disabled:opacity-30">
               <Trash2 className="h-3.5 w-3.5" /> Borrar local
@@ -180,7 +203,7 @@ export default function EduAIModelFactoryPanel() {
 
       <div className="mt-5 grid gap-3 lg:grid-cols-4">
         {[
-          ["1 · Corpus", "app, components, lib y docs se regeneran en cada build."],
+          ["1 · Corpus", "App, componentes, librerías, scripts, Supabase, datos, workflows y configuración se regeneran en cada build."],
           ["2 · RAG", "El conocimiento del código se actualiza sin volver a entrenar los pesos."],
           ["3 · LoRA", "Entrenamos routing, herramientas, estilo EDUAI y respuestas estructuradas."],
           ["4 · GGUF", "Fusionamos, cuantizamos y validamos el modelo antes de publicarlo en el runtime local."],

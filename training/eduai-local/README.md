@@ -4,7 +4,7 @@ Esta carpeta contiene la ruta reproducible para crear una familia propia de mode
 
 ## Arquitectura
 
-- **Corpus/RAG:** `scripts/build-eduai-local-corpus.mjs` indexa `app/`, `components/`, `lib/` y `docs/` en cada build. El mismo proceso genera un Knowledge Pack que puede cachearse en el navegador.
+- **Corpus/RAG:** `scripts/build-eduai-local-corpus.mjs` indexa la capa de desarrollo completa: `app/`, `components/`, `lib/`, `docs/`, `scripts/`, `supabase/`, `data/`, workflows y archivos de configuración. El mismo proceso genera un Knowledge Pack cacheable en el navegador.
 - **Fine-tuning:** LoRA/QLoRA aprende comportamiento estable: selección de herramientas, formatos, estilo EDUAI, límites y respuestas estructuradas.
 - **Inferencia:** los artefactos finales se convierten a GGUF, se cuantizan y se prueban en `admin/model-lab` con wllama.
 - **Producción:** permanece bloqueada hasta pasar benchmark, seguridad y Production Gate.
@@ -49,7 +49,7 @@ El corpus automático no incorpora conversaciones ni datos de estudiantes por de
 
 ## Knowledge Pack
 
-El Knowledge Pack generado en build puede instalarse desde Model Lab. Se guarda en IndexedDB y el runtime local busca fragmentos relevantes antes de generar una respuesta. El modelo devuelve además la lista de archivos usados como contexto.
+El Knowledge Pack generado en build puede instalarse desde Model Lab. Se divide en shards de aproximadamente 1,5 MB para evitar respuestas serverless gigantes, se reconstruye en IndexedDB y el runtime local busca fragmentos relevantes antes de generar una respuesta. El panel compara el commit instalado con el build actual y avisa si el pack está desactualizado. El modelo devuelve además la lista de archivos usados como contexto.
 
 ## Siguiente artefacto
 
@@ -61,4 +61,4 @@ Después de entrenar:
 4. registrar los GGUF como candidatos en Model Lab;
 5. comparar calidad, RAM, VRAM, latencia y estabilidad antes de promoción.
 
-Estado: Model Factory v2 · familia multi-hardware + Knowledge Pack local.
+Estado: Model Factory v3 · familia multi-hardware + Knowledge Pack local shardeado.

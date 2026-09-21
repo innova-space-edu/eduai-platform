@@ -62,6 +62,7 @@ export default function EduAILocalRuntimePanel() {
   const [answer, setAnswer] = useState("");
   const [answerMs, setAnswerMs] = useState<number | null>(null);
   const [knowledgeSources, setKnowledgeSources] = useState<string[]>([]);
+  const [fallbackModelId, setFallbackModelId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [manualRamGB, setManualRamGB] = useState<number | null>(null);
   const [manualVramGB, setManualVramGB] = useState<number | null>(null);
@@ -189,6 +190,7 @@ export default function EduAILocalRuntimePanel() {
     setAnswer("");
     setAnswerMs(null);
     setKnowledgeSources([]);
+    setFallbackModelId(null);
     try {
       const result = await loadEduAILocalModel(selectedModelId, mode, setProgress);
       if (!mountedRef.current) return;
@@ -201,6 +203,11 @@ export default function EduAILocalRuntimePanel() {
       if (!mountedRef.current) return;
       setLoadedModelId(null);
       setStatus("error");
+      const fallback = [...EDUAI_LOCAL_MODELS]
+        .filter((model) => model.role !== "router" && model.sizeMB < selected.sizeMB)
+        .filter((model) => evaluateEduAILocalModel(model, effectiveProfile) !== "avoid")
+        .sort((a, b) => b.sizeMB - a.sizeMB)[0];
+      setFallbackModelId(fallback?.id || null);
       setError(loadError instanceof Error ? loadError.message : "No se pudo cargar el modelo.");
     }
   }
@@ -545,7 +552,16 @@ export default function EduAILocalRuntimePanel() {
         </div>
       </div>
 
-      {error ? <div className="mt-4 rounded-2xl border border-red-400/20 bg-red-950/20 p-3 text-xs text-red-200">{error}</div> : null}
+      {error ? (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-red-400/20 bg-red-950/20 p-3 text-xs text-red-200">
+          <span>{error}</span>
+          {fallbackModelId ? (
+            <button type="button" onClick={() => { selectModel(fallbackModelId); setError(""); setStatus("idle"); }} className="rounded-xl border border-amber-300/20 bg-amber-950/30 px-3 py-2 text-[10px] font-black text-amber-100">
+              Probar fallback: {getEduAILocalModel(fallbackModelId).label}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
     </section>
   );
 }
