@@ -120,106 +120,62 @@ function cn(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(" ");
 }
 
-function CyberHexField({ active }: { active: boolean }) {
-  const cells = [
-    [120, 92, "#25f4ff"], [280, 46, "#9b6cff"], [430, 132, "#ff42cf"],
-    [610, 70, "#25f4ff"], [820, 126, "#44ffd2"], [1040, 52, "#ff42cf"],
-    [1240, 146, "#4aa8ff"], [1420, 74, "#25f4ff"], [180, 322, "#ff42cf"],
-    [360, 266, "#25f4ff"], [560, 354, "#9b6cff"], [780, 286, "#25f4ff"],
-    [990, 350, "#ff42cf"], [1190, 280, "#44ffd2"], [1390, 362, "#9b6cff"],
-    [100, 560, "#25f4ff"], [320, 512, "#44ffd2"], [520, 610, "#ff42cf"],
-    [760, 526, "#9b6cff"], [980, 620, "#25f4ff"], [1210, 520, "#ff42cf"],
-    [1450, 610, "#25f4ff"], [190, 780, "#9b6cff"], [440, 748, "#25f4ff"],
-    [690, 826, "#ff42cf"], [930, 760, "#44ffd2"], [1180, 830, "#9b6cff"],
-    [1420, 760, "#25f4ff"],
-  ] as const;
+const RHYTHM_PENTAGONS = [
+  { left: "-1%", top: "8%", size: 78, glow: "#25f4ff", delay: 0, travelX: 18, travelY: -8, rotate: -8 },
+  { left: "8%", top: "25%", size: 54, glow: "#ff42cf", delay: -0.08, travelX: 22, travelY: 5, rotate: 11 },
+  { left: "-2%", top: "49%", size: 68, glow: "#9b6cff", delay: -0.16, travelX: 19, travelY: 8, rotate: -13 },
+  { left: "11%", top: "70%", size: 48, glow: "#25f4ff", delay: -0.24, travelX: 20, travelY: -5, rotate: 8 },
+  { left: "3%", top: "84%", size: 62, glow: "#ff42cf", delay: -0.32, travelX: 15, travelY: -10, rotate: -6 },
+  { left: "95%", top: "7%", size: 72, glow: "#ff42cf", delay: -0.04, travelX: -18, travelY: 8, rotate: 9 },
+  { left: "88%", top: "24%", size: 50, glow: "#25f4ff", delay: -0.12, travelX: -22, travelY: -4, rotate: -10 },
+  { left: "96%", top: "45%", size: 64, glow: "#9b6cff", delay: -0.2, travelX: -18, travelY: 7, rotate: 12 },
+  { left: "87%", top: "68%", size: 54, glow: "#ff42cf", delay: -0.28, travelX: -23, travelY: 0, rotate: -8 },
+  { left: "94%", top: "83%", size: 74, glow: "#25f4ff", delay: -0.36, travelX: -16, travelY: -9, rotate: 7 },
+  { left: "28%", top: "-2%", size: 44, glow: "#25f4ff", delay: -0.1, travelX: 0, travelY: 17, rotate: 6 },
+  { left: "70%", top: "-2%", size: 46, glow: "#ff42cf", delay: -0.22, travelX: 0, travelY: 18, rotate: -7 },
+  { left: "30%", top: "93%", size: 42, glow: "#9b6cff", delay: -0.3, travelX: 0, travelY: -18, rotate: 9 },
+  { left: "69%", top: "92%", size: 48, glow: "#25f4ff", delay: -0.38, travelX: 0, travelY: -17, rotate: -5 },
+] as const;
+
+function CyberStaticBackdrop() {
+  return <div className="cyber-static-backdrop" aria-hidden="true" />;
+}
+
+function RhythmPentagonField({
+  active,
+  currentTime,
+}: {
+  active: boolean;
+  currentTime: number;
+}) {
+  // 0.5 s = pulso visual de 120 BPM. Se recalibra con el reloj real de
+  // reproducción para que pausa/seek no desfasen las figuras.
+  const cycleSeconds = 0.5;
+  const phase = -(Math.max(0, currentTime) % cycleSeconds);
 
   return (
-    <div className={cn("cyber-hex-field", active && "is-playing")} aria-hidden="true">
-      <svg viewBox="0 0 1600 960" preserveAspectRatio="xMidYMid slice" className="h-full w-full">
-        <defs>
-          <linearGradient id="cyber-space" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#020713" />
-            <stop offset="46%" stopColor="#061321" />
-            <stop offset="100%" stopColor="#090313" />
-          </linearGradient>
-          <linearGradient id="cyber-edge" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#25f4ff" />
-            <stop offset="48%" stopColor="#9b6cff" />
-            <stop offset="100%" stopColor="#ff42cf" />
-          </linearGradient>
-          <pattern id="cyber-hex-pattern" width="112" height="96" patternUnits="userSpaceOnUse">
-            <path
-              d="M28 2H84L110 48 84 94H28L2 48Z"
-              fill="#07111d"
-              fillOpacity=".72"
-              stroke="#2d6175"
-              strokeOpacity=".32"
-              strokeWidth="1.2"
-            />
-            <path d="M29 5H82" stroke="#7cecff" strokeOpacity=".08" />
-          </pattern>
-          <filter id="cyber-glow" x="-80%" y="-80%" width="260%" height="260%">
-            <feGaussianBlur stdDeviation="7" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-          <filter id="cyber-energy" x="-30%" y="-30%" width="160%" height="160%">
-            <feTurbulence
-              type="fractalNoise"
-              baseFrequency=".008 .018"
-              numOctaves="1"
-              seed="9"
-              result="noise"
-            >
-              <animate
-                attributeName="baseFrequency"
-                values=".008 .018;.012 .024;.008 .018"
-                dur="14s"
-                repeatCount="indefinite"
-              />
-            </feTurbulence>
-            <feDisplacementMap in="SourceGraphic" in2="noise" scale="9" xChannelSelector="R" yChannelSelector="B" />
-          </filter>
-        </defs>
-
-        <rect width="1600" height="960" fill="url(#cyber-space)" />
-        <rect width="1600" height="960" fill="url(#cyber-hex-pattern)" opacity=".94" />
-
-        <g className="cyber-svg-depth">
-          {cells.map(([x, y, color], index) => (
-            <g
-              key={`${x}-${y}`}
-              className="cyber-svg-cell"
-              style={{ "--cell-delay": `${-(index % 9) * 0.72}s` } as CSSProperties}
-              transform={`translate(${x} ${y})`}
-            >
-              <path
-                d="M-34 -28H34L52 0 34 28H-34L-52 0Z"
-                fill="#071421"
-                stroke={color}
-                strokeOpacity={index % 3 === 0 ? ".95" : ".55"}
-                strokeWidth={index % 4 === 0 ? "3" : "1.5"}
-                filter={index % 4 === 0 ? "url(#cyber-glow)" : undefined}
-              />
-              {index % 4 === 0 && (
-                <path d="M-24 28H24" stroke={color} strokeWidth="4" strokeLinecap="round" filter="url(#cyber-glow)" />
-              )}
-            </g>
-          ))}
-        </g>
-
-        <g filter="url(#cyber-energy)" className="cyber-energy-network">
-          <path d="M-80 250C160 210 240 350 430 300S760 140 950 220 1260 440 1700 260" />
-          <path d="M-120 700C140 610 260 760 470 690S820 470 1040 610 1320 810 1710 650" />
-          <path d="M230 -40C310 210 220 390 360 520S690 730 620 1010" />
-          <path d="M1180 -70C1080 210 1210 370 1100 520S970 790 1060 1010" />
-        </g>
-
-        <rect x="1" y="1" width="1598" height="958" fill="none" stroke="url(#cyber-edge)" strokeOpacity=".12" />
-      </svg>
+    <div
+      className={cn("cyber-rhythm-field", active && "is-playing")}
+      aria-hidden="true"
+    >
+      {RHYTHM_PENTAGONS.map((pentagon, index) => (
+        <span
+          key={index}
+          className="rhythm-pentagon"
+          style={
+            {
+              left: pentagon.left,
+              top: pentagon.top,
+              width: `${pentagon.size}px`,
+              "--pentagon-glow": pentagon.glow,
+              "--travel-x": `${pentagon.travelX}px`,
+              "--travel-y": `${pentagon.travelY}px`,
+              "--pentagon-rotate": `${pentagon.rotate}deg`,
+              animationDelay: `${phase + pentagon.delay}s`,
+            } as CSSProperties
+          }
+        />
+      ))}
     </div>
   );
 }
@@ -2000,7 +1956,8 @@ export default function EduAIMusicPlayer({
 
   return (
     <div className="eduai-music-cyber relative h-screen min-h-[680px] overflow-hidden bg-[#05070a] text-white">
-      <CyberHexField active={music.playing} />
+      <CyberStaticBackdrop />
+      <RhythmPentagonField active={music.playing} currentTime={music.currentTime} />
       <style jsx global>{`
         @keyframes eduai-dj-progress {
           from { transform: scaleX(0); }
@@ -2011,20 +1968,6 @@ export default function EduAIMusicPlayer({
           55% { transform: translateX(180%); }
           100% { transform: translateX(280%); }
         }
-        @keyframes cyber-hex-lift {
-          0%, 100% { transform: translate3d(0, 0, 0) scale(.96); opacity: .34; }
-          38% { transform: translate3d(0, calc(var(--lift) * -1), 22px) scale(1.025); opacity: .86; }
-          68% { transform: translate3d(0, calc(var(--lift) * .42), -10px) scale(.985); opacity: .52; }
-        }
-        @keyframes cyber-cell-glow {
-          0%, 100% { filter: brightness(.72) saturate(1); }
-          45% { filter: brightness(1.5) saturate(1.5); }
-        }
-        @keyframes cyber-aurora {
-          0% { transform: translate3d(-6%, -4%, 0) scale(1); }
-          50% { transform: translate3d(7%, 5%, 0) scale(1.12); }
-          100% { transform: translate3d(-6%, -4%, 0) scale(1); }
-        }
         @keyframes cyber-player-flow {
           0% { transform: translateX(-45%); opacity: .35; }
           50% { opacity: .9; }
@@ -2034,19 +1977,6 @@ export default function EduAIMusicPlayer({
           0%, 100% { transform: scaleY(.18); opacity: .45; }
           50% { transform: scaleY(1); opacity: 1; }
         }
-        @keyframes cyber-wall-drift {
-          0%, 100% { transform: translate3d(-1.2%, -1%, 0) scale(1.025); }
-          50% { transform: translate3d(1.1%, .8%, 0) scale(1.055); }
-        }
-        @keyframes cyber-svg-lift {
-          0%, 100% { transform: translate3d(0,0,0) scale(.96); opacity: .58; }
-          45% { transform: translate3d(0,-8px,0) scale(1.12); opacity: 1; }
-          70% { transform: translate3d(0,4px,0) scale(.985); opacity: .72; }
-        }
-        @keyframes cyber-energy-flow {
-          from { stroke-dashoffset: 0; }
-          to { stroke-dashoffset: -128; }
-        }
         @keyframes cyber-ring-spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
@@ -2055,82 +1985,130 @@ export default function EduAIMusicPlayer({
           0%,100% { stroke-dashoffset: 90; opacity: .3; }
           50% { stroke-dashoffset: 0; opacity: 1; }
         }
+        @keyframes cyber-pentagon-beat {
+          0%, 100% {
+            transform:
+              perspective(760px)
+              translate3d(0, 0, -22px)
+              scale(.76)
+              rotate(var(--pentagon-rotate));
+            opacity: .18;
+            filter: brightness(.78) saturate(.92);
+          }
+          24% {
+            opacity: .38;
+          }
+          46% {
+            transform:
+              perspective(760px)
+              translate3d(var(--travel-x), var(--travel-y), 54px)
+              scale(1.16)
+              rotate(var(--pentagon-rotate));
+            opacity: .88;
+            filter: brightness(1.45) saturate(1.35);
+          }
+          62% {
+            transform:
+              perspective(760px)
+              translate3d(
+                calc(var(--travel-x) * .35),
+                calc(var(--travel-y) * .35),
+                14px
+              )
+              scale(.94)
+              rotate(var(--pentagon-rotate));
+            opacity: .52;
+            filter: brightness(1.06) saturate(1.12);
+          }
+        }
         .eduai-music-cyber {
           --cyber-cyan: #25f4ff;
           --cyber-pink: #ff42cf;
           --cyber-violet: #9b6cff;
           --cyber-blue: #4aa8ff;
-          background:
-            radial-gradient(circle at 12% 12%, rgba(37,244,255,.12), transparent 30%),
-            radial-gradient(circle at 88% 18%, rgba(255,66,207,.12), transparent 26%),
-            radial-gradient(circle at 54% 88%, rgba(155,108,255,.14), transparent 32%),
-            #02050c;
+          background: #02050c;
           isolation: isolate;
         }
-        .eduai-music-cyber::before {
-          content: "";
-          position: absolute;
-          inset: -22%;
-          z-index: 0;
-          pointer-events: none;
-          background:
-            radial-gradient(circle at 22% 30%, rgba(37,244,255,.13), transparent 24%),
-            radial-gradient(circle at 68% 24%, rgba(255,66,207,.12), transparent 22%),
-            radial-gradient(circle at 50% 72%, rgba(155,108,255,.14), transparent 28%);
-          filter: blur(26px);
-          animation: cyber-aurora 18s ease-in-out infinite;
-        }
-        .cyber-hex-field {
+        .cyber-static-backdrop {
           position: absolute;
           inset: 0;
           z-index: 0;
           pointer-events: none;
-          opacity: .72;
+          background:
+            linear-gradient(180deg, rgba(1,5,12,.08), rgba(1,5,12,.22)),
+            url("/music/eduai-music-cyber-bg.webp") center / cover no-repeat;
+          filter: saturate(1.08) contrast(1.04);
+          transform: scale(1.01);
+          transform-origin: center;
+        }
+        .cyber-static-backdrop::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background:
+            radial-gradient(circle at 50% 38%, transparent 0 32%, rgba(0,0,0,.12) 68%, rgba(0,0,0,.34) 100%),
+            linear-gradient(90deg, rgba(0,0,0,.11), transparent 22%, transparent 78%, rgba(0,0,0,.11));
+        }
+        .cyber-rhythm-field {
+          position: absolute;
+          inset: 0;
+          z-index: 1;
           overflow: hidden;
-          transition: opacity .5s ease, filter .5s ease;
+          pointer-events: none;
+          perspective: 900px;
         }
-        .cyber-hex-field > svg {
+        .rhythm-pentagon {
+          --pentagon-glow: #25f4ff;
+          --travel-x: 0px;
+          --travel-y: 0px;
+          --pentagon-rotate: 0deg;
+          position: absolute;
+          aspect-ratio: 1;
           display: block;
-          width: 100%;
-          height: 100%;
+          clip-path: polygon(50% 0%, 100% 38%, 81% 100%, 19% 100%, 0% 38%);
+          background:
+            linear-gradient(
+              145deg,
+              color-mix(in srgb, var(--pentagon-glow) 66%, white 8%),
+              color-mix(in srgb, var(--pentagon-glow) 20%, #040815)
+            );
+          opacity: .2;
+          transform:
+            perspective(760px)
+            translate3d(0, 0, -22px)
+            scale(.76)
+            rotate(var(--pentagon-rotate));
+          animation: cyber-pentagon-beat .5s cubic-bezier(.2,.72,.24,1) infinite;
+          animation-play-state: paused;
+          will-change: transform, opacity, filter;
+          filter: drop-shadow(0 0 9px color-mix(in srgb, var(--pentagon-glow) 58%, transparent));
         }
-        .cyber-svg-depth {
-          transform-box: fill-box;
-          transform-origin: center;
-          animation: cyber-wall-drift 18s ease-in-out infinite;
+        .rhythm-pentagon::before {
+          content: "";
+          position: absolute;
+          inset: 3px;
+          clip-path: inherit;
+          background:
+            radial-gradient(circle at 36% 26%, rgba(255,255,255,.08), transparent 30%),
+            linear-gradient(145deg, rgba(5,17,29,.96), rgba(2,6,15,.98));
         }
-        .cyber-svg-cell {
-          transform-box: fill-box;
-          transform-origin: center;
-          animation: cyber-svg-lift 6.8s ease-in-out infinite;
-          animation-delay: var(--cell-delay);
-        }
-        .cyber-energy-network path {
-          fill: none;
-          stroke: url(#cyber-edge);
-          stroke-width: 2.2;
-          stroke-linecap: round;
-          stroke-dasharray: 10 22;
+        .rhythm-pentagon::after {
+          content: "";
+          position: absolute;
+          inset: 14%;
+          clip-path: inherit;
+          border: 1px solid color-mix(in srgb, var(--pentagon-glow) 48%, transparent);
+          background: color-mix(in srgb, var(--pentagon-glow) 8%, transparent);
           opacity: .52;
-          animation: cyber-energy-flow 8s linear infinite;
         }
-        .cyber-energy-network path:nth-child(2n) {
-          animation-direction: reverse;
-          animation-duration: 11s;
-          opacity: .4;
-        }
-        .cyber-hex-field.is-playing {
-          opacity: .94;
-          filter: saturate(1.16) brightness(1.08);
-        }
-        .cyber-hex-field.is-playing .cyber-svg-cell {
-          animation-duration: 4.2s;
+        .cyber-rhythm-field.is-playing .rhythm-pentagon {
+          animation-play-state: running;
         }
         .cyber-topbar,
         .cyber-sidebar,
         .cyber-rightbar,
         .cyber-playerbar {
-          background: linear-gradient(180deg, rgba(3, 10, 19, .92), rgba(2, 7, 15, .82)) !important;
+          background: linear-gradient(180deg, rgba(3, 10, 19, .82), rgba(2, 7, 15, .70)) !important;
           border-color: rgba(77, 229, 255, .24) !important;
           backdrop-filter: blur(22px) saturate(1.32);
           -webkit-backdrop-filter: blur(22px) saturate(1.32);
@@ -2139,7 +2117,7 @@ export default function EduAIMusicPlayer({
         .cyber-now-card,
         .cyber-main > section {
           background:
-            linear-gradient(145deg, rgba(4,15,27,.84), rgba(3,8,18,.78) 54%, rgba(31,5,38,.58)) !important;
+            linear-gradient(145deg, rgba(4,15,27,.68), rgba(3,8,18,.62) 54%, rgba(31,5,38,.50)) !important;
           border-color: rgba(77,229,255,.28) !important;
           backdrop-filter: blur(18px) saturate(1.25);
           -webkit-backdrop-filter: blur(18px) saturate(1.25);
@@ -2154,7 +2132,7 @@ export default function EduAIMusicPlayer({
           box-shadow: inset 0 0 34px rgba(37,244,255,.025);
         }
         .cyber-main {
-          background: rgba(1, 5, 12, .24) !important;
+          background: rgba(1, 5, 12, .12) !important;
         }
         .cyber-hero-grid {
           background:
@@ -2335,16 +2313,14 @@ export default function EduAIMusicPlayer({
           color: white;
         }
         @media (max-width: 1180px) {
-          .cyber-hex-field { opacity: .58; }
+          .cyber-static-backdrop { background-position: center; }
+          .cyber-rhythm-field { opacity: .82; }
           .cyber-hero-grid + svg { opacity: .56; }
         }
         @media (prefers-reduced-motion: reduce) {
-          .cyber-svg-cell,
-          .cyber-svg-depth,
-          .cyber-energy-network path,
+          .rhythm-pentagon,
           .cyber-hero-rings,
           .cyber-hero-streak,
-          .eduai-music-cyber::before,
           .cyber-playerbar::before {
             animation: none !important;
           }
