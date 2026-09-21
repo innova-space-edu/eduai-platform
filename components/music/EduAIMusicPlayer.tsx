@@ -1920,6 +1920,670 @@ function CompactPanel({ onOpenPanel }: { onOpenPanel?: () => void }) {
   );
 }
 
+
+function NeonSpectrum({
+  active,
+  bars = 30,
+  className,
+}: {
+  active: boolean;
+  bars?: number;
+  className?: string;
+}) {
+  return (
+    <div className={cn("neon-spectrum flex items-end gap-[2px]", className)} aria-hidden="true">
+      {Array.from({ length: bars }, (_, index) => (
+        <span
+          key={index}
+          className={cn("neon-spectrum-bar", active && "is-playing")}
+          style={
+            {
+              "--eq-delay": `${-(index % 11) * 0.055}s`,
+              "--eq-height": `${30 + ((index * 17) % 66)}%`,
+            } as CSSProperties
+          }
+        />
+      ))}
+    </div>
+  );
+}
+
+function NeonSidebar({
+  onOpenSpotify,
+  spotifyActive,
+  onNavigate,
+}: {
+  onOpenSpotify: () => void;
+  spotifyActive: boolean;
+  onNavigate: () => void;
+}) {
+  const music = useEduAIMusic();
+
+  return (
+    <aside className="neon-sidebar flex min-h-0 flex-col px-[clamp(12px,1.25vw,22px)] pb-4 pt-5">
+      <div className="flex items-center gap-3 pl-1">
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-300/30 bg-cyan-400/10 shadow-[0_0_24px_rgba(37,244,255,.18)]">
+          <Music2 className="h-5 w-5 text-cyan-200" />
+        </div>
+        <div className="min-w-0">
+          <p className="neon-title-gradient text-[clamp(15px,1.25vw,22px)] font-black leading-none tracking-tight">
+            EDUAI <span className="italic">Music</span>
+          </p>
+          <p className="mt-1 text-[9px] font-black uppercase tracking-[0.23em] text-cyan-300/85">
+            Neon audio // live
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-5 space-y-1">
+        {NAV_ITEMS.map((item) => {
+          const Icon = item.icon;
+          const active = item.id === "spotify" ? spotifyActive : music.view === item.view;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => {
+                if (item.id === "spotify") {
+                  onOpenSpotify();
+                  return;
+                }
+                onNavigate();
+                if (item.view) music.setView(item.view);
+              }}
+              className={cn(
+                "neon-nav-button group flex h-10 w-full items-center gap-3 rounded-xl px-3 text-left text-[12px] font-bold transition",
+                active
+                  ? "is-active text-cyan-100"
+                  : "text-slate-300 hover:text-white",
+              )}
+            >
+              <Icon className={cn("h-[17px] w-[17px] shrink-0", active ? "text-cyan-200" : "text-slate-400 group-hover:text-cyan-200")} />
+              <span className="truncate">{item.label}</span>
+              {active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_10px_rgba(37,244,255,.95)]" />}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="mt-4 border-t border-cyan-300/15 pt-3">
+        <div className="flex items-center justify-between px-2">
+          <div>
+            <p className="text-[9px] font-black uppercase tracking-[0.18em] text-cyan-200/80">Biblioteca</p>
+            <p className="mt-0.5 text-[9px] text-slate-500">Tus playlists</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => music.setCreateOpen((value) => !value)}
+            className="flex h-7 w-7 items-center justify-center rounded-full text-slate-400 transition hover:bg-cyan-400/12 hover:text-cyan-200"
+            title="Crear playlist"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+        </div>
+
+        {music.createOpen && (
+          <div className="mt-2 flex gap-1 px-1">
+            <input
+              value={music.newPlaylistName}
+              onChange={(event) => music.setNewPlaylistName(event.target.value)}
+              onKeyDown={(event) => event.key === "Enter" && music.createPlaylist()}
+              placeholder="Nueva playlist"
+              className="min-w-0 flex-1 rounded-lg border border-cyan-300/20 bg-black/20 px-2 py-1.5 text-[10px] text-white outline-none placeholder:text-slate-600 focus:border-cyan-300/50"
+            />
+            <button
+              type="button"
+              onClick={music.createPlaylist}
+              className="rounded-lg bg-cyan-400 px-2 text-[10px] font-black text-slate-950"
+            >
+              Crear
+            </button>
+          </div>
+        )}
+
+        <div className="mt-2 space-y-0.5">
+          {music.userPlaylists.slice(0, 6).map((playlist) => (
+            <button
+              key={playlist.id}
+              type="button"
+              onClick={() => {
+                onNavigate();
+                music.setSelectedPlaylistId(playlist.id);
+                music.setView("playlists");
+              }}
+              className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[10px] font-semibold text-slate-400 transition hover:bg-white/5 hover:text-white"
+            >
+              <span
+                className="h-6 w-6 shrink-0 rounded-md border border-white/10"
+                style={{ background: playlist.cover || "linear-gradient(135deg,#25f4ff,#9b6cff,#ff42cf)" }}
+              />
+              <span className="min-w-0 flex-1 truncate">{playlist.name}</span>
+              <span className="text-[9px] text-slate-600">{playlist.trackIds.length}</span>
+            </button>
+          ))}
+          {!music.userPlaylists.length && (
+            <button
+              type="button"
+              onClick={() => music.setCreateOpen(true)}
+              className="w-full rounded-lg px-2 py-2 text-left text-[10px] text-slate-500 transition hover:bg-white/5 hover:text-cyan-200"
+            >
+              + Crear tu primera playlist
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-auto border-t border-cyan-300/15 pt-3">
+        <button
+          type="button"
+          onClick={() => music.setView("library")}
+          className="flex w-full items-center gap-2 rounded-xl px-2 py-2 text-left transition hover:bg-white/5"
+        >
+          <span className="h-8 w-8 rounded-full border border-fuchsia-300/30 bg-[radial-gradient(circle_at_35%_30%,#25f4ff,#6d4cff_48%,#ff42cf_82%,#030713)] shadow-[0_0_16px_rgba(155,108,255,.28)]" />
+          <span className="min-w-0">
+            <span className="block truncate text-[11px] font-black text-white">Mi biblioteca</span>
+            <span className="block truncate text-[9px] text-cyan-300/80">{music.uploadedTracks.length} audios propios</span>
+          </span>
+        </button>
+      </div>
+    </aside>
+  );
+}
+
+function NeonRecentCard({
+  track,
+  tracks,
+}: {
+  track: EduMusicTrack;
+  tracks: EduMusicTrack[];
+}) {
+  const music = useEduAIMusic();
+  const active = music.currentTrack.id === track.id;
+  const artwork = track.artworkUrl || track.videoThumbnail || (track.cover?.startsWith("http") ? track.cover : undefined);
+
+  return (
+    <button
+      type="button"
+      onClick={() => music.playTrack(track, tracks)}
+      className={cn("neon-recent-card group min-w-0 text-left", active && "is-active")}
+    >
+      <div className="relative aspect-[1.18] overflow-hidden rounded-xl border border-cyan-300/15 bg-black/18">
+        {artwork ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={artwork} alt="" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+        ) : (
+          <div className="h-full w-full" style={{ background: track.cover || "linear-gradient(135deg,#03111e,#231249,#570b59)" }} />
+        )}
+        <span className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-full border border-cyan-200/65 bg-[#02131d]/85 text-cyan-100 shadow-[0_0_18px_rgba(37,244,255,.38)]">
+          {active && music.playing ? (
+            <Pause className="h-3.5 w-3.5" fill="currentColor" />
+          ) : (
+            <Play className="h-3.5 w-3.5 translate-x-px" fill="currentColor" />
+          )}
+        </span>
+      </div>
+      <p className="mt-1.5 truncate text-[11px] font-black text-white">{track.title}</p>
+      <p className="truncate text-[9px] text-slate-400">{track.artist}</p>
+    </button>
+  );
+}
+
+function NeonTrackTable({ tracks }: { tracks: EduMusicTrack[] }) {
+  const music = useEduAIMusic();
+
+  return (
+    <div className="min-h-0 overflow-y-auto pr-1">
+      <div className="grid grid-cols-[34px_minmax(0,1.4fr)_minmax(90px,.8fr)_minmax(90px,.8fr)_58px_38px] items-center gap-2 px-2 pb-1 text-[8px] font-black uppercase tracking-[.16em] text-slate-500">
+        <span>#</span>
+        <span>Título</span>
+        <span>Artista</span>
+        <span>Álbum</span>
+        <span>Tiempo</span>
+        <span />
+      </div>
+      <div className="space-y-0.5">
+        {tracks.slice(0, 8).map((track, index) => {
+          const active = music.currentTrack.id === track.id;
+          return (
+            <div
+              key={track.id}
+              className={cn(
+                "neon-track-row grid grid-cols-[34px_minmax(0,1.4fr)_minmax(90px,.8fr)_minmax(90px,.8fr)_58px_38px] items-center gap-2 rounded-lg px-2 py-1.5",
+                active && "is-active",
+              )}
+            >
+              <button
+                type="button"
+                onClick={() => music.playTrack(track, tracks)}
+                className={cn(
+                  "flex h-6 w-6 items-center justify-center rounded-full text-[9px] font-black",
+                  active ? "bg-cyan-400 text-slate-950" : "text-slate-400 hover:bg-cyan-400/20 hover:text-cyan-100",
+                )}
+              >
+                {active && music.playing ? <Pause className="h-3 w-3" fill="currentColor" /> : active ? <Play className="h-3 w-3" fill="currentColor" /> : index + 1}
+              </button>
+
+              <button type="button" onClick={() => music.playTrack(track, tracks)} className="flex min-w-0 items-center gap-2 text-left">
+                <Cover track={track} size="xs" />
+                <span className={cn("truncate text-[10px] font-black", active ? "text-cyan-200" : "text-white")}>{track.title}</span>
+              </button>
+
+              <span className="truncate text-[9px] text-slate-300">{track.artist}</span>
+              <span className="truncate text-[9px] text-slate-400">{track.album}</span>
+              <span className="text-[9px] tabular-nums text-slate-400">{track.duration}</span>
+              <button
+                type="button"
+                onClick={() => music.toggleLike(track.id)}
+                className={cn("mx-auto text-slate-500 hover:text-fuchsia-300", music.liked.has(track.id) && "text-fuchsia-400")}
+                aria-label="Favorito"
+              >
+                <Heart className="h-3.5 w-3.5" fill={music.liked.has(track.id) ? "currentColor" : "none"} />
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function NeonMain({
+  spotifyEmbed,
+  onOpenSpotify,
+  onCloseSpotify,
+}: {
+  spotifyEmbed: SpotifyEmbedItem | null;
+  onOpenSpotify: () => void;
+  onCloseSpotify: () => void;
+}) {
+  const music = useEduAIMusic();
+  const homeTracks = useMemo(
+    () =>
+      dedupeTracks([
+        ...music.recentTracks,
+        ...music.allTracks.filter((track) => music.liked.has(track.id)),
+        ...music.uploadedTracks,
+        ...music.onlineTracks,
+        ...music.radioTracks,
+      ]),
+    [music.allTracks, music.liked, music.onlineTracks, music.radioTracks, music.recentTracks, music.uploadedTracks],
+  );
+
+  const tracks = useMemo(() => {
+    if (music.view === "liked") return music.allTracks.filter((track) => music.liked.has(track.id));
+    if (music.view === "queue") return music.queue;
+    if (music.view === "library") return music.uploadedTracks;
+    if (music.view === "radio") return music.radioTracks;
+    if (music.view === "search") return music.onlineTracks.length ? music.onlineTracks : music.visibleTracks;
+    if (music.view === "playlists") return music.baseTracks;
+    return homeTracks;
+  }, [homeTracks, music.allTracks, music.baseTracks, music.liked, music.onlineTracks, music.queue, music.radioTracks, music.uploadedTracks, music.view, music.visibleTracks]);
+
+  const recentTracks = (music.recentTracks.length ? music.recentTracks : tracks).slice(0, 6);
+  const tableTracks = tracks.slice(0, 8);
+
+  const runSearch = async () => {
+    const term = music.onlineQuery.trim();
+    if (!term) return;
+    if (music.view === "radio") {
+      await music.searchRadio(term);
+      return;
+    }
+    music.setOnlineProviderMode("youtube");
+    music.setView("search");
+    await music.searchOnline(term, "youtube");
+  };
+
+  const viewTitle =
+    music.view === "radio" ? "Radio en vivo" :
+    music.view === "library" ? "Mis audios" :
+    music.view === "liked" ? "Favoritos" :
+    music.view === "queue" ? "Cola" :
+    music.view === "playlists" ? music.selectedPlaylist?.name || "Playlists" :
+    music.view === "search" ? "Resultados online" :
+    "Inicio";
+
+  if (spotifyEmbed) {
+    return (
+      <main className="min-h-0 overflow-hidden px-[clamp(12px,1.2vw,20px)] pb-3 pt-5">
+        <div className="flex h-full flex-col">
+          <div className="flex items-center justify-between px-2 pb-3">
+            <div>
+              <p className="text-[9px] font-black uppercase tracking-[.22em] text-cyan-300">Spotify</p>
+              <h2 className="mt-1 text-xl font-black text-white">{spotifyEmbed.title}</h2>
+            </div>
+            <button type="button" onClick={onCloseSpotify} className="rounded-full border border-cyan-300/20 bg-black/20 px-3 py-1.5 text-[10px] font-black text-cyan-100 hover:bg-cyan-400/10">
+              Cerrar
+            </button>
+          </div>
+          <iframe
+            src={spotifyEmbed.src}
+            title={spotifyEmbed.title}
+            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+            loading="lazy"
+            className="min-h-0 flex-1 rounded-2xl border border-cyan-300/20 bg-black/10 shadow-[0_0_28px_rgba(37,244,255,.08)]"
+          />
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="min-h-0 overflow-hidden px-[clamp(12px,1.2vw,20px)] pb-3 pt-5">
+      <div className="flex h-full min-h-0 flex-col">
+        <div className="relative shrink-0 px-[clamp(12px,2vw,30px)] pt-[clamp(6px,1vh,14px)]">
+          <p className="text-[9px] font-black uppercase tracking-[.48em] text-slate-300/90">Más que música</p>
+          <h1 className="mt-0.5 text-[clamp(34px,3.8vw,64px)] font-black leading-none tracking-[-.065em] text-white">
+            EDUAI <span className="neon-title-gradient italic">Music</span>
+          </h1>
+          <p className="mt-1 text-[9px] font-bold uppercase tracking-[.28em] text-slate-300/80">Sonidos que impulsan tu mundo</p>
+
+          <div className="mt-[clamp(14px,2vh,22px)] flex max-w-[690px] items-center gap-2">
+            <div className="neon-search flex h-10 min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-violet-400/55 bg-black/18 px-3">
+              <Search className="h-4 w-4 shrink-0 text-cyan-200" />
+              <input
+                value={music.onlineQuery}
+                onChange={(event) => music.setOnlineQuery(event.target.value)}
+                onKeyDown={(event) => event.key === "Enter" && void runSearch()}
+                placeholder={music.view === "radio" ? "Buscar emisora..." : "Buscar canciones, artistas, álbumes o playlists..."}
+                className="min-w-0 flex-1 bg-transparent text-[11px] text-white outline-none placeholder:text-slate-500"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => void runSearch()}
+              disabled={music.onlineLoading || music.radioLoading}
+              className="h-10 rounded-xl bg-cyan-400 px-4 text-[10px] font-black text-slate-950 shadow-[0_0_20px_rgba(37,244,255,.25)] disabled:opacity-50"
+            >
+              Buscar
+            </button>
+          </div>
+
+          <div className="mt-2 flex flex-wrap gap-2">
+            {[
+              ["Todo", "home"],
+              ["YouTube", "search"],
+              ["Radio", "radio"],
+              ["Mis audios", "library"],
+              ["Favoritos", "liked"],
+            ].map(([label, view]) => (
+              <button
+                key={view}
+                type="button"
+                onClick={() => {
+                  if (view === "search") music.setOnlineProviderMode("youtube");
+                  music.setView(view as typeof music.view);
+                }}
+                className={cn(
+                  "rounded-full border px-3 py-1.5 text-[9px] font-black transition",
+                  music.view === view
+                    ? "border-cyan-200/65 bg-cyan-400 text-slate-950 shadow-[0_0_15px_rgba(37,244,255,.22)]"
+                    : "border-cyan-300/20 bg-black/12 text-slate-300 hover:border-cyan-300/40 hover:text-cyan-100",
+                )}
+              >
+                {label}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={onOpenSpotify}
+              className="rounded-full border border-fuchsia-300/25 bg-black/12 px-3 py-1.5 text-[9px] font-black text-slate-300 transition hover:border-fuchsia-300/50 hover:text-fuchsia-100"
+            >
+              Spotify
+            </button>
+            {music.view === "library" && (
+              <label className="cursor-pointer rounded-full border border-dashed border-cyan-300/35 bg-cyan-400/8 px-3 py-1.5 text-[9px] font-black text-cyan-100">
+                {music.audioUploadLoading ? "Subiendo..." : "+ Subir audio"}
+                <input
+                  type="file"
+                  multiple
+                  accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac"
+                  className="hidden"
+                  disabled={music.audioUploadLoading}
+                  onChange={(event) => {
+                    const files = Array.from(event.target.files || []);
+                    event.target.value = "";
+                    if (files.length) void music.uploadAudios(files);
+                  }}
+                />
+              </label>
+            )}
+          </div>
+        </div>
+
+        <div className="mt-3 min-h-0 flex-1 px-2">
+          <div className="flex h-full min-h-0 flex-col gap-3">
+            <div className="shrink-0">
+              <div className="mb-2 flex items-center justify-between">
+                <div>
+                  <h2 className="text-[13px] font-black text-white">{music.view === "home" ? "Escuchado recientemente" : viewTitle}</h2>
+                  <p className="text-[9px] text-slate-500">{recentTracks.length ? `${recentTracks.length} pistas visibles` : "Explora una fuente para comenzar."}</p>
+                </div>
+                <span className="text-[9px] font-black uppercase tracking-[.14em] text-cyan-300">{sourceLabel(music.currentTrack.source)}</span>
+              </div>
+
+              {recentTracks.length > 0 && (
+                <div className="grid grid-cols-3 gap-2 xl:grid-cols-6">
+                  {recentTracks.map((track) => <NeonRecentCard key={track.id} track={track} tracks={recentTracks} />)}
+                </div>
+              )}
+            </div>
+
+            <div className="min-h-0 flex-1">
+              <div className="mb-1.5 flex items-center justify-between">
+                <h2 className="text-[13px] font-black text-white">{music.view === "home" ? "Canciones para ti" : "Canciones"}</h2>
+                <span className="text-[9px] font-bold text-cyan-300/85">{tableTracks.length} resultados</span>
+              </div>
+              {tableTracks.length ? (
+                <NeonTrackTable tracks={tableTracks} />
+              ) : (
+                <div className="flex h-24 items-center justify-center text-[10px] text-slate-500">
+                  No hay canciones en esta vista.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+function NeonRightPanel() {
+  const music = useEduAIMusic();
+  const track = music.currentTrack;
+  const idle = track.id === "eduai-music-empty";
+  const duration = durationForPlayer(track, music.durationSeconds);
+  const artwork = track.artworkUrl || track.videoThumbnail || (track.cover?.startsWith("http") ? track.cover : undefined);
+
+  return (
+    <aside className="min-h-0 overflow-hidden px-[clamp(10px,1vw,18px)] pb-3 pt-5">
+      <div className="flex h-full min-h-0 flex-col">
+        <div className="shrink-0 px-1">
+          <div className="flex items-center justify-between">
+            <h2 className="text-[13px] font-black text-white">Reproduciendo</h2>
+            <span className="rounded-full border border-fuchsia-300/20 bg-fuchsia-400/8 px-2 py-1 text-[8px] font-black uppercase tracking-[.16em] text-fuchsia-200">
+              {idle ? "Listo" : sourceLabel(track.source)}
+            </span>
+          </div>
+
+          <div className="mt-3 flex justify-center">
+            {!idle && artwork ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={artwork}
+                alt={track.title}
+                className="aspect-square w-[min(100%,220px)] rounded-2xl border border-cyan-300/30 object-cover shadow-[0_0_34px_rgba(37,244,255,.14)]"
+              />
+            ) : (
+              <div className="aspect-square w-[min(100%,220px)]" aria-hidden="true" />
+            )}
+          </div>
+
+          <div className="mt-2 flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="truncate text-[13px] font-black text-white">{track.title}</p>
+              <p className="truncate text-[10px] font-bold text-cyan-300">{track.artist}</p>
+            </div>
+            {!idle && (
+              <button
+                type="button"
+                onClick={() => music.toggleLike(track.id)}
+                className={cn("mt-0.5 text-slate-500 transition hover:text-fuchsia-300", music.liked.has(track.id) && "text-fuchsia-400")}
+              >
+                <Heart className="h-5 w-5" fill={music.liked.has(track.id) ? "currentColor" : "none"} />
+              </button>
+            )}
+          </div>
+
+          <NeonSpectrum active={music.playing && !idle} bars={30} className="mt-2 h-10 w-full" />
+
+          {!idle && (
+            <div className="mt-1 flex items-center gap-2 text-[8px] font-bold tabular-nums text-slate-500">
+              <span className="w-7 text-right">{formatSeconds(music.currentTime)}</span>
+              <ProgressRange currentTime={music.currentTime} duration={duration} onSeek={music.seekTo} compact />
+              <span className="w-7">{formatSeconds(duration)}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-4 min-h-0 flex-1 border-t border-cyan-300/15 pt-3">
+          <div className="mb-2 flex items-center justify-between">
+            <div>
+              <h3 className="text-[12px] font-black text-white">Cola de reproducción</h3>
+              <p className="text-[9px] text-slate-500">{music.queue.length ? `${music.queue.length} pistas` : "Agrega canciones para continuar."}</p>
+            </div>
+            {music.queue.length > 0 && (
+              <button type="button" onClick={music.clearQueue} className="text-[9px] font-black text-cyan-300 hover:text-fuchsia-200">Limpiar</button>
+            )}
+          </div>
+
+          <div className="min-h-0 overflow-y-auto">
+            {music.queue.slice(0, 12).map((item, index) => {
+              const active = item.id === track.id;
+              return (
+                <div key={item.id} className={cn("neon-queue-row flex items-center gap-2 rounded-lg px-1.5 py-1", active && "is-active")}>
+                  <span className="w-4 text-center text-[9px] font-black text-slate-500">{index + 1}</span>
+                  <Cover track={item} size="xs" />
+                  <button type="button" onClick={() => music.playTrack(item, music.queue)} className="min-w-0 flex-1 text-left">
+                    <span className={cn("block truncate text-[9px] font-black", active ? "text-cyan-200" : "text-white")}>{item.title}</span>
+                    <span className="block truncate text-[8px] text-slate-500">{item.artist}</span>
+                  </button>
+                  {active && <NeonSpectrum active={music.playing} bars={4} className="h-5 w-5" />}
+                  <Menu className="h-3 w-3 text-slate-600" />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+function NeonBottomPlayer() {
+  const music = useEduAIMusic();
+  const track = music.currentTrack;
+  const idle = track.id === "eduai-music-empty";
+  const duration = durationForPlayer(track, music.durationSeconds);
+
+  return (
+    <div className="neon-bottom-player absolute inset-x-0 bottom-0 z-20 h-[84px] px-[clamp(14px,1.5vw,24px)]">
+      <div className="grid h-full grid-cols-[minmax(190px,280px)_minmax(320px,1fr)_minmax(190px,280px)] items-center gap-4">
+        <div className="flex min-w-0 items-center gap-2.5">
+          {!idle && <Cover track={track} size="md" />}
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[11px] font-black text-white">{track.title}</p>
+            <p className="truncate text-[9px] text-slate-400">{track.artist}</p>
+          </div>
+          {!idle && (
+            <button type="button" onClick={() => music.toggleLike(track.id)} className={cn("text-slate-500 hover:text-fuchsia-300", music.liked.has(track.id) && "text-fuchsia-400")}>
+              <Heart className="h-4 w-4" fill={music.liked.has(track.id) ? "currentColor" : "none"} />
+            </button>
+          )}
+        </div>
+
+        <div className="min-w-0">
+          <div className="flex items-center justify-center gap-2.5">
+            <button type="button" onClick={() => music.setShuffle((value) => !value)} className={cn("neon-control-button", music.shuffle && "is-active")}><Shuffle className="h-3.5 w-3.5" /></button>
+            <button type="button" onClick={music.prevTrack} className="neon-control-button"><SkipBack className="h-4 w-4" fill="currentColor" /></button>
+            <button
+              type="button"
+              disabled={idle}
+              onClick={() => !idle && music.setPlaying((value) => !value)}
+              className={cn("neon-main-play flex h-11 w-11 items-center justify-center rounded-full text-slate-950", music.playing && !idle && "is-playing", idle && "cursor-default opacity-45")}
+              aria-label={music.playing ? "Pausar" : "Reproducir"}
+            >
+              {music.playing && !idle ? <Pause className="h-5 w-5" fill="currentColor" /> : <Play className="h-5 w-5 translate-x-px" fill="currentColor" />}
+            </button>
+            <button type="button" onClick={music.nextTrack} className="neon-control-button"><SkipForward className="h-4 w-4" fill="currentColor" /></button>
+            <button
+              type="button"
+              onClick={() => music.setRepeat(music.repeat === "off" ? "all" : music.repeat === "all" ? "one" : "off")}
+              className={cn("neon-control-button", music.repeat !== "off" && "is-active")}
+            >
+              <Repeat className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <div className="mt-1 flex items-center gap-2 text-[8px] tabular-nums text-slate-500">
+            <span className="w-7 text-right">{formatSeconds(music.currentTime)}</span>
+            <ProgressRange currentTime={music.currentTime} duration={duration} onSeek={music.seekTo} compact />
+            <span className="w-7">{formatSeconds(duration)}</span>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-2">
+          <NeonSpectrum active={music.playing && !idle} bars={10} className="hidden h-7 w-14 2xl:flex" />
+          <Volume2 className="h-4 w-4 text-slate-400" />
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value={music.volume}
+            onChange={(event) => music.setVolume(Number(event.target.value))}
+            className="w-[clamp(70px,7vw,110px)] accent-cyan-400"
+            aria-label="Volumen"
+          />
+          <ListMusic className="h-4 w-4 text-slate-500" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NeonMusicOverlay({
+  spotifyEmbed,
+  onOpenSpotify,
+  onCloseSpotify,
+}: {
+  spotifyEmbed: SpotifyEmbedItem | null;
+  onOpenSpotify: () => void;
+  onCloseSpotify: () => void;
+}) {
+  return (
+    <div className="relative z-10 h-full pb-[84px]">
+      <div
+        className="grid h-full min-h-0"
+        style={{ gridTemplateColumns: "15.5% minmax(0,64%) 20.5%" }}
+      >
+        <NeonSidebar
+          spotifyActive={Boolean(spotifyEmbed)}
+          onOpenSpotify={onOpenSpotify}
+          onNavigate={onCloseSpotify}
+        />
+        <NeonMain
+          spotifyEmbed={spotifyEmbed}
+          onOpenSpotify={onOpenSpotify}
+          onCloseSpotify={onCloseSpotify}
+        />
+        <NeonRightPanel />
+      </div>
+      <NeonBottomPlayer />
+    </div>
+  );
+}
+
 export default function EduAIMusicPlayer({
   mode = "page",
   showMiniWhenStopped = false,
@@ -2351,6 +3015,153 @@ export default function EduAIMusicPlayer({
         .music-background-title span {
           font-style: italic;
         }
+        .neon-title-gradient {
+          background: linear-gradient(90deg,#25f4ff 0%,#67d9ff 34%,#9b6cff 67%,#ff42cf 100%);
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+          text-shadow: 0 0 24px rgba(37,244,255,.14);
+        }
+        .neon-sidebar {
+          background: transparent;
+          border-right: 1px solid rgba(37,244,255,.10);
+          text-shadow: 0 1px 12px rgba(0,0,0,.72);
+        }
+        .neon-nav-button {
+          position: relative;
+          background: transparent;
+          border: 1px solid transparent;
+        }
+        .neon-nav-button:hover {
+          background: rgba(4,18,30,.16);
+          border-color: rgba(37,244,255,.12);
+          transform: translateX(2px);
+        }
+        .neon-nav-button.is-active {
+          background:
+            linear-gradient(90deg, rgba(37,244,255,.26), rgba(37,244,255,.08) 68%, transparent);
+          border-color: rgba(87,236,255,.40);
+          box-shadow:
+            inset 3px 0 0 #25f4ff,
+            0 0 18px rgba(37,244,255,.12);
+        }
+        .neon-search {
+          box-shadow:
+            inset 0 0 18px rgba(155,108,255,.05),
+            0 0 18px rgba(155,108,255,.08);
+          backdrop-filter: blur(2px);
+          -webkit-backdrop-filter: blur(2px);
+        }
+        .neon-recent-card {
+          border-radius: 14px;
+          padding: 4px;
+          background: rgba(2,8,16,.07);
+          border: 1px solid transparent;
+          transition: transform .2s ease, border-color .2s ease, background .2s ease, box-shadow .2s ease;
+        }
+        .neon-recent-card:hover,
+        .neon-recent-card.is-active {
+          transform: translateY(-3px);
+          border-color: rgba(37,244,255,.32);
+          background: rgba(2,10,19,.16);
+          box-shadow: 0 10px 24px rgba(0,0,0,.16), 0 0 18px rgba(37,244,255,.07);
+        }
+        .neon-track-row {
+          border: 1px solid transparent;
+          background: rgba(1,7,15,.05);
+          transition: background .18s ease, border-color .18s ease, transform .18s ease;
+        }
+        .neon-track-row:hover {
+          background: rgba(3,15,26,.15);
+          border-color: rgba(37,244,255,.12);
+        }
+        .neon-track-row.is-active {
+          background: linear-gradient(90deg, rgba(37,244,255,.16), rgba(155,108,255,.06), transparent);
+          border-color: rgba(37,244,255,.34);
+          box-shadow: inset 2px 0 0 rgba(37,244,255,.95);
+        }
+        .neon-queue-row {
+          border: 1px solid transparent;
+          transition: background .18s ease, border-color .18s ease;
+        }
+        .neon-queue-row:hover {
+          background: rgba(4,18,29,.15);
+        }
+        .neon-queue-row.is-active {
+          background: linear-gradient(90deg, rgba(37,244,255,.16), rgba(155,108,255,.05), transparent);
+          border-color: rgba(37,244,255,.25);
+        }
+        .neon-spectrum {
+          min-width: 0;
+          overflow: hidden;
+        }
+        .neon-spectrum-bar {
+          flex: 1 1 0%;
+          min-width: 2px;
+          height: var(--eq-height);
+          border-radius: 999px;
+          transform: scaleY(.22);
+          transform-origin: bottom;
+          opacity: .42;
+          background: linear-gradient(to top,#25f4ff 0%,#3bb8ff 34%,#9b6cff 67%,#ff42cf 100%);
+          box-shadow: 0 0 6px rgba(37,244,255,.22);
+        }
+        .neon-spectrum-bar.is-playing {
+          animation: neon-spectrum-pulse .72s ease-in-out infinite;
+          animation-delay: var(--eq-delay);
+        }
+        .neon-bottom-player {
+          background: linear-gradient(180deg, rgba(1,6,14,.08), rgba(1,6,14,.20));
+          border-top: 1px solid rgba(37,244,255,.16);
+          backdrop-filter: blur(2px);
+          -webkit-backdrop-filter: blur(2px);
+        }
+        .neon-control-button {
+          display: inline-flex;
+          height: 30px;
+          width: 30px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 999px;
+          color: rgba(203,213,225,.82);
+          background: rgba(2,8,17,.08);
+          border: 1px solid transparent;
+          transition: all .18s ease;
+        }
+        .neon-control-button:hover,
+        .neon-control-button.is-active {
+          color: #c8fbff;
+          border-color: rgba(37,244,255,.24);
+          background: rgba(37,244,255,.11);
+          box-shadow: 0 0 14px rgba(37,244,255,.10);
+        }
+        .neon-main-play {
+          background: linear-gradient(135deg,#25f4ff 0%,#60ddff 50%,#ff42cf 130%);
+          box-shadow:
+            0 0 0 1px rgba(255,255,255,.12),
+            0 0 22px rgba(37,244,255,.30),
+            0 0 30px rgba(255,66,207,.12);
+          transition: transform .18s ease, box-shadow .18s ease;
+        }
+        .neon-main-play:hover {
+          transform: scale(1.06);
+        }
+        .neon-main-play.is-playing {
+          animation: neon-play-breathe 1.6s ease-in-out infinite;
+        }
+        @keyframes neon-spectrum-pulse {
+          0%,100% { transform: scaleY(.22); opacity: .42; }
+          45% { transform: scaleY(1); opacity: 1; }
+          68% { transform: scaleY(.54); opacity: .76; }
+        }
+        @keyframes neon-play-breathe {
+          0%,100% {
+            box-shadow: 0 0 0 1px rgba(255,255,255,.12),0 0 20px rgba(37,244,255,.28),0 0 28px rgba(255,66,207,.10);
+          }
+          50% {
+            box-shadow: 0 0 0 2px rgba(37,244,255,.18),0 0 32px rgba(37,244,255,.50),0 0 42px rgba(255,66,207,.20);
+          }
+        }
         .eduai-music-cyber button {
           transition-property: transform, filter, background-color, border-color, color, box-shadow;
           transition-duration: 180ms;
@@ -2376,6 +3187,9 @@ export default function EduAIMusicPlayer({
           .cyber-static-backdrop { background-position: center; }
           .cyber-rhythm-field { opacity: .82; }
           .cyber-hero-grid + svg { opacity: .56; }
+          .neon-sidebar { padding-left: 10px; padding-right: 10px; }
+          .neon-nav-button { padding-left: 9px; padding-right: 9px; }
+          .neon-recent-card:nth-child(n+5) { display: none; }
         }
         @media (prefers-reduced-motion: reduce) {
           .rhythm-pentagon,
@@ -2386,46 +3200,12 @@ export default function EduAIMusicPlayer({
           }
         }
       `}</style>
-      <h1 className="music-background-title">
-        EDUAI <span>Music</span>
-      </h1>
-
-      {/*
-        MODO DE PRUEBA VISUAL DEL FONDO:
-        toda la interfaz musical sigue montada y conserva su lógica, fuentes,
-        reproductores, playlists, radio, Spotify, YouTube y biblioteca.
-        Solo se oculta visualmente para evaluar el fondo antes de reconstruir
-        la nueva interfaz por capas.
-      */}
-      <div className="hidden" aria-hidden="true">
-        <div className="relative z-10 flex h-full flex-col">
-          <TopBar />
-          <div
-            className="grid min-h-0 flex-1 overflow-hidden"
-            style={{ gridTemplateColumns: "246px minmax(0, 1fr) 320px" }}
-          >
-            <Sidebar
-              tracks={tracksForMain}
-              spotifyActive={Boolean(selectedSpotifyEmbed)}
-              onOpenSpotify={() => setSelectedSpotifyEmbed(SPOTIFY_EMBEDS[0] ?? null)}
-              onNavigate={() => setSelectedSpotifyEmbed(null)}
-            />
-            <MainPanel
-              tracks={tracksForMain}
-              spotifyEmbed={selectedSpotifyEmbed}
-              onClearSpotify={() => setSelectedSpotifyEmbed(null)}
-              onOpenSpotify={() => setSelectedSpotifyEmbed(SPOTIFY_EMBEDS[0] ?? null)}
-            />
-            <RightPanel
-              selectedSpotifyId={selectedSpotifyEmbed?.id}
-              onSelectSpotify={setSelectedSpotifyEmbed}
-              onClearSpotify={() => setSelectedSpotifyEmbed(null)}
-            />
-          </div>
-          <BottomPlayer />
-        </div>
-        <AddToPlaylistBar />
-      </div>
+      <NeonMusicOverlay
+        spotifyEmbed={selectedSpotifyEmbed}
+        onOpenSpotify={() => setSelectedSpotifyEmbed(SPOTIFY_EMBEDS[0] ?? null)}
+        onCloseSpotify={() => setSelectedSpotifyEmbed(null)}
+      />
+      <AddToPlaylistBar />
     </div>
   );
 }
