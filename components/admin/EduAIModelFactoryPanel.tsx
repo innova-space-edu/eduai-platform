@@ -78,6 +78,9 @@ export default function EduAIModelFactoryPanel() {
   const [knowledgeBusy, setKnowledgeBusy] = useState<"index" | "download" | "store" | "clear" | null>(null);
   const [knowledgeProgress, setKnowledgeProgress] = useState<EduAIKnowledgeInstallProgress | null>(null);
   const [candidates, setCandidates] = useState<EduAILocalCandidate[]>([]);
+  const [candidateBusy, setCandidateBusy] = useState<string | null>(null);
+  const [candidateMessage, setCandidateMessage] = useState("");
+  const [sentCandidates, setSentCandidates] = useState<string[]>([]);
 
   async function load() {
     setLoading(true);
@@ -96,6 +99,43 @@ export default function EduAIModelFactoryPanel() {
 
   function refreshCandidates() {
     setCandidates(readEduAILocalCandidates());
+  }
+
+  async function submitLocalCandidate(candidate: EduAILocalCandidate) {
+    setCandidateBusy(candidate.modelId);
+    setCandidateMessage("");
+    setError("");
+    try {
+      const response = await fetch("/api/admin/ai-core/model-candidates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "add_local_candidate",
+          model: candidate.modelId,
+          label: candidate.label,
+          source: candidate.source,
+          qualityScore: candidate.qualityScore,
+          qualityThreshold: candidate.qualityThreshold,
+          ramGB: candidate.ramGB,
+          vramGB: candidate.vramGB,
+          webgpu: candidate.webgpu,
+          validatedAt: candidate.createdAt,
+          promotionGatePassed: candidate.promotionGatePassed,
+          criticalFailures: candidate.criticalFailures,
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data?.error || "No se pudo enviar el candidato a Model Candidate Lab.");
+      setSentCandidates((current) =>
+        current.includes(candidate.modelId) ? current : [...current, candidate.modelId],
+      );
+      setCandidateMessage(`${candidate.label} quedó registrado como discovered/experimental en Model Candidate Lab.`);
+      window.dispatchEvent(new CustomEvent("eduai-model-candidates-changed"));
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "No se pudo enviar el candidato.");
+    } finally {
+      setCandidateBusy(null);
+    }
   }
 
   async function refreshKnowledge() {
@@ -175,6 +215,7 @@ export default function EduAIModelFactoryPanel() {
       </div>
 
       {error ? <div className="mt-4 rounded-2xl border border-red-400/20 bg-red-950/20 p-3 text-xs text-red-200">{error}</div> : null}
+      {candidateMessage ? <div className="mt-4 rounded-2xl border border-emerald-400/15 bg-emerald-950/15 p-3 text-xs text-emerald-100">{candidateMessage}</div> : null}
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-8">
         {metrics.map(({ label, value, detail, Icon }) => (
@@ -288,7 +329,18 @@ export default function EduAIModelFactoryPanel() {
                 <p className="mt-1 text-[8px] leading-4 text-slate-600">
                   {candidate.source === "custom-gguf" ? "GGUF propio" : "Catálogo"} · umbral {candidate.qualityThreshold}% · RAM {candidate.ramGB ?? "?"} GB · VRAM {candidate.vramGB ?? "?"} GB · {candidate.webgpu ? "WebGPU" : "CPU/WASM"}
                 </p>
-                <p className="mt-1 text-[8px] text-slate-700">{new Date(candidate.createdAt).toLocaleString("es-CL")}</p>
+                <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-[8px] text-slate-700">{new Date(candidate.createdAt).toLocaleString("es-CL")}</p>
+                  <button
+                    type="button"
+                    onClick={() => void submitLocalCandidate(candidate)}
+                    disabled={Boolean(candidateBusy) || sentCandidates.includes(candidate.modelId)}
+                    className="inline-flex items-center gap-1 rounded-lg border border-cyan-400/15 bg-cyan-950/20 px-2 py-1.5 text-[8px] font-black text-cyan-100 disabled:opacity-40"
+                  >
+                    {candidateBusy === candidate.modelId ? <Loader2 className="h-3 w-3 animate-spin" /> : <GraduationCap className="h-3 w-3" />}
+                    {sentCandidates.includes(candidate.modelId) ? "Enviado a Candidate Lab" : "Enviar a Candidate Lab"}
+                  </button>
+                </div>
               </div>
             ))}
           </div>

@@ -163,3 +163,18 @@ Reglas:
 
 Esto permite abrir `/local-ai/offline` y arrancar directamente con un modelo local ya preparado.
 
+## Integración con Model Candidate Lab
+
+Un candidato que apruebe el Quality Gate local puede enviarse manualmente al registro central desde Model Factory.
+
+El flujo es deliberadamente humano:
+
+1. Quality Gate local aprobado y sin fallos críticos.
+2. **Enviar a Candidate Lab**.
+3. Se registra como `provider=eduai-local`, `release_channel=experimental`, estado `discovered`.
+4. Model Candidate Lab muestra score, umbral y hardware de la validación local.
+5. El smoke server-side se desactiva para estos candidatos porque el GGUF vive en el notebook.
+6. El administrador decide explícitamente si pasa a `testing` y luego a `validated`.
+
+Nunca se cambia a `implemented` de forma automática.
+
