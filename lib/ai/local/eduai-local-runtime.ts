@@ -1,6 +1,7 @@
 import {
   DEFAULT_EDUAI_LOCAL_MODEL_ID,
   getEduAILocalModel,
+  recommendEduAILocalModel,
   type EduAILocalRuntimeMode,
 } from "./eduai-local-models";
 
@@ -129,7 +130,7 @@ export async function probeEduAILocalHardware(): Promise<EduAILocalHardware> {
     multithreadReady: isolated && cores > 1,
     storageUsageMB,
     storageQuotaMB,
-    recommendedModelId: constrained ? "eduai-nano-gemma-270m" : DEFAULT_EDUAI_LOCAL_MODEL_ID,
+    recommendedModelId: recommendEduAILocalModel({ memoryGB, vramGB: null, webgpu, cores }),
     tier: accelerated ? "accelerated" : constrained ? "constrained" : "standard",
   };
 }

@@ -20,7 +20,10 @@ import {
 import {
   EDUAI_LOCAL_MODELS,
   DEFAULT_EDUAI_LOCAL_MODEL_ID,
+  evaluateEduAILocalModel,
   getEduAILocalModel,
+  recommendEduAILocalModel,
+  type EduAIHardwareProfile,
   type EduAILocalRuntimeMode,
 } from "@/lib/ai/local/eduai-local-models";
 import {
@@ -56,6 +59,8 @@ export default function EduAILocalRuntimePanel() {
   const [answer, setAnswer] = useState("");
   const [answerMs, setAnswerMs] = useState<number | null>(null);
   const [error, setError] = useState("");
+  const [manualRamGB, setManualRamGB] = useState<number | null>(null);
+  const [manualVramGB, setManualVramGB] = useState<number | null>(null);
   const mountedRef = useRef(true);
 
   async function calibrate(applyRecommendation = false) {
@@ -64,7 +69,7 @@ export default function EduAILocalRuntimePanel() {
       const next = await probeEduAILocalHardware();
       if (!mountedRef.current) return;
       setHardware(next);
-      if (applyRecommendation) setSelectedModelId(next.recommendedModelId);
+      if (applyRecommendation) setSelectedModelId(recommendEduAILocalModel({ memoryGB: next.memoryGB, vramGB: manualVramGB, webgpu: next.webgpu, cores: next.cores }));
     } catch (probeError) {
       setError(probeError instanceof Error ? probeError.message : "No se pudo medir el hardware.");
     }
@@ -84,9 +89,28 @@ export default function EduAILocalRuntimePanel() {
     };
   }, []);
 
+  const effectiveProfile = useMemo<EduAIHardwareProfile>(() => ({
+    memoryGB: manualRamGB ?? hardware?.memoryGB ?? null,
+    vramGB: manualVramGB,
+    webgpu: hardware?.webgpu ?? false,
+    cores: hardware?.cores ?? 1,
+  }), [hardware, manualRamGB, manualVramGB]);
+  const recommendedModelId = useMemo(() => recommendEduAILocalModel(effectiveProfile), [effectiveProfile]);
   const selected = useMemo(() => getEduAILocalModel(selectedModelId), [selectedModelId]);
-  const recommended = hardware ? getEduAILocalModel(hardware.recommendedModelId) : null;
+  const recommended = getEduAILocalModel(recommendedModelId);
   const isReady = status === "ready" && loadedModelId === selectedModelId;
+
+  function applyHardwareProfile(ramGB: number | null, vramGB: number | null) {
+    setManualRamGB(ramGB);
+    setManualVramGB(vramGB);
+    const profile: EduAIHardwareProfile = {
+      memoryGB: ramGB ?? hardware?.memoryGB ?? null,
+      vramGB,
+      webgpu: hardware?.webgpu ?? false,
+      cores: hardware?.cores ?? 1,
+    };
+    setSelectedModelId(recommendEduAILocalModel(profile));
+  }
 
   async function loadModel() {
     setStatus("loading");
@@ -229,11 +253,60 @@ export default function EduAILocalRuntimePanel() {
         })}
       </div>
 
-      {recommended ? (
-        <div className="mt-4 rounded-2xl border border-emerald-400/15 bg-emerald-950/20 px-4 py-3 text-xs text-emerald-100">
-          <strong>Selección automática:</strong> {recommended.label}. La recomendación usa memoria expuesta, CPU y WebGPU del navegador; no descarga nada hasta que pulses cargar.
+      <div className="mt-4 rounded-[22px] border border-cyan-400/15 bg-cyan-950/10 p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-black text-cyan-100">Perfil de hardware</p>
+            <p className="mt-1 text-[10px] leading-4 text-slate-500">WebGPU se detecta automáticamente. La VRAM no puede medirse de forma fiable desde el navegador, por eso puedes declararla manualmente.</p>
+          </div>
+          <button type="button" onClick={() => applyHardwareProfile(null, null)} className="rounded-xl border border-white/10 bg-slate-950/50 px-3 py-2 text-[10px] font-black text-slate-400">Auto</button>
         </div>
-      ) : null}
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          {[
+            { label: "8 GB · CPU", ram: 8, vram: 0 },
+            { label: "8 GB · 2 GB VRAM", ram: 8, vram: 2 },
+            { label: "8 GB · 4 GB VRAM", ram: 8, vram: 4 },
+            { label: "16 GB · 6 GB VRAM", ram: 16, vram: 6 },
+            { label: "16 GB · 8 GB VRAM", ram: 16, vram: 8 },
+          ].map((profile) => (
+            <button
+              key={profile.label}
+              type="button"
+              onClick={() => applyHardwareProfile(profile.ram, profile.vram)}
+              className="rounded-xl border border-white/10 bg-slate-950/50 px-3 py-2 text-[10px] font-black text-slate-300 hover:border-cyan-400/20"
+            >
+              {profile.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          <label className="rounded-xl border border-white/8 bg-black/20 p-3 text-[10px] text-slate-500">
+            RAM real
+            <select value={manualRamGB ?? ""} onChange={(event) => applyHardwareProfile(event.target.value ? Number(event.target.value) : null, manualVramGB)} className="mt-1.5 w-full rounded-lg border border-white/10 bg-slate-950 px-2 py-2 text-xs font-black text-white">
+              <option value="">Auto (~{hardware?.memoryGB ?? "?"} GB)</option>
+              {[4, 8, 12, 16, 24, 32, 64].map((value) => <option key={value} value={value}>{value} GB</option>)}
+            </select>
+          </label>
+          <label className="rounded-xl border border-white/8 bg-black/20 p-3 text-[10px] text-slate-500">
+            VRAM dedicada
+            <select value={manualVramGB ?? ""} onChange={(event) => applyHardwareProfile(manualRamGB, event.target.value ? Number(event.target.value) : null)} className="mt-1.5 w-full rounded-lg border border-white/10 bg-slate-950 px-2 py-2 text-xs font-black text-white">
+              <option value="">No declarada</option>
+              {[0, 2, 4, 6, 8, 12, 16, 24].map((value) => <option key={value} value={value}>{value} GB</option>)}
+            </select>
+          </label>
+          <div className="rounded-xl border border-emerald-400/10 bg-emerald-950/15 p-3">
+            <p className="text-[9px] font-black uppercase tracking-[0.12em] text-emerald-300">Recomendación</p>
+            <p className="mt-1.5 text-xs font-black text-white">{recommended.label}</p>
+            <p className="mt-1 text-[9px] text-slate-500">RAM {effectiveProfile.memoryGB ?? "?"} GB · VRAM {effectiveProfile.vramGB ?? "?"} GB · {effectiveProfile.webgpu ? "WebGPU" : "CPU/WASM"}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-emerald-400/15 bg-emerald-950/20 px-4 py-3 text-xs text-emerald-100">
+        <strong>Selección sugerida:</strong> {recommended.label}. Puedes escoger un modelo más pesado; el laboratorio lo marcará como compatible, exigente o no recomendado para el perfil declarado.
+      </div>
 
       <div className="mt-5 grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
         <div className="rounded-[24px] border border-white/10 bg-black/20 p-4">
@@ -260,6 +333,9 @@ export default function EduAILocalRuntimePanel() {
           <div className="mt-4 space-y-2">
             {EDUAI_LOCAL_MODELS.map((model) => {
               const selectedNow = selectedModelId === model.id;
+              const fit = evaluateEduAILocalModel(model, effectiveProfile);
+              const fitLabel = fit === "recommended" ? "Recomendado" : fit === "compatible" ? "Compatible" : fit === "heavy" ? "Exigente" : "No recomendado";
+              const fitClass = fit === "recommended" ? "border-emerald-400/20 text-emerald-200 bg-emerald-950/25" : fit === "compatible" ? "border-cyan-400/15 text-cyan-200 bg-cyan-950/20" : fit === "heavy" ? "border-amber-400/15 text-amber-200 bg-amber-950/20" : "border-red-400/15 text-red-200 bg-red-950/20";
               return (
                 <button
                   key={model.id}
@@ -273,9 +349,13 @@ export default function EduAILocalRuntimePanel() {
                       <p className="text-xs font-black text-white">{model.label}</p>
                       <p className="mt-1 font-mono text-[9px] text-slate-600">{model.repo} · {model.file}</p>
                     </div>
-                    <span className="rounded-full border border-white/10 px-2 py-1 text-[9px] font-black text-slate-400">~{model.sizeMB} MB</span>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className={"rounded-full border px-2 py-1 text-[9px] font-black " + fitClass}>{fitLabel}</span>
+                      <span className="rounded-full border border-white/10 px-2 py-1 text-[9px] font-black text-slate-400">~{model.sizeMB} MB</span>
+                    </div>
                   </div>
                   <p className="mt-2 text-[10px] leading-4 text-slate-500">{model.description}</p>
+                  <p className="mt-1 text-[9px] text-slate-600">Tier {model.tier} · RAM mín. {model.minimumMemoryGB} GB · recomendado {model.recommendedMemoryGB} GB{model.recommendedVramGB ? " · VRAM " + model.recommendedVramGB + " GB" : ""}</p>
                 </button>
               );
             })}
