@@ -148,3 +148,18 @@ Características:
 
 Para preparar el arranque en frío sin Internet, la página debe visitarse al menos una vez online después de cada build importante.
 
+## Auto-arranque local
+
+Model Lab y la Offline Shell ofrecen un interruptor `AUTO-ARRANQUE` guardado por navegador.
+
+Reglas:
+
+- solo considera modelos GGUF que wllama marque como cacheados y válidos;
+- nunca descarga un modelo automáticamente;
+- excluye modelos de routing como FunctionGemma;
+- descarta perfiles `avoid` para el hardware declarado;
+- conserva el modelo preferido si está cacheado y no resulta exigente;
+- si el preferido no es viable, selecciona el mejor cacheado por compatibilidad y luego por tamaño.
+
+Esto permite abrir `/local-ai/offline` y arrancar directamente con un modelo local ya preparado.
+

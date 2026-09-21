@@ -20,6 +20,7 @@ import {
 import { validateEduAIGgufFiles } from "@/lib/ai/local/eduai-local-gguf";
 import { EDUAI_BROWSER_QUALITY_CASES, runEduAILocalQualityGate, type EduAILocalQualityReport } from "@/lib/ai/local/eduai-local-quality";
 import { saveEduAILocalCandidate } from "@/lib/ai/local/eduai-local-candidates";
+import { chooseEduAILocalAutostartModel } from "@/lib/ai/local/eduai-local-autostart";
 import {
   EDUAI_LOCAL_MODELS,
   DEFAULT_EDUAI_LOCAL_MODEL_ID,
@@ -56,6 +57,7 @@ function ms(value: number | null) {
 
 const HARDWARE_PROFILE_KEY = "eduai-local-hardware-profile-v1";
 const SELECTED_MODEL_KEY = "eduai-local-selected-model-v1";
+const AUTO_START_KEY = "eduai-local-autostart-v1";
 
 export type EduAILocalRuntimePanelProps = {
   standalone?: boolean;
@@ -66,6 +68,8 @@ export default function EduAILocalRuntimePanel({ standalone = false }: EduAILoca
   const [selectedModelId, setSelectedModelId] = useState(DEFAULT_EDUAI_LOCAL_MODEL_ID);
   const [mode, setMode] = useState<EduAILocalRuntimeMode>("auto");
   const [useKnowledge, setUseKnowledge] = useState(!standalone);
+  const [autoStartEnabled, setAutoStartEnabled] = useState(false);
+  const [profileHydrated, setProfileHydrated] = useState(false);
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "generating" | "error">("idle");
   const [progress, setProgress] = useState(0);
   const [loadedModelId, setLoadedModelId] = useState<string | null>(null);
@@ -95,6 +99,7 @@ export default function EduAILocalRuntimePanel({ standalone = false }: EduAILoca
   const [manualVramGB, setManualVramGB] = useState<number | null>(null);
   const mountedRef = useRef(true);
   const savedProfileLoadedRef = useRef(false);
+  const autoStartAttemptedRef = useRef(false);
 
   async function calibrate(applyRecommendation = false) {
     setError("");
@@ -110,6 +115,11 @@ export default function EduAILocalRuntimePanel({ standalone = false }: EduAILoca
 
   useEffect(() => {
     mountedRef.current = true;
+    try {
+      setAutoStartEnabled(window.localStorage.getItem(AUTO_START_KEY) === "1");
+    } catch {
+      setAutoStartEnabled(false);
+    }
     void calibrate(true);
     void refreshCachedModels();
     const onlineHandler = () => void calibrate(false);
@@ -161,6 +171,8 @@ export default function EduAILocalRuntimePanel({ standalone = false }: EduAILoca
       }
     } catch {
       setSelectedModelId(fallback);
+    } finally {
+      setProfileHydrated(true);
     }
   }, [hardware]);
 
@@ -178,6 +190,39 @@ export default function EduAILocalRuntimePanel({ standalone = false }: EduAILoca
   );
   const isReady = status === "ready" && Boolean(loadedModelId);
 
+  useEffect(() => {
+    if (
+      !autoStartEnabled ||
+      !profileHydrated ||
+      autoStartAttemptedRef.current ||
+      !hardware ||
+      !cachedModels.length ||
+      status !== "idle" ||
+      loadedModelId
+    ) {
+      return;
+    }
+
+    const targetId = chooseEduAILocalAutostartModel(
+      cachedModels,
+      effectiveProfile,
+      selectedModelId,
+    );
+    if (!targetId) return;
+
+    autoStartAttemptedRef.current = true;
+    void loadModel(targetId);
+  }, [
+    autoStartEnabled,
+    cachedModels,
+    effectiveProfile,
+    hardware,
+    loadedModelId,
+    profileHydrated,
+    selectedModelId,
+    status,
+  ]);
+
   function selectModel(modelId: string) {
     setSelectedModelId(modelId);
     try {
@@ -185,6 +230,19 @@ export default function EduAILocalRuntimePanel({ standalone = false }: EduAILoca
     } catch {
       // Persistencia opcional.
     }
+  }
+
+  function toggleAutoStart() {
+    setAutoStartEnabled((current) => {
+      const next = !current;
+      autoStartAttemptedRef.current = false;
+      try {
+        window.localStorage.setItem(AUTO_START_KEY, next ? "1" : "0");
+      } catch {
+        // Persistencia opcional.
+      }
+      return next;
+    });
   }
 
   function applyHardwareProfile(ramGB: number | null, vramGB: number | null) {
@@ -256,9 +314,16 @@ export default function EduAILocalRuntimePanel({ standalone = false }: EduAILoca
     }
   }
 
-  async function loadModel() {
+  async function loadModel(modelId = selectedModelId) {
+    const target = getEduAILocalModel(modelId);
+    setSelectedModelId(modelId);
+    try {
+      window.localStorage.setItem(SELECTED_MODEL_KEY, modelId);
+    } catch {
+      // Persistencia opcional.
+    }
     setStatus("loading");
-    setLoadingLabel(selected.label);
+    setLoadingLabel(target.label);
     setProgress(0);
     setError("");
     setAnswer("");
@@ -268,7 +333,7 @@ export default function EduAILocalRuntimePanel({ standalone = false }: EduAILoca
     setKnowledgeSources([]);
     setFallbackModelId(null);
     try {
-      const result = await loadEduAILocalModel(selectedModelId, mode, setProgress);
+      const result = await loadEduAILocalModel(modelId, mode, setProgress);
       if (!mountedRef.current) return;
       setLoadedModelId(result.modelId);
       setLoadMs(result.loadMs);
@@ -283,7 +348,7 @@ export default function EduAILocalRuntimePanel({ standalone = false }: EduAILoca
       setLoadingLabel(null);
       setStatus("error");
       const fallback = [...EDUAI_LOCAL_MODELS]
-        .filter((model) => model.role !== "router" && model.sizeMB < selected.sizeMB)
+        .filter((model) => model.role !== "router" && model.sizeMB < target.sizeMB)
         .filter((model) => evaluateEduAILocalModel(model, effectiveProfile) !== "avoid")
         .sort((a, b) => b.sizeMB - a.sizeMB)[0];
       setFallbackModelId(fallback?.id || null);
@@ -709,6 +774,15 @@ export default function EduAILocalRuntimePanel({ standalone = false }: EduAILoca
                 title={standalone ? "El modo offline abre con RAG apagado. Actívalo solo si quieres usar el Knowledge Pack técnico guardado en este navegador." : "Activa o desactiva el Knowledge Pack durante el chat normal."}
               >
                 RAG {useKnowledge ? "ON" : "OFF"}
+              </button>
+              <button
+                type="button"
+                onClick={toggleAutoStart}
+                disabled={status === "loading" || status === "generating"}
+                className={"rounded-xl border px-3 py-2 text-[9px] font-black " + (autoStartEnabled ? "border-emerald-400/20 bg-emerald-950/25 text-emerald-100" : "border-white/10 bg-slate-950/55 text-slate-500")}
+                title="Solo carga automáticamente modelos que ya estén cacheados; nunca inicia una descarga por sí solo."
+              >
+                AUTO-ARRANQUE {autoStartEnabled ? "ON" : "OFF"}
               </button>
             </div>
           </div>
