@@ -62,3 +62,5 @@ Después de entrenar:
 5. comparar calidad, RAM, VRAM, latencia y estabilidad antes de promoción.
 
 Estado: Model Factory v3 · familia multi-hardware + Knowledge Pack local shardeado.
+
+Validación CI: matriz multi-hardware + Knowledge Pack v3.
