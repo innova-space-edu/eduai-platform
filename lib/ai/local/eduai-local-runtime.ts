@@ -372,9 +372,14 @@ export async function loadEduAILocalGgufFiles(
   };
 }
 
+export type EduAILocalChatOptions = {
+  useKnowledge?: boolean;
+};
+
 export async function runEduAILocalChat(
   prompt: string,
   maxTokens = 256,
+  options: EduAILocalChatOptions = {},
 ): Promise<EduAILocalChatResult> {
   const cleanPrompt = prompt.trim();
   if (!cleanPrompt) throw new Error("Escribe una instrucción antes de ejecutar la prueba.");
@@ -386,7 +391,10 @@ export async function runEduAILocalChat(
       ? "Eres EDUAI Local."
       : getEduAILocalModel(activeModelId).systemPrompt);
   const started = performance.now();
-  const knowledgeHits = await searchEduAILocalKnowledgePack(cleanPrompt, 4).catch(() => []);
+  const knowledgeHits =
+    options.useKnowledge === false
+      ? []
+      : await searchEduAILocalKnowledgePack(cleanPrompt, 4).catch(() => []);
   const knowledgeContext = knowledgeHits.length
     ? "\n\nContexto local de EDUAI (usa solo si es relevante):\n" +
       knowledgeHits.map((hit, index) => `[${index + 1}] ${hit.source}\n${hit.snippet}`).join("\n\n")

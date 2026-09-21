@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   ArrowLeft,
+  WifiOff,
   BrainCircuit,
   Cpu,
   FlaskConical,
@@ -73,7 +74,10 @@ export default function AdminModelLabPage() {
               <h1 className="mt-4 text-3xl font-black tracking-tight sm:text-4xl">EduAI Model Lab</h1>
               <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300 sm:text-[15px]">Banco de pruebas del futuro sistema multimodal de EduAI: Brain AI, memoria, texto, audio, imagen, video, routing local/cloud, observabilidad y Production Gate antes de promover capacidades hacia docentes o estudiantes.</p>
             </div>
-            <Link href="/admin" className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-[#0c1a2d] px-4 py-2.5 text-sm font-black text-slate-200 transition hover:-translate-y-0.5 hover:bg-[#10223a]"><ArrowLeft className="h-4 w-4" /> Admin</Link>
+            <div className="flex flex-wrap gap-2">
+              <Link href="/local-ai/offline" className="inline-flex items-center gap-2 rounded-2xl border border-emerald-400/15 bg-emerald-950/20 px-4 py-2.5 text-sm font-black text-emerald-100 transition hover:-translate-y-0.5 hover:bg-emerald-950/30"><WifiOff className="h-4 w-4" /> Offline local</Link>
+              <Link href="/admin" className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-[#0c1a2d] px-4 py-2.5 text-sm font-black text-slate-200 transition hover:-translate-y-0.5 hover:bg-[#10223a]"><ArrowLeft className="h-4 w-4" /> Admin</Link>
+            </div>
           </div>
 
           <div className="relative mt-6 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">{LAB_CAPABILITIES.map(({ label, detail, icon: Icon, tone }) => <div key={label} className={`rounded-2xl border px-4 py-3 ${tone}`}><div className="flex items-center gap-2"><Icon className="h-4 w-4" /><span className="text-xs font-black">{label}</span></div><p className="mt-1 text-[10px] text-slate-500">{detail}</p></div>)}</div>

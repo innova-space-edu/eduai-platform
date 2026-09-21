@@ -133,3 +133,18 @@ python training/eduai-local/train_lora.py --profile eduai-lite --train-on-prompt
 
 El manifiesto de entrenamiento registra `assistantOnlyLoss` para que el artefacto sea trazable.
 
+## Offline Shell
+
+`/local-ai/offline` es una shell separada de la página administrativa completa. Incluye únicamente el runtime local y evita cargar paneles cloud, usuarios o APIs admin.
+
+Características:
+
+- registra un Service Worker limitado a `/local-ai/`;
+- cachea la shell, `wllama.wasm` y los assets estáticos visitados;
+- nunca intercepta ni guarda `/api/*` o `/admin/*`;
+- abre con RAG técnico apagado por defecto;
+- benchmark y Quality Gate siempre se ejecutan sin RAG para medir el modelo, no el contexto;
+- conserva acceso a modelos GGUF cacheados y GGUF propios seleccionados desde el equipo.
+
+Para preparar el arranque en frío sin Internet, la página debe visitarse al menos una vez online después de cada build importante.
+

@@ -57,10 +57,15 @@ function ms(value: number | null) {
 const HARDWARE_PROFILE_KEY = "eduai-local-hardware-profile-v1";
 const SELECTED_MODEL_KEY = "eduai-local-selected-model-v1";
 
-export default function EduAILocalRuntimePanel() {
+export type EduAILocalRuntimePanelProps = {
+  standalone?: boolean;
+};
+
+export default function EduAILocalRuntimePanel({ standalone = false }: EduAILocalRuntimePanelProps = {}) {
   const [hardware, setHardware] = useState<EduAILocalHardware | null>(null);
   const [selectedModelId, setSelectedModelId] = useState(DEFAULT_EDUAI_LOCAL_MODEL_ID);
   const [mode, setMode] = useState<EduAILocalRuntimeMode>("auto");
+  const [useKnowledge, setUseKnowledge] = useState(!standalone);
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "generating" | "error">("idle");
   const [progress, setProgress] = useState(0);
   const [loadedModelId, setLoadedModelId] = useState<string | null>(null);
@@ -344,7 +349,7 @@ export default function EduAILocalRuntimePanel() {
     setStatus("generating");
     setError("");
     try {
-      const result = await runEduAILocalChat(prompt);
+      const result = await runEduAILocalChat(prompt, 256, { useKnowledge });
       if (!mountedRef.current) return;
       setAnswer(result.text);
       setAnswerMs(result.latencyMs);
@@ -379,7 +384,7 @@ export default function EduAILocalRuntimePanel() {
     setError("");
     try {
       const report = await runEduAILocalQualityGate(
-        (qualityPrompt, maxTokens) => runEduAILocalChat(qualityPrompt, maxTokens),
+        (qualityPrompt, maxTokens) => runEduAILocalChat(qualityPrompt, maxTokens, { useKnowledge: false }),
         threshold,
         (completed, total) => setQualityProgress({ completed, total }),
       );
@@ -443,7 +448,7 @@ export default function EduAILocalRuntimePanel() {
       ];
       const results = [];
       for (const benchmarkPrompt of prompts) {
-        results.push(await runEduAILocalChat(benchmarkPrompt, 96));
+        results.push(await runEduAILocalChat(benchmarkPrompt, 96, { useKnowledge: false }));
       }
       const totalTokens = results.reduce((sum, item) => sum + item.completionTokens, 0);
       const avgLatencyMs = results.reduce((sum, item) => sum + item.latencyMs, 0) / results.length;
@@ -682,18 +687,29 @@ export default function EduAILocalRuntimePanel() {
               <p className="text-sm font-black text-white">Catálogo local</p>
               <p className="mt-1 text-[10px] text-slate-600">La descarga es manual y queda aislada al Model Lab.</p>
             </div>
-            <div className="flex rounded-xl border border-white/10 bg-slate-950/70 p-1 text-[10px] font-black">
-              {(["auto", "cpu"] as EduAILocalRuntimeMode[]).map((item) => (
-                <button
-                  key={item}
-                  type="button"
-                  onClick={() => setMode(item)}
-                  disabled={status === "loading" || status === "generating"}
-                  className={"rounded-lg px-3 py-1.5 " + (mode === item ? "bg-cyan-950/70 text-cyan-100" : "text-slate-500")}
-                >
-                  {item === "auto" ? "AUTO" : "CPU"}
-                </button>
-              ))}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex rounded-xl border border-white/10 bg-slate-950/70 p-1 text-[10px] font-black">
+                {(["auto", "cpu"] as EduAILocalRuntimeMode[]).map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => setMode(item)}
+                    disabled={status === "loading" || status === "generating"}
+                    className={"rounded-lg px-3 py-1.5 " + (mode === item ? "bg-cyan-950/70 text-cyan-100" : "text-slate-500")}
+                  >
+                    {item === "auto" ? "AUTO" : "CPU"}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => setUseKnowledge((value) => !value)}
+                disabled={status === "loading" || status === "generating"}
+                className={"rounded-xl border px-3 py-2 text-[9px] font-black " + (useKnowledge ? "border-fuchsia-400/20 bg-fuchsia-950/25 text-fuchsia-100" : "border-white/10 bg-slate-950/55 text-slate-500")}
+                title={standalone ? "El modo offline abre con RAG apagado. Actívalo solo si quieres usar el Knowledge Pack técnico guardado en este navegador." : "Activa o desactiva el Knowledge Pack durante el chat normal."}
+              >
+                RAG {useKnowledge ? "ON" : "OFF"}
+              </button>
             </div>
           </div>
 
