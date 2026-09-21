@@ -1,4 +1,6 @@
-import { eduAIRagQueryTerms, scoreEduAIRagRecord } from "./eduai-local-rag-score";\nexport type EduAIKnowledgeRecord = {
+import { eduAIRagQueryTerms, scoreEduAIRagRecord } from "./eduai-local-rag-score";
+
+export type EduAIKnowledgeRecord = {
   id: string;
   source: string;
   language: string;
