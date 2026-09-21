@@ -34,6 +34,12 @@ export async function GET() {
         trainingLocation: "GPU externa; nunca en los notebooks de usuario",
         inferenceTarget: "wllama · navegador · CPU/WASM o WebGPU",
         profiles: ["eduai-nano", "eduai-lite", "eduai-performance"],
+        evaluationStrategy: "13 casos reproducibles · 6 críticos · endpoint OpenAI-compatible",
+        promotionThresholds: {
+          "eduai-nano": 70,
+          "eduai-lite": 80,
+          "eduai-performance": 85,
+        },
       },
       safeguards: {
         adminOnly: true,

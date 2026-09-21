@@ -52,6 +52,8 @@ type FactoryPayload = {
     knowledgeStrategy?: string;
     trainingLocation?: string;
     inferenceTarget?: string;
+    evaluationStrategy?: string;
+    promotionThresholds?: Record<string, number>;
   };
   safeguards?: {
     adminOnly?: boolean;
@@ -210,6 +212,30 @@ export default function EduAIModelFactoryPanel() {
           ["3 · LoRA", "Entrenamos routing, herramientas, estilo EDUAI y respuestas estructuradas."],
           ["4 · GGUF", "Fusionamos, cuantizamos y validamos el modelo antes de publicarlo en el runtime local."],
         ].map(([title, detail]) => <div key={title} className="rounded-2xl border border-white/8 bg-slate-950/35 p-4"><p className="text-xs font-black text-fuchsia-100">{title}</p><p className="mt-2 text-[10px] leading-5 text-slate-500">{detail}</p></div>)}
+      </div>
+
+      <div className="mt-4 rounded-[22px] border border-violet-400/15 bg-violet-950/10 p-4">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="max-w-3xl">
+            <p className="text-xs font-black text-violet-200">Quality Gate de EDUAI Local</p>
+            <p className="mt-2 text-[10px] leading-5 text-slate-500">
+              {factory?.evaluationStrategy || "Suite reproducible con casos críticos y puntuación mínima por perfil."}
+              Un candidato no se promueve si falla un caso crítico aunque supere el porcentaje global.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {[
+              ["Nano", factory?.promotionThresholds?.["eduai-nano"] ?? 70],
+              ["Lite", factory?.promotionThresholds?.["eduai-lite"] ?? 80],
+              ["Performance", factory?.promotionThresholds?.["eduai-performance"] ?? 85],
+            ].map(([label, threshold]) => (
+              <div key={String(label)} className="rounded-xl border border-violet-400/10 bg-slate-950/45 px-3 py-2 text-center">
+                <p className="text-[9px] font-black uppercase text-slate-500">{label}</p>
+                <p className="mt-1 text-sm font-black text-violet-100">≥ {threshold}%</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_auto]">

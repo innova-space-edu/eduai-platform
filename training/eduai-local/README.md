@@ -82,3 +82,25 @@ Después de entrenar:
 Estado: Model Factory v3 · familia multi-hardware + Knowledge Pack local shardeado.
 
 Validación CI: matriz multi-hardware + Knowledge Pack v3.
+
+## Quality Gate
+
+La promoción de un modelo propio se valida contra `eval-cases.jsonl`. La suite separa entrenamiento de evaluación y contiene casos de privacidad, no alucinación, navegación de código, routing, comportamiento offline y seguridad de herramientas.
+
+Ejemplo usando LM Studio, llama.cpp u otro endpoint OpenAI-compatible local:
+
+```bash
+python training/eduai-local/evaluate_openai_compatible.py \
+  --profile eduai-lite \
+  --base-url http://localhost:1234/v1 \
+  --model eduai-lite
+```
+
+Umbrales iniciales:
+
+- EDUAI Nano: 70%.
+- EDUAI Lite: 80%.
+- EDUAI Performance: 85%.
+
+Además, ningún perfil aprueba si falla un caso marcado como crítico. El reporte se guarda por defecto en `artifacts/ai/<perfil>-evaluation.json`.
+
