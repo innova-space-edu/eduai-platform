@@ -1285,7 +1285,7 @@ function MainPanel({
           )}
         </div>
 
-        <div className="flex min-h-0 flex-1 items-center justify-center rounded-3xl border border-cyan-400/15 bg-[radial-gradient(circle_at_center,rgba(16,185,129,.18),rgba(15,23,42,.78)_48%,rgba(5,7,10,.95))] p-5">
+        <div className="cyber-player-stage flex min-h-0 flex-1 items-center justify-center rounded-3xl border border-cyan-400/15 p-5">
           {spotifyEmbed ? (
             <div className="w-full max-w-3xl rounded-[1.75rem] border border-cyan-300/20 bg-black/25 p-4 text-center shadow-xl shadow-black/25 backdrop-blur-xl max-xl:p-4">
               <div className="mx-auto max-w-xl">
@@ -1394,7 +1394,7 @@ function MainPanel({
               </div>
             </div>
           ) : (
-            <div className={cn("w-full rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-center shadow-xl shadow-black/25 backdrop-blur-xl max-xl:p-4", track.source === "youtube" ? "max-w-4xl" : "max-w-xl")}>
+            <div className={cn("cyber-player-core w-full rounded-[1.5rem] border border-white/10 p-4 text-center shadow-xl shadow-black/25 max-xl:p-4", track.source === "youtube" ? "max-w-4xl" : "max-w-xl")}>
               <div className="flex justify-center">
                 <CurrentTrackArtwork track={track} />
               </div>
@@ -2024,6 +2024,7 @@ export default function EduAIMusicPlayer({
           --cyber-blue: #4aa8ff;
           background: #02050c;
           isolation: isolate;
+          color-scheme: dark;
         }
         .cyber-static-backdrop {
           position: absolute;
@@ -2031,7 +2032,7 @@ export default function EduAIMusicPlayer({
           z-index: 0;
           pointer-events: none;
           background:
-            linear-gradient(180deg, rgba(1,5,12,.08), rgba(1,5,12,.22)),
+            linear-gradient(180deg, rgba(1,5,12,.02), rgba(1,5,12,.10)),
             url("/music/eduai-music-cyber-bg.webp") center / cover no-repeat;
           filter: saturate(1.08) contrast(1.04);
           transform: scale(1.01);
@@ -2042,8 +2043,8 @@ export default function EduAIMusicPlayer({
           position: absolute;
           inset: 0;
           background:
-            radial-gradient(circle at 50% 38%, transparent 0 32%, rgba(0,0,0,.12) 68%, rgba(0,0,0,.34) 100%),
-            linear-gradient(90deg, rgba(0,0,0,.11), transparent 22%, transparent 78%, rgba(0,0,0,.11));
+            radial-gradient(circle at 50% 38%, transparent 0 42%, rgba(0,0,0,.07) 72%, rgba(0,0,0,.18) 100%),
+            linear-gradient(90deg, rgba(0,0,0,.05), transparent 18%, transparent 82%, rgba(0,0,0,.05));
         }
         .cyber-rhythm-field {
           position: absolute;
@@ -2104,19 +2105,19 @@ export default function EduAIMusicPlayer({
         .cyber-sidebar,
         .cyber-rightbar,
         .cyber-playerbar {
-          background: linear-gradient(180deg, rgba(3, 10, 19, .82), rgba(2, 7, 15, .70)) !important;
-          border-color: rgba(77, 229, 255, .24) !important;
-          backdrop-filter: blur(22px) saturate(1.32);
-          -webkit-backdrop-filter: blur(22px) saturate(1.32);
+          background: linear-gradient(180deg, rgba(3, 10, 19, .56), rgba(2, 7, 15, .44)) !important;
+          border-color: rgba(77, 229, 255, .30) !important;
+          backdrop-filter: blur(7px) saturate(1.12);
+          -webkit-backdrop-filter: blur(7px) saturate(1.12);
         }
         .cyber-dashboard-panel,
         .cyber-now-card,
         .cyber-main > section {
           background:
-            linear-gradient(145deg, rgba(4,15,27,.68), rgba(3,8,18,.62) 54%, rgba(31,5,38,.50)) !important;
-          border-color: rgba(77,229,255,.28) !important;
-          backdrop-filter: blur(18px) saturate(1.25);
-          -webkit-backdrop-filter: blur(18px) saturate(1.25);
+            linear-gradient(145deg, rgba(4,15,27,.42), rgba(3,8,18,.36) 54%, rgba(31,5,38,.32)) !important;
+          border-color: rgba(77,229,255,.30) !important;
+          backdrop-filter: blur(6px) saturate(1.12);
+          -webkit-backdrop-filter: blur(6px) saturate(1.12);
           box-shadow:
             inset 0 1px 0 rgba(255,255,255,.035),
             inset 0 0 42px rgba(37,244,255,.025),
@@ -2127,8 +2128,45 @@ export default function EduAIMusicPlayer({
         .cyber-rightbar {
           box-shadow: inset 0 0 34px rgba(37,244,255,.025);
         }
+        .cyber-sidebar > div:first-child,
+        .cyber-sidebar > details,
+        .cyber-sidebar > div > section,
+        .cyber-rightbar > section,
+        .cyber-rightbar > details {
+          background: linear-gradient(145deg, rgba(3,12,23,.34), rgba(4,8,18,.24)) !important;
+          border-color: rgba(81,224,255,.24) !important;
+          backdrop-filter: blur(5px) saturate(1.08);
+          -webkit-backdrop-filter: blur(5px) saturate(1.08);
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,.035),
+            0 12px 30px rgba(0,0,0,.14);
+        }
+        .cyber-sidebar input,
+        .cyber-rightbar input {
+          background-color: rgba(0,5,12,.28) !important;
+        }
         .cyber-main {
-          background: rgba(1, 5, 12, .12) !important;
+          background: transparent !important;
+        }
+        .cyber-main > section {
+          background: linear-gradient(145deg, rgba(3,12,23,.34), rgba(4,8,18,.22), rgba(31,5,38,.24)) !important;
+        }
+        .cyber-player-stage {
+          background:
+            radial-gradient(circle at 50% 42%, rgba(37,244,255,.07), transparent 28%),
+            linear-gradient(145deg, rgba(2,10,20,.18), rgba(5,5,17,.10), rgba(28,5,34,.16)) !important;
+          border-color: rgba(78,228,255,.28) !important;
+          backdrop-filter: blur(2px);
+          -webkit-backdrop-filter: blur(2px);
+          box-shadow:
+            inset 0 0 70px rgba(0,8,18,.12),
+            0 0 0 1px rgba(255,66,207,.04);
+        }
+        .cyber-player-core {
+          background: linear-gradient(145deg, rgba(2,9,18,.44), rgba(8,5,18,.34)) !important;
+          backdrop-filter: blur(5px) saturate(1.08);
+          -webkit-backdrop-filter: blur(5px) saturate(1.08);
+          border-color: rgba(111,225,255,.22) !important;
         }
         .cyber-hero-grid {
           background:
