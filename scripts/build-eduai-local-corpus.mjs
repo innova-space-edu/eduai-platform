@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { sanitizeEduAILocalCorpusText } from "./eduai-local-corpus-safety.mjs";
 
 const ROOT = process.cwd();
 const SOURCE_ROOTS = ["app", "components", "lib", "docs", "scripts", "supabase", "data", ".github/workflows"];
@@ -18,7 +19,6 @@ const ALLOWED_EXTENSIONS = new Set([
 
 const DENY_PATH = /(?:^|[\\/])(?:node_modules|\.next|\.git|public|artifacts|coverage|dist|build)(?:[\\/]|$)/i;
 const SECRET_FILE = /(?:^|[._-])(?:env|secret|credential|private[-_]?key)(?:[._-]|$)/i;
-const SECRET_LINE = /(api[_-]?key|secret|password|private[_-]?key|service[_-]?account)\s*[:=]\s*["'][^"']{8,}["']/i;
 const PATH_ONLY_PREFIXES = ["data/"];
 const MAX_FILE_BYTES = 512 * 1024;
 const CHUNK_CHARS = 6000;
@@ -40,12 +40,6 @@ async function walk(target) {
   return entries;
 }
 
-function sanitize(text) {
-  return text
-    .split(/\r?\n/)
-    .map((line) => SECRET_LINE.test(line) ? "[REDACTED_SECRET_LIKE_LINE]" : line)
-    .join("\n");
-}
 
 function chunkText(text) {
   const chunks = [];
@@ -98,7 +92,7 @@ for (const absolute of unique) {
   if (!raw.trim()) continue;
   totalSourceBytes += info.size;
   byExtension[ext || "text"] = (byExtension[ext || "text"] || 0) + 1;
-  const clean = sanitize(raw);
+  const clean = sanitizeEduAILocalCorpusText(raw);
   const chunks = chunkText(clean);
   chunks.forEach((content, index) => {
     const id = createHash("sha256").update(relative + ":" + index + ":" + content).digest("hex").slice(0, 20);

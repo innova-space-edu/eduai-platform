@@ -292,6 +292,7 @@ export default function EduAILocalRuntimePanel() {
   async function runBenchmark() {
     if (!isReady || benchmarking) return;
     setBenchmarking(true);
+    setStatus("generating");
     setError("");
     try {
       const prompts = [
@@ -332,6 +333,7 @@ export default function EduAILocalRuntimePanel() {
       setError(benchmarkError instanceof Error ? benchmarkError.message : "El benchmark local falló.");
     } finally {
       setBenchmarking(false);
+      if (mountedRef.current) setStatus("ready");
     }
   }
 
@@ -480,7 +482,7 @@ export default function EduAILocalRuntimePanel() {
             <p className="text-xs font-black text-cyan-100">Perfil de hardware</p>
             <p className="mt-1 text-[10px] leading-4 text-slate-500">WebGPU se detecta automáticamente. La VRAM no puede medirse de forma fiable desde el navegador, por eso puedes declararla manualmente.</p>
           </div>
-          <button type="button" onClick={() => applyHardwareProfile(null, null)} className="rounded-xl border border-white/10 bg-slate-950/50 px-3 py-2 text-[10px] font-black text-slate-400">Auto</button>
+          <button type="button" onClick={() => applyHardwareProfile(null, null)} disabled={status === "generating" || benchmarking} className="rounded-xl border border-white/10 bg-slate-950/50 px-3 py-2 text-[10px] font-black text-slate-400">Auto</button>
         </div>
 
         <div className="mt-3 flex flex-wrap gap-2">
@@ -495,6 +497,7 @@ export default function EduAILocalRuntimePanel() {
               key={profile.label}
               type="button"
               onClick={() => applyHardwareProfile(profile.ram, profile.vram)}
+              disabled={status === "generating" || benchmarking}
               className="rounded-xl border border-white/10 bg-slate-950/50 px-3 py-2 text-[10px] font-black text-slate-300 hover:border-cyan-400/20"
             >
               {profile.label}
@@ -505,14 +508,14 @@ export default function EduAILocalRuntimePanel() {
         <div className="mt-3 grid gap-2 sm:grid-cols-3">
           <label className="rounded-xl border border-white/8 bg-black/20 p-3 text-[10px] text-slate-500">
             RAM real
-            <select value={manualRamGB ?? ""} onChange={(event) => applyHardwareProfile(event.target.value ? Number(event.target.value) : null, manualVramGB)} className="mt-1.5 w-full rounded-lg border border-white/10 bg-slate-950 px-2 py-2 text-xs font-black text-white">
+            <select value={manualRamGB ?? ""} disabled={status === "generating" || benchmarking} onChange={(event) => applyHardwareProfile(event.target.value ? Number(event.target.value) : null, manualVramGB)} className="mt-1.5 w-full rounded-lg border border-white/10 bg-slate-950 px-2 py-2 text-xs font-black text-white">
               <option value="">Auto (~{hardware?.memoryGB ?? "?"} GB)</option>
               {[4, 8, 12, 16, 24, 32, 64].map((value) => <option key={value} value={value}>{value} GB</option>)}
             </select>
           </label>
           <label className="rounded-xl border border-white/8 bg-black/20 p-3 text-[10px] text-slate-500">
             VRAM dedicada
-            <select value={manualVramGB ?? ""} onChange={(event) => applyHardwareProfile(manualRamGB, event.target.value ? Number(event.target.value) : null)} className="mt-1.5 w-full rounded-lg border border-white/10 bg-slate-950 px-2 py-2 text-xs font-black text-white">
+            <select value={manualVramGB ?? ""} disabled={status === "generating" || benchmarking} onChange={(event) => applyHardwareProfile(manualRamGB, event.target.value ? Number(event.target.value) : null)} className="mt-1.5 w-full rounded-lg border border-white/10 bg-slate-950 px-2 py-2 text-xs font-black text-white">
               <option value="">No declarada</option>
               {[0, 2, 4, 6, 8, 12, 16, 24].map((value) => <option key={value} value={value}>{value} GB</option>)}
             </select>
@@ -607,7 +610,7 @@ export default function EduAILocalRuntimePanel() {
             <button
               type="button"
               onClick={() => void releaseMemory()}
-              disabled={!loadedModelId}
+              disabled={!loadedModelId || status === "generating" || benchmarking}
               className="rounded-xl border border-white/10 bg-slate-950/60 px-3 py-2.5 text-[10px] font-black text-slate-400 disabled:opacity-30"
             >
               Liberar RAM
@@ -615,6 +618,7 @@ export default function EduAILocalRuntimePanel() {
             <button
               type="button"
               onClick={() => void clearCache()}
+              disabled={status === "generating" || benchmarking}
               className="inline-flex items-center gap-1.5 rounded-xl border border-red-400/15 bg-red-950/20 px-3 py-2.5 text-[10px] font-black text-red-200"
             >
               <Trash2 className="h-3.5 w-3.5" /> Borrar caché
