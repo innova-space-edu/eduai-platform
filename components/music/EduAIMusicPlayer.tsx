@@ -2033,7 +2033,7 @@ export default function EduAIMusicPlayer({
           pointer-events: none;
           background:
             linear-gradient(180deg, rgba(1,5,12,.02), rgba(1,5,12,.10)),
-            url("/music/eduai-music-cyber-bg.webp") center / cover no-repeat;
+            url("/music/eduai-music-ui-background.png") center / cover no-repeat;
           filter: saturate(1.08) contrast(1.04);
           transform: scale(1.01);
           transform-origin: center;
