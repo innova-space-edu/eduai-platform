@@ -46,6 +46,9 @@ function ms(value: number | null) {
   return value < 1000 ? Math.round(value) + " ms" : (value / 1000).toFixed(1) + " s";
 }
 
+const HARDWARE_PROFILE_KEY = "eduai-local-hardware-profile-v1";
+const SELECTED_MODEL_KEY = "eduai-local-selected-model-v1";
+
 export default function EduAILocalRuntimePanel() {
   const [hardware, setHardware] = useState<EduAILocalHardware | null>(null);
   const [selectedModelId, setSelectedModelId] = useState(DEFAULT_EDUAI_LOCAL_MODEL_ID);
@@ -63,6 +66,7 @@ export default function EduAILocalRuntimePanel() {
   const [manualRamGB, setManualRamGB] = useState<number | null>(null);
   const [manualVramGB, setManualVramGB] = useState<number | null>(null);
   const mountedRef = useRef(true);
+  const savedProfileLoadedRef = useRef(false);
 
   async function calibrate(applyRecommendation = false) {
     setError("");
@@ -90,6 +94,47 @@ export default function EduAILocalRuntimePanel() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!hardware || savedProfileLoadedRef.current) return;
+    savedProfileLoadedRef.current = true;
+
+    let savedRam: number | null = null;
+    let savedVram: number | null = null;
+    try {
+      const raw = window.localStorage.getItem(HARDWARE_PROFILE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as { ramGB?: unknown; vramGB?: unknown };
+        savedRam = typeof parsed.ramGB === "number" ? parsed.ramGB : null;
+        savedVram = typeof parsed.vramGB === "number" ? parsed.vramGB : null;
+      }
+    } catch {
+      savedRam = null;
+      savedVram = null;
+    }
+
+    setManualRamGB(savedRam);
+    setManualVramGB(savedVram);
+    const profile: EduAIHardwareProfile = {
+      memoryGB: savedRam ?? hardware.memoryGB,
+      vramGB: savedVram,
+      webgpu: hardware.webgpu,
+      cores: hardware.cores,
+    };
+    const fallback = recommendEduAILocalModel(profile);
+
+    try {
+      const savedModelId = window.localStorage.getItem(SELECTED_MODEL_KEY);
+      const savedModel = savedModelId ? getEduAILocalModel(savedModelId) : null;
+      if (savedModel && savedModel.id === savedModelId && evaluateEduAILocalModel(savedModel, profile) !== "avoid") {
+        setSelectedModelId(savedModelId);
+      } else {
+        setSelectedModelId(fallback);
+      }
+    } catch {
+      setSelectedModelId(fallback);
+    }
+  }, [hardware]);
+
   const effectiveProfile = useMemo<EduAIHardwareProfile>(() => ({
     memoryGB: manualRamGB ?? hardware?.memoryGB ?? null,
     vramGB: manualVramGB,
@@ -101,16 +146,40 @@ export default function EduAILocalRuntimePanel() {
   const recommended = getEduAILocalModel(recommendedModelId);
   const isReady = status === "ready" && loadedModelId === selectedModelId;
 
+  function selectModel(modelId: string) {
+    setSelectedModelId(modelId);
+    try {
+      window.localStorage.setItem(SELECTED_MODEL_KEY, modelId);
+    } catch {
+      // Persistencia opcional.
+    }
+  }
+
   function applyHardwareProfile(ramGB: number | null, vramGB: number | null) {
     setManualRamGB(ramGB);
     setManualVramGB(vramGB);
+    try {
+      if (ramGB === null && vramGB === null) {
+        window.localStorage.removeItem(HARDWARE_PROFILE_KEY);
+      } else {
+        window.localStorage.setItem(HARDWARE_PROFILE_KEY, JSON.stringify({ ramGB, vramGB }));
+      }
+    } catch {
+      // Persistencia opcional.
+    }
     const profile: EduAIHardwareProfile = {
       memoryGB: ramGB ?? hardware?.memoryGB ?? null,
       vramGB,
       webgpu: hardware?.webgpu ?? false,
       cores: hardware?.cores ?? 1,
     };
-    setSelectedModelId(recommendEduAILocalModel(profile));
+    const modelId = recommendEduAILocalModel(profile);
+    setSelectedModelId(modelId);
+    try {
+      window.localStorage.setItem(SELECTED_MODEL_KEY, modelId);
+    } catch {
+      // Persistencia opcional.
+    }
   }
 
   async function loadModel() {
@@ -194,9 +263,9 @@ export default function EduAILocalRuntimePanel() {
       icon: Gauge,
     },
     {
-      label: "Aceleración",
+      label: "GPU / aceleración",
       value: hardware?.webgpu ? "WebGPU disponible" : hardware ? "CPU / WASM" : "Midiendo…",
-      detail: mode === "cpu" ? "CPU forzada por el laboratorio" : "Auto: usa la mejor ruta disponible",
+      detail: mode === "cpu" ? "CPU forzada por el laboratorio" : hardware?.gpuLabel || "Auto: usa la mejor ruta disponible",
       icon: Sparkles,
     },
     {
@@ -345,7 +414,7 @@ export default function EduAILocalRuntimePanel() {
                 <button
                   key={model.id}
                   type="button"
-                  onClick={() => setSelectedModelId(model.id)}
+                  onClick={() => selectModel(model.id)}
                   disabled={status === "loading" || status === "generating"}
                   className={"w-full rounded-2xl border p-3 text-left transition " + (selectedNow ? "border-cyan-400/30 bg-cyan-950/25" : "border-white/8 bg-slate-950/40 hover:border-white/15")}
                 >

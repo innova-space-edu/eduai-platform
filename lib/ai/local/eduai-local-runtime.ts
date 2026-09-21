@@ -51,6 +51,7 @@ export type EduAILocalHardware = {
   multithreadReady: boolean;
   storageUsageMB: number | null;
   storageQuotaMB: number | null;
+  gpuLabel: string | null;
   recommendedModelId: string;
   tier: "constrained" | "standard" | "accelerated";
 };
@@ -90,6 +91,7 @@ export async function probeEduAILocalHardware(): Promise<EduAILocalHardware> {
       multithreadReady: false,
       storageUsageMB: null,
       storageQuotaMB: null,
+      gpuLabel: null,
       recommendedModelId: DEFAULT_EDUAI_LOCAL_MODEL_ID,
       tier: "constrained",
     };
@@ -97,7 +99,16 @@ export async function probeEduAILocalHardware(): Promise<EduAILocalHardware> {
 
   const nav = navigator as Navigator & {
     deviceMemory?: number;
-    gpu?: unknown;
+    gpu?: {
+      requestAdapter?: () => Promise<{
+        info?: {
+          vendor?: string;
+          architecture?: string;
+          device?: string;
+          description?: string;
+        };
+      } | null>;
+    };
   };
   const cores = Math.max(1, nav.hardwareConcurrency || 1);
   const memoryGB =
@@ -117,6 +128,19 @@ export async function probeEduAILocalHardware(): Promise<EduAILocalHardware> {
   }
 
   const webgpu = Boolean(nav.gpu);
+  let gpuLabel: string | null = null;
+  if (nav.gpu?.requestAdapter) {
+    try {
+      const adapter = await nav.gpu.requestAdapter();
+      const info = adapter?.info;
+      const parts = [info?.vendor, info?.architecture, info?.device, info?.description]
+        .filter((value): value is string => Boolean(value && value.trim()))
+        .filter((value, index, values) => values.indexOf(value) === index);
+      gpuLabel = parts.length ? parts.join(" · ") : null;
+    } catch {
+      gpuLabel = null;
+    }
+  }
   const isolated = typeof window !== "undefined" && window.crossOriginIsolated;
   const constrained = (memoryGB !== null && memoryGB <= 4) || cores <= 2;
   const accelerated = webgpu && (memoryGB === null || memoryGB >= 8);
@@ -132,6 +156,7 @@ export async function probeEduAILocalHardware(): Promise<EduAILocalHardware> {
     multithreadReady: isolated && cores > 1,
     storageUsageMB,
     storageQuotaMB,
+    gpuLabel,
     recommendedModelId: recommendEduAILocalModel({ memoryGB, vramGB: null, webgpu, cores }),
     tier: accelerated ? "accelerated" : constrained ? "constrained" : "standard",
   };
