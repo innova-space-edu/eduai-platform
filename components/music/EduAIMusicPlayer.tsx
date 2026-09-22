@@ -4,6 +4,7 @@ import Link from "next/link";
 import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
+  Copy,
   ExternalLink,
   Heart,
   Home,
@@ -16,12 +17,17 @@ import {
   Plus,
   Radio,
   Repeat,
+  RotateCcw,
+  RotateCw,
   Search,
+  Share2,
   Shuffle,
   SkipBack,
   SkipForward,
   Upload,
   Volume2,
+  VolumeX,
+  X,
 } from "lucide-react";
 import {
   type EduMusicPlaylist,
@@ -2146,7 +2152,10 @@ function NeonSidebar({
       <div className="mt-auto border-t border-cyan-300/15 pt-3">
         <button
           type="button"
-          onClick={() => music.setView("library")}
+          onClick={() => {
+            onNavigate();
+            music.setView("library");
+          }}
           className="flex w-full items-center gap-2 rounded-xl px-2 py-2 text-left transition hover:bg-white/5"
         >
           <span className="h-8 w-8 rounded-full border border-fuchsia-300/30 bg-[radial-gradient(circle_at_35%_30%,#25f4ff,#6d4cff_48%,#ff42cf_82%,#030713)] shadow-[0_0_16px_rgba(155,108,255,.28)]" />
@@ -2363,8 +2372,17 @@ function NeonMain({
     music.view === "liked" ? "Favoritos" :
     music.view === "queue" ? "Cola" :
     music.view === "playlists" ? music.selectedPlaylist?.name || "Playlists" :
-    music.view === "search" ? "Resultados online" :
+    music.view === "search" ? "YouTube" :
     "Inicio";
+
+  const viewDescription =
+    music.view === "radio" ? "Explora emisoras sin interrumpir la pista que ya está sonando." :
+    music.view === "library" ? "Tus archivos de audio permanecen separados de la reproducción actual." :
+    music.view === "liked" ? "Tus canciones favoritas, listas para reproducir cuando quieras." :
+    music.view === "queue" ? "Revisa y administra la cola sin cambiar la canción actual." :
+    music.view === "playlists" ? "Navega tus playlists; solo cambia la reproducción cuando eliges una pista." :
+    music.view === "search" ? "Busca y recorre el catálogo de YouTube manteniendo estable el reproductor." :
+    "Explora EDUAI Music sin perder la reproducción actual.";
 
   if (spotifyEmbed) {
     return (
@@ -2436,6 +2454,7 @@ function NeonMain({
                 key={view}
                 type="button"
                 onClick={() => {
+                  onCloseSpotify();
                   if (view === "search") music.setOnlineProviderMode("youtube");
                   music.setView(view as typeof music.view);
                 }}
@@ -2473,6 +2492,16 @@ function NeonMain({
                 />
               </label>
             )}
+          </div>
+
+          <div className="neon-view-context mt-3 flex items-center justify-between gap-3 rounded-xl border border-cyan-300/15 bg-[#03101c]/72 px-3 py-2">
+            <div className="min-w-0">
+              <p className="truncate text-[11px] font-black text-cyan-100">{viewTitle}</p>
+              <p className="truncate text-[9px] text-slate-400">{viewDescription}</p>
+            </div>
+            <span className="hidden shrink-0 rounded-full border border-emerald-300/20 bg-emerald-300/8 px-2 py-1 text-[8px] font-black uppercase tracking-[.12em] text-emerald-200 sm:inline-flex">
+              Reproducción continua
+            </span>
           </div>
         </div>
 
@@ -2641,69 +2670,290 @@ function NeonBottomPlayer() {
   const track = music.currentTrack;
   const idle = track.id === "eduai-music-empty";
   const duration = durationForPlayer(track, music.durationSeconds);
+  const artwork = track.artworkUrl || track.videoThumbnail || (track.cover?.startsWith("http") ? track.cover : undefined);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareMode, setShareMode] = useState<"track" | "catalog">("track");
+  const [shareFeedback, setShareFeedback] = useState("");
+  const previousVolumeRef = useRef(0.62);
+
+  useEffect(() => {
+    if (music.volume > 0.01) previousVolumeRef.current = music.volume;
+  }, [music.volume]);
+
+  const muted = music.volume <= 0.01;
+
+  const toggleMute = () => {
+    if (muted) {
+      music.setVolume(Math.max(0.08, previousVolumeRef.current || 0.62));
+      return;
+    }
+    previousVolumeRef.current = music.volume;
+    music.setVolume(0);
+  };
+
+  const seekRelative = (delta: number) => {
+    if (idle) return;
+    const upper = duration > 0 ? duration : Number.POSITIVE_INFINITY;
+    music.seekTo(Math.max(0, Math.min(upper, music.currentTime + delta)));
+  };
+
+  const shareText =
+    shareMode === "track" && !idle
+      ? `🎧 Estoy escuchando "${track.title}" — ${track.artist} en EDUAI Music.`
+      : "🎶 Explora el catálogo de EDUAI Music.";
+
+  // Las previews de Vercel pueden estar protegidas y los crawlers sociales
+  // terminan leyendo la pantalla de autenticación. Compartimos siempre una URL
+  // pública/canónica para que Facebook, WhatsApp y otros puedan leer OG metadata.
+  const canonicalMusicOrigin = (process.env.NEXT_PUBLIC_SITE_URL || "https://eduaiplatformclon.vercel.app").replace(/\/$/, "");
+  const shareParams = new URLSearchParams();
+  if (shareMode === "track" && !idle) {
+    shareParams.set("title", track.title);
+    shareParams.set("artist", track.artist);
+    if (track.youtubeVideoId) shareParams.set("videoId", track.youtubeVideoId);
+  } else {
+    shareParams.set("catalog", "1");
+  }
+  const shareBaseUrl = `${canonicalMusicOrigin}/music/share?${shareParams.toString()}`;
+  const fullShareText = `${shareText} ${shareBaseUrl}`;
+
+  const copyShare = async () => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(fullShareText);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = fullShareText;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        textarea.remove();
+      }
+      setShareFeedback("Texto y enlace copiados.");
+    } catch {
+      setShareFeedback("No se pudo copiar automáticamente.");
+    }
+  };
+
+  const openShareWindow = (url: string) => {
+    window.open(url, "_blank", "noopener,noreferrer,width=720,height=680");
+  };
+
+  const shareNative = async (preferred?: "Instagram" | "TikTok") => {
+    const data = {
+      title: shareMode === "track" && !idle ? `${track.title} · EDUAI Music` : "EDUAI Music",
+      text: shareText,
+      url: shareBaseUrl,
+    };
+
+    if (navigator.share) {
+      try {
+        setShareFeedback(preferred ? `Selecciona ${preferred} en el menú del dispositivo.` : "");
+        await navigator.share(data);
+        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+      }
+    }
+
+    await copyShare();
+    if (preferred === "Instagram") {
+      window.open("https://www.instagram.com/", "_blank", "noopener,noreferrer");
+      setShareFeedback("Texto copiado. Pégalo en Instagram.");
+    } else if (preferred === "TikTok") {
+      window.open("https://www.tiktok.com/", "_blank", "noopener,noreferrer");
+      setShareFeedback("Texto copiado. Pégalo en TikTok.");
+    }
+  };
+
+  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(fullShareText)}`;
+  const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareBaseUrl)}`;
+  const xUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareBaseUrl)}`;
+  const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(shareBaseUrl)}&text=${encodeURIComponent(shareText)}`;
 
   return (
-    <div className="neon-bottom-player absolute inset-x-0 bottom-0 z-20 h-[84px] px-[clamp(14px,1.5vw,24px)]">
-      <div className="neon-bottom-grid grid h-full grid-cols-[minmax(190px,280px)_minmax(320px,1fr)_minmax(190px,280px)] items-center gap-4">
-        <div className="flex min-w-0 items-center gap-2.5">
-          {!idle && <Cover track={track} size="md" />}
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-[11px] font-black text-white">{track.title}</p>
-            <p className="truncate text-[9px] text-slate-400">{track.artist}</p>
+    <>
+      <div className="neon-bottom-player absolute inset-x-0 bottom-0 z-20 h-[84px] px-[clamp(14px,1.5vw,24px)]">
+        <div className="neon-bottom-grid grid h-full grid-cols-[minmax(190px,280px)_minmax(320px,1fr)_minmax(190px,280px)] items-center gap-4">
+          <div className="flex min-w-0 items-center gap-2.5">
+            {!idle && <Cover track={track} size="md" />}
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[11px] font-black text-white">{track.title}</p>
+              <p className="truncate text-[9px] text-slate-400">{track.artist}</p>
+            </div>
+            {!idle && (
+              <button type="button" onClick={() => music.toggleLike(track.id)} className={cn("text-slate-500 hover:text-fuchsia-300", music.liked.has(track.id) && "text-fuchsia-400")}>
+                <Heart className="h-4 w-4" fill={music.liked.has(track.id) ? "currentColor" : "none"} />
+              </button>
+            )}
           </div>
-          {!idle && (
-            <button type="button" onClick={() => music.toggleLike(track.id)} className={cn("text-slate-500 hover:text-fuchsia-300", music.liked.has(track.id) && "text-fuchsia-400")}>
-              <Heart className="h-4 w-4" fill={music.liked.has(track.id) ? "currentColor" : "none"} />
-            </button>
-          )}
-        </div>
 
-        <div className="min-w-0">
-          <div className="flex items-center justify-center gap-2.5">
-            <button type="button" onClick={() => music.setShuffle((value) => !value)} className={cn("neon-control-button", music.shuffle && "is-active")}><Shuffle className="h-3.5 w-3.5" /></button>
-            <button type="button" onClick={music.prevTrack} className="neon-control-button"><SkipBack className="h-4 w-4" fill="currentColor" /></button>
+          <div className="min-w-0">
+            <div className="flex items-center justify-center gap-2">
+              <button type="button" onClick={() => music.setShuffle((value) => !value)} className={cn("neon-control-button", music.shuffle && "is-active")} title="Aleatorio"><Shuffle className="h-3.5 w-3.5" /></button>
+              <button type="button" onClick={music.prevTrack} className="neon-control-button" title="Anterior"><SkipBack className="h-4 w-4" fill="currentColor" /></button>
+              <button type="button" onClick={() => seekRelative(-10)} disabled={idle} className="neon-control-button hidden sm:inline-flex" title="Retroceder 10 segundos"><RotateCcw className="h-3.5 w-3.5" /></button>
+              <button
+                type="button"
+                disabled={idle}
+                onClick={() => !idle && music.setPlaying((value) => !value)}
+                className={cn("neon-main-play flex h-11 w-11 items-center justify-center rounded-full text-slate-950", music.playing && !idle && "is-playing", idle && "cursor-default opacity-45")}
+                aria-label={music.playing ? "Pausar" : "Reproducir"}
+                title={music.playing ? "Pausar" : "Reproducir"}
+              >
+                {music.playing && !idle ? <Pause className="h-5 w-5" fill="currentColor" /> : <Play className="h-5 w-5 translate-x-px" fill="currentColor" />}
+              </button>
+              <button type="button" onClick={() => seekRelative(10)} disabled={idle} className="neon-control-button hidden sm:inline-flex" title="Avanzar 10 segundos"><RotateCw className="h-3.5 w-3.5" /></button>
+              <button type="button" onClick={music.nextTrack} className="neon-control-button" title="Siguiente"><SkipForward className="h-4 w-4" fill="currentColor" /></button>
+              <button
+                type="button"
+                onClick={() => music.setRepeat(music.repeat === "off" ? "all" : music.repeat === "all" ? "one" : "off")}
+                className={cn("neon-control-button", music.repeat !== "off" && "is-active")}
+                title="Repetición"
+              >
+                <Repeat className="h-3.5 w-3.5" />
+              </button>
+              <button type="button" onClick={toggleMute} className={cn("neon-control-button", muted && "is-active")} title={muted ? "Activar sonido" : "Silenciar"}>
+                {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+              </button>
+              <button
+                type="button"
+                disabled={idle}
+                onClick={() => {
+                  setShareFeedback("");
+                  setShareMode("track");
+                  setShareOpen(true);
+                }}
+                className="neon-control-button"
+                title="Compartir"
+              >
+                <Share2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <div className="mt-1 flex items-center gap-2 text-[8px] tabular-nums text-slate-500">
+              <span className="w-7 text-right">{formatSeconds(music.currentTime)}</span>
+              <ProgressRange currentTime={music.currentTime} duration={duration} onSeek={music.seekTo} compact />
+              <span className="w-7">{formatSeconds(duration)}</span>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2">
+            <NeonSpectrum active={music.playing && !idle} bars={10} currentTime={music.currentTime} trackId={track.id} className="hidden h-7 w-14 2xl:flex" />
+            <button type="button" onClick={toggleMute} className="neon-volume-button" aria-label={muted ? "Activar sonido" : "Silenciar"}>
+              {muted ? <VolumeX className="h-4 w-4 text-cyan-200" /> : <Volume2 className="h-4 w-4 text-slate-400" />}
+            </button>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              value={music.volume}
+              onChange={(event) => music.setVolume(Number(event.target.value))}
+              className="w-[clamp(70px,7vw,110px)] accent-cyan-400"
+              aria-label="Volumen"
+            />
             <button
               type="button"
               disabled={idle}
-              onClick={() => !idle && music.setPlaying((value) => !value)}
-              className={cn("neon-main-play flex h-11 w-11 items-center justify-center rounded-full text-slate-950", music.playing && !idle && "is-playing", idle && "cursor-default opacity-45")}
-              aria-label={music.playing ? "Pausar" : "Reproducir"}
+              onClick={() => {
+                setShareFeedback("");
+                setShareMode("track");
+                setShareOpen(true);
+              }}
+              className="neon-volume-button"
+              aria-label="Compartir canción"
+              title="Compartir canción"
             >
-              {music.playing && !idle ? <Pause className="h-5 w-5" fill="currentColor" /> : <Play className="h-5 w-5 translate-x-px" fill="currentColor" />}
+              <Share2 className="h-4 w-4 text-slate-400" />
             </button>
-            <button type="button" onClick={music.nextTrack} className="neon-control-button"><SkipForward className="h-4 w-4" fill="currentColor" /></button>
-            <button
-              type="button"
-              onClick={() => music.setRepeat(music.repeat === "off" ? "all" : music.repeat === "all" ? "one" : "off")}
-              className={cn("neon-control-button", music.repeat !== "off" && "is-active")}
-            >
-              <Repeat className="h-3.5 w-3.5" />
-            </button>
+            <ListMusic className="h-4 w-4 text-slate-500" />
           </div>
-          <div className="mt-1 flex items-center gap-2 text-[8px] tabular-nums text-slate-500">
-            <span className="w-7 text-right">{formatSeconds(music.currentTime)}</span>
-            <ProgressRange currentTime={music.currentTime} duration={duration} onSeek={music.seekTo} compact />
-            <span className="w-7">{formatSeconds(duration)}</span>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-end gap-2">
-          <NeonSpectrum active={music.playing && !idle} bars={10} currentTime={music.currentTime} trackId={track.id} className="hidden h-7 w-14 2xl:flex" />
-          <Volume2 className="h-4 w-4 text-slate-400" />
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.01"
-            value={music.volume}
-            onChange={(event) => music.setVolume(Number(event.target.value))}
-            className="w-[clamp(70px,7vw,110px)] accent-cyan-400"
-            aria-label="Volumen"
-          />
-          <ListMusic className="h-4 w-4 text-slate-500" />
         </div>
       </div>
-    </div>
+
+      {shareOpen && (
+        <div
+          className="neon-share-backdrop fixed inset-0 z-[90] flex items-center justify-center bg-black/72 p-4 backdrop-blur-md"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setShareOpen(false);
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-label="Compartir desde EDUAI Music"
+            className="neon-share-modal w-full max-w-[520px] overflow-hidden rounded-3xl border border-cyan-300/25 bg-[#030b16]/96 shadow-[0_24px_90px_rgba(0,0,0,.62),0_0_42px_rgba(37,244,255,.10)]"
+          >
+            <div className="flex items-center justify-between border-b border-cyan-300/12 px-5 py-4">
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-[.2em] text-cyan-300">EDUAI Music</p>
+                <h3 className="mt-1 text-lg font-black text-white">Compartir lo que estás escuchando</h3>
+              </div>
+              <button type="button" onClick={() => setShareOpen(false)} className="neon-control-button" aria-label="Cerrar">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="p-5">
+              <div className="flex items-center gap-3 rounded-2xl border border-cyan-300/14 bg-cyan-300/[.04] p-3">
+                {artwork ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={artwork} alt="" className="h-16 w-16 shrink-0 rounded-xl object-cover" />
+                ) : (
+                  <div className="h-16 w-16 shrink-0 rounded-xl bg-[linear-gradient(135deg,#25f4ff,#9b6cff,#ff42cf)]" />
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-black text-white">{idle ? "EDUAI Music" : track.title}</p>
+                  <p className="mt-1 truncate text-[11px] text-cyan-300">{idle ? "Catálogo musical" : track.artist}</p>
+                  <p className="mt-1 text-[9px] text-slate-500">eduai music · reproducción y catálogo</p>
+                </div>
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 gap-2 rounded-2xl border border-white/8 bg-white/[.025] p-1.5">
+                <button
+                  type="button"
+                  onClick={() => setShareMode("track")}
+                  disabled={idle}
+                  className={cn("rounded-xl px-3 py-2 text-[10px] font-black", shareMode === "track" ? "bg-cyan-400 text-slate-950" : "text-slate-300 hover:bg-white/5", idle && "opacity-45")}
+                >
+                  Canción actual
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShareMode("catalog")}
+                  className={cn("rounded-xl px-3 py-2 text-[10px] font-black", shareMode === "catalog" ? "bg-fuchsia-400 text-slate-950" : "text-slate-300 hover:bg-white/5")}
+                >
+                  Catálogo EDUAI
+                </button>
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <button type="button" onClick={() => openShareWindow(whatsappUrl)} className="neon-share-network">WhatsApp</button>
+                <button type="button" onClick={() => openShareWindow(facebookUrl)} className="neon-share-network">Facebook</button>
+                <button type="button" onClick={() => void shareNative("Instagram")} className="neon-share-network">Instagram</button>
+                <button type="button" onClick={() => void shareNative("TikTok")} className="neon-share-network">TikTok</button>
+                <button type="button" onClick={() => openShareWindow(xUrl)} className="neon-share-network">X</button>
+                <button type="button" onClick={() => openShareWindow(telegramUrl)} className="neon-share-network">Telegram</button>
+                <button type="button" onClick={() => void copyShare()} className="neon-share-network"><Copy className="h-3.5 w-3.5" /> Copiar</button>
+                <button type="button" onClick={() => void shareNative()} className="neon-share-network"><Share2 className="h-3.5 w-3.5" /> Más apps</button>
+              </div>
+
+              <div className="mt-4 rounded-xl border border-cyan-300/10 bg-black/20 px-3 py-2">
+                <p className="text-[10px] leading-5 text-slate-300">{shareText}</p>
+                {shareFeedback && <p className="mt-1 text-[9px] font-bold text-cyan-300">{shareFeedback}</p>}
+              </div>
+
+              <p className="mt-3 text-[9px] leading-4 text-slate-500">
+                Instagram y TikTok usan el menú de compartir del dispositivo cuando está disponible. En escritorio, EDUAI copia el texto para que puedas pegarlo al abrir la red.
+              </p>
+            </div>
+          </section>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -2749,13 +2999,9 @@ export default function EduAIMusicPlayer({
     if (mode === "page") setPendingTrackId(null);
   }, [mode, setPendingTrackId]);
 
-  // Spotify vive como una vista temporal. Al navegar, elegir otra playlist o
-  // reproducir una canción, desmontamos el iframe para que no quede visible ni
-  // siga cargando en segundo plano.
-  useEffect(() => {
-    setSelectedSpotifyEmbed(null);
-  }, [music.currentTrack.id, music.selectedPlaylistId, music.view]);
-
+  // Spotify se mantiene como una vista central independiente. Cambiar de pista,
+  // volumen o estado de reproducción no desmonta el iframe; solo una navegación
+  // explícita fuera de Spotify lo cierra.
   const tracksForMain = useMemo(() => {
     if (music.view === "liked") return music.allTracks.filter((track) => music.liked.has(track.id));
     if (music.view === "queue") return music.queue;
@@ -3283,6 +3529,47 @@ export default function EduAIMusicPlayer({
           outline: 2px solid rgba(244, 114, 255, .9);
           outline-offset: 2px;
         }
+        .neon-view-context {
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.025), 0 8px 24px rgba(0,0,0,.12);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+        }
+        .neon-volume-button {
+          display: inline-flex;
+          height: 30px;
+          width: 30px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 999px;
+          border: 1px solid rgba(37,244,255,.10);
+          background: rgba(5,18,31,.72);
+        }
+        .neon-share-network {
+          display: inline-flex;
+          min-height: 42px;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          border-radius: 12px;
+          border: 1px solid rgba(37,244,255,.14);
+          background: linear-gradient(145deg, rgba(5,18,31,.88), rgba(11,7,25,.88));
+          padding: 8px 10px;
+          color: #dbeafe;
+          font-size: 10px;
+          font-weight: 900;
+        }
+        .neon-share-network:hover {
+          border-color: rgba(37,244,255,.38);
+          background: linear-gradient(145deg, rgba(8,32,48,.96), rgba(26,9,41,.92));
+          box-shadow: 0 0 18px rgba(37,244,255,.08);
+        }
+        .neon-share-modal {
+          animation: neon-share-enter .2s ease-out both;
+        }
+        @keyframes neon-share-enter {
+          from { transform: translateY(12px) scale(.985); opacity: 0; }
+          to { transform: translateY(0) scale(1); opacity: 1; }
+        }
         .neon-catalog-surface {
           overflow: hidden;
           background: linear-gradient(180deg, rgba(2, 10, 20, .93), rgba(2, 8, 18, .84));
@@ -3599,8 +3886,14 @@ export default function EduAIMusicPlayer({
             display: none;
           }
           .neon-control-button {
-            height: 34px;
-            width: 34px;
+            height: 32px;
+            width: 32px;
+          }
+          .neon-bottom-grid > :nth-child(2) > div:first-child {
+            gap: 6px !important;
+          }
+          .neon-view-context {
+            margin-top: 8px;
           }
           .neon-main-play {
             height: 44px !important;
