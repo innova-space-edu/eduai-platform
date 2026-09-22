@@ -11,6 +11,7 @@ const HIDDEN_PREFIXES = [
   "/gobernanza-ia",
   "/terminos",
   "/soporte",
+  "/music",
 ]
 
 export default function SupportLinkButton() {
