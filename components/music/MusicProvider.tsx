@@ -295,6 +295,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const youtubeReadyRef = useRef(false);
   const youtubeVideoIdRef = useRef<string>("");
   const youtubeRetryRef = useRef(0);
+  const volumeRef = useRef(0.62);
   // YouTube emite ENDED, PAUSED y a veces ERROR durante un mismo cambio de
   // clip. Este candado evita que esos eventos atrasados avancen dos o más
   // canciones de la cola DJ.
@@ -581,6 +582,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   ]);
 
   useEffect(() => {
+    volumeRef.current = volume;
     if (audioRef.current) audioRef.current.volume = volume;
     if (youtubePlayerRef.current?.setVolume) {
       try {
@@ -959,7 +961,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
       const startVideo = (player: any, forceLoad = false) => {
         try {
-          player.setVolume?.(Math.round(volume * 100));
+          player.setVolume?.(Math.round(volumeRef.current * 100));
           player.unMute?.();
           const loadedId = youtubeVideoIdRef.current;
           if (forceLoad || loadedId !== videoId) {
@@ -1022,7 +1024,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       cancelled = true;
       if (mountRetry !== null) window.clearTimeout(mountRetry);
     };
-  }, [currentTrack?.id, currentTrack?.source, currentTrack?.youtubeVideoId, volume]);
+  }, [currentTrack?.id, currentTrack?.source, currentTrack?.youtubeVideoId]);
 
   useEffect(() => {
     if (currentTrack?.source !== "youtube") return;
