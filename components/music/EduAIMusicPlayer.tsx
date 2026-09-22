@@ -2413,7 +2413,11 @@ function NeonRightPanel() {
           </div>
 
           <div className="mt-3 flex justify-center">
-            {!idle && artwork ? (
+            {!idle && track.source === "youtube" && track.youtubeVideoId ? (
+              <div className="neon-youtube-player aspect-video w-full max-w-[260px] overflow-hidden rounded-2xl border border-cyan-300/30 bg-black shadow-[0_0_34px_rgba(37,244,255,.14)]">
+                <div id={YOUTUBE_PLAYER_ID} className="h-full w-full bg-black" />
+              </div>
+            ) : !idle && artwork ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={artwork}
@@ -3061,6 +3065,12 @@ export default function EduAIMusicPlayer({
           background:
             radial-gradient(circle at 50% 18%, rgba(155,108,255,.09), transparent 34%),
             linear-gradient(165deg, rgba(3, 12, 24, .91), rgba(2, 8, 18, .83) 56%, rgba(20, 5, 29, .74));
+        }
+        .neon-youtube-player iframe {
+          display: block;
+          width: 100% !important;
+          height: 100% !important;
+          border: 0;
         }
         .neon-nav-button {
           position: relative;

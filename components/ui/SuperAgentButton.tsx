@@ -392,8 +392,8 @@ export default function SuperAgentButton() {
     }
   };
 
-  // Hide completely on exam taking page
-  if (pathname?.startsWith("/examen/p/")) return null;
+  // Hide completely on exam taking page and on the dedicated music workspace.
+  if (pathname?.startsWith("/examen/p/") || pathname?.startsWith("/music")) return null;
 
   return (
     <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-2">

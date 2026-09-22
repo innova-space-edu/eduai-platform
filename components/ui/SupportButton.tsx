@@ -43,7 +43,7 @@ interface Report {
 
 export default function SupportButton() {
   const pathname = usePathname()
-  if (pathname?.startsWith("/examen/p/")) return null
+  if (pathname?.startsWith("/examen/p/") || pathname?.startsWith("/music")) return null
 
   const [open,        setOpen]        = useState(false)
   const [tab,         setTab]         = useState<"new" | "history">("new")
