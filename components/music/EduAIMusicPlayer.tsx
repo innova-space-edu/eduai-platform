@@ -2175,16 +2175,16 @@ function NeonRecentCard({
     <button
       type="button"
       onClick={() => music.playTrack(track, tracks)}
-      className={cn("neon-recent-card group min-w-0 text-left", active && "is-active")}
+      className={cn("neon-recent-card group flex h-full min-w-0 flex-col text-left", active && "is-active")}
     >
-      <div className="relative aspect-[1.18] overflow-hidden rounded-xl border border-cyan-300/15 bg-black/18">
+      <div className="relative aspect-square w-full shrink-0 overflow-hidden rounded-xl border border-cyan-300/15 bg-black/18">
         {artwork ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={artwork} alt="" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
         ) : (
           <div className="h-full w-full" style={{ background: track.cover || "linear-gradient(135deg,#03111e,#231249,#570b59)" }} />
         )}
-        <span className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-full border border-cyan-200/65 bg-[#02131d]/85 text-cyan-100 shadow-[0_0_18px_rgba(37,244,255,.38)]">
+        <span className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-full border border-cyan-200/65 bg-[#02131d]/90 text-cyan-100 shadow-[0_0_18px_rgba(37,244,255,.38)]">
           {active && music.playing ? (
             <Pause className="h-3.5 w-3.5" fill="currentColor" />
           ) : (
@@ -2192,8 +2192,10 @@ function NeonRecentCard({
           )}
         </span>
       </div>
-      <p className="mt-1.5 truncate text-[11px] font-black text-white">{track.title}</p>
-      <p className="truncate text-[9px] text-slate-400">{track.artist}</p>
+      <div className="neon-recent-meta mt-2 min-w-0">
+        <p className="line-clamp-2 text-[11px] font-black leading-[1.2] text-white">{track.title}</p>
+        <p className="mt-1 truncate text-[9px] text-slate-400">{track.artist}</p>
+      </div>
     </button>
   );
 }
@@ -2295,11 +2297,53 @@ function NeonMain({
   const recentTracks = (music.recentTracks.length ? music.recentTracks : tracks).slice(0, 6);
   const catalogTracks =
     music.view === "search"
-      ? tracks.slice(0, 14)
+      ? tracks.slice(0, 48)
       : music.view === "home"
         ? recentTracks
         : tracks.slice(0, 10);
   const tableTracks = tracks.slice(0, 10);
+  const catalogScrollerRef = useRef<HTMLDivElement>(null);
+  const catalogPausedRef = useRef(false);
+  const catalogKey = catalogTracks.map((track) => track.id).join("|");
+  const carouselTracks =
+    music.view === "search" && catalogTracks.length > 5
+      ? [...catalogTracks, ...catalogTracks]
+      : catalogTracks;
+
+  useEffect(() => {
+    const scroller = catalogScrollerRef.current;
+    if (!scroller || music.view !== "search" || catalogTracks.length < 2) return;
+
+    scroller.scrollLeft = 0;
+    let settleTimer: number | null = null;
+
+    const advance = () => {
+      if (catalogPausedRef.current) return;
+
+      const firstSlide = scroller.querySelector<HTMLElement>("[data-catalog-slide='true']");
+      if (!firstSlide) return;
+
+      const styles = window.getComputedStyle(scroller);
+      const gap = Number.parseFloat(styles.columnGap || styles.gap || "12") || 12;
+      const step = firstSlide.getBoundingClientRect().width + gap;
+      const originalWidth = step * catalogTracks.length;
+
+      scroller.scrollBy({ left: step, behavior: "smooth" });
+
+      if (carouselTracks.length > catalogTracks.length && scroller.scrollLeft + step >= originalWidth - step * 0.35) {
+        if (settleTimer !== null) window.clearTimeout(settleTimer);
+        settleTimer = window.setTimeout(() => {
+          scroller.scrollLeft = Math.max(0, scroller.scrollLeft - originalWidth);
+        }, 720);
+      }
+    };
+
+    const interval = window.setInterval(advance, 2800);
+    return () => {
+      window.clearInterval(interval);
+      if (settleTimer !== null) window.clearTimeout(settleTimer);
+    };
+  }, [catalogKey, catalogTracks.length, carouselTracks.length, music.view]);
 
   const runSearch = async () => {
     const term = music.onlineQuery.trim();
@@ -2452,10 +2496,22 @@ function NeonMain({
               </div>
 
               {catalogTracks.length > 0 && (
-                <div className="neon-catalog-surface rounded-2xl p-2">
-                  <div className="neon-catalog flex gap-2 overflow-x-auto pb-1">
-                    {catalogTracks.map((track) => (
-                      <div key={track.id} className="w-[clamp(118px,10.5vw,162px)] shrink-0">
+                <div className="neon-catalog-surface rounded-2xl p-2.5">
+                  <div
+                    ref={catalogScrollerRef}
+                    className="neon-catalog flex gap-3 overflow-x-auto pb-1"
+                    onPointerEnter={() => { catalogPausedRef.current = true; }}
+                    onPointerLeave={() => { catalogPausedRef.current = false; }}
+                    onFocusCapture={() => { catalogPausedRef.current = true; }}
+                    onBlurCapture={() => { catalogPausedRef.current = false; }}
+                    aria-label="Carrusel de resultados musicales"
+                  >
+                    {carouselTracks.map((track, index) => (
+                      <div
+                        key={`${track.id}-${index}`}
+                        data-catalog-slide="true"
+                        className="neon-catalog-slide shrink-0"
+                      >
                         <NeonRecentCard track={track} tracks={tracks} />
                       </div>
                     ))}
@@ -2546,8 +2602,8 @@ function NeonRightPanel() {
           )}
         </div>
 
-        <div className="mt-4 min-h-0 flex-1 border-t border-cyan-300/15 pt-3">
-          <div className="mb-2 flex items-center justify-between">
+        <div className="mt-4 flex min-h-0 flex-1 flex-col border-t border-cyan-300/15 pt-3">
+          <div className="mb-2 flex shrink-0 items-center justify-between">
             <div>
               <h3 className="text-[12px] font-black text-white">Cola de reproducción</h3>
               <p className="text-[9px] text-slate-500">{music.queue.length ? `${music.queue.length} pistas` : "Agrega canciones para continuar."}</p>
@@ -2557,8 +2613,8 @@ function NeonRightPanel() {
             )}
           </div>
 
-          <div className="min-h-0 overflow-y-auto">
-            {music.queue.slice(0, 12).map((item, index) => {
+          <div className="neon-queue-list min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1">
+            {music.queue.map((item, index) => {
               const active = item.id === track.id;
               return (
                 <div key={item.id} className={cn("neon-queue-row flex items-center gap-2 rounded-lg px-1.5 py-1", active && "is-active")}>
@@ -3228,35 +3284,57 @@ export default function EduAIMusicPlayer({
           outline-offset: 2px;
         }
         .neon-catalog-surface {
-          background: linear-gradient(180deg, rgba(2, 10, 20, .88), rgba(2, 8, 18, .74));
-          border: 1px solid rgba(37,244,255,.10);
-          box-shadow: inset 0 1px 0 rgba(255,255,255,.02);
+          overflow: hidden;
+          background: linear-gradient(180deg, rgba(2, 10, 20, .93), rgba(2, 8, 18, .84));
+          border: 1px solid rgba(37,244,255,.13);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.025), 0 12px 30px rgba(0,0,0,.16);
         }
         .neon-catalog {
-          scrollbar-width: thin;
-          scrollbar-color: rgba(37,244,255,.28) transparent;
+          scroll-snap-type: x mandatory;
+          scroll-behavior: smooth;
+          overscroll-behavior-x: contain;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
         }
         .neon-catalog::-webkit-scrollbar {
-          height: 5px;
+          display: none;
         }
-        .neon-catalog::-webkit-scrollbar-thumb {
-          border-radius: 999px;
-          background: rgba(37,244,255,.26);
+        .neon-catalog-slide {
+          flex: 0 0 clamp(132px, 11vw, 168px);
+          width: clamp(132px, 11vw, 168px);
+          scroll-snap-align: start;
         }
         .neon-recent-card {
+          width: 100%;
+          min-height: 0;
           border-radius: 14px;
-          padding: 6px;
-          background: linear-gradient(155deg, rgba(5,18,31,.88), rgba(2,9,18,.78));
-          border: 1px solid rgba(37,244,255,.14);
+          padding: 7px;
+          background: linear-gradient(155deg, rgba(5,18,31,.94), rgba(2,9,18,.90));
+          border: 1px solid rgba(37,244,255,.15);
           box-shadow: inset 0 1px 0 rgba(255,255,255,.025), 0 10px 26px rgba(0,0,0,.18);
           transition: transform .2s ease, border-color .2s ease, background .2s ease, box-shadow .2s ease;
+        }
+        .neon-recent-meta {
+          min-height: 39px;
         }
         .neon-recent-card:hover,
         .neon-recent-card.is-active {
           transform: translateY(-3px);
-          border-color: rgba(37,244,255,.32);
-          background: rgba(2,10,19,.16);
-          box-shadow: 0 10px 24px rgba(0,0,0,.16), 0 0 18px rgba(37,244,255,.07);
+          border-color: rgba(37,244,255,.40);
+          background: linear-gradient(155deg, rgba(7,28,45,.97), rgba(14,12,35,.94));
+          box-shadow: 0 10px 24px rgba(0,0,0,.20), 0 0 20px rgba(37,244,255,.09);
+        }
+        @media (max-width: 1180px) {
+          .neon-catalog-slide {
+            flex-basis: 156px;
+            width: 156px;
+          }
+        }
+        @media (max-width: 767px) {
+          .neon-catalog-slide {
+            flex-basis: min(44vw, 148px);
+            width: min(44vw, 148px);
+          }
         }
         .neon-track-row {
           border: 1px solid rgba(37,244,255,.08);
@@ -3282,6 +3360,23 @@ export default function EduAIMusicPlayer({
           border: 1px solid rgba(37,244,255,.10);
           border-radius: 999px;
           background: rgba(4, 16, 29, .82);
+        }
+        .neon-queue-list {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(37,244,255,.42) rgba(2,10,20,.28);
+          scrollbar-gutter: stable;
+          -webkit-overflow-scrolling: touch;
+        }
+        .neon-queue-list::-webkit-scrollbar {
+          width: 6px;
+        }
+        .neon-queue-list::-webkit-scrollbar-track {
+          border-radius: 999px;
+          background: rgba(2,10,20,.28);
+        }
+        .neon-queue-list::-webkit-scrollbar-thumb {
+          border-radius: 999px;
+          background: linear-gradient(180deg, rgba(37,244,255,.62), rgba(155,108,255,.48));
         }
         .neon-queue-row {
           border: 1px solid rgba(37,244,255,.07);
