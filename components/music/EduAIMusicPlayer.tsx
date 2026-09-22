@@ -2674,14 +2674,7 @@ function NeonBottomPlayer() {
   const [shareOpen, setShareOpen] = useState(false);
   const [shareMode, setShareMode] = useState<"track" | "catalog">("track");
   const [shareFeedback, setShareFeedback] = useState("");
-  const [shareBaseUrl, setShareBaseUrl] = useState("/music");
   const previousVolumeRef = useRef(0.62);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setShareBaseUrl(new URL("/music", window.location.origin).toString());
-    }
-  }, []);
 
   useEffect(() => {
     if (music.volume > 0.01) previousVolumeRef.current = music.volume;
@@ -2709,6 +2702,19 @@ function NeonBottomPlayer() {
       ? `🎧 Estoy escuchando "${track.title}" — ${track.artist} en EDUAI Music.`
       : "🎶 Explora el catálogo de EDUAI Music.";
 
+  // Las previews de Vercel pueden estar protegidas y los crawlers sociales
+  // terminan leyendo la pantalla de autenticación. Compartimos siempre una URL
+  // pública/canónica para que Facebook, WhatsApp y otros puedan leer OG metadata.
+  const canonicalMusicOrigin = (process.env.NEXT_PUBLIC_SITE_URL || "https://eduaiplatformclon.vercel.app").replace(/\/$/, "");
+  const shareParams = new URLSearchParams();
+  if (shareMode === "track" && !idle) {
+    shareParams.set("title", track.title);
+    shareParams.set("artist", track.artist);
+    if (track.youtubeVideoId) shareParams.set("videoId", track.youtubeVideoId);
+  } else {
+    shareParams.set("catalog", "1");
+  }
+  const shareBaseUrl = `${canonicalMusicOrigin}/music/share?${shareParams.toString()}`;
   const fullShareText = `${shareText} ${shareBaseUrl}`;
 
   const copyShare = async () => {
