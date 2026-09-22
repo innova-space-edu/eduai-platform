@@ -295,6 +295,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const youtubeReadyRef = useRef(false);
   const youtubeVideoIdRef = useRef<string>("");
   const youtubeRetryRef = useRef(0);
+  const volumeRef = useRef(0.62);
   // YouTube emite ENDED, PAUSED y a veces ERROR durante un mismo cambio de
   // clip. Este candado evita que esos eventos atrasados avancen dos o más
   // canciones de la cola DJ.
@@ -581,6 +582,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   ]);
 
   useEffect(() => {
+    volumeRef.current = volume;
     if (audioRef.current) audioRef.current.volume = volume;
     if (youtubePlayerRef.current?.setVolume) {
       try {
@@ -880,7 +882,17 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const list = queue;
+    const list =
+      queue.some((track) => track.id === currentId)
+        ? queue
+        : currentTrack?.source === "youtube" && onlineTracks.some((track) => track.id === currentId)
+          ? onlineTracks
+          : baseTracks.some((track) => track.id === currentId)
+            ? baseTracks
+            : queue.length
+              ? queue
+              : onlineTracks;
+
     if (!list.length) {
       setPlaying(false);
       return;
@@ -904,7 +916,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     } else {
       setPlaying(false);
     }
-  }, [currentId, currentTrack?.source, queue, repeat, shuffle]);
+  }, [baseTracks, currentId, currentTrack?.source, onlineTracks, queue, repeat, shuffle]);
 
   useEffect(() => {
     nextTrackRef.current = nextTrack;
@@ -915,16 +927,26 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       youtubeTransitionUntilRef.current = Date.now() + 1400;
     }
     setHasActiveSession(true);
-    const list = queue;
+    const list =
+      queue.some((track) => track.id === currentId)
+        ? queue
+        : currentTrack?.source === "youtube" && onlineTracks.some((track) => track.id === currentId)
+          ? onlineTracks
+          : baseTracks.some((track) => track.id === currentId)
+            ? baseTracks
+            : queue.length
+              ? queue
+              : onlineTracks;
     if (!list.length) return;
-    const index = Math.max(0, list.findIndex((track) => track.id === currentId));
+    const index = list.findIndex((track) => track.id === currentId);
+    if (index < 0) return;
     const prev = list[(index - 1 + list.length) % list.length];
     if (prev) {
       const shouldContinue = playingRef.current;
       setCurrentId(prev.id);
       setPlaying(shouldContinue);
     }
-  }, [currentId, currentTrack?.source, queue]);
+  }, [baseTracks, currentId, currentTrack?.source, onlineTracks, queue]);
 
   useEffect(() => {
     if (typeof window === "undefined" || currentTrack?.source !== "youtube") return;
@@ -959,7 +981,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
       const startVideo = (player: any, forceLoad = false) => {
         try {
-          player.setVolume?.(Math.round(volume * 100));
+          player.setVolume?.(Math.round(volumeRef.current * 100));
           player.unMute?.();
           const loadedId = youtubeVideoIdRef.current;
           if (forceLoad || loadedId !== videoId) {
@@ -1022,7 +1044,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       cancelled = true;
       if (mountRetry !== null) window.clearTimeout(mountRetry);
     };
-  }, [currentTrack?.id, currentTrack?.source, currentTrack?.youtubeVideoId, volume]);
+  }, [currentTrack?.id, currentTrack?.source, currentTrack?.youtubeVideoId]);
 
   useEffect(() => {
     if (currentTrack?.source !== "youtube") return;
@@ -1240,8 +1262,13 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
           );
           return;
         }
-        setOnlineTracks(tracks.map(sanitizeStoredTrack).slice(0, 60));
-        if (tracks[0]) playTrack(tracks[0], tracks);
+        const sanitizedTracks = tracks.map(sanitizeStoredTrack).slice(0, 60);
+        setOnlineTracks(sanitizedTracks);
+        // Una búsqueda nueva define un orden de reproducción claro. Así los
+        // botones anterior/siguiente recorren el catálogo en el mismo orden
+        // mostrado cuando el modo aleatorio está apagado.
+        setQueueIds(sanitizedTracks.map((track) => track.id));
+        if (sanitizedTracks[0]) playTrack(sanitizedTracks[0], sanitizedTracks);
       } catch (error) {
         if (controller.signal.aborted || requestId !== onlineSearchRequestRef.current) return;
         setOnlineError(error instanceof Error ? error.message : "Error buscando música online.");

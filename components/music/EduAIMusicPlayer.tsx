@@ -2223,7 +2223,13 @@ function NeonMain({
   }, [homeTracks, music.allTracks, music.baseTracks, music.liked, music.onlineTracks, music.queue, music.radioTracks, music.uploadedTracks, music.view, music.visibleTracks]);
 
   const recentTracks = (music.recentTracks.length ? music.recentTracks : tracks).slice(0, 6);
-  const tableTracks = tracks.slice(0, 8);
+  const catalogTracks =
+    music.view === "search"
+      ? tracks.slice(0, 14)
+      : music.view === "home"
+        ? recentTracks
+        : tracks.slice(0, 10);
+  const tableTracks = tracks.slice(0, 10);
 
   const runSearch = async () => {
     const term = music.onlineQuery.trim();
@@ -2322,7 +2328,7 @@ function NeonMain({
                 className={cn(
                   "neon-filter-chip rounded-full border px-3 py-1.5 text-[9px] font-black transition",
                   music.view === view
-                    ? "border-cyan-200/65 bg-cyan-400 text-slate-950 shadow-[0_0_15px_rgba(37,244,255,.22)]"
+                    ? "is-active border-cyan-200/65 bg-cyan-400 text-slate-950 shadow-[0_0_15px_rgba(37,244,255,.22)]"
                     : "border-cyan-300/20 bg-black/12 text-slate-300 hover:border-cyan-300/40 hover:text-cyan-100",
                 )}
               >
@@ -2361,15 +2367,29 @@ function NeonMain({
             <div className="shrink-0">
               <div className="mb-2 flex items-center justify-between">
                 <div>
-                  <h2 className="text-[13px] font-black text-white">{music.view === "home" ? "Escuchado recientemente" : viewTitle}</h2>
-                  <p className="text-[9px] text-slate-500">{recentTracks.length ? `${recentTracks.length} pistas visibles` : "Explora una fuente para comenzar."}</p>
+                  <h2 className="text-[13px] font-black text-white">
+                    {music.view === "search" ? "Catálogo de resultados" : music.view === "home" ? "Escuchado recientemente" : viewTitle}
+                  </h2>
+                  <p className="text-[9px] text-slate-500">
+                    {catalogTracks.length
+                      ? music.view === "search"
+                        ? `${tracks.length} resultados · desliza para explorar`
+                        : `${catalogTracks.length} pistas visibles`
+                      : "Explora una fuente para comenzar."}
+                  </p>
                 </div>
                 <span className="text-[9px] font-black uppercase tracking-[.14em] text-cyan-300">{sourceLabel(music.currentTrack.source)}</span>
               </div>
 
-              {recentTracks.length > 0 && (
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
-                  {recentTracks.map((track) => <NeonRecentCard key={track.id} track={track} tracks={recentTracks} />)}
+              {catalogTracks.length > 0 && (
+                <div className="neon-catalog-surface rounded-2xl p-2">
+                  <div className="neon-catalog flex gap-2 overflow-x-auto pb-1">
+                    {catalogTracks.map((track) => (
+                      <div key={track.id} className="w-[clamp(118px,10.5vw,162px)] shrink-0">
+                        <NeonRecentCard track={track} tracks={tracks} />
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -3022,11 +3042,34 @@ export default function EduAIMusicPlayer({
           font-style: italic;
         }
         .neon-title-gradient {
-          background: linear-gradient(90deg,#25f4ff 0%,#67d9ff 34%,#9b6cff 67%,#ff42cf 100%);
+          background: linear-gradient(
+            90deg,
+            #25f4ff 0%,
+            #67d9ff 20%,
+            #9b6cff 40%,
+            #ff42cf 50%,
+            #9b6cff 60%,
+            #67d9ff 80%,
+            #25f4ff 100%
+          );
+          background-size: 200% 100%;
+          background-position: 0% 50%;
           -webkit-background-clip: text;
           background-clip: text;
           color: transparent;
           text-shadow: 0 0 24px rgba(37,244,255,.14);
+          animation: neon-title-flow 4.5s linear infinite;
+          will-change: background-position;
+        }
+        @keyframes neon-title-flow {
+          from { background-position: 0% 50%; }
+          to { background-position: 200% 50%; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .neon-title-gradient {
+            animation: none;
+            background-position: 50% 50%;
+          }
         }
         .neon-layout {
           grid-template-columns:
@@ -3100,9 +3143,35 @@ export default function EduAIMusicPlayer({
           backdrop-filter: blur(10px);
           -webkit-backdrop-filter: blur(10px);
         }
-        .neon-filter-chip {
+        .neon-filter-chip:not(.is-active) {
           background: rgba(3, 13, 25, .80);
           box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
+        }
+        .neon-filter-chip.is-active {
+          background: #25f4ff !important;
+          color: #02131d !important;
+          border-color: rgba(165, 251, 255, .86) !important;
+          box-shadow: 0 0 18px rgba(37,244,255,.24), inset 0 1px 0 rgba(255,255,255,.28);
+        }
+        .neon-filter-chip:focus-visible {
+          outline: 2px solid rgba(244, 114, 255, .9);
+          outline-offset: 2px;
+        }
+        .neon-catalog-surface {
+          background: linear-gradient(180deg, rgba(2, 10, 20, .88), rgba(2, 8, 18, .74));
+          border: 1px solid rgba(37,244,255,.10);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.02);
+        }
+        .neon-catalog {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(37,244,255,.28) transparent;
+        }
+        .neon-catalog::-webkit-scrollbar {
+          height: 5px;
+        }
+        .neon-catalog::-webkit-scrollbar-thumb {
+          border-radius: 999px;
+          background: rgba(37,244,255,.26);
         }
         .neon-recent-card {
           border-radius: 14px;
