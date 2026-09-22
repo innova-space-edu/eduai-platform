@@ -2152,7 +2152,10 @@ function NeonSidebar({
       <div className="mt-auto border-t border-cyan-300/15 pt-3">
         <button
           type="button"
-          onClick={() => music.setView("library")}
+          onClick={() => {
+            onNavigate();
+            music.setView("library");
+          }}
           className="flex w-full items-center gap-2 rounded-xl px-2 py-2 text-left transition hover:bg-white/5"
         >
           <span className="h-8 w-8 rounded-full border border-fuchsia-300/30 bg-[radial-gradient(circle_at_35%_30%,#25f4ff,#6d4cff_48%,#ff42cf_82%,#030713)] shadow-[0_0_16px_rgba(155,108,255,.28)]" />
