@@ -3029,49 +3029,77 @@ export default function EduAIMusicPlayer({
             clamp(190px, 15.5vw, 280px)
             minmax(0, 1fr)
             clamp(260px, 20.5vw, 380px);
+          gap: 8px;
+          padding: 8px 8px 0;
         }
-        .neon-sidebar {
-          min-width: 0;
-          overflow-y: auto;
-          background: transparent;
-          border-right: 1px solid rgba(37,244,255,.10);
-          text-shadow: 0 1px 12px rgba(0,0,0,.72);
-          scrollbar-width: thin;
-        }
+        .neon-sidebar,
         .neon-main,
         .neon-right-panel {
           min-width: 0;
+          border: 1px solid rgba(73, 225, 255, .20);
+          border-radius: 18px;
+          background:
+            linear-gradient(160deg, rgba(3, 12, 24, .88), rgba(2, 8, 18, .78) 56%, rgba(20, 5, 29, .72));
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,.035),
+            0 18px 42px rgba(0,0,0,.28),
+            0 0 28px rgba(37,244,255,.035);
+          backdrop-filter: blur(16px) saturate(1.08);
+          -webkit-backdrop-filter: blur(16px) saturate(1.08);
+        }
+        .neon-sidebar {
+          overflow-y: auto;
+          text-shadow: 0 1px 12px rgba(0,0,0,.72);
+          scrollbar-width: thin;
+        }
+        .neon-main {
+          background:
+            radial-gradient(circle at 72% 8%, rgba(37,244,255,.07), transparent 30%),
+            linear-gradient(160deg, rgba(3, 12, 24, .90), rgba(2, 8, 18, .80) 54%, rgba(20, 5, 29, .70));
+        }
+        .neon-right-panel {
+          background:
+            radial-gradient(circle at 50% 18%, rgba(155,108,255,.09), transparent 34%),
+            linear-gradient(165deg, rgba(3, 12, 24, .91), rgba(2, 8, 18, .83) 56%, rgba(20, 5, 29, .74));
         }
         .neon-nav-button {
           position: relative;
-          background: transparent;
-          border: 1px solid transparent;
+          background: rgba(3, 13, 25, .72);
+          border: 1px solid rgba(37,244,255,.12);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.02);
         }
         .neon-nav-button:hover {
-          background: rgba(4,18,30,.16);
-          border-color: rgba(37,244,255,.12);
+          background: rgba(7, 28, 44, .88);
+          border-color: rgba(37,244,255,.28);
           transform: translateX(2px);
         }
         .neon-nav-button.is-active {
           background:
-            linear-gradient(90deg, rgba(37,244,255,.26), rgba(37,244,255,.08) 68%, transparent);
-          border-color: rgba(87,236,255,.40);
+            linear-gradient(90deg, rgba(37,244,255,.30), rgba(37,244,255,.12) 68%, rgba(3,13,25,.76));
+          border-color: rgba(87,236,255,.48);
           box-shadow:
             inset 3px 0 0 #25f4ff,
-            0 0 18px rgba(37,244,255,.12);
+            0 0 18px rgba(37,244,255,.14);
         }
         .neon-search {
+          background: rgba(2, 9, 19, .84) !important;
+          border-color: rgba(139, 92, 246, .58) !important;
           box-shadow:
-            inset 0 0 18px rgba(155,108,255,.05),
-            0 0 18px rgba(155,108,255,.08);
-          backdrop-filter: blur(2px);
-          -webkit-backdrop-filter: blur(2px);
+            inset 0 0 22px rgba(155,108,255,.08),
+            0 0 20px rgba(155,108,255,.10);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+        }
+        .neon-filter-chip {
+          background: rgba(3, 13, 25, .80);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
         }
         .neon-recent-card {
           border-radius: 14px;
-          padding: 4px;
-          background: rgba(2,8,16,.07);
-          border: 1px solid transparent;
+          padding: 6px;
+          background: linear-gradient(155deg, rgba(5,18,31,.88), rgba(2,9,18,.78));
+          border: 1px solid rgba(37,244,255,.14);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.025), 0 10px 26px rgba(0,0,0,.18);
           transition: transform .2s ease, border-color .2s ease, background .2s ease, box-shadow .2s ease;
         }
         .neon-recent-card:hover,
@@ -3082,29 +3110,42 @@ export default function EduAIMusicPlayer({
           box-shadow: 0 10px 24px rgba(0,0,0,.16), 0 0 18px rgba(37,244,255,.07);
         }
         .neon-track-row {
-          border: 1px solid transparent;
-          background: rgba(1,7,15,.05);
+          border: 1px solid rgba(37,244,255,.08);
+          background: rgba(2, 10, 20, .72);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.018);
           transition: background .18s ease, border-color .18s ease, transform .18s ease;
         }
         .neon-track-row:hover {
-          background: rgba(3,15,26,.15);
-          border-color: rgba(37,244,255,.12);
+          background: rgba(6, 25, 40, .88);
+          border-color: rgba(37,244,255,.24);
         }
         .neon-track-row.is-active {
-          background: linear-gradient(90deg, rgba(37,244,255,.16), rgba(155,108,255,.06), transparent);
-          border-color: rgba(37,244,255,.34);
-          box-shadow: inset 2px 0 0 rgba(37,244,255,.95);
+          background: linear-gradient(90deg, rgba(37,244,255,.22), rgba(155,108,255,.13), rgba(3,12,24,.78));
+          border-color: rgba(37,244,255,.42);
+          box-shadow: inset 2px 0 0 rgba(37,244,255,.95), 0 0 16px rgba(37,244,255,.05);
+        }
+        .neon-track-row > button:last-child {
+          display: inline-flex;
+          height: 28px;
+          width: 28px;
+          align-items: center;
+          justify-content: center;
+          border: 1px solid rgba(37,244,255,.10);
+          border-radius: 999px;
+          background: rgba(4, 16, 29, .82);
         }
         .neon-queue-row {
-          border: 1px solid transparent;
+          border: 1px solid rgba(37,244,255,.07);
+          background: rgba(2, 10, 20, .58);
           transition: background .18s ease, border-color .18s ease;
         }
         .neon-queue-row:hover {
-          background: rgba(4,18,29,.15);
+          background: rgba(6, 24, 39, .82);
+          border-color: rgba(37,244,255,.18);
         }
         .neon-queue-row.is-active {
-          background: linear-gradient(90deg, rgba(37,244,255,.16), rgba(155,108,255,.05), transparent);
-          border-color: rgba(37,244,255,.25);
+          background: linear-gradient(90deg, rgba(37,244,255,.20), rgba(155,108,255,.10), rgba(3,12,24,.65));
+          border-color: rgba(37,244,255,.30);
         }
         .neon-spectrum {
           min-width: 0;
@@ -3126,21 +3167,24 @@ export default function EduAIMusicPlayer({
           animation-delay: var(--eq-delay);
         }
         .neon-bottom-player {
-          background: linear-gradient(180deg, rgba(1,6,14,.08), rgba(1,6,14,.20));
-          border-top: 1px solid rgba(37,244,255,.16);
-          backdrop-filter: blur(2px);
-          -webkit-backdrop-filter: blur(2px);
+          background:
+            linear-gradient(180deg, rgba(3, 12, 23, .94), rgba(1, 6, 14, .98));
+          border-top: 1px solid rgba(37,244,255,.28);
+          box-shadow: 0 -14px 36px rgba(0,0,0,.34), 0 -1px 18px rgba(37,244,255,.035);
+          backdrop-filter: blur(18px) saturate(1.12);
+          -webkit-backdrop-filter: blur(18px) saturate(1.12);
         }
         .neon-control-button {
           display: inline-flex;
-          height: 30px;
-          width: 30px;
+          height: 32px;
+          width: 32px;
           align-items: center;
           justify-content: center;
           border-radius: 999px;
-          color: rgba(203,213,225,.82);
-          background: rgba(2,8,17,.08);
-          border: 1px solid transparent;
+          color: rgba(226,232,240,.88);
+          background: rgba(5, 18, 31, .92);
+          border: 1px solid rgba(37,244,255,.15);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
           transition: all .18s ease;
         }
         .neon-control-button:hover,
@@ -3245,6 +3289,7 @@ export default function EduAIMusicPlayer({
           .neon-layout {
             display: block !important;
             height: 100%;
+            padding: 0;
           }
           .neon-sidebar,
           .neon-right-panel {
@@ -3259,6 +3304,10 @@ export default function EduAIMusicPlayer({
             padding-right: 10px;
             padding-top: 14px;
             padding-bottom: 18px;
+            border: 0;
+            border-radius: 0;
+            background: linear-gradient(180deg, rgba(2,8,18,.88), rgba(2,7,16,.82));
+            box-shadow: none;
             -webkit-overflow-scrolling: touch;
           }
           .neon-main > div {
