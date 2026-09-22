@@ -46,6 +46,8 @@ type StoredState = {
   likedTrackIds?: string[];
   userPlaylists?: EduMusicPlaylist[];
   onlineTracks?: EduMusicTrack[];
+  onlineQuery?: string;
+  recentSearches?: string[];
   onlineProviderMode?: OnlineProviderMode;
   recentIds?: string[];
   queueIds?: string[];
@@ -62,6 +64,7 @@ type MusicContextValue = {
   setQuery: (value: string) => void;
   onlineQuery: string;
   setOnlineQuery: (value: string) => void;
+  recentSearches: string[];
   onlineLoading: boolean;
   onlineError: string;
   onlineProviderMode: OnlineProviderMode;
@@ -309,6 +312,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const [view, setView] = useState<MusicView>("home");
   const [query, setQuery] = useState("");
   const [onlineQuery, setOnlineQuery] = useState("");
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [onlineLoading, setOnlineLoading] = useState(false);
   const [onlineError, setOnlineError] = useState("");
   const [onlineProviderMode, setOnlineProviderMode] = useState<OnlineProviderMode>("youtube");
@@ -450,6 +454,19 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     if (stored.playlistId) setSelectedPlaylistId(stored.playlistId);
     if (stored.likedTrackIds) setLikedTrackIds(stored.likedTrackIds);
     if (stored.userPlaylists) setUserPlaylists(stored.userPlaylists);
+    if (stored.onlineTracks?.length) {
+      setOnlineTracks(stored.onlineTracks.map(sanitizeStoredTrack).slice(0, 60));
+    }
+    if (stored.onlineQuery) setOnlineQuery(stored.onlineQuery);
+    if (stored.recentSearches?.length) {
+      setRecentSearches(
+        unique(
+          stored.recentSearches
+            .map((value) => String(value || "").trim())
+            .filter(Boolean),
+        ).slice(0, 8),
+      );
+    }
     if (stored.queueIds) setQueueIds(stored.queueIds);
     if (stored.recentIds) setRecentIds(stored.recentIds.filter((id) => !id.startsWith("edu-")).slice(0, 18));
     setOnlineProviderMode("youtube");
@@ -555,6 +572,9 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       volume,
       likedTrackIds,
       userPlaylists,
+      onlineTracks: onlineTracks.slice(0, 60),
+      onlineQuery,
+      recentSearches,
       onlineProviderMode: onlineProviderMode === "youtube" ? "full" : onlineProviderMode,
       recentIds,
       queueIds,
@@ -572,6 +592,8 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     likedTrackIds,
     userPlaylists,
     onlineTracks,
+    onlineQuery,
+    recentSearches,
     onlineProviderMode,
     recentIds,
     queueIds,
@@ -1220,6 +1242,10 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       if (providerOverride) setOnlineProviderMode(providerOverride);
       const clean = (term || onlineQuery || query).trim();
       if (!clean) return;
+      setOnlineQuery(clean);
+      setRecentSearches((prev) =>
+        [clean, ...prev.filter((item) => item.toLocaleLowerCase() !== clean.toLocaleLowerCase())].slice(0, 8),
+      );
       onlineSearchRequestRef.current += 1;
       const requestId = onlineSearchRequestRef.current;
       onlineSearchAbortRef.current?.abort();
@@ -1322,6 +1348,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     setQuery,
     onlineQuery,
     setOnlineQuery,
+    recentSearches,
     onlineLoading,
     onlineError,
     onlineProviderMode,
