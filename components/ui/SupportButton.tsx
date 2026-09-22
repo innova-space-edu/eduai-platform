@@ -43,7 +43,7 @@ interface Report {
 
 export default function SupportButton() {
   const pathname = usePathname()
-  if (pathname?.startsWith("/examen/p/") || pathname?.startsWith("/music")) return null
+  const hidden = pathname?.startsWith("/examen/p/") || pathname?.startsWith("/music")
 
   const [open,        setOpen]        = useState(false)
   const [tab,         setTab]         = useState<"new" | "history">("new")
@@ -76,6 +76,8 @@ export default function SupportButton() {
       })
       .catch(() => {})
   }, [])
+
+  if (hidden) return null
 
   async function loadHistory() {
     setLoadingHist(true)
