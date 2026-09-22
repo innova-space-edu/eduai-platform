@@ -3042,11 +3042,34 @@ export default function EduAIMusicPlayer({
           font-style: italic;
         }
         .neon-title-gradient {
-          background: linear-gradient(90deg,#25f4ff 0%,#67d9ff 34%,#9b6cff 67%,#ff42cf 100%);
+          background: linear-gradient(
+            90deg,
+            #25f4ff 0%,
+            #67d9ff 20%,
+            #9b6cff 40%,
+            #ff42cf 50%,
+            #9b6cff 60%,
+            #67d9ff 80%,
+            #25f4ff 100%
+          );
+          background-size: 200% 100%;
+          background-position: 0% 50%;
           -webkit-background-clip: text;
           background-clip: text;
           color: transparent;
           text-shadow: 0 0 24px rgba(37,244,255,.14);
+          animation: neon-title-flow 4.5s linear infinite;
+          will-change: background-position;
+        }
+        @keyframes neon-title-flow {
+          from { background-position: 0% 50%; }
+          to { background-position: 200% 50%; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .neon-title-gradient {
+            animation: none;
+            background-position: 50% 50%;
+          }
         }
         .neon-layout {
           grid-template-columns:
