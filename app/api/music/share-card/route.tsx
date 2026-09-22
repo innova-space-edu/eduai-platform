@@ -19,6 +19,8 @@ export async function GET(request: NextRequest) {
   const artist = clean(searchParams.get("artist"), 90);
   const videoId = safeVideoId(searchParams.get("videoId"));
   const thumbnail = videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : "";
+  const publicOrigin = process.env.NEXT_PUBLIC_SITE_URL || "https://eduaiplatformclon.vercel.app";
+  const logoUrl = new URL("/eduai-logo.svg", publicOrigin).toString();
 
   return new ImageResponse(
     (
@@ -92,14 +94,13 @@ export async function GET(request: NextRequest) {
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "18px" }}>
-            <div
-              style={{
-                width: "58px",
-                height: "58px",
-                borderRadius: "50%",
-                border: "7px solid #25f4ff",
-                boxShadow: "0 0 20px rgba(37,244,255,.45)",
-              }}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={logoUrl}
+              alt=""
+              width="64"
+              height="64"
+              style={{ width: "64px", height: "64px", objectFit: "contain" }}
             />
             <div style={{ display: "flex", fontSize: "30px", fontWeight: 900, letterSpacing: "1px" }}>
               EDUAI&nbsp;<span style={{ color: "#ff42cf", fontStyle: "italic" }}>Music</span>
