@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { type CSSProperties, useEffect, useMemo, useState } from "react";
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   ExternalLink,
@@ -1925,20 +1925,90 @@ function NeonSpectrum({
   active,
   bars = 30,
   className,
+  currentTime = 0,
+  trackId = "",
 }: {
   active: boolean;
   bars?: number;
   className?: string;
+  currentTime?: number;
+  trackId?: string;
 }) {
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+
+    const nodes = Array.from(root.querySelectorAll<HTMLElement>(".neon-spectrum-bar"));
+    if (!nodes.length) return;
+
+    if (!active) {
+      nodes.forEach((node, index) => {
+        const idle = 0.12 + ((index * 13) % 9) / 100;
+        node.style.transform = `scaleY(${idle})`;
+        node.style.opacity = "0.42";
+      });
+      return;
+    }
+
+    const seed = Array.from(trackId || "eduai-music").reduce(
+      (acc, char, index) => (acc + char.charCodeAt(0) * (index + 17)) % 10007,
+      0,
+    );
+    const bpm = 94 + (seed % 42);
+    const startedAt = performance.now();
+    const baseTime = Math.max(0, currentTime);
+    let frame = 0;
+
+    const tick = (now: number) => {
+      const t = baseTime + (now - startedAt) / 1000;
+      const beat = t * bpm / 60;
+      const beatPhase = beat - Math.floor(beat);
+      const halfBeatPhase = (beat + 0.5) - Math.floor(beat + 0.5);
+      const quarterBeatPhase = (beat * 2) - Math.floor(beat * 2);
+
+      const kick = Math.exp(-beatPhase * 7.5);
+      const snare = Math.exp(-halfBeatPhase * 10.5);
+      const hats = Math.exp(-quarterBeatPhase * 16);
+
+      nodes.forEach((node, index) => {
+        const x = nodes.length <= 1 ? 0 : index / (nodes.length - 1);
+        const lowBand = Math.max(0, 1 - x * 1.45);
+        const midBand = 1 - Math.abs(x - 0.5) * 1.55;
+        const highBand = 0.25 + x * 0.9;
+        const harmonic =
+          0.12 +
+          0.11 * Math.sin(t * (4.2 + (index % 5) * 0.37) + index * 0.91 + seed * 0.003) +
+          0.07 * Math.sin(t * (7.4 + (index % 7) * 0.21) + index * 0.43);
+
+        const level =
+          0.12 +
+          kick * (0.52 * lowBand + 0.10) +
+          snare * (0.34 * Math.max(0.15, midBand)) +
+          hats * (0.26 * highBand) +
+          harmonic;
+
+        const clamped = Math.max(0.10, Math.min(1, level));
+        node.style.transform = `scaleY(${clamped})`;
+        node.style.opacity = String(0.48 + clamped * 0.52);
+      });
+
+      frame = requestAnimationFrame(tick);
+    };
+
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [active, bars, currentTime, trackId]);
+
   return (
-    <div className={cn("neon-spectrum flex items-end gap-[2px]", className)} aria-hidden="true">
+    <div ref={rootRef} className={cn("neon-spectrum flex items-end gap-[2px]", className)} aria-hidden="true">
       {Array.from({ length: bars }, (_, index) => (
         <span
           key={index}
-          className={cn("neon-spectrum-bar", active && "is-playing")}
+          className="neon-spectrum-bar"
           style={
             {
-              "--eq-delay": `${-(index % 11) * 0.055}s`,
               "--eq-height": `${30 + ((index * 17) % 66)}%`,
             } as CSSProperties
           }
@@ -2465,7 +2535,7 @@ function NeonRightPanel() {
             )}
           </div>
 
-          <NeonSpectrum active={music.playing && !idle} bars={30} className="mt-2 h-10 w-full" />
+          <NeonSpectrum active={music.playing && !idle} bars={30} currentTime={music.currentTime} trackId={track.id} className="mt-2 h-10 w-full" />
 
           {!idle && (
             <div className="mt-1 flex items-center gap-2 text-[8px] font-bold tabular-nums text-slate-500">
@@ -2498,7 +2568,7 @@ function NeonRightPanel() {
                     <span className={cn("block truncate text-[9px] font-black", active ? "text-cyan-200" : "text-white")}>{item.title}</span>
                     <span className="block truncate text-[8px] text-slate-500">{item.artist}</span>
                   </button>
-                  {active && <NeonSpectrum active={music.playing} bars={4} className="h-5 w-5" />}
+                  {active && <NeonSpectrum active={music.playing} bars={4} currentTime={music.currentTime} trackId={track.id} className="h-5 w-5" />}
                   <Menu className="h-3 w-3 text-slate-600" />
                 </div>
               );
@@ -2562,7 +2632,7 @@ function NeonBottomPlayer() {
         </div>
 
         <div className="flex items-center justify-end gap-2">
-          <NeonSpectrum active={music.playing && !idle} bars={10} className="hidden h-7 w-14 2xl:flex" />
+          <NeonSpectrum active={music.playing && !idle} bars={10} currentTime={music.currentTime} trackId={track.id} className="hidden h-7 w-14 2xl:flex" />
           <Volume2 className="h-4 w-4 text-slate-400" />
           <input
             type="range"
@@ -3235,15 +3305,13 @@ export default function EduAIMusicPlayer({
           min-width: 2px;
           height: var(--eq-height);
           border-radius: 999px;
-          transform: scaleY(.22);
+          transform: scaleY(.16);
           transform-origin: bottom;
           opacity: .42;
           background: linear-gradient(to top,#25f4ff 0%,#3bb8ff 34%,#9b6cff 67%,#ff42cf 100%);
           box-shadow: 0 0 6px rgba(37,244,255,.22);
-        }
-        .neon-spectrum-bar.is-playing {
-          animation: neon-spectrum-pulse .72s ease-in-out infinite;
-          animation-delay: var(--eq-delay);
+          transition: opacity .09s linear;
+          will-change: transform, opacity;
         }
         .neon-bottom-player {
           background:
@@ -3286,11 +3354,6 @@ export default function EduAIMusicPlayer({
         }
         .neon-main-play.is-playing {
           animation: neon-play-breathe 1.6s ease-in-out infinite;
-        }
-        @keyframes neon-spectrum-pulse {
-          0%,100% { transform: scaleY(.22); opacity: .42; }
-          45% { transform: scaleY(1); opacity: 1; }
-          68% { transform: scaleY(.54); opacity: .76; }
         }
         @keyframes neon-play-breathe {
           0%,100% {
