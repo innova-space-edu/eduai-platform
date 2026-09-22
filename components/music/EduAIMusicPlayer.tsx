@@ -2602,8 +2602,8 @@ function NeonRightPanel() {
           )}
         </div>
 
-        <div className="mt-4 min-h-0 flex-1 border-t border-cyan-300/15 pt-3">
-          <div className="mb-2 flex items-center justify-between">
+        <div className="mt-4 flex min-h-0 flex-1 flex-col border-t border-cyan-300/15 pt-3">
+          <div className="mb-2 flex shrink-0 items-center justify-between">
             <div>
               <h3 className="text-[12px] font-black text-white">Cola de reproducción</h3>
               <p className="text-[9px] text-slate-500">{music.queue.length ? `${music.queue.length} pistas` : "Agrega canciones para continuar."}</p>
@@ -2613,8 +2613,8 @@ function NeonRightPanel() {
             )}
           </div>
 
-          <div className="min-h-0 overflow-y-auto">
-            {music.queue.slice(0, 12).map((item, index) => {
+          <div className="neon-queue-list min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1">
+            {music.queue.map((item, index) => {
               const active = item.id === track.id;
               return (
                 <div key={item.id} className={cn("neon-queue-row flex items-center gap-2 rounded-lg px-1.5 py-1", active && "is-active")}>
@@ -3360,6 +3360,23 @@ export default function EduAIMusicPlayer({
           border: 1px solid rgba(37,244,255,.10);
           border-radius: 999px;
           background: rgba(4, 16, 29, .82);
+        }
+        .neon-queue-list {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(37,244,255,.42) rgba(2,10,20,.28);
+          scrollbar-gutter: stable;
+          -webkit-overflow-scrolling: touch;
+        }
+        .neon-queue-list::-webkit-scrollbar {
+          width: 6px;
+        }
+        .neon-queue-list::-webkit-scrollbar-track {
+          border-radius: 999px;
+          background: rgba(2,10,20,.28);
+        }
+        .neon-queue-list::-webkit-scrollbar-thumb {
+          border-radius: 999px;
+          background: linear-gradient(180deg, rgba(37,244,255,.62), rgba(155,108,255,.48));
         }
         .neon-queue-row {
           border: 1px solid rgba(37,244,255,.07);
