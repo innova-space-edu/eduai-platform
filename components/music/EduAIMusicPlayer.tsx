@@ -233,6 +233,34 @@ function CyberHeroIllustration() {
   );
 }
 
+function MusicBackContour({ active, currentTime }: { active: boolean; currentTime: number }) {
+  const phase = -((Number.isFinite(currentTime) ? currentTime : 0) % 0.62);
+  return (
+    <svg
+      viewBox="0 0 520 300"
+      className={cn("music-back-contour", active && "is-playing")}
+      style={{ "--contour-delay": `${phase}s` } as CSSProperties}
+      aria-hidden="true"
+    >
+      <defs>
+        <linearGradient id="music-back-neon" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#25f4ff" />
+          <stop offset="48%" stopColor="#9b6cff" />
+          <stop offset="100%" stopColor="#ff42cf" />
+        </linearGradient>
+      </defs>
+      <path
+        className="music-back-contour-glow"
+        d="M292 34 C252 42 226 67 215 103 C206 132 211 151 198 168 C181 190 147 203 122 225 C105 240 93 259 87 282"
+      />
+      <path
+        className="music-back-contour-core"
+        d="M292 34 C252 42 226 67 215 103 C206 132 211 151 198 168 C181 190 147 203 122 225 C105 240 93 259 87 282"
+      />
+    </svg>
+  );
+}
+
 function CyberEqualizer({ active }: { active: boolean }) {
   return (
     <div className={cn("cyber-equalizer", active && "is-playing")} aria-hidden="true">
@@ -2051,7 +2079,15 @@ function NeonSidebar({
         </div>
       </div>
 
-      <div className="mt-5 space-y-1">
+      <Link
+        href="/agentes"
+        className="mt-4 inline-flex h-9 items-center gap-2 rounded-xl border border-cyan-300/18 bg-black/20 px-3 text-[10px] font-black text-slate-300 transition hover:border-cyan-300/40 hover:bg-cyan-400/10 hover:text-cyan-100"
+      >
+        <ArrowLeft className="h-3.5 w-3.5" />
+        Volver a Agentes
+      </Link>
+
+      <div className="mt-3 space-y-1">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const active = item.id === "spotify" ? spotifyActive : music.view === item.view;
@@ -2065,7 +2101,12 @@ function NeonSidebar({
                   return;
                 }
                 onNavigate();
-                if (item.view) music.setView(item.view);
+                if (item.view) {
+                  music.setView(item.view);
+                  if (item.view === "radio" && !music.radioTracks.length && !music.radioLoading) {
+                    void music.searchRadio("", "CL");
+                  }
+                }
               }}
               className={cn(
                 "neon-nav-button group flex h-10 w-full items-center gap-3 rounded-xl px-3 text-left text-[12px] font-bold transition",
@@ -2178,34 +2219,54 @@ function NeonRecentCard({
 }) {
   const music = useEduAIMusic();
   const active = music.currentTrack.id === track.id;
+  const favorite = music.liked.has(track.id);
   const artwork = track.artworkUrl || track.videoThumbnail || (track.cover?.startsWith("http") ? track.cover : undefined);
 
   return (
-    <button
-      type="button"
-      onClick={() => music.playTrack(track, tracks)}
-      className={cn("neon-recent-card group flex h-full min-w-0 flex-col text-left", active && "is-active")}
-    >
+    <div className={cn("neon-recent-card group relative flex h-full min-w-0 flex-col text-left", active && "is-active")}>
       <div className="relative aspect-square w-full shrink-0 overflow-hidden rounded-xl border border-cyan-300/15 bg-black/18">
-        {artwork ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={artwork} alt="" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
-        ) : (
-          <div className="h-full w-full" style={{ background: track.cover || "linear-gradient(135deg,#03111e,#231249,#570b59)" }} />
-        )}
-        <span className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-full border border-cyan-200/65 bg-[#02131d]/90 text-cyan-100 shadow-[0_0_18px_rgba(37,244,255,.38)]">
-          {active && music.playing ? (
-            <Pause className="h-3.5 w-3.5" fill="currentColor" />
+        <button
+          type="button"
+          onClick={() => music.playTrack(track, tracks)}
+          className="absolute inset-0 z-0 block h-full w-full text-left"
+          aria-label={active && music.playing ? `Pausar ${track.title}` : `Reproducir ${track.title}`}
+        >
+          {artwork ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={artwork} alt="" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
           ) : (
-            <Play className="h-3.5 w-3.5 translate-x-px" fill="currentColor" />
+            <span className="block h-full w-full" style={{ background: track.cover || "linear-gradient(135deg,#03111e,#231249,#570b59)" }} />
           )}
-        </span>
+          <span className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-full border border-cyan-200/65 bg-[#02131d]/90 text-cyan-100 shadow-[0_0_18px_rgba(37,244,255,.38)]">
+            {active && music.playing ? (
+              <Pause className="h-3.5 w-3.5" fill="currentColor" />
+            ) : (
+              <Play className="h-3.5 w-3.5 translate-x-px" fill="currentColor" />
+            )}
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={() => music.toggleLike(track.id)}
+          className={cn(
+            "absolute right-2 top-2 z-20 flex h-8 w-8 items-center justify-center rounded-full border border-white/15 bg-[#020914]/88 shadow-lg backdrop-blur transition",
+            favorite ? "border-fuchsia-300/55 text-fuchsia-300" : "text-slate-300 hover:border-fuchsia-300/45 hover:text-fuchsia-200",
+          )}
+          aria-label={favorite ? "Quitar de favoritos" : "Agregar a favoritos"}
+          title={favorite ? "Quitar de favoritos" : "Agregar a favoritos"}
+        >
+          <Heart className="h-4 w-4" fill={favorite ? "currentColor" : "none"} />
+        </button>
       </div>
-      <div className="neon-recent-meta mt-2 min-w-0">
+      <button
+        type="button"
+        onClick={() => music.playTrack(track, tracks)}
+        className="neon-recent-meta mt-2 min-w-0 text-left"
+      >
         <p className="line-clamp-2 text-[11px] font-black leading-[1.2] text-white">{track.title}</p>
         <p className="mt-1 truncate text-[9px] text-slate-400">{track.artist}</p>
-      </div>
-    </button>
+      </button>
+    </div>
   );
 }
 
@@ -2271,13 +2332,107 @@ function NeonTrackTable({ tracks }: { tracks: EduMusicTrack[] }) {
   );
 }
 
+function SpotifyCenter({
+  selected,
+  onSelect,
+  onClose,
+}: {
+  selected: SpotifyEmbedItem | null;
+  onSelect: (item: SpotifyEmbedItem) => void;
+  onClose: () => void;
+}) {
+  return (
+    <main className="neon-main min-h-0 overflow-hidden px-[clamp(12px,1.2vw,20px)] pb-3 pt-5">
+      <div className="flex h-full min-h-0 flex-col">
+        <div className="flex shrink-0 items-center justify-between gap-3 px-2 pb-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <Link
+              href="/agentes"
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-cyan-300/20 bg-black/20 text-cyan-100 hover:bg-cyan-400/10 lg:hidden"
+              aria-label="Volver a Agentes"
+              title="Volver a Agentes"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+            <div>
+            <p className="text-[9px] font-black uppercase tracking-[.22em] text-cyan-300">Spotify</p>
+            <h2 className="mt-1 text-xl font-black text-white">Listas disponibles</h2>
+            <p className="mt-1 text-[10px] text-slate-400">{SPOTIFY_EMBEDS.length} listas oficiales guardadas en EDUAI Music.</p>
+            </div>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-full border border-cyan-300/20 bg-black/20 px-3 py-1.5 text-[10px] font-black text-cyan-100 hover:bg-cyan-400/10">
+            Cerrar Spotify
+          </button>
+        </div>
+
+        <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[minmax(200px,270px)_minmax(0,1fr)]">
+          <div className="min-h-0 overflow-y-auto rounded-2xl border border-cyan-300/14 bg-black/15 p-2">
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
+              {SPOTIFY_EMBEDS.map((item) => {
+                const active = selected?.id === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => onSelect(item)}
+                    className={cn(
+                      "rounded-2xl border p-3 text-left transition",
+                      active
+                        ? "border-cyan-300/55 bg-cyan-400/14 shadow-[0_0_20px_rgba(37,244,255,.08)]"
+                        : "border-white/10 bg-white/[0.04] hover:border-fuchsia-300/35 hover:bg-fuchsia-400/[0.07]",
+                    )}
+                  >
+                    <span className={`mb-2 block h-1.5 rounded-full bg-gradient-to-r ${item.accent}`} />
+                    <span className="block text-[12px] font-black text-white">{item.title}</span>
+                    <span className="mt-1 block text-[9px] leading-4 text-slate-400">{item.subtitle}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="min-h-0 overflow-hidden rounded-2xl border border-cyan-300/14 bg-black/12">
+            {selected ? (
+              <div className="flex h-full min-h-0 flex-col">
+                <div className="shrink-0 border-b border-cyan-300/12 px-4 py-3">
+                  <p className="text-[11px] font-black text-white">{selected.title}</p>
+                  <p className="mt-0.5 text-[9px] text-slate-400">{selected.subtitle}</p>
+                </div>
+                <iframe
+                  src={selected.src}
+                  title={selected.title}
+                  allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                  loading="lazy"
+                  className="min-h-[352px] flex-1 bg-black/10"
+                />
+              </div>
+            ) : (
+              <div className="flex h-full min-h-[360px] items-center justify-center p-8 text-center">
+                <div>
+                  <Music2 className="mx-auto h-10 w-10 text-fuchsia-300" />
+                  <p className="mt-3 text-sm font-black text-white">Selecciona una lista</p>
+                  <p className="mt-1 max-w-sm text-[10px] leading-5 text-slate-400">Las cinco listas permanecen visibles para que puedas cambiar entre ellas sin perder la sección Spotify.</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}
+
 function NeonMain({
+  spotifyOpen,
   spotifyEmbed,
   onOpenSpotify,
+  onSelectSpotify,
   onCloseSpotify,
 }: {
+  spotifyOpen: boolean;
   spotifyEmbed: SpotifyEmbedItem | null;
   onOpenSpotify: () => void;
+  onSelectSpotify: (item: SpotifyEmbedItem) => void;
   onCloseSpotify: () => void;
 }) {
   const music = useEduAIMusic();
@@ -2384,35 +2539,21 @@ function NeonMain({
     music.view === "search" ? "Busca y recorre el catálogo de YouTube manteniendo estable el reproductor." :
     "Explora EDUAI Music sin perder la reproducción actual.";
 
-  if (spotifyEmbed) {
-    return (
-      <main className="neon-main min-h-0 overflow-hidden px-[clamp(12px,1.2vw,20px)] pb-3 pt-5">
-        <div className="flex h-full flex-col">
-          <div className="flex items-center justify-between px-2 pb-3">
-            <div>
-              <p className="text-[9px] font-black uppercase tracking-[.22em] text-cyan-300">Spotify</p>
-              <h2 className="mt-1 text-xl font-black text-white">{spotifyEmbed.title}</h2>
-            </div>
-            <button type="button" onClick={onCloseSpotify} className="rounded-full border border-cyan-300/20 bg-black/20 px-3 py-1.5 text-[10px] font-black text-cyan-100 hover:bg-cyan-400/10">
-              Cerrar
-            </button>
-          </div>
-          <iframe
-            src={spotifyEmbed.src}
-            title={spotifyEmbed.title}
-            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-            loading="lazy"
-            className="min-h-0 flex-1 rounded-2xl border border-cyan-300/20 bg-black/10 shadow-[0_0_28px_rgba(37,244,255,.08)]"
-          />
-        </div>
-      </main>
-    );
+  if (spotifyOpen) {
+    return <SpotifyCenter selected={spotifyEmbed} onSelect={onSelectSpotify} onClose={onCloseSpotify} />;
   }
 
   return (
     <main className="neon-main min-h-0 overflow-hidden px-[clamp(12px,1.2vw,20px)] pb-3 pt-5">
       <div className="flex h-full min-h-0 flex-col">
         <div className="relative shrink-0 px-[clamp(12px,2vw,30px)] pt-[clamp(6px,1vh,14px)]">
+          <Link
+            href="/agentes"
+            className="mb-3 inline-flex h-9 items-center gap-2 rounded-full border border-cyan-300/20 bg-black/20 px-3 text-[10px] font-black text-cyan-100 hover:bg-cyan-400/10 md:hidden"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Volver a Agentes
+          </Link>
           <p className="text-[9px] font-black uppercase tracking-[.48em] text-slate-300/90">Más que música</p>
           <h1 className="mt-0.5 text-[clamp(34px,3.8vw,64px)] font-black leading-none tracking-[-.065em] text-white">
             EDUAI <span className="neon-title-gradient italic">Music</span>
@@ -2457,6 +2598,9 @@ function NeonMain({
                   onCloseSpotify();
                   if (view === "search") music.setOnlineProviderMode("youtube");
                   music.setView(view as typeof music.view);
+                  if (view === "radio" && !music.radioTracks.length && !music.radioLoading) {
+                    void music.searchRadio("", "CL");
+                  }
                 }}
                 className={cn(
                   "neon-filter-chip rounded-full border px-3 py-1.5 text-[9px] font-black transition",
@@ -2503,6 +2647,49 @@ function NeonMain({
               Reproducción continua
             </span>
           </div>
+          {(music.view === "radio" && (music.radioLoading || music.radioError)) || (music.view === "search" && music.onlineError) ? (
+            <div className={cn(
+              "mt-2 flex items-center justify-between gap-3 rounded-xl border px-3 py-2 text-[9px] font-bold",
+              music.view === "radio" && music.radioError
+                ? "border-rose-300/25 bg-rose-400/[0.08] text-rose-100"
+                : "border-cyan-300/18 bg-cyan-400/[0.07] text-cyan-100",
+            )}>
+              <span className="min-w-0 flex-1">
+                {music.view === "radio"
+                  ? music.radioLoading
+                    ? "Buscando emisoras reproducibles..."
+                    : music.radioError
+                  : music.onlineError}
+              </span>
+              {music.view === "radio" && !music.radioLoading && (
+                <button type="button" onClick={() => void music.searchRadio("", "CL")} className="shrink-0 rounded-full border border-cyan-300/25 px-2.5 py-1 text-[8px] font-black text-cyan-100 hover:bg-cyan-400/10">
+                  Reintentar
+                </button>
+              )}
+            </div>
+          ) : null}
+          {music.view === "radio" && isEmbedTrack(music.currentTrack) && getEmbedUrl(music.currentTrack) ? (
+            <div className="mt-2 overflow-hidden rounded-2xl border border-cyan-300/20 bg-black/20 xl:hidden">
+              <div className="flex items-center justify-between border-b border-cyan-300/10 px-3 py-2">
+                <div>
+                  <p className="text-[10px] font-black text-white">{music.currentTrack.title}</p>
+                  <p className="text-[8px] text-slate-400">Reproductor oficial de la emisora</p>
+                </div>
+                {music.currentTrack.externalUrl ? (
+                  <a href={music.currentTrack.externalUrl} target="_blank" rel="noreferrer" className="text-[8px] font-black text-cyan-300 hover:text-cyan-100">
+                    Abrir fuente
+                  </a>
+                ) : null}
+              </div>
+              <iframe
+                src={getEmbedUrl(music.currentTrack)}
+                title={music.currentTrack.title}
+                allow="autoplay; encrypted-media"
+                loading="lazy"
+                className="h-[180px] w-full bg-black"
+              />
+            </div>
+          ) : null}
         </div>
 
         <div className="mt-3 min-h-0 flex-1 px-2">
@@ -2575,6 +2762,8 @@ function NeonRightPanel() {
   const idle = track.id === "eduai-music-empty";
   const duration = durationForPlayer(track, music.durationSeconds);
   const artwork = track.artworkUrl || track.videoThumbnail || (track.cover?.startsWith("http") ? track.cover : undefined);
+  const embedTrack = isEmbedTrack(track);
+  const embedUrl = getEmbedUrl(track);
 
   return (
     <aside className="neon-right-panel min-h-0 overflow-hidden px-[clamp(10px,1vw,18px)] pb-3 pt-5">
@@ -2588,7 +2777,15 @@ function NeonRightPanel() {
           </div>
 
           <div className="mt-3 flex justify-center">
-            {!idle && track.source === "youtube" && track.youtubeVideoId ? (
+            {!idle && embedTrack && embedUrl ? (
+              <iframe
+                src={embedUrl}
+                title={track.title}
+                allow="autoplay; encrypted-media"
+                loading="lazy"
+                className="aspect-video w-full max-w-[260px] rounded-2xl border border-cyan-300/30 bg-black shadow-[0_0_34px_rgba(37,244,255,.14)]"
+              />
+            ) : !idle && track.source === "youtube" && track.youtubeVideoId ? (
               <div className="neon-youtube-player aspect-video w-full max-w-[260px] overflow-hidden rounded-2xl border border-cyan-300/30 bg-black shadow-[0_0_34px_rgba(37,244,255,.14)]">
                 <div id={YOUTUBE_PLAYER_ID} className="h-full w-full bg-black" />
               </div>
@@ -2958,25 +3155,31 @@ function NeonBottomPlayer() {
 }
 
 function NeonMusicOverlay({
+  spotifyOpen,
   spotifyEmbed,
   onOpenSpotify,
+  onSelectSpotify,
   onCloseSpotify,
 }: {
+  spotifyOpen: boolean;
   spotifyEmbed: SpotifyEmbedItem | null;
   onOpenSpotify: () => void;
+  onSelectSpotify: (item: SpotifyEmbedItem) => void;
   onCloseSpotify: () => void;
 }) {
   return (
     <div className="neon-overlay relative z-10 h-full pb-[84px]">
       <div className="neon-layout grid h-full min-h-0">
         <NeonSidebar
-          spotifyActive={Boolean(spotifyEmbed)}
+          spotifyActive={spotifyOpen}
           onOpenSpotify={onOpenSpotify}
           onNavigate={onCloseSpotify}
         />
         <NeonMain
+          spotifyOpen={spotifyOpen}
           spotifyEmbed={spotifyEmbed}
           onOpenSpotify={onOpenSpotify}
+          onSelectSpotify={onSelectSpotify}
           onCloseSpotify={onCloseSpotify}
         />
         <NeonRightPanel />
@@ -2992,6 +3195,7 @@ export default function EduAIMusicPlayer({
   onOpenPanel,
 }: Props) {
   const music = useEduAIMusic();
+  const [spotifyOpen, setSpotifyOpen] = useState(false);
   const [selectedSpotifyEmbed, setSelectedSpotifyEmbed] = useState<SpotifyEmbedItem | null>(null);
   const setPendingTrackId = music.setPendingTrackId;
 
@@ -3019,6 +3223,7 @@ export default function EduAIMusicPlayer({
   return (
     <div className="eduai-music-cyber relative h-screen min-h-[560px] overflow-hidden bg-[#05070a] text-white md:min-h-[680px]">
       <CyberStaticBackdrop />
+      <MusicBackContour active={music.playing} currentTime={music.currentTime} />
       <RhythmPentagonField active={music.playing} currentTime={music.currentTime} />
       <style jsx global>{`
         @keyframes eduai-dj-progress {
@@ -3046,6 +3251,20 @@ export default function EduAIMusicPlayer({
         @keyframes cyber-streak {
           0%,100% { stroke-dashoffset: 90; opacity: .3; }
           50% { stroke-dashoffset: 0; opacity: 1; }
+        }
+        @keyframes music-back-pulse {
+          0%, 100% {
+            opacity: .30;
+            filter: hue-rotate(0deg) drop-shadow(0 0 5px rgba(37,244,255,.42));
+          }
+          30% {
+            opacity: .95;
+            filter: hue-rotate(26deg) drop-shadow(0 0 14px rgba(255,66,207,.72));
+          }
+          55% {
+            opacity: .62;
+            filter: hue-rotate(-18deg) drop-shadow(0 0 10px rgba(155,108,255,.68));
+          }
         }
         @keyframes cyber-pentagon-beat {
           0%, 100% {
@@ -3107,6 +3326,40 @@ export default function EduAIMusicPlayer({
           background:
             radial-gradient(circle at 50% 38%, transparent 0 42%, rgba(0,0,0,.07) 72%, rgba(0,0,0,.18) 100%),
             linear-gradient(90deg, rgba(0,0,0,.05), transparent 18%, transparent 82%, rgba(0,0,0,.05));
+        }
+        .music-back-contour {
+          position: absolute;
+          left: 28%;
+          top: 1%;
+          z-index: 2;
+          width: min(49vw, 760px);
+          height: 40%;
+          overflow: visible;
+          pointer-events: none;
+          opacity: .34;
+        }
+        .music-back-contour path {
+          fill: none;
+          stroke: url(#music-back-neon);
+          stroke-linecap: round;
+          stroke-linejoin: round;
+          transform-origin: center;
+          animation: music-back-pulse .62s cubic-bezier(.16,.72,.26,1) infinite;
+          animation-delay: var(--contour-delay);
+          animation-play-state: paused;
+        }
+        .music-back-contour.is-playing path {
+          animation-play-state: running;
+        }
+        .music-back-contour-glow {
+          stroke-width: 7;
+          opacity: .24;
+          filter: blur(4px);
+        }
+        .music-back-contour-core {
+          stroke-width: 2.2;
+          stroke-dasharray: 16 9;
+          filter: drop-shadow(0 0 8px rgba(37,244,255,.78));
         }
         .cyber-rhythm-field {
           position: absolute;
@@ -3769,6 +4022,7 @@ export default function EduAIMusicPlayer({
         @media (max-width: 1199px) {
           .cyber-static-backdrop { background-position: center; }
           .cyber-rhythm-field { opacity: .82; }
+          .music-back-contour { left: 24%; width: 58vw; height: 38%; }
           .cyber-hero-grid + svg { opacity: .56; }
           .neon-layout {
             grid-template-columns: minmax(176px, 22%) minmax(0, 1fr);
@@ -3818,6 +4072,13 @@ export default function EduAIMusicPlayer({
           .neon-sidebar,
           .neon-right-panel {
             display: none;
+          }
+          .music-back-contour {
+            left: 4%;
+            top: 0;
+            width: 92vw;
+            height: 32%;
+            opacity: .42;
           }
           .neon-main {
             height: 100%;
@@ -3921,15 +4182,24 @@ export default function EduAIMusicPlayer({
           .rhythm-pentagon,
           .cyber-hero-rings,
           .cyber-hero-streak,
+          .music-back-contour path,
           .cyber-playerbar::before {
             animation: none !important;
           }
         }
       `}</style>
       <NeonMusicOverlay
+        spotifyOpen={spotifyOpen}
         spotifyEmbed={selectedSpotifyEmbed}
-        onOpenSpotify={() => setSelectedSpotifyEmbed(SPOTIFY_EMBEDS[0] ?? null)}
-        onCloseSpotify={() => setSelectedSpotifyEmbed(null)}
+        onOpenSpotify={() => setSpotifyOpen(true)}
+        onSelectSpotify={(item) => {
+          setSpotifyOpen(true);
+          setSelectedSpotifyEmbed(item);
+        }}
+        onCloseSpotify={() => {
+          setSpotifyOpen(false);
+          setSelectedSpotifyEmbed(null);
+        }}
       />
       <AddToPlaylistBar />
     </div>

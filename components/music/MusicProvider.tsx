@@ -44,6 +44,7 @@ type StoredState = {
   playlistId?: string;
   volume?: number;
   likedTrackIds?: string[];
+  likedTracks?: EduMusicTrack[];
   userPlaylists?: EduMusicPlaylist[];
   onlineTracks?: EduMusicTrack[];
   onlineQuery?: string;
@@ -326,6 +327,8 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const [currentId, setCurrentId] = useState<string | undefined>(undefined);
   const [selectedPlaylistId, setSelectedPlaylistId] = useState("pl-radio");
   const [likedTrackIds, setLikedTrackIds] = useState<string[]>([]);
+  const [likedTrackSnapshots, setLikedTrackSnapshots] = useState<EduMusicTrack[]>([]);
+  const [failedYouTubeIds, setFailedYouTubeIds] = useState<string[]>([]);
   const [userPlaylists, setUserPlaylists] = useState<EduMusicPlaylist[]>([]);
   const [onlineTracks, setOnlineTracks] = useState<EduMusicTrack[]>([]);
   const [uploadedTracks, setUploadedTracks] = useState<EduMusicTrack[]>([]);
@@ -431,11 +434,15 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     const byId = new Map<string, EduMusicTrack>();
     [
       ...EDU_MUSIC_TRACKS.filter((track) => track.source !== "eduai"),
+      ...likedTrackSnapshots,
       ...onlineTracks,
       ...uploadedTracks,
-    ].forEach((track) => byId.set(track.id, track));
+    ].forEach((track) => {
+      if (track.source === "youtube" && track.youtubeVideoId && failedYouTubeIds.includes(track.youtubeVideoId)) return;
+      byId.set(track.id, track);
+    });
     return Array.from(byId.values());
-  }, [onlineTracks, uploadedTracks]);
+  }, [failedYouTubeIds, likedTrackSnapshots, onlineTracks, uploadedTracks]);
 
   const radioTracks = useMemo(
     () => allTracks.filter((track) => track.source === "radio"),
@@ -453,6 +460,17 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     if (stored.trackId) setCurrentId(stored.trackId);
     if (stored.playlistId) setSelectedPlaylistId(stored.playlistId);
     if (stored.likedTrackIds) setLikedTrackIds(stored.likedTrackIds);
+    if (stored.likedTracks?.length) {
+      setLikedTrackSnapshots(stored.likedTracks.map(sanitizeStoredTrack).slice(0, 200));
+    } else if (stored.likedTrackIds?.length && stored.onlineTracks?.length) {
+      const likedIds = new Set(stored.likedTrackIds);
+      setLikedTrackSnapshots(
+        stored.onlineTracks
+          .map(sanitizeStoredTrack)
+          .filter((track) => likedIds.has(track.id))
+          .slice(0, 200),
+      );
+    }
     if (stored.userPlaylists) setUserPlaylists(stored.userPlaylists);
     if (stored.onlineTracks?.length) {
       setOnlineTracks(stored.onlineTracks.map(sanitizeStoredTrack).slice(0, 60));
@@ -571,6 +589,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       playlistId: selectedPlaylistId,
       volume,
       likedTrackIds,
+      likedTracks: likedTrackSnapshots.slice(0, 200),
       userPlaylists,
       onlineTracks: onlineTracks.slice(0, 60),
       onlineQuery,
@@ -590,6 +609,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     selectedPlaylistId,
     volume,
     likedTrackIds,
+    likedTrackSnapshots,
     userPlaylists,
     onlineTracks,
     onlineQuery,
@@ -1048,8 +1068,12 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
               }
             },
             onError: (event: any) => {
-              const reportedId = event.target?.getVideoData?.()?.video_id;
+              const reportedId = event.target?.getVideoData?.()?.video_id || youtubeVideoIdRef.current;
               if (reportedId && reportedId !== youtubeVideoIdRef.current) return;
+              if (reportedId) {
+                setFailedYouTubeIds((prev) => unique([...prev, reportedId]).slice(-80));
+              }
+              setOnlineError("Ese video no permite reproducción embebida en EDUAI Music. Saltando automáticamente a otra versión disponible.");
               nextTrackRef.current();
             },
           },
@@ -1091,6 +1115,11 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
           if (isStuck && youtubeRetryRef.current < 6) {
             youtubeRetryRef.current += 1;
             player.playVideo?.();
+          } else if (isStuck && youtubeRetryRef.current >= 6) {
+            const failedId = youtubeVideoIdRef.current;
+            if (failedId) setFailedYouTubeIds((prev) => unique([...prev, failedId]).slice(-80));
+            setOnlineError("YouTube bloqueó o no inició este video dentro de EDUAI Music. Se omitió para mantener la reproducción.");
+            nextTrackRef.current();
           }
         }
 
@@ -1103,10 +1132,17 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   }, [currentTrack?.source, currentTrack?.youtubeVideoId]);
 
   const toggleLike = useCallback((id: string) => {
+    const alreadyLiked = likedTrackIds.includes(id);
+    const track = getTrack(id);
     setLikedTrackIds((prev) =>
-      prev.includes(id) ? prev.filter((trackId) => trackId !== id) : [...prev, id],
+      alreadyLiked ? prev.filter((trackId) => trackId !== id) : unique([...prev, id]),
     );
-  }, []);
+    if (alreadyLiked) {
+      setLikedTrackSnapshots((prev) => prev.filter((item) => item.id !== id));
+    } else if (track) {
+      setLikedTrackSnapshots((prev) => [track, ...prev.filter((item) => item.id !== id)].slice(0, 200));
+    }
+  }, [getTrack, likedTrackIds]);
 
   const createPlaylist = useCallback(() => {
     const name = newPlaylistName.trim();
@@ -1307,8 +1343,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
   const searchRadio = useCallback(
     async (term?: string, countryCode = "CL") => {
-      const clean = (term || radioQuery || "Chile").trim();
-      if (!clean) return;
+      const clean = term !== undefined ? term.trim() : (radioQuery || "").trim();
       setRadioLoading(true);
       setRadioError("");
       try {
@@ -1340,6 +1375,11 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     },
     [playTrack, radioQuery],
   );
+
+  useEffect(() => {
+    if (!hydrated || view !== "radio" || radioLoading || radioTracks.length) return;
+    void searchRadio("", "CL");
+  }, [hydrated, radioLoading, radioTracks.length, searchRadio, view]);
 
   const value: MusicContextValue = {
     view,
