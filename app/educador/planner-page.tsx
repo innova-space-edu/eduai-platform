@@ -102,6 +102,7 @@ interface Config {
   weeklyOAPlan: SchoolPlanningWeek[]
   parvulariaJourneyNucleos: string[]
   parvulariaJourneyOAIds: string[][]
+  parvulariaJourneyOATIds: string[][]
   parvulariaHeterogenea: boolean
   parvulariaSegundoCurso: string
   parvulariaMotivoFusion: string
@@ -148,6 +149,7 @@ export default function PlannerPage() {
       initialSubject("parvularia", COURSES.parvularia[0]),
     ],
     parvulariaJourneyOAIds: [[], [], []],
+    parvulariaJourneyOATIds: [[], [], []],
     parvulariaHeterogenea: false, parvulariaSegundoCurso: COURSES.parvularia[1],
     parvulariaMotivoFusion: "", educadoraParvularia: "", asistentesParvularia: "", fechaInicioParvularia: today, fechaFinParvularia: today,
     planningProfile: "experiencia_parvularia",
@@ -162,7 +164,6 @@ export default function PlannerPage() {
   const [savedPlanningId, setSavedPlanningId] = useState("")
   const [userId, setUserId] = useState("")
   const [openOA, setOpenOA] = useState(true)
-  const [openOAT, setOpenOAT] = useState(false)
 
   const recoverSession = useCallback(async () => {
     try { await supabase.auth.signOut({ scope: "local" }) } catch {}
@@ -206,7 +207,14 @@ export default function PlannerPage() {
       : [],
     [isParvularia, config.curso, parvulariaNucleos]
   )
-  const oatOptions = useMemo(() => config.nivel === "parvularia" ? getParvulariaOATForCurso(config.curso, config.asignatura) : [], [config.nivel, config.curso, config.asignatura])
+  const parvulariaJourneyOATOptions = useMemo(
+    () => [0, 1, 2].map((index) => {
+      if (!isParvularia) return []
+      const nucleo = config.parvulariaJourneyNucleos[index] || config.asignatura
+      return getParvulariaOATForCurso(config.curso, nucleo)
+    }),
+    [isParvularia, config.curso, config.asignatura, config.parvulariaJourneyNucleos]
+  )
   const ambito = useMemo(() => config.nivel === "parvularia" ? getParvulariaAmbitoForCurso(config.curso, config.asignatura) : "", [config.nivel, config.curso, config.asignatura])
   const verification = useMemo(() => getCurriculumVerification(config.nivel, config.curso, config.asignatura), [config.nivel, config.curso, config.asignatura])
   const hasCurriculum = useMemo(() => hasLocalCurriculumForAsignatura(config.nivel, config.curso, config.asignatura), [config.nivel, config.curso, config.asignatura])
@@ -238,16 +246,19 @@ export default function PlannerPage() {
           )
           return (previous.parvulariaJourneyOAIds[index] || []).filter((id) => allowed.has(id))
         })
-        const nextOAT = getParvulariaOATForCurso(previous.curso, fallbackNucleus)
-        const allowedOAT = new Set(nextOAT.map((item) => item.id))
+        const parvulariaJourneyOATIds = parvulariaJourneyNucleos.map((nucleo, index) => {
+          const allowed = new Set(getParvulariaOATForCurso(previous.curso, nucleo).map((item) => item.id))
+          return (previous.parvulariaJourneyOATIds[index] || []).filter((id) => allowed.has(id))
+        })
         return {
           ...previous,
           asignatura: fallbackNucleus,
           unidadId: "",
           selectedOAIds: [...new Set(parvulariaJourneyOAIds.flat())],
-          selectedOATIds: previous.selectedOATIds.filter((id) => allowedOAT.has(id)),
+          selectedOATIds: [...new Set(parvulariaJourneyOATIds.flat())],
           parvulariaJourneyNucleos,
           parvulariaJourneyOAIds,
+          parvulariaJourneyOATIds,
           weeklyOAPlan: [],
         }
       }
@@ -265,6 +276,7 @@ export default function PlannerPage() {
         selectedOATIds: [],
         parvulariaJourneyNucleos: ["", "", ""],
         parvulariaJourneyOAIds: [[], [], []],
+        parvulariaJourneyOATIds: [[], [], []],
         weeklyOAPlan: previous.weeklyOAPlan.map((week) => ({ ...week, oaIds: week.oaIds.filter((id) => selectedSet.has(id)) })),
       }
     })
@@ -310,6 +322,7 @@ export default function PlannerPage() {
       selectedOATIds: [],
       parvulariaJourneyNucleos: level === "parvularia" ? [subject, subject, subject] : ["", "", ""],
       parvulariaJourneyOAIds: [[], [], []],
+      parvulariaJourneyOATIds: [[], [], []],
       weeklyOAPlan: [],
       tiempoPlanificacion: level === "parvularia"
         ? (previous.tiempoPlanificacion === "anual" ? "diaria" : previous.tiempoPlanificacion)
@@ -330,6 +343,7 @@ export default function PlannerPage() {
         selectedOATIds: [],
         parvulariaJourneyNucleos: previous.nivel === "parvularia" ? [subject, subject, subject] : ["", "", ""],
         parvulariaJourneyOAIds: [[], [], []],
+        parvulariaJourneyOATIds: [[], [], []],
         weeklyOAPlan: [],
       }
     })
@@ -377,11 +391,17 @@ export default function PlannerPage() {
       while (journeys.length < 3) journeys.push([])
       journeys[journeyIndex] = []
 
+      const journeyOAT = previous.parvulariaJourneyOATIds.map((ids) => [...ids])
+      while (journeyOAT.length < 3) journeyOAT.push([])
+      journeyOAT[journeyIndex] = []
+
       return {
         ...previous,
         parvulariaJourneyNucleos: nuclei.slice(0, 3),
         parvulariaJourneyOAIds: journeys.slice(0, 3),
+        parvulariaJourneyOATIds: journeyOAT.slice(0, 3),
         selectedOAIds: [...new Set(journeys.flat())],
+        selectedOATIds: [...new Set(journeyOAT.flat())],
       }
     })
   }
@@ -404,15 +424,37 @@ export default function PlannerPage() {
       }
     })
   }
+  function toggleParvulariaJourneyOAT(journeyIndex: number, oatId: string) {
+    const allowed = new Set((parvulariaJourneyOATOptions[journeyIndex] || []).map((item) => item.id))
+    if (!allowed.has(oatId)) return
+
+    setConfig((previous) => {
+      const next = previous.parvulariaJourneyOATIds.map((ids) => [...ids])
+      while (next.length < 3) next.push([])
+      const current = next[journeyIndex] || []
+      next[journeyIndex] = current.includes(oatId)
+        ? current.filter((id) => id !== oatId)
+        : [...current, oatId]
+
+      return {
+        ...previous,
+        parvulariaJourneyOATIds: next.slice(0, 3),
+        selectedOATIds: [...new Set(next.flat())],
+      }
+    })
+  }
   function useSameParvulariaNucleusAndOAForAll() {
     setConfig((previous) => {
       const nucleo = previous.parvulariaJourneyNucleos[0] || previous.asignatura
-      const ids = [...(previous.parvulariaJourneyOAIds[0] || [])]
+      const oaIds = [...(previous.parvulariaJourneyOAIds[0] || [])]
+      const oatIds = [...(previous.parvulariaJourneyOATIds[0] || [])]
       return {
         ...previous,
         parvulariaJourneyNucleos: [nucleo, nucleo, nucleo],
-        parvulariaJourneyOAIds: [[...ids], [...ids], [...ids]],
-        selectedOAIds: [...ids],
+        parvulariaJourneyOAIds: [[...oaIds], [...oaIds], [...oaIds]],
+        parvulariaJourneyOATIds: [[...oatIds], [...oatIds], [...oatIds]],
+        selectedOAIds: [...oaIds],
+        selectedOATIds: [...oatIds],
       }
     })
   }
@@ -424,13 +466,6 @@ export default function PlannerPage() {
         oaIds: week.oaIds.includes(oaId) ? week.oaIds.filter((item) => item !== oaId) : [...week.oaIds, oaId],
       }),
     }))
-  }
-  function toggleOAT(id: string) {
-    setConfig((previous) => {
-      if (previous.selectedOATIds.includes(id)) return { ...previous, selectedOATIds: previous.selectedOATIds.filter((item) => item !== id) }
-      if (previous.selectedOATIds.length >= 2) return previous
-      return { ...previous, selectedOATIds: [...previous.selectedOATIds, id] }
-    })
   }
   function goTo(target: number) {
     setStatus("")
@@ -460,9 +495,15 @@ export default function PlannerPage() {
           .filter(Boolean)
           .map((oa) => `${oa!.codigoOficial || oa!.id}: ${oa!.texto}`)
           .join(" | ")
+        const oatOptionsForJourney = parvulariaJourneyOATOptions[index] || []
+        const assignedOAT = (config.parvulariaJourneyOATIds[index] || [])
+          .map((id) => oatOptionsForJourney.find((oat) => oat.id === id))
+          .filter(Boolean)
+          .map((oat) => `${oat!.description || oat!.id} [${oat!.nucleo || "Núcleo transversal"}]: ${oat!.label}`)
+          .join(" | ")
         const ambitoJornada = getParvulariaAmbitoForCurso(config.curso, nucleo) || "Ámbito no identificado"
-        return `Jornada ${index + 1} · ${ambitoJornada} · ${nucleo}: ${assigned || "SIN OA ASIGNADO"}`
-      }).join("\n")
+        return `Jornada ${index + 1} · ${ambitoJornada} · ${nucleo}\nOA: ${assigned || "SIN OA ASIGNADO"}\nOAT: ${assignedOAT || "SIN OAT COMPLEMENTARIO"}`
+      }).join("\n\n")
       return [
         `Genera la planificación de Educación Parvularia ${config.tiempoPlanificacion} para ${config.curso} con un núcleo y OA específicos para cada jornada.`,
         `Periodo: ${buildParvulariaDateLabel(config.fechaInicioParvularia, config.fechaFinParvularia || config.fechaInicioParvularia)}.`,
@@ -474,8 +515,8 @@ export default function PlannerPage() {
         "La tercera jornada debe enfatizar oralidad, relatos, lectura compartida, canciones, vocabulario, balbuceo/gestos o conversación según la edad, sin inventar OA distintos a los seleccionados.",
         "No organices por horas pedagógicas, número de clases ni minutos; distribuye las experiencias de acuerdo con el período, la jornada y el ritmo del grupo.",
         selectedOAContext ? `OA seleccionados:\n${selectedOAContext}` : "",
-        journeyOAContext ? `ASIGNACIÓN OBLIGATORIA DE NÚCLEO Y OA POR JORNADA:\n${journeyOAContext}\nCada fila debe usar exactamente el ámbito/núcleo y los OA primarios asignados a esa jornada; no copies el mismo núcleo ni todos los OA en las tres filas salvo que el docente los haya repetido explícitamente.` : "",
-        config.selectedOATIds.length ? `OAT seleccionados: ${config.selectedOATIds.join(", ")}` : "",
+        journeyOAContext ? `ASIGNACIÓN OBLIGATORIA DE NÚCLEO, OA Y OAT POR JORNADA:\n${journeyOAContext}\nCada fila debe usar exactamente el ámbito/núcleo, OA y OAT asignados a esa jornada. No copies OAT entre jornadas salvo que el docente los haya seleccionado expresamente en más de una.` : "",
+        config.parvulariaHeterogenea ? `DESARROLLO POR EDAD OBLIGATORIO: dentro de cada una de las 3 jornadas separa el Desarrollo en dos bloques completos: "${config.curso}" y "${config.parvulariaSegundoCurso}". En semanal/quincenal repite todas las fechas en ambos bloques con actividades diferentes y ajustadas al desarrollo de cada nivel. No uses una experiencia común seguida de adaptaciones breves.` : "",
         config.contexto.trim() ? `Contexto del docente: ${config.contexto.trim()}` : "Propón experiencias pertinentes, lúdicas y aplicables al subnivel.",
         config.parvulariaHeterogenea ? `Sala heterogénea: ${config.curso} con ${config.parvulariaSegundoCurso}. Motivo: ${config.parvulariaMotivoFusion || "organización pedagógica"}.` : "",
       ].filter(Boolean).join("\n")
@@ -643,7 +684,7 @@ export default function PlannerPage() {
       <div><Label required>Nivel educativo</Label><div className="grid gap-3 md:grid-cols-3">{LEVELS.map((item) => <button key={item.id} onClick={() => selectLevel(item.id)} className={`rounded-2xl border-2 p-4 text-left transition ${choiceClass(config.nivel === item.id, "indigo")}`}><div className="flex justify-between"><span className="text-2xl">{item.icon}</span><Check selected={config.nivel === item.id} color="indigo" /></div><p className="mt-2 font-black">{item.label}</p><p className="mt-1 text-sm text-slate-600">{item.detail}</p></button>)}</div></div>
       <div className="grid gap-4 md:grid-cols-2">
         <div><Label required>Curso o subnivel</Label><select value={config.curso} onChange={(e) => updateCourse(e.target.value)} className={inputClass}>{COURSES[config.nivel].map((item) => <option key={item}>{item}</option>)}</select></div>
-        <div><Label required>{config.nivel === "parvularia" ? "Núcleo base" : "Asignatura"}</Label><select value={config.asignatura} onChange={(e) => { const value = e.target.value; setConfig((p) => ({ ...p, asignatura: value, unidadId: "", selectedOAIds: [], selectedOATIds: [], parvulariaJourneyNucleos: p.nivel === "parvularia" ? [value, value, value] : p.parvulariaJourneyNucleos, parvulariaJourneyOAIds: p.nivel === "parvularia" ? [[], [], []] : p.parvulariaJourneyOAIds, weeklyOAPlan: [] })) }} className={inputClass}>{subjects.map((item) => <option key={item}>{item}</option>)}</select></div>
+        <div><Label required>{config.nivel === "parvularia" ? "Núcleo base" : "Asignatura"}</Label><select value={config.asignatura} onChange={(e) => { const value = e.target.value; setConfig((p) => ({ ...p, asignatura: value, unidadId: "", selectedOAIds: [], selectedOATIds: [], parvulariaJourneyNucleos: p.nivel === "parvularia" ? [value, value, value] : p.parvulariaJourneyNucleos, parvulariaJourneyOAIds: p.nivel === "parvularia" ? [[], [], []] : p.parvulariaJourneyOAIds, parvulariaJourneyOATIds: p.nivel === "parvularia" ? [[], [], []] : p.parvulariaJourneyOATIds, weeklyOAPlan: [] })) }} className={inputClass}>{subjects.map((item) => <option key={item}>{item}</option>)}</select></div>
       </div>
       <div className="grid gap-4 md:grid-cols-3">
         <div><Label>Horizonte</Label><select value={config.tiempoPlanificacion} onChange={(e) => { const value = e.target.value as TiempoPlanificacion; setConfig((p) => { const leavingInstitutionalMacro = (p.nivel === "basica" || p.nivel === "media") && isSchoolPlanningMacro(p.tiempoPlanificacion) && !isSchoolPlanningMacro(value); return ({ ...p, tiempoPlanificacion: value, periodoId: value === "mensual" ? p.mes : value === "semestral" ? (["julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"].includes(p.mes) ? "segundo-semestre" : "primer-semestre") : value === "anual" ? "anio-escolar" : p.periodoId, fechaFinParvularia: p.nivel === "parvularia" && value !== "anual" ? calculateParvulariaEndDate(p.fechaInicioParvularia, value as ParvulariaPlanningHorizon) : p.fechaFinParvularia, selectedOAIds: leavingInstitutionalMacro ? [] : p.selectedOAIds, weeklyOAPlan: [] }) }) }} className={inputClass}><option value="diaria">Diaria</option><option value="semanal">Semanal</option>{isParvularia && <option value="quincenal">Quincenal</option>}<option value="mensual">Mensual</option><option value="semestral">Semestral</option>{isBasicaMedia && <option value="anual">Anual</option>}</select></div>
@@ -687,8 +728,8 @@ export default function PlannerPage() {
       {config.nivel === "parvularia" && <div className="rounded-2xl border-2 border-rose-300 bg-rose-50 p-5">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="font-black text-rose-950">Núcleo + OA distintos para cada una de las 3 planificaciones</p>
-            <p className="mt-1 text-sm text-rose-900">Cada tarjeta es independiente: primero escoge su núcleo de aprendizaje y después sus OA oficiales.</p>
+            <p className="font-black text-rose-950">Núcleo + OA + OAT distintos para cada una de las 3 planificaciones</p>
+            <p className="mt-1 text-sm text-rose-900">Cada tarjeta es independiente: escoge su núcleo, sus OA y sus OAT. Los OAT aparecen separados por núcleo transversal.</p>
           </div>
           <button type="button" onClick={useSameParvulariaNucleusAndOAForAll} className="shrink-0 rounded-xl border-2 border-rose-700 bg-white px-4 py-2 text-xs font-black text-rose-800">Copiar Jornada 1 a las 3</button>
         </div>
@@ -736,12 +777,51 @@ export default function PlannerPage() {
                   }) : <div className="rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 p-3 text-xs font-bold text-slate-600">No hay OA disponibles para este núcleo.</div>}
                 </div>
                 <p className="mt-3 text-[11px] text-slate-600">Debe quedar al menos un OA en esta jornada. Puedes combinar más de uno.</p>
+                <div className="mt-5 border-t border-teal-200 pt-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-wide text-teal-800">OAT complementarios</p>
+                      <p className="mt-1 text-[11px] text-slate-600">Opcionales y exclusivos de esta jornada.</p>
+                    </div>
+                    <span className="rounded-full bg-teal-100 px-2 py-1 text-[10px] font-black text-teal-800">{config.parvulariaJourneyOATIds[journeyIndex]?.length || 0} OAT</span>
+                  </div>
+                  <div className="mt-3 space-y-4">
+                    {Object.entries((parvulariaJourneyOATOptions[journeyIndex] || []).reduce<Record<string, typeof parvulariaJourneyOATOptions[number]>>((groups, oat) => {
+                      const key = oat.nucleo || "Núcleo transversal"
+                      if (!groups[key]) groups[key] = []
+                      groups[key].push(oat)
+                      return groups
+                    }, {})).map(([oatNucleo, items]) => (
+                      <div key={oatNucleo} className="rounded-xl border border-teal-200 bg-teal-50/60 p-3">
+                        <p className="text-[11px] font-black uppercase text-teal-900">{oatNucleo}</p>
+                        <p className="mt-0.5 text-[10px] font-semibold text-teal-700">{items[0]?.ambito || "Desarrollo personal y social"}</p>
+                        <div className="mt-2 space-y-2">
+                          {items.map((oat) => {
+                            const active = config.parvulariaJourneyOATIds[journeyIndex]?.includes(oat.id) || false
+                            return (
+                              <button
+                                key={oat.id}
+                                type="button"
+                                onClick={() => toggleParvulariaJourneyOAT(journeyIndex, oat.id)}
+                                className={`w-full rounded-lg border-2 p-2.5 text-left text-xs transition ${active ? "border-teal-700 bg-white text-teal-950" : "border-teal-200 bg-white/70 text-slate-700 hover:border-teal-500"}`}
+                              >
+                                <div className="flex items-start justify-between gap-2">
+                                  <div><p className="font-black">{oat.description || oat.id}</p><p className="mt-1 leading-relaxed">{oat.label}</p></div>
+                                  <span className="font-black">{active ? "✓" : "+"}</span>
+                                </div>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             )
           })}
         </div>
       </div>}
-      {config.nivel === "parvularia" && <div><button onClick={() => setOpenOAT(!openOAT)} className="flex w-full items-center justify-between rounded-2xl border-2 border-slate-300 bg-slate-50 p-4 text-left"><div><p className="font-black">OAT / foco transversal</p><p className="mt-1 text-xs text-slate-600">Opcional · {config.selectedOATIds.length} seleccionado(s)</p></div><span className="text-xl font-black">{openOAT ? "−" : "+"}</span></button>{openOAT && <div className="mt-3 grid gap-3">{oatOptions.map((item) => { const selected = config.selectedOATIds.includes(item.id); return <button key={item.id} onClick={() => toggleOAT(item.id)} className={`rounded-2xl border-2 p-4 text-left ${selected ? "border-teal-700 bg-teal-50" : "border-slate-300 bg-white hover:border-teal-500"}`}><div className="flex justify-between gap-3"><div><p className="font-black">{item.description || item.id}</p><p className="mt-1 text-sm text-slate-700">{item.label}</p></div><Check selected={selected} color="teal" /></div></button> })}</div>}</div>}
     </div>
   )
 
@@ -758,7 +838,7 @@ export default function PlannerPage() {
         </div>)}
       </div>}
       <div><Label>Contexto, tema o idea central</Label><textarea value={config.contexto} onChange={(e) => setConfig((p) => ({ ...p, contexto: e.target.value }))} placeholder="Ejemplo: Trabajar los cambios de estación mediante exploración del patio. Hay lupas, cartulinas y elementos naturales." className={`${inputClass} min-h-[190px] font-normal leading-relaxed`} /></div>
-      {config.nivel === "parvularia" && <div className="rounded-2xl border-2 border-cyan-500 bg-cyan-50 p-5"><div className="flex flex-col gap-4 md:flex-row md:justify-between"><div><p className="font-black text-cyan-950">Sala heterogénea o niveles unidos</p><p className="mt-1 text-sm text-cyan-900">Genera una experiencia común con adecuaciones diferenciadas por edad.</p></div><button onClick={() => setConfig((p) => ({ ...p, parvulariaHeterogenea: !p.parvulariaHeterogenea }))} className={`rounded-xl px-5 py-2.5 text-sm font-black ${config.parvulariaHeterogenea ? "bg-cyan-800 text-white" : "bg-white text-cyan-900 ring-2 ring-cyan-400"}`}>{config.parvulariaHeterogenea ? "Activada" : "Activar"}</button></div>{config.parvulariaHeterogenea && <div className="mt-5 grid gap-4 md:grid-cols-2"><div><Label>Segundo subnivel</Label><select value={config.parvulariaSegundoCurso} onChange={(e) => setConfig((p) => ({ ...p, parvulariaSegundoCurso: e.target.value }))} className={inputClass}>{COURSES.parvularia.filter((item) => item !== config.curso).map((item) => <option key={item}>{item}</option>)}</select></div><div><Label>Motivo o contexto</Label><input value={config.parvulariaMotivoFusion} onChange={(e) => setConfig((p) => ({ ...p, parvulariaMotivoFusion: e.target.value }))} placeholder="Ej.: jornada especial o baja asistencia" className={inputClass} /></div></div>}</div>}
+      {config.nivel === "parvularia" && <div className="rounded-2xl border-2 border-cyan-500 bg-cyan-50 p-5"><div className="flex flex-col gap-4 md:flex-row md:justify-between"><div><p className="font-black text-cyan-950">Sala heterogénea o niveles unidos</p><p className="mt-1 text-sm text-cyan-900">En Desarrollo separa las actividades por edad/subnivel, con una secuencia completa y distinta para cada grupo.</p></div><button onClick={() => setConfig((p) => ({ ...p, parvulariaHeterogenea: !p.parvulariaHeterogenea }))} className={`rounded-xl px-5 py-2.5 text-sm font-black ${config.parvulariaHeterogenea ? "bg-cyan-800 text-white" : "bg-white text-cyan-900 ring-2 ring-cyan-400"}`}>{config.parvulariaHeterogenea ? "Activada" : "Activar"}</button></div>{config.parvulariaHeterogenea && <div className="mt-5 grid gap-4 md:grid-cols-2"><div><Label>Segundo subnivel</Label><select value={config.parvulariaSegundoCurso} onChange={(e) => setConfig((p) => ({ ...p, parvulariaSegundoCurso: e.target.value }))} className={inputClass}>{COURSES.parvularia.filter((item) => item !== config.curso).map((item) => <option key={item}>{item}</option>)}</select></div><div><Label>Motivo o contexto</Label><input value={config.parvulariaMotivoFusion} onChange={(e) => setConfig((p) => ({ ...p, parvulariaMotivoFusion: e.target.value }))} placeholder="Ej.: jornada especial o baja asistencia" className={inputClass} /></div></div>}</div>}
     </div>
   )
 
@@ -776,7 +856,7 @@ export default function PlannerPage() {
         {status && <div className={`mb-5 rounded-2xl border-2 px-4 py-3 text-sm font-bold ${status.includes("correctamente") ? "border-emerald-500 bg-emerald-50 text-emerald-950" : "border-amber-500 bg-amber-50 text-amber-950"}`}>{status}</div>}
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
           <section className="rounded-3xl border-2 border-slate-300 bg-white p-5 shadow-sm md:p-7">{content}{!resultReady && <div className="mt-8 flex justify-between border-t pt-5"><button onClick={() => goTo(Math.max(1, step - 1))} disabled={step === 1} className="rounded-xl border-2 border-slate-300 px-5 py-3 text-sm font-black disabled:opacity-30">← Atrás</button>{step < 4 && <button onClick={() => goTo(step + 1)} className="rounded-xl bg-emerald-700 px-6 py-3 text-sm font-black text-white">Continuar →</button>}</div>}</section>
-          <aside className="xl:sticky xl:top-24 xl:self-start"><div className="rounded-3xl border-2 border-slate-800 bg-slate-950 p-5 text-white shadow-lg"><p className="text-xs font-black uppercase tracking-[.18em] text-emerald-300">Resumen</p><h2 className="mt-2 text-lg font-black">{isParvularia ? "🌸 Educación Parvularia" : `${mode.icon} ${mode.label}`}</h2><div className="mt-5 space-y-4 text-sm"><div className="rounded-2xl bg-white/10 p-4"><p className="text-xs font-black uppercase text-slate-300">Nivel y curso</p><p className="mt-1 font-black">{config.curso}</p><p className="mt-1 text-slate-300">{config.asignatura}</p></div><div className="rounded-2xl bg-white/10 p-4"><p className="text-xs font-black uppercase text-slate-300">{isParvularia ? "Período" : institutionalMacro ? "Periodo" : "Duración"}</p><p className="mt-1 font-black">{isParvularia ? buildParvulariaDateLabel(config.fechaInicioParvularia, config.fechaFinParvularia || config.fechaInicioParvularia) : institutionalMacro ? periodLabel : `${config.sesiones} sesión(es) · ${config.duracionMinutos} min`}</p>{isParvularia && <p className="mt-1 text-xs font-bold text-rose-200">3 planificaciones por día</p>}<p className="mt-1 capitalize text-slate-300">{isParvularia ? config.tiempoPlanificacion : institutionalMacro ? `${config.weeklyOAPlan.length} semanas · ${config.anioPlanificacion}` : config.tiempoPlanificacion}</p>{institutionalMacro && <p className="mt-1 text-xs text-slate-400">{config.profesor || "Profesor por completar"} · {config.horasSemanales || "Horas por completar"}</p>}{isParvularia && <p className="mt-1 text-xs text-slate-400">{config.educadoraParvularia || "Educadora por completar"} · {config.asistentesParvularia || "Asistentes por completar"}</p>}</div><div className="rounded-2xl bg-white/10 p-4"><p className="text-xs font-black uppercase text-slate-300">Currículum</p><p className="mt-1 font-black">{isParvularia ? "Núcleo y OA por jornada" : institutionalMacro ? "OA del período" : selectedUnit?.label || "Unidad por definir"}</p><p className="mt-2 text-slate-300">{config.selectedOAIds.length} OA seleccionado(s)</p>{isParvularia && <div className="mt-2 space-y-1 text-xs text-slate-400">{config.parvulariaJourneyNucleos.map((nucleo, index) => <p key={index}>J{index + 1}: {nucleo || "Sin núcleo"} · {config.parvulariaJourneyOAIds[index]?.length || 0} OA</p>)}</div>}{institutionalMacro && <p className="mt-1 text-xs text-slate-400">{config.weeklyOAPlan.filter((week) => week.oaIds.length).length}/{config.weeklyOAPlan.length} semanas con OA</p>}</div><div className={`rounded-2xl border p-4 ${hasCurriculum ? "border-emerald-500 bg-emerald-500/15" : "border-amber-400 bg-amber-400/15"}`}><p className="font-black">{hasCurriculum ? "✓ Currículum disponible" : "⚠ Cobertura parcial"}</p><p className="mt-1 text-xs text-slate-300">Solo se muestran opciones relacionadas con la planificación.</p></div></div></div></aside>
+          <aside className="xl:sticky xl:top-24 xl:self-start"><div className="rounded-3xl border-2 border-slate-800 bg-slate-950 p-5 text-white shadow-lg"><p className="text-xs font-black uppercase tracking-[.18em] text-emerald-300">Resumen</p><h2 className="mt-2 text-lg font-black">{isParvularia ? "🌸 Educación Parvularia" : `${mode.icon} ${mode.label}`}</h2><div className="mt-5 space-y-4 text-sm"><div className="rounded-2xl bg-white/10 p-4"><p className="text-xs font-black uppercase text-slate-300">Nivel y curso</p><p className="mt-1 font-black">{config.curso}</p><p className="mt-1 text-slate-300">{config.asignatura}</p></div><div className="rounded-2xl bg-white/10 p-4"><p className="text-xs font-black uppercase text-slate-300">{isParvularia ? "Período" : institutionalMacro ? "Periodo" : "Duración"}</p><p className="mt-1 font-black">{isParvularia ? buildParvulariaDateLabel(config.fechaInicioParvularia, config.fechaFinParvularia || config.fechaInicioParvularia) : institutionalMacro ? periodLabel : `${config.sesiones} sesión(es) · ${config.duracionMinutos} min`}</p>{isParvularia && <p className="mt-1 text-xs font-bold text-rose-200">3 planificaciones por día</p>}<p className="mt-1 capitalize text-slate-300">{isParvularia ? config.tiempoPlanificacion : institutionalMacro ? `${config.weeklyOAPlan.length} semanas · ${config.anioPlanificacion}` : config.tiempoPlanificacion}</p>{institutionalMacro && <p className="mt-1 text-xs text-slate-400">{config.profesor || "Profesor por completar"} · {config.horasSemanales || "Horas por completar"}</p>}{isParvularia && <p className="mt-1 text-xs text-slate-400">{config.educadoraParvularia || "Educadora por completar"} · {config.asistentesParvularia || "Asistentes por completar"}</p>}</div><div className="rounded-2xl bg-white/10 p-4"><p className="text-xs font-black uppercase text-slate-300">Currículum</p><p className="mt-1 font-black">{isParvularia ? "Núcleo y OA por jornada" : institutionalMacro ? "OA del período" : selectedUnit?.label || "Unidad por definir"}</p><p className="mt-2 text-slate-300">{config.selectedOAIds.length} OA seleccionado(s)</p>{isParvularia && <div className="mt-2 space-y-1 text-xs text-slate-400">{config.parvulariaJourneyNucleos.map((nucleo, index) => <p key={index}>J{index + 1}: {nucleo || "Sin núcleo"} · {config.parvulariaJourneyOAIds[index]?.length || 0} OA · {config.parvulariaJourneyOATIds[index]?.length || 0} OAT</p>)}</div>}{institutionalMacro && <p className="mt-1 text-xs text-slate-400">{config.weeklyOAPlan.filter((week) => week.oaIds.length).length}/{config.weeklyOAPlan.length} semanas con OA</p>}</div><div className={`rounded-2xl border p-4 ${hasCurriculum ? "border-emerald-500 bg-emerald-500/15" : "border-amber-400 bg-amber-400/15"}`}><p className="font-black">{hasCurriculum ? "✓ Currículum disponible" : "⚠ Cobertura parcial"}</p><p className="mt-1 text-xs text-slate-300">Solo se muestran opciones relacionadas con la planificación.</p></div></div></div></aside>
         </div>
       </main>
     </div>
