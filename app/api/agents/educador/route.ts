@@ -68,6 +68,7 @@ interface EducadorConfig {
   weeklyOAPlan?: Array<{ key?: string; month?: string; week?: number; oaIds?: string[] }>
   parvulariaJourneyNucleos?: string[]
   parvulariaJourneyOAIds?: string[][]
+  parvulariaJourneyOATIds?: string[][]
   educadoraParvularia?: string
   asistentesParvularia?: string
   fechaInicioParvularia?: string
@@ -130,6 +131,11 @@ function ensureArray(value: unknown): string[] {
 }
 
 function ensureParvulariaJourneyOAIds(value: unknown): string[][] {
+  const raw = Array.isArray(value) ? value : []
+  return [0, 1, 2].map((index) => ensureArray(raw[index]))
+}
+
+function ensureParvulariaJourneyOATIds(value: unknown): string[][] {
   const raw = Array.isArray(value) ? value : []
   return [0, 1, 2].map((index) => ensureArray(raw[index]))
 }
@@ -287,6 +293,102 @@ function inferParvulariaStage(curso: string): string {
   return "Subnivel de parvularia no identificado con precision."
 }
 
+function getParvulariaAgeHeading(curso: string): string {
+  const c = curso.toLowerCase()
+  if (c.includes("sala cuna menor")) return "Edades 06 meses a 12 meses"
+  if (c.includes("sala cuna mayor")) return "Edades 1 año a 2 años"
+  if (c.includes("medio menor")) return "Edades 2 a 3 años"
+  if (c.includes("medio mayor")) return "Edades 3 a 4 años"
+  if (c.includes("nt1")) return "Edades 4 a 5 años"
+  if (c.includes("nt2")) return "Edades 5 a 6 años"
+  return `Nivel ${curso}`
+}
+
+function normalizeParvulariaComparisonText(value: string): string {
+  return value
+    .toLocaleLowerCase("es-CL")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+function inspectHeterogeneousDevelopment(
+  experience: string,
+  ageHeadings: string[],
+  requiredDateLabels: string[],
+): string[] {
+  const source = String(experience || "").replace(/\r/g, "")
+  const match = source.match(/desarrollo\s*:\s*([\s\S]*?)(?=\n?\s*finalizaci[oó]n\s*:|$)/i)
+  const development = match?.[1]?.trim() || ""
+  if (!development) return ["Desarrollo sin contenido para diferenciar por nivel."]
+
+  const normalized = normalizeParvulariaComparisonText(development)
+  const normalizedHeadings = ageHeadings.map(normalizeParvulariaComparisonText)
+  const positions = normalizedHeadings.map((heading) => normalized.indexOf(heading))
+  const issues: string[] = []
+
+  positions.forEach((position, index) => {
+    if (position < 0) issues.push(`Falta el bloque "${ageHeadings[index]}".`)
+  })
+  if (issues.length) return issues
+
+  positions.forEach((position, index) => {
+    const nextPositions = positions.filter((candidate) => candidate > position)
+    const end = nextPositions.length ? Math.min(...nextPositions) : normalized.length
+    const section = normalized.slice(position, end)
+    const activityContent = section.replace(normalizedHeadings[index], "").trim()
+
+    if (activityContent.length < 90) {
+      issues.push(`El bloque "${ageHeadings[index]}" no contiene actividades suficientemente desarrolladas.`)
+    }
+
+    for (const dateLabel of requiredDateLabels) {
+      const normalizedDate = normalizeParvulariaComparisonText(dateLabel)
+      if (normalizedDate && !section.includes(normalizedDate)) {
+        issues.push(`En "${ageHeadings[index]}" falta la actividad correspondiente a ${dateLabel}.`)
+      }
+    }
+  })
+
+  return issues
+}
+
+function buildFallbackParvulariaActivity(params: {
+  curso: string
+  journeyIndex: number
+  nucleo: string
+  sequence: number
+}): string {
+  const c = params.curso.toLowerCase()
+  const variation = params.sequence % 3
+  const suffix = ` vinculada con ${params.nucleo}, con mediación ajustada a la edad y registro de respuestas observables.`
+
+  if (params.journeyIndex === 2) {
+    if (c.includes("sala cuna menor")) return `Los párvulos observarán imágenes u objetos, escucharán palabras, sonidos o canciones y responderán con mirada, balbuceo, gestos o movimientos${suffix}`
+    if (c.includes("sala cuna mayor")) return `Los niños y niñas señalarán, imitarán sonidos, elegirán imágenes u objetos y participarán en canciones o relatos breves con palabras y gestos${suffix}`
+    if (c.includes("medio menor")) return `Los niños y niñas nombrarán objetos, responderán preguntas simples y reconstruirán partes de un relato mediante imágenes, gestos y frases breves${suffix}`
+    if (c.includes("medio mayor")) return `Los niños y niñas describirán, compararán y relatarán situaciones breves, ampliando vocabulario y turnos de conversación con apoyos visuales${suffix}`
+    return `Los párvulos participarán en conversación, relato o lectura compartida, formulando ideas y respuestas acordes a su subnivel${suffix}`
+  }
+
+  if (params.journeyIndex === 1) {
+    if (c.includes("sala cuna menor")) return `Los párvulos tocarán, observarán y moverán materiales artísticos o sensoriales seguros, reaccionando a colores, texturas, sonidos y movimientos con apoyo cercano${suffix}`
+    if (c.includes("sala cuna mayor")) return `Los niños y niñas trasladarán, golpearán, agitarán y combinarán materiales de color, textura o sonido, explorando movimientos con mayor autonomía${suffix}`
+    if (c.includes("medio menor")) return `Los niños y niñas elegirán materiales, producirán trazos, sonidos o movimientos y combinarán texturas y colores mediante juego expresivo${suffix}`
+    if (c.includes("medio mayor")) return `Los niños y niñas crearán composiciones simples, compararán efectos de color, sonido o textura y comunicarán preferencias durante la experiencia${suffix}`
+    return `Los párvulos planificarán y realizarán una producción artística o sensorial, tomando decisiones y explicando parte de su proceso${suffix}`
+  }
+
+  if (c.includes("sala cuna menor")) return `Los párvulos tocarán, observarán, alcanzarán o recorrerán materiales seguros mediante manos, pies o gateo, con acompañamiento corporal y verbal cercano${suffix}`
+  if (c.includes("sala cuna mayor")) return `Los niños y niñas se desplazarán, trasladarán, introducirán, sacarán o combinarán materiales, explorando relaciones simples mediante acción autónoma guiada${suffix}`
+  if (c.includes("medio menor")) return `Los niños y niñas escogerán, agruparán, trasladarán y compararán materiales concretos, nombrando acciones o propiedades durante el juego exploratorio${suffix}`
+  if (c.includes("medio mayor")) return `Los niños y niñas compararán, clasificarán, transformarán o construirán con materiales, explicando hallazgos y tomando decisiones durante la exploración${suffix}`
+  return variation === 0
+    ? `Los párvulos investigarán materiales o situaciones, anticiparán resultados, probarán alternativas y comunicarán hallazgos de acuerdo con su subnivel${suffix}`
+    : `Los párvulos resolverán un desafío de exploración con materiales concretos, comparando resultados y explicando decisiones según sus posibilidades${suffix}`
+}
+
 function buildParvulariaSessionBlocks(sesiones: number, duracionMinutos: number, heterogenea = false): string {
   const acogida = Math.max(3, Math.round(duracionMinutos * 0.18))
   const exploracion = Math.max(8, Math.round(duracionMinutos * 0.54))
@@ -421,7 +523,7 @@ function buildPromptContext(params: {
         parvulariaSegundoCurso ? `- Segundo rango/subnivel integrado: ${parvulariaSegundoCurso}` : "",
         secondStageContext ? `- Caracterización segundo rango: ${secondStageContext}` : "",
         parvulariaMotivoFusion ? `- Motivo/contexto de unión: ${parvulariaMotivoFusion}` : "",
-        "- Diseñar una experiencia común con adecuación diferenciada por edad, complejidad, tiempo de atención, materiales, apoyo adulto, seguridad, NEE y evaluación formativa.",
+        "- En Desarrollo separar explícitamente las actividades por subnivel/edad. Cada rango debe tener su propio bloque completo de actividades; no usar una experiencia común seguida de adaptaciones breves.",
       ].filter(Boolean).join("\n")
     : ""
 
@@ -988,10 +1090,12 @@ export async function POST(req: NextRequest) {
   const mes = normalizeMonth(cfg.mes)
   const unidadId = typeof cfg.unidadId === "string" ? cfg.unidadId.trim() : ""
   let selectedOAIds = ensureArray(cfg.selectedOAIds)
-  const selectedOATIds = ensureArray(cfg.selectedOATIds)
+  let selectedOATIds = ensureArray(cfg.selectedOATIds)
   const hasExplicitParvulariaJourneyNucleos = Array.isArray(cfg.parvulariaJourneyNucleos)
+  const hasExplicitParvulariaJourneyOATIds = Array.isArray(cfg.parvulariaJourneyOATIds)
   let parvulariaJourneyNucleos = ensureParvulariaJourneyNucleos(cfg.parvulariaJourneyNucleos, asignatura)
   let parvulariaJourneyOAIds = ensureParvulariaJourneyOAIds(cfg.parvulariaJourneyOAIds)
+  let parvulariaJourneyOATIds = ensureParvulariaJourneyOATIds(cfg.parvulariaJourneyOATIds)
 
   // ── Detect intent from message ────────────────────────────────────────────
   const messageLC = message.toLowerCase()
@@ -1233,15 +1337,17 @@ REGLAS:
 
     selectedOAIds = [...new Set(parvulariaJourneyOAIds.flat())]
 
-    const complementaryOAT = getParvulariaOAT(curso, asignatura)
-    const validOATIds = new Set(complementaryOAT.map((item) => item.id))
-    const invalidOAT = selectedOATIds.filter((id) => !validOATIds.has(id))
-    if (invalidOAT.length) {
-      return NextResponse.json(
-        { error: `Hay OAT complementarios no válidos para esta selección: ${invalidOAT.join(", ")}.` },
-        { status: 400 }
-      )
-    }
+    parvulariaJourneyOATIds = parvulariaJourneyNucleos.map((nucleo, index) => {
+      const available = getParvulariaOAT(curso, nucleo)
+      const validIds = new Set(available.map((item) => item.id))
+      const requested = [...new Set((parvulariaJourneyOATIds[index] || []).filter((id) => validIds.has(id)))]
+
+      if (hasExplicitParvulariaJourneyOATIds) return requested
+
+      // Compatibilidad con la selección global de OAT usada antes de separar por jornada.
+      return [...new Set(selectedOATIds.filter((id) => validIds.has(id)))]
+    })
+    selectedOATIds = [...new Set(parvulariaJourneyOATIds.flat())]
   }
 
   if (isInstitutionalMacro) {
@@ -1304,7 +1410,7 @@ REGLAS DE PLANIFICACION:
 4. Si hay OA seleccionados, menciónales en la planificación — no los ignores, pero tampoco los conviertas en una jaula.
 5. En Parvularia integra siempre: subnivel, ámbito, núcleo, OA y OAT disponibles.
 6. En Parvularia evita una estructura escolarizada: prioriza juego, exploración, vínculo, rutinas, bienestar, mediación breve, observación y registro cualitativo.
-7. Si es grupo heterogéneo o niveles unidos, crea una experiencia común y diferencia por edad: materiales, complejidad, lenguaje esperado, rol adulto, apoyos NEE, seguridad y evidencias.
+7. Si es grupo heterogéneo o niveles unidos, separa el Desarrollo en bloques completos por edad/subnivel, con actividades distintas, materiales, complejidad, lenguaje esperado, rol adulto, apoyos NEE, seguridad y evidencias diferenciadas.
 8. NUNCA cortes la respuesta. SIEMPRE completa TODOS los bloques del formato.
 7. Los indicadores deben reflejar tanto el OA como el contexto real descrito por el docente.
 8. Los objetivos de clase deben ser concretos, útiles en el aula real y coherentes con la propuesta del docente.
@@ -1504,11 +1610,17 @@ CRITERIOS DE CALIDAD - VERIFICAR ANTES DE RESPONDER:
           .filter((oa) => ids.has(oa.id))
       })
     : [[], [], []]
+  const parvulariaOATByJourney = isStructuredParvularia
+    ? parvulariaJourneyNucleos.map((nucleo, index) => {
+        const ids = new Set(parvulariaJourneyOATIds[index] || [])
+        return getParvulariaOAT(curso, nucleo).filter((oat) => ids.has(oat.id))
+      })
+    : [[], [], []]
   const parvulariaSelectedOA = isStructuredParvularia
     ? [...new Map(parvulariaOAByJourney.flat().map((oa) => [oa.id, oa])).values()]
     : []
   const parvulariaSelectedOAT = isStructuredParvularia
-    ? getParvulariaOAT(curso, asignatura).filter((oat) => selectedOATIds.includes(oat.id))
+    ? [...new Map(parvulariaOATByJourney.flat().map((oat) => [oat.id, oat])).values()]
     : []
   const parvulariaJourneyOAContext = isStructuredParvularia
     ? parvulariaOAByJourney.map((oas, index) => {
@@ -1519,18 +1631,25 @@ CRITERIOS DE CALIDAD - VERIFICAR ANTES DE RESPONDER:
         ][index]
         const nucleo = parvulariaJourneyNucleos[index] || asignatura
         const ambito = getParvulariaAmbito(curso, nucleo) || "Ámbito no informado"
+        const oats = parvulariaOATByJourney[index] || []
+        const oatGroups = [...new Set(oats.map((oat) => oat.nucleo || "Núcleo transversal"))]
         return [
           label,
           `- Ámbito: ${ambito}`,
-          `- Núcleo: ${nucleo}`,
-          ...oas.map((oa) => `- ${oa.codigoOficial || oa.id}: ${oa.texto}`),
+          `- Núcleo principal: ${nucleo}`,
+          ...oas.map((oa) => `- OA: ${oa.codigoOficial || oa.id}: ${oa.texto}`),
+          ...oatGroups.flatMap((oatNucleo) => [
+            `- OAT · Núcleo transversal: ${oatNucleo}`,
+            ...oats.filter((oat) => (oat.nucleo || "Núcleo transversal") === oatNucleo)
+              .map((oat) => `  - ${oat.description || oat.id}: ${oat.label}`),
+          ]),
         ].join("\n")
       }).join("\n\n")
     : ""
   const parvulariaCurriculumContext = isStructuredParvularia
     ? [
         ...parvulariaSelectedOA.map((oa) =>
-          `${oa.codigoOficial || oa.id}: ${oa.texto} | Tipo: ${oa.tipo === "oat" ? "OAT transversal usado como objetivo principal" : "OA de contenido"} | Ámbito: ${oa.ambito || "No informado"} | Núcleo: ${oa.nucleo || "No informado"}`
+          `${oa.codigoOficial || oa.id}: ${oa.texto} | Objetivo principal | Ámbito: ${oa.ambito || "No informado"} | Núcleo: ${oa.nucleo || "No informado"}`
         ),
         ...parvulariaSelectedOAT.map((oat) => `${oat.description || oat.id}: ${oat.label} | OAT complementario | Ámbito: ${oat.ambito || "Desarrollo personal y social"} | Núcleo: ${oat.nucleo || "No informado"}`),
       ].join("\n")
@@ -1543,6 +1662,24 @@ CRITERIOS DE CALIDAD - VERIFICAR ANTES DE RESPONDER:
         .map((line) => line.replace(/^\d+\.\s*/, "").trim())
         .filter(Boolean)
     : []
+
+  const parvulariaAgeGroups = isStructuredParvularia && parvulariaHeterogenea && parvulariaSegundoCurso
+    ? [
+        { curso, heading: getParvulariaAgeHeading(curso), stage: inferParvulariaStage(curso) },
+        { curso: parvulariaSegundoCurso, heading: getParvulariaAgeHeading(parvulariaSegundoCurso), stage: inferParvulariaStage(parvulariaSegundoCurso) },
+      ]
+    : []
+  const parvulariaHeterogeneousDevelopmentContext = parvulariaAgeGroups.length === 2
+    ? [
+        "DESARROLLO HETEROGÉNEO OBLIGATORIO — REPRODUCIR LA LÓGICA DEL FORMATO INSTITUCIONAL:",
+        ...parvulariaAgeGroups.map((group, index) => `- Bloque ${index + 1}: "${group.heading}" (${group.curso}). ${group.stage}`),
+        "- Dentro de CADA jornada, después de Desarrollo:, escribe primero el bloque completo del primer rango y luego el bloque completo del segundo rango.",
+        "- En semanal y quincenal, TODAS las fechas hábiles deben aparecer dentro de CADA bloque de edad; la misma fecha tiene una actividad diferente para cada rango.",
+        "- No escribas una actividad común seguida de 'adaptación para menores/mayores'. Son dos secuencias de actividades diferenciadas.",
+        "- Diferencia acción, autonomía, desplazamiento, lenguaje, complejidad del material, mediación adulta y evidencia observable según desarrollo.",
+        "- Inicio y Finalización pueden ser comunes a ambos grupos; la diferenciación obligatoria ocurre dentro de Desarrollo.",
+      ].join("\n")
+    : ""
 
   const parvulariaSystemPrompt = isStructuredParvularia ? `Eres APl, Agente Planificador Curricular de EduAI especializado en Educación Parvularia de Chile.
 
@@ -1562,18 +1699,21 @@ DATOS FIJOS DEL DOCUMENTO:
 BASE CURRICULAR SELECCIONADA. USA ESTOS OA/OAT Y NO INVENTES CÓDIGOS:
 ${parvulariaCurriculumContext || "No se recuperó contexto curricular; mantén estrictamente los objetivos incluidos en la solicitud del usuario."}
 
-ASIGNACIÓN OBLIGATORIA DE ÁMBITO, NÚCLEO Y OA PRIMARIOS POR JORNADA:
-${parvulariaJourneyOAContext || "Cada jornada usa el ámbito, núcleo y OA seleccionados."}
+ASIGNACIÓN OBLIGATORIA DE ÁMBITO, NÚCLEO, OA Y OAT POR JORNADA:
+${parvulariaJourneyOAContext || "Cada jornada usa el ámbito, núcleo, OA y OAT seleccionados."}
 
 REGLA DE ASIGNACIÓN:
-- En "ambitoNucleo" de cada fila escribe el ÁMBITO y NÚCLEO exactos asignados a esa jornada.
-- En "objetivosAprendizajes" de cada fila escribe SOLO los OA primarios asignados a esa jornada, más los OAT complementarios seleccionados si corresponde.
-- No copies automáticamente el mismo núcleo ni todos los OA primarios en las tres filas.
-- Un núcleo u OA puede repetirse en más de una jornada únicamente si el docente lo asignó expresamente.
+- En "ambitoNucleo" de cada fila escribe el ÁMBITO y NÚCLEO principal exactos asignados a esa jornada y, debajo, los núcleos transversales de los OAT elegidos para ESA jornada.
+- En "objetivosAprendizajes" de cada fila escribe SOLO los OA y OAT asignados a esa jornada.
+- Los OAT deben mantenerse separados por su núcleo transversal; no los presentes como si pertenecieran al núcleo principal.
+- No copies automáticamente el mismo núcleo, OA u OAT en las tres filas.
+- Un núcleo, OA u OAT puede repetirse en más de una jornada únicamente si el docente lo asignó expresamente.
 - Respeta esta distribución en diaria, semanal, quincenal, mensual y semestral.
 
 DISTRIBUCIÓN TEMPORAL OBLIGATORIA:
 ${parvulariaPeriodGuide || "Desarrolla experiencias coherentes con el período seleccionado."}
+
+${parvulariaHeterogeneousDevelopmentContext ? `${parvulariaHeterogeneousDevelopmentContext}\n` : ""}
 
 CRITERIOS BCEP 2018 OFICIALES PARA CONSTRUIR LA EXPERIENCIA:
 ${JSON.stringify({
@@ -1591,12 +1731,12 @@ REFERENCIA INSTITUCIONAL QUE DEBES REPLICAR EN CONTENIDO Y ORGANIZACIÓN:
 - El bloque inicial contiene exactamente: Objetivo de aprendizaje; Principio de Juego; Principio de actividad; Foco de experiencia.
 - La tabla principal contiene exactamente siete columnas: Ámbito/Núcleo; Objetivos de Aprendizajes; Experiencia de aprendizaje; Orientaciones Relevantes; Rol del equipo pedagógico y rol de la familia; Recursos; Evaluación.
 - El archivo de referencia desarrolla Experiencia de aprendizaje con Inicio, Desarrollo, experiencias concretas por fecha/rango y Finalización.
-- En Sala Cuna, cuando corresponda, distingue "Edades 06 meses a 12 meses" y "Edades 1 año a 2 años"; en otros subniveles adapta por edad sin inventar una estructura escolarizada.
+- Cuando hay dos niveles/subniveles unidos, el Desarrollo se divide en DOS bloques explícitos por edad/subnivel. Para Sala Cuna usa "Edades 06 meses a 12 meses" y "Edades 1 año a 2 años" cuando corresponda; para otros niveles usa el rango de edad respectivo.
 - Inicio debe reunir/motivar al grupo, presentar recursos y activar exploración o juego.
 - Desarrollo debe contener ACTIVIDADES REALES, distintas, detalladas y ejecutables: qué harán los párvulos, qué manipularán/observarán/escucharán, cómo interviene el adulto y qué se espera observar. No escribas solo títulos.
 - ESTÁNDAR DE PROFUNDIDAD PARA CADA ACTIVIDAD, EN TODOS LOS HORIZONTES: cada actividad diaria, semanal, quincenal, mensual o semestral debe redactarse como una oración pedagógica completa y breve, no como un nombre de actividad. Apunta a aproximadamente 100-180 caracteres de contenido por actividad, sin contar fecha, viñeta o rótulo de semana.
 - Cada actividad debe combinar al menos: acción concreta de los párvulos + material/estímulo/espacio + forma de exploración, interacción o mediación + habilidad, respuesta observable o propósito inmediato. No es necesario convertirla en un párrafo.
-- Si diferencias por edad o subnivel, primero redacta una experiencia central completa y luego agrega adecuaciones breves; no reemplaces la experiencia por dos títulos telegráficos entre paréntesis.
+- Si hay dos niveles/subniveles, NO redactes una única experiencia central con adecuaciones breves. Cada bloque de edad debe contener sus propias actividades completas por fecha o tramo, con diferencias reales de complejidad y mediación.
 - Finalización debe considerar ordenar/guardar materiales, socializar mediante lenguaje, gestos, sonidos o producciones, y reforzar positivamente la participación.
 - Orientaciones Relevantes debe incluir, según pertinencia: preparar material con anticipación; ambiente fresco e iluminado; uso de distintos espacios educativos; vestimenta cómoda; material suficiente para libre exploración; tiempo flexible; seguridad y bienestar.
 - Rol del equipo pedagógico debe permitir libre acercamiento y desplazamiento, mediar cuando el párvulo lo requiere y evitar sobreintervenir, respetando interés, curiosidad y exploración.
@@ -1618,7 +1758,7 @@ ESTRUCTURA PEDAGÓGICA OBLIGATORIA:
 3. En Ámbito/Núcleo identifica explícitamente AMBITO y NUCLEO. Si corresponde, incorpora además el ámbito/núcleo transversal asociado al OAT.
 4. En Objetivos de Aprendizajes copia el código y texto de cada OA seleccionado y los OAT seleccionados. No reformules el texto oficial como si fuera literal.
 5. En Experiencia de aprendizaje usa Inicio, Desarrollo y Finalización. Dentro del desarrollo organiza experiencias concretas según el período. Incluye fechas o tramos del período cuando corresponda.
-6. Para Sala Cuna diferencia, cuando sea útil, experiencias para 06-12 meses y 1-2 años. Para niveles heterogéneos agrega adecuaciones por rango sin transformar la experiencia en una clase escolarizada.
+6. Para niveles heterogéneos, el Desarrollo debe contener dos bloques separados por edad/subnivel. Cada bloque debe tener actividades completas y distintas. En semanal/quincenal, cada bloque repite todas las fechas hábiles con una actividad específica para ese rango.
 7. Orientaciones Relevantes debe cubrir preparación, ambiente, seguridad, vestimenta, disponibilidad de materiales, tiempos flexibles, espacios educativos y observación del bienestar.
 8. Rol del equipo pedagógico y rol de la familia debe distinguir ambos roles explícitamente.
 9. Recursos debe distinguir RECURSOS TANGIBLES y RECURSOS INTANGIBLES.
@@ -1634,7 +1774,8 @@ ESTRUCTURA PEDAGÓGICA OBLIGATORIA:
 19. No copies actividades del archivo de referencia como plantilla fija: construye nuevas actividades coherentes con los OA/OAT seleccionados, manteniendo su nivel de detalle y su organización.
 20. Las tres jornadas no pueden repetir la misma actividad cambiando solo palabras: deben diferenciar propósito inmediato, recursos, mediación y acciones de los párvulos.
 21. La Jornada 3 debe incluir una mediación explícita de lenguaje/comunicación apropiada al nivel (oralidad, relato, lectura compartida, canciones, vocabulario, balbuceo/gestos o conversación), sin escolarizar la experiencia.
-22. Respeta estrictamente la ASIGNACIÓN OBLIGATORIA DE ÁMBITO, NÚCLEO Y OA PRIMARIOS POR JORNADA. Cada fila debe usar su ámbito/núcleo exacto, contener los códigos/textos de sus OA asignados y no incorporar el núcleo u OA asignado solo a otra jornada.
+22. Respeta estrictamente la ASIGNACIÓN OBLIGATORIA DE ÁMBITO, NÚCLEO, OA Y OAT POR JORNADA. Cada fila debe usar su ámbito/núcleo principal exacto, separar los núcleos transversales de sus OAT y contener únicamente los OA/OAT asignados a esa jornada.
+23. Si parvulariaHeterogenea está activa, las TRES jornadas deben contener ambos bloques de edad/subnivel dentro de Desarrollo. No basta con mencionar los niveles en el encabezado ni con una adaptación al final.
 
 SALIDA OBLIGATORIA:
 Responde SOLO JSON válido, sin markdown, sin comentarios y sin texto antes o después. Usa exactamente esta forma:
@@ -1823,8 +1964,8 @@ REGLAS DE LAS CELDAS:
           filas: parsed.filas.map((row, index) => {
             const nucleo = parvulariaJourneyNucleos[index] || asignatura
             const ambito = getParvulariaAmbito(curso, nucleo) || "Ámbito no informado"
-            const complementaryScope = parvulariaSelectedOAT.map((oat) =>
-              `OAT COMPLEMENTARIO: ${oat.ambito || "Desarrollo personal y social"} · ${oat.nucleo || oat.label}`
+            const complementaryScope = (parvulariaOATByJourney[index] || []).map((oat) =>
+              `OAT COMPLEMENTARIO · AMBITO: ${oat.ambito || "Desarrollo personal y social"} · NUCLEO: ${oat.nucleo || "No informado"}`
             )
             return {
               ...row,
@@ -1865,6 +2006,25 @@ REGLAS DE LAS CELDAS:
             .map((oa) => `Jornada ${index + 1}: OA no asignado ${oa.codigoOficial || oa.id}`)
           return [...missing, ...unexpected]
         })
+        const journeyOATIssues = fixed.filas.flatMap((row, index) => {
+          const rowBody = row.objetivosAprendizajes.toLowerCase()
+          const assigned = parvulariaOATByJourney[index] || []
+          const assignedIds = new Set(assigned.map((oat) => oat.id))
+          const missing = assigned
+            .filter((oat) => {
+              const code = (oat.description || oat.id).toLowerCase()
+              return code && !rowBody.includes(code)
+            })
+            .map((oat) => `Jornada ${index + 1}: falta OAT ${oat.description || oat.id}`)
+          const unexpected = parvulariaSelectedOAT
+            .filter((oat) => !assignedIds.has(oat.id))
+            .filter((oat) => {
+              const code = (oat.description || oat.id).toLowerCase()
+              return code && rowBody.includes(code)
+            })
+            .map((oat) => `Jornada ${index + 1}: OAT no asignado ${oat.description || oat.id}`)
+          return [...missing, ...unexpected]
+        })
         const incompleteRow = fixed.filas.find((row) =>
           !row.jornada.trim() ||
           !row.ambitoNucleo.trim() ||
@@ -1898,18 +2058,31 @@ REGLAS DE LAS CELDAS:
           findShortParvulariaActivities(row.experienciaAprendizaje)
             .map((activity) => `${row.jornada}: ${activity}`)
         )
+        const heterogeneousDevelopmentIssues = parvulariaAgeGroups.length === 2
+          ? fixed.filas.flatMap((row) =>
+              inspectHeterogeneousDevelopment(
+                row.experienciaAprendizaje,
+                parvulariaAgeGroups.map((group) => group.heading),
+                parvulariaRequiredDateLabels,
+              ).map((issue) => `${row.jornada}: ${issue}`)
+            )
+          : []
         const languageJourney = fixed.filas[2]
         const languageJourneyMissing = !languageJourney || !/(lenguaje|lectura|relato|cuento|oral|vocabulario|canci[oó]n|conversaci[oó]n|balbuceo|gestos comunicativos)/i.test(languageJourney.experienciaAprendizaje)
-        if (!fixed.objetivoAprendizaje.trim() || !fixed.principioJuego.trim() || !fixed.principioActividad.trim() || !fixed.focoExperiencia.trim() || fixed.filas.length !== 3 || incompleteRow || missingOA.length || journeyOAIssues.length || missingActivityDatesByJourney.length || shortActivitiesByJourney.length || languageJourneyMissing) {
+        if (!fixed.objetivoAprendizaje.trim() || !fixed.principioJuego.trim() || !fixed.principioActividad.trim() || !fixed.focoExperiencia.trim() || fixed.filas.length !== 3 || incompleteRow || missingOA.length || journeyOAIssues.length || journeyOATIssues.length || missingActivityDatesByJourney.length || heterogeneousDevelopmentIssues.length || shortActivitiesByJourney.length || languageJourneyMissing) {
           throw new Error(
             journeyOAIssues.length
               ? `La asignación de núcleo/OA por jornada no fue respetada: ${journeyOAIssues.join(" | ")}.`
+              : journeyOATIssues.length
+                ? `La asignación de OAT por jornada no fue respetada: ${journeyOATIssues.join(" | ")}.`
               : missingOA.length
                 ? `Faltan objetivos seleccionados en la tabla: ${missingOA.map((oa) => oa.codigoOficial || oa.id).join(", ")}.`
               : fixed.filas.length !== 3
                 ? `La planificación debe contener exactamente 3 jornadas y se recibieron ${fixed.filas.length}.`
                 : missingActivityDatesByJourney.length
                   ? `Faltan actividades por jornada para estas fechas: ${missingActivityDatesByJourney.join(", ")}.`
+                  : heterogeneousDevelopmentIssues.length
+                    ? `El Desarrollo heterogéneo no respeta los bloques por edad/subnivel: ${heterogeneousDevelopmentIssues.join(" | ")}.`
                   : shortActivitiesByJourney.length
                     ? `Hay actividades demasiado breves o redactadas como títulos. Amplía cada actividad a una frase pedagógica completa y concreta (aprox. 100-180 caracteres): ${shortActivitiesByJourney.slice(0, 6).join(" | ")}.`
                     : languageJourneyMissing
@@ -1930,7 +2103,7 @@ REGLAS DE LAS CELDAS:
           { role: "assistant" as const, content: truncateForPrompt(result.text, 4500) },
           {
             role: "user" as const,
-            content: `La salida anterior no cumple el JSON institucional de Educación Parvularia. Regenera desde cero SOLO como JSON válido. Debe contener EXACTAMENTE TRES jornadas en filas: 1) Exploración y experiencia principal, 2) Expresión artística y sensorial, 3) Lenguaje verbal, lectura y comunicación. Cada jornada debe completar las siete columnas, incluir Inicio/Desarrollo/Finalización y, en semanal/quincenal, una actividad para cada fecha hábil. EN TODOS LOS HORIZONTES, cada actividad del Desarrollo debe ser una oración pedagógica completa y breve de aproximadamente 100-180 caracteres de contenido: acción de los párvulos + material/estímulo/espacio + forma de exploración o mediación + propósito o respuesta observable. No uses títulos telegráficos. Respeta esta asignación de ÁMBITO, NÚCLEO Y OA por jornada:\n${parvulariaJourneyOAContext}\nCada ambitoNucleo debe usar exactamente el ámbito/núcleo asignado a su fila. Cada objetivosAprendizajes debe usar solo los OA primarios asignados a su fila, además de los OAT complementarios. No uses markdown, horas ni minutos. Error detectado: ${firstError instanceof Error ? firstError.message : "formato inválido"}`,
+            content: `La salida anterior no cumple el JSON institucional de Educación Parvularia. Regenera desde cero SOLO como JSON válido. Debe contener EXACTAMENTE TRES jornadas en filas: 1) Exploración y experiencia principal, 2) Expresión artística y sensorial, 3) Lenguaje verbal, lectura y comunicación. Cada jornada debe completar las siete columnas, incluir Inicio/Desarrollo/Finalización y, en semanal/quincenal, una actividad para cada fecha hábil. EN TODOS LOS HORIZONTES, cada actividad del Desarrollo debe ser una oración pedagógica completa y breve de aproximadamente 100-180 caracteres de contenido: acción de los párvulos + material/estímulo/espacio + forma de exploración o mediación + propósito o respuesta observable. No uses títulos telegráficos. Respeta esta asignación de ÁMBITO, NÚCLEO, OA Y OAT por jornada:\n${parvulariaJourneyOAContext}\nCada ambitoNucleo debe usar exactamente el ámbito/núcleo principal y los núcleos transversales OAT asignados a su fila. Cada objetivosAprendizajes debe usar solo los OA y OAT asignados a su fila. ${parvulariaHeterogeneousDevelopmentContext ? `Además, corrige obligatoriamente la diferenciación por edad/subnivel dentro de Desarrollo:\n${parvulariaHeterogeneousDevelopmentContext}\n` : ""}No uses markdown, horas ni minutos. Error detectado: ${firstError instanceof Error ? firstError.message : "formato inválido"}`,
           },
         ], {
           maxTokens: strategy.maxTokens,
@@ -2005,6 +2178,7 @@ REGLAS DE LAS CELDAS:
       weeklyOAPlan: isInstitutionalMacro ? weeklyOAPlan : undefined,
       parvulariaJourneyNucleos: isStructuredParvularia ? parvulariaJourneyNucleos : undefined,
       parvulariaJourneyOAIds: isStructuredParvularia ? parvulariaJourneyOAIds : undefined,
+      parvulariaJourneyOATIds: isStructuredParvularia ? parvulariaJourneyOATIds : undefined,
       compactPrompt: useCompactResourcePrompt,
       _design: designSummary,
     })
@@ -2035,17 +2209,18 @@ REGLAS DE LAS CELDAS:
         `${oat.description || oat.id}: ${oat.label}`
       )
       const objectiveLines = [...primaryObjectiveLines, ...complementaryObjectiveLines]
-      const journeyScopeTexts = parvulariaJourneyNucleos.map((nucleo) => {
+      const journeyScopeTexts = parvulariaJourneyNucleos.map((nucleo, index) => {
         const ambito = getParvulariaAmbito(curso, nucleo) || "Ámbito por confirmar"
         return [
           `AMBITO: ${ambito}`,
           `NUCLEO: ${nucleo}`,
-          ...parvulariaSelectedOAT.map((oat) => `OAT COMPLEMENTARIO: ${oat.ambito || "Desarrollo Personal y Social"} · ${oat.nucleo || oat.label}`),
+          ...(parvulariaOATByJourney[index] || []).map((oat) => `OAT COMPLEMENTARIO · AMBITO: ${oat.ambito || "Desarrollo Personal y Social"} · NUCLEO: ${oat.nucleo || "No informado"}`),
         ].join("\n")
       })
       const journeyObjectiveTexts = parvulariaOAByJourney.map((oas, index) => {
         const primary = oas.map((oa) => `${oa.codigoOficial || oa.id}: ${oa.texto}`)
-        const combined = [...primary, ...complementaryObjectiveLines]
+        const complementary = (parvulariaOATByJourney[index] || []).map((oat) => `${oat.description || oat.id}: ${oat.label}`)
+        const combined = [...primary, ...complementary]
         return combined.length
           ? combined.join("\n\n")
           : `Objetivos oficiales seleccionados del núcleo ${parvulariaJourneyNucleos[index] || asignatura}.`
@@ -2056,6 +2231,31 @@ REGLAS DE LAS CELDAS:
 
       const datedDevelopment = (activity: (dateLabel: string, index: number) => string) =>
         dateLabels.map((dateLabel, index) => `${dateLabel}: ${activity(dateLabel, index)}`).join("\n\n")
+
+      const fallbackDevelopment = (journeyIndex: number, nucleo: string) => {
+        if (parvulariaAgeGroups.length === 2) {
+          return parvulariaAgeGroups.map((group) => [
+            group.heading,
+            datedDevelopment((_dateLabel, index) =>
+              buildFallbackParvulariaActivity({
+                curso: group.curso,
+                journeyIndex,
+                nucleo,
+                sequence: index,
+              })
+            ),
+          ].join("\n")).join("\n\n")
+        }
+
+        return datedDevelopment((_dateLabel, index) =>
+          buildFallbackParvulariaActivity({
+            curso,
+            journeyIndex,
+            nucleo,
+            sequence: index,
+          })
+        )
+      }
 
       const commonOrientations = [
         "Preparar los materiales y el espacio con anticipación.",
@@ -2103,9 +2303,7 @@ REGLAS DE LAS CELDAS:
             "El equipo reúne al grupo, presenta de manera atractiva los materiales y anticipa la experiencia mediante gestos, palabras, objetos concretos o una breve canción de inicio.",
             "",
             "Desarrollo:",
-            datedDevelopment((_dateLabel, index) =>
-              `Experiencia ${index + 1}: disponer materiales seguros vinculados con ${parvulariaJourneyNucleos[0] || asignatura} para que los párvulos observen, manipulen, exploren, comparen, se desplacen o experimenten libremente. El adulto acompaña, verbaliza acciones, modela cuando es necesario y registra respuestas significativas sin dirigir en exceso la exploración.`
-            ),
+            fallbackDevelopment(0, parvulariaJourneyNucleos[0] || asignatura),
             "",
             "Finalización:",
             "Invitar a guardar u ordenar los materiales junto al equipo, recuperar lo vivido mediante gestos, sonidos, palabras u observación compartida y reforzar positivamente la participación.",
@@ -2133,9 +2331,7 @@ REGLAS DE LAS CELDAS:
             "Presentar un ambiente sensorial y expresivo con música suave, sonidos, colores, texturas o movimiento, vinculándolo con los OA/OAT seleccionados.",
             "",
             "Desarrollo:",
-            datedDevelopment((_dateLabel, index) =>
-              `Experiencia ${index + 1}: ofrecer una combinación diferente de telas, papeles, objetos sonoros, luz, color, trazos, movimiento o materiales sensoriales para que los párvulos creen, exploren y expresen preferencias. El equipo acompaña con gestos, ritmo, palabras y demostraciones breves, respetando la exploración autónoma.`
-            ),
+            fallbackDevelopment(1, parvulariaJourneyNucleos[1] || asignatura),
             "",
             "Finalización:",
             "Cerrar con una breve socialización sensorial o expresiva, observando producciones, movimientos, gestos o sonidos y guardando los materiales con apoyo del equipo.",
@@ -2163,9 +2359,7 @@ REGLAS DE LAS CELDAS:
             "Generar un momento de encuentro comunicativo mediante saludo, canción, objeto significativo, imagen, libro o relato breve, adecuando el lenguaje a la edad.",
             "",
             "Desarrollo:",
-            datedDevelopment((_dateLabel, index) =>
-              `Experiencia ${index + 1}: realizar lectura compartida o dialogada, relato con imágenes u objetos, canción con gestos o conversación guiada relacionada con ${parvulariaJourneyNucleos[2] || asignatura}. En bebés se priorizan mirada, balbuceo, turnos, sonidos, gestos y nominación; en párvulos mayores se amplían vocabulario, preguntas, descripciones, secuencias y expresión de ideas.`
-            ),
+            fallbackDevelopment(2, parvulariaJourneyNucleos[2] || asignatura),
             "",
             "Finalización:",
             "Retomar palabras, sonidos, gestos o ideas destacadas; permitir que los párvulos comuniquen lo que llamó su atención y cerrar con una canción, gesto o breve recapitulación compartida.",
@@ -2223,6 +2417,7 @@ REGLAS DE LAS CELDAS:
         parvulariaMotivoFusion,
         parvulariaJourneyNucleos,
         parvulariaJourneyOAIds,
+        parvulariaJourneyOATIds,
         outputIntent,
         parvulariaInstitutionalPlanning: true,
         aiFallback: true,
