@@ -47,7 +47,11 @@ type ManualRadioPreset = NormalizedRadioTrack & {
   aliases: string[];
 };
 
-const API_BASE = "https://de1.api.radio-browser.info";
+const API_BASES = [
+  "https://de1.api.radio-browser.info",
+  "https://nl1.api.radio-browser.info",
+  "https://at1.api.radio-browser.info",
+];
 const DEFAULT_LIMIT = 24;
 const MAX_LIMIT = 50;
 const RADIO_PROXY_BASE = (process.env.RADIO_PROXY_BASE || "").replace(/\/$/, "");
@@ -284,6 +288,14 @@ function presetOnlyResults(query: string, countryCode: string, limit: number) {
   return null;
 }
 
+function isGenericCountryQuery(query: string, countryCode: string) {
+  const q = normalizeText(query);
+  const cc = countryCode.trim().toUpperCase();
+  if (!q) return true;
+  if (cc === "CL" && ["chile", "cl", "radio chile", "radios chile", "emisoras chile"].includes(q)) return true;
+  return false;
+}
+
 async function searchRadio(query: string, countryCode: string, limit: number) {
   const params = new URLSearchParams({
     limit: String(limit),
@@ -292,23 +304,36 @@ async function searchRadio(query: string, countryCode: string, limit: number) {
     reverse: "true",
   });
 
-  if (query) params.set("name", query);
+  if (query && !isGenericCountryQuery(query, countryCode)) params.set("name", query);
   if (countryCode) params.set("countrycode", countryCode.toUpperCase());
 
-  const res = await fetch(`${API_BASE}/json/stations/search?${params.toString()}`, {
-    headers: {
-      "User-Agent": "EduAI-Platform/1.0 (emorales@colprovidencia.cl)",
-    },
-    next: { revalidate: 1800 },
-  });
+  let lastError: Error | null = null;
+  for (const base of API_BASES) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5500);
+      const res = await fetch(`${base}/json/stations/search?${params.toString()}`, {
+        headers: {
+          "User-Agent": "EduAI-Platform/1.0",
+        },
+        cache: "no-store",
+        signal: controller.signal,
+      }).finally(() => clearTimeout(timeout));
 
-  if (!res.ok) throw new Error(`Radio Browser API ${res.status}`);
-  const data = (await res.json()) as RadioBrowserStation[];
-  return data
-    .filter((station) => station.lastcheckok !== 0)
-    .map(normalizeStation)
-    .filter(Boolean)
-    .slice(0, limit) as NormalizedRadioTrack[];
+      if (!res.ok) throw new Error(`Radio Browser API ${res.status}`);
+      const data = (await res.json()) as RadioBrowserStation[];
+      const normalized = data
+        .filter((station) => station.lastcheckok !== 0)
+        .map(normalizeStation)
+        .filter(Boolean) as NormalizedRadioTrack[];
+      if (normalized.length) return normalized.slice(0, limit);
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error("Radio Browser no respondió");
+    }
+  }
+
+  if (lastError) throw lastError;
+  return [];
 }
 
 async function handle(req: NextRequest) {
@@ -318,7 +343,8 @@ async function handle(req: NextRequest) {
   const countryCode = String(body.countryCode || url.searchParams.get("countryCode") || "CL").trim();
   const limit = clampLimit(body.limit || url.searchParams.get("limit"));
 
-  const presetOnly = presetOnlyResults(query || "Chile", countryCode, limit);
+  const manualQuery = query || (countryCode.toUpperCase() === "CL" ? "Chile" : "");
+  const presetOnly = presetOnlyResults(manualQuery, countryCode, limit);
   if (presetOnly) {
     return NextResponse.json({
       ok: true,
@@ -331,9 +357,9 @@ async function handle(req: NextRequest) {
     });
   }
 
-  const manual = manualMatches(query || "Chile", countryCode, limit);
-  const primary = await searchRadio(query || "Chile", countryCode, limit).catch(() => []);
-  const fallback = primary.length || manual.length ? [] : await searchRadio(query || "", "", limit).catch(() => []);
+  const manual = manualMatches(manualQuery, countryCode, limit);
+  const primary = await searchRadio(query, countryCode, limit).catch(() => []);
+  const fallback = primary.length || manual.length ? [] : await searchRadio("", "", limit).catch(() => []);
 
   const map = new Map<string, NormalizedRadioTrack>();
   [...manual, ...primary, ...fallback].forEach((track) => map.set(track.id, track));
