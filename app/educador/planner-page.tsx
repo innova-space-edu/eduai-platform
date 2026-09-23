@@ -777,46 +777,63 @@ export default function PlannerPage() {
                   }) : <div className="rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 p-3 text-xs font-bold text-slate-600">No hay OA disponibles para este núcleo.</div>}
                 </div>
                 <p className="mt-3 text-[11px] text-slate-600">Debe quedar al menos un OA en esta jornada. Puedes combinar más de uno.</p>
-                <div className="mt-5 border-t border-teal-200 pt-4">
-                  <div className="flex items-center justify-between gap-2">
+                <details className="group mt-5 overflow-hidden rounded-xl border-2 border-teal-200 bg-teal-50/50">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-3 text-left [&::-webkit-details-marker]:hidden">
                     <div>
-                      <p className="text-xs font-black uppercase tracking-wide text-teal-800">OAT complementarios</p>
-                      <p className="mt-1 text-[11px] text-slate-600">Opcionales y exclusivos de esta jornada.</p>
+                      <p className="text-xs font-black uppercase tracking-wide text-teal-900">OAT / focos transversales</p>
+                      <p className="mt-1 text-[11px] text-slate-600">Desplegar para escoger OAT de esta jornada por ámbito y núcleo.</p>
                     </div>
-                    <span className="rounded-full bg-teal-100 px-2 py-1 text-[10px] font-black text-teal-800">{config.parvulariaJourneyOATIds[journeyIndex]?.length || 0} OAT</span>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <span className="rounded-full bg-white px-2 py-1 text-[10px] font-black text-teal-800 ring-1 ring-teal-200">{config.parvulariaJourneyOATIds[journeyIndex]?.length || 0} OAT</span>
+                      <span className="text-sm font-black text-teal-800 transition-transform group-open:rotate-180">⌄</span>
+                    </div>
+                  </summary>
+                  <div className="border-t border-teal-200 p-3">
+                    <p className="mb-3 text-[11px] font-semibold text-slate-600">Selecciona primero el ámbito/núcleo transversal y luego marca uno o más OAT.</p>
+                    <div className="space-y-2">
+                      {Object.entries((parvulariaJourneyOATOptions[journeyIndex] || []).reduce<Record<string, typeof parvulariaJourneyOATOptions[number]>>((groups, oat) => {
+                        const key = oat.nucleo || "Núcleo transversal"
+                        if (!groups[key]) groups[key] = []
+                        groups[key].push(oat)
+                        return groups
+                      }, {})).map(([oatNucleo, items]) => {
+                        const selectedInGroup = items.filter((oat) => config.parvulariaJourneyOATIds[journeyIndex]?.includes(oat.id)).length
+                        return (
+                          <details key={oatNucleo} className="group/oat overflow-hidden rounded-xl border border-teal-200 bg-white">
+                            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 [&::-webkit-details-marker]:hidden">
+                              <div className="min-w-0">
+                                <p className="truncate text-[11px] font-black uppercase text-teal-900">{items[0]?.ambito || "Desarrollo personal y social"}</p>
+                                <p className="mt-0.5 truncate text-xs font-bold text-slate-800">{oatNucleo}</p>
+                              </div>
+                              <div className="flex shrink-0 items-center gap-2">
+                                {selectedInGroup > 0 && <span className="rounded-full bg-teal-100 px-2 py-0.5 text-[10px] font-black text-teal-900">{selectedInGroup} sel.</span>}
+                                <span className="text-sm font-black text-teal-800 transition-transform group-open/oat:rotate-180">⌄</span>
+                              </div>
+                            </summary>
+                            <div className="space-y-2 border-t border-teal-100 bg-teal-50/40 p-2.5">
+                              {items.map((oat) => {
+                                const active = config.parvulariaJourneyOATIds[journeyIndex]?.includes(oat.id) || false
+                                return (
+                                  <button
+                                    key={oat.id}
+                                    type="button"
+                                    onClick={() => toggleParvulariaJourneyOAT(journeyIndex, oat.id)}
+                                    className={`w-full rounded-lg border-2 p-2.5 text-left text-xs transition ${active ? "border-teal-700 bg-white text-teal-950" : "border-slate-200 bg-white text-slate-700 hover:border-teal-500"}`}
+                                  >
+                                    <div className="flex items-start justify-between gap-2">
+                                      <div><p className="font-black">{oat.description || oat.id}</p><p className="mt-1 leading-relaxed">{oat.label}</p></div>
+                                      <Check selected={active} color="teal" />
+                                    </div>
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          </details>
+                        )
+                      })}
+                    </div>
                   </div>
-                  <div className="mt-3 space-y-4">
-                    {Object.entries((parvulariaJourneyOATOptions[journeyIndex] || []).reduce<Record<string, typeof parvulariaJourneyOATOptions[number]>>((groups, oat) => {
-                      const key = oat.nucleo || "Núcleo transversal"
-                      if (!groups[key]) groups[key] = []
-                      groups[key].push(oat)
-                      return groups
-                    }, {})).map(([oatNucleo, items]) => (
-                      <div key={oatNucleo} className="rounded-xl border border-teal-200 bg-teal-50/60 p-3">
-                        <p className="text-[11px] font-black uppercase text-teal-900">{oatNucleo}</p>
-                        <p className="mt-0.5 text-[10px] font-semibold text-teal-700">{items[0]?.ambito || "Desarrollo personal y social"}</p>
-                        <div className="mt-2 space-y-2">
-                          {items.map((oat) => {
-                            const active = config.parvulariaJourneyOATIds[journeyIndex]?.includes(oat.id) || false
-                            return (
-                              <button
-                                key={oat.id}
-                                type="button"
-                                onClick={() => toggleParvulariaJourneyOAT(journeyIndex, oat.id)}
-                                className={`w-full rounded-lg border-2 p-2.5 text-left text-xs transition ${active ? "border-teal-700 bg-white text-teal-950" : "border-teal-200 bg-white/70 text-slate-700 hover:border-teal-500"}`}
-                              >
-                                <div className="flex items-start justify-between gap-2">
-                                  <div><p className="font-black">{oat.description || oat.id}</p><p className="mt-1 leading-relaxed">{oat.label}</p></div>
-                                  <span className="font-black">{active ? "✓" : "+"}</span>
-                                </div>
-                              </button>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                </details>
               </div>
             )
           })}
