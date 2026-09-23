@@ -30,6 +30,7 @@ import { buildConnectedOAContext, resolveOAConnection } from "@/lib/planner-oa-b
 import { expectedSchoolWeekLabel, getSchoolPlanningPeriodLabel, normalizeSchoolWeekLabel, schoolPlanningMonthLabel, validateSchoolPlanningWeeks } from "@/lib/school-planning-template"
 import { buildParvulariaDateLabel, buildParvulariaPeriodGuide, parseParvulariaPlanningDocument, parvulariaHorizonLabel, serializeParvulariaPlanningDocument } from "@/lib/parvularia-planning"
 import bcepReference from "@/data/mineduc/parvularia/common/bcep_2018_reference.json"
+import { buildParvulariaKnowledgeContext, rememberParvulariaGeneration } from "@/lib/parvularia-knowledge"
 
 export const runtime = "nodejs"
 export const maxDuration = 60
@@ -1396,6 +1397,19 @@ REGLAS:
   const claseObjectives = isBasicaMedia ? buildClaseObjectives(sesiones) : ""
   const weeklyOAContext = isInstitutionalMacro ? buildWeeklyOAContext({ nivel, curso, asignatura, weeklyOAPlan }) : ""
 
+  const parvulariaKnowledge = isStructuredParvularia
+    ? await buildParvulariaKnowledgeContext({
+        supabase,
+        userId: user.id,
+        course: curso,
+        topic: contexto || message,
+        message,
+        journeyNuclei: parvulariaJourneyNucleos,
+        selectedOAIds,
+        selectedOATIds,
+        candidateLimit: tiempoPlanificacion === "diaria" ? 9 : 15,
+      }).catch(() => null)
+    : null
 
   const systemPrompt = `Eres APl, el Agente Planificador Curricular de EduAI, especializado en el curriculum oficial chileno del MINEDUC.
 
@@ -1714,6 +1728,8 @@ DISTRIBUCIÓN TEMPORAL OBLIGATORIA:
 ${parvulariaPeriodGuide || "Desarrolla experiencias coherentes con el período seleccionado."}
 
 ${parvulariaHeterogeneousDevelopmentContext ? `${parvulariaHeterogeneousDevelopmentContext}\n` : ""}
+
+${parvulariaKnowledge?.prompt || ""}
 
 CRITERIOS BCEP 2018 OFICIALES PARA CONSTRUIR LA EXPERIENCIA:
 ${JSON.stringify({
@@ -2154,6 +2170,24 @@ REGLAS DE LAS CELDAS:
       }
     }
 
+    if (isStructuredParvularia) {
+      await rememberParvulariaGeneration({
+        supabase,
+        userId: user.id,
+        course: curso,
+        topic: contexto || message,
+        selectedOAIds,
+        selectedOATIds,
+        candidateActivityIds: parvulariaKnowledge?.candidateIds || [],
+        generatedContent: result.text,
+        metadata: {
+          tiempoPlanificacion,
+          journeyNuclei: parvulariaJourneyNucleos,
+          knowledgeSource: parvulariaKnowledge?.source || "none",
+        },
+      })
+    }
+
     return NextResponse.json({
       text: result.text,
       provider: result.provider,
@@ -2179,6 +2213,12 @@ REGLAS DE LAS CELDAS:
       parvulariaJourneyNucleos: isStructuredParvularia ? parvulariaJourneyNucleos : undefined,
       parvulariaJourneyOAIds: isStructuredParvularia ? parvulariaJourneyOAIds : undefined,
       parvulariaJourneyOATIds: isStructuredParvularia ? parvulariaJourneyOATIds : undefined,
+      parvulariaKnowledge: isStructuredParvularia ? {
+        source: parvulariaKnowledge?.source || "none",
+        referenceCount: parvulariaKnowledge?.candidateIds.length || 0,
+        savedPlanningCount: parvulariaKnowledge?.savedPlanningCount || 0,
+        generationHistoryCount: parvulariaKnowledge?.generationHistoryCount || 0,
+      } : undefined,
       compactPrompt: useCompactResourcePrompt,
       _design: designSummary,
     })
