@@ -330,12 +330,28 @@ export async function PATCH(
 
     if (typeof body.panel_admin === "boolean") {
       const targetEmail = requestedEmail
+      const targetIsUnder18 = Boolean(access && isUnder18(access.birth_date))
 
       if (body.panel_admin) {
+        if (targetIsUnder18) {
+          return NextResponse.json(
+            { error: "Las cuentas de menores de 18 años no pueden recibir acceso al panel de administración." },
+            { status: 403 },
+          )
+        }
+
         const { error: addAdminError } = await admin
           .from("admin_emails")
           .upsert({ email: targetEmail }, { onConflict: "email" })
         if (addAdminError) throw addAdminError
+
+        if (requestedEmail !== oldEmail && !FOUNDER_ADMINS.has(oldEmail)) {
+          const { error: removeOldAdminError } = await admin
+            .from("admin_emails")
+            .delete()
+            .eq("email", oldEmail)
+          if (removeOldAdminError) throw removeOldAdminError
+        }
       } else {
         if (FOUNDER_ADMINS.has(oldEmail) || FOUNDER_ADMINS.has(targetEmail)) {
           return NextResponse.json(
@@ -355,6 +371,14 @@ export async function PATCH(
           .delete()
           .eq("email", oldEmail)
         if (removeAdminError) throw removeAdminError
+
+        if (requestedEmail !== oldEmail) {
+          const { error: removeTargetAdminError } = await admin
+            .from("admin_emails")
+            .delete()
+            .eq("email", targetEmail)
+          if (removeTargetAdminError) throw removeTargetAdminError
+        }
       }
     } else if (requestedEmail !== oldEmail) {
       const { data: existingAdmin } = await admin
@@ -364,13 +388,24 @@ export async function PATCH(
         .maybeSingle()
 
       if (existingAdmin) {
+        if (access && isUnder18(access.birth_date)) {
+          return NextResponse.json(
+            { error: "Las cuentas de menores de 18 años no pueden conservar acceso al panel de administración." },
+            { status: 403 },
+          )
+        }
+
         const { error: preserveAdminError } = await admin
           .from("admin_emails")
           .upsert({ email: requestedEmail }, { onConflict: "email" })
         if (preserveAdminError) throw preserveAdminError
 
         if (!FOUNDER_ADMINS.has(oldEmail)) {
-          await admin.from("admin_emails").delete().eq("email", oldEmail)
+          const { error: removeOldAdminError } = await admin
+            .from("admin_emails")
+            .delete()
+            .eq("email", oldEmail)
+          if (removeOldAdminError) throw removeOldAdminError
         }
       }
     }
