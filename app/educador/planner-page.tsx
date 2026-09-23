@@ -100,6 +100,7 @@ interface Config {
   periodoId: string
   anioPlanificacion: number
   weeklyOAPlan: SchoolPlanningWeek[]
+  parvulariaJourneyOAIds: string[][]
   parvulariaHeterogenea: boolean
   parvulariaSegundoCurso: string
   parvulariaMotivoFusion: string
@@ -140,6 +141,7 @@ export default function PlannerPage() {
     contexto: "", mes: month, unidadId: "", selectedOAIds: [], selectedOATIds: [], tiempoPlanificacion: "diaria",
     sesiones: 1, duracionMinutos: 30, profesor: "", horasSemanales: "", establecimiento: "Colegio Providencia", ciudad: "ANTOFAGASTA",
     periodoId: SCHOOL_YEAR_MONTHS.includes(month as (typeof SCHOOL_YEAR_MONTHS)[number]) ? month : "marzo", anioPlanificacion: new Date().getFullYear(), weeklyOAPlan: [],
+    parvulariaJourneyOAIds: [[], [], []],
     parvulariaHeterogenea: false, parvulariaSegundoCurso: COURSES.parvularia[1],
     parvulariaMotivoFusion: "", educadoraParvularia: "", asistentesParvularia: "", fechaInicioParvularia: today, fechaFinParvularia: today,
     planningProfile: "experiencia_parvularia",
@@ -210,6 +212,11 @@ export default function PlannerPage() {
         unidadId: unitId,
         selectedOAIds,
         selectedOATIds: previous.selectedOATIds.filter((id) => allowedOAT.has(id)),
+        parvulariaJourneyOAIds: previous.parvulariaJourneyOAIds.map((ids) => {
+          const filtered = ids.filter((id) => allowedOA.has(id))
+          if (filtered.length || !selectedOAIds.length) return filtered
+          return [selectedOAIds[0]]
+        }),
         weeklyOAPlan: previous.weeklyOAPlan.map((week) => ({ ...week, oaIds: week.oaIds.filter((id) => selectedSet.has(id)) })),
       }
     })
@@ -252,6 +259,7 @@ export default function PlannerPage() {
       unidadId: "",
       selectedOAIds: [],
       selectedOATIds: [],
+      parvulariaJourneyOAIds: [[], [], []],
       weeklyOAPlan: [],
       tiempoPlanificacion: level === "parvularia"
         ? (previous.tiempoPlanificacion === "anual" ? "diaria" : previous.tiempoPlanificacion)
@@ -261,14 +269,29 @@ export default function PlannerPage() {
     }))
   }
   function updateCourse(course: string) {
-    setConfig((previous) => ({ ...previous, curso: course, asignatura: initialSubject(previous.nivel, course), unidadId: "", selectedOAIds: [], selectedOATIds: [], weeklyOAPlan: [] }))
+    setConfig((previous) => ({
+      ...previous,
+      curso: course,
+      asignatura: initialSubject(previous.nivel, course),
+      unidadId: "",
+      selectedOAIds: [],
+      selectedOATIds: [],
+      parvulariaJourneyOAIds: [[], [], []],
+      weeklyOAPlan: [],
+    }))
   }
   function toggleOA(id: string) {
     setConfig((previous) => {
       if (previous.selectedOAIds.includes(id)) {
+        const nextSelectedOAIds = previous.selectedOAIds.filter((item) => item !== id)
         return {
           ...previous,
-          selectedOAIds: previous.selectedOAIds.filter((item) => item !== id),
+          selectedOAIds: nextSelectedOAIds,
+          parvulariaJourneyOAIds: previous.parvulariaJourneyOAIds.map((ids) => {
+            const next = ids.filter((item) => item !== id)
+            if (next.length || !nextSelectedOAIds.length) return next
+            return [nextSelectedOAIds[0]]
+          }),
           weeklyOAPlan: previous.weeklyOAPlan.map((week) => ({ ...week, oaIds: week.oaIds.filter((item) => item !== id) })),
         }
       }
@@ -280,8 +303,40 @@ export default function PlannerPage() {
           : 30
         : isSchoolPlanningMacro(previous.tiempoPlanificacion) ? 60 : 10
       if (previous.selectedOAIds.length >= maxOA) return previous
-      return { ...previous, selectedOAIds: [...previous.selectedOAIds, id] }
+      const firstOA = previous.selectedOAIds.length === 0
+      return {
+        ...previous,
+        selectedOAIds: [...previous.selectedOAIds, id],
+        parvulariaJourneyOAIds: firstOA
+          ? [[id], [id], [id]]
+          : previous.parvulariaJourneyOAIds,
+      }
     })
+  }
+  function toggleParvulariaJourneyOA(journeyIndex: number, oaId: string) {
+    setConfig((previous) => {
+      if (!previous.selectedOAIds.includes(oaId)) return previous
+      const current = previous.parvulariaJourneyOAIds[journeyIndex] || []
+      const active = current.includes(oaId)
+      if (active && current.length <= 1) return previous
+
+      const next = previous.parvulariaJourneyOAIds.map((ids, index) => {
+        if (index !== journeyIndex) return ids
+        return active ? ids.filter((id) => id !== oaId) : [...ids, oaId]
+      })
+      while (next.length < 3) next.push(previous.selectedOAIds.slice(0, 1))
+      return { ...previous, parvulariaJourneyOAIds: next.slice(0, 3) }
+    })
+  }
+  function useSameParvulariaOAForAll() {
+    setConfig((previous) => ({
+      ...previous,
+      parvulariaJourneyOAIds: [
+        [...previous.selectedOAIds],
+        [...previous.selectedOAIds],
+        [...previous.selectedOAIds],
+      ],
+    }))
   }
   function toggleWeekOA(weekKey: string, oaId: string) {
     setConfig((previous) => ({
@@ -310,12 +365,23 @@ export default function PlannerPage() {
       const incomplete = config.weeklyOAPlan.filter((week) => week.oaIds.length === 0)
       if (incomplete.length) return setStatus(`Asigna al menos un OA a cada semana. Faltan ${incomplete.length} semana(s).`)
     }
+    if (target >= 4 && isParvularia && config.parvulariaJourneyOAIds.some((ids) => ids.length === 0)) {
+      return setStatus("Asigna al menos un OA a cada una de las tres jornadas parvularias.")
+    }
     setStep(target)
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
   function generationPrompt() {
     if (isParvularia) {
       const selectedOAContext = selectedOA.map((oa) => `${oa.codigoOficial || oa.id}: ${oa.texto}`).join("\n")
+      const journeyOAContext = config.parvulariaJourneyOAIds.map((ids, index) => {
+        const assigned = ids
+          .map((id) => selectedOA.find((oa) => oa.id === id))
+          .filter(Boolean)
+          .map((oa) => `${oa!.codigoOficial || oa!.id}: ${oa!.texto}`)
+          .join(" | ")
+        return `Jornada ${index + 1}: ${assigned || "SIN OA ASIGNADO"}`
+      }).join("\n")
       return [
         `Genera la planificación de Educación Parvularia ${config.tiempoPlanificacion} para ${config.curso}, núcleo ${config.asignatura}.`,
         `Periodo: ${buildParvulariaDateLabel(config.fechaInicioParvularia, config.fechaFinParvularia || config.fechaInicioParvularia)}.`,
@@ -327,6 +393,7 @@ export default function PlannerPage() {
         "La tercera jornada debe enfatizar oralidad, relatos, lectura compartida, canciones, vocabulario, balbuceo/gestos o conversación según la edad, sin inventar OA distintos a los seleccionados.",
         "No organices por horas pedagógicas, número de clases ni minutos; distribuye las experiencias de acuerdo con el período, la jornada y el ritmo del grupo.",
         selectedOAContext ? `OA seleccionados:\n${selectedOAContext}` : "",
+        journeyOAContext ? `ASIGNACIÓN OBLIGATORIA DE OA POR JORNADA:\n${journeyOAContext}\nCada fila debe usar únicamente los OA primarios asignados a esa jornada; no copies todos los OA en las tres filas.` : "",
         config.selectedOATIds.length ? `OAT seleccionados: ${config.selectedOATIds.join(", ")}` : "",
         config.contexto.trim() ? `Contexto del docente: ${config.contexto.trim()}` : "Propón experiencias pertinentes, lúdicas y aplicables al subnivel.",
         config.parvulariaHeterogenea ? `Sala heterogénea: ${config.curso} con ${config.parvulariaSegundoCurso}. Motivo: ${config.parvulariaMotivoFusion || "organización pedagógica"}.` : "",
@@ -531,8 +598,49 @@ export default function PlannerPage() {
       <div><p className="text-xs font-black uppercase tracking-[.18em] text-emerald-700">Paso 2</p><h2 className="mt-1 text-2xl font-black">Currículum y Objetivos de Aprendizaje</h2><p className="mt-2 text-sm text-slate-600">{institutionalMacro ? "Selecciona todos los OA que podrían trabajarse durante el período. En el paso siguiente indicarás exactamente qué OA corresponde a cada semana." : isParvularia ? "Selecciona al menos un objetivo oficial del núcleo. EduAI lo desarrollará en tres jornadas pedagógicas distintas durante cada día del período." : "Selecciona el bloque o unidad y al menos un OA."}</p></div>
       <div className={`rounded-2xl border-2 p-4 ${hasCurriculum ? "border-emerald-600 bg-emerald-50" : "border-amber-500 bg-amber-50"}`}><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="font-black">{hasCurriculum ? "✓ Currículum MINEDUC disponible" : "⚠ Cobertura curricular parcial"}</p><p className="mt-1 text-xs text-slate-700">{config.curso} · {config.asignatura}</p></div>{verification?.sourceUrl && <a href={verification.sourceUrl} target="_blank" rel="noreferrer" className="rounded-lg bg-white px-3 py-2 text-xs font-black text-emerald-800 ring-1 ring-emerald-300">Fuente oficial ↗</a>}</div></div>
       {config.nivel === "parvularia" && <div className="space-y-3 rounded-2xl border-2 border-rose-300 bg-rose-50 p-4"><div><p className="text-xs font-black uppercase text-rose-800">Ámbito y núcleo</p><p className="mt-1 font-black">{ambito || "Ámbito no identificado"}</p><p className="mt-1 text-sm text-slate-700">{config.asignatura}</p></div><div className="grid gap-2 md:grid-cols-3"><div className="rounded-xl bg-white px-3 py-2 text-xs font-bold text-slate-700 ring-1 ring-rose-200">1 · Exploración / experiencia principal</div><div className="rounded-xl bg-white px-3 py-2 text-xs font-bold text-slate-700 ring-1 ring-rose-200">2 · Expresión artística / sensorial</div><div className="rounded-xl bg-white px-3 py-2 text-xs font-bold text-slate-700 ring-1 ring-rose-200">3 · Lenguaje verbal / lectura / comunicación</div></div><p className="text-xs text-rose-900">Las tres jornadas se construyen con los OA/OAT oficiales seleccionados y quedan editables por separado.</p></div>}
-      {!institutionalMacro && units.length > 0 && <div><Label>{config.nivel === "parvularia" ? "Bloque curricular" : "Unidad o módulo"}</Label><div className="grid gap-3">{units.map((item) => <button key={item.id} onClick={() => setConfig((p) => ({ ...p, unidadId: item.id, selectedOAIds: [] }))} className={`rounded-2xl border-2 p-4 text-left ${choiceClass(config.unidadId === item.id, "indigo")}`}><div className="flex justify-between gap-3"><div><p className="font-black">{item.label}</p><p className="mt-1 text-xs text-slate-600">{item.oaIds.length} OA asociados</p></div><Check selected={config.unidadId === item.id} color="indigo" /></div></button>)}</div></div>}
+      {!institutionalMacro && units.length > 0 && <div><Label>{config.nivel === "parvularia" ? "Bloque curricular" : "Unidad o módulo"}</Label><div className="grid gap-3">{units.map((item) => <button key={item.id} onClick={() => setConfig((p) => ({ ...p, unidadId: item.id, selectedOAIds: [], parvulariaJourneyOAIds: [[], [], []] }))} className={`rounded-2xl border-2 p-4 text-left ${choiceClass(config.unidadId === item.id, "indigo")}`}><div className="flex justify-between gap-3"><div><p className="font-black">{item.label}</p><p className="mt-1 text-xs text-slate-600">{item.oaIds.length} OA asociados</p></div><Check selected={config.unidadId === item.id} color="indigo" /></div></button>)}</div></div>}
       <div><button onClick={() => setOpenOA(!openOA)} className="flex w-full items-center justify-between rounded-2xl border-2 border-slate-300 bg-slate-50 p-4 text-left"><div><p className="font-black">{config.nivel === "parvularia" ? "Objetivos del núcleo seleccionado" : "Objetivos de Aprendizaje"}</p><p className="mt-1 text-xs text-slate-600">{config.nivel === "parvularia" ? `${ambito} · ${config.asignatura} · ${oaOptions.length} objetivo(s) oficiales disponibles` : `${config.selectedOAIds.length} seleccionado(s)`}</p></div><span className="text-xl font-black">{openOA ? "−" : "+"}</span></button>{openOA && <div className="mt-3 grid max-h-[520px] gap-3 overflow-y-auto md:grid-cols-2">{oaOptions.length ? oaOptions.map((item) => { const selected = config.selectedOAIds.includes(item.id); return <button key={item.id} onClick={() => toggleOA(item.id)} className={`rounded-2xl border-2 p-4 text-left ${choiceClass(selected)}`}><div className="flex justify-between gap-3"><div><p className="font-black">{item.codigoOficial || item.id}</p><p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-slate-700">{item.texto}</p>{item.ambito && item.nucleo && <p className="mt-3 text-xs font-black text-emerald-800">{item.tipo === "oat" ? "OAT · " : "OA · "}{item.ambito} · {item.nucleo}</p>}</div><Check selected={selected} /></div></button> }) : <div className="md:col-span-2 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-6 text-sm font-bold text-slate-600">No hay OA locales disponibles.</div>}</div>}</div>
+      {config.nivel === "parvularia" && selectedOA.length > 0 && <div className="rounded-2xl border-2 border-rose-300 bg-rose-50 p-5">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="font-black text-rose-950">OA distintos para cada una de las 3 planificaciones del día</p>
+            <p className="mt-1 text-sm text-rose-900">Distribuye los OA seleccionados entre Jornada 1, Jornada 2 y Jornada 3. Esta asignación se mantiene en diaria, semanal, quincenal y mensual.</p>
+          </div>
+          <button type="button" onClick={useSameParvulariaOAForAll} className="shrink-0 rounded-xl border-2 border-rose-700 bg-white px-4 py-2 text-xs font-black text-rose-800">Usar los mismos OA en las 3</button>
+        </div>
+        <div className="mt-4 grid gap-4 xl:grid-cols-3">
+          {[
+            "Jornada 1 · Exploración / experiencia principal",
+            "Jornada 2 · Expresión artística / sensorial",
+            "Jornada 3 · Lenguaje verbal / lectura / comunicación",
+          ].map((label, journeyIndex) => (
+            <div key={label} className="rounded-2xl border-2 border-rose-200 bg-white p-4">
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-sm font-black text-slate-900">{label}</p>
+                <span className={`rounded-full px-2 py-1 text-[10px] font-black ${config.parvulariaJourneyOAIds[journeyIndex]?.length ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
+                  {config.parvulariaJourneyOAIds[journeyIndex]?.length || 0} OA
+                </span>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {selectedOA.map((oa) => {
+                  const active = config.parvulariaJourneyOAIds[journeyIndex]?.includes(oa.id) || false
+                  return (
+                    <button
+                      key={oa.id}
+                      type="button"
+                      onClick={() => toggleParvulariaJourneyOA(journeyIndex, oa.id)}
+                      className={`rounded-xl border-2 px-3 py-2 text-left text-xs font-bold transition ${active ? "border-rose-700 bg-rose-100 text-rose-950" : "border-slate-300 bg-white text-slate-700 hover:border-rose-400"}`}
+                    >
+                      <span className="mr-1">{active ? "✓" : "+"}</span>{oa.codigoOficial || oa.id}
+                    </button>
+                  )
+                })}
+              </div>
+              <p className="mt-3 text-[11px] text-slate-600">Debe quedar al menos un OA en esta jornada. Puedes combinar más de uno.</p>
+            </div>
+          ))}
+        </div>
+      </div>}
       {config.nivel === "parvularia" && <div><button onClick={() => setOpenOAT(!openOAT)} className="flex w-full items-center justify-between rounded-2xl border-2 border-slate-300 bg-slate-50 p-4 text-left"><div><p className="font-black">OAT / foco transversal</p><p className="mt-1 text-xs text-slate-600">Opcional · {config.selectedOATIds.length} seleccionado(s)</p></div><span className="text-xl font-black">{openOAT ? "−" : "+"}</span></button>{openOAT && <div className="mt-3 grid gap-3">{oatOptions.map((item) => { const selected = config.selectedOATIds.includes(item.id); return <button key={item.id} onClick={() => toggleOAT(item.id)} className={`rounded-2xl border-2 p-4 text-left ${selected ? "border-teal-700 bg-teal-50" : "border-slate-300 bg-white hover:border-teal-500"}`}><div className="flex justify-between gap-3"><div><p className="font-black">{item.description || item.id}</p><p className="mt-1 text-sm text-slate-700">{item.label}</p></div><Check selected={selected} color="teal" /></div></button> })}</div>}</div>}
     </div>
   )

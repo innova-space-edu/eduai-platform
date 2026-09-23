@@ -66,6 +66,7 @@ interface EducadorConfig {
   periodoId?: string
   anioPlanificacion?: number
   weeklyOAPlan?: Array<{ key?: string; month?: string; week?: number; oaIds?: string[] }>
+  parvulariaJourneyOAIds?: string[][]
   educadoraParvularia?: string
   asistentesParvularia?: string
   fechaInicioParvularia?: string
@@ -125,6 +126,11 @@ function extractOARequest(message: string): { oaNum: number | null } {
 function ensureArray(value: unknown): string[] {
   if (!Array.isArray(value)) return []
   return value.filter((item): item is string => typeof item === "string")
+}
+
+function ensureParvulariaJourneyOAIds(value: unknown): string[][] {
+  const raw = Array.isArray(value) ? value : []
+  return [0, 1, 2].map((index) => ensureArray(raw[index]))
 }
 
 type WeeklyOAConfig = { key: string; month: string; week: number; oaIds: string[] }
@@ -974,6 +980,7 @@ export async function POST(req: NextRequest) {
   const unidadId = typeof cfg.unidadId === "string" ? cfg.unidadId.trim() : ""
   let selectedOAIds = ensureArray(cfg.selectedOAIds)
   const selectedOATIds = ensureArray(cfg.selectedOATIds)
+  let parvulariaJourneyOAIds = ensureParvulariaJourneyOAIds(cfg.parvulariaJourneyOAIds)
 
   // ── Detect intent from message ────────────────────────────────────────────
   const messageLC = message.toLowerCase()
@@ -1186,6 +1193,18 @@ REGLAS:
     if (invalidPrimary.length) {
       return NextResponse.json(
         { error: `Hay objetivos seleccionados que no pertenecen al núcleo ${asignatura}: ${invalidPrimary.join(", ")}.` },
+        { status: 400 }
+      )
+    }
+
+    parvulariaJourneyOAIds = parvulariaJourneyOAIds.map((ids) => {
+      const validIds = [...new Set(ids.filter((id) => validPrimaryIds.has(id) && selectedOAIds.includes(id)))]
+      return validIds.length ? validIds : [...selectedOAIds]
+    })
+
+    if (parvulariaJourneyOAIds.some((ids) => ids.length === 0)) {
+      return NextResponse.json(
+        { error: "Asigna al menos un OA a cada una de las tres jornadas parvularias." },
         { status: 400 }
       )
     }
@@ -1460,6 +1479,22 @@ CRITERIOS DE CALIDAD - VERIFICAR ANTES DE RESPONDER:
   const parvulariaSelectedOAT = isStructuredParvularia
     ? getParvulariaOAT(curso, asignatura).filter((oat) => selectedOATIds.includes(oat.id))
     : []
+  const parvulariaOAByJourney = isStructuredParvularia
+    ? parvulariaJourneyOAIds.map((ids) => parvulariaSelectedOA.filter((oa) => ids.includes(oa.id)))
+    : [[], [], []]
+  const parvulariaJourneyOAContext = isStructuredParvularia
+    ? parvulariaOAByJourney.map((oas, index) => {
+        const label = [
+          "Jornada 1 · Exploración y experiencia principal",
+          "Jornada 2 · Expresión artística y sensorial",
+          "Jornada 3 · Lenguaje verbal, lectura y comunicación",
+        ][index]
+        return [
+          label,
+          ...oas.map((oa) => `- ${oa.codigoOficial || oa.id}: ${oa.texto}`),
+        ].join("\n")
+      }).join("\n\n")
+    : ""
   const parvulariaCurriculumContext = isStructuredParvularia
     ? [
         ...parvulariaSelectedOA.map((oa) =>
@@ -1494,6 +1529,15 @@ DATOS FIJOS DEL DOCUMENTO:
 
 BASE CURRICULAR SELECCIONADA. USA ESTOS OA/OAT Y NO INVENTES CÓDIGOS:
 ${parvulariaCurriculumContext || "No se recuperó contexto curricular; mantén estrictamente los objetivos incluidos en la solicitud del usuario."}
+
+ASIGNACIÓN OBLIGATORIA DE OA PRIMARIOS POR JORNADA:
+${parvulariaJourneyOAContext || "Cada jornada usa los OA seleccionados."}
+
+REGLA DE ASIGNACIÓN:
+- En "objetivosAprendizajes" de cada fila escribe SOLO los OA primarios asignados a esa jornada, más los OAT complementarios seleccionados si corresponde.
+- No copies automáticamente todos los OA primarios en las tres filas.
+- Un OA puede aparecer en más de una jornada únicamente si el docente lo asignó expresamente a ambas.
+- Respeta esta distribución en diaria, semanal, quincenal, mensual y semestral.
 
 DISTRIBUCIÓN TEMPORAL OBLIGATORIA:
 ${parvulariaPeriodGuide || "Desarrolla experiencias coherentes con el período seleccionado."}
@@ -1557,6 +1601,7 @@ ESTRUCTURA PEDAGÓGICA OBLIGATORIA:
 19. No copies actividades del archivo de referencia como plantilla fija: construye nuevas actividades coherentes con los OA/OAT seleccionados, manteniendo su nivel de detalle y su organización.
 20. Las tres jornadas no pueden repetir la misma actividad cambiando solo palabras: deben diferenciar propósito inmediato, recursos, mediación y acciones de los párvulos.
 21. La Jornada 3 debe incluir una mediación explícita de lenguaje/comunicación apropiada al nivel (oralidad, relato, lectura compartida, canciones, vocabulario, balbuceo/gestos o conversación), sin escolarizar la experiencia.
+22. Respeta estrictamente la ASIGNACIÓN OBLIGATORIA DE OA PRIMARIOS POR JORNADA. Cada fila debe contener los códigos/textos de sus OA asignados y no debe incorporar OA primarios asignados solo a otra jornada.
 
 SALIDA OBLIGATORIA:
 Responde SOLO JSON válido, sin markdown, sin comentarios y sin texto antes o después. Usa exactamente esta forma:
@@ -1756,6 +1801,25 @@ REGLAS DE LAS CELDAS:
           const code = (oa.codigoOficial || oa.id).toLowerCase()
           return code && !oaBody.includes(code)
         })
+        const journeyOAIssues = fixed.filas.flatMap((row, index) => {
+          const rowBody = row.objetivosAprendizajes.toLowerCase()
+          const assigned = parvulariaOAByJourney[index] || []
+          const assignedIds = new Set(assigned.map((oa) => oa.id))
+          const missing = assigned
+            .filter((oa) => {
+              const code = (oa.codigoOficial || oa.id).toLowerCase()
+              return code && !rowBody.includes(code)
+            })
+            .map((oa) => `Jornada ${index + 1}: falta ${oa.codigoOficial || oa.id}`)
+          const unexpected = parvulariaSelectedOA
+            .filter((oa) => !assignedIds.has(oa.id))
+            .filter((oa) => {
+              const code = (oa.codigoOficial || oa.id).toLowerCase()
+              return code && rowBody.includes(code)
+            })
+            .map((oa) => `Jornada ${index + 1}: OA no asignado ${oa.codigoOficial || oa.id}`)
+          return [...missing, ...unexpected]
+        })
         const incompleteRow = fixed.filas.find((row) =>
           !row.jornada.trim() ||
           !row.ambitoNucleo.trim() ||
@@ -1791,10 +1855,12 @@ REGLAS DE LAS CELDAS:
         )
         const languageJourney = fixed.filas[2]
         const languageJourneyMissing = !languageJourney || !/(lenguaje|lectura|relato|cuento|oral|vocabulario|canci[oó]n|conversaci[oó]n|balbuceo|gestos comunicativos)/i.test(languageJourney.experienciaAprendizaje)
-        if (!fixed.objetivoAprendizaje.trim() || !fixed.principioJuego.trim() || !fixed.principioActividad.trim() || !fixed.focoExperiencia.trim() || fixed.filas.length !== 3 || incompleteRow || missingOA.length || missingActivityDatesByJourney.length || shortActivitiesByJourney.length || languageJourneyMissing) {
+        if (!fixed.objetivoAprendizaje.trim() || !fixed.principioJuego.trim() || !fixed.principioActividad.trim() || !fixed.focoExperiencia.trim() || fixed.filas.length !== 3 || incompleteRow || missingOA.length || journeyOAIssues.length || missingActivityDatesByJourney.length || shortActivitiesByJourney.length || languageJourneyMissing) {
           throw new Error(
-            missingOA.length
-              ? `Faltan objetivos seleccionados en la tabla: ${missingOA.map((oa) => oa.codigoOficial || oa.id).join(", ")}.`
+            journeyOAIssues.length
+              ? `La asignación OA por jornada no fue respetada: ${journeyOAIssues.join(" | ")}.`
+              : missingOA.length
+                ? `Faltan objetivos seleccionados en la tabla: ${missingOA.map((oa) => oa.codigoOficial || oa.id).join(", ")}.`
               : fixed.filas.length !== 3
                 ? `La planificación debe contener exactamente 3 jornadas y se recibieron ${fixed.filas.length}.`
                 : missingActivityDatesByJourney.length
@@ -1819,7 +1885,7 @@ REGLAS DE LAS CELDAS:
           { role: "assistant" as const, content: truncateForPrompt(result.text, 4500) },
           {
             role: "user" as const,
-            content: `La salida anterior no cumple el JSON institucional de Educación Parvularia. Regenera desde cero SOLO como JSON válido. Debe contener EXACTAMENTE TRES jornadas en filas: 1) Exploración y experiencia principal, 2) Expresión artística y sensorial, 3) Lenguaje verbal, lectura y comunicación. Cada jornada debe completar las siete columnas, incluir Inicio/Desarrollo/Finalización y, en semanal/quincenal, una actividad para cada fecha hábil. EN TODOS LOS HORIZONTES, cada actividad del Desarrollo debe ser una oración pedagógica completa y breve de aproximadamente 100-180 caracteres de contenido: acción de los párvulos + material/estímulo/espacio + forma de exploración o mediación + propósito o respuesta observable. No uses títulos telegráficos. Mantén todos los OA seleccionados incluidos literalmente en objetivosAprendizajes. No uses markdown, horas ni minutos. Error detectado: ${firstError instanceof Error ? firstError.message : "formato inválido"}`,
+            content: `La salida anterior no cumple el JSON institucional de Educación Parvularia. Regenera desde cero SOLO como JSON válido. Debe contener EXACTAMENTE TRES jornadas en filas: 1) Exploración y experiencia principal, 2) Expresión artística y sensorial, 3) Lenguaje verbal, lectura y comunicación. Cada jornada debe completar las siete columnas, incluir Inicio/Desarrollo/Finalización y, en semanal/quincenal, una actividad para cada fecha hábil. EN TODOS LOS HORIZONTES, cada actividad del Desarrollo debe ser una oración pedagógica completa y breve de aproximadamente 100-180 caracteres de contenido: acción de los párvulos + material/estímulo/espacio + forma de exploración o mediación + propósito o respuesta observable. No uses títulos telegráficos. Respeta esta asignación OA por jornada:\n${parvulariaJourneyOAContext}\nCada objetivosAprendizajes debe usar solo los OA primarios asignados a su fila, además de los OAT complementarios. No uses markdown, horas ni minutos. Error detectado: ${firstError instanceof Error ? firstError.message : "formato inválido"}`,
           },
         ], {
           maxTokens: strategy.maxTokens,
@@ -1892,6 +1958,7 @@ REGLAS DE LAS CELDAS:
       parvulariaInstitutionalPlanning: isStructuredParvularia,
       periodLabel,
       weeklyOAPlan: isInstitutionalMacro ? weeklyOAPlan : undefined,
+      parvulariaJourneyOAIds: isStructuredParvularia ? parvulariaJourneyOAIds : undefined,
       compactPrompt: useCompactResourcePrompt,
       _design: designSummary,
     })
@@ -1929,9 +1996,13 @@ REGLAS DE LAS CELDAS:
         `NUCLEO: ${primaryNucleo}`,
         ...parvulariaSelectedOAT.map((oat) => `OAT COMPLEMENTARIO: ${oat.ambito || "Desarrollo Personal y Social"} · ${oat.nucleo || oat.label}`),
       ].join("\n")
-      const objectiveText = objectiveLines.length
-        ? objectiveLines.join("\n\n")
-        : `Objetivos oficiales seleccionados del núcleo ${asignatura}.`
+      const journeyObjectiveTexts = parvulariaOAByJourney.map((oas) => {
+        const primary = oas.map((oa) => `${oa.codigoOficial || oa.id}: ${oa.texto}`)
+        const combined = [...primary, ...complementaryObjectiveLines]
+        return combined.length
+          ? combined.join("\n\n")
+          : `Objetivos oficiales seleccionados del núcleo ${asignatura}.`
+      })
       const dateLabels = parvulariaRequiredDateLabels.length
         ? parvulariaRequiredDateLabels
         : [parvulariaFechas || "Jornada seleccionada"]
@@ -1979,7 +2050,7 @@ REGLAS DE LAS CELDAS:
         {
           jornada: "Jornada 1 · Exploración y experiencia principal",
           ambitoNucleo: scopeText,
-          objetivosAprendizajes: objectiveText,
+          objetivosAprendizajes: journeyObjectiveTexts[0] || objectiveLines.join("\n\n"),
           experienciaAprendizaje: [
             "Inicio:",
             "El equipo reúne al grupo, presenta de manera atractiva los materiales y anticipa la experiencia mediante gestos, palabras, objetos concretos o una breve canción de inicio.",
@@ -2009,7 +2080,7 @@ REGLAS DE LAS CELDAS:
         {
           jornada: "Jornada 2 · Expresión artística y sensorial",
           ambitoNucleo: scopeText,
-          objetivosAprendizajes: objectiveText,
+          objetivosAprendizajes: journeyObjectiveTexts[1] || objectiveLines.join("\n\n"),
           experienciaAprendizaje: [
             "Inicio:",
             "Presentar un ambiente sensorial y expresivo con música suave, sonidos, colores, texturas o movimiento, vinculándolo con los OA/OAT seleccionados.",
@@ -2039,7 +2110,7 @@ REGLAS DE LAS CELDAS:
         {
           jornada: "Jornada 3 · Lenguaje verbal, lectura y comunicación",
           ambitoNucleo: scopeText,
-          objetivosAprendizajes: objectiveText,
+          objetivosAprendizajes: journeyObjectiveTexts[2] || objectiveLines.join("\n\n"),
           experienciaAprendizaje: [
             "Inicio:",
             "Generar un momento de encuentro comunicativo mediante saludo, canción, objeto significativo, imagen, libro o relato breve, adecuando el lenguaje a la edad.",
@@ -2103,6 +2174,7 @@ REGLAS DE LAS CELDAS:
         parvulariaHeterogenea,
         parvulariaSegundoCurso,
         parvulariaMotivoFusion,
+        parvulariaJourneyOAIds,
         outputIntent,
         parvulariaInstitutionalPlanning: true,
         aiFallback: true,
