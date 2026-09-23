@@ -2345,10 +2345,20 @@ function SpotifyCenter({
     <main className="neon-main min-h-0 overflow-hidden px-[clamp(12px,1.2vw,20px)] pb-3 pt-5">
       <div className="flex h-full min-h-0 flex-col">
         <div className="flex shrink-0 items-center justify-between gap-3 px-2 pb-3">
-          <div>
+          <div className="flex min-w-0 items-center gap-3">
+            <Link
+              href="/agentes"
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-cyan-300/20 bg-black/20 text-cyan-100 hover:bg-cyan-400/10 lg:hidden"
+              aria-label="Volver a Agentes"
+              title="Volver a Agentes"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+            <div>
             <p className="text-[9px] font-black uppercase tracking-[.22em] text-cyan-300">Spotify</p>
             <h2 className="mt-1 text-xl font-black text-white">Listas disponibles</h2>
             <p className="mt-1 text-[10px] text-slate-400">{SPOTIFY_EMBEDS.length} listas oficiales guardadas en EDUAI Music.</p>
+            </div>
           </div>
           <button type="button" onClick={onClose} className="rounded-full border border-cyan-300/20 bg-black/20 px-3 py-1.5 text-[10px] font-black text-cyan-100 hover:bg-cyan-400/10">
             Cerrar Spotify
@@ -2537,6 +2547,13 @@ function NeonMain({
     <main className="neon-main min-h-0 overflow-hidden px-[clamp(12px,1.2vw,20px)] pb-3 pt-5">
       <div className="flex h-full min-h-0 flex-col">
         <div className="relative shrink-0 px-[clamp(12px,2vw,30px)] pt-[clamp(6px,1vh,14px)]">
+          <Link
+            href="/agentes"
+            className="mb-3 inline-flex h-9 items-center gap-2 rounded-full border border-cyan-300/20 bg-black/20 px-3 text-[10px] font-black text-cyan-100 hover:bg-cyan-400/10 md:hidden"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Volver a Agentes
+          </Link>
           <p className="text-[9px] font-black uppercase tracking-[.48em] text-slate-300/90">Más que música</p>
           <h1 className="mt-0.5 text-[clamp(34px,3.8vw,64px)] font-black leading-none tracking-[-.065em] text-white">
             EDUAI <span className="neon-title-gradient italic">Music</span>
@@ -2651,6 +2668,28 @@ function NeonMain({
               )}
             </div>
           ) : null}
+          {music.view === "radio" && isEmbedTrack(music.currentTrack) && getEmbedUrl(music.currentTrack) ? (
+            <div className="mt-2 overflow-hidden rounded-2xl border border-cyan-300/20 bg-black/20 xl:hidden">
+              <div className="flex items-center justify-between border-b border-cyan-300/10 px-3 py-2">
+                <div>
+                  <p className="text-[10px] font-black text-white">{music.currentTrack.title}</p>
+                  <p className="text-[8px] text-slate-400">Reproductor oficial de la emisora</p>
+                </div>
+                {music.currentTrack.externalUrl ? (
+                  <a href={music.currentTrack.externalUrl} target="_blank" rel="noreferrer" className="text-[8px] font-black text-cyan-300 hover:text-cyan-100">
+                    Abrir fuente
+                  </a>
+                ) : null}
+              </div>
+              <iframe
+                src={getEmbedUrl(music.currentTrack)}
+                title={music.currentTrack.title}
+                allow="autoplay; encrypted-media"
+                loading="lazy"
+                className="h-[180px] w-full bg-black"
+              />
+            </div>
+          ) : null}
         </div>
 
         <div className="mt-3 min-h-0 flex-1 px-2">
@@ -2723,6 +2762,8 @@ function NeonRightPanel() {
   const idle = track.id === "eduai-music-empty";
   const duration = durationForPlayer(track, music.durationSeconds);
   const artwork = track.artworkUrl || track.videoThumbnail || (track.cover?.startsWith("http") ? track.cover : undefined);
+  const embedTrack = isEmbedTrack(track);
+  const embedUrl = getEmbedUrl(track);
 
   return (
     <aside className="neon-right-panel min-h-0 overflow-hidden px-[clamp(10px,1vw,18px)] pb-3 pt-5">
@@ -2736,7 +2777,15 @@ function NeonRightPanel() {
           </div>
 
           <div className="mt-3 flex justify-center">
-            {!idle && track.source === "youtube" && track.youtubeVideoId ? (
+            {!idle && embedTrack && embedUrl ? (
+              <iframe
+                src={embedUrl}
+                title={track.title}
+                allow="autoplay; encrypted-media"
+                loading="lazy"
+                className="aspect-video w-full max-w-[260px] rounded-2xl border border-cyan-300/30 bg-black shadow-[0_0_34px_rgba(37,244,255,.14)]"
+              />
+            ) : !idle && track.source === "youtube" && track.youtubeVideoId ? (
               <div className="neon-youtube-player aspect-video w-full max-w-[260px] overflow-hidden rounded-2xl border border-cyan-300/30 bg-black shadow-[0_0_34px_rgba(37,244,255,.14)]">
                 <div id={YOUTUBE_PLAYER_ID} className="h-full w-full bg-black" />
               </div>
