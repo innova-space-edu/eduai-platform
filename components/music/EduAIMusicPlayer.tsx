@@ -281,6 +281,65 @@ function LoadingBar({ active, label = "Cargando" }: { active: boolean; label?: s
   );
 }
 
+function SafeRadioEmbed({
+  src,
+  title,
+  externalUrl,
+  className,
+}: {
+  src: string;
+  title: string;
+  externalUrl?: string;
+  className?: string;
+}) {
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setFailed(false);
+  }, [src]);
+
+  if (!src || failed) {
+    return (
+      <div
+        className={cn(
+          "flex min-h-[180px] w-full flex-col items-center justify-center gap-2 rounded-2xl border border-amber-300/20 bg-[#07111d] p-5 text-center",
+          className,
+        )}
+        role="status"
+      >
+        <Radio className="h-7 w-7 text-amber-200" />
+        <p className="text-xs font-black text-white">Señal no disponible dentro de EDUAI Music</p>
+        <p className="max-w-sm text-[10px] leading-5 text-slate-400">
+          El reproductor externo no respondió. EDUAI Music sigue operativo y puedes probar otra emisora.
+        </p>
+        {externalUrl ? (
+          <a
+            href={externalUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-1 rounded-full border border-cyan-300/25 bg-cyan-400/10 px-3 py-1.5 text-[10px] font-black text-cyan-100 hover:bg-cyan-400/20"
+          >
+            Abrir fuente oficial
+          </a>
+        ) : null}
+      </div>
+    );
+  }
+
+  return (
+    <iframe
+      src={src}
+      title={title}
+      allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+      sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation"
+      referrerPolicy="no-referrer"
+      loading="lazy"
+      onError={() => setFailed(true)}
+      className={cn("border-0 bg-black", className)}
+    />
+  );
+}
+
 function parseDuration(duration?: string) {
   if (!duration) return 0;
   const [m, s] = duration.split(":").map((part) => Number(part));
@@ -1039,8 +1098,7 @@ function CurrentTrackArtwork({ track }: { track: EduMusicTrack }) {
   if (isDjMix) {
     return (
       <div className="relative flex h-56 w-56 overflow-hidden rounded-3xl border border-cyan-400/30 bg-[#080d12] shadow-2xl shadow-cyan-950/30 ring-1 ring-white/10">
-        {/* El iframe sigue montado para el audio oficial de YouTube, pero DJ no muestra video. */}
-        <div id={YOUTUBE_PLAYER_ID} className="pointer-events-none absolute h-px w-px overflow-hidden opacity-0" />
+        {/* El host global de YouTube vive una sola vez en el panel de reproducción. */}
         {artwork ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={artwork} alt="" className="absolute inset-0 h-full w-full object-cover opacity-35" />
@@ -1056,14 +1114,15 @@ function CurrentTrackArtwork({ track }: { track: EduMusicTrack }) {
   if (track.source === "youtube") {
     return (
       <div className="relative aspect-video w-full max-w-[620px] overflow-hidden rounded-3xl border border-red-400/25 bg-black shadow-2xl shadow-black/40 ring-1 ring-white/10">
-        <div id={YOUTUBE_PLAYER_ID} className="absolute inset-0 h-full w-full bg-black" />
-        {artwork && (
+        {artwork ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={artwork}
             alt={track.title}
-            className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-500"
+            className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-60"
           />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-red-950/40 via-black to-slate-950" />
         )}
         <div className="pointer-events-none absolute left-3 top-3 rounded-full bg-red-500/90 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-white shadow-lg shadow-red-950/30">
           YouTube · fuente oficial
@@ -1389,12 +1448,11 @@ function MainPanel({
 
               <div className="mt-4 overflow-hidden rounded-3xl border border-cyan-400/20 bg-black/40 shadow-2xl shadow-black/40">
                 {embedUrl ? (
-                  <iframe
+                  <SafeRadioEmbed
                     src={embedUrl}
                     title={`${track.title} - reproductor oficial`}
-                    className="h-[560px] w-full border-0 bg-black max-lg:h-[520px] max-sm:h-[480px]"
-                    allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
-                    allowFullScreen
+                    externalUrl={track.externalUrl}
+                    className="h-[560px] w-full max-lg:h-[520px] max-sm:h-[480px]"
                   />
                 ) : (
                   <div className="flex min-h-[360px] flex-col items-center justify-center p-6 text-center">
@@ -2681,12 +2739,11 @@ function NeonMain({
                   </a>
                 ) : null}
               </div>
-              <iframe
+              <SafeRadioEmbed
                 src={getEmbedUrl(music.currentTrack)}
                 title={music.currentTrack.title}
-                allow="autoplay; encrypted-media"
-                loading="lazy"
-                className="h-[180px] w-full bg-black"
+                externalUrl={music.currentTrack.externalUrl}
+                className="h-[180px] w-full"
               />
             </div>
           ) : null}
@@ -2778,12 +2835,11 @@ function NeonRightPanel() {
 
           <div className="mt-3 flex justify-center">
             {!idle && embedTrack && embedUrl ? (
-              <iframe
+              <SafeRadioEmbed
                 src={embedUrl}
                 title={track.title}
-                allow="autoplay; encrypted-media"
-                loading="lazy"
-                className="aspect-video w-full max-w-[260px] rounded-2xl border border-cyan-300/30 bg-black shadow-[0_0_34px_rgba(37,244,255,.14)]"
+                externalUrl={track.externalUrl}
+                className="aspect-video w-full max-w-[260px] rounded-2xl border border-cyan-300/30 shadow-[0_0_34px_rgba(37,244,255,.14)]"
               />
             ) : !idle && track.source === "youtube" && track.youtubeVideoId ? (
               <div className="neon-youtube-player aspect-video w-full max-w-[260px] overflow-hidden rounded-2xl border border-cyan-300/30 bg-black shadow-[0_0_34px_rgba(37,244,255,.14)]">

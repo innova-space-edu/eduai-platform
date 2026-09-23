@@ -843,11 +843,8 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         setCurrentId(track.id);
         setPlaying(false);
         setRadioError(
-          `${track.title} usa una señal bloqueada por el navegador por HTTP o certificado inválido. Se abrirá la fuente oficial si está disponible.`,
+          `${track.title} usa una señal que el navegador no puede reproducir de forma segura. EDUAI Music sigue operativo; usa “Abrir fuente” si quieres visitar la emisora oficial.`,
         );
-        if (externalUrl && typeof window !== "undefined") {
-          window.open(externalUrl, "_blank", "noopener,noreferrer");
-        }
         return;
       }
 
@@ -855,11 +852,8 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         setCurrentId(track.id);
         setPlaying(false);
         setRadioError(
-          `${track.title} no tiene una señal HTTPS reproducible directamente en el navegador. Se abrirá la fuente oficial.`,
+          `${track.title} no tiene una señal HTTPS reproducible directamente. EDUAI Music seguirá en esta página; puedes usar “Abrir fuente” manualmente.`,
         );
-        if (typeof window !== "undefined") {
-          window.open(externalUrl, "_blank", "noopener,noreferrer");
-        }
         return;
       }
 
