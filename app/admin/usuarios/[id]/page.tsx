@@ -658,13 +658,16 @@ export default function AdminUserPage() {
               <input
                 type="checkbox"
                 checked={panelAdmin}
+                disabled={access?.age_band === "under_18"}
                 onChange={e => setPanelAdmin(e.target.checked)}
-                className="mt-0.5 h-4 w-4"
+                className="mt-0.5 h-4 w-4 disabled:opacity-40"
               />
               <div>
                 <p className="text-main text-sm font-medium">Acceso al panel de administración</p>
                 <p className="text-muted2 text-xs mt-0.5">
-                  Autoriza el ingreso a <span className="font-mono">/admin</span>. Es independiente del nivel funcional anterior.
+                  {access?.age_band === "under_18"
+                    ? "No disponible para cuentas de menores de 18 años."
+                    : <>Autoriza el ingreso a <span className="font-mono">/admin</span>. Es independiente del nivel funcional anterior.</>}
                 </p>
               </div>
             </label>
