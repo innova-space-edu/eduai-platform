@@ -7,7 +7,7 @@ import * as cheerio from "cheerio"
 import { createClient as createServerClient } from "@/lib/supabase/server"
 
 export const runtime = "nodejs"
-export const maxDuration = 60
+export const maxDuration = 300
 
 type ParsedSource = {
   sourceHash: string

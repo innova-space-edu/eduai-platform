@@ -235,7 +235,7 @@ export async function buildParvulariaKnowledgeContext(args: BuildKnowledgeArgs):
     .eq("user_id", args.userId)
     .eq("nivel", "parvularia")
     .order("created_at", { ascending: false })
-    .limit(36)
+    .limit(80)
 
   const historyPromise = args.supabase
     .from("parvularia_generation_history")
@@ -377,5 +377,32 @@ export async function rememberParvulariaGeneration(args: {
       ok: false,
       error: error instanceof Error ? error.message : "No se pudo guardar memoria de generación",
     }
+  }
+}
+
+
+export function evaluateParvulariaNovelty(
+  generatedContent: string,
+  recentContentSamples: string[],
+) {
+  const generatedFragments = fingerprintSentences(generatedContent)
+  if (!generatedFragments.length || !recentContentSamples.length) {
+    return { passed: true, maxSimilarity: 0, comparedFragments: generatedFragments.length }
+  }
+
+  const recentSets = recentContentSamples.map((sample) => tokenSet(sample))
+  let maxSimilarity = 0
+
+  for (const fragment of generatedFragments) {
+    const set = tokenSet(fragment)
+    for (const recent of recentSets) {
+      maxSimilarity = Math.max(maxSimilarity, jaccard(set, recent))
+    }
+  }
+
+  return {
+    passed: maxSimilarity < 0.58,
+    maxSimilarity: Math.round(maxSimilarity * 1000) / 1000,
+    comparedFragments: generatedFragments.length,
   }
 }
