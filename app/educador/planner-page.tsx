@@ -100,6 +100,7 @@ interface Config {
   periodoId: string
   anioPlanificacion: number
   weeklyOAPlan: SchoolPlanningWeek[]
+  parvulariaJourneyNucleos: string[]
   parvulariaJourneyOAIds: string[][]
   parvulariaHeterogenea: boolean
   parvulariaSegundoCurso: string
@@ -141,6 +142,11 @@ export default function PlannerPage() {
     contexto: "", mes: month, unidadId: "", selectedOAIds: [], selectedOATIds: [], tiempoPlanificacion: "diaria",
     sesiones: 1, duracionMinutos: 30, profesor: "", horasSemanales: "", establecimiento: "Colegio Providencia", ciudad: "ANTOFAGASTA",
     periodoId: SCHOOL_YEAR_MONTHS.includes(month as (typeof SCHOOL_YEAR_MONTHS)[number]) ? month : "marzo", anioPlanificacion: new Date().getFullYear(), weeklyOAPlan: [],
+    parvulariaJourneyNucleos: [
+      initialSubject("parvularia", COURSES.parvularia[0]),
+      initialSubject("parvularia", COURSES.parvularia[0]),
+      initialSubject("parvularia", COURSES.parvularia[0]),
+    ],
     parvulariaJourneyOAIds: [[], [], []],
     parvulariaHeterogenea: false, parvulariaSegundoCurso: COURSES.parvularia[1],
     parvulariaMotivoFusion: "", educadoraParvularia: "", asistentesParvularia: "", fechaInicioParvularia: today, fechaFinParvularia: today,
@@ -182,12 +188,30 @@ export default function PlannerPage() {
   const institutionalMacro = isBasicaMedia && isSchoolPlanningMacro(config.tiempoPlanificacion)
   const units = useMemo(() => getPlannerUnits(curricularState), [curricularState])
   const oaOptions = useMemo(() => getPlannerOAOptions(curricularState, institutionalMacro ? undefined : config.unidadId || undefined), [curricularState, config.unidadId, institutionalMacro])
+  const parvulariaNucleos = useMemo(
+    () => isParvularia ? getAvailableAsignaturas("parvularia", config.curso) : [],
+    [isParvularia, config.curso]
+  )
+  const parvulariaJourneyOAOptions = useMemo(
+    () => [0, 1, 2].map((index) => {
+      if (!isParvularia) return []
+      const nucleo = config.parvulariaJourneyNucleos[index] || config.asignatura
+      return getPlannerOAOptions({ nivel: "parvularia", curso: config.curso, asignatura: nucleo })
+    }),
+    [isParvularia, config.curso, config.asignatura, config.parvulariaJourneyNucleos]
+  )
+  const allParvulariaOAOptions = useMemo(
+    () => isParvularia
+      ? parvulariaNucleos.flatMap((nucleo) => getPlannerOAOptions({ nivel: "parvularia", curso: config.curso, asignatura: nucleo }))
+      : [],
+    [isParvularia, config.curso, parvulariaNucleos]
+  )
   const oatOptions = useMemo(() => config.nivel === "parvularia" ? getParvulariaOATForCurso(config.curso, config.asignatura) : [], [config.nivel, config.curso, config.asignatura])
   const ambito = useMemo(() => config.nivel === "parvularia" ? getParvulariaAmbitoForCurso(config.curso, config.asignatura) : "", [config.nivel, config.curso, config.asignatura])
   const verification = useMemo(() => getCurriculumVerification(config.nivel, config.curso, config.asignatura), [config.nivel, config.curso, config.asignatura])
   const hasCurriculum = useMemo(() => hasLocalCurriculumForAsignatura(config.nivel, config.curso, config.asignatura), [config.nivel, config.curso, config.asignatura])
   const selectedUnit = units.find((item) => item.id === config.unidadId)
-  const selectedOA = oaOptions.filter((item) => config.selectedOAIds.includes(item.id))
+  const selectedOA = (isParvularia ? allParvulariaOAOptions : oaOptions).filter((item) => config.selectedOAIds.includes(item.id))
   const periodLabel = getSchoolPlanningPeriodLabel(config.tiempoPlanificacion, config.periodoId, config.mes)
   const weeklyPlanByMonth = config.weeklyOAPlan.reduce<Record<string, SchoolPlanningWeek[]>>((acc, item) => {
     if (!acc[item.month]) acc[item.month] = []
@@ -199,24 +223,48 @@ export default function PlannerPage() {
 
   useEffect(() => {
     setConfig((previous) => {
+      if (previous.nivel === "parvularia") {
+        const availableNuclei = getAvailableAsignaturas("parvularia", previous.curso)
+        const fallbackNucleus = availableNuclei.includes(previous.asignatura)
+          ? previous.asignatura
+          : availableNuclei[0] || ""
+        const parvulariaJourneyNucleos = [0, 1, 2].map((index) => {
+          const current = previous.parvulariaJourneyNucleos[index]
+          return availableNuclei.includes(current) ? current : fallbackNucleus
+        })
+        const parvulariaJourneyOAIds = parvulariaJourneyNucleos.map((nucleo, index) => {
+          const allowed = new Set(
+            getPlannerOAOptions({ nivel: "parvularia", curso: previous.curso, asignatura: nucleo }).map((item) => item.id)
+          )
+          return (previous.parvulariaJourneyOAIds[index] || []).filter((id) => allowed.has(id))
+        })
+        const nextOAT = getParvulariaOATForCurso(previous.curso, fallbackNucleus)
+        const allowedOAT = new Set(nextOAT.map((item) => item.id))
+        return {
+          ...previous,
+          asignatura: fallbackNucleus,
+          unidadId: "",
+          selectedOAIds: [...new Set(parvulariaJourneyOAIds.flat())],
+          selectedOATIds: previous.selectedOATIds.filter((id) => allowedOAT.has(id)),
+          parvulariaJourneyNucleos,
+          parvulariaJourneyOAIds,
+          weeklyOAPlan: [],
+        }
+      }
+
       const nextUnits = getPlannerUnits({ nivel: previous.nivel, curso: previous.curso, asignatura: previous.asignatura })
       const unitId = nextUnits.find((item) => item.id === previous.unidadId)?.id || nextUnits[0]?.id || ""
       const nextOA = getPlannerOAOptions({ nivel: previous.nivel, curso: previous.curso, asignatura: previous.asignatura }, unitId || undefined)
       const allowedOA = new Set(nextOA.map((item) => item.id))
-      const nextOAT = previous.nivel === "parvularia" ? getParvulariaOATForCurso(previous.curso, previous.asignatura) : []
-      const allowedOAT = new Set(nextOAT.map((item) => item.id))
       const selectedOAIds = previous.selectedOAIds.filter((id) => allowedOA.has(id))
       const selectedSet = new Set(selectedOAIds)
       return {
         ...previous,
         unidadId: unitId,
         selectedOAIds,
-        selectedOATIds: previous.selectedOATIds.filter((id) => allowedOAT.has(id)),
-        parvulariaJourneyOAIds: previous.parvulariaJourneyOAIds.map((ids) => {
-          const filtered = ids.filter((id) => allowedOA.has(id))
-          if (filtered.length || !selectedOAIds.length) return filtered
-          return [selectedOAIds[0]]
-        }),
+        selectedOATIds: [],
+        parvulariaJourneyNucleos: ["", "", ""],
+        parvulariaJourneyOAIds: [[], [], []],
         weeklyOAPlan: previous.weeklyOAPlan.map((week) => ({ ...week, oaIds: week.oaIds.filter((id) => selectedSet.has(id)) })),
       }
     })
@@ -251,14 +299,16 @@ export default function PlannerPage() {
   }
   function selectLevel(level: NivelKey) {
     const course = COURSES[level][0]
+    const subject = initialSubject(level, course)
     setConfig((previous) => ({
       ...previous,
       nivel: level,
       curso: course,
-      asignatura: initialSubject(level, course),
+      asignatura: subject,
       unidadId: "",
       selectedOAIds: [],
       selectedOATIds: [],
+      parvulariaJourneyNucleos: level === "parvularia" ? [subject, subject, subject] : ["", "", ""],
       parvulariaJourneyOAIds: [[], [], []],
       weeklyOAPlan: [],
       tiempoPlanificacion: level === "parvularia"
@@ -269,16 +319,20 @@ export default function PlannerPage() {
     }))
   }
   function updateCourse(course: string) {
-    setConfig((previous) => ({
-      ...previous,
-      curso: course,
-      asignatura: initialSubject(previous.nivel, course),
-      unidadId: "",
-      selectedOAIds: [],
-      selectedOATIds: [],
-      parvulariaJourneyOAIds: [[], [], []],
-      weeklyOAPlan: [],
-    }))
+    setConfig((previous) => {
+      const subject = initialSubject(previous.nivel, course)
+      return {
+        ...previous,
+        curso: course,
+        asignatura: subject,
+        unidadId: "",
+        selectedOAIds: [],
+        selectedOATIds: [],
+        parvulariaJourneyNucleos: previous.nivel === "parvularia" ? [subject, subject, subject] : ["", "", ""],
+        parvulariaJourneyOAIds: [[], [], []],
+        weeklyOAPlan: [],
+      }
+    })
   }
   function toggleOA(id: string) {
     setConfig((previous) => {
@@ -313,30 +367,54 @@ export default function PlannerPage() {
       }
     })
   }
-  function toggleParvulariaJourneyOA(journeyIndex: number, oaId: string) {
+  function updateParvulariaJourneyNucleus(journeyIndex: number, nucleo: string) {
     setConfig((previous) => {
-      if (!previous.selectedOAIds.includes(oaId)) return previous
-      const current = previous.parvulariaJourneyOAIds[journeyIndex] || []
-      const active = current.includes(oaId)
-      if (active && current.length <= 1) return previous
+      const nuclei = [...previous.parvulariaJourneyNucleos]
+      while (nuclei.length < 3) nuclei.push(previous.asignatura)
+      nuclei[journeyIndex] = nucleo
 
-      const next = previous.parvulariaJourneyOAIds.map((ids, index) => {
-        if (index !== journeyIndex) return ids
-        return active ? ids.filter((id) => id !== oaId) : [...ids, oaId]
-      })
-      while (next.length < 3) next.push(previous.selectedOAIds.slice(0, 1))
-      return { ...previous, parvulariaJourneyOAIds: next.slice(0, 3) }
+      const journeys = previous.parvulariaJourneyOAIds.map((ids) => [...ids])
+      while (journeys.length < 3) journeys.push([])
+      journeys[journeyIndex] = []
+
+      return {
+        ...previous,
+        parvulariaJourneyNucleos: nuclei.slice(0, 3),
+        parvulariaJourneyOAIds: journeys.slice(0, 3),
+        selectedOAIds: [...new Set(journeys.flat())],
+      }
     })
   }
-  function useSameParvulariaOAForAll() {
-    setConfig((previous) => ({
-      ...previous,
-      parvulariaJourneyOAIds: [
-        [...previous.selectedOAIds],
-        [...previous.selectedOAIds],
-        [...previous.selectedOAIds],
-      ],
-    }))
+  function toggleParvulariaJourneyOA(journeyIndex: number, oaId: string) {
+    const allowed = new Set((parvulariaJourneyOAOptions[journeyIndex] || []).map((item) => item.id))
+    if (!allowed.has(oaId)) return
+
+    setConfig((previous) => {
+      const next = previous.parvulariaJourneyOAIds.map((ids) => [...ids])
+      while (next.length < 3) next.push([])
+      const current = next[journeyIndex] || []
+      next[journeyIndex] = current.includes(oaId)
+        ? current.filter((id) => id !== oaId)
+        : [...current, oaId]
+
+      return {
+        ...previous,
+        parvulariaJourneyOAIds: next.slice(0, 3),
+        selectedOAIds: [...new Set(next.flat())],
+      }
+    })
+  }
+  function useSameParvulariaNucleusAndOAForAll() {
+    setConfig((previous) => {
+      const nucleo = previous.parvulariaJourneyNucleos[0] || previous.asignatura
+      const ids = [...(previous.parvulariaJourneyOAIds[0] || [])]
+      return {
+        ...previous,
+        parvulariaJourneyNucleos: [nucleo, nucleo, nucleo],
+        parvulariaJourneyOAIds: [[...ids], [...ids], [...ids]],
+        selectedOAIds: [...ids],
+      }
+    })
   }
   function toggleWeekOA(weekKey: string, oaId: string) {
     setConfig((previous) => ({
@@ -365,8 +443,8 @@ export default function PlannerPage() {
       const incomplete = config.weeklyOAPlan.filter((week) => week.oaIds.length === 0)
       if (incomplete.length) return setStatus(`Asigna al menos un OA a cada semana. Faltan ${incomplete.length} semana(s).`)
     }
-    if (target >= 4 && isParvularia && config.parvulariaJourneyOAIds.some((ids) => ids.length === 0)) {
-      return setStatus("Asigna al menos un OA a cada una de las tres jornadas parvularias.")
+    if (target >= 4 && isParvularia && (config.parvulariaJourneyNucleos.some((nucleo) => !nucleo) || config.parvulariaJourneyOAIds.some((ids) => ids.length === 0))) {
+      return setStatus("Selecciona un núcleo y al menos un OA para cada una de las tres jornadas parvularias.")
     }
     setStep(target)
     window.scrollTo({ top: 0, behavior: "smooth" })
@@ -375,15 +453,18 @@ export default function PlannerPage() {
     if (isParvularia) {
       const selectedOAContext = selectedOA.map((oa) => `${oa.codigoOficial || oa.id}: ${oa.texto}`).join("\n")
       const journeyOAContext = config.parvulariaJourneyOAIds.map((ids, index) => {
+        const nucleo = config.parvulariaJourneyNucleos[index] || config.asignatura
+        const options = parvulariaJourneyOAOptions[index] || []
         const assigned = ids
-          .map((id) => selectedOA.find((oa) => oa.id === id))
+          .map((id) => options.find((oa) => oa.id === id))
           .filter(Boolean)
           .map((oa) => `${oa!.codigoOficial || oa!.id}: ${oa!.texto}`)
           .join(" | ")
-        return `Jornada ${index + 1}: ${assigned || "SIN OA ASIGNADO"}`
+        const ambitoJornada = getParvulariaAmbitoForCurso(config.curso, nucleo) || "Ámbito no identificado"
+        return `Jornada ${index + 1} · ${ambitoJornada} · ${nucleo}: ${assigned || "SIN OA ASIGNADO"}`
       }).join("\n")
       return [
-        `Genera la planificación de Educación Parvularia ${config.tiempoPlanificacion} para ${config.curso}, núcleo ${config.asignatura}.`,
+        `Genera la planificación de Educación Parvularia ${config.tiempoPlanificacion} para ${config.curso} con un núcleo y OA específicos para cada jornada.`,
         `Periodo: ${buildParvulariaDateLabel(config.fechaInicioParvularia, config.fechaFinParvularia || config.fechaInicioParvularia)}.`,
         `Educadora: ${config.educadoraParvularia}. Asistentes: ${config.asistentesParvularia}.`,
         "Usa la plantilla institucional de siete columnas de Educación Parvularia y completa todos sus campos.",
@@ -393,7 +474,7 @@ export default function PlannerPage() {
         "La tercera jornada debe enfatizar oralidad, relatos, lectura compartida, canciones, vocabulario, balbuceo/gestos o conversación según la edad, sin inventar OA distintos a los seleccionados.",
         "No organices por horas pedagógicas, número de clases ni minutos; distribuye las experiencias de acuerdo con el período, la jornada y el ritmo del grupo.",
         selectedOAContext ? `OA seleccionados:\n${selectedOAContext}` : "",
-        journeyOAContext ? `ASIGNACIÓN OBLIGATORIA DE OA POR JORNADA:\n${journeyOAContext}\nCada fila debe usar únicamente los OA primarios asignados a esa jornada; no copies todos los OA en las tres filas.` : "",
+        journeyOAContext ? `ASIGNACIÓN OBLIGATORIA DE NÚCLEO Y OA POR JORNADA:\n${journeyOAContext}\nCada fila debe usar exactamente el ámbito/núcleo y los OA primarios asignados a esa jornada; no copies el mismo núcleo ni todos los OA en las tres filas salvo que el docente los haya repetido explícitamente.` : "",
         config.selectedOATIds.length ? `OAT seleccionados: ${config.selectedOATIds.join(", ")}` : "",
         config.contexto.trim() ? `Contexto del docente: ${config.contexto.trim()}` : "Propón experiencias pertinentes, lúdicas y aplicables al subnivel.",
         config.parvulariaHeterogenea ? `Sala heterogénea: ${config.curso} con ${config.parvulariaSegundoCurso}. Motivo: ${config.parvulariaMotivoFusion || "organización pedagógica"}.` : "",
@@ -562,7 +643,7 @@ export default function PlannerPage() {
       <div><Label required>Nivel educativo</Label><div className="grid gap-3 md:grid-cols-3">{LEVELS.map((item) => <button key={item.id} onClick={() => selectLevel(item.id)} className={`rounded-2xl border-2 p-4 text-left transition ${choiceClass(config.nivel === item.id, "indigo")}`}><div className="flex justify-between"><span className="text-2xl">{item.icon}</span><Check selected={config.nivel === item.id} color="indigo" /></div><p className="mt-2 font-black">{item.label}</p><p className="mt-1 text-sm text-slate-600">{item.detail}</p></button>)}</div></div>
       <div className="grid gap-4 md:grid-cols-2">
         <div><Label required>Curso o subnivel</Label><select value={config.curso} onChange={(e) => updateCourse(e.target.value)} className={inputClass}>{COURSES[config.nivel].map((item) => <option key={item}>{item}</option>)}</select></div>
-        <div><Label required>{config.nivel === "parvularia" ? "Núcleo de aprendizaje" : "Asignatura"}</Label><select value={config.asignatura} onChange={(e) => setConfig((p) => ({ ...p, asignatura: e.target.value, unidadId: "", selectedOAIds: [], selectedOATIds: [], weeklyOAPlan: [] }))} className={inputClass}>{subjects.map((item) => <option key={item}>{item}</option>)}</select></div>
+        <div><Label required>{config.nivel === "parvularia" ? "Núcleo base" : "Asignatura"}</Label><select value={config.asignatura} onChange={(e) => { const value = e.target.value; setConfig((p) => ({ ...p, asignatura: value, unidadId: "", selectedOAIds: [], selectedOATIds: [], parvulariaJourneyNucleos: p.nivel === "parvularia" ? [value, value, value] : p.parvulariaJourneyNucleos, parvulariaJourneyOAIds: p.nivel === "parvularia" ? [[], [], []] : p.parvulariaJourneyOAIds, weeklyOAPlan: [] })) }} className={inputClass}>{subjects.map((item) => <option key={item}>{item}</option>)}</select></div>
       </div>
       <div className="grid gap-4 md:grid-cols-3">
         <div><Label>Horizonte</Label><select value={config.tiempoPlanificacion} onChange={(e) => { const value = e.target.value as TiempoPlanificacion; setConfig((p) => { const leavingInstitutionalMacro = (p.nivel === "basica" || p.nivel === "media") && isSchoolPlanningMacro(p.tiempoPlanificacion) && !isSchoolPlanningMacro(value); return ({ ...p, tiempoPlanificacion: value, periodoId: value === "mensual" ? p.mes : value === "semestral" ? (["julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"].includes(p.mes) ? "segundo-semestre" : "primer-semestre") : value === "anual" ? "anio-escolar" : p.periodoId, fechaFinParvularia: p.nivel === "parvularia" && value !== "anual" ? calculateParvulariaEndDate(p.fechaInicioParvularia, value as ParvulariaPlanningHorizon) : p.fechaFinParvularia, selectedOAIds: leavingInstitutionalMacro ? [] : p.selectedOAIds, weeklyOAPlan: [] }) }) }} className={inputClass}><option value="diaria">Diaria</option><option value="semanal">Semanal</option>{isParvularia && <option value="quincenal">Quincenal</option>}<option value="mensual">Mensual</option><option value="semestral">Semestral</option>{isBasicaMedia && <option value="anual">Anual</option>}</select></div>
@@ -595,50 +676,69 @@ export default function PlannerPage() {
 
   const stepTwo = (
     <div className="space-y-6">
-      <div><p className="text-xs font-black uppercase tracking-[.18em] text-emerald-700">Paso 2</p><h2 className="mt-1 text-2xl font-black">Currículum y Objetivos de Aprendizaje</h2><p className="mt-2 text-sm text-slate-600">{institutionalMacro ? "Selecciona todos los OA que podrían trabajarse durante el período. En el paso siguiente indicarás exactamente qué OA corresponde a cada semana." : isParvularia ? "Selecciona al menos un objetivo oficial del núcleo. EduAI lo desarrollará en tres jornadas pedagógicas distintas durante cada día del período." : "Selecciona el bloque o unidad y al menos un OA."}</p></div>
+      <div><p className="text-xs font-black uppercase tracking-[.18em] text-emerald-700">Paso 2</p><h2 className="mt-1 text-2xl font-black">Currículum y Objetivos de Aprendizaje</h2><p className="mt-2 text-sm text-slate-600">{institutionalMacro ? "Selecciona todos los OA que podrían trabajarse durante el período. En el paso siguiente indicarás exactamente qué OA corresponde a cada semana." : isParvularia ? "Define un núcleo de aprendizaje y uno o más OA oficiales para cada una de las tres planificaciones del día." : "Selecciona el bloque o unidad y al menos un OA."}</p></div>
       <div className={`rounded-2xl border-2 p-4 ${hasCurriculum ? "border-emerald-600 bg-emerald-50" : "border-amber-500 bg-amber-50"}`}><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="font-black">{hasCurriculum ? "✓ Currículum MINEDUC disponible" : "⚠ Cobertura curricular parcial"}</p><p className="mt-1 text-xs text-slate-700">{config.curso} · {config.asignatura}</p></div>{verification?.sourceUrl && <a href={verification.sourceUrl} target="_blank" rel="noreferrer" className="rounded-lg bg-white px-3 py-2 text-xs font-black text-emerald-800 ring-1 ring-emerald-300">Fuente oficial ↗</a>}</div></div>
-      {config.nivel === "parvularia" && <div className="space-y-3 rounded-2xl border-2 border-rose-300 bg-rose-50 p-4"><div><p className="text-xs font-black uppercase text-rose-800">Ámbito y núcleo</p><p className="mt-1 font-black">{ambito || "Ámbito no identificado"}</p><p className="mt-1 text-sm text-slate-700">{config.asignatura}</p></div><div className="grid gap-2 md:grid-cols-3"><div className="rounded-xl bg-white px-3 py-2 text-xs font-bold text-slate-700 ring-1 ring-rose-200">1 · Exploración / experiencia principal</div><div className="rounded-xl bg-white px-3 py-2 text-xs font-bold text-slate-700 ring-1 ring-rose-200">2 · Expresión artística / sensorial</div><div className="rounded-xl bg-white px-3 py-2 text-xs font-bold text-slate-700 ring-1 ring-rose-200">3 · Lenguaje verbal / lectura / comunicación</div></div><p className="text-xs text-rose-900">Las tres jornadas se construyen con los OA/OAT oficiales seleccionados y quedan editables por separado.</p></div>}
-      {!institutionalMacro && units.length > 0 && <div><Label>{config.nivel === "parvularia" ? "Bloque curricular" : "Unidad o módulo"}</Label><div className="grid gap-3">{units.map((item) => <button key={item.id} onClick={() => setConfig((p) => ({ ...p, unidadId: item.id, selectedOAIds: [], parvulariaJourneyOAIds: [[], [], []] }))} className={`rounded-2xl border-2 p-4 text-left ${choiceClass(config.unidadId === item.id, "indigo")}`}><div className="flex justify-between gap-3"><div><p className="font-black">{item.label}</p><p className="mt-1 text-xs text-slate-600">{item.oaIds.length} OA asociados</p></div><Check selected={config.unidadId === item.id} color="indigo" /></div></button>)}</div></div>}
-      <div><button onClick={() => setOpenOA(!openOA)} className="flex w-full items-center justify-between rounded-2xl border-2 border-slate-300 bg-slate-50 p-4 text-left"><div><p className="font-black">{config.nivel === "parvularia" ? "Objetivos del núcleo seleccionado" : "Objetivos de Aprendizaje"}</p><p className="mt-1 text-xs text-slate-600">{config.nivel === "parvularia" ? `${ambito} · ${config.asignatura} · ${oaOptions.length} objetivo(s) oficiales disponibles` : `${config.selectedOAIds.length} seleccionado(s)`}</p></div><span className="text-xl font-black">{openOA ? "−" : "+"}</span></button>{openOA && <div className="mt-3 grid max-h-[520px] gap-3 overflow-y-auto md:grid-cols-2">{oaOptions.length ? oaOptions.map((item) => { const selected = config.selectedOAIds.includes(item.id); return <button key={item.id} onClick={() => toggleOA(item.id)} className={`rounded-2xl border-2 p-4 text-left ${choiceClass(selected)}`}><div className="flex justify-between gap-3"><div><p className="font-black">{item.codigoOficial || item.id}</p><p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-slate-700">{item.texto}</p>{item.ambito && item.nucleo && <p className="mt-3 text-xs font-black text-emerald-800">{item.tipo === "oat" ? "OAT · " : "OA · "}{item.ambito} · {item.nucleo}</p>}</div><Check selected={selected} /></div></button> }) : <div className="md:col-span-2 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-6 text-sm font-bold text-slate-600">No hay OA locales disponibles.</div>}</div>}</div>
-      {config.nivel === "parvularia" && selectedOA.length > 0 && <div className="rounded-2xl border-2 border-rose-300 bg-rose-50 p-5">
+      {config.nivel === "parvularia" && <div className="space-y-3 rounded-2xl border-2 border-rose-300 bg-rose-50 p-4">
+        <div><p className="text-xs font-black uppercase text-rose-800">Currículum BCEP por jornada</p><p className="mt-1 font-black">Cada planificación del día puede usar un núcleo distinto</p><p className="mt-1 text-sm text-slate-700">Selecciona el núcleo y luego uno o más OA para cada jornada. EduAI conservará esa combinación en diaria, semanal, quincenal, mensual y semestral.</p></div>
+        <div className="grid gap-2 md:grid-cols-3"><div className="rounded-xl bg-white px-3 py-2 text-xs font-bold text-slate-700 ring-1 ring-rose-200">1 · Exploración / experiencia principal</div><div className="rounded-xl bg-white px-3 py-2 text-xs font-bold text-slate-700 ring-1 ring-rose-200">2 · Expresión artística / sensorial</div><div className="rounded-xl bg-white px-3 py-2 text-xs font-bold text-slate-700 ring-1 ring-rose-200">3 · Lenguaje verbal / lectura / comunicación</div></div>
+      </div>}
+      {!isParvularia && !institutionalMacro && units.length > 0 && <div><Label>Unidad o módulo</Label><div className="grid gap-3">{units.map((item) => <button key={item.id} onClick={() => setConfig((p) => ({ ...p, unidadId: item.id, selectedOAIds: [] }))} className={`rounded-2xl border-2 p-4 text-left ${choiceClass(config.unidadId === item.id, "indigo")}`}><div className="flex justify-between gap-3"><div><p className="font-black">{item.label}</p><p className="mt-1 text-xs text-slate-600">{item.oaIds.length} OA asociados</p></div><Check selected={config.unidadId === item.id} color="indigo" /></div></button>)}</div></div>}
+      {!isParvularia && <div><button onClick={() => setOpenOA(!openOA)} className="flex w-full items-center justify-between rounded-2xl border-2 border-slate-300 bg-slate-50 p-4 text-left"><div><p className="font-black">Objetivos de Aprendizaje</p><p className="mt-1 text-xs text-slate-600">{config.selectedOAIds.length} seleccionado(s)</p></div><span className="text-xl font-black">{openOA ? "−" : "+"}</span></button>{openOA && <div className="mt-3 grid max-h-[520px] gap-3 overflow-y-auto md:grid-cols-2">{oaOptions.length ? oaOptions.map((item) => { const selected = config.selectedOAIds.includes(item.id); return <button key={item.id} onClick={() => toggleOA(item.id)} className={`rounded-2xl border-2 p-4 text-left ${choiceClass(selected)}`}><div className="flex justify-between gap-3"><div><p className="font-black">{item.codigoOficial || item.id}</p><p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-slate-700">{item.texto}</p>{item.ambito && item.nucleo && <p className="mt-3 text-xs font-black text-emerald-800">{item.tipo === "oat" ? "OAT · " : "OA · "}{item.ambito} · {item.nucleo}</p>}</div><Check selected={selected} /></div></button> }) : <div className="md:col-span-2 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-6 text-sm font-bold text-slate-600">No hay OA locales disponibles.</div>}</div>}</div>}
+      {config.nivel === "parvularia" && <div className="rounded-2xl border-2 border-rose-300 bg-rose-50 p-5">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="font-black text-rose-950">OA distintos para cada una de las 3 planificaciones del día</p>
-            <p className="mt-1 text-sm text-rose-900">Distribuye los OA seleccionados entre Jornada 1, Jornada 2 y Jornada 3. Esta asignación se mantiene en diaria, semanal, quincenal y mensual.</p>
+            <p className="font-black text-rose-950">Núcleo + OA distintos para cada una de las 3 planificaciones</p>
+            <p className="mt-1 text-sm text-rose-900">Cada tarjeta es independiente: primero escoge su núcleo de aprendizaje y después sus OA oficiales.</p>
           </div>
-          <button type="button" onClick={useSameParvulariaOAForAll} className="shrink-0 rounded-xl border-2 border-rose-700 bg-white px-4 py-2 text-xs font-black text-rose-800">Usar los mismos OA en las 3</button>
+          <button type="button" onClick={useSameParvulariaNucleusAndOAForAll} className="shrink-0 rounded-xl border-2 border-rose-700 bg-white px-4 py-2 text-xs font-black text-rose-800">Copiar Jornada 1 a las 3</button>
         </div>
         <div className="mt-4 grid gap-4 xl:grid-cols-3">
           {[
             "Jornada 1 · Exploración / experiencia principal",
             "Jornada 2 · Expresión artística / sensorial",
             "Jornada 3 · Lenguaje verbal / lectura / comunicación",
-          ].map((label, journeyIndex) => (
-            <div key={label} className="rounded-2xl border-2 border-rose-200 bg-white p-4">
-              <div className="flex items-start justify-between gap-2">
-                <p className="text-sm font-black text-slate-900">{label}</p>
-                <span className={`rounded-full px-2 py-1 text-[10px] font-black ${config.parvulariaJourneyOAIds[journeyIndex]?.length ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
-                  {config.parvulariaJourneyOAIds[journeyIndex]?.length || 0} OA
-                </span>
+          ].map((label, journeyIndex) => {
+            const nucleo = config.parvulariaJourneyNucleos[journeyIndex] || config.asignatura
+            const ambitoJornada = getParvulariaAmbitoForCurso(config.curso, nucleo)
+            const journeyOptions = parvulariaJourneyOAOptions[journeyIndex] || []
+            const journeyIds = config.parvulariaJourneyOAIds[journeyIndex] || []
+            return (
+              <div key={label} className="rounded-2xl border-2 border-rose-200 bg-white p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-sm font-black text-slate-900">{label}</p>
+                  <span className={`rounded-full px-2 py-1 text-[10px] font-black ${journeyIds.length ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
+                    {journeyIds.length} OA
+                  </span>
+                </div>
+                <div className="mt-4">
+                  <Label required>Núcleo de aprendizaje</Label>
+                  <select value={nucleo} onChange={(e) => updateParvulariaJourneyNucleus(journeyIndex, e.target.value)} className={inputClass}>
+                    {parvulariaNucleos.map((item) => <option key={item} value={item}>{item}</option>)}
+                  </select>
+                  <p className="mt-2 text-[11px] font-bold text-rose-800">{ambitoJornada || "Ámbito no identificado"}</p>
+                </div>
+                <div className="mt-4 max-h-[420px] space-y-2 overflow-y-auto pr-1">
+                  {journeyOptions.length ? journeyOptions.map((oa) => {
+                    const active = journeyIds.includes(oa.id)
+                    return (
+                      <button
+                        key={oa.id}
+                        type="button"
+                        onClick={() => toggleParvulariaJourneyOA(journeyIndex, oa.id)}
+                        className={`w-full rounded-xl border-2 p-3 text-left text-xs transition ${active ? "border-rose-700 bg-rose-100 text-rose-950" : "border-slate-300 bg-white text-slate-700 hover:border-rose-400"}`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div><p className="font-black">{oa.codigoOficial || oa.id}</p><p className="mt-1 leading-relaxed">{oa.texto}</p></div>
+                          <span className="font-black">{active ? "✓" : "+"}</span>
+                        </div>
+                      </button>
+                    )
+                  }) : <div className="rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 p-3 text-xs font-bold text-slate-600">No hay OA disponibles para este núcleo.</div>}
+                </div>
+                <p className="mt-3 text-[11px] text-slate-600">Debe quedar al menos un OA en esta jornada. Puedes combinar más de uno.</p>
               </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {selectedOA.map((oa) => {
-                  const active = config.parvulariaJourneyOAIds[journeyIndex]?.includes(oa.id) || false
-                  return (
-                    <button
-                      key={oa.id}
-                      type="button"
-                      onClick={() => toggleParvulariaJourneyOA(journeyIndex, oa.id)}
-                      className={`rounded-xl border-2 px-3 py-2 text-left text-xs font-bold transition ${active ? "border-rose-700 bg-rose-100 text-rose-950" : "border-slate-300 bg-white text-slate-700 hover:border-rose-400"}`}
-                    >
-                      <span className="mr-1">{active ? "✓" : "+"}</span>{oa.codigoOficial || oa.id}
-                    </button>
-                  )
-                })}
-              </div>
-              <p className="mt-3 text-[11px] text-slate-600">Debe quedar al menos un OA en esta jornada. Puedes combinar más de uno.</p>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>}
       {config.nivel === "parvularia" && <div><button onClick={() => setOpenOAT(!openOAT)} className="flex w-full items-center justify-between rounded-2xl border-2 border-slate-300 bg-slate-50 p-4 text-left"><div><p className="font-black">OAT / foco transversal</p><p className="mt-1 text-xs text-slate-600">Opcional · {config.selectedOATIds.length} seleccionado(s)</p></div><span className="text-xl font-black">{openOAT ? "−" : "+"}</span></button>{openOAT && <div className="mt-3 grid gap-3">{oatOptions.map((item) => { const selected = config.selectedOATIds.includes(item.id); return <button key={item.id} onClick={() => toggleOAT(item.id)} className={`rounded-2xl border-2 p-4 text-left ${selected ? "border-teal-700 bg-teal-50" : "border-slate-300 bg-white hover:border-teal-500"}`}><div className="flex justify-between gap-3"><div><p className="font-black">{item.description || item.id}</p><p className="mt-1 text-sm text-slate-700">{item.label}</p></div><Check selected={selected} color="teal" /></div></button> })}</div>}</div>}
@@ -664,19 +764,19 @@ export default function PlannerPage() {
 
   const result = latest && <div className="space-y-4"><div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-emerald-700 bg-emerald-50 p-4"><div><p className="text-xs font-black uppercase text-emerald-800">Planificación generada</p><p className="mt-1 font-black">{isParvularia ? `Educación Parvularia · ${config.curso}` : `${mode.label} · ${config.curso}`}</p></div><div className="flex flex-wrap gap-2"><button onClick={editPlanning} className="rounded-xl border-2 border-slate-700 bg-white px-3 py-2 text-xs font-black">← Editar datos</button>{isParvularia && <button onClick={saveAndEdit} disabled={saving} className="rounded-xl border-2 border-sky-700 bg-sky-700 px-3 py-2 text-xs font-black text-white disabled:opacity-50">{saving ? "Abriendo editor…" : "✏️ Editar planificación"}</button>}{!isParvularia && <button onClick={copy} className="rounded-xl border-2 border-blue-700 bg-white px-3 py-2 text-xs font-black text-blue-800">{copied ? "✓ Copiado" : "📋 Copiar"}</button>}<button onClick={save} disabled={saving} className="rounded-xl border-2 border-emerald-700 bg-white px-3 py-2 text-xs font-black text-emerald-800">{saving ? "Guardando…" : "💾 Guardar"}</button><button onClick={exportPdf} disabled={exporting} className="rounded-xl border-2 border-amber-700 bg-white px-3 py-2 text-xs font-black text-amber-800">{exporting ? "Exportando…" : "📄 Exportar PDF"}</button></div></div><article className="rounded-3xl border-2 border-slate-300 bg-white p-5 md:p-8">{isParvularia ? <ParvulariaPlanningPreview content={latest.content} /> : institutionalMacro ? <SchoolPlanningPreview meta={institutionalMeta()} content={latest.content} /> : <div className="prose prose-slate max-w-none text-sm prose-table:text-xs prose-th:p-3 prose-td:border prose-td:border-slate-300 prose-td:p-3 prose-h2:text-emerald-800 prose-h3:text-indigo-800 prose-th:bg-slate-100"><ReactMarkdown remarkPlugins={[remarkGfm]}>{latest.content}</ReactMarkdown></div>}{latest.provider && <p className="mt-6 border-t pt-3 text-xs text-slate-500">Generado mediante {latest.provider}</p>}</article><div className="rounded-2xl border-2 border-indigo-300 bg-indigo-50 p-5"><p className="font-black text-indigo-950">Ajustar planificación con IA</p><div className="mt-3 flex flex-col gap-3 md:flex-row"><textarea value={refinement} onChange={(e) => setRefinement(e.target.value)} placeholder={isParvularia ? "Ej.: agrega más experiencias sensoriales con elementos naturales y refuerza el rol de la familia." : "Ej.: reduce la clase a 45 minutos y agrega una actividad experimental."} className={`${inputClass} min-h-[90px] flex-1 font-normal`} /><button onClick={() => send(refinement, true)} disabled={!refinement.trim() || loading} className="rounded-xl bg-indigo-700 px-5 py-3 font-black text-white disabled:bg-slate-400 md:self-end">Aplicar ajuste</button></div></div></div>
 
-  const stepFour = <div className="space-y-6"><div><p className="text-xs font-black uppercase tracking-[.18em] text-emerald-700">Paso 4</p><h2 className="mt-1 text-2xl font-black">Revisar y generar</h2></div>{!resultReady && <><div className="grid gap-4 rounded-3xl border-2 border-slate-300 bg-slate-50 p-6 md:grid-cols-2"><div><p className="text-xs font-black uppercase text-slate-500">Planificación</p><p className="mt-1 text-lg font-black">{isParvularia ? "🌸 Educación Parvularia" : institutionalMacro ? "🏫 Cronograma institucional" : `${mode.icon} ${mode.label}`}</p><p className="mt-2 text-sm text-slate-700">{isParvularia ? `${config.tiempoPlanificacion} · ${buildParvulariaDateLabel(config.fechaInicioParvularia, config.fechaFinParvularia || config.fechaInicioParvularia)}` : institutionalMacro ? `${periodLabel} · ${config.weeklyOAPlan.length} semanas` : buildPlanningHorizonText(config.tiempoPlanificacion, config.sesiones, config.duracionMinutos)}</p>{institutionalMacro && <p className="mt-2 text-xs text-slate-600">{config.profesor} · {config.horasSemanales}</p>}{isParvularia && <p className="mt-2 text-xs text-slate-600">{config.educadoraParvularia} · {config.asistentesParvularia} · 3 jornadas diarias</p>}</div><div><p className="text-xs font-black uppercase text-slate-500">Curso y asignatura</p><p className="mt-1 font-black">{config.curso}</p><p className="mt-1 text-sm text-slate-700">{config.asignatura}</p></div><div><p className="text-xs font-black uppercase text-slate-500">Currículum</p><p className="mt-1 text-sm font-bold">{institutionalMacro ? "Distribución OA por semana" : selectedUnit?.label || "Sin unidad específica"}</p><p className="mt-2 text-sm text-slate-700">OA: {selectedOA.map((item) => item.codigoOficial || item.id).join(", ")}</p>{institutionalMacro && <p className="mt-2 text-xs text-slate-600">{config.weeklyOAPlan.filter((week) => week.oaIds.length > 0).length}/{config.weeklyOAPlan.length} semanas completas</p>}</div><div><p className="text-xs font-black uppercase text-slate-500">Idea central</p><p className="mt-1 text-sm text-slate-700">{config.contexto.trim() || "La IA propondrá un contexto pertinente."}</p></div></div><button onClick={() => send(generationPrompt())} disabled={loading || config.selectedOAIds.length === 0 || (institutionalMacro && config.weeklyOAPlan.some((week) => week.oaIds.length === 0))} className="w-full rounded-2xl bg-emerald-700 px-6 py-4 font-black text-white shadow-lg hover:bg-emerald-800 disabled:bg-slate-400">{loading ? "Generando planificación…" : "✨ Generar planificación"}</button></>}{loading && <div className="rounded-2xl border-2 border-emerald-300 bg-emerald-50 p-5 text-center font-black text-emerald-950">{isParvularia ? "EduAI está construyendo las 3 jornadas diarias con OA/OAT, actividades, orientaciones, recursos y evaluación…" : "EduAI está organizando OA, actividades, tiempos y evaluación…"}</div>}{resultReady && result}</div>
+  const stepFour = <div className="space-y-6"><div><p className="text-xs font-black uppercase tracking-[.18em] text-emerald-700">Paso 4</p><h2 className="mt-1 text-2xl font-black">Revisar y generar</h2></div>{!resultReady && <><div className="grid gap-4 rounded-3xl border-2 border-slate-300 bg-slate-50 p-6 md:grid-cols-2"><div><p className="text-xs font-black uppercase text-slate-500">Planificación</p><p className="mt-1 text-lg font-black">{isParvularia ? "🌸 Educación Parvularia" : institutionalMacro ? "🏫 Cronograma institucional" : `${mode.icon} ${mode.label}`}</p><p className="mt-2 text-sm text-slate-700">{isParvularia ? `${config.tiempoPlanificacion} · ${buildParvulariaDateLabel(config.fechaInicioParvularia, config.fechaFinParvularia || config.fechaInicioParvularia)}` : institutionalMacro ? `${periodLabel} · ${config.weeklyOAPlan.length} semanas` : buildPlanningHorizonText(config.tiempoPlanificacion, config.sesiones, config.duracionMinutos)}</p>{institutionalMacro && <p className="mt-2 text-xs text-slate-600">{config.profesor} · {config.horasSemanales}</p>}{isParvularia && <p className="mt-2 text-xs text-slate-600">{config.educadoraParvularia} · {config.asistentesParvularia} · 3 jornadas diarias</p>}</div><div><p className="text-xs font-black uppercase text-slate-500">{isParvularia ? "Curso y núcleos" : "Curso y asignatura"}</p><p className="mt-1 font-black">{config.curso}</p>{isParvularia ? <div className="mt-1 space-y-1 text-sm text-slate-700">{config.parvulariaJourneyNucleos.map((nucleo, index) => <p key={index}>J{index + 1}: {nucleo || "Sin núcleo"}</p>)}</div> : <p className="mt-1 text-sm text-slate-700">{config.asignatura}</p>}</div><div><p className="text-xs font-black uppercase text-slate-500">Currículum</p><p className="mt-1 text-sm font-bold">{institutionalMacro ? "Distribución OA por semana" : selectedUnit?.label || "Sin unidad específica"}</p><p className="mt-2 text-sm text-slate-700">OA: {selectedOA.map((item) => item.codigoOficial || item.id).join(", ")}</p>{institutionalMacro && <p className="mt-2 text-xs text-slate-600">{config.weeklyOAPlan.filter((week) => week.oaIds.length > 0).length}/{config.weeklyOAPlan.length} semanas completas</p>}</div><div><p className="text-xs font-black uppercase text-slate-500">Idea central</p><p className="mt-1 text-sm text-slate-700">{config.contexto.trim() || "La IA propondrá un contexto pertinente."}</p></div></div><button onClick={() => send(generationPrompt())} disabled={loading || config.selectedOAIds.length === 0 || (isParvularia && (config.parvulariaJourneyNucleos.some((nucleo) => !nucleo) || config.parvulariaJourneyOAIds.some((ids) => ids.length === 0))) || (institutionalMacro && config.weeklyOAPlan.some((week) => week.oaIds.length === 0))} className="w-full rounded-2xl bg-emerald-700 px-6 py-4 font-black text-white shadow-lg hover:bg-emerald-800 disabled:bg-slate-400">{loading ? "Generando planificación…" : "✨ Generar planificación"}</button></>}{loading && <div className="rounded-2xl border-2 border-emerald-300 bg-emerald-50 p-5 text-center font-black text-emerald-950">{isParvularia ? "EduAI está construyendo las 3 jornadas diarias con OA/OAT, actividades, orientaciones, recursos y evaluación…" : "EduAI está organizando OA, actividades, tiempos y evaluación…"}</div>}{resultReady && result}</div>
 
   const content = step === 1 ? stepOne : step === 2 ? stepTwo : step === 3 ? stepThree : stepFour
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-950">
-      <header className="sticky top-0 z-30 border-b border-slate-300 bg-white/95 shadow-sm backdrop-blur"><div className="mx-auto flex max-w-[1500px] items-center justify-between gap-4 px-4 py-3 md:px-6"><div className="flex min-w-0 items-center gap-3"><button onClick={() => router.push("/agentes")} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border-2 border-slate-300 font-black">←</button><div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-700 text-xl text-white">🏫</div><div className="min-w-0"><h1 className="truncate font-black">APl — Agente Planificador</h1><p className="truncate text-xs font-medium text-slate-600">Planificaciones con OA MINEDUC · Parvularia, Básica y Media</p></div></div><Link href="/educador/planificaciones" className="shrink-0 rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-black text-white">🗂️ Ver guardadas</Link></div></header>
+      <header className="sticky top-0 z-30 border-b border-slate-300 bg-white/95 shadow-sm backdrop-blur"><div className="mx-auto flex max-w-[1500px] items-center justify-between gap-4 px-4 py-3 md:px-6"><div className="flex min-w-0 items-center gap-3"><button onClick={() => router.push("/agentes")} className="flex shrink-0 items-center gap-2 rounded-xl border-2 border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-800 hover:border-emerald-600 hover:text-emerald-800"><span aria-hidden="true">←</span><span className="hidden sm:inline">Volver a agentes</span></button><div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-700 text-xl text-white">🏫</div><div className="min-w-0"><h1 className="truncate font-black">APl — Agente Planificador</h1><p className="truncate text-xs font-medium text-slate-600">Planificaciones con OA MINEDUC · Parvularia, Básica y Media</p></div></div><Link href="/educador/planificaciones" className="shrink-0 rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-black text-white">🗂️ Ver guardadas</Link></div></header>
       <main className="mx-auto max-w-[1500px] px-4 py-6 md:px-6">
         <nav className="mb-6 overflow-x-auto rounded-2xl border-2 border-slate-300 bg-white p-3"><div className="flex min-w-[680px] gap-2">{STEPS.map((label, index) => { const id = index + 1; const active = step === id; const done = step > id; return <button key={label} onClick={() => goTo(id)} className={`flex flex-1 items-center gap-3 rounded-xl px-3 py-2.5 text-left ${active ? "bg-emerald-700 text-white" : done ? "bg-emerald-100 text-emerald-950" : "bg-slate-100 text-slate-600"}`}><span className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-black ${active ? "bg-white text-emerald-800" : done ? "bg-emerald-700 text-white" : "bg-white"}`}>{done ? "✓" : id}</span><span className="text-sm font-black">{label}</span></button> })}</div></nav>
         {status && <div className={`mb-5 rounded-2xl border-2 px-4 py-3 text-sm font-bold ${status.includes("correctamente") ? "border-emerald-500 bg-emerald-50 text-emerald-950" : "border-amber-500 bg-amber-50 text-amber-950"}`}>{status}</div>}
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
           <section className="rounded-3xl border-2 border-slate-300 bg-white p-5 shadow-sm md:p-7">{content}{!resultReady && <div className="mt-8 flex justify-between border-t pt-5"><button onClick={() => goTo(Math.max(1, step - 1))} disabled={step === 1} className="rounded-xl border-2 border-slate-300 px-5 py-3 text-sm font-black disabled:opacity-30">← Atrás</button>{step < 4 && <button onClick={() => goTo(step + 1)} className="rounded-xl bg-emerald-700 px-6 py-3 text-sm font-black text-white">Continuar →</button>}</div>}</section>
-          <aside className="xl:sticky xl:top-24 xl:self-start"><div className="rounded-3xl border-2 border-slate-800 bg-slate-950 p-5 text-white shadow-lg"><p className="text-xs font-black uppercase tracking-[.18em] text-emerald-300">Resumen</p><h2 className="mt-2 text-lg font-black">{isParvularia ? "🌸 Educación Parvularia" : `${mode.icon} ${mode.label}`}</h2><div className="mt-5 space-y-4 text-sm"><div className="rounded-2xl bg-white/10 p-4"><p className="text-xs font-black uppercase text-slate-300">Nivel y curso</p><p className="mt-1 font-black">{config.curso}</p><p className="mt-1 text-slate-300">{config.asignatura}</p></div><div className="rounded-2xl bg-white/10 p-4"><p className="text-xs font-black uppercase text-slate-300">{isParvularia ? "Período" : institutionalMacro ? "Periodo" : "Duración"}</p><p className="mt-1 font-black">{isParvularia ? buildParvulariaDateLabel(config.fechaInicioParvularia, config.fechaFinParvularia || config.fechaInicioParvularia) : institutionalMacro ? periodLabel : `${config.sesiones} sesión(es) · ${config.duracionMinutos} min`}</p>{isParvularia && <p className="mt-1 text-xs font-bold text-rose-200">3 planificaciones por día</p>}<p className="mt-1 capitalize text-slate-300">{isParvularia ? config.tiempoPlanificacion : institutionalMacro ? `${config.weeklyOAPlan.length} semanas · ${config.anioPlanificacion}` : config.tiempoPlanificacion}</p>{institutionalMacro && <p className="mt-1 text-xs text-slate-400">{config.profesor || "Profesor por completar"} · {config.horasSemanales || "Horas por completar"}</p>}{isParvularia && <p className="mt-1 text-xs text-slate-400">{config.educadoraParvularia || "Educadora por completar"} · {config.asistentesParvularia || "Asistentes por completar"}</p>}</div><div className="rounded-2xl bg-white/10 p-4"><p className="text-xs font-black uppercase text-slate-300">Currículum</p><p className="mt-1 font-black">{institutionalMacro ? "OA del período" : selectedUnit?.label || "Unidad por definir"}</p><p className="mt-2 text-slate-300">{config.selectedOAIds.length} OA seleccionado(s)</p>{institutionalMacro && <p className="mt-1 text-xs text-slate-400">{config.weeklyOAPlan.filter((week) => week.oaIds.length).length}/{config.weeklyOAPlan.length} semanas con OA</p>}</div><div className={`rounded-2xl border p-4 ${hasCurriculum ? "border-emerald-500 bg-emerald-500/15" : "border-amber-400 bg-amber-400/15"}`}><p className="font-black">{hasCurriculum ? "✓ Currículum disponible" : "⚠ Cobertura parcial"}</p><p className="mt-1 text-xs text-slate-300">Solo se muestran opciones relacionadas con la planificación.</p></div></div></div></aside>
+          <aside className="xl:sticky xl:top-24 xl:self-start"><div className="rounded-3xl border-2 border-slate-800 bg-slate-950 p-5 text-white shadow-lg"><p className="text-xs font-black uppercase tracking-[.18em] text-emerald-300">Resumen</p><h2 className="mt-2 text-lg font-black">{isParvularia ? "🌸 Educación Parvularia" : `${mode.icon} ${mode.label}`}</h2><div className="mt-5 space-y-4 text-sm"><div className="rounded-2xl bg-white/10 p-4"><p className="text-xs font-black uppercase text-slate-300">Nivel y curso</p><p className="mt-1 font-black">{config.curso}</p><p className="mt-1 text-slate-300">{config.asignatura}</p></div><div className="rounded-2xl bg-white/10 p-4"><p className="text-xs font-black uppercase text-slate-300">{isParvularia ? "Período" : institutionalMacro ? "Periodo" : "Duración"}</p><p className="mt-1 font-black">{isParvularia ? buildParvulariaDateLabel(config.fechaInicioParvularia, config.fechaFinParvularia || config.fechaInicioParvularia) : institutionalMacro ? periodLabel : `${config.sesiones} sesión(es) · ${config.duracionMinutos} min`}</p>{isParvularia && <p className="mt-1 text-xs font-bold text-rose-200">3 planificaciones por día</p>}<p className="mt-1 capitalize text-slate-300">{isParvularia ? config.tiempoPlanificacion : institutionalMacro ? `${config.weeklyOAPlan.length} semanas · ${config.anioPlanificacion}` : config.tiempoPlanificacion}</p>{institutionalMacro && <p className="mt-1 text-xs text-slate-400">{config.profesor || "Profesor por completar"} · {config.horasSemanales || "Horas por completar"}</p>}{isParvularia && <p className="mt-1 text-xs text-slate-400">{config.educadoraParvularia || "Educadora por completar"} · {config.asistentesParvularia || "Asistentes por completar"}</p>}</div><div className="rounded-2xl bg-white/10 p-4"><p className="text-xs font-black uppercase text-slate-300">Currículum</p><p className="mt-1 font-black">{isParvularia ? "Núcleo y OA por jornada" : institutionalMacro ? "OA del período" : selectedUnit?.label || "Unidad por definir"}</p><p className="mt-2 text-slate-300">{config.selectedOAIds.length} OA seleccionado(s)</p>{isParvularia && <div className="mt-2 space-y-1 text-xs text-slate-400">{config.parvulariaJourneyNucleos.map((nucleo, index) => <p key={index}>J{index + 1}: {nucleo || "Sin núcleo"} · {config.parvulariaJourneyOAIds[index]?.length || 0} OA</p>)}</div>}{institutionalMacro && <p className="mt-1 text-xs text-slate-400">{config.weeklyOAPlan.filter((week) => week.oaIds.length).length}/{config.weeklyOAPlan.length} semanas con OA</p>}</div><div className={`rounded-2xl border p-4 ${hasCurriculum ? "border-emerald-500 bg-emerald-500/15" : "border-amber-400 bg-amber-400/15"}`}><p className="font-black">{hasCurriculum ? "✓ Currículum disponible" : "⚠ Cobertura parcial"}</p><p className="mt-1 text-xs text-slate-300">Solo se muestran opciones relacionadas con la planificación.</p></div></div></div></aside>
         </div>
       </main>
     </div>
