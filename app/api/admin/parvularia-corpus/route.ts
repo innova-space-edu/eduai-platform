@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { createHash } from "node:crypto"
 import { createClient as createAdminClient } from "@supabase/supabase-js"
 import { unzipSync } from "fflate"
-import mammoth from "mammoth"
+import * as mammoth from "mammoth"
 import * as cheerio from "cheerio"
 import { createClient as createServerClient } from "@/lib/supabase/server"
 
