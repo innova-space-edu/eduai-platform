@@ -295,6 +295,17 @@ export default function AdminPage() {
                 <ChevronRight size={18} className="text-muted2 ml-auto" />
               </button>
 
+              <Link href="/admin/parvularia-corpus"
+                className="flex items-center gap-4 p-5 rounded-2xl border text-left transition-all"
+                style={{ background: "rgba(236,72,153,0.06)", borderColor: "rgba(236,72,153,0.2)" }}>
+                <BookOpen size={24} className="text-pink-400 flex-shrink-0" />
+                <div>
+                  <p className="text-main font-semibold">Biblioteca Parvularia</p>
+                  <p className="text-sub text-sm">Importar planificaciones y actividades para APl</p>
+                </div>
+                <ChevronRight size={18} className="text-muted2 ml-auto" />
+              </Link>
+
               <Link href="/admin/examenes"
                 className="flex items-center gap-4 p-5 rounded-2xl border text-left transition-all"
                 style={{ background: "rgba(16,185,129,0.06)", borderColor: "rgba(16,185,129,0.2)" }}>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { callAI, getEducadorModelStrategy } from "@/lib/ai-router-v4"
+import { runAIText as runAIGatewayText } from "@/lib/ai/gateway"
 import {
   buildOAContext,
   cursoToKey,
@@ -30,6 +31,7 @@ import { buildConnectedOAContext, resolveOAConnection } from "@/lib/planner-oa-b
 import { expectedSchoolWeekLabel, getSchoolPlanningPeriodLabel, normalizeSchoolWeekLabel, schoolPlanningMonthLabel, validateSchoolPlanningWeeks } from "@/lib/school-planning-template"
 import { buildParvulariaDateLabel, buildParvulariaPeriodGuide, parseParvulariaPlanningDocument, parvulariaHorizonLabel, serializeParvulariaPlanningDocument } from "@/lib/parvularia-planning"
 import bcepReference from "@/data/mineduc/parvularia/common/bcep_2018_reference.json"
+import { buildParvulariaKnowledgeContext, evaluateParvulariaNovelty, rememberParvulariaGeneration } from "@/lib/parvularia-knowledge"
 
 export const runtime = "nodejs"
 export const maxDuration = 60
@@ -359,29 +361,84 @@ function buildFallbackParvulariaActivity(params: {
   journeyIndex: number
   nucleo: string
   sequence: number
+  variationSeed?: number
 }): string {
   const c = params.curso.toLowerCase()
-  const variation = params.sequence % 3
-  const suffix = ` vinculada con ${params.nucleo}, con mediación ajustada a la edad y registro de respuestas observables.`
+  const variation = (params.sequence + (params.variationSeed || 0)) % 4
+  const suffixes = [
+    ` vinculada con ${params.nucleo}, con mediación ajustada a la edad y registro de respuestas observables.`,
+    ` vinculada con ${params.nucleo}, favoreciendo elección, exploración autónoma y documentación breve de la respuesta infantil.`,
+    ` vinculada con ${params.nucleo}, alternando exploración libre y una provocación breve del adulto para observar avances concretos.`,
+    ` vinculada con ${params.nucleo}, cambiando espacio, disposición y forma de interacción para evitar repetir la misma mecánica.`,
+  ]
+  const suffix = suffixes[variation]
 
   if (params.journeyIndex === 2) {
-    if (c.includes("sala cuna menor")) return `Los párvulos observarán imágenes u objetos, escucharán palabras, sonidos o canciones y responderán con mirada, balbuceo, gestos o movimientos${suffix}`
-    if (c.includes("sala cuna mayor")) return `Los niños y niñas señalarán, imitarán sonidos, elegirán imágenes u objetos y participarán en canciones o relatos breves con palabras y gestos${suffix}`
+    if (c.includes("sala cuna menor")) {
+      const options = [
+        "Los párvulos observarán objetos reales y fotografías contrastadas, escucharán palabras breves y responderán con mirada, balbuceo, gestos o movimientos",
+        "Los párvulos explorarán una bolsa sonora con objetos conocidos mientras el adulto nombra cada hallazgo, espera turnos de respuesta y amplía vocalizaciones",
+        "Los párvulos participarán en un relato de objetos concretos, tocando y mirando cada elemento mientras el adulto acompaña con sonidos, pausas y gestos repetibles",
+        "Los párvulos elegirán entre dos estímulos visuales o sonoros y comunicarán preferencia mediante mirada, alcance, sonrisa o vocalización acompañada por el adulto",
+      ]
+      return `${options[variation]}${suffix}`
+    }
+    if (c.includes("sala cuna mayor")) {
+      const options = [
+        "Los niños y niñas señalarán, imitarán sonidos, elegirán imágenes u objetos y participarán en canciones o relatos breves con palabras y gestos",
+        "Los niños y niñas buscarán objetos nombrados en distintos puntos del espacio, los mostrarán al grupo y acompañarán la acción con palabras, sonidos o gestos",
+        "Los niños y niñas completarán secuencias breves de un cuento con objetos reales, anticipando acciones mediante gestos, palabras emergentes y elección de imágenes",
+        "Los niños y niñas participarán en un juego de turnos con títeres u objetos sonoros, respondiendo preguntas simples y proponiendo sonidos o palabras conocidas",
+      ]
+      return `${options[variation]}${suffix}`
+    }
     if (c.includes("medio menor")) return `Los niños y niñas nombrarán objetos, responderán preguntas simples y reconstruirán partes de un relato mediante imágenes, gestos y frases breves${suffix}`
     if (c.includes("medio mayor")) return `Los niños y niñas describirán, compararán y relatarán situaciones breves, ampliando vocabulario y turnos de conversación con apoyos visuales${suffix}`
     return `Los párvulos participarán en conversación, relato o lectura compartida, formulando ideas y respuestas acordes a su subnivel${suffix}`
   }
 
   if (params.journeyIndex === 1) {
-    if (c.includes("sala cuna menor")) return `Los párvulos tocarán, observarán y moverán materiales artísticos o sensoriales seguros, reaccionando a colores, texturas, sonidos y movimientos con apoyo cercano${suffix}`
-    if (c.includes("sala cuna mayor")) return `Los niños y niñas trasladarán, golpearán, agitarán y combinarán materiales de color, textura o sonido, explorando movimientos con mayor autonomía${suffix}`
+    if (c.includes("sala cuna menor")) {
+      const options = [
+        "Los párvulos tocarán, observarán y moverán materiales artísticos o sensoriales seguros, reaccionando a colores, texturas, sonidos y movimientos con apoyo cercano",
+        "Los párvulos explorarán telas, papeles translúcidos y objetos sonoros desde distintas posturas, siguiendo cambios de luz, textura y sonido con mediación afectiva",
+        "Los párvulos producirán huellas y movimientos sobre una superficie protegida con materiales lavables, observando marcas y cambios mediante manos o pies",
+        "Los párvulos descubrirán sonidos suaves al agitar, rozar o golpear materiales seguros, mientras el adulto acompaña ritmos y observa preferencias sensoriales",
+      ]
+      return `${options[variation]}${suffix}`
+    }
+    if (c.includes("sala cuna mayor")) {
+      const options = [
+        "Los niños y niñas trasladarán, golpearán, agitarán y combinarán materiales de color, textura o sonido, explorando movimientos con mayor autonomía",
+        "Los niños y niñas crearán recorridos de color y textura con telas, papeles y recipientes, eligiendo materiales y comparando efectos mediante movimiento libre",
+        "Los niños y niñas experimentarán con instrumentos simples y objetos cotidianos, alternando intensidad y ritmo mientras imitan y proponen movimientos corporales",
+        "Los niños y niñas combinarán materiales lavables para dejar marcas, estampar o arrastrar, observando transformaciones y comunicando preferencias al equipo",
+      ]
+      return `${options[variation]}${suffix}`
+    }
     if (c.includes("medio menor")) return `Los niños y niñas elegirán materiales, producirán trazos, sonidos o movimientos y combinarán texturas y colores mediante juego expresivo${suffix}`
     if (c.includes("medio mayor")) return `Los niños y niñas crearán composiciones simples, compararán efectos de color, sonido o textura y comunicarán preferencias durante la experiencia${suffix}`
     return `Los párvulos planificarán y realizarán una producción artística o sensorial, tomando decisiones y explicando parte de su proceso${suffix}`
   }
 
-  if (c.includes("sala cuna menor")) return `Los párvulos tocarán, observarán, alcanzarán o recorrerán materiales seguros mediante manos, pies o gateo, con acompañamiento corporal y verbal cercano${suffix}`
-  if (c.includes("sala cuna mayor")) return `Los niños y niñas se desplazarán, trasladarán, introducirán, sacarán o combinarán materiales, explorando relaciones simples mediante acción autónoma guiada${suffix}`
+  if (c.includes("sala cuna menor")) {
+    const options = [
+      "Los párvulos tocarán, observarán, alcanzarán o recorrerán materiales seguros mediante manos, pies o gateo, con acompañamiento corporal y verbal cercano",
+      "Los párvulos explorarán una ruta breve con objetos de distintas texturas y alturas seguras, alcanzando, empujando o siguiendo estímulos desde su postura disponible",
+      "Los párvulos investigarán recipientes amplios con objetos seguros, sacando, tocando, soltando y volviendo a buscar elementos mientras el adulto describe sus acciones",
+      "Los párvulos explorarán elementos naturales seguros dispuestos en bandejas o telas, acercando manos, pies y mirada mientras el adulto acompaña sin sobreintervenir",
+    ]
+    return `${options[variation]}${suffix}`
+  }
+  if (c.includes("sala cuna mayor")) {
+    const options = [
+      "Los niños y niñas se desplazarán, trasladarán, introducirán, sacarán o combinarán materiales, explorando relaciones simples mediante acción autónoma guiada",
+      "Los niños y niñas recorrerán pequeñas estaciones de exploración, transportando objetos y resolviendo cómo alcanzar, encajar, vaciar o agrupar materiales seguros",
+      "Los niños y niñas experimentarán con recipientes, tubos y objetos de distinto tamaño, probando introducir, sacar, apilar y trasladar mientras comparan resultados",
+      "Los niños y niñas explorarán materiales naturales o cotidianos distribuidos en el espacio, eligiendo rutas, reuniendo elementos y comunicando hallazgos al adulto",
+    ]
+    return `${options[variation]}${suffix}`
+  }
   if (c.includes("medio menor")) return `Los niños y niñas escogerán, agruparán, trasladarán y compararán materiales concretos, nombrando acciones o propiedades durante el juego exploratorio${suffix}`
   if (c.includes("medio mayor")) return `Los niños y niñas compararán, clasificarán, transformarán o construirán con materiales, explicando hallazgos y tomando decisiones durante la exploración${suffix}`
   return variation === 0
@@ -1396,6 +1453,19 @@ REGLAS:
   const claseObjectives = isBasicaMedia ? buildClaseObjectives(sesiones) : ""
   const weeklyOAContext = isInstitutionalMacro ? buildWeeklyOAContext({ nivel, curso, asignatura, weeklyOAPlan }) : ""
 
+  const parvulariaKnowledge = isStructuredParvularia
+    ? await buildParvulariaKnowledgeContext({
+        supabase,
+        userId: user.id,
+        course: curso,
+        topic: contexto || message,
+        message,
+        journeyNuclei: parvulariaJourneyNucleos,
+        selectedOAIds,
+        selectedOATIds,
+        candidateLimit: tiempoPlanificacion === "diaria" ? 9 : 15,
+      }).catch(() => null)
+    : null
 
   const systemPrompt = `Eres APl, el Agente Planificador Curricular de EduAI, especializado en el curriculum oficial chileno del MINEDUC.
 
@@ -1715,6 +1785,8 @@ ${parvulariaPeriodGuide || "Desarrolla experiencias coherentes con el período s
 
 ${parvulariaHeterogeneousDevelopmentContext ? `${parvulariaHeterogeneousDevelopmentContext}\n` : ""}
 
+${parvulariaKnowledge?.prompt || ""}
+
 CRITERIOS BCEP 2018 OFICIALES PARA CONSTRUIR LA EXPERIENCIA:
 ${JSON.stringify({
   principios: bcepReference.principios_pedagogicos,
@@ -1950,6 +2022,8 @@ REGLAS DE LAS CELDAS:
       openrouterModel: strategy.openrouterModel,
     })
 
+    let noveltyAudit: ReturnType<typeof evaluateParvulariaNovelty> | null = null
+
     if (isStructuredParvularia) {
       const canonicalize = (rawText: string) => {
         const parsed = parseParvulariaPlanningDocument(rawText)
@@ -2112,6 +2186,56 @@ REGLAS DE LAS CELDAS:
         })
         result = { ...repaired, text: canonicalize(repaired.text) }
       }
+
+      if (parvulariaKnowledge) {
+        noveltyAudit = evaluateParvulariaNovelty(
+          result.text,
+          parvulariaKnowledge.recentContentSamples,
+        )
+
+        if (!noveltyAudit.passed) {
+          const diversifiedAI = await runAIGatewayText({
+            messages: [
+              ...aiMessages,
+              { role: "assistant" as const, content: truncateForPrompt(result.text, 4200) },
+              {
+                role: "user" as const,
+                content: `La planificación anterior repite demasiado actividades ya utilizadas (similitud máxima ${noveltyAudit.maxSimilarity}). Mantén exactamente los mismos ÁMBITOS, NÚCLEOS, OA, OAT, fechas y estructura institucional, pero REEMPLAZA las actividades de Desarrollo por experiencias sustantivamente diferentes. Cambia acción infantil, materiales, organización del espacio, mediación adulta y evidencia observable; no basta cambiar colores, nombres o personajes. Usa la biblioteca pedagógica solo como inspiración y no copies literalmente planificaciones anteriores.`,
+              },
+            ],
+            capability: "long_context",
+            maxOutputTokens: strategy.maxTokens,
+            context: {
+              userId: user.id,
+              module: "educador-parvularia-diversify",
+              reusePolicy: "exact_private",
+              visibility: "private",
+            },
+            supabase,
+          })
+          const diversified = {
+            text: diversifiedAI.data,
+            provider: diversifiedAI.provider,
+            model: diversifiedAI.model,
+            reused: diversifiedAI.reused,
+          }
+
+          try {
+            const diversifiedText = canonicalize(diversified.text)
+            const diversifiedAudit = evaluateParvulariaNovelty(
+              diversifiedText,
+              parvulariaKnowledge.recentContentSamples,
+            )
+
+            if (diversifiedAudit.maxSimilarity <= noveltyAudit.maxSimilarity) {
+              result = { ...diversified, text: diversifiedText }
+              noveltyAudit = diversifiedAudit
+            }
+          } catch {
+            // Conserva la versión institucional ya validada si la diversificación rompe el formato.
+          }
+        }
+      }
     }
 
     if (isInstitutionalMacro) {
@@ -2154,6 +2278,25 @@ REGLAS DE LAS CELDAS:
       }
     }
 
+    if (isStructuredParvularia) {
+      await rememberParvulariaGeneration({
+        supabase,
+        userId: user.id,
+        course: curso,
+        topic: contexto || message,
+        selectedOAIds,
+        selectedOATIds,
+        candidateActivityIds: parvulariaKnowledge?.candidateIds || [],
+        generatedContent: result.text,
+        metadata: {
+          tiempoPlanificacion,
+          journeyNuclei: parvulariaJourneyNucleos,
+          knowledgeSource: parvulariaKnowledge?.source || "none",
+          noveltyAudit,
+        },
+      })
+    }
+
     return NextResponse.json({
       text: result.text,
       provider: result.provider,
@@ -2179,6 +2322,13 @@ REGLAS DE LAS CELDAS:
       parvulariaJourneyNucleos: isStructuredParvularia ? parvulariaJourneyNucleos : undefined,
       parvulariaJourneyOAIds: isStructuredParvularia ? parvulariaJourneyOAIds : undefined,
       parvulariaJourneyOATIds: isStructuredParvularia ? parvulariaJourneyOATIds : undefined,
+      parvulariaKnowledge: isStructuredParvularia ? {
+        source: parvulariaKnowledge?.source || "none",
+        referenceCount: parvulariaKnowledge?.candidateIds.length || 0,
+        savedPlanningCount: parvulariaKnowledge?.savedPlanningCount || 0,
+        generationHistoryCount: parvulariaKnowledge?.generationHistoryCount || 0,
+        noveltyAudit,
+      } : undefined,
       compactPrompt: useCompactResourcePrompt,
       _design: designSummary,
     })
@@ -2242,6 +2392,7 @@ REGLAS DE LAS CELDAS:
                 journeyIndex,
                 nucleo,
                 sequence: index,
+                variationSeed: Date.now() + journeyIndex,
               })
             ),
           ].join("\n")).join("\n\n")
@@ -2253,6 +2404,7 @@ REGLAS DE LAS CELDAS:
             journeyIndex,
             nucleo,
             sequence: index,
+            variationSeed: Date.now() + journeyIndex,
           })
         )
       }
