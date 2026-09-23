@@ -123,8 +123,16 @@ function activitySearchBody(activity: ParvulariaKnowledgeActivity) {
 
 function relevanceScore(activity: ParvulariaKnowledgeActivity, queryTokens: string[], course: string) {
   const body = normalize(activitySearchBody(activity))
-  let score = normalize(activity.level || "") === normalize(course) ? 18 : 0
-  if (normalize(activity.level || "") === "sala cuna" && normalize(course).includes("sala cuna")) score += 6
+  const activityLevel = normalize(activity.level || "")
+  const requestedLevel = normalize(course)
+  let score = activityLevel === requestedLevel ? 18 : 0
+  if (activityLevel.includes("sala cuna menor") && requestedLevel.includes("sala cuna menor")) score += 15
+  else if (activityLevel.includes("sala cuna mayor") && requestedLevel.includes("sala cuna mayor")) score += 15
+  else if (activityLevel.includes("medio menor") && requestedLevel.includes("medio menor")) score += 15
+  else if (activityLevel.includes("medio mayor") && requestedLevel.includes("medio mayor")) score += 15
+  else if (activityLevel.includes("nt1") && requestedLevel.includes("nt1")) score += 15
+  else if (activityLevel.includes("nt2") && requestedLevel.includes("nt2")) score += 15
+  else if (activityLevel === "sala cuna" && requestedLevel.includes("sala cuna")) score += 8
 
   for (const token of queryTokens) {
     if (!body.includes(token)) continue
@@ -244,18 +252,11 @@ export async function buildParvulariaKnowledgeContext(args: BuildKnowledgeArgs):
     .order("created_at", { ascending: false })
     .limit(24)
 
-  const levelCandidates = uniqueStrings([
-    args.course,
-    normalize(args.course).includes("sala cuna") ? "Sala Cuna" : "",
-  ])
-
-  let activityQuery = args.supabase
+  const activityQuery = args.supabase
     .from("parvularia_activity_bank")
     .select("id,source_id,level,topic,sequence_label,day_label,ambito_nucleo,oa_text,oat_text,skill_text,experience_text,inicio,desarrollo,cierre,evaluation,resources,tags,quality_score,search_text")
     .eq("active", true)
-    .limit(320)
-
-  if (levelCandidates.length) activityQuery = activityQuery.in("level", levelCandidates)
+    .limit(500)
 
   const [savedResult, historyResult, activityResult] = await Promise.all([
     savedPromise,

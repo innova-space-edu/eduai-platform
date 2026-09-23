@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { callAI, getEducadorModelStrategy } from "@/lib/ai-router-v4"
+import { runAIText as runAIGatewayText } from "@/lib/ai/gateway"
 import {
   buildOAContext,
   cursoToKey,
@@ -2021,6 +2022,8 @@ REGLAS DE LAS CELDAS:
       openrouterModel: strategy.openrouterModel,
     })
 
+    let noveltyAudit: ReturnType<typeof evaluateParvulariaNovelty> | null = null
+
     if (isStructuredParvularia) {
       const canonicalize = (rawText: string) => {
         const parsed = parseParvulariaPlanningDocument(rawText)
@@ -2183,30 +2186,55 @@ REGLAS DE LAS CELDAS:
         })
         result = { ...repaired, text: canonicalize(repaired.text) }
       }
-    }
 
-    let noveltyAudit = isStructuredParvularia && parvulariaKnowledge
-      ? evaluateParvulariaNovelty(result.text, parvulariaKnowledge.recentContentSamples)
-      : null
+      if (parvulariaKnowledge) {
+        noveltyAudit = evaluateParvulariaNovelty(
+          result.text,
+          parvulariaKnowledge.recentContentSamples,
+        )
 
-    if (isStructuredParvularia && noveltyAudit && !noveltyAudit.passed) {
-      const diversified = await callAI([
-        ...aiMessages,
-        { role: "assistant" as const, content: truncateForPrompt(result.text, 4200) },
-        {
-          role: "user" as const,
-          content: `La planificación anterior repite demasiado actividades ya utilizadas (similitud máxima ${noveltyAudit.maxSimilarity}). Mantén exactamente los mismos ÁMBITOS, NÚCLEOS, OA, OAT, fechas y estructura institucional, pero REEMPLAZA las actividades de Desarrollo por experiencias sustantivamente diferentes. Cambia acción infantil, materiales, organización del espacio, mediación adulta y evidencia observable; no basta cambiar colores, nombres o personajes. Usa la biblioteca pedagógica solo como inspiración y no copies literalmente planificaciones anteriores.`,
-        },
-      ], {
-        maxTokens: strategy.maxTokens,
-        preferProvider: strategy.preferProvider,
-        openrouterModel: strategy.openrouterModel,
-      })
-      try {
-        result = { ...diversified, text: canonicalize(diversified.text) }
-        noveltyAudit = evaluateParvulariaNovelty(result.text, parvulariaKnowledge.recentContentSamples)
-      } catch {
-        // Si la diversificación pierde la estructura institucional, se conserva la versión validada anterior.
+        if (!noveltyAudit.passed) {
+          const diversifiedAI = await runAIGatewayText({
+            messages: [
+              ...aiMessages,
+              { role: "assistant" as const, content: truncateForPrompt(result.text, 4200) },
+              {
+                role: "user" as const,
+                content: `La planificación anterior repite demasiado actividades ya utilizadas (similitud máxima ${noveltyAudit.maxSimilarity}). Mantén exactamente los mismos ÁMBITOS, NÚCLEOS, OA, OAT, fechas y estructura institucional, pero REEMPLAZA las actividades de Desarrollo por experiencias sustantivamente diferentes. Cambia acción infantil, materiales, organización del espacio, mediación adulta y evidencia observable; no basta cambiar colores, nombres o personajes. Usa la biblioteca pedagógica solo como inspiración y no copies literalmente planificaciones anteriores.`,
+              },
+            ],
+            capability: "long_context",
+            maxOutputTokens: strategy.maxTokens,
+            context: {
+              userId: user.id,
+              module: "educador-parvularia-diversify",
+              reusePolicy: "exact_private",
+              visibility: "private",
+            },
+            supabase,
+          })
+          const diversified = {
+            text: diversifiedAI.data,
+            provider: diversifiedAI.provider,
+            model: diversifiedAI.model,
+            reused: diversifiedAI.reused,
+          }
+
+          try {
+            const diversifiedText = canonicalize(diversified.text)
+            const diversifiedAudit = evaluateParvulariaNovelty(
+              diversifiedText,
+              parvulariaKnowledge.recentContentSamples,
+            )
+
+            if (diversifiedAudit.maxSimilarity <= noveltyAudit.maxSimilarity) {
+              result = { ...diversified, text: diversifiedText }
+              noveltyAudit = diversifiedAudit
+            }
+          } catch {
+            // Conserva la versión institucional ya validada si la diversificación rompe el formato.
+          }
+        }
       }
     }
 
