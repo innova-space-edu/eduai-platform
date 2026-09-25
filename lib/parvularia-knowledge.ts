@@ -325,23 +325,23 @@ export async function buildParvulariaKnowledgeContext(args: BuildKnowledgeArgs):
     `REFERENCIA ${index + 1} · ID ${activity.id}`,
     `Nivel: ${activity.level || "No informado"} · Tema: ${activity.topic || "No informado"}`,
     activity.ambito_nucleo ? `Ámbito/Núcleo: ${activity.ambito_nucleo}` : "",
-    activity.oa_text ? `OA fuente: ${truncate(activity.oa_text, 360)}` : "",
-    activity.oat_text ? `OAT fuente: ${truncate(activity.oat_text, 300)}` : "",
-    activity.skill_text ? `Habilidad: ${truncate(activity.skill_text, 180)}` : "",
-    `Experiencia fuente: ${truncate(activity.experience_text, 900)}`,
-    activity.resources ? `Recursos fuente: ${truncate(activity.resources, 260)}` : "",
-    activity.evaluation ? `Evaluación fuente: ${truncate(activity.evaluation, 300)}` : "",
+    activity.oa_text ? `OA fuente: ${truncate(activity.oa_text, 260)}` : "",
+    activity.oat_text ? `OAT fuente: ${truncate(activity.oat_text, 220)}` : "",
+    activity.skill_text ? `Habilidad: ${truncate(activity.skill_text, 140)}` : "",
+    `Experiencia fuente: ${truncate(activity.experience_text, 520)}`,
+    activity.resources ? `Recursos fuente: ${truncate(activity.resources, 180)}` : "",
+    activity.evaluation ? `Evaluación fuente: ${truncate(activity.evaluation, 180)}` : "",
   ].filter(Boolean).join("\n")).join("\n\n")
 
-  const cloudContext = cloudSources.map((source, index) => [
+  const cloudContext = cloudSources.slice(0, 3).map((source, index) => [
     `FUENTE CLOUD ${index + 1}: ${source.file_name || source.topic || "Documento Parvularia"}`,
     source.category ? `Tipo: ${source.category}` : "",
     source.topic ? `Tema: ${source.topic}` : "",
-    source.raw_text ? truncate(source.raw_text, 760) : "",
+    source.raw_text ? truncate(source.raw_text, 420) : "",
   ].filter(Boolean).join("\n")).join("\n\n")
 
-  const recent = recentSamples.slice(0, 10).map((sample, index) =>
-    `YA UTILIZADO ${index + 1}: ${truncate(sample, 520)}`
+  const recent = recentSamples.slice(0, 6).map((sample, index) =>
+    `YA UTILIZADO ${index + 1}: ${truncate(sample, 320)}`
   ).join("\n")
 
   const prompt = [

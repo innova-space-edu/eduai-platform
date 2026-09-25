@@ -364,14 +364,16 @@ function buildFallbackParvulariaActivity(params: {
   variationSeed?: number
 }): string {
   const c = params.curso.toLowerCase()
-  const variation = (params.sequence + (params.variationSeed || 0)) % 4
+  const seed = Number.isFinite(params.variationSeed) ? Math.abs(Math.trunc(params.variationSeed || 0)) : 0
+  const cycle = params.sequence + seed
+  const variation = cycle % 4
   const suffixes = [
     ` vinculada con ${params.nucleo}, con mediación ajustada a la edad y registro de respuestas observables.`,
     ` vinculada con ${params.nucleo}, favoreciendo elección, exploración autónoma y documentación breve de la respuesta infantil.`,
     ` vinculada con ${params.nucleo}, alternando exploración libre y una provocación breve del adulto para observar avances concretos.`,
     ` vinculada con ${params.nucleo}, cambiando espacio, disposición y forma de interacción para evitar repetir la misma mecánica.`,
   ]
-  const suffix = suffixes[variation]
+  const suffix = suffixes[Math.floor(cycle / 4) % suffixes.length]
 
   if (params.journeyIndex === 2) {
     if (c.includes("sala cuna menor")) {
@@ -1463,7 +1465,12 @@ REGLAS:
         journeyNuclei: parvulariaJourneyNucleos,
         selectedOAIds,
         selectedOATIds,
-        candidateLimit: tiempoPlanificacion === "diaria" ? 9 : 15,
+        candidateLimit:
+          tiempoPlanificacion === "diaria" ? 8
+          : tiempoPlanificacion === "semanal" ? 8
+          : tiempoPlanificacion === "quincenal" ? 9
+          : tiempoPlanificacion === "mensual" ? 10
+          : 12,
       }).catch(() => null)
     : null
 
@@ -1788,13 +1795,13 @@ ${parvulariaHeterogeneousDevelopmentContext ? `${parvulariaHeterogeneousDevelopm
 ${parvulariaKnowledge?.prompt || ""}
 
 CRITERIOS BCEP 2018 OFICIALES PARA CONSTRUIR LA EXPERIENCIA:
-${JSON.stringify({
+${truncateForPrompt(JSON.stringify({
   principios: bcepReference.principios_pedagogicos,
   planificacion: bcepReference.planificacion,
   evaluacion: bcepReference.evaluacion,
   ambientesAprendizaje: bcepReference.ambientes_aprendizaje,
   familiaComunidad: bcepReference.familia_y_comunidad,
-})}
+}), 3200)}
 
 Aplica estos criterios como fundamento pedagógico. No los copies como secciones nuevas: deben verse reflejados en las actividades, orientaciones, roles, recursos y evaluación.
 
@@ -2551,6 +2558,27 @@ REGLAS DE LAS CELDAS:
         filas,
       })
 
+      const fallbackMemory = await rememberParvulariaGeneration({
+        supabase,
+        userId: user.id,
+        course: curso,
+        topic: contexto || message,
+        selectedOAIds,
+        selectedOATIds,
+        candidateActivityIds: parvulariaKnowledge?.candidateIds || [],
+        generatedContent: fallbackText,
+        metadata: {
+          tiempoPlanificacion,
+          journeyNuclei: parvulariaJourneyNucleos,
+          knowledgeSource: parvulariaKnowledge?.source || "none",
+          aiFallback: true,
+          error: errorMessage.slice(0, 900),
+        },
+      })
+      if (!fallbackMemory.ok) {
+        console.warn("[Educador AI · Parvularia memory]", fallbackMemory.error)
+      }
+
       console.error("[Educador AI · Parvularia]", errorMessage)
       return NextResponse.json({
         text: fallbackText,
@@ -2573,6 +2601,14 @@ REGLAS DE LAS CELDAS:
         parvulariaJourneyOATIds,
         outputIntent,
         parvulariaInstitutionalPlanning: true,
+        parvulariaKnowledge: {
+          source: parvulariaKnowledge?.source || "none",
+          referenceCount: parvulariaKnowledge?.candidateIds.length || 0,
+          savedPlanningCount: parvulariaKnowledge?.savedPlanningCount || 0,
+          generationHistoryCount: parvulariaKnowledge?.generationHistoryCount || 0,
+          cloudSourceCount: parvulariaKnowledge?.cloudSourceCount || 0,
+          noveltyAudit: null,
+        },
         aiFallback: true,
         structuredFallback: true,
         _design: designSummary,
