@@ -138,9 +138,15 @@ async function withGatewayTimeout<T>(promise: Promise<T>, timeoutMs: number, lab
   }
 }
 
-function gatewayBudgetMs() {
-  const configured = Number(process.env.EDUAI_AI_GATEWAY_BUDGET_MS || 48_000)
-  return Number.isFinite(configured) && configured >= 10_000 ? configured : 48_000
+function gatewayBudgetMs(capability?: AICapability) {
+  const isLongContext = capability === "long_context"
+  const envName = isLongContext
+    ? "EDUAI_AI_GATEWAY_LONG_CONTEXT_BUDGET_MS"
+    : "EDUAI_AI_GATEWAY_BUDGET_MS"
+  const fallback = isLongContext ? 120_000 : 48_000
+  const minimum = isLongContext ? 45_000 : 10_000
+  const configured = Number(process.env[envName] || fallback)
+  return Number.isFinite(configured) && configured >= minimum ? configured : fallback
 }
 
 async function executeTextProvider(input: {
@@ -170,6 +176,7 @@ async function executeTextProvider(input: {
     let lastError: unknown = null
     for (const model of candidates) {
       try {
+        const googleTimeoutMs = input.capability === "long_context" ? 55_000 : 18_000
         return await withGatewayTimeout(
           generateGoogleText({
             messages: input.messages,
@@ -177,7 +184,7 @@ async function executeTextProvider(input: {
             lite: input.lite,
             model,
           }),
-          18_000,
+          googleTimeoutMs,
           `google:${model}`,
         )
       } catch (error) {
@@ -234,8 +241,8 @@ export async function runAIText(input: {
   supabase?: SupabaseClient | null
 }): Promise<GatewayResult<string>> {
   const startedAt = Date.now()
-  const deadlineAt = startedAt + gatewayBudgetMs()
   const capability = input.capability || "text"
+  const deadlineAt = startedAt + gatewayBudgetMs(capability)
 
   await assertAccess({
     supabase: input.supabase,
