@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic"
 
 const HEADERS = { "Cache-Control": "no-store, max-age=0" }
 const STATUSES = new Set(["discovered", "queued", "testing", "validated", "rejected", "implemented"])
+const MIN_BENCHMARK_SCORE = 0.75
 
 function adminClient() {
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -25,6 +26,22 @@ async function requireAdmin() {
 
 function clean(value: unknown, max = 180) {
   return typeof value === "string" ? value.trim().slice(0, max) : ""
+}
+
+async function latestPassedTextBenchmark(admin: ReturnType<typeof adminClient>, candidateId: string) {
+  const { data, error } = await admin
+    .from("ai_model_evaluations")
+    .select("id,status,suite,latency_ms,quality_score,reliability_score,cost_score,metrics,completed_at")
+    .eq("candidate_id", candidateId)
+    .eq("suite", "model-lab-text-v1")
+    .eq("status", "passed")
+    .order("completed_at", { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (error) throw error
+  if (!data) return null
+  if ((data.quality_score ?? 0) < MIN_BENCHMARK_SCORE || (data.reliability_score ?? 0) < MIN_BENCHMARK_SCORE) return null
+  return data
 }
 
 export async function GET() {
@@ -119,6 +136,75 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, evaluation }, { headers: HEADERS })
     }
 
+    if (action === "promote") {
+      const candidateId = clean(body?.candidateId, 80)
+      if (!candidateId) return NextResponse.json({ error: "candidateId requerido" }, { status: 400, headers: HEADERS })
+
+      const { data: candidate, error: candidateError } = await admin
+        .from("ai_model_candidates")
+        .select("id,provider,model,label,capabilities,status,priority,release_channel")
+        .eq("id", candidateId)
+        .maybeSingle()
+      if (candidateError) throw candidateError
+      if (!candidate) return NextResponse.json({ error: "Modelo candidato no encontrado" }, { status: 404, headers: HEADERS })
+      if (candidate.status !== "validated") return NextResponse.json({ error: "Solo se puede promover un candidato validado." }, { status: 409, headers: HEADERS })
+
+      const evaluation = await latestPassedTextBenchmark(admin, candidateId)
+      if (!evaluation) return NextResponse.json({ error: "Falta un benchmark text-v1 aprobado con calidad y confiabilidad ≥ 75%." }, { status: 409, headers: HEADERS })
+
+      const now = new Date().toISOString()
+      const { data: registered, error: registryError } = await admin
+        .from("ai_provider_models")
+        .upsert({
+          provider: candidate.provider,
+          model: candidate.model,
+          label: candidate.label,
+          capabilities: candidate.capabilities || [],
+          is_enabled: false,
+          is_default: false,
+          priority: candidate.priority ?? 100,
+          config: {
+            source: "model-candidate-lab",
+            staged: true,
+            release_channel: candidate.release_channel,
+            validated_evaluation_id: evaluation.id,
+            benchmark_suite: evaluation.suite,
+            quality_score: evaluation.quality_score,
+            reliability_score: evaluation.reliability_score,
+            promoted_at: now,
+          },
+          deprecated_at: null,
+          shutdown_at: null,
+          updated_at: now,
+        }, { onConflict: "provider,model" })
+        .select("id,provider,model,label,is_enabled,is_default,priority,config")
+        .single()
+      if (registryError) throw registryError
+
+      const { error: candidateUpdateError } = await admin
+        .from("ai_model_candidates")
+        .update({ status: "implemented", last_evaluated_at: now, updated_at: now })
+        .eq("id", candidateId)
+      if (candidateUpdateError) throw candidateUpdateError
+
+      await admin.from("model_lab_audit_logs").insert({
+        user_id: user.id,
+        action: "promote_model_candidate_staged",
+        provider: candidate.provider,
+        model_id: candidate.model,
+        decision: "implemented-disabled",
+        metadata: {
+          candidate_id: candidateId,
+          evaluation_id: evaluation.id,
+          registry_id: registered.id,
+          is_enabled: false,
+          production_routing: false,
+        },
+      })
+
+      return NextResponse.json({ success: true, registered, note: "Modelo agregado al AI Core en estado desactivado; requiere habilitación separada." }, { headers: HEADERS })
+    }
+
     if (action === "add") {
       const provider = clean(body?.provider, 60).toLowerCase()
       const model = clean(body?.model, 180)
@@ -183,9 +269,17 @@ export async function PATCH(request: NextRequest) {
     if (currentError) throw currentError
     if (!current) return NextResponse.json({ error: "Modelo candidato no encontrado" }, { status: 404, headers: HEADERS })
 
+    if (status === "validated") {
+      const benchmark = await latestPassedTextBenchmark(admin, candidateId)
+      if (!benchmark) return NextResponse.json({ error: "No se puede validar manualmente sin benchmark text-v1 aprobado (≥75% calidad y confiabilidad)." }, { status: 409, headers: HEADERS })
+    }
+    if (status === "implemented") {
+      return NextResponse.json({ error: "Usa la acción promote para implementar; el modelo entrará desactivado al AI Core." }, { status: 409, headers: HEADERS })
+    }
+
     const { data, error } = await admin
       .from("ai_model_candidates")
-      .update({ status, notes: notes || null, last_evaluated_at: ["validated", "rejected", "implemented"].includes(status) ? new Date().toISOString() : undefined, updated_at: new Date().toISOString() })
+      .update({ status, notes: notes || null, last_evaluated_at: ["validated", "rejected"].includes(status) ? new Date().toISOString() : undefined, updated_at: new Date().toISOString() })
       .eq("id", candidateId)
       .select("*")
       .single()
