@@ -9,9 +9,10 @@ export const maxDuration = 60
 
 // Cliente con service_role para operaciones que requieren acceso total
 function getAdminClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY!
-  if (!key) throw new Error("SUPABASE_SERVICE_ROLE_KEY no configurada")
+  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url) throw new Error("Supabase URL no configurada")
+  if (!key) throw new Error("SUPABASE_SECRET_KEY o SUPABASE_SERVICE_ROLE_KEY no configurada")
   return createAdminClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } })
 }
 

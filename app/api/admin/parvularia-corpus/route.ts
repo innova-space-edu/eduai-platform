@@ -5,6 +5,7 @@ import { unzipSync } from "fflate"
 import * as mammoth from "mammoth"
 import * as cheerio from "cheerio"
 import { createClient as createServerClient } from "@/lib/supabase/server"
+import { embedParvulariaActivities, PARVULARIA_EMBEDDING_MODEL } from "@/lib/parvularia-embeddings"
 
 export const runtime = "nodejs"
 export const maxDuration = 300
@@ -42,9 +43,10 @@ type ActivitySeed = {
 }
 
 function getAdminClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!url || !key) throw new Error("Falta configurar Supabase URL o SUPABASE_SERVICE_ROLE_KEY")
+  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url) throw new Error("Falta configurar Supabase URL")
+  if (!key) throw new Error("Falta configurar SUPABASE_SECRET_KEY o SUPABASE_SERVICE_ROLE_KEY")
   return createAdminClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } })
 }
 
@@ -78,12 +80,12 @@ function sha256(value: string | Uint8Array) {
   return createHash("sha256").update(value).digest("hex")
 }
 
-function inferLevel(fileName: string) {
-  const value = normalize(fileName)
-  if (value.includes("sc menor") || value.includes("sala cuna menor")) return "Sala Cuna Menor (0 a 1 año)"
-  if (value.includes("sc mayor") || value.includes("sala cuna mayor")) return "Sala Cuna Mayor (1 a 2 años)"
+function inferLevel(fileName: string, rawText = "") {
+  const value = normalize(`${fileName} ${rawText.slice(0, 1_800)}`)
+  if (/\b(?:sc|sala cuna)\s*(?:menor|me)\b/.test(value)) return "Sala Cuna Menor (0 a 1 año)"
+  if (/\b(?:sc|sala cuna)\s*(?:mayor|ma)\b/.test(value)) return "Sala Cuna Mayor (1 a 2 años)"
   if (value.includes("pre kinder") || value.includes("prekinder")) return "NT1 - Pre Kinder (4-5 años)"
-  if (value.includes("kinder")) return "NT2 - Kinder (5-6 años)"
+  if (/\bkinder\b/.test(value)) return "NT2 - Kinder (5-6 años)"
   return "Sala Cuna"
 }
 
@@ -229,7 +231,7 @@ async function parseDocx(fileName: string, bytes: Uint8Array): Promise<ParsedSou
     sourceHash: sha256(bytes),
     fileName,
     category: inferCategory(fileName),
-    level: inferLevel(fileName),
+    level: inferLevel(fileName, rawText),
     topic: inferTopic(fileName),
     rawText,
     parseStatus: "parsed",
@@ -345,21 +347,31 @@ export async function GET() {
   if (!user) return NextResponse.json({ error }, { status: error === "No autenticado" ? 401 : 403 })
 
   const admin = getAdminClient()
-  const [sources, activities] = await Promise.all([
+  const [sources, activities, embedded] = await Promise.all([
     admin.from("parvularia_corpus_sources").select("*", { count: "exact", head: true }),
-    admin.from("parvularia_activity_bank").select("*", { count: "exact", head: true }),
+    admin.from("parvularia_activity_bank").select("*", { count: "exact", head: true }).eq("active", true),
+    admin.from("parvularia_activity_bank").select("*", { count: "exact", head: true })
+      .eq("active", true)
+      .eq("embedding_model", PARVULARIA_EMBEDDING_MODEL)
+      .not("embedding", "is", null),
   ])
 
-  if (sources.error || activities.error) {
+  if (sources.error || activities.error || embedded.error) {
     return NextResponse.json({
-      error: "La base Parvularia todavía no está disponible. Ejecuta la migración 202609230001_parvularia_knowledge_base.sql.",
-      detail: sources.error?.message || activities.error?.message,
+      error: "La base Parvularia todavía no está disponible o no tiene habilitada la capa semántica.",
+      detail: sources.error?.message || activities.error?.message || embedded.error?.message,
     }, { status: 503 })
   }
 
+  const activityCount = activities.count || 0
+  const embeddedCount = embedded.count || 0
   return NextResponse.json({
     documents: sources.count || 0,
-    activities: activities.count || 0,
+    activities: activityCount,
+    embeddedActivities: embeddedCount,
+    pendingEmbeddings: Math.max(0, activityCount - embeddedCount),
+    embeddingModel: PARVULARIA_EMBEDDING_MODEL,
+    retrievalMode: "hybrid_rrf",
   })
 }
 
@@ -367,10 +379,57 @@ export async function POST(req: NextRequest) {
   const { user, error } = await requireAdmin()
   if (!user) return NextResponse.json({ error }, { status: error === "No autenticado" ? 401 : 403 })
 
+  const admin = getAdminClient()
+
   try {
     const form = await req.formData()
-    const upload = form.get("file")
+    const action = compact(String(form.get("action") || "import"))
     const corpusKey = compact(String(form.get("corpusKey") || "parvularia-manual"))
+
+    if (action === "embed") {
+      const requestedLimit = Number(form.get("limit") || 64)
+      const limit = Math.max(1, Math.min(96, Number.isFinite(requestedLimit) ? requestedLimit : 64))
+
+      const { data: missing, error: missingError } = await admin
+        .from("parvularia_activity_bank")
+        .select("id,level,topic,ambito_nucleo,oa_text,oat_text,skill_text,experience_text,evaluation,resources,search_text,embedding_model")
+        .eq("active", true)
+        .is("embedding", null)
+        .limit(limit)
+      if (missingError) throw new Error(`No se pudo consultar la cola semántica: ${missingError.message}`)
+
+      const pending = [...(missing || [])]
+      if (pending.length < limit) {
+        const { data: outdated, error: outdatedError } = await admin
+          .from("parvularia_activity_bank")
+          .select("id,level,topic,ambito_nucleo,oa_text,oat_text,skill_text,experience_text,evaluation,resources,search_text,embedding_model")
+          .eq("active", true)
+          .not("embedding", "is", null)
+          .neq("embedding_model", PARVULARIA_EMBEDDING_MODEL)
+          .limit(limit - pending.length)
+        if (outdatedError) throw new Error(`No se pudo consultar la cola semántica: ${outdatedError.message}`)
+        pending.push(...(outdated || []))
+      }
+
+      if (!pending.length) {
+        return NextResponse.json({ success: true, action: "embed", embedded: 0, attempted: 0, embeddingModel: PARVULARIA_EMBEDDING_MODEL, done: true })
+      }
+
+      const vectors = await embedParvulariaActivities(pending)
+      let embedded = 0
+      for (let index = 0; index < pending.length; index += 1) {
+        const vector = vectors[index]
+        if (!vector) continue
+        const { error: updateError } = await admin.from("parvularia_activity_bank")
+          .update({ embedding: `[${vector.join(",")}]`, embedding_model: PARVULARIA_EMBEDDING_MODEL, updated_at: new Date().toISOString() })
+          .eq("id", pending[index].id)
+        if (!updateError) embedded += 1
+      }
+
+      return NextResponse.json({ success: true, action: "embed", embedded, attempted: pending.length, embeddingModel: PARVULARIA_EMBEDDING_MODEL, done: pending.length < limit })
+    }
+
+    const upload = form.get("file")
 
     if (!(upload instanceof File)) {
       return NextResponse.json({ error: "Debes adjuntar un archivo ZIP o DOCX." }, { status: 400 })

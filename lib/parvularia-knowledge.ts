@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
+import { embedParvulariaText } from "@/lib/parvularia-embeddings"
 
 export type ParvulariaKnowledgeActivity = {
   id: string
@@ -20,6 +21,10 @@ export type ParvulariaKnowledgeActivity = {
   tags?: string[] | null
   quality_score?: number | string | null
   search_text?: string | null
+  embedding_model?: string | null
+  keyword_rank?: number | string | null
+  semantic_rank?: number | string | null
+  hybrid_score?: number | string | null
 }
 
 type SavedPlanningRow = {
@@ -38,14 +43,25 @@ type GenerationHistoryRow = {
   created_at?: string | null
 }
 
+type CorpusSourceRow = {
+  id: string
+  file_name?: string | null
+  category?: string | null
+  level?: string | null
+  topic?: string | null
+  raw_text?: string | null
+  rank?: number | string | null
+}
+
 export type ParvulariaKnowledgeContext = {
   candidates: ParvulariaKnowledgeActivity[]
   savedPlanningCount: number
   generationHistoryCount: number
+  cloudSourceCount: number
   recentContentSamples: string[]
   candidateIds: string[]
   prompt: string
-  source: "database" | "saved_plannings_only" | "none"
+  source: "hybrid_cloud" | "database" | "saved_plannings_only" | "none"
 }
 
 type BuildKnowledgeArgs = {
@@ -201,7 +217,7 @@ function selectDiverseCandidates(
         activity,
         set,
         similarity,
-        score: relevanceScore(activity, queryTokens, course) - similarity * 42 - reusedPenalty,
+        score: relevanceScore(activity, queryTokens, course) + Number(activity.hybrid_score || 0) * 900 - similarity * 42 - reusedPenalty,
       }
     })
     .filter((item) => item.activity.experience_text.trim().length >= 140)
@@ -237,6 +253,16 @@ export async function buildParvulariaKnowledgeContext(args: BuildKnowledgeArgs):
     ...args.selectedOATIds.flatMap(tokens),
   ]).slice(0, 70)
 
+  const queryText = uniqueStrings([
+    args.course,
+    args.topic,
+    args.message,
+    ...args.journeyNuclei,
+    ...args.selectedOAIds,
+    ...args.selectedOATIds,
+  ]).join(" ").slice(0, 7_500)
+  const keywordQuery = queryTokens.slice(0, 24).join(" OR ") || queryText
+
   const savedPromise = args.supabase
     .from("saved_plannings")
     .select("id,contexto,content,planning_text,planning_json,created_at")
@@ -252,32 +278,48 @@ export async function buildParvulariaKnowledgeContext(args: BuildKnowledgeArgs):
     .order("created_at", { ascending: false })
     .limit(24)
 
-  const activityQuery = args.supabase
-    .from("parvularia_activity_bank")
-    .select("id,source_id,level,topic,sequence_label,day_label,ambito_nucleo,oa_text,oat_text,skill_text,experience_text,inicio,desarrollo,cierre,evaluation,resources,tags,quality_score,search_text")
-    .eq("active", true)
-    .limit(500)
+  const cloudSourcesPromise = args.supabase.rpc("search_parvularia_corpus_sources", {
+    p_query: keywordQuery,
+    p_level: args.course,
+    p_limit: 6,
+  })
 
-  const [savedResult, historyResult, activityResult] = await Promise.all([
+  const embeddingPromise = embedParvulariaText(queryText)
+
+  const [savedResult, historyResult, cloudSourcesResult, queryEmbedding] = await Promise.all([
     savedPromise,
     historyPromise,
-    activityQuery,
+    cloudSourcesPromise,
+    embeddingPromise,
   ])
 
   const saved = (savedResult.error ? [] : savedResult.data || []) as SavedPlanningRow[]
   const history = (historyResult.error ? [] : historyResult.data || []) as GenerationHistoryRow[]
-  const activities = (activityResult.error ? [] : activityResult.data || []) as ParvulariaKnowledgeActivity[]
+  const cloudSources = (cloudSourcesResult.error ? [] : cloudSourcesResult.data || []) as CorpusSourceRow[]
+
+  const hybridResult = await args.supabase.rpc("search_parvularia_activities_hybrid", {
+    p_query: keywordQuery,
+    p_query_embedding: queryEmbedding ? `[${queryEmbedding.join(",")}]` : null,
+    p_level: args.course,
+    p_limit: Math.min(50, Math.max(candidateLimit * 4, 24)),
+  })
+
+  let activities = (hybridResult.error ? [] : hybridResult.data || []) as ParvulariaKnowledgeActivity[]
+  let retrievalSource: "hybrid_cloud" | "database" = "hybrid_cloud"
+
+  if (!activities.length) {
+    const fallback = await args.supabase
+      .from("parvularia_activity_bank")
+      .select("id,source_id,level,topic,sequence_label,day_label,ambito_nucleo,oa_text,oat_text,skill_text,experience_text,inicio,desarrollo,cierre,evaluation,resources,tags,quality_score,search_text,embedding_model")
+      .eq("active", true)
+      .limit(500)
+    activities = (fallback.error ? [] : fallback.data || []) as ParvulariaKnowledgeActivity[]
+    retrievalSource = "database"
+  }
 
   const recentSamples = collectRecentSamples(saved, history)
   const reusedIds = new Set(history.flatMap((row) => row.candidate_activity_ids || []))
-  const selected = selectDiverseCandidates(
-    activities,
-    recentSamples,
-    reusedIds,
-    queryTokens,
-    args.course,
-    candidateLimit,
-  )
+  const selected = selectDiverseCandidates(activities, recentSamples, reusedIds, queryTokens, args.course, candidateLimit)
 
   const references = selected.map((activity, index) => [
     `REFERENCIA ${index + 1} · ID ${activity.id}`,
@@ -291,18 +333,30 @@ export async function buildParvulariaKnowledgeContext(args: BuildKnowledgeArgs):
     activity.evaluation ? `Evaluación fuente: ${truncate(activity.evaluation, 300)}` : "",
   ].filter(Boolean).join("\n")).join("\n\n")
 
+  const cloudContext = cloudSources.map((source, index) => [
+    `FUENTE CLOUD ${index + 1}: ${source.file_name || source.topic || "Documento Parvularia"}`,
+    source.category ? `Tipo: ${source.category}` : "",
+    source.topic ? `Tema: ${source.topic}` : "",
+    source.raw_text ? truncate(source.raw_text, 760) : "",
+  ].filter(Boolean).join("\n")).join("\n\n")
+
   const recent = recentSamples.slice(0, 10).map((sample, index) =>
     `YA UTILIZADO ${index + 1}: ${truncate(sample, 520)}`
   ).join("\n")
 
   const prompt = [
     "═══════════════════════════════════════════════",
-    "BIBLIOTECA PEDAGÓGICA PARVULARIA · REFERENCIAS",
+    "BIBLIOTECA PEDAGÓGICA PARVULARIA · EDUAI CLOUD",
     "═══════════════════════════════════════════════",
     selected.length
-      ? "Usa estas experiencias reales solo como referencia de profundidad, mediación, materiales y nivel de desarrollo. NO las copies literalmente: combina, transforma y crea actividades nuevas coherentes con los OA/OAT seleccionados."
+      ? "Estas referencias fueron recuperadas con búsqueda híbrida (texto + significado) y filtros por subnivel. Úsalas solo como referencia de profundidad, mediación, materiales y nivel de desarrollo. NO las copies literalmente: combina, transforma y crea actividades nuevas coherentes con los OA/OAT seleccionados."
       : "La biblioteca estructurada todavía no tiene referencias compatibles para esta solicitud.",
     references,
+    "═══════════════════════════════════════════════",
+    "CONTEXTO PEDAGÓGICO COMPLEMENTARIO · FUENTES CLOUD",
+    "═══════════════════════════════════════════════",
+    cloudContext || "No se encontraron documentos complementarios relevantes para esta solicitud.",
+    "Usa este contexto solo cuando sea pertinente. Los OA/OAT oficiales seleccionados tienen prioridad sobre cualquier documento del corpus.",
     "═══════════════════════════════════════════════",
     "MEMORIA ANTIRREPETICIÓN",
     "═══════════════════════════════════════════════",
@@ -327,10 +381,11 @@ export async function buildParvulariaKnowledgeContext(args: BuildKnowledgeArgs):
     candidates: selected,
     savedPlanningCount: saved.length,
     generationHistoryCount: history.length,
+    cloudSourceCount: cloudSources.length,
     recentContentSamples: recentSamples,
     candidateIds: selected.map((activity) => activity.id),
     prompt,
-    source: selected.length ? "database" : saved.length || history.length ? "saved_plannings_only" : "none",
+    source: selected.length ? retrievalSource : saved.length || history.length ? "saved_plannings_only" : "none",
   }
 }
 
