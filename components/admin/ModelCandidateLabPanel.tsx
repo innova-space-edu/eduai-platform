@@ -33,6 +33,35 @@ type Candidate = {
 
 const STATUS_ORDER = ["queued", "testing", "validated", "implemented", "discovered", "rejected"] as const
 
+type LocalValidation = {
+  qualityScore: number;
+  threshold: number;
+  source: string;
+  ramGB: number | null;
+  vramGB: number | null;
+  webgpu: boolean;
+  validatedAt: string;
+};
+
+function readLocalValidation(candidate: Candidate): LocalValidation | null {
+  if (candidate.provider !== "eduai-local") return null;
+  const raw = candidate.metadata?.local_validation;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const value = raw as Record<string, unknown>;
+  const qualityScore = Number(value.quality_score);
+  const threshold = Number(value.quality_threshold);
+  if (!Number.isFinite(qualityScore) || !Number.isFinite(threshold)) return null;
+  return {
+    qualityScore,
+    threshold,
+    source: typeof value.source === "string" ? value.source : "unknown",
+    ramGB: value.ram_gb == null ? null : Number(value.ram_gb),
+    vramGB: value.vram_gb == null ? null : Number(value.vram_gb),
+    webgpu: Boolean(value.webgpu),
+    validatedAt: typeof value.validated_at === "string" ? value.validated_at : "",
+  };
+}
+
 function tone(status: Candidate["status"]) {
   if (status === "implemented") return "border-emerald-400/20 bg-emerald-950/25 text-emerald-200"
   if (status === "validated") return "border-cyan-400/20 bg-cyan-950/25 text-cyan-200"
@@ -67,7 +96,12 @@ export default function ModelCandidateLabPanel() {
     }
   }
 
-  useEffect(() => { void load() }, [])
+  useEffect(() => {
+    void load();
+    const handler = () => void load();
+    window.addEventListener("eduai-model-candidates-changed", handler);
+    return () => window.removeEventListener("eduai-model-candidates-changed", handler);
+  }, [])
 
   const providers = useMemo(() => [...new Set(candidates.map(item => item.provider))].sort(), [candidates])
   const filtered = useMemo(() => {
@@ -171,6 +205,7 @@ export default function ModelCandidateLabPanel() {
         const evaluations = [...(candidate.ai_model_evaluations || [])].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
         const latest = evaluations[0]
         const smokeBusy = busy === `smoke:${candidate.id}`
+        const localValidation = readLocalValidation(candidate)
         return <article key={candidate.id} className="grid gap-3 rounded-2xl border border-white/10 bg-black/20 p-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_auto] lg:items-center">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2"><p className="text-sm font-black text-white">{candidate.label}</p><span className={`rounded-full border px-2 py-0.5 text-[9px] font-black uppercase ${tone(candidate.status)}`}>{candidate.status}</span><span className="rounded-full border border-white/10 px-2 py-0.5 text-[9px] font-black uppercase text-slate-500">{candidate.release_channel}</span></div>
@@ -178,11 +213,17 @@ export default function ModelCandidateLabPanel() {
             <div className="mt-2 flex flex-wrap gap-1.5">{(candidate.capabilities || []).map(capability => <span key={capability} className="rounded-lg border border-white/8 bg-white/[0.03] px-2 py-1 text-[9px] font-bold text-slate-400">{capability}</span>)}</div>
           </div>
           <div className="text-[10px] leading-5 text-slate-500">
-            {latest ? <><div className="flex items-center gap-2">{latest.status === "passed" ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300" /> : latest.status === "failed" ? <XCircle className="h-3.5 w-3.5 text-red-300" /> : <CircleDot className="h-3.5 w-3.5 text-amber-300" />}<span className="font-black text-slate-300">Último {latest.suite}: {latest.status}</span></div><p className="mt-1">{latest.latency_ms != null ? `${latest.latency_ms} ms` : "sin latencia"} · {evaluations.length} evaluación(es)</p></> : <p>Sin evaluaciones todavía.</p>}
+            {localValidation ? (
+              <div className="rounded-xl border border-emerald-400/10 bg-emerald-950/10 px-2.5 py-2">
+                <div className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-300" /><span className="font-black text-emerald-200">Local Gate {localValidation.qualityScore}% · umbral {localValidation.threshold}%</span></div>
+                <p className="mt-1 text-[9px] text-slate-600">RAM {localValidation.ramGB ?? "?"} GB · VRAM {localValidation.vramGB ?? "?"} GB · {localValidation.webgpu ? "WebGPU" : "CPU/WASM"} · {localValidation.source}</p>
+              </div>
+            ) : latest ? <><div className="flex items-center gap-2">{latest.status === "passed" ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300" /> : latest.status === "failed" ? <XCircle className="h-3.5 w-3.5 text-red-300" /> : <CircleDot className="h-3.5 w-3.5 text-amber-300" />}<span className="font-black text-slate-300">Último {latest.suite}: {latest.status}</span></div><p className="mt-1">{latest.latency_ms != null ? `${latest.latency_ms} ms` : "sin latencia"} · {evaluations.length} evaluación(es)</p></> : <p>Sin evaluaciones todavía.</p>}
             {candidate.source_url ? <a href={candidate.source_url} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 text-cyan-300 hover:text-cyan-200">Fuente oficial <ExternalLink className="h-3 w-3" /></a> : null}
           </div>
           <div className="flex flex-wrap gap-2 lg:justify-end">
-            {candidate.status !== "implemented" ? <button type="button" disabled={Boolean(busy)} onClick={() => void runSmoke(candidate)} className="inline-flex items-center gap-1.5 rounded-xl border border-violet-400/20 bg-violet-950/20 px-3 py-2 text-[10px] font-black text-violet-100 disabled:opacity-40">{smokeBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <TestTube2 className="h-3.5 w-3.5" />} Smoke test</button> : null}
+            {candidate.provider !== "eduai-local" && candidate.status !== "implemented" ? <button type="button" disabled={Boolean(busy)} onClick={() => void runSmoke(candidate)} className="inline-flex items-center gap-1.5 rounded-xl border border-violet-400/20 bg-violet-950/20 px-3 py-2 text-[10px] font-black text-violet-100 disabled:opacity-40">{smokeBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <TestTube2 className="h-3.5 w-3.5" />} Smoke test</button> : null}
+            {candidate.provider === "eduai-local" && localValidation && candidate.status === "discovered" ? <button type="button" disabled={Boolean(busy)} onClick={() => void setCandidateStatus(candidate, "testing")} className="rounded-xl border border-violet-400/20 bg-violet-950/20 px-3 py-2 text-[10px] font-black text-violet-100 disabled:opacity-40">Pasar a testing</button> : null}
             {candidate.status === "testing" ? <button type="button" disabled={Boolean(busy)} onClick={() => void setCandidateStatus(candidate, "validated")} className="rounded-xl border border-cyan-400/20 bg-cyan-950/20 px-3 py-2 text-[10px] font-black text-cyan-100 disabled:opacity-40">Validar</button> : null}
             {candidate.status !== "implemented" && candidate.status !== "rejected" ? <button type="button" disabled={Boolean(busy)} onClick={() => void setCandidateStatus(candidate, "rejected")} className="rounded-xl border border-red-400/15 bg-red-950/15 px-3 py-2 text-[10px] font-black text-red-200 disabled:opacity-40">Rechazar</button> : null}
           </div>

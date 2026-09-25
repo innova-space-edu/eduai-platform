@@ -119,6 +119,93 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, evaluation }, { headers: HEADERS })
     }
 
+    if (action === "add_local_candidate") {
+      const model = clean(body?.model, 180)
+      const label = clean(body?.label, 180) || model
+      const source = clean(body?.source, 40)
+      const qualityScore = Number(body?.qualityScore)
+      const qualityThreshold = Number(body?.qualityThreshold)
+      const ramGB = body?.ramGB == null ? null : Number(body.ramGB)
+      const vramGB = body?.vramGB == null ? null : Number(body.vramGB)
+      const webgpu = Boolean(body?.webgpu)
+      const validatedAt = clean(body?.validatedAt, 50)
+      const promotionGatePassed = body?.promotionGatePassed === true
+      const criticalFailures = Array.isArray(body?.criticalFailures)
+        ? body.criticalFailures.map((item: unknown) => clean(item, 80)).filter(Boolean).slice(0, 20)
+        : []
+
+      if (
+        !model ||
+        !promotionGatePassed ||
+        criticalFailures.length > 0 ||
+        !["catalog", "custom-gguf"].includes(source) ||
+        !Number.isFinite(qualityScore) ||
+        qualityScore < 0 ||
+        qualityScore > 100 ||
+        !Number.isFinite(qualityThreshold) ||
+        qualityThreshold < 0 ||
+        qualityThreshold > 100 ||
+        qualityScore < qualityThreshold
+      ) {
+        return NextResponse.json(
+          { error: "Candidato local inválido o sin Quality Gate aprobado" },
+          { status: 400, headers: HEADERS },
+        )
+      }
+
+      const localValidation = {
+        source,
+        quality_score: qualityScore,
+        quality_threshold: qualityThreshold,
+        critical_failures: criticalFailures,
+        ram_gb: Number.isFinite(ramGB) ? ramGB : null,
+        vram_gb: Number.isFinite(vramGB) ? vramGB : null,
+        webgpu,
+        validated_at: validatedAt || new Date().toISOString(),
+      }
+
+      const { data, error } = await admin
+        .from("ai_model_candidates")
+        .upsert({
+          provider: "eduai-local",
+          model,
+          label,
+          capabilities: ["text", "local", "gguf", "offline"],
+          release_channel: "experimental",
+          status: "discovered",
+          priority: 80,
+          notes: "Candidato validado localmente; requiere decisión humana antes de testing/validated.",
+          metadata: {
+            source: "eduai-local-browser-quality-gate",
+            local_validation: localValidation,
+          },
+          last_evaluated_at: localValidation.validated_at,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "provider,model" })
+        .select("*")
+        .single()
+      if (error) throw error
+
+      await admin.from("model_lab_audit_logs").insert({
+        user_id: user.id,
+        action: "add_local_model_candidate",
+        provider: "eduai-local",
+        model_id: model,
+        decision: "discovered",
+        metadata: {
+          candidate_id: data.id,
+          quality_score: qualityScore,
+          quality_threshold: qualityThreshold,
+          source,
+          ram_gb: localValidation.ram_gb,
+          vram_gb: localValidation.vram_gb,
+          webgpu,
+        },
+      })
+
+      return NextResponse.json({ success: true, candidate: data }, { headers: HEADERS })
+    }
+
     if (action === "add") {
       const provider = clean(body?.provider, 60).toLowerCase()
       const model = clean(body?.model, 180)
