@@ -378,6 +378,8 @@ export async function POST(req: NextRequest) {
   const { user, error } = await requireAdmin()
   if (!user) return NextResponse.json({ error }, { status: error === "No autenticado" ? 401 : 403 })
 
+  const admin = getAdminClient()
+
   try {
     const form = await req.formData()
     const action = compact(String(form.get("action") || "import"))
