@@ -2,11 +2,15 @@
 
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
-import { ArrowLeft, BookOpen, Database, FileArchive, Loader2, RefreshCw, Upload } from "lucide-react"
+import { ArrowLeft, BookOpen, BrainCircuit, Database, FileArchive, Loader2, RefreshCw, Upload } from "lucide-react"
 
 type CorpusStats = {
   documents: number
   activities: number
+  embeddedActivities: number
+  pendingEmbeddings: number
+  embeddingModel: string
+  retrievalMode: string
 }
 
 type ImportResult = CorpusStats & {
@@ -26,6 +30,7 @@ export default function ParvulariaCorpusAdminPage() {
   const [corpusKey, setCorpusKey] = useState("sala-cuna-20200503")
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
+  const [vectorizing, setVectorizing] = useState(false)
   const [message, setMessage] = useState("")
   const [result, setResult] = useState<ImportResult | null>(null)
 
@@ -59,8 +64,8 @@ export default function ParvulariaCorpusAdminPage() {
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || "No fue posible importar el corpus.")
       setResult(data)
-      setStats({ documents: data.documents, activities: data.activities })
-      setMessage("Corpus importado. Los documentos y actividades ya pueden ser usados por APl.")
+      setStats((current) => current ? { ...current, documents: data.documents, activities: data.activities } : current)
+      setMessage("Corpus importado. Ahora puedes completar la indexación semántica para activar la búsqueda híbrida.")
       setFile(null)
       if (inputRef.current) inputRef.current.value = ""
       await loadStats()
@@ -68,6 +73,31 @@ export default function ParvulariaCorpusAdminPage() {
       setMessage(error instanceof Error ? error.message : "No fue posible importar el corpus.")
     } finally {
       setUploading(false)
+    }
+  }
+
+
+  async function vectorizePending() {
+    setVectorizing(true)
+    setMessage("")
+    try {
+      let totalEmbedded = 0
+      for (let round = 0; round < 30; round += 1) {
+        const form = new FormData()
+        form.append("action", "embed")
+        form.append("limit", "64")
+        const response = await fetch("/api/admin/parvularia-corpus", { method: "POST", body: form })
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.error || "No fue posible indexar la biblioteca.")
+        totalEmbedded += Number(data.embedded || 0)
+        await loadStats()
+        if (data.done || Number(data.attempted || 0) === 0) break
+      }
+      setMessage(`Indexación semántica actualizada: ${totalEmbedded} actividades vectorizadas en esta ejecución.`)
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "No fue posible indexar la biblioteca.")
+    } finally {
+      setVectorizing(false)
     }
   }
 
@@ -90,7 +120,7 @@ export default function ParvulariaCorpusAdminPage() {
           </button>
         </header>
 
-        <section className="grid gap-4 md:grid-cols-2">
+        <section className="grid gap-4 md:grid-cols-3">
           <div className="rounded-2xl border border-soft bg-card p-5">
             <div className="flex items-center gap-3">
               <Database size={19} className="text-blue-500" />
@@ -106,6 +136,16 @@ export default function ParvulariaCorpusAdminPage() {
               <div>
                 <p className="text-xs font-black uppercase tracking-wide text-muted2">Actividades estructuradas</p>
                 <p className="mt-1 text-3xl font-black text-main">{loading ? "…" : stats?.activities ?? 0}</p>
+              </div>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-soft bg-card p-5">
+            <div className="flex items-center gap-3">
+              <BrainCircuit size={19} className="text-violet-500" />
+              <div>
+                <p className="text-xs font-black uppercase tracking-wide text-muted2">Indexadas semánticamente</p>
+                <p className="mt-1 text-3xl font-black text-main">{loading ? "…" : stats?.embeddedActivities ?? 0}</p>
+                <p className="mt-1 text-[11px] text-muted2">Pendientes: {loading ? "…" : stats?.pendingEmbeddings ?? 0}</p>
               </div>
             </div>
           </div>
@@ -167,9 +207,24 @@ export default function ParvulariaCorpusAdminPage() {
           )}
         </section>
 
+        <section className="rounded-3xl border border-violet-200 bg-violet-50/70 p-5 md:p-6">
+          <div className="flex flex-wrap items-start gap-3">
+            <BrainCircuit size={22} className="mt-0.5 text-violet-600" />
+            <div className="min-w-0 flex-1">
+              <h2 className="font-black text-violet-950">EDUAI Cloud · búsqueda híbrida</h2>
+              <p className="mt-1 text-sm leading-6 text-violet-950/80">La biblioteca combina coincidencia textual con embeddings de 768 dimensiones y Reciprocal Rank Fusion. También consulta documentos complementarios del corpus y mantiene la memoria antirrepetición del usuario.</p>
+              <p className="mt-2 text-xs text-violet-900/70">Modelo: {stats?.embeddingModel || "gemini-embedding-2"} · Modo: {stats?.retrievalMode || "hybrid_rrf"}</p>
+            </div>
+            <button type="button" onClick={() => void vectorizePending()} disabled={vectorizing || loading || !stats?.pendingEmbeddings} className="inline-flex items-center justify-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-black text-white disabled:opacity-40">
+              {vectorizing ? <Loader2 size={16} className="animate-spin" /> : <BrainCircuit size={16} />}
+              {vectorizing ? "Indexando…" : "Completar indexación"}
+            </button>
+          </div>
+        </section>
+
         <section className="rounded-2xl border border-soft bg-card-soft-theme p-5">
           <h2 className="font-black text-main">Cómo lo usa APl</h2>
-          <p className="mt-2 text-sm leading-6 text-sub">Para cada nueva planificación, APl busca experiencias compatibles con el subnivel, tema, núcleo y OA/OAT; descarta referencias demasiado similares a planificaciones guardadas o generaciones recientes; selecciona referencias diversas y obliga a la IA a cambiar de forma sustantiva la acción infantil, materiales, espacio, mediación y evidencia observable.</p>
+          <p className="mt-2 text-sm leading-6 text-sub">Para cada nueva planificación, APl recupera experiencias mediante búsqueda híbrida por subnivel, tema, núcleo y OA/OAT; descarta referencias demasiado similares a planificaciones guardadas o generaciones recientes; selecciona referencias diversas y obliga a la IA a cambiar de forma sustantiva la acción infantil, materiales, espacio, mediación y evidencia observable.</p>
         </section>
       </div>
     </main>

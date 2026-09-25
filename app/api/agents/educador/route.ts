@@ -2327,6 +2327,7 @@ REGLAS DE LAS CELDAS:
         referenceCount: parvulariaKnowledge?.candidateIds.length || 0,
         savedPlanningCount: parvulariaKnowledge?.savedPlanningCount || 0,
         generationHistoryCount: parvulariaKnowledge?.generationHistoryCount || 0,
+        cloudSourceCount: parvulariaKnowledge?.cloudSourceCount || 0,
         noveltyAudit,
       } : undefined,
       compactPrompt: useCompactResourcePrompt,
