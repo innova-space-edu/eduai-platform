@@ -34,7 +34,7 @@ import bcepReference from "@/data/mineduc/parvularia/common/bcep_2018_reference.
 import { buildParvulariaKnowledgeContext, evaluateParvulariaNovelty, rememberParvulariaGeneration } from "@/lib/parvularia-knowledge"
 
 export const runtime = "nodejs"
-export const maxDuration = 60
+export const maxDuration = 300
 
 type TiempoPlanificacion = "diaria" | "semanal" | "quincenal" | "mensual" | "semestral" | "anual"
 
