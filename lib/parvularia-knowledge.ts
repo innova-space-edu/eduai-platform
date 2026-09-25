@@ -261,6 +261,7 @@ export async function buildParvulariaKnowledgeContext(args: BuildKnowledgeArgs):
     ...args.selectedOAIds,
     ...args.selectedOATIds,
   ]).join(" ").slice(0, 7_500)
+  const keywordQuery = queryTokens.slice(0, 24).join(" OR ") || queryText
 
   const savedPromise = args.supabase
     .from("saved_plannings")
@@ -278,7 +279,7 @@ export async function buildParvulariaKnowledgeContext(args: BuildKnowledgeArgs):
     .limit(24)
 
   const cloudSourcesPromise = args.supabase.rpc("search_parvularia_corpus_sources", {
-    p_query: queryText,
+    p_query: keywordQuery,
     p_level: args.course,
     p_limit: 6,
   })
@@ -297,7 +298,7 @@ export async function buildParvulariaKnowledgeContext(args: BuildKnowledgeArgs):
   const cloudSources = (cloudSourcesResult.error ? [] : cloudSourcesResult.data || []) as CorpusSourceRow[]
 
   const hybridResult = await args.supabase.rpc("search_parvularia_activities_hybrid", {
-    p_query: queryText,
+    p_query: keywordQuery,
     p_query_embedding: queryEmbedding ? `[${queryEmbedding.join(",")}]` : null,
     p_level: args.course,
     p_limit: Math.min(50, Math.max(candidateLimit * 4, 24)),
