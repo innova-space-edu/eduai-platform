@@ -60,6 +60,8 @@ export type ParvulariaKnowledgeContext = {
   cloudSourceCount: number
   recentContentSamples: string[]
   candidateIds: string[]
+  journeyCandidateIds: string[][]
+  journeyReferenceCounts: number[]
   prompt: string
   source: "hybrid_cloud" | "database" | "saved_plannings_only" | "none"
 }
@@ -73,6 +75,7 @@ type BuildKnowledgeArgs = {
   journeyNuclei: string[]
   selectedOAIds: string[]
   selectedOATIds: string[]
+  journeyContexts?: string[]
   candidateLimit?: number
 }
 
@@ -173,7 +176,7 @@ function savedPlanningText(row: SavedPlanningRow) {
 function collectRecentSamples(
   saved: SavedPlanningRow[],
   history: GenerationHistoryRow[],
-  maxSamples = 16,
+  maxSamples = 48,
 ) {
   const sources = [
     ...saved.map(savedPlanningText),
@@ -184,11 +187,10 @@ function collectRecentSamples(
   const samples: string[] = []
   for (const source of sources) {
     const compact = source.replace(/\s+/g, " ").trim()
-    const developmentMatches = [...source.matchAll(/Desarrollo\s*:\s*([\s\S]{80,1200}?)(?=Finalizaci[oó]n\s*:|Cierre\s*:|$)/gi)]
-      .map((match) => truncate(match[1], 700))
-    const fragments = developmentMatches.length
-      ? developmentMatches
-      : compact.split(/(?<=[.!?])\s+/).filter((item) => item.length >= 120).slice(0, 3).map((item) => truncate(item, 600))
+    const fingerprints = fingerprintSentences(source)
+    const fragments = fingerprints.length
+      ? fingerprints.slice(0, 16)
+      : compact.split(/(?<=[.!?])\s+/).filter((item) => item.length >= 120).slice(0, 6).map((item) => truncate(item, 600))
 
     for (const fragment of fragments) {
       if (!fragment || samples.some((item) => normalize(item) === normalize(fragment))) continue
@@ -263,6 +265,31 @@ export async function buildParvulariaKnowledgeContext(args: BuildKnowledgeArgs):
   ]).join(" ").slice(0, 7_500)
   const keywordQuery = queryTokens.slice(0, 24).join(" OR ") || queryText
 
+  const basePerJourney = Math.floor(candidateLimit / 3)
+  const remainder = candidateLimit % 3
+  const journeyLimits = [0, 1, 2].map((index) => basePerJourney + (index < remainder ? 1 : 0))
+  const journeySpecs = [0, 1, 2].map((index) => {
+    const nucleus = args.journeyNuclei[index] || args.journeyNuclei[0] || ""
+    const curriculumContext = args.journeyContexts?.[index] || ""
+    const journeyQueryText = uniqueStrings([
+      args.course,
+      nucleus,
+      curriculumContext,
+      args.topic.length <= 500 ? args.topic : "",
+    ]).join(" ").slice(0, 3_200)
+    const journeyQueryTokens = uniqueStrings([
+      ...tokens(nucleus),
+      ...tokens(curriculumContext),
+      ...(args.topic.length <= 500 ? tokens(args.topic) : []),
+    ]).slice(0, 40)
+    return {
+      nucleus,
+      queryText: journeyQueryText,
+      queryTokens: journeyQueryTokens,
+      keywordQuery: journeyQueryTokens.slice(0, 18).join(" OR ") || nucleus || keywordQuery,
+    }
+  })
+
   const savedPromise = args.supabase
     .from("saved_plannings")
     .select("id,contexto,content,planning_text,planning_json,created_at")
@@ -284,55 +311,101 @@ export async function buildParvulariaKnowledgeContext(args: BuildKnowledgeArgs):
     p_limit: 6,
   })
 
-  const embeddingPromise = embedParvulariaText(queryText)
+  const embeddingsPromise = Promise.all(journeySpecs.map((spec) => embedParvulariaText(spec.queryText).catch(() => null)))
 
-  const [savedResult, historyResult, cloudSourcesResult, queryEmbedding] = await Promise.all([
+  const [savedResult, historyResult, cloudSourcesResult, journeyEmbeddings] = await Promise.all([
     savedPromise,
     historyPromise,
     cloudSourcesPromise,
-    embeddingPromise,
+    embeddingsPromise,
   ])
 
   const saved = (savedResult.error ? [] : savedResult.data || []) as SavedPlanningRow[]
   const history = (historyResult.error ? [] : historyResult.data || []) as GenerationHistoryRow[]
   const cloudSources = (cloudSourcesResult.error ? [] : cloudSourcesResult.data || []) as CorpusSourceRow[]
 
-  const hybridResult = await args.supabase.rpc("search_parvularia_activities_hybrid", {
-    p_query: keywordQuery,
-    p_query_embedding: queryEmbedding ? `[${queryEmbedding.join(",")}]` : null,
-    p_level: args.course,
-    p_limit: Math.min(50, Math.max(candidateLimit * 4, 24)),
-  })
+  const hybridResults = await Promise.all(
+    journeySpecs.map((spec, index) =>
+      args.supabase.rpc("search_parvularia_activities_hybrid", {
+        p_query: spec.keywordQuery,
+        p_query_embedding: journeyEmbeddings[index] ? "[" + journeyEmbeddings[index]!.join(",") + "]" : null,
+        p_level: args.course,
+        p_limit: Math.min(24, Math.max(journeyLimits[index] * 5, 12)),
+      })
+    )
+  )
 
-  let activities = (hybridResult.error ? [] : hybridResult.data || []) as ParvulariaKnowledgeActivity[]
-  let retrievalSource: "hybrid_cloud" | "database" = "hybrid_cloud"
+  let retrievedByJourney = hybridResults.map((result) =>
+    (result.error ? [] : result.data || []) as ParvulariaKnowledgeActivity[]
+  )
+  let retrievalSource: "hybrid_cloud" | "database" = retrievedByJourney.some((items) => items.length)
+    ? "hybrid_cloud"
+    : "database"
 
-  if (!activities.length) {
+  let fallbackActivities: ParvulariaKnowledgeActivity[] = []
+  if (retrievedByJourney.some((items) => !items.length)) {
     const fallback = await args.supabase
       .from("parvularia_activity_bank")
       .select("id,source_id,level,topic,sequence_label,day_label,ambito_nucleo,oa_text,oat_text,skill_text,experience_text,inicio,desarrollo,cierre,evaluation,resources,tags,quality_score,search_text,embedding_model")
       .eq("active", true)
       .limit(500)
-    activities = (fallback.error ? [] : fallback.data || []) as ParvulariaKnowledgeActivity[]
-    retrievalSource = "database"
+    fallbackActivities = (fallback.error ? [] : fallback.data || []) as ParvulariaKnowledgeActivity[]
+    retrievedByJourney = retrievedByJourney.map((items) => items.length ? items : fallbackActivities)
   }
 
   const recentSamples = collectRecentSamples(saved, history)
   const reusedIds = new Set(history.flatMap((row) => row.candidate_activity_ids || []))
-  const selected = selectDiverseCandidates(activities, recentSamples, reusedIds, queryTokens, args.course, candidateLimit)
+  const usedIds = new Set<string>()
+  const selectedByJourney = journeySpecs.map((spec, index) => {
+    const available = retrievedByJourney[index].filter((activity) => !usedIds.has(activity.id))
+    const picked = selectDiverseCandidates(
+      available,
+      recentSamples,
+      reusedIds,
+      spec.queryTokens,
+      args.course,
+      journeyLimits[index],
+    )
+    picked.forEach((activity) => usedIds.add(activity.id))
+    return picked
+  })
 
-  const references = selected.map((activity, index) => [
-    `REFERENCIA ${index + 1} · ID ${activity.id}`,
-    `Nivel: ${activity.level || "No informado"} · Tema: ${activity.topic || "No informado"}`,
-    activity.ambito_nucleo ? `Ámbito/Núcleo: ${activity.ambito_nucleo}` : "",
-    activity.oa_text ? `OA fuente: ${truncate(activity.oa_text, 260)}` : "",
-    activity.oat_text ? `OAT fuente: ${truncate(activity.oat_text, 220)}` : "",
-    activity.skill_text ? `Habilidad: ${truncate(activity.skill_text, 140)}` : "",
-    `Experiencia fuente: ${truncate(activity.experience_text, 520)}`,
-    activity.resources ? `Recursos fuente: ${truncate(activity.resources, 180)}` : "",
-    activity.evaluation ? `Evaluación fuente: ${truncate(activity.evaluation, 180)}` : "",
-  ].filter(Boolean).join("\n")).join("\n\n")
+  let selected = selectedByJourney.flat()
+  if (selected.length < candidateLimit) {
+    const union = [...retrievedByJourney.flat(), ...fallbackActivities]
+      .filter((activity, index, array) => array.findIndex((candidate) => candidate.id === activity.id) === index)
+      .filter((activity) => !usedIds.has(activity.id))
+    const fill = selectDiverseCandidates(
+      union,
+      recentSamples,
+      reusedIds,
+      queryTokens,
+      args.course,
+      candidateLimit - selected.length,
+    )
+    fill.forEach((activity) => usedIds.add(activity.id))
+    selected = [...selected, ...fill]
+  }
+  const referenceBlock = (activity: ParvulariaKnowledgeActivity, label: string) => [
+    label + " · ID " + activity.id,
+    "Nivel: " + (activity.level || "No informado") + " · Tema: " + (activity.topic || "No informado"),
+    activity.ambito_nucleo ? "Ámbito/Núcleo: " + activity.ambito_nucleo : "",
+    activity.oa_text ? "OA fuente: " + truncate(activity.oa_text, 260) : "",
+    activity.oat_text ? "OAT fuente: " + truncate(activity.oat_text, 220) : "",
+    activity.skill_text ? "Habilidad: " + truncate(activity.skill_text, 140) : "",
+    "Experiencia fuente: " + truncate(activity.experience_text, 520),
+    activity.resources ? "Recursos fuente: " + truncate(activity.resources, 180) : "",
+    activity.evaluation ? "Evaluación fuente: " + truncate(activity.evaluation, 180) : "",
+  ].filter(Boolean).join("\n")
 
+  const references = selectedByJourney.map((activities, journeyIndex) => [
+    "JORNADA " + (journeyIndex + 1) + " · " + (journeySpecs[journeyIndex].nucleus || "Núcleo seleccionado"),
+    activities.length
+      ? activities.map((activity, activityIndex) =>
+          referenceBlock(activity, "REFERENCIA J" + (journeyIndex + 1) + "." + (activityIndex + 1))
+        ).join("\n\n")
+      : "Sin referencias específicas recuperadas para esta jornada.",
+  ].join("\n")).join("\n\n")
   const cloudContext = cloudSources.slice(0, 3).map((source, index) => [
     `FUENTE CLOUD ${index + 1}: ${source.file_name || source.topic || "Documento Parvularia"}`,
     source.category ? `Tipo: ${source.category}` : "",
@@ -349,7 +422,7 @@ export async function buildParvulariaKnowledgeContext(args: BuildKnowledgeArgs):
     "BIBLIOTECA PEDAGÓGICA PARVULARIA · EDUAI CLOUD",
     "═══════════════════════════════════════════════",
     selected.length
-      ? "Estas referencias fueron recuperadas con búsqueda híbrida (texto + significado) y filtros por subnivel. Úsalas solo como referencia de profundidad, mediación, materiales y nivel de desarrollo. NO las copies literalmente: combina, transforma y crea actividades nuevas coherentes con los OA/OAT seleccionados."
+      ? "Las referencias fueron recuperadas POR JORNADA con búsqueda híbrida (texto + significado) y filtros por subnivel. Usa cada grupo prioritariamente para la jornada indicada. Son referencias de profundidad, mediación, materiales y nivel de desarrollo: NO las copies literalmente; combina, transforma y crea actividades nuevas coherentes con los OA/OAT seleccionados."
       : "La biblioteca estructurada todavía no tiene referencias compatibles para esta solicitud.",
     references,
     "═══════════════════════════════════════════════",
@@ -384,23 +457,56 @@ export async function buildParvulariaKnowledgeContext(args: BuildKnowledgeArgs):
     cloudSourceCount: cloudSources.length,
     recentContentSamples: recentSamples,
     candidateIds: selected.map((activity) => activity.id),
+    journeyCandidateIds: selectedByJourney.map((items) => items.map((activity) => activity.id)),
+    journeyReferenceCounts: selectedByJourney.map((items) => items.length),
     prompt,
     source: selected.length ? retrievalSource : saved.length || history.length ? "saved_plannings_only" : "none",
   }
 }
 
+function structuredActivityFingerprints(content: string) {
+  try {
+    const parsed = JSON.parse(content) as { filas?: Array<{ experienciaAprendizaje?: unknown }> }
+    if (!Array.isArray(parsed.filas)) return []
+
+    const activities: string[] = []
+    for (const row of parsed.filas) {
+      const experience = typeof row?.experienciaAprendizaje === "string" ? row.experienciaAprendizaje : ""
+      const development = experience.match(/desarrollo\s*:\s*([\s\S]*?)(?=\n?\s*finalizaci[oó]n\s*:|$)/i)?.[1] || ""
+      const lines = development.split(/\n+/).map((line) => line.trim()).filter(Boolean)
+
+      for (const line of lines) {
+        const withoutBullet = line.replace(/^[•·*Ø\-–—]+\s*/, "").trim()
+        if (!withoutBullet) continue
+        if (/^(?:edades?.*|sala cuna (?:menor|mayor)|nivel (?:medio|transici[oó]n))\s*:?\s*$/i.test(withoutBullet)) continue
+
+        const activity = withoutBullet.replace(
+          /^(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\s+\d{1,2}(?:(?:\s+de\s+|[-/])?[\p{L}\d-]+)?\s*[:\-–—]\s*/iu,
+          "",
+        ).trim()
+        if (activity.length >= 75) activities.push(truncate(activity, 520))
+      }
+    }
+    return uniqueStrings(activities)
+  } catch {
+    return []
+  }
+}
+
 function fingerprintSentences(content: string) {
+  const structured = structuredActivityFingerprints(content)
+  if (structured.length) return structured.slice(0, 120)
+
   const normalized = content.replace(/\s+/g, " ").trim()
-  const developmentMatches = [...content.matchAll(/Desarrollo\s*:\s*([\s\S]{80,1000}?)(?=Finalizaci[oó]n\s*:|Cierre\s*:|$)/gi)]
+  const developmentMatches = [...content.matchAll(/Desarrollo\s*:\s*([\s\S]*?)(?=Finalizaci[oó]n\s*:|Cierre\s*:|$)/gi)]
     .map((match) => truncate(match[1], 520))
   const fallback = normalized
     .split(/(?<=[.!?])\s+/)
     .filter((item) => item.length >= 110)
-    .slice(0, 12)
+    .slice(0, 24)
     .map((item) => truncate(item, 520))
-  return uniqueStrings((developmentMatches.length ? developmentMatches : fallback).slice(0, 18))
+  return uniqueStrings((developmentMatches.length ? developmentMatches : fallback).slice(0, 120))
 }
-
 export async function rememberParvulariaGeneration(args: {
   supabase: SupabaseClient
   userId: string

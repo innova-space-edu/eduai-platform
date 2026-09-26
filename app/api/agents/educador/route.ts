@@ -227,6 +227,34 @@ function clampNumber(value: unknown, fallback: number, min: number, max: number)
   return Math.max(min, Math.min(max, parsed))
 }
 
+const PARVULARIA_UNEXPECTED_SCRIPT = /[\u0400-\u052F\u0600-\u06FF\u0750-\u077F\u3040-\u30FF\u3400-\u9FFF]/u
+
+const SALA_CUNA_RISK_PATTERNS: Array<{ label: string; pattern: RegExp }> = [
+  { label: "piedras o piezas minerales pequeñas", pattern: /\bpiedr(?:a|as|ecita|ecitas)\b/i },
+  { label: "semillas", pattern: /\bsemillas?\b/i },
+  { label: "cuentas, canicas o bolitas", pattern: /\b(?:cuentas?|canicas?|bolitas?)\b/i },
+  { label: "botones o monedas", pattern: /\b(?:botones?|monedas?)\b/i },
+  { label: "objetos pequeños", pattern: /\bobjetos?\s+pequeñ[oa]s?\b/i },
+  { label: "arena suelta", pattern: /\barena(?:\s+(?:fina|suelta))?\b/i },
+  { label: "tierra suelta", pattern: /\btierra(?:\s+de\s+hoja)?\b/i },
+  { label: "ramas secas", pattern: /\bramas?\s+secas?\b/i },
+  { label: "pétalos o flores frescas", pattern: /\b(?:p[eé]talos?|flores?\s+frescas?)\b/i },
+  { label: "globos", pattern: /\bglobos?\b/i },
+  { label: "bolsas plásticas", pattern: /\bbolsas?\s+pl[aá]sticas?\b/i },
+  { label: "imanes, pilas o baterías", pattern: /\b(?:imanes?|pilas?|bater[ií]as?)\b/i },
+]
+
+function findUnexpectedParvulariaCharacters(value: string) {
+  return PARVULARIA_UNEXPECTED_SCRIPT.test(value)
+    ? ["Se detectaron caracteres de otra escritura o texto corrupto."]
+    : []
+}
+
+function findSalaCunaSafetyIssues(value: string) {
+  return SALA_CUNA_RISK_PATTERNS
+    .filter(({ pattern }) => pattern.test(value))
+    .map(({ label }) => label)
+}
 function findShortParvulariaActivities(experience: string): string[] {
   const source = String(experience || "").replace(/\r/g, "")
   const match = source.match(/desarrollo\s*:\s*([\s\S]*?)(?=\n?\s*finalizaci[oó]n\s*:|$)/i)
@@ -1465,6 +1493,11 @@ REGLAS:
         journeyNuclei: parvulariaJourneyNucleos,
         selectedOAIds,
         selectedOATIds,
+        journeyContexts: parvulariaJourneyNucleos.map((nucleo, index) => [
+          nucleo,
+          ...(parvulariaOAByJourney[index] || []).map((oa) => oa.texto),
+          ...(parvulariaOATByJourney[index] || []).map((oat) => oat.label),
+        ].join(" ")),
         candidateLimit:
           tiempoPlanificacion === "diaria" ? 8
           : tiempoPlanificacion === "semanal" ? 8
@@ -1746,6 +1779,19 @@ CRITERIOS DE CALIDAD - VERIFICAR ANTES DE RESPONDER:
         { curso: parvulariaSegundoCurso, heading: getParvulariaAgeHeading(parvulariaSegundoCurso), stage: inferParvulariaStage(parvulariaSegundoCurso) },
       ]
     : []
+  const isSalaCunaPlanning =
+    curso.toLocaleLowerCase("es-CL").includes("sala cuna") ||
+    Boolean(parvulariaSegundoCurso?.toLocaleLowerCase("es-CL").includes("sala cuna"))
+  const parvulariaSafetyPrompt = isSalaCunaPlanning
+    ? [
+        "SEGURIDAD OBLIGATORIA PARA SALA CUNA:",
+        "- Considera que los párvulos pueden llevar materiales a la boca. No propongas piezas pequeñas, desprendibles o ingeribles.",
+        "- No uses piedras/piedrecitas, semillas, cuentas, botones, monedas, canicas/bolitas, arena o tierra suelta, ramas secas con puntas, pétalos/flores frescas, globos, bolsas plásticas, imanes, pilas o baterías.",
+        "- Para representar arena, tierra, hojas, flores u otros elementos naturales usa alternativas seguras: botellas o bolsas sensoriales totalmente selladas, imágenes, textiles grandes/lavables o elementos de una sola pieza no desprendible.",
+        "- Prioriza materiales lavables, no tóxicos, sin bordes y apropiados para exploración oral accidental.",
+        "- La supervisión adulta NO convierte un material de riesgo en material aceptable.",
+      ].join("\n")
+    : ""
   const parvulariaHeterogeneousDevelopmentContext = parvulariaAgeGroups.length === 2
     ? [
         "DESARROLLO HETEROGÉNEO OBLIGATORIO — REPRODUCIR LA LÓGICA DEL FORMATO INSTITUCIONAL:",
@@ -1793,6 +1839,8 @@ ${parvulariaPeriodGuide || "Desarrolla experiencias coherentes con el período s
 ${parvulariaHeterogeneousDevelopmentContext ? `${parvulariaHeterogeneousDevelopmentContext}\n` : ""}
 
 ${parvulariaKnowledge?.prompt || ""}
+
+${parvulariaSafetyPrompt}
 
 CRITERIOS BCEP 2018 OFICIALES PARA CONSTRUIR LA EXPERIENCIA:
 ${truncateForPrompt(JSON.stringify({
@@ -2148,9 +2196,12 @@ REGLAS DE LAS CELDAS:
               ).map((issue) => `${row.jornada}: ${issue}`)
             )
           : []
+        const safetyBody = fixed.filas.map((row) => row.experienciaAprendizaje + "\n" + row.recursos).join("\n")
+        const safetyIssues = isSalaCunaPlanning ? findSalaCunaSafetyIssues(safetyBody) : []
+        const unexpectedCharacterIssues = findUnexpectedParvulariaCharacters(serializeParvulariaPlanningDocument(fixed))
         const languageJourney = fixed.filas[2]
         const languageJourneyMissing = !languageJourney || !/(lenguaje|lectura|relato|cuento|oral|vocabulario|canci[oó]n|conversaci[oó]n|balbuceo|gestos comunicativos)/i.test(languageJourney.experienciaAprendizaje)
-        if (!fixed.objetivoAprendizaje.trim() || !fixed.principioJuego.trim() || !fixed.principioActividad.trim() || !fixed.focoExperiencia.trim() || fixed.filas.length !== 3 || incompleteRow || missingOA.length || journeyOAIssues.length || journeyOATIssues.length || missingActivityDatesByJourney.length || heterogeneousDevelopmentIssues.length || shortActivitiesByJourney.length || languageJourneyMissing) {
+        if (!fixed.objetivoAprendizaje.trim() || !fixed.principioJuego.trim() || !fixed.principioActividad.trim() || !fixed.focoExperiencia.trim() || fixed.filas.length !== 3 || incompleteRow || missingOA.length || journeyOAIssues.length || journeyOATIssues.length || missingActivityDatesByJourney.length || heterogeneousDevelopmentIssues.length || shortActivitiesByJourney.length || safetyIssues.length || unexpectedCharacterIssues.length || languageJourneyMissing) {
           throw new Error(
             journeyOAIssues.length
               ? `La asignación de núcleo/OA por jornada no fue respetada: ${journeyOAIssues.join(" | ")}.`
@@ -2158,6 +2209,10 @@ REGLAS DE LAS CELDAS:
                 ? `La asignación de OAT por jornada no fue respetada: ${journeyOATIssues.join(" | ")}.`
               : missingOA.length
                 ? `Faltan objetivos seleccionados en la tabla: ${missingOA.map((oa) => oa.codigoOficial || oa.id).join(", ")}.`
+              : unexpectedCharacterIssues.length
+                ? `La salida contiene texto corrupto o caracteres inesperados: ${unexpectedCharacterIssues.join(" | ")}`
+              : safetyIssues.length
+                ? `La planificación propone materiales no aceptables para Sala Cuna: ${safetyIssues.join(", ")}. Sustitúyelos por recursos grandes, lavables, no tóxicos, no desprendibles o sensoriales completamente sellados.`
               : fixed.filas.length !== 3
                 ? `La planificación debe contener exactamente 3 jornadas y se recibieron ${fixed.filas.length}.`
                 : missingActivityDatesByJourney.length
@@ -2184,7 +2239,7 @@ REGLAS DE LAS CELDAS:
           { role: "assistant" as const, content: truncateForPrompt(result.text, 4500) },
           {
             role: "user" as const,
-            content: `La salida anterior no cumple el JSON institucional de Educación Parvularia. Regenera desde cero SOLO como JSON válido. Debe contener EXACTAMENTE TRES jornadas en filas: 1) Exploración y experiencia principal, 2) Expresión artística y sensorial, 3) Lenguaje verbal, lectura y comunicación. Cada jornada debe completar las siete columnas, incluir Inicio/Desarrollo/Finalización y, en semanal/quincenal, una actividad para cada fecha hábil. EN TODOS LOS HORIZONTES, cada actividad del Desarrollo debe ser una oración pedagógica completa y breve de aproximadamente 100-180 caracteres de contenido: acción de los párvulos + material/estímulo/espacio + forma de exploración o mediación + propósito o respuesta observable. No uses títulos telegráficos. Respeta esta asignación de ÁMBITO, NÚCLEO, OA Y OAT por jornada:\n${parvulariaJourneyOAContext}\nCada ambitoNucleo debe usar exactamente el ámbito/núcleo principal y los núcleos transversales OAT asignados a su fila. Cada objetivosAprendizajes debe usar solo los OA y OAT asignados a su fila. ${parvulariaHeterogeneousDevelopmentContext ? `Además, corrige obligatoriamente la diferenciación por edad/subnivel dentro de Desarrollo:\n${parvulariaHeterogeneousDevelopmentContext}\n` : ""}No uses markdown, horas ni minutos. Error detectado: ${firstError instanceof Error ? firstError.message : "formato inválido"}`,
+            content: `La salida anterior no cumple el JSON institucional de Educación Parvularia. Regenera desde cero SOLO como JSON válido. Debe contener EXACTAMENTE TRES jornadas en filas: 1) Exploración y experiencia principal, 2) Expresión artística y sensorial, 3) Lenguaje verbal, lectura y comunicación. Cada jornada debe completar las siete columnas, incluir Inicio/Desarrollo/Finalización y, en semanal/quincenal, una actividad para cada fecha hábil. EN TODOS LOS HORIZONTES, cada actividad del Desarrollo debe ser una oración pedagógica completa y breve de aproximadamente 100-180 caracteres de contenido: acción de los párvulos + material/estímulo/espacio + forma de exploración o mediación + propósito o respuesta observable. No uses títulos telegráficos. Respeta esta asignación de ÁMBITO, NÚCLEO, OA Y OAT por jornada:\n${parvulariaJourneyOAContext}\nCada ambitoNucleo debe usar exactamente el ámbito/núcleo principal y los núcleos transversales OAT asignados a su fila. Cada objetivosAprendizajes debe usar solo los OA y OAT asignados a su fila. ${parvulariaHeterogeneousDevelopmentContext ? `Además, corrige obligatoriamente la diferenciación por edad/subnivel dentro de Desarrollo:\n${parvulariaHeterogeneousDevelopmentContext}\n` : ""}No uses markdown, horas ni minutos. Usa únicamente texto español legible, sin caracteres de otras escrituras ni fragmentos corruptos. ${parvulariaSafetyPrompt} Error detectado: ${firstError instanceof Error ? firstError.message : "formato inválido"}`,
           },
         ], {
           maxTokens: strategy.maxTokens,
@@ -2299,6 +2354,7 @@ REGLAS DE LAS CELDAS:
           tiempoPlanificacion,
           journeyNuclei: parvulariaJourneyNucleos,
           knowledgeSource: parvulariaKnowledge?.source || "none",
+          journeyReferenceCounts: parvulariaKnowledge?.journeyReferenceCounts || [],
           noveltyAudit,
         },
       })
@@ -2332,6 +2388,7 @@ REGLAS DE LAS CELDAS:
       parvulariaKnowledge: isStructuredParvularia ? {
         source: parvulariaKnowledge?.source || "none",
         referenceCount: parvulariaKnowledge?.candidateIds.length || 0,
+        journeyReferenceCounts: parvulariaKnowledge?.journeyReferenceCounts || [],
         savedPlanningCount: parvulariaKnowledge?.savedPlanningCount || 0,
         generationHistoryCount: parvulariaKnowledge?.generationHistoryCount || 0,
         cloudSourceCount: parvulariaKnowledge?.cloudSourceCount || 0,
@@ -2571,6 +2628,7 @@ REGLAS DE LAS CELDAS:
           tiempoPlanificacion,
           journeyNuclei: parvulariaJourneyNucleos,
           knowledgeSource: parvulariaKnowledge?.source || "none",
+          journeyReferenceCounts: parvulariaKnowledge?.journeyReferenceCounts || [],
           aiFallback: true,
           error: errorMessage.slice(0, 900),
         },
@@ -2604,6 +2662,7 @@ REGLAS DE LAS CELDAS:
         parvulariaKnowledge: {
           source: parvulariaKnowledge?.source || "none",
           referenceCount: parvulariaKnowledge?.candidateIds.length || 0,
+          journeyReferenceCounts: parvulariaKnowledge?.journeyReferenceCounts || [],
           savedPlanningCount: parvulariaKnowledge?.savedPlanningCount || 0,
           generationHistoryCount: parvulariaKnowledge?.generationHistoryCount || 0,
           cloudSourceCount: parvulariaKnowledge?.cloudSourceCount || 0,
