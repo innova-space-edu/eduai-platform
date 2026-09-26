@@ -1483,30 +1483,6 @@ REGLAS:
   const claseObjectives = isBasicaMedia ? buildClaseObjectives(sesiones) : ""
   const weeklyOAContext = isInstitutionalMacro ? buildWeeklyOAContext({ nivel, curso, asignatura, weeklyOAPlan }) : ""
 
-  const parvulariaKnowledge = isStructuredParvularia
-    ? await buildParvulariaKnowledgeContext({
-        supabase,
-        userId: user.id,
-        course: curso,
-        topic: contexto || message,
-        message,
-        journeyNuclei: parvulariaJourneyNucleos,
-        selectedOAIds,
-        selectedOATIds,
-        journeyContexts: parvulariaJourneyNucleos.map((nucleo, index) => [
-          nucleo,
-          ...(parvulariaOAByJourney[index] || []).map((oa) => oa.texto),
-          ...(parvulariaOATByJourney[index] || []).map((oat) => oat.label),
-        ].join(" ")),
-        candidateLimit:
-          tiempoPlanificacion === "diaria" ? 8
-          : tiempoPlanificacion === "semanal" ? 8
-          : tiempoPlanificacion === "quincenal" ? 9
-          : tiempoPlanificacion === "mensual" ? 10
-          : 12,
-      }).catch(() => null)
-    : null
-
   const systemPrompt = `Eres APl, el Agente Planificador Curricular de EduAI, especializado en el curriculum oficial chileno del MINEDUC.
 
 Tu mision: generar planificaciones docentes completas, rigurosas, detalladas y directamente usables en el aula chilena real.
@@ -1764,6 +1740,30 @@ CRITERIOS DE CALIDAD - VERIFICAR ANTES DE RESPONDER:
         ...parvulariaSelectedOAT.map((oat) => `${oat.description || oat.id}: ${oat.label} | OAT complementario | Ámbito: ${oat.ambito || "Desarrollo personal y social"} | Núcleo: ${oat.nucleo || "No informado"}`),
       ].join("\n")
     : ""
+
+  const parvulariaKnowledge = isStructuredParvularia
+    ? await buildParvulariaKnowledgeContext({
+        supabase,
+        userId: user.id,
+        course: curso,
+        topic: contexto || message,
+        message,
+        journeyNuclei: parvulariaJourneyNucleos,
+        selectedOAIds,
+        selectedOATIds,
+        journeyContexts: parvulariaJourneyNucleos.map((nucleo, index) => [
+          nucleo,
+          ...(parvulariaOAByJourney[index] || []).map((oa) => oa.texto),
+          ...(parvulariaOATByJourney[index] || []).map((oat) => oat.label),
+        ].join(" ")),
+        candidateLimit:
+          tiempoPlanificacion === "diaria" ? 8
+          : tiempoPlanificacion === "semanal" ? 8
+          : tiempoPlanificacion === "quincenal" ? 9
+          : tiempoPlanificacion === "mensual" ? 10
+          : 12,
+      }).catch(() => null)
+    : null
 
   const parvulariaRequiredDateLabels = (tiempoPlanificacion === "semanal" || tiempoPlanificacion === "quincenal")
     ? parvulariaPeriodGuide
