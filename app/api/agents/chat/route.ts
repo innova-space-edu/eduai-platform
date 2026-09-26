@@ -127,7 +127,7 @@ FORMATO EXACTO:
     const stream = await streamAIText({
       messages,
       maxOutputTokens: studyType === "summary" ? 850 : 1300,
-      preferredProvider: "groq",
+      fallbackProfile: "fast",
       context: {
         userId: user.id,
         module: "study-tutor",

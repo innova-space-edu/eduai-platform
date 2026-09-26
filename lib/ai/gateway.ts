@@ -35,6 +35,7 @@ import {
   isCompatibleTransientError,
   parseStructuredJson,
   streamCompatibleText,
+  type CompatibleModelProfile,
 } from "./providers/openai-compatible"
 
 export type { GatewayMessage }
@@ -93,6 +94,7 @@ async function providerRuntimeModel(input: {
   provider: AIProviderId
   capability: AICapability
   lite?: boolean
+  fallbackProfile?: CompatibleModelProfile
   kind?: "text" | "image"
 }) {
   let fallbackModel: string | null = null
@@ -102,7 +104,7 @@ async function providerRuntimeModel(input: {
       ? googleModel("image")
       : googleModel(input.lite ? "lite" : "text")
   } else if (isCompatibleProviderId(input.provider)) {
-    fallbackModel = compatibleFallbackModel(input.provider, input.capability)
+    fallbackModel = compatibleFallbackModel(input.provider, input.capability, input.fallbackProfile)
   }
 
   if (!fallbackModel) return null
@@ -155,6 +157,7 @@ async function executeTextProvider(input: {
   messages: GatewayMessage[]
   maxOutputTokens?: number
   lite?: boolean
+  fallbackProfile?: CompatibleModelProfile
   supabase?: SupabaseClient | null
 }): Promise<{ text: string; provider: string; model: string } | null> {
   if (input.provider === "google") {
@@ -201,10 +204,16 @@ async function executeTextProvider(input: {
       supabase: input.supabase,
       provider: input.provider,
       capability: input.capability,
+      fallbackProfile: input.fallbackProfile,
     })
     if (!selected) return null
 
-    const candidates = compatibleModelCandidates(input.provider, input.capability, selected.model)
+    const candidates = compatibleModelCandidates(
+      input.provider,
+      input.capability,
+      selected.model,
+      input.fallbackProfile,
+    )
     let lastError: unknown = null
 
     for (const model of candidates) {
@@ -237,6 +246,7 @@ export async function runAIText(input: {
   maxOutputTokens?: number
   preferredProvider?: AIProviderId | null
   lite?: boolean
+  fallbackProfile?: CompatibleModelProfile
   context?: AIRequestContext
   supabase?: SupabaseClient | null
 }): Promise<GatewayResult<string>> {
@@ -257,6 +267,7 @@ export async function runAIText(input: {
       messages: input.messages,
       maxOutputTokens: input.maxOutputTokens ?? null,
       lite: Boolean(input.lite),
+      fallbackProfile: input.fallbackProfile ?? "quality",
       preferredProvider: input.preferredProvider ?? null,
     },
     scopeKey: input.context?.workspaceId || input.context?.userId || null,
@@ -346,6 +357,7 @@ export async function runAIText(input: {
         messages: input.messages,
         maxOutputTokens: input.maxOutputTokens,
         lite: input.lite,
+        fallbackProfile: input.fallbackProfile,
         supabase: input.supabase,
       })
 
@@ -622,6 +634,7 @@ export async function streamAIText(input: {
   messages: GatewayMessage[]
   maxOutputTokens?: number
   lite?: boolean
+  fallbackProfile?: CompatibleModelProfile
   preferredProvider?: AIProviderId | null
   context?: AIRequestContext
   supabase?: SupabaseClient | null
@@ -658,6 +671,7 @@ export async function streamAIText(input: {
           supabase: input.supabase,
           provider,
           capability: "text",
+          fallbackProfile: input.fallbackProfile,
         })
         if (!selected) continue
         return streamCompatibleText({

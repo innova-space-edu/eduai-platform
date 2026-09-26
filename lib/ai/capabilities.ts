@@ -44,11 +44,11 @@ export type AIRequestContext = {
 // `retrieval` representa índices/buscadores cloud como Google File Search y no
 // sustituye el RAG local/propio de EduAI.
 export const DEFAULT_PROVIDER_ORDER: Record<AICapability, AIProviderId[]> = {
-  text: ["google", "groq", "openrouter", "cerebras", "together"],
-  structured: ["google", "groq", "openrouter", "cerebras", "together"],
+  text: ["google", "groq", "cerebras", "openrouter", "together"],
+  structured: ["google", "groq", "cerebras", "openrouter", "together"],
   vision: ["google", "openrouter", "together"],
-  long_context: ["google", "groq", "together", "openrouter", "cerebras"],
-  research: ["google", "groq", "openrouter"],
+  long_context: ["google", "groq", "cerebras", "openrouter", "together"],
+  research: ["google", "groq", "cerebras", "openrouter"],
   retrieval: ["google"],
   embeddings: ["google", "local"],
   image: ["google", "openrouter", "together"],

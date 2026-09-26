@@ -23,10 +23,10 @@ function withEnv(name: string, value: string | undefined, fn: () => void) {
 }
 
 function testProviderOrders() {
-  assert.deepEqual(providerOrderFor("text"), ["google", "groq", "openrouter", "cerebras", "together"])
-  assert.deepEqual(providerOrderFor("structured"), ["google", "groq", "openrouter", "cerebras", "together"])
-  assert.deepEqual(providerOrderFor("long_context"), ["google", "groq", "together", "openrouter", "cerebras"])
-  assert.deepEqual(providerOrderFor("research"), ["google", "groq", "openrouter"])
+  assert.deepEqual(providerOrderFor("text"), ["google", "groq", "cerebras", "openrouter", "together"])
+  assert.deepEqual(providerOrderFor("structured"), ["google", "groq", "cerebras", "openrouter", "together"])
+  assert.deepEqual(providerOrderFor("long_context"), ["google", "groq", "cerebras", "openrouter", "together"])
+  assert.deepEqual(providerOrderFor("research"), ["google", "groq", "cerebras", "openrouter"])
   assert.deepEqual(providerOrderFor("code"), ["google", "groq", "cerebras", "openrouter", "together"])
 }
 
@@ -48,15 +48,29 @@ function testProviderGuards() {
 
 function testFallbackModels() {
   withEnv("GROQ_TEXT_MODEL", undefined, () => {
-    assert.equal(compatibleFallbackModel("groq", "text"), "openai/gpt-oss-120b")
+    withEnv("GROQ_TEXT_MODEL_FAST", undefined, () => {
+      withEnv("GROQ_TEXT_MODEL_REASONING", undefined, () => {
+        assert.equal(compatibleFallbackModel("groq", "text", "fast"), "openai/gpt-oss-20b")
+        assert.equal(compatibleFallbackModel("groq", "text", "quality"), "openai/gpt-oss-120b")
+      })
+    })
   })
   withEnv("GROQ_RESEARCH_MODEL", undefined, () => {
     assert.equal(compatibleFallbackModel("groq", "research"), "groq/compound")
   })
-  withEnv("OPENROUTER_TEXT_MODEL", undefined, () => {
-    withEnv("OPENROUTER_STRUCTURED_MODEL", undefined, () => {
-      assert.equal(compatibleFallbackModel("openrouter", "text"), "openrouter/auto")
-      assert.equal(compatibleFallbackModel("openrouter", "structured"), "openrouter/auto")
+  withEnv("OPENROUTER_FREE_ONLY", undefined, () => {
+    withEnv("OPENROUTER_TEXT_MODEL", undefined, () => {
+      withEnv("OPENROUTER_STRUCTURED_MODEL", undefined, () => {
+        assert.equal(compatibleFallbackModel("openrouter", "text"), "openrouter/free")
+        assert.equal(compatibleFallbackModel("openrouter", "structured"), "openrouter/free")
+      })
+    })
+    withEnv("OPENROUTER_TEXT_MODEL", "openrouter/auto", () => {
+      assert.equal(compatibleFallbackModel("openrouter", "text"), "openrouter/free")
+      assert.deepEqual(
+        compatibleModelCandidates("openrouter", "text", "openrouter/auto"),
+        ["openrouter/free"],
+      )
     })
   })
   withEnv("TOGETHER_TEXT_MODEL", undefined, () => {
@@ -66,10 +80,18 @@ function testFallbackModels() {
     assert.equal(compatibleFallbackModel("cerebras", "text"), "gpt-oss-120b")
   })
   withEnv("GROQ_TEXT_MODEL", undefined, () => {
-    assert.deepEqual(
-      compatibleModelCandidates("groq", "long_context", "llama-3.3-70b-versatile"),
-      ["openai/gpt-oss-120b", "qwen/qwen3.6-27b", "openai/gpt-oss-20b"],
-    )
+    withEnv("GROQ_TEXT_MODEL_FAST", undefined, () => {
+      withEnv("GROQ_TEXT_MODEL_REASONING", undefined, () => {
+        assert.deepEqual(
+          compatibleModelCandidates("groq", "long_context", "llama-3.3-70b-versatile", "quality"),
+          ["openai/gpt-oss-120b", "qwen/qwen3.6-27b", "openai/gpt-oss-20b"],
+        )
+        assert.deepEqual(
+          compatibleModelCandidates("groq", "text", "llama-3.3-70b-versatile", "fast"),
+          ["openai/gpt-oss-20b", "openai/gpt-oss-120b", "qwen/qwen3.6-27b"],
+        )
+      })
+    })
   })
 }
 
@@ -86,7 +108,19 @@ function testGatewayWiring() {
   assert.ok(source.includes("streamCompatibleText"), "Gateway debe mantener streaming real en fallbacks")
   assert.ok(source.includes("hasCompatibleProvider"), "Gateway debe saltar proveedores sin credenciales")
   assert.ok(source.includes("compatibleFallbackModel"), "Gateway debe resolver fallback por proveedor")
+  assert.ok(source.includes("fallbackProfile"), "Gateway debe distinguir perfiles rápidos y de calidad")
   assert.ok(source.includes("resolveProviderModel({"), "Gateway debe conservar el registro dinámico")
+}
+
+function testModuleFallbackWiring() {
+  const chat = fs.readFileSync(path.join(process.cwd(), "app", "api", "agents", "chat", "route.ts"), "utf8")
+  const mira = fs.readFileSync(path.join(process.cwd(), "app", "api", "agents", "mira", "route.ts"), "utf8")
+  const math = fs.readFileSync(path.join(process.cwd(), "app", "api", "agents", "matematico", "route.ts"), "utf8")
+
+  assert.ok(chat.includes('fallbackProfile: "fast"'), "Chat debe usar GPT-OSS 20B como fallback rápido")
+  assert.ok(!chat.includes('preferredProvider: "groq"'), "Chat no debe anular el fallback global")
+  assert.ok(mira.includes('fallbackProfile: "fast"'), "MIRA debe usar fallback rápido")
+  assert.ok(!math.includes('preferredProvider: "google"'), "Matemático debe poder caer a proveedores alternativos")
 }
 
 function testVertexWiring() {
@@ -104,6 +138,7 @@ function main() {
   testFallbackModels()
   testStructuredParsing()
   testGatewayWiring()
+  testModuleFallbackWiring()
   testVertexWiring()
   console.log("✓ EduAI multiprovider tests OK")
 }
