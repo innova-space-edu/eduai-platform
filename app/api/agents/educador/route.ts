@@ -233,7 +233,8 @@ const SALA_CUNA_RISK_PATTERNS: Array<{ label: string; pattern: RegExp }> = [
   { label: "piedras o piezas minerales pequeñas", pattern: /\bpiedr(?:a|as|ecita|ecitas)\b/i },
   { label: "semillas", pattern: /\bsemillas?\b/i },
   { label: "cuentas, canicas o bolitas", pattern: /\b(?:cuentas?|canicas?|bolitas?)\b/i },
-  { label: "botones o monedas", pattern: /\b(?:botones?|monedas?)\b/i },
+  { label: "botones pequeños o sueltos", pattern: /\b(?:botones?\s+(?:pequeñ[oa]s?|suelt[oa]s?|de\s+costura|desprendibles?)|(?:pequeñ[oa]s?|suelt[oa]s?|desprendibles?)\s+botones?)\b/i },
+  { label: "monedas", pattern: /\bmonedas?\b/i },
   { label: "objetos pequeños", pattern: /\bobjetos?\s+pequeñ[oa]s?\b/i },
   { label: "arena suelta", pattern: /\barena(?:\s+(?:fina|suelta))?\b/i },
   { label: "tierra suelta", pattern: /\btierra(?:\s+de\s+hoja)?\b/i },
@@ -403,7 +404,7 @@ function buildFallbackParvulariaActivity(params: {
   ]
   const suffix = suffixes[Math.floor(cycle / 4) % suffixes.length]
 
-  if (params.journeyIndex === 2) {
+  if (params.nucleo.toLocaleLowerCase("es-CL").includes("lenguaje verbal")) {
     if (c.includes("sala cuna menor")) {
       const options = [
         "Los párvulos observarán objetos reales y fotografías contrastadas, escucharán palabras breves y responderán con mirada, balbuceo, gestos o movimientos",
@@ -427,7 +428,7 @@ function buildFallbackParvulariaActivity(params: {
     return `Los párvulos participarán en conversación, relato o lectura compartida, formulando ideas y respuestas acordes a su subnivel${suffix}`
   }
 
-  if (params.journeyIndex === 1) {
+  if (params.nucleo.toLocaleLowerCase("es-CL").includes("lenguajes artísticos") || params.nucleo.toLocaleLowerCase("es-CL").includes("lenguajes artisticos")) {
     if (c.includes("sala cuna menor")) {
       const options = [
         "Los párvulos tocarán, observarán y moverán materiales artísticos o sensoriales seguros, reaccionando a colores, texturas, sonidos y movimientos con apoyo cercano",
@@ -1146,6 +1147,27 @@ Sé específico, nombra contenidos concretos del currículum y da al menos 7 ide
   }
 }
 
+export async function GET(req: NextRequest) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+  const runId = req.nextUrl.searchParams.get("runId") || ""
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(runId)) {
+    return NextResponse.json({ error: "runId inválido" }, { status: 400 })
+  }
+
+  const { data, error } = await supabase
+    .from("parvularia_generation_runs")
+    .select("id,status,phase_key,phase_index,total_phases,phase_label,detail,metadata,created_at,updated_at,completed_at")
+    .eq("id", runId)
+    .eq("user_id", user.id)
+    .maybeSingle()
+
+  if (error) return NextResponse.json({ error: "No fue posible leer el progreso" }, { status: 500 })
+  return NextResponse.json({ run: data || null })
+}
+
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -1163,6 +1185,41 @@ export async function POST(req: NextRequest) {
   const rawDesignTemplateId = typeof body.designTemplateId === "string" ? body.designTemplateId : cfg.designTemplateId
   const designTemplateId = typeof rawDesignTemplateId === "string" && rawDesignTemplateId.trim() ? rawDesignTemplateId.trim() : undefined
   const mode = cfg.mode === "sugerir_parvularia" ? "sugerir_parvularia" : "planificar"
+
+  const generationRunId =
+    typeof body.generationRunId === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(body.generationRunId)
+      ? body.generationRunId
+      : ""
+
+  const updateParvulariaPhase = async (params: {
+    phaseKey: string
+    phaseIndex: number
+    phaseLabel: string
+    detail: string
+    status?: "running" | "completed" | "fallback" | "failed"
+    metadata?: Record<string, unknown>
+  }) => {
+    if (!generationRunId) return
+    const status = params.status || "running"
+    const { error } = await supabase
+      .from("parvularia_generation_runs")
+      .upsert({
+        id: generationRunId,
+        user_id: user.id,
+        status,
+        phase_key: params.phaseKey,
+        phase_index: params.phaseIndex,
+        total_phases: 6,
+        phase_label: params.phaseLabel,
+        detail: params.detail,
+        metadata: params.metadata || {},
+        updated_at: new Date().toISOString(),
+        completed_at: status === "running" ? null : new Date().toISOString(),
+      }, { onConflict: "id" })
+    if (error) console.warn("[Educador AI · progreso]", error.message)
+  }
+
 
   const nivel: NivelKey = cfg.nivel === "parvularia" || cfg.nivel === "basica" || cfg.nivel === "media"
     ? cfg.nivel : "parvularia"
@@ -1710,12 +1767,8 @@ CRITERIOS DE CALIDAD - VERIFICAR ANTES DE RESPONDER:
     : []
   const parvulariaJourneyOAContext = isStructuredParvularia
     ? parvulariaOAByJourney.map((oas, index) => {
-        const label = [
-          "Jornada 1 · Exploración y experiencia principal",
-          "Jornada 2 · Expresión artística y sensorial",
-          "Jornada 3 · Lenguaje verbal, lectura y comunicación",
-        ][index]
         const nucleo = parvulariaJourneyNucleos[index] || asignatura
+        const label = `Jornada ${index + 1} · ${nucleo}`
         const ambito = getParvulariaAmbito(curso, nucleo) || "Ámbito no informado"
         const oats = parvulariaOATByJourney[index] || []
         const oatGroups = [...new Set(oats.map((oat) => oat.nucleo || "Núcleo transversal"))]
@@ -1740,6 +1793,15 @@ CRITERIOS DE CALIDAD - VERIFICAR ANTES DE RESPONDER:
         ...parvulariaSelectedOAT.map((oat) => `${oat.description || oat.id}: ${oat.label} | OAT complementario | Ámbito: ${oat.ambito || "Desarrollo personal y social"} | Núcleo: ${oat.nucleo || "No informado"}`),
       ].join("\n")
     : ""
+
+  if (isStructuredParvularia) {
+    await updateParvulariaPhase({
+      phaseKey: "database",
+      phaseIndex: 1,
+      phaseLabel: "Revisando base pedagógica",
+      detail: "Consultando BCEP, corpus Parvularia, planificaciones previas y referencias RAG por jornada.",
+    })
+  }
 
   const parvulariaKnowledge = isStructuredParvularia
     ? await buildParvulariaKnowledgeContext({
@@ -1786,7 +1848,7 @@ CRITERIOS DE CALIDAD - VERIFICAR ANTES DE RESPONDER:
     ? [
         "SEGURIDAD OBLIGATORIA PARA SALA CUNA:",
         "- Considera que los párvulos pueden llevar materiales a la boca. No propongas piezas pequeñas, desprendibles o ingeribles.",
-        "- No uses piedras/piedrecitas, semillas, cuentas, botones, monedas, canicas/bolitas, arena o tierra suelta, ramas secas con puntas, pétalos/flores frescas, globos, bolsas plásticas, imanes, pilas o baterías.",
+        "- No uses piedras/piedrecitas, semillas, cuentas, botones pequeños o sueltos, monedas, canicas/bolitas, arena o tierra suelta, ramas secas con puntas, pétalos/flores frescas, globos, bolsas plásticas, imanes, pilas o baterías. Si un OA requiere accionar un botón, solo acepta botones integrados, firmes y no desprendibles de un recurso apropiado para la edad.",
         "- Para representar arena, tierra, hojas, flores u otros elementos naturales usa alternativas seguras: botellas o bolsas sensoriales totalmente selladas, imágenes, textiles grandes/lavables o elementos de una sola pieza no desprendible.",
         "- Prioriza materiales lavables, no tóxicos, sin bordes y apropiados para exploración oral accidental.",
         "- La supervisión adulta NO convierte un material de riesgo en material aceptable.",
@@ -1803,6 +1865,62 @@ CRITERIOS DE CALIDAD - VERIFICAR ANTES DE RESPONDER:
         "- Inicio y Finalización pueden ser comunes a ambos grupos; la diferenciación obligatoria ocurre dentro de Desarrollo.",
       ].join("\n")
     : ""
+
+  let parvulariaBlueprint = ""
+  if (isStructuredParvularia) {
+    await updateParvulariaPhase({
+      phaseKey: "rules",
+      phaseIndex: 2,
+      phaseLabel: "Aplicando reglas pedagógicas",
+      detail: "Alineando núcleo, OA/OAT, rango etario, seguridad y diversidad antes de redactar.",
+      metadata: {
+        journeyReferenceCounts: parvulariaKnowledge?.journeyReferenceCounts || [],
+      },
+    })
+
+    try {
+      const blueprintAI = await runAIGatewayText({
+        messages: [
+          {
+            role: "system",
+            content: [
+              "Eres un diseñador pedagógico de Educación Parvularia chilena.",
+              "NO redactes la planificación final. Construye solo un plan intermedio breve en JSON.",
+              "Cada jornada debe respetar exclusivamente su núcleo, OA y OAT seleccionados.",
+              "Para cada jornada propone: propósito, 5 a 7 mecánicas de actividad diferentes, banco de materiales seguros, mediaciones adultas y evidencias observables.",
+              "Evita repetir mecánicas entre jornadas. No inventes OA. Prioriza seguridad y pertinencia por edad.",
+              "Responde SOLO JSON válido, sin markdown.",
+            ].join("\n"),
+          },
+          {
+            role: "user",
+            content: [
+              `Curso: ${curso}`,
+              `Horizonte: ${tiempoPlanificacion}`,
+              `Periodo: ${parvulariaFechas}`,
+              "ASIGNACIÓN CURRICULAR POR JORNADA:",
+              parvulariaJourneyOAContext,
+              parvulariaSafetyPrompt,
+              "REFERENCIAS RAG Y MEMORIA:",
+              truncateForPrompt(parvulariaKnowledge?.prompt || "", 5200),
+            ].filter(Boolean).join("\n\n"),
+          },
+        ],
+        capability: "text",
+        maxOutputTokens: 3200,
+        context: {
+          userId: user.id,
+          module: "educador-parvularia-blueprint",
+          reusePolicy: "exact_private",
+          visibility: "private",
+        },
+        supabase,
+      })
+      parvulariaBlueprint = blueprintAI.data
+    } catch (blueprintError) {
+      console.warn("[Educador AI · blueprint]", blueprintError instanceof Error ? blueprintError.message : "No disponible")
+    }
+  }
 
   const parvulariaSystemPrompt = isStructuredParvularia ? `Eres APl, Agente Planificador Curricular de EduAI especializado en Educación Parvularia de Chile.
 
@@ -1842,6 +1960,9 @@ ${parvulariaKnowledge?.prompt || ""}
 
 ${parvulariaSafetyPrompt}
 
+PLAN PEDAGÓGICO INTERMEDIO — USA COMO GUÍA, NO COMO TEXTO FINAL:
+${truncateForPrompt(parvulariaBlueprint, 7000) || "No disponible; usa directamente OA/OAT, RAG y reglas."}
+
 CRITERIOS BCEP 2018 OFICIALES PARA CONSTRUIR LA EXPERIENCIA:
 ${truncateForPrompt(JSON.stringify({
   principios: bcepReference.principios_pedagogicos,
@@ -1872,12 +1993,11 @@ REFERENCIA INSTITUCIONAL QUE DEBES REPLICAR EN CONTENIDO Y ORGANIZACIÓN:
 - Evaluación debe quedar completa: "Instrumento: Escala de apreciación", Logrado: 3, Medianamente logrado: 2, Por lograr: 1, No observado: 0; Registro de Observación; registro fotográfico cuando sea pertinente; e Indicadores observables alineados a cada objetivo.
 - Usa la referencia como estándar de profundidad: una planificación semanal o quincenal no puede devolver una tabla vacía ni una frase genérica por columna.
 - El archivo de referencia contiene DOS bloques completos de planificación dentro de la misma tabla: uno centrado en Exploración del Entorno Natural + Corporalidad y Movimiento, y otro en Lenguajes Artísticos + Identidad y Autonomía. En EduAI se amplía deliberadamente a TRES jornadas pedagógicas diarias manteniendo la misma estructura de siete columnas.
-- Debes generar EXACTAMENTE TRES filas/jornadas:
-  1) "Jornada 1 · Exploración y experiencia principal": experiencia activa, corporal, natural, científica o manipulativa, siempre alineada a los OA seleccionados.
-  2) "Jornada 2 · Expresión artística y sensorial": experiencia de expresión, arte, música, movimiento, color, textura o creación, integrada a los OA seleccionados.
-  3) "Jornada 3 · Lenguaje verbal, lectura y comunicación": experiencia de oralidad, conversación, relato, lectura compartida/dialogada, canciones, vocabulario, gestos comunicativos o escucha, adaptada al nivel y alineada a los OA seleccionados.
+- Debes generar EXACTAMENTE TRES filas/jornadas independientes.
+- Jornada 1, Jornada 2 y Jornada 3 toman su identidad pedagógica exclusivamente del NÚCLEO, OA y OAT que el docente asignó a cada una.
+- No fuerces arte, lenguaje, matemática, exploración u otro foco en una jornada si ese núcleo no fue seleccionado.
 - Las tres jornadas son planificaciones distintas dentro del mismo documento. No las mezcles en una sola fila.
-- No inventes un OA de Lenguaje Verbal solo por el nombre de la tercera jornada: si ese núcleo no fue seleccionado, utiliza estrategias de lenguaje y comunicación como mediación pedagógica manteniendo los OA oficiales elegidos.
+- Lenguaje, movimiento, juego y exploración pueden usarse como mediaciones transversales, pero nunca deben reemplazar ni contradecir el OA oficial de la jornada.
 
 ESTRUCTURA PEDAGÓGICA OBLIGATORIA:
 1. Debes completar los cuatro campos iniciales: objetivo de aprendizaje integrado, principio de juego, principio de actividad y foco de experiencia.
@@ -1900,7 +2020,7 @@ ESTRUCTURA PEDAGÓGICA OBLIGATORIA:
 18. Nunca devuelvas campos vacíos. Si falta una idea del docente, CONSTRÚYELA a partir de los objetivos oficiales seleccionados, la edad, el núcleo y el contexto.
 19. No copies actividades del archivo de referencia como plantilla fija: construye nuevas actividades coherentes con los OA/OAT seleccionados, manteniendo su nivel de detalle y su organización.
 20. Las tres jornadas no pueden repetir la misma actividad cambiando solo palabras: deben diferenciar propósito inmediato, recursos, mediación y acciones de los párvulos.
-21. La Jornada 3 debe incluir una mediación explícita de lenguaje/comunicación apropiada al nivel (oralidad, relato, lectura compartida, canciones, vocabulario, balbuceo/gestos o conversación), sin escolarizar la experiencia.
+21. Cada jornada debe usar mediaciones coherentes con su núcleo y OA. El lenguaje y la comunicación pueden acompañar transversalmente, pero no deben convertir una jornada de otro núcleo en una experiencia de Lenguaje Verbal.
 22. Respeta estrictamente la ASIGNACIÓN OBLIGATORIA DE ÁMBITO, NÚCLEO, OA Y OAT POR JORNADA. Cada fila debe usar su ámbito/núcleo principal exacto, separar los núcleos transversales de sus OAT y contener únicamente los OA/OAT asignados a esa jornada.
 23. Si parvulariaHeterogenea está activa, las TRES jornadas deben contener ambos bloques de edad/subnivel dentro de Desarrollo. No basta con mencionar los niveles en el encabezado ni con una adaptación al final.
 
@@ -1921,7 +2041,7 @@ Responde SOLO JSON válido, sin markdown, sin comentarios y sin texto antes o de
   "horizonte": "${tiempoPlanificacion}",
   "filas": [
     {
-      "jornada": "Jornada 1 · Exploración y experiencia principal",
+      "jornada": "Jornada 1 · ${parvulariaJourneyNucleos[0] || asignatura}",
       "ambitoNucleo": "...",
       "objetivosAprendizajes": "...",
       "experienciaAprendizaje": "...",
@@ -1931,7 +2051,7 @@ Responde SOLO JSON válido, sin markdown, sin comentarios y sin texto antes o de
       "evaluacion": "..."
     },
     {
-      "jornada": "Jornada 2 · Expresión artística y sensorial",
+      "jornada": "Jornada 2 · ${parvulariaJourneyNucleos[1] || asignatura}",
       "ambitoNucleo": "...",
       "objetivosAprendizajes": "...",
       "experienciaAprendizaje": "...",
@@ -1941,7 +2061,7 @@ Responde SOLO JSON válido, sin markdown, sin comentarios y sin texto antes o de
       "evaluacion": "..."
     },
     {
-      "jornada": "Jornada 3 · Lenguaje verbal, lectura y comunicación",
+      "jornada": "Jornada 3 · ${parvulariaJourneyNucleos[2] || asignatura}",
       "ambitoNucleo": "...",
       "objetivosAprendizajes": "...",
       "experienciaAprendizaje": "...",
@@ -2071,6 +2191,15 @@ REGLAS DE LAS CELDAS:
           }
         : basePlanningStrategy
 
+    if (isStructuredParvularia) {
+      await updateParvulariaPhase({
+        phaseKey: "draft",
+        phaseIndex: 3,
+        phaseLabel: "Construyendo planificación",
+        detail: "Redactando las tres jornadas y diferenciando experiencias por edad y fecha.",
+      })
+    }
+
     let result = await callAI(aiMessages, {
       maxTokens: strategy.maxTokens,
       preferProvider: strategy.preferProvider,
@@ -2098,11 +2227,7 @@ REGLAS DE LAS CELDAS:
             )
             return {
               ...row,
-              jornada: [
-                "Jornada 1 · Exploración y experiencia principal",
-                "Jornada 2 · Expresión artística y sensorial",
-                "Jornada 3 · Lenguaje verbal, lectura y comunicación",
-              ][index] || row.jornada || `Jornada ${index + 1}`,
+              jornada: `Jornada ${index + 1} · ${nucleo}`,
               ambitoNucleo: [
                 `AMBITO: ${ambito}`,
                 `NUCLEO: ${nucleo}`,
@@ -2199,9 +2324,7 @@ REGLAS DE LAS CELDAS:
         const safetyBody = fixed.filas.map((row) => row.experienciaAprendizaje + "\n" + row.recursos).join("\n")
         const safetyIssues = isSalaCunaPlanning ? findSalaCunaSafetyIssues(safetyBody) : []
         const unexpectedCharacterIssues = findUnexpectedParvulariaCharacters(serializeParvulariaPlanningDocument(fixed))
-        const languageJourney = fixed.filas[2]
-        const languageJourneyMissing = !languageJourney || !/(lenguaje|lectura|relato|cuento|oral|vocabulario|canci[oó]n|conversaci[oó]n|balbuceo|gestos comunicativos)/i.test(languageJourney.experienciaAprendizaje)
-        if (!fixed.objetivoAprendizaje.trim() || !fixed.principioJuego.trim() || !fixed.principioActividad.trim() || !fixed.focoExperiencia.trim() || fixed.filas.length !== 3 || incompleteRow || missingOA.length || journeyOAIssues.length || journeyOATIssues.length || missingActivityDatesByJourney.length || heterogeneousDevelopmentIssues.length || shortActivitiesByJourney.length || safetyIssues.length || unexpectedCharacterIssues.length || languageJourneyMissing) {
+        if (!fixed.objetivoAprendizaje.trim() || !fixed.principioJuego.trim() || !fixed.principioActividad.trim() || !fixed.focoExperiencia.trim() || fixed.filas.length !== 3 || incompleteRow || missingOA.length || journeyOAIssues.length || journeyOATIssues.length || missingActivityDatesByJourney.length || heterogeneousDevelopmentIssues.length || shortActivitiesByJourney.length || safetyIssues.length || unexpectedCharacterIssues.length) {
           throw new Error(
             journeyOAIssues.length
               ? `La asignación de núcleo/OA por jornada no fue respetada: ${journeyOAIssues.join(" | ")}.`
@@ -2221,19 +2344,30 @@ REGLAS DE LAS CELDAS:
                     ? `El Desarrollo heterogéneo no respeta los bloques por edad/subnivel: ${heterogeneousDevelopmentIssues.join(" | ")}.`
                   : shortActivitiesByJourney.length
                     ? `Hay actividades demasiado breves o redactadas como títulos. Amplía cada actividad a una frase pedagógica completa y concreta (aprox. 100-180 caracteres): ${shortActivitiesByJourney.slice(0, 6).join(" | ")}.`
-                    : languageJourneyMissing
-                      ? "La Jornada 3 debe contener una experiencia explícita de lenguaje, lectura, relato, oralidad o comunicación apropiada al nivel."
-                      : incompleteRow
-                        ? "Hay una jornada incompleta: debe incluir Inicio, Desarrollo, Finalización, roles, recursos tangibles/intangibles y la escala/indicadores de evaluación."
-                        : "Faltan campos obligatorios de la plantilla."
+                    : incompleteRow
+                      ? "Hay una jornada incompleta: debe incluir Inicio, Desarrollo, Finalización, roles, recursos tangibles/intangibles y la escala/indicadores de evaluación."
+                      : "Faltan campos obligatorios de la plantilla."
           )
         }
         return serializeParvulariaPlanningDocument(fixed)
       }
 
+      await updateParvulariaPhase({
+        phaseKey: "validation",
+        phaseIndex: 4,
+        phaseLabel: "Revisando estructura y seguridad",
+        detail: "Validando OA/OAT por jornada, fechas, materiales, texto y formato institucional.",
+      })
+
       try {
         result = { ...result, text: canonicalize(result.text) }
       } catch (firstError) {
+        await updateParvulariaPhase({
+          phaseKey: "repair",
+          phaseIndex: 5,
+          phaseLabel: "Corrigiendo detalles",
+          detail: firstError instanceof Error ? firstError.message.slice(0, 600) : "Corrigiendo la salida antes de entregarla.",
+        })
         const repaired = await callAI([
           ...aiMessages,
           { role: "assistant" as const, content: truncateForPrompt(result.text, 4500) },
@@ -2248,6 +2382,13 @@ REGLAS DE LAS CELDAS:
         })
         result = { ...repaired, text: canonicalize(repaired.text) }
       }
+
+      await updateParvulariaPhase({
+        phaseKey: "memory",
+        phaseIndex: 6,
+        phaseLabel: "Verificando diversidad y memoria",
+        detail: "Comparando con planificaciones anteriores y registrando huellas de actividades.",
+      })
 
       if (parvulariaKnowledge) {
         noveltyAudit = evaluateParvulariaNovelty(
@@ -2358,6 +2499,18 @@ REGLAS DE LAS CELDAS:
           noveltyAudit,
         },
       })
+      await updateParvulariaPhase({
+        phaseKey: "completed",
+        phaseIndex: 6,
+        phaseLabel: "Planificación lista",
+        detail: "La planificación superó la revisión y quedó registrada en la memoria antirrepetición.",
+        status: "completed",
+        metadata: {
+          knowledgeSource: parvulariaKnowledge?.source || "none",
+          journeyReferenceCounts: parvulariaKnowledge?.journeyReferenceCounts || [],
+          noveltyAudit,
+        },
+      })
     }
 
     return NextResponse.json({
@@ -2380,6 +2533,7 @@ REGLAS DE LAS CELDAS:
       outputIntent,
       institutionalPlanning: isInstitutionalMacro,
       parvulariaInstitutionalPlanning: isStructuredParvularia,
+      generationRunId: isStructuredParvularia ? generationRunId : undefined,
       periodLabel,
       weeklyOAPlan: isInstitutionalMacro ? weeklyOAPlan : undefined,
       parvulariaJourneyNucleos: isStructuredParvularia ? parvulariaJourneyNucleos : undefined,
@@ -2636,6 +2790,19 @@ REGLAS DE LAS CELDAS:
       if (!fallbackMemory.ok) {
         console.warn("[Educador AI · Parvularia memory]", fallbackMemory.error)
       }
+
+      await updateParvulariaPhase({
+        phaseKey: "fallback",
+        phaseIndex: 6,
+        phaseLabel: "Aplicando respaldo seguro",
+        detail: errorMessage.slice(0, 600),
+        status: "fallback",
+        metadata: {
+          knowledgeSource: parvulariaKnowledge?.source || "none",
+          journeyReferenceCounts: parvulariaKnowledge?.journeyReferenceCounts || [],
+          aiFallback: true,
+        },
+      })
 
       console.error("[Educador AI · Parvularia]", errorMessage)
       return NextResponse.json({
