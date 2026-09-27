@@ -383,6 +383,13 @@ function buildFallbackParvulariaActivity(params: {
     ` vinculada con ${params.nucleo}, cambiando espacio, disposición y forma de interacción para evitar repetir la misma mecánica.`,
   ]
   const suffix = suffixes[Math.floor(cycle / 4) % suffixes.length]
+  const journeyContexts = [
+    "en una estación de descubrimiento preparada a ras de suelo, variando ubicación y disposición de los recursos",
+    "en un recorrido breve de exploración con dos puntos de elección, favoreciendo desplazamiento y toma de decisiones",
+    "en un espacio de contraste y comparación con recursos ubicados en distintas zonas, promoviendo búsqueda y comunicación",
+  ]
+  const journeyContext = journeyContexts[params.journeyIndex] || journeyContexts[params.journeyIndex % journeyContexts.length]
+
 
   if (params.nucleo.toLocaleLowerCase("es-CL").includes("lenguaje verbal")) {
     if (c.includes("sala cuna menor")) {
@@ -392,7 +399,7 @@ function buildFallbackParvulariaActivity(params: {
         "Los párvulos participarán en un relato de objetos concretos, tocando y mirando cada elemento mientras el adulto acompaña con sonidos, pausas y gestos repetibles",
         "Los párvulos elegirán entre dos estímulos visuales o sonoros y comunicarán preferencia mediante mirada, alcance, sonrisa o vocalización acompañada por el adulto",
       ]
-      return `${options[variation]}${suffix}`
+      return `${options[variation]} ${journeyContext}${suffix}`
     }
     if (c.includes("sala cuna mayor")) {
       const options = [
@@ -401,7 +408,7 @@ function buildFallbackParvulariaActivity(params: {
         "Los niños y niñas completarán secuencias breves de un cuento con objetos reales, anticipando acciones mediante gestos, palabras emergentes y elección de imágenes",
         "Los niños y niñas participarán en un juego de turnos con títeres u objetos sonoros, respondiendo preguntas simples y proponiendo sonidos o palabras conocidas",
       ]
-      return `${options[variation]}${suffix}`
+      return `${options[variation]} ${journeyContext}${suffix}`
     }
     if (c.includes("medio menor")) return `Los niños y niñas nombrarán objetos, responderán preguntas simples y reconstruirán partes de un relato mediante imágenes, gestos y frases breves${suffix}`
     if (c.includes("medio mayor")) return `Los niños y niñas describirán, compararán y relatarán situaciones breves, ampliando vocabulario y turnos de conversación con apoyos visuales${suffix}`
@@ -416,7 +423,7 @@ function buildFallbackParvulariaActivity(params: {
         "Los párvulos producirán huellas y movimientos sobre una superficie protegida con materiales lavables, observando marcas y cambios mediante manos o pies",
         "Los párvulos descubrirán sonidos suaves al agitar, rozar o golpear materiales seguros, mientras el adulto acompaña ritmos y observa preferencias sensoriales",
       ]
-      return `${options[variation]}${suffix}`
+      return `${options[variation]} ${journeyContext}${suffix}`
     }
     if (c.includes("sala cuna mayor")) {
       const options = [
@@ -425,7 +432,7 @@ function buildFallbackParvulariaActivity(params: {
         "Los niños y niñas experimentarán con instrumentos simples y objetos cotidianos, alternando intensidad y ritmo mientras imitan y proponen movimientos corporales",
         "Los niños y niñas combinarán materiales lavables para dejar marcas, estampar o arrastrar, observando transformaciones y comunicando preferencias al equipo",
       ]
-      return `${options[variation]}${suffix}`
+      return `${options[variation]} ${journeyContext}${suffix}`
     }
     if (c.includes("medio menor")) return `Los niños y niñas elegirán materiales, producirán trazos, sonidos o movimientos y combinarán texturas y colores mediante juego expresivo${suffix}`
     if (c.includes("medio mayor")) return `Los niños y niñas crearán composiciones simples, compararán efectos de color, sonido o textura y comunicarán preferencias durante la experiencia${suffix}`
@@ -439,7 +446,7 @@ function buildFallbackParvulariaActivity(params: {
       "Los párvulos investigarán recipientes amplios con objetos seguros, sacando, tocando, soltando y volviendo a buscar elementos mientras el adulto describe sus acciones",
       "Los párvulos explorarán elementos naturales seguros dispuestos en bandejas o telas, acercando manos, pies y mirada mientras el adulto acompaña sin sobreintervenir",
     ]
-    return `${options[variation]}${suffix}`
+    return `${options[variation]} ${journeyContext}${suffix}`
   }
   if (c.includes("sala cuna mayor")) {
     const options = [
@@ -448,7 +455,7 @@ function buildFallbackParvulariaActivity(params: {
       "Los niños y niñas experimentarán con recipientes, tubos y objetos de distinto tamaño, probando introducir, sacar, apilar y trasladar mientras comparan resultados",
       "Los niños y niñas explorarán materiales naturales o cotidianos distribuidos en el espacio, eligiendo rutas, reuniendo elementos y comunicando hallazgos al adulto",
     ]
-    return `${options[variation]}${suffix}`
+    return `${options[variation]} ${journeyContext}${suffix}`
   }
   if (c.includes("medio menor")) return `Los niños y niñas escogerán, agruparán, trasladarán y compararán materiales concretos, nombrando acciones o propiedades durante el juego exploratorio${suffix}`
   if (c.includes("medio mayor")) return `Los niños y niñas compararán, clasificarán, transformarán o construirán con materiales, explicando hallazgos y tomando decisiones durante la exploración${suffix}`
@@ -2174,11 +2181,192 @@ REGLAS DE LAS CELDAS:
       })
     }
 
+    type ParvulariaGeneratedRow = {
+      experienciaAprendizaje: string
+      orientacionesRelevantes: string
+      rolEquipoFamilia: string
+      recursos: string
+      evaluacion: string
+    }
+
+    const parseJourneyRow = (rawText: string): ParvulariaGeneratedRow => {
+      const clean = String(rawText || "")
+        .trim()
+        .replace(/^\`\`\`(?:json)?\s*/i, "")
+        .replace(/\s*\`\`\`$/i, "")
+        .trim()
+      const parsed = JSON.parse(clean) as Record<string, unknown>
+      const source = parsed.fila && typeof parsed.fila === "object"
+        ? parsed.fila as Record<string, unknown>
+        : parsed
+      const read = (key: keyof ParvulariaGeneratedRow) => {
+        const value = source[key]
+        if (typeof value !== "string" || !value.trim()) throw new Error(`La jornada no entregó el campo ${key}.`)
+        return value.trim()
+      }
+      return {
+        experienciaAprendizaje: read("experienciaAprendizaje"),
+        orientacionesRelevantes: read("orientacionesRelevantes"),
+        rolEquipoFamilia: read("rolEquipoFamilia"),
+        recursos: read("recursos"),
+        evaluacion: read("evaluacion"),
+      }
+    }
+
+    const generateParvulariaByJourney = async (correction = "") => {
+      const rows: Array<ParvulariaGeneratedRow & {
+        jornada: string
+        ambitoNucleo: string
+        objetivosAprendizajes: string
+      }> = []
+      const providers: string[] = []
+      const models: string[] = []
+      let allReused = true
+
+      const perJourneyMaxTokens =
+        tiempoPlanificacion === "semestral" || tiempoPlanificacion === "mensual"
+          ? 5200
+          : tiempoPlanificacion === "quincenal"
+            ? 4800
+            : tiempoPlanificacion === "semanal"
+              ? 4000
+              : 3000
+
+      for (let index = 0; index < 3; index += 1) {
+        const nucleo = parvulariaJourneyNucleos[index] || asignatura
+        const ambito = getParvulariaAmbito(curso, nucleo) || "Ámbito no informado"
+        const oas = parvulariaOAByJourney[index] || []
+        const oats = parvulariaOATByJourney[index] || []
+        const objetivos = [
+          ...oas.map((oa) => `${oa.codigoOficial || oa.id}: ${oa.texto}`),
+          ...oats.map((oat) => `${oat.description || oat.id}: ${oat.label}`),
+        ].join("\n\n")
+        const complementaryScope = oats.map((oat) =>
+          `OAT COMPLEMENTARIO · AMBITO: ${oat.ambito || "Desarrollo personal y social"} · NUCLEO: ${oat.nucleo || "No informado"}`
+        )
+        const scope = [
+          `AMBITO: ${ambito}`,
+          `NUCLEO: ${nucleo}`,
+          ...complementaryScope,
+        ].join("\n")
+
+        await updateParvulariaPhase({
+          phaseKey: correction ? "repair" : "draft",
+          phaseIndex: correction ? 5 : 3,
+          phaseLabel: correction ? "Corrigiendo detalles" : "Construyendo planificación",
+          detail: `${correction ? "Revisando" : "Construyendo"} Jornada ${index + 1} de 3 · ${nucleo}`,
+        })
+
+        const journeyAI = await runAIGatewayText({
+          messages: [
+            {
+              role: "system",
+              content: [
+                "Eres APl, especialista en Educación Parvularia de Chile.",
+                "Redacta SOLO UNA jornada de la planificación institucional. No redactes las otras jornadas.",
+                "Usa exclusivamente el núcleo, OA y OAT entregados. No inventes códigos ni objetivos.",
+                "La salida debe ser SOLO JSON válido con exactamente cinco campos: experienciaAprendizaje, orientacionesRelevantes, rolEquipoFamilia, recursos y evaluacion.",
+                "experienciaAprendizaje debe incluir Inicio:, Desarrollo: y Finalización:.",
+                "En semanal/quincenal incluye TODAS las fechas hábiles indicadas.",
+                "Si hay dos rangos etarios, Desarrollo debe contener dos bloques completos, uno por cada rango, con actividades diferentes para cada fecha.",
+                "Cada actividad fechada debe ser concreta, ejecutable y sustantivamente distinta: acción del párvulo + recurso/espacio + mediación + propósito/evidencia.",
+                "recursos debe contener RECURSOS TANGIBLES y RECURSOS INTANGIBLES.",
+                "rolEquipoFamilia debe distinguir Rol del equipo pedagógico y Rol de la familia.",
+                "evaluacion debe incluir Instrumento: Escala de apreciación; Logrado: 3; Medianamente logrado: 2; Por lograr: 1; No observado: 0; Registro de Observación; e Indicadores observables.",
+                "No uses markdown, horas pedagógicas ni minutos.",
+              ].join("\n"),
+            },
+            {
+              role: "user",
+              content: [
+                `JORNADA: ${index + 1} de 3`,
+                `NIVEL: ${parvulariaHeterogenea ? `${curso} y ${parvulariaSegundoCurso}` : curso}`,
+                `HORIZONTE: ${tiempoPlanificacion}`,
+                `FECHAS: ${parvulariaFechas}`,
+                `ÁMBITO: ${ambito}`,
+                `NÚCLEO: ${nucleo}`,
+                "OBJETIVOS OFICIALES DE ESTA JORNADA:",
+                objetivos || "Usa únicamente los objetivos ya seleccionados para esta jornada.",
+                "GUÍA TEMPORAL:",
+                parvulariaPeriodGuide || parvulariaFechas,
+                parvulariaHeterogeneousDevelopmentContext,
+                parvulariaSafetyPrompt,
+                "REFERENCIAS PEDAGÓGICAS DE ESTA JORNADA:",
+                parvulariaKnowledge?.journeyPrompts[index] || "Sin referencias RAG específicas.",
+                "PLAN INTERMEDIO:",
+                truncateForPrompt(parvulariaBlueprint, 2200),
+                correction ? `CORRECCIÓN OBLIGATORIA: ${correction}` : "",
+              ].filter(Boolean).join("\n\n"),
+            },
+          ],
+          capability: "long_context",
+          maxOutputTokens: perJourneyMaxTokens,
+          context: {
+            userId: user.id,
+            module: `educador-parvularia-jornada-${index + 1}`,
+            reusePolicy: "exact_private",
+            visibility: "private",
+          },
+          supabase,
+        })
+
+        const generated = parseJourneyRow(journeyAI.data)
+        providers.push(journeyAI.provider)
+        models.push(journeyAI.model)
+        allReused = allReused && Boolean(journeyAI.reused)
+        rows.push({
+          jornada: `Jornada ${index + 1} · ${nucleo}`,
+          ambitoNucleo: scope,
+          objetivosAprendizajes: objetivos,
+          ...generated,
+        })
+      }
+
+      const objectiveLines = [
+        ...parvulariaSelectedOA.map((oa) => `${oa.codigoOficial || oa.id}: ${oa.texto}`),
+        ...parvulariaSelectedOAT.map((oat) => `${oat.description || oat.id}: ${oat.label}`),
+      ]
+
+      const text = serializeParvulariaPlanningDocument({
+        version: 1,
+        tipo: "parvularia_institucional",
+        titulo: `Planificación ${parvulariaHorizonLabel(tiempoPlanificacion as "diaria" | "semanal" | "quincenal" | "mensual" | "semestral")} ${anioPlanificacion}`,
+        nivelEducativo: parvulariaHeterogenea ? `${curso} y ${parvulariaSegundoCurso}` : curso,
+        fechas: parvulariaFechas,
+        educadoraParvulos: educadoraParvularia,
+        asistentesParvulos: asistentesParvularia,
+        objetivoAprendizaje: objectiveLines.length
+          ? `Favorecer experiencias articuladas con los objetivos oficiales seleccionados: ${objectiveLines.join(" | ")}`
+          : `Favorecer experiencias pertinentes a los núcleos ${parvulariaJourneyNucleos.join(", ")}.`,
+        principioJuego: "El juego se integra como actividad natural y estrategia pedagógica privilegiada para explorar, relacionarse, comunicar y construir aprendizajes significativos.",
+        principioActividad: "Los párvulos participan como protagonistas mediante acción, exploración, comunicación, elección e interacción con personas, objetos y ambientes.",
+        focoExperiencia: `Desarrollar tres jornadas independientes y coherentes con los núcleos ${parvulariaJourneyNucleos.join(", ")}, respetando los OA/OAT y el desarrollo de cada rango etario.`,
+        horizonte: tiempoPlanificacion as "diaria" | "semanal" | "quincenal" | "mensual" | "semestral",
+        filas: rows,
+      })
+
+      const uniqueProviders = [...new Set(providers)]
+      const uniqueModels = [...new Set(models)]
+      return {
+        text,
+        provider: uniqueProviders.length === 1 ? uniqueProviders[0] : `multi:${uniqueProviders.join("+")}`,
+        model: uniqueModels.length === 1 ? uniqueModels[0] : `multi:${uniqueModels.join("+")}`,
+        reused: allReused,
+      }
+    }
+
+    const generateWholePlanning = async () => {
     let result = await callAI(aiMessages, {
       maxTokens: strategy.maxTokens,
       preferProvider: strategy.preferProvider,
       openrouterModel: strategy.openrouterModel,
     })
+      return result
+    }
+
+    let result = isStructuredParvularia
+      ? await generateParvulariaByJourney()
+      : await generateWholePlanning()
 
     let noveltyAudit: ReturnType<typeof evaluateParvulariaNovelty> | null = null
 
@@ -2346,18 +2534,9 @@ REGLAS DE LAS CELDAS:
           phaseLabel: "Corrigiendo detalles",
           detail: firstError instanceof Error ? firstError.message.slice(0, 600) : "Corrigiendo la salida antes de entregarla.",
         })
-        const repaired = await callAI([
-          ...aiMessages,
-          { role: "assistant" as const, content: truncateForPrompt(result.text, 4500) },
-          {
-            role: "user" as const,
-            content: `La salida anterior no cumple el JSON institucional de Educación Parvularia. Regenera desde cero SOLO como JSON válido. Debe contener EXACTAMENTE TRES jornadas en filas: 1) Exploración y experiencia principal, 2) Expresión artística y sensorial, 3) Lenguaje verbal, lectura y comunicación. Cada jornada debe completar las siete columnas, incluir Inicio/Desarrollo/Finalización y, en semanal/quincenal, una actividad para cada fecha hábil. EN TODOS LOS HORIZONTES, cada actividad del Desarrollo debe ser una oración pedagógica completa y breve de aproximadamente 100-180 caracteres de contenido: acción de los párvulos + material/estímulo/espacio + forma de exploración o mediación + propósito o respuesta observable. No uses títulos telegráficos. Respeta esta asignación de ÁMBITO, NÚCLEO, OA Y OAT por jornada:\n${parvulariaJourneyOAContext}\nCada ambitoNucleo debe usar exactamente el ámbito/núcleo principal y los núcleos transversales OAT asignados a su fila. Cada objetivosAprendizajes debe usar solo los OA y OAT asignados a su fila. ${parvulariaHeterogeneousDevelopmentContext ? `Además, corrige obligatoriamente la diferenciación por edad/subnivel dentro de Desarrollo:\n${parvulariaHeterogeneousDevelopmentContext}\n` : ""}No uses markdown, horas ni minutos. Error detectado: ${firstError instanceof Error ? firstError.message : "formato inválido"}`,
-          },
-        ], {
-          maxTokens: strategy.maxTokens,
-          preferProvider: strategy.preferProvider,
-          openrouterModel: strategy.openrouterModel,
-        })
+        const repaired = await generateParvulariaByJourney(
+          firstError instanceof Error ? firstError.message : "La versión anterior no superó la validación institucional."
+        )
         result = { ...repaired, text: canonicalize(repaired.text) }
       }
 
@@ -2375,32 +2554,11 @@ REGLAS DE LAS CELDAS:
         )
 
         if (!noveltyAudit.passed) {
-          const diversifiedAI = await runAIGatewayText({
-            messages: [
-              ...aiMessages,
-              { role: "assistant" as const, content: truncateForPrompt(result.text, 4200) },
-              {
-                role: "user" as const,
-                content: `La planificación anterior repite demasiado actividades ya utilizadas (similitud máxima ${noveltyAudit.maxSimilarity}). Mantén exactamente los mismos ÁMBITOS, NÚCLEOS, OA, OAT, fechas y estructura institucional, pero REEMPLAZA las actividades de Desarrollo por experiencias sustantivamente diferentes. Cambia acción infantil, materiales, organización del espacio, mediación adulta y evidencia observable; no basta cambiar colores, nombres o personajes. Usa la biblioteca pedagógica solo como inspiración y no copies literalmente planificaciones anteriores.`,
-              },
-            ],
-            capability: "long_context",
-            maxOutputTokens: strategy.maxTokens,
-            context: {
-              userId: user.id,
-              module: "educador-parvularia-diversify",
-              reusePolicy: "exact_private",
-              visibility: "private",
-            },
-            supabase,
-          })
-          const diversified = {
-            text: diversifiedAI.data,
-            provider: diversifiedAI.provider,
-            model: diversifiedAI.model,
-            reused: diversifiedAI.reused,
-          }
+          const diversified = await generateParvulariaByJourney(
+            `La planificación anterior se parece demasiado a experiencias ya utilizadas (similitud máxima ${noveltyAudit.maxSimilarity}). Cambia de manera sustantiva las actividades, materiales, organización del espacio, mediación y evidencia observable sin alterar OA/OAT ni fechas.`
+          )
 
+          
           try {
             const diversifiedText = canonicalize(diversified.text)
             const diversifiedAudit = evaluateParvulariaNovelty(
@@ -2644,7 +2802,7 @@ REGLAS DE LAS CELDAS:
 
       const filas = [
         {
-          jornada: "Jornada 1 · Exploración y experiencia principal",
+          jornada: `Jornada 1 · ${parvulariaJourneyNucleos[0] || asignatura}`,
           ambitoNucleo: journeyScopeTexts[0] || "",
           objetivosAprendizajes: journeyObjectiveTexts[0] || objectiveLines.join("\n\n"),
           experienciaAprendizaje: [
@@ -2672,12 +2830,12 @@ REGLAS DE LAS CELDAS:
           evaluacion: evaluationText,
         },
         {
-          jornada: "Jornada 2 · Expresión artística y sensorial",
+          jornada: `Jornada 2 · ${parvulariaJourneyNucleos[1] || asignatura}`,
           ambitoNucleo: journeyScopeTexts[1] || "",
           objetivosAprendizajes: journeyObjectiveTexts[1] || objectiveLines.join("\n\n"),
           experienciaAprendizaje: [
             "Inicio:",
-            "Presentar un ambiente sensorial y expresivo con música suave, sonidos, colores, texturas o movimiento, vinculándolo con los OA/OAT seleccionados.",
+            `Presentar un ambiente preparado con recursos seguros y pertinentes al núcleo ${parvulariaJourneyNucleos[1] || asignatura}, anticipando la experiencia con lenguaje, gestos u objetos de apoyo.`,
             "",
             "Desarrollo:",
             fallbackDevelopment(1, parvulariaJourneyNucleos[1] || asignatura),
@@ -2689,23 +2847,22 @@ REGLAS DE LAS CELDAS:
           rolEquipoFamilia: commonRole,
           recursos: [
             "RECURSOS TANGIBLES",
-            "- Telas, papeles, materiales de distintas texturas, objetos sonoros e instrumentos seguros.",
-            "- Luces suaves, imágenes, recipientes, elementos artísticos lavables y materiales adecuados a la edad.",
+            `- Materiales grandes, lavables, no tóxicos y pertinentes al núcleo ${parvulariaJourneyNucleos[1] || asignatura}.`,
+            "- Recipientes resistentes, telas, imágenes u otros apoyos seguros según la experiencia.",
             "",
             "RECURSOS INTANGIBLES",
-            "- Música, ritmo y voz del equipo.",
-            "- Expresión gestual, corporal y emocional.",
-            "- Mediación sensible y observación pedagógica.",
+            "- Voz, gestos y mediación del equipo pedagógico.",
+            "- Observación, acompañamiento afectivo y lenguaje contextualizado.",
           ].join("\n"),
           evaluacion: evaluationText,
         },
         {
-          jornada: "Jornada 3 · Lenguaje verbal, lectura y comunicación",
+          jornada: `Jornada 3 · ${parvulariaJourneyNucleos[2] || asignatura}`,
           ambitoNucleo: journeyScopeTexts[2] || "",
           objetivosAprendizajes: journeyObjectiveTexts[2] || objectiveLines.join("\n\n"),
           experienciaAprendizaje: [
             "Inicio:",
-            "Generar un momento de encuentro comunicativo mediante saludo, canción, objeto significativo, imagen, libro o relato breve, adecuando el lenguaje a la edad.",
+            `Presentar la experiencia del núcleo ${parvulariaJourneyNucleos[2] || asignatura} mediante una provocación breve, segura y comprensible, permitiendo observar intereses y disposición del grupo.`,
             "",
             "Desarrollo:",
             fallbackDevelopment(2, parvulariaJourneyNucleos[2] || asignatura),
@@ -2717,13 +2874,12 @@ REGLAS DE LAS CELDAS:
           rolEquipoFamilia: commonRole,
           recursos: [
             "RECURSOS TANGIBLES",
-            "- Libros resistentes o álbumes ilustrados, láminas, fotografías, títeres u objetos concretos.",
-            "- Elementos sonoros, canciones y apoyos visuales pertinentes a la edad.",
+            `- Materiales grandes, lavables, no tóxicos y pertinentes al núcleo ${parvulariaJourneyNucleos[2] || asignatura}.`,
+            "- Imágenes, telas, recipientes resistentes u otros apoyos seguros según la experiencia.",
             "",
             "RECURSOS INTANGIBLES",
-            "- Voz de la educadora y asistentes.",
-            "- Entonación, pausas, expresión facial y gestual.",
-            "- Escucha activa, turnos comunicativos y ampliación natural del lenguaje.",
+            "- Voz, gestos y mediación del equipo pedagógico.",
+            "- Observación, acompañamiento afectivo y lenguaje contextualizado.",
           ].join("\n"),
           evaluacion: evaluationText,
         },
@@ -2742,7 +2898,7 @@ REGLAS DE LAS CELDAS:
           : `Favorecer experiencias integradas pertinentes al núcleo ${asignatura}.`,
         principioJuego: "El juego se incorpora como estrategia pedagógica privilegiada para explorar, expresarse, relacionarse y construir aprendizajes de manera flexible y significativa.",
         principioActividad: "Los párvulos son protagonistas de sus aprendizajes mediante la exploración, la acción, la comunicación, la creación y la interacción con personas, objetos y ambientes.",
-        focoExperiencia: `Desarrollar tres jornadas pedagógicas complementarias —exploración, expresión artístico-sensorial y lenguaje/comunicación— articuladas con los núcleos ${parvulariaJourneyNucleos.join(", ")} y los objetivos seleccionados.`,
+        focoExperiencia: `Desarrollar tres jornadas pedagógicas independientes y coherentes con los núcleos ${parvulariaJourneyNucleos.join(", ")} y los objetivos oficiales seleccionados.`,
         horizonte: tiempoPlanificacion as "diaria" | "semanal" | "quincenal" | "mensual" | "semestral",
         filas,
       })
