@@ -10,6 +10,7 @@ import {
   Loader2,
   LockKeyhole,
   Mic2,
+  Play,
   Plus,
   RefreshCw,
   ShieldCheck,
@@ -30,6 +31,9 @@ type VoiceProfile = {
   sample_path: string | null
   internal_use_enabled: boolean
   default_voice: boolean
+  model_provider?: string | null
+  processing_error?: string | null
+  processed_at?: string | null
 }
 
 type SecurityProfile = {
@@ -68,6 +72,8 @@ export default function AudioLabVoicesPage() {
   const [activeUploadProfileId, setActiveUploadProfileId] = useState("")
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
+  const [processingVoiceId, setProcessingVoiceId] = useState("")
+  const [playingVoiceId, setPlayingVoiceId] = useState("")
 
   const refreshSecurity = useCallback(async () => {
     const response = await fetch("/api/agents/audio/voices/security", { cache: "no-store" })
@@ -86,18 +92,32 @@ export default function AudioLabVoicesPage() {
   }, [router])
 
   const loadVoices = useCallback(async () => {
-    for (let attempt = 0; attempt < 2; attempt += 1) {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
       const response = await fetch("/api/agents/audio/voices/profiles", { cache: "no-store" })
       const data = await response.json().catch(() => ({}))
       if (response.ok) {
         setVoices(data.profiles || [])
-        return
+        return true
       }
-      if (response.status !== 401) return
+      if (response.status === 503) {
+        setError(data.error || "El servicio de seguridad vocal está ocupado. Reintenta en unos segundos.")
+        return false
+      }
+      if (response.status !== 401) {
+        setError(data.error || "No se pudo cargar la biblioteca de voces")
+        return false
+      }
+
       await supabase.auth.refreshSession()
-      await sleep(300)
+      if (attempt < 2) {
+        await fetch("/api/agents/audio/voices/security", { method: "POST" }).catch(() => null)
+        await sleep(300)
+      }
     }
-    await refreshSecurity()
+
+    const stillUnlocked = await refreshSecurity()
+    if (!stillUnlocked) setUnlocked(false)
+    return false
   }, [refreshSecurity, supabase])
 
   useEffect(() => {
