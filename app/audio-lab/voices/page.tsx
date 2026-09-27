@@ -286,6 +286,69 @@ export default function AudioLabVoicesPage() {
     }
   }
 
+  async function processVoice(profileId: string) {
+    setProcessingVoiceId(profileId)
+    setError("")
+    setSuccess("")
+
+    try {
+      const response = await fetch("/api/agents/audio/voices/process", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profileId }),
+      })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.error || "No se pudo procesar la voz")
+
+      setSuccess("Voz preparada con OpenVoice V2. Ya puedes probarla y usar su muestra en canciones.")
+      await loadVoices()
+      return true
+    } catch (reason: any) {
+      setError(reason?.message || "No se pudo procesar la voz")
+      await loadVoices()
+      return false
+    } finally {
+      setProcessingVoiceId("")
+    }
+  }
+
+  async function previewVoice(profileId: string) {
+    setPlayingVoiceId(profileId)
+    setError("")
+    try {
+      const response = await fetch("/api/agents/audio/voices/synthesize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          profileId,
+          text: "Hola. Esta es una prueba de mi voz autorizada en EduAI.",
+        }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || "No se pudo generar la prueba de voz")
+      }
+
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const audio = new Audio(url)
+      audio.onended = () => {
+        URL.revokeObjectURL(url)
+        setPlayingVoiceId("")
+      }
+      audio.onerror = () => {
+        URL.revokeObjectURL(url)
+        setPlayingVoiceId("")
+        setError("No se pudo reproducir la voz generada")
+      }
+      await audio.play()
+    } catch (reason: any) {
+      setPlayingVoiceId("")
+      setError(reason?.message || "No se pudo probar la voz")
+    }
+  }
+
   async function deleteVoice(profileId: string) {
     if (!window.confirm("¿Eliminar esta voz y su muestra privada?")) return
     setError("")
