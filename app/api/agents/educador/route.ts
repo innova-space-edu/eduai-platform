@@ -1819,17 +1819,27 @@ CRITERIOS DE CALIDAD - VERIFICAR ANTES DE RESPONDER:
         journeyNuclei: parvulariaJourneyNucleos,
         selectedOAIds,
         selectedOATIds,
+        levels: parvulariaHeterogenea && parvulariaSegundoCurso
+          ? [curso, parvulariaSegundoCurso]
+          : [curso],
+        journeyOAIds: parvulariaOAByJourney.map((oas) =>
+          oas.flatMap((oa) => [oa.codigoOficial || oa.id, oa.texto])
+        ),
+        journeyOATIds: parvulariaOATByJourney.map((oats) =>
+          oats.flatMap((oat) => [oat.description || oat.id, oat.label])
+        ),
         journeyContexts: parvulariaJourneyNucleos.map((nucleo, index) => [
           nucleo,
           ...(parvulariaOAByJourney[index] || []).map((oa) => oa.texto),
           ...(parvulariaOATByJourney[index] || []).map((oat) => oat.label),
         ].join(" ")),
         candidateLimit:
-          tiempoPlanificacion === "diaria" ? 8
-          : tiempoPlanificacion === "semanal" ? 8
-          : tiempoPlanificacion === "quincenal" ? 9
-          : tiempoPlanificacion === "mensual" ? 10
-          : 12,
+          parvulariaHeterogenea
+            ? (tiempoPlanificacion === "diaria" ? 15 : 18)
+            : tiempoPlanificacion === "diaria" ? 9
+            : tiempoPlanificacion === "semanal" ? 12
+            : tiempoPlanificacion === "quincenal" ? 15
+            : 18,
       }).catch(() => null)
     : null
 
@@ -1899,7 +1909,7 @@ CRITERIOS DE CALIDAD - VERIFICAR ANTES DE RESPONDER:
               parvulariaJourneyOAContext,
               parvulariaSafetyPrompt,
               "REFERENCIAS RAG Y MEMORIA:",
-              truncateForPrompt(parvulariaKnowledge?.prompt || "", 5200),
+              truncateForPrompt(parvulariaKnowledge?.prompt || "", 4400),
             ].filter(Boolean).join("\n\n"),
           },
         ],
@@ -2286,7 +2296,8 @@ REGLAS DE LAS CELDAS:
           detail: `${correction ? "Revisando" : "Construyendo"} Jornada ${index + 1} de 3 · ${nucleo}`,
         })
 
-        const journeyAI = await runAIStructuredGateway<ParvulariaGeneratedRow>({
+        const generateJourneyAttempt = async (extraCorrection = "") => {
+          const journeyAI = await runAIStructuredGateway<ParvulariaGeneratedRow>({
           messages: [
             {
               role: "system",
@@ -2323,8 +2334,9 @@ REGLAS DE LAS CELDAS:
                 "REFERENCIAS PEDAGÓGICAS DE ESTA JORNADA:",
                 parvulariaKnowledge?.journeyPrompts[index] || "Sin referencias RAG específicas.",
                 "PLAN INTERMEDIO:",
-                truncateForPrompt(parvulariaBlueprint, 2200),
+                truncateForPrompt(parvulariaBlueprint, 1700),
                 correction ? `CORRECCIÓN OBLIGATORIA: ${correction}` : "",
+                extraCorrection ? `CORRECCIÓN DE ESTRUCTURA DE ESTA JORNADA: ${extraCorrection}` : "",
               ].filter(Boolean).join("\n\n"),
             },
           ],
@@ -2340,8 +2352,38 @@ REGLAS DE LAS CELDAS:
           },
           supabase,
         })
+          return {
+            journeyAI,
+            generated: parseJourneyRow(journeyAI.data),
+          }
+        }
 
-        const generated = parseJourneyRow(journeyAI.data)
+        let journeyAttempt
+        try {
+          journeyAttempt = await generateJourneyAttempt()
+        } catch (firstJourneyError) {
+          const firstJourneyMessage = firstJourneyError instanceof Error
+            ? firstJourneyError.message
+            : "La jornada no respetó el JSON estructurado."
+          await updateParvulariaPhase({
+            phaseKey: "repair",
+            phaseIndex: 5,
+            phaseLabel: "Corrigiendo detalles",
+            detail: `Reintentando Jornada ${index + 1}: ${firstJourneyMessage.slice(0, 420)}`,
+          })
+          try {
+            journeyAttempt = await generateJourneyAttempt(
+              `La respuesta anterior falló: ${firstJourneyMessage}. Devuelve exactamente los cinco campos requeridos, completos y no vacíos. No omitas rolEquipoFamilia, recursos ni evaluación.`,
+            )
+          } catch (secondJourneyError) {
+            const secondJourneyMessage = secondJourneyError instanceof Error
+              ? secondJourneyError.message
+              : "La jornada no pudo repararse."
+            throw new Error(`Jornada ${index + 1}: ${secondJourneyMessage}`)
+          }
+        }
+
+        const { journeyAI, generated } = journeyAttempt
         providers.push(journeyAI.provider)
         models.push(journeyAI.model)
         allReused = allReused && Boolean(journeyAI.reused)
@@ -2560,23 +2602,41 @@ REGLAS DE LAS CELDAS:
       try {
         result = { ...result, text: canonicalize(result.text) }
       } catch (firstError) {
-        await updateParvulariaPhase({
-          phaseKey: "repair",
-          phaseIndex: 5,
-          phaseLabel: "Corrigiendo detalles",
-          detail: firstError instanceof Error ? firstError.message.slice(0, 600) : "Corrigiendo la salida antes de entregarla.",
-        })
-        const repairMessage = firstError instanceof Error
-          ? firstError.message
-          : "La versión anterior no superó la validación institucional."
-        const journeyMatch = repairMessage.match(/Jornada\s+([123])/i)
-        const repairJourneyIndex = journeyMatch ? Number(journeyMatch[1]) - 1 : null
-        const repaired = await generateParvulariaByJourney(
-          repairMessage,
-          result.text,
-          repairJourneyIndex,
-        )
-        result = { ...repaired, text: canonicalize(repaired.text) }
+        let pendingRepairError: unknown = firstError
+        let repairedSuccessfully = false
+
+        for (let repairAttempt = 0; repairAttempt < 2; repairAttempt += 1) {
+          const repairMessage = pendingRepairError instanceof Error
+            ? pendingRepairError.message
+            : "La versión anterior no superó la validación institucional."
+          await updateParvulariaPhase({
+            phaseKey: "repair",
+            phaseIndex: 5,
+            phaseLabel: "Corrigiendo detalles",
+            detail: `Intento ${repairAttempt + 1}/2 · ${repairMessage.slice(0, 540)}`,
+          })
+          const journeyMatch = repairMessage.match(/Jornada\s+([123])/i)
+          const repairJourneyIndex = journeyMatch ? Number(journeyMatch[1]) - 1 : null
+
+          try {
+            const repaired = await generateParvulariaByJourney(
+              repairMessage,
+              result.text,
+              repairJourneyIndex,
+            )
+            result = { ...repaired, text: canonicalize(repaired.text) }
+            repairedSuccessfully = true
+            break
+          } catch (repairError) {
+            pendingRepairError = repairError
+          }
+        }
+
+        if (!repairedSuccessfully) {
+          throw pendingRepairError instanceof Error
+            ? pendingRepairError
+            : new Error("La planificación no superó la reparación estructural.")
+        }
       }
 
       await updateParvulariaPhase({

@@ -9,6 +9,8 @@ export type ParvulariaKnowledgeActivity = {
   sequence_label?: string | null
   day_label?: string | null
   ambito_nucleo?: string | null
+  ambito_canon?: string | null
+  nucleo_canon?: string | null
   oa_text?: string | null
   oat_text?: string | null
   skill_text?: string | null
@@ -20,6 +22,8 @@ export type ParvulariaKnowledgeActivity = {
   resources?: string | null
   tags?: string[] | null
   quality_score?: number | string | null
+  curricular_completeness_score?: number | string | null
+  experience_fingerprint?: string | null
   search_text?: string | null
   embedding_model?: string | null
   keyword_rank?: number | string | null
@@ -77,6 +81,9 @@ type BuildKnowledgeArgs = {
   selectedOAIds: string[]
   selectedOATIds: string[]
   journeyContexts?: string[]
+  levels?: string[]
+  journeyOAIds?: string[][]
+  journeyOATIds?: string[][]
   candidateLimit?: number
 }
 
@@ -141,18 +148,13 @@ function activitySearchBody(activity: ParvulariaKnowledgeActivity) {
   ].filter(Boolean).join(" ")
 }
 
-function relevanceScore(activity: ParvulariaKnowledgeActivity, queryTokens: string[], course: string) {
+function relevanceScore(activity: ParvulariaKnowledgeActivity, queryTokens: string[], requestedLevels: string[]) {
   const body = normalize(activitySearchBody(activity))
   const activityLevel = normalize(activity.level || "")
-  const requestedLevel = normalize(course)
-  let score = activityLevel === requestedLevel ? 18 : 0
-  if (activityLevel.includes("sala cuna menor") && requestedLevel.includes("sala cuna menor")) score += 15
-  else if (activityLevel.includes("sala cuna mayor") && requestedLevel.includes("sala cuna mayor")) score += 15
-  else if (activityLevel.includes("medio menor") && requestedLevel.includes("medio menor")) score += 15
-  else if (activityLevel.includes("medio mayor") && requestedLevel.includes("medio mayor")) score += 15
-  else if (activityLevel.includes("nt1") && requestedLevel.includes("nt1")) score += 15
-  else if (activityLevel.includes("nt2") && requestedLevel.includes("nt2")) score += 15
-  else if (activityLevel === "sala cuna" && requestedLevel.includes("sala cuna")) score += 8
+  const levels = requestedLevels.map(normalize).filter(Boolean)
+  let score = levels.includes(activityLevel) ? 18 : 0
+
+  if (activityLevel === "sala cuna" && levels.some((level) => level.includes("sala cuna"))) score += 8
 
   for (const token of queryTokens) {
     if (!body.includes(token)) continue
@@ -161,6 +163,16 @@ function relevanceScore(activity: ParvulariaKnowledgeActivity, queryTokens: stri
 
   const quality = Number(activity.quality_score || 0)
   if (Number.isFinite(quality)) score += Math.min(8, Math.max(0, quality))
+
+  const completeness = Number(activity.curricular_completeness_score || 0)
+  if (Number.isFinite(completeness)) score += Math.min(15, Math.max(0, completeness * 1.5))
+
+  const isPersonalDevelopment = normalize(activity.ambito_canon || "").includes("desarrollo personal y social")
+  const hasPrimaryObjective = isPersonalDevelopment
+    ? Boolean((activity.oat_text || "").trim())
+    : Boolean((activity.oa_text || "").trim())
+  if (!hasPrimaryObjective) score -= 10
+
   if ((activity.desarrollo || "").length >= 260) score += 3
   if ((activity.inicio || "").length >= 80 && (activity.cierre || "").length >= 60) score += 2
   return score
@@ -207,7 +219,7 @@ function selectDiverseCandidates(
   recentSamples: string[],
   reusedIds: Set<string>,
   queryTokens: string[],
-  course: string,
+  requestedLevels: string[],
   limit: number,
 ) {
   const recentSets = recentSamples.map((sample) => tokenSet(sample))
@@ -215,31 +227,60 @@ function selectDiverseCandidates(
     .map((activity) => {
       const set = tokenSet(activity.experience_text)
       const similarity = recentSets.reduce((max, recent) => Math.max(max, jaccard(set, recent)), 0)
-      const reusedPenalty = reusedIds.has(activity.id) ? 18 : 0
+      const reusedPenalty = reusedIds.has(activity.id) ? 24 : 0
       return {
         activity,
         set,
         similarity,
-        score: relevanceScore(activity, queryTokens, course) + Number(activity.hybrid_score || 0) * 900 - similarity * 42 - reusedPenalty,
+        score: relevanceScore(activity, queryTokens, requestedLevels) + Number(activity.hybrid_score || 0) * 900 - similarity * 42 - reusedPenalty,
       }
     })
     .filter((item) => item.activity.experience_text.trim().length >= 140)
     .sort((a, b) => b.score - a.score)
 
   const selected: typeof ranked = []
-  for (const candidate of ranked) {
-    if (candidate.similarity >= 0.64) continue
-    const nearDuplicate = selected.some((item) => jaccard(candidate.set, item.set) >= 0.58)
-    if (nearDuplicate) continue
+  const sourceCounts = new Map<string, number>()
+  const levelKeys = uniqueStrings(requestedLevels).map(normalize)
+  const levelQuota = levelKeys.length > 1 ? Math.max(1, Math.floor(limit / levelKeys.length)) : limit
+
+  const canPick = (candidate: (typeof ranked)[number], enforceSourceDiversity = true) => {
+    if (candidate.similarity >= 0.64) return false
+    if (selected.some((item) => item.activity.id === candidate.activity.id)) return false
+    if (selected.some((item) => jaccard(candidate.set, item.set) >= 0.58)) return false
+    const sourceId = candidate.activity.source_id || ""
+    if (enforceSourceDiversity && sourceId && (sourceCounts.get(sourceId) || 0) >= 2) return false
+    return true
+  }
+
+  const add = (candidate: (typeof ranked)[number]) => {
     selected.push(candidate)
+    const sourceId = candidate.activity.source_id || ""
+    if (sourceId) sourceCounts.set(sourceId, (sourceCounts.get(sourceId) || 0) + 1)
+  }
+
+  for (const levelKey of levelKeys) {
+    let pickedForLevel = 0
+    for (const candidate of ranked) {
+      if (normalize(candidate.activity.level || "") !== levelKey) continue
+      if (!canPick(candidate)) continue
+      add(candidate)
+      pickedForLevel += 1
+      if (pickedForLevel >= levelQuota || selected.length >= limit) break
+    }
+  }
+
+  for (const candidate of ranked) {
     if (selected.length >= limit) break
+    if (!canPick(candidate)) continue
+    add(candidate)
   }
 
   if (selected.length < Math.min(6, limit)) {
     for (const candidate of ranked) {
-      if (selected.some((item) => item.activity.id === candidate.activity.id)) continue
-      selected.push(candidate)
       if (selected.length >= limit) break
+      if (selected.some((item) => item.activity.id === candidate.activity.id)) continue
+      if (candidate.similarity >= 0.72) continue
+      add(candidate)
     }
   }
 
@@ -248,6 +289,7 @@ function selectDiverseCandidates(
 
 export async function buildParvulariaKnowledgeContext(args: BuildKnowledgeArgs): Promise<ParvulariaKnowledgeContext> {
   const candidateLimit = Math.max(6, Math.min(18, args.candidateLimit || 12))
+  const requestedLevels = uniqueStrings(args.levels?.length ? args.levels : [args.course])
   const queryTokens = uniqueStrings([
     ...tokens(args.topic),
     ...tokens(args.message),
@@ -257,7 +299,7 @@ export async function buildParvulariaKnowledgeContext(args: BuildKnowledgeArgs):
   ]).slice(0, 70)
 
   const queryText = uniqueStrings([
-    args.course,
+    ...requestedLevels,
     args.topic,
     args.message,
     ...args.journeyNuclei,
@@ -272,22 +314,30 @@ export async function buildParvulariaKnowledgeContext(args: BuildKnowledgeArgs):
   const journeySpecs = [0, 1, 2].map((index) => {
     const nucleus = args.journeyNuclei[index] || args.journeyNuclei[0] || ""
     const curriculumContext = args.journeyContexts?.[index] || ""
+    const oaTerms = args.journeyOAIds?.[index] || []
+    const oatTerms = args.journeyOATIds?.[index] || []
     const journeyQueryText = uniqueStrings([
-      args.course,
+      ...requestedLevels,
       nucleus,
       curriculumContext,
+      ...oaTerms,
+      ...oatTerms,
       args.topic.length <= 500 ? args.topic : "",
     ]).join(" ").slice(0, 3_200)
     const journeyQueryTokens = uniqueStrings([
       ...tokens(nucleus),
       ...tokens(curriculumContext),
+      ...oaTerms.flatMap(tokens),
+      ...oatTerms.flatMap(tokens),
       ...(args.topic.length <= 500 ? tokens(args.topic) : []),
-    ]).slice(0, 40)
+    ]).slice(0, 48)
     return {
       nucleus,
+      oaTerms,
+      oatTerms,
       queryText: journeyQueryText,
       queryTokens: journeyQueryTokens,
-      keywordQuery: journeyQueryTokens.slice(0, 18).join(" OR ") || nucleus || keywordQuery,
+      keywordQuery: journeyQueryTokens.slice(0, 20).join(" OR ") || nucleus || keywordQuery,
     }
   })
 
@@ -306,9 +356,9 @@ export async function buildParvulariaKnowledgeContext(args: BuildKnowledgeArgs):
     .order("created_at", { ascending: false })
     .limit(24)
 
-  const cloudSourcesPromise = args.supabase.rpc("search_parvularia_corpus_sources", {
+  const cloudSourcesPromise = args.supabase.rpc("search_parvularia_corpus_sources_v2", {
     p_query: keywordQuery,
-    p_level: args.course,
+    p_levels: requestedLevels,
     p_limit: 6,
   })
 
@@ -325,13 +375,22 @@ export async function buildParvulariaKnowledgeContext(args: BuildKnowledgeArgs):
   const history = (historyResult.error ? [] : historyResult.data || []) as GenerationHistoryRow[]
   const cloudSources = (cloudSourcesResult.error ? [] : cloudSourcesResult.data || []) as CorpusSourceRow[]
 
+  const reusedIds = new Set(history.flatMap((row) => row.candidate_activity_ids || []))
+  const recentSamples = collectRecentSamples(saved, history)
+  const reusedIdList = [...reusedIds].slice(0, 240)
+
   const hybridResults = await Promise.all(
     journeySpecs.map((spec, index) =>
-      args.supabase.rpc("search_parvularia_activities_hybrid", {
+      args.supabase.rpc("search_parvularia_activities_hybrid_v2", {
         p_query: spec.keywordQuery,
         p_query_embedding: journeyEmbeddings[index] ? "[" + journeyEmbeddings[index]!.join(",") + "]" : null,
-        p_level: args.course,
-        p_limit: Math.min(24, Math.max(journeyLimits[index] * 5, 12)),
+        p_levels: requestedLevels,
+        p_nucleo: spec.nucleus || null,
+        p_oa_terms: spec.oaTerms,
+        p_oat_terms: spec.oatTerms,
+        p_exclude_ids: reusedIdList,
+        p_exclude_fingerprints: [],
+        p_limit: Math.min(36, Math.max(journeyLimits[index] * 6, 16)),
       })
     )
   )
@@ -339,6 +398,32 @@ export async function buildParvulariaKnowledgeContext(args: BuildKnowledgeArgs):
   let retrievedByJourney = hybridResults.map((result) =>
     (result.error ? [] : result.data || []) as ParvulariaKnowledgeActivity[]
   )
+
+  const broadResults = await Promise.all(
+    journeySpecs.map((spec, index) => {
+      if (retrievedByJourney[index].length >= Math.max(4, journeyLimits[index])) return Promise.resolve(null)
+      return args.supabase.rpc("search_parvularia_activities_hybrid_v2", {
+        p_query: spec.keywordQuery,
+        p_query_embedding: journeyEmbeddings[index] ? "[" + journeyEmbeddings[index]!.join(",") + "]" : null,
+        p_levels: requestedLevels,
+        p_nucleo: null,
+        p_oa_terms: spec.oaTerms,
+        p_oat_terms: spec.oatTerms,
+        p_exclude_ids: reusedIdList,
+        p_exclude_fingerprints: [],
+        p_limit: Math.min(24, Math.max(journeyLimits[index] * 4, 12)),
+      })
+    })
+  )
+
+  retrievedByJourney = retrievedByJourney.map((items, index) => {
+    const broad = broadResults[index]
+    const extra = broad && !broad.error ? (broad.data || []) as ParvulariaKnowledgeActivity[] : []
+    return [...items, ...extra].filter(
+      (activity, activityIndex, array) => array.findIndex((candidate) => candidate.id === activity.id) === activityIndex,
+    )
+  })
+
   let retrievalSource: "hybrid_cloud" | "database" = retrievedByJourney.some((items) => items.length)
     ? "hybrid_cloud"
     : "database"
@@ -347,15 +432,15 @@ export async function buildParvulariaKnowledgeContext(args: BuildKnowledgeArgs):
   if (retrievedByJourney.some((items) => !items.length)) {
     const fallback = await args.supabase
       .from("parvularia_activity_bank")
-      .select("id,source_id,level,topic,sequence_label,day_label,ambito_nucleo,oa_text,oat_text,skill_text,experience_text,inicio,desarrollo,cierre,evaluation,resources,tags,quality_score,search_text,embedding_model")
+      .select("id,source_id,level,topic,sequence_label,day_label,ambito_nucleo,ambito_canon,nucleo_canon,oa_text,oat_text,skill_text,experience_text,inicio,desarrollo,cierre,evaluation,resources,tags,quality_score,curricular_completeness_score,experience_fingerprint,search_text,embedding_model")
       .eq("active", true)
+      .eq("is_redundant", false)
+      .in("level", uniqueStrings([...requestedLevels, "Sala Cuna"]))
       .limit(500)
     fallbackActivities = (fallback.error ? [] : fallback.data || []) as ParvulariaKnowledgeActivity[]
     retrievedByJourney = retrievedByJourney.map((items) => items.length ? items : fallbackActivities)
   }
 
-  const recentSamples = collectRecentSamples(saved, history)
-  const reusedIds = new Set(history.flatMap((row) => row.candidate_activity_ids || []))
   const usedIds = new Set<string>()
   const selectedByJourney = journeySpecs.map((spec, index) => {
     const available = retrievedByJourney[index].filter((activity) => !usedIds.has(activity.id))
@@ -364,7 +449,7 @@ export async function buildParvulariaKnowledgeContext(args: BuildKnowledgeArgs):
       recentSamples,
       reusedIds,
       spec.queryTokens,
-      args.course,
+      requestedLevels,
       journeyLimits[index],
     )
     picked.forEach((activity) => usedIds.add(activity.id))
@@ -381,7 +466,7 @@ export async function buildParvulariaKnowledgeContext(args: BuildKnowledgeArgs):
       recentSamples,
       reusedIds,
       queryTokens,
-      args.course,
+      requestedLevels,
       candidateLimit - selected.length,
     )
     fill.forEach((activity) => usedIds.add(activity.id))
@@ -394,9 +479,9 @@ export async function buildParvulariaKnowledgeContext(args: BuildKnowledgeArgs):
     activity.oa_text ? "OA fuente: " + truncate(activity.oa_text, 260) : "",
     activity.oat_text ? "OAT fuente: " + truncate(activity.oat_text, 220) : "",
     activity.skill_text ? "Habilidad: " + truncate(activity.skill_text, 140) : "",
-    "Experiencia fuente: " + truncate(activity.experience_text, 520),
-    activity.resources ? "Recursos fuente: " + truncate(activity.resources, 180) : "",
-    activity.evaluation ? "Evaluación fuente: " + truncate(activity.evaluation, 180) : "",
+    "Experiencia fuente: " + truncate(activity.experience_text, 420),
+    activity.resources ? "Recursos fuente: " + truncate(activity.resources, 140) : "",
+    activity.evaluation ? "Evaluación fuente: " + truncate(activity.evaluation, 140) : "",
   ].filter(Boolean).join("\n")
 
   const references = selectedByJourney.map((activities, journeyIndex) => [
@@ -439,7 +524,7 @@ export async function buildParvulariaKnowledgeContext(args: BuildKnowledgeArgs):
     "BIBLIOTECA PEDAGÓGICA PARVULARIA · EDUAI CLOUD",
     "═══════════════════════════════════════════════",
     selected.length
-      ? "Las referencias fueron recuperadas POR JORNADA con búsqueda híbrida (texto + significado) y filtros por subnivel. Usa cada grupo prioritariamente para la jornada indicada. Son referencias de profundidad, mediación, materiales y nivel de desarrollo: NO las copies literalmente; combina, transforma y crea actividades nuevas coherentes con los OA/OAT seleccionados."
+      ? `Las referencias fueron recuperadas POR JORNADA con búsqueda híbrida V2, núcleo curricular y subniveles ${requestedLevels.join(" + ")}. Cuando hay dos subniveles se balancean referencias de ambos antes de completar el cupo. Usa cada grupo prioritariamente para la jornada indicada. NO copies literalmente; combina, transforma y crea actividades nuevas coherentes con los OA/OAT seleccionados.`
       : "La biblioteca estructurada todavía no tiene referencias compatibles para esta solicitud.",
     references,
     "═══════════════════════════════════════════════",
