@@ -14,7 +14,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("audio_voice_profiles")
-    .select("id, display_name, source_kind, status, sample_path, model_provider, provider_voice_id, internal_use_enabled, default_voice, adult_confirmed, consent_confirmed, authorization_confirmed, consented_at, created_at, updated_at")
+    .select("id, display_name, source_kind, status, sample_path, model_provider, provider_voice_id, internal_use_enabled, default_voice, processing_error, processed_at, adult_confirmed, consent_confirmed, authorization_confirmed, consented_at, created_at, updated_at")
     .eq("user_id", user.id)
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
