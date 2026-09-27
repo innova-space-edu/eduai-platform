@@ -1,246 +1,237 @@
-from __future__ import annotations
+import spaces  # ZeroGPU debe inicializarse antes de torch.
 
 import base64
-import hmac
-import json
+import hashlib
+import io
 import os
-import re
 import shutil
+import sys
 import tempfile
+import zipfile
 from pathlib import Path
-from threading import Lock
-from typing import Dict, Optional
 
+import gradio as gr
+import librosa
+import requests
+import soundfile as sf
 import torch
-from fastapi import Depends, FastAPI, Header, HTTPException
-from melo.api import TTS
-from openvoice import se_extractor
-from openvoice.api import ToneColorConverter
-from pydantic import BaseModel, Field
 
-APP_NAME = "eduai-openvoice-private"
-SUPPORTED_LANGUAGES = {"EN", "EN_NEWEST", "ES", "FR", "ZH", "JP", "KR"}
-VOICE_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
-STORE_DIR = Path(os.getenv("VOICE_STORE_DIR", "/data/voices"))
-CHECKPOINT_DIR = Path(os.getenv("OPENVOICE_CHECKPOINT_DIR", "/home/user/app/checkpoints_v2"))
-CONVERTER_DIR = CHECKPOINT_DIR / "converter"
-BASE_SE_DIR = CHECKPOINT_DIR / "base_speakers" / "ses"
-SERVICE_TOKEN = os.getenv("VOICE_CLONING_SERVICE_TOKEN", "").strip()
-DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
-
-STORE_DIR.mkdir(parents=True, exist_ok=True)
-
-app = FastAPI(title="EduAI OpenVoice Private Service", version="1.0.0")
-_converter: Optional[ToneColorConverter] = None
-_models: Dict[str, TTS] = {}
-_model_lock = Lock()
+OPENVOICE_COMMIT = os.environ.get(
+    "OPENVOICE_COMMIT",
+    "74a1d147b17a8c3092dd5430504bd83ef6c7eb23",
+)
+CHECKPOINT_URL = os.environ.get(
+    "OPENVOICE_CHECKPOINT_URL",
+    "https://myshell-public-repo-host.s3.amazonaws.com/openvoice/checkpoints_v2_0417.zip",
+)
+ROOT = Path(__file__).resolve().parent
+VENDOR_DIR = ROOT / ".vendor"
+CHECKPOINT_DIR = ROOT / "checkpoints_v2"
+MAX_REFERENCE_BYTES = 15 * 1024 * 1024
+MAX_SOURCE_BYTES = 5 * 1024 * 1024
 
 
-class VoiceProcessRequest(BaseModel):
-    voice_id: str = Field(min_length=1, max_length=100)
-    sample_base64: str = Field(min_length=16)
-    mime_type: str = "audio/wav"
+def _download_bytes(url: str, max_bytes: int) -> bytes:
+    if not url.startswith(("https://", "http://")):
+        raise ValueError("URL de audio inválida")
+    response = requests.get(url, timeout=45, stream=True, allow_redirects=True)
+    response.raise_for_status()
+    output = io.BytesIO()
+    total = 0
+    for chunk in response.iter_content(chunk_size=256 * 1024):
+        if not chunk:
+            continue
+        total += len(chunk)
+        if total > max_bytes:
+            raise ValueError("La muestra vocal excede el tamaño permitido")
+        output.write(chunk)
+    data = output.getvalue()
+    if len(data) < 1_000:
+        raise ValueError("La muestra vocal está vacía o incompleta")
+    return data
 
 
-class VoiceSynthesisRequest(BaseModel):
-    voice_id: str = Field(min_length=1, max_length=100)
-    text: str = Field(min_length=1, max_length=4000)
-    language: str = "ES"
-    speed: float = Field(default=1.0, ge=0.65, le=1.35)
-    speaker_key: Optional[str] = None
+def _ensure_openvoice_source() -> None:
+    marker = VENDOR_DIR / "openvoice" / "openvoice" / "api.py"
+    if marker.exists():
+        sys.path.insert(0, str(VENDOR_DIR / "openvoice"))
+        return
+
+    VENDOR_DIR.mkdir(parents=True, exist_ok=True)
+    archive_url = f"https://github.com/myshell-ai/OpenVoice/archive/{OPENVOICE_COMMIT}.zip"
+    response = requests.get(archive_url, timeout=60)
+    response.raise_for_status()
+
+    with zipfile.ZipFile(io.BytesIO(response.content)) as archive:
+        archive.extractall(VENDOR_DIR)
+
+    extracted = VENDOR_DIR / f"OpenVoice-{OPENVOICE_COMMIT}"
+    target = VENDOR_DIR / "openvoice"
+    if target.exists():
+        shutil.rmtree(target)
+    extracted.rename(target)
+    sys.path.insert(0, str(target))
 
 
-def require_internal_token(x_eduai_audio_token: Optional[str] = Header(default=None)) -> None:
-    if not SERVICE_TOKEN:
-        raise HTTPException(status_code=503, detail="VOICE_CLONING_SERVICE_TOKEN is not configured")
-    if not x_eduai_audio_token or not hmac.compare_digest(x_eduai_audio_token, SERVICE_TOKEN):
-        raise HTTPException(status_code=401, detail="Unauthorized")
+def _ensure_checkpoints() -> None:
+    converter_config = CHECKPOINT_DIR / "converter" / "config.json"
+    converter_ckpt = CHECKPOINT_DIR / "converter" / "checkpoint.pth"
+    if converter_config.exists() and converter_ckpt.exists():
+        return
+
+    response = requests.get(CHECKPOINT_URL, timeout=120)
+    response.raise_for_status()
+    with zipfile.ZipFile(io.BytesIO(response.content)) as archive:
+        archive.extractall(ROOT)
+
+    if not converter_config.exists() or not converter_ckpt.exists():
+        raise RuntimeError("No se pudieron preparar los checkpoints de OpenVoice V2")
 
 
-def validate_voice_id(voice_id: str) -> str:
-    if not VOICE_ID_PATTERN.fullmatch(voice_id):
-        raise HTTPException(status_code=400, detail="Invalid voice id")
-    return voice_id
+_ensure_openvoice_source()
+_ensure_checkpoints()
+
+from openvoice.api import ToneColorConverter  # noqa: E402
+
+DEVICE = "cuda:0"
+converter = ToneColorConverter(
+    str(CHECKPOINT_DIR / "converter" / "config.json"),
+    device=DEVICE,
+    enable_watermark=False,
+)
+converter.load_ckpt(str(CHECKPOINT_DIR / "converter" / "checkpoint.pth"))
 
 
-def normalize_language(language: str) -> str:
-    normalized = (language or "ES").strip().upper()
-    if normalized not in SUPPORTED_LANGUAGES:
-        raise HTTPException(status_code=400, detail=f"Unsupported language: {normalized}")
-    return normalized
+def _write_audio_file(data: bytes, mime: str, directory: str, stem: str) -> str:
+    mime = (mime or "").lower().split(";", 1)[0]
+    extension = ".mp3" if "mpeg" in mime or "mp3" in mime else ".wav"
+    path = os.path.join(directory, f"{stem}{extension}")
+    with open(path, "wb") as handle:
+        handle.write(data)
+    return path
 
 
-def decode_sample(payload: str) -> bytes:
-    encoded = payload.split(",", 1)[-1].strip()
+def _audio_duration(path: str) -> float:
+    audio, sr = librosa.load(path, sr=None, mono=True)
+    if sr <= 0 or audio.size == 0:
+        raise ValueError("No se pudo leer la muestra vocal")
+    return float(audio.size / sr)
+
+
+def _extract_embedding(path: str):
+    # Usamos directamente el extractor del convertidor. Para muestras cortas y
+    # limpias evita cargar Whisper/VAD, reduce dependencias y conserva privacidad.
+    return converter.extract_se([path])
+
+
+@spaces.GPU(duration=120)
+def prepare_voice(reference_audio_url: str) -> dict:
+    """Valida una muestra privada y comprueba que OpenVoice V2 puede extraer su timbre."""
     try:
-        raw = base64.b64decode(encoded, validate=True)
+        reference_bytes = _download_bytes(str(reference_audio_url or ""), MAX_REFERENCE_BYTES)
+        with tempfile.TemporaryDirectory(prefix="eduai-openvoice-") as tmp:
+            reference_path = _write_audio_file(reference_bytes, "", tmp, "reference")
+            duration = _audio_duration(reference_path)
+            if duration < 2.0:
+                raise ValueError("La muestra vocal debe durar al menos 2 segundos")
+            if duration > 60.0:
+                raise ValueError("La muestra vocal debe durar como máximo 60 segundos para el perfil")
+
+            embedding = _extract_embedding(reference_path)
+            if embedding is None or int(embedding.numel()) <= 0:
+                raise ValueError("OpenVoice no pudo extraer el timbre de la muestra")
+
+            digest = hashlib.sha256(reference_bytes).hexdigest()[:16]
+            return {
+                "ok": True,
+                "engine": "OpenVoice V2",
+                "mode": "zero-shot-tone-color",
+                "sample_seconds": round(duration, 2),
+                "sample_hash": digest,
+                "persistent_biometric_storage": False,
+            }
     except Exception as exc:
-        raise HTTPException(status_code=400, detail="Invalid base64 audio sample") from exc
-    if len(raw) < 1024:
-        raise HTTPException(status_code=400, detail="Audio sample is too small")
-    if len(raw) > 20 * 1024 * 1024:
-        raise HTTPException(status_code=413, detail="Audio sample exceeds 20 MB")
-    return raw
+        return {"ok": False, "error": str(exc)[:500], "engine": "OpenVoice V2"}
 
 
-def sample_extension(mime_type: str) -> str:
-    lowered = (mime_type or "").lower()
-    if "mpeg" in lowered or "mp3" in lowered:
-        return ".mp3"
-    if "mp4" in lowered or "m4a" in lowered:
-        return ".m4a"
-    if "ogg" in lowered:
-        return ".ogg"
-    if "webm" in lowered:
-        return ".webm"
-    return ".wav"
-
-
-def get_converter() -> ToneColorConverter:
-    global _converter
-    if _converter is None:
-        config_path = CONVERTER_DIR / "config.json"
-        checkpoint_path = CONVERTER_DIR / "checkpoint.pth"
-        if not config_path.exists() or not checkpoint_path.exists():
-            raise HTTPException(status_code=503, detail="OpenVoice V2 checkpoints are unavailable")
-        converter = ToneColorConverter(str(config_path), device=DEVICE)
-        converter.load_ckpt(str(checkpoint_path))
-        _converter = converter
-    return _converter
-
-
-def get_model(language: str) -> TTS:
-    normalized = normalize_language(language)
-    with _model_lock:
-        model = _models.get(normalized)
-        if model is None:
-            model = TTS(language=normalized, device=DEVICE)
-            _models[normalized] = model
-        return model
-
-
-def voice_dir(voice_id: str) -> Path:
-    return STORE_DIR / validate_voice_id(voice_id)
-
-
-@app.get("/")
-def root() -> dict:
-    return {
-        "ok": True,
-        "service": APP_NAME,
-        "status": "online",
-        "modelReady": (CONVERTER_DIR / "checkpoint.pth").exists(),
-    }
-
-
-@app.get("/health")
-def health() -> dict:
-    return {
-        "ok": True,
-        "service": APP_NAME,
-        "status": "online",
-        "device": DEVICE,
-        "modelReady": (CONVERTER_DIR / "checkpoint.pth").exists(),
-        "tokenConfigured": bool(SERVICE_TOKEN),
-        "storeReady": STORE_DIR.exists(),
-        "loadedLanguages": sorted(_models.keys()),
-    }
-
-
-@app.get("/voices/{voice_id}/status", dependencies=[Depends(require_internal_token)])
-def voice_status(voice_id: str) -> dict:
-    directory = voice_dir(voice_id)
-    embedding = directory / "target_se.pth"
-    return {
-        "ok": True,
-        "voiceId": voice_id,
-        "ready": embedding.exists(),
-        "embeddingRef": f"voices/{voice_id}/target_se.pth" if embedding.exists() else None,
-    }
-
-
-@app.post("/voices/process", dependencies=[Depends(require_internal_token)])
-def process_voice(request: VoiceProcessRequest) -> dict:
-    converter = get_converter()
-    voice_id = validate_voice_id(request.voice_id)
-    raw = decode_sample(request.sample_base64)
-    final_dir = voice_dir(voice_id)
-    staging_dir = Path(tempfile.mkdtemp(prefix=f"{voice_id}-", dir=str(STORE_DIR)))
-    sample_path = staging_dir / f"reference{sample_extension(request.mime_type)}"
-    sample_path.write_bytes(raw)
-
+@spaces.GPU(duration=180)
+def convert_voice(reference_audio_url: str, source_audio_base64: str, source_mime: str):
+    """Convierte una voz base de EduAI al timbre autorizado de la muestra privada."""
     try:
-        target_se, _ = se_extractor.get_se(str(sample_path), converter, vad=True)
-        embedding_path = staging_dir / "target_se.pth"
-        torch.save(target_se, embedding_path)
-        (staging_dir / "metadata.json").write_text(
-            json.dumps({"voiceId": voice_id, "mimeType": request.mime_type, "provider": "openvoice-v2"}),
-            encoding="utf-8",
-        )
-        if final_dir.exists():
-            shutil.rmtree(final_dir)
-        staging_dir.rename(final_dir)
-    except HTTPException:
-        shutil.rmtree(staging_dir, ignore_errors=True)
-        raise
+        reference_bytes = _download_bytes(str(reference_audio_url or ""), MAX_REFERENCE_BYTES)
+        source_bytes = base64.b64decode(str(source_audio_base64 or ""), validate=True)
+        if len(source_bytes) < 500:
+            raise ValueError("El audio base está vacío")
+        if len(source_bytes) > MAX_SOURCE_BYTES:
+            raise ValueError("El audio base excede el tamaño permitido")
+
+        with tempfile.TemporaryDirectory(prefix="eduai-openvoice-") as tmp:
+            reference_path = _write_audio_file(reference_bytes, "", tmp, "reference")
+            source_path = _write_audio_file(source_bytes, source_mime, tmp, "source")
+            output_path = os.path.join(tmp, "cloned.wav")
+
+            target_se = _extract_embedding(reference_path)
+            source_se = _extract_embedding(source_path)
+
+            converter.convert(
+                audio_src_path=source_path,
+                src_se=source_se,
+                tgt_se=target_se,
+                output_path=output_path,
+                tau=0.3,
+                message="",
+            )
+
+            audio, sr = sf.read(output_path)
+            if getattr(audio, "size", 0) <= 0:
+                raise ValueError("OpenVoice generó un audio vacío")
+
+            final_path = os.path.join(tempfile.gettempdir(), f"eduai-openvoice-{hashlib.sha256(source_bytes).hexdigest()[:16]}.wav")
+            shutil.copyfile(output_path, final_path)
+
+            return final_path, {
+                "ok": True,
+                "engine": "OpenVoice V2",
+                "mode": "tone-color-conversion",
+                "sample_rate": int(sr),
+                "reference_seconds": round(_audio_duration(reference_path), 2),
+                "source_seconds": round(_audio_duration(source_path), 2),
+            }
     except Exception as exc:
-        shutil.rmtree(staging_dir, ignore_errors=True)
-        raise HTTPException(status_code=422, detail=f"Could not process reference voice: {exc}") from exc
-
-    return {
-        "ok": True,
-        "providerVoiceId": voice_id,
-        "embeddingRef": f"voices/{voice_id}/target_se.pth",
-        "model": "openvoice-v2",
-    }
+        raise gr.Error(f"OpenVoice: {str(exc)[:500]}")
 
 
-@app.post("/voices/synthesize", dependencies=[Depends(require_internal_token)])
-def synthesize_voice(request: VoiceSynthesisRequest) -> dict:
-    converter = get_converter()
-    language = normalize_language(request.language)
-    target_path = voice_dir(request.voice_id) / "target_se.pth"
-    if not target_path.exists():
-        raise HTTPException(status_code=404, detail="Processed private voice not found")
+with gr.Blocks(title="EduAI OpenVoice V2") as demo:
+    gr.Markdown(
+        "# EduAI · OpenVoice V2\n"
+        "Servicio privado ZeroGPU para preparar y probar voces autorizadas. "
+        "Las muestras llegan mediante URL firmada temporal y no se guardan en el Space."
+    )
 
-    model = get_model(language)
-    speaker_ids = model.hps.data.spk2id
-    if not speaker_ids:
-        raise HTTPException(status_code=503, detail="No MeloTTS speakers available")
-
-    speaker_key = request.speaker_key if request.speaker_key in speaker_ids else next(iter(speaker_ids))
-    speaker_id = speaker_ids[speaker_key]
-    source_key = speaker_key.lower().replace("_", "-")
-    source_path = BASE_SE_DIR / f"{source_key}.pth"
-    if not source_path.exists():
-        raise HTTPException(status_code=503, detail=f"Missing base speaker embedding: {source_key}")
-
-    with tempfile.TemporaryDirectory(prefix="eduai-openvoice-") as temp_dir:
-        temp = Path(temp_dir)
-        source_audio = temp / "source.wav"
-        output_audio = temp / "output.wav"
-        model.tts_to_file(request.text, speaker_id, str(source_audio), speed=request.speed)
-        source_se = torch.load(source_path, map_location=DEVICE)
-        target_se = torch.load(target_path, map_location=DEVICE)
-        converter.convert(
-            audio_src_path=str(source_audio),
-            src_se=source_se,
-            tgt_se=target_se,
-            output_path=str(output_audio),
-            message="@EduAI",
+    with gr.Tab("Preparar voz"):
+        reference_url = gr.Textbox(label="URL firmada de muestra")
+        prepare_button = gr.Button("Validar muestra")
+        prepare_result = gr.JSON(label="Resultado")
+        prepare_button.click(
+            prepare_voice,
+            inputs=[reference_url],
+            outputs=[prepare_result],
+            api_name="prepare_voice",
         )
-        encoded = base64.b64encode(output_audio.read_bytes()).decode("ascii")
 
-    return {
-        "ok": True,
-        "audioBase64": encoded,
-        "mime": "audio/wav",
-        "provider": "openvoice-v2",
-    }
+    with gr.Tab("Convertir voz"):
+        conversion_reference = gr.Textbox(label="URL firmada de muestra")
+        source_base64 = gr.Textbox(label="Audio base64", lines=2)
+        source_mime = gr.Textbox(label="MIME de audio base", value="audio/mpeg")
+        convert_button = gr.Button("Convertir")
+        converted_file = gr.File(label="Audio convertido")
+        conversion_metadata = gr.JSON(label="Metadatos")
+        convert_button.click(
+            convert_voice,
+            inputs=[conversion_reference, source_base64, source_mime],
+            outputs=[converted_file, conversion_metadata],
+            api_name="convert_voice",
+        )
 
-
-@app.delete("/voices/{voice_id}", dependencies=[Depends(require_internal_token)])
-def delete_voice(voice_id: str) -> dict:
-    directory = voice_dir(voice_id)
-    shutil.rmtree(directory, ignore_errors=True)
-    return {"ok": True, "voiceId": voice_id}
+if __name__ == "__main__":
+    demo.queue(default_concurrency_limit=1).launch(mcp_server=True)
