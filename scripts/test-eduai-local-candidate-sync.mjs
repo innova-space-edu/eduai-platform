@@ -11,16 +11,19 @@ assert.match(route, /action === "add_local_candidate"/);
 assert.match(route, /promotionGatePassed/);
 assert.match(route, /criticalFailures\.length > 0/);
 assert.match(route, /provider: "eduai-local"/);
+assert.match(route, /runtime_mode: runtimeMode \|\| null/);
 assert.match(route, /status: "discovered"/);
 assert.match(route, /action: "add_local_model_candidate"/);
 
 assert.match(factory, /action: "add_local_candidate"/);
 assert.match(factory, /promotionGatePassed: candidate\.promotionGatePassed/);
 assert.match(factory, /criticalFailures: candidate\.criticalFailures/);
+assert.match(factory, /runtimeMode: candidate\.runtimeMode/);
 assert.match(factory, /eduai-model-candidates-changed/);
 
 assert.match(lab, /candidate\.provider !== "eduai-local"/);
 assert.match(lab, /Pasar a testing/);
 assert.match(lab, /Local Gate/);
+assert.match(lab, /runtimeMode/);
 
 console.log("EDUAI local candidate sync: OK");

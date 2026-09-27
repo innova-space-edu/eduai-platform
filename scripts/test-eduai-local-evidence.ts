@@ -10,6 +10,7 @@ const base = {
   ramGB: 8,
   vramGB: 4,
   webgpu: true,
+  runtimeMode: "auto" as const,
   createdAt: "2026-09-21T10:00:00.000Z",
 };
 
@@ -27,6 +28,7 @@ const benchmarks = [
     ramGB: 8,
     vramGB: 4,
     webgpu: true,
+    runtimeMode: "auto" as const,
     createdAt: "2026-09-21T11:00:00.000Z",
   },
   {
@@ -37,6 +39,7 @@ const benchmarks = [
     ramGB: 8,
     vramGB: 4,
     webgpu: true,
+    runtimeMode: "auto" as const,
     createdAt: "2026-09-21T11:05:00.000Z",
   },
 ];
@@ -65,5 +68,19 @@ const wrongHardware = recommendEduAILocalFromEvidence(
   { memoryGB: 8, vramGB: 4, webgpu: true, cores: 8 },
 );
 assert.equal(wrongHardware.evaluatedModels, 0);
+
+const wrongProfile = recommendEduAILocalFromEvidence(
+  candidates,
+  benchmarks,
+  { memoryGB: 16, vramGB: 12, webgpu: true, cores: 16 },
+);
+assert.equal(wrongProfile.evaluatedModels, 0);
+
+const wrongRoute = recommendEduAILocalFromEvidence(
+  candidates,
+  benchmarks.map((item) => ({ ...item, runtimeMode: "cpu" as const })),
+  { memoryGB: 8, vramGB: 4, webgpu: true, cores: 8 },
+);
+assert.equal(wrongRoute.evaluatedModels, 0);
 
 console.log("EDUAI local evidence recommendation: OK");

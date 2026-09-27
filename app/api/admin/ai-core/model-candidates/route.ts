@@ -128,6 +128,7 @@ export async function POST(request: NextRequest) {
       const ramGB = body?.ramGB == null ? null : Number(body.ramGB)
       const vramGB = body?.vramGB == null ? null : Number(body.vramGB)
       const webgpu = Boolean(body?.webgpu)
+      const runtimeMode = clean(body?.runtimeMode, 10)
       const validatedAt = clean(body?.validatedAt, 50)
       const promotionGatePassed = body?.promotionGatePassed === true
       const criticalFailures = Array.isArray(body?.criticalFailures)
@@ -145,7 +146,8 @@ export async function POST(request: NextRequest) {
         !Number.isFinite(qualityThreshold) ||
         qualityThreshold < 0 ||
         qualityThreshold > 100 ||
-        qualityScore < qualityThreshold
+        qualityScore < qualityThreshold ||
+        (runtimeMode && !["auto", "cpu"].includes(runtimeMode))
       ) {
         return NextResponse.json(
           { error: "Candidato local inválido o sin Quality Gate aprobado" },
@@ -161,6 +163,7 @@ export async function POST(request: NextRequest) {
         ram_gb: Number.isFinite(ramGB) ? ramGB : null,
         vram_gb: Number.isFinite(vramGB) ? vramGB : null,
         webgpu,
+        runtime_mode: runtimeMode || null,
         validated_at: validatedAt || new Date().toISOString(),
       }
 
@@ -200,6 +203,7 @@ export async function POST(request: NextRequest) {
           ram_gb: localValidation.ram_gb,
           vram_gb: localValidation.vram_gb,
           webgpu,
+          runtime_mode: runtimeMode || null,
         },
       })
 

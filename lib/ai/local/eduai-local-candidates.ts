@@ -9,6 +9,7 @@ export type EduAILocalCandidate = {
   ramGB: number | null;
   vramGB: number | null;
   webgpu: boolean;
+  runtimeMode?: "auto" | "cpu";
   createdAt: string;
 };
 

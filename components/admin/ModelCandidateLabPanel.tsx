@@ -40,6 +40,7 @@ type LocalValidation = {
   ramGB: number | null;
   vramGB: number | null;
   webgpu: boolean;
+  runtimeMode: string | null;
   validatedAt: string;
 };
 
@@ -58,6 +59,7 @@ function readLocalValidation(candidate: Candidate): LocalValidation | null {
     ramGB: value.ram_gb == null ? null : Number(value.ram_gb),
     vramGB: value.vram_gb == null ? null : Number(value.vram_gb),
     webgpu: Boolean(value.webgpu),
+    runtimeMode: typeof value.runtime_mode === "string" ? value.runtime_mode : null,
     validatedAt: typeof value.validated_at === "string" ? value.validated_at : "",
   };
 }
@@ -216,7 +218,7 @@ export default function ModelCandidateLabPanel() {
             {localValidation ? (
               <div className="rounded-xl border border-emerald-400/10 bg-emerald-950/10 px-2.5 py-2">
                 <div className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-300" /><span className="font-black text-emerald-200">Local Gate {localValidation.qualityScore}% · umbral {localValidation.threshold}%</span></div>
-                <p className="mt-1 text-[9px] text-slate-600">RAM {localValidation.ramGB ?? "?"} GB · VRAM {localValidation.vramGB ?? "?"} GB · {localValidation.webgpu ? "WebGPU" : "CPU/WASM"} · {localValidation.source}</p>
+                <p className="mt-1 text-[9px] text-slate-600">RAM {localValidation.ramGB ?? "?"} GB · VRAM {localValidation.vramGB ?? "?"} GB · {localValidation.webgpu ? "WebGPU-capable" : "CPU/WASM"} · ruta {localValidation.runtimeMode?.toUpperCase() || "?"} · {localValidation.source}</p>
               </div>
             ) : latest ? <><div className="flex items-center gap-2">{latest.status === "passed" ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300" /> : latest.status === "failed" ? <XCircle className="h-3.5 w-3.5 text-red-300" /> : <CircleDot className="h-3.5 w-3.5 text-amber-300" />}<span className="font-black text-slate-300">Último {latest.suite}: {latest.status}</span></div><p className="mt-1">{latest.latency_ms != null ? `${latest.latency_ms} ms` : "sin latencia"} · {evaluations.length} evaluación(es)</p></> : <p>Sin evaluaciones todavía.</p>}
             {candidate.source_url ? <a href={candidate.source_url} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 text-cyan-300 hover:text-cyan-200">Fuente oficial <ExternalLink className="h-3 w-3" /></a> : null}

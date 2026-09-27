@@ -153,6 +153,7 @@ export default function EduAIModelFactoryPanel() {
           ramGB: candidate.ramGB,
           vramGB: candidate.vramGB,
           webgpu: candidate.webgpu,
+          runtimeMode: candidate.runtimeMode,
           validatedAt: candidate.createdAt,
           promotionGatePassed: candidate.promotionGatePassed,
           criticalFailures: candidate.criticalFailures,
@@ -365,7 +366,7 @@ export default function EduAIModelFactoryPanel() {
                   <span className="rounded-full border border-emerald-400/15 px-2 py-1 text-[8px] font-black text-emerald-200">{candidate.qualityScore}%</span>
                 </div>
                 <p className="mt-1 text-[8px] leading-4 text-slate-600">
-                  {candidate.source === "custom-gguf" ? "GGUF propio" : "Catálogo"} · umbral {candidate.qualityThreshold}% · RAM {candidate.ramGB ?? "?"} GB · VRAM {candidate.vramGB ?? "?"} GB · {candidate.webgpu ? "WebGPU" : "CPU/WASM"}
+                  {candidate.source === "custom-gguf" ? "GGUF propio" : "Catálogo"} · umbral {candidate.qualityThreshold}% · RAM {candidate.ramGB ?? "?"} GB · VRAM {candidate.vramGB ?? "?"} GB · {candidate.webgpu ? "WebGPU-capable" : "CPU/WASM"} · ruta {candidate.runtimeMode?.toUpperCase() || "desconocida"}
                 </p>
                 <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
                   <p className="text-[8px] text-slate-700">{new Date(candidate.createdAt).toLocaleString("es-CL")}</p>

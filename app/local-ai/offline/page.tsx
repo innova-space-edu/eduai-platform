@@ -19,7 +19,7 @@ export default function EduAILocalOfflinePage() {
               <h1 className="mt-3 text-3xl font-black tracking-tight">IA local sin depender de la nube</h1>
               <p className="mt-2 text-sm leading-6 text-slate-400">
                 Esta página contiene únicamente el runtime local. No carga paneles de administración, usuarios ni proveedores cloud.
-                El RAG técnico abre apagado por defecto y solo se activa manualmente si este navegador ya tiene un Knowledge Pack.
+                El RAG técnico está bloqueado en esta shell. El Knowledge Pack del repositorio solo puede consultarse desde Model Lab autenticado.
               </p>
             </div>
             <Link
@@ -43,8 +43,8 @@ export default function EduAILocalOfflinePage() {
             </div>
             <div className="rounded-2xl border border-fuchsia-400/10 bg-fuchsia-950/10 p-3">
               <WifiOff className="h-4 w-4 text-fuchsia-300" />
-              <p className="mt-2 text-xs font-black">RAG opt-in</p>
-              <p className="mt-1 text-[10px] text-slate-500">El conocimiento técnico local se usa solo si lo activas.</p>
+              <p className="mt-2 text-xs font-black">RAG técnico bloqueado</p>
+              <p className="mt-1 text-[10px] text-slate-500">La shell pública no consulta el Knowledge Pack del repositorio.</p>
             </div>
           </div>
         </header>

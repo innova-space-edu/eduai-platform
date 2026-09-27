@@ -13,6 +13,7 @@ export type EduAILocalBenchmarkRecord = {
   ramGB: number | null;
   vramGB: number | null;
   webgpu: boolean;
+  runtimeMode?: "auto" | "cpu";
   createdAt: string;
 };
 
@@ -37,11 +38,41 @@ function numberOrNull(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
+type HardwareEvidence = {
+  ramGB: number | null;
+  vramGB: number | null;
+  webgpu: boolean;
+  runtimeMode?: "auto" | "cpu";
+};
+
+function hardwareSnapshotMatchesProfile(
+  snapshot: HardwareEvidence,
+  profile: EduAIHardwareProfile,
+) {
+  if (snapshot.webgpu !== profile.webgpu) return false;
+  if (
+    snapshot.ramGB !== null &&
+    profile.memoryGB !== null &&
+    Math.abs(snapshot.ramGB - profile.memoryGB) > 4
+  ) return false;
+  if (
+    snapshot.vramGB !== null &&
+    profile.vramGB !== null &&
+    Math.abs(snapshot.vramGB - profile.vramGB) > 2
+  ) return false;
+  return true;
+}
+
 export function hardwareEvidenceMatches(
-  candidate: Pick<EduAILocalCandidate, "ramGB" | "vramGB" | "webgpu">,
-  benchmark: Pick<EduAILocalBenchmarkRecord, "ramGB" | "vramGB" | "webgpu">,
+  candidate: HardwareEvidence,
+  benchmark: HardwareEvidence,
 ) {
   if (candidate.webgpu !== benchmark.webgpu) return false;
+  if (
+    candidate.runtimeMode &&
+    benchmark.runtimeMode &&
+    candidate.runtimeMode !== benchmark.runtimeMode
+  ) return false;
   if (
     candidate.ramGB !== null &&
     benchmark.ramGB !== null &&
@@ -73,9 +104,16 @@ export function recommendEduAILocalFromEvidence(
     const model = EDUAI_LOCAL_MODELS.find((item) => item.id === candidate.modelId);
     if (!model || model.role === "router") continue;
     if (evaluateEduAILocalModel(model, profile) === "avoid") continue;
+    if (!hardwareSnapshotMatchesProfile(candidate, profile)) continue;
 
     const benchmark = benchmarkByModel.get(candidate.modelId);
-    if (benchmark && !hardwareEvidenceMatches(candidate, benchmark)) continue;
+    if (
+      benchmark &&
+      (
+        !hardwareEvidenceMatches(candidate, benchmark) ||
+        !hardwareSnapshotMatchesProfile(benchmark, profile)
+      )
+    ) continue;
 
     rows.push({
       modelId: candidate.modelId,
@@ -138,6 +176,10 @@ export function readEduAILocalBenchmarks(): EduAILocalBenchmarkRecord[] {
         ramGB: numberOrNull(parsed.ramGB),
         vramGB: numberOrNull(parsed.vramGB),
         webgpu: parsed.webgpu === true,
+        runtimeMode:
+          parsed.runtimeMode === "cpu" || parsed.runtimeMode === "auto"
+            ? parsed.runtimeMode
+            : undefined,
         createdAt:
           typeof parsed.createdAt === "string"
             ? parsed.createdAt

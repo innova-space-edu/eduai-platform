@@ -415,7 +415,7 @@ export default function EduAILocalRuntimePanel({ standalone = false }: EduAILoca
     setStatus("generating");
     setError("");
     try {
-      const result = await runEduAILocalChat(prompt, 256, { useKnowledge });
+      const result = await runEduAILocalChat(prompt, 256, { useKnowledge: standalone ? false : useKnowledge });
       if (!mountedRef.current) return;
       setAnswer(result.text);
       setAnswerMs(result.latencyMs);
@@ -491,6 +491,7 @@ export default function EduAILocalRuntimePanel({ standalone = false }: EduAILoca
           ramGB: effectiveProfile.memoryGB,
           vramGB: effectiveProfile.vramGB,
           webgpu: effectiveProfile.webgpu,
+          runtimeMode: mode,
           createdAt: new Date().toISOString(),
         });
       }
@@ -503,6 +504,7 @@ export default function EduAILocalRuntimePanel({ standalone = false }: EduAILoca
             ramGB: effectiveProfile.memoryGB,
             vramGB: effectiveProfile.vramGB,
             webgpu: effectiveProfile.webgpu,
+            runtimeMode: mode,
             createdAt: new Date().toISOString(),
           }),
         );
@@ -806,15 +808,24 @@ export default function EduAILocalRuntimePanel({ standalone = false }: EduAILoca
                   </button>
                 ))}
               </div>
-              <button
-                type="button"
-                onClick={() => setUseKnowledge((value) => !value)}
-                disabled={status === "loading" || status === "generating"}
-                className={"rounded-xl border px-3 py-2 text-[9px] font-black " + (useKnowledge ? "border-fuchsia-400/20 bg-fuchsia-950/25 text-fuchsia-100" : "border-white/10 bg-slate-950/55 text-slate-500")}
-                title={standalone ? "El modo offline abre con RAG apagado. Actívalo solo si quieres usar el Knowledge Pack técnico guardado en este navegador." : "Activa o desactiva el Knowledge Pack durante el chat normal."}
-              >
-                RAG {useKnowledge ? "ON" : "OFF"}
-              </button>
+              {standalone ? (
+                <span
+                  className="rounded-xl border border-amber-400/15 bg-amber-950/15 px-3 py-2 text-[9px] font-black text-amber-200"
+                  title="El Knowledge Pack técnico solo se usa dentro de Model Lab autenticado."
+                >
+                  RAG BLOQUEADO
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setUseKnowledge((value) => !value)}
+                  disabled={status === "loading" || status === "generating"}
+                  className={"rounded-xl border px-3 py-2 text-[9px] font-black " + (useKnowledge ? "border-fuchsia-400/20 bg-fuchsia-950/25 text-fuchsia-100" : "border-white/10 bg-slate-950/55 text-slate-500")}
+                  title="Activa o desactiva el Knowledge Pack durante el chat normal."
+                >
+                  RAG {useKnowledge ? "ON" : "OFF"}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={toggleAutoStart}

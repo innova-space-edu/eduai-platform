@@ -79,7 +79,7 @@ Después de entrenar:
 4. registrar el GGUF y su SHA-256 como candidato en Model Lab;
 5. comparar calidad, RAM, VRAM, latencia y estabilidad antes de promoción.
 
-Estado: Model Factory v3 · familia multi-hardware + Knowledge Pack local shardeado.
+Estado: Model Factory v4 · local-first multi-hardware + Knowledge Pack admin + Offline Shell segura.
 
 Validación CI: matriz multi-hardware + Knowledge Pack v3.
 
@@ -142,7 +142,7 @@ Características:
 - registra un Service Worker limitado a `/local-ai/`;
 - cachea la shell, `wllama.wasm` y los assets estáticos visitados;
 - nunca intercepta ni guarda `/api/*` o `/admin/*`;
-- abre con RAG técnico apagado por defecto;
+- bloquea por completo el RAG técnico; el Knowledge Pack solo puede usarse desde Model Lab autenticado;
 - benchmark y Quality Gate siempre se ejecutan sin RAG para medir el modelo, no el contexto;
 - conserva acceso a modelos GGUF cacheados y GGUF propios seleccionados desde el equipo.
 
@@ -197,5 +197,24 @@ Model Factory cruza dos señales locales que permanecen separadas:
 - **mayor calidad validada:** el Quality Gate aprobado más alto;
 - **mayor velocidad validada:** el mayor `tok/s` medido entre modelos que ya aprobaron su Quality Gate.
 
-La comparación exige hardware compatible con la validación guardada (RAM, VRAM y presencia de WebGPU) y utiliza el benchmark más reciente por modelo. No se crea un score compuesto opaco y los GGUF propios seleccionados desde disco no se autoarrancan como recomendación.
+La comparación exige hardware compatible con la validación guardada (RAM, VRAM y presencia de WebGPU), coincide además la ruta CPU/Auto cuando esa metadata existe y utiliza el benchmark más reciente por modelo. No se crea un score compuesto opaco y los GGUF propios seleccionados desde disco no se autoarrancan como recomendación.
+
+## Readiness del laboratorio
+
+El alcance experimental queda cerrado con estas capacidades:
+
+- ejecución GGUF local mediante wllama en CPU/WASM y ruta Auto;
+- catálogo por capacidad de hardware y fallback;
+- caché persistente, GGUF propios y modelos fragmentados;
+- shell offline sin APIs admin/cloud y sin acceso al Knowledge Pack;
+- auto-arranque exclusivamente desde modelos ya cacheados;
+- Knowledge Pack/RAG técnico restringido a Model Lab autenticado;
+- entrenamiento LoRA/QLoRA reproducible con pérdida assistant-only;
+- exportación, hash y manifiesto GGUF;
+- Quality Gate local y evaluador OpenAI-compatible;
+- Candidate Lab con promoción humana;
+- telemetría de latencia y tokens/s;
+- recomendación separada por calidad y velocidad medidas en el equipo.
+
+El router de producción permanece deshabilitado. La promoción a producción requiere un artefacto EDUAI propio entrenado, su Quality Gate aprobado, benchmark en los perfiles objetivo y decisión explícita del administrador.
 
