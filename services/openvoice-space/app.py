@@ -31,7 +31,7 @@ MAX_REFERENCE_BYTES = 15 * 1024 * 1024
 MAX_SOURCE_BYTES = 5 * 1024 * 1024
 
 
-def _download_bytes(url: str, max_bytes: int) -> bytes:
+def _download_bytes(url: str, max_bytes: int) -> tuple[bytes, str]:
     if not url.startswith(("https://", "http://")):
         raise ValueError("URL de audio inválida")
     response = requests.get(url, timeout=45, stream=True, allow_redirects=True)
@@ -48,7 +48,7 @@ def _download_bytes(url: str, max_bytes: int) -> bytes:
     data = output.getvalue()
     if len(data) < 1_000:
         raise ValueError("La muestra vocal está vacía o incompleta")
-    return data
+    return data, str(response.headers.get("content-type") or "").split(";", 1)[0].lower()
 
 
 def _ensure_openvoice_source() -> None:
@@ -104,7 +104,16 @@ converter.load_ckpt(str(CHECKPOINT_DIR / "converter" / "checkpoint.pth"))
 
 def _write_audio_file(data: bytes, mime: str, directory: str, stem: str) -> str:
     mime = (mime or "").lower().split(";", 1)[0]
-    extension = ".mp3" if "mpeg" in mime or "mp3" in mime else ".wav"
+    if "mpeg" in mime or "mp3" in mime:
+        extension = ".mp3"
+    elif "mp4" in mime or "m4a" in mime:
+        extension = ".m4a"
+    elif "webm" in mime:
+        extension = ".webm"
+    elif "ogg" in mime:
+        extension = ".ogg"
+    else:
+        extension = ".wav"
     path = os.path.join(directory, f"{stem}{extension}")
     with open(path, "wb") as handle:
         handle.write(data)
@@ -128,9 +137,9 @@ def _extract_embedding(path: str):
 def prepare_voice(reference_audio_url: str) -> dict:
     """Valida una muestra privada y comprueba que OpenVoice V2 puede extraer su timbre."""
     try:
-        reference_bytes = _download_bytes(str(reference_audio_url or ""), MAX_REFERENCE_BYTES)
+        reference_bytes, reference_mime = _download_bytes(str(reference_audio_url or ""), MAX_REFERENCE_BYTES)
         with tempfile.TemporaryDirectory(prefix="eduai-openvoice-") as tmp:
-            reference_path = _write_audio_file(reference_bytes, "", tmp, "reference")
+            reference_path = _write_audio_file(reference_bytes, reference_mime, tmp, "reference")
             duration = _audio_duration(reference_path)
             if duration < 2.0:
                 raise ValueError("La muestra vocal debe durar al menos 2 segundos")
@@ -158,7 +167,7 @@ def prepare_voice(reference_audio_url: str) -> dict:
 def convert_voice(reference_audio_url: str, source_audio_base64: str, source_mime: str):
     """Convierte una voz base de EduAI al timbre autorizado de la muestra privada."""
     try:
-        reference_bytes = _download_bytes(str(reference_audio_url or ""), MAX_REFERENCE_BYTES)
+        reference_bytes, reference_mime = _download_bytes(str(reference_audio_url or ""), MAX_REFERENCE_BYTES)
         source_bytes = base64.b64decode(str(source_audio_base64 or ""), validate=True)
         if len(source_bytes) < 500:
             raise ValueError("El audio base está vacío")
@@ -166,7 +175,7 @@ def convert_voice(reference_audio_url: str, source_audio_base64: str, source_mim
             raise ValueError("El audio base excede el tamaño permitido")
 
         with tempfile.TemporaryDirectory(prefix="eduai-openvoice-") as tmp:
-            reference_path = _write_audio_file(reference_bytes, "", tmp, "reference")
+            reference_path = _write_audio_file(reference_bytes, reference_mime, tmp, "reference")
             source_path = _write_audio_file(source_bytes, source_mime, tmp, "source")
             output_path = os.path.join(tmp, "cloned.wav")
 
