@@ -138,6 +138,68 @@ function absoluteFileUrl(baseUrl: string, value: string) {
   return `${baseUrl}/${value.replace(/^\/+/, "")}`
 }
 
+const SONG_AUDIO_MIMES = new Set([
+  "audio/wav",
+  "audio/x-wav",
+  "audio/mpeg",
+  "audio/mp3",
+  "audio/flac",
+  "audio/ogg",
+])
+
+function cleanMime(value: string | undefined | null) {
+  return String(value || "").split(";", 1)[0].trim().toLowerCase()
+}
+
+function mimeFromExtension(value: string) {
+  const pathname = value.split(/[?#]/, 1)[0].toLowerCase()
+  if (pathname.endsWith(".wav")) return "audio/wav"
+  if (pathname.endsWith(".mp3")) return "audio/mpeg"
+  if (pathname.endsWith(".flac")) return "audio/flac"
+  if (pathname.endsWith(".ogg") || pathname.endsWith(".oga")) return "audio/ogg"
+  return ""
+}
+
+function mimeFromMagic(bytes: Uint8Array) {
+  if (
+    bytes.length >= 12
+    && String.fromCharCode(...bytes.slice(0, 4)) === "RIFF"
+    && String.fromCharCode(...bytes.slice(8, 12)) === "WAVE"
+  ) return "audio/wav"
+  if (bytes.length >= 4 && String.fromCharCode(...bytes.slice(0, 4)) === "fLaC") return "audio/flac"
+  if (bytes.length >= 4 && String.fromCharCode(...bytes.slice(0, 4)) === "OggS") return "audio/ogg"
+  if (bytes.length >= 3 && String.fromCharCode(...bytes.slice(0, 3)) === "ID3") return "audio/mpeg"
+  if (bytes.length >= 2 && bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0) return "audio/mpeg"
+  return ""
+}
+
+function resolveSongAudioMime(input: {
+  responseMime?: string | null
+  descriptorMime?: string
+  sourceUrl: string
+  metadata: Record<string, unknown>
+  bytes: Uint8Array
+}) {
+  for (const candidate of [input.responseMime, input.descriptorMime]) {
+    const mime = cleanMime(candidate)
+    if (SONG_AUDIO_MIMES.has(mime)) return mime === "audio/mp3" ? "audio/mpeg" : mime
+  }
+
+  const metadataFormat = String(input.metadata.format || input.metadata.audio_format || "").toLowerCase()
+  const formatMime = mimeFromExtension(`file.${metadataFormat.replace(/^\./, "")}`)
+  if (formatMime) return formatMime
+
+  const urlMime = mimeFromExtension(input.sourceUrl)
+  if (urlMime) return urlMime
+
+  const magicMime = mimeFromMagic(input.bytes)
+  if (magicMime) return magicMime
+
+  // El Space de EduAI escribe PCM WAV. Gradio/HF puede servir ese archivo como
+  // application/octet-stream, que Supabase Storage rechaza por política MIME.
+  return "audio/wav"
+}
+
 export async function generateSongWithAceStep(input: SongEngineInput): Promise<SongEngineOutput> {
   const baseUrl = cleanBaseUrl(
     process.env.ACE_STEP_SPACE_URL || "https://esthefanomc23-eduai-song-engine.hf.space"
@@ -273,10 +335,23 @@ export async function generateSongWithAceStep(input: SongEngineInput): Promise<S
   const buffer = await audioResponse.arrayBuffer()
   if (buffer.byteLength < 4_000) throw new Error("El archivo generado está vacío o incompleto")
 
-  return {
-    bytes: new Uint8Array(buffer),
-    mime: audioResponse.headers.get("content-type") || file.mime || "audio/wav",
+  const bytes = new Uint8Array(buffer)
+  const mime = resolveSongAudioMime({
+    responseMime: audioResponse.headers.get("content-type"),
+    descriptorMime: file.mime,
+    sourceUrl,
     metadata,
+    bytes,
+  })
+
+  return {
+    bytes,
+    mime,
+    metadata: {
+      ...metadata,
+      source_content_type: audioResponse.headers.get("content-type") || null,
+      normalized_content_type: mime,
+    },
     sourceUrl,
   }
 }
