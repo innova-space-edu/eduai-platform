@@ -32,6 +32,7 @@ import { expectedSchoolWeekLabel, getSchoolPlanningPeriodLabel, normalizeSchoolW
 import { buildParvulariaDateLabel, buildParvulariaPeriodGuide, parseParvulariaPlanningDocument, parvulariaHorizonLabel, serializeParvulariaPlanningDocument } from "@/lib/parvularia-planning"
 import bcepReference from "@/data/mineduc/parvularia/common/bcep_2018_reference.json"
 import { buildParvulariaKnowledgeContext, evaluateParvulariaNovelty, rememberParvulariaGeneration } from "@/lib/parvularia-knowledge"
+import { buildParvulariaSafetyPrompt, findParvulariaSafetyIssues } from "@/lib/parvularia-safety"
 
 export const runtime = "nodejs"
 export const maxDuration = 300
@@ -229,33 +230,12 @@ function clampNumber(value: unknown, fallback: number, min: number, max: number)
 
 const PARVULARIA_UNEXPECTED_SCRIPT = /[\u0400-\u052F\u0600-\u06FF\u0750-\u077F\u3040-\u30FF\u3400-\u9FFF]/u
 
-const SALA_CUNA_RISK_PATTERNS: Array<{ label: string; pattern: RegExp }> = [
-  { label: "piedras o piezas minerales pequeñas", pattern: /\bpiedr(?:a|as|ecita|ecitas)\b/i },
-  { label: "semillas", pattern: /\bsemillas?\b/i },
-  { label: "cuentas, canicas o bolitas", pattern: /\b(?:cuentas?|canicas?|bolitas?)\b/i },
-  { label: "botones pequeños o sueltos", pattern: /\b(?:botones?\s+(?:pequeñ[oa]s?|suelt[oa]s?|de\s+costura|desprendibles?)|(?:pequeñ[oa]s?|suelt[oa]s?|desprendibles?)\s+botones?)\b/i },
-  { label: "monedas", pattern: /\bmonedas?\b/i },
-  { label: "objetos pequeños", pattern: /\bobjetos?\s+pequeñ[oa]s?\b/i },
-  { label: "arena suelta", pattern: /\barena(?:\s+(?:fina|suelta))?\b/i },
-  { label: "tierra suelta", pattern: /\btierra(?:\s+de\s+hoja)?\b/i },
-  { label: "ramas secas", pattern: /\bramas?\s+secas?\b/i },
-  { label: "pétalos o flores frescas", pattern: /\b(?:p[eé]talos?|flores?\s+frescas?)\b/i },
-  { label: "globos", pattern: /\bglobos?\b/i },
-  { label: "bolsas plásticas", pattern: /\bbolsas?\s+pl[aá]sticas?\b/i },
-  { label: "imanes, pilas o baterías", pattern: /\b(?:imanes?|pilas?|bater[ií]as?)\b/i },
-]
-
 function findUnexpectedParvulariaCharacters(value: string) {
   return PARVULARIA_UNEXPECTED_SCRIPT.test(value)
     ? ["Se detectaron caracteres de otra escritura o texto corrupto."]
     : []
 }
 
-function findSalaCunaSafetyIssues(value: string) {
-  return SALA_CUNA_RISK_PATTERNS
-    .filter(({ pattern }) => pattern.test(value))
-    .map(({ label }) => label)
-}
 function findShortParvulariaActivities(experience: string): string[] {
   const source = String(experience || "").replace(/\r/g, "")
   const match = source.match(/desarrollo\s*:\s*([\s\S]*?)(?=\n?\s*finalizaci[oó]n\s*:|$)/i)
@@ -1844,16 +1824,10 @@ CRITERIOS DE CALIDAD - VERIFICAR ANTES DE RESPONDER:
   const isSalaCunaPlanning =
     curso.toLocaleLowerCase("es-CL").includes("sala cuna") ||
     Boolean(parvulariaSegundoCurso?.toLocaleLowerCase("es-CL").includes("sala cuna"))
-  const parvulariaSafetyPrompt = isSalaCunaPlanning
-    ? [
-        "SEGURIDAD OBLIGATORIA PARA SALA CUNA:",
-        "- Considera que los párvulos pueden llevar materiales a la boca. No propongas piezas pequeñas, desprendibles o ingeribles.",
-        "- No uses piedras/piedrecitas, semillas, cuentas, botones pequeños o sueltos, monedas, canicas/bolitas, arena o tierra suelta, ramas secas con puntas, pétalos/flores frescas, globos, bolsas plásticas, imanes, pilas o baterías. Si un OA requiere accionar un botón, solo acepta botones integrados, firmes y no desprendibles de un recurso apropiado para la edad.",
-        "- Para representar arena, tierra, hojas, flores u otros elementos naturales usa alternativas seguras: botellas o bolsas sensoriales totalmente selladas, imágenes, textiles grandes/lavables o elementos de una sola pieza no desprendible.",
-        "- Prioriza materiales lavables, no tóxicos, sin bordes y apropiados para exploración oral accidental.",
-        "- La supervisión adulta NO convierte un material de riesgo en material aceptable.",
-      ].join("\n")
-    : ""
+  const parvulariaSafetyPrompt = buildParvulariaSafetyPrompt(
+    curso,
+    parvulariaHeterogenea ? parvulariaSegundoCurso : undefined,
+  )
   const parvulariaHeterogeneousDevelopmentContext = parvulariaAgeGroups.length === 2
     ? [
         "DESARROLLO HETEROGÉNEO OBLIGATORIO — REPRODUCIR LA LÓGICA DEL FORMATO INSTITUCIONAL:",
@@ -2322,7 +2296,11 @@ REGLAS DE LAS CELDAS:
             )
           : []
         const safetyBody = fixed.filas.map((row) => row.experienciaAprendizaje + "\n" + row.recursos).join("\n")
-        const safetyIssues = isSalaCunaPlanning ? findSalaCunaSafetyIssues(safetyBody) : []
+        const safetyIssues = findParvulariaSafetyIssues(
+          safetyBody,
+          curso,
+          parvulariaHeterogenea ? parvulariaSegundoCurso : undefined,
+        )
         const unexpectedCharacterIssues = findUnexpectedParvulariaCharacters(serializeParvulariaPlanningDocument(fixed))
         if (!fixed.objetivoAprendizaje.trim() || !fixed.principioJuego.trim() || !fixed.principioActividad.trim() || !fixed.focoExperiencia.trim() || fixed.filas.length !== 3 || incompleteRow || missingOA.length || journeyOAIssues.length || journeyOATIssues.length || missingActivityDatesByJourney.length || heterogeneousDevelopmentIssues.length || shortActivitiesByJourney.length || safetyIssues.length || unexpectedCharacterIssues.length) {
           throw new Error(
@@ -2335,7 +2313,7 @@ REGLAS DE LAS CELDAS:
               : unexpectedCharacterIssues.length
                 ? `La salida contiene texto corrupto o caracteres inesperados: ${unexpectedCharacterIssues.join(" | ")}`
               : safetyIssues.length
-                ? `La planificación propone materiales no aceptables para Sala Cuna: ${safetyIssues.join(", ")}. Sustitúyelos por recursos grandes, lavables, no tóxicos, no desprendibles o sensoriales completamente sellados.`
+                ? `La planificación contiene elementos no aceptables según el archivo de seguridad: ${safetyIssues.map((issue) => `${issue.matchedText} — ${issue.reason} Alternativa: ${issue.safeAlternative}`).join(" | ")}`
               : fixed.filas.length !== 3
                 ? `La planificación debe contener exactamente 3 jornadas y se recibieron ${fixed.filas.length}.`
                 : missingActivityDatesByJourney.length

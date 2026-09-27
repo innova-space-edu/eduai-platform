@@ -1,0 +1,110 @@
+[
+  {
+    "termPattern": "\\bpiedr(?:a|as|ecita|ecitas)\\b",
+    "scope": "sala_cuna",
+    "reason": "Puede convertirse en pieza ingerible, dura o con borde irregular.",
+    "safeAlternative": "Imágenes, piezas textiles grandes o elementos naturales encapsulados y sellados."
+  },
+  {
+    "termPattern": "\\bsemillas?\\b",
+    "scope": "sala_cuna",
+    "reason": "Riesgo de ingestión y aspiración.",
+    "safeAlternative": "Botellas sensoriales completamente selladas o material gráfico."
+  },
+  {
+    "termPattern": "\\b(?:cuentas?|canicas?|bolitas?)\\b",
+    "scope": "sala_cuna",
+    "reason": "Piezas pequeñas con riesgo de atragantamiento.",
+    "safeAlternative": "Pelotas grandes blandas, bloques de gran formato o elementos integrados no desprendibles."
+  },
+  {
+    "termPattern": "\\b(?:botones?\\s+(?:pequeñ[oa]s?|suelt[oa]s?|de\\s+costura|desprendibles?)|(?:pequeñ[oa]s?|suelt[oa]s?|desprendibles?)\\s+botones?)\\b",
+    "scope": "sala_cuna",
+    "reason": "Los botones pequeños o sueltos pueden desprenderse e ingerirse.",
+    "safeAlternative": "Botones grandes integrados, firmes y no desprendibles en recursos apropiados para la edad."
+  },
+  {
+    "termPattern": "\\bmonedas?\\b",
+    "scope": "sala_cuna",
+    "reason": "Objeto pequeño, duro e ingerible.",
+    "safeAlternative": "Fichas grandes de espuma/EVA de una sola pieza o imágenes."
+  },
+  {
+    "termPattern": "\\bobjetos?\\s+pequeñ[oa]s?\\b",
+    "scope": "sala_cuna",
+    "reason": "Descripción demasiado amplia que puede incluir piezas ingeribles.",
+    "safeAlternative": "Objetos grandes, lavables, sin piezas desprendibles y apropiados para exploración oral accidental."
+  },
+  {
+    "termPattern": "\\barena(?:\\s+(?:fina|suelta))?\\b",
+    "scope": "sala_cuna",
+    "reason": "Material particulado que puede llegar a boca, ojos o vías respiratorias.",
+    "safeAlternative": "Arena visual o táctil dentro de bolsa/botella sensorial completamente sellada."
+  },
+  {
+    "termPattern": "\\btierra(?:\\s+de\\s+hoja)?\\b",
+    "scope": "sala_cuna",
+    "reason": "Puede contener partículas, microorganismos o elementos ingeribles.",
+    "safeAlternative": "Tierra representada mediante imágenes, texturas lavables o recipiente sensorial sellado."
+  },
+  {
+    "termPattern": "\\bramas?\\s+secas?\\b",
+    "scope": "sala_cuna",
+    "reason": "Puede astillarse o presentar puntas.",
+    "safeAlternative": "Piezas de madera pulida de gran formato o ramas artificiales blandas."
+  },
+  {
+    "termPattern": "\\b(?:p[eé]talos?|flores?\\s+frescas?)\\b",
+    "scope": "sala_cuna",
+    "reason": "Elemento natural desprendible y potencialmente ingerible o alergénico.",
+    "safeAlternative": "Flores textiles grandes, imágenes o elementos encapsulados."
+  },
+  {
+    "termPattern": "\\bglobos?\\b",
+    "scope": "parvularia",
+    "reason": "Fragmentos de globos reventados pueden producir atragantamiento.",
+    "safeAlternative": "Pelotas blandas grandes, telas livianas o pañuelos."
+  },
+  {
+    "termPattern": "\\bbolsas?\\s+pl[aá]sticas?\\b",
+    "scope": "parvularia",
+    "reason": "Riesgo de asfixia si quedan al alcance de los párvulos.",
+    "safeAlternative": "Bolsas sensoriales reforzadas, selladas y fijadas fuera del acceso directo a boca/cara."
+  },
+  {
+    "termPattern": "\\b(?:imanes?|pilas?|bater[ií]as?)\\b",
+    "scope": "parvularia",
+    "reason": "Material de alto riesgo si se ingiere o se desprende.",
+    "safeAlternative": "Recursos sellados sin acceso a imanes, pilas ni compartimentos de batería."
+  },
+  {
+    "termPattern": "\\b(?:vidrios?|frascos?\\s+de\\s+vidrio|botellas?\\s+de\\s+vidrio)\\b",
+    "scope": "parvularia",
+    "reason": "Riesgo de corte por rotura.",
+    "safeAlternative": "Recipientes transparentes de policarbonato o plástico resistente."
+  },
+  {
+    "termPattern": "\\b(?:alfileres?|agujas?|chinches?|objetos?\\s+punzantes?)\\b",
+    "scope": "parvularia",
+    "reason": "Riesgo de punción o lesión.",
+    "safeAlternative": "Sujetadores plásticos grandes, velcro o materiales sin punta."
+  },
+  {
+    "termPattern": "\\b(?:velas?\\s+encendidas?|llama\\s+abierta|fuego\\s+directo)\\b",
+    "scope": "parvularia",
+    "reason": "Riesgo de quemadura e incendio.",
+    "safeAlternative": "Luces LED, imágenes o simulaciones sin calor."
+  },
+  {
+    "termPattern": "\\b(?:cuerdas?|cordones?|hilos?)\\s+(?:larg[oa]s?|suelt[oa]s?)\\b",
+    "scope": "sala_cuna",
+    "reason": "Riesgo de enredo o estrangulación.",
+    "safeAlternative": "Tiras cortas y anchas, firmemente fijadas y siempre fuera del cuello."
+  },
+  {
+    "termPattern": "\\b(?:detergentes?|cloro|lej[ií]a|solventes?|productos?\\s+de\\s+limpieza)\\b",
+    "scope": "parvularia",
+    "reason": "Sustancias irritantes o tóxicas.",
+    "safeAlternative": "Agua, materiales lavables y productos escolares no tóxicos certificados."
+  }
+]
