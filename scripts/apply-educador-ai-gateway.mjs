@@ -116,7 +116,11 @@ const mainNew = `    const initialAI = await runAIText({
       model: initialAI.model,
       reused: initialAI.reused,
     }`
-if (!source.includes(mainNew)) {
+const mainAlreadyMigrated =
+  source.includes("const initialAI = await runAIText({") &&
+  source.includes("module: `educador-${outputIntent}`")
+
+if (!mainAlreadyMigrated) {
   if (source.includes(mainOldConst)) {
     source = source.replace(mainOldConst, mainNew.replace(/^    /gm, "      "))
     changed = true
