@@ -10,6 +10,7 @@ import {
   Loader2,
   LockKeyhole,
   Mic2,
+  Play,
   Plus,
   RefreshCw,
   ShieldCheck,
@@ -30,6 +31,9 @@ type VoiceProfile = {
   sample_path: string | null
   internal_use_enabled: boolean
   default_voice: boolean
+  model_provider?: string | null
+  processing_error?: string | null
+  processed_at?: string | null
 }
 
 type SecurityProfile = {
@@ -68,6 +72,8 @@ export default function AudioLabVoicesPage() {
   const [activeUploadProfileId, setActiveUploadProfileId] = useState("")
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
+  const [processingVoiceId, setProcessingVoiceId] = useState("")
+  const [playingVoiceId, setPlayingVoiceId] = useState("")
 
   const refreshSecurity = useCallback(async () => {
     const response = await fetch("/api/agents/audio/voices/security", { cache: "no-store" })
@@ -86,18 +92,32 @@ export default function AudioLabVoicesPage() {
   }, [router])
 
   const loadVoices = useCallback(async () => {
-    for (let attempt = 0; attempt < 2; attempt += 1) {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
       const response = await fetch("/api/agents/audio/voices/profiles", { cache: "no-store" })
       const data = await response.json().catch(() => ({}))
       if (response.ok) {
         setVoices(data.profiles || [])
-        return
+        return true
       }
-      if (response.status !== 401) return
+      if (response.status === 503) {
+        setError(data.error || "El servicio de seguridad vocal está ocupado. Reintenta en unos segundos.")
+        return false
+      }
+      if (response.status !== 401) {
+        setError(data.error || "No se pudo cargar la biblioteca de voces")
+        return false
+      }
+
       await supabase.auth.refreshSession()
-      await sleep(300)
+      if (attempt < 2) {
+        await fetch("/api/agents/audio/voices/security", { method: "POST" }).catch(() => null)
+        await sleep(300)
+      }
     }
-    await refreshSecurity()
+
+    const stillUnlocked = await refreshSecurity()
+    if (!stillUnlocked) setUnlocked(false)
+    return false
   }, [refreshSecurity, supabase])
 
   useEffect(() => {
@@ -255,14 +275,79 @@ export default function AudioLabVoicesPage() {
       const confirmed = await confirmResponse.json().catch(() => ({}))
       if (!confirmResponse.ok) throw new Error(confirmed.error || "No se pudo confirmar la muestra")
 
-      setSuccess("Muestra privada subida. Quedó preparada para el motor OpenVoice.")
+      const profileId = activeUploadProfileId
       setActiveUploadProfileId("")
+      setSuccess("Muestra privada subida. Validando timbre con OpenVoice V2…")
       await loadVoices()
+      await processVoice(profileId)
     } catch (reason: any) {
       setError(reason?.message || "No se pudo subir la muestra")
     } finally {
       setUploading(false)
       setUploadProgress(0)
+    }
+  }
+
+  async function processVoice(profileId: string) {
+    setProcessingVoiceId(profileId)
+    setError("")
+    setSuccess("")
+
+    try {
+      const response = await fetch("/api/agents/audio/voices/process", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profileId }),
+      })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.error || "No se pudo procesar la voz")
+
+      setSuccess("Voz preparada con OpenVoice V2. Ya puedes probarla y usar su muestra en canciones.")
+      await loadVoices()
+      return true
+    } catch (reason: any) {
+      setError(reason?.message || "No se pudo procesar la voz")
+      await loadVoices()
+      return false
+    } finally {
+      setProcessingVoiceId("")
+    }
+  }
+
+  async function previewVoice(profileId: string) {
+    setPlayingVoiceId(profileId)
+    setError("")
+    try {
+      const response = await fetch("/api/agents/audio/voices/synthesize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          profileId,
+          text: "Hola. Esta es una prueba de mi voz autorizada en EduAI.",
+        }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || "No se pudo generar la prueba de voz")
+      }
+
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const audio = new Audio(url)
+      audio.onended = () => {
+        URL.revokeObjectURL(url)
+        setPlayingVoiceId("")
+      }
+      audio.onerror = () => {
+        URL.revokeObjectURL(url)
+        setPlayingVoiceId("")
+        setError("No se pudo reproducir la voz generada")
+      }
+      await audio.play()
+    } catch (reason: any) {
+      setPlayingVoiceId("")
+      setError(reason?.message || "No se pudo probar la voz")
     }
   }
 
@@ -326,7 +411,36 @@ export default function AudioLabVoicesPage() {
             </section>
             <section className="rounded-3xl border border-soft p-5 bg-card-soft-theme space-y-3">
               <div className="flex items-center justify-between"><div><h2 className="font-bold">Biblioteca privada</h2><p className="text-muted2 text-sm">Tus voces quedan separadas por usuario.</p></div><button onClick={loadVoices} className="rounded-xl border border-soft p-2"><RefreshCw size={14} /></button></div>
-              {voices.length === 0 ? <p className="text-sm text-muted2">Todavía no existen perfiles vocales.</p> : voices.map((voice) => <article key={voice.id} className="rounded-2xl border border-soft p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-semibold text-sm flex items-center gap-2"><Volume2 size={14} className="text-purple-500" /> {voice.display_name}</p><p className="text-xs text-muted2 mt-1">{voice.source_kind === "self" ? "Voz propia" : "Tercero autorizado"} · Estado: {voice.status} · {voice.sample_path ? "muestra subida" : "sin muestra"}</p></div><div className="flex flex-wrap gap-2"><button onClick={() => { setActiveUploadProfileId(voice.id); sampleInputRef.current?.click() }} className="rounded-xl border border-soft px-3 py-2 text-xs flex items-center gap-2"><Upload size={13} /> {voice.sample_path ? "Reemplazar" : "Subir muestra"}</button><button disabled className="rounded-xl border border-soft px-3 py-2 text-xs opacity-50 flex items-center gap-2" title="Disponible al conectar OpenVoice"><Mic2 size={13} /> Usar internamente</button><button onClick={() => deleteVoice(voice.id)} className="rounded-xl border border-red-500/20 px-3 py-2 text-xs text-red-500 flex items-center gap-2"><Trash2 size={13} /> Eliminar</button></div></article>)}
+              {voices.length === 0 ? <p className="text-sm text-muted2">Todavía no existen perfiles vocales.</p> : voices.map((voice) => (
+                <article key={voice.id} className="rounded-2xl border border-soft p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="font-semibold text-sm flex items-center gap-2"><Volume2 size={14} className="text-purple-500" /> {voice.display_name}</p>
+                    <p className="text-xs text-muted2 mt-1">
+                      {voice.source_kind === "self" ? "Voz propia" : "Tercero autorizado"} · Estado: {voice.status} · {voice.sample_path ? "muestra subida" : "sin muestra"}
+                      {voice.model_provider ? ` · ${voice.model_provider}` : ""}
+                    </p>
+                    {voice.processing_error && <p className="mt-1 max-w-xl text-xs text-red-500">{voice.processing_error}</p>}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button onClick={() => { setActiveUploadProfileId(voice.id); sampleInputRef.current?.click() }} disabled={processingVoiceId === voice.id} className="rounded-xl border border-soft px-3 py-2 text-xs flex items-center gap-2 disabled:opacity-50">
+                      <Upload size={13} /> {voice.sample_path ? "Reemplazar" : "Subir muestra"}
+                    </button>
+                    {voice.sample_path && voice.status !== "ready" && (
+                      <button onClick={() => processVoice(voice.id)} disabled={processingVoiceId === voice.id} className="rounded-xl border border-purple-500/30 bg-purple-500/10 px-3 py-2 text-xs text-purple-700 flex items-center gap-2 disabled:opacity-50">
+                        {processingVoiceId === voice.id ? <Loader2 size={13} className="animate-spin" /> : <Mic2 size={13} />}
+                        {processingVoiceId === voice.id ? "Procesando…" : "Procesar voz"}
+                      </button>
+                    )}
+                    {voice.status === "ready" && (
+                      <button onClick={() => previewVoice(voice.id)} disabled={playingVoiceId === voice.id} className="rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-700 flex items-center gap-2 disabled:opacity-50">
+                        {playingVoiceId === voice.id ? <Loader2 size={13} className="animate-spin" /> : <Play size={13} />}
+                        {playingVoiceId === voice.id ? "Generando…" : "Probar clon"}
+                      </button>
+                    )}
+                    <button onClick={() => deleteVoice(voice.id)} className="rounded-xl border border-red-500/20 px-3 py-2 text-xs text-red-500 flex items-center gap-2"><Trash2 size={13} /> Eliminar</button>
+                  </div>
+                </article>
+              ))}
             </section>
           </>}
       </section>

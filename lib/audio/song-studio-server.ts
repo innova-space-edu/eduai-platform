@@ -272,8 +272,8 @@ export async function createSongJob(body: any) {
         .maybeSingle()
 
       if (voiceError || !voice) throw new Error("La voz seleccionada no está disponible")
-      if (!voice.sample_path || voice.status !== "ready" || !voice.internal_use_enabled) {
-        throw new Error("La voz debe estar procesada y habilitada en Mis voces")
+      if (!voice.sample_path) {
+        throw new Error("La voz seleccionada todavía no tiene una muestra privada")
       }
       if (!voice.consent_confirmed || !voice.authorization_confirmed) {
         throw new Error("La voz seleccionada no tiene autorización verificable")
@@ -321,7 +321,11 @@ export async function createSongJob(body: any) {
         status: "generating",
         progress: 35,
         updated_at: new Date().toISOString(),
-        metadata: { voice_name: voiceName || null, voice_reference_experimental: Boolean(referenceAudioUrl) },
+        metadata: {
+          voice_name: voiceName || null,
+          voice_reference_used: Boolean(referenceAudioUrl),
+          voice_reference_mode: referenceAudioUrl ? "ace-step-cover-timbre" : null,
+        },
       })
       .eq("id", jobId)
       .eq("user_id", user.id)

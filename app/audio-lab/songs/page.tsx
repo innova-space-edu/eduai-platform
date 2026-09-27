@@ -31,6 +31,8 @@ type VoiceProfile = {
   status: string
   sample_path: string | null
   internal_use_enabled: boolean
+  consent_confirmed: boolean
+  authorization_confirmed: boolean
   source_kind: "self" | "authorized_third_party"
 }
 
@@ -197,10 +199,13 @@ export default function AudioSongStudioPage() {
         return
       }
       if (!response.ok) return
-      const readyVoices = (Array.isArray(data.profiles) ? data.profiles : []).filter(
-        (voice: VoiceProfile) => voice.status === "ready" && voice.sample_path && voice.internal_use_enabled
+      const authorizedVoices = (Array.isArray(data.profiles) ? data.profiles : []).filter(
+        (voice: VoiceProfile) =>
+          Boolean(voice.sample_path)
+          && voice.consent_confirmed === true
+          && voice.authorization_confirmed === true
       )
-      setVoices(readyVoices)
+      setVoices(authorizedVoices)
       setVoiceAreaLocked(false)
     } catch {
       setVoices([])
@@ -445,14 +450,14 @@ export default function AudioSongStudioPage() {
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-3">
-                    <FieldLabel>Mi voz autorizada, opcional</FieldLabel>
+                    <FieldLabel>Muestra vocal autorizada, opcional</FieldLabel>
                     <button onClick={() => void loadVoices()} className="text-xs font-semibold text-purple-600">Actualizar</button>
                   </div>
 
                   {voiceAreaLocked ? (
                     <div className="rounded-xl border border-amber-500/20 bg-amber-500/8 p-3 text-xs text-amber-700">
                       <p className="flex items-center gap-2 font-bold"><LockKeyhole size={14} /> La biblioteca privada está bloqueada</p>
-                      <p className="mt-1">Desbloquea Mis voces con tu segundo factor y vuelve a esta página.</p>
+                      <p className="mt-1">Desbloquea Mis voces con tu segundo factor para usar una muestra vocal privada.</p>
                       <Link href="/audio-lab/voices" className="mt-2 inline-flex items-center gap-1 font-bold underline">Abrir Mis voces <ExternalLink size={12} /></Link>
                     </div>
                   ) : (

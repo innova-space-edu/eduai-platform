@@ -5,7 +5,8 @@ import { validateVoiceSecuritySession } from "@/lib/audio/voice-security"
 export const runtime = "nodejs"
 
 export async function POST(req: Request) {
-  const { valid, supabase } = await validateVoiceSecuritySession()
+  const { valid, supabase, error: securityError } = await validateVoiceSecuritySession()
+  if (securityError) return NextResponse.json({ error: "No se pudo validar la zona protegida. Reintenta en unos segundos." }, { status: 503 })
   if (!valid) return NextResponse.json({ error: "Sesión protegida vencida" }, { status: 401 })
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -35,7 +36,17 @@ export async function POST(req: Request) {
 
     const { data, error } = await supabase
       .from("audio_voice_profiles")
-      .update({ sample_path: filePath, status: "draft", updated_at: new Date().toISOString() })
+      .update({
+        sample_path: filePath,
+        status: "draft",
+        model_provider: null,
+        provider_voice_id: null,
+        internal_use_enabled: false,
+        processing_error: null,
+        processed_at: null,
+        embedding_path: null,
+        updated_at: new Date().toISOString(),
+      })
       .eq("id", profileId)
       .eq("user_id", user.id)
       .is("deleted_at", null)
