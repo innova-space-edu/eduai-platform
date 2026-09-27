@@ -401,7 +401,7 @@ export async function buildParvulariaKnowledgeContext(args: BuildKnowledgeArgs):
 
   const broadResults = await Promise.all(
     journeySpecs.map((spec, index) => {
-      if (retrievedByJourney[index].length >= Math.max(8, journeyLimits[index] * 2)) return Promise.resolve(null)
+      if (retrievedByJourney[index].length >= Math.max(4, journeyLimits[index])) return Promise.resolve(null)
       return args.supabase.rpc("search_parvularia_activities_hybrid_v2", {
         p_query: spec.keywordQuery,
         p_query_embedding: journeyEmbeddings[index] ? "[" + journeyEmbeddings[index]!.join(",") + "]" : null,
