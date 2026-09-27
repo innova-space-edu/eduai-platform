@@ -157,9 +157,19 @@ function extractActivities(source: ParsedSource): ActivitySeed[] {
     const experienceRow = findRow(table, (value) => value === "experiencia" || value.startsWith("experiencia "))
     if (experienceRow < 0 || !table[0]) return
 
-    const scopeRow = findRow(table, (value) => value.includes("ambito nucleo"))
-    const oaRow = findRow(table, (value) => value.includes("objetivo de aprendizaje central"))
-    const oatRow = findRow(table, (value) => value.includes("nucleo objetivo de aprendizaje transversal"))
+    const scopeRow = findRow(table, (value) =>
+      value.includes("ambito nucleo") || value.includes("ambito y nucleo")
+    )
+    const oaRow = findRow(table, (value) =>
+      value.includes("objetivo de aprendizaje central") ||
+      value === "objetivo de aprendizaje" ||
+      value === "oa"
+    )
+    const oatRow = findRow(table, (value) =>
+      value.includes("nucleo objetivo de aprendizaje transversal") ||
+      value.includes("objetivo de aprendizaje transversal") ||
+      value === "oat"
+    )
     const skillRow = findRow(table, (value) => value.includes("habilidades"))
     const evaluationRow = findRow(table, (value) => value === "evaluacion")
     const resourcesRow = findRow(table, (value) => value === "recursos")
@@ -331,12 +341,19 @@ async function importSources(corpusKey: string, files: Array<{ fileName: string;
     if (error) throw new Error(`No se pudo importar banco de actividades: ${error.message}`)
   }
 
+  const { data: qualityRefresh, error: qualityRefreshError } = await admin
+    .rpc("refresh_parvularia_corpus_quality")
+  if (qualityRefreshError) {
+    throw new Error(`El corpus se importó, pero no pudo normalizarse/deduplicarse: ${qualityRefreshError.message}`)
+  }
+
   return {
     documents: parsed.length,
     parsedDocuments: parsed.filter((item) => item.parseStatus === "parsed").length,
     legacyDocuments: parsed.filter((item) => item.parseStatus === "legacy_doc_metadata_only").length,
     unsupportedDocuments: parsed.filter((item) => item.parseStatus === "unsupported").length,
     activities: activities.length,
+    qualityRefresh,
     levels: [...new Set(parsed.map((item) => item.level))],
     categories: [...new Set(parsed.map((item) => item.category))],
   }
@@ -347,19 +364,20 @@ export async function GET() {
   if (!user) return NextResponse.json({ error }, { status: error === "No autenticado" ? 401 : 403 })
 
   const admin = getAdminClient()
-  const [sources, activities, embedded] = await Promise.all([
-    admin.from("parvularia_corpus_sources").select("*", { count: "exact", head: true }),
+  const [sources, activities, redundant, embedded] = await Promise.all([
+    admin.from("parvularia_corpus_sources").select("*", { count: "exact", head: true }).eq("active", true),
     admin.from("parvularia_activity_bank").select("*", { count: "exact", head: true }).eq("active", true),
+    admin.from("parvularia_activity_bank").select("*", { count: "exact", head: true }).eq("is_redundant", true),
     admin.from("parvularia_activity_bank").select("*", { count: "exact", head: true })
       .eq("active", true)
       .eq("embedding_model", PARVULARIA_EMBEDDING_MODEL)
       .not("embedding", "is", null),
   ])
 
-  if (sources.error || activities.error || embedded.error) {
+  if (sources.error || activities.error || redundant.error || embedded.error) {
     return NextResponse.json({
       error: "La base Parvularia todavía no está disponible o no tiene habilitada la capa semántica.",
-      detail: sources.error?.message || activities.error?.message || embedded.error?.message,
+      detail: sources.error?.message || activities.error?.message || redundant.error?.message || embedded.error?.message,
     }, { status: 503 })
   }
 
@@ -368,6 +386,7 @@ export async function GET() {
   return NextResponse.json({
     documents: sources.count || 0,
     activities: activityCount,
+    redundantActivities: redundant.count || 0,
     embeddedActivities: embeddedCount,
     pendingEmbeddings: Math.max(0, activityCount - embeddedCount),
     embeddingModel: PARVULARIA_EMBEDDING_MODEL,
