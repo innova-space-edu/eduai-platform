@@ -411,7 +411,36 @@ export default function AudioLabVoicesPage() {
             </section>
             <section className="rounded-3xl border border-soft p-5 bg-card-soft-theme space-y-3">
               <div className="flex items-center justify-between"><div><h2 className="font-bold">Biblioteca privada</h2><p className="text-muted2 text-sm">Tus voces quedan separadas por usuario.</p></div><button onClick={loadVoices} className="rounded-xl border border-soft p-2"><RefreshCw size={14} /></button></div>
-              {voices.length === 0 ? <p className="text-sm text-muted2">Todavía no existen perfiles vocales.</p> : voices.map((voice) => <article key={voice.id} className="rounded-2xl border border-soft p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-semibold text-sm flex items-center gap-2"><Volume2 size={14} className="text-purple-500" /> {voice.display_name}</p><p className="text-xs text-muted2 mt-1">{voice.source_kind === "self" ? "Voz propia" : "Tercero autorizado"} · Estado: {voice.status} · {voice.sample_path ? "muestra subida" : "sin muestra"}</p></div><div className="flex flex-wrap gap-2"><button onClick={() => { setActiveUploadProfileId(voice.id); sampleInputRef.current?.click() }} className="rounded-xl border border-soft px-3 py-2 text-xs flex items-center gap-2"><Upload size={13} /> {voice.sample_path ? "Reemplazar" : "Subir muestra"}</button><button disabled className="rounded-xl border border-soft px-3 py-2 text-xs opacity-50 flex items-center gap-2" title="Disponible al conectar OpenVoice"><Mic2 size={13} /> Usar internamente</button><button onClick={() => deleteVoice(voice.id)} className="rounded-xl border border-red-500/20 px-3 py-2 text-xs text-red-500 flex items-center gap-2"><Trash2 size={13} /> Eliminar</button></div></article>)}
+              {voices.length === 0 ? <p className="text-sm text-muted2">Todavía no existen perfiles vocales.</p> : voices.map((voice) => (
+                <article key={voice.id} className="rounded-2xl border border-soft p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="font-semibold text-sm flex items-center gap-2"><Volume2 size={14} className="text-purple-500" /> {voice.display_name}</p>
+                    <p className="text-xs text-muted2 mt-1">
+                      {voice.source_kind === "self" ? "Voz propia" : "Tercero autorizado"} · Estado: {voice.status} · {voice.sample_path ? "muestra subida" : "sin muestra"}
+                      {voice.model_provider ? ` · ${voice.model_provider}` : ""}
+                    </p>
+                    {voice.processing_error && <p className="mt-1 max-w-xl text-xs text-red-500">{voice.processing_error}</p>}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button onClick={() => { setActiveUploadProfileId(voice.id); sampleInputRef.current?.click() }} disabled={processingVoiceId === voice.id} className="rounded-xl border border-soft px-3 py-2 text-xs flex items-center gap-2 disabled:opacity-50">
+                      <Upload size={13} /> {voice.sample_path ? "Reemplazar" : "Subir muestra"}
+                    </button>
+                    {voice.sample_path && voice.status !== "ready" && (
+                      <button onClick={() => processVoice(voice.id)} disabled={processingVoiceId === voice.id} className="rounded-xl border border-purple-500/30 bg-purple-500/10 px-3 py-2 text-xs text-purple-700 flex items-center gap-2 disabled:opacity-50">
+                        {processingVoiceId === voice.id ? <Loader2 size={13} className="animate-spin" /> : <Mic2 size={13} />}
+                        {processingVoiceId === voice.id ? "Procesando…" : "Procesar voz"}
+                      </button>
+                    )}
+                    {voice.status === "ready" && (
+                      <button onClick={() => previewVoice(voice.id)} disabled={playingVoiceId === voice.id} className="rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-700 flex items-center gap-2 disabled:opacity-50">
+                        {playingVoiceId === voice.id ? <Loader2 size={13} className="animate-spin" /> : <Play size={13} />}
+                        {playingVoiceId === voice.id ? "Generando…" : "Probar clon"}
+                      </button>
+                    )}
+                    <button onClick={() => deleteVoice(voice.id)} className="rounded-xl border border-red-500/20 px-3 py-2 text-xs text-red-500 flex items-center gap-2"><Trash2 size={13} /> Eliminar</button>
+                  </div>
+                </article>
+              ))}
             </section>
           </>}
       </section>
