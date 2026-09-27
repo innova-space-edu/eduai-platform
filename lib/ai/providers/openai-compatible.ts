@@ -54,7 +54,7 @@ export function compatibleFallbackModel(
       return process.env.GROQ_TEXT_MODEL || "openai/gpt-oss-120b"
     case "openrouter":
       if (capability === "structured") {
-        return process.env.OPENROUTER_STRUCTURED_MODEL || process.env.OPENROUTER_TEXT_MODEL || "openrouter/auto"
+        return process.env.OPENROUTER_STRUCTURED_MODEL || process.env.OPENROUTER_TEXT_MODEL || "openrouter/free"
       }
       return process.env.OPENROUTER_TEXT_MODEL || "openrouter/auto"
     case "together":
