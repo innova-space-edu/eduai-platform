@@ -275,9 +275,11 @@ export default function AudioLabVoicesPage() {
       const confirmed = await confirmResponse.json().catch(() => ({}))
       if (!confirmResponse.ok) throw new Error(confirmed.error || "No se pudo confirmar la muestra")
 
-      setSuccess("Muestra privada subida. Quedó preparada para el motor OpenVoice.")
+      const profileId = activeUploadProfileId
       setActiveUploadProfileId("")
+      setSuccess("Muestra privada subida. Validando timbre con OpenVoice V2…")
       await loadVoices()
+      await processVoice(profileId)
     } catch (reason: any) {
       setError(reason?.message || "No se pudo subir la muestra")
     } finally {
