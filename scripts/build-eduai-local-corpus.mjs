@@ -1,24 +1,30 @@
 import { createHash } from "node:crypto";
-import { mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { sanitizeEduAILocalCorpusText } from "./eduai-local-corpus-safety.mjs";
+import { extractEduAILocalSymbols, renderEduAILocalSymbolDocument } from "./eduai-local-symbol-index.mjs";
 
 const ROOT = process.cwd();
-const SOURCE_ROOTS = ["app", "components", "lib", "docs"];
-const ROOT_FILES = ["README.md", "DESIGN.md", "SECURITY.md", "INSTALL.md"];
+const SOURCE_ROOTS = ["app", "components", "lib", "docs", "scripts", "supabase", "data", ".github/workflows"];
+const ROOT_FILES = ["README.md", "DESIGN.md", "SECURITY.md", "INSTALL.md", "package.json", "next.config.ts", "tsconfig.json", "middleware.ts", "proxy.ts"];
 const OUT_DIR = path.join(ROOT, "artifacts", "ai");
 const OUT_FILE = path.join(OUT_DIR, "eduai-local-corpus.jsonl");
 const MANIFEST_FILE = path.join(OUT_DIR, "eduai-local-corpus-manifest.json");
+const KNOWLEDGE_DIR = path.join(OUT_DIR, "knowledge");
+const KNOWLEDGE_INDEX_FILE = path.join(KNOWLEDGE_DIR, "index.json");
 
 const ALLOWED_EXTENSIONS = new Set([
   ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".md", ".mdx", ".json", ".css", ".sql",
+  ".py", ".sh", ".yml", ".yaml", ".toml", ".html",
 ]);
 
 const DENY_PATH = /(?:^|[\\/])(?:node_modules|\.next|\.git|public|artifacts|coverage|dist|build)(?:[\\/]|$)/i;
 const SECRET_FILE = /(?:^|[._-])(?:env|secret|credential|private[-_]?key)(?:[._-]|$)/i;
-const SECRET_LINE = /(api[_-]?key|secret|password|private[_-]?key|service[_-]?account)\s*[:=]\s*["'][^"']{8,}["']/i;
+const PATH_ONLY_PREFIXES = ["data/"];
 const MAX_FILE_BYTES = 512 * 1024;
 const CHUNK_CHARS = 6000;
 const OVERLAP_CHARS = 600;
+const KNOWLEDGE_SHARD_TARGET_BYTES = 1_500_000;
 
 async function walk(target) {
   const entries = [];
@@ -35,12 +41,6 @@ async function walk(target) {
   return entries;
 }
 
-function sanitize(text) {
-  return text
-    .split(/\r?\n/)
-    .map((line) => SECRET_LINE.test(line) ? "[REDACTED_SECRET_LIKE_LINE]" : line)
-    .join("\n");
-}
 
 function chunkText(text) {
   const chunks = [];
@@ -54,13 +54,23 @@ function chunkText(text) {
   return chunks;
 }
 
+function recordBytes(record) {
+  return Buffer.byteLength(JSON.stringify(record), "utf8") + 1;
+}
+
 const candidates = [];
 for (const root of SOURCE_ROOTS) candidates.push(...await walk(path.join(ROOT, root)));
 for (const file of ROOT_FILES) candidates.push(path.join(ROOT, file));
 
 const unique = [...new Set(candidates)].sort();
 const records = [];
+const byExtension = {};
+const pathOnlySources = [];
+const symbolRecords = [];
+let symbolCount = 0;
+let symbolFiles = 0;
 let skipped = 0;
+let totalSourceBytes = 0;
 
 for (const absolute of unique) {
   const relative = path.relative(ROOT, absolute).replaceAll("\\", "/");
@@ -73,6 +83,10 @@ for (const absolute of unique) {
     skipped += 1;
     continue;
   }
+  if (PATH_ONLY_PREFIXES.some((prefix) => relative.startsWith(prefix))) {
+    pathOnlySources.push(relative);
+    continue;
+  }
   const info = await stat(absolute).catch(() => null);
   if (!info || info.size > MAX_FILE_BYTES) {
     skipped += 1;
@@ -80,7 +94,28 @@ for (const absolute of unique) {
   }
   const raw = await readFile(absolute, "utf8").catch(() => "");
   if (!raw.trim()) continue;
-  const clean = sanitize(raw);
+  totalSourceBytes += info.size;
+  byExtension[ext || "text"] = (byExtension[ext || "text"] || 0) + 1;
+  const clean = sanitizeEduAILocalCorpusText(raw);
+  const symbols = extractEduAILocalSymbols(relative, clean);
+  if (symbols.length) {
+    symbolCount += symbols.length;
+    symbolFiles += 1;
+    const symbolDocument = renderEduAILocalSymbolDocument(relative, symbols);
+    chunkText(symbolDocument).forEach((content, index) => {
+      const id = createHash("sha256")
+        .update("symbol:" + relative + ":" + index + ":" + content)
+        .digest("hex")
+        .slice(0, 20);
+      symbolRecords.push({
+        id,
+        source: `__eduai__/symbols/${relative}.md`,
+        chunk: index,
+        language: "md",
+        content,
+      });
+    });
+  }
   const chunks = chunkText(clean);
   chunks.forEach((content, index) => {
     const id = createHash("sha256").update(relative + ":" + index + ":" + content).digest("hex").slice(0, 20);
@@ -94,17 +129,128 @@ for (const absolute of unique) {
   });
 }
 
+const indexedSources = [...new Set([
+  ...records.map((record) => record.source),
+  ...pathOnlySources,
+])].sort();
+const architectureGroups = {
+  pages: indexedSources.filter((source) => /^app\/(?!api\/).*\/(?:page|layout)\.(?:ts|tsx|js|jsx)$/.test(source)),
+  apiRoutes: indexedSources.filter((source) => /^app\/api\/.*\/route\.(?:ts|js)$/.test(source)),
+  components: indexedSources.filter((source) => source.startsWith("components/")),
+  libraries: indexedSources.filter((source) => source.startsWith("lib/")),
+  scripts: indexedSources.filter((source) => source.startsWith("scripts/")),
+  supabase: indexedSources.filter((source) => source.startsWith("supabase/")),
+  data: indexedSources.filter((source) => source.startsWith("data/")),
+  workflows: indexedSources.filter((source) => source.startsWith(".github/workflows/")),
+};
+
+records.push(...symbolRecords);
+
+for (const [group, sources] of Object.entries(architectureGroups)) {
+  const architectureText = [
+    `# EDUAI Development Map · ${group}`,
+    "",
+    "Este mapa se genera automáticamente desde el repositorio actual. Úsalo para localizar primero el archivo o subsistema correcto antes de responder preguntas de desarrollo.",
+    "",
+    ...sources.map((source) => `- ${source}`),
+  ].join("\n");
+
+  records.unshift({
+    id: createHash("sha256").update(`eduai-development-map:${group}:${architectureText}`).digest("hex").slice(0, 20),
+    source: `__eduai__/development-map/${group}.md`,
+    chunk: 0,
+    language: "md",
+    content: architectureText,
+  });
+}
+
 await mkdir(OUT_DIR, { recursive: true });
-await writeFile(OUT_FILE, records.map((record) => JSON.stringify(record)).join("\n") + "\n", "utf8");
+const serialized = records.map((record) => JSON.stringify(record)).join("\n") + "\n";
+await writeFile(OUT_FILE, serialized, "utf8");
+
+const generatedAt = new Date().toISOString();
+const buildCommit = (process.env.VERCEL_GIT_COMMIT_SHA || process.env.GITHUB_SHA || "local").slice(0, 40);
+
+await rm(KNOWLEDGE_DIR, { recursive: true, force: true });
+await mkdir(KNOWLEDGE_DIR, { recursive: true });
+
+const shards = [];
+let current = [];
+let currentBytes = 0;
+
+async function flushShard() {
+  if (!current.length) return;
+  const index = shards.length;
+  const file = `shard-${String(index).padStart(4, "0")}.json`;
+  const payload = {
+    schemaVersion: 2,
+    generatedAt,
+    buildCommit,
+    index,
+    records: current.map(({ id, source, language, content }) => ({ id, source, language, content })),
+  };
+  const body = JSON.stringify(payload);
+  await writeFile(path.join(KNOWLEDGE_DIR, file), body, "utf8");
+  shards.push({
+    index,
+    file,
+    records: current.length,
+    bytes: Buffer.byteLength(body, "utf8"),
+  });
+  current = [];
+  currentBytes = 0;
+}
+
+for (const record of records) {
+  const bytes = recordBytes(record);
+  if (current.length && currentBytes + bytes > KNOWLEDGE_SHARD_TARGET_BYTES) {
+    await flushShard();
+  }
+  current.push(record);
+  currentBytes += bytes;
+}
+await flushShard();
+
+const knowledgePackBytes = shards.reduce((sum, shard) => sum + shard.bytes, 0);
+const knowledgeIndex = {
+  schemaVersion: 2,
+  sourceProfile: "development-full",
+  generatedAt,
+  buildCommit,
+  totalRecords: records.length,
+  totalBytes: knowledgePackBytes,
+  shards,
+};
+await writeFile(KNOWLEDGE_INDEX_FILE, JSON.stringify(knowledgeIndex, null, 2) + "\n", "utf8");
 
 const manifest = {
-  generatedAt: new Date().toISOString(),
+  schemaVersion: 3,
+  sourceProfile: "development-full",
+  generatedAt,
+  buildCommit,
   roots: SOURCE_ROOTS,
   rootFiles: ROOT_FILES,
   output: path.relative(ROOT, OUT_FILE).replaceAll("\\", "/"),
   filesScanned: unique.length,
+  indexedFiles: Object.values(byExtension).reduce((sum, value) => sum + value, 0),
   records: records.length,
+  symbols: {
+    files: symbolFiles,
+    total: symbolCount,
+    records: symbolRecords.length,
+  },
+  pathOnlySources: pathOnlySources.length,
+  architecture: Object.fromEntries(
+    Object.entries(architectureGroups).map(([group, sources]) => [group, sources.length]),
+  ),
   skipped,
+  totalSourceBytes,
+  corpusBytes: Buffer.byteLength(serialized),
+  knowledgePackIndex: path.relative(ROOT, KNOWLEDGE_INDEX_FILE).replaceAll("\\", "/"),
+  knowledgePackBytes,
+  knowledgePackShards: shards.length,
+  knowledgeShardTargetBytes: KNOWLEDGE_SHARD_TARGET_BYTES,
+  byExtension,
   policy: {
     repositoryOnly: true,
     includesUserConversations: false,

@@ -13,6 +13,7 @@ type ModelSummary = {
   events: number
   medianMs: number
   p95Ms: number
+  medianTokensPerSecond: number
   backend: string
   runtimeReuseRate: number
   modelReuseRate: number
@@ -31,6 +32,9 @@ function summarizeModel(modelId: string, events: LocalAIEvent[]): ModelSummary {
   const latencies = successful
     .map(event => event.endToEndMs ?? event.latencyMs)
     .filter((value): value is number => typeof value === "number" && Number.isFinite(value) && value >= 0)
+  const tokensPerSecond = successful
+    .map(event => event.tokensPerSecond)
+    .filter((value): value is number => typeof value === "number" && Number.isFinite(value) && value > 0)
   const backends = new Map<string, number>()
   successful.forEach(event => {
     if (!event.backend) return
@@ -44,6 +48,7 @@ function summarizeModel(modelId: string, events: LocalAIEvent[]): ModelSummary {
     events: successful.length,
     medianMs: percentile(latencies, 0.5),
     p95Ms: percentile(latencies, 0.95),
+    medianTokensPerSecond: percentile(tokensPerSecond, 0.5),
     backend,
     runtimeReuseRate: runtimeEligible.length ? runtimeEligible.filter(event => event.runtimeReused).length / runtimeEligible.length * 100 : 0,
     modelReuseRate: modelEligible.length ? modelEligible.filter(event => event.modelReused).length / modelEligible.length * 100 : 0,
@@ -117,8 +122,8 @@ export default function LocalAIModelMetricsPanel() {
                 <div className="mt-4 grid grid-cols-2 gap-2">
                   <div className="rounded-2xl border border-white/5 bg-black/15 p-3"><p className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-600">E2E mediana</p><p className="mt-1 text-xl font-black text-white">{formatLatency(summary.modelId, summary.medianMs)}</p></div>
                   <div className="rounded-2xl border border-white/5 bg-black/15 p-3"><p className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-600">E2E P95</p><p className="mt-1 text-xl font-black text-white">{formatLatency(summary.modelId, summary.p95Ms)}</p></div>
-                  <div className="rounded-2xl border border-white/5 bg-black/15 p-3"><p className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-600">Runtime reuse</p><p className="mt-1 text-sm font-black text-emerald-200">{summary.runtimeReuseRate.toFixed(0)}%</p></div>
-                  <div className="rounded-2xl border border-white/5 bg-black/15 p-3"><p className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-600">Model pool</p><p className="mt-1 text-sm font-black text-cyan-200">{summary.modelReuseRate.toFixed(0)}%</p></div>
+                  <div className="rounded-2xl border border-white/5 bg-black/15 p-3"><p className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-600">Velocidad LLM</p><p className="mt-1 text-sm font-black text-violet-200">{summary.medianTokensPerSecond > 0 ? summary.medianTokensPerSecond.toFixed(1) + " tok/s" : "—"}</p></div>
+                  <div className="rounded-2xl border border-white/5 bg-black/15 p-3"><p className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-600">Runtime / modelo</p><p className="mt-1 text-sm font-black text-emerald-200">{summary.runtimeReuseRate.toFixed(0)}% / {summary.modelReuseRate.toFixed(0)}%</p></div>
                 </div>
                 <div className="mt-3 flex items-center justify-between text-[10px] text-slate-500"><span>{summary.events} eventos</span><span className="inline-flex items-center gap-1"><Gauge className="h-3 w-3" /> misma escala por modelo</span></div>
               </article>

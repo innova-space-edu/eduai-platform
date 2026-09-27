@@ -42,3 +42,6 @@ next-env.d.ts
 
 # Generated local-AI training corpus
 artifacts/ai/
+
+# Generated local runtime binary
+public/eduai-local/wllama.wasm
