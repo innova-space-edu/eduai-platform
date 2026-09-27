@@ -190,3 +190,12 @@ Las inferencias y benchmarks GGUF reutilizan la telemetría local existente de E
 
 En CPU se registra backend `wasm`. En modo Auto con WebGPU disponible se conserva el backend como no confirmado, porque wllama no expone después de la carga una API que certifique cuántas capas quedaron realmente offloaded a WebGPU. La interfaz puede mostrar la ruta solicitada, pero la telemetría no la presenta como backend efectivo.
 
+## Recomendación por evidencia del equipo
+
+Model Factory cruza dos señales locales que permanecen separadas:
+
+- **mayor calidad validada:** el Quality Gate aprobado más alto;
+- **mayor velocidad validada:** el mayor `tok/s` medido entre modelos que ya aprobaron su Quality Gate.
+
+La comparación exige hardware compatible con la validación guardada (RAM, VRAM y presencia de WebGPU) y utiliza el benchmark más reciente por modelo. No se crea un score compuesto opaco y los GGUF propios seleccionados desde disco no se autoarrancan como recomendación.
+

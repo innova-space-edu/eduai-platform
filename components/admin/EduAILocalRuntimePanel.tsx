@@ -576,6 +576,7 @@ export default function EduAILocalRuntimePanel({ standalone = false }: EduAILoca
             createdAt: new Date().toISOString(),
           }),
         );
+        window.dispatchEvent(new CustomEvent("eduai-local-benchmark-changed"));
       } catch {
         // Persistencia opcional.
       }

@@ -14,6 +14,8 @@ import {
   Trash2,
 } from "lucide-react";
 import { clearEduAILocalCandidates, readEduAILocalCandidates, type EduAILocalCandidate } from "@/lib/ai/local/eduai-local-candidates";
+import { readEduAILocalBenchmarks, recommendEduAILocalFromEvidence, type EduAILocalEvidenceRecommendations } from "@/lib/ai/local/eduai-local-evidence";
+import type { EduAIHardwareProfile } from "@/lib/ai/local/eduai-local-models";
 import {
   clearEduAILocalKnowledgePack,
   getEduAILocalKnowledgeState,
@@ -81,6 +83,7 @@ export default function EduAIModelFactoryPanel() {
   const [candidateBusy, setCandidateBusy] = useState<string | null>(null);
   const [candidateMessage, setCandidateMessage] = useState("");
   const [sentCandidates, setSentCandidates] = useState<string[]>([]);
+  const [evidence, setEvidence] = useState<EduAILocalEvidenceRecommendations | null>(null);
 
   async function load() {
     setLoading(true);
@@ -98,7 +101,38 @@ export default function EduAIModelFactoryPanel() {
   }
 
   function refreshCandidates() {
-    setCandidates(readEduAILocalCandidates());
+    const nextCandidates = readEduAILocalCandidates();
+    setCandidates(nextCandidates);
+
+    let savedRam: number | null = null;
+    let savedVram: number | null = null;
+    try {
+      const raw = window.localStorage.getItem("eduai-local-hardware-profile-v1");
+      if (raw) {
+        const parsed = JSON.parse(raw) as { ramGB?: unknown; vramGB?: unknown };
+        savedRam = typeof parsed.ramGB === "number" ? parsed.ramGB : null;
+        savedVram = typeof parsed.vramGB === "number" ? parsed.vramGB : null;
+      }
+    } catch {
+      savedRam = null;
+      savedVram = null;
+    }
+
+    const nav = navigator as Navigator & { deviceMemory?: number; gpu?: unknown };
+    const profile: EduAIHardwareProfile = {
+      memoryGB: savedRam ?? (typeof nav.deviceMemory === "number" ? nav.deviceMemory : null),
+      vramGB: savedVram,
+      webgpu: Boolean(nav.gpu),
+      cores: navigator.hardwareConcurrency || 1,
+    };
+
+    setEvidence(
+      recommendEduAILocalFromEvidence(
+        nextCandidates,
+        readEduAILocalBenchmarks(),
+        profile,
+      ),
+    );
   }
 
   async function submitLocalCandidate(candidate: EduAILocalCandidate) {
@@ -178,7 +212,11 @@ export default function EduAIModelFactoryPanel() {
     refreshCandidates();
     const handler = () => refreshCandidates();
     window.addEventListener("eduai-local-candidates-changed", handler);
-    return () => window.removeEventListener("eduai-local-candidates-changed", handler);
+    window.addEventListener("eduai-local-benchmark-changed", handler);
+    return () => {
+      window.removeEventListener("eduai-local-candidates-changed", handler);
+      window.removeEventListener("eduai-local-benchmark-changed", handler);
+    };
   }, []);
 
   const manifest = payload?.manifest;
@@ -347,6 +385,44 @@ export default function EduAIModelFactoryPanel() {
         ) : (
           <p className="mt-3 text-[10px] text-slate-600">Todavía no hay candidatos aprobados. Carga un modelo o GGUF propio y ejecuta el Quality Gate desde la consola local.</p>
         )}
+      </div>
+
+      <div className="mt-4 rounded-[22px] border border-cyan-400/15 bg-cyan-950/10 p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-black text-cyan-200">Recomendación basada en evidencia de este notebook</p>
+            <p className="mt-1 text-[10px] leading-5 text-slate-500">
+              Solo usa modelos de catálogo que aprobaron el Quality Gate y, cuando existe, benchmark del mismo perfil RAM/VRAM/WebGPU. Calidad y velocidad se muestran por separado.
+            </p>
+          </div>
+          <span className="rounded-full border border-white/10 px-2.5 py-1 text-[9px] font-black text-slate-500">
+            {evidence?.evaluatedModels ?? 0} modelo(s) con evidencia
+          </span>
+        </div>
+        <div className="mt-3 grid gap-2 lg:grid-cols-2">
+          <div className="rounded-xl border border-fuchsia-400/10 bg-fuchsia-950/10 p-3">
+            <p className="text-[9px] font-black uppercase tracking-[0.12em] text-fuchsia-300">Mayor calidad validada</p>
+            {evidence?.quality ? (
+              <>
+                <p className="mt-1 text-sm font-black text-white">{evidence.quality.label}</p>
+                <p className="mt-1 text-[9px] text-slate-500">
+                  Quality Gate {evidence.quality.qualityScore}%{evidence.quality.tokensPerSecond ? " · " + evidence.quality.tokensPerSecond.toFixed(1) + " tok/s" : " · sin benchmark de velocidad"}
+                </p>
+              </>
+            ) : <p className="mt-2 text-[10px] text-slate-600">Falta ejecutar Quality Gate sobre al menos un modelo de catálogo.</p>}
+          </div>
+          <div className="rounded-xl border border-emerald-400/10 bg-emerald-950/10 p-3">
+            <p className="text-[9px] font-black uppercase tracking-[0.12em] text-emerald-300">Mayor velocidad validada</p>
+            {evidence?.speed ? (
+              <>
+                <p className="mt-1 text-sm font-black text-white">{evidence.speed.label}</p>
+                <p className="mt-1 text-[9px] text-slate-500">
+                  {evidence.speed.tokensPerSecond?.toFixed(1)} tok/s · Quality Gate {evidence.speed.qualityScore}% · {evidence.speed.avgLatencyMs ? Math.round(evidence.speed.avgLatencyMs) + " ms promedio" : "latencia no guardada"}
+                </p>
+              </>
+            ) : <p className="mt-2 text-[10px] text-slate-600">Falta benchmark sobre un modelo que ya haya aprobado el Quality Gate.</p>}
+          </div>
+        </div>
       </div>
 
       <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_auto]">
