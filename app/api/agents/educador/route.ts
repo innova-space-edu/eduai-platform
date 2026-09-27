@@ -1828,9 +1828,6 @@ CRITERIOS DE CALIDAD - VERIFICAR ANTES DE RESPONDER:
         { curso: parvulariaSegundoCurso, heading: getParvulariaAgeHeading(parvulariaSegundoCurso), stage: inferParvulariaStage(parvulariaSegundoCurso) },
       ]
     : []
-  const isSalaCunaPlanning =
-    curso.toLocaleLowerCase("es-CL").includes("sala cuna") ||
-    Boolean(parvulariaSegundoCurso?.toLocaleLowerCase("es-CL").includes("sala cuna"))
   const parvulariaSafetyPrompt = buildParvulariaSafetyPrompt(
     curso,
     parvulariaHeterogenea ? parvulariaSegundoCurso : undefined,
@@ -2303,7 +2300,9 @@ REGLAS DE LAS CELDAS:
           maxOutputTokens: perJourneyMaxTokens,
           context: {
             userId: user.id,
-            module: `educador-parvularia-jornada-${index + 1}`,
+            ...(correction
+              ? { module: "educador-parvularia-repair" }
+              : { module: `educador-parvularia-jornada-${index + 1}` }),
             reusePolicy: "exact_private",
             visibility: "private",
           },
@@ -2356,11 +2355,11 @@ REGLAS DE LAS CELDAS:
     }
 
     const generateWholePlanning = async () => {
-    let result = await callAI(aiMessages, {
-      maxTokens: strategy.maxTokens,
-      preferProvider: strategy.preferProvider,
-      openrouterModel: strategy.openrouterModel,
-    })
+      const result = await callAI(aiMessages, {
+        maxTokens: strategy.maxTokens,
+        preferProvider: strategy.preferProvider,
+        openrouterModel: strategy.openrouterModel,
+      })
       return result
     }
 
