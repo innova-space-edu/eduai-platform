@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { callAI, getEducadorModelStrategy } from "@/lib/ai-router-v4"
-import { runAIText as runAIGatewayText } from "@/lib/ai/gateway"
+import { runAIText as runAIGatewayText, runAIStructured as runAIStructuredGateway } from "@/lib/ai/gateway"
 import {
   buildOAContext,
   cursoToKey,
@@ -38,6 +38,25 @@ export const runtime = "nodejs"
 export const maxDuration = 300
 
 type TiempoPlanificacion = "diaria" | "semanal" | "quincenal" | "mensual" | "semestral" | "anual"
+
+const PARVULARIA_JOURNEY_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    experienciaAprendizaje: { type: "string" },
+    orientacionesRelevantes: { type: "string" },
+    rolEquipoFamilia: { type: "string" },
+    recursos: { type: "string" },
+    evaluacion: { type: "string" },
+  },
+  required: [
+    "experienciaAprendizaje",
+    "orientacionesRelevantes",
+    "rolEquipoFamilia",
+    "recursos",
+    "evaluacion",
+  ],
+} as const
 
 type ChatHistoryItem = {
   role: "user" | "assistant"
@@ -2186,16 +2205,21 @@ REGLAS DE LAS CELDAS:
       evaluacion: string
     }
 
-    const parseJourneyRow = (rawText: string): ParvulariaGeneratedRow => {
-      const clean = String(rawText || "")
-        .trim()
-        .replace(/^\`\`\`(?:json)?\s*/i, "")
-        .replace(/\s*\`\`\`$/i, "")
-        .trim()
-      const parsed = JSON.parse(clean) as Record<string, unknown>
-      const source = parsed.fila && typeof parsed.fila === "object"
-        ? parsed.fila as Record<string, unknown>
-        : parsed
+    const parseJourneyRow = (rawValue: string | ParvulariaGeneratedRow): ParvulariaGeneratedRow => {
+      let source: Record<string, unknown>
+      if (typeof rawValue === "string") {
+        const clean = rawValue
+          .trim()
+          .replace(/^\`\`\`(?:json)?\s*/i, "")
+          .replace(/\s*\`\`\`$/i, "")
+          .trim()
+        const parsed = JSON.parse(clean) as Record<string, unknown>
+        source = parsed.fila && typeof parsed.fila === "object"
+          ? parsed.fila as Record<string, unknown>
+          : parsed
+      } else {
+        source = rawValue as unknown as Record<string, unknown>
+      }
       const read = (key: keyof ParvulariaGeneratedRow) => {
         const value = source[key]
         if (typeof value !== "string" || !value.trim()) throw new Error(`La jornada no entregó el campo ${key}.`)
@@ -2210,7 +2234,8 @@ REGLAS DE LAS CELDAS:
       }
     }
 
-    const generateParvulariaByJourney = async (correction = "") => {
+    const generateParvulariaByJourney = async (correction = "", existingText = "", targetJourneyIndex: number | null = null) => {
+      const existingRows = existingText ? parseParvulariaPlanningDocument(existingText).filas : []
       const rows: Array<ParvulariaGeneratedRow & {
         jornada: string
         ambitoNucleo: string
@@ -2230,6 +2255,13 @@ REGLAS DE LAS CELDAS:
               : 3000
 
       for (let index = 0; index < 3; index += 1) {
+        if (targetJourneyIndex !== null && index !== targetJourneyIndex) {
+          const previous = existingRows[index]
+          if (!previous) throw new Error(`No fue posible conservar la Jornada ${index + 1} durante la reparación.`)
+          rows.push(previous)
+          continue
+        }
+
         const nucleo = parvulariaJourneyNucleos[index] || asignatura
         const ambito = getParvulariaAmbito(curso, nucleo) || "Ámbito no informado"
         const oas = parvulariaOAByJourney[index] || []
@@ -2254,7 +2286,7 @@ REGLAS DE LAS CELDAS:
           detail: `${correction ? "Revisando" : "Construyendo"} Jornada ${index + 1} de 3 · ${nucleo}`,
         })
 
-        const journeyAI = await runAIGatewayText({
+        const journeyAI = await runAIStructuredGateway<ParvulariaGeneratedRow>({
           messages: [
             {
               role: "system",
@@ -2296,7 +2328,7 @@ REGLAS DE LAS CELDAS:
               ].filter(Boolean).join("\n\n"),
             },
           ],
-          capability: "long_context",
+          schema: PARVULARIA_JOURNEY_SCHEMA,
           maxOutputTokens: perJourneyMaxTokens,
           context: {
             userId: user.id,
@@ -2440,7 +2472,7 @@ REGLAS DE LAS CELDAS:
             .map((oat) => `Jornada ${index + 1}: OAT no asignado ${oat.description || oat.id}`)
           return [...missing, ...unexpected]
         })
-        const incompleteRow = fixed.filas.find((row) =>
+        const incompleteRowIndex = fixed.filas.findIndex((row) =>
           !row.jornada.trim() ||
           !row.ambitoNucleo.trim() ||
           !row.objetivosAprendizajes.trim() ||
@@ -2482,14 +2514,15 @@ REGLAS DE LAS CELDAS:
               ).map((issue) => `${row.jornada}: ${issue}`)
             )
           : []
-        const safetyBody = fixed.filas.map((row) => row.experienciaAprendizaje + "\n" + row.recursos).join("\n")
-        const safetyIssues = findParvulariaSafetyIssues(
-          safetyBody,
-          curso,
-          parvulariaHeterogenea ? parvulariaSegundoCurso : undefined,
+        const safetyIssues = fixed.filas.flatMap((row, index) =>
+          findParvulariaSafetyIssues(
+            row.experienciaAprendizaje + "\n" + row.recursos,
+            curso,
+            parvulariaHeterogenea ? parvulariaSegundoCurso : undefined,
+          ).map((issue) => ({ index, issue }))
         )
         const unexpectedCharacterIssues = findUnexpectedParvulariaCharacters(serializeParvulariaPlanningDocument(fixed))
-        if (!fixed.objetivoAprendizaje.trim() || !fixed.principioJuego.trim() || !fixed.principioActividad.trim() || !fixed.focoExperiencia.trim() || fixed.filas.length !== 3 || incompleteRow || missingOA.length || journeyOAIssues.length || journeyOATIssues.length || missingActivityDatesByJourney.length || heterogeneousDevelopmentIssues.length || shortActivitiesByJourney.length || safetyIssues.length || unexpectedCharacterIssues.length) {
+        if (!fixed.objetivoAprendizaje.trim() || !fixed.principioJuego.trim() || !fixed.principioActividad.trim() || !fixed.focoExperiencia.trim() || fixed.filas.length !== 3 || incompleteRowIndex >= 0 || missingOA.length || journeyOAIssues.length || journeyOATIssues.length || missingActivityDatesByJourney.length || heterogeneousDevelopmentIssues.length || shortActivitiesByJourney.length || safetyIssues.length || unexpectedCharacterIssues.length) {
           throw new Error(
             journeyOAIssues.length
               ? `La asignación de núcleo/OA por jornada no fue respetada: ${journeyOAIssues.join(" | ")}.`
@@ -2500,7 +2533,7 @@ REGLAS DE LAS CELDAS:
               : unexpectedCharacterIssues.length
                 ? `La salida contiene texto corrupto o caracteres inesperados: ${unexpectedCharacterIssues.join(" | ")}`
               : safetyIssues.length
-                ? `La planificación contiene elementos no aceptables según el archivo de seguridad: ${safetyIssues.map((issue) => `${issue.matchedText} — ${issue.reason} Alternativa: ${issue.safeAlternative}`).join(" | ")}`
+                ? `La planificación contiene elementos no aceptables según el archivo de seguridad: ${safetyIssues.map(({ index, issue }) => `Jornada ${index + 1}: ${issue.matchedText} — ${issue.reason} Alternativa: ${issue.safeAlternative}`).join(" | ")}`
               : fixed.filas.length !== 3
                 ? `La planificación debe contener exactamente 3 jornadas y se recibieron ${fixed.filas.length}.`
                 : missingActivityDatesByJourney.length
@@ -2509,8 +2542,8 @@ REGLAS DE LAS CELDAS:
                     ? `El Desarrollo heterogéneo no respeta los bloques por edad/subnivel: ${heterogeneousDevelopmentIssues.join(" | ")}.`
                   : shortActivitiesByJourney.length
                     ? `Hay actividades demasiado breves o redactadas como títulos. Amplía cada actividad a una frase pedagógica completa y concreta (aprox. 100-180 caracteres): ${shortActivitiesByJourney.slice(0, 6).join(" | ")}.`
-                    : incompleteRow
-                      ? "Hay una jornada incompleta: debe incluir Inicio, Desarrollo, Finalización, roles, recursos tangibles/intangibles y la escala/indicadores de evaluación."
+                    : incompleteRowIndex >= 0
+                      ? `Jornada ${incompleteRowIndex + 1}: está incompleta; debe incluir Inicio, Desarrollo, Finalización, roles, recursos tangibles/intangibles y la escala/indicadores de evaluación.`
                       : "Faltan campos obligatorios de la plantilla."
           )
         }
@@ -2533,8 +2566,15 @@ REGLAS DE LAS CELDAS:
           phaseLabel: "Corrigiendo detalles",
           detail: firstError instanceof Error ? firstError.message.slice(0, 600) : "Corrigiendo la salida antes de entregarla.",
         })
+        const repairMessage = firstError instanceof Error
+          ? firstError.message
+          : "La versión anterior no superó la validación institucional."
+        const journeyMatch = repairMessage.match(/Jornada\s+([123])/i)
+        const repairJourneyIndex = journeyMatch ? Number(journeyMatch[1]) - 1 : null
         const repaired = await generateParvulariaByJourney(
-          firstError instanceof Error ? firstError.message : "La versión anterior no superó la validación institucional."
+          repairMessage,
+          result.text,
+          repairJourneyIndex,
         )
         result = { ...repaired, text: canonicalize(repaired.text) }
       }
