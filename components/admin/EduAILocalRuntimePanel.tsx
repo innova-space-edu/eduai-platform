@@ -575,6 +575,7 @@ export default function EduAILocalRuntimePanel({ standalone = false }: EduAILoca
             ramGB: effectiveProfile.memoryGB,
             vramGB: effectiveProfile.vramGB,
             webgpu: effectiveProfile.webgpu,
+            runtimeMode: mode,
             createdAt: new Date().toISOString(),
           }),
         );

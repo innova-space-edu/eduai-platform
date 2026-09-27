@@ -14,6 +14,7 @@ assert.match(panel, /kind: "inference"/);
 assert.match(panel, /kind: "benchmark"/);
 assert.match(panel, /tokensPerSecond: result\.tokensPerSecond/);
 assert.match(panel, /tokensPerSecond: avgTps/);
+assert.match(panel, /runtimeMode: mode/);
 assert.match(panel, /backend: mode === "cpu" \|\| hardware\?\.webgpu === false \? "wasm" : undefined/);
 assert.doesNotMatch(panel, /backend: "webgpu"/);
 assert.match(metrics, /medianTokensPerSecond/);
