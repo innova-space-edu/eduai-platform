@@ -56,7 +56,7 @@ function testFallbackModels() {
   withEnv("OPENROUTER_TEXT_MODEL", undefined, () => {
     withEnv("OPENROUTER_STRUCTURED_MODEL", undefined, () => {
       assert.equal(compatibleFallbackModel("openrouter", "text"), "openrouter/auto")
-      assert.equal(compatibleFallbackModel("openrouter", "structured"), "openrouter/auto")
+      assert.equal(compatibleFallbackModel("openrouter", "structured"), "openrouter/free")
     })
   })
   withEnv("TOGETHER_TEXT_MODEL", undefined, () => {
