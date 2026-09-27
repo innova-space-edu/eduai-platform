@@ -5,6 +5,14 @@
     {
       "source": "/api/agents/audio/songs",
       "destination": "/api/agents/audio/generate?kind=song"
+    },
+    {
+      "source": "/api/agents/audio/voices/process",
+      "destination": "/api/agents/audio/voices/status?action=process"
+    },
+    {
+      "source": "/api/agents/audio/voices/synthesize",
+      "destination": "/api/agents/audio/voices/status?action=synthesize"
     }
   ],
   "functions": {
