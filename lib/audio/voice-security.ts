@@ -12,17 +12,34 @@ export async function getVoiceSecurityToken() {
 export async function validateVoiceSecuritySession() {
   const supabase = await createClient()
   const token = await getVoiceSecurityToken()
-  if (!token) return { valid: false, token: "", supabase }
+  if (!token) return { valid: false, token: "", supabase, error: "" }
 
-  const { data, error } = await supabase.rpc("validate_voice_security_session", {
-    p_session_token: token,
-  })
+  let lastError = ""
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const { data, error } = await supabase.rpc("validate_voice_security_session", {
+      p_session_token: token,
+    })
+
+    if (!error) {
+      return {
+        valid: data === true,
+        token,
+        supabase,
+        error: "",
+      }
+    }
+
+    lastError = error.message || "No se pudo validar la sesión protegida"
+    if (attempt === 0) {
+      await new Promise((resolve) => setTimeout(resolve, 180))
+    }
+  }
 
   return {
-    valid: !error && data === true,
+    valid: false,
     token,
     supabase,
-    error: error?.message || "",
+    error: lastError,
   }
 }
 
