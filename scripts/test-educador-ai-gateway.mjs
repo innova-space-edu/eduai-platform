@@ -15,6 +15,8 @@ function forbidText(value, label) {
 }
 
 requireText('import { runAIText } from "@/lib/ai/gateway"', "AI Gateway")
+requireText('runAIStructured as runAIStructuredGateway', "salida estructurada por jornada")
+requireText('schema: PARVULARIA_JOURNEY_SCHEMA', "schema obligatorio por jornada")
 requireText('import { assertAICapabilityAllowed } from "@/lib/ai/access-policy"', "policy guard")
 requireText('await assertAICapabilityAllowed({', "invocación tipada del policy guard")
 requireText('userId: user.id,', "usuario del policy guard")
