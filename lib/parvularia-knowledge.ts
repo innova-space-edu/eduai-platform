@@ -62,6 +62,7 @@ export type ParvulariaKnowledgeContext = {
   candidateIds: string[]
   journeyCandidateIds: string[][]
   journeyReferenceCounts: number[]
+  journeyPrompts: string[]
   prompt: string
   source: "hybrid_cloud" | "database" | "saved_plannings_only" | "none"
 }
@@ -406,6 +407,22 @@ export async function buildParvulariaKnowledgeContext(args: BuildKnowledgeArgs):
         ).join("\n\n")
       : "Sin referencias específicas recuperadas para esta jornada.",
   ].join("\n")).join("\n\n")
+  const journeyPrompts = selectedByJourney.map((activities, journeyIndex) => [
+    `REFERENCIAS RAG · JORNADA ${journeyIndex + 1} · ${journeySpecs[journeyIndex].nucleus || "Núcleo seleccionado"}`,
+    activities.length
+      ? activities.map((activity, activityIndex) =>
+          referenceBlock(activity, `REFERENCIA ${activityIndex + 1}`)
+        ).join("\n\n")
+      : "No se recuperaron referencias específicas para esta jornada.",
+    recentSamples.length
+      ? [
+          "MEMORIA ANTIRREPETICIÓN — NO COPIAR NI PARAFRASEAR MECÁNICAMENTE:",
+          ...recentSamples.slice(0, 4).map((sample, index) => `PREVIA ${index + 1}: ${truncate(sample, 260)}`),
+        ].join("\n")
+      : "",
+    "Crea experiencias nuevas y sustantivamente diferentes, manteniendo el OA/OAT oficial de esta jornada.",
+  ].filter(Boolean).join("\n\n"))
+
   const cloudContext = cloudSources.slice(0, 3).map((source, index) => [
     `FUENTE CLOUD ${index + 1}: ${source.file_name || source.topic || "Documento Parvularia"}`,
     source.category ? `Tipo: ${source.category}` : "",
@@ -459,6 +476,7 @@ export async function buildParvulariaKnowledgeContext(args: BuildKnowledgeArgs):
     candidateIds: selected.map((activity) => activity.id),
     journeyCandidateIds: selectedByJourney.map((items) => items.map((activity) => activity.id)),
     journeyReferenceCounts: selectedByJourney.map((items) => items.length),
+    journeyPrompts,
     prompt,
     source: selected.length ? retrievalSource : saved.length || history.length ? "saved_plannings_only" : "none",
   }
