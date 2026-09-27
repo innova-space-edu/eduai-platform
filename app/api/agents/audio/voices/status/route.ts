@@ -4,7 +4,8 @@ import { validateVoiceSecuritySession } from "@/lib/audio/voice-security"
 export const runtime = "nodejs"
 
 export async function GET(req: NextRequest) {
-  const { valid, supabase } = await validateVoiceSecuritySession()
+  const { valid, supabase, error: securityError } = await validateVoiceSecuritySession()
+  if (securityError) return NextResponse.json({ error: "No se pudo validar la zona protegida. Reintenta en unos segundos." }, { status: 503 })
   if (!valid) return NextResponse.json({ error: "Sesión protegida requerida" }, { status: 401 })
 
   const { data: { user } } = await supabase.auth.getUser()
