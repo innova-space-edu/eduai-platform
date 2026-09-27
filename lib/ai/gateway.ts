@@ -527,13 +527,33 @@ export async function runAIStructured<T = Record<string, unknown>>(input: {
           lite: input.lite,
         })
         if (selected) {
-          result = await generateGoogleStructured<T>({
-            messages: input.messages,
-            schema: input.schema,
-            maxOutputTokens: input.maxOutputTokens,
-            lite: input.lite,
-            model: selected.model,
-          })
+          const candidates = Array.from(new Set([
+            selected.model,
+            googleModel("text"),
+            googleModel("lite"),
+          ].filter(Boolean))).slice(0, 3)
+
+          let lastError: unknown = null
+          for (const model of candidates) {
+            try {
+              result = await withGatewayTimeout(
+                generateGoogleStructured<T>({
+                  messages: input.messages,
+                  schema: input.schema,
+                  maxOutputTokens: input.maxOutputTokens,
+                  lite: input.lite,
+                  model,
+                }),
+                40_000,
+                `google-structured:${model}`,
+              )
+              break
+            } catch (error) {
+              lastError = error
+              if (!isGoogleTransientError(error)) throw error
+            }
+          }
+          if (!result && lastError) throw lastError
         }
       } else if (hasCompatibleProvider(provider)) {
         const selected = await providerRuntimeModel({
@@ -542,19 +562,35 @@ export async function runAIStructured<T = Record<string, unknown>>(input: {
           capability,
         })
         if (selected) {
-          const response = await generateCompatibleText({
-            provider,
-            model: selected.model,
-            messages: input.messages,
-            maxOutputTokens: input.maxOutputTokens,
-            structuredSchema: input.schema,
-          })
-          result = {
-            text: response.text,
-            data: parseStructuredJson<T>(response.text),
-            provider: response.provider,
-            model: response.model,
+          const candidates = compatibleModelCandidates(provider, capability, selected.model)
+          let lastError: unknown = null
+
+          for (const model of candidates) {
+            try {
+              const response = await generateCompatibleText({
+                provider,
+                model,
+                messages: input.messages,
+                maxOutputTokens: input.maxOutputTokens,
+                structuredSchema: input.schema,
+              })
+              result = {
+                text: response.text,
+                data: parseStructuredJson<T>(response.text),
+                provider: response.provider,
+                model: response.model,
+              }
+              break
+            } catch (error) {
+              lastError = error
+              if (isCompatibleModelError(error)) continue
+              if (isCompatibleBillingError(error)) throw error
+              if (isCompatibleTransientError(error)) throw error
+              throw error
+            }
           }
+
+          if (!result && lastError) throw lastError
         }
       }
 
