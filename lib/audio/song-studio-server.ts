@@ -1,7 +1,6 @@
 import Groq from "groq-sdk"
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import { generateSongWithAceStep } from "@/lib/audio/gradio-song-engine"
 
 type SongPlan = {
   title: string
@@ -35,7 +34,7 @@ function clamp(value: unknown, min: number, max: number, fallback: number) {
 }
 
 function parseJsonObject(value: string): Record<string, any> | null {
-  const clean = value.replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim()
+  const clean = value.replace(/^\`\`\`(?:json)?/i, "").replace(/\`\`\`$/i, "").trim()
   try {
     const parsed = JSON.parse(clean)
     return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : null
@@ -203,8 +202,7 @@ export async function createSongJob(body: any) {
     const timeSignature = ["2", "3", "4", "6"].includes(String(body.timeSignature)) ? String(body.timeSignature) : "4"
     const vocalStyleId = text(body.vocalStyle, 40) || "automatic"
     const vocalStyle = VOCAL_STYLES[vocalStyleId] || VOCAL_STYLES.automatic
-    const voiceProfileId = text(body.voiceProfileId, 80) || null
-    const voiceConsentConfirmed = body.voiceConsentConfirmed === true
+    const requestedVoiceProfileId = text(body.voiceProfileId, 80)
     const seed = Number.isFinite(Number(body.seed)) ? Number(body.seed) : -1
 
     if (!prompt && !directLyrics) {
@@ -212,6 +210,11 @@ export async function createSongJob(body: any) {
     }
     if (inputMode === "lyrics" && !instrumental && !directLyrics) {
       return NextResponse.json({ error: "Pega una letra o cambia a modo Idea" }, { status: 400 })
+    }
+    if (requestedVoiceProfileId) {
+      return NextResponse.json({
+        error: "Lyria 3.5 todavía no admite aplicar la voz clonada de Mis voces al canto. Usa la voz generada por el modelo.",
+      }, { status: 400 })
     }
 
     const { data: inserted, error: insertError } = await supabase
@@ -230,9 +233,11 @@ export async function createSongJob(body: any) {
         time_signature: timeSignature,
         instrumental,
         vocal_style: vocalStyleId,
-        voice_profile_id: voiceProfileId,
+        voice_profile_id: null,
         status: "composing",
-        progress: 10,
+        progress: 4,
+        provider: "google-lyria-3.5",
+        metadata: { stage: "composing", seed, vocal_style_prompt: vocalStyle },
       })
       .select("id")
       .single()
@@ -257,56 +262,8 @@ export async function createSongJob(body: any) {
       vocalLanguage,
     })
 
-    let referenceAudioUrl = ""
-    let voiceName = ""
-
-    if (voiceProfileId) {
-      if (!voiceConsentConfirmed) throw new Error("Debes autorizar expresamente el uso de esa voz para canto IA")
-
-      const { data: voice, error: voiceError } = await supabase
-        .from("audio_voice_profiles")
-        .select("id,display_name,status,sample_path,internal_use_enabled,consent_confirmed,authorization_confirmed")
-        .eq("id", voiceProfileId)
-        .eq("user_id", user.id)
-        .is("deleted_at", null)
-        .maybeSingle()
-
-      if (voiceError || !voice) throw new Error("La voz seleccionada no está disponible")
-      if (!voice.sample_path) {
-        throw new Error("La voz seleccionada todavía no tiene una muestra privada")
-      }
-      if (!voice.consent_confirmed || !voice.authorization_confirmed) {
-        throw new Error("La voz seleccionada no tiene autorización verificable")
-      }
-
-      const { data: signed, error: signedError } = await supabase.storage
-        .from("voice-clones")
-        .createSignedUrl(voice.sample_path, 60 * 10)
-      if (signedError || !signed?.signedUrl) throw new Error("No se pudo preparar la referencia vocal")
-
-      referenceAudioUrl = signed.signedUrl
-      voiceName = voice.display_name
-
-      await supabase
-        .from("audio_voice_profiles")
-        .update({
-          singing_enabled: true,
-          singing_consent_at: new Date().toISOString(),
-          singing_engine: "ace-step-1.5",
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", voiceProfileId)
-        .eq("user_id", user.id)
-
-      await supabase.from("audio_voice_events").insert({
-        user_id: user.id,
-        voice_profile_id: voiceProfileId,
-        event_type: "consent_recorded",
-        metadata: { version: "singing-ai-v1", scope: "singing", engine: "ace-step-1.5", job_id: jobId },
-      })
-    }
-
-    await supabase
+    const queuedAt = new Date().toISOString()
+    const { data: queued, error: updateError } = await supabase
       .from("audio_song_jobs")
       .update({
         title: plan.title,
@@ -318,78 +275,34 @@ export async function createSongJob(body: any) {
         key_scale: plan.keyScale,
         time_signature: plan.timeSignature,
         duration_seconds: plan.duration,
-        status: "generating",
-        progress: 35,
-        updated_at: new Date().toISOString(),
-        metadata: {
-          voice_name: voiceName || null,
-          voice_reference_used: Boolean(referenceAudioUrl),
-          voice_reference_mode: referenceAudioUrl ? "ace-step-cover-timbre" : null,
-        },
-      })
-      .eq("id", jobId)
-      .eq("user_id", user.id)
-
-    const generated = await generateSongWithAceStep({
-      prompt: plan.caption,
-      lyrics: plan.lyrics,
-      duration: plan.duration,
-      bpm: plan.bpm,
-      keyScale: plan.keyScale,
-      timeSignature: plan.timeSignature,
-      vocalLanguage,
-      instrumental,
-      vocalStyle,
-      referenceAudioUrl,
-      seed,
-    })
-
-    await supabase
-      .from("audio_song_jobs")
-      .update({ status: "uploading", progress: 85, updated_at: new Date().toISOString() })
-      .eq("id", jobId)
-      .eq("user_id", user.id)
-
-    const extension = generated.mime.includes("mpeg") ? "mp3" : generated.mime.includes("flac") ? "flac" : "wav"
-    const audioPath = `${user.id}/${jobId}/song.${extension}`
-    const { error: uploadError } = await supabase.storage
-      .from("generated-songs")
-      .upload(audioPath, generated.bytes, {
-        contentType: generated.mime,
-        cacheControl: "3600",
-        upsert: true,
-      })
-    if (uploadError) throw new Error(`No se pudo guardar la canción: ${uploadError.message}`)
-
-    const completedAt = new Date().toISOString()
-    const metadata = {
-      ...generated.metadata,
-      voice_name: voiceName || null,
-      source_engine: "EsthefanoMC23/eduai-song-engine",
-    }
-
-    const { data: completed, error: updateError } = await supabase
-      .from("audio_song_jobs")
-      .update({
-        audio_path: audioPath,
-        status: "completed",
-        progress: 100,
-        provider: "ace-step-1.5",
-        metadata,
+        status: "queued",
+        progress: 6,
+        provider: "google-lyria-3.5",
+        provider_job_id: null,
         error: null,
-        completed_at: completedAt,
-        updated_at: completedAt,
+        updated_at: queuedAt,
+        metadata: {
+          stage: "request_created",
+          runtime: "google-cloud-run-cpu",
+          engine: "lyria-3.5",
+          seed,
+          vocal_style_prompt: vocalStyle,
+        },
       })
       .eq("id", jobId)
       .eq("user_id", user.id)
       .select("*")
       .single()
+
     if (updateError) throw new Error(updateError.message)
 
-    const audioUrl = await signedAudioUrl(supabase, audioPath)
-    return NextResponse.json({ ok: true, job: { ...completed, audio_url: audioUrl } })
+    return NextResponse.json({
+      ok: true,
+      accepted: true,
+      job: { ...queued, audio_url: null },
+    }, { status: 202 })
   } catch (error: any) {
-    const message = error?.message || "No se pudo generar la canción"
+    const message = error?.message || "No se pudo preparar la canción"
     console.error("audio/song-studio error:", message)
 
     if (jobId) {
@@ -399,6 +312,7 @@ export async function createSongJob(body: any) {
           status: "failed",
           progress: 100,
           error: message.slice(0, 1000),
+          metadata: { stage: "failed" },
           updated_at: new Date().toISOString(),
         })
         .eq("id", jobId)

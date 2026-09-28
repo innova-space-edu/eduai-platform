@@ -31,6 +31,7 @@ export async function POST(req: Request) {
     const body = await req.json().catch(() => ({}))
     const profileId = typeof body?.profileId === "string" ? body.profileId : ""
     const filename = safeFilename(String(body?.filename || "muestra.wav"))
+    const kind = body?.kind === "consent" ? "consent" : "reference"
     const size = Number(body?.size || 0)
     const extension = filename.split(".").pop()?.toLowerCase() || ""
 
@@ -49,8 +50,8 @@ export async function POST(req: Request) {
 
     if (!profile) return NextResponse.json({ error: "Perfil vocal no encontrado" }, { status: 404 })
 
-    const filePath = `${user.id}/${profileId}/${Date.now()}-${filename}`
-    return NextResponse.json({ ok: true, bucket: BUCKET, filePath, filename, maxSizeMB: MAX_MB })
+    const filePath = `${user.id}/${profileId}/${kind}/${Date.now()}-${filename}`
+    return NextResponse.json({ ok: true, bucket: BUCKET, filePath, filename, kind, maxSizeMB: MAX_MB })
   } catch (error: any) {
     return NextResponse.json({ error: error?.message || "No se pudo preparar la muestra" }, { status: 500 })
   }

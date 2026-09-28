@@ -19,5 +19,10 @@
     "app/api/**/*.ts": {
       "maxDuration": 60
     }
+  },
+  "git": {
+    "deploymentEnabled": {
+      "fix/audio-google-gateway-final": false
+    }
   }
 }

@@ -20,6 +20,7 @@ import {
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { uploadAudioResumable } from "@/lib/audio/resumable-upload"
+import { callAudioEngine, currentSupabaseToken, streamAudioEngine } from "@/lib/audio/cloud-run-client"
 
 const sleep = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms))
 
@@ -29,10 +30,15 @@ type VoiceProfile = {
   source_kind: "self" | "authorized_third_party"
   status: "draft" | "processing" | "ready" | "disabled" | "deleted"
   sample_path: string | null
+  consent_audio_path?: string | null
+  canonical_audio_path?: string | null
+  provider_voice_id?: string | null
   internal_use_enabled: boolean
   default_voice: boolean
   model_provider?: string | null
   processing_error?: string | null
+  processing_progress?: number | null
+  processing_stage?: string | null
   processed_at?: string | null
 }
 
@@ -46,6 +52,7 @@ export default function AudioLabVoicesPage() {
   const router = useRouter()
   const supabase = useMemo(() => createClient(), [])
   const sampleInputRef = useRef<HTMLInputElement>(null)
+  const consentInputRef = useRef<HTMLInputElement>(null)
 
   const [loading, setLoading] = useState(true)
   const [unlocked, setUnlocked] = useState(false)
@@ -70,10 +77,13 @@ export default function AudioLabVoicesPage() {
   const [authorizationConfirmed, setAuthorizationConfirmed] = useState(false)
   const [creatingVoice, setCreatingVoice] = useState(false)
   const [activeUploadProfileId, setActiveUploadProfileId] = useState("")
+  const [activeUploadKind, setActiveUploadKind] = useState<"reference" | "consent">("reference")
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [processingVoiceId, setProcessingVoiceId] = useState("")
   const [playingVoiceId, setPlayingVoiceId] = useState("")
+  const [voiceRenderProgress, setVoiceRenderProgress] = useState(0)
+  const [voiceRenderLabel, setVoiceRenderLabel] = useState("")
 
   const refreshSecurity = useCallback(async () => {
     const response = await fetch("/api/agents/audio/voices/security", { cache: "no-store" })
@@ -236,7 +246,7 @@ export default function AudioLabVoicesPage() {
       setAdultConfirmed(false)
       setConsentConfirmed(false)
       setAuthorizationConfirmed(false)
-      setSuccess("Perfil vocal creado. Sube una muestra limpia para continuar.")
+      setSuccess("Perfil vocal creado. Sube una muestra de referencia y la grabación de consentimiento para continuar.")
       await loadVoices()
     } catch (reason: any) {
       setError(reason?.message || "No se pudo crear el perfil")
@@ -245,16 +255,25 @@ export default function AudioLabVoicesPage() {
     }
   }
 
-  async function uploadSample(file: File) {
+  async function uploadSample(file: File, kind: "reference" | "consent") {
     if (!activeUploadProfileId) return
     setUploading(true)
     setUploadProgress(0)
     setError("")
+
     try {
+      const profileId = activeUploadProfileId
+      const current = voices.find((voice) => voice.id === profileId)
+
+      if (current?.provider_voice_id) {
+        const token = await currentSupabaseToken(supabase)
+        await callAudioEngine("/v1/voice/delete", token, { profile_id: profileId }).catch(() => null)
+      }
+
       const prepareResponse = await fetch("/api/agents/audio/voices/upload-url", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profileId: activeUploadProfileId, filename: file.name, size: file.size }),
+        body: JSON.stringify({ profileId, filename: file.name, size: file.size, kind }),
       })
       const prepared = await prepareResponse.json().catch(() => ({}))
       if (!prepareResponse.ok) throw new Error(prepared.error || "No se pudo preparar la carga")
@@ -270,18 +289,20 @@ export default function AudioLabVoicesPage() {
       const confirmResponse = await fetch("/api/agents/audio/voices/confirm-upload", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profileId: activeUploadProfileId, filePath: prepared.filePath }),
+        body: JSON.stringify({ profileId, filePath: prepared.filePath, kind }),
       })
       const confirmed = await confirmResponse.json().catch(() => ({}))
-      if (!confirmResponse.ok) throw new Error(confirmed.error || "No se pudo confirmar la muestra")
+      if (!confirmResponse.ok) throw new Error(confirmed.error || "No se pudo confirmar el audio")
 
-      const profileId = activeUploadProfileId
       setActiveUploadProfileId("")
-      setSuccess("Muestra privada subida. Validando timbre con OpenVoice V2…")
+      setSuccess(
+        kind === "consent"
+          ? "Consentimiento de voz guardado. Cuando la muestra de referencia también esté lista, podrás replicar la voz."
+          : "Muestra de referencia guardada. Agrega también la grabación obligatoria de consentimiento."
+      )
       await loadVoices()
-      await processVoice(profileId)
     } catch (reason: any) {
-      setError(reason?.message || "No se pudo subir la muestra")
+      setError(reason?.message || "No se pudo subir el audio")
     } finally {
       setUploading(false)
       setUploadProgress(0)
@@ -291,7 +312,7 @@ export default function AudioLabVoicesPage() {
   async function processVoice(profileId: string) {
     setProcessingVoiceId(profileId)
     setError("")
-    setSuccess("")
+    setSuccess("Conectando con Google Voice Replication…")
 
     try {
       const response = await fetch("/api/agents/audio/voices/process", {
@@ -300,9 +321,28 @@ export default function AudioLabVoicesPage() {
         body: JSON.stringify({ profileId }),
       })
       const data = await response.json().catch(() => ({}))
-      if (!response.ok) throw new Error(data.error || "No se pudo procesar la voz")
+      if (!response.ok) throw new Error(data.error || "No se pudo preparar la voz")
 
-      setSuccess("Voz preparada con OpenVoice V2. Ya puedes probarla y usar su muestra en canciones.")
+      const token = await currentSupabaseToken(supabase)
+
+      await streamAudioEngine("/v1/voice/prepare", token, { profile_id: profileId }, (type, event) => {
+        const progress = typeof event.progress === "number" ? event.progress : 0
+        const stage = typeof event.stage === "string" ? event.stage : "processing"
+        const label = typeof event.label === "string" ? event.label : "Procesando voz"
+
+        setSuccess(label)
+        setVoices((current) => current.map((voice) => voice.id === profileId
+          ? {
+              ...voice,
+              status: type === "complete" ? "ready" : "processing",
+              processing_progress: progress,
+              processing_stage: stage,
+              processing_error: null,
+            }
+          : voice))
+      })
+
+      setSuccess("Voz lista. La muestra canónica quedó guardada y Gemini creó un identificador vocal reutilizable.")
       await loadVoices()
       return true
     } catch (reason: any) {
@@ -315,54 +355,95 @@ export default function AudioLabVoicesPage() {
   }
 
   async function previewVoice(profileId: string) {
+    const previewText = "Hola. Esta es una prueba de mi voz autorizada en EduAI."
     setPlayingVoiceId(profileId)
+    setVoiceRenderProgress(3)
+    setVoiceRenderLabel("Autorizando uso de la voz")
     setError("")
+
     try {
-      const response = await fetch("/api/agents/audio/voices/synthesize", {
+      const authorization = await fetch("/api/agents/audio/voices/synthesize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          profileId,
-          text: "Hola. Esta es una prueba de mi voz autorizada en EduAI.",
-        }),
+        body: JSON.stringify({ profileId, text: previewText }),
       })
-
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}))
-        throw new Error(data.error || "No se pudo generar la prueba de voz")
+      const authorizationData = await authorization.json().catch(() => ({}))
+      if (!authorization.ok) {
+        throw new Error(authorizationData.error || "No se pudo autorizar la prueba de voz")
       }
 
-      const blob = await response.blob()
-      const url = URL.createObjectURL(blob)
-      const audio = new Audio(url)
+      const token = await currentSupabaseToken(supabase)
+
+      const completed = await streamAudioEngine(
+        "/v1/voice/render",
+        token,
+        { profile_id: profileId, text: previewText },
+        (_type, event) => {
+          if (typeof event.progress === "number") setVoiceRenderProgress(event.progress)
+          if (typeof event.label === "string") setVoiceRenderLabel(event.label)
+        },
+      )
+
+      const bucket = typeof completed.bucket === "string" ? completed.bucket : "generated-voice-audio"
+      const audioPath = typeof completed.audio_path === "string" ? completed.audio_path : ""
+      if (!audioPath) throw new Error("Google Cloud terminó sin devolver el audio generado")
+
+      const { data: signed, error: signedError } = await supabase.storage
+        .from(bucket)
+        .createSignedUrl(audioPath, 10 * 60)
+
+      if (signedError || !signed?.signedUrl) {
+        throw new Error(signedError?.message || "No se pudo abrir la prueba de voz")
+      }
+
+      setVoiceRenderProgress(100)
+      setVoiceRenderLabel("Audio listo")
+
+      const audio = new Audio(signed.signedUrl)
       audio.onended = () => {
-        URL.revokeObjectURL(url)
         setPlayingVoiceId("")
+        setVoiceRenderProgress(0)
+        setVoiceRenderLabel("")
       }
       audio.onerror = () => {
-        URL.revokeObjectURL(url)
         setPlayingVoiceId("")
+        setVoiceRenderProgress(0)
+        setVoiceRenderLabel("")
         setError("No se pudo reproducir la voz generada")
       }
       await audio.play()
     } catch (reason: any) {
       setPlayingVoiceId("")
+      setVoiceRenderProgress(0)
+      setVoiceRenderLabel("")
       setError(reason?.message || "No se pudo probar la voz")
     }
   }
 
   async function deleteVoice(profileId: string) {
-    if (!window.confirm("¿Eliminar esta voz y su muestra privada?")) return
+    if (!window.confirm("¿Eliminar esta voz, sus muestras privadas y los adaptadores asociados?")) return
     setError("")
-    const response = await fetch("/api/agents/audio/voices/profiles", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ profileId }),
-    })
-    const data = await response.json().catch(() => ({}))
-    if (!response.ok) return setError(data.error || "No se pudo eliminar la voz")
-    setSuccess("Perfil vocal y muestra privada eliminados.")
-    await loadVoices()
+
+    try {
+      const profile = voices.find((voice) => voice.id === profileId)
+      if (profile?.provider_voice_id) {
+        const token = await currentSupabaseToken(supabase)
+        await callAudioEngine("/v1/voice/delete", token, { profile_id: profileId })
+      }
+
+      const response = await fetch("/api/agents/audio/voices/profiles", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profileId }),
+      })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.error || "No se pudo eliminar la voz")
+
+      setSuccess("Perfil vocal, muestras privadas y adaptadores eliminados.")
+      await loadVoices()
+    } catch (reason: any) {
+      setError(reason?.message || "No se pudo eliminar la voz")
+    }
   }
 
   const termsRegistered = Boolean(securityProfile?.voice_cloning_terms_accepted_at)
@@ -375,7 +456,7 @@ export default function AudioLabVoicesPage() {
             <Link href="/audio-lab" className="w-9 h-9 rounded-xl border border-soft flex items-center justify-center text-sub hover:text-main"><ArrowLeft size={15} /></Link>
             <div>
               <h1 className="font-bold text-lg flex items-center gap-2"><ShieldCheck size={18} className="text-purple-500" /> Audio Lab · Mis voces</h1>
-              <p className="text-muted2 text-xs">Biblioteca privada, consentimiento verificable y sesión sensible vinculada a tu acceso.</p>
+              <p className="text-muted2 text-xs">Biblioteca privada, muestra canónica reutilizable y replicación administrada con Gemini Voice Replication.</p>
             </div>
           </div>
           {unlocked && <button onClick={lockSensitiveArea} className="rounded-xl border border-soft px-3 py-2 text-xs text-sub flex items-center gap-2"><LockKeyhole size={14} /> Bloquear ahora</button>}
@@ -410,32 +491,70 @@ export default function AudioLabVoicesPage() {
               <button onClick={createVoiceProfile} disabled={creatingVoice} className="rounded-xl bg-purple-600 text-white px-4 py-2 text-sm font-semibold flex items-center gap-2 w-fit">{creatingVoice ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} Crear perfil</button>
             </section>
             <section className="rounded-3xl border border-soft p-5 bg-card-soft-theme space-y-3">
-              <div className="flex items-center justify-between"><div><h2 className="font-bold">Biblioteca privada</h2><p className="text-muted2 text-sm">Tus voces quedan separadas por usuario.</p></div><button onClick={loadVoices} className="rounded-xl border border-soft p-2"><RefreshCw size={14} /></button></div>
+              <div className="rounded-2xl border border-purple-500/20 bg-purple-500/5 p-4 text-sm text-sub">
+                <p className="font-semibold text-main">Grabación obligatoria de consentimiento</p>
+                <p className="mt-1">La misma persona de la muestra debe leer exactamente:</p>
+                <p className="mt-2 rounded-xl border border-purple-500/20 bg-app px-3 py-2 font-medium text-main">“Soy el propietario de esta voz y doy mi consentimiento para que Google la utilice para crear un modelo de voz sintética.”</p>
+                <p className="mt-2 text-xs text-muted2">La referencia debe contener entre 10 y 30 segundos de habla natural limpia. Google recomienda WAV mono PCM de 16 bits a 24 kHz.</p>
+              </div>
+              <div className="flex items-center justify-between"><div><h2 className="font-bold">Biblioteca privada</h2><p className="text-muted2 text-sm">Guardamos la muestra canónica para que futuros motores creen su propio adaptador sin volver a pedirte la voz.</p></div><button onClick={loadVoices} className="rounded-xl border border-soft p-2"><RefreshCw size={14} /></button></div>
               {voices.length === 0 ? <p className="text-sm text-muted2">Todavía no existen perfiles vocales.</p> : voices.map((voice) => (
                 <article key={voice.id} className="rounded-2xl border border-soft p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="font-semibold text-sm flex items-center gap-2"><Volume2 size={14} className="text-purple-500" /> {voice.display_name}</p>
                     <p className="text-xs text-muted2 mt-1">
-                      {voice.source_kind === "self" ? "Voz propia" : "Tercero autorizado"} · Estado: {voice.status} · {voice.sample_path ? "muestra subida" : "sin muestra"}
+                      {voice.source_kind === "self" ? "Voz propia" : "Tercero autorizado"} · Estado: {voice.status} · {voice.sample_path ? "referencia lista" : "sin referencia"} · {voice.consent_audio_path ? "consentimiento grabado" : "sin consentimiento de voz"}
                       {voice.model_provider ? ` · ${voice.model_provider}` : ""}
                     </p>
                     {voice.processing_error && <p className="mt-1 max-w-xl text-xs text-red-500">{voice.processing_error}</p>}
+                    {(voice.status === "processing" || processingVoiceId === voice.id) && (
+                      <div className="mt-3 max-w-xl">
+                        <div className="flex items-center justify-between gap-2 text-[11px] text-purple-700">
+                          <span>{voice.processing_stage ? voice.processing_stage.replaceAll("_", " ") : "Conectando con Google Voice Replication"}</span>
+                          <span>{Math.max(0, Math.min(100, Math.round(voice.processing_progress || 5)))}%</span>
+                        </div>
+                        <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-purple-500/10">
+                          <div className="h-full rounded-full bg-gradient-to-r from-purple-500 to-cyan-400 transition-[width] duration-500" style={{ width: `${Math.max(3, Math.min(100, voice.processing_progress || 5))}%` }} />
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <button onClick={() => { setActiveUploadProfileId(voice.id); sampleInputRef.current?.click() }} disabled={processingVoiceId === voice.id} className="rounded-xl border border-soft px-3 py-2 text-xs flex items-center gap-2 disabled:opacity-50">
-                      <Upload size={13} /> {voice.sample_path ? "Reemplazar" : "Subir muestra"}
+                    <button
+                      onClick={() => {
+                        setActiveUploadProfileId(voice.id)
+                        setActiveUploadKind("reference")
+                        sampleInputRef.current?.click()
+                      }}
+                      disabled={processingVoiceId === voice.id}
+                      className="rounded-xl border border-soft px-3 py-2 text-xs flex items-center gap-2 disabled:opacity-50"
+                    >
+                      <Upload size={13} /> {voice.sample_path ? "Reemplazar referencia" : "Subir referencia"}
                     </button>
-                    {voice.sample_path && voice.status !== "ready" && (
+                    <button
+                      onClick={() => {
+                        setActiveUploadProfileId(voice.id)
+                        setActiveUploadKind("consent")
+                        consentInputRef.current?.click()
+                      }}
+                      disabled={processingVoiceId === voice.id}
+                      className="rounded-xl border border-soft px-3 py-2 text-xs flex items-center gap-2 disabled:opacity-50"
+                    >
+                      <ShieldCheck size={13} /> {voice.consent_audio_path ? "Reemplazar consentimiento" : "Subir consentimiento"}
+                    </button>
+                    {voice.sample_path && voice.consent_audio_path && voice.status !== "ready" && (
                       <button onClick={() => processVoice(voice.id)} disabled={processingVoiceId === voice.id} className="rounded-xl border border-purple-500/30 bg-purple-500/10 px-3 py-2 text-xs text-purple-700 flex items-center gap-2 disabled:opacity-50">
                         {processingVoiceId === voice.id ? <Loader2 size={13} className="animate-spin" /> : <Mic2 size={13} />}
-                        {processingVoiceId === voice.id ? "Procesando…" : "Procesar voz"}
+                        {processingVoiceId === voice.id ? "Replicando con Gemini…" : "Replicar voz"}
                       </button>
                     )}
                     {voice.status === "ready" && (
-                      <button onClick={() => previewVoice(voice.id)} disabled={playingVoiceId === voice.id} className="rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-700 flex items-center gap-2 disabled:opacity-50">
-                        {playingVoiceId === voice.id ? <Loader2 size={13} className="animate-spin" /> : <Play size={13} />}
-                        {playingVoiceId === voice.id ? "Generando…" : "Probar clon"}
-                      </button>
+                      <div className="flex flex-col gap-1">
+                        <button onClick={() => previewVoice(voice.id)} disabled={playingVoiceId === voice.id} className="rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-700 flex items-center gap-2 disabled:opacity-50">
+                          {playingVoiceId === voice.id ? <Loader2 size={13} className="animate-spin" /> : <Play size={13} />}
+                          {playingVoiceId === voice.id ? `${voiceRenderLabel || "Generando"} · ${Math.round(voiceRenderProgress)}%` : "Probar clon"}
+                        </button>
+                      </div>
                     )}
                     <button onClick={() => deleteVoice(voice.id)} className="rounded-xl border border-red-500/20 px-3 py-2 text-xs text-red-500 flex items-center gap-2"><Trash2 size={13} /> Eliminar</button>
                   </div>
@@ -445,8 +564,9 @@ export default function AudioLabVoicesPage() {
           </>}
       </section>
 
-      <input ref={sampleInputRef} type="file" accept=".mp3,.wav,.m4a,.webm,.ogg" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) uploadSample(file); event.target.value = "" }} />
-      {uploading && <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center"><div className="rounded-2xl bg-app border border-soft p-5 space-y-3 w-72"><div className="flex items-center gap-3"><Loader2 className="animate-spin text-purple-500" /><span className="text-sm">Subiendo muestra privada… {uploadProgress}%</span></div><div className="h-2 rounded-full overflow-hidden bg-black/10"><div className="h-full bg-purple-500 transition-all" style={{ width: `${uploadProgress}%` }} /></div></div></div>}
+      <input ref={sampleInputRef} type="file" accept=".mp3,.wav,.m4a,.webm,.ogg" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) uploadSample(file, "reference"); event.target.value = "" }} />
+      <input ref={consentInputRef} type="file" accept=".mp3,.wav,.m4a,.webm,.ogg" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) uploadSample(file, "consent"); event.target.value = "" }} />
+      {uploading && <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center"><div className="rounded-2xl bg-app border border-soft p-5 space-y-3 w-72"><div className="flex items-center gap-3"><Loader2 className="animate-spin text-purple-500" /><span className="text-sm">Subiendo {activeUploadKind === "consent" ? "consentimiento" : "referencia"} privada… {uploadProgress}%</span></div><div className="h-2 rounded-full overflow-hidden bg-black/10"><div className="h-full bg-purple-500 transition-all" style={{ width: `${uploadProgress}%` }} /></div></div></div>}
     </main>
   )
 }

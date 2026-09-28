@@ -1,12 +1,9 @@
-import { EdgeTTS, Constants } from "@andresaya/edge-tts"
 import { NextRequest, NextResponse } from "next/server"
-import { convertVoiceWithOpenVoice, prepareVoiceWithOpenVoice } from "@/lib/audio/gradio-openvoice-engine"
 import { validateVoiceSecuritySession } from "@/lib/audio/voice-security"
 
 export const runtime = "nodejs"
-export const maxDuration = 300
+export const maxDuration = 60
 
-const OPENVOICE_BASE_TTS_VOICE = process.env.OPENVOICE_BASE_TTS_VOICE || "es-CL-CatalinaNeural"
 const MAX_TEXT_LENGTH = 900
 
 function cleanText(value: unknown) {
@@ -16,24 +13,9 @@ function cleanText(value: unknown) {
     .slice(0, MAX_TEXT_LENGTH)
 }
 
-async function buildBaseSpeech(text: string) {
-  const tts = new EdgeTTS()
-  await tts.synthesize(text, OPENVOICE_BASE_TTS_VOICE, {
-    outputFormat: Constants.OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3,
-    rate: "+0%",
-    pitch: "+0Hz",
-    volume: "100%",
-  })
-
-  const buffer = tts.toBuffer()
-  if (!buffer || buffer.length < 500) {
-    throw new Error("No se pudo generar la voz base para OpenVoice")
-  }
-  return new Uint8Array(buffer)
-}
-
 async function securityContext() {
   const { valid, supabase, error: securityError } = await validateVoiceSecuritySession()
+
   if (securityError) {
     return {
       response: NextResponse.json(
@@ -76,7 +58,7 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await supabase
     .from("audio_voice_profiles")
-    .select("id, display_name, status, sample_path, model_provider, provider_voice_id, internal_use_enabled, processing_error, processed_at, updated_at")
+    .select("id, display_name, status, sample_path, consent_audio_path, canonical_audio_path, model_provider, provider_voice_id, internal_use_enabled, processing_error, processing_progress, processing_stage, processed_at, updated_at")
     .eq("id", profileId)
     .eq("user_id", user.id)
     .is("deleted_at", null)
@@ -90,25 +72,22 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const action = req.nextUrl.searchParams.get("action") || ""
-  if (action === "process") return processVoice(req)
-  if (action === "synthesize") return synthesizeVoice(req)
-
+  if (action === "process") return prepareVoice(req)
+  if (action === "synthesize") return authorizeSynthesis(req)
   return NextResponse.json({ error: "Acción de voz no reconocida" }, { status: 400 })
 }
 
-async function processVoice(req: NextRequest) {
+async function prepareVoice(req: NextRequest) {
   const { response, supabase, user } = await securityContext()
   if (response || !user) return response!
 
   const body = await req.json().catch(() => ({}))
   const profileId = typeof body?.profileId === "string" ? body.profileId : ""
-  if (!profileId) {
-    return NextResponse.json({ error: "profileId es requerido" }, { status: 400 })
-  }
+  if (!profileId) return NextResponse.json({ error: "profileId es requerido" }, { status: 400 })
 
   const { data: profile, error: profileError } = await supabase
     .from("audio_voice_profiles")
-    .select("id, display_name, sample_bucket, sample_path, consent_confirmed, authorization_confirmed, deleted_at")
+    .select("id, sample_path, consent_audio_path, consent_confirmed, authorization_confirmed")
     .eq("id", profileId)
     .eq("user_id", user.id)
     .is("deleted_at", null)
@@ -117,104 +96,50 @@ async function processVoice(req: NextRequest) {
   if (profileError) return NextResponse.json({ error: profileError.message }, { status: 500 })
   if (!profile) return NextResponse.json({ error: "Perfil vocal no encontrado" }, { status: 404 })
   if (!profile.sample_path) {
-    return NextResponse.json({ error: "Sube una muestra vocal antes de procesarla" }, { status: 400 })
+    return NextResponse.json({ error: "Sube una muestra vocal de referencia antes de procesarla" }, { status: 400 })
+  }
+  if (!profile.consent_audio_path) {
+    return NextResponse.json({ error: "Sube la grabación obligatoria de consentimiento antes de procesarla" }, { status: 400 })
   }
   if (!profile.consent_confirmed || !profile.authorization_confirmed) {
-    return NextResponse.json({ error: "La muestra no tiene autorización verificable" }, { status: 403 })
+    return NextResponse.json({ error: "La voz no tiene autorización verificable" }, { status: 403 })
   }
 
   const now = new Date().toISOString()
-  await supabase
+  const { data: updated, error: updateError } = await supabase
     .from("audio_voice_profiles")
     .update({
       status: "processing",
+      model_provider: "google-gemini-voice-replication",
       internal_use_enabled: false,
       processing_error: null,
+      processing_progress: 5,
+      processing_stage: "request_created",
+      processed_at: null,
       updated_at: now,
     })
     .eq("id", profileId)
     .eq("user_id", user.id)
+    .select("id, status, processing_progress, processing_stage")
+    .single()
+
+  if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 })
 
   await supabase.from("audio_voice_events").insert({
     user_id: user.id,
     voice_profile_id: profileId,
     event_type: "processing_started",
-    metadata: { provider: "openvoice-v2-zerogpu", started_at: now },
+    metadata: {
+      provider: "google-gemini",
+      engine: "gemini-3.8-flash-tts",
+      queued_at: now,
+    },
   })
 
-  try {
-    const { data: signed, error: signedError } = await supabase.storage
-      .from(profile.sample_bucket || "voice-clones")
-      .createSignedUrl(profile.sample_path, 10 * 60)
-
-    if (signedError || !signed?.signedUrl) {
-      throw new Error(signedError?.message || "No se pudo abrir la muestra vocal privada")
-    }
-
-    const metadata = await prepareVoiceWithOpenVoice(signed.signedUrl)
-    const processedAt = new Date().toISOString()
-
-    const { data: updated, error: updateError } = await supabase
-      .from("audio_voice_profiles")
-      .update({
-        status: "ready",
-        model_provider: "openvoice-v2-zerogpu",
-        provider_voice_id: null,
-        internal_use_enabled: true,
-        processing_error: null,
-        processed_at: processedAt,
-        updated_at: processedAt,
-      })
-      .eq("id", profileId)
-      .eq("user_id", user.id)
-      .select("id, display_name, status, sample_path, model_provider, internal_use_enabled, processing_error, processed_at")
-      .single()
-
-    if (updateError) throw new Error(updateError.message)
-
-    await supabase.from("audio_voice_events").insert({
-      user_id: user.id,
-      voice_profile_id: profileId,
-      event_type: "ready",
-      metadata: {
-        provider: "openvoice-v2-zerogpu",
-        engine: metadata.engine || "OpenVoice V2",
-        sample_seconds: metadata.sample_seconds || null,
-      },
-    })
-
-    return NextResponse.json({ ok: true, profile: updated, metadata })
-  } catch (error: any) {
-    const message = error?.message || "No se pudo preparar la voz con OpenVoice"
-    const failedAt = new Date().toISOString()
-
-    await supabase
-      .from("audio_voice_profiles")
-      .update({
-        status: "draft",
-        internal_use_enabled: false,
-        processing_error: message.slice(0, 1000),
-        updated_at: failedAt,
-      })
-      .eq("id", profileId)
-      .eq("user_id", user.id)
-
-    await supabase.from("audio_voice_events").insert({
-      user_id: user.id,
-      voice_profile_id: profileId,
-      event_type: "disabled_internal",
-      metadata: {
-        provider: "openvoice-v2-zerogpu",
-        reason: "processing_failed",
-        error: message.slice(0, 500),
-      },
-    })
-
-    return NextResponse.json({ error: message }, { status: 502 })
-  }
+  return NextResponse.json({ ok: true, accepted: true, profile: updated }, { status: 202 })
 }
 
-async function synthesizeVoice(req: NextRequest) {
+async function authorizeSynthesis(req: NextRequest) {
   const { response, supabase, user } = await securityContext()
   if (response || !user) return response!
 
@@ -227,7 +152,7 @@ async function synthesizeVoice(req: NextRequest) {
 
   const { data: profile, error: profileError } = await supabase
     .from("audio_voice_profiles")
-    .select("id, display_name, status, sample_bucket, sample_path, consent_confirmed, authorization_confirmed, internal_use_enabled")
+    .select("id, status, canonical_audio_path, provider_voice_id, consent_confirmed, authorization_confirmed, internal_use_enabled")
     .eq("id", profileId)
     .eq("user_id", user.id)
     .is("deleted_at", null)
@@ -235,61 +160,18 @@ async function synthesizeVoice(req: NextRequest) {
 
   if (profileError) return NextResponse.json({ error: profileError.message }, { status: 500 })
   if (!profile) return NextResponse.json({ error: "Perfil vocal no encontrado" }, { status: 404 })
-  if (profile.status !== "ready" || !profile.internal_use_enabled || !profile.sample_path) {
+  if (profile.status !== "ready" || !profile.internal_use_enabled || !profile.canonical_audio_path || !profile.provider_voice_id) {
     return NextResponse.json({ error: "Procesa esta voz antes de usarla" }, { status: 409 })
   }
   if (!profile.consent_confirmed || !profile.authorization_confirmed) {
     return NextResponse.json({ error: "La voz no tiene autorización verificable" }, { status: 403 })
   }
 
-  try {
-    const [{ data: signed, error: signedError }, sourceBytes] = await Promise.all([
-      supabase.storage
-        .from(profile.sample_bucket || "voice-clones")
-        .createSignedUrl(profile.sample_path, 10 * 60),
-      buildBaseSpeech(text),
-    ])
-
-    if (signedError || !signed?.signedUrl) {
-      throw new Error(signedError?.message || "No se pudo abrir la muestra vocal privada")
-    }
-
-    const converted = await convertVoiceWithOpenVoice({
-      referenceAudioUrl: signed.signedUrl,
-      sourceBytes,
-      sourceMime: "audio/mpeg",
-    })
-
-    const usedAt = new Date().toISOString()
-    await supabase
-      .from("audio_voice_profiles")
-      .update({ last_used_at: usedAt, updated_at: usedAt })
-      .eq("id", profileId)
-      .eq("user_id", user.id)
-
-    await supabase.from("audio_voice_events").insert({
-      user_id: user.id,
-      voice_profile_id: profileId,
-      event_type: "used",
-      metadata: {
-        provider: "openvoice-v2-zerogpu",
-        base_voice: OPENVOICE_BASE_TTS_VOICE,
-        text_chars: text.length,
-      },
-    })
-
-    return new NextResponse(Buffer.from(converted.bytes), {
-      status: 200,
-      headers: {
-        "Content-Type": converted.mime || "audio/wav",
-        "Cache-Control": "no-store, private",
-        "X-Voice-Provider": "openvoice-v2-zerogpu",
-      },
-    })
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error?.message || "No se pudo generar la voz clonada" },
-      { status: 502 },
-    )
-  }
+  return NextResponse.json({
+    ok: true,
+    accepted: true,
+    profileId,
+    text,
+    engine: "google-gemini-voice-replication",
+  }, { status: 202 })
 }

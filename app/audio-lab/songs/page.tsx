@@ -2,6 +2,8 @@
 
 import Link from "next/link"
 import { useCallback, useEffect, useMemo, useState } from "react"
+import { createClient } from "@/lib/supabase/client"
+import { currentSupabaseToken, streamAudioEngine } from "@/lib/audio/cloud-run-client"
 import {
   ArrowLeft,
   BookOpen,
@@ -24,17 +26,6 @@ import {
 } from "lucide-react"
 
 type InputMode = "prompt" | "lyrics"
-
-type VoiceProfile = {
-  id: string
-  display_name: string
-  status: string
-  sample_path: string | null
-  internal_use_enabled: boolean
-  consent_confirmed: boolean
-  authorization_confirmed: boolean
-  source_kind: "self" | "authorized_third_party"
-}
 
 type SongJob = {
   id: string
@@ -133,6 +124,7 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
 }
 
 export default function AudioSongStudioPage() {
+  const supabase = useMemo(() => createClient(), [])
   const [inputMode, setInputMode] = useState<InputMode>("prompt")
   const [prompt, setPrompt] = useState("")
   const [lyrics, setLyrics] = useState("")
@@ -146,24 +138,17 @@ export default function AudioSongStudioPage() {
   const [timeSignature, setTimeSignature] = useState("4")
   const [instrumental, setInstrumental] = useState(false)
   const [vocalStyle, setVocalStyle] = useState("automatic")
-  const [voiceProfileId, setVoiceProfileId] = useState("")
-  const [voiceConsent, setVoiceConsent] = useState(false)
   const [seed, setSeed] = useState("")
 
   const [jobs, setJobs] = useState<SongJob[]>([])
   const [activeJob, setActiveJob] = useState<SongJob | null>(null)
-  const [voices, setVoices] = useState<VoiceProfile[]>([])
-  const [voiceAreaLocked, setVoiceAreaLocked] = useState(false)
   const [loadingJobs, setLoadingJobs] = useState(true)
   const [generating, setGenerating] = useState(false)
-  const [stage, setStage] = useState(0)
+  const [engineProgress, setEngineProgress] = useState(0)
+  const [engineStage, setEngineStage] = useState("idle")
+  const [engineLabel, setEngineLabel] = useState("Preparando solicitud")
   const [error, setError] = useState("")
   const [systemNotice, setSystemNotice] = useState("")
-
-  const selectedVoice = useMemo(
-    () => voices.find((voice) => voice.id === voiceProfileId) || null,
-    [voices, voiceProfileId]
-  )
 
   const loadJobs = useCallback(async () => {
     setLoadingJobs(true)
@@ -189,39 +174,9 @@ export default function AudioSongStudioPage() {
     }
   }, [])
 
-  const loadVoices = useCallback(async () => {
-    try {
-      const response = await fetch("/api/agents/audio/voices/profiles", { cache: "no-store" })
-      const data = await response.json().catch(() => ({}))
-      if (response.status === 401) {
-        setVoiceAreaLocked(true)
-        setVoices([])
-        return
-      }
-      if (!response.ok) return
-      const authorizedVoices = (Array.isArray(data.profiles) ? data.profiles : []).filter(
-        (voice: VoiceProfile) =>
-          Boolean(voice.sample_path)
-          && voice.consent_confirmed === true
-          && voice.authorization_confirmed === true
-      )
-      setVoices(authorizedVoices)
-      setVoiceAreaLocked(false)
-    } catch {
-      setVoices([])
-    }
-  }, [])
-
   useEffect(() => {
     void loadJobs()
-    void loadVoices()
-  }, [loadJobs, loadVoices])
-
-  useEffect(() => {
-    if (!generating) return
-    const timer = window.setInterval(() => setStage((value) => Math.min(value + 1, 4)), 15_000)
-    return () => window.clearInterval(timer)
-  }, [generating])
+  }, [loadJobs])
 
   async function generateSong() {
     if (!prompt.trim() && !lyrics.trim()) {
@@ -232,13 +187,11 @@ export default function AudioSongStudioPage() {
       setError("Pega la letra que quieres convertir en canción.")
       return
     }
-    if (voiceProfileId && !voiceConsent) {
-      setError("Confirma la autorización específica para usar esa voz en una interpretación cantada.")
-      return
-    }
 
     setGenerating(true)
-    setStage(0)
+    setEngineProgress(2)
+    setEngineStage("creating_request")
+    setEngineLabel("Creando solicitud en EduAI")
     setError("")
 
     try {
@@ -258,24 +211,54 @@ export default function AudioSongStudioPage() {
           timeSignature,
           instrumental,
           vocalStyle,
-          voiceProfileId: voiceProfileId || null,
-          voiceConsentConfirmed: voiceConsent,
           seed: seed.trim() ? Number(seed) : -1,
         }),
       })
+
       const data = await response.json().catch(() => ({}))
-      if (!response.ok || !data.ok) throw new Error(data.error || "No se pudo generar la canción")
+      if (!response.ok || !data.ok) throw new Error(data.error || "No se pudo preparar la canción")
 
       const job = data.job as SongJob
       setActiveJob(job)
       setJobs((current) => [job, ...current.filter((item) => item.id !== job.id)])
       setSystemNotice("")
+      setEngineProgress(Math.max(6, job.progress || 6))
+      setEngineStage("connecting_google_ai")
+      setEngineLabel("Conectando con Google AI")
+
+      const token = await currentSupabaseToken(supabase)
+
+      await streamAudioEngine("/v1/song/run", token, { job_id: job.id }, (type, event) => {
+        const progress = typeof event.progress === "number" ? event.progress : 0
+        const label = typeof event.label === "string" ? event.label : "Procesando audio"
+        const stage = typeof event.stage === "string" ? event.stage : "processing"
+
+        setEngineProgress(progress)
+        setEngineStage(stage)
+        setEngineLabel(label)
+
+        if (type === "progress") {
+          setActiveJob((current) => current?.id === job.id
+            ? { ...current, progress, status: progress >= 90 ? "uploading" : "generating" }
+            : current)
+          setJobs((current) => current.map((item) => item.id === job.id
+            ? { ...item, progress, status: progress >= 90 ? "uploading" : "generating" }
+            : item))
+        }
+      })
+
+      setEngineProgress(100)
+      setEngineStage("completed")
+      setEngineLabel("Canción lista")
+      await loadJobs()
     } catch (reason: unknown) {
-      setError(reason instanceof Error ? reason.message : "No se pudo generar la canción")
+      const message = reason instanceof Error ? reason.message : "No se pudo generar la canción"
+      setError(message)
+      setEngineStage("failed")
+      setEngineLabel("No se pudo completar")
       await loadJobs()
     } finally {
       setGenerating(false)
-      setStage(0)
     }
   }
 
@@ -286,14 +269,6 @@ export default function AudioSongStudioPage() {
     setJobs((current) => current.filter((item) => item.id !== job.id))
     setActiveJob((current) => current?.id === job.id ? null : current)
   }
-
-  const generationStages = [
-    "Preparando la idea musical",
-    "Componiendo y organizando la letra",
-    "Generando instrumentos y melodía",
-    "Interpretando la voz cantada",
-    "Mezclando y guardando en Supabase",
-  ]
 
   return (
     <main className="min-h-screen bg-app text-main">
@@ -325,7 +300,7 @@ export default function AudioSongStudioPage() {
               <Sparkles size={14} /> Compositor EduAI
             </p>
             <h2 className="mt-1 text-xl font-black">Crea una canción completa</h2>
-            <p className="mt-1 text-sm text-muted2">Groq prepara la letra y ACE-Step 1.5 genera melodía, instrumentos y canto.</p>
+            <p className="mt-1 text-sm text-muted2">EduAI prepara la composición y Google Lyria 3.5 genera melodía, instrumentos, letra y canto bajo demanda.</p>
           </div>
 
           <div className="space-y-5 p-5">
@@ -428,7 +403,7 @@ export default function AudioSongStudioPage() {
                 <p className="text-sm font-bold">Canción instrumental</p>
                 <p className="text-xs text-muted2">Genera música sin letra ni voz.</p>
               </div>
-              <input type="checkbox" checked={instrumental} onChange={(event) => { setInstrumental(event.target.checked); if (event.target.checked) setVoiceProfileId("") }} className="h-5 w-5 accent-purple-600" />
+              <input type="checkbox" checked={instrumental} onChange={(event) => setInstrumental(event.target.checked)} className="h-5 w-5 accent-purple-600" />
             </label>
 
             {!instrumental && (
@@ -437,7 +412,10 @@ export default function AudioSongStudioPage() {
                   <Mic2 size={18} className="mt-0.5 text-purple-600" />
                   <div>
                     <p className="text-sm font-bold">Voz cantada</p>
-                    <p className="text-xs text-muted2">Las voces Edge TTS de narración no se usan aquí: el motor musical necesita voces preparadas para canto.</p>
+                    <p className="text-xs text-muted2">Lyria 3.5 genera la interpretación vocal junto con la música. Las voces clonadas de Mis voces quedan guardadas para síntesis hablada y futuros motores compatibles.</p>
+                    <Link href="/audio-lab/voices" className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-purple-600 underline">
+                      Abrir Mis voces <ExternalLink size={12} />
+                    </Link>
                   </div>
                 </div>
 
@@ -447,37 +425,6 @@ export default function AudioSongStudioPage() {
                     {VOCAL_STYLES.map((item) => <option key={item.id} value={item.id}>{item.label} · {item.detail}</option>)}
                   </select>
                 </label>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-3">
-                    <FieldLabel>Muestra vocal autorizada, opcional</FieldLabel>
-                    <button onClick={() => void loadVoices()} className="text-xs font-semibold text-purple-600">Actualizar</button>
-                  </div>
-
-                  {voiceAreaLocked ? (
-                    <div className="rounded-xl border border-amber-500/20 bg-amber-500/8 p-3 text-xs text-amber-700">
-                      <p className="flex items-center gap-2 font-bold"><LockKeyhole size={14} /> La biblioteca privada está bloqueada</p>
-                      <p className="mt-1">Desbloquea Mis voces con tu segundo factor para usar una muestra vocal privada.</p>
-                      <Link href="/audio-lab/voices" className="mt-2 inline-flex items-center gap-1 font-bold underline">Abrir Mis voces <ExternalLink size={12} /></Link>
-                    </div>
-                  ) : (
-                    <select value={voiceProfileId} onChange={(event) => { setVoiceProfileId(event.target.value); setVoiceConsent(false) }} className="w-full rounded-xl border border-soft bg-card px-3 py-2.5 text-sm">
-                      <option value="">No usar una voz privada</option>
-                      {voices.map((voice) => <option key={voice.id} value={voice.id}>{voice.display_name} · {voice.source_kind === "self" ? "Mi voz" : "Tercero autorizado"}</option>)}
-                    </select>
-                  )}
-
-                  {selectedVoice && (
-                    <div className="rounded-xl border border-cyan-500/25 bg-cyan-500/8 p-3">
-                      <p className="flex items-center gap-2 text-xs font-bold text-cyan-800"><ShieldCheck size={14} /> Referencia vocal experimental</p>
-                      <p className="mt-1 text-xs text-sub">ACE-Step intentará aproximar el timbre de “{selectedVoice.display_name}”. No garantiza una copia exacta de la identidad vocal.</p>
-                      <label className="mt-3 flex items-start gap-2 text-xs text-sub">
-                        <input type="checkbox" checked={voiceConsent} onChange={(event) => setVoiceConsent(event.target.checked)} className="mt-0.5 accent-purple-600" />
-                        <span>Autorizo expresamente usar esta muestra para crear una interpretación cantada con IA y confirmo que tengo derecho a utilizarla.</span>
-                      </label>
-                    </div>
-                  )}
-                </div>
               </div>
             )}
 
@@ -494,14 +441,25 @@ export default function AudioSongStudioPage() {
 
             <button onClick={() => void generateSong()} disabled={generating} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-purple-600 via-fuchsia-500 to-cyan-500 px-5 py-4 text-sm font-black text-white shadow-lg shadow-purple-500/20 transition hover:brightness-105 disabled:cursor-wait disabled:opacity-70">
               {generating ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
-              {generating ? generationStages[stage] : "Crear canción con IA"}
+              {generating ? engineLabel : "Crear canción con IA"}
             </button>
 
             {generating && (
               <div className="rounded-2xl border border-purple-400/20 bg-purple-500/5 p-4">
-                <div className="flex items-center justify-between text-xs font-semibold"><span>{generationStages[stage]}</span><span>Puede tardar varios minutos</span></div>
-                <div className="mt-3 h-2 overflow-hidden rounded-full bg-purple-500/10"><div className="h-full animate-pulse rounded-full bg-gradient-to-r from-purple-500 to-cyan-400" style={{ width: `${Math.min(18 + stage * 18, 90)}%` }} /></div>
-                <p className="mt-2 text-xs text-muted2">Puedes mantener esta pestaña abierta mientras el motor GPU termina la mezcla.</p>
+                <div className="flex items-center justify-between gap-3 text-xs font-semibold">
+                  <span>{engineLabel}</span>
+                  <span>{Math.max(0, Math.min(100, Math.round(engineProgress)))}%</span>
+                </div>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-purple-500/10">
+                  <div className="h-full rounded-full bg-gradient-to-r from-purple-500 to-cyan-400 transition-[width] duration-500" style={{ width: `${Math.max(2, Math.min(100, engineProgress))}%` }} />
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-muted2 sm:grid-cols-4">
+                  <span className={engineProgress >= 12 ? "font-semibold text-purple-700" : ""}>Google AI</span>
+                  <span className={engineProgress >= 20 ? "font-semibold text-purple-700" : ""}>Lyria 3.5</span>
+                  <span className={engineProgress >= 28 ? "font-semibold text-purple-700" : ""}>Generación</span>
+                  <span className={engineProgress >= 92 ? "font-semibold text-purple-700" : ""}>Guardando</span>
+                </div>
+                <p className="mt-2 text-xs text-muted2">Estado: {engineStage.replaceAll("_", " ")}. El servicio se escala a cero cuando deja de usarse.</p>
               </div>
             )}
           </div>
