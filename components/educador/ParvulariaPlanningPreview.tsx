@@ -11,6 +11,32 @@ function Text({ value, className = "" }: { value: string; className?: string }) 
   return <span className={`whitespace-pre-line break-words ${className}`}>{value}</span>
 }
 
+function ActivityText({ value }: { value: string }) {
+  const normalized = String(value || "")
+    .replace(/\r/g, "")
+    .replace(
+      /\s+(?=(?:Inicio|Desarrollo|Finalización|Finalizacion):|Edades\s+\d|(?:Lunes|Martes|Miércoles|Miercoles|Jueves|Viernes|Sábado|Sabado|Domingo)\s+\d{1,2}-[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+:)/g,
+      "\n\n",
+    )
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()
+
+  const paragraphs = normalized
+    .split(/\n\s*\n/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean)
+
+  return (
+    <div className="space-y-2 break-words">
+      {paragraphs.map((paragraph, index) => (
+        <p key={index} className="whitespace-pre-line">
+          {paragraph}
+        </p>
+      ))}
+    </div>
+  )
+}
+
 export default function ParvulariaPlanningPreview({ content }: Props) {
   let doc
   try {
@@ -98,7 +124,7 @@ export default function ParvulariaPlanningPreview({ content }: Props) {
                 <tr className="align-top">
                   <td className="border border-black px-2 py-3"><Text value={row.ambitoNucleo} /></td>
                   <td className="border border-black px-2 py-3"><Text value={row.objetivosAprendizajes} /></td>
-                  <td className="border border-black px-2 py-3"><Text value={row.experienciaAprendizaje} /></td>
+                  <td className="border border-black px-2 py-3"><ActivityText value={row.experienciaAprendizaje} /></td>
                   <td className="border border-black px-2 py-3"><Text value={row.orientacionesRelevantes} /></td>
                   <td className="border border-black px-2 py-3"><Text value={row.rolEquipoFamilia} /></td>
                   <td className="border border-black px-2 py-3"><Text value={row.recursos} /></td>
