@@ -55,6 +55,16 @@ jobs:
       - name: Whiteboard integrity
         run: npm run test:whiteboard
 
+      - name: Audio Google gateway integrity
+        run: |
+          python -m py_compile services/google-audio-gateway/*.py
+          test ! -e lib/audio/gradio-song-engine.ts
+          test ! -e lib/audio/gradio-openvoice-engine.ts
+          test ! -e services/ace-step-song-space/app.py
+          test ! -e services/openvoice-space/app.py
+          grep -q "lyria-3.5" services/google-audio-gateway/song_gateway.py
+          grep -q "gemini-3.8-flash-tts" services/google-audio-gateway/voice_gateway.py
+
       - name: TypeScript
         run: npx tsc --noEmit
 

@@ -39,7 +39,6 @@ type VoiceProfile = {
   processing_error?: string | null
   processing_progress?: number | null
   processing_stage?: string | null
-  canonical_audio_path?: string | null
   processed_at?: string | null
 }
 
