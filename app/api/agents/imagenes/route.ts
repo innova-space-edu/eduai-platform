@@ -286,13 +286,18 @@ async function tryGemini(
   if (!keys.length) return { imageBase64: null, label, error: "No hay clave Gemini configurada" }
 
   let lastError = "Gemini no devolvió una imagen"
+  const ratio = aspectRatio(width, height)
 
   for (const model of GEMINI_IMAGE_MODELS) {
     for (const apiKey of keys) {
       if (signal.aborted) return { imageBase64: null, label, model, error: lastError }
+
       try {
+        // Gemini 3 image generation uses the Interactions API. The older
+        // generateContent + generationConfig.responseFormat path rejects
+        // aspect_ratio for these models.
         const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent`,
+          "https://generativelanguage.googleapis.com/v1beta/interactions",
           {
             method: "POST",
             headers: {
@@ -300,12 +305,13 @@ async function tryGemini(
               "x-goog-api-key": apiKey,
             },
             body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: {
-                responseModalities: ["IMAGE"],
-                responseFormat: {
-                  image: { aspectRatio: aspectRatio(width, height) },
-                },
+              model,
+              input: prompt,
+              response_format: {
+                type: "image",
+                mime_type: "image/png",
+                aspect_ratio: ratio,
+                image_size: "1K",
               },
             }),
             signal,
@@ -319,16 +325,33 @@ async function tryGemini(
         }
 
         const data = await res.json()
-        const parts = data?.candidates?.[0]?.content?.parts || []
-        for (const part of parts) {
-          if (part?.inlineData?.data && part?.inlineData?.mimeType?.startsWith("image/")) {
-            return {
-              imageBase64: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`,
-              label,
-              model,
+        const direct = data?.output_image || data?.outputImage
+        if (direct?.data) {
+          const mimeType = direct?.mime_type || direct?.mimeType || "image/png"
+          return {
+            imageBase64: `data:${mimeType};base64,${direct.data}`,
+            label,
+            model,
+          }
+        }
+
+        // Be tolerant of interaction responses that expose model output
+        // through steps/content instead of output_image.
+        const steps = Array.isArray(data?.steps) ? data.steps : []
+        for (const step of steps) {
+          const content = Array.isArray(step?.content) ? step.content : []
+          for (const block of content) {
+            if (block?.type === "image" && block?.data) {
+              const mimeType = block?.mime_type || block?.mimeType || "image/png"
+              return {
+                imageBase64: `data:${mimeType};base64,${block.data}`,
+                label,
+                model,
+              }
             }
           }
         }
+
         lastError = "Respuesta válida, pero sin datos de imagen"
       } catch (error) {
         if (signal.aborted || isAbortError(error)) break
@@ -847,7 +870,14 @@ export async function POST(req: Request) {
         : basicPrompt(prompt, style)
 
     const baseOrder = providerOrder(provider, mode)
-    const textSafeOrder = baseOrder.filter((candidate) => ["gemini", "openrouter", "pollinations"].includes(candidate))
+    const textPreferredProviders: ConcreteProviderId[] = [
+      "gemini",
+      "pollinations",
+      "openrouter",
+      "together",
+      "huggingface",
+    ]
+    const textSafeOrder = textPreferredProviders.filter((candidate) => baseOrder.includes(candidate))
     const order = provider === "auto" && textPriority && textSafeOrder.length
       ? textSafeOrder
       : baseOrder

@@ -52,3 +52,7 @@ const weak = "Infografía educativa del sistema solar";
 const enriched = ensureProductionPrompt(weak, weak, infographicProfile);
 assert.ok(enriched.length > weak.length * 2);
 assert.equal(improvementScore(weak, enriched).improved, true);
+
+// Provider routing regression notes:
+// - Gemini image requests must use v1beta/interactions, not generateContent responseFormat.
+// - text-critical Auto keeps all fallbacks, preferring Gemini then Pollinations.
