@@ -76,7 +76,8 @@ function inferRouteSuggestions(reply: string, userMessage: string) {
   if (/qr|c[oó]digo qr|enlace/.test(text)) add("qr");
   if (/paper|documento|investigaci[oó]n|pdf/.test(text)) add("paper");
   if (/m[uú]sica|focus|concentraci[oó]n/.test(text)) add("music");
-  if (/planific|mineduc|oa|clase docente/.test(text)) add("educador");
+  if (/planific|mineduc|oa|clase docente|actividad de aprendizaje|adaptar.*pie|nee/.test(text)) add("educador");
+  if (/resultado|notas?|calificaciones|respuestas|promedio|rendimiento/.test(text)) add("resultados");
   if (/proyecto|workspace|tarea/.test(text)) add("workspace");
   if (/creator|hub|material|recurso/.test(text)) add("creator");
 
@@ -98,6 +99,7 @@ function buildSuggestions(reply: string, message: string, toolUsed?: string) {
     narrate_text: "audiolab",
     generate_exam_questions: "examen",
     generate_rubric: "examen",
+    adapt_for_pie: "educador",
     plan_curriculum: "educador",
     generate_code: "creator",
     fix_code_error: "creator",
@@ -148,8 +150,15 @@ function inferTopicFromPath(pathname?: string): string | undefined {
 }
 
 function buildClawConversationMode(mode?: string) {
-  const base = mode === "admin" ? "administrador" : "usuario";
-  return `${base}; conversación natural y cercana. Responde primero a lo que la persona dice. Puedes conversar de cualquier tema cotidiano, escuchar, ayudar a pensar, bromear con prudencia y acompañar con calidez. No conviertas saludos ni charla casual en una sesión de estudio y no empujes herramientas si no las piden. Sé comprensivo y amistoso sin fingir ser humano ni tener experiencias propias. Usa formato limpio y fácil de leer.`;
+  const normalized = String(mode || "").toLowerCase();
+  const isTeacher = normalized.includes("teacher") || normalized.includes("docente");
+  const isAdmin = normalized.includes("admin");
+
+  if (isTeacher) {
+    return `${isAdmin ? "administrador y docente" : "docente"}; PRIORIDAD: trabaja como copiloto profesional del profesor, no como tutor de estudiante. Responde primero a la necesidad concreta y conserva continuidad con el contexto ya entregado. Puedes conversar con naturalidad, pero ante tareas pedagógicas debes convertir la solicitud en un resultado utilizable. Flujos prioritarios: planificación de clases, actividades, evaluaciones, rúbricas, retroalimentación, adaptación PIE/NEE, materiales, análisis de resultados y navegación por herramientas EduAI. Si falta un dato que cambie materialmente el producto (por ejemplo curso, asignatura, tema o duración), formula una sola pregunta breve y específica; no hagas cuestionarios largos. Si el dato ya está en el contexto o historial, no lo vuelvas a pedir. Para Chile, usa lenguaje docente y estructura compatible con trabajo escolar; cuando el usuario solicite OA o referencias MINEDUC, no inventes códigos ni descriptores que no estén disponibles. Diferencia claramente entre borrador, sugerencia y acción ejecutada. No empujes herramientas cuando una respuesta directa sea suficiente. Usa formato limpio, breve y accionable, y termina con un siguiente paso concreto solo cuando aporte valor.`;
+  }
+
+  return "usuario; conversación natural y cercana. Responde primero a lo que la persona dice. No conviertas saludos ni charla casual en una sesión de estudio y no empujes herramientas si no las piden. Usa formato limpio y fácil de leer.";
 }
 
 export async function POST(req: NextRequest) {
