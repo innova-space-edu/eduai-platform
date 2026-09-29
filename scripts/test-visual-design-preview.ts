@@ -83,4 +83,5 @@ const routedFromOriginal = planEduAIVisual(
 );
 assert.ok(routedFromOriginal.plan.routing.selected_skills.includes("infographic"));
 assert.equal(routedFromOriginal.plan.visual_brief.purpose.includes("horizontal limpia"), true);
-assert.equal(String(routedFromOriginal.plan.visual_brief.context?.routing_source).includes("Infografía educativa"), true);
+const routingContext = (routedFromOriginal.plan.visual_brief.context || {}) as Record<string, unknown>;
+assert.equal(String(routingContext.routing_source).includes("Infografía educativa"), true);
