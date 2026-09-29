@@ -17,6 +17,9 @@ import {
   WandSparkles,
   Zap,
   RefreshCcw,
+  Save,
+  Share2,
+  Check,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -73,6 +76,7 @@ type ImageResult = {
   elapsedMs?: number;
   persistentUrl?: string | null;
   storagePath?: string | null;
+  assetId?: string | null;
 };
 
 export default function ImageStudioProPage() {
@@ -90,6 +94,7 @@ export default function ImageStudioProPage() {
   const [optimizerInfo, setOptimizerInfo] = useState<{ provider?: string; model?: string; reused?: boolean } | null>(null);
   const [optimizationLevel, setOptimizationLevel] = useState<OptimizationLevel>("recommended");
   const [optimizationResult, setOptimizationResult] = useState<OptimizationResult | null>(null);
+  const [resultAction, setResultAction] = useState<"saving" | "saved" | "sharing" | "copied" | "downloading" | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -219,6 +224,7 @@ export default function ImageStudioProPage() {
         ...data,
         imageUrl: data.persistentUrl || data.imageUrl,
       });
+      setResultAction(data.persistentUrl || data.assetId ? "saved" : null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "No fue posible generar la imagen");
     } finally {
@@ -232,11 +238,106 @@ export default function ImageStudioProPage() {
     ? plan.visual_brief.constraints.map((value: unknown) => String(value))
     : [];
 
-  function download(url: string) {
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = "eduai-visual-design.png";
-    anchor.click();
+  async function saveImage() {
+    if (!result?.imageUrl || resultAction === "saving") return;
+    setResultAction("saving");
+    try {
+      if (result.assetId || result.persistentUrl || result.storagePath) {
+        setResultAction("saved");
+        return;
+      }
+      if (!/^https?:\/\//i.test(result.imageUrl)) {
+        throw new Error("La imagen no tiene una URL persistente para guardar.");
+      }
+      const response = await fetch("/api/assets/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url: result.imageUrl,
+          asset_type: "image",
+          title: (optimizationResult?.originalPrompt || prompt).slice(0, 180),
+          source_module: "image-studio-pro",
+          source_id: plan?.routing.primary_skill || "visual-design",
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data.error) throw new Error(data.error || "No se pudo guardar la imagen");
+      setResult((current) => current ? { ...current, assetId: data.assetId || current.assetId } : current);
+      setResultAction("saved");
+    } catch (cause) {
+      setResultAction(null);
+      setError(cause instanceof Error ? cause.message : "No se pudo guardar la imagen");
+    }
+  }
+
+  async function downloadImage(url: string) {
+    if (resultAction === "downloading") return;
+    setResultAction("downloading");
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("No se pudo descargar la imagen");
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = objectUrl;
+      anchor.download = `eduai-diseno-pro-${Date.now()}.${blob.type.includes("jpeg") ? "jpg" : blob.type.includes("webp") ? "webp" : "png"}`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch {
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `eduai-diseno-pro-${Date.now()}.png`;
+      anchor.target = "_blank";
+      anchor.rel = "noopener noreferrer";
+      anchor.click();
+    } finally {
+      setResultAction(result?.persistentUrl || result?.assetId ? "saved" : null);
+    }
+  }
+
+  async function shareImage() {
+    if (!result?.imageUrl || resultAction === "sharing") return;
+    setResultAction("sharing");
+    const shareUrl = result.persistentUrl || result.imageUrl;
+    const title = "Imagen creada con EDUAI · Diseño Pro";
+    try {
+      if (navigator.share) {
+        try {
+          const response = await fetch(shareUrl);
+          const blob = await response.blob();
+          const ext = blob.type.includes("jpeg") ? "jpg" : blob.type.includes("webp") ? "webp" : "png";
+          const file = new File([blob], `eduai-diseno-pro.${ext}`, { type: blob.type || "image/png" });
+          if (navigator.canShare?.({ files: [file] })) {
+            await navigator.share({ title, text: optimizationResult?.originalPrompt || prompt, files: [file] });
+            setResultAction(result.persistentUrl || result.assetId ? "saved" : null);
+            return;
+          }
+        } catch {
+          // Fall through to URL sharing.
+        }
+        if (/^https?:\/\//i.test(shareUrl)) {
+          await navigator.share({ title, text: optimizationResult?.originalPrompt || prompt, url: shareUrl });
+          setResultAction(result.persistentUrl || result.assetId ? "saved" : null);
+          return;
+        }
+      }
+
+      if (/^https?:\/\//i.test(shareUrl) && navigator.clipboard) {
+        await navigator.clipboard.writeText(shareUrl);
+        setResultAction("copied");
+        window.setTimeout(() => setResultAction(result.persistentUrl || result.assetId ? "saved" : null), 1800);
+        return;
+      }
+
+      throw new Error("Este navegador no permite compartir esta imagen.");
+    } catch (cause) {
+      if ((cause as Error)?.name !== "AbortError") {
+        setError(cause instanceof Error ? cause.message : "No se pudo compartir la imagen");
+      }
+      setResultAction(result.persistentUrl || result.assetId ? "saved" : null);
+    }
   }
 
   return (
@@ -439,7 +540,34 @@ export default function ImageStudioProPage() {
           <div className="overflow-hidden rounded-[28px] border border-soft bg-card-soft-theme">
             <div className="flex items-center justify-between gap-3 border-b border-soft px-5 py-4">
               <div><p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-500">Diseño Pro</p><h2 className="mt-1 font-black">Resultado visual</h2></div>
-              {result?.imageUrl && <button onClick={() => download(result.imageUrl)} className="inline-flex items-center gap-2 rounded-xl border border-soft bg-app px-3 py-2 text-xs font-bold"><Download className="h-3.5 w-3.5" /> Descargar</button>}
+              {result?.imageUrl && (
+                <div className="flex flex-wrap justify-end gap-2">
+                  <button
+                    onClick={saveImage}
+                    disabled={resultAction === "saving"}
+                    className="inline-flex items-center gap-2 rounded-xl border border-soft bg-app px-3 py-2 text-xs font-bold transition hover:border-emerald-400/30 disabled:opacity-50"
+                  >
+                    {resultAction === "saved" ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Save className="h-3.5 w-3.5" />}
+                    {resultAction === "saving" ? "Guardando…" : resultAction === "saved" ? "Guardada" : "Guardar"}
+                  </button>
+                  <button
+                    onClick={() => downloadImage(result.imageUrl)}
+                    disabled={resultAction === "downloading"}
+                    className="inline-flex items-center gap-2 rounded-xl border border-soft bg-app px-3 py-2 text-xs font-bold transition hover:border-blue-400/30 disabled:opacity-50"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    {resultAction === "downloading" ? "Descargando…" : "Descargar"}
+                  </button>
+                  <button
+                    onClick={shareImage}
+                    disabled={resultAction === "sharing"}
+                    className="inline-flex items-center gap-2 rounded-xl border border-soft bg-app px-3 py-2 text-xs font-bold transition hover:border-violet-400/30 disabled:opacity-50"
+                  >
+                    <Share2 className="h-3.5 w-3.5" />
+                    {resultAction === "sharing" ? "Compartiendo…" : resultAction === "copied" ? "Enlace copiado" : "Compartir"}
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="grid min-h-[520px] place-items-center bg-[radial-gradient(circle_at_top,_rgba(124,58,237,0.10),_transparent_45%)] p-5">
