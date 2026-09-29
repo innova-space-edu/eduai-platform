@@ -7,33 +7,14 @@ import { createClient } from "@/lib/supabase/server";
 import { runCoreCycle } from "@/lib/superagent/superagent-core";
 import type { CoreMessage } from "@/lib/superagent/superagent-core";
 import { getEnabledTools } from "@/lib/superagent/tool-registry";
-import { EDUAI_PAGES } from "@/lib/superagent/eduai-map";
+import { EDUAI_PAGES, searchEduAIPages } from "@/lib/superagent/eduai-map";
 
-const AGENT_ROUTES: Record<string, { label: string; href: string; emoji: string }> = {
-  dashboard: { label: "Panel", href: "/dashboard", emoji: "🏠" },
-  study: { label: "Estudiar un tema", href: "/study", emoji: "📚" },
-  sessions: { label: "Sesiones", href: "/sessions", emoji: "📖" },
-  agentes: { label: "Agentes", href: "/agentes", emoji: "🤖" },
-  educador: { label: "Planificador docente", href: "/educador", emoji: "🏫" },
-  investigador: { label: "Investigador académico", href: "/investigador", emoji: "🔬" },
-  redactor: { label: "Redactor de documentos", href: "/redactor", emoji: "✍️" },
-  matematico: { label: "Matemático IA", href: "/matematico", emoji: "🧮" },
-  traductor: { label: "Traductor", href: "/traductor", emoji: "🌐" },
-  imagenes: { label: "Image Studio", href: "/image-studio", emoji: "🎨" },
-  galeria: { label: "Galería de imágenes", href: "/galeria", emoji: "🖼️" },
-  paper: { label: "Paper académico", href: "/paper", emoji: "📄" },
-  audiolab: { label: "Audio Lab", href: "/audio-lab", emoji: "🎙️" },
-  videostudio: { label: "Video Studio", href: "/video-studio", emoji: "🎬" },
-  music: { label: "EduAI Music", href: "/music", emoji: "🎵" },
-  examfocus: { label: "Exam Focus", href: "/exam-focus", emoji: "🎯" },
-  aisocial: { label: "Chat social de agentes", href: "/ai-social", emoji: "💬" },
-  examen: { label: "Crear examen", href: "/examen/crear", emoji: "📝" },
-  resultados: { label: "Resultados", href: "/examen/docente", emoji: "📊" },
-  creator: { label: "Creator Hub", href: "/creator-hub", emoji: "🚀" },
-  workspace: { label: "Mis proyectos", href: "/workspace", emoji: "📁" },
-  collab: { label: "Estudio colaborativo", href: "/collab", emoji: "🤝" },
-  qr: { label: "QR Studio", href: "/qr-studio", emoji: "▦" },
-};
+type RouteSuggestion = { label: string; href: string; emoji: string };
+
+function pageSuggestion(key: string): RouteSuggestion | null {
+  const page = EDUAI_PAGES.find((item) => item.key === key);
+  return page ? { label: page.label, href: page.href, emoji: page.emoji } : null;
+}
 
 type PageContext = {
   pathname?: string;
@@ -62,29 +43,19 @@ function normalizeHistory(history: unknown, message: string): CoreMessage[] {
 }
 
 function inferRouteSuggestions(reply: string, userMessage: string) {
-  const text = `${reply} ${userMessage}`.toLowerCase();
-  const suggestions: { label: string; href: string; emoji: string }[] = [];
-
-  const add = (key: keyof typeof AGENT_ROUTES) => {
-    const route = AGENT_ROUTES[key];
-    if (route && !suggestions.find((item) => item.href === route.href)) suggestions.push(route);
+  const suggestions: RouteSuggestion[] = [];
+  const add = (route: RouteSuggestion | null) => {
+    if (route && !suggestions.some((item) => item.href === route.href)) suggestions.push(route);
   };
 
-  if (/estudi|aprender|repasar|clase aut[oó]noma|sesi[oó]n/.test(text)) add("study");
-  if (/examen|prueba|evaluaci[oó]n|preguntas/.test(text)) add("examen");
-  if (/imagen|infograf|visual|afiche|poster/.test(text)) add("imagenes");
-  if (/audio|voz|narrar|transcrip/.test(text)) add("audiolab");
-  if (/video|animaci[oó]n/.test(text)) add("videostudio");
-  if (/qr|c[oó]digo qr|enlace/.test(text)) add("qr");
-  if (/paper|documento|investigaci[oó]n|pdf/.test(text)) add("paper");
-  if (/m[uú]sica|focus|concentraci[oó]n/.test(text)) add("music");
-  if (/planific|mineduc|oa|clase docente|actividad de aprendizaje|adaptar.*pie|nee/.test(text)) add("educador");
-  if (/resultado|notas?|calificaciones|respuestas|promedio|rendimiento/.test(text)) add("resultados");
-  if (/proyecto|workspace|tarea/.test(text)) add("workspace");
-  if (/creator|hub|material|recurso/.test(text)) add("creator");
+  for (const page of searchEduAIPages(`${userMessage} ${reply}`, 6)) {
+    add({ label: page.label, href: page.href, emoji: page.emoji });
+  }
 
-  for (const route of Object.values(AGENT_ROUTES)) {
-    if (reply.includes(route.href) && !suggestions.find((item) => item.href === route.href)) suggestions.push(route);
+  for (const page of EDUAI_PAGES) {
+    if (reply.includes(page.href)) {
+      add({ label: page.label, href: page.href, emoji: page.emoji });
+    }
   }
 
   return suggestions.slice(0, 4);
@@ -93,25 +64,28 @@ function inferRouteSuggestions(reply: string, userMessage: string) {
 function buildSuggestions(reply: string, message: string, toolUsed?: string) {
   const suggestions = inferRouteSuggestions(reply, message);
 
-  const toolMap: Record<string, keyof typeof AGENT_ROUTES> = {
-    generate_image: "imagenes",
-    generate_image_prompt: "imagenes",
-    generate_edu_video: "videostudio",
+  const toolMap: Record<string, string> = {
+    generate_image: "image_studio",
+    generate_image_prompt: "image_studio",
+    generate_edu_video: "video_studio",
     recommend_focus_music: "music",
-    narrate_text: "audiolab",
-    generate_exam_questions: "examen",
-    generate_rubric: "examen",
-    adapt_for_pie: "educador",
-    plan_curriculum: "educador",
-    generate_code: "creator",
-    fix_code_error: "creator",
+    narrate_text: "audio_lab",
+    generate_podcast: "audio_lab",
+    generate_exam_questions: "create_exam",
+    generate_rubric: "create_exam",
+    adapt_for_pie: "educator",
+    plan_curriculum: "educator",
+    summarize_text: "paper",
+    proofread_text: "writer",
+    translate_text: "translator",
+    explain_concept: "study",
+    generate_code: "creator_hub",
+    fix_code_error: "creator_hub",
   };
 
   const key = toolUsed ? toolMap[toolUsed] : undefined;
-  if (key) {
-    const route = AGENT_ROUTES[key];
-    if (route && !suggestions.find((item) => item.href === route.href)) suggestions.unshift(route);
-  }
+  const route = key ? pageSuggestion(key) : null;
+  if (route && !suggestions.some((item) => item.href === route.href)) suggestions.unshift(route);
 
   return suggestions.slice(0, 4);
 }
