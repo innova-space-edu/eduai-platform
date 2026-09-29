@@ -48,7 +48,8 @@
     "test:local-autostart": "tsx scripts/test-eduai-local-autostart.ts",
     "test:local-candidate-sync": "node scripts/test-eduai-local-candidate-sync.mjs",
     "test:wllama-telemetry": "node scripts/test-eduai-local-wllama-telemetry.mjs",
-    "test:local-evidence": "tsx scripts/test-eduai-local-evidence.ts"
+    "test:local-evidence": "tsx scripts/test-eduai-local-evidence.ts",
+    "test:visual-design-preview": "tsx scripts/test-visual-design-preview.ts"
   },
   "dependencies": {
     "@andresaya/edge-tts": "^1.8.0",
@@ -90,7 +91,8 @@
     "@waveform-playlist/webaudio-peaks": "^12.0.2",
     "mediabunny": "1.55.5",
     "@mediabunny/mp3-encoder": "1.55.5",
-    "@wllama/wllama": "3.6.1"
+    "@wllama/wllama": "3.6.1",
+    "@innova-space/visual-design": "git+https://github.com/innova-space-edu/visual-design-skills.git#bf0b00d2dbfa0b0112f1c408efdafe0760878de4"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

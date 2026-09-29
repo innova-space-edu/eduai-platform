@@ -13,7 +13,7 @@ type AgentItem = {
   border: string;
   href: string;
   tag: string;
-  status?: "active" | "maintenance";
+  status?: "active" | "maintenance" | "preview";
   ctaLabel?: string;
 };
 
@@ -195,6 +195,20 @@ const AGENTS: AgentItem[] = [
     status: "active",
   },
   {
+    id: "visual-design-preview",
+    icon: "✦",
+    name: "Diseño Visual IA",
+    description:
+      "Preview del nuevo motor de skills visuales: analiza la solicitud, elige estrategia y usa los modelos de imagen existentes en EDUAI.",
+    color: "from-cyan-400 via-violet-500 to-fuchsia-500",
+    glow: "rgba(139,92,246,0.16)",
+    border: "rgba(139,92,246,0.28)",
+    href: "/image-studio/visual-preview",
+    tag: "Creativo",
+    status: "preview",
+    ctaLabel: "Abrir preview",
+  },
+  {
     id: "image-studio",
     icon: "🖼️",
     name: "Image Studio",
@@ -303,7 +317,13 @@ const TAG_STYLES: Record<string, { bg: string; text: string; border: string }> =
   General: { bg: "rgba(37,99,235,0.1)", text: "#93c5fd", border: "rgba(37,99,235,0.2)" },
 };
 
-function statusPill(status?: "active" | "maintenance") {
+function statusPill(status?: "active" | "maintenance" | "preview") {
+  if (status === "preview") {
+    return {
+      label: "Preview",
+      className: "bg-violet-500/10 text-violet-700 border border-violet-400/20",
+    };
+  }
   if (status === "maintenance") {
     return {
       label: "En mantención",
