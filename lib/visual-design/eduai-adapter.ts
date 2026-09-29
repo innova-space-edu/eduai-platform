@@ -1,5 +1,4 @@
 import { visual, type VisualPlan } from "@innova-space/visual-design";
-import { renderSvgPreview } from "@innova-space/visual-design/providers";
 
 export const EDUAI_VISUAL_PROVIDER_OPTIONS = [
   { id: "auto", label: "Auto · modelos EDUAI" },
@@ -101,7 +100,3 @@ export function compileForEduAI(plan: VisualPlan, provider: EduAIVisualProvider)
   return String(request.prompt || plan.prompt || plan.visual_brief.purpose).trim();
 }
 
-export function deterministicPreview(plan: VisualPlan) {
-  if (plan.visual_brief.render_strategy === "generative") return null;
-  return renderSvgPreview(plan.visual_brief);
-}

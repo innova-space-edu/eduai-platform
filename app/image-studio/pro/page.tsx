@@ -21,7 +21,6 @@ import { createClient } from "@/lib/supabase/client";
 import {
   EDUAI_VISUAL_PROVIDER_OPTIONS,
   compileForEduAI,
-  deterministicPreview,
   planEduAIVisual,
   type EduAIVisualProvider,
 } from "@/lib/visual-design/eduai-adapter";
@@ -121,7 +120,6 @@ export default function ImageStudioProPage() {
   }
 
   const plan = planState?.plan || null;
-  const svgPreview = plan ? deterministicPreview(plan) : null;
   const confidence = plan ? Math.round((plan.routing.confidence || 0) * 100) : 0;
   const constraints = plan && Array.isArray(plan.visual_brief.constraints)
     ? plan.visual_brief.constraints.map((value: unknown) => String(value))
@@ -239,8 +237,8 @@ export default function ImageStudioProPage() {
               </div>
 
               {plan.visual_brief.render_strategy !== "generative" && (
-                <div className="mt-4 rounded-2xl border border-amber-400/20 bg-amber-500/10 p-3 text-xs leading-5 text-amber-700">
-                  Esta solicitud contiene estructura que conviene mantener determinística. La vista SVG conserva esa intención; “Generar con EDUAI” sirve para probar el acabado raster con los modelos actuales.
+                <div className="mt-4 rounded-2xl border border-violet-400/20 bg-violet-500/10 p-3 text-xs leading-5 text-violet-700">
+                  Diseño Pro detectó que esta solicitud necesita mayor precisión estructural. Esa información se incorporará al prompt compilado que recibe la IA de Image Studio.
                 </div>
               )}
             </div>
@@ -259,10 +257,8 @@ export default function ImageStudioProPage() {
                 <div className="text-center"><Loader2 className="mx-auto h-10 w-10 animate-spin text-violet-500" /><p className="mt-4 text-sm font-black">Diseño Pro está generando</p><p className="mt-1 text-xs text-muted2">Se conserva el fallback y los límites de Image Studio.</p></div>
               ) : result?.imageUrl ? (
                 <img src={result.imageUrl} alt="Resultado generado por EDUAI" className="max-h-[660px] max-w-full rounded-2xl object-contain shadow-2xl" />
-              ) : svgPreview?.data_url ? (
-                <div className="w-full"><img src={svgPreview.data_url} alt="Vista determinística SVG" className="mx-auto max-h-[620px] max-w-full rounded-2xl object-contain" /><p className="mt-3 text-center text-[11px] text-muted2">Vista técnica local · sin llamada a modelo de imagen</p></div>
               ) : (
-                <div className="max-w-sm text-center"><FlaskConical className="mx-auto h-10 w-10 text-violet-400" /><p className="mt-4 text-sm font-black">Primero analiza una solicitud</p><p className="mt-2 text-xs leading-5 text-muted2">Verás las skills seleccionadas, estrategia, constraints y luego podrás probar los modelos actuales de EDUAI.</p></div>
+                <div className="max-w-sm text-center"><FlaskConical className="mx-auto h-10 w-10 text-violet-400" /><p className="mt-4 text-sm font-black">Analiza y genera con Diseño Pro</p><p className="mt-2 text-xs leading-5 text-muted2">Primero se seleccionan las skills y restricciones del diseño; después la imagen se genera directamente con los modelos actuales de EDUAI.</p></div>
               )}
             </div>
 
@@ -286,7 +282,7 @@ export default function ImageStudioProPage() {
                 "Clasifica la solicitud y detecta el tipo de diseño.",
                 "Construye VisualBrief, skills y restricciones sin gastar tokens.",
                 "Compila instrucciones específicas para el tipo de pieza visual.",
-                "Image Studio ejecuta con sus modelos/proveedores actuales y su fallback.",
+                "La IA de Image Studio genera directamente la imagen usando esas instrucciones.",
                 "El resultado sigue usando la galería, storage y reutilización normal de EDUAI.",
               ].map((item, index) => <div key={item} className="flex gap-3 rounded-2xl bg-app p-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-violet-500/10 text-[11px] font-black text-violet-600">{index + 1}</span><p className="text-xs leading-5 text-muted2">{item}</p></div>)}
             </div>

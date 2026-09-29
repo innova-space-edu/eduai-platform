@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import {
   compileForEduAI,
-  deterministicPreview,
   planEduAIVisual,
   visualModeForPlan,
   visualStyleForPlan,
@@ -12,7 +11,6 @@ assert.ok(math.plan.routing.selected_skills.includes("math-diagram"));
 assert.equal(math.plan.visual_brief.render_strategy, "deterministic");
 assert.equal(visualStyleForPlan(math.plan), "educational");
 assert.equal(visualModeForPlan(math.plan), "educational");
-assert.ok(deterministicPreview(math.plan)?.data_url?.startsWith("data:image/svg+xml"));
 
 const selfie = planEduAIVisual("Selfie nocturna realista manteniendo el mismo rostro de la referencia");
 assert.ok(selfie.plan.routing.selected_skills.includes("selfie"));
