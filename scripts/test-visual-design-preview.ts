@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {
   compileForEduAI,
   planEduAIVisual,
+  requiresAccurateVisualText,
   visualModeForPlan,
   visualStyleForPlan,
 } from "../lib/visual-design/eduai-adapter";
@@ -20,6 +21,9 @@ assert.equal(visualStyleForPlan(selfie.plan), "realistic");
 const poster = planEduAIVisual('Afiche vertical con el texto exacto "FERIA CIENTÍFICA 2026"');
 const compiled = compileForEduAI(poster.plan, "auto");
 assert.ok(compiled.includes("FERIA CIENTÍFICA 2026"));
+assert.ok(compiled.includes("Spanish (es-CL)"));
+assert.ok(compiled.includes("pseudo-text"));
+assert.equal(requiresAccurateVisualText(poster.plan), true);
 
 const fluxCompiled = compileForEduAI(poster.plan, "together");
 assert.ok(fluxCompiled.length > 20);

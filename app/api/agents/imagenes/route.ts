@@ -61,6 +61,7 @@ type StoredImage = {
   publicUrl: string
   storagePath: string
   mimeType: string
+  storageFolder: string
 }
 
 const DEFAULT_TOTAL_TIMEOUT_MS = 48_000
@@ -103,19 +104,20 @@ function getNegativePrompt(style: string): string {
     "bad anatomy",
     "cropped",
     "watermark",
-    "text",
     "signature",
   ]
 
   if (style === "educational" || style === "infographic" || style === "flat design") {
-    return [...common, "photorealistic skin", "dark background", "messy layout", "illegible labels"].join(", ")
+    return [...common, "photorealistic skin", "dark background", "messy layout", "garbled text", "pseudo-text", "random letters", "misspelled labels", "illegible labels", "dense paragraphs"].join(", ")
   }
+
+  const withText = [...common, "text"]
 
   if (style === "realistic" || style === "cinematic") {
-    return [...common, "cgi", "3d render", "plastic skin", "oversaturated", "cartoon"].join(", ")
+    return [...withText, "cgi", "3d render", "plastic skin", "oversaturated", "cartoon"].join(", ")
   }
 
-  return common.join(", ")
+  return withText.join(", ")
 }
 
 async function responseError(res: Response): Promise<string> {
@@ -137,7 +139,15 @@ async function fetchBase64(url: string, signal: AbortSignal): Promise<string | n
   return `data:${mime};base64,${Buffer.from(buf).toString("base64")}`
 }
 
-async function uploadToStorage(imageBase64: string, userId: string): Promise<StoredImage | null> {
+function storageFolderFor(source: string): string {
+  if (source === "image-studio-pro") return "image-studio/pro"
+  if (source === "manual") return "image-studio/manual"
+  if (source === "auto_study") return "image-studio/auto-study"
+  const safe = source.toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48)
+  return safe ? `image-studio/${safe}` : "image-studio/other"
+}
+
+async function uploadToStorage(imageBase64: string, userId: string, source: string): Promise<StoredImage | null> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !key) return null
@@ -151,7 +161,11 @@ async function uploadToStorage(imageBase64: string, userId: string): Promise<Sto
     const rawExt = mimeType.split("/")[1] || "png"
     const ext = rawExt.replace(/[^a-zA-Z0-9]/g, "") || "png"
     const buf = Buffer.from(match[2], "base64")
-    const storagePath = `${userId}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`
+    const storageFolder = storageFolderFor(source)
+    const now = new Date()
+    const year = String(now.getUTCFullYear())
+    const month = String(now.getUTCMonth() + 1).padStart(2, "0")
+    const storagePath = `${userId}/${storageFolder}/${year}/${month}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`
 
     const { error } = await admin.storage
       .from("generated-images")
@@ -164,7 +178,7 @@ async function uploadToStorage(imageBase64: string, userId: string): Promise<Sto
 
     const { data } = admin.storage.from("generated-images").getPublicUrl(storagePath)
     if (!data?.publicUrl) return null
-    return { publicUrl: data.publicUrl, storagePath, mimeType }
+    return { publicUrl: data.publicUrl, storagePath, mimeType, storageFolder }
   } catch (error) {
     console.error("[Image][Storage]", errMsg(error))
     return null
@@ -723,6 +737,8 @@ export async function POST(req: Request) {
   const educationalContext = body?.educationalContext
     ? String(body.educationalContext)
     : undefined
+  const textPriority = body?.textPriority === true
+  const requireStorage = body?.requireStorage === true || source === "image-studio-pro"
 
   if (!prompt) {
     return Response.json({ success: false, error: "Prompt requerido" }, { status: 400 })
@@ -827,7 +843,10 @@ export async function POST(req: Request) {
         ? await optimizePrompt(prompt, style, educationalContext)
         : basicPrompt(prompt, style)
 
-    const order = providerOrder(provider, mode)
+    const baseOrder = providerOrder(provider, mode)
+    const order = provider === "auto" && textPriority
+      ? baseOrder.filter((candidate) => ["gemini", "openrouter", "pollinations"].includes(candidate))
+      : baseOrder
     const attempts: ProviderAttempt[] = []
     let imageBase64: string | null = null
     let usedProvider = ""
@@ -904,7 +923,7 @@ export async function POST(req: Request) {
     let assetId: string | null = null
 
     try {
-      stored = await uploadToStorage(imageBase64, user.id)
+      stored = await uploadToStorage(imageBase64, user.id, source)
       const permanentImageUrl = stored?.publicUrl ?? imageBase64
 
       const { error: legacyInsertError } = await supabase.from("generated_images").insert({
@@ -943,6 +962,9 @@ export async function POST(req: Request) {
             height,
             optimizedPrompt,
             promptOptimized: promptWasOptimized,
+            storageFolder: stored.storageFolder,
+            storagePath: stored.storagePath,
+            textPriority,
           },
         })
 
@@ -968,8 +990,32 @@ export async function POST(req: Request) {
           },
         })
       }
+      if (requireStorage && !stored) {
+        throw new Error("No fue posible guardar la imagen en la carpeta de Image Studio")
+      }
     } catch (saveError) {
       console.error("[Image][Save]", errMsg(saveError))
+      if (requireStorage) {
+        await finishGenerationRequest({
+          supabase,
+          requestId,
+          status: "failed",
+          provider: usedProvider,
+          model: usedModel,
+          latencyMs: Date.now() - startedAt,
+          metadata: { storageRequired: true, storageSaved: false },
+          error: errMsg(saveError).slice(0, 1_900),
+        })
+        return Response.json(
+          {
+            success: false,
+            code: "IMAGE_STORAGE_FAILED",
+            error: "La imagen se generó, pero no pudo guardarse en la carpeta de Image Studio. Intenta nuevamente.",
+            elapsedMs: Date.now() - startedAt,
+          },
+          { status: 500, headers: { "Cache-Control": "no-store" } }
+        )
+      }
     }
 
     await finishGenerationRequest({
@@ -1003,6 +1049,8 @@ export async function POST(req: Request) {
         generationAvoided: false,
         assetId,
         persistentUrl: stored?.publicUrl || null,
+        storagePath: stored?.storagePath || null,
+        storageFolder: stored?.storageFolder || null,
         elapsedMs: Date.now() - startedAt,
       },
       { headers: { "Cache-Control": "no-store" } }

@@ -42,6 +42,7 @@ function hasAny(plan: VisualPlan, values: Set<string>) {
 
 export function visualStyleForPlan(plan: VisualPlan): string {
   const skills = plan.routing.selected_skills;
+  if (skills.includes("infographic")) return "infographic";
   if (hasAny(plan, EDUCATIONAL_SKILLS)) return "educational";
   if (skills.includes("anime-general")) return "anime";
   if (skills.includes("3d-render") || skills.includes("isometric-illustration")) return "3d render";
@@ -89,6 +90,45 @@ export function planEduAIVisual(prompt: string, input?: {
   };
 }
 
+const TEXT_CRITICAL_SKILLS = new Set([
+  "infographic",
+  "poster-design",
+  "typography-design",
+  "logo-design",
+  "worksheet-design",
+  "textbook-page",
+  "flowchart-diagram",
+  "timeline-design",
+  "educational-image",
+]);
+
+export function requiresAccurateVisualText(plan: VisualPlan): boolean {
+  if ((plan.visual_brief.text_blocks || []).some((block: any) => block?.exact && block?.text)) return true;
+  return hasAny(plan, TEXT_CRITICAL_SKILLS);
+}
+
+function visibleTextRules(plan: VisualPlan): string {
+  if (!requiresAccurateVisualText(plan)) return "";
+  const exact = (plan.visual_brief.text_blocks || [])
+    .filter((block: any) => block?.exact && block?.text)
+    .map((block: any) => String(block.text).trim())
+    .filter(Boolean);
+
+  const exactRule = exact.length
+    ? ` EXACT VISIBLE TEXT — reproduce exactly and do not translate: ${exact.map((text) => `"${text}"`).join(", ")}.`
+    : "";
+
+  return [
+    "VISIBLE TEXT POLICY:",
+    "All visible words must be coherent Spanish (es-CL), correctly spelled and semantically related to the subject.",
+    "Use very little text: one short title and at most six short labels of 1–4 words each unless the user explicitly requested more.",
+    "Never render paragraphs, filler copy, lorem ipsum, pseudo-text, random letters, invented words, mixed languages or unreadable microtext.",
+    "If a word cannot be rendered clearly, omit it instead of inventing or approximating it.",
+    "Prefer strong visual hierarchy, icons and illustration over dense written content.",
+    exactRule,
+  ].filter(Boolean).join(" ");
+}
+
 export function compileForEduAI(plan: VisualPlan, provider: EduAIVisualProvider) {
   const compilerBackend =
     provider === "pollinations" || provider === "together"
@@ -97,6 +137,9 @@ export function compileForEduAI(plan: VisualPlan, provider: EduAIVisualProvider)
   const request = visual.compile(plan.visual_brief, compilerBackend) as {
     prompt?: string;
   };
-  return String(request.prompt || plan.prompt || plan.visual_brief.purpose).trim();
+  const compiled = String(request.prompt || plan.prompt || plan.visual_brief.purpose).trim();
+  const languageRule = "OUTPUT LANGUAGE: Spanish (es-CL). Keep the requested subject, educational level and intent coherent.";
+  const textRule = visibleTextRules(plan);
+  return [compiled, languageRule, textRule].filter(Boolean).join("\n\n");
 }
 

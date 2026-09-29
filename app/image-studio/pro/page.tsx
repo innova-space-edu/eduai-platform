@@ -16,12 +16,14 @@ import {
   Sparkles,
   WandSparkles,
   Zap,
+  RefreshCcw,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import {
   EDUAI_VISUAL_PROVIDER_OPTIONS,
   compileForEduAI,
   planEduAIVisual,
+  requiresAccurateVisualText,
   type EduAIVisualProvider,
 } from "@/lib/visual-design/eduai-adapter";
 
@@ -47,6 +49,8 @@ type ImageResult = {
   reused?: boolean;
   providerOrder?: string[];
   elapsedMs?: number;
+  persistentUrl?: string | null;
+  storagePath?: string | null;
 };
 
 export default function ImageStudioProPage() {
@@ -59,6 +63,9 @@ export default function ImageStudioProPage() {
   const [result, setResult] = useState<ImageResult | null>(null);
   const [error, setError] = useState("");
   const [generating, setGenerating] = useState(false);
+  const [optimizing, setOptimizing] = useState(false);
+  const [originalPrompt, setOriginalPrompt] = useState<string | null>(null);
+  const [optimizerInfo, setOptimizerInfo] = useState<{ provider?: string; model?: string; reused?: boolean } | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -77,6 +84,54 @@ export default function ImageStudioProPage() {
     setResult(null);
     setError("");
     return next;
+  }
+
+  async function optimizePrompt() {
+    const currentPrompt = prompt.trim();
+    if (!currentPrompt || optimizing) return;
+    setOptimizing(true);
+    setError("");
+    try {
+      const localPlan = planEduAIVisual(currentPrompt, {
+        audience: "Comunidad EDUAI",
+        width: format.width,
+        height: format.height,
+        context: { locale: "es-CL", proMode: true },
+      });
+      const response = await fetch("/api/image-studio/pro/optimize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: currentPrompt,
+          format: format.id,
+          selectedSkills: localPlan.plan.routing.selected_skills,
+          primarySkill: localPlan.plan.routing.primary_skill,
+          textCritical: requiresAccurateVisualText(localPlan.plan),
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.optimizedPrompt) {
+        throw new Error(data.error || `Error ${response.status}`);
+      }
+      setOriginalPrompt(currentPrompt);
+      setPrompt(String(data.optimizedPrompt).trim());
+      setOptimizerInfo({ provider: data.provider, model: data.model, reused: data.reused });
+      setPlanState(null);
+      setResult(null);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "No fue posible optimizar la solicitud");
+    } finally {
+      setOptimizing(false);
+    }
+  }
+
+  function undoOptimization() {
+    if (!originalPrompt) return;
+    setPrompt(originalPrompt);
+    setOriginalPrompt(null);
+    setOptimizerInfo(null);
+    setPlanState(null);
+    setResult(null);
   }
 
   async function generate() {
@@ -104,14 +159,20 @@ export default function ImageStudioProPage() {
             selectedSkills: current.plan.routing.selected_skills,
             renderStrategy: current.plan.visual_brief.render_strategy,
             constraints: current.plan.visual_brief.constraints,
+            language: "es-CL",
           }),
+          textPriority: requiresAccurateVisualText(current.plan),
+          requireStorage: true,
         }),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || data.success === false) {
         throw new Error(data.error || `Error ${response.status}`);
       }
-      setResult(data);
+      setResult({
+        ...data,
+        imageUrl: data.persistentUrl || data.imageUrl,
+      });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "No fue posible generar la imagen");
     } finally {
@@ -200,7 +261,24 @@ export default function ImageStudioProPage() {
               </label>
             </div>
 
-            <div className="mt-5 flex flex-wrap gap-2">
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <button onClick={optimizePrompt} disabled={!prompt.trim() || optimizing} className="inline-flex items-center gap-2 rounded-xl border border-cyan-400/25 bg-cyan-500/10 px-4 py-2.5 text-sm font-black text-cyan-700 disabled:opacity-40">
+                {optimizing ? <Loader2 className="h-4 w-4 animate-spin" /> : <WandSparkles className="h-4 w-4" />}
+                {optimizing ? "Optimizando…" : "Optimizar solicitud"}
+              </button>
+              {originalPrompt && (
+                <button onClick={undoOptimization} className="inline-flex items-center gap-1.5 rounded-xl border border-soft bg-app px-3 py-2.5 text-xs font-bold text-muted2">
+                  <RefreshCcw className="h-3.5 w-3.5" /> Deshacer
+                </button>
+              )}
+              {optimizerInfo && (
+                <span className="text-[10px] text-muted2">
+                  Optimizada con {optimizerInfo.provider || "EDUAI"}{optimizerInfo.model ? ` · ${optimizerInfo.model}` : ""}{optimizerInfo.reused ? " · reutilizada" : ""}
+                </span>
+              )}
+            </div>
+
+            <div className="mt-3 flex flex-wrap gap-2">
               <button onClick={createPlan} disabled={!prompt.trim()} className="inline-flex items-center gap-2 rounded-xl border border-violet-400/20 bg-violet-500/10 px-4 py-2.5 text-sm font-black text-violet-600 disabled:opacity-40">
                 <Route className="h-4 w-4" /> Analizar con Diseño Pro · $0 IA
               </button>
@@ -269,6 +347,7 @@ export default function ImageStudioProPage() {
                   <span className="rounded-full bg-app px-2.5 py-1 text-muted2">{result.provider || "EDUAI"}</span>
                   {result.model && <span className="rounded-full bg-app px-2.5 py-1 text-muted2">{result.model}</span>}
                   {typeof result.elapsedMs === "number" && <span className="rounded-full bg-app px-2.5 py-1 text-muted2">{(result.elapsedMs / 1000).toFixed(1)}s</span>}
+                  {result.persistentUrl && <span className="rounded-full bg-blue-500/10 px-2.5 py-1 font-bold text-blue-600">Guardada</span>}
                 </div>
                 {result.optimizedPrompt && <details className="mt-3"><summary className="cursor-pointer text-xs font-bold text-muted2">Prompt compilado usado</summary><p className="mt-2 rounded-xl bg-app p-3 text-xs leading-5 text-muted2">{result.optimizedPrompt}</p></details>}
               </div>
@@ -279,11 +358,11 @@ export default function ImageStudioProPage() {
             <h3 className="text-sm font-black">Cómo trabaja Diseño Pro</h3>
             <div className="mt-4 space-y-2">
               {[
-                "Clasifica la solicitud y detecta el tipo de diseño.",
-                "Construye VisualBrief, skills y restricciones sin gastar tokens.",
-                "Compila instrucciones específicas para el tipo de pieza visual.",
-                "La IA de Image Studio genera directamente la imagen usando esas instrucciones.",
-                "El resultado sigue usando la galería, storage y reutilización normal de EDUAI.",
+                "Opcionalmente mejora la solicitud con el gateway de texto de EDUAI.",
+                "Clasifica la solicitud y carga solo las skills visuales relevantes.",
+                "Construye VisualBrief y restricciones específicas para la pieza.",
+                "Compila un prompt coherente para el modelo elegido, con reglas estrictas de texto cuando corresponde.",
+                "La IA de Image Studio genera la imagen y la guarda en la carpeta y galería del usuario.",
               ].map((item, index) => <div key={item} className="flex gap-3 rounded-2xl bg-app p-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-violet-500/10 text-[11px] font-black text-violet-600">{index + 1}</span><p className="text-xs leading-5 text-muted2">{item}</p></div>)}
             </div>
             <Link href="/image-studio" className="mt-4 inline-flex items-center gap-1 text-xs font-black text-blue-500">Volver al modo rápido de Image Studio <ChevronRight className="h-3.5 w-3.5" /></Link>
