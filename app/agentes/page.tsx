@@ -199,7 +199,7 @@ const AGENTS: AgentItem[] = [
     icon: "🖼️",
     name: "Image Studio",
     description:
-      "Genera y reutiliza imágenes con modelos multiproveedor y accede a Diseño Pro para composiciones avanzadas",
+      "Genera y reutiliza imágenes con Gemini 3.1 primero y proveedores alternativos; incluye Diseño Pro para composiciones avanzadas",
     color: "from-pink-500 to-rose-600",
     glow: "rgba(236,72,153,0.15)",
     border: "rgba(236,72,153,0.2)",

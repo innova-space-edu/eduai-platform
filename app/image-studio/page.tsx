@@ -538,7 +538,7 @@ export default function ImageStudioPage() {
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-20 border-b border-soft bg-app backdrop-blur-xl">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-3">
+        <div className="max-w-4xl mx-auto px-4 py-3 flex flex-wrap items-center gap-3">
           <Link href="/dashboard"
             className="w-8 h-8 flex items-center justify-center rounded-xl bg-card-soft-theme text-sub hover:text-main hover:bg-input-theme transition-all flex-shrink-0">
             <ArrowLeft size={15} />
@@ -549,9 +549,9 @@ export default function ImageStudioPage() {
           </div>
           <div className="flex-1 min-w-0">
             <h1 className="text-main font-bold text-sm leading-tight">Image Studio</h1>
-            <p className="text-muted2 text-[11px]">Gemini · Pollinations · FLUX · IA multiproveedor</p>
+            <p className="hidden text-muted2 text-[11px] sm:block">Gemini · Pollinations · FLUX · IA multiproveedor</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-2">
             <div className="flex items-center gap-1 p-1 rounded-xl"
               style={{ background: "var(--bg-input)", border: "1px solid var(--border-soft)" }}>
               {(["generate", "gallery"] as PanelMode[]).map(p => (
