@@ -102,17 +102,23 @@ const TEXT_CRITICAL_SKILLS = new Set([
   "educational-image",
 ]);
 
+function visualTextBlocks(plan: VisualPlan): Array<{ text?: unknown; exact?: unknown }> {
+  return Array.isArray(plan.visual_brief.text_blocks)
+    ? (plan.visual_brief.text_blocks as Array<{ text?: unknown; exact?: unknown }>)
+    : [];
+}
+
 export function requiresAccurateVisualText(plan: VisualPlan): boolean {
-  if ((plan.visual_brief.text_blocks || []).some((block: any) => block?.exact && block?.text)) return true;
+  if (visualTextBlocks(plan).some((block) => block?.exact === true && block?.text)) return true;
   return hasAny(plan, TEXT_CRITICAL_SKILLS);
 }
 
 function visibleTextRules(plan: VisualPlan): string {
   if (!requiresAccurateVisualText(plan)) return "";
-  const exact = (plan.visual_brief.text_blocks || [])
-    .filter((block: any) => block?.exact && block?.text)
-    .map((block: any) => String(block.text).trim())
-    .filter(Boolean);
+  const exact = visualTextBlocks(plan)
+    .filter((block) => block?.exact === true && block?.text)
+    .map((block) => String(block.text).trim())
+    .filter((text): text is string => Boolean(text));
 
   const exactRule = exact.length
     ? ` EXACT VISIBLE TEXT — reproduce exactly and do not translate: ${exact.map((text) => `"${text}"`).join(", ")}.`

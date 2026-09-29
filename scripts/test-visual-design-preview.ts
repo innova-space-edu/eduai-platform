@@ -23,6 +23,7 @@ const compiled = compileForEduAI(poster.plan, "auto");
 assert.ok(compiled.includes("FERIA CIENTÍFICA 2026"));
 assert.ok(compiled.includes("Spanish (es-CL)"));
 assert.ok(compiled.includes("pseudo-text"));
+assert.ok(compiled.includes("SPECIALIST GUIDANCE"));
 assert.equal(requiresAccurateVisualText(poster.plan), true);
 
 const fluxCompiled = compileForEduAI(poster.plan, "together");

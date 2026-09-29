@@ -770,6 +770,9 @@ export async function POST(req: Request) {
       mode,
       customPrompt: customPrompt || null,
       educationalContext: educationalContext || null,
+      source,
+      textPriority,
+      requireStorage,
     },
   })
 
@@ -844,8 +847,9 @@ export async function POST(req: Request) {
         : basicPrompt(prompt, style)
 
     const baseOrder = providerOrder(provider, mode)
-    const order = provider === "auto" && textPriority
-      ? baseOrder.filter((candidate) => ["gemini", "openrouter", "pollinations"].includes(candidate))
+    const textSafeOrder = baseOrder.filter((candidate) => ["gemini", "openrouter", "pollinations"].includes(candidate))
+    const order = provider === "auto" && textPriority && textSafeOrder.length
+      ? textSafeOrder
       : baseOrder
     const attempts: ProviderAttempt[] = []
     let imageBase64: string | null = null
