@@ -92,7 +92,7 @@
     "mediabunny": "1.55.5",
     "@mediabunny/mp3-encoder": "1.55.5",
     "@wllama/wllama": "3.6.1",
-    "@innova-space/visual-design": "git+https://github.com/innova-space-edu/visual-design-skills.git#0699cccdcf8ac902c3bf1addea182388b2ec02c7"
+    "@innova-space/visual-design": "git+https://github.com/innova-space-edu/visual-design-skills.git#7089d624357f58f967ce4c9a7ba294778c185f2b"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
