@@ -670,7 +670,7 @@ export default function ClawStudyConsole({ displayName = "Docente", isAdmin = fa
                   </Link>
                 ))}
               </div>
-            ) : null>
+            ) : null}
           </div>
         )}
 
