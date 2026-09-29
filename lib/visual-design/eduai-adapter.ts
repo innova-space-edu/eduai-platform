@@ -70,7 +70,7 @@ export function planEduAIVisual(prompt: string, input?: {
   const plan = visual.plan(prompt, {
     context: {
       product: "eduai",
-      module: "visual-design-preview",
+      module: "image-studio-pro",
       ...(input?.context || {}),
     },
     brief: {

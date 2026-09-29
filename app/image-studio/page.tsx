@@ -7,7 +7,7 @@ import Link from "next/link"
 import {
   ArrowLeft, Sparkles, Download, Trash2,
   ZoomIn, ChevronLeft, ChevronRight, Search,
-  SlidersHorizontal, ImagePlus, X,
+  SlidersHorizontal, ImagePlus, X, WandSparkles,
 } from "lucide-react"
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
@@ -551,18 +551,29 @@ export default function ImageStudioPage() {
             <h1 className="text-main font-bold text-sm leading-tight">Image Studio</h1>
             <p className="text-muted2 text-[11px]">Gemini · Pollinations · FLUX · IA multiproveedor</p>
           </div>
-          <div className="flex items-center gap-1 p-1 rounded-xl"
-            style={{ background: "var(--bg-input)", border: "1px solid var(--border-soft)" }}>
-            {(["generate", "gallery"] as PanelMode[]).map(p => (
-              <button key={p} onClick={() => setPanel(p)}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
-                style={{
-                  background:  panel === p ? "rgba(219,39,119,0.15)" : "transparent",
-                  color:       panel === p ? "#f9a8d4" : "#6b7280",
-                }}>
-                {p === "generate" ? "✨ Generar" : `🖼️ Galería (${images.length})`}
-              </button>
-            ))}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 p-1 rounded-xl"
+              style={{ background: "var(--bg-input)", border: "1px solid var(--border-soft)" }}>
+              {(["generate", "gallery"] as PanelMode[]).map(p => (
+                <button key={p} onClick={() => setPanel(p)}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+                  style={{
+                    background:  panel === p ? "rgba(219,39,119,0.15)" : "transparent",
+                    color:       panel === p ? "#f9a8d4" : "#6b7280",
+                  }}>
+                  {p === "generate" ? "✨ Generar" : `🖼️ Galería (${images.length})`}
+                </button>
+              ))}
+            </div>
+            <Link
+              href="/image-studio/pro"
+              className="group inline-flex items-center gap-1.5 rounded-xl border border-violet-400/25 bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 px-3 py-2 text-xs font-black text-violet-500 transition-all hover:-translate-y-0.5 hover:border-violet-400/45 hover:shadow-lg hover:shadow-violet-500/10"
+              title="Abrir herramientas avanzadas de diseño visual"
+            >
+              <WandSparkles size={14} />
+              <span className="hidden sm:inline">Diseño Pro</span>
+              <span className="sm:hidden">Pro</span>
+            </Link>
           </div>
         </div>
       </header>
@@ -572,6 +583,21 @@ export default function ImageStudioPage() {
         {/* ── Panel Generar ──────────────────────────────────────────────── */}
         {panel === "generate" && (
           <div className="flex flex-col gap-5">
+
+            <div className="flex flex-col gap-3 rounded-2xl border border-violet-400/15 bg-gradient-to-r from-violet-500/[0.05] to-fuchsia-500/[0.05] p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-500/10 text-violet-500">
+                  <WandSparkles size={16} />
+                </div>
+                <div>
+                  <p className="text-xs font-black text-main">¿Necesitas más control?</p>
+                  <p className="mt-0.5 text-[11px] leading-5 text-muted2">Diseño Pro analiza automáticamente infografías, diagramas, retratos, logos, afiches, material educativo y otras composiciones antes de generar.</p>
+                </div>
+              </div>
+              <Link href="/image-studio/pro" className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-violet-600 px-3.5 py-2 text-xs font-black text-white transition hover:bg-violet-500">
+                Abrir Diseño Pro <ChevronRight size={13} />
+              </Link>
+            </div>
 
             {/* Prompt */}
             <div>
