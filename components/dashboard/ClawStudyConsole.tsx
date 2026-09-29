@@ -19,6 +19,21 @@ import {
 type Role = "user" | "assistant"
 type Message = { role: Role; content: string }
 type Suggestion = { label: string; href: string; emoji: string }
+type CapabilityTool = {
+  name: string
+  label: string
+  icon: string
+  description: string
+  category: string
+}
+type CapabilityPage = {
+  key: string
+  label: string
+  href: string
+  emoji: string
+  description: string
+  group: string
+}
 type VoiceState = "idle" | "recording" | "transcribing"
 
 type Props = {
@@ -65,15 +80,6 @@ const CREATE_ACTIONS = [
     prompt: "Quiero crear un material visual educativo sobre ",
     hint: "Infografía, apoyo visual o recurso para la clase",
   },
-]
-
-const EDUAI_SHORTCUTS = [
-  { label: "Creator Hub", href: "/creator-hub", emoji: "🚀", hint: "Crear materiales" },
-  { label: "Crear examen", href: "/examen/crear", emoji: "📝", hint: "Evaluaciones completas" },
-  { label: "QR Studio", href: "/qr-studio", emoji: "▦", hint: "Códigos QR" },
-  { label: "Image Studio", href: "/image-studio", emoji: "🎨", hint: "Imágenes educativas" },
-  { label: "Chat Paper", href: "/paper", emoji: "📄", hint: "Trabajar con documentos" },
-  { label: "Audio Lab", href: "/audio-lab", emoji: "🎙️", hint: "Audio y voz" },
 ]
 
 function renderInlineContent(text: string) {
@@ -210,6 +216,10 @@ export default function ClawStudyConsole({ displayName = "Docente", isAdmin = fa
   const [voiceState, setVoiceState] = useState<VoiceState>("idle")
   const [recordingSeconds, setRecordingSeconds] = useState(0)
   const [voiceError, setVoiceError] = useState("")
+  const [capabilityTools, setCapabilityTools] = useState<CapabilityTool[]>([])
+  const [capabilityPages, setCapabilityPages] = useState<CapabilityPage[]>([])
+  const [capabilitiesError, setCapabilitiesError] = useState("")
+  const [selectedTool, setSelectedTool] = useState<CapabilityTool | null>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const transcriptRef = useRef<HTMLDivElement>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
@@ -231,6 +241,26 @@ export default function ClawStudyConsole({ displayName = "Docente", isAdmin = fa
     return contextBits.length ? `${base} · ${contextBits.join(" · ")}` : base
   }, [isAdmin, teacherCourse, teacherSubject])
 
+  const syncCapabilities = async () => {
+    try {
+      const response = await fetch("/api/agents/claw-chat", { method: "GET", cache: "no-store" })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data?.error || "No se pudieron cargar las capacidades")
+
+      setCapabilityTools(Array.isArray(data?.tools) ? data.tools : [])
+      setCapabilityPages(Array.isArray(data?.pages) ? data.pages : [])
+      setCapabilitiesError("")
+    } catch {
+      setCapabilitiesError("No se pudo sincronizar la lista de herramientas. El chat sigue disponible.")
+    }
+  }
+
+  useEffect(() => {
+    void syncCapabilities()
+    // Se sincroniza también cada vez que se abre el panel de herramientas.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   useEffect(() => {
     const transcript = transcriptRef.current
     if (!transcript) return
@@ -251,7 +281,9 @@ export default function ClawStudyConsole({ displayName = "Docente", isAdmin = fa
     const text = String(override ?? input).trim()
     if (!text || loading || voiceState === "recording") return
 
+    const requestedToolName = selectedTool?.name
     setInput("")
+    setSelectedTool(null)
     setToolsOpen(false)
     setSuggestions([])
     const nextMessages: Message[] = [...messages, { role: "user", content: text }]
@@ -272,16 +304,12 @@ export default function ClawStudyConsole({ displayName = "Docente", isAdmin = fa
             subject: teacherSubject || undefined,
             selectedSubtopic: teacherCourse || undefined,
             availableActions: [
-              "plan_curriculum",
-              "generate_exam_questions",
-              "generate_rubric",
-              "adapt_for_pie",
-              "generate_image",
-              "summarize_text",
+              ...capabilityTools.map((tool) => tool.name),
               "navigate_to_page",
             ],
           },
           userName: displayName,
+          requestedTool: requestedToolName,
         }),
       })
       const data = await response.json()
@@ -435,7 +463,15 @@ export default function ClawStudyConsole({ displayName = "Docente", isAdmin = fa
   }
 
   const handleCreateAction = (prompt: string) => {
+    setSelectedTool(null)
     setInput(prompt)
+    setToolsOpen(false)
+    setTimeout(() => inputRef.current?.focus(), 60)
+  }
+
+  const handleCapabilityTool = (tool: CapabilityTool) => {
+    setSelectedTool(tool)
+    setInput("")
     setToolsOpen(false)
     setTimeout(() => inputRef.current?.focus(), 60)
   }
@@ -586,24 +622,74 @@ export default function ClawStudyConsole({ displayName = "Docente", isAdmin = fa
             </div>
 
             <div className="my-2 border-t border-soft" />
-            <div className="px-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-muted2 lg:text-[11px] min-[2048px]:text-xs">Herramientas EduAI</div>
-            <div className="grid grid-cols-2 gap-1">
-              {EDUAI_SHORTCUTS.map((shortcut) => (
-                <Link
-                  key={shortcut.href}
-                  href={shortcut.href}
-                  onClick={() => setToolsOpen(false)}
-                  className="rounded-xl px-2.5 py-2 transition hover:bg-violet-50 lg:rounded-2xl lg:px-3 lg:py-2.5 min-[2048px]:py-3"
-                >
-                  <div className="text-xs font-bold text-main lg:text-sm min-[2048px]:text-[15px]">{shortcut.emoji} {shortcut.label}</div>
-                  <div className="mt-0.5 text-[9px] text-muted2 lg:text-[10px] min-[2048px]:text-[11px]">{shortcut.hint}</div>
-                </Link>
-              ))}
+            <div className="flex items-center justify-between gap-2 px-2 pb-1">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-muted2 lg:text-[11px] min-[2048px]:text-xs">Herramientas activas</div>
+              <button
+                type="button"
+                onClick={() => void syncCapabilities()}
+                className="text-[9px] font-bold text-blue-600 hover:text-blue-700 lg:text-[10px]"
+              >
+                Actualizar
+              </button>
             </div>
+            {capabilityTools.length > 0 ? (
+              <div className="grid max-h-36 grid-cols-2 gap-1 overflow-y-auto pr-1">
+                {capabilityTools.map((tool) => (
+                  <button
+                    key={tool.name}
+                    type="button"
+                    onClick={() => handleCapabilityTool(tool)}
+                    className="min-w-0 rounded-xl px-2.5 py-2 text-left transition hover:bg-blue-50 lg:rounded-2xl"
+                    title={tool.description}
+                  >
+                    <div className="truncate text-[11px] font-bold text-main lg:text-xs">{tool.icon} {tool.label}</div>
+                    <div className="mt-0.5 truncate text-[9px] text-muted2 lg:text-[10px]">{tool.description}</div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="px-2 py-2 text-[9px] text-muted2 lg:text-[10px]">
+                {capabilitiesError || "Sincronizando herramientas…"}
+              </p>
+            )}
+
+            <div className="my-2 border-t border-soft" />
+            <div className="px-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-muted2 lg:text-[11px] min-[2048px]:text-xs">Módulos EduAI sincronizados</div>
+            {capabilityPages.length > 0 ? (
+              <div className="grid max-h-32 grid-cols-2 gap-1 overflow-y-auto pr-1">
+                {capabilityPages.map((page) => (
+                  <Link
+                    key={page.key}
+                    href={page.href}
+                    onClick={() => setToolsOpen(false)}
+                    className="min-w-0 rounded-xl px-2.5 py-2 transition hover:bg-violet-50 lg:rounded-2xl"
+                    title={page.description}
+                  >
+                    <div className="truncate text-[11px] font-bold text-main lg:text-xs">{page.emoji} {page.label}</div>
+                    <div className="mt-0.5 truncate text-[9px] text-muted2 lg:text-[10px]">{page.description}</div>
+                  </Link>
+                ))}
+              </div>
+            ) : null>
           </div>
         )}
 
         <div className="mx-auto w-full max-w-none rounded-2xl border border-soft bg-card-soft-theme p-1.5 shadow-sm transition focus-within:border-blue-200 focus-within:shadow-md lg:max-w-[980px] lg:rounded-[1.5rem] lg:p-2 min-[2048px]:max-w-[1280px] min-[2048px]:rounded-[1.8rem] min-[2048px]:p-2.5">
+          {selectedTool && (
+            <div className="mx-2 mt-1 flex items-center justify-between gap-2 rounded-xl border border-blue-100 bg-blue-50 px-2.5 py-1.5 text-[10px] text-blue-800 lg:text-[11px]">
+              <span className="min-w-0 truncate">
+                {selectedTool.icon} Herramienta seleccionada: <strong>{selectedTool.label}</strong>
+              </span>
+              <button
+                type="button"
+                onClick={() => setSelectedTool(null)}
+                className="shrink-0 rounded-full px-1.5 py-0.5 font-black hover:bg-blue-100"
+                aria-label="Quitar herramienta seleccionada"
+              >
+                ×
+              </button>
+            </div>
+          )}
           <textarea
             ref={inputRef}
             value={input}
@@ -633,7 +719,11 @@ export default function ClawStudyConsole({ displayName = "Docente", isAdmin = fa
             <div className="flex min-w-0 items-center gap-1 lg:gap-2">
               <button
                 type="button"
-                onClick={() => setToolsOpen((open) => !open)}
+                onClick={() => {
+                  const next = !toolsOpen
+                  setToolsOpen(next)
+                  if (next) void syncCapabilities()
+                }}
                 className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition lg:h-10 lg:w-10 min-[2048px]:h-11 min-[2048px]:w-11 ${
                   toolsOpen
                     ? "rotate-45 border-blue-200 bg-blue-50 text-blue-700"
