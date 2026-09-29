@@ -123,6 +123,9 @@ export default function VisualDesignPreviewPage() {
   const plan = planState?.plan || null;
   const svgPreview = plan ? deterministicPreview(plan) : null;
   const confidence = plan ? Math.round((plan.routing.confidence || 0) * 100) : 0;
+  const constraints = plan && Array.isArray(plan.visual_brief.constraints)
+    ? plan.visual_brief.constraints.map((value: unknown) => String(value))
+    : [];
 
   function download(url: string) {
     const anchor = document.createElement("a");
@@ -230,7 +233,7 @@ export default function VisualDesignPreviewPage() {
               </div>
 
               <div className="mt-4 space-y-2">
-                {(plan.visual_brief.constraints || []).slice(0, 5).map((constraint) => (
+                {constraints.slice(0, 5).map((constraint: string) => (
                   <div key={String(constraint)} className="flex items-start gap-2 text-xs text-muted2"><CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-500" /><span>{String(constraint)}</span></div>
                 ))}
               </div>
