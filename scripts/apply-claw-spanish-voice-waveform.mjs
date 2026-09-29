@@ -44,11 +44,21 @@ function patchClaw() {
     "constantes de grabación",
   )
 
+  // Mantener este parche tolerante a nuevos estados de ChatClaw.
+  // Insertamos la onda y los refs de audio junto a anclas pequeñas y estables,
+  // en vez de exigir que todos los useState/useRef estén en un bloque exacto.
   source = replaceOnce(
     source,
-    `  const [voiceError, setVoiceError] = useState("")\n  const inputRef = useRef<HTMLTextAreaElement>(null)\n  const transcriptRef = useRef<HTMLDivElement>(null)\n  const mediaRecorderRef = useRef<MediaRecorder | null>(null)\n  const mediaStreamRef = useRef<MediaStream | null>(null)\n  const recordingChunksRef = useRef<Blob[]>([])\n  const recordingTimerRef = useRef<number | null>(null)\n  const recordingStartedAtRef = useRef(0)`,
-    `  const [voiceError, setVoiceError] = useState("")\n  const [waveform, setWaveform] = useState<number[]>(() => Array(WAVEFORM_BAR_COUNT).fill(0.12))\n  const inputRef = useRef<HTMLTextAreaElement>(null)\n  const transcriptRef = useRef<HTMLDivElement>(null)\n  const mediaRecorderRef = useRef<MediaRecorder | null>(null)\n  const mediaStreamRef = useRef<MediaStream | null>(null)\n  const recordingChunksRef = useRef<Blob[]>([])\n  const recordingTimerRef = useRef<number | null>(null)\n  const recordingStartedAtRef = useRef(0)\n  const audioContextRef = useRef<AudioContext | null>(null)\n  const analyserRef = useRef<AnalyserNode | null>(null)\n  const waveformFrameRef = useRef<number | null>(null)\n  const waveformLastSampleRef = useRef(0)\n  const recordingDecisionRef = useRef<"transcribe" | "discard">("transcribe")`,
-    "refs del micrófono",
+    `  const [voiceError, setVoiceError] = useState("")`,
+    `  const [voiceError, setVoiceError] = useState("")\n  const [waveform, setWaveform] = useState<number[]>(() => Array(WAVEFORM_BAR_COUNT).fill(0.12))`,
+    "estado de onda del micrófono",
+  )
+
+  source = replaceOnce(
+    source,
+    `  const recordingStartedAtRef = useRef(0)`,
+    `  const recordingStartedAtRef = useRef(0)\n  const audioContextRef = useRef<AudioContext | null>(null)\n  const analyserRef = useRef<AnalyserNode | null>(null)\n  const waveformFrameRef = useRef<number | null>(null)\n  const waveformLastSampleRef = useRef(0)\n  const recordingDecisionRef = useRef<"transcribe" | "discard">("transcribe")`,
+    "refs de audio del micrófono",
   )
 
   source = replaceOnce(

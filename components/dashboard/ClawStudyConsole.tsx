@@ -19,6 +19,21 @@ import {
 type Role = "user" | "assistant"
 type Message = { role: Role; content: string }
 type Suggestion = { label: string; href: string; emoji: string }
+type CapabilityTool = {
+  name: string
+  label: string
+  icon: string
+  description: string
+  category: string
+}
+type CapabilityPage = {
+  key: string
+  label: string
+  href: string
+  emoji: string
+  description: string
+  group: string
+}
 type VoiceState = "idle" | "recording" | "transcribing"
 
 type Props = {
@@ -30,38 +45,41 @@ const MAX_RECORDING_SECONDS = 90
 
 const CREATE_ACTIONS = [
   {
-    label: "Estudiar un tema",
-    icon: BookOpen,
-    prompt: "Inicia una sesión de estudio sobre ",
-    hint: "Explicar, practicar y evaluar",
-  },
-  {
-    label: "Crear prueba",
-    icon: FileQuestion,
-    prompt: "Ayúdame a crear una evaluación con preguntas variadas sobre ",
-    hint: "Alternativas, desarrollo y rúbrica",
-  },
-  {
-    label: "Crear imagen",
-    icon: ImageIcon,
-    prompt: "Genera una imagen educativa sobre ",
-    hint: "Material visual educativo",
-  },
-  {
     label: "Planificar clase",
     icon: PenLine,
-    prompt: "Ayúdame a planificar una clase sobre ",
-    hint: "Inicio, desarrollo y cierre",
+    prompt: "Quiero planificar una clase. Tema: ",
+    hint: "Objetivo, inicio, desarrollo, cierre y evaluación",
   },
-]
-
-const EDUAI_SHORTCUTS = [
-  { label: "Creator Hub", href: "/creator-hub", emoji: "🚀", hint: "Crear materiales" },
-  { label: "Crear examen", href: "/examen/crear", emoji: "📝", hint: "Evaluaciones completas" },
-  { label: "QR Studio", href: "/qr-studio", emoji: "▦", hint: "Códigos QR" },
-  { label: "Image Studio", href: "/image-studio", emoji: "🎨", hint: "Imágenes educativas" },
-  { label: "Chat Paper", href: "/paper", emoji: "📄", hint: "Trabajar con documentos" },
-  { label: "Audio Lab", href: "/audio-lab", emoji: "🎙️", hint: "Audio y voz" },
+  {
+    label: "Crear actividad",
+    icon: BookOpen,
+    prompt: "Quiero crear una actividad de aprendizaje. Tema: ",
+    hint: "Actividad aplicable en aula con instrucciones claras",
+  },
+  {
+    label: "Crear evaluación",
+    icon: FileQuestion,
+    prompt: "Quiero crear una evaluación. Tema: ",
+    hint: "Preguntas, pauta, niveles de logro y retroalimentación",
+  },
+  {
+    label: "Crear rúbrica",
+    icon: FileQuestion,
+    prompt: "Quiero crear una rúbrica para evaluar ",
+    hint: "Criterios, indicadores y niveles de desempeño",
+  },
+  {
+    label: "Adaptar para PIE",
+    icon: Sparkles,
+    prompt: "Necesito adaptar para PIE el siguiente material o actividad: ",
+    hint: "Ajustes de acceso, instrucciones y carga cognitiva",
+  },
+  {
+    label: "Crear material visual",
+    icon: ImageIcon,
+    prompt: "Quiero crear un material visual educativo sobre ",
+    hint: "Infografía, apoyo visual o recurso para la clase",
+  },
 ]
 
 function renderInlineContent(text: string) {
@@ -182,12 +200,14 @@ function formatRecordingTime(seconds: number) {
   return `${mins}:${String(secs).padStart(2, "0")}`
 }
 
-export default function ClawStudyConsole({ displayName = "Estudiante", isAdmin = false }: Props) {
+export default function ClawStudyConsole({ displayName = "Docente", isAdmin = false }: Props) {
   const [input, setInput] = useState("")
+  const [teacherCourse, setTeacherCourse] = useState("")
+  const [teacherSubject, setTeacherSubject] = useState("")
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: `Hola ${displayName} 👋 Soy Claw. Podemos conversar con naturalidad, resolver una duda, pensar una idea, organizar algo o trabajar con las herramientas de EduAI. ¿Qué tienes en mente?`,
+      content: `Hola ${displayName} 👋 Soy Claw, tu asistente de trabajo docente en EduAI. Puedo ayudarte a planificar clases, crear actividades y evaluaciones, construir rúbricas, adaptar materiales para PIE, preparar recursos y revisar ideas. Si falta un dato importante, te preguntaré solo lo necesario para poder avanzar. ¿Qué necesitas preparar hoy?`,
     },
   ])
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
@@ -196,6 +216,10 @@ export default function ClawStudyConsole({ displayName = "Estudiante", isAdmin =
   const [voiceState, setVoiceState] = useState<VoiceState>("idle")
   const [recordingSeconds, setRecordingSeconds] = useState(0)
   const [voiceError, setVoiceError] = useState("")
+  const [capabilityTools, setCapabilityTools] = useState<CapabilityTool[]>([])
+  const [capabilityPages, setCapabilityPages] = useState<CapabilityPage[]>([])
+  const [capabilitiesError, setCapabilitiesError] = useState("")
+  const [selectedTool, setSelectedTool] = useState<CapabilityTool | null>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const transcriptRef = useRef<HTMLDivElement>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
@@ -205,9 +229,37 @@ export default function ClawStudyConsole({ displayName = "Estudiante", isAdmin =
   const recordingStartedAtRef = useRef(0)
 
   const contextualPrompt = useMemo(() => {
-    if (isAdmin) return "Claw está disponible para conversar contigo y, cuando lo necesites, usar herramientas de administración y creación."
-    return "Claw puede conversar contigo, ayudarte a pensar y también usar herramientas de EduAI cuando tú se lo pidas."
-  }, [isAdmin])
+    const contextBits = [
+      teacherCourse ? `Curso: ${teacherCourse}` : "",
+      teacherSubject ? `Asignatura: ${teacherSubject}` : "",
+    ].filter(Boolean)
+
+    const base = isAdmin
+      ? "Modo docente + administración activo. Claw prioriza tareas pedagógicas y puede usar herramientas EduAI cuando corresponda."
+      : "Modo docente activo. Claw trabaja como copiloto pedagógico: conversa, pregunta lo mínimo necesario y transforma tus indicaciones en material utilizable."
+
+    return contextBits.length ? `${base} · ${contextBits.join(" · ")}` : base
+  }, [isAdmin, teacherCourse, teacherSubject])
+
+  const syncCapabilities = async () => {
+    try {
+      const response = await fetch("/api/agents/claw-chat", { method: "GET", cache: "no-store" })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data?.error || "No se pudieron cargar las capacidades")
+
+      setCapabilityTools(Array.isArray(data?.tools) ? data.tools : [])
+      setCapabilityPages(Array.isArray(data?.pages) ? data.pages : [])
+      setCapabilitiesError("")
+    } catch {
+      setCapabilitiesError("No se pudo sincronizar la lista de herramientas. El chat sigue disponible.")
+    }
+  }
+
+  useEffect(() => {
+    void syncCapabilities()
+    // Se sincroniza también cada vez que se abre el panel de herramientas.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     const transcript = transcriptRef.current
@@ -229,7 +281,9 @@ export default function ClawStudyConsole({ displayName = "Estudiante", isAdmin =
     const text = String(override ?? input).trim()
     if (!text || loading || voiceState === "recording") return
 
+    const requestedToolName = selectedTool?.name
     setInput("")
+    setSelectedTool(null)
     setToolsOpen(false)
     setSuggestions([])
     const nextMessages: Message[] = [...messages, { role: "user", content: text }]
@@ -246,16 +300,16 @@ export default function ClawStudyConsole({ displayName = "Estudiante", isAdmin =
           pageContext: {
             pathname: "/dashboard",
             pageTitle: "Conversación principal con Claw",
-            mode: isAdmin ? "admin" : "student",
+            mode: isAdmin ? "admin_teacher" : "teacher",
+            subject: teacherSubject || undefined,
+            selectedSubtopic: teacherCourse || undefined,
             availableActions: [
-              "start_study_session",
-              "generate_exam_questions",
-              "generate_image",
-              "plan_curriculum",
+              ...capabilityTools.map((tool) => tool.name),
               "navigate_to_page",
             ],
           },
           userName: displayName,
+          requestedTool: requestedToolName,
         }),
       })
       const data = await response.json()
@@ -409,7 +463,15 @@ export default function ClawStudyConsole({ displayName = "Estudiante", isAdmin =
   }
 
   const handleCreateAction = (prompt: string) => {
+    setSelectedTool(null)
     setInput(prompt)
+    setToolsOpen(false)
+    setTimeout(() => inputRef.current?.focus(), 60)
+  }
+
+  const handleCapabilityTool = (tool: CapabilityTool) => {
+    setSelectedTool(tool)
+    setInput("")
     setToolsOpen(false)
     setTimeout(() => inputRef.current?.focus(), 60)
   }
@@ -422,9 +484,9 @@ export default function ClawStudyConsole({ displayName = "Estudiante", isAdmin =
             <Bot size={18} className="min-[2048px]:h-6 min-[2048px]:w-6" />
           </div>
           <div className="min-w-0">
-            <h1 className="truncate text-sm font-black text-main lg:text-lg min-[2048px]:text-xl">Claw — Superagente EduAI</h1>
+            <h1 className="truncate text-sm font-black text-main lg:text-lg min-[2048px]:text-xl">Claw — Copiloto Docente EduAI</h1>
             <p className="mt-0.5 hidden text-xs leading-relaxed text-muted2 lg:block min-[2048px]:text-sm">
-              Conversa, pregunta, crea o simplemente habla con Claw.
+              Planifica, crea, adapta, revisa y continúa el trabajo desde una sola conversación.
             </p>
           </div>
         </div>
@@ -443,6 +505,39 @@ export default function ClawStudyConsole({ displayName = "Estudiante", isAdmin =
         </div>
 
         <div className="mx-auto w-full max-w-none space-y-3 lg:max-w-[980px] lg:space-y-4 min-[2048px]:max-w-[1280px] min-[2048px]:space-y-5">
+          {messages.length === 1 && (
+            <div className="rounded-2xl border border-soft bg-card-soft-theme p-3 lg:rounded-3xl lg:p-4">
+              <div className="mb-2.5 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-black text-main lg:text-sm">¿Qué quieres hacer?</p>
+                  <p className="mt-0.5 text-[10px] text-muted2 lg:text-[11px]">Elige una tarea y completa el tema o material en el cuadro de mensaje.</p>
+                </div>
+                <span className="rounded-full bg-blue-50 px-2 py-1 text-[9px] font-bold text-blue-700 lg:text-[10px]">Docente</span>
+              </div>
+              <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+                {CREATE_ACTIONS.map((action) => {
+                  const Icon = action.icon
+                  return (
+                    <button
+                      key={`quick-${action.label}`}
+                      type="button"
+                      onClick={() => handleCreateAction(action.prompt)}
+                      className="flex min-w-0 items-center gap-2 rounded-xl border border-soft bg-card-theme px-2.5 py-2 text-left transition hover:border-blue-200 hover:bg-blue-50/50 lg:rounded-2xl lg:px-3 lg:py-2.5"
+                    >
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700">
+                        <Icon size={15} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-[11px] font-bold text-main lg:text-xs">{action.label}</p>
+                        <p className="truncate text-[9px] text-muted2 lg:text-[10px]">{action.hint}</p>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
           {messages.map((message, index) => (
             <div key={`${message.role}-${index}`} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
               <div
@@ -484,7 +579,26 @@ export default function ClawStudyConsole({ displayName = "Estudiante", isAdmin =
       <div className="relative shrink-0 border-t border-soft bg-card-theme px-2 py-2 lg:px-5 lg:py-4 min-[2048px]:px-8 min-[2048px]:py-5">
         {toolsOpen && (
           <div className="absolute bottom-[calc(100%-4px)] left-2 z-30 w-[min(340px,calc(100vw-76px))] overflow-hidden rounded-2xl border border-soft bg-card-theme p-2 shadow-2xl lg:left-6 lg:w-[380px] lg:rounded-3xl min-[2048px]:w-[440px] min-[2048px]:p-3">
-            <div className="px-2 pb-1 pt-1 text-[10px] font-bold uppercase tracking-wider text-muted2 lg:text-[11px] min-[2048px]:text-xs">Crear con Claw</div>
+            <div className="px-2 pb-1 pt-1 text-[10px] font-bold uppercase tracking-wider text-muted2 lg:text-[11px] min-[2048px]:text-xs">Contexto docente</div>
+            <div className="grid grid-cols-2 gap-1.5 px-1 pb-2">
+              <input
+                value={teacherCourse}
+                onChange={(event) => setTeacherCourse(event.target.value)}
+                placeholder="Curso, ej. 2° Medio"
+                className="min-w-0 rounded-xl border border-soft bg-card-soft-theme px-2.5 py-2 text-[11px] text-main outline-none placeholder:text-muted2 focus:border-blue-200 lg:text-xs"
+              />
+              <input
+                value={teacherSubject}
+                onChange={(event) => setTeacherSubject(event.target.value)}
+                placeholder="Asignatura"
+                className="min-w-0 rounded-xl border border-soft bg-card-soft-theme px-2.5 py-2 text-[11px] text-main outline-none placeholder:text-muted2 focus:border-blue-200 lg:text-xs"
+              />
+            </div>
+            <p className="px-2 pb-2 text-[9px] leading-relaxed text-muted2 lg:text-[10px]">
+              Opcional. Claw usará este contexto durante la conversación y evitará volver a preguntarlo.
+            </p>
+
+            <div className="border-t border-soft px-2 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wider text-muted2 lg:text-[11px] min-[2048px]:text-xs">Acciones docentes</div>
             <div className="grid gap-1">
               {CREATE_ACTIONS.map((action) => {
                 const Icon = action.icon
@@ -508,24 +622,74 @@ export default function ClawStudyConsole({ displayName = "Estudiante", isAdmin =
             </div>
 
             <div className="my-2 border-t border-soft" />
-            <div className="px-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-muted2 lg:text-[11px] min-[2048px]:text-xs">Herramientas EduAI</div>
-            <div className="grid grid-cols-2 gap-1">
-              {EDUAI_SHORTCUTS.map((shortcut) => (
-                <Link
-                  key={shortcut.href}
-                  href={shortcut.href}
-                  onClick={() => setToolsOpen(false)}
-                  className="rounded-xl px-2.5 py-2 transition hover:bg-violet-50 lg:rounded-2xl lg:px-3 lg:py-2.5 min-[2048px]:py-3"
-                >
-                  <div className="text-xs font-bold text-main lg:text-sm min-[2048px]:text-[15px]">{shortcut.emoji} {shortcut.label}</div>
-                  <div className="mt-0.5 text-[9px] text-muted2 lg:text-[10px] min-[2048px]:text-[11px]">{shortcut.hint}</div>
-                </Link>
-              ))}
+            <div className="flex items-center justify-between gap-2 px-2 pb-1">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-muted2 lg:text-[11px] min-[2048px]:text-xs">Herramientas activas</div>
+              <button
+                type="button"
+                onClick={() => void syncCapabilities()}
+                className="text-[9px] font-bold text-blue-600 hover:text-blue-700 lg:text-[10px]"
+              >
+                Actualizar
+              </button>
             </div>
+            {capabilityTools.length > 0 ? (
+              <div className="grid max-h-36 grid-cols-2 gap-1 overflow-y-auto pr-1">
+                {capabilityTools.map((tool) => (
+                  <button
+                    key={tool.name}
+                    type="button"
+                    onClick={() => handleCapabilityTool(tool)}
+                    className="min-w-0 rounded-xl px-2.5 py-2 text-left transition hover:bg-blue-50 lg:rounded-2xl"
+                    title={tool.description}
+                  >
+                    <div className="truncate text-[11px] font-bold text-main lg:text-xs">{tool.icon} {tool.label}</div>
+                    <div className="mt-0.5 truncate text-[9px] text-muted2 lg:text-[10px]">{tool.description}</div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="px-2 py-2 text-[9px] text-muted2 lg:text-[10px]">
+                {capabilitiesError || "Sincronizando herramientas…"}
+              </p>
+            )}
+
+            <div className="my-2 border-t border-soft" />
+            <div className="px-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-muted2 lg:text-[11px] min-[2048px]:text-xs">Módulos EduAI sincronizados</div>
+            {capabilityPages.length > 0 ? (
+              <div className="grid max-h-32 grid-cols-2 gap-1 overflow-y-auto pr-1">
+                {capabilityPages.map((page) => (
+                  <Link
+                    key={page.key}
+                    href={page.href}
+                    onClick={() => setToolsOpen(false)}
+                    className="min-w-0 rounded-xl px-2.5 py-2 transition hover:bg-violet-50 lg:rounded-2xl"
+                    title={page.description}
+                  >
+                    <div className="truncate text-[11px] font-bold text-main lg:text-xs">{page.emoji} {page.label}</div>
+                    <div className="mt-0.5 truncate text-[9px] text-muted2 lg:text-[10px]">{page.description}</div>
+                  </Link>
+                ))}
+              </div>
+            ) : null}
           </div>
         )}
 
         <div className="mx-auto w-full max-w-none rounded-2xl border border-soft bg-card-soft-theme p-1.5 shadow-sm transition focus-within:border-blue-200 focus-within:shadow-md lg:max-w-[980px] lg:rounded-[1.5rem] lg:p-2 min-[2048px]:max-w-[1280px] min-[2048px]:rounded-[1.8rem] min-[2048px]:p-2.5">
+          {selectedTool && (
+            <div className="mx-2 mt-1 flex items-center justify-between gap-2 rounded-xl border border-blue-100 bg-blue-50 px-2.5 py-1.5 text-[10px] text-blue-800 lg:text-[11px]">
+              <span className="min-w-0 truncate">
+                {selectedTool.icon} Herramienta seleccionada: <strong>{selectedTool.label}</strong>
+              </span>
+              <button
+                type="button"
+                onClick={() => setSelectedTool(null)}
+                className="shrink-0 rounded-full px-1.5 py-0.5 font-black hover:bg-blue-100"
+                aria-label="Quitar herramienta seleccionada"
+              >
+                ×
+              </button>
+            </div>
+          )}
           <textarea
             ref={inputRef}
             value={input}
@@ -545,7 +709,7 @@ export default function ClawStudyConsole({ displayName = "Estudiante", isAdmin =
                 ? "Te escucho… pulsa el micrófono otra vez para terminar."
                 : voiceState === "transcribing"
                   ? "Transcribiendo tu grabación con alta precisión…"
-                  : "Escribe lo que quieras: una pregunta, una idea, algo que te preocupa o una tarea para Claw..."
+                  : "Describe lo que necesitas: clase, actividad, evaluación, rúbrica, adaptación PIE, material o una consulta docente..."
             }
             className="min-h-[52px] max-h-28 w-full resize-none overflow-y-auto bg-transparent px-2.5 py-2 text-[13px] text-main outline-none placeholder:text-muted2 lg:min-h-[64px] lg:max-h-32 lg:px-3 lg:text-sm min-[2048px]:min-h-[76px] min-[2048px]:max-h-40 min-[2048px]:px-4 min-[2048px]:py-3 min-[2048px]:text-base"
             disabled={loading || voiceState === "transcribing"}
@@ -555,14 +719,18 @@ export default function ClawStudyConsole({ displayName = "Estudiante", isAdmin =
             <div className="flex min-w-0 items-center gap-1 lg:gap-2">
               <button
                 type="button"
-                onClick={() => setToolsOpen((open) => !open)}
+                onClick={() => {
+                  const next = !toolsOpen
+                  setToolsOpen(next)
+                  if (next) void syncCapabilities()
+                }}
                 className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition lg:h-10 lg:w-10 min-[2048px]:h-11 min-[2048px]:w-11 ${
                   toolsOpen
                     ? "rotate-45 border-blue-200 bg-blue-50 text-blue-700"
                     : "border-soft bg-card-theme text-main hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
                 }`}
-                aria-label="Abrir opciones para crear materiales"
-                title="Crear materiales y abrir herramientas"
+                aria-label="Abrir acciones y contexto docente"
+                title="Acciones docentes, contexto y herramientas"
               >
                 <Plus size={19} className="min-[2048px]:h-5 min-[2048px]:w-5" />
               </button>

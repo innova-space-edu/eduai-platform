@@ -120,7 +120,7 @@ export default function Dashboard() {
     ? Math.min(((xp - currentLevel.min) / (nextLevel.min - currentLevel.min)) * 100, 100)
     : 100
   const levelColor = LEVEL_COLORS[levelIdx] || LEVEL_COLORS[0]
-  const displayName = user?.user_metadata?.name || user?.email?.split("@")[0] || "Estudiante"
+  const displayName = user?.user_metadata?.name || user?.email?.split("@")[0] || "Docente"
 
   const stats = [
     { label: "Nivel", value: level, icon: BarChart3, color: "#2563eb" },
@@ -247,7 +247,7 @@ export default function Dashboard() {
           <div className="mx-auto flex h-12 w-full max-w-[1480px] items-center justify-between px-3 lg:h-14 lg:px-6 min-[2048px]:h-16 min-[2048px]:max-w-[1960px] min-[2048px]:px-10">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-widest text-muted2 lg:text-xs min-[2048px]:text-[13px]">EduAI</p>
-              <p className="hidden text-xs text-sub lg:block min-[2048px]:text-sm">Claw es tu espacio principal de trabajo</p>
+              <p className="hidden text-xs text-sub lg:block min-[2048px]:text-sm">Claw es tu espacio principal de trabajo docente</p>
             </div>
             <div className="flex items-center gap-1.5 lg:gap-3 min-[2048px]:gap-4">
               <Link
