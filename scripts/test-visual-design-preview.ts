@@ -35,6 +35,8 @@ import {
   buildVisualOptimizationProfile,
   ensureProductionPrompt,
   improvementScore,
+  extractOptimizedPromptText,
+  buildLocalOptimizationBrief,
 } from "../lib/visual-design/prompt-optimizer";
 
 const infographicProfile = buildVisualOptimizationProfile({
@@ -56,3 +58,29 @@ assert.equal(improvementScore(weak, enriched).improved, true);
 // Provider routing regression notes:
 // - Gemini image requests must use v1beta/interactions, not generateContent responseFormat.
 // - text-critical Auto keeps all fallbacks, preferring Gemini then Pollinations.
+
+const plainOptimized = "Crear una infografía horizontal clara del Sistema Solar con jerarquía visual y poco texto.";
+assert.equal(extractOptimizedPromptText(plainOptimized), plainOptimized);
+
+const jsonOptimized = JSON.stringify({ optimizedPrompt: plainOptimized, changes: ["x"] });
+assert.equal(extractOptimizedPromptText(jsonOptimized), plainOptimized);
+
+const doubleEncoded = JSON.stringify(jsonOptimized);
+assert.equal(extractOptimizedPromptText(doubleEncoded), plainOptimized);
+
+assert.equal(
+  extractOptimizedPromptText('{"optimizedPrompt":"texto roto",'),
+  "texto roto"
+);
+
+const localBrief = buildLocalOptimizationBrief(weak, enriched, infographicProfile);
+assert.ok(localBrief.composition.includes("16:9"));
+assert.ok(localBrief.avoid.includes("pseudo-texto"));
+
+const routedFromOriginal = planEduAIVisual(
+  "Infografía educativa del sistema solar para 1° medio",
+  { generationPrompt: "Crear una infografía horizontal limpia del Sistema Solar, con jerarquía clara y poco texto." }
+);
+assert.ok(routedFromOriginal.plan.routing.selected_skills.includes("infographic"));
+assert.equal(routedFromOriginal.plan.visual_brief.purpose.includes("horizontal limpia"), true);
+assert.equal(String(routedFromOriginal.plan.visual_brief.context?.routing_source).includes("Infografía educativa"), true);

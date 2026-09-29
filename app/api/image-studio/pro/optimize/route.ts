@@ -3,8 +3,10 @@ import { runAIText } from "@/lib/ai/gateway"
 import { createClient } from "@/lib/supabase/server"
 import { getSkillGuidance } from "@innova-space/visual-design"
 import {
+  buildLocalOptimizationBrief,
   buildVisualOptimizationProfile,
   ensureProductionPrompt,
+  extractOptimizedPromptText,
   normalizeOptimizationLevel,
 } from "@/lib/visual-design/prompt-optimizer"
 
@@ -48,42 +50,25 @@ export async function POST(request: NextRequest) {
   })
 
   const system = `Eres el optimizador de solicitudes visuales de EDUAI Image Studio Pro.
-Tu trabajo NO es parafrasear. Debes convertir una solicitud breve en un brief visual de producción claramente mejorado.
+Tu trabajo NO es parafrasear: convierte una solicitud breve en una instrucción visual de producción claramente mejorada.
 
 Niveles:
 - light: corrige ambigüedad y redacción sin expandir mucho.
 - recommended: agrega estructura visual, jerarquía, composición y restricciones útiles.
-- advanced: genera un brief de producción completo, pero sin inventar hechos.
+- advanced: crea una instrucción de producción más completa, sin inventar hechos.
 
 Reglas obligatorias:
 - Conserva la intención del usuario. No cambies tema, personas, números, nombres propios ni texto exacto.
 - No inventes datos, cifras, hechos, citas, nombres, fórmulas o contenido curricular.
 - Puedes añadir decisiones NO factuales de diseño: composición, jerarquía, distribución, espacio negativo, encuadre, iluminación, paleta y acabado cuando correspondan.
-- Para conocimiento común directamente implícito en el tema, usa solo etiquetas universalmente establecidas; si existe duda factual, omítela.
 - El resultado debe ser claramente más útil para un modelo generador que la solicitud original.
-- Evita palabras vacías como "masterpiece", "best quality" o cadenas de adjetivos.
 - Si la pieza incluye texto visible, exige ortografía correcta en español y reduce el texto al mínimo necesario.
 - Para infografías, afiches, diagramas o material educativo: un título corto y hasta 6 etiquetas breves de 1 a 4 palabras. Nunca pidas párrafos dentro de la imagen.
 - Si el usuario escribió texto exacto entre comillas, consérvalo literalmente.
 - No uses pseudo-texto, lorem ipsum, palabras inventadas ni mezcla de idiomas.
-- Devuelve SOLO JSON válido. Sin markdown ni comentarios.
+- No devuelvas JSON, YAML, Markdown, listas de cambios ni explicaciones.
+- Devuelve SOLO el prompt optimizado en texto plano, listo para un modelo de imagen.`
 
-Esquema de salida:
-{
-  "optimizedPrompt": "prompt final en español",
-  "changes": ["cambio concreto 1", "cambio concreto 2"],
-  "brief": {
-    "objective": "objetivo visual",
-    "composition": "composición propuesta",
-    "style": "estilo y acabado",
-    "visibleText": {
-      "title": "título si corresponde o cadena vacía",
-      "labels": ["máximo 6 etiquetas breves"]
-    },
-    "mustInclude": ["elementos obligatorios"],
-    "avoid": ["errores o elementos a evitar"]
-  }
-}`
   const userPrompt = `Solicitud original:
 ${prompt}
 
@@ -100,7 +85,7 @@ ${JSON.stringify(profile, null, 2)}
 Reglas compactas de las skills seleccionadas:
 ${JSON.stringify(specialistGuidance, null, 2)}
 
-Convierte la solicitud en un brief visual de producción claramente mejorado y devuelve el JSON solicitado.`
+Convierte la solicitud en una instrucción visual de producción claramente mejorada. Devuelve únicamente el prompt final en texto plano.`
 
   try {
     const result = await runAIText({
@@ -120,44 +105,13 @@ Convierte la solicitud en un brief visual de producción claramente mejorado y d
     })
 
     const raw = String(result.text || result.data || "").trim()
-    const jsonText = raw
-      .replace(/^```(?:json)?\s*/i, "")
-      .replace(/\s*```$/i, "")
-      .trim()
-    const start = jsonText.indexOf("{")
-    const end = jsonText.lastIndexOf("}")
-    let parsed: any = {}
-    try {
-      parsed = JSON.parse(start >= 0 && end > start ? jsonText.slice(start, end + 1) : jsonText)
-    } catch {
-      parsed = { optimizedPrompt: raw }
-    }
-
-    const candidate = clean(parsed?.optimizedPrompt, 6000) || clean(raw, 6000)
-    if (!candidate) throw new Error("El optimizador no devolvió contenido")
-    const optimizedPrompt = ensureProductionPrompt(prompt, candidate, profile).slice(0, 6500)
-    const changes = Array.isArray(parsed?.changes)
-      ? parsed.changes.map((value: unknown) => clean(value, 180)).filter(Boolean).slice(0, 8)
-      : []
-    const brief = parsed?.brief && typeof parsed.brief === "object"
-      ? {
-          objective: clean(parsed.brief.objective, 500),
-          composition: clean(parsed.brief.composition, 700),
-          style: clean(parsed.brief.style, 500),
-          visibleText: {
-            title: clean(parsed.brief.visibleText?.title, 160),
-            labels: Array.isArray(parsed.brief.visibleText?.labels)
-              ? parsed.brief.visibleText.labels.map((value: unknown) => clean(value, 80)).filter(Boolean).slice(0, 6)
-              : [],
-          },
-          mustInclude: Array.isArray(parsed.brief.mustInclude)
-            ? parsed.brief.mustInclude.map((value: unknown) => clean(value, 160)).filter(Boolean).slice(0, 8)
-            : [],
-          avoid: Array.isArray(parsed.brief.avoid)
-            ? parsed.brief.avoid.map((value: unknown) => clean(value, 160)).filter(Boolean).slice(0, 8)
-            : [],
-        }
-      : null
+    const candidate = extractOptimizedPromptText(raw)
+    const optimizedPrompt = ensureProductionPrompt(
+      prompt,
+      candidate || prompt,
+      profile
+    ).slice(0, 6500)
+    const brief = buildLocalOptimizationBrief(prompt, optimizedPrompt, profile)
 
     return NextResponse.json({
       success: true,
@@ -166,7 +120,9 @@ Convierte la solicitud en un brief visual de producción claramente mejorado y d
       level,
       profile,
       brief,
-      changes: [...new Set([...profile.appliedChanges, ...changes])].slice(0, 10),
+      changes: profile.appliedChanges.slice(0, 10),
+      selectedSkills,
+      primarySkill,
       provider: result.provider,
       model: result.model,
       reused: result.reused,

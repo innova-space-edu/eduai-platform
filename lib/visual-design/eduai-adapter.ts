@@ -66,8 +66,11 @@ export function planEduAIVisual(prompt: string, input?: {
   context?: Record<string, unknown>;
   width?: number;
   height?: number;
+  generationPrompt?: string;
 }) {
-  const plan = visual.plan(prompt, {
+  const routePrompt = prompt.trim();
+  const generationPrompt = input?.generationPrompt?.trim() || routePrompt;
+  const basePlan = visual.plan(routePrompt, {
     context: {
       product: "eduai",
       module: "image-studio-pro",
@@ -83,6 +86,19 @@ export function planEduAIVisual(prompt: string, input?: {
       },
     },
   });
+  const plan: VisualPlan = {
+    ...basePlan,
+    prompt: generationPrompt,
+    visual_brief: {
+      ...basePlan.visual_brief,
+      purpose: generationPrompt,
+      source_request: generationPrompt,
+      context: {
+        ...(basePlan.visual_brief.context as Record<string, unknown> | undefined),
+        routing_source: routePrompt,
+      },
+    },
+  };
   return {
     plan,
     style: visualStyleForPlan(plan),

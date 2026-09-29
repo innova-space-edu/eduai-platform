@@ -48,6 +48,8 @@ type OptimizationResult = {
   optimizedPrompt: string;
   level: OptimizationLevel;
   changes: string[];
+  selectedSkills?: string[];
+  primarySkill?: string;
   brief?: {
     objective?: string;
     composition?: string;
@@ -96,11 +98,18 @@ export default function ImageStudioProPage() {
   }, [router, supabase]);
 
   function createPlan() {
-    const next = planEduAIVisual(prompt.trim(), {
+    const generationPrompt = prompt.trim();
+    const routingPrompt = optimizationResult?.originalPrompt?.trim() || originalPrompt?.trim() || generationPrompt;
+    const next = planEduAIVisual(routingPrompt, {
       audience: "Comunidad EDUAI",
       width: format.width,
       height: format.height,
-      context: { locale: "es-CL", proMode: true },
+      generationPrompt,
+      context: {
+        locale: "es-CL",
+        proMode: true,
+        optimized: Boolean(optimizationResult),
+      },
     });
     setPlanState(next);
     setResult(null);
@@ -148,6 +157,8 @@ export default function ImageStudioProPage() {
         provider: data.provider,
         model: data.model,
         reused: data.reused,
+        selectedSkills: Array.isArray(data.selectedSkills) ? data.selectedSkills : undefined,
+        primarySkill: typeof data.primarySkill === "string" ? data.primarySkill : undefined,
       });
       setPlanState(null);
       setResult(null);
@@ -180,7 +191,7 @@ export default function ImageStudioProPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: prompt.trim(),
+          prompt: optimizationResult?.originalPrompt?.trim() || originalPrompt?.trim() || prompt.trim(),
           customPrompt,
           style: current.style,
           width: format.width,
@@ -191,6 +202,7 @@ export default function ImageStudioProPage() {
           topic: current.plan.routing.primary_skill,
           educationalContext: JSON.stringify({
             selectedSkills: current.plan.routing.selected_skills,
+            optimizedPrompt: prompt.trim(),
             renderStrategy: current.plan.visual_brief.render_strategy,
             constraints: current.plan.visual_brief.constraints,
             language: "es-CL",
@@ -267,6 +279,9 @@ export default function ImageStudioProPage() {
               onChange={(event) => {
                 setPrompt(event.target.value);
                 setPlanState(null);
+                setOriginalPrompt(null);
+                setOptimizerInfo(null);
+                setOptimizationResult(null);
               }}
               className="mt-5 min-h-36 w-full resize-y rounded-2xl border border-soft bg-input-theme px-4 py-3 text-sm outline-none transition focus:border-violet-400/40"
               placeholder="Ej.: crea una infografía educativa..."
@@ -274,7 +289,7 @@ export default function ImageStudioProPage() {
 
             <div className="mt-3 flex flex-wrap gap-2">
               {EXAMPLES.map((example, index) => (
-                <button key={example} onClick={() => { setPrompt(example); setPlanState(null); }} className="rounded-full border border-soft bg-app px-3 py-1.5 text-[11px] font-semibold text-muted2 transition hover:border-violet-400/30 hover:text-main">
+                <button key={example} onClick={() => { setPrompt(example); setPlanState(null); setOriginalPrompt(null); setOptimizerInfo(null); setOptimizationResult(null); }} className="rounded-full border border-soft bg-app px-3 py-1.5 text-[11px] font-semibold text-muted2 transition hover:border-violet-400/30 hover:text-main">
                   Ejemplo {index + 1}
                 </button>
               ))}

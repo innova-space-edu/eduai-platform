@@ -193,3 +193,70 @@ export function ensureProductionPrompt(original: string, candidate: string, prof
     avoid ? `Evitar: ${avoid}.` : "",
   ].filter(Boolean).join(" ");
 }
+
+export function extractOptimizedPromptText(value: unknown): string {
+  let text = typeof value === "string" ? value.trim() : "";
+  if (!text) return "";
+
+  text = text
+    .replace(/^```(?:json|text)?\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
+
+  for (let depth = 0; depth < 3; depth += 1) {
+    if (!text) return "";
+    try {
+      const parsed = JSON.parse(text);
+      if (typeof parsed === "string") {
+        text = parsed.trim();
+        continue;
+      }
+      if (parsed && typeof parsed === "object") {
+        const candidate = (parsed as Record<string, unknown>).optimizedPrompt;
+        if (typeof candidate === "string") {
+          text = candidate.trim();
+          continue;
+        }
+      }
+    } catch {
+      // Continue with defensive extraction below.
+    }
+    break;
+  }
+
+  const jsonField = text.match(/"optimizedPrompt"\s*:\s*"((?:\\.|[^"\\])*)"/s);
+  if (jsonField?.[1]) {
+    try {
+      return JSON.parse(`"${jsonField[1]}"`).trim();
+    } catch {
+      return jsonField[1].replace(/\\n/g, " ").replace(/\\"/g, '"').trim();
+    }
+  }
+
+  // Never leak an object/JSON envelope into the visual router.
+  if (/^\s*[{[]/.test(text) || /"optimizedPrompt"\s*:/.test(text)) return "";
+  return text;
+}
+
+export function buildLocalOptimizationBrief(
+  originalPrompt: string,
+  optimizedPrompt: string,
+  profile: VisualOptimizationProfile
+) {
+  const quoted = [...originalPrompt.matchAll(/["“”]([^"“”]{1,160})["“”]/g)]
+    .map((match) => match[1].trim())
+    .filter(Boolean)
+    .slice(0, 6);
+
+  return {
+    objective: originalPrompt.trim().slice(0, 500),
+    composition: profile.structure.slice(0, 4).join(" "),
+    style: `Aplicar las reglas de las skills ${profile.selectedSkills.join(", ") || profile.primarySkill} sin alterar el contenido factual.`,
+    visibleText: {
+      title: quoted[0] || "",
+      labels: quoted.slice(1, 6),
+    },
+    mustInclude: quoted,
+    avoid: profile.avoid.slice(0, 8),
+  };
+}
