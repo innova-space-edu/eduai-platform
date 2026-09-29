@@ -84,20 +84,6 @@ Esquema de salida:
     "avoid": ["errores o elementos a evitar"]
   }
 }`
-Tu tarea es REESCRIBIR la solicitud del usuario como un prompt de producción claro y coherente en español de Chile.
-
-Reglas obligatorias:
-- Conserva la intención del usuario. No cambies tema, personas, números, nombres propios ni texto exacto.
-- No inventes datos, cifras, hechos, citas, nombres, fórmulas o contenido curricular.
-- Organiza la solicitud en una sola instrucción compacta que describa: objetivo visual, composición, jerarquía, estilo, iluminación/paleta si corresponde y restricciones importantes.
-- Evita palabras vacías como "masterpiece", "best quality" o acumulaciones de adjetivos.
-- Si la pieza incluye texto visible, exige ortografía correcta en español y reduce el texto al mínimo necesario.
-- Para infografías, afiches, diagramas o material educativo: un título corto y hasta 6 etiquetas breves de 1 a 4 palabras. Nunca pidas párrafos dentro de la imagen.
-- Si el usuario escribió texto exacto entre comillas, consérvalo literalmente.
-- Si no puedes determinar una etiqueta factual sin inventar, indica que se omita.
-- No uses pseudo-texto, lorem ipsum, palabras inventadas ni mezcla de idiomas.
-- No expliques lo que hiciste. Devuelve SOLO la solicitud optimizada, sin markdown ni encabezados.`
-
   const userPrompt = `Solicitud original:
 ${prompt}
 
