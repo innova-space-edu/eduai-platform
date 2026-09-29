@@ -35,6 +35,7 @@ export interface CoreContext {
   pieMode?: boolean
   pageMode?: string
   availableActions?: string[]
+  requestedTool?: string
 }
 
 export interface CoreAIRuntime {
@@ -170,8 +171,16 @@ function extractToolArgs(toolName: ToolName, message: string): Record<string, un
       args.concept = message.replace(/prompt.*(imagen|ilustrac|visual)/i, "").trim() || message
       break
 
-    default:
+    default: {
+      const definition = getToolByName(toolName)
+      const primaryStringParam =
+        definition?.params.find((param) => param.required && param.type === "string") ||
+        definition?.params.find((param) => param.type === "string")
+
+      if (primaryStringParam) args[primaryStringParam.name] = message
       args.content = message
+      break
+    }
   }
 
   return args
@@ -253,10 +262,14 @@ export async function runCoreCycle(
   const lastUser = [...messages].reverse().find((message) => message.role === "user")
   const userText = lastUser?.content ?? ""
 
-  const safeAction = trySafeInternalAction(userText, context, t0)
+  const requestedTool = context.requestedTool
+    ? getEnabledTools().find((tool) => tool.name === context.requestedTool)?.name
+    : undefined
+
+  const safeAction = requestedTool ? null : trySafeInternalAction(userText, context, t0)
   if (safeAction) return safeAction
 
-  const toolName = detectToolFromMessage(userText)
+  const toolName = requestedTool || detectToolFromMessage(userText)
 
   if (toolName) {
     const tool = getToolByName(toolName)
