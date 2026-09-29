@@ -30,3 +30,25 @@ const fluxCompiled = compileForEduAI(poster.plan, "together");
 assert.ok(fluxCompiled.length > 20);
 
 console.log("Visual Design Preview adapter OK");
+
+import {
+  buildVisualOptimizationProfile,
+  ensureProductionPrompt,
+  improvementScore,
+} from "../lib/visual-design/prompt-optimizer";
+
+const infographicProfile = buildVisualOptimizationProfile({
+  primarySkill: "infographic",
+  selectedSkills: ["infographic", "educational-image"],
+  textCritical: true,
+  format: "16:9",
+  level: "recommended",
+});
+assert.ok(infographicProfile.structure.some((item) => item.toLowerCase().includes("bloques visuales")));
+assert.ok(infographicProfile.avoid.includes("pseudo-texto"));
+assert.ok(infographicProfile.appliedChanges.includes("Política estricta de texto visible aplicada"));
+
+const weak = "Infografía educativa del sistema solar";
+const enriched = ensureProductionPrompt(weak, weak, infographicProfile);
+assert.ok(enriched.length > weak.length * 2);
+assert.equal(improvementScore(weak, enriched).improved, true);

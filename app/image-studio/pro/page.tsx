@@ -41,6 +41,26 @@ const EXAMPLES = [
   "Logo vectorial limpio para un laboratorio educativo llamado “Innova Lab”",
 ];
 
+type OptimizationLevel = "light" | "recommended" | "advanced";
+
+type OptimizationResult = {
+  originalPrompt: string;
+  optimizedPrompt: string;
+  level: OptimizationLevel;
+  changes: string[];
+  brief?: {
+    objective?: string;
+    composition?: string;
+    style?: string;
+    visibleText?: { title?: string; labels?: string[] };
+    mustInclude?: string[];
+    avoid?: string[];
+  } | null;
+  provider?: string;
+  model?: string;
+  reused?: boolean;
+};
+
 type ImageResult = {
   imageUrl: string;
   optimizedPrompt?: string;
@@ -66,6 +86,8 @@ export default function ImageStudioProPage() {
   const [optimizing, setOptimizing] = useState(false);
   const [originalPrompt, setOriginalPrompt] = useState<string | null>(null);
   const [optimizerInfo, setOptimizerInfo] = useState<{ provider?: string; model?: string; reused?: boolean } | null>(null);
+  const [optimizationLevel, setOptimizationLevel] = useState<OptimizationLevel>("recommended");
+  const [optimizationResult, setOptimizationResult] = useState<OptimizationResult | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -107,6 +129,7 @@ export default function ImageStudioProPage() {
           selectedSkills: localPlan.plan.routing.selected_skills,
           primarySkill: localPlan.plan.routing.primary_skill,
           textCritical: requiresAccurateVisualText(localPlan.plan),
+          level: optimizationLevel,
         }),
       });
       const data = await response.json().catch(() => ({}));
@@ -116,6 +139,16 @@ export default function ImageStudioProPage() {
       setOriginalPrompt(currentPrompt);
       setPrompt(String(data.optimizedPrompt).trim());
       setOptimizerInfo({ provider: data.provider, model: data.model, reused: data.reused });
+      setOptimizationResult({
+        originalPrompt: currentPrompt,
+        optimizedPrompt: String(data.optimizedPrompt).trim(),
+        level: data.level || optimizationLevel,
+        changes: Array.isArray(data.changes) ? data.changes : [],
+        brief: data.brief || null,
+        provider: data.provider,
+        model: data.model,
+        reused: data.reused,
+      });
       setPlanState(null);
       setResult(null);
     } catch (cause) {
@@ -130,6 +163,7 @@ export default function ImageStudioProPage() {
     setPrompt(originalPrompt);
     setOriginalPrompt(null);
     setOptimizerInfo(null);
+    setOptimizationResult(null);
     setPlanState(null);
     setResult(null);
   }
@@ -261,7 +295,27 @@ export default function ImageStudioProPage() {
               </label>
             </div>
 
-            <div className="mt-4 flex flex-wrap items-center gap-2">
+            <div className="mt-4">
+              <p className="mb-2 text-[10px] font-black uppercase tracking-[0.14em] text-muted2">Nivel de optimización</p>
+              <div className="inline-flex flex-wrap gap-1 rounded-xl border border-soft bg-app p-1">
+                {([
+                  ["light", "Ligera"],
+                  ["recommended", "Recomendada"],
+                  ["advanced", "Avanzada"],
+                ] as const).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setOptimizationLevel(value)}
+                    className={`rounded-lg px-3 py-1.5 text-[11px] font-bold transition ${optimizationLevel === value ? "bg-cyan-500/15 text-cyan-700" : "text-muted2 hover:text-main"}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center gap-2">
               <button onClick={optimizePrompt} disabled={!prompt.trim() || optimizing} className="inline-flex items-center gap-2 rounded-xl border border-cyan-400/25 bg-cyan-500/10 px-4 py-2.5 text-sm font-black text-cyan-700 disabled:opacity-40">
                 {optimizing ? <Loader2 className="h-4 w-4 animate-spin" /> : <WandSparkles className="h-4 w-4" />}
                 {optimizing ? "Optimizando…" : "Optimizar solicitud"}
@@ -277,6 +331,49 @@ export default function ImageStudioProPage() {
                 </span>
               )}
             </div>
+
+            {optimizationResult && (
+              <div className="mt-4 rounded-2xl border border-cyan-400/15 bg-cyan-500/[0.04] p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-xs font-black text-main">Antes vs. optimizado</p>
+                  <span className="rounded-full bg-cyan-500/10 px-2.5 py-1 text-[10px] font-bold text-cyan-700">
+                    {optimizationResult.level === "light" ? "Ligera" : optimizationResult.level === "advanced" ? "Avanzada" : "Recomendada"}
+                  </span>
+                </div>
+                <div className="mt-3 grid gap-3 lg:grid-cols-2">
+                  <div className="rounded-xl bg-app p-3">
+                    <p className="text-[10px] font-black uppercase tracking-[0.12em] text-muted2">Original</p>
+                    <p className="mt-2 text-xs leading-5 text-muted2">{optimizationResult.originalPrompt}</p>
+                  </div>
+                  <div className="rounded-xl border border-cyan-400/15 bg-white/60 p-3 dark:bg-black/10">
+                    <p className="text-[10px] font-black uppercase tracking-[0.12em] text-cyan-700">Optimizado</p>
+                    <p className="mt-2 text-xs leading-5 text-main">{optimizationResult.optimizedPrompt}</p>
+                  </div>
+                </div>
+                {optimizationResult.changes.length > 0 && (
+                  <div className="mt-3">
+                    <p className="text-[10px] font-black uppercase tracking-[0.12em] text-muted2">Mejoras aplicadas</p>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {optimizationResult.changes.map((change) => (
+                        <span key={change} className="rounded-full border border-cyan-400/15 bg-app px-2.5 py-1 text-[10px] font-semibold text-muted2">{change}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {optimizationResult.brief && (
+                  <details className="mt-3 rounded-xl bg-app p-3">
+                    <summary className="cursor-pointer text-xs font-bold text-muted2">Ver brief visual generado</summary>
+                    <div className="mt-3 space-y-2 text-xs text-muted2">
+                      {optimizationResult.brief.objective && <p><strong className="text-main">Objetivo:</strong> {optimizationResult.brief.objective}</p>}
+                      {optimizationResult.brief.composition && <p><strong className="text-main">Composición:</strong> {optimizationResult.brief.composition}</p>}
+                      {optimizationResult.brief.style && <p><strong className="text-main">Estilo:</strong> {optimizationResult.brief.style}</p>}
+                      {!!optimizationResult.brief.visibleText?.title && <p><strong className="text-main">Título:</strong> {optimizationResult.brief.visibleText.title}</p>}
+                      {!!optimizationResult.brief.visibleText?.labels?.length && <p><strong className="text-main">Etiquetas:</strong> {optimizationResult.brief.visibleText.labels.join(", ")}</p>}
+                    </div>
+                  </details>
+                )}
+              </div>
+            )}
 
             <div className="mt-3 flex flex-wrap gap-2">
               <button onClick={createPlan} disabled={!prompt.trim()} className="inline-flex items-center gap-2 rounded-xl border border-violet-400/20 bg-violet-500/10 px-4 py-2.5 text-sm font-black text-violet-600 disabled:opacity-40">
@@ -358,7 +455,7 @@ export default function ImageStudioProPage() {
             <h3 className="text-sm font-black">Cómo trabaja Diseño Pro</h3>
             <div className="mt-4 space-y-2">
               {[
-                "Opcionalmente mejora la solicitud con el gateway de texto de EDUAI.",
+                "Opcionalmente convierte la solicitud en un brief visual con nivel Ligero, Recomendado o Avanzado.",
                 "Clasifica la solicitud y carga solo las skills visuales relevantes.",
                 "Construye VisualBrief y restricciones específicas para la pieza.",
                 "Compila un prompt coherente para el modelo elegido, con reglas estrictas de texto cuando corresponde.",
