@@ -6,6 +6,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { runCoreCycle } from "@/lib/superagent/superagent-core";
 import type { CoreMessage } from "@/lib/superagent/superagent-core";
+import { getEnabledTools } from "@/lib/superagent/tool-registry";
+import { EDUAI_PAGES } from "@/lib/superagent/eduai-map";
 
 const AGENT_ROUTES: Record<string, { label: string; href: string; emoji: string }> = {
   dashboard: { label: "Panel", href: "/dashboard", emoji: "🏠" },
@@ -161,13 +163,52 @@ function buildClawConversationMode(mode?: string) {
   return "usuario; conversación natural y cercana. Responde primero a lo que la persona dice. No conviertas saludos ni charla casual en una sesión de estudio y no empujes herramientas si no las piden. Usa formato limpio y fácil de leer.";
 }
 
+export async function GET() {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+
+    const tools = getEnabledTools()
+      .filter((tool) => tool.category !== "code")
+      .map((tool) => ({
+        name: tool.name,
+        label: tool.label,
+        icon: tool.icon,
+        description: tool.description,
+        category: tool.category,
+      }));
+
+    const pages = EDUAI_PAGES
+      .filter((page) => !page.href.startsWith("/admin"))
+      .map(({ key, label, href, emoji, description, group }) => ({
+        key,
+        label,
+        href,
+        emoji,
+        description,
+        group,
+      }));
+
+    return NextResponse.json({
+      audience: "teacher",
+      tools,
+      pages,
+      syncedAt: new Date().toISOString(),
+    });
+  } catch (err: unknown) {
+    const typed = err as Error;
+    return NextResponse.json({ error: typed.message || "Error" }, { status: 500 });
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
 
-    const { message, history = [], userName, pageContext } = await req.json();
+    const { message, history = [], userName, pageContext, requestedTool } = await req.json();
     const cleanMessage = String(message || "").trim();
 
     if (!cleanMessage) return NextResponse.json({ error: "Mensaje vacío" }, { status: 400 });
@@ -188,6 +229,10 @@ export async function POST(req: NextRequest) {
         userId: user.id,
         pageMode: `${buildClawConversationMode(context.mode)}${displayName ? ` Nombre visible del usuario: ${displayName}.` : ""}`,
         availableActions: context.availableActions,
+        requestedTool:
+          typeof requestedTool === "string"
+            ? requestedTool.slice(0, 100)
+            : undefined,
       },
       req.nextUrl.origin,
       { headers: req.headers },
