@@ -333,16 +333,6 @@ Optimized prompt:`
             ],
             temperature: 0.45,
             max_tokens: 600,
-            provider: {
-              sort: process.env.OPENROUTER_PROVIDER_SORT || "price",
-              data_collection:
-                (process.env.OPENROUTER_ALLOW_DATA_COLLECTION || "false").toLowerCase() === "true"
-                  ? "allow"
-                  : "deny",
-              ...((process.env.OPENROUTER_ZDR_ONLY || "false").toLowerCase() === "true"
-                ? { zdr: true }
-                : {}),
-            },
           }),
         }
       )
@@ -374,6 +364,16 @@ Optimized prompt:`
             ],
             temperature: 0.45,
             max_tokens: 600,
+            provider: {
+              sort: process.env.OPENROUTER_PROVIDER_SORT || "price",
+              data_collection:
+                (process.env.OPENROUTER_ALLOW_DATA_COLLECTION || "false").toLowerCase() === "true"
+                  ? "allow"
+                  : "deny",
+              ...((process.env.OPENROUTER_ZDR_ONLY || "false").toLowerCase() === "true"
+                ? { zdr: true }
+                : {}),
+            },
           }),
         }
       )
