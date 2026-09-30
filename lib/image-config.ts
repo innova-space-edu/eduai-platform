@@ -45,8 +45,8 @@ export const STYLE_GUIDES: Record<string, string> = {
     "infographic style, data visualization, clean design, informative, colorful sections, professional design",
 }
 
-// Gemini 3.1 es el motor preferido. Los demás proveedores quedan como respaldo
-// automático cuando Google no tiene cuota, no responde o rechaza la solicitud.
+// Routing visual por costo/calidad. Gemini Image queda como fallback porque los
+// modelos actuales de generación de imagen no incluyen Free Tier.
 export const DEFAULT_IMAGE_PROVIDER_ORDER: Record<GenerationMode, ConcreteProviderId[]> = {
   // Simple/fast: primero rutas gratuitas o baratas. Gemini imagen queda detrás porque
   // los modelos Nano Banana actuales no tienen Free Tier en la Gemini Developer API.
@@ -58,9 +58,9 @@ export const DEFAULT_IMAGE_PROVIDER_ORDER: Record<GenerationMode, ConcreteProvid
 }
 
 export const TEXT_CRITICAL_PROVIDER_ORDER: ConcreteProviderId[] = [
-  "gemini",
-  "pollinations",
   "openrouter",
+  "pollinations",
+  "gemini",
 ]
 
 export const TEXT_CRITICAL_POLLINATIONS_MODELS = [
