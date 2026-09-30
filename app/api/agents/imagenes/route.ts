@@ -135,7 +135,7 @@ async function fetchBase64(url: string, signal: AbortSignal): Promise<string | n
   if (!res.ok) return null
   const buf = await res.arrayBuffer()
   if (!buf.byteLength) return null
-  const mime = res.headers.get("content-type") || "image/png"
+  const mime = res.headers.get("content-type") || "image/jpeg"
   return `data:${mime};base64,${Buffer.from(buf).toString("base64")}`
 }
 
@@ -279,6 +279,7 @@ async function tryGemini(
   prompt: string,
   width: number,
   height: number,
+  style: string,
   signal: AbortSignal
 ): Promise<ProviderResult> {
   const label = "Gemini Imagen"
@@ -287,6 +288,8 @@ async function tryGemini(
 
   let lastError = "Gemini no devolvió una imagen"
   const ratio = aspectRatio(width, height)
+  const highFidelity = style === "infographic" || style === "educational" || style === "flat design"
+  const requestedImageSize = highFidelity ? "2K" : "1K"
 
   for (const model of GEMINI_IMAGE_MODELS) {
     for (const apiKey of keys) {
@@ -309,9 +312,9 @@ async function tryGemini(
               input: prompt,
               response_format: {
                 type: "image",
-                mime_type: "image/png",
+                mime_type: "image/jpeg",
                 aspect_ratio: ratio,
-                image_size: "1K",
+                image_size: model.includes("flash-lite-image") ? "1K" : requestedImageSize,
               },
             }),
             signal,
@@ -327,7 +330,7 @@ async function tryGemini(
         const data = await res.json()
         const direct = data?.output_image || data?.outputImage
         if (direct?.data) {
-          const mimeType = direct?.mime_type || direct?.mimeType || "image/png"
+          const mimeType = direct?.mime_type || direct?.mimeType || "image/jpeg"
           return {
             imageBase64: `data:${mimeType};base64,${direct.data}`,
             label,
@@ -342,7 +345,7 @@ async function tryGemini(
           const content = Array.isArray(step?.content) ? step.content : []
           for (const block of content) {
             if (block?.type === "image" && block?.data) {
-              const mimeType = block?.mime_type || block?.mimeType || "image/png"
+              const mimeType = block?.mime_type || block?.mimeType || "image/jpeg"
               return {
                 imageBase64: `data:${mimeType};base64,${block.data}`,
                 label,
@@ -368,6 +371,7 @@ async function tryPollinations(
   prompt: string,
   width: number,
   height: number,
+  style: string,
   signal: AbortSignal
 ): Promise<ProviderResult> {
   const label = "Pollinations"
@@ -375,8 +379,15 @@ async function tryPollinations(
   const safeW = clamp(width, 256, 1920, 1024)
   const safeH = clamp(height, 256, 1920, 768)
   let lastError = "Pollinations no devolvió una imagen"
+  const textCritical = style === "infographic" || style === "educational" || style === "flat design"
+  const modelOrder = textCritical
+    ? [
+        ...TEXT_CRITICAL_POLLINATIONS_MODELS.filter((model) => POLLINATIONS_IMAGE_MODELS.includes(model)),
+        ...POLLINATIONS_IMAGE_MODELS.filter((model) => !TEXT_CRITICAL_POLLINATIONS_MODELS.includes(model as any)),
+      ]
+    : POLLINATIONS_IMAGE_MODELS
 
-  for (const model of POLLINATIONS_IMAGE_MODELS) {
+  for (const model of modelOrder) {
     if (signal.aborted) break
     try {
       if (apiKey) {
@@ -462,6 +473,7 @@ async function tryTogether(
   prompt: string,
   width: number,
   height: number,
+  style: string,
   signal: AbortSignal
 ): Promise<ProviderResult> {
   const label = "Together AI"
@@ -469,8 +481,15 @@ async function tryTogether(
   if (!keys.length) return { imageBase64: null, label, error: "No hay clave Together configurada" }
 
   let lastError = "Together no devolvió una imagen"
+  const textCritical = style === "infographic" || style === "educational" || style === "flat design"
+  const modelOrder = textCritical
+    ? [
+        ...TOGETHER_IMAGE_MODELS.filter((model) => /FLUX\.1\.1-pro/i.test(model.id)),
+        ...TOGETHER_IMAGE_MODELS.filter((model) => !/FLUX\.1\.1-pro/i.test(model.id)),
+      ]
+    : TOGETHER_IMAGE_MODELS
 
-  for (const { id, steps, guidance, useAspectRatio } of TOGETHER_IMAGE_MODELS) {
+  for (const { id, steps, guidance, useAspectRatio } of modelOrder) {
     for (const key of keys) {
       if (signal.aborted) return { imageBase64: null, label, model: id, error: lastError }
       try {
@@ -584,7 +603,7 @@ async function tryHuggingFace(
         }
 
         return {
-          imageBase64: `data:${contentType || "image/png"};base64,${Buffer.from(buf).toString("base64")}`,
+          imageBase64: `data:${contentType || "image/jpeg"};base64,${Buffer.from(buf).toString("base64")}`,
           label,
           model: id,
         }
@@ -643,7 +662,7 @@ async function tryOpenRouter(
         const data = await res.json()
         const item = data?.data?.[0]
         if (item?.b64_json) {
-          const mediaType = item.media_type || "image/png"
+          const mediaType = item.media_type || "image/jpeg"
           return { imageBase64: `data:${mediaType};base64,${item.b64_json}`, label, model: id }
         }
         if (item?.url) {
@@ -672,11 +691,11 @@ async function runProvider(
 ): Promise<ProviderResult> {
   switch (id) {
     case "gemini":
-      return tryGemini(prompt, width, height, signal)
+      return tryGemini(prompt, width, height, style, signal)
     case "pollinations":
-      return tryPollinations(prompt, width, height, signal)
+      return tryPollinations(prompt, width, height, style, signal)
     case "together":
-      return tryTogether(prompt, width, height, signal)
+      return tryTogether(prompt, width, height, style, signal)
     case "huggingface":
       return tryHuggingFace(prompt, width, height, style, signal)
     case "openrouter":
@@ -870,14 +889,7 @@ export async function POST(req: Request) {
         : basicPrompt(prompt, style)
 
     const baseOrder = providerOrder(provider, mode)
-    const textPreferredProviders: ConcreteProviderId[] = [
-      "gemini",
-      "pollinations",
-      "openrouter",
-      "together",
-      "huggingface",
-    ]
-    const textSafeOrder = textPreferredProviders.filter((candidate) => baseOrder.includes(candidate))
+    const textSafeOrder = TEXT_CRITICAL_PROVIDER_ORDER.filter((candidate) => baseOrder.includes(candidate))
     const order = provider === "auto" && textPriority && textSafeOrder.length
       ? textSafeOrder
       : baseOrder
@@ -885,6 +897,7 @@ export async function POST(req: Request) {
     let imageBase64: string | null = null
     let usedProvider = ""
     let usedModel = ""
+    let qualityTier: "text_fidelity" | "general" = textPriority ? "text_fidelity" : "general"
 
     for (let index = 0; index < order.length; index += 1) {
       const currentProvider = order[index]
@@ -917,6 +930,7 @@ export async function POST(req: Request) {
         imageBase64 = result.imageBase64
         usedProvider = result.label
         usedModel = result.model || ""
+        if (textPriority && currentProvider === "together") qualityTier = "general"
         break
       }
 
@@ -999,6 +1013,7 @@ export async function POST(req: Request) {
             storageFolder: stored.storageFolder,
             storagePath: stored.storagePath,
             textPriority,
+            qualityTier,
           },
         })
 
@@ -1084,6 +1099,7 @@ export async function POST(req: Request) {
         assetId,
         persistentUrl: stored?.publicUrl || null,
         storagePath: stored?.storagePath || null,
+        qualityTier,
         storageFolder: stored?.storageFolder || null,
         elapsedMs: Date.now() - startedAt,
       },

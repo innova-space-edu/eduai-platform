@@ -85,3 +85,14 @@ assert.ok(routedFromOriginal.plan.routing.selected_skills.includes("infographic"
 assert.equal(routedFromOriginal.plan.visual_brief.purpose.includes("horizontal limpia"), true);
 const routingContext = (routedFromOriginal.plan.visual_brief.context || {}) as Record<string, unknown>;
 assert.equal(String(routingContext.routing_source).includes("Infografía educativa"), true);
+
+import {
+  TEXT_CRITICAL_PROVIDER_ORDER,
+  TEXT_CRITICAL_POLLINATIONS_MODELS,
+} from "../lib/image-config";
+
+assert.deepEqual(
+  TEXT_CRITICAL_PROVIDER_ORDER.slice(0, 3),
+  ["gemini", "pollinations", "openrouter"],
+);
+assert.equal(TEXT_CRITICAL_POLLINATIONS_MODELS[0], "qwen-image");
