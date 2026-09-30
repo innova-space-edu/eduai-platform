@@ -333,6 +333,16 @@ Optimized prompt:`
             ],
             temperature: 0.45,
             max_tokens: 600,
+            provider: {
+              sort: process.env.OPENROUTER_PROVIDER_SORT || "price",
+              data_collection:
+                (process.env.OPENROUTER_ALLOW_DATA_COLLECTION || "false").toLowerCase() === "true"
+                  ? "allow"
+                  : "deny",
+              ...((process.env.OPENROUTER_ZDR_ONLY || "false").toLowerCase() === "true"
+                ? { zdr: true }
+                : {}),
+            },
           }),
         }
       )
@@ -752,6 +762,16 @@ async function tryOpenRouter(
             ...(id.startsWith("openai/gpt-image-")
               ? { quality: mode === "quality" ? "high" : "medium" }
               : { resolution: mode === "quality" ? "2K" : "1K" }),
+            provider: {
+              sort: process.env.OPENROUTER_PROVIDER_SORT || "price",
+              data_collection:
+                (process.env.OPENROUTER_ALLOW_DATA_COLLECTION || "false").toLowerCase() === "true"
+                  ? "allow"
+                  : "deny",
+              ...((process.env.OPENROUTER_ZDR_ONLY || "false").toLowerCase() === "true"
+                ? { zdr: true }
+                : {}),
+            },
           }),
           signal,
         })
