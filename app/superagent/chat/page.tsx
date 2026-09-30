@@ -116,7 +116,7 @@ export default function SuperAgentChatPage() {
     setMessages([{
       id:       uid(),
       role:     "assistant",
-      content:  "¡Hola! Soy **EduAI Claw** 🦅, tu superagente educativo.\n\nPuedo ayudarte a crear evaluaciones, planificar clases, adaptar contenidos para PIE/NEE, resolver dudas pedagógicas y mucho más.\n\n¿En qué trabajamos hoy?",
+      content:  "¡Hola! Soy **EduAI Claw** , ¿En qué trabajamos hoy?",
       provider: "Sistema",
       model:    "EduAI Claw v2",
     }])
