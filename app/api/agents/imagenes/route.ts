@@ -13,8 +13,10 @@ import {
   saveReusableGeneration,
 } from "@/lib/ai/reuse"
 import {
+  GEMINI_FREE_PROMPT_MODELS,
+  GROQ_PROMPT_MODELS,
   HUGGINGFACE_IMAGE_MODELS,
-  OPENROUTER_IMAGE_MODELS,
+  OPENROUTER_PROMPT_MODELS,
   POLLINATIONS_IMAGE_MODELS,
   TOGETHER_IMAGE_MODELS,
   TEXT_CRITICAL_PROVIDER_ORDER,
@@ -29,11 +31,12 @@ import {
   errMsg,
   GEMINI_IMAGE_MODELS,
   getGeminiImageKeys,
+  getGroqKeys,
   getHuggingFaceTokens,
   getOpenRouterKeys,
   getPromptOptimizerKeys,
   getTogetherKeys,
-  pickFromPool,
+  openRouterImageModels,
   providerOrder,
   safeText,
   shouldOptimizePrompt,
@@ -212,8 +215,12 @@ async function optimizePrompt(
   style: string,
   educationalCtx?: string
 ): Promise<string> {
-  const apiKey = pickFromPool(getPromptOptimizerKeys(), `${userPrompt}:${style}`)
-  if (!apiKey) return basicPrompt(userPrompt, style)
+  const fallback = basicPrompt(userPrompt, style)
+  const geminiKeys = getPromptOptimizerKeys()
+  const groqKeys = getGroqKeys()
+  const openRouterKeys = getOpenRouterKeys()
+
+  if (!geminiKeys.length && !groqKeys.length && !openRouterKeys.length) return fallback
 
   const styleDesc = STYLE_GUIDES[style] || STYLE_GUIDES.realistic
   const isPortrait = style === "realistic" || style === "portrait"
@@ -237,44 +244,136 @@ Add visual details, palette, lighting, mood and composition.
 ${compositionNote}
 Output only the prompt.`
 
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), 5_000)
+  const userInput = `User request: "${userPrompt}"
+Style: ${style}
+${educationalCtx ? `Context: "${educationalCtx.slice(0, 400)}"` : ""}
+Optimized prompt:`
 
-  try {
-    const model = process.env.GOOGLE_TEXT_MODEL_LITE || process.env.GEMINI_TEXT_MODEL_LITE || "gemini-3.5-flash-lite"
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": apiKey,
-        },
-        body: JSON.stringify({
-          system_instruction: { parts: [{ text: systemInstruction }] },
-          contents: [{
-            parts: [{
-              text: `User request: "${userPrompt}"\nStyle: ${style}\n${
-                educationalCtx ? `Context: "${educationalCtx.slice(0, 400)}"` : ""
-              }\nOptimized prompt:`,
-            }],
-          }],
-          generationConfig: { temperature: 0.5, maxOutputTokens: 600 },
-        }),
-        signal: controller.signal,
-      }
-    )
+  const optimizerDeadline = Date.now() + 7_500
 
-    if (!res.ok) return basicPrompt(userPrompt, style)
-    const data = await res.json()
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim()
-    if (!text) return basicPrompt(userPrompt, style)
-    return text.replace(/^["']|["']$/g, "")
-  } catch {
-    return basicPrompt(userPrompt, style)
-  } finally {
-    clearTimeout(timer)
+  const extractChatText = (data: any): string => {
+    const content = data?.choices?.[0]?.message?.content
+    if (typeof content === "string") return content.trim()
+    if (Array.isArray(content)) {
+      return content
+        .map((item) => typeof item?.text === "string" ? item.text : "")
+        .join("")
+        .trim()
+    }
+    return ""
   }
+
+  const fetchWithBudget = async (
+    url: string,
+    init: RequestInit,
+    maxMs = 2_600
+  ): Promise<Response | null> => {
+    const remaining = optimizerDeadline - Date.now()
+    if (remaining < 500) return null
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), Math.min(maxMs, remaining))
+    try {
+      return await fetch(url, { ...init, signal: controller.signal })
+    } catch {
+      return null
+    } finally {
+      clearTimeout(timer)
+    }
+  }
+
+  // 1) Gemini Free Tier para preparar el prompt. Los modelos de esta lista
+  // producen texto; no se usan como generadores de imagen.
+  for (const model of GEMINI_FREE_PROMPT_MODELS) {
+    for (const apiKey of geminiKeys) {
+      if (Date.now() >= optimizerDeadline) break
+      const res = await fetchWithBudget(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": apiKey,
+          },
+          body: JSON.stringify({
+            system_instruction: { parts: [{ text: systemInstruction }] },
+            contents: [{ parts: [{ text: userInput }] }],
+            generationConfig: { temperature: 0.45, maxOutputTokens: 600 },
+          }),
+        }
+      )
+
+      if (!res?.ok) continue
+      const data = await res.json()
+      const text = data?.candidates?.[0]?.content?.parts
+        ?.map((part: any) => typeof part?.text === "string" ? part.text : "")
+        ?.join("")
+        ?.trim()
+      if (text) return text.replace(/^[\"']|[\"']$/g, "")
+    }
+  }
+
+  // 2) Groq Free Plan como fallback rápido. Groq no genera la imagen; solo
+  // mejora la instrucción que recibirá el proveedor visual.
+  for (const model of GROQ_PROMPT_MODELS) {
+    for (const apiKey of groqKeys) {
+      if (Date.now() >= optimizerDeadline) break
+      const res = await fetchWithBudget(
+        "https://api.groq.com/openai/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model,
+            messages: [
+              { role: "system", content: systemInstruction },
+              { role: "user", content: userInput },
+            ],
+            temperature: 0.45,
+            max_tokens: 600,
+          }),
+        }
+      )
+      if (!res?.ok) continue
+      const text = extractChatText(await res.json())
+      if (text) return text.replace(/^[\"']|[\"']$/g, "")
+    }
+  }
+
+  // 3) OpenRouter free router como último optimizador gratuito.
+  for (const model of OPENROUTER_PROMPT_MODELS) {
+    for (const apiKey of openRouterKeys) {
+      if (Date.now() >= optimizerDeadline) break
+      const res = await fetchWithBudget(
+        "https://openrouter.ai/api/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+            "HTTP-Referer": process.env.OPENROUTER_REFERER || "https://eduai.innova-space-edu.cl",
+            "X-Title": process.env.OPENROUTER_APP_TITLE || "EduAI Image Studio",
+          },
+          body: JSON.stringify({
+            model,
+            messages: [
+              { role: "system", content: systemInstruction },
+              { role: "user", content: userInput },
+            ],
+            temperature: 0.45,
+            max_tokens: 600,
+          }),
+        }
+      )
+      if (!res?.ok) continue
+      const text = extractChatText(await res.json())
+      if (text) return text.replace(/^[\"']|[\"']$/g, "")
+    }
+  }
+
+  return fallback
 }
 
 async function tryGemini(
@@ -624,6 +723,7 @@ async function tryOpenRouter(
   prompt: string,
   width: number,
   height: number,
+  mode: GenerationMode,
   signal: AbortSignal
 ): Promise<ProviderResult> {
   const label = "OpenRouter"
@@ -632,7 +732,7 @@ async function tryOpenRouter(
 
   let lastError = "OpenRouter no devolvió una imagen"
 
-  for (const { id } of OPENROUTER_IMAGE_MODELS) {
+  for (const { id } of openRouterImageModels(mode)) {
     for (const key of keys) {
       if (signal.aborted) return { imageBase64: null, label, model: id, error: lastError }
       try {
@@ -648,9 +748,10 @@ async function tryOpenRouter(
             model: id,
             prompt,
             n: 1,
-            resolution: "1K",
             aspect_ratio: aspectRatio(width, height),
-            output_format: "png",
+            ...(id.startsWith("openai/gpt-image-")
+              ? { quality: mode === "quality" ? "high" : "medium" }
+              : { resolution: mode === "quality" ? "2K" : "1K" }),
           }),
           signal,
         })
@@ -658,6 +759,11 @@ async function tryOpenRouter(
         if (!res.ok) {
           lastError = await responseError(res)
           console.warn(`[OpenRouter][${id}] ${lastError}`)
+          // 402 significa que esta clave/cuenta no tiene saldo. No tiene sentido
+          // gastar el presupuesto de tiempo probando más modelos pagados con ella.
+          if (res.status === 402) {
+            return { imageBase64: null, label, model: id, error: lastError }
+          }
           continue
         }
 
@@ -689,6 +795,7 @@ async function runProvider(
   width: number,
   height: number,
   style: string,
+  mode: GenerationMode,
   signal: AbortSignal
 ): Promise<ProviderResult> {
   switch (id) {
@@ -701,7 +808,7 @@ async function runProvider(
     case "huggingface":
       return tryHuggingFace(prompt, width, height, style, signal)
     case "openrouter":
-      return tryOpenRouter(prompt, width, height, signal)
+      return tryOpenRouter(prompt, width, height, mode, signal)
   }
 }
 
@@ -711,6 +818,7 @@ async function runProviderWithTimeout(
   width: number,
   height: number,
   style: string,
+  mode: GenerationMode,
   timeoutMs: number
 ): Promise<{ result: ProviderResult; elapsedMs: number }> {
   const startedAt = Date.now()
@@ -718,7 +826,7 @@ async function runProviderWithTimeout(
   const timer = setTimeout(() => controller.abort(), timeoutMs)
 
   try {
-    const result = await runProvider(id, prompt, width, height, style, controller.signal)
+    const result = await runProvider(id, prompt, width, height, style, mode, controller.signal)
     if (!result.imageBase64 && controller.signal.aborted) {
       return {
         result: {
@@ -774,7 +882,13 @@ export async function POST(req: Request) {
   const width = clamp(Number(body?.width), 256, 1920, 1024)
   const height = clamp(Number(body?.height), 256, 1920, 768)
   const provider = (body?.provider || "auto") as ProviderId
-  const mode = (body?.mode || "fast") as GenerationMode
+  const rawMode = String(body?.mode || "fast").toLowerCase()
+  const mode: GenerationMode =
+    rawMode === "pro" || rawMode === "quality"
+      ? "quality"
+      : rawMode === "educational"
+        ? "educational"
+        : "fast"
   const customPrompt = String(body?.customPrompt || "").trim()
   const source = String(body?.source || "manual")
   const topic = body?.topic ?? null
@@ -925,6 +1039,7 @@ export async function POST(req: Request) {
         width,
         height,
         style,
+        mode,
         timeoutMs
       )
 
