@@ -1,5 +1,5 @@
 // lib/image-config.ts
-// v4 — Gemini 3.1 primero + configuración multiproveedor de respaldo
+// v5 — routing Simple/Pro + optimización de prompt con tiers gratuitos
 
 export type ProviderId =
   | "auto"
@@ -48,9 +48,13 @@ export const STYLE_GUIDES: Record<string, string> = {
 // Gemini 3.1 es el motor preferido. Los demás proveedores quedan como respaldo
 // automático cuando Google no tiene cuota, no responde o rechaza la solicitud.
 export const DEFAULT_IMAGE_PROVIDER_ORDER: Record<GenerationMode, ConcreteProviderId[]> = {
-  fast: ["gemini", "pollinations", "openrouter", "together", "huggingface"],
-  quality: ["gemini", "openrouter", "pollinations", "together", "huggingface"],
-  educational: ["gemini", "pollinations", "openrouter", "together", "huggingface"],
+  // Simple/fast: primero rutas gratuitas o baratas. Gemini imagen queda detrás porque
+  // los modelos Nano Banana actuales no tienen Free Tier en la Gemini Developer API.
+  fast: ["pollinations", "openrouter", "gemini", "together", "huggingface"],
+  // Pro/quality: OpenRouter permite elegir modelos de mayor fidelidad; Gemini queda
+  // como fallback cuando la cuenta Google tiene facturación/cuota habilitada.
+  quality: ["openrouter", "gemini", "pollinations", "together", "huggingface"],
+  educational: ["pollinations", "openrouter", "gemini", "together", "huggingface"],
 }
 
 export const TEXT_CRITICAL_PROVIDER_ORDER: ConcreteProviderId[] = [
@@ -84,6 +88,39 @@ export const GEMINI_IMAGE_MODELS: string[] = Array.from(new Set([
   ),
 ]))
 
+function uniqueModels(values: Array<string | undefined>): string[] {
+  return Array.from(new Set(values.filter((model): model is string => Boolean(model?.trim()))))
+}
+
+// Estos modelos se usan SOLO para preparar/validar prompts. A 30-09-2026 Google
+// publica Free Tier para estos modelos de texto/multimodales. No generan la imagen.
+export const GEMINI_FREE_PROMPT_MODELS = uniqueModels([
+  process.env.GEMINI_IMAGE_PROMPT_MODEL_PRIMARY,
+  process.env.GOOGLE_IMAGE_PROMPT_MODEL_PRIMARY,
+  "gemini-3.1-flash-lite",
+  "gemini-2.5-flash-lite",
+  "gemini-3.7-flash",
+  "gemini-3.8-flash",
+])
+
+// Groq no expone generación de imágenes actualmente. Se usa como optimizador de
+// prompts/fallback de razonamiento con modelos disponibles en su Free Plan.
+export const GROQ_PROMPT_MODELS = uniqueModels([
+  process.env.GROQ_IMAGE_PROMPT_MODEL_PRIMARY,
+  process.env.GROQ_TEXT_MODEL &&
+    !/^(?:llama-3\.3-70b-versatile|groq\/compound(?:-mini)?)$/i.test(process.env.GROQ_TEXT_MODEL)
+    ? process.env.GROQ_TEXT_MODEL
+    : undefined,
+  "openai/gpt-oss-20b",
+  "qwen/qwen3.8-27b",
+  "openai/gpt-oss-120b",
+])
+
+export const OPENROUTER_PROMPT_MODELS = uniqueModels([
+  process.env.OPENROUTER_IMAGE_PROMPT_MODEL_PRIMARY,
+  "openrouter/free",
+])
+
 const POLLINATIONS_IMAGE_MODELS_RAW = [
   process.env.POLLINATIONS_IMAGE_MODEL_PRIMARY,
   process.env.POLLINATIONS_IMAGE_MODEL_SECONDARY,
@@ -115,11 +152,60 @@ export const HUGGINGFACE_IMAGE_MODELS = [
   { id: process.env.HF_IMAGE_MODEL_SECONDARY || "stabilityai/stable-diffusion-xl-base-1.0", steps: 25, guidance: 7.5 },
 ]
 
-export const OPENROUTER_IMAGE_MODELS: { id: string; modalities: string[] }[] = [
-  { id: process.env.OPENROUTER_IMAGE_MODEL_PRIMARY || "bytedance-seed/seedream-4.5", modalities: ["image"] },
-  { id: process.env.OPENROUTER_IMAGE_MODEL_SECONDARY || "sourceful/riverflow-v2-fast", modalities: ["image"] },
-  { id: process.env.OPENROUTER_IMAGE_MODEL_TERTIARY || "google/gemini-3.1-flash-image", modalities: ["image", "text"] },
+export type OpenRouterImageModel = {
+  id: string
+  modalities: string[]
+  quality?: "simple" | "pro"
+}
+
+export const OPENROUTER_IMAGE_MODELS_SIMPLE: OpenRouterImageModel[] = [
+  {
+    id: process.env.OPENROUTER_IMAGE_MODEL_SIMPLE_PRIMARY ||
+      process.env.OPENROUTER_IMAGE_MODEL_PRIMARY ||
+      "sourceful/riverflow-v2-fast",
+    modalities: ["image"],
+    quality: "simple",
+  },
+  {
+    id: process.env.OPENROUTER_IMAGE_MODEL_SIMPLE_SECONDARY ||
+      process.env.OPENROUTER_IMAGE_MODEL_SECONDARY ||
+      "google/gemini-3.1-flash-lite-image",
+    modalities: ["image", "text"],
+    quality: "simple",
+  },
+  {
+    id: process.env.OPENROUTER_IMAGE_MODEL_SIMPLE_TERTIARY ||
+      process.env.OPENROUTER_IMAGE_MODEL_TERTIARY ||
+      "bytedance-seed/seedream-4.5",
+    modalities: ["image"],
+    quality: "simple",
+  },
 ]
+
+export const OPENROUTER_IMAGE_MODELS_PRO: OpenRouterImageModel[] = [
+  {
+    id: process.env.OPENROUTER_IMAGE_MODEL_PRO_PRIMARY || "openai/gpt-image-2.5-sunburst",
+    modalities: ["image"],
+    quality: "pro",
+  },
+  {
+    id: process.env.OPENROUTER_IMAGE_MODEL_PRO_SECONDARY || "google/gemini-3.1-flash-image",
+    modalities: ["image", "text"],
+    quality: "pro",
+  },
+  {
+    id: process.env.OPENROUTER_IMAGE_MODEL_PRO_TERTIARY || "bytedance-seed/seedream-4.5",
+    modalities: ["image"],
+    quality: "pro",
+  },
+]
+
+export function openRouterImageModels(mode: GenerationMode): OpenRouterImageModel[] {
+  return mode === "quality" ? OPENROUTER_IMAGE_MODELS_PRO : OPENROUTER_IMAGE_MODELS_SIMPLE
+}
+
+// Alias para consumidores antiguos.
+export const OPENROUTER_IMAGE_MODELS = OPENROUTER_IMAGE_MODELS_SIMPLE
 
 export function clamp(v: number, min: number, max: number, fallback: number): number {
   if (!Number.isFinite(v)) return fallback
@@ -202,6 +288,15 @@ export function getTogetherKeys(): string[] {
     "TOGETHER_API_KEY_2",
     "TOGETHER_API_KEY_3",
     "TOGETHER_API_KEY"
+  )
+}
+
+export function getGroqKeys(): string[] {
+  return envPool(
+    "GROQ_API_KEY_1",
+    "GROQ_API_KEY_2",
+    "GROQ_API_KEY_3",
+    "GROQ_API_KEY"
   )
 }
 
