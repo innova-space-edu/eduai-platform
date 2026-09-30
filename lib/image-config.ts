@@ -57,8 +57,6 @@ export const TEXT_CRITICAL_PROVIDER_ORDER: ConcreteProviderId[] = [
   "gemini",
   "pollinations",
   "openrouter",
-  "together",
-  "huggingface",
 ]
 
 export const TEXT_CRITICAL_POLLINATIONS_MODELS = [

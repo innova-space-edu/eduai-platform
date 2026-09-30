@@ -137,7 +137,10 @@ function visibleTextRules(plan: VisualPlan): string {
     .filter((text): text is string => Boolean(text));
 
   const exactRule = exact.length
-    ? ` EXACT VISIBLE TEXT — reproduce exactly and do not translate: ${exact.map((text) => `"${text}"`).join(", ")}.`
+    ? [
+        `EXACT VISIBLE TEXT — reproduce exactly and do not translate: ${exact.map((text) => `"${text}"`).join(", ")}.`,
+        `These are the ONLY words or phrases allowed to appear visibly in the image. Do not add planet names, captions, legends, paragraphs, filler copy or any other visible text unless it is in this exact list.`,
+      ].join(" ")
     : "";
 
   return [

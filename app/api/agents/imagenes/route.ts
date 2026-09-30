@@ -135,7 +135,7 @@ async function fetchBase64(url: string, signal: AbortSignal): Promise<string | n
   if (!res.ok) return null
   const buf = await res.arrayBuffer()
   if (!buf.byteLength) return null
-  const mime = res.headers.get("content-type") || "image/jpeg"
+  const mime = res.headers.get("content-type") || "image/png"
   return `data:${mime};base64,${Buffer.from(buf).toString("base64")}`
 }
 
@@ -603,7 +603,7 @@ async function tryHuggingFace(
         }
 
         return {
-          imageBase64: `data:${contentType || "image/jpeg"};base64,${Buffer.from(buf).toString("base64")}`,
+          imageBase64: `data:${contentType || "image/png"};base64,${Buffer.from(buf).toString("base64")}`,
           label,
           model: id,
         }
@@ -662,7 +662,7 @@ async function tryOpenRouter(
         const data = await res.json()
         const item = data?.data?.[0]
         if (item?.b64_json) {
-          const mediaType = item.media_type || "image/jpeg"
+          const mediaType = item.media_type || "image/png"
           return { imageBase64: `data:${mediaType};base64,${item.b64_json}`, label, model: id }
         }
         if (item?.url) {
@@ -930,7 +930,13 @@ export async function POST(req: Request) {
         imageBase64 = result.imageBase64
         usedProvider = result.label
         usedModel = result.model || ""
-        if (textPriority && currentProvider === "together") qualityTier = "general"
+        if (textPriority) {
+          const textCapable =
+            currentProvider === "gemini" ||
+            currentProvider === "openrouter" ||
+            (currentProvider === "pollinations" && /qwen-image/i.test(result.model || ""))
+          qualityTier = textCapable ? "text_fidelity" : "general"
+        }
         break
       }
 
@@ -946,6 +952,9 @@ export async function POST(req: Request) {
     if (!imageBase64) {
       const details = attempts.map(formatAttempt)
       const compactDetails = details.join(" | ").slice(0, 1_600)
+      const qualityHint = textPriority && provider === "auto"
+        ? " Diseño Pro evitó proveedores con baja fidelidad de texto; revisa Gemini/Pollinations/OpenRouter."
+        : ""
       await finishGenerationRequest({
         supabase,
         requestId,
@@ -958,7 +967,7 @@ export async function POST(req: Request) {
         {
           success: false,
           code: "IMAGE_PROVIDERS_FAILED",
-          error: `No se pudo generar la imagen. ${compactDetails || "Ningún proveedor quedó disponible."}`,
+          error: `No se pudo generar la imagen. ${compactDetails || "Ningún proveedor quedó disponible."}${qualityHint}`,
           attempts,
           providerOrder: order,
           elapsedMs: Date.now() - startedAt,

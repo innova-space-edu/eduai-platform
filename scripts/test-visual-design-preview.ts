@@ -23,6 +23,7 @@ const compiled = compileForEduAI(poster.plan, "auto");
 assert.ok(compiled.includes("FERIA CIENTÍFICA 2026"));
 assert.ok(compiled.includes("Spanish (es-CL)"));
 assert.ok(compiled.includes("pseudo-text"));
+assert.ok(compiled.includes("ONLY words or phrases allowed"));
 assert.ok(compiled.includes("SPECIALIST GUIDANCE"));
 assert.equal(requiresAccurateVisualText(poster.plan), true);
 
@@ -92,7 +93,7 @@ import {
 } from "../lib/image-config";
 
 assert.deepEqual(
-  TEXT_CRITICAL_PROVIDER_ORDER.slice(0, 3),
+  TEXT_CRITICAL_PROVIDER_ORDER,
   ["gemini", "pollinations", "openrouter"],
 );
 assert.equal(TEXT_CRITICAL_POLLINATIONS_MODELS[0], "qwen-image");
