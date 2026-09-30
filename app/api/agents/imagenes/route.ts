@@ -17,6 +17,8 @@ import {
   OPENROUTER_IMAGE_MODELS,
   POLLINATIONS_IMAGE_MODELS,
   TOGETHER_IMAGE_MODELS,
+  TEXT_CRITICAL_PROVIDER_ORDER,
+  TEXT_CRITICAL_POLLINATIONS_MODELS,
   type GenerationMode,
   type ProviderId,
   type ProviderResult,
@@ -61,6 +63,7 @@ type StoredImage = {
   publicUrl: string
   storagePath: string
   mimeType: string
+  storageFolder: string
 }
 
 const DEFAULT_TOTAL_TIMEOUT_MS = 48_000
@@ -103,19 +106,20 @@ function getNegativePrompt(style: string): string {
     "bad anatomy",
     "cropped",
     "watermark",
-    "text",
     "signature",
   ]
 
   if (style === "educational" || style === "infographic" || style === "flat design") {
-    return [...common, "photorealistic skin", "dark background", "messy layout", "illegible labels"].join(", ")
+    return [...common, "photorealistic skin", "dark background", "messy layout", "garbled text", "pseudo-text", "random letters", "misspelled labels", "illegible labels", "dense paragraphs"].join(", ")
   }
+
+  const withText = [...common, "text"]
 
   if (style === "realistic" || style === "cinematic") {
-    return [...common, "cgi", "3d render", "plastic skin", "oversaturated", "cartoon"].join(", ")
+    return [...withText, "cgi", "3d render", "plastic skin", "oversaturated", "cartoon"].join(", ")
   }
 
-  return common.join(", ")
+  return withText.join(", ")
 }
 
 async function responseError(res: Response): Promise<string> {
@@ -137,7 +141,15 @@ async function fetchBase64(url: string, signal: AbortSignal): Promise<string | n
   return `data:${mime};base64,${Buffer.from(buf).toString("base64")}`
 }
 
-async function uploadToStorage(imageBase64: string, userId: string): Promise<StoredImage | null> {
+function storageFolderFor(source: string): string {
+  if (source === "image-studio-pro") return "image-studio/pro"
+  if (source === "manual") return "image-studio/manual"
+  if (source === "auto_study") return "image-studio/auto-study"
+  const safe = source.toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48)
+  return safe ? `image-studio/${safe}` : "image-studio/other"
+}
+
+async function uploadToStorage(imageBase64: string, userId: string, source: string): Promise<StoredImage | null> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !key) return null
@@ -151,7 +163,11 @@ async function uploadToStorage(imageBase64: string, userId: string): Promise<Sto
     const rawExt = mimeType.split("/")[1] || "png"
     const ext = rawExt.replace(/[^a-zA-Z0-9]/g, "") || "png"
     const buf = Buffer.from(match[2], "base64")
-    const storagePath = `${userId}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`
+    const storageFolder = storageFolderFor(source)
+    const now = new Date()
+    const year = String(now.getUTCFullYear())
+    const month = String(now.getUTCMonth() + 1).padStart(2, "0")
+    const storagePath = `${userId}/${storageFolder}/${year}/${month}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`
 
     const { error } = await admin.storage
       .from("generated-images")
@@ -164,7 +180,7 @@ async function uploadToStorage(imageBase64: string, userId: string): Promise<Sto
 
     const { data } = admin.storage.from("generated-images").getPublicUrl(storagePath)
     if (!data?.publicUrl) return null
-    return { publicUrl: data.publicUrl, storagePath, mimeType }
+    return { publicUrl: data.publicUrl, storagePath, mimeType, storageFolder }
   } catch (error) {
     console.error("[Image][Storage]", errMsg(error))
     return null
@@ -265,6 +281,7 @@ async function tryGemini(
   prompt: string,
   width: number,
   height: number,
+  style: string,
   signal: AbortSignal
 ): Promise<ProviderResult> {
   const label = "Gemini Imagen"
@@ -272,13 +289,20 @@ async function tryGemini(
   if (!keys.length) return { imageBase64: null, label, error: "No hay clave Gemini configurada" }
 
   let lastError = "Gemini no devolvió una imagen"
+  const ratio = aspectRatio(width, height)
+  const highFidelity = style === "infographic" || style === "educational" || style === "flat design"
+  const requestedImageSize = highFidelity ? "2K" : "1K"
 
   for (const model of GEMINI_IMAGE_MODELS) {
     for (const apiKey of keys) {
       if (signal.aborted) return { imageBase64: null, label, model, error: lastError }
+
       try {
+        // Gemini 3 image generation uses the Interactions API. The older
+        // generateContent + generationConfig.responseFormat path rejects
+        // aspect_ratio for these models.
         const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent`,
+          "https://generativelanguage.googleapis.com/v1beta/interactions",
           {
             method: "POST",
             headers: {
@@ -286,12 +310,13 @@ async function tryGemini(
               "x-goog-api-key": apiKey,
             },
             body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: {
-                responseModalities: ["IMAGE"],
-                responseFormat: {
-                  image: { aspectRatio: aspectRatio(width, height) },
-                },
+              model,
+              input: prompt,
+              response_format: {
+                type: "image",
+                mime_type: "image/jpeg",
+                aspect_ratio: ratio,
+                image_size: model.includes("flash-lite-image") ? "1K" : requestedImageSize,
               },
             }),
             signal,
@@ -305,16 +330,33 @@ async function tryGemini(
         }
 
         const data = await res.json()
-        const parts = data?.candidates?.[0]?.content?.parts || []
-        for (const part of parts) {
-          if (part?.inlineData?.data && part?.inlineData?.mimeType?.startsWith("image/")) {
-            return {
-              imageBase64: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`,
-              label,
-              model,
+        const direct = data?.output_image || data?.outputImage
+        if (direct?.data) {
+          const mimeType = direct?.mime_type || direct?.mimeType || "image/jpeg"
+          return {
+            imageBase64: `data:${mimeType};base64,${direct.data}`,
+            label,
+            model,
+          }
+        }
+
+        // Be tolerant of interaction responses that expose model output
+        // through steps/content instead of output_image.
+        const steps = Array.isArray(data?.steps) ? data.steps : []
+        for (const step of steps) {
+          const content = Array.isArray(step?.content) ? step.content : []
+          for (const block of content) {
+            if (block?.type === "image" && block?.data) {
+              const mimeType = block?.mime_type || block?.mimeType || "image/jpeg"
+              return {
+                imageBase64: `data:${mimeType};base64,${block.data}`,
+                label,
+                model,
+              }
             }
           }
         }
+
         lastError = "Respuesta válida, pero sin datos de imagen"
       } catch (error) {
         if (signal.aborted || isAbortError(error)) break
@@ -331,6 +373,7 @@ async function tryPollinations(
   prompt: string,
   width: number,
   height: number,
+  style: string,
   signal: AbortSignal
 ): Promise<ProviderResult> {
   const label = "Pollinations"
@@ -338,8 +381,15 @@ async function tryPollinations(
   const safeW = clamp(width, 256, 1920, 1024)
   const safeH = clamp(height, 256, 1920, 768)
   let lastError = "Pollinations no devolvió una imagen"
+  const textCritical = style === "infographic" || style === "educational" || style === "flat design"
+  const modelOrder = textCritical
+    ? [
+        ...TEXT_CRITICAL_POLLINATIONS_MODELS.filter((model) => POLLINATIONS_IMAGE_MODELS.includes(model)),
+        ...POLLINATIONS_IMAGE_MODELS.filter((model) => !TEXT_CRITICAL_POLLINATIONS_MODELS.includes(model as any)),
+      ]
+    : POLLINATIONS_IMAGE_MODELS
 
-  for (const model of POLLINATIONS_IMAGE_MODELS) {
+  for (const model of modelOrder) {
     if (signal.aborted) break
     try {
       if (apiKey) {
@@ -425,6 +475,7 @@ async function tryTogether(
   prompt: string,
   width: number,
   height: number,
+  style: string,
   signal: AbortSignal
 ): Promise<ProviderResult> {
   const label = "Together AI"
@@ -432,8 +483,15 @@ async function tryTogether(
   if (!keys.length) return { imageBase64: null, label, error: "No hay clave Together configurada" }
 
   let lastError = "Together no devolvió una imagen"
+  const textCritical = style === "infographic" || style === "educational" || style === "flat design"
+  const modelOrder = textCritical
+    ? [
+        ...TOGETHER_IMAGE_MODELS.filter((model) => /FLUX\.1\.1-pro/i.test(model.id)),
+        ...TOGETHER_IMAGE_MODELS.filter((model) => !/FLUX\.1\.1-pro/i.test(model.id)),
+      ]
+    : TOGETHER_IMAGE_MODELS
 
-  for (const { id, steps, guidance, useAspectRatio } of TOGETHER_IMAGE_MODELS) {
+  for (const { id, steps, guidance, useAspectRatio } of modelOrder) {
     for (const key of keys) {
       if (signal.aborted) return { imageBase64: null, label, model: id, error: lastError }
       try {
@@ -635,11 +693,11 @@ async function runProvider(
 ): Promise<ProviderResult> {
   switch (id) {
     case "gemini":
-      return tryGemini(prompt, width, height, signal)
+      return tryGemini(prompt, width, height, style, signal)
     case "pollinations":
-      return tryPollinations(prompt, width, height, signal)
+      return tryPollinations(prompt, width, height, style, signal)
     case "together":
-      return tryTogether(prompt, width, height, signal)
+      return tryTogether(prompt, width, height, style, signal)
     case "huggingface":
       return tryHuggingFace(prompt, width, height, style, signal)
     case "openrouter":
@@ -723,6 +781,8 @@ export async function POST(req: Request) {
   const educationalContext = body?.educationalContext
     ? String(body.educationalContext)
     : undefined
+  const textPriority = body?.textPriority === true
+  const requireStorage = body?.requireStorage === true || source === "image-studio-pro"
 
   if (!prompt) {
     return Response.json({ success: false, error: "Prompt requerido" }, { status: 400 })
@@ -754,6 +814,9 @@ export async function POST(req: Request) {
       mode,
       customPrompt: customPrompt || null,
       educationalContext: educationalContext || null,
+      source,
+      textPriority,
+      requireStorage,
     },
   })
 
@@ -827,11 +890,16 @@ export async function POST(req: Request) {
         ? await optimizePrompt(prompt, style, educationalContext)
         : basicPrompt(prompt, style)
 
-    const order = providerOrder(provider, mode)
+    const baseOrder = providerOrder(provider, mode)
+    const textSafeOrder = TEXT_CRITICAL_PROVIDER_ORDER.filter((candidate) => baseOrder.includes(candidate))
+    const order = provider === "auto" && textPriority && textSafeOrder.length
+      ? textSafeOrder
+      : baseOrder
     const attempts: ProviderAttempt[] = []
     let imageBase64: string | null = null
     let usedProvider = ""
     let usedModel = ""
+    let qualityTier: "text_fidelity" | "general" = textPriority ? "text_fidelity" : "general"
 
     for (let index = 0; index < order.length; index += 1) {
       const currentProvider = order[index]
@@ -864,6 +932,13 @@ export async function POST(req: Request) {
         imageBase64 = result.imageBase64
         usedProvider = result.label
         usedModel = result.model || ""
+        if (textPriority) {
+          const textCapable =
+            currentProvider === "gemini" ||
+            currentProvider === "openrouter" ||
+            (currentProvider === "pollinations" && /qwen-image/i.test(result.model || ""))
+          qualityTier = textCapable ? "text_fidelity" : "general"
+        }
         break
       }
 
@@ -879,6 +954,9 @@ export async function POST(req: Request) {
     if (!imageBase64) {
       const details = attempts.map(formatAttempt)
       const compactDetails = details.join(" | ").slice(0, 1_600)
+      const qualityHint = textPriority && provider === "auto"
+        ? " Diseño Pro evitó proveedores con baja fidelidad de texto; revisa Gemini/Pollinations/OpenRouter."
+        : ""
       await finishGenerationRequest({
         supabase,
         requestId,
@@ -891,7 +969,7 @@ export async function POST(req: Request) {
         {
           success: false,
           code: "IMAGE_PROVIDERS_FAILED",
-          error: `No se pudo generar la imagen. ${compactDetails || "Ningún proveedor quedó disponible."}`,
+          error: `No se pudo generar la imagen. ${compactDetails || "Ningún proveedor quedó disponible."}${qualityHint}`,
           attempts,
           providerOrder: order,
           elapsedMs: Date.now() - startedAt,
@@ -904,7 +982,7 @@ export async function POST(req: Request) {
     let assetId: string | null = null
 
     try {
-      stored = await uploadToStorage(imageBase64, user.id)
+      stored = await uploadToStorage(imageBase64, user.id, source)
       const permanentImageUrl = stored?.publicUrl ?? imageBase64
 
       const { error: legacyInsertError } = await supabase.from("generated_images").insert({
@@ -943,6 +1021,10 @@ export async function POST(req: Request) {
             height,
             optimizedPrompt,
             promptOptimized: promptWasOptimized,
+            storageFolder: stored.storageFolder,
+            storagePath: stored.storagePath,
+            textPriority,
+            qualityTier,
           },
         })
 
@@ -968,8 +1050,32 @@ export async function POST(req: Request) {
           },
         })
       }
+      if (requireStorage && !stored) {
+        throw new Error("No fue posible guardar la imagen en la carpeta de Image Studio")
+      }
     } catch (saveError) {
       console.error("[Image][Save]", errMsg(saveError))
+      if (requireStorage) {
+        await finishGenerationRequest({
+          supabase,
+          requestId,
+          status: "failed",
+          provider: usedProvider,
+          model: usedModel,
+          latencyMs: Date.now() - startedAt,
+          metadata: { storageRequired: true, storageSaved: false },
+          error: errMsg(saveError).slice(0, 1_900),
+        })
+        return Response.json(
+          {
+            success: false,
+            code: "IMAGE_STORAGE_FAILED",
+            error: "La imagen se generó, pero no pudo guardarse en la carpeta de Image Studio. Intenta nuevamente.",
+            elapsedMs: Date.now() - startedAt,
+          },
+          { status: 500, headers: { "Cache-Control": "no-store" } }
+        )
+      }
     }
 
     await finishGenerationRequest({
@@ -1003,6 +1109,9 @@ export async function POST(req: Request) {
         generationAvoided: false,
         assetId,
         persistentUrl: stored?.publicUrl || null,
+        storagePath: stored?.storagePath || null,
+        qualityTier,
+        storageFolder: stored?.storageFolder || null,
         elapsedMs: Date.now() - startedAt,
       },
       { headers: { "Cache-Control": "no-store" } }

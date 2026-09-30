@@ -49,9 +49,21 @@ export const STYLE_GUIDES: Record<string, string> = {
 // automático cuando Google no tiene cuota, no responde o rechaza la solicitud.
 export const DEFAULT_IMAGE_PROVIDER_ORDER: Record<GenerationMode, ConcreteProviderId[]> = {
   fast: ["gemini", "pollinations", "openrouter", "together", "huggingface"],
-  quality: ["gemini", "openrouter", "together", "huggingface", "pollinations"],
-  educational: ["gemini", "openrouter", "pollinations", "together", "huggingface"],
+  quality: ["gemini", "openrouter", "pollinations", "together", "huggingface"],
+  educational: ["gemini", "pollinations", "openrouter", "together", "huggingface"],
 }
+
+export const TEXT_CRITICAL_PROVIDER_ORDER: ConcreteProviderId[] = [
+  "gemini",
+  "pollinations",
+  "openrouter",
+]
+
+export const TEXT_CRITICAL_POLLINATIONS_MODELS = [
+  "qwen-image",
+  "zimage",
+  "flux",
+] as const
 
 const CURRENT_GEMINI_IMAGE_MODELS = [
   "gemini-3.1-flash-image",
@@ -81,9 +93,9 @@ const POLLINATIONS_IMAGE_MODELS_RAW = [
   "qwen-image",
 ]
 
-export const POLLINATIONS_IMAGE_MODELS: string[] = POLLINATIONS_IMAGE_MODELS_RAW.filter(
-  (model): model is string => Boolean(model)
-)
+export const POLLINATIONS_IMAGE_MODELS: string[] = Array.from(new Set(
+  POLLINATIONS_IMAGE_MODELS_RAW.filter((model): model is string => Boolean(model))
+))
 
 export type TogetherImageModel = {
   id: string
