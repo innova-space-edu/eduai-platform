@@ -74,6 +74,24 @@ function includesAny(text: string, keywords: string[]): boolean {
   return keywords.some((keyword) => text.includes(keyword))
 }
 
+function includesWholeTerm(text: string, keywords: string[]): boolean {
+  const normalizedText = ` ${normalizeText(text)
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim()} `
+
+  return keywords.some((keyword) => {
+    const normalizedKeyword = normalizeText(keyword)
+      .replace(/[^\p{L}\p{N}]+/gu, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+
+    return normalizedKeyword
+      ? normalizedText.includes(` ${normalizedKeyword} `)
+      : false
+  })
+}
+
 function safeProvider(value?: string | null): AIProviderId | null {
   const normalized = value?.trim().toLowerCase() as AIProviderId | undefined
   return normalized && PROVIDERS.has(normalized) ? normalized : null
@@ -291,8 +309,8 @@ function fallbackSpeakers(
   const byId = (id: string) => participants.find((participant) => participant.id === id)
   const selected: Array<SocialParticipant | undefined> = []
 
-  if (includesAny(text, [
-    "servidor", "server", "vps", "cloud", "nube", "hosting", "host",
+  if (includesWholeTerm(text, [
+    "servidor", "servidores", "server", "servers", "vps", "cloud", "nube", "hosting", "host",
     "red", "redes", "router", "switch", "api", "backend", "base de datos",
     "database", "software", "hardware", "gpu", "cpu", "ram", "ssd",
     "almacenamiento", "docker", "linux", "windows server", "virtualización",
@@ -525,33 +543,38 @@ Escribe únicamente tu intervención completa como ${participant.name}.`,
     if (!content) return null
 
     if (needsQualityRetry(content, params.userMessage)) {
-      const repaired = await runAIText({
-        messages: [
-          ...messages,
-          { role: "assistant" as const, content },
-          {
-            role: "user" as const,
-            content:
-              "La intervención anterior quedó demasiado breve o inconclusa. Reescríbela completa desde cero, conservando lo útil, cerrando todas las frases y desarrollando suficientemente la respuesta. No menciones este reintento.",
+      try {
+        const repaired = await runAIText({
+          messages: [
+            ...messages,
+            { role: "assistant" as const, content },
+            {
+              role: "user" as const,
+              content:
+                "La intervención anterior quedó demasiado breve o inconclusa. Reescríbela completa desde cero, conservando lo útil, cerrando todas las frases y desarrollando suficientemente la respuesta. No menciones este reintento.",
+            },
+          ],
+          capability: participant.role === "researcher" ? "research" : "text",
+          maxOutputTokens: substantive ? 1500 : 600,
+          lite: false,
+          preferredProvider: preferredProviderFor(participant),
+          context: {
+            userId: params.userId,
+            module: `ai-social-${participant.id}-quality-retry`,
+            reusePolicy: "never",
+            visibility: "private",
           },
-        ],
-        capability: participant.role === "researcher" ? "research" : "text",
-        maxOutputTokens: substantive ? 1500 : 600,
-        lite: false,
-        preferredProvider: preferredProviderFor(participant),
-        context: {
-          userId: params.userId,
-          module: `ai-social-${participant.id}-quality-retry`,
-          reusePolicy: "never",
-          visibility: "private",
-        },
-        supabase: params.supabase,
-      })
+          supabase: params.supabase,
+        })
 
-      const repairedContent = repaired.data.trim()
-      if (repairedContent) {
-        result = repaired
-        content = repairedContent
+        const repairedContent = repaired.data.trim()
+        if (repairedContent) {
+          result = repaired
+          content = repairedContent
+        }
+      } catch {
+        // El reintento de calidad es opcional. Si falla, conservamos la
+        // primera respuesta válida en vez de perder toda la intervención.
       }
     }
 
