@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type SocialRoomSlug = "ideas" | "research" | "teaching-lab" | "creative-studio" | "user-support" | "anticipation"
-type SocialParticipantRole = "supervisor" | "researcher" | "educator" | "mathematician" | "creative" | "assistant"
+type SocialParticipantRole = "supervisor" | "researcher" | "educator" | "engineer" | "mathematician" | "creative" | "assistant"
 
 type SocialParticipant = {
   id: string; name: string; role: SocialParticipantRole; specialty: string; tone: string
@@ -67,6 +67,7 @@ const ROLE_COLORS: Record<string, { dot: string; name: string }> = {
   supervisor:    { dot: "bg-cyan-400",    name: "text-cyan-700" },
   researcher:    { dot: "bg-violet-400",  name: "text-violet-700" },
   educator:      { dot: "bg-emerald-400", name: "text-emerald-700" },
+  engineer:      { dot: "bg-blue-400",    name: "text-blue-700" },
   mathematician: { dot: "bg-amber-400",   name: "text-amber-700" },
   creative:      { dot: "bg-fuchsia-400", name: "text-fuchsia-700" },
   assistant:     { dot: "bg-slate-200",   name: "text-sub" },
@@ -606,7 +607,7 @@ export default function AISocialPage() {
             rows={2}
             className="w-full bg-transparent text-sm text-main outline-none resize-none placeholder-gray-400 disabled:opacity-40"
             placeholder={session?.status === "active"
-              ? "Escribe tu aporte o llama a un agente con @Investigador, @Educador... (Enter para enviar)"
+              ? "Escribe tu aporte o llama a un agente con @Ingeniero, @Investigador, @Educador... (Enter para enviar)"
               : "Reanuda la conversación para escribir"}
           />
           <div className="flex items-center justify-between mt-2 pt-2 border-t border-soft">

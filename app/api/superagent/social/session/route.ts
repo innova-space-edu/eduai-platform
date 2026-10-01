@@ -307,6 +307,7 @@ export async function POST(request: NextRequest) {
               | "supervisor"
               | "researcher"
               | "educator"
+              | "engineer"
               | "mathematician"
               | "creative"
               | "assistant")
