@@ -2,6 +2,7 @@
 
 import { runAIText } from "@/lib/ai/gateway"
 import type { AIProviderId } from "@/lib/ai/capabilities"
+import type { SupabaseClient } from "@supabase/supabase-js"
 import { SUPERAGENT_CONFIG } from "./config"
 import { logSuperAgentInfo, serializeSuperAgentLog } from "./logger"
 import type { SuperAgentRunLog, SuperAgentUserContext } from "./types"
@@ -62,7 +63,6 @@ const PROVIDERS = new Set<AIProviderId>([
   "openrouter",
   "together",
   "cerebras",
-  "local",
 ])
 
 function normalizeText(value?: string): string {
@@ -335,6 +335,8 @@ async function selectSpeakers(params: {
   participants: SocialParticipant[]
   history: SocialMessage[]
   maxSpeakers: number
+  userId?: string | null
+  supabase?: SupabaseClient | null
 }): Promise<SocialParticipant[]> {
   const mentioned = detectMention(params.userMessage, params.participants)
   if (mentioned) return [mentioned]
@@ -373,10 +375,12 @@ Elige como máximo ${params.maxSpeakers} participantes.`,
       lite: true,
       preferredProvider: selectorProvider(),
       context: {
+        userId: params.userId,
         module: "ai-social-selector",
         reusePolicy: "never",
         visibility: "private",
       },
+      supabase: params.supabase,
     })
 
     const ids = parseSpeakerIds(result.data)
@@ -407,6 +411,8 @@ async function generateParticipantMessage(params: {
   topic: string
   userMessage: string
   history: SocialMessage[]
+  userId?: string | null
+  supabase?: SupabaseClient | null
 }): Promise<SocialMessage | null> {
   const { participant } = params
   const otherAgents = params.history
@@ -456,10 +462,12 @@ Escribe únicamente tu intervención como ${participant.name}.`,
       maxOutputTokens: 420,
       preferredProvider: preferredProviderFor(participant),
       context: {
+        userId: params.userId,
         module: `ai-social-${participant.id}`,
         reusePolicy: "never",
         visibility: "private",
       },
+      supabase: params.supabase,
     })
 
     const content = result.data.trim()
@@ -503,6 +511,8 @@ export async function generateAgentRound(params: {
   participants: SocialParticipant[]
   history?: SocialMessage[]
   maxSpeakers?: number
+  userId?: string | null
+  supabase?: SupabaseClient | null
 }): Promise<SocialMessage[]> {
   const history = params.history || []
   const maxSpeakers = Math.max(1, Math.min(params.maxSpeakers || 2, 3))
@@ -514,6 +524,8 @@ export async function generateAgentRound(params: {
     participants: params.participants,
     history,
     maxSpeakers,
+    userId: params.userId,
+    supabase: params.supabase,
   })
 
   const generated: SocialMessage[] = []
@@ -524,6 +536,8 @@ export async function generateAgentRound(params: {
       topic: params.topic,
       userMessage: params.userMessage,
       history: [...history, ...generated],
+      userId: params.userId,
+      supabase: params.supabase,
     })
     if (message) generated.push(message)
   }
@@ -532,7 +546,8 @@ export async function generateAgentRound(params: {
 }
 
 export async function startSocialConversation(
-  context: SuperAgentUserContext
+  context: SuperAgentUserContext,
+  supabase?: SupabaseClient | null
 ): Promise<SocialConversationResult> {
   const logs: SuperAgentRunLog[] = []
   const topic = context.userGoal?.trim() || "Tema no especificado"
@@ -556,6 +571,8 @@ export async function startSocialConversation(
     participants,
     history: [userSeed],
     maxSpeakers: 2,
+    userId: context.userId,
+    supabase,
   })
 
   const messages = [userSeed, ...agentMessages]

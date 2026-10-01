@@ -1,6 +1,7 @@
 // app/api/superagent/social/session/route.ts
 
 import { NextRequest } from "next/server"
+import { createClient } from "@/lib/supabase/server"
 import { SUPERAGENT_CONFIG } from "@/lib/superagent/config"
 import { detectActionFromUserMessage } from "@/lib/superagent/action-router"
 import { executeSuggestedAction } from "@/lib/superagent/action-executor"
@@ -42,9 +43,12 @@ function normalizeActiveAgent(value: unknown): SuperAgentTarget | undefined {
     : undefined
 }
 
-function buildContextFromBody(body: Record<string, unknown>): SuperAgentUserContext {
+function buildContextFromBody(
+  body: Record<string, unknown>,
+  verifiedUserId: string
+): SuperAgentUserContext {
   return {
-    userId: typeof body.userId === "string" ? body.userId : undefined,
+    userId: verifiedUserId,
     currentPage: typeof body.currentPage === "string" ? body.currentPage : undefined,
     activeAgent: normalizeActiveAgent(body.activeAgent),
     userGoal: typeof body.userGoal === "string" ? body.userGoal : undefined,
@@ -62,10 +66,11 @@ function buildContextFromBody(body: Record<string, unknown>): SuperAgentUserCont
 }
 
 function buildExecutionContext(
-  body: Record<string, unknown>
+  body: Record<string, unknown>,
+  verifiedUserId: string
 ): SuperAgentUserContext {
   return {
-    userId: typeof body.userId === "string" ? body.userId : undefined,
+    userId: verifiedUserId,
     currentPage: "/ai-social",
     activeAgent: "social",
     userGoal:
@@ -86,12 +91,21 @@ function buildExecutionContext(
 }
 
 export async function GET(request: NextRequest) {
+  const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) {
+    return Response.json(
+      { ok: false, error: "No autenticado.", code: "UNAUTHORIZED" },
+      { status: 401 }
+    )
+  }
+
   const { searchParams } = new URL(request.url)
   const sessionId = searchParams.get("sessionId")
   const runCleanup = searchParams.get("cleanup") === "true"
 
   if (runCleanup) {
-    const paused = checkAndPauseInactiveSessions()
+    const paused = checkAndPauseInactiveSessions(user.id)
     return Response.json({
       ok: true,
       name: SUPERAGENT_CONFIG.identity.displayName,
@@ -103,7 +117,7 @@ export async function GET(request: NextRequest) {
   }
 
   if (sessionId) {
-    const session = getSocialSession(sessionId)
+    const session = getSocialSession(sessionId, user.id)
 
     if (!session) {
       return Response.json(
@@ -127,25 +141,34 @@ export async function GET(request: NextRequest) {
     ok: true,
     name: SUPERAGENT_CONFIG.identity.displayName,
     alias: SUPERAGENT_CONFIG.identity.engineAlias,
-    sessions: getAllSocialSessions(),
+    sessions: getAllSocialSessions(user.id),
   })
 }
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = await createClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return Response.json(
+        { ok: false, error: "No autenticado.", code: "UNAUTHORIZED" },
+        { status: 401 }
+      )
+    }
+
     const body = (await request.json()) as Record<string, unknown>
     const action =
       typeof body.action === "string" ? body.action.trim().toLowerCase() : "create"
 
     if (action === "create") {
-      const context = buildContextFromBody(body)
+      const context = buildContextFromBody(body, user.id)
       const timeoutMs =
         typeof body.inactivityTimeoutMs === "number" &&
         body.inactivityTimeoutMs >= 5000
           ? body.inactivityTimeoutMs
           : 60000
 
-      const session = await createSocialSession(context, timeoutMs)
+      const session = await createSocialSession(context, timeoutMs, supabase)
 
       return Response.json({
         ok: true,
@@ -166,6 +189,17 @@ export async function POST(request: NextRequest) {
           error: "Debes enviar sessionId para esta acción.",
         },
         { status: 400 }
+      )
+    }
+
+    const ownedSession = getSocialSession(sessionId, user.id)
+    if (!ownedSession) {
+      return Response.json(
+        {
+          ok: false,
+          error: "Sesión social no encontrada para este usuario.",
+        },
+        { status: 404 }
       )
     }
 
@@ -323,6 +357,8 @@ export async function POST(request: NextRequest) {
       const session = await appendAgentRoundFromUser({
         sessionId,
         userMessage,
+        userId: user.id,
+        supabase,
       })
 
       if (!session) {
@@ -380,7 +416,7 @@ export async function POST(request: NextRequest) {
         suggestedGoal: typeof suggestionRaw.suggestedGoal === "string" ? suggestionRaw.suggestedGoal : "",
       }
 
-      const context = buildExecutionContext(body)
+      const context = buildExecutionContext(body, user.id)
       const result  = await executeSuggestedAction({ suggestion, context })
 
       return Response.json({
