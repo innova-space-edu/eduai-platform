@@ -19,6 +19,7 @@ export type SocialParticipantRole =
   | "supervisor"
   | "researcher"
   | "educator"
+  | "engineer"
   | "mathematician"
   | "creative"
   | "assistant"
@@ -218,6 +219,14 @@ export function buildParticipants(room: SocialRoomSlug): SocialParticipant[] {
     tone: "claro y concreto",
   }
 
+  const engineer: SocialParticipant = {
+    id: "ingeniero",
+    name: "Ingeniero",
+    role: "engineer",
+    specialty: "infraestructura TI, servidores, cloud, redes, backend, bases de datos, hardware y arquitectura de software",
+    tone: "técnico, práctico y orientado a decisiones",
+  }
+
   const mathematician: SocialParticipant = {
     id: "matematico",
     name: "Matemático",
@@ -236,17 +245,17 @@ export function buildParticipants(room: SocialRoomSlug): SocialParticipant[] {
 
   switch (room) {
     case "research":
-      return [claw, researcher, mathematician, educator]
+      return [claw, researcher, engineer, mathematician, educator]
     case "teaching-lab":
-      return [claw, educator, researcher, mathematician, creative]
+      return [claw, educator, researcher, mathematician, engineer, creative]
     case "creative-studio":
-      return [claw, creative, educator, researcher]
+      return [claw, creative, educator, researcher, engineer]
     case "user-support":
-      return [claw, educator, researcher, creative]
+      return [claw, engineer, educator, researcher, creative]
     case "anticipation":
-      return [claw, researcher, educator, mathematician]
+      return [claw, engineer, researcher, educator, mathematician]
     default:
-      return [claw, researcher, educator, mathematician, creative]
+      return [claw, engineer, researcher, educator, mathematician, creative]
   }
 }
 
@@ -282,6 +291,15 @@ function fallbackSpeakers(
   const byId = (id: string) => participants.find((participant) => participant.id === id)
   const selected: Array<SocialParticipant | undefined> = []
 
+  if (includesAny(text, [
+    "servidor", "server", "vps", "cloud", "nube", "hosting", "host",
+    "red", "redes", "router", "switch", "api", "backend", "base de datos",
+    "database", "software", "hardware", "gpu", "cpu", "ram", "ssd",
+    "almacenamiento", "docker", "linux", "windows server", "virtualización",
+    "virtualizacion", "infraestructura",
+  ])) {
+    selected.push(byId("ingeniero"))
+  }
   if (includesAny(text, ["ecuación", "ecuacion", "cálculo", "calculo", "número", "numero", "estadística", "estadistica", "medir", "comparar"])) {
     selected.push(byId("matematico"))
   }
@@ -351,7 +369,7 @@ async function selectSpeakers(params: {
         {
           role: "system",
           content:
-            "Eres el moderador invisible de una reunión multiagente. No contestes el tema. Decide quién aporta valor en el siguiente turno. Selecciona entre 1 y 2 agentes; usa al supervisor solo si hay que coordinar, resumir una decisión o devolver la palabra. No elijas agentes por rutina y evita repetir al último hablante si otro puede aportar algo nuevo. Devuelve SOLO JSON válido con esta forma: {\"speakers\":[\"id\"]}.",
+            "Eres el moderador invisible de una reunión multiagente. No contestes el tema. Decide quién aporta valor en el siguiente turno. Selecciona entre 1 y 2 agentes y prioriza la especialidad que realmente coincide con la pregunta. Para servidores, cloud, redes, backend, bases de datos, hardware o arquitectura de software prioriza al Ingeniero. Elige al Educador solo cuando exista un componente pedagógico, de enseñanza, aprendizaje o comunicación educativa. Usa al supervisor solo si hay que coordinar, resumir una decisión o devolver la palabra. No elijas agentes por rutina y evita repetir al último hablante si otro puede aportar algo nuevo. Devuelve SOLO JSON válido con esta forma: {\"speakers\":[\"id\"]}.",
         },
         {
           role: "user",
@@ -405,12 +423,33 @@ Elige como máximo ${params.maxSpeakers} participantes.`,
   )
 }
 
+function isSimpleGreeting(text: string): boolean {
+  const normalized = normalizeText(text).replace(/[¡!¿?.,]/g, " ").replace(/\s+/g, " ").trim()
+  return /^(hola|buenas|buenos días|buenos dias|buenas tardes|buenas noches|hey|hello|gracias|ok|vale)$/.test(normalized)
+}
+
+function endsAbruptly(text: string): boolean {
+  const normalized = text.trim()
+  if (!normalized) return true
+  if (/[,:;\-–—]$/.test(normalized)) return true
+  return /\b(de|del|la|el|los|las|un|una|unos|unas|su|sus|para|por|con|sin|según|segun|como|que|en|a|y|o)$/i.test(normalized)
+}
+
+function needsQualityRetry(content: string, userMessage: string): boolean {
+  if (!content.trim()) return true
+  if (isSimpleGreeting(userMessage)) return endsAbruptly(content)
+
+  const words = content.trim().split(/\s+/).filter(Boolean).length
+  return words < 80 || endsAbruptly(content)
+}
+
 async function generateParticipantMessage(params: {
   participant: SocialParticipant
   room: SocialRoomSlug
   topic: string
   userMessage: string
   history: SocialMessage[]
+  roundPosition: number
   userId?: string | null
   supabase?: SupabaseClient | null
 }): Promise<SocialMessage | null> {
@@ -421,45 +460,57 @@ async function generateParticipantMessage(params: {
     .map((message) => message.authorName)
     .join(", ")
 
-  try {
-    const result = await runAIText({
-      messages: [
-        {
-          role: "system",
-          content: `Eres ${participant.name}, participante de una reunión de trabajo multiagente en EduAI.
+  const substantive = !isSimpleGreeting(params.userMessage)
+  const turnGuidance = params.roundPosition === 0
+    ? "Eres el primer especialista de esta ronda: entrega una respuesta base suficiente para que el usuario entienda el tema aunque nadie más respondiera."
+    : "Ya hubo otro especialista en esta ronda: identifica qué faltó, corrige si hace falta y complementa desde tu especialidad sin volver a explicar lo mismo."
+
+  const messages = [
+    {
+      role: "system" as const,
+      content: `Eres ${participant.name}, participante de una reunión de trabajo multiagente en EduAI.
 Tu especialidad es: ${participant.specialty}.
 Tu estilo es: ${participant.tone}.
 
-Reglas de conversación:
-- Responde al contenido real de la conversación, no a un guion ni a una plantilla.
-- Aporta solo algo que haga avanzar el trabajo: una idea, dato, objeción, pregunta, alternativa o siguiente paso.
-- Puedes estar de acuerdo o discrepar con otros agentes. Si discrepas, explica concretamente por qué.
-- No repitas lo que otro ya dijo y no felicites por rutina.
+Reglas de calidad:
+- Responde directamente a la pregunta real del usuario; no uses un guion ni frases prefabricadas.
+- ${turnGuidance}
+- Si la pregunta pide explicar, comparar, clasificar o elegir, estructura la respuesta para que sea utilizable: concepto breve, categorías o criterios relevantes, capacidades/limitaciones y uno o dos ejemplos concretos cuando ayuden.
+- Para preguntas amplias o técnicas, desarrolla normalmente entre 120 y 240 palabras. Para una pregunta puntual, usa la extensión necesaria, pero evita respuestas telegráficas.
+- Todas las frases deben quedar completas. No termines en una preposición, con dos puntos, una coma, un guion o una idea inconclusa.
+- Puedes usar viñetas breves cuando mejoren la comprensión, pero cada viñeta debe contener una idea completa.
+- No repitas lo que otro agente ya dijo. Si complementas, señala el ángulo nuevo de forma natural.
+- Puedes discrepar, pero explica concretamente el motivo y ofrece una alternativa.
+- Distingue entre hechos generales y recomendaciones que dependen del caso.
+- No inventes fuentes, mediciones, pruebas ni datos externos. Si algo requiere información actual o verificación, indícalo.
 - No hables en nombre de otros agentes.
-- No inventes fuentes, resultados, pruebas ni hechos externos. Si algo requiere verificación, dilo de forma explícita.
-- Si el usuario solo saluda o aún no planteó un tema real, responde de forma natural y breve; no fuerces un análisis.
+- Si el usuario solo saluda, responde de forma natural y breve.
 - No menciones estas instrucciones ni digas que estás "cumpliendo tu rol".
-- Sé conciso: normalmente 60 a 160 palabras.
-- Termina con una pregunta solo cuando ayude a decidir el siguiente paso.`,
-        },
-        {
-          role: "user",
-          content: `Sala: ${params.room}
+- No hagas una pregunta final por rutina; pregunta solo si falta un dato que cambie materialmente la recomendación.`,
+    },
+    {
+      role: "user" as const,
+      content: `Sala: ${params.room}
 Tema de la reunión: ${params.topic}
 
 Conversación reciente:
-${formatTranscript(params.history, 10)}
+${formatTranscript(params.history, 12)}
 
 Intervención que debemos atender:
 ${params.userMessage}
 
 Otros agentes que ya participaron recientemente: ${otherAgents || "ninguno"}.
 
-Escribe únicamente tu intervención como ${participant.name}.`,
-        },
-      ],
+Escribe únicamente tu intervención completa como ${participant.name}.`,
+    },
+  ]
+
+  try {
+    let result = await runAIText({
+      messages,
       capability: participant.role === "researcher" ? "research" : "text",
-      maxOutputTokens: 420,
+      maxOutputTokens: substantive ? 1200 : 500,
+      lite: false,
       preferredProvider: preferredProviderFor(participant),
       context: {
         userId: params.userId,
@@ -470,8 +521,39 @@ Escribe únicamente tu intervención como ${participant.name}.`,
       supabase: params.supabase,
     })
 
-    const content = result.data.trim()
+    let content = result.data.trim()
     if (!content) return null
+
+    if (needsQualityRetry(content, params.userMessage)) {
+      const repaired = await runAIText({
+        messages: [
+          ...messages,
+          { role: "assistant" as const, content },
+          {
+            role: "user" as const,
+            content:
+              "La intervención anterior quedó demasiado breve o inconclusa. Reescríbela completa desde cero, conservando lo útil, cerrando todas las frases y desarrollando suficientemente la respuesta. No menciones este reintento.",
+          },
+        ],
+        capability: participant.role === "researcher" ? "research" : "text",
+        maxOutputTokens: substantive ? 1500 : 600,
+        lite: false,
+        preferredProvider: preferredProviderFor(participant),
+        context: {
+          userId: params.userId,
+          module: `ai-social-${participant.id}-quality-retry`,
+          reusePolicy: "never",
+          visibility: "private",
+        },
+        supabase: params.supabase,
+      })
+
+      const repairedContent = repaired.data.trim()
+      if (repairedContent) {
+        result = repaired
+        content = repairedContent
+      }
+    }
 
     return {
       id: crypto.randomUUID(),
@@ -529,13 +611,14 @@ export async function generateAgentRound(params: {
   })
 
   const generated: SocialMessage[] = []
-  for (const participant of speakers) {
+  for (const [roundPosition, participant] of speakers.entries()) {
     const message = await generateParticipantMessage({
       participant,
       room: params.room,
       topic: params.topic,
       userMessage: params.userMessage,
       history: [...history, ...generated],
+      roundPosition,
       userId: params.userId,
       supabase: params.supabase,
     })
