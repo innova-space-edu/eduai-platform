@@ -320,7 +320,7 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      const session = appendAgentRoundFromUser({
+      const session = await appendAgentRoundFromUser({
         sessionId,
         userMessage,
       })

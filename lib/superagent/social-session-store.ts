@@ -3,6 +3,7 @@
 import {
   generateAgentRound,
   startSocialConversation,
+  summarizeConversation,
 } from "./social-engine"
 import type { SuperAgentUserContext } from "./types"
 import type {
@@ -140,31 +141,34 @@ export function appendSocialMessage(params: {
   return updated
 }
 
-export function appendAgentRoundFromUser(params: {
+export async function appendAgentRoundFromUser(params: {
   sessionId: string
   userMessage: string
-}): SocialSession | null {
+}): Promise<SocialSession | null> {
   const session = socialSessions.get(params.sessionId)
   if (!session) return null
 
-  const generated = generateAgentRound({
+  const generated = await generateAgentRound({
     room: session.room.slug,
     topic: session.room.topic,
     userMessage: params.userMessage,
     participants: session.participants,
+    history: session.messages,
+    maxSpeakers: 2,
   })
 
   if (!generated.length) return session
 
   const timestamp = nowIso()
+  const messages = [...session.messages, ...generated]
 
   const updated: SocialSession = {
     ...session,
     status: "active",
-    messages: [...session.messages, ...generated],
+    messages,
     updatedAt: timestamp,
     lastAgentActivityAt: timestamp,
-    summary: `La sala "${session.room.title}" respondió a una nueva intervención del usuario y generó una ronda adicional de ideas sobre "${session.room.topic}".`,
+    summary: summarizeConversation(session.room.topic, messages),
   }
 
   socialSessions.set(params.sessionId, updated)

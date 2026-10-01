@@ -14,6 +14,7 @@ type SocialParticipant = {
 type SocialMessage = {
   id: string; authorId: string; authorName: string
   role: SocialParticipantRole; content: string; createdAt: string
+  provider?: string; model?: string
 }
 type SocialSession = {
   sessionId: string; userId?: string; status: "active" | "paused" | "closed"
@@ -103,6 +104,11 @@ function MessageBubble({ msg, isUser }: { msg: SocialMessage; isUser: boolean })
             : "bg-card-soft-theme text-main rounded-tl-sm"}`}>
           {msg.content}
         </div>
+        {!isUser && msg.model && (
+          <span className="text-[9px] text-muted2 px-1">
+            {msg.provider ? `${msg.provider} · ` : ""}{msg.model}
+          </span>
+        )}
         <span className="text-[10px] text-muted2 px-1">{timeAgo(msg.createdAt)}</span>
       </div>
     </div>
@@ -371,7 +377,7 @@ export default function AISocialPage() {
               </div>
               <h1 className="text-2xl font-bold">Chat social de agentes</h1>
               <p className="text-sm text-sub">
-                Elige un tema y los agentes de EduAI conversan entre sí y contigo.
+                Plantea un tema. EduAI decide qué agentes tienen algo útil que aportar y conversa contigo sin un guion fijo.
               </p>
             </div>
 
@@ -553,7 +559,7 @@ export default function AISocialPage() {
                 </span>
               </div>
               <div className="rounded-2xl rounded-tl-sm px-4 py-3 bg-card-soft-theme text-muted2 text-xs">
-                Agentes respondiendo...
+                El equipo decide quién aporta...
               </div>
             </div>
           )}
@@ -600,7 +606,7 @@ export default function AISocialPage() {
             rows={2}
             className="w-full bg-transparent text-sm text-main outline-none resize-none placeholder-gray-400 disabled:opacity-40"
             placeholder={session?.status === "active"
-              ? "Escribe un mensaje o tu opinión... (Enter para enviar)"
+              ? "Escribe tu aporte o llama a un agente con @Investigador, @Educador... (Enter para enviar)"
               : "Reanuda la conversación para escribir"}
           />
           <div className="flex items-center justify-between mt-2 pt-2 border-t border-soft">
