@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, MessageSquare, Users, UserPlus, Search, Send, Paperclip } from "lucide-react"
+import { ArrowLeft, MessageSquare, Users, UserPlus, Search, Send, Paperclip, Bot } from "lucide-react"
 
 // ── Tipos (idénticos al original) ────────────────────────────────────────────
 interface Profile      { id: string; name: string; user_code: string; avatar_url?: string; is_online: boolean; last_seen: string }
@@ -256,6 +256,13 @@ export default function ChatPage() {
               <span className="text-[9px]">{label}</span>
             </button>
           ))}
+          <Link href="/ai-social"
+            className="flex-1 py-2.5 text-xs font-medium transition-all flex flex-col items-center gap-0.5 text-violet-600 hover:text-violet-500"
+            style={{ borderBottom: "2px solid transparent" }}
+            title="Abrir Chat Social con agentes IA">
+            <Bot size={14} />
+            <span className="text-[9px]">Social IA</span>
+          </Link>
         </div>
 
         {/* Panel content */}
