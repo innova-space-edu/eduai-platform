@@ -1,5 +1,8 @@
 // lib/superagent/social-engine.ts
 
+import { runAIText } from "@/lib/ai/gateway"
+import type { AIProviderId } from "@/lib/ai/capabilities"
+import type { SupabaseClient } from "@supabase/supabase-js"
 import { SUPERAGENT_CONFIG } from "./config"
 import { logSuperAgentInfo, serializeSuperAgentLog } from "./logger"
 import type { SuperAgentRunLog, SuperAgentUserContext } from "./types"
@@ -35,6 +38,8 @@ export interface SocialMessage {
   role: SocialParticipantRole
   content: string
   createdAt: string
+  provider?: string
+  model?: string
 }
 
 export interface SocialConversationResult {
@@ -52,12 +57,37 @@ export interface SocialConversationResult {
   logs: Record<string, unknown>[]
 }
 
+const PROVIDERS = new Set<AIProviderId>([
+  "google",
+  "groq",
+  "openrouter",
+  "together",
+  "cerebras",
+])
+
 function normalizeText(value?: string): string {
   return (value || "").trim().toLowerCase()
 }
 
 function includesAny(text: string, keywords: string[]): boolean {
   return keywords.some((keyword) => text.includes(keyword))
+}
+
+function safeProvider(value?: string | null): AIProviderId | null {
+  const normalized = value?.trim().toLowerCase() as AIProviderId | undefined
+  return normalized && PROVIDERS.has(normalized) ? normalized : null
+}
+
+function envKeyForParticipant(participant: SocialParticipant): string {
+  return `EDUAI_SOCIAL_PROVIDER_${participant.id.toUpperCase().replace(/[^A-Z0-9]+/g, "_")}`
+}
+
+function preferredProviderFor(participant: SocialParticipant): AIProviderId | null {
+  return safeProvider(process.env[envKeyForParticipant(participant)])
+}
+
+function selectorProvider(): AIProviderId | null {
+  return safeProvider(process.env.EDUAI_SOCIAL_SELECTOR_PROVIDER)
 }
 
 export function detectRoomFromGoal(goal?: string): SocialRoomSlug {
@@ -149,15 +179,15 @@ export function detectRoomFromGoal(goal?: string): SocialRoomSlug {
 function getRoomTitle(slug: SocialRoomSlug): string {
   switch (slug) {
     case "research":
-      return "Sala Research"
+      return "Research"
     case "teaching-lab":
-      return "Teaching Lab"
+      return "Docencia"
     case "creative-studio":
-      return "Creative Studio"
+      return "Creativo"
     case "user-support":
-      return "User Support"
+      return "Soporte"
     case "anticipation":
-      return "Anticipation"
+      return "Anticipar"
     default:
       return "Ideas"
   }
@@ -168,457 +198,396 @@ export function buildParticipants(room: SocialRoomSlug): SocialParticipant[] {
     id: "eduai-claw",
     name: "EduAI Claw",
     role: "supervisor",
-    specialty: "supervisión autónoma",
-    tone: "estratégico",
+    specialty: "coordinar la reunión, detectar bloqueos y devolver la palabra al usuario",
+    tone: "breve y estratégico",
   }
 
   const researcher: SocialParticipant = {
     id: "investigador",
     name: "Investigador",
     role: "researcher",
-    specialty: "análisis académico y papers",
-    tone: "analítico",
+    specialty: "investigación, contraste de hipótesis, evidencia, fuentes y análisis",
+    tone: "analítico y crítico",
   }
 
   const educator: SocialParticipant = {
     id: "educador",
     name: "Educador",
     role: "educator",
-    specialty: "diseño pedagógico",
-    tone: "claro",
+    specialty: "pedagogía, comunicación clara, aprendizaje y aplicación práctica",
+    tone: "claro y concreto",
   }
 
   const mathematician: SocialParticipant = {
     id: "matematico",
     name: "Matemático",
     role: "mathematician",
-    specialty: "rigor lógico y estructura",
-    tone: "riguroso",
+    specialty: "razonamiento lógico, cuantificación, estructura, supuestos y validación",
+    tone: "riguroso y preciso",
   }
 
   const creative: SocialParticipant = {
     id: "creativo",
     name: "Visual IA",
     role: "creative",
-    specialty: "creatividad visual y narrativa",
-    tone: "creativo",
+    specialty: "diseño, comunicación visual, narrativas y alternativas creativas",
+    tone: "creativo pero práctico",
   }
 
   switch (room) {
     case "research":
-      return [claw, researcher, mathematician]
+      return [claw, researcher, mathematician, educator]
     case "teaching-lab":
-      return [claw, educator, mathematician]
+      return [claw, educator, researcher, mathematician, creative]
     case "creative-studio":
-      return [claw, creative, educator]
+      return [claw, creative, educator, researcher]
     case "user-support":
-      return [claw, educator]
+      return [claw, educator, researcher, creative]
     case "anticipation":
-      return [claw, researcher, educator]
+      return [claw, researcher, educator, mathematician]
     default:
-      return [claw, researcher, educator, creative]
+      return [claw, researcher, educator, mathematician, creative]
   }
 }
 
-function buildInitialMessages(
-  room: SocialRoomSlug,
-  topic: string,
+function formatTranscript(messages: SocialMessage[], limit = 10): string {
+  const recent = messages.slice(-limit)
+  if (!recent.length) return "(sin mensajes previos)"
+  return recent
+    .map((message) => `${message.authorName}: ${message.content}`)
+    .join("\n")
+}
+
+function detectMention(
+  userMessage: string,
   participants: SocialParticipant[]
-): SocialMessage[] {
-  const createdAt = new Date().toISOString()
-
-  const claw = participants.find((p) => p.id === "eduai-claw")
-  const researcher = participants.find((p) => p.id === "investigador")
-  const educator = participants.find((p) => p.id === "educador")
-  const mathematician = participants.find((p) => p.id === "matematico")
-  const creative = participants.find((p) => p.id === "creativo")
-
-  const messages: SocialMessage[] = []
-
-  if (claw) {
-    messages.push({
-      id: crypto.randomUUID(),
-      authorId: claw.id,
-      authorName: claw.name,
-      role: claw.role,
-      content: `He abierto esta conversación en la sala "${getRoomTitle(
-        room
-      )}" para analizar el tema: "${topic}". Quiero que construyamos una visión útil para ayudar al usuario.`,
-      createdAt,
-    })
-  }
-
-  if (room === "research" && researcher && mathematician) {
-    messages.push(
-      {
-        id: crypto.randomUUID(),
-        authorId: researcher.id,
-        authorName: researcher.name,
-        role: researcher.role,
-        content:
-          "Veo una oportunidad de estructurar el tema como un problema de investigación, con antecedentes, referencias y una ruta de profundización.",
-        createdAt,
-      },
-      {
-        id: crypto.randomUUID(),
-        authorId: mathematician.id,
-        authorName: mathematician.name,
-        role: mathematician.role,
-        content:
-          "También conviene ordenar el razonamiento en pasos claros. Si el tema requiere precisión, podemos separar definiciones, supuestos y desarrollo lógico.",
-        createdAt,
-      }
-    )
-  } else if (room === "teaching-lab" && educator && mathematician) {
-    messages.push(
-      {
-        id: crypto.randomUUID(),
-        authorId: educator.id,
-        authorName: educator.name,
-        role: educator.role,
-        content:
-          "Desde lo pedagógico, esto podría transformarse en una secuencia de aprendizaje clara, con objetivo, desarrollo, actividad y cierre.",
-        createdAt,
-      },
-      {
-        id: crypto.randomUUID(),
-        authorId: mathematician.id,
-        authorName: mathematician.name,
-        role: mathematician.role,
-        content:
-          "Y si el contenido necesita estructura, puedo apoyar ordenando ejemplos, ejercicios o criterios de progresión.",
-        createdAt,
-      }
-    )
-  } else if (room === "creative-studio" && creative && educator) {
-    messages.push(
-      {
-        id: crypto.randomUUID(),
-        authorId: creative.id,
-        authorName: creative.name,
-        role: creative.role,
-        content:
-          "Este tema puede beneficiarse de una salida visual o narrativa. Podríamos preparar un afiche, infografía o apoyo multimedia.",
-        createdAt,
-      },
-      {
-        id: crypto.randomUUID(),
-        authorId: educator.id,
-        authorName: educator.name,
-        role: educator.role,
-        content:
-          "Si lo hacemos, conviene que el material no solo sea bonito, sino también útil para enseñar o comunicar mejor.",
-        createdAt,
-      }
-    )
-  } else if (room === "anticipation" && researcher && educator) {
-    messages.push(
-      {
-        id: crypto.randomUUID(),
-        authorId: researcher.id,
-        authorName: researcher.name,
-        role: researcher.role,
-        content:
-          "Creo que ya hay suficiente contexto para anticipar un borrador útil. Podemos preparar una base para que el usuario avance más rápido.",
-        createdAt,
-      },
-      {
-        id: crypto.randomUUID(),
-        authorId: educator.id,
-        authorName: educator.name,
-        role: educator.role,
-        content:
-          "Estoy de acuerdo. Conviene que ese borrador sea claro, editable y seguro, sin tocar directamente archivos productivos.",
-        createdAt,
-      }
-    )
-  } else if (room === "user-support" && educator) {
-    messages.push({
-      id: crypto.randomUUID(),
-      authorId: educator.id,
-      authorName: educator.name,
-      role: educator.role,
-      content:
-        "Este caso sugiere acompañamiento claro y amable. Lo importante es que la experiencia siga siendo útil, comprensible y centrada en ayudar.",
-      createdAt,
-    })
-  } else if (researcher && educator) {
-    messages.push(
-      {
-        id: crypto.randomUUID(),
-        authorId: researcher.id,
-        authorName: researcher.name,
-        role: researcher.role,
-        content:
-          "Veo posibilidades interesantes en este tema. Podemos explorarlo desde distintas perspectivas antes de decidir una acción.",
-        createdAt,
-      },
-      {
-        id: crypto.randomUUID(),
-        authorId: educator.id,
-        authorName: educator.name,
-        role: educator.role,
-        content:
-          "Sí. Y después conviene traducir esas ideas en algo que el usuario pueda aprovechar directamente.",
-        createdAt,
-      }
-    )
-  }
-
-  if (claw) {
-    messages.push({
-      id: crypto.randomUUID(),
-      authorId: claw.id,
-      authorName: claw.name,
-      role: claw.role,
-      content:
-        "Conclusión preliminar: esta conversación puede transformarse en una recomendación, borrador o ruta de acción dentro de EduAI.",
-      createdAt,
-    })
-  }
-
-  return messages
+): SocialParticipant | null {
+  const normalized = normalizeText(userMessage)
+  return (
+    participants.find((participant) => {
+      const id = normalizeText(participant.id)
+      const name = normalizeText(participant.name)
+      return normalized.includes(`@${id}`) || normalized.includes(`@${name}`)
+    }) || null
+  )
 }
 
-function buildSummary(room: SocialRoomSlug, topic: string): string {
-  switch (room) {
-    case "research":
-      return `La conversación social detectó que el tema "${topic}" se beneficia de un enfoque de investigación, estructura lógica y posible profundización académica.`
-    case "teaching-lab":
-      return `La conversación social detectó que el tema "${topic}" se adapta bien a una secuencia pedagógica organizada y útil para enseñanza.`
-    case "creative-studio":
-      return `La conversación social detectó que el tema "${topic}" puede fortalecerse con una salida visual, narrativa o multimedia.`
-    case "anticipation":
-      return `La conversación social detectó que el tema "${topic}" es buen candidato para generar un borrador anticipado seguro.`
-    case "user-support":
-      return `La conversación social detectó que el tema "${topic}" requiere apoyo claro, amable y orientado al usuario.`
-    default:
-      return `La conversación social abrió una exploración colaborativa sobre "${topic}" y generó una primera síntesis útil.`
+function fallbackSpeakers(
+  room: SocialRoomSlug,
+  userMessage: string,
+  participants: SocialParticipant[],
+  maxSpeakers: number
+): SocialParticipant[] {
+  const text = normalizeText(userMessage)
+  const byId = (id: string) => participants.find((participant) => participant.id === id)
+  const selected: Array<SocialParticipant | undefined> = []
+
+  if (includesAny(text, ["ecuación", "ecuacion", "cálculo", "calculo", "número", "numero", "estadística", "estadistica", "medir", "comparar"])) {
+    selected.push(byId("matematico"))
+  }
+  if (includesAny(text, ["paper", "fuente", "evidencia", "investiga", "buscar", "referencia", "estudio"])) {
+    selected.push(byId("investigador"))
+  }
+  if (includesAny(text, ["clase", "estudiante", "oa", "planificación", "planificacion", "enseñar", "ensenar"])) {
+    selected.push(byId("educador"))
+  }
+  if (includesAny(text, ["imagen", "diseño", "diseno", "visual", "infografía", "infografia", "creativo"])) {
+    selected.push(byId("creativo"))
+  }
+
+  if (!selected.length) {
+    const defaults: Record<SocialRoomSlug, string[]> = {
+      ideas: ["investigador", "educador"],
+      research: ["investigador", "matematico"],
+      "teaching-lab": ["educador", "investigador"],
+      "creative-studio": ["creativo", "educador"],
+      "user-support": ["educador", "investigador"],
+      anticipation: ["investigador", "educador"],
+    }
+    selected.push(...defaults[room].map(byId))
+  }
+
+  return Array.from(new Map(
+    selected
+      .filter((participant): participant is SocialParticipant => Boolean(participant))
+      .map((participant) => [participant.id, participant])
+  ).values()).slice(0, maxSpeakers)
+}
+
+function parseSpeakerIds(raw: string): string[] {
+  try {
+    const cleaned = raw.replace(/```json/gi, "").replace(/```/g, "").trim()
+    const start = cleaned.indexOf("{")
+    const end = cleaned.lastIndexOf("}")
+    if (start < 0 || end < start) return []
+    const parsed = JSON.parse(cleaned.slice(start, end + 1)) as { speakers?: unknown }
+    if (!Array.isArray(parsed.speakers)) return []
+    return parsed.speakers.filter((value): value is string => typeof value === "string")
+  } catch {
+    return []
   }
 }
 
-export function generateAgentRound(params: {
+async function selectSpeakers(params: {
   room: SocialRoomSlug
   topic: string
   userMessage: string
   participants: SocialParticipant[]
-}): SocialMessage[] {
-  const createdAt = new Date().toISOString()
-  const { room, topic, userMessage, participants } = params
+  history: SocialMessage[]
+  maxSpeakers: number
+  userId?: string | null
+  supabase?: SupabaseClient | null
+}): Promise<SocialParticipant[]> {
+  const mentioned = detectMention(params.userMessage, params.participants)
+  if (mentioned) return [mentioned]
 
-  const claw = participants.find((p) => p.id === "eduai-claw")
-  const researcher = participants.find((p) => p.id === "investigador")
-  const educator = participants.find((p) => p.id === "educador")
-  const mathematician = participants.find((p) => p.id === "matematico")
-  const creative = participants.find((p) => p.id === "creativo")
+  const candidates = params.participants
+    .map((participant) => `- ${participant.id}: ${participant.name} — ${participant.specialty}`)
+    .join("\n")
 
-  const messages: SocialMessage[] = []
+  try {
+    const result = await runAIText({
+      messages: [
+        {
+          role: "system",
+          content:
+            "Eres el moderador invisible de una reunión multiagente. No contestes el tema. Decide quién aporta valor en el siguiente turno. Selecciona entre 1 y 2 agentes; usa al supervisor solo si hay que coordinar, resumir una decisión o devolver la palabra. No elijas agentes por rutina y evita repetir al último hablante si otro puede aportar algo nuevo. Devuelve SOLO JSON válido con esta forma: {\"speakers\":[\"id\"]}.",
+        },
+        {
+          role: "user",
+          content: `Sala: ${params.room}
+Tema: ${params.topic}
 
-  if (room === "research" && researcher && mathematician && claw) {
-    messages.push(
-      {
-        id: crypto.randomUUID(),
-        authorId: researcher.id,
-        authorName: researcher.name,
-        role: researcher.role,
-        content: `Tomando la idea del usuario: "${userMessage}", propongo identificar una pregunta central de investigación y un marco de referencias inicial para el tema "${topic}".`,
-        createdAt,
+Participantes disponibles:
+${candidates}
+
+Conversación reciente:
+${formatTranscript(params.history, 8)}
+
+Última intervención del usuario:
+${params.userMessage}
+
+Elige como máximo ${params.maxSpeakers} participantes.`,
+        },
+      ],
+      capability: "text",
+      maxOutputTokens: 120,
+      lite: true,
+      preferredProvider: selectorProvider(),
+      context: {
+        userId: params.userId,
+        module: "ai-social-selector",
+        reusePolicy: "never",
+        visibility: "private",
       },
-      {
-        id: crypto.randomUUID(),
-        authorId: mathematician.id,
-        authorName: mathematician.name,
-        role: mathematician.role,
-        content:
-          "Yo complementaría eso ordenando las hipótesis o supuestos clave, para que la propuesta tenga una estructura clara y verificable.",
-        createdAt,
-      },
-      {
-        id: crypto.randomUUID(),
-        authorId: claw.id,
-        authorName: claw.name,
-        role: claw.role,
-        content:
-          "Detecto una buena oportunidad para sintetizar esto en un esquema o borrador de investigación si el usuario lo desea.",
-        createdAt,
-      }
-    )
-    return messages
+      supabase: params.supabase,
+    })
+
+    const ids = parseSpeakerIds(result.data)
+    const selected = ids
+      .map((id) => params.participants.find((participant) => participant.id === id))
+      .filter((participant): participant is SocialParticipant => Boolean(participant))
+
+    if (selected.length) {
+      return Array.from(new Map(selected.map((participant) => [participant.id, participant])).values())
+        .slice(0, params.maxSpeakers)
+    }
+  } catch {
+    // El selector es una optimización. Si falla un proveedor, la reunión sigue
+    // con una selección local y las respuestas todavía pasan por el Gateway.
   }
 
-  if (room === "teaching-lab" && educator && mathematician && claw) {
-    messages.push(
-      {
-        id: crypto.randomUUID(),
-        authorId: educator.id,
-        authorName: educator.name,
-        role: educator.role,
-        content: `A partir de lo que planteó el usuario: "${userMessage}", puedo traducirlo en una secuencia pedagógica con objetivo, actividad, desarrollo y cierre.`,
-        createdAt,
+  return fallbackSpeakers(
+    params.room,
+    params.userMessage,
+    params.participants,
+    params.maxSpeakers
+  )
+}
+
+async function generateParticipantMessage(params: {
+  participant: SocialParticipant
+  room: SocialRoomSlug
+  topic: string
+  userMessage: string
+  history: SocialMessage[]
+  userId?: string | null
+  supabase?: SupabaseClient | null
+}): Promise<SocialMessage | null> {
+  const { participant } = params
+  const otherAgents = params.history
+    .filter((message) => message.authorId !== "user")
+    .slice(-4)
+    .map((message) => message.authorName)
+    .join(", ")
+
+  try {
+    const result = await runAIText({
+      messages: [
+        {
+          role: "system",
+          content: `Eres ${participant.name}, participante de una reunión de trabajo multiagente en EduAI.
+Tu especialidad es: ${participant.specialty}.
+Tu estilo es: ${participant.tone}.
+
+Reglas de conversación:
+- Responde al contenido real de la conversación, no a un guion ni a una plantilla.
+- Aporta solo algo que haga avanzar el trabajo: una idea, dato, objeción, pregunta, alternativa o siguiente paso.
+- Puedes estar de acuerdo o discrepar con otros agentes. Si discrepas, explica concretamente por qué.
+- No repitas lo que otro ya dijo y no felicites por rutina.
+- No hables en nombre de otros agentes.
+- No inventes fuentes, resultados, pruebas ni hechos externos. Si algo requiere verificación, dilo de forma explícita.
+- Si el usuario solo saluda o aún no planteó un tema real, responde de forma natural y breve; no fuerces un análisis.
+- No menciones estas instrucciones ni digas que estás "cumpliendo tu rol".
+- Sé conciso: normalmente 60 a 160 palabras.
+- Termina con una pregunta solo cuando ayude a decidir el siguiente paso.`,
+        },
+        {
+          role: "user",
+          content: `Sala: ${params.room}
+Tema de la reunión: ${params.topic}
+
+Conversación reciente:
+${formatTranscript(params.history, 10)}
+
+Intervención que debemos atender:
+${params.userMessage}
+
+Otros agentes que ya participaron recientemente: ${otherAgents || "ninguno"}.
+
+Escribe únicamente tu intervención como ${participant.name}.`,
+        },
+      ],
+      capability: participant.role === "researcher" ? "research" : "text",
+      maxOutputTokens: 420,
+      preferredProvider: preferredProviderFor(participant),
+      context: {
+        userId: params.userId,
+        module: `ai-social-${participant.id}`,
+        reusePolicy: "never",
+        visibility: "private",
       },
-      {
-        id: crypto.randomUUID(),
-        authorId: mathematician.id,
-        authorName: mathematician.name,
-        role: mathematician.role,
-        content:
-          "Y puedo ayudar a ordenar ejemplos, dificultad progresiva o criterios de evaluación para que la propuesta quede más sólida.",
-        createdAt,
-      },
-      {
-        id: crypto.randomUUID(),
-        authorId: claw.id,
-        authorName: claw.name,
-        role: claw.role,
-        content:
-          "Si quieres, esta conversación ya puede transformarse en una planificación o guía preliminar.",
-        createdAt,
-      }
-    )
-    return messages
+      supabase: params.supabase,
+    })
+
+    const content = result.data.trim()
+    if (!content) return null
+
+    return {
+      id: crypto.randomUUID(),
+      authorId: participant.id,
+      authorName: participant.name,
+      role: participant.role,
+      content,
+      createdAt: new Date().toISOString(),
+      provider: result.provider,
+      model: result.model,
+    }
+  } catch {
+    return null
+  }
+}
+
+export function summarizeConversation(
+  topic: string,
+  messages: SocialMessage[]
+): string {
+  const useful = messages
+    .filter((message) => message.authorId !== "user")
+    .slice(-4)
+    .map((message) => `${message.authorName}: ${message.content.replace(/\s+/g, " ").slice(0, 220)}`)
+
+  if (!useful.length) {
+    return `Reunión abierta sobre "${topic}". Aún no hay aportes de agentes.`
   }
 
-  if (room === "creative-studio" && creative && educator && claw) {
-    messages.push(
-      {
-        id: crypto.randomUUID(),
-        authorId: creative.id,
-        authorName: creative.name,
-        role: creative.role,
-        content: `La idea del usuario abre una ruta visual interesante: "${userMessage}". Esto puede convertirse en una pieza gráfica o narrativa bastante fuerte.`,
-        createdAt,
-      },
-      {
-        id: crypto.randomUUID(),
-        authorId: educator.id,
-        authorName: educator.name,
-        role: educator.role,
-        content:
-          "Sí, y conviene que esa pieza visual también tenga un objetivo claro para que no sea solo estética sino útil.",
-        createdAt,
-      },
-      {
-        id: crypto.randomUUID(),
-        authorId: claw.id,
-        authorName: claw.name,
-        role: claw.role,
-        content:
-          "Puedo dejar esto listo para un borrador de afiche, infografía o propuesta visual si se desea.",
-        createdAt,
-      }
-    )
-    return messages
+  return `Tema: ${topic}. Aportes recientes: ${useful.join(" | ")}`
+}
+
+export async function generateAgentRound(params: {
+  room: SocialRoomSlug
+  topic: string
+  userMessage: string
+  participants: SocialParticipant[]
+  history?: SocialMessage[]
+  maxSpeakers?: number
+  userId?: string | null
+  supabase?: SupabaseClient | null
+}): Promise<SocialMessage[]> {
+  const history = params.history || []
+  const maxSpeakers = Math.max(1, Math.min(params.maxSpeakers || 2, 3))
+
+  const speakers = await selectSpeakers({
+    room: params.room,
+    topic: params.topic,
+    userMessage: params.userMessage,
+    participants: params.participants,
+    history,
+    maxSpeakers,
+    userId: params.userId,
+    supabase: params.supabase,
+  })
+
+  const generated: SocialMessage[] = []
+  for (const participant of speakers) {
+    const message = await generateParticipantMessage({
+      participant,
+      room: params.room,
+      topic: params.topic,
+      userMessage: params.userMessage,
+      history: [...history, ...generated],
+      userId: params.userId,
+      supabase: params.supabase,
+    })
+    if (message) generated.push(message)
   }
 
-  if (room === "anticipation" && researcher && educator && claw) {
-    messages.push(
-      {
-        id: crypto.randomUUID(),
-        authorId: researcher.id,
-        authorName: researcher.name,
-        role: researcher.role,
-        content: `Con base en el mensaje "${userMessage}", ya hay suficiente material para anticipar un borrador útil y dejar una base de trabajo.`,
-        createdAt,
-      },
-      {
-        id: crypto.randomUUID(),
-        authorId: educator.id,
-        authorName: educator.name,
-        role: educator.role,
-        content:
-          "Estoy de acuerdo. Lo ideal sería que ese borrador sea claro, editable y directamente aprovechable por el usuario.",
-        createdAt,
-      },
-      {
-        id: crypto.randomUUID(),
-        authorId: claw.id,
-        authorName: claw.name,
-        role: claw.role,
-        content:
-          "La conversación quedó lista para convertirse en draft seguro.",
-        createdAt,
-      }
-    )
-    return messages
-  }
-
-  if (room === "user-support" && educator && claw) {
-    messages.push(
-      {
-        id: crypto.randomUUID(),
-        authorId: educator.id,
-        authorName: educator.name,
-        role: educator.role,
-        content: `Voy a responder considerando la intención del usuario: "${userMessage}", con un enfoque claro, amable y útil.`,
-        createdAt,
-      },
-      {
-        id: crypto.randomUUID(),
-        authorId: claw.id,
-        authorName: claw.name,
-        role: claw.role,
-        content:
-          "Buena línea. Mantengamos la conversación enfocada en ayudar y orientar sin complejizar demasiado.",
-        createdAt,
-      }
-    )
-    return messages
-  }
-
-  if (researcher && educator && claw) {
-    messages.push(
-      {
-        id: crypto.randomUUID(),
-        authorId: researcher.id,
-        authorName: researcher.name,
-        role: researcher.role,
-        content: `El mensaje del usuario "${userMessage}" abre una línea interesante de análisis sobre "${topic}".`,
-        createdAt,
-      },
-      {
-        id: crypto.randomUUID(),
-        authorId: educator.id,
-        authorName: educator.name,
-        role: educator.role,
-        content:
-          "Puedo ayudar a traducir esa línea en algo más claro y útil para avanzar.",
-        createdAt,
-      },
-      {
-        id: crypto.randomUUID(),
-        authorId: claw.id,
-        authorName: claw.name,
-        role: claw.role,
-        content:
-          "Queda una nueva ronda social registrada. Si hace falta, esto puede derivar en recomendación o borrador.",
-        createdAt,
-      }
-    )
-  }
-
-  return messages
+  return generated
 }
 
 export async function startSocialConversation(
-  context: SuperAgentUserContext
+  context: SuperAgentUserContext,
+  supabase?: SupabaseClient | null
 ): Promise<SocialConversationResult> {
   const logs: SuperAgentRunLog[] = []
   const topic = context.userGoal?.trim() || "Tema no especificado"
   const room = detectRoomFromGoal(context.userGoal)
   const participants = buildParticipants(room)
-  const messages = buildInitialMessages(room, topic, participants)
-  const summary = buildSummary(room, topic)
   const createdAt = new Date().toISOString()
+
+  const userSeed: SocialMessage = {
+    id: crypto.randomUUID(),
+    authorId: "user",
+    authorName: "Usuario",
+    role: "assistant",
+    content: topic,
+    createdAt,
+  }
+
+  const agentMessages = await generateAgentRound({
+    room,
+    topic,
+    userMessage: topic,
+    participants,
+    history: [userSeed],
+    maxSpeakers: 2,
+    userId: context.userId,
+    supabase,
+  })
+
+  const messages = [userSeed, ...agentMessages]
+  const summary = summarizeConversation(topic, messages)
 
   logs.push(
     logSuperAgentInfo({
       action: "social_room_created",
       target: "social",
       skillName: "spawn_agent_discussion",
-      message: `EduAI Claw inició una conversación social en la sala "${room}".`,
+      message: `EduAI Claw inició una reunión dinámica en la sala "${room}".`,
       metadata: {
         topic,
-        participants: participants.map((p) => p.name),
+        participants: participants.map((participant) => participant.name),
+        selectedSpeakers: agentMessages.map((message) => message.authorName),
         engineAlias: SUPERAGENT_CONFIG.identity.engineAlias,
       },
     })
@@ -629,7 +598,7 @@ export async function startSocialConversation(
       action: "social_summary_created",
       target: "social",
       skillName: "extract_ideas_from_social_chat",
-      message: "EduAI Claw generó un resumen preliminar de la conversación social.",
+      message: "EduAI Social actualizó el resumen de la reunión.",
       metadata: {
         room,
         messageCount: messages.length,

@@ -1,8 +1,10 @@
 // lib/superagent/social-session-store.ts
 
+import type { SupabaseClient } from "@supabase/supabase-js"
 import {
   generateAgentRound,
   startSocialConversation,
+  summarizeConversation,
 } from "./social-engine"
 import type { SuperAgentUserContext } from "./types"
 import type {
@@ -50,22 +52,26 @@ function buildFallbackSummary(session: SocialSession): string {
   )
 }
 
-export function getAllSocialSessions(): SocialSession[] {
-  return Array.from(socialSessions.values()).sort((a, b) =>
-    b.updatedAt.localeCompare(a.updatedAt)
-  )
+export function getAllSocialSessions(userId?: string): SocialSession[] {
+  return Array.from(socialSessions.values())
+    .filter((session) => !userId || session.userId === userId)
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
 }
 
-export function getSocialSession(sessionId: string): SocialSession | null {
-  return socialSessions.get(sessionId) || null
+export function getSocialSession(sessionId: string, userId?: string): SocialSession | null {
+  const session = socialSessions.get(sessionId) || null
+  if (!session) return null
+  if (userId && session.userId !== userId) return null
+  return session
 }
 
 export async function createSocialSession(
   context: SuperAgentUserContext,
-  inactivityTimeoutMs: number = DEFAULT_TIMEOUT_MS
+  inactivityTimeoutMs: number = DEFAULT_TIMEOUT_MS,
+  supabase?: SupabaseClient | null
 ): Promise<SocialSession> {
   const conversation: SocialConversationResult =
-    await startSocialConversation(context)
+    await startSocialConversation(context, supabase)
 
   const timestamp = nowIso()
 
@@ -140,31 +146,39 @@ export function appendSocialMessage(params: {
   return updated
 }
 
-export function appendAgentRoundFromUser(params: {
+export async function appendAgentRoundFromUser(params: {
   sessionId: string
   userMessage: string
-}): SocialSession | null {
-  const session = socialSessions.get(params.sessionId)
+  userId: string
+  supabase?: SupabaseClient | null
+}): Promise<SocialSession | null> {
+  const session = getSocialSession(params.sessionId, params.userId)
   if (!session) return null
 
-  const generated = generateAgentRound({
+  const generated = await generateAgentRound({
     room: session.room.slug,
     topic: session.room.topic,
     userMessage: params.userMessage,
     participants: session.participants,
+    history: session.messages,
+    maxSpeakers: 2,
+    userId: params.userId,
+    supabase: params.supabase,
   })
 
-  if (!generated.length) return session
+  const latest = getSocialSession(params.sessionId, params.userId)
+  if (!latest) return null
+  if (!generated.length) return latest
 
   const timestamp = nowIso()
+  const messages = [...latest.messages, ...generated]
 
   const updated: SocialSession = {
-    ...session,
-    status: "active",
-    messages: [...session.messages, ...generated],
+    ...latest,
+    messages,
     updatedAt: timestamp,
     lastAgentActivityAt: timestamp,
-    summary: `La sala "${session.room.title}" respondió a una nueva intervención del usuario y generó una ronda adicional de ideas sobre "${session.room.topic}".`,
+    summary: summarizeConversation(latest.room.topic, messages),
   }
 
   socialSessions.set(params.sessionId, updated)
@@ -222,11 +236,12 @@ export function resumeSocialSession(sessionId: string): SocialSession | null {
   return updated
 }
 
-export function checkAndPauseInactiveSessions(): SocialSession[] {
+export function checkAndPauseInactiveSessions(userId?: string): SocialSession[] {
   const now = Date.now()
   const paused: SocialSession[] = []
 
   for (const session of socialSessions.values()) {
+    if (userId && session.userId !== userId) continue
     if (session.status !== "active") continue
 
     const lastUserActivity = new Date(session.lastUserActivityAt).getTime()
