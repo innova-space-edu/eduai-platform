@@ -228,6 +228,8 @@ export default function ClawStudyConsole({ displayName = "Docente", isAdmin = fa
   const recordingChunksRef = useRef<Blob[]>([])
   const recordingTimerRef = useRef<number | null>(null)
   const recordingStartedAtRef = useRef(0)
+  const messagesRef = useRef<Message[]>(messages)
+  const loadingRef = useRef(false)
 
   const contextualPrompt = useMemo(() => {
     const contextBits = [
@@ -278,18 +280,42 @@ export default function ClawStudyConsole({ displayName = "Docente", isAdmin = fa
     }
   }, [])
 
+  const replaceChatMessages = (nextMessages: Message[]) => {
+    messagesRef.current = nextMessages
+    setMessages(nextMessages)
+  }
+
+  const appendChatMessage = (message: Message) => {
+    const nextMessages = [...messagesRef.current, message]
+    messagesRef.current = nextMessages
+    setMessages(nextMessages)
+  }
+
+  const setChatLoading = (value: boolean) => {
+    loadingRef.current = value
+    setLoading(value)
+  }
+
+  const waitForChatIdle = async () => {
+    const deadline = Date.now() + 45_000
+    while (loadingRef.current && Date.now() < deadline) {
+      await new Promise((resolve) => window.setTimeout(resolve, 80))
+    }
+    if (loadingRef.current) throw new Error("La respuesta anterior todavía está en curso.")
+  }
+
   const send = async (override?: string) => {
     const text = String(override ?? input).trim()
-    if (!text || loading || voiceState === "recording") return
+    if (!text || loadingRef.current || voiceState === "recording") return
 
     const requestedToolName = selectedTool?.name
     setInput("")
     setSelectedTool(null)
     setToolsOpen(false)
     setSuggestions([])
-    const nextMessages: Message[] = [...messages, { role: "user", content: text }]
-    setMessages(nextMessages)
-    setLoading(true)
+    const nextMessages: Message[] = [...messagesRef.current, { role: "user", content: text }]
+    replaceChatMessages(nextMessages)
+    setChatLoading(true)
 
     try {
       const response = await fetch("/api/agents/claw-chat", {
@@ -316,34 +342,35 @@ export default function ClawStudyConsole({ displayName = "Docente", isAdmin = fa
       const data = await response.json()
       if (!response.ok) throw new Error(data?.error || "No se pudo responder")
 
-      setMessages((prev) => [...prev, { role: "assistant", content: data.reply || "Listo." }])
+      appendChatMessage({ role: "assistant", content: data.reply || "Listo." })
       setSuggestions(Array.isArray(data.suggestions) ? data.suggestions : [])
     } catch (error) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: error instanceof Error ? `No pude completar la acción: ${error.message}` : "No pude completar la acción.",
-        },
-      ])
+      appendChatMessage({
+        role: "assistant",
+        content: error instanceof Error ? `No pude completar la acción: ${error.message}` : "No pude completar la acción.",
+      })
     } finally {
-      setLoading(false)
+      setChatLoading(false)
     }
   }
 
   const sendVoiceConversation = async (transcript: string, detectedLanguage: "es" | "en"): Promise<string> => {
     const text = String(transcript || "").trim()
     if (!text) throw new Error("No pude reconocer palabras claras.")
-    if (loading || voiceState === "recording") throw new Error("Espera a que termine la respuesta anterior.")
+    if (voiceState === "recording") throw new Error("Termina primero el dictado actual.")
+
+    // Si el usuario envió un mensaje escrito mientras MIRA aún estaba
+    // transcribiendo, la voz espera ese turno y luego usa el historial vigente.
+    await waitForChatIdle()
 
     setInput("")
     setSelectedTool(null)
     setToolsOpen(false)
     setSuggestions([])
 
-    const nextMessages: Message[] = [...messages, { role: "user", content: text }]
-    setMessages(nextMessages)
-    setLoading(true)
+    const nextMessages: Message[] = [...messagesRef.current, { role: "user", content: text }]
+    replaceChatMessages(nextMessages)
+    setChatLoading(true)
 
     try {
       const response = await fetch("/api/agents/claw-chat", {
@@ -372,18 +399,15 @@ export default function ClawStudyConsole({ displayName = "Docente", isAdmin = fa
       if (!response.ok) throw new Error(data?.error || "No se pudo responder")
 
       const reply = String(data.reply || "Listo.").trim()
-      setMessages((prev) => [...prev, { role: "assistant", content: reply }])
+      appendChatMessage({ role: "assistant", content: reply })
       setSuggestions(Array.isArray(data.suggestions) ? data.suggestions : [])
       return reply
     } catch (error) {
       const message = error instanceof Error ? error.message : "No pude completar la acción."
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: `No pude completar la acción: ${message}` },
-      ])
+      appendChatMessage({ role: "assistant", content: `No pude completar la acción: ${message}` })
       throw error
     } finally {
-      setLoading(false)
+      setChatLoading(false)
     }
   }
 
