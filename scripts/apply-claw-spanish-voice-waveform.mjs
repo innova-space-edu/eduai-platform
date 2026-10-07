@@ -30,12 +30,14 @@ function patchClaw() {
   let source = load(path)
   if (source.includes(MARKER)) return
 
-  source = replaceOnce(
-    source,
-    "  Loader2,\n  Mic,\n  PenLine,",
-    "  Loader2,\n  Mic,\n  Check,\n  X,\n  PenLine,",
-    "iconos de voz",
-  )
+  if (!source.includes("  Check,\n")) {
+    if (!source.includes("  Loader2,\n")) throw new Error("[claw-voice] No se encontró icono Loader2")
+    source = source.replace("  Loader2,\n", "  Loader2,\n  Check,\n")
+  }
+  if (!source.includes("  X,\n")) {
+    if (!source.includes("  Mic,\n")) throw new Error("[claw-voice] No se encontró icono Mic")
+    source = source.replace("  Mic,\n", "  Mic,\n  X,\n")
+  }
 
   source = replaceOnce(
     source,

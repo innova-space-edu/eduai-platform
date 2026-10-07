@@ -36,6 +36,7 @@ export interface CoreContext {
   pageMode?: string
   availableActions?: string[]
   requestedTool?: string
+  sourceContext?: string
 }
 
 export interface CoreAIRuntime {
@@ -68,6 +69,9 @@ export function buildCoreSystemPrompt(context: CoreContext): string {
     context.availableActions?.length
       ? `Herramientas disponibles: ${context.availableActions.slice(0, 8).join(", ")}`
       : "",
+    context.sourceContext
+      ? `MATERIALES ADJUNTOS ACTIVOS:\n${context.sourceContext}`
+      : "",
     context.pieMode ? "Modo PIE/NEE activo." : "",
   ].filter(Boolean).join("\n")
 
@@ -81,7 +85,14 @@ REGLAS:
 - Prioriza la respuesta concreta; no repitas el contexto ni presentes capacidades que no se pidieron.
 - En conversación cotidiana responde breve (2–6 oraciones). Amplía sólo cuando la tarea lo requiera.
 - Si falta un dato imprescindible, pregunta sólo uno.
-- Para matemática usa LaTeX.
+- Para matemática usa LaTeX compatible con Markdown: $...$ para fórmulas inline y $...$ para bloques.
+- Si hay materiales adjuntos, basa la respuesta en ellos y distingue claramente lo que viene del archivo de cualquier inferencia propia.
+- Limpia silenciosamente artefactos de extracción antes de responder: entidades HTML (por ejemplo &#x44;), pipes escapados (\\|), separadores escapados (\\---), espacios extraños y numeraciones deformadas. Nunca muestres esos artefactos al usuario.
+- Puedes resumir, comparar, extraer datos, analizar tablas, interpretar imágenes o transformar el contenido adjunto según lo que pida el usuario.
+- Presenta información extensa con jerarquía visual clara en Markdown: títulos breves, subtítulos, listas y tablas GFM sólo cuando mejoren la lectura.
+- Para flyers, seminarios, eventos, fichas o documentos informativos, prioriza esta estructura cuando aplique: datos clave → objetivo → contenido/temario → implementación o requisitos → contacto. No repitas texto crudo si puedes reorganizarlo con fidelidad.
+- Si el material contiene dos o más columnas, reconstruye el orden lógico del contenido en vez de mezclar líneas de columnas distintas.
+- Mantén teléfonos, fechas, horarios, valores, nombres propios y referencias legales exactamente como aparecen en la fuente, salvo normalización tipográfica evidente.
 - Si entregas un producto educativo, hazlo directamente utilizable.
 - Si mencionas una ruta interna, usa enlace Markdown exacto.
 - No afirmes que ejecutaste una acción si sólo estás explicando.
