@@ -463,7 +463,7 @@ export default function MiraVoicePopup({
           role="dialog"
           aria-modal="false"
           aria-label="MIRA conversación en vivo"
-          className="fixed bottom-28 right-5 z-[90] w-[min(92vw,430px)] overflow-hidden rounded-[28px] border border-cyan-300/20 bg-[#08111f]/[0.97] text-white shadow-[0_28px_90px_rgba(2,8,23,.55)] backdrop-blur-2xl max-sm:bottom-24 max-sm:left-3 max-sm:right-3 max-sm:w-auto"
+          className="fixed bottom-36 right-5 z-[90] w-[min(92vw,430px)] overflow-hidden rounded-[28px] border border-cyan-300/20 bg-[#08111f]/[0.97] text-white shadow-[0_28px_90px_rgba(2,8,23,.55)] backdrop-blur-2xl max-sm:bottom-28 max-sm:left-3 max-sm:right-3 max-sm:w-auto"
         >
           <div className="border-b border-white/10 px-4 py-3.5">
             <div className="flex items-start justify-between gap-3">
