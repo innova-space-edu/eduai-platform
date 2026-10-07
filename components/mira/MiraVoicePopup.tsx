@@ -203,7 +203,7 @@ export default function MiraVoicePopup({
       const extension = blob.type.includes("ogg") ? "ogg" : blob.type.includes("mp4") ? "m4a" : "webm"
       formData.append("audio", blob, `mira-turn.${extension}`)
       formData.append("mode", onConversationTurn ? "transcribe" : mode)
-      formData.append("language", onConversationTurn ? "auto" : language)
+      formData.append("language", language)
       if (!onConversationTurn && mode === "conversation" && historyRef.current.length) {
         formData.append("history", JSON.stringify(historyRef.current))
       }
@@ -220,7 +220,7 @@ export default function MiraVoicePopup({
       setDetectedLanguage(sourceCode)
 
       let responseText = String(data.responseText || data.reply || data.translated || "").trim()
-      let targetCode: LanguageCode = data.targetCode === "en" ? "en" : sourceCode === "en" ? "en" : "es"
+      let targetCode: LanguageCode = data.targetCode === "en" ? "en" : data.targetCode === "es" ? "es" : mode === "translate" ? oppositeLanguage(sourceCode) : sourceCode
       let targetLanguage = String(data.targetLanguage || `${assistantLabel} · ${LANGUAGE_META[targetCode].label}`)
 
       if (onConversationTurn) {
@@ -616,7 +616,11 @@ export default function MiraVoicePopup({
                 type="button"
                 onClick={() => {
                   setMuteOutput((value) => !value)
-                  if (!muteOutput && "speechSynthesis" in window) window.speechSynthesis.cancel()
+                  if (!muteOutput && "speechSynthesis" in window) {
+                    window.speechSynthesis.cancel()
+                    setPhase("idle")
+                    if (autoContinueRef.current) window.setTimeout(() => void beginListeningRef.current(), 180)
+                  }
                 }}
                 className="inline-flex items-center gap-1.5 rounded-full border border-white/10 px-3 py-2 text-[10px] font-semibold text-slate-300 transition hover:bg-white/[0.06]"
               >
